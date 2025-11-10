@@ -4,6 +4,7 @@ import { TABS, INITIAL_FORM_DATA, DEMO_DATA } from './constants';
 import { ChevronLeftIcon, ChevronRightIcon, DownloadIcon, PrinterIcon, FilePlus2Icon, RefreshCwIcon } from './components/ui/icons';
 import Toast from './components/ui/Toast';
 import { generatePdf } from './utils/pdfGenerator';
+import { PktHeader, PktButton } from '@oslokommune/punkt-react';
 
 import GrunninfoPanel from './components/panels/GrunninfoPanel';
 import VarselPanel from './components/panels/VarselPanel';
@@ -181,33 +182,41 @@ const App: React.FC = () => {
         <div className="mt-8 px-4 sm:px-0 flex items-center" role="navigation" aria-label="Steg navigasjon">
             <div className="flex-1 flex justify-start">
                 {activeTab > 0 && (
-                    <button
+                    <PktButton
+                        skin="secondary"
+                        size="medium"
                         onClick={handlePrevTab}
-                        className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-border-color text-sm font-medium rounded-md shadow-sm text-ink-dim bg-white hover:bg-gray-50 transition-colors"
                     >
-                        <ChevronLeftIcon className="h-5 w-5" />
+                        <ChevronLeftIcon className="h-5 w-5 mr-2" />
                         Forrige
-                    </button>
+                    </PktButton>
                 )}
             </div>
 
             <div className="flex-1 flex justify-center">
                 <div className="flex items-center justify-center gap-3">
-                    <button onClick={handleDownloadPdf} className="inline-flex items-center justify-center px-3 py-2 border border-border-color text-sm font-medium rounded-md shadow-sm text-ink-dim bg-white hover:bg-gray-50 whitespace-nowrap"><DownloadIcon className="h-4 w-4 mr-2" /> PDF</button>
-                    <button onClick={handleDemo} className="inline-flex items-center justify-center px-3 py-2 border border-border-color text-sm font-medium rounded-md shadow-sm text-ink-dim bg-white hover:bg-gray-50 whitespace-nowrap"><FilePlus2Icon className="h-4 w-4 mr-2" /> Eksempel</button>
-                    <button onClick={handleReset} className="inline-flex items-center justify-center px-3 py-2 border border-warn text-sm font-medium rounded-md shadow-sm text-warn bg-warn/10 hover:bg-warn/20 whitespace-nowrap"><RefreshCwIcon className="h-4 w-4 mr-2" /> Nullstill</button>
+                    <PktButton skin="secondary" size="small" onClick={handleDownloadPdf}>
+                        <DownloadIcon className="h-4 w-4 mr-2" /> PDF
+                    </PktButton>
+                    <PktButton skin="secondary" size="small" onClick={handleDemo}>
+                        <FilePlus2Icon className="h-4 w-4 mr-2" /> Eksempel
+                    </PktButton>
+                    <PktButton skin="tertiary" size="small" onClick={handleReset}>
+                        <RefreshCwIcon className="h-4 w-4 mr-2" /> Nullstill
+                    </PktButton>
                 </div>
             </div>
 
             <div className="flex-1 flex justify-end">
                 {activeTab < TABS.length - 1 && (
-                     <button
+                    <PktButton
+                        skin="primary"
+                        size="medium"
                         onClick={handleNextTab}
-                        className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-pri hover:bg-pri-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pri transition-colors"
                     >
                         Neste Steg
-                        <ChevronRightIcon className="h-5 w-5" />
-                    </button>
+                        <ChevronRightIcon className="h-5 w-5 ml-2" />
+                    </PktButton>
                 )}
             </div>
         </div>
@@ -216,12 +225,16 @@ const App: React.FC = () => {
 
     return (
         <div className="bg-body-bg min-h-screen text-ink font-sans">
+            <PktHeader
+                serviceName="Skjema for krav om endringsordre (KOE)"
+                user={{ name: formData.rolle === 'TE' ? 'Total Entreprenør' : 'Byggherren', showName: true }}
+            />
             <header className="bg-card-bg border-b border-border-color sticky top-0 z-10">
                 <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center py-4">
                         <div>
                             <h1 className="text-xl font-semibold flex gap-2.5 items-center">
-                                Skjema for krav om endringsordre (KOE) 
+                                Skjema for krav om endringsordre (KOE)
                                 <span className="text-muted font-medium bg-gray-100 py-0.5 px-2.5 rounded-full border border-border-color text-xs">v5.0</span>
                             </h1>
                             <p className="subtitle text-sm text-muted mt-1">NS 8407:2011‑konsistent TE → BH to‑trinns flyt • Datamodell 3.3</p>

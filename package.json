@@ -9,15 +9,24 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@oslokommune/punkt-css": "^13.13.2",
+    "@oslokommune/punkt-react": "^13.15.2",
+    "jspdf": "^3.0.3",
+    "jspdf-autotable": "^5.0.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "jspdf-autotable": "^5.0.2",
-    "jspdf": "^3.0.3"
+    "react-router-dom": "^7.9.5"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
+  },
+  "overrides": {
+    "@oslokommune/punkt-react": {
+      "react": "$react",
+      "react-dom": "$react-dom"
+    }
   }
 }
