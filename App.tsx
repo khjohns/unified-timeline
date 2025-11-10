@@ -4,7 +4,7 @@ import { TABS, INITIAL_FORM_DATA, DEMO_DATA } from './constants';
 import { ChevronLeftIcon, ChevronRightIcon, DownloadIcon, PrinterIcon, FilePlus2Icon, RefreshCwIcon } from './components/ui/icons';
 import Toast from './components/ui/Toast';
 import { generatePdf } from './utils/pdfGenerator';
-import { PktHeader, PktButton, PktModal, PktTabItem } from '@oslokommune/punkt-react';
+import { PktHeader, PktButton, PktModal, PktTabs, PktTabItem } from '@oslokommune/punkt-react';
 
 import GrunninfoPanel from './components/panels/GrunninfoPanel';
 import VarselPanel from './components/panels/VarselPanel';
@@ -188,23 +188,21 @@ const App: React.FC = () => {
     };
 
     const renderTabs = () => (
-        <nav aria-label="Tabs" role="tablist" className="pkt-tabs">
-            <div className="pkt-tabs__tablist">
-                {TABS.map((tab, idx) => (
-                    <PktTabItem
-                        key={tab.label}
-                        active={activeTab === idx}
-                        onClick={() => {
-                            setActiveTab(idx);
-                            window.scrollTo(0, 0);
-                        }}
-                        index={idx}
-                    >
-                        {tab.label}
-                    </PktTabItem>
-                ))}
-            </div>
-        </nav>
+        <PktTabs>
+            {TABS.map((tab, idx) => (
+                <PktTabItem
+                    key={tab.label}
+                    active={activeTab === idx}
+                    onClick={() => {
+                        setActiveTab(idx);
+                        window.scrollTo(0, 0);
+                    }}
+                    index={idx}
+                >
+                    {tab.label}
+                </PktTabItem>
+            ))}
+        </PktTabs>
     );
 
     const renderPanel = () => {
