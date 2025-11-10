@@ -2,7 +2,7 @@ import { FormDataModel } from './types';
 
 export const TABS = [
     { label: 'Grunninfo', icon: 'information' },
-    { label: 'Varsel', icon: 'alert-outline' },
+    { label: 'Varsel', icon: 'alert-warning' },
     { label: 'Krav (KOE)', icon: 'document-text' },
     { label: 'BH Svar', icon: 'check-circle' },
     { label: 'Oppsummering', icon: 'list' },
