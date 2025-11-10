@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Side</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .test {
+            background: white;
+            padding: 20px;
+            border: 2px solid #333;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test">
+        <h1>Test Side - Fungerer dette på mobil?</h1>
+        <p>Hvis du ser denne teksten, så fungerer HTML og CSS.</p>
+        <div id="js-test">JavaScript har ikke kjørt ennå...</div>
+    </div>
+    <script>
+        document.getElementById('js-test').textContent = 'JavaScript fungerer! ✓';
+        console.log('JavaScript kjører');
+    </script>
+</body>
+</html>
