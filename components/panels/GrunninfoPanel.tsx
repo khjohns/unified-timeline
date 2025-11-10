@@ -25,7 +25,6 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
             onChange={e => handleChange('sakstittel', e.target.value)}
             required
             placeholder=""
-            helpText="En kort og beskrivende tittel for saken."
             error={errors['sak.sakstittel']}
           />
           <InputField
@@ -61,7 +60,7 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
       <FieldsetCard legend="Prosjekt">
         <div className="pkt-grid">
           <InputField className="pkt-cell pkt-cell--span6-tablet-up" id="sak.prosjekt_navn" label="Prosjekt" value={sak.prosjekt_navn} onChange={e => handleChange('prosjekt_navn', e.target.value)} required error={errors['sak.prosjekt_navn']} />
-          <InputField className="pkt-cell pkt-cell--span6-tablet-up" id="sak.kontrakt_referanse" label="Kontraktsreferanse" value={sak.kontrakt_referanse} onChange={e => handleChange('kontrakt_referanse', e.target.value)} required error={errors['sak.kontrakt_referanse']} />
+          <InputField className="pkt-cell pkt-cell--span6-tablet-up" id="sak.kontrakt_referanse" label="Prosjektnummer" value={sak.kontrakt_referanse} onChange={e => handleChange('kontrakt_referanse', e.target.value)} required error={errors['sak.kontrakt_referanse']} />
           <InputField className="pkt-cell pkt-cell--span6-tablet-up" id="sak.entreprenor" label="Entreprenør (TE)" value={sak.entreprenor} onChange={e => handleChange('entreprenor', e.target.value)} required error={errors['sak.entreprenor']} />
           <InputField className="pkt-cell pkt-cell--span6-tablet-up" id="sak.byggherre" label="Byggherre (BH)" value={sak.byggherre} onChange={e => handleChange('byggherre', e.target.value)} required error={errors['sak.byggherre']} />
         </div>

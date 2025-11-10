@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckIcon } from './icons';
+import { PktAlert } from '@oslokommune/punkt-react';
 
 interface ToastProps {
   message: string;
@@ -7,11 +7,7 @@ interface ToastProps {
 
 const Toast: React.FC<ToastProps> = ({ message }) => {
   return (
-    <div
-      className="fixed bottom-5 right-5 flex items-center gap-3 bg-pri-600 text-white py-2 px-4 rounded-lg shadow-lg transition-all duration-300 ease-in-out transform animate-fade-in-up"
-      role="alert"
-      aria-live="assertive"
-    >
+    <div className="fixed bottom-5 right-5 z-50 max-w-md animate-fade-in-up">
       <style>{`
         @keyframes fade-in-up {
           from { opacity: 0; transform: translateY(1rem); }
@@ -21,8 +17,14 @@ const Toast: React.FC<ToastProps> = ({ message }) => {
           animation: fade-in-up 0.3s ease-out forwards;
         }
       `}</style>
-      <CheckIcon className="w-5 h-5" />
-      <span>{message}</span>
+      <PktAlert
+        skin="success"
+        compact
+        role="status"
+        aria-live="polite"
+      >
+        {message}
+      </PktAlert>
     </div>
   );
 };

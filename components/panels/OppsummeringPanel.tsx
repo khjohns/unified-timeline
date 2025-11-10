@@ -34,7 +34,7 @@ const OppsummeringPanel: React.FC<OppsummeringPanelProps> = ({ data }) => {
                     <SummaryItem label="Opprettet dato" value={data.sak.opprettet_dato} />
                     <SummaryItem label="Opprettet av" value={data.sak.opprettet_av} />
                     <SummaryItem label="Prosjekt" value={data.sak.prosjekt_navn} />
-                    <SummaryItem label="Kontraktsreferanse" value={data.sak.kontrakt_referanse} />
+                    <SummaryItem label="Prosjektnummer" value={data.sak.kontrakt_referanse} />
                     <SummaryItem label="Entreprenør (TE)" value={data.sak.entreprenor} />
                     <SummaryItem label="Byggherre (BH)" value={data.sak.byggherre} />
                 </Section>

@@ -4,7 +4,7 @@ import { TABS, INITIAL_FORM_DATA, DEMO_DATA } from './constants';
 import { ChevronLeftIcon, ChevronRightIcon, DownloadIcon, PrinterIcon, FilePlus2Icon, RefreshCwIcon } from './components/ui/icons';
 import Toast from './components/ui/Toast';
 import { generatePdf } from './utils/pdfGenerator';
-import { PktHeader, PktButton } from '@oslokommune/punkt-react';
+import { PktHeader, PktButton, PktModal, PktTabItem } from '@oslokommune/punkt-react';
 
 import GrunninfoPanel from './components/panels/GrunninfoPanel';
 import VarselPanel from './components/panels/VarselPanel';
@@ -19,6 +19,18 @@ const App: React.FC = () => {
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [toastMessage, setToastMessage] = useState('');
     const debounceTimeoutRef = useRef<number | null>(null);
+    const [modalConfig, setModalConfig] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => {},
+    });
+    const modalRef = useRef<HTMLElement>(null);
 
     // Load from localStorage on initial mount
     useEffect(() => {
@@ -111,19 +123,54 @@ const App: React.FC = () => {
         }
     };
     
-    const handleReset = () => {
-        if(window.confirm('Er du sikker på at du vil nullstille skjemaet? Alle ulagrede data vil gå tapt.')) {
-            setFormData(JSON.parse(JSON.stringify(INITIAL_FORM_DATA)));
-            setErrors({});
-            localStorage.removeItem('koe_v5_0_draft');
-        }
+    const openModal = (title: string, message: string, onConfirm: () => void) => {
+        setModalConfig({
+            isOpen: true,
+            title,
+            message,
+            onConfirm,
+        });
+        // Open the modal using the ref
+        setTimeout(() => {
+            if (modalRef.current && 'open' in modalRef.current) {
+                (modalRef.current as any).open();
+            }
+        }, 0);
     };
-    
-    const handleDemo = () => {
-        if(window.confirm('Dette vil erstatte nåværende data med eksempeldata. Fortsette?')) {
-            setFormData(JSON.parse(JSON.stringify(DEMO_DATA)));
-            setErrors({});
+
+    const closeModal = () => {
+        if (modalRef.current && 'close' in modalRef.current) {
+            (modalRef.current as any).close();
         }
+        setModalConfig(prev => ({ ...prev, isOpen: false }));
+    };
+
+    const handleModalConfirm = () => {
+        modalConfig.onConfirm();
+        closeModal();
+    };
+
+    const handleReset = () => {
+        openModal(
+            'Nullstill skjema',
+            'Er du sikker på at du vil nullstille skjemaet? Alle ulagrede data vil gå tapt.',
+            () => {
+                setFormData(JSON.parse(JSON.stringify(INITIAL_FORM_DATA)));
+                setErrors({});
+                localStorage.removeItem('koe_v5_0_draft');
+            }
+        );
+    };
+
+    const handleDemo = () => {
+        openModal(
+            'Last inn eksempeldata',
+            'Dette vil erstatte nåværende data med eksempeldata. Fortsette?',
+            () => {
+                setFormData(JSON.parse(JSON.stringify(DEMO_DATA)));
+                setErrors({});
+            }
+        );
     };
 
     const handleNextTab = () => {
@@ -141,25 +188,23 @@ const App: React.FC = () => {
     };
 
     const renderTabs = () => (
-        <div className="border-b border-border-color">
-            <nav className="-mb-px flex space-x-6" aria-label="Tabs">
+        <nav aria-label="Tabs" role="tablist" className="pkt-tabs">
+            <div className="pkt-tabs__tablist">
                 {TABS.map((tab, idx) => (
-                    <button 
+                    <PktTabItem
                         key={tab.label}
-                        onClick={() => setActiveTab(idx)}
-                        className={`${
-                            activeTab === idx
-                                ? 'border-pri text-pri'
-                                : 'border-transparent text-muted hover:text-ink-dim hover:border-gray-300'
-                        } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm inline-flex items-center gap-2 transition-colors duration-150`}
-                        aria-current={activeTab === idx ? 'page' : undefined}
+                        active={activeTab === idx}
+                        onClick={() => {
+                            setActiveTab(idx);
+                            window.scrollTo(0, 0);
+                        }}
+                        index={idx}
                     >
-                        <tab.icon className="h-5 w-5" />
-                        {tab.label.split(') ')[1]}
-                    </button>
+                        {tab.label}
+                    </PktTabItem>
                 ))}
-            </nav>
-        </div>
+            </div>
+        </nav>
     );
 
     const renderPanel = () => {
@@ -271,6 +316,30 @@ const App: React.FC = () => {
                 {renderBottomBar()}
             </main>
             {toastMessage && <Toast message={toastMessage} />}
+            {modalConfig.isOpen && (
+                <PktModal
+                    ref={modalRef}
+                    headingText={modalConfig.title}
+                    size="small"
+                    variant="dialog"
+                >
+                    <p className="mb-6">{modalConfig.message}</p>
+                    <div className="flex justify-end gap-3">
+                        <PktButton
+                            skin="secondary"
+                            onClick={closeModal}
+                        >
+                            Avbryt
+                        </PktButton>
+                        <PktButton
+                            skin="primary"
+                            onClick={handleModalConfirm}
+                        >
+                            Bekreft
+                        </PktButton>
+                    </div>
+                </PktModal>
+            )}
         </div>
     );
 };
