@@ -225,9 +225,10 @@ const App: React.FC = () => {
     
     const renderBottomBar = () => (
         <div className="mt-8 px-4 sm:px-0" role="navigation" aria-label="Steg navigasjon">
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col sm:flex-row sm:justify-between gap-3">
                 {activeTab > 0 && (
                     <PktButton
+                        className="w-full sm:w-auto"
                         skin="secondary"
                         size="medium"
                         onClick={handlePrevTab}
@@ -238,6 +239,7 @@ const App: React.FC = () => {
                 )}
                 {activeTab < TABS.length - 1 && (
                     <PktButton
+                        className="w-full sm:w-auto"
                         skin="primary"
                         size="medium"
                         onClick={handleNextTab}
