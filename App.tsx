@@ -1,7 +1,7 @@
-import React, { useState, useEffect, ChangeEvent, useRef } from 'react';
+import React, { useState, useEffect, ChangeEvent, useRef, createRef } from 'react';
 import { FormDataModel, Role } from './types';
 import { TABS, INITIAL_FORM_DATA, DEMO_DATA } from './constants';
-import { ChevronLeftIcon, ChevronRightIcon, DownloadIcon, PrinterIcon, FilePlus2Icon, RefreshCwIcon } from './components/ui/icons';
+import { ChevronLeftIcon, ChevronRightIcon } from './components/ui/icons';
 import Toast from './components/ui/Toast';
 import { generatePdf } from './utils/pdfGenerator';
 import { PktHeader, PktButton, PktModal, PktTabs, PktTabItem } from '@oslokommune/punkt-react';
@@ -31,6 +31,9 @@ const App: React.FC = () => {
         onConfirm: () => {},
     });
     const modalRef = useRef<HTMLElement>(null);
+
+    // Create refs for each tab to enable focus management
+    const tabRefs = useRef(TABS.map(() => createRef<HTMLElement>()));
 
     // Load from localStorage on initial mount
     useEffect(() => {
@@ -173,6 +176,13 @@ const App: React.FC = () => {
         );
     };
 
+    const handleTabSelect = (index: number) => {
+        setActiveTab(index);
+        window.scrollTo(0, 0);
+        // Set focus programmatically to the selected tab
+        tabRefs.current[index]?.current?.focus();
+    };
+
     const handleNextTab = () => {
         setActiveTab(prev => Math.min(prev + 1, TABS.length - 1));
         window.scrollTo(0, 0);
@@ -189,17 +199,13 @@ const App: React.FC = () => {
 
     const renderTabs = () => (
         <div className="pkt-tabs-wrapper">
-            <PktTabs>
+            <PktTabs onTabSelected={handleTabSelect}>
                 {TABS.map((tab, idx) => (
                     <PktTabItem
                         key={tab.label}
+                        ref={tabRefs.current[idx]}
                         active={activeTab === idx}
-                        onClick={() => {
-                            setActiveTab(idx);
-                            window.scrollTo(0, 0);
-                        }}
-                        icon={tab.icon}
-                        index={idx}
+                        iconName={tab.icon}
                     >
                         {tab.label}
                     </PktTabItem>
@@ -235,11 +241,23 @@ const App: React.FC = () => {
                     Nullstill
                 </button>
                 <div className="flex gap-3">
-                    <PktButton skin="secondary" size="small" onClick={handleDownloadPdf}>
-                        <DownloadIcon className="h-4 w-4 mr-2" /> PDF
+                    <PktButton
+                        skin="secondary"
+                        size="small"
+                        variant="icon-left"
+                        iconName="document-pdf"
+                        onClick={handleDownloadPdf}
+                    >
+                        PDF
                     </PktButton>
-                    <PktButton skin="secondary" size="small" onClick={handleDemo}>
-                        <FilePlus2Icon className="h-4 w-4 mr-2" /> Eksempel
+                    <PktButton
+                        skin="secondary"
+                        size="small"
+                        variant="icon-left"
+                        iconName="document-plain"
+                        onClick={handleDemo}
+                    >
+                        Eksempel
                     </PktButton>
                 </div>
             </div>
