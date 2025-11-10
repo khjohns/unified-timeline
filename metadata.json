@@ -1,0 +1,5 @@
+{
+  "name": "KOE - Krav om endringsordre",
+  "description": "A React-based web application to manage change order requests (Krav om endringsordre - KOE) consistent with NS 8407:2011 standards, facilitating a two-step workflow between contractors and clients.",
+  "requestFramePermissions": []
+}
