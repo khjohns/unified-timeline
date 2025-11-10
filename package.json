@@ -9,10 +9,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
+    "@oslokommune/punkt-css": "^13.13.2",
+    "@oslokommune/punkt-react": "^13.15.2",
+    "jspdf": "^3.0.3",
     "jspdf-autotable": "^5.0.2",
-    "jspdf": "^3.0.3"
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
