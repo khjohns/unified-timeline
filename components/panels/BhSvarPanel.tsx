@@ -69,7 +69,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({ formData, setFormData, errors
           <div className={`collapsible ${bh_svar.vederlag.varsel_for_sent ? 'open' : ''}`}>
             <div className="collapsible-content">
               <div className="mt-4 pt-4 pl-4 border-l-2 border-border-color">
-                <TextareaField id="bh_svar.vederlag.varsel_for_sent_begrunnelse" label="Begrunnelse for sen varsling" value={bh_svar.vederlag.varsel_for_sent_begrunnelse} onChange={e => handleChange('vederlag.varsel_for_sent_begrunnelse', e.target.value)} required={bh_svar.vederlag.varsel_for_sent} />
+                <TextareaField className="pkt-cell" id="bh_svar.vederlag.varsel_for_sent_begrunnelse" label="Begrunnelse for sen varsling" value={bh_svar.vederlag.varsel_for_sent_begrunnelse} onChange={e => handleChange('vederlag.varsel_for_sent_begrunnelse', e.target.value)} required={bh_svar.vederlag.varsel_for_sent} />
               </div>
             </div>
           </div>
@@ -97,7 +97,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({ formData, setFormData, errors
             <div className={`collapsible ${bh_svar.frist.varsel_for_sent ? 'open' : ''}`}>
                 <div className="collapsible-content">
                   <div className="mt-4 pt-4 pl-4 border-l-2 border-border-color">
-                    <TextareaField id="bh_svar.frist.varsel_for_sent_begrunnelse" label="Begrunnelse for sen varsling" value={bh_svar.frist.varsel_for_sent_begrunnelse} onChange={e => handleChange('frist.varsel_for_sent_begrunnelse', e.target.value)} required={bh_svar.frist.varsel_for_sent} />
+                    <TextareaField className="pkt-cell" id="bh_svar.frist.varsel_for_sent_begrunnelse" label="Begrunnelse for sen varsling" value={bh_svar.frist.varsel_for_sent_begrunnelse} onChange={e => handleChange('frist.varsel_for_sent_begrunnelse', e.target.value)} required={bh_svar.frist.varsel_for_sent} />
                   </div>
                 </div>
             </div>
