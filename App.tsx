@@ -226,41 +226,50 @@ const App: React.FC = () => {
     
     const renderBottomBar = () => (
         <div className="mt-8 px-4 sm:px-0" role="navigation" aria-label="Steg navigasjon">
-            <div className="flex flex-col sm:flex-row sm:justify-between gap-3">
-                {activeTab > 0 && (
-                    <PktButton
-                        className="w-full sm:w-auto"
-                        skin="secondary"
-                        size="medium"
-                        onClick={handlePrevTab}
-                    >
-                        <ChevronLeftIcon className="h-5 w-5 mr-2" />
-                        Forrige
+            {/* Sekundære handlinger */}
+            <div className="flex justify-between items-center mb-4">
+                <button
+                    onClick={handleReset}
+                    className="text-sm text-red-600 hover:text-red-700 hover:underline"
+                >
+                    Nullstill
+                </button>
+                <div className="flex gap-3">
+                    <PktButton skin="secondary" size="small" onClick={handleDownloadPdf}>
+                        <DownloadIcon className="h-4 w-4 mr-2" /> PDF
                     </PktButton>
-                )}
-                {activeTab < TABS.length - 1 && (
-                    <PktButton
-                        className="w-full sm:w-auto"
-                        skin="primary"
-                        size="medium"
-                        onClick={handleNextTab}
-                    >
-                        Neste Steg
-                        <ChevronRightIcon className="h-5 w-5 ml-2" />
+                    <PktButton skin="secondary" size="small" onClick={handleDemo}>
+                        <FilePlus2Icon className="h-4 w-4 mr-2" /> Eksempel
                     </PktButton>
-                )}
+                </div>
             </div>
 
-            <div className="flex items-center justify-center gap-3 mt-6 sm:mt-8">
-                <PktButton skin="secondary" size="small" onClick={handleDownloadPdf}>
-                    <DownloadIcon className="h-4 w-4 mr-2" /> PDF
-                </PktButton>
-                <PktButton skin="secondary" size="small" onClick={handleDemo}>
-                    <FilePlus2Icon className="h-4 w-4 mr-2" /> Eksempel
-                </PktButton>
-                <PktButton skin="tertiary" size="small" onClick={handleReset}>
-                    <RefreshCwIcon className="h-4 w-4 mr-2" /> Nullstill
-                </PktButton>
+            {/* Hovednavigasjon */}
+            <div className="flex justify-between items-center">
+                <div>
+                    {activeTab > 0 && (
+                        <PktButton
+                            skin="secondary"
+                            size="medium"
+                            onClick={handlePrevTab}
+                        >
+                            <ChevronLeftIcon className="h-5 w-5 mr-2" />
+                            Forrige
+                        </PktButton>
+                    )}
+                </div>
+                <div>
+                    {activeTab < TABS.length - 1 && (
+                        <PktButton
+                            skin="primary"
+                            size="medium"
+                            onClick={handleNextTab}
+                        >
+                            Neste Steg
+                            <ChevronRightIcon className="h-5 w-5 ml-2" />
+                        </PktButton>
+                    )}
+                </div>
             </div>
         </div>
     );
