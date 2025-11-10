@@ -4,7 +4,7 @@ import { TABS, INITIAL_FORM_DATA, DEMO_DATA } from './constants';
 import { ChevronLeftIcon, ChevronRightIcon, DownloadIcon, PrinterIcon, FilePlus2Icon, RefreshCwIcon } from './components/ui/icons';
 import Toast from './components/ui/Toast';
 import { generatePdf } from './utils/pdfGenerator';
-import { PktHeader, PktButton, PktModal, PktTabs, PktTabItem } from '@oslokommune/punkt-react';
+import { PktHeader, PktButton, PktModal, PktTabs, PktTabItem, PktIcon } from '@oslokommune/punkt-react';
 
 import GrunninfoPanel from './components/panels/GrunninfoPanel';
 import VarselPanel from './components/panels/VarselPanel';
@@ -200,6 +200,7 @@ const App: React.FC = () => {
                         }}
                         index={idx}
                     >
+                        <PktIcon iconName={tab.icon} className="mr-2" />
                         {tab.label}
                     </PktTabItem>
                 ))}

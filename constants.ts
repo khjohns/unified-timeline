@@ -1,18 +1,11 @@
-import {
-    UserSquareIcon,
-    BellIcon,
-    FileTextIcon,
-    CheckSquareIcon,
-    ListTreeIcon,
-} from './components/ui/icons';
 import { FormDataModel } from './types';
 
 export const TABS = [
-    { label: '1) Grunninfo', icon: UserSquareIcon },
-    { label: '2) Varsel', icon: BellIcon },
-    { label: '3) Krav (KOE)', icon: FileTextIcon },
-    { label: '4) BH Svar', icon: CheckSquareIcon },
-    { label: '5) Oppsummering', icon: ListTreeIcon },
+    { label: 'Grunninfo', icon: 'information' },
+    { label: 'Varsel', icon: 'alert-warning' },
+    { label: 'Krav (KOE)', icon: 'document-text' },
+    { label: 'BH Svar', icon: 'check-circle' },
+    { label: 'Oppsummering', icon: 'list' },
 ];
 
 export const INITIAL_FORM_DATA: FormDataModel = {
