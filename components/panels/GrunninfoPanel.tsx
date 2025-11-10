@@ -16,9 +16,8 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
   return (
     <div className="space-y-6">
       <FieldsetCard legend="Saksdetaljer">
-        <div className="pkt-grid">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
           <InputField
-            className="pkt-cell pkt-cell--span12-mobile pkt-cell--span6-desktop-up"
             id="sak.sakstittel"
             label="Sakstittel"
             value={sak.sakstittel}
@@ -28,7 +27,6 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
             error={errors['sak.sakstittel']}
           />
           <InputField
-            className="pkt-cell pkt-cell--span12-mobile pkt-cell--span6-desktop-up"
             id="sak.sak_id_display"
             label="Sak-ID"
             value={sak.sak_id_display}
@@ -37,7 +35,6 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
             error={errors['sak.sak_id_display']}
           />
           <InputField
-            className="pkt-cell pkt-cell--span12-mobile pkt-cell--span6-desktop-up"
             id="sak.opprettet_av"
             label="Opprettet av"
             value={sak.opprettet_av}
@@ -47,7 +44,6 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
             error={errors['sak.opprettet_av']}
           />
           <DateField
-            className="pkt-cell pkt-cell--span12-mobile pkt-cell--span6-desktop-up"
             id="sak.opprettet_dato"
             label="Opprettet dato"
             value={sak.opprettet_dato}
@@ -58,11 +54,11 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
       </FieldsetCard>
 
       <FieldsetCard legend="Prosjekt">
-        <div className="pkt-grid">
-          <InputField className="pkt-cell pkt-cell--span12-mobile pkt-cell--span6-desktop-up" id="sak.prosjekt_navn" label="Prosjekt" value={sak.prosjekt_navn} onChange={e => handleChange('prosjekt_navn', e.target.value)} required error={errors['sak.prosjekt_navn']} />
-          <InputField className="pkt-cell pkt-cell--span12-mobile pkt-cell--span6-desktop-up" id="sak.kontrakt_referanse" label="Prosjektnummer" value={sak.kontrakt_referanse} onChange={e => handleChange('kontrakt_referanse', e.target.value)} required error={errors['sak.kontrakt_referanse']} />
-          <InputField className="pkt-cell pkt-cell--span12-mobile pkt-cell--span6-desktop-up" id="sak.entreprenor" label="Entreprenør (TE)" value={sak.entreprenor} onChange={e => handleChange('entreprenor', e.target.value)} required error={errors['sak.entreprenor']} />
-          <InputField className="pkt-cell pkt-cell--span12-mobile pkt-cell--span6-desktop-up" id="sak.byggherre" label="Byggherre (BH)" value={sak.byggherre} onChange={e => handleChange('byggherre', e.target.value)} required error={errors['sak.byggherre']} />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+          <InputField id="sak.prosjekt_navn" label="Prosjekt" value={sak.prosjekt_navn} onChange={e => handleChange('prosjekt_navn', e.target.value)} required error={errors['sak.prosjekt_navn']} />
+          <InputField id="sak.kontrakt_referanse" label="Prosjektnummer" value={sak.kontrakt_referanse} onChange={e => handleChange('kontrakt_referanse', e.target.value)} required error={errors['sak.kontrakt_referanse']} />
+          <InputField id="sak.entreprenor" label="Entreprenør (TE)" value={sak.entreprenor} onChange={e => handleChange('entreprenor', e.target.value)} required error={errors['sak.entreprenor']} />
+          <InputField id="sak.byggherre" label="Byggherre (BH)" value={sak.byggherre} onChange={e => handleChange('byggherre', e.target.value)} required error={errors['sak.byggherre']} />
         </div>
       </FieldsetCard>
     </div>

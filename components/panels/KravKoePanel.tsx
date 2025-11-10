@@ -18,9 +18,8 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({ formData, setFormData, erro
   return (
     <div className="space-y-6">
       <FieldsetCard legend="Generelt om Kravet">
-        <div className="pkt-grid">
+        <div className="grid grid-cols-1 gap-y-4">
             <InputField
-                className="pkt-cell pkt-cell--span12-mobile pkt-cell--span6-desktop-up"
                 id="koe.koe_revisjonsnr"
                 label="Revisjonsnummer"
                 type="number"
@@ -33,7 +32,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({ formData, setFormData, erro
                 error={errors['koe.koe_revisjonsnr']}
                 helpText="Angir versjonen av kravet. Start med 0."
             />
-            <div className="pkt-cell pkt-cell--span12 pt-2 space-y-4">
+            <div className="pt-2 space-y-4">
                 <CheckboxField
                     id="koe.vederlag.krav_vederlag"
                     label="Krav om vederlagsjustering (kap. 34)"
@@ -58,10 +57,10 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({ formData, setFormData, erro
                     <CheckboxField id="koe.vederlag.krav_produktivitetstap" label="Krav om produktivitetstap (§ 34.1.3)" checked={koe.vederlag.krav_produktivitetstap} onChange={e => handleChange('vederlag.krav_produktivitetstap', e.target.checked)} />
                     <CheckboxField id="koe.vederlag.saerskilt_varsel_rigg_drift" label="Særskilt rigg/drift (§34.1.3)" checked={koe.vederlag.saerskilt_varsel_rigg_drift} onChange={e => handleChange('vederlag.saerskilt_varsel_rigg_drift', e.target.checked)} />
                 </div>
-                <div className="pkt-grid">
-                    <SelectField className="pkt-cell pkt-cell--span12-mobile pkt-cell--span6-desktop-up" id="koe.vederlag.krav_vederlag_metode" label="Oppgjørsmetode" value={koe.vederlag.krav_vederlag_metode} onChange={value => handleChange('vederlag.krav_vederlag_metode', value)} options={[{value:"", label:"— Velg —"}, {value:"Entreprenørens tilbud (§34.2.1)", label:"Entreprenørens tilbud (§34.2.1)"}, {value:"Kontraktens enhetspriser (§34.3.1)", label:"Kontraktens enhetspriser (§34.3.1)"}, {value:"Justerte enhetspriser (§34.3.2)", label:"Justerte enhetspriser (§34.3.2)"}, {value:"Regningsarbeid (§30.1)", label:"Regningsarbeid (§30.1)"}]} />
-                    <InputField className="pkt-cell pkt-cell--span12-mobile pkt-cell--span6-desktop-up" id="koe.vederlag.krav_vederlag_belop" label="Beløp (NOK)" type="number" value={koe.vederlag.krav_vederlag_belop} onChange={e => handleChange('vederlag.krav_vederlag_belop', e.target.value)} error={errors['koe.vederlag.krav_vederlag_belop']} formatAsNumber />
-                    <TextareaField className="pkt-cell pkt-cell--span12" id="koe.vederlag.krav_vederlag_begrunnelse" label="Begrunnelse/kalkyle" value={koe.vederlag.krav_vederlag_begrunnelse} onChange={e => handleChange('vederlag.krav_vederlag_begrunnelse', e.target.value)} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                    <SelectField id="koe.vederlag.krav_vederlag_metode" label="Oppgjørsmetode" value={koe.vederlag.krav_vederlag_metode} onChange={value => handleChange('vederlag.krav_vederlag_metode', value)} options={[{value:"", label:"— Velg —"}, {value:"Entreprenørens tilbud (§34.2.1)", label:"Entreprenørens tilbud (§34.2.1)"}, {value:"Kontraktens enhetspriser (§34.3.1)", label:"Kontraktens enhetspriser (§34.3.1)"}, {value:"Justerte enhetspriser (§34.3.2)", label:"Justerte enhetspriser (§34.3.2)"}, {value:"Regningsarbeid (§30.1)", label:"Regningsarbeid (§30.1)"}]} />
+                    <InputField id="koe.vederlag.krav_vederlag_belop" label="Beløp (NOK)" type="number" value={koe.vederlag.krav_vederlag_belop} onChange={e => handleChange('vederlag.krav_vederlag_belop', e.target.value)} error={errors['koe.vederlag.krav_vederlag_belop']} formatAsNumber />
+                    <TextareaField className="md:col-span-2" id="koe.vederlag.krav_vederlag_begrunnelse" label="Begrunnelse/kalkyle" value={koe.vederlag.krav_vederlag_begrunnelse} onChange={e => handleChange('vederlag.krav_vederlag_begrunnelse', e.target.value)} />
                 </div>
               </div>
           </FieldsetCard>
@@ -73,13 +72,13 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({ formData, setFormData, erro
         <div className="collapsible-content">
           <FieldsetCard legend="Detaljer om Fristforlengelse">
               <div className="space-y-4">
-                <div className="pkt-grid">
-                    <SelectField className="pkt-cell pkt-cell--span12-mobile pkt-cell--span6-desktop-up" id="koe.frist.krav_frist_type" label="Fristtype" value={koe.frist.krav_frist_type} onChange={value => handleChange('frist.krav_frist_type', value)} options={[{value:"", label:"— Velg —"}, {value:"Foreløpig varsel (§33.4)", label:"Foreløpig varsel (§33.4)"}, {value:"Spesifisert krav (§33.6.1)", label:"Spesifisert krav (§33.6.1)"}, {value:"Tilleggsfrist ved force majeure (§33.3)", label:"Tilleggsfrist ved force majeure (§33.3)"}, {value:"Endelig oppsummering (§39.1) [Prosess ved sluttoppgjør]", label:"Endelig oppsummering (§39.1) [Prosess ved sluttoppgjør]"}]} />
-                    <InputField className="pkt-cell pkt-cell--span12-mobile pkt-cell--span6-desktop-up" id="koe.frist.krav_frist_antall_dager" label="Antall dager" type="number" min={0} step={1} value={koe.frist.krav_frist_antall_dager} onChange={e => handleChange('frist.krav_frist_antall_dager', e.target.value)} error={errors['koe.frist.krav_frist_antall_dager']} />
-                    <div className="pkt-cell pkt-cell--span12 pt-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                    <SelectField id="koe.frist.krav_frist_type" label="Fristtype" value={koe.frist.krav_frist_type} onChange={value => handleChange('frist.krav_frist_type', value)} options={[{value:"", label:"— Velg —"}, {value:"Foreløpig varsel (§33.4)", label:"Foreløpig varsel (§33.4)"}, {value:"Spesifisert krav (§33.6.1)", label:"Spesifisert krav (§33.6.1)"}, {value:"Tilleggsfrist ved force majeure (§33.3)", label:"Tilleggsfrist ved force majeure (§33.3)"}, {value:"Endelig oppsummering (§39.1) [Prosess ved sluttoppgjør]", label:"Endelig oppsummering (§39.1) [Prosess ved sluttoppgjør]"}]} />
+                    <InputField id="koe.frist.krav_frist_antall_dager" label="Antall dager" type="number" min={0} step={1} value={koe.frist.krav_frist_antall_dager} onChange={e => handleChange('frist.krav_frist_antall_dager', e.target.value)} error={errors['koe.frist.krav_frist_antall_dager']} />
+                    <div className="md:col-span-2 pt-2">
                       <CheckboxField id="koe.frist.forsinkelse_kritisk_linje" label="Forsinkelse påvirker kritisk linje?" checked={koe.frist.forsinkelse_kritisk_linje} onChange={e => handleChange('frist.forsinkelse_kritisk_linje', e.target.checked)} />
                     </div>
-                    <TextareaField className="pkt-cell pkt-cell--span12" id="koe.frist.krav_frist_begrunnelse" label="Begrunnelse (årsakssammenheng)" value={koe.frist.krav_frist_begrunnelse} onChange={e => handleChange('frist.krav_frist_begrunnelse', e.target.value)} />
+                    <TextareaField className="md:col-span-2" id="koe.frist.krav_frist_begrunnelse" label="Begrunnelse (årsakssammenheng)" value={koe.frist.krav_frist_begrunnelse} onChange={e => handleChange('frist.krav_frist_begrunnelse', e.target.value)} />
                 </div>
               </div>
           </FieldsetCard>
@@ -87,9 +86,8 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({ formData, setFormData, erro
       </div>
 
       <FieldsetCard legend="Signatur (For Entreprenør)">
-        <div className="pkt-grid">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
             <DateField
-                className="pkt-cell pkt-cell--span12-mobile pkt-cell--span6-desktop-up"
                 id="koe.dato_krav_sendt"
                 label="Dato krav sendt"
                 value={koe.dato_krav_sendt}
@@ -97,7 +95,6 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({ formData, setFormData, erro
                 required
             />
              <InputField
-                className="pkt-cell pkt-cell--span12-mobile pkt-cell--span6-desktop-up"
                 id="koe.for_entreprenor"
                 label="Signatur"
                 value={koe.for_entreprenor}

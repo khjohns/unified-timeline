@@ -188,21 +188,23 @@ const App: React.FC = () => {
     };
 
     const renderTabs = () => (
-        <PktTabs>
-            {TABS.map((tab, idx) => (
-                <PktTabItem
-                    key={tab.label}
-                    active={activeTab === idx}
-                    onClick={() => {
-                        setActiveTab(idx);
-                        window.scrollTo(0, 0);
-                    }}
-                    index={idx}
-                >
-                    {tab.label}
-                </PktTabItem>
-            ))}
-        </PktTabs>
+        <div className="pkt-tabs-wrapper">
+            <PktTabs>
+                {TABS.map((tab, idx) => (
+                    <PktTabItem
+                        key={tab.label}
+                        active={activeTab === idx}
+                        onClick={() => {
+                            setActiveTab(idx);
+                            window.scrollTo(0, 0);
+                        }}
+                        index={idx}
+                    >
+                        {tab.label}
+                    </PktTabItem>
+                ))}
+            </PktTabs>
+        </div>
     );
 
     const renderPanel = () => {
@@ -222,8 +224,8 @@ const App: React.FC = () => {
     };
     
     const renderBottomBar = () => (
-        <div className="mt-8 px-4 sm:px-0 flex items-center" role="navigation" aria-label="Steg navigasjon">
-            <div className="flex-1 flex justify-start">
+        <div className="mt-8 px-4 sm:px-0" role="navigation" aria-label="Steg navigasjon">
+            <div className="flex flex-col sm:flex-row gap-3">
                 {activeTab > 0 && (
                     <PktButton
                         skin="secondary"
@@ -234,23 +236,6 @@ const App: React.FC = () => {
                         Forrige
                     </PktButton>
                 )}
-            </div>
-
-            <div className="flex-1 flex justify-center">
-                <div className="flex items-center justify-center gap-3">
-                    <PktButton skin="secondary" size="small" onClick={handleDownloadPdf}>
-                        <DownloadIcon className="h-4 w-4 mr-2" /> PDF
-                    </PktButton>
-                    <PktButton skin="secondary" size="small" onClick={handleDemo}>
-                        <FilePlus2Icon className="h-4 w-4 mr-2" /> Eksempel
-                    </PktButton>
-                    <PktButton skin="tertiary" size="small" onClick={handleReset}>
-                        <RefreshCwIcon className="h-4 w-4 mr-2" /> Nullstill
-                    </PktButton>
-                </div>
-            </div>
-
-            <div className="flex-1 flex justify-end">
                 {activeTab < TABS.length - 1 && (
                     <PktButton
                         skin="primary"
@@ -261,6 +246,18 @@ const App: React.FC = () => {
                         <ChevronRightIcon className="h-5 w-5 ml-2" />
                     </PktButton>
                 )}
+            </div>
+
+            <div className="flex items-center justify-center gap-3 mt-6 sm:mt-8">
+                <PktButton skin="secondary" size="small" onClick={handleDownloadPdf}>
+                    <DownloadIcon className="h-4 w-4 mr-2" /> PDF
+                </PktButton>
+                <PktButton skin="secondary" size="small" onClick={handleDemo}>
+                    <FilePlus2Icon className="h-4 w-4 mr-2" /> Eksempel
+                </PktButton>
+                <PktButton skin="tertiary" size="small" onClick={handleReset}>
+                    <RefreshCwIcon className="h-4 w-4 mr-2" /> Nullstill
+                </PktButton>
             </div>
         </div>
     );

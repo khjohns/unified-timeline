@@ -52,9 +52,9 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({ formData, setFormData, errors
       )}
 
       <FieldsetCard legend="Byggherremøte om KOE" isBhPanel>
-         <div className="pkt-grid">
-            <DateField className="pkt-cell pkt-cell--span12-mobile pkt-cell--span6-desktop-up" id="bh_svar.mote_dato" label="Dato for møte" value={bh_svar.mote_dato} onChange={value => handleChange('mote_dato', value)} />
-            <TextareaField className="pkt-cell pkt-cell--span12" id="bh_svar.mote_referat" label="Referanse til møtereferat" value={bh_svar.mote_referat} onChange={e => handleChange('mote_referat', e.target.value)} minHeight="60px" />
+         <div className="grid grid-cols-1 gap-y-4">
+            <DateField id="bh_svar.mote_dato" label="Dato for møte" value={bh_svar.mote_dato} onChange={value => handleChange('mote_dato', value)} />
+            <TextareaField id="bh_svar.mote_referat" label="Referanse til møtereferat" value={bh_svar.mote_referat} onChange={e => handleChange('mote_referat', e.target.value)} minHeight="60px" />
          </div>
       </FieldsetCard>
 
@@ -69,18 +69,18 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({ formData, setFormData, errors
           <div className={`collapsible ${bh_svar.vederlag.varsel_for_sent ? 'open' : ''}`}>
             <div className="collapsible-content">
               <div className="mt-4 pt-4 pl-4 border-l-2 border-border-color">
-                <div className="pkt-grid">
-                  <TextareaField className="pkt-cell pkt-cell--span12" id="bh_svar.vederlag.varsel_for_sent_begrunnelse" label="Begrunnelse for sen varsling" value={bh_svar.vederlag.varsel_for_sent_begrunnelse} onChange={e => handleChange('vederlag.varsel_for_sent_begrunnelse', e.target.value)} required={bh_svar.vederlag.varsel_for_sent} />
+                <div className="grid grid-cols-1 gap-y-4">
+                  <TextareaField id="bh_svar.vederlag.varsel_for_sent_begrunnelse" label="Begrunnelse for sen varsling" value={bh_svar.vederlag.varsel_for_sent_begrunnelse} onChange={e => handleChange('vederlag.varsel_for_sent_begrunnelse', e.target.value)} required={bh_svar.vederlag.varsel_for_sent} />
                 </div>
               </div>
             </div>
           </div>
 
           <div className="mt-6 pt-6 border-t border-border-color">
-            <div className="pkt-grid">
-              <SelectField className="pkt-cell pkt-cell--span12-mobile pkt-cell--span6-desktop-up" id="bh_svar.vederlag.bh_svar_vederlag" label="Svar på krav om vederlag" value={bh_svar.vederlag.bh_svar_vederlag} onChange={value => handleChange('vederlag.bh_svar_vederlag', value)} options={vederlagSvarOptions} />
-              <InputField className="pkt-cell pkt-cell--span12-mobile pkt-cell--span6-desktop-up" id="bh_svar.vederlag.bh_godkjent_vederlag_belop" label="Godkjent beløp (NOK)" type="number" value={bh_svar.vederlag.bh_godkjent_vederlag_belop} onChange={e => handleChange('vederlag.bh_godkjent_vederlag_belop', e.target.value)} error={errors['bh_svar.vederlag.bh_godkjent_vederlag_belop']} formatAsNumber />
-              <TextareaField className="pkt-cell pkt-cell--span12" id="bh_svar.vederlag.bh_begrunnelse_vederlag" label="Begrunnelse for svar" value={bh_svar.vederlag.bh_begrunnelse_vederlag} onChange={e => handleChange('vederlag.bh_begrunnelse_vederlag', e.target.value)} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+              <SelectField id="bh_svar.vederlag.bh_svar_vederlag" label="Svar på krav om vederlag" value={bh_svar.vederlag.bh_svar_vederlag} onChange={value => handleChange('vederlag.bh_svar_vederlag', value)} options={vederlagSvarOptions} />
+              <InputField id="bh_svar.vederlag.bh_godkjent_vederlag_belop" label="Godkjent beløp (NOK)" type="number" value={bh_svar.vederlag.bh_godkjent_vederlag_belop} onChange={e => handleChange('vederlag.bh_godkjent_vederlag_belop', e.target.value)} error={errors['bh_svar.vederlag.bh_godkjent_vederlag_belop']} formatAsNumber />
+              <TextareaField className="md:col-span-2" id="bh_svar.vederlag.bh_begrunnelse_vederlag" label="Begrunnelse for svar" value={bh_svar.vederlag.bh_begrunnelse_vederlag} onChange={e => handleChange('vederlag.bh_begrunnelse_vederlag', e.target.value)} />
             </div>
           </div>
         </FieldsetCard>
@@ -97,27 +97,27 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({ formData, setFormData, errors
             <div className={`collapsible ${bh_svar.frist.varsel_for_sent ? 'open' : ''}`}>
                 <div className="collapsible-content">
                   <div className="mt-4 pt-4 pl-4 border-l-2 border-border-color">
-                    <div className="pkt-grid">
-                      <TextareaField className="pkt-cell pkt-cell--span12" id="bh_svar.frist.varsel_for_sent_begrunnelse" label="Begrunnelse for sen varsling" value={bh_svar.frist.varsel_for_sent_begrunnelse} onChange={e => handleChange('frist.varsel_for_sent_begrunnelse', e.target.value)} required={bh_svar.frist.varsel_for_sent} />
+                    <div className="grid grid-cols-1 gap-y-4">
+                      <TextareaField id="bh_svar.frist.varsel_for_sent_begrunnelse" label="Begrunnelse for sen varsling" value={bh_svar.frist.varsel_for_sent_begrunnelse} onChange={e => handleChange('frist.varsel_for_sent_begrunnelse', e.target.value)} required={bh_svar.frist.varsel_for_sent} />
                     </div>
                   </div>
                 </div>
             </div>
             <div className="mt-6 pt-6 border-t border-border-color">
-                <div className="pkt-grid">
-                    <SelectField className="pkt-cell pkt-cell--span12-mobile pkt-cell--span6-desktop-up" id="bh_svar.frist.bh_svar_frist" label="Svar på krav om frist" value={bh_svar.frist.bh_svar_frist} onChange={value => handleChange('frist.bh_svar_frist', value)} options={fristSvarOptions} />
-                    <InputField className="pkt-cell pkt-cell--span12-mobile pkt-cell--span6-desktop-up" id="bh_svar.frist.bh_godkjent_frist_dager" label="Godkjente dager" type="number" min={0} value={bh_svar.frist.bh_godkjent_frist_dager} onChange={e => handleChange('frist.bh_godkjent_frist_dager', e.target.value)} error={errors['bh_svar.frist.bh_godkjent_frist_dager']} />
-                    <DateField className="pkt-cell pkt-cell--span12-mobile pkt-cell--span6-desktop-up" id="bh_svar.frist.bh_frist_for_spesifisering" label="Frist for spesifisering (hvis aktuelt)" value={bh_svar.frist.bh_frist_for_spesifisering} onChange={value => handleChange('frist.bh_frist_for_spesifisering', value)} />
-                    <TextareaField className="pkt-cell pkt-cell--span12" id="bh_svar.frist.bh_begrunnelse_frist" label="Begrunnelse for svar" value={bh_svar.frist.bh_begrunnelse_frist} onChange={e => handleChange('frist.bh_begrunnelse_frist', e.target.value)} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                    <SelectField id="bh_svar.frist.bh_svar_frist" label="Svar på krav om frist" value={bh_svar.frist.bh_svar_frist} onChange={value => handleChange('frist.bh_svar_frist', value)} options={fristSvarOptions} />
+                    <InputField id="bh_svar.frist.bh_godkjent_frist_dager" label="Godkjente dager" type="number" min={0} value={bh_svar.frist.bh_godkjent_frist_dager} onChange={e => handleChange('frist.bh_godkjent_frist_dager', e.target.value)} error={errors['bh_svar.frist.bh_godkjent_frist_dager']} />
+                    <DateField className="md:col-span-2" id="bh_svar.frist.bh_frist_for_spesifisering" label="Frist for spesifisering (hvis aktuelt)" value={bh_svar.frist.bh_frist_for_spesifisering} onChange={value => handleChange('frist.bh_frist_for_spesifisering', value)} />
+                    <TextareaField className="md:col-span-2" id="bh_svar.frist.bh_begrunnelse_frist" label="Begrunnelse for svar" value={bh_svar.frist.bh_begrunnelse_frist} onChange={e => handleChange('frist.bh_begrunnelse_frist', e.target.value)} />
                 </div>
             </div>
         </FieldsetCard>
       )}
 
       <FieldsetCard legend="Signatur (For Byggherre)" isBhPanel>
-         <div className="pkt-grid">
-            <DateField className="pkt-cell pkt-cell--span12-mobile pkt-cell--span6-desktop-up" id="bh_svar.sign.dato_svar_bh" label="Dato for BHs svar" value={bh_svar.sign.dato_svar_bh} onChange={value => handleChange('sign.dato_svar_bh', value)} required />
-            <InputField className="pkt-cell pkt-cell--span12-mobile pkt-cell--span6-desktop-up" id="bh_svar.sign.for_byggherre" label="Signatur" value={bh_svar.sign.for_byggherre} onChange={e => handleChange('sign.for_byggherre', e.target.value)} required placeholder="Navn på signatar" />
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+            <DateField id="bh_svar.sign.dato_svar_bh" label="Dato for BHs svar" value={bh_svar.sign.dato_svar_bh} onChange={value => handleChange('sign.dato_svar_bh', value)} required />
+            <InputField id="bh_svar.sign.for_byggherre" label="Signatur" value={bh_svar.sign.for_byggherre} onChange={e => handleChange('sign.for_byggherre', e.target.value)} required placeholder="Navn på signatar" />
          </div>
       </FieldsetCard>
     </div>
