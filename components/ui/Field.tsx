@@ -139,14 +139,19 @@ export const SelectField: React.FC<SelectFieldProps> = ({ id, label, value, onCh
         label={label}
         value={value}
         onChange={handleSelectChange}
-        options={options}
         requiredTag={required}
         requiredText=""
         helptext={helpText}
         hasError={!!error}
         errorMessage={error}
         useWrapper={true}
-      />
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </PktSelect>
     </div>
   );
 };
