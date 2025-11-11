@@ -46,7 +46,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({ formData, setFormData, errors
   return (
     <div className="space-y-6">
       <FieldsetCard legend="Dato">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+        <div className="flex flex-col md:flex-row gap-x-6 gap-y-4">
           <DateField id="varsel.dato_forhold_oppdaget" label="Dato forhold oppdaget" value={varsel.dato_forhold_oppdaget} onChange={value => handleChange('dato_forhold_oppdaget', value)} required error={errors['varsel.dato_forhold_oppdaget']} className="max-w-xs" readOnly={disabled} />
           <DateField id="varsel.dato_varsel_sendt" label="Dato varsel sendt" value={varsel.dato_varsel_sendt} onChange={value => handleChange('dato_varsel_sendt', value)} required error={errors['varsel.dato_varsel_sendt']} className="max-w-xs" readOnly={disabled} />
         </div>
