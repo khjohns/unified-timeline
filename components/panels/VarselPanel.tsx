@@ -46,23 +46,23 @@ const VarselPanel: React.FC<VarselPanelProps> = ({ formData, setFormData, errors
   return (
     <div className="space-y-6">
       <FieldsetCard legend="Dato">
-        <div className="flex flex-col md:flex-row gap-x-6 gap-y-4">
-          <DateField id="varsel.dato_forhold_oppdaget" label="Dato forhold oppdaget" value={varsel.dato_forhold_oppdaget} onChange={value => handleChange('dato_forhold_oppdaget', value)} required error={errors['varsel.dato_forhold_oppdaget']} className="max-w-xs" readOnly={disabled} />
-          <DateField id="varsel.dato_varsel_sendt" label="Dato varsel sendt" value={varsel.dato_varsel_sendt} onChange={value => handleChange('dato_varsel_sendt', value)} required error={errors['varsel.dato_varsel_sendt']} className="max-w-xs" readOnly={disabled} />
+        <div className="grid grid-cols-1 gap-y-6">
+          <DateField id="varsel.dato_forhold_oppdaget" label="Dato forhold oppdaget" value={varsel.dato_forhold_oppdaget} onChange={value => handleChange('dato_forhold_oppdaget', value)} error={errors['varsel.dato_forhold_oppdaget']} readOnly={disabled} className="max-w-sm" />
+          <DateField id="varsel.dato_varsel_sendt" label="Dato varsel sendt" value={varsel.dato_varsel_sendt} onChange={value => handleChange('dato_varsel_sendt', value)} error={errors['varsel.dato_varsel_sendt']} readOnly={disabled} className="max-w-sm" />
         </div>
       </FieldsetCard>
 
       <FieldsetCard legend="Klassifisering">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-          <SelectField id="varsel.hovedkategori" label="Hovedkategori (NS 8407)" value={varsel.hovedkategori} onChange={handleHovedkategoriChange} options={HOVEDKATEGORI_OPTIONS} required error={errors['varsel.hovedkategori']} readOnly={disabled} />
-          <SelectField id="varsel.underkategori" label="Underkategori" value={varsel.underkategori} onChange={value => handleChange('underkategori', value)} options={underkategoriOptions} readOnly={disabled} />
+        <div className="grid grid-cols-1 gap-y-6">
+          <SelectField id="varsel.hovedkategori" label="Hovedkategori (NS 8407)" value={varsel.hovedkategori} onChange={handleHovedkategoriChange} options={HOVEDKATEGORI_OPTIONS} error={errors['varsel.hovedkategori']} readOnly={disabled} />
+          <SelectField id="varsel.underkategori" label="Underkategori" value={varsel.underkategori} onChange={value => handleChange('underkategori', value)} options={underkategoriOptions} readOnly={disabled} optional />
         </div>
       </FieldsetCard>
 
       <FieldsetCard legend="Beskrivelse og Referanser">
         <div className="grid grid-cols-1 gap-y-4">
-          <TextareaField id="varsel.varsel_beskrivelse" label="Beskrivelse (vis til vedlegg)" value={varsel.varsel_beskrivelse} onChange={e => handleChange('varsel_beskrivelse', e.target.value)} readOnly={disabled} />
-          <TextareaField id="varsel.referansedokumenter" label="Referansedokumenter / tidligere korrespondanse" value={varsel.referansedokumenter} onChange={e => handleChange('referansedokumenter', e.target.value)} readOnly={disabled} />
+          <TextareaField id="varsel.varsel_beskrivelse" label="Beskrivelse (vis til vedlegg)" value={varsel.varsel_beskrivelse} onChange={e => handleChange('varsel_beskrivelse', e.target.value)} readOnly={disabled} optional />
+          <TextareaField id="varsel.referansedokumenter" label="Referansedokumenter / tidligere korrespondanse" value={varsel.referansedokumenter} onChange={e => handleChange('referansedokumenter', e.target.value)} readOnly={disabled} optional />
         </div>
       </FieldsetCard>
 

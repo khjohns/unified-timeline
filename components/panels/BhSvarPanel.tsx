@@ -53,7 +53,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({ formData, setFormData, errors
 
       <FieldsetCard legend="Byggherremøte om KOE" isBhPanel>
          <div className="grid grid-cols-1 gap-y-4">
-            <DateField id="bh_svar.mote_dato" label="Dato for møte" value={bh_svar.mote_dato} onChange={value => handleChange('mote_dato', value)} />
+            <DateField id="bh_svar.mote_dato" label="Dato for møte" value={bh_svar.mote_dato} onChange={value => handleChange('mote_dato', value)} className="max-w-sm" />
             <TextareaField id="bh_svar.mote_referat" label="Referanse til møtereferat" value={bh_svar.mote_referat} onChange={e => handleChange('mote_referat', e.target.value)} minHeight="60px" />
          </div>
       </FieldsetCard>
@@ -77,10 +77,10 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({ formData, setFormData, errors
           </div>
 
           <div className="mt-6 pt-6 border-t border-border-color">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+            <div className="grid grid-cols-1 gap-y-6">
               <SelectField id="bh_svar.vederlag.bh_svar_vederlag" label="Svar på krav om vederlag" value={bh_svar.vederlag.bh_svar_vederlag} onChange={value => handleChange('vederlag.bh_svar_vederlag', value)} options={vederlagSvarOptions} />
               <InputField id="bh_svar.vederlag.bh_godkjent_vederlag_belop" label="Godkjent beløp (NOK)" type="number" value={bh_svar.vederlag.bh_godkjent_vederlag_belop} onChange={e => handleChange('vederlag.bh_godkjent_vederlag_belop', e.target.value)} error={errors['bh_svar.vederlag.bh_godkjent_vederlag_belop']} formatAsNumber />
-              <TextareaField className="md:col-span-2" id="bh_svar.vederlag.bh_begrunnelse_vederlag" label="Begrunnelse for svar" value={bh_svar.vederlag.bh_begrunnelse_vederlag} onChange={e => handleChange('vederlag.bh_begrunnelse_vederlag', e.target.value)} />
+              <TextareaField id="bh_svar.vederlag.bh_begrunnelse_vederlag" label="Begrunnelse for svar" value={bh_svar.vederlag.bh_begrunnelse_vederlag} onChange={e => handleChange('vederlag.bh_begrunnelse_vederlag', e.target.value)} />
             </div>
           </div>
         </FieldsetCard>
@@ -104,19 +104,19 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({ formData, setFormData, errors
                 </div>
             </div>
             <div className="mt-6 pt-6 border-t border-border-color">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                <div className="grid grid-cols-1 gap-y-6">
                     <SelectField id="bh_svar.frist.bh_svar_frist" label="Svar på krav om frist" value={bh_svar.frist.bh_svar_frist} onChange={value => handleChange('frist.bh_svar_frist', value)} options={fristSvarOptions} />
-                    <InputField id="bh_svar.frist.bh_godkjent_frist_dager" label="Godkjente dager" type="number" min={0} value={bh_svar.frist.bh_godkjent_frist_dager} onChange={e => handleChange('frist.bh_godkjent_frist_dager', e.target.value)} error={errors['bh_svar.frist.bh_godkjent_frist_dager']} />
-                    <DateField className="md:col-span-2" id="bh_svar.frist.bh_frist_for_spesifisering" label="Frist for spesifisering (hvis aktuelt)" value={bh_svar.frist.bh_frist_for_spesifisering} onChange={value => handleChange('frist.bh_frist_for_spesifisering', value)} />
-                    <TextareaField className="md:col-span-2" id="bh_svar.frist.bh_begrunnelse_frist" label="Begrunnelse for svar" value={bh_svar.frist.bh_begrunnelse_frist} onChange={e => handleChange('frist.bh_begrunnelse_frist', e.target.value)} />
+                    <InputField id="bh_svar.frist.bh_godkjent_frist_dager" label="Godkjente dager" type="number" min={0} value={bh_svar.frist.bh_godkjent_frist_dager} onChange={e => handleChange('frist.bh_godkjent_frist_dager', e.target.value)} error={errors['bh_svar.frist.bh_godkjent_frist_dager']} className="max-w-sm" />
+                    <DateField id="bh_svar.frist.bh_frist_for_spesifisering" label="Frist for spesifisering (hvis aktuelt)" value={bh_svar.frist.bh_frist_for_spesifisering} onChange={value => handleChange('frist.bh_frist_for_spesifisering', value)} className="max-w-sm" />
+                    <TextareaField id="bh_svar.frist.bh_begrunnelse_frist" label="Begrunnelse for svar" value={bh_svar.frist.bh_begrunnelse_frist} onChange={e => handleChange('frist.bh_begrunnelse_frist', e.target.value)} />
                 </div>
             </div>
         </FieldsetCard>
       )}
 
       <FieldsetCard legend="Signatur (For Byggherre)" isBhPanel>
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-            <DateField id="bh_svar.sign.dato_svar_bh" label="Dato for BHs svar" value={bh_svar.sign.dato_svar_bh} onChange={value => handleChange('sign.dato_svar_bh', value)} required />
+         <div className="grid grid-cols-1 gap-y-6">
+            <DateField id="bh_svar.sign.dato_svar_bh" label="Dato for BHs svar" value={bh_svar.sign.dato_svar_bh} onChange={value => handleChange('sign.dato_svar_bh', value)} required className="max-w-sm" />
             <InputField id="bh_svar.sign.for_byggherre" label="Signatur" value={bh_svar.sign.for_byggherre} onChange={e => handleChange('sign.for_byggherre', e.target.value)} required placeholder="Navn på signatar" />
          </div>
       </FieldsetCard>

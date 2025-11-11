@@ -344,7 +344,7 @@ const App: React.FC = () => {
                 user={{ name: formData.rolle === 'TE' ? 'Total Entreprenør' : 'Byggherren', showName: true }}
             />
             <header className="bg-card-bg border-b border-border-color sticky top-0 z-10">
-                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center py-4">
                         <div>
                             <h1 className="text-xl font-semibold flex gap-2.5 items-center">
@@ -378,7 +378,7 @@ const App: React.FC = () => {
                     </div>
                 </div>
             </header>
-            <main className="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
+            <main className="max-w-2xl mx-auto py-6 sm:px-6 lg:px-8">
                 <div className="px-4 sm:px-0">
                     {renderPanel()}
                 </div>

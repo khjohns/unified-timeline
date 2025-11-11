@@ -13,6 +13,7 @@ interface FieldProps {
   value: string | number;
   onChange: (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
   required?: boolean;
+  optional?: boolean;
   placeholder?: string;
   readOnly?: boolean;
   error?: string;
@@ -31,7 +32,7 @@ interface TextareaFieldProps extends Omit<FieldProps, 'type' | 'min' | 'step' | 
 const baseInputClasses = "w-full p-2.5 rounded-lg border border-border-color bg-white text-ink focus:border-pri focus:ring-2 focus:ring-pri/20 outline-none";
 const invalidClasses = "border-warn box-shadow:0 0 0 2px #e3241b22";
 
-export const InputField: React.FC<FieldProps> = ({ id, label, type = 'text', value, onChange, required, placeholder, readOnly, error, className, min, step, helpText, formatAsNumber }) => {
+export const InputField: React.FC<FieldProps> = ({ id, label, type = 'text', value, onChange, required, optional, placeholder, readOnly, error, className, min, step, helpText, formatAsNumber }) => {
 
     const handleNumericChange = (e: ChangeEvent<HTMLInputElement>) => {
         const rawValue = e.target.value.replace(/\s/g, ''); // remove spaces
@@ -57,8 +58,7 @@ export const InputField: React.FC<FieldProps> = ({ id, label, type = 'text', val
           type={type === 'number' && formatAsNumber ? 'text' : type}
           value={displayValue}
           onChange={formatAsNumber ? handleNumericChange : onChange}
-          requiredTag={required}
-          requiredText=""
+          optionalTag={optional}
           placeholder={placeholder}
           readOnly={readOnly}
           min={min}
@@ -78,13 +78,14 @@ interface DateFieldProps {
   value: string; // YYYY-MM-DD
   onChange: (value: string) => void;
   required?: boolean;
+  optional?: boolean;
   readOnly?: boolean;
   error?: string;
   className?: string;
   helpText?: string;
 }
 
-export const DateField: React.FC<DateFieldProps> = ({ id, label, value, onChange, required, readOnly, error, className, helpText }) => {
+export const DateField: React.FC<DateFieldProps> = ({ id, label, value, onChange, required, optional, readOnly, error, className, helpText }) => {
 
     const handleDateChange = (e: ChangeEvent<HTMLInputElement>) => {
         // PktDatepicker returnerer event, så vi må hente value derfra
@@ -99,8 +100,7 @@ export const DateField: React.FC<DateFieldProps> = ({ id, label, value, onChange
                 label={label}
                 value={value}
                 onChange={handleDateChange}
-                requiredTag={required}
-                requiredText=""
+                optionalTag={optional}
                 disabled={readOnly}
                 helptext={helpText}
                 hasError={!!error}
@@ -119,6 +119,7 @@ interface SelectFieldProps {
   onChange: (value: string) => void;
   options: { value: string; label: string }[];
   required?: boolean;
+  optional?: boolean;
   error?: string;
   className?: string;
   helpText?: string;
@@ -126,7 +127,7 @@ interface SelectFieldProps {
 }
 
 
-export const SelectField: React.FC<SelectFieldProps> = ({ id, label, value, onChange, options, required, error, className, helpText, readOnly }) => {
+export const SelectField: React.FC<SelectFieldProps> = ({ id, label, value, onChange, options, required, optional, error, className, helpText, readOnly }) => {
 
   const handleSelectChange = (e: ChangeEvent<HTMLSelectElement>) => {
     onChange(e.target.value);
@@ -140,8 +141,7 @@ export const SelectField: React.FC<SelectFieldProps> = ({ id, label, value, onCh
         label={label}
         value={value}
         onChange={handleSelectChange}
-        requiredTag={required}
-        requiredText=""
+        optionalTag={optional}
         helptext={helpText}
         hasError={!!error}
         errorMessage={error}
@@ -158,7 +158,7 @@ export const SelectField: React.FC<SelectFieldProps> = ({ id, label, value, onCh
   );
 };
 
-export const TextareaField: React.FC<TextareaFieldProps> = ({ id, label, value, onChange, required, placeholder, error, className, minHeight="90px", helpText, readOnly }) => (
+export const TextareaField: React.FC<TextareaFieldProps> = ({ id, label, value, onChange, required, optional, placeholder, error, className, minHeight="90px", helpText, readOnly }) => (
   <div className={className}>
     <PktTextarea
       id={id}
@@ -166,8 +166,7 @@ export const TextareaField: React.FC<TextareaFieldProps> = ({ id, label, value, 
       label={label}
       value={value}
       onChange={onChange}
-      requiredTag={required}
-      requiredText=""
+      optionalTag={optional}
       placeholder={placeholder}
       helptext={helpText}
       hasError={!!error}
