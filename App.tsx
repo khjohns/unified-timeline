@@ -1,7 +1,6 @@
 import React, { useState, useEffect, ChangeEvent, useRef } from 'react';
 import { FormDataModel, Role } from './types';
 import { TABS, INITIAL_FORM_DATA, DEMO_DATA } from './constants';
-import { ChevronLeftIcon, ChevronRightIcon, DownloadIcon, PrinterIcon, FilePlus2Icon, RefreshCwIcon } from './components/ui/icons';
 import Toast from './components/ui/Toast';
 import { generatePdf } from './utils/pdfGenerator';
 import { PktHeader, PktButton, PktModal, PktTabs, PktTabItem } from '@oslokommune/punkt-react';
@@ -173,9 +172,66 @@ const App: React.FC = () => {
         );
     };
 
+    const validateCurrentTab = (): boolean => {
+        const newErrors: Record<string, string> = {};
+
+        if (activeTab === 0) {
+            // Grunninfo validation
+            if (!formData.sak.sakstittel.trim()) {
+                newErrors['sak.sakstittel'] = 'Sakstittel er påkrevd';
+            }
+            if (!formData.sak.opprettet_av.trim()) {
+                newErrors['sak.opprettet_av'] = 'Opprettet av er påkrevd';
+            }
+            if (!formData.sak.prosjekt_navn.trim()) {
+                newErrors['sak.prosjekt_navn'] = 'Prosjekt er påkrevd';
+            }
+            if (!formData.sak.kontrakt_referanse.trim()) {
+                newErrors['sak.kontrakt_referanse'] = 'Prosjektnummer er påkrevd';
+            }
+            if (!formData.sak.entreprenor.trim()) {
+                newErrors['sak.entreprenor'] = 'Entreprenør er påkrevd';
+            }
+            if (!formData.sak.byggherre.trim()) {
+                newErrors['sak.byggherre'] = 'Byggherre er påkrevd';
+            }
+        } else if (activeTab === 1) {
+            // Varsel validation
+            if (!formData.varsel.dato_forhold_oppdaget.trim()) {
+                newErrors['varsel.dato_forhold_oppdaget'] = 'Dato forhold oppdaget er påkrevd';
+            }
+            if (!formData.varsel.dato_varsel_sendt.trim()) {
+                newErrors['varsel.dato_varsel_sendt'] = 'Dato varsel sendt er påkrevd';
+            }
+            if (!formData.varsel.hovedkategori.trim()) {
+                newErrors['varsel.hovedkategori'] = 'Hovedkategori er påkrevd';
+            }
+        } else if (activeTab === 2) {
+            // KravKoe validation
+            if (!formData.koe.koe_revisjonsnr.toString().trim()) {
+                newErrors['koe.koe_revisjonsnr'] = 'Revisjonsnummer er påkrevd';
+            }
+            if (!formData.koe.dato_krav_sendt.trim()) {
+                newErrors['koe.dato_krav_sendt'] = 'Dato krav sendt er påkrevd';
+            }
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            setToastMessage('Vennligst fyll ut alle obligatoriske felt før du går videre');
+            setTimeout(() => setToastMessage(''), 3000);
+            return false;
+        }
+
+        setErrors({});
+        return true;
+    };
+
     const handleNextTab = () => {
-        setActiveTab(prev => Math.min(prev + 1, TABS.length - 1));
-        window.scrollTo(0, 0);
+        if (validateCurrentTab()) {
+            setActiveTab(prev => Math.min(prev + 1, TABS.length - 1));
+            window.scrollTo(0, 0);
+        }
     };
 
     const handlePrevTab = () => {
@@ -209,15 +265,16 @@ const App: React.FC = () => {
     );
 
     const renderPanel = () => {
+        const isTeDisabled = formData.rolle === 'BH';
         const panelProps = {
             formData,
             setFormData: handleInputChange,
             errors,
         };
         switch(activeTab) {
-            case 0: return <GrunninfoPanel {...panelProps} />;
-            case 1: return <VarselPanel {...panelProps} />;
-            case 2: return <KravKoePanel {...panelProps} />;
+            case 0: return <GrunninfoPanel {...panelProps} disabled={isTeDisabled} />;
+            case 1: return <VarselPanel {...panelProps} disabled={isTeDisabled} />;
+            case 2: return <KravKoePanel {...panelProps} disabled={isTeDisabled} />;
             case 3: return <BhSvarPanel {...panelProps} />;
             case 4: return <OppsummeringPanel data={formData} />;
             default: return null;
@@ -226,47 +283,52 @@ const App: React.FC = () => {
     
     const renderBottomBar = () => (
         <div className="mt-8 px-4 sm:px-0" role="navigation" aria-label="Steg navigasjon">
-            {/* Sekundære handlinger */}
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center flex-wrap gap-4">
                 <button
                     onClick={handleReset}
                     className="text-sm text-red-600 hover:text-red-700 hover:underline"
                 >
                     Nullstill
                 </button>
-                <div className="flex gap-3">
-                    <PktButton skin="secondary" size="small" onClick={handleDownloadPdf}>
-                        <DownloadIcon className="h-4 w-4 mr-2" /> PDF
+                <div className="flex gap-3 flex-wrap">
+                    <PktButton
+                        skin="secondary"
+                        size="small"
+                        onClick={handleDownloadPdf}
+                        iconName="document-pdf"
+                        variant="icon-left"
+                    >
+                        PDF
                     </PktButton>
-                    <PktButton skin="secondary" size="small" onClick={handleDemo}>
-                        <FilePlus2Icon className="h-4 w-4 mr-2" /> Eksempel
+                    <PktButton
+                        skin="secondary"
+                        size="small"
+                        onClick={handleDemo}
+                        iconName="plus-circle"
+                        variant="icon-left"
+                    >
+                        Eksempel
                     </PktButton>
-                </div>
-            </div>
-
-            {/* Hovednavigasjon */}
-            <div className="flex justify-between items-center">
-                <div>
                     {activeTab > 0 && (
                         <PktButton
                             skin="secondary"
                             size="medium"
                             onClick={handlePrevTab}
+                            iconName="chevron-left"
+                            variant="icon-left"
                         >
-                            <ChevronLeftIcon className="h-5 w-5 mr-2" />
                             Forrige
                         </PktButton>
                     )}
-                </div>
-                <div>
                     {activeTab < TABS.length - 1 && (
                         <PktButton
                             skin="primary"
                             size="medium"
                             onClick={handleNextTab}
+                            secondIconName="chevron-right"
+                            variant="icon-right"
                         >
-                            Neste Steg
-                            <ChevronRightIcon className="h-5 w-5 ml-2" />
+                            Neste
                         </PktButton>
                     )}
                 </div>

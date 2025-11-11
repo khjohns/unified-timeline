@@ -23,7 +23,7 @@ interface FieldProps {
   formatAsNumber?: boolean;
 }
 
-interface TextareaFieldProps extends Omit<FieldProps, 'type' | 'min' | 'step' | 'readOnly' | 'formatAsNumber'> {
+interface TextareaFieldProps extends Omit<FieldProps, 'type' | 'min' | 'step' | 'formatAsNumber'> {
     value: string;
     minHeight?: string;
 }
@@ -122,10 +122,11 @@ interface SelectFieldProps {
   error?: string;
   className?: string;
   helpText?: string;
+  readOnly?: boolean;
 }
 
 
-export const SelectField: React.FC<SelectFieldProps> = ({ id, label, value, onChange, options, required, error, className, helpText }) => {
+export const SelectField: React.FC<SelectFieldProps> = ({ id, label, value, onChange, options, required, error, className, helpText, readOnly }) => {
 
   const handleSelectChange = (e: ChangeEvent<HTMLSelectElement>) => {
     onChange(e.target.value);
@@ -145,6 +146,7 @@ export const SelectField: React.FC<SelectFieldProps> = ({ id, label, value, onCh
         hasError={!!error}
         errorMessage={error}
         useWrapper={true}
+        disabled={readOnly}
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
@@ -156,7 +158,7 @@ export const SelectField: React.FC<SelectFieldProps> = ({ id, label, value, onCh
   );
 };
 
-export const TextareaField: React.FC<TextareaFieldProps> = ({ id, label, value, onChange, required, placeholder, error, className, minHeight="90px", helpText }) => (
+export const TextareaField: React.FC<TextareaFieldProps> = ({ id, label, value, onChange, required, placeholder, error, className, minHeight="90px", helpText, readOnly }) => (
   <div className={className}>
     <PktTextarea
       id={id}
@@ -172,6 +174,7 @@ export const TextareaField: React.FC<TextareaFieldProps> = ({ id, label, value, 
       errorMessage={error}
       style={{ minHeight }}
       useWrapper={true}
+      readOnly={readOnly}
     />
   </div>
 );
@@ -182,9 +185,10 @@ interface CheckboxFieldProps {
   checked: boolean;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
   className?: string;
+  disabled?: boolean;
 }
 
-export const CheckboxField: React.FC<CheckboxFieldProps> = ({ id, label, checked, onChange, className }) => (
+export const CheckboxField: React.FC<CheckboxFieldProps> = ({ id, label, checked, onChange, className, disabled }) => (
   <div className={className}>
     <PktCheckbox
       id={id}
@@ -192,6 +196,7 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({ id, label, checked
       label={label}
       checked={checked}
       onChange={onChange}
+      disabled={disabled}
     />
   </div>
 );
