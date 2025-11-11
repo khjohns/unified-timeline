@@ -7,9 +7,10 @@ interface GrunninfoPanelProps {
   formData: FormDataModel;
   setFormData: (section: 'sak', field: string, value: any) => void;
   errors: Record<string, string>;
+  disabled?: boolean;
 }
 
-const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, errors }) => {
+const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, errors, disabled }) => {
   const { sak } = formData;
   const handleChange = (field: string, value: any) => setFormData('sak', field, value);
 
@@ -25,6 +26,7 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
             required
             placeholder=""
             error={errors['sak.sakstittel']}
+            readOnly={disabled}
           />
           <InputField
             id="sak.sak_id_display"
@@ -33,6 +35,7 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
             onChange={e => handleChange('sak_id_display', e.target.value)}
             placeholder="f.eks. KOE-2025-0001"
             error={errors['sak.sak_id_display']}
+            readOnly={disabled}
           />
           <InputField
             id="sak.opprettet_av"
@@ -42,6 +45,7 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
             required
             placeholder="Navn"
             error={errors['sak.opprettet_av']}
+            readOnly={disabled}
           />
           <DateField
             id="sak.opprettet_dato"
@@ -55,10 +59,10 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
 
       <FieldsetCard legend="Prosjekt">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-          <InputField id="sak.prosjekt_navn" label="Prosjekt" value={sak.prosjekt_navn} onChange={e => handleChange('prosjekt_navn', e.target.value)} required error={errors['sak.prosjekt_navn']} />
-          <InputField id="sak.kontrakt_referanse" label="Prosjektnummer" value={sak.kontrakt_referanse} onChange={e => handleChange('kontrakt_referanse', e.target.value)} required error={errors['sak.kontrakt_referanse']} />
-          <InputField id="sak.entreprenor" label="Entreprenør (TE)" value={sak.entreprenor} onChange={e => handleChange('entreprenor', e.target.value)} required error={errors['sak.entreprenor']} />
-          <InputField id="sak.byggherre" label="Byggherre (BH)" value={sak.byggherre} onChange={e => handleChange('byggherre', e.target.value)} required error={errors['sak.byggherre']} />
+          <InputField id="sak.prosjekt_navn" label="Prosjekt" value={sak.prosjekt_navn} onChange={e => handleChange('prosjekt_navn', e.target.value)} required error={errors['sak.prosjekt_navn']} readOnly={disabled} />
+          <InputField id="sak.kontrakt_referanse" label="Prosjektnummer" value={sak.kontrakt_referanse} onChange={e => handleChange('kontrakt_referanse', e.target.value)} required error={errors['sak.kontrakt_referanse']} readOnly={disabled} />
+          <InputField id="sak.entreprenor" label="Entreprenør (TE)" value={sak.entreprenor} onChange={e => handleChange('entreprenor', e.target.value)} required error={errors['sak.entreprenor']} readOnly={disabled} />
+          <InputField id="sak.byggherre" label="Byggherre (BH)" value={sak.byggherre} onChange={e => handleChange('byggherre', e.target.value)} required error={errors['sak.byggherre']} readOnly={disabled} />
         </div>
       </FieldsetCard>
     </div>
