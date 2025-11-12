@@ -88,7 +88,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
       </PktAlert>
 
       <FieldsetCard legend="Når skjedde det?">
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
           <DateField
             id="varsel.dato_forhold_oppdaget"
             label="Dato forhold oppdaget"
@@ -99,28 +99,26 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
             helpText="Når inntraff hendelsen?"
             fullwidth
           />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-            <DateField
-              id="varsel.dato_varsel_sendt"
-              label="Dato varsel sendt"
-              value={varsel.dato_varsel_sendt}
-              onChange={value => handleChange('dato_varsel_sendt', value)}
-              error={errors['varsel.dato_varsel_sendt']}
-              readOnly={isLocked}
-              helpText="Når ble BH formelt varslet?"
-              fullwidth
-            />
-            <SelectField
-              id="varsel.varsel_metode"
-              label="Metode for varsling"
-              value={varsel.varsel_metode}
-              onChange={value => handleChange('varsel_metode', value)}
-              options={varselMetodeOptions}
-              readOnly={isLocked}
-              helpText="Hvordan ble varselet kommunisert?"
-              fullwidth
-            />
-          </div>
+          <DateField
+            id="varsel.dato_varsel_sendt"
+            label="Dato varsel sendt"
+            value={varsel.dato_varsel_sendt}
+            onChange={value => handleChange('dato_varsel_sendt', value)}
+            error={errors['varsel.dato_varsel_sendt']}
+            readOnly={isLocked}
+            helpText="Når ble BH formelt varslet?"
+            fullwidth
+          />
+          <SelectField
+            id="varsel.varsel_metode"
+            label="Metode for varsling"
+            value={varsel.varsel_metode}
+            onChange={value => handleChange('varsel_metode', value)}
+            options={varselMetodeOptions}
+            readOnly={isLocked}
+            helpText="Hvordan ble varselet kommunisert?"
+            fullwidth
+          />
         </div>
       </FieldsetCard>
 
