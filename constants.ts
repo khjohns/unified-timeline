@@ -28,51 +28,57 @@ export const INITIAL_FORM_DATA: FormDataModel = {
         underkategori: '',
         varsel_beskrivelse: '',
         referansedokumenter: '',
+        varsel_metode: '',
+        signatur_te: '',
     },
-    koe: {
-        koe_revisjonsnr: '0',
-        dato_krav_sendt: '',
-        for_entreprenor: '',
-        vederlag: {
-            krav_vederlag: false,
-            krav_produktivitetstap: false,
-            saerskilt_varsel_rigg_drift: false,
-            krav_vederlag_metode: '',
-            krav_vederlag_belop: '',
-            krav_vederlag_begrunnelse: '',
-        },
-        frist: {
-            krav_fristforlengelse: false,
-            krav_frist_type: '',
-            krav_frist_antall_dager: '',
-            forsinkelse_kritisk_linje: false,
-            krav_frist_begrunnelse: '',
-        },
-    },
-    bh_svar: {
-        vederlag: {
-            varsel_for_sent: false,
-            varsel_for_sent_begrunnelse: '',
-            bh_svar_vederlag: '',
-            bh_vederlag_metode: '',
-            bh_godkjent_vederlag_belop: '',
-            bh_begrunnelse_vederlag: '',
-        },
-        frist: {
-            varsel_for_sent: false,
-            varsel_for_sent_begrunnelse: '',
-            bh_svar_frist: '',
-            bh_godkjent_frist_dager: '',
-            bh_frist_for_spesifisering: '',
-            bh_begrunnelse_frist: '',
-        },
-        mote_dato: '',
-        mote_referat: '',
-        sign: {
-            dato_svar_bh: '',
-            for_byggherre: '',
-        },
-    },
+    koe_revisjoner: [
+        {
+            koe_revisjonsnr: '0',
+            dato_krav_sendt: '',
+            for_entreprenor: '',
+            vederlag: {
+                krav_vederlag: false,
+                krav_produktivitetstap: false,
+                saerskilt_varsel_rigg_drift: false,
+                krav_vederlag_metode: '',
+                krav_vederlag_belop: '',
+                krav_vederlag_begrunnelse: '',
+            },
+            frist: {
+                krav_fristforlengelse: false,
+                krav_frist_type: '',
+                krav_frist_antall_dager: '',
+                forsinkelse_kritisk_linje: false,
+                krav_frist_begrunnelse: '',
+            },
+        }
+    ],
+    bh_svar_revisjoner: [
+        {
+            vederlag: {
+                varsel_for_sent: false,
+                varsel_for_sent_begrunnelse: '',
+                bh_svar_vederlag: '',
+                bh_vederlag_metode: '',
+                bh_godkjent_vederlag_belop: '',
+                bh_begrunnelse_vederlag: '',
+            },
+            frist: {
+                varsel_for_sent: false,
+                varsel_for_sent_begrunnelse: '',
+                bh_svar_frist: '',
+                bh_godkjent_frist_dager: '',
+                bh_frist_for_spesifisering: '',
+                bh_begrunnelse_frist: '',
+            },
+            mote_dato: '',
+            mote_referat: '',
+            sign: {
+                dato_svar_bh: '',
+                for_byggherre: '',
+            },
+        }
+    ],
 };
 
 export const DEMO_DATA: FormDataModel = {
@@ -95,51 +101,57 @@ export const DEMO_DATA: FormDataModel = {
         underkategori: 'Tegnings- eller beskrivelsesfeil',
         varsel_beskrivelse: 'Det ble oppdaget avvik mellom tegning F-01 rev. B og faktiske grunnforhold ved akse 1200-1400. Fundament må prosjekteres om for å håndtere uforutsette mengder med løsmasser.',
         referansedokumenter: 'E-postkorrespondanse 10.10.2023, Referat fra byggemøte #22.',
+        varsel_metode: 'E-post',
+        signatur_te: 'Per Olsen',
     },
-    koe: {
-        koe_revisjonsnr: '0',
-        dato_krav_sendt: '2023-10-26',
-        for_entreprenor: 'Per Olsen',
-        vederlag: {
-            krav_vederlag: true,
-            krav_produktivitetstap: false,
-            saerskilt_varsel_rigg_drift: false,
-            krav_vederlag_metode: 'Regningsarbeid (§30.1)',
-            krav_vederlag_belop: '235000',
-            krav_vederlag_begrunnelse: 'Kravet gjelder ompresjektering og utførelse av nye fundamenter for støyskjerm A3, inkludert merarbeid med masseutskifting. Kalkyle basert på timer for prosjektering (15t), maskintimer for gravemaskin (20t), manntimer (80t) og materialkostnader. Se vedlegg A for detaljert kalkyle.',
-        },
-        frist: {
-            krav_fristforlengelse: true,
-            krav_frist_type: 'Spesifisert krav (§33.6.1)',
-            krav_frist_antall_dager: '5',
-            forsinkelse_kritisk_linje: true,
-            krav_frist_begrunnelse: 'Arbeidet med støyskjerm A3 er på kritisk linje for ferdigstillelse av delfelt 3. Forsinkelsen forplanter seg til asfaltering som er væravhengig.',
-        },
-    },
-    bh_svar: {
-        vederlag: {
-            varsel_for_sent: false,
-            varsel_for_sent_begrunnelse: '',
-            bh_svar_vederlag: 'Delvis godkjent',
-            bh_vederlag_metode: '',
-            bh_godkjent_vederlag_belop: '195000',
-            bh_begrunnelse_vederlag: 'Godkjenner ompresjektering og utførelse, men avviser krav for ventetid da dette ikke var tilstrekkelig dokumentert. Redusert beløp reflekterer dette.',
-        },
-        frist: {
-            varsel_for_sent: false,
-            varsel_for_sent_begrunnelse: '',
-            bh_svar_frist: 'Godkjent',
-            bh_godkjent_frist_dager: '5',
-            bh_frist_for_spesifisering: '',
-            bh_begrunnelse_frist: 'Fristforlengelse godkjennes som krevd da arbeidet er på kritisk linje.',
-        },
-        mote_dato: '2023-11-02',
-        mote_referat: 'Referat fra avklaringsmøte 02.11.2023',
-        sign: {
-            dato_svar_bh: '2023-11-05',
-            for_byggherre: 'Lise Hansen',
-        },
-    },
+    koe_revisjoner: [
+        {
+            koe_revisjonsnr: '0',
+            dato_krav_sendt: '2023-10-26',
+            for_entreprenor: 'Per Olsen',
+            vederlag: {
+                krav_vederlag: true,
+                krav_produktivitetstap: false,
+                saerskilt_varsel_rigg_drift: false,
+                krav_vederlag_metode: 'Regningsarbeid (§30.1)',
+                krav_vederlag_belop: '235000',
+                krav_vederlag_begrunnelse: 'Kravet gjelder ompresjektering og utførelse av nye fundamenter for støyskjerm A3, inkludert merarbeid med masseutskifting. Kalkyle basert på timer for prosjektering (15t), maskintimer for gravemaskin (20t), manntimer (80t) og materialkostnader. Se vedlegg A for detaljert kalkyle.',
+            },
+            frist: {
+                krav_fristforlengelse: true,
+                krav_frist_type: 'Spesifisert krav (§33.6.1)',
+                krav_frist_antall_dager: '5',
+                forsinkelse_kritisk_linje: true,
+                krav_frist_begrunnelse: 'Arbeidet med støyskjerm A3 er på kritisk linje for ferdigstillelse av delfelt 3. Forsinkelsen forplanter seg til asfaltering som er væravhengig.',
+            },
+        }
+    ],
+    bh_svar_revisjoner: [
+        {
+            vederlag: {
+                varsel_for_sent: false,
+                varsel_for_sent_begrunnelse: '',
+                bh_svar_vederlag: 'Delvis godkjent',
+                bh_vederlag_metode: '',
+                bh_godkjent_vederlag_belop: '195000',
+                bh_begrunnelse_vederlag: 'Godkjenner ompresjektering og utførelse, men avviser krav for ventetid da dette ikke var tilstrekkelig dokumentert. Redusert beløp reflekterer dette.',
+            },
+            frist: {
+                varsel_for_sent: false,
+                varsel_for_sent_begrunnelse: '',
+                bh_svar_frist: 'Godkjent',
+                bh_godkjent_frist_dager: '5',
+                bh_frist_for_spesifisering: '',
+                bh_begrunnelse_frist: 'Fristforlengelse godkjennes som krevd da arbeidet er på kritisk linje.',
+            },
+            mote_dato: '2023-11-02',
+            mote_referat: 'Referat fra avklaringsmøte 02.11.2023',
+            sign: {
+                dato_svar_bh: '2023-11-05',
+                for_byggherre: 'Lise Hansen',
+            },
+        }
+    ],
 };
 
 export const HOVEDKATEGORI_OPTIONS = [

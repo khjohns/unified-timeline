@@ -2,20 +2,55 @@ import React from 'react';
 import { FormDataModel } from '../../types';
 import { InputField, SelectField, TextareaField, CheckboxField, DateField } from '../ui/Field';
 import FieldsetCard from '../ui/FieldsetCard';
+import { PktAccordion, PktAccordionItem, PktButton } from '@oslokommune/punkt-react';
 
 interface BhSvarPanelProps {
   formData: FormDataModel;
-  setFormData: (section: 'bh_svar', field: string, value: any) => void;
+  setFormData: (section: 'bh_svar_revisjoner', field: string, value: any, index?: number) => void;
   errors: Record<string, string>;
+  formStatus?: 'varsel' | 'krav' | 'svar';
+  setFormStatus?: (status: 'varsel' | 'krav' | 'svar') => void;
+  setActiveTab?: (tab: number) => void;
+  setToastMessage?: (message: string) => void;
+  addKoeRevisjon?: () => void;
 }
 
-const BhSvarPanel: React.FC<BhSvarPanelProps> = ({ formData, setFormData, errors }) => {
-  const { bh_svar, koe, rolle } = formData;
+const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
+  formData,
+  setFormData,
+  errors,
+  formStatus = 'varsel',
+  setFormStatus,
+  setActiveTab,
+  setToastMessage,
+  addKoeRevisjon
+}) => {
+  const { bh_svar_revisjoner, koe_revisjoner, rolle } = formData;
+  const sisteSvarIndex = bh_svar_revisjoner.length - 1;
+  const sisteKravIndex = koe_revisjoner.length - 1;
 
-  const handleChange = (field: string, value: any) => {
-    if (rolle === 'BH') {
-      setFormData('bh_svar', field, value);
+  const handleChange = (index: number, field: string, value: any) => {
+    setFormData('bh_svar_revisjoner', field, value, index);
+  };
+
+  const handleSendSvar = () => {
+    const sisteSvar = bh_svar_revisjoner[sisteSvarIndex];
+
+    // Validate the latest revision
+    if (!sisteSvar.sign.dato_svar_bh || !sisteSvar.sign.for_byggherre) {
+      setToastMessage?.('Vennligst fyll ut alle påkrevde felt (signatur) før du sender svaret');
+      setTimeout(() => setToastMessage?.(''), 3000);
+      return;
     }
+
+    // Add a new Koe revision
+    addKoeRevisjon?.();
+
+    // Change status back to krav
+    setFormStatus?.('krav');
+    setActiveTab?.(2); // Go back to Krav (KOE) tab
+    setToastMessage?.('Svar sendt! TE kan nå sende et nytt krav om nødvendig.');
+    setTimeout(() => setToastMessage?.(''), 3000);
   };
 
   const vederlagSvarOptions = [
@@ -36,90 +71,223 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({ formData, setFormData, errors
 
   if (rolle !== 'BH') {
     return (
-        <div className="text-center p-8 bg-gray-50 rounded-lg border">
-            <h3 className="text-lg font-semibold text-ink-dim">Svar fra Byggherre (BH)</h3>
-            <p className="mt-2 text-muted">Disse feltene fylles ut av Byggherre. Bytt til BH-rollen for å redigere.</p>
-        </div>
+      <div className="text-center p-8 bg-gray-50 rounded-lg border">
+        <h3 className="text-lg font-semibold text-ink-dim">Svar fra Byggherre (BH)</h3>
+        <p className="mt-2 text-muted">Disse feltene fylles ut av Byggherre. Bytt til BH-rollen for å redigere.</p>
+      </div>
     );
   }
 
   return (
     <div className="space-y-6">
-       {!koe.vederlag.krav_vederlag && !koe.frist.krav_fristforlengelse && (
-          <div className="text-center p-6 bg-gray-50 rounded-lg border">
-              <p className="text-muted">Entreprenøren har ikke fremmet spesifikke krav om vederlag eller fristforlengelse.</p>
-          </div>
-      )}
+      <PktAccordion skin="outlined">
+        {bh_svar_revisjoner.map((bh_svar, index) => {
+          const erSisteRevisjon = index === sisteSvarIndex;
+          const erLaast = !erSisteRevisjon || formStatus !== 'svar' || rolle !== 'BH';
 
-      <FieldsetCard legend="Byggherremøte om KOE" isBhPanel>
-         <div className="grid grid-cols-1 gap-y-4">
-            <DateField id="bh_svar.mote_dato" label="Dato for møte" value={bh_svar.mote_dato} onChange={value => handleChange('mote_dato', value)} className="max-w-sm" />
-            <TextareaField id="bh_svar.mote_referat" label="Referanse til møtereferat" value={bh_svar.mote_referat} onChange={e => handleChange('mote_referat', e.target.value)} minHeight="60px" />
-         </div>
-      </FieldsetCard>
+          // Get corresponding koe revision for this response
+          const tilhorendeKoe = koe_revisjoner[Math.min(index, sisteKravIndex)];
 
-      {koe.vederlag.krav_vederlag && (
-        <FieldsetCard legend="Svar på Vederlagskrav" isBhPanel>
-          <CheckboxField 
-            id="bh_svar.vederlag.varsel_for_sent" 
-            label="Varselet om vederlagskrav ansees som for sent fremsatt"
-            checked={bh_svar.vederlag.varsel_for_sent} 
-            onChange={e => handleChange('vederlag.varsel_for_sent', e.target.checked)} 
-          />
-          <div className={`collapsible ${bh_svar.vederlag.varsel_for_sent ? 'open' : ''}`}>
-            <div className="collapsible-content">
-              <div className="mt-4 pt-4 pl-4 border-l-2 border-border-color">
-                <div className="grid grid-cols-1 gap-y-4">
-                  <TextareaField id="bh_svar.vederlag.varsel_for_sent_begrunnelse" label="Begrunnelse for sen varsling" value={bh_svar.vederlag.varsel_for_sent_begrunnelse} onChange={e => handleChange('vederlag.varsel_for_sent_begrunnelse', e.target.value)} required={bh_svar.vederlag.varsel_for_sent} />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 pt-6 border-t border-border-color">
-            <div className="grid grid-cols-1 gap-y-6">
-              <SelectField id="bh_svar.vederlag.bh_svar_vederlag" label="Svar på krav om vederlag" value={bh_svar.vederlag.bh_svar_vederlag} onChange={value => handleChange('vederlag.bh_svar_vederlag', value)} options={vederlagSvarOptions} />
-              <InputField id="bh_svar.vederlag.bh_godkjent_vederlag_belop" label="Godkjent beløp (NOK)" type="number" value={bh_svar.vederlag.bh_godkjent_vederlag_belop} onChange={e => handleChange('vederlag.bh_godkjent_vederlag_belop', e.target.value)} error={errors['bh_svar.vederlag.bh_godkjent_vederlag_belop']} formatAsNumber />
-              <TextareaField id="bh_svar.vederlag.bh_begrunnelse_vederlag" label="Begrunnelse for svar" value={bh_svar.vederlag.bh_begrunnelse_vederlag} onChange={e => handleChange('vederlag.bh_begrunnelse_vederlag', e.target.value)} />
-            </div>
-          </div>
-        </FieldsetCard>
-      )}
-
-      {koe.frist.krav_fristforlengelse && (
-        <FieldsetCard legend="Svar på Fristforlengelse" isBhPanel>
-            <CheckboxField 
-              id="bh_svar.frist.varsel_for_sent" 
-              label="Varselet om fristforlengelse ansees som for sent fremsatt"
-              checked={bh_svar.frist.varsel_for_sent} 
-              onChange={e => handleChange('frist.varsel_for_sent', e.target.checked)} 
-            />
-            <div className={`collapsible ${bh_svar.frist.varsel_for_sent ? 'open' : ''}`}>
-                <div className="collapsible-content">
-                  <div className="mt-4 pt-4 pl-4 border-l-2 border-border-color">
-                    <div className="grid grid-cols-1 gap-y-4">
-                      <TextareaField id="bh_svar.frist.varsel_for_sent_begrunnelse" label="Begrunnelse for sen varsling" value={bh_svar.frist.varsel_for_sent_begrunnelse} onChange={e => handleChange('frist.varsel_for_sent_begrunnelse', e.target.value)} required={bh_svar.frist.varsel_for_sent} />
-                    </div>
+          return (
+            <PktAccordionItem
+              key={index}
+              id={`bh-svar-revisjon-${index}`}
+              title={`BH Svar til Revisjon ${tilhorendeKoe?.koe_revisjonsnr ?? index}`}
+              defaultOpen={erSisteRevisjon}
+            >
+              <div className="space-y-6 p-4">
+                {!tilhorendeKoe?.vederlag.krav_vederlag && !tilhorendeKoe?.frist.krav_fristforlengelse && (
+                  <div className="text-center p-6 bg-gray-50 rounded-lg border">
+                    <p className="text-muted">Entreprenøren har ikke fremmet spesifikke krav om vederlag eller fristforlengelse.</p>
                   </div>
-                </div>
-            </div>
-            <div className="mt-6 pt-6 border-t border-border-color">
-                <div className="grid grid-cols-1 gap-y-6">
-                    <SelectField id="bh_svar.frist.bh_svar_frist" label="Svar på krav om frist" value={bh_svar.frist.bh_svar_frist} onChange={value => handleChange('frist.bh_svar_frist', value)} options={fristSvarOptions} />
-                    <InputField id="bh_svar.frist.bh_godkjent_frist_dager" label="Godkjente dager" type="number" min={0} value={bh_svar.frist.bh_godkjent_frist_dager} onChange={e => handleChange('frist.bh_godkjent_frist_dager', e.target.value)} error={errors['bh_svar.frist.bh_godkjent_frist_dager']} className="max-w-sm" />
-                    <DateField id="bh_svar.frist.bh_frist_for_spesifisering" label="Frist for spesifisering (hvis aktuelt)" value={bh_svar.frist.bh_frist_for_spesifisering} onChange={value => handleChange('frist.bh_frist_for_spesifisering', value)} className="max-w-sm" />
-                    <TextareaField id="bh_svar.frist.bh_begrunnelse_frist" label="Begrunnelse for svar" value={bh_svar.frist.bh_begrunnelse_frist} onChange={e => handleChange('frist.bh_begrunnelse_frist', e.target.value)} />
-                </div>
-            </div>
-        </FieldsetCard>
-      )}
+                )}
 
-      <FieldsetCard legend="Signatur (For Byggherre)" isBhPanel>
-         <div className="grid grid-cols-1 gap-y-6">
-            <DateField id="bh_svar.sign.dato_svar_bh" label="Dato for BHs svar" value={bh_svar.sign.dato_svar_bh} onChange={value => handleChange('sign.dato_svar_bh', value)} required className="max-w-sm" />
-            <InputField id="bh_svar.sign.for_byggherre" label="Signatur" value={bh_svar.sign.for_byggherre} onChange={e => handleChange('sign.for_byggherre', e.target.value)} required placeholder="Navn på signatar" />
-         </div>
-      </FieldsetCard>
+                <FieldsetCard legend="Byggherremøte om KOE" isBhPanel>
+                  <div className="grid grid-cols-1 gap-y-4">
+                    <DateField
+                      id={`bh_svar.mote_dato.${index}`}
+                      label="Dato for møte"
+                      value={bh_svar.mote_dato}
+                      onChange={value => handleChange(index, 'mote_dato', value)}
+                      className="max-w-sm"
+                      readOnly={erLaast}
+                    />
+                    <TextareaField
+                      id={`bh_svar.mote_referat.${index}`}
+                      label="Referanse til møtereferat"
+                      value={bh_svar.mote_referat}
+                      onChange={e => handleChange(index, 'mote_referat', e.target.value)}
+                      minHeight="60px"
+                      readOnly={erLaast}
+                    />
+                  </div>
+                </FieldsetCard>
+
+                {tilhorendeKoe?.vederlag.krav_vederlag && (
+                  <FieldsetCard legend="Svar på Vederlagskrav" isBhPanel>
+                    <CheckboxField
+                      id={`bh_svar.vederlag.varsel_for_sent.${index}`}
+                      label="Varselet om vederlagskrav ansees som for sent fremsatt"
+                      checked={bh_svar.vederlag.varsel_for_sent}
+                      onChange={e => handleChange(index, 'vederlag.varsel_for_sent', e.target.checked)}
+                      disabled={erLaast}
+                    />
+                    <div className={`collapsible ${bh_svar.vederlag.varsel_for_sent ? 'open' : ''}`}>
+                      <div className="collapsible-content">
+                        <div className="mt-4 pt-4 pl-4 border-l-2 border-border-color">
+                          <div className="grid grid-cols-1 gap-y-4">
+                            <TextareaField
+                              id={`bh_svar.vederlag.varsel_for_sent_begrunnelse.${index}`}
+                              label="Begrunnelse for sen varsling"
+                              value={bh_svar.vederlag.varsel_for_sent_begrunnelse}
+                              onChange={e => handleChange(index, 'vederlag.varsel_for_sent_begrunnelse', e.target.value)}
+                              required={bh_svar.vederlag.varsel_for_sent}
+                              readOnly={erLaast}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 pt-6 border-t border-border-color">
+                      <div className="grid grid-cols-1 gap-y-6">
+                        <SelectField
+                          id={`bh_svar.vederlag.bh_svar_vederlag.${index}`}
+                          label="Svar på krav om vederlag"
+                          value={bh_svar.vederlag.bh_svar_vederlag}
+                          onChange={value => handleChange(index, 'vederlag.bh_svar_vederlag', value)}
+                          options={vederlagSvarOptions}
+                          readOnly={erLaast}
+                        />
+                        <InputField
+                          id={`bh_svar.vederlag.bh_godkjent_vederlag_belop.${index}`}
+                          label="Godkjent beløp (NOK)"
+                          type="number"
+                          value={bh_svar.vederlag.bh_godkjent_vederlag_belop}
+                          onChange={e => handleChange(index, 'vederlag.bh_godkjent_vederlag_belop', e.target.value)}
+                          error={errors['bh_svar.vederlag.bh_godkjent_vederlag_belop']}
+                          formatAsNumber
+                          readOnly={erLaast}
+                        />
+                        <TextareaField
+                          id={`bh_svar.vederlag.bh_begrunnelse_vederlag.${index}`}
+                          label="Begrunnelse for svar"
+                          value={bh_svar.vederlag.bh_begrunnelse_vederlag}
+                          onChange={e => handleChange(index, 'vederlag.bh_begrunnelse_vederlag', e.target.value)}
+                          readOnly={erLaast}
+                        />
+                      </div>
+                    </div>
+                  </FieldsetCard>
+                )}
+
+                {tilhorendeKoe?.frist.krav_fristforlengelse && (
+                  <FieldsetCard legend="Svar på Fristforlengelse" isBhPanel>
+                    <CheckboxField
+                      id={`bh_svar.frist.varsel_for_sent.${index}`}
+                      label="Varselet om fristforlengelse ansees som for sent fremsatt"
+                      checked={bh_svar.frist.varsel_for_sent}
+                      onChange={e => handleChange(index, 'frist.varsel_for_sent', e.target.checked)}
+                      disabled={erLaast}
+                    />
+                    <div className={`collapsible ${bh_svar.frist.varsel_for_sent ? 'open' : ''}`}>
+                      <div className="collapsible-content">
+                        <div className="mt-4 pt-4 pl-4 border-l-2 border-border-color">
+                          <div className="grid grid-cols-1 gap-y-4">
+                            <TextareaField
+                              id={`bh_svar.frist.varsel_for_sent_begrunnelse.${index}`}
+                              label="Begrunnelse for sen varsling"
+                              value={bh_svar.frist.varsel_for_sent_begrunnelse}
+                              onChange={e => handleChange(index, 'frist.varsel_for_sent_begrunnelse', e.target.value)}
+                              required={bh_svar.frist.varsel_for_sent}
+                              readOnly={erLaast}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-6 pt-6 border-t border-border-color">
+                      <div className="grid grid-cols-1 gap-y-6">
+                        <SelectField
+                          id={`bh_svar.frist.bh_svar_frist.${index}`}
+                          label="Svar på krav om frist"
+                          value={bh_svar.frist.bh_svar_frist}
+                          onChange={value => handleChange(index, 'frist.bh_svar_frist', value)}
+                          options={fristSvarOptions}
+                          readOnly={erLaast}
+                        />
+                        <InputField
+                          id={`bh_svar.frist.bh_godkjent_frist_dager.${index}`}
+                          label="Godkjente dager"
+                          type="number"
+                          min={0}
+                          value={bh_svar.frist.bh_godkjent_frist_dager}
+                          onChange={e => handleChange(index, 'frist.bh_godkjent_frist_dager', e.target.value)}
+                          error={errors['bh_svar.frist.bh_godkjent_frist_dager']}
+                          className="max-w-sm"
+                          readOnly={erLaast}
+                        />
+                        <DateField
+                          id={`bh_svar.frist.bh_frist_for_spesifisering.${index}`}
+                          label="Frist for spesifisering (hvis aktuelt)"
+                          value={bh_svar.frist.bh_frist_for_spesifisering}
+                          onChange={value => handleChange(index, 'frist.bh_frist_for_spesifisering', value)}
+                          className="max-w-sm"
+                          readOnly={erLaast}
+                        />
+                        <TextareaField
+                          id={`bh_svar.frist.bh_begrunnelse_frist.${index}`}
+                          label="Begrunnelse for svar"
+                          value={bh_svar.frist.bh_begrunnelse_frist}
+                          onChange={e => handleChange(index, 'frist.bh_begrunnelse_frist', e.target.value)}
+                          readOnly={erLaast}
+                        />
+                      </div>
+                    </div>
+                  </FieldsetCard>
+                )}
+
+                <FieldsetCard legend="Signatur (For Byggherre)" isBhPanel>
+                  <div className="grid grid-cols-1 gap-y-6">
+                    <DateField
+                      id={`bh_svar.sign.dato_svar_bh.${index}`}
+                      label="Dato for BHs svar"
+                      value={bh_svar.sign.dato_svar_bh}
+                      onChange={value => handleChange(index, 'sign.dato_svar_bh', value)}
+                      required
+                      className="max-w-sm"
+                      readOnly={erLaast}
+                    />
+                    <InputField
+                      id={`bh_svar.sign.for_byggherre.${index}`}
+                      label="Signatur"
+                      value={bh_svar.sign.for_byggherre}
+                      onChange={e => handleChange(index, 'sign.for_byggherre', e.target.value)}
+                      required
+                      placeholder="Navn på signatar"
+                      readOnly={erLaast}
+                    />
+                  </div>
+                </FieldsetCard>
+              </div>
+            </PktAccordionItem>
+          );
+        })}
+      </PktAccordion>
+
+      {formStatus === 'svar' && rolle === 'BH' && (
+        <div className="flex justify-end pt-4">
+          <PktButton
+            skin="primary"
+            size="medium"
+            onClick={handleSendSvar}
+            iconName="send"
+            variant="icon-left"
+          >
+            Send svar
+          </PktButton>
+        </div>
+      )}
     </div>
   );
 };

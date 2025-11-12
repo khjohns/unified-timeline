@@ -1,19 +1,32 @@
 import React, { useRef, useState } from 'react';
 import { FormDataModel } from '../../types';
-import { DateField, SelectField, TextareaField } from '../ui/Field';
+import { DateField, SelectField, TextareaField, InputField } from '../ui/Field';
 import FieldsetCard from '../ui/FieldsetCard';
 import { HOVEDKATEGORI_OPTIONS, UNDERKATEGORI_MAP } from '../../constants';
-import { PktButton } from '@oslokommune/punkt-react';
+import { PktButton, PktAlert } from '@oslokommune/punkt-react';
 
 interface VarselPanelProps {
   formData: FormDataModel;
   setFormData: (section: 'varsel', field: string, value: any) => void;
   errors: Record<string, string>;
   disabled?: boolean;
+  formStatus?: 'varsel' | 'krav' | 'svar';
+  setFormStatus?: (status: 'varsel' | 'krav' | 'svar') => void;
+  setActiveTab?: (tab: number) => void;
+  setToastMessage?: (message: string) => void;
 }
 
-const VarselPanel: React.FC<VarselPanelProps> = ({ formData, setFormData, errors, disabled }) => {
-  const { varsel } = formData;
+const VarselPanel: React.FC<VarselPanelProps> = ({
+  formData,
+  setFormData,
+  errors,
+  disabled,
+  formStatus = 'varsel',
+  setFormStatus,
+  setActiveTab,
+  setToastMessage
+}) => {
+  const { varsel, rolle } = formData;
   const handleChange = (field: string, value: any) => setFormData('varsel', field, value);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
@@ -43,26 +56,112 @@ const VarselPanel: React.FC<VarselPanelProps> = ({ formData, setFormData, errors
     setUploadedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handleSendVarsel = () => {
+    // Validate varsel fields
+    if (!varsel.dato_forhold_oppdaget || !varsel.dato_varsel_sendt || !varsel.hovedkategori) {
+      setToastMessage?.('Vennligst fyll ut alle påkrevde felt før du sender varselet');
+      setTimeout(() => setToastMessage?.(''), 3000);
+      return;
+    }
+
+    // Move to krav status
+    setFormStatus?.('krav');
+    setActiveTab?.(2); // Go to Krav (KOE) tab
+    setToastMessage?.('Varsel sendt! Nå kan du spesifisere kravet.');
+    setTimeout(() => setToastMessage?.(''), 3000);
+  };
+
+  const isLocked = formStatus !== 'varsel' || disabled;
+  const varselMetodeOptions = [
+    { value: "", label: "— Velg —" },
+    { value: "E-post", label: "E-post" },
+    { value: "Brev", label: "Brev" },
+    { value: "Byggemøte", label: "Byggemøte" },
+    { value: "Telefonsamtale + e-post", label: "Telefonsamtale + e-post" },
+    { value: "Annet", label: "Annet" },
+  ];
+
   return (
     <div className="space-y-6">
-      <FieldsetCard legend="Dato">
-        <div className="grid grid-cols-1 gap-y-6">
-          <DateField id="varsel.dato_forhold_oppdaget" label="Dato forhold oppdaget" value={varsel.dato_forhold_oppdaget} onChange={value => handleChange('dato_forhold_oppdaget', value)} error={errors['varsel.dato_forhold_oppdaget']} readOnly={disabled} className="max-w-sm" />
-          <DateField id="varsel.dato_varsel_sendt" label="Dato varsel sendt" value={varsel.dato_varsel_sendt} onChange={value => handleChange('dato_varsel_sendt', value)} error={errors['varsel.dato_varsel_sendt']} readOnly={disabled} className="max-w-sm" />
-        </div>
-      </FieldsetCard>
+      <PktAlert skin="info" compact>
+        Dette er det første formelle steget (Trinn 1) etter NS 8407. Her dokumenteres selve hendelsen og at varsel er sendt. Selve kravet spesifiseres i neste fane.
+      </PktAlert>
 
-      <FieldsetCard legend="Klassifisering">
-        <div className="grid grid-cols-1 gap-y-6">
-          <SelectField id="varsel.hovedkategori" label="Hovedkategori (NS 8407)" value={varsel.hovedkategori} onChange={handleHovedkategoriChange} options={HOVEDKATEGORI_OPTIONS} error={errors['varsel.hovedkategori']} readOnly={disabled} />
-          <SelectField id="varsel.underkategori" label="Underkategori" value={varsel.underkategori} onChange={value => handleChange('underkategori', value)} options={underkategoriOptions} readOnly={disabled} optional />
+      <FieldsetCard legend="Varseldetaljer (Trinn 1)">
+        <div className="space-y-6">
+          <div className="flex flex-col md:flex-row gap-x-6 gap-y-4">
+            <DateField
+              id="varsel.dato_forhold_oppdaget"
+              label="Dato forhold oppdaget"
+              value={varsel.dato_forhold_oppdaget}
+              onChange={value => handleChange('dato_forhold_oppdaget', value)}
+              error={errors['varsel.dato_forhold_oppdaget']}
+              readOnly={isLocked}
+              className="max-w-xs"
+              helpText="Når inntraff hendelsen?"
+            />
+            <DateField
+              id="varsel.dato_varsel_sendt"
+              label="Dato varsel sendt"
+              value={varsel.dato_varsel_sendt}
+              onChange={value => handleChange('dato_varsel_sendt', value)}
+              error={errors['varsel.dato_varsel_sendt']}
+              readOnly={isLocked}
+              className="max-w-xs"
+              helpText="Når ble BH formelt varslet?"
+            />
+          </div>
+
+          <SelectField
+            id="varsel.hovedkategori"
+            label="Hovedkategori (NS 8407)"
+            value={varsel.hovedkategori}
+            onChange={handleHovedkategoriChange}
+            options={HOVEDKATEGORI_OPTIONS}
+            error={errors['varsel.hovedkategori']}
+            readOnly={isLocked}
+          />
+
+          <SelectField
+            id="varsel.underkategori"
+            label="Underkategori"
+            value={varsel.underkategori}
+            onChange={value => handleChange('underkategori', value)}
+            options={underkategoriOptions}
+            readOnly={isLocked}
+            optional
+          />
+
+          <SelectField
+            id="varsel.varsel_metode"
+            label="Metode for varsling"
+            value={varsel.varsel_metode}
+            onChange={value => handleChange('varsel_metode', value)}
+            options={varselMetodeOptions}
+            readOnly={isLocked}
+            helpText="Hvordan ble varselet kommunisert?"
+          />
         </div>
       </FieldsetCard>
 
       <FieldsetCard legend="Beskrivelse og Referanser">
         <div className="grid grid-cols-1 gap-y-4">
-          <TextareaField id="varsel.varsel_beskrivelse" label="Beskrivelse (vis til vedlegg)" value={varsel.varsel_beskrivelse} onChange={e => handleChange('varsel_beskrivelse', e.target.value)} readOnly={disabled} optional />
-          <TextareaField id="varsel.referansedokumenter" label="Referansedokumenter / tidligere korrespondanse" value={varsel.referansedokumenter} onChange={e => handleChange('referansedokumenter', e.target.value)} readOnly={disabled} optional />
+          <TextareaField
+            id="varsel.varsel_beskrivelse"
+            label="Beskrivelse (vis til vedlegg)"
+            value={varsel.varsel_beskrivelse}
+            onChange={e => handleChange('varsel_beskrivelse', e.target.value)}
+            readOnly={isLocked}
+            optional
+          />
+          <TextareaField
+            id="varsel.referansedokumenter"
+            label="Referansedokumenter / tidligere korrespondanse"
+            value={varsel.referansedokumenter}
+            onChange={e => handleChange('referansedokumenter', e.target.value)}
+            readOnly={isLocked}
+            optional
+          />
         </div>
       </FieldsetCard>
 
@@ -75,7 +174,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({ formData, setFormData, errors
             onChange={handleFileChange}
             className="hidden"
             accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-            disabled={disabled}
+            disabled={isLocked}
           />
           <PktButton
             skin="secondary"
@@ -83,7 +182,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({ formData, setFormData, errors
             iconName="attachment"
             variant="icon-left"
             onClick={handleFileUploadClick}
-            disabled={disabled}
+            disabled={isLocked}
           >
             Last opp vedlegg
           </PktButton>
@@ -101,6 +200,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({ formData, setFormData, errors
                       type="button"
                       onClick={() => handleRemoveFile(index)}
                       className="text-sm text-red-600 hover:text-red-700 hover:underline"
+                      disabled={isLocked}
                     >
                       Fjern
                     </button>
@@ -111,6 +211,34 @@ const VarselPanel: React.FC<VarselPanelProps> = ({ formData, setFormData, errors
           )}
         </div>
       </FieldsetCard>
+
+      <FieldsetCard legend="Signatur (For Totalentreprenør)">
+        <div className="grid grid-cols-1 gap-y-6">
+          <InputField
+            id="varsel.signatur_te"
+            label="Signatur"
+            value={varsel.signatur_te}
+            onChange={e => handleChange('signatur_te', e.target.value)}
+            placeholder="Navn på signatar"
+            readOnly={isLocked}
+            helpText="Navnet til personen som sender varselet"
+          />
+        </div>
+      </FieldsetCard>
+
+      {formStatus === 'varsel' && rolle === 'TE' && !disabled && (
+        <div className="flex justify-end pt-4">
+          <PktButton
+            skin="primary"
+            size="medium"
+            onClick={handleSendVarsel}
+            iconName="send"
+            variant="icon-left"
+          >
+            Send varsel og fortsett til krav
+          </PktButton>
+        </div>
+      )}
     </div>
   );
 };
