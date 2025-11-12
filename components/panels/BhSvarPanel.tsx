@@ -291,8 +291,8 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
             skin="primary"
             size="medium"
             onClick={handleSendSvar}
-            iconName="send"
-            variant="icon-left"
+            iconName="chevron-right"
+            variant="icon-right"
           >
             Send svar
           </PktButton>

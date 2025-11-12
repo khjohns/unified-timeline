@@ -263,8 +263,8 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
             skin="primary"
             size="medium"
             onClick={handleSendKrav}
-            iconName="send"
-            variant="icon-left"
+            iconName="chevron-right"
+            variant="icon-right"
           >
             Send krav (Revisjon {koe_revisjoner[sisteKravIndex].koe_revisjonsnr})
           </PktButton>

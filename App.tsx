@@ -206,6 +206,8 @@ const App: React.FC = () => {
             'Er du sikker på at du vil nullstille skjemaet? Alle ulagrede data vil gå tapt.',
             () => {
                 setFormData(JSON.parse(JSON.stringify(INITIAL_FORM_DATA)));
+                setFormStatus('varsel');
+                setActiveTab(0);
                 setErrors({});
                 localStorage.removeItem('koe_v5_0_draft');
             }
@@ -218,6 +220,9 @@ const App: React.FC = () => {
             'Dette vil erstatte nåværende data med eksempeldata. Fortsette?',
             () => {
                 setFormData(JSON.parse(JSON.stringify(DEMO_DATA)));
+                // Set status to 'svar' since demo has 2 krav and 1 complete svar, waiting for second svar
+                setFormStatus('svar');
+                setActiveTab(3); // Go to BH Svar tab to see the pending response
                 setErrors({});
             }
         );

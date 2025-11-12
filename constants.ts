@@ -124,6 +124,26 @@ export const DEMO_DATA: FormDataModel = {
                 forsinkelse_kritisk_linje: true,
                 krav_frist_begrunnelse: 'Arbeidet med støyskjerm A3 er på kritisk linje for ferdigstillelse av delfelt 3. Forsinkelsen forplanter seg til asfaltering som er væravhengig.',
             },
+        },
+        {
+            koe_revisjonsnr: '1',
+            dato_krav_sendt: '2023-11-15',
+            for_entreprenor: 'Per Olsen',
+            vederlag: {
+                krav_vederlag: true,
+                krav_produktivitetstap: true,
+                saerskilt_varsel_rigg_drift: false,
+                krav_vederlag_metode: 'Regningsarbeid (§30.1)',
+                krav_vederlag_belop: '85000',
+                krav_vederlag_begrunnelse: 'Tilleggskrav som følge av forsinkelse forårsaket av sen avklaring fra BH. Inkluderer produktivitetstap for mannskaper (5 dager x 4 mann) og maskiner som stod på stand-by. Kalkulasjonsgrunnlag vedlagt.',
+            },
+            frist: {
+                krav_fristforlengelse: true,
+                krav_frist_type: 'Spesifisert krav (§33.6.1)',
+                krav_frist_antall_dager: '3',
+                forsinkelse_kritisk_linje: true,
+                krav_frist_begrunnelse: 'Ytterligere fristforlengelse som følge av at BH ikke godkjente opprinnelig krav i sin helhet. Dette har medført ytterligere forsinkelse i fremdriften.',
+            },
         }
     ],
     bh_svar_revisjoner: [
@@ -149,6 +169,30 @@ export const DEMO_DATA: FormDataModel = {
             sign: {
                 dato_svar_bh: '2023-11-05',
                 for_byggherre: 'Lise Hansen',
+            },
+        },
+        {
+            vederlag: {
+                varsel_for_sent: false,
+                varsel_for_sent_begrunnelse: '',
+                bh_svar_vederlag: '',
+                bh_vederlag_metode: '',
+                bh_godkjent_vederlag_belop: '',
+                bh_begrunnelse_vederlag: '',
+            },
+            frist: {
+                varsel_for_sent: false,
+                varsel_for_sent_begrunnelse: '',
+                bh_svar_frist: '',
+                bh_godkjent_frist_dager: '',
+                bh_frist_for_spesifisering: '',
+                bh_begrunnelse_frist: '',
+            },
+            mote_dato: '',
+            mote_referat: '',
+            sign: {
+                dato_svar_bh: '',
+                for_byggherre: '',
             },
         }
     ],
