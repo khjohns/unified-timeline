@@ -27,8 +27,17 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
   setToastMessage,
   addBhSvarRevisjon
 }) => {
-  const { koe_revisjoner, bh_svar_revisjoner, rolle } = formData;
+  const { koe_revisjoner = [], bh_svar_revisjoner = [], rolle } = formData;
   const sisteKravIndex = koe_revisjoner.length - 1;
+
+  // Safety check: ensure we have at least one revision
+  if (koe_revisjoner.length === 0) {
+    return (
+      <div className="text-center p-8 bg-gray-50 rounded-lg border">
+        <p className="text-muted">Ingen krav funnet. Vennligst oppfrisk siden.</p>
+      </div>
+    );
+  }
 
   const handleChange = (index: number, field: string, value: any) => {
     setFormData('koe_revisjoner', field, value, index);

@@ -41,6 +41,27 @@ const App: React.FC = () => {
                 if (!parsedData.sak.opprettet_dato) {
                     parsedData.sak.opprettet_dato = new Date().toISOString().split('T')[0];
                 }
+
+                // Migrate old data structure to new revision-based structure
+                if (parsedData.koe && !parsedData.koe_revisjoner) {
+                    // Old structure detected, convert to new
+                    parsedData.koe_revisjoner = [parsedData.koe];
+                    delete parsedData.koe;
+                }
+                if (parsedData.bh_svar && !parsedData.bh_svar_revisjoner) {
+                    // Old structure detected, convert to new
+                    parsedData.bh_svar_revisjoner = [parsedData.bh_svar];
+                    delete parsedData.bh_svar;
+                }
+
+                // Ensure new Varsel fields exist
+                if (!parsedData.varsel.varsel_metode) {
+                    parsedData.varsel.varsel_metode = '';
+                }
+                if (!parsedData.varsel.signatur_te) {
+                    parsedData.varsel.signatur_te = '';
+                }
+
                 setFormData(parsedData);
             }
         } catch (error) {
