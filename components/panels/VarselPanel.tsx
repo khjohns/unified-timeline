@@ -3,7 +3,7 @@ import { FormDataModel } from '../../types';
 import { DateField, SelectField, TextareaField, InputField } from '../ui/Field';
 import FieldsetCard from '../ui/FieldsetCard';
 import { HOVEDKATEGORI_OPTIONS, UNDERKATEGORI_MAP } from '../../constants';
-import { PktButton, PktAlert } from '@oslokommune/punkt-react';
+import { PktButton, PktAlert, PktDatepicker } from '@oslokommune/punkt-react';
 
 interface VarselPanelProps {
   formData: FormDataModel;
@@ -30,6 +30,16 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
   const handleChange = (field: string, value: any) => setFormData('varsel', field, value);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+
+  const handleDateChange = (event: CustomEvent<string[]>) => {
+    const dates = event.detail.sort(); // Sorter datoene (eldste først)
+
+    // Sett den første datoen (eller en tom streng hvis ingen er valgt)
+    handleChange('dato_forhold_oppdaget', dates[0] || '');
+
+    // Sett den andre datoen. Hvis bare én er valgt, bruk den første datoen for begge.
+    handleChange('dato_varsel_sendt', (dates.length > 1 ? dates[1] : dates[0]) || '');
+  };
 
   const handleHovedkategoriChange = (value: string) => {
     handleChange('hovedkategori', value);
@@ -88,30 +98,34 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
       </PktAlert>
 
       <FieldsetCard legend="Varseldetaljer (Trinn 1)">
-        <div className="space-y-6">
-          <div className="flex flex-col md:flex-row gap-x-6 gap-y-4">
-            <DateField
-              id="varsel.dato_forhold_oppdaget"
-              label="Dato forhold oppdaget"
-              value={varsel.dato_forhold_oppdaget}
-              onChange={value => handleChange('dato_forhold_oppdaget', value)}
-              error={errors['varsel.dato_forhold_oppdaget']}
-              readOnly={isLocked}
-              className="max-w-xs"
-              helpText="Når inntraff hendelsen?"
-            />
-            <DateField
-              id="varsel.dato_varsel_sendt"
-              label="Dato varsel sendt"
-              value={varsel.dato_varsel_sendt}
-              onChange={value => handleChange('dato_varsel_sendt', value)}
-              error={errors['varsel.dato_varsel_sendt']}
-              readOnly={isLocked}
-              className="max-w-xs"
-              helpText="Når ble BH formelt varslet?"
-            />
-          </div>
+        {/* Bruk 2-kolonners grid layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+          {/* CELLE 1: Datovelger */}
+          <PktDatepicker
+            id="varsel.datoer"
+            label="Dato forhold oppdaget / Dato varsel sendt"
+            value={[varsel.dato_forhold_oppdaget, varsel.dato_varsel_sendt].filter(Boolean)}
+            onValueChange={handleDateChange}
+            multiple={true}
+            disabled={isLocked}
+            helptext="Velg to datoer: 1. Når hendelsen skjedde. 2. Når BH ble varslet."
+            hasError={!!errors['varsel.dato_forhold_oppdaget'] || !!errors['varsel.dato_varsel_sendt']}
+            errorMessage={errors['varsel.dato_forhold_oppdaget'] || errors['varsel.dato_varsel_sendt']}
+            useWrapper
+          />
 
+          {/* CELLE 2: Metode for varsling */}
+          <SelectField
+            id="varsel.varsel_metode"
+            label="Metode for varsling"
+            value={varsel.varsel_metode}
+            onChange={value => handleChange('varsel_metode', value)}
+            options={varselMetodeOptions}
+            readOnly={isLocked}
+            helpText="Hvordan ble varselet kommunisert?"
+          />
+
+          {/* CELLE 3: Hovedkategori */}
           <SelectField
             id="varsel.hovedkategori"
             label="Hovedkategori (NS 8407)"
@@ -122,6 +136,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
             readOnly={isLocked}
           />
 
+          {/* CELLE 4: Underkategori */}
           <SelectField
             id="varsel.underkategori"
             label="Underkategori"
@@ -130,16 +145,6 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
             options={underkategoriOptions}
             readOnly={isLocked}
             optional
-          />
-
-          <SelectField
-            id="varsel.varsel_metode"
-            label="Metode for varsling"
-            value={varsel.varsel_metode}
-            onChange={value => handleChange('varsel_metode', value)}
-            options={varselMetodeOptions}
-            readOnly={isLocked}
-            helpText="Hvordan ble varselet kommunisert?"
           />
         </div>
       </FieldsetCard>

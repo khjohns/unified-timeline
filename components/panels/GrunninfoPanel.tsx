@@ -17,7 +17,7 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
   return (
     <div className="space-y-6">
       <FieldsetCard legend="Saksdetaljer">
-        <div className="grid grid-cols-1 gap-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
           <InputField
             id="sak.sakstittel"
             label="Sakstittel"
@@ -59,7 +59,7 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
       </FieldsetCard>
 
       <FieldsetCard legend="Prosjekt">
-        <div className="grid grid-cols-1 gap-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
           <InputField id="sak.prosjekt_navn" label="Prosjekt" value={sak.prosjekt_navn} onChange={e => handleChange('prosjekt_navn', e.target.value)} error={errors['sak.prosjekt_navn']} readOnly={disabled} />
           <InputField id="sak.kontrakt_referanse" label="Prosjektnummer" value={sak.kontrakt_referanse} onChange={e => handleChange('kontrakt_referanse', e.target.value)} error={errors['sak.kontrakt_referanse']} readOnly={disabled} />
           <InputField id="sak.entreprenor" label="Entreprenør (TE)" value={sak.entreprenor} onChange={e => handleChange('entreprenor', e.target.value)} error={errors['sak.entreprenor']} readOnly={disabled} />
