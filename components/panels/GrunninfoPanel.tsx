@@ -108,7 +108,7 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
 
         {/* Kolonne 2: Sidepanelet. Vises kun på store skjermer. */}
         <aside className="hidden lg:block">
-          <div className="sticky top-32 space-y-4">
+          <div className="sticky top-36 space-y-4">
             <h3 className="text-lg font-semibold text-ink">Saksinformasjon</h3>
             <div className="text-sm space-y-2 p-4 bg-gray-50 rounded-lg border border-border-color">
               <p><strong>Sakstittel:</strong> {sak.sakstittel || 'Ikke angitt'}</p>
