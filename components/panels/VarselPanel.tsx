@@ -73,11 +73,12 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
 
   const isLocked = formStatus !== 'varsel' || disabled;
   const varselMetodeOptions = [
+    { value: "Denne saken", label: "Denne saken" },
     { value: "", label: "— Velg —" },
     { value: "E-post", label: "E-post" },
     { value: "Brev", label: "Brev" },
     { value: "Byggemøte", label: "Byggemøte" },
-    { value: "Telefonsamtale + e-post", label: "Telefonsamtale + e-post" },
+    { value: "Muntlig", label: "Muntlig" },
     { value: "Annet", label: "Annet" },
   ];
 
