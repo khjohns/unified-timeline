@@ -493,7 +493,7 @@ const App: React.FC = () => {
                 </div>
             </header>
             <main className="pt-32 pb-8 sm:pb-12">
-                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
                     {renderPanel()}
                     {renderBottomBar()}
                 </div> 
