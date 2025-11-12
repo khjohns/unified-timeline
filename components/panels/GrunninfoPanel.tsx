@@ -14,94 +14,98 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
   const { sak } = formData;
   const handleChange = (field: string, value: any) => setFormData('sak', field, value);
 
+  // NYTT: Vi legger til en smalere container for hele panelet
+  // max-w-lg er 512px, som er veldig nært anbefalingen på 500px.
   return (
-    <div className="space-y-6">
-      <FieldsetCard legend="Saksdetaljer">
-        {/* ENDRING: Forenklet gap og lagt til items-end for korrekt justering */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-          <InputField
-            id="sak.sakstittel"
-            label="Sakstittel"
-            value={sak.sakstittel}
-            onChange={e => handleChange('sakstittel', e.target.value)}
-            placeholder=""
-            error={errors['sak.sakstittel']}
-            readOnly={disabled}
-            className="max-w-sm" // ENDRING: Lagt til for konsistent bredde
-          />
-          <InputField
-            id="sak.sak_id_display"
-            label="Sak-ID"
-            value={sak.sak_id_display}
-            onChange={e => handleChange('sak_id_display', e.target.value)}
-            placeholder="f.eks. KOE-2025-0001"
-            error={errors['sak.sak_id_display']}
-            readOnly={disabled}
-            className="max-w-sm" // Denne var allerede bra!
-            optional
-          />
-          <InputField
-            id="sak.opprettet_av"
-            label="Opprettet av"
-            value={sak.opprettet_av}
-            onChange={e => handleChange('opprettet_av', e.target.value)}
-            placeholder="Navn"
-            error={errors['sak.opprettet_av']}
-            readOnly={disabled}
-            className="max-w-sm" // ENDRING: Lagt til for konsistent bredde
-          />
-          <DateField
-            id="sak.opprettet_dato"
-            label="Opprettet dato"
-            value={sak.opprettet_dato}
-            onChange={()=>{}}
-            readOnly
-            className="max-w-sm" // Denne var allerede bra!
-          />
-        </div>
-      </FieldsetCard>
+    <div className="max-w-lg mx-auto">
+      <div className="space-y-6">
+        <FieldsetCard legend="Saksdetaljer">
+          {/* ENDRING: Bytter fra grid til en enkel vertikal stabel med space-y-6 */}
+          <div className="space-y-6">
+            <InputField
+              id="sak.sakstittel"
+              label="Sakstittel"
+              value={sak.sakstittel}
+              onChange={e => handleChange('sakstittel', e.target.value)}
+              placeholder=""
+              error={errors['sak.sakstittel']}
+              readOnly={disabled}
+              // Ingen max-width her, så den fyller den nye smale containeren
+            />
+            <InputField
+              id="sak.sak_id_display"
+              label="Sak-ID"
+              value={sak.sak_id_display}
+              onChange={e => handleChange('sak_id_display', e.target.value)}
+              placeholder="f.eks. KOE-2025-0001"
+              error={errors['sak.sak_id_display']}
+              readOnly={disabled}
+              className="max-w-sm" // Beholder denne for å indikere et kortere felt
+              optional
+            />
+            <InputField
+              id="sak.opprettet_av"
+              label="Opprettet av"
+              value={sak.opprettet_av}
+              onChange={e => handleChange('opprettet_av', e.target.value)}
+              placeholder="Navn"
+              error={errors['sak.opprettet_av']}
+              readOnly={disabled}
+              className="max-w-sm" // Beholder denne
+            />
+            <DateField
+              id="sak.opprettet_dato"
+              label="Opprettet dato"
+              value={sak.opprettet_dato}
+              onChange={()=>{}}
+              readOnly
+              className="max-w-sm" // Beholder denne
+            />
+          </div>
+        </FieldsetCard>
 
-      <FieldsetCard legend="Prosjekt">
-        {/* ENDRING: Forenklet gap og lagt til items-end for korrekt justering */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-          <InputField 
-            id="sak.prosjekt_navn" 
-            label="Prosjekt" 
-            value={sak.prosjekt_navn} 
-            onChange={e => handleChange('prosjekt_navn', e.target.value)} 
-            error={errors['sak.prosjekt_navn']} 
-            readOnly={disabled} 
-            className="max-w-sm" // ENDRING: Lagt til for konsistent bredde
-          />
-          <InputField 
-            id="sak.kontrakt_referanse" 
-            label="Prosjektnummer" 
-            value={sak.kontrakt_referanse} 
-            onChange={e => handleChange('kontrakt_referanse', e.target.value)} 
-            error={errors['sak.kontrakt_referanse']} 
-            readOnly={disabled} 
-            className="max-w-sm" // ENDRING: Lagt til for konsistent bredde
-          />
-          <InputField 
-            id="sak.entreprenor" 
-            label="Entreprenør (TE)" 
-            value={sak.entreprenor} 
-            onChange={e => handleChange('entreprenor', e.target.value)} 
-            error={errors['sak.entreprenor']} 
-            readOnly={disabled} 
-            className="max-w-sm" // ENDRING: Lagt til for konsistent bredde
-          />
-          <InputField 
-            id="sak.byggherre" 
-            label="Byggherre (BH)" 
-            value={sak.byggherre} 
-            onChange={e => handleChange('byggherre', e.target.value)} 
-            error={errors['sak.byggherre']} 
-            readOnly={disabled} 
-            className="max-w-sm" // ENDRING: Lagt til for konsistent bredde
-          />
-        </div>
-      </FieldsetCard>
+        <FieldsetCard legend="Prosjekt">
+          {/* ENDRING: Bytter fra grid til en enkel vertikal stabel med space-y-6 */}
+          <div className="space-y-6">
+            <InputField 
+              id="sak.prosjekt_navn" 
+              label="Prosjekt" 
+              value={sak.prosjekt_navn} 
+              onChange={e => handleChange('prosjekt_navn', e.target.value)} 
+              error={errors['sak.prosjekt_navn']} 
+              readOnly={disabled}
+              // Ingen max-width, fyller container
+            />
+            <InputField 
+              id="sak.kontrakt_referanse" 
+              label="Prosjektnummer" 
+              value={sak.kontrakt_referanse} 
+              onChange={e => handleChange('kontrakt_referanse', e.target.value)} 
+              error={errors['sak.kontrakt_referanse']} 
+              readOnly={disabled}
+              className="max-w-sm" // Kortere felt
+            />
+            <InputField 
+              id="sak.entreprenor" 
+              label="Entreprenør (TE)" 
+              value={sak.entreprenor} 
+              onChange={e => handleChange('entreprenor', e.target.value)} 
+              error={errors['sak.entreprenor']} 
+              readOnly={disabled}
+              // Ingen max-width, fyller container
+            />
+            <InputField 
+              id="sak.byggherre" 
+              label="Byggherre (BH)" 
+              value={sak.byggherre} 
+              onChange={e => handleChange('byggherre', e.target.value)} 
+              error={errors['sak.byggherre']} 
+              readOnly={disabled}
+              // Ingen max-width, fyller container
+            />
+          </div>
+        </FieldsetCard>
+      </div>
     </div>
   );
 };
