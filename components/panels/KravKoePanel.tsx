@@ -30,7 +30,6 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
   const { koe_revisjoner = [], bh_svar_revisjoner = [], rolle } = formData;
   const sisteKravIndex = koe_revisjoner.length - 1;
 
-  // Safety check: ensure we have at least one revision
   if (koe_revisjoner.length === 0) {
     return (
       <div className="text-center p-8 bg-gray-50 rounded-lg border">
@@ -46,7 +45,6 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
   const handleSendKrav = () => {
     const sisteKrav = koe_revisjoner[sisteKravIndex];
 
-    // Validate the latest revision
     if (!sisteKrav.koe_revisjonsnr || !sisteKrav.dato_krav_sendt) {
       setToastMessage?.('Vennligst fyll ut alle påkrevde felt før du sender kravet');
       setTimeout(() => setToastMessage?.(''), 3000);
@@ -59,12 +57,9 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
       return;
     }
 
-    // Add a new BH svar revision
     addBhSvarRevisjon?.();
-
-    // Change status and navigate
     setFormStatus?.('svar');
-    setActiveTab?.(3); // Go to BH Svar tab
+    setActiveTab?.(3);
     setToastMessage?.('Krav sendt! Byggherre kan nå svare på kravet.');
     setTimeout(() => setToastMessage?.(''), 3000);
   };
@@ -97,7 +92,6 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                       required
                       placeholder="f.eks. 0 for første innsending"
                       error={errors[`koe_revisjoner.koe_revisjonsnr`]}
-                      helpText="Angir versjonen av kravet. Start med 0."
                       readOnly={erLaast}
                       className="max-w-sm"
                     />
@@ -123,8 +117,8 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                 <div className={`collapsible ${koe.vederlag.krav_vederlag ? 'open' : ''}`}>
                   <div className="collapsible-content">
                     <FieldsetCard legend="Detaljer om Vederlagsjustering">
-                      <div className="space-y-6">
-                        <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                        <div className="space-y-4 md:col-span-2">
                           <CheckboxField
                             id={`koe.vederlag.krav_produktivitetstap.${index}`}
                             label="Krav om produktivitetstap (§ 34.1.3)"
@@ -140,40 +134,41 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                             disabled={erLaast}
                           />
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-                          <SelectField
-                            id={`koe.vederlag.krav_vederlag_metode.${index}`}
-                            label="Oppgjørsmetode"
-                            value={koe.vederlag.krav_vederlag_metode}
-                            onChange={value => handleChange(index, 'vederlag.krav_vederlag_metode', value)}
-                            options={[
-                              {value:"", label:"— Velg —"},
-                              {value:"Entreprenørens tilbud (§34.2.1)", label:"Entreprenørens tilbud (§34.2.1)"},
-                              {value:"Kontraktens enhetspriser (§34.3.1)", label:"Kontraktens enhetspriser (§34.3.1)"},
-                              {value:"Justerte enhetspriser (§34.3.2)", label:"Justerte enhetspriser (§34.3.2)"},
-                              {value:"Regningsarbeid (§30.1)", label:"Regningsarbeid (§30.1)"}
-                            ]}
-                            readOnly={erLaast}
-                          />
-                          <InputField
-                            id={`koe.vederlag.krav_vederlag_belop.${index}`}
-                            label="Beløp (NOK)"
-                            type="number"
-                            value={koe.vederlag.krav_vederlag_belop}
-                            onChange={e => handleChange(index, 'vederlag.krav_vederlag_belop', e.target.value)}
-                            error={errors[`koe.vederlag.krav_vederlag_belop`]}
-                            formatAsNumber
-                            readOnly={erLaast}
-                            className="max-w-sm"
-                          />
-                        </div>
-                        <TextareaField
-                          id={`koe.vederlag.krav_vederlag_begrunnelse.${index}`}
-                          label="Begrunnelse/kalkyle"
-                          value={koe.vederlag.krav_vederlag_begrunnelse}
-                          onChange={e => handleChange(index, 'vederlag.krav_vederlag_begrunnelse', e.target.value)}
+                        <SelectField
+                          id={`koe.vederlag.krav_vederlag_metode.${index}`}
+                          label="Oppgjørsmetode"
+                          value={koe.vederlag.krav_vederlag_metode}
+                          onChange={value => handleChange(index, 'vederlag.krav_vederlag_metode', value)}
+                          options={[
+                            {value:"", label:"— Velg —"},
+                            {value:"Entreprenørens tilbud (§34.2.1)", label:"Entreprenørens tilbud (§34.2.1)"},
+                            {value:"Kontraktens enhetspriser (§34.3.1)", label:"Kontraktens enhetspriser (§34.3.1)"},
+                            {value:"Justerte enhetspriser (§34.3.2)", label:"Justerte enhetspriser (§34.3.2)"},
+                            {value:"Regningsarbeid (§30.1)", label:"Regningsarbeid (§30.1)"}
+                          ]}
                           readOnly={erLaast}
                         />
+                        <InputField
+                          id={`koe.vederlag.krav_vederlag_belop.${index}`}
+                          label="Beløp (NOK)"
+                          type="number"
+                          value={koe.vederlag.krav_vederlag_belop}
+                          onChange={e => handleChange(index, 'vederlag.krav_vederlag_belop', e.target.value)}
+                          error={errors[`koe.vederlag.krav_vederlag_belop`]}
+                          formatAsNumber
+                          readOnly={erLaast}
+                          className="max-w-sm"
+                        />
+                        <div className="md:col-span-2">
+                          <TextareaField
+                            id={`koe.vederlag.krav_vederlag_begrunnelse.${index}`}
+                            label="Begrunnelse/kalkyle"
+                            value={koe.vederlag.krav_vederlag_begrunnelse}
+                            onChange={e => handleChange(index, 'vederlag.krav_vederlag_begrunnelse', e.target.value)}
+                            readOnly={erLaast}
+                            fullwidth // ENDRING: Bruker riktig prop for full bredde
+                          />
+                        </div>
                       </div>
                     </FieldsetCard>
                   </div>
@@ -182,42 +177,43 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                 <div className={`collapsible ${koe.frist.krav_fristforlengelse ? 'open' : ''}`}>
                   <div className="collapsible-content">
                     <FieldsetCard legend="Detaljer om Fristforlengelse">
-                      <div className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-                          <SelectField
-                            id={`koe.frist.krav_frist_type.${index}`}
-                            label="Fristtype"
-                            value={koe.frist.krav_frist_type}
-                            onChange={value => handleChange(index, 'frist.krav_frist_type', value)}
-                            options={[
-                              {value:"", label:"— Velg —"},
-                              {value:"Foreløpig varsel (§33.4)", label:"Foreløpig varsel (§33.4)"},
-                              {value:"Spesifisert krav (§33.6.1)", label:"Spesifisert krav (§33.6.1)"},
-                              {value:"Tilleggsfrist ved force majeure (§33.3)", label:"Tilleggsfrist ved force majeure (§33.3)"},
-                              {value:"Endelig oppsummering (§39.1) [Prosess ved sluttoppgjør]", label:"Endelig oppsummering (§39.1) [Prosess ved sluttoppgjør]"}
-                            ]}
-                            readOnly={erLaast}
-                          />
-                          <InputField
-                            id={`koe.frist.krav_frist_antall_dager.${index}`}
-                            label="Antall dager"
-                            type="number"
-                            min={0}
-                            step={1}
-                            value={koe.frist.krav_frist_antall_dager}
-                            onChange={e => handleChange(index, 'frist.krav_frist_antall_dager', e.target.value)}
-                            error={errors[`koe.frist.krav_frist_antall_dager`]}
-                            readOnly={erLaast}
-                            className="max-w-sm"
-                          />
-                        </div>
-                        <TextareaField
-                          id={`koe.frist.krav_frist_begrunnelse.${index}`}
-                          label="Begrunnelse (årsakssammenheng)"
-                          value={koe.frist.krav_frist_begrunnelse}
-                          onChange={e => handleChange(index, 'frist.krav_frist_begrunnelse', e.target.value)}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                        <SelectField
+                          id={`koe.frist.krav_frist_type.${index}`}
+                          label="Fristtype"
+                          value={koe.frist.krav_frist_type}
+                          onChange={value => handleChange(index, 'frist.krav_frist_type', value)}
+                          options={[
+                            {value:"", label:"— Velg —"},
+                            {value:"Foreløpig varsel (§33.4)", label:"Foreløpig varsel (§33.4)"},
+                            {value:"Spesifisert krav (§33.6.1)", label:"Spesifisert krav (§33.6.1)"},
+                            {value:"Tilleggsfrist ved force majeure (§33.3)", label:"Tilleggsfrist ved force majeure (§33.3)"},
+                            {value:"Endelig oppsummering (§39.1) [Prosess ved sluttoppgjør]", label:"Endelig oppsummering (§39.1) [Prosess ved sluttoppgjør]"}
+                          ]}
                           readOnly={erLaast}
                         />
+                        <InputField
+                          id={`koe.frist.krav_frist_antall_dager.${index}`}
+                          label="Antall dager"
+                          type="number"
+                          min={0}
+                          step={1}
+                          value={koe.frist.krav_frist_antall_dager}
+                          onChange={e => handleChange(index, 'frist.krav_frist_antall_dager', e.target.value)}
+                          error={errors[`koe.frist.krav_frist_antall_dager`]}
+                          readOnly={erLaast}
+                          className="max-w-sm"
+                        />
+                        <div className="md:col-span-2">
+                          <TextareaField
+                            id={`koe.frist.krav_frist_begrunnelse.${index}`}
+                            label="Begrunnelse (årsakssammenheng)"
+                            value={koe.frist.krav_frist_begrunnelse}
+                            onChange={e => handleChange(index, 'frist.krav_frist_begrunnelse', e.target.value)}
+                            readOnly={erLaast}
+                            fullwidth // ENDRING: Bruker riktig prop for full bredde
+                          />
+                        </div>
                       </div>
                     </FieldsetCard>
                   </div>
