@@ -27,6 +27,7 @@ interface FieldProps {
 interface TextareaFieldProps extends Omit<FieldProps, 'type' | 'min' | 'step' | 'formatAsNumber'> {
     value: string;
     minHeight?: string;
+    fullwidth?: boolean;
 }
 
 const baseInputClasses = "w-full p-2.5 rounded-lg border border-border-color bg-white text-ink focus:border-pri focus:ring-2 focus:ring-pri/20 outline-none";
@@ -83,9 +84,10 @@ interface DateFieldProps {
   error?: string;
   className?: string;
   helpText?: string;
+  fullwidth?: boolean;
 }
 
-export const DateField: React.FC<DateFieldProps> = ({ id, label, value, onChange, required, optional, readOnly, error, className, helpText }) => {
+export const DateField: React.FC<DateFieldProps> = ({ id, label, value, onChange, required, optional, readOnly, error, className, helpText, fullwidth }) => {
 
     const handleDateChange = (e: ChangeEvent<HTMLInputElement>) => {
         // PktDatepicker returnerer event, så vi må hente value derfra
@@ -107,6 +109,7 @@ export const DateField: React.FC<DateFieldProps> = ({ id, label, value, onChange
                 errorMessage={error}
                 useWrapper={true}
                 dateformat="yyyy-MM-dd"
+                fullwidth={fullwidth}
             />
         </div>
     );
@@ -124,10 +127,11 @@ interface SelectFieldProps {
   className?: string;
   helpText?: string;
   readOnly?: boolean;
+  fullwidth?: boolean;
 }
 
 
-export const SelectField: React.FC<SelectFieldProps> = ({ id, label, value, onChange, options, required, optional, error, className, helpText, readOnly }) => {
+export const SelectField: React.FC<SelectFieldProps> = ({ id, label, value, onChange, options, required, optional, error, className, helpText, readOnly, fullwidth }) => {
 
   const handleSelectChange = (e: ChangeEvent<HTMLSelectElement>) => {
     onChange(e.target.value);
@@ -147,6 +151,7 @@ export const SelectField: React.FC<SelectFieldProps> = ({ id, label, value, onCh
         errorMessage={error}
         useWrapper={true}
         disabled={readOnly}
+        fullwidth={fullwidth}
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
@@ -158,7 +163,7 @@ export const SelectField: React.FC<SelectFieldProps> = ({ id, label, value, onCh
   );
 };
 
-export const TextareaField: React.FC<TextareaFieldProps> = ({ id, label, value, onChange, required, optional, placeholder, error, className, minHeight="90px", helpText, readOnly }) => (
+export const TextareaField: React.FC<TextareaFieldProps> = ({ id, label, value, onChange, required, optional, placeholder, error, className, minHeight="90px", helpText, readOnly, fullwidth }) => (
   <div className={className}>
     <PktTextarea
       id={id}
@@ -174,6 +179,7 @@ export const TextareaField: React.FC<TextareaFieldProps> = ({ id, label, value, 
       style={{ minHeight }}
       useWrapper={true}
       readOnly={readOnly}
+      fullwidth={fullwidth}
     />
   </div>
 );
