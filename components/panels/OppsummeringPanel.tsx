@@ -24,10 +24,10 @@ const OppsummeringPanel: React.FC<OppsummeringPanelProps> = ({ data }) => {
             <PktAccordion
                 skin="outlined"
                 compact>
-                {/* 1) Grunninfo */}
+                {/* Sak */}
                 <PktAccordionItem
                     id="oppsummering-grunninfo"
-                    title="1) Grunninfo"
+                    title="Sak"
                 >
                     <div className="pt-4">
                         <dl className="divide-y divide-border-color">
@@ -43,10 +43,10 @@ const OppsummeringPanel: React.FC<OppsummeringPanelProps> = ({ data }) => {
                     </div>
                 </PktAccordionItem>
 
-                {/* 2) Varsel */}
+                {/* Varsel */}
                 <PktAccordionItem
                     id="oppsummering-varsel"
-                    title="2) Varsel"
+                    title="Varsel"
                 >
                     <div className="pt-4">
                         <dl className="divide-y divide-border-color">
@@ -60,9 +60,9 @@ const OppsummeringPanel: React.FC<OppsummeringPanelProps> = ({ data }) => {
                     </div>
                 </PktAccordionItem>
 
-                {/* 3) Krav (KOE) */}
+                {/* Krav */}
                 {koe_revisjoner.length === 0 ? (
-                    <PktAccordionItem id="oppsummering-krav-ingen" title="3) Krav (KOE)" disabled>
+                    <PktAccordionItem id="oppsummering-krav-ingen" title="Krav" disabled>
                          <div className="p-4"><p className="text-muted">Ingen krav registrert.</p></div>
                     </PktAccordionItem>
                 ) : (
@@ -70,7 +70,7 @@ const OppsummeringPanel: React.FC<OppsummeringPanelProps> = ({ data }) => {
                         <PktAccordionItem
                             key={index}
                             id={`oppsummering-krav-${index}`}
-                            title={`3) Krav (Revisjon ${koe.koe_revisjonsnr})`}
+                            title={`Krav (revisjonsnr. ${koe.koe_revisjonsnr})`}
                             defaultOpen={index === koe_revisjoner.length - 1}
                         >
                             <div className="pt-4">
@@ -101,9 +101,9 @@ const OppsummeringPanel: React.FC<OppsummeringPanelProps> = ({ data }) => {
                     ))
                 )}
 
-                {/* 4) BH Svar */}
+                {/* BH Svar */}
                 {bh_svar_revisjoner.length === 0 ? (
-                    <PktAccordionItem id="oppsummering-svar-ingen" title="4) BH Svar" disabled>
+                    <PktAccordionItem id="oppsummering-svar-ingen" title="BH svar" disabled>
                         <div className="p-4"><p className="text-muted">Ingen svar registrert.</p></div>
                     </PktAccordionItem>
                 ) : (
@@ -113,7 +113,7 @@ const OppsummeringPanel: React.FC<OppsummeringPanelProps> = ({ data }) => {
                             <PktAccordionItem
                                 key={index}
                                 id={`oppsummering-svar-${index}`}
-                                title={`4) BH Svar til Revisjon ${tilhorendeKoe?.koe_revisjonsnr ?? index}`}
+                                title={`BH svar (revisjonsnr. ${tilhorendeKoe?.koe_revisjonsnr ?? index}`}
                                 defaultOpen={index === bh_svar_revisjoner.length - 1}
                             >
                                 <div className="pt-4">
