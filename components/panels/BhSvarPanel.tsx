@@ -29,7 +29,6 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
   const sisteSvarIndex = bh_svar_revisjoner.length - 1;
   const sisteKravIndex = koe_revisjoner.length - 1;
 
-  // Safety check for rolle
   if (rolle !== 'BH') {
     return (
       <div className="text-center p-8 bg-gray-50 rounded-lg border">
@@ -39,7 +38,6 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
     );
   }
 
-  // Safety check: ensure we have at least one revision
   if (bh_svar_revisjoner.length === 0 || koe_revisjoner.length === 0) {
     return (
       <div className="text-center p-8 bg-gray-50 rounded-lg border">
@@ -55,19 +53,15 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
   const handleSendSvar = () => {
     const sisteSvar = bh_svar_revisjoner[sisteSvarIndex];
 
-    // Validate the latest revision
     if (!sisteSvar.sign.dato_svar_bh || !sisteSvar.sign.for_byggherre) {
       setToastMessage?.('Vennligst fyll ut alle påkrevde felt (signatur) før du sender svaret');
       setTimeout(() => setToastMessage?.(''), 3000);
       return;
     }
 
-    // Add a new Koe revision
     addKoeRevisjon?.();
-
-    // Change status back to krav
     setFormStatus?.('krav');
-    setActiveTab?.(2); // Go back to Krav (KOE) tab
+    setActiveTab?.(2);
     setToastMessage?.('Svar sendt! TE kan nå sende et nytt krav om nødvendig.');
     setTimeout(() => setToastMessage?.(''), 3000);
   };
@@ -94,8 +88,6 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
         {bh_svar_revisjoner.map((bh_svar, index) => {
           const erSisteRevisjon = index === sisteSvarIndex;
           const erLaast = !erSisteRevisjon || formStatus !== 'svar' || rolle !== 'BH';
-
-          // Get corresponding koe revision for this response
           const tilhorendeKoe = koe_revisjoner[Math.min(index, sisteKravIndex)];
 
           return (
@@ -105,7 +97,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
               title={`BH Svar til Revisjon ${tilhorendeKoe?.koe_revisjonsnr ?? index}`}
               defaultOpen={erSisteRevisjon}
             >
-              <div className="space-y-6 pt-4">
+              <div className="space-y-6 p-4">
                 {!tilhorendeKoe?.vederlag.krav_vederlag && !tilhorendeKoe?.frist.krav_fristforlengelse && (
                   <div className="text-center p-6 bg-gray-50 rounded-lg border">
                     <p className="text-muted">Entreprenøren har ikke fremmet spesifikke krav om vederlag eller fristforlengelse.</p>
@@ -113,39 +105,41 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                 )}
 
                 <FieldsetCard legend="Byggherremøte om KOE" isBhPanel>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                    <DateField
-                      id={`bh_svar.mote_dato.${index}`}
-                      label="Dato for møte"
-                      value={bh_svar.mote_dato}
-                      onChange={value => handleChange(index, 'mote_dato', value)}
-                      className="max-w-sm"
-                      readOnly={erLaast}
-                    />
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                      <DateField
+                        id={`bh_svar.mote_dato.${index}`}
+                        label="Dato for møte"
+                        value={bh_svar.mote_dato}
+                        onChange={value => handleChange(index, 'mote_dato', value)}
+                        className="max-w-sm"
+                        readOnly={erLaast}
+                      />
+                    </div>
                     <TextareaField
                       id={`bh_svar.mote_referat.${index}`}
                       label="Referanse til møtereferat"
                       value={bh_svar.mote_referat}
                       onChange={e => handleChange(index, 'mote_referat', e.target.value)}
-                      minHeight="60px"
                       readOnly={erLaast}
+                      fullwidth
                     />
                   </div>
                 </FieldsetCard>
 
                 {tilhorendeKoe?.vederlag.krav_vederlag && (
                   <FieldsetCard legend="Svar på Vederlagskrav" isBhPanel>
-                    <CheckboxField
-                      id={`bh_svar.vederlag.varsel_for_sent.${index}`}
-                      label="Varselet om vederlagskrav ansees som for sent fremsatt"
-                      checked={bh_svar.vederlag.varsel_for_sent}
-                      onChange={e => handleChange(index, 'vederlag.varsel_for_sent', e.target.checked)}
-                      disabled={erLaast}
-                    />
-                    <div className={`collapsible ${bh_svar.vederlag.varsel_for_sent ? 'open' : ''}`}>
-                      <div className="collapsible-content">
-                        <div className="mt-4 pt-4 pl-4 border-l-2 border-border-color">
-                          <div className="grid grid-cols-1 gap-y-4">
+                    <div className="space-y-4">
+                      <CheckboxField
+                        id={`bh_svar.vederlag.varsel_for_sent.${index}`}
+                        label="Varselet om vederlagskrav ansees som for sent fremsatt"
+                        checked={bh_svar.vederlag.varsel_for_sent}
+                        onChange={e => handleChange(index, 'vederlag.varsel_for_sent', e.target.checked)}
+                        disabled={erLaast}
+                      />
+                      <div className={`collapsible ${bh_svar.vederlag.varsel_for_sent ? 'open' : ''}`}>
+                        <div className="collapsible-content">
+                          <div className="pl-4 border-l-2 border-border-color">
                             <TextareaField
                               id={`bh_svar.vederlag.varsel_for_sent_begrunnelse.${index}`}
                               label="Begrunnelse for sen varsling"
@@ -153,14 +147,14 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                               onChange={e => handleChange(index, 'vederlag.varsel_for_sent_begrunnelse', e.target.value)}
                               required={bh_svar.vederlag.varsel_for_sent}
                               readOnly={erLaast}
+                              fullwidth
                             />
                           </div>
                         </div>
                       </div>
                     </div>
-
-                    <div className="mt-6 pt-6 border-t border-border-color">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
+                    <div className="pt-6 border-t border-border-color space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                         <SelectField
                           id={`bh_svar.vederlag.bh_svar_vederlag.${index}`}
                           label="Svar på krav om vederlag"
@@ -168,6 +162,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                           onChange={value => handleChange(index, 'vederlag.bh_svar_vederlag', value)}
                           options={vederlagSvarOptions}
                           readOnly={erLaast}
+                          className="max-w-sm"
                         />
                         <InputField
                           id={`bh_svar.vederlag.bh_godkjent_vederlag_belop.${index}`}
@@ -178,32 +173,34 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                           error={errors['bh_svar.vederlag.bh_godkjent_vederlag_belop']}
                           formatAsNumber
                           readOnly={erLaast}
-                        />
-                        <TextareaField
-                          id={`bh_svar.vederlag.bh_begrunnelse_vederlag.${index}`}
-                          label="Begrunnelse for svar"
-                          value={bh_svar.vederlag.bh_begrunnelse_vederlag}
-                          onChange={e => handleChange(index, 'vederlag.bh_begrunnelse_vederlag', e.target.value)}
-                          readOnly={erLaast}
+                          className="max-w-sm"
                         />
                       </div>
+                      <TextareaField
+                        id={`bh_svar.vederlag.bh_begrunnelse_vederlag.${index}`}
+                        label="Begrunnelse for svar"
+                        value={bh_svar.vederlag.bh_begrunnelse_vederlag}
+                        onChange={e => handleChange(index, 'vederlag.bh_begrunnelse_vederlag', e.target.value)}
+                        readOnly={erLaast}
+                        fullwidth
+                      />
                     </div>
                   </FieldsetCard>
                 )}
 
                 {tilhorendeKoe?.frist.krav_fristforlengelse && (
                   <FieldsetCard legend="Svar på Fristforlengelse" isBhPanel>
-                    <CheckboxField
-                      id={`bh_svar.frist.varsel_for_sent.${index}`}
-                      label="Varselet om fristforlengelse ansees som for sent fremsatt"
-                      checked={bh_svar.frist.varsel_for_sent}
-                      onChange={e => handleChange(index, 'frist.varsel_for_sent', e.target.checked)}
-                      disabled={erLaast}
-                    />
-                    <div className={`collapsible ${bh_svar.frist.varsel_for_sent ? 'open' : ''}`}>
-                      <div className="collapsible-content">
-                        <div className="mt-4 pt-4 pl-4 border-l-2 border-border-color">
-                          <div className="grid grid-cols-1 gap-y-4">
+                    <div className="space-y-4">
+                      <CheckboxField
+                        id={`bh_svar.frist.varsel_for_sent.${index}`}
+                        label="Varselet om fristforlengelse ansees som for sent fremsatt"
+                        checked={bh_svar.frist.varsel_for_sent}
+                        onChange={e => handleChange(index, 'frist.varsel_for_sent', e.target.checked)}
+                        disabled={erLaast}
+                      />
+                      <div className={`collapsible ${bh_svar.frist.varsel_for_sent ? 'open' : ''}`}>
+                        <div className="collapsible-content">
+                          <div className="pl-4 border-l-2 border-border-color">
                             <TextareaField
                               id={`bh_svar.frist.varsel_for_sent_begrunnelse.${index}`}
                               label="Begrunnelse for sen varsling"
@@ -211,13 +208,14 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                               onChange={e => handleChange(index, 'frist.varsel_for_sent_begrunnelse', e.target.value)}
                               required={bh_svar.frist.varsel_for_sent}
                               readOnly={erLaast}
+                              fullwidth
                             />
                           </div>
                         </div>
                       </div>
                     </div>
-                    <div className="mt-6 pt-6 border-t border-border-color">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
+                    <div className="pt-6 border-t border-border-color space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                         <SelectField
                           id={`bh_svar.frist.bh_svar_frist.${index}`}
                           label="Svar på krav om frist"
@@ -225,6 +223,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                           onChange={value => handleChange(index, 'frist.bh_svar_frist', value)}
                           options={fristSvarOptions}
                           readOnly={erLaast}
+                          className="max-w-sm"
                         />
                         <InputField
                           id={`bh_svar.frist.bh_godkjent_frist_dager.${index}`}
@@ -245,20 +244,21 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                           className="max-w-sm"
                           readOnly={erLaast}
                         />
-                        <TextareaField
-                          id={`bh_svar.frist.bh_begrunnelse_frist.${index}`}
-                          label="Begrunnelse for svar"
-                          value={bh_svar.frist.bh_begrunnelse_frist}
-                          onChange={e => handleChange(index, 'frist.bh_begrunnelse_frist', e.target.value)}
-                          readOnly={erLaast}
-                        />
                       </div>
+                      <TextareaField
+                        id={`bh_svar.frist.bh_begrunnelse_frist.${index}`}
+                        label="Begrunnelse for svar"
+                        value={bh_svar.frist.bh_begrunnelse_frist}
+                        onChange={e => handleChange(index, 'frist.bh_begrunnelse_frist', e.target.value)}
+                        readOnly={erLaast}
+                        fullwidth
+                      />
                     </div>
                   </FieldsetCard>
                 )}
 
                 <FieldsetCard legend="Signatur (For Byggherre)" isBhPanel>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                     <DateField
                       id={`bh_svar.sign.dato_svar_bh.${index}`}
                       label="Dato for BHs svar"
@@ -276,6 +276,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                       required
                       placeholder="Navn på signatar"
                       readOnly={erLaast}
+                      className="max-w-sm"
                     />
                   </div>
                 </FieldsetCard>
