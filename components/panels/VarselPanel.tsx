@@ -99,7 +99,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
             helpText="Når inntraff hendelsen?"
             fullwidth
           />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
             <DateField
               id="varsel.dato_varsel_sendt"
               label="Dato varsel sendt"
@@ -126,7 +126,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
 
       <FieldsetCard legend="Hva gjelder det?">
         <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
             <SelectField
               id="varsel.hovedkategori"
               label="Hovedkategori (NS 8407)"
