@@ -25,9 +25,28 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
   setToastMessage,
   addKoeRevisjon
 }) => {
-  const { bh_svar_revisjoner, koe_revisjoner, rolle } = formData;
+  const { bh_svar_revisjoner = [], koe_revisjoner = [], rolle } = formData;
   const sisteSvarIndex = bh_svar_revisjoner.length - 1;
   const sisteKravIndex = koe_revisjoner.length - 1;
+
+  // Safety check for rolle
+  if (rolle !== 'BH') {
+    return (
+      <div className="text-center p-8 bg-gray-50 rounded-lg border">
+        <h3 className="text-lg font-semibold text-ink-dim">Svar fra Byggherre (BH)</h3>
+        <p className="mt-2 text-muted">Disse feltene fylles ut av Byggherre. Bytt til BH-rollen for å redigere.</p>
+      </div>
+    );
+  }
+
+  // Safety check: ensure we have at least one revision
+  if (bh_svar_revisjoner.length === 0 || koe_revisjoner.length === 0) {
+    return (
+      <div className="text-center p-8 bg-gray-50 rounded-lg border">
+        <p className="text-muted">Ingen svar funnet. Vennligst oppfrisk siden.</p>
+      </div>
+    );
+  }
 
   const handleChange = (index: number, field: string, value: any) => {
     setFormData('bh_svar_revisjoner', field, value, index);
@@ -68,15 +87,6 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
     { value: "Avvist", label: "Avvist" },
     { value: "Avventer spesifisering", label: "Avventer spesifisering" },
   ];
-
-  if (rolle !== 'BH') {
-    return (
-      <div className="text-center p-8 bg-gray-50 rounded-lg border">
-        <h3 className="text-lg font-semibold text-ink-dim">Svar fra Byggherre (BH)</h3>
-        <p className="mt-2 text-muted">Disse feltene fylles ut av Byggherre. Bytt til BH-rollen for å redigere.</p>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
