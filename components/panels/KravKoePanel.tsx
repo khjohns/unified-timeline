@@ -66,7 +66,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
 
   return (
     <div className="space-y-6">
-      <PktAccordion skin="outlined">
+      <PktAccordion skin="borderless">
         {koe_revisjoner.map((koe, index) => {
           const erSisteRevisjon = index === sisteKravIndex;
           const erLaast = !erSisteRevisjon || formStatus !== 'krav' || rolle !== 'TE' || disabled;
