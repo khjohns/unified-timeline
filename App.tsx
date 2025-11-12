@@ -495,8 +495,8 @@ const App: React.FC = () => {
             <main className="pt-32 pb-8 sm:pb-12">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                     {renderPanel()}
-                </div>
-                {renderBottomBar()}
+                    {renderBottomBar()}
+                </div> 
             </main>
             {toastMessage && <Toast message={toastMessage} />}
             {modalConfig.isOpen && (
