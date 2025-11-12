@@ -88,7 +88,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
       </PktAlert>
 
       <FieldsetCard legend="Når skjedde det?">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+        <div className="space-y-4">
           <DateField
             id="varsel.dato_forhold_oppdaget"
             label="Dato forhold oppdaget"
@@ -99,53 +99,55 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
             helpText="Når inntraff hendelsen?"
             fullwidth
           />
-          <DateField
-            id="varsel.dato_varsel_sendt"
-            label="Dato varsel sendt"
-            value={varsel.dato_varsel_sendt}
-            onChange={value => handleChange('dato_varsel_sendt', value)}
-            error={errors['varsel.dato_varsel_sendt']}
-            readOnly={isLocked}
-            helpText="Når ble BH formelt varslet?"
-            fullwidth
-          />
-        </div>
-        <div className="mt-4">
-          <SelectField
-            id="varsel.varsel_metode"
-            label="Metode for varsling"
-            value={varsel.varsel_metode}
-            onChange={value => handleChange('varsel_metode', value)}
-            options={varselMetodeOptions}
-            readOnly={isLocked}
-            helpText="Hvordan ble varselet kommunisert?"
-            fullwidth
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+            <DateField
+              id="varsel.dato_varsel_sendt"
+              label="Dato varsel sendt"
+              value={varsel.dato_varsel_sendt}
+              onChange={value => handleChange('dato_varsel_sendt', value)}
+              error={errors['varsel.dato_varsel_sendt']}
+              readOnly={isLocked}
+              helpText="Når ble BH formelt varslet?"
+              fullwidth
+            />
+            <SelectField
+              id="varsel.varsel_metode"
+              label="Metode for varsling"
+              value={varsel.varsel_metode}
+              onChange={value => handleChange('varsel_metode', value)}
+              options={varselMetodeOptions}
+              readOnly={isLocked}
+              helpText="Hvordan ble varselet kommunisert?"
+              fullwidth
+            />
+          </div>
         </div>
       </FieldsetCard>
 
       <FieldsetCard legend="Hva gjelder det?">
         <div className="space-y-4">
-          <SelectField
-            id="varsel.hovedkategori"
-            label="Hovedkategori (NS 8407)"
-            value={varsel.hovedkategori}
-            onChange={handleHovedkategoriChange}
-            options={HOVEDKATEGORI_OPTIONS}
-            error={errors['varsel.hovedkategori']}
-            readOnly={isLocked}
-            fullwidth
-          />
-          <SelectField
-            id="varsel.underkategori"
-            label="Underkategori"
-            value={varsel.underkategori}
-            onChange={value => handleChange('underkategori', value)}
-            options={underkategoriOptions}
-            readOnly={isLocked}
-            optional
-            fullwidth
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+            <SelectField
+              id="varsel.hovedkategori"
+              label="Hovedkategori (NS 8407)"
+              value={varsel.hovedkategori}
+              onChange={handleHovedkategoriChange}
+              options={HOVEDKATEGORI_OPTIONS}
+              error={errors['varsel.hovedkategori']}
+              readOnly={isLocked}
+              fullwidth
+            />
+            <SelectField
+              id="varsel.underkategori"
+              label="Underkategori"
+              value={varsel.underkategori}
+              onChange={value => handleChange('underkategori', value)}
+              options={underkategoriOptions}
+              readOnly={isLocked}
+              optional
+              fullwidth
+            />
+          </div>
           <TextareaField
             id="varsel.varsel_beskrivelse"
             label="Beskrivelse (vis til vedlegg)"
