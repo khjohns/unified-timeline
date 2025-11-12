@@ -1,5 +1,5 @@
 import React, { useState, useEffect, ChangeEvent, useRef } from 'react';
-import { FormDataModel, Role } from './types';
+import { FormDataModel, Role, BhSvar, Koe } from './types';
 import { TABS, INITIAL_FORM_DATA, DEMO_DATA } from './constants';
 import Toast from './components/ui/Toast';
 import { generatePdf } from './utils/pdfGenerator';
@@ -15,6 +15,7 @@ import OppsummeringPanel from './components/panels/OppsummeringPanel';
 const App: React.FC = () => {
     const [activeTab, setActiveTab] = useState(0);
     const [formData, setFormData] = useState<FormDataModel>(INITIAL_FORM_DATA);
+    const [formStatus, setFormStatus] = useState<'varsel' | 'krav' | 'svar'>('varsel');
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [toastMessage, setToastMessage] = useState('');
     const debounceTimeoutRef = useRef<number | null>(null);
@@ -82,10 +83,39 @@ const App: React.FC = () => {
         setFormData(prev => ({ ...prev, rolle: newRole }));
     };
     
-    const handleInputChange = (section: keyof Omit<FormDataModel, 'versjon' | 'rolle'>, field: string, value: any) => {
+    const handleInputChange = (section: keyof Omit<FormDataModel, 'versjon' | 'rolle'>, field: string, value: any, index?: number) => {
         setFormData(prev => {
             const path = field.split('.');
 
+            // Handle array-based sections (koe_revisjoner, bh_svar_revisjoner)
+            if (section === 'koe_revisjoner' || section === 'bh_svar_revisjoner') {
+                const arraySection = prev[section] as any[];
+                const targetIndex = index !== undefined ? index : arraySection.length - 1;
+
+                if (path.length === 1) {
+                    const updatedArray = [...arraySection];
+                    updatedArray[targetIndex] = {
+                        ...updatedArray[targetIndex],
+                        [field]: value,
+                    };
+                    return { ...prev, [section]: updatedArray };
+                }
+
+                if (path.length === 2) {
+                    const [nestedObjectKey, nestedFieldKey] = path;
+                    const updatedArray = [...arraySection];
+                    updatedArray[targetIndex] = {
+                        ...updatedArray[targetIndex],
+                        [nestedObjectKey]: {
+                            ...updatedArray[targetIndex][nestedObjectKey],
+                            [nestedFieldKey]: value,
+                        },
+                    };
+                    return { ...prev, [section]: updatedArray };
+                }
+            }
+
+            // Handle non-array sections (sak, varsel)
             if (path.length === 1) {
                 return {
                     ...prev,
@@ -207,12 +237,13 @@ const App: React.FC = () => {
                 newErrors['varsel.hovedkategori'] = 'Hovedkategori er påkrevd';
             }
         } else if (activeTab === 2) {
-            // KravKoe validation
-            if (!formData.koe.koe_revisjonsnr.toString().trim()) {
-                newErrors['koe.koe_revisjonsnr'] = 'Revisjonsnummer er påkrevd';
+            // KravKoe validation - validate the last revision
+            const sisteKrav = formData.koe_revisjoner[formData.koe_revisjoner.length - 1];
+            if (!sisteKrav.koe_revisjonsnr.toString().trim()) {
+                newErrors['koe_revisjoner.koe_revisjonsnr'] = 'Revisjonsnummer er påkrevd';
             }
-            if (!formData.koe.dato_krav_sendt.trim()) {
-                newErrors['koe.dato_krav_sendt'] = 'Dato krav sendt er påkrevd';
+            if (!sisteKrav.dato_krav_sendt.trim()) {
+                newErrors['koe_revisjoner.dato_krav_sendt'] = 'Dato krav sendt er påkrevd';
             }
         }
 
@@ -243,6 +274,69 @@ const App: React.FC = () => {
         generatePdf(formData);
     };
 
+    // Helper function to add a new BH svar revision
+    const addBhSvarRevisjon = () => {
+        const nyttSvar: BhSvar = {
+            vederlag: {
+                varsel_for_sent: false,
+                varsel_for_sent_begrunnelse: '',
+                bh_svar_vederlag: '',
+                bh_vederlag_metode: '',
+                bh_godkjent_vederlag_belop: '',
+                bh_begrunnelse_vederlag: '',
+            },
+            frist: {
+                varsel_for_sent: false,
+                varsel_for_sent_begrunnelse: '',
+                bh_svar_frist: '',
+                bh_godkjent_frist_dager: '',
+                bh_frist_for_spesifisering: '',
+                bh_begrunnelse_frist: '',
+            },
+            mote_dato: '',
+            mote_referat: '',
+            sign: {
+                dato_svar_bh: '',
+                for_byggherre: '',
+            },
+        };
+
+        setFormData(prev => ({
+            ...prev,
+            bh_svar_revisjoner: [...prev.bh_svar_revisjoner, nyttSvar]
+        }));
+    };
+
+    // Helper function to add a new Koe revision
+    const addKoeRevisjon = () => {
+        const sisteKrav = formData.koe_revisjoner[formData.koe_revisjoner.length - 1];
+        const nyttKrav: Koe = {
+            koe_revisjonsnr: (parseInt(sisteKrav.koe_revisjonsnr) + 1).toString(),
+            dato_krav_sendt: '',
+            for_entreprenor: '',
+            vederlag: {
+                krav_vederlag: false,
+                krav_produktivitetstap: false,
+                saerskilt_varsel_rigg_drift: false,
+                krav_vederlag_metode: '',
+                krav_vederlag_belop: '',
+                krav_vederlag_begrunnelse: '',
+            },
+            frist: {
+                krav_fristforlengelse: false,
+                krav_frist_type: '',
+                krav_frist_antall_dager: '',
+                forsinkelse_kritisk_linje: false,
+                krav_frist_begrunnelse: '',
+            },
+        };
+
+        setFormData(prev => ({
+            ...prev,
+            koe_revisjoner: [...prev.koe_revisjoner, nyttKrav]
+        }));
+    };
+
     const renderTabs = () => (
         <div className="pkt-tabs-wrapper">
             <PktTabs>
@@ -270,6 +364,12 @@ const App: React.FC = () => {
             formData,
             setFormData: handleInputChange,
             errors,
+            formStatus,
+            setFormStatus,
+            setActiveTab,
+            setToastMessage,
+            addBhSvarRevisjon,
+            addKoeRevisjon,
         };
         switch(activeTab) {
             case 0: return <GrunninfoPanel {...panelProps} disabled={isTeDisabled} />;

@@ -16,6 +16,8 @@ export interface Varsel {
   underkategori: string;
   varsel_beskrivelse: string;
   referansedokumenter: string;
+  varsel_metode: string;
+  signatur_te: string;
 }
 
 export interface KoeVederlag {
@@ -79,8 +81,8 @@ export interface FormDataModel {
   rolle: 'TE' | 'BH';
   sak: Sak;
   varsel: Varsel;
-  koe: Koe;
-  bh_svar: BhSvar;
+  koe_revisjoner: Koe[];
+  bh_svar_revisjoner: BhSvar[];
 }
 
 export type Role = 'TE' | 'BH';
