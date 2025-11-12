@@ -27,9 +27,7 @@ export const INITIAL_FORM_DATA: FormDataModel = {
         hovedkategori: '',
         underkategori: '',
         varsel_beskrivelse: '',
-        referansedokumenter: '',
         varsel_metode: '',
-        signatur_te: '',
     },
     koe_revisjoner: [
         {
@@ -100,9 +98,7 @@ export const DEMO_DATA: FormDataModel = {
         hovedkategori: 'Endring fra byggherren (§ 22.1)',
         underkategori: 'Tegnings- eller beskrivelsesfeil',
         varsel_beskrivelse: 'Det ble oppdaget avvik mellom tegning F-01 rev. B og faktiske grunnforhold ved akse 1200-1400. Fundament må prosjekteres om for å håndtere uforutsette mengder med løsmasser.',
-        referansedokumenter: 'E-postkorrespondanse 10.10.2023, Referat fra byggemøte #22.',
         varsel_metode: 'E-post',
-        signatur_te: 'Per Olsen',
     },
     koe_revisjoner: [
         {

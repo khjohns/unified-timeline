@@ -15,9 +15,7 @@ export interface Varsel {
   hovedkategori: string;
   underkategori: string;
   varsel_beskrivelse: string;
-  referansedokumenter: string;
   varsel_metode: string;
-  signatur_te: string;
 }
 
 export interface KoeVederlag {

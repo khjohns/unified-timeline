@@ -234,7 +234,6 @@ export const generatePdf = (data: FormDataModel) => {
     ['Underkategori', data.varsel.underkategori || '—'],
   ]);
   addTextBlock('Beskrivelse:', data.varsel.varsel_beskrivelse);
-  addTextBlock('Referansedokumenter:', data.varsel.referansedokumenter);
   y += SPACING.SECTION;
 
   // 2. Krav om endringsordre
