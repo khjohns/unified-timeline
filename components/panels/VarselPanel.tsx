@@ -232,8 +232,8 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
             skin="primary"
             size="medium"
             onClick={handleSendVarsel}
-            iconName="send"
-            variant="icon-left"
+            iconName="chevron-right"
+            variant="icon-right"
           >
             Send varsel og fortsett til krav
           </PktButton>
