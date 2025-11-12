@@ -97,6 +97,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
             error={errors['varsel.dato_forhold_oppdaget']}
             readOnly={isLocked}
             helpText="Når inntraff hendelsen?"
+            fullwidth
           />
           <DateField
             id="varsel.dato_varsel_sendt"
@@ -106,6 +107,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
             error={errors['varsel.dato_varsel_sendt']}
             readOnly={isLocked}
             helpText="Når ble BH formelt varslet?"
+            fullwidth
           />
         </div>
         <div className="mt-4">
@@ -117,6 +119,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
             options={varselMetodeOptions}
             readOnly={isLocked}
             helpText="Hvordan ble varselet kommunisert?"
+            fullwidth
           />
         </div>
       </FieldsetCard>
@@ -131,6 +134,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
             options={HOVEDKATEGORI_OPTIONS}
             error={errors['varsel.hovedkategori']}
             readOnly={isLocked}
+            fullwidth
           />
           <SelectField
             id="varsel.underkategori"
@@ -140,6 +144,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
             options={underkategoriOptions}
             readOnly={isLocked}
             optional
+            fullwidth
           />
           <TextareaField
             id="varsel.varsel_beskrivelse"
@@ -148,6 +153,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
             onChange={e => handleChange('varsel_beskrivelse', e.target.value)}
             readOnly={isLocked}
             optional
+            fullwidth
           />
         </div>
       </FieldsetCard>
