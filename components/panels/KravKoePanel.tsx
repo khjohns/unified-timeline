@@ -74,7 +74,6 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
       <PktAccordion skin="outlined">
         {koe_revisjoner.map((koe, index) => {
           const erSisteRevisjon = index === sisteKravIndex;
-          // Panel is locked if it's not the last revision, OR if status is not 'krav', OR if role is not 'TE'
           const erLaast = !erSisteRevisjon || formStatus !== 'krav' || rolle !== 'TE' || disabled;
 
           return (
@@ -86,7 +85,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
             >
               <div className="space-y-6 p-4">
                 <FieldsetCard legend="Generelt om Kravet">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                     <InputField
                       id={`koe.koe_revisjonsnr.${index}`}
                       label="Revisjonsnummer"
@@ -102,7 +101,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                       readOnly={erLaast}
                       className="max-w-sm"
                     />
-                    <div className="pt-2 space-y-4">
+                    <div className="space-y-4">
                       <CheckboxField
                         id={`koe.vederlag.krav_vederlag.${index}`}
                         label="Krav om vederlagsjustering (kap. 34)"
@@ -124,7 +123,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                 <div className={`collapsible ${koe.vederlag.krav_vederlag ? 'open' : ''}`}>
                   <div className="collapsible-content">
                     <FieldsetCard legend="Detaljer om Vederlagsjustering">
-                      <div className="space-y-4">
+                      <div className="space-y-6">
                         <div className="space-y-4">
                           <CheckboxField
                             id={`koe.vederlag.krav_produktivitetstap.${index}`}
@@ -141,7 +140,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                             disabled={erLaast}
                           />
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                           <SelectField
                             id={`koe.vederlag.krav_vederlag_metode.${index}`}
                             label="Oppgjørsmetode"
@@ -165,15 +164,16 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                             error={errors[`koe.vederlag.krav_vederlag_belop`]}
                             formatAsNumber
                             readOnly={erLaast}
-                          />
-                          <TextareaField
-                            id={`koe.vederlag.krav_vederlag_begrunnelse.${index}`}
-                            label="Begrunnelse/kalkyle"
-                            value={koe.vederlag.krav_vederlag_begrunnelse}
-                            onChange={e => handleChange(index, 'vederlag.krav_vederlag_begrunnelse', e.target.value)}
-                            readOnly={erLaast}
+                            className="max-w-sm"
                           />
                         </div>
+                        <TextareaField
+                          id={`koe.vederlag.krav_vederlag_begrunnelse.${index}`}
+                          label="Begrunnelse/kalkyle"
+                          value={koe.vederlag.krav_vederlag_begrunnelse}
+                          onChange={e => handleChange(index, 'vederlag.krav_vederlag_begrunnelse', e.target.value)}
+                          readOnly={erLaast}
+                        />
                       </div>
                     </FieldsetCard>
                   </div>
@@ -182,8 +182,8 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                 <div className={`collapsible ${koe.frist.krav_fristforlengelse ? 'open' : ''}`}>
                   <div className="collapsible-content">
                     <FieldsetCard legend="Detaljer om Fristforlengelse">
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                           <SelectField
                             id={`koe.frist.krav_frist_type.${index}`}
                             label="Fristtype"
@@ -210,28 +210,21 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                             readOnly={erLaast}
                             className="max-w-sm"
                           />
-                          <CheckboxField
-                            id={`koe.frist.forsinkelse_kritisk_linje.${index}`}
-                            label="Forsinkelse påvirker kritisk linje?"
-                            checked={koe.frist.forsinkelse_kritisk_linje}
-                            onChange={e => handleChange(index, 'frist.forsinkelse_kritisk_linje', e.target.checked)}
-                            disabled={erLaast}
-                          />
-                          <TextareaField
-                            id={`koe.frist.krav_frist_begrunnelse.${index}`}
-                            label="Begrunnelse (årsakssammenheng)"
-                            value={koe.frist.krav_frist_begrunnelse}
-                            onChange={e => handleChange(index, 'frist.krav_frist_begrunnelse', e.target.value)}
-                            readOnly={erLaast}
-                          />
                         </div>
+                        <TextareaField
+                          id={`koe.frist.krav_frist_begrunnelse.${index}`}
+                          label="Begrunnelse (årsakssammenheng)"
+                          value={koe.frist.krav_frist_begrunnelse}
+                          onChange={e => handleChange(index, 'frist.krav_frist_begrunnelse', e.target.value)}
+                          readOnly={erLaast}
+                        />
                       </div>
                     </FieldsetCard>
                   </div>
                 </div>
 
                 <FieldsetCard legend="Signatur (For Entreprenør)">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                     <DateField
                       id={`koe.dato_krav_sendt.${index}`}
                       label="Dato krav sendt"
@@ -248,6 +241,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                       onChange={e => handleChange(index, 'for_entreprenor', e.target.value)}
                       placeholder="Navn på signatar"
                       readOnly={erLaast}
+                      className="max-w-sm"
                     />
                   </div>
                 </FieldsetCard>
