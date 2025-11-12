@@ -48,8 +48,6 @@ const OppsummeringPanel: React.FC<OppsummeringPanelProps> = ({ data }) => {
                     <SummaryItem label="Underkategori" value={data.varsel.underkategori} />
                     <SummaryItem label="Metode for varsling" value={data.varsel.varsel_metode} />
                     <SummaryItem label="Beskrivelse"><p className="whitespace-pre-wrap">{data.varsel.varsel_beskrivelse || '—'}</p></SummaryItem>
-                    <SummaryItem label="Referansedokumenter"><p className="whitespace-pre-wrap">{data.varsel.referansedokumenter || '—'}</p></SummaryItem>
-                    <SummaryItem label="Signatur (TE)" value={data.varsel.signatur_te} />
                 </Section>
 
                 <div>
