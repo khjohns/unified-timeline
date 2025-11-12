@@ -78,7 +78,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
               title={`Krav (Revisjon ${koe.koe_revisjonsnr})`}
               defaultOpen={erSisteRevisjon}
             >
-              <div className="space-y-6 p-4">
+              <div className="space-y-6 pt-4">
                 <FieldsetCard legend="Generelt om Kravet">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                     <InputField

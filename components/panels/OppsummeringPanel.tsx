@@ -27,7 +27,7 @@ const OppsummeringPanel: React.FC<OppsummeringPanelProps> = ({ data }) => {
                     id="oppsummering-grunninfo"
                     title="1) Grunninfo"
                 >
-                    <div className="p-4">
+                    <div className="pt-4">
                         <dl className="divide-y divide-border-color">
                             <SummaryItem label="Sak-ID" value={data.sak.sak_id_display} />
                             <SummaryItem label="Sakstittel" value={data.sak.sakstittel} />
@@ -46,7 +46,7 @@ const OppsummeringPanel: React.FC<OppsummeringPanelProps> = ({ data }) => {
                     id="oppsummering-varsel"
                     title="2) Varsel"
                 >
-                    <div className="p-4">
+                    <div className="pt-4">
                         <dl className="divide-y divide-border-color">
                             <SummaryItem label="Dato forhold oppdaget" value={data.varsel.dato_forhold_oppdaget} />
                             <SummaryItem label="Dato varsel sendt" value={data.varsel.dato_varsel_sendt} />
@@ -71,7 +71,7 @@ const OppsummeringPanel: React.FC<OppsummeringPanelProps> = ({ data }) => {
                             title={`3) Krav (Revisjon ${koe.koe_revisjonsnr})`}
                             defaultOpen={index === koe_revisjoner.length - 1}
                         >
-                            <div className="p-4">
+                            <div className="pt-4">
                                 <dl className="divide-y divide-border-color">
                                     <SummaryItem label="Revisjonsnummer" value={koe.koe_revisjonsnr} />
                                     <SummaryItem label="Dato krav sendt" value={koe.dato_krav_sendt} />
@@ -114,7 +114,7 @@ const OppsummeringPanel: React.FC<OppsummeringPanelProps> = ({ data }) => {
                                 title={`4) BH Svar til Revisjon ${tilhorendeKoe?.koe_revisjonsnr ?? index}`}
                                 defaultOpen={index === bh_svar_revisjoner.length - 1}
                             >
-                                <div className="p-4">
+                                <div className="pt-4">
                                     <dl className="divide-y divide-border-color">
                                         <SummaryItem label="Dato for møte" value={bh_svar.mote_dato} />
                                         <SummaryItem label="Møtereferat" value={bh_svar.mote_referat} />

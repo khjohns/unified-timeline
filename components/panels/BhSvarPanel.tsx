@@ -105,7 +105,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
               title={`BH Svar til Revisjon ${tilhorendeKoe?.koe_revisjonsnr ?? index}`}
               defaultOpen={erSisteRevisjon}
             >
-              <div className="space-y-6 p-4">
+              <div className="space-y-6 pt-4">
                 {!tilhorendeKoe?.vederlag.krav_vederlag && !tilhorendeKoe?.frist.krav_fristforlengelse && (
                   <div className="text-center p-6 bg-gray-50 rounded-lg border">
                     <p className="text-muted">Entreprenøren har ikke fremmet spesifikke krav om vederlag eller fristforlengelse.</p>
