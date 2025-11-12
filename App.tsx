@@ -439,7 +439,7 @@ const App: React.FC = () => {
                             skin="primary"
                             size="medium"
                             onClick={handleNextTab}
-                            secondIconName="chevron-right"
+                            iconName="chevron-right"
                             variant="icon-right"
                         >
                             Neste
