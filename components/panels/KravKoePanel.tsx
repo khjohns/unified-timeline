@@ -86,7 +86,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
             >
               <div className="space-y-6 p-4">
                 <FieldsetCard legend="Generelt om Kravet">
-                  <div className="grid grid-cols-1 gap-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                     <InputField
                       id={`koe.koe_revisjonsnr.${index}`}
                       label="Revisjonsnummer"
@@ -141,7 +141,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                             disabled={erLaast}
                           />
                         </div>
-                        <div className="grid grid-cols-1 gap-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
                           <SelectField
                             id={`koe.vederlag.krav_vederlag_metode.${index}`}
                             label="Oppgjørsmetode"
@@ -183,7 +183,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                   <div className="collapsible-content">
                     <FieldsetCard legend="Detaljer om Fristforlengelse">
                       <div className="space-y-4">
-                        <div className="grid grid-cols-1 gap-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
                           <SelectField
                             id={`koe.frist.krav_frist_type.${index}`}
                             label="Fristtype"
@@ -231,7 +231,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                 </div>
 
                 <FieldsetCard legend="Signatur (For Entreprenør)">
-                  <div className="grid grid-cols-1 gap-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
                     <DateField
                       id={`koe.dato_krav_sendt.${index}`}
                       label="Dato krav sendt"

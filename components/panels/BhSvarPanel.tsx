@@ -113,7 +113,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                 )}
 
                 <FieldsetCard legend="Byggherremøte om KOE" isBhPanel>
-                  <div className="grid grid-cols-1 gap-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                     <DateField
                       id={`bh_svar.mote_dato.${index}`}
                       label="Dato for møte"
@@ -160,7 +160,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                     </div>
 
                     <div className="mt-6 pt-6 border-t border-border-color">
-                      <div className="grid grid-cols-1 gap-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
                         <SelectField
                           id={`bh_svar.vederlag.bh_svar_vederlag.${index}`}
                           label="Svar på krav om vederlag"
@@ -217,7 +217,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                       </div>
                     </div>
                     <div className="mt-6 pt-6 border-t border-border-color">
-                      <div className="grid grid-cols-1 gap-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
                         <SelectField
                           id={`bh_svar.frist.bh_svar_frist.${index}`}
                           label="Svar på krav om frist"
@@ -258,7 +258,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                 )}
 
                 <FieldsetCard legend="Signatur (For Byggherre)" isBhPanel>
-                  <div className="grid grid-cols-1 gap-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
                     <DateField
                       id={`bh_svar.sign.dato_svar_bh.${index}`}
                       label="Dato for BHs svar"
