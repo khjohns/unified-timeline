@@ -17,7 +17,8 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
   return (
     <div className="space-y-6">
       <FieldsetCard legend="Saksdetaljer">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
+        {/* ENDRING: Forenklet gap og lagt til items-end for korrekt justering */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
           <InputField
             id="sak.sakstittel"
             label="Sakstittel"
@@ -26,6 +27,7 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
             placeholder=""
             error={errors['sak.sakstittel']}
             readOnly={disabled}
+            className="max-w-sm" // ENDRING: Lagt til for konsistent bredde
           />
           <InputField
             id="sak.sak_id_display"
@@ -35,7 +37,7 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
             placeholder="f.eks. KOE-2025-0001"
             error={errors['sak.sak_id_display']}
             readOnly={disabled}
-            className="max-w-sm"
+            className="max-w-sm" // Denne var allerede bra!
             optional
           />
           <InputField
@@ -46,6 +48,7 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
             placeholder="Navn"
             error={errors['sak.opprettet_av']}
             readOnly={disabled}
+            className="max-w-sm" // ENDRING: Lagt til for konsistent bredde
           />
           <DateField
             id="sak.opprettet_dato"
@@ -53,17 +56,50 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
             value={sak.opprettet_dato}
             onChange={()=>{}}
             readOnly
-            className="max-w-sm"
+            className="max-w-sm" // Denne var allerede bra!
           />
         </div>
       </FieldsetCard>
 
       <FieldsetCard legend="Prosjekt">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
-          <InputField id="sak.prosjekt_navn" label="Prosjekt" value={sak.prosjekt_navn} onChange={e => handleChange('prosjekt_navn', e.target.value)} error={errors['sak.prosjekt_navn']} readOnly={disabled} />
-          <InputField id="sak.kontrakt_referanse" label="Prosjektnummer" value={sak.kontrakt_referanse} onChange={e => handleChange('kontrakt_referanse', e.target.value)} error={errors['sak.kontrakt_referanse']} readOnly={disabled} />
-          <InputField id="sak.entreprenor" label="Entreprenør (TE)" value={sak.entreprenor} onChange={e => handleChange('entreprenor', e.target.value)} error={errors['sak.entreprenor']} readOnly={disabled} />
-          <InputField id="sak.byggherre" label="Byggherre (BH)" value={sak.byggherre} onChange={e => handleChange('byggherre', e.target.value)} error={errors['sak.byggherre']} readOnly={disabled} />
+        {/* ENDRING: Forenklet gap og lagt til items-end for korrekt justering */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+          <InputField 
+            id="sak.prosjekt_navn" 
+            label="Prosjekt" 
+            value={sak.prosjekt_navn} 
+            onChange={e => handleChange('prosjekt_navn', e.target.value)} 
+            error={errors['sak.prosjekt_navn']} 
+            readOnly={disabled} 
+            className="max-w-sm" // ENDRING: Lagt til for konsistent bredde
+          />
+          <InputField 
+            id="sak.kontrakt_referanse" 
+            label="Prosjektnummer" 
+            value={sak.kontrakt_referanse} 
+            onChange={e => handleChange('kontrakt_referanse', e.target.value)} 
+            error={errors['sak.kontrakt_referanse']} 
+            readOnly={disabled} 
+            className="max-w-sm" // ENDRING: Lagt til for konsistent bredde
+          />
+          <InputField 
+            id="sak.entreprenor" 
+            label="Entreprenør (TE)" 
+            value={sak.entreprenor} 
+            onChange={e => handleChange('entreprenor', e.target.value)} 
+            error={errors['sak.entreprenor']} 
+            readOnly={disabled} 
+            className="max-w-sm" // ENDRING: Lagt til for konsistent bredde
+          />
+          <InputField 
+            id="sak.byggherre" 
+            label="Byggherre (BH)" 
+            value={sak.byggherre} 
+            onChange={e => handleChange('byggherre', e.target.value)} 
+            error={errors['sak.byggherre']} 
+            readOnly={disabled} 
+            className="max-w-sm" // ENDRING: Lagt til for konsistent bredde
+          />
         </div>
       </FieldsetCard>
     </div>
