@@ -21,7 +21,9 @@ const OppsummeringPanel: React.FC<OppsummeringPanelProps> = ({ data }) => {
 
     return (
         <div className="space-y-8">
-            <PktAccordion skin="outlined">
+            <PktAccordion
+                skin="outlined"
+                compact>
                 {/* 1) Grunninfo */}
                 <PktAccordionItem
                     id="oppsummering-grunninfo"
