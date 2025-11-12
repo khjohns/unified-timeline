@@ -96,7 +96,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                       readOnly={erLaast}
                       className="max-w-sm"
                     />
-                    <div className="space-y-4">
+                    <div className="space-y-4 pt-8">
                       <CheckboxField
                         id={`koe.vederlag.krav_vederlag.${index}`}
                         label="Krav om vederlagsjustering (kap. 34)"
