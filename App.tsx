@@ -201,31 +201,19 @@ const App: React.FC = () => {
     };
 
     const handleReset = () => {
-        openModal(
-            'Nullstill skjema',
-            'Er du sikker på at du vil nullstille skjemaet? Alle ulagrede data vil gå tapt.',
-            () => {
-                setFormData(JSON.parse(JSON.stringify(INITIAL_FORM_DATA)));
-                setFormStatus('varsel');
-                setActiveTab(0);
-                setErrors({});
-                localStorage.removeItem('koe_v5_0_draft');
-            }
-        );
+    if (window.confirm('Er du sikker på at du vil nullstille skjemaet? Alle data vil gå tapt.')) {
+        setFormData(JSON.parse(JSON.stringify(INITIAL_FORM_DATA)));
+        setErrors({});
+        localStorage.removeItem('koe_v5_0_draft');
+        }
     };
 
     const handleDemo = () => {
-        openModal(
-            'Last inn eksempeldata',
-            'Dette vil erstatte nåværende data med eksempeldata. Fortsette?',
-            () => {
-                setFormData(JSON.parse(JSON.stringify(DEMO_DATA)));
-                // Set status to 'svar' since demo has 2 krav and 1 complete svar, waiting for second svar
-                setFormStatus('svar');
-                setActiveTab(3); // Go to BH Svar tab to see the pending response
-                setErrors({});
-            }
-        );
+    // Valgfritt: Legg til en confirm hvis du vil ha bekreftelse
+    if (window.confirm('Dette vil erstatte nåværende data med eksempeldata. Fortsette?')) {
+        setFormData(JSON.parse(JSON.stringify(DEMO_DATA)));
+        setErrors({});
+        }
     };
 
     const validateCurrentTab = (): boolean => {
