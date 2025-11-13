@@ -4,7 +4,7 @@ import { InputField, SelectField, TextareaField, CheckboxField, DateField } from
 import FieldsetCard from '../ui/FieldsetCard';
 import PanelLayout from '../ui/PanelLayout';
 import SidePanel from '../ui/SidePanel';
-import { PktAccordion, PktAccordionItem, PktButton } from '@oslokommune/punkt-react';
+import { PktButton } from '@oslokommune/punkt-react';
 
 interface BhSvarPanelProps {
   formData: FormDataModel;
@@ -86,26 +86,36 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
 
   return (
     <PanelLayout sidePanel={<SidePanel sak={formData.sak} />}>
-      <div className="space-y-6">
-        <PktAccordion skin="outlined">
+      <div className="space-y-12">
         {bh_svar_revisjoner.map((bh_svar, index) => {
           const erSisteRevisjon = index === sisteSvarIndex;
           const erLaast = !erSisteRevisjon || formStatus !== 'svar' || rolle !== 'BH';
           const tilhorendeKoe = koe_revisjoner[Math.min(index, sisteKravIndex)];
 
           return (
-            <PktAccordionItem
+            <div
               key={index}
-              id={`bh-svar-revisjon-${index}`}
-              title={`BH Svar til Revisjon ${tilhorendeKoe?.koe_revisjonsnr ?? index}`}
-              defaultOpen={erSisteRevisjon}
+              className={index > 0 ? 'pt-12 border-t border-border-color' : ''}
             >
-              <div className="space-y-6 p-4">
+              <div className="space-y-6">
                 {!tilhorendeKoe?.vederlag.krav_vederlag && !tilhorendeKoe?.frist.krav_fristforlengelse && (
                   <div className="text-center p-6 bg-gray-50 rounded-lg border">
                     <p className="text-muted">Entreprenøren har ikke fremmet spesifikke krav om vederlag eller fristforlengelse.</p>
                   </div>
                 )}
+
+                <FieldsetCard legend="Svar til Krav">
+                  <InputField
+                    id={`bh_svar.koe_revisjonsnr.${index}`}
+                    label="Revisjonsnummer"
+                    type="text"
+                    value={tilhorendeKoe?.koe_revisjonsnr ?? ''}
+                    onChange={() => {}}
+                    readOnly
+                    helpText="Automatisk hentet fra tilhørende krav"
+                    className="max-w-sm"
+                  />
+                </FieldsetCard>
 
                 <FieldsetCard legend="Byggherremøte om KOE">
                   <div className="space-y-6">
@@ -155,7 +165,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                       </div>
                     </div>
                     <div className="pt-6 border-t border-border-color space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <SelectField
                           id={`bh_svar.vederlag.bh_svar_vederlag.${index}`}
                           label="Svar på krav om vederlag"
@@ -163,7 +173,6 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                           onChange={value => handleChange(index, 'vederlag.bh_svar_vederlag', value)}
                           options={vederlagSvarOptions}
                           readOnly={erLaast}
-                          className="max-w-sm"
                         />
                         <InputField
                           id={`bh_svar.vederlag.bh_godkjent_vederlag_belop.${index}`}
@@ -280,24 +289,23 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                   </div>
                 </FieldsetCard>
               </div>
-            </PktAccordionItem>
+            </div>
           );
         })}
-      </PktAccordion>
 
-      {formStatus === 'svar' && rolle === 'BH' && (
-        <div className="flex justify-end pt-4">
-          <PktButton
-            skin="primary"
-            size="medium"
-            onClick={handleSendSvar}
-            iconName="chevron-right"
-            variant="icon-right"
-          >
-            Send svar
-          </PktButton>
-        </div>
-      )}
+        {formStatus === 'svar' && rolle === 'BH' && (
+          <div className="flex justify-end pt-4">
+            <PktButton
+              skin="primary"
+              size="medium"
+              onClick={handleSendSvar}
+              iconName="chevron-right"
+              variant="icon-right"
+            >
+              Send svar
+            </PktButton>
+          </div>
+        )}
       </div>
     </PanelLayout>
   );
