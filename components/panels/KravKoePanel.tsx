@@ -2,6 +2,8 @@ import React from 'react';
 import { FormDataModel } from '../../types';
 import { InputField, SelectField, TextareaField, CheckboxField, DateField } from '../ui/Field';
 import FieldsetCard from '../ui/FieldsetCard';
+import PanelLayout from '../ui/PanelLayout';
+import SidePanel from '../ui/SidePanel';
 import { PktAccordion, PktAccordionItem, PktButton } from '@oslokommune/punkt-react';
 
 interface KravKoePanelProps {
@@ -65,8 +67,9 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      <PktAccordion skin="outlined">
+    <PanelLayout sidePanel={<SidePanel sak={formData.sak} />}>
+      <div className="space-y-6">
+        <PktAccordion skin="outlined">
         {koe_revisjoner.map((koe, index) => {
           const erSisteRevisjon = index === sisteKravIndex;
           const erLaast = !erSisteRevisjon || formStatus !== 'krav' || rolle !== 'TE' || disabled;
@@ -261,7 +264,8 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
           </PktButton>
         </div>
       )}
-    </div>
+      </div>
+    </PanelLayout>
   );
 };
 

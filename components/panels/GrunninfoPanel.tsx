@@ -2,6 +2,8 @@ import React from 'react';
 import { FormDataModel } from '../../types';
 import { InputField, DateField } from '../ui/Field';
 import FieldsetCard from '../ui/FieldsetCard';
+import PanelLayout from '../ui/PanelLayout';
+import SidePanel from '../ui/SidePanel';
 
 interface GrunninfoPanelProps {
   formData: FormDataModel;
@@ -15,14 +17,8 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
   const handleChange = (field: string, value: any) => setFormData('sak', field, value);
 
   return (
-    // Ytre container for hele siden, bred nok for to kolonner på desktop
-    <div className="max-w-7xl mx-auto">
-      {/* Grid som kun aktiveres på store skjermer (lg:). 2/3 til skjema, 1/3 til sidepanel. */}
-      <div className="lg:grid lg:grid-cols-3 lg:gap-12">
-        
-        {/* Kolonne 1: Hovedinnhold med skjemaet */}
-        <div className="lg:col-span-2">
-          <div className="space-y-6">
+    <PanelLayout sidePanel={<SidePanel sak={sak} />}>
+      <div className="space-y-6">
             <FieldsetCard legend="Saksdetaljer">
               <div className="space-y-6">
                 <InputField
@@ -104,24 +100,7 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
               </div>
             </FieldsetCard>
           </div>
-        </div>
-
-        {/* Kolonne 2: Sidepanelet. Vises kun på store skjermer. */}
-        <aside className="hidden lg:block">
-          <div className="sticky top-36 space-y-4">
-            <h3 className="text-lg font-semibold text-ink">Saksinformasjon</h3>
-            <div className="text-sm space-y-2 p-4 bg-gray-50 rounded-lg border border-border-color">
-              <p><strong>Sakstittel:</strong> {sak.sakstittel || 'Ikke angitt'}</p>
-              <p><strong>Sak-ID:</strong> {sak.sak_id_display || 'Ikke angitt'}</p>
-              <p><strong>Prosjekt:</strong> {sak.prosjekt_navn || 'Ikke angitt'}</p>
-              <p><strong>Entreprenør:</strong> {sak.entreprenor || 'Ikke angitt'}</p>
-              <p><strong>Byggherre:</strong> {sak.byggherre || 'Ikke angitt'}</p>
-            </div>
-          </div>
-        </aside>
-
-      </div>
-    </div>
+    </PanelLayout>
   );
 };
 

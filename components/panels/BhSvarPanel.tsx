@@ -2,6 +2,8 @@ import React from 'react';
 import { FormDataModel } from '../../types';
 import { InputField, SelectField, TextareaField, CheckboxField, DateField } from '../ui/Field';
 import FieldsetCard from '../ui/FieldsetCard';
+import PanelLayout from '../ui/PanelLayout';
+import SidePanel from '../ui/SidePanel';
 import { PktAccordion, PktAccordionItem, PktButton } from '@oslokommune/punkt-react';
 
 interface BhSvarPanelProps {
@@ -83,8 +85,9 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
   ];
 
   return (
-    <div className="space-y-6">
-      <PktAccordion skin="outlined">
+    <PanelLayout sidePanel={<SidePanel sak={formData.sak} />}>
+      <div className="space-y-6">
+        <PktAccordion skin="outlined">
         {bh_svar_revisjoner.map((bh_svar, index) => {
           const erSisteRevisjon = index === sisteSvarIndex;
           const erLaast = !erSisteRevisjon || formStatus !== 'svar' || rolle !== 'BH';
@@ -299,7 +302,8 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
           </PktButton>
         </div>
       )}
-    </div>
+      </div>
+    </PanelLayout>
   );
 };
 
