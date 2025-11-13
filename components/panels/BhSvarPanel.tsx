@@ -108,17 +108,15 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                 )}
 
                 <FieldsetCard legend="Byggherremøte om KOE">
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-                      <DateField
-                        id={`bh_svar.mote_dato.${index}`}
-                        label="Dato for møte"
-                        value={bh_svar.mote_dato}
-                        onChange={value => handleChange(index, 'mote_dato', value)}
-                        className="max-w-sm"
-                        readOnly={erLaast}
-                      />
-                    </div>
+                  <div className="space-y-6">
+                    <DateField
+                      id={`bh_svar.mote_dato.${index}`}
+                      label="Dato for møte"
+                      value={bh_svar.mote_dato}
+                      onChange={value => handleChange(index, 'mote_dato', value)}
+                      className="max-w-sm"
+                      readOnly={erLaast}
+                    />
                     <TextareaField
                       id={`bh_svar.mote_referat.${index}`}
                       label="Referanse til møtereferat"
@@ -132,7 +130,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
 
                 {tilhorendeKoe?.vederlag.krav_vederlag && (
                   <FieldsetCard legend="Svar på Vederlagskrav">
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                       <CheckboxField
                         id={`bh_svar.vederlag.varsel_for_sent.${index}`}
                         label="Varselet om vederlagskrav ansees som for sent fremsatt"
@@ -156,7 +154,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                         </div>
                       </div>
                     </div>
-                    <div className="pt-6 border-t border-border-color space-y-4">
+                    <div className="pt-6 border-t border-border-color space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                         <SelectField
                           id={`bh_svar.vederlag.bh_svar_vederlag.${index}`}
@@ -193,7 +191,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
 
                 {tilhorendeKoe?.frist.krav_fristforlengelse && (
                   <FieldsetCard legend="Svar på Fristforlengelse">
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                       <CheckboxField
                         id={`bh_svar.frist.varsel_for_sent.${index}`}
                         label="Varselet om fristforlengelse ansees som for sent fremsatt"
@@ -217,8 +215,8 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                         </div>
                       </div>
                     </div>
-                    <div className="pt-6 border-t border-border-color space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                    <div className="pt-6 border-t border-border-color space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <SelectField
                           id={`bh_svar.frist.bh_svar_frist.${index}`}
                           label="Svar på krav om frist"
@@ -226,7 +224,6 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                           onChange={value => handleChange(index, 'frist.bh_svar_frist', value)}
                           options={fristSvarOptions}
                           readOnly={erLaast}
-                          className="max-w-sm"
                         />
                         <InputField
                           id={`bh_svar.frist.bh_godkjent_frist_dager.${index}`}
@@ -236,18 +233,17 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                           value={bh_svar.frist.bh_godkjent_frist_dager}
                           onChange={e => handleChange(index, 'frist.bh_godkjent_frist_dager', e.target.value)}
                           error={errors['bh_svar.frist.bh_godkjent_frist_dager']}
-                          className="max-w-sm"
-                          readOnly={erLaast}
-                        />
-                        <DateField
-                          id={`bh_svar.frist.bh_frist_for_spesifisering.${index}`}
-                          label="Frist for spesifisering (hvis aktuelt)"
-                          value={bh_svar.frist.bh_frist_for_spesifisering}
-                          onChange={value => handleChange(index, 'frist.bh_frist_for_spesifisering', value)}
-                          className="max-w-sm"
                           readOnly={erLaast}
                         />
                       </div>
+                      <DateField
+                        id={`bh_svar.frist.bh_frist_for_spesifisering.${index}`}
+                        label="Frist for spesifisering (hvis aktuelt)"
+                        value={bh_svar.frist.bh_frist_for_spesifisering}
+                        onChange={value => handleChange(index, 'frist.bh_frist_for_spesifisering', value)}
+                        className="max-w-sm"
+                        readOnly={erLaast}
+                      />
                       <TextareaField
                         id={`bh_svar.frist.bh_begrunnelse_frist.${index}`}
                         label="Begrunnelse for svar"

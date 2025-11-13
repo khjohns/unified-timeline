@@ -121,8 +121,8 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                 <div className={`collapsible ${koe.vederlag.krav_vederlag ? 'open' : ''}`}>
                   <div className="collapsible-content">
                     <FieldsetCard legend="Detaljer om Vederlagsjustering">
-                      <div className="space-y-4">
-                        <div className="space-y-4">
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <CheckboxField
                             id={`koe.vederlag.krav_produktivitetstap.${index}`}
                             label="Krav om produktivitetstap (§ 34.1.3)"
