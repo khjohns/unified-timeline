@@ -1,9 +1,11 @@
-import React, { useState, useEffect, ChangeEvent, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FormDataModel, Role, BhSvar, Koe } from './types';
 import { TABS, INITIAL_FORM_DATA, DEMO_DATA } from './constants';
 import Toast from './components/ui/Toast';
 import { generatePdf } from './utils/pdfGenerator';
 import { PktHeader, PktButton, PktModal, PktTabs, PktTabItem } from '@oslokommune/punkt-react';
+import { useSkjemaData } from './hooks/useSkjemaData';
+import { useAutoSave } from './hooks/useAutoSave';
 
 import GrunninfoPanel from './components/panels/GrunninfoPanel';
 import VarselPanel from './components/panels/VarselPanel';
@@ -14,11 +16,8 @@ import OppsummeringPanel from './components/panels/OppsummeringPanel';
 
 const App: React.FC = () => {
     const [activeTab, setActiveTab] = useState(0);
-    const [formData, setFormData] = useState<FormDataModel>(INITIAL_FORM_DATA);
     const [formStatus, setFormStatus] = useState<'varsel' | 'krav' | 'svar'>('varsel');
-    const [errors, setErrors] = useState<Record<string, string>>({});
     const [toastMessage, setToastMessage] = useState('');
-    const debounceTimeoutRef = useRef<number | null>(null);
     const [modalConfig, setModalConfig] = useState<{
         isOpen: boolean;
         title: string;
@@ -32,65 +31,26 @@ const App: React.FC = () => {
     });
     const modalRef = useRef<HTMLElement>(null);
 
-    // Load from localStorage on initial mount
-    useEffect(() => {
-        try {
-            const savedDraft = localStorage.getItem('koe_v5_0_draft');
-            if (savedDraft) {
-                const parsedData = JSON.parse(savedDraft);
-                if (!parsedData.sak.opprettet_dato) {
-                    parsedData.sak.opprettet_dato = new Date().toISOString().split('T')[0];
-                }
+    // Use custom hooks for state management and auto-save
+    const { formData, setFormData, handleInputChange, errors, setErrors } = useSkjemaData(INITIAL_FORM_DATA);
 
-                // Migrate old data structure to new revision-based structure
-                if (parsedData.koe && !parsedData.koe_revisjoner) {
-                    // Old structure detected, convert to new
-                    parsedData.koe_revisjoner = [parsedData.koe];
-                    delete parsedData.koe;
-                }
-                if (parsedData.bh_svar && !parsedData.bh_svar_revisjoner) {
-                    // Old structure detected, convert to new
-                    parsedData.bh_svar_revisjoner = [parsedData.bh_svar];
-                    delete parsedData.bh_svar;
-                }
-
-                // Ensure new Varsel fields exist
-                if (!parsedData.varsel.varsel_metode) {
-                    parsedData.varsel.varsel_metode = '';
-                }
-                if (!parsedData.varsel.signatur_te) {
-                    parsedData.varsel.signatur_te = '';
-                }
-
-                setFormData(parsedData);
-            }
-        } catch (error) {
-            console.error("Failed to load draft from localStorage", error);
-        }
-    }, []);
-
-    // Auto-save with debounce on formData change
-    useEffect(() => {
-        if (JSON.stringify(formData) === JSON.stringify(INITIAL_FORM_DATA)) {
-            return;
-        }
-        
-        if (debounceTimeoutRef.current) {
-            clearTimeout(debounceTimeoutRef.current);
-        }
-
-        debounceTimeoutRef.current = window.setTimeout(() => {
-            localStorage.setItem('koe_v5_0_draft', JSON.stringify(formData));
+    const loadedData = useAutoSave({
+        data: formData,
+        storageKey: 'koe_v5_0_draft',
+        debounceMs: 1500,
+        onSave: () => {
             setToastMessage('Utkast lagret ✓');
             setTimeout(() => setToastMessage(''), 3000);
-        }, 1500);
+        },
+    });
 
-        return () => {
-            if (debounceTimeoutRef.current) {
-                clearTimeout(debounceTimeoutRef.current);
-            }
-        };
-    }, [formData]);
+    // Load saved data on mount
+    useEffect(() => {
+        if (loadedData) {
+            setFormData(loadedData);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Only run on mount
 
     useEffect(() => {
         if (formData.rolle === 'BH') {
@@ -103,76 +63,7 @@ const App: React.FC = () => {
     const handleRoleChange = (newRole: Role) => {
         setFormData(prev => ({ ...prev, rolle: newRole }));
     };
-    
-    const handleInputChange = (section: keyof Omit<FormDataModel, 'versjon' | 'rolle'>, field: string, value: any, index?: number) => {
-        setFormData(prev => {
-            const path = field.split('.');
 
-            // Handle array-based sections (koe_revisjoner, bh_svar_revisjoner)
-            if (section === 'koe_revisjoner' || section === 'bh_svar_revisjoner') {
-                const arraySection = prev[section] as any[];
-                const targetIndex = index !== undefined ? index : arraySection.length - 1;
-
-                if (path.length === 1) {
-                    const updatedArray = [...arraySection];
-                    updatedArray[targetIndex] = {
-                        ...updatedArray[targetIndex],
-                        [field]: value,
-                    };
-                    return { ...prev, [section]: updatedArray };
-                }
-
-                if (path.length === 2) {
-                    const [nestedObjectKey, nestedFieldKey] = path;
-                    const updatedArray = [...arraySection];
-                    updatedArray[targetIndex] = {
-                        ...updatedArray[targetIndex],
-                        [nestedObjectKey]: {
-                            ...updatedArray[targetIndex][nestedObjectKey],
-                            [nestedFieldKey]: value,
-                        },
-                    };
-                    return { ...prev, [section]: updatedArray };
-                }
-            }
-
-            // Handle non-array sections (sak, varsel)
-            if (path.length === 1) {
-                return {
-                    ...prev,
-                    [section]: {
-                        ...prev[section],
-                        [field]: value,
-                    },
-                };
-            }
-
-            if (path.length === 2) {
-                const [nestedObjectKey, nestedFieldKey] = path;
-                return {
-                    ...prev,
-                    [section]: {
-                        ...prev[section],
-                        [nestedObjectKey]: {
-                            ...(prev[section] as any)[nestedObjectKey],
-                            [nestedFieldKey]: value,
-                        },
-                    },
-                };
-            }
-            return prev;
-        });
-
-        const fieldId = `${section}.${field}`.replace(/\./g, '_');
-        if (errors[fieldId]) {
-            setErrors(prev => {
-                const newErrors = {...prev};
-                delete newErrors[fieldId];
-                return newErrors;
-            });
-        }
-    };
-    
     const openModal = (title: string, message: string, onConfirm: () => void) => {
         setModalConfig({
             isOpen: true,
