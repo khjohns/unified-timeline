@@ -79,8 +79,18 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
               className={index > 0 ? 'pt-12 border-t border-border-color' : ''}
             >
               <div className="space-y-6">
-                <FieldsetCard legend="Generelt om Kravet">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                <FieldsetCard legend={`Innsending (Revisjon ${koe.koe_revisjonsnr ?? '0'})`}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                    <DateField
+                      id={`koe.dato_krav_sendt.${index}`}
+                      label="Dato krav sendt"
+                      value={koe.dato_krav_sendt}
+                      onChange={value => handleChange(index, 'dato_krav_sendt', value)}
+                      required
+                      helpText="Dato for innsending av denne revisjonen."
+                      readOnly={erLaast}
+                      className="max-w-sm"
+                    />
                     <InputField
                       id={`koe.koe_revisjonsnr.${index}`}
                       label="Revisjonsnummer"
@@ -92,11 +102,16 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                       required
                       placeholder="f.eks. 0 for første innsending"
                       error={errors[`koe_revisjoner.koe_revisjonsnr`]}
-                      helpText="Angir versjonen av kravet. Start med 0."
+                      helpText="Start med 0 for første innsending."
                       readOnly={erLaast}
                       className="max-w-sm"
                     />
-                    <div className="space-y-4 pt-8">
+                  </div>
+                </FieldsetCard>
+
+                <FieldsetCard legend="Hva gjelder kravet?">
+                  <div className="space-y-4">
+                    <div>
                       <CheckboxField
                         id={`koe.vederlag.krav_vederlag.${index}`}
                         label="Krav om vederlagsjustering (kap. 34)"
@@ -104,6 +119,11 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                         onChange={e => handleChange(index, 'vederlag.krav_vederlag', e.target.checked)}
                         disabled={erLaast}
                       />
+                      <p className="text-sm text-muted mt-1 ml-6">
+                        Velges for å kreve justering av vederlaget som følge av endringer, svikt i byggherrens ytelser, eller andre forhold byggherren har risikoen for (jf. NS 8407 pkt. 34).
+                      </p>
+                    </div>
+                    <div>
                       <CheckboxField
                         id={`koe.frist.krav_fristforlengelse.${index}`}
                         label="Krav om fristforlengelse (kap. 33)"
@@ -111,6 +131,9 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                         onChange={e => handleChange(index, 'frist.krav_fristforlengelse', e.target.checked)}
                         disabled={erLaast}
                       />
+                      <p className="text-sm text-muted mt-1 ml-6">
+                        Velges for å kreve fristforlengelse dersom fremdriften hindres av forhold byggherren har risikoen for (jf. NS 8407 pkt. 33).
+                      </p>
                     </div>
                   </div>
                 </FieldsetCard>
@@ -119,21 +142,34 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                   <div className="collapsible-content">
                     <FieldsetCard legend="Detaljer om Vederlagsjustering">
                       <div className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <CheckboxField
-                            id={`koe.vederlag.krav_produktivitetstap.${index}`}
-                            label="Krav om produktivitetstap (§ 34.1.3)"
-                            checked={koe.vederlag.krav_produktivitetstap}
-                            onChange={e => handleChange(index, 'vederlag.krav_produktivitetstap', e.target.checked)}
-                            disabled={erLaast}
-                          />
-                          <CheckboxField
-                            id={`koe.vederlag.saerskilt_varsel_rigg_drift.${index}`}
-                            label="Særskilt rigg/drift (§34.1.3)"
-                            checked={koe.vederlag.saerskilt_varsel_rigg_drift}
-                            onChange={e => handleChange(index, 'vederlag.saerskilt_varsel_rigg_drift', e.target.checked)}
-                            disabled={erLaast}
-                          />
+                        <div>
+                          <p className="text-sm font-semibold mb-3">Særskilte krav (NS 8407 pkt. 34.1.3)</p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                              <CheckboxField
+                                id={`koe.vederlag.krav_produktivitetstap.${index}`}
+                                label="Krav om produktivitetstap"
+                                checked={koe.vederlag.krav_produktivitetstap}
+                                onChange={e => handleChange(index, 'vederlag.krav_produktivitetstap', e.target.checked)}
+                                disabled={erLaast}
+                              />
+                              <p className="text-sm text-muted mt-1 ml-6">
+                                For økte utgifter pga. nedsatt produktivitet eller forstyrrelser (plunder og heft).
+                              </p>
+                            </div>
+                            <div>
+                              <CheckboxField
+                                id={`koe.vederlag.saerskilt_varsel_rigg_drift.${index}`}
+                                label="Særskilt rigg/drift"
+                                checked={koe.vederlag.saerskilt_varsel_rigg_drift}
+                                onChange={e => handleChange(index, 'vederlag.saerskilt_varsel_rigg_drift', e.target.checked)}
+                                disabled={erLaast}
+                              />
+                              <p className="text-sm text-muted mt-1 ml-6">
+                                For økte utgifter til rigg, drift, nedrigging og kapitalytelser.
+                              </p>
+                            </div>
+                          </div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                           <SelectField
@@ -148,6 +184,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                               {value:"Justerte enhetspriser (§34.3.2)", label:"Justerte enhetspriser (§34.3.2)"},
                               {value:"Regningsarbeid (§30.1)", label:"Regningsarbeid (§30.1)"}
                             ]}
+                            helpText="Velg hvordan vederlaget skal beregnes."
                             readOnly={erLaast}
                           />
                           <InputField
@@ -157,6 +194,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                             value={koe.vederlag.krav_vederlag_belop}
                             onChange={e => handleChange(index, 'vederlag.krav_vederlag_belop', e.target.value)}
                             error={errors[`koe.vederlag.krav_vederlag_belop`]}
+                            helpText="Angi totalbeløp eller et kostnadsoverslag."
                             formatAsNumber
                             readOnly={erLaast}
                             className="max-w-sm"
@@ -167,6 +205,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                           label="Begrunnelse/kalkyle"
                           value={koe.vederlag.krav_vederlag_begrunnelse}
                           onChange={e => handleChange(index, 'vederlag.krav_vederlag_begrunnelse', e.target.value)}
+                          helpText="Beskriv grunnlaget for kravet og vis til kalkyle eller vedlegg. For særskilte krav må grunnlaget varsles særskilt (jf. 34.1.3)."
                           readOnly={erLaast}
                           fullwidth
                         />
@@ -192,6 +231,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                               {value:"Tilleggsfrist ved force majeure (§33.3)", label:"Tilleggsfrist ved force majeure (§33.3)"},
                               {value:"Endelig oppsummering (§39.1) [Prosess ved sluttoppgjør]", label:"Endelig oppsummering (§39.1) [Prosess ved sluttoppgjør]"}
                             ]}
+                            helpText="Angi om dette er et foreløpig eller spesifisert krav."
                             readOnly={erLaast}
                           />
                           <InputField
@@ -203,6 +243,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                             value={koe.frist.krav_frist_antall_dager}
                             onChange={e => handleChange(index, 'frist.krav_frist_antall_dager', e.target.value)}
                             error={errors[`koe.frist.krav_frist_antall_dager`]}
+                            helpText="Antall dager det kreves forlengelse for."
                             readOnly={erLaast}
                             className="max-w-sm"
                           />
@@ -212,6 +253,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                           label="Begrunnelse (årsakssammenheng)"
                           value={koe.frist.krav_frist_begrunnelse}
                           onChange={e => handleChange(index, 'frist.krav_frist_begrunnelse', e.target.value)}
+                          helpText="Beskriv hvordan forholdet hindrer fremdriften og påvirker fristene. Vis gjerne til virkning på kritisk linje."
                           readOnly={erLaast}
                           fullwidth
                         />
@@ -221,26 +263,16 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                 </div>
 
                 <FieldsetCard legend="Signatur (For Entreprenør)">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-                    <DateField
-                      id={`koe.dato_krav_sendt.${index}`}
-                      label="Dato krav sendt"
-                      value={koe.dato_krav_sendt}
-                      onChange={value => handleChange(index, 'dato_krav_sendt', value)}
-                      required
-                      readOnly={erLaast}
-                      className="max-w-sm"
-                    />
-                    <InputField
-                      id={`koe.for_entreprenor.${index}`}
-                      label="Signatur"
-                      value={koe.for_entreprenor}
-                      onChange={e => handleChange(index, 'for_entreprenor', e.target.value)}
-                      placeholder="Navn på signatar"
-                      readOnly={erLaast}
-                      className="max-w-sm"
-                    />
-                  </div>
+                  <InputField
+                    id={`koe.for_entreprenor.${index}`}
+                    label="Signatur"
+                    value={koe.for_entreprenor}
+                    onChange={e => handleChange(index, 'for_entreprenor', e.target.value)}
+                    placeholder="Navn på signatar"
+                    helpText="Navn på ansvarlig signatar hos entreprenøren."
+                    readOnly={erLaast}
+                    className="max-w-sm"
+                  />
                 </FieldsetCard>
               </div>
             </div>
