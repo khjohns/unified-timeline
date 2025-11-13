@@ -205,18 +205,3 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({ id, label, checked
     />
   </div>
 );
-
-interface RadioButtonProps {
-    name: string;
-    value: string;
-    label: string;
-    checked: boolean;
-    onChange: (e: ChangeEvent<HTMLInputElement>) => void;
-}
-
-export const RadioButton: React.FC<RadioButtonProps> = ({ name, value, label, checked, onChange }) => (
-    <label className="inline-flex items-center gap-2">
-        <input type="radio" name={name} value={value} checked={checked} onChange={onChange} className="transform translate-y-px" />
-        {label}
-    </label>
-);
