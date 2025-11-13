@@ -105,27 +105,27 @@ const TestSakPanel: React.FC<TestSakPanelProps> = ({
                   error={errors['sak.sakstittel']}
                   readOnly={disabled}
                 />
-                <InputField
-                  id="sak.sak_id_display"
-                  label="Sak-ID"
-                  value={sak.sak_id_display}
-                  onChange={e => handleSakChange('sak_id_display', e.target.value)}
-                  placeholder="f.eks. KOE-2025-0001"
-                  error={errors['sak.sak_id_display']}
-                  readOnly={disabled}
-                  className="max-w-sm"
-                  optional
-                />
-                <InputField
-                  id="sak.opprettet_av"
-                  label="Opprettet av"
-                  value={sak.opprettet_av}
-                  onChange={e => handleSakChange('opprettet_av', e.target.value)}
-                  placeholder="Navn"
-                  error={errors['sak.opprettet_av']}
-                  readOnly={disabled}
-                  className="max-w-sm"
-                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <InputField
+                    id="sak.sak_id_display"
+                    label="Sak-ID"
+                    value={sak.sak_id_display}
+                    onChange={e => handleSakChange('sak_id_display', e.target.value)}
+                    placeholder="f.eks. KOE-2025-0001"
+                    error={errors['sak.sak_id_display']}
+                    readOnly={disabled}
+                    optional
+                  />
+                  <InputField
+                    id="sak.opprettet_av"
+                    label="Opprettet av"
+                    value={sak.opprettet_av}
+                    onChange={e => handleSakChange('opprettet_av', e.target.value)}
+                    placeholder="Navn"
+                    error={errors['sak.opprettet_av']}
+                    readOnly={disabled}
+                  />
+                </div>
                 <DateField
                   id="sak.opprettet_dato"
                   label="Opprettet dato"
@@ -156,22 +156,24 @@ const TestSakPanel: React.FC<TestSakPanelProps> = ({
                   readOnly={disabled}
                   className="max-w-sm"
                 />
-                <InputField
-                  id="sak.entreprenor"
-                  label="Entreprenør (TE)"
-                  value={sak.entreprenor}
-                  onChange={e => handleSakChange('entreprenor', e.target.value)}
-                  error={errors['sak.entreprenor']}
-                  readOnly={disabled}
-                />
-                <InputField
-                  id="sak.byggherre"
-                  label="Byggherre (BH)"
-                  value={sak.byggherre}
-                  onChange={e => handleSakChange('byggherre', e.target.value)}
-                  error={errors['sak.byggherre']}
-                  readOnly={disabled}
-                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <InputField
+                    id="sak.entreprenor"
+                    label="Entreprenør (TE)"
+                    value={sak.entreprenor}
+                    onChange={e => handleSakChange('entreprenor', e.target.value)}
+                    error={errors['sak.entreprenor']}
+                    readOnly={disabled}
+                  />
+                  <InputField
+                    id="sak.byggherre"
+                    label="Byggherre (BH)"
+                    value={sak.byggherre}
+                    onChange={e => handleSakChange('byggherre', e.target.value)}
+                    error={errors['sak.byggherre']}
+                    readOnly={disabled}
+                  />
+                </div>
               </div>
             </FieldsetCard>
           </div>
@@ -189,26 +191,26 @@ const TestSakPanel: React.FC<TestSakPanelProps> = ({
 
             <FieldsetCard legend="Når skjedde det?">
               <div className="space-y-6">
-                <DateField
-                  id="varsel.dato_forhold_oppdaget"
-                  label="Dato forhold oppdaget"
-                  value={varsel.dato_forhold_oppdaget}
-                  onChange={value => handleVarselChange('dato_forhold_oppdaget', value)}
-                  error={errors['varsel.dato_forhold_oppdaget']}
-                  readOnly={isVarselLocked}
-                  helpText="Når inntraff hendelsen?"
-                  className="max-w-sm"
-                />
-                <DateField
-                  id="varsel.dato_varsel_sendt"
-                  label="Dato varsel sendt"
-                  value={varsel.dato_varsel_sendt}
-                  onChange={value => handleVarselChange('dato_varsel_sendt', value)}
-                  error={errors['varsel.dato_varsel_sendt']}
-                  readOnly={isVarselLocked}
-                  helpText="Når ble BH formelt varslet?"
-                  className="max-w-sm"
-                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <DateField
+                    id="varsel.dato_forhold_oppdaget"
+                    label="Dato forhold oppdaget"
+                    value={varsel.dato_forhold_oppdaget}
+                    onChange={value => handleVarselChange('dato_forhold_oppdaget', value)}
+                    error={errors['varsel.dato_forhold_oppdaget']}
+                    readOnly={isVarselLocked}
+                    helpText="Når inntraff hendelsen?"
+                  />
+                  <DateField
+                    id="varsel.dato_varsel_sendt"
+                    label="Dato varsel sendt"
+                    value={varsel.dato_varsel_sendt}
+                    onChange={value => handleVarselChange('dato_varsel_sendt', value)}
+                    error={errors['varsel.dato_varsel_sendt']}
+                    readOnly={isVarselLocked}
+                    helpText="Når ble BH formelt varslet?"
+                  />
+                </div>
                 <SelectField
                   id="varsel.varsel_metode"
                   label="Metode for varsling"
@@ -224,26 +226,26 @@ const TestSakPanel: React.FC<TestSakPanelProps> = ({
 
             <FieldsetCard legend="Hva gjelder det?">
               <div className="space-y-6">
-                <SelectField
-                  id="varsel.hovedkategori"
-                  label="Hovedkategori (NS 8407)"
-                  value={varsel.hovedkategori}
-                  onChange={handleHovedkategoriChange}
-                  options={HOVEDKATEGORI_OPTIONS}
-                  error={errors['varsel.hovedkategori']}
-                  readOnly={isVarselLocked}
-                  className="max-w-sm"
-                />
-                <SelectField
-                  id="varsel.underkategori"
-                  label="Underkategori"
-                  value={varsel.underkategori}
-                  onChange={value => handleVarselChange('underkategori', value)}
-                  options={underkategoriOptions}
-                  readOnly={isVarselLocked}
-                  optional
-                  className="max-w-sm"
-                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <SelectField
+                    id="varsel.hovedkategori"
+                    label="Hovedkategori (NS 8407)"
+                    value={varsel.hovedkategori}
+                    onChange={handleHovedkategoriChange}
+                    options={HOVEDKATEGORI_OPTIONS}
+                    error={errors['varsel.hovedkategori']}
+                    readOnly={isVarselLocked}
+                  />
+                  <SelectField
+                    id="varsel.underkategori"
+                    label="Underkategori"
+                    value={varsel.underkategori}
+                    onChange={value => handleVarselChange('underkategori', value)}
+                    options={underkategoriOptions}
+                    readOnly={isVarselLocked}
+                    optional
+                  />
+                </div>
                 <TextareaField
                   id="varsel.varsel_beskrivelse"
                   label="Beskrivelse (vis til vedlegg)"

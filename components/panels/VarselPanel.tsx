@@ -90,28 +90,27 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
         </PktAlert>
 
         <FieldsetCard legend="Når skjedde det?">
-          {/* ENDRING: Bytter fra 3-kolonners grid til en vertikal stabel */}
           <div className="space-y-6">
-            <DateField
-              id="varsel.dato_forhold_oppdaget"
-              label="Dato forhold oppdaget"
-              value={varsel.dato_forhold_oppdaget}
-              onChange={value => handleChange('dato_forhold_oppdaget', value)}
-              error={errors['varsel.dato_forhold_oppdaget']}
-              readOnly={isLocked}
-              helpText="Når inntraff hendelsen?"
-              className="max-w-sm"
-            />
-            <DateField
-              id="varsel.dato_varsel_sendt"
-              label="Dato varsel sendt"
-              value={varsel.dato_varsel_sendt}
-              onChange={value => handleChange('dato_varsel_sendt', value)}
-              error={errors['varsel.dato_varsel_sendt']}
-              readOnly={isLocked}
-              helpText="Når ble BH formelt varslet?"
-              className="max-w-sm"
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <DateField
+                id="varsel.dato_forhold_oppdaget"
+                label="Dato forhold oppdaget"
+                value={varsel.dato_forhold_oppdaget}
+                onChange={value => handleChange('dato_forhold_oppdaget', value)}
+                error={errors['varsel.dato_forhold_oppdaget']}
+                readOnly={isLocked}
+                helpText="Når inntraff hendelsen?"
+              />
+              <DateField
+                id="varsel.dato_varsel_sendt"
+                label="Dato varsel sendt"
+                value={varsel.dato_varsel_sendt}
+                onChange={value => handleChange('dato_varsel_sendt', value)}
+                error={errors['varsel.dato_varsel_sendt']}
+                readOnly={isLocked}
+                helpText="Når ble BH formelt varslet?"
+              />
+            </div>
             <SelectField
               id="varsel.varsel_metode"
               label="Metode for varsling"
@@ -127,27 +126,26 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
 
         <FieldsetCard legend="Hva gjelder det?">
           <div className="space-y-6">
-            {/* ENDRING: Bytter fra 2-kolonners grid til en vertikal stabel */}
-            <SelectField
-              id="varsel.hovedkategori"
-              label="Hovedkategori (NS 8407)"
-              value={varsel.hovedkategori}
-              onChange={handleHovedkategoriChange}
-              options={HOVEDKATEGORI_OPTIONS}
-              error={errors['varsel.hovedkategori']}
-              readOnly={isLocked}
-              className="max-w-sm"
-            />
-            <SelectField
-              id="varsel.underkategori"
-              label="Underkategori"
-              value={varsel.underkategori}
-              onChange={value => handleChange('underkategori', value)}
-              options={underkategoriOptions}
-              readOnly={isLocked}
-              optional
-              className="max-w-sm"
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <SelectField
+                id="varsel.hovedkategori"
+                label="Hovedkategori (NS 8407)"
+                value={varsel.hovedkategori}
+                onChange={handleHovedkategoriChange}
+                options={HOVEDKATEGORI_OPTIONS}
+                error={errors['varsel.hovedkategori']}
+                readOnly={isLocked}
+              />
+              <SelectField
+                id="varsel.underkategori"
+                label="Underkategori"
+                value={varsel.underkategori}
+                onChange={value => handleChange('underkategori', value)}
+                options={underkategoriOptions}
+                readOnly={isLocked}
+                optional
+              />
+            </div>
             <TextareaField
               id="varsel.varsel_beskrivelse"
               label="Beskrivelse (vis til vedlegg)"
