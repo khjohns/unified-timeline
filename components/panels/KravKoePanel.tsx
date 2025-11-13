@@ -111,30 +111,24 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
 
                 <FieldsetCard legend="Hva gjelder kravet?">
                   <div className="space-y-4">
-                    <div>
-                      <CheckboxField
-                        id={`koe.vederlag.krav_vederlag.${index}`}
-                        label="Krav om vederlagsjustering (kap. 34)"
-                        checked={koe.vederlag.krav_vederlag}
-                        onChange={e => handleChange(index, 'vederlag.krav_vederlag', e.target.checked)}
-                        disabled={erLaast}
-                      />
-                      <p className="text-sm text-muted mt-1 ml-6">
-                        Velges for å kreve justering av vederlaget som følge av endringer, svikt i byggherrens ytelser, eller andre forhold byggherren har risikoen for (jf. NS 8407 pkt. 34).
-                      </p>
-                    </div>
-                    <div>
-                      <CheckboxField
-                        id={`koe.frist.krav_fristforlengelse.${index}`}
-                        label="Krav om fristforlengelse (kap. 33)"
-                        checked={koe.frist.krav_fristforlengelse}
-                        onChange={e => handleChange(index, 'frist.krav_fristforlengelse', e.target.checked)}
-                        disabled={erLaast}
-                      />
-                      <p className="text-sm text-muted mt-1 ml-6">
-                        Velges for å kreve fristforlengelse dersom fremdriften hindres av forhold byggherren har risikoen for (jf. NS 8407 pkt. 33).
-                      </p>
-                    </div>
+                    <CheckboxField
+                      id={`koe.vederlag.krav_vederlag.${index}`}
+                      label="Krav om vederlagsjustering (kap. 34)"
+                      checked={koe.vederlag.krav_vederlag}
+                      onChange={e => handleChange(index, 'vederlag.krav_vederlag', e.target.checked)}
+                      disabled={erLaast}
+                      hasTile={true}
+                      checkHelptext="Velges for å kreve justering av vederlaget som følge av endringer, svikt i byggherrens ytelser, eller andre forhold byggherren har risikoen for (jf. NS 8407 pkt. 34)."
+                    />
+                    <CheckboxField
+                      id={`koe.frist.krav_fristforlengelse.${index}`}
+                      label="Krav om fristforlengelse (kap. 33)"
+                      checked={koe.frist.krav_fristforlengelse}
+                      onChange={e => handleChange(index, 'frist.krav_fristforlengelse', e.target.checked)}
+                      disabled={erLaast}
+                      hasTile={true}
+                      checkHelptext="Velges for å kreve fristforlengelse dersom fremdriften hindres av forhold byggherren har risikoen for (jf. NS 8407 pkt. 33)."
+                    />
                   </div>
                 </FieldsetCard>
 
@@ -144,31 +138,23 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                       <div className="space-y-6">
                         <div>
                           <p className="text-sm font-semibold mb-3">Særskilte krav (NS 8407 pkt. 34.1.3)</p>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                              <CheckboxField
-                                id={`koe.vederlag.krav_produktivitetstap.${index}`}
-                                label="Krav om produktivitetstap"
-                                checked={koe.vederlag.krav_produktivitetstap}
-                                onChange={e => handleChange(index, 'vederlag.krav_produktivitetstap', e.target.checked)}
-                                disabled={erLaast}
-                              />
-                              <p className="text-sm text-muted mt-1 ml-6">
-                                For økte utgifter pga. nedsatt produktivitet eller forstyrrelser (plunder og heft).
-                              </p>
-                            </div>
-                            <div>
-                              <CheckboxField
-                                id={`koe.vederlag.saerskilt_varsel_rigg_drift.${index}`}
-                                label="Særskilt rigg/drift"
-                                checked={koe.vederlag.saerskilt_varsel_rigg_drift}
-                                onChange={e => handleChange(index, 'vederlag.saerskilt_varsel_rigg_drift', e.target.checked)}
-                                disabled={erLaast}
-                              />
-                              <p className="text-sm text-muted mt-1 ml-6">
-                                For økte utgifter til rigg, drift, nedrigging og kapitalytelser.
-                              </p>
-                            </div>
+                          <div className="space-y-4">
+                            <CheckboxField
+                              id={`koe.vederlag.krav_produktivitetstap.${index}`}
+                              label="Krav om produktivitetstap"
+                              checked={koe.vederlag.krav_produktivitetstap}
+                              onChange={e => handleChange(index, 'vederlag.krav_produktivitetstap', e.target.checked)}
+                              disabled={erLaast}
+                              checkHelptext="For økte utgifter pga. nedsatt produktivitet eller forstyrrelser (plunder og heft)."
+                            />
+                            <CheckboxField
+                              id={`koe.vederlag.saerskilt_varsel_rigg_drift.${index}`}
+                              label="Krav om dekning av særskilt rigg og drift"
+                              checked={koe.vederlag.saerskilt_varsel_rigg_drift}
+                              onChange={e => handleChange(index, 'vederlag.saerskilt_varsel_rigg_drift', e.target.checked)}
+                              disabled={erLaast}
+                              checkHelptext="For økte utgifter til rigg, drift, nedrigging og kapitalytelser."
+                            />
                           </div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
