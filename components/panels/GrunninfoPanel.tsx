@@ -30,27 +30,27 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
                   error={errors['sak.sakstittel']}
                   readOnly={disabled}
                 />
-                <InputField
-                  id="sak.sak_id_display"
-                  label="Sak-ID"
-                  value={sak.sak_id_display}
-                  onChange={e => handleChange('sak_id_display', e.target.value)}
-                  placeholder="f.eks. KOE-2025-0001"
-                  error={errors['sak.sak_id_display']}
-                  readOnly={disabled}
-                  className="max-w-sm"
-                  optional
-                />
-                <InputField
-                  id="sak.opprettet_av"
-                  label="Opprettet av"
-                  value={sak.opprettet_av}
-                  onChange={e => handleChange('opprettet_av', e.target.value)}
-                  placeholder="Navn"
-                  error={errors['sak.opprettet_av']}
-                  readOnly={disabled}
-                  className="max-w-sm"
-                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <InputField
+                    id="sak.sak_id_display"
+                    label="Sak-ID"
+                    value={sak.sak_id_display}
+                    onChange={e => handleChange('sak_id_display', e.target.value)}
+                    placeholder="f.eks. KOE-2025-0001"
+                    error={errors['sak.sak_id_display']}
+                    readOnly={disabled}
+                    optional
+                  />
+                  <InputField
+                    id="sak.opprettet_av"
+                    label="Opprettet av"
+                    value={sak.opprettet_av}
+                    onChange={e => handleChange('opprettet_av', e.target.value)}
+                    placeholder="Navn"
+                    error={errors['sak.opprettet_av']}
+                    readOnly={disabled}
+                  />
+                </div>
                 <DateField
                   id="sak.opprettet_dato"
                   label="Opprettet dato"
@@ -64,39 +64,41 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
 
             <FieldsetCard legend="Prosjekt">
               <div className="space-y-6">
-                <InputField 
-                  id="sak.prosjekt_navn" 
-                  label="Prosjekt" 
-                  value={sak.prosjekt_navn} 
-                  onChange={e => handleChange('prosjekt_navn', e.target.value)} 
-                  error={errors['sak.prosjekt_navn']} 
+                <InputField
+                  id="sak.prosjekt_navn"
+                  label="Prosjekt"
+                  value={sak.prosjekt_navn}
+                  onChange={e => handleChange('prosjekt_navn', e.target.value)}
+                  error={errors['sak.prosjekt_navn']}
                   readOnly={disabled}
                 />
-                <InputField 
-                  id="sak.kontrakt_referanse" 
-                  label="Prosjektnummer" 
-                  value={sak.kontrakt_referanse} 
-                  onChange={e => handleChange('kontrakt_referanse', e.target.value)} 
-                  error={errors['sak.kontrakt_referanse']} 
+                <InputField
+                  id="sak.kontrakt_referanse"
+                  label="Prosjektnummer"
+                  value={sak.kontrakt_referanse}
+                  onChange={e => handleChange('kontrakt_referanse', e.target.value)}
+                  error={errors['sak.kontrakt_referanse']}
                   readOnly={disabled}
                   className="max-w-sm"
                 />
-                <InputField 
-                  id="sak.entreprenor" 
-                  label="Entreprenør (TE)" 
-                  value={sak.entreprenor} 
-                  onChange={e => handleChange('entreprenor', e.target.value)} 
-                  error={errors['sak.entreprenor']} 
-                  readOnly={disabled}
-                />
-                <InputField 
-                  id="sak.byggherre" 
-                  label="Byggherre (BH)" 
-                  value={sak.byggherre} 
-                  onChange={e => handleChange('byggherre', e.target.value)} 
-                  error={errors['sak.byggherre']} 
-                  readOnly={disabled}
-                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <InputField
+                    id="sak.entreprenor"
+                    label="Entreprenør (TE)"
+                    value={sak.entreprenor}
+                    onChange={e => handleChange('entreprenor', e.target.value)}
+                    error={errors['sak.entreprenor']}
+                    readOnly={disabled}
+                  />
+                  <InputField
+                    id="sak.byggherre"
+                    label="Byggherre (BH)"
+                    value={sak.byggherre}
+                    onChange={e => handleChange('byggherre', e.target.value)}
+                    error={errors['sak.byggherre']}
+                    readOnly={disabled}
+                  />
+                </div>
               </div>
             </FieldsetCard>
           </div>
