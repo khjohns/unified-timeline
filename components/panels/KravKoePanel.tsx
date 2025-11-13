@@ -4,7 +4,7 @@ import { InputField, SelectField, TextareaField, CheckboxField, DateField } from
 import FieldsetCard from '../ui/FieldsetCard';
 import PanelLayout from '../ui/PanelLayout';
 import SidePanel from '../ui/SidePanel';
-import { PktAccordion, PktAccordionItem, PktButton } from '@oslokommune/punkt-react';
+import { PktButton } from '@oslokommune/punkt-react';
 
 interface KravKoePanelProps {
   formData: FormDataModel;
@@ -68,20 +68,17 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
 
   return (
     <PanelLayout sidePanel={<SidePanel sak={formData.sak} />}>
-      <div className="space-y-6">
-        <PktAccordion skin="outlined">
+      <div className="space-y-12">
         {koe_revisjoner.map((koe, index) => {
           const erSisteRevisjon = index === sisteKravIndex;
           const erLaast = !erSisteRevisjon || formStatus !== 'krav' || rolle !== 'TE' || disabled;
 
           return (
-            <PktAccordionItem
+            <div
               key={index}
-              id={`krav-revisjon-${index}`}
-              title={`Krav (Revisjon ${koe.koe_revisjonsnr})`}
-              defaultOpen={erSisteRevisjon}
+              className={index > 0 ? 'pt-12 border-t border-border-color' : ''}
             >
-              <div className="space-y-6 pt-4">
+              <div className="space-y-6">
                 <FieldsetCard legend="Generelt om Kravet">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                     <InputField
@@ -181,7 +178,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                 <div className={`collapsible ${koe.frist.krav_fristforlengelse ? 'open' : ''}`}>
                   <div className="collapsible-content">
                     <FieldsetCard legend="Detaljer om Fristforlengelse">
-                      <div className="space-y-4">
+                      <div className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                           <SelectField
                             id={`koe.frist.krav_frist_type.${index}`}
@@ -246,24 +243,23 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                   </div>
                 </FieldsetCard>
               </div>
-            </PktAccordionItem>
+            </div>
           );
         })}
-      </PktAccordion>
 
-      {formStatus === 'krav' && rolle === 'TE' && !disabled && (
-        <div className="flex justify-end pt-4">
-          <PktButton
-            skin="primary"
-            size="medium"
-            onClick={handleSendKrav}
-            iconName="chevron-right"
-            variant="icon-right"
-          >
-            Send krav (Revisjon {koe_revisjoner[sisteKravIndex].koe_revisjonsnr})
-          </PktButton>
-        </div>
-      )}
+        {formStatus === 'krav' && rolle === 'TE' && !disabled && (
+          <div className="flex justify-end pt-4">
+            <PktButton
+              skin="primary"
+              size="medium"
+              onClick={handleSendKrav}
+              iconName="chevron-right"
+              variant="icon-right"
+            >
+              Send krav (Revisjon {koe_revisjoner[sisteKravIndex].koe_revisjonsnr})
+            </PktButton>
+          </div>
+        )}
       </div>
     </PanelLayout>
   );
