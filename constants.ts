@@ -6,6 +6,7 @@ export const TABS = [
     { label: 'Krav (KOE)', icon: 'document-text' },
     { label: 'BH Svar', icon: 'check-circle' },
     { label: 'Oppsummering', icon: 'list' },
+    { label: 'Test: Sak', icon: 'beaker' },
 ];
 
 export const INITIAL_FORM_DATA: FormDataModel = {

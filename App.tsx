@@ -10,6 +10,7 @@ import VarselPanel from './components/panels/VarselPanel';
 import KravKoePanel from './components/panels/KravKoePanel';
 import BhSvarPanel from './components/panels/BhSvarPanel';
 import OppsummeringPanel from './components/panels/OppsummeringPanel';
+import TestSakPanel from './components/panels/TestSakPanel';
 
 
 const App: React.FC = () => {
@@ -391,6 +392,7 @@ const App: React.FC = () => {
             case 2: return <KravKoePanel {...panelProps} disabled={isTeDisabled} />;
             case 3: return <BhSvarPanel {...panelProps} />;
             case 4: return <OppsummeringPanel data={formData} />;
+            case 5: return <TestSakPanel {...panelProps} disabled={isTeDisabled} />;
             default: return null;
         }
     };
