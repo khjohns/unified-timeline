@@ -104,7 +104,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                   </div>
                 )}
 
-                <FieldsetCard legend="Byggherremøte om KOE" isBhPanel>
+                <FieldsetCard legend="Byggherremøte om KOE">
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                       <DateField
@@ -128,7 +128,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                 </FieldsetCard>
 
                 {tilhorendeKoe?.vederlag.krav_vederlag && (
-                  <FieldsetCard legend="Svar på Vederlagskrav" isBhPanel>
+                  <FieldsetCard legend="Svar på Vederlagskrav">
                     <div className="space-y-4">
                       <CheckboxField
                         id={`bh_svar.vederlag.varsel_for_sent.${index}`}
@@ -189,7 +189,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                 )}
 
                 {tilhorendeKoe?.frist.krav_fristforlengelse && (
-                  <FieldsetCard legend="Svar på Fristforlengelse" isBhPanel>
+                  <FieldsetCard legend="Svar på Fristforlengelse">
                     <div className="space-y-4">
                       <CheckboxField
                         id={`bh_svar.frist.varsel_for_sent.${index}`}
@@ -257,7 +257,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                   </FieldsetCard>
                 )}
 
-                <FieldsetCard legend="Signatur (For Byggherre)" isBhPanel>
+                <FieldsetCard legend="Signatur (For Byggherre)">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                     <DateField
                       id={`bh_svar.sign.dato_svar_bh.${index}`}

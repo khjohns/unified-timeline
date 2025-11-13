@@ -16,6 +16,12 @@ const SummaryItem: React.FC<{ label: string; value?: string | number | boolean; 
     );
 };
 
+const SubHeader: React.FC<{ title: string }> = ({ title }) => (
+    <h4 className="text-md font-semibold text-ink-dim mt-6 mb-2 pb-1 border-b border-border-color">
+        {title}
+    </h4>
+);
+
 const OppsummeringPanel: React.FC<OppsummeringPanelProps> = ({ data }) => {
     const { koe_revisjoner = [], bh_svar_revisjoner = [] } = data;
 
@@ -27,9 +33,9 @@ const OppsummeringPanel: React.FC<OppsummeringPanelProps> = ({ data }) => {
                 {/* Sak */}
                 <PktAccordionItem
                     id="oppsummering-grunninfo"
-                    title="Sak"
+                    title="1) Grunninfo"
                 >
-                    <div className="pt-4">
+                    <div className="p-4">
                         <dl className="divide-y divide-border-color">
                             <SummaryItem label="Sak-ID" value={data.sak.sak_id_display} />
                             <SummaryItem label="Sakstittel" value={data.sak.sakstittel} />
@@ -46,9 +52,9 @@ const OppsummeringPanel: React.FC<OppsummeringPanelProps> = ({ data }) => {
                 {/* Varsel */}
                 <PktAccordionItem
                     id="oppsummering-varsel"
-                    title="Varsel"
+                    title="2) Varsel"
                 >
-                    <div className="pt-4">
+                    <div className="p-4">
                         <dl className="divide-y divide-border-color">
                             <SummaryItem label="Dato forhold oppdaget" value={data.varsel.dato_forhold_oppdaget} />
                             <SummaryItem label="Dato varsel sendt" value={data.varsel.dato_varsel_sendt} />
@@ -62,7 +68,7 @@ const OppsummeringPanel: React.FC<OppsummeringPanelProps> = ({ data }) => {
 
                 {/* Krav */}
                 {koe_revisjoner.length === 0 ? (
-                    <PktAccordionItem id="oppsummering-krav-ingen" title="Krav" disabled>
+                    <PktAccordionItem id="oppsummering-krav-ingen" title="3) Krav" disabled>
                          <div className="p-4"><p className="text-muted">Ingen krav registrert.</p></div>
                     </PktAccordionItem>
                 ) : (
@@ -70,14 +76,15 @@ const OppsummeringPanel: React.FC<OppsummeringPanelProps> = ({ data }) => {
                         <PktAccordionItem
                             key={index}
                             id={`oppsummering-krav-${index}`}
-                            title={`Krav (revisjonsnr. ${koe.koe_revisjonsnr})`}
+                            title={`3) Krav (revisjonsnr. ${koe.koe_revisjonsnr})`}
                             defaultOpen={index === koe_revisjoner.length - 1}
                         >
-                            <div className="pt-4">
+                            <div className="p-4">
                                 <dl className="divide-y divide-border-color">
                                     <SummaryItem label="Revisjonsnummer" value={koe.koe_revisjonsnr} />
                                     <SummaryItem label="Dato krav sendt" value={koe.dato_krav_sendt} />
 
+                                    {koe.vederlag.krav_vederlag && <SubHeader title="Vederlagskrav" />}
                                     <SummaryItem label="Krav om vederlagsjustering" value={koe.vederlag.krav_vederlag} />
                                     {koe.vederlag.krav_vederlag && <>
                                         <SummaryItem label="Krav om produktivitetstap" value={koe.vederlag.krav_produktivitetstap} />
@@ -87,6 +94,7 @@ const OppsummeringPanel: React.FC<OppsummeringPanelProps> = ({ data }) => {
                                         <SummaryItem label="Begrunnelse/kalkyle"><p className="whitespace-pre-wrap">{koe.vederlag.krav_vederlag_begrunnelse || '—'}</p></SummaryItem>
                                     </>}
 
+                                    {koe.frist.krav_fristforlengelse && <SubHeader title="Fristkrav" />}
                                     <SummaryItem label="Krav om fristforlengelse" value={koe.frist.krav_fristforlengelse} />
                                     {koe.frist.krav_fristforlengelse && <>
                                         <SummaryItem label="Fristtype" value={koe.frist.krav_frist_type} />
@@ -103,7 +111,7 @@ const OppsummeringPanel: React.FC<OppsummeringPanelProps> = ({ data }) => {
 
                 {/* BH Svar */}
                 {bh_svar_revisjoner.length === 0 ? (
-                    <PktAccordionItem id="oppsummering-svar-ingen" title="BH svar" disabled>
+                    <PktAccordionItem id="oppsummering-svar-ingen" title="4) BH svar" disabled>
                         <div className="p-4"><p className="text-muted">Ingen svar registrert.</p></div>
                     </PktAccordionItem>
                 ) : (
@@ -113,15 +121,16 @@ const OppsummeringPanel: React.FC<OppsummeringPanelProps> = ({ data }) => {
                             <PktAccordionItem
                                 key={index}
                                 id={`oppsummering-svar-${index}`}
-                                title={`BH svar (revisjonsnr. ${tilhorendeKoe?.koe_revisjonsnr ?? index}`}
+                                title={`4) BH svar (revisjonsnr. ${tilhorendeKoe?.koe_revisjonsnr ?? index}`}
                                 defaultOpen={index === bh_svar_revisjoner.length - 1}
                             >
-                                <div className="pt-4">
+                                <div className="p-4">
                                     <dl className="divide-y divide-border-color">
                                         <SummaryItem label="Dato for møte" value={bh_svar.mote_dato} />
                                         <SummaryItem label="Møtereferat" value={bh_svar.mote_referat} />
 
                                         {tilhorendeKoe?.vederlag.krav_vederlag && <>
+                                            <SubHeader title="Svar på vederlagskrav" />
                                             <SummaryItem label="Vederlagsvarsel ansett for sent" value={bh_svar.vederlag.varsel_for_sent} />
                                             {bh_svar.vederlag.varsel_for_sent &&
                                                 <SummaryItem label="Begrunnelse"><p className="whitespace-pre-wrap">{bh_svar.vederlag.varsel_for_sent_begrunnelse || '—'}</p></SummaryItem>
@@ -132,6 +141,7 @@ const OppsummeringPanel: React.FC<OppsummeringPanelProps> = ({ data }) => {
                                         </>}
 
                                         {tilhorendeKoe?.frist.krav_fristforlengelse && <>
+                                            <SubHeader title="Svar på fristkrav" />
                                             <SummaryItem label="Fristvarsel ansett for sent" value={bh_svar.frist.varsel_for_sent} />
                                             {bh_svar.frist.varsel_for_sent &&
                                                 <SummaryItem label="Begrunnelse"><p className="whitespace-pre-wrap">{bh_svar.frist.varsel_for_sent_begrunnelse || '—'}</p></SummaryItem>

@@ -5,18 +5,18 @@ interface FieldsetCardProps {
   legend: string;
   children: React.ReactNode;
   className?: string;
-  isBhPanel?: boolean;
 }
 
-const FieldsetCard: React.FC<FieldsetCardProps> = ({ legend, children, className = '', isBhPanel = false }) => {
-  const bhClasses = isBhPanel ? 'bh-fieldset border-border-color' : 'border-border-color';
+const FieldsetCard: React.FC<FieldsetCardProps> = ({ legend, children, className = '' }) => {
   return (
-    <fieldset className={`bg-card-bg border rounded-lg p-6 shadow-sm transition-all duration-300 ${bhClasses} ${className}`}>
-      <legend className="text-lg font-semibold text-pri px-2">{legend}</legend>
-      <div className="mt-4">
+    <div className={`mb-8 ${className}`}>
+      <h3 className="text-lg font-semibold text-ink border-b border-border-color pb-2 mb-5">
+        {legend}
+      </h3>
+      <div className="space-y-6">
         {children}
       </div>
-    </fieldset>
+    </div>
   );
 };
 
