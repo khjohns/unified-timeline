@@ -191,9 +191,22 @@ interface CheckboxFieldProps {
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
   className?: string;
   disabled?: boolean;
+  hasTile?: boolean;
+  checkHelptext?: string | React.ReactNode;
+  hasError?: boolean;
 }
 
-export const CheckboxField: React.FC<CheckboxFieldProps> = ({ id, label, checked, onChange, className, disabled }) => (
+export const CheckboxField: React.FC<CheckboxFieldProps> = ({
+  id,
+  label,
+  checked,
+  onChange,
+  className,
+  disabled,
+  hasTile = false,
+  checkHelptext,
+  hasError = false
+}) => (
   <div className={className}>
     <PktCheckbox
       id={id}
@@ -202,6 +215,9 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({ id, label, checked
       checked={checked}
       onChange={onChange}
       disabled={disabled}
+      hasTile={hasTile}
+      checkHelptext={checkHelptext}
+      hasError={hasError}
     />
   </div>
 );
