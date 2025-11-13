@@ -2,6 +2,8 @@ import React, { useRef, useState } from 'react';
 import { FormDataModel } from '../../types';
 import { DateField, SelectField, TextareaField, InputField } from '../ui/Field';
 import FieldsetCard from '../ui/FieldsetCard';
+import PanelLayout from '../ui/PanelLayout';
+import SidePanel from '../ui/SidePanel';
 import { HOVEDKATEGORI_OPTIONS, UNDERKATEGORI_MAP } from '../../constants';
 import { PktButton, PktAlert } from '@oslokommune/punkt-react';
 
@@ -26,7 +28,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
   setActiveTab,
   setToastMessage
 }) => {
-  const { varsel, rolle } = formData;
+  const { varsel, rolle, sak } = formData;
   const handleChange = (field: string, value: any) => setFormData('varsel', field, value);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
@@ -81,7 +83,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
   ];
 
   return (
-    <div className="max-w-lg mx-auto">
+    <PanelLayout sidePanel={<SidePanel sak={sak} />}>
       <div className="space-y-6">
         <PktAlert skin="info" compact>
           Dette er det første formelle steget (Trinn 1) etter NS 8407. Her dokumenteres selve hendelsen og at varsel er sendt. Selve kravet spesifiseres i neste fane.
@@ -219,7 +221,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
           </div>
         )}
       </div>
-    </div>
+    </PanelLayout>
   );
 };
 
