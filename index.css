@@ -73,6 +73,7 @@
     --color-border-color: #E6E6E6;
     --color-card-bg: #FFFFFF;
     --color-body-bg: #F8F8F8;
+    --color-ring-color: var(--color-pri);
 }
 
 body {
