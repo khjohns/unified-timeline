@@ -10,7 +10,7 @@ const PanelLayout: React.FC<PanelLayoutProps> = ({ children, sidePanel }) => {
     <div className="max-w-7xl mx-auto">
       <div className="lg:grid lg:grid-cols-3 lg:gap-12">
         {/* Main content column (2/3) */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 bg-card-bg rounded-lg p-8 shadow-sm">
           {children}
         </div>
 
