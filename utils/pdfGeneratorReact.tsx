@@ -31,8 +31,10 @@ const COLORS = {
 // Stylesheet
 const styles = StyleSheet.create({
   page: {
-    // ENDRING: Økt padding for å gi større "ramme" (ca 1.5cm)
-    padding: 42,
+    paddingTop: 0,
+    paddingLeft: 42,
+    paddingRight: 42,
+    paddingBottom: 42,
     fontFamily: 'Oslo Sans',
     fontSize: 9,
     color: COLORS.ink,
@@ -45,13 +47,12 @@ const styles = StyleSheet.create({
     // ENDRING: Justert negative marger for å matche ny sidemarg
     marginLeft: -42,
     marginRight: -42,
-    // ENDRING: Fjernet 'marginTop: -20' for å fikse overlapping med tittel
     flexDirection: 'row',
     alignItems: 'center',
   },
   headerLogo: {
     // ENDRING: Satt kun høyde for å bevare aspect ratio. Fjernet fast 'width: 80'.
-    height: 28,
+    height: 36,
     marginRight: 15,
   },
   headerContent: {
@@ -62,7 +63,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#FFFFFF',
     // ENDRING: Økt avstand til undertittel
-    marginBottom: 6,
+    marginBottom: 8,
   },
   headerSubtitle: {
     fontSize: 9,
@@ -82,7 +83,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
     // ENDRING: Økt avstand til Sak-ID
-    marginBottom: 10,
+    marginBottom: 12,
   },
   sakId: {
     fontSize: 14,
@@ -193,16 +194,12 @@ const styles = StyleSheet.create({
 const Header: React.FC<{ data: FormDataModel }> = ({ data }) => (
   <View style={styles.header}>
     <Image
-      // ENDRING: Bytett fra .svg til .png
       src="/Skjema_Endringsmeldinger/logos/Oslo-logo-hvit-RGB.png"
       style={styles.headerLogo}
     />
     <View style={styles.headerContent}>
       <Text style={styles.headerTitle}>KOE – Krav om endringsordre</Text>
       <Text style={styles.headerSubtitle}>NS 8407:2011</Text>
-    </View>
-    <View style={styles.versionBadge}>
-      <Text>v{data.versjon}</Text>
     </View>
   </View>
 );
