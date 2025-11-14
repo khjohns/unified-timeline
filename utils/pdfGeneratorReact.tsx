@@ -1,25 +1,41 @@
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, pdf } from '@react-pdf/renderer';
+import { Document, Page, Text, View, Image, StyleSheet, Font, pdf } from '@react-pdf/renderer';
 import { FormDataModel } from '../types';
 
-// Design System Colors (matching jsPDF version)
+// Register Oslo Sans fonts (all variants)
+Font.register({
+  family: 'Oslo Sans',
+  fonts: [
+    { src: '/Skjema_Endringsmeldinger/fonts/OsloSans-Light.woff2', fontWeight: 300 },
+    { src: '/Skjema_Endringsmeldinger/fonts/OsloSans-LightItalic.woff2', fontWeight: 300, fontStyle: 'italic' },
+    { src: '/Skjema_Endringsmeldinger/fonts/OsloSans-Regular.woff2', fontWeight: 'normal' },
+    { src: '/Skjema_Endringsmeldinger/fonts/OsloSans-RegularItalic.woff2', fontWeight: 'normal', fontStyle: 'italic' },
+    { src: '/Skjema_Endringsmeldinger/fonts/OsloSans-Medium.woff2', fontWeight: 500 },
+    { src: '/Skjema_Endringsmeldinger/fonts/OsloSans-MediumItalic.woff2', fontWeight: 500, fontStyle: 'italic' },
+    { src: '/Skjema_Endringsmeldinger/fonts/OsloSans-Bold.woff2', fontWeight: 'bold' },
+    { src: '/Skjema_Endringsmeldinger/fonts/OsloSans-BoldItalic.woff2', fontWeight: 'bold', fontStyle: 'italic' },
+  ],
+});
+
+// Design System Colors (Oslo Kommune official palette)
 const COLORS = {
-  primary: '#1F42AA',
+  primary: '#2A2859',      // Oslo mørk blå (official)
   primaryDark: '#2A2859',
   ink: '#2C2C2C',
   inkDim: '#4D4D4D',
   muted: '#666666',
   border: '#E6E6E6',
-  lightBg: '#F1FDFF',
+  lightBg: '#F8F0DD',      // Oslo lys beige (official)
 };
 
 // Stylesheet
 const styles = StyleSheet.create({
   page: {
     padding: 20,
-    fontFamily: 'Helvetica',
+    fontFamily: 'Oslo Sans',
     fontSize: 9,
     color: COLORS.ink,
+    lineHeight: 1.4,
   },
   header: {
     backgroundColor: COLORS.primary,
@@ -28,6 +44,16 @@ const styles = StyleSheet.create({
     marginLeft: -20,
     marginRight: -20,
     marginTop: -20,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerLogo: {
+    width: 80,
+    height: 24,
+    marginRight: 15,
+  },
+  headerContent: {
+    flex: 1,
   },
   headerTitle: {
     fontSize: 16,
@@ -64,6 +90,11 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 3,
     marginBottom: 15,
+    flexDirection: 'row',
+    gap: 15,
+  },
+  infoColumn: {
+    width: '50%',
   },
   infoRow: {
     flexDirection: 'row',
@@ -156,8 +187,14 @@ const styles = StyleSheet.create({
 // Components
 const Header: React.FC<{ data: FormDataModel }> = ({ data }) => (
   <View style={styles.header}>
-    <Text style={styles.headerTitle}>KOE – Krav om endringsordre</Text>
-    <Text style={styles.headerSubtitle}>NS 8407:2011</Text>
+    <Image
+      src="/Skjema_Endringsmeldinger/logos/Oslo-logo-hvit-RGB.svg"
+      style={styles.headerLogo}
+    />
+    <View style={styles.headerContent}>
+      <Text style={styles.headerTitle}>KOE – Krav om endringsordre</Text>
+      <Text style={styles.headerSubtitle}>NS 8407:2011</Text>
+    </View>
     <View style={styles.versionBadge}>
       <Text>v{data.versjon}</Text>
     </View>
@@ -199,29 +236,33 @@ const TitlePage: React.FC<{ data: FormDataModel }> = ({ data }) => (
     <Text style={styles.sakId}>Sak-ID: {data.sak.sak_id_display || 'Ikke angitt'}</Text>
 
     <View style={styles.infoBox}>
-      <View style={styles.infoRow}>
-        <Text style={styles.infoLabel}>Prosjekt:</Text>
-        <Text style={styles.infoValue}>{data.sak.prosjekt_navn || '—'}</Text>
+      <View style={styles.infoColumn}>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Prosjekt:</Text>
+          <Text style={styles.infoValue}>{data.sak.prosjekt_navn || '—'}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Kontrakt:</Text>
+          <Text style={styles.infoValue}>{data.sak.kontrakt_referanse || '—'}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Entreprenør:</Text>
+          <Text style={styles.infoValue}>{data.sak.entreprenor || '—'}</Text>
+        </View>
       </View>
-      <View style={styles.infoRow}>
-        <Text style={styles.infoLabel}>Kontrakt:</Text>
-        <Text style={styles.infoValue}>{data.sak.kontrakt_referanse || '—'}</Text>
-      </View>
-      <View style={styles.infoRow}>
-        <Text style={styles.infoLabel}>Entreprenør:</Text>
-        <Text style={styles.infoValue}>{data.sak.entreprenor || '—'}</Text>
-      </View>
-      <View style={styles.infoRow}>
-        <Text style={styles.infoLabel}>Opprettet:</Text>
-        <Text style={styles.infoValue}>{data.sak.opprettet_dato || '—'}</Text>
-      </View>
-      <View style={styles.infoRow}>
-        <Text style={styles.infoLabel}>Opprettet av:</Text>
-        <Text style={styles.infoValue}>{data.sak.opprettet_av || '—'}</Text>
-      </View>
-      <View style={styles.infoRow}>
-        <Text style={styles.infoLabel}>Byggherre:</Text>
-        <Text style={styles.infoValue}>{data.sak.byggherre || '—'}</Text>
+      <View style={styles.infoColumn}>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Opprettet:</Text>
+          <Text style={styles.infoValue}>{data.sak.opprettet_dato || '—'}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Opprettet av:</Text>
+          <Text style={styles.infoValue}>{data.sak.opprettet_av || '—'}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Byggherre:</Text>
+          <Text style={styles.infoValue}>{data.sak.byggherre || '—'}</Text>
+        </View>
       </View>
     </View>
   </View>
@@ -409,7 +450,10 @@ const BhSvarRevisionSection: React.FC<{
 
 // Main Document Component
 const KoePdfDocument: React.FC<{ data: FormDataModel }> = ({ data }) => (
-  <Document>
+  <Document
+    title={data.sak.sakstittel || 'KOE – Krav om endringsordre'}
+    author={data.sak.opprettet_av || 'Oslo Kommune'}
+  >
     {/* Page 1: Title and Summary */}
     <Page size="A4" style={styles.page}>
       <Header data={data} />
