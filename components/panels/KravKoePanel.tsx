@@ -4,6 +4,7 @@ import { InputField, SelectField, TextareaField, CheckboxField, DateField } from
 import FieldsetCard from '../ui/FieldsetCard';
 import PanelLayout from '../ui/PanelLayout';
 import { PktButton, PktCheckbox } from '@oslokommune/punkt-react';
+import { VEDERLAGSMETODER_OPTIONS } from '../../constants';
 
 interface KravKoePanelProps {
   formData: FormDataModel;
@@ -166,13 +167,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                             label="Oppgjørsmetode"
                             value={koe.vederlag.krav_vederlag_metode}
                             onChange={value => handleChange(index, 'vederlag.krav_vederlag_metode', value)}
-                            options={[
-                              {value:"", label:"— Velg —"},
-                              {value:"Entreprenørens tilbud (§34.2.1)", label:"Entreprenørens tilbud (§34.2.1)"},
-                              {value:"Kontraktens enhetspriser (§34.3.1)", label:"Kontraktens enhetspriser (§34.3.1)"},
-                              {value:"Justerte enhetspriser (§34.3.2)", label:"Justerte enhetspriser (§34.3.2)"},
-                              {value:"Regningsarbeid (§30.1)", label:"Regningsarbeid (§30.1)"}
-                            ]}
+                            options={VEDERLAGSMETODER_OPTIONS}
                             helpText="Velg hvordan vederlaget skal beregnes."
                             readOnly={erLaast}
                           />
