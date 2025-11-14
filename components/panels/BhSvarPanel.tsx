@@ -34,7 +34,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
   if (rolle !== 'BH') {
     return (
       <div className="text-center p-8 bg-gray-50 rounded-lg border">
-        <h3 className="text-lg font-semibold text-ink-dim">Svar fra Byggherre (BH)</h3>
+        <h3 className="text-base font-semibold text-ink-dim">Svar fra Byggherre (BH)</h3>
         <p className="mt-2 text-muted">Disse feltene fylles ut av Byggherre. Bytt til BH-rollen for å redigere.</p>
       </div>
     );

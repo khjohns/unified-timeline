@@ -14,7 +14,7 @@ const FieldsetCard: React.FC<FieldsetCardProps> = ({ legend, children, className
         fordi PanelLayout.tsx allerede har denne bakgrunnen.
         Dette gir en ramme internt i panelet.
       */}
-      <legend className="text-lg font-semibold text-pri px-2">
+      <legend className="text-base font-semibold text-pri px-2">
         {legend}
       </legend>
       <div className="mt-4 space-y-6">
