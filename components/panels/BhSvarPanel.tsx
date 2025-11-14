@@ -101,27 +101,6 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                   />
                 </FieldsetCard>
 
-                <FieldsetCard legend="Byggherremøte om KOE">
-                  <div className="space-y-6">
-                    <DateField
-                      id={`bh_svar.mote_dato.${index}`}
-                      label="Dato for møte"
-                      value={bh_svar.mote_dato}
-                      onChange={value => handleChange(index, 'mote_dato', value)}
-                      className="max-w-sm"
-                      readOnly={erLaast}
-                    />
-                    <TextareaField
-                      id={`bh_svar.mote_referat.${index}`}
-                      label="Referanse til møtereferat"
-                      value={bh_svar.mote_referat}
-                      onChange={e => handleChange(index, 'mote_referat', e.target.value)}
-                      readOnly={erLaast}
-                      fullwidth
-                    />
-                  </div>
-                </FieldsetCard>
-
                 {tilhorendeKoe?.vederlag.krav_vederlag && (
                   <FieldsetCard legend="Svar på Vederlagskrav">
                     <div className="space-y-6">
@@ -131,6 +110,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                         checked={bh_svar.vederlag.varsel_for_sent}
                         onChange={e => handleChange(index, 'vederlag.varsel_for_sent', e.target.checked)}
                         disabled={erLaast}
+                        hasTile={true}
                       />
                       <div className={`collapsible ${bh_svar.vederlag.varsel_for_sent ? 'open' : ''}`}>
                         <div className="collapsible-content">
@@ -191,6 +171,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                         checked={bh_svar.frist.varsel_for_sent}
                         onChange={e => handleChange(index, 'frist.varsel_for_sent', e.target.checked)}
                         disabled={erLaast}
+                        hasTile={true}
                       />
                       <div className={`collapsible ${bh_svar.frist.varsel_for_sent ? 'open' : ''}`}>
                         <div className="collapsible-content">
