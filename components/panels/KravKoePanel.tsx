@@ -3,8 +3,9 @@ import { FormDataModel } from '../../types';
 import { InputField, SelectField, TextareaField, CheckboxField, DateField } from '../ui/Field';
 import FieldsetCard from '../ui/FieldsetCard';
 import PanelLayout from '../ui/PanelLayout';
-import { PktButton, PktCheckbox } from '@oslokommune/punkt-react';
+import { PktButton, PktCheckbox, PktTag } from '@oslokommune/punkt-react';
 import { VEDERLAGSMETODER_OPTIONS } from '../../constants';
+import { STATUS_OPTIONS, getStatusLabel, getStatusSkin } from '../../utils/statusHelpers';
 
 interface KravKoePanelProps {
   formData: FormDataModel;
@@ -79,8 +80,23 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
               className={index > 0 ? 'pt-12 border-t border-border-color' : ''}
             >
               <div className="space-y-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <h3 className="text-lg font-semibold">Revisjon {koe.koe_revisjonsnr ?? '0'}</h3>
+                  <PktTag skin={getStatusSkin(koe.status)}>
+                    {getStatusLabel(koe.status)}
+                  </PktTag>
+                </div>
                 <FieldsetCard legend={`Innsending (Revisjon ${koe.koe_revisjonsnr ?? '0'})`}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                    <SelectField
+                      id={`koe.status.${index}`}
+                      label="Status"
+                      value={koe.status || ''}
+                      onChange={value => handleChange(index, 'status', value)}
+                      options={STATUS_OPTIONS}
+                      helpText="Velg status for dette kravet"
+                      readOnly={erLaast}
+                    />
                     <DateField
                       id={`koe.dato_krav_sendt.${index}`}
                       label="Dato krav sendt"

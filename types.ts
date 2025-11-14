@@ -35,12 +35,30 @@ export interface KoeFrist {
   krav_frist_begrunnelse: string;
 }
 
+export type KoeStatus =
+  | '100000000' // Under varsling
+  | '100000001' // Under utarbeidelse
+  | '100000002' // KOE sendt
+  | '100000003' // Under avklaring
+  | '100000004' // Godkjent
+  | '100000005' // EO utstedes
+  | '100000006' // Avslått - Komplett
+  | '100000007' // Avslått - Under vurdering
+  | '100000008' // Avslått - Under tvist
+  | '100000009' // Tilbakekalt av TE
+  | '100000010' // For sent varslet
+  | '100000011' // Lukket - Implementert
+  | '100000012' // Lukket - Annullert
+  | '100000013' // Pågår - Under utførelse
+  | '';
+
 export interface Koe {
   koe_revisjonsnr: string;
   dato_krav_sendt: string;
   for_entreprenor: string;
   vederlag: KoeVederlag;
   frist: KoeFrist;
+  status?: KoeStatus;
 }
 
 export interface BhSvarVederlag {

@@ -34,6 +34,7 @@ export const INITIAL_FORM_DATA: FormDataModel = {
             koe_revisjonsnr: '0',
             dato_krav_sendt: '',
             for_entreprenor: '',
+            status: '100000001', // Under utarbeidelse
             vederlag: {
                 krav_vederlag: false,
                 krav_produktivitetstap: false,
@@ -105,6 +106,7 @@ export const DEMO_DATA: FormDataModel = {
             koe_revisjonsnr: '0',
             dato_krav_sendt: '2023-10-26',
             for_entreprenor: 'Per Olsen',
+            status: '100000004', // Godkjent
             vederlag: {
                 krav_vederlag: true,
                 krav_produktivitetstap: false,
@@ -125,6 +127,7 @@ export const DEMO_DATA: FormDataModel = {
             koe_revisjonsnr: '1',
             dato_krav_sendt: '2023-11-15',
             for_entreprenor: 'Per Olsen',
+            status: '100000004', // Godkjent
             vederlag: {
                 krav_vederlag: true,
                 krav_produktivitetstap: true,
@@ -145,6 +148,7 @@ export const DEMO_DATA: FormDataModel = {
             koe_revisjonsnr: '2',
             dato_krav_sendt: '',
             for_entreprenor: '',
+            status: '100000001', // Under utarbeidelse
             vederlag: {
                 krav_vederlag: false,
                 krav_produktivitetstap: false,
