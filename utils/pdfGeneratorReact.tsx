@@ -31,7 +31,7 @@ const COLORS = {
 // Stylesheet
 const styles = StyleSheet.create({
   page: {
-    padding: 20,
+    padding: 42, // ENDRING: Økt fra 20 til 42pt (ca 1.5cm) for bredere marger
     fontFamily: 'Oslo Sans',
     fontSize: 9,
     color: COLORS.ink,
@@ -41,9 +41,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     padding: 12,
     marginBottom: 25,
-    marginLeft: -20,
-    marginRight: -20,
-    marginTop: -20,
+    marginLeft: -42, // ENDRING: Justert for å matche ny padding
+    marginRight: -42, // ENDRING: Justert for å matche ny padding
+    // marginTop: -20, // ENDRING: Fjernet for å unngå overlapp med sidens padding
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -164,8 +164,8 @@ const styles = StyleSheet.create({
   footer: {
     position: 'absolute',
     bottom: 15,
-    left: 20,
-    right: 20,
+    left: 42, // ENDRING: Justert for å matche ny padding
+    right: 42, // ENDRING: Justert for å matche ny padding
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     paddingTop: 8,
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
   },
   signatureLabel: {
     fontWeight: 'bold',
-    marginRight: 60,
+    // marginRight: 60, // ENDRING: Fjernet, unødvendig med ny vertikal layout
   },
 });
 
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
 const Header: React.FC<{ data: FormDataModel }> = ({ data }) => (
   <View style={styles.header}>
     <Image
-      src="/Skjema_Endringsmeldinger/logos/Oslo-logo-hvit-RGB.svg"
+      src="/Skjema_Endringsmeldinger/logos/Oslo-logo-hvit-RGB.png" // ENDRING: Bytett fra .svg til .png
       style={styles.headerLogo}
     />
     <View style={styles.headerContent}>
@@ -364,12 +364,11 @@ const KoeRevisionSection: React.FC<{ koe: FormDataModel['koe_revisjoner'][0]; in
       </View>
     )}
 
+    {/* ENDRING: Oppdatert signaturlayout */}
     {koe.for_entreprenor && (
       <View style={styles.signatureRow}>
-        <Text>
-          <Text style={styles.signatureLabel}>For Entreprenør</Text>
-          <Text>{koe.for_entreprenor || '—'}</Text>
-        </Text>
+        <Text style={styles.signatureLabel}>For Entreprenør</Text>
+        <Text style={{ marginTop: 15 }}>{koe.for_entreprenor || '—'}</Text>
       </View>
     )}
   </View>
@@ -431,6 +430,7 @@ const BhSvarRevisionSection: React.FC<{
       </View>
     )}
 
+    {/* ENDRING: Oppdatert signaturlayout */}
     {(bhSvar.sign.dato_svar_bh || bhSvar.sign.for_byggherre) && (
       <View>
         <Text style={styles.subTitle}>Signatur</Text>
@@ -438,10 +438,8 @@ const BhSvarRevisionSection: React.FC<{
           <TableRow label="Dato for BH svar" value={bhSvar.sign.dato_svar_bh || '—'} />
         </View>
         <View style={styles.signatureRow}>
-          <Text>
-            <Text style={styles.signatureLabel}>For Byggherre</Text>
-            <Text>{bhSvar.sign.for_byggherre || '—'}</Text>
-          </Text>
+          <Text style={styles.signatureLabel}>For Byggherre</Text>
+          <Text style={{ marginTop: 15 }}>{bhSvar.sign.for_byggherre || '—'}</Text>
         </View>
       </View>
     )}
