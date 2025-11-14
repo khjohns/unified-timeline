@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FormDataModel, Role, BhSvar, Koe } from './types';
 import { TABS, INITIAL_FORM_DATA, DEMO_DATA } from './constants';
 import Toast from './components/ui/Toast';
-import { generatePdf } from './utils/pdfGenerator';
+// import { generatePdf } from './utils/pdfGenerator'; // FJERNET
 import { generatePdfReact } from './utils/pdfGeneratorReact';
 import { PktHeader, PktButton, PktModal, PktTabs, PktTabItem } from '@oslokommune/punkt-react';
 import { useSkjemaData } from './hooks/useSkjemaData';
@@ -19,7 +19,7 @@ const App: React.FC = () => {
     const [activeTab, setActiveTab] = useState(0);
     const [formStatus, setFormStatus] = useState<'varsel' | 'krav' | 'svar'>('varsel');
     const [toastMessage, setToastMessage] = useState('');
-    const [pdfMethod, setPdfMethod] = useState<'jspdf' | 'react-pdf'>('jspdf');
+    // const [pdfMethod, setPdfMethod] = useState<'jspdf' | 'react-pdf'>('jspdf'); // FJERNET
     const [modalConfig, setModalConfig] = useState<{
         isOpen: boolean;
         title: string;
@@ -165,24 +165,16 @@ const App: React.FC = () => {
         return true;
     };
 
-    const handleNextTab = () => {
-        if (validateCurrentTab()) {
-            setActiveTab(prev => Math.min(prev + 1, TABS.length - 1));
-            window.scrollTo(0, 0);
-        }
-    };
-
-    const handlePrevTab = () => {
-        setActiveTab(prev => Math.max(prev - 1, 0));
-        window.scrollTo(0, 0);
-    };
+    // const handleNextTab = () => { ... }; // FJERNET
+    // const handlePrevTab = () => { ... }; // FJERNET
     
     const handleDownloadPdf = async () => {
-        if (pdfMethod === 'jspdf') {
-            generatePdf(formData);
-        } else {
-            await generatePdfReact(formData);
-        }
+        // if (pdfMethod === 'jspdf') { // FJERNET
+        //     generatePdf(formData);
+        // } else {
+        //     await generatePdfReact(formData);
+        // }
+        await generatePdfReact(formData); // ENDRET: Kun react-pdf
     };
 
     // Helper function to add a new BH svar revision
@@ -255,6 +247,7 @@ const App: React.FC = () => {
                     <PktTabItem
                         key={tab.label}
                         active={activeTab === idx}
+                        // ENDRET: onClick har nå fri navigasjon
                         onClick={() => {
                             setActiveTab(idx);
                             window.scrollTo(0, 0);
@@ -302,20 +295,9 @@ const App: React.FC = () => {
                     Nullstill
                 </button>
                 <div className="flex gap-3 flex-wrap items-center">
-                    <div className="flex items-center gap-2">
-                        <label htmlFor="pdf-method" className="text-sm text-muted">
-                            PDF-metode:
-                        </label>
-                        <select
-                            id="pdf-method"
-                            value={pdfMethod}
-                            onChange={(e) => setPdfMethod(e.target.value as 'jspdf' | 'react-pdf')}
-                            className="text-sm border border-border-color rounded px-2 py-1"
-                        >
-                            <option value="jspdf">jsPDF (nåværende)</option>
-                            <option value="react-pdf">@react-pdf/renderer (ny)</option>
-                        </select>
-                    </div>
+                    
+                    {/* FJERNET: PDF-metode dropdown */}
+                    
                     <PktButton
                         skin="secondary"
                         size="small"
@@ -334,32 +316,16 @@ const App: React.FC = () => {
                     >
                         Eksempel
                     </PktButton>
-                    {activeTab > 0 && (
-                        <PktButton
-                            skin="secondary"
-                            size="medium"
-                            onClick={handlePrevTab}
-                            iconName="chevron-left"
-                            variant="icon-left"
-                        >
-                            Forrige
-                        </PktButton>
-                    )}
-                    {activeTab < TABS.length - 1 && (
-                        <PktButton
-                            skin="primary"
-                            size="medium"
-                            onClick={handleNextTab}
-                            iconName="chevron-right"
-                            variant="icon-right"
-                        >
-                            Neste
-                        </PktButton>
-                    )}
+                    
+                    {/* FJERNET: 'Forrige' og 'Neste' knapper */}
+                
                 </div>
             </div>
         </div>
     );
+
+
+    // Fil: App.tsx
 
     return (
         <div className="bg-body-bg min-h-screen text-ink font-sans">
@@ -367,11 +333,10 @@ const App: React.FC = () => {
                 serviceName="Skjema for krav om endringsordre (KOE)"
                 user={{ name: formData.rolle === 'TE' ? 'Total Entreprenør' : 'Byggherren', showName: true }}
                 
-                // 1. GJORDE DENNE STICKY/FAST:
-                // Dette blir den eneste faste topplinjen.
+                // Gjort headeren fast
                 fixed={true} 
             >
-                {/* BH/TE-knappen bor her som 'children' */}
+                {/* BH/TE-knappen er flyttet inn her som 'children' */}
                 <div className="flex items-center gap-3 ml-4">
                     <span className="text-sm font-medium text-ink-dim hidden sm:inline">Rolle:</span>
                     <div className="isolate inline-flex rounded-md shadow-sm">
@@ -393,20 +358,13 @@ const App: React.FC = () => {
                 </div>
             </PktHeader>
             
-            {/* 2. FJERNET DEN SEPARATE <header>-BLOKKEN for tabs */}
+            {/* FJERNET: Den separate <header>-blokken for tabs */}
     
-            {/* 3. OPPDATERT <main>:
-                - Lagt til 'pt-24' (padding-top) for å dytte alt innholdet
-                  ned, slik at det starter *under* den faste PktHeader-en.
-            */}
+            {/* ENDRET: 'pt-24' for å gi plass til den faste headeren */}
             <main className="pt-24 pb-8 sm:pb-12">
                 <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
                 
-                    {/* 4. FLYTTET TABS INN HIT:
-                        - Ligger nå inne i 'max-w-4xl'-containeren.
-                        - Får automatisk riktig bredde.
-                        - Lagt til 'mb-8' (margin-bottom) for avstand til panelet.
-                    */}
+                    {/* FLYTTET TABS INN HIT: med 'mb-8' for avstand */}
                     <div className="mb-8">
                         {renderTabs()}
                     </div>
