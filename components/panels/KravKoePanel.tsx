@@ -111,33 +111,26 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
 
                 <FieldsetCard legend="Hva gjelder kravet?">
                   <div className="space-y-4">
-                    {/* Egendefinert Flis 1: Vederlag */}
-                    <div className="w-full rounded-lg border border-border-color bg-white p-4 transition-colors hover:bg-gray-50">
-                      <PktCheckbox
-                        id={`koe.vederlag.krav_vederlag.${index}`}
-                        label="Krav om vederlagsjustering (kap. 34)"
-                        checked={koe.vederlag.krav_vederlag}
-                        onChange={e => handleChange(index, 'vederlag.krav_vederlag', e.target.checked)}
-                        disabled={erLaast}
-                      />
-                      <p className="pl-8 pt-1 text-sm text-muted">
-                        Velges for å kreve justering av vederlaget som følge av endringer, svikt i byggherrens ytelser, eller andre forhold byggherren har risikoen for (jf. NS 8407 pkt. 34).
-                      </p>
-                    </div>
-
-                    {/* Egendefinert Flis 2: Frist */}
-                    <div className="w-full rounded-lg border border-border-color bg-white p-4 transition-colors hover:bg-gray-50">
-                      <PktCheckbox
-                        id={`koe.frist.krav_fristforlengelse.${index}`}
-                        label="Krav om fristforlengelse (kap. 33)"
-                        checked={koe.frist.krav_fristforlengelse}
-                        onChange={e => handleChange(index, 'frist.krav_fristforlengelse', e.target.checked)}
-                        disabled={erLaast}
-                      />
-                      <p className="pl-8 pt-1 text-sm text-muted">
-                        Velges for å kreve fristforlengelse dersom fremdriften hindres av forhold byggherren har risikoen for (jf. NS 8407 pkt. 33).
-                      </p>
-                    </div>
+                    <CheckboxField
+                      id={`koe.vederlag.krav_vederlag.${index}`}
+                      label="Krav om vederlagsjustering (kap. 34)"
+                      checked={koe.vederlag.krav_vederlag}
+                      onChange={e => handleChange(index, 'vederlag.krav_vederlag', e.target.checked)}
+                      disabled={erLaast}
+                      hasTile={true}
+                      checkHelptext="Velges for å kreve justering av vederlaget som følge av endringer, svikt i byggherrens ytelser, eller andre forhold byggherren har risikoen for (jf. NS 8407 pkt. 34)."
+                      // className="w-full" er ikke lenger nødvendig her, da komponenten selv er w-full
+                    />
+                    <CheckboxField
+                      id={`koe.frist.krav_fristforlengelse.${index}`}
+                      label="Krav om fristforlengelse (kap. 33)"
+                      checked={koe.frist.krav_fristforlengelse}
+                      onChange={e => handleChange(index, 'frist.krav_fristforlengelse', e.target.checked)}
+                      disabled={erLaast}
+                      hasTile={true}
+                      checkHelptext="Velges for å kreve fristforlengelse dersom fremdriften hindres av forhold byggherren har risikoen for (jf. NS 8407 pkt. 33)."
+                      // className="w-full" er ikke lenger nødvendig her
+                    />
                   </div>
                 </FieldsetCard>
 
@@ -154,6 +147,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                               checked={koe.vederlag.krav_produktivitetstap}
                               onChange={e => handleChange(index, 'vederlag.krav_produktivitetstap', e.target.checked)}
                               disabled={erLaast}
+                              hasTile={true}
                               checkHelptext="For økte utgifter pga. nedsatt produktivitet eller forstyrrelser (plunder og heft)."
                             />
                             <CheckboxField
@@ -162,6 +156,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                               checked={koe.vederlag.saerskilt_varsel_rigg_drift}
                               onChange={e => handleChange(index, 'vederlag.saerskilt_varsel_rigg_drift', e.target.checked)}
                               disabled={erLaast}
+                              hasTile={true}
                               checkHelptext="For økte utgifter til rigg, drift, nedrigging og kapitalytelser."
                             />
                           </div>
