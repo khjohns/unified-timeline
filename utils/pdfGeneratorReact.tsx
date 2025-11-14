@@ -2,12 +2,18 @@ import React from 'react';
 import { Document, Page, Text, View, Image, StyleSheet, Font, pdf } from '@react-pdf/renderer';
 import { FormDataModel } from '../types';
 
-// Register Oslo Sans fonts
+// Register Oslo Sans fonts (all variants)
 Font.register({
   family: 'Oslo Sans',
   fonts: [
+    { src: '/Skjema_Endringsmeldinger/fonts/OsloSans-Light.woff2', fontWeight: 300 },
+    { src: '/Skjema_Endringsmeldinger/fonts/OsloSans-LightItalic.woff2', fontWeight: 300, fontStyle: 'italic' },
     { src: '/Skjema_Endringsmeldinger/fonts/OsloSans-Regular.woff2', fontWeight: 'normal' },
+    { src: '/Skjema_Endringsmeldinger/fonts/OsloSans-RegularItalic.woff2', fontWeight: 'normal', fontStyle: 'italic' },
+    { src: '/Skjema_Endringsmeldinger/fonts/OsloSans-Medium.woff2', fontWeight: 500 },
+    { src: '/Skjema_Endringsmeldinger/fonts/OsloSans-MediumItalic.woff2', fontWeight: 500, fontStyle: 'italic' },
     { src: '/Skjema_Endringsmeldinger/fonts/OsloSans-Bold.woff2', fontWeight: 'bold' },
+    { src: '/Skjema_Endringsmeldinger/fonts/OsloSans-BoldItalic.woff2', fontWeight: 'bold', fontStyle: 'italic' },
   ],
 });
 
