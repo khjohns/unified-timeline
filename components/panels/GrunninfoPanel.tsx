@@ -3,7 +3,6 @@ import { FormDataModel } from '../../types';
 import { InputField, DateField } from '../ui/Field';
 import FieldsetCard from '../ui/FieldsetCard';
 import PanelLayout from '../ui/PanelLayout';
-import SidePanel from '../ui/SidePanel';
 
 interface GrunninfoPanelProps {
   formData: FormDataModel;
@@ -17,7 +16,7 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
   const handleChange = (field: string, value: any) => setFormData('sak', field, value);
 
   return (
-    <PanelLayout sidePanel={<SidePanel sak={sak} />}>
+    <PanelLayout>
       <div className="space-y-6">
             <FieldsetCard legend="Saksdetaljer">
               <div className="space-y-6">

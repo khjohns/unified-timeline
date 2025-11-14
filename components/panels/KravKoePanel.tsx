@@ -3,7 +3,6 @@ import { FormDataModel } from '../../types';
 import { InputField, SelectField, TextareaField, CheckboxField, DateField } from '../ui/Field';
 import FieldsetCard from '../ui/FieldsetCard';
 import PanelLayout from '../ui/PanelLayout';
-import SidePanel from '../ui/SidePanel';
 import { PktButton, PktCheckbox } from '@oslokommune/punkt-react';
 
 interface KravKoePanelProps {
@@ -67,7 +66,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
   };
 
   return (
-    <PanelLayout sidePanel={<SidePanel sak={formData.sak} />}>
+    <PanelLayout>
       <div className="space-y-12">
         {koe_revisjoner.map((koe, index) => {
           const erSisteRevisjon = index === sisteKravIndex;

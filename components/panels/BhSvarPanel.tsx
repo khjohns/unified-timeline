@@ -3,7 +3,6 @@ import { FormDataModel } from '../../types';
 import { InputField, SelectField, TextareaField, CheckboxField, DateField } from '../ui/Field';
 import FieldsetCard from '../ui/FieldsetCard';
 import PanelLayout from '../ui/PanelLayout';
-import SidePanel from '../ui/SidePanel';
 import { PktButton } from '@oslokommune/punkt-react';
 
 interface BhSvarPanelProps {
@@ -85,7 +84,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
   ];
 
   return (
-    <PanelLayout sidePanel={<SidePanel sak={formData.sak} />}>
+    <PanelLayout>
       <div className="space-y-12">
         {bh_svar_revisjoner.map((bh_svar, index) => {
           const erSisteRevisjon = index === sisteSvarIndex;
