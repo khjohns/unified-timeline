@@ -5,15 +5,13 @@ import FieldsetCard from '../ui/FieldsetCard';
 import PanelLayout from '../ui/PanelLayout';
 import { PktButton, PktCheckbox, PktTag } from '@oslokommune/punkt-react';
 import { VEDERLAGSMETODER_OPTIONS } from '../../constants';
-import { STATUS_OPTIONS, getStatusLabel, getStatusSkin } from '../../utils/statusHelpers';
+import { KRAV_STATUS_OPTIONS, getKravStatusLabel, getKravStatusSkin } from '../../utils/statusHelpers';
 
 interface KravKoePanelProps {
   formData: FormDataModel;
-  setFormData: (section: 'koe_revisjoner', field: string, value: any, index?: number) => void;
+  setFormData: (section: 'koe_revisjoner' | 'sak', field: string, value: any, index?: number) => void;
   errors: Record<string, string>;
   disabled?: boolean;
-  formStatus?: 'varsel' | 'krav' | 'svar';
-  setFormStatus?: (status: 'varsel' | 'krav' | 'svar') => void;
   setActiveTab?: (tab: number) => void;
   setToastMessage?: (message: string) => void;
   addBhSvarRevisjon?: () => void;
@@ -24,8 +22,6 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
   setFormData,
   errors,
   disabled,
-  formStatus = 'varsel',
-  setFormStatus,
   setActiveTab,
   setToastMessage,
   addBhSvarRevisjon
@@ -60,19 +56,26 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
       return;
     }
 
+    // Oppdater statuser
+    setFormData('koe_revisjoner', 'status', '100000002', sisteKravIndex); // Sendt til BH
+    setFormData('sak', 'status', '100000002'); // Venter på svar
+
     addBhSvarRevisjon?.();
-    setFormStatus?.('svar');
     setActiveTab?.(3);
     setToastMessage?.('Krav sendt! Byggherre kan nå svare på kravet.');
     setTimeout(() => setToastMessage?.(''), 3000);
   };
+
+  const sisteKoe = koe_revisjoner[sisteKravIndex];
+  const sisteKoeErUtkast = !sisteKoe?.status || sisteKoe?.status === '100000001';
 
   return (
     <PanelLayout>
       <div className="space-y-12">
         {koe_revisjoner.map((koe, index) => {
           const erSisteRevisjon = index === sisteKravIndex;
-          const erLaast = !erSisteRevisjon || formStatus !== 'krav' || rolle !== 'TE' || disabled;
+          const koeErUtkast = !koe.status || koe.status === '100000001';
+          const erLaast = !erSisteRevisjon || !koeErUtkast || rolle !== 'TE' || disabled;
 
           return (
             <div
@@ -82,8 +85,8 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
               <div className="space-y-6">
                 <div className="flex items-center gap-3 mb-4">
                   <h3 className="text-lg font-semibold">Revisjon {koe.koe_revisjonsnr ?? '0'}</h3>
-                  <PktTag skin={getStatusSkin(koe.status)}>
-                    {getStatusLabel(koe.status)}
+                  <PktTag skin={getKravStatusSkin(koe.status)}>
+                    {getKravStatusLabel(koe.status)}
                   </PktTag>
                 </div>
                 <FieldsetCard legend={`Innsending (Revisjon ${koe.koe_revisjonsnr ?? '0'})`}>
@@ -93,7 +96,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                       label="Status"
                       value={koe.status || ''}
                       onChange={value => handleChange(index, 'status', value)}
-                      options={STATUS_OPTIONS}
+                      options={KRAV_STATUS_OPTIONS}
                       helpText="Velg status for dette kravet"
                       readOnly={erLaast}
                     />
@@ -105,190 +108,155 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                       required
                       helpText="Dato for innsending av denne revisjonen."
                       readOnly={erLaast}
-                      className="max-w-sm"
                     />
                     <InputField
-                      id={`koe.koe_revisjonsnr.${index}`}
-                      label="Revisjonsnummer"
-                      type="number"
-                      min={0}
-                      step={1}
-                      value={koe.koe_revisjonsnr}
-                      onChange={e => handleChange(index, 'koe_revisjonsnr', e.target.value)}
+                      id={`koe.for_entreprenor.${index}`}
+                      label="Signatur (For entreprenør)"
+                      value={koe.for_entreprenor}
+                      onChange={e => handleChange(index, 'for_entreprenor', e.target.value)}
                       required
-                      placeholder="f.eks. 0 for første innsending"
-                      error={errors[`koe_revisjoner.koe_revisjonsnr`]}
-                      helpText="Start med 0 for første innsending."
                       readOnly={erLaast}
-                      className="max-w-sm"
                     />
                   </div>
                 </FieldsetCard>
 
-                <FieldsetCard legend="Hva gjelder kravet?">
-                  <div className="space-y-4">
-                    <CheckboxField
-                      id={`koe.vederlag.krav_vederlag.${index}`}
-                      label="Krav om vederlagsjustering (kap. 34)"
-                      checked={koe.vederlag.krav_vederlag}
-                      onChange={e => handleChange(index, 'vederlag.krav_vederlag', e.target.checked)}
-                      disabled={erLaast}
-                      hasTile={true}
-                      checkHelptext="Velges for å kreve justering av vederlaget som følge av endringer, svikt i byggherrens ytelser, eller andre forhold byggherren har risikoen for (jf. NS 8407 pkt. 34)."
-                      // className="w-full" er ikke lenger nødvendig her, da komponenten selv er w-full
-                    />
-                    <CheckboxField
-                      id={`koe.frist.krav_fristforlengelse.${index}`}
-                      label="Krav om fristforlengelse (kap. 33)"
-                      checked={koe.frist.krav_fristforlengelse}
-                      onChange={e => handleChange(index, 'frist.krav_fristforlengelse', e.target.checked)}
-                      disabled={erLaast}
-                      hasTile={true}
-                      checkHelptext="Velges for å kreve fristforlengelse dersom fremdriften hindres av forhold byggherren har risikoen for (jf. NS 8407 pkt. 33)."
-                      // className="w-full" er ikke lenger nødvendig her
-                    />
-                  </div>
-                </FieldsetCard>
+                <FieldsetCard legend="Vederlagskrav">
+                  <CheckboxField
+                    id={`koe.vederlag.krav_vederlag.${index}`}
+                    label="Jeg krever vederlagsjustering for denne endringsordren"
+                    checked={koe.vederlag.krav_vederlag}
+                    onChange={e => handleChange(index, 'vederlag.krav_vederlag', e.target.checked)}
+                    disabled={erLaast}
+                    hasTile={true}
+                  />
 
-                <div className={`collapsible ${koe.vederlag.krav_vederlag ? 'open' : ''}`}>
-                  <div className="collapsible-content">
-                    <FieldsetCard legend="Detaljer om Vederlagsjustering">
-                      <div className="space-y-6">
-                        <div>
-                          <p className="text-sm font-semibold mb-3">Særskilte krav (NS 8407 pkt. 34.1.3)</p>
-                          <div className="space-y-4">
-                            <CheckboxField
-                              id={`koe.vederlag.krav_produktivitetstap.${index}`}
-                              label="Krav om produktivitetstap"
-                              checked={koe.vederlag.krav_produktivitetstap}
-                              onChange={e => handleChange(index, 'vederlag.krav_produktivitetstap', e.target.checked)}
-                              disabled={erLaast}
-                              hasTile={true}
-                              checkHelptext="For økte utgifter pga. nedsatt produktivitet eller forstyrrelser (plunder og heft)."
-                            />
-                            <CheckboxField
-                              id={`koe.vederlag.saerskilt_varsel_rigg_drift.${index}`}
-                              label="Krav om dekning av særskilt rigg og drift"
-                              checked={koe.vederlag.saerskilt_varsel_rigg_drift}
-                              onChange={e => handleChange(index, 'vederlag.saerskilt_varsel_rigg_drift', e.target.checked)}
-                              disabled={erLaast}
-                              hasTile={true}
-                              checkHelptext="For økte utgifter til rigg, drift, nedrigging og kapitalytelser."
-                            />
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-                          <SelectField
-                            id={`koe.vederlag.krav_vederlag_metode.${index}`}
-                            label="Oppgjørsmetode"
-                            value={koe.vederlag.krav_vederlag_metode}
-                            onChange={value => handleChange(index, 'vederlag.krav_vederlag_metode', value)}
-                            options={VEDERLAGSMETODER_OPTIONS}
-                            helpText="Velg hvordan vederlaget skal beregnes."
-                            readOnly={erLaast}
-                          />
-                          <InputField
-                            id={`koe.vederlag.krav_vederlag_belop.${index}`}
-                            label="Beløp (NOK)"
-                            type="number"
-                            value={koe.vederlag.krav_vederlag_belop}
-                            onChange={e => handleChange(index, 'vederlag.krav_vederlag_belop', e.target.value)}
-                            error={errors[`koe.vederlag.krav_vederlag_belop`]}
-                            helpText="Angi totalbeløp eller et kostnadsoverslag."
-                            formatAsNumber
-                            readOnly={erLaast}
-                            className="max-w-sm"
-                          />
-                        </div>
+                  <div className={`collapsible ${koe.vederlag.krav_vederlag ? 'open' : ''}`}>
+                    <div className="collapsible-content">
+                      <div className="pl-4 border-l-2 border-border-color space-y-6">
+                        <CheckboxField
+                          id={`koe.vederlag.krav_produktivitetstap.${index}`}
+                          label="Kravet inkluderer produktivitetstap som følge av endringen"
+                          checked={koe.vederlag.krav_produktivitetstap}
+                          onChange={e => handleChange(index, 'vederlag.krav_produktivitetstap', e.target.checked)}
+                          disabled={erLaast}
+                          hasTile={true}
+                        />
+                        <CheckboxField
+                          id={`koe.vederlag.saerskilt_varsel_rigg_drift.${index}`}
+                          label="Særskilt varsel er sendt for rigg/drift"
+                          checked={koe.vederlag.saerskilt_varsel_rigg_drift}
+                          onChange={e => handleChange(index, 'vederlag.saerskilt_varsel_rigg_drift', e.target.checked)}
+                          disabled={erLaast}
+                          hasTile={true}
+                        />
+                        <SelectField
+                          id={`koe.vederlag.krav_vederlag_metode.${index}`}
+                          label="Oppgjørsmetode"
+                          value={koe.vederlag.krav_vederlag_metode}
+                          onChange={value => handleChange(index, 'vederlag.krav_vederlag_metode', value)}
+                          options={VEDERLAGSMETODER_OPTIONS}
+                          required={koe.vederlag.krav_vederlag}
+                          readOnly={erLaast}
+                          className="max-w-sm"
+                        />
+                        <InputField
+                          id={`koe.vederlag.krav_vederlag_belop.${index}`}
+                          label="Krevd beløp (NOK)"
+                          type="number"
+                          value={koe.vederlag.krav_vederlag_belop}
+                          onChange={e => handleChange(index, 'vederlag.krav_vederlag_belop', e.target.value)}
+                          required={koe.vederlag.krav_vederlag}
+                          error={errors['koe.vederlag.krav_vederlag_belop']}
+                          formatAsNumber
+                          readOnly={erLaast}
+                          className="max-w-sm"
+                        />
                         <TextareaField
                           id={`koe.vederlag.krav_vederlag_begrunnelse.${index}`}
-                          label="Begrunnelse/kalkyle"
+                          label="Begrunnelse for vederlagskrav"
                           value={koe.vederlag.krav_vederlag_begrunnelse}
                           onChange={e => handleChange(index, 'vederlag.krav_vederlag_begrunnelse', e.target.value)}
-                          helpText="Beskriv grunnlaget for kravet og vis til kalkyle eller vedlegg. For særskilte krav må grunnlaget varsles særskilt (jf. 34.1.3)."
+                          required={koe.vederlag.krav_vederlag}
                           readOnly={erLaast}
                           fullwidth
                         />
                       </div>
-                    </FieldsetCard>
+                    </div>
                   </div>
-                </div>
+                </FieldsetCard>
 
-                <div className={`collapsible ${koe.frist.krav_fristforlengelse ? 'open' : ''}`}>
-                  <div className="collapsible-content">
-                    <FieldsetCard legend="Detaljer om Fristforlengelse">
-                      <div className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-                          <SelectField
-                            id={`koe.frist.krav_frist_type.${index}`}
-                            label="Fristtype"
-                            value={koe.frist.krav_frist_type}
-                            onChange={value => handleChange(index, 'frist.krav_frist_type', value)}
-                            options={[
-                              {value:"", label:"— Velg —"},
-                              {value:"Foreløpig varsel (§33.4)", label:"Foreløpig varsel (§33.4)"},
-                              {value:"Spesifisert krav (§33.6.1)", label:"Spesifisert krav (§33.6.1)"},
-                              {value:"Tilleggsfrist ved force majeure (§33.3)", label:"Tilleggsfrist ved force majeure (§33.3)"},
-                              {value:"Endelig oppsummering (§39.1) [Prosess ved sluttoppgjør]", label:"Endelig oppsummering (§39.1) [Prosess ved sluttoppgjør]"}
-                            ]}
-                            helpText="Angi om dette er et foreløpig eller spesifisert krav."
-                            readOnly={erLaast}
-                          />
-                          <InputField
-                            id={`koe.frist.krav_frist_antall_dager.${index}`}
-                            label="Antall dager"
-                            type="number"
-                            min={0}
-                            step={1}
-                            value={koe.frist.krav_frist_antall_dager}
-                            onChange={e => handleChange(index, 'frist.krav_frist_antall_dager', e.target.value)}
-                            error={errors[`koe.frist.krav_frist_antall_dager`]}
-                            helpText="Antall dager det kreves forlengelse for."
-                            readOnly={erLaast}
-                            className="max-w-sm"
-                          />
-                        </div>
+                <FieldsetCard legend="Fristforlengelse">
+                  <CheckboxField
+                    id={`koe.frist.krav_fristforlengelse.${index}`}
+                    label="Jeg krever fristforlengelse for denne endringsordren"
+                    checked={koe.frist.krav_fristforlengelse}
+                    onChange={e => handleChange(index, 'frist.krav_fristforlengelse', e.target.checked)}
+                    disabled={erLaast}
+                    hasTile={true}
+                  />
+
+                  <div className={`collapsible ${koe.frist.krav_fristforlengelse ? 'open' : ''}`}>
+                    <div className="collapsible-content">
+                      <div className="pl-4 border-l-2 border-border-color space-y-6">
+                        <SelectField
+                          id={`koe.frist.krav_frist_type.${index}`}
+                          label="Type fristkrav"
+                          value={koe.frist.krav_frist_type}
+                          onChange={value => handleChange(index, 'frist.krav_frist_type', value)}
+                          options={[
+                            { value: '', label: '— Velg —' },
+                            { value: 'Uspesifisert krav (§33.6.2)', label: 'Uspesifisert krav (§33.6.2)' },
+                            { value: 'Spesifisert krav (§33.6.1)', label: 'Spesifisert krav (§33.6.1)' },
+                          ]}
+                          required={koe.frist.krav_fristforlengelse}
+                          readOnly={erLaast}
+                          className="max-w-sm"
+                        />
+                        <InputField
+                          id={`koe.frist.krav_frist_antall_dager.${index}`}
+                          label="Antall dager fristforlengelse"
+                          type="number"
+                          min={0}
+                          value={koe.frist.krav_frist_antall_dager}
+                          onChange={e => handleChange(index, 'frist.krav_frist_antall_dager', e.target.value)}
+                          required={koe.frist.krav_fristforlengelse}
+                          error={errors['koe.frist.krav_frist_antall_dager']}
+                          readOnly={erLaast}
+                          className="max-w-sm"
+                        />
+                        <CheckboxField
+                          id={`koe.frist.forsinkelse_kritisk_linje.${index}`}
+                          label="Forsinkelsen påvirker kritisk linje"
+                          checked={koe.frist.forsinkelse_kritisk_linje}
+                          onChange={e => handleChange(index, 'frist.forsinkelse_kritisk_linje', e.target.checked)}
+                          disabled={erLaast}
+                          hasTile={true}
+                        />
                         <TextareaField
                           id={`koe.frist.krav_frist_begrunnelse.${index}`}
-                          label="Begrunnelse (årsakssammenheng)"
+                          label="Begrunnelse for fristforlengelse"
                           value={koe.frist.krav_frist_begrunnelse}
                           onChange={e => handleChange(index, 'frist.krav_frist_begrunnelse', e.target.value)}
-                          helpText="Beskriv hvordan forholdet hindrer fremdriften og påvirker fristene. Vis gjerne til virkning på kritisk linje."
+                          required={koe.frist.krav_fristforlengelse}
                           readOnly={erLaast}
                           fullwidth
                         />
                       </div>
-                    </FieldsetCard>
+                    </div>
                   </div>
-                </div>
-
-                <FieldsetCard legend="Signatur (For Entreprenør)">
-                  <InputField
-                    id={`koe.for_entreprenor.${index}`}
-                    label="Signatur"
-                    value={koe.for_entreprenor}
-                    onChange={e => handleChange(index, 'for_entreprenor', e.target.value)}
-                    placeholder="Navn på signatar"
-                    helpText="Navn på ansvarlig signatar hos entreprenøren."
-                    readOnly={erLaast}
-                    className="max-w-sm"
-                  />
                 </FieldsetCard>
               </div>
             </div>
           );
         })}
 
-        {formStatus === 'krav' && rolle === 'TE' && !disabled && (
-          <div className="flex justify-end pt-4">
+        {sisteKoeErUtkast && rolle === 'TE' && !disabled && (
+          <div className="pt-6 border-t border-border-color flex justify-end">
             <PktButton
               skin="primary"
-              size="medium"
               onClick={handleSendKrav}
-              iconName="chevron-right"
-              variant="icon-right"
             >
-              Send krav (Revisjon {koe_revisjoner[sisteKravIndex].koe_revisjonsnr})
+              Send krav til byggherre
             </PktButton>
           </div>
         )}

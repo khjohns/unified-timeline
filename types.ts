@@ -1,3 +1,17 @@
+export type SakStatus =
+  | '100000000' // Under varsling
+  | '100000002' // Venter på svar
+  | '100000003' // Under avklaring
+  | '100000007' // Vurderes av TE
+  | '100000005' // Omforent (EO utstedes)
+  | '100000013' // Pågår - Under utførelse
+  | '100000008' // Under tvist
+  | '100000011' // Lukket (Implementert)
+  | '100000006' // Lukket (Avslått)
+  | '100000009' // Lukket (Tilbakekalt)
+  | '100000012' // Lukket (Annullert)
+  | '';
+
 export interface Sak {
   sak_id_display: string;
   sakstittel: string;
@@ -7,6 +21,7 @@ export interface Sak {
   kontrakt_referanse: string;
   entreprenor: string;
   byggherre: string;
+  status?: SakStatus;
 }
 
 export interface Varsel {
@@ -36,20 +51,10 @@ export interface KoeFrist {
 }
 
 export type KoeStatus =
-  | '100000000' // Under varsling
-  | '100000001' // Under utarbeidelse
-  | '100000002' // KOE sendt
-  | '100000003' // Under avklaring
-  | '100000004' // Godkjent
-  | '100000005' // EO utstedes
-  | '100000006' // Avslått - Komplett
-  | '100000007' // Avslått - Under vurdering
-  | '100000008' // Avslått - Under tvist
-  | '100000009' // Tilbakekalt av TE
-  | '100000010' // For sent varslet
-  | '100000011' // Lukket - Implementert
-  | '100000012' // Lukket - Annullert
-  | '100000013' // Pågår - Under utførelse
+  | '100000001' // Utkast
+  | '100000002' // Sendt til BH
+  | '200000001' // Besvart (NY)
+  | '100000009' // Tilbakekalt
   | '';
 
 export interface Koe {
@@ -84,12 +89,22 @@ export interface BhSvarSign {
   for_byggherre: string;
 }
 
+export type BhSvarStatus =
+  | '300000001' // Utkast (NY)
+  | '100000004' // Godkjent
+  | '300000002' // Delvis Godkjent (NY)
+  | '100000010' // Avslått (For sent)
+  | '100000006' // Avslått (Uenig)
+  | '100000003' // Krever avklaring
+  | '';
+
 export interface BhSvar {
   vederlag: BhSvarVederlag;
   frist: BhSvarFrist;
   mote_dato: string;
   mote_referat: string;
   sign: BhSvarSign;
+  status?: BhSvarStatus;
 }
 
 export interface FormDataModel {
