@@ -218,6 +218,7 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({
       hasTile={hasTile}
       checkHelptext={checkHelptext}
       hasError={hasError}
+      className="w-full"
     />
   </div>
 );
