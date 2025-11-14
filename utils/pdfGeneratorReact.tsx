@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
   },
   headerLogo: {
     // ENDRING: Satt kun høyde for å bevare aspect ratio. Fjernet fast 'width: 80'.
-    height: 48,
+    height: 60,
     marginRight: 15,
   },
   headerContent: {
