@@ -119,6 +119,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                       disabled={erLaast}
                       hasTile={true}
                       checkHelptext="Velges for å kreve justering av vederlaget som følge av endringer, svikt i byggherrens ytelser, eller andre forhold byggherren har risikoen for (jf. NS 8407 pkt. 34)."
+                      fullwidth
                     />
                     <CheckboxField
                       id={`koe.frist.krav_fristforlengelse.${index}`}
@@ -128,6 +129,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                       disabled={erLaast}
                       hasTile={true}
                       checkHelptext="Velges for å kreve fristforlengelse dersom fremdriften hindres av forhold byggherren har risikoen for (jf. NS 8407 pkt. 33)."
+                      fullwidth
                     />
                   </div>
                 </FieldsetCard>
