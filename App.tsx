@@ -361,16 +361,17 @@ const App: React.FC = () => {
         </div>
     );
 
-
-    // Fil: App.tsx
-
     return (
         <div className="bg-body-bg min-h-screen text-ink font-sans">
             <PktHeader
                 serviceName="Skjema for krav om endringsordre (KOE)"
                 user={{ name: formData.rolle === 'TE' ? 'Total Entreprenør' : 'Byggherren', showName: true }}
+                
+                // 1. GJORDE DENNE STICKY/FAST:
+                // Dette blir den eneste faste topplinjen.
+                fixed={true} 
             >
-                {/* 1. BH/TE-knappen er flyttet inn her som 'children' (dette er støttet av IPktHeader) */}
+                {/* BH/TE-knappen bor her som 'children' */}
                 <div className="flex items-center gap-3 ml-4">
                     <span className="text-sm font-medium text-ink-dim hidden sm:inline">Rolle:</span>
                     <div className="isolate inline-flex rounded-md shadow-sm">
@@ -392,18 +393,24 @@ const App: React.FC = () => {
                 </div>
             </PktHeader>
             
-            {/* 2. DENNE HEADEREN INNEHOLDER NÅ KUN FANENE */}
-            <header className="bg-card-bg border-b border-border-color sticky top-0 z-10">
+            {/* 2. FJERNET DEN SEPARATE <header>-BLOKKEN for tabs */}
+    
+            {/* 3. OPPDATERT <main>:
+                - Lagt til 'pt-24' (padding-top) for å dytte alt innholdet
+                  ned, slik at det starter *under* den faste PktHeader-en.
+            */}
+            <main className="pt-24 pb-8 sm:pb-12">
                 <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-                    {/* Alt det dupliserte innholdet (h1, p) er fjernet herfra */}
-                    <div className="mt-2">
+                
+                    {/* 4. FLYTTET TABS INN HIT:
+                        - Ligger nå inne i 'max-w-4xl'-containeren.
+                        - Får automatisk riktig bredde.
+                        - Lagt til 'mb-8' (margin-bottom) for avstand til panelet.
+                    */}
+                    <div className="mb-8">
                         {renderTabs()}
                     </div>
-                </div>
-            </header>
-    
-            <main className="pt-8 pb-8 sm:pb-12"> {/* 3. Økt pt-8 for å gi luft til den sticky tab-linjen */}
-                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+
                     {renderPanel()}
                     {renderBottomBar()}
                 </div> 
