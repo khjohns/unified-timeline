@@ -118,3 +118,11 @@ body {
 ::-webkit-scrollbar-thumb:hover {
     background-color: #9daab5;
 }
+.pkt-tabs-wrapper pkt-tabs {
+  width: 100%;
+}
+
+/* Gir hver fane (PktTabItem) beskjed om å vokse for å fylle den ledige plassen */
+.pkt-tabs-wrapper pkt-tab-item {
+  flex-grow: 1;
+}
