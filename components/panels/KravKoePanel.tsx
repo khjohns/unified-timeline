@@ -4,7 +4,7 @@ import { InputField, SelectField, TextareaField, CheckboxField, DateField } from
 import FieldsetCard from '../ui/FieldsetCard';
 import PanelLayout from '../ui/PanelLayout';
 import SidePanel from '../ui/SidePanel';
-import { PktButton } from '@oslokommune/punkt-react';
+import { PktButton, PktCheckbox } from '@oslokommune/punkt-react';
 
 interface KravKoePanelProps {
   formData: FormDataModel;
@@ -111,26 +111,33 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
 
                 <FieldsetCard legend="Hva gjelder kravet?">
                   <div className="space-y-4">
-                    <CheckboxField
-                      id={`koe.vederlag.krav_vederlag.${index}`}
-                      label="Krav om vederlagsjustering (kap. 34)"
-                      checked={koe.vederlag.krav_vederlag}
-                      onChange={e => handleChange(index, 'vederlag.krav_vederlag', e.target.checked)}
-                      disabled={erLaast}
-                      hasTile={true}
-                      checkHelptext="Velges for å kreve justering av vederlaget som følge av endringer, svikt i byggherrens ytelser, eller andre forhold byggherren har risikoen for (jf. NS 8407 pkt. 34)."
-                      className="w-full"
-                    />
-                    <CheckboxField
-                      id={`koe.frist.krav_fristforlengelse.${index}`}
-                      label="Krav om fristforlengelse (kap. 33)"
-                      checked={koe.frist.krav_fristforlengelse}
-                      onChange={e => handleChange(index, 'frist.krav_fristforlengelse', e.target.checked)}
-                      disabled={erLaast}
-                      hasTile={true}
-                      checkHelptext="Velges for å kreve fristforlengelse dersom fremdriften hindres av forhold byggherren har risikoen for (jf. NS 8407 pkt. 33)."
-                      className="w-full"
-                    />
+                    {/* Egendefinert Flis 1: Vederlag */}
+                    <div className="w-full rounded-lg border border-border-color bg-white p-4 transition-colors hover:bg-gray-50">
+                      <PktCheckbox
+                        id={`koe.vederlag.krav_vederlag.${index}`}
+                        label="Krav om vederlagsjustering (kap. 34)"
+                        checked={koe.vederlag.krav_vederlag}
+                        onChange={e => handleChange(index, 'vederlag.krav_vederlag', e.target.checked)}
+                        disabled={erLaast}
+                      />
+                      <p className="pl-8 pt-1 text-sm text-muted">
+                        Velges for å kreve justering av vederlaget som følge av endringer, svikt i byggherrens ytelser, eller andre forhold byggherren har risikoen for (jf. NS 8407 pkt. 34).
+                      </p>
+                    </div>
+
+                    {/* Egendefinert Flis 2: Frist */}
+                    <div className="w-full rounded-lg border border-border-color bg-white p-4 transition-colors hover:bg-gray-50">
+                      <PktCheckbox
+                        id={`koe.frist.krav_fristforlengelse.${index}`}
+                        label="Krav om fristforlengelse (kap. 33)"
+                        checked={koe.frist.krav_fristforlengelse}
+                        onChange={e => handleChange(index, 'frist.krav_fristforlengelse', e.target.checked)}
+                        disabled={erLaast}
+                      />
+                      <p className="pl-8 pt-1 text-sm text-muted">
+                        Velges for å kreve fristforlengelse dersom fremdriften hindres av forhold byggherren har risikoen for (jf. NS 8407 pkt. 33).
+                      </p>
+                    </div>
                   </div>
                 </FieldsetCard>
 
