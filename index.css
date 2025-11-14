@@ -82,6 +82,10 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
+:focus-visible {
+    outline-color: var(--color-pri);
+}
+
 .collapsible {
     display: grid;
     grid-template-rows: 0fr;
