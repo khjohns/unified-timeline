@@ -107,6 +107,9 @@ const App: React.FC = () => {
     if (window.confirm('Dette vil erstatte nåværende data med eksempeldata. Fortsette?')) {
         setFormData(JSON.parse(JSON.stringify(DEMO_DATA)));
         setErrors({});
+        // Sett riktig formStatus basert på demo-data
+        // Siden BH svar revisjonsnr 1 er sendt, skal status være 'krav' (TE kan sende nytt krav)
+        setFormStatus('krav');
         }
     };
 

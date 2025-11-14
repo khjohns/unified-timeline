@@ -140,6 +140,26 @@ export const DEMO_DATA: FormDataModel = {
                 forsinkelse_kritisk_linje: true,
                 krav_frist_begrunnelse: 'Ytterligere fristforlengelse som følge av at BH ikke godkjente opprinnelig krav i sin helhet. Dette har medført ytterligere forsinkelse i fremdriften.',
             },
+        },
+        {
+            koe_revisjonsnr: '2',
+            dato_krav_sendt: '',
+            for_entreprenor: '',
+            vederlag: {
+                krav_vederlag: false,
+                krav_produktivitetstap: false,
+                saerskilt_varsel_rigg_drift: false,
+                krav_vederlag_metode: '',
+                krav_vederlag_belop: '',
+                krav_vederlag_begrunnelse: '',
+            },
+            frist: {
+                krav_fristforlengelse: false,
+                krav_frist_type: '',
+                krav_frist_antall_dager: '',
+                forsinkelse_kritisk_linje: false,
+                krav_frist_begrunnelse: '',
+            },
         }
     ],
     bh_svar_revisjoner: [
