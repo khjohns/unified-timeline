@@ -4,6 +4,7 @@ import { InputField, SelectField, TextareaField, CheckboxField, DateField } from
 import FieldsetCard from '../ui/FieldsetCard';
 import PanelLayout from '../ui/PanelLayout';
 import { PktButton } from '@oslokommune/punkt-react';
+import { BH_VEDERLAGSSVAR_OPTIONS, BH_FRISTSVAR_OPTIONS } from '../../constants';
 
 interface BhSvarPanelProps {
   formData: FormDataModel;
@@ -66,22 +67,6 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
     setToastMessage?.('Svar sendt! TE kan nå sende et nytt krav om nødvendig.');
     setTimeout(() => setToastMessage?.(''), 3000);
   };
-
-  const vederlagSvarOptions = [
-    { value: "", label: "— Velg —" },
-    { value: "Godkjent i sin helhet", label: "Godkjent i sin helhet" },
-    { value: "Delvis godkjent", label: "Delvis godkjent" },
-    { value: "Avvist", label: "Avvist" },
-    { value: "Utsatt", label: "Utsatt" },
-  ];
-
-  const fristSvarOptions = [
-    { value: "", label: "— Velg —" },
-    { value: "Godkjent", label: "Godkjent" },
-    { value: "Delvis godkjent", label: "Delvis godkjent" },
-    { value: "Avvist", label: "Avvist" },
-    { value: "Avventer spesifisering", label: "Avventer spesifisering" },
-  ];
 
   return (
     <PanelLayout>
@@ -170,7 +155,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                           label="Svar på krav om vederlag"
                           value={bh_svar.vederlag.bh_svar_vederlag}
                           onChange={value => handleChange(index, 'vederlag.bh_svar_vederlag', value)}
-                          options={vederlagSvarOptions}
+                          options={BH_VEDERLAGSSVAR_OPTIONS}
                           readOnly={erLaast}
                         />
                         <InputField
@@ -230,7 +215,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                           label="Svar på krav om frist"
                           value={bh_svar.frist.bh_svar_frist}
                           onChange={value => handleChange(index, 'frist.bh_svar_frist', value)}
-                          options={fristSvarOptions}
+                          options={BH_FRISTSVAR_OPTIONS}
                           readOnly={erLaast}
                         />
                         <InputField

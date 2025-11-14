@@ -95,8 +95,8 @@ export const DEMO_DATA: FormDataModel = {
     varsel: {
         dato_forhold_oppdaget: '2023-10-10',
         dato_varsel_sendt: '2023-10-12',
-        hovedkategori: 'Endring fra byggherren (§ 22.1)',
-        underkategori: 'Tegnings- eller beskrivelsesfeil',
+        hovedkategori: '100000002',
+        underkategori: 'Uforutsette grunnforhold (§23.1a) - Grunnforhold avviker fra det som var kjent',
         varsel_beskrivelse: 'Det ble oppdaget avvik mellom tegning F-01 rev. B og faktiske grunnforhold ved akse 1200-1400. Fundament må prosjekteres om for å håndtere uforutsette mengder med løsmasser.',
         varsel_metode: 'E-post',
     },
@@ -109,7 +109,7 @@ export const DEMO_DATA: FormDataModel = {
                 krav_vederlag: true,
                 krav_produktivitetstap: false,
                 saerskilt_varsel_rigg_drift: false,
-                krav_vederlag_metode: 'Regningsarbeid (§30.1)',
+                krav_vederlag_metode: '100000003',
                 krav_vederlag_belop: '235000',
                 krav_vederlag_begrunnelse: 'Kravet gjelder ompresjektering og utførelse av nye fundamenter for støyskjerm A3, inkludert merarbeid med masseutskifting. Kalkyle basert på timer for prosjektering (15t), maskintimer for gravemaskin (20t), manntimer (80t) og materialkostnader. Se vedlegg A for detaljert kalkyle.',
             },
@@ -129,7 +129,7 @@ export const DEMO_DATA: FormDataModel = {
                 krav_vederlag: true,
                 krav_produktivitetstap: true,
                 saerskilt_varsel_rigg_drift: false,
-                krav_vederlag_metode: 'Regningsarbeid (§30.1)',
+                krav_vederlag_metode: '100000003',
                 krav_vederlag_belop: '85000',
                 krav_vederlag_begrunnelse: 'Tilleggskrav som følge av forsinkelse forårsaket av sen avklaring fra BH. Inkluderer produktivitetstap for mannskaper (5 dager x 4 mann) og maskiner som stod på stand-by. Kalkulasjonsgrunnlag vedlagt.',
             },
@@ -147,7 +147,7 @@ export const DEMO_DATA: FormDataModel = {
             vederlag: {
                 varsel_for_sent: false,
                 varsel_for_sent_begrunnelse: '',
-                bh_svar_vederlag: 'Delvis godkjent',
+                bh_svar_vederlag: '100000001',
                 bh_vederlag_metode: '',
                 bh_godkjent_vederlag_belop: '195000',
                 bh_begrunnelse_vederlag: 'Godkjenner ompresjektering og utførelse, men avviser krav for ventetid da dette ikke var tilstrekkelig dokumentert. Redusert beløp reflekterer dette.',
@@ -155,7 +155,7 @@ export const DEMO_DATA: FormDataModel = {
             frist: {
                 varsel_for_sent: false,
                 varsel_for_sent_begrunnelse: '',
-                bh_svar_frist: 'Godkjent',
+                bh_svar_frist: '100000000',
                 bh_godkjent_frist_dager: '5',
                 bh_frist_for_spesifisering: '',
                 bh_begrunnelse_frist: 'Fristforlengelse godkjennes som krevd da arbeidet er på kritisk linje.',
@@ -196,40 +196,80 @@ export const DEMO_DATA: FormDataModel = {
 
 export const HOVEDKATEGORI_OPTIONS = [
     { value: "", label: "— Velg —" },
-    { value: "Endring fra byggherren (§ 22.1)", label: "Endring fra byggherren (§ 22.1)" },
-    { value: "Svikt i byggherrens medvirkning (§ 23)", label: "Svikt i byggherrens medvirkning (§ 23)" },
-    { value: "Forhold ved grunnen (§ 24.1)", label: "Forhold ved grunnen (§ 24.1)" },
-    { value: "Vederlagsjustering for endret mengde (§ 24.2)", label: "Vederlagsjustering for endret mengde (§ 24.2)" },
-    { value: "Force majeure (§ 33.3)", label: "Force majeure (§ 33.3)" },
-    { value: "Andre forhold", label: "Andre forhold" },
+    { value: "100000000", label: "Endring initiert av BH - Byggherre igangsetter endring (§31.1)" },
+    { value: "100000001", label: "Forsinkelse eller svikt i BHs ytelser - BH oppfyller ikke sine forpliktelser (§22, §24)" },
+    { value: "100000002", label: "Risiko for grunnforhold - Uforutsette eller uriktige grunnforhold (§23.1)" },
+    { value: "100000003", label: "Offentlige pålegg - Myndighetskrav som endrer forutsetninger (§16.3)" },
+    { value: "100000004", label: "Forsering / Tidsmessig omlegging" },
+    { value: "100000005", label: "Force majeure - Ekstraordinære hendelser (§33.3)" },
+    { value: "100000006", label: "Hindringer BH har risikoen for - Forhold som hindrer fremdrift (§33.1c)" },
+    { value: "100000007", label: "Øvrige forhold - Andre grunnlag for fristforlengelse/vederlag" },
 ];
 
 export const UNDERKATEGORI_MAP: Record<string, string[]> = {
-    "Endring fra byggherren (§ 22.1)": [
-        "Endring i omfang",
-        "Tegnings- eller beskrivelsesfeil",
-        "Endring i materialvalg",
-        "Påkrevd fremdriftsendring",
+    "100000000": [ // Endring initiert av BH
+        "Regulær endringsordre (§31.1, §31.3) - BH har rett til å endre prosjektet",
+        "Irregulær endring/pålegg uten EO (§32.1) - BH gir ordre uten forutgående EO",
+        "Mengdeendring (§31.1 siste avsnitt, §34.3) - Endring i mengde av kontraktsarbeid",
     ],
-    "Svikt i byggherrens medvirkning (§ 23)": [
-        "Forsinket tilgang til arbeidsområde",
-        "Manglende eller forsinkede avklaringer",
-        "Svikt fra andre entreprenører",
+    "100000001": [ // Forsinkelse eller svikt i BHs ytelser
+        "Prosjektering (§24.1) - Mangler i prosjekteringsunderlag fra BH",
+        "Svikt i arbeidsgrunnlaget (§22.3, §25) - BH har ikke levert komplett/korrekt arbeidsgrunnlag",
+        "Materialer fra BH (§22.4) - BH-leverte materialer mangler eller er forsinkert",
+        "Tillatelser og godkjenninger (§16.3) - BH har ikke skaffet nødvendige tillatelser",
+        "Fastmerker og utstikking (§18.4) - BH har ikke etablert korrekte fastmerker",
+        "Svikt i BHs foreskrevne løsninger (§24.1) - BHs valgte løsninger er ikke egnet",
+        "Koordinering av sideentreprenører (§21) - BH koordinerer ikke andre entreprenører tilfredsstillende",
     ],
-    "Forhold ved grunnen (§ 24.1)": [
-        "Uforutsette grunnforhold",
-        "Funn av forurensning",
-        "Arkeologiske funn",
+    "100000002": [ // Risiko for grunnforhold
+        "Uforutsette grunnforhold (§23.1a) - Grunnforhold avviker fra det som var kjent",
+        "Uriktige grunnopplysninger fra BH (§23.1b) - BH har gitt feil informasjon",
+        "Forurensning i grunnen (§23.1) - Uventet forurensning oppdages",
+        "Kulturminner (§23.3) - Funn av kulturminner som krever stans og varsling",
     ],
-    "Vederlagsjustering for endret mengde (§ 24.2)": [
-        "Avvik fra mengdeforutsetninger",
+    "100000003": [ // Offentlige pålegg
+        "Myndighetspålegg som endrer forutsetninger",
     ],
-    "Force majeure (§ 33.3)": [
-        "Ekstreme værforhold",
-        "Streik/lockout",
-        "Offentlige pålegg",
+    "100000004": [ // Forsering / Tidsmessig omlegging
+        "Pålagt forsering / omlegging (§31.2) - BH pålegger endret tidsplan som en endring",
+        "Forsering ved uberettiget avslag på fristkrav (§33.8) - TE velger å forsere etter avslag",
     ],
-    "Andre forhold": [
-        "Annet (spesifiser i beskrivelse)",
+    "100000005": [ // Force majeure
+        "Ekstraordinære hendelser utenfor partenes kontroll",
+    ],
+    "100000006": [ // Hindringer BH har risikoen for
+        "Hindringer på byggeplassen (§33.1c) - Fysiske hindringer BH har risikoen for",
+        "Offentlige restriksjoner (§33.1c) - Myndighetspålagte begrensninger",
+        "Tilstøtende arbeider forsinket (§33.1c) - Andre entreprenører forsinker",
+    ],
+    "100000007": [ // Øvrige forhold
+        "Andre grunnlag (spesifiser i beskrivelse)",
     ]
 };
+
+export const VEDERLAGSMETODER_OPTIONS = [
+    { value: "", label: "— Velg —" },
+    { value: "100000000", label: "Entreprenørens tilbud (§34.2.1)" },
+    { value: "100000001", label: "Kontraktens enhetspriser (§34.3.1)" },
+    { value: "100000002", label: "Justerte enhetspriser (§34.3.2)" },
+    { value: "100000003", label: "Regningsarbeid (§30.1)" },
+];
+
+export const BH_VEDERLAGSSVAR_OPTIONS = [
+    { value: "", label: "— Velg —" },
+    { value: "100000000", label: "Godkjent fullt ut" },
+    { value: "100000001", label: "Delvis godkjent" },
+    { value: "100000002", label: "Avslått (uenig i grunnlag)" },
+    { value: "100000003", label: "Avslått (for sent varslet)" },
+    { value: "100000004", label: "Avventer (ber om nærmere spesifikasjon)" },
+    { value: "100000005", label: "Godkjent med annen metode" },
+];
+
+export const BH_FRISTSVAR_OPTIONS = [
+    { value: "", label: "— Velg —" },
+    { value: "100000000", label: "Godkjent fullt ut" },
+    { value: "100000001", label: "Delvis godkjent (enig i grunnlag, bestrider beregning)" },
+    { value: "100000002", label: "Avslått (uenig i grunnlag)" },
+    { value: "100000003", label: "Avslått (for sent varslet)" },
+    { value: "100000004", label: "Avventer (ber om nærmere spesifikasjon)" },
+];
