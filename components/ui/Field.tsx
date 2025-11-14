@@ -194,6 +194,7 @@ interface CheckboxFieldProps {
   hasTile?: boolean;
   checkHelptext?: string | React.ReactNode;
   hasError?: boolean;
+  // fullwidth-prop er ikke lenger nødvendig her, da vi styrer det med className="w-full"
 }
 
 export const CheckboxField: React.FC<CheckboxFieldProps> = ({
@@ -206,18 +207,49 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({
   hasTile = false,
   checkHelptext,
   hasError = false
-}) => (
-  <div className={className}>
-    <PktCheckbox
-      id={id}
-      name={id}
-      label={label}
-      checked={checked}
-      onChange={onChange}
-      disabled={disabled}
-      hasTile={hasTile}
-      checkHelptext={checkHelptext}
-      hasError={hasError}
-    />
-  </div>
-);
+}) => {
+  // Hvis hasTile er true, bruk den nye egendefinerte flis-layouten
+  if (hasTile) {
+    return (
+      <div 
+        className={`w-full rounded-lg border bg-white p-4 transition-colors hover:bg-gray-50 ${
+          checked ? 'border-pri' : 'border-border-color'
+        } ${disabled ? 'bg-gray-50 opacity-70' : ''} ${className || ''}`}
+      >
+        <PktCheckbox
+          id={id}
+          name={id}
+          label={label}
+          checked={checked}
+          onChange={onChange}
+          disabled={disabled}
+          hasError={hasError}
+          // Vi sender IKKE hasTile-propen til PktCheckbox, siden vi lager flisen selv
+        />
+        {checkHelptext && (
+          <p className="pl-8 pt-1 text-sm text-muted">
+            {checkHelptext}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  // Hvis hasTile er false (eller ikke satt), bruk standard PktCheckbox
+  return (
+    <div className={className}>
+      <PktCheckbox
+        id={id}
+        name={id}
+        label={label}
+        checked={checked}
+        onChange={onChange}
+        disabled={disabled}
+        hasTile={false} // Send 'false' videre
+        checkHelptext={checkHelptext} // Send hjelpetekst hit
+        hasError={hasError}
+        className="w-full" // Sørger for at standard-sjekkbokser også kan ta full bredde
+      />
+    </div>
+  );
+};
