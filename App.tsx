@@ -7,6 +7,7 @@ import { generatePdfReact } from './utils/pdfGeneratorReact';
 import { PktHeader, PktButton, PktModal, PktTabs, PktTabItem } from '@oslokommune/punkt-react';
 import { useSkjemaData } from './hooks/useSkjemaData';
 import { useAutoSave } from './hooks/useAutoSave';
+import { compareRevisions } from './utils/compareRevisions';
 
 import GrunninfoPanel from './components/panels/GrunninfoPanel';
 import VarselPanel from './components/panels/VarselPanel';
@@ -24,12 +25,14 @@ const App: React.FC = () => {
     const [modalConfig, setModalConfig] = useState<{
         isOpen: boolean;
         title: string;
-        message: string;
-        onConfirm: () => void;
+        content: React.ReactNode;
+        showConfirm?: boolean;
+        onConfirm?: () => void;
     }>({
         isOpen: false,
         title: '',
-        message: '',
+        content: '',
+        showConfirm: true,
         onConfirm: () => {},
     });
     const modalRef = useRef<HTMLElement>(null);
@@ -67,12 +70,13 @@ const App: React.FC = () => {
         setFormData(prev => ({ ...prev, rolle: newRole }));
     };
 
-    const openModal = (title: string, message: string, onConfirm: () => void) => {
+    const openModal = (title: string, content: React.ReactNode, onConfirm?: () => void, showConfirm = true) => {
         setModalConfig({
             isOpen: true,
             title,
-            message,
+            content,
             onConfirm,
+            showConfirm,
         });
         // Open the modal using the ref
         setTimeout(() => {
@@ -90,7 +94,9 @@ const App: React.FC = () => {
     };
 
     const handleModalConfirm = () => {
-        modalConfig.onConfirm();
+        if (modalConfig.onConfirm) {
+            modalConfig.onConfirm();
+        }
         closeModal();
     };
 
@@ -179,6 +185,58 @@ const App: React.FC = () => {
         //     await generatePdfReact(formData);
         // }
         await generatePdfReact(formData); // ENDRET: Kun react-pdf
+    };
+
+    const handleCompareRevisions = () => {
+        const revisjoner = formData.koe_revisjoner;
+        if (revisjoner.length < 2) {
+            setToastMessage('Du må ha minst 2 revisjoner for å sammenligne');
+            setTimeout(() => setToastMessage(''), 3000);
+            return;
+        }
+
+        const oldRev = revisjoner[revisjoner.length - 2];
+        const newRev = revisjoner[revisjoner.length - 1];
+        const changes = compareRevisions(oldRev, newRev);
+
+        if (changes.length === 0) {
+            setModalConfig({
+                isOpen: true,
+                title: `Sammenligning: Revisjon ${oldRev.koe_revisjonsnr} → ${newRev.koe_revisjonsnr}`,
+                content: <p className="text-muted">Ingen endringer funnet mellom revisjonene.</p>,
+                showConfirm: false,
+            });
+        } else {
+            setModalConfig({
+                isOpen: true,
+                title: `Sammenligning: Revisjon ${oldRev.koe_revisjonsnr} → ${newRev.koe_revisjonsnr}`,
+                content: (
+                    <div className="space-y-4">
+                        <p className="text-sm text-muted mb-4">Følgende endringer er gjort:</p>
+                        <ul className="space-y-3">
+                            {changes.map((change, idx) => (
+                                <li key={idx} className="border-l-4 border-pri pl-4 py-2 bg-gray-50 rounded">
+                                    <div className="font-semibold text-sm">{change.field}</div>
+                                    <div className="text-xs text-muted mt-1">
+                                        <span className="line-through">{change.oldValue}</span>
+                                        {' → '}
+                                        <span className="text-pri font-medium">{change.newValue}</span>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                ),
+                showConfirm: false,
+            });
+        }
+
+        // Open modal
+        setTimeout(() => {
+            if (modalRef.current && 'open' in modalRef.current) {
+                (modalRef.current as any).open();
+            }
+        }, 0);
     };
 
     // Helper function to add a new BH svar revision
@@ -311,6 +369,17 @@ const App: React.FC = () => {
                     >
                         Last ned PDF
                     </PktButton>
+                    {formData.koe_revisjoner.length >= 2 && (
+                        <PktButton
+                            skin="secondary"
+                            size="small"
+                            onClick={handleCompareRevisions}
+                            iconName="refresh"
+                            variant="icon-left"
+                        >
+                            Sammenlign revisjoner
+                        </PktButton>
+                    )}
                     <PktButton
                         skin="secondary"
                         size="small"
@@ -388,23 +457,25 @@ const App: React.FC = () => {
                 <PktModal
                     ref={modalRef}
                     headingText={modalConfig.title}
-                    size="small"
+                    size="medium"
                     variant="dialog"
                 >
-                    <p className="mb-6">{modalConfig.message}</p>
+                    <div className="mb-6">{modalConfig.content}</div>
                     <div className="flex justify-end gap-3">
                         <PktButton
                             skin="secondary"
                             onClick={closeModal}
                         >
-                            Avbryt
+                            {modalConfig.showConfirm ? 'Avbryt' : 'Lukk'}
                         </PktButton>
-                        <PktButton
-                            skin="primary"
-                            onClick={handleModalConfirm}
-                        >
-                            Bekreft
-                        </PktButton>
+                        {modalConfig.showConfirm && (
+                            <PktButton
+                                skin="primary"
+                                onClick={handleModalConfirm}
+                            >
+                                Bekreft
+                            </PktButton>
+                        )}
                     </div>
                 </PktModal>
             )}

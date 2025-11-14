@@ -1,7 +1,8 @@
 import React from 'react';
 import { FormDataModel } from '../../types';
-import { PktAccordion, PktAccordionItem } from '@oslokommune/punkt-react';
+import { PktAccordion, PktAccordionItem, PktTag } from '@oslokommune/punkt-react';
 import { TABS } from '../../constants';
+import { getStatusLabel, getStatusSkin } from '../../utils/statusHelpers';
 
 interface OppsummeringPanelProps {
   data: FormDataModel;
@@ -83,6 +84,11 @@ const OppsummeringPanel: React.FC<OppsummeringPanelProps> = ({ data }) => {
                             <div className="p-4">
                                 <dl className="divide-y divide-border-color">
                                     <SummaryItem label="Revisjonsnummer" value={koe.koe_revisjonsnr} />
+                                    <SummaryItem label="Status">
+                                        <PktTag skin={getStatusSkin(koe.status)}>
+                                            {getStatusLabel(koe.status)}
+                                        </PktTag>
+                                    </SummaryItem>
                                     <SummaryItem label="Dato krav sendt" value={koe.dato_krav_sendt} />
 
                                     {koe.vederlag.krav_vederlag && <SubHeader title="Vederlagskrav" />}

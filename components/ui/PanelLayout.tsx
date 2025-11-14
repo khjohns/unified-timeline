@@ -6,7 +6,7 @@ interface PanelLayoutProps {
 
 const PanelLayout: React.FC<PanelLayoutProps> = ({ children }) => {
   return (
-    <div className="bg-card-bg rounded-lg p-8 shadow-sm">
+    <div>
       {children}
     </div>
   );
