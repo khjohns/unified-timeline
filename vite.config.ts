@@ -1,8 +1,9 @@
 import path from 'path';
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vite'; // Fjernet loadEnv
 import react from '@vitejs/plugin-react';
 import license from 'rollup-plugin-license';
 
+// Fjernet { mode } og env-linjen
 export default defineConfig(() => {
     return {
       base: '/Skjema_Endringsmeldinger/',
@@ -22,6 +23,10 @@ export default defineConfig(() => {
             },
           },
         }) as any,
+      ], // <--- Denne avsluttende firkant-parentesen var sannsynligvis feilen
+      
+      // 'define'-blokken er fjernet
+      
       resolve: {
         alias: {
           '@': path.resolve(__dirname, '.'),
