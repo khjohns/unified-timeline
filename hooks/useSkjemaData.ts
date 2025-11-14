@@ -1,9 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, Dispatch, SetStateAction } from 'react';
 import { FormDataModel } from '../types';
 
 interface UseSkjemaDataReturn {
   formData: FormDataModel;
-  setFormData: React.Dispatch<React.SetStateAction<FormDataModel>>;
+  setFormData: Dispatch<SetStateAction<FormDataModel>>;
   handleInputChange: (
     section: keyof Omit<FormDataModel, 'versjon' | 'rolle'>,
     field: string,
@@ -11,7 +11,7 @@ interface UseSkjemaDataReturn {
     index?: number
   ) => void;
   errors: Record<string, string>;
-  setErrors: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  setErrors: Dispatch<SetStateAction<Record<string, string>>>;
 }
 
 /**
