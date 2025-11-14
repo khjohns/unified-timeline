@@ -3,15 +3,14 @@ import { FormDataModel } from '../../types';
 import { InputField, SelectField, TextareaField, CheckboxField, DateField } from '../ui/Field';
 import FieldsetCard from '../ui/FieldsetCard';
 import PanelLayout from '../ui/PanelLayout';
-import { PktButton } from '@oslokommune/punkt-react';
+import { PktButton, PktTag } from '@oslokommune/punkt-react';
 import { BH_VEDERLAGSSVAR_OPTIONS, BH_FRISTSVAR_OPTIONS } from '../../constants';
+import { SVAR_STATUS_OPTIONS, getSvarStatusLabel, getSvarStatusSkin } from '../../utils/statusHelpers';
 
 interface BhSvarPanelProps {
   formData: FormDataModel;
-  setFormData: (section: 'bh_svar_revisjoner', field: string, value: any, index?: number) => void;
+  setFormData: (section: 'bh_svar_revisjoner' | 'sak' | 'koe_revisjoner', field: string, value: any, index?: number) => void;
   errors: Record<string, string>;
-  formStatus?: 'varsel' | 'krav' | 'svar';
-  setFormStatus?: (status: 'varsel' | 'krav' | 'svar') => void;
   setActiveTab?: (tab: number) => void;
   setToastMessage?: (message: string) => void;
   addKoeRevisjon?: () => void;
@@ -21,8 +20,6 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
   formData,
   setFormData,
   errors,
-  formStatus = 'varsel',
-  setFormStatus,
   setActiveTab,
   setToastMessage,
   addKoeRevisjon
@@ -54,6 +51,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
 
   const handleSendSvar = () => {
     const sisteSvar = bh_svar_revisjoner[sisteSvarIndex];
+    const sisteKrav = koe_revisjoner[sisteKravIndex];
 
     if (!sisteSvar.sign.dato_svar_bh || !sisteSvar.sign.for_byggherre) {
       setToastMessage?.('Vennligst fyll ut alle påkrevde felt (signatur) før du sender svaret');
@@ -61,19 +59,35 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
       return;
     }
 
+    // Oppdater statuser
+    setFormData('koe_revisjoner', 'status', '200000001', sisteKravIndex); // Besvart
+    // Oppdater BH svar status basert på svar-valg
+    let bhSvarStatus = '300000002'; // Delvis Godkjent (default)
+    if (sisteSvar.vederlag.bh_svar_vederlag === '100000000' && sisteSvar.frist.bh_svar_frist === '100000000') {
+      bhSvarStatus = '100000004'; // Godkjent
+    } else if (sisteSvar.vederlag.bh_svar_vederlag === '100000001' || sisteSvar.frist.bh_svar_frist === '100000001') {
+      bhSvarStatus = '100000006'; // Avslått (Uenig)
+    } else if (sisteSvar.vederlag.varsel_for_sent || sisteSvar.frist.varsel_for_sent) {
+      bhSvarStatus = '100000010'; // Avslått (For sent)
+    }
+    setFormData('bh_svar_revisjoner', 'status', bhSvarStatus, sisteSvarIndex);
+
     addKoeRevisjon?.();
-    setFormStatus?.('krav');
     setActiveTab?.(2);
     setToastMessage?.('Svar sendt! TE kan nå sende et nytt krav om nødvendig.');
     setTimeout(() => setToastMessage?.(''), 3000);
   };
+
+  const sisteSvar = bh_svar_revisjoner[sisteSvarIndex];
+  const sisteSvarErUtkast = !sisteSvar?.status || sisteSvar?.status === '300000001';
 
   return (
     <PanelLayout>
       <div className="space-y-12">
         {bh_svar_revisjoner.map((bh_svar, index) => {
           const erSisteRevisjon = index === sisteSvarIndex;
-          const erLaast = !erSisteRevisjon || formStatus !== 'svar' || rolle !== 'BH';
+          const svarErUtkast = !bh_svar.status || bh_svar.status === '300000001';
+          const erLaast = !erSisteRevisjon || !svarErUtkast || rolle !== 'BH';
           const tilhorendeKoe = koe_revisjoner[Math.min(index, sisteKravIndex)];
 
           return (
@@ -82,6 +96,13 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
               className={index > 0 ? 'pt-12 border-t border-border-color' : ''}
             >
               <div className="space-y-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <h3 className="text-lg font-semibold">Svar til revisjon {tilhorendeKoe?.koe_revisjonsnr ?? index}</h3>
+                  <PktTag skin={getSvarStatusSkin(bh_svar.status)}>
+                    {getSvarStatusLabel(bh_svar.status)}
+                  </PktTag>
+                </div>
+
                 {!tilhorendeKoe?.vederlag.krav_vederlag && !tilhorendeKoe?.frist.krav_fristforlengelse && (
                   <div className="text-center p-6 bg-gray-50 rounded-lg border">
                     <p className="text-muted">Entreprenøren har ikke fremmet spesifikke krav om vederlag eller fristforlengelse.</p>
@@ -89,16 +110,27 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                 )}
 
                 <FieldsetCard legend="Svar til Krav">
-                  <InputField
-                    id={`bh_svar.koe_revisjonsnr.${index}`}
-                    label="Revisjonsnummer"
-                    type="text"
-                    value={tilhorendeKoe?.koe_revisjonsnr ?? ''}
-                    onChange={() => {}}
-                    readOnly
-                    helpText="Automatisk hentet fra tilhørende krav"
-                    className="max-w-sm"
-                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                    <SelectField
+                      id={`bh_svar.status.${index}`}
+                      label="Status"
+                      value={bh_svar.status || ''}
+                      onChange={value => handleChange(index, 'status', value)}
+                      options={SVAR_STATUS_OPTIONS}
+                      helpText="Velg status for dette svaret"
+                      readOnly={erLaast}
+                    />
+                    <InputField
+                      id={`bh_svar.koe_revisjonsnr.${index}`}
+                      label="Revisjonsnummer"
+                      type="text"
+                      value={tilhorendeKoe?.koe_revisjonsnr ?? ''}
+                      onChange={() => {}}
+                      readOnly
+                      helpText="Automatisk hentet fra tilhørende krav"
+                      className="max-w-sm"
+                    />
+                  </div>
                 </FieldsetCard>
 
                 {tilhorendeKoe?.vederlag.krav_vederlag && (
@@ -258,16 +290,13 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
           );
         })}
 
-        {formStatus === 'svar' && rolle === 'BH' && (
-          <div className="flex justify-end pt-4">
+        {sisteSvarErUtkast && rolle === 'BH' && (
+          <div className="pt-6 border-t border-border-color flex justify-end">
             <PktButton
               skin="primary"
-              size="medium"
               onClick={handleSendSvar}
-              iconName="chevron-right"
-              variant="icon-right"
             >
-              Send svar
+              Send svar til entreprenør
             </PktButton>
           </div>
         )}

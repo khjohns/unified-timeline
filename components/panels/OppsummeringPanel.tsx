@@ -2,7 +2,7 @@ import React from 'react';
 import { FormDataModel } from '../../types';
 import { PktAccordion, PktAccordionItem, PktTag } from '@oslokommune/punkt-react';
 import { TABS } from '../../constants';
-import { getStatusLabel, getStatusSkin } from '../../utils/statusHelpers';
+import { getKravStatusLabel, getKravStatusSkin, getSvarStatusLabel, getSvarStatusSkin } from '../../utils/statusHelpers';
 
 interface OppsummeringPanelProps {
   data: FormDataModel;
@@ -85,8 +85,8 @@ const OppsummeringPanel: React.FC<OppsummeringPanelProps> = ({ data }) => {
                                 <dl className="divide-y divide-border-color">
                                     <SummaryItem label="Revisjonsnummer" value={koe.koe_revisjonsnr} />
                                     <SummaryItem label="Status">
-                                        <PktTag skin={getStatusSkin(koe.status)}>
-                                            {getStatusLabel(koe.status)}
+                                        <PktTag skin={getKravStatusSkin(koe.status)}>
+                                            {getKravStatusLabel(koe.status)}
                                         </PktTag>
                                     </SummaryItem>
                                     <SummaryItem label="Dato krav sendt" value={koe.dato_krav_sendt} />
@@ -133,6 +133,12 @@ const OppsummeringPanel: React.FC<OppsummeringPanelProps> = ({ data }) => {
                             >
                                 <div className="p-4">
                                     <dl className="divide-y divide-border-color">
+                                        <SummaryItem label="Status">
+                                            <PktTag skin={getSvarStatusSkin(bh_svar.status)}>
+                                                {getSvarStatusLabel(bh_svar.status)}
+                                            </PktTag>
+                                        </SummaryItem>
+
                                         {tilhorendeKoe?.vederlag.krav_vederlag && <>
                                             <SubHeader title="Svar på vederlagskrav" />
                                             <SummaryItem label="Vederlagsvarsel ansett for sent" value={bh_svar.vederlag.varsel_for_sent} />
