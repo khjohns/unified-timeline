@@ -13,6 +13,7 @@ import VarselPanel from './components/panels/VarselPanel';
 import KravKoePanel from './components/panels/KravKoePanel';
 import BhSvarPanel from './components/panels/BhSvarPanel';
 import OppsummeringPanel from './components/panels/OppsummeringPanel';
+import SidePanel from './components/ui/SidePanel';
 
 
 const App: React.FC = () => {
@@ -286,7 +287,7 @@ const App: React.FC = () => {
     };
     
     const renderBottomBar = () => (
-        <div className="mt-8 px-4 sm:px-0" role="navigation" aria-label="Steg navigasjon">
+        <div className="px-4 sm:px-0" role="navigation" aria-label="Steg navigasjon">
             <div className="flex justify-between items-center flex-wrap gap-4">
                 <button
                     onClick={handleReset}
@@ -362,16 +363,21 @@ const App: React.FC = () => {
     
             {/* ENDRET: 'pt-24' for å gi plass til den faste headeren */}
             <main className="pt-24 pb-8 sm:pb-12">
-                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-                
-                    {/* FLYTTET TABS INN HIT: med 'mb-8' for avstand */}
-                    <div className="mb-8">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 lg:grid lg:grid-cols-3 lg:gap-12">
+
+                    {/* Hovedkolonne (2/3) - Tabs, panel og knapper */}
+                    <div className="lg:col-span-2 space-y-8">
                         {renderTabs()}
+                        {renderPanel()}
+                        {renderBottomBar()}
                     </div>
 
-                    {renderPanel()}
-                    {renderBottomBar()}
-                </div> 
+                    {/* Sidekolonne (1/3) - Nøkkelinfo (kun på store skjermer) */}
+                    <div className="hidden lg:block lg:col-span-1">
+                        <SidePanel sak={formData.sak} />
+                    </div>
+
+                </div>
             </main>
             
             {toastMessage && <Toast message={toastMessage} />}

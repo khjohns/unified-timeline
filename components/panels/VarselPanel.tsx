@@ -3,7 +3,6 @@ import { FormDataModel } from '../../types';
 import { DateField, SelectField, TextareaField, InputField } from '../ui/Field';
 import FieldsetCard from '../ui/FieldsetCard';
 import PanelLayout from '../ui/PanelLayout';
-import SidePanel from '../ui/SidePanel';
 import { HOVEDKATEGORI_OPTIONS, UNDERKATEGORI_MAP } from '../../constants';
 import { PktButton, PktAlert } from '@oslokommune/punkt-react';
 
@@ -83,7 +82,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
   ];
 
   return (
-    <PanelLayout sidePanel={<SidePanel sak={sak} />}>
+    <PanelLayout>
       <div className="space-y-6">
         <PktAlert skin="info" compact>
           Dette er det første formelle steget (Trinn 1) etter NS 8407. Her dokumenteres selve hendelsen og at varsel er sendt. Selve kravet spesifiseres i neste fane.

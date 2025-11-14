@@ -7,8 +7,8 @@ interface SidePanelProps {
 
 const SidePanel: React.FC<SidePanelProps> = ({ sak }) => {
   return (
-    <aside className="hidden lg:block">
-      <div className="sticky top-36 space-y-4">
+    <aside>
+      <div className="sticky top-28 space-y-4">
         <h3 className="text-lg font-semibold text-ink">Nøkkelinfo</h3>
         <div className="text-sm space-y-2 p-4 rounded-lg border border-border-color" style={{ backgroundColor: '#E5FCFF' }}>
           <p><strong>Sakstittel:</strong> {sak.sakstittel || 'Ikke angitt'}</p>
