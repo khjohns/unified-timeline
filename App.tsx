@@ -362,53 +362,53 @@ const App: React.FC = () => {
     );
 
 
+    // Fil: App.tsx
+
     return (
         <div className="bg-body-bg min-h-screen text-ink font-sans">
             <PktHeader
                 serviceName="Skjema for krav om endringsordre (KOE)"
                 user={{ name: formData.rolle === 'TE' ? 'Total Entreprenør' : 'Byggherren', showName: true }}
-            />
+            >
+                {/* 1. BH/TE-knappen er flyttet inn her som 'children' (dette er støttet av IPktHeader) */}
+                <div className="flex items-center gap-3 ml-4">
+                    <span className="text-sm font-medium text-ink-dim hidden sm:inline">Rolle:</span>
+                    <div className="isolate inline-flex rounded-md shadow-sm">
+                        <button
+                            type="button"
+                            onClick={() => handleRoleChange('TE')}
+                            className={`relative inline-flex items-center rounded-l-md px-3 py-2 text-sm font-semibold ring-1 ring-inset ring-border-color focus:z-10 ${formData.rolle === 'TE' ? 'bg-pri text-white' : 'bg-white text-ink-dim hover:bg-gray-50'}`}
+                        >
+                            TE
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleRoleChange('BH')}
+                            className={`relative -ml-px inline-flex items-center rounded-r-md px-3 py-2 text-sm font-semibold ring-1 ring-inset ring-border-color focus:z-10 ${formData.rolle === 'BH' ? 'bg-pri text-white' : 'bg-white text-ink-dim hover:bg-gray-50'}`}
+                        >
+                            BH
+                        </button>
+                    </div>
+                </div>
+            </PktHeader>
+            
+            {/* 2. DENNE HEADEREN INNEHOLDER NÅ KUN FANENE */}
             <header className="bg-card-bg border-b border-border-color sticky top-0 z-10">
                 <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center py-4">
-                        <div>
-                            <h1 className="text-xl font-semibold flex gap-2.5 items-center">
-                                Skjema for krav om endringsordre (KOE)
-                                <span className="text-muted font-medium bg-gray-100 py-0.5 px-2.5 rounded-full border border-border-color text-xs">v5.0</span>
-                            </h1>
-                            <p className="subtitle text-sm text-muted mt-1">NS 8407:2011‑konsistent TE → BH to‑trinns flyt • Datamodell 3.3</p>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <span className="text-sm font-medium text-ink-dim">Rolle:</span>
-                            <div className="isolate inline-flex rounded-md shadow-sm">
-                                <button
-                                    type="button"
-                                    onClick={() => handleRoleChange('TE')}
-                                    className={`relative inline-flex items-center rounded-l-md px-3 py-2 text-sm font-semibold ring-1 ring-inset ring-border-color focus:z-10 ${formData.rolle === 'TE' ? 'bg-pri text-white' : 'bg-white text-ink-dim hover:bg-gray-50'}`}
-                                >
-                                    TE
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => handleRoleChange('BH')}
-                                    className={`relative -ml-px inline-flex items-center rounded-r-md px-3 py-2 text-sm font-semibold ring-1 ring-inset ring-border-color focus:z-10 ${formData.rolle === 'BH' ? 'bg-pri text-white' : 'bg-white text-ink-dim hover:bg-gray-50'}`}
-                                >
-                                    BH
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                     <div className="mt-2">
+                    {/* Alt det dupliserte innholdet (h1, p) er fjernet herfra */}
+                    <div className="mt-2">
                         {renderTabs()}
                     </div>
                 </div>
             </header>
-            <main className="pt-32 pb-8 sm:pb-12">
+    
+            <main className="pt-8 pb-8 sm:pb-12"> {/* 3. Økt pt-8 for å gi luft til den sticky tab-linjen */}
                 <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
                     {renderPanel()}
                     {renderBottomBar()}
                 </div> 
             </main>
+            
             {toastMessage && <Toast message={toastMessage} />}
             {modalConfig.isOpen && (
                 <PktModal
