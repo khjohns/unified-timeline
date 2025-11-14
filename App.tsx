@@ -3,6 +3,7 @@ import { FormDataModel, Role, BhSvar, Koe } from './types';
 import { TABS, INITIAL_FORM_DATA, DEMO_DATA } from './constants';
 import Toast from './components/ui/Toast';
 import { generatePdf } from './utils/pdfGenerator';
+import { generatePdfReact } from './utils/pdfGeneratorReact';
 import { PktHeader, PktButton, PktModal, PktTabs, PktTabItem } from '@oslokommune/punkt-react';
 import { useSkjemaData } from './hooks/useSkjemaData';
 import { useAutoSave } from './hooks/useAutoSave';
@@ -18,6 +19,7 @@ const App: React.FC = () => {
     const [activeTab, setActiveTab] = useState(0);
     const [formStatus, setFormStatus] = useState<'varsel' | 'krav' | 'svar'>('varsel');
     const [toastMessage, setToastMessage] = useState('');
+    const [pdfMethod, setPdfMethod] = useState<'jspdf' | 'react-pdf'>('jspdf');
     const [modalConfig, setModalConfig] = useState<{
         isOpen: boolean;
         title: string;
@@ -175,8 +177,12 @@ const App: React.FC = () => {
         window.scrollTo(0, 0);
     };
     
-    const handleDownloadPdf = () => {
-        generatePdf(formData);
+    const handleDownloadPdf = async () => {
+        if (pdfMethod === 'jspdf') {
+            generatePdf(formData);
+        } else {
+            await generatePdfReact(formData);
+        }
     };
 
     // Helper function to add a new BH svar revision
@@ -295,7 +301,21 @@ const App: React.FC = () => {
                 >
                     Nullstill
                 </button>
-                <div className="flex gap-3 flex-wrap">
+                <div className="flex gap-3 flex-wrap items-center">
+                    <div className="flex items-center gap-2">
+                        <label htmlFor="pdf-method" className="text-sm text-muted">
+                            PDF-metode:
+                        </label>
+                        <select
+                            id="pdf-method"
+                            value={pdfMethod}
+                            onChange={(e) => setPdfMethod(e.target.value as 'jspdf' | 'react-pdf')}
+                            className="text-sm border border-border-color rounded px-2 py-1"
+                        >
+                            <option value="jspdf">jsPDF (nåværende)</option>
+                            <option value="react-pdf">@react-pdf/renderer (ny)</option>
+                        </select>
+                    </div>
                     <PktButton
                         skin="secondary"
                         size="small"
@@ -303,7 +323,7 @@ const App: React.FC = () => {
                         iconName="document-pdf"
                         variant="icon-left"
                     >
-                        PDF
+                        Last ned PDF
                     </PktButton>
                     <PktButton
                         skin="secondary"
