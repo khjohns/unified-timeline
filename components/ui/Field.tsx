@@ -207,7 +207,7 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({
   checkHelptext,
   hasError = false
 }) => (
-  <div className={className}>
+  <div className={`grid ${className || ''}`} style={{ width: '100%' }}>
     <PktCheckbox
       id={id}
       name={id}
@@ -218,7 +218,7 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({
       hasTile={hasTile}
       checkHelptext={checkHelptext}
       hasError={hasError}
-      className="w-full"
+      style={{ width: '100%' }}
     />
   </div>
 );
