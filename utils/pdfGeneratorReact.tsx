@@ -31,7 +31,8 @@ const COLORS = {
 // Stylesheet
 const styles = StyleSheet.create({
   page: {
-    padding: 42, // ENDRING: Økt fra 20 til 42pt (ca 1.5cm) for bredere marger
+    // ENDRING: Økt padding for å gi større "ramme" (ca 1.5cm)
+    padding: 42,
     fontFamily: 'Oslo Sans',
     fontSize: 9,
     color: COLORS.ink,
@@ -41,15 +42,16 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     padding: 12,
     marginBottom: 25,
-    marginLeft: -42, // ENDRING: Justert for å matche ny padding
-    marginRight: -42, // ENDRING: Justert for å matche ny padding
-    // marginTop: -20, // ENDRING: Fjernet for å unngå overlapp med sidens padding
+    // ENDRING: Justert negative marger for å matche ny sidemarg
+    marginLeft: -42,
+    marginRight: -42,
+    // ENDRING: Fjernet 'marginTop: -20' for å fikse overlapping med tittel
     flexDirection: 'row',
     alignItems: 'center',
   },
   headerLogo: {
-    width: 80,
-    height: 24,
+    // ENDRING: Satt kun høyde for å bevare aspect ratio. Fjernet fast 'width: 80'.
+    height: 28,
     marginRight: 15,
   },
   headerContent: {
@@ -59,7 +61,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: 4,
+    // ENDRING: Økt avstand til undertittel
+    marginBottom: 6,
   },
   headerSubtitle: {
     fontSize: 9,
@@ -78,7 +81,8 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 5,
+    // ENDRING: Økt avstand til Sak-ID
+    marginBottom: 10,
   },
   sakId: {
     fontSize: 14,
@@ -164,8 +168,9 @@ const styles = StyleSheet.create({
   footer: {
     position: 'absolute',
     bottom: 15,
-    left: 42, // ENDRING: Justert for å matche ny padding
-    right: 42, // ENDRING: Justert for å matche ny padding
+    // ENDRING: Justert for å matche ny sidemarg
+    left: 42,
+    right: 42,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     paddingTop: 8,
@@ -180,7 +185,7 @@ const styles = StyleSheet.create({
   },
   signatureLabel: {
     fontWeight: 'bold',
-    // marginRight: 60, // ENDRING: Fjernet, unødvendig med ny vertikal layout
+    // ENDRING: Fjernet 'marginRight: 60'
   },
 });
 
@@ -188,7 +193,8 @@ const styles = StyleSheet.create({
 const Header: React.FC<{ data: FormDataModel }> = ({ data }) => (
   <View style={styles.header}>
     <Image
-      src="/Skjema_Endringsmeldinger/logos/Oslo-logo-hvit-RGB.png" // ENDRING: Bytett fra .svg til .png
+      // ENDRING: Bytett fra .svg til .png
+      src="/Skjema_Endringsmeldinger/logos/Oslo-logo-hvit-RGB.png"
       style={styles.headerLogo}
     />
     <View style={styles.headerContent}>
@@ -364,7 +370,7 @@ const KoeRevisionSection: React.FC<{ koe: FormDataModel['koe_revisjoner'][0]; in
       </View>
     )}
 
-    {/* ENDRING: Oppdatert signaturlayout */}
+    {/* ENDRING: Oppdatert signaturlayout for å få navn på ny linje */}
     {koe.for_entreprenor && (
       <View style={styles.signatureRow}>
         <Text style={styles.signatureLabel}>For Entreprenør</Text>
@@ -430,7 +436,7 @@ const BhSvarRevisionSection: React.FC<{
       </View>
     )}
 
-    {/* ENDRING: Oppdatert signaturlayout */}
+    {/* ENDRING: Oppdatert signaturlayout for å få navn på ny linje */}
     {(bhSvar.sign.dato_svar_bh || bhSvar.sign.for_byggherre) && (
       <View>
         <Text style={styles.subTitle}>Signatur</Text>
