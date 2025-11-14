@@ -1,6 +1,7 @@
 import React from 'react';
 import { FormDataModel } from '../../types';
 import { PktAccordion, PktAccordionItem } from '@oslokommune/punkt-react';
+import { TABS } from '../../constants';
 
 interface OppsummeringPanelProps {
   data: FormDataModel;
@@ -33,7 +34,7 @@ const OppsummeringPanel: React.FC<OppsummeringPanelProps> = ({ data }) => {
                 {/* Sak */}
                 <PktAccordionItem
                     id="oppsummering-grunninfo"
-                    title="1) Grunninfo"
+                    title={`1) ${TABS[0].label}`}
                 >
                     <div className="p-4">
                         <dl className="divide-y divide-border-color">
@@ -52,7 +53,7 @@ const OppsummeringPanel: React.FC<OppsummeringPanelProps> = ({ data }) => {
                 {/* Varsel */}
                 <PktAccordionItem
                     id="oppsummering-varsel"
-                    title="2) Varsel"
+                    title={`2) ${TABS[1].label}`}
                 >
                     <div className="p-4">
                         <dl className="divide-y divide-border-color">
@@ -68,7 +69,7 @@ const OppsummeringPanel: React.FC<OppsummeringPanelProps> = ({ data }) => {
 
                 {/* Krav */}
                 {koe_revisjoner.length === 0 ? (
-                    <PktAccordionItem id="oppsummering-krav-ingen" title="3) Krav" disabled>
+                    <PktAccordionItem id="oppsummering-krav-ingen" title={`3) ${TABS[2].label}`} disabled>
                          <div className="p-4"><p className="text-muted">Ingen krav registrert.</p></div>
                     </PktAccordionItem>
                 ) : (
@@ -76,7 +77,7 @@ const OppsummeringPanel: React.FC<OppsummeringPanelProps> = ({ data }) => {
                         <PktAccordionItem
                             key={index}
                             id={`oppsummering-krav-${index}`}
-                            title={`3) Krav (revisjonsnr. ${koe.koe_revisjonsnr})`}
+                            title={`3) ${TABS[2].label} (revisjonsnr. ${koe.koe_revisjonsnr})`}
                             defaultOpen={index === koe_revisjoner.length - 1}
                         >
                             <div className="p-4">
@@ -111,7 +112,7 @@ const OppsummeringPanel: React.FC<OppsummeringPanelProps> = ({ data }) => {
 
                 {/* BH Svar */}
                 {bh_svar_revisjoner.length === 0 ? (
-                    <PktAccordionItem id="oppsummering-svar-ingen" title="4) BH svar" disabled>
+                    <PktAccordionItem id="oppsummering-svar-ingen" title={`4) ${TABS[3].label}`} disabled>
                         <div className="p-4"><p className="text-muted">Ingen svar registrert.</p></div>
                     </PktAccordionItem>
                 ) : (
@@ -121,14 +122,11 @@ const OppsummeringPanel: React.FC<OppsummeringPanelProps> = ({ data }) => {
                             <PktAccordionItem
                                 key={index}
                                 id={`oppsummering-svar-${index}`}
-                                title={`4) BH svar (revisjonsnr. ${tilhorendeKoe?.koe_revisjonsnr ?? index}`}
+                                title={`4) ${TABS[3].label} (revisjonsnr. ${tilhorendeKoe?.koe_revisjonsnr ?? index})`}
                                 defaultOpen={index === bh_svar_revisjoner.length - 1}
                             >
                                 <div className="p-4">
                                     <dl className="divide-y divide-border-color">
-                                        <SummaryItem label="Dato for møte" value={bh_svar.mote_dato} />
-                                        <SummaryItem label="Møtereferat" value={bh_svar.mote_referat} />
-
                                         {tilhorendeKoe?.vederlag.krav_vederlag && <>
                                             <SubHeader title="Svar på vederlagskrav" />
                                             <SummaryItem label="Vederlagsvarsel ansett for sent" value={bh_svar.vederlag.varsel_for_sent} />

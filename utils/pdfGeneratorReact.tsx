@@ -317,7 +317,7 @@ const SummarySection: React.FC<{ data: FormDataModel }> = ({ data }) => {
 
 const VarselSection: React.FC<{ data: FormDataModel }> = ({ data }) => (
   <View>
-    <Text style={styles.mainTitle}>1. Varsel</Text>
+    <Text style={styles.mainTitle}>Varsel</Text>
     <View style={styles.table}>
       <TableRow label="Dato forhold oppdaget" value={data.varsel.dato_forhold_oppdaget || '—'} />
       <TableRow label="Dato varsel sendt" value={data.varsel.dato_varsel_sendt || '—'} striped />
@@ -330,7 +330,7 @@ const VarselSection: React.FC<{ data: FormDataModel }> = ({ data }) => (
 
 const KoeRevisionSection: React.FC<{ koe: FormDataModel['koe_revisjoner'][0]; index: number }> = ({ koe, index }) => (
   <View wrap={false}>
-    <Text style={styles.mainTitle}>2. Krav om endringsordre (Revisjon {koe.koe_revisjonsnr || index})</Text>
+    <Text style={styles.mainTitle}>Krav (Revisjon {koe.koe_revisjonsnr || index})</Text>
     <View style={styles.table}>
       <TableRow label="Revisjonsnummer" value={koe.koe_revisjonsnr || '—'} />
       <TableRow label="Dato krav sendt" value={koe.dato_krav_sendt || '—'} striped />
@@ -383,17 +383,7 @@ const BhSvarRevisionSection: React.FC<{
   index: number;
 }> = ({ bhSvar, koe, index }) => (
   <View wrap={false}>
-    <Text style={styles.mainTitle}>3. Svar fra Byggherre (Revisjon {koe.koe_revisjonsnr || index})</Text>
-
-    {(bhSvar.mote_dato || bhSvar.mote_referat) && (
-      <View>
-        <Text style={styles.subTitle}>Avklaring-/Forhandlingsmøte</Text>
-        <View style={styles.table}>
-          <TableRow label="Dato for møte" value={bhSvar.mote_dato || '—'} />
-          <TableRow label="Referanse til møtereferat" value={bhSvar.mote_referat || '—'} striped />
-        </View>
-      </View>
-    )}
+    <Text style={styles.mainTitle}>BH Svar (Revisjon {koe.koe_revisjonsnr || index})</Text>
 
     {koe.vederlag.krav_vederlag && (
       <View>

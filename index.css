@@ -118,11 +118,17 @@ body {
 ::-webkit-scrollbar-thumb:hover {
     background-color: #9daab5;
 }
+/* Sentrere tabs og få dem til å strekke seg ut */
 .pkt-tabs-wrapper pkt-tabs {
   width: 100%;
+  display: flex;
+  justify-content: center;
 }
 
 /* Gir hver fane (PktTabItem) beskjed om å vokse for å fylle den ledige plassen */
 .pkt-tabs-wrapper pkt-tab-item {
-  flex-grow: 1;
+  flex: 1;
+  max-width: 200px;
+  text-align: center;
+  justify-content: center;
 }
