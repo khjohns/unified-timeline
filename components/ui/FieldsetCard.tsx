@@ -9,11 +9,7 @@ interface FieldsetCardProps {
 // NY KODE (basert på "Fravik"-prosjektets stil)
 const FieldsetCard: React.FC<FieldsetCardProps> = ({ legend, children, className = '' }) => {
   return (
-    <fieldset className={`border border-border-color rounded-lg p-6 mb-10 ${className}`}>
-      {/* Merk: bg-card-bg (hvit bakgrunn) er fjernet her, 
-        fordi PanelLayout.tsx allerede har denne bakgrunnen.
-        Dette gir en ramme internt i panelet.
-      */}
+    <fieldset className={`bg-card-bg border border-border-color rounded-lg p-6 mb-10 ${className}`}>
       <legend className="text-base font-semibold text-pri px-2">
         {legend}
       </legend>
