@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { FormDataModel } from '../../types';
 import { InputField, SelectField, TextareaField, CheckboxField, DateField } from '../ui/Field';
 import FieldsetCard from '../ui/FieldsetCard';
@@ -28,6 +28,23 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
 }) => {
   const { koe_revisjoner = [], bh_svar_revisjoner = [], rolle } = formData;
   const sisteKravIndex = koe_revisjoner.length - 1;
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+
+  const handleFileUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      setUploadedFiles(prev => [...prev, ...Array.from(files)]);
+    }
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  };
 
   if (koe_revisjoner.length === 0) {
     return (
@@ -252,6 +269,53 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                       autoComplete="name"
                       className="w-full md:max-w-sm"
                     />
+                  </div>
+                </FieldsetCard>
+
+                <FieldsetCard legend="Vedlegg">
+                  <div className="space-y-4">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      onChange={handleFileChange}
+                      className="hidden"
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                      disabled={erLaast}
+                    />
+                    <PktButton
+                      skin="secondary"
+                      size="medium"
+                      iconName="attachment"
+                      variant="icon-left"
+                      onClick={handleFileUploadClick}
+                      disabled={erLaast}
+                    >
+                      Last opp vedlegg
+                    </PktButton>
+                    {uploadedFiles.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-ink">Opplastede filer:</p>
+                        <ul className="space-y-2">
+                          {uploadedFiles.map((file, index) => (
+                            <li key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-border-color">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-ink">{file.name}</span>
+                                <span className="text-xs text-muted">({(file.size / 1024).toFixed(1)} KB)</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveFile(index)}
+                                className="text-sm text-red-600 hover:text-red-700 hover:underline"
+                                disabled={erLaast}
+                              >
+                                Fjern
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 </FieldsetCard>
               </div>
