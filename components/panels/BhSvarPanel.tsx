@@ -115,7 +115,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                     <div className="space-y-6">
                       <CheckboxField
                         id={`bh_svar.vederlag.varsel_for_sent.${index}`}
-                        label="Varselet om vederlagskrav ansees som for sent fremsatt"
+                        label="Vederlagskrav er varslet for sent"
                         checked={bh_svar.vederlag.varsel_for_sent}
                         onChange={e => handleChange(index, 'vederlag.varsel_for_sent', e.target.checked)}
                         disabled={erLaast}
@@ -158,7 +158,10 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                           error={errors['bh_svar.vederlag.bh_godkjent_vederlag_belop']}
                           formatAsNumber
                           readOnly={erLaast}
-                          className="max-w-xs"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          autoComplete="off"
+                          className="w-full md:max-w-xs"
                         />
                       </div>
                       <TextareaField
@@ -178,7 +181,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                     <div className="space-y-6">
                       <CheckboxField
                         id={`bh_svar.frist.varsel_for_sent.${index}`}
-                        label="Varselet om fristforlengelse ansees som for sent fremsatt"
+                        label="Fristforlengelse er varslet for sent"
                         checked={bh_svar.frist.varsel_for_sent}
                         onChange={e => handleChange(index, 'frist.varsel_for_sent', e.target.checked)}
                         disabled={erLaast}
@@ -221,7 +224,10 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                           helpText="Antall godkjente kalenderdager"
                           error={errors['bh_svar.frist.bh_godkjent_frist_dager']}
                           readOnly={erLaast}
-                          className="max-w-xs"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          autoComplete="off"
+                          className="w-full md:max-w-xs"
                         />
                       </div>
                       <DateField
@@ -230,7 +236,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                         value={bh_svar.frist.bh_frist_for_spesifisering}
                         onChange={value => handleChange(index, 'frist.bh_frist_for_spesifisering', value)}
                         helpText="Frist for ytterligere dokumentasjon"
-                        className="max-w-sm"
+                        className="w-full md:max-w-sm"
                         readOnly={erLaast}
                       />
                       <TextareaField
@@ -254,7 +260,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                       onChange={value => handleChange(index, 'sign.dato_svar_bh', value)}
                       required
                       readOnly={erLaast}
-                      className="max-w-sm"
+                      className="w-full md:max-w-sm"
                     />
                     <InputField
                       id={`bh_svar.sign.for_byggherre.${index}`}
@@ -264,7 +270,8 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                       helpText="Fullt navn på signatar"
                       required
                       readOnly={erLaast}
-                      className="max-w-sm"
+                      autoComplete="name"
+                      className="w-full md:max-w-sm"
                     />
                   </div>
                 </FieldsetCard>

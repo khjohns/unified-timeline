@@ -109,7 +109,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
                 error={errors['varsel.dato_forhold_oppdaget']}
                 readOnly={isLocked}
                 helpText="Når inntraff hendelsen?"
-                className="max-w-sm"
+                className="w-full md:max-w-sm"
               />
               <DateField
                 id="varsel.dato_varsel_sendt"
@@ -119,7 +119,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
                 error={errors['varsel.dato_varsel_sendt']}
                 readOnly={isLocked}
                 helpText="Når ble varselet sendt til BH?"
-                className="max-w-sm"
+                className="w-full md:max-w-sm"
               />
             </div>
             <SelectField
@@ -130,7 +130,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
               options={varselMetodeOptions}
               readOnly={isLocked}
               helpText="F.eks. 'E-post til prosjektleder'"
-              className="max-w-md"
+              className="w-full md:max-w-md"
             />
           </div>
         </FieldsetCard>

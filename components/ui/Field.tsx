@@ -22,6 +22,9 @@ interface FieldProps {
   step?: number | string;
   helpText?: string;
   formatAsNumber?: boolean;
+  inputMode?: 'none' | 'text' | 'tel' | 'url' | 'email' | 'numeric' | 'decimal' | 'search';
+  autoComplete?: string;
+  pattern?: string;
 }
 
 interface TextareaFieldProps extends Omit<FieldProps, 'type' | 'min' | 'step' | 'formatAsNumber'> {
@@ -33,7 +36,7 @@ interface TextareaFieldProps extends Omit<FieldProps, 'type' | 'min' | 'step' | 
 const baseInputClasses = "w-full p-2.5 rounded-lg border border-border-color bg-white text-ink focus:border-pri focus:ring-2 focus:ring-pri/20 outline-none";
 const invalidClasses = "border-warn box-shadow:0 0 0 2px #e3241b22";
 
-export const InputField: React.FC<FieldProps> = ({ id, label, type = 'text', value, onChange, required, optional, placeholder, readOnly, error, className, min, step, helpText, formatAsNumber }) => {
+export const InputField: React.FC<FieldProps> = ({ id, label, type = 'text', value, onChange, required, optional, placeholder, readOnly, error, className, min, step, helpText, formatAsNumber, inputMode, autoComplete, pattern }) => {
 
     const handleNumericChange = (e: ChangeEvent<HTMLInputElement>) => {
         const rawValue = e.target.value.replace(/\s/g, ''); // remove spaces
@@ -68,6 +71,9 @@ export const InputField: React.FC<FieldProps> = ({ id, label, type = 'text', val
           hasError={!!error}
           errorMessage={error}
           useWrapper={true}
+          inputMode={inputMode}
+          autoComplete={autoComplete}
+          pattern={pattern}
         />
       </div>
     );
