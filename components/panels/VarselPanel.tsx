@@ -4,7 +4,7 @@ import { DateField, SelectField, TextareaField, InputField } from '../ui/Field';
 import FieldsetCard from '../ui/FieldsetCard';
 import PanelLayout from '../ui/PanelLayout';
 import { HOVEDKATEGORI_OPTIONS, UNDERKATEGORI_MAP } from '../../constants';
-import { PktButton, PktAlert } from '@oslokommune/punkt-react';
+import { PktButton, PktAlert, PktCheckbox } from '@oslokommune/punkt-react';
 
 interface VarselPanelProps {
   formData: FormDataModel;
@@ -34,13 +34,23 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
 
   const handleHovedkategoriChange = (value: string) => {
     handleChange('hovedkategori', value);
-    handleChange('underkategori', ''); // Reset underkategori
+    handleChange('underkategori', []); // Reset underkategori til tom array
   };
 
-  const underkategoriOptions = [
-      {value:"", label: varsel.hovedkategori ? "— Velg —" : "— Velg hovedkategori først —"},
-      ...(UNDERKATEGORI_MAP[varsel.hovedkategori] || []).map(o => ({ value: o, label: o }))
-  ];
+  const handleUnderkategoriChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value, checked } = e.target;
+    const naaVerdier = varsel.underkategori || [];
+
+    let nyeVerdier: string[];
+    if (checked) {
+      nyeVerdier = [...naaVerdier, value]; // Legg til
+    } else {
+      nyeVerdier = naaVerdier.filter(item => item !== value); // Fjern
+    }
+    handleChange('underkategori', nyeVerdier);
+  };
+
+  const underkategoriOptions = UNDERKATEGORI_MAP[varsel.hovedkategori] || [];
 
   const handleFileUploadClick = () => {
     fileInputRef.current?.click();
@@ -125,26 +135,39 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
 
         <FieldsetCard legend="Hva gjelder det?">
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <SelectField
-                id="varsel.hovedkategori"
-                label="Hovedkategori (NS 8407)"
-                value={varsel.hovedkategori}
-                onChange={handleHovedkategoriChange}
-                options={HOVEDKATEGORI_OPTIONS}
-                error={errors['varsel.hovedkategori']}
-                readOnly={isLocked}
-              />
-              <SelectField
-                id="varsel.underkategori"
-                label="Underkategori"
-                value={varsel.underkategori}
-                onChange={value => handleChange('underkategori', value)}
-                options={underkategoriOptions}
-                readOnly={isLocked}
-                optional
-              />
-            </div>
+            <SelectField
+              id="varsel.hovedkategori"
+              label="Hovedkategori (NS 8407)"
+              value={varsel.hovedkategori}
+              onChange={handleHovedkategoriChange}
+              options={HOVEDKATEGORI_OPTIONS}
+              error={errors['varsel.hovedkategori']}
+              readOnly={isLocked}
+              className="max-w-md"
+            />
+
+            {varsel.hovedkategori && underkategoriOptions.length > 0 && (
+              <div className="w-full rounded-lg border bg-white p-4 border-border-color">
+                <label className="block text-sm font-semibold text-ink-dim mb-3">
+                  Velg underkategori (valgfritt, flere valg er mulig)
+                </label>
+                <div className="space-y-4">
+                  {underkategoriOptions.map((opt) => (
+                    <PktCheckbox
+                      key={opt.value}
+                      id={`underkategori-${opt.value}`}
+                      name="underkategori"
+                      label={opt.label}
+                      value={opt.value}
+                      checked={varsel.underkategori.includes(opt.value)}
+                      onChange={handleUnderkategoriChange}
+                      disabled={isLocked}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
             <TextareaField
               id="varsel.varsel_beskrivelse"
               label="Beskrivelse (vis til vedlegg)"

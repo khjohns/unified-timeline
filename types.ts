@@ -28,7 +28,7 @@ export interface Varsel {
   dato_forhold_oppdaget: string;
   dato_varsel_sendt: string;
   hovedkategori: string;
-  underkategori: string;
+  underkategori: string[]; // Endret til array for å tillate multivalg
   varsel_beskrivelse: string;
   varsel_metode: string;
 }
