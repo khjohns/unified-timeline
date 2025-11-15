@@ -84,32 +84,12 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
             >
               <div className="space-y-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <h3 className="text-lg font-semibold">Revisjon {koe.koe_revisjonsnr ?? '0'}</h3>
+                  <h3 className="text-lg font-semibold">Entreprenørens krav</h3>
+                  <PktTag skin="grey">Revisjon {koe.koe_revisjonsnr ?? '0'}</PktTag>
                   <PktTag skin={getKravStatusSkin(koe.status)}>
                     {getKravStatusLabel(koe.status)}
                   </PktTag>
                 </div>
-                <FieldsetCard legend={`Innsending (Revisjon ${koe.koe_revisjonsnr ?? '0'})`}>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-                    <DateField
-                      id={`koe.dato_krav_sendt.${index}`}
-                      label="Dato krav sendt"
-                      value={koe.dato_krav_sendt}
-                      onChange={value => handleChange(index, 'dato_krav_sendt', value)}
-                      required
-                      helpText="Dato for innsending av denne revisjonen."
-                      readOnly={erLaast}
-                    />
-                    <InputField
-                      id={`koe.for_entreprenor.${index}`}
-                      label="Signatur (For entreprenør)"
-                      value={koe.for_entreprenor}
-                      onChange={e => handleChange(index, 'for_entreprenor', e.target.value)}
-                      required
-                      readOnly={erLaast}
-                    />
-                  </div>
-                </FieldsetCard>
 
                 <FieldsetCard legend="Vederlagskrav">
                   <CheckboxField
@@ -123,7 +103,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
 
                   <div className={`collapsible ${koe.vederlag.krav_vederlag ? 'open' : ''}`}>
                     <div className="collapsible-content">
-                      <div className="pl-4 border-l-2 border-border-color space-y-6">
+                      <div className="pl-4 space-y-6">
                         <CheckboxField
                           id={`koe.vederlag.krav_produktivitetstap.${index}`}
                           label="Kravet inkluderer produktivitetstap som følge av endringen"
@@ -188,7 +168,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
 
                   <div className={`collapsible ${koe.frist.krav_fristforlengelse ? 'open' : ''}`}>
                     <div className="collapsible-content">
-                      <div className="pl-4 border-l-2 border-border-color space-y-6">
+                      <div className="pl-4 space-y-6">
                         <SelectField
                           id={`koe.frist.krav_frist_type.${index}`}
                           label="Type fristkrav"
@@ -234,6 +214,28 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                         />
                       </div>
                     </div>
+                  </div>
+                </FieldsetCard>
+
+                <FieldsetCard legend="Innsending">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                    <DateField
+                      id={`koe.dato_krav_sendt.${index}`}
+                      label="Dato krav sendt"
+                      value={koe.dato_krav_sendt}
+                      onChange={value => handleChange(index, 'dato_krav_sendt', value)}
+                      required
+                      helpText="Dato for innsending av denne revisjonen."
+                      readOnly={erLaast}
+                    />
+                    <InputField
+                      id={`koe.for_entreprenor.${index}`}
+                      label="Signatur (For entreprenør)"
+                      value={koe.for_entreprenor}
+                      onChange={e => handleChange(index, 'for_entreprenor', e.target.value)}
+                      required
+                      readOnly={erLaast}
+                    />
                   </div>
                 </FieldsetCard>
               </div>

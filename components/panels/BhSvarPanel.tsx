@@ -97,7 +97,8 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
             >
               <div className="space-y-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <h3 className="text-lg font-semibold">Svar til revisjon {tilhorendeKoe?.koe_revisjonsnr ?? index}</h3>
+                  <h3 className="text-lg font-semibold">Byggherrens svar</h3>
+                  <PktTag skin="grey">Revisjon {tilhorendeKoe?.koe_revisjonsnr ?? index}</PktTag>
                   <PktTag skin={getSvarStatusSkin(bh_svar.status)}>
                     {getSvarStatusLabel(bh_svar.status)}
                   </PktTag>
@@ -108,21 +109,6 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                     <p className="text-muted">Entreprenøren har ikke fremmet spesifikke krav om vederlag eller fristforlengelse.</p>
                   </div>
                 )}
-
-                <FieldsetCard legend="Svar til Krav">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-                    <InputField
-                      id={`bh_svar.koe_revisjonsnr.${index}`}
-                      label="Revisjonsnummer"
-                      type="text"
-                      value={tilhorendeKoe?.koe_revisjonsnr ?? ''}
-                      onChange={() => {}}
-                      readOnly
-                      helpText="Automatisk hentet fra tilhørende krav"
-                      className="max-w-sm"
-                    />
-                  </div>
-                </FieldsetCard>
 
                 {tilhorendeKoe?.vederlag.krav_vederlag && (
                   <FieldsetCard legend="Svar på Vederlagskrav">
@@ -137,7 +123,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                       />
                       <div className={`collapsible ${bh_svar.vederlag.varsel_for_sent ? 'open' : ''}`}>
                         <div className="collapsible-content">
-                          <div className="pl-4 border-l-2 border-border-color">
+                          <div className="pl-4">
                             <TextareaField
                               id={`bh_svar.vederlag.varsel_for_sent_begrunnelse.${index}`}
                               label="Begrunnelse for sen varsling"
@@ -198,7 +184,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                       />
                       <div className={`collapsible ${bh_svar.frist.varsel_for_sent ? 'open' : ''}`}>
                         <div className="collapsible-content">
-                          <div className="pl-4 border-l-2 border-border-color">
+                          <div className="pl-4">
                             <TextareaField
                               id={`bh_svar.frist.varsel_for_sent_begrunnelse.${index}`}
                               label="Begrunnelse for sen varsling"
