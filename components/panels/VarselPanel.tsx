@@ -32,6 +32,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [erTidligereVarslet, setErTidligereVarslet] = useState<'nei' | 'ja'>('nei');
+  const [varselMetoder, setVarselMetoder] = useState<string[]>([]);
 
   const handleHovedkategoriChange = (value: string) => {
     handleChange('hovedkategori', value);
@@ -53,6 +54,25 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
 
   const underkategoriOptions = UNDERKATEGORI_MAP[varsel.hovedkategori] || [];
   const isLocked = formStatus !== 'varsel' || disabled;
+
+  const handleMetodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value, checked } = e.target;
+    let nyeMetoder: string[];
+
+    if (checked) {
+      nyeMetoder = [...varselMetoder, value];
+    } else {
+      nyeMetoder = varselMetoder.filter(m => m !== value);
+      // Fjern også "annet"-spesifikasjon hvis "Annet" avkrysses
+      if (value === 'Annet') {
+        handleChange('varsel_metode_annet', '');
+      }
+    }
+
+    setVarselMetoder(nyeMetoder);
+    // Lagre som kommaseparert string for Dataverse
+    handleChange('varsel_metode', nyeMetoder.join(', '));
+  };
 
   const handleFileUploadClick = () => {
     fileInputRef.current?.click();
@@ -76,11 +96,23 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
       return;
     }
 
-    // Sjekk at varsel-felt er fylt ut hvis dette er nytt varsel
-    if (erTidligereVarslet === 'nei' && (!varsel.dato_varsel_sendt || !varsel.varsel_metode)) {
-      setToastMessage?.('Vennligst fyll ut dato og metode for varsling');
-      setTimeout(() => setToastMessage?.(''), 3000);
-      return;
+    // Sjekk at varsel-felt er fylt ut hvis dette er tidligere varslet
+    if (erTidligereVarslet === 'ja') {
+      if (!varsel.dato_varsel_sendt) {
+        setToastMessage?.('Vennligst oppgi når varselet ble sendt');
+        setTimeout(() => setToastMessage?.(''), 3000);
+        return;
+      }
+      if (varselMetoder.length === 0) {
+        setToastMessage?.('Vennligst velg minst én metode for varsling');
+        setTimeout(() => setToastMessage?.(''), 3000);
+        return;
+      }
+      if (varselMetoder.includes('Annet') && !varsel.varsel_metode_annet) {
+        setToastMessage?.('Vennligst spesifiser annen metode');
+        setTimeout(() => setToastMessage?.(''), 3000);
+        return;
+      }
     }
 
     setFormStatus?.('krav');
@@ -96,6 +128,15 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
     { value: "Byggemøte", label: "Byggemøte" },
     { value: "Muntlig", label: "Muntlig" },
     { value: "Annet", label: "Annet" },
+  ];
+
+  // Standard metoder som checkboxes
+  const METODE_CHECKBOXES = [
+    { value: 'E-post', label: 'E-post' },
+    { value: 'Brev', label: 'Brev' },
+    { value: 'Byggemøte', label: 'Byggemøte' },
+    { value: 'Muntlig', label: 'Muntlig' },
+    { value: 'Annet', label: 'Annet' },
   ];
 
   return (
@@ -170,71 +211,89 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
           <div className="space-y-6">
             <div className="space-y-4">
               <label className="block text-sm font-semibold text-ink-dim">
-                Er dette forholdet tidligere varslet?
+                Hvordan varsles byggherre?
               </label>
               <div className="space-y-3">
                 <PktRadioButton
-                  id="varsel-ny"
-                  name="tidligere_varslet"
-                  label="Nei - dette er et nytt varsel"
+                  id="varsel-nytt"
+                  name="varsling_type"
+                  label="Varselet sendes via dette skjemaet"
                   value="nei"
                   checked={erTidligereVarslet === 'nei'}
                   onChange={() => setErTidligereVarslet('nei')}
                   disabled={isLocked}
                   hasTile={true}
+                  checkHelptext="Varselet dateres automatisk til i dag"
                 />
                 <PktRadioButton
                   id="varsel-tidligere"
-                  name="tidligere_varslet"
-                  label="Ja - dette bygger på tidligere varsel"
+                  name="varsling_type"
+                  label="Forholdet er tidligere varslet"
                   value="ja"
                   checked={erTidligereVarslet === 'ja'}
                   onChange={() => setErTidligereVarslet('ja')}
                   disabled={isLocked}
                   hasTile={true}
+                  checkHelptext="Du må oppgi når og hvordan det ble varslet"
                 />
               </div>
             </div>
 
             {erTidligereVarslet === 'nei' && (
-              <div className="space-y-6 pt-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <DateField
-                    id="varsel.dato_varsel_sendt"
-                    label="Dato varsel sendt"
-                    value={varsel.dato_varsel_sendt}
-                    onChange={value => handleChange('dato_varsel_sendt', value)}
-                    error={errors['varsel.dato_varsel_sendt']}
-                    readOnly={isLocked}
-                    helpText="Når ble varselet formelt sendt til BH?"
-                    className="w-full md:max-w-sm"
-                  />
-                  <SelectField
-                    id="varsel.varsel_metode"
-                    label="Metode for varsling"
-                    value={varsel.varsel_metode}
-                    onChange={value => handleChange('varsel_metode', value)}
-                    options={varselMetodeOptions}
-                    readOnly={isLocked}
-                    helpText="F.eks. 'E-post til prosjektleder'"
-                    className="w-full md:max-w-md"
-                  />
-                </div>
-              </div>
+              <PktAlert skin="success" compact>
+                ✓ Varselet blir automatisk datert {new Date().toLocaleDateString('no-NO')} og sendt via dette digitale skjemaet.
+              </PktAlert>
             )}
 
             {erTidligereVarslet === 'ja' && (
-              <div className="pt-4">
-                <InputField
-                  id="varsel.tidligere_varsel_referanse"
-                  label="Referanse til tidligere varsel (valgfritt)"
-                  value={varsel.tidligere_varsel_referanse || ''}
-                  onChange={e => handleChange('tidligere_varsel_referanse', e.target.value)}
-                  helpText="F.eks. sak-ID eller dato for opprinnelig varsel"
+              <div className="space-y-6 pt-4 border-t border-border-color">
+                <DateField
+                  id="varsel.dato_varsel_sendt"
+                  label="Dato tidligere varsel ble sendt"
+                  value={varsel.dato_varsel_sendt}
+                  onChange={value => handleChange('dato_varsel_sendt', value)}
+                  error={errors['varsel.dato_varsel_sendt']}
                   readOnly={isLocked}
-                  optional
-                  className="w-full md:max-w-md"
+                  helpText="Når ble byggherre opprinnelig varslet om forholdet?"
+                  required
+                  className="w-full md:max-w-sm"
                 />
+
+                <div className="w-full rounded-lg border bg-white p-4 border-border-color">
+                  <label className="block text-sm font-semibold text-ink-dim mb-1">
+                    Metode(r) for tidligere varsling
+                  </label>
+                  <p className="text-sm text-muted mb-3">
+                    Du kan velge flere metoder hvis varselet ble sendt på ulike måter
+                  </p>
+                  <div className="space-y-3">
+                    {METODE_CHECKBOXES.map((metode) => (
+                      <PktCheckbox
+                        key={metode.value}
+                        id={`metode-${metode.value.toLowerCase()}`}
+                        name="varsel_metode"
+                        label={metode.label}
+                        value={metode.value}
+                        checked={varselMetoder.includes(metode.value)}
+                        onChange={handleMetodeChange}
+                        disabled={isLocked}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {varselMetoder.includes('Annet') && (
+                  <InputField
+                    id="varsel.varsel_metode_annet"
+                    label="Spesifiser annen metode"
+                    value={varsel.varsel_metode_annet || ''}
+                    onChange={e => handleChange('varsel_metode_annet', e.target.value)}
+                    helpText="F.eks. 'SMS til prosjektleder' eller 'Teams-melding'"
+                    required
+                    readOnly={isLocked}
+                    className="w-full md:max-w-md"
+                  />
+                )}
               </div>
             )}
           </div>
