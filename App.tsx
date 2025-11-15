@@ -19,9 +19,7 @@ import SidePanel from './components/ui/SidePanel';
 
 const App: React.FC = () => {
     const [activeTab, setActiveTab] = useState(0);
-    const [formStatus, setFormStatus] = useState<'varsel' | 'krav' | 'svar'>('varsel');
     const [toastMessage, setToastMessage] = useState('');
-    // const [pdfMethod, setPdfMethod] = useState<'jspdf' | 'react-pdf'>('jspdf'); // FJERNET
     const [modalConfig, setModalConfig] = useState<{
         isOpen: boolean;
         title: string;
@@ -113,9 +111,6 @@ const App: React.FC = () => {
     if (window.confirm('Dette vil erstatte nåværende data med eksempeldata. Fortsette?')) {
         setFormData(JSON.parse(JSON.stringify(DEMO_DATA)));
         setErrors({});
-        // Sett riktig formStatus basert på demo-data
-        // Siden BH svar revisjonsnr 1 er sendt, skal status være 'krav' (TE kan sende nytt krav)
-        setFormStatus('krav');
         }
     };
 
@@ -264,6 +259,7 @@ const App: React.FC = () => {
                 dato_svar_bh: '',
                 for_byggherre: '',
             },
+            status: '300000001', // Utkast
         };
 
         setFormData(prev => ({
@@ -279,6 +275,7 @@ const App: React.FC = () => {
             koe_revisjonsnr: (parseInt(sisteKrav.koe_revisjonsnr) + 1).toString(),
             dato_krav_sendt: '',
             for_entreprenor: '',
+            status: '100000001', // Utkast
             vederlag: {
                 krav_vederlag: false,
                 krav_produktivitetstap: false,
@@ -330,8 +327,6 @@ const App: React.FC = () => {
             formData,
             setFormData: handleInputChange,
             errors,
-            formStatus,
-            setFormStatus,
             setActiveTab,
             setToastMessage,
             addBhSvarRevisjon,
