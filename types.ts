@@ -31,6 +31,7 @@ export interface Varsel {
   underkategori: string[]; // Endret til array for å tillate multivalg
   varsel_beskrivelse: string;
   varsel_metode: string;
+  tidligere_varsel_referanse?: string; // Referanse til tidligere varsel (valgfritt)
 }
 
 export interface KoeVederlag {
