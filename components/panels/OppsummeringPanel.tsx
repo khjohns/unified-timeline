@@ -2,7 +2,7 @@ import React from 'react';
 import { FormDataModel } from '../../types';
 import { PktAccordion, PktAccordionItem, PktTag } from '@oslokommune/punkt-react';
 import { TABS } from '../../constants';
-import { getKravStatusLabel, getKravStatusSkin, getSvarStatusLabel, getSvarStatusSkin } from '../../utils/statusHelpers';
+import { getSakStatusLabel, getSakStatusSkin, getKravStatusLabel, getKravStatusSkin, getSvarStatusLabel, getSvarStatusSkin } from '../../utils/statusHelpers';
 
 interface OppsummeringPanelProps {
   data: FormDataModel;
@@ -39,6 +39,11 @@ const OppsummeringPanel: React.FC<OppsummeringPanelProps> = ({ data }) => {
                 >
                     <div className="p-4">
                         <dl className="divide-y divide-border-color">
+                            <SummaryItem label="Status">
+                                <PktTag skin={getSakStatusSkin(data.sak.status)}>
+                                    {getSakStatusLabel(data.sak.status)}
+                                </PktTag>
+                            </SummaryItem>
                             <SummaryItem label="Sak-ID" value={data.sak.sak_id_display} />
                             <SummaryItem label="Sakstittel" value={data.sak.sakstittel} />
                             <SummaryItem label="Opprettet dato" value={data.sak.opprettet_dato} />

@@ -5,7 +5,7 @@ import FieldsetCard from '../ui/FieldsetCard';
 import PanelLayout from '../ui/PanelLayout';
 import { PktButton, PktTag } from '@oslokommune/punkt-react';
 import { BH_VEDERLAGSSVAR_OPTIONS, BH_FRISTSVAR_OPTIONS } from '../../constants';
-import { SVAR_STATUS_OPTIONS, getSvarStatusLabel, getSvarStatusSkin } from '../../utils/statusHelpers';
+import { getSvarStatusLabel, getSvarStatusSkin } from '../../utils/statusHelpers';
 
 interface BhSvarPanelProps {
   formData: FormDataModel;
@@ -111,15 +111,6 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
 
                 <FieldsetCard legend="Svar til Krav">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-                    <SelectField
-                      id={`bh_svar.status.${index}`}
-                      label="Status"
-                      value={bh_svar.status || ''}
-                      onChange={value => handleChange(index, 'status', value)}
-                      options={SVAR_STATUS_OPTIONS}
-                      helpText="Velg status for dette svaret"
-                      readOnly={erLaast}
-                    />
                     <InputField
                       id={`bh_svar.koe_revisjonsnr.${index}`}
                       label="Revisjonsnummer"

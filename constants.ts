@@ -151,7 +151,7 @@ export const DEMO_DATA: FormDataModel = {
             koe_revisjonsnr: '2',
             dato_krav_sendt: '',
             for_entreprenor: '',
-            status: '100000002', // Sendt til BH
+            status: '100000001', // Utkast
             vederlag: {
                 krav_vederlag: false,
                 krav_produktivitetstap: false,

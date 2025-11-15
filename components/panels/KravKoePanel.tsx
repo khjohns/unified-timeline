@@ -5,7 +5,7 @@ import FieldsetCard from '../ui/FieldsetCard';
 import PanelLayout from '../ui/PanelLayout';
 import { PktButton, PktCheckbox, PktTag } from '@oslokommune/punkt-react';
 import { VEDERLAGSMETODER_OPTIONS } from '../../constants';
-import { KRAV_STATUS_OPTIONS, getKravStatusLabel, getKravStatusSkin } from '../../utils/statusHelpers';
+import { getKravStatusLabel, getKravStatusSkin } from '../../utils/statusHelpers';
 
 interface KravKoePanelProps {
   formData: FormDataModel;
@@ -91,15 +91,6 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                 </div>
                 <FieldsetCard legend={`Innsending (Revisjon ${koe.koe_revisjonsnr ?? '0'})`}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-                    <SelectField
-                      id={`koe.status.${index}`}
-                      label="Status"
-                      value={koe.status || ''}
-                      onChange={value => handleChange(index, 'status', value)}
-                      options={KRAV_STATUS_OPTIONS}
-                      helpText="Velg status for dette kravet"
-                      readOnly={erLaast}
-                    />
                     <DateField
                       id={`koe.dato_krav_sendt.${index}`}
                       label="Dato krav sendt"
