@@ -129,6 +129,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                               label="Begrunnelse for sen varsling"
                               value={bh_svar.vederlag.varsel_for_sent_begrunnelse}
                               onChange={e => handleChange(index, 'vederlag.varsel_for_sent_begrunnelse', e.target.value)}
+                              helpText="Dokumenter hvorfor varselet kom for sent"
                               required={bh_svar.vederlag.varsel_for_sent}
                               readOnly={erLaast}
                               fullwidth
@@ -153,10 +154,11 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                           type="number"
                           value={bh_svar.vederlag.bh_godkjent_vederlag_belop}
                           onChange={e => handleChange(index, 'vederlag.bh_godkjent_vederlag_belop', e.target.value)}
+                          helpText="Oppgi godkjent beløp i hele kroner"
                           error={errors['bh_svar.vederlag.bh_godkjent_vederlag_belop']}
                           formatAsNumber
                           readOnly={erLaast}
-                          className="max-w-sm"
+                          className="max-w-xs"
                         />
                       </div>
                       <TextareaField
@@ -190,6 +192,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                               label="Begrunnelse for sen varsling"
                               value={bh_svar.frist.varsel_for_sent_begrunnelse}
                               onChange={e => handleChange(index, 'frist.varsel_for_sent_begrunnelse', e.target.value)}
+                              helpText="Dokumenter hvorfor varselet kom for sent"
                               required={bh_svar.frist.varsel_for_sent}
                               readOnly={erLaast}
                               fullwidth
@@ -215,8 +218,10 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                           min={0}
                           value={bh_svar.frist.bh_godkjent_frist_dager}
                           onChange={e => handleChange(index, 'frist.bh_godkjent_frist_dager', e.target.value)}
+                          helpText="Antall godkjente kalenderdager"
                           error={errors['bh_svar.frist.bh_godkjent_frist_dager']}
                           readOnly={erLaast}
+                          className="max-w-xs"
                         />
                       </div>
                       <DateField
@@ -224,6 +229,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                         label="Frist for spesifisering (hvis aktuelt)"
                         value={bh_svar.frist.bh_frist_for_spesifisering}
                         onChange={value => handleChange(index, 'frist.bh_frist_for_spesifisering', value)}
+                        helpText="Frist for ytterligere dokumentasjon"
                         className="max-w-sm"
                         readOnly={erLaast}
                       />
@@ -247,16 +253,16 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                       value={bh_svar.sign.dato_svar_bh}
                       onChange={value => handleChange(index, 'sign.dato_svar_bh', value)}
                       required
-                      className="max-w-sm"
                       readOnly={erLaast}
+                      className="max-w-sm"
                     />
                     <InputField
                       id={`bh_svar.sign.for_byggherre.${index}`}
                       label="Signatur"
                       value={bh_svar.sign.for_byggherre}
                       onChange={e => handleChange(index, 'sign.for_byggherre', e.target.value)}
+                      helpText="Fullt navn på signatar"
                       required
-                      placeholder="Navn på signatar"
                       readOnly={erLaast}
                       className="max-w-sm"
                     />

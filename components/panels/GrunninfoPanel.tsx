@@ -25,7 +25,7 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
                   label="Sakstittel"
                   value={sak.sakstittel}
                   onChange={e => handleChange('sakstittel', e.target.value)}
-                  placeholder=""
+                  helpText="Kort beskrivelse av endringen"
                   error={errors['sak.sakstittel']}
                   readOnly={disabled}
                 />
@@ -35,19 +35,20 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
                     label="Sak-ID"
                     value={sak.sak_id_display}
                     onChange={e => handleChange('sak_id_display', e.target.value)}
-                    placeholder="f.eks. KOE-2025-0001"
+                    helpText="Format: KOE-ÅÅÅÅ-NNNN"
                     error={errors['sak.sak_id_display']}
                     readOnly={disabled}
                     optional
+                    className="max-w-xs"
                   />
                   <InputField
                     id="sak.opprettet_av"
                     label="Opprettet av"
                     value={sak.opprettet_av}
                     onChange={e => handleChange('opprettet_av', e.target.value)}
-                    placeholder="Navn"
                     error={errors['sak.opprettet_av']}
                     readOnly={disabled}
+                    className="max-w-sm"
                   />
                 </div>
                 <DateField
@@ -76,9 +77,10 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
                   label="Prosjektnummer"
                   value={sak.kontrakt_referanse}
                   onChange={e => handleChange('kontrakt_referanse', e.target.value)}
+                  helpText="Prosjektets unike referansenummer"
                   error={errors['sak.kontrakt_referanse']}
                   readOnly={disabled}
-                  className="max-w-sm"
+                  className="max-w-xs"
                 />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <InputField

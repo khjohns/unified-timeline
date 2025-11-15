@@ -109,6 +109,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
                 error={errors['varsel.dato_forhold_oppdaget']}
                 readOnly={isLocked}
                 helpText="Når inntraff hendelsen?"
+                className="max-w-sm"
               />
               <DateField
                 id="varsel.dato_varsel_sendt"
@@ -117,7 +118,8 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
                 onChange={value => handleChange('dato_varsel_sendt', value)}
                 error={errors['varsel.dato_varsel_sendt']}
                 readOnly={isLocked}
-                helpText="Når ble BH formelt varslet?"
+                helpText="Når ble varselet sendt til BH?"
+                className="max-w-sm"
               />
             </div>
             <SelectField
@@ -127,8 +129,8 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
               onChange={value => handleChange('varsel_metode', value)}
               options={varselMetodeOptions}
               readOnly={isLocked}
-              helpText="Hvordan ble varselet kommunisert?"
-              className="max-w-sm"
+              helpText="F.eks. 'E-post til prosjektleder'"
+              className="max-w-md"
             />
           </div>
         </FieldsetCard>
@@ -148,9 +150,10 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
 
             {varsel.hovedkategori && underkategoriOptions.length > 0 && (
               <div className="w-full rounded-lg border bg-white p-4 border-border-color">
-                <label className="block text-sm font-semibold text-ink-dim mb-3">
+                <label className="block text-sm font-semibold text-ink-dim mb-1">
                   Velg underkategori (valgfritt, flere valg er mulig)
                 </label>
+                <p className="text-sm text-muted mb-3">Du kan velge flere underkategorier</p>
                 <div className="space-y-4">
                   {underkategoriOptions.map((opt) => (
                     <PktCheckbox
@@ -173,6 +176,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
               label="Beskrivelse (vis til vedlegg)"
               value={varsel.varsel_beskrivelse}
               onChange={e => handleChange('varsel_beskrivelse', e.target.value)}
+              helpText="Beskriv hva som skjedde og hvorfor det utløser krav"
               readOnly={isLocked}
               optional
               fullwidth
