@@ -1,7 +1,7 @@
 import React from 'react';
 import { FormDataModel } from '../../types';
 import { PktAccordion, PktAccordionItem, PktTag } from '@oslokommune/punkt-react';
-import { TABS } from '../../constants';
+import { TABS, HOVEDKATEGORI_OPTIONS, UNDERKATEGORI_MAP } from '../../constants';
 import { getSakStatusLabel, getSakStatusSkin, getKravStatusLabel, getKravStatusSkin, getSvarStatusLabel, getSvarStatusSkin } from '../../utils/statusHelpers';
 
 interface OppsummeringPanelProps {
@@ -65,8 +65,20 @@ const OppsummeringPanel: React.FC<OppsummeringPanelProps> = ({ data }) => {
                         <dl className="divide-y divide-border-color">
                             <SummaryItem label="Dato forhold oppdaget" value={data.varsel.dato_forhold_oppdaget} />
                             <SummaryItem label="Dato varsel sendt" value={data.varsel.dato_varsel_sendt} />
-                            <SummaryItem label="Hovedkategori" value={data.varsel.hovedkategori} />
-                            <SummaryItem label="Underkategori" value={data.varsel.underkategori} />
+                            <SummaryItem label="Hovedkategori">
+                                {HOVEDKATEGORI_OPTIONS.find(opt => opt.value === data.varsel.hovedkategori)?.label || data.varsel.hovedkategori || '—'}
+                            </SummaryItem>
+                            <SummaryItem label="Underkategori">
+                                {data.varsel.underkategori.length > 0 ? (
+                                    <ul className="list-disc list-inside">
+                                        {data.varsel.underkategori.map((value) => {
+                                            const allOptions = UNDERKATEGORI_MAP[data.varsel.hovedkategori] || [];
+                                            const option = allOptions.find(opt => opt.value === value);
+                                            return <li key={value}>{option?.label || value}</li>;
+                                        })}
+                                    </ul>
+                                ) : '—'}
+                            </SummaryItem>
                             <SummaryItem label="Metode for varsling" value={data.varsel.varsel_metode} />
                             <SummaryItem label="Beskrivelse"><p className="whitespace-pre-wrap">{data.varsel.varsel_beskrivelse || '—'}</p></SummaryItem>
                         </dl>
