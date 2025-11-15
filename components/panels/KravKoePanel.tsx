@@ -136,17 +136,19 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                           type="number"
                           value={koe.vederlag.krav_vederlag_belop}
                           onChange={e => handleChange(index, 'vederlag.krav_vederlag_belop', e.target.value)}
+                          helpText="Oppgi beløp i hele kroner uten mellomrom"
                           required={koe.vederlag.krav_vederlag}
                           error={errors['koe.vederlag.krav_vederlag_belop']}
                           formatAsNumber
                           readOnly={erLaast}
-                          className="max-w-sm"
+                          className="max-w-xs"
                         />
                         <TextareaField
                           id={`koe.vederlag.krav_vederlag_begrunnelse.${index}`}
                           label="Begrunnelse for vederlagskrav"
                           value={koe.vederlag.krav_vederlag_begrunnelse}
                           onChange={e => handleChange(index, 'vederlag.krav_vederlag_begrunnelse', e.target.value)}
+                          helpText="Dokumenter kostnader og grunnlag for kravet"
                           required={koe.vederlag.krav_vederlag}
                           readOnly={erLaast}
                           fullwidth
@@ -190,10 +192,11 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                           min={0}
                           value={koe.frist.krav_frist_antall_dager}
                           onChange={e => handleChange(index, 'frist.krav_frist_antall_dager', e.target.value)}
+                          helpText="Antall kalenderdager"
                           required={koe.frist.krav_fristforlengelse}
                           error={errors['koe.frist.krav_frist_antall_dager']}
                           readOnly={erLaast}
-                          className="max-w-sm"
+                          className="max-w-xs"
                         />
                         <CheckboxField
                           id={`koe.frist.forsinkelse_kritisk_linje.${index}`}
@@ -208,6 +211,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                           label="Begrunnelse for fristforlengelse"
                           value={koe.frist.krav_frist_begrunnelse}
                           onChange={e => handleChange(index, 'frist.krav_frist_begrunnelse', e.target.value)}
+                          helpText="Dokumenter forsinkelsens årsak og påvirkning"
                           required={koe.frist.krav_fristforlengelse}
                           readOnly={erLaast}
                           fullwidth
@@ -225,16 +229,19 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                       value={koe.dato_krav_sendt}
                       onChange={value => handleChange(index, 'dato_krav_sendt', value)}
                       required
-                      helpText="Dato for innsending av denne revisjonen."
+                      helpText="Dato for innsending av denne revisjonen"
                       readOnly={erLaast}
+                      className="max-w-sm"
                     />
                     <InputField
                       id={`koe.for_entreprenor.${index}`}
                       label="Signatur (For entreprenør)"
                       value={koe.for_entreprenor}
                       onChange={e => handleChange(index, 'for_entreprenor', e.target.value)}
+                      helpText="Fullt navn på signatar"
                       required
                       readOnly={erLaast}
+                      className="max-w-sm"
                     />
                   </div>
                 </FieldsetCard>
