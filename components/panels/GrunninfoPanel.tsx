@@ -64,7 +64,7 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
               </div>
             </FieldsetCard>
 
-            <FieldsetCard legend="Prosjekt">
+            <FieldsetCard legend="Prosjektinformasjon">
               <div className="space-y-6">
                 <InputField
                   id="sak.prosjekt_navn"
