@@ -94,7 +94,8 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                 <FieldsetCard legend="Vederlagskrav">
                   <CheckboxField
                     id={`koe.vederlag.krav_vederlag.${index}`}
-                    label="Jeg krever vederlagsjustering for denne endringsordren"
+                    label="Krav om vederlagsjustering"
+                    checkHelptext="For denne endringsordren"
                     checked={koe.vederlag.krav_vederlag}
                     onChange={e => handleChange(index, 'vederlag.krav_vederlag', e.target.checked)}
                     disabled={erLaast}
@@ -106,7 +107,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                       <div className="pl-4 space-y-6">
                         <CheckboxField
                           id={`koe.vederlag.krav_produktivitetstap.${index}`}
-                          label="Kravet inkluderer produktivitetstap som følge av endringen"
+                          label="Kravet inkluderer produktivitetstap"
                           checked={koe.vederlag.krav_produktivitetstap}
                           onChange={e => handleChange(index, 'vederlag.krav_produktivitetstap', e.target.checked)}
                           disabled={erLaast}
@@ -114,7 +115,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                         />
                         <CheckboxField
                           id={`koe.vederlag.saerskilt_varsel_rigg_drift.${index}`}
-                          label="Særskilt varsel er sendt for rigg/drift"
+                          label="Særskilt varsel for rigg/drift"
                           checked={koe.vederlag.saerskilt_varsel_rigg_drift}
                           onChange={e => handleChange(index, 'vederlag.saerskilt_varsel_rigg_drift', e.target.checked)}
                           disabled={erLaast}
@@ -141,7 +142,10 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                           error={errors['koe.vederlag.krav_vederlag_belop']}
                           formatAsNumber
                           readOnly={erLaast}
-                          className="max-w-xs"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          autoComplete="off"
+                          className="w-full md:max-w-xs"
                         />
                         <TextareaField
                           id={`koe.vederlag.krav_vederlag_begrunnelse.${index}`}
@@ -161,7 +165,8 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                 <FieldsetCard legend="Fristforlengelse">
                   <CheckboxField
                     id={`koe.frist.krav_fristforlengelse.${index}`}
-                    label="Jeg krever fristforlengelse for denne endringsordren"
+                    label="Krav om fristforlengelse"
+                    checkHelptext="For denne endringsordren"
                     checked={koe.frist.krav_fristforlengelse}
                     onChange={e => handleChange(index, 'frist.krav_fristforlengelse', e.target.checked)}
                     disabled={erLaast}
@@ -196,7 +201,10 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                           required={koe.frist.krav_fristforlengelse}
                           error={errors['koe.frist.krav_frist_antall_dager']}
                           readOnly={erLaast}
-                          className="max-w-xs"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          autoComplete="off"
+                          className="w-full md:max-w-xs"
                         />
                         <CheckboxField
                           id={`koe.frist.forsinkelse_kritisk_linje.${index}`}
@@ -231,7 +239,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                       required
                       helpText="Dato for innsending av denne revisjonen"
                       readOnly={erLaast}
-                      className="max-w-sm"
+                      className="w-full md:max-w-sm"
                     />
                     <InputField
                       id={`koe.for_entreprenor.${index}`}
@@ -241,7 +249,8 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                       helpText="Fullt navn på signatar"
                       required
                       readOnly={erLaast}
-                      className="max-w-sm"
+                      autoComplete="name"
+                      className="w-full md:max-w-sm"
                     />
                   </div>
                 </FieldsetCard>

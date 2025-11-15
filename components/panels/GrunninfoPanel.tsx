@@ -39,7 +39,8 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
                     error={errors['sak.sak_id_display']}
                     readOnly={disabled}
                     optional
-                    className="max-w-xs"
+                    autoComplete="off"
+                    className="w-full md:max-w-xs"
                   />
                   <InputField
                     id="sak.opprettet_av"
@@ -48,7 +49,8 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
                     onChange={e => handleChange('opprettet_av', e.target.value)}
                     error={errors['sak.opprettet_av']}
                     readOnly={disabled}
-                    className="max-w-sm"
+                    autoComplete="name"
+                    className="w-full md:max-w-sm"
                   />
                 </div>
                 <DateField
@@ -80,7 +82,8 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
                   helpText="Prosjektets unike referansenummer"
                   error={errors['sak.kontrakt_referanse']}
                   readOnly={disabled}
-                  className="max-w-xs"
+                  autoComplete="off"
+                  className="w-full md:max-w-xs"
                 />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <InputField
@@ -90,6 +93,8 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
                     onChange={e => handleChange('entreprenor', e.target.value)}
                     error={errors['sak.entreprenor']}
                     readOnly={disabled}
+                    autoComplete="organization"
+                    className="w-full"
                   />
                   <InputField
                     id="sak.byggherre"
@@ -98,6 +103,8 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
                     onChange={e => handleChange('byggherre', e.target.value)}
                     error={errors['sak.byggherre']}
                     readOnly={disabled}
+                    autoComplete="organization"
+                    className="w-full"
                   />
                 </div>
               </div>
