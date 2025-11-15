@@ -30,7 +30,8 @@ export interface Varsel {
   hovedkategori: string;
   underkategori: string[]; // Endret til array for å tillate multivalg
   varsel_beskrivelse: string;
-  varsel_metode: string;
+  varsel_metode: string; // Kommaseparert string av metoder (f.eks. "E-post, Byggemøte")
+  varsel_metode_annet?: string; // Spesifikasjon hvis "Annet" er valgt
   tidligere_varsel_referanse?: string; // Referanse til tidligere varsel (valgfritt)
 }
 
