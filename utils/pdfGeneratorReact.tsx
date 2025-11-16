@@ -1,6 +1,7 @@
 import React from 'react';
 import { Document, Page, Text, View, Image, StyleSheet, Font, pdf } from '@react-pdf/renderer';
 import { FormDataModel } from '../types';
+import { pdfLabels } from './pdfLabels';
 
 // Register Oslo Sans fonts (all variants)
 Font.register({
@@ -321,8 +322,15 @@ const VarselSection: React.FC<{ data: FormDataModel }> = ({ data }) => (
     <View style={styles.table}>
       <TableRow label="Dato forhold oppdaget" value={data.varsel.dato_forhold_oppdaget || '—'} />
       <TableRow label="Dato varsel sendt" value={data.varsel.dato_varsel_sendt || '—'} striped />
-      <TableRow label="Hovedkategori" value={data.varsel.hovedkategori || '—'} />
-      <TableRow label="Underkategori" value={data.varsel.underkategori || '—'} striped />
+      <TableRow
+        label="Hovedkategori"
+        value={pdfLabels.hovedkategori(data.varsel.hovedkategori)}
+      />
+      <TableRow
+        label="Underkategori"
+        value={pdfLabels.underkategorier(data.varsel.hovedkategori, data.varsel.underkategori)}
+        striped
+      />
     </View>
     <TextBlock title="Beskrivelse:" content={data.varsel.varsel_beskrivelse} />
   </View>
@@ -342,7 +350,10 @@ const KoeRevisionSection: React.FC<{ koe: FormDataModel['koe_revisjoner'][0]; in
         <View style={styles.table}>
           <TableRow label="Krav om produktivitetstap" value={koe.vederlag.krav_produktivitetstap ? 'Ja' : 'Nei'} />
           <TableRow label="Særskilt rigg/drift" value={koe.vederlag.saerskilt_varsel_rigg_drift ? 'Ja' : 'Nei'} striped />
-          <TableRow label="Oppgjørsmetode" value={koe.vederlag.krav_vederlag_metode || '—'} />
+          <TableRow
+            label="Oppgjørsmetode"
+            value={pdfLabels.vederlagsmetode(koe.vederlag.krav_vederlag_metode)}
+          />
           <TableRow
             label="Beløp (NOK)"
             value={
@@ -390,7 +401,11 @@ const BhSvarRevisionSection: React.FC<{
         <Text style={styles.subTitle}>Svar på vederlagskrav</Text>
         <View style={styles.table}>
           <TableRow label="Vederlagsvarsel ansett for sent" value={bhSvar.vederlag.varsel_for_sent ? 'Ja' : 'Nei'} />
-          <TableRow label="Status" value={bhSvar.vederlag.bh_svar_vederlag || '—'} striped />
+          <TableRow
+            label="Status"
+            value={pdfLabels.bhVederlagssvar(bhSvar.vederlag.bh_svar_vederlag)}
+            striped
+          />
           <TableRow
             label="Godkjent beløp (NOK)"
             value={
@@ -412,7 +427,11 @@ const BhSvarRevisionSection: React.FC<{
         <Text style={styles.subTitle}>Svar på fristkrav</Text>
         <View style={styles.table}>
           <TableRow label="Fristvarsel ansett for sent" value={bhSvar.frist.varsel_for_sent ? 'Ja' : 'Nei'} />
-          <TableRow label="Status" value={bhSvar.frist.bh_svar_frist || '—'} striped />
+          <TableRow
+            label="Status"
+            value={pdfLabels.bhFristsvar(bhSvar.frist.bh_svar_frist)}
+            striped
+          />
           <TableRow label="Godkjente dager" value={bhSvar.frist.bh_godkjent_frist_dager || '—'} />
           <TableRow label="Frist for spesifisering" value={bhSvar.frist.bh_frist_for_spesifisering || '—'} striped />
         </View>
