@@ -19,14 +19,37 @@ Font.register({
 });
 
 // Design System Colors (Oslo Kommune official palette)
+// FASE 1.3: Utvidet fargepalett basert på Oslo kommunes offisielle designsystem
 const COLORS = {
-  primary: '#2A2859',      // Oslo mørk blå (official)
+  // Primærfarger (Oslo Kommune offisielle)
+  primary: '#2A2859',      // Oslo mørk blå
   primaryDark: '#2A2859',
-  ink: '#2C2C2C',
-  inkDim: '#4D4D4D',
-  muted: '#666666',
-  border: '#E6E6E6',
-  lightBg: '#F8F0DD',      // Oslo lys beige (official)
+  ink: '#2C2C2C',          // Oslo sort
+  white: '#FFFFFF',
+  lightBg: '#F8F0DD',      // Oslo lys beige
+
+  // Sekundærfarger (Oslo Kommune offisielle)
+  success: '#034B45',      // Oslo mørk grønn
+  successBg: '#C7F6C9',    // Oslo lys grønn
+
+  warning: '#F9C66B',      // Oslo gul
+  warningBg: '#F8F0DD',    // Oslo lys beige (brukes som varm bakgrunn)
+
+  danger: '#FF8274',       // Oslo rød
+  dangerBg: '#F8F0DD',     // Oslo lys beige (ingen lys rød finnes i paletten)
+
+  info: '#2A2859',         // Oslo mørk blå (gjenbruk av primary)
+  infoBg: '#B3F5FF',       // Oslo lys blå
+
+  neutral: '#D0BFAE',      // Oslo mørk beige
+  neutralBg: '#F8F0DD',    // Oslo lys beige
+
+  // DEPRECATED - Bruk opacity i stedet for å følge designsystemet
+  // Disse fargene er ikke en del av Oslo kommunes offisielle palett
+  // For dimmet tekst, bruk: style={{ color: COLORS.ink, opacity: 0.7 }}
+  inkDim: '#4D4D4D',       // DEPRECATED: Bruk COLORS.ink med opacity: 0.7
+  muted: '#666666',        // DEPRECATED: Bruk COLORS.ink med opacity: 0.5
+  border: '#E6E6E6',       // DEPRECATED: Bruk COLORS.neutral med opacity: 0.3
 };
 
 // Stylesheet
@@ -138,20 +161,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
-    paddingVertical: 5,
+    paddingVertical: 6, // FASE 1.2: Økt fra 5 til 6 for bedre lesbarhet
   },
   tableRowStriped: {
-    backgroundColor: '#F9F9F9',
+    backgroundColor: '#F5F5F5', // FASE 1.2: Mørkere fra #F9F9F9 for bedre visuell separasjon
   },
   tableLabel: {
     fontSize: 9,
     fontWeight: 'bold',
-    width: '40%',
+    width: '45%', // FASE 1.2: Økt fra 40% til 45%
     paddingRight: 10,
+    color: COLORS.inkDim, // FASE 1.2: Lagt til farge for bedre visuell hierarki
   },
   tableValue: {
     fontSize: 9,
-    width: '60%',
+    width: '55%', // FASE 1.2: Redusert fra 60% til 55%
+    color: COLORS.ink, // FASE 1.2: Lagt til farge for konsistens
   },
   textBlock: {
     marginBottom: 8,
@@ -213,6 +238,24 @@ const Footer: React.FC<{ pageNumber: number; totalPages: number }> = ({ pageNumb
     </Text>
     <Text>
       Side {pageNumber} av {totalPages}
+    </Text>
+  </View>
+);
+
+// FASE 1.4: Metadata footer for siste side
+const MetadataFooter: React.FC<{
+  generatedBy: string;
+  system: string;
+  version: string;
+}> = ({ generatedBy, system, version }) => (
+  <View style={{
+    marginTop: 30,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  }}>
+    <Text style={{ fontSize: 7, color: COLORS.muted }}>
+      Generert av: {generatedBy} • System: {system} v{version} • Oslo Kommune
     </Text>
   </View>
 );
@@ -392,7 +435,9 @@ const BhSvarRevisionSection: React.FC<{
   bhSvar: FormDataModel['bh_svar_revisjoner'][0];
   koe: FormDataModel['koe_revisjoner'][0];
   index: number;
-}> = ({ bhSvar, koe, index }) => (
+  isLast?: boolean; // FASE 1.4: Flagg for å vise metadata footer på siste side
+  data?: FormDataModel; // FASE 1.4: Trenger data for versjon
+}> = ({ bhSvar, koe, index, isLast, data }) => (
   <View wrap={false}>
     <Text style={styles.mainTitle}>BH Svar (Revisjon {koe.koe_revisjonsnr || index})</Text>
 
@@ -455,56 +500,86 @@ const BhSvarRevisionSection: React.FC<{
         </View>
       </View>
     )}
+
+    {/* FASE 1.4: Metadata footer på siste side */}
+    {isLast && data && (
+      <MetadataFooter
+        generatedBy={data.sak.opprettet_av || 'Ukjent'}
+        system="KOE - Krav om endringsordre"
+        version={data.versjon || '5.0'}
+      />
+    )}
   </View>
 );
 
 // Main Document Component
-const KoePdfDocument: React.FC<{ data: FormDataModel }> = ({ data }) => (
-  <Document
-    title={data.sak.sakstittel || 'KOE – Krav om endringsordre'}
-    author={data.sak.opprettet_av || 'Oslo Kommune'}
-  >
-    {/* Page 1: Title and Summary */}
-    <Page size="A4" style={styles.page}>
-      <Header data={data} />
-      <TitlePage data={data} />
-      <SummarySection data={data} />
-      <Footer pageNumber={1} totalPages={data.koe_revisjoner.length + data.bh_svar_revisjoner.length + 2} />
-    </Page>
+const KoePdfDocument: React.FC<{ data: FormDataModel }> = ({ data }) => {
+  // FASE 1.1: Filtrer kun sendte revisjoner (fjerner tomme utkast-sider)
+  const senteKoeRevisjoner = data.koe_revisjoner.filter(
+    koe => koe.dato_krav_sendt && koe.dato_krav_sendt !== ''
+  );
 
-    {/* Page 2: Varsel */}
-    <Page size="A4" style={styles.page}>
-      <Header data={data} />
-      <VarselSection data={data} />
-      <Footer pageNumber={2} totalPages={data.koe_revisjoner.length + data.bh_svar_revisjoner.length + 2} />
-    </Page>
+  const senteBhSvarRevisjoner = data.bh_svar_revisjoner.filter(
+    (_, index) => data.koe_revisjoner[index]?.dato_krav_sendt && data.koe_revisjoner[index]?.dato_krav_sendt !== ''
+  );
 
-    {/* KOE Revisjoner */}
-    {data.koe_revisjoner.map((koe, index) => (
-      <Page key={`koe-${index}`} size="A4" style={styles.page}>
+  // Beregn korrekt antall sider (2 faste sider + kun sendte revisjoner)
+  const totalPages = 2 + senteKoeRevisjoner.length + senteBhSvarRevisjoner.length;
+
+  return (
+    <Document
+      title={data.sak.sakstittel || 'KOE – Krav om endringsordre'}
+      author={data.sak.opprettet_av || 'Oslo Kommune'}
+    >
+      {/* Page 1: Title and Summary */}
+      <Page size="A4" style={styles.page}>
         <Header data={data} />
-        <KoeRevisionSection koe={koe} index={index} />
-        <Footer pageNumber={3 + index} totalPages={data.koe_revisjoner.length + data.bh_svar_revisjoner.length + 2} />
+        <TitlePage data={data} />
+        <SummarySection data={data} />
+        <Footer pageNumber={1} totalPages={totalPages} />
       </Page>
-    ))}
 
-    {/* BH Svar Revisjoner */}
-    {data.bh_svar_revisjoner.map((bhSvar, index) => {
-      const correspondingKoe = data.koe_revisjoner[index];
-      if (!correspondingKoe) return null;
-      return (
-        <Page key={`bh-${index}`} size="A4" style={styles.page}>
+      {/* Page 2: Varsel */}
+      <Page size="A4" style={styles.page}>
+        <Header data={data} />
+        <VarselSection data={data} />
+        <Footer pageNumber={2} totalPages={totalPages} />
+      </Page>
+
+      {/* KOE Revisjoner - kun sendte */}
+      {senteKoeRevisjoner.map((koe, index) => (
+        <Page key={`koe-${index}`} size="A4" style={styles.page}>
           <Header data={data} />
-          <BhSvarRevisionSection bhSvar={bhSvar} koe={correspondingKoe} index={index} />
-          <Footer
-            pageNumber={3 + data.koe_revisjoner.length + index}
-            totalPages={data.koe_revisjoner.length + data.bh_svar_revisjoner.length + 2}
-          />
+          <KoeRevisionSection koe={koe} index={index} />
+          <Footer pageNumber={3 + index} totalPages={totalPages} />
         </Page>
-      );
-    })}
-  </Document>
-);
+      ))}
+
+      {/* BH Svar Revisjoner - kun for sendte krav */}
+      {senteBhSvarRevisjoner.map((bhSvar, index) => {
+        const correspondingKoe = senteKoeRevisjoner[index];
+        const isLastPage = index === senteBhSvarRevisjoner.length - 1; // FASE 1.4: Sjekk om dette er siste side
+        if (!correspondingKoe) return null;
+        return (
+          <Page key={`bh-${index}`} size="A4" style={styles.page}>
+            <Header data={data} />
+            <BhSvarRevisionSection
+              bhSvar={bhSvar}
+              koe={correspondingKoe}
+              index={index}
+              isLast={isLastPage}
+              data={data}
+            />
+            <Footer
+              pageNumber={3 + senteKoeRevisjoner.length + index}
+              totalPages={totalPages}
+            />
+          </Page>
+        );
+      })}
+    </Document>
+  );
+};
 
 // Export function
 export const generatePdfReact = async (data: FormDataModel) => {
