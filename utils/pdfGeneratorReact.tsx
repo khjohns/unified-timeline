@@ -439,6 +439,38 @@ const StatusBadge: React.FC<{
   );
 };
 
+// FASE 3.2: Signature Block komponent
+const SignatureBlock: React.FC<{
+  title?: string;
+  name?: string;
+  date?: string;
+}> = ({ title = 'Signatur', name, date }) => {
+  if (!name && !date) return null;
+
+  return (
+    <View style={{ marginTop: 20 }}>
+      {title && <Text style={styles.subTitle}>{title}</Text>}
+      {date && (
+        <View style={styles.table}>
+          <TableRow label="Dato" value={date} />
+        </View>
+      )}
+      <View style={{ marginTop: 15 }}>
+        <View style={{
+          borderBottomWidth: 1,
+          borderBottomColor: COLORS.ink,
+          width: 200,
+          height: 40,
+          marginBottom: 5,
+        }} />
+        <Text style={{ fontSize: 9, color: COLORS.inkDim }}>
+          {name || '—'}
+        </Text>
+      </View>
+    </View>
+  );
+};
+
 // FASE 2.1: Executive Summary komponent
 const ExecutiveSummary: React.FC<{ data: FormDataModel }> = ({ data }) => {
   // Beregn totaler basert på sendte revisjoner
@@ -647,7 +679,8 @@ const SummarySection: React.FC<{ data: FormDataModel }> = ({ data }) => {
 };
 
 const VarselSection: React.FC<{ data: FormDataModel }> = ({ data }) => (
-  <View>
+  // FASE 3.1: Wrap og minPresenceAhead for dynamisk page breaking
+  <View wrap minPresenceAhead={80}>
     <Text style={styles.mainTitle}>Varsel</Text>
     <View style={styles.table}>
       <TableRow label="Dato forhold oppdaget" value={data.varsel.dato_forhold_oppdaget || '—'} />
@@ -714,13 +747,11 @@ const KoeRevisionSection: React.FC<{ koe: FormDataModel['koe_revisjoner'][0]; in
       </View>
     )}
 
-    {/* ENDRING: Oppdatert signaturlayout for å få navn på ny linje */}
-    {koe.for_entreprenor && (
-      <View style={styles.signatureRow}>
-        <Text style={styles.signatureLabel}>For Entreprenør</Text>
-        <Text style={{ marginTop: 15 }}>{koe.for_entreprenor || '—'}</Text>
-      </View>
-    )}
+    {/* FASE 3.2: SignatureBlock for entreprenør */}
+    <SignatureBlock
+      title="For Entreprenør"
+      name={koe.for_entreprenor}
+    />
   </View>
 );
 
@@ -786,19 +817,12 @@ const BhSvarRevisionSection: React.FC<{
       </View>
     )}
 
-    {/* ENDRING: Oppdatert signaturlayout for å få navn på ny linje */}
-    {(bhSvar.sign.dato_svar_bh || bhSvar.sign.for_byggherre) && (
-      <View>
-        <Text style={styles.subTitle}>Signatur</Text>
-        <View style={styles.table}>
-          <TableRow label="Dato for BH svar" value={bhSvar.sign.dato_svar_bh || '—'} />
-        </View>
-        <View style={styles.signatureRow}>
-          <Text style={styles.signatureLabel}>For Byggherre</Text>
-          <Text style={{ marginTop: 15 }}>{bhSvar.sign.for_byggherre || '—'}</Text>
-        </View>
-      </View>
-    )}
+    {/* FASE 3.2: SignatureBlock for byggherre */}
+    <SignatureBlock
+      title="For Byggherre"
+      name={bhSvar.sign.for_byggherre}
+      date={bhSvar.sign.dato_svar_bh}
+    />
 
     {/* FASE 1.4: Metadata footer på siste side */}
     {isLast && data && (
@@ -822,29 +846,24 @@ const KoePdfDocument: React.FC<{ data: FormDataModel }> = ({ data }) => {
     (_, index) => data.koe_revisjoner[index]?.dato_krav_sendt && data.koe_revisjoner[index]?.dato_krav_sendt !== ''
   );
 
-  // Beregn korrekt antall sider (2 faste sider + kun sendte revisjoner)
-  const totalPages = 2 + senteKoeRevisjoner.length + senteBhSvarRevisjoner.length;
+  // FASE 3.1: Oppdatert sidetelling - 1 fast side (Title/Summary/Executive/Varsel kombinert) + revisjoner
+  const totalPages = 1 + senteKoeRevisjoner.length + senteBhSvarRevisjoner.length;
 
   return (
     <Document
       title={data.sak.sakstittel || 'KOE – Krav om endringsordre'}
       author={data.sak.opprettet_av || 'Oslo Kommune'}
     >
-      {/* Page 1: Title and Summary */}
+      {/* FASE 3.1: Side 1 - Kombinert TitlePage, SummarySection, ExecutiveSummary og VarselSection */}
       <Page size="A4" style={styles.page}>
         <Header data={data} />
         <TitlePage data={data} />
         <SummarySection data={data} />
         {/* FASE 2.2: Executive Summary plassert mellom SummarySection og Varsel */}
         <ExecutiveSummary data={data} />
-        <Footer pageNumber={1} totalPages={totalPages} />
-      </Page>
-
-      {/* Page 2: Varsel */}
-      <Page size="A4" style={styles.page}>
-        <Header data={data} />
+        {/* FASE 3.1: VarselSection flyttet til side 1 med dynamisk page breaking */}
         <VarselSection data={data} />
-        <Footer pageNumber={2} totalPages={totalPages} />
+        <Footer pageNumber={1} totalPages={totalPages} />
       </Page>
 
       {/* KOE Revisjoner - kun sendte */}
@@ -852,7 +871,7 @@ const KoePdfDocument: React.FC<{ data: FormDataModel }> = ({ data }) => {
         <Page key={`koe-${index}`} size="A4" style={styles.page}>
           <Header data={data} />
           <KoeRevisionSection koe={koe} index={index} />
-          <Footer pageNumber={3 + index} totalPages={totalPages} />
+          <Footer pageNumber={2 + index} totalPages={totalPages} />
         </Page>
       ))}
 
@@ -872,7 +891,7 @@ const KoePdfDocument: React.FC<{ data: FormDataModel }> = ({ data }) => {
               data={data}
             />
             <Footer
-              pageNumber={3 + senteKoeRevisjoner.length + index}
+              pageNumber={2 + senteKoeRevisjoner.length + index}
               totalPages={totalPages}
             />
           </Page>
