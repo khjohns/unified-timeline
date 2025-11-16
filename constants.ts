@@ -103,6 +103,11 @@ export const DEMO_DATA: FormDataModel = {
         underkategori: ['130000000'], // Endret til array med value-koden
         varsel_beskrivelse: 'Det ble oppdaget avvik mellom tegning F-01 rev. B og faktiske grunnforhold ved akse 1200-1400. Fundament må prosjekteres om for å håndtere uforutsette mengder med løsmasser.',
         varsel_metode: 'E-post',
+        vedlegg: [
+            'Fotodokumentasjon_grunnforhold_20231010.pdf',
+            'Tegning_F-01_rev_B_opprinnelig.pdf',
+            'Geoteknisk_rapport_oppdatert.pdf',
+        ],
     },
     koe_revisjoner: [
         {
@@ -125,6 +130,11 @@ export const DEMO_DATA: FormDataModel = {
                 forsinkelse_kritisk_linje: true,
                 krav_frist_begrunnelse: 'Arbeidet med støyskjerm A3 er på kritisk linje for ferdigstillelse av delfelt 3. Forsinkelsen forplanter seg til asfaltering som er væravhengig.',
             },
+            vedlegg: [
+                'Detaljert_kalkyle_fundament_rev0.xlsx',
+                'Tegninger_nye_fundamenter_rev0.pdf',
+                'Timeregistrering_prosjektering.pdf',
+            ],
         },
         {
             koe_revisjonsnr: '1',
@@ -146,6 +156,10 @@ export const DEMO_DATA: FormDataModel = {
                 forsinkelse_kritisk_linje: true,
                 krav_frist_begrunnelse: 'Ytterligere fristforlengelse som følge av at BH ikke godkjente opprinnelig krav i sin helhet. Dette har medført ytterligere forsinkelse i fremdriften.',
             },
+            vedlegg: [
+                'Produktivitetstap_beregning_rev1.xlsx',
+                'Dagbok_ventetid_5dager.pdf',
+            ],
         },
         {
             koe_revisjonsnr: '2',
@@ -194,6 +208,10 @@ export const DEMO_DATA: FormDataModel = {
                 for_byggherre: 'Lise Hansen',
             },
             status: '300000002', // Delvis Godkjent
+            vedlegg: [
+                'BH_vurdering_krav_rev0.pdf',
+                'Møtereferat_20231102.pdf',
+            ],
         },
         {
             vederlag: {
@@ -219,6 +237,9 @@ export const DEMO_DATA: FormDataModel = {
                 for_byggherre: 'Lise Hansen',
             },
             status: '300000002', // Delvis Godkjent
+            vedlegg: [
+                'BH_vurdering_krav_rev1.pdf',
+            ],
         }
     ],
 };
