@@ -2,6 +2,7 @@ import React from 'react';
 import { Document, Page, Text, View, Image, StyleSheet, Font, pdf } from '@react-pdf/renderer';
 import { FormDataModel } from '../types';
 import { pdfLabels } from './pdfLabels';
+import { getKravStatusSkin, getSvarStatusSkin, getSakStatusSkin } from './statusHelpers';
 
 // Register Oslo Sans fonts (all variants)
 Font.register({
@@ -192,6 +193,116 @@ const styles = StyleSheet.create({
     lineHeight: 1.4,
     paddingLeft: 5,
   },
+  // FASE 2.1: Executive Summary styles
+  executiveSummary: {
+    marginTop: 15,
+    marginBottom: 15,
+  },
+  summaryGrid: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 10,
+  },
+  summaryCard: {
+    flex: 1,
+    backgroundColor: COLORS.lightBg,
+    padding: 10,
+    borderRadius: 3,
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.primary,
+  },
+  summaryCardWarning: {
+    borderLeftColor: COLORS.warning,
+    backgroundColor: COLORS.warningBg,
+  },
+  summaryCardSuccess: {
+    borderLeftColor: COLORS.success,
+    backgroundColor: COLORS.successBg,
+  },
+  summaryCardTitle: {
+    fontSize: 8,
+    color: COLORS.inkDim,
+    marginBottom: 4,
+  },
+  summaryCardValue: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: COLORS.ink,
+  },
+  summaryCardSubtext: {
+    fontSize: 7,
+    color: COLORS.muted,
+    marginTop: 2,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  statusText: {
+    fontSize: 9,
+    color: COLORS.ink,
+  },
+  // FASE 2.3: Status Badge styles
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 3,
+    alignSelf: 'flex-start',
+  },
+  statusBadgeText: {
+    fontSize: 8,
+    fontWeight: 'bold',
+  },
+  statusBadgeBlue: {
+    backgroundColor: COLORS.infoBg,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+  },
+  statusBadgeBlueText: {
+    color: COLORS.primary,
+  },
+  statusBadgeGreen: {
+    backgroundColor: COLORS.successBg,
+    borderWidth: 1,
+    borderColor: COLORS.success,
+  },
+  statusBadgeGreenText: {
+    color: COLORS.success,
+  },
+  statusBadgeRed: {
+    backgroundColor: COLORS.dangerBg,
+    borderWidth: 1,
+    borderColor: COLORS.danger,
+  },
+  statusBadgeRedText: {
+    color: COLORS.danger,
+  },
+  statusBadgeYellow: {
+    backgroundColor: COLORS.warningBg,
+    borderWidth: 1,
+    borderColor: COLORS.warning,
+  },
+  statusBadgeYellowText: {
+    color: COLORS.ink,
+  },
+  statusBadgeBeige: {
+    backgroundColor: COLORS.neutralBg,
+    borderWidth: 1,
+    borderColor: COLORS.neutral,
+  },
+  statusBadgeBeigeText: {
+    color: COLORS.ink,
+  },
+  statusBadgeGrey: {
+    backgroundColor: '#F5F5F5',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  statusBadgeGreyText: {
+    color: COLORS.muted,
+  },
   footer: {
     position: 'absolute',
     bottom: 15,
@@ -273,6 +384,182 @@ const TextBlock: React.FC<{ title: string; content: string }> = ({ title, conten
     <View style={styles.textBlock}>
       <Text style={styles.textBlockTitle}>{title}</Text>
       <Text style={styles.textBlockContent}>{content}</Text>
+    </View>
+  );
+};
+
+// FASE 2.3: Status Badge komponent
+const StatusBadge: React.FC<{
+  type: 'krav' | 'svar' | 'sak';
+  status?: string;
+  label?: string;
+}> = ({ type, status, label }) => {
+  if (!status) return null;
+
+  // Hent skin basert på type
+  let skin: 'blue' | 'green' | 'red' | 'beige' | 'yellow' | 'grey' = 'grey';
+  let displayLabel = label;
+
+  if (type === 'krav') {
+    skin = getKravStatusSkin(status as any);
+    if (!displayLabel) displayLabel = pdfLabels.kravStatus(status as any);
+  } else if (type === 'svar') {
+    skin = getSvarStatusSkin(status as any);
+    if (!displayLabel) displayLabel = pdfLabels.svarStatus(status as any);
+  } else if (type === 'sak') {
+    skin = getSakStatusSkin(status as any);
+    if (!displayLabel) displayLabel = pdfLabels.sakStatus(status as any);
+  }
+
+  // Map skin til styles
+  const badgeStyle = [
+    styles.statusBadge,
+    skin === 'blue' && styles.statusBadgeBlue,
+    skin === 'green' && styles.statusBadgeGreen,
+    skin === 'red' && styles.statusBadgeRed,
+    skin === 'yellow' && styles.statusBadgeYellow,
+    skin === 'beige' && styles.statusBadgeBeige,
+    skin === 'grey' && styles.statusBadgeGrey,
+  ].filter(Boolean);
+
+  const textStyle = [
+    styles.statusBadgeText,
+    skin === 'blue' && styles.statusBadgeBlueText,
+    skin === 'green' && styles.statusBadgeGreenText,
+    skin === 'red' && styles.statusBadgeRedText,
+    skin === 'yellow' && styles.statusBadgeYellowText,
+    skin === 'beige' && styles.statusBadgeBeigeText,
+    skin === 'grey' && styles.statusBadgeGreyText,
+  ].filter(Boolean);
+
+  return (
+    <View style={badgeStyle}>
+      <Text style={textStyle}>{displayLabel}</Text>
+    </View>
+  );
+};
+
+// FASE 2.1: Executive Summary komponent
+const ExecutiveSummary: React.FC<{ data: FormDataModel }> = ({ data }) => {
+  // Beregn totaler basert på sendte revisjoner
+  const senteKoeRevisjoner = data.koe_revisjoner.filter(
+    koe => koe.dato_krav_sendt && koe.dato_krav_sendt !== ''
+  );
+
+  const senteBhSvarRevisjoner = data.bh_svar_revisjoner.filter(
+    (_, index) => data.koe_revisjoner[index]?.dato_krav_sendt && data.koe_revisjoner[index]?.dato_krav_sendt !== ''
+  );
+
+  // Beregn vederlagstotaler
+  const totalKravVederlag = senteKoeRevisjoner.reduce(
+    (sum, koe) => sum + (parseFloat(koe.vederlag.krav_vederlag_belop || '0')), 0
+  );
+
+  const totalGodkjentVederlag = senteBhSvarRevisjoner.reduce(
+    (sum, bhSvar) => sum + (parseFloat(bhSvar.vederlag.bh_godkjent_vederlag_belop || '0')), 0
+  );
+
+  const vederlagsDifferanse = totalKravVederlag - totalGodkjentVederlag;
+
+  // Beregn fristtotaler
+  const totalKravFrist = senteKoeRevisjoner.reduce(
+    (sum, koe) => sum + (parseInt(koe.frist.krav_frist_antall_dager || '0', 10)), 0
+  );
+
+  const totalGodkjentFrist = senteBhSvarRevisjoner.reduce(
+    (sum, bhSvar) => sum + (parseInt(bhSvar.frist.bh_godkjent_frist_dager || '0', 10)), 0
+  );
+
+  const fristDifferanse = totalKravFrist - totalGodkjentFrist;
+
+  // Hent status fra siste revisjon
+  const latestKoe = senteKoeRevisjoner[senteKoeRevisjoner.length - 1];
+
+  // Vis kun hvis vi har sendte revisjoner
+  if (senteKoeRevisjoner.length === 0) return null;
+
+  return (
+    <View style={styles.executiveSummary}>
+      <Text style={styles.subTitle}>Økonomisk oversikt</Text>
+
+      {/* Vederlag */}
+      {totalKravVederlag > 0 && (
+        <View style={styles.summaryGrid}>
+          <View style={styles.summaryCard}>
+            <Text style={styles.summaryCardTitle}>Totalt krevd vederlag</Text>
+            <Text style={styles.summaryCardValue}>
+              {totalKravVederlag.toLocaleString('no-NO')} NOK
+            </Text>
+            <Text style={styles.summaryCardSubtext}>
+              {senteKoeRevisjoner.length} {senteKoeRevisjoner.length === 1 ? 'revisjon' : 'revisjoner'}
+            </Text>
+          </View>
+
+          <View style={[styles.summaryCard, styles.summaryCardSuccess]}>
+            <Text style={styles.summaryCardTitle}>Totalt godkjent vederlag</Text>
+            <Text style={styles.summaryCardValue}>
+              {totalGodkjentVederlag.toLocaleString('no-NO')} NOK
+            </Text>
+            <Text style={styles.summaryCardSubtext}>
+              {senteBhSvarRevisjoner.length} {senteBhSvarRevisjoner.length === 1 ? 'svar' : 'svar'}
+            </Text>
+          </View>
+
+          <View style={[
+            styles.summaryCard,
+            vederlagsDifferanse > 0 && styles.summaryCardWarning
+          ]}>
+            <Text style={styles.summaryCardTitle}>Differanse</Text>
+            <Text style={styles.summaryCardValue}>
+              {vederlagsDifferanse.toLocaleString('no-NO')} NOK
+            </Text>
+            <Text style={styles.summaryCardSubtext}>
+              {vederlagsDifferanse > 0 ? 'Under behandling' : 'Fullstendig godkjent'}
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* Frist */}
+      {totalKravFrist > 0 && (
+        <View style={styles.summaryGrid}>
+          <View style={styles.summaryCard}>
+            <Text style={styles.summaryCardTitle}>Totalt krevd fristforlengelse</Text>
+            <Text style={styles.summaryCardValue}>
+              {totalKravFrist} dager
+            </Text>
+          </View>
+
+          <View style={[styles.summaryCard, styles.summaryCardSuccess]}>
+            <Text style={styles.summaryCardTitle}>Totalt godkjent fristforlengelse</Text>
+            <Text style={styles.summaryCardValue}>
+              {totalGodkjentFrist} dager
+            </Text>
+          </View>
+
+          <View style={[
+            styles.summaryCard,
+            fristDifferanse > 0 && styles.summaryCardWarning
+          ]}>
+            <Text style={styles.summaryCardTitle}>Differanse</Text>
+            <Text style={styles.summaryCardValue}>
+              {fristDifferanse} dager
+            </Text>
+            <Text style={styles.summaryCardSubtext}>
+              {fristDifferanse > 0 ? 'Under behandling' : 'Fullstendig godkjent'}
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* Status */}
+      {latestKoe && (
+        <View style={styles.statusRow}>
+          <Text style={styles.statusText}>
+            Status siste revisjon: {pdfLabels.kravStatus(latestKoe.status)}
+          </Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -381,7 +668,13 @@ const VarselSection: React.FC<{ data: FormDataModel }> = ({ data }) => (
 
 const KoeRevisionSection: React.FC<{ koe: FormDataModel['koe_revisjoner'][0]; index: number }> = ({ koe, index }) => (
   <View wrap={false}>
-    <Text style={styles.mainTitle}>Krav (Revisjon {koe.koe_revisjonsnr || index})</Text>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 15, marginBottom: 10 }}>
+      <Text style={{ fontSize: 14, fontWeight: 'bold', color: COLORS.primary }}>
+        Krav (Revisjon {koe.koe_revisjonsnr || index})
+      </Text>
+      {/* FASE 2.3: Status badge for krav */}
+      <StatusBadge type="krav" status={koe.status} />
+    </View>
     <View style={styles.table}>
       <TableRow label="Revisjonsnummer" value={koe.koe_revisjonsnr || '—'} />
       <TableRow label="Dato krav sendt" value={koe.dato_krav_sendt || '—'} striped />
@@ -439,7 +732,13 @@ const BhSvarRevisionSection: React.FC<{
   data?: FormDataModel; // FASE 1.4: Trenger data for versjon
 }> = ({ bhSvar, koe, index, isLast, data }) => (
   <View wrap={false}>
-    <Text style={styles.mainTitle}>BH Svar (Revisjon {koe.koe_revisjonsnr || index})</Text>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 15, marginBottom: 10 }}>
+      <Text style={{ fontSize: 14, fontWeight: 'bold', color: COLORS.primary }}>
+        BH Svar (Revisjon {koe.koe_revisjonsnr || index})
+      </Text>
+      {/* FASE 2.3: Status badge for BH svar */}
+      <StatusBadge type="svar" status={bhSvar.status} />
+    </View>
 
     {koe.vederlag.krav_vederlag && (
       <View>
@@ -536,6 +835,8 @@ const KoePdfDocument: React.FC<{ data: FormDataModel }> = ({ data }) => {
         <Header data={data} />
         <TitlePage data={data} />
         <SummarySection data={data} />
+        {/* FASE 2.2: Executive Summary plassert mellom SummarySection og Varsel */}
+        <ExecutiveSummary data={data} />
         <Footer pageNumber={1} totalPages={totalPages} />
       </Page>
 
