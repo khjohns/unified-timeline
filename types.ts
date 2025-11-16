@@ -33,6 +33,7 @@ export interface Varsel {
   varsel_metode: string; // Kommaseparert string av metoder (f.eks. "E-post, Byggemøte")
   varsel_metode_annet?: string; // Spesifikasjon hvis "Annet" er valgt
   tidligere_varsel_referanse?: string; // Referanse til tidligere varsel (valgfritt)
+  vedlegg?: string[]; // FASE 4.2: Liste over vedlegg til varsel
 }
 
 export interface KoeVederlag {
@@ -66,6 +67,7 @@ export interface Koe {
   vederlag: KoeVederlag;
   frist: KoeFrist;
   status?: KoeStatus;
+  vedlegg?: string[]; // FASE 4.2: Liste over vedlegg til krav
 }
 
 export interface BhSvarVederlag {
@@ -107,6 +109,7 @@ export interface BhSvar {
   mote_referat: string;
   sign: BhSvarSign;
   status?: BhSvarStatus;
+  vedlegg?: string[]; // FASE 4.2: Liste over vedlegg til BH svar
 }
 
 export interface FormDataModel {

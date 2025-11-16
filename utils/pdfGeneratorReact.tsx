@@ -471,6 +471,93 @@ const SignatureBlock: React.FC<{
   );
 };
 
+// FASE 4.2: Attachments Section komponent
+const AttachmentsSection: React.FC<{ data: FormDataModel }> = ({ data }) => {
+  // Samle alle vedlegg fra varsel, krav og svar
+  interface Attachment {
+    source: string;
+    files: string[];
+  }
+
+  const attachments: Attachment[] = [];
+
+  // Vedlegg fra varsel
+  if (data.varsel.vedlegg && data.varsel.vedlegg.length > 0) {
+    attachments.push({
+      source: 'Varsel',
+      files: data.varsel.vedlegg,
+    });
+  }
+
+  // Vedlegg fra krav-revisjoner (kun sendte)
+  const senteKoeRevisjoner = data.koe_revisjoner.filter(
+    koe => koe.dato_krav_sendt && koe.dato_krav_sendt !== ''
+  );
+
+  senteKoeRevisjoner.forEach((koe, index) => {
+    if (koe.vedlegg && koe.vedlegg.length > 0) {
+      attachments.push({
+        source: `Krav - Revisjon ${koe.koe_revisjonsnr || index + 1}`,
+        files: koe.vedlegg,
+      });
+    }
+  });
+
+  // Vedlegg fra BH svar-revisjoner (kun for sendte krav)
+  const senteBhSvarRevisjoner = data.bh_svar_revisjoner.filter(
+    (_, index) => data.koe_revisjoner[index]?.dato_krav_sendt && data.koe_revisjoner[index]?.dato_krav_sendt !== ''
+  );
+
+  senteBhSvarRevisjoner.forEach((bhSvar, index) => {
+    if (bhSvar.vedlegg && bhSvar.vedlegg.length > 0) {
+      const correspondingKoe = senteKoeRevisjoner[index];
+      attachments.push({
+        source: `BH Svar - Revisjon ${correspondingKoe?.koe_revisjonsnr || index + 1}`,
+        files: bhSvar.vedlegg,
+      });
+    }
+  });
+
+  // Vis kun hvis det finnes vedlegg
+  if (attachments.length === 0) return null;
+
+  return (
+    <View wrap minPresenceAhead={100}>
+      <Text style={styles.mainTitle}>Vedleggsreferanser</Text>
+      <Text style={{ fontSize: 9, color: COLORS.inkDim, marginBottom: 10 }}>
+        Totalt {attachments.reduce((sum, att) => sum + att.files.length, 0)} vedlegg
+      </Text>
+
+      {attachments.map((attachment, attIndex) => (
+        <View key={attIndex} style={{ marginBottom: 15 }}>
+          <Text style={styles.subTitle}>{attachment.source}</Text>
+          <View style={{ marginLeft: 10 }}>
+            {attachment.files.map((file, fileIndex) => (
+              <View
+                key={fileIndex}
+                style={{
+                  flexDirection: 'row',
+                  marginBottom: 4,
+                  paddingVertical: 3,
+                  borderBottomWidth: fileIndex < attachment.files.length - 1 ? 1 : 0,
+                  borderBottomColor: COLORS.border,
+                }}
+              >
+                <Text style={{ fontSize: 9, color: COLORS.ink, width: 30 }}>
+                  {fileIndex + 1}.
+                </Text>
+                <Text style={{ fontSize: 9, color: COLORS.ink, flex: 1 }}>
+                  {file}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+};
+
 // FASE 2.1: Executive Summary komponent
 const ExecutiveSummary: React.FC<{ data: FormDataModel }> = ({ data }) => {
   // Beregn totaler basert på sendte revisjoner
@@ -699,7 +786,12 @@ const VarselSection: React.FC<{ data: FormDataModel }> = ({ data }) => (
   </View>
 );
 
-const KoeRevisionSection: React.FC<{ koe: FormDataModel['koe_revisjoner'][0]; index: number }> = ({ koe, index }) => (
+const KoeRevisionSection: React.FC<{
+  koe: FormDataModel['koe_revisjoner'][0];
+  index: number;
+  isLast?: boolean;
+  data?: FormDataModel;
+}> = ({ koe, index, isLast, data }) => (
   <View wrap={false}>
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 15, marginBottom: 10 }}>
       <Text style={{ fontSize: 14, fontWeight: 'bold', color: COLORS.primary }}>
@@ -752,6 +844,18 @@ const KoeRevisionSection: React.FC<{ koe: FormDataModel['koe_revisjoner'][0]; in
       title="For Entreprenør"
       name={koe.for_entreprenor}
     />
+
+    {/* FASE 4.2: Vedleggsreferanser på siste side hvis ingen BH svar */}
+    {isLast && data && <AttachmentsSection data={data} />}
+
+    {/* FASE 4.2: Metadata footer på siste side hvis ingen BH svar */}
+    {isLast && data && (
+      <MetadataFooter
+        generatedBy={data.sak.opprettet_av || 'Ukjent'}
+        system="KOE - Krav om endringsordre"
+        version={data.versjon || '5.0'}
+      />
+    )}
   </View>
 );
 
@@ -824,6 +928,9 @@ const BhSvarRevisionSection: React.FC<{
       date={bhSvar.sign.dato_svar_bh}
     />
 
+    {/* FASE 4.2: Vedleggsreferanser på siste side */}
+    {isLast && data && <AttachmentsSection data={data} />}
+
     {/* FASE 1.4: Metadata footer på siste side */}
     {isLast && data && (
       <MetadataFooter
@@ -867,13 +974,22 @@ const KoePdfDocument: React.FC<{ data: FormDataModel }> = ({ data }) => {
       </Page>
 
       {/* KOE Revisjoner - kun sendte */}
-      {senteKoeRevisjoner.map((koe, index) => (
-        <Page key={`koe-${index}`} size="A4" style={styles.page}>
-          <Header data={data} />
-          <KoeRevisionSection koe={koe} index={index} />
-          <Footer pageNumber={2 + index} totalPages={totalPages} />
-        </Page>
-      ))}
+      {senteKoeRevisjoner.map((koe, index) => {
+        // FASE 4.2: Sjekk om dette er siste side (hvis ingen BhSvar-revisjoner)
+        const isLastKoePage = senteBhSvarRevisjoner.length === 0 && index === senteKoeRevisjoner.length - 1;
+        return (
+          <Page key={`koe-${index}`} size="A4" style={styles.page}>
+            <Header data={data} />
+            <KoeRevisionSection
+              koe={koe}
+              index={index}
+              isLast={isLastKoePage}
+              data={isLastKoePage ? data : undefined}
+            />
+            <Footer pageNumber={2 + index} totalPages={totalPages} />
+          </Page>
+        );
+      })}
 
       {/* BH Svar Revisjoner - kun for sendte krav */}
       {senteBhSvarRevisjoner.map((bhSvar, index) => {
