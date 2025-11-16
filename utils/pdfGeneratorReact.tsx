@@ -471,20 +471,20 @@ const SignatureBlock: React.FC<{
   );
 };
 
-// FASE 4.2: Attachments Section komponent
+// FASE 4.2: Attachments Section komponent (forenklet layout)
 const AttachmentsSection: React.FC<{ data: FormDataModel }> = ({ data }) => {
   // Samle alle vedlegg fra varsel, krav og svar
-  interface Attachment {
-    source: string;
+  interface AttachmentGroup {
+    title: string;
     files: string[];
   }
 
-  const attachments: Attachment[] = [];
+  const attachmentGroups: AttachmentGroup[] = [];
 
   // Vedlegg fra varsel
   if (data.varsel.vedlegg && data.varsel.vedlegg.length > 0) {
-    attachments.push({
-      source: 'Varsel',
+    attachmentGroups.push({
+      title: 'Varsel',
       files: data.varsel.vedlegg,
     });
   }
@@ -496,8 +496,8 @@ const AttachmentsSection: React.FC<{ data: FormDataModel }> = ({ data }) => {
 
   senteKoeRevisjoner.forEach((koe, index) => {
     if (koe.vedlegg && koe.vedlegg.length > 0) {
-      attachments.push({
-        source: `Krav - Revisjon ${koe.koe_revisjonsnr || index + 1}`,
+      attachmentGroups.push({
+        title: `Krav - Revisjon ${koe.koe_revisjonsnr || index + 1}`,
         files: koe.vedlegg,
       });
     }
@@ -511,45 +511,35 @@ const AttachmentsSection: React.FC<{ data: FormDataModel }> = ({ data }) => {
   senteBhSvarRevisjoner.forEach((bhSvar, index) => {
     if (bhSvar.vedlegg && bhSvar.vedlegg.length > 0) {
       const correspondingKoe = senteKoeRevisjoner[index];
-      attachments.push({
-        source: `BH Svar - Revisjon ${correspondingKoe?.koe_revisjonsnr || index + 1}`,
+      attachmentGroups.push({
+        title: `BH Svar - Revisjon ${correspondingKoe?.koe_revisjonsnr || index + 1}`,
         files: bhSvar.vedlegg,
       });
     }
   });
 
   // Vis kun hvis det finnes vedlegg
-  if (attachments.length === 0) return null;
+  if (attachmentGroups.length === 0) return null;
+
+  const totalCount = attachmentGroups.reduce((sum, group) => sum + group.files.length, 0);
 
   return (
-    <View style={{ marginTop: 30 }} wrap={true}>
-      <Text style={styles.mainTitle}>Vedleggsreferanser</Text>
-      <Text style={{ fontSize: 9, color: COLORS.inkDim, marginBottom: 10 }}>
-        Totalt {attachments.reduce((sum, att) => sum + att.files.length, 0)} vedlegg
+    <View wrap={false} style={{ marginTop: 20 }}>
+      <Text style={[styles.mainTitle, { marginBottom: 5 }]}>Vedleggsreferanser</Text>
+      <Text style={{ fontSize: 10, marginBottom: 10, color: COLORS.inkDim }}>
+        Totalt {totalCount} vedlegg
       </Text>
 
-      {attachments.map((attachment, attIndex) => (
-        <View key={attIndex} style={{ marginBottom: 12 }} wrap={false}>
-          <Text style={styles.subTitle}>{attachment.source}</Text>
-          <View style={{ marginLeft: 10 }}>
-            {attachment.files.map((file, fileIndex) => (
-              <View
-                key={fileIndex}
-                style={{
-                  flexDirection: 'row',
-                  marginBottom: 3,
-                  paddingVertical: 2,
-                }}
-              >
-                <Text style={{ fontSize: 9, color: COLORS.ink, width: 25 }}>
-                  {fileIndex + 1}.
-                </Text>
-                <Text style={{ fontSize: 9, color: COLORS.ink, flex: 1 }}>
-                  {file}
-                </Text>
-              </View>
-            ))}
-          </View>
+      {attachmentGroups.map((group, groupIndex) => (
+        <View key={groupIndex} style={{ marginBottom: 12 }}>
+          <Text style={[styles.subTitle, { marginBottom: 6 }]}>
+            {group.title}
+          </Text>
+          {group.files.map((filnavn, fileIndex) => (
+            <Text key={fileIndex} style={{ fontSize: 9, marginLeft: 8, marginBottom: 2 }}>
+              {fileIndex + 1}. {filnavn}
+            </Text>
+          ))}
         </View>
       ))}
     </View>
