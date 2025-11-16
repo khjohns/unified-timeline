@@ -74,14 +74,14 @@ const styles = StyleSheet.create({
     marginRight: -42,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between', // Logo til høyre, tekst til venstre
   },
   headerLogo: {
-    // ENDRING: Satt kun høyde for å bevare aspect ratio. Fjernet fast 'width: 80'.
+    // ENDRING: Satt kun høyde for å bevare aspect ratio. Flyttet til høyre.
     height: 60,
-    marginRight: 15,
   },
   headerContent: {
-    flex: 1,
+    // Fjernet flex: 1 for å la tekst ligge helt til venstre
   },
   headerTitle: {
     fontSize: 16,
@@ -107,13 +107,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    // ENDRING: Økt avstand til Sak-ID
-    marginBottom: 12,
+    // ENDRING: marginBottom fjernet siden tittel og sak-ID nå er i flexDirection: 'row'
   },
   sakId: {
     fontSize: 14,
     color: COLORS.primaryDark,
-    marginBottom: 15,
+    // ENDRING: marginBottom fjernet siden tittel og sak-ID nå er i flexDirection: 'row'
   },
   infoBox: {
     backgroundColor: COLORS.lightBg,
@@ -330,14 +329,14 @@ const styles = StyleSheet.create({
 // Components
 const Header: React.FC<{ data: FormDataModel }> = ({ data }) => (
   <View style={styles.header}>
-    <Image
-      src="/Skjema_Endringsmeldinger/logos/Oslo-logo-hvit-RGB.png"
-      style={styles.headerLogo}
-    />
     <View style={styles.headerContent}>
       <Text style={styles.headerTitle}>KOE – Krav om endringsordre</Text>
       <Text style={styles.headerSubtitle}>NS 8407:2011</Text>
     </View>
+    <Image
+      src="/Skjema_Endringsmeldinger/logos/Oslo-logo-hvit-RGB.png"
+      style={styles.headerLogo}
+    />
   </View>
 );
 
@@ -683,8 +682,11 @@ const ExecutiveSummary: React.FC<{ data: FormDataModel }> = ({ data }) => {
 
 const TitlePage: React.FC<{ data: FormDataModel }> = ({ data }) => (
   <View>
-    <Text style={styles.title}>{data.sak.sakstittel || 'Uten tittel'}</Text>
-    <Text style={styles.sakId}>Sak-ID: {data.sak.sak_id_display || 'Ikke angitt'}</Text>
+    {/* ENDRING: Tittel og Sak-ID på samme linje for konsistent utseende */}
+    <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 15, marginBottom: 15 }}>
+      <Text style={styles.title}>{data.sak.sakstittel || 'Uten tittel'}</Text>
+      <Text style={styles.sakId}>Sak-ID: {data.sak.sak_id_display || 'Ikke angitt'}</Text>
+    </View>
 
     <View style={styles.infoBox}>
       <View style={styles.infoColumn}>
