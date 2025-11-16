@@ -787,9 +787,7 @@ const VarselSection: React.FC<{ data: FormDataModel }> = ({ data }) => (
 const KoeRevisionSection: React.FC<{
   koe: FormDataModel['koe_revisjoner'][0];
   index: number;
-  isLast?: boolean;
-  data?: FormDataModel;
-}> = ({ koe, index, isLast, data }) => (
+}> = ({ koe, index }) => (
   <View wrap={false}>
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 15, marginBottom: 10 }}>
       <Text style={{ fontSize: 14, fontWeight: 'bold', color: COLORS.primary }}>
@@ -842,18 +840,6 @@ const KoeRevisionSection: React.FC<{
       title="For Entreprenør"
       name={koe.for_entreprenor}
     />
-
-    {/* FASE 4.2: Vedleggsreferanser på siste side hvis ingen BH svar */}
-    {isLast && data && <AttachmentsSection data={data} />}
-
-    {/* FASE 4.2: Metadata footer på siste side hvis ingen BH svar */}
-    {isLast && data && (
-      <MetadataFooter
-        generatedBy={data.sak.opprettet_av || 'Ukjent'}
-        system="KOE - Krav om endringsordre"
-        version={data.versjon || '5.0'}
-      />
-    )}
   </View>
 );
 
@@ -861,9 +847,7 @@ const BhSvarRevisionSection: React.FC<{
   bhSvar: FormDataModel['bh_svar_revisjoner'][0];
   koe: FormDataModel['koe_revisjoner'][0];
   index: number;
-  isLast?: boolean; // FASE 1.4: Flagg for å vise metadata footer på siste side
-  data?: FormDataModel; // FASE 1.4: Trenger data for versjon
-}> = ({ bhSvar, koe, index, isLast, data }) => (
+}> = ({ bhSvar, koe, index }) => (
   <View wrap={false}>
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 15, marginBottom: 10 }}>
       <Text style={{ fontSize: 14, fontWeight: 'bold', color: COLORS.primary }}>
@@ -925,18 +909,6 @@ const BhSvarRevisionSection: React.FC<{
       name={bhSvar.sign.for_byggherre}
       date={bhSvar.sign.dato_svar_bh}
     />
-
-    {/* FASE 4.2: Vedleggsreferanser på siste side */}
-    {isLast && data && <AttachmentsSection data={data} />}
-
-    {/* FASE 1.4: Metadata footer på siste side */}
-    {isLast && data && (
-      <MetadataFooter
-        generatedBy={data.sak.opprettet_av || 'Ukjent'}
-        system="KOE - Krav om endringsordre"
-        version={data.versjon || '5.0'}
-      />
-    )}
   </View>
 );
 
@@ -951,8 +923,15 @@ const KoePdfDocument: React.FC<{ data: FormDataModel }> = ({ data }) => {
     (_, index) => data.koe_revisjoner[index]?.dato_krav_sendt && data.koe_revisjoner[index]?.dato_krav_sendt !== ''
   );
 
-  // FASE 3.1: Oppdatert sidetelling - 1 fast side (Title/Summary/Executive/Varsel kombinert) + revisjoner
-  const totalPages = 1 + senteKoeRevisjoner.length + senteBhSvarRevisjoner.length;
+  // FASE 4.2: Sjekk om det finnes vedlegg
+  const harVedlegg = (
+    (data.varsel.vedlegg && data.varsel.vedlegg.length > 0) ||
+    senteKoeRevisjoner.some(koe => koe.vedlegg && koe.vedlegg.length > 0) ||
+    senteBhSvarRevisjoner.some(svar => svar.vedlegg && svar.vedlegg.length > 0)
+  );
+
+  // FASE 3.1 & 4.2: Oppdatert sidetelling - 1 fast side + revisjoner + vedleggsside (hvis aktuelt)
+  const totalPages = 1 + senteKoeRevisjoner.length + senteBhSvarRevisjoner.length + (harVedlegg ? 1 : 0);
 
   return (
     <Document
@@ -972,45 +951,40 @@ const KoePdfDocument: React.FC<{ data: FormDataModel }> = ({ data }) => {
       </Page>
 
       {/* KOE Revisjoner - kun sendte */}
-      {senteKoeRevisjoner.map((koe, index) => {
-        // FASE 4.2: Sjekk om dette er siste side (hvis ingen BhSvar-revisjoner)
-        const isLastKoePage = senteBhSvarRevisjoner.length === 0 && index === senteKoeRevisjoner.length - 1;
-        return (
-          <Page key={`koe-${index}`} size="A4" style={styles.page}>
-            <Header data={data} />
-            <KoeRevisionSection
-              koe={koe}
-              index={index}
-              isLast={isLastKoePage}
-              data={isLastKoePage ? data : undefined}
-            />
-            <Footer pageNumber={2 + index} totalPages={totalPages} />
-          </Page>
-        );
-      })}
+      {senteKoeRevisjoner.map((koe, index) => (
+        <Page key={`koe-${index}`} size="A4" style={styles.page}>
+          <Header data={data} />
+          <KoeRevisionSection koe={koe} index={index} />
+          <Footer pageNumber={2 + index} totalPages={totalPages} />
+        </Page>
+      ))}
 
       {/* BH Svar Revisjoner - kun for sendte krav */}
       {senteBhSvarRevisjoner.map((bhSvar, index) => {
         const correspondingKoe = senteKoeRevisjoner[index];
-        const isLastPage = index === senteBhSvarRevisjoner.length - 1; // FASE 1.4: Sjekk om dette er siste side
         if (!correspondingKoe) return null;
         return (
           <Page key={`bh-${index}`} size="A4" style={styles.page}>
             <Header data={data} />
-            <BhSvarRevisionSection
-              bhSvar={bhSvar}
-              koe={correspondingKoe}
-              index={index}
-              isLast={isLastPage}
-              data={data}
-            />
-            <Footer
-              pageNumber={2 + senteKoeRevisjoner.length + index}
-              totalPages={totalPages}
-            />
+            <BhSvarRevisionSection bhSvar={bhSvar} koe={correspondingKoe} index={index} />
+            <Footer pageNumber={2 + senteKoeRevisjoner.length + index} totalPages={totalPages} />
           </Page>
         );
       })}
+
+      {/* FASE 4.2: Dedikert vedleggsside (kun hvis det finnes vedlegg) */}
+      {harVedlegg && (
+        <Page size="A4" style={styles.page}>
+          <Header data={data} />
+          <AttachmentsSection data={data} />
+          <MetadataFooter
+            generatedBy={data.sak.opprettet_av || 'Ukjent'}
+            system="KOE - Krav om endringsordre"
+            version={data.versjon || '5.0'}
+          />
+          <Footer pageNumber={totalPages} totalPages={totalPages} />
+        </Page>
+      )}
     </Document>
   );
 };
