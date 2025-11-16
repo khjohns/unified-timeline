@@ -522,14 +522,14 @@ const AttachmentsSection: React.FC<{ data: FormDataModel }> = ({ data }) => {
   if (attachments.length === 0) return null;
 
   return (
-    <View wrap minPresenceAhead={100}>
+    <View style={{ marginTop: 30 }} wrap={true}>
       <Text style={styles.mainTitle}>Vedleggsreferanser</Text>
       <Text style={{ fontSize: 9, color: COLORS.inkDim, marginBottom: 10 }}>
         Totalt {attachments.reduce((sum, att) => sum + att.files.length, 0)} vedlegg
       </Text>
 
       {attachments.map((attachment, attIndex) => (
-        <View key={attIndex} style={{ marginBottom: 15 }}>
+        <View key={attIndex} style={{ marginBottom: 12 }} wrap={false}>
           <Text style={styles.subTitle}>{attachment.source}</Text>
           <View style={{ marginLeft: 10 }}>
             {attachment.files.map((file, fileIndex) => (
@@ -537,13 +537,11 @@ const AttachmentsSection: React.FC<{ data: FormDataModel }> = ({ data }) => {
                 key={fileIndex}
                 style={{
                   flexDirection: 'row',
-                  marginBottom: 4,
-                  paddingVertical: 3,
-                  borderBottomWidth: fileIndex < attachment.files.length - 1 ? 1 : 0,
-                  borderBottomColor: COLORS.border,
+                  marginBottom: 3,
+                  paddingVertical: 2,
                 }}
               >
-                <Text style={{ fontSize: 9, color: COLORS.ink, width: 30 }}>
+                <Text style={{ fontSize: 9, color: COLORS.ink, width: 25 }}>
                   {fileIndex + 1}.
                 </Text>
                 <Text style={{ fontSize: 9, color: COLORS.ink, flex: 1 }}>

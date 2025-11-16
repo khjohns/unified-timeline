@@ -81,12 +81,23 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
-      setUploadedFiles(prev => [...prev, ...Array.from(files)]);
+      const newFiles = Array.from(files);
+      setUploadedFiles(prev => {
+        const updated = [...prev, ...newFiles];
+        // Oppdater også formData med filnavnene
+        handleChange('vedlegg', updated.map(f => f.name));
+        return updated;
+      });
     }
   };
 
   const handleRemoveFile = (index: number) => {
-    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+    setUploadedFiles(prev => {
+      const updated = prev.filter((_, i) => i !== index);
+      // Oppdater også formData
+      handleChange('vedlegg', updated.map(f => f.name));
+      return updated;
+    });
   };
 
   const handleSendVarsel = () => {
