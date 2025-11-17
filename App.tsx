@@ -183,7 +183,10 @@ const App: React.FC = () => {
     };
 
     const handleCompareRevisions = () => {
+        alert('Button clicked!'); // Debug test
+        console.log('handleCompareRevisions called');
         const revisjoner = formData.koe_revisjoner;
+        console.log('revisjoner.length:', revisjoner.length);
         if (revisjoner.length < 2) {
             setToastMessage('Du må ha minst 2 revisjoner for å sammenligne');
             setTimeout(() => setToastMessage(''), 3000);
@@ -193,6 +196,7 @@ const App: React.FC = () => {
         const oldRev = revisjoner[revisjoner.length - 2];
         const newRev = revisjoner[revisjoner.length - 1];
         const changes = compareRevisions(oldRev, newRev);
+        console.log('changes:', changes);
 
         if (changes.length === 0) {
             openModal(
@@ -359,6 +363,7 @@ const App: React.FC = () => {
                     </PktButton>
                     {formData.koe_revisjoner.length >= 2 && (
                         <PktButton
+                            type="button"
                             skin="secondary"
                             size="small"
                             onClick={handleCompareRevisions}
