@@ -5,10 +5,8 @@ import Toast from './components/ui/Toast';
 // import { generatePdf } from './utils/pdfGenerator'; // FJERNET
 import { generatePdfReact } from './utils/pdfGeneratorReact';
 import { PktHeader, PktButton, PktTabs, PktTabItem } from '@oslokommune/punkt-react';
-import Modal from './components/ui/Modal';
 import { useSkjemaData } from './hooks/useSkjemaData';
 import { useAutoSave } from './hooks/useAutoSave';
-import { compareRevisions } from './utils/compareRevisions';
 
 import GrunninfoPanel from './components/panels/GrunninfoPanel';
 import VarselPanel from './components/panels/VarselPanel';
@@ -21,19 +19,6 @@ import SidePanel from './components/ui/SidePanel';
 const App: React.FC = () => {
     const [activeTab, setActiveTab] = useState(0);
     const [toastMessage, setToastMessage] = useState('');
-    const [modalConfig, setModalConfig] = useState<{
-        isOpen: boolean;
-        title: string;
-        content: React.ReactNode;
-        showConfirm?: boolean;
-        onConfirm?: () => void;
-    }>({
-        isOpen: false,
-        title: '',
-        content: '',
-        showConfirm: false,
-        onConfirm: () => {},
-    });
 
     // Use custom hooks for state management and auto-save
     const { formData, setFormData, handleInputChange, errors, setErrors } = useSkjemaData(INITIAL_FORM_DATA);
@@ -67,27 +52,6 @@ const App: React.FC = () => {
     const handleRoleChange = (newRole: Role) => {
         setFormData(prev => ({ ...prev, rolle: newRole }));
     };
-
-    const openModal = useCallback((title: string, content: React.ReactNode, onConfirm?: () => void, showConfirm = false) => {
-        setModalConfig({
-            isOpen: true,
-            title,
-            content,
-            onConfirm,
-            showConfirm,
-        });
-    }, []);
-
-    const closeModal = useCallback(() => {
-        setModalConfig(prev => ({ ...prev, isOpen: false }));
-    }, []);
-
-    const handleModalConfirm = useCallback(() => {
-        if (modalConfig.onConfirm) {
-            modalConfig.onConfirm();
-        }
-        closeModal();
-    }, [modalConfig.onConfirm, closeModal]);
 
     const handleReset = () => {
     if (window.confirm('Er du sikker på at du vil nullstille skjemaet? Alle data vil gå tapt.')) {
@@ -172,52 +136,6 @@ const App: React.FC = () => {
         // }
         await generatePdfReact(formData); // ENDRET: Kun react-pdf
     };
-
-    const handleCompareRevisions = useCallback(() => {
-        console.log('handleCompareRevisions called');
-        const revisjoner = formData.koe_revisjoner;
-        if (revisjoner.length < 2) {
-            setToastMessage('Du må ha minst 2 revisjoner for å sammenligne');
-            setTimeout(() => setToastMessage(''), 3000);
-            return;
-        }
-
-        const oldRev = revisjoner[revisjoner.length - 2];
-        const newRev = revisjoner[revisjoner.length - 1];
-        const changes = compareRevisions(oldRev, newRev);
-
-        if (changes.length === 0) {
-            openModal(
-                `Sammenligning: Revisjon ${oldRev.koe_revisjonsnr} → ${newRev.koe_revisjonsnr}`,
-                <p className="text-muted">Ingen endringer funnet mellom revisjonene.</p>,
-                undefined,
-                false
-            );
-        } else {
-            openModal(
-                `Sammenligning: Revisjon ${oldRev.koe_revisjonsnr} → ${newRev.koe_revisjonsnr}`,
-                (
-                    <div className="space-y-4">
-                        <p className="text-sm text-muted mb-4">Følgende endringer er gjort:</p>
-                        <ul className="space-y-3">
-                            {changes.map((change, idx) => (
-                                <li key={idx} className="border-l-4 border-pri pl-4 py-2 bg-gray-50 rounded">
-                                    <div className="font-semibold text-sm">{change.field}</div>
-                                    <div className="text-xs text-muted mt-1">
-                                        <span className="line-through">{change.oldValue}</span>
-                                        {' → '}
-                                        <span className="text-pri font-medium">{change.newValue}</span>
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                ),
-                undefined,
-                false
-            );
-        }
-    }, [formData.koe_revisjoner, openModal, setToastMessage]);
 
     // Helper function to add a new BH svar revision
     const addBhSvarRevisjon = () => {
@@ -349,18 +267,6 @@ const App: React.FC = () => {
                     >
                         Last ned PDF
                     </PktButton>
-                    {formData.koe_revisjoner.length >= 2 && (
-                        <button
-                            type="button"
-                            onClick={handleCompareRevisions}
-                            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-md border border-border-color bg-white text-ink hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-pri focus:ring-offset-2 transition-colors"
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                            Sammenlign revisjoner
-                        </button>
-                    )}
                     <PktButton
                         skin="secondary"
                         size="small"
@@ -432,17 +338,8 @@ const App: React.FC = () => {
 
                 </div>
             </main>
-            
+
             {toastMessage && <Toast message={toastMessage} />}
-            <Modal
-                isOpen={modalConfig.isOpen}
-                onClose={closeModal}
-                title={modalConfig.title}
-                showConfirm={modalConfig.showConfirm}
-                onConfirm={handleModalConfirm}
-            >
-                {modalConfig.content}
-            </Modal>
         </div>
     );
 };
