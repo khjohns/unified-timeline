@@ -63,7 +63,7 @@ const App: React.FC = () => {
             document.body.classList.remove('bh-active');
         }
     }, [formData.rolle]);
-    
+
     const handleRoleChange = (newRole: Role) => {
         setFormData(prev => ({ ...prev, rolle: newRole }));
     };
@@ -182,7 +182,8 @@ const App: React.FC = () => {
         await generatePdfReact(formData); // ENDRET: Kun react-pdf
     };
 
-    const handleCompareRevisions = () => {
+    const handleCompareRevisions = useCallback(() => {
+        console.log('handleCompareRevisions called');
         const revisjoner = formData.koe_revisjoner;
         if (revisjoner.length < 2) {
             setToastMessage('Du må ha minst 2 revisjoner for å sammenligne');
@@ -358,15 +359,16 @@ const App: React.FC = () => {
                         Last ned PDF
                     </PktButton>
                     {formData.koe_revisjoner.length >= 2 && (
-                        <PktButton
-                            skin="secondary"
-                            size="small"
+                        <button
+                            type="button"
                             onClick={handleCompareRevisions}
-                            iconName="refresh"
-                            variant="icon-left"
+                            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-md border border-border-color bg-white text-ink hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-pri focus:ring-offset-2 transition-colors"
                         >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
                             Sammenlign revisjoner
-                        </PktButton>
+                        </button>
                     )}
                     <PktButton
                         skin="secondary"
