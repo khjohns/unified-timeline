@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { FormDataModel, Role, BhSvar, Koe } from './types';
 import { TABS, INITIAL_FORM_DATA, DEMO_DATA } from './constants';
 import Toast from './components/ui/Toast';
-// import { generatePdf } from './utils/pdfGenerator'; // FJERNET
 import { generatePdfReact } from './utils/pdfGeneratorReact';
 import { PktHeader, PktButton, PktTabs, PktTabItem } from '@oslokommune/punkt-react';
 import { useSkjemaData } from './hooks/useSkjemaData';
@@ -125,16 +124,8 @@ const App: React.FC = () => {
         return true;
     };
 
-    // const handleNextTab = () => { ... }; // FJERNET
-    // const handlePrevTab = () => { ... }; // FJERNET
-    
     const handleDownloadPdf = async () => {
-        // if (pdfMethod === 'jspdf') { // FJERNET
-        //     generatePdf(formData);
-        // } else {
-        //     await generatePdfReact(formData);
-        // }
-        await generatePdfReact(formData); // ENDRET: Kun react-pdf
+        await generatePdfReact(formData);
     };
 
     // Helper function to add a new BH svar revision
@@ -209,7 +200,6 @@ const App: React.FC = () => {
                     <PktTabItem
                         key={tab.label}
                         active={activeTab === idx}
-                        // ENDRET: onClick har nå fri navigasjon
                         onClick={() => {
                             setActiveTab(idx);
                             window.scrollTo(0, 0);
@@ -255,9 +245,6 @@ const App: React.FC = () => {
                     Nullstill
                 </button>
                 <div className="flex gap-3 flex-wrap items-center">
-                    
-                    {/* FJERNET: PDF-metode dropdown */}
-                    
                     <PktButton
                         skin="secondary"
                         size="small"
@@ -276,27 +263,18 @@ const App: React.FC = () => {
                     >
                         Eksempel
                     </PktButton>
-                    
-                    {/* FJERNET: 'Forrige' og 'Neste' knapper */}
-                
                 </div>
             </div>
         </div>
     );
-
-
-    // Fil: App.tsx
 
     return (
         <div className="bg-body-bg min-h-screen text-ink font-sans">
             <PktHeader
                 serviceName="Skjema for krav om endringsordre (KOE)"
                 user={{ name: formData.rolle === 'TE' ? 'Total Entreprenør' : 'Byggherren', showName: true }}
-                
-                // Gjort headeren fast
-                fixed={true} 
+                fixed={true}
             >
-                {/* BH/TE-knappen er flyttet inn her som 'children' */}
                 <div className="flex items-center gap-3 ml-4">
                     <span className="text-sm font-medium text-ink-dim hidden sm:inline">Rolle:</span>
                     <div className="isolate inline-flex rounded-md shadow-sm">
@@ -317,10 +295,7 @@ const App: React.FC = () => {
                     </div>
                 </div>
             </PktHeader>
-            
-            {/* FJERNET: Den separate <header>-blokken for tabs */}
-    
-            {/* ENDRET: 'pt-24' for å gi plass til den faste headeren */}
+
             <main className="pt-24 pb-8 sm:pb-12">
                 <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 lg:grid lg:grid-cols-3 lg:gap-12">
 

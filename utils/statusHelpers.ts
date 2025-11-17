@@ -123,9 +123,3 @@ export const getSvarStatusSkin = (status?: BhSvarStatus): 'blue' | 'green' | 're
       return 'grey';
   }
 };
-
-// ============ DEPRECATED (for bakoverkompatibilitet) ============
-// Disse kan fjernes når alle komponenter er oppdatert
-export const STATUS_OPTIONS = KRAV_STATUS_OPTIONS;
-export const getStatusLabel = getKravStatusLabel;
-export const getStatusSkin = getKravStatusSkin;
