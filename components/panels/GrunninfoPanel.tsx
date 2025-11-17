@@ -39,7 +39,7 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
                     readOnly={disabled}
                     optional
                     autoComplete="off"
-                    className="max-w-sm"
+                    className="max-w-xs"
                   />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <InputField
@@ -50,7 +50,7 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
                     error={errors['sak.opprettet_av']}
                     readOnly={disabled}
                     autoComplete="name"
-                    className="w-full md:max-w-sm"
+                    className="max-w-md"
                   />
                   <DateField
                     id="sak.opprettet_dato"
@@ -58,7 +58,7 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
                     value={sak.opprettet_dato}
                     onChange={()=>{}}
                     readOnly
-                    className="max-w-sm"
+                    className="max-w-xs"
                   />
                 </div>
               </div>
