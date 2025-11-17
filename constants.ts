@@ -314,3 +314,8 @@ export const BH_FRISTSVAR_OPTIONS = [
     { value: "100000003", label: "Avslått (for sent varslet)" },
     { value: "100000004", label: "Avventer (ber om nærmere spesifikasjon)" },
 ];
+
+// File upload constants
+export const ACCEPTED_FILE_TYPES = ".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png";
+export const ACCEPTED_FILE_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png'];
+
