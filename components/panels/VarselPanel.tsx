@@ -6,6 +6,8 @@ import PanelLayout from '../ui/PanelLayout';
 import { HOVEDKATEGORI_OPTIONS, UNDERKATEGORI_MAP } from '../../constants';
 import { PktButton, PktAlert, PktCheckbox, PktRadioButton } from '@oslokommune/punkt-react';
 import { useFileUpload } from '../../hooks/useFileUpload';
+import FileUploadField from '../ui/FileUploadField';
+import { showToast } from '../../utils/toastHelpers';
 
 interface VarselPanelProps {
   formData: FormDataModel;
@@ -81,34 +83,29 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
 
   const handleSendVarsel = () => {
     if (!varsel.dato_forhold_oppdaget || !varsel.hovedkategori) {
-      setToastMessage?.('Vennligst fyll ut alle påkrevde felt før du sender varselet');
-      setTimeout(() => setToastMessage?.(''), 3000);
+      showToast(setToastMessage, 'Vennligst fyll ut alle påkrevde felt før du sender varselet');
       return;
     }
 
     // Sjekk at varsel-felt er fylt ut hvis dette er tidligere varslet
     if (erTidligereVarslet === 'ja') {
       if (!varsel.dato_varsel_sendt) {
-        setToastMessage?.('Vennligst oppgi når varselet ble sendt');
-        setTimeout(() => setToastMessage?.(''), 3000);
+        showToast(setToastMessage, 'Vennligst oppgi når varselet ble sendt');
         return;
       }
       if (varselMetoder.length === 0) {
-        setToastMessage?.('Vennligst velg minst én metode for varsling');
-        setTimeout(() => setToastMessage?.(''), 3000);
+        showToast(setToastMessage, 'Vennligst velg minst én metode for varsling');
         return;
       }
       if (varselMetoder.includes('Annet') && !varsel.varsel_metode_annet) {
-        setToastMessage?.('Vennligst spesifiser annen metode');
-        setTimeout(() => setToastMessage?.(''), 3000);
+        showToast(setToastMessage, 'Vennligst spesifiser annen metode');
         return;
       }
     }
 
     setFormStatus?.('krav');
     setActiveTab?.(2);
-    setToastMessage?.('Varsel sendt! Nå kan du spesifisere kravet.');
-    setTimeout(() => setToastMessage?.(''), 3000);
+    showToast(setToastMessage, 'Varsel sendt! Nå kan du spesifisere kravet.');
   };
 
   // Metoder for varsling som checkboxes
@@ -281,50 +278,14 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
         </FieldsetCard>
 
         <FieldsetCard legend="Vedlegg">
-          <div className="space-y-4">
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              onChange={handleFileChange}
-              className="hidden"
-              accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-              disabled={isLocked}
-            />
-            <PktButton
-              skin="secondary"
-              size="medium"
-              iconName="attachment"
-              variant="icon-left"
-              onClick={handleFileUploadClick}
-              disabled={isLocked}
-            >
-              Last opp vedlegg
-            </PktButton>
-            {uploadedFiles.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-ink">Opplastede filer:</p>
-                <ul className="space-y-2">
-                  {uploadedFiles.map((file, index) => (
-                    <li key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-border-color">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-ink">{file.name}</span>
-                        <span className="text-xs text-muted">({(file.size / 1024).toFixed(1)} KB)</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveFile(index)}
-                        className="text-sm text-red-600 hover:text-red-700 hover:underline"
-                        disabled={isLocked}
-                      >
-                        Fjern
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
+          <FileUploadField
+            fileInputRef={fileInputRef}
+            uploadedFiles={uploadedFiles}
+            onFileUploadClick={handleFileUploadClick}
+            onFileChange={handleFileChange}
+            onRemoveFile={handleRemoveFile}
+            disabled={isLocked}
+          />
         </FieldsetCard>
 
         {formStatus === 'varsel' && rolle === 'TE' && !disabled && (

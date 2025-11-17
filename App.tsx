@@ -6,6 +6,7 @@ import { generatePdfReact } from './utils/pdfGeneratorReact';
 import { PktHeader, PktButton, PktTabs, PktTabItem } from '@oslokommune/punkt-react';
 import { useSkjemaData } from './hooks/useSkjemaData';
 import { useAutoSave } from './hooks/useAutoSave';
+import { showToast } from './utils/toastHelpers';
 
 import GrunninfoPanel from './components/panels/GrunninfoPanel';
 import VarselPanel from './components/panels/VarselPanel';
@@ -27,8 +28,7 @@ const App: React.FC = () => {
         storageKey: 'koe_v5_0_draft',
         debounceMs: 1500,
         onSave: () => {
-            setToastMessage('Utkast lagret ✓');
-            setTimeout(() => setToastMessage(''), 3000);
+            showToast(setToastMessage, 'Utkast lagret ✓');
         },
     });
 
@@ -115,8 +115,7 @@ const App: React.FC = () => {
 
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
-            setToastMessage('Vennligst fyll ut alle obligatoriske felt før du går videre');
-            setTimeout(() => setToastMessage(''), 3000);
+            showToast(setToastMessage, 'Vennligst fyll ut alle obligatoriske felt før du går videre');
             return false;
         }
 

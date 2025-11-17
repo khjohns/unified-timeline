@@ -7,6 +7,8 @@ import { PktButton, PktCheckbox, PktTag } from '@oslokommune/punkt-react';
 import { VEDERLAGSMETODER_OPTIONS } from '../../constants';
 import { getKravStatusLabel, getKravStatusSkin } from '../../utils/statusHelpers';
 import { useFileUpload } from '../../hooks/useFileUpload';
+import FileUploadField from '../ui/FileUploadField';
+import { showToast } from '../../utils/toastHelpers';
 
 interface KravKoePanelProps {
   formData: FormDataModel;
@@ -52,14 +54,12 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
     const sisteKrav = koe_revisjoner[sisteKravIndex];
 
     if (!sisteKrav.koe_revisjonsnr || !sisteKrav.dato_krav_sendt) {
-      setToastMessage?.('Vennligst fyll ut alle påkrevde felt før du sender kravet');
-      setTimeout(() => setToastMessage?.(''), 3000);
+      showToast(setToastMessage, 'Vennligst fyll ut alle påkrevde felt før du sender kravet');
       return;
     }
 
     if (!sisteKrav.vederlag.krav_vederlag && !sisteKrav.frist.krav_fristforlengelse) {
-      setToastMessage?.('Du må velge minst ett krav (vederlag eller fristforlengelse)');
-      setTimeout(() => setToastMessage?.(''), 3000);
+      showToast(setToastMessage, 'Du må velge minst ett krav (vederlag eller fristforlengelse)');
       return;
     }
 
@@ -69,8 +69,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
 
     addBhSvarRevisjon?.();
     setActiveTab?.(3);
-    setToastMessage?.('Krav sendt! Byggherre kan nå svare på kravet.');
-    setTimeout(() => setToastMessage?.(''), 3000);
+    showToast(setToastMessage, 'Krav sendt! Byggherre kan nå svare på kravet.');
   };
 
   const sisteKoe = koe_revisjoner[sisteKravIndex];
@@ -263,50 +262,14 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                 </FieldsetCard>
 
                 <FieldsetCard legend="Vedlegg">
-                  <div className="space-y-4">
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      multiple
-                      onChange={handleFileChange}
-                      className="hidden"
-                      accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-                      disabled={erLaast}
-                    />
-                    <PktButton
-                      skin="secondary"
-                      size="medium"
-                      iconName="attachment"
-                      variant="icon-left"
-                      onClick={handleFileUploadClick}
-                      disabled={erLaast}
-                    >
-                      Last opp vedlegg
-                    </PktButton>
-                    {uploadedFiles.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium text-ink">Opplastede filer:</p>
-                        <ul className="space-y-2">
-                          {uploadedFiles.map((file, index) => (
-                            <li key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-border-color">
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm text-ink">{file.name}</span>
-                                <span className="text-xs text-muted">({(file.size / 1024).toFixed(1)} KB)</span>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveFile(index)}
-                                className="text-sm text-red-600 hover:text-red-700 hover:underline"
-                                disabled={erLaast}
-                              >
-                                Fjern
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
+                  <FileUploadField
+                    fileInputRef={fileInputRef}
+                    uploadedFiles={uploadedFiles}
+                    onFileUploadClick={handleFileUploadClick}
+                    onFileChange={handleFileChange}
+                    onRemoveFile={handleRemoveFile}
+                    disabled={erLaast}
+                  />
                 </FieldsetCard>
               </div>
             </div>
