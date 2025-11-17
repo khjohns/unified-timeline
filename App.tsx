@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { FormDataModel, Role, BhSvar, Koe } from './types';
 import { TABS, INITIAL_FORM_DATA, DEMO_DATA } from './constants';
 import Toast from './components/ui/Toast';
@@ -63,12 +63,12 @@ const App: React.FC = () => {
             document.body.classList.remove('bh-active');
         }
     }, [formData.rolle]);
-
+    
     const handleRoleChange = (newRole: Role) => {
         setFormData(prev => ({ ...prev, rolle: newRole }));
     };
 
-    const openModal = (title: string, content: React.ReactNode, onConfirm?: () => void, showConfirm = true) => {
+    const openModal = useCallback((title: string, content: React.ReactNode, onConfirm?: () => void, showConfirm = true) => {
         setModalConfig({
             isOpen: true,
             title,
@@ -82,21 +82,21 @@ const App: React.FC = () => {
                 (modalRef.current as any).open();
             }
         }, 0);
-    };
+    }, []);
 
-    const closeModal = () => {
+    const closeModal = useCallback(() => {
         if (modalRef.current && 'close' in modalRef.current) {
             (modalRef.current as any).close();
         }
         setModalConfig(prev => ({ ...prev, isOpen: false }));
-    };
+    }, []);
 
-    const handleModalConfirm = () => {
+    const handleModalConfirm = useCallback(() => {
         if (modalConfig.onConfirm) {
             modalConfig.onConfirm();
         }
         closeModal();
-    };
+    }, [modalConfig.onConfirm, closeModal]);
 
     const handleReset = () => {
     if (window.confirm('Er du sikker på at du vil nullstille skjemaet? Alle data vil gå tapt.')) {
@@ -226,7 +226,7 @@ const App: React.FC = () => {
                 false
             );
         }
-    };
+    }, [formData.koe_revisjoner, openModal, setToastMessage]);
 
     // Helper function to add a new BH svar revision
     const addBhSvarRevisjon = () => {
