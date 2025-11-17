@@ -1,10 +1,11 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { FormDataModel } from '../../types';
 import { DateField, SelectField, TextareaField, InputField } from '../ui/Field';
 import FieldsetCard from '../ui/FieldsetCard';
 import PanelLayout from '../ui/PanelLayout';
 import { HOVEDKATEGORI_OPTIONS, UNDERKATEGORI_MAP } from '../../constants';
 import { PktButton, PktAlert, PktCheckbox, PktRadioButton } from '@oslokommune/punkt-react';
+import { useFileUpload } from '../../hooks/useFileUpload';
 
 interface VarselPanelProps {
   formData: FormDataModel;
@@ -29,10 +30,14 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
 }) => {
   const { varsel, rolle, sak } = formData;
   const handleChange = (field: string, value: any) => setFormData('varsel', field, value);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [erTidligereVarslet, setErTidligereVarslet] = useState<'nei' | 'ja'>('nei');
   const [varselMetoder, setVarselMetoder] = useState<string[]>([]);
+
+  // File upload hook
+  const { fileInputRef, uploadedFiles, handleFileUploadClick, handleFileChange, handleRemoveFile } =
+    useFileUpload((fileNames) => {
+      handleChange('vedlegg', fileNames);
+    });
 
   const handleHovedkategoriChange = (value: string) => {
     handleChange('hovedkategori', value);
@@ -72,32 +77,6 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
     setVarselMetoder(nyeMetoder);
     // Lagre som kommaseparert string for Dataverse
     handleChange('varsel_metode', nyeMetoder.join(', '));
-  };
-
-  const handleFileUploadClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      const newFiles = Array.from(files);
-      setUploadedFiles(prev => {
-        const updated = [...prev, ...newFiles];
-        // Oppdater også formData med filnavnene
-        handleChange('vedlegg', updated.map(f => f.name));
-        return updated;
-      });
-    }
-  };
-
-  const handleRemoveFile = (index: number) => {
-    setUploadedFiles(prev => {
-      const updated = prev.filter((_, i) => i !== index);
-      // Oppdater også formData
-      handleChange('vedlegg', updated.map(f => f.name));
-      return updated;
-    });
   };
 
   const handleSendVarsel = () => {
