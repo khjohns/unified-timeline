@@ -34,7 +34,6 @@ const App: React.FC = () => {
         onConfirm: () => {},
     });
     const modalRef = useRef<HTMLElement>(null);
-    const compareButtonRef = useRef<HTMLButtonElement>(null);
 
     // Use custom hooks for state management and auto-save
     const { formData, setFormData, handleInputChange, errors, setErrors } = useSkjemaData(INITIAL_FORM_DATA);
@@ -65,22 +64,6 @@ const App: React.FC = () => {
         }
     }, [formData.rolle]);
 
-    // Add native event listener for compare button
-    useEffect(() => {
-        const button = compareButtonRef.current;
-        if (button) {
-            const handleClick = (e: Event) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleCompareRevisions();
-            };
-            button.addEventListener('click', handleClick);
-            return () => {
-                button.removeEventListener('click', handleClick);
-            };
-        }
-    }, [formData.koe_revisjoner.length, handleCompareRevisions]);
-    
     const handleRoleChange = (newRole: Role) => {
         setFormData(prev => ({ ...prev, rolle: newRole }));
     };
@@ -205,7 +188,6 @@ const App: React.FC = () => {
     };
 
     const handleCompareRevisions = useCallback(() => {
-        alert('Button clicked!'); // Debug test
         console.log('handleCompareRevisions called');
         const revisjoner = formData.koe_revisjoner;
         console.log('revisjoner.length:', revisjoner.length);
@@ -383,19 +365,18 @@ const App: React.FC = () => {
                     >
                         Last ned PDF
                     </PktButton>
-                    {formData.koe_revisjoner.length >= 2 ? (
-                        <PktButton
-                            ref={compareButtonRef}
-                            key="compare-revisions"
+                    {formData.koe_revisjoner.length >= 2 && (
+                        <button
                             type="button"
-                            skin="secondary"
-                            size="small"
-                            iconName="refresh"
-                            variant="icon-left"
+                            onClick={handleCompareRevisions}
+                            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-md border border-border-color bg-white text-ink hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-pri focus:ring-offset-2 transition-colors"
                         >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
                             Sammenlign revisjoner
-                        </PktButton>
-                    ) : null}
+                        </button>
+                    )}
                     <PktButton
                         skin="secondary"
                         size="small"
