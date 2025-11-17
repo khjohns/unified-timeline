@@ -427,7 +427,7 @@ const App: React.FC = () => {
 
                     {/* Sidekolonne (1/3) - Nøkkelinfo (kun på store skjermer) */}
                     <div className="hidden lg:block lg:col-span-1">
-                        <SidePanel sak={formData.sak} />
+                        <SidePanel sak={formData.sak} koeRevisjoner={formData.koe_revisjoner} />
                     </div>
 
                 </div>
