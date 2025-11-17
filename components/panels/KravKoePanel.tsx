@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React from 'react';
 import { FormDataModel } from '../../types';
 import { InputField, SelectField, TextareaField, CheckboxField, DateField } from '../ui/Field';
 import FieldsetCard from '../ui/FieldsetCard';
@@ -6,6 +6,7 @@ import PanelLayout from '../ui/PanelLayout';
 import { PktButton, PktCheckbox, PktTag } from '@oslokommune/punkt-react';
 import { VEDERLAGSMETODER_OPTIONS } from '../../constants';
 import { getKravStatusLabel, getKravStatusSkin } from '../../utils/statusHelpers';
+import { useFileUpload } from '../../hooks/useFileUpload';
 
 interface KravKoePanelProps {
   formData: FormDataModel;
@@ -28,34 +29,12 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
 }) => {
   const { koe_revisjoner = [], bh_svar_revisjoner = [], rolle } = formData;
   const sisteKravIndex = koe_revisjoner.length - 1;
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
 
-  const handleFileUploadClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      const newFiles = Array.from(files);
-      setUploadedFiles(prev => {
-        const updated = [...prev, ...newFiles];
-        // Oppdater også formData med filnavnene for siste krav-revisjon
-        setFormData('koe_revisjoner', 'vedlegg', updated.map(f => f.name), sisteKravIndex);
-        return updated;
-      });
-    }
-  };
-
-  const handleRemoveFile = (index: number) => {
-    setUploadedFiles(prev => {
-      const updated = prev.filter((_, i) => i !== index);
-      // Oppdater også formData
-      setFormData('koe_revisjoner', 'vedlegg', updated.map(f => f.name), sisteKravIndex);
-      return updated;
+  // File upload hook
+  const { fileInputRef, uploadedFiles, handleFileUploadClick, handleFileChange, handleRemoveFile } =
+    useFileUpload((fileNames) => {
+      setFormData('koe_revisjoner', 'vedlegg', fileNames, sisteKravIndex);
     });
-  };
 
   if (koe_revisjoner.length === 0) {
     return (
