@@ -67,9 +67,12 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: COLORS.primary,
-    padding: 12,
+    paddingTop: 12,
+    paddingBottom: 12,
+    paddingLeft: 42,
+    paddingRight: 42,
     marginBottom: 25,
-    // ENDRING: Justert negative marger for å matche ny sidemarg
+    // Negative marger for å fylle hele bredden med bakgrunnsfarge
     marginLeft: -42,
     marginRight: -42,
     flexDirection: 'row',
@@ -107,12 +110,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    // ENDRING: marginBottom fjernet siden tittel og sak-ID nå er i flexDirection: 'row'
+    marginBottom: 8,
   },
   sakId: {
     fontSize: 14,
     color: COLORS.primaryDark,
-    // ENDRING: marginBottom fjernet siden tittel og sak-ID nå er i flexDirection: 'row'
   },
   infoBox: {
     backgroundColor: COLORS.lightBg,
@@ -682,8 +684,8 @@ const ExecutiveSummary: React.FC<{ data: FormDataModel }> = ({ data }) => {
 
 const TitlePage: React.FC<{ data: FormDataModel }> = ({ data }) => (
   <View>
-    {/* ENDRING: Tittel og Sak-ID på samme linje for konsistent utseende */}
-    <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 15, marginBottom: 15 }}>
+    {/* Tittel og Sak-ID på separate linjer for å unngå overlapping */}
+    <View style={{ marginBottom: 15 }}>
       <Text style={styles.title}>{data.sak.sakstittel || 'Uten tittel'}</Text>
       <Text style={styles.sakId}>Sak-ID: {data.sak.sak_id_display || 'Ikke angitt'}</Text>
     </View>
