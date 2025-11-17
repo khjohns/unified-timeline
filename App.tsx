@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { FormDataModel, Role, BhSvar, Koe } from './types';
 import { TABS, INITIAL_FORM_DATA, DEMO_DATA } from './constants';
 import Toast from './components/ui/Toast';
 // import { generatePdf } from './utils/pdfGenerator'; // FJERNET
 import { generatePdfReact } from './utils/pdfGeneratorReact';
-import { PktHeader, PktButton, PktModal, PktTabs, PktTabItem } from '@oslokommune/punkt-react';
+import { PktHeader, PktButton, PktTabs, PktTabItem } from '@oslokommune/punkt-react';
+import Modal from './components/ui/Modal';
 import { useSkjemaData } from './hooks/useSkjemaData';
 import { useAutoSave } from './hooks/useAutoSave';
 import { compareRevisions } from './utils/compareRevisions';
@@ -30,10 +31,9 @@ const App: React.FC = () => {
         isOpen: false,
         title: '',
         content: '',
-        showConfirm: true,
+        showConfirm: false,
         onConfirm: () => {},
     });
-    const modalRef = useRef<HTMLElement>(null);
 
     // Use custom hooks for state management and auto-save
     const { formData, setFormData, handleInputChange, errors, setErrors } = useSkjemaData(INITIAL_FORM_DATA);
@@ -68,7 +68,7 @@ const App: React.FC = () => {
         setFormData(prev => ({ ...prev, rolle: newRole }));
     };
 
-    const openModal = useCallback((title: string, content: React.ReactNode, onConfirm?: () => void, showConfirm = true) => {
+    const openModal = useCallback((title: string, content: React.ReactNode, onConfirm?: () => void, showConfirm = false) => {
         setModalConfig({
             isOpen: true,
             title,
@@ -76,18 +76,9 @@ const App: React.FC = () => {
             onConfirm,
             showConfirm,
         });
-        // Open the modal using the ref
-        setTimeout(() => {
-            if (modalRef.current && 'open' in modalRef.current) {
-                (modalRef.current as any).open();
-            }
-        }, 0);
     }, []);
 
     const closeModal = useCallback(() => {
-        if (modalRef.current && 'close' in modalRef.current) {
-            (modalRef.current as any).close();
-        }
         setModalConfig(prev => ({ ...prev, isOpen: false }));
     }, []);
 
@@ -443,30 +434,15 @@ const App: React.FC = () => {
             </main>
             
             {toastMessage && <Toast message={toastMessage} />}
-            <PktModal
-                ref={modalRef}
-                headingText={modalConfig.title}
-                size="medium"
-                variant="dialog"
+            <Modal
+                isOpen={modalConfig.isOpen}
+                onClose={closeModal}
+                title={modalConfig.title}
+                showConfirm={modalConfig.showConfirm}
+                onConfirm={handleModalConfirm}
             >
-                <div className="mb-6">{modalConfig.content}</div>
-                <div className="flex justify-end gap-3">
-                    <PktButton
-                        skin="secondary"
-                        onClick={closeModal}
-                    >
-                        {modalConfig.showConfirm ? 'Avbryt' : 'Lukk'}
-                    </PktButton>
-                    {modalConfig.showConfirm && (
-                        <PktButton
-                            skin="primary"
-                            onClick={handleModalConfirm}
-                        >
-                            Bekreft
-                        </PktButton>
-                    )}
-                </div>
-            </PktModal>
+                {modalConfig.content}
+            </Modal>
         </div>
     );
 };
