@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FormDataModel, Role, BhSvar, Koe } from './types';
 import { TABS, INITIAL_FORM_DATA, DEMO_DATA } from './constants';
 import Toast from './components/ui/Toast';
@@ -34,7 +34,6 @@ const App: React.FC = () => {
         onConfirm: () => {},
     });
     const modalRef = useRef<HTMLElement>(null);
-    const compareButtonRef = useRef<HTMLButtonElement>(null);
 
     // Use custom hooks for state management and auto-save
     const { formData, setFormData, handleInputChange, errors, setErrors } = useSkjemaData(INITIAL_FORM_DATA);
@@ -64,28 +63,12 @@ const App: React.FC = () => {
             document.body.classList.remove('bh-active');
         }
     }, [formData.rolle]);
-
-    // Add native event listener for compare button
-    useEffect(() => {
-        const button = compareButtonRef.current;
-        if (button) {
-            const handleClick = (e: Event) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleCompareRevisions();
-            };
-            button.addEventListener('click', handleClick);
-            return () => {
-                button.removeEventListener('click', handleClick);
-            };
-        }
-    }, [formData.koe_revisjoner.length, handleCompareRevisions]);
     
     const handleRoleChange = (newRole: Role) => {
         setFormData(prev => ({ ...prev, rolle: newRole }));
     };
 
-    const openModal = useCallback((title: string, content: React.ReactNode, onConfirm?: () => void, showConfirm = true) => {
+    const openModal = (title: string, content: React.ReactNode, onConfirm?: () => void, showConfirm = true) => {
         setModalConfig({
             isOpen: true,
             title,
@@ -93,18 +76,13 @@ const App: React.FC = () => {
             onConfirm,
             showConfirm,
         });
-        // Open the modal using DOM querySelector
+        // Open the modal using the ref
         setTimeout(() => {
-            const modalElement = document.querySelector('pkt-modal');
-            if (modalElement && typeof (modalElement as any).showModal === 'function') {
-                (modalElement as any).showModal();
-            } else if (modalElement && typeof (modalElement as any).open === 'function') {
-                (modalElement as any).open();
-            } else if (modalRef.current && 'open' in modalRef.current) {
+            if (modalRef.current && 'open' in modalRef.current) {
                 (modalRef.current as any).open();
             }
         }, 0);
-    }, []);
+    };
 
     const closeModal = () => {
         if (modalRef.current && 'close' in modalRef.current) {
@@ -204,11 +182,8 @@ const App: React.FC = () => {
         await generatePdfReact(formData); // ENDRET: Kun react-pdf
     };
 
-    const handleCompareRevisions = useCallback(() => {
-        alert('Button clicked!'); // Debug test
-        console.log('handleCompareRevisions called');
+    const handleCompareRevisions = () => {
         const revisjoner = formData.koe_revisjoner;
-        console.log('revisjoner.length:', revisjoner.length);
         if (revisjoner.length < 2) {
             setToastMessage('Du må ha minst 2 revisjoner for å sammenligne');
             setTimeout(() => setToastMessage(''), 3000);
@@ -218,7 +193,6 @@ const App: React.FC = () => {
         const oldRev = revisjoner[revisjoner.length - 2];
         const newRev = revisjoner[revisjoner.length - 1];
         const changes = compareRevisions(oldRev, newRev);
-        console.log('changes:', changes);
 
         if (changes.length === 0) {
             openModal(
@@ -251,7 +225,7 @@ const App: React.FC = () => {
                 false
             );
         }
-    }, [formData.koe_revisjoner, openModal]);
+    };
 
     // Helper function to add a new BH svar revision
     const addBhSvarRevisjon = () => {
@@ -383,19 +357,17 @@ const App: React.FC = () => {
                     >
                         Last ned PDF
                     </PktButton>
-                    {formData.koe_revisjoner.length >= 2 ? (
+                    {formData.koe_revisjoner.length >= 2 && (
                         <PktButton
-                            ref={compareButtonRef}
-                            key="compare-revisions"
-                            type="button"
                             skin="secondary"
                             size="small"
+                            onClick={handleCompareRevisions}
                             iconName="refresh"
                             variant="icon-left"
                         >
                             Sammenlign revisjoner
                         </PktButton>
-                    ) : null}
+                    )}
                     <PktButton
                         skin="secondary"
                         size="small"
