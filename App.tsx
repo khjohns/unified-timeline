@@ -195,17 +195,16 @@ const App: React.FC = () => {
         const changes = compareRevisions(oldRev, newRev);
 
         if (changes.length === 0) {
-            setModalConfig({
-                isOpen: true,
-                title: `Sammenligning: Revisjon ${oldRev.koe_revisjonsnr} → ${newRev.koe_revisjonsnr}`,
-                content: <p className="text-muted">Ingen endringer funnet mellom revisjonene.</p>,
-                showConfirm: false,
-            });
+            openModal(
+                `Sammenligning: Revisjon ${oldRev.koe_revisjonsnr} → ${newRev.koe_revisjonsnr}`,
+                <p className="text-muted">Ingen endringer funnet mellom revisjonene.</p>,
+                undefined,
+                false
+            );
         } else {
-            setModalConfig({
-                isOpen: true,
-                title: `Sammenligning: Revisjon ${oldRev.koe_revisjonsnr} → ${newRev.koe_revisjonsnr}`,
-                content: (
+            openModal(
+                `Sammenligning: Revisjon ${oldRev.koe_revisjonsnr} → ${newRev.koe_revisjonsnr}`,
+                (
                     <div className="space-y-4">
                         <p className="text-sm text-muted mb-4">Følgende endringer er gjort:</p>
                         <ul className="space-y-3">
@@ -222,16 +221,10 @@ const App: React.FC = () => {
                         </ul>
                     </div>
                 ),
-                showConfirm: false,
-            });
+                undefined,
+                false
+            );
         }
-
-        // Open modal
-        setTimeout(() => {
-            if (modalRef.current && 'open' in modalRef.current) {
-                (modalRef.current as any).open();
-            }
-        }, 0);
     };
 
     // Helper function to add a new BH svar revision
@@ -448,32 +441,30 @@ const App: React.FC = () => {
             </main>
             
             {toastMessage && <Toast message={toastMessage} />}
-            {modalConfig.isOpen && (
-                <PktModal
-                    ref={modalRef}
-                    headingText={modalConfig.title}
-                    size="medium"
-                    variant="dialog"
-                >
-                    <div className="mb-6">{modalConfig.content}</div>
-                    <div className="flex justify-end gap-3">
+            <PktModal
+                ref={modalRef}
+                headingText={modalConfig.title}
+                size="medium"
+                variant="dialog"
+            >
+                <div className="mb-6">{modalConfig.content}</div>
+                <div className="flex justify-end gap-3">
+                    <PktButton
+                        skin="secondary"
+                        onClick={closeModal}
+                    >
+                        {modalConfig.showConfirm ? 'Avbryt' : 'Lukk'}
+                    </PktButton>
+                    {modalConfig.showConfirm && (
                         <PktButton
-                            skin="secondary"
-                            onClick={closeModal}
+                            skin="primary"
+                            onClick={handleModalConfirm}
                         >
-                            {modalConfig.showConfirm ? 'Avbryt' : 'Lukk'}
+                            Bekreft
                         </PktButton>
-                        {modalConfig.showConfirm && (
-                            <PktButton
-                                skin="primary"
-                                onClick={handleModalConfirm}
-                            >
-                                Bekreft
-                            </PktButton>
-                        )}
-                    </div>
-                </PktModal>
-            )}
+                    )}
+                </div>
+            </PktModal>
         </div>
     );
 };
