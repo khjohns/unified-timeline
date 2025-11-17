@@ -42,7 +42,6 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
                     autoComplete="off"
                     className="max-w-xs"
                   />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <InputField
                     id="sak.opprettet_av"
                     label="Opprettet av"
@@ -61,7 +60,6 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
                       readOnly
                       className="max-w-xs"
                     />
-                </div>
               </div>
             </FieldsetCard>
 
