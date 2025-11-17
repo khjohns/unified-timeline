@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
     // Fjernet flex: 1 for å la tekst ligge helt til venstre
   },
   headerTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#FFFFFF',
     // ENDRING: Økt avstand til undertittel
@@ -110,10 +110,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: 20,
   },
   sakId: {
-    fontSize: 14,
+    fontSize: 12,
     color: COLORS.primaryDark,
   },
   infoBox: {

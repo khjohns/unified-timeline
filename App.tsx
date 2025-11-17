@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FormDataModel, Role, BhSvar, Koe } from './types';
 import { TABS, INITIAL_FORM_DATA, DEMO_DATA } from './constants';
 import Toast from './components/ui/Toast';
@@ -68,7 +68,7 @@ const App: React.FC = () => {
         setFormData(prev => ({ ...prev, rolle: newRole }));
     };
 
-    const openModal = useCallback((title: string, content: React.ReactNode, onConfirm?: () => void, showConfirm = true) => {
+    const openModal = (title: string, content: React.ReactNode, onConfirm?: () => void, showConfirm = true) => {
         setModalConfig({
             isOpen: true,
             title,
@@ -76,18 +76,13 @@ const App: React.FC = () => {
             onConfirm,
             showConfirm,
         });
-        // Open the modal using DOM querySelector
+        // Open the modal using the ref
         setTimeout(() => {
-            const modalElement = document.querySelector('pkt-modal');
-            if (modalElement && typeof (modalElement as any).showModal === 'function') {
-                (modalElement as any).showModal();
-            } else if (modalElement && typeof (modalElement as any).open === 'function') {
-                (modalElement as any).open();
-            } else if (modalRef.current && 'open' in modalRef.current) {
+            if (modalRef.current && 'open' in modalRef.current) {
                 (modalRef.current as any).open();
             }
         }, 0);
-    }, []);
+    };
 
     const closeModal = () => {
         if (modalRef.current && 'close' in modalRef.current) {
@@ -190,7 +185,6 @@ const App: React.FC = () => {
     const handleCompareRevisions = useCallback(() => {
         console.log('handleCompareRevisions called');
         const revisjoner = formData.koe_revisjoner;
-        console.log('revisjoner.length:', revisjoner.length);
         if (revisjoner.length < 2) {
             setToastMessage('Du må ha minst 2 revisjoner for å sammenligne');
             setTimeout(() => setToastMessage(''), 3000);
@@ -200,7 +194,6 @@ const App: React.FC = () => {
         const oldRev = revisjoner[revisjoner.length - 2];
         const newRev = revisjoner[revisjoner.length - 1];
         const changes = compareRevisions(oldRev, newRev);
-        console.log('changes:', changes);
 
         if (changes.length === 0) {
             openModal(
@@ -233,7 +226,7 @@ const App: React.FC = () => {
                 false
             );
         }
-    }, [formData.koe_revisjoner, openModal]);
+    };
 
     // Helper function to add a new BH svar revision
     const addBhSvarRevisjon = () => {
