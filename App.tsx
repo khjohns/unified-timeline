@@ -430,7 +430,7 @@ const App: React.FC = () => {
     
             {/* ENDRET: 'pt-24' for å gi plass til den faste headeren */}
             <main className="pt-24 pb-8 sm:pb-12">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 lg:grid lg:grid-cols-3 lg:gap-12">
+                <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 lg:grid lg:grid-cols-3 lg:gap-12">
 
                     {/* Hovedkolonne (2/3) - Tabs, panel og knapper */}
                     <div className="lg:col-span-2 space-y-8">
