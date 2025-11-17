@@ -110,10 +110,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   sakId: {
-    fontSize: 14,
+    fontSize: 12,
     color: COLORS.primaryDark,
   },
   infoBox: {
