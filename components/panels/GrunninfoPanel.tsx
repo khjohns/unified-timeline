@@ -85,7 +85,6 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
                   autoComplete="off"
                   className="max-w-sm"
                 />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <InputField
                     id="sak.entreprenor"
                     label="Entreprenør (TE)"
@@ -107,7 +106,6 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
                     className="w-full"
                   />
                 </div>
-              </div>
             </FieldsetCard>
           </div>
     </PanelLayout>
