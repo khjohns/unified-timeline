@@ -19,7 +19,7 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
     <PanelLayout>
       <div className="space-y-6">
             <FieldsetCard legend="Saksdetaljer">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <InputField
                   id="sak.sakstittel"
                   label="Sakstittel"
@@ -28,7 +28,7 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
                   helpText="Kort beskrivelse av endringen"
                   error={errors['sak.sakstittel']}
                   readOnly={disabled}
-                  className="max-w-md"
+                  className="md:col-span-2"
                 />
                   <InputField
                     id="sak.sak_id_display"
@@ -40,7 +40,6 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
                     readOnly={disabled}
                     optional
                     autoComplete="off"
-                    className="max-w-xs"
                   />
                   <InputField
                     id="sak.opprettet_av"
@@ -50,7 +49,7 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
                     error={errors['sak.opprettet_av']}
                     readOnly={disabled}
                     autoComplete="name"
-                    className="max-w-md"
+                    className="md:col-span-2"
                   />
                     <DateField
                       id="sak.opprettet_dato"
@@ -64,7 +63,7 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
             </FieldsetCard>
 
             <FieldsetCard legend="Prosjektinformasjon">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <InputField
                   id="sak.prosjekt_navn"
                   label="Prosjekt"
@@ -72,7 +71,7 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
                   onChange={e => handleChange('prosjekt_navn', e.target.value)}
                   error={errors['sak.prosjekt_navn']}
                   readOnly={disabled}
-                  className="w-full md:max-w-xs"
+                  className="md:col-span-2"
                 />
                 <InputField
                   id="sak.kontrakt_referanse"
@@ -83,8 +82,9 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
                   error={errors['sak.kontrakt_referanse']}
                   readOnly={disabled}
                   autoComplete="off"
-                  className="max-w-sm"
                 />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <InputField
                     id="sak.entreprenor"
                     label="Entreprenør (TE)"
