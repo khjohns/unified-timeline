@@ -44,13 +44,6 @@ const COLORS = {
 
   neutral: '#D0BFAE',      // Oslo mørk beige
   neutralBg: '#F8F0DD',    // Oslo lys beige
-
-  // DEPRECATED - Bruk opacity i stedet for å følge designsystemet
-  // Disse fargene er ikke en del av Oslo kommunes offisielle palett
-  // For dimmet tekst, bruk: style={{ color: COLORS.ink, opacity: 0.7 }}
-  inkDim: '#4D4D4D',       // DEPRECATED: Bruk COLORS.ink med opacity: 0.7
-  muted: '#666666',        // DEPRECATED: Bruk COLORS.ink med opacity: 0.5
-  border: '#E6E6E6',       // DEPRECATED: Bruk COLORS.neutral med opacity: 0.3
 };
 
 // Stylesheet
@@ -134,7 +127,7 @@ const styles = StyleSheet.create({
   infoLabel: {
     fontSize: 10,
     fontWeight: 'bold',
-    color: COLORS.inkDim,
+    color: 'rgba(44, 44, 44, 0.7)', // COLORS.ink med opacity 0.7
     width: 120,
   },
   infoValue: {
@@ -152,7 +145,7 @@ const styles = StyleSheet.create({
   subTitle: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: COLORS.inkDim,
+    color: 'rgba(44, 44, 44, 0.7)', // COLORS.ink med opacity 0.7
     marginTop: 10,
     marginBottom: 8,
   },
@@ -162,7 +155,7 @@ const styles = StyleSheet.create({
   tableRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: 'rgba(208, 191, 174, 0.3)', // COLORS.neutral med opacity 0.3
     paddingVertical: 6, // FASE 1.2: Økt fra 5 til 6 for bedre lesbarhet
   },
   tableRowStriped: {
@@ -173,7 +166,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     width: '45%', // FASE 1.2: Økt fra 40% til 45%
     paddingRight: 10,
-    color: COLORS.inkDim, // FASE 1.2: Lagt til farge for bedre visuell hierarki
+    color: 'rgba(44, 44, 44, 0.7)', // COLORS.ink med opacity 0.7 (FASE 1.2)
   },
   tableValue: {
     fontSize: 9,
@@ -186,7 +179,7 @@ const styles = StyleSheet.create({
   textBlockTitle: {
     fontSize: 10,
     fontWeight: 'bold',
-    color: COLORS.inkDim,
+    color: 'rgba(44, 44, 44, 0.7)', // COLORS.ink med opacity 0.7
     marginBottom: 3,
   },
   textBlockContent: {
@@ -222,7 +215,7 @@ const styles = StyleSheet.create({
   },
   summaryCardTitle: {
     fontSize: 8,
-    color: COLORS.inkDim,
+    color: 'rgba(44, 44, 44, 0.7)', // COLORS.ink med opacity 0.7
     marginBottom: 4,
   },
   summaryCardValue: {
@@ -232,7 +225,7 @@ const styles = StyleSheet.create({
   },
   summaryCardSubtext: {
     fontSize: 7,
-    color: COLORS.muted,
+    color: 'rgba(44, 44, 44, 0.5)', // COLORS.ink med opacity 0.5
     marginTop: 2,
   },
   statusRow: {
@@ -299,10 +292,10 @@ const styles = StyleSheet.create({
   statusBadgeGrey: {
     backgroundColor: '#F5F5F5',
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: 'rgba(208, 191, 174, 0.3)', // COLORS.neutral med opacity 0.3
   },
   statusBadgeGreyText: {
-    color: COLORS.muted,
+    color: 'rgba(44, 44, 44, 0.5)', // COLORS.ink med opacity 0.5
   },
   footer: {
     position: 'absolute',
@@ -311,12 +304,12 @@ const styles = StyleSheet.create({
     left: 42,
     right: 42,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: 'rgba(208, 191, 174, 0.3)', // COLORS.neutral med opacity 0.3
     paddingTop: 8,
     flexDirection: 'row',
     justifyContent: 'space-between',
     fontSize: 8,
-    color: COLORS.muted,
+    color: 'rgba(44, 44, 44, 0.5)', // COLORS.ink med opacity 0.5
   },
   signatureRow: {
     marginTop: 10,
@@ -364,9 +357,9 @@ const MetadataFooter: React.FC<{
     marginTop: 30,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: 'rgba(208, 191, 174, 0.3)', // COLORS.neutral med opacity 0.3
   }}>
-    <Text style={{ fontSize: 7, color: COLORS.muted }}>
+    <Text style={{ fontSize: 7, color: 'rgba(44, 44, 44, 0.5)' }}> {/* COLORS.ink med opacity 0.5 */}
       Generert av: {generatedBy} • System: {system} v{version} • Oslo Kommune
     </Text>
   </View>
@@ -464,7 +457,7 @@ const SignatureBlock: React.FC<{
           height: 40,
           marginBottom: 5,
         }} />
-        <Text style={{ fontSize: 9, color: COLORS.inkDim }}>
+        <Text style={{ fontSize: 9, color: 'rgba(44, 44, 44, 0.7)' }}> {/* COLORS.ink med opacity 0.7 */}
           {name || '—'}
         </Text>
       </View>
@@ -525,7 +518,7 @@ const AttachmentsSection: React.FC<{ data: FormDataModel }> = ({ data }) => {
   return (
     <View style={{ marginTop: 30 }} wrap={true}>
       <Text style={styles.mainTitle}>Vedleggsreferanser</Text>
-      <Text style={{ fontSize: 9, color: COLORS.inkDim, marginBottom: 10 }}>
+      <Text style={{ fontSize: 9, color: 'rgba(44, 44, 44, 0.7)', marginBottom: 10 }}> {/* COLORS.ink med opacity 0.7 */}
         Totalt {attachments.reduce((sum, att) => sum + att.files.length, 0)} vedlegg
       </Text>
 
