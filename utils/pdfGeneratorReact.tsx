@@ -597,7 +597,7 @@ const ExecutiveSummary: React.FC<{ data: FormDataModel }> = ({ data }) => {
   if (senteKoeRevisjoner.length === 0) return null;
 
   return (
-    <View style={styles.executiveSummary}>
+    <View wrap minPresenceAhead={120} style={styles.executiveSummary}>
       <Text style={styles.subTitle}>Økonomisk oversikt</Text>
 
       {/* Vederlag */}
@@ -683,14 +683,14 @@ const ExecutiveSummary: React.FC<{ data: FormDataModel }> = ({ data }) => {
 };
 
 const TitlePage: React.FC<{ data: FormDataModel }> = ({ data }) => (
-  <View>
+  <View wrap>
     {/* Tittel og Sak-ID på separate linjer for å unngå overlapping */}
-    <View style={{ marginBottom: 15 }}>
+    <View wrap={false} style={{ marginBottom: 15 }}>
       <Text style={styles.title}>{data.sak.sakstittel || 'Uten tittel'}</Text>
       <Text style={styles.sakId}>Sak-ID: {data.sak.sak_id_display || 'Ikke angitt'}</Text>
     </View>
 
-    <View style={styles.infoBox}>
+    <View wrap={false} minPresenceAhead={100} style={styles.infoBox}>
       <View style={styles.infoColumn}>
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Prosjekt:</Text>
@@ -732,7 +732,7 @@ const SummarySection: React.FC<{ data: FormDataModel }> = ({ data }) => {
   }
 
   return (
-    <View>
+    <View wrap minPresenceAhead={80}>
       <Text style={styles.subTitle}>Sammendrag krav (siste revisjon)</Text>
       <View style={styles.table}>
         {latestKoe.vederlag.krav_vederlag && (
