@@ -28,6 +28,7 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
                   helpText="Kort beskrivelse av endringen"
                   error={errors['sak.sakstittel']}
                   readOnly={disabled}
+                  className="max-w-md"
                 />
                   <InputField
                     id="sak.sak_id_display"
@@ -52,14 +53,14 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
                     autoComplete="name"
                     className="max-w-md"
                   />
-                  <DateField
-                    id="sak.opprettet_dato"
-                    label="Opprettet dato"
-                    value={sak.opprettet_dato}
-                    onChange={()=>{}}
-                    readOnly
-                    className="max-w-xs"
-                  />
+                    <DateField
+                      id="sak.opprettet_dato"
+                      label="Opprettet dato"
+                      value={sak.opprettet_dato}
+                      onChange={()=>{}}
+                      readOnly
+                      className="max-w-xs"
+                    />
                 </div>
               </div>
             </FieldsetCard>
