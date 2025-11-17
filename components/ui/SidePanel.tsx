@@ -36,9 +36,11 @@ const SidePanel: React.FC<SidePanelProps> = ({ sak, koeRevisjoner = [] }) => {
       )
     : [];
 
-  // Filter out changes related to "begrunnelse" fields
+  // Filter out changes related to "begrunnelse" fields and signature
   const filteredChanges = changes.filter(
-    (change) => !change.field.toLowerCase().includes('begrunnelse')
+    (change) =>
+      !change.field.toLowerCase().includes('begrunnelse') &&
+      !change.field.toLowerCase().includes('signatur')
   );
 
   return (
@@ -60,25 +62,21 @@ const SidePanel: React.FC<SidePanelProps> = ({ sak, koeRevisjoner = [] }) => {
 
       {/* Comparison section */}
       {hasComparison && filteredChanges.length > 0 && (
-        <div className="mt-6">
-          <h3 className="text-sm font-semibold text-ink mb-3">
-            Endringer i siste revisjon
-          </h3>
-          <div className="text-xs space-y-3">
+        <div>
+          <h3 className="text-base font-semibold text-ink mb-2">Endringer i siste revisjon</h3>
+          <div className="text-xs space-y-2 p-4 rounded-lg border border-border-color" style={{ backgroundColor: '#E5FCFF' }}>
             {filteredChanges.map((change, idx) => (
-              <div
-                key={idx}
-                className="p-3 rounded-lg border-l-4 border-pri bg-gray-50"
-              >
-                <div className="font-semibold text-ink mb-1">{change.field}</div>
-                <div className="text-muted">
-                  <div className="text-gray-500 mb-1">
-                    Før: {formatChangeValue(change.field, change.oldValue)}
-                  </div>
-                  <div className="text-pri font-medium">
-                    Nå: {formatChangeValue(change.field, change.newValue)}
-                  </div>
-                </div>
+              <div key={idx}>
+                <p>
+                  <strong>{change.field}:</strong>{' '}
+                  <span className="text-gray-500">
+                    {formatChangeValue(change.field, change.oldValue)}
+                  </span>
+                  {' → '}
+                  <span className="text-pri font-medium">
+                    {formatChangeValue(change.field, change.newValue)}
+                  </span>
+                </p>
               </div>
             ))}
           </div>
