@@ -286,10 +286,6 @@ export const UNDERKATEGORI_MAP: Record<string, { label: string; value: string }[
         { value: "160000001", label: "Offentlige restriksjoner (§33.1c) - Myndighetspålagte begrensninger" },
         { value: "160000002", label: "Tilstøtende arbeider forsinket (§33.1c) - Andre entreprenører forsinker" },
     ],
-    // Tomme lister for kategorier uten underkategorier
-    "100000003": [],
-    "100000005": [],
-    "100000007": [],
 };
 
 export const VEDERLAGSMETODER_OPTIONS = [
