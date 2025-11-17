@@ -1,8 +1,6 @@
 
-import React, { ChangeEvent, useState, useRef, useEffect } from 'react';
+import React, { ChangeEvent } from 'react';
 import { PktTextinput, PktTextarea, PktCheckbox, PktDatepicker, PktSelect } from '@oslokommune/punkt-react';
-import { CheckIcon, ChevronUpDownIcon, CalendarIcon } from './icons';
-import DatePicker from './DatePicker';
 
 type InputType = 'text' | 'number';
 
@@ -32,9 +30,6 @@ interface TextareaFieldProps extends Omit<FieldProps, 'type' | 'min' | 'step' | 
     minHeight?: string;
     fullwidth?: boolean;
 }
-
-const baseInputClasses = "w-full p-2.5 rounded-lg border border-border-color bg-white text-ink focus:border-pri focus:ring-2 focus:ring-pri/20 outline-none";
-const invalidClasses = "border-warn box-shadow:0 0 0 2px #e3241b22";
 
 export const InputField: React.FC<FieldProps> = ({ id, label, type = 'text', value, onChange, required, optional, placeholder, readOnly, error, className, min, step, helpText, formatAsNumber, inputMode, autoComplete, pattern }) => {
 

@@ -132,16 +132,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
     setTimeout(() => setToastMessage?.(''), 3000);
   };
 
-  const varselMetodeOptions = [
-    { value: "", label: "— Velg —" },
-    { value: "E-post", label: "E-post" },
-    { value: "Brev", label: "Brev" },
-    { value: "Byggemøte", label: "Byggemøte" },
-    { value: "Muntlig", label: "Muntlig" },
-    { value: "Annet", label: "Annet" },
-  ];
-
-  // Standard metoder som checkboxes
+  // Metoder for varsling som checkboxes
   const METODE_CHECKBOXES = [
     { value: 'E-post', label: 'E-post' },
     { value: 'Brev', label: 'Brev' },
