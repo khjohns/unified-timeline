@@ -78,7 +78,6 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
                   label="Prosjektnummer"
                   value={sak.kontrakt_referanse}
                   onChange={e => handleChange('kontrakt_referanse', e.target.value)}
-                  helpText="Prosjektets unike referansenummer"
                   error={errors['sak.kontrakt_referanse']}
                   readOnly={disabled}
                   autoComplete="off"
