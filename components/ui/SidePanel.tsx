@@ -47,7 +47,6 @@ const SidePanel: React.FC<SidePanelProps> = ({ sak, koeRevisjoner = [] }) => {
     <aside className="sticky top-28 space-y-4">
       <h3 className="text-base font-semibold text-ink">Nøkkelinfo</h3>
       <div className="mb-3">
-        <p className="text-xs font-semibold mb-2">Saksstatus:</p>
         <PktTag skin={getSakStatusSkin(sak.status)}>
           {getSakStatusLabel(sak.status)}
         </PktTag>
