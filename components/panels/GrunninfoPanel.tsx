@@ -83,7 +83,7 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
                   autoComplete="off"
                 />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 gap-6">
                   <InputField
                     id="sak.entreprenor"
                     label="Entreprenør (TE)"
