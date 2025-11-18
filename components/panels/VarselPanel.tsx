@@ -140,12 +140,12 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
             
             <DateField
               id="varsel.dato_forhold_oppdaget"
-              label="Dato forhold oppdaget"
+              label="Dato forholdet ble oppdaget"
               value={varsel.dato_forhold_oppdaget}
               onChange={value => handleChange('dato_forhold_oppdaget', value)}
               error={errors['varsel.dato_forhold_oppdaget']}
               readOnly={isLocked}
-              helpText="Når inntraff hendelsen som utløser dette kravet?"
+              helpText=""
               className="w-full md:max-w-sm"
             />
           </div>
@@ -153,7 +153,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
             {varsel.hovedkategori && underkategoriOptions.length > 0 && (
               <div className="w-full rounded-lg border bg-white p-4 border-border-color">
                 <label className="block text-sm font-semibold text-ink-dim mb-1">
-                  Velg underkategori (valgfritt, flere valg er mulig)
+                  Velg underkategori
                 </label>
                 <p className="text-sm text-muted mb-3">Du kan velge flere underkategorier</p>
                 <div className="space-y-4">
