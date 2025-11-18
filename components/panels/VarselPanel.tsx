@@ -148,7 +148,8 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
               helpText="Når inntraff hendelsen som utløser dette kravet?"
               className="w-full md:max-w-sm"
             />
-
+          </div>
+          <div className="space-y-6">
             {varsel.hovedkategori && underkategoriOptions.length > 0 && (
               <div className="w-full rounded-lg border bg-white p-4 border-border-color">
                 <label className="block text-sm font-semibold text-ink-dim mb-1">
