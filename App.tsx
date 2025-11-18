@@ -271,7 +271,7 @@ const App: React.FC = () => {
         <div className="bg-body-bg min-h-screen text-ink font-sans">
             <PktHeader
                 serviceName="Skjema for krav om endringsordre (KOE)"
-                user={{ name: formData.rolle === 'TE' ? 'Total Entreprenør' : 'Byggherren', showName: true }}
+                user={{ name: formData.rolle === 'TE' ? 'Entreprenør' : 'Byggherren', showName: true }}
                 fixed={true}
             >
                 <div className="flex items-center gap-3 ml-4">
