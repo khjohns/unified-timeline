@@ -125,18 +125,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
         </PktAlert>
 
         <FieldsetCard legend="Forholdet som varsles">
-          <div className="space-y-6">
-            <DateField
-              id="varsel.dato_forhold_oppdaget"
-              label="Dato forhold oppdaget"
-              value={varsel.dato_forhold_oppdaget}
-              onChange={value => handleChange('dato_forhold_oppdaget', value)}
-              error={errors['varsel.dato_forhold_oppdaget']}
-              readOnly={isLocked}
-              helpText="Når inntraff hendelsen som utløser dette kravet?"
-              className="w-full md:max-w-sm"
-            />
-
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <SelectField
               id="varsel.hovedkategori"
               label="Hovedkategori (NS 8407)"
@@ -146,7 +135,18 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
               error={errors['varsel.hovedkategori']}
               readOnly={isLocked}
               helpText="Velg primær årsak til endringen"
-              className="w-full md:max-w-md"
+              className="w-full md:col-span-2"
+            />
+            
+            <DateField
+              id="varsel.dato_forhold_oppdaget"
+              label="Dato forhold oppdaget"
+              value={varsel.dato_forhold_oppdaget}
+              onChange={value => handleChange('dato_forhold_oppdaget', value)}
+              error={errors['varsel.dato_forhold_oppdaget']}
+              readOnly={isLocked}
+              helpText="Når inntraff hendelsen som utløser dette kravet?"
+              className="w-full md:max-w-sm"
             />
 
             {varsel.hovedkategori && underkategoriOptions.length > 0 && (
