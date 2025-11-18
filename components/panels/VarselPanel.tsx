@@ -145,7 +145,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
               onChange={value => handleChange('dato_forhold_oppdaget', value)}
               error={errors['varsel.dato_forhold_oppdaget']}
               readOnly={isLocked}
-              helpText=""
+              helpText="Velg dato forholdet ble kjent"
               className="w-full md:max-w-sm"
             />
           </div>
