@@ -92,7 +92,7 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
                     error={errors['sak.entreprenor']}
                     readOnly={disabled}
                     autoComplete="organization"
-                    className="w-full"
+                    className="w-full md:max-w-sm"
                   />
                   <InputField
                     id="sak.byggherre"
@@ -102,7 +102,8 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
                     error={errors['sak.byggherre']}
                     readOnly={disabled}
                     autoComplete="organization"
-                    className="w-full"
+                    className="w-full md:max-w-sm"
+                    
                   />
                 </div>
             </FieldsetCard>
