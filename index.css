@@ -83,69 +83,71 @@ body {
     font-size: 14px;
 }
 
-/* Reduser skriftstørrelser for Punkt komponenter */
-/* Input felter */
-pkt-textinput input,
-pkt-textarea textarea,
-pkt-datepicker input,
-pkt-select select {
-    font-size: 14px !important;
-}
+/* Reduser skriftstørrelser for Punkt komponenter - kun mobil */
+@media (max-width: 768px) {
+    /* Input felter */
+    pkt-textinput input,
+    pkt-textarea textarea,
+    pkt-datepicker input,
+    pkt-select select {
+        font-size: 14px !important;
+    }
 
-/* Labels */
-pkt-textinput label,
-pkt-textarea label,
-pkt-datepicker label,
-pkt-select label,
-pkt-checkbox label {
-    font-size: 14px !important;
-    font-weight: 500 !important;
-}
+    /* Labels */
+    pkt-textinput label,
+    pkt-textarea label,
+    pkt-datepicker label,
+    pkt-select label,
+    pkt-checkbox label {
+        font-size: 14px !important;
+        font-weight: 500 !important;
+    }
 
-/* Help text */
-pkt-textinput .pkt-txt-helptext,
-pkt-textarea .pkt-txt-helptext,
-pkt-datepicker .pkt-txt-helptext,
-pkt-select .pkt-txt-helptext,
-pkt-checkbox .pkt-txt-helptext {
-    font-size: 12px !important;
-}
+    /* Help text */
+    pkt-textinput .pkt-txt-helptext,
+    pkt-textarea .pkt-txt-helptext,
+    pkt-datepicker .pkt-txt-helptext,
+    pkt-select .pkt-txt-helptext,
+    pkt-checkbox .pkt-txt-helptext {
+        font-size: 12px !important;
+    }
 
-/* Fieldset legends */
-fieldset legend {
-    font-size: 16px !important;
-}
+    /* Fieldset legends */
+    fieldset legend {
+        font-size: 16px !important;
+    }
 
-/* Button tekst */
-pkt-button {
-    font-size: 14px !important;
-}
+    /* Button tekst */
+    pkt-button {
+        font-size: 14px !important;
+    }
 
-/* Tab tekst */
-pkt-tab-item {
-    font-size: 14px !important;
-}
+    /* Tab tekst */
+    pkt-tab-item {
+        font-size: 14px !important;
+    }
 
-/* Accordion titler */
-pkt-accordion-item .pkt-accordion__title {
-    font-size: 15px !important;
-}
+    /* Accordion titler */
+    pkt-accordion-item .pkt-accordion__title {
+        font-size: 15px !important;
+    }
 
-/* Generell heading størrelser */
-h1 {
-    font-size: 24px !important;
-}
+    /* Generell heading størrelser */
+    h1 {
+        font-size: 24px !important;
+    }
 
-h2 {
-    font-size: 20px !important;
-}
+    h2 {
+        font-size: 20px !important;
+    }
 
-h3 {
-    font-size: 18px !important;
-}
+    h3 {
+        font-size: 18px !important;
+    }
 
-h4 {
-    font-size: 16px !important;
+    h4 {
+        font-size: 16px !important;
+    }
 }
 
 :focus-visible {
