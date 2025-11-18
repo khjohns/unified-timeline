@@ -101,7 +101,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                   <CheckboxField
                     id={`koe.vederlag.krav_vederlag.${index}`}
                     label="Krav om vederlagsjustering"
-                    checkHelptext="For denne endringsordren"
+                    checkHelptext="Velg hvis det aktuelle forholdet gir grunnlag for vederlagsjustering"
                     checked={koe.vederlag.krav_vederlag}
                     onChange={e => handleChange(index, 'vederlag.krav_vederlag', e.target.checked)}
                     disabled={erLaast}
@@ -158,10 +158,11 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                           label="Begrunnelse for vederlagskrav"
                           value={koe.vederlag.krav_vederlag_begrunnelse}
                           onChange={e => handleChange(index, 'vederlag.krav_vederlag_begrunnelse', e.target.value)}
-                          helpText="Dokumenter kostnader og grunnlag for kravet"
+                          helpText="Dokumenter kostnader og grunnlag for kravet, eller hvis til vedlegg"
                           required={koe.vederlag.krav_vederlag}
                           readOnly={erLaast}
                           fullwidth
+                          rows="8"
                         />
                       </div>
                     </div>
@@ -172,7 +173,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                   <CheckboxField
                     id={`koe.frist.krav_fristforlengelse.${index}`}
                     label="Krav om fristforlengelse"
-                    checkHelptext="For denne endringsordren"
+                    checkHelptext="Velg hvis det aktuelle forholdet gir grunnlag for fristforlengelse"
                     checked={koe.frist.krav_fristforlengelse}
                     onChange={e => handleChange(index, 'frist.krav_fristforlengelse', e.target.checked)}
                     disabled={erLaast}
@@ -229,6 +230,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                           required={koe.frist.krav_fristforlengelse}
                           readOnly={erLaast}
                           fullwidth
+                          rows="8"
                         />
                       </div>
                     </div>
