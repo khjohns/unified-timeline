@@ -27,7 +27,7 @@ interface FieldProps {
 
 interface TextareaFieldProps extends Omit<FieldProps, 'type' | 'min' | 'step' | 'formatAsNumber'> {
     value: string;
-    minHeight?: string;
+    rows?: string | number;
     fullwidth?: boolean;
 }
 
@@ -164,7 +164,7 @@ export const SelectField: React.FC<SelectFieldProps> = ({ id, label, value, onCh
   );
 };
 
-export const TextareaField: React.FC<TextareaFieldProps> = ({ id, label, value, onChange, required, optional, placeholder, error, className, minHeight="90px", helpText, readOnly, fullwidth }) => (
+export const TextareaField: React.FC<TextareaFieldProps> = ({ id, label, value, onChange, required, optional, placeholder, error, className, rows = "4", helpText, readOnly, fullwidth }) => (
   <div className={className}>
     <PktTextarea
       id={id}
@@ -177,7 +177,7 @@ export const TextareaField: React.FC<TextareaFieldProps> = ({ id, label, value, 
       helptext={helpText}
       hasError={!!error}
       errorMessage={error}
-      style={{ minHeight }}
+      rows={String(rows)}
       useWrapper={true}
       readOnly={readOnly}
       fullwidth={fullwidth}
