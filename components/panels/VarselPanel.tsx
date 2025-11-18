@@ -193,28 +193,42 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
                 Hvordan varsles byggherre?
               </label>
               <div className="space-y-3">
-                <PktRadioButton
-                  id="varsel-nytt"
-                  name="varsling_type"
-                  label="Varselet sendes via dette skjemaet"
-                  value="nei"
-                  checked={erTidligereVarslet === 'nei'}
-                  onChange={() => setErTidligereVarslet('nei')}
-                  disabled={isLocked}
-                  hasTile={true}
-                  checkHelptext="Varselet dateres automatisk til i dag"
-                />
-                <PktRadioButton
-                  id="varsel-tidligere"
-                  name="varsling_type"
-                  label="Forholdet er tidligere varslet"
-                  value="ja"
-                  checked={erTidligereVarslet === 'ja'}
-                  onChange={() => setErTidligereVarslet('ja')}
-                  disabled={isLocked}
-                  hasTile={true}
-                  checkHelptext="Du må oppgi når og hvordan det ble varslet"
-                />
+                <div
+                  className={`w-full rounded-lg border bg-white p-4 transition-colors hover:bg-gray-50 ${
+                    erTidligereVarslet === 'nei' ? 'border-pri' : 'border-border-color'
+                  } ${isLocked ? 'bg-gray-50 opacity-70' : ''}`}
+                >
+                  <PktRadioButton
+                    id="varsel-nytt"
+                    name="varsling_type"
+                    label="Varselet sendes via dette skjemaet"
+                    value="nei"
+                    checked={erTidligereVarslet === 'nei'}
+                    onChange={() => setErTidligereVarslet('nei')}
+                    disabled={isLocked}
+                  />
+                  <p className="pl-8 pt-1 text-sm text-muted">
+                    Varselet dateres automatisk til i dag
+                  </p>
+                </div>
+                <div
+                  className={`w-full rounded-lg border bg-white p-4 transition-colors hover:bg-gray-50 ${
+                    erTidligereVarslet === 'ja' ? 'border-pri' : 'border-border-color'
+                  } ${isLocked ? 'bg-gray-50 opacity-70' : ''}`}
+                >
+                  <PktRadioButton
+                    id="varsel-tidligere"
+                    name="varsling_type"
+                    label="Forholdet er tidligere varslet"
+                    value="ja"
+                    checked={erTidligereVarslet === 'ja'}
+                    onChange={() => setErTidligereVarslet('ja')}
+                    disabled={isLocked}
+                  />
+                  <p className="pl-8 pt-1 text-sm text-muted">
+                    Du må oppgi når og hvordan det ble varslet
+                  </p>
+                </div>
               </div>
             </div>
 
