@@ -526,5 +526,5 @@ if __name__ == "__main__":
         print("❌ config.json mangler. Opprett denne først.")
         sys.exit(1)
 
-    print("🚀 KOE Backend API starter på port 5000...")
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    print("🚀 KOE Backend API starter på port 8080...")
+    app.run(host='0.0.0.0', port=8080, debug=True)
