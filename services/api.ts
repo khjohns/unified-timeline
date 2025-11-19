@@ -1,7 +1,9 @@
 import { FormDataModel } from '../types';
 
 // API base URL - will be configured via environment variable
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+const rawApiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+// Sanitize the base URL to remove any trailing slashes, making it more robust
+const API_BASE_URL = rawApiBaseUrl.replace(/\/$/, '');
 
 // Debug: Log the API URL being used (remove in production)
 console.log('API Base URL:', API_BASE_URL);
