@@ -1,12 +1,15 @@
 import { useEffect, useRef } from 'react';
 import { FormDataModel } from '../types';
 import { INITIAL_FORM_DATA } from '../constants';
+import { api } from '../services/api';
 
 interface UseAutoSaveOptions {
   data: FormDataModel;
   storageKey: string;
   debounceMs?: number;
   onSave?: () => void;
+  sakId?: string | null; // For API persistence
+  enableApiSave?: boolean; // Enable/disable API saving
 }
 
 /**
@@ -23,6 +26,8 @@ interface UseAutoSaveOptions {
  * @param options.storageKey - localStorage key for saving/loading
  * @param options.debounceMs - Debounce delay in milliseconds (default: 1500)
  * @param options.onSave - Optional callback when save completes
+ * @param options.sakId - Optional sakId for API persistence
+ * @param options.enableApiSave - Enable/disable API saving (default: false)
  * @returns Loaded form data (or null if no saved data)
  */
 export const useAutoSave = ({
@@ -30,6 +35,8 @@ export const useAutoSave = ({
   storageKey,
   debounceMs = 1500,
   onSave,
+  sakId,
+  enableApiSave = false,
 }: UseAutoSaveOptions): FormDataModel | null => {
   const debounceTimeoutRef = useRef<number | null>(null);
   const loadedDataRef = useRef<FormDataModel | null>(null);
@@ -85,12 +92,22 @@ export const useAutoSave = ({
     }
 
     // Set new timeout
-    debounceTimeoutRef.current = window.setTimeout(() => {
+    debounceTimeoutRef.current = window.setTimeout(async () => {
       try {
+        // Always save to localStorage as fallback
         localStorage.setItem(storageKey, JSON.stringify(data));
+
+        // Optionally save to API as well
+        if (enableApiSave) {
+          const response = await api.saveDraft(data, sakId || undefined);
+          if (!response.success) {
+            console.warn('Failed to save draft to API:', response.error);
+          }
+        }
+
         onSave?.();
       } catch (error) {
-        console.error('Failed to save draft to localStorage', error);
+        console.error('Failed to save draft', error);
       }
     }, debounceMs);
 
@@ -100,7 +117,7 @@ export const useAutoSave = ({
         clearTimeout(debounceTimeoutRef.current);
       }
     };
-  }, [data, storageKey, debounceMs, onSave]);
+  }, [data, storageKey, debounceMs, onSave, sakId, enableApiSave]);
 
   return loadedDataRef.current;
 };
