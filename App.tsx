@@ -105,8 +105,9 @@ const App: React.FC = () => {
     useEffect(() => {
         if (modus) {
             const roleMap: Record<Modus, Role> = {
+                'varsel': 'TE',
                 'koe': 'TE',
-                'eo': 'BH',
+                'svar': 'BH',
                 'revidering': 'TE',
             };
             const newRole = roleMap[modus];
@@ -115,10 +116,13 @@ const App: React.FC = () => {
             }
 
             // Set initial tab based on modus
-            if (modus === 'eo') {
+            // Tab 0: Grunninfo, Tab 1: Varsel, Tab 2: Krav, Tab 3: BH Svar, Tab 4: Oppsummering
+            if (modus === 'varsel') {
+                setActiveTab(1); // Varsel tab
+            } else if (modus === 'koe' || modus === 'revidering') {
+                setActiveTab(2); // Krav tab
+            } else if (modus === 'svar') {
                 setActiveTab(3); // BH Svar tab
-            } else if (modus === 'revidering') {
-                setActiveTab(2); // Krav tab for revision
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -223,22 +227,42 @@ const App: React.FC = () => {
         try {
             let response;
 
-            if (modus === 'eo' && sakId) {
-                // BH submitting EO response
-                response = await api.submitEo(formData, sakId);
+            if (modus === 'varsel') {
+                // TE submitting initial warning
+                response = await api.submitVarsel(formData, topicGuid || undefined);
+            } else if (modus === 'svar' && sakId) {
+                // BH submitting response to claim
+                response = await api.submitSvar(formData, sakId);
             } else if (modus === 'revidering' && sakId) {
                 // TE submitting revision
                 response = await api.submitRevidering(formData, sakId);
             } else {
-                // Initial KOE submission
-                response = await api.submitKoe(formData, topicGuid || undefined);
+                // KOE submission (claim)
+                response = await api.submitKoe(formData, sakId || undefined, topicGuid || undefined);
             }
 
             if (response.success && response.data) {
                 showToast(setToastMessage, response.data.message || 'Skjema sendt til server');
 
                 // Generate and download PDF after successful submission
-                await generatePdfReact(formData);
+                const { blob, filename } = await generatePdfReact(formData);
+
+                // Upload PDF to backend for Catenda integration
+                const effectiveSakId = response.data.sakId || sakId;
+                if (effectiveSakId && isApiConnected) {
+                    const pdfResponse = await api.uploadPdf(
+                        effectiveSakId,
+                        blob,
+                        filename,
+                        modus || 'koe'
+                    );
+                    if (pdfResponse.success) {
+                        showToast(setToastMessage, 'PDF lastet opp til server');
+                    } else {
+                        console.warn('PDF upload failed:', pdfResponse.error);
+                        // Don't show error to user - PDF was downloaded locally
+                    }
+                }
 
                 // Clear localStorage after successful submission
                 localStorage.removeItem('koe_v5_0_draft');
@@ -260,12 +284,16 @@ const App: React.FC = () => {
     const getSubmitButtonText = () => {
         if (isSubmitting) return 'Sender...';
         switch (modus) {
-            case 'eo':
-                return 'Send EO-svar';
+            case 'varsel':
+                return 'Send varsel';
+            case 'koe':
+                return 'Send krav';
+            case 'svar':
+                return 'Send svar';
             case 'revidering':
                 return 'Send revisjon';
             default:
-                return 'Send KOE';
+                return 'Send';
         }
     };
 
@@ -503,7 +531,12 @@ const App: React.FC = () => {
                                 )}
                                 {modus && (
                                     <span className="text-blue-700">
-                                        <strong>Modus:</strong> {modus === 'koe' ? 'KOE (Entreprenør)' : modus === 'eo' ? 'EO (Byggherre)' : 'Revidering'}
+                                        <strong>Modus:</strong> {
+                                            modus === 'varsel' ? 'Varsel (Entreprenør)' :
+                                            modus === 'koe' ? 'Krav (Entreprenør)' :
+                                            modus === 'svar' ? 'Svar (Byggherre)' :
+                                            'Revidering (Entreprenør)'
+                                        }
                                     </span>
                                 )}
                                 {isApiConnected === false && (
