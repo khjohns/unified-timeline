@@ -325,7 +325,6 @@ class KOEAutomationSystem:
             project_id = self.config.get('catenda_project_id')
             library_id = self.config.get('catenda_library_id')
             
-            # Sett library ID på tester-objektet hvis nødvendig
             if library_id:
                 self.catenda.library_id = library_id
             else:
@@ -336,13 +335,20 @@ class KOEAutomationSystem:
             if not doc_result or 'id' not in doc_result:
                 raise Exception("Feil ved opplasting av dokument til Catenda")
             
-            doc_guid = doc_result['id']
-            logger.info(f"PDF lastet opp til Catenda. GUID: {doc_guid}")
+            compact_doc_guid = doc_result['id']
+            logger.info(f"PDF lastet opp til Catenda. Kompakt GUID: {compact_doc_guid}")
 
-            # 3. Koble til Topic
-            # Hent board ID fra lagret sak-info for å sikre at vi bruker riktig tavle
+            # 3. Konverter GUID til standard UUID-format for BCF API
+            if len(compact_doc_guid) == 32:
+                formatted_doc_guid = (
+                    f"{compact_doc_guid[:8]}-{compact_doc_guid[8:12]}-"
+                    f"{compact_doc_guid[12:16]}-{compact_doc_guid[16:20]}-{compact_doc_guid[20:]}"
+                )
+            else:
+                formatted_doc_guid = compact_doc_guid # Anta at formatet allerede er riktig
+
+            # 4. Koble til Topic
             sak_info = self.db.get_form_data(sak_id)
-            
             if sak_info and 'sak' in sak_info and sak_info['sak'].get('catenda_board_id'):
                  self.catenda.topic_board_id = sak_info['sak']['catenda_board_id']
                  logger.info(f"Bruker lagret board ID: {self.catenda.topic_board_id}")
@@ -350,13 +356,20 @@ class KOEAutomationSystem:
                  logger.warning("Fant ikke board ID i sak, prøver default...")
                  self.catenda.select_topic_board(0)
 
-            ref_result = self.catenda.create_document_reference(topic_guid, doc_guid)
+            ref_result = self.catenda.create_document_reference(topic_guid, formatted_doc_guid)
             
             if ref_result:
                 logger.info(f"PDF koblet til topic {topic_guid}")
-                return {'success': True, 'documentGuid': doc_guid, 'filename': filename}
+                return {'success': True, 'documentGuid': formatted_doc_guid, 'filename': filename}
             else:
-                return {'success': False, 'error': 'Kunne ikke koble dokument til topic'}
+                # Hvis det feiler, logg forsøket med den kompakte ID-en også for feilsøking
+                logger.warning(f"Kunne ikke koble med formatert GUID. Prøver kompakt GUID: {compact_doc_guid}")
+                ref_result_compact = self.catenda.create_document_reference(topic_guid, compact_doc_guid)
+                if ref_result_compact:
+                    logger.info(f"PDF koblet til topic {topic_guid} med kompakt GUID.")
+                    return {'success': True, 'documentGuid': compact_doc_guid, 'filename': filename}
+                else:
+                    return {'success': False, 'error': 'Kunne ikke koble dokument til topic (begge GUID-formater feilet)'}
 
         except Exception as e:
             logger.exception(f"Feil ved PDF-håndtering: {e}")
