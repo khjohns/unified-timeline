@@ -12,7 +12,7 @@ Denne dokumentasjonen beskriver hvordan React-appen og Python-backend skal sette
 ┌─────────────────┐     Webhook      ┌─────────────────┐
 │     Catenda     │ ───────────────> │  Python Backend │
 │   (Prosjekt-    │                  │   (Flask:5000)  │
-│    hotell)      │ <─────────────── │                 │
+│    hotell)      │ <─────────────── │   (port 5000)   │
 └─────────────────┘   API (comment,  └────────┬────────┘
                       document)               │
                                               │ REST API
