@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { FormDataModel, Role, BhSvar, Koe } from './types';
 import { TABS, INITIAL_FORM_DATA, DEMO_DATA } from './constants';
 import Toast from './components/ui/Toast';
@@ -7,6 +8,7 @@ import { PktHeader, PktButton, PktTabs, PktTabItem } from '@oslokommune/punkt-re
 import { useSkjemaData } from './hooks/useSkjemaData';
 import { useAutoSave } from './hooks/useAutoSave';
 import { showToast } from './utils/toastHelpers';
+import { api, Modus } from './services/api';
 
 import GrunninfoPanel from './components/panels/GrunninfoPanel';
 import VarselPanel from './components/panels/VarselPanel';
@@ -20,6 +22,18 @@ const App: React.FC = () => {
     const [activeTab, setActiveTab] = useState(0);
     const [toastMessage, setToastMessage] = useState('');
 
+    // URL parameters for POC integration
+    const [searchParams] = useSearchParams();
+    const sakId = searchParams.get('sakId');
+    const modus = searchParams.get('modus') as Modus | null;
+    const topicGuid = searchParams.get('topicGuid'); // From Catenda webhook
+
+    // Loading and error states
+    const [isLoading, setIsLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [apiError, setApiError] = useState<string | null>(null);
+    const [isApiConnected, setIsApiConnected] = useState<boolean | null>(null);
+
     // Use custom hooks for state management and auto-save
     const { formData, setFormData, handleInputChange, errors, setErrors } = useSkjemaData(INITIAL_FORM_DATA);
 
@@ -32,13 +46,83 @@ const App: React.FC = () => {
         },
     });
 
-    // Load saved data on mount
+    // Check API connectivity on mount
     useEffect(() => {
-        if (loadedData) {
+        const checkApiConnection = async () => {
+            const connected = await api.healthCheck();
+            setIsApiConnected(connected);
+            if (!connected) {
+                console.warn('API server not available - running in offline mode');
+            }
+        };
+        checkApiConnection();
+    }, []);
+
+    // Load data from API when sakId parameter is present
+    useEffect(() => {
+        const loadFromApi = async () => {
+            if (!sakId) return;
+
+            setIsLoading(true);
+            setApiError(null);
+
+            try {
+                const response = await api.getCase(sakId, modus || undefined);
+
+                if (response.success && response.data) {
+                    setFormData(response.data.formData);
+                    showToast(setToastMessage, `Sak ${sakId} lastet fra server`);
+                } else {
+                    setApiError(response.error || 'Kunne ikke laste sak');
+                    // Fall back to localStorage if API fails
+                    if (loadedData) {
+                        setFormData(loadedData);
+                        showToast(setToastMessage, 'API ikke tilgjengelig - bruker lokal lagring');
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load from API:', error);
+                setApiError('Nettverksfeil ved lasting av sak');
+                // Fall back to localStorage
+                if (loadedData) {
+                    setFormData(loadedData);
+                }
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        if (sakId && isApiConnected === true) {
+            loadFromApi();
+        } else if (!sakId && loadedData) {
+            // No sakId - load from localStorage
             setFormData(loadedData);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // Only run on mount
+    }, [sakId, isApiConnected]);
+
+    // Set role based on modus parameter
+    useEffect(() => {
+        if (modus) {
+            const roleMap: Record<Modus, Role> = {
+                'koe': 'TE',
+                'eo': 'BH',
+                'revidering': 'TE',
+            };
+            const newRole = roleMap[modus];
+            if (newRole && formData.rolle !== newRole) {
+                setFormData(prev => ({ ...prev, rolle: newRole }));
+            }
+
+            // Set initial tab based on modus
+            if (modus === 'eo') {
+                setActiveTab(3); // BH Svar tab
+            } else if (modus === 'revidering') {
+                setActiveTab(2); // Krav tab for revision
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [modus]);
 
     useEffect(() => {
         if (formData.rolle === 'BH') {
@@ -125,6 +209,64 @@ const App: React.FC = () => {
 
     const handleDownloadPdf = async () => {
         await generatePdfReact(formData);
+    };
+
+    // API submission handlers for POC workflow
+    const handleSubmitToApi = async () => {
+        if (!validateCurrentTab()) {
+            return;
+        }
+
+        setIsSubmitting(true);
+        setApiError(null);
+
+        try {
+            let response;
+
+            if (modus === 'eo' && sakId) {
+                // BH submitting EO response
+                response = await api.submitEo(formData, sakId);
+            } else if (modus === 'revidering' && sakId) {
+                // TE submitting revision
+                response = await api.submitRevidering(formData, sakId);
+            } else {
+                // Initial KOE submission
+                response = await api.submitKoe(formData, topicGuid || undefined);
+            }
+
+            if (response.success && response.data) {
+                showToast(setToastMessage, response.data.message || 'Skjema sendt til server');
+
+                // Generate and download PDF after successful submission
+                await generatePdfReact(formData);
+
+                // Clear localStorage after successful submission
+                localStorage.removeItem('koe_v5_0_draft');
+            } else {
+                setApiError(response.error || 'Kunne ikke sende skjema');
+                showToast(setToastMessage, `Feil: ${response.error}`);
+            }
+        } catch (error) {
+            console.error('Submit error:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Ukjent feil';
+            setApiError(errorMessage);
+            showToast(setToastMessage, `Feil ved innsending: ${errorMessage}`);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    // Get submit button text based on modus
+    const getSubmitButtonText = () => {
+        if (isSubmitting) return 'Sender...';
+        switch (modus) {
+            case 'eo':
+                return 'Send EO-svar';
+            case 'revidering':
+                return 'Send revisjon';
+            default:
+                return 'Send KOE';
+        }
     };
 
     // Helper function to add a new BH svar revision
@@ -262,10 +404,34 @@ const App: React.FC = () => {
                     >
                         Eksempel
                     </PktButton>
+                    {isApiConnected && (
+                        <PktButton
+                            skin="primary"
+                            size="small"
+                            onClick={handleSubmitToApi}
+                            iconName="arrow-right"
+                            variant="icon-right"
+                            disabled={isSubmitting}
+                        >
+                            {getSubmitButtonText()}
+                        </PktButton>
+                    )}
                 </div>
             </div>
         </div>
     );
+
+    // Render loading state
+    if (isLoading) {
+        return (
+            <div className="bg-body-bg min-h-screen text-ink font-sans flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pri mx-auto mb-4"></div>
+                    <p className="text-ink-dim">Laster sak {sakId}...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="bg-body-bg min-h-screen text-ink font-sans">
@@ -296,6 +462,60 @@ const App: React.FC = () => {
             </PktHeader>
 
             <main className="pt-24 pb-8 sm:pb-12">
+                {/* API Error Banner */}
+                {apiError && (
+                    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
+                        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+                            <div className="flex">
+                                <div className="flex-shrink-0">
+                                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div className="ml-3">
+                                    <p className="text-sm text-red-700">{apiError}</p>
+                                </div>
+                                <div className="ml-auto pl-3">
+                                    <button
+                                        onClick={() => setApiError(null)}
+                                        className="text-red-400 hover:text-red-500"
+                                    >
+                                        <span className="sr-only">Lukk</span>
+                                        <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Mode and SakId Info Banner */}
+                {(sakId || modus) && (
+                    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
+                        <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                            <div className="flex items-center gap-4 text-sm">
+                                {sakId && (
+                                    <span className="text-blue-700">
+                                        <strong>Sak:</strong> {sakId}
+                                    </span>
+                                )}
+                                {modus && (
+                                    <span className="text-blue-700">
+                                        <strong>Modus:</strong> {modus === 'koe' ? 'KOE (Entreprenør)' : modus === 'eo' ? 'EO (Byggherre)' : 'Revidering'}
+                                    </span>
+                                )}
+                                {isApiConnected === false && (
+                                    <span className="text-orange-600 ml-auto">
+                                        Offline-modus (API ikke tilgjengelig)
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 lg:grid lg:grid-cols-3 lg:gap-12">
 
                     {/* Hovedkolonne (2/3) - Tabs, panel og knapper */}
