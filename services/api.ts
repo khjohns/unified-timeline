@@ -35,7 +35,11 @@ export interface AttachmentResponse {
 }
 
 // Modus types for POC workflow
-export type Modus = 'koe' | 'eo' | 'revidering';
+// varsel: TE sends initial warning
+// koe: TE sends claim (Krav om Endringsordre)
+// svar: BH responds to claim (Svar på krav)
+// revidering: TE revises claim after BH response
+export type Modus = 'varsel' | 'koe' | 'svar' | 'revidering';
 
 /**
  * API service for KOE/EO form communication with backend
@@ -82,9 +86,48 @@ export const api = {
   },
 
   /**
-   * Submit KOE form data (initial submission by entrepreneur)
+   * Submit Varsel (initial warning by entrepreneur)
    */
-  submitKoe: async (formData: FormDataModel, topicGuid?: string): Promise<ApiResponse<SubmitResponse>> => {
+  submitVarsel: async (formData: FormDataModel, topicGuid?: string): Promise<ApiResponse<SubmitResponse>> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/varsel-submit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          formData,
+          topicGuid,
+          modus: 'varsel',
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        return {
+          success: false,
+          error: errorData.message || `Failed to submit varsel: ${response.status}`,
+        };
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        data,
+      };
+    } catch (error) {
+      console.error('API submitVarsel error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Network error',
+      };
+    }
+  },
+
+  /**
+   * Submit KOE form data (claim by entrepreneur)
+   */
+  submitKoe: async (formData: FormDataModel, sakId?: string, topicGuid?: string): Promise<ApiResponse<SubmitResponse>> => {
     try {
       const response = await fetch(`${API_BASE_URL}/koe-submit`, {
         method: 'POST',
@@ -93,6 +136,7 @@ export const api = {
         },
         body: JSON.stringify({
           formData,
+          sakId,
           topicGuid,
           modus: 'koe',
         }),
@@ -121,11 +165,11 @@ export const api = {
   },
 
   /**
-   * Submit EO response (BH response to KOE)
+   * Submit Svar (BH response to KOE claim)
    */
-  submitEo: async (formData: FormDataModel, sakId: string): Promise<ApiResponse<SubmitResponse>> => {
+  submitSvar: async (formData: FormDataModel, sakId: string): Promise<ApiResponse<SubmitResponse>> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/eo-submit`, {
+      const response = await fetch(`${API_BASE_URL}/svar-submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -133,7 +177,7 @@ export const api = {
         body: JSON.stringify({
           formData,
           sakId,
-          modus: 'eo',
+          modus: 'svar',
         }),
       });
 
@@ -141,7 +185,7 @@ export const api = {
         const errorData = await response.json().catch(() => ({}));
         return {
           success: false,
-          error: errorData.message || `Failed to submit EO: ${response.status}`,
+          error: errorData.message || `Failed to submit svar: ${response.status}`,
         };
       }
 
@@ -151,7 +195,7 @@ export const api = {
         data,
       };
     } catch (error) {
-      console.error('API submitEo error:', error);
+      console.error('API submitSvar error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Network error',
