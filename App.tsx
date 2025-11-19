@@ -229,10 +229,10 @@ const App: React.FC = () => {
 
             if (modus === 'varsel') {
                 // TE submitting initial warning
-                response = await api.submitVarsel(formData, topicGuid || undefined);
+                response = await api.submitVarsel(formData, topicGuid || undefined, sakId || undefined);
             } else if (modus === 'svar' && sakId) {
                 // BH submitting response to claim
-                response = await api.submitSvar(formData, sakId);
+                response = await api.submitSvar(formData, sakId, topicGuid || undefined);
             } else if (modus === 'revidering' && sakId) {
                 // TE submitting revision
                 response = await api.submitRevidering(formData, sakId);
@@ -254,7 +254,8 @@ const App: React.FC = () => {
                         effectiveSakId,
                         blob,
                         filename,
-                        modus || 'koe'
+                        modus || 'koe',
+                        topicGuid || undefined
                     );
                     if (pdfResponse.success) {
                         showToast(setToastMessage, 'PDF lastet opp til server');

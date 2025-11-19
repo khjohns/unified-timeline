@@ -396,18 +396,27 @@ def get_case(sakId):
     sys = get_system()
     data = sys.db.get_form_data(sakId)
     if data:
-        return jsonify(data), 200
+        # Return in format expected by React frontend
+        return jsonify({
+            "sakId": sakId,
+            "formData": data,
+            "status": data.get('sak', {}).get('status', 'Ukjent'),
+        }), 200
     return jsonify({"error": "Sak ikke funnet"}), 404
 
 @app.route('/api/varsel-submit', methods=['POST'])
 def submit_varsel():
+    logger.info("📥 Mottok varsel-submit request")
     sys = get_system()
     payload = request.get_json()
     sak_id = payload.get('sakId')
     form_data = payload.get('formData')
     topic_guid = payload.get('topicGuid')
 
+    logger.info(f"  sakId: {sak_id}, topicGuid: {topic_guid}")
+
     if not sak_id or not form_data:
+        logger.warning(f"  Mangler data - sakId: {sak_id}, formData: {bool(form_data)}")
         return jsonify({"error": "Mangler data"}), 400
 
     # Lagre data
@@ -422,11 +431,14 @@ def submit_varsel():
 
 @app.route('/api/koe-submit', methods=['POST'])
 def submit_koe():
+    logger.info("📥 Mottok koe-submit request")
     sys = get_system()
     payload = request.get_json()
     sak_id = payload.get('sakId')
     form_data = payload.get('formData')
     topic_guid = payload.get('topicGuid')
+
+    logger.info(f"  sakId: {sak_id}, topicGuid: {topic_guid}")
 
     sys.db.save_form_data(sak_id, form_data)
     sys.db.update_sak_status(sak_id, 'Krav sendt', 'svar') # Neste modus: svar
@@ -438,13 +450,16 @@ def submit_koe():
 
 @app.route('/api/svar-submit', methods=['POST'])
 def submit_svar():
+    logger.info("📥 Mottok svar-submit request")
     sys = get_system()
     payload = request.get_json()
     sak_id = payload.get('sakId')
     form_data = payload.get('formData')
     topic_guid = payload.get('topicGuid')
-    
-    status_text = "Behandlet" 
+
+    logger.info(f"  sakId: {sak_id}, topicGuid: {topic_guid}")
+
+    status_text = "Behandlet"
 
     sys.db.save_form_data(sak_id, form_data)
     sys.db.update_sak_status(sak_id, status_text, 'ferdig')
@@ -466,14 +481,18 @@ def save_draft(sakId):
 @app.route('/api/cases/<string:sakId>/pdf', methods=['POST'])
 def upload_pdf(sakId):
     """Fase 4: Endepunkt for PDF-opplasting"""
+    logger.info(f"📥 Mottok PDF-opplasting for sak {sakId}")
     sys = get_system()
     payload = request.get_json()
-    
+
     pdf_base64 = payload.get('pdfBase64')
     filename = payload.get('filename')
     topic_guid = payload.get('topicGuid')
 
+    logger.info(f"  filename: {filename}, topicGuid: {topic_guid}")
+
     if not pdf_base64 or not filename or not topic_guid:
+        logger.warning(f"  Mangler data - pdf: {bool(pdf_base64)}, filename: {filename}, topicGuid: {topic_guid}")
         return jsonify({"error": "Mangler PDF data eller topic GUID"}), 400
 
     result = sys.handle_pdf_upload(sakId, pdf_base64, filename, topic_guid)
@@ -506,6 +525,6 @@ if __name__ == "__main__":
     if not os.path.exists('config.json'):
         print("❌ config.json mangler. Opprett denne først.")
         sys.exit(1)
-        
-    print("🚀 KOE Backend API starter på port 8080...")
-    app.run(host='0.0.0.0', port=8080, debug=True)
+
+    print("🚀 KOE Backend API starter på port 5000...")
+    app.run(host='0.0.0.0', port=5000, debug=True)
