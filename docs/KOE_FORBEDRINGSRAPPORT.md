@@ -108,6 +108,68 @@ comment_text = (
 
 ## 2. React App Grensesnitt
 
+### Designvurdering: Moderne app vs. tradisjonelt skjema
+
+**Dilemma**: Skal skjemaet ligne mer på et tradisjonelt Word-/papirskjema som brukerne kjenner?
+
+| Aspekt | Nåværende (moderne app) | Alternativ (Word-lignende) |
+|--------|------------------------|---------------------------|
+| **Layout** | En kolonne, mye whitespace | Tabeller, flere kolonner, kompakt |
+| **Skriftstørrelse** | Standard (16px) | Mindre (12-14px) |
+| **Feltplassering** | Vertikalt stablet | Horisontalt gruppert (2-3 per rad) |
+| **Metadata** | Separate felt | Tabell-format |
+| **Gjenkjennelighet** | Moderne, men uvant | Kjent for TE/BH |
+
+**Anbefaling**: Hybrid tilnærming
+
+```tsx
+// Eksempel: Metadata som tabell (Word-lignende)
+<table className="w-full text-sm border-collapse">
+  <tbody>
+    <tr>
+      <td className="border px-2 py-1 bg-gray-50 font-medium w-1/4">Sak-ID</td>
+      <td className="border px-2 py-1 w-1/4">{sakId}</td>
+      <td className="border px-2 py-1 bg-gray-50 font-medium w-1/4">Prosjekt</td>
+      <td className="border px-2 py-1 w-1/4">{prosjekt}</td>
+    </tr>
+    <tr>
+      <td className="border px-2 py-1 bg-gray-50 font-medium">Entreprenør</td>
+      <td className="border px-2 py-1">{te_navn}</td>
+      <td className="border px-2 py-1 bg-gray-50 font-medium">Byggherre</td>
+      <td className="border px-2 py-1">{bh_navn}</td>
+    </tr>
+  </tbody>
+</table>
+
+// Eksempel: To felt per rad for korte verdier
+<div className="grid grid-cols-2 gap-4">
+  <InputField label="Dato oppdaget" value={dato} />
+  <InputField label="Revisjonsnr" value={rev} />
+</div>
+
+// Eksempel: Full bredde for textarea
+<div className="col-span-2">
+  <TextareaField label="Begrunnelse" value={begrunnelse} />
+</div>
+```
+
+**Konkrete forslag**:
+
+1. **Metadata-seksjon**: Bruk tabell-format for grunninfo (sak-ID, prosjekt, parter)
+2. **Korte felt**: 2 per rad (dato, beløp, antall dager)
+3. **Lange felt**: Full bredde (beskrivelser, begrunnelser)
+4. **Skriftstørrelse**: Reduser til 14px for feltinnhold
+5. **Bredere skjema**: Øk max-width fra 5xl til 6xl eller 7xl
+
+```tsx
+// Øk skjemabredde i App.tsx
+<div className="max-w-6xl mx-auto ...">  // Fra max-w-5xl
+```
+
+**Vurder også**: Print-CSS som gjør at utskrift ligner tradisjonelt skjema.
+
+---
+
 ### Kritiske forbedringer
 
 #### 2.1 Visuell statusindikator/tidslinje (TOP PRIORITET)
