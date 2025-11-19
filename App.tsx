@@ -245,7 +245,24 @@ const App: React.FC = () => {
                 showToast(setToastMessage, response.data.message || 'Skjema sendt til server');
 
                 // Generate and download PDF after successful submission
-                await generatePdfReact(formData);
+                const { blob, filename } = await generatePdfReact(formData);
+
+                // Upload PDF to backend for Catenda integration
+                const effectiveSakId = response.data.sakId || sakId;
+                if (effectiveSakId && isApiConnected) {
+                    const pdfResponse = await api.uploadPdf(
+                        effectiveSakId,
+                        blob,
+                        filename,
+                        modus || 'koe'
+                    );
+                    if (pdfResponse.success) {
+                        showToast(setToastMessage, 'PDF lastet opp til server');
+                    } else {
+                        console.warn('PDF upload failed:', pdfResponse.error);
+                        // Don't show error to user - PDF was downloaded locally
+                    }
+                }
 
                 // Clear localStorage after successful submission
                 localStorage.removeItem('koe_v5_0_draft');
