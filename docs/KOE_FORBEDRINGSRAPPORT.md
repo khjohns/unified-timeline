@@ -1,8 +1,10 @@
 # KOE Digitaliseringsprosjekt - Strukturert Forbedringsrapport
 
 **Dato**: 2025-11-19
-**Versjon**: 1.0
+**Versjon**: 1.1
 **Utarbeidet av**: LLM Review
+
+> **Merk**: Alle kommentarer i Catenda er synlige for både TE og BH. Samme lenke brukes for alle parter - tilgang styres av Entra ID i produksjon.
 
 ---
 
@@ -39,62 +41,53 @@
 
 ### Forbedrede kommentartekster
 
-#### 1. Ved saksopprettelse (allerede bra, liten justering)
+> **Viktig**: Samme lenke (`{base_url}?sakId={sak_id}`) brukes i alle kommentarer. Systemet bestemmer riktig modus basert på saksstatus.
+
+#### 1. Ved saksopprettelse
 ```python
 comment_text = (
     f"✅ **Ny KOE-sak opprettet**\n\n"
     f"📋 Sak-ID: `{sak_id}`\n"
     f"📅 Dato: {dato}\n"
     f"🏗️ Prosjekt: {prosjekt}\n\n"
-    f"**Neste steg for Entreprenør (TE):**\n"
-    f"👉 [Fyll ut varsel om endring]({app_link})\n\n"
-    f"_Etter varsel sendes, vil byggherre få egen lenke for å svare._"
+    f"**Neste steg:** Entreprenør sender varsel\n"
+    f"👉 [Åpne skjema]({base_url}?sakId={sak_id})"
 )
 ```
 
 #### 2. Ved varsel sendt
 ```python
 comment_text = (
-    f"📨 **Varsel om endring mottatt**\n\n"
-    f"📋 Sak-ID: `{sak_id}`\n"
-    f"👤 Fra: {te_navn}\n"
+    f"📨 **Varsel om endring sendt**\n\n"
     f"📑 Kategori: {hovedkategori}\n"
     f"📅 Dato oppdaget: {dato_oppdaget}\n\n"
-    f"**Status:** Entreprenør kan nå spesifisere krav (vederlag/frist)\n\n"
-    f"👉 [Fortsett til krav]({krav_link})"
+    f"**Neste steg:** Entreprenør spesifiserer krav\n"
+    f"👉 [Åpne skjema]({base_url}?sakId={sak_id})"
 )
 ```
 
 #### 3. Ved KOE (krav) sendt
 ```python
 comment_text = (
-    f"📋 **Krav om endringsordre (KOE) mottatt**\n\n"
-    f"📋 Sak-ID: `{sak_id}`\n"
+    f"📋 **Krav om endringsordre (KOE) sendt**\n\n"
     f"🔢 Revisjon: {revisjonsnr}\n"
-    f"👤 Fra: {te_navn}\n"
-    f"📅 Dato krav sendt: {dato_krav}\n\n"
-    f"**Krav:**\n"
     f"{'💰 Vederlag: ' + krevd_beløp + ' NOK' if har_vederlag else ''}\n"
     f"{'📆 Fristforlengelse: ' + antall_dager + ' dager' if har_frist else ''}\n\n"
-    f"**Neste steg for Byggherre (BH):**\n"
-    f"👉 [Svar på krav]({bh_link})\n\n"
-    f"📎 _PDF-vedlegg er tilgjengelig under dokumenter_"
+    f"**Neste steg:** Byggherre svarer på krav\n"
+    f"👉 [Åpne skjema]({base_url}?sakId={sak_id})\n\n"
+    f"📎 PDF-vedlegg tilgjengelig under dokumenter"
 )
 ```
 
 #### 4. Ved BH svar
 ```python
 comment_text = (
-    f"✍️ **Svar fra byggherre registrert**\n\n"
-    f"📋 Sak-ID: `{sak_id}`\n"
-    f"👤 Fra: {bh_navn}\n"
-    f"📅 Dato svar: {dato_svar}\n\n"
+    f"✍️ **Svar fra byggherre**\n\n"
     f"**Beslutning:**\n"
-    f"{'💰 Vederlag: ' + svar_status + ' (' + godkjent_beløp + ' NOK)' if har_vederlag else ''}\n"
-    f"{'📆 Frist: ' + svar_frist_status + ' (' + godkjente_dager + ' dager)' if har_frist else ''}\n\n"
-    f"{'⚠️ Krever revidering' if svar_status == 'delvis' else '✅ Sak kan lukkes' if svar_status == 'godkjent' else ''}\n\n"
-    f"**Neste steg for Entreprenør:**\n"
-    f"{'👉 [Send revidert krav](' + rev_link + ')' if trenger_revisjon else '📋 Se oversikt i skjema'}"
+    f"{'💰 Vederlag: ' + svar_status_tekst if har_vederlag else ''}\n"
+    f"{'📆 Frist: ' + svar_frist_tekst if har_frist else ''}\n\n"
+    f"{'**Neste steg:** Entreprenør sender revidert krav' if trenger_revisjon else '**Status:** Sak kan lukkes'}\n"
+    f"👉 [Åpne skjema]({base_url}?sakId={sak_id})"
 )
 ```
 
@@ -114,6 +107,68 @@ comment_text = (
 ---
 
 ## 2. React App Grensesnitt
+
+### Designvurdering: Moderne app vs. tradisjonelt skjema
+
+**Dilemma**: Skal skjemaet ligne mer på et tradisjonelt Word-/papirskjema som brukerne kjenner?
+
+| Aspekt | Nåværende (moderne app) | Alternativ (Word-lignende) |
+|--------|------------------------|---------------------------|
+| **Layout** | En kolonne, mye whitespace | Tabeller, flere kolonner, kompakt |
+| **Skriftstørrelse** | Standard (16px) | Mindre (12-14px) |
+| **Feltplassering** | Vertikalt stablet | Horisontalt gruppert (2-3 per rad) |
+| **Metadata** | Separate felt | Tabell-format |
+| **Gjenkjennelighet** | Moderne, men uvant | Kjent for TE/BH |
+
+**Anbefaling**: Hybrid tilnærming
+
+```tsx
+// Eksempel: Metadata som tabell (Word-lignende)
+<table className="w-full text-sm border-collapse">
+  <tbody>
+    <tr>
+      <td className="border px-2 py-1 bg-gray-50 font-medium w-1/4">Sak-ID</td>
+      <td className="border px-2 py-1 w-1/4">{sakId}</td>
+      <td className="border px-2 py-1 bg-gray-50 font-medium w-1/4">Prosjekt</td>
+      <td className="border px-2 py-1 w-1/4">{prosjekt}</td>
+    </tr>
+    <tr>
+      <td className="border px-2 py-1 bg-gray-50 font-medium">Entreprenør</td>
+      <td className="border px-2 py-1">{te_navn}</td>
+      <td className="border px-2 py-1 bg-gray-50 font-medium">Byggherre</td>
+      <td className="border px-2 py-1">{bh_navn}</td>
+    </tr>
+  </tbody>
+</table>
+
+// Eksempel: To felt per rad for korte verdier
+<div className="grid grid-cols-2 gap-4">
+  <InputField label="Dato oppdaget" value={dato} />
+  <InputField label="Revisjonsnr" value={rev} />
+</div>
+
+// Eksempel: Full bredde for textarea
+<div className="col-span-2">
+  <TextareaField label="Begrunnelse" value={begrunnelse} />
+</div>
+```
+
+**Konkrete forslag**:
+
+1. **Metadata-seksjon**: Bruk tabell-format for grunninfo (sak-ID, prosjekt, parter)
+2. **Korte felt**: 2 per rad (dato, beløp, antall dager)
+3. **Lange felt**: Full bredde (beskrivelser, begrunnelser)
+4. **Skriftstørrelse**: Reduser til 14px for feltinnhold
+5. **Bredere skjema**: Øk max-width fra 5xl til 6xl eller 7xl
+
+```tsx
+// Øk skjemabredde i App.tsx
+<div className="max-w-6xl mx-auto ...">  // Fra max-w-5xl
+```
+
+**Vurder også**: Print-CSS som gjør at utskrift ligner tradisjonelt skjema.
+
+---
 
 ### Kritiske forbedringer
 
@@ -155,28 +210,67 @@ const ProcessStepper = ({ currentStep, rolle }) => {
 };
 ```
 
-#### 2.2 Tydeliggjør roller med visuell kontekst
+#### 2.2 Fjern duplikate send-knapper (VIKTIG)
 
-**Problem**: Brukere usikre på om de er i TE- eller BH-modus.
+**Problem**: Det finnes to typer send-knapper som forvirrer brukere:
 
-**Løsning**: Visuell "banner" basert på rolle.
+| Lokasjon | Knapp | Funksjon |
+|----------|-------|----------|
+| VarselPanel.tsx | "Send varsel og fortsett til krav" | Kun lokal state-oppdatering |
+| KravKoePanel.tsx | "Send krav til byggherre" | Kun lokal state-oppdatering |
+| BhSvarPanel.tsx | "Send svar til entreprenør" | Kun lokal state-oppdatering |
+| App.tsx (bottom bar) | Dynamisk tekst | **Faktisk API-kall + PDF** |
+
+**Løsning**: Fjern panel-knappene og behold kun bottom bar-knappen.
 
 ```tsx
-// I App.tsx, øverst i main content
-<div className={`px-4 py-2 text-sm font-medium ${
-  formData.rolle === 'TE'
-    ? 'bg-blue-100 text-blue-800 border-b-2 border-blue-500'
-    : 'bg-purple-100 text-purple-800 border-b-2 border-purple-500'
-}`}>
-  {formData.rolle === 'TE' ? (
-    <>🔧 Du er logget inn som <strong>Entreprenør (TE)</strong> - Du kan redigere varsel og krav</>
-  ) : (
-    <>🏛️ Du er logget inn som <strong>Byggherre (BH)</strong> - Du kan svare på krav</>
-  )}
-</div>
+// Fjern fra VarselPanel.tsx (linje 307-318)
+// Fjern fra KravKoePanel.tsx (linje 281-289)
+// Fjern fra BhSvarPanel.tsx (linje 302-310)
+
+// Alternativt: Endre panel-knapper til "Lagre og fortsett" uten API-kall
+<PktButton
+  skin="secondary"
+  onClick={() => {
+    // Kun validering og tab-bytte, ingen API
+    if (validateCurrentTab()) {
+      setActiveTab(activeTab + 1);
+    }
+  }}
+>
+  Fortsett til neste steg
+</PktButton>
 ```
 
-#### 2.3 Forbedrede knappetekster
+#### 2.3 Utkast-synlighet (skjul fra motpart)
+
+**Problem**: Når sak lastes, ser begge parter alle data inkludert utkast.
+
+**Løsning**: Backend filtrerer ut utkast basert på modus.
+
+```python
+# backend/app.py - i get_case endpoint
+@app.route('/api/cases/<sakId>', methods=['GET'])
+def get_case(sakId):
+    modus = request.args.get('modus')
+    form_data = load_form_data(sakId)
+
+    # Skjul utkast fra motpart
+    if modus == 'svar':  # BH ser ikke TE sine utkast
+        form_data['koe_revisjoner'] = [
+            k for k in form_data['koe_revisjoner']
+            if k.get('status') != '100000001'  # Ikke utkast
+        ]
+    elif modus in ['koe', 'varsel', 'revidering']:  # TE ser ikke BH sine utkast
+        form_data['bh_svar_revisjoner'] = [
+            s for s in form_data['bh_svar_revisjoner']
+            if s.get('status') != '300000001'  # Ikke utkast
+        ]
+
+    return jsonify({'success': True, 'formData': form_data})
+```
+
+#### 2.4 Forbedrede knappetekster
 
 **Nåværende**: Generiske "Send varsel", "Send krav"
 
@@ -216,7 +310,7 @@ const getSubmitButtonConfig = (modus: string, formData: FormDataModel) => {
 };
 ```
 
-#### 2.4 Revisjonsoversikt med tidslinje
+#### 2.5 Revisjonsoversikt med tidslinje
 
 **Problem**: Vanskelig å se historikk og sammenligne revisjoner.
 
@@ -256,7 +350,7 @@ const RevisionTimeline = ({ koeRevisjoner, bhSvarRevisjoner }) => {
 };
 ```
 
-#### 2.5 Forbedret loading og feedback
+#### 2.6 Forbedret loading og feedback
 
 ```tsx
 // Suksess-modal etter innsending
@@ -461,18 +555,18 @@ def submit_koe():
 
 | # | Forbedring | Kompleksitet | Estimat | Påvirkning |
 |---|------------|-------------|---------|-----------|
-| 1 | Webhook-signatur validering | Lav | 2t | Sikkerhet |
-| 2 | Visuell statusindikator/stepper | Medium | 4t | UX |
-| 3 | Forbedrede Catenda-kommentarer | Lav | 3t | Profesjonalitet |
-| 4 | Token-refresh automatikk | Medium | 3t | Robusthet |
-| 5 | Forbedrede knappetekster | Lav | 1t | UX |
+| 1 | Fjern duplikate send-knapper | Lav | 1t | UX/Klarhet |
+| 2 | Utkast-synlighet filtrering | Lav | 2t | Sikkerhet/UX |
+| 3 | Webhook-signatur validering | Lav | 2t | Sikkerhet |
+| 4 | Forbedrede Catenda-kommentarer | Lav | 3t | Profesjonalitet |
+| 5 | Token-refresh automatikk | Medium | 3t | Robusthet |
 
 ### Viktige forbedringer (Bør fikses)
 
 | # | Forbedring | Kompleksitet | Estimat | Påvirkning |
 |---|------------|-------------|---------|-----------|
-| 6 | Retry-logikk for API-kall | Medium | 3t | Robusthet |
-| 7 | Rollekontekst-banner | Lav | 1t | UX |
+| 6 | Visuell statusindikator/stepper | Medium | 4t | UX |
+| 7 | Retry-logikk for API-kall | Medium | 3t | Robusthet |
 | 8 | Suksess-modal etter innsending | Medium | 3t | UX |
 | 9 | Revisjonsoversikt tidslinje | Medium | 4t | UX |
 | 10 | Audit trail logging | Medium | 3t | Sporbarhet |
@@ -496,23 +590,23 @@ def submit_koe():
 
 ## 5. Implementeringsveiledning
 
-### Fase 1: Sikkerhet og Robusthet (Uke 1)
-1. Webhook-signatur validering
-2. Token-refresh automatikk
-3. Retry-logikk for API-kall
-4. Filvalidering
+### Fase 1: Kritisk opprydding (Dag 1-2)
+1. Fjern duplikate send-knapper fra paneler
+2. Implementer utkast-synlighet filtrering i backend
+3. Oppdater Catenda-kommentarer med mer kontekst
 
-### Fase 2: Kommunikasjon (Uke 1-2)
-5. Forbedrede Catenda-kommentarer
-6. Forbedrede knappetekster
-7. Suksess-modal etter innsending
+### Fase 2: Sikkerhet og Robusthet (Uke 1)
+4. Webhook-signatur validering
+5. Token-refresh automatikk
+6. Retry-logikk for API-kall
+7. Filvalidering
 
-### Fase 3: UX Forbedringer (Uke 2-3)
+### Fase 3: UX Forbedringer (Uke 2)
 8. Visuell statusindikator/stepper
-9. Rollekontekst-banner
+9. Suksess-modal etter innsending
 10. Revisjonsoversikt tidslinje
 
-### Fase 4: Sporbarhet og Kvalitet (Uke 3-4)
+### Fase 4: Sporbarhet og Kvalitet (Uke 3)
 11. Audit trail logging
 12. API rate-limiting
 13. Unit tests for utils
@@ -524,10 +618,16 @@ def submit_koe():
 Systemet har solid grunnarkitektur og god funksjonalitet for et PoC. Med de kritiske forbedringene implementert vil det fremstå betydelig mer profesjonelt og pålitelig.
 
 **Prioritering for umiddelbar implementering:**
-1. Sikkerhetsforbedringer (webhook, token)
-2. Catenda-kommentarer med full kontekst
-3. Visuell statusindikator
+1. Fjern duplikate send-knapper (klarhet for brukere)
+2. Utkast-synlighet filtrering (skjul utkast fra motpart)
+3. Oppdater Catenda-kommentarer med mer kontekst
+4. Sikkerhetsforbedringer (webhook-validering, token-refresh)
 
-**Estimert total tid**: 50-60 timer for alle kritiske og viktige forbedringer.
+**Eksisterende styrker som beholdes:**
+- Tydelig banner med sak-ID, modus og status (allerede implementert)
+- Samme lenke for alle parter (tilgang styres av Entra ID i produksjon)
+- PDF genereres automatisk ved hver innsending
+
+**Estimert total tid**: 45-55 timer for alle kritiske og viktige forbedringer.
 
 Systemet demonstrerer allerede godt hvordan en papirbasert prosess kan digitaliseres. Med disse forbedringene vil det være klart for pilotbruk.
