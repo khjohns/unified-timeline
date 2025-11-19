@@ -11,8 +11,8 @@ Denne dokumentasjonen beskriver hvordan React-appen og Python-backend skal sette
 ```
 ┌─────────────────┐     Webhook      ┌─────────────────┐
 │     Catenda     │ ───────────────> │  Python Backend │
-│   (Prosjekt-    │                  │   (Flask:5000)  │
-│    hotell)      │ <─────────────── │   (port 5000)   │
+│   (Prosjekt-    │                  │   (Flask:8080)  │
+│    hotell)      │ <─────────────── │   (port 8080)   │
 └─────────────────┘   API (comment,  └────────┬────────┘
                       document)               │
                                               │ REST API
@@ -208,7 +208,7 @@ KOE-20231119-1200,2023-11-19T14:30:00,krav_sendt,KOE sendt av entreprenør
 
 ### React App (.env.local)
 ```bash
-VITE_API_BASE_URL=http://localhost:5000/api
+VITE_API_BASE_URL=http://localhost:8080/api
 # Eller med ngrok:
 # VITE_API_BASE_URL=https://your-subdomain.ngrok.io/api
 ```
@@ -231,7 +231,7 @@ VITE_API_BASE_URL=http://localhost:5000/api
 ## Implementeringsrekkefølge
 
 ### Fase 1: Grunnleggende kommunikasjon
-1. [ ] Start backend på port 5000
+1. [ ] Start backend på port 8080
 2. [ ] Verifiser `/api/health` fungerer
 3. [ ] Test at React app kan koble til (sjekk "Send"-knapp vises)
 
