@@ -3,6 +3,27 @@ import { FormDataModel } from '../types';
 // API base URL - will be configured via environment variable
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 
+// Debug: Log the API URL being used (remove in production)
+console.log('API Base URL:', API_BASE_URL);
+
+/**
+ * Helper function to build URL with query parameters
+ * Uses string concatenation instead of URL constructor for better compatibility
+ */
+function buildUrl(base: string, path: string, params?: Record<string, string>): string {
+  let url = `${base}${path}`;
+  if (params && Object.keys(params).length > 0) {
+    const queryString = Object.entries(params)
+      .filter(([, value]) => value !== undefined && value !== null)
+      .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+      .join('&');
+    if (queryString) {
+      url += `?${queryString}`;
+    }
+  }
+  return url;
+}
+
 // Types for API responses
 export interface ApiResponse<T> {
   success: boolean;
@@ -51,12 +72,13 @@ export const api = {
    */
   getCase: async (sakId: string, modus?: Modus): Promise<ApiResponse<CaseResponse>> => {
     try {
-      const url = new URL(`${API_BASE_URL}/cases/${sakId}`);
+      const params: Record<string, string> = {};
       if (modus) {
-        url.searchParams.append('modus', modus);
+        params.modus = modus;
       }
+      const url = buildUrl(API_BASE_URL, `/cases/${sakId}`, params);
 
-      const response = await fetch(url.toString(), {
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
