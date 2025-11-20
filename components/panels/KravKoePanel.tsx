@@ -53,8 +53,8 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
   const handleSendKrav = () => {
     const sisteKrav = koe_revisjoner[sisteKravIndex];
 
-    if (!sisteKrav.koe_revisjonsnr || !sisteKrav.dato_krav_sendt) {
-      showToast(setToastMessage, 'Vennligst fyll ut alle påkrevde felt før du sender kravet');
+    if (!sisteKrav.koe_revisjonsnr) {
+      showToast(setToastMessage, 'Vennligst fyll ut revisjonsnummer');
       return;
     }
 
@@ -238,29 +238,28 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                 </FieldsetCard>
 
                 <FieldsetCard legend="Innsending">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-                    <DateField
-                      id={`koe.dato_krav_sendt.${index}`}
-                      label="Dato krav sendt"
-                      value={koe.dato_krav_sendt}
-                      onChange={value => handleChange(index, 'dato_krav_sendt', value)}
-                      required
-                      helpText="Dato for innsending av denne revisjonen"
-                      readOnly={erLaast}
-                      className="w-full md:max-w-sm"
-                    />
-                    <InputField
-                      id={`koe.for_entreprenor.${index}`}
-                      label="Signatur (For entreprenør)"
-                      value={koe.for_entreprenor}
-                      onChange={e => handleChange(index, 'for_entreprenor', e.target.value)}
-                      helpText="Fullt navn på signatar"
-                      required
-                      readOnly={erLaast}
-                      autoComplete="name"
-                      className="w-full md:max-w-sm"
-                    />
-                  </div>
+                  {/* Vis automatisk genererte verdier */}
+                  {koe.dato_krav_sendt || koe.for_entreprenor ? (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <h4 className="text-sm font-semibold text-green-900 mb-2">Sendt</h4>
+                      <dl className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <dt className="font-medium text-green-800">Dato sendt:</dt>
+                          <dd className="text-green-700">{koe.dato_krav_sendt || 'Ikke sendt'}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-medium text-green-800">Sendt av:</dt>
+                          <dd className="text-green-700">{koe.for_entreprenor || 'Ukjent'}</dd>
+                        </div>
+                      </dl>
+                    </div>
+                  ) : (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <p className="text-sm text-blue-800">
+                        💡 Dato og signatur settes automatisk når kravet sendes
+                      </p>
+                    </div>
+                  )}
                 </FieldsetCard>
 
                 <FieldsetCard legend="Vedlegg">
