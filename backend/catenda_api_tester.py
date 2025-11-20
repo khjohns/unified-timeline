@@ -21,7 +21,7 @@ from pathlib import Path
 
 # Konfigurer logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.FileHandler('catenda_api_test.log'),
@@ -338,6 +338,35 @@ class CatendaAPITester:
         return True
     
     # ==========================================
+    # PROJECT MANAGEMENT (v2 API)
+    # ==========================================
+
+    def get_project_details(self, project_id: str) -> Optional[Dict]:
+        """
+        Hent detaljer for et v2-prosjekt.
+        
+        Args:
+            project_id: Catenda project ID
+            
+        Returns:
+            Prosjektdata eller None
+        """
+        logger.info(f"Henter v2-prosjektdetaljer for {project_id}...")
+        url = f"{self.base_url}/v2/projects/{project_id}"
+        
+        try:
+            response = requests.get(url, headers=self.get_headers())
+            response.raise_for_status()
+            
+            project_data = response.json()
+            logger.info(f"✅ Prosjektdetaljer hentet for '{project_data['name']}'")
+            return project_data
+            
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved henting av prosjektdetaljer: {e}")
+            return None
+
+    # ==========================================
     # LIBRARY MANAGEMENT (v2 API)
     # ==========================================
     
@@ -403,6 +432,36 @@ class CatendaAPITester:
     # ==========================================
     # TOPIC MANAGEMENT (BCF API)
     # ==========================================
+
+    def get_topic_board_details(self, topic_board_id: Optional[str] = None) -> Optional[Dict]:
+        """
+        Hent detaljer om et spesifikt topic board (BCF prosjekt).
+        
+        Args:
+            topic_board_id: ID for topic board (bruker self.topic_board_id hvis None)
+            
+        Returns:
+            Topic board data eller None
+        """
+        board_id = topic_board_id or self.topic_board_id
+        if not board_id:
+            logger.error("❌ Ingen topic board ID spesifisert")
+            return None
+
+        logger.info(f"Henter detaljer for topic board {board_id}...")
+        url = f"{self.base_url}/opencde/bcf/3.0/projects/{board_id}"
+
+        try:
+            response = requests.get(url, headers=self.get_headers())
+            response.raise_for_status()
+            
+            board_data = response.json()
+            logger.info(f"✅ Detaljer hentet for board '{board_data['name']}'")
+            return board_data
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved henting av topic board detaljer: {e}")
+            return None
     
     def list_topics(self, limit: int = 10) -> List[Dict]:
         """
@@ -495,6 +554,58 @@ class CatendaAPITester:
             
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved henting av topic: {e}")
+            return None
+
+    def create_topic(
+        self,
+        title: str,
+        description: Optional[str] = None,
+        topic_type: Optional[str] = None,
+        topic_status: Optional[str] = None
+    ) -> Optional[Dict]:
+        """
+        Opprett en ny topic i valgt topic board.
+        
+        Args:
+            title: Tittel på topic
+            description: Beskrivelse
+            topic_type: Type (f.eks. 'Error', 'Request')
+            topic_status: Status (f.eks. 'Open', 'Closed')
+            
+        Returns:
+            Topic data eller None
+        """
+        if not self.topic_board_id:
+            logger.error("❌ Ingen topic board valgt")
+            return None
+        
+        logger.info(f"📝 Oppretter ny topic i board {self.topic_board_id}...")
+        
+        url = f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}/topics"
+        
+        payload = {
+            "title": title
+        }
+        if description:
+            payload["description"] = description
+        if topic_type:
+            payload["topic_type"] = topic_type
+        if topic_status:
+            payload["topic_status"] = topic_status
+
+        try:
+            response = requests.post(url, headers=self.get_headers(), json=payload)
+            response.raise_for_status()
+            
+            topic = response.json()
+            logger.info(f"✅ Topic opprettet: {topic['title']} (GUID: {topic['guid']})")
+            
+            return topic
+            
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved oppretting av topic: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"Response: {e.response.text}")
             return None
     
     # ==========================================
@@ -730,6 +841,283 @@ class CatendaAPITester:
             if hasattr(e, 'response') and e.response is not None:
                 logger.error(f"Response: {e.response.text}")
             return None
+
+    def get_comments(self, topic_id: str) -> List[Dict]:
+        """
+        Hent alle kommentarer for en topic.
+        
+        Args:
+            topic_id: Topic GUID
+        
+        Returns:
+            Liste med kommentarer
+        """
+        if not self.topic_board_id:
+            logger.error("❌ Ingen topic board valgt")
+            return []
+            
+        logger.info(f"💬 Henter kommentarer for topic {topic_id}...")
+        
+        url = (f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}"
+               f"/topics/{topic_id}/comments")
+        
+        try:
+            response = requests.get(url, headers=self.get_headers())
+            response.raise_for_status()
+            
+            comments = response.json()
+            logger.info(f"✅ Fant {len(comments)} kommentar(er)")
+            
+            return comments
+            
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved henting av kommentarer: {e}")
+            return []
+
+    # ==========================================
+    # BIM OBJECT EXTRACTION (BCF API)
+    # ==========================================
+
+    def get_all_viewpoints(self, topic_id: str) -> List[Dict]:
+        """
+        Henter ALLE viewpoints for en topic (både fra kommentarer og direkte på topic)
+        
+        Returns:
+            Liste med viewpoint-objekter, hver inneholder components.selection med IFC GUIDs
+        """
+        if not self.topic_board_id:
+            logger.error("❌ Ingen topic board valgt")
+            return []
+
+        logger.info(f"Henter viewpoints for topic {topic_id}...")
+        url = f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}/topics/{topic_id}/viewpoints"
+        
+        try:
+            response = requests.get(url, headers=self.get_headers())
+            response.raise_for_status()
+            viewpoints = response.json()
+            logger.info("✅ Fant {len(viewpoints)} viewpoint(s).")
+            # Log the viewpoints for debugging
+            logger.debug(f"Raw viewpoints: {json.dumps(viewpoints, indent=2, ensure_ascii=False)}")
+            return viewpoints
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved henting av viewpoints: {e}")
+            return []
+
+    def get_viewpoint_details(self, topic_id: str, viewpoint_id: str) -> Optional[Dict]:
+        """
+        Henter alle detaljer for ett enkelt viewpoint.
+        
+        Args:
+            topic_id: ID for topic viewpointet tilhører
+            viewpoint_id: ID for viewpoint som skal hentes
+            
+        Returns:
+            Et komplett viewpoint-objekt eller None
+        """
+        if not self.topic_board_id:
+            logger.error("❌ Ingen topic board valgt")
+            return None
+
+        logger.info(f"Henter detaljer for viewpoint {viewpoint_id}...")
+        url = f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}/topics/{topic_id}/viewpoints/{viewpoint_id}"
+        
+        try:
+            response = requests.get(url, headers=self.get_headers())
+            response.raise_for_status()
+            viewpoint = response.json()
+            logger.info(f"✅ Detaljer hentet for viewpoint {viewpoint_id}.")
+            logger.debug(f"Viewpoint details: {json.dumps(viewpoint, indent=2, ensure_ascii=False)}")
+            return viewpoint
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved henting av viewpoint-detaljer: {e}")
+            return None
+
+    def extract_ifc_guids_from_viewpoints(self, viewpoints: List[Dict]) -> List[Dict]:
+        """
+        Ekstraherer alle IFC GUIDs fra en liste med viewpoints
+        
+        Returns:
+            Liste med dicts inneholdende:
+            - ifc_guid: IfcGloballyUniqueId
+            - originating_system: System (f.eks. "Revit")
+            - viewpoint_guid: Referanse til viewpoint
+        """
+        ifc_objects = []
+        
+        for viewpoint in viewpoints:
+            viewpoint_guid = viewpoint.get('guid')
+            components = viewpoint.get('components', {})
+            
+            # Hent fra selection (valgte objekter)
+            selection = components.get('selection', [])
+            for selected_obj in selection:
+                ifc_guid = selected_obj.get('ifc_guid')
+                if ifc_guid:
+                    ifc_objects.append({
+                        'ifc_guid': ifc_guid,
+                        'originating_system': selected_obj.get('originating_system'),
+                        'authoring_tool_id': selected_obj.get('authoring_tool_id'),
+                        'viewpoint_guid': viewpoint_guid,
+                        'source': 'selection'
+                    })
+            
+            # Hent også fra coloring (fargelagte objekter)
+            coloring = components.get('coloring', [])
+            for color_group in coloring:
+                for component in color_group.get('components', []):
+                    ifc_guid = component.get('ifc_guid')
+                    if ifc_guid:
+                        ifc_objects.append({
+                            'ifc_guid': ifc_guid,
+                            'originating_system': component.get('originating_system'),
+                            'authoring_tool_id': component.get('authoring_tool_id'),
+                            'viewpoint_guid': viewpoint_guid,
+                            'source': 'coloring',
+                            'color': color_group.get('color')
+                        })
+            
+            # Hent også fra visibility.exceptions (skjulte/viste objekter)
+            visibility = components.get('visibility', {})
+            exceptions = visibility.get('exceptions', [])
+            for exception in exceptions:
+                ifc_guid = exception.get('ifc_guid')
+                if ifc_guid:
+                    ifc_objects.append({
+                        'ifc_guid': ifc_guid,
+                        'originating_system': exception.get('originating_system'),
+                        'authoring_tool_id': exception.get('authoring_tool_id'),
+                        'viewpoint_guid': viewpoint_guid,
+                        'source': 'visibility_exception'
+                    })
+        
+        # Returner unike objekter (basert på ifc_guid)
+        unique_objects = {}
+        for obj in ifc_objects:
+            guid = obj['ifc_guid']
+            if guid not in unique_objects:
+                unique_objects[guid] = obj
+        
+        logger.info(f"✅ Ekstraherte {len(unique_objects)} unike BIM-objekt(er).")
+        return list(unique_objects.values())
+
+    def get_viewpoint_selection(self, topic_id: str, viewpoint_id: str) -> List[Dict]:
+        """
+        Henter selection (IFC GUIDs) for et spesifikt viewpoint.
+        Dette er nødvendig fordi hoved-viewpoint-endepunktet ikke returnerer komponenter.
+        """
+        if not self.topic_board_id:
+            return []
+
+        url = f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}/topics/{topic_id}/viewpoints/{viewpoint_id}/selection"
+        
+        try:
+            response = requests.get(url, headers=self.get_headers())
+            if response.status_code == 404:
+                return []
+            response.raise_for_status()
+            
+            data = response.json()
+            # API returnerer et objekt: {"selection": [...]}
+            return data.get('selection', [])
+        except requests.exceptions.RequestException as e:
+            logger.error(f"⚠️ Kunne ikke hente selection for viewpoint {viewpoint_id}: {e}")
+            return []
+
+    def get_bim_objects_for_topic(self, topic_id: str) -> List[Dict]:
+        """
+        Komplett funksjon: Henter alle BIM-objekter koblet til en topic.
+        Gjør ekstra oppslag mot /selection endepunktet.
+        
+        Returns:
+            Liste med BIM-objekter med IFC GUIDs og metadata
+        """
+        # 1. Hent alle viewpoints
+        viewpoints = self.get_all_viewpoints(topic_id)
+        if not viewpoints:
+            return []
+        
+        all_bim_objects = []
+        
+        logger.info(f"🔄 Henter detaljert utvalg (selection) for {len(viewpoints)} viewpoint(s)...")
+
+        # 2. For hvert viewpoint, hent spesifikt utvalg (selection)
+        for vp in viewpoints:
+            vp_guid = vp['guid']
+            
+            # Hent selection via eget API-kall
+            selection = self.get_viewpoint_selection(topic_id, vp_guid)
+            
+            if selection:
+                logger.info(f"   ✅ Fant {len(selection)} objekt(er) i viewpoint {vp_guid}")
+                
+                for obj in selection:
+                    ifc_guid = obj.get('ifc_guid')
+                    if ifc_guid:
+                        all_bim_objects.append({
+                            'ifc_guid': ifc_guid,
+                            'originating_system': obj.get('originating_system'),
+                            'authoring_tool_id': obj.get('authoring_tool_id'),
+                            'viewpoint_guid': vp_guid,
+                            'source': 'selection'
+                        })
+            else:
+                logger.info(f"   ℹ️  Ingen utvalg i viewpoint {vp_guid}")
+
+        # 3. Fjern duplikater (samme objekt kan være i flere viewpoints)
+        unique_objects = {}
+        for obj in all_bim_objects:
+            guid = obj['ifc_guid']
+            if guid not in unique_objects:
+                unique_objects[guid] = obj
+        
+        result = list(unique_objects.values())
+        logger.info(f"✅ Totalt {len(result)} unike BIM-objekt(er) funnet.")
+        
+        return result
+
+    def get_product_details_by_guid(self, project_id: str, ifc_guid: str) -> Optional[Dict]:
+        """
+        Henter full produktinformasjon (Psets, Qsets, Materialer) for en gitt IFC GUID.
+        """
+        logger.info(f"🔍 Slår opp produktdata for GUID: {ifc_guid}...")
+        
+        # Vi bruker 'POST' for å søke (Query)
+        url = f"{self.base_url}/v2/projects/{project_id}/ifc/products"
+        
+        # Payload for å filtrere på GlobalId
+        # Vi ber om å inkludere propertySets, quantitySets og materials i svaret
+        payload = {
+            "query": {
+                "attributes.GlobalId": ifc_guid
+            },
+            # Vi kan også spesifisere hvilke felt vi vil ha med (1 = inkluder)
+            # Hvis vi utelater 'fields', får vi alt som standard.
+        }
+        
+        try:
+            response = requests.post(url, headers=self.get_headers(), json=payload)
+            response.raise_for_status()
+            
+            products = response.json()
+            
+            if products and len(products) > 0:
+                product = products[0]
+                logger.info(f"✅ Fant produkt: {product.get('attributes', {}).get('Name', 'Uten navn')}")
+                logger.info(f"   Type: {product.get('ifcType')}")
+                
+                # Logg antall property sets for oversikt
+                psets = product.get('propertySets', {})
+                logger.info(f"   Property Sets: {len(psets)} stk funnet")
+                
+                return product
+            else:
+                logger.warning(f"⚠️ Ingen produkter funnet med GUID {ifc_guid}")
+                return None
+                
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved produktsøk: {e}")
+            return None
     
     # ==========================================
     # WEBHOOK MANAGEMENT (v2 API)
@@ -814,6 +1202,38 @@ class CatendaAPITester:
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved henting av webhooks: {e}")
             return []
+
+    def delete_webhook(self, project_id: str, webhook_id: str) -> bool:
+        """
+        Slett en webhook.
+        
+        Args:
+            project_id: Catenda project ID
+            webhook_id: ID på webhook som skal slettes
+        
+        Returns:
+            True hvis sletting var vellykket
+        """
+        logger.info(f"🗑️ Sletter webhook {webhook_id}...")
+        
+        url = f"{self.base_url}/v2/projects/{project_id}/webhooks/user/{webhook_id}"
+        
+        try:
+            response = requests.delete(url, headers=self.get_headers())
+            response.raise_for_status()
+            
+            if response.status_code == 204:
+                logger.info("✅ Webhook slettet")
+                return True
+            else:
+                logger.warning(f"⚠️ Uventet statuskode ved sletting: {response.status_code}")
+                return False
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved sletting av webhook: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"Response: {e.response.text}")
+            return False
     
     # ==========================================
     # CRITICAL TEST: ID MAPPING VERIFICATION
