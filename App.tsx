@@ -15,6 +15,7 @@ import VarselPanel from './components/panels/VarselPanel';
 import KravKoePanel from './components/panels/KravKoePanel';
 import BhSvarPanel from './components/panels/BhSvarPanel';
 import OppsummeringPanel from './components/panels/OppsummeringPanel';
+import TestOversiktPanel from './components/panels/TestOversiktPanel';
 import SidePanel from './components/ui/SidePanel';
 import SuccessModal from './components/ui/SuccessModal';
 
@@ -473,6 +474,7 @@ const App: React.FC = () => {
             case 2: return <KravKoePanel {...panelProps} disabled={isTeDisabled} />;
             case 3: return <BhSvarPanel {...panelProps} />;
             case 4: return <OppsummeringPanel data={formData} />;
+            case 5: return <TestOversiktPanel data={formData} />;
             default: return null;
         }
     };

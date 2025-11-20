@@ -6,6 +6,7 @@ export const TABS = [
     { label: 'Krav', icon: 'invoice' },
     { label: 'BH Svar', icon: 'signature' },
     { label: 'Oversikt', icon: 'table' },
+    { label: 'Test', icon: 'table' },
 ];
 
 export const INITIAL_FORM_DATA: FormDataModel = {
