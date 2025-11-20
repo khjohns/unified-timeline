@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FormDataModel } from '../../types';
-import { PktTag } from '@oslokommune/punkt-react';
+import { PktTag, PktButton } from '@oslokommune/punkt-react';
 import { HOVEDKATEGORI_OPTIONS, UNDERKATEGORI_MAP } from '../../constants';
 import {
   getSakStatusLabel,
@@ -10,6 +10,7 @@ import {
   getSvarStatusLabel,
   getSvarStatusSkin
 } from '../../utils/statusHelpers';
+import BegrunnelseModal from '../ui/BegrunnelseModal';
 
 interface TestOversiktPanelProps {
   data: FormDataModel;
@@ -17,6 +18,32 @@ interface TestOversiktPanelProps {
 
 const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
   const { sak, varsel, koe_revisjoner = [], bh_svar_revisjoner = [] } = data;
+
+  // Modal state
+  const [modal, setModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    revisjon: string;
+    begrunnelse: string;
+  }>({
+    isOpen: false,
+    title: '',
+    revisjon: '',
+    begrunnelse: '',
+  });
+
+  const openModal = (title: string, revisjon: string, begrunnelse: string) => {
+    setModal({
+      isOpen: true,
+      title,
+      revisjon,
+      begrunnelse,
+    });
+  };
+
+  const closeModal = () => {
+    setModal({ ...modal, isOpen: false });
+  };
 
   // Helper to get label from hovedkategori
   const getHovedkategoriLabel = (value: string) => {
@@ -249,6 +276,58 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
                     </td>
                   ))}
                 </tr>
+                <tr>
+                  <td className="border border-border-color px-3 py-2 font-medium bg-gray-50">
+                    Vederlagsbegrunnelse
+                  </td>
+                  {koe_revisjoner.map((rev, idx) => (
+                    <td key={idx} className="border border-border-color px-3 py-2 text-center">
+                      {rev.vederlag?.krav_vederlag_begrunnelse ? (
+                        <PktButton
+                          size="small"
+                          skin="tertiary"
+                          onClick={() =>
+                            openModal(
+                              'Vederlagsbegrunnelse',
+                              `Revisjon ${rev.koe_revisjonsnr}`,
+                              rev.vederlag.krav_vederlag_begrunnelse
+                            )
+                          }
+                        >
+                          Vis
+                        </PktButton>
+                      ) : (
+                        <span className="text-muted text-xs">—</span>
+                      )}
+                    </td>
+                  ))}
+                </tr>
+                <tr>
+                  <td className="border border-border-color px-3 py-2 font-medium bg-gray-50">
+                    Fristbegrunnelse
+                  </td>
+                  {koe_revisjoner.map((rev, idx) => (
+                    <td key={idx} className="border border-border-color px-3 py-2 text-center">
+                      {rev.frist?.krav_frist_begrunnelse ? (
+                        <PktButton
+                          size="small"
+                          skin="tertiary"
+                          onClick={() =>
+                            openModal(
+                              'Fristbegrunnelse',
+                              `Revisjon ${rev.koe_revisjonsnr}`,
+                              rev.frist.krav_frist_begrunnelse
+                            )
+                          }
+                        >
+                          Vis
+                        </PktButton>
+                      ) : (
+                        <span className="text-muted text-xs">—</span>
+                      )}
+                    </td>
+                  ))}
+                </tr>
               </tbody>
             </table>
           </div>
@@ -367,6 +446,84 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
                     </td>
                   ))}
                 </tr>
+                <tr>
+                  <td className="border border-border-color px-3 py-2 font-medium bg-gray-50">
+                    Vederlagsbegrunnelse
+                  </td>
+                  {bh_svar_revisjoner.map((svar, idx) => (
+                    <td key={idx} className="border border-border-color px-3 py-2 text-center">
+                      {svar.vederlag?.bh_begrunnelse_vederlag ? (
+                        <PktButton
+                          size="small"
+                          skin="tertiary"
+                          onClick={() =>
+                            openModal(
+                              'BH Vederlagsbegrunnelse',
+                              `Svar ${idx}`,
+                              svar.vederlag.bh_begrunnelse_vederlag
+                            )
+                          }
+                        >
+                          Vis
+                        </PktButton>
+                      ) : (
+                        <span className="text-muted text-xs">—</span>
+                      )}
+                    </td>
+                  ))}
+                </tr>
+                <tr>
+                  <td className="border border-border-color px-3 py-2 font-medium bg-gray-50">
+                    Fristbegrunnelse
+                  </td>
+                  {bh_svar_revisjoner.map((svar, idx) => (
+                    <td key={idx} className="border border-border-color px-3 py-2 text-center">
+                      {svar.frist?.bh_begrunnelse_frist ? (
+                        <PktButton
+                          size="small"
+                          skin="tertiary"
+                          onClick={() =>
+                            openModal(
+                              'BH Fristbegrunnelse',
+                              `Svar ${idx}`,
+                              svar.frist.bh_begrunnelse_frist
+                            )
+                          }
+                        >
+                          Vis
+                        </PktButton>
+                      ) : (
+                        <span className="text-muted text-xs">—</span>
+                      )}
+                    </td>
+                  ))}
+                </tr>
+                <tr>
+                  <td className="border border-border-color px-3 py-2 font-medium bg-gray-50">
+                    Møtereferat
+                  </td>
+                  {bh_svar_revisjoner.map((svar, idx) => (
+                    <td key={idx} className="border border-border-color px-3 py-2 text-center">
+                      {svar.mote_referat ? (
+                        <PktButton
+                          size="small"
+                          skin="tertiary"
+                          onClick={() =>
+                            openModal(
+                              'Møtereferat',
+                              `Svar ${idx}`,
+                              svar.mote_referat
+                            )
+                          }
+                        >
+                          Vis
+                        </PktButton>
+                      ) : (
+                        <span className="text-muted text-xs">—</span>
+                      )}
+                    </td>
+                  ))}
+                </tr>
               </tbody>
             </table>
           </div>
@@ -381,8 +538,18 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
           <li>Horisontalt layout gjør det lett å følge historikken</li>
           <li>Bruk redigeringsfanene (Varsel, Krav, Svar) for å jobbe med aktiv revisjon</li>
           <li>Denne fanen kan scrolles horisontalt på små skjermer</li>
+          <li>Klikk på "Vis"-knappene for å se fulle begrunnelser og referater</li>
         </ul>
       </div>
+
+      {/* Begrunnelse Modal */}
+      <BegrunnelseModal
+        isOpen={modal.isOpen}
+        onClose={closeModal}
+        title={modal.title}
+        revisjon={modal.revisjon}
+        begrunnelse={modal.begrunnelse}
+      />
     </div>
   );
 };
