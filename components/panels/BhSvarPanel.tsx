@@ -299,16 +299,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
           );
         })}
 
-        {sisteSvarErUtkast && rolle === 'BH' && (
-          <div className="pt-6 border-t border-border-color flex justify-end">
-            <PktButton
-              skin="primary"
-              onClick={handleSendSvar}
-            >
-              Send svar til entreprenør
-            </PktButton>
-          </div>
-        )}
+        {/* Send-knapp fjernet - bruk knappen i bottom bar i stedet */}
       </div>
     </PanelLayout>
   );

@@ -304,19 +304,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
           />
         </FieldsetCard>
 
-        {formStatus === 'varsel' && rolle === 'TE' && !disabled && (
-          <div className="flex justify-end pt-4">
-            <PktButton
-              skin="primary"
-              size="medium"
-              onClick={handleSendVarsel}
-              iconName="chevron-right"
-              variant="icon-right"
-            >
-              Send varsel og fortsett til krav
-            </PktButton>
-          </div>
-        )}
+        {/* Send-knapp fjernet - bruk knappen i bottom bar i stedet */}
       </div>
     </PanelLayout>
   );
