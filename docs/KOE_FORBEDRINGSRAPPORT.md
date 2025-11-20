@@ -32,6 +32,14 @@
 - Viser neste steg og tillater PDF-nedlasting
 - Keyboard-støtte (Escape for å lukke)
 
+✅ **Automatisk dato/signatur-populering** (Ny)
+- Fjernet manuelle dato/signatur-felt fra UI
+- GrunninfoPanel viser saksmetadata i read-only tabell
+- KravKoePanel og BhSvarPanel viser innsendingsdato/signatur som informasjonsbokser
+- Backend auto-populerer: opprettet_dato, opprettet_av, dato_varsel_sendt, dato_krav_sendt, for_entreprenor, dato_svar_bh, for_byggherre
+- Demo-data fungerer fortsatt (pre-populerte verdier)
+- Reduserer feilkilder og forenkler UX
+
 ---
 
 ## Executive Summary

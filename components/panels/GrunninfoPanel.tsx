@@ -3,6 +3,8 @@ import { FormDataModel } from '../../types';
 import { InputField, DateField } from '../ui/Field';
 import FieldsetCard from '../ui/FieldsetCard';
 import PanelLayout from '../ui/PanelLayout';
+import { PktTag } from '@oslokommune/punkt-react';
+import { getSakStatusSkin, getSakStatusLabel } from '../../utils/statusHelpers';
 
 interface GrunninfoPanelProps {
   formData: FormDataModel;
@@ -18,8 +20,36 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
   return (
     <PanelLayout>
       <div className="space-y-6">
+        {/* Metadata tabell - automatisk genererte felt */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h3 className="text-sm font-semibold text-blue-900 mb-3">Saksmetadata (automatisk)</h3>
+          <table className="w-full text-sm border-collapse">
+            <tbody>
+              <tr>
+                <td className="border border-blue-200 px-3 py-2 bg-white font-medium w-1/4">Sak-ID</td>
+                <td className="border border-blue-200 px-3 py-2 bg-white">{sak.sak_id || 'Genereres automatisk'}</td>
+                <td className="border border-blue-200 px-3 py-2 bg-white font-medium w-1/4">Opprettet dato</td>
+                <td className="border border-blue-200 px-3 py-2 bg-white">{sak.opprettet_dato || 'Settes ved opprettelse'}</td>
+              </tr>
+              <tr>
+                <td className="border border-blue-200 px-3 py-2 bg-white font-medium">Opprettet av</td>
+                <td className="border border-blue-200 px-3 py-2 bg-white">{sak.opprettet_av || 'Hentes fra bruker'}</td>
+                <td className="border border-blue-200 px-3 py-2 bg-white font-medium">Status</td>
+                <td className="border border-blue-200 px-3 py-2 bg-white">
+                  <PktTag skin={getSakStatusSkin(sak.status)}>
+                    {getSakStatusLabel(sak.status)}
+                  </PktTag>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <p className="text-xs text-blue-700 mt-2">
+            💡 Disse feltene settes automatisk av systemet og kan ikke endres manuelt
+          </p>
+        </div>
+
             <FieldsetCard legend="Saksdetaljer">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 gap-6">
                 <InputField
                   id="sak.sakstittel"
                   label="Sakstittel"
@@ -28,37 +58,7 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
                   helpText="Kort beskrivelse av endringen"
                   error={errors['sak.sakstittel']}
                   readOnly={disabled}
-                  className="md:col-span-2"
                 />
-                  <InputField
-                    id="sak.sak_id_display"
-                    label="Sak-ID"
-                    value={sak.sak_id_display}
-                    onChange={e => handleChange('sak_id_display', e.target.value)}
-                    helpText="Format: KOE-ÅÅÅÅ-NNNN"
-                    error={errors['sak.sak_id_display']}
-                    readOnly={disabled}
-                    optional
-                    autoComplete="off"
-                  />
-                  <InputField
-                    id="sak.opprettet_av"
-                    label="Opprettet av"
-                    value={sak.opprettet_av}
-                    onChange={e => handleChange('opprettet_av', e.target.value)}
-                    error={errors['sak.opprettet_av']}
-                    readOnly={disabled}
-                    autoComplete="name"
-                    className="md:col-span-2"
-                  />
-                    <DateField
-                      id="sak.opprettet_dato"
-                      label="Opprettet dato"
-                      value={sak.opprettet_dato}
-                      onChange={()=>{}}
-                      readOnly
-                      className="max-w-xs"
-                    />
               </div>
             </FieldsetCard>
 

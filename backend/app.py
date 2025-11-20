@@ -92,8 +92,9 @@ class DataManager:
         with self.lock:
             if 'sak_id' not in sak_data:
                 sak_data['sak_id'] = f"KOE-{datetime.now().strftime('%Y%m%d-%H%M')}"
-            
+
             sak_data.setdefault('opprettet_dato', datetime.now().isoformat())
+            sak_data.setdefault('opprettet_av', sak_data.get('te_navn', 'System'))
             sak_data.setdefault('status', 'Ny')
             sak_data.setdefault('modus', 'varsel')
             
@@ -439,6 +440,11 @@ def submit_varsel():
         logger.warning(f"  Mangler data - sakId: {sak_id}, formData: {bool(form_data)}")
         return jsonify({"error": "Mangler data"}), 400
 
+    # Auto-populate varsel date if not already set (i.e., not "tidligere varslet")
+    varsel = form_data.get('varsel', {})
+    if not varsel.get('dato_varsel_sendt'):
+        varsel['dato_varsel_sendt'] = datetime.now().strftime('%Y-%m-%d')
+
     # Lagre data
     sys.db.save_form_data(sak_id, form_data)
     sys.db.update_sak_status(sak_id, 'Varslet', 'koe') # Neste modus: koe
@@ -471,12 +477,19 @@ def submit_koe():
 
     logger.info(f"  sakId: {sak_id}, topicGuid: {topic_guid}")
 
+    # Auto-populate krav submission date and signature
+    koe_revisjoner = form_data.get('koe_revisjoner', [])
+    if koe_revisjoner:
+        siste_koe = koe_revisjoner[-1]
+        siste_koe['dato_krav_sendt'] = datetime.now().strftime('%Y-%m-%d')
+        # In production: get from Entra ID token. For now, use sak creator or default
+        siste_koe['for_entreprenor'] = form_data.get('sak', {}).get('opprettet_av', 'Demo User')
+
     sys.db.save_form_data(sak_id, form_data)
     sys.db.update_sak_status(sak_id, 'Krav sendt', 'svar') # Neste modus: svar
     sys.db.log_historikk(sak_id, 'koe_sendt', 'KOE sendt fra entreprenør')
 
     # Hent krav-detaljer
-    koe_revisjoner = form_data.get('koe_revisjoner', [])
     siste_koe = koe_revisjoner[-1] if koe_revisjoner else {}
     revisjonsnr = siste_koe.get('koe_revisjonsnr', '0')
 
@@ -519,13 +532,23 @@ def submit_svar():
 
     logger.info(f"  sakId: {sak_id}, topicGuid: {topic_guid}")
 
+    # Auto-populate BH svar submission date and signature
+    bh_svar_revisjoner = form_data.get('bh_svar_revisjoner', [])
+    if bh_svar_revisjoner:
+        siste_svar = bh_svar_revisjoner[-1]
+        if 'sign' not in siste_svar:
+            siste_svar['sign'] = {}
+        siste_svar['sign']['dato_svar_bh'] = datetime.now().strftime('%Y-%m-%d')
+        # In production: get from Entra ID token. For now, use sak byggherre or default
+        siste_svar['sign']['for_byggherre'] = form_data.get('sak', {}).get('byggherre', 'Demo Byggherre')
+
     status_text = "Behandlet"
 
     sys.db.save_form_data(sak_id, form_data)
     sys.db.update_sak_status(sak_id, status_text, 'ferdig')
     sys.db.log_historikk(sak_id, 'bh_svar', 'Byggherre har svart')
 
-    # Hent BH svar-detaljer
+    # Hent BH svar-detaljer (refresh reference after modification)
     bh_svar_revisjoner = form_data.get('bh_svar_revisjoner', [])
     siste_svar = bh_svar_revisjoner[-1] if bh_svar_revisjoner else {}
 

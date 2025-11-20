@@ -258,30 +258,29 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                   </FieldsetCard>
                 )}
 
-                <FieldsetCard legend="Signatur (For Byggherre)">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-                    <DateField
-                      id={`bh_svar.sign.dato_svar_bh.${index}`}
-                      label="Dato for BHs svar"
-                      value={bh_svar.sign.dato_svar_bh}
-                      onChange={value => handleChange(index, 'sign.dato_svar_bh', value)}
-                      required
-                      helpText="Dato for innsending av svar"
-                      readOnly={erLaast}
-                      className="w-full md:max-w-sm"
-                    />
-                    <InputField
-                      id={`bh_svar.sign.for_byggherre.${index}`}
-                      label="Signatur"
-                      value={bh_svar.sign.for_byggherre}
-                      onChange={e => handleChange(index, 'sign.for_byggherre', e.target.value)}
-                      helpText="Fullt navn på signatar"
-                      required
-                      readOnly={erLaast}
-                      autoComplete="name"
-                      className="w-full md:max-w-sm"
-                    />
-                  </div>
+                <FieldsetCard legend="Innsending">
+                  {/* Vis automatisk genererte verdier */}
+                  {bh_svar.sign.dato_svar_bh || bh_svar.sign.for_byggherre ? (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <h4 className="text-sm font-semibold text-green-900 mb-2">Sendt</h4>
+                      <dl className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <dt className="font-medium text-green-800">Dato sendt:</dt>
+                          <dd className="text-green-700">{bh_svar.sign.dato_svar_bh || 'Ikke sendt'}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-medium text-green-800">Sendt av:</dt>
+                          <dd className="text-green-700">{bh_svar.sign.for_byggherre || 'Ukjent'}</dd>
+                        </div>
+                      </dl>
+                    </div>
+                  ) : (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <p className="text-sm text-blue-800">
+                        💡 Dato og signatur settes automatisk når svaret sendes
+                      </p>
+                    </div>
+                  )}
                 </FieldsetCard>
 
                 <FieldsetCard legend="Vedlegg">
