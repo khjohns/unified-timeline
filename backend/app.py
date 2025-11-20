@@ -237,10 +237,17 @@ class KOEAutomationSystem:
             app_link = f"{base_url}?sakId={sak_id}&modus=varsel&topicGuid={topic_id}"
             
             # 3. Post kommentar til Catenda
+            from datetime import datetime
+            dato = datetime.now().strftime('%Y-%m-%d')
+            prosjekt = sak_data.get('sakstittel', 'Ukjent prosjekt')
+
             comment_text = (
-                f"✅ Sak opprettet i KOE-systemet.\n"
-                f"🆔 Sak-ID: {sak_id}\n\n"
-                f"👉 [Klikk her for å fylle ut varsel]({app_link})"
+                f"✅ **Ny KOE-sak opprettet**\n\n"
+                f"📋 Sak-ID: `{sak_id}`\n"
+                f"📅 Dato: {dato}\n"
+                f"🏗️ Prosjekt: {prosjekt}\n\n"
+                f"**Neste steg:** Entreprenør sender varsel\n"
+                f"👉 [Åpne skjema]({base_url}?sakId={sak_id})"
             )
             
             self.catenda.topic_board_id = board_id # Sett board ID for API-kallet
@@ -438,7 +445,18 @@ def submit_varsel():
     sys.db.log_historikk(sak_id, 'varsel_sendt', 'Varsel sendt fra entreprenør')
 
     # Post kommentar
-    sys.catenda.create_comment(topic_guid, "📨 Varsel om endring mottatt.")
+    varsel = form_data.get('varsel', {})
+    hovedkategori = varsel.get('hovedkategori', 'Ikke spesifisert')
+    dato_oppdaget = varsel.get('dato_forhold_oppdaget', 'Ukjent dato')
+
+    comment_text = (
+        f"📨 **Varsel om endring sendt**\n\n"
+        f"📑 Kategori: {hovedkategori}\n"
+        f"📅 Dato oppdaget: {dato_oppdaget}\n\n"
+        f"**Neste steg:** Entreprenør spesifiserer krav\n"
+        f"👉 [Åpne skjema]({sys.config.get('react_app_url', 'http://localhost:5173')}?sakId={sak_id})"
+    )
+    sys.catenda.create_comment(topic_guid, comment_text)
 
     return jsonify({"success": True, "nextMode": "koe"}), 200
 
@@ -457,7 +475,36 @@ def submit_koe():
     sys.db.update_sak_status(sak_id, 'Krav sendt', 'svar') # Neste modus: svar
     sys.db.log_historikk(sak_id, 'koe_sendt', 'KOE sendt fra entreprenør')
 
-    sys.catenda.create_comment(topic_guid, "📨 Krav om endringsordre (KOE) mottatt.")
+    # Hent krav-detaljer
+    koe_revisjoner = form_data.get('koe_revisjoner', [])
+    siste_koe = koe_revisjoner[-1] if koe_revisjoner else {}
+    revisjonsnr = siste_koe.get('koe_revisjonsnr', '0')
+
+    vederlag_info = siste_koe.get('vederlag', {})
+    har_vederlag = vederlag_info.get('krav_vederlag', False)
+    krevd_beløp = vederlag_info.get('krevd_belop', '')
+
+    frist_info = siste_koe.get('frist', {})
+    har_frist = frist_info.get('krav_fristforlengelse', False)
+    antall_dager = frist_info.get('antall_dager', '')
+
+    comment_text = (
+        f"📋 **Krav om endringsordre (KOE) sendt**\n\n"
+        f"🔢 Revisjon: {revisjonsnr}\n"
+    )
+
+    if har_vederlag and krevd_beløp:
+        comment_text += f"💰 Vederlag: {krevd_beløp} NOK\n"
+    if har_frist and antall_dager:
+        comment_text += f"📆 Fristforlengelse: {antall_dager} dager\n"
+
+    comment_text += (
+        f"\n**Neste steg:** Byggherre svarer på krav\n"
+        f"👉 [Åpne skjema]({sys.config.get('react_app_url', 'http://localhost:5173')}?sakId={sak_id})\n\n"
+        f"📎 PDF-vedlegg tilgjengelig under dokumenter"
+    )
+
+    sys.catenda.create_comment(topic_guid, comment_text)
 
     return jsonify({"success": True, "nextMode": "svar"}), 200
 
@@ -478,7 +525,65 @@ def submit_svar():
     sys.db.update_sak_status(sak_id, status_text, 'ferdig')
     sys.db.log_historikk(sak_id, 'bh_svar', 'Byggherre har svart')
 
-    sys.catenda.create_comment(topic_guid, "📨 Svar fra byggherre registrert.")
+    # Hent BH svar-detaljer
+    bh_svar_revisjoner = form_data.get('bh_svar_revisjoner', [])
+    siste_svar = bh_svar_revisjoner[-1] if bh_svar_revisjoner else {}
+
+    vederlag_svar = siste_svar.get('vederlag', {})
+    bh_svar_vederlag = vederlag_svar.get('bh_svar_vederlag', '')
+    godkjent_beløp = vederlag_svar.get('bh_godkjent_belop', '')
+
+    frist_svar = siste_svar.get('frist', {})
+    bh_svar_frist = frist_svar.get('bh_svar_frist', '')
+    godkjente_dager = frist_svar.get('bh_godkjente_dager', '')
+
+    # Map status-verdier til tekst
+    vederlag_status_map = {
+        '100000000': 'Godkjent fullt ut',
+        '100000001': 'Delvis godkjent',
+        '100000002': 'Avslått (uenig)',
+        '100000003': 'Avslått (for sent)',
+        '100000004': 'Avventer',
+        '100000005': 'Godkjent med annen metode'
+    }
+
+    frist_status_map = {
+        '100000000': 'Godkjent fullt ut',
+        '100000001': 'Delvis godkjent',
+        '100000002': 'Avslått',
+        '100000003': 'Avventer'
+    }
+
+    comment_text = "✍️ **Svar fra byggherre**\n\n**Beslutning:**\n"
+
+    if vederlag_svar.get('bh_svar_vederlag'):
+        svar_tekst = vederlag_status_map.get(bh_svar_vederlag, 'Uspesifisert')
+        if godkjent_beløp:
+            comment_text += f"💰 Vederlag: {svar_tekst} ({godkjent_beløp} NOK)\n"
+        else:
+            comment_text += f"💰 Vederlag: {svar_tekst}\n"
+
+    if frist_svar.get('bh_svar_frist'):
+        svar_tekst = frist_status_map.get(bh_svar_frist, 'Uspesifisert')
+        if godkjente_dager:
+            comment_text += f"📆 Frist: {svar_tekst} ({godkjente_dager} dager)\n"
+        else:
+            comment_text += f"📆 Frist: {svar_tekst}\n"
+
+    # Sjekk om det trengs revidering
+    trenger_revisjon = (
+        bh_svar_vederlag in ['100000001', '100000002'] or  # Delvis/avslått
+        bh_svar_frist in ['100000001', '100000002']
+    )
+
+    if trenger_revisjon:
+        comment_text += f"\n**Neste steg:** Entreprenør sender revidert krav\n"
+    else:
+        comment_text += f"\n**Status:** Sak kan lukkes\n"
+
+    comment_text += f"👉 [Åpne skjema]({sys.config.get('react_app_url', 'http://localhost:5173')}?sakId={sak_id})"
+
+    sys.catenda.create_comment(topic_guid, comment_text)
 
     return jsonify({"success": True}), 200
 

@@ -278,16 +278,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
           );
         })}
 
-        {sisteKoeErUtkast && rolle === 'TE' && !disabled && (
-          <div className="pt-6 border-t border-border-color flex justify-end">
-            <PktButton
-              skin="primary"
-              onClick={handleSendKrav}
-            >
-              Send krav til byggherre
-            </PktButton>
-          </div>
-        )}
+        {/* Send-knapp fjernet - bruk knappen i bottom bar i stedet */}
       </div>
     </PanelLayout>
   );

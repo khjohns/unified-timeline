@@ -1,10 +1,36 @@
 # KOE Digitaliseringsprosjekt - Strukturert Forbedringsrapport
 
 **Dato**: 2025-11-19
-**Versjon**: 1.1
+**Versjon**: 1.2
 **Utarbeidet av**: LLM Review
+**Sist oppdatert**: 2025-11-20
 
 > **Merk**: Alle kommentarer i Catenda er synlige for både TE og BH. Samme lenke brukes for alle parter - tilgang styres av Entra ID i produksjon.
+
+---
+
+## Status: Implementerte forbedringer
+
+**Implementert 2025-11-20:**
+
+✅ **Forbedrede Catenda-kommentarer** (Pkt 1)
+- Kommentarer inkluderer nå kategori, dato, og kravdetaljer
+- Bedre kontekst og neste steg-veiledning
+- Samme lenke brukes konsistent for alle
+
+✅ **Fjernet duplikate send-knapper** (Pkt 2.2)
+- Panel-knapper fjernet fra VarselPanel, KravKoePanel, BhSvarPanel
+- Kun bottom bar-knappen (API-tilkoblet) beholdt
+
+✅ **Forbedrede knappetekster** (Pkt 2.4)
+- Hovedtekst + subtext med kontekst
+- Viser beløp i knappetekst når relevant
+- Indikerer hva som skjer etter klikk
+
+✅ **Custom suksess-modal** (Pkt 2.6)
+- Egen modal-komponent (ikke PktModal)
+- Viser neste steg og tillater PDF-nedlasting
+- Keyboard-støtte (Escape for å lukke)
 
 ---
 
@@ -553,13 +579,13 @@ def submit_koe():
 
 ### Kritiske forbedringer (Må fikses)
 
-| # | Forbedring | Kompleksitet | Estimat | Påvirkning |
-|---|------------|-------------|---------|-----------|
-| 1 | Fjern duplikate send-knapper | Lav | 1t | UX/Klarhet |
-| 2 | Utkast-synlighet filtrering | Lav | 2t | Sikkerhet/UX |
-| 3 | Webhook-signatur validering | Lav | 2t | Sikkerhet |
-| 4 | Forbedrede Catenda-kommentarer | Lav | 3t | Profesjonalitet |
-| 5 | Token-refresh automatikk | Medium | 3t | Robusthet |
+| # | Forbedring | Kompleksitet | Estimat | Påvirkning | Status |
+|---|------------|-------------|---------|-----------|--------|
+| ~~1~~ | ~~Fjern duplikate send-knapper~~ | ~~Lav~~ | ~~1t~~ | ~~UX/Klarhet~~ | ✅ **Implementert** |
+| 2 | Utkast-synlighet filtrering | Lav | 2t | Sikkerhet/UX | Gjenstår |
+| 3 | Webhook-signatur validering | Lav | 2t | Sikkerhet | Gjenstår |
+| ~~4~~ | ~~Forbedrede Catenda-kommentarer~~ | ~~Lav~~ | ~~3t~~ | ~~Profesjonalitet~~ | ✅ **Implementert** |
+| 5 | Token-refresh automatikk | Medium | 3t | Robusthet | Gjenstår |
 
 ### Viktige forbedringer (Bør fikses)
 
@@ -591,9 +617,9 @@ def submit_koe():
 ## 5. Implementeringsveiledning
 
 ### Fase 1: Kritisk opprydding (Dag 1-2)
-1. Fjern duplikate send-knapper fra paneler
+1. ~~Fjern duplikate send-knapper fra paneler~~ ✅ **Ferdig**
 2. Implementer utkast-synlighet filtrering i backend
-3. Oppdater Catenda-kommentarer med mer kontekst
+3. ~~Oppdater Catenda-kommentarer med mer kontekst~~ ✅ **Ferdig**
 
 ### Fase 2: Sikkerhet og Robusthet (Uke 1)
 4. Webhook-signatur validering
@@ -617,11 +643,16 @@ def submit_koe():
 
 Systemet har solid grunnarkitektur og god funksjonalitet for et PoC. Med de kritiske forbedringene implementert vil det fremstå betydelig mer profesjonelt og pålitelig.
 
-**Prioritering for umiddelbar implementering:**
-1. Fjern duplikate send-knapper (klarhet for brukere)
-2. Utkast-synlighet filtrering (skjul utkast fra motpart)
-3. Oppdater Catenda-kommentarer med mer kontekst
-4. Sikkerhetsforbedringer (webhook-validering, token-refresh)
+**Implementert (2025-11-20):**
+1. ~~Fjern duplikate send-knapper (klarhet for brukere)~~ ✅
+2. ~~Oppdater Catenda-kommentarer med mer kontekst~~ ✅
+3. ~~Forbedrede knappetekster med subtext~~ ✅
+4. ~~Custom suksess-modal med neste steg-veiledning~~ ✅
+
+**Prioritering for neste iterasjon:**
+1. Utkast-synlighet filtrering (skjul utkast fra motpart)
+2. Webhook-signatur validering
+3. Token-refresh automatikk
 
 **Eksisterende styrker som beholdes:**
 - Tydelig banner med sak-ID, modus og status (allerede implementert)

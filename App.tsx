@@ -16,6 +16,7 @@ import KravKoePanel from './components/panels/KravKoePanel';
 import BhSvarPanel from './components/panels/BhSvarPanel';
 import OppsummeringPanel from './components/panels/OppsummeringPanel';
 import SidePanel from './components/ui/SidePanel';
+import SuccessModal from './components/ui/SuccessModal';
 
 
 const App: React.FC = () => {
@@ -33,6 +34,18 @@ const App: React.FC = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
     const [isApiConnected, setIsApiConnected] = useState<boolean | null>(null);
+
+    // Success modal state
+    const [successModal, setSuccessModal] = useState<{
+        isOpen: boolean;
+        type: 'varsel' | 'koe' | 'svar' | 'revidering';
+        message?: string;
+        nextStep?: string;
+        pdfUrl?: string;
+    }>({
+        isOpen: false,
+        type: 'koe'
+    });
 
     // Use custom hooks for state management and auto-save
     const { formData, setFormData, handleInputChange, errors, setErrors } = useSkjemaData(INITIAL_FORM_DATA);
@@ -242,8 +255,6 @@ const App: React.FC = () => {
             }
 
             if (response.success && response.data) {
-                showToast(setToastMessage, response.data.message || 'Skjema sendt til server');
-
                 // Generate and download PDF after successful submission
                 const { blob, filename } = await generatePdfReact(formData);
 
@@ -258,15 +269,33 @@ const App: React.FC = () => {
                         topicGuid || undefined
                     );
                     if (pdfResponse.success) {
-                        showToast(setToastMessage, 'PDF lastet opp til server');
+                        console.log('PDF uploaded successfully');
                     } else {
                         console.warn('PDF upload failed:', pdfResponse.error);
-                        // Don't show error to user - PDF was downloaded locally
                     }
                 }
 
                 // Clear localStorage after successful submission
                 localStorage.removeItem('koe_v5_0_draft');
+
+                // Determine next step message
+                let nextStepMessage = '';
+                if (modus === 'varsel') {
+                    nextStepMessage = 'Entreprenør kan nå spesifisere krav (vederlag/frist)';
+                } else if (modus === 'koe' || modus === 'revidering') {
+                    nextStepMessage = 'Byggherre vil bli varslet og kan svare på kravet';
+                } else if (modus === 'svar') {
+                    nextStepMessage = 'Entreprenør kan se svaret og sende revidert krav om nødvendig';
+                }
+
+                // Show success modal
+                setSuccessModal({
+                    isOpen: true,
+                    type: modus || 'koe',
+                    message: response.data.message || 'Skjema sendt til server',
+                    nextStep: nextStepMessage,
+                    pdfUrl: blob ? URL.createObjectURL(blob) : undefined
+                });
             } else {
                 setApiError(response.error || 'Kunne ikke sende skjema');
                 showToast(setToastMessage, `Feil: ${response.error}`);
@@ -283,16 +312,59 @@ const App: React.FC = () => {
 
     // Get submit button text based on modus
     const getSubmitButtonText = () => {
-        if (isSubmitting) return 'Sender...';
+        if (isSubmitting) {
+            return (
+                <span className="flex flex-col">
+                    <span>Sender...</span>
+                </span>
+            );
+        }
+
+        // Hent siste revisjon for kontekst
+        const sisteKoeIndex = formData.koe_revisjoner.length - 1;
+        const sisteKoe = formData.koe_revisjoner[sisteKoeIndex];
+        const sisteBhSvarIndex = formData.bh_svar_revisjoner.length - 1;
+        const sisteBhSvar = formData.bh_svar_revisjoner[sisteBhSvarIndex];
+
         switch (modus) {
-            case 'varsel':
-                return 'Send varsel';
-            case 'koe':
-                return 'Send krav';
-            case 'svar':
-                return 'Send svar';
-            case 'revidering':
-                return 'Send revisjon';
+            case 'varsel': {
+                return (
+                    <span className="flex flex-col">
+                        <span>Send varsel til BH</span>
+                        <span className="text-xs opacity-75">Byggherre varsles automatisk</span>
+                    </span>
+                );
+            }
+            case 'koe': {
+                const beløp = sisteKoe?.vederlag?.krevd_belop;
+                const text = beløp ? `Send krav (${beløp} NOK)` : 'Send krav';
+                return (
+                    <span className="flex flex-col">
+                        <span>{text}</span>
+                        <span className="text-xs opacity-75">PDF genereres og sendes til BH</span>
+                    </span>
+                );
+            }
+            case 'svar': {
+                const vederlagStatus = sisteBhSvar?.vederlag?.bh_svar_vederlag;
+                const godkjent = vederlagStatus === '100000004'; // Godkjent
+                const subtext = godkjent ? '✅ Godkjenner krav' : '⚠️ Krever revisjon';
+                return (
+                    <span className="flex flex-col">
+                        <span>Send svar til TE</span>
+                        <span className="text-xs opacity-75">{subtext}</span>
+                    </span>
+                );
+            }
+            case 'revidering': {
+                const nextRevNr = Number(sisteKoe?.koe_revisjonsnr || 0) + 1;
+                return (
+                    <span className="flex flex-col">
+                        <span>Send revisjon {nextRevNr}</span>
+                        <span className="text-xs opacity-75">Oppdatert krav sendes til BH</span>
+                    </span>
+                );
+            }
             default:
                 return 'Send';
         }
@@ -568,6 +640,15 @@ const App: React.FC = () => {
             </main>
 
             {toastMessage && <Toast message={toastMessage} />}
+
+            <SuccessModal
+                isOpen={successModal.isOpen}
+                onClose={() => setSuccessModal({ ...successModal, isOpen: false })}
+                type={successModal.type}
+                message={successModal.message}
+                nextStep={successModal.nextStep}
+                pdfUrl={successModal.pdfUrl}
+            />
         </div>
     );
 };
