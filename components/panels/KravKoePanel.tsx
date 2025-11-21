@@ -153,6 +153,18 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
           const koeErUtkast = !koe.status || koe.status === '100000001';
           const erLaast = !erSisteRevisjon || !koeErUtkast || rolle !== 'TE' || disabled;
 
+          // Calculate kravstype for this specific revision
+          const harVederlag = koe.vederlag.krav_vederlag;
+          const harFrist = koe.frist.krav_fristforlengelse;
+          let denneKravstype: Kravstype = '';
+          if (harVederlag && harFrist) {
+            denneKravstype = 'begge';
+          } else if (harVederlag) {
+            denneKravstype = 'vederlag';
+          } else if (harFrist) {
+            denneKravstype = 'frist';
+          }
+
           return (
             <div
               key={index}
@@ -160,9 +172,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
             >
               <div className="space-y-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <h3 className="text-lg font-semibold">
-                    {koeErUtkast ? 'Ny revisjon (under arbeid)' : 'Siste sendte krav'}
-                  </h3>
+                  <h3 className="text-lg font-semibold">Entreprenørens krav</h3>
                   <PktTag skin="grey">Revisjon {koe.koe_revisjonsnr ?? '0'}</PktTag>
                   <PktTag skin={getKravStatusSkin(koe.status)}>
                     {getKravStatusLabel(koe.status)}
@@ -176,7 +186,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                   <div className="space-y-3">
                     <div
                       className={`w-full rounded-lg border bg-white p-4 transition-colors hover:bg-gray-50 ${
-                        kravstype === 'vederlag' ? 'border-pri' : 'border-border-color'
+                        denneKravstype === 'vederlag' ? 'border-pri' : 'border-border-color'
                       } ${erLaast ? 'bg-gray-50 opacity-70' : ''}`}
                     >
                       <PktRadioButton
@@ -184,14 +194,14 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                         name={`kravstype-${index}`}
                         label="Vederlagsjustering"
                         value="vederlag"
-                        checked={kravstype === 'vederlag'}
+                        checked={denneKravstype === 'vederlag'}
                         onChange={() => handleKravstypeChange(index, 'vederlag')}
                         disabled={erLaast}
                       />
                     </div>
                     <div
                       className={`w-full rounded-lg border bg-white p-4 transition-colors hover:bg-gray-50 ${
-                        kravstype === 'frist' ? 'border-pri' : 'border-border-color'
+                        denneKravstype === 'frist' ? 'border-pri' : 'border-border-color'
                       } ${erLaast ? 'bg-gray-50 opacity-70' : ''}`}
                     >
                       <PktRadioButton
@@ -199,14 +209,14 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                         name={`kravstype-${index}`}
                         label="Fristforlengelse"
                         value="frist"
-                        checked={kravstype === 'frist'}
+                        checked={denneKravstype === 'frist'}
                         onChange={() => handleKravstypeChange(index, 'frist')}
                         disabled={erLaast}
                       />
                     </div>
                     <div
                       className={`w-full rounded-lg border bg-white p-4 transition-colors hover:bg-gray-50 ${
-                        kravstype === 'begge' ? 'border-pri' : 'border-border-color'
+                        denneKravstype === 'begge' ? 'border-pri' : 'border-border-color'
                       } ${erLaast ? 'bg-gray-50 opacity-70' : ''}`}
                     >
                       <PktRadioButton
@@ -214,7 +224,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                         name={`kravstype-${index}`}
                         label="Vederlagsjustering og fristforlengelse"
                         value="begge"
-                        checked={kravstype === 'begge'}
+                        checked={denneKravstype === 'begge'}
                         onChange={() => handleKravstypeChange(index, 'begge')}
                         disabled={erLaast}
                       />
@@ -222,7 +232,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                   </div>
                 </FieldsetCard>
 
-                {(kravstype === 'vederlag' || kravstype === 'begge') && (
+                {(denneKravstype === 'vederlag' || denneKravstype === 'begge') && (
                   <FieldsetCard legend="Vederlagskrav">
                     <div className="space-y-6">
                       <CheckboxField
@@ -282,7 +292,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                   </FieldsetCard>
                 )}
 
-                {(kravstype === 'frist' || kravstype === 'begge') && (
+                {(denneKravstype === 'frist' || denneKravstype === 'begge') && (
                   <FieldsetCard legend="Fristforlengelse">
                     <div className="space-y-6">
                       <SelectField

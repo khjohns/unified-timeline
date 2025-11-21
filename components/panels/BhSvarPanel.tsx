@@ -127,9 +127,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
             >
               <div className="space-y-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <h3 className="text-lg font-semibold">
-                    {svarErUtkast ? 'Nytt svar (under arbeid)' : 'Siste sendte svar'}
-                  </h3>
+                  <h3 className="text-lg font-semibold">Byggherrens svar</h3>
                   <PktTag skin="grey">Revisjon {tilhorendeKoe?.koe_revisjonsnr ?? index}</PktTag>
                   <PktTag skin={getSvarStatusSkin(bh_svar.status)}>
                     {getSvarStatusLabel(bh_svar.status)}
