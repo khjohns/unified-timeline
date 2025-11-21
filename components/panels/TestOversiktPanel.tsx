@@ -312,7 +312,7 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
                     <td key={idx} className="border border-border-color px-3 py-2 text-center">
                       {rev.vederlag?.krav_vederlag ? (
                         <span className="font-semibold text-green-700">
-                          {rev.vederlag.krevd_beløp ? `${rev.vederlag.krevd_beløp} NOK` : 'Ja'}
+                          {rev.vederlag.krav_vederlag_belop ? `${Number(rev.vederlag.krav_vederlag_belop).toLocaleString('no-NO')} NOK` : 'Ja'}
                         </span>
                       ) : (
                         <span className="text-muted">Nei</span>
