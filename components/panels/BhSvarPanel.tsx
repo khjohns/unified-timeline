@@ -91,12 +91,12 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
   // Determine which revisions to show: utkast first, then last sent
   const visningsRevisjoner: number[] = [];
 
-  // Always show the latest revision (usually utkast)
+  // Always show the latest revision first (usually utkast)
   visningsRevisjoner.push(sisteSvarIndex);
 
-  // If there's a previous revision (sent), show it too
+  // If there's a previous revision (sent), show it after utkast
   if (sisteSvarIndex > 0) {
-    visningsRevisjoner.unshift(sisteSvarIndex - 1); // Add before utkast
+    visningsRevisjoner.push(sisteSvarIndex - 1);
   }
 
   const harFlereRevisjoner = bh_svar_revisjoner.length > 2;

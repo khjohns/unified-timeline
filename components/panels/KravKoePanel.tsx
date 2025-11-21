@@ -34,33 +34,11 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
   const { koe_revisjoner = [], bh_svar_revisjoner = [], rolle } = formData;
   const sisteKravIndex = koe_revisjoner.length - 1;
 
-  // State for kravstype (derived from krav_vederlag and krav_fristforlengelse)
-  const [kravstype, setKravstype] = useState<Kravstype>('');
-
   // File upload hook
   const { fileInputRef, uploadedFiles, handleFileUploadClick, handleFileChange, handleRemoveFile } =
     useFileUpload((fileNames) => {
       setFormData('koe_revisjoner', 'vedlegg', fileNames, sisteKravIndex);
     });
-
-  // Sync kravstype state with formData on load/change
-  useEffect(() => {
-    if (koe_revisjoner.length > 0) {
-      const sisteKoe = koe_revisjoner[sisteKravIndex];
-      const harVederlag = sisteKoe.vederlag.krav_vederlag;
-      const harFrist = sisteKoe.frist.krav_fristforlengelse;
-
-      if (harVederlag && harFrist) {
-        setKravstype('begge');
-      } else if (harVederlag) {
-        setKravstype('vederlag');
-      } else if (harFrist) {
-        setKravstype('frist');
-      } else {
-        setKravstype('');
-      }
-    }
-  }, [koe_revisjoner, sisteKravIndex]);
 
   if (koe_revisjoner.length === 0) {
     return (
@@ -75,8 +53,6 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
   };
 
   const handleKravstypeChange = (index: number, newType: Kravstype) => {
-    setKravstype(newType);
-
     // Update boolean fields based on selected kravstype
     switch (newType) {
       case 'vederlag':
@@ -125,12 +101,12 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
   // Determine which revisions to show: utkast first, then last sent
   const visningsRevisjoner: number[] = [];
 
-  // Always show the latest revision (usually utkast)
+  // Always show the latest revision first (usually utkast)
   visningsRevisjoner.push(sisteKravIndex);
 
-  // If there's a previous revision (sent), show it too
+  // If there's a previous revision (sent), show it after utkast
   if (sisteKravIndex > 0) {
-    visningsRevisjoner.unshift(sisteKravIndex - 1); // Add before utkast
+    visningsRevisjoner.push(sisteKravIndex - 1);
   }
 
   const harFlereRevisjoner = koe_revisjoner.length > 2;
