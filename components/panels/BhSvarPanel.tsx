@@ -88,10 +88,33 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
   const sisteSvar = bh_svar_revisjoner[sisteSvarIndex];
   const sisteSvarErUtkast = !sisteSvar?.status || sisteSvar?.status === '300000001';
 
+  // Determine which revisions to show: utkast first, then last sent
+  const visningsRevisjoner: number[] = [];
+
+  // Always show the latest revision (usually utkast)
+  visningsRevisjoner.push(sisteSvarIndex);
+
+  // If there's a previous revision (sent), show it too
+  if (sisteSvarIndex > 0) {
+    visningsRevisjoner.unshift(sisteSvarIndex - 1); // Add before utkast
+  }
+
+  const harFlereRevisjoner = bh_svar_revisjoner.length > 2;
+
   return (
     <PanelLayout>
+      {harFlereRevisjoner && (
+        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p className="text-sm text-blue-800">
+            💡 Denne fanen viser kun siste sendte svar og nytt svar under arbeid.
+            Se alle {bh_svar_revisjoner.length} svar i <strong>Test-fanen</strong>.
+          </p>
+        </div>
+      )}
+
       <div className="space-y-12">
-        {bh_svar_revisjoner.map((bh_svar, index) => {
+        {visningsRevisjoner.map((index, displayOrder) => {
+          const bh_svar = bh_svar_revisjoner[index];
           const erSisteRevisjon = index === sisteSvarIndex;
           const svarErUtkast = !bh_svar.status || bh_svar.status === '300000001';
           const erLaast = !erSisteRevisjon || !svarErUtkast || rolle !== 'BH';
@@ -100,11 +123,13 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
           return (
             <div
               key={index}
-              className={index > 0 ? 'pt-12 border-t border-border-color' : ''}
+              className={displayOrder > 0 ? 'pt-12 border-t border-border-color' : ''}
             >
               <div className="space-y-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <h3 className="text-lg font-semibold">Byggherrens svar</h3>
+                  <h3 className="text-lg font-semibold">
+                    {svarErUtkast ? 'Nytt svar (under arbeid)' : 'Siste sendte svar'}
+                  </h3>
                   <PktTag skin="grey">Revisjon {tilhorendeKoe?.koe_revisjonsnr ?? index}</PktTag>
                   <PktTag skin={getSvarStatusSkin(bh_svar.status)}>
                     {getSvarStatusLabel(bh_svar.status)}

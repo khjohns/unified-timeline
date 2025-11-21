@@ -122,10 +122,33 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
   const sisteKoe = koe_revisjoner[sisteKravIndex];
   const sisteKoeErUtkast = !sisteKoe?.status || sisteKoe?.status === '100000001';
 
+  // Determine which revisions to show: utkast first, then last sent
+  const visningsRevisjoner: number[] = [];
+
+  // Always show the latest revision (usually utkast)
+  visningsRevisjoner.push(sisteKravIndex);
+
+  // If there's a previous revision (sent), show it too
+  if (sisteKravIndex > 0) {
+    visningsRevisjoner.unshift(sisteKravIndex - 1); // Add before utkast
+  }
+
+  const harFlereRevisjoner = koe_revisjoner.length > 2;
+
   return (
     <PanelLayout>
+      {harFlereRevisjoner && (
+        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p className="text-sm text-blue-800">
+            💡 Denne fanen viser kun siste sendte revisjon og ny revisjon under arbeid.
+            Se alle {koe_revisjoner.length} revisjoner i <strong>Test-fanen</strong>.
+          </p>
+        </div>
+      )}
+
       <div className="space-y-12">
-        {koe_revisjoner.map((koe, index) => {
+        {visningsRevisjoner.map((index, displayOrder) => {
+          const koe = koe_revisjoner[index];
           const erSisteRevisjon = index === sisteKravIndex;
           const koeErUtkast = !koe.status || koe.status === '100000001';
           const erLaast = !erSisteRevisjon || !koeErUtkast || rolle !== 'TE' || disabled;
@@ -133,11 +156,13 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
           return (
             <div
               key={index}
-              className={index > 0 ? 'pt-12 border-t border-border-color' : ''}
+              className={displayOrder > 0 ? 'pt-12 border-t border-border-color' : ''}
             >
               <div className="space-y-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <h3 className="text-lg font-semibold">Entreprenørens krav</h3>
+                  <h3 className="text-lg font-semibold">
+                    {koeErUtkast ? 'Ny revisjon (under arbeid)' : 'Siste sendte krav'}
+                  </h3>
                   <PktTag skin="grey">Revisjon {koe.koe_revisjonsnr ?? '0'}</PktTag>
                   <PktTag skin={getKravStatusSkin(koe.status)}>
                     {getKravStatusLabel(koe.status)}
