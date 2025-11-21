@@ -179,7 +179,7 @@ export const TextareaField: React.FC<TextareaFieldProps> = ({ id, label, value, 
       errorMessage={error}
       rows={String(rows)}
       useWrapper={true}
-      readOnly={readOnly}
+      disabled={readOnly}
       fullwidth={fullwidth}
     />
   </div>
