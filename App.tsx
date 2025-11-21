@@ -10,11 +10,9 @@ import { useAutoSave } from './hooks/useAutoSave';
 import { showToast } from './utils/toastHelpers';
 import { api, Modus } from './services/api';
 
-import GrunninfoPanel from './components/panels/GrunninfoPanel';
 import VarselPanel from './components/panels/VarselPanel';
 import KravKoePanel from './components/panels/KravKoePanel';
 import BhSvarPanel from './components/panels/BhSvarPanel';
-import OppsummeringPanel from './components/panels/OppsummeringPanel';
 import TestOversiktPanel from './components/panels/TestOversiktPanel';
 import SidePanel from './components/ui/SidePanel';
 import SuccessModal from './components/ui/SuccessModal';
@@ -130,13 +128,13 @@ const App: React.FC = () => {
             }
 
             // Set initial tab based on modus
-            // Tab 0: Grunninfo, Tab 1: Varsel, Tab 2: Krav, Tab 3: BH Svar, Tab 4: Oppsummering
+            // Tab 0: Varsel, Tab 1: Krav, Tab 2: BH Svar, Tab 3: Saksoversikt
             if (modus === 'varsel') {
-                setActiveTab(1); // Varsel tab
+                setActiveTab(0); // Varsel tab
             } else if (modus === 'koe' || modus === 'revidering') {
-                setActiveTab(2); // Krav tab
+                setActiveTab(1); // Krav tab
             } else if (modus === 'svar') {
-                setActiveTab(3); // BH Svar tab
+                setActiveTab(2); // BH Svar tab
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -174,26 +172,6 @@ const App: React.FC = () => {
         const newErrors: Record<string, string> = {};
 
         if (activeTab === 0) {
-            // Grunninfo validation
-            if (!formData.sak.sakstittel.trim()) {
-                newErrors['sak.sakstittel'] = 'Sakstittel er påkrevd';
-            }
-            if (!formData.sak.opprettet_av.trim()) {
-                newErrors['sak.opprettet_av'] = 'Opprettet av er påkrevd';
-            }
-            if (!formData.sak.prosjekt_navn.trim()) {
-                newErrors['sak.prosjekt_navn'] = 'Prosjekt er påkrevd';
-            }
-            if (!formData.sak.kontrakt_referanse.trim()) {
-                newErrors['sak.kontrakt_referanse'] = 'Prosjektnummer er påkrevd';
-            }
-            if (!formData.sak.entreprenor.trim()) {
-                newErrors['sak.entreprenor'] = 'Entreprenør er påkrevd';
-            }
-            if (!formData.sak.byggherre.trim()) {
-                newErrors['sak.byggherre'] = 'Byggherre er påkrevd';
-            }
-        } else if (activeTab === 1) {
             // Varsel validation
             if (!formData.varsel.dato_forhold_oppdaget.trim()) {
                 newErrors['varsel.dato_forhold_oppdaget'] = 'Dato forhold oppdaget er påkrevd';
@@ -204,7 +182,7 @@ const App: React.FC = () => {
             if (!formData.varsel.hovedkategori.trim()) {
                 newErrors['varsel.hovedkategori'] = 'Hovedkategori er påkrevd';
             }
-        } else if (activeTab === 2) {
+        } else if (activeTab === 1) {
             // KravKoe validation - validate the last revision
             const sisteKrav = formData.koe_revisjoner[formData.koe_revisjoner.length - 1];
             if (!sisteKrav.koe_revisjonsnr.toString().trim()) {
@@ -469,12 +447,10 @@ const App: React.FC = () => {
             addKoeRevisjon,
         };
         switch(activeTab) {
-            case 0: return <GrunninfoPanel {...panelProps} disabled={isTeDisabled} />;
-            case 1: return <VarselPanel {...panelProps} disabled={isTeDisabled} />;
-            case 2: return <KravKoePanel {...panelProps} disabled={isTeDisabled} />;
-            case 3: return <BhSvarPanel {...panelProps} />;
-            case 4: return <OppsummeringPanel data={formData} />;
-            case 5: return <TestOversiktPanel data={formData} />;
+            case 0: return <VarselPanel {...panelProps} disabled={isTeDisabled} />;
+            case 1: return <KravKoePanel {...panelProps} disabled={isTeDisabled} />;
+            case 2: return <BhSvarPanel {...panelProps} />;
+            case 3: return <TestOversiktPanel data={formData} />;
             default: return null;
         }
     };
