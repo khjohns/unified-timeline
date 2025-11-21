@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FormDataModel } from '../../types';
-import { PktTag, PktButton, PktTable } from '@oslokommune/punkt-react';
+import { PktTag, PktButton } from '@oslokommune/punkt-react';
 import { HOVEDKATEGORI_OPTIONS, UNDERKATEGORI_MAP } from '../../constants';
 import {
   getSakStatusLabel,
@@ -61,72 +61,81 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
   };
 
   // -------------------------------------------------------------------
-  // GRID COMPONENTS FOR METADATA
+  // GRID COMPONENTS (Metadata)
   // -------------------------------------------------------------------
   
-  // Wrapper for selve gridden
   const MetadataGrid = ({ children }: { children: React.ReactNode }) => (
-    <div className="grid grid-cols-1 md:grid-cols-[minmax(150px,_auto)_1fr_minmax(150px,_auto)_1fr] border border-border-color rounded-lg overflow-hidden bg-white">
+    <div className="grid grid-cols-1 md:grid-cols-[minmax(150px,_auto)_1fr_minmax(150px,_auto)_1fr] border border-border-color rounded-lg overflow-hidden bg-white shadow-sm">
       {children}
     </div>
   );
 
-  // Label celle (Grå bakgrunn)
   const GridLabel = ({ children }: { children: React.ReactNode }) => (
-    <div className="bg-gray-50 px-4 py-3 font-medium text-ink-dim border-b md:border-b-0 md:border-r border-border-color flex items-center">
+    <div className="bg-gray-50 px-4 py-3 font-medium text-ink-dim border-b md:border-b-0 md:border-r border-border-color flex items-center text-sm">
       {children}
     </div>
   );
 
-  // Verdi celle (Hvit bakgrunn) - span avgjør om den skal ta opp resten av raden på desktop
   const GridValue = ({ children, span = false }: { children: React.ReactNode; span?: boolean }) => (
-    <div className={`px-4 py-3 border-b border-border-color md:border-b-0 flex items-center ${span ? 'md:col-span-3' : 'md:border-r'}`}>
+    <div className={`px-4 py-3 border-b border-border-color md:border-b-0 flex items-center text-sm ${span ? 'md:col-span-3' : 'md:border-r'}`}>
       {children}
     </div>
   );
 
-  // Rad-wrapper for å tvinge linjeskift i gridden på desktop (valgfri, men nyttig for logisk gruppering)
-  // Note: CSS Grid 'auto-fill' håndterer dette ofte selv, men med vår faste 4-kolonne struktur
-  // legger vi bare elementene flatt inn i MetadataGrid. 
-  // Strukturer under antar rekkefølgen: Label -> Verdi -> Label -> Verdi.
+  const GridDivider = () => (
+    <div className="col-span-1 md:col-span-4 h-px bg-border-color hidden md:block"></div>
+  );
 
   return (
     <div className="space-y-10 p-6">
       
-      {/* CUSTOM CSS FOR STICKY TABLE COLUMN */}
+      {/* STYLING FOR CUSTOM TABLES (Revisjonshistorikk) */}
       <style>{`
-        /* Gjør første kolonne sticky og gir den bakgrunn så innhold ikke "blør" gjennom når man scroller */
-        .sticky-table-first-col th:first-child,
-        .sticky-table-first-col td:first-child {
+        /* Custom table som etterligner Grid-utseendet */
+        .custom-grid-table {
+          border-collapse: separate;
+          border-spacing: 0;
+          width: 100%;
+        }
+        .custom-grid-table th,
+        .custom-grid-table td {
+          padding: 12px 16px;
+          font-size: 0.875rem; /* text-sm */
+          border-right: 1px solid #E6E6E6; /* border-border-color */
+          border-bottom: 1px solid #E6E6E6;
+        }
+        .custom-grid-table th:last-child,
+        .custom-grid-table td:last-child {
+          border-right: none;
+        }
+        .custom-grid-table tr:last-child td {
+          border-bottom: none;
+        }
+        
+        /* Sticky First Column Styling */
+        .sticky-col {
           position: sticky;
           left: 0;
           z-index: 10;
-          background-color: #f9fafb; /* matcher bg-gray-50 */
-          border-right: 2px solid #e5e7eb; /* tydelig skille */
-        }
-        /* Justering for zebra-striping konlfikter */
-        .sticky-table-first-col tr:nth-child(even) td:first-child {
-          background-color: #f9fafb; 
+          background-color: #F9FAFB; /* bg-gray-50 */
+          font-weight: 500;
+          color: #4D4D4D; /* text-ink-dim */
+          border-right: 2px solid #E6E6E6 !important; /* Litt tydeligere skille */
         }
       `}</style>
 
-      {/* SAKSMETADATA (CSS GRID) */}
+      {/* SAKSMETADATA */}
       <section>
-        <h3 className="text-lg font-semibold text-ink-dim mb-3 flex items-center gap-2">
-          📋 Saksmetadata (automatisk generert)
+        <h3 className="text-lg font-semibold text-ink-dim mb-3">
+          Saksmetadata (automatisk generert)
         </h3>
         <MetadataGrid>
-          {/* Rad 1 */}
           <GridLabel>Sak-ID</GridLabel>
           <GridValue>{sak.sak_id_display || sak.sak_id || '—'}</GridValue>
           <GridLabel>Opprettet dato</GridLabel>
           <GridValue>{sak.opprettet_dato || '—'}</GridValue>
 
-          {/* Rad 2 (border-t lagt til manuelt på desktop via grid-gap eller wrapper hvis nødvendig, her bruker vi border-b på grid items hvis vi vil ha linjer mellom rader, men grid-container har border rundt) */}
-          {/* For å få border MELLOM rader i grid må vi enten bruke gap-y-px og bg-color, eller border-b på elementene. 
-              Her legger jeg border-t på elementene unntatt de første 4 for å simulere rader. */}
-          
-          <div className="col-span-1 md:col-span-4 h-px bg-border-color hidden md:block"></div>
+          <GridDivider />
 
           <GridLabel>Opprettet av</GridLabel>
           <GridValue>{sak.opprettet_av || '—'}</GridValue>
@@ -139,42 +148,36 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
         </MetadataGrid>
       </section>
 
-      {/* PROSJEKTINFORMASJON (CSS GRID) */}
+      {/* PROSJEKTINFORMASJON */}
       <section>
-        <h3 className="text-lg font-semibold text-ink-dim mb-3 flex items-center gap-2">
-          🏗️ Prosjektinformasjon
+        <h3 className="text-lg font-semibold text-ink-dim mb-3">
+          Prosjektinformasjon
         </h3>
         <MetadataGrid>
-          {/* Rad 1 - Full bredde på verdi */}
+          {/* Rad 1 */}
           <GridLabel>Sakstittel</GridLabel>
           <GridValue span>{sak.sakstittel || '—'}</GridValue>
           
-          <div className="col-span-1 md:col-span-4 h-px bg-border-color hidden md:block"></div>
+          <GridDivider />
 
-          {/* Rad 2 - Full bredde på verdi */}
+          {/* Rad 2 */}
           <GridLabel>Prosjekt</GridLabel>
           <GridValue span>{sak.prosjekt_navn || '—'}</GridValue>
 
-          <div className="col-span-1 md:col-span-4 h-px bg-border-color hidden md:block"></div>
+          <GridDivider />
 
-          {/* Rad 3 - Split */}
-          <GridLabel>Prosjektnummer</GridLabel>
-          <GridValue>{sak.kontrakt_referanse || '—'}</GridValue>
+          {/* Rad 3 - Entreprenør og Byggherre på samme linje */}
           <GridLabel>Entreprenør (TE)</GridLabel>
           <GridValue>{sak.entreprenor || '—'}</GridValue>
-
-          <div className="col-span-1 md:col-span-4 h-px bg-border-color hidden md:block"></div>
-
-          {/* Rad 4 - Full bredde */}
           <GridLabel>Byggherre (BH)</GridLabel>
-          <GridValue span>{sak.byggherre || '—'}</GridValue>
+          <GridValue>{sak.byggherre || '—'}</GridValue>
         </MetadataGrid>
       </section>
 
-      {/* VARSEL (CSS GRID) */}
+      {/* VARSEL */}
       <section>
-        <h3 className="text-lg font-semibold text-ink-dim mb-3 flex items-center gap-2">
-          📨 Varsel
+        <h3 className="text-lg font-semibold text-ink-dim mb-3">
+          Varsel
         </h3>
         <MetadataGrid>
           <GridLabel>Dato oppdaget</GridLabel>
@@ -182,7 +185,7 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
           <GridLabel>Dato sendt</GridLabel>
           <GridValue>{varsel.dato_varsel_sendt || '—'}</GridValue>
 
-          <div className="col-span-1 md:col-span-4 h-px bg-border-color hidden md:block"></div>
+          <GridDivider />
 
           <GridLabel>Hovedkategori</GridLabel>
           <GridValue span>
@@ -191,7 +194,7 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
 
           {varsel.underkategori && varsel.underkategori.length > 0 && (
             <>
-              <div className="col-span-1 md:col-span-4 h-px bg-border-color hidden md:block"></div>
+              <GridDivider />
               <GridLabel>Underkategori(er)</GridLabel>
               <GridValue span>
                 {getUnderkategoriLabels(varsel.hovedkategori, varsel.underkategori)}
@@ -199,21 +202,7 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
             </>
           )}
 
-          <div className="col-span-1 md:col-span-4 h-px bg-border-color hidden md:block"></div>
-
-          <GridLabel>Metode for varsling</GridLabel>
-          <GridValue>
-            {varsel.varsel_metode || '—'}
-            {varsel.varsel_metode_annet && ` (${varsel.varsel_metode_annet})`}
-          </GridValue>
-          <GridLabel>Vedlegg</GridLabel>
-          <GridValue>
-            {varsel.vedlegg && varsel.vedlegg.length > 0 ? (
-               <span className="text-muted text-sm">{varsel.vedlegg.length} fil(er)</span>
-            ) : '—'}
-          </GridValue>
-
-          <div className="col-span-1 md:col-span-4 h-px bg-border-color hidden md:block"></div>
+          <GridDivider />
 
           <GridLabel>Beskrivelse</GridLabel>
           <GridValue span>
@@ -234,26 +223,23 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
         </MetadataGrid>
       </section>
 
-      {/* KRAV (KOE) - REVISJONSHISTORIKK - MED PKTTABLE */}
+      {/* KRAV FRA ENTREPRENØR - REVISJONSHISTORIKK */}
       <section>
-        <h3 className="text-lg font-semibold text-ink-dim mb-3 flex items-center gap-2">
-          📋 Krav (KOE) - Revisjonshistorikk
+        <h3 className="text-lg font-semibold text-ink-dim mb-3">
+          Krav fra entreprenør - Revisjonshistorikk
         </h3>
         {koe_revisjoner.length === 0 ? (
           <div className="bg-gray-50 border border-border-color rounded-lg p-4 text-sm text-muted">
             Ingen revisjoner registrert ennå
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-t-lg border border-border-color sticky-table-first-col">
-            <PktTable skin="zebra-blue" compact className="w-full">
+          <div className="overflow-x-auto rounded-lg border border-border-color bg-white shadow-sm">
+            <table className="custom-grid-table">
               <thead>
-                <tr>
-                  <th className="font-semibold text-left min-w-[200px]">Felt</th>
+                <tr className="bg-gray-50">
+                  <th className="sticky-col text-left min-w-[200px]">Felt</th>
                   {koe_revisjoner.map((_, idx) => (
-                    <th
-                      key={idx}
-                      className="text-center font-semibold min-w-[160px]"
-                    >
+                    <th key={idx} className="text-center font-semibold min-w-[160px] text-ink-dim bg-gray-50">
                       Rev {koe_revisjoner[idx].koe_revisjonsnr}
                     </th>
                   ))}
@@ -261,7 +247,7 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
               </thead>
               <tbody>
                 <tr>
-                  <td className="font-medium">Status</td>
+                  <td className="sticky-col">Status</td>
                   {koe_revisjoner.map((rev, idx) => (
                     <td key={idx} className="text-center">
                       <PktTag skin={getKravStatusSkin(rev.status)}>
@@ -271,7 +257,7 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
                   ))}
                 </tr>
                 <tr>
-                  <td className="font-medium">Dato sendt</td>
+                  <td className="sticky-col">Dato sendt</td>
                   {koe_revisjoner.map((rev, idx) => (
                     <td key={idx} className="text-center">
                       {rev.dato_krav_sendt || '—'}
@@ -279,7 +265,7 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
                   ))}
                 </tr>
                 <tr>
-                  <td className="font-medium">Sendt av</td>
+                  <td className="sticky-col">Sendt av</td>
                   {koe_revisjoner.map((rev, idx) => (
                     <td key={idx} className="text-center">
                       {rev.for_entreprenor || '—'}
@@ -287,7 +273,7 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
                   ))}
                 </tr>
                 <tr>
-                  <td className="font-medium">Vederlag krevd</td>
+                  <td className="sticky-col">Vederlag krevd</td>
                   {koe_revisjoner.map((rev, idx) => (
                     <td key={idx} className="text-center">
                       {rev.vederlag?.krav_vederlag ? (
@@ -301,7 +287,7 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
                   ))}
                 </tr>
                 <tr>
-                  <td className="font-medium">Produktivitetstap</td>
+                  <td className="sticky-col">Produktivitetstap</td>
                   {koe_revisjoner.map((rev, idx) => (
                     <td key={idx} className="text-center">
                       {rev.vederlag?.krav_produktivitetstap ? (
@@ -313,7 +299,7 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
                   ))}
                 </tr>
                 <tr>
-                  <td className="font-medium">Særskilt varsel rigg/drift</td>
+                  <td className="sticky-col">Særskilt varsel rigg/drift</td>
                   {koe_revisjoner.map((rev, idx) => (
                     <td key={idx} className="text-center">
                       {rev.vederlag?.saerskilt_varsel_rigg_drift ? (
@@ -325,7 +311,7 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
                   ))}
                 </tr>
                 <tr>
-                  <td className="font-medium">Vederlagsmetode</td>
+                  <td className="sticky-col">Vederlagsmetode</td>
                   {koe_revisjoner.map((rev, idx) => {
                     const metodeMap: Record<string, string> = {
                       '100000000': 'Enhetspris',
@@ -341,7 +327,7 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
                   })}
                 </tr>
                 <tr>
-                  <td className="font-medium">Fristforlengelse</td>
+                  <td className="sticky-col">Fristforlengelse</td>
                   {koe_revisjoner.map((rev, idx) => (
                     <td key={idx} className="text-center">
                       {rev.frist?.krav_fristforlengelse ? (
@@ -355,7 +341,7 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
                   ))}
                 </tr>
                 <tr>
-                  <td className="font-medium">Fristtype</td>
+                  <td className="sticky-col">Fristtype</td>
                   {koe_revisjoner.map((rev, idx) => (
                     <td key={idx} className="text-center text-sm">
                       {rev.frist?.krav_frist_type || '—'}
@@ -363,7 +349,7 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
                   ))}
                 </tr>
                 <tr>
-                  <td className="font-medium">Kritisk linje</td>
+                  <td className="sticky-col">Kritisk linje</td>
                   {koe_revisjoner.map((rev, idx) => (
                     <td key={idx} className="text-center">
                       {rev.frist?.forsinkelse_kritisk_linje ? (
@@ -375,7 +361,7 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
                   ))}
                 </tr>
                 <tr>
-                  <td className="font-medium">Vedlegg</td>
+                  <td className="sticky-col">Vedlegg</td>
                   {koe_revisjoner.map((rev, idx) => (
                     <td key={idx} className="text-center text-sm">
                       {rev.vedlegg && rev.vedlegg.length > 0 ? (
@@ -387,7 +373,7 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
                   ))}
                 </tr>
                 <tr>
-                  <td className="font-medium">Vederlagsbegrunnelse</td>
+                  <td className="sticky-col">Vederlagsbegrunnelse</td>
                   {koe_revisjoner.map((rev, idx) => (
                     <td key={idx} className="text-center">
                       {rev.vederlag?.krav_vederlag_begrunnelse ? (
@@ -407,7 +393,7 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
                   ))}
                 </tr>
                 <tr>
-                  <td className="font-medium">Fristbegrunnelse</td>
+                  <td className="sticky-col">Fristbegrunnelse</td>
                   {koe_revisjoner.map((rev, idx) => (
                     <td key={idx} className="text-center">
                       {rev.frist?.krav_frist_begrunnelse ? (
@@ -427,28 +413,28 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
                   ))}
                 </tr>
               </tbody>
-            </PktTable>
+            </table>
           </div>
         )}
       </section>
 
-      {/* BH SVAR - REVISJONSHISTORIKK - MED PKTTABLE */}
+      {/* SVAR FRA BYGGHERRE - REVISJONSHISTORIKK */}
       <section>
-        <h3 className="text-lg font-semibold text-ink-dim mb-3 flex items-center gap-2">
-          💬 Svar fra byggherre - Revisjonshistorikk
+        <h3 className="text-lg font-semibold text-ink-dim mb-3">
+          Svar fra byggherre - Revisjonshistorikk
         </h3>
         {bh_svar_revisjoner.length === 0 ? (
           <div className="bg-gray-50 border border-border-color rounded-lg p-4 text-sm text-muted">
             Ingen svar registrert ennå
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-t-lg border border-border-color sticky-table-first-col">
-            <PktTable skin="zebra-blue" compact className="w-full">
+          <div className="overflow-x-auto rounded-lg border border-border-color bg-white shadow-sm">
+            <table className="custom-grid-table">
               <thead>
-                <tr>
-                  <th className="font-semibold text-left min-w-[200px]">Felt</th>
+                <tr className="bg-gray-50">
+                  <th className="sticky-col text-left min-w-[200px]">Felt</th>
                   {bh_svar_revisjoner.map((_, idx) => (
-                    <th key={idx} className="text-center font-semibold min-w-[160px]">
+                    <th key={idx} className="text-center font-semibold min-w-[160px] text-ink-dim bg-gray-50">
                       Svar {idx}
                     </th>
                   ))}
@@ -456,7 +442,7 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
               </thead>
               <tbody>
                 <tr>
-                  <td className="font-medium">Status</td>
+                  <td className="sticky-col">Status</td>
                   {bh_svar_revisjoner.map((svar, idx) => (
                     <td key={idx} className="text-center">
                       <PktTag skin={getSvarStatusSkin(svar.status)}>
@@ -466,7 +452,7 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
                   ))}
                 </tr>
                 <tr>
-                  <td className="font-medium">Dato svar</td>
+                  <td className="sticky-col">Dato svar</td>
                   {bh_svar_revisjoner.map((svar, idx) => (
                     <td key={idx} className="text-center">
                       {svar.sign?.dato_svar_bh || '—'}
@@ -474,7 +460,7 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
                   ))}
                 </tr>
                 <tr>
-                  <td className="font-medium">Svart av</td>
+                  <td className="sticky-col">Svart av</td>
                   {bh_svar_revisjoner.map((svar, idx) => (
                     <td key={idx} className="text-center">
                       {svar.sign?.for_byggherre || '—'}
@@ -482,7 +468,7 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
                   ))}
                 </tr>
                 <tr>
-                  <td className="font-medium">Vederlag</td>
+                  <td className="sticky-col">Vederlag</td>
                   {bh_svar_revisjoner.map((svar, idx) => {
                     const vedStatus = svar.vederlag?.bh_svar_vederlag;
                     const beløp = svar.vederlag?.bh_godkjent_vederlag_belop;
@@ -498,7 +484,7 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
                   })}
                 </tr>
                 <tr>
-                  <td className="font-medium">Frist</td>
+                  <td className="sticky-col">Frist</td>
                   {bh_svar_revisjoner.map((svar, idx) => {
                     const fristStatus = svar.frist?.bh_svar_frist;
                     const dager = svar.frist?.bh_godkjent_frist_dager;
@@ -514,7 +500,7 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
                   })}
                 </tr>
                 <tr>
-                  <td className="font-medium">Varsel for sent (vederlag)</td>
+                  <td className="sticky-col">Varsel for sent (vederlag)</td>
                   {bh_svar_revisjoner.map((svar, idx) => (
                     <td key={idx} className="text-center">
                       {svar.vederlag?.varsel_for_sent ? <span className="text-red-700">✓</span> : <span className="text-muted">—</span>}
@@ -522,7 +508,7 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
                   ))}
                 </tr>
                 <tr>
-                  <td className="font-medium">Vederlagsbegrunnelse</td>
+                  <td className="sticky-col">Vederlagsbegrunnelse</td>
                   {bh_svar_revisjoner.map((svar, idx) => (
                     <td key={idx} className="text-center">
                       {svar.vederlag?.bh_begrunnelse_vederlag ? (
@@ -532,7 +518,7 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
                   ))}
                 </tr>
                 <tr>
-                  <td className="font-medium">Fristbegrunnelse</td>
+                  <td className="sticky-col">Fristbegrunnelse</td>
                   {bh_svar_revisjoner.map((svar, idx) => (
                     <td key={idx} className="text-center">
                       {svar.frist?.bh_begrunnelse_frist ? (
@@ -542,7 +528,7 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
                   ))}
                 </tr>
                 <tr>
-                  <td className="font-medium">Møtereferat</td>
+                  <td className="sticky-col">Møtereferat</td>
                   {bh_svar_revisjoner.map((svar, idx) => (
                     <td key={idx} className="text-center">
                       {svar.mote_referat ? (
@@ -552,7 +538,7 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
                   ))}
                 </tr>
               </tbody>
-            </PktTable>
+            </table>
           </div>
         )}
       </section>
@@ -562,8 +548,8 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
         <p className="font-semibold mb-2">💡 Om denne visningen:</p>
         <ul className="list-disc list-inside space-y-1 text-xs">
           <li>Tabellene viser alle revisjoner side-ved-side for enkel sammenligning.</li>
-          <li>Du kan scrolle horisontalt i tabellene. Første kolonne følger med når du scroller.</li>
-          <li>Metadata vises i rutenett øverst (tilpasser seg skjermstørrelse).</li>
+          <li>Du kan scrolle horisontalt i tabellene. Første kolonne (Feltnavn) står stille når du scroller.</li>
+          <li>Visningen er tilpasset små skjermer med "sticky" feltnavn.</li>
         </ul>
       </div>
 
