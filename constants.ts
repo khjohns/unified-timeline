@@ -1,12 +1,10 @@
 import { FormDataModel } from './types';
 
 export const TABS = [
-    { label: 'Sak', icon: 'information' },
     { label: 'Varsel', icon: 'flag' },
     { label: 'Krav', icon: 'invoice' },
     { label: 'BH Svar', icon: 'signature' },
-    { label: 'Oversikt', icon: 'table' },
-    { label: 'Test', icon: 'table' },
+    { label: 'Saksoversikt', icon: 'table' },
 ];
 
 export const INITIAL_FORM_DATA: FormDataModel = {
