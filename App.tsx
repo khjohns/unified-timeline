@@ -8,6 +8,7 @@ import { PktHeader, PktButton, PktTabs, PktTabItem } from '@oslokommune/punkt-re
 import { useSkjemaData } from './hooks/useSkjemaData';
 import { useAutoSave } from './hooks/useAutoSave';
 import { showToast } from './utils/toastHelpers';
+import { focusOnField } from './utils/focusHelpers';
 import { api, Modus } from './services/api';
 
 import VarselPanel from './components/panels/VarselPanel';
@@ -171,32 +172,44 @@ const App: React.FC = () => {
 
     const validateCurrentTab = (): boolean => {
         const newErrors: Record<string, string> = {};
+        let firstInvalidFieldId: string | null = null;
 
         if (activeTab === 0) {
             // Varsel validation
             if (!formData.varsel.dato_forhold_oppdaget.trim()) {
                 newErrors['varsel.dato_forhold_oppdaget'] = 'Dato forhold oppdaget er påkrevd';
+                if (!firstInvalidFieldId) firstInvalidFieldId = 'varsel.dato_forhold_oppdaget';
             }
             if (!formData.varsel.dato_varsel_sendt.trim()) {
                 newErrors['varsel.dato_varsel_sendt'] = 'Dato varsel sendt er påkrevd';
+                if (!firstInvalidFieldId) firstInvalidFieldId = 'varsel.dato_varsel_sendt';
             }
             if (!formData.varsel.hovedkategori.trim()) {
                 newErrors['varsel.hovedkategori'] = 'Hovedkategori er påkrevd';
+                if (!firstInvalidFieldId) firstInvalidFieldId = 'varsel.hovedkategori';
             }
         } else if (activeTab === 1) {
             // KravKoe validation - validate the last revision
             const sisteKrav = formData.koe_revisjoner[formData.koe_revisjoner.length - 1];
             if (!sisteKrav.koe_revisjonsnr.toString().trim()) {
                 newErrors['koe_revisjoner.koe_revisjonsnr'] = 'Revisjonsnummer er påkrevd';
+                if (!firstInvalidFieldId) firstInvalidFieldId = 'koe_revisjoner.koe_revisjonsnr';
             }
             if (!sisteKrav.dato_krav_sendt.trim()) {
                 newErrors['koe_revisjoner.dato_krav_sendt'] = 'Dato krav sendt er påkrevd';
+                if (!firstInvalidFieldId) firstInvalidFieldId = 'koe_revisjoner.dato_krav_sendt';
             }
         }
 
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
             showToast(setToastMessage, 'Vennligst fyll ut alle obligatoriske felt før du går videre');
+
+            // Fokuser på det første ugyldige feltet
+            if (firstInvalidFieldId) {
+                focusOnField(firstInvalidFieldId);
+            }
+
             return false;
         }
 

@@ -8,6 +8,7 @@ import { PktButton, PktAlert, PktCheckbox, PktRadioButton } from '@oslokommune/p
 import { useFileUpload } from '../../hooks/useFileUpload';
 import FileUploadField from '../ui/FileUploadField';
 import { showToast } from '../../utils/toastHelpers';
+import { focusOnField } from '../../utils/focusHelpers';
 
 interface VarselPanelProps {
   formData: FormDataModel;
@@ -84,6 +85,12 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
   const handleSendVarsel = () => {
     if (!varsel.dato_forhold_oppdaget || !varsel.hovedkategori) {
       showToast(setToastMessage, 'Vennligst fyll ut alle påkrevde felt før du sender varselet');
+      // Fokuser på det første tomme påkrevde feltet
+      if (!varsel.dato_forhold_oppdaget) {
+        focusOnField('varsel.dato_forhold_oppdaget');
+      } else if (!varsel.hovedkategori) {
+        focusOnField('varsel.hovedkategori');
+      }
       return;
     }
 
@@ -91,14 +98,18 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
     if (erTidligereVarslet === 'ja') {
       if (!varsel.dato_varsel_sendt) {
         showToast(setToastMessage, 'Vennligst oppgi når varselet ble sendt');
+        focusOnField('varsel.dato_varsel_sendt');
         return;
       }
       if (varselMetoder.length === 0) {
         showToast(setToastMessage, 'Vennligst velg minst én metode for varsling');
+        // Focus på første checkbox i listen
+        focusOnField('varsel_metode_E-post');
         return;
       }
       if (varselMetoder.includes('Annet') && !varsel.varsel_metode_annet) {
         showToast(setToastMessage, 'Vennligst spesifiser annen metode');
+        focusOnField('varsel.varsel_metode_annet');
         return;
       }
     }

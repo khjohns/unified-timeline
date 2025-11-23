@@ -9,6 +9,7 @@ import { getKravStatusLabel, getKravStatusSkin } from '../../utils/statusHelpers
 import { useFileUpload } from '../../hooks/useFileUpload';
 import FileUploadField from '../ui/FileUploadField';
 import { showToast } from '../../utils/toastHelpers';
+import { focusOnField } from '../../utils/focusHelpers';
 
 interface KravKoePanelProps {
   formData: FormDataModel;
@@ -78,11 +79,14 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
 
     if (!sisteKrav.koe_revisjonsnr) {
       showToast(setToastMessage, 'Vennligst fyll ut revisjonsnummer');
+      focusOnField('koe_revisjoner.koe_revisjonsnr');
       return;
     }
 
     if (!sisteKrav.vederlag.krav_vederlag && !sisteKrav.frist.krav_fristforlengelse) {
       showToast(setToastMessage, 'Du må velge minst ett krav (vederlag eller fristforlengelse)');
+      // Fokuser på første krav-valg (vederlag radio button)
+      focusOnField('krav_type_vederlag');
       return;
     }
 

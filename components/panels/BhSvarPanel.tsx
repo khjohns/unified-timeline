@@ -9,6 +9,7 @@ import { getSvarStatusLabel, getSvarStatusSkin } from '../../utils/statusHelpers
 import { useFileUpload } from '../../hooks/useFileUpload';
 import FileUploadField from '../ui/FileUploadField';
 import { showToast } from '../../utils/toastHelpers';
+import { focusOnField } from '../../utils/focusHelpers';
 
 interface BhSvarPanelProps {
   formData: FormDataModel;
@@ -64,6 +65,12 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
 
     if (!sisteSvar.sign.dato_svar_bh || !sisteSvar.sign.for_byggherre) {
       showToast(setToastMessage, 'Vennligst fyll ut alle påkrevde felt (signatur) før du sender svaret');
+      // Fokuser på det første tomme påkrevde feltet
+      if (!sisteSvar.sign.dato_svar_bh) {
+        focusOnField('bh_svar_revisjoner.sign.dato_svar_bh');
+      } else if (!sisteSvar.sign.for_byggherre) {
+        focusOnField('bh_svar_revisjoner.sign.for_byggherre');
+      }
       return;
     }
 
