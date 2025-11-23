@@ -44,7 +44,14 @@ Følgende korrigeringer er gjort basert på faktiske Catenda API-spesifikasjoner
   - `"issue.modified"` (BCF Topic endret)
   - `"issue.status.changed"` (Status endret)
 
-### 4. Datamodell (Topic API / BCF)
+### 4. Webhook Security
+- ❌ **Feil**: Antok HMAC-signatur i `X-Catenda-Signature` header
+- ✅ **Korrigert**: Catenda API støtter **ikke** signering. Bruk Secret Token i URL:
+  - Registrer URL: `https://ngrok.io/webhook/catenda?token=SECRET`
+  - Valider `token` query parameter i backend
+  - Dette er standard "Plan B" når API ikke har innebygd signering
+
+### 5. Datamodell (Topic API / BCF)
 - ❌ **Feil**: Brukte `status`, tillot bindestreker i ID
 - ✅ **Korrigert**:
   - Bruk `topic_status` (BCF-standard)
@@ -69,7 +76,7 @@ Følgende korrigeringer er gjort basert på faktiske Catenda API-spesifikasjoner
 |--------|--------------|------------|-----------|
 | **CSRF-beskyttelse** | Lav | ⭐⭐⭐⭐⭐ | Fungerer perfekt med ngrok |
 | **Request validation** | Lav | ⭐⭐⭐⭐ | Essensielt for CSV-lagring |
-| **Webhook HMAC** | Lav | ⭐⭐⭐⭐⭐ | Catenda → ngrok webhook |
+| **Webhook Secret Token** | Lav | ⭐⭐⭐⭐⭐ | Token i URL (Catenda → ngrok) |
 | **Rate limiting (in-memory)** | Lav | ⭐⭐⭐⭐ | Beskytter lokal Flask |
 | **Audit logging (CSV/JSON)** | Lav | ⭐⭐⭐ | Skriv til lokal fil |
 | **Catenda token validation** | Moderat | ⭐⭐⭐⭐⭐ | Sjekk token expiry |
@@ -101,14 +108,14 @@ Følgende korrigeringer er gjort basert på faktiske Catenda API-spesifikasjoner
    - Demo: 403 ved manglende token
 
 2. **Request validation** (1.5 timer)
-   - Valider sakId, status, feltverdier
+   - Valider topic_id (GUID), topic_status, feltverdier
    - Sanitize input før CSV-lagring
-   - Demo: 400 ved SQL injection attempt
+   - Demo: 400 ved SQL/CSV injection attempt
 
-3. **Webhook HMAC** (1.5 timer)
-   - Valider X-Catenda-Signature
+3. **Webhook Secret Token** (1 time)
+   - Valider token i URL query parameter
    - Idempotency check (in-memory set)
-   - Demo: 401 ved ugyldig signatur
+   - Demo: 401 ved manglende/ugyldig token
 
 ### Fase 2: Autentisering og autorisasjon (6-8 timer)
 
@@ -509,67 +516,68 @@ Content-Type: application/json
 
 ---
 
-### 3. Webhook HMAC Validation
+### 5. Webhook Security (Secret Token i URL)
 
-**Catenda sender webhooks til ngrok URL** - dette er perfekt for prototype!
+**Viktig**: Catenda Webhook API støtter **ikke** HMAC-signering. I stedet bruker vi Secret Token i URL.
+
+#### Bakgrunn
+
+Catenda webhook-konfigurasjon har ikke felt for `secret` eller `signing_key`. Dette betyr:
+- ❌ Ingen `X-Catenda-Signature` header
+- ✅ Løsning: Secret Token i URL (`?token=...`)
+
+Dette er standard "Plan B" når API ikke tilbyr innebygd signering.
 
 #### Implementasjon
 
 ```python
 # backend/webhook_security.py
-import hmac
-import hashlib
+import os
 from flask import request
 
-# VIKTIG: Hent secret fra Catenda webhook configuration
-WEBHOOK_SECRET = "your_webhook_secret_from_catenda"  # TODO: Flytt til .env
+# Webhook secret token (generer sterk token, lagre i .env)
+WEBHOOK_SECRET_TOKEN = os.getenv("CATENDA_WEBHOOK_TOKEN", "")  # TODO: Generer sterk token
 
-def validate_webhook_signature() -> tuple[bool, str]:
+def validate_webhook_token() -> tuple[bool, str]:
     """
-    Valider Catenda webhook HMAC-signatur.
+    Valider Secret Token i URL query parameter.
 
-    Catenda sender: X-Catenda-Signature: sha256=<hex_digest>
+    Catenda kaller URL: https://ngrok.io/webhook/catenda?token=SECRET
+
+    Returns:
+        (valid, error_message)
     """
-    signature_header = request.headers.get("X-Catenda-Signature", "")
+    # Hent token fra URL query parameter
+    received_token = request.args.get("token", "")
 
-    if not signature_header:
-        return False, "Missing X-Catenda-Signature header"
+    if not received_token:
+        return False, "Missing token parameter in URL"
 
-    if not signature_header.startswith("sha256="):
-        return False, "Invalid signature format"
-
-    received_signature = signature_header[7:]  # Skip "sha256="
-
-    # Hent raw body (MÅ være bytes, ikke parsed JSON)
-    body = request.get_data()
-
-    # Beregn forventet signatur
-    expected_signature = hmac.new(
-        WEBHOOK_SECRET.encode(),
-        body,
-        hashlib.sha256
-    ).hexdigest()
+    if not WEBHOOK_SECRET_TOKEN:
+        return False, "Server configuration error: WEBHOOK_SECRET_TOKEN not set"
 
     # Constant-time comparison (timing attack protection)
-    if not hmac.compare_digest(received_signature, expected_signature):
-        return False, "Signature mismatch"
+    import hmac
+    if not hmac.compare_digest(received_token, WEBHOOK_SECRET_TOKEN):
+        return False, "Invalid webhook token"
 
     return True, ""
 
-# In-memory idempotency tracking (OK for prototype)
+# Idempotency tracking (in-memory for prototype, bruk Redis/database i prod)
 processed_events = set()
 
 def is_duplicate_event(event_id: str) -> bool:
-    """Sjekk om event allerede er prosessert"""
+    """Sjekk om event allerede er prosessert (idempotency)"""
     if event_id in processed_events:
         return True
     processed_events.add(event_id)
+    # TODO: Legg til TTL cleanup (fjern events eldre enn 24t)
     return False
 ```
 
 ```python
 # backend/app.py
-from webhook_security import validate_webhook_signature, is_duplicate_event
+from webhook_security import validate_webhook_token, is_duplicate_event
 
 @app.route('/webhook/catenda', methods=['POST'])
 def webhook():
@@ -577,15 +585,14 @@ def webhook():
     Webhook endpoint for Catenda.
 
     Catenda configuration:
-    - URL: https://abc123.ngrok.io/webhook/catenda
-    - Secret: (sett WEBHOOK_SECRET)
+    - URL: https://abc123.ngrok.io/webhook/catenda?token=YOUR_SECRET_TOKEN
     """
 
-    # 1. ✅ Valider HMAC-signatur
-    valid, error = validate_webhook_signature()
+    # 1. ✅ Valider Secret Token fra URL
+    valid, error = validate_webhook_token()
     if not valid:
-        app.logger.warning(f"Webhook signature validation failed: {error}")
-        return jsonify({"error": "Invalid signature", "detail": error}), 401
+        app.logger.warning(f"Webhook token validation failed: {error}")
+        return jsonify({"error": "Unauthorized", "detail": error}), 401
 
     # 2. Parse payload (nå vet vi at det kom fra Catenda)
     payload = request.get_json()
@@ -627,20 +634,35 @@ def webhook():
 
 #### Sett opp webhook i Catenda
 
-1. **Logg inn på Catenda** (https://app.catenda.com)
-2. **Gå til Project Settings → Webhooks**
-3. **Create new webhook**:
-   - URL: `https://YOUR_NGROK_URL.ngrok.io/webhook/catenda`
-   - Secret: (generer sterk secret, sett i `.env`)
-   - Events: Select `issue.created`, `issue.modified`, `issue.status.changed`
-4. **Test webhook** (Catenda har test-knapp)
+1. **Generer sterk secret token**:
+   ```bash
+   # Generer 32-byte random token (Python)
+   python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+   # Output: f8vP3K9mX_TqL2wN7hZdR5jB1yC6aE4sU0gO8iM3
+   ```
+
+2. **Legg token i `.env`**:
+   ```bash
+   CATENDA_WEBHOOK_TOKEN=f8vP3K9mX_TqL2wN7hZdR5jB1yC6aE4sU0gO8iM3
+   ```
+
+3. **Logg inn på Catenda** (https://app.catenda.com)
+
+4. **Gå til Project Settings → Webhooks**
+
+5. **Create new webhook**:
+   - **Target URL**: `https://YOUR_NGROK_URL.ngrok.io/webhook/catenda?token=f8vP3K9mX_TqL2wN7hZdR5jB1yC6aE4sU0gO8iM3`
+   - **Events**: Select `issue.created`, `issue.modified`, `issue.status.changed`
+
+6. **Test webhook** (Catenda har test-knapp)
+
+**Viktig**: Hold token hemmelig! Ikke commit til git.
 
 #### Network Tab Demo
 
 ```http
-# Webhook fra Catenda (gyldig signatur)
-POST https://abc123.ngrok.io/webhook/catenda
-X-Catenda-Signature: sha256=a1b2c3d4e5f6...
+# Webhook fra Catenda (gyldig token i URL)
+POST https://abc123.ngrok.io/webhook/catenda?token=f8vP3K9mX_TqL2wN7hZdR5jB1yC6aE4sU0gO8iM3
 Content-Type: application/json
 
 {
@@ -654,7 +676,7 @@ Content-Type: application/json
   "status": "processed"
 }
 
-# Webhook fra angriper (ingen signatur)
+# Webhook fra angriper (ingen token)
 POST https://abc123.ngrok.io/webhook/catenda
 Content-Type: application/json
 
@@ -665,13 +687,27 @@ Content-Type: application/json
 
 → 401 Unauthorized
 {
-  "error": "Invalid signature",
-  "detail": "Missing X-Catenda-Signature header"
+  "error": "Unauthorized",
+  "detail": "Missing token parameter in URL"
+}
+
+# Webhook fra angriper (feil token)
+POST https://abc123.ngrok.io/webhook/catenda?token=wrong_token
+Content-Type: application/json
+
+{
+  "event": "issue.created",
+  "id": "fake_event"
+}
+
+→ 401 Unauthorized
+{
+  "error": "Unauthorized",
+  "detail": "Invalid webhook token"
 }
 
 # Duplicate webhook (samme eventId to ganger)
-POST https://abc123.ngrok.io/webhook/catenda
-X-Catenda-Signature: sha256=a1b2c3d4e5f6...
+POST https://abc123.ngrok.io/webhook/catenda?token=f8vP3K9mX_TqL2wN7hZdR5jB1yC6aE4sU0gO8iM3
 
 (samme payload som tidligere)
 
@@ -679,6 +715,28 @@ X-Catenda-Signature: sha256=a1b2c3d4e5f6...
 {
   "status": "already_processed"
 }
+```
+
+#### Testing
+
+```bash
+# Test 1: Ingen token
+curl -X POST 'http://localhost:5000/webhook/catenda' \
+  -H "Content-Type: application/json" \
+  -d '{"event":"issue.created","id":"123"}'
+# → 401 Unauthorized
+
+# Test 2: Feil token
+curl -X POST 'http://localhost:5000/webhook/catenda?token=wrong' \
+  -H "Content-Type: application/json" \
+  -d '{"event":"issue.created","id":"123"}'
+# → 401 Unauthorized
+
+# Test 3: Gyldig token
+curl -X POST 'http://localhost:5000/webhook/catenda?token=f8vP3K9mX_TqL2wN7hZdR5jB1yC6aE4sU0gO8iM3' \
+  -H "Content-Type: application/json" \
+  -d '{"event":"issue.created","id":"123"}'
+# → 200 OK
 ```
 
 ---
@@ -1547,12 +1605,12 @@ X-CSRF-Token: <valid>
 
 → 400 Bad Request (CSV injection blocked)
 
-# Angrep 3: Webhook spoofing
+# Angrep 3: Webhook spoofing (ingen token)
 POST http://abc123.ngrok.io/webhook/catenda
 
 {"event": "issue.created", "id": "fake_12345"}
 
-→ 401 Unauthorized (Missing signature)
+→ 401 Unauthorized (Missing token parameter in URL)
 
 # Angrep 4: Project access violation
 GET http://abc123.ngrok.io/api/cases/a3f12bc8d4e5492497b36f47b233eebe
@@ -1610,9 +1668,16 @@ def test_csv_injection_protection(client):
     assert response.status_code == 400
     assert b'CSV injection' in response.data
 
-def test_webhook_signature(client):
-    """Webhook uten signatur skal avvises"""
+def test_webhook_token(client):
+    """Webhook uten token skal avvises"""
     response = client.post('/webhook/catenda',
+        json={'event': 'issue.created', 'id': '123'})
+    assert response.status_code == 401
+    assert b'token' in response.data.lower()
+
+def test_webhook_invalid_token(client):
+    """Webhook med feil token skal avvises"""
+    response = client.post('/webhook/catenda?token=wrong_token',
         json={'event': 'issue.created', 'id': '123'})
     assert response.status_code == 401
 
@@ -1657,11 +1722,11 @@ def test_rate_limiting(client):
 - [ ] title med newline → sanitized (replaced with space)
 - [ ] Gyldig input → 200
 
-### Webhook HMAC
-- [ ] POST uten X-Catenda-Signature → 401
-- [ ] POST med feil signatur → 401
-- [ ] POST med gyldig signatur → 200
-- [ ] Duplikat eventId → 202
+### Webhook Secret Token
+- [ ] POST uten token i URL → 401
+- [ ] POST med feil token → 401
+- [ ] POST med gyldig token → 200
+- [ ] Duplikat event ID → 202
 
 ### Catenda Token Auth
 - [ ] GET uten Authorization → 401
