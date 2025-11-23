@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { FormDataModel, Role, BhSvar, Koe } from './types';
 import { TABS, INITIAL_FORM_DATA, DEMO_DATA } from './constants';
 import Toast from './components/ui/Toast';
-import { generatePdfReact } from './utils/pdfGeneratorReact';
+import { generatePdfReact, generatePdfBlob } from './utils/pdfGeneratorReact';
 import { PktHeader, PktButton, PktTabs, PktTabItem } from '@oslokommune/punkt-react';
 import { useSkjemaData } from './hooks/useSkjemaData';
 import { useAutoSave } from './hooks/useAutoSave';
@@ -234,8 +234,8 @@ const App: React.FC = () => {
             }
 
             if (response.success && response.data) {
-                // Generate and download PDF after successful submission
-                const { blob, filename } = await generatePdfReact(formData);
+                // Generate PDF blob for upload (without auto-download)
+                const { blob, filename } = await generatePdfBlob(formData);
 
                 // Upload PDF to backend for Catenda integration
                 const effectiveSakId = response.data.sakId || sakId;
