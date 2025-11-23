@@ -19,6 +19,19 @@
 
 ---
 
+## ⚠️ Catenda API-korrigeringer
+
+**Viktig**: Hvis du integrerer med Catenda API, bruk følgende endepunkter:
+
+### Webhook Events (Catenda BCF API)
+- ✅ **Korrekt**: `event` felt med verdier `"issue.created"`, `"issue.modified"`, `"issue.status.changed"`
+- ❌ **Feil**: `eventType` felt med `"TopicCreatedEvent"`, `"TopicModifiedEvent"`
+- **Referanse**: Webhook API.yaml
+
+Se [Handlingsplan_Prototype_Lokal.md](./Handlingsplan_Prototype_Lokal.md) for fullstendige Catenda API-korrigeringer.
+
+---
+
 ## Executive Summary
 
 Denne handlingsplanen prioriterer sikkerhetstiltak fra [Beslutningsmatrisen](./Digital%20Samhandlingsplattform%20for%20Byggeprosjekter.md#beslutningsmatrise-for-sikkerhetstiltak) som kan implementeres i nåværende Flask-prototype og **demonstreres via browser Network tab**.
@@ -555,22 +568,28 @@ def webhook():
     payload = request.get_json()
 
     # 3. Idempotency check
-    event_id = payload.get("eventId", "") or payload.get("event", {}).get("id", "")
+    # ✅ Catenda sender 'id' felt i webhook payload
+    event_id = payload.get("id", "") or payload.get("eventId", "")  # Fallback for compatibility
     if not event_id:
-        return jsonify({"error": "Missing eventId"}), 400
+        return jsonify({"error": "Missing event id"}), 400
 
     if is_duplicate_event(event_id):
         app.logger.info(f"Duplicate webhook event: {event_id}")
         return jsonify({"status": "already_processed"}), 202  # 202 Accepted
 
-    # 4. Prosesser webhook (eksisterende logikk)
-    event_type = payload.get('eventType', '')
+    # 4. Prosesser webhook
+    # ✅ Catenda BCF API bruker 'event' felt (ikke 'eventType')
+    # Ref: Webhook API.yaml
+    event_name = payload.get('event', '')
 
-    if event_type == 'TopicCreatedEvent':
-        # ... eksisterende kode ...
+    if event_name == 'issue.created':
+        # Håndter ny BCF Topic
         pass
-    elif event_type == 'TopicModifiedEvent':
-        # ... eksisterende kode ...
+    elif event_name == 'issue.modified':
+        # Håndter endret BCF Topic
+        pass
+    elif event_name == 'issue.status.changed':
+        # Håndter statusendring
         pass
 
     return jsonify({"status": "processed"}), 200
@@ -583,7 +602,7 @@ def webhook():
 POST /webhook/catenda HTTP/1.1
 Content-Type: application/json
 
-{"eventType": "TopicCreatedEvent", "eventId": "123"}
+{"event": "issue.created", "id": "123"}
 
 → 401 Unauthorized
 {
@@ -598,7 +617,7 @@ POST /webhook/catenda HTTP/1.1
 X-Catenda-Signature: sha256=invalid_signature_here
 Content-Type: application/json
 
-{"eventType": "TopicCreatedEvent", "eventId": "123"}
+{"event": "issue.created", "id": "123"}
 
 → 401 Unauthorized
 {
@@ -613,7 +632,7 @@ POST /webhook/catenda HTTP/1.1
 X-Catenda-Signature: sha256=a1b2c3d4e5f6...  # Gyldig HMAC
 Content-Type: application/json
 
-{"eventType": "TopicCreatedEvent", "eventId": "123"}
+{"event": "issue.created", "id": "123"}
 
 → 200 OK
 {
@@ -628,7 +647,7 @@ POST /webhook/catenda HTTP/1.1
 X-Catenda-Signature: sha256=a1b2c3d4e5f6...
 Content-Type: application/json
 
-{"eventType": "TopicCreatedEvent", "eventId": "123"}
+{"event": "issue.created", "id": "123"}
 
 → 202 Accepted (første gang: 200 OK, andre gang: 202)
 {
@@ -645,7 +664,7 @@ import hmac
 import hashlib
 
 secret = "CHANGE_ME_IN_PRODUCTION"
-body = '{"eventType":"TopicCreatedEvent","eventId":"123"}'
+body = '{"event":"issue.created","id":"123"}'
 
 signature = hmac.new(secret.encode(), body.encode(), hashlib.sha256).hexdigest()
 print(f"sha256={signature}")
@@ -655,7 +674,7 @@ EOF
 curl -X POST http://localhost:5000/webhook/catenda \
   -H "Content-Type: application/json" \
   -H "X-Catenda-Signature: sha256=<generated_signature>" \
-  -d '{"eventType":"TopicCreatedEvent","eventId":"123"}'
+  -d '{"event":"issue.created","id":"123"}'
 ```
 
 ---
@@ -1458,8 +1477,8 @@ def test_csrf_protection(client):
 def test_webhook_signature_validation(client):
     """Test at webhook uten signatur avvises"""
     response = client.post('/webhook/catenda', json={
-        'eventType': 'TopicCreatedEvent',
-        'eventId': '123'
+        'event': 'issue.created',
+        'id': '123'
     })
     assert response.status_code == 401
     assert b'signature' in response.data.lower()
