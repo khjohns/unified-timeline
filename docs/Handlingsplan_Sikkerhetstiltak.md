@@ -28,6 +28,12 @@
 - ❌ **Feil**: `eventType` felt med `"TopicCreatedEvent"`, `"TopicModifiedEvent"`
 - **Referanse**: Webhook API.yaml
 
+### Webhook Security (Catenda)
+- ✅ **Korrekt**: Secret Token i URL query parameter (`?token=SECRET`)
+- ❌ **Feil**: HMAC-signatur i `X-Catenda-Signature` header
+- **Årsak**: Catenda Webhook API har ikke felt for `secret`/`signing_key` - støtter ikke signering
+- **Løsning**: Registrer `https://url.com/webhook?token=SECRET`, valider token i backend
+
 Se [Handlingsplan_Prototype_Lokal.md](./Handlingsplan_Prototype_Lokal.md) for fullstendige Catenda API-korrigeringer.
 
 ---
@@ -468,11 +474,11 @@ curl -X POST http://localhost:5000/api/varsel-submit \
 
 ---
 
-### 1.3 Webhook HMAC-signaturvalidering
+### 1.3 Webhook Security (Secret Token)
 
 **Kategori**: D. Integrasjonssikkerhet
 **Demo-verdi**: ⭐⭐⭐⭐⭐
-**Innsats**: 1-2 timer
+**Innsats**: 1 time
 **Risiko**: Kritisk → Lav
 
 #### Nåværende tilstand
@@ -482,56 +488,51 @@ curl -X POST http://localhost:5000/api/varsel-submit \
 @app.route('/webhook/catenda', methods=['POST'])
 def webhook():
     payload = request.get_json()
-    # ❌ Ingen signaturvalidering - aksepterer webhooks fra hvem som helst
+    # ❌ Ingen autentisering - aksepterer webhooks fra hvem som helst
 ```
 
 **Problem**: Angriper kan sende falske webhooks og trigge automatisering.
+
+#### Bakgrunn: Hvorfor ikke HMAC?
+
+Catenda Webhook API har **ikke** felt for `secret` eller `signing_key` i webhook-konfigurasjon. Dette betyr:
+- ❌ Ingen `X-Catenda-Signature` header
+- ✅ Løsning: Secret Token i URL (`?token=...`)
+
+Dette er standard "Plan B" når API ikke tilbyr innebygd signering.
 
 #### Implementasjon
 
 ```python
 # backend/webhook_security.py (NY FIL)
-import hmac
-import hashlib
+import os
 from flask import request
 
-# Webhook secret (må matches med Catenda webhook-konfig)
-WEBHOOK_SECRET = "CHANGE_ME_IN_PRODUCTION"  # TODO: os.getenv("CATENDA_WEBHOOK_SECRET")
+# Webhook secret token (generer sterk token, lagre i .env)
+WEBHOOK_SECRET_TOKEN = os.getenv("CATENDA_WEBHOOK_TOKEN", "")
 
-def validate_webhook_signature() -> tuple[bool, str]:
+def validate_webhook_token() -> tuple[bool, str]:
     """
-    Valider Catenda webhook-signatur.
+    Valider Secret Token i URL query parameter.
 
-    Catenda sender HMAC-SHA256 signatur i header:
-    X-Catenda-Signature: sha256=<hex_digest>
+    Catenda kaller URL: https://url.com/webhook/catenda?token=SECRET
 
     Returns:
         (valid, error_message)
     """
-    # Hent signatur fra header
-    signature_header = request.headers.get("X-Catenda-Signature", "")
+    # Hent token fra URL query parameter
+    received_token = request.args.get("token", "")
 
-    if not signature_header:
-        return False, "Missing X-Catenda-Signature header"
+    if not received_token:
+        return False, "Missing token parameter in URL"
 
-    if not signature_header.startswith("sha256="):
-        return False, "Invalid signature format (expected sha256=...)"
+    if not WEBHOOK_SECRET_TOKEN:
+        return False, "Server configuration error: WEBHOOK_SECRET_TOKEN not set"
 
-    received_signature = signature_header[7:]  # Remove "sha256=" prefix
-
-    # Hent raw body (må være bytes, ikke parsed JSON)
-    body = request.get_data()
-
-    # Beregn forventet signatur
-    expected_signature = hmac.new(
-        WEBHOOK_SECRET.encode(),
-        body,
-        hashlib.sha256
-    ).hexdigest()
-
-    # Constant-time comparison
-    if not hmac.compare_digest(received_signature, expected_signature):
-        return False, "Signature mismatch"
+    # Constant-time comparison (timing attack protection)
+    import hmac
+    if not hmac.compare_digest(received_token, WEBHOOK_SECRET_TOKEN):
+        return False, "Invalid webhook token"
 
     return True, ""
 
@@ -549,37 +550,36 @@ def is_duplicate_event(event_id: str) -> bool:
 
 ```python
 # backend/app.py
-from webhook_security import validate_webhook_signature, is_duplicate_event
+from webhook_security import validate_webhook_token, is_duplicate_event
 
 @app.route('/webhook/catenda', methods=['POST'])
 def webhook():
     """
-    POST /webhook/catenda
+    POST /webhook/catenda?token=SECRET
 
-    Mottar webhooks fra Catenda med signaturvalidering og idempotency.
+    Mottar webhooks fra Catenda med token-validering og idempotency.
     """
-    # 1. Valider HMAC-signatur
-    valid, error = validate_webhook_signature()
+    # 1. ✅ Valider Secret Token fra URL
+    valid, error = validate_webhook_token()
     if not valid:
-        app.logger.warning(f"Webhook signature validation failed: {error}")
-        return jsonify({"error": "Invalid signature", "detail": error}), 401
+        app.logger.warning(f"Webhook token validation failed: {error}")
+        return jsonify({"error": "Unauthorized", "detail": error}), 401
 
     # 2. Parse payload
     payload = request.get_json()
 
     # 3. Idempotency check
     # ✅ Catenda sender 'id' felt i webhook payload
-    event_id = payload.get("id", "") or payload.get("eventId", "")  # Fallback for compatibility
+    event_id = payload.get("id", "") or payload.get("eventId", "")
     if not event_id:
         return jsonify({"error": "Missing event id"}), 400
 
     if is_duplicate_event(event_id):
         app.logger.info(f"Duplicate webhook event: {event_id}")
-        return jsonify({"status": "already_processed"}), 202  # 202 Accepted
+        return jsonify({"status": "already_processed"}), 202
 
     # 4. Prosesser webhook
     # ✅ Catenda BCF API bruker 'event' felt (ikke 'eventType')
-    # Ref: Webhook API.yaml
     event_name = payload.get('event', '')
 
     if event_name == 'issue.created':
@@ -595,9 +595,28 @@ def webhook():
     return jsonify({"status": "processed"}), 200
 ```
 
+#### Setup
+
+1. **Generer sterk secret token**:
+   ```bash
+   python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+   # Output: f8vP3K9mX_TqL2wN7hZdR5jB1yC6aE4sU0gO8iM3
+   ```
+
+2. **Legg token i `.env`**:
+   ```bash
+   CATENDA_WEBHOOK_TOKEN=f8vP3K9mX_TqL2wN7hZdR5jB1yC6aE4sU0gO8iM3
+   ```
+
+3. **Registrer webhook i Catenda**:
+   - **Target URL**: `https://your-domain.com/webhook/catenda?token=f8vP3K9mX_TqL2wN7hZdR5jB1yC6aE4sU0gO8iM3`
+   - **Events**: `issue.created`, `issue.modified`, `issue.status.changed`
+
+**Viktig**: Hold token hemmelig! Ikke commit til git.
+
 #### Network Tab Demonstrasjon
 
-**Test 1**: Webhook uten signatur
+**Test 1**: Webhook uten token
 ```http
 POST /webhook/catenda HTTP/1.1
 Content-Type: application/json
@@ -606,30 +625,28 @@ Content-Type: application/json
 
 → 401 Unauthorized
 {
-  "error": "Invalid signature",
-  "detail": "Missing X-Catenda-Signature header"
+  "error": "Unauthorized",
+  "detail": "Missing token parameter in URL"
 }
 ```
 
-**Test 2**: Webhook med ugyldig signatur
+**Test 2**: Webhook med feil token
 ```http
-POST /webhook/catenda HTTP/1.1
-X-Catenda-Signature: sha256=invalid_signature_here
+POST /webhook/catenda?token=wrong_token HTTP/1.1
 Content-Type: application/json
 
 {"event": "issue.created", "id": "123"}
 
 → 401 Unauthorized
 {
-  "error": "Invalid signature",
-  "detail": "Signature mismatch"
+  "error": "Unauthorized",
+  "detail": "Invalid webhook token"
 }
 ```
 
-**Test 3**: Webhook med gyldig signatur
+**Test 3**: Webhook med gyldig token
 ```http
-POST /webhook/catenda HTTP/1.1
-X-Catenda-Signature: sha256=a1b2c3d4e5f6...  # Gyldig HMAC
+POST /webhook/catenda?token=f8vP3K9mX_TqL2wN7hZdR5jB1yC6aE4sU0gO8iM3 HTTP/1.1
 Content-Type: application/json
 
 {"event": "issue.created", "id": "123"}
@@ -643,8 +660,7 @@ Content-Type: application/json
 **Test 4**: Duplikat webhook (idempotency)
 ```http
 # Send samme event to ganger
-POST /webhook/catenda HTTP/1.1
-X-Catenda-Signature: sha256=a1b2c3d4e5f6...
+POST /webhook/catenda?token=f8vP3K9mX_TqL2wN7hZdR5jB1yC6aE4sU0gO8iM3 HTTP/1.1
 Content-Type: application/json
 
 {"event": "issue.created", "id": "123"}
@@ -658,23 +674,23 @@ Content-Type: application/json
 #### Testing
 
 ```bash
-# Generer HMAC-signatur (Python)
-python3 << 'EOF'
-import hmac
-import hashlib
-
-secret = "CHANGE_ME_IN_PRODUCTION"
-body = '{"event":"issue.created","id":"123"}'
-
-signature = hmac.new(secret.encode(), body.encode(), hashlib.sha256).hexdigest()
-print(f"sha256={signature}")
-EOF
-
-# Test med curl
-curl -X POST http://localhost:5000/webhook/catenda \
+# Test 1: Ingen token
+curl -X POST 'http://localhost:5000/webhook/catenda' \
   -H "Content-Type: application/json" \
-  -H "X-Catenda-Signature: sha256=<generated_signature>" \
   -d '{"event":"issue.created","id":"123"}'
+# → 401 Unauthorized
+
+# Test 2: Feil token
+curl -X POST 'http://localhost:5000/webhook/catenda?token=wrong' \
+  -H "Content-Type: application/json" \
+  -d '{"event":"issue.created","id":"123"}'
+# → 401 Unauthorized
+
+# Test 3: Gyldig token
+curl -X POST 'http://localhost:5000/webhook/catenda?token=f8vP3K9mX_TqL2wN7hZdR5jB1yC6aE4sU0gO8iM3' \
+  -H "Content-Type: application/json" \
+  -d '{"event":"issue.created","id":"123"}'
+# → 200 OK
 ```
 
 ---
@@ -1474,14 +1490,22 @@ def test_csrf_protection(client):
     assert response.status_code == 403
     assert b'CSRF' in response.data
 
-def test_webhook_signature_validation(client):
-    """Test at webhook uten signatur avvises"""
+def test_webhook_token_validation(client):
+    """Test at webhook uten token avvises"""
     response = client.post('/webhook/catenda', json={
         'event': 'issue.created',
         'id': '123'
     })
     assert response.status_code == 401
-    assert b'signature' in response.data.lower()
+    assert b'token' in response.data.lower()
+
+def test_webhook_invalid_token(client):
+    """Test at webhook med feil token avvises"""
+    response = client.post('/webhook/catenda?token=wrong', json={
+        'event': 'issue.created',
+        'id': '123'
+    })
+    assert response.status_code == 401
 
 def test_input_validation(client):
     """Test at SQL injection blokkeres"""
