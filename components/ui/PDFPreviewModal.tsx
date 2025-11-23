@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
-import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
-import 'react-pdf/dist/esm/Page/TextLayer.css';
 
 // KRITISK for Safari-kompatibilitet - bruk lokal worker, ikke CDN
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
