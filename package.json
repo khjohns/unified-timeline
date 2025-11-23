@@ -15,8 +15,10 @@
     "@react-pdf/renderer": "^4.3.1",
     "jspdf": "^3.0.3",
     "jspdf-autotable": "^5.0.2",
+    "pdfjs-dist": "^5.4.394",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-pdf": "^10.2.0",
     "react-router-dom": "^7.9.5"
   },
   "devDependencies": {
