@@ -750,6 +750,268 @@ Vi anbefaler å starte med OTP step-up (MVP) og vurdere BankID/Posten for kritis
 
 ---
 
+## Beslutningsmatrise for sikkerhetstiltak
+
+**Formål:** Denne matrisen kobler informasjonsverdi og risikonivå til konkrete tekniske sikkerhetstiltak, og fungerer som et praktisk verktøy for ROS-arbeid (Risiko- og sårbarhetsanalyse).
+
+**Hva er ROS-analyse?** Risiko- og sårbarhetsanalyse er en systematisk gjennomgang av potensielle trusler mot systemet, deres sannsynlighet og konsekvens. ROS brukes til å identifisere og prioritere sikkerhetstiltak basert på faktisk risiko, ikke bare teoretiske trusler.
+
+**Hvordan bruke matrisen:**
+
+1. Start med klassifiseringskriteriene (tabell 1) for å vurdere risikonivå
+2. Bruk beslutningstreet (Mermaid-diagram) for visuell veiledning
+3. Velg tiltakspakke basert på risikonivå (tabell 3)
+4. Dokumenter i ROS-tabellen (tabell 4)
+5. Bruk operasjonell sjekkliste ved implementering
+
+**Nivåer:** Lav risiko (Fravik), Moderat risiko, Høy risiko (KOE/kontraktkritisk)
+
+### 1) Klassifiseringskriterier (verdivurdering)
+
+| Kriterium | Lav risiko (Fravik) | Moderat risiko | Høy risiko (KOE / kritisk) |
+|-----------|---------------------|----------------|----------------------------|
+| **Økonomisk konsekvens** | Ingen eller minimal (< 100 000 NOK) | 100 000–500 000 NOK (eller >1% av prosjektramme) | > 500 000 NOK (eller >5% av prosjektramme) |
+| **Juridisk binding** | Ikke bindende | Delvis bindende (interne vedtak, dokumentasjon) | Bindende mellom parter (kontraktsendring) |
+| **Personopplysninger** | Ingen/begrenset (navn, e-post) | Moderat (rolle, organisasjon, kontaktinfo) | Utvidet (signaturdata¹, IP-logging, detaljert audit trail) |
+| **Tilgjengelighet** | Lav (kan vente >24t) | Normal (respons 1-24t) | Høy (< 1t, tidskritisk) |
+| **Fortrolighet** | Offentlig/Intern | Begrenset (kun prosjektdeltakere) | Konfidensiell (kontraktsforhandlinger) |
+
+¹ *Signaturdata fra BankID inkluderer fødselsnummer - klassifiseres som GDPR Article 9 spesielle kategorier dersom brukt til identifisering.*
+
+### 2) Tiltakskategorier og konkrete kontroller
+
+#### A. Nettverk og perimeter
+
+**Webapplikasjonsbrannmur (Web Application Firewall - WAF)** – Tiltak: Aktiver i Azure Front Door; blokkering av kjente angrepsmønstre, geo-filtrering, bot-beskyttelse.
+
+**Tjenestenekt-beskyttelse (Distributed Denial of Service Protection - DDoS)** – Tiltak: Azure DDoS Protection på relevant lag.
+
+**Begrensning av forespørsler (Rate Limiting)** – Tiltak: Maks X forespørsler/minutt per IP, differensiert per endepunkt (innsending, signering).
+
+**Hva er Rate Limiting?** En begrensning på hvor mange forespørsler en enkelt bruker/IP-adresse kan sende per tidsenhet. Forskjellige endepunkter kan ha ulike grenser - for eksempel kan innsending av søknad tillate færre forespørsler enn lesing av data.
+
+#### B. Autentisering (hvem er du?)
+
+**Magic Link (unik lenke med begrenset levetid - Time To Live)** – Tiltak: UUID v4, TTL ≤ 72 timer, engangsbruk (one-time token), revokering ved statusendring. → *Se også: [Dør 2: Magic Link](#dør-2-magic-link)*
+
+**Microsoft Entra ID (tidligere Azure AD) for interne brukere** – Tiltak: Single-tenant, betinget tilgang (Conditional Access), flerfaktorautentisering (Multi-Factor Authentication). → *Se også: [Dør 3: Interne via SSO](#dør-3-interne-via-sso)*
+
+**Hva er Conditional Access?** En funksjon i Entra ID som krever at visse betingelser er oppfylt før tilgang gis - for eksempel at brukeren logger inn fra en godkjent enhet, fra et bestemt nettverk, eller har gjennomført MFA.
+
+**Elektronisk signering med BankID / Posten signeringstjeneste** – Tiltak: Bruk til bindende handlinger; PAdES/SEID-SDO ved langtidsarkivering (>10 år) eller juridisk krav til kvalifisert signatur; inkluder kvalifisert tidsstempling. → *Se også: [Fremtidig opsjon: Avansert signering](#fremtidig-opsjon-avansert-signering-bankid--posten)*
+
+**Hva er PAdES?** PDF Advanced Electronic Signature - en standard for langtidsarkivering av elektronisk signerte PDF-dokumenter. PAdES sikrer at signaturen forblir gyldig selv om sertifikater utløper eller tilbakekalles.
+
+**Hva er SEID-SDO?** Signed Data Object for Seid (Secure Electronic ID) - norsk standard for digital signatur som brukes av BankID og andre norske e-ID-leverandører.
+
+**Hva er kvalifisert tidsstempling?** En tidsstempling fra en godkjent tredjepart som beviser nøyaktig når et dokument ble signert. Dette er kritisk for langtidsarkivering og juridisk bevis.
+
+**Engangskode (One-Time Password - OTP) som opptrappingssteg (step-up)** – Tiltak: 6-sifret kode via e-post; gyldighet 5 minutter; logg suksess og feil. → *Se også: [OTP-flyt (KOE-signering)](#otp-flyt-koe-signering)*
+
+#### C. Autorisasjon (hva har du lov til?)
+
+**Portvakt i kode (Gatekeeper-mønster i Azure Functions)** – Tiltak: Valider prosjektomfang (ProjectId-scope), rolle (byggherre eller entreprenør), og operasjon (les/skriv). → *Se også: [Gatekeeper-pattern](#gatekeeper-pattern)*
+
+**Filtrering av felt (Field-level policy)** – Tiltak: Entreprenør kan kun lese/skrive entreprenørfelt; byggherre kan kun lese/skrive byggherrefelt; server blokkerer kryssendringer.
+
+**Databasetilgang for interne via radnivåsikkerhet (Row-Level Security - RLS i Dataverse)** – Tiltak: Gjelder kun interne; eksterne håndheves i API-laget.
+
+**Prosjekttilganger i egen tabell (ProjectAccess)** – Tiltak: Subject (e-post/Entra-ID) ↔ ProjectId ↔ Role; API filtrerer alltid basert på denne tabellen. → *Se også: [Appendiks: Dataverse-tabeller](#appendiks-dataverse-tabeller)*
+
+#### D. Integrasjonssikkerhet (Catenda og webhooks)
+
+**Signaturvalidering av webhook** – Tiltak: HMAC-signatur i header valideres mot hemmelighet i Azure Key Vault; avvis ved mismatch. → *Se også: [Webhook-signatur og idempotens](#webhook-signatur-og-idempotens-produksjon)*
+
+**Idempotens ved webhookbehandling** – Tiltak: Lagre event-ID og timestamp; samme event behandles kun én gang.
+
+**Hva er idempotens?** En egenskap ved en operasjon hvor den kan utføres flere ganger uten at resultatet endres etter første gang. For webhooks betyr det at selv om Catenda sender samme event to ganger, behandler vi det kun én gang.
+
+**Dokumentreferanse i BCF (Building Collaboration Format)** – Tiltak: Etter opplasting (v2) konverter kompakt GUID (32) til UUID (36) og post BCF document reference på riktig sak. → *Se også: [BCF document reference og GUID-format](#bcf-document-reference-påkrevd-og-guid-format)*
+
+**Retry og tilbakeholdenhet (Exponential Backoff)** – Tiltak: Håndter 429/5xx; stopp midlertidig (Circuit Breaker) ved vedvarende feil.
+
+**Hva er Circuit Breaker?** Et mønster inspirert av elektriske sikringer - hvis systemet oppdager vedvarende feil, "kobler det ut" midlertidig og prøver ikke å sende flere forespørsler før en cooldown-periode er over. Dette forhindrer at et allerede overbelastet system får enda mer trafikk.
+
+#### E. Klientsikkerhet og forespørselssikring
+
+**Beskyttelse mot forfalskede tverrforespørsler (Cross-Site Request Forgery - CSRF)** – Tiltak: Double-submit cookie eller SameSite=strict; valider token per POST/PUT. → *Se også: [CSRF og anti-replay](#csrf-og-anti-replay-på-alle-skriveoperasjoner)*
+
+**Engangsindikator mot gjenbruk (Nonce / anti-replay)** – Tiltak: Unik nonce per kritisk operasjon; avvis ved gjenbruk eller utløp.
+
+**Hva er en nonce?** "Number used once" - et tilfeldig generert tall eller streng som kun brukes én gang for å hindre replay-angrep. Hver kritisk operasjon får sin egen nonce som valideres server-side.
+
+**Begrensning av opprinnelse (Origin/Referrer-sjekk)** – Tiltak: Tillat kun forventede opprinnelser/domener.
+
+#### F. JIT-sjekk (Just-In-Time) mot Catenda
+
+**Hva er JIT-sjekk?** Just-In-Time-sjekk betyr at vi validerer brukerens rolle eller tilgang på det tidspunktet den trengs, ikke på forhånd. For oss betyr det at vi spør Catenda om brukerens rolle akkurat når de logger inn eller sender inn data.
+
+**Rolleoppslag for interne etter innlogging med Entra ID** – Tiltak: Backend kaller Catenda: "members for ProjectId"; returner rolle "byggherre" dersom e-post/ID match. → *Se også: [JIT-sjekk (Catenda → rolle)](#jit-sjekk-catenda--rolle)*
+
+**Validering av entreprenørs e-post før innsending** – Tiltak: Normaliser e-post (lowercase/trim), aliasmapping (f.eks. ole.hansen@subsidiary.no → ole.hansen@hovedfirma.no); avvis hvis e-post ikke finnes i prosjektets medlemmer. → *Se også: [TE-bekreftelse før innsending](#te-bekreftelse-før-innsending-koe)*
+
+**Kortvarig mellomlagring (Cache)** – Tiltak: 5–10 minutter cache av (bruker, prosjekt, rolle) med invalidasjon ved feil.
+
+#### G. Dataintegritet og prosesskontroll
+
+**To faner for saksbehandling (skille saksgrunnlag og vedtak)** – Tiltak: Fane 1 "Søknad" er skrivebeskyttet; Fane 2 "Behandling" er redigerbar kun for interne. → *Se også: [Saksbehandling: To moduser](#saksbehandling-to-moduser)*
+
+**Tilstandsmaskin (State Machine)** – Tiltak: Draft → Submitted → Under Review → Approved/Rejected → Closed; blokker ugyldige overganger.
+
+**Hva er en tilstandsmaskin?** Et system som kun kan være i én tilstand om gangen og har definerte regler for overganger mellom tilstander. For eksempel kan ikke en søknad gå direkte fra "Draft" til "Closed" - den må gjennom "Submitted" og "Under Review" først.
+
+#### H. Observabilitet og hendelseshåndtering
+
+**Programinnsikt (Application Insights)** – Tiltak: Logg strukturerte hendelser: login, link_use, jit_role, webhook_received/rejected, otp_issue/verify, sign_order. → *Se også: [Lag 5: Observerbarhet](#lag-5-observerbarhet)*
+
+**Varsler (Azure Monitor Alerts) med spørringer** – Tiltak: Alarmer ved: mange 403/429 fra samme IP; bruk av utløpt/brukte tokens; gjentatte JIT-mismatch; uvanlig geografi/agent.
+
+**Automatisk tiltak ved alarm** – Tiltak: Midlertidig sperr lenke (revocation), varsle prosjektleder, eskaler til sikkerhetsansvarlig.
+
+#### I. Personvern og etterprøvbarhet
+
+**Dataminimering** – Tiltak: Logg kun det som er nødvendig (e-post, tidsstempel, IP, user-agent).
+
+**Tilgangsstyring til logger** – Tiltak: Rollebasert tilgang; reduser visning av personopplysninger der det ikke trengs.
+
+**Sletting og lagringstid** – Tiltak: Definer TTL på tokens/OTP og loggretensjon i tråd med DPIA.
+
+**Hva er DPIA?** Data Protection Impact Assessment - en systematisk vurdering av hvordan personopplysninger behandles og hvilke risikoer dette medfører. DPIA er påkrevd av GDPR for systemer som behandler personopplysninger med høy risiko. → *Se også: [Roadmap: Fase 2 (Hardening)](#roadmap-fase-2-hardening)*
+
+### 3) Tiltaksnivåer – konkret pakke pr. risikonivå
+
+#### Lav risiko (Fravik)
+
+**Estimert tilleggskostnad:** ~5-10k NOK/år (Application Insights)
+
+**Autentisering:** Magic Link (UUID v4, TTL ≤ 72 timer, engangsbruk, revokering ved statusendring).
+
+**Autorisasjon:** Gatekeeper-sjekk (ProjectId-scope, felttilgang), tilstandsmaskin.
+
+**Integrasjon:** Webhook-signatur + idempotens, BCF-referanse ved opplasting.
+
+**Klient/forespørsel:** CSRF-token, nonce for innsending.
+
+**JIT:** Valgfritt (ikke krav).
+
+**Observabilitet:** Logg link_use, submit; enkle alarmer.
+
+**Residual risiko:** Akseptert (potensial for videresending av lenke).
+
+#### Moderat risiko
+
+**Estimert tilleggskostnad:** +10-15k NOK/år (økt logging, OTP-infrastruktur)
+
+Alt fra Lav risiko, **pluss:**
+
+**Autentisering:** Engangskode (OTP) som opptrappingssteg ved innsending.
+
+**JIT:** Valider entreprenørs e-post mot Catenda prosjektmedlemmer før innsending.
+
+**Observabilitet:** Alarmer ved OTP-feilrater og JIT-mismatch.
+
+#### Høy risiko (KOE / kontraktkritisk)
+
+**Estimert tilleggskostnad:** +30-50k NOK/år (BankID ~4.3 NOK × 1000 signeringer, økt observabilitet)
+
+Alt fra Moderat risiko, **pluss:**
+
+**Autentisering:** Microsoft Entra ID med **OBLIGATORISK MFA + Conditional Access policies** (device compliance, trusted locations) for interne og BankID / Posten signeringstjeneste for bindende signeringer.
+
+**Non-repudiation (ikke-benektelse):** Kvalifisert signatur og tidsstempling (PAdES/SEID-SDO ved langtidsarkivering >10 år eller juridisk krav).
+
+**JIT:** Obligatorisk rolleoppslag for interne; e-postvalidering for eksterne.
+
+**Observabilitet:** Full audit, avanserte alarmer, automatisk revokering ved avvik.
+
+### 4) Beslutningstre for valg av sikkerhetstiltak
+
+```mermaid
+flowchart TD
+    A[Start: Vurder hendelse/handling] --> B{Økonomisk konsekvens > 500k NOK?}
+    B -->|Ja| C[Velg Høy risiko]
+    B -->|Nei| D{Bindende mellom parter?}
+    D -->|Ja| C
+    D -->|Nei| E{Personopplysninger utover navn/e-post?}
+    E -->|Ja| F[Velg Moderat risiko]
+    E -->|Nei| G[Velg Lav risiko]
+
+    %% Tiltakspakker
+    C --> C1[Autentisering: Entra ID + MFA + CA interne, BankID/Posten eksterne]
+    C --> C2[Autorisasjon: ProjectId-scope + rolle + field-policy]
+    C --> C3[JIT: OBLIGATORISK rolleoppslag interne, e-postvalidering eksterne]
+    C --> C4[Observabilitet: full audit + avanserte alarmer]
+    C --> C5[Integrasjon: webhook-signatur + idempotens + BCF-ref]
+    C --> C6[Klient: CSRF + nonce]
+
+    F --> F1[Autentisering: Magic Link + OTP step-up]
+    F --> F2[Autorisasjon: ProjectId-scope + field-policy]
+    F --> F3[JIT: e-postvalidering mot Catenda før innsending]
+    F --> F4[Observabilitet: alarmer ved OTP/JIT avvik]
+    F --> F5[Integrasjon: webhook-signatur + idempotens + BCF-ref]
+    F --> F6[Klient: CSRF + nonce]
+
+    G --> G1[Autentisering: Magic Link TTL ≤72t, one-time, revokering]
+    G --> G2[Autorisasjon: Gatekeeper + state machine]
+    G --> G3[Observabilitet: basislogger + enkle alarmer]
+    G --> G4[Integrasjon: webhook-signatur + idempotens + BCF-ref]
+    G --> G5[Klient: CSRF + nonce]
+
+    style C fill:#ff6b6b,color:#fff
+    style F fill:#ffd93d,color:#000
+    style G fill:#6bcf7f,color:#000
+```
+
+### 5) ROS-tabell (mal som kan fylles i per tiltak/endepunkt)
+
+**Risikoberegning (S×K):** Beregnes som Sannsynlighet × Konsekvens:
+
+* **L×L = Lav**, **L×M = Lav**, **L×H = Moderat**
+* **M×L = Lav**, **M×M = Moderat**, **M×H = Høy**
+* **H×L = Moderat**, **H×M = Høy**, **H×H = Kritisk**
+
+| Endepunkt / handling | Trussel | Sannsynlighet (L/M/H) | Konsekvens (L/M/H) | Risiko før tiltak (S×K) | Tiltak (konkret) | Risiko etter tiltak | Kommentar |
+|---------------------|---------|----------------------|-------------------|----------------------|------------------|-------------------|-----------|
+| Innsending (POST /submit) | Cross-Site Request Forgery (CSRF) | M | M | Moderat | CSRF-token, SameSite=strict, nonce | Lav | Testcases i CI/CD |
+| Innsending (POST /submit) | Gjenbruk av token (replay) | M | M | Moderat | Engangstoken (one-time), revokering etter bruk | Lav | Observabilitet: "token_status" |
+| Webhook mottak (POST /webhook) | Spoofing (forfalskede webhooks) | L | H | Moderat | HMAC-signatur, Key Vault hemmelighet, idempotens | Lav | Avvis ved mismatch |
+| JIT e-postvalidering | E-post alias mismatch | M | M | Moderat | Normalisering (lowercase/trim), aliasmapping, cache 5–10 min | Lav | Rutine for aliaslisten |
+| KOE signering | Benektelse (non-repudiation) | L | H | Moderat/Høy | BankID/Posten signering (kvalifisert signatur, tidsstempling) | Lav | Arkiver signaturbevis |
+| Magic Link bruk | Videresending av lenke | M | L/M | Moderat | TTL ≤ 72t, engangsbruk, revokering ved statusendring | Lav | Alarmer ved uvanlig bruk |
+| Felttilgang | Entreprenør endrer BH-felt | L/M | M/H | Moderat | Server-side field-policy, rolle-sjekk | Lav | Enhetstester |
+
+### 6) Operasjonell sjekkliste (for gjennomføring)
+
+| Kategori | Tiltak | Verifikasjon | Status |
+|----------|--------|-------------|--------|
+| **Perimeter** | Webapplikasjonsbrannmur aktiv | Azure Portal > Front Door > Policies | ☐ |
+| **Perimeter** | Begrensning av forespørsler | Test: >100 req/min → 429 | ☐ |
+| **Perimeter** | DDoS beskyttelse | Azure Portal > DDoS Protection Plan | ☐ |
+| **Autentisering** | Magic Link (TTL ≤ 72t, one-time, revokering) | Unit test: utløpt lenke → 403 | ☐ |
+| **Autentisering** | Entra ID for interne | MyApps portal tilgjengelig | ☐ |
+| **Autentisering** | BankID/Posten for kritiske steg | Avtale signert, test-miljø validert | ☐ |
+| **Autorisasjon** | Gatekeeper-sjekk (ProjectId-scope, rolle, operasjon) | Unit test: feil prosjekt → 403 | ☐ |
+| **Autorisasjon** | Field-policy | Test: TE endrer BH-felt → 403 | ☐ |
+| **Autorisasjon** | Dataverse RLS for interne | Dataverse > Security Roles | ☐ |
+| **Integrasjon** | Webhook HMAC-signatur | Test: ugyldig signatur → 401 | ☐ |
+| **Integrasjon** | Idempotens | Test: samme event 2× → 202 (ingen duplikat) | ☐ |
+| **Integrasjon** | BCF-referanse + GUID-konvertering | Manuell test i Catenda | ☐ |
+| **Integrasjon** | Retry med exponential backoff | Simuler 429 → verifiser backoff | ☐ |
+| **Klient/forespørsel** | CSRF-token | Test: POST uten token → 403 | ☐ |
+| **Klient/forespørsel** | Nonce/state | Test: gjenbruk av nonce → 403 | ☐ |
+| **Klient/forespørsel** | Origin-sjekk | Test: ugyldig origin → 403 | ☐ |
+| **JIT** | Rolleoppslag for interne | Logg inn med test-bruker → verifiser rolle | ☐ |
+| **JIT** | E-postvalidering for eksterne | Test: ugyldig e-post → 403 | ☐ |
+| **JIT** | Cache og audit | Verifiser cache-hit i Application Insights | ☐ |
+| **Observabilitet** | Application Insights hendelser | Se events: login, link_use, submit, etc. | ☐ |
+| **Observabilitet** | Azure Monitor Alerts | KQL-queries konfigurert, test alert | ☐ |
+| **Observabilitet** | Automatisk revokering ved alarm | Simuler alarm → verifiser revokering | ☐ |
+| **Personvern** | Dataminimering | Gjennomgå loggede felt | ☐ |
+| **Personvern** | Tilgang til logger | Verifiser RBAC på Log Analytics | ☐ |
+| **Personvern** | Sletting/retensjon | Konfigurer TTL i Dataverse og logs | ☐ |
+
+---
+
 ## OTP-flyt (KOE-signering)
 
 **Steg-for-steg:**
