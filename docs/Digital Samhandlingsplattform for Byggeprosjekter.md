@@ -210,7 +210,7 @@ Power Pages med React SPA (L4) - en annen løsning som ble vurdert, men valgt bo
 **Hvorfor Dataverse?**
 
 * **Ingen 5000-grense** - SharePoint har en begrensning på 5000 elementer per spørring/visning (List View Threshold), noe som skaper problemer ved høyt datavolum. Dataverse har ingen slik begrensning.
-* **Row-level security (RLS)** - innebygd sikkerhet på radnivå i databasen
+* **Row-level security (RLS)** - innebygd sikkerhet på radnivå for **interne** (Entra ID-brukere). For **eksterne** (Magic Link) håndheves tilgang i **API-laget** (Azure Functions) med server-side filtrering (prosjekt-scope + felttilgang).
 * **Native Power BI connector** - direkte integrasjon med rapporteringsverktøy
 * **Cloud-native skalerbarhet** - bygget for skyen fra grunnen av
 **Hva er 5000-grensen i SharePoint?** En teknisk begrensning i SharePoint hvor spørringer som berører mer enn 5000 elementer blir throttlet (bremset) eller feiler. Dette er en ytelsesoptimalisering i SharePoint, men blir et reelt problem når man jobber med store datamengder. Dataverse har ingen slik begrensning.
@@ -245,13 +245,77 @@ Power Pages med React SPA (L4) - en annen løsning som ble vurdert, men valgt bo
 **API-bruk:**
 
 * **Hent prosjektdeltakere** - for å populere listen i Link Generator (slik at PL kan velge hvem som skal motta lenke)
-* **Last opp PDF** - automatisk arkivering av ferdig godkjente søknader
-* **Post lenke tilbake til sak** - legger til en klikkbar lenke i Catenda-saken som peker til søknaden
+* **Last opp PDF (v2)** - automatisk arkivering av ferdig godkjente søknader til library
+* **Opprett BCF document reference** - etter upload må dokumentet refereres på riktig BCF-topic
+* **Post lenke tilbake til sak** - legger til klikkbar lenke i Catenda-saken
+
+#### BCF document reference (påkrevd) og GUID-format
+
+Catenda v2 returnerer **compact GUID (32 tegn)** ved opplasting; BCF krever **UUID (36)**. Vi **må** formatere:
+
+```python
+def catenda_compact_to_uuid(compact: str) -> str:
+    c = compact.replace('-', '').lower()
+    return f"{c[:8]}-{c[8:12]}-{c[12:16]}-{c[16:20]}-{c[20:32]}"
+```
+
+Deretter:
+
+1) `POST /v2/.../items` (upload) → compact id
+2) Konverter til UUID (36)
+3) `POST /opencde/bcf/3.0/.../topics/{topic_guid}/document_references` med `document_guid` (36)
+4) Håndter 429/5xx med **exponential backoff** + **retry**; logg audit.
+
 **Webhook-trigger:**
 
 Når en ny sak opprettes i Catenda, sender Catenda automatisk et signal (webhook) til vår backend. Vår backend genererer da en unik lenke til skjemaet og poster denne tilbake til Catenda-saken. Dette skjer helt automatisk uten manuell intervensjon.
 
 **Hva er en webhook?** En måte for ett system å automatisk varsle et annet system når noe skjer. Tenk på det som et push-varsel: I stedet for at vårt system kontinuerlig må spørre Catenda "har det skjedd noe nytt?" (polling), sender Catenda automatisk beskjed til oss når noe relevant skjer (push). Dette er mer effektivt og sanntidsbasert.
+
+#### Webhook-signatur og idempotens (produksjon)
+
+For å sikre at kun gyldige webhooker behandles, **må** vi:
+
+1) **Validere signatur**: Backend verifiserer `x-catenda-signature` (HMAC) mot delt hemmelighet lagret i **Azure Key Vault**. Ugyldig signatur → `401`.
+2) **Idempotens**: Backend lagrer `eventId` og timestamp i Dataverse; samme event behandles ikke to ganger (returner `202` uten sideeffekter).
+
+```python
+# Pseudokode (Azure Functions)
+def handle_webhook(req):
+    body = req.get_body()              # bytes
+    sig  = req.headers.get("x-catenda-signature","")
+    secret = kv.get_secret("CatendaWebhookSecret")
+    if not hmac_valid(sig, body, secret): return 401
+    event_id = json.loads(body).get("event","") + ":" + json.loads(body)["data"]["caseId"]
+    if already_processed(event_id): return 202
+    mark_processed(event_id)
+    # ... generer lenke, post tilbake, osv.
+    return 202
+```
+
+---
+
+## JIT-sjekk (Catenda → rolle)
+
+Ved BH-innlogging (Entra ID) gjør vi en on-demand rolleoppslag mot Catenda:
+
+1) **Normalisering av e-post**: lowercase, trim; alias-mapping ved behov (subsidiærer/domener)
+2) **GET /projects/{id}/members**: finn match på e-post eller unik Catenda-ID
+3) **Kortvarig cache (5–10 min)** per (user, project) for ytelse; invalidér ved feilsvar
+4) **Audit**: lagre beslutning `{user, project, role, source:catenda, ts}` i AuditLog
+
+Fallback: hvis Catenda utilgjengelig → read-only eller avslag; logg hendelse og alert PL.
+
+### JIT-validering av TE-e-post (KOE innsending)
+
+Ved innsending fra entreprenør:
+
+1) Backend normaliserer e-post (lowercase/trim, alias-mapping).
+2) `GET /projects/{id}/members` (Catenda) – sjekk om e-post finnes blant Project Members.
+3) Finnes e-post → tillat innsending; logg audit `{email, project, memberFound:true, ts}`.
+4) Finnes ikke → avvis med `403`, og informer om at innsender må være lagt inn i Catenda-prosjektet eller bruke personlig Magic Link (1:1).
+
+Caching: kortvarig (5–10 min) for ytelse; invalidér ved feil.
 
 ---
 
@@ -359,7 +423,9 @@ Lenken er kontekstuell - den inneholder en unik identifikator (UUID) som kobler 
 
 **Sikkerhet:**
 
-Catenda fungerer som autentiseringsgrense - bare prosjektmedlemmer kan se lenken i Catenda-saken. Hvis du kan klikke lenken, har du allerede blitt autorisert av Catenda.
+Catenda fungerer som *autentiseringsgrense* - bare prosjektmedlemmer kan se lenken i Catenda-saken.
+
+**Viktig presisering:** Lenken i saken er **ikke personlig**; den kan brukes av *alle* prosjektmedlemmer med tilgang til saken. Identiteten ved bruk av lenken er derfor **selvdeklarert** i skjemaet (navn/e-post), med audit og begrenset gyldighet (TTL ≤ 72t, one-time).
 
 **Hva er en autentiseringsgrense?** Et punkt i systemarkitekturen hvor brukerens identitet verifiseres. I dette tilfellet stoler vi på at Catenda har gjort jobben med å verifisere hvem brukeren er og om de skal ha tilgang til denne saken. Vi "arver" Catendas sikkerhet i stedet for å bygge vår egen parallelle innlogging.
 
@@ -412,8 +478,10 @@ Prosjektleder skal invitere noen som ikke er med i Catenda-saken ennå (f.eks. e
 **Sikkerhet:**
 
 * **UUID v4** - 3.4×10³⁸ mulige kombinasjoner (praktisk talt umulig å gjette)
-* **TTL** (Time To Live) - lenken utløper etter 30 dager (konfigurerbart)
-* **Personlig lenke** - 1:1 mapping mellom lenke og mottaker
+* **TTL ≤ 72 timer** - lenken utløper innen 3 døgn (konfigurerbart per prosess)
+* **One-time token** - lenken blir **ugyldig** etter første gyldige bruk (single-use)
+* **Revokering** - lenken revokeres automatisk ved statusendring (f.eks. Submitted/Closed) eller ved mistenkelig aktivitet
+* **Personlig lenke (1:1)** - gjelder **kun** lenker som sendes direkte til en spesifikk e-postadresse fra *Link Generator*. Lenker postet inne i Catenda-saken er **ikke** 1:1
 **Hva er TTL (Time To Live)?** En "utløpsdato" på lenken. Etter 30 dager blir lenken automatisk ugyldig, selv om noen skulle få tak i den. Dette reduserer risikoen ved at lenker deles eller havner på avveie. Tenk på det som en adgangskode til et hotellrom som kun virker under oppholdet ditt.
 
 **Hva er 1:1 mapping?** Hver lenke er unik knyttet til én spesifikk person. Lenken lagres i databasen sammen med informasjon om hvem den er sendt til. Dette gir sporbarhet - vi vet alltid hvem som har brukt hvilken lenke.
@@ -437,6 +505,18 @@ En prosjektleder skal behandle innkomne søknader og trenger tilgang til saksbeh
 * **Saksbehandlingsmodus** - kan se og behandle søknader (Fane 2)
 * **Link Generator** - kan generere Magic Links til eksterne
 * **Alle prosjekter** - ser søknader på tvers, ikke bare egne
+---
+
+## TE-bekreftelse før innsending (KOE)
+
+Før en entreprenør (TE) kan sende inn **Krav om Endringsordre**, må TE:
+
+1) Bekrefte **navn og e-post** i skjemaet (forhåndsutfylt prosjektinfo, men identitet må oppgis).
+2) Passere en **e-postvalidering** mot Catendas Project Members for aktuell **ProjectID** (JIT-oppslag i backend).
+3) Ved **mismatch** (e-post finnes ikke i prosjektets medlemsliste) → systemet returnerer **403** og forklarer at vedkommende må være registrert i Catenda-prosjektet (evt. kontakte PL).
+
+Valideringen skjer **før** innsending (server-side) og logges i AuditLog.
+
 ---
 
 ## Saksbehandling: To moduser
@@ -489,6 +569,25 @@ I kontrast implementeres sikkerhet i Power Pages via GUI-konfigurasjon (pek-og-k
 
 **Hva er table permissions og column permissions?** I Dataverse/Power Pages styres tilgang på flere nivåer: (1) hvilke tabeller (entities) en bruker kan se, (2) hvilke rader i tabellen de kan se (row-level), og (3) hvilke kolonner (felter) i hver rad de kan se. Disse må konfigureres sammen med web-roller for å gi riktig tilgang - en kompleks matrise av avhengigheter.
 
+#### Server-side autorisasjon (prosjekt-scope + TE/BH-felttilgang)
+
+Alle kall må valideres med:
+
+1) **ProjectId-scope** i token/lenke, matchet mot forespørsel
+2) **Rolle** (TE/BH/Admin) - TE kan kun lese/skrive TE-felt; BH kan kun lese/skrive BH-felt
+3) **Tilstand** - operasjon tillates kun i riktig status
+
+```python
+# Pseudokode: GET/PUT application
+def get_or_update(app_id, scope_project, role, payload=None):
+    app = dv.get(app_id)
+    if app.project_id != scope_project: return 403
+    if role == "TE" and payload and touches_bh_fields(payload): return 403
+    if role == "BH" and payload and touches_te_locked_fields(payload): return 403
+    if not state_allows_operation(app.status): return 409
+    # ...
+```
+
 ---
 
 ## 5 lag med forsvar
@@ -530,13 +629,46 @@ I kontrast implementeres sikkerhet i Power Pages via GUI-konfigurasjon (pek-og-k
 * **Managed Identity** - sikker tilkobling fra Azure Functions til Dataverse uten lagrede passord
 **Lag 5: Observerbarhet**
 
-* **Application Insights** - logger alle hendelser og feil i applikasjonen
-* **Azure Monitor Alerts** - varsler automatisk ved mistenkelig aktivitet
+**Application Insights** - logg structured events (login, link_use, submit, sign, jit_role, webhook_received, webhook_rejected)
+
+**Azure Monitor Alerts** - terskler og KQL for misbruk:
+
+```kql
+// Mistenkelig aktivitet: mange 403 fra samme IP
+requests
+| where resultCode == "403"
+| summarize count() by client_IP, bin(timestamp, 5m)
+| where count_ > 20
+```
+
+```kql
+// Bruk av utløpt eller brukt token
+customEvents
+| where name in ("link_use")
+| where tostring(customDimensions["token_status"]) in ("expired","used")
+| summarize count() by user_Id, bin(timestamp, 15m)
+| where count_ > 3
+```
+
+Alert policy: ved treff → **revoker token**, flagg sak, varsle PL (Teams/e-post).
+
 **Hva er observerbarhet?** Evnen til å forstå hva som skjer inne i et system ved å overvåke loggdata, metrics og traces. God observerbarhet lar oss oppdage problemer raskt og feilsøke effektivt. Det er som å ha overvåkningskameraer og alarmer i et hus.
 
 **Hva er Application Insights?** En Azure-tjeneste som samler telemetri (brukerdata, ytelsesmetrikker, feil, logger) fra applikasjonen og visualiserer dette i dashboards. Vi kan se hvor lang tid en operasjon tok, hvor mange brukere som er aktive, hvilke feil som oppstår, osv.
 
 **Hva er Azure Monitor Alerts?** Automatiske varsler som sendes når visse vilkår oppstår. For eksempel: "Hvis mer enn 10 forespørsler får 403 Forbidden fra samme IP på 5 minutter, send varsel til sikkerhetsteamet". Dette lar oss reagere raskt på potensielle angrep.
+
+---
+
+### CSRF og anti-replay (på alle skriveoperasjoner)
+
+For å hindre cross-site request forgery og replay-angrep:
+
+* **CSRF-token** i form-post (double-submit cookie eller SameSite=strict)
+* **Nonce/State** pr. operasjon (signert, kortlevd)
+* **Reject** hvis token/nonce mangler eller er brukt tidligere
+
+Dette gjelder alle `POST/PUT` (innsending, vedtak, signering).
 
 ---
 
@@ -573,7 +705,7 @@ Fravikssøknader inneholder ikke økonomiske data eller personopplysninger, kun 
 
 Sikkerhet:
 
-* Catenda-autentisering + UUID + TTL
+* Catenda-autentisering + UUID + **TTL ≤ 72t** + **one-time token**
 * Selvdeklarert identitet (brukeren oppgir selv navn og epost)
 * **Akseptert residual risiko:** Lenken kan videresendes til andre
 **Hva er residual risiko?** Den risikoen som gjenstår etter at alle sikkerhetstiltak er implementert. Vi aksepterer at noen kan videresende lenken fordi konsekvensen er lav - det verste som kan skje er at feil person ser en fravikssøknad, noe som ikke er kritisk.
@@ -588,6 +720,7 @@ Sikkerhet: Alt fra Nivå 1 **PLUSS**
 
 * **OTP step-up** ved signering av endringer
 * **E-postverifisering** med 6-sifret kode (5 minutters gyldighet)
+* Vurder **step-up Entra ID** for bindende handlinger med økonomisk konsekvens (non-repudiation)
 **Hva er OTP (One-Time Password)?** En engangskode som kun kan brukes én gang og har kort levetid. Du mottar den typisk via SMS eller e-post. Når du har brukt den, blir den ugyldig - selv om noen stjeler koden, kan de ikke bruke den igjen.
 
 **Hva er step-up autentisering?** En sikkerhetsteknikk hvor normale operasjoner krever lav autentisering (f.eks. bare UUID-lenke), men kritiske operasjoner (som å signere en økonomisk endring) krever ekstra autentisering (OTP). Tenk på det som banken din: Du kan se saldoen med bare innlogging, men for å overføre penger må du også bekrefte med BankID.
@@ -1190,6 +1323,16 @@ Vi antar at eksterne brukere vil foretrekke Magic Link fremfor portal-innlogging
 * **ProjectName** - navn på byggeprosjektet
 * **ProjectManager** - hvem som er prosjektleder
 * **Status** (Active/Completed/Archived)
+
+**ProjectAccess (Prosjekttilgang):**
+
+* **AccessID** (PK)
+* **ProjectID** (FK)
+* **Subject** (email eller Entra oid)
+* **Role** (TE/BH/Admin)
+
+Formål: Server-side filtrering og audit av hvem som har tilgang til hvilket prosjekt, uavhengig av om tilgangen kommer fra Entra ID (interne) eller Magic Link (eksterne).
+
 **AuditLog (Revisjonslogg):**
 
 * **LogID** (PK) - unik identifikator for loggoppføringen
