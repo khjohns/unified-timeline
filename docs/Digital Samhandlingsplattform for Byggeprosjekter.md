@@ -725,6 +725,29 @@ Sikkerhet: Alt fra Nivå 1 **PLUSS**
 
 **Hva er step-up autentisering?** En sikkerhetsteknikk hvor normale operasjoner krever lav autentisering (f.eks. bare UUID-lenke), men kritiske operasjoner (som å signere en økonomisk endring) krever ekstra autentisering (OTP). Tenk på det som banken din: Du kan se saldoen med bare innlogging, men for å overføre penger må du også bekrefte med BankID.
 
+#### Fremtidig opsjon: Avansert signering (BankID / Posten)
+
+For enkelte tilfeller med høy juridisk og økonomisk risiko (f.eks. endringsordre med millionbeløp), kan vi tilby integrasjon mot:
+
+* **BankID signering** – kvalifisert elektronisk signatur, juridisk bindende i EU/EØS.
+* **Posten signeringstjeneste** – REST API, støtter BankID, Buypass og MinID.
+
+Fordeler:
+
+* Non-repudiation med høyeste bevisstyrke.
+* EIDAS-kompatibel, akseptert i offentlig sektor.
+
+Kostnad:
+
+* BankID: ca. 4,3 NOK per signering.
+* Posten: ca. 4–5 NOK per signering (+ SMS-varsling ~0,60 NOK).
+
+Integrasjon:
+
+* API-basert, moderat kompleksitet (sertifikat og OIDC for BankID; HMAC og REST for Posten).
+
+Vi anbefaler å starte med OTP step-up (MVP) og vurdere BankID/Posten for kritiske prosesser i Fase 3.
+
 ---
 
 ## OTP-flyt (KOE-signering)
@@ -1173,6 +1196,13 @@ Med besparelsene kan vi investere i:
 * **Webinar for prosjektledere** - 1-times opplæringssesjon over Teams
 * **Dedikert support-kanal** - Teams-kanal eller e-post hvor brukere kan stille spørsmål
 * **Utvide til KOE** - implementere endringsordre-prosessen med OTP
+* **Opsjon: Avansert signering** - implementere BankID eller Posten for KOE-prosesser med høy risiko
+
+Dette krever:
+- Avtale med BankID-leverandør eller Posten
+- Sertifikat og API-integrasjon
+- Tilpasning av brukerflyt (redirect til signeringstjeneste)
+
 **Hva er et webinar?** Et online seminar (web + seminar) hvor mange deltakere kan følge en presentasjon eller opplæring samtidig. Typisk over Teams, Zoom eller lignende. Deltakere kan stille spørsmål i chat eller via mikrofon.
 
 **Målsetning år 1:**
