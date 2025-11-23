@@ -21,7 +21,47 @@
 
 ---
 
-## Hva er relistisk for lokal prototype?
+## ⚠️ API-korrigeringer (Kvalitetssikret mot Catenda API)
+
+Følgende korrigeringer er gjort basert på faktiske Catenda API-spesifikasjoner:
+
+### 1. Autentisering (validate_catenda_token)
+- ❌ **Feil**: Brukte `/users/me` (eksisterer ikke)
+- ✅ **Korrigert**: Bruker `/opencde/foundation/1.0/current-user`
+- **Response**: `{id: "email@example.com", name: "Full Name"}`
+
+### 2. Rolle-sjekk (get_user_role_in_project)
+- ❌ **Feil**: Antok at `member.role` ville gi "Engineer"/"Manager"
+- ✅ **Korrigert**: Sjekker Team-medlemskap via:
+  - `GET /v2/projects/{id}/teams` (henter alle teams)
+  - `GET /v2/projects/{pid}/teams/{tid}/members/{uid}` (sjekker medlemskap)
+  - Logikk: Finn team med "TE"/"BH" i navnet
+
+### 3. Webhook Events
+- ❌ **Feil**: Brukte `eventType: "TopicCreatedEvent"`
+- ✅ **Korrigert**: Bruker `event` feltet med verdier:
+  - `"issue.created"` (BCF Topic opprettet)
+  - `"issue.modified"` (BCF Topic endret)
+  - `"issue.status.changed"` (Status endret)
+
+### 4. Datamodell (Topic API / BCF)
+- ❌ **Feil**: Brukte `status`, tillot bindestreker i ID
+- ✅ **Korrigert**:
+  - Bruk `topic_status` (BCF-standard)
+  - Gyldige statuser: `"Draft"`, `"Open"`, `"Active"`, `"Resolved"`, `"Closed"`
+  - ID format: 32 hex chars (compacted UUID, uten bindestreker)
+  - Required felt: `title`
+  - Custom fields (`cost_approved` etc.) håndteres separat
+
+**Referanser**:
+- API-reference-auth.yaml → OpenCDE Foundation API
+- Project API.yaml → Teams og medlemskap
+- Webhook API.yaml → Event-typer
+- Topic API.yaml → BCF Topic schema
+
+---
+
+## Hva er realistisk for lokal prototype?
 
 ### ✅ Aktuelt (kan implementeres nå)
 
@@ -267,26 +307,32 @@ class ValidationError(Exception):
         self.message = message
         super().__init__(f"{field}: {message}")
 
-def validate_sak_id(sak_id: Any) -> str:
-    """Valider sakId - KRITISK for CSV filename safety"""
-    if not isinstance(sak_id, str):
-        raise ValidationError("sakId", "Must be string")
+def validate_guid(val: Any) -> str:
+    """
+    Validerer GUID basert på Catenda/BCF standard.
 
-    if not sak_id:
-        raise ValidationError("sakId", "Cannot be empty")
+    Ref Topic API: "compacted UUID using 32 hexadecimal characters"
 
-    if len(sak_id) > 50:
-        raise ValidationError("sakId", "Max length 50 characters")
+    Tillater både compacted (32 hex) og standard UUID (36 med bindestreker)
+    for fleksibilitet i prototype.
+    """
+    if not isinstance(val, str):
+        raise ValidationError("guid", "Must be string")
 
-    # VIKTIG: Kun trygge tegn for filnavn og CSV
-    if not re.match(r'^[a-zA-Z0-9_-]+$', sak_id):
-        raise ValidationError("sakId", "Only alphanumeric, dash, underscore allowed")
+    if not val:
+        raise ValidationError("guid", "Cannot be empty")
+
+    # ✅ Catenda bruker compacted UUID (32 hex), men tillater også standard (36)
+    # Eksempel compacted: 18d0273de15c492497b36f47b233eebe
+    # Eksempel standard: 18d0273d-e15c-4924-97b3-6f47b233eebe
+    if not re.match(r'^[a-fA-F0-9-]{32,36}$', val):
+        raise ValidationError("guid", "Invalid UUID format (expected 32-36 hex chars)")
 
     # Ekstra sikkerhet: Ikke tillat '..' (path traversal)
-    if '..' in sak_id or '/' in sak_id or '\\' in sak_id:
-        raise ValidationError("sakId", "Invalid characters")
+    if '..' in val or '/' in val or '\\' in val:
+        raise ValidationError("guid", "Invalid characters")
 
-    return sak_id
+    return val
 
 def validate_csv_safe_string(value: Any, field_name: str, max_length: int = 500) -> str:
     """
@@ -318,38 +364,72 @@ def validate_csv_safe_string(value: Any, field_name: str, max_length: int = 500)
 
     return cleaned
 
-def validate_status(status: Any) -> str:
-    """Valider status"""
-    ALLOWED_STATUSES = ["draft", "submitted", "approved", "rejected", "completed"]
+def validate_topic_status(val: Any) -> str:
+    """
+    Validerer topic_status.
 
-    if not isinstance(status, str):
-        raise ValidationError("status", "Must be string")
+    Ref Topic API schemas/topic → topic_status
 
-    if status not in ALLOWED_STATUSES:
-        raise ValidationError("status", f"Must be one of: {ALLOWED_STATUSES}")
+    Note: I en ekte app hentes gyldige statuser fra /extensions/statuses
+    For prototype hardkoder vi standard BCF-flyt
+    """
+    # ✅ Standard BCF topic statuses
+    ALLOWED = ["Open", "Closed", "Active", "Resolved", "Draft"]
 
-    return status
+    if not isinstance(val, str):
+        raise ValidationError("topic_status", "Must be string")
+
+    if val not in ALLOWED:
+        raise ValidationError("topic_status", f"Must be one of: {ALLOWED}")
+
+    return val
 
 def validate_varsel_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
-    """Valider og sanitize varsel payload for CSV-lagring"""
+    """
+    Validerer payload for lagring til CSV.
+
+    Struktur er oppdatert for å ligne på Catenda 'Topic' schema (BCF).
+    """
     if not isinstance(payload, dict):
         raise ValidationError("payload", "Must be JSON object")
 
     validated = {}
 
-    # Required fields
-    validated['sakId'] = validate_sak_id(payload.get('sakId'))
-    validated['status'] = validate_status(payload.get('status'))
+    # ✅ 1. Identifikator (BCF bruker 'guid' eller 'topic_id')
+    # Vi bruker 'topic_id' internt i CSV for klarhet
+    if 'topic_id' in payload:
+        validated['topic_id'] = validate_guid(payload['topic_id'])
+    elif 'sakId' in payload:  # Bakoverkompatibilitet med frontend
+        validated['topic_id'] = validate_guid(payload['sakId'])
+    else:
+        raise ValidationError("topic_id", "Missing topic_id (or sakId)")
 
-    # Optional fields med CSV-sanitering
-    if 'title' in payload:
-        validated['title'] = validate_csv_safe_string(payload['title'], 'title', max_length=200)
+    # ✅ 2. Status (BCF: topic_status)
+    status_val = payload.get('topic_status') or payload.get('status')
+    if not status_val:
+        raise ValidationError("topic_status", "Missing topic_status (or status)")
+    validated['topic_status'] = validate_topic_status(status_val)
 
+    # ✅ 3. Tittel (BCF: title) - Required
+    title = payload.get('title')
+    if not title or not isinstance(title, str):
+        raise ValidationError("title", "Title is required")
+    validated['title'] = validate_csv_safe_string(title, 'title', 255)
+
+    # 4. Beskrivelse (BCF: description)
     if 'description' in payload:
-        validated['description'] = validate_csv_safe_string(payload['description'], 'description', max_length=5000)
+        validated['description'] = validate_csv_safe_string(payload['description'], 'description', 5000)
 
-    if 'comment' in payload:
-        validated['comment'] = validate_csv_safe_string(payload['comment'], 'comment', max_length=2000)
+    # 5. Custom fields (Prototype-spesifikt)
+    # Disse eksisterer ikke direkte i Topic API, men vi lagrer dem lokalt
+    # for å simulere 'bimsync_custom_fields' logikk.
+    if 'cost_approved' in payload:
+        # Eksempel på validering av tall
+        try:
+            val = float(payload['cost_approved'])
+            validated['cost_approved'] = val
+        except ValueError:
+            raise ValidationError("cost_approved", "Must be a number")
 
     return validated
 ```
@@ -368,7 +448,7 @@ def submit_varsel():
 
         # ✅ Validate og sanitize før CSV-lagring
         validated = validate_varsel_payload(payload)
-        sak_id = validated['sakId']
+        topic_id = validated['topic_id']
 
     except ValidationError as e:
         return jsonify({
@@ -382,9 +462,9 @@ def submit_varsel():
 
     # Nå er data trygg for CSV-lagring
     sys = get_system()
-    sys.db.save_form_data(sak_id, validated)  # Kun validerte data!
+    sys.db.save_form_data(topic_id, validated)  # Kun validerte data!
 
-    return jsonify({"success": True, "sakId": sak_id}), 200
+    return jsonify({"success": True, "topic_id": topic_id}), 200
 ```
 
 #### Network Tab Demo
@@ -396,8 +476,8 @@ X-CSRF-Token: <valid>
 Content-Type: application/json
 
 {
-  "sakId": "ABC123",
-  "status": "draft",
+  "topic_id": "18d0273de15c492497b36f47b233eebe",
+  "topic_status": "Draft",
   "title": "=1+1+cmd|'/c calc'!A1"  # Excel formula injection
 }
 
@@ -408,21 +488,22 @@ Content-Type: application/json
   "message": "Cannot start with special characters (CSV injection)"
 }
 
-# Path traversal attempt
+# Invalid GUID format
 POST http://abc123.ngrok.io/api/varsel-submit
 X-CSRF-Token: <valid>
 Content-Type: application/json
 
 {
-  "sakId": "../../etc/passwd",
-  "status": "draft"
+  "topic_id": "../../etc/passwd",
+  "topic_status": "Draft",
+  "title": "Valid title"
 }
 
 → 400 Bad Request
 {
   "error": "Validation failed",
-  "field": "sakId",
-  "message": "Invalid characters"
+  "field": "guid",
+  "message": "Invalid UUID format (expected 32-36 hex chars)"
 }
 ```
 
@@ -510,25 +591,35 @@ def webhook():
     payload = request.get_json()
 
     # 3. ✅ Idempotency check
-    event_id = payload.get("eventId", "") or payload.get("event", {}).get("id", "")
+    event_id = payload.get("id", "") or payload.get("eventId", "")
     if not event_id:
-        return jsonify({"error": "Missing eventId"}), 400
+        return jsonify({"error": "Missing event id"}), 400
 
     if is_duplicate_event(event_id):
         app.logger.info(f"Duplicate webhook event: {event_id}")
         return jsonify({"status": "already_processed"}), 202
 
-    # 4. Prosesser webhook
-    event_type = payload.get('eventType', '')
+    # 4. ✅ Prosesser webhook
+    # Ref: Webhook API.yaml → event-feltet inneholder verdier som "issue.created"
+    event_name = payload.get('event', '')
 
-    if event_type == 'TopicCreatedEvent':
-        # ... eksisterende logikk ...
-        app.logger.info(f"Processing TopicCreatedEvent: {event_id}")
+    # Logg payload for debugging i prototype-fasen
+    app.logger.info(f"Received webhook event: {event_name}")
+
+    # Logikk basert på API-spesifikasjonens verdier
+    if event_name == 'issue.created':
+        # Håndter ny sak (BCF Topic created)
+        app.logger.info(f"Processing issue.created: {event_id}")
         pass
 
-    elif event_type == 'TopicModifiedEvent':
-        # ... eksisterende logikk ...
-        app.logger.info(f"Processing TopicModifiedEvent: {event_id}")
+    elif event_name == 'issue.modified':
+        # Håndter endring (BCF Topic modified)
+        app.logger.info(f"Processing issue.modified: {event_id}")
+        pass
+
+    elif event_name == 'issue.status.changed':
+        # Håndter statusendring spesifikt
+        app.logger.info(f"Processing issue.status.changed: {event_id}")
         pass
 
     return jsonify({"status": "processed"}), 200
@@ -541,7 +632,7 @@ def webhook():
 3. **Create new webhook**:
    - URL: `https://YOUR_NGROK_URL.ngrok.io/webhook/catenda`
    - Secret: (generer sterk secret, sett i `.env`)
-   - Events: Select `TopicCreatedEvent`, `TopicModifiedEvent`
+   - Events: Select `issue.created`, `issue.modified`, `issue.status.changed`
 4. **Test webhook** (Catenda har test-knapp)
 
 #### Network Tab Demo
@@ -553,8 +644,8 @@ X-Catenda-Signature: sha256=a1b2c3d4e5f6...
 Content-Type: application/json
 
 {
-  "eventType": "TopicCreatedEvent",
-  "eventId": "evt_12345",
+  "event": "issue.created",
+  "id": "evt_12345",
   "topic": { ... }
 }
 
@@ -568,8 +659,8 @@ POST https://abc123.ngrok.io/webhook/catenda
 Content-Type: application/json
 
 {
-  "eventType": "TopicCreatedEvent",
-  "eventId": "fake_event"
+  "event": "issue.created",
+  "id": "fake_event"
 }
 
 → 401 Unauthorized
@@ -628,7 +719,7 @@ def get_catenda_token_from_request() -> str:
 
 def validate_catenda_token(token: str) -> tuple[bool, str, dict]:
     """
-    Valider Catenda OAuth token.
+    Valider Catenda OAuth token via OpenCDE Foundation API.
 
     Returns:
         (valid, error_message, user_info)
@@ -636,22 +727,20 @@ def validate_catenda_token(token: str) -> tuple[bool, str, dict]:
     if not token:
         return False, "Missing token", {}
 
-    # Opprett Catenda API client med token
-    api = CatendaAPI(
-        client_id=os.getenv("CATENDA_CLIENT_ID"),
-        client_secret=os.getenv("CATENDA_CLIENT_SECRET")
-    )
-
-    # Sett token manuelt (skip authenticate)
-    api.access_token = token
-    api.token_expires_at = datetime.now() + timedelta(hours=1)  # Antar 1t
+    # Bruker requests direkte for enkelhetens skyld i prototypen
+    import requests
 
     try:
-        # Test token ved å hente user info
-        # Catenda REST v2: GET /users/me
-        response = api.session.get(
-            f"{api.base_url}/users/me",
-            headers={"Authorization": f"Bearer {token}"}
+        # ✅ KORRIGERT ENDEPUNKT: OpenCDE Foundation API
+        # Ref: API-reference-auth.yaml → /opencde/foundation/1.0/current-user
+        url = "https://api.catenda.com/opencde/foundation/1.0/current-user"
+
+        response = requests.get(
+            url,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/json"
+            }
         )
 
         if response.status_code == 401:
@@ -662,10 +751,12 @@ def validate_catenda_token(token: str) -> tuple[bool, str, dict]:
 
         user_data = response.json()
 
-        # Returner user info
+        # ✅ MAPPER RESPONS fra schema: foundation-current-user
+        # id = e-post/brukernavn (eks: john@doe.com)
+        # name = Fullt navn (eks: John Doe)
         user_info = {
             "id": user_data.get("id"),
-            "email": user_data.get("email"),
+            "email": user_data.get("id"),   # OpenCDE bruker 'id' som brukernavn/email
             "name": user_data.get("name"),
             "catenda_token": token
         }
@@ -882,10 +973,15 @@ def update_case(sakId):
 #### CSV struktur
 
 ```csv
-sakId,project_id,title,status,created_at
-ABC123,proj_550e8400,Endringsmelding 1,draft,2025-11-23T10:00:00Z
-XYZ789,proj_12345678,Endringsmelding 2,submitted,2025-11-22T15:30:00Z
+topic_id,project_id,title,topic_status,created_at
+18d0273de15c492497b36f47b233eebe,550e8400e29b41d4a716446655440000,Endringsmelding 1,Draft,2025-11-23T10:00:00Z
+a3f12bc8d4e5492497b36f47b233eebe,12345678e29b41d4a716446655440000,Endringsmelding 2,Open,2025-11-22T15:30:00Z
 ```
+
+**Note**:
+- `topic_id`: Compacted UUID (32 hex chars)
+- `project_id`: Compacted UUID (32 hex chars)
+- `topic_status`: BCF standard values (Draft, Open, Active, Resolved, Closed)
 
 #### Network Tab Demo
 
@@ -894,22 +990,24 @@ XYZ789,proj_12345678,Endringsmelding 2,submitted,2025-11-22T15:30:00Z
 Authorization: Bearer <token_for_user_in_project_A>
 
 # Hent sak i project A (OK)
-GET http://abc123.ngrok.io/api/cases/ABC123
+GET http://abc123.ngrok.io/api/cases/18d0273de15c492497b36f47b233eebe
 
 → 200 OK
 {
-  "sakId": "ABC123",
-  "project_id": "proj_550e8400",
+  "topic_id": "18d0273de15c492497b36f47b233eebe",
+  "project_id": "550e8400e29b41d4a716446655440000",
+  "title": "Endringsmelding 1",
+  "topic_status": "Draft",
   ...
 }
 
 # Forsøk å hente sak i project B (Forbidden)
-GET http://abc123.ngrok.io/api/cases/XYZ789
+GET http://abc123.ngrok.io/api/cases/a3f12bc8d4e5492497b36f47b233eebe
 
 → 403 Forbidden
 {
   "error": "Forbidden",
-  "detail": "You don't have access to project proj_12345678"
+  "detail": "You don't have access to project 12345678e29b41d4a716446655440000"
 }
 ```
 
@@ -924,50 +1022,70 @@ GET http://abc123.ngrok.io/api/cases/XYZ789
 ```python
 # backend/catenda_auth.py (fortsettelse)
 
-def get_user_role_in_project(catenda_token: str, project_id: str, user_email: str) -> str:
+def get_user_role_in_project(catenda_token: str, project_id: str, user_id: str) -> str:
     """
-    Hent brukerens rolle i prosjekt fra Catenda.
+    Bestem rolle (TE/BH) basert på Team-medlemskap.
+
+    Henter alle teams i prosjektet, ser etter 'TE'/'BH' i navnet,
+    og sjekker om bruker er medlem.
+
+    Args:
+        catenda_token: OAuth token
+        project_id: Catenda project ID (compacted UUID)
+        user_id: User ID fra current-user (e-post/brukernavn)
 
     Returns:
         "TE", "BH", eller "unknown"
     """
-    api = CatendaAPI(
-        client_id=os.getenv("CATENDA_CLIENT_ID"),
-        client_secret=os.getenv("CATENDA_CLIENT_SECRET")
-    )
-    api.access_token = catenda_token
+    import requests
+
+    headers = {"Authorization": f"Bearer {catenda_token}"}
+    base_url = "https://api.catenda.com/v2"
 
     try:
-        # GET /projects/{id}/members (REST v2)
-        response = api.session.get(
-            f"{api.base_url}/projects/{project_id}/members",
-            headers={"Authorization": f"Bearer {catenda_token}"}
+        # ✅ 1. Hent alle teams i prosjektet
+        # Ref: Project API.yaml → GET /v2/projects/{project-id}/teams
+        teams_resp = requests.get(
+            f"{base_url}/projects/{project_id}/teams",
+            headers=headers
         )
 
-        if response.status_code != 200:
+        if teams_resp.status_code != 200:
             return "unknown"
 
-        members = response.json()
+        all_teams = teams_resp.json()  # Liste av team-objekter
 
-        # Finn bruker basert på e-post
-        user_email_normalized = user_email.lower().strip()
+        user_role = "unknown"
 
-        for member in members:
-            member_email = member.get("email", "").lower().strip()
-            if member_email == user_email_normalized:
-                # Map Catenda role til TE/BH
-                # Antar at Catenda har roller som "Engineer", "Project Manager", etc.
-                catenda_role = member.get("role", "").lower()
+        # ✅ 2. Sjekk relevante teams
+        for team in all_teams:
+            team_name = team.get('name', '').upper()
+            team_id = team.get('id')
 
-                # TODO: Juster mapping basert på faktiske Catenda roller
-                if "engineer" in catenda_role or "technical" in catenda_role:
-                    return "TE"
-                elif "manager" in catenda_role or "coordinator" in catenda_role:
-                    return "BH"
+            # Vi bryr oss kun om teams som indikerer en rolle
+            possible_role = None
+            if "TE" in team_name or "ENTREPRENØR" in team_name or "TECHNICAL" in team_name:
+                possible_role = "TE"
+            elif "BH" in team_name or "BYGGHERRE" in team_name or "CLIENT" in team_name:
+                possible_role = "BH"
 
-        return "unknown"
+            if possible_role:
+                # ✅ 3. Sjekk om brukeren er medlem i dette teamet
+                # Endpoint: GET /v2/projects/{pid}/teams/{tid}/members/{uid}
+                # (Hvis bruker ikke er medlem, returnerer dette 404)
+                member_resp = requests.get(
+                    f"{base_url}/projects/{project_id}/teams/{team_id}/members/{user_id}",
+                    headers=headers
+                )
 
-    except Exception:
+                if member_resp.status_code == 200:
+                    user_role = possible_role
+                    break  # Fant rolle, avslutt søk
+
+        return user_role
+
+    except Exception as e:
+        print(f"Error checking roles: {e}")
         return "unknown"
 
 # Field permissions (fra full handlingsplan)
@@ -1014,7 +1132,7 @@ def update_case(sakId):
     role = get_user_role_in_project(
         user['catenda_token'],
         project_id,
-        user['email']
+        user['id']  # ✅ Bruker user_id (ikke email)
     )
 
     # ✅ Valider felt-tilgang
@@ -1287,9 +1405,9 @@ def webhook():
 #### Audit Log Eksempel
 
 ```json
-{"timestamp":"2025-11-23T10:15:30Z","event_type":"access","user":"te@example.com","resource":"case:ABC123","action":"read","result":"success","ip":"192.168.1.100","user_agent":"Mozilla/5.0...","details":{"project_id":"proj_550e8400"}}
-{"timestamp":"2025-11-23T10:16:45Z","event_type":"access","user":"bh@example.com","resource":"case:ABC123","action":"update","result":"denied","ip":"192.168.1.101","user_agent":"Mozilla/5.0...","details":{"error":"TE-locked field"}}
-{"timestamp":"2025-11-23T10:17:12Z","event_type":"webhook","user":"catenda","resource":"webhook:catenda","action":"received","result":"success","ip":"52.1.2.3","user_agent":"Catenda-Webhook/1.0","details":{"event_type":"TopicCreatedEvent"}}
+{"timestamp":"2025-11-23T10:15:30Z","event_type":"access","user":"te@example.com","resource":"case:18d0273de15c492497b36f47b233eebe","action":"read","result":"success","ip":"192.168.1.100","user_agent":"Mozilla/5.0...","details":{"project_id":"550e8400e29b41d4a716446655440000"}}
+{"timestamp":"2025-11-23T10:16:45Z","event_type":"access","user":"bh@example.com","resource":"case:18d0273de15c492497b36f47b233eebe","action":"update","result":"denied","ip":"192.168.1.101","user_agent":"Mozilla/5.0...","details":{"error":"TE-locked field"}}
+{"timestamp":"2025-11-23T10:17:12Z","event_type":"webhook","user":"catenda","resource":"webhook:catenda","action":"received","result":"success","ip":"52.1.2.3","user_agent":"Catenda-Webhook/1.0","details":{"event":"issue.created"}}
 ```
 
 #### Visualisering
@@ -1425,25 +1543,25 @@ POST http://abc123.ngrok.io/api/varsel-submit
 Authorization: Bearer <valid_token>
 X-CSRF-Token: <valid>
 
-{"sakId": "ABC123", "title": "=1+1"}
+{"topic_id": "18d0273de15c492497b36f47b233eebe", "title": "=1+1", "topic_status": "Draft"}
 
 → 400 Bad Request (CSV injection blocked)
 
 # Angrep 3: Webhook spoofing
 POST http://abc123.ngrok.io/webhook/catenda
 
-{"eventType": "TopicCreatedEvent"}
+{"event": "issue.created", "id": "fake_12345"}
 
 → 401 Unauthorized (Missing signature)
 
 # Angrep 4: Project access violation
-GET http://abc123.ngrok.io/api/cases/OTHER_PROJECT_CASE
+GET http://abc123.ngrok.io/api/cases/a3f12bc8d4e5492497b36f47b233eebe
 Authorization: Bearer <project_A_token>
 
 → 403 Forbidden (No access to project)
 
 # Angrep 5: Role violation (TE → BH field)
-PUT http://abc123.ngrok.io/api/cases/ABC123
+PUT http://abc123.ngrok.io/api/cases/18d0273de15c492497b36f47b233eebe
 Authorization: Bearer <te_token>
 X-CSRF-Token: <valid>
 
@@ -1495,7 +1613,7 @@ def test_csv_injection_protection(client):
 def test_webhook_signature(client):
     """Webhook uten signatur skal avvises"""
     response = client.post('/webhook/catenda',
-        json={'eventType': 'TopicCreatedEvent', 'eventId': '123'})
+        json={'event': 'issue.created', 'id': '123'})
     assert response.status_code == 401
 
 def test_rate_limiting(client):
@@ -1507,11 +1625,15 @@ def test_rate_limiting(client):
     # Send 11 requests
     for i in range(11):
         response = client.post('/api/varsel-submit',
-            json={'sakId': f'ABC{i}', 'status': 'draft'},
+            json={
+                'topic_id': f'18d0273de15c492497b36f47b233ee{i:02x}',  # Compacted UUID
+                'topic_status': 'Draft',
+                'title': f'Test {i}'
+            },
             headers={'X-CSRF-Token': token})
 
         if i < 10:
-            assert response.status_code in [200, 403]  # May fail on auth, but not rate limit
+            assert response.status_code in [200, 400, 403]  # May fail on validation/auth
         else:
             assert response.status_code == 429  # 11th should be rate limited
 ```
