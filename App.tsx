@@ -267,14 +267,17 @@ const App: React.FC = () => {
                     nextStepMessage = 'Entreprenør kan se svaret og sende revidert krav om nødvendig';
                 }
 
-                // Show success modal
-                setSuccessModal({
-                    isOpen: true,
-                    type: modus || 'koe',
-                    message: response.data.message || 'Skjema sendt til server',
-                    nextStep: nextStepMessage,
-                    pdfUrl: blob ? URL.createObjectURL(blob) : undefined
-                });
+                // Show success modal with a small delay to prevent race conditions
+                // This delay allows React to complete state updates and prevents click-through issues
+                setTimeout(() => {
+                    setSuccessModal({
+                        isOpen: true,
+                        type: modus || 'koe',
+                        message: response.data.message || 'Skjema sendt til server',
+                        nextStep: nextStepMessage,
+                        pdfUrl: blob ? URL.createObjectURL(blob) : undefined
+                    });
+                }, 100);
             } else {
                 setApiError(response.error || 'Kunne ikke sende skjema');
                 showToast(setToastMessage, `Feil: ${response.error}`);
