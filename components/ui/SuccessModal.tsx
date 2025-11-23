@@ -17,6 +17,21 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
   nextStep,
   pdfUrl
 }) => {
+  // Prevent backdrop clicks immediately after opening (to avoid click-through from submit button)
+  const [allowBackdropClick, setAllowBackdropClick] = React.useState(false);
+
+  // Reset backdrop click flag when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setAllowBackdropClick(false);
+      // Allow backdrop clicks after a short delay
+      const timer = setTimeout(() => {
+        setAllowBackdropClick(true);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
+
   // Close on Escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -64,7 +79,11 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      onClick={onClose}
+      onClick={(e) => {
+        if (allowBackdropClick && e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
     >
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm" />

@@ -15,7 +15,7 @@ import KravKoePanel from './components/panels/KravKoePanel';
 import BhSvarPanel from './components/panels/BhSvarPanel';
 import TestOversiktPanel from './components/panels/TestOversiktPanel';
 import SidePanel from './components/ui/SidePanel';
-import SuccessModal from './components/ui/SuccessModal';
+import PDFPreviewModal from './components/ui/PDFPreviewModal';
 
 
 const App: React.FC = () => {
@@ -34,16 +34,17 @@ const App: React.FC = () => {
     const [apiError, setApiError] = useState<string | null>(null);
     const [isApiConnected, setIsApiConnected] = useState<boolean | null>(null);
 
-    // Success modal state
-    const [successModal, setSuccessModal] = useState<{
+    // PDF Preview modal state
+    const [pdfPreviewModal, setPdfPreviewModal] = useState<{
         isOpen: boolean;
         type: 'varsel' | 'koe' | 'svar' | 'revidering';
         message?: string;
         nextStep?: string;
-        pdfUrl?: string;
+        pdfBlob: Blob | null;
     }>({
         isOpen: false,
-        type: 'koe'
+        type: 'koe',
+        pdfBlob: null
     });
 
     // Use custom hooks for state management and auto-save
@@ -267,14 +268,17 @@ const App: React.FC = () => {
                     nextStepMessage = 'Entreprenør kan se svaret og sende revidert krav om nødvendig';
                 }
 
-                // Show success modal
-                setSuccessModal({
-                    isOpen: true,
-                    type: modus || 'koe',
-                    message: response.data.message || 'Skjema sendt til server',
-                    nextStep: nextStepMessage,
-                    pdfUrl: blob ? URL.createObjectURL(blob) : undefined
-                });
+                // Show PDF preview modal with a small delay to prevent race conditions
+                // This delay allows React to complete state updates and prevents click-through issues
+                setTimeout(() => {
+                    setPdfPreviewModal({
+                        isOpen: true,
+                        type: modus || 'koe',
+                        message: response.data.message || 'Skjema sendt til server',
+                        nextStep: nextStepMessage,
+                        pdfBlob: blob
+                    });
+                }, 100);
             } else {
                 setApiError(response.error || 'Kunne ikke sende skjema');
                 showToast(setToastMessage, `Feil: ${response.error}`);
@@ -619,13 +623,13 @@ const App: React.FC = () => {
 
             {toastMessage && <Toast message={toastMessage} />}
 
-            <SuccessModal
-                isOpen={successModal.isOpen}
-                onClose={() => setSuccessModal({ ...successModal, isOpen: false })}
-                type={successModal.type}
-                message={successModal.message}
-                nextStep={successModal.nextStep}
-                pdfUrl={successModal.pdfUrl}
+            <PDFPreviewModal
+                isOpen={pdfPreviewModal.isOpen}
+                onClose={() => setPdfPreviewModal({ ...pdfPreviewModal, isOpen: false })}
+                pdfBlob={pdfPreviewModal.pdfBlob}
+                type={pdfPreviewModal.type}
+                message={pdfPreviewModal.message}
+                nextStep={pdfPreviewModal.nextStep}
             />
         </div>
     );
