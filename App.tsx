@@ -208,12 +208,31 @@ const App: React.FC = () => {
         await generatePdfReact(formData);
     };
 
-    // API submission handlers for POC workflow
+    // Show PDF preview (no submission yet)
     const handleSubmitToApi = async () => {
         if (!validateCurrentTab()) {
             return;
         }
 
+        try {
+            // Generate PDF blob for preview
+            const { blob } = await generatePdfBlob(formData);
+
+            // Show PDF preview modal
+            setPdfPreviewModal({
+                isOpen: true,
+                type: modus || 'koe',
+                pdfBlob: blob
+            });
+        } catch (error) {
+            console.error('PDF generation error:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Ukjent feil';
+            showToast(setToastMessage, `Feil ved generering av PDF: ${errorMessage}`);
+        }
+    };
+
+    // Confirm and submit to API (called from PDF preview modal)
+    const handleConfirmSubmit = async () => {
         setIsSubmitting(true);
         setApiError(null);
 
@@ -258,27 +277,9 @@ const App: React.FC = () => {
                 // Clear localStorage after successful submission
                 localStorage.removeItem('koe_v5_0_draft');
 
-                // Determine next step message
-                let nextStepMessage = '';
-                if (modus === 'varsel') {
-                    nextStepMessage = 'Entreprenør kan nå spesifisere krav (vederlag/frist)';
-                } else if (modus === 'koe' || modus === 'revidering') {
-                    nextStepMessage = 'Byggherre vil bli varslet og kan svare på kravet';
-                } else if (modus === 'svar') {
-                    nextStepMessage = 'Entreprenør kan se svaret og sende revidert krav om nødvendig';
-                }
-
-                // Show PDF preview modal with a small delay to prevent race conditions
-                // This delay allows React to complete state updates and prevents click-through issues
-                setTimeout(() => {
-                    setPdfPreviewModal({
-                        isOpen: true,
-                        type: modus || 'koe',
-                        message: response.data.message || 'Skjema sendt til server',
-                        nextStep: nextStepMessage,
-                        pdfBlob: blob
-                    });
-                }, 100);
+                // Close preview modal and show success message
+                setPdfPreviewModal({ isOpen: false, type: 'koe', pdfBlob: null });
+                showToast(setToastMessage, response.data.message || 'Skjema sendt til server');
             } else {
                 setApiError(response.error || 'Kunne ikke sende skjema');
                 showToast(setToastMessage, `Feil: ${response.error}`);
@@ -626,10 +627,10 @@ const App: React.FC = () => {
             <PDFPreviewModal
                 isOpen={pdfPreviewModal.isOpen}
                 onClose={() => setPdfPreviewModal({ ...pdfPreviewModal, isOpen: false })}
+                onConfirm={handleConfirmSubmit}
                 pdfBlob={pdfPreviewModal.pdfBlob}
                 type={pdfPreviewModal.type}
-                message={pdfPreviewModal.message}
-                nextStep={pdfPreviewModal.nextStep}
+                isSubmitting={isSubmitting}
             />
         </div>
     );
