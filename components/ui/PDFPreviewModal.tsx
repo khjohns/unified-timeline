@@ -8,19 +8,19 @@ pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
 interface PDFPreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onConfirm: () => void;  // Callback for confirming and submitting
   pdfBlob: Blob | null;
   type: 'varsel' | 'koe' | 'svar' | 'revidering';
-  message?: string;
-  nextStep?: string;
+  isSubmitting?: boolean;  // To show loading state on confirm button
 }
 
 const PDFPreviewModal: React.FC<PDFPreviewModalProps> = ({
   isOpen,
   onClose,
+  onConfirm,
   pdfBlob,
   type,
-  message,
-  nextStep
+  isSubmitting = false
 }) => {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
@@ -78,15 +78,15 @@ const PDFPreviewModal: React.FC<PDFPreviewModalProps> = ({
   const getTitleAndIcon = () => {
     switch (type) {
       case 'varsel':
-        return { title: 'Varsel sendt!', icon: '📨' };
+        return { title: 'Forhåndsvis varsel', icon: '📨' };
       case 'koe':
-        return { title: 'Krav sendt!', icon: '📋' };
+        return { title: 'Forhåndsvis krav', icon: '📋' };
       case 'svar':
-        return { title: 'Svar sendt!', icon: '✍️' };
+        return { title: 'Forhåndsvis svar', icon: '✍️' };
       case 'revidering':
-        return { title: 'Revisjon sendt!', icon: '🔄' };
+        return { title: 'Forhåndsvis revisjon', icon: '🔄' };
       default:
-        return { title: 'Sendt!', icon: '✅' };
+        return { title: 'Forhåndsvisning', icon: '📄' };
     }
   };
 
@@ -121,12 +121,12 @@ const PDFPreviewModal: React.FC<PDFPreviewModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
               <span className="text-2xl">{icon}</span>
             </div>
             <div>
               <h2 className="text-xl font-semibold text-ink">{title}</h2>
-              {message && <p className="text-sm text-gray-600">{message}</p>}
+              <p className="text-sm text-gray-600">Kontroller PDF-en før du sender inn</p>
             </div>
           </div>
 
@@ -151,16 +151,6 @@ const PDFPreviewModal: React.FC<PDFPreviewModalProps> = ({
             </svg>
           </button>
         </div>
-
-        {/* Next Step Info */}
-        {nextStep && (
-          <div className="mx-6 mt-4 bg-blue-50 border border-blue-200 rounded-md p-4">
-            <p className="text-sm font-medium text-blue-900 mb-1">
-              Neste steg:
-            </p>
-            <p className="text-sm text-blue-800">{nextStep}</p>
-          </div>
-        )}
 
         {/* PDF Container */}
         <div className="flex-1 overflow-y-auto p-6">
@@ -204,30 +194,29 @@ const PDFPreviewModal: React.FC<PDFPreviewModalProps> = ({
         {/* Footer */}
         <div className="flex items-center justify-between gap-3 p-6 border-t border-gray-200 bg-gray-50">
           <button
-            onClick={handleDownload}
-            className="flex items-center gap-2 px-4 py-2 text-pri border border-pri rounded hover:bg-pri hover:text-white transition-colors"
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="px-6 py-2 text-gray-700 border border-gray-300 rounded hover:bg-gray-100 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-            Last ned PDF
+            Avbryt
           </button>
 
           <button
-            onClick={onClose}
-            className="px-6 py-2 bg-pri text-white rounded hover:bg-pri-dark transition-colors font-medium"
+            onClick={onConfirm}
+            disabled={isSubmitting}
+            className="px-6 py-2 bg-pri text-white rounded hover:bg-pri-dark transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            Lukk
+            {isSubmitting ? (
+              <>
+                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Sender...
+              </>
+            ) : (
+              'Bekreft og send inn'
+            )}
           </button>
         </div>
       </div>
