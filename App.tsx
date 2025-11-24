@@ -33,14 +33,18 @@ const App: React.FC = () => {
     const [activeTab, setActiveTab] = useState(0);
     const [toastMessage, setToastMessage] = useState('');
 
-    // URL parameters for POC integration
-    const [searchParams] = useSearchParams();
-    const sakId = searchParams.get('sakId');
+    // URL parameters
+    const [searchParams, setSearchParams] = useSearchParams();
+    const magicToken = searchParams.get('magicToken');
+    const directSakId = searchParams.get('sakId'); // For direct access or older links
     const modus = searchParams.get('modus') as Modus | null;
     const topicGuid = searchParams.get('topicGuid'); // From Catenda webhook
 
+    // Internal state for the resolved sakId
+    const [internalSakId, setInternalSakId] = useState<string | null>(directSakId);
+
     // Loading and error states
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(!!magicToken); // Start loading if token is present
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
     const [isApiConnected, setIsApiConnected] = useState<boolean | null>(null);
@@ -82,23 +86,49 @@ const App: React.FC = () => {
         checkApiConnection();
     }, []);
 
-    // Load data from API when sakId parameter is present
+    // Verify magic token if present
     useEffect(() => {
-        const loadFromApi = async () => {
-            if (!sakId) return;
+        const verifyToken = async () => {
+            if (!magicToken || isApiConnected === false) return;
 
             setIsLoading(true);
             setApiError(null);
+            const response = await api.verifyMagicToken(magicToken);
+
+            if (response.success && response.data?.sakId) {
+                setInternalSakId(response.data.sakId);
+                // Clean the URL, remove the token
+                searchParams.delete('magicToken');
+                setSearchParams(searchParams, { replace: true });
+            } else {
+                setApiError(response.error || 'Lenken er ugyldig eller utløpt.');
+                setIsLoading(false);
+            }
+        };
+
+        if (magicToken && isApiConnected) {
+            verifyToken();
+        }
+    }, [magicToken, isApiConnected, setSearchParams, searchParams]);
+
+
+    // Load data from API when an internalSakId is available
+    useEffect(() => {
+        const loadFromApi = async () => {
+            if (!internalSakId) return;
+
+            // Only start loading if not already loading from token verification
+            if (!magicToken) setIsLoading(true);
+            setApiError(null);
 
             try {
-                const response = await api.getCase(sakId, modus || undefined);
+                const response = await api.getCase(internalSakId, modus || undefined);
 
                 if (response.success && response.data) {
                     setFormData(response.data.formData);
-                    showToast(setToastMessage, `Sak ${sakId} lastet fra server`);
+                    showToast(setToastMessage, `Sak ${internalSakId} lastet fra server`);
                 } else {
                     setApiError(response.error || 'Kunne ikke laste sak');
-                    // Fall back to localStorage if API fails
                     if (loadedData) {
                         setFormData(loadedData);
                         showToast(setToastMessage, 'API ikke tilgjengelig - bruker lokal lagring');
@@ -107,7 +137,6 @@ const App: React.FC = () => {
             } catch (error) {
                 logger.error('Failed to load from API:', error);
                 setApiError('Nettverksfeil ved lasting av sak');
-                // Fall back to localStorage
                 if (loadedData) {
                     setFormData(loadedData);
                 }
@@ -116,14 +145,14 @@ const App: React.FC = () => {
             }
         };
 
-        if (sakId && isApiConnected === true) {
+        if (internalSakId && isApiConnected === true) {
             loadFromApi();
-        } else if (!sakId && loadedData) {
+        } else if (!internalSakId && loadedData) {
             // No sakId - load from localStorage
             setFormData(loadedData);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [sakId, isApiConnected]);
+    }, [internalSakId, isApiConnected]);
 
     // Set role based on modus parameter
     useEffect(() => {
@@ -262,16 +291,16 @@ const App: React.FC = () => {
 
             if (modus === 'varsel') {
                 // TE submitting initial warning
-                response = await api.submitVarsel(formData, topicGuid || undefined, sakId || undefined);
-            } else if (modus === 'svar' && sakId) {
+                response = await api.submitVarsel(formData, topicGuid || undefined, internalSakId || undefined);
+            } else if (modus === 'svar' && internalSakId) {
                 // BH submitting response to claim
-                response = await api.submitSvar(formData, sakId, topicGuid || undefined);
-            } else if (modus === 'revidering' && sakId) {
+                response = await api.submitSvar(formData, internalSakId, topicGuid || undefined);
+            } else if (modus === 'revidering' && internalSakId) {
                 // TE submitting revision
-                response = await api.submitRevidering(formData, sakId);
+                response = await api.submitRevidering(formData, internalSakId);
             } else {
                 // KOE submission (claim)
-                response = await api.submitKoe(formData, sakId || undefined, topicGuid || undefined);
+                response = await api.submitKoe(formData, internalSakId || undefined, topicGuid || undefined);
             }
 
             if (response.success && response.data) {
@@ -279,7 +308,7 @@ const App: React.FC = () => {
                 const { blob, filename } = await generatePdfBlob(formData);
 
                 // Upload PDF to backend for Catenda integration
-                const effectiveSakId = response.data.sakId || sakId;
+                const effectiveSakId = response.data.sakId || internalSakId;
                 if (effectiveSakId && isApiConnected) {
                     const pdfResponse = await api.uploadPdf(
                         effectiveSakId,
@@ -539,7 +568,7 @@ const App: React.FC = () => {
             <div className="bg-body-bg min-h-screen text-ink font-sans flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pri mx-auto mb-4"></div>
-                    <p className="text-ink-dim">Laster sak {sakId}...</p>
+                    <p className="text-ink-dim">Laster sak {internalSakId || '...'}...</p>
                 </div>
             </div>
         );
@@ -605,13 +634,13 @@ const App: React.FC = () => {
                 )}
 
                 {/* Mode and SakId Info Banner */}
-                {(sakId || modus) && (
+                {(internalSakId || modus) && (
                     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
                         <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
                             <div className="flex items-center gap-4 text-sm">
-                                {sakId && (
+                                {internalSakId && (
                                     <span className="text-blue-700">
-                                        <strong>Sak:</strong> {sakId}
+                                        <strong>Sak:</strong> {internalSakId}
                                     </span>
                                 )}
                                 {modus && (

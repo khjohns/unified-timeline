@@ -2,7 +2,11 @@ import { FormDataModel } from '../types';
 import { logger } from '../utils/logger';
 
 // API base URL - will be configured via environment variable
-const rawApiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+let rawApiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+// Make robust against missing protocol
+if (rawApiBaseUrl && !/^https?:\/\//i.test(rawApiBaseUrl)) {
+  rawApiBaseUrl = 'http://' + rawApiBaseUrl;
+}
 // Sanitize the base URL to remove any trailing slashes, making it more robust
 const API_BASE_URL = rawApiBaseUrl.replace(/\/$/, '');
 
@@ -402,6 +406,41 @@ export const api = {
       return response.ok;
     } catch {
       return false;
+    }
+  },
+
+  /**
+   * Verify a magic link token
+   */
+  verifyMagicToken: async (token: string): Promise<ApiResponse<{ sakId: string }>> => {
+    try {
+      const url = buildUrl(API_BASE_URL, `/magic-link/verify`, { token });
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        return {
+          success: false,
+          error: errorData.detail || `Invalid token: ${response.status}`,
+        };
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        data,
+      };
+    } catch (error) {
+      logger.error('API verifyMagicToken error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Network error',
+      };
     }
   },
 };
