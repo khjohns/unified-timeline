@@ -5,7 +5,7 @@ import FieldsetCard from '../ui/FieldsetCard';
 import PanelLayout from '../ui/PanelLayout';
 import { PktButton, PktCheckbox, PktTag, PktRadioButton } from '@oslokommune/punkt-react';
 import { VEDERLAGSMETODER_OPTIONS } from '../../constants';
-import { getKravStatusLabel, getKravStatusSkin } from '../../utils/statusHelpers';
+import { getKravStatusLabel, getKravStatusSkin, KOE_STATUS, SAK_STATUS } from '../../utils/statusHelpers';
 import { useFileUpload } from '../../hooks/useFileUpload';
 import FileUploadField from '../ui/FileUploadField';
 import { showToast } from '../../utils/toastHelpers';
@@ -91,8 +91,8 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
     }
 
     // Oppdater statuser
-    setFormData('koe_revisjoner', 'status', '100000002', sisteKravIndex); // Sendt til BH
-    setFormData('sak', 'status', '100000002'); // Venter på svar
+    setFormData('koe_revisjoner', 'status', KOE_STATUS.SENDT_TIL_BH, sisteKravIndex); // Sendt til BH
+    setFormData('sak', 'status', SAK_STATUS.VENTER_PAA_SVAR); // Venter på svar
 
     addBhSvarRevisjon?.();
     setActiveTab?.(3);
@@ -100,7 +100,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
   };
 
   const sisteKoe = koe_revisjoner[sisteKravIndex];
-  const sisteKoeErUtkast = !sisteKoe?.status || sisteKoe?.status === '100000001';
+  const sisteKoeErUtkast = !sisteKoe?.status || sisteKoe?.status === KOE_STATUS.UTKAST;
 
   // Determine which revisions to show: utkast first, then last sent
   const visningsRevisjoner: number[] = [];
