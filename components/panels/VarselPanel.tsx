@@ -42,6 +42,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
   const [signerName, setSignerName] = useState('');
   const [isValidating, setIsValidating] = useState(false);
   const [validationError, setValidationError] = useState('');
+  const [validationTimer, setValidationTimer] = useState<NodeJS.Timeout | null>(null);
 
   // Initialize signer name from formData if it exists
   useEffect(() => {
@@ -49,6 +50,15 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
       setSignerName(varsel.for_entreprenor);
     }
   }, [varsel?.for_entreprenor]);
+
+  // Cleanup validation timer on unmount
+  useEffect(() => {
+    return () => {
+      if (validationTimer) {
+        clearTimeout(validationTimer);
+      }
+    };
+  }, [validationTimer]);
 
   // Valider e-post mot Catenda API
   const handleEmailValidation = async (email: string) => {
@@ -84,6 +94,29 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
       showToast(setToastMessage, '❌ Feil ved validering av bruker');
     } finally {
       setIsValidating(false);
+    }
+  };
+
+  // Debounced validering for onChange (venter 800ms etter siste tastetrykk)
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const email = e.target.value;
+    setSignerEmail(email);
+
+    // Clear existing timer
+    if (validationTimer) {
+      clearTimeout(validationTimer);
+    }
+
+    // Only start validation timer if email contains '@'
+    if (email && email.includes('@')) {
+      const timer = setTimeout(() => {
+        handleEmailValidation(email);
+      }, 800); // 800ms debounce
+      setValidationTimer(timer);
+    } else {
+      // Clear validation state if email is incomplete
+      setSignerName('');
+      setValidationError('');
     }
   };
 
@@ -364,7 +397,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
                 label="E-post for signering"
                 type="email"
                 value={signerEmail}
-                onChange={e => setSignerEmail(e.target.value)}
+                onChange={handleEmailChange}
                 onBlur={e => handleEmailValidation(e.target.value)}
                 helpText="Skriv inn e-postadressen til personen som sender varselet"
                 required={true}
