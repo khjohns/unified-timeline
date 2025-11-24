@@ -27,6 +27,28 @@ export default defineConfig(() => {
         alias: {
           '@': path.resolve(__dirname, '.'),
         }
-      }
+      },
+      build: {
+        rollupOptions: {
+          output: {
+            manualChunks: {
+              // React og core dependencies
+              'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+
+              // Oslo Kommune Punkt
+              'vendor-punkt': ['@oslokommune/punkt-react'],
+
+              // PDF-relaterte biblioteker
+              'vendor-pdf': ['react-pdf', 'pdfjs-dist'],
+            },
+          },
+        },
+        chunkSizeWarningLimit: 500,
+        cssCodeSplit: true,
+        sourcemap: false, // Deaktiver i produksjon for mindre filer
+      },
+      optimizeDeps: {
+        include: ['@oslokommune/punkt-react', 'react-pdf', 'pdfjs-dist'],
+      },
     };
 });

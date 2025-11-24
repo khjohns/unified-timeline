@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { FormDataModel } from '../types';
 import { INITIAL_FORM_DATA } from '../constants';
 import { api } from '../services/api';
+import { logger } from '../utils/logger';
 
 interface UseAutoSaveOptions {
   data: FormDataModel;
@@ -74,7 +75,7 @@ export const useAutoSave = ({
         loadedDataRef.current = parsedData;
       }
     } catch (error) {
-      console.error('Failed to load draft from localStorage', error);
+      logger.error('Failed to load draft from localStorage', error);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run on mount
@@ -101,13 +102,13 @@ export const useAutoSave = ({
         if (enableApiSave) {
           const response = await api.saveDraft(data, sakId || undefined);
           if (!response.success) {
-            console.warn('Failed to save draft to API:', response.error);
+            logger.warn('Failed to save draft to API:', response.error);
           }
         }
 
         onSave?.();
       } catch (error) {
-        console.error('Failed to save draft', error);
+        logger.error('Failed to save draft', error);
       }
     }, debounceMs);
 

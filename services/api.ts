@@ -1,12 +1,13 @@
 import { FormDataModel } from '../types';
+import { logger } from '../utils/logger';
 
 // API base URL - will be configured via environment variable
 const rawApiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 // Sanitize the base URL to remove any trailing slashes, making it more robust
 const API_BASE_URL = rawApiBaseUrl.replace(/\/$/, '');
 
-// Debug: Log the API URL being used (remove in production)
-console.log('API Base URL:', API_BASE_URL);
+// Debug: Log the API URL being used (only in development)
+logger.log('API Base URL:', API_BASE_URL);
 
 /**
  * Helper function to build URL with query parameters
@@ -101,7 +102,7 @@ export const api = {
         data,
       };
     } catch (error) {
-      console.error('API getCase error:', error);
+      logger.error('API getCase error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Network error',
@@ -141,7 +142,7 @@ export const api = {
         data,
       };
     } catch (error) {
-      console.error('API submitVarsel error:', error);
+      logger.error('API submitVarsel error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Network error',
@@ -181,7 +182,7 @@ export const api = {
         data,
       };
     } catch (error) {
-      console.error('API submitKoe error:', error);
+      logger.error('API submitKoe error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Network error',
@@ -221,7 +222,7 @@ export const api = {
         data,
       };
     } catch (error) {
-      console.error('API submitSvar error:', error);
+      logger.error('API submitSvar error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Network error',
@@ -259,7 +260,7 @@ export const api = {
         data,
       };
     } catch (error) {
-      console.error('API submitRevidering error:', error);
+      logger.error('API submitRevidering error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Network error',
@@ -296,7 +297,7 @@ export const api = {
         data,
       };
     } catch (error) {
-      console.error('API uploadAttachment error:', error);
+      logger.error('API uploadAttachment error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Network error',
@@ -343,7 +344,7 @@ export const api = {
         data,
       };
     } catch (error) {
-      console.error('API uploadPdf error:', error);
+      logger.error('API uploadPdf error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Network error',
@@ -382,7 +383,7 @@ export const api = {
         data,
       };
     } catch (error) {
-      console.error('API saveDraft error:', error);
+      logger.error('API saveDraft error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Network error',
