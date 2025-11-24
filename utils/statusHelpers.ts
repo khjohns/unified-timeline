@@ -36,6 +36,7 @@ export const BH_SVAR_STATUS = {
 export const SAK_STATUS_OPTIONS = [
   { value: '', label: '— Velg status —' },
   { value: '100000000', label: 'Under varsling' },
+  { value: '100000001', label: 'Varslet' },
   { value: '100000002', label: 'Venter på svar' },
   { value: '100000003', label: 'Under avklaring' },
   { value: '100000007', label: 'Vurderes av TE' },
@@ -60,6 +61,9 @@ export const getSakStatusSkin = (status?: SakStatus): 'blue' | 'green' | 'red' |
   switch (status) {
     case '100000000': // Under varsling
       return 'grey';
+
+    case '100000001': // Varslet
+      return 'blue';
 
     case '100000002': // Venter på svar
     case '100000013': // Pågår - Under utførelse

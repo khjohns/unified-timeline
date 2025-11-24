@@ -1,5 +1,6 @@
 export type SakStatus =
   | '100000000' // Under varsling
+  | '100000001' // Varslet
   | '100000002' // Venter på svar
   | '100000003' // Under avklaring
   | '100000007' // Vurderes av TE

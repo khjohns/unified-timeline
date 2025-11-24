@@ -120,7 +120,7 @@ class DataManager:
 
             sak_data.setdefault('opprettet_dato', datetime.now().isoformat())
             sak_data.setdefault('opprettet_av', sak_data.get('te_navn', 'System'))
-            sak_data.setdefault('status', 'Ny')
+            sak_data.setdefault('status', '100000000')  # Under varsling
             sak_data.setdefault('modus', 'varsel')
             
             # Lagre til CSV
