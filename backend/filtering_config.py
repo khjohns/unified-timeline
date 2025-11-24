@@ -27,7 +27,7 @@ Konfigurasjon av filtreringsregler for KOE Automation System
 # ALLOWED_TOPIC_TYPES = ["Request", "Issue"]  # Kun Request og Issue
 # ALLOWED_TOPIC_TYPES = None                  # Alle typer
 
-ALLOWED_TOPIC_TYPES = ["Request"]  # Kun "Request" (KOE/EO-saker)
+ALLOWED_TOPIC_TYPES = None  # Alle typer
 
 
 # ----------------------------------------------------------------------------
@@ -42,7 +42,7 @@ ALLOWED_TOPIC_TYPES = ["Request"]  # Kun "Request" (KOE/EO-saker)
 # ALLOWED_BOARD_IDS = ["board-123", "board-456"]  # Kun disse boards
 # ALLOWED_BOARD_IDS = None                        # Alle boards
 
-ALLOWED_BOARD_IDS = None  # Alle boards
+ALLOWED_BOARD_IDS = ["ffc8413d-1ec5-4834-878b-2955db96e734"]
 
 
 # ----------------------------------------------------------------------------
@@ -195,8 +195,17 @@ def should_process_topic(topic_data: dict) -> tuple[bool, str]:
     # 2. Board Filter
     if ALLOWED_BOARD_IDS:
         board_id = topic_data.get('board_id')
-        if board_id not in ALLOWED_BOARD_IDS:
-            return False, f"Board '{board_id}' ikke i allowed list"
+        if board_id: # Ensure board_id is not None or empty
+            # Normalize the board_id from webhook (remove hyphens) for comparison
+            normalized_board_id = board_id.replace('-', '')
+            
+            # Normalize the allowed IDs for comparison
+            normalized_allowed_board_ids = [id.replace('-', '') for id in ALLOWED_BOARD_IDS]
+
+            if normalized_board_id not in normalized_allowed_board_ids:
+                return False, f"Board '{board_id}' ikke i allowed list"
+        else:
+            return False, "Board ID mangler i topic_data for filtrering"
     
     # 3. Keyword Filter
     if REQUIRED_KEYWORDS:

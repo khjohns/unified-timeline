@@ -38,6 +38,13 @@ except ImportError:
     print("❌ Finner ikke catenda_api_tester.py")
     sys.exit(1)
 
+# Filtering imports
+try:
+    from filtering_config import should_process_topic, get_filter_summary
+except ImportError:
+    print("❌ Finner ikke filtering_config.py")
+    sys.exit(1)
+
 # Konfigurer logging
 logging.basicConfig(
     level=logging.INFO,
@@ -70,6 +77,14 @@ class DataManager:
     - CSV for oversikt (saker, historikk)
     - JSON for detaljert skjemadata (per sak)
     """
+    SAKER_FIELDNAMES = [
+        'sak_id', 'catenda_topic_id', 'catenda_project_id', 'catenda_board_id',
+        'sakstittel', 'opprettet_dato', 'opprettet_av', 'status', 'te_navn', 'modus',
+        'byggherre', 'entreprenor', 'prosjekt_navn'
+    ]
+    HISTORIKK_FIELDNAMES = [
+        'timestamp', 'sak_id', 'hendelse_type', 'beskrivelse'
+    ]
     
     def __init__(self, data_dir: str = "koe_data"):
         self.data_dir = Path(data_dir)
@@ -89,17 +104,12 @@ class DataManager:
         """Opprett CSV-filer med headers hvis de ikke finnes"""
         if not self.saker_file.exists():
             with open(self.saker_file, 'w', newline='', encoding='utf-8') as f:
-                writer = csv.DictWriter(f, fieldnames=[
-                    'sak_id', 'catenda_topic_id', 'catenda_project_id', 'catenda_board_id',
-                    'sakstittel', 'opprettet_dato', 'opprettet_av', 'status', 'te_navn', 'modus'
-                ])
+                writer = csv.DictWriter(f, fieldnames=self.SAKER_FIELDNAMES)
                 writer.writeheader()
         
         if not self.historikk_file.exists():
             with open(self.historikk_file, 'w', newline='', encoding='utf-8') as f:
-                writer = csv.DictWriter(f, fieldnames=[
-                    'timestamp', 'sak_id', 'hendelse_type', 'beskrivelse'
-                ])
+                writer = csv.DictWriter(f, fieldnames=self.HISTORIKK_FIELDNAMES)
                 writer.writeheader()
 
     def create_sak(self, sak_data: Dict[str, Any]) -> str:
@@ -115,11 +125,10 @@ class DataManager:
             
             # Lagre til CSV
             with open(self.saker_file, 'a', newline='', encoding='utf-8') as f:
-                writer = csv.DictWriter(f, fieldnames=[
-                    'sak_id', 'catenda_topic_id', 'catenda_project_id', 'catenda_board_id',
-                    'sakstittel', 'opprettet_dato', 'opprettet_av', 'status', 'te_navn', 'modus'
-                ])
-                writer.writerow(sak_data)
+                # Filtrer slik at kun definerte felter skrives til CSV
+                filtered_data = {k: sak_data.get(k) for k in self.SAKER_FIELDNAMES}
+                writer = csv.DictWriter(f, fieldnames=self.SAKER_FIELDNAMES)
+                writer.writerow(filtered_data)
             
             # Opprett initiell JSON-fil
             initial_json = {
@@ -167,8 +176,10 @@ class DataManager:
         with self.lock:
             rows = []
             updated = False
+            fieldnames = self.SAKER_FIELDNAMES
             with open(self.saker_file, 'r', newline='', encoding='utf-8') as f:
                 reader = csv.DictReader(f)
+                fieldnames = reader.fieldnames
                 for row in reader:
                     if row['sak_id'] == sak_id:
                         if status:
@@ -180,14 +191,14 @@ class DataManager:
             
             if updated:
                 with open(self.saker_file, 'w', newline='', encoding='utf-8') as f:
-                    writer = csv.DictWriter(f, fieldnames=reader.fieldnames)
+                    writer = csv.DictWriter(f, fieldnames=fieldnames)
                     writer.writeheader()
                     writer.writerows(rows)
 
     def log_historikk(self, sak_id: str, hendelse_type: str, beskrivelse: str):
         """Logg til historikk.csv"""
         with open(self.historikk_file, 'a', newline='', encoding='utf-8') as f:
-            writer = csv.DictWriter(f, fieldnames=['timestamp', 'sak_id', 'hendelse_type', 'beskrivelse'])
+            writer = csv.DictWriter(f, fieldnames=self.HISTORIKK_FIELDNAMES)
             writer.writerow({
                 'timestamp': datetime.now().isoformat(),
                 'sak_id': sak_id,
@@ -223,63 +234,110 @@ class KOEAutomationSystem:
     def handle_new_topic_created(self, webhook_payload: Dict[str, Any]) -> Dict[str, Any]:
         """
         Fase 2: Håndterer ny topic.
-        Oppretter sak og poster lenke til React-app.
+        Oppretter sak, henter metadata, og poster lenke til React-app.
         """
         try:
-            topic_data = webhook_payload.get('issue', {}) or webhook_payload.get('topic', {})
-            topic_id = topic_data.get('id') or topic_data.get('guid')
-            title = topic_data.get('title', 'Uten tittel')
-            project_id = webhook_payload.get('project_id')
-            
-            # Hent boardId (viktig for senere API-kall)
-            board_id = topic_data.get('boardId') or topic_data.get('topic_board_id')
-            
-            if not topic_id:
-                return {'success': False, 'error': 'Mangler topic ID'}
+            # Steg 1: Hent ID-er og sjekk filtre
+            temp_topic_data = webhook_payload.get('issue', {}) or webhook_payload.get('topic', {})
+            board_id = webhook_payload.get('project_id') or temp_topic_data.get('boardId') or temp_topic_data.get('topic_board_id')
 
-            # 1. Opprett sak i database
+            filter_data = temp_topic_data.copy()
+            filter_data['board_id'] = board_id
+            filter_data['type'] = temp_topic_data.get('topic_type') or temp_topic_data.get('type')
+
+            should_proc, reason = should_process_topic(filter_data)
+            if not should_proc:
+                logger.info(f"⏭️  Ignorerer topic (årsak: {reason})")
+                return {'success': True, 'action': 'ignored_due_to_filter', 'reason': reason}
+
+            # Fortsett kun hvis filter er passert
+            topic_id = temp_topic_data.get('id') or temp_topic_data.get('guid') or webhook_payload.get('guid')
+
+            if not topic_id or not board_id:
+                logger.error(f"Webhook mangler 'topic_id' eller 'board_id'. Payload: {webhook_payload}")
+                return {'success': False, 'error': 'Mangler topic_id eller board_id i webhook'}
+
+            # Steg 2: Hent fullstendig, oppdatert topic-data via API for en pålitelig datakilde
+            self.catenda.topic_board_id = board_id
+            topic_data = self.catenda.get_topic_details(topic_id)
+
+            if not topic_data:
+                logger.error(f"Klarte ikke å hente topic-detaljer for ID {topic_id} fra Catenda API.")
+                return {'success': False, 'error': f'Kunne ikke hente topic-detaljer for {topic_id}'}
+
+            title = topic_data.get('title', 'Uten tittel')
+
+            # --- Utvidelse: Hent metadata for forhåndsutfylling ---
+            byggherre = 'Ikke spesifisert'
+            leverandor = 'Ikke spesifisert'
+            saksstatus = '100000000' # Default til "Under varsling"
+            project_name = 'Ukjent prosjekt'
+            v2_project_id = None
+
+            # Steg 2a: Hent v2 prosjekt-ID og navn fra Topic Board
+            board_details = self.catenda.get_topic_board_details()
+            if board_details:
+                v2_project_id = board_details.get('bimsync_project_id')
+                if v2_project_id:
+                    project_details = self.catenda.get_project_details(v2_project_id)
+                    if project_details:
+                        project_name = project_details.get('name', project_name)
+
+            # Steg 2b: Hent fra custom fields og forfatter
+            custom_fields = topic_data.get('bimsync_custom_fields', [])
+            for field in custom_fields:
+                field_name = field.get('customFieldName')
+                field_value = field.get('value')
+                if field_name == 'Byggherre' and field_value:
+                    byggherre = field_value
+                elif field_name == 'Leverandør' and field_value:
+                    leverandor = field_value
+                elif field_name == 'Saksstatus KOE' and field_value:
+                    saksstatus = field_value
+            
+            author_name = topic_data.get('bimsync_creation_author', {}).get('user', {}).get('name', topic_data.get('creation_author', 'Ukjent'))
+
+            # Steg 3: Opprett sak i database med beriket data
             sak_data = {
                 'catenda_topic_id': topic_id,
-                'catenda_project_id': project_id,
-                'catenda_board_id': board_id, # Lagrer board ID
+                'catenda_project_id': v2_project_id,
+                'catenda_board_id': board_id,
                 'sakstittel': title,
-                'te_navn': topic_data.get('creation_author', 'Ukjent')
+                'te_navn': author_name,
+                'status': saksstatus,
+                'byggherre': byggherre,
+                'entreprenor': leverandor,
+                'prosjekt_navn': project_name,
             }
             sak_id = self.db.create_sak(sak_data)
             
-            # 2. Generer Magic Link for tilgang til React App
+            # Steg 4: Generer Magic Link for tilgang til React App
             magic_token = magic_link_mgr.generate(sak_id=sak_id, email=topic_data.get('creation_author'))
 
-            # Prioriterer miljøvariabel, deretter config, og faller tilbake til dynamisk IP
             dev_url = os.environ.get('DEV_REACT_APP_URL')
             if dev_url:
                 base_url = dev_url
             elif 'react_app_url' in self.config:
                 base_url = self.config['react_app_url']
             else:
-                # Finn dynamisk lokal IP for enkel testing på samme nettverk
                 local_ip = get_local_ip()
                 base_url = f"http://{local_ip}:3000"
             
             magic_link = f"{base_url}?magicToken={magic_token}"
 
-            # 3. Post kommentar til Catenda
-            from datetime import datetime
+            # Steg 5: Post kommentar til Catenda
             dato = datetime.now().strftime('%Y-%m-%d')
-            prosjekt = sak_data.get('sakstittel', 'Ukjent prosjekt')
-
             comment_text = (
                 f"✅ **Ny KOE-sak opprettet**\n\n"
                 f"📋 Intern Sak-ID: `{sak_id}`\n"
                 f"📅 Dato: {dato}\n"
-                f"🏗️ Prosjekt: {prosjekt}\n\n"
+                f"🏗️ Prosjekt: {project_name}\n\n"
                 f"**Neste steg:** Entreprenør sender varsel\n"
                 f"👉 [Åpne skjema]({magic_link})"
             )
             
-            self.catenda.topic_board_id = board_id # Sett board ID for API-kallet
             self.catenda.create_comment(topic_id, comment_text)
-            logger.info(f"✅ Sak {sak_id} opprettet og lenke sendt til Catenda.")
+            logger.info(f"✅ Sak {sak_id} opprettet med metadata og lenke sendt til Catenda.")
             
             return {'success': True, 'sak_id': sak_id}
             
@@ -427,6 +485,7 @@ def get_system():
             with open('config.json', 'r') as f:
                 config = json.load(f)
             system = KOEAutomationSystem(config)
+            logger.info(f"System startet. {get_filter_summary()}")
         except Exception as e:
             logger.error(f"Kunne ikke starte systemet: {e}")
             sys.exit(1)
