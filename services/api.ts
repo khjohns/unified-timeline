@@ -31,6 +31,63 @@ function buildUrl(base: string, path: string, params?: Record<string, string>): 
   return url;
 }
 
+// ===================================================================
+// CSRF Token Management
+// ===================================================================
+
+/**
+ * CSRF (Cross-Site Request Forgery) beskyttelse.
+ *
+ * Beskytter mot angrep hvor ondsinnede nettsider får brukerens browser
+ * til å utføre uønskede handlinger.
+ *
+ * Flow:
+ * 1. Frontend henter CSRF-token fra backend
+ * 2. Token lagres i memory (ikke localStorage for sikkerhet)
+ * 3. Token sendes i X-CSRF-Token header på alle POST/PUT/DELETE requests
+ * 4. Backend validerer token før operasjon utføres
+ */
+
+let csrfToken: string | null = null;
+let csrfTokenExpiry: number | null = null;
+
+/**
+ * Hent CSRF-token fra backend.
+ * Token er gyldig i 1 time og må fornyes etter det.
+ */
+async function fetchCsrfToken(): Promise<string> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/csrf-token`);
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch CSRF token: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    csrfToken = data.csrfToken;
+    csrfTokenExpiry = Date.now() + (data.expiresIn * 1000); // Convert to milliseconds
+
+    logger.log('✓ CSRF token hentet');
+    return csrfToken;
+  } catch (error) {
+    logger.error('Feil ved henting av CSRF-token:', error);
+    throw error;
+  }
+}
+
+/**
+ * Få CSRF-token (hent ny hvis ikke eksisterer eller er utløpt).
+ */
+async function getCsrfToken(): Promise<string> {
+  // Hvis token eksisterer og ikke er utløpt, bruk den
+  if (csrfToken && csrfTokenExpiry && Date.now() < csrfTokenExpiry) {
+    return csrfToken;
+  }
+
+  // Ellers hent ny token
+  return fetchCsrfToken();
+}
+
 // Types for API responses
 export interface ApiResponse<T> {
   success: boolean;
@@ -119,10 +176,14 @@ export const api = {
    */
   submitVarsel: async (formData: FormDataModel, topicGuid?: string, sakId?: string): Promise<ApiResponse<SubmitResponse>> => {
     try {
+      // Hent CSRF-token (beskyttelse mot CSRF-angrep)
+      const token = await getCsrfToken();
+
       const response = await fetch(`${API_BASE_URL}/varsel-submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-CSRF-Token': token,  // ✅ CSRF beskyttelse
         },
         body: JSON.stringify({
           sakId,
@@ -159,10 +220,14 @@ export const api = {
    */
   submitKoe: async (formData: FormDataModel, sakId?: string, topicGuid?: string): Promise<ApiResponse<SubmitResponse>> => {
     try {
+      // Hent CSRF-token
+      const token = await getCsrfToken();
+
       const response = await fetch(`${API_BASE_URL}/koe-submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-CSRF-Token': token,  // ✅ CSRF beskyttelse
         },
         body: JSON.stringify({
           formData,
@@ -199,10 +264,14 @@ export const api = {
    */
   submitSvar: async (formData: FormDataModel, sakId: string, topicGuid?: string): Promise<ApiResponse<SubmitResponse>> => {
     try {
+      // Hent CSRF-token
+      const token = await getCsrfToken();
+
       const response = await fetch(`${API_BASE_URL}/svar-submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-CSRF-Token': token,  // ✅ CSRF beskyttelse
         },
         body: JSON.stringify({
           sakId,
