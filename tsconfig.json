@@ -13,6 +13,13 @@
     "types": [
       "node"
     ],
+
+    // Strict mode for better type safety
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+
     "moduleResolution": "bundler",
     "isolatedModules": true,
     "moduleDetection": "force",

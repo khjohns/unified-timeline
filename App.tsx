@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { FormDataModel, Role, BhSvar, Koe } from './types';
 import { TABS, INITIAL_FORM_DATA, DEMO_DATA } from './constants';
@@ -9,15 +9,25 @@ import { useSkjemaData } from './hooks/useSkjemaData';
 import { useAutoSave } from './hooks/useAutoSave';
 import { showToast } from './utils/toastHelpers';
 import { focusOnField } from './utils/focusHelpers';
+import { logger } from './utils/logger';
 import { api, Modus } from './services/api';
 
-import VarselPanel from './components/panels/VarselPanel';
-import KravKoePanel from './components/panels/KravKoePanel';
-import BhSvarPanel from './components/panels/BhSvarPanel';
-import TestOversiktPanel from './components/panels/TestOversiktPanel';
-import SidePanel from './components/ui/SidePanel';
-import PDFPreviewModal from './components/ui/PDFPreviewModal';
+// Lazy load panels for better performance
+const VarselPanel = lazy(() => import('./components/panels/VarselPanel'));
+const KravKoePanel = lazy(() => import('./components/panels/KravKoePanel'));
+const BhSvarPanel = lazy(() => import('./components/panels/BhSvarPanel'));
+const TestOversiktPanel = lazy(() => import('./components/panels/TestOversiktPanel'));
+const PDFPreviewModal = lazy(() => import('./components/ui/PDFPreviewModal'));
 
+import SidePanel from './components/ui/SidePanel';
+import { ErrorBoundary } from './components/ui/ErrorBoundary';
+
+// Loading spinner for lazy-loaded components
+const PanelLoader: React.FC = () => (
+    <div className="flex justify-center items-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pri"></div>
+    </div>
+);
 
 const App: React.FC = () => {
     const [activeTab, setActiveTab] = useState(0);
@@ -66,7 +76,7 @@ const App: React.FC = () => {
             const connected = await api.healthCheck();
             setIsApiConnected(connected);
             if (!connected) {
-                console.warn('API server not available - running in offline mode');
+                logger.warn('API server not available - running in offline mode');
             }
         };
         checkApiConnection();
@@ -95,7 +105,7 @@ const App: React.FC = () => {
                     }
                 }
             } catch (error) {
-                console.error('Failed to load from API:', error);
+                logger.error('Failed to load from API:', error);
                 setApiError('Nettverksfeil ved lasting av sak');
                 // Fall back to localStorage
                 if (loadedData) {
@@ -170,7 +180,7 @@ const App: React.FC = () => {
         }
     };
 
-    const validateCurrentTab = (): boolean => {
+    const validateCurrentTab = useCallback((): boolean => {
         const newErrors: Record<string, string> = {};
         let firstInvalidFieldId: string | null = null;
 
@@ -213,7 +223,7 @@ const App: React.FC = () => {
 
         setErrors({});
         return true;
-    };
+    }, [activeTab, formData.varsel.dato_forhold_oppdaget, formData.varsel.hovedkategori, formData.koe_revisjoner]);
 
     const handleDownloadPdf = async () => {
         await generatePdfReact(formData);
@@ -236,7 +246,7 @@ const App: React.FC = () => {
                 pdfBlob: blob
             });
         } catch (error) {
-            console.error('PDF generation error:', error);
+            logger.error('PDF generation error:', error);
             const errorMessage = error instanceof Error ? error.message : 'Ukjent feil';
             showToast(setToastMessage, `Feil ved generering av PDF: ${errorMessage}`);
         }
@@ -279,9 +289,9 @@ const App: React.FC = () => {
                         topicGuid || undefined
                     );
                     if (pdfResponse.success) {
-                        console.log('PDF uploaded successfully');
+                        logger.log('PDF uploaded successfully');
                     } else {
-                        console.warn('PDF upload failed:', pdfResponse.error);
+                        logger.warn('PDF upload failed:', pdfResponse.error);
                     }
                 }
 
@@ -296,7 +306,7 @@ const App: React.FC = () => {
                 showToast(setToastMessage, `Feil: ${response.error}`);
             }
         } catch (error) {
-            console.error('Submit error:', error);
+            logger.error('Submit error:', error);
             const errorMessage = error instanceof Error ? error.message : 'Ukjent feil';
             setApiError(errorMessage);
             showToast(setToastMessage, `Feil ved innsending: ${errorMessage}`);
@@ -462,13 +472,20 @@ const App: React.FC = () => {
             addBhSvarRevisjon,
             addKoeRevisjon,
         };
-        switch(activeTab) {
-            case 0: return <VarselPanel {...panelProps} disabled={isTeDisabled} />;
-            case 1: return <KravKoePanel {...panelProps} disabled={isTeDisabled} />;
-            case 2: return <BhSvarPanel {...panelProps} />;
-            case 3: return <TestOversiktPanel data={formData} />;
-            default: return null;
-        }
+
+        return (
+            <Suspense fallback={<PanelLoader />}>
+                {(() => {
+                    switch(activeTab) {
+                        case 0: return <VarselPanel {...panelProps} disabled={isTeDisabled} />;
+                        case 1: return <KravKoePanel {...panelProps} disabled={isTeDisabled} />;
+                        case 2: return <BhSvarPanel {...panelProps} />;
+                        case 3: return <TestOversiktPanel data={formData} />;
+                        default: return null;
+                    }
+                })()}
+            </Suspense>
+        );
     };
     
     const renderBottomBar = () => (
@@ -529,7 +546,8 @@ const App: React.FC = () => {
     }
 
     return (
-        <div className="bg-body-bg min-h-screen text-ink font-sans">
+        <ErrorBoundary>
+            <div className="bg-body-bg min-h-screen text-ink font-sans">
             <PktHeader
                 serviceName="Skjema for krav om endringsordre (KOE)"
                 user={{ name: formData.rolle === 'TE' ? 'Entreprenør' : 'Byggherren', showName: true }}
@@ -635,15 +653,20 @@ const App: React.FC = () => {
 
             {toastMessage && <Toast message={toastMessage} />}
 
-            <PDFPreviewModal
-                isOpen={pdfPreviewModal.isOpen}
-                onClose={() => setPdfPreviewModal({ ...pdfPreviewModal, isOpen: false })}
-                onConfirm={handleConfirmSubmit}
-                pdfBlob={pdfPreviewModal.pdfBlob}
-                type={pdfPreviewModal.type}
-                isSubmitting={isSubmitting}
-            />
+            {pdfPreviewModal.isOpen && (
+                <Suspense fallback={null}>
+                    <PDFPreviewModal
+                        isOpen={pdfPreviewModal.isOpen}
+                        onClose={() => setPdfPreviewModal({ ...pdfPreviewModal, isOpen: false })}
+                        onConfirm={handleConfirmSubmit}
+                        pdfBlob={pdfPreviewModal.pdfBlob}
+                        type={pdfPreviewModal.type}
+                        isSubmitting={isSubmitting}
+                    />
+                </Suspense>
+            )}
         </div>
+        </ErrorBoundary>
     );
 };
 
