@@ -17,6 +17,7 @@ import csv
 import logging
 import base64
 import tempfile
+import socket
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any, List
@@ -48,6 +49,21 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+def get_local_ip():
+    """Henter maskinens lokale nettverks-IP."""
+    s = None
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        # Trenger ikke være nåelig, brukes kun for å finne utgående IP
+        s.connect(('8.8.8.8', 1))
+        IP = s.getsockname()[0]
+    except Exception:
+        IP = '127.0.0.1' # Fallback til localhost
+    finally:
+        if s:
+            s.close()
+    return IP
+
 class DataManager:
     """
     Håndterer datalagring:
@@ -73,10 +89,9 @@ class DataManager:
         """Opprett CSV-filer med headers hvis de ikke finnes"""
         if not self.saker_file.exists():
             with open(self.saker_file, 'w', newline='', encoding='utf-8') as f:
-                # Lagt til catenda_board_id her
                 writer = csv.DictWriter(f, fieldnames=[
                     'sak_id', 'catenda_topic_id', 'catenda_project_id', 'catenda_board_id',
-                    'sakstittel', 'opprettet_dato', 'status', 'te_navn', 'modus'
+                    'sakstittel', 'opprettet_dato', 'opprettet_av', 'status', 'te_navn', 'modus'
                 ])
                 writer.writeheader()
         
@@ -102,7 +117,7 @@ class DataManager:
             with open(self.saker_file, 'a', newline='', encoding='utf-8') as f:
                 writer = csv.DictWriter(f, fieldnames=[
                     'sak_id', 'catenda_topic_id', 'catenda_project_id', 'catenda_board_id',
-                    'sakstittel', 'opprettet_dato', 'status', 'te_navn', 'modus'
+                    'sakstittel', 'opprettet_dato', 'opprettet_av', 'status', 'te_navn', 'modus'
                 ])
                 writer.writerow(sak_data)
             
@@ -232,11 +247,22 @@ class KOEAutomationSystem:
             }
             sak_id = self.db.create_sak(sak_data)
             
-            # 2. Generer lenke til React App
-            base_url = self.config.get('react_app_url', 'http://localhost:5173')
-            # URL format: ?sakId={guid}&modus={varsel|koe|svar}
-            app_link = f"{base_url}?sakId={sak_id}&modus=varsel&topicGuid={topic_id}"
+            # 2. Generer Magic Link for tilgang til React App
+            magic_token = magic_link_mgr.generate(sak_id=sak_id, email=topic_data.get('creation_author'))
+
+            # Prioriterer miljøvariabel, deretter config, og faller tilbake til dynamisk IP
+            dev_url = os.environ.get('DEV_REACT_APP_URL')
+            if dev_url:
+                base_url = dev_url
+            elif 'react_app_url' in self.config:
+                base_url = self.config['react_app_url']
+            else:
+                # Finn dynamisk lokal IP for enkel testing på samme nettverk
+                local_ip = get_local_ip()
+                base_url = f"http://{local_ip}:3000"
             
+            magic_link = f"{base_url}?magicToken={magic_token}"
+
             # 3. Post kommentar til Catenda
             from datetime import datetime
             dato = datetime.now().strftime('%Y-%m-%d')
@@ -244,11 +270,11 @@ class KOEAutomationSystem:
 
             comment_text = (
                 f"✅ **Ny KOE-sak opprettet**\n\n"
-                f"📋 Sak-ID: `{sak_id}`\n"
+                f"📋 Intern Sak-ID: `{sak_id}`\n"
                 f"📅 Dato: {dato}\n"
                 f"🏗️ Prosjekt: {prosjekt}\n\n"
                 f"**Neste steg:** Entreprenør sender varsel\n"
-                f"👉 [Åpne skjema]({base_url}?sakId={sak_id})"
+                f"👉 [Åpne skjema]({magic_link})"
             )
             
             self.catenda.topic_board_id = board_id # Sett board ID for API-kallet
@@ -406,7 +432,28 @@ def get_system():
             sys.exit(1)
     return system
 
+from magic_link import MagicLinkManager
+magic_link_mgr = MagicLinkManager()
+
 # --- API Endpoints (Fase 3) ---
+
+@app.route('/api/magic-link/verify', methods=['GET'])
+def verify_magic_link():
+    """
+    Verifiserer et Magic Link token.
+    Returnerer den interne sakId-en hvis token er gyldig.
+    """
+    token = request.args.get('token', '')
+    valid, error, token_data = magic_link_mgr.verify(token)
+
+    if not valid:
+        return jsonify({"error": "Invalid or expired link", "detail": error}), 403
+
+    return jsonify({
+        "success": True,
+        "sakId": token_data["sak_id"]
+    }), 200
+
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
