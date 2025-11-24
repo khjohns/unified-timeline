@@ -464,9 +464,13 @@ def get_case(sakId):
     sys = get_system()
     data = sys.db.get_form_data(sakId)
     if data:
+        # Extract topicGuid from the nested 'sak' object for the response
+        topic_guid = data.get('sak', {}).get('catenda_topic_id')
+        
         # Return in format expected by React frontend
         return jsonify({
             "sakId": sakId,
+            "topicGuid": topic_guid,
             "formData": data,
             "status": data.get('sak', {}).get('status', 'Ukjent'),
         }), 200

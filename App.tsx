@@ -38,10 +38,11 @@ const App: React.FC = () => {
     const magicToken = searchParams.get('magicToken');
     const directSakId = searchParams.get('sakId'); // For direct access or older links
     const modus = searchParams.get('modus') as Modus | null;
-    const topicGuid = searchParams.get('topicGuid'); // From Catenda webhook
+    const initialTopicGuid = searchParams.get('topicGuid'); // From Catenda webhook
 
-    // Internal state for the resolved sakId
+    // Internal state for the resolved sakId and topicGuid
     const [internalSakId, setInternalSakId] = useState<string | null>(directSakId);
+    const [topicGuid, setTopicGuid] = useState<string | null>(initialTopicGuid);
 
     // Loading and error states
     const [isLoading, setIsLoading] = useState(!!magicToken); // Start loading if token is present
@@ -126,6 +127,7 @@ const App: React.FC = () => {
 
                 if (response.success && response.data) {
                     setFormData(response.data.formData);
+                    setTopicGuid(response.data.topicGuid); // Persist topicGuid in state
                     showToast(setToastMessage, `Sak ${internalSakId} lastet fra server`);
                 } else {
                     setApiError(response.error || 'Kunne ikke laste sak');
