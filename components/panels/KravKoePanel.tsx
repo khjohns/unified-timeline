@@ -10,6 +10,7 @@ import { useFileUpload } from '../../hooks/useFileUpload';
 import FileUploadField from '../ui/FileUploadField';
 import { showToast } from '../../utils/toastHelpers';
 import { focusOnField } from '../../utils/focusHelpers';
+import { api } from '../../services/api';
 
 interface KravKoePanelProps {
   formData: FormDataModel;
@@ -32,14 +33,65 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
   setToastMessage,
   addBhSvarRevisjon
 }) => {
-  const { koe_revisjoner = [], bh_svar_revisjoner = [], rolle } = formData;
+  const { koe_revisjoner = [], bh_svar_revisjoner = [], rolle, sak } = formData;
   const sisteKravIndex = koe_revisjoner.length - 1;
+
+  // State for e-post validering
+  const [signerEmail, setSignerEmail] = useState('');
+  const [signerName, setSignerName] = useState('');
+  const [isValidating, setIsValidating] = useState(false);
+  const [validationError, setValidationError] = useState('');
+
+  // Initialize signer name from formData if it exists
+  useEffect(() => {
+    const sisteKoe = koe_revisjoner[sisteKravIndex];
+    if (sisteKoe?.for_entreprenor) {
+      setSignerName(sisteKoe.for_entreprenor);
+    }
+  }, [koe_revisjoner, sisteKravIndex]);
 
   // File upload hook
   const { fileInputRef, uploadedFiles, handleFileUploadClick, handleFileChange, handleRemoveFile } =
     useFileUpload((fileNames) => {
       setFormData('koe_revisjoner', 'vedlegg', fileNames, sisteKravIndex);
     });
+
+  // Valider e-post mot Catenda API
+  const handleEmailValidation = async (email: string) => {
+    if (!email || !email.includes('@')) {
+      setValidationError('');
+      setSignerName('');
+      return;
+    }
+
+    setIsValidating(true);
+    setValidationError('');
+
+    try {
+      const response = await api.validateUser(sak.sak_id_display || '', email);
+
+      if (response.success && response.data) {
+        const validatedName = response.data.name;
+        setSignerName(validatedName);
+        setValidationError('');
+
+        // Lagre validert navn til formData for bruk ved submit
+        setFormData('koe_revisjoner', 'for_entreprenor', validatedName, sisteKravIndex);
+
+        showToast(setToastMessage, `✅ Bruker validert: ${validatedName}`);
+      } else {
+        setSignerName('');
+        setValidationError(response.error || 'Brukeren er ikke medlem i Catenda-prosjektet');
+        showToast(setToastMessage, `❌ ${response.error}`);
+      }
+    } catch (error) {
+      setSignerName('');
+      setValidationError('Feil ved validering');
+      showToast(setToastMessage, '❌ Feil ved validering av bruker');
+    } finally {
+      setIsValidating(false);
+    }
+  };
 
   if (koe_revisjoner.length === 0) {
     return (
@@ -329,6 +381,37 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                 )}
 
                 <FieldsetCard legend="Innsending">
+                  {/* E-post validering */}
+                  {erSisteRevisjon && koeErUtkast && rolle === 'TE' && !disabled && (
+                    <div className="space-y-4 mb-6">
+                      <InputField
+                        id={`koe.signerende_epost.${index}`}
+                        label="E-post for signering"
+                        type="email"
+                        value={signerEmail}
+                        onChange={e => setSignerEmail(e.target.value)}
+                        onBlur={e => handleEmailValidation(e.target.value)}
+                        helpText="Skriv inn e-postadressen til personen som sender kravet"
+                        required={true}
+                        error={validationError}
+                        readOnly={isValidating}
+                        className="w-full md:max-w-md"
+                      />
+                      {isValidating && (
+                        <div className="text-sm text-blue-600">
+                          ⏳ Validerer bruker...
+                        </div>
+                      )}
+                      {signerName && !validationError && (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                          <p className="text-sm text-green-800">
+                            ✅ <strong>Validert bruker:</strong> {signerName}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Vis automatisk genererte verdier - kun hvis krav faktisk er sendt */}
                   {koe.dato_krav_sendt && koe.dato_krav_sendt.trim() !== '' ? (
                     <div className="bg-green-50 border border-green-200 rounded-lg p-4">

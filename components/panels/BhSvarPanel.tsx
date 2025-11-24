@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { FormDataModel } from '../../types';
 import { InputField, SelectField, TextareaField, CheckboxField, DateField } from '../ui/Field';
 import FieldsetCard from '../ui/FieldsetCard';
@@ -10,6 +10,7 @@ import { useFileUpload } from '../../hooks/useFileUpload';
 import FileUploadField from '../ui/FileUploadField';
 import { showToast } from '../../utils/toastHelpers';
 import { focusOnField } from '../../utils/focusHelpers';
+import { api } from '../../services/api';
 
 interface BhSvarPanelProps {
   formData: FormDataModel;
@@ -28,9 +29,60 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
   setToastMessage,
   addKoeRevisjon
 }) => {
-  const { bh_svar_revisjoner = [], koe_revisjoner = [], rolle } = formData;
+  const { bh_svar_revisjoner = [], koe_revisjoner = [], rolle, sak } = formData;
   const sisteSvarIndex = bh_svar_revisjoner.length - 1;
   const sisteKravIndex = koe_revisjoner.length - 1;
+
+  // State for e-post validering
+  const [signerEmail, setSignerEmail] = useState('');
+  const [signerName, setSignerName] = useState('');
+  const [isValidating, setIsValidating] = useState(false);
+  const [validationError, setValidationError] = useState('');
+
+  // Initialize signer name from formData if it exists
+  useEffect(() => {
+    const sisteSvar = bh_svar_revisjoner[sisteSvarIndex];
+    if (sisteSvar?.sign?.for_byggherre) {
+      setSignerName(sisteSvar.sign.for_byggherre);
+    }
+  }, [bh_svar_revisjoner, sisteSvarIndex]);
+
+  // Valider e-post mot Catenda API
+  const handleEmailValidation = async (email: string) => {
+    if (!email || !email.includes('@')) {
+      setValidationError('');
+      setSignerName('');
+      return;
+    }
+
+    setIsValidating(true);
+    setValidationError('');
+
+    try {
+      const response = await api.validateUser(sak.sak_id_display || '', email);
+
+      if (response.success && response.data) {
+        const validatedName = response.data.name;
+        setSignerName(validatedName);
+        setValidationError('');
+
+        // Lagre validert navn til formData for bruk ved submit
+        setFormData('bh_svar_revisjoner', 'sign.for_byggherre', validatedName, sisteSvarIndex);
+
+        showToast(setToastMessage, `✅ Bruker validert: ${validatedName}`);
+      } else {
+        setSignerName('');
+        setValidationError(response.error || 'Brukeren er ikke medlem i Catenda-prosjektet');
+        showToast(setToastMessage, `❌ ${response.error}`);
+      }
+    } catch (error) {
+      setSignerName('');
+      setValidationError('Feil ved validering');
+      showToast(setToastMessage, '❌ Feil ved validering av bruker');
+    } finally {
+      setIsValidating(false);
+    }
+  };
 
   // File upload hook
   const { fileInputRef, uploadedFiles, handleFileUploadClick, handleFileChange, handleRemoveFile } =
@@ -289,6 +341,37 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                 )}
 
                 <FieldsetCard legend="Innsending">
+                  {/* E-post validering */}
+                  {erSisteRevisjon && svarErUtkast && rolle === 'BH' && (
+                    <div className="space-y-4 mb-6">
+                      <InputField
+                        id={`bh_svar.signerende_epost.${index}`}
+                        label="E-post for signering"
+                        type="email"
+                        value={signerEmail}
+                        onChange={e => setSignerEmail(e.target.value)}
+                        onBlur={e => handleEmailValidation(e.target.value)}
+                        helpText="Skriv inn e-postadressen til personen som sender svaret"
+                        required={true}
+                        error={validationError}
+                        readOnly={isValidating}
+                        className="w-full md:max-w-md"
+                      />
+                      {isValidating && (
+                        <div className="text-sm text-blue-600">
+                          ⏳ Validerer bruker...
+                        </div>
+                      )}
+                      {signerName && !validationError && (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                          <p className="text-sm text-green-800">
+                            ✅ <strong>Validert bruker:</strong> {signerName}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Vis automatisk genererte verdier */}
                   {bh_svar.sign.dato_svar_bh || bh_svar.sign.for_byggherre ? (
                     <div className="bg-green-50 border border-green-200 rounded-lg p-4">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FormDataModel } from '../../types';
 import { DateField, SelectField, TextareaField, InputField } from '../ui/Field';
 import FieldsetCard from '../ui/FieldsetCard';
@@ -9,6 +9,7 @@ import { useFileUpload } from '../../hooks/useFileUpload';
 import FileUploadField from '../ui/FileUploadField';
 import { showToast } from '../../utils/toastHelpers';
 import { focusOnField } from '../../utils/focusHelpers';
+import { api } from '../../services/api';
 
 interface VarselPanelProps {
   formData: FormDataModel;
@@ -35,6 +36,56 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
   const handleChange = (field: string, value: any) => setFormData('varsel', field, value);
   const [erTidligereVarslet, setErTidligereVarslet] = useState<'nei' | 'ja'>('nei');
   const [varselMetoder, setVarselMetoder] = useState<string[]>([]);
+
+  // State for e-post validering
+  const [signerEmail, setSignerEmail] = useState('');
+  const [signerName, setSignerName] = useState('');
+  const [isValidating, setIsValidating] = useState(false);
+  const [validationError, setValidationError] = useState('');
+
+  // Initialize signer name from formData if it exists
+  useEffect(() => {
+    if (varsel?.for_entreprenor) {
+      setSignerName(varsel.for_entreprenor);
+    }
+  }, [varsel?.for_entreprenor]);
+
+  // Valider e-post mot Catenda API
+  const handleEmailValidation = async (email: string) => {
+    if (!email || !email.includes('@')) {
+      setValidationError('');
+      setSignerName('');
+      return;
+    }
+
+    setIsValidating(true);
+    setValidationError('');
+
+    try {
+      const response = await api.validateUser(sak.sak_id_display || '', email);
+
+      if (response.success && response.data) {
+        const validatedName = response.data.name;
+        setSignerName(validatedName);
+        setValidationError('');
+
+        // Lagre validert navn til formData for bruk ved submit
+        handleChange('for_entreprenor', validatedName);
+
+        showToast(setToastMessage, `✅ Bruker validert: ${validatedName}`);
+      } else {
+        setSignerName('');
+        setValidationError(response.error || 'Brukeren er ikke medlem i Catenda-prosjektet');
+        showToast(setToastMessage, `❌ ${response.error}`);
+      }
+    } catch (error) {
+      setSignerName('');
+      setValidationError('Feil ved validering');
+      showToast(setToastMessage, '❌ Feil ved validering av bruker');
+    } finally {
+      setIsValidating(false);
+    }
+  };
 
   // File upload hook
   const { fileInputRef, uploadedFiles, handleFileUploadClick, handleFileChange, handleRemoveFile } =
@@ -302,6 +353,39 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
               </div>
             )}
           </div>
+        </FieldsetCard>
+
+        <FieldsetCard legend="Innsending">
+          {/* E-post validering - kun for TE */}
+          {rolle === 'TE' && !disabled && (
+            <div className="space-y-4">
+              <InputField
+                id="varsel.signerende_epost"
+                label="E-post for signering"
+                type="email"
+                value={signerEmail}
+                onChange={e => setSignerEmail(e.target.value)}
+                onBlur={e => handleEmailValidation(e.target.value)}
+                helpText="Skriv inn e-postadressen til personen som sender varselet"
+                required={true}
+                error={validationError}
+                readOnly={isValidating || isLocked}
+                className="w-full md:max-w-md"
+              />
+              {isValidating && (
+                <div className="text-sm text-blue-600">
+                  ⏳ Validerer bruker...
+                </div>
+              )}
+              {signerName && !validationError && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <p className="text-sm text-green-800">
+                    ✅ <strong>Validert bruker:</strong> {signerName}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </FieldsetCard>
 
         <FieldsetCard legend="Vedlegg">

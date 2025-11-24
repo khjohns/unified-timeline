@@ -27,6 +27,7 @@ export interface Sak {
 export interface Varsel {
   dato_forhold_oppdaget: string;
   dato_varsel_sendt: string;
+  for_entreprenor?: string; // Navn på person som sender varsel (validert via Catenda)
   hovedkategori: string;
   underkategori: string[]; // Endret til array for å tillate multivalg
   varsel_beskrivelse: string;
