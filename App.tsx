@@ -176,13 +176,11 @@ const App: React.FC = () => {
 
         if (activeTab === 0) {
             // Varsel validation
+            // Note: dato_forhold_oppdaget and hovedkategori are always required
+            // dato_varsel_sendt is conditionally required and validated in VarselPanel
             if (!formData.varsel.dato_forhold_oppdaget.trim()) {
                 newErrors['varsel.dato_forhold_oppdaget'] = 'Dato forhold oppdaget er påkrevd';
                 if (!firstInvalidFieldId) firstInvalidFieldId = 'varsel.dato_forhold_oppdaget';
-            }
-            if (!formData.varsel.dato_varsel_sendt.trim()) {
-                newErrors['varsel.dato_varsel_sendt'] = 'Dato varsel sendt er påkrevd';
-                if (!firstInvalidFieldId) firstInvalidFieldId = 'varsel.dato_varsel_sendt';
             }
             if (!formData.varsel.hovedkategori.trim()) {
                 newErrors['varsel.hovedkategori'] = 'Hovedkategori er påkrevd';
