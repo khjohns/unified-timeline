@@ -443,6 +443,41 @@ export const api = {
       };
     }
   },
+
+  /**
+   * Validate a user's email against Catenda project members
+   */
+  validateUser: async (sakId: string, email: string): Promise<ApiResponse<{ name: string; email: string; company: string }>> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/validate-user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ sakId, email }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        return {
+          success: false,
+          error: errorData.error || `Validation failed: ${response.status}`,
+        };
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        data,
+      };
+    } catch (error) {
+      logger.error('API validateUser error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Network error',
+      };
+    }
+  },
 };
 
 export default api;
