@@ -2,7 +2,7 @@
 import React, { ChangeEvent } from 'react';
 import { PktTextinput, PktTextarea, PktCheckbox, PktDatepicker, PktSelect } from '@oslokommune/punkt-react';
 
-type InputType = 'text' | 'number';
+type InputType = 'text' | 'number' | 'email';
 
 interface FieldProps {
   id: string;
@@ -10,6 +10,9 @@ interface FieldProps {
   type?: InputType;
   value: string | number;
   onChange: (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
+  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+  onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   required?: boolean;
   optional?: boolean;
   placeholder?: string;
@@ -31,7 +34,29 @@ interface TextareaFieldProps extends Omit<FieldProps, 'type' | 'min' | 'step' | 
     fullwidth?: boolean;
 }
 
-export const InputField: React.FC<FieldProps> = ({ id, label, type = 'text', value, onChange, required, optional, placeholder, readOnly, error, className, min, step, helpText, formatAsNumber, inputMode, autoComplete, pattern }) => {
+export const InputField: React.FC<FieldProps> = ({
+  id,
+  label,
+  type = 'text',
+  value,
+  onChange,
+  onBlur,
+  onFocus,
+  onKeyDown,
+  required,
+  optional,
+  placeholder,
+  readOnly,
+  error,
+  className,
+  min,
+  step,
+  helpText,
+  formatAsNumber,
+  inputMode,
+  autoComplete,
+  pattern
+}) => {
 
     const handleNumericChange = (e: ChangeEvent<HTMLInputElement>) => {
         const rawValue = e.target.value.replace(/\s/g, ''); // remove spaces
@@ -57,6 +82,9 @@ export const InputField: React.FC<FieldProps> = ({ id, label, type = 'text', val
           type={type === 'number' && formatAsNumber ? 'text' : type}
           value={displayValue}
           onChange={formatAsNumber ? handleNumericChange : onChange}
+          onBlur={onBlur}
+          onFocus={onFocus}
+          onKeyDown={onKeyDown}
           optionalTag={optional}
           placeholder={placeholder}
           readOnly={readOnly}
