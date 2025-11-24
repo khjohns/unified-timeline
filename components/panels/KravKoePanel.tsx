@@ -329,8 +329,8 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                 )}
 
                 <FieldsetCard legend="Innsending">
-                  {/* Vis automatisk genererte verdier */}
-                  {koe.dato_krav_sendt || koe.for_entreprenor ? (
+                  {/* Vis automatisk genererte verdier - kun hvis krav faktisk er sendt */}
+                  {koe.dato_krav_sendt && koe.dato_krav_sendt.trim() !== '' ? (
                     <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                       <h4 className="text-sm font-semibold text-green-900 mb-2">Sendt</h4>
                       <dl className="grid grid-cols-2 gap-4 text-sm">
