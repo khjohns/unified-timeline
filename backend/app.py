@@ -231,6 +231,17 @@ class KOEAutomationSystem:
             return self.catenda.authenticate()
         return False
 
+    def get_react_app_base_url(self) -> str:
+        """Determines the correct base URL for the React application."""
+        dev_url = os.environ.get('DEV_REACT_APP_URL')
+        if dev_url:
+            return dev_url
+        if 'react_app_url' in self.config:
+            return self.config['react_app_url']
+        
+        local_ip = get_local_ip()
+        return f"http://{local_ip}:3000"
+
     def handle_new_topic_created(self, webhook_payload: Dict[str, Any]) -> Dict[str, Any]:
         """
         Fase 2: Håndterer ny topic.
@@ -314,14 +325,7 @@ class KOEAutomationSystem:
             # Steg 4: Generer Magic Link for tilgang til React App
             magic_token = magic_link_mgr.generate(sak_id=sak_id, email=topic_data.get('creation_author'))
 
-            dev_url = os.environ.get('DEV_REACT_APP_URL')
-            if dev_url:
-                base_url = dev_url
-            elif 'react_app_url' in self.config:
-                base_url = self.config['react_app_url']
-            else:
-                local_ip = get_local_ip()
-                base_url = f"http://{local_ip}:3000"
+            base_url = self.get_react_app_base_url()
             
             magic_link = f"{base_url}?magicToken={magic_token}"
 
@@ -561,16 +565,16 @@ def submit_varsel():
     sys.db.log_historikk(sak_id, 'varsel_sendt', 'Varsel sendt fra entreprenør')
 
     # Post kommentar
-    varsel = form_data.get('varsel', {})
-    hovedkategori = varsel.get('hovedkategori', 'Ikke spesifisert')
-    dato_oppdaget = varsel.get('dato_forhold_oppdaget', 'Ukjent dato')
+    base_url = sys.get_react_app_base_url()
+    magic_token = magic_link_mgr.generate(sak_id=sak_id)
+    form_link = f"{base_url}?magicToken={magic_token}"
 
     comment_text = (
-        f"📨 **Varsel om endring sendt**\n\n"
-        f"📑 Kategori: {hovedkategori}\n"
-        f"📅 Dato oppdaget: {dato_oppdaget}\n\n"
-        f"**Neste steg:** Entreprenør spesifiserer krav\n"
-        f"👉 [Åpne skjema]({sys.config.get('react_app_url', 'http://localhost:5173')}?sakId={sak_id})"
+        f"**Varsel sendt**\n\n"
+        f"Sak-ID: `{sak_id}`\n\n"
+        f"**Neste steg:** Krav må spesifiseres\n"
+        f"👉 [Åpne skjema]({form_link})\n\n"
+        f"📎 PDF-vedlegg tilgjengelig under dokumenter"
     )
     sys.catenda.create_comment(topic_guid, comment_text)
 
@@ -621,9 +625,13 @@ def submit_koe():
     if har_frist and antall_dager:
         comment_text += f"📆 Fristforlengelse: {antall_dager} dager\n"
 
+    base_url = sys.get_react_app_base_url()
+    magic_token = magic_link_mgr.generate(sak_id=sak_id)
+    form_link = f"{base_url}?magicToken={magic_token}"
+
     comment_text += (
         f"\n**Neste steg:** Byggherre svarer på krav\n"
-        f"👉 [Åpne skjema]({sys.config.get('react_app_url', 'http://localhost:5173')}?sakId={sak_id})\n\n"
+        f"👉 [Åpne skjema]({form_link})\n\n"
         f"📎 PDF-vedlegg tilgjengelig under dokumenter"
     )
 
@@ -714,7 +722,11 @@ def submit_svar():
     else:
         comment_text += f"\n**Status:** Sak kan lukkes\n"
 
-    comment_text += f"👉 [Åpne skjema]({sys.config.get('react_app_url', 'http://localhost:5173')}?sakId={sak_id})"
+    base_url = sys.get_react_app_base_url()
+    magic_token = magic_link_mgr.generate(sak_id=sak_id)
+    form_link = f"{base_url}?magicToken={magic_token}"
+
+    comment_text += f"👉 [Åpne skjema]({form_link})"
 
     sys.catenda.create_comment(topic_guid, comment_text)
 
