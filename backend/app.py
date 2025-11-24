@@ -544,6 +544,45 @@ def verify_magic_link():
 def health_check():
     return jsonify({"status": "healthy", "service": "koe-backend"}), 200
 
+@app.route('/api/validate-user', methods=['POST'])
+def validate_user():
+    """
+    Validerer om en e-post tilhører en bruker i prosjektet
+    og returnerer navnet.
+    """
+    sys = get_system()
+    payload = request.get_json()
+    email = payload.get('email')
+    sak_id = payload.get('sakId')
+
+    if not email or not sak_id:
+        return jsonify({"error": "Mangler 'email' eller 'sakId'"}), 400
+
+    # Finn prosjekt-ID fra saken
+    sak_data = sys.db.get_form_data(sak_id)
+    if not sak_data:
+        return jsonify({"error": "Finner ikke sak"}), 404
+
+    project_id = sak_data.get('sak', {}).get('catenda_project_id')
+    if not project_id:
+        return jsonify({"error": "Finner ikke prosjekt-ID for saken"}), 404
+
+    # Kall den nye metoden for å finne brukeren
+    user_details = sys.catenda.find_user_in_project(project_id, email)
+
+    if user_details and user_details.get('name'):
+        return jsonify({
+            "success": True,
+            "name": user_details['name'],
+            "email": user_details.get('username', email),
+            "company": user_details.get('company', '')
+        }), 200
+    else:
+        return jsonify({
+            "success": False,
+            "error": "Brukeren er ikke medlem i dette Catenda-prosjektet."
+        }), 404
+
 @app.route('/api/cases/<string:sakId>', methods=['GET'])
 def get_case(sakId):
     sys = get_system()
@@ -619,9 +658,9 @@ def submit_varsel():
     form_link = f"{base_url}?magicToken={magic_token}"
 
     comment_text = (
-        f"**Varsel sendt**\n\n"
-        f"Sak-ID: `{sak_id}`\n\n"
-        f"**Neste steg:** Krav må spesifiseres\n"
+        f"**Varsel for krav om endringsordre (KOE) er sendt**\n\n"
+        f"🔢 Sak-ID: `{sak_id}`\n\n"
+        f"**Neste steg:** Entreprenør skal nå fylle ut krav\n"
         f"👉 [Åpne skjema]({form_link})\n\n"
         f"📎 PDF-vedlegg tilgjengelig under dokumenter"
     )

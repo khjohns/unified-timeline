@@ -366,6 +366,54 @@ class CatendaAPITester:
             logger.error(f"❌ Feil ved henting av prosjektdetaljer: {e}")
             return None
 
+    def find_user_in_project(self, project_id: str, email: str) -> Optional[Dict]:
+        """
+        Finn en brukers detaljer i et prosjekt basert på e-post (username).
+
+        Henter alle medlemmer i prosjektet og søker etter matchende e-post.
+        E-post må være registrert i Catenda for prosjektet.
+
+        Args:
+            project_id: Catenda project ID
+            email: Brukerens e-postadresse (username i Catenda)
+
+        Returns:
+            User-objekt med 'id', 'name', 'username', 'company' eller None
+        """
+        logger.info(f"🔍 Søker etter bruker med e-post '{email}' i prosjekt {project_id}...")
+
+        # Valider e-post-format først
+        if not email or '@' not in email:
+            logger.warning(f"⚠️ Ugyldig e-post-format: {email}")
+            return None
+
+        url = f"{self.base_url}/v2/projects/{project_id}/members"
+
+        try:
+            response = requests.get(url, headers=self.get_headers())
+            response.raise_for_status()
+
+            members = response.json()
+            logger.info(f"✅ Hentet {len(members)} medlemmer fra prosjektet")
+
+            # Søk etter e-posten (case-insensitive)
+            normalized_email = email.lower().strip()
+            for member in members:
+                if member.get('type') == 'user' and 'user' in member:
+                    user_details = member['user']
+                    username = user_details.get('username', '').lower().strip()
+
+                    if username == normalized_email:
+                        logger.info(f"✅ Fant bruker: {user_details.get('name', 'Ukjent navn')}")
+                        return user_details
+
+            logger.warning(f"⚠️ Fant ikke bruker med e-post '{email}' i prosjektet")
+            return None
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved søk etter bruker: {e}")
+            return None
+
     # ==========================================
     # LIBRARY MANAGEMENT (v2 API)
     # ==========================================
