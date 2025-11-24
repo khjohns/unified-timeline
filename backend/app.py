@@ -130,12 +130,34 @@ class DataManager:
                 writer = csv.DictWriter(f, fieldnames=self.SAKER_FIELDNAMES)
                 writer.writerow(filtered_data)
             
-            # Opprett initiell JSON-fil
+            # Opprett initiell JSON-fil med første krav-revisjon
             initial_json = {
                 "versjon": "5.0",
                 "sak": sak_data,
                 "varsel": {},
-                "koe_revisjoner": [],
+                "koe_revisjoner": [
+                    {
+                        "koe_revisjonsnr": "0",
+                        "dato_krav_sendt": "",
+                        "for_entreprenor": "",
+                        "status": "100000001",  # Utkast
+                        "vederlag": {
+                            "krav_vederlag": False,
+                            "krav_produktivitetstap": False,
+                            "saerskilt_varsel_rigg_drift": False,
+                            "krav_vederlag_metode": "",
+                            "krav_vederlag_belop": "",
+                            "krav_vederlag_begrunnelse": "",
+                        },
+                        "frist": {
+                            "krav_fristforlengelse": False,
+                            "krav_frist_type": "",
+                            "krav_frist_antall_dager": "",
+                            "forsinkelse_kritisk_linje": False,
+                            "krav_frist_begrunnelse": "",
+                        },
+                    }
+                ],
                 "bh_svar_revisjoner": []
             }
             self.save_form_data(sak_data['sak_id'], initial_json)
@@ -561,6 +583,33 @@ def submit_varsel():
 
     # Lagre data
     sys.db.save_form_data(sak_id, form_data)
+
+    # Sikre at første krav-revisjon eksisterer
+    if not form_data.get('koe_revisjoner') or len(form_data.get('koe_revisjoner', [])) == 0:
+        form_data['koe_revisjoner'] = [{
+            'koe_revisjonsnr': '0',
+            'dato_krav_sendt': '',
+            'for_entreprenor': '',
+            'status': '100000001',  # Utkast
+            'vederlag': {
+                'krav_vederlag': False,
+                'krav_produktivitetstap': False,
+                'saerskilt_varsel_rigg_drift': False,
+                'krav_vederlag_metode': '',
+                'krav_vederlag_belop': '',
+                'krav_vederlag_begrunnelse': '',
+            },
+            'frist': {
+                'krav_fristforlengelse': False,
+                'krav_frist_type': '',
+                'krav_frist_antall_dager': '',
+                'forsinkelse_kritisk_linje': False,
+                'krav_frist_begrunnelse': '',
+            },
+        }]
+        sys.db.save_form_data(sak_id, form_data)
+        logger.info(f"✅ Opprettet første krav-revisjon for sak {sak_id}")
+
     sys.db.update_sak_status(sak_id, 'Varslet', 'koe') # Neste modus: koe
     sys.db.log_historikk(sak_id, 'varsel_sendt', 'Varsel sendt fra entreprenør')
 
@@ -600,6 +649,37 @@ def submit_koe():
         siste_koe['for_entreprenor'] = form_data.get('sak', {}).get('opprettet_av', 'Demo User')
 
     sys.db.save_form_data(sak_id, form_data)
+
+    # Sikre at første BH svar-revisjon eksisterer
+    if not form_data.get('bh_svar_revisjoner') or len(form_data.get('bh_svar_revisjoner', [])) == 0:
+        form_data['bh_svar_revisjoner'] = [{
+            'vederlag': {
+                'varsel_for_sent': False,
+                'varsel_for_sent_begrunnelse': '',
+                'bh_svar_vederlag': '',
+                'bh_vederlag_metode': '',
+                'bh_godkjent_vederlag_belop': '',
+                'bh_begrunnelse_vederlag': '',
+            },
+            'frist': {
+                'varsel_for_sent': False,
+                'varsel_for_sent_begrunnelse': '',
+                'bh_svar_frist': '',
+                'bh_godkjent_frist_dager': '',
+                'bh_frist_for_spesifisering': '',
+                'bh_begrunnelse_frist': '',
+            },
+            'mote_dato': '',
+            'mote_referat': '',
+            'sign': {
+                'dato_svar_bh': '',
+                'for_byggherre': '',
+            },
+            'status': '300000001',  # Utkast
+        }]
+        sys.db.save_form_data(sak_id, form_data)
+        logger.info(f"✅ Opprettet første BH svar-revisjon for sak {sak_id}")
+
     sys.db.update_sak_status(sak_id, 'Krav sendt', 'svar') # Neste modus: svar
     sys.db.log_historikk(sak_id, 'koe_sendt', 'KOE sendt fra entreprenør')
 
@@ -660,13 +740,7 @@ def submit_svar():
         # In production: get from Entra ID token. For now, use sak byggherre or default
         siste_svar['sign']['for_byggherre'] = form_data.get('sak', {}).get('byggherre', 'Demo Byggherre')
 
-    status_text = "Behandlet"
-
-    sys.db.save_form_data(sak_id, form_data)
-    sys.db.update_sak_status(sak_id, status_text, 'ferdig')
-    sys.db.log_historikk(sak_id, 'bh_svar', 'Byggherre har svart')
-
-    # Hent BH svar-detaljer (refresh reference after modification)
+    # Hent BH svar-detaljer først for å bestemme neste steg
     bh_svar_revisjoner = form_data.get('bh_svar_revisjoner', [])
     siste_svar = bh_svar_revisjoner[-1] if bh_svar_revisjoner else {}
 
@@ -677,6 +751,85 @@ def submit_svar():
     frist_svar = siste_svar.get('frist', {})
     bh_svar_frist = frist_svar.get('bh_svar_frist', '')
     godkjente_dager = frist_svar.get('bh_godkjente_dager', '')
+
+    # Sjekk om det trengs revidering
+    trenger_revisjon = (
+        bh_svar_vederlag in ['100000001', '100000002'] or  # Delvis/avslått
+        bh_svar_frist in ['100000001', '100000002']
+    )
+
+    # Lagre data først
+    sys.db.save_form_data(sak_id, form_data)
+
+    # Hvis det trengs revidering, opprett ny krav-revisjon automatisk
+    if trenger_revisjon:
+        koe_revisjoner = form_data.get('koe_revisjoner', [])
+        if koe_revisjoner:
+            siste_krav = koe_revisjoner[-1]
+            nytt_revisjonsnr = str(int(siste_krav.get('koe_revisjonsnr', '0')) + 1)
+
+            ny_krav_revisjon = {
+                'koe_revisjonsnr': nytt_revisjonsnr,
+                'dato_krav_sendt': '',
+                'for_entreprenor': '',
+                'status': '100000001',  # Utkast
+                'vederlag': {
+                    'krav_vederlag': False,
+                    'krav_produktivitetstap': False,
+                    'saerskilt_varsel_rigg_drift': False,
+                    'krav_vederlag_metode': '',
+                    'krav_vederlag_belop': '',
+                    'krav_vederlag_begrunnelse': '',
+                },
+                'frist': {
+                    'krav_fristforlengelse': False,
+                    'krav_frist_type': '',
+                    'krav_frist_antall_dager': '',
+                    'forsinkelse_kritisk_linje': False,
+                    'krav_frist_begrunnelse': '',
+                },
+            }
+            form_data['koe_revisjoner'].append(ny_krav_revisjon)
+
+            # Opprett også ny BH svar-revisjon for neste runde
+            ny_bh_svar_revisjon = {
+                'vederlag': {
+                    'varsel_for_sent': False,
+                    'varsel_for_sent_begrunnelse': '',
+                    'bh_svar_vederlag': '',
+                    'bh_vederlag_metode': '',
+                    'bh_godkjent_vederlag_belop': '',
+                    'bh_begrunnelse_vederlag': '',
+                },
+                'frist': {
+                    'varsel_for_sent': False,
+                    'varsel_for_sent_begrunnelse': '',
+                    'bh_svar_frist': '',
+                    'bh_godkjent_frist_dager': '',
+                    'bh_frist_for_spesifisering': '',
+                    'bh_begrunnelse_frist': '',
+                },
+                'mote_dato': '',
+                'mote_referat': '',
+                'sign': {
+                    'dato_svar_bh': '',
+                    'for_byggherre': '',
+                },
+                'status': '300000001',  # Utkast
+            }
+            form_data['bh_svar_revisjoner'].append(ny_bh_svar_revisjon)
+
+            sys.db.save_form_data(sak_id, form_data)
+            logger.info(f"✅ Opprettet ny krav-revisjon {nytt_revisjonsnr} og BH svar-revisjon for sak {sak_id}")
+
+        status_text = "Krever revisjon"
+        modus = 'revidering'
+    else:
+        status_text = "Behandlet"
+        modus = 'ferdig'
+
+    sys.db.update_sak_status(sak_id, status_text, modus)
+    sys.db.log_historikk(sak_id, 'bh_svar', 'Byggherre har svart')
 
     # Map status-verdier til tekst
     vederlag_status_map = {
@@ -710,12 +863,6 @@ def submit_svar():
             comment_text += f"📆 Frist: {svar_tekst} ({godkjente_dager} dager)\n"
         else:
             comment_text += f"📆 Frist: {svar_tekst}\n"
-
-    # Sjekk om det trengs revidering
-    trenger_revisjon = (
-        bh_svar_vederlag in ['100000001', '100000002'] or  # Delvis/avslått
-        bh_svar_frist in ['100000001', '100000002']
-    )
 
     if trenger_revisjon:
         comment_text += f"\n**Neste steg:** Entreprenør sender revidert krav\n"

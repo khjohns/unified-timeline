@@ -1,4 +1,5 @@
 import { FormDataModel } from './types';
+import { SAK_STATUS, KOE_STATUS, BH_SVAR_STATUS } from './utils/statusHelpers';
 
 export const TABS = [
     { label: 'Varsel', icon: 'flag' },
@@ -19,7 +20,7 @@ export const INITIAL_FORM_DATA: FormDataModel = {
         kontrakt_referanse: '',
         entreprenor: '',
         byggherre: '',
-        status: '100000000', // Under varsling
+        status: SAK_STATUS.UNDER_VARSLING,
     },
     varsel: {
         dato_forhold_oppdaget: '',
@@ -34,7 +35,7 @@ export const INITIAL_FORM_DATA: FormDataModel = {
             koe_revisjonsnr: '0',
             dato_krav_sendt: '',
             for_entreprenor: '',
-            status: '100000001', // Under utarbeidelse
+            status: KOE_STATUS.UTKAST,
             vederlag: {
                 krav_vederlag: false,
                 krav_produktivitetstap: false,
@@ -76,7 +77,7 @@ export const INITIAL_FORM_DATA: FormDataModel = {
                 dato_svar_bh: '',
                 for_byggherre: '',
             },
-            status: '300000001', // Utkast
+            status: BH_SVAR_STATUS.UTKAST,
         }
     ],
 };
@@ -93,7 +94,7 @@ export const DEMO_DATA: FormDataModel = {
         kontrakt_referanse: 'K2021/0123',
         entreprenor: 'Veidekke Entreprenør AS',
         byggherre: 'Nye Veier AS',
-        status: '100000002', // Venter på svar (på revisjon 2)
+        status: SAK_STATUS.VENTER_PAA_SVAR,
     },
     varsel: {
         dato_forhold_oppdaget: '2023-10-10',
@@ -113,7 +114,7 @@ export const DEMO_DATA: FormDataModel = {
             koe_revisjonsnr: '0',
             dato_krav_sendt: '2023-10-26',
             for_entreprenor: 'Per Olsen',
-            status: '200000001', // Besvart
+            status: KOE_STATUS.BESVART,
             vederlag: {
                 krav_vederlag: true,
                 krav_produktivitetstap: false,
@@ -139,7 +140,7 @@ export const DEMO_DATA: FormDataModel = {
             koe_revisjonsnr: '1',
             dato_krav_sendt: '2023-11-15',
             for_entreprenor: 'Per Olsen',
-            status: '200000001', // Besvart
+            status: KOE_STATUS.BESVART,
             vederlag: {
                 krav_vederlag: true,
                 krav_produktivitetstap: true,
@@ -164,7 +165,7 @@ export const DEMO_DATA: FormDataModel = {
             koe_revisjonsnr: '2',
             dato_krav_sendt: '',
             for_entreprenor: '',
-            status: '100000001', // Utkast
+            status: KOE_STATUS.UTKAST,
             vederlag: {
                 krav_vederlag: false,
                 krav_produktivitetstap: false,
@@ -206,7 +207,7 @@ export const DEMO_DATA: FormDataModel = {
                 dato_svar_bh: '2023-11-05',
                 for_byggherre: 'Lise Hansen',
             },
-            status: '300000002', // Delvis Godkjent
+            status: BH_SVAR_STATUS.DELVIS_GODKJENT,
             vedlegg: [
                 'BH_vurdering_krav_rev0.pdf',
                 'Møtereferat_20231102.pdf',
@@ -235,7 +236,7 @@ export const DEMO_DATA: FormDataModel = {
                 dato_svar_bh: '2023-11-25',
                 for_byggherre: 'Lise Hansen',
             },
-            status: '300000002', // Delvis Godkjent
+            status: BH_SVAR_STATUS.DELVIS_GODKJENT,
             vedlegg: [
                 'BH_vurdering_krav_rev1.pdf',
             ],

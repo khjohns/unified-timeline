@@ -1,5 +1,37 @@
 import { SakStatus, KoeStatus, BhSvarStatus } from '../types';
 
+// ============ STATUS KONSTANTER ============
+export const SAK_STATUS = {
+  UNDER_VARSLING: '100000000',
+  VARSLET: '100000001',
+  VENTER_PAA_SVAR: '100000002',
+  UNDER_AVKLARING: '100000003',
+  VURDERES_AV_TE: '100000007',
+  OMFORENT: '100000005',
+  PAAGAAR: '100000013',
+  UNDER_TVIST: '100000008',
+  LUKKET_IMPLEMENTERT: '100000011',
+  LUKKET_AVSLÅTT: '100000006',
+  LUKKET_TILBAKEKALT: '100000009',
+  LUKKET_ANNULLERT: '100000012',
+} as const;
+
+export const KOE_STATUS = {
+  UTKAST: '100000001',
+  SENDT_TIL_BH: '100000002',
+  BESVART: '200000001',
+  TILBAKEKALT: '100000009',
+} as const;
+
+export const BH_SVAR_STATUS = {
+  UTKAST: '300000001',
+  GODKJENT: '100000004',
+  DELVIS_GODKJENT: '300000002',
+  AVSLÅTT_FOR_SENT: '100000010',
+  AVSLÅTT_UENIG: '100000006',
+  KREVER_AVKLARING: '100000003',
+} as const;
+
 // ============ SAK STATUS (Nivå 1: Hovedstatus) ============
 export const SAK_STATUS_OPTIONS = [
   { value: '', label: '— Velg status —' },
