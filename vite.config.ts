@@ -3,9 +3,9 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import license from 'rollup-plugin-license';
 
-export default defineConfig(() => {
+export default defineConfig(({ mode }) => {
     return {
-      base: '/Skjema_Endringsmeldinger/',
+      base: mode === 'production' ? '/Skjema_Endringsmeldinger/' : '/',
       server: {
         port: 3000,
         host: '0.0.0.0',

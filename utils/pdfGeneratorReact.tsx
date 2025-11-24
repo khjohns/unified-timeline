@@ -8,14 +8,14 @@ import { getKravStatusSkin, getSvarStatusSkin, getSakStatusSkin } from './status
 Font.register({
   family: 'Oslo Sans',
   fonts: [
-    { src: '/Skjema_Endringsmeldinger/fonts/OsloSans-Light.woff2', fontWeight: 300 },
-    { src: '/Skjema_Endringsmeldinger/fonts/OsloSans-LightItalic.woff2', fontWeight: 300, fontStyle: 'italic' },
-    { src: '/Skjema_Endringsmeldinger/fonts/OsloSans-Regular.woff2', fontWeight: 'normal' },
-    { src: '/Skjema_Endringsmeldinger/fonts/OsloSans-RegularItalic.woff2', fontWeight: 'normal', fontStyle: 'italic' },
-    { src: '/Skjema_Endringsmeldinger/fonts/OsloSans-Medium.woff2', fontWeight: 500 },
-    { src: '/Skjema_Endringsmeldinger/fonts/OsloSans-MediumItalic.woff2', fontWeight: 500, fontStyle: 'italic' },
-    { src: '/Skjema_Endringsmeldinger/fonts/OsloSans-Bold.woff2', fontWeight: 'bold' },
-    { src: '/Skjema_Endringsmeldinger/fonts/OsloSans-BoldItalic.woff2', fontWeight: 'bold', fontStyle: 'italic' },
+    { src: '/fonts/OsloSans-Light.woff2', fontWeight: 300 },
+    { src: '/fonts/OsloSans-LightItalic.woff2', fontWeight: 300, fontStyle: 'italic' },
+    { src: '/fonts/OsloSans-Regular.woff2', fontWeight: 'normal' },
+    { src: '/fonts/OsloSans-RegularItalic.woff2', fontWeight: 'normal', fontStyle: 'italic' },
+    { src: '/fonts/OsloSans-Medium.woff2', fontWeight: 500 },
+    { src: '/fonts/OsloSans-MediumItalic.woff2', fontWeight: 500, fontStyle: 'italic' },
+    { src: '/fonts/OsloSans-Bold.woff2', fontWeight: 'bold' },
+    { src: '/fonts/OsloSans-BoldItalic.woff2', fontWeight: 'bold', fontStyle: 'italic' },
   ],
 });
 
@@ -336,7 +336,7 @@ const Header: React.FC<{ data: FormDataModel }> = ({ data }) => (
       <Text style={styles.headerSubtitle}>NS 8407:2011</Text>
     </View>
     <Image
-      src="/Skjema_Endringsmeldinger/logos/Oslo-logo-hvit-RGB.png"
+      src="/logos/Oslo-logo-hvit-RGB.png"
       style={styles.headerLogo}
     />
   </View>
