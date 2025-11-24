@@ -126,7 +126,12 @@ const App: React.FC = () => {
                 const response = await api.getCase(internalSakId, modus || undefined);
 
                 if (response.success && response.data) {
-                    setFormData(response.data.formData);
+                    // Ensure rolle is set to 'TE' if missing (defensive programming)
+                    const loadedFormData = response.data.formData;
+                    if (!loadedFormData.rolle) {
+                        loadedFormData.rolle = 'TE';
+                    }
+                    setFormData(loadedFormData);
                     setTopicGuid(response.data.topicGuid); // Persist topicGuid in state
                     showToast(setToastMessage, `Sak ${internalSakId} lastet fra server`);
                 } else {

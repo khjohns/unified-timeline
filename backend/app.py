@@ -133,6 +133,7 @@ class DataManager:
             # Opprett initiell JSON-fil med første krav-revisjon
             initial_json = {
                 "versjon": "5.0",
+                "rolle": "TE",
                 "sak": sak_data,
                 "varsel": {},
                 "koe_revisjoner": [
