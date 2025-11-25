@@ -22,8 +22,15 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-backend/__pycache__/catenda_api_tester.cpython-311.pyc
-backend/__pycache__/magic_link.cpython-311.pyc
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Backend specific
 backend/config.json
 backend/koe_data/form_data/KOE-20251124-0925.json
 backend/koe_data/historikk.csv

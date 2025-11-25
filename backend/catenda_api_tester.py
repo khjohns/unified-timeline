@@ -871,13 +871,14 @@ class CatendaAPITester:
         payload = {
             "comment": comment_text
         }
-        
+
         try:
-            response = requests.post(url, headers=self.get_headers(), json=payload)
+            # Add timeout to prevent hanging (30 seconds total)
+            response = requests.post(url, headers=self.get_headers(), json=payload, timeout=30)
             response.raise_for_status()
-            
+
             comment = response.json()
-            
+
             logger.info(f"✅ Kommentar opprettet!")
             logger.info(f"   📌 Comment GUID: {comment['guid']}")
             logger.info(f"   📌 Forfatter: {comment.get('author', 'N/A')}")

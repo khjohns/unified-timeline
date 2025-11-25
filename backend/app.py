@@ -21,7 +21,7 @@ import socket
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any, List
-from threading import Lock
+from threading import RLock, Thread
 
 # Flask og CORS
 try:
@@ -97,7 +97,7 @@ class DataManager:
         self.saker_file = self.data_dir / "saker.csv"
         self.historikk_file = self.data_dir / "historikk.csv"
         
-        self.lock = Lock()
+        self.lock = RLock()  # Re-entrant lock for nested calls
         self._initialize_files()
     
     def _initialize_files(self):
@@ -361,7 +361,7 @@ class KOEAutomationSystem:
             
             magic_link = f"{base_url}?magicToken={magic_token}"
 
-            # Steg 5: Post kommentar til Catenda
+            # Steg 5: Post kommentar til Catenda (asynkront for å unngå webhook deadlock)
             dato = datetime.now().strftime('%Y-%m-%d')
             comment_text = (
                 f"✅ **Ny KOE-sak opprettet**\n\n"
@@ -371,10 +371,18 @@ class KOEAutomationSystem:
                 f"**Neste steg:** Entreprenør sender varsel\n"
                 f"👉 [Åpne skjema]({magic_link})"
             )
-            
-            self.catenda.create_comment(topic_id, comment_text)
-            logger.info(f"✅ Sak {sak_id} opprettet med metadata og lenke sendt til Catenda.")
-            
+
+            # Post kommentar i background thread for å unngå blokkering av webhook-respons
+            def post_comment_async():
+                try:
+                    self.catenda.create_comment(topic_id, comment_text)
+                    logger.info(f"✅ Kommentar sendt til Catenda for sak {sak_id}")
+                except Exception as e:
+                    logger.error(f"❌ Feil ved posting av kommentar til Catenda: {e}")
+
+            Thread(target=post_comment_async, daemon=True).start()
+            logger.info(f"✅ Sak {sak_id} opprettet, kommentar sendes i bakgrunnen.")
+
             return {'success': True, 'sak_id': sak_id}
             
         except Exception as e:
