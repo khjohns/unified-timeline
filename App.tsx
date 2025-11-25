@@ -309,8 +309,24 @@ const App: React.FC = () => {
                 response = await api.submitVarsel(updatedFormData, topicGuid || undefined, internalSakId || undefined);
             } else if (modus === 'svar' && internalSakId) {
                 // BH submitting response to claim
-                // Status for svar avhenger av BH sitt svar - settes i backend eller manuelt
-                updatedFormData.sak.modus = 'revidering'; // eller 'ferdig' avhengig av svar
+                // Sjekk om BH godkjente eller avviste kravet
+                const sisteBhSvar = formData.bh_svar_revisjoner[formData.bh_svar_revisjoner.length - 1];
+                const vederlagSvar = sisteBhSvar?.vederlag?.bh_svar_vederlag || '';
+                const fristSvar = sisteBhSvar?.frist?.bh_svar_frist || '';
+
+                // Trenger revidering hvis delvis godkjent (100000001) eller avslått (100000002)
+                const trengerRevidering = (
+                    vederlagSvar === '100000001' || vederlagSvar === '100000002' ||
+                    fristSvar === '100000001' || fristSvar === '100000002'
+                );
+
+                if (trengerRevidering) {
+                    updatedFormData.sak.status = SAK_STATUS.VURDERES_AV_TE;
+                    updatedFormData.sak.modus = 'revidering';
+                } else {
+                    updatedFormData.sak.status = SAK_STATUS.OMFORENT;
+                    updatedFormData.sak.modus = 'ferdig';
+                }
                 setFormData(updatedFormData);
                 response = await api.submitSvar(updatedFormData, internalSakId, topicGuid || undefined);
             } else if (modus === 'revidering' && internalSakId) {
