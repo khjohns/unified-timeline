@@ -130,6 +130,8 @@ class DataManager:
                 writer = csv.DictWriter(f, fieldnames=self.SAKER_FIELDNAMES)
                 writer.writerow(filtered_data)
             
+            sak_data['sak_id_display'] = sak_data['sak_id']
+            
             # Opprett initiell JSON-fil med første krav-revisjon
             initial_json = {
                 "versjon": "5.0",

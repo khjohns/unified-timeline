@@ -399,13 +399,17 @@ class CatendaAPITester:
             # Søk etter e-posten (case-insensitive)
             normalized_email = email.lower().strip()
             for member in members:
-                if member.get('type') == 'user' and 'user' in member:
+                # KORRIGERING: Bruker nå det dedikerte 'email'-feltet for matching,
+                # som er mer robust enn å anta at 'username' er en e-post.
+                if 'user' in member and member['user']:
                     user_details = member['user']
-                    username = user_details.get('username', '').lower().strip()
+                    email_from_api = user_details.get('email')
 
-                    if username == normalized_email:
-                        logger.info(f"✅ Fant bruker: {user_details.get('name', 'Ukjent navn')}")
-                        return user_details
+                    if email_from_api:
+                        user_email = email_from_api.lower().strip()
+                        if user_email == normalized_email:
+                            logger.info(f"✅ Fant bruker: {user_details.get('name', 'Ukjent navn')} med rolle '{member.get('role')}'")
+                            return user_details
 
             logger.warning(f"⚠️ Fant ikke bruker med e-post '{email}' i prosjektet")
             return None

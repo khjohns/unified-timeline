@@ -29,6 +29,7 @@ __pycache__/
 *$py.class
 *.so
 .Python
+venv/
 
 # Backend specific
 backend/config.json
