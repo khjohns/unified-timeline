@@ -175,6 +175,61 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
       return;
     }
 
+    // Valider vederlagskrav hvis valgt
+    if (sisteKrav.vederlag.krav_vederlag) {
+      if (!sisteKrav.vederlag.krav_vederlag_metode) {
+        showToast(setToastMessage, 'Vennligst velg oppgjørsmetode for vederlagskravet');
+        focusOnField(`koe.vederlag.krav_vederlag_metode.${sisteKravIndex}`);
+        return;
+      }
+
+      if (!sisteKrav.vederlag.krav_vederlag_belop || sisteKrav.vederlag.krav_vederlag_belop <= 0) {
+        showToast(setToastMessage, 'Vennligst fyll ut krevd beløp for vederlagskravet');
+        focusOnField(`koe.vederlag.krav_vederlag_belop.${sisteKravIndex}`);
+        return;
+      }
+
+      if (!sisteKrav.vederlag.krav_vederlag_begrunnelse || sisteKrav.vederlag.krav_vederlag_begrunnelse.trim() === '') {
+        showToast(setToastMessage, 'Vennligst fyll ut begrunnelse for vederlagskravet');
+        focusOnField(`koe.vederlag.krav_vederlag_begrunnelse.${sisteKravIndex}`);
+        return;
+      }
+    }
+
+    // Valider fristforlengelse hvis valgt
+    if (sisteKrav.frist.krav_fristforlengelse) {
+      if (!sisteKrav.frist.krav_frist_type) {
+        showToast(setToastMessage, 'Vennligst velg type fristkrav');
+        focusOnField(`koe.frist.krav_frist_type.${sisteKravIndex}`);
+        return;
+      }
+
+      if (!sisteKrav.frist.krav_frist_antall_dager || sisteKrav.frist.krav_frist_antall_dager <= 0) {
+        showToast(setToastMessage, 'Vennligst fyll ut antall dager fristforlengelse');
+        focusOnField(`koe.frist.krav_frist_antall_dager.${sisteKravIndex}`);
+        return;
+      }
+
+      if (!sisteKrav.frist.krav_frist_begrunnelse || sisteKrav.frist.krav_frist_begrunnelse.trim() === '') {
+        showToast(setToastMessage, 'Vennligst fyll ut begrunnelse for fristforlengelsen');
+        focusOnField(`koe.frist.krav_frist_begrunnelse.${sisteKravIndex}`);
+        return;
+      }
+    }
+
+    // Valider e-post og signatur
+    if (!signerName || signerName.trim() === '') {
+      showToast(setToastMessage, 'Vennligst valider e-postadressen for signering');
+      focusOnField(`koe.signerende_epost.${sisteKravIndex}`);
+      return;
+    }
+
+    if (validationError) {
+      showToast(setToastMessage, 'E-postadressen er ikke validert. Vennligst rett feilen først.');
+      focusOnField(`koe.signerende_epost.${sisteKravIndex}`);
+      return;
+    }
+
     // Oppdater statuser
     setFormData('koe_revisjoner', 'status', KOE_STATUS.SENDT_TIL_BH, sisteKravIndex); // Sendt til BH
     setFormData('sak', 'status', SAK_STATUS.VENTER_PAA_SVAR); // Venter på svar
