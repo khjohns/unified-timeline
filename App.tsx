@@ -134,6 +134,16 @@ const App: React.FC = () => {
                     }
                     setFormData(loadedFormData);
                     setTopicGuid(response.data.topicGuid); // Persist topicGuid in state
+
+                    // If modus is not in URL (e.g. from magic link), set it from loaded data
+                    const loadedModus = loadedFormData.sak?.modus as Modus | undefined;
+                    if (!modus && loadedModus) {
+                        // Add modus to URL so submit logic and role mapping work correctly
+                        searchParams.set('modus', loadedModus);
+                        setSearchParams(searchParams, { replace: true });
+                        logger.info(`Set modus from loaded data: ${loadedModus}`);
+                    }
+
                     showToast(setToastMessage, `Sak ${internalSakId} lastet fra server`);
                 } else {
                     setApiError(response.error || 'Kunne ikke laste sak');
