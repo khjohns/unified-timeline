@@ -324,10 +324,16 @@ const App: React.FC = () => {
                 const vederlagSvar = sisteBhSvar?.vederlag?.bh_svar_vederlag || '';
                 const fristSvar = sisteBhSvar?.frist?.bh_svar_frist || '';
 
-                // Trenger revidering hvis delvis godkjent (100000001) eller avslått (100000002)
+                // Trenger revidering hvis:
+                // - Delvis godkjent (100000001)
+                // - Avslått uenig (100000002)
+                // - Avslått for sent (100000003) - TE må begrunne varslingtidspunkt
+                // - Avventer (100000004) - TE må gi mer detaljer
                 const trengerRevidering = (
                     vederlagSvar === '100000001' || vederlagSvar === '100000002' ||
-                    fristSvar === '100000001' || fristSvar === '100000002'
+                    vederlagSvar === '100000003' || vederlagSvar === '100000004' ||
+                    fristSvar === '100000001' || fristSvar === '100000002' ||
+                    fristSvar === '100000003' || fristSvar === '100000004'
                 );
 
                 if (trengerRevidering) {
