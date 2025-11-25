@@ -322,7 +322,14 @@ const App: React.FC = () => {
     }, [activeTab, formData.varsel.dato_forhold_oppdaget, formData.varsel.hovedkategori, formData.koe_revisjoner]);
 
     const handleDownloadPdf = async () => {
-        await generatePdfReact(formData);
+        try {
+            await generatePdfReact(formData);
+            showToast(setToastMessage, 'PDF lastet ned');
+        } catch (error) {
+            logger.error('PDF download error:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Ukjent feil';
+            showToast(setToastMessage, `Feil ved nedlasting av PDF: ${errorMessage}`);
+        }
     };
 
     // Show PDF preview (no submission yet)
