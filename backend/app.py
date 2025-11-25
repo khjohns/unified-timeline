@@ -929,6 +929,63 @@ def submit_svar():
 
     return jsonify({"success": True}), 200
 
+@app.route('/api/cases/<string:sakId>/revidering', methods=['POST'])
+def submit_revidering(sakId):
+    """Handle submission of revised KOE from entrepreneur"""
+    logger.info(f"📥 Mottok revidering-submit request for sak {sakId}")
+    sys = get_system()
+    payload = request.get_json()
+    form_data = payload.get('formData')
+    topic_guid = form_data.get('sak', {}).get('catenda_topic_id')
+
+    logger.info(f"  topicGuid: {topic_guid}")
+
+    # Auto-populate krav submission date and signature
+    koe_revisjoner = form_data.get('koe_revisjoner', [])
+    if koe_revisjoner:
+        siste_koe = koe_revisjoner[-1]
+        siste_koe['dato_krav_sendt'] = datetime.now().strftime('%Y-%m-%d')
+        siste_koe['for_entreprenor'] = form_data.get('sak', {}).get('opprettet_av', 'Demo User')
+
+    sys.db.save_form_data(sakId, form_data)
+    sys.db.log_historikk(sakId, 'revisjon_sendt', 'Revidert krav sendt fra entreprenør')
+
+    # Hent krav-detaljer
+    siste_koe = koe_revisjoner[-1] if koe_revisjoner else {}
+    revisjonsnr = siste_koe.get('koe_revisjonsnr', '0')
+
+    vederlag_info = siste_koe.get('vederlag', {})
+    har_vederlag = vederlag_info.get('krav_vederlag', False)
+    krevd_beløp = vederlag_info.get('krevd_belop', '')
+
+    frist_info = siste_koe.get('frist', {})
+    har_frist = frist_info.get('krav_fristforlengelse', False)
+    antall_dager = frist_info.get('antall_dager', '')
+
+    comment_text = (
+        f"🔄 **Revidert krav om endringsordre (KOE) sendt**\n\n"
+        f"🔢 Revisjon: {revisjonsnr}\n"
+    )
+
+    if har_vederlag and krevd_beløp:
+        comment_text += f"💰 Vederlag: {krevd_beløp} NOK\n"
+    if har_frist and antall_dager:
+        comment_text += f"📆 Fristforlengelse: {antall_dager} dager\n"
+
+    base_url = sys.get_react_app_base_url()
+    magic_token = magic_link_mgr.generate(sak_id=sakId)
+    form_link = f"{base_url}?magicToken={magic_token}"
+
+    comment_text += (
+        f"\n**Neste steg:** Byggherre svarer på revidert krav\n"
+        f"👉 [Åpne skjema]({form_link})\n\n"
+        f"📎 PDF-vedlegg tilgjengelig under dokumenter"
+    )
+
+    sys.catenda.create_comment(topic_guid, comment_text)
+
+    return jsonify({"success": True, "nextMode": "svar"}), 200
+
 @app.route('/api/cases/<string:sakId>/draft', methods=['PUT'])
 def save_draft(sakId):
     sys = get_system()
