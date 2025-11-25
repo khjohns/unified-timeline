@@ -120,7 +120,7 @@ class DataManager:
 
             sak_data.setdefault('opprettet_dato', datetime.now().isoformat())
             sak_data.setdefault('opprettet_av', sak_data.get('te_navn', 'System'))
-            sak_data.setdefault('status', 'Ny')
+            sak_data.setdefault('status', '100000000')  # Under varsling
             sak_data.setdefault('modus', 'varsel')
             
             # Lagre til CSV
@@ -167,10 +167,19 @@ class DataManager:
             return sak_data['sak_id']
 
     def save_form_data(self, sak_id: str, data: Dict[str, Any]):
-        """Lagre detaljert skjemadata til JSON"""
+        """Lagre detaljert skjemadata til JSON og synkroniser status/modus til CSV"""
+        # Lagre til JSON
         file_path = self.form_data_dir / f"{sak_id}.json"
         with open(file_path, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
+
+        # Synkroniser status og modus fra sak-objektet til CSV
+        sak_data = data.get('sak', {})
+        if sak_data:
+            status = sak_data.get('status')
+            modus = sak_data.get('modus')
+            if status or modus:
+                self.update_sak_status(sak_id, status, modus)
 
     def get_form_data(self, sak_id: str) -> Optional[Dict[str, Any]]:
         """Hent skjemadata fra JSON"""
@@ -621,7 +630,7 @@ def submit_varsel():
     if not varsel.get('dato_varsel_sendt'):
         varsel['dato_varsel_sendt'] = datetime.now().strftime('%Y-%m-%d')
 
-    # Lagre data
+    # Lagre data (save_form_data synkroniserer automatisk status/modus til CSV)
     sys.db.save_form_data(sak_id, form_data)
 
     # Sikre at første krav-revisjon eksisterer
@@ -650,7 +659,6 @@ def submit_varsel():
         sys.db.save_form_data(sak_id, form_data)
         logger.info(f"✅ Opprettet første krav-revisjon for sak {sak_id}")
 
-    sys.db.update_sak_status(sak_id, 'Varslet', 'koe') # Neste modus: koe
     sys.db.log_historikk(sak_id, 'varsel_sendt', 'Varsel sendt fra entreprenør')
 
     # Post kommentar
@@ -720,7 +728,7 @@ def submit_koe():
         sys.db.save_form_data(sak_id, form_data)
         logger.info(f"✅ Opprettet første BH svar-revisjon for sak {sak_id}")
 
-    sys.db.update_sak_status(sak_id, 'Krav sendt', 'svar') # Neste modus: svar
+    # Status og modus synkroniseres automatisk fra formData via save_form_data
     sys.db.log_historikk(sak_id, 'koe_sendt', 'KOE sendt fra entreprenør')
 
     # Hent krav-detaljer
@@ -862,13 +870,7 @@ def submit_svar():
             sys.db.save_form_data(sak_id, form_data)
             logger.info(f"✅ Opprettet ny krav-revisjon {nytt_revisjonsnr} og BH svar-revisjon for sak {sak_id}")
 
-        status_text = "Krever revisjon"
-        modus = 'revidering'
-    else:
-        status_text = "Behandlet"
-        modus = 'ferdig'
-
-    sys.db.update_sak_status(sak_id, status_text, modus)
+    # Status og modus synkroniseres automatisk fra formData via save_form_data
     sys.db.log_historikk(sak_id, 'bh_svar', 'Byggherre har svart')
 
     # Map status-verdier til tekst
