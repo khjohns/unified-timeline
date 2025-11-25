@@ -11,6 +11,7 @@ import { showToast } from './utils/toastHelpers';
 import { focusOnField } from './utils/focusHelpers';
 import { logger } from './utils/logger';
 import { api, Modus } from './services/api';
+import { SAK_STATUS } from './utils/statusHelpers';
 
 // Lazy load panels for better performance
 const VarselPanel = lazy(() => import('./components/panels/VarselPanel'));
@@ -296,23 +297,39 @@ const App: React.FC = () => {
         try {
             let response;
 
+            // Oppdater status og modus i formData før submit
+            // Backend vil automatisk synkronisere disse verdiene til CSV via save_form_data
+            const updatedFormData = { ...formData };
+
             if (modus === 'varsel') {
                 // TE submitting initial warning
-                response = await api.submitVarsel(formData, topicGuid || undefined, internalSakId || undefined);
+                updatedFormData.sak.status = SAK_STATUS.VARSLET;
+                updatedFormData.sak.modus = 'koe';
+                setFormData(updatedFormData);
+                response = await api.submitVarsel(updatedFormData, topicGuid || undefined, internalSakId || undefined);
             } else if (modus === 'svar' && internalSakId) {
                 // BH submitting response to claim
-                response = await api.submitSvar(formData, internalSakId, topicGuid || undefined);
+                // Status for svar avhenger av BH sitt svar - settes i backend eller manuelt
+                updatedFormData.sak.modus = 'revidering'; // eller 'ferdig' avhengig av svar
+                setFormData(updatedFormData);
+                response = await api.submitSvar(updatedFormData, internalSakId, topicGuid || undefined);
             } else if (modus === 'revidering' && internalSakId) {
                 // TE submitting revision
-                response = await api.submitRevidering(formData, internalSakId);
+                updatedFormData.sak.status = SAK_STATUS.VENTER_PAA_SVAR;
+                updatedFormData.sak.modus = 'svar';
+                setFormData(updatedFormData);
+                response = await api.submitRevidering(updatedFormData, internalSakId);
             } else {
                 // KOE submission (claim)
-                response = await api.submitKoe(formData, internalSakId || undefined, topicGuid || undefined);
+                updatedFormData.sak.status = SAK_STATUS.VENTER_PAA_SVAR;
+                updatedFormData.sak.modus = 'svar';
+                setFormData(updatedFormData);
+                response = await api.submitKoe(updatedFormData, internalSakId || undefined, topicGuid || undefined);
             }
 
             if (response.success && response.data) {
                 // Generate PDF blob for upload (without auto-download)
-                const { blob, filename } = await generatePdfBlob(formData);
+                const { blob, filename } = await generatePdfBlob(updatedFormData);
 
                 // Upload PDF to backend for Catenda integration
                 const effectiveSakId = response.data.sakId || internalSakId;
