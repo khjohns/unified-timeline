@@ -246,19 +246,68 @@ const App: React.FC = () => {
         } else if (activeTab === 1) {
             // KravKoe validation - validate the last revision
             const sisteKrav = formData.koe_revisjoner[formData.koe_revisjoner.length - 1];
+
+            // Validér revisjonsnummer
             if (!sisteKrav.koe_revisjonsnr.toString().trim()) {
                 newErrors['koe_revisjoner.koe_revisjonsnr'] = 'Revisjonsnummer er påkrevd';
                 if (!firstInvalidFieldId) firstInvalidFieldId = 'koe_revisjoner.koe_revisjonsnr';
             }
-            if (!sisteKrav.dato_krav_sendt.trim()) {
-                newErrors['koe_revisjoner.dato_krav_sendt'] = 'Dato krav sendt er påkrevd';
-                if (!firstInvalidFieldId) firstInvalidFieldId = 'koe_revisjoner.dato_krav_sendt';
+
+            // Sjekk at minst ett krav er valgt
+            if (!sisteKrav.vederlag.krav_vederlag && !sisteKrav.frist.krav_fristforlengelse) {
+                newErrors['krav_type'] = 'Du må velge minst ett krav (vederlag eller fristforlengelse)';
+                if (!firstInvalidFieldId) firstInvalidFieldId = 'kravstype-vederlag-' + (formData.koe_revisjoner.length - 1);
+            }
+
+            // Valider vederlagskrav hvis valgt
+            if (sisteKrav.vederlag.krav_vederlag) {
+                if (!sisteKrav.vederlag.krav_vederlag_metode) {
+                    newErrors['koe.vederlag.krav_vederlag_metode'] = 'Oppgjørsmetode er påkrevd';
+                    if (!firstInvalidFieldId) firstInvalidFieldId = 'koe.vederlag.krav_vederlag_metode.' + (formData.koe_revisjoner.length - 1);
+                }
+
+                if (!sisteKrav.vederlag.krav_vederlag_belop || sisteKrav.vederlag.krav_vederlag_belop <= 0) {
+                    newErrors['koe.vederlag.krav_vederlag_belop'] = 'Krevd beløp er påkrevd';
+                    if (!firstInvalidFieldId) firstInvalidFieldId = 'koe.vederlag.krav_vederlag_belop.' + (formData.koe_revisjoner.length - 1);
+                }
+
+                if (!sisteKrav.vederlag.krav_vederlag_begrunnelse || sisteKrav.vederlag.krav_vederlag_begrunnelse.trim() === '') {
+                    newErrors['koe.vederlag.krav_vederlag_begrunnelse'] = 'Begrunnelse for vederlagskrav er påkrevd';
+                    if (!firstInvalidFieldId) firstInvalidFieldId = 'koe.vederlag.krav_vederlag_begrunnelse.' + (formData.koe_revisjoner.length - 1);
+                }
+            }
+
+            // Valider fristforlengelse hvis valgt
+            if (sisteKrav.frist.krav_fristforlengelse) {
+                if (!sisteKrav.frist.krav_frist_type) {
+                    newErrors['koe.frist.krav_frist_type'] = 'Type fristkrav er påkrevd';
+                    if (!firstInvalidFieldId) firstInvalidFieldId = 'koe.frist.krav_frist_type.' + (formData.koe_revisjoner.length - 1);
+                }
+
+                if (!sisteKrav.frist.krav_frist_antall_dager || sisteKrav.frist.krav_frist_antall_dager <= 0) {
+                    newErrors['koe.frist.krav_frist_antall_dager'] = 'Antall dager fristforlengelse er påkrevd';
+                    if (!firstInvalidFieldId) firstInvalidFieldId = 'koe.frist.krav_frist_antall_dager.' + (formData.koe_revisjoner.length - 1);
+                }
+
+                if (!sisteKrav.frist.krav_frist_begrunnelse || sisteKrav.frist.krav_frist_begrunnelse.trim() === '') {
+                    newErrors['koe.frist.krav_frist_begrunnelse'] = 'Begrunnelse for fristforlengelse er påkrevd';
+                    if (!firstInvalidFieldId) firstInvalidFieldId = 'koe.frist.krav_frist_begrunnelse.' + (formData.koe_revisjoner.length - 1);
+                }
+            }
+
+            // Valider e-post/signatur - sjekk at for_entreprenor er satt
+            if (!sisteKrav.for_entreprenor || sisteKrav.for_entreprenor.trim() === '') {
+                newErrors['koe.signerende_epost'] = 'E-post for signering må valideres';
+                if (!firstInvalidFieldId) firstInvalidFieldId = 'koe.signerende_epost.' + (formData.koe_revisjoner.length - 1);
             }
         }
 
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
-            showToast(setToastMessage, 'Vennligst fyll ut alle obligatoriske felt før du går videre');
+
+            // Vis den første feilmeldingen i toasten for å gi spesifikk feedback
+            const firstErrorMessage = Object.values(newErrors)[0];
+            showToast(setToastMessage, firstErrorMessage);
 
             // Fokuser på det første ugyldige feltet
             if (firstInvalidFieldId) {
