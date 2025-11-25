@@ -788,19 +788,21 @@ Løsningen integrerer med både interne (Microsoft 365) og eksterne (Catenda) sy
 Catenda er et invitation-only PIM-system (Prosjektinformasjonsmodell) som fungerer som samarbeidsplattform for byggeprosjekter. Catenda er **autoritativ kilde (master)** for alle prosjektdokumenter.
 
 #### Type integrasjon
-- **Webhook** (push fra Catenda til oss)
-- **REST API** (pull/push fra oss til Catenda)
+- **Webhook (Push):** Catenda varsler Azure Functions om nye saker (`issue.created`)
+- **REST API (Pull/Push):** Vi bruker en hybrid tilnærming med to API-sett:
+    * **Catenda REST API v2:** For opplasting av filer og henting av prosjektmedlemmer
+    * **BCF API v3.0 (OpenCDE):** For opprettelse av topics, kommentarer og dokumentkoblinger
 
 #### API-endepunkter brukt
 
-| Endepunkt | Metode | Formål | Frekvens |
-|-----------|--------|--------|----------|
-| `POST /webhook/receiver` | POST | Mottar webhooks fra Catenda | Event-drevet |
-| `GET /projects/{id}/members` | GET | Henter prosjektdeltakere (JIT-validering) | Per innsending |
-| `POST /v2/projects/{id}/items` | POST | Laster opp PDF til Document Library | Per godkjenning |
-| `POST /opencde/bcf/3.0/projects/{id}/topics/{topic_guid}/document_references` | POST | Kobler dokument til BCF-topic | Etter upload |
-| `POST /opencde/bcf/3.0/projects/{id}/topics/{topic_guid}/comments` | POST | Poster kommentar til topic | Per statusendring |
-| `GET /opencde/bcf/3.0/projects/{id}/topics/{topic_guid}` | GET | Henter topic-info (valgfritt) | Ved behov |
+| Funksjon | API | Endepunkt | Beskrivelse |
+|----------|-----|-----------|-------------|
+| **Trigger** | Webhook | `POST /webhook/catenda` | Mottar event `issue.created` når PL oppretter sak |
+| **Validere bruker** | v2 | `GET /projects/{id}/members` | JIT-sjekk av om e-postadresse tilhører prosjektet |
+| **Laste opp PDF** | v2 | `POST /v2/.../items` | Laster opp generert PDF. Returnerer `library_item_id` |
+| **Koble PDF** | BCF 3.0 | `POST /.../document_references` | Kobler opplastet PDF til saken (Topic) ved hjelp av UUID |
+| **Oppdatere status** | BCF 3.0 | `POST /.../topics/{guid}` | Oppdaterer status/type basert på saksgang |
+| **Logge svar** | BCF 3.0 | `POST /.../comments` | Poster "Krav mottatt" eller "Behandlet" i kommentarfeltet |
 
 #### Datakontroll
 - **Catenda kontrollerer:** PDF-dokumenter, prosjektstruktur, brukermedlemskap
@@ -808,41 +810,50 @@ Catenda er et invitation-only PIM-system (Prosjektinformasjonsmodell) som funger
 
 #### Sikkerhet
 
-**Webhook-validering (HMAC):**
+**Webhook-validering (Secret Token):**
+
+Siden Catenda Webhook API ikke støtter signering av payload (HMAC), benyttes en **Secret Token**-mekanisme for å verifisere avsender.
+
+1. **Konfigurasjon:** Webhook registreres i Catenda med en unik, kryptografisk sterk token i URL-en:
+   ```
+   https://api.oslobygg.no/webhook/catenda?token={WEBHOOK_SECRET}
+   ```
+
+2. **Validering (Gatekeeper):**
+   * Azure Functions henter forventet token fra **Azure Key Vault**.
+   * Innkommende `token`-parameter sammenlignes med Key Vault-verdien ved bruk av `constant-time comparison` for å hindre timing-angrep.
+   * Hvis token mangler eller er feil, avvises forespørselen umiddelbart (401 Unauthorized).
+
 ```python
-# Pseudokode: Webhook-signaturvalidering
+# Pseudokode: Webhook-tokenvalidering
 def validate_webhook(request):
     """
-    Validerer at webhook faktisk kommer fra Catenda.
+    Validerer at webhook faktisk kommer fra Catenda ved Secret Token.
     """
-    # 1. Hent signatur fra header
-    signature = request.headers.get("x-catenda-signature")
+    # 1. Hent token fra URL query parameter
+    received_token = request.query_params.get("token")
 
-    # 2. Hent delt hemmelighet fra Azure Key Vault
-    secret = azure_key_vault.get_secret("CatendaWebhookSecret")
+    if not received_token:
+        log_security_event("webhook_missing_token", request.ip)
+        return 401, "Missing token"
 
-    # 3. Beregn forventet signatur
-    body = request.get_body()  # bytes
-    expected_signature = hmac.new(
-        key=secret.encode(),
-        msg=body,
-        digestmod=hashlib.sha256
-    ).hexdigest()
+    # 2. Hent forventet token fra Azure Key Vault
+    expected_token = azure_key_vault.get_secret("CatendaWebhookSecret")
 
-    # 4. Sammenlign signaturer (constant-time comparison)
-    if not hmac.compare_digest(signature, expected_signature):
-        log_security_event("webhook_invalid_signature", request.ip)
-        return 401, "Invalid signature"
+    # 3. Sammenlign tokens (constant-time comparison)
+    if not secrets.compare_digest(received_token, expected_token):
+        log_security_event("webhook_invalid_token", request.ip)
+        return 401, "Invalid token"
 
-    # 5. Sjekk idempotens
-    event_data = json.loads(body)
-    event_id = f"{event_data['event']}:{event_data['data']['caseId']}"
+    # 4. Sjekk idempotens
+    event_data = request.get_json()
+    event_id = f"{event_data['event']}:{event_data['data']['topic_guid']}"
 
     if already_processed(event_id):
         # Samme event mottatt tidligere, returner 202 uten sideeffekter
         return 202, "Already processed"
 
-    # 6. Marker som behandlet
+    # 5. Marker som behandlet
     mark_processed(event_id, timestamp=datetime.now())
 
     return event_data  # Godkjent
@@ -1031,7 +1042,7 @@ Dataverse (DirectQuery)
 
 | System | Type | Retning | Protokoll | Autentisering | Eier av data |
 |--------|------|---------|-----------|---------------|--------------|
-| **Catenda** | Ekstern | Begge | REST + Webhook | OAuth 2.0 + HMAC | Catenda (dokumenter) |
+| **Catenda** | Ekstern | Begge | REST v2 / BCF 3.0 | OAuth 2.0 (ut) / Secret Token (inn) | Catenda (dokumenter) |
 | **Dataverse** | Intern | Begge | Dataverse SDK | Managed Identity | Vi (strukturert data) |
 | **Entra ID** | Intern | Inn | OAuth 2.0 | MSAL | Microsoft (identiteter) |
 | **SharePoint** | Intern | Ut | Microsoft Graph | Managed Identity | Vi (vedlegg) |
