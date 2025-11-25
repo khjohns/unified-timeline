@@ -42,7 +42,7 @@ Denne dokumentasjonen beskriver hvordan React-appen og Python-backend skal sette
 - [x] PDF-generering med @react-pdf/renderer
 
 ### Mangler (Må implementeres)
-- [ ] **PDF-opplasting til backend** - Etter generering må PDF sendes til backend
+- [x] **PDF-opplasting til backend** - Etter generering må PDF sendes til backend
 - [ ] Returnere sakId fra API-respons til URL (valgfritt)
 
 ---
