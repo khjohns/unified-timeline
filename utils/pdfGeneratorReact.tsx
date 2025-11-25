@@ -5,17 +5,19 @@ import { pdfLabels } from './pdfLabels';
 import { getKravStatusSkin, getSvarStatusSkin, getSakStatusSkin } from './statusHelpers';
 
 // Register Oslo Sans fonts (all variants)
+// Use absolute URLs to ensure fonts load correctly in PDF generation
+const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
 Font.register({
   family: 'Oslo Sans',
   fonts: [
-    { src: '/fonts/OsloSans-Light.woff2', fontWeight: 300 },
-    { src: '/fonts/OsloSans-LightItalic.woff2', fontWeight: 300, fontStyle: 'italic' },
-    { src: '/fonts/OsloSans-Regular.woff2', fontWeight: 'normal' },
-    { src: '/fonts/OsloSans-RegularItalic.woff2', fontWeight: 'normal', fontStyle: 'italic' },
-    { src: '/fonts/OsloSans-Medium.woff2', fontWeight: 500 },
-    { src: '/fonts/OsloSans-MediumItalic.woff2', fontWeight: 500, fontStyle: 'italic' },
-    { src: '/fonts/OsloSans-Bold.woff2', fontWeight: 'bold' },
-    { src: '/fonts/OsloSans-BoldItalic.woff2', fontWeight: 'bold', fontStyle: 'italic' },
+    { src: `${baseUrl}/fonts/OsloSans-Light.woff2`, fontWeight: 300 },
+    { src: `${baseUrl}/fonts/OsloSans-LightItalic.woff2`, fontWeight: 300, fontStyle: 'italic' },
+    { src: `${baseUrl}/fonts/OsloSans-Regular.woff2`, fontWeight: 'normal' },
+    { src: `${baseUrl}/fonts/OsloSans-RegularItalic.woff2`, fontWeight: 'normal', fontStyle: 'italic' },
+    { src: `${baseUrl}/fonts/OsloSans-Medium.woff2`, fontWeight: 500 },
+    { src: `${baseUrl}/fonts/OsloSans-MediumItalic.woff2`, fontWeight: 500, fontStyle: 'italic' },
+    { src: `${baseUrl}/fonts/OsloSans-Bold.woff2`, fontWeight: 'bold' },
+    { src: `${baseUrl}/fonts/OsloSans-BoldItalic.woff2`, fontWeight: 'bold', fontStyle: 'italic' },
   ],
 });
 
@@ -336,7 +338,7 @@ const Header: React.FC<{ data: FormDataModel }> = ({ data }) => (
       <Text style={styles.headerSubtitle}>NS 8407:2011</Text>
     </View>
     <Image
-      src="/logos/Oslo-logo-hvit-RGB.png"
+      src={`${baseUrl}/logos/Oslo-logo-hvit-RGB.png`}
       style={styles.headerLogo}
     />
   </View>
