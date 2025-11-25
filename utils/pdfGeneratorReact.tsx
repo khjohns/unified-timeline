@@ -928,17 +928,19 @@ const KoePdfDocument: React.FC<{ data: FormDataModel }> = ({ data }) => {
   // 2. Siste krav-revisjon hvis den har status "Sendt til BH" (100000002) - klar til preview
   // 3. Siste krav-revisjon hvis den har minst ett krav valgt (ikke tom utkast)
   const sisteKravIndex = data.koe_revisjoner.length - 1;
-  const sisteKrav = data.koe_revisjoner[sisteKravIndex];
 
   const senteKoeRevisjoner = data.koe_revisjoner.filter((koe, index) => {
     // Allerede sendt (har dato)
     if (koe.dato_krav_sendt && koe.dato_krav_sendt !== '') return true;
 
-    // Siste revisjon med status "Sendt til BH" (preview-modus)
-    if (index === sisteKravIndex && koe.status === '100000002') return true;
+    // Siste revisjon (hvis den finnes)
+    if (index === sisteKravIndex && sisteKravIndex >= 0) {
+      // Med status "Sendt til BH" (preview-modus)
+      if (koe.status === '100000002') return true;
 
-    // Siste revisjon med minst ett krav valgt (ikke tom utkast)
-    if (index === sisteKravIndex && (koe.vederlag.krav_vederlag || koe.frist.krav_fristforlengelse)) return true;
+      // Med minst ett krav valgt (ikke tom utkast)
+      if (koe.vederlag.krav_vederlag || koe.frist.krav_fristforlengelse) return true;
+    }
 
     return false;
   });
