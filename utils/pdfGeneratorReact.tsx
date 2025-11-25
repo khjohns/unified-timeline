@@ -6,7 +6,10 @@ import { getKravStatusSkin, getSvarStatusSkin, getSakStatusSkin } from './status
 
 // Register Oslo Sans fonts (all variants)
 // Use absolute URLs to ensure fonts load correctly in PDF generation
-const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+// Include Vite's BASE_URL to handle subdirectory deployments (e.g., GitHub Pages)
+const baseUrl = typeof window !== 'undefined'
+  ? `${window.location.origin}${import.meta.env.BASE_URL}`.replace(/\/+$/, '')
+  : '';
 
 // Determine which font to use
 let PDF_FONT = 'Helvetica'; // Default to built-in font
