@@ -809,9 +809,14 @@ def submit_svar():
     godkjente_dager = frist_svar.get('bh_godkjente_dager', '')
 
     # Sjekk om det trengs revidering
+    # Trenger revidering hvis:
+    # - Delvis godkjent (100000001)
+    # - Avslått uenig (100000002)
+    # - Avslått for sent (100000003) - TE må begrunne varslingtidspunkt
+    # - Avventer (100000004) - TE må gi mer detaljer
     trenger_revisjon = (
-        bh_svar_vederlag in ['100000001', '100000002'] or  # Delvis/avslått
-        bh_svar_frist in ['100000001', '100000002']
+        bh_svar_vederlag in ['100000001', '100000002', '100000003', '100000004'] or
+        bh_svar_frist in ['100000001', '100000002', '100000003', '100000004']
     )
 
     # Lagre data først
