@@ -312,7 +312,9 @@ Produksjonsløsningen bygger på Azure-plattformen med fokus på skalerbarhet, s
 
 #### Ansvarsområder
 
-**Brukergrensesnitt:**
+**Brukergrensesnitt og Tilgangsstyring:**
+- **Rollebasert visning:** Grensesnittet tilpasser seg automatisk basert på innlogget rolle (TE/BH) fra Entra ID eller Magic Link-token
+- **Sikkerhet:** Frontend-visning er kun for brukervennlighet. All tilgangskontroll og validering av operasjoner (f.eks. "kan signere svar") håndheves av Gatekeeper i Azure Functions
 - Responsivt design som fungerer på mobil, nettbrett og desktop
 - WCAG 2.1 AA-kompatibel (universell utforming)
 - Konsistent med Oslo kommunes visuelle profil
@@ -322,10 +324,11 @@ Produksjonsløsningen bygger på Azure-plattformen med fokus på skalerbarhet, s
 - Real-time PDF-preview mens brukeren fyller ut
 - Autosave av utkast (draft mode)
 
-**PDF-generering:**
-- Client-side rendering for å spare servekostnader
-- Bruk av Oslo Sans font (kommunal profil)
-- Strukturert layout med seksjoner og signaturfelt
+**PDF-generering (Client-side):**
+- Client-side rendering (@react-pdf) for umiddelbar forhåndsvisning og reduserte serverkostnader
+- **Sikkerhetsmerknad:** PDF-en anses som et "visuelt vedlegg". Dataverse (databasen) er den autoritative kilden for strukturerte data (beløp, datoer)
+- **Integritet:** Ved innsending sendes både strukturerte data og PDF-blob. Backend logger innsendingstidspunkt og avsender for å sikre sporbarhet ved eventuelle avvik
+- Bruk av Oslo Sans font (kommunal profil) og låst layout
 
 **API-kommunikasjon:**
 - REST API-kall til Azure Functions
@@ -629,295 +632,130 @@ def get_application(app_id, scope_project, role):
 
 ## 6. Datamodell
 
-### 6.1 POC Datamodell (CSV/JSON)
+Datamodellen implementeres i **Microsoft Dataverse** for å sikre relasjonell integritet, sikkerhet på feltnivå og native integrasjon med Power Platform.
 
-Prototypen bruker en enkel filbasert datamodell for rask utvikling og testing.
+Modellen er designet med en **Master/Detail-struktur** for å håndtere forhandlingsprosesser der et krav kan gjennomgå flere revisjoner før enighet oppnås.
 
-#### Struktur
+### 6.1 ER-Diagram (Konseptuelt)
 
-**saker.csv:**
-```csv
-sak_id,topic_guid,status,modus,created_at,updated_at
-KOE-20231119-1200,abc-123-def,krav_sendt,koe,2023-11-19T12:00:00,2023-11-19T14:30:00
-```
+```mermaid
+erDiagram
+    PROSJEKT ||--|{ KONTRAKT : inneholder
+    KONTRAKT ||--|{ SAK : har
+    SAK ||--|{ REVISJON : historikk
+    SAK ||--o| EO : resulterer_i
 
-**form_data/{sak_id}.json:**
-```json
-{
-  "versjon": "5.0",
-  "rolle": "TE",
-  "sak": {
-    "prosjektNavn": "Tøyen Skole",
-    "sakId": "KOE-20231119-1200",
-    "topicGuid": "abc-123-def"
-  },
-  "varsel": {
-    "varselDato": "2023-11-15",
-    "beskrivelse": "Endrede grunnforhold..."
-  },
-  "koe_revisjoner": [
-    {
-      "revisjonNr": 0,
-      "dato": "2023-11-19",
-      "beloep": 500000,
-      "vedlegg": ["tegning_rev0.pdf"]
+    PROSJEKT {
+        string prosjekt_id PK
+        string navn
     }
-  ],
-  "bh_svar_revisjoner": []
-}
-```
 
-**historikk.csv:**
-```csv
-sak_id,timestamp,event,description
-KOE-20231119-1200,2023-11-19T12:00:00,topic_created,Sak opprettet fra Catenda
-KOE-20231119-1200,2023-11-19T14:30:00,krav_sendt,KOE sendt av entreprenør
-```
-
-#### Begrensninger
-- Ikke skalerbart
-- Ingen samtidighetskontroll (concurrent writes)
-- Manuell backup
-- Ingen innebygd sikkerhet
-
----
-
-### 6.2 L1D Datamodell (Dataverse)
-
-#### Entitetsdiagram
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        Projects                             │
-├─────────────────────────────────────────────────────────────┤
-│ PK: project_id (GUID)                                       │
-│     project_name (Text)                                     │
-│     catenda_project_id (Text)                               │
-│     project_leader (Lookup → Entra ID User)                 │
-│     start_date (DateTime)                                   │
-│     end_date (DateTime)                                     │
-│     status (Choice: active|completed|archived)              │
-└──────────────────┬──────────────────────────────────────────┘
-                   │
-                   │ 1:N
-                   │
-                   ▼
-┌─────────────────────────────────────────────────────────────┐
-│                     Applications                            │
-├─────────────────────────────────────────────────────────────┤
-│ PK: application_id (GUID)                                   │
-│ FK: project_id → Projects                                   │
-│     case_type (Choice: fravik|koe)                          │
-│     status (Choice: draft|submitted|under_review|           │
-│            approved|rejected|closed)                        │
-│     form_data (Multiple Lines of Text - JSON)               │
-│     created_by (Text or Lookup)                             │
-│     created_at (DateTime)                                   │
-│     submitted_at (DateTime)                                 │
-│     reviewed_by (Lookup → Entra ID User)                    │
-│     reviewed_at (DateTime)                                  │
-│     decision (Choice: approved|rejected|pending_info)       │
-│     decision_comment (Multiple Lines of Text)               │
-│     catenda_topic_guid (Text)                               │
-│     catenda_document_guid (Text)                            │
-└──────────────────┬──────────────────────────────────────────┘
-                   │
-                   │ 1:N
-                   │
-                   ▼
-┌─────────────────────────────────────────────────────────────┐
-│                      MagicLinks                             │
-├─────────────────────────────────────────────────────────────┤
-│ PK: token (Text - UUID v4)                                  │
-│ FK: application_id → Applications                           │
-│ FK: project_id → Projects                                   │
-│     recipient_email (Email)                                 │
-│     recipient_name (Text)                                   │
-│     role (Choice: TE|BH|Advisor|PL)                         │
-│     created_at (DateTime)                                   │
-│     created_by (Lookup → Entra ID User)                     │
-│     expires_at (DateTime)                                   │
-│     used (Boolean)                                          │
-│     used_at (DateTime)                                      │
-│     used_by_ip (Text)                                       │
-│     single_use (Boolean)                                    │
-│     revoked (Boolean)                                       │
-│     revoked_at (DateTime)                                   │
-│     revoked_reason (Text)                                   │
-└─────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────┐
-│                       AuditLog                              │
-├─────────────────────────────────────────────────────────────┤
-│ PK: audit_id (GUID)                                         │
-│     timestamp (DateTime)                                    │
-│     event_type (Choice: login|link_use|submit|sign|         │
-│                jit_role|webhook_received|...)               │
-│     user_id (Text or Lookup)                                │
-│ FK: application_id → Applications (nullable)                │
-│ FK: project_id → Projects (nullable)                        │
-│     ip_address (Text)                                       │
-│     user_agent (Text)                                       │
-│     details (Multiple Lines of Text - JSON)                 │
-│     result (Choice: success|failure|suspicious)             │
-└─────────────────────────────────────────────────────────────┘
-```
-
-#### Datatyper og validering
-
-**Dataverse Column Types:**
-
-| Field | Type | Validering |
-|-------|------|------------|
-| `project_id` | GUID | Automatisk generert |
-| `project_name` | Single Line of Text (100) | Required |
-| `catenda_project_id` | Single Line of Text (50) | Required, Unique |
-| `application_id` | GUID | Automatisk generert |
-| `case_type` | Choice (Option Set) | fravik \| koe |
-| `status` | Choice (Option Set) | draft \| submitted \| under_review \| approved \| rejected \| closed |
-| `form_data` | Multiple Lines of Text (Max) | JSON-validering i backend |
-| `token` | Single Line of Text (36) | UUID v4 format, Unique |
-| `recipient_email` | Email | Email-format validering |
-| `expires_at` | DateTime | Må være > created_at |
-
-#### Dataflyt mellom systemer
-
-```
-┌─────────────┐
-│   Catenda   │
-└──────┬──────┘
-       │ 1. Webhook: topic.created
-       │    {topic_guid, project_id, title}
-       ▼
-┌──────────────────┐
-│ Azure Functions  │
-└──────┬───────────┘
-       │ 2. Oppretter Application i Dataverse
-       │    {application_id, project_id, catenda_topic_guid, status=draft}
-       │
-       │ 3. Oppretter MagicLink i Dataverse
-       │    {token, application_id, expires_at, single_use=true}
-       │
-       ▼
-┌──────────────────┐
-│    Dataverse     │
-└──────┬───────────┘
-       │ 4. Returnerer data til Azure Functions
-       ▼
-┌──────────────────┐
-│ Azure Functions  │
-└──────┬───────────┘
-       │ 5. Poster lenke til Catenda
-       │    POST /topics/{topic_guid}/comments
-       │    Body: "Klikk her: https://app.example.com?token={uuid}"
-       ▼
-┌─────────────┐
-│   Catenda   │
-└─────────────┘
-
---- Bruker fyller ut skjema ---
-
-┌──────────────┐
-│  React App   │
-└──────┬───────┘
-       │ 6. POST /api/koe-submit
-       │    {token, form_data, project_id}
-       ▼
-┌──────────────────┐
-│ Azure Functions  │
-└──────┬───────────┘
-       │ 7. Validerer token (gatekeeper)
-       │ 8. Oppdaterer Application i Dataverse
-       │    {form_data: {...}, status=submitted, submitted_at=now()}
-       │ 9. Oppretter AuditLog entry
-       │    {event_type=submit, user_id, application_id}
-       │
-       ▼
-┌──────────────────┐
-│    Dataverse     │
-└──────────────────┘
-
---- React genererer PDF client-side ---
-
-┌──────────────┐
-│  React App   │
-└──────┬───────┘
-       │ 10. POST /api/cases/{sakId}/pdf
-       │     {pdfBase64, filename}
-       ▼
-┌──────────────────┐
-│ Azure Functions  │
-└──────┬───────────┘
-       │ 11. POST /v2/.../items (Catenda Document API)
-       │     Body: PDF binary
-       ▼
-┌─────────────┐
-│   Catenda   │ 12. Returnerer {document_guid (compact)}
-└──────┬──────┘
-       │
-       ▼
-┌──────────────────┐
-│ Azure Functions  │
-└──────┬───────────┘
-       │ 13. Konverterer compact → UUID-36
-       │ 14. POST /bcf/3.0/.../document_references
-       │     {document_guid (UUID-36)}
-       ▼
-┌─────────────┐
-│   Catenda   │
-└─────────────┘
-```
-
-#### JSON-struktur i form_data
-
-**Eksempel: KOE (Krav om Endringsordre)**
-
-```json
-{
-  "versjon": "5.0",
-  "rolle": "TE",
-  "sak": {
-    "prosjektNavn": "Tøyen Skole Rehabilitering",
-    "prosjektId": "proj-123",
-    "sakId": "KOE-2025-001",
-    "topicGuid": "550e8400-e29b-41d4-a716-446655440000"
-  },
-  "entreprenor": {
-    "firma": "Byggmester AS",
-    "kontaktperson": "Ole Hansen",
-    "epost": "ole@byggmester.no",
-    "telefon": "+47 900 00 000"
-  },
-  "varsel": {
-    "varselDato": "2025-11-01",
-    "varselBeskrivelse": "Endrede grunnforhold oppdaget ved fundamentering",
-    "dokumentreferanse": "BES-2025-042"
-  },
-  "koe_revisjoner": [
-    {
-      "revisjonNr": 0,
-      "dato": "2025-11-15",
-      "beskrivelse": "Ekstra fundamentering pga. endrede grunnforhold",
-      "kostnadsoverslag": {
-        "materialer": 250000,
-        "arbeidstimer": 150000,
-        "maskinleie": 100000,
-        "sum": 500000
-      },
-      "tidsforsinkelse": {
-        "dager": 14,
-        "begrunnelse": "Venter på geologisk rapport og nye beregninger"
-      },
-      "vedlegg": [
-        "geologisk_rapport.pdf",
-        "reviderte_tegninger.pdf",
-        "kalkulasjon.xlsx"
-      ]
+    KONTRAKT {
+        string kontrakt_id PK
+        string kontraktnummer
+        string entreprenor_navn
     }
-  ],
-  "bh_svar_revisjoner": []
-}
+
+    SAK {
+        guid oe_endringsmelding_id PK
+        string sak_id_human "KOE-2025-01"
+        enum status "Under behandling | Avslått | Godkjent"
+        currency gjeldende_krav_belop
+    }
+
+    REVISJON {
+        guid oe_revisjon_id PK
+        int revisjonsnummer
+        enum status_ved_innsending
+        json data_snapshot
+    }
 ```
+
+### 6.2 Tabellstruktur (Dataverse Entities)
+
+#### Tabell 1: Endringsmelding (oe_endringsmelding) - "Saken"
+
+Dette er hovedtabellen som representerer selve saken. Den inneholder alltid gjeldende status og nøkkeltall fra siste aktive revisjon. Det er denne tabellen som brukes til rapportering (pipeline, total eksponering).
+
+| Logisk Navn | Dataverse Type | Beskrivelse |
+|---|---|---|
+| oe_endring_id | Primary Key (GUID) | Unik system-ID |
+| oe_sak_id | String (Autonumber) | Lesbar ID, f.eks. "KOE-2025-0042" |
+| oe_tittel | String | Sakens tittel |
+| oe_type | Choice | KOE (Krav), EO (Endringsordre) |
+| oe_kontrakt_id | Lookup (oe_kontrakt) | Kobling til kontrakt/prosjekt |
+| oe_gjeldende_revisjon | Integer | Peker til siste revisjonsnummer (f.eks. 3) |
+| oe_status | Status Reason | Utkast, Sendt, Avslått, Godkjent |
+| oe_gjeldende_krav_belop | Currency | Beløpet fra siste revisjon (for rapportering) |
+| oe_bh_godkjent_belop | Currency | Beløpet Byggherre har godkjent (hvis avgjort) |
+
+#### Tabell 2: Endring Revisjon (oe_endring_revisjon) - "Historikken"
+
+Hver gang Entreprenør sender inn et krav (første gang eller etter avslag), opprettes en låst rad her. Dette sikrer komplett revisjonshistorikk og muliggjør analyse av forhandlingsprosessen.
+
+| Logisk Navn | Dataverse Type | Beskrivelse |
+|---|---|---|
+| oe_revisjon_id | Primary Key | System-ID for revisjonen |
+| oe_sak_id | Lookup (oe_endringsmelding) | Hvilken sak denne revisjonen tilhører |
+| oe_revisjonsnummer | Integer | 0, 1, 2... |
+| oe_innsendt_dato | DateTime | Tidspunkt for innsending |
+| oe_innsendt_av | String | Navn/E-post på avsender (TE) |
+| oe_krav_belop | Currency | Beløpet som ble krevd i denne revisjonen |
+| oe_krav_frist_dager | Integer | Dager fristforlengelse i denne revisjonen |
+| oe_json_payload | File (JSON) | Komplett kopi av skjemadata (FormDataModel) for denne versjonen |
+
+**Hensikt med oe_json_payload:**
+Sikrer at vi kan vise nøyaktig hva som ble sendt i hver revisjon, selv om skjemaet endres senere. Dette oppfyller krav om sporbarhet og dokumentasjon av forhandlingsforløpet.
+
+#### Tabell 3: Kontrakt (oe_kontrakt)
+
+Stamdata for å unngå manuell inntasting av prosjektinfo.
+
+| Felt | Type | Beskrivelse |
+|---|---|---|
+| oe_kontrakt_id | Primary Key | System-ID |
+| oe_kontraktnummer | String | F.eks. "K-10234" |
+| oe_prosjekt_id | Lookup (oe_prosjekt) | Prosjekttilhørighet |
+| oe_entreprenor_navn | String | Navn på firma |
+
+### 6.3 Dataprosess (Krav til Endringsordre)
+
+**1. Nytt krav:** Entreprenør oppretter sak
+   - → Ny rad i `oe_endringsmelding` (Status: Sendt)
+   - → Ny rad i `oe_endring_revisjon` (Rev 0)
+
+**2. Avslag/Dialog:** Byggherre avviser Rev 0
+   - → `oe_endringsmelding` oppdateres til Status: Avslått
+
+**3. Revidering:** Entreprenør sender inn justert krav
+   - → Ny rad i `oe_endring_revisjon` (Rev 1) med nytt beløp
+   - → `oe_endringsmelding` oppdateres med tall fra Rev 1 og Status: Sendt
+
+**4. Enighet (EO):** Byggherre godkjenner Rev 1
+   - → `oe_endringsmelding` får Status: Godkjent
+   - → Systemet kan generere en formell EO (enten som statusendring eller nytt EO-objekt)
+
+### 6.4 Mapping mot Frontend
+
+Frontend (types.ts) benytter en rik JSON-struktur (FormDataModel).
+
+**Strategi:**
+- **Nøkkeltall for rapportering** (Beløp, Frist, Datoer) lagres i kolonner i `oe_endring_revisjon`
+- **Kompletthet:** Resten av skjemaet (tekstlige begrunnelser, lister) lagres som JSON i `oe_json_payload`
+
+Dette sikrer at frontend alltid kan gjenskape visningen av en historisk revisjon 100% korrekt.
+
+### 6.5 Integritet og Sporbarhet
+
+**Master Data Principle:**
+- Strukturerte data i Dataverse er autoritativ kilde
+- Ved motstrid mellom database og PDF har databasen forrang
+- PDF anses som "visuelt vedlegg" for lesbarhet
+
+**Audit Trail:**
+- Alle revisjoner lagres immutable (kan ikke endres etter innsending)
+- Hver innsending logges med tidsstempel, avsender og IP-adresse i AuditLog
+- Hash av både dataset og PDF logges for å oppdage manipulering
 
 ---
 
@@ -1487,6 +1325,7 @@ Personvernaspektene er integrert i **ROS-analyse** (se seksjon 10). Spesielt rel
 | **Risiko (før tiltak)** | 🟨 Middels (Fravik), 🟧 Høy (KOE) |
 
 **Eksisterende tiltak:**
+- **JIT-validering mot Catenda:** Backend verifiserer i sanntid at e-postadressen som signerer faktisk er aktiv prosjektdeltaker i Catenda før innsending godtas
 - **Fravik:** Akseptert residual risiko (lav konsekvens)
 - **KOE:** OTP step-up ved signering (e-postverifisering med 6-sifret kode)
 - One-time token (kan kun brukes én gang)
@@ -1639,6 +1478,25 @@ Personvernaspektene er integrert i **ROS-analyse** (se seksjon 10). Spesielt rel
 
 ---
 
+#### T-09: Manipulering av Client-side PDF (Integritetsbrudd)
+
+**Beskrivelse:** En teknisk kyndig bruker manipulerer PDF-genereringen i nettleseren før innsending, slik at PDF-dokumentet viser andre beløp/vilkår enn det som lagres i databasen (Dataverse).
+
+| Attributt | Verdi |
+|-----------|-------|
+| **Sannsynlighet** | 2 (Lav) - Krever teknisk innsikt |
+| **Konsekvens** | 3 (Middels) - Tvist om hva som faktisk er avtalt |
+| **Risiko (før tiltak)** | 🟨 Middels |
+
+**Tiltak:**
+- **Master Data Principle:** Kontrakten spesifiserer at strukturerte data i systemet (Dataverse) har forrang ved motstrid mellom database og generert PDF
+- **Audit Trail:** Innsending logges med hash av både dataset og PDF
+- **Visuell verifisering:** Byggherre godkjenner basert på dataene presentert i sitt dashboard, som hentes fra databasen, ikke kun ved å lese PDF-vedlegget
+
+**Residual risiko:** 🟩 Lav
+
+---
+
 ### 10.3 Oppsummering av risikoer
 
 | ID | Trussel | Før tiltak | Etter tiltak | Status |
@@ -1651,6 +1509,7 @@ Personvernaspektene er integrert i **ROS-analyse** (se seksjon 10). Spesielt rel
 | T-06 | Webhook spoofing | 🟨 Middels | 🟩 Lav | ✅ Akseptabel |
 | T-07 | CSRF-angrep | 🟨 Middels | 🟩 Lav | ✅ Akseptabel |
 | T-08 | Utløpte tokens ikke slettet | 🟨 Middels | 🟩 Lav | ✅ Akseptabel |
+| T-09 | Client-side PDF-manipulering | 🟨 Middels | 🟩 Lav | ✅ Akseptabel |
 
 **Konklusjon:** Alle identifiserte risikoer er redusert til akseptabelt nivå. T-02 (videresendt KOE-lenke) bør vurderes for ytterligere tiltak i Fase 2 (step-up Entra ID eller BankID).
 
