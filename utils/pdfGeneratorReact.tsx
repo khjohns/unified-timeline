@@ -473,7 +473,10 @@ const SignatureBlock: React.FC<{
 };
 
 // FASE 4.2: Attachments Section komponent
-const AttachmentsSection: React.FC<{ data: FormDataModel }> = ({ data }) => {
+const AttachmentsSection: React.FC<{
+  data: FormDataModel;
+  senteKoeRevisjoner: FormDataModel['koe_revisjoner'];
+}> = ({ data, senteKoeRevisjoner }) => {
   // Samle alle vedlegg fra varsel, krav og svar
   interface Attachment {
     source: string;
@@ -490,11 +493,7 @@ const AttachmentsSection: React.FC<{ data: FormDataModel }> = ({ data }) => {
     });
   }
 
-  // Vedlegg fra krav-revisjoner (kun sendte)
-  const senteKoeRevisjoner = data.koe_revisjoner.filter(
-    koe => koe.dato_krav_sendt && koe.dato_krav_sendt !== ''
-  );
-
+  // Vedlegg fra krav-revisjoner (bruk samme filter som hovedkomponenten)
   senteKoeRevisjoner.forEach((koe, index) => {
     if (koe.vedlegg && koe.vedlegg.length > 0) {
       attachments.push({
@@ -504,9 +503,12 @@ const AttachmentsSection: React.FC<{ data: FormDataModel }> = ({ data }) => {
     }
   });
 
-  // Vedlegg fra BH svar-revisjoner (kun for sendte krav)
+  // Vedlegg fra BH svar-revisjoner (kun for inkluderte krav)
   const senteBhSvarRevisjoner = data.bh_svar_revisjoner.filter(
-    (_, index) => data.koe_revisjoner[index]?.dato_krav_sendt && data.koe_revisjoner[index]?.dato_krav_sendt !== ''
+    (_, index) => {
+      const koe = data.koe_revisjoner[index];
+      return senteKoeRevisjoner.includes(koe);
+    }
   );
 
   senteBhSvarRevisjoner.forEach((bhSvar, index) => {
@@ -558,14 +560,16 @@ const AttachmentsSection: React.FC<{ data: FormDataModel }> = ({ data }) => {
 };
 
 // FASE 2.1: Executive Summary komponent
-const ExecutiveSummary: React.FC<{ data: FormDataModel }> = ({ data }) => {
-  // Beregn totaler basert på sendte revisjoner
-  const senteKoeRevisjoner = data.koe_revisjoner.filter(
-    koe => koe.dato_krav_sendt && koe.dato_krav_sendt !== ''
-  );
-
+const ExecutiveSummary: React.FC<{
+  data: FormDataModel;
+  senteKoeRevisjoner: FormDataModel['koe_revisjoner'];
+}> = ({ data, senteKoeRevisjoner }) => {
+  // Beregn totaler basert på inkluderte revisjoner
   const senteBhSvarRevisjoner = data.bh_svar_revisjoner.filter(
-    (_, index) => data.koe_revisjoner[index]?.dato_krav_sendt && data.koe_revisjoner[index]?.dato_krav_sendt !== ''
+    (_, index) => {
+      const koe = data.koe_revisjoner[index];
+      return senteKoeRevisjoner.includes(koe);
+    }
   );
 
   // Beregn vederlagstotaler
@@ -918,13 +922,33 @@ const BhSvarRevisionSection: React.FC<{
 
 // Main Document Component
 const KoePdfDocument: React.FC<{ data: FormDataModel }> = ({ data }) => {
-  // FASE 1.1: Filtrer kun sendte revisjoner (fjerner tomme utkast-sider)
-  const senteKoeRevisjoner = data.koe_revisjoner.filter(
-    koe => koe.dato_krav_sendt && koe.dato_krav_sendt !== ''
-  );
+  // FASE 1.1: Filtrer revisjoner som skal vises i PDF
+  // Inkluderer:
+  // 1. Alle krav som har dato_krav_sendt (faktisk sendt)
+  // 2. Siste krav-revisjon hvis den har status "Sendt til BH" (100000002) - klar til preview
+  // 3. Siste krav-revisjon hvis den har minst ett krav valgt (ikke tom utkast)
+  const sisteKravIndex = data.koe_revisjoner.length - 1;
+  const sisteKrav = data.koe_revisjoner[sisteKravIndex];
+
+  const senteKoeRevisjoner = data.koe_revisjoner.filter((koe, index) => {
+    // Allerede sendt (har dato)
+    if (koe.dato_krav_sendt && koe.dato_krav_sendt !== '') return true;
+
+    // Siste revisjon med status "Sendt til BH" (preview-modus)
+    if (index === sisteKravIndex && koe.status === '100000002') return true;
+
+    // Siste revisjon med minst ett krav valgt (ikke tom utkast)
+    if (index === sisteKravIndex && (koe.vederlag.krav_vederlag || koe.frist.krav_fristforlengelse)) return true;
+
+    return false;
+  });
 
   const senteBhSvarRevisjoner = data.bh_svar_revisjoner.filter(
-    (_, index) => data.koe_revisjoner[index]?.dato_krav_sendt && data.koe_revisjoner[index]?.dato_krav_sendt !== ''
+    (_, index) => {
+      // Inkluder BH svar hvis tilsvarende krav er inkludert i senteKoeRevisjoner
+      const koe = data.koe_revisjoner[index];
+      return senteKoeRevisjoner.includes(koe);
+    }
   );
 
   // FASE 4.2: Sjekk om det finnes vedlegg
@@ -948,7 +972,7 @@ const KoePdfDocument: React.FC<{ data: FormDataModel }> = ({ data }) => {
         <TitlePage data={data} />
         <SummarySection data={data} />
         {/* FASE 2.2: Executive Summary plassert mellom SummarySection og Varsel */}
-        <ExecutiveSummary data={data} />
+        <ExecutiveSummary data={data} senteKoeRevisjoner={senteKoeRevisjoner} />
         {/* FASE 3.1: VarselSection flyttet til side 1 med dynamisk page breaking */}
         <VarselSection data={data} />
         <Footer pageNumber={1} totalPages={totalPages} />
@@ -980,7 +1004,7 @@ const KoePdfDocument: React.FC<{ data: FormDataModel }> = ({ data }) => {
       {harVedlegg && (
         <Page size="A4" style={styles.page}>
           <Header data={data} />
-          <AttachmentsSection data={data} />
+          <AttachmentsSection data={data} senteKoeRevisjoner={senteKoeRevisjoner} />
           <MetadataFooter
             generatedBy={data.sak.opprettet_av || 'Ukjent'}
             system="KOE - Krav om endringsordre"
