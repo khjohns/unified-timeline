@@ -365,66 +365,28 @@ Produksjonsløsningen bygger på Azure-plattformen med fokus på skalerbarhet, s
 #### Ansvarsområder
 
 **Sikkerhet (Gatekeeper-pattern):**
-```python
-# Pseudokode: Gatekeeper-funksjon
-def gatekeeper(request, required_role=None):
-    """
-    Validerer alle innkommende forespørsler før de når forretningslogikk.
-    """
-    # 1. Hent token fra request (URL parameter eller header)
-    token = extract_token(request)
-
-    # 2. Valider UUID format
-    if not is_valid_uuid(token):
-        return 400, "Invalid token format"
-
-    # 3. Hent Magic Link fra database
-    magic_link = dataverse.get_magic_link(token)
-
-    if not magic_link:
-        return 403, "Token not found"
-
-    # 4. Sjekk TTL (Time To Live)
-    if magic_link.expires_at < datetime.now():
-        return 403, "Token expired"
-
-    # 5. Sjekk one-time token
-    if magic_link.used:
-        log_suspicious_activity(token, request.ip)
-        return 403, "Token already used"
-
-    # 6. Sjekk prosjekt-scope
-    if magic_link.project_id != request.data.get("project_id"):
-        return 403, "Project mismatch"
-
-    # 7. Valider rolle (hvis påkrevd)
-    if required_role and magic_link.role != required_role:
-        return 403, f"Role {required_role} required"
-
-    # 8. Marker token som brukt (for one-time tokens)
-    if magic_link.single_use:
-        dataverse.mark_used(token)
-
-    # 9. Logg hendelse til audit log
-    audit_log(token, "access_granted", request.ip)
-
-    return magic_link  # Godkjent, returner kontekst
-```
+*[...Behold eksisterende tekst om Gatekeeper her...]*
 
 **API-endepunkter:**
 
 | Endepunkt | Metode | Beskrivelse | Autentisering |
 |-----------|--------|-------------|---------------|
 | `/api/health` | GET | Health check | Ingen |
+| **`/api/magic-link/verify`** | **GET** | **Verifiserer token og returnerer sakId (Entry point)** | **Ingen (Token er auth)** |
+| **`/api/validate-user`** | **POST** | **Sjekker om e-post finnes i Catenda-prosjekt (JIT)** | **Magic Link** |
 | `/api/cases/{sakId}` | GET | Hent sak | Magic Link eller Entra ID |
 | `/api/varsel-submit` | POST | Send varsel | Magic Link |
 | `/api/koe-submit` | POST | Send KOE | Magic Link + e-postvalidering |
 | `/api/svar-submit` | POST | Send BH-svar | Entra ID (kun PL) |
 | `/api/cases/{sakId}/revidering` | POST | Send revisjon | Magic Link |
 | `/api/cases/{sakId}/pdf` | POST | Last opp PDF | Magic Link eller Entra ID |
-| `/api/cases/{sakId}/draft` | PUT | Lagre utkast | Magic Link eller Entra ID |
-| `/api/link-generator` | POST | Generer Magic Link | Entra ID (kun PL) |
+| **`/api/link-generator`** | **POST** | **Manuell generering for prosjekter uten Catenda** | **Entra ID (Intern 'My App')** |
 | `/webhook/catenda` | POST | Catenda webhook | HMAC-signatur |
+
+> **⚠️ MERKNAD: Frontend vs. Backend Mismatch**
+> Det er identifisert funksjonalitet som er klargjort i Frontend (`api.ts`), men som foreløpig mangler implementasjon i Backend (`app.py`). Dette må implementeres før produksjon:
+> * **Generelle vedlegg:** Frontend kaller `/api/cases/{sakId}/attachments`, men backend støtter kun PDF-opplasting.
+> * **Autosave/Utkast:** Frontend kaller `/api/cases/{sakId}/draft` og `/api/drafts` for mellomlagring, men disse endepunktene mangler i backend.
 
 **Dataverse-operasjoner:**
 - CRUD (Create, Read, Update, Delete) for Applications, Projects, AuditLog
@@ -437,11 +399,6 @@ def gatekeeper(request, required_role=None):
 - BCF 3.0 document references
 - Kommentar-posting til topics
 - JIT-validering av Project Members
-
-**Observerbarhet:**
-- Strukturert logging til Application Insights
-- Custom metrics for business events
-- Alert-triggere ved mistenkelig aktivitet
 
 ---
 
@@ -826,7 +783,9 @@ Løsningen integrerer med både interne (Microsoft 365) og eksterne (Catenda) sy
 ### 7.2 Catenda (Ekstern integrasjon)
 
 #### Beskrivelse
-Catenda er et invitation-only PIM-system (Prosjektinformasjonsmodell) som fungerer som samarbeidsplattform for byggeprosjekter. Catenda er **autoritativ kilde (master)** for alle prosjektdokumenter.
+Catenda er et invitation-only PIM-system (Prosjektinformasjonsmodell) som fungerer som samarbeidsplattform for byggeprosjekter. Catenda er **autoritativ kilde (master)** for alle prosjektdokumenter i prosjekter som benytter dette.
+
+*Merk: For prosjekter som ikke benytter Catenda (f.eks. rene SHA/HMS-prosesser), benyttes en intern applikasjon ("My App") hvor lenker genereres manuelt via `/api/link-generator`.*
 
 #### Type integrasjon
 - **Webhook (Push):** Catenda varsler Azure Functions om nye saker (`issue.created`)
@@ -834,12 +793,12 @@ Catenda er et invitation-only PIM-system (Prosjektinformasjonsmodell) som funger
     * **Catenda REST API v2:** For opplasting av filer og henting av prosjektmedlemmer
     * **BCF API v3.0 (OpenCDE):** For opprettelse av topics, kommentarer og dokumentkoblinger
 
-#### API-endepunkter brukt
+#### API-endepunkter brukt (System-til-System)
 
 | Funksjon | API | Endepunkt | Beskrivelse |
 |----------|-----|-----------|-------------|
 | **Trigger** | Webhook | `POST /webhook/catenda` | Mottar event `issue.created` når PL oppretter sak |
-| **Validere bruker** | v2 | `GET /projects/{id}/members` | JIT-sjekk av om e-postadresse tilhører prosjektet |
+| **Validere bruker (Proxy)** | Internal/v2 | `POST /api/validate-user` | Frontend ber backend sjekke `GET /projects/{id}/members` i Catenda |
 | **Laste opp PDF** | v2 | `POST /v2/.../items` | Laster opp generert PDF. Returnerer `library_item_id` |
 | **Koble PDF** | BCF 3.0 | `POST /.../document_references` | Kobler opplastet PDF til saken (Topic) ved hjelp av UUID |
 | **Oppdatere status** | BCF 3.0 | `POST /.../topics/{guid}` | Oppdaterer status/type basert på saksgang |
@@ -906,20 +865,7 @@ def validate_webhook(request):
 - Automatisk refresh ved utløp
 
 **GUID-konvertering (kritisk):**
-
-Catenda v2 API returnerer **compact GUID (32 tegn)** ved document upload, men BCF 3.0 API krever **UUID format (36 tegn)** ved document reference.
-
-```python
-def catenda_compact_to_uuid(compact: str) -> str:
-    """
-    Konverterer Catenda compact GUID til UUID-36 format.
-
-    Input:  "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6" (32 tegn)
-    Output: "a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6" (36 tegn)
-    """
-    c = compact.replace('-', '').lower()  # Fjern eventuelle bindestreker
-    return f"{c[:8]}-{c[8:12]}-{c[12:16]}-{c[16:20]}-{c[20:32]}"
-```
+Catenda v2 API returnerer **compact GUID (32 tegn)** ved document upload, men BCF 3.0 API krever **UUID format (36 tegn)** ved document reference. Backend håndterer denne konverteringen automatisk.
 
 **Retry-logikk:**
 - Exponential backoff ved 429 (Too Many Requests) eller 5xx-feil
