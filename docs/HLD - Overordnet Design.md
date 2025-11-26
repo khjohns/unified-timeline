@@ -630,134 +630,175 @@ def get_application(app_id, scope_project, role):
 
 ---
 
+# PR: Generalisert Datamodell med Analysefelter (Kapittel 6)
+
+Beskrivelse:
+
+Dette er den endelige datamodellen for Kapittel 6. Den erstatter tidligere utkast og kombinerer to strategiske grep:
+
+1.  **Generalisering:** Endrer hovedtabellen til **`oe_prosjektsak`** for å støtte _alle_ saksdrevne prosesser (KOE, EO, Fravik, Forespørsel) i samme struktur.
+    
+2.  **Hybrid Lagring:** Innfører "Promoted Fields" i revisjonstabellen. Kritiske data for statistikk (beløp, årsakskoder) lagres som egne kolonner, mens detaljer lagres som JSON.
+    
+3.  **HMS-modul:** Skiller ut periodisk rapportering i en egen tabell `oe_hms_rapport`.
+    
+
+**Endringer i:** `docs/HLD - Overordnet Design.md`
+
 ## 6. Datamodell
+Datamodellen implementeres i **Microsoft Dataverse**. Modellen er designet som en **generell saksplattform** som støtter ulike prosesser (Krav, Fravik, Forespørsel) gjennom en felles kjernestruktur, samtidig som den sikrer dyp innsikt gjennom dedikerte analysefelter.
 
-Datamodellen implementeres i **Microsoft Dataverse** for å sikre relasjonell integritet, sikkerhet på feltnivå og native integrasjon med Power Platform.
-
-Modellen er designet med en **Master/Detail-struktur** for å håndtere forhandlingsprosesser der et krav kan gjennomgå flere revisjoner før enighet oppnås.
-
-### 6.1 ER-Diagram (Konseptuelt)
-
+### 6.1 ER-Diagram (Plattform-modell)
 ```mermaid
 erDiagram
+    %% Stamdata
     PROSJEKT ||--|{ KONTRAKT : inneholder
-    KONTRAKT ||--|{ SAK : har
-    SAK ||--|{ REVISJON : historikk
-    SAK ||--o| EO : resulterer_i
+    KONTRAKT ||--|{ SAK : har_saker
+    KONTRAKT ||--|{ HMS : har_rapporter
+
+    %% Saksbehandling (Master/Detail)
+    SAK ||--|{ SAK_REVISJON : historikk
+    SAK ||--o| SAK : relasjon_til_annen_sak
 
     PROSJEKT {
-        string prosjekt_id PK
         string navn
-    }
-
-    KONTRAKT {
-        string kontrakt_id PK
-        string kontraktnummer
-        string entreprenor_navn
+        string prosjektleder
     }
 
     SAK {
-        guid oe_endringsmelding_id PK
-        string sak_id_human "KOE-2025-01"
-        enum status "Under behandling | Avslått | Godkjent"
-        currency gjeldende_krav_belop
+        guid oe_prosjektsak_id PK
+        string sak_nr_human "KOE-01 / FRA-04"
+        enum type "KOE | EO | Fravik | Forespørsel"
+        enum status "Sendt | Godkjent | Avslått"
+        lookup parent_sak_id FK "Linker EO til KOE"
     }
 
-    REVISJON {
+    SAK_REVISJON {
         guid oe_revisjon_id PK
         int revisjonsnummer
-        enum status_ved_innsending
-        json data_snapshot
+        choice aarsak_kategori "For Analyse"
+        currency belop "For Analyse"
+        json data_payload "Komplett Skjema"
     }
+
+    HMS {
+        date periode
+        int h_verdi
+        int antall_skader
+    }
+
 ```
-
 ### 6.2 Tabellstruktur (Dataverse Entities)
-
-#### Tabell 1: Endringsmelding (oe_endringsmelding) - "Saken"
-
-Dette er hovedtabellen som representerer selve saken. Den inneholder alltid gjeldende status og nøkkeltall fra siste aktive revisjon. Det er denne tabellen som brukes til rapportering (pipeline, total eksponering).
+#### Tabell 1: Prosjektsak (`oe_prosjektsak`) - "Saksmappen"
+Dette er hovedtabellen for *alle* samhandlingsprosesser som krever saksbehandling. Den er generalisert for å støtte både økonomiske krav (KOE), formelle bestillinger (EO), tekniske avvik (Fravik) og forespørsler. Den inneholder alltid **gjeldende status** og nøkkelinfo for saksstyring.
 
 | Logisk Navn | Dataverse Type | Beskrivelse |
-|---|---|---|
-| oe_endring_id | Primary Key (GUID) | Unik system-ID |
-| oe_sak_id | String (Autonumber) | Lesbar ID, f.eks. "KOE-2025-0042" |
-| oe_tittel | String | Sakens tittel |
-| oe_type | Choice | KOE (Krav), EO (Endringsordre) |
-| oe_kontrakt_id | Lookup (oe_kontrakt) | Kobling til kontrakt/prosjekt |
-| oe_gjeldende_revisjon | Integer | Peker til siste revisjonsnummer (f.eks. 3) |
-| oe_status | Status Reason | Utkast, Sendt, Avslått, Godkjent |
-| oe_gjeldende_krav_belop | Currency | Beløpet fra siste revisjon (for rapportering) |
-| oe_bh_godkjent_belop | Currency | Beløpet Byggherre har godkjent (hvis avgjort) |
+| :--- | :--- | :--- |
+| `oe_prosjektsak_id` | Primary Key | Unik system-ID. |
+| `oe_sak_nr` | String (Autonumber) | Unik lesbar ID, f.eks. "KOE-2025-042" eller "FRA-2025-009". |
+| `oe_tittel` | String | Sakens tittel. |
+| `oe_type` | Choice | `KOE` (Krav), `EO` (Endringsordre), `Forespørsel` (BH-initiert), `Fravik` (Dispensasjon). |
+| `oe_kontrakt_id` | Lookup (`oe_kontrakt`) | Kobling til kontrakt/prosjekt. |
+| `oe_parent_sak_id` | Lookup (`oe_prosjektsak`) | Relasjon til opphav. F.eks. en `KOE` kan peke på en `Forespørsel` den besvarer, eller en `EO` kan peke på `KOE`-en den godkjenner. |
+| `oe_status` | Status Reason | `Utkast`, `Sendt`, `Under behandling`, `Godkjent`, `Avvist`, `Trukket`. |
+| `oe_gjeldende_revisjon`| Integer | Peker til siste aktive revisjonsnummer (f.eks. 3). |
+| `oe_saksbehandler_bh` | String | Hvem behandler saken hos BH (e-post/ID). |
 
-#### Tabell 2: Endring Revisjon (oe_endring_revisjon) - "Historikken"
-
-Hver gang Entreprenør sender inn et krav (første gang eller etter avslag), opprettes en låst rad her. Dette sikrer komplett revisjonshistorikk og muliggjør analyse av forhandlingsprosessen.
+#### Tabell 2: Sak Revisjon (`oe_sak_revisjon`) - "Historikk & Analyse"
+Inneholder en fryst versjon av saken ved hvert innsendingstidspunkt. Denne tabellen er designet etter en **Hybrid-modell**: Den trekker ut kritiske felt for Power BI-analyse som egne kolonner ("Promoted Fields"), mens resten av skjemaet lagres som JSON for å sikre visuell integritet i frontend.
 
 | Logisk Navn | Dataverse Type | Beskrivelse |
-|---|---|---|
-| oe_revisjon_id | Primary Key | System-ID for revisjonen |
-| oe_sak_id | Lookup (oe_endringsmelding) | Hvilken sak denne revisjonen tilhører |
-| oe_revisjonsnummer | Integer | 0, 1, 2... |
-| oe_innsendt_dato | DateTime | Tidspunkt for innsending |
-| oe_innsendt_av | String | Navn/E-post på avsender (TE) |
-| oe_krav_belop | Currency | Beløpet som ble krevd i denne revisjonen |
-| oe_krav_frist_dager | Integer | Dager fristforlengelse i denne revisjonen |
-| oe_json_payload | File (JSON) | Komplett kopi av skjemadata (FormDataModel) for denne versjonen |
+| :--- | :--- | :--- |
+| `oe_revisjon_id` | Primary Key | |
+| `oe_sak_id` | Lookup (`oe_prosjektsak`) | Hvilken sak revisjonen tilhører. |
+| `oe_revisjonsnummer` | Integer | 0, 1, 2... |
+| `oe_innsendt_dato` | DateTime | Tidspunkt for innsending. |
+| `oe_innsendt_av` | String | Navn/rolle på avsender (TE eller BH). |
+| **Analysefelter (Promoted Fields)** | | *Kritiske felt lagres som egne kolonner for direkte, lynrask rapportering i Power BI* |
+| `oe_årsak_hovedkategori` | Choice | F.eks. "Risiko for grunnforhold (§23.1)". |
+| `oe_årsak_underkategori` | Choice | F.eks. "Uforutsette grunnforhold (§23.1a)". |
+| `oe_krav_belop_total` | Currency | Totalt beløp ekskl. mva. (hvis relevant for sakstypen). |
+| `oe_krav_frist_dager` | Integer | Antall dager fristforlengelse (hvis relevant). |
+| `oe_konsekvens_kritisk_linje` | Boolean | Påvirker dette sluttfrist? (Viktig for risikoanalyse). |
+| `oe_godkjent_belop` | Currency | Beløp godkjent av BH i denne revisjonen (hvis BH-svar). |
+| **Detaljdata** | | |
+| `oe_json_payload` | File (JSON) | **Komplett tilstand:** Inneholder *hele* datastrukturen fra skjemaet (lange tekstlige begrunnelser, vedleggslister, delsummer, feltlåsing). Sikrer at frontend alltid kan vise revisjonen nøyaktig slik den var ved innsending, uavhengig av senere skjemaendringer. |
 
-**Hensikt med oe_json_payload:**
-Sikrer at vi kan vise nøyaktig hva som ble sendt i hver revisjon, selv om skjemaet endres senere. Dette oppfyller krav om sporbarhet og dokumentasjon av forhandlingsforløpet.
+#### Tabell 3: HMS Rapport (`oe_hms_rapport`) - "Periodisk Data"
+Håndterer periodisk innrapportering fra entreprenør. Dette er statistikk, ikke saksbehandling med forhandlinger, og holdes derfor adskilt fra sakstabellen for å sikre ren datakvalitet for HMS-dashboards.
 
-#### Tabell 3: Kontrakt (oe_kontrakt)
+| Logisk Navn | Dataverse Type | Beskrivelse |
+| :--- | :--- | :--- |
+| `oe_hms_id` | Primary Key | |
+| `oe_kontrakt_id` | Lookup (`oe_kontrakt`) | |
+| `oe_rapporteringsperiode` | Date | F.eks. "2025-11-01" (representerer November 2025). |
+| `oe_arbeidstimer` | Integer | Antall timer i perioden (nevner i H-verdi beregning). |
+| `oe_fraværsskader` | Integer | Antall skader med fravær (H1). |
+| `oe_medisinske_skader` | Integer | Antall skader med medisinsk behandling (H2). |
+| `oe_nesten_uhell` | Integer | Antall registrerte RUH. |
+| `oe_json_detaljer` | File (JSON) | Eventuell detaljert ulykkesbeskrivelse eller tiltaksliste. |
 
-Stamdata for å unngå manuell inntasting av prosjektinfo.
 
-| Felt | Type | Beskrivelse |
-|---|---|---|
-| oe_kontrakt_id | Primary Key | System-ID |
-| oe_kontraktnummer | String | F.eks. "K-10234" |
-| oe_prosjekt_id | Lookup (oe_prosjekt) | Prosjekttilhørighet |
-| oe_entreprenor_navn | String | Navn på firma |
+### 6.3 Mapping mot Frontend
+Frontend-applikasjonen benytter en rik og hierarkisk JSON-struktur (`FormDataModel`) definert i `types.ts`. For å balansere behovet for fleksibilitet i brukergrensesnittet med behovet for tung analyse i backend, benyttes følgende lagringsstrategi:
 
-### 6.3 Dataprosess (Krav til Endringsordre)
+1.  **Strategi: Hybrid Lagring**
+    * **Nøkkeltall for rapportering (Promoted Fields):** Kritiske data som beløp, frister, datoer og årsakskoder trekkes ut av JSON-strukturen og lagres i egne kolonner i `oe_sak_revisjon`. Dette muliggjør direkte SQL-spørringer og rask filtrering i Power BI.
+    * **Kompletthet (JSON Payload):** Resten av skjemaet (lange tekstlige begrunnelser, lister over vedlegg, feltlåsing, UI-tilstand) lagres som en strukturert JSON-blob i feltet `oe_json_payload`.
 
-**1. Nytt krav:** Entreprenør oppretter sak
-   - → Ny rad i `oe_endringsmelding` (Status: Sendt)
-   - → Ny rad i `oe_endring_revisjon` (Rev 0)
+2.  **Gevinst:**
+    * Dette sikrer at frontend alltid kan gjenskape visningen av en historisk revisjon **100% korrekt** ved å laste inn JSON-payloaden, selv om databaseskjemaet skulle endre seg over tid.
+    * Rapporteringsløsningen (Power BI) slipper å parse kompleks JSON, men kan lese ferdig indekserte kolonner.
 
-**2. Avslag/Dialog:** Byggherre avviser Rev 0
-   - → `oe_endringsmelding` oppdateres til Status: Avslått
+### 6.4 Integritet og Sporbarhet
+For å sikre at dataene holder juridisk standard for bevisførsel og hindre manipulering, følges strenge prinsipper:
 
-**3. Revidering:** Entreprenør sender inn justert krav
-   - → Ny rad i `oe_endring_revisjon` (Rev 1) med nytt beløp
-   - → `oe_endringsmelding` oppdateres med tall fra Rev 1 og Status: Sendt
+1.  **Master Data Principle:**
+    * Strukturerte data i Dataverse (`oe_sak_revisjon`) er den **autoritative kilden**.
+    * Ved eventuell motstrid mellom databaseverdier og den genererte PDF-filen, har databasen forrang.
+    * PDF-filen anses som et "visuelt vedlegg" for lesbarhet og arkivering i tredjepartssystemer (Catenda), men er ikke kilden til sannhet for rapportering.
 
-**4. Enighet (EO):** Byggherre godkjenner Rev 1
-   - → `oe_endringsmelding` får Status: Godkjent
-   - → Systemet kan generere en formell EO (enten som statusendring eller nytt EO-objekt)
+2.  **Audit Trail:**
+    * Alle rader i `oe_sak_revisjon` lagres som **immutable** (kan ikke endres etter innsending). Endringer krever opprettelse av en ny revisjon.
+    * Hver innsending logges med tidsstempel, avsender (identifisert via Entra ID eller validert Token) og IP-adresse i systemets AuditLog.
+    * Innsending valideres mot en server-side "Gatekeeper" for å hindre at brukere kan endre felt de ikke har rettigheter til (f.eks. at Entreprenør endrer godkjent beløp).
 
-### 6.4 Mapping mot Frontend
+### 6.5 Saksflyt og Statusmodell
+Modellen styres av en streng statusmaskin definert i kodebasen. Statusene er implementert som Dataverse OptionSets (numeriske strenger) for å sikre unikhet og konsistens mellom frontend og backend.
 
-Frontend (types.ts) benytter en rik JSON-struktur (FormDataModel).
+**Hovedflyt for KOE-prosessen:**
 
-**Strategi:**
-- **Nøkkeltall for rapportering** (Beløp, Frist, Datoer) lagres i kolonner i `oe_endring_revisjon`
-- **Kompletthet:** Resten av skjemaet (tekstlige begrunnelser, lister) lagres som JSON i `oe_json_payload`
+1.  **Oppstart (Varsling):**
+    * Entreprenør oppretter sak. Status settes til **`100000000` (Under varsling)**.
+    * Ved innsending av varsel endres status til **`100000001` (Varslet)**.
 
-Dette sikrer at frontend alltid kan gjenskape visningen av en historisk revisjon 100% korrekt.
+2.  **Krav (KOE):**
+    * Entreprenør utarbeider krav. KOE-revisjon i frontend har status **`100000001` (Utkast)**.
+    * Ved innsending av krav endres sak-status til **`100000002` (Venter på svar)**, og KOE-revisjon settes til **`100000002` (Sendt til BH)**.
 
-### 6.5 Integritet og Sporbarhet
+3.  **Behandling (BH Svar):**
+    * Byggherre utarbeider svar. BH-svar-revisjon har status **`300000001` (Utkast)**.
+    * Ved innsending av svar oppdateres sak-status basert på utfallet:
+        * Hvis godkjent: **`100000005` (Omforent / EO utstedes)**.
+        * Hvis delvis/avslag: **`100000007` (Vurderes av TE)**.
+    * Tilhørende KOE-revisjon markeres som **`200000001` (Besvart)**.
 
-**Master Data Principle:**
-- Strukturerte data i Dataverse er autoritativ kilde
-- Ved motstrid mellom database og PDF har databasen forrang
-- PDF anses som "visuelt vedlegg" for lesbarhet
+4.  **Revidering (Dialog):**
+    * Hvis saken står i `Vurderes av TE` (100000007), kan entreprenør velge å sende inn et nytt, revidert krav.
+    * Sak-status går da tilbake til **`100000002` (Venter på svar)** for ny behandling hos BH.
 
-**Audit Trail:**
-- Alle revisjoner lagres immutable (kan ikke endres etter innsending)
-- Hver innsending logges med tidsstempel, avsender og IP-adresse i AuditLog
-- Hash av både dataset og PDF logges for å oppdage manipulering
+5.  **Avslutning:**
+    * Saken lukkes med endelig status når prosessen er ferdig, f.eks. **`100000011` (Lukket - Implementert)**, **`100000006` (Lukket - Avslått)** eller **`100000008` (Under tvist)**.
 
----
+### 6.6 Forretningsregler (Automatisering)
+
+For å sikre datakvalitet implementeres følgende regler i Dataverse (Business Rules) eller Azure Functions (Backend Logic):
+
+* **BR1: Revisjonslåsing:** En rad i `oe_sak_revisjon` kan *aldri* endres etter opprettelse (Immutable). Endringer må alltid skje ved opprettelse av ny revisjon med inkrementert revisjonsnummer.
+* **BR2: Beløpsvalidering:** `oe_godkjent_belop` kan ikke overstige `oe_krav_belop_total` uten at systemet krever eksplisitt begrunnelse/advarsel (hindrer tastefeil).
+* **BR3: Fristovervåking:** Hvis saken er av typen `Forespørsel` (fra BH) eller `Varsel` (fra TE), settes en svarfrist. Systemet sender automatisk purring 2 dager før fristutløp.
+* **BR4: Unikhet:** Det er ikke tillatt med to aktive saker med samme `oe_tittel` innenfor samme `oe_kontrakt_id` for å hindre duplikater.
+* **BR5: HMS-konsistens:** I `oe_hms_rapport` må `oe_arbeidstimer` være større enn 0 for at H-verdi skal kunne beregnes og lagres.
 
 ## 7. Integrasjoner
 
