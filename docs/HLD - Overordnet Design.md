@@ -306,7 +306,7 @@ Produksjonsløsningen bygger på Azure-plattformen med fokus på skalerbarhet, s
 | **TypeScript** | 5.x | Typesikkerhet og bedre utvikleropplevelse |
 | **Vite** | Latest | Byggverktøy og development server |
 | **Punkt** | Latest | Oslo kommunes designsystem (komponenter, farger, typografi) |
-| **Tailwind CSS** | 3.x | Utility-first CSS for rask styling |
+| **Tailwind CSS** | 4.1.x | Utility-first CSS for rask styling |
 | **@react-pdf/renderer** | Latest | Client-side PDF-generering |
 | **React Router** | 6.x | Navigasjon og URL-håndtering |
 
