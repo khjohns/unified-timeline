@@ -45,6 +45,40 @@ except ImportError:
     print("❌ Finner ikke filtering_config.py")
     sys.exit(1)
 
+# Security modules
+try:
+    from csrf_protection import generate_csrf_token, require_csrf
+    from validation import (
+        validate_guid, validate_csv_safe_string, ValidationError,
+        validate_sak_status, validate_positive_number, validate_date_string
+    )
+    from catenda_auth import require_catenda_auth, require_project_access, validate_field_access
+    from webhook_security import (
+        validate_webhook_token, is_duplicate_event,
+        validate_webhook_event_structure, get_webhook_event_id
+    )
+    from audit import audit
+except ImportError as e:
+    print(f"⚠️  Sikkerh​etsmoduler ikke funnet: {e}")
+    print("   Fortsetter uten sikkerhetsfunksjoner (kun for utvikling)")
+    # Define dummy decorators hvis modulene mangler
+    def require_csrf(f): return f
+    def require_catenda_auth(f): return f
+    def require_project_access(f): return f
+    class audit:
+        @staticmethod
+        def log_event(*args, **kwargs): pass
+        @staticmethod
+        def log_auth_success(*args, **kwargs): pass
+        @staticmethod
+        def log_auth_failure(*args, **kwargs): pass
+        @staticmethod
+        def log_access_denied(*args, **kwargs): pass
+        @staticmethod
+        def log_webhook_received(*args, **kwargs): pass
+        @staticmethod
+        def log_security_event(*args, **kwargs): pass
+
 # Konfigurer logging
 logging.basicConfig(
     level=logging.INFO,
@@ -519,7 +553,47 @@ class KOEAutomationSystem:
 
 # --- Flask App Setup ---
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": "*"}}) # Fase 1: CORS
+
+# CORS Configuration (forbedret sikkerhet)
+# I produksjon: Begrens origins til faktiske domener
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",")
+NGROK_URL = os.getenv("NGROK_URL", "")
+if NGROK_URL:
+    ALLOWED_ORIGINS.append(NGROK_URL)
+
+CORS(app, resources={
+    r"/api/*": {
+        "origins": ALLOWED_ORIGINS,
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "X-CSRF-Token", "Authorization"],
+        "expose_headers": ["X-RateLimit-Remaining", "X-RateLimit-Reset"],
+        "supports_credentials": False,
+        "max_age": 3600
+    }
+})
+
+# Rate Limiting (beskytter mot overbelastning)
+try:
+    from flask_limiter import Limiter
+    from flask_limiter.util import get_remote_address
+
+    limiter = Limiter(
+        app=app,
+        key_func=get_remote_address,
+        default_limits=["200 per day", "50 per hour"],
+        storage_uri="memory://"  # In-memory for prototype
+    )
+    logger.info("✅ Rate limiting aktivert")
+except ImportError:
+    logger.warning("⚠️  Flask-Limiter ikke installert. Rate limiting deaktivert.")
+    logger.warning("   Installer med: pip install Flask-Limiter")
+    # Dummy limiter hvis ikke installert
+    class limiter:
+        @staticmethod
+        def limit(limit_string):
+            def decorator(f):
+                return f
+            return decorator
 
 # Global system instance
 system: Optional[KOEAutomationSystem] = None
@@ -540,7 +614,54 @@ def get_system():
 from magic_link import MagicLinkManager
 magic_link_mgr = MagicLinkManager()
 
+# --- Error Handlers ---
+
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    """Handler for rate limit overskredet."""
+    audit.log_security_event("rate_limit_exceeded", {
+        "limit": str(e.description)
+    })
+    return jsonify({
+        "error": "Rate limit exceeded",
+        "detail": str(e.description),
+        "retry_after": getattr(e, 'retry_after', 60)
+    }), 429
+
+@app.errorhandler(403)
+def forbidden_handler(e):
+    """Handler for tilgang nektet."""
+    user = g.get('user', {})
+    audit.log_access_denied(
+        user=user.get('email', 'anonymous'),
+        resource=request.path,
+        reason=str(e)
+    )
+    return jsonify({"error": "Forbidden", "detail": str(e)}), 403
+
 # --- API Endpoints (Fase 3) ---
+
+@app.route('/api/csrf-token', methods=['GET'])
+@limiter.limit("30 per minute")
+def get_csrf_token():
+    """
+    Hent CSRF-token for å beskytte state-changing operations.
+
+    CSRF (Cross-Site Request Forgery) beskytter mot at ondsinnede nettsider
+    får brukerens browser til å utføre uønskede handlinger.
+
+    Returns:
+        JSON: {"csrfToken": "...", "expiresIn": 3600}
+    """
+    try:
+        token = generate_csrf_token()
+        return jsonify({
+            "csrfToken": token,
+            "expiresIn": 3600  # 1 time
+        }), 200
+    except Exception as e:
+        logger.error(f"Feil ved generering av CSRF-token: {e}")
+        return jsonify({"error": "Failed to generate CSRF token"}), 500
 
 @app.route('/api/magic-link/verify', methods=['GET'])
 def verify_magic_link():
@@ -621,6 +742,8 @@ def get_case(sakId):
     return jsonify({"error": "Sak ikke funnet"}), 404
 
 @app.route('/api/varsel-submit', methods=['POST'])
+@limiter.limit("10 per minute")  # Rate limit: Max 10 submissions per minutt
+@require_csrf  # CSRF beskyttelse
 def submit_varsel():
     logger.info("📥 Mottok varsel-submit request")
     sys = get_system()
@@ -688,6 +811,8 @@ def submit_varsel():
     return jsonify({"success": True, "nextMode": "koe"}), 200
 
 @app.route('/api/koe-submit', methods=['POST'])
+@limiter.limit("10 per minute")
+@require_csrf
 def submit_koe():
     logger.info("📥 Mottok koe-submit request")
     sys = get_system()
@@ -778,6 +903,8 @@ def submit_koe():
     return jsonify({"success": True, "nextMode": "svar"}), 200
 
 @app.route('/api/svar-submit', methods=['POST'])
+@limiter.limit("10 per minute")
+@require_csrf
 def submit_svar():
     logger.info("📥 Mottok svar-submit request")
     sys = get_system()
@@ -1028,22 +1155,69 @@ def upload_pdf(sakId):
 
 # --- Webhook Endpoint ---
 @app.route('/webhook/catenda', methods=['POST'])
+@limiter.limit("100 per minute")  # Høyere limit for webhooks
 def webhook():
+    """
+    Webhook endpoint for Catenda events.
+
+    Security:
+    - Secret Token Validation (token i URL query parameter)
+    - Idempotency Check (forhindrer duplikat-prosessering)
+    - Event Structure Validation
+
+    Catenda Configuration:
+    - URL: https://your-ngrok.io/webhook/catenda?token=YOUR_SECRET_TOKEN
+    - Events: issue.created, issue.modified, issue.status.changed
+    """
     sys = get_system()
+
+    # 1. Valider Secret Token (fra URL query parameter)
+    valid, error = validate_webhook_token()
+    if not valid:
+        logger.warning(f"Webhook token validation failed: {error}")
+        audit.log_security_event("webhook_unauthorized", {"error": error})
+        return jsonify({"error": "Unauthorized", "detail": error}), 401
+
+    # 2. Parse payload
     payload = request.get_json()
-    event_type = payload.get('event', {}).get('type') or payload.get('event')
+    if not payload:
+        return jsonify({"error": "Invalid JSON"}), 400
 
-    logger.info(f"Webhook mottatt: {event_type}")
+    # 3. Valider event structure
+    valid_structure, structure_error = validate_webhook_event_structure(payload)
+    if not valid_structure:
+        logger.warning(f"Invalid webhook structure: {structure_error}")
+        return jsonify({"error": "Invalid event structure", "detail": structure_error}), 400
 
+    # 4. Idempotency check (forhindre duplikat-prosessering)
+    event_id = get_webhook_event_id(payload)
+    if is_duplicate_event(event_id):
+        logger.info(f"Duplicate webhook event ignored: {event_id}")
+        return jsonify({"status": "already_processed"}), 202
+
+    # 5. Hent event type
+    event_type = payload.get('event')
+
+    # 6. Log webhook mottatt
+    audit.log_webhook_received(event_type=event_type, event_id=event_id)
+    logger.info(f"✅ Processing webhook event: {event_type} (ID: {event_id})")
+
+    # 7. Prosesser event basert på type
     if event_type in ['issue.created', 'bcf.issue.created']:
         result = sys.handle_new_topic_created(payload)
         return jsonify(result), 200
-    
+
     elif event_type in ['issue.modified', 'bcf.comment.created']:
         result = sys.handle_topic_modification(payload)
         return jsonify(result), 200
-    
-    return jsonify({"status": "ignored"}), 200
+
+    elif event_type == 'issue.status.changed':
+        result = sys.handle_topic_modification(payload)
+        return jsonify(result), 200
+
+    # Unknown event type (log men aksepter)
+    logger.info(f"Unknown webhook event type: {event_type}")
+    return jsonify({"status": "ignored", "event_type": event_type}), 200
 
 if __name__ == "__main__":
     if not os.path.exists('config.json'):
