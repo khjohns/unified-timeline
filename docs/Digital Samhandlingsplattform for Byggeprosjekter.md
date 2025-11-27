@@ -1417,25 +1417,124 @@ Med besparelsene kan vi investere i:
 
 ---
 
-## Roadmap: Fase 1 (Pilot)
+## Produksjonssetting (Konkret tidsplan)
 
-**Tidsramme: Nå - Q4 202X (3 måneder)**
+**Total kalendertid: 3-6 uker fra oppstart**
+
+Systemet settes i produksjon via en kontrollert "Clean Cutover"-strategi (ikke parallellkjøring mellom prototype og produksjon).
+
+**Hva er Clean Cutover?** En overgangsmetode hvor systemet bygges ferdig, testes grundig i et staging-miljø, og deretter skrus på i produksjon på én dag. Dette i motsetning til å kjøre gammelt og nytt system parallelt, som krever kompleks synkronisering av data.
+
+### Fase 1: Utvikling (1.5-2 uker)
+
+**Aktiviteter:**
+* Refaktorering av backend til lagdelt arkitektur (Routes → Services → Repositories)
+* Implementering av Pydantic-modeller for datavalidering
+* Repository pattern for enkel bytte mellom CSV (utvikling) og Dataverse (produksjon)
+* Unit testing (>80% coverage)
+
+**Leveranse:** Testbar kodebase klar for Azure Functions
+
+### Fase 2: Azure Landing Zone (2-4 uker kalendertid)
 
 **Aktiviteter:**
 
-* **Velg 2-3 pilotprosjekter** - fortrinnsvis store prosjekter med mange fravik (f.eks. Tøyen Skole, Nye Deichman)
-* **Deploy til Dataverse** - migrere eksisterende CSV-data (hvis noen) til Dataverse-tabeller
-* **Onboarding av brukere** - workshops med prosjektledere og utvalgte leverandører
-**Hva er onboarding?** Prosessen med å introdusere brukere til et nytt system. Inkluderer opplæring, demonstrasjoner, brukermanualer og support. God onboarding er kritisk for adopsjonsrate (andel brukere som faktisk tar i bruk systemet).
+*Core Infrastructure (8-12 timer):*
+* Resource Groups, Function App, Storage Account
+* Application Insights for logging og monitoring
+* Service Bus for async bakgrunnsjobber
+
+*Sikkerhet og Identitet (10-15 timer):*
+* Azure Key Vault for hemmeligheter
+* Managed Identity ("Zero Trust" - ingen credentials i kode)
+* RBAC-roller (Key Vault, Dataverse, Service Bus)
+
+*Dataverse (10-15 timer):*
+* Bestilling av Dataverse-miljø (kan ta 1-2 uker kalendertid)
+* Oppretting av tabeller og kolonner
+* Security Roles for applikasjonsbrukeren
+
+*Nettverk og WAF (8-11 timer):*
+* Azure Front Door / Application Gateway
+* Web Application Firewall med OWASP-regler
+* DNS-konfigurasjon og SSL-sertifikat
+* Log masking for webhook-hemmeligheter (kritisk sikkerhetskrav)
+
+**Leveranse:** Fungerende test- og produksjonsmiljø
+
+**Kalendertid:** 2-4 uker (effektiv arbeidstid: 36-53 timer, men avhengig av bestillinger og godkjenninger hos IT-drift)
+
+### Fase 3: UAT - User Acceptance Testing (1 uke)
+
+**Aktiviteter:**
+* Deploy til `oe-koe-test` (staging-miljø)
+* Gjennomføring av 10 UAT-scenarioer
+* Validering av webhook-sikkerhet
+* Performance-testing (<2 sek responstid)
+* Godkjenning fra pilotbrukere
+
+**Leveranse:** UAT-godkjenning og signering på produksjonsklar løsning
+
+### Fase 4: Go Live (1 dag)
+
+**Aktiviteter:**
+* Deploy til `oe-koe-prod`
+* Oppdatering av Catenda webhook URL (kritisk cutover-punkt)
+* Verifikasjon av produksjonsmiljø
+* Pensjonering av prototype
+
+**Leveranse:** Aktivt produksjonssystem
+
+### Fase 5: Post-deployment (1 uke)
+
+**Aktiviteter:**
+* 24-timers intensiv overvåking i Application Insights
+* Daglig logggjennomgang
+* Innsamling av brukertilbakemeldinger
+* Finjustering av ytelse og opplevelse
+
+**Leveranse:** Stabil drift
+
+**Total arbeidsinnsats:** 85-120 timer (tilsvarer 2-3 uker fulltid for én person)
+
+---
+
+## Plattform-gjenbrukbarhet
+
+Systemet er generelt anvendelig for å samle inn og fange rike data i forbindelse med gjennomføringen av entrepriseprosjekter, uten at dette går utover Catenda som det sentrale navet som prosjekthotell.
+
+Den lagdelte arkitekturen (Routes → Services → Repositories → Dataverse) gjør at samme tekniske fundament kan gjenbrukes for andre skjemabaserte prosesser i byggeprosjekter.
+
+**Potensielle anvendelser (eksempler):**
+
+| Skjematype | Estimert arbeid | Beskrivelse |
+|------------|----------------|-------------|
+| **Fravikssøknader fra kontraktskrav** | 15-25 timer | Entreprenør søker dispensasjon fra krav, prosjektleder godkjenner |
+| **HMS-rapportering** | 12-20 timer | Ukentlige sikkerhetsrapporter med automatisk varsel ved kritiske hendelser |
+| **Kvalitetskontroll-rapporter** | 20-30 timer | Inspeksjonsrapporter med bilder og sjekklis ter |
+
+**Besparelse:** 70-80% redusert arbeidsinnsats sammenlignet med første løsning (KOE), fordi:
+* Samme Azure-infrastruktur (Function App, Dataverse, Key Vault, Service Bus)
+* Samme sikkerhetsmønstre (CSRF, validering, audit logging)
+* Samme Catenda-integrasjon (webhook, document upload, BCF)
+* Gjenbrukbar service-kode med Pydantic-validering
+
+**Strategisk verdi:**
+
+Investering i KOE-systemet blir en plattforminvestering som gir skalerbare gevinster for fremtidige digitale entrepriseprosesser.
+
+---
+
+## Pilot og måling
 
 **KPIer (Key Performance Indicators):**
 
 * **Behandlingstid** < 2 dager (fra innsending til vedtak)
-* **Adopsjonsrate** > 80% (minst 80% av fravikene sendes digitalt, ikke via e-post)
-* **Brukertilfredshet** > 4.0 på skala 1-5 (målt via spørreskjema etter piloten)
-**Hva er en KPI?** En målbar indikator som brukes til å evaluere suksess. KPIer må være SMART: Specific (spesifikk), Measurable (målbar), Achievable (oppnåelig), Relevant (relevant), Time-bound (tidsavgrenset).
+* **Adopsjonsrate** > 80% (minst 80% av sakene sendes digitalt, ikke via e-post)
+* **Brukertilfredshet** > 4.0 på skala 1-5 (målt via spørreskjema)
+* **Systemoppetid** > 99.5% (målt i Application Insights)
 
-**Varighet: 3 måneder**
+**Hva er en KPI?** En målbar indikator som brukes til å evaluere suksess. KPIer må være SMART: Specific (spesifikk), Measurable (målbar), Achievable (oppnåelig), Relevant (relevant), Time-bound (tidsavgrenset).
 
 ---
 
