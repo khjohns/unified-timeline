@@ -8,14 +8,19 @@ import sys
 import json
 import logging
 import requests
+import os
 from typing import List, Dict, Any, Optional
 from pathlib import Path
+from dotenv import load_dotenv
 
 try:
     from catenda_api_tester import CatendaAPITester
 except ImportError:
     print("❌ Finner ikke catenda_api_tester.py")
     sys.exit(1)
+
+# Last .env filen
+load_dotenv()
 
 # Konfigurer logging
 logging.basicConfig(
@@ -291,24 +296,18 @@ def setup_webhooks_interactive():
     print("  2. Kjør: ngrok http 5000")
     print("  3. Kopier ngrok URL og legg til /webhook/catenda")
     
-    target_url = input("\nWebhook target URL: ").strip()
-    
-    if not target_url:
-        print("❌ Target URL er påkrevd!")
+    # Hent base URL og hemmelig sti fra .env
+    ngrok_url = os.getenv("NGROK_URL")
+    secret_path = os.getenv("WEBHOOK_SECRET_PATH")
+
+    if not ngrok_url or not secret_path:
+        print("\n❌ NGROK_URL og/eller WEBHOOK_SECRET_PATH ikke funnet i .env-filen.")
+        print("   Sørg for at begge variablene er satt i backend/.env")
         sys.exit(1)
-    
-    # Verifiser URL
-    if not target_url.startswith('http'):
-        print("⚠️ URL må starte med http:// eller https://")
-        fix = input("Legge til https:// automatisk? (j/n) [j]: ").strip().lower()
-        if fix != 'n':
-            target_url = f"https://{target_url}"
-    
-    # Lagre URL i config
-    config['webhook_target_url'] = target_url
-    with open('config.json', 'w') as f:
-        json.dump(config, f, indent=2)
-    print(f"✅ Target URL lagret i config.json")
+
+    # Bygg den endelige, hemmelige URLen
+    target_url = f"{ngrok_url}/webhook/catenda/{secret_path}"
+    print(f"✅ Bygger hemmelig URL for Catenda: {target_url}")
     
     # Definer nødvendige webhooks
     required_webhooks = [
@@ -321,6 +320,11 @@ def setup_webhooks_interactive():
             'event': 'issue.modified',
             'target_url': target_url,
             'description': 'Trigger når topic oppdateres (f.eks. ny kommentar)'
+        },
+        {
+            'event': 'issue.status.changed',
+            'target_url': target_url,
+            'description': 'Trigger når status på en topic endres'
         }
     ]
     

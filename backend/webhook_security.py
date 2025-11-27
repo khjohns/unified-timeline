@@ -168,58 +168,35 @@ def clear_old_events():
 def validate_webhook_event_structure(payload: dict) -> Tuple[bool, str]:
     """
     Valider at webhook payload har forventet struktur.
-
-    Catenda webhook events har denne strukturen:
-    {
-        "id": "evt_12345",              # Event ID (for idempotency)
-        "event": "issue.created",       # Event type
-        "topic": { ... },               # BCF Topic data
-        "project": { "id": "..." }      # Project reference
-    }
-
-    Event types (ref: Webhook API.yaml):
-    - "issue.created": Ny BCF Topic opprettet
-    - "issue.modified": BCF Topic endret
-    - "issue.status.changed": Topic status endret
-
-    Args:
-        payload: JSON payload fra webhook request
-
-    Returns:
-        Tuple[bool, str]:
-        - is_valid: True hvis struktur er ok
-        - error_message: Feilmelding hvis ugyldig
-
-    Example:
-        >>> validate_webhook_event_structure({"id": "evt_1", "event": "issue.created"})
-        (True, "")
-        >>> validate_webhook_event_structure({"foo": "bar"})
-        (False, "Missing required field: id")
     """
     # Sjekk at payload er dict
     if not isinstance(payload, dict):
         return False, "Payload must be JSON object"
 
-    # Sjekk required fields
-    if "id" not in payload:
-        return False, "Missing required field: id (event ID)"
+    # Sjekk for 'event' objektet
+    event_obj = payload.get("event")
+    if not isinstance(event_obj, dict):
+        return False, "Missing or invalid 'event' object in payload"
 
-    if "event" not in payload:
-        return False, "Missing required field: event (event type)"
+    # Sjekk required fields inni 'event' objektet
+    event_id = event_obj.get("id")
+    event_type = event_obj.get("type")
 
-    event_id = payload.get("id")
-    event_type = payload.get("event")
+    if not event_id:
+        return False, "Missing required field: event.id (event ID)"
 
-    # Validate event ID (ikke-tomt)
-    if not event_id or not isinstance(event_id, str):
+    if not event_type:
+        return False, "Missing required field: event.type (event type)"
+        
+    # Valider at feltene har korrekt type
+    if not isinstance(event_id, str) or not event_id:
         return False, "Invalid event ID (must be non-empty string)"
 
-    # Validate event type
     valid_event_types = [
         "issue.created",
         "issue.modified",
         "issue.status.changed",
-        "issue.deleted"  # For fremtidig support
+        "issue.deleted"
     ]
 
     if event_type not in valid_event_types:
@@ -232,28 +209,13 @@ def validate_webhook_event_structure(payload: dict) -> Tuple[bool, str]:
 def get_webhook_event_id(payload: dict) -> str:
     """
     Hent event ID fra webhook payload.
-
-    Prøver flere felt for bakoverkompatibilitet:
-    - "id" (standard BCF/Catenda)
-    - "eventId" (eventuell alternativ naming)
-    - "event_id" (snake_case variant)
-
-    Args:
-        payload: Webhook JSON payload
-
-    Returns:
-        str: Event ID eller tom string hvis ikke funnet
-
-    Example:
-        >>> get_webhook_event_id({"id": "evt_12345"})
-        'evt_12345'
+    Ser nå i det neste 'event' objektet.
     """
-    return (
-        payload.get("id") or
-        payload.get("eventId") or
-        payload.get("event_id") or
-        ""
-    )
+    event_obj = payload.get("event", {})
+    if not isinstance(event_obj, dict):
+        return ""
+        
+    return event_obj.get("id") or ""
 
 
 # Helper function for testing

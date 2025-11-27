@@ -1,96 +1,105 @@
 # backend/magic_link.py
 import uuid
+import json
+import os
 from datetime import datetime, timedelta
 from typing import Optional, Dict
+from pathlib import Path
+from threading import RLock
 
 class MagicLinkManager:
     """
-    Håndterer generering og validering av Magic Links.
-
-    Features:
-    - UUID v4 tokens
-    - TTL ≤ 72 timer
-    - One-time use (revokering)
-    - Personlig (1:1 e-post binding)
+    Håndterer generering og validering av Magic Links med fil-lagring.
+    Tokens lagres i `koe_data/magic_links.json` for å overleve server-restarts.
     """
 
-    def __init__(self):
-        # In-memory storage (bruk database i prod)
-        self.tokens: Dict[str, Dict] = {}
+    def __init__(self, storage_dir="koe_data"):
+        self.storage_path = Path(storage_dir) / "magic_links.json"
+        self.lock = RLock()
+        self.tokens = self._load_tokens()
+
+    def _load_tokens(self) -> Dict[str, Dict]:
+        with self.lock:
+            if not self.storage_path.exists():
+                return {}
+            try:
+                with open(self.storage_path, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except (IOError, json.JSONDecodeError):
+                return {}
+
+    def _save_tokens(self):
+        with self.lock:
+            self.storage_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(self.storage_path, 'w', encoding='utf-8') as f:
+                json.dump(self.tokens, f, indent=2)
 
     def generate(self, sak_id: str, email: str = None, ttl_hours: int = 72) -> str:
         """
-        Generer Magic Link token.
-
-        Args:
-            sak_id: Sak som lenken gir tilgang til
-            email: E-postadresse (valgfri, for fremtidig 1:1 binding)
-            ttl_hours: Time-to-live (max 72)
-
-        Returns:
-            Token (UUID v4)
+        Generer Magic Link token og lagre til fil.
         """
         if ttl_hours > 72:
             raise ValueError("TTL cannot exceed 72 hours")
 
-        # Generer UUID v4
         token = str(uuid.uuid4())
+        now = datetime.utcnow()
+        expires_at = now + timedelta(hours=ttl_hours)
 
-        # Lagre token metadata
         self.tokens[token] = {
             "sak_id": sak_id,
             "email": email.lower().strip() if email else None,
-            "created_at": datetime.utcnow(),
-            "expires_at": datetime.utcnow() + timedelta(hours=ttl_hours),
+            "created_at": now.isoformat() + "Z",
+            "expires_at": expires_at.isoformat() + "Z",
             "used": False,
-            "revoked": False
+            "used_at": None,
+            "revoked": False,
+            "revoked_at": None
         }
-
+        self._save_tokens()
         return token
 
     def verify(self, token: str) -> tuple[bool, str, Optional[Dict]]:
         """
-        Verifiser Magic Link token.
-
-        Args:
-            token: Token fra URL
-
-        Returns:
-            (valid, error_message, token_data)
+        Verifiser Magic Link token fra fil.
         """
-        # Sjekk at token eksisterer
         if token not in self.tokens:
             return False, "Invalid token", None
 
         meta = self.tokens[token]
 
-        # Sjekk at token ikke er revokert
-        if meta["revoked"]:
+        if meta.get("revoked"):
             return False, "Token has been revoked", None
 
-        # Sjekk at token ikke er brukt (one-time)
-        if meta["used"]:
+        if meta.get("used"):
             return False, "Token already used", None
+            
+        # Konverter expires_at fra string til datetime for sammenligning
+        try:
+            # Håndterer "Z" for UTC
+            expires_at_dt = datetime.fromisoformat(meta["expires_at"].replace("Z", "+00:00"))
+        except (TypeError, ValueError):
+             return False, "Invalid token metadata: unparseable expiry date", None
 
-        # Sjekk at token ikke er utløpt (TTL)
-        if datetime.utcnow() > meta["expires_at"]:
-            return False, f"Token expired at {meta['expires_at'].isoformat()}Z", None
+        if datetime.utcnow().replace(tzinfo=expires_at_dt.tzinfo) > expires_at_dt:
+            return False, f"Token expired at {meta['expires_at']}", None
 
-        # ✅ Gyldig token - marker som brukt
+        # ✅ Gyldig token - marker som brukt og lagre endringen
         meta["used"] = True
-        meta["used_at"] = datetime.utcnow()
+        meta["used_at"] = datetime.utcnow().isoformat() + "Z"
+        self._save_tokens()
 
-        # Returner token data (inkl sak_id)
         token_data = {
             "sak_id": meta["sak_id"],
             "email": meta["email"]
         }
-
         return True, "", token_data
 
     def revoke(self, token: str):
-        """Revoke token (f.eks. ved statusendring)"""
+        """Revoke token og lagre endringen."""
         if token in self.tokens:
-            self.tokens[token]["revoked"] = True
-            self.tokens[token]["revoked_at"] = datetime.utcnow()
+            with self.lock:
+                if token in self.tokens: # Dobbeltsjekk etter lås
+                    self.tokens[token]["revoked"] = True
+                    self.tokens[token]["revoked_at"] = datetime.utcnow().isoformat() + "Z"
+                    self._save_tokens()
 

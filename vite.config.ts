@@ -9,6 +9,10 @@ export default defineConfig(({ mode }) => {
       server: {
         port: 3000,
         host: '0.0.0.0',
+        watch: {
+          // Ignore backend directory to prevent HMR reloads when backend files change
+          ignored: ['**/backend/**', '**/koe_data/**', '**/.git/**', '**/node_modules/**'],
+        },
       },
       plugins: [
         react(),

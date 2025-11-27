@@ -23,9 +23,13 @@ from pathlib import Path
 from typing import Optional, Dict, Any, List
 from threading import RLock, Thread
 
+# Last .env fil (VIKTIG for sikkerhetsvariabler)
+from dotenv import load_dotenv
+load_dotenv()
+
 # Flask og CORS
 try:
-    from flask import Flask, request, jsonify
+    from flask import Flask, request, jsonify, g
     from flask_cors import CORS
 except ImportError:
     print("❌ Flask eller Flask-Cors ikke installert. Kjør: pip install flask flask-cors")
@@ -150,7 +154,7 @@ class DataManager:
         """Opprett ny sak i CSV og en tom JSON-fil"""
         with self.lock:
             if 'sak_id' not in sak_data:
-                sak_data['sak_id'] = f"KOE-{datetime.now().strftime('%Y%m%d-%H%M')}"
+                sak_data['sak_id'] = f"KOE-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
 
             sak_data.setdefault('opprettet_dato', datetime.now().isoformat())
             sak_data.setdefault('opprettet_av', sak_data.get('te_navn', 'System'))
@@ -391,10 +395,11 @@ class KOEAutomationSystem:
             sak_id = self.db.create_sak(sak_data)
             
             # Steg 4: Generer Magic Link for tilgang til React App
-            magic_token = magic_link_mgr.generate(sak_id=sak_id, email=topic_data.get('creation_author'))
+            author_email = topic_data.get('bimsync_creation_author', {}).get('user', {}).get('email')
+            magic_token = magic_link_mgr.generate(sak_id=sak_id, email=author_email)
 
             base_url = self.get_react_app_base_url()
-            
+
             magic_link = f"{base_url}?magicToken={magic_token}"
 
             # Steg 5: Post kommentar til Catenda (asynkront for å unngå webhook deadlock)
@@ -1154,29 +1159,26 @@ def upload_pdf(sakId):
         return jsonify(result), 500
 
 # --- Webhook Endpoint ---
-@app.route('/webhook/catenda', methods=['POST'])
+WEBHOOK_SECRET_PATH = os.getenv("WEBHOOK_SECRET_PATH")
+if not WEBHOOK_SECRET_PATH:
+    logger.warning("⚠️  WEBHOOK_SECRET_PATH er ikke satt i .env. Webhook-endepunktet er deaktivert.")
+
+@app.route(f'/webhook/catenda/{WEBHOOK_SECRET_PATH}', methods=['POST'])
 @limiter.limit("100 per minute")  # Høyere limit for webhooks
 def webhook():
     """
     Webhook endpoint for Catenda events.
 
     Security:
-    - Secret Token Validation (token i URL query parameter)
+    - Secret path in URL (security through obscurity)
     - Idempotency Check (forhindrer duplikat-prosessering)
     - Event Structure Validation
-
-    Catenda Configuration:
-    - URL: https://your-ngrok.io/webhook/catenda?token=YOUR_SECRET_TOKEN
-    - Events: issue.created, issue.modified, issue.status.changed
     """
     sys = get_system()
 
-    # 1. Valider Secret Token (fra URL query parameter)
-    valid, error = validate_webhook_token()
-    if not valid:
-        logger.warning(f"Webhook token validation failed: {error}")
-        audit.log_security_event("webhook_unauthorized", {"error": error})
-        return jsonify({"error": "Unauthorized", "detail": error}), 401
+    # Den gamle token-valideringen er fjernet, da stien nå er hemmelig.
+    # payload = request.get_json()
+    # ... (resten av funksjonen) ...
 
     # 2. Parse payload
     payload = request.get_json()
@@ -1196,7 +1198,8 @@ def webhook():
         return jsonify({"status": "already_processed"}), 202
 
     # 5. Hent event type
-    event_type = payload.get('event')
+    event_obj = payload.get('event', {})
+    event_type = event_obj.get('type')
 
     # 6. Log webhook mottatt
     audit.log_webhook_received(event_type=event_type, event_id=event_id)

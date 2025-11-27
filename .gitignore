@@ -33,6 +33,5 @@ venv/
 
 # Backend specific
 backend/config.json
-backend/koe_data/form_data/KOE-20251124-0925.json
-backend/koe_data/historikk.csv
-backend/koe_data/saker.csv
+backend/koe_data/
+backend/.env

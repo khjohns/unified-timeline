@@ -1,4 +1,4 @@
-import React, { useState, useEffect, lazy, Suspense, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, lazy, Suspense, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { FormDataModel, Role, BhSvar, Koe } from './types';
 import { TABS, INITIAL_FORM_DATA, DEMO_DATA } from './constants';
@@ -41,8 +41,30 @@ const App: React.FC = () => {
     const modus = searchParams.get('modus') as Modus | null;
     const initialTopicGuid = searchParams.get('topicGuid'); // From Catenda webhook
 
+    // Track if we came from a magic link using sessionStorage to persist across HMR reloads
+    // Check sessionStorage first (both 'true' and 'consumed' count), then check if magicToken is in URL
+    const sessionValue = sessionStorage.getItem('isFromMagicLink');
+
+    const isFromMagicLinkRef = useRef(
+        sessionValue === 'true' || sessionValue === 'consumed' || !!magicToken
+    );
+
+    // Store in sessionStorage if we have a magicToken
+    if (magicToken && sessionValue !== 'true' && sessionValue !== 'consumed') {
+        sessionStorage.setItem('isFromMagicLink', 'true');
+        isFromMagicLinkRef.current = true;
+    }
+
     // Internal state for the resolved sakId and topicGuid
-    const [internalSakId, setInternalSakId] = useState<string | null>(directSakId);
+    // Check sessionStorage first to survive HMR reloads (but only if we're still in magic link context)
+    const savedSakId = sessionStorage.getItem('currentSakId');
+    const [internalSakId, setInternalSakId] = useState<string | null>(() => {
+        // Only use savedSakId if we're still in magic link context
+        if (isFromMagicLinkRef.current && savedSakId) {
+            return savedSakId;
+        }
+        return directSakId;
+    });
     const [topicGuid, setTopicGuid] = useState<string | null>(initialTopicGuid);
 
     // Loading and error states
@@ -95,10 +117,17 @@ const App: React.FC = () => {
 
             setIsLoading(true);
             setApiError(null);
+
+            // Clear localStorage when using magic link to prevent old data from interfering
+            localStorage.removeItem('koe_v5_0_draft');
+
             const response = await api.verifyMagicToken(magicToken);
 
             if (response.success && response.data?.sakId) {
-                setInternalSakId(response.data.sakId);
+                const sakId = response.data.sakId;
+                setInternalSakId(sakId);
+                // Store sakId in sessionStorage to survive HMR reloads
+                sessionStorage.setItem('currentSakId', sakId);
                 // Clean the URL, remove the token
                 searchParams.delete('magicToken');
                 setSearchParams(searchParams, { replace: true });
@@ -132,6 +161,22 @@ const App: React.FC = () => {
                     if (!loadedFormData.rolle) {
                         loadedFormData.rolle = 'TE';
                     }
+
+                    // Set rolle based on modus if modus is provided
+                    if (modus) {
+                        const roleMap: Record<Modus, Role> = {
+                            'varsel': 'TE',
+                            'koe': 'TE',
+                            'svar': 'BH',
+                            'revidering': 'TE',
+                        };
+                        loadedFormData.rolle = roleMap[modus];
+                    }
+
+                    // Mark magic link as consumed in sessionStorage
+                    // We keep it to survive Vite HMR reloads during development
+                    sessionStorage.setItem('isFromMagicLink', 'consumed');
+
                     setFormData(loadedFormData);
                     setTopicGuid(response.data.topicGuid); // Persist topicGuid in state
 
@@ -141,13 +186,22 @@ const App: React.FC = () => {
                         // Add modus to URL so submit logic and role mapping work correctly
                         searchParams.set('modus', loadedModus);
                         setSearchParams(searchParams, { replace: true });
-                        logger.info(`Set modus from loaded data: ${loadedModus}`);
+                    }
+
+                    // Set initial tab based on modus
+                    if (modus === 'varsel') {
+                        setActiveTab(0);
+                    } else if (modus === 'koe' || modus === 'revidering') {
+                        setActiveTab(1);
+                    } else if (modus === 'svar') {
+                        setActiveTab(2);
                     }
 
                     showToast(setToastMessage, `Sak ${internalSakId} lastet fra server`);
                 } else {
                     setApiError(response.error || 'Kunne ikke laste sak');
-                    if (loadedData) {
+                    // Only use localStorage as fallback if we're not coming from a magic link
+                    if (loadedData && !isFromMagicLinkRef.current) {
                         setFormData(loadedData);
                         showToast(setToastMessage, 'API ikke tilgjengelig - bruker lokal lagring');
                     }
@@ -155,7 +209,8 @@ const App: React.FC = () => {
             } catch (error) {
                 logger.error('Failed to load from API:', error);
                 setApiError('Nettverksfeil ved lasting av sak');
-                if (loadedData) {
+                // Only use localStorage as fallback if we're not coming from a magic link
+                if (loadedData && !isFromMagicLinkRef.current) {
                     setFormData(loadedData);
                 }
             } finally {
@@ -165,15 +220,20 @@ const App: React.FC = () => {
 
         if (internalSakId && isApiConnected === true) {
             loadFromApi();
-        } else if (!internalSakId && loadedData) {
-            // No sakId - load from localStorage
+        } else if (!internalSakId && !isFromMagicLinkRef.current && loadedData && isApiConnected !== null) {
+            // No sakId and not using magic link - load from localStorage
             setFormData(loadedData);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [internalSakId, isApiConnected]);
 
-    // Set role based on modus parameter
+    // Set role and tab when modus changes (fallback for when data isn't loaded from API)
     useEffect(() => {
+        // Skip if loading, if we have a sakId (role is set during API load), or if we came from magic link (waiting for data load)
+        if (isLoading || internalSakId || isFromMagicLinkRef.current) {
+            return;
+        }
+
         if (modus) {
             const roleMap: Record<Modus, Role> = {
                 'varsel': 'TE',
@@ -187,13 +247,12 @@ const App: React.FC = () => {
             }
 
             // Set initial tab based on modus
-            // Tab 0: Varsel, Tab 1: Krav, Tab 2: BH Svar, Tab 3: Saksoversikt
             if (modus === 'varsel') {
-                setActiveTab(0); // Varsel tab
+                setActiveTab(0);
             } else if (modus === 'koe' || modus === 'revidering') {
-                setActiveTab(1); // Krav tab
+                setActiveTab(1);
             } else if (modus === 'svar') {
-                setActiveTab(2); // BH Svar tab
+                setActiveTab(2);
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
