@@ -272,26 +272,34 @@ Når en ny sak opprettes i Catenda, sender Catenda automatisk et signal (webhook
 
 **Hva er en webhook?** En måte for ett system å automatisk varsle et annet system når noe skjer. Tenk på det som et push-varsel: I stedet for at vårt system kontinuerlig må spørre Catenda "har det skjedd noe nytt?" (polling), sender Catenda automatisk beskjed til oss når noe relevant skjer (push). Dette er mer effektivt og sanntidsbasert.
 
-#### Webhook-signatur og idempotens (produksjon)
+#### Webhook-sikkerhet og idempotens
 
 For å sikre at kun gyldige webhooker behandles, **må** vi:
 
-1) **Validere signatur**: Backend verifiserer `x-catenda-signature` (HMAC) mot delt hemmelighet lagret i **Azure Key Vault**. Ugyldig signatur → `401`.
+1) **Validere Secret Token**: Siden Catenda ikke støtter HMAC-signering, benyttes Secret Token i URL query parameter (`?token=SECRET`). Backend verifiserer token mot delt hemmelighet lagret i **Azure Key Vault** med constant-time comparison. Ugyldig token → `401`.
 2) **Idempotens**: Backend lagrer `eventId` og timestamp i Dataverse; samme event behandles ikke to ganger (returner `202` uten sideeffekter).
 
 ```python
-# Pseudokode (Azure Functions)
+# Pseudokode (Azure Functions - Produksjon)
 def handle_webhook(req):
-    body = req.get_body()              # bytes
-    sig  = req.headers.get("x-catenda-signature","")
+    received_token = req.params.get("token", "")
     secret = kv.get_secret("CatendaWebhookSecret")
-    if not hmac_valid(sig, body, secret): return 401
+    if not secrets.compare_digest(received_token, secret): return 401
+
+    body = req.get_body()
     event_id = json.loads(body).get("event","") + ":" + json.loads(body)["data"]["caseId"]
     if already_processed(event_id): return 202
     mark_processed(event_id)
     # ... generer lenke, post tilbake, osv.
     return 202
 ```
+
+**Prototype (lokal utvikling):**
+- Benytter Secret Path i URL (`/webhook/catenda/{SECRET_PATH}`) for enkelhetens skyld
+- **Kritisk:** Logger må konfigureres for log masking av webhook-path
+- Dokumentert secret rotation-rutine ved mistanke om kompromittering
+
+**Hva er constant-time comparison?** En sammenligningsmetode som tar like lang tid uavhengig av hvor mange tegn som matcher. Dette forhindrer "timing attacks" hvor en angriper måler responstid for å gjette hemmeligheten tegn for tegn.
 
 ---
 
@@ -820,7 +828,11 @@ Vi anbefaler å starte med OTP step-up (MVP) og vurdere BankID/Posten for kritis
 
 #### D. Integrasjonssikkerhet (Catenda og webhooks)
 
-**Signaturvalidering av webhook** – Tiltak: HMAC-signatur i header valideres mot hemmelighet i Azure Key Vault; avvis ved mismatch. → *Se også: [Webhook-signatur og idempotens](#webhook-signatur-og-idempotens-produksjon)*
+**Token-validering av webhook** – Tiltak: Secret Token i URL query parameter valideres mot hemmelighet i Azure Key Vault med constant-time comparison; avvis ved mismatch. **Merknad:** Catenda støtter ikke HMAC-signering. → *Se også: [Webhook-sikkerhet og idempotens](#webhook-sikkerhet-og-idempotens)*
+
+**Log masking for webhook-hemmelighet** – Tiltak: Konfigurasjon av Application Insights, WAF og Load Balancer for å maskere webhook-URL og hindre at hemmelighet lagres i klartekst.
+
+**Secret rotation rutine** – Tiltak: Dokumentert 4-trinns prosedyre for rotering av webhook-hemmelighet ved mistanke om kompromittering.
 
 **Idempotens ved webhookbehandling** – Tiltak: Lagre event-ID og timestamp; samme event behandles kun én gang.
 
@@ -974,7 +986,7 @@ flowchart TD
 |---------------------|---------|----------------------|-------------------|----------------------|------------------|-------------------|-----------|
 | Innsending (POST /submit) | Cross-Site Request Forgery (CSRF) | M | M | Moderat | CSRF-token, SameSite=strict, nonce | Lav | Testcases i CI/CD |
 | Innsending (POST /submit) | Gjenbruk av token (replay) | M | M | Moderat | Engangstoken (one-time), revokering etter bruk | Lav | Observabilitet: "token_status" |
-| Webhook mottak (POST /webhook) | Spoofing (forfalskede webhooks) | L | H | Moderat | HMAC-signatur, Key Vault hemmelighet, idempotens | Lav | Avvis ved mismatch |
+| Webhook mottak (POST /webhook) | Spoofing (forfalskede webhooks) | L | H | Moderat | Secret Token validering, Key Vault hemmelighet, idempotens, log masking, secret rotation | Lav | Catenda støtter ikke HMAC |
 | JIT e-postvalidering | E-post alias mismatch | M | M | Moderat | Normalisering (lowercase/trim), aliasmapping, cache 5–10 min | Lav | Rutine for aliaslisten |
 | KOE signering | Benektelse (non-repudiation) | L | H | Moderat/Høy | BankID/Posten signering (kvalifisert signatur, tidsstempling) | Lav | Arkiver signaturbevis |
 | Magic Link bruk | Videresending av lenke | M | L/M | Moderat | TTL ≤ 72t, engangsbruk, revokering ved statusendring | Lav | Alarmer ved uvanlig bruk |
