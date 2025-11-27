@@ -413,6 +413,143 @@ Produksjonsløsningen bygger på Azure-plattformen med fokus på skalerbarhet, s
 - Kommentar-posting til topics
 - JIT-validering av Project Members
 
+#### Lagdelt arkitektur (Produksjon)
+
+Produksjonssystemet bygges med en lagdelt arkitektur for å sikre skalerbarhet, testbarhet og vedlikeholdbarhet.
+
+```
+┌─────────────────────────────────────────────────────┐
+│  Presentasjonslag (HTTP-håndtering)                 │
+│  - Azure Functions HTTP triggers                    │
+│  - Flask routes (prototype)                         │
+│  - Request/response transformasjon                  │
+└──────────────────┬──────────────────────────────────┘
+                   │ Kaller
+                   ▼
+┌─────────────────────────────────────────────────────┐
+│  Forretningslogikk (Services)                       │
+│  - VarselService, KoeService, SvarService           │
+│  - Framework-agnostisk (fungerer i Flask/Azure)     │
+│  - Pydantic-modeller for validering                 │
+│  - Gjenbrukbar på tvers av kanaler (API, CLI, etc) │
+└──────────────────┬──────────────────────────────────┘
+                   │ Bruker
+                   ▼
+┌─────────────────────────────────────────────────────┐
+│  Dataaksesslag (Repositories)                       │
+│  - BaseRepository (interface)                       │
+│  - CSVRepository (prototype)                        │
+│  - DataverseRepository (produksjon)                 │
+│  - Byttes via miljøvariabel (REPOSITORY_TYPE)      │
+└──────────────────┬──────────────────────────────────┘
+                   │ Lagrer til
+                   ▼
+┌─────────────────────────────────────────────────────┐
+│  Datalagring                                        │
+│  - CSV (lokal utvikling)                            │
+│  - Dataverse (test/produksjon)                      │
+└─────────────────────────────────────────────────────┘
+```
+
+**Nøkkelfordeler:**
+
+1. **Testbarhet:** Forretningslogikken kan testes uten HTTP-kontekst ved å injisere mock repositories
+2. **Portabilitet:** Samme service-kode fungerer i Flask (prototype) og Azure Functions (produksjon)
+3. **Fleksibilitet:** Enkel bytte mellom CSV (utvikling) og Dataverse (produksjon) via konfigurasjon
+4. **Vedlikeholdbarhet:** Klar ansvarsfordeling - endringer i database påvirker ikke forretningslogikk
+5. **Gjenbrukbarhet:** Service-laget kan brukes fra API, CLI-verktøy, scheduled jobs, etc.
+
+**Pydantic-modeller:**
+
+Systemet bruker Pydantic for datavalidering og serialisering:
+
+```python
+from pydantic import BaseModel, Field, validator
+from datetime import datetime
+
+class Varsel(BaseModel):
+    """Varsel domain model med automatisk validering"""
+    dato_forhold_oppdaget: str = Field(..., description="Date when issue was discovered")
+    hovedkategori: str = Field(..., min_length=1)
+    underkategori: str = Field(..., min_length=1)
+    varsel_beskrivelse: str = Field(..., min_length=1)
+
+    @validator('dato_forhold_oppdaget')
+    def validate_date_format(cls, v):
+        """Ensure date is in ISO format"""
+        datetime.fromisoformat(v)
+        return v
+```
+
+**Fordeler med Pydantic:**
+- Automatisk validering av datatyper og forretningsregler
+- Native støtte i Azure Functions v2
+- JSON-serialisering innebygd (`.dict()`, `.json()`)
+- Genererer OpenAPI/JSON Schema automatisk
+- Type-sikkerhet og IDE-støtte
+
+**Repository pattern:**
+
+Abstraksjon av datalagring gjør det mulig å bytte implementasjon uten å endre forretningslogikk:
+
+```python
+# Lokal utvikling (.env)
+REPOSITORY_TYPE=csv
+
+# Test/Produksjon (.env)
+REPOSITORY_TYPE=dataverse
+DATAVERSE_URL=https://oe-prod.crm4.dynamics.com
+```
+
+Dette gjør at utviklere kan jobbe raskt lokalt med CSV-filer, mens samme kode kjører mot Dataverse i produksjon.
+
+#### Produksjonssetting: "Build, Validate, Switch"
+
+Systemet settes i produksjon via en "Clean Cutover"-strategi (ikke parallellkjøring):
+
+**Fase 1: Lokal utvikling** (1.5-2 uker)
+- Refaktorering av monolitisk kode til lagdelt arkitektur
+- Testing med CSVRepository
+- Ingen produksjonsdata forlater utviklermiljøet
+
+**Fase 2: Azure Landing Zone** (2-4 uker kalendertid)
+- Etablering av infrastruktur (Function App, Dataverse, Key Vault, Service Bus)
+- Konfigurasjon av sikkerhet (Managed Identity, RBAC-roller)
+- Oppsett av CI/CD-pipeline (Azure DevOps)
+
+**Fase 3: UAT i staging-miljø** (1 uke)
+- Deploy til `oe-koe-test` med Dataverse
+- Gjennomføring av brukerakceptansetesting
+- Validering av webhook-sikkerhet og ytelse
+
+**Fase 4: Produksjon (Go Live)** (1 dag)
+- Deploy til `oe-koe-prod`
+- Oppdatering av Catenda webhook URL (cutover-punkt)
+- Pensjonering av prototype
+
+**Fase 5: Post-deployment** (1 uke)
+- Intensiv overvåking i Application Insights
+- Daglig logggjennomgang
+- Innsamling av brukertilbakemeldinger
+
+**Total kalendertid:** 3-6 uker fra start til produksjon (avhengig av bestillinger og godkjenninger hos IT-drift).
+
+#### Plattform-gjenbrukbarhet
+
+Systemet er generelt anvendelig for å samle inn og fange rike data i forbindelse med gjennomføringen av entrepriseprosjekter, uten at dette går utover Catenda som det sentrale navet som prosjekthotell.
+
+Den lagdelte arkitekturen gjør at samme infrastruktur og forretningslogikk-mønster kan gjenbrukes for andre skjemabaserte prosesser:
+
+**Eksempler på andre anvendelser:**
+- **Søknader om fravik fra kontraktskrav:** Entreprenør søker dispensasjon, prosjektleder godkjenner
+- **HMS-rapportering:** Ukentlige sikkerhetsrapporter fra entreprenør med automatisk varsel ved kritiske hendelser
+- **Kvalitetskontroll-rapporter:** Inspeksjonsrapporter med bilder og sjekklistev
+
+**Gjenbrukbarhet (estimat):**
+- Første løsning (KOE): 85-120 timer utvikling + infrastruktur
+- Påfølgende løsninger: 15-30 timer per skjematype (70-80% besparelse)
+- Samme Azure-infrastruktur, samme sikkerhet, samme Catenda-integrasjon
+
 ---
 
 ### 5.3 Database (Dataverse)
@@ -1691,3 +1828,102 @@ customEvents
 
 ---
 
+
+## 11. Tidslinje
+
+### 11.1 Prototype-fase (Fullført)
+
+**Status:** ✅ Komplett
+
+- React-frontend hostet på GitHub Pages
+- Python Flask backend med CSV-lagring
+- Catenda webhook-integrasjon
+- Implementerte sikkerhetstiltak (CSRF, validering, audit logging)
+- Magic Link-funksjonalitet for ekstern tilgang
+
+**Lærdom:**
+- Bekreftet brukeropplevelse og arbeidsflyt
+- Validert Catenda-integrasjon (webhook, API, BCF)
+- Identifisert begrensninger (skalerbarhet, sikkerhet, vedlikeholdbarhet)
+
+### 11.2 Produksjonsetting (Planlagt)
+
+**Total kalendertid:** 3-6 uker fra oppstart til produksjon
+
+#### Detaljert tidsplan
+
+| Fase | Varighet | Aktiviteter | Leveranse |
+|------|----------|-------------|-----------|
+| **Fase 1: Utvikling** | 1.5-2 uker | Refaktorering til lagdelt arkitektur<br>- Ekstraher Services (VarselService, KoeService, SvarService)<br>- Implementer Repository pattern<br>- Pydantic-modeller<br>- Unit tests (>80% coverage) | Testbar kodebase klar for Azure Functions |
+| **Fase 2: Infrastruktur** | 2-4 uker (kalendertid) | **Core Infrastructure** (8-12 timer):<br>- Resource Groups, Function App, Storage, Application Insights, Service Bus<br><br>**Sikkerhet** (10-15 timer):<br>- Key Vault, Managed Identity, RBAC-roller<br><br>**Dataverse** (10-15 timer):<br>- Miljøbestilling, tabeller, security roles<br><br>**Nettverk & WAF** (8-11 timer):<br>- Front Door, DNS, SSL, log masking | Fungerende test- og prod-miljø |
+| **Fase 3: UAT** | 1 uke | Deploy til `oe-koe-test`<br>- 10 UAT-scenarioer<br>- Webhook-sikkerhet testing<br>- Performance-test<br>- Brukeraksepta nsetesting | UAT-godkjenning fra Oslobygg |
+| **Fase 4: Go Live** | 1 dag | Deploy til `oe-koe-prod`<br>- Oppdater Catenda webhook URL<br>- Verifiser cutover<br>- Pensjoner prototype | Produksjonssystem aktivt |
+| **Fase 5: Post-deployment** | 1 uke | 24-timers intensiv overvåking<br>- Daglig logggjennomgang<br>- Brukertilbakemelding<br>- Finjustering | Stabil drift |
+
+#### Arbeidsinnsats
+
+**Totalt estimat:** 85-120 timer
+
+| Kategori | Estimat (timer) | Beskrivelse |
+|----------|-----------------|-------------|
+| **Utvikling** | 48-68 | Refaktorering, services, testing |
+| **Infrastruktur** | 36-53 | Azure-oppsett (effektiv tid) |
+| **TOTALT** | **85-120** | Tilsvarer 2-3 uker fulltid (én person) |
+
+> **NB:** Infrastruktur-estimatene er effektiv arbeidstid. Kalendertid blir lenger (2-4 uker) grunnet:
+> - Bestilling av Dataverse-miljø hos IT-drift
+> - Sikkerhetsklarering og tilgangsstyring
+> - Koordinering med Oslobyggs driftsmiljø
+
+### 11.3 Utvidelser (Fremtidig)
+
+Basert på den lagdelte arkitekturen kan systemet utvides til andre anvendelser med redusert innsats (15-30 timer per ny skjematype):
+
+| Anvendelse | Estimat | Beskrivelse |
+|------------|---------|-------------|
+| **Fravikssøknader** | 15-25 timer | Søknad om dispensasjon fra kontraktskrav |
+| **HMS-rapportering** | 12-20 timer | Ukentlige sikkerhetsrapporter med varsler |
+| **Kvalitetskontroll** | 20-30 timer | Inspeksjonsrapporter med bilder |
+
+**Besparelse:** 70-80% sammenlignet med første implementasjon (samme infrastruktur, samme sikkerhet, samme Catenda-integrasjon).
+
+---
+
+## 12. Vedlegg
+
+### 12.1 Referanser
+
+| Dokument | Beskrivelse |
+|----------|-------------|
+| **Refaktoreringsplan - Backend.md** | Detaljert teknisk plan for produksjonsarkitektur |
+| **Digital Samhandlingsplattform for Byggeprosjekter.md** | Presentasjonsdokument for ledelsen |
+| **Handlingsplan_Prototype_Lokal.md** | Sikkerhetstiltak implementert i prototype |
+
+### 12.2 Teknisk dokumentasjon
+
+**Kodebase:**
+- Frontend: `https://github.com/[org]/[repo]-frontend`
+- Backend: `https://github.com/[org]/[repo]-backend`
+
+**API-dokumentasjon:**
+- Swagger/OpenAPI: `/api/docs` (genereres automatisk fra Pydantic-modeller)
+
+**Infrastruktur som kode:**
+- Bicep/Terraform-templates: `/infrastructure/*`
+- Azure DevOps pipeline: `/azure-pipelines.yml`
+
+### 12.3 Kontaktpersoner
+
+| Rolle | Ansvar |
+|-------|--------|
+| **Produkteier** | Forretningskrav, prioritering |
+| **Teknisk arkitekt** | Systemdesign, sikkerhet |
+| **Utvikler** | Implementasjon, testing |
+| **IT-drift (Oslobygg)** | Infrastruktur, Dataverse-miljø |
+| **Prosjektleder (pilot)** | Brukeraksepta nsetesting |
+
+---
+
+**Dokument versjon:** 1.1  
+**Sist oppdatert:** 2025-11-27  
+**Status:** Under utvikling
