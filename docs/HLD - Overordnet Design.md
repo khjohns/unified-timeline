@@ -143,10 +143,23 @@ Prototypen ble utviklet for å validere konseptet og brukeropplevelsen.
 - CSV-basert datalagring
 - Catenda webhook og API-integrasjon
 
+**Implementerte sikkerhetstiltak (Prototype):**
+- ✅ **CSRF-beskyttelse:** Header-basert token validering (`X-CSRF-Token`)
+- ✅ **Request validation:** CSV-sikker validering og sanitering av input
+- ✅ **Webhook-sikkerhet:** Secret Path i URL (`/webhook/catenda/{SECRET_PATH}`)
+- ✅ **Rate limiting:** Flask-Limiter med in-memory backend (10-100 req/min avhengig av endpoint)
+- ✅ **Audit logging:** Strukturert logging til JSON Lines format (`audit.log`)
+- ✅ **CORS:** Dynamisk konfigurasjon med ngrok-støtte
+- ✅ **Idempotency:** Duplikatsjekk for webhook events
+- ⚠️ **Catenda token validation:** Implementert men ikke i bruk enda
+- ⚠️ **Project-scope authorization:** Implementert men ikke i bruk enda
+- ⚠️ **Role-based access control:** Implementert men ikke i bruk enda
+
 **Begrensninger:**
-- Ikke skalerbart (CSV-filer)
-- Ingen integrert sikkerhet
+- Ikke skalerbart (CSV-filer, in-memory rate limiting og idempotency)
+- Begrenset autentisering/autorisasjon (Catenda-integrasjon ikke fullstendig)
 - Manuell drift og backup
+- Secret Path i URL er mindre robust enn token-basert validering
 
 ### 4.2 L1D Produksjonsarkitektur
 
@@ -810,53 +823,77 @@ Catenda er et invitation-only PIM-system (Prosjektinformasjonsmodell) som funger
 
 #### Sikkerhet
 
-**Webhook-validering (Secret Token):**
+**Webhook-validering (Secret Path):**
 
-Siden Catenda Webhook API ikke støtter signering av payload (HMAC), benyttes en **Secret Token**-mekanisme for å verifisere avsender.
+Siden Catenda Webhook API ikke støtter signering av payload (HMAC), benyttes en **Secret Path**-mekanisme for å verifisere avsender.
 
-1. **Konfigurasjon:** Webhook registreres i Catenda med en unik, kryptografisk sterk token i URL-en:
+**Prototype-implementering:**
+1. **Konfigurasjon:** Webhook registreres i Catenda med en hemmelig path-komponent i URL-en:
    ```
-   https://api.oslobygg.no/webhook/catenda?token={WEBHOOK_SECRET}
+   https://ngrok.io/webhook/catenda/{WEBHOOK_SECRET_PATH}
    ```
+   hvor `{WEBHOOK_SECRET_PATH}` er en kryptografisk sterk, tilfeldig streng (minimum 32 tegn).
 
-2. **Validering (Gatekeeper):**
-   * Azure Functions henter forventet token fra **Azure Key Vault**.
-   * Innkommende `token`-parameter sammenlignes med Key Vault-verdien ved bruk av `constant-time comparison` for å hindre timing-angrep.
-   * Hvis token mangler eller er feil, avvises forespørselen umiddelbart (401 Unauthorized).
+2. **Validering (Prototype):**
+   * Backend leser `WEBHOOK_SECRET_PATH` fra environment variable (`.env`-fil)
+   * Flask-route defineres dynamisk: `@app.route(f'/webhook/catenda/{WEBHOOK_SECRET_PATH}')`
+   * Kun requests til korrekt path aksepteres (404 for feil path)
+   * Idempotency check forhindrer duplikat-prosessering
+   * Rate limiting: 100 requests per minutt per IP
+
+**Produksjonsalternativ:**
+* **Secret Token i URL query parameter**: `https://api.oslobygg.no/webhook/catenda?token={SECRET}`
+* Azure Functions validerer token hentet fra Azure Key Vault
+* Constant-time comparison for å hindre timing-angrep
 
 ```python
-# Pseudokode: Webhook-tokenvalidering
-def validate_webhook(request):
+# Prototype-implementering: Secret Path i URL
+WEBHOOK_SECRET_PATH = os.getenv("WEBHOOK_SECRET_PATH")
+
+@app.route(f'/webhook/catenda/{WEBHOOK_SECRET_PATH}', methods=['POST'])
+@limiter.limit("100 per minute")
+def webhook():
     """
-    Validerer at webhook faktisk kommer fra Catenda ved Secret Token.
+    Webhook endpoint for Catenda events.
+    Security: Secret path + idempotency + rate limiting
     """
-    # 1. Hent token fra URL query parameter
+    payload = request.get_json()
+
+    # 1. Valider event structure
+    valid, error = validate_webhook_event_structure(payload)
+    if not valid:
+        return jsonify({"error": error}), 400
+
+    # 2. Idempotency check
+    event_id = get_webhook_event_id(payload)
+    if is_duplicate_event(event_id):
+        return jsonify({"status": "already_processed"}), 202
+
+    # 3. Log webhook mottatt
+    audit.log_webhook_received(event_type, event_id)
+
+    # 4. Prosesser event
+    return jsonify({"status": "processed"}), 200
+
+# Produksjonsalternativ: Secret Token i query parameter
+def validate_webhook_token_production(request):
+    """Validerer at webhook kommer fra Catenda ved Secret Token (for produksjon)."""
     received_token = request.query_params.get("token")
 
     if not received_token:
-        log_security_event("webhook_missing_token", request.ip)
         return 401, "Missing token"
 
-    # 2. Hent forventet token fra Azure Key Vault
     expected_token = azure_key_vault.get_secret("CatendaWebhookSecret")
 
-    # 3. Sammenlign tokens (constant-time comparison)
     if not secrets.compare_digest(received_token, expected_token):
-        log_security_event("webhook_invalid_token", request.ip)
         return 401, "Invalid token"
 
-    # 4. Sjekk idempotens
-    event_data = request.get_json()
-    event_id = f"{event_data['event']}:{event_data['data']['topic_guid']}"
-
+    # Idempotency check
+    event_id = get_webhook_event_id(request.get_json())
     if already_processed(event_id):
-        # Samme event mottatt tidligere, returner 202 uten sideeffekter
         return 202, "Already processed"
 
-    # 5. Marker som behandlet
-    mark_processed(event_id, timestamp=datetime.now())
-
-    return event_data  # Godkjent
+    return 200, "Valid"
 ```
 
 **API-autentisering (OAuth 2.0):**
@@ -1418,11 +1455,22 @@ Personvernaspektene er integrert i **ROS-analyse** (se seksjon 10). Spesielt rel
 | **Risiko (før tiltak)** | 🟨 Middels |
 
 **Eksisterende tiltak:**
-- **HMAC-signaturvalidering:** Hver webhook må ha gyldig `x-catenda-signature`
+
+**Prototype (nåværende):**
+- **Secret Path i URL:** Webhook URL inneholder hemmelig path-komponent (`/webhook/catenda/{SECRET_PATH}`)
+- **Idempotens:** Samme event behandles ikke to ganger (event_id tracking i minne)
+- **Event structure validation:** Validerer at payload har forventet struktur og gyldige event types
+- **Audit logging:** Alle webhooks logges med IP-adresse, timestamp og event-detaljer
+- **Rate limiting:** Maksimalt 100 webhook-forespørsler per minutt per IP
+
+**Produksjon (planlagt):**
+- **Secret Token i URL query parameter:** `?token={SECRET}` med token fra Azure Key Vault
+- **Constant-time comparison:** Beskytter mot timing attacks
+- **Idempotens via database/Redis:** Persistent tracking av prosesserte events med TTL
 - **Delt hemmelighet i Key Vault:** Kun Catenda og Azure Functions kjenner secret
-- **Idempotens:** Samme event behandles ikke to ganger (event_id tracking)
 - **Logging:** Alle ugyldige webhooks logges med IP-adresse
-- **Rate limiting:** Maksimalt 100 webhook-forespørsler per minutt
+
+**Merknad:** Catenda Webhook API støtter ikke HMAC-signering, derfor benyttes Secret Path/Token-basert validering.
 
 **Residual risiko:** 🟩 Lav
 
