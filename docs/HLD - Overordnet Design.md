@@ -156,7 +156,7 @@ Prototypen ble utviklet for å validere konseptet og brukeropplevelsen.
 - ⚠️ **Role-based access control:** Implementert men ikke i bruk enda
 
 **Begrensninger:**
-- Ikke skalerbart (CSV-filer, in-memory rate limiting og idempotency)
+- Ikke skalerbart (CSV-filer, in-memory rate limiting nullstilles per instans ved skalering)
 - Begrenset autentisering/autorisasjon (Catenda-integrasjon ikke fullstendig)
 - Manuell drift og backup
 - Secret Path i URL er mindre robust enn token-basert validering
@@ -834,6 +834,23 @@ Siden Catenda Webhook API ikke støtter signering av payload (HMAC), benyttes en
    ```
    hvor `{WEBHOOK_SECRET_PATH}` er en kryptografisk sterk, tilfeldig streng (minimum 32 tegn).
 
+> **⚠️ KRITISK DRIFTSKRAV: LOGG-VASK (LOG SCRUBBING)**
+>
+> Siden hemmeligheten er en del av URL-stien, vil standard webserver- og WAF-logger lagre denne i klartekst.
+>
+> **Tiltak:** Logging i Azure Application Insights, WAF og Load Balancer **MÅ** konfigureres til å maskere eller ekskludere loggføring av ruten `/webhook/catenda/*`. Full URL skal aldri lagres i klartekst i systemlogger som er tilgjengelige for utviklere/drift.
+>
+> **Produksjonsalternativ:** Vurder Secret Token i query parameter (`?token=SECRET`) i stedet for path-basert hemmelighet, siden query parameters lettere kan ekskluderes fra logger.
+
+**Rutine for rotering av hemmelighet (Secret Rotation):**
+
+Ved mistanke om lekket Webhook-URL, eller ved periodisk rotering, må følgende prosedyre følges:
+
+1. Generer ny `WEBHOOK_SECRET_PATH` og oppdater backend-konfigurasjon (miljøvariabel) til å akseptere *både* gammel og ny sti midlertidig (hvis mulig), eller kun ny.
+2. Oppdater Webhook-URL manuelt i Catenda Admin-panel med den nye stien.
+3. Deaktiver gammel rute i backend og verifiser at trafikk kommer på ny sti.
+4. Overvåk audit logs for forsøk på å nå gammel sti (potensielt kompromittert).
+
 2. **Validering (Prototype):**
    * Backend leser `WEBHOOK_SECRET_PATH` fra environment variable (`.env`-fil)
    * Flask-route defineres dynamisk: `@app.route(f'/webhook/catenda/{WEBHOOK_SECRET_PATH}')`
@@ -1458,10 +1475,12 @@ Personvernaspektene er integrert i **ROS-analyse** (se seksjon 10). Spesielt rel
 
 **Prototype (nåværende):**
 - **Secret Path i URL:** Webhook URL inneholder hemmelig path-komponent (`/webhook/catenda/{SECRET_PATH}`)
+- **Log Masking (kritisk):** Konfigurasjon av logger for å hindre at Secret Path lagres i klartekst (Access Logs, WAF, Application Insights)
 - **Idempotens:** Samme event behandles ikke to ganger (event_id tracking i minne)
 - **Event structure validation:** Validerer at payload har forventet struktur og gyldige event types
 - **Audit logging:** Alle webhooks logges med IP-adresse, timestamp og event-detaljer
 - **Rate limiting:** Maksimalt 100 webhook-forespørsler per minutt per IP
+- **Secret rotation rutine:** Dokumentert prosedyre for rotering ved mistanke om kompromittering
 
 **Produksjon (planlagt):**
 - **Secret Token i URL query parameter:** `?token={SECRET}` med token fra Azure Key Vault
