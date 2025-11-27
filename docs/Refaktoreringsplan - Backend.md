@@ -1353,6 +1353,8 @@ REPOSITORY_TYPE=csv
 
 #### Fase 2: Azure Landing Zone (Infrastruktur)
 
+**⚠️ Dette trinnet krever koordinering med Oslobyggs driftsmiljø og IT-sikkerhet.**
+
 Etabler Azure-infrastruktur (via Bicep/Terraform):
 
 **Ressurser:**
@@ -1371,6 +1373,53 @@ oe-koe-prod/              # Produksjonsmiljø
 ├── Application Insights
 └── Service Bus
 ```
+
+**Detaljerte infrastruktur-oppgaver:**
+
+**1. Core Infrastructure (8-12 timer)**
+- [ ] Opprett Resource Groups (`rg-oe-koe-test`, `rg-oe-koe-prod`)
+- [ ] Opprett Azure Function App (Python 3.11, Consumption Plan eller Premium)
+- [ ] Opprett Storage Account for Function App state
+- [ ] Konfigurer Application Insights for logging og monitoring
+- [ ] Opprett Service Bus Namespace og køer for async jobs
+
+**2. Sikkerhet og Identitet (10-15 timer)**
+- [ ] Opprett Azure Key Vault (`kv-oe-koe-test`, `kv-oe-koe-prod`)
+- [ ] Aktiver Managed Identity for Function App ("Zero Trust" - ingen secrets i kode)
+- [ ] Tildel RBAC-roller:
+  - Function App → Key Vault: `Key Vault Secrets User`
+  - Function App → Dataverse: `System User` eller custom role
+  - Function App → Service Bus: `Azure Service Bus Data Sender/Receiver`
+- [ ] Legg inn secrets i Key Vault:
+  - `CATENDA_CLIENT_ID`
+  - `CATENDA_CLIENT_SECRET`
+  - `WEBHOOK_SECRET_PATH`
+  - `CSRF_SECRET_KEY`
+
+**3. Dataverse (10-15 timer)**
+- [ ] Bestill/opprett Dataverse-miljø hos Oslobygg IT (kan ta 1-2 uker kalendertid)
+- [ ] Opprett tabeller i Dataverse:
+  - `oe_prosjektsak` (case table)
+  - `oe_varsel` (notification table)
+  - `oe_koe` (KOE table)
+  - `oe_svar` (response table)
+- [ ] Konfigurer kolonner, relasjoner og business rules
+- [ ] Opprett Security Roles for applikasjonsbrukeren
+- [ ] Tildel Application User til riktig rolle i Dataverse
+- [ ] Test tilkobling fra Function App via Managed Identity
+
+**4. Nettverk og WAF (8-11 timer)**
+- [ ] Konfigurer Azure Front Door eller Application Gateway (hvis påkrevd)
+- [ ] Sett opp Web Application Firewall (WAF) med OWASP-regler
+- [ ] Bestill DNS-record hos Oslobygg (`api.oslobygg.no` eller lignende)
+- [ ] Konfigurer SSL-sertifikat (Azure Managed Certificate eller manuell)
+- [ ] Konfigurer log masking for webhook-paths (kritisk sikkerhetskrav)
+
+**Estimert tid:**
+- **Effektiv arbeidstid:** 36-53 timer
+- **Kalendertid:** 2-4 uker (pga. bestillinger, tilgangsstyring, godkjenninger)
+
+**Leveranse:** Fungerende test- og prod-miljø klare for kodedeployment.
 
 **Azure DevOps Pipeline:**
 ```yaml
@@ -1553,14 +1602,12 @@ curl https://oe-koe-prod.azurewebsites.net/api/health
 - [ ] Manuell testing av alle endpoints
 - [ ] Performance testing (ingen regresjon)
 
-**Azure Landing Zone (Seksjon 8.3 Fase 2):**
-- [ ] Etabler oe-koe-test (staging-miljø)
-- [ ] Etabler oe-koe-prod (produksjonsmiljø)
-- [ ] Konfigurer Azure DevOps pipeline
-- [ ] Opprett Dataverse-tabeller (test og prod)
-- [ ] Konfigurer Key Vault med secrets
-- [ ] Sett opp Application Insights
-- [ ] Konfigurer Service Bus for async jobs
+**Azure Landing Zone (Seksjon 8.3 Fase 2 - 36-53 timer):**
+- [ ] **Core Infrastructure:** Resource Groups, Function App, Storage, Application Insights, Service Bus
+- [ ] **Sikkerhet:** Key Vault, Managed Identity, RBAC-roller, secrets
+- [ ] **Dataverse:** Miljøbestilling, tabeller, kolonner, security roles
+- [ ] **Nettverk & WAF:** Front Door/App Gateway, DNS, SSL, log masking
+- [ ] Konfigurer Azure DevOps pipeline (Build → Test → Prod)
 
 **UAT - User Acceptance Testing (Seksjon 8.3 Fase 3):**
 - [ ] Deploy til oe-koe-test
@@ -1585,15 +1632,32 @@ curl https://oe-koe-prod.azurewebsites.net/api/health
 
 ### 9.2 Estimert tidsbruk
 
-| Fase | Tid |
-|------|-----|
-| Trinn 1-3: Grunnlag | 4-6 timer |
-| Trinn 4-7: Services | 20-28 timer |
-| Trinn 8: Routes | 4-6 timer |
-| Trinn 9: Testing | 8-12 timer |
-| **Total (ekskl. Dataverse)** | **36-52 timer (ca. 1-1.5 uke)** |
-| Trinn 10: Dataverse | 12-16 timer (etter Azure-oppsett) |
-| **Total (inkl. Dataverse)** | **48-68 timer (ca. 1.5-2 uker)** |
+**⚠️ Viktig:** Skiller mellom utvikling (kode) og infrastruktur (Azure-oppsett).
+
+| Fase | Aktivitet | Tid |
+|------|-----------|-----|
+| **Utvikling (Refaktorering)** | | |
+| Trinn 1-3 | Grunnlag & Repository | 4-6 timer |
+| Trinn 4-7 | Services & Logikk | 20-28 timer |
+| Trinn 8-9 | Routes & Testing | 12-18 timer |
+| Trinn 10 | Dataverse-integrasjon (kode) | 12-16 timer |
+| **Sum Utvikling** | | **48-68 timer** |
+| | | |
+| **Infrastruktur (Azure)** | | |
+| Core Infra | Resource Groups, Function App, Storage, Insights, Service Bus | 8-12 timer |
+| Sikkerhet | Key Vault, Managed Identity, RBAC-roller | 10-15 timer |
+| Dataverse | Miljøoppsett, tabeller, rettigheter | 10-15 timer |
+| Nettverk & WAF | Front Door, DNS, SSL, log masking | 8-11 timer |
+| **Sum Infrastruktur** | | **36-53 timer** |
+| | | |
+| **TOTALT** | | **85-120 timer** |
+
+**Kalendertid:**
+- **Utvikling:** 1.5-2 uker (avhengig av ressurser)
+- **Infrastruktur:** 2-4 uker (pga. bestillinger, tilgangsstyring, godkjenninger i Oslobygg)
+- **Totalt:** 3-6 uker fra start til produksjon
+
+> **NB:** Infrastruktur-estimatene er effektiv arbeidstid. Kalendertid kan bli lenger grunnet avhengigheter til Oslobyggs IT-drift, bestillinger av Dataverse-miljø, og sikkerhetsklarering.
 
 ### 9.3 Risiko og mitigering
 
@@ -1633,10 +1697,21 @@ curl https://oe-koe-prod.azurewebsites.net/api/health
 ---
 
 **Vedlikeholdt av:** Claude
-**Sist oppdatert:** 2025-11-27 (v1.2)
+**Sist oppdatert:** 2025-11-27 (v1.3)
 **Status:** Klar for implementering
 
 **Endringslogg:**
+- **v1.3 (2025-11-27):** Realistiske infrastruktur-estimater:
+  - **KRITISK ENDRING:** Synliggjort Azure-infrastruktur som egen fase (Seksjon 9.2)
+  - **Totalt estimat:** 85-120 timer (før: 48-68 timer uten infrastruktur)
+  - Detaljert nedbrytning av infrastruktur-arbeid (Seksjon 8.3 Fase 2):
+    - Core Infrastructure: 8-12 timer (Resource Groups, Function App, Storage, Insights, Service Bus)
+    - Sikkerhet & Identitet: 10-15 timer (Key Vault, Managed Identity, RBAC)
+    - Dataverse: 10-15 timer (miljøoppsett, tabeller, rettigheter)
+    - Nettverk & WAF: 8-11 timer (Front Door, DNS, SSL, log masking)
+  - **Kalendertid:** 3-6 uker (2-4 uker for infrastruktur pga. bestillinger/godkjenninger)
+  - Oppdatert sjekkliste med infrastruktur-detaljer
+  - **Resultat:** Realistisk prosjektplan for ledelsen
 - **v1.2 (2025-11-27):** Enterprise-strategi for produksjonssetting:
   - **FJERNET:** DualRepository (kompleks synkroniseringslogikk)
   - **NY STRATEGI:** "Build, Validate, Switch" (Clean Cutover) (Seksjon 8.3)
