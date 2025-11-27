@@ -270,9 +270,12 @@ backend/
 │
 ├── utils/                      # Shared utilities
 │   ├── __init__.py
+│   ├── logger.py               # Centralized logging (Seksjon 4.4.4)
 │   ├── magic_link.py
 │   ├── filtering_config.py
 │   └── guid_converter.py
+│
+├── config.py                   # Centralized configuration (Seksjon 4.4.4)
 │
 ├── tests/                      # Test suite
 │   ├── __init__.py
@@ -449,26 +452,40 @@ class CSVRepository(BaseRepository):
 **models/varsel.py** (Domain model)
 ```python
 """Varsel domain model"""
-from dataclasses import dataclass
-from typing import Dict, Any
+from pydantic import BaseModel, Field, validator
+from typing import Optional
 from datetime import datetime
 
-@dataclass
-class Varsel:
+class Varsel(BaseModel):
     """
     Varsel (notification) domain model.
 
     Represents a notification about a discovered issue that may lead to a KOE.
+
+    Uses Pydantic for:
+    - Automatic type validation
+    - JSON serialization/deserialization
+    - Azure Functions v2 compatibility
     """
-    dato_forhold_oppdaget: str
-    hovedkategori: str
-    underkategori: str
-    varsel_beskrivelse: str
-    dato_varsel_sendt: str = ""
+    dato_forhold_oppdaget: str = Field(..., description="Date when issue was discovered")
+    hovedkategori: str = Field(..., min_length=1, description="Main category")
+    underkategori: str = Field(..., min_length=1, description="Subcategory")
+    varsel_beskrivelse: str = Field(..., min_length=1, description="Notification description")
+    dato_varsel_sendt: Optional[str] = Field(default=None, description="Date notification was sent")
+
+    @validator('dato_forhold_oppdaget', 'dato_varsel_sendt')
+    def validate_date_format(cls, v):
+        """Validate that date strings are in ISO format"""
+        if v:
+            try:
+                datetime.fromisoformat(v)
+            except ValueError:
+                raise ValueError(f"Invalid date format: {v}. Expected ISO format (YYYY-MM-DD)")
+        return v
 
     @classmethod
-    def from_form_data(cls, form_data: Dict[str, Any]) -> 'Varsel':
-        """Create Varsel from frontend form data"""
+    def from_form_data(cls, form_data: dict) -> 'Varsel':
+        """Create Varsel from frontend form data with automatic validation"""
         return cls(
             dato_forhold_oppdaget=form_data.get('dato_forhold_oppdaget', ''),
             hovedkategori=form_data.get('hovedkategori', ''),
@@ -477,14 +494,21 @@ class Varsel:
             dato_varsel_sendt=datetime.now().isoformat()
         )
 
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary for storage"""
-        return {
-            'dato_forhold_oppdaget': self.dato_forhold_oppdaget,
-            'hovedkategori': self.hovedkategori,
-            'underkategori': self.underkategori,
-            'varsel_beskrivelse': self.varsel_beskrivelse,
-            'dato_varsel_sendt': self.dato_varsel_sendt
+    class Config:
+        """Pydantic configuration"""
+        # Allow JSON serialization
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
+        # Generate JSON schema for Azure Functions
+        schema_extra = {
+            "example": {
+                "dato_forhold_oppdaget": "2025-11-20",
+                "hovedkategori": "Risiko",
+                "underkategori": "Grunnforhold",
+                "varsel_beskrivelse": "Beskrivelse av forhold",
+                "dato_varsel_sendt": "2025-11-27T10:30:00"
+            }
         }
 ```
 
@@ -494,6 +518,226 @@ class Varsel:
 - ✅ Kan brukes i Azure Functions, CLI, batch jobs
 - ✅ Klar separation of concerns
 - ✅ Lett å finne og endre kode
+
+### 4.4 Arkitektoniske anbefalinger
+
+#### 4.4.1 Pydantic vs. Dataclasses
+
+**⚠️ Anbefaling: Bruk Pydantic i stedet for standard dataclasses**
+
+**Hvorfor Pydantic?**
+1. **Azure Functions v2 native støtte:** Azure Functions Python v2-modellen har innebygd støtte for Pydantic-modeller
+2. **Automatisk validering:** Pydantic validerer typer automatisk - en dato-streng valideres faktisk som en dato
+3. **Bedre JSON-serialisering:** `.dict()` og `.json()` metoder er mer robuste enn `dataclasses.asdict()`
+4. **API-dokumentasjon:** Genererer OpenAPI/JSON Schema automatisk
+
+**Sammenligning:**
+
+```python
+# ❌ Dataclass - ingen validering
+from dataclasses import dataclass
+
+@dataclass
+class Varsel:
+    dato: str  # Ingen validering!
+
+v = Varsel(dato="ikke-en-dato")  # Aksepteres uten feil
+
+# ✅ Pydantic - automatisk validering
+from pydantic import BaseModel, validator
+
+class Varsel(BaseModel):
+    dato: str
+
+    @validator('dato')
+    def validate_date(cls, v):
+        datetime.fromisoformat(v)  # Kaster feil hvis ugyldig
+        return v
+
+v = Varsel(dato="ikke-en-dato")  # ValidationError!
+```
+
+**Dependencies:**
+```bash
+pip install pydantic
+```
+
+#### 4.4.2 Threading og Async i Azure Functions
+
+**⚠️ Kritisk for Azure Functions-migrering**
+
+**Problem:** Dagens `app.py` bruker `Thread(target=...)` for å kjøre Catenda-oppdateringer i bakgrunnen.
+
+```python
+# app.py (nåværende)
+def update_catenda():
+    Thread(target=lambda: sys.catenda.post_comment(...)).start()
+```
+
+**Risiko:** I Azure Functions (Serverless) kan funksjonen fryses rett etter retur, og tråden blir drept før den er ferdig.
+
+**Løsning i Fase 1 (Flask):**
+```python
+# services/catenda_service.py
+class CatendaService:
+    def post_comment_async(self, topic_guid: str, comment: str):
+        """
+        Post comment to Catenda in background thread.
+
+        ⚠️ TODO: Replace with Azure Service Bus queue in production
+        """
+        Thread(target=lambda: self._post_comment_sync(topic_guid, comment)).start()
+```
+
+**Løsning i Fase 2 (Azure Functions):**
+```python
+# services/catenda_service.py
+from azure.servicebus import ServiceBusClient
+
+class CatendaService:
+    def post_comment_async(self, topic_guid: str, comment: str):
+        """
+        Queue comment for posting to Catenda.
+
+        Uses Azure Service Bus for reliable background processing.
+        """
+        message = {
+            "action": "post_comment",
+            "topic_guid": topic_guid,
+            "comment": comment
+        }
+
+        # Send to queue - processed by separate Azure Function
+        self.service_bus.send_message(json.dumps(message))
+```
+
+**Anbefaling:**
+- Marker alle tråd-bruk med `# TODO: Azure Service Bus` kommentarer
+- Planlegg å bruke Azure Service Bus eller Azure Queue Storage for bakgrunnsjobber
+- Vurder `asyncio` for I/O-bound operasjoner i stedet for tråder
+
+#### 4.4.3 Deployment og "Shared Code"
+
+**⚠️ Symlinks fungerer ikke i CI/CD**
+
+Seksjon 8.1 viser en `shared/` symlink til `backend/`. Dette fungerer lokalt, men feiler i deployment-pipelines.
+
+**Problem:**
+```bash
+# Dette fungerer IKKE i Azure DevOps/GitHub Actions
+ln -s ../backend/services azure_functions/shared/services
+```
+
+**Løsning 1: Python Package (anbefalt)**
+```bash
+# Opprett lokal pakke
+# backend/setup.py
+from setuptools import setup, find_packages
+
+setup(
+    name="koe-core",
+    version="1.0.0",
+    packages=find_packages(),
+    install_requires=[
+        "pydantic",
+        # ... andre dependencies
+    ]
+)
+
+# Installer i både Flask og Azure Functions
+pip install -e ../backend  # Editable install
+```
+
+**Løsning 2: Build Script**
+```bash
+# build.sh - kopierer filer før deploy
+cp -r backend/services azure_functions/shared/services
+cp -r backend/models azure_functions/shared/models
+cp -r backend/repositories azure_functions/shared/repositories
+```
+
+**Anbefaling:** Bruk Python Package (Løsning 1) - dette er standard i produksjon.
+
+#### 4.4.4 Sentralisert Logging og Konfigurasjon
+
+**⚠️ Viktig når koden splittes i mange filer**
+
+**Problem:** Når du splitter `app.py` i 20+ filer, mister du oversikten over logging og miljøvariabler.
+
+**Løsning: Sentralisert logger**
+
+```python
+# utils/logger.py
+import logging
+import sys
+from pythonjsonlogger import jsonlogger
+
+def get_logger(name: str) -> logging.Logger:
+    """
+    Get configured logger for module.
+
+    All logs are JSON-formatted for Azure Application Insights.
+    """
+    logger = logging.getLogger(name)
+
+    if not logger.handlers:
+        handler = logging.StreamHandler(sys.stdout)
+        formatter = jsonlogger.JsonFormatter(
+            fmt='%(asctime)s %(name)s %(levelname)s %(message)s',
+            datefmt='%Y-%m-%dT%H:%M:%S'
+        )
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+        logger.setLevel(logging.INFO)
+
+    return logger
+
+# Bruk i alle filer:
+# from utils.logger import get_logger
+# logger = get_logger(__name__)
+```
+
+**Løsning: Sentralisert config**
+
+```python
+# config.py
+from pydantic import BaseSettings, Field
+
+class Settings(BaseSettings):
+    """
+    Application settings loaded from environment variables.
+
+    Pydantic BaseSettings automatically loads from .env files.
+    """
+    # Catenda
+    catenda_client_id: str = Field(..., env="CATENDA_CLIENT_ID")
+    catenda_client_secret: str = Field(..., env="CATENDA_CLIENT_SECRET")
+    catenda_project_id: str = Field(..., env="CATENDA_PROJECT_ID")
+
+    # Dataverse
+    dataverse_url: str = Field(..., env="DATAVERSE_URL")
+
+    # Security
+    webhook_secret_path: str = Field(..., env="WEBHOOK_SECRET_PATH")
+    csrf_secret_key: str = Field(..., env="CSRF_SECRET_KEY")
+
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+
+# Global settings instance
+settings = Settings()
+
+# Bruk i alle filer:
+# from config import settings
+# url = settings.dataverse_url
+```
+
+**Fordeler:**
+- ✅ Alle miljøvariabler definert på ÉT sted
+- ✅ Type-sjekking og validering av config
+- ✅ Lett å se hvilke variabler som kreves
+- ✅ Automatisk `.env` fil-støtte
 
 ---
 
@@ -548,16 +792,20 @@ class Varsel:
 
 ## 6. Implementeringsplan
 
-### 6.1 Trinn 1: Opprett mappestruktur
+### 6.1 Trinn 1: Opprett mappestruktur og installer dependencies
 
-**Tid:** 30 minutter
+**Tid:** 30-45 minutter
 
 ```bash
+# Installer nye dependencies
+pip install pydantic python-json-logger pytest pytest-cov pytest-mock
+
 # Opprett mapper
 mkdir -p backend/routes
 mkdir -p backend/services
 mkdir -p backend/repositories
 mkdir -p backend/models
+mkdir -p backend/utils
 mkdir -p backend/tests/test_services
 mkdir -p backend/tests/test_repositories
 mkdir -p backend/tests/fixtures
@@ -567,7 +815,29 @@ touch backend/routes/__init__.py
 touch backend/services/__init__.py
 touch backend/repositories/__init__.py
 touch backend/models/__init__.py
+touch backend/utils/__init__.py
 touch backend/tests/__init__.py
+
+# Opprett konfigurasjonsfiler (Seksjon 4.4.4)
+touch backend/config.py
+touch backend/utils/logger.py
+```
+
+**Oppdater requirements.txt:**
+```txt
+# Existing dependencies...
+flask
+flask-cors
+flask-limiter
+
+# New dependencies for refactoring
+pydantic>=2.0.0
+python-json-logger>=2.0.0
+
+# Testing
+pytest>=7.0.0
+pytest-cov>=4.0.0
+pytest-mock>=3.10.0
 ```
 
 ### 6.2 Trinn 2: Ekstraher Base Repository
@@ -868,21 +1138,37 @@ class DataverseRepository(BaseRepository):
     # ... implementer resten av interface
 ```
 
-**Migrasjonsstrategi:**
+**Repository Selection via miljøvariabel:**
 ```python
-# Parallel kjøring - skriv til begge
-class DualRepository(BaseRepository):
-    """Write to both CSV and Dataverse during migration"""
+# config.py
+from pydantic import BaseSettings
 
-    def __init__(self):
-        self.csv = CSVRepository()
-        self.dataverse = DataverseRepository(os.getenv("DATAVERSE_URL"))
+class Settings(BaseSettings):
+    repository_type: str = "csv"  # "csv" for lokal utvikling, "dataverse" for produksjon
+    dataverse_url: str = ""
 
-    def update_case(self, case_id: str, data: Dict[str, Any]) -> None:
-        # Write to both
-        self.csv.update_case(case_id, data)
-        self.dataverse.update_case(case_id, data)
+    class Config:
+        env_file = ".env"
+
+settings = Settings()
+
+# app.py eller main.py
+from config import settings
+from repositories.csv_repository import CSVRepository
+from repositories.dataverse_repository import DataverseRepository
+
+def get_repository():
+    """Factory for repository selection basert på miljø"""
+    if settings.repository_type == "dataverse":
+        return DataverseRepository(settings.dataverse_url)
+    else:
+        return CSVRepository()
+
+# Services bruker factory
+service = VarselService(repository=get_repository())
 ```
+
+**Fordel:** Samme kode kjører lokalt (CSV) og i produksjon (Dataverse) - kun miljøvariabel endres.
 
 ---
 
@@ -1041,22 +1327,192 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
 **Fordel:** `VarselService` er identisk i Flask og Azure Functions! ✅
 
-### 8.3 Migreringsstrategi
+### 8.3 Produksjonssetting: "Build, Validate, Switch" (Clean Cutover)
 
-**Fase 1: Parallel kjøring**
-- Flask (prototype) kjører på ngrok
-- Azure Functions (production) deployes til Azure
-- Begge bruker samme Dataverse
+**⚠️ Enterprise-strategi for Oslobygg KF**
 
-**Fase 2: Gradvis cutover**
-- Nytt trafikk går til Azure Functions
-- Eksisterende saker fullfører i Flask
-- Overvåk og sammenlign
+For et enterprise-foretak som Oslobygg er "Clean Cutover" riktig tilnærming - ikke kompleks parallellkjøring med synkronisering mellom systemer.
 
-**Fase 3: Deaktiver Flask**
-- All trafikk til Azure Functions
-- Flask-app arkiveres
-- Oppdater Catenda webhook URL
+**Hvorfor Clean Cutover?**
+- ✅ **Enklere:** Ingen DualRepository eller synkroniseringslogikk
+- ✅ **Tryggere:** Dataverse er master fra dag 1 - ingen datakonflikt
+- ✅ **Billigere:** Slipper å kjøre to systemer parallelt
+- ✅ **Profesjonelt:** Standard for enterprise-utrulling
+
+**Strategi:**
+
+#### Fase 1: Lokal utvikling (Utvikler-PC)
+```bash
+# .env (lokal)
+REPOSITORY_TYPE=csv
+```
+- Refaktorer kode som planlagt (Trinn 1-9)
+- Test med CSVRepository lokalt
+- Kjør alle unit tests og integration tests
+- **Ingen produksjonsdata** forlater utvikler-PCen
+
+#### Fase 2: Azure Landing Zone (Infrastruktur)
+
+Etabler Azure-infrastruktur (via Bicep/Terraform):
+
+**Ressurser:**
+```
+oe-koe-test/              # Staging-miljø
+├── Function App
+├── Dataverse (test-tabeller)
+├── Key Vault (test-secrets)
+├── Application Insights
+└── Service Bus (for async jobs)
+
+oe-koe-prod/              # Produksjonsmiljø
+├── Function App
+├── Dataverse (prod-tabeller)
+├── Key Vault (prod-secrets)
+├── Application Insights
+└── Service Bus
+```
+
+**Azure DevOps Pipeline:**
+```yaml
+# azure-pipelines.yml
+stages:
+  - stage: Build
+    jobs:
+      - job: BuildAndTest
+        steps:
+          - task: UsePythonVersion@0
+          - script: pip install -r requirements.txt
+          - script: pytest --cov=backend
+          - task: ArchiveFiles@2  # Lag deployment-pakke
+
+  - stage: DeployToTest
+    jobs:
+      - deployment: DeployTest
+        environment: oe-koe-test
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: AzureFunctionApp@1
+                  inputs:
+                    azureSubscription: 'Oslobygg-Sub'
+                    appName: 'oe-koe-test'
+
+  - stage: DeployToProd
+    dependsOn: DeployToTest
+    condition: succeeded()
+    jobs:
+      - deployment: DeployProd
+        environment: oe-koe-prod
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: AzureFunctionApp@1
+                  inputs:
+                    azureSubscription: 'Oslobygg-Sub'
+                    appName: 'oe-koe-prod'
+```
+
+#### Fase 3: Staging (UAT - User Acceptance Testing)
+
+Deploy til **oe-koe-test** med Dataverse:
+
+```bash
+# Azure Function App Configuration
+REPOSITORY_TYPE=dataverse
+DATAVERSE_URL=https://oe-test.crm4.dynamics.com
+CATENDA_PROJECT_ID=<test-project-id>
+WEBHOOK_SECRET_PATH=<test-secret>
+```
+
+**UAT-aktiviteter:**
+1. Opprett testsak via Magic Link
+2. Fyll ut Varsel-skjema
+3. Generer KOE PDF
+4. Last opp til Catenda test-prosjekt
+5. Fyll ut Svar-skjema
+6. Verifiser at data lagres i Dataverse
+7. Valider webhook-mottak fra Catenda
+8. Test secret rotation-prosedyre
+9. Verifiser logging i Application Insights
+10. Performance-test (last-testing hvis nødvendig)
+
+**Godkjenningskriterier:**
+- [ ] Alle UAT-scenarioer fullført uten feil
+- [ ] Dataverse-data korrekt strukturert
+- [ ] PDF-er lastes opp til Catenda
+- [ ] Webhook-sikkerhet validert
+- [ ] Logging/monitoring fungerer
+- [ ] Performance akseptabel (<2 sek responstid)
+
+#### Fase 4: Produksjon (Go Live)
+
+**Pre-deployment sjekkliste:**
+- [ ] UAT godkjent av Oslobygg
+- [ ] Secrets rotert i produksjon (nye verdier)
+- [ ] Backup-plan dokumentert
+- [ ] Rollback-prosedyre testet
+- [ ] Overvåking konfigurert (alerts)
+- [ ] Dokumentasjon oppdatert
+
+**Deployment:**
+```bash
+# Deploy til oe-koe-prod via pipeline
+az pipelines run --name "KOE-Backend" --branch main
+
+# Eller manuelt
+az functionapp deployment source config-zip \
+  --resource-group oe-koe-rg \
+  --name oe-koe-prod \
+  --src deployment.zip
+```
+
+**Cutover (Switch):**
+```bash
+# 1. Verifiser at prod-miljø kjører
+curl https://oe-koe-prod.azurewebsites.net/api/health
+
+# 2. Oppdater Catenda webhook URL
+# Gammelt: https://your-ngrok-url/webhook/catenda/SECRET
+# Nytt:    https://oe-koe-prod.azurewebsites.net/webhook/catenda/PROD_SECRET
+
+# 3. Test webhook med test-event fra Catenda
+
+# 4. Pensjoner prototype på utvikler-PC
+# (Arkiver koden, men behold som referanse)
+```
+
+#### Fase 5: Post-deployment overvåking
+
+**Første 24 timer:**
+- Overvåk Application Insights for feil
+- Verifiser at webhooks mottas
+- Sjekk at data lagres korrekt i Dataverse
+- Monitor responstider
+
+**Første uke:**
+- Daglig gjennomgang av logger
+- Samle tilbakemelding fra brukere
+- Verifiser at Catenda-integrasjon fungerer
+- Mål responstider og ytelse
+
+**Rollback-prosedyre (hvis kritisk feil):**
+```bash
+# 1. Bytt Catenda webhook tilbake til ngrok-URL (midlertidig)
+# 2. Start Flask-prototype på utvikler-PC (emergency)
+# 3. Debug Azure-problemet
+# 4. Deploy fix til oe-koe-test
+# 5. Re-test og deploy til prod
+# 6. Cutover på nytt
+```
+
+**Fordeler med Clean Cutover:**
+- ✅ Ingen kompleks synkroniseringslogikk (DualRepository)
+- ✅ Dataverse er "source of truth" fra dag 1
+- ✅ Staging-miljø gir realistisk testing
+- ✅ Rollback er mulig (tilbake til ngrok midlertidig)
+- ✅ Profesjonell enterprise-tilnærming
 
 ---
 
@@ -1068,7 +1524,14 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 - [ ] Les denne planen
 - [ ] Sett opp Git branch: `refactor/backend-services`
 - [ ] Installer pytest: `pip install pytest pytest-cov pytest-mock`
+- [ ] Installer pydantic: `pip install pydantic python-json-logger`
 - [ ] Backup eksisterende data
+
+**Arkitektoniske forberedelser (Seksjon 4.4):**
+- [ ] **Modeller:** Bruk Pydantic (ikke dataclasses) for bedre validering og Azure Functions-støtte
+- [ ] **Config:** Sentraliser miljøvariabler i `config.py` med Pydantic BaseSettings
+- [ ] **Logging:** Opprett `utils/logger.py` for felles logg-konfigurasjon (JSON-format)
+- [ ] **Dependency Injection:** Sikre at Routes instansierer services med riktig repository - unngå global state
 
 **Implementering:**
 - [ ] Trinn 1: Opprett mappestruktur (30 min)
@@ -1078,26 +1541,47 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 - [ ] Trinn 5: Ekstraher KoeService (6-8 timer)
 - [ ] Trinn 6: Ekstraher SvarService (6-8 timer)
 - [ ] Trinn 7: Ekstraher CatendaService (4-6 timer)
+  - [ ] Marker Thread-bruk med `# TODO: Azure Service Bus`
+  - [ ] Planlegg migrering til Service Bus queue
 - [ ] Trinn 8: Splitt routes til Blueprints (4-6 timer)
 - [ ] Trinn 9: Skriv comprehensive tests (8-12 timer)
 - [ ] Trinn 10: Implementer DataverseRepository (12-16 timer)
 
 **Testing:**
-- [ ] Unit tests kjører og passerer
+- [ ] Unit tests kjører og passerer (>80% coverage)
 - [ ] Integration tests kjører og passerer
 - [ ] Manuell testing av alle endpoints
 - [ ] Performance testing (ingen regresjon)
 
-**Dokumentasjon:**
-- [ ] Oppdater README.md med ny struktur
-- [ ] Dokumenter hvordan teste lokalt
-- [ ] Dokumenter deployment-prosess
+**Azure Landing Zone (Seksjon 8.3 Fase 2):**
+- [ ] Etabler oe-koe-test (staging-miljø)
+- [ ] Etabler oe-koe-prod (produksjonsmiljø)
+- [ ] Konfigurer Azure DevOps pipeline
+- [ ] Opprett Dataverse-tabeller (test og prod)
+- [ ] Konfigurer Key Vault med secrets
+- [ ] Sett opp Application Insights
+- [ ] Konfigurer Service Bus for async jobs
 
-**Godkjenning:**
-- [ ] Code review
-- [ ] Merge til main branch
-- [ ] Deploy til test-miljø
-- [ ] Deploy til produksjon
+**UAT - User Acceptance Testing (Seksjon 8.3 Fase 3):**
+- [ ] Deploy til oe-koe-test
+- [ ] Gjennomfør alle 10 UAT-scenarioer
+- [ ] Verifiser Dataverse-lagring
+- [ ] Test webhook-sikkerhet
+- [ ] Performance-test
+- [ ] Godkjenning fra Oslobygg
+
+**Produksjon (Seksjon 8.3 Fase 4):**
+- [ ] Pre-deployment sjekkliste fullført
+- [ ] Deploy til oe-koe-prod
+- [ ] Oppdater Catenda webhook URL
+- [ ] Verifiser cutover
+- [ ] Pensjoner prototype (arkiver)
+
+**Post-deployment (Seksjon 8.3 Fase 5):**
+- [ ] 24-timers overvåking
+- [ ] Første uke oppfølging
+- [ ] Dokumentasjon oppdatert
+- [ ] Brukertilbakemelding samlet
 
 ### 9.2 Estimert tidsbruk
 
@@ -1120,6 +1604,10 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 | Performance regresjon | Medium | Medium | Performance testing, profiling |
 | Merge conflicts | Høy | Lav | Små commits, hyppig merge fra main |
 | Scope creep | Medium | Medium | Strikt følge planen, ikke "forbedre" samtidig |
+| Threading-feil i Azure Functions | Høy | Høy | Marker alle tråd-bruk, planlegg Service Bus-migrering (Seksjon 4.4.2) |
+| Symlink-feil i deployment | Høy | Høy | Bruk Python package i stedet for symlinks (Seksjon 4.4.3) |
+| Spredt konfigurasjon (miljøvariabler) | Medium | Medium | Sentraliser i `config.py` med Pydantic BaseSettings (Seksjon 4.4.4) |
+| Valideringsfeil i produksjon | Medium | Høy | Bruk Pydantic for automatisk validering (Seksjon 4.4.1) |
 
 ### 9.4 Suksesskriterier
 
@@ -1145,5 +1633,24 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 ---
 
 **Vedlikeholdt av:** Claude
-**Sist oppdatert:** 2025-11-27
+**Sist oppdatert:** 2025-11-27 (v1.2)
 **Status:** Klar for implementering
+
+**Endringslogg:**
+- **v1.2 (2025-11-27):** Enterprise-strategi for produksjonssetting:
+  - **FJERNET:** DualRepository (kompleks synkroniseringslogikk)
+  - **NY STRATEGI:** "Build, Validate, Switch" (Clean Cutover) (Seksjon 8.3)
+  - Repository selection via miljøvariabel (REPOSITORY_TYPE)
+  - 5 faser: Lokal utvikling → Azure Landing Zone → UAT → Produksjon → Post-deployment
+  - Azure DevOps pipeline-eksempel
+  - Detaljert UAT-sjekkliste (10 scenarioer)
+  - Rollback-prosedyre dokumentert
+  - Oppdatert sjekkliste med Azure-faser
+  - **Resultat:** Profesjonell enterprise-utrulling for Oslobygg KF
+- **v1.1 (2025-11-27):** Lagt til kritiske arkitektoniske anbefalinger:
+  - Pydantic i stedet for dataclasses (Seksjon 4.4.1)
+  - Threading/async-strategi for Azure Functions (Seksjon 4.4.2)
+  - Deployment-strategi for delt kode (Seksjon 4.4.3)
+  - Sentralisert logging og konfigurasjon (Seksjon 4.4.4)
+  - Oppdatert risikovurdering og sjekkliste
+- **v1.0 (2025-11-27):** Første versjon av refaktoreringsplan
