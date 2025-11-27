@@ -1138,21 +1138,37 @@ class DataverseRepository(BaseRepository):
     # ... implementer resten av interface
 ```
 
-**Migrasjonsstrategi:**
+**Repository Selection via miljøvariabel:**
 ```python
-# Parallel kjøring - skriv til begge
-class DualRepository(BaseRepository):
-    """Write to both CSV and Dataverse during migration"""
+# config.py
+from pydantic import BaseSettings
 
-    def __init__(self):
-        self.csv = CSVRepository()
-        self.dataverse = DataverseRepository(os.getenv("DATAVERSE_URL"))
+class Settings(BaseSettings):
+    repository_type: str = "csv"  # "csv" for lokal utvikling, "dataverse" for produksjon
+    dataverse_url: str = ""
 
-    def update_case(self, case_id: str, data: Dict[str, Any]) -> None:
-        # Write to both
-        self.csv.update_case(case_id, data)
-        self.dataverse.update_case(case_id, data)
+    class Config:
+        env_file = ".env"
+
+settings = Settings()
+
+# app.py eller main.py
+from config import settings
+from repositories.csv_repository import CSVRepository
+from repositories.dataverse_repository import DataverseRepository
+
+def get_repository():
+    """Factory for repository selection basert på miljø"""
+    if settings.repository_type == "dataverse":
+        return DataverseRepository(settings.dataverse_url)
+    else:
+        return CSVRepository()
+
+# Services bruker factory
+service = VarselService(repository=get_repository())
 ```
+
+**Fordel:** Samme kode kjører lokalt (CSV) og i produksjon (Dataverse) - kun miljøvariabel endres.
 
 ---
 
@@ -1311,22 +1327,192 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
 **Fordel:** `VarselService` er identisk i Flask og Azure Functions! ✅
 
-### 8.3 Migreringsstrategi
+### 8.3 Produksjonssetting: "Build, Validate, Switch" (Clean Cutover)
 
-**Fase 1: Parallel kjøring**
-- Flask (prototype) kjører på ngrok
-- Azure Functions (production) deployes til Azure
-- Begge bruker samme Dataverse
+**⚠️ Enterprise-strategi for Oslobygg KF**
 
-**Fase 2: Gradvis cutover**
-- Nytt trafikk går til Azure Functions
-- Eksisterende saker fullfører i Flask
-- Overvåk og sammenlign
+For et enterprise-foretak som Oslobygg er "Clean Cutover" riktig tilnærming - ikke kompleks parallellkjøring med synkronisering mellom systemer.
 
-**Fase 3: Deaktiver Flask**
-- All trafikk til Azure Functions
-- Flask-app arkiveres
-- Oppdater Catenda webhook URL
+**Hvorfor Clean Cutover?**
+- ✅ **Enklere:** Ingen DualRepository eller synkroniseringslogikk
+- ✅ **Tryggere:** Dataverse er master fra dag 1 - ingen datakonflikt
+- ✅ **Billigere:** Slipper å kjøre to systemer parallelt
+- ✅ **Profesjonelt:** Standard for enterprise-utrulling
+
+**Strategi:**
+
+#### Fase 1: Lokal utvikling (Utvikler-PC)
+```bash
+# .env (lokal)
+REPOSITORY_TYPE=csv
+```
+- Refaktorer kode som planlagt (Trinn 1-9)
+- Test med CSVRepository lokalt
+- Kjør alle unit tests og integration tests
+- **Ingen produksjonsdata** forlater utvikler-PCen
+
+#### Fase 2: Azure Landing Zone (Infrastruktur)
+
+Etabler Azure-infrastruktur (via Bicep/Terraform):
+
+**Ressurser:**
+```
+oe-koe-test/              # Staging-miljø
+├── Function App
+├── Dataverse (test-tabeller)
+├── Key Vault (test-secrets)
+├── Application Insights
+└── Service Bus (for async jobs)
+
+oe-koe-prod/              # Produksjonsmiljø
+├── Function App
+├── Dataverse (prod-tabeller)
+├── Key Vault (prod-secrets)
+├── Application Insights
+└── Service Bus
+```
+
+**Azure DevOps Pipeline:**
+```yaml
+# azure-pipelines.yml
+stages:
+  - stage: Build
+    jobs:
+      - job: BuildAndTest
+        steps:
+          - task: UsePythonVersion@0
+          - script: pip install -r requirements.txt
+          - script: pytest --cov=backend
+          - task: ArchiveFiles@2  # Lag deployment-pakke
+
+  - stage: DeployToTest
+    jobs:
+      - deployment: DeployTest
+        environment: oe-koe-test
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: AzureFunctionApp@1
+                  inputs:
+                    azureSubscription: 'Oslobygg-Sub'
+                    appName: 'oe-koe-test'
+
+  - stage: DeployToProd
+    dependsOn: DeployToTest
+    condition: succeeded()
+    jobs:
+      - deployment: DeployProd
+        environment: oe-koe-prod
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: AzureFunctionApp@1
+                  inputs:
+                    azureSubscription: 'Oslobygg-Sub'
+                    appName: 'oe-koe-prod'
+```
+
+#### Fase 3: Staging (UAT - User Acceptance Testing)
+
+Deploy til **oe-koe-test** med Dataverse:
+
+```bash
+# Azure Function App Configuration
+REPOSITORY_TYPE=dataverse
+DATAVERSE_URL=https://oe-test.crm4.dynamics.com
+CATENDA_PROJECT_ID=<test-project-id>
+WEBHOOK_SECRET_PATH=<test-secret>
+```
+
+**UAT-aktiviteter:**
+1. Opprett testsak via Magic Link
+2. Fyll ut Varsel-skjema
+3. Generer KOE PDF
+4. Last opp til Catenda test-prosjekt
+5. Fyll ut Svar-skjema
+6. Verifiser at data lagres i Dataverse
+7. Valider webhook-mottak fra Catenda
+8. Test secret rotation-prosedyre
+9. Verifiser logging i Application Insights
+10. Performance-test (last-testing hvis nødvendig)
+
+**Godkjenningskriterier:**
+- [ ] Alle UAT-scenarioer fullført uten feil
+- [ ] Dataverse-data korrekt strukturert
+- [ ] PDF-er lastes opp til Catenda
+- [ ] Webhook-sikkerhet validert
+- [ ] Logging/monitoring fungerer
+- [ ] Performance akseptabel (<2 sek responstid)
+
+#### Fase 4: Produksjon (Go Live)
+
+**Pre-deployment sjekkliste:**
+- [ ] UAT godkjent av Oslobygg
+- [ ] Secrets rotert i produksjon (nye verdier)
+- [ ] Backup-plan dokumentert
+- [ ] Rollback-prosedyre testet
+- [ ] Overvåking konfigurert (alerts)
+- [ ] Dokumentasjon oppdatert
+
+**Deployment:**
+```bash
+# Deploy til oe-koe-prod via pipeline
+az pipelines run --name "KOE-Backend" --branch main
+
+# Eller manuelt
+az functionapp deployment source config-zip \
+  --resource-group oe-koe-rg \
+  --name oe-koe-prod \
+  --src deployment.zip
+```
+
+**Cutover (Switch):**
+```bash
+# 1. Verifiser at prod-miljø kjører
+curl https://oe-koe-prod.azurewebsites.net/api/health
+
+# 2. Oppdater Catenda webhook URL
+# Gammelt: https://your-ngrok-url/webhook/catenda/SECRET
+# Nytt:    https://oe-koe-prod.azurewebsites.net/webhook/catenda/PROD_SECRET
+
+# 3. Test webhook med test-event fra Catenda
+
+# 4. Pensjoner prototype på utvikler-PC
+# (Arkiver koden, men behold som referanse)
+```
+
+#### Fase 5: Post-deployment overvåking
+
+**Første 24 timer:**
+- Overvåk Application Insights for feil
+- Verifiser at webhooks mottas
+- Sjekk at data lagres korrekt i Dataverse
+- Monitor responstider
+
+**Første uke:**
+- Daglig gjennomgang av logger
+- Samle tilbakemelding fra brukere
+- Verifiser at Catenda-integrasjon fungerer
+- Mål responstider og ytelse
+
+**Rollback-prosedyre (hvis kritisk feil):**
+```bash
+# 1. Bytt Catenda webhook tilbake til ngrok-URL (midlertidig)
+# 2. Start Flask-prototype på utvikler-PC (emergency)
+# 3. Debug Azure-problemet
+# 4. Deploy fix til oe-koe-test
+# 5. Re-test og deploy til prod
+# 6. Cutover på nytt
+```
+
+**Fordeler med Clean Cutover:**
+- ✅ Ingen kompleks synkroniseringslogikk (DualRepository)
+- ✅ Dataverse er "source of truth" fra dag 1
+- ✅ Staging-miljø gir realistisk testing
+- ✅ Rollback er mulig (tilbake til ngrok midlertidig)
+- ✅ Profesjonell enterprise-tilnærming
 
 ---
 
@@ -1362,21 +1548,40 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 - [ ] Trinn 10: Implementer DataverseRepository (12-16 timer)
 
 **Testing:**
-- [ ] Unit tests kjører og passerer
+- [ ] Unit tests kjører og passerer (>80% coverage)
 - [ ] Integration tests kjører og passerer
 - [ ] Manuell testing av alle endpoints
 - [ ] Performance testing (ingen regresjon)
 
-**Dokumentasjon:**
-- [ ] Oppdater README.md med ny struktur
-- [ ] Dokumenter hvordan teste lokalt
-- [ ] Dokumenter deployment-prosess
+**Azure Landing Zone (Seksjon 8.3 Fase 2):**
+- [ ] Etabler oe-koe-test (staging-miljø)
+- [ ] Etabler oe-koe-prod (produksjonsmiljø)
+- [ ] Konfigurer Azure DevOps pipeline
+- [ ] Opprett Dataverse-tabeller (test og prod)
+- [ ] Konfigurer Key Vault med secrets
+- [ ] Sett opp Application Insights
+- [ ] Konfigurer Service Bus for async jobs
 
-**Godkjenning:**
-- [ ] Code review
-- [ ] Merge til main branch
-- [ ] Deploy til test-miljø
-- [ ] Deploy til produksjon
+**UAT - User Acceptance Testing (Seksjon 8.3 Fase 3):**
+- [ ] Deploy til oe-koe-test
+- [ ] Gjennomfør alle 10 UAT-scenarioer
+- [ ] Verifiser Dataverse-lagring
+- [ ] Test webhook-sikkerhet
+- [ ] Performance-test
+- [ ] Godkjenning fra Oslobygg
+
+**Produksjon (Seksjon 8.3 Fase 4):**
+- [ ] Pre-deployment sjekkliste fullført
+- [ ] Deploy til oe-koe-prod
+- [ ] Oppdater Catenda webhook URL
+- [ ] Verifiser cutover
+- [ ] Pensjoner prototype (arkiver)
+
+**Post-deployment (Seksjon 8.3 Fase 5):**
+- [ ] 24-timers overvåking
+- [ ] Første uke oppfølging
+- [ ] Dokumentasjon oppdatert
+- [ ] Brukertilbakemelding samlet
 
 ### 9.2 Estimert tidsbruk
 
@@ -1428,10 +1633,20 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 ---
 
 **Vedlikeholdt av:** Claude
-**Sist oppdatert:** 2025-11-27 (v1.1)
+**Sist oppdatert:** 2025-11-27 (v1.2)
 **Status:** Klar for implementering
 
 **Endringslogg:**
+- **v1.2 (2025-11-27):** Enterprise-strategi for produksjonssetting:
+  - **FJERNET:** DualRepository (kompleks synkroniseringslogikk)
+  - **NY STRATEGI:** "Build, Validate, Switch" (Clean Cutover) (Seksjon 8.3)
+  - Repository selection via miljøvariabel (REPOSITORY_TYPE)
+  - 5 faser: Lokal utvikling → Azure Landing Zone → UAT → Produksjon → Post-deployment
+  - Azure DevOps pipeline-eksempel
+  - Detaljert UAT-sjekkliste (10 scenarioer)
+  - Rollback-prosedyre dokumentert
+  - Oppdatert sjekkliste med Azure-faser
+  - **Resultat:** Profesjonell enterprise-utrulling for Oslobygg KF
 - **v1.1 (2025-11-27):** Lagt til kritiske arkitektoniske anbefalinger:
   - Pydantic i stedet for dataclasses (Seksjon 4.4.1)
   - Threading/async-strategi for Azure Functions (Seksjon 4.4.2)
