@@ -421,37 +421,47 @@ const SubmitSuccessModal = ({ isOpen, result }) => (
 
 ### Kritiske forbedringer
 
-#### 3.1 Webhook-signatur validering (KRITISK)
+#### 3.1 Webhook Secret Token validering (KRITISK)
+
+**VIKTIG:** Catenda Webhook API støtter IKKE HMAC-signering. Bruk Secret Token-validering i stedet.
 
 ```python
 # backend/app.py
 
 import hmac
-import hashlib
+import os
 
-def verify_webhook_signature(payload: bytes, signature: str, secret: str) -> bool:
-    """Verifiser at webhook kommer fra Catenda."""
-    expected = hmac.new(
-        secret.encode('utf-8'),
-        payload,
-        hashlib.sha256
-    ).hexdigest()
-    return hmac.compare_digest(f"sha256={expected}", signature)
+WEBHOOK_SECRET_TOKEN = os.getenv('WEBHOOK_SECRET_TOKEN')
 
 @app.route('/webhook/catenda', methods=['POST'])
 def webhook():
-    # Hent signatur fra header
-    signature = request.headers.get('X-Catenda-Signature', '')
-    webhook_secret = config.get('catenda_webhook_secret', '')
+    """
+    Mottar webhook fra Catenda.
 
-    # Verifiser signatur
-    if webhook_secret and not verify_webhook_signature(
-        request.data, signature, webhook_secret
+    VIKTIG: Catenda støtter ikke HMAC-signering.
+    Bruk Secret Token i URL query parameter eller Secret Path.
+    """
+    # Hent token fra query parameter
+    received_token = request.args.get('token', '')
+
+    # Verifiser token med constant-time comparison
+    if not WEBHOOK_SECRET_TOKEN or not hmac.compare_digest(
+        received_token, WEBHOOK_SECRET_TOKEN
     ):
-        logger.warning(f"Ugyldig webhook-signatur fra {request.remote_addr}")
-        return jsonify({"error": "Invalid signature"}), 401
+        logger.warning(f"Ugyldig webhook token fra {request.remote_addr}")
+        return jsonify({"error": "Invalid token"}), 401
 
     # Fortsett med eksisterende logikk...
+```
+
+**Alternativ: Secret Path-metode**
+```python
+@app.route('/webhook/catenda/<secret_path>', methods=['POST'])
+def webhook(secret_path: str):
+    """Webhook med Secret Path i URL."""
+    if not hmac.compare_digest(secret_path, WEBHOOK_SECRET_PATH):
+        return jsonify({"error": "Invalid path"}), 401
+    # Fortsett med logikk...
 ```
 
 #### 3.2 Retry-logikk for kritiske operasjoner
@@ -591,7 +601,7 @@ def submit_koe():
 |---|------------|-------------|---------|-----------|--------|
 | ~~1~~ | ~~Fjern duplikate send-knapper~~ | ~~Lav~~ | ~~1t~~ | ~~UX/Klarhet~~ | ✅ **Implementert** |
 | 2 | Utkast-synlighet filtrering | Lav | 2t | Sikkerhet/UX | Gjenstår |
-| 3 | Webhook-signatur validering | Lav | 2t | Sikkerhet | Gjenstår |
+| 3 | Webhook Secret Token validering | Lav | 2t | Sikkerhet | Gjenstår |
 | ~~4~~ | ~~Forbedrede Catenda-kommentarer~~ | ~~Lav~~ | ~~3t~~ | ~~Profesjonalitet~~ | ✅ **Implementert** |
 | 5 | Token-refresh automatikk | Medium | 3t | Robusthet | Gjenstår |
 
@@ -630,7 +640,7 @@ def submit_koe():
 3. ~~Oppdater Catenda-kommentarer med mer kontekst~~ ✅ **Ferdig**
 
 ### Fase 2: Sikkerhet og Robusthet (Uke 1)
-4. Webhook-signatur validering
+4. Webhook Secret Token validering
 5. Token-refresh automatikk
 6. Retry-logikk for API-kall
 7. Filvalidering
@@ -659,7 +669,7 @@ Systemet har solid grunnarkitektur og god funksjonalitet for et PoC. Med de krit
 
 **Prioritering for neste iterasjon:**
 1. Utkast-synlighet filtrering (skjul utkast fra motpart)
-2. Webhook-signatur validering
+2. Webhook Secret Token validering
 3. Token-refresh automatikk
 
 **Eksisterende styrker som beholdes:**
