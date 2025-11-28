@@ -123,10 +123,11 @@ Prototypen ble utviklet for å validere konseptet og brukeropplevelsen.
                       │                       ▼                       │
                       │              ┌─────────────────┐              │
                       │              │   React App     │              │
-                      │              │ (GitHub Pages)  │              │
+                      │              │  (vite dev)     │              │
                       │              └─────────────────┘              │
                       │                                               │
-                      │  URL: ?sakId={guid}&modus={varsel|koe|svar}   │
+                      │       URL: ?magicToken={secret_token}         │
+                      │   (GitHub Pages: kun statisk demo uten API)   │
                       └───────────────────────────────────────────────┘
 
                                               │
