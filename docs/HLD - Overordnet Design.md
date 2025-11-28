@@ -244,18 +244,18 @@ Produksjonsløsningen bygger på Azure-plattformen med fokus på skalerbarhet, s
 4. **Data:** Dataverse Row-Level Security, Managed Identity
 5. **Observerbarhet:** Application Insights, Azure Monitor Alerts
 
-### 4.3 Dataflyt: Typisk brukerscenario
+### 4.3 Dataflyt: Typisk brukerscenario (forenklet - uten revisjoner)
 
 **Scenario: Entreprenør sender Krav om Endringsordre (KOE)**
 
 ```
-1. Catenda: Prosjektleder oppretter ny sak
+1. Catenda: Entreprenør oppretter ny sak
    │
    ├─> Catenda sender webhook til Azure Functions
    │
 2. Azure Functions: Mottar webhook
    │
-   ├─> Validerer Secret Token
+   ├─> Sjekker Secret Token i URL
    ├─> Sjekker idempotens (duplikatsjekk)
    ├─> Oppretter sak i Dataverse
    ├─> Genererer Magic Link (UUID v4)
@@ -267,12 +267,12 @@ Produksjonsløsningen bygger på Azure-plattformen med fokus på skalerbarhet, s
    ├─> Azure Functions validerer UUID (gyldig? utløpt?)
    ├─> Henter forhåndsutfylt prosjektdata fra Dataverse
    │
-   └─> React App: Viser skjema med prosjektinfo
+   └─> React App: Viser KOE-skjema med prosjektinfo
        │
 4. Entreprenør: Fyller ut KOE-skjema
    │
    ├─> React genererer PDF-preview i sanntid (client-side)
-   ├─> Entreprenør bekrefter e-post (JIT-validering mot Catenda)
+   ├─> Entreprenør bekrefter e-post (JIT-validering mot Catenda - step up ved behov)
    │
    └─> Sender inn: POST /api/koe-submit
        │
