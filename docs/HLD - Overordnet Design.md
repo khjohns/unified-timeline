@@ -230,7 +230,6 @@ Produksjonsløsningen bygger på Azure-plattformen med fokus på skalerbarhet, s
         │  Microsoft 365 Økosystem             │
         │  ┌────────────────────────────────┐  │
         │  │  Entra ID (SSO, MFA)           │  │
-        │  │  SharePoint (vedlegg)          │  │
         │  │  Microsoft Graph API           │  │
         │  └────────────────────────────────┘  │
         └──────────────────────────────────────┘
@@ -626,13 +625,6 @@ Den lagdelte arkitekturen gjør at samme infrastruktur og forretningslogikk-møn
 
 #### Hvorfor Dataverse?
 
-**Fordeler over SharePoint:**
-- Ingen 5000-grense på listevisninger
-- Native row-level security for interne brukere
-- Bedre ytelse ved høyt datavolum
-- Native Power BI connector
-- Cloud-native skalerbarhet
-
 **Fordeler over SQL Database:**
 - Innebygd sikkerhet og auditlogging
 - Ingen infrastruktur å administrere
@@ -769,11 +761,6 @@ def get_application(app_id, scope_project, role):
 - Multi-Factor Authentication (MFA)
 - Conditional Access policies
 - Managed Identity for service-to-service auth
-
-**SharePoint:**
-- Vedleggslagring via Microsoft Graph API
-- Resumable upload for store filer (< 250 MB)
-- Prosjektspesifikke dokumentbiblioteker
 
 **Power BI:**
 - Native Dataverse connector
@@ -991,11 +978,11 @@ Løsningen integrerer med både interne (Microsoft 365) og eksterne (Catenda) sy
     │                  │                  │                     │
     │                  │                  │                     │
     ▼                  ▼                  ▼                     ▼
-┌─────────┐    ┌──────────────┐   ┌─────────────┐    ┌──────────────┐
-│ Catenda │    │  Entra ID    │   │ SharePoint  │    │  Power BI    │
-│  (PIM)  │    │   (SSO)      │   │  (Vedlegg)  │    │ (Rapporter)  │
-└─────────┘    └──────────────┘   └─────────────┘    └──────────────┘
- Ekstern           Intern             Intern              Intern
+┌─────────┐    ┌──────────────┐   ┌──────────────┐
+│ Catenda │    │  Entra ID    │   │  Power BI    │
+│  (PIM)  │    │   (SSO)      │   │ (Rapporter)  │
+└─────────┘    └──────────────┘   └──────────────┘
+ Ekstern           Intern              Intern
 ```
 
 ---
@@ -1185,76 +1172,7 @@ const loginRequest = {
 
 ---
 
-#### 7.3.2 SharePoint (via Microsoft Graph API)
-
-**Formål:** Lagring av vedlegg (bilder, tegninger, dokumenter).
-
-**API-endepunkt:**
-```
-POST https://graph.microsoft.com/v1.0/sites/{site-id}/drives/{drive-id}/items/{parent-id}:/filename:/content
-```
-
-**Resumable Upload (store filer > 4 MB):**
-
-```python
-# Pseudokode: Resumable upload til SharePoint
-def upload_large_file(file_path, destination_url):
-    """
-    Laster opp store filer til SharePoint i chunks.
-    """
-    file_size = os.path.getsize(file_path)
-    chunk_size = 10 * 1024 * 1024  # 10 MB chunks
-
-    # 1. Opprett upload-sesjon
-    session = graph_api.create_upload_session(destination_url, file_size)
-    upload_url = session["uploadUrl"]
-
-    # 2. Last opp chunks
-    with open(file_path, 'rb') as f:
-        offset = 0
-        while offset < file_size:
-            chunk = f.read(chunk_size)
-            chunk_end = offset + len(chunk) - 1
-
-            headers = {
-                "Content-Length": str(len(chunk)),
-                "Content-Range": f"bytes {offset}-{chunk_end}/{file_size}"
-            }
-
-            response = requests.put(upload_url, headers=headers, data=chunk)
-
-            if response.status_code in [200, 201, 202]:
-                offset += len(chunk)
-            else:
-                # Retry chunk
-                time.sleep(2)
-
-    # 3. Returner item metadata
-    return response.json()
-```
-
-**Mappestruktur:**
-```
-/Prosjekter
-  /{project_name}
-    /Fravik
-      /{case_id}
-        - vedlegg_1.pdf
-        - bilde_1.jpg
-    /KOE
-      /{case_id}
-        - tegning_rev0.pdf
-        - kalkyle.xlsx
-```
-
-**Sikkerhet:**
-- Inherited permissions fra prosjektmappe
-- Prosjektleder = Owner
-- Eksterne har ikke tilgang (kun via API)
-
----
-
-#### 7.3.3 Power BI
+#### 7.3.2 Power BI
 
 **Formål:** Rapportering og analyse på tvers av prosjekter.
 
@@ -1293,7 +1211,6 @@ Dataverse (DirectQuery)
 | **Catenda** | Ekstern | Begge | REST v2 / BCF 3.0 | OAuth 2.0 (ut) / Secret Token (inn) | Catenda (dokumenter) |
 | **Dataverse** | Intern | Begge | Dataverse SDK | Managed Identity | Vi (strukturert data) |
 | **Entra ID** | Intern | Inn | OAuth 2.0 | MSAL | Microsoft (identiteter) |
-| **SharePoint** | Intern | Ut | Microsoft Graph | Managed Identity | Vi (vedlegg) |
 | **Power BI** | Intern | Inn | Native connector | Service Principal | Vi (data), Microsoft (platform) |
 
 ---
