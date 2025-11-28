@@ -131,7 +131,7 @@ Det er også laget en React-prototype for fravikssøknader knyttet til unntak fo
 
 ### 3.1 Bakgrunn
 
-Prosjektet er initiert av **Oslobygg KF** for å modernisere og digitalisere samhandlingsprosesser i byggeprosjekter. Dagens prosesser for håndtering av fravik og endringsordrer foregår via e-post og Word-maler, med PDF-vedlegg som sendes frem og tilbake mellom partene. All dokumentasjon arkiveres manuelt i Catenda (prosjektinformasjonsmodell-system).
+Prosjektet er initiert av **Juridisk** og **Arbeidsgruppen for krav om uttslippsfrie byggeplasser** for å modernisere og digitalisere samhandlingsprosesser i byggeprosjekter. Dagens prosesser for håndtering av fravik og endringsordrer foregår via e-post og Word-maler, med PDF-vedlegg som sendes frem og tilbake mellom partene. All dokumentasjon arkiveres manuelt i Catenda (prosjektinformasjonsmodell-system).
 
 ### 3.2 Problemstilling
 
@@ -142,11 +142,11 @@ Informasjonen blir innelåst i PDF-format, noe som betyr at dataene ikke kan sø
 
 #### Ineffektivitet
 - Prosjektledere bruker tid på å flytte filer mellom systemer manuelt
-- Behandlingstiden for en typisk søknad er 5-7 dager
+- Behandlingstiden er "flat"; i dag ingen mulighet for triage-logikk eller system for sammenligning av saker og krav
 - Det skjer ofte dobbeltregistrering fordi samme informasjon må skrives inn på flere steder
 
 #### Høy terskel
-Leverandører sliter med å få tilgang til portaler og faller tilbake på e-post som kommunikasjonsform, noe som skaper mer manuelt arbeid.
+Entreprenør og byggherre sliter med "halvveis" digitalisering av skjema, og faller tilbake på e-post som kommunikasjonsform.
 
 ### 3.3 Målsetting
 
@@ -156,7 +156,7 @@ Prosjektet skal levere:
 - **Lav terskel** for eksterne brukere - enkelt å komme i gang uten kompliserte innloggingsprosesser
 - **Automatisk arkivering** - dokumenter lagres riktig sted uten manuell håndtering
 - **Sikker samhandling** - trygg deling av informasjon mellom parter
-- **Skalerbart** til 50+ prosjekter - løsningen må fungere like godt om vi har 5 eller 50 prosjekter
+- **Skalerbart** til 10+ prosjekter - løsningen må fungere like godt om vi har 2, 10 eller 100 prosjekter
 
 ### 3.4 Pilot-applikasjoner
 
@@ -180,8 +180,8 @@ En prosess som starter med varsel om et forhold (f.eks. endrede tegninger), utvi
 - Grunnlag for kontinuerlig forbedring
 
 #### Effektivisering
-- Redusert behandlingstid fra 5-7 dager til estimert 1-2 dager
-- Automatisk arkivering eliminerer manuell filhåndtering
+- Redusert behandlingstid
+- Automatisk arkivering (i Catenda) eliminerer manuell filhåndtering
 - Ingen dobbeltregistrering av data
 
 #### Bedre brukeropplevelse
