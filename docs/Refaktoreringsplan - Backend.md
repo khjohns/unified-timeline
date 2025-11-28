@@ -68,9 +68,9 @@
 ```
 backend/
 ├── app.py (1231 linjer)              # Alt i én fil
-│   ├── DataManager (168 linjer)      # Data persistence
-│   ├── KOEAutomationSystem (324 linjer) # Business logic
-│   └── 11 Flask routes (~700 linjer) # HTTP endpoints
+│   ├── DataManager (169 linjer)      # Data persistence
+│   ├── KOEAutomationSystem (278 linjer) # Business logic
+│   └── 12 Flask routes (~750 linjer) # HTTP endpoints
 │
 ├── Sikkerhet (allerede modulær) ✅
 │   ├── csrf_protection.py
@@ -568,13 +568,25 @@ pip install pydantic
 
 **Problem:** Dagens `app.py` bruker `Thread(target=...)` for å kjøre Catenda-oppdateringer i bakgrunnen.
 
+**Nåværende implementering:**
 ```python
-# app.py (nåværende)
-def update_catenda():
-    Thread(target=lambda: sys.catenda.post_comment(...)).start()
+# app.py linje 417-424 (faktisk kode)
+def post_comment_async():
+    try:
+        self.catenda.create_comment(topic_id, comment_text)
+        logger.info(f"✅ Kommentar sendt til Catenda for sak {sak_id}")
+    except Exception as e:
+        logger.error(f"❌ Feil ved posting av kommentar til Catenda: {e}")
+
+Thread(target=post_comment_async, daemon=True).start()
 ```
 
-**Risiko:** I Azure Functions (Serverless) kan funksjonen fryses rett etter retur, og tråden blir drept før den er ferdig.
+Dette fungerer i Flask fordi:
+- Flask prosessen kjører kontinuerlig
+- Daemon threads overlever request-response cycle (så lenge prosessen lever)
+- Flask-appen kjører i en langvarig prosess på utvikler-PC
+
+**Risiko i Azure Functions:** I Azure Functions (Serverless) kan funksjonen fryses/stoppes umiddelbart etter HTTP response, og tråden blir drept før den er ferdig. Dette er **IKKE** garantert å fungere.
 
 **Løsning i Fase 1 (Flask):**
 ```python
@@ -648,15 +660,59 @@ setup(
 pip install -e ../backend  # Editable install
 ```
 
-**Løsning 2: Build Script**
+**Løsning 2: Build Script (enklere for små prosjekter)**
+
+Opprett `scripts/build_azure_functions.sh`:
 ```bash
-# build.sh - kopierer filer før deploy
-cp -r backend/services azure_functions/shared/services
-cp -r backend/models azure_functions/shared/models
-cp -r backend/repositories azure_functions/shared/repositories
+#!/bin/bash
+# scripts/build_azure_functions.sh
+# Bygger Azure Functions deployment-pakke ved å kopiere delt kode
+
+set -e  # Exit on error
+
+echo "🔨 Building Azure Functions deployment package..."
+
+# 1. Rens opp gammel build
+rm -rf azure_functions/shared
+mkdir -p azure_functions/shared
+
+# 2. Kopier nødvendige moduler
+echo "📦 Copying shared code..."
+cp -r backend/services azure_functions/shared/
+cp -r backend/models azure_functions/shared/
+cp -r backend/repositories azure_functions/shared/
+cp -r backend/security azure_functions/shared/
+cp -r backend/utils azure_functions/shared/
+cp backend/config.py azure_functions/shared/
+
+# 3. Opprett __init__.py filer
+touch azure_functions/shared/__init__.py
+find azure_functions/shared -type d -exec touch {}/__init__.py \;
+
+# 4. Kopier requirements
+echo "📋 Copying requirements..."
+cp backend/requirements.txt azure_functions/requirements.txt
+
+echo "✅ Build complete. Package ready for deployment."
 ```
 
-**Anbefaling:** Bruk Python Package (Løsning 1) - dette er standard i produksjon.
+**Bruk i Azure DevOps:**
+```yaml
+# azure-pipelines.yml
+- script: |
+    chmod +x scripts/build_azure_functions.sh
+    ./scripts/build_azure_functions.sh
+  displayName: 'Build Azure Functions Package'
+
+- task: ArchiveFiles@2
+  inputs:
+    rootFolderOrFile: 'azure_functions'
+    includeRootFolder: false
+    archiveType: 'zip'
+    archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
+```
+
+**Anbefaling:** Bruk Python Package (Løsning 1) for større prosjekter - dette er standard i produksjon. Build Script (Løsning 2) er enklere for prototyper.
 
 #### 4.4.4 Sentralisert Logging og Konfigurasjon
 
@@ -701,7 +757,8 @@ def get_logger(name: str) -> logging.Logger:
 
 ```python
 # config.py
-from pydantic import BaseSettings, Field
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     """
@@ -832,12 +889,31 @@ flask-limiter
 
 # New dependencies for refactoring
 pydantic>=2.0.0
+pydantic-settings>=2.0.0        # For BaseSettings (moved in Pydantic v2)
 python-json-logger>=2.0.0
 
-# Testing
+# Testing (or add to requirements-dev.txt)
 pytest>=7.0.0
 pytest-cov>=4.0.0
 pytest-mock>=3.10.0
+```
+
+**Alternativt:** Opprett `requirements-dev.txt` for testing-dependencies:
+```bash
+# Legg til i backend/requirements.txt (produksjon)
+echo "pydantic>=2.0.0" >> backend/requirements.txt
+echo "pydantic-settings>=2.0.0" >> backend/requirements.txt
+echo "python-json-logger>=2.0.0" >> backend/requirements.txt
+
+# Opprett backend/requirements-dev.txt (utvikling/testing)
+cat > backend/requirements-dev.txt << EOF
+pytest>=7.0.0
+pytest-cov>=4.0.0
+pytest-mock>=3.10.0
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.0.0
+EOF
 ```
 
 ### 6.2 Trinn 2: Ekstraher Base Repository
@@ -1141,7 +1217,7 @@ class DataverseRepository(BaseRepository):
 **Repository Selection via miljøvariabel:**
 ```python
 # config.py
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     repository_type: str = "csv"  # "csv" for lokal utvikling, "dataverse" for produksjon
@@ -1421,6 +1497,35 @@ oe-koe-prod/              # Produksjonsmiljø
 
 **Leveranse:** Fungerende test- og prod-miljø klare for kodedeployment.
 
+**5. Estimerte Azure-kostnader (månedlig)**
+
+**Test-miljø:**
+- Function App (Consumption Plan): ~$0-50/måned (avhengig av bruk)
+- Dataverse (Test): ~$40-100/måned (per bruker/miljø)
+- Key Vault: ~$0.03/10,000 transaksjoner
+- Application Insights: ~$2-10/måned (1GB gratis tier)
+- Service Bus (Basic): ~$0.05/måned
+- Storage Account: ~$1-5/måned
+- **Total test-miljø: ~$50-200/måned**
+
+**Prod-miljø:**
+- Function App (Premium Plan EP1 anbefalt): ~$150-300/måned
+- Dataverse (Production): ~$100-500/måned (avhengig av antall brukere)
+- Key Vault: ~$0.03/10,000 transaksjoner
+- Application Insights: ~$10-50/måned (avhengig av logging-volum)
+- Service Bus (Standard): ~$10/måned
+- Storage Account: ~$5-20/måned
+- Front Door/Application Gateway: ~$100-300/måned (hvis påkrevd)
+- **Total prod-miljø: ~$400-1200/måned**
+
+**Viktig:**
+- Disse er grove estimater basert på lav-til-moderat bruk
+- Faktiske kostnader avhenger av bruksmønster, logging-volum, og antall requests
+- Oslobygg kan ha eksisterende Azure-avtaler som påvirker prisene
+- Dataverse-kostnader kan variere betydelig basert på lisensmodell
+- Anbefaler å sette opp Cost Alerts i Azure Portal
+- Vurder Reserved Instances for Premium Function App (kan spare 30-50%)
+
 **Azure DevOps Pipeline:**
 ```yaml
 # azure-pipelines.yml
@@ -1697,10 +1802,21 @@ curl https://oe-koe-prod.azurewebsites.net/api/health
 ---
 
 **Vedlikeholdt av:** Claude
-**Sist oppdatert:** 2025-11-27 (v1.3)
-**Status:** Klar for implementering
+**Sist oppdatert:** 2025-11-28 (v1.4)
+**Status:** Klar for implementering (QA godkjent)
 
 **Endringslogg:**
+- **v1.4 (2025-11-28):** QA-godkjent versjon med tekniske korreksjoner:
+  - **KRITISK FIX:** Pydantic v2 imports korrigert (BaseSettings fra pydantic_settings)
+  - **KRITISK FIX:** Lagt til pydantic-settings>=2.0.0 i dependencies (Seksjon 6.1)
+  - Korrigert faktafeil: KOEAutomationSystem (278 linjer, ikke 324)
+  - Korrigert faktafeil: 12 Flask routes (ikke 11)
+  - **NY SEKSJON:** Azure kostnadsestimater (~$50-200/mnd test, ~$400-1200/mnd prod)
+  - Utvidet threading-seksjon med faktisk kodeeksempel fra app.py linje 417-424
+  - Utvidet build script-seksjon med komplett bash-script for CI/CD
+  - Lagt til alternativ requirements-dev.txt strategi for testing-dependencies
+  - Dokumentet validert mot faktisk kodebase (all Python-syntaks verifisert)
+  - **Resultat:** Alle kritiske issues fikset, klar for implementering
 - **v1.3 (2025-11-27):** Realistiske infrastruktur-estimater:
   - **KRITISK ENDRING:** Synliggjort Azure-infrastruktur som egen fase (Seksjon 9.2)
   - **Totalt estimat:** 85-120 timer (før: 48-68 timer uten infrastruktur)
