@@ -138,7 +138,7 @@ Prototypen ble utviklet for å validere konseptet og brukeropplevelsen.
 ```
 
 **Hovedkomponenter:**
-- React-applikasjon hostet på GitHub Pages
+- React-applikasjon (frontend på GitHub Pages er kun statisk demo - full flow krever `vite dev` + ngrok)
 - Python Flask backend (port 8080)
 - CSV-basert datalagring
 - Catenda webhook og API-integrasjon
@@ -351,7 +351,8 @@ Produksjonsløsningen bygger på Azure-plattformen med fokus på skalerbarhet, s
 #### Deployment
 
 **POC:**
-- Hostet på GitHub Pages
+- Frontend: GitHub Pages (kun statisk demo - ingen backend-integrasjon)
+- Fullt funksjonell prototype: `vite dev` (frontend) + Flask via ngrok (backend)
 - Manuell deploy ved git push
 
 **L1D (Produksjon):**
@@ -1835,7 +1836,7 @@ customEvents
 
 **Status:** ✅ Komplett
 
-- React-frontend hostet på GitHub Pages
+- React-frontend (GitHub Pages: kun statisk demo - full flow krever `npm run dev` + ngrok)
 - Python Flask backend med CSV-lagring
 - Catenda webhook-integrasjon
 - Implementerte sikkerhetstiltak (CSRF, validering, audit logging)
