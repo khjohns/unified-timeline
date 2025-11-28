@@ -123,6 +123,8 @@ Et alternativ er å bygge KOE-løsningen i Power Pages m/Dataverse; dette er en 
 | **HMS-rapportering** | Ukentlige sikkerhetsrapporter med automatisk varsel ved kritiske hendelser |
 | **Kvalitetskontroll-rapporter** | Inspeksjonsrapporter med bilder og sjekklister |
 
+Det er også laget en React-prototype for fravikssøknader knyttet til unntak for krav om uttslippsfrie byggeplasser. Arkitekturen til løsningen er i hovedsak identisk med KOE-arkitekturen, men forretningslogikken er litt enklere (søknad og svar; ingen revisjoner som i KOE-saker).
+
 ---
 
 ## 3. Formål og begrunnelse
