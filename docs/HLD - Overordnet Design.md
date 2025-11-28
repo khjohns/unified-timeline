@@ -471,7 +471,75 @@ Produksjonsløsningen bygger på Azure-plattformen med fokus på skalerbarhet, s
 #### Ansvarsområder
 
 **Sikkerhet (Gatekeeper-pattern):**
-*[...Behold eksisterende tekst om Gatekeeper her...]*
+
+Gatekeeper-mønsteret sikrer at alle forespørsler må gjennom flere valideringslag før data utleveres eller endres:
+
+1. **Magic Link validering:**
+   - UUID-format validering (avvis malformede tokens)
+   - TTL-sjekk (maks 72 timer levetid)
+   - One-time bruk (token revokeres ved første bruk i produksjon)
+   - Revokering ved statusendring (lukket sak = ingen skrivetilgang)
+
+2. **Project Scope validering (Catenda-integrasjon):**
+   - Hent brukerens prosjektliste fra Catenda API
+   - Verifiser at sakens `catenda_project_id` finnes i brukerens prosjekter
+   - Avvis forespørsler hvis bruker ikke har tilgang til prosjektet
+   - Implementert via `@require_project_access` decorator
+
+3. **Role-based field access control:**
+   - **BH-only felter:** TE kan ikke endre vederlag, frister, eller BH-signatur
+   - **TE-locked felter:** BH kan ikke endre TE-felt etter at varsel/KOE er sendt
+   - Server-side validering i `validate_field_access()` funksjonen
+   - Eksempel BH-only felter: `bh_svar_vederlag`, `bh_godkjent_vederlag_belop`, `for_byggherre`
+
+4. **State machine validering:**
+   - Operasjoner avhenger av sakens nåværende status
+   - Eksempel: Lukket sak returnerer read-only data
+   - Entreprenør kan kun sende varsel i status "Ny"
+   - Byggherre kan kun svare i status "Varslet"
+
+**Implementasjon i kode:**
+
+```python
+@app.route('/api/cases/<sakId>', methods=['GET'])
+@require_catenda_auth          # Steg 1: Autentisering
+@require_project_access        # Steg 2: Project scope
+def get_case(sakId):
+    # Steg 3: Hent sak
+    sak = db.get_form_data(sakId)
+
+    # Steg 4: State machine - sjekk status
+    if sak['status'] == 'Lukket':
+        return jsonify(sak.readonly()), 200
+
+    # Steg 5: Returner full tilgang
+    return jsonify(sak), 200
+
+
+@app.route('/api/koe-submit', methods=['POST'])
+@require_catenda_auth
+@require_project_access
+def submit_koe():
+    payload = request.get_json()
+
+    # Steg 3: Role-based field validation
+    user_role = get_user_role_in_project(...)
+    allowed, error = validate_field_access(
+        role=user_role,
+        payload=payload,
+        current_status=sak['status']
+    )
+
+    if not allowed:
+        return jsonify({"error": error}), 403
+
+    # Steg 4: Prosesser innsending
+    # ...
+```
+
+**Forskjell fra prototype til produksjon:**
+- **Prototype:** Catenda auth implementert men ikke enforced (⚠️ merket i sikkerhetstiltak)
+- **Produksjon:** Alle endepunkter krever enten Magic Link eller Entra ID, med full Gatekeeper-validering
 
 **API-endepunkter:**
 
