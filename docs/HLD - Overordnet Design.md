@@ -123,10 +123,11 @@ Prototypen ble utviklet for å validere konseptet og brukeropplevelsen.
                       │                       ▼                       │
                       │              ┌─────────────────┐              │
                       │              │   React App     │              │
-                      │              │ (GitHub Pages)  │              │
+                      │              │  (vite dev)     │              │
                       │              └─────────────────┘              │
                       │                                               │
-                      │  URL: ?sakId={guid}&modus={varsel|koe|svar}   │
+                      │       URL: ?magicToken={secret_token}         │
+                      │   (GitHub Pages: kun statisk demo uten API)   │
                       └───────────────────────────────────────────────┘
 
                                               │
@@ -138,7 +139,7 @@ Prototypen ble utviklet for å validere konseptet og brukeropplevelsen.
 ```
 
 **Hovedkomponenter:**
-- React-applikasjon hostet på GitHub Pages
+- React-applikasjon (frontend på GitHub Pages er kun statisk demo - full flow krever `vite dev` + ngrok)
 - Python Flask backend (port 8080)
 - CSV-basert datalagring
 - Catenda webhook og API-integrasjon
@@ -254,7 +255,7 @@ Produksjonsløsningen bygger på Azure-plattformen med fokus på skalerbarhet, s
    │
 2. Azure Functions: Mottar webhook
    │
-   ├─> Validerer signatur (HMAC)
+   ├─> Validerer Secret Token
    ├─> Sjekker idempotens (duplikatsjekk)
    ├─> Oppretter sak i Dataverse
    ├─> Genererer Magic Link (UUID v4)
@@ -351,7 +352,8 @@ Produksjonsløsningen bygger på Azure-plattformen med fokus på skalerbarhet, s
 #### Deployment
 
 **POC:**
-- Hostet på GitHub Pages
+- Frontend: GitHub Pages (kun statisk demo - ingen backend-integrasjon)
+- Fullt funksjonell prototype: `vite dev` (frontend) + Flask via ngrok (backend)
 - Manuell deploy ved git push
 
 **L1D (Produksjon):**
@@ -394,7 +396,7 @@ Produksjonsløsningen bygger på Azure-plattformen med fokus på skalerbarhet, s
 | `/api/cases/{sakId}/revidering` | POST | Send revisjon | Magic Link |
 | `/api/cases/{sakId}/pdf` | POST | Last opp PDF | Magic Link eller Entra ID |
 | **`/api/link-generator`** | **POST** | **Manuell generering for prosjekter uten Catenda** | **Entra ID (Intern 'My App')** |
-| `/webhook/catenda` | POST | Catenda webhook | HMAC-signatur |
+| `/webhook/catenda` | POST | Catenda webhook | Secret Token |
 
 > **⚠️ MERKNAD: Frontend vs. Backend Mismatch**
 > Det er identifisert funksjonalitet som er klargjort i Frontend (`api.ts`), men som foreløpig mangler implementasjon i Backend (`app.py`). Dette må implementeres før produksjon:
@@ -407,7 +409,7 @@ Produksjonsløsningen bygger på Azure-plattformen med fokus på skalerbarhet, s
 - Retry-logikk med exponential backoff ved throttling
 
 **Catenda-integrasjon:**
-- Webhook-mottak med signaturvalidering
+- Webhook-mottak med Secret Token-validering
 - Document upload via v2 API
 - BCF 3.0 document references
 - Kommentar-posting til topics
@@ -688,7 +690,7 @@ def get_application(app_id, scope_project, role):
    - Brukes i Link Generator for å populere mottakerliste
 
 **Webhook-sikkerhet:**
-- HMAC-signaturvalidering (`x-catenda-signature`)
+- Secret Token-validering (ingen HMAC - Catenda støtter ikke signering)
 - Delt hemmelighet lagres i Azure Key Vault
 - Idempotens: Samme event behandles ikke to ganger
 
@@ -1824,7 +1826,7 @@ customEvents
 | **Brute-force (> 50 tokens/10 min)** | Blokker IP i WAF (24t) | Vurder permanent blokkering |
 | **Brukt token (> 3 forsøk/15 min)** | Revoker token, flagg sak | Varsle PL, undersøk audit log |
 | **403-storm (> 20/5 min)** | Circuit breaker, logg IP | Identifiser årsak, vurder DDoS |
-| **Webhook invalid signature** | Avvis, logg IP | Kontakt Catenda support |
+| **Webhook invalid token** | Avvis, logg IP | Kontakt Catenda support |
 
 ---
 
@@ -1835,7 +1837,7 @@ customEvents
 
 **Status:** ✅ Komplett
 
-- React-frontend hostet på GitHub Pages
+- React-frontend (GitHub Pages: kun statisk demo - full flow krever `npm run dev` + ngrok)
 - Python Flask backend med CSV-lagring
 - Catenda webhook-integrasjon
 - Implementerte sikkerhetstiltak (CSRF, validering, audit logging)

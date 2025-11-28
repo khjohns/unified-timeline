@@ -900,7 +900,7 @@ Vi anbefaler å starte med OTP step-up (MVP) og vurdere BankID/Posten for kritis
 
 **Autorisasjon:** Gatekeeper-sjekk (ProjectId-scope, felttilgang), tilstandsmaskin.
 
-**Integrasjon:** Webhook-signatur + idempotens, BCF-referanse ved opplasting.
+**Integrasjon:** Webhook Secret Token + idempotens, BCF-referanse ved opplasting.
 
 **Klient/forespørsel:** CSRF-token, nonce for innsending.
 
@@ -953,20 +953,20 @@ flowchart TD
     C --> C2[Autorisasjon: ProjectId-scope + rolle + field-policy]
     C --> C3[JIT: OBLIGATORISK rolleoppslag interne, e-postvalidering eksterne]
     C --> C4[Observabilitet: full audit + avanserte alarmer]
-    C --> C5[Integrasjon: webhook-signatur + idempotens + BCF-ref]
+    C --> C5[Integrasjon: webhook Secret Token + idempotens + BCF-ref]
     C --> C6[Klient: CSRF + nonce]
 
     F --> F1[Autentisering: Magic Link + OTP step-up]
     F --> F2[Autorisasjon: ProjectId-scope + field-policy]
     F --> F3[JIT: e-postvalidering mot Catenda før innsending]
     F --> F4[Observabilitet: alarmer ved OTP/JIT avvik]
-    F --> F5[Integrasjon: webhook-signatur + idempotens + BCF-ref]
+    F --> F5[Integrasjon: webhook Secret Token + idempotens + BCF-ref]
     F --> F6[Klient: CSRF + nonce]
 
     G --> G1[Autentisering: Magic Link TTL ≤72t, one-time, revokering]
     G --> G2[Autorisasjon: Gatekeeper + state machine]
     G --> G3[Observabilitet: basislogger + enkle alarmer]
-    G --> G4[Integrasjon: webhook-signatur + idempotens + BCF-ref]
+    G --> G4[Integrasjon: webhook Secret Token + idempotens + BCF-ref]
     G --> G5[Klient: CSRF + nonce]
 
     style C fill:#ff6b6b,color:#fff
@@ -1005,7 +1005,7 @@ flowchart TD
 | **Autorisasjon** | Gatekeeper-sjekk (ProjectId-scope, rolle, operasjon) | Unit test: feil prosjekt → 403 | ☐ |
 | **Autorisasjon** | Field-policy | Test: TE endrer BH-felt → 403 | ☐ |
 | **Autorisasjon** | Dataverse RLS for interne | Dataverse > Security Roles | ☐ |
-| **Integrasjon** | Webhook HMAC-signatur | Test: ugyldig signatur → 401 | ☐ |
+| **Integrasjon** | Webhook Secret Token | Test: ugyldig token → 401 | ☐ |
 | **Integrasjon** | Idempotens | Test: samme event 2× → 202 (ingen duplikat) | ☐ |
 | **Integrasjon** | BCF-referanse + GUID-konvertering | Manuell test i Catenda | ☐ |
 | **Integrasjon** | Retry med exponential backoff | Simuler 429 → verifiser backoff | ☐ |

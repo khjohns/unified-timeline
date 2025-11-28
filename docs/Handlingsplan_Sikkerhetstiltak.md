@@ -48,7 +48,7 @@ Denne handlingsplanen prioriterer sikkerhetstiltak fra [Beslutningsmatrisen](./D
 |------|--------|------------|---------|-----------|
 | **1** | CORS-restriksjon | ⭐⭐⭐ | Lav | Moderat |
 | **1** | CSRF-beskyttelse | ⭐⭐⭐⭐⭐ | Lav | Høy |
-| **1** | Webhook HMAC-validering | ⭐⭐⭐⭐⭐ | Lav | Kritisk |
+| **1** | Webhook Secret Token-validering | ⭐⭐⭐⭐⭐ | Lav | Kritisk |
 | **1** | Request validation | ⭐⭐⭐⭐ | Lav | Høy |
 | **2** | Magic Link (one-time + TTL) | ⭐⭐⭐⭐⭐ | Moderat | Kritisk |
 | **2** | Project-scope authorization | ⭐⭐⭐⭐ | Moderat | Høy |
@@ -78,11 +78,11 @@ def submit_varsel():
     payload = request.get_json()
     # Ingen token-validering, ingen nonce-sjekk
 
-# ❌ KRITISK: Webhook uten signatur (linje 647-663)
+# ❌ KRITISK: Webhook uten token validering (linje 647-663)
 @app.route('/webhook/catenda', methods=['POST'])
 def webhook():
     payload = request.get_json()
-    # Aksepterer webhooks fra hvem som helst
+    # Aksepterer webhooks fra hvem som helst (mangler Secret Token validering)
 
 # ❌ HØY: Ingen input-validering
 # ❌ HØY: Ingen rate limiting
@@ -115,7 +115,7 @@ def webhook():
 
 Alle tiltak demonstreres ved å vise:
 
-- ✅ **Request headers** (Authorization, X-CSRF-Token, X-Catenda-Signature)
+- ✅ **Request headers** (Authorization, X-CSRF-Token)
 - ✅ **Response status codes** (200 OK, 401 Unauthorized, 403 Forbidden)
 - ✅ **Response headers** (Set-Cookie, X-RateLimit-Remaining)
 - ✅ **Response bodies** (error messages, audit logs)
@@ -1401,8 +1401,8 @@ Content-Type: application/json
 | **CORS** | `Access-Control-Allow-Origin` | `http://localhost:3000` (ikke `*`) |
 | **CSRF** | `X-CSRF-Token` (request) | `abc:1732320000:1a2b3c...` |
 | **CSRF** | `403` ved ugyldig token | `{"error":"CSRF validation failed"}` |
-| **Webhook HMAC** | `X-Catenda-Signature` | `sha256=...` |
-| **Webhook HMAC** | `401` ved ugyldig sig | `{"error":"Invalid signature"}` |
+| **Webhook Token** | `?token=SECRET` (URL param) | Secret Token fra Key Vault |
+| **Webhook Token** | `401` ved ugyldig token | `{"error":"Invalid token"}` |
 | **Idempotency** | `202` ved duplikat | `{"status":"already_processed"}` |
 | **Validation** | `400` ved ugyldig input | `{"field":"sakId","message":"..."}` |
 | **Magic Link** | `Set-Cookie: session=...` | `HttpOnly; Secure; SameSite=Strict` |
@@ -1538,9 +1538,9 @@ def test_input_validation(client):
 - [ ] POST med gyldig token → 200
 
 ### Webhook Security
-- [ ] Webhook uten X-Catenda-Signature → 401
-- [ ] Webhook med feil signatur → 401
-- [ ] Webhook med gyldig signatur → 200
+- [ ] Webhook uten Secret Token → 401
+- [ ] Webhook med feil token → 401
+- [ ] Webhook med gyldig token → 200
 - [ ] Duplikat webhook (samme eventId) → 202
 
 ### Input Validation
@@ -1743,7 +1743,7 @@ def verify_magic_link():
 ### Uke 1: Quick Wins
 - **Dag 1**: CORS + Request Validation
 - **Dag 2**: CSRF-beskyttelse
-- **Dag 3**: Webhook HMAC + Idempotency
+- **Dag 3**: Webhook Secret Token + Idempotency
 - **Dag 4**: Testing + dokumentasjon
 - **Dag 5**: Demo til stakeholders
 

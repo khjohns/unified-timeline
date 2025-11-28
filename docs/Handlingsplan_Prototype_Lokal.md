@@ -1771,7 +1771,7 @@ def test_rate_limiting(client):
 |----------|--------|-----|--------|
 | **Essensielt** | CSRF-beskyttelse | 2t | ✅ Klar |
 | **Essensielt** | Request validation (CSV-safe) | 1.5t | ✅ Klar |
-| **Essensielt** | Webhook HMAC | 1.5t | ✅ Klar |
+| **Essensielt** | Webhook Secret Token | 1.5t | ✅ Klar |
 | **Autentisering** | Catenda token validation | 2t | ✅ Klar |
 | **Autorisasjon** | Project-scope check | 2-3t | ✅ Klar |
 | **Autorisasjon** | Role-based field locking | 2-3t | ✅ Klar |
@@ -1783,7 +1783,7 @@ def test_rate_limiting(client):
 
 ### Hva demonstreres i Network Tab?
 
-✅ **Request headers**: `Authorization`, `X-CSRF-Token`, `X-Catenda-Signature`
+✅ **Request headers**: `Authorization`, `X-CSRF-Token`
 ✅ **Response status codes**: `200`, `400`, `401`, `403`, `429`
 ✅ **Response headers**: `X-RateLimit-Remaining`, `Access-Control-Allow-Origin`
 ✅ **Error messages**: Strukturerte JSON-feil med `error` og `detail`
@@ -1808,7 +1808,7 @@ def test_rate_limiting(client):
 
 3. **Implementer i rekkefølge**:
    - Dag 1: CSRF + Request validation
-   - Dag 2: Webhook HMAC + Token auth
+   - Dag 2: Webhook Secret Token + Token auth
    - Dag 3: Authorization + Rate limiting + Audit
 
 4. **Test med Catenda**:

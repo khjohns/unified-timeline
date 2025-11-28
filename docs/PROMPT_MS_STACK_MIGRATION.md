@@ -343,7 +343,7 @@ formatted = f"{compact[:8]}-{compact[8:12]}-{compact[12:16]}-{compact[16:20]}-{c
 - **Backend**: Lokal Flask → Azure Functions? App Service? Logic Apps?
 
 ### Sikkerhet
-- Webhook-signatur validering
+- Webhook Secret Token validering
 - Token-refresh automatikk
 - Rate limiting
 - Audit trail
