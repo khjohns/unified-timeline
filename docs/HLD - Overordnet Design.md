@@ -31,8 +31,97 @@
 ---
 
 ## 2. Scope/Prioritet
+Endringsmeldinger håndteres i dag gjennom PDF/Word-skjemaer som sendes mellom parter, dialog i Catendas chat-modul, og manuell oppfølging av status og frister. Dette medfører mangel på strukturerte, analyserbare data, vanskelig sporbarhet av historikk og presedens, risiko for oversittelse av kontraktsfestede frister, og ingen systematisk oversikt over kostnadsutvikling, eller årsaker til at det oppstår endringer i hvert enkelt prosjekt og på tvers av Oslobyggs portefølje.
 
-*[Denne seksjonen fylles ut med prosjektets omfang og prioritering]*
+Dette dokumentet beskreiver en løsning for å etablere strukturerte endringsmeldinger i byggeprosjekter. Løsningen er tenkt å fullt ut integrere med eksisterende arbeidsprosesser i prosjekthotellet, Catenda, og ikke endre bruksmønsteret av dagens prosesser for endringshåndtering i Oslobygg KF. Den bevarer Catenda som det sentrale navet og det primære samhandlingsverktøyet for alle prosjektdeltakere. Som beskrevet i OBF *Catendahåndbok Endringshåndtering* (DOKID 2128), starter all endringshåndtering med at det opprettes en "Sak" i Catenda.  I stedet for å fylle ut PDF/Word-skjema for krav om endringsordre (KOE) og endringsordre (EO), vil brukeren veiledes via en lenke i Catenda-saken til et grensesnitt for formell saksbehandling i en React-app.
+
+På denne måten vil løsningen komplementerer Catenda, og *forsterker* prosjekthotellet ved å digitalisere de manuelle, dokumentbaserte stegene for KOE og EO.
+
+En (forenklet) oversikt over den tiltenkte API/prosessflyten er gitt i diagrammet nedenfor.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant TE as Entreprenør (TE)
+    participant BH as Byggherre (BH)
+    participant Catenda as Catenda (Prosjekthotell)
+    participant PA as Azure functions (Backend)
+    participant PApp as React app (Frontend)
+    participant DV as Dataverse (Database)
+    participant CatAPI as Catenda API
+
+    rect rgb(240, 248, 255)
+    Note over TE, CatAPI: FASE 1: OPPSTART
+    TE->>Catenda: Oppretter Sak (type: KOE)
+    Catenda-->>PA: Webhook (issue.created)
+    activate PA
+    PA->>DV: Opprett sak (Hovedtabell)
+    PA->>CatAPI: POST /topics/{id}/comments<br/>(Lenke til Power App)
+    deactivate PA
+    end
+
+    rect rgb(255, 250, 240)
+    Note over TE, CatAPI: FASE 2: TE FREMMER KRAV
+    TE->>Catenda: Klikker lenke
+    TE->>PApp: Fyller ut skjema → Send
+    activate PApp
+    PApp->>DV: Oppdater sak
+    deactivate PApp
+    activate PA
+    Note right of PA: Genererer PDF
+    PA->>CatAPI: POST /v2/.../libraries/{lib}/items<br/>(Laster opp PDF nativt)
+    CatAPI-->>PA: Returnerer library-item-id
+    PA->>CatAPI: POST /topics/{id}/document_references<br/>(Knytter dok til sak via document_guid)
+    PA->>CatAPI: POST /topics/{id}/comments<br/>(Varsler BH)
+    deactivate PA
+    end
+
+    rect rgb(240, 255, 240)
+    Note over BH, CatAPI: FASE 3: BH SVARER
+    BH->>Catenda: Klikker lenke
+    BH->>PApp: Leser + fyller ut svar → Send
+    activate PApp
+    PApp->>DV: Oppdater sak
+    deactivate PApp
+    activate PA
+    Note right of PA: Genererer oppdatert PDF
+    PA->>CatAPI: POST /v2/.../items/{item}/revisions<br/>(Ny revisjon av eksisterende dok)
+    Note right of PA: Eksisterende document_reference<br/>oppdateres automatisk
+    PA->>CatAPI: POST /topics/{id}/comments<br/>(Varsler TE)
+    deactivate PA
+    end
+
+    rect rgb(255, 245, 255)
+    Note over BH, CatAPI: FASE 4: UTSTED EO
+    BH->>PApp: Trykker "Utsted EO"
+    activate PApp
+    PApp->>DV: Oppdater sak
+    deactivate PApp
+    activate PA
+    Note right of PA: Genererer EO-PDF
+    PA->>CatAPI: POST /v2/.../libraries/{lib}/items<br/>(Nytt dokument: EO)
+    CatAPI-->>PA: Returnerer library-item-id
+    PA->>CatAPI: POST /topics/{id}/document_references<br/>(Knytter EO til sak)
+    PA->>CatAPI: PUT /topics/{id}<br/>(Status: "Closed")
+    PA->>CatAPI: POST /topics/{id}/comments<br/>(Varsler: EO utstedt)
+    deactivate PA
+    end
+```
+
+Løsningen er generelt anvendelig for å samle inn og fange rike data i forbindelse med gjennomføringen av entrepriseprosjekter der Catenda er prosjekthotell. Arkitekturen er lagdelt (Routes → Services → Repositories → Dataverse), som gjør at samme tekniske fundamentet kan gjenbrukes for andre skjemabaserte prosesser i byggeprosjekter. Flere React-apper vil snakke med samme Azure-infrastruktur (Function App, Dataverse, Key Vault, Service Bus), bruke samme sikkerhetsmønstre (CSRF, validering, audit logging), samme Catenda-integrasjon og ha gjenbrukbar service-kode med Pydantic-validering. Forretningslogikken vil også være likartet.
+
+Et alternativ er å bygge KOE-løsningen i Power Pages m/Dataverse; dette er en mer "low code / no code"-løsning, men er vurdert mindre egnet da
+- En slik løsning er lite skalerbar: endringer i API, sikkerhetsmønstre osv, krever endringer i x+ Power Automate flows
+- Betaler mer for antall brukere; Azure functions + magic URL (evt. step up med epost/sms-validering) har en flat kostnad og ingen "success penalty"
+-  Power Pages med Oslo kommunes design system (Punkt) krevet Power Pages med React SPA som er nytt i 2025 i forhold til Azure Static Web Apps som har vært i produksjon siden 2021
+
+**Potensielle anvendelser (eksempler):**
+
+| Skjematype | Beskrivelse |
+|------------|-------------|
+| **Fravikssøknader fra kontraktskrav** | Entreprenør søker dispensasjon fra krav, prosjektleder godkjenner |
+| **HMS-rapportering** | Ukentlige sikkerhetsrapporter med automatisk varsel ved kritiske hendelser |
+| **Kvalitetskontroll-rapporter** | Inspeksjonsrapporter med bilder og sjekklister |
 
 ---
 
