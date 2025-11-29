@@ -756,30 +756,33 @@ def get_logger(name: str) -> logging.Logger:
 
 ```python
 # config.py
-from pydantic import Field
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     """
     Application settings loaded from environment variables.
 
-    Pydantic BaseSettings automatically loads from .env files.
+    Pydantic-settings v2 automatically loads from .env files.
+    Field names are automatically mapped to environment variables (case-insensitive).
     """
     # Catenda
-    catenda_client_id: str = Field(..., env="CATENDA_CLIENT_ID")
-    catenda_client_secret: str = Field(..., env="CATENDA_CLIENT_SECRET")
-    catenda_project_id: str = Field(..., env="CATENDA_PROJECT_ID")
+    catenda_client_id: str
+    catenda_client_secret: str
+    catenda_project_id: str
 
     # Dataverse
-    dataverse_url: str = Field(..., env="DATAVERSE_URL")
+    dataverse_url: str
 
     # Security
-    webhook_secret_path: str = Field(..., env="WEBHOOK_SECRET_PATH")
-    csrf_secret_key: str = Field(..., env="CSRF_SECRET_KEY")
+    webhook_secret_path: str
+    csrf_secret_key: str
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    # Pydantic v2 configuration (replaces class Config)
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore"  # Ignore extra env vars
+    )
 
 # Global settings instance
 settings = Settings()
@@ -1216,14 +1219,13 @@ class DataverseRepository(BaseRepository):
 **Repository Selection via miljøvariabel:**
 ```python
 # config.py
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     repository_type: str = "csv"  # "csv" for lokal utvikling, "dataverse" for produksjon
     dataverse_url: str = ""
 
-    class Config:
-        env_file = ".env"
+    model_config = SettingsConfigDict(env_file=".env")
 
 settings = Settings()
 
@@ -1939,13 +1941,25 @@ curl https://oe-koe-prod.azurewebsites.net/api/health
 ---
 
 **Vedlikeholdt av:** Claude
-**Sist oppdatert:** 2025-11-28 (v1.5)
-**Status:** Klar for implementering (Fullstendig QA-godkjent)
+**Sist oppdatert:** 2025-11-29 (v1.6)
+**Status:** Klar for implementering (QA-godkjent)
 
 **Endringslogg:**
+- **v1.6 (2025-11-29):** Ekstern QA-verifisering og korreksjoner:
+  - **FIX:** Oppdatert Settings-klasser til Pydantic v2 syntaks (Seksjon 4.4.4 og 6.10):
+    - Byttet `class Config:` til `model_config = SettingsConfigDict(...)`
+    - Lagt til `SettingsConfigDict` import fra `pydantic_settings`
+    - Fjernet deprecated `Field(..., env="...")` syntax (automatisk i pydantic-settings v2)
+  - **VERIFISERT:** Alle faktaopplysninger i dokumentet stemmer med kodebasen:
+    - app.py: 1231 linjer ✓
+    - DataManager: 169 linjer (linje 112-280) ✓
+    - KOEAutomationSystem: 278 linjer (linje 281-558) ✓
+    - 12 Flask routes ✓
+  - **Korrigert:** v1.5 påsto "class Config fikset" men endringen var ikke faktisk utført
+  - **Resultat:** Alle Pydantic v2-eksempler nå konsistente og korrekte
 - **v1.5 (2025-11-28):** Fullstendig QA med systematisk gjennomgang av alle 7 faser:
   - **KRITISK FIX:** Pydantic v2 @field_validator syntax (var @validator)
-  - **KRITISK FIX:** Pydantic v2 model_config (var class Config)
+  - **DELVIS FIX:** Pydantic v2 model_config - kun fikset i models/varsel.py, ikke i Settings-klasser
   - **KRITISK FIX:** varsel.model_dump() (var .to_dict() som ikke eksisterer)
   - **KRITISK FIX:** Oppdatert dokumentasjon til .model_dump()/.model_dump_json() (v2)
   - **KRITISK FIX:** Komplett Azure DevOps YAML pipeline med:
@@ -1955,7 +1969,7 @@ curl https://oe-koe-prod.azurewebsites.net/api/health
   - Fullstendig 7-fase QA gjennomført (19-27 timer effektivt arbeid)
   - Identifisert og fikset totalt 5 Critical issues
   - Dokumentert 10 Warnings og 6 Info items for kontinuerlig forbedring
-  - **Resultat:** Alle kritiske feil fikset, produksjonsklar
+  - **Resultat:** De fleste kritiske feil fikset (Settings-syntaks oversett)
 - **v1.4 (2025-11-28):** Første QA-pass (overfladisk):
   - **KRITISK FIX:** Pydantic v2 imports korrigert (BaseSettings fra pydantic_settings)
   - **KRITISK FIX:** Lagt til pydantic-settings>=2.0.0 i dependencies (Seksjon 6.1)
