@@ -8,6 +8,7 @@ import { useSkjemaData } from './hooks/useSkjemaData';
 import { useAutoSave } from './hooks/useAutoSave';
 import { useUrlParams } from './hooks/useUrlParams';
 import { useApiConnection } from './hooks/useApiConnection';
+import { useFormSubmission } from './hooks/useFormSubmission';
 import { showToast } from './utils/toastHelpers';
 import { focusOnField } from './utils/focusHelpers';
 import { logger } from './utils/logger';
@@ -54,7 +55,6 @@ const App: React.FC = () => {
 
     // Loading and error states
     const [isLoading, setIsLoading] = useState(!!magicToken); // Start loading if token is present
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
 
     // API connection state (extracted to custom hook)
@@ -82,6 +82,30 @@ const App: React.FC = () => {
         debounceMs: 1500,
         onSave: () => {
             showToast(setToastMessage, 'Utkast lagret ✓');
+        },
+    });
+
+    // Form submission hook (handles validation, PDF generation, API submission)
+    const submission = useFormSubmission({
+        formData,
+        setFormData,
+        modus,
+        sakId: internalSakId,
+        topicGuid,
+        activeTab,
+        errors,
+        setErrors,
+        setToastMessage,
+        isApiConnected,
+        onPreview: (blob, type) => {
+            setPdfPreviewModal({
+                isOpen: true,
+                type,
+                pdfBlob: blob,
+            });
+        },
+        onSuccess: () => {
+            setPdfPreviewModal({ isOpen: false, type: 'koe', pdfBlob: null });
         },
     });
 
@@ -260,30 +284,6 @@ const App: React.FC = () => {
         }
     };
 
-    const validateCurrentTab = useCallback((): boolean => {
-        // Use validationService for business logic (pure function, easily testable)
-        const validationResult = validationService.validateTab(formData, activeTab);
-
-        if (!validationResult.isValid) {
-            // UI logic: Set errors, show toast, focus on field
-            setErrors(validationResult.errors);
-
-            // Vis den første feilmeldingen i toasten for å gi spesifikk feedback
-            const firstErrorMessage = Object.values(validationResult.errors)[0];
-            showToast(setToastMessage, firstErrorMessage);
-
-            // Fokuser på det første ugyldige feltet
-            if (validationResult.firstInvalidFieldId) {
-                focusOnField(validationResult.firstInvalidFieldId);
-            }
-
-            return false;
-        }
-
-        setErrors({});
-        return true;
-    }, [activeTab, formData, setErrors, setToastMessage]);
-
     const handleDownloadPdf = async () => {
         try {
             await generatePdfReact(formData);
@@ -295,103 +295,9 @@ const App: React.FC = () => {
         }
     };
 
-    // Show PDF preview (no submission yet)
-    const handleSubmitToApi = async () => {
-        if (!validateCurrentTab()) {
-            return;
-        }
-
-        try {
-            // Generate PDF blob for preview
-            const { blob } = await generatePdfBlob(formData);
-
-            // Show PDF preview modal
-            setPdfPreviewModal({
-                isOpen: true,
-                type: modus || 'koe',
-                pdfBlob: blob
-            });
-        } catch (error) {
-            logger.error('PDF generation error:', error);
-            const errorMessage = error instanceof Error ? error.message : 'Ukjent feil';
-            showToast(setToastMessage, `Feil ved generering av PDF: ${errorMessage}`);
-        }
-    };
-
-    // Confirm and submit to API (called from PDF preview modal)
-    const handleConfirmSubmit = async () => {
-        setIsSubmitting(true);
-        setApiError(null);
-
-        try {
-            let response;
-
-            // Oppdater status og modus i formData før submit
-            // Backend vil automatisk synkronisere disse verdiene til CSV via save_form_data
-            const updatedFormData = { ...formData };
-
-            // Use submissionService to determine status/modus transitions (business logic extracted)
-            const transition = submissionService.getTransition(modus, formData);
-            updatedFormData.sak.status = transition.nextStatus;
-            updatedFormData.sak.modus = transition.nextModus;
-            setFormData(updatedFormData);
-
-            // Call appropriate API endpoint based on modus
-            if (modus === 'varsel') {
-                response = await api.submitVarsel(updatedFormData, topicGuid || undefined, internalSakId || undefined);
-            } else if (modus === 'svar' && internalSakId) {
-                response = await api.submitSvar(updatedFormData, internalSakId, topicGuid || undefined);
-            } else if (modus === 'revidering' && internalSakId) {
-                response = await api.submitRevidering(updatedFormData, internalSakId);
-            } else {
-                // KOE submission (claim)
-                response = await api.submitKoe(updatedFormData, internalSakId || undefined, topicGuid || undefined);
-            }
-
-            if (response.success && response.data) {
-                // Generate PDF blob for upload (without auto-download)
-                const { blob, filename } = await generatePdfBlob(updatedFormData);
-
-                // Upload PDF to backend for Catenda integration
-                const effectiveSakId = response.data.sakId || internalSakId;
-                if (effectiveSakId && isApiConnected) {
-                    const pdfResponse = await api.uploadPdf(
-                        effectiveSakId,
-                        blob,
-                        filename,
-                        modus || 'koe',
-                        topicGuid || undefined
-                    );
-                    if (pdfResponse.success) {
-                        logger.log('PDF uploaded successfully');
-                    } else {
-                        logger.warn('PDF upload failed:', pdfResponse.error);
-                    }
-                }
-
-                // Clear localStorage after successful submission
-                localStorage.removeItem('koe_v5_0_draft');
-
-                // Close preview modal and show success message
-                setPdfPreviewModal({ isOpen: false, type: 'koe', pdfBlob: null });
-                showToast(setToastMessage, response.data.message || 'Skjema sendt til server');
-            } else {
-                setApiError(response.error || 'Kunne ikke sende skjema');
-                showToast(setToastMessage, `Feil: ${response.error}`);
-            }
-        } catch (error) {
-            logger.error('Submit error:', error);
-            const errorMessage = error instanceof Error ? error.message : 'Ukjent feil';
-            setApiError(errorMessage);
-            showToast(setToastMessage, `Feil ved innsending: ${errorMessage}`);
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
     // Get submit button text based on modus
     const getSubmitButtonText = () => {
-        if (isSubmitting) {
+        if (submission.isSubmitting) {
             return (
                 <span className="flex flex-col">
                     <span>Sender...</span>
@@ -594,10 +500,10 @@ const App: React.FC = () => {
                         <PktButton
                             skin="primary"
                             size="small"
-                            onClick={handleSubmitToApi}
+                            onClick={submission.handleSubmit}
                             iconName="arrow-right"
                             variant="icon-right"
-                            disabled={isSubmitting}
+                            disabled={submission.isSubmitting}
                         >
                             {getSubmitButtonText()}
                         </PktButton>
@@ -732,10 +638,10 @@ const App: React.FC = () => {
                     <PDFPreviewModal
                         isOpen={pdfPreviewModal.isOpen}
                         onClose={() => setPdfPreviewModal({ ...pdfPreviewModal, isOpen: false })}
-                        onConfirm={handleConfirmSubmit}
+                        onConfirm={submission.handleConfirm}
                         pdfBlob={pdfPreviewModal.pdfBlob}
                         type={pdfPreviewModal.type}
-                        isSubmitting={isSubmitting}
+                        isSubmitting={submission.isSubmitting}
                     />
                 </Suspense>
             )}

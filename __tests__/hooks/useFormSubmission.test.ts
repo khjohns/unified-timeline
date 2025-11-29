@@ -364,9 +364,9 @@ describe('useFormSubmission', () => {
 
       await waitFor(() => {
         expect(result.current.isSubmitting).toBe(false);
+        expect(result.current.apiError).toBe('API error');
       });
 
-      expect(result.current.apiError).toBe('API error');
       expect(showToast).toHaveBeenCalledWith(mockSetToastMessage, 'Feil: API error');
       expect(mockOnSuccess).not.toHaveBeenCalled();
     });
