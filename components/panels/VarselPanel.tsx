@@ -82,16 +82,16 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
         // Lagre validert navn til formData for bruk ved submit
         handleChange('for_entreprenor', validatedName);
 
-        showToast(setToastMessage, `✅ Bruker validert: ${validatedName}`);
+        showToast(setToastMessage, `Bruker validert: ${validatedName}`);
       } else {
         setSignerName('');
         setValidationError(response.error || 'Brukeren er ikke medlem i Catenda-prosjektet');
-        showToast(setToastMessage, `❌ ${response.error}`);
+        showToast(setToastMessage, response.error || 'Brukeren er ikke medlem i Catenda-prosjektet');
       }
     } catch (error) {
       setSignerName('');
       setValidationError('Feil ved validering');
-      showToast(setToastMessage, '❌ Feil ved validering av bruker');
+      showToast(setToastMessage, 'Feil ved validering av bruker');
     } finally {
       setIsValidating(false);
     }
