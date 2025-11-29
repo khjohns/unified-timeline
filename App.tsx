@@ -1,21 +1,18 @@
-import React, { useState, useEffect, lazy, Suspense, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { FormDataModel, Role, BhSvar, Koe } from './types';
 import { TABS, INITIAL_FORM_DATA, DEMO_DATA } from './constants';
 import Toast from './components/ui/Toast';
-import { generatePdfReact, generatePdfBlob } from './utils/pdfGeneratorReact';
+import { generatePdfReact } from './utils/pdfGeneratorReact';
 import { PktHeader } from '@oslokommune/punkt-react';
 import { useSkjemaData } from './hooks/useSkjemaData';
 import { useAutoSave } from './hooks/useAutoSave';
 import { useUrlParams } from './hooks/useUrlParams';
 import { useApiConnection } from './hooks/useApiConnection';
+import { useCaseLoader } from './hooks/useCaseLoader';
 import { useFormSubmission } from './hooks/useFormSubmission';
 import { showToast } from './utils/toastHelpers';
-import { focusOnField } from './utils/focusHelpers';
 import { logger } from './utils/logger';
-import { api, Modus } from './services/api';
-import { SAK_STATUS } from './utils/statusHelpers';
-import { validationService } from './services/validationService';
-import { submissionService } from './services/submissionService';
+import { Modus } from './services/api';
 import { BottomBar } from './components/layout/BottomBar';
 import { TabNavigation } from './components/layout/TabNavigation';
 
@@ -37,27 +34,10 @@ const PanelLoader: React.FC = () => (
 );
 
 const App: React.FC = () => {
-    const [activeTab, setActiveTab] = useState(0);
     const [toastMessage, setToastMessage] = useState('');
 
     // URL parameters (extracted to custom hook)
     const { magicToken, sakId: directSakId, modus, topicGuid: initialTopicGuid, isFromMagicLink, clearMagicToken } = useUrlParams();
-
-    // Internal state for the resolved sakId and topicGuid
-    // Check sessionStorage first to survive HMR reloads (but only if we're still in magic link context)
-    const savedSakId = sessionStorage.getItem('currentSakId');
-    const [internalSakId, setInternalSakId] = useState<string | null>(() => {
-        // Only use savedSakId if we're still in magic link context
-        if (isFromMagicLink && savedSakId) {
-            return savedSakId;
-        }
-        return directSakId;
-    });
-    const [topicGuid, setTopicGuid] = useState<string | null>(initialTopicGuid);
-
-    // Loading and error states
-    const [isLoading, setIsLoading] = useState(!!magicToken); // Start loading if token is present
-    const [apiError, setApiError] = useState<string | null>(null);
 
     // API connection state (extracted to custom hook)
     const { isApiConnected } = useApiConnection();
@@ -87,14 +67,32 @@ const App: React.FC = () => {
         },
     });
 
+    // Case loader hook (handles magic token verification, API loading, role/tab management)
+    const caseLoader = useCaseLoader({
+        magicToken,
+        sakId: directSakId,
+        modus,
+        topicGuid: initialTopicGuid,
+        isFromMagicLink,
+        isApiConnected,
+        clearMagicToken,
+        loadedData,
+        setToastMessage,
+    });
+
+    // Sync loaded data from caseLoader into formData
+    useEffect(() => {
+        setFormData(caseLoader.formData);
+    }, [caseLoader.formData, setFormData]);
+
     // Form submission hook (handles validation, PDF generation, API submission)
     const submission = useFormSubmission({
         formData,
         setFormData,
         modus,
-        sakId: internalSakId,
-        topicGuid,
-        activeTab,
+        sakId: caseLoader.internalSakId,
+        topicGuid: caseLoader.topicGuid,
+        activeTab: caseLoader.activeTab,
         errors,
         setErrors,
         setToastMessage,
@@ -110,153 +108,6 @@ const App: React.FC = () => {
             setPdfPreviewModal({ isOpen: false, type: 'koe', pdfBlob: null });
         },
     });
-
-    // Verify magic token if present
-    useEffect(() => {
-        const verifyToken = async () => {
-            if (!magicToken || isApiConnected === false) return;
-
-            setIsLoading(true);
-            setApiError(null);
-
-            // Clear localStorage when using magic link to prevent old data from interfering
-            localStorage.removeItem('koe_v5_0_draft');
-
-            const response = await api.verifyMagicToken(magicToken);
-
-            if (response.success && response.data?.sakId) {
-                const sakId = response.data.sakId;
-                setInternalSakId(sakId);
-                // Store sakId in sessionStorage to survive HMR reloads
-                sessionStorage.setItem('currentSakId', sakId);
-                // Clean the URL, remove the token
-                clearMagicToken();
-            } else {
-                setApiError(response.error || 'Lenken er ugyldig eller utløpt.');
-                setIsLoading(false);
-            }
-        };
-
-        if (magicToken && isApiConnected) {
-            verifyToken();
-        }
-    }, [magicToken, isApiConnected, clearMagicToken]);
-
-
-    // Load data from API when an internalSakId is available
-    useEffect(() => {
-        const loadFromApi = async () => {
-            if (!internalSakId) return;
-
-            // Only start loading if not already loading from token verification
-            if (!magicToken) setIsLoading(true);
-            setApiError(null);
-
-            try {
-                const response = await api.getCase(internalSakId, modus || undefined);
-
-                if (response.success && response.data) {
-                    // Ensure rolle is set to 'TE' if missing (defensive programming)
-                    const loadedFormData = response.data.formData;
-                    if (!loadedFormData.rolle) {
-                        loadedFormData.rolle = 'TE';
-                    }
-
-                    // Set rolle based on modus if modus is provided
-                    if (modus) {
-                        const roleMap: Record<Modus, Role> = {
-                            'varsel': 'TE',
-                            'koe': 'TE',
-                            'svar': 'BH',
-                            'revidering': 'TE',
-                        };
-                        loadedFormData.rolle = roleMap[modus];
-                    }
-
-                    // Mark magic link as consumed in sessionStorage
-                    // We keep it to survive Vite HMR reloads during development
-                    sessionStorage.setItem('isFromMagicLink', 'consumed');
-
-                    setFormData(loadedFormData);
-                    setTopicGuid(response.data.topicGuid); // Persist topicGuid in state
-
-                    // If modus is not in URL (e.g. from magic link), set it from loaded data
-                    const loadedModus = loadedFormData.sak?.modus as Modus | undefined;
-                    if (!modus && loadedModus) {
-                        // Add modus to URL so submit logic and role mapping work correctly
-                        searchParams.set('modus', loadedModus);
-                        setSearchParams(searchParams, { replace: true });
-                    }
-
-                    // Set initial tab based on modus
-                    if (modus === 'varsel') {
-                        setActiveTab(0);
-                    } else if (modus === 'koe' || modus === 'revidering') {
-                        setActiveTab(1);
-                    } else if (modus === 'svar') {
-                        setActiveTab(2);
-                    }
-
-                    showToast(setToastMessage, `Sak ${internalSakId} lastet fra server`);
-                } else {
-                    setApiError(response.error || 'Kunne ikke laste sak');
-                    // Only use localStorage as fallback if we're not coming from a magic link
-                    if (loadedData && !isFromMagicLink) {
-                        setFormData(loadedData);
-                        showToast(setToastMessage, 'API ikke tilgjengelig - bruker lokal lagring');
-                    }
-                }
-            } catch (error) {
-                logger.error('Failed to load from API:', error);
-                setApiError('Nettverksfeil ved lasting av sak');
-                // Only use localStorage as fallback if we're not coming from a magic link
-                if (loadedData && !isFromMagicLink) {
-                    setFormData(loadedData);
-                }
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        if (internalSakId && isApiConnected === true) {
-            loadFromApi();
-        } else if (!internalSakId && !isFromMagicLink && loadedData && isApiConnected !== null) {
-            // No sakId and not using magic link - load from localStorage
-            setFormData(loadedData);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [internalSakId, isApiConnected]);
-
-    // Set role and tab when modus changes (fallback for when data isn't loaded from API)
-    useEffect(() => {
-        // Skip if loading, if we have a sakId (role is set during API load), or if we came from magic link (waiting for data load)
-        if (isLoading || internalSakId || isFromMagicLink) {
-            return;
-        }
-
-        if (modus) {
-            const roleMap: Record<Modus, Role> = {
-                'varsel': 'TE',
-                'koe': 'TE',
-                'svar': 'BH',
-                'revidering': 'TE',
-            };
-            const newRole = roleMap[modus];
-            if (newRole && formData.rolle !== newRole) {
-                setFormData(prev => ({ ...prev, rolle: newRole }));
-            }
-
-            // Set initial tab based on modus
-            if (modus === 'varsel') {
-                setActiveTab(0);
-            } else if (modus === 'koe' || modus === 'revidering') {
-                setActiveTab(1);
-            } else if (modus === 'svar') {
-                setActiveTab(2);
-            }
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [modus]);
 
     useEffect(() => {
         if (formData.rolle === 'BH') {
@@ -368,7 +219,7 @@ const App: React.FC = () => {
             formData,
             setFormData: handleInputChange,
             errors,
-            setActiveTab,
+            setActiveTab: caseLoader.setActiveTab,
             setToastMessage,
             addBhSvarRevisjon,
             addKoeRevisjon,
@@ -377,7 +228,7 @@ const App: React.FC = () => {
         return (
             <Suspense fallback={<PanelLoader />}>
                 {(() => {
-                    switch(activeTab) {
+                    switch(caseLoader.activeTab) {
                         case 0: return <VarselPanel {...panelProps} disabled={isTeDisabled} />;
                         case 1: return <KravKoePanel {...panelProps} disabled={isTeDisabled} />;
                         case 2: return <BhSvarPanel {...panelProps} />;
@@ -390,12 +241,12 @@ const App: React.FC = () => {
     };
 
     // Render loading state
-    if (isLoading) {
+    if (caseLoader.isLoading) {
         return (
             <div className="bg-body-bg min-h-screen text-ink font-sans flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pri mx-auto mb-4"></div>
-                    <p className="text-ink-dim">Laster sak {internalSakId || '...'}...</p>
+                    <p className="text-ink-dim">Laster sak {caseLoader.internalSakId || '...'}...</p>
                 </div>
             </div>
         );
@@ -432,7 +283,7 @@ const App: React.FC = () => {
 
             <main className="pt-24 pb-8 sm:pb-12">
                 {/* API Error Banner */}
-                {apiError && (
+                {caseLoader.apiError && (
                     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
                         <div className="bg-red-50 border border-red-200 rounded-md p-4">
                             <div className="flex">
@@ -442,18 +293,7 @@ const App: React.FC = () => {
                                     </svg>
                                 </div>
                                 <div className="ml-3">
-                                    <p className="text-sm text-red-700">{apiError}</p>
-                                </div>
-                                <div className="ml-auto pl-3">
-                                    <button
-                                        onClick={() => setApiError(null)}
-                                        className="text-red-400 hover:text-red-500"
-                                    >
-                                        <span className="sr-only">Lukk</span>
-                                        <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                                        </svg>
-                                    </button>
+                                    <p className="text-sm text-red-700">{caseLoader.apiError}</p>
                                 </div>
                             </div>
                         </div>
@@ -461,13 +301,13 @@ const App: React.FC = () => {
                 )}
 
                 {/* Mode and SakId Info Banner */}
-                {(internalSakId || modus) && (
+                {(caseLoader.internalSakId || modus) && (
                     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
                         <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
                             <div className="flex items-center gap-4 text-sm">
-                                {internalSakId && (
+                                {caseLoader.internalSakId && (
                                     <span className="text-blue-700">
-                                        <strong>Sak:</strong> {internalSakId}
+                                        <strong>Sak:</strong> {caseLoader.internalSakId}
                                     </span>
                                 )}
                                 {modus && (
@@ -496,8 +336,8 @@ const App: React.FC = () => {
                     <div className="lg:col-span-2 space-y-8">
                         <TabNavigation
                             tabs={TABS}
-                            activeTab={activeTab}
-                            onTabChange={setActiveTab}
+                            activeTab={caseLoader.activeTab}
+                            onTabChange={caseLoader.setActiveTab}
                         />
                         {renderPanel()}
                         <BottomBar
