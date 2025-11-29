@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { FormDataModel } from '../../types';
 import { DateField, SelectField, TextareaField, InputField } from '../ui/Field';
 import FieldsetCard from '../ui/FieldsetCard';
@@ -6,10 +6,10 @@ import PanelLayout from '../ui/PanelLayout';
 import { HOVEDKATEGORI_OPTIONS, UNDERKATEGORI_MAP } from '../../constants';
 import { PktButton, PktAlert, PktCheckbox, PktRadioButton } from '@oslokommune/punkt-react';
 import { useFileUpload } from '../../hooks/useFileUpload';
+import { useEmailValidation } from '../../hooks/useEmailValidation';
 import FileUploadField from '../ui/FileUploadField';
 import { showToast } from '../../utils/toastHelpers';
 import { focusOnField } from '../../utils/focusHelpers';
-import { api } from '../../services/api';
 
 interface VarselPanelProps {
   formData: FormDataModel;
@@ -37,88 +37,20 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
   const [erTidligereVarslet, setErTidligereVarslet] = useState<'nei' | 'ja'>('nei');
   const [varselMetoder, setVarselMetoder] = useState<string[]>([]);
 
-  // State for e-post validering
-  const [signerEmail, setSignerEmail] = useState('');
-  const [signerName, setSignerName] = useState('');
-  const [isValidating, setIsValidating] = useState(false);
-  const [validationError, setValidationError] = useState('');
-  const [validationTimer, setValidationTimer] = useState<NodeJS.Timeout | null>(null);
-
-  // Initialize signer name from formData if it exists
-  useEffect(() => {
-    if (varsel?.for_entreprenor) {
-      setSignerName(varsel.for_entreprenor);
-    }
-  }, [varsel?.for_entreprenor]);
-
-  // Cleanup validation timer on unmount
-  useEffect(() => {
-    return () => {
-      if (validationTimer) {
-        clearTimeout(validationTimer);
-      }
-    };
-  }, [validationTimer]);
-
-  // Valider e-post mot Catenda API
-  const handleEmailValidation = async (email: string) => {
-    if (!email || !email.includes('@')) {
-      setValidationError('');
-      setSignerName('');
-      return;
-    }
-
-    setIsValidating(true);
-    setValidationError('');
-
-    try {
-      const response = await api.validateUser(sak.sak_id_display || '', email);
-
-      if (response.success && response.data) {
-        const validatedName = response.data.name;
-        setSignerName(validatedName);
-        setValidationError('');
-
-        // Lagre validert navn til formData for bruk ved submit
-        handleChange('for_entreprenor', validatedName);
-
-        showToast(setToastMessage, `Bruker validert: ${validatedName}`);
-      } else {
-        setSignerName('');
-        setValidationError(response.error || 'Brukeren er ikke medlem i Catenda-prosjektet');
-        showToast(setToastMessage, response.error || 'Brukeren er ikke medlem i Catenda-prosjektet');
-      }
-    } catch (error) {
-      setSignerName('');
-      setValidationError('Feil ved validering');
-      showToast(setToastMessage, 'Feil ved validering av bruker');
-    } finally {
-      setIsValidating(false);
-    }
-  };
-
-  // Debounced validering for onChange (venter 800ms etter siste tastetrykk)
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const email = e.target.value;
-    setSignerEmail(email);
-
-    // Clear existing timer
-    if (validationTimer) {
-      clearTimeout(validationTimer);
-    }
-
-    // Only start validation timer if email contains '@'
-    if (email && email.includes('@')) {
-      const timer = setTimeout(() => {
-        handleEmailValidation(email);
-      }, 800); // 800ms debounce
-      setValidationTimer(timer);
-    } else {
-      // Clear validation state if email is incomplete
-      setSignerName('');
-      setValidationError('');
-    }
-  };
+  // Email validation hook (replaces duplicated validation logic)
+  const {
+    signerEmail,
+    signerName,
+    isValidating,
+    validationError,
+    handleEmailChange,
+    handleEmailValidation
+  } = useEmailValidation({
+    sakId: sak.sak_id_display || '',
+    onValidated: (name) => handleChange('for_entreprenor', name),
+    setToastMessage,
+    initialName: varsel?.for_entreprenor || ''
+  });
 
   // File upload hook
   const { fileInputRef, uploadedFiles, handleFileUploadClick, handleFileChange, handleRemoveFile } =

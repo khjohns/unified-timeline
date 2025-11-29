@@ -14,6 +14,7 @@ import { focusOnField } from './utils/focusHelpers';
 import { logger } from './utils/logger';
 import { api, Modus } from './services/api';
 import { SAK_STATUS } from './utils/statusHelpers';
+import { getRoleFromModus, getTabIndexFromModus } from './utils/modusHelpers';
 import { validationService } from './services/validationService';
 import { submissionService } from './services/submissionService';
 
@@ -174,13 +175,7 @@ const App: React.FC = () => {
 
                     // Set rolle based on modus if modus is provided
                     if (modus) {
-                        const roleMap: Record<Modus, Role> = {
-                            'varsel': 'TE',
-                            'koe': 'TE',
-                            'svar': 'BH',
-                            'revidering': 'TE',
-                        };
-                        loadedFormData.rolle = roleMap[modus];
+                        loadedFormData.rolle = getRoleFromModus(modus);
                     }
 
                     // Mark magic link as consumed in sessionStorage
@@ -199,12 +194,8 @@ const App: React.FC = () => {
                     }
 
                     // Set initial tab based on modus
-                    if (modus === 'varsel') {
-                        setActiveTab(0);
-                    } else if (modus === 'koe' || modus === 'revidering') {
-                        setActiveTab(1);
-                    } else if (modus === 'svar') {
-                        setActiveTab(2);
+                    if (modus) {
+                        setActiveTab(getTabIndexFromModus(modus));
                     }
 
                     showToast(setToastMessage, `Sak ${internalSakId} lastet fra server`);
@@ -245,25 +236,13 @@ const App: React.FC = () => {
         }
 
         if (modus) {
-            const roleMap: Record<Modus, Role> = {
-                'varsel': 'TE',
-                'koe': 'TE',
-                'svar': 'BH',
-                'revidering': 'TE',
-            };
-            const newRole = roleMap[modus];
+            const newRole = getRoleFromModus(modus);
             if (newRole && formData.rolle !== newRole) {
                 setFormData(prev => ({ ...prev, rolle: newRole }));
             }
 
             // Set initial tab based on modus
-            if (modus === 'varsel') {
-                setActiveTab(0);
-            } else if (modus === 'koe' || modus === 'revidering') {
-                setActiveTab(1);
-            } else if (modus === 'svar') {
-                setActiveTab(2);
-            }
+            setActiveTab(getTabIndexFromModus(modus));
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [modus]);

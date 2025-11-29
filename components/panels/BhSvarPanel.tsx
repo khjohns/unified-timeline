@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { FormDataModel } from '../../types';
 import { InputField, SelectField, TextareaField, CheckboxField, DateField } from '../ui/Field';
 import FieldsetCard from '../ui/FieldsetCard';
@@ -7,10 +7,10 @@ import { PktButton, PktTag, PktMessagebox } from '@oslokommune/punkt-react';
 import { BH_VEDERLAGSSVAR_OPTIONS, BH_FRISTSVAR_OPTIONS } from '../../constants';
 import { getSvarStatusLabel, getSvarStatusSkin } from '../../utils/statusHelpers';
 import { useFileUpload } from '../../hooks/useFileUpload';
+import { useEmailValidation } from '../../hooks/useEmailValidation';
 import FileUploadField from '../ui/FileUploadField';
 import { showToast } from '../../utils/toastHelpers';
 import { focusOnField } from '../../utils/focusHelpers';
-import { api } from '../../services/api';
 
 interface BhSvarPanelProps {
   formData: FormDataModel;
@@ -33,89 +33,20 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
   const sisteSvarIndex = bh_svar_revisjoner.length - 1;
   const sisteKravIndex = koe_revisjoner.length - 1;
 
-  // State for e-post validering
-  const [signerEmail, setSignerEmail] = useState('');
-  const [signerName, setSignerName] = useState('');
-  const [isValidating, setIsValidating] = useState(false);
-  const [validationError, setValidationError] = useState('');
-  const [validationTimer, setValidationTimer] = useState<NodeJS.Timeout | null>(null);
-
-  // Initialize signer name from formData if it exists
-  useEffect(() => {
-    const sisteSvar = bh_svar_revisjoner[sisteSvarIndex];
-    if (sisteSvar?.sign?.for_byggherre) {
-      setSignerName(sisteSvar.sign.for_byggherre);
-    }
-  }, [bh_svar_revisjoner, sisteSvarIndex]);
-
-  // Cleanup validation timer on unmount
-  useEffect(() => {
-    return () => {
-      if (validationTimer) {
-        clearTimeout(validationTimer);
-      }
-    };
-  }, [validationTimer]);
-
-  // Valider e-post mot Catenda API
-  const handleEmailValidation = async (email: string) => {
-    if (!email || !email.includes('@')) {
-      setValidationError('');
-      setSignerName('');
-      return;
-    }
-
-    setIsValidating(true);
-    setValidationError('');
-
-    try {
-      const response = await api.validateUser(sak.sak_id_display || '', email);
-
-      if (response.success && response.data) {
-        const validatedName = response.data.name;
-        setSignerName(validatedName);
-        setValidationError('');
-
-        // Lagre validert navn til formData for bruk ved submit
-        setFormData('bh_svar_revisjoner', 'sign.for_byggherre', validatedName, sisteSvarIndex);
-
-        showToast(setToastMessage, `Bruker validert: ${validatedName}`);
-      } else {
-        setSignerName('');
-        setValidationError(response.error || 'Brukeren er ikke medlem i Catenda-prosjektet');
-        showToast(setToastMessage, response.error || 'Brukeren er ikke medlem i Catenda-prosjektet');
-      }
-    } catch (error) {
-      setSignerName('');
-      setValidationError('Feil ved validering');
-      showToast(setToastMessage, 'Feil ved validering av bruker');
-    } finally {
-      setIsValidating(false);
-    }
-  };
-
-  // Debounced validering for onChange (venter 800ms etter siste tastetrykk)
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const email = e.target.value;
-    setSignerEmail(email);
-
-    // Clear existing timer
-    if (validationTimer) {
-      clearTimeout(validationTimer);
-    }
-
-    // Only start validation timer if email contains '@'
-    if (email && email.includes('@')) {
-      const timer = setTimeout(() => {
-        handleEmailValidation(email);
-      }, 800); // 800ms debounce
-      setValidationTimer(timer);
-    } else {
-      // Clear validation state if email is incomplete
-      setSignerName('');
-      setValidationError('');
-    }
-  };
+  // Email validation hook (replaces duplicated validation logic)
+  const {
+    signerEmail,
+    signerName,
+    isValidating,
+    validationError,
+    handleEmailChange,
+    handleEmailValidation
+  } = useEmailValidation({
+    sakId: sak.sak_id_display || '',
+    onValidated: (name) => setFormData('bh_svar_revisjoner', 'sign.for_byggherre', name, sisteSvarIndex),
+    setToastMessage,
+    initialName: bh_svar_revisjoner[sisteSvarIndex]?.sign?.for_byggherre || ''
+  });
 
   // File upload hook
   const { fileInputRef, uploadedFiles, handleFileUploadClick, handleFileChange, handleRemoveFile } =
