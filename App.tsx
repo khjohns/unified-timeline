@@ -1,5 +1,4 @@
 import React, { useState, useEffect, lazy, Suspense, useCallback, useMemo, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { FormDataModel, Role, BhSvar, Koe } from './types';
 import { TABS, INITIAL_FORM_DATA, DEMO_DATA } from './constants';
 import Toast from './components/ui/Toast';
@@ -7,11 +6,14 @@ import { generatePdfReact, generatePdfBlob } from './utils/pdfGeneratorReact';
 import { PktHeader, PktButton, PktTabs, PktTabItem } from '@oslokommune/punkt-react';
 import { useSkjemaData } from './hooks/useSkjemaData';
 import { useAutoSave } from './hooks/useAutoSave';
+import { useUrlParams } from './hooks/useUrlParams';
 import { showToast } from './utils/toastHelpers';
 import { focusOnField } from './utils/focusHelpers';
 import { logger } from './utils/logger';
 import { api, Modus } from './services/api';
 import { SAK_STATUS } from './utils/statusHelpers';
+import { validationService } from './services/validationService';
+import { submissionService } from './services/submissionService';
 
 // Lazy load panels for better performance
 const VarselPanel = lazy(() => import('./components/panels/VarselPanel'));
@@ -34,33 +36,15 @@ const App: React.FC = () => {
     const [activeTab, setActiveTab] = useState(0);
     const [toastMessage, setToastMessage] = useState('');
 
-    // URL parameters
-    const [searchParams, setSearchParams] = useSearchParams();
-    const magicToken = searchParams.get('magicToken');
-    const directSakId = searchParams.get('sakId'); // For direct access or older links
-    const modus = searchParams.get('modus') as Modus | null;
-    const initialTopicGuid = searchParams.get('topicGuid'); // From Catenda webhook
-
-    // Track if we came from a magic link using sessionStorage to persist across HMR reloads
-    // Check sessionStorage first (both 'true' and 'consumed' count), then check if magicToken is in URL
-    const sessionValue = sessionStorage.getItem('isFromMagicLink');
-
-    const isFromMagicLinkRef = useRef(
-        sessionValue === 'true' || sessionValue === 'consumed' || !!magicToken
-    );
-
-    // Store in sessionStorage if we have a magicToken
-    if (magicToken && sessionValue !== 'true' && sessionValue !== 'consumed') {
-        sessionStorage.setItem('isFromMagicLink', 'true');
-        isFromMagicLinkRef.current = true;
-    }
+    // URL parameters (extracted to custom hook)
+    const { magicToken, sakId: directSakId, modus, topicGuid: initialTopicGuid, isFromMagicLink, clearMagicToken } = useUrlParams();
 
     // Internal state for the resolved sakId and topicGuid
     // Check sessionStorage first to survive HMR reloads (but only if we're still in magic link context)
     const savedSakId = sessionStorage.getItem('currentSakId');
     const [internalSakId, setInternalSakId] = useState<string | null>(() => {
         // Only use savedSakId if we're still in magic link context
-        if (isFromMagicLinkRef.current && savedSakId) {
+        if (isFromMagicLink && savedSakId) {
             return savedSakId;
         }
         return directSakId;
@@ -129,8 +113,7 @@ const App: React.FC = () => {
                 // Store sakId in sessionStorage to survive HMR reloads
                 sessionStorage.setItem('currentSakId', sakId);
                 // Clean the URL, remove the token
-                searchParams.delete('magicToken');
-                setSearchParams(searchParams, { replace: true });
+                clearMagicToken();
             } else {
                 setApiError(response.error || 'Lenken er ugyldig eller utløpt.');
                 setIsLoading(false);
@@ -140,7 +123,7 @@ const App: React.FC = () => {
         if (magicToken && isApiConnected) {
             verifyToken();
         }
-    }, [magicToken, isApiConnected, setSearchParams, searchParams]);
+    }, [magicToken, isApiConnected, clearMagicToken]);
 
 
     // Load data from API when an internalSakId is available
@@ -201,7 +184,7 @@ const App: React.FC = () => {
                 } else {
                     setApiError(response.error || 'Kunne ikke laste sak');
                     // Only use localStorage as fallback if we're not coming from a magic link
-                    if (loadedData && !isFromMagicLinkRef.current) {
+                    if (loadedData && !isFromMagicLink) {
                         setFormData(loadedData);
                         showToast(setToastMessage, 'API ikke tilgjengelig - bruker lokal lagring');
                     }
@@ -210,7 +193,7 @@ const App: React.FC = () => {
                 logger.error('Failed to load from API:', error);
                 setApiError('Nettverksfeil ved lasting av sak');
                 // Only use localStorage as fallback if we're not coming from a magic link
-                if (loadedData && !isFromMagicLinkRef.current) {
+                if (loadedData && !isFromMagicLink) {
                     setFormData(loadedData);
                 }
             } finally {
@@ -220,7 +203,7 @@ const App: React.FC = () => {
 
         if (internalSakId && isApiConnected === true) {
             loadFromApi();
-        } else if (!internalSakId && !isFromMagicLinkRef.current && loadedData && isApiConnected !== null) {
+        } else if (!internalSakId && !isFromMagicLink && loadedData && isApiConnected !== null) {
             // No sakId and not using magic link - load from localStorage
             setFormData(loadedData);
         }
@@ -230,7 +213,7 @@ const App: React.FC = () => {
     // Set role and tab when modus changes (fallback for when data isn't loaded from API)
     useEffect(() => {
         // Skip if loading, if we have a sakId (role is set during API load), or if we came from magic link (waiting for data load)
-        if (isLoading || internalSakId || isFromMagicLinkRef.current) {
+        if (isLoading || internalSakId || isFromMagicLink) {
             return;
         }
 
@@ -287,90 +270,20 @@ const App: React.FC = () => {
     };
 
     const validateCurrentTab = useCallback((): boolean => {
-        const newErrors: Record<string, string> = {};
-        let firstInvalidFieldId: string | null = null;
+        // Use validationService for business logic (pure function, easily testable)
+        const validationResult = validationService.validateTab(formData, activeTab);
 
-        if (activeTab === 0) {
-            // Varsel validation
-            // Note: dato_forhold_oppdaget and hovedkategori are always required
-            // dato_varsel_sendt is conditionally required and validated in VarselPanel
-            if (!formData.varsel.dato_forhold_oppdaget.trim()) {
-                newErrors['varsel.dato_forhold_oppdaget'] = 'Dato forhold oppdaget er påkrevd';
-                if (!firstInvalidFieldId) firstInvalidFieldId = 'varsel.dato_forhold_oppdaget';
-            }
-            if (!formData.varsel.hovedkategori.trim()) {
-                newErrors['varsel.hovedkategori'] = 'Hovedkategori er påkrevd';
-                if (!firstInvalidFieldId) firstInvalidFieldId = 'varsel.hovedkategori';
-            }
-        } else if (activeTab === 1) {
-            // KravKoe validation - validate the last revision
-            const sisteKrav = formData.koe_revisjoner[formData.koe_revisjoner.length - 1];
-
-            // Validér revisjonsnummer
-            if (!sisteKrav.koe_revisjonsnr.toString().trim()) {
-                newErrors['koe_revisjoner.koe_revisjonsnr'] = 'Revisjonsnummer er påkrevd';
-                if (!firstInvalidFieldId) firstInvalidFieldId = 'koe_revisjoner.koe_revisjonsnr';
-            }
-
-            // Sjekk at minst ett krav er valgt
-            if (!sisteKrav.vederlag.krav_vederlag && !sisteKrav.frist.krav_fristforlengelse) {
-                newErrors['krav_type'] = 'Du må velge minst ett krav (vederlag eller fristforlengelse)';
-                if (!firstInvalidFieldId) firstInvalidFieldId = 'kravstype-vederlag-' + (formData.koe_revisjoner.length - 1);
-            }
-
-            // Valider vederlagskrav hvis valgt
-            if (sisteKrav.vederlag.krav_vederlag) {
-                if (!sisteKrav.vederlag.krav_vederlag_metode) {
-                    newErrors['koe.vederlag.krav_vederlag_metode'] = 'Oppgjørsmetode er påkrevd';
-                    if (!firstInvalidFieldId) firstInvalidFieldId = 'koe.vederlag.krav_vederlag_metode.' + (formData.koe_revisjoner.length - 1);
-                }
-
-                if (!sisteKrav.vederlag.krav_vederlag_belop || sisteKrav.vederlag.krav_vederlag_belop <= 0) {
-                    newErrors['koe.vederlag.krav_vederlag_belop'] = 'Krevd beløp er påkrevd';
-                    if (!firstInvalidFieldId) firstInvalidFieldId = 'koe.vederlag.krav_vederlag_belop.' + (formData.koe_revisjoner.length - 1);
-                }
-
-                if (!sisteKrav.vederlag.krav_vederlag_begrunnelse || sisteKrav.vederlag.krav_vederlag_begrunnelse.trim() === '') {
-                    newErrors['koe.vederlag.krav_vederlag_begrunnelse'] = 'Begrunnelse for vederlagskrav er påkrevd';
-                    if (!firstInvalidFieldId) firstInvalidFieldId = 'koe.vederlag.krav_vederlag_begrunnelse.' + (formData.koe_revisjoner.length - 1);
-                }
-            }
-
-            // Valider fristforlengelse hvis valgt
-            if (sisteKrav.frist.krav_fristforlengelse) {
-                if (!sisteKrav.frist.krav_frist_type) {
-                    newErrors['koe.frist.krav_frist_type'] = 'Type fristkrav er påkrevd';
-                    if (!firstInvalidFieldId) firstInvalidFieldId = 'koe.frist.krav_frist_type.' + (formData.koe_revisjoner.length - 1);
-                }
-
-                if (!sisteKrav.frist.krav_frist_antall_dager || sisteKrav.frist.krav_frist_antall_dager <= 0) {
-                    newErrors['koe.frist.krav_frist_antall_dager'] = 'Antall dager fristforlengelse er påkrevd';
-                    if (!firstInvalidFieldId) firstInvalidFieldId = 'koe.frist.krav_frist_antall_dager.' + (formData.koe_revisjoner.length - 1);
-                }
-
-                if (!sisteKrav.frist.krav_frist_begrunnelse || sisteKrav.frist.krav_frist_begrunnelse.trim() === '') {
-                    newErrors['koe.frist.krav_frist_begrunnelse'] = 'Begrunnelse for fristforlengelse er påkrevd';
-                    if (!firstInvalidFieldId) firstInvalidFieldId = 'koe.frist.krav_frist_begrunnelse.' + (formData.koe_revisjoner.length - 1);
-                }
-            }
-
-            // Valider e-post/signatur - sjekk at for_entreprenor er satt
-            if (!sisteKrav.for_entreprenor || sisteKrav.for_entreprenor.trim() === '') {
-                newErrors['koe.signerende_epost'] = 'E-post for signering må valideres';
-                if (!firstInvalidFieldId) firstInvalidFieldId = 'koe.signerende_epost.' + (formData.koe_revisjoner.length - 1);
-            }
-        }
-
-        if (Object.keys(newErrors).length > 0) {
-            setErrors(newErrors);
+        if (!validationResult.isValid) {
+            // UI logic: Set errors, show toast, focus on field
+            setErrors(validationResult.errors);
 
             // Vis den første feilmeldingen i toasten for å gi spesifikk feedback
-            const firstErrorMessage = Object.values(newErrors)[0];
+            const firstErrorMessage = Object.values(validationResult.errors)[0];
             showToast(setToastMessage, firstErrorMessage);
 
             // Fokuser på det første ugyldige feltet
-            if (firstInvalidFieldId) {
-                focusOnField(firstInvalidFieldId);
+            if (validationResult.firstInvalidFieldId) {
+                focusOnField(validationResult.firstInvalidFieldId);
             }
 
             return false;
@@ -378,7 +291,7 @@ const App: React.FC = () => {
 
         setErrors({});
         return true;
-    }, [activeTab, formData.varsel.dato_forhold_oppdaget, formData.varsel.hovedkategori, formData.koe_revisjoner]);
+    }, [activeTab, formData, setErrors, setToastMessage]);
 
     const handleDownloadPdf = async () => {
         try {
@@ -426,51 +339,21 @@ const App: React.FC = () => {
             // Backend vil automatisk synkronisere disse verdiene til CSV via save_form_data
             const updatedFormData = { ...formData };
 
+            // Use submissionService to determine status/modus transitions (business logic extracted)
+            const transition = submissionService.getTransition(modus, formData);
+            updatedFormData.sak.status = transition.nextStatus;
+            updatedFormData.sak.modus = transition.nextModus;
+            setFormData(updatedFormData);
+
+            // Call appropriate API endpoint based on modus
             if (modus === 'varsel') {
-                // TE submitting initial warning
-                updatedFormData.sak.status = SAK_STATUS.VARSLET;
-                updatedFormData.sak.modus = 'koe';
-                setFormData(updatedFormData);
                 response = await api.submitVarsel(updatedFormData, topicGuid || undefined, internalSakId || undefined);
             } else if (modus === 'svar' && internalSakId) {
-                // BH submitting response to claim
-                // Sjekk om BH godkjente eller avviste kravet
-                const sisteBhSvar = formData.bh_svar_revisjoner[formData.bh_svar_revisjoner.length - 1];
-                const vederlagSvar = sisteBhSvar?.vederlag?.bh_svar_vederlag || '';
-                const fristSvar = sisteBhSvar?.frist?.bh_svar_frist || '';
-
-                // Trenger revidering hvis:
-                // - Delvis godkjent (100000001)
-                // - Avslått uenig (100000002)
-                // - Avslått for sent (100000003) - TE må begrunne varslingtidspunkt
-                // - Avventer (100000004) - TE må gi mer detaljer
-                const trengerRevidering = (
-                    vederlagSvar === '100000001' || vederlagSvar === '100000002' ||
-                    vederlagSvar === '100000003' || vederlagSvar === '100000004' ||
-                    fristSvar === '100000001' || fristSvar === '100000002' ||
-                    fristSvar === '100000003' || fristSvar === '100000004'
-                );
-
-                if (trengerRevidering) {
-                    updatedFormData.sak.status = SAK_STATUS.VURDERES_AV_TE;
-                    updatedFormData.sak.modus = 'revidering';
-                } else {
-                    updatedFormData.sak.status = SAK_STATUS.OMFORENT;
-                    updatedFormData.sak.modus = 'ferdig';
-                }
-                setFormData(updatedFormData);
                 response = await api.submitSvar(updatedFormData, internalSakId, topicGuid || undefined);
             } else if (modus === 'revidering' && internalSakId) {
-                // TE submitting revision
-                updatedFormData.sak.status = SAK_STATUS.VENTER_PAA_SVAR;
-                updatedFormData.sak.modus = 'svar';
-                setFormData(updatedFormData);
                 response = await api.submitRevidering(updatedFormData, internalSakId);
             } else {
                 // KOE submission (claim)
-                updatedFormData.sak.status = SAK_STATUS.VENTER_PAA_SVAR;
-                updatedFormData.sak.modus = 'svar';
-                setFormData(updatedFormData);
                 response = await api.submitKoe(updatedFormData, internalSakId || undefined, topicGuid || undefined);
             }
 
