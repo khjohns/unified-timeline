@@ -13,6 +13,7 @@ import { logger } from './utils/logger';
 import { api, Modus } from './services/api';
 import { SAK_STATUS } from './utils/statusHelpers';
 import { validationService } from './services/validationService';
+import { submissionService } from './services/submissionService';
 
 // Lazy load panels for better performance
 const VarselPanel = lazy(() => import('./components/panels/VarselPanel'));
@@ -357,51 +358,21 @@ const App: React.FC = () => {
             // Backend vil automatisk synkronisere disse verdiene til CSV via save_form_data
             const updatedFormData = { ...formData };
 
+            // Use submissionService to determine status/modus transitions (business logic extracted)
+            const transition = submissionService.getTransition(modus, formData);
+            updatedFormData.sak.status = transition.nextStatus;
+            updatedFormData.sak.modus = transition.nextModus;
+            setFormData(updatedFormData);
+
+            // Call appropriate API endpoint based on modus
             if (modus === 'varsel') {
-                // TE submitting initial warning
-                updatedFormData.sak.status = SAK_STATUS.VARSLET;
-                updatedFormData.sak.modus = 'koe';
-                setFormData(updatedFormData);
                 response = await api.submitVarsel(updatedFormData, topicGuid || undefined, internalSakId || undefined);
             } else if (modus === 'svar' && internalSakId) {
-                // BH submitting response to claim
-                // Sjekk om BH godkjente eller avviste kravet
-                const sisteBhSvar = formData.bh_svar_revisjoner[formData.bh_svar_revisjoner.length - 1];
-                const vederlagSvar = sisteBhSvar?.vederlag?.bh_svar_vederlag || '';
-                const fristSvar = sisteBhSvar?.frist?.bh_svar_frist || '';
-
-                // Trenger revidering hvis:
-                // - Delvis godkjent (100000001)
-                // - Avslått uenig (100000002)
-                // - Avslått for sent (100000003) - TE må begrunne varslingtidspunkt
-                // - Avventer (100000004) - TE må gi mer detaljer
-                const trengerRevidering = (
-                    vederlagSvar === '100000001' || vederlagSvar === '100000002' ||
-                    vederlagSvar === '100000003' || vederlagSvar === '100000004' ||
-                    fristSvar === '100000001' || fristSvar === '100000002' ||
-                    fristSvar === '100000003' || fristSvar === '100000004'
-                );
-
-                if (trengerRevidering) {
-                    updatedFormData.sak.status = SAK_STATUS.VURDERES_AV_TE;
-                    updatedFormData.sak.modus = 'revidering';
-                } else {
-                    updatedFormData.sak.status = SAK_STATUS.OMFORENT;
-                    updatedFormData.sak.modus = 'ferdig';
-                }
-                setFormData(updatedFormData);
                 response = await api.submitSvar(updatedFormData, internalSakId, topicGuid || undefined);
             } else if (modus === 'revidering' && internalSakId) {
-                // TE submitting revision
-                updatedFormData.sak.status = SAK_STATUS.VENTER_PAA_SVAR;
-                updatedFormData.sak.modus = 'svar';
-                setFormData(updatedFormData);
                 response = await api.submitRevidering(updatedFormData, internalSakId);
             } else {
                 // KOE submission (claim)
-                updatedFormData.sak.status = SAK_STATUS.VENTER_PAA_SVAR;
-                updatedFormData.sak.modus = 'svar';
-                setFormData(updatedFormData);
                 response = await api.submitKoe(updatedFormData, internalSakId || undefined, topicGuid || undefined);
             }
 
