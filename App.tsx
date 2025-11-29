@@ -1,5 +1,4 @@
 import React, { useState, useEffect, lazy, Suspense, useCallback, useMemo, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { FormDataModel, Role, BhSvar, Koe } from './types';
 import { TABS, INITIAL_FORM_DATA, DEMO_DATA } from './constants';
 import Toast from './components/ui/Toast';
@@ -7,6 +6,7 @@ import { generatePdfReact, generatePdfBlob } from './utils/pdfGeneratorReact';
 import { PktHeader, PktButton, PktTabs, PktTabItem } from '@oslokommune/punkt-react';
 import { useSkjemaData } from './hooks/useSkjemaData';
 import { useAutoSave } from './hooks/useAutoSave';
+import { useUrlParams } from './hooks/useUrlParams';
 import { showToast } from './utils/toastHelpers';
 import { focusOnField } from './utils/focusHelpers';
 import { logger } from './utils/logger';
@@ -36,33 +36,15 @@ const App: React.FC = () => {
     const [activeTab, setActiveTab] = useState(0);
     const [toastMessage, setToastMessage] = useState('');
 
-    // URL parameters
-    const [searchParams, setSearchParams] = useSearchParams();
-    const magicToken = searchParams.get('magicToken');
-    const directSakId = searchParams.get('sakId'); // For direct access or older links
-    const modus = searchParams.get('modus') as Modus | null;
-    const initialTopicGuid = searchParams.get('topicGuid'); // From Catenda webhook
-
-    // Track if we came from a magic link using sessionStorage to persist across HMR reloads
-    // Check sessionStorage first (both 'true' and 'consumed' count), then check if magicToken is in URL
-    const sessionValue = sessionStorage.getItem('isFromMagicLink');
-
-    const isFromMagicLinkRef = useRef(
-        sessionValue === 'true' || sessionValue === 'consumed' || !!magicToken
-    );
-
-    // Store in sessionStorage if we have a magicToken
-    if (magicToken && sessionValue !== 'true' && sessionValue !== 'consumed') {
-        sessionStorage.setItem('isFromMagicLink', 'true');
-        isFromMagicLinkRef.current = true;
-    }
+    // URL parameters (extracted to custom hook)
+    const { magicToken, sakId: directSakId, modus, topicGuid: initialTopicGuid, isFromMagicLink, clearMagicToken } = useUrlParams();
 
     // Internal state for the resolved sakId and topicGuid
     // Check sessionStorage first to survive HMR reloads (but only if we're still in magic link context)
     const savedSakId = sessionStorage.getItem('currentSakId');
     const [internalSakId, setInternalSakId] = useState<string | null>(() => {
         // Only use savedSakId if we're still in magic link context
-        if (isFromMagicLinkRef.current && savedSakId) {
+        if (isFromMagicLink && savedSakId) {
             return savedSakId;
         }
         return directSakId;
@@ -131,8 +113,7 @@ const App: React.FC = () => {
                 // Store sakId in sessionStorage to survive HMR reloads
                 sessionStorage.setItem('currentSakId', sakId);
                 // Clean the URL, remove the token
-                searchParams.delete('magicToken');
-                setSearchParams(searchParams, { replace: true });
+                clearMagicToken();
             } else {
                 setApiError(response.error || 'Lenken er ugyldig eller utløpt.');
                 setIsLoading(false);
@@ -142,7 +123,7 @@ const App: React.FC = () => {
         if (magicToken && isApiConnected) {
             verifyToken();
         }
-    }, [magicToken, isApiConnected, setSearchParams, searchParams]);
+    }, [magicToken, isApiConnected, clearMagicToken]);
 
 
     // Load data from API when an internalSakId is available
@@ -203,7 +184,7 @@ const App: React.FC = () => {
                 } else {
                     setApiError(response.error || 'Kunne ikke laste sak');
                     // Only use localStorage as fallback if we're not coming from a magic link
-                    if (loadedData && !isFromMagicLinkRef.current) {
+                    if (loadedData && !isFromMagicLink) {
                         setFormData(loadedData);
                         showToast(setToastMessage, 'API ikke tilgjengelig - bruker lokal lagring');
                     }
@@ -212,7 +193,7 @@ const App: React.FC = () => {
                 logger.error('Failed to load from API:', error);
                 setApiError('Nettverksfeil ved lasting av sak');
                 // Only use localStorage as fallback if we're not coming from a magic link
-                if (loadedData && !isFromMagicLinkRef.current) {
+                if (loadedData && !isFromMagicLink) {
                     setFormData(loadedData);
                 }
             } finally {
@@ -222,7 +203,7 @@ const App: React.FC = () => {
 
         if (internalSakId && isApiConnected === true) {
             loadFromApi();
-        } else if (!internalSakId && !isFromMagicLinkRef.current && loadedData && isApiConnected !== null) {
+        } else if (!internalSakId && !isFromMagicLink && loadedData && isApiConnected !== null) {
             // No sakId and not using magic link - load from localStorage
             setFormData(loadedData);
         }
@@ -232,7 +213,7 @@ const App: React.FC = () => {
     // Set role and tab when modus changes (fallback for when data isn't loaded from API)
     useEffect(() => {
         // Skip if loading, if we have a sakId (role is set during API load), or if we came from magic link (waiting for data load)
-        if (isLoading || internalSakId || isFromMagicLinkRef.current) {
+        if (isLoading || internalSakId || isFromMagicLink) {
             return;
         }
 
