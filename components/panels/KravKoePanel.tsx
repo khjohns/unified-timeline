@@ -3,7 +3,7 @@ import { FormDataModel } from '../../types';
 import { InputField, SelectField, TextareaField, CheckboxField, DateField } from '../ui/Field';
 import FieldsetCard from '../ui/FieldsetCard';
 import PanelLayout from '../ui/PanelLayout';
-import { PktButton, PktCheckbox, PktTag, PktRadioButton } from '@oslokommune/punkt-react';
+import { PktButton, PktCheckbox, PktTag, PktRadioButton, PktMessagebox } from '@oslokommune/punkt-react';
 import { VEDERLAGSMETODER_OPTIONS } from '../../constants';
 import { getKravStatusLabel, getKravStatusSkin, KOE_STATUS, SAK_STATUS } from '../../utils/statusHelpers';
 import { useFileUpload } from '../../hooks/useFileUpload';
@@ -258,12 +258,12 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
   return (
     <PanelLayout>
       {harFlereRevisjoner && (
-        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-sm text-blue-800">
-            💡 Denne fanen viser kun siste sendte revisjon og ny revisjon under arbeid.
+        <PktMessagebox title="" skin="blue" compact>
+          <span>
+            Denne fanen viser kun siste sendte revisjon og ny revisjon under arbeid.
             Se alle {koe_revisjoner.length} revisjoner i <strong>Test-fanen</strong>.
-          </p>
-        </div>
+          </span>
+        </PktMessagebox>
       )}
 
       <div className="space-y-12">
@@ -493,7 +493,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                       {signerName && !validationError && (
                         <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                           <p className="text-sm text-green-800">
-                            ✅ <strong>Validert bruker:</strong> {signerName}
+                            <strong>Validert bruker:</strong> {signerName}
                           </p>
                         </div>
                       )}
@@ -516,11 +516,9 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
                       </dl>
                     </div>
                   ) : (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <p className="text-sm text-blue-800">
-                        💡 Dato og signatur settes automatisk når kravet sendes
-                      </p>
-                    </div>
+                    <PktMessagebox title="" skin="blue" compact>
+                      <span>Dato og signatur settes automatisk når kravet sendes</span>
+                    </PktMessagebox>
                   )}
                 </FieldsetCard>
 

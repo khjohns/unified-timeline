@@ -3,7 +3,7 @@ import { FormDataModel, Role, BhSvar, Koe } from './types';
 import { TABS, INITIAL_FORM_DATA, DEMO_DATA } from './constants';
 import Toast from './components/ui/Toast';
 import { generatePdfReact, generatePdfBlob } from './utils/pdfGeneratorReact';
-import { PktHeader, PktButton, PktTabs, PktTabItem } from '@oslokommune/punkt-react';
+import { PktHeader, PktButton, PktTabs, PktTabItem, PktAlert, PktMessagebox } from '@oslokommune/punkt-react';
 import { useSkjemaData } from './hooks/useSkjemaData';
 import { useAutoSave } from './hooks/useAutoSave';
 import { useUrlParams } from './hooks/useUrlParams';
@@ -579,44 +579,24 @@ const App: React.FC = () => {
                 {/* API Error Banner */}
                 {apiError && (
                     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
-                        <div className="bg-red-50 border border-red-200 rounded-md p-4">
-                            <div className="flex">
-                                <div className="flex-shrink-0">
-                                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                                    </svg>
-                                </div>
-                                <div className="ml-3">
-                                    <p className="text-sm text-red-700">{apiError}</p>
-                                </div>
-                                <div className="ml-auto pl-3">
-                                    <button
-                                        onClick={() => setApiError(null)}
-                                        className="text-red-400 hover:text-red-500"
-                                    >
-                                        <span className="sr-only">Lukk</span>
-                                        <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                        <PktAlert title="Kunne ikke koble til API" skin="error" compact>
+                            <span>{apiError}</span>
+                        </PktAlert>
                     </div>
                 )}
 
                 {/* Mode and SakId Info Banner */}
                 {(internalSakId || modus) && (
                     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
-                        <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                        <PktMessagebox title="" skin="blue" compact>
                             <div className="flex items-center gap-4 text-sm">
                                 {internalSakId && (
-                                    <span className="text-blue-700">
+                                    <span>
                                         <strong>Sak:</strong> {internalSakId}
                                     </span>
                                 )}
                                 {modus && (
-                                    <span className="text-blue-700">
+                                    <span>
                                         <strong>Modus:</strong> {
                                             modus === 'varsel' ? 'Varsel (Entreprenør)' :
                                             modus === 'koe' ? 'Krav (Entreprenør)' :
@@ -631,7 +611,7 @@ const App: React.FC = () => {
                                     </span>
                                 )}
                             </div>
-                        </div>
+                        </PktMessagebox>
                     </div>
                 )}
 

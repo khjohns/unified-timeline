@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FormDataModel } from '../../types';
-import { PktTag, PktButton } from '@oslokommune/punkt-react';
+import { PktTag, PktButton, PktMessagebox } from '@oslokommune/punkt-react';
 import { HOVEDKATEGORI_OPTIONS, UNDERKATEGORI_MAP } from '../../constants';
 import {
   getSakStatusLabel,
@@ -229,9 +229,9 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
           Krav fra entreprenør - Revisjonshistorikk
         </h3>
         {koe_revisjoner.length === 0 ? (
-          <div className="bg-gray-50 border border-border-color rounded-lg p-4 text-sm text-muted">
-            Ingen revisjoner registrert ennå
-          </div>
+          <PktMessagebox title="" skin="beige" compact>
+            <span>Ingen revisjoner registrert ennå</span>
+          </PktMessagebox>
         ) : (
           <div className="overflow-x-auto rounded-lg border border-border-color bg-white shadow-sm">
             <table className="custom-grid-table">
@@ -424,9 +424,9 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
           Svar fra byggherre - Revisjonshistorikk
         </h3>
         {bh_svar_revisjoner.length === 0 ? (
-          <div className="bg-gray-50 border border-border-color rounded-lg p-4 text-sm text-muted">
-            Ingen svar registrert ennå
-          </div>
+          <PktMessagebox title="" skin="beige" compact>
+            <span>Ingen svar registrert ennå</span>
+          </PktMessagebox>
         ) : (
           <div className="overflow-x-auto rounded-lg border border-border-color bg-white shadow-sm">
             <table className="custom-grid-table">
@@ -544,14 +544,13 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
       </section>
 
       {/* Legend */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
-        <p className="font-semibold mb-2">💡 Om denne visningen:</p>
+      <PktMessagebox title="Om denne visningen" skin="blue" compact>
         <ul className="list-disc list-inside space-y-1 text-xs">
           <li>Tabellene viser alle revisjoner side-ved-side for enkel sammenligning.</li>
           <li>Du kan scrolle horisontalt i tabellene. Første kolonne (Feltnavn) står stille når du scroller.</li>
           <li>Visningen er tilpasset små skjermer med "sticky" feltnavn.</li>
         </ul>
-      </div>
+      </PktMessagebox>
 
       {/* Begrunnelse Modal */}
       <BegrunnelseModal

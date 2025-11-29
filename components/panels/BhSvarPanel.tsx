@@ -3,7 +3,7 @@ import { FormDataModel } from '../../types';
 import { InputField, SelectField, TextareaField, CheckboxField, DateField } from '../ui/Field';
 import FieldsetCard from '../ui/FieldsetCard';
 import PanelLayout from '../ui/PanelLayout';
-import { PktButton, PktTag } from '@oslokommune/punkt-react';
+import { PktButton, PktTag, PktMessagebox } from '@oslokommune/punkt-react';
 import { BH_VEDERLAGSSVAR_OPTIONS, BH_FRISTSVAR_OPTIONS } from '../../constants';
 import { getSvarStatusLabel, getSvarStatusSkin } from '../../utils/statusHelpers';
 import { useFileUpload } from '../../hooks/useFileUpload';
@@ -196,12 +196,12 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
   return (
     <PanelLayout>
       {harFlereRevisjoner && (
-        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-sm text-blue-800">
-            💡 Denne fanen viser kun siste sendte svar og nytt svar under arbeid.
+        <PktMessagebox title="" skin="blue" compact>
+          <span>
+            Denne fanen viser kun siste sendte svar og nytt svar under arbeid.
             Se alle {bh_svar_revisjoner.length} svar i <strong>Test-fanen</strong>.
-          </p>
-        </div>
+          </span>
+        </PktMessagebox>
       )}
 
       <div className="space-y-12">
@@ -398,7 +398,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                       {signerName && !validationError && (
                         <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                           <p className="text-sm text-green-800">
-                            ✅ <strong>Validert bruker:</strong> {signerName}
+                            <strong>Validert bruker:</strong> {signerName}
                           </p>
                         </div>
                       )}
@@ -421,11 +421,9 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                       </dl>
                     </div>
                   ) : (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <p className="text-sm text-blue-800">
-                        💡 Dato og signatur settes automatisk når svaret sendes
-                      </p>
-                    </div>
+                    <PktMessagebox title="" skin="blue" compact>
+                      <span>Dato og signatur settes automatisk når svaret sendes</span>
+                    </PktMessagebox>
                   )}
                 </FieldsetCard>
 
