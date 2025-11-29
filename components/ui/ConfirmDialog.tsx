@@ -1,5 +1,5 @@
-import React from 'react';
-import { PktButton, PktAlert, PktModal } from '@oslokommune/punkt-react';
+import React, { useEffect } from 'react';
+import { PktButton, PktAlert } from '@oslokommune/punkt-react';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -22,25 +22,60 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   cancelText = 'Avbryt',
   skin = 'warning',
 }) => {
+  // Keyboard support (Escape)
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen, onClose]);
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
   const handleConfirm = () => {
     onConfirm();
     onClose();
   };
 
   return (
-    <PktModal
-      isOpen={isOpen}
-      onClose={onClose}
-      headingText={title}
-      closeOnBackdropClick={true}
-      size="medium"
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4"
+      onClick={onClose}
     >
-      <div className="space-y-6">
+      <div
+        className="bg-white rounded-lg shadow-xl max-w-md w-full p-6"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-dialog-title"
+      >
+        <h2
+          id="confirm-dialog-title"
+          className="text-xl font-semibold text-ink mb-4"
+        >
+          {title}
+        </h2>
+
         <PktAlert skin={skin} compact>
           <span>{message}</span>
         </PktAlert>
 
-        <div className="flex gap-3 justify-end">
+        <div className="flex gap-3 justify-end mt-6">
           <PktButton
             skin="tertiary"
             onClick={onClose}
@@ -55,7 +90,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           </PktButton>
         </div>
       </div>
-    </PktModal>
+    </div>
   );
 };
 
