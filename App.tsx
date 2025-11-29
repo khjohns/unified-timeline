@@ -26,6 +26,7 @@ const PDFPreviewModal = lazy(() => import('./components/ui/PDFPreviewModal'));
 
 import SidePanel from './components/ui/SidePanel';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
+import ConfirmDialog from './components/ui/ConfirmDialog';
 
 // Loading spinner for lazy-loaded components
 const PanelLoader: React.FC = () => (
@@ -37,6 +38,17 @@ const PanelLoader: React.FC = () => (
 const App: React.FC = () => {
     const [activeTab, setActiveTab] = useState(0);
     const [toastMessage, setToastMessage] = useState('');
+    const [confirmDialog, setConfirmDialog] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => {},
+    });
 
     // URL parameters (extracted to custom hook)
     const { magicToken, sakId: directSakId, modus, topicGuid: initialTopicGuid, isFromMagicLink, clearMagicToken } = useUrlParams();
@@ -269,19 +281,28 @@ const App: React.FC = () => {
     };
 
     const handleReset = () => {
-    if (window.confirm('Er du sikker på at du vil nullstille skjemaet? Alle data vil gå tapt.')) {
-        setFormData(JSON.parse(JSON.stringify(INITIAL_FORM_DATA)));
-        setErrors({});
-        localStorage.removeItem('koe_v5_0_draft');
-        }
+        setConfirmDialog({
+            isOpen: true,
+            title: 'Nullstille skjemaet?',
+            message: 'Er du sikker på at du vil nullstille skjemaet? Alle data vil gå tapt.',
+            onConfirm: () => {
+                setFormData(JSON.parse(JSON.stringify(INITIAL_FORM_DATA)));
+                setErrors({});
+                localStorage.removeItem('koe_v5_0_draft');
+            },
+        });
     };
 
     const handleDemo = () => {
-    // Valgfritt: Legg til en confirm hvis du vil ha bekreftelse
-    if (window.confirm('Dette vil erstatte nåværende data med eksempeldata. Fortsette?')) {
-        setFormData(JSON.parse(JSON.stringify(DEMO_DATA)));
-        setErrors({});
-        }
+        setConfirmDialog({
+            isOpen: true,
+            title: 'Laste eksempeldata?',
+            message: 'Dette vil erstatte nåværende data med eksempeldata. Fortsette?',
+            onConfirm: () => {
+                setFormData(JSON.parse(JSON.stringify(DEMO_DATA)));
+                setErrors({});
+            },
+        });
     };
 
     const handleDownloadPdf = async () => {
@@ -645,6 +666,15 @@ const App: React.FC = () => {
                     />
                 </Suspense>
             )}
+
+            <ConfirmDialog
+                isOpen={confirmDialog.isOpen}
+                onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+                onConfirm={confirmDialog.onConfirm}
+                title={confirmDialog.title}
+                message={confirmDialog.message}
+                skin="warning"
+            />
         </div>
         </ErrorBoundary>
     );

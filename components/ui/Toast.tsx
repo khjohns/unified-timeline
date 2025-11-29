@@ -3,9 +3,33 @@ import { PktAlert } from '@oslokommune/punkt-react';
 
 interface ToastProps {
   message: string;
+  skin?: 'info' | 'success' | 'warning' | 'error';
 }
 
-const Toast: React.FC<ToastProps> = ({ message }) => {
+const Toast: React.FC<ToastProps> = ({ message, skin }) => {
+  // Auto-detect skin based on message content if not provided
+  const determineSkin = (): 'info' | 'success' | 'warning' | 'error' => {
+    if (skin) return skin;
+
+    // Error indicators
+    if (message.includes('❌') || message.toLowerCase().includes('feil')) {
+      return 'error';
+    }
+
+    // Success indicators
+    if (message.includes('✅') || message.includes('✓')) {
+      return 'success';
+    }
+
+    // Warning indicators
+    if (message.includes('⚠️') || message.toLowerCase().includes('advarsel')) {
+      return 'warning';
+    }
+
+    // Default to info
+    return 'info';
+  };
+
   return (
     <div className="fixed bottom-5 right-5 z-50 max-w-md animate-fade-in-up">
       <style>{`
@@ -18,7 +42,7 @@ const Toast: React.FC<ToastProps> = ({ message }) => {
         }
       `}</style>
       <PktAlert
-        skin="success"
+        skin={determineSkin()}
         compact
         role="status"
         aria-live="polite"
