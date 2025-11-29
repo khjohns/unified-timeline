@@ -3,7 +3,7 @@ import { FormDataModel, Role, BhSvar, Koe } from './types';
 import { TABS, INITIAL_FORM_DATA, DEMO_DATA } from './constants';
 import Toast from './components/ui/Toast';
 import { generatePdfReact, generatePdfBlob } from './utils/pdfGeneratorReact';
-import { PktHeader, PktButton, PktTabs, PktTabItem } from '@oslokommune/punkt-react';
+import { PktHeader } from '@oslokommune/punkt-react';
 import { useSkjemaData } from './hooks/useSkjemaData';
 import { useAutoSave } from './hooks/useAutoSave';
 import { useUrlParams } from './hooks/useUrlParams';
@@ -16,6 +16,8 @@ import { api, Modus } from './services/api';
 import { SAK_STATUS } from './utils/statusHelpers';
 import { validationService } from './services/validationService';
 import { submissionService } from './services/submissionService';
+import { BottomBar } from './components/layout/BottomBar';
+import { TabNavigation } from './components/layout/TabNavigation';
 
 // Lazy load panels for better performance
 const VarselPanel = lazy(() => import('./components/panels/VarselPanel'));
@@ -295,66 +297,6 @@ const App: React.FC = () => {
         }
     };
 
-    // Get submit button text based on modus
-    const getSubmitButtonText = () => {
-        if (submission.isSubmitting) {
-            return (
-                <span className="flex flex-col">
-                    <span>Sender...</span>
-                </span>
-            );
-        }
-
-        // Hent siste revisjon for kontekst
-        const sisteKoeIndex = formData.koe_revisjoner.length - 1;
-        const sisteKoe = formData.koe_revisjoner[sisteKoeIndex];
-        const sisteBhSvarIndex = formData.bh_svar_revisjoner.length - 1;
-        const sisteBhSvar = formData.bh_svar_revisjoner[sisteBhSvarIndex];
-
-        switch (modus) {
-            case 'varsel': {
-                return (
-                    <span className="flex flex-col">
-                        <span>Send varsel til BH</span>
-                        <span className="text-xs opacity-75">Byggherre varsles automatisk</span>
-                    </span>
-                );
-            }
-            case 'koe': {
-                const beløp = sisteKoe?.vederlag?.krevd_belop;
-                const text = beløp ? `Send krav (${beløp} NOK)` : 'Send krav';
-                return (
-                    <span className="flex flex-col">
-                        <span>{text}</span>
-                        <span className="text-xs opacity-75">PDF genereres og sendes til BH</span>
-                    </span>
-                );
-            }
-            case 'svar': {
-                const vederlagStatus = sisteBhSvar?.vederlag?.bh_svar_vederlag;
-                const godkjent = vederlagStatus === '100000004'; // Godkjent
-                const subtext = godkjent ? '✅ Godkjenner krav' : '⚠️ Krever revisjon';
-                return (
-                    <span className="flex flex-col">
-                        <span>Send svar til TE</span>
-                        <span className="text-xs opacity-75">{subtext}</span>
-                    </span>
-                );
-            }
-            case 'revidering': {
-                const nextRevNr = Number(sisteKoe?.koe_revisjonsnr || 0) + 1;
-                return (
-                    <span className="flex flex-col">
-                        <span>Send revisjon {nextRevNr}</span>
-                        <span className="text-xs opacity-75">Oppdatert krav sendes til BH</span>
-                    </span>
-                );
-            }
-            default:
-                return 'Send';
-        }
-    };
-
     // Helper function to add a new BH svar revision
     const addBhSvarRevisjon = () => {
         const nyttSvar: BhSvar = {
@@ -420,27 +362,6 @@ const App: React.FC = () => {
         }));
     };
 
-    const renderTabs = () => (
-        <div className="pkt-tabs-wrapper">
-            <PktTabs>
-                {TABS.map((tab, idx) => (
-                    <PktTabItem
-                        key={tab.label}
-                        active={activeTab === idx}
-                        onClick={() => {
-                            setActiveTab(idx);
-                            window.scrollTo(0, 0);
-                        }}
-                        icon={tab.icon}
-                        index={idx}
-                    >
-                        {tab.label}
-                    </PktTabItem>
-                ))}
-            </PktTabs>
-        </div>
-    );
-
     const renderPanel = () => {
         const isTeDisabled = formData.rolle === 'BH';
         const panelProps = {
@@ -467,51 +388,6 @@ const App: React.FC = () => {
             </Suspense>
         );
     };
-    
-    const renderBottomBar = () => (
-        <div className="px-4 sm:px-0" role="navigation" aria-label="Steg navigasjon">
-            <div className="flex justify-between items-center flex-wrap gap-4">
-                <button
-                    onClick={handleReset}
-                    className="text-sm text-red-600 hover:text-red-700 hover:underline"
-                >
-                    Nullstill
-                </button>
-                <div className="flex gap-3 flex-wrap items-center">
-                    <PktButton
-                        skin="secondary"
-                        size="small"
-                        onClick={handleDownloadPdf}
-                        iconName="document-pdf"
-                        variant="icon-left"
-                    >
-                        Last ned PDF
-                    </PktButton>
-                    <PktButton
-                        skin="secondary"
-                        size="small"
-                        onClick={handleDemo}
-                        iconName="plus-circle"
-                        variant="icon-left"
-                    >
-                        Eksempel
-                    </PktButton>
-                    {isApiConnected && (
-                        <PktButton
-                            skin="primary"
-                            size="small"
-                            onClick={submission.handleSubmit}
-                            iconName="arrow-right"
-                            variant="icon-right"
-                            disabled={submission.isSubmitting}
-                        >
-                            {getSubmitButtonText()}
-                        </PktButton>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
 
     // Render loading state
     if (isLoading) {
@@ -618,9 +494,22 @@ const App: React.FC = () => {
 
                     {/* Hovedkolonne (2/3) - Tabs, panel og knapper */}
                     <div className="lg:col-span-2 space-y-8">
-                        {renderTabs()}
+                        <TabNavigation
+                            tabs={TABS}
+                            activeTab={activeTab}
+                            onTabChange={setActiveTab}
+                        />
                         {renderPanel()}
-                        {renderBottomBar()}
+                        <BottomBar
+                            formData={formData}
+                            modus={modus}
+                            isApiConnected={isApiConnected}
+                            isSubmitting={submission.isSubmitting}
+                            onReset={handleReset}
+                            onDownloadPdf={handleDownloadPdf}
+                            onDemo={handleDemo}
+                            onSubmit={submission.handleSubmit}
+                        />
                     </div>
 
                     {/* Sidekolonne (1/3) - Nøkkelinfo (kun på store skjermer) */}
