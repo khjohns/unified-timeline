@@ -7,6 +7,7 @@ import { PktHeader, PktButton, PktTabs, PktTabItem } from '@oslokommune/punkt-re
 import { useSkjemaData } from './hooks/useSkjemaData';
 import { useAutoSave } from './hooks/useAutoSave';
 import { useUrlParams } from './hooks/useUrlParams';
+import { useApiConnection } from './hooks/useApiConnection';
 import { showToast } from './utils/toastHelpers';
 import { focusOnField } from './utils/focusHelpers';
 import { logger } from './utils/logger';
@@ -55,7 +56,9 @@ const App: React.FC = () => {
     const [isLoading, setIsLoading] = useState(!!magicToken); // Start loading if token is present
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
-    const [isApiConnected, setIsApiConnected] = useState<boolean | null>(null);
+
+    // API connection state (extracted to custom hook)
+    const { isApiConnected } = useApiConnection();
 
     // PDF Preview modal state
     const [pdfPreviewModal, setPdfPreviewModal] = useState<{
@@ -81,18 +84,6 @@ const App: React.FC = () => {
             showToast(setToastMessage, 'Utkast lagret ✓');
         },
     });
-
-    // Check API connectivity on mount
-    useEffect(() => {
-        const checkApiConnection = async () => {
-            const connected = await api.healthCheck();
-            setIsApiConnected(connected);
-            if (!connected) {
-                logger.warn('API server not available - running in offline mode');
-            }
-        };
-        checkApiConnection();
-    }, []);
 
     // Verify magic token if present
     useEffect(() => {
