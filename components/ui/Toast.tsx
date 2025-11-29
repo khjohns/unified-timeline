@@ -11,18 +11,23 @@ const Toast: React.FC<ToastProps> = ({ message, skin }) => {
   const determineSkin = (): 'info' | 'success' | 'warning' | 'error' => {
     if (skin) return skin;
 
+    const lowerMessage = message.toLowerCase();
+
     // Error indicators
-    if (message.includes('❌') || message.toLowerCase().includes('feil')) {
+    if (lowerMessage.includes('feil') || lowerMessage.includes('error')) {
       return 'error';
     }
 
     // Success indicators
-    if (message.includes('✅') || message.includes('✓')) {
+    if (lowerMessage.includes('validert') ||
+        lowerMessage.includes('lagret') ||
+        lowerMessage.includes('sendt') ||
+        lowerMessage.includes('lastet')) {
       return 'success';
     }
 
     // Warning indicators
-    if (message.includes('⚠️') || message.toLowerCase().includes('advarsel')) {
+    if (lowerMessage.includes('advarsel') || lowerMessage.includes('warning')) {
       return 'warning';
     }
 

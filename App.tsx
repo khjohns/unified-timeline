@@ -93,7 +93,7 @@ const App: React.FC = () => {
         storageKey: 'koe_v5_0_draft',
         debounceMs: 1500,
         onSave: () => {
-            showToast(setToastMessage, 'Utkast lagret ✓');
+            showToast(setToastMessage, 'Utkast lagret');
         },
     });
 
