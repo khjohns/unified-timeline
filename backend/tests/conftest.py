@@ -18,6 +18,13 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+# Mock CSRF protection BEFORE importing routes
+import csrf_protection
+def mock_require_csrf(f):
+    """Mock CSRF decorator for testing"""
+    return f
+csrf_protection.require_csrf = mock_require_csrf
+
 from app import app as flask_app, KOEAutomationSystem, DataManager
 from constants import SAK_STATUS, KOE_STATUS, BH_SVAR_STATUS
 
@@ -198,16 +205,19 @@ def test_svar_data():
     }
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def mock_magic_link_manager(monkeypatch):
-    """Mock MagicLinkManager"""
-    mock = MagicMock()
-    mock.generate.return_value = 'test-magic-token-123'
-    mock.verify.return_value = (True, None, {'sak_id': 'TEST-123'})
+    """Mock MagicLinkManager globally for all tests"""
+    mock_mgr_class = MagicMock()
+    mock_mgr_instance = MagicMock()
+    mock_mgr_instance.generate.return_value = 'test-magic-token-123'
+    mock_mgr_instance.verify.return_value = (True, None, {'sak_id': 'TEST-123'})
 
-    # Patch the MagicLinkManager import in routes
-    monkeypatch.setattr('routes.varsel_routes.MagicLinkManager', lambda: mock)
-    monkeypatch.setattr('routes.koe_routes.MagicLinkManager', lambda: mock)
-    monkeypatch.setattr('routes.svar_routes.MagicLinkManager', lambda: mock)
+    mock_mgr_class.return_value = mock_mgr_instance
 
-    return mock
+    # Patch magic_link module
+    monkeypatch.setattr('magic_link.MagicLinkManager', mock_mgr_class)
+
+    return mock_mgr_instance
+
+
