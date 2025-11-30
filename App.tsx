@@ -1,22 +1,18 @@
-import React, { useState, useEffect, lazy, Suspense, useCallback, useMemo, useRef } from 'react';
-import { FormDataModel, Role, BhSvar, Koe } from './types';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
+import { Role, BhSvar, Koe } from './types';
 import { TABS, INITIAL_FORM_DATA, DEMO_DATA } from './config';
 import Toast from './components/ui/Toast';
-import { generatePdfReact, generatePdfBlob } from './utils/pdfGeneratorReact';
+import { generatePdfReact } from './utils/pdfGeneratorReact';
 import { PktHeader, PktButton, PktTabs, PktTabItem, PktAlert } from '@oslokommune/punkt-react';
-import { useSkjemaData } from './hooks/useSkjemaData';
 import { useAutoSave } from './hooks/useAutoSave';
 import { useUrlParams } from './hooks/useUrlParams';
 import { useApiConnection } from './hooks/useApiConnection';
+import { useCaseLoader } from './hooks/useCaseLoader';
+import { useHandleInputChange } from './hooks/useHandleInputChange';
 import { useFormSubmission } from './hooks/useFormSubmission';
 import { showToast } from './utils/toastHelpers';
-import { focusOnField } from './utils/focusHelpers';
 import { logger } from './utils/logger';
-import { api, Modus } from './services/api';
-import { SAK_STATUS, KOE_STATUS, BH_SVAR_STATUS } from './utils/statusHelpers';
-import { getRoleFromModus, getTabIndexFromModus } from './utils/modusHelpers';
-import { validationService } from './services/validationService';
-import { submissionService } from './services/submissionService';
+import { KOE_STATUS, BH_SVAR_STATUS } from './utils/statusHelpers';
 
 // Lazy load panels for better performance
 const VarselPanel = lazy(() => import('./components/panels/VarselPanel'));
@@ -37,8 +33,8 @@ const PanelLoader: React.FC = () => (
 );
 
 const App: React.FC = () => {
-    const [activeTab, setActiveTab] = useState(0);
     const [toastMessage, setToastMessage] = useState('');
+    const [errors, setErrors] = useState<Record<string, string>>({});
     const [confirmDialog, setConfirmDialog] = useState<{
         isOpen: boolean;
         title: string;
@@ -51,27 +47,53 @@ const App: React.FC = () => {
         onConfirm: () => {},
     });
 
-    // URL parameters (extracted to custom hook)
-    const { magicToken, sakId: directSakId, modus, topicGuid: initialTopicGuid, isFromMagicLink, clearMagicToken } = useUrlParams();
+    // URL parameters
+    const { magicToken, sakId, modus, topicGuid: initialTopicGuid, isFromMagicLink, clearMagicToken } = useUrlParams();
 
-    // Internal state for the resolved sakId and topicGuid
-    // Check sessionStorage first to survive HMR reloads (but only if we're still in magic link context)
-    const savedSakId = sessionStorage.getItem('currentSakId');
-    const [internalSakId, setInternalSakId] = useState<string | null>(() => {
-        // Only use savedSakId if we're still in magic link context
-        if (isFromMagicLink && savedSakId) {
-            return savedSakId;
-        }
-        return directSakId;
-    });
-    const [topicGuid, setTopicGuid] = useState<string | null>(initialTopicGuid);
-
-    // Loading and error states
-    const [isLoading, setIsLoading] = useState(!!magicToken); // Start loading if token is present
-    const [apiError, setApiError] = useState<string | null>(null);
-
-    // API connection state (extracted to custom hook)
+    // API connection state
     const { isApiConnected } = useApiConnection();
+
+    // Auto-save hook (needs formData, so we get loadedData first)
+    // This is used as fallback when API is not available
+    const [autoSaveData, setAutoSaveData] = useState(INITIAL_FORM_DATA);
+    const loadedData = useAutoSave({
+        data: autoSaveData,
+        storageKey: 'koe_v5_0_draft',
+        debounceMs: 1500,
+        onSave: () => {
+            showToast(setToastMessage, 'Utkast lagret');
+        },
+    });
+
+    // Case loading hook - handles magic token verification and data loading
+    const {
+        formData,
+        setFormData,
+        internalSakId,
+        topicGuid,
+        isLoading,
+        apiError,
+        activeTab,
+        setActiveTab,
+    } = useCaseLoader({
+        magicToken,
+        sakId,
+        modus,
+        topicGuid: initialTopicGuid,
+        isFromMagicLink,
+        isApiConnected,
+        clearMagicToken,
+        loadedData,
+        setToastMessage,
+    });
+
+    // Sync formData to autoSave
+    useEffect(() => {
+        setAutoSaveData(formData);
+    }, [formData]);
+
+    // Handle input change for nested form updates
+    const handleInputChange = useHandleInputChange(setFormData, setErrors);
 
     // PDF Preview modal state
     const [pdfPreviewModal, setPdfPreviewModal] = useState<{
@@ -84,18 +106,6 @@ const App: React.FC = () => {
         isOpen: false,
         type: 'koe',
         pdfBlob: null
-    });
-
-    // Use custom hooks for state management and auto-save
-    const { formData, setFormData, handleInputChange, errors, setErrors } = useSkjemaData(INITIAL_FORM_DATA);
-
-    const loadedData = useAutoSave({
-        data: formData,
-        storageKey: 'koe_v5_0_draft',
-        debounceMs: 1500,
-        onSave: () => {
-            showToast(setToastMessage, 'Utkast lagret');
-        },
     });
 
     // Form submission hook (handles validation, PDF generation, API submission)
@@ -122,131 +132,7 @@ const App: React.FC = () => {
         },
     });
 
-    // Verify magic token if present
-    useEffect(() => {
-        const verifyToken = async () => {
-            if (!magicToken || isApiConnected === false) return;
-
-            setIsLoading(true);
-            setApiError(null);
-
-            // Clear localStorage when using magic link to prevent old data from interfering
-            localStorage.removeItem('koe_v5_0_draft');
-
-            const response = await api.verifyMagicToken(magicToken);
-
-            if (response.success && response.data?.sakId) {
-                const sakId = response.data.sakId;
-                setInternalSakId(sakId);
-                // Store sakId in sessionStorage to survive HMR reloads
-                sessionStorage.setItem('currentSakId', sakId);
-                // Clean the URL, remove the token
-                clearMagicToken();
-            } else {
-                setApiError(response.error || 'Lenken er ugyldig eller utløpt.');
-                setIsLoading(false);
-            }
-        };
-
-        if (magicToken && isApiConnected) {
-            verifyToken();
-        }
-    }, [magicToken, isApiConnected, clearMagicToken]);
-
-
-    // Load data from API when an internalSakId is available
-    useEffect(() => {
-        const loadFromApi = async () => {
-            if (!internalSakId) return;
-
-            // Only start loading if not already loading from token verification
-            if (!magicToken) setIsLoading(true);
-            setApiError(null);
-
-            try {
-                const response = await api.getCase(internalSakId, modus || undefined);
-
-                if (response.success && response.data) {
-                    // Ensure rolle is set to 'TE' if missing (defensive programming)
-                    const loadedFormData = response.data.formData;
-                    if (!loadedFormData.rolle) {
-                        loadedFormData.rolle = 'TE';
-                    }
-
-                    // Set rolle based on modus if modus is provided
-                    if (modus) {
-                        loadedFormData.rolle = getRoleFromModus(modus);
-                    }
-
-                    // Mark magic link as consumed in sessionStorage
-                    // We keep it to survive Vite HMR reloads during development
-                    sessionStorage.setItem('isFromMagicLink', 'consumed');
-
-                    setFormData(loadedFormData);
-                    setTopicGuid(response.data.topicGuid); // Persist topicGuid in state
-
-                    // If modus is not in URL (e.g. from magic link), set it from loaded data
-                    const loadedModus = loadedFormData.sak?.modus as Modus | undefined;
-                    if (!modus && loadedModus) {
-                        // Add modus to URL so submit logic and role mapping work correctly
-                        searchParams.set('modus', loadedModus);
-                        setSearchParams(searchParams, { replace: true });
-                    }
-
-                    // Set initial tab based on modus
-                    if (modus) {
-                        setActiveTab(getTabIndexFromModus(modus));
-                    }
-
-                    showToast(setToastMessage, `Sak ${internalSakId} lastet fra server`);
-                } else {
-                    setApiError(response.error || 'Kunne ikke laste sak');
-                    // Only use localStorage as fallback if we're not coming from a magic link
-                    if (loadedData && !isFromMagicLink) {
-                        setFormData(loadedData);
-                        showToast(setToastMessage, 'API ikke tilgjengelig - bruker lokal lagring');
-                    }
-                }
-            } catch (error) {
-                logger.error('Failed to load from API:', error);
-                setApiError('Nettverksfeil ved lasting av sak');
-                // Only use localStorage as fallback if we're not coming from a magic link
-                if (loadedData && !isFromMagicLink) {
-                    setFormData(loadedData);
-                }
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        if (internalSakId && isApiConnected === true) {
-            loadFromApi();
-        } else if (!internalSakId && !isFromMagicLink && loadedData && isApiConnected !== null) {
-            // No sakId and not using magic link - load from localStorage
-            setFormData(loadedData);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [internalSakId, isApiConnected]);
-
-    // Set role and tab when modus changes (fallback for when data isn't loaded from API)
-    useEffect(() => {
-        // Skip if loading, if we have a sakId (role is set during API load), or if we came from magic link (waiting for data load)
-        if (isLoading || internalSakId || isFromMagicLink) {
-            return;
-        }
-
-        if (modus) {
-            const newRole = getRoleFromModus(modus);
-            if (newRole && formData.rolle !== newRole) {
-                setFormData(prev => ({ ...prev, rolle: newRole }));
-            }
-
-            // Set initial tab based on modus
-            setActiveTab(getTabIndexFromModus(modus));
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [modus]);
-
+    // Body class for BH role styling
     useEffect(() => {
         if (formData.rolle === 'BH') {
             document.body.classList.add('bh-active');
@@ -254,7 +140,7 @@ const App: React.FC = () => {
             document.body.classList.remove('bh-active');
         }
     }, [formData.rolle]);
-    
+
     const handleRoleChange = (newRole: Role) => {
         setFormData(prev => ({ ...prev, rolle: newRole }));
     };
@@ -467,7 +353,7 @@ const App: React.FC = () => {
             </Suspense>
         );
     };
-    
+
     const renderBottomBar = () => (
         <div className="px-4 sm:px-0" role="navigation" aria-label="Steg navigasjon">
             <div className="flex justify-between items-center flex-wrap gap-4">
