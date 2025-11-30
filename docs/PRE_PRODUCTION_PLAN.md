@@ -1,0 +1,510 @@
+# Pre-Production Plan
+
+Detaljert plan for klargjøring til Azure/produksjon med kvalitetssikring mot eksisterende kode.
+
+**Versjon:** 1.0
+**Dato:** November 2025
+
+---
+
+## Innhold
+
+1. [Sammendrag](#sammendrag)
+2. [Kvalitetssikring: Eksisterende kode](#kvalitetssikring-eksisterende-kode)
+3. [Prioriterte oppgaver](#prioriterte-oppgaver)
+4. [Backend: Azure Functions migrering](#backend-azure-functions-migrering)
+5. [Frontend: Azure SWA](#frontend-azure-swa)
+6. [Sikkerhet](#sikkerhet)
+7. [Testing](#testing)
+8. [Sjekkliste](#sjekkliste)
+
+---
+
+## Sammendrag
+
+### Hva er klart
+
+| Område | Status | Kommentar |
+|--------|--------|-----------|
+| Service-lag | ✅ Ferdig | VarselService, KoeService, SvarService er framework-agnostiske |
+| Repository-pattern | ⚠️ Delvis | BaseRepository og CSVRepository eksisterer, men app.py bruker DataManager direkte |
+| CSRF-beskyttelse | ✅ Ferdig | Implementert med HMAC-signerte tokens |
+| Magic Link auth | ✅ Ferdig | Sikker token-basert autentisering |
+| Webhook-sikkerhet | ✅ Ferdig | URL-token validering (Catenda støtter ikke HMAC) |
+| Pydantic-modeller | ✅ Ferdig | Varsel, KoeRevisjon, BhSvar med validering |
+| Blueprint-arkitektur | ✅ Ferdig | Ruter separert i moduler |
+| Dokumentasjon | ✅ Ferdig | HLD, API, DEPLOYMENT, GETTING_STARTED |
+
+### Hva gjenstår
+
+| Område | Prioritet | Estimat |
+|--------|-----------|---------|
+| Konsolidere DataManager → CSVRepository | 🔴 Kritisk | Middels |
+| Azure Functions adapter | 🔴 Kritisk | Middels |
+| Aktivere sikkerhetsfunksjoner i ruter | 🟠 Høy | Lav |
+| Refaktorere App.tsx | 🟡 Medium | Middels |
+| Redis for state (rate limit, idempotency) | 🟡 Medium | Lav |
+| Øke testdekning | 🟢 Lav | Høy |
+
+---
+
+## Kvalitetssikring: Eksisterende kode
+
+### Backend-analyse
+
+#### ✅ Styrker
+
+**1. Service-lag er produksjonsklart**
+
+Services er allerede designet for gjenbruk og er framework-agnostiske:
+
+```python
+# backend/services/varsel_service.py - Eksempel på god arkitektur
+class VarselService:
+    def __init__(self, repository: BaseRepository, ...):
+        self.repo = repository  # Dependency injection
+```
+
+**2. Repository-pattern definert**
+
+`BaseRepository` (backend/repositories/base_repository.py) definerer et rent interface:
+- `get_case()`, `update_case()`, `create_case()`
+- `list_cases()`, `delete_case()`, `case_exists()`
+- `get_cases_by_catenda_topic()`
+
+**3. Sikkerhet er godt dokumentert**
+
+Webhook-sikkerhet (backend/lib/security/webhook_security.py) dokumenterer tydelig:
+```python
+# Catenda API støtter IKKE HMAC-signering av webhooks
+# Derfor bruker vi "Secret Token in URL" som autentiseringsmetode
+```
+
+**4. CSRF-beskyttelse er robust**
+
+- HMAC-SHA256 signering
+- Timestamp-validering mot replay attacks
+- Constant-time comparison mot timing attacks
+
+#### ⚠️ Forbedringspunkter
+
+**1. Duplisert logikk: DataManager vs CSVRepository**
+
+`app.py` inneholder `DataManager`-klassen (linje 109-277) som dupliserer funksjonalitet fra `CSVRepository`. Dette bryter DRY-prinsippet.
+
+**Nåværende tilstand:**
+```
+app.py → DataManager → CSV-filer (direkte)
+services/ → BaseRepository → CSVRepository → CSV-filer
+```
+
+**Ønsket tilstand:**
+```
+app.py → services/ → BaseRepository → CSVRepository/DataverseRepository
+```
+
+**2. KOEAutomationSystem har for mange ansvarsområder**
+
+Klassen (linje 280-535) håndterer:
+- Catenda-autentisering
+- Topic-håndtering
+- PDF-opplasting
+- Kommentar-posting
+
+Bør refaktoreres til å bruke eksisterende services.
+
+**3. In-memory state i produksjon**
+
+Følgende bruker in-memory storage som ikke overlever restart:
+
+| Fil | Variabel | Problem |
+|-----|----------|---------|
+| webhook_security.py | `processed_events: Set` | Idempotency tracking |
+| app.py | `limiter (storage_uri="memory://")` | Rate limiting |
+
+**Løsning:** Redis eller Azure Cache for Redis
+
+**4. Hardkodede statuskoder**
+
+Noen steder bruker hardkodede verdier:
+```python
+# backend/services/varsel_service.py:98
+sak['status'] = '100000001'  # SAK_STATUS['VARSLET']
+```
+
+Bør bruke konstanter konsekvent.
+
+### Frontend-analyse
+
+#### ⚠️ App.tsx er for stor
+
+`App.tsx` er ~700 linjer med:
+- State management (10+ useState)
+- URL parameter parsing
+- Magic link validering
+- Form submission
+- PDF-generering
+- Tab-navigasjon
+
+**Anbefaling:** Ekstraher logikk til hooks (delvis gjort) og container-komponenter.
+
+#### ✅ Styrker
+
+- Lazy loading av paneler
+- Custom hooks for gjenbrukbar logikk
+- ErrorBoundary implementert
+- Punkt design system brukt konsekvent
+
+---
+
+## Prioriterte oppgaver
+
+### 🔴 Kritisk (må gjøres før produksjon)
+
+#### 1. Konsolider DataManager → Services + Repository
+
+**Mål:** All data-tilgang går via services som bruker repository-pattern.
+
+**Trinn:**
+1. Oppdater CSVRepository til å håndtere alle DataManager-operasjoner
+2. Oppdater KOEAutomationSystem til å bruke services
+3. Fjern DataManager-klassen fra app.py
+4. Verifiser at alle tester fortsatt passerer
+
+**Berørte filer:**
+- `backend/app.py` - Fjern DataManager, oppdater KOEAutomationSystem
+- `backend/repositories/csv_repository.py` - Legg til manglende metoder
+- `backend/services/catenda_service.py` - Flytt Catenda-logikk hit
+
+#### 2. Azure Functions adapter
+
+**Mål:** Backend kan kjøres som Azure Functions uten endring i business logic.
+
+**Arkitektur:**
+```
+Azure Functions HTTP triggers
+        ↓
+    Adapter layer (ny)
+        ↓
+    Existing services
+        ↓
+    Repository (CSV/Dataverse)
+```
+
+**Ny fil:** `backend/functions/adapters.py`
+```python
+# Adapter som mapper Azure Functions request til Flask-lignende interface
+def adapt_request(req: func.HttpRequest) -> dict:
+    return {
+        'json': req.get_json(),
+        'args': dict(req.params),
+        'headers': dict(req.headers)
+    }
+```
+
+**Trinn:**
+1. Opprett `backend/functions/` mappe
+2. Lag adapter-lag for request/response
+3. Opprett function triggers som wrapper eksisterende services
+4. Test lokalt med Azure Functions Core Tools
+
+### 🟠 Høy prioritet
+
+#### 3. Aktiver sikkerhetsfunksjoner
+
+CSRF-dekorator er implementert men ikke brukt på alle ruter.
+
+**Sjekk disse rutene:**
+- `POST /api/varsel-submit` - Har `@require_csrf` ✅
+- `POST /api/koe-submit` - Verifiser
+- `POST /api/svar-submit` - Verifiser
+- `POST /api/cases/{id}/draft` - Verifiser
+
+**Rate limiting:**
+```python
+# app.py - Verifiser at limiter brukes på alle submit-endepunkter
+@limiter.limit("10 per minute")
+def submit_varsel():
+    ...
+```
+
+#### 4. Miljøvariabler for secrets
+
+Verifiser at ALLE secrets leses fra miljøvariabler:
+
+| Secret | Env var | Status |
+|--------|---------|--------|
+| CSRF secret | `CSRF_SECRET` | ✅ Implementert |
+| Webhook token | `CATENDA_WEBHOOK_TOKEN` | ✅ Implementert |
+| Catenda client secret | `CATENDA_CLIENT_SECRET` | ✅ Implementert |
+| Flask secret | `FLASK_SECRET_KEY` | Verifiser bruk |
+
+### 🟡 Medium prioritet
+
+#### 5. Redis for state management
+
+**For rate limiting:**
+```python
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    storage_uri="redis://localhost:6379"  # eller Azure Redis
+)
+```
+
+**For idempotency:**
+```python
+import redis
+r = redis.Redis(host='localhost', port=6379)
+
+def is_duplicate_event(event_id: str) -> bool:
+    key = f"webhook:event:{event_id}"
+    if r.exists(key):
+        return True
+    r.setex(key, 86400, "processed")  # 24h TTL
+    return False
+```
+
+#### 6. Refaktorer App.tsx
+
+**Ekstraher til separate komponenter:**
+1. `MagicLinkHandler.tsx` - Magic link validering og redirect
+2. `FormStateManager.tsx` - Sentralisert state management
+3. `SubmissionHandler.tsx` - PDF-generering og innsending
+
+### 🟢 Lavere prioritet
+
+#### 7. Øk testdekning
+
+**Nåværende tester:**
+- `test_routes/` - Utility, case, workflow routes
+- `test_services/` - Varsel, KOE, Svar, Catenda services
+- `test_repositories/` - CSV repository
+
+**Mangler:**
+- Webhook security tests
+- CSRF protection tests
+- Magic link tests
+- Integration tests for full workflow
+
+---
+
+## Backend: Azure Functions migrering
+
+### Filstruktur
+
+```
+backend/
+├── function_app.py           # Entry point
+├── host.json                  # Host config
+├── local.settings.json        # Local dev settings
+├── requirements.txt           # Dependencies
+│
+├── functions/                 # HTTP triggers
+│   ├── __init__.py
+│   ├── adapters.py           # Request/response adapters
+│   ├── csrf_token.py
+│   ├── get_case.py
+│   ├── save_draft.py
+│   ├── submit_varsel.py
+│   ├── submit_koe.py
+│   ├── submit_svar.py
+│   ├── upload_pdf.py
+│   ├── webhook_catenda.py
+│   └── health.py
+│
+├── services/                  # (unchanged)
+├── repositories/              # (add DataverseRepository)
+├── integrations/              # (unchanged)
+├── lib/                       # (unchanged)
+└── models/                    # (unchanged)
+```
+
+### Eksempel: function_app.py
+
+```python
+import azure.functions as func
+import json
+from functions.adapters import adapt_request, create_response
+from services.varsel_service import VarselService
+from repositories.csv_repository import CSVRepository
+
+app = func.FunctionApp()
+
+@app.route(route="health", methods=["GET"])
+def health(req: func.HttpRequest) -> func.HttpResponse:
+    return func.HttpResponse(
+        json.dumps({"status": "healthy"}),
+        mimetype="application/json"
+    )
+
+@app.route(route="varsel-submit", methods=["POST"])
+def submit_varsel(req: func.HttpRequest) -> func.HttpResponse:
+    try:
+        data = adapt_request(req)
+        repo = CSVRepository()  # eller DataverseRepository i prod
+        service = VarselService(repository=repo)
+        result = service.submit_varsel(
+            sak_id=data['json']['sakId'],
+            form_data=data['json']['formData']
+        )
+        return create_response(result, 200)
+    except ValueError as e:
+        return create_response({"error": str(e)}, 400)
+    except Exception as e:
+        return create_response({"error": "Internal error"}, 500)
+```
+
+---
+
+## Frontend: Azure SWA
+
+### Build-konfigurasjon
+
+`staticwebapp.config.json`:
+```json
+{
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": ["/api/*", "/assets/*"]
+  },
+  "routes": [
+    {
+      "route": "/api/*",
+      "allowedRoles": ["anonymous"]
+    }
+  ],
+  "globalHeaders": {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://*.azurewebsites.net"
+  }
+}
+```
+
+### Miljøvariabler
+
+| Variabel | Beskrivelse |
+|----------|-------------|
+| `VITE_API_BASE_URL` | Backend API URL |
+
+---
+
+## Sikkerhet
+
+### Webhook-sikkerhet (Catenda-spesifikt)
+
+**Viktig:** Catenda Webhook API støtter IKKE HMAC-signering. Derfor bruker vi secret token i URL:
+
+```
+https://your-backend.azurewebsites.net/api/webhook/catenda?token=SECRET
+```
+
+**Implementert i:** `backend/lib/security/webhook_security.py`
+
+**Sikkerhetstiltak:**
+1. Token validering med constant-time comparison
+2. Idempotency check (forhindrer duplikat-prosessering)
+3. Event structure validering
+4. Logging av alle webhook-forsøk
+
+**For produksjon:**
+- Generer sterkt token: `python3 -c "import secrets; print(secrets.token_urlsafe(32))"`
+- Lagre i Azure Key Vault
+- Roter token regelmessig
+- Overvåk for mislykkede autentiseringsforsøk
+
+### CSRF-beskyttelse
+
+**Implementert i:** `backend/lib/auth/csrf_protection.py`
+
+**Mekanisme:**
+1. Klient henter token via `GET /api/csrf-token`
+2. Token sendes i `X-CSRF-Token` header på muterende requests
+3. Server validerer token (signatur, timestamp)
+
+### Magic Links
+
+**Implementert i:** `backend/lib/auth/magic_link.py`
+
+**For produksjon:**
+- Reduser token-levetid (nå: 24 timer, anbefalt: 1-4 timer)
+- Logg all magic link bruk
+- Implementer bruksbegrensning (én gang per token)
+
+---
+
+## Testing
+
+### Backend-tester
+
+```bash
+cd backend
+pip install pytest pytest-cov
+python -m pytest tests/ -v --cov=. --cov-report=html
+```
+
+**Testdekning-mål:**
+| Område | Mål | Nåværende |
+|--------|-----|-----------|
+| Services | 80% | ~70% |
+| Routes | 70% | ~60% |
+| Repositories | 90% | ~80% |
+| Security | 90% | ~50% |
+
+### Frontend-tester
+
+```bash
+npm test
+```
+
+### E2E-tester (anbefalt)
+
+Opprett Playwright/Cypress-tester for:
+1. Magic link flow
+2. Varsel submission
+3. KOE submission
+4. BH svar submission
+5. PDF-generering
+
+---
+
+## Sjekkliste
+
+### Før produksjon
+
+- [ ] DataManager konsolidert til services + repository
+- [ ] Azure Functions struktur opprettet
+- [ ] Alle secrets i miljøvariabler
+- [ ] CSRF aktivert på alle muterende endepunkter
+- [ ] Rate limiting konfigurert
+- [ ] Redis for state (rate limit, idempotency)
+- [ ] Webhook URL med token konfigurert i Catenda
+- [ ] Backend tester passerer
+- [ ] Frontend tester passerer
+- [ ] Application Insights konfigurert
+- [ ] Alerts satt opp
+- [ ] Custom domain konfigurert
+- [ ] SSL-sertifikat
+
+### Deploy-dag
+
+- [ ] Deploy backend til Azure Functions
+- [ ] Deploy frontend til Azure SWA
+- [ ] Oppdater Catenda webhook URL
+- [ ] Smoke test: Health endpoint
+- [ ] Smoke test: Magic link flow
+- [ ] Smoke test: Submit varsel
+- [ ] Verifiser logging
+
+---
+
+## Se også
+
+- [HLD - Overordnet Design](HLD%20-%20Overordnet%20Design.md)
+- [DEPLOYMENT.md](DEPLOYMENT.md) - Detaljert deployment-guide
+- [API.md](API.md) - API-referanse
+- [GETTING_STARTED.md](GETTING_STARTED.md) - Utvikler-oppsett
