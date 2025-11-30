@@ -192,7 +192,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
         <PktAlert skin="info" compact>
           <span>
             Denne fanen viser kun siste sendte revisjon og ny revisjon under arbeid.
-            Se alle {koe_revisjoner.length} revisjoner i <strong>Test-fanen</strong>.
+            Se alle {koe_revisjoner.length} revisjoner i <strong>Saksoversikt-fanen</strong>.
           </span>
         </PktAlert>
       )}
