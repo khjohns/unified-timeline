@@ -111,18 +111,27 @@ FLASK_SECRET_KEY=en_annen_tilfeldig_streng
 # CORS (frontend-URL)
 ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 
-# === Catenda (valgfritt for grunnleggende utvikling) ===
+# === Catenda (påkrevd for full funksjonalitet) ===
 
-# Catenda OAuth-legitimasjon
+# Catenda OAuth-legitimasjon (fra Catenda Developer Portal)
 CATENDA_CLIENT_ID=din_client_id
 CATENDA_CLIENT_SECRET=din_client_secret
 
 # Catenda prosjekt-ID
 CATENDA_PROJECT_ID=ditt_prosjekt_id
 
+# OAuth tokens (genereres av setup_authentication.py)
+CATENDA_ACCESS_TOKEN=
+CATENDA_REFRESH_TOKEN=
+
+# Frontend URL for magic links
+DEV_REACT_APP_URL=http://localhost:3000/Skjema_Endringsmeldinger
+
 # Webhook-token (for Catenda webhook-autentisering)
 CATENDA_WEBHOOK_TOKEN=tilfeldig_token_for_webhooks
 ```
+
+> **Merk:** All konfigurasjon lagres nå i `.env`-filen. `config.json` brukes ikke lenger.
 
 ### Frontend (.env.local)
 

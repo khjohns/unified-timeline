@@ -12,14 +12,20 @@ from pathlib import Path
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 
-# Import fra hovedscriptet
+# Legg til parent directory i path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+# Last .env
+from dotenv import load_dotenv
+load_dotenv(Path(__file__).parent.parent / ".env")
+
+# Import settings og Catenda client
 try:
-    import sys
-sys.path.insert(0, "..")
-from integrations.catenda import CatendaClient
-except ImportError:
-    print("❌ Finner ikke catenda_api_tester.py")
-    print("Sørg for at begge filene er i samme mappe.")
+    from core.config import settings
+    from integrations.catenda import CatendaClient
+except ImportError as e:
+    print(f"❌ Import feilet: {e}")
+    print("Sørg for at scriptet kjøres fra backend/-mappen.")
     sys.exit(1)
 
 
@@ -63,19 +69,17 @@ class CatendaInteractiveMenu:
     def initialize_connection(self) -> bool:
         """Initialiser forbindelse til Catenda"""
         self.print_header("🔐 Koble til Catenda")
-        
+
         try:
-            # Last inn credentials
-            print("Leser credentials fra config.json...")
-            with open('config.json', 'r') as f:
-                config = json.load(f)
-            
-            client_id = config.get('catenda_client_id')
-            client_secret = config.get('catenda_client_secret')
-            access_token_from_config = config.get('catenda_access_token')
+            # Last inn credentials fra .env (via settings)
+            print("Leser credentials fra .env...")
+            client_id = settings.catenda_client_id
+            client_secret = settings.catenda_client_secret
+            access_token_from_config = settings.catenda_access_token
 
             if not client_id:
-                print("❌ Finner ikke 'catenda_client_id' i config.json")
+                print("❌ CATENDA_CLIENT_ID mangler i .env")
+                print("   Kjør 'python scripts/setup_authentication.py' for å konfigurere.")
                 return False
             
             # Opprett tester-objekt
@@ -92,27 +96,27 @@ class CatendaInteractiveMenu:
             print("\nAutentiserer...")
             if not self.tester.ensure_authenticated():
                 if not self.tester.authenticate():
-                    print("❌ Autentisering feilet. Sjekk credentials i config.json.")
-                    print("Hvis du ikke er Boost-kunde, må du hente token manuelt.")
+                    print("❌ Autentisering feilet. Sjekk credentials i .env")
+                    print("   Kjør 'python scripts/setup_authentication.py' for nytt token.")
                     return False
 
             print("✅ Autentisering vellykket!")
-            
-            # Hent project og library ID fra config, eller be brukeren
-            self.project_id = config.get('catenda_project_id')
+
+            # Hent project og library ID fra .env, eller be brukeren
+            self.project_id = settings.catenda_project_id
             if not self.project_id:
                 print("\nOppgi informasjon om Catenda-prosjektet:")
                 self.project_id = input("Catenda Project ID: ").strip()
             else:
-                print(f"\nBruker Project ID fra config: {self.project_id}")
+                print(f"\nBruker Project ID fra .env: {self.project_id}")
 
             if not self.project_id:
                 print("❌ Project ID er påkrevd")
                 return False
 
-            self.library_id = config.get('catenda_library_id')
+            self.library_id = settings.catenda_library_id
             if self.library_id:
-                print(f"Bruker Library ID fra config: {self.library_id}")
+                print(f"Bruker Library ID fra .env: {self.library_id}")
 
 
             # Hent topic boards
@@ -162,15 +166,7 @@ class CatendaInteractiveMenu:
             
             print("\n✅ Forbindelse etablert!")
             return True
-            
-        except FileNotFoundError:
-            print("❌ Finner ikke config.json")
-            print("Opprett en fil config.json med:")
-            print(json.dumps({
-                "catenda_client_id": "din-client-id",
-                "catenda_client_secret": "ditt-client-secret"
-            }, indent=2))
-            return False
+
         except Exception as e:
             print(f"❌ Feil ved initialisering: {e}")
             self.logger.exception("Initialization error")
