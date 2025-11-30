@@ -288,7 +288,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                         label="Frist for spesifisering (hvis aktuelt)"
                         value={bh_svar.frist.bh_frist_for_spesifisering}
                         onChange={value => handleChange(index, 'frist.bh_frist_for_spesifisering', value)}
-                        helpText="Frist for ytterligere dokumentasjon"
+                        helpText="Velg en dato krav om fristforlengelse må være spesifisert"
                         className="w-full md:max-w-sm"
                         readOnly={erLaast}
                       />
