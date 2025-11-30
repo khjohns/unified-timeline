@@ -3,7 +3,7 @@ import { FormDataModel } from '../../types';
 import { InputField, DateField } from '../ui/Field';
 import FieldsetCard from '../ui/FieldsetCard';
 import PanelLayout from '../ui/PanelLayout';
-import { PktTag, PktMessagebox } from '@oslokommune/punkt-react';
+import { PktTag, PktAlert } from '@oslokommune/punkt-react';
 import { getSakStatusSkin, getSakStatusLabel } from '../../utils/statusHelpers';
 
 interface GrunninfoPanelProps {
@@ -21,7 +21,7 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
     <PanelLayout>
       <div className="space-y-6">
         {/* Metadata tabell - automatisk genererte felt */}
-        <PktMessagebox title="Saksmetadata (automatisk)" skin="blue" compact>
+        <PktAlert title="Saksmetadata (automatisk)" skin="info">
           <div>
             <table className="w-full text-sm border-collapse">
               <tbody>
@@ -47,7 +47,7 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
               Disse feltene settes automatisk av systemet og kan ikke endres manuelt
             </p>
           </div>
-        </PktMessagebox>
+        </PktAlert>
 
             <FieldsetCard legend="Saksdetaljer">
               <div className="grid grid-cols-1 gap-6">

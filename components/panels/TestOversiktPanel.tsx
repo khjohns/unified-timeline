@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FormDataModel } from '../../types';
-import { PktTag, PktButton, PktMessagebox } from '@oslokommune/punkt-react';
+import { PktTag, PktButton, PktAlert } from '@oslokommune/punkt-react';
 import { HOVEDKATEGORI_OPTIONS, UNDERKATEGORI_MAP } from '../../constants';
 import {
   getSakStatusLabel,
@@ -229,9 +229,9 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
           Krav fra entreprenør - Revisjonshistorikk
         </h3>
         {koe_revisjoner.length === 0 ? (
-          <PktMessagebox title="" skin="beige" compact>
+          <PktAlert skin="info" compact>
             <span>Ingen revisjoner registrert ennå</span>
-          </PktMessagebox>
+          </PktAlert>
         ) : (
           <div className="overflow-x-auto rounded-lg border border-border-color bg-white shadow-sm">
             <table className="custom-grid-table">
@@ -424,9 +424,9 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
           Svar fra byggherre - Revisjonshistorikk
         </h3>
         {bh_svar_revisjoner.length === 0 ? (
-          <PktMessagebox title="" skin="beige" compact>
+          <PktAlert skin="info" compact>
             <span>Ingen svar registrert ennå</span>
-          </PktMessagebox>
+          </PktAlert>
         ) : (
           <div className="overflow-x-auto rounded-lg border border-border-color bg-white shadow-sm">
             <table className="custom-grid-table">
@@ -544,13 +544,13 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
       </section>
 
       {/* Legend */}
-      <PktMessagebox title="Om denne visningen" skin="blue" compact>
+      <PktAlert title="Om denne visningen" skin="info" compact>
         <ul className="list-disc list-inside space-y-1 text-xs">
           <li>Tabellene viser alle revisjoner side-ved-side for enkel sammenligning.</li>
           <li>Du kan scrolle horisontalt i tabellene. Første kolonne (Feltnavn) står stille når du scroller.</li>
           <li>Visningen er tilpasset små skjermer med "sticky" feltnavn.</li>
         </ul>
-      </PktMessagebox>
+      </PktAlert>
 
       {/* Begrunnelse Modal */}
       <BegrunnelseModal

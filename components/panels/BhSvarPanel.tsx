@@ -3,7 +3,7 @@ import { FormDataModel } from '../../types';
 import { InputField, SelectField, TextareaField, CheckboxField, DateField } from '../ui/Field';
 import FieldsetCard from '../ui/FieldsetCard';
 import PanelLayout from '../ui/PanelLayout';
-import { PktButton, PktTag, PktMessagebox } from '@oslokommune/punkt-react';
+import { PktButton, PktTag, PktAlert } from '@oslokommune/punkt-react';
 import { BH_VEDERLAGSSVAR_OPTIONS, BH_FRISTSVAR_OPTIONS } from '../../constants';
 import { getSvarStatusLabel, getSvarStatusSkin } from '../../utils/statusHelpers';
 import { useFileUpload } from '../../hooks/useFileUpload';
@@ -196,12 +196,12 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
   return (
     <PanelLayout>
       {harFlereRevisjoner && (
-        <PktMessagebox title="" skin="blue" compact>
+        <PktAlert skin="info" compact>
           <span>
             Denne fanen viser kun siste sendte svar og nytt svar under arbeid.
             Se alle {bh_svar_revisjoner.length} svar i <strong>Test-fanen</strong>.
           </span>
-        </PktMessagebox>
+        </PktAlert>
       )}
 
       <div className="space-y-12">
@@ -396,11 +396,9 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                         </div>
                       )}
                       {signerName && !validationError && (
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                          <p className="text-sm text-green-800">
-                            <strong>Validert bruker:</strong> {signerName}
-                          </p>
-                        </div>
+                        <PktAlert skin="success" compact>
+                          <span><strong>Validert bruker:</strong> {signerName}</span>
+                        </PktAlert>
                       )}
                     </div>
                   )}
@@ -421,9 +419,9 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                       </dl>
                     </div>
                   ) : (
-                    <PktMessagebox title="" skin="blue" compact>
+                    <PktAlert skin="info" compact>
                       <span>Dato og signatur settes automatisk når svaret sendes</span>
-                    </PktMessagebox>
+                    </PktAlert>
                   )}
                 </FieldsetCard>
 

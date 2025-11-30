@@ -3,7 +3,7 @@ import { FormDataModel, Role, BhSvar, Koe } from './types';
 import { TABS, INITIAL_FORM_DATA, DEMO_DATA } from './constants';
 import Toast from './components/ui/Toast';
 import { generatePdfReact, generatePdfBlob } from './utils/pdfGeneratorReact';
-import { PktHeader, PktButton, PktTabs, PktTabItem, PktAlert, PktMessagebox } from '@oslokommune/punkt-react';
+import { PktHeader, PktButton, PktTabs, PktTabItem, PktAlert } from '@oslokommune/punkt-react';
 import { useSkjemaData } from './hooks/useSkjemaData';
 import { useAutoSave } from './hooks/useAutoSave';
 import { useUrlParams } from './hooks/useUrlParams';
@@ -588,7 +588,7 @@ const App: React.FC = () => {
                 {/* Mode and SakId Info Banner */}
                 {(internalSakId || modus) && (
                     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
-                        <PktMessagebox title="" skin="blue" compact>
+                        <PktAlert skin="info" compact>
                             <div className="flex items-center gap-4 text-sm">
                                 {internalSakId && (
                                     <span>
@@ -611,7 +611,7 @@ const App: React.FC = () => {
                                     </span>
                                 )}
                             </div>
-                        </PktMessagebox>
+                        </PktAlert>
                     </div>
                 )}
 
