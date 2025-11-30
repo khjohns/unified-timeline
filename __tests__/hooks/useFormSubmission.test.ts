@@ -19,7 +19,7 @@ import { generatePdfBlob } from '../../utils/pdfGeneratorReact';
 import { showToast } from '../../utils/toastHelpers';
 import { focusOnField } from '../../utils/focusHelpers';
 import { logger } from '../../utils/logger';
-import { INITIAL_FORM_DATA } from '../../constants';
+import { INITIAL_FORM_DATA } from '../../config';
 
 // Mock dependencies
 vi.mock('../../services/api', () => ({

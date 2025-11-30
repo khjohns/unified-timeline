@@ -3,7 +3,7 @@ import { FormDataModel } from '../../types';
 import { DateField, SelectField, TextareaField, InputField } from '../ui/Field';
 import FieldsetCard from '../ui/FieldsetCard';
 import PanelLayout from '../ui/PanelLayout';
-import { HOVEDKATEGORI_OPTIONS, UNDERKATEGORI_MAP } from '../../constants';
+import { HOVEDKATEGORI_OPTIONS, UNDERKATEGORI_MAP } from '../../config';
 import { PktButton, PktAlert, PktCheckbox, PktRadioButton } from '@oslokommune/punkt-react';
 import { useFileUpload } from '../../hooks/useFileUpload';
 import { useEmailValidation } from '../../hooks/useEmailValidation';

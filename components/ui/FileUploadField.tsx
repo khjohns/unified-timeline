@@ -1,5 +1,5 @@
 import React, { RefObject, ChangeEvent, useState, useCallback } from 'react';
-import { ACCEPTED_FILE_TYPES } from '../../constants';
+import { ACCEPTED_FILE_TYPES } from '../../config';
 
 interface FileUploadFieldProps {
   uploadedFiles: File[];

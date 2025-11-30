@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FormDataModel } from '../../types';
 import { PktTag, PktButton, PktAlert } from '@oslokommune/punkt-react';
-import { HOVEDKATEGORI_OPTIONS, UNDERKATEGORI_MAP } from '../../constants';
+import { HOVEDKATEGORI_OPTIONS, UNDERKATEGORI_MAP } from '../../config';
 import {
   getSakStatusLabel,
   getSakStatusSkin,

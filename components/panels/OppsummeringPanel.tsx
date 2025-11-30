@@ -1,7 +1,7 @@
 import React from 'react';
 import { FormDataModel } from '../../types';
 import { PktAccordion, PktAccordionItem, PktTag } from '@oslokommune/punkt-react';
-import { TABS, HOVEDKATEGORI_OPTIONS, UNDERKATEGORI_MAP } from '../../constants';
+import { TABS, HOVEDKATEGORI_OPTIONS, UNDERKATEGORI_MAP } from '../../config';
 import { getSakStatusLabel, getSakStatusSkin, getKravStatusLabel, getKravStatusSkin, getSvarStatusLabel, getSvarStatusSkin } from '../../utils/statusHelpers';
 
 interface OppsummeringPanelProps {

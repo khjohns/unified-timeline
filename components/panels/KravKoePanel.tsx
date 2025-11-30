@@ -4,7 +4,7 @@ import { InputField, SelectField, TextareaField, CheckboxField, DateField } from
 import FieldsetCard from '../ui/FieldsetCard';
 import PanelLayout from '../ui/PanelLayout';
 import { PktButton, PktCheckbox, PktTag, PktRadioButton, PktAlert } from '@oslokommune/punkt-react';
-import { VEDERLAGSMETODER_OPTIONS } from '../../constants';
+import { VEDERLAGSMETODER_OPTIONS } from '../../config';
 import { getKravStatusLabel, getKravStatusSkin, KOE_STATUS, SAK_STATUS } from '../../utils/statusHelpers';
 import { useFileUpload } from '../../hooks/useFileUpload';
 import { useEmailValidation } from '../../hooks/useEmailValidation';
