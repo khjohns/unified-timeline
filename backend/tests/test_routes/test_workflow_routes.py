@@ -10,6 +10,7 @@ Tests complete KOE workflow:
 import pytest
 import json
 from unittest.mock import MagicMock
+from constants import BH_VEDERLAG_SVAR, BH_FRIST_SVAR
 
 
 class TestVarselRoutes:
@@ -42,10 +43,6 @@ class TestVarselRoutes:
 
     def test_varsel_submit_auto_populates_date(self, client, mock_system, test_sak_with_data):
         """Test that varsel date is auto-populated"""
-        mock_mgr = MagicMock()
-        mock_mgr.generate.return_value = 'test-token-123'
-        monkeypatch.setattr('routes.varsel_routes.MagicLinkManager', lambda: mock_mgr)
-
         sak_id = test_sak_with_data['sak_id']
         form_data = test_sak_with_data['data'].copy()
         form_data['varsel'] = {}  # No date
@@ -69,10 +66,6 @@ class TestVarselRoutes:
 
     def test_varsel_submit_creates_first_koe_revision(self, client, mock_system, test_sak_with_data):
         """Test that varsel submission creates first KOE revision template"""
-        mock_mgr = MagicMock()
-        mock_mgr.generate.return_value = 'test-token-123'
-        monkeypatch.setattr('routes.varsel_routes.MagicLinkManager', lambda: mock_mgr)
-
         sak_id = test_sak_with_data['sak_id']
         form_data = test_sak_with_data['data'].copy()
         form_data['varsel'] = {'hovedkategori': 'Test'}
@@ -113,10 +106,6 @@ class TestKoeRoutes:
 
     def test_koe_submit_success(self, client, mock_system, test_sak_with_data, test_koe_data):
         """Test successful KOE submission"""
-        mock_mgr = MagicMock()
-        mock_mgr.generate.return_value = 'test-token-123'
-        monkeypatch.setattr('routes.koe_routes.MagicLinkManager', lambda: mock_mgr)
-
         sak_id = test_sak_with_data['sak_id']
         form_data = test_sak_with_data['data'].copy()
         form_data['koe_revisjoner'][-1]['vederlag'] = {
@@ -154,10 +143,6 @@ class TestKoeRoutes:
 
     def test_koe_submit_creates_first_bh_svar(self, client, mock_system, test_sak_with_data):
         """Test that KOE submission creates first BH svar template"""
-        mock_mgr = MagicMock()
-        mock_mgr.generate.return_value = 'test-token-123'
-        monkeypatch.setattr('routes.koe_routes.MagicLinkManager', lambda: mock_mgr)
-
         sak_id = test_sak_with_data['sak_id']
         form_data = test_sak_with_data['data'].copy()
         form_data['bh_svar_revisjoner'] = []  # Empty
@@ -180,10 +165,6 @@ class TestKoeRoutes:
 
     def test_koe_revidering_submit(self, client, mock_system, test_sak_with_data):
         """Test submission of revised KOE"""
-        mock_mgr = MagicMock()
-        mock_mgr.generate.return_value = 'test-token-123'
-        monkeypatch.setattr('routes.koe_routes.MagicLinkManager', lambda: mock_mgr)
-
         sak_id = test_sak_with_data['sak_id']
         form_data = test_sak_with_data['data'].copy()
 
@@ -261,21 +242,17 @@ class TestSvarRoutes:
 
     def test_svar_submit_full_approval(self, client, mock_system, test_sak_with_data):
         """Test full approval of KOE"""
-        mock_mgr = MagicMock()
-        mock_mgr.generate.return_value = 'test-token-123'
-        monkeypatch.setattr('routes.svar_routes.MagicLinkManager', lambda: mock_mgr)
-
         sak_id = test_sak_with_data['sak_id']
         form_data = test_sak_with_data['data'].copy()
 
         # Add BH svar with full approval
         form_data['bh_svar_revisjoner'] = [{
             'vederlag': {
-                'bh_svar_vederlag': 'godkjent_fullt',
+                'bh_svar_vederlag': BH_VEDERLAG_SVAR['GODKJENT_FULLT'],
                 'bh_godkjent_vederlag_belop': '50000'
             },
             'frist': {
-                'bh_svar_frist': 'godkjent_fullt',
+                'bh_svar_frist': BH_FRIST_SVAR['GODKJENT_FULLT'],
                 'bh_godkjent_frist_dager': '14'
             },
             'sign': {}
@@ -301,21 +278,17 @@ class TestSvarRoutes:
 
     def test_svar_submit_partial_approval_creates_revision(self, client, mock_system, test_sak_with_data):
         """Test partial approval creates new revision"""
-        mock_mgr = MagicMock()
-        mock_mgr.generate.return_value = 'test-token-123'
-        monkeypatch.setattr('routes.svar_routes.MagicLinkManager', lambda: mock_mgr)
-
         sak_id = test_sak_with_data['sak_id']
         form_data = test_sak_with_data['data'].copy()
 
         # Add BH svar with partial approval (vederlag rejected, frist approved)
         form_data['bh_svar_revisjoner'] = [{
             'vederlag': {
-                'bh_svar_vederlag': 'avslatt',  # Rejected
+                'bh_svar_vederlag': BH_VEDERLAG_SVAR['AVSLÅTT_UENIG'],  # Rejected
                 'bh_begrunnelse_vederlag': 'For høyt beløp'
             },
             'frist': {
-                'bh_svar_frist': 'godkjent_fullt',  # Approved
+                'bh_svar_frist': BH_FRIST_SVAR['GODKJENT_FULLT'],  # Approved
                 'bh_godkjent_frist_dager': '14'
             },
             'sign': {}
@@ -347,12 +320,6 @@ class TestWorkflowIntegration:
 
     def test_complete_workflow_full_approval(self, client, mock_system, test_sak_data, test_varsel_data, test_koe_data):
         """Test complete KOE workflow with full approval"""
-        mock_mgr = MagicMock()
-        mock_mgr.generate.return_value = 'test-token-123'
-        monkeypatch.setattr('routes.varsel_routes.MagicLinkManager', lambda: mock_mgr)
-        monkeypatch.setattr('routes.koe_routes.MagicLinkManager', lambda: mock_mgr)
-        monkeypatch.setattr('routes.svar_routes.MagicLinkManager', lambda: mock_mgr)
-
         # 1. Create case
         sak_id = mock_system.db.create_sak(test_sak_data)
         form_data = mock_system.db.get_form_data(sak_id)
@@ -392,10 +359,10 @@ class TestWorkflowIntegration:
         # 4. Submit BH svar with full approval
         form_data = mock_system.db.get_form_data(sak_id)
         form_data['bh_svar_revisjoner'][-1]['vederlag'] = {
-            'bh_svar_vederlag': 'godkjent_fullt'
+            'bh_svar_vederlag': BH_VEDERLAG_SVAR['GODKJENT_FULLT']
         }
         form_data['bh_svar_revisjoner'][-1]['frist'] = {
-            'bh_svar_frist': 'godkjent_fullt'
+            'bh_svar_frist': BH_FRIST_SVAR['GODKJENT_FULLT']
         }
         response = client.post(
             '/api/svar-submit',
@@ -412,4 +379,4 @@ class TestWorkflowIntegration:
         final_data = mock_system.db.get_form_data(sak_id)
         assert final_data['varsel']['hovedkategori'] == 'Risiko'
         assert final_data['koe_revisjoner'][-1]['vederlag']['krav_vederlag'] is True
-        assert final_data['bh_svar_revisjoner'][-1]['vederlag']['bh_svar_vederlag'] == 'godkjent_fullt'
+        assert final_data['bh_svar_revisjoner'][-1]['vederlag']['bh_svar_vederlag'] == BH_VEDERLAG_SVAR['GODKJENT_FULLT']
