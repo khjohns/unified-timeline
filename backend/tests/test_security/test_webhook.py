@@ -91,10 +91,10 @@ class TestWebhookSecurity:
 
     def test_webhook_idempotency_check(self):
         """Test that duplicate events are detected"""
-        from lib.security.webhook_security import is_duplicate_event, processed_events
+        from lib.security.webhook_security import is_duplicate_event, clear_processed_events
 
         # Clear processed events for clean test
-        processed_events.clear()
+        clear_processed_events()
 
         event_id = 'test-event-idempotency-123'
 
