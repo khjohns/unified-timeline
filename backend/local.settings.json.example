@@ -1,0 +1,22 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+
+    "CSRF_SECRET": "your-csrf-secret-here",
+    "WEBHOOK_SECRET_PATH": "your-webhook-secret-path-here",
+
+    "CATENDA_CLIENT_ID": "your-catenda-client-id",
+    "CATENDA_CLIENT_SECRET": "your-catenda-client-secret",
+    "CATENDA_PROJECT_ID": "your-catenda-project-id",
+    "CATENDA_ORGANIZATION_ID": "your-catenda-org-id",
+    "CATENDA_LIBRARY_ID": "your-catenda-library-id",
+
+    "REACT_APP_URL": "https://your-frontend.azurestaticapps.net"
+  },
+  "Host": {
+    "CORS": "*",
+    "CORSCredentials": false
+  }
+}

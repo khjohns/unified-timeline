@@ -13,6 +13,7 @@ from lib.security.webhook_security import (
     is_duplicate_event,
     get_webhook_event_id
 )
+from lib.security.rate_limiter import limit_webhook
 from lib.monitoring.audit import audit
 
 logger = logging.getLogger(__name__)
@@ -24,10 +25,13 @@ webhook_bp = Blueprint('webhook', __name__)
 WEBHOOK_SECRET_PATH = os.getenv("WEBHOOK_SECRET_PATH")
 if not WEBHOOK_SECRET_PATH:
     logger.warning("⚠️  WEBHOOK_SECRET_PATH er ikke satt i .env. Webhook-endepunktet er deaktivert.")
+    # Bruk en placeholder-path som alltid returnerer 404 for sikkerhet
+    WEBHOOK_SECRET_PATH = "__disabled__"
 
 
-@webhook_bp.route(f'/webhook/catenda/{WEBHOOK_SECRET_PATH}', methods=['POST'])
-def webhook():
+@webhook_bp.route(f'/webhook/catenda/<secret_path>', methods=['POST'])
+@limit_webhook  # Rate limiting (100/min default)
+def webhook(secret_path):
     """
     Webhook endpoint for Catenda events.
 
@@ -53,6 +57,12 @@ def webhook():
         - {"status": "ignored"} for unknown event types
         - {"status": "already_processed"} for duplicate events
     """
+    # 0. Valider secret path
+    expected_secret = os.getenv("WEBHOOK_SECRET_PATH")
+    if not expected_secret or secret_path != expected_secret:
+        logger.warning(f"Ugyldig webhook path forsøk: /{secret_path[:8]}...")
+        return jsonify({"error": "Not found"}), 404
+
     # Import here to avoid circular imports
     from app import get_system
 

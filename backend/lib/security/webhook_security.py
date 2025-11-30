@@ -23,6 +23,10 @@ Security Features:
 3. Event Structure Validation - Valider payload-format
 4. Event ID Tracking - Hold styr på prosesserte events
 
+Storage Backend:
+- Prototype: In-memory Set (data tapt ved restart)
+- Produksjon: Redis med TTL (sett REDIS_URL i .env)
+
 Referanser:
 - Catenda Webhook API dokumentasjon
 - OWASP Webhook Security
@@ -37,19 +41,61 @@ Forfatter: Claude
 Dato: 2025-11-24 (oppdatert: 2025-11-30)
 """
 
-from typing import Tuple, Set
-from datetime import datetime, timedelta
+import os
+import logging
+from typing import Tuple, Set, Optional
 
-# Idempotency tracking (in-memory for prototype)
-# I produksjon: Bruk Redis eller database med TTL
-processed_events: Set[str] = set()
+logger = logging.getLogger(__name__)
 
 # TTL for processed events (hvor lenge vi husker at event er prosessert)
-IDEMPOTENCY_TTL_HOURS = 24
+IDEMPOTENCY_TTL_SECONDS = int(os.getenv('IDEMPOTENCY_TTL_HOURS', '24')) * 3600
 
-# NOTE: Webhook-autentisering skjer via secret path i URL, ikke query parameter.
-# Se webhook_routes.py: @webhook_bp.route(f'/webhook/catenda/{WEBHOOK_SECRET_PATH}')
-# Requests til feil path gir automatisk 404 fra Flask.
+# Redis connection (lazy initialized)
+_redis_client: Optional[object] = None
+_redis_available: Optional[bool] = None
+
+# Fallback: In-memory storage for prototype
+_processed_events: Set[str] = set()
+
+
+def _get_redis():
+    """
+    Get Redis client (lazy initialization).
+
+    Returns:
+        Redis client or None if not available
+    """
+    global _redis_client, _redis_available
+
+    if _redis_available is False:
+        return None
+
+    if _redis_client is not None:
+        return _redis_client
+
+    redis_url = os.getenv('REDIS_URL')
+    if not redis_url:
+        _redis_available = False
+        logger.info("REDIS_URL ikke satt - bruker in-memory idempotency tracking")
+        return None
+
+    try:
+        import redis
+        _redis_client = redis.from_url(redis_url)
+        # Test connection
+        _redis_client.ping()
+        _redis_available = True
+        logger.info(f"✅ Redis tilkoblet for idempotency tracking")
+        return _redis_client
+    except ImportError:
+        _redis_available = False
+        logger.warning("⚠️  redis-py ikke installert. Bruker in-memory storage.")
+        logger.warning("   Installer med: pip install redis")
+        return None
+    except Exception as e:
+        _redis_available = False
+        logger.warning(f"⚠️  Kunne ikke koble til Redis: {e}. Bruker in-memory storage.")
+        return None
 
 
 def is_duplicate_event(event_id: str) -> bool:
@@ -64,13 +110,9 @@ def is_duplicate_event(event_id: str) -> bool:
     For å unngå duplikat-prosessering (f.eks. opprette samme sak to ganger),
     holder vi styr på event IDs vi har sett før.
 
-    Implementasjon (Prototype):
-    - In-memory Set (rask, men data går tapt ved restart)
-    - Ingen TTL cleanup (vil vokse over tid)
-
-    Implementasjon (Production):
-    - Redis med TTL (data persistert, automatisk cleanup)
-    - Database tabell med created_at + periodic cleanup job
+    Storage:
+    - Redis med TTL hvis REDIS_URL er satt (anbefalt for produksjon)
+    - In-memory Set som fallback (data tapt ved restart)
 
     Args:
         event_id: Unik ID for webhook event (fra Catenda payload)
@@ -84,39 +126,45 @@ def is_duplicate_event(event_id: str) -> bool:
         >>> is_duplicate_event("evt_12345")
         True   # Andre gang
     """
-    if event_id in processed_events:
+    redis_client = _get_redis()
+
+    if redis_client:
+        # Use Redis with TTL
+        key = f"webhook:event:{event_id}"
+        try:
+            # SETNX returns True if key was set (new event), False if exists
+            was_set = redis_client.setnx(key, "1")
+            if was_set:
+                # Set TTL on new key
+                redis_client.expire(key, IDEMPOTENCY_TTL_SECONDS)
+                return False  # Not a duplicate
+            return True  # Is a duplicate
+        except Exception as e:
+            logger.error(f"Redis error in idempotency check: {e}")
+            # Fall back to in-memory
+            return _is_duplicate_memory(event_id)
+    else:
+        return _is_duplicate_memory(event_id)
+
+
+def _is_duplicate_memory(event_id: str) -> bool:
+    """In-memory fallback for idempotency check."""
+    if event_id in _processed_events:
         return True
-
-    # Marker som prosessert
-    processed_events.add(event_id)
-
-    # TODO (Production): Implement TTL cleanup
-    # For prototype: Events forblir i memory til server restart
-    # For production: Bruk Redis SETEX eller database med scheduled cleanup
-
+    _processed_events.add(event_id)
     return False
 
 
-def clear_old_events():
+def clear_processed_events():
     """
-    Cleanup-funksjon for å fjerne gamle event IDs fra idempotency tracking.
+    Tøm prosesserte events (for testing eller manuell cleanup).
 
-    Denne funksjonen er kun en placeholder for prototype.
-    I produksjon må dette kjøres periodisk (f.eks. hver time).
-
-    Implementation ideas:
-    1. Scheduled job (APScheduler, Celery Beat)
-    2. Database cleanup: DELETE FROM events WHERE created_at < NOW() - INTERVAL '24 hours'
-    3. Redis TTL: SETEX event_id 86400 "processed" (automatisk cleanup)
-
-    For prototype:
-    - Kan ignoreres (minne brukes opp over tid, men ok for demo)
-    - Ved restart: processed_events Set tømmes automatisk
+    For Redis: Ikke nødvendig pga TTL.
+    For in-memory: Tømmer settet.
     """
-    # Placeholder - implementer i produksjon
-    # cutoff_time = datetime.utcnow() - timedelta(hours=IDEMPOTENCY_TTL_HOURS)
-    # ... fjern events eldre enn cutoff_time ...
-    pass
+    global _processed_events
+    _processed_events = set()
+    logger.info("Cleared in-memory processed events")
 
 
 def validate_webhook_event_structure(payload: dict) -> Tuple[bool, str]:

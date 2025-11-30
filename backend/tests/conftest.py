@@ -28,7 +28,8 @@ csrf_protection.require_csrf = mock_require_csrf
 import lib.auth
 lib.auth.require_csrf = mock_require_csrf
 
-from app import app as flask_app, KOEAutomationSystem, DataManager
+from app import app as flask_app, KOEAutomationSystem
+from repositories.csv_repository import CSVRepository
 from core.generated_constants import SAK_STATUS, KOE_STATUS, BH_SVAR_STATUS
 
 
@@ -62,9 +63,9 @@ def temp_data_dir():
 
 
 @pytest.fixture
-def mock_data_manager(temp_data_dir):
-    """Create real DataManager with temporary directory"""
-    return DataManager(data_dir=temp_data_dir)
+def mock_repository(temp_data_dir):
+    """Create real CSVRepository with temporary directory"""
+    return CSVRepository(data_dir=temp_data_dir)
 
 
 @pytest.fixture
@@ -101,7 +102,7 @@ def mock_catenda():
 
 
 @pytest.fixture
-def mock_system(mock_data_manager, mock_catenda, temp_data_dir, monkeypatch):
+def mock_system(mock_repository, mock_catenda, temp_data_dir, monkeypatch):
     """Create mock KOEAutomationSystem"""
     config = {
         'catenda_client_id': 'test-client-id',
@@ -141,10 +142,10 @@ def test_sak_data():
 @pytest.fixture
 def test_sak_with_data(mock_system, test_sak_data):
     """Create a test case with full data structure"""
-    sak_id = mock_system.db.create_sak(test_sak_data)
+    sak_id = mock_system.db.create_case(test_sak_data)
 
     # Get the created data
-    data = mock_system.db.get_form_data(sak_id)
+    data = mock_system.db.get_case(sak_id)
 
     return {
         'sak_id': sak_id,
@@ -208,9 +209,9 @@ def test_svar_data():
     }
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def mock_magic_link_manager(monkeypatch):
-    """Mock MagicLinkManager globally for all tests"""
+    """Mock MagicLinkManager for tests that need it (not autouse)"""
     mock_mgr_class = MagicMock()
     mock_mgr_instance = MagicMock()
     mock_mgr_instance.generate.return_value = 'test-magic-token-123'

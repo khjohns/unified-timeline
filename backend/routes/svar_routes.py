@@ -9,6 +9,7 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify
 
 from lib.auth import require_csrf
+from lib.security.rate_limiter import limit_submit
 from core.generated_constants import (
     KOE_STATUS, BH_SVAR_STATUS,
     get_vederlag_svar_label, get_frist_svar_label,
@@ -23,6 +24,7 @@ svar_bp = Blueprint('svar', __name__)
 
 @svar_bp.route('/api/svar-submit', methods=['POST'])
 @require_csrf
+@limit_submit  # Rate limiting (10/min default)
 def submit_svar():
     """
     Submit BH Svar (client response) form.

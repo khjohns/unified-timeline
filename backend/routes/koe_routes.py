@@ -11,6 +11,7 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify
 
 from lib.auth import require_csrf
+from lib.security.rate_limiter import limit_submit
 from core.generated_constants import BH_SVAR_STATUS
 
 logger = logging.getLogger(__name__)
@@ -21,6 +22,7 @@ koe_bp = Blueprint('koe', __name__)
 
 @koe_bp.route('/api/koe-submit', methods=['POST'])
 @require_csrf
+@limit_submit  # Rate limiting (10/min default)
 def submit_koe():
     """
     Submit KOE (change order request) form.
@@ -139,6 +141,7 @@ def submit_koe():
 
 
 @koe_bp.route('/api/cases/<string:sakId>/revidering', methods=['POST'])
+@require_csrf
 def submit_revidering(sakId):
     """
     Handle submission of revised KOE from contractor.
@@ -223,6 +226,7 @@ def submit_revidering(sakId):
 
 
 @koe_bp.route('/api/cases/<string:sakId>/pdf', methods=['POST'])
+@require_csrf
 def upload_pdf(sakId):
     """
     Upload PDF document to Catenda.

@@ -8,6 +8,8 @@ Endpoints for:
 import logging
 from flask import Blueprint, request, jsonify
 
+from lib.auth import require_csrf
+
 logger = logging.getLogger(__name__)
 
 # Create Blueprint
@@ -51,6 +53,7 @@ def get_case(sakId):
 
 
 @case_bp.route('/api/cases/<string:sakId>/draft', methods=['PUT'])
+@require_csrf
 def save_draft(sakId):
     """
     Save draft changes to a case (auto-save functionality).

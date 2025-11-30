@@ -298,6 +298,49 @@ class CSVRepository(BaseRepository):
                             cases.append(full_data)
             return cases
 
+    def get_case_by_topic_id(self, topic_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get case metadata (CSV row) by Catenda topic ID.
+
+        This is a lightweight lookup that returns only the CSV row,
+        not the full JSON data. Use get_case() for full data.
+
+        Args:
+            topic_id: Catenda topic GUID
+
+        Returns:
+            Case metadata dict from CSV, or None if not found
+        """
+        with self.lock:
+            with open(self.saker_file, 'r', newline='', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    if row.get('catenda_topic_id') == topic_id:
+                        return row
+            return None
+
+    def update_case_status(self, case_id: str, status: str, modus: Optional[str] = None):
+        """
+        Public method to update status (wraps _update_sak_status).
+
+        Args:
+            case_id: Case identifier
+            status: New status code
+            modus: New modus (optional)
+        """
+        self._update_sak_status(case_id, status, modus)
+
+    def log_historikk(self, sak_id: str, hendelse_type: str, beskrivelse: str):
+        """
+        Public method to log event (wraps _log_historikk).
+
+        Args:
+            sak_id: Case identifier
+            hendelse_type: Event type
+            beskrivelse: Event description
+        """
+        self._log_historikk(sak_id, hendelse_type, beskrivelse)
+
     # ========================================================================
     # Additional helper methods (not in BaseRepository)
     # ========================================================================
@@ -371,3 +414,44 @@ class CSVRepository(BaseRepository):
                 if sak_id is None or row.get('sak_id') == sak_id:
                     historikk.append(row)
         return historikk
+
+    # ========================================================================
+    # Backward-compatibility aliases (for routes that use old method names)
+    # ========================================================================
+
+    def save_form_data(self, sak_id: str, data: Dict[str, Any]):
+        """
+        Alias for update_case. Used by routes.
+
+        Note: If case doesn't exist, this will save the JSON directly
+        without creating a CSV entry (to match old DataManager behavior).
+        """
+        file_path = self.form_data_dir / f"{sak_id}.json"
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+
+        # Sync status and modus to CSV if case exists
+        sak_data = data.get('sak', {})
+        if sak_data:
+            status = sak_data.get('status')
+            modus = sak_data.get('modus')
+            if status or modus:
+                self._update_sak_status(sak_id, status, modus)
+
+        logger.debug(f"Saved form data for {sak_id}")
+
+    def get_form_data(self, sak_id: str) -> Optional[Dict[str, Any]]:
+        """Alias for get_case. Used by routes."""
+        return self.get_case(sak_id)
+
+    def get_sak_by_topic_id(self, topic_id: str) -> Optional[Dict[str, Any]]:
+        """Alias for get_case_by_topic_id. Used by old code."""
+        return self.get_case_by_topic_id(topic_id)
+
+    def create_sak(self, sak_data: Dict[str, Any]) -> str:
+        """Alias for create_case. Used by old code."""
+        return self.create_case(sak_data)
+
+    def update_sak_status(self, sak_id: str, status: str, modus: Optional[str] = None):
+        """Alias for update_case_status. Used by old code."""
+        self.update_case_status(sak_id, status, modus)

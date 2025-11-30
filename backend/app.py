@@ -19,8 +19,6 @@ Architecture:
 
 import os
 import sys
-import json
-import csv
 import logging
 import base64
 import tempfile
@@ -28,7 +26,7 @@ import socket
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any, List
-from threading import RLock, Thread
+from threading import Thread
 
 # Last .env fil (VIKTIG for sikkerhetsvariabler)
 from dotenv import load_dotenv
@@ -37,6 +35,9 @@ load_dotenv()
 # Import constants and settings
 from core.generated_constants import SAK_STATUS
 from core.config import settings
+
+# Repository (data access layer)
+from repositories.csv_repository import CSVRepository
 
 # Flask og CORS
 try:
@@ -101,188 +102,17 @@ def get_local_ip():
 
 
 # ============================================================================
-# DataManager and KOEAutomationSystem
-# NOTE: These will be refactored to use CSVRepository and services in a future step.
-#       For now, we keep them as-is to maintain backward compatibility.
+# KOEAutomationSystem
+# Bruker CSVRepository for data-aksess (repository pattern)
 # ============================================================================
-
-class DataManager:
-    """
-    Håndterer datalagring:
-    - CSV for oversikt (saker, historikk)
-    - JSON for detaljert skjemadata (per sak)
-    """
-    SAKER_FIELDNAMES = [
-        'sak_id', 'catenda_topic_id', 'catenda_project_id', 'catenda_board_id',
-        'sakstittel', 'opprettet_dato', 'opprettet_av', 'status', 'te_navn', 'modus',
-        'byggherre', 'entreprenor', 'prosjekt_navn'
-    ]
-    HISTORIKK_FIELDNAMES = [
-        'timestamp', 'sak_id', 'hendelse_type', 'beskrivelse'
-    ]
-
-    def __init__(self, data_dir: str = "koe_data"):
-        self.data_dir = Path(data_dir)
-        self.form_data_dir = self.data_dir / "form_data"
-
-        self.data_dir.mkdir(exist_ok=True)
-        self.form_data_dir.mkdir(exist_ok=True)
-
-        self.saker_file = self.data_dir / "saker.csv"
-        self.historikk_file = self.data_dir / "historikk.csv"
-
-        self.lock = RLock()
-        self._initialize_files()
-
-    def _initialize_files(self):
-        """Opprett CSV-filer med headers hvis de ikke finnes"""
-        if not self.saker_file.exists():
-            with open(self.saker_file, 'w', newline='', encoding='utf-8') as f:
-                writer = csv.DictWriter(f, fieldnames=self.SAKER_FIELDNAMES)
-                writer.writeheader()
-
-        if not self.historikk_file.exists():
-            with open(self.historikk_file, 'w', newline='', encoding='utf-8') as f:
-                writer = csv.DictWriter(f, fieldnames=self.HISTORIKK_FIELDNAMES)
-                writer.writeheader()
-
-    def create_sak(self, sak_data: Dict[str, Any]) -> str:
-        """Opprett ny sak i CSV og en tom JSON-fil"""
-        with self.lock:
-            if 'sak_id' not in sak_data:
-                sak_data['sak_id'] = f"KOE-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
-
-            sak_data.setdefault('opprettet_dato', datetime.now().isoformat())
-            sak_data.setdefault('opprettet_av', sak_data.get('te_navn', 'System'))
-            sak_data.setdefault('status', SAK_STATUS['UNDER_VARSLING'])
-            sak_data.setdefault('modus', 'varsel')
-
-            with open(self.saker_file, 'a', newline='', encoding='utf-8') as f:
-                filtered_data = {k: sak_data.get(k) for k in self.SAKER_FIELDNAMES}
-                writer = csv.DictWriter(f, fieldnames=self.SAKER_FIELDNAMES)
-                writer.writerow(filtered_data)
-
-            sak_data['sak_id_display'] = sak_data['sak_id']
-
-            # Opprett initiell JSON-fil med første krav-revisjon
-            from core.generated_constants import KOE_STATUS
-            initial_json = {
-                "versjon": "5.0",
-                "rolle": "TE",
-                "sak": sak_data,
-                "varsel": {},
-                "koe_revisjoner": [
-                    {
-                        "koe_revisjonsnr": "0",
-                        "dato_krav_sendt": "",
-                        "for_entreprenor": "",
-                        "status": KOE_STATUS['UTKAST'],
-                        "vederlag": {
-                            "krav_vederlag": False,
-                            "krav_produktivitetstap": False,
-                            "saerskilt_varsel_rigg_drift": False,
-                            "krav_vederlag_metode": "",
-                            "krav_vederlag_belop": "",
-                            "krav_vederlag_begrunnelse": "",
-                        },
-                        "frist": {
-                            "krav_fristforlengelse": False,
-                            "krav_frist_type": "",
-                            "krav_frist_antall_dager": "",
-                            "forsinkelse_kritisk_linje": False,
-                            "krav_frist_begrunnelse": "",
-                        },
-                    }
-                ],
-                "bh_svar_revisjoner": []
-            }
-            self.save_form_data(sak_data['sak_id'], initial_json)
-
-            self.log_historikk(sak_data['sak_id'], 'sak_opprettet', 'Ny sak opprettet fra Catenda')
-            return sak_data['sak_id']
-
-    def save_form_data(self, sak_id: str, data: Dict[str, Any]):
-        """Lagre detaljert skjemadata til JSON og synkroniser status/modus til CSV"""
-        file_path = self.form_data_dir / f"{sak_id}.json"
-        with open(file_path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-
-        sak_data = data.get('sak', {})
-        if sak_data:
-            status = sak_data.get('status')
-            modus = sak_data.get('modus')
-            if status or modus:
-                self.update_sak_status(sak_id, status, modus)
-
-    def get_form_data(self, sak_id: str) -> Optional[Dict[str, Any]]:
-        """Hent skjemadata fra JSON"""
-        file_path = self.form_data_dir / f"{sak_id}.json"
-        if not file_path.exists():
-            return None
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except Exception as e:
-            logger.error(f"Feil ved lesing av JSON for {sak_id}: {e}")
-            return None
-
-    def get_sak_by_topic_id(self, topic_id: str) -> Optional[Dict[str, Any]]:
-        """Finn sak basert på Catenda topic GUID"""
-        with self.lock:
-            with open(self.saker_file, 'r', newline='', encoding='utf-8') as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    if row['catenda_topic_id'] == topic_id:
-                        return row
-        return None
-
-    def update_sak_status(self, sak_id: str, status: str, modus: Optional[str] = None):
-        """Oppdater status og eventuelt modus i CSV"""
-        with self.lock:
-            rows = []
-            updated = False
-            fieldnames = self.SAKER_FIELDNAMES
-            with open(self.saker_file, 'r', newline='', encoding='utf-8') as f:
-                reader = csv.DictReader(f)
-                fieldnames = reader.fieldnames
-                for row in reader:
-                    if row['sak_id'] == sak_id:
-                        if status:
-                            row['status'] = status
-                        if modus:
-                            row['modus'] = modus
-                        updated = True
-                    rows.append(row)
-
-            if updated:
-                with open(self.saker_file, 'w', newline='', encoding='utf-8') as f:
-                    writer = csv.DictWriter(f, fieldnames=fieldnames)
-                    writer.writeheader()
-                    writer.writerows(rows)
-
-    def log_historikk(self, sak_id: str, hendelse_type: str, beskrivelse: str):
-        """Logg til historikk.csv"""
-        with open(self.historikk_file, 'a', newline='', encoding='utf-8') as f:
-            writer = csv.DictWriter(f, fieldnames=self.HISTORIKK_FIELDNAMES)
-            writer.writerow({
-                'timestamp': datetime.now().isoformat(),
-                'sak_id': sak_id,
-                'hendelse_type': hendelse_type,
-                'beskrivelse': beskrivelse
-            })
-
-    # Add _log_historikk as alias for compatibility with services
-    def _log_historikk(self, sak_id: str, hendelse_type: str, beskrivelse: str):
-        """Alias for log_historikk for compatibility with services"""
-        self.log_historikk(sak_id, hendelse_type, beskrivelse)
-
 
 class KOEAutomationSystem:
     """Hovedsystem for logikk og Catenda-integrasjon"""
 
     def __init__(self, config: Dict[str, Any]):
         self.config = config
-        self.db = DataManager(config.get('data_dir', 'koe_data'))
+        # Bruk CSVRepository i stedet for DataManager
+        self.db = CSVRepository(config.get('data_dir', 'koe_data'))
         self.catenda = CatendaClient(
             client_id=config['catenda_client_id'],
             client_secret=config.get('catenda_client_secret')
@@ -390,7 +220,7 @@ class KOEAutomationSystem:
                 'entreprenor': leverandor,
                 'prosjekt_navn': project_name,
             }
-            sak_id = self.db.create_sak(sak_data)
+            sak_id = self.db.create_case(sak_data)
 
             author_email = topic_data.get('bimsync_creation_author', {}).get('user', {}).get('email')
             magic_token = magic_link_mgr.generate(sak_id=sak_id, email=author_email)
@@ -430,7 +260,7 @@ class KOEAutomationSystem:
             topic_data = webhook_payload.get('issue', {}) or webhook_payload.get('topic', {})
             topic_id = topic_data.get('id') or topic_data.get('guid')
 
-            sak = self.db.get_sak_by_topic_id(topic_id)
+            sak = self.db.get_case_by_topic_id(topic_id)
             if not sak:
                 return {'success': True, 'action': 'ignored_unknown_topic'}
 
@@ -458,7 +288,7 @@ class KOEAutomationSystem:
                     new_status = 'Avslått'
 
             if new_status:
-                self.db.update_sak_status(sak_id, new_status)
+                self.db.update_case_status(sak_id, new_status)
                 self.db.log_historikk(sak_id, 'catenda_oppdatering', f"Status oppdatert til {new_status} via Catenda")
                 logger.info(f"✅ Sak {sak_id} oppdatert til {new_status} basert på Catenda-hendelse.")
                 return {'success': True, 'action': 'updated', 'status': new_status}
@@ -504,7 +334,7 @@ class KOEAutomationSystem:
             else:
                 formatted_doc_guid = compact_doc_guid
 
-            sak_info = self.db.get_form_data(sak_id)
+            sak_info = self.db.get_case(sak_id)
             if sak_info and 'sak' in sak_info and sak_info['sak'].get('catenda_board_id'):
                  self.catenda.topic_board_id = sak_info['sak']['catenda_board_id']
                  logger.info(f"Bruker lagret board ID: {self.catenda.topic_board_id}")
@@ -540,6 +370,15 @@ class KOEAutomationSystem:
 
 app = Flask(__name__)
 
+# Flask Secret Key (required for sessions and security features)
+# VIKTIG: Bruk sterk, tilfeldig secret i produksjon!
+app.config['SECRET_KEY'] = os.getenv(
+    'FLASK_SECRET_KEY',
+    'dev-only-secret-CHANGE-IN-PRODUCTION'
+)
+if app.config['SECRET_KEY'] == 'dev-only-secret-CHANGE-IN-PRODUCTION':
+    logger.warning("⚠️  FLASK_SECRET_KEY ikke satt - bruker dev default. Sett i .env for produksjon!")
+
 # CORS Configuration
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",")
 NGROK_URL = os.getenv("NGROK_URL", "")
@@ -557,28 +396,9 @@ CORS(app, resources={
     }
 })
 
-# Rate Limiting
-try:
-    from flask_limiter import Limiter
-    from flask_limiter.util import get_remote_address
-
-    limiter = Limiter(
-        app=app,
-        key_func=get_remote_address,
-        default_limits=["200 per day", "50 per hour"],
-        storage_uri="memory://"
-    )
-    logger.info("✅ Rate limiting aktivert")
-except ImportError:
-    logger.warning("⚠️  Flask-Limiter ikke installert. Rate limiting deaktivert.")
-    logger.warning("   Installer med: pip install Flask-Limiter")
-    # Dummy limiter
-    class limiter:
-        @staticmethod
-        def limit(limit_string):
-            def decorator(f):
-                return f
-            return decorator
+# Rate Limiting (via sentralisert modul)
+from lib.security.rate_limiter import init_limiter
+init_limiter(app)
 
 # Global system instance
 system: Optional[KOEAutomationSystem] = None
