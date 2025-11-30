@@ -5,7 +5,7 @@ import FieldsetCard from '../ui/FieldsetCard';
 import PanelLayout from '../ui/PanelLayout';
 import { PktButton, PktTag, PktMessagebox } from '@oslokommune/punkt-react';
 import { BH_VEDERLAGSSVAR_OPTIONS, BH_FRISTSVAR_OPTIONS } from '../../constants';
-import { getSvarStatusLabel, getSvarStatusSkin } from '../../utils/statusHelpers';
+import { getSvarStatusLabel, getSvarStatusSkin, BH_SVAR_STATUS, KOE_STATUS, BH_VEDERLAG_KODER, BH_FRIST_KODER } from '../../utils/statusHelpers';
 import { useFileUpload } from '../../hooks/useFileUpload';
 import { useEmailValidation } from '../../hooks/useEmailValidation';
 import FileUploadField from '../ui/FileUploadField';
@@ -91,15 +91,17 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
     }
 
     // Oppdater statuser
-    setFormData('koe_revisjoner', 'status', '200000001', sisteKravIndex); // Besvart
+    setFormData('koe_revisjoner', 'status', KOE_STATUS.BESVART, sisteKravIndex);
     // Oppdater BH svar status basert på svar-valg
-    let bhSvarStatus = '300000002'; // Delvis Godkjent (default)
-    if (sisteSvar.vederlag.bh_svar_vederlag === '100000000' && sisteSvar.frist.bh_svar_frist === '100000000') {
-      bhSvarStatus = '100000004'; // Godkjent
-    } else if (sisteSvar.vederlag.bh_svar_vederlag === '100000001' || sisteSvar.frist.bh_svar_frist === '100000001') {
-      bhSvarStatus = '100000006'; // Avslått (Uenig)
+    let bhSvarStatus = BH_SVAR_STATUS.DELVIS_GODKJENT; // Default
+    if (sisteSvar.vederlag.bh_svar_vederlag === BH_VEDERLAG_KODER.GODKJENT_FULLT &&
+        sisteSvar.frist.bh_svar_frist === BH_FRIST_KODER.GODKJENT_FULLT) {
+      bhSvarStatus = BH_SVAR_STATUS.GODKJENT;
+    } else if (sisteSvar.vederlag.bh_svar_vederlag === BH_VEDERLAG_KODER.DELVIS_GODKJENT ||
+               sisteSvar.frist.bh_svar_frist === BH_FRIST_KODER.DELVIS_GODKJENT) {
+      bhSvarStatus = BH_SVAR_STATUS.AVSLÅTT_UENIG;
     } else if (sisteSvar.vederlag.varsel_for_sent || sisteSvar.frist.varsel_for_sent) {
-      bhSvarStatus = '100000010'; // Avslått (For sent)
+      bhSvarStatus = BH_SVAR_STATUS.AVSLÅTT_FOR_SENT;
     }
     setFormData('bh_svar_revisjoner', 'status', bhSvarStatus, sisteSvarIndex);
 
@@ -109,7 +111,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
   };
 
   const sisteSvar = bh_svar_revisjoner[sisteSvarIndex];
-  const sisteSvarErUtkast = !sisteSvar?.status || sisteSvar?.status === '300000001';
+  const sisteSvarErUtkast = !sisteSvar?.status || sisteSvar?.status === BH_SVAR_STATUS.UTKAST;
 
   // Determine which revisions to show: utkast first, then last sent
   const visningsRevisjoner: number[] = [];
@@ -139,7 +141,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
         {visningsRevisjoner.map((index, displayOrder) => {
           const bh_svar = bh_svar_revisjoner[index];
           const erSisteRevisjon = index === sisteSvarIndex;
-          const svarErUtkast = !bh_svar.status || bh_svar.status === '300000001';
+          const svarErUtkast = !bh_svar.status || bh_svar.status === BH_SVAR_STATUS.UTKAST;
           const erLaast = !erSisteRevisjon || !svarErUtkast || rolle !== 'BH';
           const tilhorendeKoe = koe_revisjoner[Math.min(index, sisteKravIndex)];
 

@@ -201,7 +201,7 @@ const KravKoePanel: React.FC<KravKoePanelProps> = ({
         {visningsRevisjoner.map((index, displayOrder) => {
           const koe = koe_revisjoner[index];
           const erSisteRevisjon = index === sisteKravIndex;
-          const koeErUtkast = !koe.status || koe.status === '100000001';
+          const koeErUtkast = !koe.status || koe.status === KOE_STATUS.UTKAST;
           const erLaast = !erSisteRevisjon || !koeErUtkast || rolle !== 'TE' || disabled;
 
           // Calculate kravstype for this specific revision

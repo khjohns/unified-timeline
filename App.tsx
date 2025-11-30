@@ -13,7 +13,7 @@ import { showToast } from './utils/toastHelpers';
 import { focusOnField } from './utils/focusHelpers';
 import { logger } from './utils/logger';
 import { api, Modus } from './services/api';
-import { SAK_STATUS } from './utils/statusHelpers';
+import { SAK_STATUS, KOE_STATUS, BH_SVAR_STATUS } from './utils/statusHelpers';
 import { getRoleFromModus, getTabIndexFromModus } from './utils/modusHelpers';
 import { validationService } from './services/validationService';
 import { submissionService } from './services/submissionService';
@@ -380,7 +380,7 @@ const App: React.FC = () => {
                 dato_svar_bh: '',
                 for_byggherre: '',
             },
-            status: '300000001', // Utkast
+            status: BH_SVAR_STATUS.UTKAST,
         };
 
         setFormData(prev => ({
@@ -396,7 +396,7 @@ const App: React.FC = () => {
             koe_revisjonsnr: (parseInt(sisteKrav.koe_revisjonsnr) + 1).toString(),
             dato_krav_sendt: '',
             for_entreprenor: '',
-            status: '100000001', // Utkast
+            status: KOE_STATUS.UTKAST,
             vederlag: {
                 krav_vederlag: false,
                 krav_produktivitetstap: false,

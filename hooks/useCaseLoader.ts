@@ -18,6 +18,7 @@ import { api, Modus } from '../services/api';
 import { logger } from '../utils/logger';
 import { showToast } from '../utils/toastHelpers';
 import { INITIAL_FORM_DATA } from '../constants';
+import { getRoleFromModus, getTabIndexFromModus } from '../utils/modusHelpers';
 
 export interface UseCaseLoaderParams {
   magicToken: string | null;
@@ -40,29 +41,6 @@ export interface UseCaseLoaderReturn {
   apiError: string | null;
   activeTab: number;
   setActiveTab: (tab: number) => void;
-}
-
-/**
- * Get role based on modus
- */
-function getRoleFromModus(modus: Modus): Role {
-  const roleMap: Record<Modus, Role> = {
-    'varsel': 'TE',
-    'koe': 'TE',
-    'svar': 'BH',
-    'revidering': 'TE',
-  };
-  return roleMap[modus];
-}
-
-/**
- * Get initial tab based on modus
- */
-function getTabFromModus(modus: Modus | null): number {
-  if (modus === 'varsel') return 0;
-  if (modus === 'koe' || modus === 'revidering') return 1;
-  if (modus === 'svar') return 2;
-  return 0;
 }
 
 /**
@@ -99,7 +77,7 @@ export const useCaseLoader = (params: UseCaseLoaderParams): UseCaseLoaderReturn 
   const [topicGuid, setTopicGuid] = useState<string | null>(initialTopicGuid);
   const [isLoading, setIsLoading] = useState(!!magicToken);
   const [apiError, setApiError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState(getTabFromModus(modus));
+  const [activeTab, setActiveTab] = useState(modus ? getTabIndexFromModus(modus) : 0);
 
   // Effect 1: Verify magic token
   useEffect(() => {
@@ -192,7 +170,7 @@ export const useCaseLoader = (params: UseCaseLoaderParams): UseCaseLoaderReturn 
           }
 
           // Set initial tab based on modus
-          setActiveTab(getTabFromModus(modus));
+          setActiveTab(getTabIndexFromModus(modus));
 
           showToast(setToastMessage, `Sak ${internalSakId} lastet fra server`);
         } else {
