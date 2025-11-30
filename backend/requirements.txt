@@ -33,6 +33,13 @@ urllib3==2.1.0
 python-dotenv==1.0.0              # Environment variables (.env support)
 
 # ------------------------------------------------------------------------------
+# Data Modeling & Validation (for refactoring)
+# ------------------------------------------------------------------------------
+pydantic>=2.0.0                   # Data validation and settings management
+pydantic-settings>=2.0.0          # Settings management (Pydantic v2)
+python-json-logger>=2.0.0         # JSON logging for Azure Application Insights
+
+# ------------------------------------------------------------------------------
 # Date/Time
 # ------------------------------------------------------------------------------
 python-dateutil==2.8.2
