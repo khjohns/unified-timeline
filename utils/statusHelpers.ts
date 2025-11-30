@@ -32,6 +32,23 @@ export const BH_SVAR_STATUS = {
   KREVER_AVKLARING: '100000003',
 } as const;
 
+export const BH_VEDERLAG_KODER = {
+  GODKJENT_FULLT: '100000000',
+  DELVIS_GODKJENT: '100000001',
+  AVSLÅTT_UENIG: '100000002',
+  AVSLÅTT_FOR_SENT: '100000003',
+  AVVENTER: '100000004',
+  GODKJENT_ANNEN_METODE: '100000005',
+} as const;
+
+export const BH_FRIST_KODER = {
+  GODKJENT_FULLT: '100000000',
+  DELVIS_GODKJENT: '100000001',
+  AVSLÅTT_UENIG: '100000002',
+  AVSLÅTT_FOR_SENT: '100000003',
+  AVVENTER: '100000004',
+} as const;
+
 // ============ SAK STATUS (Nivå 1: Hovedstatus) ============
 export const SAK_STATUS_OPTIONS = [
   { value: '', label: '— Velg status —' },
@@ -159,3 +176,30 @@ export const getSvarStatusSkin = (status?: BhSvarStatus): 'blue' | 'green' | 're
       return 'grey';
   }
 };
+
+// ============ BH VEDERLAG/FRIST HJELPEFUNKSJONER ============
+export function isVederlagGodkjent(code?: string): boolean {
+  return code === BH_VEDERLAG_KODER.GODKJENT_FULLT;
+}
+
+export function isVederlagDelvis(code?: string): boolean {
+  return code === BH_VEDERLAG_KODER.DELVIS_GODKJENT;
+}
+
+export function isVederlagAvslått(code?: string): boolean {
+  return code === BH_VEDERLAG_KODER.AVSLÅTT_UENIG ||
+         code === BH_VEDERLAG_KODER.AVSLÅTT_FOR_SENT;
+}
+
+export function isFristGodkjent(code?: string): boolean {
+  return code === BH_FRIST_KODER.GODKJENT_FULLT;
+}
+
+export function isFristDelvis(code?: string): boolean {
+  return code === BH_FRIST_KODER.DELVIS_GODKJENT;
+}
+
+export function isFristAvslått(code?: string): boolean {
+  return code === BH_FRIST_KODER.AVSLÅTT_UENIG ||
+         code === BH_FRIST_KODER.AVSLÅTT_FOR_SENT;
+}

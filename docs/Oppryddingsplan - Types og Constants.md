@@ -1,9 +1,28 @@
 # Oppryddingsplan: Types og Constants
 
 **Dato:** November 2025
-**Versjon:** 1.0
+**Versjon:** 1.1
 **Status:** Klar for implementering
-**Estimert tid:** 4-6 timer
+**Estimert tid:** 3-4 timer (Fase 1-3) eller 4-6 timer (med Fase 4)
+
+---
+
+## Endringslogg v1.1 (2025-11-30)
+
+✅ **Kritiske rettelser:**
+- Fikset regex-bug i genereringsskript (fjernet ledende underscore)
+- Lagt til error handling og validering i genereringsskript
+- Fjernet forvirrende dobbel løsning i Trinn 3
+
+🔄 **Oppdateringer:**
+- Oppdatert Trinn 4: `modusHelpers.ts` eksisterer allerede
+- Klargjort Fase 4 som "langsiktig forbedring" (ikke "valgfritt")
+- Harmonisert tidsestimater gjennom hele dokumentet
+- Forbedret filsti-spesifikasjoner og søkeinstruksjoner
+
+📊 **Tidsestimat:**
+- Fase 1-3 + testing: **3-4 timer** (anbefalt minimum)
+- Med Fase 4 (full synkronisering): **4-6 timer**
 
 ---
 
@@ -74,16 +93,16 @@ VEDERLAGSMETODER_OPTIONS = [
 
 ### 2.2 DØD KODE: statusConstants.ts
 
-**Fil:** `statusConstants.ts` (140 linjer)
+**Fil:** `statusConstants.ts` (140 linjer) - **Ligger i rotmappen**
 
-Filen har **0 imports** og inneholder verdier som AVVIKER fra `utils/statusHelpers.ts`:
+⚠️ **ADVARSEL:** Filen har **0 imports** i faktisk kode, men inneholder FEIL verdier som avviker fra `utils/statusHelpers.ts`:
 
-| Konstant | statusConstants.ts | statusHelpers.ts (korrekt) |
-|----------|-------------------|---------------------------|
+| Konstant | statusConstants.ts (FEIL) | Korrekt verdi |
+|----------|---------------------------|---------------|
 | BH_SVAR_STATUS.GODKJENT | `'300000002'` | `'100000004'` |
 | BH_SVAR_STATUS.DELVIS_GODKJENT | `'300000003'` | `'300000002'` |
 
-**Handling:** Slett filen.
+**Handling:** Slett filen umiddelbart for å unngå fremtidig forvirring.
 
 ---
 
@@ -182,7 +201,27 @@ const SOURCE = path.join(__dirname, '../shared/status-codes.json');
 const TS_OUTPUT = path.join(__dirname, '../utils/generatedConstants.ts');
 const PY_OUTPUT = path.join(__dirname, '../backend/generated_constants.py');
 
-const data = JSON.parse(fs.readFileSync(SOURCE, 'utf-8'));
+// Validate source file exists
+if (!fs.existsSync(SOURCE)) {
+  console.error('❌ Error: shared/status-codes.json not found');
+  console.error('   Expected location:', SOURCE);
+  process.exit(1);
+}
+
+// Parse and validate JSON
+let data;
+try {
+  data = JSON.parse(fs.readFileSync(SOURCE, 'utf-8'));
+} catch (err) {
+  console.error('❌ Error parsing JSON:', err.message);
+  process.exit(1);
+}
+
+// Validate required structure
+if (!data || typeof data !== 'object') {
+  console.error('❌ Error: Invalid JSON structure');
+  process.exit(1);
+}
 
 // ============ TYPESCRIPT ============
 function generateTypeScript(data) {
@@ -198,7 +237,7 @@ function generateTypeScript(data) {
   for (const [category, values] of Object.entries(data)) {
     if (category.startsWith('$') || category === 'version' || category === 'lastUpdated') continue;
 
-    const constName = category.replace(/([A-Z])/g, '_$1').toUpperCase();
+    const constName = category.replace(/([A-Z])/g, '_$1').toUpperCase().replace(/^_/, '');
     ts += `export const ${constName} = {\n`;
 
     for (const [key, val] of Object.entries(values)) {
@@ -244,7 +283,7 @@ from typing import Dict
   for (const [category, values] of Object.entries(data)) {
     if (category.startsWith('$') || category === 'version' || category === 'lastUpdated') continue;
 
-    const constName = category.replace(/([A-Z])/g, '_$1').toUpperCase();
+    const constName = category.replace(/([A-Z])/g, '_$1').toUpperCase().replace(/^_/, '');
     py += `${constName} = {\n`;
 
     for (const [key, val] of Object.entries(values)) {
@@ -258,7 +297,7 @@ from typing import Dict
   for (const [category, values] of Object.entries(data)) {
     if (category.startsWith('$') || category === 'version' || category === 'lastUpdated') continue;
 
-    const funcName = `get_${category.replace(/([A-Z])/g, '_$1').toLowerCase()}_label`;
+    const funcName = `get_${category.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '')}_label`;
     py += `def ${funcName}(code: str) -> str:\n`;
     py += `    """Returnerer lesbar label for ${category}-kode"""\n`;
     py += `    labels: Dict[str, str] = {\n`;
@@ -350,26 +389,7 @@ return (
 import { getBhVederlagssvarLabel, getBhFristsvarLabel } from '../../utils/pdfLabels';
 ```
 
-**Erstatt linje 472-484:**
-```typescript
-// FØR (hardkodet):
-if (vedStatus === '100000000') display = `✅ ${beløp ? beløp + ' NOK' : 'Godkjent'}`;
-else if (vedStatus === '100000001') display = `⚠️ ${beløp ? beløp + ' NOK' : 'Delvis'}`;
-else if (vedStatus === '100000002') display = '❌ Avslått';
-
-// ETTER (bruker konstanter):
-import { BH_VEDERLAG_SVAR } from '../../constants'; // Legg til øverst
-
-if (vedStatus === BH_VEDERLAG_SVAR[0].value) { // Godkjent fullt
-  display = `✅ ${beløp ? beløp + ' NOK' : 'Godkjent'}`;
-} else if (vedStatus === BH_VEDERLAG_SVAR[1].value) { // Delvis
-  display = `⚠️ ${beløp ? beløp + ' NOK' : 'Delvis'}`;
-} else if (vedStatus === BH_VEDERLAG_SVAR[2].value || vedStatus === BH_VEDERLAG_SVAR[3].value) { // Avslått
-  display = '❌ Avslått';
-}
-```
-
-**Bedre løsning - opprett hjelpefunksjon i `utils/statusHelpers.ts`:**
+**Erstatt linje 472-484 ved å opprette hjelpefunksjoner i `utils/statusHelpers.ts`:**
 
 ```typescript
 export const BH_VEDERLAG_KODER = {
@@ -416,9 +436,9 @@ if (isVederlagGodkjent(vedStatus)) {
 }
 ```
 
-### Trinn 4: Opprett modusHelpers.ts (30 min)
+### Trinn 4: Verifiser/utvid modusHelpers.ts (15 min)
 
-**Opprett fil:** `utils/modusHelpers.ts`
+**NB:** Filen `utils/modusHelpers.ts` eksisterer allerede! Verifiser at den har følgende innhold:
 
 ```typescript
 /**
@@ -469,29 +489,19 @@ export function isBhMode(modus: Modus | null): boolean {
 }
 ```
 
-**Oppdater App.tsx:**
+**Verifiser at App.tsx og useCaseLoader.ts allerede bruker modusHelpers:**
+
+App.tsx skal importere:
 ```typescript
-// Fjern linje 177-183 og 248-254 (roleMap-definisjonene)
-// Erstatt med:
 import { getRoleFromModus, getTabIndexFromModus } from './utils/modusHelpers';
-
-// Linje ~183:
-loadedFormData.rolle = getRoleFromModus(modus);
-
-// Linje ~207:
-setActiveTab(getTabIndexFromModus(modus));
-
-// Linje ~254:
-const newRole = getRoleFromModus(modus);
-setActiveTab(getTabIndexFromModus(modus));
 ```
 
-**Oppdater useCaseLoader.ts:**
+useCaseLoader.ts skal importere:
 ```typescript
-// Fjern getRoleFromModus og getTabFromModus funksjonene (linje 48-71)
-// Erstatt med import:
 import { getRoleFromModus, getTabIndexFromModus } from '../utils/modusHelpers';
 ```
+
+**Hvis ikke allerede implementert**, søk etter `roleMap` i begge filer og erstatt med import fra modusHelpers.
 
 ### Trinn 5: Opprett shared status-codes (45 min)
 
@@ -525,11 +535,11 @@ mkdir -p shared scripts
 | `'300000001'` (BH utkast) | `BH_SVAR_STATUS.UTKAST` |
 | `'300000002'` (BH delvis) | `BH_SVAR_STATUS.DELVIS_GODKJENT` |
 
-**Filer som må oppdateres:**
-- `App.tsx` (linje 420)
-- `components/panels/KravKoePanel.tsx` (linje 273)
-- `components/panels/BhSvarPanel.tsx` (linje 163, 165, 166, 181, 211)
-- `utils/pdfGeneratorReact.tsx` (linje 952)
+**Filer som må oppdateres (søk etter hardkodede statuskoder):**
+- `App.tsx` - søk etter `'100000001'`, `'100000002'`, etc.
+- `components/panels/KravKoePanel.tsx` - søk etter `'100000001'`, `'100000002'`
+- `components/panels/BhSvarPanel.tsx` - søk etter `'300000001'`, `'300000002'`, `'100000004'`
+- `utils/pdfGeneratorReact.tsx` - søk etter hardkodede statuskoder
 
 ---
 
@@ -728,13 +738,12 @@ svar_tekst = get_vederlag_svar_label(bh_svar_vederlag)
 - [ ] Fiks TestOversiktPanel BH-svar mappings
 - [ ] Commit: `fix: Fjern død kode og fiks status-mappings i TestOversiktPanel`
 
-### Fase 2: Frontend-konsolidering (1.5 timer)
-- [ ] Opprett `utils/modusHelpers.ts`
-- [ ] Oppdater App.tsx til å bruke modusHelpers
-- [ ] Oppdater useCaseLoader.ts til å bruke modusHelpers
+### Fase 2: Frontend-konsolidering (1-1.5 timer)
+- [ ] Verifiser at `utils/modusHelpers.ts` eksisterer og brukes (allerede implementert)
+- [ ] Verifiser at App.tsx og useCaseLoader.ts bruker modusHelpers
 - [ ] Legg til BH_VEDERLAG_KODER og BH_FRIST_KODER i statusHelpers.ts
 - [ ] Erstatt alle hardkodede statuskoder med konstanter
-- [ ] Commit: `refactor: Konsolider modus og status-konstanter`
+- [ ] Commit: `refactor: Konsolider status-konstanter i frontend`
 
 ### Fase 3: Backend-konsolidering (1 time)
 - [ ] Opprett `backend/constants.py`
@@ -742,19 +751,26 @@ svar_tekst = get_vederlag_svar_label(bh_svar_vederlag)
 - [ ] Test at backend fungerer
 - [ ] Commit: `refactor: Sentraliser konstanter i backend`
 
-### Fase 4: Synkronisering (1 time) - VALGFRITT
+### Fase 4: Synkronisering (1-2 timer) - Langsiktig forbedring
 - [ ] Opprett `shared/status-codes.json`
 - [ ] Opprett `scripts/generate-constants.js`
 - [ ] Legg til npm script
 - [ ] Generer og verifiser output
 - [ ] Commit: `feat: Legg til sentral status-kode definisjon med generering`
 
-### Testing
+**NB:** Denne fasen kan gjøres senere, men sikrer langsiktig synkronisering mellom frontend og backend.
+
+### Testing og verifisering
 - [ ] Kjør frontend: `npm run dev`
 - [ ] Verifiser TestOversiktPanel viser riktige metode-labels
 - [ ] Verifiser BH-svar viser riktige status-ikoner
 - [ ] Kjør backend: `python backend/app.py`
 - [ ] Test ett komplett flyt (varsel → koe → svar)
+- [ ] **Hvis Fase 4 er implementert:**
+  - [ ] Kjør `npm run generate:constants`
+  - [ ] Sammenlign `utils/generatedConstants.ts` med `utils/statusHelpers.ts`
+  - [ ] Verifiser at alle statuskoder matcher
+  - [ ] Sjekk at generert Python-fil matcher backend/constants.py
 
 ---
 
@@ -763,20 +779,20 @@ svar_tekst = get_vederlag_svar_label(bh_svar_vederlag)
 | Fase | Beskrivelse | Tid |
 |------|-------------|-----|
 | 1 | Kritiske fiks | 30 min |
-| 2 | Frontend-konsolidering | 1.5 timer |
+| 2 | Frontend-konsolidering (modusHelpers delvis ferdig) | 1-1.5 timer |
 | 3 | Backend-konsolidering | 1 time |
-| 4 | Synkronisering (valgfritt) | 1 time |
-| Test | Manuell testing | 30 min |
-| **Total** | | **4.5-5.5 timer** |
+| 4 | Synkronisering (langsiktig, kan utsettes) | 1-2 timer |
+| Test | Manuell testing | 30-60 min |
+| **Total** | **Fase 1-3 + testing** | **3-4 timer** |
+| **Total** | **Med Fase 4 (full synkronisering)** | **4-6 timer** |
 
 ---
 
-**Vedlikeholdt av:** Claude (Opus 4)
-**Sist oppdatert:** 2025-11-30 (v1.0)
+**Sist oppdatert:** 2025-11-30 (v1.1)
 **Status:** Klar for implementering
 
 **Prioritert rekkefølge:**
-1. **Fase 1** - Fiks bugs (kritisk)
-2. **Fase 2** - Frontend-konsolidering (høy verdi)
-3. **Fase 3** - Backend-konsolidering (middels verdi)
-4. **Fase 4** - Synkronisering (lavere prioritet, men viktig langsiktig)
+1. **Fase 1** - Fiks bugs (kritisk) ⚠️
+2. **Fase 2** - Frontend-konsolidering (høy verdi) 🔧
+3. **Fase 3** - Backend-konsolidering (middels verdi) 🔧
+4. **Fase 4** - Synkronisering (langsiktig forbedring, kan utsettes) 🔮
