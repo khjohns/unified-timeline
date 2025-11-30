@@ -83,8 +83,15 @@ export const useAutoSave = ({
   // Auto-save with debounce on data change
   useEffect(() => {
     // Don't save if data matches initial state
-    if (JSON.stringify(data) === JSON.stringify(INITIAL_FORM_DATA)) {
+    const currentDataString = JSON.stringify(data);
+    if (currentDataString === JSON.stringify(INITIAL_FORM_DATA)) {
       return;
+    }
+
+    // Don't save if data hasn't actually changed (compare with last saved version)
+    const lastSavedData = localStorage.getItem(storageKey);
+    if (lastSavedData && currentDataString === lastSavedData) {
+      return; // Data unchanged, skip save
     }
 
     // Clear previous timeout
