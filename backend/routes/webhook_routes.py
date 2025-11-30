@@ -3,6 +3,8 @@ Webhook Routes Blueprint
 
 Endpoints for:
 - Receiving Catenda webhook events
+
+Uses WebhookService for business logic (framework-agnostic).
 """
 import os
 import logging
@@ -15,6 +17,10 @@ from lib.security.webhook_security import (
 )
 from lib.security.rate_limiter import limit_webhook
 from lib.monitoring.audit import audit
+from services.webhook_service import WebhookService
+from repositories.csv_repository import CSVRepository
+from integrations.catenda import CatendaClient
+from core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +33,55 @@ if not WEBHOOK_SECRET_PATH:
     logger.warning("⚠️  WEBHOOK_SECRET_PATH er ikke satt i .env. Webhook-endepunktet er deaktivert.")
     # Bruk en placeholder-path som alltid returnerer 404 for sikkerhet
     WEBHOOK_SECRET_PATH = "__disabled__"
+
+
+def get_webhook_service() -> WebhookService:
+    """
+    Get or create WebhookService instance.
+
+    Uses dependency injection to provide:
+    - CSVRepository for data access
+    - CatendaClient for Catenda API integration
+    - Config from settings
+    - MagicLinkManager for generating links
+
+    Returns:
+        Configured WebhookService instance
+    """
+    # Import here to avoid circular dependencies
+    try:
+        from lib.auth import MagicLinkManager
+        magic_link_mgr = MagicLinkManager()
+    except ImportError:
+        logger.warning("⚠️ MagicLinkManager not available")
+        magic_link_mgr = None
+
+    # Get config from settings
+    config = settings.get_catenda_config()
+
+    # Create repository
+    repository = CSVRepository(config.get('data_dir', 'koe_data'))
+
+    # Create and authenticate Catenda client
+    catenda_client = CatendaClient(
+        client_id=config['catenda_client_id'],
+        client_secret=config.get('catenda_client_secret')
+    )
+
+    # Try to authenticate
+    access_token = config.get('catenda_access_token')
+    if access_token:
+        catenda_client.set_access_token(access_token)
+    elif config.get('catenda_client_secret'):
+        catenda_client.authenticate()
+
+    # Create and return service
+    return WebhookService(
+        repository=repository,
+        catenda_client=catenda_client,
+        config=config,
+        magic_link_generator=magic_link_mgr
+    )
 
 
 @webhook_bp.route(f'/webhook/catenda/<secret_path>', methods=['POST'])
@@ -63,10 +118,8 @@ def webhook(secret_path):
         logger.warning(f"Ugyldig webhook path forsøk: /{secret_path[:8]}...")
         return jsonify({"error": "Not found"}), 404
 
-    # Import here to avoid circular imports
-    from app import get_system
-
-    sys = get_system()
+    # Get webhook service instance (dependency injection)
+    webhook_service = get_webhook_service()
 
     # 1. Parse payload
     payload = request.get_json()
@@ -93,17 +146,17 @@ def webhook(secret_path):
     audit.log_webhook_received(event_type=event_type, event_id=event_id)
     logger.info(f"✅ Processing webhook event: {event_type} (ID: {event_id})")
 
-    # 6. Prosesser event basert på type
+    # 6. Prosesser event basert på type (using WebhookService)
     if event_type in ['issue.created', 'bcf.issue.created']:
-        result = sys.handle_new_topic_created(payload)
+        result = webhook_service.handle_new_topic_created(payload)
         return jsonify(result), 200
 
     elif event_type in ['issue.modified', 'bcf.comment.created']:
-        result = sys.handle_topic_modification(payload)
+        result = webhook_service.handle_topic_modification(payload)
         return jsonify(result), 200
 
     elif event_type == 'issue.status.changed':
-        result = sys.handle_topic_modification(payload)
+        result = webhook_service.handle_topic_modification(payload)
         return jsonify(result), 200
 
     # Unknown event type (log men aksepter)

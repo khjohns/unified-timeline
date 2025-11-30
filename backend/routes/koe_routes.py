@@ -5,6 +5,8 @@ Endpoints for:
 - Submitting KOE (change order request) form
 - Submitting revised KOE after client feedback
 - Uploading PDF document to Catenda
+
+Uses WebhookService for PDF upload (framework-agnostic).
 """
 import logging
 from datetime import datetime
@@ -13,11 +15,45 @@ from flask import Blueprint, request, jsonify
 from lib.auth import require_csrf
 from lib.security.rate_limiter import limit_submit
 from core.generated_constants import BH_SVAR_STATUS
+from services.webhook_service import WebhookService
+from repositories.csv_repository import CSVRepository
+from integrations.catenda import CatendaClient
+from core.config import settings
 
 logger = logging.getLogger(__name__)
 
 # Create Blueprint
 koe_bp = Blueprint('koe', __name__)
+
+
+def get_webhook_service() -> WebhookService:
+    """
+    Get or create WebhookService instance for PDF upload.
+
+    Returns:
+        Configured WebhookService instance
+    """
+    config = settings.get_catenda_config()
+    repository = CSVRepository(config.get('data_dir', 'koe_data'))
+
+    catenda_client = CatendaClient(
+        client_id=config['catenda_client_id'],
+        client_secret=config.get('catenda_client_secret')
+    )
+
+    # Authenticate
+    access_token = config.get('catenda_access_token')
+    if access_token:
+        catenda_client.set_access_token(access_token)
+    elif config.get('catenda_client_secret'):
+        catenda_client.authenticate()
+
+    return WebhookService(
+        repository=repository,
+        catenda_client=catenda_client,
+        config=config,
+        magic_link_generator=None  # Not needed for PDF upload
+    )
 
 
 @koe_bp.route('/api/koe-submit', methods=['POST'])
@@ -251,11 +287,11 @@ def upload_pdf(sakId):
         3. Upload to Catenda document library
         4. Link document to topic
     """
-    # Import here to avoid circular imports
-    from app import get_system
-
     logger.info(f"📥 Mottok PDF-opplasting for sak {sakId}")
-    sys = get_system()
+
+    # Get webhook service for PDF upload (dependency injection)
+    webhook_service = get_webhook_service()
+
     payload = request.get_json()
 
     pdf_base64 = payload.get('pdfBase64')
@@ -268,7 +304,7 @@ def upload_pdf(sakId):
         logger.warning(f"  Mangler data - pdf: {bool(pdf_base64)}, filename: {filename}, topicGuid: {topic_guid}")
         return jsonify({"error": "Mangler PDF data eller topic GUID"}), 400
 
-    result = sys.handle_pdf_upload(sakId, pdf_base64, filename, topic_guid)
+    result = webhook_service.handle_pdf_upload(sakId, pdf_base64, filename, topic_guid)
 
     if result['success']:
         return jsonify(result), 200
