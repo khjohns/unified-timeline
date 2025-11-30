@@ -13,7 +13,7 @@ from datetime import datetime
 from models.koe_revisjon import KoeRevisjon
 from models.bh_svar import BHSvarRevisjon
 from repositories.base_repository import BaseRepository
-from constants import (
+from generated_constants import (
     SAK_STATUS, KOE_STATUS, BH_SVAR_STATUS,
     get_vederlag_svar_label, get_frist_svar_label,
     krever_revisjon

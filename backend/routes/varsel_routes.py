@@ -9,7 +9,7 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify
 
 from csrf_protection import require_csrf
-from constants import KOE_STATUS
+from generated_constants import KOE_STATUS
 
 logger = logging.getLogger(__name__)
 
