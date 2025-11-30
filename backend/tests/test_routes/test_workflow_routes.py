@@ -191,7 +191,7 @@ class TestKoeRoutes:
         assert data['success'] is True
         assert data['nextMode'] == 'svar'
 
-    def test_pdf_upload_success(self, client, mock_system, test_sak_with_data):
+    def test_pdf_upload_success(self, client, mock_system, test_sak_with_data, monkeypatch):
         """Test PDF upload to Catenda"""
         sak_id = test_sak_with_data['sak_id']
 
@@ -200,12 +200,20 @@ class TestKoeRoutes:
         pdf_content = b'%PDF-1.4\n%Mock PDF content'
         pdf_base64 = base64.b64encode(pdf_content).decode('utf-8')
 
-        # Mock handle_pdf_upload to return success
-        mock_system.handle_pdf_upload = lambda *args, **kwargs: {
+        # Create a mock WebhookService
+        from unittest.mock import MagicMock
+        mock_webhook_service = MagicMock()
+        mock_webhook_service.handle_pdf_upload.return_value = {
             'success': True,
             'documentGuid': 'doc-123',
             'filename': 'test.pdf'
         }
+
+        # Mock get_webhook_service to return our mock
+        def mock_get_webhook_service():
+            return mock_webhook_service
+
+        monkeypatch.setattr('routes.koe_routes.get_webhook_service', mock_get_webhook_service)
 
         response = client.post(
             f'/api/cases/{sak_id}/pdf',
@@ -221,6 +229,11 @@ class TestKoeRoutes:
         data = response.get_json()
         assert data['success'] is True
         assert 'documentGuid' in data
+
+        # Verify the service was called with correct arguments
+        mock_webhook_service.handle_pdf_upload.assert_called_once_with(
+            sak_id, pdf_base64, 'test.pdf', 'topic-abc-123'
+        )
 
     def test_pdf_upload_missing_data(self, client, mock_system, test_sak_with_data):
         """Test PDF upload with missing data"""
