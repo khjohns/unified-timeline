@@ -32,7 +32,7 @@ def get_logger(name: str, level: Optional[str] = None, log_format: Optional[str]
     # Only configure if not already configured
     if not logger.handlers:
         # Import here to avoid circular dependency
-        from config import settings
+        from core.config import settings
 
         # Determine log level
         log_level = level or settings.log_level
