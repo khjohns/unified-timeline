@@ -10,7 +10,7 @@ Endpoints for:
 import logging
 from flask import Blueprint, request, jsonify
 
-from lib.auth import generate_csrf_token
+from lib.auth import generate_csrf_token, require_csrf
 from lib.auth import MagicLinkManager
 
 logger = logging.getLogger(__name__)
@@ -69,6 +69,7 @@ def health_check():
 
 
 @utility_bp.route('/api/validate-user', methods=['POST'])
+@require_csrf
 def validate_user():
     """
     Validerer om en e-post tilhører en bruker i prosjektet

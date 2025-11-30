@@ -28,7 +28,7 @@ csrf_protection.require_csrf = mock_require_csrf
 import lib.auth
 lib.auth.require_csrf = mock_require_csrf
 
-from app import app as flask_app, KOEAutomationSystem
+from app import app as flask_app, SystemContext
 from repositories.csv_repository import CSVRepository
 from core.generated_constants import SAK_STATUS, KOE_STATUS, BH_SVAR_STATUS
 
@@ -103,7 +103,7 @@ def mock_catenda():
 
 @pytest.fixture
 def mock_system(mock_repository, mock_catenda, temp_data_dir, monkeypatch):
-    """Create mock KOEAutomationSystem"""
+    """Create mock SystemContext (replaces KOEAutomationSystem)"""
     config = {
         'catenda_client_id': 'test-client-id',
         'catenda_client_secret': 'test-secret',
@@ -114,7 +114,7 @@ def mock_system(mock_repository, mock_catenda, temp_data_dir, monkeypatch):
     }
 
     # Create system with mocked catenda
-    system = KOEAutomationSystem(config)
+    system = SystemContext(config)
     system.catenda = mock_catenda
 
     # Patch the global system variable directly

@@ -20,13 +20,8 @@ Architecture:
 import os
 import sys
 import logging
-import base64
-import tempfile
 import socket
-from datetime import datetime
-from pathlib import Path
-from typing import Optional, Dict, Any, List
-from threading import Thread
+from typing import Optional, Dict, Any
 
 # Last .env fil (VIKTIG for sikkerhetsvariabler)
 from dotenv import load_dotenv
@@ -102,16 +97,25 @@ def get_local_ip():
 
 
 # ============================================================================
-# KOEAutomationSystem
-# Bruker CSVRepository for data-aksess (repository pattern)
+# SystemContext - Simplified context holder (replaces KOEAutomationSystem)
+# Webhook logic moved to services/webhook_service.py
 # ============================================================================
 
-class KOEAutomationSystem:
-    """Hovedsystem for logikk og Catenda-integrasjon"""
+class SystemContext:
+    """
+    Simplified system context for legacy route compatibility.
+
+    Provides access to:
+    - db: CSVRepository (data access)
+    - catenda: CatendaClient (Catenda API integration)
+    - get_react_app_base_url(): React app URL helper
+
+    Note: Webhook handlers moved to services/webhook_service.py
+    Future refactoring should migrate routes to use service layer directly.
+    """
 
     def __init__(self, config: Dict[str, Any]):
         self.config = config
-        # Bruk CSVRepository i stedet for DataManager
         self.db = CSVRepository(config.get('data_dir', 'koe_data'))
         self.catenda = CatendaClient(
             client_id=config['catenda_client_id'],
@@ -133,235 +137,16 @@ class KOEAutomationSystem:
 
     def get_react_app_base_url(self) -> str:
         """Determines the correct base URL for the React application."""
-        # Sjekk .env-variabler først (via settings eller direkte)
         if settings.dev_react_app_url:
             return settings.dev_react_app_url
         if settings.react_app_url:
             return settings.react_app_url
-        # Fallback til config dict (for bakoverkompatibilitet)
         if 'react_app_url' in self.config and self.config['react_app_url']:
             return self.config['react_app_url']
 
-        # Siste fallback: lokal IP
+        # Fallback: localhost
         local_ip = get_local_ip()
         return f"http://{local_ip}:3000"
-
-    def handle_new_topic_created(self, webhook_payload: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Håndterer ny topic.
-        Oppretter sak, henter metadata, og poster lenke til React-app.
-        """
-        try:
-            from lib.auth import MagicLinkManager
-            magic_link_mgr = MagicLinkManager()
-
-            temp_topic_data = webhook_payload.get('issue', {}) or webhook_payload.get('topic', {})
-            board_id = webhook_payload.get('project_id') or temp_topic_data.get('boardId') or temp_topic_data.get('topic_board_id')
-
-            filter_data = temp_topic_data.copy()
-            filter_data['board_id'] = board_id
-            filter_data['type'] = temp_topic_data.get('topic_type') or temp_topic_data.get('type')
-
-            should_proc, reason = should_process_topic(filter_data)
-            if not should_proc:
-                logger.info(f"⏭️  Ignorerer topic (årsak: {reason})")
-                return {'success': True, 'action': 'ignored_due_to_filter', 'reason': reason}
-
-            topic_id = temp_topic_data.get('id') or temp_topic_data.get('guid') or webhook_payload.get('guid')
-
-            if not topic_id or not board_id:
-                logger.error(f"Webhook mangler 'topic_id' eller 'board_id'. Payload: {webhook_payload}")
-                return {'success': False, 'error': 'Mangler topic_id eller board_id i webhook'}
-
-            self.catenda.topic_board_id = board_id
-            topic_data = self.catenda.get_topic_details(topic_id)
-
-            if not topic_data:
-                logger.error(f"Klarte ikke å hente topic-detaljer for ID {topic_id} fra Catenda API.")
-                return {'success': False, 'error': f'Kunne ikke hente topic-detaljer for {topic_id}'}
-
-            title = topic_data.get('title', 'Uten tittel')
-
-            byggherre = 'Ikke spesifisert'
-            leverandor = 'Ikke spesifisert'
-            saksstatus = SAK_STATUS['UNDER_VARSLING']
-            project_name = 'Ukjent prosjekt'
-            v2_project_id = None
-
-            board_details = self.catenda.get_topic_board_details()
-            if board_details:
-                v2_project_id = board_details.get('bimsync_project_id')
-                if v2_project_id:
-                    project_details = self.catenda.get_project_details(v2_project_id)
-                    if project_details:
-                        project_name = project_details.get('name', project_name)
-
-            custom_fields = topic_data.get('bimsync_custom_fields', [])
-            for field in custom_fields:
-                field_name = field.get('customFieldName')
-                field_value = field.get('value')
-                if field_name == 'Byggherre' and field_value:
-                    byggherre = field_value
-                elif field_name == 'Leverandør' and field_value:
-                    leverandor = field_value
-                elif field_name == 'Saksstatus KOE' and field_value:
-                    saksstatus = field_value
-
-            author_name = topic_data.get('bimsync_creation_author', {}).get('user', {}).get('name', topic_data.get('creation_author', 'Ukjent'))
-
-            sak_data = {
-                'catenda_topic_id': topic_id,
-                'catenda_project_id': v2_project_id,
-                'catenda_board_id': board_id,
-                'sakstittel': title,
-                'te_navn': author_name,
-                'status': saksstatus,
-                'byggherre': byggherre,
-                'entreprenor': leverandor,
-                'prosjekt_navn': project_name,
-            }
-            sak_id = self.db.create_case(sak_data)
-
-            author_email = topic_data.get('bimsync_creation_author', {}).get('user', {}).get('email')
-            magic_token = magic_link_mgr.generate(sak_id=sak_id, email=author_email)
-
-            base_url = self.get_react_app_base_url()
-            magic_link = f"{base_url}?magicToken={magic_token}"
-
-            dato = datetime.now().strftime('%Y-%m-%d')
-            comment_text = (
-                f"✅ **Ny KOE-sak opprettet**\n\n"
-                f"📋 Intern Sak-ID: `{sak_id}`\n"
-                f"📅 Dato: {dato}\n"
-                f"🏗️ Prosjekt: {project_name}\n\n"
-                f"**Neste steg:** Entreprenør sender varsel\n"
-                f"👉 [Åpne skjema]({magic_link})"
-            )
-
-            def post_comment_async():
-                try:
-                    self.catenda.create_comment(topic_id, comment_text)
-                    logger.info(f"✅ Kommentar sendt til Catenda for sak {sak_id}")
-                except Exception as e:
-                    logger.error(f"❌ Feil ved posting av kommentar til Catenda: {e}")
-
-            Thread(target=post_comment_async, daemon=True).start()
-            logger.info(f"✅ Sak {sak_id} opprettet, kommentar sendes i bakgrunnen.")
-
-            return {'success': True, 'sak_id': sak_id}
-
-        except Exception as e:
-            logger.exception(f"Feil i handle_new_topic_created: {e}")
-            return {'success': False, 'error': str(e)}
-
-    def handle_topic_modification(self, webhook_payload: Dict[str, Any]) -> Dict[str, Any]:
-        """Håndterer endringer på topic (statusendring eller kommentar)."""
-        try:
-            topic_data = webhook_payload.get('issue', {}) or webhook_payload.get('topic', {})
-            topic_id = topic_data.get('id') or topic_data.get('guid')
-
-            sak = self.db.get_case_by_topic_id(topic_id)
-            if not sak:
-                return {'success': True, 'action': 'ignored_unknown_topic'}
-
-            sak_id = sak['sak_id']
-
-            modification_data = webhook_payload.get('modification', {})
-            comment_data = webhook_payload.get('comment', {})
-
-            new_status = None
-
-            if modification_data.get('event') == 'status_updated':
-                new_status_val = modification_data.get('value', '').lower()
-                logger.info(f"Status endret til: {new_status_val}")
-
-                if 'lukket' in new_status_val or 'closed' in new_status_val:
-                    new_status = 'Lukket'
-                elif 'godkjent' in new_status_val:
-                    new_status = 'Godkjent'
-
-            elif 'comment' in comment_data:
-                comment_text = comment_data.get('comment', '').lower()
-                if 'godkjent' in comment_text:
-                    new_status = 'Godkjent'
-                elif 'avslått' in comment_text or 'avvist' in comment_text:
-                    new_status = 'Avslått'
-
-            if new_status:
-                self.db.update_case_status(sak_id, new_status)
-                self.db.log_historikk(sak_id, 'catenda_oppdatering', f"Status oppdatert til {new_status} via Catenda")
-                logger.info(f"✅ Sak {sak_id} oppdatert til {new_status} basert på Catenda-hendelse.")
-                return {'success': True, 'action': 'updated', 'status': new_status}
-
-            return {'success': True, 'action': 'no_change'}
-
-        except Exception as e:
-            logger.exception(f"Feil i handle_topic_modification: {e}")
-            return {'success': False, 'error': str(e)}
-
-    def handle_pdf_upload(self, sak_id: str, pdf_base64: str, filename: str, topic_guid: str) -> Dict[str, Any]:
-        """Tar imot Base64 PDF, laster opp til Catenda og kobler til topic."""
-        temp_path = None
-        try:
-            pdf_data = base64.b64decode(pdf_base64)
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
-                temp_file.write(pdf_data)
-                temp_path = temp_file.name
-
-            logger.info(f"PDF lagret midlertidig: {temp_path}")
-
-            project_id = self.config.get('catenda_project_id')
-            library_id = self.config.get('catenda_library_id')
-
-            if library_id:
-                self.catenda.library_id = library_id
-            else:
-                self.catenda.select_library(project_id)
-
-            doc_result = self.catenda.upload_document(project_id, temp_path, filename)
-
-            if not doc_result or 'id' not in doc_result:
-                raise Exception("Feil ved opplasting av dokument til Catenda")
-
-            compact_doc_guid = doc_result['id']
-            logger.info(f"PDF lastet opp til Catenda. Kompakt GUID: {compact_doc_guid}")
-
-            if len(compact_doc_guid) == 32:
-                formatted_doc_guid = (
-                    f"{compact_doc_guid[:8]}-{compact_doc_guid[8:12]}-"
-                    f"{compact_doc_guid[12:16]}-{compact_doc_guid[16:20]}-{compact_doc_guid[20:]}"
-                )
-            else:
-                formatted_doc_guid = compact_doc_guid
-
-            sak_info = self.db.get_case(sak_id)
-            if sak_info and 'sak' in sak_info and sak_info['sak'].get('catenda_board_id'):
-                 self.catenda.topic_board_id = sak_info['sak']['catenda_board_id']
-                 logger.info(f"Bruker lagret board ID: {self.catenda.topic_board_id}")
-            elif not self.catenda.topic_board_id:
-                 logger.warning("Fant ikke board ID i sak, prøver default...")
-                 self.catenda.select_topic_board(0)
-
-            ref_result = self.catenda.create_document_reference(topic_guid, formatted_doc_guid)
-
-            if ref_result:
-                logger.info(f"PDF koblet til topic {topic_guid}")
-                return {'success': True, 'documentGuid': formatted_doc_guid, 'filename': filename}
-            else:
-                logger.warning(f"Kunne ikke koble med formatert GUID. Prøver kompakt GUID: {compact_doc_guid}")
-                ref_result_compact = self.catenda.create_document_reference(topic_guid, compact_doc_guid)
-                if ref_result_compact:
-                    logger.info(f"PDF koblet til topic {topic_guid} med kompakt GUID.")
-                    return {'success': True, 'documentGuid': compact_doc_guid, 'filename': filename}
-                else:
-                    return {'success': False, 'error': 'Kunne ikke koble dokument til topic (begge GUID-formater feilet)'}
-
-        except Exception as e:
-            logger.exception(f"Feil ved PDF-håndtering: {e}")
-            return {'success': False, 'error': str(e)}
-        finally:
-            if temp_path and os.path.exists(temp_path):
-                os.remove(temp_path)
 
 
 # ============================================================================
@@ -401,10 +186,15 @@ from lib.security.rate_limiter import init_limiter
 init_limiter(app)
 
 # Global system instance
-system: Optional[KOEAutomationSystem] = None
+system: Optional[SystemContext] = None
 
 def get_system():
-    """Get or initialize global KOEAutomationSystem instance"""
+    """
+    Get or initialize global SystemContext instance.
+
+    Legacy function for backwards compatibility with existing routes.
+    Future refactoring should migrate routes to use service layer directly.
+    """
     global system
     if system is None:
         try:
@@ -417,7 +207,7 @@ def get_system():
                 logger.error("   Kjør 'python scripts/setup_authentication.py' for å konfigurere.")
                 sys.exit(1)
 
-            system = KOEAutomationSystem(config)
+            system = SystemContext(config)
             logger.info(f"System startet. {get_filter_summary()}")
         except Exception as e:
             logger.error(f"Kunne ikke starte systemet: {e}")
