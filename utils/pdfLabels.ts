@@ -4,7 +4,7 @@ import {
   VEDERLAGSMETODER_OPTIONS,
   BH_VEDERLAGSSVAR_OPTIONS,
   BH_FRISTSVAR_OPTIONS,
-} from '../constants';
+} from '../config';
 import {
   getSakStatusLabel,
   getKravStatusLabel,

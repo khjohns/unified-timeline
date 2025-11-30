@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { FormDataModel } from '../types';
-import { INITIAL_FORM_DATA } from '../constants';
+import { INITIAL_FORM_DATA } from '../config';
 import { api } from '../services/api';
 import { logger } from '../utils/logger';
 
