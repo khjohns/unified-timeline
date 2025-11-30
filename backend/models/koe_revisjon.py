@@ -5,7 +5,7 @@ Represents a revision of a KOE (change order request) from the contractor.
 """
 from pydantic import BaseModel, Field
 from typing import Optional
-from generated_constants import KOE_STATUS
+from core.generated_constants import KOE_STATUS
 
 
 class VederlagKrav(BaseModel):

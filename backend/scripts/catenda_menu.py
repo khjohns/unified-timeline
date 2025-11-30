@@ -14,7 +14,9 @@ from datetime import datetime
 
 # Import fra hovedscriptet
 try:
-    from catenda_api_tester import CatendaAPITester
+    import sys
+sys.path.insert(0, "..")
+from integrations.catenda import CatendaClient
 except ImportError:
     print("❌ Finner ikke catenda_api_tester.py")
     print("Sørg for at begge filene er i samme mappe.")
@@ -25,7 +27,7 @@ class CatendaInteractiveMenu:
     """Interaktiv meny for Catenda API-operasjoner"""
     
     def __init__(self):
-        self.tester: Optional[CatendaAPITester] = None
+        self.tester: Optional[CatendaClient] = None
         self.project_id: Optional[str] = None
         self.library_id: Optional[str] = None
         self.topic_board_id: Optional[str] = None
@@ -77,7 +79,7 @@ class CatendaInteractiveMenu:
                 return False
             
             # Opprett tester-objekt
-            self.tester = CatendaAPITester(
+            self.tester = CatendaClient(
                 client_id=client_id,
                 client_secret=client_secret
             )

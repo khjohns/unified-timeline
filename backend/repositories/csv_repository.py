@@ -13,7 +13,7 @@ from threading import RLock
 from typing import Optional, Dict, Any, List
 
 from repositories.base_repository import BaseRepository
-from generated_constants import SAK_STATUS, KOE_STATUS
+from core.generated_constants import SAK_STATUS, KOE_STATUS
 from utils.logger import get_logger
 
 logger = get_logger(__name__)

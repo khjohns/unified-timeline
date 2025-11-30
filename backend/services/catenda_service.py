@@ -1,7 +1,7 @@
 """
 CatendaService - Business logic for Catenda API integration.
 
-This service wraps the CatendaAPITester and provides a clean interface
+This service wraps the CatendaClient and provides a clean interface
 for posting comments, uploading documents, and managing references.
 """
 from typing import Dict, Any, Optional
@@ -26,7 +26,7 @@ class CatendaService:
         Initialize CatendaService.
 
         Args:
-            catenda_api_client: CatendaAPITester instance (or mock)
+            catenda_api_client: CatendaClient instance (or mock)
         """
         self.client = catenda_api_client
         if not self.client:

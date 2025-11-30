@@ -10,7 +10,7 @@ from datetime import datetime
 
 from services.koe_service import KoeService
 from repositories.csv_repository import CSVRepository
-from generated_constants import SAK_STATUS, KOE_STATUS, BH_SVAR_STATUS
+from core.generated_constants import SAK_STATUS, KOE_STATUS, BH_SVAR_STATUS
 import tempfile
 import shutil
 

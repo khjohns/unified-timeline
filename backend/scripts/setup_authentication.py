@@ -10,11 +10,11 @@ from pathlib import Path
 
 # Sjekk at catenda_api_tester er tilgjengelig
 try:
-    from catenda_api_tester import CatendaAPITester
-except ImportError:
-    print("❌ Finner ikke catenda_api_tester.py")
     print("   Last ned filen og plasser den i samme mappe.")
     sys.exit(1)
+import sys
+sys.path.insert(0, "..")
+from integrations.catenda import CatendaClient
 
 
 def print_header(title: str):
@@ -128,7 +128,7 @@ def setup_client_credentials(config: dict) -> dict:
     
     # Test autentisering
     print("\n🧪 Tester autentisering...")
-    tester = CatendaAPITester(
+    tester = CatendaClient(
         client_id=config['catenda_client_id'],
         client_secret=client_secret
     )
@@ -192,7 +192,7 @@ def setup_authorization_code(config: dict) -> dict:
     print("\n🚀 STARTER AUTENTISERINGSFLYT")
     print("-" * 70)
     
-    tester = CatendaAPITester(
+    tester = CatendaClient(
         client_id=config['catenda_client_id'],
         client_secret=config.get('catenda_client_secret')
     )

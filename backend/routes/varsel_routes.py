@@ -8,8 +8,8 @@ import logging
 from datetime import datetime
 from flask import Blueprint, request, jsonify
 
-from csrf_protection import require_csrf
-from generated_constants import KOE_STATUS
+from lib.auth import require_csrf
+from core.generated_constants import KOE_STATUS
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ def submit_varsel():
     """
     # Import here to avoid circular imports
     from app import get_system
-    from magic_link import MagicLinkManager
+    from lib.auth import MagicLinkManager
 
     logger.info("📥 Mottok varsel-submit request")
     sys = get_system()

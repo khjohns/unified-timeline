@@ -10,8 +10,8 @@ import logging
 from datetime import datetime
 from flask import Blueprint, request, jsonify
 
-from csrf_protection import require_csrf
-from generated_constants import BH_SVAR_STATUS
+from lib.auth import require_csrf
+from core.generated_constants import BH_SVAR_STATUS
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ def submit_koe():
     """
     # Import here to avoid circular imports
     from app import get_system
-    from magic_link import MagicLinkManager
+    from lib.auth import MagicLinkManager
 
     logger.info("📥 Mottok koe-submit request")
     sys = get_system()
@@ -163,7 +163,7 @@ def submit_revidering(sakId):
     """
     # Import here to avoid circular imports
     from app import get_system
-    from magic_link import MagicLinkManager
+    from lib.auth import MagicLinkManager
 
     logger.info(f"📥 Mottok revidering-submit request for sak {sakId}")
     sys = get_system()

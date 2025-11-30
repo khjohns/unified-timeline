@@ -35,7 +35,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Import constants
-from generated_constants import SAK_STATUS
+from core.generated_constants import SAK_STATUS
 
 # Flask og CORS
 try:
@@ -47,7 +47,7 @@ except ImportError:
 
 # Catenda API
 try:
-    from catenda_api_tester import CatendaAPITester
+    from integrations.catenda import CatendaClient
 except ImportError:
     print("❌ Finner ikke catenda_api_tester.py")
     sys.exit(1)
@@ -61,7 +61,7 @@ except ImportError:
 
 # Security modules
 try:
-    from audit import audit
+    from lib.monitoring.audit import audit
 except ImportError as e:
     print(f"⚠️  Sikkerh​etsmoduler ikke funnet: {e}")
     print("   Fortsetter uten sikkerhetsfunksjoner (kun for utvikling)")
@@ -164,7 +164,7 @@ class DataManager:
             sak_data['sak_id_display'] = sak_data['sak_id']
 
             # Opprett initiell JSON-fil med første krav-revisjon
-            from generated_constants import KOE_STATUS
+            from core.generated_constants import KOE_STATUS
             initial_json = {
                 "versjon": "5.0",
                 "rolle": "TE",
@@ -282,7 +282,7 @@ class KOEAutomationSystem:
     def __init__(self, config: Dict[str, Any]):
         self.config = config
         self.db = DataManager(config.get('data_dir', 'koe_data'))
-        self.catenda = CatendaAPITester(
+        self.catenda = CatendaClient(
             client_id=config['catenda_client_id'],
             client_secret=config.get('catenda_client_secret')
         )
@@ -317,7 +317,7 @@ class KOEAutomationSystem:
         Oppretter sak, henter metadata, og poster lenke til React-app.
         """
         try:
-            from magic_link import MagicLinkManager
+            from lib.auth import MagicLinkManager
             magic_link_mgr = MagicLinkManager()
 
             temp_topic_data = webhook_payload.get('issue', {}) or webhook_payload.get('topic', {})
