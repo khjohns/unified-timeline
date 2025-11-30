@@ -132,7 +132,7 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
         <PktAlert skin="info" compact>
           <span>
             Denne fanen viser kun siste sendte svar og nytt svar under arbeid.
-            Se alle {bh_svar_revisjoner.length} svar i <strong>Test-fanen</strong>.
+            Se alle {bh_svar_revisjoner.length} svar i <strong>Saksoversikt-fanen</strong>.
           </span>
         </PktAlert>
       )}
@@ -209,7 +209,6 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                           type="number"
                           value={bh_svar.vederlag.bh_godkjent_vederlag_belop}
                           onChange={e => handleChange(index, 'vederlag.bh_godkjent_vederlag_belop', e.target.value)}
-                          helpText="Oppgi godkjent beløp i hele kroner"
                           error={errors['bh_svar.vederlag.bh_godkjent_vederlag_belop']}
                           formatAsNumber
                           readOnly={erLaast}
