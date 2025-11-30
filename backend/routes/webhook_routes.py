@@ -8,12 +8,12 @@ import os
 import logging
 from flask import Blueprint, request, jsonify
 
-from webhook_security import (
+from lib.security.webhook_security import (
     validate_webhook_event_structure,
     is_duplicate_event,
     get_webhook_event_id
 )
-from audit import audit
+from lib.monitoring.audit import audit
 
 logger = logging.getLogger(__name__)
 

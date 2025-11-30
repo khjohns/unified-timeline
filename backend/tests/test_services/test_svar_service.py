@@ -10,7 +10,7 @@ from datetime import datetime
 
 from services.svar_service import SvarService
 from repositories.csv_repository import CSVRepository
-from generated_constants import SAK_STATUS, KOE_STATUS, BH_SVAR_STATUS, BH_VEDERLAG_SVAR, BH_FRIST_SVAR
+from core.generated_constants import SAK_STATUS, KOE_STATUS, BH_SVAR_STATUS, BH_VEDERLAG_SVAR, BH_FRIST_SVAR
 import tempfile
 import shutil
 

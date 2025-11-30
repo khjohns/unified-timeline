@@ -12,9 +12,7 @@ import os
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 from dotenv import load_dotenv
-
-try:
-    from catenda_api_tester import CatendaAPITester
+from integrations.catenda import CatendaClient
 except ImportError:
     print("❌ Finner ikke catenda_api_tester.py")
     sys.exit(1)
@@ -37,12 +35,12 @@ logger = logging.getLogger(__name__)
 class WebhookManager:
     """Håndterer Catenda webhooks via API"""
     
-    def __init__(self, catenda: CatendaAPITester, project_id: str):
+    def __init__(self, catenda: CatendaClient, project_id: str):
         """
         Initialiser webhook manager
         
         Args:
-            catenda: Autentisert CatendaAPITester-instans
+            catenda: Autentisert CatendaClient-instans
             project_id: Catenda project ID
         """
         self.catenda = catenda
@@ -218,10 +216,10 @@ def load_config() -> Dict[str, Any]:
         sys.exit(1)
 
 
-def authenticate_catenda(config: Dict[str, Any]) -> CatendaAPITester:
+def authenticate_catenda(config: Dict[str, Any]) -> CatendaClient:
     """Autentiser mot Catenda"""
     
-    tester = CatendaAPITester(
+    tester = CatendaClient(
         client_id=config['catenda_client_id'],
         client_secret=config.get('catenda_client_secret')
     )

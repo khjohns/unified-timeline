@@ -10,8 +10,8 @@ Endpoints for:
 import logging
 from flask import Blueprint, request, jsonify
 
-from csrf_protection import generate_csrf_token
-from magic_link import MagicLinkManager
+from lib.auth import generate_csrf_token
+from lib.auth import MagicLinkManager
 
 logger = logging.getLogger(__name__)
 

@@ -1,8 +1,8 @@
 """
-Catenda API Tester - PoC Script
-================================
+Catenda API Client
+==================
 
-Dette skriptet tester alle kritiske Catenda API-endepunkter for KOE/EO-flyten,
+Production-ready Catenda API client for KOE/EO workflow.
 med særlig fokus på å verifisere ID-mapping mellom library-item-id og document_guid.
 
 Basert på: Catenda_API_Vurdering_KOE_EO_Flyt_v2.md
@@ -31,7 +31,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-class CatendaAPITester:
+class CatendaClient:
     """
     Tester for Catenda API (REST v2 og BCF v3.0)
     """
@@ -58,7 +58,7 @@ class CatendaAPITester:
         self.library_id: Optional[str] = None
         self.test_topic_id: Optional[str] = None
         
-        logger.info("✅ CatendaAPITester initialisert")
+        logger.info("✅ CatendaClient initialisert")
     
     # ==========================================
     # AUTHENTICATION
@@ -1487,7 +1487,7 @@ def main():
             print("❌ Client Secret er påkrevd for Client Credentials Grant!")
             return
         
-        tester = CatendaAPITester(client_id, client_secret)
+        tester = CatendaClient(client_id, client_secret)
         
         print("\n" + "=" * 80)
         print("TEST 1: AUTHENTICATION (CLIENT CREDENTIALS)")
@@ -1507,7 +1507,7 @@ def main():
             print("❌ Redirect URI er påkrevd!")
             return
         
-        tester = CatendaAPITester(client_id, client_secret)
+        tester = CatendaClient(client_id, client_secret)
         
         print("\n" + "=" * 80)
         print("TEST 1: AUTHENTICATION (AUTHORIZATION CODE)")
@@ -1539,7 +1539,7 @@ def main():
             print("❌ Access Token er påkrevd!")
             return
         
-        tester = CatendaAPITester(client_id, access_token=access_token)
+        tester = CatendaClient(client_id, access_token=access_token)
         
         print("\n" + "=" * 80)
         print("TEST 1: AUTHENTICATION (MANUAL TOKEN)")
@@ -1647,5 +1647,3 @@ def main():
     print("=" * 80 + "\n")
 
 
-if __name__ == "__main__":
-    main()

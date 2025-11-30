@@ -19,14 +19,17 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Mock CSRF protection BEFORE importing routes
-import csrf_protection
+from lib.auth import csrf_protection
 def mock_require_csrf(f):
     """Mock CSRF decorator for testing"""
     return f
+# Mock both the module-level function and the one imported by routes
 csrf_protection.require_csrf = mock_require_csrf
+import lib.auth
+lib.auth.require_csrf = mock_require_csrf
 
 from app import app as flask_app, KOEAutomationSystem, DataManager
-from generated_constants import SAK_STATUS, KOE_STATUS, BH_SVAR_STATUS
+from core.generated_constants import SAK_STATUS, KOE_STATUS, BH_SVAR_STATUS
 
 
 @pytest.fixture
@@ -216,7 +219,7 @@ def mock_magic_link_manager(monkeypatch):
     mock_mgr_class.return_value = mock_mgr_instance
 
     # Patch magic_link module
-    monkeypatch.setattr('magic_link.MagicLinkManager', mock_mgr_class)
+    monkeypatch.setattr('lib.auth.magic_link.MagicLinkManager', mock_mgr_class)
 
     return mock_mgr_instance
 
