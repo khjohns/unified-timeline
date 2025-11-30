@@ -9,6 +9,7 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify
 
 from lib.auth import require_csrf
+from lib.security.rate_limiter import limit_submit
 from core.generated_constants import KOE_STATUS
 
 logger = logging.getLogger(__name__)
@@ -19,6 +20,7 @@ varsel_bp = Blueprint('varsel', __name__)
 
 @varsel_bp.route('/api/varsel-submit', methods=['POST'])
 @require_csrf  # CSRF beskyttelse
+@limit_submit  # Rate limiting (10/min default)
 def submit_varsel():
     """
     Submit Varsel (notification) form.

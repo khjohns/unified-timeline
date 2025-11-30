@@ -370,6 +370,15 @@ class KOEAutomationSystem:
 
 app = Flask(__name__)
 
+# Flask Secret Key (required for sessions and security features)
+# VIKTIG: Bruk sterk, tilfeldig secret i produksjon!
+app.config['SECRET_KEY'] = os.getenv(
+    'FLASK_SECRET_KEY',
+    'dev-only-secret-CHANGE-IN-PRODUCTION'
+)
+if app.config['SECRET_KEY'] == 'dev-only-secret-CHANGE-IN-PRODUCTION':
+    logger.warning("⚠️  FLASK_SECRET_KEY ikke satt - bruker dev default. Sett i .env for produksjon!")
+
 # CORS Configuration
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",")
 NGROK_URL = os.getenv("NGROK_URL", "")
@@ -387,28 +396,9 @@ CORS(app, resources={
     }
 })
 
-# Rate Limiting
-try:
-    from flask_limiter import Limiter
-    from flask_limiter.util import get_remote_address
-
-    limiter = Limiter(
-        app=app,
-        key_func=get_remote_address,
-        default_limits=["200 per day", "50 per hour"],
-        storage_uri="memory://"
-    )
-    logger.info("✅ Rate limiting aktivert")
-except ImportError:
-    logger.warning("⚠️  Flask-Limiter ikke installert. Rate limiting deaktivert.")
-    logger.warning("   Installer med: pip install Flask-Limiter")
-    # Dummy limiter
-    class limiter:
-        @staticmethod
-        def limit(limit_string):
-            def decorator(f):
-                return f
-            return decorator
+# Rate Limiting (via sentralisert modul)
+from lib.security.rate_limiter import init_limiter
+init_limiter(app)
 
 # Global system instance
 system: Optional[KOEAutomationSystem] = None

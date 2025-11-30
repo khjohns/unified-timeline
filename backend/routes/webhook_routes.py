@@ -13,6 +13,7 @@ from lib.security.webhook_security import (
     is_duplicate_event,
     get_webhook_event_id
 )
+from lib.security.rate_limiter import limit_webhook
 from lib.monitoring.audit import audit
 
 logger = logging.getLogger(__name__)
@@ -29,6 +30,7 @@ if not WEBHOOK_SECRET_PATH:
 
 
 @webhook_bp.route(f'/webhook/catenda/<secret_path>', methods=['POST'])
+@limit_webhook  # Rate limiting (100/min default)
 def webhook(secret_path):
     """
     Webhook endpoint for Catenda events.
