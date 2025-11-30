@@ -82,7 +82,7 @@ class TestCaseRoutes:
         assert 'message' in data
 
         # Verify data was saved
-        saved_data = mock_system.db.get_form_data(sak_id)
+        saved_data = mock_system.db.get_case(sak_id)
         assert saved_data['varsel']['varsel_beskrivelse'] == 'Draft varsel'
 
     def test_save_draft_creates_new_case_if_not_exists(self, client, mock_system):
@@ -112,7 +112,7 @@ class TestCaseRoutes:
         assert data['success'] is True
 
         # Verify data was created
-        saved_data = mock_system.db.get_form_data(sak_id)
+        saved_data = mock_system.db.get_case(sak_id)
         assert saved_data is not None
         assert saved_data['sak']['sakstittel'] == 'New Draft Case'
 
@@ -136,7 +136,7 @@ class TestCaseRoutes:
             assert response.status_code == 200
 
         # Verify last save was persisted
-        saved_data = mock_system.db.get_form_data(sak_id)
+        saved_data = mock_system.db.get_case(sak_id)
         assert saved_data['varsel']['varsel_beskrivelse'] == 'Draft version 2'
 
     def test_save_draft_preserves_other_data(self, client, mock_system, test_sak_with_data):
@@ -159,6 +159,6 @@ class TestCaseRoutes:
         assert response.status_code == 200
 
         # Verify other data is preserved
-        saved_data = mock_system.db.get_form_data(sak_id)
+        saved_data = mock_system.db.get_case(sak_id)
         assert saved_data['sak'] == original_data['sak']
         assert len(saved_data['koe_revisjoner']) == len(original_data['koe_revisjoner'])

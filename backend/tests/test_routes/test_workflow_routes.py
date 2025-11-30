@@ -38,7 +38,7 @@ class TestVarselRoutes:
         assert data['nextMode'] == 'koe'
 
         # Verify varsel was saved
-        saved_data = mock_system.db.get_form_data(sak_id)
+        saved_data = mock_system.db.get_case(sak_id)
         assert saved_data['varsel']['hovedkategori'] == 'Risiko'
 
     def test_varsel_submit_auto_populates_date(self, client, mock_system, test_sak_with_data):
@@ -60,7 +60,7 @@ class TestVarselRoutes:
         assert response.status_code == 200
 
         # Verify date was auto-populated
-        saved_data = mock_system.db.get_form_data(sak_id)
+        saved_data = mock_system.db.get_case(sak_id)
         assert 'dato_varsel_sendt' in saved_data['varsel']
         assert saved_data['varsel']['dato_varsel_sendt'] != ''
 
@@ -84,7 +84,7 @@ class TestVarselRoutes:
         assert response.status_code == 200
 
         # Verify KOE revision was created
-        saved_data = mock_system.db.get_form_data(sak_id)
+        saved_data = mock_system.db.get_case(sak_id)
         assert len(saved_data['koe_revisjoner']) == 1
         assert saved_data['koe_revisjoner'][0]['koe_revisjonsnr'] == '0'
 
@@ -138,7 +138,7 @@ class TestKoeRoutes:
         assert data['nextMode'] == 'svar'
 
         # Verify KOE was saved
-        saved_data = mock_system.db.get_form_data(sak_id)
+        saved_data = mock_system.db.get_case(sak_id)
         assert saved_data['koe_revisjoner'][-1]['vederlag']['krav_vederlag'] is True
 
     def test_koe_submit_creates_first_bh_svar(self, client, mock_system, test_sak_with_data):
@@ -160,7 +160,7 @@ class TestKoeRoutes:
         assert response.status_code == 200
 
         # Verify BH svar was created
-        saved_data = mock_system.db.get_form_data(sak_id)
+        saved_data = mock_system.db.get_case(sak_id)
         assert len(saved_data['bh_svar_revisjoner']) == 1
 
     def test_koe_revidering_submit(self, client, mock_system, test_sak_with_data):
@@ -273,7 +273,7 @@ class TestSvarRoutes:
         assert data['success'] is True
 
         # With full approval, no new revision should be created
-        saved_data = mock_system.db.get_form_data(sak_id)
+        saved_data = mock_system.db.get_case(sak_id)
         assert len(saved_data['koe_revisjoner']) == 1  # Still only first revision
 
     def test_svar_submit_partial_approval_creates_revision(self, client, mock_system, test_sak_with_data):
@@ -307,7 +307,7 @@ class TestSvarRoutes:
         assert response.status_code == 200
 
         # Verify new revision was created
-        saved_data = mock_system.db.get_form_data(sak_id)
+        saved_data = mock_system.db.get_case(sak_id)
         assert len(saved_data['koe_revisjoner']) == 2
         assert saved_data['koe_revisjoner'][-1]['koe_revisjonsnr'] == '1'
 
@@ -321,8 +321,8 @@ class TestWorkflowIntegration:
     def test_complete_workflow_full_approval(self, client, mock_system, test_sak_data, test_varsel_data, test_koe_data):
         """Test complete KOE workflow with full approval"""
         # 1. Create case
-        sak_id = mock_system.db.create_sak(test_sak_data)
-        form_data = mock_system.db.get_form_data(sak_id)
+        sak_id = mock_system.db.create_case(test_sak_data)
+        form_data = mock_system.db.get_case(sak_id)
 
         # 2. Submit varsel
         form_data['varsel'] = test_varsel_data
@@ -339,7 +339,7 @@ class TestWorkflowIntegration:
         assert response.get_json()['nextMode'] == 'koe'
 
         # 3. Submit KOE
-        form_data = mock_system.db.get_form_data(sak_id)
+        form_data = mock_system.db.get_case(sak_id)
         form_data['koe_revisjoner'][-1]['vederlag'] = {
             'krav_vederlag': True,
             'krav_vederlag_belop': '50000'
@@ -357,7 +357,7 @@ class TestWorkflowIntegration:
         assert response.get_json()['nextMode'] == 'svar'
 
         # 4. Submit BH svar with full approval
-        form_data = mock_system.db.get_form_data(sak_id)
+        form_data = mock_system.db.get_case(sak_id)
         form_data['bh_svar_revisjoner'][-1]['vederlag'] = {
             'bh_svar_vederlag': BH_VEDERLAG_SVAR['GODKJENT_FULLT']
         }
@@ -376,7 +376,7 @@ class TestWorkflowIntegration:
         assert response.status_code == 200
 
         # Verify workflow completed successfully
-        final_data = mock_system.db.get_form_data(sak_id)
+        final_data = mock_system.db.get_case(sak_id)
         assert final_data['varsel']['hovedkategori'] == 'Risiko'
         assert final_data['koe_revisjoner'][-1]['vederlag']['krav_vederlag'] is True
         assert final_data['bh_svar_revisjoner'][-1]['vederlag']['bh_svar_vederlag'] == BH_VEDERLAG_SVAR['GODKJENT_FULLT']
