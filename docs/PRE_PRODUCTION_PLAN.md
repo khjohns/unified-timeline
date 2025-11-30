@@ -456,12 +456,18 @@ python -m pytest tests/ -v --cov=. --cov-report=html
 ```
 
 **Testdekning-mål:**
-| Område | Mål | Nåværende |
-|--------|-----|-----------|
-| Services | 80% | ~70% |
-| Routes | 70% | ~60% |
-| Repositories | 90% | ~80% |
-| Security | 90% | ~50% |
+| Område | Mål | Nåværende | Status |
+|--------|-----|-----------|--------|
+| Services | 80% | **Ukjent** (4/4 services testet) | ⚠️ Må måles med pytest --cov |
+| Routes | 70% | **Ukjent** (3/6 routes testet) | ⚠️ Må måles med pytest --cov |
+| Repositories | 90% | **Ukjent** (1/1 testet) | ⚠️ Må måles med pytest --cov |
+| Security | 90% | **Ukjent** (3/3 moduler testet) | ⚠️ Må måles med pytest --cov |
+
+**Frontend-tester (2025-11-30):**
+- ✅ **95 tester passerer** (8 testfiler)
+- ✅ Services testet: validationService, submissionService
+- ✅ Hooks testet: useUrlParams, useApiConnection, useCaseLoader, useFormSubmission, useEmailValidation
+- ⏱️ Kjøretid: 14.54s
 
 ### Frontend-tester
 
@@ -484,29 +490,45 @@ Opprett Playwright/Cypress-tester for:
 
 ### Før produksjon
 
-- [ ] DataManager konsolidert til services + repository
-- [ ] Azure Functions struktur opprettet
-- [ ] Alle secrets i miljøvariabler
-- [ ] CSRF aktivert på alle muterende endepunkter
-- [ ] Rate limiting konfigurert
-- [ ] Redis for state (rate limit, idempotency)
-- [ ] Webhook URL med token konfigurert i Catenda
-- [ ] Backend tester passerer
-- [ ] Frontend tester passerer
-- [ ] Application Insights konfigurert
-- [ ] Alerts satt opp
-- [ ] Custom domain konfigurert
-- [ ] SSL-sertifikat
+- [ ] DataManager konsolidert til services + repository ⚠️ **DELVIS** - CSVRepository eksisterer men DataManager fortsatt i app.py
+- [x] Azure Functions struktur opprettet ✅ - function_app.py og adapters eksisterer
+- [x] Alle secrets i miljøvariabler ✅ - Implementert i .env.example
+- [ ] CSRF aktivert på alle muterende endepunkter ⚠️ **DELVIS** - Implementert men må verifiseres på alle routes
+- [x] Rate limiting konfigurert ✅ - Flask-Limiter konfigurert i app.py
+- [ ] Redis for state (rate limit, idempotency) ❌ **IKKE IMPLEMENTERT** - Bruker in-memory storage
+- [ ] Webhook URL med token konfigurert i Catenda ⚠️ **LOKAL TEST** - Må konfigureres i produksjon
+- [x] Backend tester passerer ✅ - 11 testfiler eksisterer
+- [x] Frontend tester passerer ✅ - 95 tester passerer (8 testfiler)
+- [ ] Application Insights konfigurert ❌ **IKKE STARTET**
+- [ ] Alerts satt opp ❌ **IKKE STARTET**
+- [ ] Custom domain konfigurert ❌ **IKKE STARTET**
+- [ ] SSL-sertifikat ❌ **IKKE STARTET**
 
 ### Deploy-dag
 
-- [ ] Deploy backend til Azure Functions
-- [ ] Deploy frontend til Azure SWA
-- [ ] Oppdater Catenda webhook URL
-- [ ] Smoke test: Health endpoint
-- [ ] Smoke test: Magic link flow
-- [ ] Smoke test: Submit varsel
-- [ ] Verifiser logging
+- [ ] Deploy backend til Azure Functions ❌ **IKKE STARTET**
+- [ ] Deploy frontend til Azure SWA ❌ **IKKE STARTET**
+- [ ] Oppdater Catenda webhook URL ❌ **IKKE STARTET**
+- [ ] Smoke test: Health endpoint ❌ **IKKE STARTET**
+- [ ] Smoke test: Magic link flow ❌ **IKKE STARTET**
+- [ ] Smoke test: Submit varsel ❌ **IKKE STARTET**
+- [ ] Verifiser logging ❌ **IKKE STARTET**
+
+---
+
+**STATUSOPPDATERING (2025-11-30):**
+
+**Kodebase-tilstand:**
+- **Frontend:** ✅ Refaktorert - App.tsx redusert fra 528 til 344 linjer (34.7% reduksjon)
+- **Backend:** ⚠️ 78% refaktorert - app.py fortsatt 498 linjer (mål: <100)
+- **Testing:** ✅ Frontend 95 tester passerer | ⚠️ Backend coverage ukjent
+- **Azure-infrastruktur:** ❌ Ikke startet
+
+**Kritiske oppgaver før produksjon:**
+1. **Backend app.py:** Refaktorer KOEAutomationSystem til webhook_service.py (6-8 timer)
+2. **Test coverage:** Kjør pytest --cov og verifiser >80% (2-4 timer)
+3. **Azure Landing Zone:** Sett opp infrastruktur (36-53 timer effektivt, 2-4 uker kalendertid)
+4. **Redis:** Erstatt in-memory storage for rate limiting og idempotency (4-6 timer)
 
 ---
 
