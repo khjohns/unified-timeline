@@ -227,7 +227,7 @@ export const useCaseLoader = (params: UseCaseLoaderParams): UseCaseLoaderReturn 
       }
 
       // Set initial tab based on modus
-      setActiveTab(getTabFromModus(modus));
+      setActiveTab(getTabIndexFromModus(modus));
     }
   }, [modus, formData.rolle, isLoading, internalSakId, isFromMagicLink]);
 
