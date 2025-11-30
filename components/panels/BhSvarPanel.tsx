@@ -275,7 +275,6 @@ const BhSvarPanel: React.FC<BhSvarPanelProps> = ({
                           min={0}
                           value={bh_svar.frist.bh_godkjent_frist_dager}
                           onChange={e => handleChange(index, 'frist.bh_godkjent_frist_dager', e.target.value)}
-                          helpText="Antall godkjente kalenderdager"
                           error={errors['bh_svar.frist.bh_godkjent_frist_dager']}
                           readOnly={erLaast}
                           inputMode="numeric"
