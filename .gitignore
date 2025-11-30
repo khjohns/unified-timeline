@@ -35,3 +35,8 @@ venv/
 backend/config.json
 backend/koe_data/
 backend/.env
+
+# Playwright
+playwright-report/
+playwright/.cache/
+test-results/
