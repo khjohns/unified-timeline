@@ -5,7 +5,7 @@ Represents the client's (byggherre/BH) response to a KOE claim.
 """
 from pydantic import BaseModel, Field
 from typing import Optional
-from constants import BH_SVAR_STATUS
+from generated_constants import BH_SVAR_STATUS
 
 
 class BHVederlagSvar(BaseModel):

@@ -11,7 +11,7 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify
 
 from csrf_protection import require_csrf
-from constants import BH_SVAR_STATUS
+from generated_constants import BH_SVAR_STATUS
 
 logger = logging.getLogger(__name__)
 

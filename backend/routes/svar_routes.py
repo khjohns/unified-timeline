@@ -9,7 +9,7 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify
 
 from csrf_protection import require_csrf
-from constants import (
+from generated_constants import (
     KOE_STATUS, BH_SVAR_STATUS,
     get_vederlag_svar_label, get_frist_svar_label,
     krever_revisjon

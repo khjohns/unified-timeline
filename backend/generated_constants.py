@@ -136,3 +136,26 @@ def get_vederlagsmetoder_label(code: str) -> str:
     }
     return labels.get(code, "Ukjent")
 
+# ============ HELPER FUNCTIONS ============
+def krever_revisjon(vederlag_svar: str = None, frist_svar: str = None) -> bool:
+    """Sjekker om BH-respons krever revisjon fra TE"""
+    revisjon_koder = [
+        BH_VEDERLAG_SVAR['DELVIS_GODKJENT'],
+        BH_VEDERLAG_SVAR['AVSLÅTT_UENIG'],
+        BH_VEDERLAG_SVAR['AVSLÅTT_FOR_SENT'],
+        BH_FRIST_SVAR['DELVIS_GODKJENT'],
+        BH_FRIST_SVAR['AVSLÅTT_UENIG'],
+        BH_FRIST_SVAR['AVSLÅTT_FOR_SENT'],
+    ]
+    return vederlag_svar in revisjon_koder or frist_svar in revisjon_koder
+
+# ============ LEGACY COMPATIBILITY ============
+# Aliases for backward compatibility with old function names
+def get_vederlag_svar_label(code: str) -> str:
+    """DEPRECATED: Use get_bh_vederlag_svar_label instead"""
+    return get_bh_vederlag_svar_label(code)
+
+def get_frist_svar_label(code: str) -> str:
+    """DEPRECATED: Use get_bh_frist_svar_label instead"""
+    return get_bh_frist_svar_label(code)
+

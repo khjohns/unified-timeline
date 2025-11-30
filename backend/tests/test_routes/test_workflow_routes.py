@@ -10,7 +10,7 @@ Tests complete KOE workflow:
 import pytest
 import json
 from unittest.mock import MagicMock
-from constants import BH_VEDERLAG_SVAR, BH_FRIST_SVAR
+from generated_constants import BH_VEDERLAG_SVAR, BH_FRIST_SVAR
 
 
 class TestVarselRoutes:

@@ -10,7 +10,7 @@ from datetime import datetime
 
 from services.varsel_service import VarselService
 from repositories.csv_repository import CSVRepository
-from constants import SAK_STATUS, KOE_STATUS
+from generated_constants import SAK_STATUS, KOE_STATUS
 import tempfile
 import shutil
 

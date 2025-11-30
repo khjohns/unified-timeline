@@ -10,7 +10,7 @@ import shutil
 from pathlib import Path
 
 from repositories.csv_repository import CSVRepository
-from constants import SAK_STATUS
+from generated_constants import SAK_STATUS
 
 
 class TestCSVRepository:

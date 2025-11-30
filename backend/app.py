@@ -35,7 +35,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Import constants
-from constants import SAK_STATUS
+from generated_constants import SAK_STATUS
 
 # Flask og CORS
 try:
@@ -164,7 +164,7 @@ class DataManager:
             sak_data['sak_id_display'] = sak_data['sak_id']
 
             # Opprett initiell JSON-fil med første krav-revisjon
-            from constants import KOE_STATUS
+            from generated_constants import KOE_STATUS
             initial_json = {
                 "versjon": "5.0",
                 "rolle": "TE",

@@ -26,7 +26,7 @@ def mock_require_csrf(f):
 csrf_protection.require_csrf = mock_require_csrf
 
 from app import app as flask_app, KOEAutomationSystem, DataManager
-from constants import SAK_STATUS, KOE_STATUS, BH_SVAR_STATUS
+from generated_constants import SAK_STATUS, KOE_STATUS, BH_SVAR_STATUS
 
 
 @pytest.fixture
