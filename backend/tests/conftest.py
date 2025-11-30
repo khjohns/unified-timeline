@@ -209,9 +209,9 @@ def test_svar_data():
     }
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def mock_magic_link_manager(monkeypatch):
-    """Mock MagicLinkManager globally for all tests"""
+    """Mock MagicLinkManager for tests that need it (not autouse)"""
     mock_mgr_class = MagicMock()
     mock_mgr_instance = MagicMock()
     mock_mgr_instance.generate.return_value = 'test-magic-token-123'

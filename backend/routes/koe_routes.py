@@ -139,6 +139,7 @@ def submit_koe():
 
 
 @koe_bp.route('/api/cases/<string:sakId>/revidering', methods=['POST'])
+@require_csrf
 def submit_revidering(sakId):
     """
     Handle submission of revised KOE from contractor.
@@ -223,6 +224,7 @@ def submit_revidering(sakId):
 
 
 @koe_bp.route('/api/cases/<string:sakId>/pdf', methods=['POST'])
+@require_csrf
 def upload_pdf(sakId):
     """
     Upload PDF document to Catenda.
