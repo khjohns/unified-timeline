@@ -21,7 +21,7 @@ const GrunninfoPanel: React.FC<GrunninfoPanelProps> = ({ formData, setFormData, 
     <PanelLayout>
       <div className="space-y-6">
         {/* Metadata tabell - automatisk genererte felt */}
-        <PktAlert title="Saksmetadata (automatisk)" skin="info">
+        <PktAlert title="Saksmetadata (automatisk)" skin="info" compact>
           <div>
             <table className="w-full text-sm border-collapse">
               <tbody>

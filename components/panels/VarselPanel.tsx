@@ -330,7 +330,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
 
             {erTidligereVarslet === 'nei' && (
               <PktAlert skin="success" compact>
-                ✓ Varselet blir automatisk datert {new Date().toLocaleDateString('no-NO')} og sendt via dette digitale skjemaet.
+                Varselet blir automatisk datert {new Date().toLocaleDateString('no-NO')} og sendt via dette digitale skjemaet.
               </PktAlert>
             )}
 
