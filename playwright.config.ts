@@ -25,7 +25,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
 
   // Opt out of parallel tests on CI
-  workers: process.env.CI ? 1 : undefined,
+  workers: 1,
 
   // Reporter to use
   reporter: [
@@ -33,10 +33,13 @@ export default defineConfig({
     ['list'],
   ],
 
+  // Timeout for each test
+  timeout: 60000,
+
   // Shared settings for all projects
   use: {
     // Base URL to use in actions like `await page.goto('/')`
-    baseURL: 'http://localhost:3000/Skjema_Endringsmeldinger',
+    baseURL: 'http://localhost:3000',
 
     // Collect trace when retrying the failed test
     trace: 'on-first-retry',
@@ -46,13 +49,30 @@ export default defineConfig({
 
     // Video on failure
     video: 'on-first-retry',
+
+    // Navigation timeout
+    navigationTimeout: 30000,
   },
 
   // Configure projects for major browsers
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          args: [
+            '--disable-dev-shm-usage',
+            '--disable-blink-features=AutomationControlled',
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-web-security',
+            '--disable-features=IsolateOrigins,site-per-process',
+            '--disable-gpu',
+            '--single-process',
+          ],
+        },
+      },
     },
 
     // Uncomment for Firefox testing
@@ -75,9 +95,9 @@ export default defineConfig({
   ],
 
   // Run local dev server before starting the tests (optional)
-  // webServer: {
-  //   command: 'npm run dev',
-  //   url: 'http://localhost:3000/Skjema_Endringsmeldinger',
-  //   reuseExistingServer: !process.env.CI,
-  // },
+  webServer: {
+    command: 'npm run dev',
+    url: 'http://localhost:3000',
+    reuseExistingServer: !process.env.CI,
+  },
 });

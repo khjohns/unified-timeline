@@ -3,7 +3,12 @@ import { Document, Page, pdfjs } from 'react-pdf';
 
 // KRITISK for Safari-kompatibilitet - bruk lokal worker, ikke CDN
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
+// Wrap in try-catch to prevent crashes in headless browsers during E2E tests
+try {
+  pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
+} catch (error) {
+  console.warn('Failed to set PDF worker:', error);
+}
 
 interface PDFPreviewModalProps {
   isOpen: boolean;
