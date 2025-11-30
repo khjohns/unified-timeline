@@ -11,14 +11,22 @@ import requests
 import os
 from typing import List, Dict, Any, Optional
 from pathlib import Path
-from dotenv import load_dotenv
-from integrations.catenda import CatendaClient
-except ImportError:
-    print("❌ Finner ikke catenda_api_tester.py")
-    sys.exit(1)
+
+# Legg til parent directory i path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Last .env filen
-load_dotenv()
+from dotenv import load_dotenv
+load_dotenv(Path(__file__).parent.parent / ".env")
+
+# Import settings og Catenda client
+try:
+    from core.config import settings
+    from integrations.catenda import CatendaClient
+except ImportError as e:
+    print(f"❌ Import feilet: {e}")
+    print("Sørg for at scriptet kjøres fra backend/-mappen.")
+    sys.exit(1)
 
 # Konfigurer logging
 logging.basicConfig(
@@ -200,46 +208,39 @@ def print_header(title: str):
 
 
 def load_config() -> Dict[str, Any]:
-    """Last konfigurasjon fra config.json"""
-    config_file = Path("config.json")
-    
-    if not config_file.exists():
-        print("❌ config.json ikke funnet")
-        print("\nKjør først: python setup_authentication.py")
+    """Last konfigurasjon fra .env (via settings)"""
+    if not settings.catenda_client_id:
+        print("❌ CATENDA_CLIENT_ID mangler i .env")
+        print("\nKjør først: python scripts/setup_authentication.py")
         sys.exit(1)
-    
-    try:
-        with open(config_file, 'r') as f:
-            return json.load(f)
-    except Exception as e:
-        print(f"❌ Kunne ikke lese config.json: {e}")
-        sys.exit(1)
+
+    return settings.get_catenda_config()
 
 
 def authenticate_catenda(config: Dict[str, Any]) -> CatendaClient:
     """Autentiser mot Catenda"""
-    
+
     tester = CatendaClient(
         client_id=config['catenda_client_id'],
         client_secret=config.get('catenda_client_secret')
     )
-    
+
     # Sjekk om vi har lagret token
     access_token = config.get('catenda_access_token')
     if access_token:
-        logger.info("🔑 Bruker lagret access token...")
+        logger.info("🔑 Bruker lagret access token fra .env...")
         tester.set_access_token(access_token)
         return tester
-    
+
     # Prøv Client Credentials Grant
     if config.get('catenda_client_secret'):
         logger.info("🔐 Autentiserer med Client Credentials Grant...")
         if tester.authenticate():
             return tester
-    
+
     # Authorization Code Grant kreves
     print("\n❌ Autentisering kreves!")
-    print("Kjør først: python setup_authentication.py")
+    print("Kjør først: python scripts/setup_authentication.py")
     sys.exit(1)
 
 
@@ -261,7 +262,7 @@ def setup_webhooks_interactive():
     # Sjekk project ID
     project_id = config.get('catenda_project_id')
     if not project_id:
-        print("❌ catenda_project_id mangler i config.json")
+        print("❌ CATENDA_PROJECT_ID mangler i .env")
         sys.exit(1)
     
     print(f"📂 Project ID: {project_id}\n")

@@ -34,8 +34,9 @@ from threading import RLock, Thread
 from dotenv import load_dotenv
 load_dotenv()
 
-# Import constants
+# Import constants and settings
 from core.generated_constants import SAK_STATUS
+from core.config import settings
 
 # Flask og CORS
 try:
@@ -302,12 +303,16 @@ class KOEAutomationSystem:
 
     def get_react_app_base_url(self) -> str:
         """Determines the correct base URL for the React application."""
-        dev_url = os.environ.get('DEV_REACT_APP_URL')
-        if dev_url:
-            return dev_url
-        if 'react_app_url' in self.config:
+        # Sjekk .env-variabler først (via settings eller direkte)
+        if settings.dev_react_app_url:
+            return settings.dev_react_app_url
+        if settings.react_app_url:
+            return settings.react_app_url
+        # Fallback til config dict (for bakoverkompatibilitet)
+        if 'react_app_url' in self.config and self.config['react_app_url']:
             return self.config['react_app_url']
 
+        # Siste fallback: lokal IP
         local_ip = get_local_ip()
         return f"http://{local_ip}:3000"
 
@@ -583,8 +588,15 @@ def get_system():
     global system
     if system is None:
         try:
-            with open('config.json', 'r') as f:
-                config = json.load(f)
+            # Bruk settings fra .env (via core/config.py)
+            config = settings.get_catenda_config()
+
+            # Sjekk at påkrevde felt er satt
+            if not config.get('catenda_client_id'):
+                logger.error("❌ CATENDA_CLIENT_ID mangler i .env")
+                logger.error("   Kjør 'python scripts/setup_authentication.py' for å konfigurere.")
+                sys.exit(1)
+
             system = KOEAutomationSystem(config)
             logger.info(f"System startet. {get_filter_summary()}")
         except Exception as e:
@@ -647,8 +659,12 @@ def forbidden_handler(e):
 # ============================================================================
 
 if __name__ == "__main__":
-    if not os.path.exists('config.json'):
-        print("❌ config.json mangler. Opprett denne først.")
+    # Konfigurasjon leses nå fra .env via core/config.py
+    # Sjekk at CATENDA_CLIENT_ID er satt
+    if not settings.catenda_client_id:
+        print("❌ CATENDA_CLIENT_ID mangler i .env")
+        print("   Kopier backend/.env.example til backend/.env og fyll inn verdier,")
+        print("   eller kjør 'python scripts/setup_authentication.py' for interaktivt oppsett.")
         sys.exit(1)
 
     print("🚀 KOE Backend API starter på port 8080...")
