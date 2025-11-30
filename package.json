@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest --coverage",
+    "generate:constants": "node scripts/generate-constants.cjs",
+    "prebuild": "npm run generate:constants"
   },
   "dependencies": {
     "@oslokommune/punkt-assets": "^13.11.0",
