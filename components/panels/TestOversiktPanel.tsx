@@ -8,8 +8,15 @@ import {
   getKravStatusLabel,
   getKravStatusSkin,
   getSvarStatusLabel,
-  getSvarStatusSkin
+  getSvarStatusSkin,
+  isVederlagGodkjent,
+  isVederlagDelvis,
+  isVederlagAvslått,
+  isFristGodkjent,
+  isFristDelvis,
+  isFristAvslått
 } from '../../utils/statusHelpers';
+import { getVederlagsmetodeLabel } from '../../utils/pdfLabels';
 import BegrunnelseModal from '../ui/BegrunnelseModal';
 
 interface TestOversiktPanelProps {
@@ -312,19 +319,13 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
                 </tr>
                 <tr>
                   <td className="sticky-col">Vederlagsmetode</td>
-                  {koe_revisjoner.map((rev, idx) => {
-                    const metodeMap: Record<string, string> = {
-                      '100000000': 'Enhetspris',
-                      '100000001': 'Regning',
-                      '100000002': 'Fast pris',
-                      '100000003': 'Kalkyle',
-                    };
-                    return (
-                      <td key={idx} className="text-center text-sm">
-                        {rev.vederlag?.krav_vederlag_metode ? metodeMap[rev.vederlag.krav_vederlag_metode] || '—' : '—'}
-                      </td>
-                    );
-                  })}
+                  {koe_revisjoner.map((rev, idx) => (
+                    <td key={idx} className="text-center text-sm">
+                      {rev.vederlag?.krav_vederlag_metode
+                        ? getVederlagsmetodeLabel(rev.vederlag.krav_vederlag_metode)
+                        : '—'}
+                    </td>
+                  ))}
                 </tr>
                 <tr>
                   <td className="sticky-col">Fristforlengelse</td>
@@ -473,9 +474,13 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
                     const vedStatus = svar.vederlag?.bh_svar_vederlag;
                     const beløp = svar.vederlag?.bh_godkjent_vederlag_belop;
                     let display = '—';
-                    if (vedStatus === '100000000') display = `✅ ${beløp ? beløp + ' NOK' : 'Godkjent'}`;
-                    else if (vedStatus === '100000001') display = `⚠️ ${beløp ? beløp + ' NOK' : 'Delvis'}`;
-                    else if (vedStatus === '100000002') display = '❌ Avslått';
+                    if (isVederlagGodkjent(vedStatus)) {
+                      display = `✅ ${beløp ? beløp + ' NOK' : 'Godkjent'}`;
+                    } else if (isVederlagDelvis(vedStatus)) {
+                      display = `⚠️ ${beløp ? beløp + ' NOK' : 'Delvis'}`;
+                    } else if (isVederlagAvslått(vedStatus)) {
+                      display = '❌ Avslått';
+                    }
                     return (
                       <td key={idx} className="text-center text-sm">
                         {display}
@@ -489,9 +494,13 @@ const TestOversiktPanel: React.FC<TestOversiktPanelProps> = ({ data }) => {
                     const fristStatus = svar.frist?.bh_svar_frist;
                     const dager = svar.frist?.bh_godkjent_frist_dager;
                     let display = '—';
-                    if (fristStatus === '100000000') display = `✅ ${dager ? dager + ' dager' : 'Godkjent'}`;
-                    else if (fristStatus === '100000001') display = `⚠️ ${dager ? dager + ' dager' : 'Delvis'}`;
-                    else if (fristStatus === '100000002') display = '❌ Avslått';
+                    if (isFristGodkjent(fristStatus)) {
+                      display = `✅ ${dager ? dager + ' dager' : 'Godkjent'}`;
+                    } else if (isFristDelvis(fristStatus)) {
+                      display = `⚠️ ${dager ? dager + ' dager' : 'Delvis'}`;
+                    } else if (isFristAvslått(fristStatus)) {
+                      display = '❌ Avslått';
+                    }
                     return (
                       <td key={idx} className="text-center text-sm">
                         {display}
