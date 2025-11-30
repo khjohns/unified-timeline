@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor, act } from '@testing-library/react';
 import { useFormSubmission } from '../../hooks/useFormSubmission';
 import { api } from '../../services/api';
 import { validationService } from '../../services/validationService';
@@ -101,7 +101,7 @@ describe('useFormSubmission', () => {
 
       const { result } = renderHook(() => useFormSubmission(defaultParams));
 
-      await result.current.handleSubmit();
+      await act(async () => { await result.current.handleSubmit(); });
 
       expect(mockSetErrors).toHaveBeenCalledWith({ 'varsel.dato_forhold_oppdaget': 'Dato er påkrevd' });
       expect(showToast).toHaveBeenCalledWith(mockSetToastMessage, 'Dato er påkrevd');
@@ -125,7 +125,7 @@ describe('useFormSubmission', () => {
 
       const { result } = renderHook(() => useFormSubmission(defaultParams));
 
-      await result.current.handleSubmit();
+      await act(async () => { await result.current.handleSubmit(); });
 
       await waitFor(() => {
         expect(mockSetErrors).toHaveBeenCalledWith({});
@@ -146,7 +146,7 @@ describe('useFormSubmission', () => {
 
       const { result } = renderHook(() => useFormSubmission(defaultParams));
 
-      await result.current.handleSubmit();
+      await act(async () => { await result.current.handleSubmit(); });
 
       await waitFor(() => {
         expect(logger.error).toHaveBeenCalledWith('PDF generation error:', pdfError);
@@ -184,7 +184,7 @@ describe('useFormSubmission', () => {
 
       expect(result.current.isSubmitting).toBe(false);
 
-      await result.current.handleConfirm();
+      await act(async () => { await result.current.handleConfirm(); });
 
       await waitFor(() => {
         expect(result.current.isSubmitting).toBe(false);
@@ -236,7 +236,7 @@ describe('useFormSubmission', () => {
 
       const { result } = renderHook(() => useFormSubmission(koeParams));
 
-      await result.current.handleConfirm();
+      await act(async () => { await result.current.handleConfirm(); });
 
       await waitFor(() => {
         expect(result.current.isSubmitting).toBe(false);
@@ -283,7 +283,7 @@ describe('useFormSubmission', () => {
 
       const { result } = renderHook(() => useFormSubmission(svarParams));
 
-      await result.current.handleConfirm();
+      await act(async () => { await result.current.handleConfirm(); });
 
       await waitFor(() => {
         expect(result.current.isSubmitting).toBe(false);
@@ -330,7 +330,7 @@ describe('useFormSubmission', () => {
 
       const { result } = renderHook(() => useFormSubmission(revideringParams));
 
-      await result.current.handleConfirm();
+      await act(async () => { await result.current.handleConfirm(); });
 
       await waitFor(() => {
         expect(result.current.isSubmitting).toBe(false);
@@ -360,7 +360,7 @@ describe('useFormSubmission', () => {
 
       const { result } = renderHook(() => useFormSubmission(defaultParams));
 
-      await result.current.handleConfirm();
+      await act(async () => { await result.current.handleConfirm(); });
 
       await waitFor(() => {
         expect(result.current.isSubmitting).toBe(false);
@@ -395,7 +395,7 @@ describe('useFormSubmission', () => {
 
       const { result } = renderHook(() => useFormSubmission(defaultParams));
 
-      await result.current.handleConfirm();
+      await act(async () => { await result.current.handleConfirm(); });
 
       await waitFor(() => {
         expect(result.current.isSubmitting).toBe(false);
@@ -418,7 +418,7 @@ describe('useFormSubmission', () => {
 
       const { result } = renderHook(() => useFormSubmission(defaultParams));
 
-      await result.current.handleConfirm();
+      await act(async () => { await result.current.handleConfirm(); });
 
       await waitFor(() => {
         expect(result.current.isSubmitting).toBe(false);
@@ -452,7 +452,10 @@ describe('useFormSubmission', () => {
 
       expect(result.current.isSubmitting).toBe(false);
 
-      const confirmPromise = result.current.handleConfirm();
+      let confirmPromise: Promise<void>;
+      act(() => {
+        confirmPromise = result.current.handleConfirm();
+      });
 
       // Should be submitting now
       await waitFor(() => {
@@ -465,7 +468,9 @@ describe('useFormSubmission', () => {
         data: { sakId: 'SAK-001', message: 'Success' },
       });
 
-      await confirmPromise;
+      await act(async () => {
+        await confirmPromise;
+      });
 
       // Should be done submitting
       await waitFor(() => {
