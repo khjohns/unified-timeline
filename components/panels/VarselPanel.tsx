@@ -148,7 +148,7 @@ const VarselPanel: React.FC<VarselPanelProps> = ({
     <PanelLayout>
       <div className="space-y-6">
         <PktAlert skin="info" compact>
-          Dette er det første formelle steget (Trinn 1) etter NS 8407. Her dokumenteres selve hendelsen og at varsel er sendt. Selve kravet spesifiseres i neste fane.
+          Her dokumenteres selve hendelsen og at varsel er sendt. Kravet spesifiseres i neste fane.
         </PktAlert>
 
         <FieldsetCard legend="Forholdet som varsles">
