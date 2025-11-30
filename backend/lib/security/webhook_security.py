@@ -5,41 +5,40 @@ Implementerer sikkerhet for webhook-endepunktet som mottar events fra Catenda.
 
 Catenda Webhook Security:
 Catenda API støtter IKKE HMAC-signering av webhooks (ingen X-Signature header).
-Derfor bruker vi "Secret Token in URL" som autentiseringsmetode:
-- Webhook URL: https://ngrok.io/webhook/catenda?token=SECRET
-- Backend validerer 'token' query parameter
+I tillegg fjerner Catenda query parameters fra webhook URL-er.
 
-Dette er standard "Plan B" når API ikke tilbyr innebygd signering.
+Derfor bruker vi "Secret Path in URL" som autentiseringsmetode:
+- Webhook URL: https://backend.com/webhook/catenda/{SECRET_PATH}
+- Secret er en del av URL-path, ikke query parameter
+- Kun requests til riktig path blir prosessert (andre gir 404)
+
+Implementasjon:
+- WEBHOOK_SECRET_PATH settes i .env
+- Route defineres dynamisk: @webhook_bp.route(f'/webhook/catenda/{SECRET_PATH}')
+- Requests til feil path returnerer 404 (Flask default)
 
 Security Features:
-1. Secret Token Validation - Verifiser at request kom fra Catenda
+1. Secret Path in URL - Kun kjente klienter kan finne endepunktet
 2. Idempotency Check - Forhindre duplikat-prosessering av samme event
-3. Event ID Tracking - Hold styr på prosesserte events
+3. Event Structure Validation - Valider payload-format
+4. Event ID Tracking - Hold styr på prosesserte events
 
 Referanser:
-- Catenda Webhook API.yaml
+- Catenda Webhook API dokumentasjon
 - OWASP Webhook Security
-- GitHub Webhooks Security (bruker samme pattern)
 
 VIKTIG:
-- Hold CATENDA_WEBHOOK_TOKEN hemmelig!
-- Generer sterk random token (minimum 32 bytes)
-- Aldri commit token til git
-- Roter token regelmessig
+- Hold WEBHOOK_SECRET_PATH hemmelig!
+- Generer sterk random path (minimum 32 bytes): secrets.token_urlsafe(32)
+- Aldri commit secret til git
+- Roter path regelmessig (krever oppdatering i Catenda)
 
 Forfatter: Claude
-Dato: 2025-11-24
+Dato: 2025-11-24 (oppdatert: 2025-11-30)
 """
 
-import os
-import hmac
-from flask import request
 from typing import Tuple, Set
 from datetime import datetime, timedelta
-
-# Webhook secret token (MUST be set in environment)
-# Generer med: python3 -c "import secrets; print(secrets.token_urlsafe(32))"
-WEBHOOK_SECRET_TOKEN = os.getenv("CATENDA_WEBHOOK_TOKEN", "")
 
 # Idempotency tracking (in-memory for prototype)
 # I produksjon: Bruk Redis eller database med TTL
@@ -48,54 +47,9 @@ processed_events: Set[str] = set()
 # TTL for processed events (hvor lenge vi husker at event er prosessert)
 IDEMPOTENCY_TTL_HOURS = 24
 
-
-def validate_webhook_token() -> Tuple[bool, str]:
-    """
-    Valider Secret Token fra URL query parameter.
-
-    Catenda kaller webhook URL: https://ngrok.io/webhook/catenda?token=SECRET
-    Vi må sjekke at 'token' parameter matcher vår SECRET.
-
-    Security:
-    - Bruker hmac.compare_digest for constant-time comparison
-    - Dette forhindrer timing attacks hvor angriper kan gjette token
-      ved å måle responstid
-
-    Returns:
-        Tuple[bool, str]:
-        - is_valid: True hvis token er korrekt
-        - error_message: Feilmelding hvis ugyldig (tom hvis gyldig)
-
-    Example:
-        # Request from Catenda (correct token)
-        GET /webhook/catenda?token=abc123xyz...
-        → (True, "")
-
-        # Request from attacker (wrong token)
-        GET /webhook/catenda?token=wrong
-        → (False, "Invalid webhook token")
-
-        # Request without token
-        GET /webhook/catenda
-        → (False, "Missing token parameter in URL")
-    """
-    # Hent token fra URL query parameter
-    received_token = request.args.get("token", "")
-
-    if not received_token:
-        return False, "Missing token parameter in URL"
-
-    # Sjekk at server har konfigurert webhook token
-    if not WEBHOOK_SECRET_TOKEN:
-        return False, "Server configuration error: WEBHOOK_SECRET_TOKEN not set"
-
-    # Constant-time comparison (timing attack protection)
-    # hmac.compare_digest sikrer at sammenligningen tar like lang tid
-    # uavhengig av hvor mange tegn som matcher
-    if not hmac.compare_digest(received_token, WEBHOOK_SECRET_TOKEN):
-        return False, "Invalid webhook token"
-
-    return True, ""
+# NOTE: Webhook-autentisering skjer via secret path i URL, ikke query parameter.
+# Se webhook_routes.py: @webhook_bp.route(f'/webhook/catenda/{WEBHOOK_SECRET_PATH}')
+# Requests til feil path gir automatisk 404 fra Flask.
 
 
 def is_duplicate_event(event_id: str) -> bool:
@@ -222,15 +176,17 @@ def get_webhook_event_id(payload: dict) -> str:
 def _test_webhook_security():
     """
     Test webhook security functions.
-    Kjør med: CATENDA_WEBHOOK_TOKEN=testsecret python -c "from webhook_security import _test_webhook_security; _test_webhook_security()"
+    Kjør med: python -c "from lib.security.webhook_security import _test_webhook_security; _test_webhook_security()"
     """
     print("Testing webhook security...")
 
-    # Test event structure validation
+    # Test event structure validation (Catenda payload format)
     valid_payload = {
-        "id": "evt_12345",
-        "event": "issue.created",
-        "topic": {}
+        "event": {
+            "id": "evt_12345",
+            "type": "issue.created"
+        },
+        "issue": {}
     }
     is_valid, error = validate_webhook_event_structure(valid_payload)
     assert is_valid, f"Valid payload rejected: {error}"
@@ -249,9 +205,9 @@ def _test_webhook_security():
     assert is_duplicate_event(event_id), "Duplicate event not detected"
     print("✓ Duplicate event detected")
 
-    # Test event ID extraction
-    event_id = get_webhook_event_id({"id": "evt_456"})
-    assert event_id == "evt_456", "Event ID not extracted"
+    # Test event ID extraction (from nested event object)
+    extracted_id = get_webhook_event_id({"event": {"id": "evt_456", "type": "issue.created"}})
+    assert extracted_id == "evt_456", f"Event ID not extracted correctly: {extracted_id}"
     print("✓ Event ID extracted")
 
     print("✅ All webhook security tests passed!")

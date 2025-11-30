@@ -397,25 +397,33 @@ def submit_varsel(req: func.HttpRequest) -> func.HttpResponse:
 
 ### Webhook-sikkerhet (Catenda-spesifikt)
 
-**Viktig:** Catenda Webhook API støtter IKKE HMAC-signering. Derfor bruker vi secret token i URL:
+**Viktig:** Catenda Webhook API støtter IKKE HMAC-signering, og fjerner query parameters fra URL-er. Derfor bruker vi secret som del av URL-path:
 
 ```
-https://your-backend.azurewebsites.net/api/webhook/catenda?token=SECRET
+https://your-backend.azurewebsites.net/webhook/catenda/{SECRET_PATH}
 ```
 
-**Implementert i:** `backend/lib/security/webhook_security.py`
+**Eksempel:**
+```
+WEBHOOK_SECRET_PATH=a1b2c3d4e5f6g7h8  # I .env
+URL: https://backend.com/webhook/catenda/a1b2c3d4e5f6g7h8
+```
+
+**Implementert i:**
+- `backend/routes/webhook_routes.py` - Route med dynamisk path
+- `backend/lib/security/webhook_security.py` - Event validering
 
 **Sikkerhetstiltak:**
-1. Token validering med constant-time comparison
+1. Secret path i URL (kun de som kjenner path kan kalle endepunktet)
 2. Idempotency check (forhindrer duplikat-prosessering)
 3. Event structure validering
 4. Logging av alle webhook-forsøk
 
 **For produksjon:**
-- Generer sterkt token: `python3 -c "import secrets; print(secrets.token_urlsafe(32))"`
-- Lagre i Azure Key Vault
-- Roter token regelmessig
-- Overvåk for mislykkede autentiseringsforsøk
+- Generer sterkt secret path: `python3 -c "import secrets; print(secrets.token_urlsafe(32))"`
+- Sett `WEBHOOK_SECRET_PATH` i Azure App Settings / Key Vault
+- Roter secret regelmessig (krever oppdatering i Catenda webhook-konfig)
+- Overvåk for 404-feil på `/webhook/catenda/*` (mulige angrepsforsøk)
 
 ### CSRF-beskyttelse
 
