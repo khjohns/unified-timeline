@@ -27,6 +27,14 @@ from threading import RLock, Thread
 from dotenv import load_dotenv
 load_dotenv()
 
+# Import constants
+from constants import (
+    SAK_STATUS, KOE_STATUS, BH_SVAR_STATUS,
+    BH_VEDERLAG_SVAR, BH_FRIST_SVAR,
+    get_vederlag_svar_label, get_frist_svar_label,
+    krever_revisjon
+)
+
 # Flask og CORS
 try:
     from flask import Flask, request, jsonify, g
@@ -158,7 +166,7 @@ class DataManager:
 
             sak_data.setdefault('opprettet_dato', datetime.now().isoformat())
             sak_data.setdefault('opprettet_av', sak_data.get('te_navn', 'System'))
-            sak_data.setdefault('status', '100000000')  # Under varsling
+            sak_data.setdefault('status', SAK_STATUS['UNDER_VARSLING'])
             sak_data.setdefault('modus', 'varsel')
             
             # Lagre til CSV
@@ -181,7 +189,7 @@ class DataManager:
                         "koe_revisjonsnr": "0",
                         "dato_krav_sendt": "",
                         "for_entreprenor": "",
-                        "status": "100000001",  # Utkast
+                        "status": KOE_STATUS['UTKAST'],
                         "vederlag": {
                             "krav_vederlag": False,
                             "krav_produktivitetstap": False,
@@ -353,7 +361,7 @@ class KOEAutomationSystem:
             # --- Utvidelse: Hent metadata for forhåndsutfylling ---
             byggherre = 'Ikke spesifisert'
             leverandor = 'Ikke spesifisert'
-            saksstatus = '100000000' # Default til "Under varsling"
+            saksstatus = SAK_STATUS['UNDER_VARSLING']
             project_name = 'Ukjent prosjekt'
             v2_project_id = None
 
@@ -777,7 +785,7 @@ def submit_varsel():
             'koe_revisjonsnr': '0',
             'dato_krav_sendt': '',
             'for_entreprenor': '',
-            'status': '100000001',  # Utkast
+            'status': KOE_STATUS['UTKAST'],
             'vederlag': {
                 'krav_vederlag': False,
                 'krav_produktivitetstap': False,
@@ -863,7 +871,7 @@ def submit_koe():
                 'dato_svar_bh': '',
                 'for_byggherre': '',
             },
-            'status': '300000001',  # Utkast
+            'status': BH_SVAR_STATUS['UTKAST'],
         }]
         sys.db.save_form_data(sak_id, form_data)
         logger.info(f"✅ Opprettet første BH svar-revisjon for sak {sak_id}")
@@ -943,15 +951,7 @@ def submit_svar():
     godkjente_dager = frist_svar.get('bh_godkjente_dager', '')
 
     # Sjekk om det trengs revidering
-    # Trenger revidering hvis:
-    # - Delvis godkjent (100000001)
-    # - Avslått uenig (100000002)
-    # - Avslått for sent (100000003) - TE må begrunne varslingtidspunkt
-    # - Avventer (100000004) - TE må gi mer detaljer
-    trenger_revisjon = (
-        bh_svar_vederlag in ['100000001', '100000002', '100000003', '100000004'] or
-        bh_svar_frist in ['100000001', '100000002', '100000003', '100000004']
-    )
+    trenger_revisjon = krever_revisjon(bh_svar_vederlag, bh_svar_frist)
 
     # Lagre data først
     sys.db.save_form_data(sak_id, form_data)
@@ -967,7 +967,7 @@ def submit_svar():
                 'koe_revisjonsnr': nytt_revisjonsnr,
                 'dato_krav_sendt': '',
                 'for_entreprenor': '',
-                'status': '100000001',  # Utkast
+                'status': KOE_STATUS['UTKAST'],
                 'vederlag': {
                     'krav_vederlag': False,
                     'krav_produktivitetstap': False,
@@ -1010,7 +1010,7 @@ def submit_svar():
                     'dato_svar_bh': '',
                     'for_byggherre': '',
                 },
-                'status': '300000001',  # Utkast
+                'status': BH_SVAR_STATUS['UTKAST'],
             }
             form_data['bh_svar_revisjoner'].append(ny_bh_svar_revisjon)
 
@@ -1020,34 +1020,17 @@ def submit_svar():
     # Status og modus synkroniseres automatisk fra formData via save_form_data
     sys.db.log_historikk(sak_id, 'bh_svar', 'Byggherre har svart')
 
-    # Map status-verdier til tekst
-    vederlag_status_map = {
-        '100000000': 'Godkjent fullt ut',
-        '100000001': 'Delvis godkjent',
-        '100000002': 'Avslått (uenig)',
-        '100000003': 'Avslått (for sent)',
-        '100000004': 'Avventer',
-        '100000005': 'Godkjent med annen metode'
-    }
-
-    frist_status_map = {
-        '100000000': 'Godkjent fullt ut',
-        '100000001': 'Delvis godkjent',
-        '100000002': 'Avslått',
-        '100000003': 'Avventer'
-    }
-
     comment_text = "✍️ **Svar fra byggherre**\n\n**Beslutning:**\n"
 
     if vederlag_svar.get('bh_svar_vederlag'):
-        svar_tekst = vederlag_status_map.get(bh_svar_vederlag, 'Uspesifisert')
+        svar_tekst = get_vederlag_svar_label(bh_svar_vederlag)
         if godkjent_beløp:
             comment_text += f"💰 Vederlag: {svar_tekst} ({godkjent_beløp} NOK)\n"
         else:
             comment_text += f"💰 Vederlag: {svar_tekst}\n"
 
     if frist_svar.get('bh_svar_frist'):
-        svar_tekst = frist_status_map.get(bh_svar_frist, 'Uspesifisert')
+        svar_tekst = get_frist_svar_label(bh_svar_frist)
         if godkjente_dager:
             comment_text += f"📆 Frist: {svar_tekst} ({godkjente_dager} dager)\n"
         else:
