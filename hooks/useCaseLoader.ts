@@ -17,7 +17,7 @@ import { FormDataModel, Role } from '../types';
 import { api, Modus } from '../services/api';
 import { logger } from '../utils/logger';
 import { showToast } from '../utils/toastHelpers';
-import { INITIAL_FORM_DATA } from '../constants';
+import { INITIAL_FORM_DATA } from '../config';
 import { getRoleFromModus, getTabIndexFromModus } from '../utils/modusHelpers';
 
 export interface UseCaseLoaderParams {

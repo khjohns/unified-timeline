@@ -1,6 +1,6 @@
 import React, { useState, useEffect, lazy, Suspense, useCallback, useMemo, useRef } from 'react';
 import { FormDataModel, Role, BhSvar, Koe } from './types';
-import { TABS, INITIAL_FORM_DATA, DEMO_DATA } from './constants';
+import { TABS, INITIAL_FORM_DATA, DEMO_DATA } from './config';
 import Toast from './components/ui/Toast';
 import { generatePdfReact, generatePdfBlob } from './utils/pdfGeneratorReact';
 import { PktHeader, PktButton, PktTabs, PktTabItem, PktAlert } from '@oslokommune/punkt-react';
