@@ -54,7 +54,7 @@ except ImportError:
 
 # Filtering imports
 try:
-    from filtering_config import should_process_topic, get_filter_summary
+    from utils.filtering_config import should_process_topic, get_filter_summary
 except ImportError:
     print("❌ Finner ikke filtering_config.py")
     sys.exit(1)

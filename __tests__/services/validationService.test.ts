@@ -6,7 +6,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { validationService } from '../../services/validationService';
-import { INITIAL_FORM_DATA } from '../../constants';
+import { INITIAL_FORM_DATA } from '../../config';
 import type { FormDataModel } from '../../types';
 
 describe('validationService', () => {

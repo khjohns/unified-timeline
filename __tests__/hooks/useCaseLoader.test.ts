@@ -8,7 +8,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { useCaseLoader } from '../../hooks/useCaseLoader';
 import { api } from '../../services/api';
-import { INITIAL_FORM_DATA } from '../../constants';
+import { INITIAL_FORM_DATA } from '../../config';
 
 // Mock dependencies
 vi.mock('../../services/api', () => ({

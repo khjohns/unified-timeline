@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor, act } from '@testing-library/react';
 import { useApiConnection } from '../../hooks/useApiConnection';
 import { api } from '../../services/api';
 
@@ -30,12 +30,19 @@ describe('useApiConnection', () => {
     vi.clearAllMocks();
   });
 
-  it('should start with null (unknown) status', () => {
+  it('should start with null (unknown) status', async () => {
     vi.mocked(api.healthCheck).mockResolvedValue(true);
 
-    const { result } = renderHook(() => useApiConnection());
+    const { result, unmount } = renderHook(() => useApiConnection());
 
     expect(result.current.isApiConnected).toBeNull();
+
+    // Wait for async effect to complete before unmounting
+    await waitFor(() => {
+      expect(result.current.isApiConnected).toBe(true);
+    });
+
+    unmount();
   });
 
   it('should set isApiConnected to true when health check succeeds', async () => {

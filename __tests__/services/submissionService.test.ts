@@ -6,7 +6,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { submissionService } from '../../services/submissionService';
-import { INITIAL_FORM_DATA } from '../../constants';
+import { INITIAL_FORM_DATA } from '../../config';
 import { SAK_STATUS } from '../../utils/statusHelpers';
 import type { FormDataModel } from '../../types';
 
