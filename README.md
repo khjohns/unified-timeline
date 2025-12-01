@@ -498,4 +498,15 @@ Prosjektet er utviklet av Oslobygg KF. For spørsmål eller bidrag, kontakt pros
 
 ## Lisens
 
-*[Lisensinfo legges til]*
+Dette prosjektet er lisensiert under MIT-lisensen - se [LICENSE](LICENSE)-filen for detaljer.
+
+### Tredjeparts-avhengigheter
+
+Prosjektet bruker flere tredjeparts-biblioteker, inkludert:
+
+- **Oslo Kommune Punkt Design System** (@oslokommune/punkt-*) - MIT License
+- **React** - MIT License
+- **Vite** - MIT License
+- Og flere andre (se [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for fullstendig liste)
+
+Alle avhengigheter er kompatible med MIT-lisensen.
