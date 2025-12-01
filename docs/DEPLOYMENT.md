@@ -1,5 +1,7 @@
 # Deployment Guide
 
+**Sist oppdatert:** 2025-12-01
+
 Veiledning for utrulling av Skjema Endringsmeldinger til produksjon.
 
 ---
@@ -133,34 +135,35 @@ az staticwebapp create \
 
 ### Struktur for Azure Functions
 
-Backend må tilpasses Azure Functions-format:
+Backend er delvis klargjort for Azure Functions. Eksisterende struktur:
 
 ```
 backend/
-├── function_app.py           # Azure Functions entry point
-├── host.json                 # Host konfigurasjon
-├── local.settings.json       # Lokale innstillinger
-├── requirements.txt          # Python avhengigheter
+├── function_app.py           # Azure Functions entry point (må opprettes)
+├── host.json                 # ✅ Host konfigurasjon (eksisterer)
+├── local.settings.json       # Lokale innstillinger (må opprettes)
+├── requirements.txt          # ✅ Python avhengigheter
 │
-├── functions/                # HTTP-triggere
-│   ├── csrf_token/
-│   ├── get_case/
-│   ├── save_draft/
-│   ├── submit_varsel/
-│   ├── submit_koe/
-│   ├── submit_svar/
-│   ├── upload_pdf/
-│   ├── webhook_catenda/
-│   └── health/
+├── functions/                # ✅ Azure Functions adapters (delvis implementert)
+│   ├── adapters.py           # ✅ Request/response adapters, ServiceContext
+│   └── __init__.py
 │
-├── services/                 # Forretningslogikk (uendret)
-├── repositories/             # Dataverse repository (ny)
-├── integrations/             # Catenda client (uendret)
-├── lib/                      # Sikkerhet (uendret)
-└── models/                   # Pydantic modeller (uendret)
+├── core/                     # ✅ Konfigurasjon (ferdig)
+│   ├── config.py             # Settings via Pydantic
+│   └── system_context.py     # Dependency injection
+│
+├── services/                 # ✅ Forretningslogikk (ferdig)
+├── repositories/             # ✅ CSV (Dataverse må implementeres)
+├── integrations/             # ✅ Catenda client (ferdig)
+├── lib/                      # ✅ Sikkerhet (ferdig)
+└── models/                   # ✅ Pydantic modeller (ferdig)
 ```
 
+> **Merk:** `functions/adapters.py` inneholder allerede `ServiceContext` for lazy-loading av services, samt request/response adapters.
+
 ### `host.json`
+
+Eksisterende konfigurasjon i `backend/host.json`:
 
 ```json
 {
@@ -169,24 +172,40 @@ backend/
     "applicationInsights": {
       "samplingSettings": {
         "isEnabled": true,
-        "maxTelemetryItemsPerSecond": 20
+        "excludedTypes": "Request"
       }
+    },
+    "logLevel": {
+      "default": "Information",
+      "Host.Results": "Error",
+      "Function": "Information",
+      "Host.Aggregator": "Trace"
     }
   },
   "extensions": {
     "http": {
-      "routePrefix": "api"
+      "routePrefix": "api",
+      "maxOutstandingRequests": 200,
+      "maxConcurrentRequests": 100,
+      "dynamicThrottlesEnabled": true
     }
-  }
+  },
+  "functionTimeout": "00:05:00"
 }
 ```
 
 ### `function_app.py` (eksempel)
 
+Bruk eksisterende `ServiceContext` fra `functions/adapters.py`:
+
 ```python
 import azure.functions as func
-from services.varsel_service import VarselService
-from lib.auth import require_csrf
+from functions.adapters import (
+    ServiceContext,
+    adapt_request,
+    create_response,
+    create_error_response
+)
 
 app = func.FunctionApp()
 
@@ -197,19 +216,26 @@ def health(req: func.HttpRequest) -> func.HttpResponse:
 @app.route(route="cases/{sakId}", methods=["GET"])
 def get_case(req: func.HttpRequest) -> func.HttpResponse:
     sak_id = req.route_params.get('sakId')
-    # ... implementasjon
-    return func.HttpResponse(json.dumps(data), mimetype="application/json")
+    with ServiceContext() as ctx:
+        data = ctx.repository.get_form_data(sak_id)
+    return create_response(data)
 
 @app.route(route="varsel-submit", methods=["POST"])
-@require_csrf
 def submit_varsel(req: func.HttpRequest) -> func.HttpResponse:
-    # ... implementasjon
-    pass
+    request_data = adapt_request(req)
+    with ServiceContext() as ctx:
+        result = ctx.varsel_service.submit_varsel(request_data['json'])
+    return create_response(result)
 
 @app.route(route="webhook/catenda/{secret_path}", methods=["POST"])
 def webhook_catenda(req: func.HttpRequest) -> func.HttpResponse:
-    # ... implementasjon
-    pass
+    secret_path = req.route_params.get('secret_path')
+    with ServiceContext() as ctx:
+        result = ctx.catenda_service.handle_webhook(
+            secret_path,
+            adapt_request(req)['json']
+        )
+    return create_response(result)
 ```
 
 ### Deploy
