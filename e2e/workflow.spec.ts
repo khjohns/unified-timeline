@@ -7,6 +7,11 @@ import { test, expect } from '@playwright/test';
  * and the complete user journey.
  */
 
+// Add delay between tests to avoid browser closing race condition in single-process mode
+test.afterEach(async () => {
+  await new Promise((resolve) => setTimeout(resolve, 100));
+});
+
 test.describe('Modus URL Parameters', () => {
   test('should set correct tab for varsel modus', async ({ page }) => {
     await page.goto('/?modus=varsel');

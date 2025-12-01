@@ -6,6 +6,11 @@ import { test, expect } from '@playwright/test';
  * Tests form input, validation, and data persistence.
  */
 
+// Add delay between tests to avoid browser closing race condition in single-process mode
+test.afterEach(async () => {
+  await new Promise((resolve) => setTimeout(resolve, 100));
+});
+
 test.describe('Varsel Form', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');

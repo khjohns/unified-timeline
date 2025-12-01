@@ -21,8 +21,8 @@ export default defineConfig({
   // Fail the build on CI if you accidentally left test.only in the source code
   forbidOnly: !!process.env.CI,
 
-  // Retry on CI only
-  retries: process.env.CI ? 2 : 0,
+  // Retry failed tests to handle flaky browser closing in single-process mode
+  retries: 2,
 
   // Opt out of parallel tests on CI
   workers: 1,
@@ -55,43 +55,28 @@ export default defineConfig({
   },
 
   // Configure projects for major browsers
+  // Note: --single-process is required in resource-constrained container environments
+  // but causes browser to close after each test, resulting in ~50% test failures.
+  // This is a known limitation. For reliable E2E testing, run on a proper CI server.
   projects: [
     {
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
+        headless: true,
         launchOptions: {
+          slowMo: 50, // Add delay between browser operations
           args: [
             '--disable-dev-shm-usage',
-            '--disable-blink-features=AutomationControlled',
             '--no-sandbox',
             '--disable-setuid-sandbox',
-            '--disable-web-security',
-            '--disable-features=IsolateOrigins,site-per-process',
             '--disable-gpu',
             '--single-process',
+            '--disable-extensions',
           ],
         },
       },
     },
-
-    // Uncomment for Firefox testing
-    // {
-    //   name: 'firefox',
-    //   use: { ...devices['Desktop Firefox'] },
-    // },
-
-    // Uncomment for Safari testing
-    // {
-    //   name: 'webkit',
-    //   use: { ...devices['Desktop Safari'] },
-    // },
-
-    // Mobile viewports
-    // {
-    //   name: 'Mobile Chrome',
-    //   use: { ...devices['Pixel 5'] },
-    // },
   ],
 
   // Run local dev server before starting the tests (optional)
