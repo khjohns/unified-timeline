@@ -1,7 +1,69 @@
 # E2E Test Funn og Forbedringsforslag
 
-**Dato:** 2024-12-01
-**Status:** Alle 29 tester passerer (med retries)
+**Dato:** 2025-12-01 (oppdatert)
+**Status:** 74 tester kjørt - de fleste passerer med retries, noen kritiske funn identifisert
+
+## Siste testkjøring (2025-12-01)
+
+### Resultater
+- **Totalt:** 74 tester
+- **Passerte:** De fleste passerer etter retry (container-miljø krever retries)
+- **Kritiske feil:** 2 tester feiler konsistent
+
+### Kritiske funn fra nye tester
+
+#### 1. Tastaturinteraksjon med skjemafelt (FEILET)
+**Test:** `accessibility.spec.ts:106:3` - "should allow keyboard interaction with form fields"
+**Problem:** Tastaturnavigasjon til og interaksjon med skjemafelt fungerer ikke som forventet.
+**Prioritet:** HØY
+**Forslag:**
+```tsx
+// Sørg for at alle input-felt er tabbable og har riktig focus-styling
+<input
+  tabIndex={0}
+  onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+  aria-label="Beskrivende label"
+/>
+```
+
+#### 2. Heading-hierarki (FEILET)
+**Test:** `accessibility.spec.ts:237:3` - "should have proper heading hierarchy"
+**Problem:** Overskrifter hopper nivåer (f.eks. h1 → h3 uten h2) eller mangler helt.
+**Prioritet:** HØY (WCAG 2.1 krav)
+**Forslag:**
+```tsx
+// Korrekt hierarki:
+<h1>Skjema for krav om endringsordre</h1>
+  <h2>Varsel</h2>
+    <h3>Prosjektinformasjon</h3>
+  <h2>Krav om endringsordre</h2>
+    <h3>Vederlag</h3>
+```
+
+### Tester som passerte (med retries)
+
+De fleste av de 74 testene passerer, men krever ofte 1-2 retries pga. container-miljøet. Dette inkluderer:
+
+| Testfil | Antall tester | Status |
+|---------|---------------|--------|
+| navigation.spec.ts | 8 | ✅ Passerer |
+| workflow.spec.ts | 12 | ✅ Passerer |
+| form-filling.spec.ts | 9 | ✅ Passerer |
+| validation.spec.ts | 13 | ✅ Passerer |
+| api-integration.spec.ts | 11 | ✅ Passerer |
+| accessibility.spec.ts | 21 | ⚠️ 2 feiler konsistent |
+
+### Anbefalinger
+
+1. **Fiks heading-hierarki** - Kritisk for WCAG 2.1 compliance
+2. **Forbedre tastaturnavigasjon** - Sikre at alle skjemafelt er tilgjengelige via tastatur
+3. **Kjør tester på dedikert CI** - For mer stabile resultater uten single-process workaround
+
+---
+
+## Tidligere testkjøring (2024-12-01)
+
+**Status:** 29 tester passerte (med retries)
 
 ## Oppsummering
 
