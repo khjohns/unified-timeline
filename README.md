@@ -293,7 +293,14 @@ Skjema_Endringsmeldinger/
 │
 ├── App.tsx                         # Hovedkomponent (344 linjer)
 ├── index.tsx                       # Entry point
-├── types.ts                        # TypeScript-definisjoner
+├── types.ts                        # TypeScript-definisjoner (interfaces, statustyper)
+│
+├── config/                         # Konfigurasjon og standardverdier
+│   ├── formDefaults.ts             # Standard skjemaverdier
+│   ├── dropdownOptions.ts          # Dropdown-alternativer
+│   ├── demoData.ts                 # Demo-/testdata
+│   ├── tabs.ts                     # Fane-konfigurasjon
+│   └── fileUpload.ts               # Filopplasting-innstillinger
 │
 ├── components/
 │   ├── layout/                     # Layout-komponenter
