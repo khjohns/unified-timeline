@@ -1,5 +1,7 @@
 # Getting Started – Utvikleroppsett
 
+**Sist oppdatert:** 2025-12-01
+
 Denne guiden beskriver hvordan du setter opp utviklingsmiljøet for Skjema Endringsmeldinger-prosjektet.
 
 ---
@@ -24,15 +26,18 @@ Denne guiden beskriver hvordan du setter opp utviklingsmiljøet for Skjema Endri
 |---------|---------|---------------------|
 | Node.js | 18+ | `node --version` |
 | npm | 9+ | `npm --version` |
-| Python | 3.8+ | `python --version` |
+| Python | 3.10+ | `python --version` |
 | pip | 21+ | `pip --version` |
 | Git | 2.30+ | `git --version` |
+
+> **Merk:** Python 3.10+ kreves på grunn av Pydantic v2 og moderne type hints.
 
 ### Valgfritt
 
 | Verktøy | Formål |
 |---------|--------|
 | VS Code | Anbefalt editor med Python/TypeScript-støtte |
+| Playwright | E2E-testing (installeres via npm) |
 | ngrok | Eksponere lokal backend for Catenda webhooks |
 | Postman | API-testing |
 
@@ -273,6 +278,27 @@ npm run test:coverage
 npm test -- src/__tests__/services/api.test.ts
 ```
 
+### E2E-tester (Playwright)
+
+```bash
+# Installer Playwright-nettlesere (kun første gang)
+npm run playwright:install
+
+# Kjør alle E2E-tester
+npm run test:e2e
+
+# Kjør med visuell UI
+npm run test:e2e:ui
+
+# Kjør med synlig nettleser
+npm run test:e2e:headed
+
+# Debug-modus med steg-for-steg
+npm run test:e2e:debug
+```
+
+> **Merk:** E2E-tester krever at både backend og frontend kjører.
+
 ---
 
 ## Feilsøking
@@ -344,6 +370,20 @@ python scripts/setup_authentication.py
 - Sjekk at ngrok kjører og URL er korrekt
 - Verifiser webhook-konfigurasjon i Catenda
 
+### E2E-tester feiler
+
+**Problem:** Playwright-nettlesere ikke installert
+
+```bash
+# Installer nettlesere
+npm run playwright:install
+```
+
+**Problem:** Timeout-feil i E2E-tester
+
+- Sjekk at både backend (port 8080) og frontend (port 3000) kjører
+- Sjekk at `VITE_API_BASE_URL` er riktig i `.env.local`
+
 ---
 
 ## Utviklingsarbeidsflyt
@@ -358,7 +398,11 @@ python scripts/setup_authentication.py
 ### Kodeorganisering
 
 - **Frontend-komponenter:** `src/components/`
+- **Frontend-hooks:** `src/hooks/`
+- **Frontend-services:** `src/services/`
 - **Backend-routes:** `backend/routes/`
+- **Backend-services:** `backend/services/`
+- **Backend-konfigurasjon:** `backend/core/`
 - **Delte statuskoder:** `shared/status-codes.json`
 
 ### Statuskoder
@@ -392,11 +436,14 @@ cd backend && source venv/bin/activate
 
 python app.py                          # Start server
 python -m pytest tests/ -v             # Kjør tester
+python -m pytest tests/ --cov=.        # Tester med coverage
 python scripts/catenda_menu.py         # Catenda API-verktøy
 
 # === Frontend ===
 npm run dev                            # Start dev server
-npm test                               # Kjør tester
+npm test                               # Kjør unit-tester
+npm run test:coverage                  # Unit-tester med coverage
+npm run test:e2e                       # Kjør E2E-tester
 npm run build                          # Bygg for produksjon
 npm run generate:constants             # Generer statuskoder
 
