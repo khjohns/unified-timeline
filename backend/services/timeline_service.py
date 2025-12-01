@@ -1,0 +1,664 @@
+"""
+TimelineService - Beregner SakState fra event-logg.
+
+Dette er "aggregate root" i Event Sourcing-terminologi.
+Servicen tar en liste med events og projiserer dem til en SakState.
+
+Design-prinsipper:
+1. Events er immutable - vi endrer aldri historikk
+2. State beregnes alltid fra scratch basert på events
+3. Parallelisme: Hvert spor kan behandles uavhengig
+"""
+from typing import List, Optional, Dict, Any
+from datetime import datetime
+
+from models.events import (
+    SakEvent,
+    GrunnlagEvent,
+    VederlagEvent,
+    FristEvent,
+    ResponsEvent,
+    SakOpprettetEvent,
+    EOUtstedtEvent,
+    EventType,
+    SporType,
+    SporStatus,
+    ResponsResultat,
+    AnyEvent,
+)
+from models.sak_state import (
+    SakState,
+    GrunnlagTilstand,
+    VederlagTilstand,
+    FristTilstand,
+    SakOversikt,
+    SporOversikt,
+)
+from utils.logger import get_logger
+
+logger = get_logger(__name__)
+
+
+class TimelineService:
+    """
+    Service for å beregne SakState fra events.
+
+    Hovedmetoden er `compute_state(events)` som tar en liste
+    med events og returnerer en ferdig aggregert SakState.
+    """
+
+    def __init__(self):
+        """Initialize TimelineService"""
+        pass
+
+    def compute_state(self, events: List[AnyEvent]) -> SakState:
+        """
+        Hovedmetode: Beregn SakState fra event-liste.
+
+        Args:
+            events: Liste med events, må være sortert kronologisk
+
+        Returns:
+            Ferdig aggregert SakState
+
+        Eksempel:
+            >>> service = TimelineService()
+            >>> events = [grunnlag_event, vederlag_event, respons_event]
+            >>> state = service.compute_state(events)
+            >>> print(state.overordnet_status)
+            "UNDER_BEHANDLING"
+        """
+        if not events:
+            raise ValueError("Kan ikke beregne state uten events")
+
+        # Sorter events etter tidsstempel (sikre kronologisk rekkefølge)
+        sorted_events = sorted(events, key=lambda e: e.tidsstempel)
+
+        # Initialiser tom state
+        sak_id = sorted_events[0].sak_id
+        state = SakState(
+            sak_id=sak_id,
+            grunnlag=GrunnlagTilstand(),
+            vederlag=VederlagTilstand(),
+            frist=FristTilstand(),
+        )
+
+        # Prosesser hver event
+        for event in sorted_events:
+            state = self._apply_event(state, event)
+
+        # Oppdater metadata
+        state.antall_events = len(sorted_events)
+        state.opprettet = sorted_events[0].tidsstempel
+        state.siste_aktivitet = sorted_events[-1].tidsstempel
+
+        logger.debug(f"Computed state for {sak_id}: {state.overordnet_status}")
+        return state
+
+    def _apply_event(self, state: SakState, event: AnyEvent) -> SakState:
+        """
+        Appliserer én event på state og returnerer oppdatert state.
+
+        Dette er en "reducer" i event sourcing-terminologi.
+        """
+        # Route til riktig handler basert på event-type
+        handlers = {
+            EventType.SAK_OPPRETTET: self._handle_sak_opprettet,
+            EventType.GRUNNLAG_OPPRETTET: self._handle_grunnlag,
+            EventType.GRUNNLAG_OPPDATERT: self._handle_grunnlag,
+            EventType.GRUNNLAG_TRUKKET: self._handle_grunnlag_trukket,
+            EventType.VEDERLAG_KRAV_SENDT: self._handle_vederlag,
+            EventType.VEDERLAG_KRAV_OPPDATERT: self._handle_vederlag,
+            EventType.VEDERLAG_KRAV_TRUKKET: self._handle_vederlag_trukket,
+            EventType.FRIST_KRAV_SENDT: self._handle_frist,
+            EventType.FRIST_KRAV_OPPDATERT: self._handle_frist,
+            EventType.FRIST_KRAV_TRUKKET: self._handle_frist_trukket,
+            EventType.RESPONS_GRUNNLAG: self._handle_respons_grunnlag,
+            EventType.RESPONS_VEDERLAG: self._handle_respons_vederlag,
+            EventType.RESPONS_FRIST: self._handle_respons_frist,
+            EventType.EO_UTSTEDT: self._handle_eo_utstedt,
+        }
+
+        handler = handlers.get(event.event_type)
+        if handler:
+            return handler(state, event)
+        else:
+            logger.warning(f"Ukjent event-type: {event.event_type}")
+            return state
+
+    # ============ SAK HANDLERS ============
+
+    def _handle_sak_opprettet(self, state: SakState, event: SakOpprettetEvent) -> SakState:
+        """Håndterer SAK_OPPRETTET event"""
+        state.sakstittel = event.sakstittel
+        state.catenda_topic_id = event.catenda_topic_id
+        return state
+
+    # ============ GRUNNLAG HANDLERS ============
+
+    def _handle_grunnlag(self, state: SakState, event: GrunnlagEvent) -> SakState:
+        """Håndterer GRUNNLAG_OPPRETTET og GRUNNLAG_OPPDATERT"""
+        grunnlag = state.grunnlag
+
+        # Oppdater data
+        grunnlag.hovedkategori = event.data.hovedkategori
+        grunnlag.underkategori = event.data.underkategori
+        grunnlag.beskrivelse = event.data.beskrivelse
+        grunnlag.dato_oppdaget = event.data.dato_oppdaget
+        grunnlag.kontraktsreferanser = event.data.kontraktsreferanser
+
+        # Oppdater status
+        if event.event_type == EventType.GRUNNLAG_OPPRETTET:
+            grunnlag.status = SporStatus.SENDT
+            grunnlag.antall_versjoner = 1
+        else:  # OPPDATERT
+            grunnlag.antall_versjoner += 1
+            # Hvis det var avvist og TE oppdaterer, går det tilbake til SENDT
+            if grunnlag.status == SporStatus.AVVIST:
+                grunnlag.status = SporStatus.SENDT
+
+        # Metadata
+        grunnlag.siste_event_id = event.event_id
+        grunnlag.siste_oppdatert = event.tidsstempel
+
+        state.grunnlag = grunnlag
+        return state
+
+    def _handle_grunnlag_trukket(self, state: SakState, event: GrunnlagEvent) -> SakState:
+        """Håndterer GRUNNLAG_TRUKKET"""
+        state.grunnlag.status = SporStatus.TRUKKET
+        state.grunnlag.siste_event_id = event.event_id
+        state.grunnlag.siste_oppdatert = event.tidsstempel
+        return state
+
+    # ============ VEDERLAG HANDLERS ============
+
+    def _handle_vederlag(self, state: SakState, event: VederlagEvent) -> SakState:
+        """Håndterer VEDERLAG_KRAV_SENDT og VEDERLAG_KRAV_OPPDATERT"""
+        vederlag = state.vederlag
+
+        # Oppdater data
+        vederlag.krevd_belop = event.data.krav_belop
+        vederlag.metode = event.data.metode
+        vederlag.begrunnelse = event.data.begrunnelse
+        vederlag.inkluderer_produktivitetstap = event.data.inkluderer_produktivitetstap
+        vederlag.inkluderer_rigg_drift = event.data.inkluderer_rigg_drift
+
+        # Oppdater status
+        if event.event_type == EventType.VEDERLAG_KRAV_SENDT:
+            vederlag.status = SporStatus.SENDT
+            vederlag.antall_versjoner = 1
+        else:  # OPPDATERT
+            vederlag.antall_versjoner += 1
+            # Hvis det var avvist/under forhandling og TE oppdaterer
+            if vederlag.status in {SporStatus.AVVIST, SporStatus.UNDER_FORHANDLING, SporStatus.DELVIS_GODKJENT}:
+                vederlag.status = SporStatus.SENDT
+
+        # Metadata
+        vederlag.siste_event_id = event.event_id
+        vederlag.siste_oppdatert = event.tidsstempel
+
+        state.vederlag = vederlag
+        return state
+
+    def _handle_vederlag_trukket(self, state: SakState, event: VederlagEvent) -> SakState:
+        """Håndterer VEDERLAG_KRAV_TRUKKET"""
+        state.vederlag.status = SporStatus.TRUKKET
+        state.vederlag.siste_event_id = event.event_id
+        state.vederlag.siste_oppdatert = event.tidsstempel
+        return state
+
+    # ============ FRIST HANDLERS ============
+
+    def _handle_frist(self, state: SakState, event: FristEvent) -> SakState:
+        """Håndterer FRIST_KRAV_SENDT og FRIST_KRAV_OPPDATERT"""
+        frist = state.frist
+
+        # Oppdater data
+        frist.krevd_dager = event.data.antall_dager
+        frist.frist_type = event.data.frist_type
+        frist.begrunnelse = event.data.begrunnelse
+        frist.pavirker_kritisk_linje = event.data.pavirker_kritisk_linje
+        frist.milepael_pavirket = event.data.milepael_pavirket
+
+        # Oppdater status
+        if event.event_type == EventType.FRIST_KRAV_SENDT:
+            frist.status = SporStatus.SENDT
+            frist.antall_versjoner = 1
+        else:  # OPPDATERT
+            frist.antall_versjoner += 1
+            if frist.status in {SporStatus.AVVIST, SporStatus.UNDER_FORHANDLING, SporStatus.DELVIS_GODKJENT}:
+                frist.status = SporStatus.SENDT
+
+        # Metadata
+        frist.siste_event_id = event.event_id
+        frist.siste_oppdatert = event.tidsstempel
+
+        state.frist = frist
+        return state
+
+    def _handle_frist_trukket(self, state: SakState, event: FristEvent) -> SakState:
+        """Håndterer FRIST_KRAV_TRUKKET"""
+        state.frist.status = SporStatus.TRUKKET
+        state.frist.siste_event_id = event.event_id
+        state.frist.siste_oppdatert = event.tidsstempel
+        return state
+
+    # ============ RESPONS HANDLERS (BH) ============
+
+    def _handle_respons_grunnlag(self, state: SakState, event: ResponsEvent) -> SakState:
+        """Håndterer RESPONS_GRUNNLAG fra BH"""
+        grunnlag = state.grunnlag
+
+        # Lagre BH respons
+        grunnlag.bh_resultat = event.data.resultat
+        grunnlag.bh_begrunnelse = event.data.begrunnelse
+
+        # Map respons til status
+        grunnlag.status = self._respons_til_status(event.data.resultat)
+
+        # Hvis godkjent, lås grunnlaget
+        if event.data.resultat == ResponsResultat.GODKJENT:
+            grunnlag.laast = True
+            grunnlag.status = SporStatus.LAAST
+
+        # Metadata
+        grunnlag.siste_event_id = event.event_id
+        grunnlag.siste_oppdatert = event.tidsstempel
+
+        state.grunnlag = grunnlag
+        return state
+
+    def _handle_respons_vederlag(self, state: SakState, event: ResponsEvent) -> SakState:
+        """Håndterer RESPONS_VEDERLAG fra BH"""
+        vederlag = state.vederlag
+
+        # Lagre BH respons
+        vederlag.bh_resultat = event.data.resultat
+        vederlag.bh_begrunnelse = event.data.begrunnelse
+
+        # Spesifikke verdier fra VederlagResponsData
+        if hasattr(event.data, 'godkjent_belop'):
+            vederlag.godkjent_belop = event.data.godkjent_belop
+        if hasattr(event.data, 'godkjent_metode'):
+            vederlag.godkjent_metode = event.data.godkjent_metode
+
+        # Map respons til status
+        vederlag.status = self._respons_til_status(event.data.resultat)
+
+        # Metadata
+        vederlag.siste_event_id = event.event_id
+        vederlag.siste_oppdatert = event.tidsstempel
+
+        state.vederlag = vederlag
+        return state
+
+    def _handle_respons_frist(self, state: SakState, event: ResponsEvent) -> SakState:
+        """Håndterer RESPONS_FRIST fra BH"""
+        frist = state.frist
+
+        # Lagre BH respons
+        frist.bh_resultat = event.data.resultat
+        frist.bh_begrunnelse = event.data.begrunnelse
+
+        # Spesifikke verdier fra FristResponsData
+        if hasattr(event.data, 'godkjent_dager'):
+            frist.godkjent_dager = event.data.godkjent_dager
+        if hasattr(event.data, 'ny_sluttdato'):
+            frist.ny_sluttdato = event.data.ny_sluttdato
+
+        # Map respons til status
+        frist.status = self._respons_til_status(event.data.resultat)
+
+        # Metadata
+        frist.siste_event_id = event.event_id
+        frist.siste_oppdatert = event.tidsstempel
+
+        state.frist = frist
+        return state
+
+    def _handle_eo_utstedt(self, state: SakState, event: EOUtstedtEvent) -> SakState:
+        """Håndterer EO_UTSTEDT - saken lukkes"""
+        # Alle aktive spor blir GODKJENT/LAAST
+        if state.grunnlag.status not in {SporStatus.IKKE_RELEVANT, SporStatus.TRUKKET}:
+            state.grunnlag.status = SporStatus.LAAST
+            state.grunnlag.laast = True
+
+        if state.vederlag.status not in {SporStatus.IKKE_RELEVANT, SporStatus.TRUKKET}:
+            state.vederlag.status = SporStatus.GODKJENT
+            state.vederlag.godkjent_belop = event.endelig_vederlag
+
+        if state.frist.status not in {SporStatus.IKKE_RELEVANT, SporStatus.TRUKKET}:
+            state.frist.status = SporStatus.GODKJENT
+            if event.endelig_frist_dager:
+                state.frist.godkjent_dager = event.endelig_frist_dager
+
+        return state
+
+    # ============ HELPERS ============
+
+    def _respons_til_status(self, resultat: ResponsResultat) -> SporStatus:
+        """Mapper ResponsResultat til SporStatus"""
+        mapping = {
+            ResponsResultat.GODKJENT: SporStatus.GODKJENT,
+            ResponsResultat.DELVIS_GODKJENT: SporStatus.DELVIS_GODKJENT,
+            ResponsResultat.AVVIST_UENIG: SporStatus.AVVIST,
+            ResponsResultat.AVVIST_FOR_SENT: SporStatus.AVVIST,
+            ResponsResultat.KREVER_AVKLARING: SporStatus.UNDER_FORHANDLING,
+        }
+        return mapping.get(resultat, SporStatus.UNDER_BEHANDLING)
+
+    # ============ CONVENIENCE METHODS ============
+
+    def compute_oversikt(self, events: List[AnyEvent]) -> SakOversikt:
+        """
+        Beregner forenklet oversikt for listevisning.
+
+        Mer effektiv enn full compute_state() for listevisninger.
+        """
+        state = self.compute_state(events)
+
+        # Bygg spor-oversikter
+        spor_oversikter = []
+
+        if state.grunnlag.status != SporStatus.IKKE_RELEVANT:
+            spor_oversikter.append(SporOversikt(
+                spor=SporType.GRUNNLAG,
+                status=state.grunnlag.status,
+                siste_aktivitet=state.grunnlag.siste_oppdatert,
+                verdi_krevd=state.grunnlag.hovedkategori,
+                verdi_godkjent="Godkjent" if state.grunnlag.laast else None,
+            ))
+
+        if state.vederlag.status != SporStatus.IKKE_RELEVANT:
+            spor_oversikter.append(SporOversikt(
+                spor=SporType.VEDERLAG,
+                status=state.vederlag.status,
+                siste_aktivitet=state.vederlag.siste_oppdatert,
+                verdi_krevd=f"{state.vederlag.krevd_belop:,.0f} NOK" if state.vederlag.krevd_belop else None,
+                verdi_godkjent=f"{state.vederlag.godkjent_belop:,.0f} NOK" if state.vederlag.godkjent_belop else None,
+            ))
+
+        if state.frist.status != SporStatus.IKKE_RELEVANT:
+            spor_oversikter.append(SporOversikt(
+                spor=SporType.FRIST,
+                status=state.frist.status,
+                siste_aktivitet=state.frist.siste_oppdatert,
+                verdi_krevd=f"{state.frist.krevd_dager} dager" if state.frist.krevd_dager else None,
+                verdi_godkjent=f"{state.frist.godkjent_dager} dager" if state.frist.godkjent_dager else None,
+            ))
+
+        return SakOversikt(
+            sak_id=state.sak_id,
+            sakstittel=state.sakstittel,
+            overordnet_status=state.overordnet_status,
+            spor=spor_oversikter,
+            sum_krevd=state.sum_krevd,
+            sum_godkjent=state.sum_godkjent,
+            dager_krevd=state.frist.krevd_dager,
+            dager_godkjent=state.frist.godkjent_dager,
+            opprettet=state.opprettet,
+            siste_aktivitet=state.siste_aktivitet,
+            neste_handling_rolle=state.neste_handling.get("rolle"),
+            te_navn=state.te_navn,
+            prosjekt_navn=state.prosjekt_navn,
+        )
+
+    def get_timeline(self, events: List[AnyEvent]) -> List[Dict[str, Any]]:
+        """
+        Returnerer events formatert som tidslinje for UI.
+
+        Hvert element inneholder:
+        - event_id
+        - tidsstempel
+        - type (lesbar tekst)
+        - aktor/rolle
+        - spor (hvis relevant)
+        - sammendrag (kort beskrivelse)
+        """
+        timeline = []
+        for event in sorted(events, key=lambda e: e.tidsstempel, reverse=True):
+            entry = {
+                "event_id": event.event_id,
+                "tidsstempel": event.tidsstempel.isoformat(),
+                "type": self._event_type_to_label(event.event_type),
+                "aktor": event.aktor,
+                "rolle": event.aktor_rolle,
+                "spor": self._get_spor_for_event(event),
+                "sammendrag": self._get_event_summary(event),
+            }
+            timeline.append(entry)
+        return timeline
+
+    def _event_type_to_label(self, event_type: EventType) -> str:
+        """Konverterer event-type til lesbar label"""
+        labels = {
+            EventType.SAK_OPPRETTET: "Sak opprettet",
+            EventType.GRUNNLAG_OPPRETTET: "Grunnlag sendt",
+            EventType.GRUNNLAG_OPPDATERT: "Grunnlag oppdatert",
+            EventType.GRUNNLAG_TRUKKET: "Grunnlag trukket",
+            EventType.VEDERLAG_KRAV_SENDT: "Vederlagskrav sendt",
+            EventType.VEDERLAG_KRAV_OPPDATERT: "Vederlagskrav oppdatert",
+            EventType.VEDERLAG_KRAV_TRUKKET: "Vederlagskrav trukket",
+            EventType.FRIST_KRAV_SENDT: "Fristkrav sendt",
+            EventType.FRIST_KRAV_OPPDATERT: "Fristkrav oppdatert",
+            EventType.FRIST_KRAV_TRUKKET: "Fristkrav trukket",
+            EventType.RESPONS_GRUNNLAG: "BH svarte på grunnlag",
+            EventType.RESPONS_VEDERLAG: "BH svarte på vederlag",
+            EventType.RESPONS_FRIST: "BH svarte på frist",
+            EventType.EO_UTSTEDT: "Endringsordre utstedt",
+        }
+        return labels.get(event_type, str(event_type))
+
+    def _get_spor_for_event(self, event: AnyEvent) -> Optional[str]:
+        """Returnerer hvilket spor eventen tilhører"""
+        if isinstance(event, GrunnlagEvent):
+            return "grunnlag"
+        elif isinstance(event, VederlagEvent):
+            return "vederlag"
+        elif isinstance(event, FristEvent):
+            return "frist"
+        elif isinstance(event, ResponsEvent):
+            return event.spor.value
+        return None
+
+    def _get_event_summary(self, event: AnyEvent) -> str:
+        """Genererer kort sammendrag av eventen"""
+        if isinstance(event, GrunnlagEvent):
+            return f"{event.data.hovedkategori}: {event.data.underkategori}"
+        elif isinstance(event, VederlagEvent):
+            return f"Krav: {event.data.krav_belop:,.0f} NOK"
+        elif isinstance(event, FristEvent):
+            return f"Krav: {event.data.antall_dager} {event.data.frist_type}"
+        elif isinstance(event, ResponsEvent):
+            return f"{event.data.resultat.value}"
+        elif isinstance(event, SakOpprettetEvent):
+            return event.sakstittel
+        elif isinstance(event, EOUtstedtEvent):
+            return f"EO-{event.eo_nummer}: {event.endelig_vederlag:,.0f} NOK"
+        return ""
+
+
+# ============ MIGRATION HELPER ============
+
+class MigrationHelper:
+    """
+    Hjelpeklasse for å migrere fra gammel til ny modell.
+
+    Konverterer Varsel + KoeRevisjon + BHSvarRevisjon til events.
+    """
+
+    def __init__(self):
+        self.timeline_service = TimelineService()
+
+    def migrate_sak(
+        self,
+        sak_data: Dict[str, Any],
+        varsel_data: Dict[str, Any],
+        koe_revisjoner: List[Dict[str, Any]],
+        bh_svar_revisjoner: List[Dict[str, Any]],
+    ) -> List[AnyEvent]:
+        """
+        Migrerer en gammel sak til event-format.
+
+        Args:
+            sak_data: Gammel Sak-dict
+            varsel_data: Gammel Varsel-dict
+            koe_revisjoner: Liste med KoeRevisjon-dicts
+            bh_svar_revisjoner: Liste med BHSvarRevisjon-dicts
+
+        Returns:
+            Liste med events som representerer sakens historikk
+        """
+        from models.events import (
+            GrunnlagData, VederlagData, FristData,
+            GrunnlagResponsData, VederlagResponsData, FristResponsData,
+        )
+
+        events: List[AnyEvent] = []
+        sak_id = sak_data.get('sak_id', '')
+
+        # 1. Opprett sak-event
+        sak_event = SakOpprettetEvent(
+            sak_id=sak_id,
+            sakstittel=sak_data.get('sakstittel', ''),
+            aktor=sak_data.get('opprettet_av', 'System'),
+            aktor_rolle='TE',
+            catenda_topic_id=sak_data.get('catenda_topic_id'),
+        )
+        events.append(sak_event)
+
+        # 2. Konverter Varsel til GrunnlagEvent
+        if varsel_data:
+            grunnlag_event = GrunnlagEvent(
+                sak_id=sak_id,
+                event_type=EventType.GRUNNLAG_OPPRETTET,
+                aktor=sak_data.get('opprettet_av', 'System'),
+                aktor_rolle='TE',
+                data=GrunnlagData(
+                    hovedkategori=varsel_data.get('hovedkategori', ''),
+                    underkategori=varsel_data.get('underkategori', ''),
+                    beskrivelse=varsel_data.get('varsel_beskrivelse', ''),
+                    dato_oppdaget=varsel_data.get('dato_forhold_oppdaget', ''),
+                ),
+            )
+            events.append(grunnlag_event)
+
+        # 3. Konverter KoeRevisjoner til Vederlag/Frist events
+        for i, koe in enumerate(koe_revisjoner):
+            vederlag_info = koe.get('vederlag', {})
+            frist_info = koe.get('frist', {})
+
+            # Vederlag-event hvis det er krav
+            if vederlag_info.get('krav_vederlag'):
+                belop_str = vederlag_info.get('krav_vederlag_belop', '0')
+                try:
+                    belop = float(belop_str.replace(' ', '').replace(',', '.'))
+                except ValueError:
+                    belop = 0.0
+
+                vederlag_event = VederlagEvent(
+                    sak_id=sak_id,
+                    event_type=EventType.VEDERLAG_KRAV_SENDT if i == 0 else EventType.VEDERLAG_KRAV_OPPDATERT,
+                    aktor=koe.get('for_entreprenor', 'System'),
+                    aktor_rolle='TE',
+                    versjon=i + 1,
+                    data=VederlagData(
+                        krav_belop=belop,
+                        metode=vederlag_info.get('krav_vederlag_metode', ''),
+                        begrunnelse=vederlag_info.get('krav_vederlag_begrunnelse', ''),
+                        inkluderer_produktivitetstap=vederlag_info.get('krav_produktivitetstap', False),
+                        inkluderer_rigg_drift=vederlag_info.get('saerskilt_varsel_rigg_drift', False),
+                    ),
+                )
+                events.append(vederlag_event)
+
+            # Frist-event hvis det er krav
+            if frist_info.get('krav_fristforlengelse'):
+                dager_str = frist_info.get('krav_frist_antall_dager', '0')
+                try:
+                    dager = int(dager_str)
+                except ValueError:
+                    dager = 0
+
+                frist_event = FristEvent(
+                    sak_id=sak_id,
+                    event_type=EventType.FRIST_KRAV_SENDT if i == 0 else EventType.FRIST_KRAV_OPPDATERT,
+                    aktor=koe.get('for_entreprenor', 'System'),
+                    aktor_rolle='TE',
+                    versjon=i + 1,
+                    data=FristData(
+                        antall_dager=dager,
+                        frist_type=frist_info.get('krav_frist_type', 'kalenderdager'),
+                        begrunnelse=frist_info.get('krav_frist_begrunnelse', ''),
+                        pavirker_kritisk_linje=frist_info.get('forsinkelse_kritisk_linje', False),
+                    ),
+                )
+                events.append(frist_event)
+
+        # 4. Konverter BHSvarRevisjoner til ResponsEvents
+        for bh_svar in bh_svar_revisjoner:
+            vederlag_svar = bh_svar.get('vederlag', {})
+            frist_svar = bh_svar.get('frist', {})
+            sign = bh_svar.get('sign', {})
+
+            # Vederlag-respons
+            if vederlag_svar.get('bh_svar_vederlag'):
+                belop_str = vederlag_svar.get('bh_godkjent_vederlag_belop', '0')
+                try:
+                    godkjent_belop = float(belop_str.replace(' ', '').replace(',', '.'))
+                except ValueError:
+                    godkjent_belop = None
+
+                respons_event = ResponsEvent(
+                    sak_id=sak_id,
+                    event_type=EventType.RESPONS_VEDERLAG,
+                    aktor=sign.get('for_byggherre', 'System'),
+                    aktor_rolle='BH',
+                    spor=SporType.VEDERLAG,
+                    data=VederlagResponsData(
+                        resultat=self._map_bh_svar_to_resultat(vederlag_svar.get('bh_svar_vederlag', '')),
+                        begrunnelse=vederlag_svar.get('bh_begrunnelse_vederlag', ''),
+                        godkjent_belop=godkjent_belop,
+                        godkjent_metode=vederlag_svar.get('bh_vederlag_metode'),
+                    ),
+                )
+                events.append(respons_event)
+
+            # Frist-respons
+            if frist_svar.get('bh_svar_frist'):
+                dager_str = frist_svar.get('bh_godkjent_frist_dager', '0')
+                try:
+                    godkjent_dager = int(dager_str)
+                except ValueError:
+                    godkjent_dager = None
+
+                respons_event = ResponsEvent(
+                    sak_id=sak_id,
+                    event_type=EventType.RESPONS_FRIST,
+                    aktor=sign.get('for_byggherre', 'System'),
+                    aktor_rolle='BH',
+                    spor=SporType.FRIST,
+                    data=FristResponsData(
+                        resultat=self._map_bh_svar_to_resultat(frist_svar.get('bh_svar_frist', '')),
+                        begrunnelse=frist_svar.get('bh_begrunnelse_frist', ''),
+                        godkjent_dager=godkjent_dager,
+                        ny_sluttdato=frist_svar.get('bh_frist_for_spesifisering'),
+                    ),
+                )
+                events.append(respons_event)
+
+        return events
+
+    def _map_bh_svar_to_resultat(self, svar_kode: str) -> ResponsResultat:
+        """Mapper gammel BH svar-kode til ResponsResultat"""
+        # Fra generated_constants.py
+        mapping = {
+            '100000000': ResponsResultat.GODKJENT,           # GODKJENT_FULLT
+            '100000001': ResponsResultat.DELVIS_GODKJENT,    # DELVIS_GODKJENT
+            '100000002': ResponsResultat.AVVIST_UENIG,       # AVSLÅTT_UENIG
+            '100000003': ResponsResultat.AVVIST_FOR_SENT,    # AVSLÅTT_FOR_SENT
+            '100000004': ResponsResultat.KREVER_AVKLARING,   # AVVENTER
+            '100000005': ResponsResultat.GODKJENT,           # GODKJENT_ANNEN_METODE
+        }
+        return mapping.get(svar_kode, ResponsResultat.KREVER_AVKLARING)
