@@ -72,9 +72,7 @@ Frontend er bygget med:
 │   │   ├── VarselPanel.tsx         # Steg 1: Varsel om endringsforhold (14446 linjer)
 │   │   ├── KravKoePanel.tsx        # Steg 2: Krav om endringsordre (21306 linjer)
 │   │   ├── BhSvarPanel.tsx         # Steg 3: Byggherre-svar (18057 linjer)
-│   │   ├── OppsummeringPanel.tsx   # Oppsummering
-│   │   ├── GrunninfoPanel.tsx      # Grunnleggende saksinformasjon
-│   │   └── TestOversiktPanel.tsx   # Test-verktøy (kun i dev)
+│   │   └── TestOversiktPanel.tsx   # Saksoversikt for sluttbrukere
 │   │
 │   └── ui/                         # Gjenbrukbare UI-komponenter
 │       ├── Field.tsx               # Skjema-felt wrapper
@@ -249,15 +247,15 @@ App.tsx (344 linjer)
 │   │   ├── Varsel                  # Tab 0
 │   │   ├── Krav (KOE)              # Tab 1
 │   │   ├── Svar                    # Tab 2
-│   │   └── Test-oversikt           # Tab 3 (dev only)
+│   │   └── Saksoversikt            # Tab 3
 │   │
 │   └── BottomBar                   # Handlingsknapper (NY)
 │
 ├── <Suspense>                      # Lazy loading wrapper
-│   ├── VarselPanel                 # Steg 1
-│   ├── KravKoePanel                # Steg 2
-│   ├── BhSvarPanel                 # Steg 3
-│   └── TestOversiktPanel           # Dev/test
+│   ├── VarselPanel                 # Steg 1: Varsel
+│   ├── KravKoePanel                # Steg 2: Krav (KOE)
+│   ├── BhSvarPanel                 # Steg 3: BH Svar
+│   └── TestOversiktPanel           # Steg 4: Saksoversikt
 │
 ├── SidePanel                       # Saksinfo sidebar
 ├── ConfirmDialog                   # Bekreftelser
@@ -294,9 +292,7 @@ interface PanelProps {
 | `VarselPanel` | Varsel om endringsforhold (entreprenør) | 14446 |
 | `KravKoePanel` | Krav om vederlag/frist (entreprenør) | 21306 |
 | `BhSvarPanel` | Svar på krav (byggherre) | 18057 |
-| `OppsummeringPanel` | Oppsummering av hele saken | 12895 |
-| `GrunninfoPanel` | Grunnleggende saksinformasjon | 5001 |
-| `TestOversiktPanel` | Test-verktøy (kun i dev) | 22541 |
+| `TestOversiktPanel` | Saksoversikt - viser hele sakens data i strukturert format | 22541 |
 
 ### UI-komponenter
 
