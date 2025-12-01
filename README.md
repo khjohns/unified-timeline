@@ -4,11 +4,14 @@
 
 Et system for håndtering av endringsordrer (KOE) etter NS 8407:2011, integrert med prosjekthotellet Catenda. Utviklet av Oslobygg KF for å erstatte manuelle PDF/Word-baserte prosesser med strukturerte, sporbare data.
 
+**Sist oppdatert:** 2025-12-01
+
 ---
 
 ## Innhold
 
 - [Om prosjektet](#om-prosjektet)
+- [Arbeidsflyt](#arbeidsflyt)
 - [Arkitektur](#arkitektur)
 - [Teknologier](#teknologier)
 - [Kom i gang](#kom-i-gang)
@@ -16,6 +19,7 @@ Et system for håndtering av endringsordrer (KOE) etter NS 8407:2011, integrert 
 - [Gjenbrukbarhet](#gjenbrukbarhet)
 - [Dokumentasjon](#dokumentasjon)
 - [Testing](#testing)
+- [Status](#status)
 - [Lisens](#lisens)
 
 ---
@@ -40,23 +44,104 @@ Denne plattformen digitaliserer prosessen ved å:
 - **Automatisere arkivering** – PDF genereres og lastes opp til Catenda automatisk
 - **Sikre sporbarhet** – Komplett audit trail for alle handlinger
 
-### Arbeidsflyt
+---
+
+## Arbeidsflyt
+
+Prosessen følger NS 8407:2011 for håndtering av krav om endring (KOE):
+
+### Oversikt
 
 ```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│  1. VARSEL      │────▶│  2. KOE         │────▶│  3. BH SVAR     │
-│  Entreprenør    │     │  Entreprenør    │     │  Byggherre      │
-│  varsler om     │     │  fremmer krav   │     │  godkjenner/    │
-│  forhold        │     │  om endring     │     │  avslår         │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-                                                        │
-                                                        ▼
-                                               ┌─────────────────┐
-                                               │  4. EO          │
-                                               │  Endringsordre  │
-                                               │  utstedes       │
-                                               └─────────────────┘
+FASE 1.1          FASE 1.2          FASE 2            FASE 3            FASE 4
+┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
+│ VARSLING │────▶│ LAGRING  │────▶│  KRAV    │────▶│  SVAR    │────▶│   EO     │
+│          │     │          │     │  (KOE)   │     │  (BH)    │     │          │
+└──────────┘     └──────────┘     └──────────┘     └────┬─────┘     └──────────┘
+                                        ▲               │
+                                        │               │ Delvis/Avvist
+                                        └───────────────┘ (revisjon)
 ```
+
+### FASE 1.1: VARSLING
+
+```
+┌─────────────────┐
+│  ENTREPRENØR    │  1. Oppretter sak i Catenda (varsel om endring)
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  LØSNINGEN      │  2. Oppdager saken automatisk via webhook
+│                 │  3. Legger sikker lenke (magic link) i kommentarfeltet
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  ENTREPRENØR    │  4. Fyller ut digitalt varselskjema
+│                 │  5. Sender formelt varsel → PDF genereres
+└─────────────────┘
+```
+
+### FASE 1.2: OPPDATERING I DATABASE OG CATENDA
+
+```
+┌─────────────────┐
+│  LØSNINGEN      │  1. Sender data til database (CSV i prototype, Dataverse i prod)
+│                 │  2. Laster automatisk opp PDF til saken i Catenda
+│                 │  3. Legger ny lenke i kommentarfeltet for neste steg
+└─────────────────┘
+```
+
+### FASE 2: INNSENDING AV KRAV (KOE)
+
+```
+┌─────────────────┐
+│  ENTREPRENØR    │  1. Klikker på lenken fra Fase 1.2
+│                 │  2. Fyller ut kravskjema (vederlag, fristforlengelse)
+│                 │  3. Sender kravet → PDF genereres
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  LØSNINGEN      │  Fase 1.2 gjentas med oppdaterte data
+└─────────────────┘
+```
+
+### FASE 3: BYGGHERRENS SVAR
+
+```
+┌─────────────────┐
+│  BYGGHERRE/PL   │  1. Åpner lenken for å svare på kravet
+│                 │  2. Vurderer kravet
+└────────┬────────┘
+         │
+         ├──────────────────────────────────────────┐
+         │                                          │
+         ▼                                          ▼
+┌─────────────────┐                      ┌─────────────────┐
+│  GODKJENT       │                      │  DELVIS GODKJENT│
+│                 │                      │  ELLER AVVIST   │
+│  → Gå til       │                      │                 │
+│    FASE 4       │                      │  → Entreprenør  │
+│                 │                      │    kan sende    │
+│                 │                      │    revidert     │
+│                 │                      │    krav (FASE 2)│
+└─────────────────┘                      └─────────────────┘
+```
+
+### FASE 4: ENDRINGSORDRE (EO)
+
+```
+┌─────────────────┐
+│  EO UTSTEDES    │  KOE-sak avsluttes. Endringsordre utstedes.
+│                 │
+│  (Ikke impl.    │
+│   i prototype)  │
+└─────────────────┘
+```
+
+**Merk:** Databaselagring til Dataverse og skjema for EO (endringsordre) er planlagt for produksjon, ikke implementert i prototypen.
 
 ---
 
@@ -75,18 +160,24 @@ Denne plattformen digitaliserer prosessen ved å:
                             ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                         BACKEND                                 │
-│                    Flask 3 + Python                             │
+│              Flask 3 + Python (app.py: 155 linjer)              │
 │                  Pydantic v2 validering                         │
 ├─────────────────────────────────────────────────────────────────┤
-│  Routes ──▶ Services ──▶ Repositories ──▶ CSV (lokal lagring)  │
-└───────────────────────────┬─────────────────────────────────────┘
-                            │ Catenda API
-                            ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                        CATENDA                                  │
-│            Prosjekthotell (ekstern tjeneste)                    │
-│         Topics, Comments, Documents, Webhooks                   │
-└─────────────────────────────────────────────────────────────────┘
+│                                                                 │
+│   HTTP Layer         Service Layer         Data Layer           │
+│  ┌──────────┐       ┌──────────┐         ┌──────────┐          │
+│  │ routes/  │ ────▶ │services/ │ ───────▶│repos/    │          │
+│  │ 7 filer  │       │ 5 filer  │         │CSVRepo   │          │
+│  └──────────┘       └──────────┘         └──────────┘          │
+│                                                 │               │
+└─────────────────────────────────────────────────┼───────────────┘
+                            │ Catenda API         │
+                            ▼                     ▼
+┌─────────────────────────────────────────┐  ┌──────────┐
+│                CATENDA                   │  │ koe_data/│
+│     Prosjekthotell (ekstern tjeneste)   │  │ (JSON)   │
+│   Topics, Comments, Documents, Webhooks │  └──────────┘
+└─────────────────────────────────────────┘
 ```
 
 ### Produksjon (planlagt)
@@ -103,7 +194,7 @@ Denne plattformen digitaliserer prosessen ved å:
                         └─────────────────┘
 ```
 
-Se [HLD - Overordnet Design](docs/HLD%20-%20Overordnet%20Design.md) for detaljert arkitekturbeskrivelse.
+**Backend-arkitektur:** Se [backend/STRUCTURE.md](backend/STRUCTURE.md) for detaljert beskrivelse av den refaktorerte, lagdelte arkitekturen.
 
 ---
 
@@ -127,7 +218,8 @@ Se [HLD - Overordnet Design](docs/HLD%20-%20Overordnet%20Design.md) for detaljer
 |-----------|---------|--------|
 | Python | 3.8+ | Språk |
 | Flask | 3.0 | Web-rammeverk |
-| Pydantic | 2.0+ | Datavalidering |
+| Pydantic | 2.0+ | Datavalidering og modeller |
+| pydantic-settings | 2.0+ | Miljøvariabel-håndtering |
 | Flask-CORS | 4.0 | CORS-håndtering |
 | Flask-Limiter | 3.5 | Rate limiting |
 | requests | 2.31 | HTTP-klient |
@@ -199,38 +291,60 @@ Se [GETTING_STARTED.md](docs/GETTING_STARTED.md) for detaljert oppsettguide inkl
 ```
 Skjema_Endringsmeldinger/
 │
-├── 📁 src/                      # Frontend React-kode
-│   ├── components/              # React-komponenter
-│   │   ├── panels/              # Hovedpaneler (Varsel, KOE, Svar, etc.)
-│   │   └── ui/                  # Gjenbrukbare UI-komponenter
-│   ├── hooks/                   # Custom React hooks
-│   ├── services/                # API-klient og forretningslogikk
-│   ├── utils/                   # Hjelpefunksjoner og PDF-generering
-│   └── types.ts                 # TypeScript-definisjoner
+├── App.tsx                         # Hovedkomponent (344 linjer)
+├── index.tsx                       # Entry point
+├── types.ts                        # TypeScript-definisjoner
 │
-├── 📁 backend/                  # Backend Python-kode
-│   ├── routes/                  # Flask blueprints (HTTP-endepunkter)
-│   ├── services/                # Forretningslogikk
-│   ├── repositories/            # Dataaksess (CSV, fremtidig Dataverse)
-│   ├── models/                  # Pydantic-modeller
-│   ├── integrations/catenda/    # Catenda API-klient
-│   ├── lib/                     # Gjenbrukbare moduler (auth, security)
-│   └── scripts/                 # CLI-verktøy
+├── components/
+│   ├── layout/                     # Layout-komponenter
+│   │   ├── AppLayout.tsx           # Hovedlayout wrapper
+│   │   ├── AppHeader.tsx           # Header med logo
+│   │   ├── TabNavigation.tsx       # Fane-navigasjon
+│   │   └── BottomBar.tsx           # Bunnseksjon
+│   ├── panels/                     # Hovedpaneler
+│   │   ├── VarselPanel.tsx         # Varsel-skjema
+│   │   ├── KravKoePanel.tsx        # KOE-skjema
+│   │   ├── BhSvarPanel.tsx         # Byggherre-svar
+│   │   └── OppsummeringPanel.tsx   # Oppsummering
+│   └── ui/                         # Gjenbrukbare UI-komponenter
 │
-├── 📁 docs/                     # Dokumentasjon
-│   ├── HLD - Overordnet Design.md
-│   ├── GETTING_STARTED.md
-│   ├── API.md
+├── hooks/                          # Custom React hooks (10 stk)
+│   ├── useApiConnection.ts
+│   ├── useCaseLoader.ts
+│   ├── useFormSubmission.ts
 │   └── ...
 │
-├── 📁 shared/                   # Delt konfigurasjon
-│   └── status-codes.json        # Statuskoder (brukes av frontend og backend)
+├── services/                       # Frontend-tjenester
+│   ├── validationService.ts
+│   └── submissionService.ts
 │
-└── 📁 public/                   # Statiske assets
+├── utils/                          # Hjelpefunksjoner
+│   └── pdf/                        # PDF-generering
+│
+├── backend/                        # Backend (Python/Flask)
+│   ├── app.py                      # Flask entrypoint (155 linjer)
+│   ├── core/                       # Sentralisert konfigurasjon
+│   │   ├── config.py               # Pydantic BaseSettings
+│   │   └── system_context.py       # SystemContext
+│   ├── routes/                     # Flask blueprints (7 filer)
+│   ├── services/                   # Forretningslogikk (5 filer)
+│   ├── repositories/               # Dataaksess (CSV, fremtidig Dataverse)
+│   ├── models/                     # Pydantic-modeller (4 filer)
+│   ├── integrations/catenda/       # Catenda API-klient
+│   ├── lib/                        # Auth, security, monitoring
+│   ├── functions/                  # Azure Functions adapter
+│   └── tests/                      # Testsuite (379 tester)
+│
+├── docs/                           # Dokumentasjon
+│
+├── shared/                         # Delt konfigurasjon
+│   └── status-codes.json           # Statuskoder (frontend + backend)
+│
+└── public/                         # Statiske assets
     └── logos/
 ```
 
-Se [backend/STRUCTURE.md](backend/STRUCTURE.md) for detaljert backend-arkitektur.
+Se [backend/STRUCTURE.md](backend/STRUCTURE.md) for detaljert backend-arkitektur med linjetall.
 
 ---
 
@@ -272,15 +386,41 @@ Backend-arkitekturen er designet for gjenbruk på tvers av skjematyper. Den lagd
 | [API.md](docs/API.md) | Backend API-referanse |
 | [FRONTEND_ARCHITECTURE.md](docs/FRONTEND_ARCHITECTURE.md) | Frontend-arkitektur og komponenter |
 | [DEPLOYMENT.md](docs/DEPLOYMENT.md) | Azure-utrulling |
-| [backend/STRUCTURE.md](backend/STRUCTURE.md) | Backend-mappestruktur |
+| [backend/STRUCTURE.md](backend/STRUCTURE.md) | Backend-mappestruktur (detaljert) |
 | [Refaktoreringsplan - Backend](docs/Refaktoreringsplan%20-%20Backend.md) | Backend-refaktorering |
+| [PRE_PRODUCTION_PLAN.md](docs/PRE_PRODUCTION_PLAN.md) | Pre-produksjon sjekkliste |
 | [Handlingsplan Sikkerhetstiltak](docs/Handlingsplan_Sikkerhetstiltak.md) | Sikkerhetsimplementering |
 
 ---
 
 ## Testing
 
-### Frontend
+### Backend (379 tester, 62% coverage)
+
+```bash
+cd backend
+
+# Kjør alle tester
+python -m pytest tests/ -v
+
+# Kjør med coverage
+python -m pytest tests/ --cov=. --cov-report=html
+
+# Manuell API-testing
+./scripts/manual_testing.sh
+```
+
+**Testdekning:**
+
+| Kategori | Tester | Coverage |
+|----------|--------|----------|
+| Services | 5 filer | 83-93% |
+| Routes | 3 filer | 91-100% |
+| Security | 4 filer | 79-95% |
+| Models | 1 fil | 100% |
+| Utils | 3 filer | 100% |
+
+### Frontend (95 tester)
 
 ```bash
 # Kjør alle tester
@@ -291,18 +431,6 @@ npm run test:ui
 
 # Kjør med coverage
 npm run test:coverage
-```
-
-### Backend
-
-```bash
-cd backend
-
-# Kjør alle tester
-python -m pytest tests/ -v
-
-# Kjør med coverage
-python -m pytest tests/ --cov=. --cov-report=html
 ```
 
 ---
@@ -324,6 +452,7 @@ python -m pytest tests/ --cov=. --cov-report=html
 | Kommando | Beskrivelse |
 |----------|-------------|
 | `python app.py` | Start Flask-server |
+| `python -m pytest tests/ -v` | Kjør tester |
 | `python scripts/catenda_menu.py` | Interaktiv Catenda API-meny |
 | `python scripts/setup_webhooks.py` | Konfigurer Catenda webhooks |
 
@@ -331,16 +460,26 @@ python -m pytest tests/ --cov=. --cov-report=html
 
 ## Status
 
-🟡 **Prototype** – Under aktiv utvikling
+**Prototype-status:** Klar for produksjonsmigrering (kode)
+
+### Implementert
 
 - ✅ Frontend med alle paneler (Varsel, KOE, BH Svar, Oppsummering)
-- ✅ Backend med lagdelt arkitektur
-- ✅ Catenda-integrasjon (API-klient, webhooks)
-- ✅ PDF-generering
-- ✅ Testrammeverk (frontend og backend)
-- 🔄 Sikkerhetstiltak (delvis implementert)
+- ✅ Backend med lagdelt arkitektur (app.py: 1231 → 155 linjer)
+- ✅ Catenda-integrasjon (API-klient, webhooks, magic links)
+- ✅ PDF-generering og automatisk opplasting
+- ✅ Sikkerhetstiltak (CSRF, validering, rate limiting, audit logging)
+- ✅ Comprehensive testing (379 backend + 95 frontend tester)
+
+### Gjenstår for produksjon
+
+- ⏳ Azure Landing Zone (infrastruktur)
+- ⏳ DataverseRepository (erstatte CSV)
 - ⏳ Azure Functions-migrering
-- ⏳ Dataverse-integrasjon
+- ⏳ Redis for state (rate limiting, idempotency)
+- ⏳ EO-skjema (endringsordre)
+
+Se [PRE_PRODUCTION_PLAN.md](docs/PRE_PRODUCTION_PLAN.md) for detaljert sjekkliste.
 
 ---
 
