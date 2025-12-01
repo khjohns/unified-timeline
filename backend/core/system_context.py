@@ -5,12 +5,16 @@ Provides simplified system context for legacy route compatibility.
 """
 
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, TYPE_CHECKING
 
 from repositories.csv_repository import CSVRepository
 from integrations.catenda import CatendaClient
 from core.config import settings
 from utils.network import get_local_ip
+
+# Forward declaration for type hinting
+if TYPE_CHECKING:
+    from lib.auth.magic_link import MagicLinkManager
 
 
 logger = logging.getLogger(__name__)
@@ -23,19 +27,21 @@ class SystemContext:
     Provides access to:
     - db: CSVRepository (data access)
     - catenda: CatendaClient (Catenda API integration)
+    - magic_links: MagicLinkManager (singleton instance)
     - get_react_app_base_url(): React app URL helper
 
     Note: Webhook handlers moved to services/webhook_service.py
     Future refactoring should migrate routes to use service layer directly.
     """
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: Dict[str, Any], magic_link_manager: 'MagicLinkManager'):
         self.config = config
         self.db = CSVRepository(config.get('data_dir', 'koe_data'))
         self.catenda = CatendaClient(
             client_id=config['catenda_client_id'],
             client_secret=config.get('catenda_client_secret')
         )
+        self.magic_links = magic_link_manager
 
         if not self._authenticate():
             logger.warning("⚠️ Kunne ikke autentisere mot Catenda ved oppstart.")

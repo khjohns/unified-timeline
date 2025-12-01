@@ -11,15 +11,11 @@ import logging
 from flask import Blueprint, request, jsonify
 
 from lib.auth import generate_csrf_token, require_csrf
-from lib.auth import MagicLinkManager
 
 logger = logging.getLogger(__name__)
 
 # Create Blueprint
 utility_bp = Blueprint('utility', __name__)
-
-# Magic link manager instance (shared across routes)
-magic_link_mgr = MagicLinkManager()
 
 
 @utility_bp.route('/api/csrf-token', methods=['GET'])
@@ -50,6 +46,9 @@ def verify_magic_link():
     Verifiserer et Magic Link token.
     Returnerer den interne sakId-en hvis token er gyldig.
     """
+    from app import get_magic_link_manager
+    magic_link_mgr = get_magic_link_manager()
+
     token = request.args.get('token', '')
     valid, error, token_data = magic_link_mgr.verify(token)
 

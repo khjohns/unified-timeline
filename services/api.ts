@@ -308,10 +308,14 @@ export const api = {
    */
   submitRevidering: async (formData: FormDataModel, sakId: string): Promise<ApiResponse<SubmitResponse>> => {
     try {
+      // Hent CSRF-token (beskyttelse mot CSRF-angrep)
+      const token = await getCsrfToken();
+
       const response = await fetch(`${API_BASE_URL}/cases/${sakId}/revidering`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-CSRF-Token': token,  // ✅ CSRF beskyttelse
         },
         body: JSON.stringify({
           formData,
@@ -384,6 +388,9 @@ export const api = {
    */
   uploadPdf: async (sakId: string, pdfBlob: Blob, filename: string, modus: string, topicGuid?: string): Promise<ApiResponse<{ documentGuid?: string; filename: string }>> => {
     try {
+      // Hent CSRF-token (beskyttelse mot CSRF-angrep)
+      const token = await getCsrfToken();
+
       // Convert blob to base64
       const arrayBuffer = await pdfBlob.arrayBuffer();
       const base64 = btoa(
@@ -394,6 +401,7 @@ export const api = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-CSRF-Token': token,  // ✅ CSRF beskyttelse
         },
         body: JSON.stringify({
           pdfBase64: base64,
@@ -430,6 +438,9 @@ export const api = {
    */
   saveDraft: async (formData: FormDataModel, sakId?: string): Promise<ApiResponse<{ sakId: string }>> => {
     try {
+      // Hent CSRF-token (beskyttelse mot CSRF-angrep)
+      const token = await getCsrfToken();
+
       const endpoint = sakId
         ? `${API_BASE_URL}/cases/${sakId}/draft`
         : `${API_BASE_URL}/drafts`;
@@ -438,6 +449,7 @@ export const api = {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'X-CSRF-Token': token,  // ✅ CSRF beskyttelse
         },
         body: JSON.stringify({ formData }),
       });
@@ -518,10 +530,14 @@ export const api = {
    */
   validateUser: async (sakId: string, email: string): Promise<ApiResponse<{ name: string; email: string; company: string }>> => {
     try {
+      // Hent CSRF-token (beskyttelse mot CSRF-angrep)
+      const token = await getCsrfToken();
+
       const response = await fetch(`${API_BASE_URL}/validate-user`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-CSRF-Token': token,  // ✅ CSRF beskyttelse
         },
         body: JSON.stringify({ sakId, email }),
       });

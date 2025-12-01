@@ -171,6 +171,19 @@ def submit_koe():
         f"📎 PDF-vedlegg tilgjengelig under dokumenter"
     )
 
+    # CRITICAL: Set topic_board_id before creating comment
+    # Retrieve board_id from case data to enable Catenda API call
+    case_data = sys.db.get_form_data(sak_id)
+    if case_data and 'sak' in case_data:
+        board_id = case_data['sak'].get('catenda_board_id')
+        if board_id:
+            sys.catenda.topic_board_id = board_id
+            logger.info(f"✅ Board ID set to: {board_id}")
+        else:
+            logger.warning(f"⚠️ No board_id found in case {sak_id}")
+    else:
+        logger.warning(f"⚠️ Could not retrieve case data for {sak_id}")
+
     sys.catenda.create_comment(topic_guid, comment_text)
 
     return jsonify({"success": True, "nextMode": "svar"}), 200
@@ -255,6 +268,19 @@ def submit_revidering(sakId):
         f"👉 [Åpne skjema]({form_link})\n\n"
         f"📎 PDF-vedlegg tilgjengelig under dokumenter"
     )
+
+    # CRITICAL: Set topic_board_id before creating comment
+    # Retrieve board_id from case data to enable Catenda API call
+    case_data = sys.db.get_form_data(sakId)
+    if case_data and 'sak' in case_data:
+        board_id = case_data['sak'].get('catenda_board_id')
+        if board_id:
+            sys.catenda.topic_board_id = board_id
+            logger.info(f"✅ Board ID set to: {board_id}")
+        else:
+            logger.warning(f"⚠️ No board_id found in case {sakId}")
+    else:
+        logger.warning(f"⚠️ Could not retrieve case data for {sakId}")
 
     sys.catenda.create_comment(topic_guid, comment_text)
 

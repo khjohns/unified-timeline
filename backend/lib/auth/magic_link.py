@@ -62,6 +62,9 @@ class MagicLinkManager:
         """
         Verifiser Magic Link token fra fil.
         """
+        # Kritisk: Last inn tokens på nytt for å garantere at vi har siste versjon
+        self.tokens = self._load_tokens()
+
         if token not in self.tokens:
             return False, "Invalid token", None
 

@@ -49,12 +49,8 @@ def get_webhook_service() -> WebhookService:
         Configured WebhookService instance
     """
     # Import here to avoid circular dependencies
-    try:
-        from lib.auth import MagicLinkManager
-        magic_link_mgr = MagicLinkManager()
-    except ImportError:
-        logger.warning("⚠️ MagicLinkManager not available")
-        magic_link_mgr = None
+    from app import get_magic_link_manager
+    magic_link_mgr = get_magic_link_manager()
 
     # Get config from settings
     config = settings.get_catenda_config()

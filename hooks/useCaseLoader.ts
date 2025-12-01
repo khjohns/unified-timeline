@@ -11,7 +11,7 @@
  * @returns Form data, handlers, and loading states
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { FormDataModel, Role } from '../types';
 import { api, Modus } from '../services/api';
@@ -64,6 +64,9 @@ export const useCaseLoader = (params: UseCaseLoaderParams): UseCaseLoaderReturn 
 
   const [searchParams, setSearchParams] = useSearchParams();
 
+  // Track which token has been verified to prevent double-verification in React Strict Mode
+  const verifiedTokenRef = useRef<string | null>(null);
+
   // Internal state
   const [formData, setFormData] = useState<FormDataModel>(INITIAL_FORM_DATA);
   const [internalSakId, setInternalSakId] = useState<string | null>(() => {
@@ -85,6 +88,16 @@ export const useCaseLoader = (params: UseCaseLoaderParams): UseCaseLoaderReturn 
 
     const verifyToken = async () => {
       if (!magicToken || isApiConnected === false) return;
+
+      // CRITICAL: Prevent double-verification in React Strict Mode
+      // Check if this token has already been verified
+      if (verifiedTokenRef.current === magicToken) {
+        logger.info('Magic token already verified, skipping duplicate call');
+        return;
+      }
+
+      // Mark token as being verified
+      verifiedTokenRef.current = magicToken;
 
       setIsLoading(true);
       setApiError(null);

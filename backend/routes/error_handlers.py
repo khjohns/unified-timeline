@@ -47,3 +47,21 @@ def register_error_handlers(app: Flask) -> None:
             reason=str(e)
         )
         return jsonify({"error": "Forbidden", "detail": str(e)}), 403
+
+    @app.errorhandler(500)
+    def internal_error_handler(e):
+        """Handler for internal server errors."""
+        app.logger.error(f"Internal Server Error: {str(e)}", exc_info=True)
+        return jsonify({
+            "error": "Internal Server Error",
+            "detail": "An unexpected error occurred. Please try again or contact support."
+        }), 500
+
+    @app.errorhandler(Exception)
+    def handle_unexpected_error(e):
+        """Catch-all handler for unhandled exceptions."""
+        app.logger.error(f"Unhandled Exception: {str(e)}", exc_info=True)
+        return jsonify({
+            "error": "Internal Server Error",
+            "detail": str(e) if app.debug else "An unexpected error occurred."
+        }), 500

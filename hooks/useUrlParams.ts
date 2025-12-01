@@ -1,15 +1,4 @@
-/**
- * Custom hook for URL parameter management
- *
- * Handles:
- * - Reading URL parameters (magicToken, sakId, modus, topicGuid)
- * - Tracking magic link usage via sessionStorage (HMR-safe)
- * - Clearing magic token after verification
- *
- * @returns URL parameters and helper functions
- */
-
-import { useRef } from 'react';
+import { useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Modus } from '../services/api';
 
@@ -64,11 +53,11 @@ export const useUrlParams = (): UseUrlParamsReturn => {
    * Called after successful token verification to clean up the URL.
    * Marks token as 'consumed' in sessionStorage.
    */
-  const clearMagicToken = () => {
+  const clearMagicToken = useCallback(() => {
     searchParams.delete('magicToken');
     setSearchParams(searchParams, { replace: true });
     sessionStorage.setItem('isFromMagicLink', 'consumed');
-  };
+  }, [searchParams, setSearchParams]);
 
   return {
     magicToken,

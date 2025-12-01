@@ -22,8 +22,10 @@ import sys
 from typing import Optional
 
 # Last .env fil (VIKTIG for sikkerhetsvariabler)
+from pathlib import Path
 from dotenv import load_dotenv
-load_dotenv()
+dotenv_path = Path(__file__).resolve().parent / '.env'
+load_dotenv(dotenv_path=dotenv_path)
 
 # Flask
 try:
@@ -37,6 +39,7 @@ from core.config import settings
 from core.logging_config import setup_logging
 from core.cors_config import setup_cors
 from core.system_context import SystemContext
+from lib.auth.magic_link import MagicLinkManager
 
 # Security
 from lib.security.rate_limiter import init_limiter
@@ -53,37 +56,42 @@ logger = setup_logging('koe_automation.log')
 
 
 # ============================================================================
-# Global System Instance
+# Global System Instance & Singletons
 # ============================================================================
 
 system: Optional[SystemContext] = None
+magic_link_manager: Optional[MagicLinkManager] = None
+
+
+def get_magic_link_manager() -> MagicLinkManager:
+    """Get or initialize the global MagicLinkManager singleton."""
+    global magic_link_manager
+    if magic_link_manager is None:
+        magic_link_manager = MagicLinkManager()
+        logger.info("🪄 MagicLinkManager singleton initialized.")
+    return magic_link_manager
 
 
 def get_system() -> SystemContext:
     """
     Get or initialize global SystemContext instance.
-
-    Legacy function for backwards compatibility with existing routes.
-    Future refactoring should migrate routes to use service layer directly.
     """
     global system
     if system is None:
         try:
-            # Bruk settings fra .env (via core/config.py)
             config = settings.get_catenda_config()
-
-            # Sjekk at påkrevde felt er satt
             if not config.get('catenda_client_id'):
                 logger.error("❌ CATENDA_CLIENT_ID mangler i .env")
-                logger.error("   Kjør 'python scripts/setup_authentication.py' for å konfigurere.")
                 sys.exit(1)
 
-            system = SystemContext(config)
+            # Pass the singleton manager to the context
+            system = SystemContext(config, magic_link_manager=get_magic_link_manager())
             logger.info(f"System startet. {get_filter_summary()}")
         except Exception as e:
             logger.error(f"Kunne ikke starte systemet: {e}")
             sys.exit(1)
     return system
+
 
 
 # ============================================================================
