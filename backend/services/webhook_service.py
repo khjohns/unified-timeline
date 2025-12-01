@@ -203,6 +203,8 @@ class WebhookService:
                 except Exception as e:
                     logger.error(f"❌ Feil ved posting av kommentar til Catenda: {e}")
 
+            # TODO: Azure Service Bus - Replace with queue for production
+            # Background threads are unreliable in Azure Functions (may be killed after HTTP response)
             Thread(target=post_comment_async, daemon=True).start()
             logger.info(f"✅ Sak {sak_id} opprettet, kommentar sendes i bakgrunnen.")
 
