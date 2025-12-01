@@ -1,8 +1,28 @@
 # Handlingsplan: Sikkerhetstiltak for Prototype
 
 **Dato**: 2025-11-23
-**Versjon**: 1.0
+**Sist oppdatert**: 2025-12-01
+**Versjon**: 2.0
 **Formål**: Implementere demonstrerbare sikkerhetstiltak i Flask-prototype
+
+---
+
+## Implementasjonsstatus (2025-12-01)
+
+| Tiltak | Status | Implementasjon |
+|--------|--------|----------------|
+| CORS-restriksjon | ✅ Ferdig | `core/cors_config.py` |
+| CSRF-beskyttelse | ✅ Ferdig | `lib/auth/csrf_protection.py` (244 linjer) |
+| Webhook Secret Token | ✅ Ferdig | `lib/security/webhook_security.py` (265 linjer) |
+| Request validation | ✅ Ferdig | `lib/security/validation.py` (472 linjer) |
+| Magic Link | ✅ Ferdig | `lib/auth/magic_link.py` (105 linjer) |
+| Rate limiting | ✅ Ferdig | `lib/security/rate_limiter.py` (113 linjer) |
+| Audit logging | ✅ Ferdig | `lib/monitoring/audit.py` (377 linjer) |
+| Project-scope auth | ⚠️ Delvis | Krever Dataverse for full implementering |
+| Entra ID SSO | ❌ Ikke startet | Planlagt for produksjon |
+| Role-based locking | ⚠️ Delvis | Frontend-validering implementert |
+
+**Tester:** 379 backend-tester, inkludert 93 sikkerhetstester med 95% coverage på validation.py
 
 ---
 
@@ -59,46 +79,53 @@ Denne handlingsplanen prioriterer sikkerhetstiltak fra [Beslutningsmatrisen](./D
 
 ---
 
-## Nåværende Sikkerhetsstatus
+## Nåværende Sikkerhetsstatus (OPPDATERT 2025-12-01)
 
-### Identifiserte Sårbarheter (backend/app.py)
+### Implementerte Sikkerhetstiltak
+
+Etter refaktoreringen av backend (app.py: 1231 → 155 linjer) er følgende sikkerhetstiltak implementert:
 
 ```python
-# ❌ KRITISK: CORS helt åpen (linje 392)
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+# ✅ CORS restriktert (core/cors_config.py)
+from core.cors_config import setup_cors
+setup_cors(app)  # Kun tillatte origins
 
-# ❌ KRITISK: Ingen autentisering (linje 415-426)
-@app.route('/api/cases/<string:sakId>', methods=['GET'])
-def get_case(sakId):
-    # Hvem som helst kan lese alle saker
-
-# ❌ KRITISK: Ingen CSRF-beskyttelse (linje 428-467)
-@app.route('/api/varsel-submit', methods=['POST'])
+# ✅ CSRF-beskyttelse på alle muterende routes
+@varsel_bp.route('/api/varsel-submit', methods=['POST'])
+@require_csrf  # lib/auth/csrf_protection.py
 def submit_varsel():
-    payload = request.get_json()
-    # Ingen token-validering, ingen nonce-sjekk
+    ...
 
-# ❌ KRITISK: Webhook uten token validering (linje 647-663)
-@app.route('/webhook/catenda', methods=['POST'])
+# ✅ Webhook med secret path + idempotency
+@webhook_bp.route('/webhook/catenda/<secret_path>', methods=['POST'])
 def webhook():
-    payload = request.get_json()
-    # Aksepterer webhooks fra hvem som helst (mangler Secret Token validering)
+    # Validerer secret_path mot WEBHOOK_SECRET_PATH
+    ...
 
-# ❌ HØY: Ingen input-validering
-# ❌ HØY: Ingen rate limiting
-# ❌ MODERAT: Ingen strukturert logging
-# ❌ MODERAT: Ingen audit trail
+# ✅ Input-validering (lib/security/validation.py)
+# ✅ Rate limiting (lib/security/rate_limiter.py)
+# ✅ Audit logging (lib/monitoring/audit.py)
+# ✅ Magic Links (lib/auth/magic_link.py)
 ```
 
-### Risikovurdering
+### Tidligere Sårbarheter - NÅ LUKKET
 
-| Sårbarhet | Sannsynlighet | Konsekvens | Risiko | Prioritet |
-|-----------|---------------|------------|--------|-----------|
-| **Åpen CORS** | Høy | Moderat | Høy | 🔴 P1 |
-| **Manglende CSRF** | Høy | Høy | **Kritisk** | 🔴 P0 |
-| **Webhook spoofing** | Moderat | Høy | **Kritisk** | 🔴 P0 |
-| **Ingen autentisering** | Høy | Høy | **Kritisk** | 🔴 P0 |
-| **Ingen rate limiting** | Høy | Moderat | Høy | 🟡 P2 |
+| Sårbarhet | Tidligere | Nå | Tiltak |
+|-----------|-----------|-------|--------|
+| **Åpen CORS** | ❌ `origins: "*"` | ✅ Kun tillatte origins | `core/cors_config.py` |
+| **Manglende CSRF** | ❌ Ingen validering | ✅ HMAC-signerte tokens | `lib/auth/csrf_protection.py` |
+| **Webhook spoofing** | ❌ Åpen endpoint | ✅ Secret path + idempotency | `lib/security/webhook_security.py` |
+| **Ingen validering** | ❌ Ingen | ✅ 472 linjer validering | `lib/security/validation.py` |
+| **Ingen rate limiting** | ❌ Ingen | ✅ Flask-Limiter | `lib/security/rate_limiter.py` |
+| **Ingen audit trail** | ❌ Ingen | ✅ 377 linjer audit | `lib/monitoring/audit.py` |
+
+### Gjenstående (for produksjon)
+
+| Tiltak | Status | Blokkert av |
+|--------|--------|-------------|
+| Project-scope auth | ⚠️ Delvis | Dataverse-integrasjon |
+| Entra ID SSO | ❌ Ikke startet | Azure Landing Zone |
+| Role-based locking | ⚠️ Delvis | Komplett brukermodell |
 
 ---
 
@@ -1762,17 +1789,41 @@ def verify_magic_link():
 
 ## Konklusjon
 
-Denne handlingsplanen prioriterer sikkerhetstiltak som:
+### Oppnådde mål (2025-12-01)
 
-1. ✅ **Kan demonstreres** via Network tab (headers, status codes, response bodies)
-2. ✅ **Gir høy sikkerhet** (CSRF, webhook validation, authorization)
-3. ✅ **Lav implementeringskostnad** (1-2 dager per fase)
-4. ✅ **Følger Beslutningsmatrisen** fra arkitekturdokumentasjonen
+Denne handlingsplanen har blitt **fullført for Fase 1 og 2**:
 
-**Neste steg**: Start med Fase 1 (Quick Wins) for å demonstrere sikkerhetsforbedringer raskt.
+1. ✅ **Fase 1 (Quick Wins)**: CORS, CSRF, Webhook Security, Input Validation - **100% ferdig**
+2. ✅ **Fase 2 (Medium Priority)**: Magic Links, Rate Limiting, Audit Logging - **100% ferdig**
+3. ⏳ **Fase 3 (Long-term)**: Entra ID SSO, Role-based locking - **Venter på produksjonsinfrastruktur**
+
+### Demonstrerbare sikkerhetstiltak
+
+Alle implementerte tiltak kan demonstreres via Network tab:
+
+| Tiltak | HTTP Response | Verifikasjon |
+|--------|---------------|--------------|
+| CORS | `Access-Control-Allow-Origin` header | Kun tillatte origins |
+| CSRF | 403 med `{"error":"CSRF validation failed"}` | Ved ugyldig token |
+| Webhook | 401 ved feil secret path | Secret i URL |
+| Validering | 400 med `{"field":"...","message":"..."}` | Ved ugyldig input |
+| Rate Limiting | 429 med `X-RateLimit-*` headers | Ved overskridelse |
+
+### Test-dekning
+
+- **379 backend-tester** passerer
+- **93 sikkerhetstester** (validation.py: 95% coverage)
+- **Manuell testing** via `scripts/manual_testing.sh`
+
+### Neste steg (produksjon)
+
+1. Azure Landing Zone setup
+2. DataverseRepository implementering
+3. Entra ID SSO-integrasjon
+4. Redis for rate limiting (erstatte in-memory)
 
 ---
 
 **Vedlikeholdt av**: Claude
-**Sist oppdatert**: 2025-11-23
-**Status**: Klar for implementering
+**Sist oppdatert**: 2025-12-01
+**Status**: ✅ Fase 1-2 ferdig, ⏳ Fase 3 venter på infrastruktur

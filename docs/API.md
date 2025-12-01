@@ -2,6 +2,8 @@
 
 Backend API-referanse for Skjema Endringsmeldinger.
 
+**Sist oppdatert:** 2025-12-01
+
 ---
 
 ## Innhold
