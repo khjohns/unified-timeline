@@ -2,6 +2,8 @@
 
 Oversikt over frontend-arkitekturen i Skjema Endringsmeldinger.
 
+**Sist oppdatert:** 2025-12-01
+
 ---
 
 ## Innhold
@@ -40,71 +42,102 @@ Frontend er bygget med:
 4. **Typesikkerhet** – Streng TypeScript-konfigurasjon
 5. **Sentraliserte konstanter** – Statuskoder fra `shared/status-codes.json`
 
+### Refaktoreringsresultat
+
+| Før | Etter | Reduksjon |
+|-----|-------|-----------|
+| App.tsx: 528 linjer | App.tsx: 344 linjer | **35%** |
+| Monolittisk | Modulær med layout-komponenter | Vedlikeholdbar |
+
 ---
 
 ## Mappestruktur
 
 ```
 /
-├── App.tsx                     # Hovedkomponent (642 linjer)
-├── index.tsx                   # Entry point
-├── types.ts                    # TypeScript-definisjoner
-├── index.css                   # Global CSS
+├── App.tsx                         # Hovedkomponent (344 linjer)
+├── index.tsx                       # Entry point
+├── types.ts                        # TypeScript-definisjoner
+├── index.css                       # Global CSS
 │
 ├── components/
-│   ├── panels/                 # Hovedpaneler (steg i arbeidsflyten)
-│   │   ├── VarselPanel.tsx     # Steg 1: Varsel om endringsforhold
-│   │   ├── KravKoePanel.tsx    # Steg 2: Krav om endringsordre
-│   │   ├── BhSvarPanel.tsx     # Steg 3: Byggherre-svar
-│   │   ├── OppsummeringPanel.tsx
-│   │   ├── GrunninfoPanel.tsx
-│   │   └── TestOversiktPanel.tsx
+│   ├── layout/                     # Layout-komponenter (NY)
+│   │   ├── AppLayout.tsx           # Hovedlayout wrapper
+│   │   ├── AppHeader.tsx           # Header med Oslo kommune logo
+│   │   ├── TabNavigation.tsx       # Fane-navigasjon
+│   │   ├── BottomBar.tsx           # Bunnseksjon med handlinger
+│   │   └── InfoBanner.tsx          # Informasjonsbanner
 │   │
-│   └── ui/                     # Gjenbrukbare UI-komponenter
-│       ├── Field.tsx           # Skjema-felt wrapper
-│       ├── FieldsetCard.tsx    # Gruppering av felt
-│       ├── DatePicker.tsx      # Datovelger
-│       ├── FileUploadField.tsx # Filopplasting
-│       ├── Toast.tsx           # Notifikasjoner
-│       ├── ConfirmDialog.tsx   # Bekreftelsesdialog
-│       ├── ErrorBoundary.tsx   # Feilhåndtering
-│       ├── PDFPreviewModal.tsx # PDF-forhåndsvisning
-│       ├── BegrunnelseModal.tsx
-│       ├── SidePanel.tsx
-│       ├── PanelLayout.tsx
-│       └── icons.tsx
+│   ├── panels/                     # Hovedpaneler (steg i arbeidsflyten)
+│   │   ├── VarselPanel.tsx         # Steg 1: Varsel om endringsforhold (14446 linjer)
+│   │   ├── KravKoePanel.tsx        # Steg 2: Krav om endringsordre (21306 linjer)
+│   │   ├── BhSvarPanel.tsx         # Steg 3: Byggherre-svar (18057 linjer)
+│   │   ├── OppsummeringPanel.tsx   # Oppsummering
+│   │   ├── GrunninfoPanel.tsx      # Grunnleggende saksinformasjon
+│   │   └── TestOversiktPanel.tsx   # Test-verktøy (kun i dev)
+│   │
+│   └── ui/                         # Gjenbrukbare UI-komponenter
+│       ├── Field.tsx               # Skjema-felt wrapper
+│       ├── FieldsetCard.tsx        # Gruppering av felt
+│       ├── DatePicker.tsx          # Datovelger
+│       ├── FileUploadField.tsx     # Filopplasting
+│       ├── Toast.tsx               # Notifikasjoner
+│       ├── ConfirmDialog.tsx       # Bekreftelsesdialog
+│       ├── ErrorBoundary.tsx       # Feilhåndtering
+│       ├── PDFPreviewModal.tsx     # PDF-forhåndsvisning
+│       ├── BegrunnelseModal.tsx    # Begrunnelse for beslutning
+│       ├── SidePanel.tsx           # Sidepanel for saksinfo
+│       ├── PanelLayout.tsx         # Layout for paneler
+│       └── icons.tsx               # SVG-ikoner
 │
-├── hooks/                      # Custom React hooks
-│   ├── useSkjemaData.ts        # Form data state management
-│   ├── useAutoSave.ts          # Auto-lagring til localStorage
-│   ├── useCaseLoader.ts        # Laste sak fra API
-│   ├── useFormSubmission.ts    # Håndtere innsending
-│   ├── useApiConnection.ts     # API-tilkoblingsstatus
-│   ├── useFileUpload.ts        # Filopplastingslogikk
-│   ├── useEmailValidation.ts   # E-postvalidering
-│   └── useUrlParams.ts         # URL-parameter parsing
+├── hooks/                          # Custom React hooks (10 stk)
+│   ├── useApiConnection.ts         # API-tilkoblingsstatus
+│   ├── useAutoSave.ts              # Auto-lagring til localStorage
+│   ├── useCaseLoader.ts            # Laste sak fra API
+│   ├── useEmailValidation.ts       # E-postvalidering mot Catenda
+│   ├── useFileUpload.ts            # Filopplastingslogikk
+│   ├── useFormSubmission.ts        # Håndtere innsending
+│   ├── useHandleInputChange.ts     # Input-håndtering helper
+│   ├── useModal.ts                 # Modal state management (NY)
+│   ├── useSkjemaData.ts            # Form data state management
+│   └── useUrlParams.ts             # URL-parameter parsing
 │
-├── services/                   # API og forretningslogikk
-│   ├── api.ts                  # API-klient (515 linjer)
-│   ├── validationService.ts    # Skjemavalidering
-│   └── submissionService.ts    # Innsendingslogikk
+├── services/                       # API og forretningslogikk
+│   ├── api.ts                      # API-klient (552 linjer)
+│   ├── validationService.ts        # Skjemavalidering (5560 bytes)
+│   ├── submissionService.ts        # Innsendingslogikk (4100 bytes)
+│   └── revisionService.ts          # Revisjonshåndtering (NY)
 │
-├── utils/                      # Hjelpefunksjoner
-│   ├── pdfGeneratorReact.tsx   # PDF-generering (1055 linjer)
-│   ├── generatedConstants.ts   # Auto-genererte statuskoder
-│   ├── statusHelpers.ts        # Status-hjelpefunksjoner
-│   ├── modusHelpers.ts         # Modus/rolle-hjelpere
-│   ├── compareRevisions.ts     # Sammenligning av revisjoner
-│   ├── logger.ts               # Logging
-│   ├── toastHelpers.ts
-│   └── focusHelpers.ts
+├── utils/                          # Hjelpefunksjoner
+│   ├── pdf/                        # PDF-generering
+│   │   └── pdfComponents.tsx       # PDF-komponenter (697 linjer)
+│   ├── pdfGeneratorReact.tsx       # PDF generator wrapper (23 linjer)
+│   ├── pdfLabels.ts                # PDF-etiketter
+│   ├── generatedConstants.ts       # Auto-genererte statuskoder
+│   ├── statusHelpers.ts            # Status-hjelpefunksjoner
+│   ├── modusHelpers.ts             # Modus/rolle-hjelpere
+│   ├── compareRevisions.ts         # Sammenligning av revisjoner
+│   ├── logger.ts                   # Logging
+│   ├── toastHelpers.ts             # Toast-hjelpere
+│   └── focusHelpers.ts             # Fokus-håndtering
 │
-├── config/                     # Konfigurasjon
-│   └── index.ts                # Tabs, initial data, demo data
+├── config/                         # Konfigurasjon
+│   └── index.ts                    # Tabs, initial data, demo data
 │
-└── __tests__/                  # Tester
+├── context/                        # React Context (hvis brukt)
+│
+└── __tests__/                      # Tester (95 tester)
+    ├── setup.ts                    # Test-konfigurasjon
+    ├── setup.test.ts               # Setup-tester
     ├── services/
+    │   ├── validationService.test.ts
+    │   └── submissionService.test.ts
     ├── hooks/
+    │   ├── useApiConnection.test.ts
+    │   ├── useCaseLoader.test.ts
+    │   ├── useEmailValidation.test.ts
+    │   ├── useFormSubmission.test.ts
+    │   └── useUrlParams.test.ts
     └── components/
 ```
 
@@ -208,25 +241,39 @@ interface BhSvar {
 ## Komponenthierarki
 
 ```
-App.tsx
-├── PktHeader                    # Oslo kommune header
-├── PktTabs                      # Fane-navigasjon
-│   ├── Varsel                   # Tab 0
-│   ├── Krav (KOE)               # Tab 1
-│   ├── Svar                     # Tab 2
-│   └── Test-oversikt            # Tab 3 (dev only)
+App.tsx (344 linjer)
 │
-├── <Suspense>                   # Lazy loading wrapper
-│   ├── VarselPanel              # Steg 1
-│   ├── KravKoePanel             # Steg 2
-│   ├── BhSvarPanel              # Steg 3
-│   └── TestOversiktPanel        # Dev/test
+├── AppLayout                       # Layout wrapper (NY)
+│   ├── AppHeader                   # Oslo kommune header (NY)
+│   ├── TabNavigation               # Fane-navigasjon (NY)
+│   │   ├── Varsel                  # Tab 0
+│   │   ├── Krav (KOE)              # Tab 1
+│   │   ├── Svar                    # Tab 2
+│   │   └── Test-oversikt           # Tab 3 (dev only)
+│   │
+│   └── BottomBar                   # Handlingsknapper (NY)
 │
-├── SidePanel                    # Saksinfo sidebar
-├── ConfirmDialog                # Bekreftelser
-├── PDFPreviewModal              # PDF-forhåndsvisning
-└── Toast                        # Notifikasjoner
+├── <Suspense>                      # Lazy loading wrapper
+│   ├── VarselPanel                 # Steg 1
+│   ├── KravKoePanel                # Steg 2
+│   ├── BhSvarPanel                 # Steg 3
+│   └── TestOversiktPanel           # Dev/test
+│
+├── SidePanel                       # Saksinfo sidebar
+├── ConfirmDialog                   # Bekreftelser
+├── PDFPreviewModal                 # PDF-forhåndsvisning
+└── Toast                           # Notifikasjoner
 ```
+
+### Layout-komponenter (NY)
+
+| Komponent | Fil | Ansvar |
+|-----------|-----|--------|
+| `AppLayout` | AppLayout.tsx | Hovedlayout med header, tabs, content, footer |
+| `AppHeader` | AppHeader.tsx | Oslo kommune logo og tittel |
+| `TabNavigation` | TabNavigation.tsx | Fane-bytte mellom steg |
+| `BottomBar` | BottomBar.tsx | Handlingsknapper (Send, Lagre, etc.) |
+| `InfoBanner` | InfoBanner.tsx | Informasjonsbanner øverst |
 
 ### Panel-komponenter
 
@@ -242,14 +289,14 @@ interface PanelProps {
 }
 ```
 
-| Panel | Ansvar |
-|-------|--------|
-| `VarselPanel` | Varsel om endringsforhold (entreprenør) |
-| `KravKoePanel` | Krav om vederlag/frist (entreprenør) |
-| `BhSvarPanel` | Svar på krav (byggherre) |
-| `OppsummeringPanel` | Oppsummering av hele saken |
-| `GrunninfoPanel` | Grunnleggende saksinformasjon |
-| `TestOversiktPanel` | Test-verktøy (kun i dev) |
+| Panel | Ansvar | Linjer |
+|-------|--------|--------|
+| `VarselPanel` | Varsel om endringsforhold (entreprenør) | 14446 |
+| `KravKoePanel` | Krav om vederlag/frist (entreprenør) | 21306 |
+| `BhSvarPanel` | Svar på krav (byggherre) | 18057 |
+| `OppsummeringPanel` | Oppsummering av hele saken | 12895 |
+| `GrunninfoPanel` | Grunnleggende saksinformasjon | 5001 |
+| `TestOversiktPanel` | Test-verktøy (kun i dev) | 22541 |
 
 ### UI-komponenter
 
@@ -267,6 +314,21 @@ interface PanelProps {
 ---
 
 ## Custom Hooks
+
+### Oversikt (10 hooks)
+
+| Hook | Fil | Bytes | Ansvar |
+|------|-----|-------|--------|
+| `useApiConnection` | useApiConnection.ts | 1596 | API-tilkoblingsstatus |
+| `useAutoSave` | useAutoSave.ts | 4456 | Auto-lagring til localStorage |
+| `useCaseLoader` | useCaseLoader.ts | 7736 | Laste sak fra API |
+| `useEmailValidation` | useEmailValidation.ts | 4355 | E-postvalidering mot Catenda |
+| `useFileUpload` | useFileUpload.ts | 1558 | Filopplastingslogikk |
+| `useFormSubmission` | useFormSubmission.ts | 6306 | Håndtere innsending |
+| `useHandleInputChange` | useHandleInputChange.ts | 3236 | Input-håndtering helper |
+| `useModal` | useModal.ts | 1601 | Modal state management |
+| `useSkjemaData` | useSkjemaData.ts | 3553 | Form data state |
+| `useUrlParams` | useUrlParams.ts | 2663 | URL-parameter parsing |
 
 ### `useSkjemaData`
 
@@ -301,11 +363,6 @@ const loadedData = useAutoSave({
 });
 ```
 
-**Funksjonalitet:**
-- Debounced lagring (unngår for mange skriveoperasjoner)
-- Laster lagret data ved oppstart
-- Viser toast ved vellykket lagring
-
 ### `useCaseLoader`
 
 Laster saksdata fra API basert på sakId eller magicToken.
@@ -331,13 +388,31 @@ const { submitVarsel, submitKoe, submitSvar } = useFormSubmission({
 });
 ```
 
+### `useModal` (NY)
+
+Modal state management for dialogs.
+
+```typescript
+const { isOpen, openModal, closeModal, modalData } = useModal();
+```
+
+### `useHandleInputChange`
+
+Helper hook for input-håndtering med validering.
+
+```typescript
+const handleChange = useHandleInputChange({
+  setFormData,
+  clearErrors: true
+});
+```
+
 ### `useApiConnection`
 
 Sjekker API-tilkobling via helsesjekk.
 
 ```typescript
 const { isApiConnected } = useApiConnection();
-// Viser varsel hvis API ikke er tilgjengelig
 ```
 
 ### `useUrlParams`
@@ -380,7 +455,7 @@ const { uploadFile, uploadProgress, uploadedFiles } = useFileUpload({
 
 ## Services
 
-### `api.ts`
+### `api.ts` (552 linjer)
 
 API-klient for backend-kommunikasjon.
 
@@ -426,6 +501,16 @@ submissionService.submitKoeWithPdf(params): Promise<SubmissionResult>
 submissionService.submitSvarWithPdf(params): Promise<SubmissionResult>
 ```
 
+### `revisionService.ts` (NY)
+
+Håndterer revisjonslogikk for KOE og BH-svar.
+
+```typescript
+revisionService.createNewRevision(formData): KoeRevisjon
+revisionService.getLatestRevision(revisions): KoeRevisjon | null
+revisionService.compareRevisions(rev1, rev2): RevisionDiff
+```
+
 ---
 
 ## State Management
@@ -441,6 +526,7 @@ Frontend bruker **React hooks** for state management (ingen Redux/Zustand).
 | API-data | `useCaseLoader` | Per session |
 | UI state | `useState` | Komponent-lokal |
 | URL params | `useUrlParams` | Per navigasjon |
+| Modal state | `useModal` | Komponent-lokal |
 
 ### Data-flyt
 
@@ -548,7 +634,17 @@ validationService.validate(formData)
 
 ## PDF-generering
 
-PDF genereres med `@react-pdf/renderer` i `utils/pdfGeneratorReact.tsx`.
+PDF genereres med `@react-pdf/renderer` i `utils/pdf/`.
+
+### Filstruktur
+
+```
+utils/
+├── pdf/
+│   └── pdfComponents.tsx     # PDF React-komponenter (697 linjer)
+├── pdfGeneratorReact.tsx     # Entry point / wrapper (23 linjer)
+└── pdfLabels.ts              # Tekst-etiketter for PDF
+```
 
 ### Hovedfunksjoner
 
@@ -580,6 +676,12 @@ PDF bruker Oslo kommunes designprofil:
 
 ## Testing
 
+### Test-status (2025-12-01)
+
+- **95 tester** passerer
+- **8 testfiler**
+- Kjøretid: ~14.5 sekunder
+
 ### Testrammeverk
 
 - **Vitest** – Testrunner
@@ -598,14 +700,19 @@ npm run test:coverage    # Coverage-rapport
 
 ```
 __tests__/
+├── setup.ts                        # Test-konfigurasjon
+├── setup.test.ts                   # Setup-verifisering
 ├── services/
-│   └── api.test.ts         # API-klient tester
+│   ├── validationService.test.ts   # Validering
+│   └── submissionService.test.ts   # Innsending
 ├── hooks/
-│   ├── useSkjemaData.test.ts
-│   └── useAutoSave.test.ts
+│   ├── useApiConnection.test.ts
+│   ├── useCaseLoader.test.ts
+│   ├── useEmailValidation.test.ts
+│   ├── useFormSubmission.test.ts
+│   └── useUrlParams.test.ts
 └── components/
-    └── ui/
-        └── Field.test.tsx
+    └── (UI-komponent tester)
 ```
 
 ### Eksempel: Test custom hook
@@ -680,4 +787,5 @@ export const INITIAL_FORM_DATA: FormDataModel = {
 - [README.md](../README.md) – Prosjektoversikt
 - [API.md](API.md) – Backend API-referanse
 - [GETTING_STARTED.md](GETTING_STARTED.md) – Oppsett
+- [backend/STRUCTURE.md](../backend/STRUCTURE.md) – Backend-arkitektur
 - [types.ts](../types.ts) – TypeScript-definisjoner
