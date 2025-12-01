@@ -1,0 +1,456 @@
+{
+  "info": {
+    "name": "KOE Backend API - Manual Testing",
+    "description": "Comprehensive test collection for KOE Backend API after refactoring.\n\nUsage:\n1. Import this collection into Postman\n2. Set the {{base_url}} variable to http://localhost:8080\n3. Run the entire collection or individual requests\n4. Tests are embedded in each request to verify responses",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "csrf_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "test_sak_id",
+      "value": "TEST-CASE-001",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Health & Utility",
+      "item": [
+        {
+          "name": "Health Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has status field', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('status');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "health"]
+            },
+            "description": "Check if the API is running and healthy"
+          }
+        },
+        {
+          "name": "Get CSRF Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has token', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('token');",
+                  "    ",
+                  "    // Save token for subsequent requests",
+                  "    pm.collectionVariables.set('csrf_token', jsonData.token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/csrf-token",
+              "host": ["{{base_url}}"],
+              "path": ["api", "csrf-token"]
+            },
+            "description": "Obtain CSRF token for protected endpoints"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Case Management",
+      "item": [
+        {
+          "name": "Get Case (Non-Existent)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test('Error message is present', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('error');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/cases/NONEXISTENT-CASE-ID",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cases", "NONEXISTENT-CASE-ID"]
+            },
+            "description": "Test getting a non-existent case (should return 404)"
+          }
+        },
+        {
+          "name": "Save Draft",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// This may fail if case doesn't exist - that's expected",
+                  "pm.test('Status code is 200 or 404', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sakstittel\": \"Test Draft Case\",\n  \"varsel\": {\n    \"dato_forhold_oppdaget\": \"2025-12-01\",\n    \"hovedkategori\": \"Risiko\",\n    \"underkategori\": \"Grunnforhold\",\n    \"varsel_beskrivelse\": \"Test draft description\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/cases/{{test_sak_id}}/draft",
+              "host": ["{{base_url}}"],
+              "path": ["api", "cases", "{{test_sak_id}}", "draft"]
+            },
+            "description": "Save draft data for a case"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Workflow - Varsel",
+      "item": [
+        {
+          "name": "Submit Varsel",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// May fail if case doesn't exist",
+                  "pm.test('Response is JSON', function () {",
+                  "    pm.response.to.be.json;",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('Success response structure', function () {",
+                  "        const jsonData = pm.response.json();",
+                  "        pm.expect(jsonData).to.have.property('success');",
+                  "        pm.expect(jsonData).to.have.property('nextMode');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sakId\": \"{{test_sak_id}}\",\n  \"formData\": {\n    \"sak\": {\n      \"sakstittel\": \"Test Varsel Case\",\n      \"prosjektnavn\": \"Test Project\",\n      \"rolle\": \"TE\",\n      \"byggherre\": \"Test Byggherre\"\n    },\n    \"varsel\": {\n      \"dato_forhold_oppdaget\": \"2025-12-01\",\n      \"hovedkategori\": \"Risiko\",\n      \"underkategori\": \"Grunnforhold\",\n      \"varsel_beskrivelse\": \"Automated test varsel from Postman\"\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/varsel-submit",
+              "host": ["{{base_url}}"],
+              "path": ["api", "varsel-submit"]
+            },
+            "description": "Submit a varsel (notification) for a case"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Workflow - KOE",
+      "item": [
+        {
+          "name": "Submit KOE",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Response is JSON', function () {",
+                  "    pm.response.to.be.json;",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('Success response structure', function () {",
+                  "        const jsonData = pm.response.json();",
+                  "        pm.expect(jsonData).to.have.property('success');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sakId\": \"{{test_sak_id}}\",\n  \"formData\": {\n    \"koe\": {\n      \"tiltak_beskrivelse\": \"Test KOE tiltak\",\n      \"begrunnelse\": \"Test begrunnelse for KOE\",\n      \"kostnad\": 100000,\n      \"tidsfrist\": \"2025-12-31\"\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/koe-submit",
+              "host": ["{{base_url}}"],
+              "path": ["api", "koe-submit"]
+            },
+            "description": "Submit a KOE (Endring) for a case"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Workflow - BH Svar",
+      "item": [
+        {
+          "name": "Submit BH Svar",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Response is JSON', function () {",
+                  "    pm.response.to.be.json;",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('Success response structure', function () {",
+                  "        const jsonData = pm.response.json();",
+                  "        pm.expect(jsonData).to.have.property('success');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sakId\": \"{{test_sak_id}}\",\n  \"formData\": {\n    \"bh_svar\": {\n      \"godkjent\": true,\n      \"kommentar\": \"Test BH svar kommentar fra Postman\",\n      \"dato_mottatt\": \"2025-12-01\"\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/svar-submit",
+              "host": ["{{base_url}}"],
+              "path": ["api", "svar-submit"]
+            },
+            "description": "Submit a BH (Byggherre) svar/response"
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. PDF Upload",
+      "item": [
+        {
+          "name": "Upload PDF to Catenda",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Response is JSON', function () {",
+                  "    pm.response.to.be.json;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-CSRF-Token",
+                "value": "{{csrf_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sakId\": \"{{test_sak_id}}\",\n  \"pdfData\": \"JVBERi0xLjQKJeLjz9MKMSAwIG9iago8PC9UeXBlL0NhdGFsb2cvUGFnZXMgMiAwIFI+PgplbmRvYmoKMiAwIG9iago8PC9UeXBlL1BhZ2VzL0NvdW50IDEvS2lkc1szIDAgUl0+PgplbmRvYmoKMyAwIG9iago8PC9UeXBlL1BhZ2UvTWVkaWFCb3hbMCAwIDYxMiA3OTJdL1BhcmVudCAyIDAgUi9SZXNvdXJjZXM8PD4+Pj4KZW5kb2JqCnhyZWYKMCA0CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxNSAwMDAwMCBuIAowMDAwMDAwMDY0IDAwMDAwIG4gCjAwMDAwMDAxMjEgMDAwMDAgbiAKdHJhaWxlcgo8PC9TaXplIDQvUm9vdCAxIDAgUj4+CnN0YXJ0eHJlZgoyMDUKJSVFT0Y=\",\n  \"filename\": \"test-koe.pdf\",\n  \"catendaTopicId\": \"00000000000000000000000000000000\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/upload-pdf",
+              "host": ["{{base_url}}"],
+              "path": ["api", "upload-pdf"]
+            },
+            "description": "Upload a PDF document to Catenda"
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Security Tests",
+      "item": [
+        {
+          "name": "Webhook - Invalid Secret (Should Fail)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 404 or 403', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([404, 403]);",
+                  "});",
+                  "",
+                  "pm.test('Webhook security is working', function () {",
+                  "    // Should not allow access with invalid secret",
+                  "    pm.expect(pm.response.code).to.not.equal(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"topic_created\",\n  \"topic_id\": \"test-topic-123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/webhook/catenda/invalid-secret-token",
+              "host": ["{{base_url}}"],
+              "path": ["webhook", "catenda", "invalid-secret-token"]
+            },
+            "description": "Test webhook security - should reject invalid secret"
+          }
+        },
+        {
+          "name": "Submit Without CSRF Token (Should Fail)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "pm.test('CSRF protection is working', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('error');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sakId\": \"TEST\",\n  \"formData\": {}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/varsel-submit",
+              "host": ["{{base_url}}"],
+              "path": ["api", "varsel-submit"]
+            },
+            "description": "Test CSRF protection - should reject requests without token"
+          }
+        }
+      ]
+    }
+  ]
+}
