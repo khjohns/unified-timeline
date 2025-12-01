@@ -12,9 +12,9 @@ from lib.auth import require_csrf
 from lib.security.rate_limiter import limit_submit
 from core.generated_constants import (
     KOE_STATUS, BH_SVAR_STATUS,
-    get_vederlag_svar_label, get_frist_svar_label,
-    krever_revisjon
+    get_vederlag_svar_label, get_frist_svar_label
 )
+from core.status_helpers import krever_revisjon, beregn_bh_svar_status
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +84,15 @@ def submit_svar():
     frist_svar = siste_svar.get('frist', {})
     bh_svar_frist = frist_svar.get('bh_svar_frist', '')
     godkjente_dager = frist_svar.get('bh_godkjente_dager', '')
+
+    # Beregn og sett status på BH svar
+    siste_svar['status'] = beregn_bh_svar_status(bh_svar_vederlag, bh_svar_frist)
+
+    # Marker tilsvarende KOE-revisjon som BESVART
+    koe_revisjoner = form_data.get('koe_revisjoner', [])
+    svar_index = len(bh_svar_revisjoner) - 1
+    if 0 <= svar_index < len(koe_revisjoner):
+        koe_revisjoner[svar_index]['status'] = KOE_STATUS['BESVART']
 
     # Sjekk om det trengs revidering
     trenger_revisjon = krever_revisjon(bh_svar_vederlag, bh_svar_frist)
@@ -198,4 +207,6 @@ def submit_svar():
 
     sys.catenda.create_comment(topic_guid, comment_text)
 
-    return jsonify({"success": True}), 200
+    # Return updated formData so frontend can re-render with new statuses
+    updated_data = sys.db.get_form_data(sak_id)
+    return jsonify({"success": True, "formData": updated_data}), 200

@@ -125,4 +125,6 @@ def submit_varsel():
 
     sys.catenda.create_comment(topic_guid, comment_text)
 
-    return jsonify({"success": True, "nextMode": "koe"}), 200
+    # Return updated formData so frontend can re-render with new statuses
+    updated_data = sys.db.get_form_data(sak_id)
+    return jsonify({"success": True, "nextMode": "koe", "formData": updated_data}), 200

@@ -152,10 +152,15 @@ export const useFormSubmission = (params: UseFormSubmissionParams): UseFormSubmi
       }
 
       if (response.success && response.data) {
-        // 4. Generate PDF blob for upload (without auto-download)
-        const { blob, filename } = await generatePdfBlob(updatedFormData);
+        // 4. Update formData with backend response (includes updated revision statuses)
+        if (response.data.formData) {
+          setFormData(response.data.formData);
+        }
 
-        // 5. Upload PDF to backend for Catenda integration
+        // 5. Generate PDF blob for upload (without auto-download)
+        const { blob, filename } = await generatePdfBlob(response.data.formData || updatedFormData);
+
+        // 6. Upload PDF to backend for Catenda integration
         const effectiveSakId = response.data.sakId || sakId;
         if (effectiveSakId && isApiConnected) {
           const pdfResponse = await api.uploadPdf(
@@ -172,10 +177,10 @@ export const useFormSubmission = (params: UseFormSubmissionParams): UseFormSubmi
           }
         }
 
-        // 6. Clear localStorage after successful submission
+        // 7. Clear localStorage after successful submission
         localStorage.removeItem('koe_v5_0_draft');
 
-        // 7. Close preview modal and show success message
+        // 8. Close preview modal and show success message
         onSuccess();
         showToast(setToastMessage, response.data.message || 'Skjema sendt til server');
       } else {

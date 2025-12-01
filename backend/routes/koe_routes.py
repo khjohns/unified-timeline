@@ -14,7 +14,7 @@ from flask import Blueprint, request, jsonify
 
 from lib.auth import require_csrf
 from lib.security.rate_limiter import limit_submit
-from core.generated_constants import BH_SVAR_STATUS
+from core.generated_constants import BH_SVAR_STATUS, KOE_STATUS
 from services.webhook_service import WebhookService
 from repositories.csv_repository import CSVRepository
 from integrations.catenda import CatendaClient
@@ -103,6 +103,8 @@ def submit_koe():
         siste_koe['dato_krav_sendt'] = datetime.now().strftime('%Y-%m-%d')
         # In production: get from Entra ID token. For now, use sak creator or default
         siste_koe['for_entreprenor'] = form_data.get('sak', {}).get('opprettet_av', 'Demo User')
+        # Set status to "Sendt til BH"
+        siste_koe['status'] = KOE_STATUS['SENDT_TIL_BH']
 
     sys.db.save_form_data(sak_id, form_data)
 
@@ -186,7 +188,9 @@ def submit_koe():
 
     sys.catenda.create_comment(topic_guid, comment_text)
 
-    return jsonify({"success": True, "nextMode": "svar"}), 200
+    # Return updated formData so frontend can re-render with new statuses
+    updated_data = sys.db.get_form_data(sak_id)
+    return jsonify({"success": True, "nextMode": "svar", "formData": updated_data}), 200
 
 
 @koe_bp.route('/api/cases/<string:sakId>/revidering', methods=['POST'])
@@ -233,6 +237,8 @@ def submit_revidering(sakId):
         siste_koe = koe_revisjoner[-1]
         siste_koe['dato_krav_sendt'] = datetime.now().strftime('%Y-%m-%d')
         siste_koe['for_entreprenor'] = form_data.get('sak', {}).get('opprettet_av', 'Demo User')
+        # Set status to "Sendt til BH"
+        siste_koe['status'] = KOE_STATUS['SENDT_TIL_BH']
 
     sys.db.save_form_data(sakId, form_data)
     sys.db.log_historikk(sakId, 'revisjon_sendt', 'Revidert krav sendt fra entreprenør')
@@ -284,7 +290,9 @@ def submit_revidering(sakId):
 
     sys.catenda.create_comment(topic_guid, comment_text)
 
-    return jsonify({"success": True, "nextMode": "svar"}), 200
+    # Return updated formData so frontend can re-render with new statuses
+    updated_data = sys.db.get_form_data(sakId)
+    return jsonify({"success": True, "nextMode": "svar", "formData": updated_data}), 200
 
 
 @koe_bp.route('/api/cases/<string:sakId>/pdf', methods=['POST'])

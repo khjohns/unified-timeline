@@ -15,9 +15,9 @@ from models.bh_svar import BHSvarRevisjon
 from repositories.base_repository import BaseRepository
 from core.generated_constants import (
     SAK_STATUS, KOE_STATUS, BH_SVAR_STATUS,
-    get_vederlag_svar_label, get_frist_svar_label,
-    krever_revisjon
+    get_vederlag_svar_label, get_frist_svar_label
 )
+from core.status_helpers import krever_revisjon
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
