@@ -312,7 +312,7 @@ Skjema_Endringsmeldinger/
 │   │   ├── VarselPanel.tsx         # Varsel-skjema
 │   │   ├── KravKoePanel.tsx        # KOE-skjema
 │   │   ├── BhSvarPanel.tsx         # Byggherre-svar
-│   │   └── OppsummeringPanel.tsx   # Oppsummering
+│   │   └── TestOversiktPanel.tsx   # Saksoversikt
 │   └── ui/                         # Gjenbrukbare UI-komponenter
 │
 ├── hooks/                          # Custom React hooks (10 stk)
