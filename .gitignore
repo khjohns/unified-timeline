@@ -36,6 +36,12 @@ backend/config.json
 backend/koe_data/
 backend/.env
 
+# Test coverage
+coverage.json
+.coverage
+htmlcov/
+*.coverage
+
 # Playwright
 playwright-report/
 playwright/.cache/
