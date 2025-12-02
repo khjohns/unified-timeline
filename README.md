@@ -228,6 +228,18 @@ FASE 1.1          FASE 1.2          FASE 2            FASE 3            FASE 4
 
 ## Kom i gang
 
+### Platform Requirements
+
+**Backend Development:**
+- **Supported:** Linux, macOS, WSL2 on Windows
+- **Not Supported:** Native Windows (due to file locking with `fcntl`)
+
+**Frontend Development:**
+- All platforms supported
+
+**Production Deployment:**
+- Azure Functions (Linux-based)
+
 ### Forutsetninger
 
 - **Node.js** 18+ og npm
