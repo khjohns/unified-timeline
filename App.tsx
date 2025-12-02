@@ -1,4 +1,5 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import { Role, FormDataModel } from './types';
 import { INITIAL_FORM_DATA, DEMO_DATA } from './config';
 import Toast from './components/ui/Toast';
@@ -19,6 +20,10 @@ import InfoBanner from './components/layout/InfoBanner';
 import BottomBar from './components/layout/BottomBar';
 import AppLayout from './components/layout/AppLayout';
 
+// New Event Sourcing pages
+import { ExampleCasesPage } from './src/pages/ExampleCasesPage';
+import { CasePage } from './src/pages/CasePage';
+
 // Lazy load panels for better performance
 const VarselPanel = lazy(() => import('./components/panels/VarselPanel'));
 const KravKoePanel = lazy(() => import('./components/panels/KravKoePanel'));
@@ -36,7 +41,8 @@ const PanelLoader: React.FC = () => (
     </div>
 );
 
-const App: React.FC = () => {
+// Legacy App Component (existing form-based app)
+const LegacyApp: React.FC = () => {
     const [toastMessage, setToastMessage] = useState('');
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [confirmDialog, setConfirmDialog] = useState<{
@@ -338,6 +344,20 @@ const App: React.FC = () => {
                 />
             </div>
         </ErrorBoundary>
+    );
+};
+
+// Main App with Routing
+const App: React.FC = () => {
+    return (
+        <Routes>
+            {/* New Event Sourcing Architecture */}
+            <Route path="/examples" element={<ExampleCasesPage />} />
+            <Route path="/saker/:id" element={<CasePage />} />
+
+            {/* Legacy Form-based App (default) */}
+            <Route path="*" element={<LegacyApp />} />
+        </Routes>
     );
 };
 
