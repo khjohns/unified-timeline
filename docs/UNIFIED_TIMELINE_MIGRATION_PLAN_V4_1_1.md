@@ -2535,6 +2535,17 @@ def require_magic_link(f):
 
 ## Phase 2: Frontend - "Kill the Form"
 
+> **📖 IMPORTANT:** For comprehensive implementation details, architecture decisions, and step-by-step guides, see:
+> **[FRONTEND_GREENFIELD_PLAN.md](./FRONTEND_GREENFIELD_PLAN.md)**
+>
+> This document provides:
+> - Complete package installation strategy (Radix UI + Punkt Design Tokens)
+> - Tailwind CSS v4 configuration with Oslo Municipality design system
+> - Component architecture (View vs Action components)
+> - Directory structure and naming conventions
+> - WCAG 2.1 AA accessibility requirements and testing
+> - Step-by-step implementation phases
+
 ### 2.1 Delete Legacy Components
 
 **DELETE these files completely:**
