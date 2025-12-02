@@ -70,7 +70,7 @@ export default defineConfig(({ mode }) => {
               'vendor-react': ['react', 'react-dom', 'react-router-dom'],
 
               // PDF-relaterte biblioteker
-              'vendor-pdf': ['react-pdf', 'pdfjs-dist'],
+              'vendor-pdf': ['react-pdf', 'pdfjs-dist', '@react-pdf/renderer'],
             },
           },
         },
@@ -79,7 +79,7 @@ export default defineConfig(({ mode }) => {
         sourcemap: false, // Deaktiver i produksjon for mindre filer
       },
       optimizeDeps: {
-        include: ['react-pdf', 'pdfjs-dist'],
+        include: ['react-pdf', 'pdfjs-dist', '@react-pdf/renderer'],
       },
     };
 });
