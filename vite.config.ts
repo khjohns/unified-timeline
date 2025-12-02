@@ -1,8 +1,24 @@
 import path from 'path';
-import { defineConfig } from 'vite';
+import { defineConfig, Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import license from 'rollup-plugin-license';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
+
+// Plugin to remove crossorigin attribute from CSS links
+// Firefox Focus (and other privacy browsers) may block CORS stylesheet requests
+function removeCssCorPlugin(): Plugin {
+  return {
+    name: 'remove-css-crossorigin',
+    enforce: 'post',
+    transformIndexHtml(html) {
+      // Remove crossorigin attribute from stylesheet links
+      return html.replace(
+        /<link rel="stylesheet" crossorigin href="/g,
+        '<link rel="stylesheet" href="'
+      );
+    },
+  };
+}
 
 export default defineConfig(({ mode }) => {
     return {
@@ -17,6 +33,7 @@ export default defineConfig(({ mode }) => {
       },
       plugins: [
         react(),
+        removeCssCorPlugin(),
         viteStaticCopy({
           targets: [
             {
