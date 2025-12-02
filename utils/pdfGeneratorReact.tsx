@@ -1,23 +1,24 @@
 /**
- * PDF Generator - Facade Module
+ * PDF Generator - Stub Module
  *
- * This file now serves as a facade that re-exports functionality from the
- * split PDF module in utils/pdf/. This maintains backwards compatibility
- * with existing imports.
+ * TEMPORARY: This module has been stubbed out during Phase 1 of the frontend
+ * greenfield implementation. PDF generation will be re-implemented in a later
+ * phase if needed.
  *
- * The original 1055-line file has been split into:
- * - utils/pdf/pdfStyles.ts - Colors and StyleSheet definitions
- * - utils/pdf/pdfComponents.tsx - All React PDF components
- * - utils/pdf/pdfGenerator.ts - PDF generation functions
- *
- * For new code, prefer importing directly from utils/pdf/
+ * The @react-pdf/renderer package has been removed as part of the new architecture.
  */
 
-// Re-export generator functions (main exports)
-export { generatePdfReact, generatePdfBlob } from './pdf';
+// Stub exports to maintain backwards compatibility during migration
+export const generatePdfReact = async (_formData: any) => {
+  console.warn('PDF generation temporarily disabled during frontend migration');
+  throw new Error('PDF generation is not available in this version');
+};
 
-// Re-export styles and colors for potential external use
-export { COLORS, styles } from './pdf';
+export const generatePdfBlob = async (_formData: any): Promise<Blob> => {
+  console.warn('PDF generation temporarily disabled during frontend migration');
+  throw new Error('PDF generation is not available in this version');
+};
 
-// Re-export document component for testing or direct rendering
-export { KoePdfDocument } from './pdf';
+export const COLORS = {};
+export const styles = {};
+export const KoePdfDocument = null;

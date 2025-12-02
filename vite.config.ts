@@ -2,6 +2,7 @@ import path from 'path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import license from 'rollup-plugin-license';
+import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 export default defineConfig(({ mode }) => {
     return {
@@ -16,6 +17,18 @@ export default defineConfig(({ mode }) => {
       },
       plugins: [
         react(),
+        viteStaticCopy({
+          targets: [
+            {
+              src: 'node_modules/@oslokommune/punkt-assets/dist/fonts/*.woff2',
+              dest: 'fonts'
+            },
+            {
+              src: 'node_modules/@oslokommune/punkt-assets/dist/fonts/*.woff',
+              dest: 'fonts'
+            }
+          ]
+        }),
         license({
           thirdParty: {
             output: {

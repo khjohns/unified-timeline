@@ -1,3 +1,7 @@
+/* Import Punkt CSS variables FIRST - before anything else! */
+@import '@oslokommune/punkt-css/dist/css/pkt.min.css';
+
+/* Import Tailwind CSS */
 @import "tailwindcss";
 
 @font-face {
