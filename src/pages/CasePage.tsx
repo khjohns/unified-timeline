@@ -20,6 +20,7 @@ import {
   RespondVederlagModal,
   RespondFristModal,
 } from '../components/actions';
+import { getMockTimelineById } from '../mocks/mockData';
 
 /**
  * CasePage renders the complete case view with dashboard and timeline
@@ -76,6 +77,9 @@ export function CasePage() {
 
   const { state } = data;
   const actions = useActionPermissions(state, userRole);
+
+  // Get mock timeline events for display
+  const mockTimelineEvents = getMockTimelineById(sakId || '');
 
   return (
     <div className="min-h-screen bg-oslo-beige-100">
@@ -220,8 +224,7 @@ export function CasePage() {
             Hendelser
           </h2>
           <div className="bg-white rounded-pkt-lg shadow p-pkt-06">
-            {/* TODO: Fetch and display actual timeline events */}
-            <Timeline events={[]} />
+            <Timeline events={mockTimelineEvents} />
           </div>
         </section>
 
