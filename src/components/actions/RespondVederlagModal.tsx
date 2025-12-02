@@ -3,6 +3,7 @@
  *
  * Action modal for BH (client) to respond to a vederlag (compensation) claim.
  * Includes fields for approved amount and result.
+ * Now includes legacy NS 8407 response options.
  */
 
 import { Modal } from '../primitives/Modal';
@@ -11,17 +12,25 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
-import { ResponsResultat } from '../../types/timeline';
+import { BH_VEDERLAGSSVAR_OPTIONS, VEDERLAGSMETODER_OPTIONS } from '../../constants';
 
 const respondVederlagSchema = z.object({
   resultat: z.enum(
-    ['godkjent', 'delvis_godkjent', 'avvist_uenig', 'avvist_for_sent', 'krever_avklaring'],
+    [
+      'godkjent_fullt',
+      'delvis_godkjent',
+      'avslatt_uenig_grunnlag',
+      'avslatt_for_sent',
+      'avventer_spesifikasjon',
+      'godkjent_annen_metode',
+    ],
     {
       errorMap: () => ({ message: 'Resultat er påkrevd' }),
     }
   ),
   begrunnelse: z.string().min(10, 'Begrunnelse må være minst 10 tegn'),
   godkjent_belop: z.number().min(0, 'Beløp kan ikke være negativt').optional(),
+  godkjent_metode: z.string().optional(),
 });
 
 type RespondVederlagFormData = z.infer<typeof respondVederlagSchema>;
@@ -32,14 +41,6 @@ interface RespondVederlagModalProps {
   sakId: string;
   krevdBelop?: number;
 }
-
-const RESULTAT_OPTIONS: Array<{ value: ResponsResultat; label: string }> = [
-  { value: 'godkjent', label: 'Godkjent' },
-  { value: 'delvis_godkjent', label: 'Delvis godkjent' },
-  { value: 'avvist_uenig', label: 'Avvist - uenig i kravet' },
-  { value: 'avvist_for_sent', label: 'Avvist - for sent fremmet' },
-  { value: 'krever_avklaring', label: 'Krever ytterligere avklaring' },
-];
 
 export function RespondVederlagModal({
   open,
@@ -74,6 +75,15 @@ export function RespondVederlagModal({
     });
   };
 
+  // Determine if we should show amount field
+  const showAmountField =
+    selectedResultat === 'godkjent_fullt' ||
+    selectedResultat === 'delvis_godkjent' ||
+    selectedResultat === 'godkjent_annen_metode';
+
+  // Determine if we should show method field
+  const showMethodField = selectedResultat === 'godkjent_annen_metode';
+
   return (
     <Modal
       open={open}
@@ -92,7 +102,7 @@ export function RespondVederlagModal({
           </div>
         )}
 
-        {/* Resultat */}
+        {/* Resultat - Using legacy NS 8407 options */}
         <div>
           <label htmlFor="resultat" className="block text-sm font-medium text-gray-700">
             Resultat <span className="text-error">*</span>
@@ -105,8 +115,7 @@ export function RespondVederlagModal({
             aria-invalid={!!errors.resultat}
             aria-describedby={errors.resultat ? 'resultat-error' : undefined}
           >
-            <option value="">Velg resultat</option>
-            {RESULTAT_OPTIONS.map((option) => (
+            {BH_VEDERLAGSSVAR_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
@@ -119,12 +128,12 @@ export function RespondVederlagModal({
           )}
         </div>
 
-        {/* Godkjent beløp - only show if godkjent or delvis_godkjent */}
-        {(selectedResultat === 'godkjent' || selectedResultat === 'delvis_godkjent') && (
+        {/* Godkjent beløp - show if godkjent, delvis_godkjent, or godkjent_annen_metode */}
+        {showAmountField && (
           <div>
             <label htmlFor="godkjent_belop" className="block text-sm font-medium text-gray-700">
               Godkjent beløp (NOK){' '}
-              {selectedResultat === 'godkjent' ? <span className="text-error">*</span> : ''}
+              {selectedResultat === 'godkjent_fullt' ? <span className="text-error">*</span> : ''}
             </label>
             <input
               id="godkjent_belop"
@@ -150,23 +159,51 @@ export function RespondVederlagModal({
           </div>
         )}
 
-        {/* Status indicator */}
+        {/* Godkjent metode - only show if godkjent_annen_metode */}
+        {showMethodField && (
+          <div>
+            <label htmlFor="godkjent_metode" className="block text-sm font-medium text-gray-700">
+              Godkjent vederlagsmetode <span className="text-error">*</span>
+            </label>
+            <select
+              id="godkjent_metode"
+              {...register('godkjent_metode')}
+              className="mt-pkt-02 block w-full rounded-pkt-md border-gray-300 shadow-sm focus:border-oslo-blue focus:ring-oslo-blue"
+            >
+              {VEDERLAGSMETODER_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <p className="mt-pkt-02 text-xs text-gray-500">
+              Hvis godkjent med annen metode, velg metoden her
+            </p>
+          </div>
+        )}
+
+        {/* Status indicator based on selection */}
         {selectedResultat && (
           <div
             className={`p-pkt-04 rounded-pkt-md ${
-              selectedResultat === 'godkjent'
+              selectedResultat === 'godkjent_fullt' || selectedResultat === 'godkjent_annen_metode'
                 ? 'bg-success-100 border border-success-500'
-                : selectedResultat === 'delvis_godkjent'
+                : selectedResultat === 'delvis_godkjent' ||
+                  selectedResultat === 'avventer_spesifikasjon'
                 ? 'bg-warning-100 border border-warning-500'
                 : 'bg-error-100 border border-error-500'
             }`}
           >
             <p className="text-sm font-medium">
-              {selectedResultat === 'godkjent'
-                ? '✓ Kravet vil bli godkjent'
+              {selectedResultat === 'godkjent_fullt'
+                ? '✓ Kravet vil bli godkjent fullt ut'
+                : selectedResultat === 'godkjent_annen_metode'
+                ? '✓ Kravet vil bli godkjent med annen metode'
                 : selectedResultat === 'delvis_godkjent'
                 ? '◐ Kravet vil bli delvis godkjent'
-                : '✗ Kravet vil bli avvist eller krever avklaring'}
+                : selectedResultat === 'avventer_spesifikasjon'
+                ? '⏸ Avventer nærmere spesifikasjon'
+                : '✗ Kravet vil bli avslått'}
             </p>
           </div>
         )}
