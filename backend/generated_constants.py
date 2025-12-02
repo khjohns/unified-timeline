@@ -1,7 +1,7 @@
 """
 AUTO-GENERERT FIL - IKKE REDIGER MANUELT
 Generert fra: shared/status-codes.json
-Generert: 2025-12-02T13:43:40.740Z
+Generert: 2025-12-02T13:53:20.929Z
 
 Versjon: 1.0.0
 """
