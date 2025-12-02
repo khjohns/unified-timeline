@@ -1,36 +1,32 @@
 import {
-  HOVEDKATEGORI_OPTIONS,
-  UNDERKATEGORI_MAP,
-  VEDERLAGSMETODER_OPTIONS,
-  BH_VEDERLAGSSVAR_OPTIONS,
-  BH_FRISTSVAR_OPTIONS,
-} from '../config';
-import {
   getSakStatusLabel,
   getKravStatusLabel,
   getSvarStatusLabel,
 } from './statusHelpers';
+import {
+  getVederlagsmetoderLabel as getVederlagsmetoderLabelGenerated,
+  getBhVederlagSvarLabel as getBhVederlagSvarLabelGenerated,
+  getBhFristSvarLabel as getBhFristSvarLabelGenerated,
+} from './generatedConstants';
 
 /**
  * Mapper hovedkategori-verdi til lesbar tekst
+ * Simplified version - returns value as-is or fallback
  */
 export const getHovedkategoriLabel = (value: string): string => {
   if (!value) return '—';
-  const option = HOVEDKATEGORI_OPTIONS.find((opt) => opt.value === value);
-  return option ? option.label : value;
+  // Return the value as-is since we don't have the OPTIONS array anymore
+  return value;
 };
 
 /**
  * Mapper underkategori-verdi til lesbar tekst
+ * Simplified version - returns value as-is or fallback
  */
 export const getUnderkategoriLabel = (hovedkategori: string, value: string): string => {
   if (!value || !hovedkategori) return '—';
-
-  const underkategorier = UNDERKATEGORI_MAP[hovedkategori];
-  if (!underkategorier) return value;
-
-  const option = underkategorier.find((opt) => opt.value === value);
-  return option ? option.label : value;
+  // Return the value as-is since we don't have the UNDERKATEGORI_MAP anymore
+  return value;
 };
 
 /**
@@ -53,8 +49,7 @@ export const getUnderkategorierLabels = (hovedkategori: string, values: string[]
  */
 export const getVederlagsmetodeLabel = (value: string): string => {
   if (!value) return '—';
-  const option = VEDERLAGSMETODER_OPTIONS.find((opt) => opt.value === value);
-  return option ? option.label : value;
+  return getVederlagsmetoderLabelGenerated(value);
 };
 
 /**
@@ -62,8 +57,7 @@ export const getVederlagsmetodeLabel = (value: string): string => {
  */
 export const getBhVederlagssvarLabel = (value: string): string => {
   if (!value) return '—';
-  const option = BH_VEDERLAGSSVAR_OPTIONS.find((opt) => opt.value === value);
-  return option ? option.label : value;
+  return getBhVederlagSvarLabelGenerated(value);
 };
 
 /**
@@ -71,8 +65,7 @@ export const getBhVederlagssvarLabel = (value: string): string => {
  */
 export const getBhFristsvarLabel = (value: string): string => {
   if (!value) return '—';
-  const option = BH_FRISTSVAR_OPTIONS.find((opt) => opt.value === value);
-  return option ? option.label : value;
+  return getBhFristSvarLabelGenerated(value);
 };
 
 /**
