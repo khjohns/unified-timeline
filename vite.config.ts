@@ -52,9 +52,6 @@ export default defineConfig(({ mode }) => {
               // React og core dependencies
               'vendor-react': ['react', 'react-dom', 'react-router-dom'],
 
-              // Oslo Kommune Punkt
-              'vendor-punkt': ['@oslokommune/punkt-react'],
-
               // PDF-relaterte biblioteker
               'vendor-pdf': ['react-pdf', 'pdfjs-dist'],
             },
@@ -65,7 +62,7 @@ export default defineConfig(({ mode }) => {
         sourcemap: false, // Deaktiver i produksjon for mindre filer
       },
       optimizeDeps: {
-        include: ['@oslokommune/punkt-react', 'react-pdf', 'pdfjs-dist'],
+        include: ['react-pdf', 'pdfjs-dist'],
       },
     };
 });
