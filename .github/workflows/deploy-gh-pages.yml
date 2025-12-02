@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: ['main']
+    branches: ['claude/event-sourcing-phase-4-01TpiUha9esxfdSBDEcXg3py']
   workflow_dispatch:
 
 permissions:
