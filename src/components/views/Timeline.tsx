@@ -29,7 +29,7 @@ export function Timeline({ events }: TimelineProps) {
   }
 
   return (
-    <ul className="space-y-0" role="feed" aria-label="Tidslinje over hendelser">
+    <ul className="space-y-0" aria-label="Tidslinje over hendelser">
       {events.map((event) => (
         <TimelineItem
           key={event.event_id}

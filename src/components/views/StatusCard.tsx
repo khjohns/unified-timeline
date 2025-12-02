@@ -8,12 +8,14 @@
 import { Card } from '../primitives/Card';
 import { SporStatus, SporType } from '../../types/timeline';
 import { clsx } from 'clsx';
+import { ReactNode } from 'react';
 
 interface StatusCardProps {
   spor: SporType;
   status: SporStatus;
   title: string;
   lastUpdated?: string;
+  actions?: ReactNode;
 }
 
 const STATUS_CONFIG: Record<
@@ -91,12 +93,19 @@ const SPOR_LABELS: Record<SporType, string> = {
 /**
  * StatusCard displays the current status of a track (grunnlag, vederlag, frist)
  */
-export function StatusCard({ spor, status, title, lastUpdated }: StatusCardProps) {
+export function StatusCard({
+  spor,
+  status,
+  title,
+  lastUpdated,
+  actions,
+}: StatusCardProps) {
   const config = STATUS_CONFIG[status];
 
   return (
     <Card variant="outlined" padding="md">
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col gap-pkt-04">
+        {/* Status Information */}
         <div className="flex-1">
           {/* Track Title */}
           <h3 className="text-heading-sm font-bold text-oslo-blue uppercase tracking-wide">
@@ -131,6 +140,13 @@ export function StatusCard({ spor, status, title, lastUpdated }: StatusCardProps
             </p>
           )}
         </div>
+
+        {/* Contextual Actions */}
+        {actions && (
+          <div className="pt-pkt-03 border-t border-gray-200">
+            <div className="flex flex-wrap gap-pkt-02">{actions}</div>
+          </div>
+        )}
       </div>
     </Card>
   );

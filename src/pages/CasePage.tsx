@@ -106,116 +106,91 @@ export function CasePage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-pkt-06 py-pkt-08">
-        {/* Status Dashboard */}
-        <StatusDashboard state={state} />
-
-        {/* Actions Section */}
-        <section className="mt-pkt-08" aria-labelledby="actions-heading">
-          <h2
-            id="actions-heading"
-            className="text-heading-md font-bold text-oslo-blue mb-pkt-04"
-          >
-            Tilgjengelige handlinger
-          </h2>
-
-          {/* TE Actions */}
-          {userRole === 'TE' && (
-            <div className="space-y-pkt-04">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-700 mb-pkt-03">
-                  Send nye krav
-                </h3>
-                <div className="flex flex-wrap gap-pkt-03">
-                  {actions.canSendGrunnlag && (
-                    <Button variant="primary" onClick={() => setSendGrunnlagOpen(true)}>
-                      Send grunnlag
-                    </Button>
-                  )}
-                  {actions.canSendVederlag && (
-                    <Button variant="primary" onClick={() => setSendVederlagOpen(true)}>
-                      Send vederlagskrav
-                    </Button>
-                  )}
-                  {actions.canSendFrist && (
-                    <Button variant="primary" onClick={() => setSendFristOpen(true)}>
-                      Send fristkrav
-                    </Button>
-                  )}
-                  {!actions.canSendGrunnlag &&
-                    !actions.canSendVederlag &&
-                    !actions.canSendFrist && (
-                      <p className="text-sm text-gray-600">
-                        Ingen nye krav kan sendes akkurat nå.
-                      </p>
-                    )}
-                </div>
-              </div>
-
-              {(actions.canUpdateGrunnlag ||
-                actions.canUpdateVederlag ||
-                actions.canUpdateFrist) && (
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-pkt-03">
-                    Oppdater eksisterende krav
-                  </h3>
-                  <div className="flex flex-wrap gap-pkt-03">
-                    {actions.canUpdateGrunnlag && (
-                      <Button variant="secondary" disabled>
-                        Oppdater grunnlag
-                      </Button>
-                    )}
-                    {actions.canUpdateVederlag && (
-                      <Button variant="secondary" disabled>
-                        Oppdater vederlag
-                      </Button>
-                    )}
-                    {actions.canUpdateFrist && (
-                      <Button variant="secondary" disabled>
-                        Oppdater frist
-                      </Button>
-                    )}
-                  </div>
-                  <p className="mt-pkt-02 text-xs text-gray-500">
-                    Oppdateringshandlinger kommer i en senere versjon
-                  </p>
-                </div>
+        {/* Status Dashboard with Contextual Actions */}
+        <StatusDashboard
+          state={state}
+          grunnlagActions={
+            <>
+              {userRole === 'TE' && actions.canSendGrunnlag && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setSendGrunnlagOpen(true)}
+                >
+                  Send grunnlag
+                </Button>
               )}
-            </div>
-          )}
-
-          {/* BH Actions */}
-          {userRole === 'BH' && (
-            <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-pkt-03">
-                Svar på krav fra TE
-              </h3>
-              <div className="flex flex-wrap gap-pkt-03">
-                {actions.canRespondToGrunnlag && (
-                  <Button variant="primary" onClick={() => setRespondGrunnlagOpen(true)}>
-                    Svar på grunnlag
-                  </Button>
-                )}
-                {actions.canRespondToVederlag && (
-                  <Button variant="primary" onClick={() => setRespondVederlagOpen(true)}>
-                    Svar på vederlag
-                  </Button>
-                )}
-                {actions.canRespondToFrist && (
-                  <Button variant="primary" onClick={() => setRespondFristOpen(true)}>
-                    Svar på frist
-                  </Button>
-                )}
-                {!actions.canRespondToGrunnlag &&
-                  !actions.canRespondToVederlag &&
-                  !actions.canRespondToFrist && (
-                    <p className="text-sm text-gray-600">
-                      Ingen krav venter på svar akkurat nå.
-                    </p>
-                  )}
-              </div>
-            </div>
-          )}
-        </section>
+              {userRole === 'TE' && actions.canUpdateGrunnlag && (
+                <Button variant="secondary" size="sm" disabled>
+                  Oppdater grunnlag
+                </Button>
+              )}
+              {userRole === 'BH' && actions.canRespondToGrunnlag && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setRespondGrunnlagOpen(true)}
+                >
+                  Svar på grunnlag
+                </Button>
+              )}
+            </>
+          }
+          vederlagActions={
+            <>
+              {userRole === 'TE' && actions.canSendVederlag && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setSendVederlagOpen(true)}
+                >
+                  Send vederlagskrav
+                </Button>
+              )}
+              {userRole === 'TE' && actions.canUpdateVederlag && (
+                <Button variant="secondary" size="sm" disabled>
+                  Oppdater vederlag
+                </Button>
+              )}
+              {userRole === 'BH' && actions.canRespondToVederlag && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setRespondVederlagOpen(true)}
+                >
+                  Svar på vederlag
+                </Button>
+              )}
+            </>
+          }
+          fristActions={
+            <>
+              {userRole === 'TE' && actions.canSendFrist && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setSendFristOpen(true)}
+                >
+                  Send fristkrav
+                </Button>
+              )}
+              {userRole === 'TE' && actions.canUpdateFrist && (
+                <Button variant="secondary" size="sm" disabled>
+                  Oppdater frist
+                </Button>
+              )}
+              {userRole === 'BH' && actions.canRespondToFrist && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setRespondFristOpen(true)}
+                >
+                  Svar på frist
+                </Button>
+              )}
+            </>
+          }
+        />
 
         {/* Timeline Section */}
         <section className="mt-pkt-08" aria-labelledby="timeline-heading">

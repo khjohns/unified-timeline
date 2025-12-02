@@ -7,6 +7,20 @@
 import { expect, afterEach } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
+import { toHaveNoViolations } from 'jest-axe';
+
+// Extend vitest's expect with jest-axe matchers for accessibility testing
+expect.extend({ toHaveNoViolations });
+
+// Declare the custom matcher types for TypeScript
+declare module 'vitest' {
+  interface Assertion<T = any> extends jest.Matchers<void, T> {
+    toHaveNoViolations(): Promise<void>;
+  }
+  interface AsymmetricMatchersContaining {
+    toHaveNoViolations(): Promise<void>;
+  }
+}
 
 // Cleanup after each test case (e.g. clearing jsdom)
 afterEach(() => {
