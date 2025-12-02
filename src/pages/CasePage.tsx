@@ -11,6 +11,8 @@ import { useCaseState } from '../hooks/useCaseState';
 import { useActionPermissions } from '../hooks/useActionPermissions';
 import { StatusDashboard } from '../components/views/StatusDashboard';
 import { Timeline } from '../components/views/Timeline';
+import { ComprehensiveMetadata } from '../components/views/ComprehensiveMetadata';
+import { RevisionHistory } from '../components/views/RevisionHistory';
 import { Button } from '../components/primitives/Button';
 import {
   SendGrunnlagModal,
@@ -228,7 +230,7 @@ export function CasePage() {
           </div>
         </section>
 
-        {/* Summary Section */}
+        {/* Summary Section - Enhanced with Comprehensive Metadata and Revision History */}
         <section className="mt-pkt-08" aria-labelledby="summary-heading">
           <h2
             id="summary-heading"
@@ -236,47 +238,16 @@ export function CasePage() {
           >
             Sammendrag
           </h2>
-          <div className="bg-white rounded-pkt-lg shadow p-pkt-06">
-            <dl className="grid grid-cols-1 md:grid-cols-2 gap-pkt-04">
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Overordnet status</dt>
-                <dd className="mt-1 text-lg font-semibold text-gray-900">
-                  {state.overordnet_status}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Neste handling</dt>
-                <dd className="mt-1 text-lg font-semibold text-gray-900">
-                  {state.neste_handling.handling || 'Ingen'}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Totalt krevd beløp</dt>
-                <dd className="mt-1 text-lg font-semibold text-gray-900">
-                  {state.sum_krevd.toLocaleString('nb-NO')} NOK
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">
-                  Totalt godkjent beløp
-                </dt>
-                <dd className="mt-1 text-lg font-semibold text-success-700">
-                  {state.sum_godkjent.toLocaleString('nb-NO')} NOK
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Antall hendelser</dt>
-                <dd className="mt-1 text-lg font-semibold text-gray-900">
-                  {state.antall_events}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Kan utstede EO</dt>
-                <dd className="mt-1 text-lg font-semibold text-gray-900">
-                  {state.kan_utstede_eo ? 'Ja' : 'Nei'}
-                </dd>
-              </div>
-            </dl>
+
+          {/* Comprehensive Metadata */}
+          <ComprehensiveMetadata state={state} sakId={sakId || ''} />
+
+          {/* Revision History */}
+          <div className="mt-pkt-06">
+            <h3 className="text-lg font-semibold text-gray-900 mb-pkt-04">
+              Revisjonshistorikk
+            </h3>
+            <RevisionHistory state={state} />
           </div>
         </section>
       </main>
