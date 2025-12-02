@@ -6,18 +6,13 @@
  */
 
 import { apiFetch } from './client';
-import { SakState } from '../types/timeline';
-
-export interface StateResponse {
-  state: SakState;
-  timestamp: string;
-}
+import { StateResponse } from '../types/api';
 
 /**
  * Fetch the current state of a case
  *
  * @param sakId - The case ID
- * @returns The current state and timestamp
+ * @returns The current state and version
  */
 export async function fetchCaseState(sakId: string): Promise<StateResponse> {
   return apiFetch<StateResponse>(`/api/saker/${sakId}/state`);

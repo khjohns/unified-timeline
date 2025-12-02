@@ -6,7 +6,8 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { fetchCaseState, StateResponse } from '../api/state';
+import { fetchCaseState } from '../api/state';
+import { StateResponse } from '../types/api';
 
 export interface UseCaseStateOptions {
   /**
