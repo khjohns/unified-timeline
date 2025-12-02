@@ -4,6 +4,106 @@
 /* Import Tailwind CSS */
 @import "tailwindcss";
 
+/* ============================================
+   Tailwind v4 Theme Configuration
+
+   NOTE: Tailwind v4 uses CSS-first configuration.
+   The tailwind.config.js file is IGNORED.
+   All custom values must be defined here in @theme.
+   ============================================ */
+@theme {
+    /* ---- Oslo Brand Colors ---- */
+    --color-oslo-blue: var(--pkt-color-brand-dark-blue-1000, #2a2859);
+    --color-oslo-blue-50: var(--pkt-color-brand-dark-blue-50, #f2f2f8);
+    --color-oslo-blue-100: var(--pkt-color-brand-dark-blue-100, #e5e5f0);
+    --color-oslo-blue-700: var(--pkt-color-brand-dark-blue-700, #6a698b);
+    --color-oslo-blue-1000: var(--pkt-color-brand-dark-blue-1000, #2a2859);
+
+    --color-oslo-beige: var(--pkt-color-brand-beige-400, #d0bfae);
+    --color-oslo-beige-100: var(--pkt-color-brand-beige-100, #f8f0dd);
+    --color-oslo-beige-200: var(--pkt-color-brand-beige-200, #f0e5d5);
+    --color-oslo-beige-300: var(--pkt-color-brand-beige-300, #e0d2c2);
+    --color-oslo-beige-400: var(--pkt-color-brand-beige-400, #d0bfae);
+
+    --color-oslo-green: var(--pkt-color-brand-green-700, #034b45);
+    --color-oslo-green-300: var(--pkt-color-brand-green-300, #c7fde9);
+    --color-oslo-green-500: var(--pkt-color-brand-green-500, #43f8b6);
+    --color-oslo-green-700: var(--pkt-color-brand-green-700, #034b45);
+
+    /* ---- Semantic Colors ---- */
+    --color-success: var(--pkt-color-success-500, #034b45);
+    --color-success-100: var(--pkt-color-success-100, #e5ffe6);
+    --color-success-500: var(--pkt-color-success-500, #034b45);
+    --color-success-700: var(--pkt-color-success-700, #023d38);
+
+    --color-warning: var(--pkt-color-warning-500, #f9c66b);
+    --color-warning-100: var(--pkt-color-warning-100, #ffe7bc);
+    --color-warning-500: var(--pkt-color-warning-500, #f9c66b);
+    --color-warning-700: var(--pkt-color-warning-700, #774c01);
+
+    --color-error: var(--pkt-color-error-500, #ff8274);
+    --color-error-100: var(--pkt-color-error-100, #fff2f1);
+    --color-error-500: var(--pkt-color-error-500, #ff8274);
+    --color-error-700: var(--pkt-color-error-700, #96281c);
+
+    --color-info: var(--pkt-color-info-500, #2a2859);
+    --color-info-100: var(--pkt-color-info-100, #e5fcff);
+    --color-info-500: var(--pkt-color-info-500, #2a2859);
+    --color-info-700: var(--pkt-color-info-700, #1f1f42);
+
+    /* ---- Legacy colors ---- */
+    --color-pri: #1F42AA;
+    --color-pri-600: #193587;
+    --color-pri-light: #E5FCFF;
+    --color-ok: #43F8B6;
+    --color-warn: #FF8274;
+    --color-ink: #2C2C2C;
+    --color-ink-dim: #4D4D4D;
+    --color-muted: #666666;
+    --color-border-color: #E6E6E6;
+    --color-card-bg: #FFFFFF;
+    --color-body-bg: #F8F8F8;
+    --color-ring-color: var(--color-pri);
+
+    /* ---- Typography ---- */
+    --font-sans: 'Oslo Sans', system-ui, -apple-system, arial, sans-serif;
+
+    /* Font sizes: --text-* creates text-* utilities */
+    --text-body-sm: 0.875rem;
+    --text-body-md: 1rem;
+    --text-body-lg: 1.125rem;
+    --text-heading-sm: 1.25rem;
+    --text-heading-md: 1.5rem;
+    --text-heading-lg: 2rem;
+
+    /* ---- Spacing (Punkt scale) ---- */
+    --spacing-pkt-01: 0.25rem;
+    --spacing-pkt-02: 0.5rem;
+    --spacing-pkt-03: 0.75rem;
+    --spacing-pkt-04: 1rem;
+    --spacing-pkt-05: 1.25rem;
+    --spacing-pkt-06: 1.5rem;
+    --spacing-pkt-08: 2rem;
+    --spacing-pkt-10: 2.5rem;
+
+    /* ---- Border Radius ---- */
+    --radius-pkt-sm: 0.25rem;
+    --radius-pkt-md: 0.5rem;
+    --radius-pkt-lg: 1rem;
+
+    /* ---- Z-Index Scale ---- */
+    --z-dropdown: 1000;
+    --z-sticky: 1020;
+    --z-fixed: 1030;
+    --z-modal-backdrop: 1040;
+    --z-modal: 1050;
+    --z-popover: 1060;
+    --z-tooltip: 1070;
+}
+
+/* ============================================
+   Font Face Declarations
+   ============================================ */
 @font-face {
   font-family: 'Oslo Sans';
   src: url('/fonts/OsloSans-Regular.woff2') format('woff2');
@@ -68,22 +168,9 @@
   font-display: swap;
 }
 
-@theme {
-    --color-pri: #1F42AA;
-    --color-pri-600: #193587;
-    --color-pri-light: #E5FCFF;
-    --color-ok: #43F8B6;
-    --color-warn: #FF8274;
-    --color-ink: #2C2C2C;
-    --color-ink-dim: #4D4D4D;
-    --color-muted: #666666;
-    --color-border-color: #E6E6E6;
-    --color-card-bg: #FFFFFF;
-    --color-body-bg: #F8F8F8;
-    --color-ring-color: var(--color-pri);
-    --font-sans: 'Oslo Sans', system-ui, -apple-system, arial, sans-serif;
-}
-
+/* ============================================
+   Base Styles
+   ============================================ */
 body {
     font-family: 'Oslo Sans', system-ui, -apple-system, arial, sans-serif !important;
     -webkit-font-smoothing: antialiased;
@@ -91,100 +178,15 @@ body {
     font-size: 14px;
 }
 
-/* Ensure Oslo Sans is used in all Tailwind utilities */
 * {
     font-family: inherit;
-}
-
-/* Reduser skriftstørrelser for Punkt komponenter - kun mobil */
-@media (max-width: 768px) {
-    /* Input felter */
-    pkt-textinput input,
-    pkt-textarea textarea,
-    pkt-datepicker input,
-    pkt-select select {
-        font-size: 14px !important;
-    }
-
-    /* Labels */
-    pkt-textinput label,
-    pkt-textarea label,
-    pkt-datepicker label,
-    pkt-select label,
-    pkt-checkbox label {
-        font-size: 14px !important;
-        font-weight: 500 !important;
-    }
-
-    /* Help text */
-    pkt-textinput .pkt-txt-helptext,
-    pkt-textarea .pkt-txt-helptext,
-    pkt-datepicker .pkt-txt-helptext,
-    pkt-select .pkt-txt-helptext,
-    pkt-checkbox .pkt-txt-helptext {
-        font-size: 12px !important;
-    }
-
-    /* Fieldset legends */
-    fieldset legend {
-        font-size: 16px !important;
-    }
-
-    /* Button tekst */
-    pkt-button {
-        font-size: 14px !important;
-    }
-
-    /* Tab tekst */
-    pkt-tab-item {
-        font-size: 14px !important;
-    }
-
-    /* Accordion titler */
-    pkt-accordion-item .pkt-accordion__title {
-        font-size: 15px !important;
-    }
-
-    /* Generell heading størrelser */
-    h1 {
-        font-size: 24px !important;
-    }
-
-    h2 {
-        font-size: 20px !important;
-    }
-
-    h3 {
-        font-size: 18px !important;
-    }
-
-    h4 {
-        font-size: 16px !important;
-    }
 }
 
 :focus-visible {
     outline-color: var(--color-pri);
 }
 
-.collapsible {
-    display: grid;
-    grid-template-rows: 0fr;
-    transition: grid-template-rows 0.3s ease-out;
-}
-.collapsible.open {
-    grid-template-rows: 1fr;
-}
-.collapsible-content {
-    overflow: hidden;
-    transition: opacity 0.3s ease-out;
-    opacity: 0.5;
-}
-.collapsible.open .collapsible-content {
-    opacity: 1;
-}
-
-/* Custom, consistent scrollbar */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -198,18 +200,4 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
     background-color: #9daab5;
-}
-/* Sentrere tabs og få dem til å strekke seg ut */
-.pkt-tabs-wrapper pkt-tabs {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-}
-
-/* Gir hver fane (PktTabItem) beskjed om å vokse for å fylle den ledige plassen */
-.pkt-tabs-wrapper pkt-tab-item {
-  flex: 1;
-  max-width: 200px;
-  text-align: center;
-  justify-content: center;
 }
