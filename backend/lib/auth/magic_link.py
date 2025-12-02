@@ -13,6 +13,11 @@ class MagicLinkManager:
     """
     Håndterer generering og validering av Magic Links med fil-lagring.
     Tokens lagres i `koe_data/magic_links.json` for å overleve server-restarts.
+
+    Session-Based Mode:
+    - Tokens are valid for 24-72 hours from creation
+    - Can be used multiple times within TTL (session-based access)
+    - mark_as_used parameter allows selective one-time-use for critical operations
     """
 
     def __init__(self, storage_dir="koe_data"):
@@ -60,9 +65,24 @@ class MagicLinkManager:
         self._save_tokens()
         return token
 
-    def verify(self, token: str) -> tuple[bool, str, Optional[Dict]]:
+    def verify(self, token: str, mark_as_used: bool = False) -> tuple[bool, str, Optional[Dict]]:
         """
         Verifiser Magic Link token fra fil.
+
+        Args:
+            token: Token string to verify
+            mark_as_used: If True, mark token as consumed (for one-time operations)
+                         If False, allow reuse within TTL (for session-based access)
+
+        Returns:
+            (is_valid, message, token_data)
+
+        Examples:
+            # Session-based access (default, allow multiple requests)
+            valid, msg, data = manager.verify(token)
+
+            # One-time-use (for critical operations like admin actions)
+            valid, msg, data = manager.verify(token, mark_as_used=True)
         """
         # Kritisk: Last inn tokens på nytt for å garantere at vi har siste versjon
         self.tokens = self._load_tokens()
@@ -75,9 +95,10 @@ class MagicLinkManager:
         if meta.get("revoked"):
             return False, "Token has been revoked", None
 
+        # Check if already used (only relevant if mark_as_used was previously True)
         if meta.get("used"):
             return False, "Token already used", None
-            
+
         # Konverter expires_at fra string til datetime for sammenligning
         try:
             # Håndterer "Z" for UTC
@@ -88,9 +109,14 @@ class MagicLinkManager:
         if datetime.utcnow().replace(tzinfo=expires_at_dt.tzinfo) > expires_at_dt:
             return False, f"Token expired at {meta['expires_at']}", None
 
-        # ✅ Gyldig token - marker som brukt og lagre endringen
-        meta["used"] = True
-        meta["used_at"] = datetime.utcnow().isoformat() + "Z"
+        # Update last_accessed for monitoring
+        meta["last_accessed"] = datetime.utcnow().isoformat() + "Z"
+
+        # ✅ Gyldig token - marker som brukt bare hvis eksplisitt forespurt
+        if mark_as_used:
+            meta["used"] = True
+            meta["used_at"] = datetime.utcnow().isoformat() + "Z"
+
         self._save_tokens()
 
         token_data = {
@@ -128,6 +154,9 @@ def require_magic_link(f):
 
     Token må sendes i Authorization header som Bearer token.
     Ved suksess legges token-data i request.magic_link_data.
+
+    Token is verified in session-based mode (allows multiple requests).
+    Use mark_as_used=True manually for one-time critical operations.
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -142,9 +171,9 @@ def require_magic_link(f):
                 "message": "Mangler magic link token"
             }), 401
 
-        # Verifiser token
+        # Verifiser token i session-based mode (mark_as_used=False)
         manager = get_magic_link_manager()
-        valid, message, data = manager.verify(token)
+        valid, message, data = manager.verify(token, mark_as_used=False)
 
         if not valid:
             return jsonify({

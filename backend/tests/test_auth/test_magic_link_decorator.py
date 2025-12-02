@@ -85,8 +85,8 @@ class TestMagicLinkDecorator:
         assert data["success"] is False
         assert "expired" in data["message"].lower()
 
-    def test_require_magic_link_with_used_token(self, client, valid_token):
-        """Test that decorator rejects already-used tokens."""
+    def test_require_magic_link_with_session_based_token(self, client, valid_token):
+        """Test that decorator allows session-based token reuse (multiple requests)."""
         # Use the token once
         response1 = client.get(
             '/protected',
@@ -94,14 +94,19 @@ class TestMagicLinkDecorator:
         )
         assert response1.status_code == 200
 
-        # Try to use it again - should fail (one-time use)
+        # Try to use it again - should succeed (session-based mode)
         response2 = client.get(
             '/protected',
             headers={'Authorization': f'Bearer {valid_token}'}
         )
-        assert response2.status_code == 401
-        data = response2.get_json()
-        assert "already used" in data["message"].lower()
+        assert response2.status_code == 200
+
+        # Third time - should still succeed
+        response3 = client.get(
+            '/protected',
+            headers={'Authorization': f'Bearer {valid_token}'}
+        )
+        assert response3.status_code == 200
 
     def test_require_magic_link_without_bearer_prefix(self, client, valid_token):
         """Test that decorator can handle tokens without Bearer prefix."""
