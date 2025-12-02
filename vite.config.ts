@@ -6,7 +6,7 @@ import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 export default defineConfig(({ mode }) => {
     return {
-      base: mode === 'production' ? '/Skjema_Endringsmeldinger/' : '/',
+      base: mode === 'production' ? '/unified-timeline/' : '/',
       server: {
         port: 3000,
         host: '0.0.0.0',
