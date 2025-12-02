@@ -29,6 +29,7 @@ const respondFristSchema = z.object({
   ),
   begrunnelse: z.string().min(10, 'Begrunnelse må være minst 10 tegn'),
   godkjent_dager: z.number().min(0, 'Antall dager kan ikke være negativt').optional(),
+  frist_for_spesifisering: z.string().optional(),
 });
 
 type RespondFristFormData = z.infer<typeof respondFristSchema>;
@@ -205,6 +206,31 @@ export function RespondFristModal({
             </p>
           )}
         </div>
+
+        {/* Frist for spesifisering - only show when avventer_spesifikasjon */}
+        {selectedResultat === 'avventer_spesifikasjon' && (
+          <div>
+            <label htmlFor="frist_for_spesifisering" className="block text-sm font-medium text-gray-700">
+              Frist for spesifisering
+            </label>
+            <input
+              id="frist_for_spesifisering"
+              type="date"
+              {...register('frist_for_spesifisering')}
+              className="mt-pkt-02 block w-full rounded-pkt-md border-gray-300 shadow-sm focus:border-oslo-blue focus:ring-oslo-blue"
+              aria-invalid={!!errors.frist_for_spesifisering}
+              aria-describedby={errors.frist_for_spesifisering ? 'frist_for_spesifisering-error' : undefined}
+            />
+            {errors.frist_for_spesifisering && (
+              <p id="frist_for_spesifisering-error" className="mt-pkt-02 text-sm text-error" role="alert">
+                {errors.frist_for_spesifisering.message}
+              </p>
+            )}
+            <p className="mt-pkt-02 text-xs text-gray-500">
+              Angi fristen innen hvilken entreprenøren må levere ytterligere spesifikasjon av kravet.
+            </p>
+          </div>
+        )}
 
         {/* Error Message */}
         {mutation.isError && (

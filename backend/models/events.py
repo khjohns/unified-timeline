@@ -401,6 +401,10 @@ class FristResponsData(ResponsData):
         default=None,
         description="BH-godkjent ny sluttdato"
     )
+    frist_for_spesifisering: Optional[str] = Field(
+        default=None,
+        description="Frist for TE å levere ytterligere spesifikasjon (YYYY-MM-DD)"
+    )
 
 
 class ResponsEvent(SakEvent):

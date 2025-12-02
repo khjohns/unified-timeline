@@ -153,6 +153,10 @@ class FristTilstand(BaseModel):
         description="Dager godkjent av BH"
     )
     ny_sluttdato: Optional[str] = Field(default=None)
+    frist_for_spesifisering: Optional[str] = Field(
+        default=None,
+        description="Frist for TE å levere ytterligere spesifikasjon (YYYY-MM-DD)"
+    )
 
     # Differanse-info
     @computed_field
