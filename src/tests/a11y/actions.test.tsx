@@ -164,12 +164,8 @@ describe('Action Components (Modals) - Accessibility', () => {
         />,
         { wrapper: createWrapper() }
       );
-      const results = await axe(container, {
-        rules: {
-          'checkboxgroup': { enabled: true },
-          'radiogroup': { enabled: true },
-        },
-      });
+      // Default axe scan includes checkbox/radiogroup rules
+      const results = await axe(container);
       expectNoA11yViolations(results);
     });
   });

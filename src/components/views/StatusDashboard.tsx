@@ -7,15 +7,24 @@
 
 import { StatusCard } from './StatusCard';
 import { SakState } from '../../types/timeline';
+import { ReactNode } from 'react';
 
 interface StatusDashboardProps {
   state: SakState;
+  grunnlagActions?: ReactNode;
+  vederlagActions?: ReactNode;
+  fristActions?: ReactNode;
 }
 
 /**
- * StatusDashboard renders the three-track status overview
+ * StatusDashboard renders the three-track status overview with contextual actions
  */
-export function StatusDashboard({ state }: StatusDashboardProps) {
+export function StatusDashboard({
+  state,
+  grunnlagActions,
+  vederlagActions,
+  fristActions,
+}: StatusDashboardProps) {
   return (
     <section aria-labelledby="dashboard-heading">
       <h2 id="dashboard-heading" className="sr-only">
@@ -29,18 +38,21 @@ export function StatusDashboard({ state }: StatusDashboardProps) {
           status={state.grunnlag.status}
           title="Grunnlag"
           lastUpdated={state.grunnlag.siste_oppdatert}
+          actions={grunnlagActions}
         />
         <StatusCard
           spor="vederlag"
           status={state.vederlag.status}
           title="Vederlag"
           lastUpdated={state.vederlag.siste_oppdatert}
+          actions={vederlagActions}
         />
         <StatusCard
           spor="frist"
           status={state.frist.status}
           title="Frist"
           lastUpdated={state.frist.siste_oppdatert}
+          actions={fristActions}
         />
       </div>
 

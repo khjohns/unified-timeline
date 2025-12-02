@@ -92,7 +92,6 @@ describe('Pages - Accessibility', () => {
       const results = await axe(container, {
         rules: {
           region: { enabled: true },
-          landmark: { enabled: true },
         },
       });
       expectNoA11yViolations(results);

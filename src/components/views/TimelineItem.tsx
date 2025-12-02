@@ -63,9 +63,9 @@ export function TimelineItem({
           </div>
 
           {/* Event Type */}
-          <h4 className="mt-pkt-02 text-body-md font-semibold text-gray-900">
+          <h3 className="mt-pkt-02 text-body-md font-semibold text-gray-900">
             {eventType}
-          </h4>
+          </h3>
 
           {/* Description */}
           <div className="mt-pkt-02 text-body-md text-gray-700">
