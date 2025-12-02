@@ -3,6 +3,7 @@
  *
  * Action modal for submitting a new grunnlag (basis/foundation) claim.
  * Uses React Hook Form + Zod for validation.
+ * Now includes legacy NS 8407 categories and varsel fields.
  */
 
 import { Modal } from '../primitives/Modal';
@@ -11,12 +12,20 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
+import { useState } from 'react';
+import {
+  HOVEDKATEGORI_OPTIONS,
+  getUnderkategorier,
+  VARSEL_METODER_OPTIONS,
+} from '../../constants';
 
 const grunnlagSchema = z.object({
   hovedkategori: z.string().min(1, 'Hovedkategori er påkrevd'),
-  underkategori: z.string().min(1, 'Underkategori er påkrevd'),
+  underkategori: z.array(z.string()).min(1, 'Minst én underkategori må velges'),
   beskrivelse: z.string().min(10, 'Beskrivelse må være minst 10 tegn'),
-  dato_oppdaget: z.string().min(1, 'Dato er påkrevd'),
+  dato_oppdaget: z.string().min(1, 'Dato oppdaget er påkrevd'),
+  dato_varsel_sendt: z.string().optional(),
+  varsel_metode: z.array(z.string()).optional(),
   kontraktsreferanser: z.string().optional(),
 });
 
@@ -33,21 +42,36 @@ export function SendGrunnlagModal({
   onOpenChange,
   sakId,
 }: SendGrunnlagModalProps) {
+  const [selectedHovedkategori, setSelectedHovedkategori] = useState<string>('');
+
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
     reset,
+    setValue,
   } = useForm<GrunnlagFormData>({
     resolver: zodResolver(grunnlagSchema),
+    defaultValues: {
+      underkategori: [],
+      varsel_metode: [],
+    },
   });
 
   const mutation = useSubmitEvent(sakId, {
     onSuccess: () => {
       reset();
+      setSelectedHovedkategori('');
       onOpenChange(false);
     },
   });
+
+  // Reset underkategori when hovedkategori changes
+  const handleHovedkategoriChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    setSelectedHovedkategori(value);
+    setValue('underkategori', []); // Clear underkategorier when hovedkategori changes
+  };
 
   const onSubmit = (data: GrunnlagFormData) => {
     // Convert comma-separated string to array
@@ -58,7 +82,12 @@ export function SendGrunnlagModal({
     mutation.mutate({
       eventType: 'grunnlag_opprettet',
       data: {
-        ...data,
+        hovedkategori: data.hovedkategori,
+        underkategori: data.underkategori,
+        beskrivelse: data.beskrivelse,
+        dato_oppdaget: data.dato_oppdaget,
+        dato_varsel_sendt: data.dato_varsel_sendt,
+        varsel_metode: data.varsel_metode,
         kontraktsreferanser,
       },
     });
@@ -76,22 +105,22 @@ export function SendGrunnlagModal({
         {/* Hovedkategori */}
         <div>
           <label htmlFor="hovedkategori" className="block text-sm font-medium text-gray-700">
-            Hovedkategori <span className="text-error">*</span>
+            Hovedkategori (NS 8407) <span className="text-error">*</span>
           </label>
           <select
             id="hovedkategori"
             {...register('hovedkategori')}
+            onChange={handleHovedkategoriChange}
             className="mt-pkt-02 block w-full rounded-pkt-md border-gray-300 shadow-sm focus:border-oslo-blue focus:ring-oslo-blue"
             aria-required="true"
             aria-invalid={!!errors.hovedkategori}
             aria-describedby={errors.hovedkategori ? 'hovedkategori-error' : undefined}
           >
-            <option value="">Velg kategori</option>
-            <option value="endret_arbeidsomfang">Endret arbeidsomfang</option>
-            <option value="uforutsette_forhold">Uforutsette forhold</option>
-            <option value="feil_mangel">Feil/mangel i prosjekteringsgrunnlag</option>
-            <option value="byggherre_endringsordre">Byggherres endringsordre</option>
-            <option value="force_majeure">Force majeure</option>
+            {HOVEDKATEGORI_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </select>
           {errors.hovedkategori && (
             <p id="hovedkategori-error" className="mt-pkt-02 text-sm text-error" role="alert">
@@ -100,27 +129,38 @@ export function SendGrunnlagModal({
           )}
         </div>
 
-        {/* Underkategori */}
-        <div>
-          <label htmlFor="underkategori" className="block text-sm font-medium text-gray-700">
-            Underkategori <span className="text-error">*</span>
-          </label>
-          <input
-            id="underkategori"
-            type="text"
-            {...register('underkategori')}
-            className="mt-pkt-02 block w-full rounded-pkt-md border-gray-300 shadow-sm focus:border-oslo-blue focus:ring-oslo-blue"
-            placeholder="F.eks. 'Grunnforhold', 'Terrengendringer'"
-            aria-required="true"
-            aria-invalid={!!errors.underkategori}
-            aria-describedby={errors.underkategori ? 'underkategori-error' : undefined}
-          />
-          {errors.underkategori && (
-            <p id="underkategori-error" className="mt-pkt-02 text-sm text-error" role="alert">
-              {errors.underkategori.message}
-            </p>
-          )}
-        </div>
+        {/* Underkategori - Dynamic based on hovedkategori */}
+        {selectedHovedkategori && getUnderkategorier(selectedHovedkategori).length > 0 && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-pkt-02">
+              Underkategori <span className="text-error">*</span>
+            </label>
+            <div className="space-y-pkt-02 max-h-48 overflow-y-auto border border-gray-300 rounded-pkt-md p-pkt-03">
+              {getUnderkategorier(selectedHovedkategori).map((option) => (
+                <div key={option.value} className="flex items-start">
+                  <input
+                    type="checkbox"
+                    id={`underkategori-${option.value}`}
+                    value={option.value}
+                    {...register('underkategori')}
+                    className="mt-1 h-4 w-4 rounded border-gray-300 text-oslo-blue focus:ring-oslo-blue"
+                  />
+                  <label
+                    htmlFor={`underkategori-${option.value}`}
+                    className="ml-pkt-02 text-sm text-gray-700"
+                  >
+                    {option.label}
+                  </label>
+                </div>
+              ))}
+            </div>
+            {errors.underkategori && (
+              <p className="mt-pkt-02 text-sm text-error" role="alert">
+                {errors.underkategori.message}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Beskrivelse */}
         <div>
@@ -144,10 +184,10 @@ export function SendGrunnlagModal({
           )}
         </div>
 
-        {/* Dato oppdaget */}
+        {/* Dato forhold oppdaget */}
         <div>
           <label htmlFor="dato_oppdaget" className="block text-sm font-medium text-gray-700">
-            Dato oppdaget <span className="text-error">*</span>
+            Dato forhold oppdaget <span className="text-error">*</span>
           </label>
           <input
             id="dato_oppdaget"
@@ -163,6 +203,51 @@ export function SendGrunnlagModal({
               {errors.dato_oppdaget.message}
             </p>
           )}
+        </div>
+
+        {/* Dato varsel sendt */}
+        <div>
+          <label htmlFor="dato_varsel_sendt" className="block text-sm font-medium text-gray-700">
+            Dato varsel sendt
+          </label>
+          <input
+            id="dato_varsel_sendt"
+            type="date"
+            {...register('dato_varsel_sendt')}
+            className="mt-pkt-02 block w-full rounded-pkt-md border-gray-300 shadow-sm focus:border-oslo-blue focus:ring-oslo-blue"
+          />
+          <p className="mt-pkt-02 text-xs text-gray-500">
+            Når ble forholdet formelt varslet til BH? (Kan være forskjellig fra oppdaget-dato)
+          </p>
+        </div>
+
+        {/* Varsel metode */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-pkt-02">
+            Varselmetode
+          </label>
+          <div className="space-y-pkt-02 border border-gray-300 rounded-pkt-md p-pkt-03">
+            {VARSEL_METODER_OPTIONS.map((option) => (
+              <div key={option.value} className="flex items-center">
+                <input
+                  type="checkbox"
+                  id={`varsel-${option.value}`}
+                  value={option.value}
+                  {...register('varsel_metode')}
+                  className="h-4 w-4 rounded border-gray-300 text-oslo-blue focus:ring-oslo-blue"
+                />
+                <label
+                  htmlFor={`varsel-${option.value}`}
+                  className="ml-pkt-02 text-sm text-gray-700"
+                >
+                  {option.label}
+                </label>
+              </div>
+            ))}
+          </div>
+          <p className="mt-pkt-02 text-xs text-gray-500">
+            Hvordan ble BH varslet? (Kan velge flere)
+          </p>
         </div>
 
         {/* Kontraktsreferanser */}

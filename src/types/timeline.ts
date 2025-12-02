@@ -21,6 +21,24 @@ export type SporStatus =
   | 'trukket'
   | 'laast';
 
+// Vederlag response results (includes "godkjent med annen metode")
+export type VederlagResponsResultat =
+  | 'godkjent_fullt'
+  | 'delvis_godkjent'
+  | 'avslatt_uenig_grunnlag'
+  | 'avslatt_for_sent'
+  | 'avventer_spesifikasjon'
+  | 'godkjent_annen_metode';
+
+// Frist response results (includes "delvis godkjent bestrider beregning")
+export type FristResponsResultat =
+  | 'godkjent_fullt'
+  | 'delvis_godkjent_bestrider_beregning'
+  | 'avslatt_uenig_grunnlag'
+  | 'avslatt_for_sent'
+  | 'avventer_spesifikasjon';
+
+// Generic response result (for backward compatibility)
 export type ResponsResultat =
   | 'godkjent'
   | 'delvis_godkjent'
@@ -43,9 +61,11 @@ export type OverordnetStatus =
 export interface GrunnlagTilstand {
   status: SporStatus;
   hovedkategori?: string;
-  underkategori?: string;
+  underkategori?: string | string[]; // Support both single and multiple underkategorier
   beskrivelse?: string;
   dato_oppdaget?: string;
+  dato_varsel_sendt?: string; // NEW: Separate date for when warning was sent
+  varsel_metode?: string[]; // NEW: Methods used to notify (e.g., ["epost", "byggemote"])
   kontraktsreferanser: string[];
   bh_resultat?: ResponsResultat;
   bh_begrunnelse?: string;
@@ -57,10 +77,14 @@ export interface GrunnlagTilstand {
 export interface VederlagTilstand {
   status: SporStatus;
   krevd_belop?: number;
-  metode?: string;
+  metode?: string; // Uses codes from VEDERLAGSMETODER_OPTIONS
   begrunnelse?: string;
-  bh_resultat?: ResponsResultat;
+  inkluderer_produktivitetstap?: boolean;
+  inkluderer_rigg_drift?: boolean;
+  saerskilt_varsel_rigg_drift?: boolean; // NEW: Separate notification for rigg/drift
+  bh_resultat?: VederlagResponsResultat; // Use specific vederlag response type
   bh_begrunnelse?: string;
+  bh_metode?: string; // NEW: If BH approves with different method
   godkjent_belop?: number;
   differanse?: number;
   godkjenningsgrad_prosent?: number;
@@ -73,7 +97,8 @@ export interface FristTilstand {
   krevd_dager?: number;
   frist_type?: 'kalenderdager' | 'arbeidsdager';
   begrunnelse?: string;
-  bh_resultat?: ResponsResultat;
+  pavirker_kritisk_linje?: boolean; // NEW: Whether this affects critical path
+  bh_resultat?: FristResponsResultat; // Use specific frist response type
   bh_begrunnelse?: string;
   godkjent_dager?: number;
   differanse_dager?: number;
@@ -130,20 +155,23 @@ export type EventType =
   | 'eo_utstedt';
 
 export interface GrunnlagEventData {
-  hovedkategori: string;
-  underkategori: string;
+  hovedkategori: string; // Code from HOVEDKATEGORI_OPTIONS (e.g., "endring_initiert_bh")
+  underkategori: string | string[]; // Code(s) from UNDERKATEGORI_MAP
   beskrivelse: string;
   dato_oppdaget: string;
+  dato_varsel_sendt?: string; // NEW: When the warning was actually sent
+  varsel_metode?: string[]; // NEW: Methods used (e.g., ["epost", "byggemote"])
   kontraktsreferanser?: string[];
   vedlegg_ids?: string[];
 }
 
 export interface VederlagEventData {
   krav_belop: number;
-  metode: string;
+  metode: string; // Code from VEDERLAGSMETODER_OPTIONS (e.g., "entreprenorens_tilbud")
   begrunnelse: string;
   inkluderer_produktivitetstap?: boolean;
   inkluderer_rigg_drift?: boolean;
+  saerskilt_varsel_rigg_drift?: boolean; // NEW: From legacy
 }
 
 export interface FristEventData {
@@ -153,6 +181,22 @@ export interface FristEventData {
   pavirker_kritisk_linje?: boolean;
 }
 
+// Vederlag response event
+export interface ResponsVederlagEventData {
+  resultat: VederlagResponsResultat; // Use specific vederlag response type
+  begrunnelse: string;
+  godkjent_belop?: number;
+  godkjent_metode?: string; // NEW: If approved with different method
+}
+
+// Frist response event
+export interface ResponsFristEventData {
+  resultat: FristResponsResultat; // Use specific frist response type
+  begrunnelse: string;
+  godkjent_dager?: number;
+}
+
+// Generic response event (for backward compatibility)
 export interface ResponsEventData {
   resultat: ResponsResultat;
   begrunnelse: string;

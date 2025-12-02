@@ -3,6 +3,7 @@
  *
  * Action modal for BH (client) to respond to a frist (deadline extension) claim.
  * Includes fields for approved number of days and result.
+ * Now includes legacy NS 8407 response options.
  */
 
 import { Modal } from '../primitives/Modal';
@@ -11,11 +12,17 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
-import { ResponsResultat } from '../../types/timeline';
+import { BH_FRISTSVAR_OPTIONS } from '../../constants';
 
 const respondFristSchema = z.object({
   resultat: z.enum(
-    ['godkjent', 'delvis_godkjent', 'avvist_uenig', 'avvist_for_sent', 'krever_avklaring'],
+    [
+      'godkjent_fullt',
+      'delvis_godkjent_bestrider_beregning',
+      'avslatt_uenig_grunnlag',
+      'avslatt_for_sent',
+      'avventer_spesifikasjon',
+    ],
     {
       errorMap: () => ({ message: 'Resultat er påkrevd' }),
     }
@@ -33,14 +40,6 @@ interface RespondFristModalProps {
   krevdDager?: number;
   fristType?: 'kalenderdager' | 'arbeidsdager';
 }
-
-const RESULTAT_OPTIONS: Array<{ value: ResponsResultat; label: string }> = [
-  { value: 'godkjent', label: 'Godkjent' },
-  { value: 'delvis_godkjent', label: 'Delvis godkjent' },
-  { value: 'avvist_uenig', label: 'Avvist - uenig i behov' },
-  { value: 'avvist_for_sent', label: 'Avvist - for sent varslet' },
-  { value: 'krever_avklaring', label: 'Krever ytterligere avklaring' },
-];
 
 export function RespondFristModal({
   open,
@@ -76,6 +75,11 @@ export function RespondFristModal({
     });
   };
 
+  // Show days field for full or partial approval
+  const showDaysField =
+    selectedResultat === 'godkjent_fullt' ||
+    selectedResultat === 'delvis_godkjent_bestrider_beregning';
+
   return (
     <Modal
       open={open}
@@ -94,7 +98,7 @@ export function RespondFristModal({
           </div>
         )}
 
-        {/* Resultat */}
+        {/* Resultat - Using legacy NS 8407 options */}
         <div>
           <label htmlFor="resultat" className="block text-sm font-medium text-gray-700">
             Resultat <span className="text-error">*</span>
@@ -107,8 +111,7 @@ export function RespondFristModal({
             aria-invalid={!!errors.resultat}
             aria-describedby={errors.resultat ? 'resultat-error' : undefined}
           >
-            <option value="">Velg resultat</option>
-            {RESULTAT_OPTIONS.map((option) => (
+            {BH_FRISTSVAR_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
@@ -122,11 +125,11 @@ export function RespondFristModal({
         </div>
 
         {/* Godkjent dager - only show if godkjent or delvis_godkjent */}
-        {(selectedResultat === 'godkjent' || selectedResultat === 'delvis_godkjent') && (
+        {showDaysField && (
           <div>
             <label htmlFor="godkjent_dager" className="block text-sm font-medium text-gray-700">
               Godkjent antall dager{' '}
-              {selectedResultat === 'godkjent' ? <span className="text-error">*</span> : ''}
+              {selectedResultat === 'godkjent_fullt' ? <span className="text-error">*</span> : ''}
             </label>
             <input
               id="godkjent_dager"
@@ -149,6 +152,11 @@ export function RespondFristModal({
                 {((godkjentDager / krevdDager) * 100).toFixed(1)}% godkjent)
               </p>
             )}
+            {selectedResultat === 'delvis_godkjent_bestrider_beregning' && (
+              <p className="mt-pkt-02 text-xs text-info-600">
+                Enig i grunnlag, men bestrider beregning av antall dager
+              </p>
+            )}
           </div>
         )}
 
@@ -156,19 +164,22 @@ export function RespondFristModal({
         {selectedResultat && (
           <div
             className={`p-pkt-04 rounded-pkt-md ${
-              selectedResultat === 'godkjent'
+              selectedResultat === 'godkjent_fullt'
                 ? 'bg-success-100 border border-success-500'
-                : selectedResultat === 'delvis_godkjent'
+                : selectedResultat === 'delvis_godkjent_bestrider_beregning' ||
+                  selectedResultat === 'avventer_spesifikasjon'
                 ? 'bg-warning-100 border border-warning-500'
                 : 'bg-error-100 border border-error-500'
             }`}
           >
             <p className="text-sm font-medium">
-              {selectedResultat === 'godkjent'
-                ? '✓ Fristforlengelsen vil bli godkjent'
-                : selectedResultat === 'delvis_godkjent'
-                ? '◐ Fristforlengelsen vil bli delvis godkjent'
-                : '✗ Fristforlengelsen vil bli avvist eller krever avklaring'}
+              {selectedResultat === 'godkjent_fullt'
+                ? '✓ Fristforlengelsen vil bli godkjent fullt ut'
+                : selectedResultat === 'delvis_godkjent_bestrider_beregning'
+                ? '◐ Delvis godkjent - enig i grunnlag, bestrider beregning'
+                : selectedResultat === 'avventer_spesifikasjon'
+                ? '⏸ Avventer nærmere spesifikasjon'
+                : '✗ Fristforlengelsen vil bli avslått'}
             </p>
           </div>
         )}

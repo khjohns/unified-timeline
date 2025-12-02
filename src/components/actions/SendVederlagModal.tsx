@@ -3,6 +3,7 @@
  *
  * Action modal for submitting a new vederlag (compensation) claim.
  * Uses React Hook Form + Zod for validation.
+ * Now includes legacy NS 8407 payment methods.
  */
 
 import { Modal } from '../primitives/Modal';
@@ -11,6 +12,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
+import { VEDERLAGSMETODER_OPTIONS } from '../../constants';
 
 const vederlagSchema = z.object({
   krav_belop: z.number().min(1, 'Beløp må være større enn 0'),
@@ -18,6 +20,7 @@ const vederlagSchema = z.object({
   begrunnelse: z.string().min(10, 'Begrunnelse må være minst 10 tegn'),
   inkluderer_produktivitetstap: z.boolean().optional(),
   inkluderer_rigg_drift: z.boolean().optional(),
+  saerskilt_varsel_rigg_drift: z.boolean().optional(),
 });
 
 type VederlagFormData = z.infer<typeof vederlagSchema>;
@@ -88,10 +91,10 @@ export function SendVederlagModal({
           )}
         </div>
 
-        {/* Method Field */}
+        {/* Method Field - Using NS 8407 options */}
         <div>
           <label htmlFor="metode" className="block text-sm font-medium text-gray-700">
-            Beregningsmetode <span className="text-error">*</span>
+            Vederlagsmetode (NS 8407) <span className="text-error">*</span>
           </label>
           <select
             id="metode"
@@ -101,17 +104,20 @@ export function SendVederlagModal({
             aria-invalid={!!errors.metode}
             aria-describedby={errors.metode ? 'metode-error' : undefined}
           >
-            <option value="">Velg metode</option>
-            <option value="direkte_kostnader">Direkte kostnader</option>
-            <option value="timepriser">Timepriser</option>
-            <option value="enhetspriser">Enhetspriser</option>
-            <option value="annet">Annet</option>
+            {VEDERLAGSMETODER_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </select>
           {errors.metode && (
             <p id="metode-error" className="mt-pkt-02 text-sm text-error" role="alert">
               {errors.metode.message}
             </p>
           )}
+          <p className="mt-pkt-02 text-xs text-gray-500">
+            Hvilken beregningsmetode brukes for vederlagskravet?
+          </p>
         </div>
 
         {/* Justification Field */}
@@ -162,6 +168,21 @@ export function SendVederlagModal({
             />
             <label htmlFor="inkluderer_rigg_drift" className="ml-pkt-02 text-sm text-gray-700">
               Inkluderer rigg/drift
+            </label>
+          </div>
+
+          <div className="flex items-center">
+            <input
+              id="saerskilt_varsel_rigg_drift"
+              type="checkbox"
+              {...register('saerskilt_varsel_rigg_drift')}
+              className="h-4 w-4 rounded border-gray-300 text-oslo-blue focus:ring-oslo-blue"
+            />
+            <label
+              htmlFor="saerskilt_varsel_rigg_drift"
+              className="ml-pkt-02 text-sm text-gray-700"
+            >
+              Særskilt varsel for rigg/drift sendt
             </label>
           </div>
         </div>
