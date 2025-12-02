@@ -95,13 +95,14 @@ export interface VederlagTilstand {
 export interface FristTilstand {
   status: SporStatus;
   krevd_dager?: number;
-  frist_type?: 'kalenderdager' | 'arbeidsdager';
+  frist_type?: 'uspesifisert_krav' | 'spesifisert_krav'; // NS 8407 §33.6.1 and §33.6.2
   begrunnelse?: string;
   pavirker_kritisk_linje?: boolean; // NEW: Whether this affects critical path
   bh_resultat?: FristResponsResultat; // Use specific frist response type
   bh_begrunnelse?: string;
   godkjent_dager?: number;
   differanse_dager?: number;
+  frist_for_spesifisering?: string; // NEW: Date for when specification is due (YYYY-MM-DD)
   siste_oppdatert?: string;
   antall_versjoner: number;
 }
@@ -176,7 +177,7 @@ export interface VederlagEventData {
 
 export interface FristEventData {
   antall_dager: number;
-  frist_type: 'kalenderdager' | 'arbeidsdager';
+  frist_type: 'uspesifisert_krav' | 'spesifisert_krav'; // NS 8407 §33.6.1 and §33.6.2
   begrunnelse: string;
   pavirker_kritisk_linje?: boolean;
 }
@@ -194,6 +195,7 @@ export interface ResponsFristEventData {
   resultat: FristResponsResultat; // Use specific frist response type
   begrunnelse: string;
   godkjent_dager?: number;
+  frist_for_spesifisering?: string; // NEW: Date for when specification is due (YYYY-MM-DD)
 }
 
 // Generic response event (for backward compatibility)
