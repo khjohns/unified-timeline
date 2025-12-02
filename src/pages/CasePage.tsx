@@ -111,6 +111,9 @@ export function CasePage() {
           state={state}
           grunnlagActions={
             <>
+              {/* TE Actions: "Send" and "Oppdater" are mutually exclusive */}
+              {/* - Send: Only available when status is 'utkast' (not yet sent) */}
+              {/* - Oppdater: Only available after sent (sendt/under_behandling/avvist) */}
               {userRole === 'TE' && actions.canSendGrunnlag && (
                 <Button
                   variant="primary"
@@ -125,6 +128,7 @@ export function CasePage() {
                   Oppdater grunnlag
                 </Button>
               )}
+              {/* BH Actions: Respond to TE's submission */}
               {userRole === 'BH' && actions.canRespondToGrunnlag && (
                 <Button
                   variant="primary"
@@ -138,6 +142,7 @@ export function CasePage() {
           }
           vederlagActions={
             <>
+              {/* TE Actions: "Send" and "Oppdater" are mutually exclusive */}
               {userRole === 'TE' && actions.canSendVederlag && (
                 <Button
                   variant="primary"
@@ -152,6 +157,7 @@ export function CasePage() {
                   Oppdater vederlag
                 </Button>
               )}
+              {/* BH Actions: Respond to TE's submission */}
               {userRole === 'BH' && actions.canRespondToVederlag && (
                 <Button
                   variant="primary"
@@ -165,6 +171,7 @@ export function CasePage() {
           }
           fristActions={
             <>
+              {/* TE Actions: "Send" and "Oppdater" are mutually exclusive */}
               {userRole === 'TE' && actions.canSendFrist && (
                 <Button
                   variant="primary"
@@ -179,6 +186,7 @@ export function CasePage() {
                   Oppdater frist
                 </Button>
               )}
+              {/* BH Actions: Respond to TE's submission */}
               {userRole === 'BH' && actions.canRespondToFrist && (
                 <Button
                   variant="primary"
