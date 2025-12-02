@@ -6,6 +6,8 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict
 from pathlib import Path
 from threading import RLock
+from functools import wraps
+from flask import request, jsonify
 
 class MagicLinkManager:
     """
@@ -105,4 +107,56 @@ class MagicLinkManager:
                     self.tokens[token]["revoked"] = True
                     self.tokens[token]["revoked_at"] = datetime.utcnow().isoformat() + "Z"
                     self._save_tokens()
+
+
+# ============ DECORATOR ============
+
+# Singleton instance
+_magic_link_manager = None
+
+def get_magic_link_manager():
+    """Get or create the singleton MagicLinkManager instance."""
+    global _magic_link_manager
+    if _magic_link_manager is None:
+        _magic_link_manager = MagicLinkManager()
+    return _magic_link_manager
+
+
+def require_magic_link(f):
+    """
+    Dekoratør som krever gyldig magic link token.
+
+    Token må sendes i Authorization header som Bearer token.
+    Ved suksess legges token-data i request.magic_link_data.
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # Hent token fra Authorization header
+        auth_header = request.headers.get('Authorization', '')
+        token = auth_header.replace('Bearer ', '').strip()
+
+        if not token:
+            return jsonify({
+                "success": False,
+                "error": "UNAUTHORIZED",
+                "message": "Mangler magic link token"
+            }), 401
+
+        # Verifiser token
+        manager = get_magic_link_manager()
+        valid, message, data = manager.verify(token)
+
+        if not valid:
+            return jsonify({
+                "success": False,
+                "error": "UNAUTHORIZED",
+                "message": f"Ugyldig token: {message}"
+            }), 401
+
+        # Legg token-data i request context
+        request.magic_link_data = data
+
+        return f(*args, **kwargs)
+
+    return decorated_function
 
