@@ -7,13 +7,15 @@ Den beregnes fra event-loggen og representerer "nå-situasjonen".
 SakState er READ-ONLY og regenereres hver gang fra events.
 """
 from pydantic import BaseModel, Field, computed_field
-from typing import Optional, List
+from typing import Optional, List, Union
 from datetime import datetime
 
 from models.events import (
     SporStatus,
     SporType,
     ResponsResultat,
+    VederlagResponsResultat,
+    FristResponsResultat,
     AnyEvent,
 )
 
@@ -27,9 +29,20 @@ class GrunnlagTilstand(BaseModel):
         description="Nåværende status for grunnlag"
     )
     hovedkategori: Optional[str] = Field(default=None)
-    underkategori: Optional[str] = Field(default=None)
+    underkategori: Optional[Union[str, List[str]]] = Field(
+        default=None,
+        description="Can be single string or array of codes"
+    )
     beskrivelse: Optional[str] = Field(default=None)
     dato_oppdaget: Optional[str] = Field(default=None)
+    dato_varsel_sendt: Optional[str] = Field(
+        default=None,
+        description="When warning was actually sent to BH"
+    )
+    varsel_metode: Optional[List[str]] = Field(
+        default=None,
+        description="Methods used to notify BH (e.g., ['epost', 'byggemote'])"
+    )
     kontraktsreferanser: List[str] = Field(default_factory=list)
 
     # BH respons
@@ -58,19 +71,36 @@ class VederlagTilstand(BaseModel):
 
     # Siste krav fra TE
     krevd_belop: Optional[float] = Field(default=None)
-    metode: Optional[str] = Field(default=None)
+    metode: Optional[str] = Field(
+        default=None,
+        description="Uses codes from VEDERLAGSMETODER_OPTIONS"
+    )
     begrunnelse: Optional[str] = Field(default=None)
     inkluderer_produktivitetstap: bool = Field(default=False)
     inkluderer_rigg_drift: bool = Field(default=False)
+    saerskilt_varsel_rigg_drift: bool = Field(
+        default=False,
+        description="Separate notification for rigg/drift"
+    )
 
     # BH respons
-    bh_resultat: Optional[ResponsResultat] = Field(default=None)
+    bh_resultat: Optional[Union[VederlagResponsResultat, ResponsResultat]] = Field(
+        default=None,
+        description="Use specific vederlag response type (backward compatible)"
+    )
     bh_begrunnelse: Optional[str] = Field(default=None)
+    bh_metode: Optional[str] = Field(
+        default=None,
+        description="If BH approves with different method"
+    )
     godkjent_belop: Optional[float] = Field(
         default=None,
         description="Beløp godkjent av BH (hvis delvis/full godkjenning)"
     )
-    godkjent_metode: Optional[str] = Field(default=None)
+    godkjent_metode: Optional[str] = Field(
+        default=None,
+        description="Deprecated: use bh_metode instead"
+    )
 
     # Differanse-info (nyttig for UI)
     @computed_field
@@ -106,11 +136,17 @@ class FristTilstand(BaseModel):
     krevd_dager: Optional[int] = Field(default=None)
     frist_type: Optional[str] = Field(default=None)
     begrunnelse: Optional[str] = Field(default=None)
-    pavirker_kritisk_linje: bool = Field(default=False)
+    pavirker_kritisk_linje: bool = Field(
+        default=False,
+        description="Whether this affects critical path"
+    )
     milepael_pavirket: Optional[str] = Field(default=None)
 
     # BH respons
-    bh_resultat: Optional[ResponsResultat] = Field(default=None)
+    bh_resultat: Optional[Union[FristResponsResultat, ResponsResultat]] = Field(
+        default=None,
+        description="Use specific frist response type (backward compatible)"
+    )
     bh_begrunnelse: Optional[str] = Field(default=None)
     godkjent_dager: Optional[int] = Field(
         default=None,
