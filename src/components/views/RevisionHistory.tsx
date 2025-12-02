@@ -95,7 +95,7 @@ export function RevisionHistory({ state }: RevisionHistoryProps) {
                 <ComparisonRow
                   label="Krevd beløp"
                   values={[
-                    state.vederlag.krevd_belop
+                    state.vederlag.krevd_belop !== null && state.vederlag.krevd_belop !== undefined
                       ? `${state.vederlag.krevd_belop.toLocaleString('nb-NO')} NOK`
                       : '—',
                   ]}
@@ -131,7 +131,7 @@ export function RevisionHistory({ state }: RevisionHistoryProps) {
                 <ComparisonRow
                   label="Godkjent beløp"
                   values={[
-                    state.vederlag.godkjent_belop !== null
+                    state.vederlag.godkjent_belop !== null && state.vederlag.godkjent_belop !== undefined
                       ? `${state.vederlag.godkjent_belop.toLocaleString('nb-NO')} NOK`
                       : '—',
                   ]}
@@ -195,7 +195,7 @@ export function RevisionHistory({ state }: RevisionHistoryProps) {
                 <ComparisonRow
                   label="Krevd dager"
                   values={[
-                    state.frist.krevd_dager
+                    state.frist.krevd_dager !== null && state.frist.krevd_dager !== undefined
                       ? `${state.frist.krevd_dager} dager`
                       : '—',
                   ]}
@@ -219,7 +219,7 @@ export function RevisionHistory({ state }: RevisionHistoryProps) {
                 <ComparisonRow
                   label="Godkjent dager"
                   values={[
-                    state.frist.godkjent_dager !== null
+                    state.frist.godkjent_dager !== null && state.frist.godkjent_dager !== undefined
                       ? `${state.frist.godkjent_dager} dager`
                       : '—',
                   ]}

@@ -136,19 +136,19 @@ export function ComprehensiveMetadata({
                 <dt className="text-gray-600">Status:</dt>
                 <dd className="font-medium">{state.vederlag.status}</dd>
               </div>
-              {state.vederlag.krevd_belop !== null && (
+              {state.vederlag.krevd_belop !== null && state.vederlag.krevd_belop !== undefined && (
                 <div>
                   <dt className="text-gray-600">Krevd:</dt>
                   <dd className="font-medium text-blue-700">
-                    {state.vederlag.krevd_belop?.toLocaleString('nb-NO')} NOK
+                    {state.vederlag.krevd_belop.toLocaleString('nb-NO')} NOK
                   </dd>
                 </div>
               )}
-              {state.vederlag.godkjent_belop !== null && (
+              {state.vederlag.godkjent_belop !== null && state.vederlag.godkjent_belop !== undefined && (
                 <div>
                   <dt className="text-gray-600">Godkjent:</dt>
                   <dd className="font-medium text-green-700">
-                    {state.vederlag.godkjent_belop?.toLocaleString('nb-NO')} NOK
+                    {state.vederlag.godkjent_belop.toLocaleString('nb-NO')} NOK
                   </dd>
                 </div>
               )}
@@ -163,7 +163,7 @@ export function ComprehensiveMetadata({
                 <dt className="text-gray-600">Status:</dt>
                 <dd className="font-medium">{state.frist.status}</dd>
               </div>
-              {state.frist.krevd_dager !== null && (
+              {state.frist.krevd_dager !== null && state.frist.krevd_dager !== undefined && (
                 <div>
                   <dt className="text-gray-600">Krevd:</dt>
                   <dd className="font-medium text-blue-700">
@@ -171,7 +171,7 @@ export function ComprehensiveMetadata({
                   </dd>
                 </div>
               )}
-              {state.frist.godkjent_dager !== null && (
+              {state.frist.godkjent_dager !== null && state.frist.godkjent_dager !== undefined && (
                 <div>
                   <dt className="text-gray-600">Godkjent:</dt>
                   <dd className="font-medium text-green-700">
@@ -191,18 +191,18 @@ export function ComprehensiveMetadata({
               <div>
                 <dt className="text-gray-600">Totalt krevd:</dt>
                 <dd className="font-medium text-blue-700">
-                  {state.sum_krevd.toLocaleString('nb-NO')} NOK
+                  {(state.sum_krevd || 0).toLocaleString('nb-NO')} NOK
                 </dd>
               </div>
               <div>
                 <dt className="text-gray-600">Totalt godkjent:</dt>
                 <dd className="font-medium text-green-700">
-                  {state.sum_godkjent.toLocaleString('nb-NO')} NOK
+                  {(state.sum_godkjent || 0).toLocaleString('nb-NO')} NOK
                 </dd>
               </div>
               <div>
                 <dt className="text-gray-600">Antall hendelser:</dt>
-                <dd className="font-medium">{state.antall_events}</dd>
+                <dd className="font-medium">{state.antall_events || 0}</dd>
               </div>
             </dl>
           </div>
