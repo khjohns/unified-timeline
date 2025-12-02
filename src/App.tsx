@@ -8,13 +8,13 @@ import { CasePage } from './pages/CasePage';
  *
  * Routes:
  * - / : Example cases selector (mock mode)
- * - /saker/:id : Case detail view (timeline + dashboard + actions)
+ * - /saker/:sakId : Case detail view (timeline + dashboard + actions)
  */
 const App: React.FC = () => {
   return (
     <Routes>
       <Route path="/" element={<ExampleCasesPage />} />
-      <Route path="/saker/:id" element={<CasePage />} />
+      <Route path="/saker/:sakId" element={<CasePage />} />
     </Routes>
   );
 };
