@@ -1,7 +1,7 @@
 /**
  * AUTO-GENERERT FIL - IKKE REDIGER MANUELT
  * Generert fra: shared/status-codes.json
- * Generert: 2025-11-30T19:39:26.669Z
+ * Generert: 2025-12-02T10:33:55.224Z
  *
  * Versjon: 1.0.0
  */
