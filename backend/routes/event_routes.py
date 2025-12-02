@@ -1,5 +1,5 @@
 """
-Event submission API with optimistic concurrency control.
+Event submission API with optimistic concurrency control and hybrid PDF generation.
 
 This module provides REST endpoints for submitting events to cases,
 with full support for:
@@ -7,16 +7,29 @@ with full support for:
 - Business rule validation
 - Atomic batch submissions
 - State computation and caching
+- Hybrid PDF generation (client-provided or server fallback)
+- Catenda integration (PDF upload + comment posting)
 """
 from flask import Blueprint, request, jsonify
+from typing import Optional, Tuple
+import base64
+import tempfile
+import os
+from datetime import datetime
+
 from services.timeline_service import TimelineService
 from services.business_rules import BusinessRuleValidator
 from repositories.event_repository import JsonFileEventRepository, ConcurrencyError
 from repositories.sak_metadata_repository import SakMetadataRepository
 from models.events import parse_event_from_request, parse_event
 from lib.auth.csrf_protection import require_csrf
-from lib.auth.magic_link import require_magic_link
-from datetime import datetime
+from lib.auth.magic_link import require_magic_link, get_magic_link_manager
+from services.catenda_service import CatendaService
+from integrations.catenda import CatendaClient
+from core.config import settings
+from utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 events_bp = Blueprint('events', __name__)
 
@@ -25,6 +38,7 @@ event_repo = JsonFileEventRepository()
 metadata_repo = SakMetadataRepository()
 timeline_service = TimelineService()
 validator = BusinessRuleValidator()
+magic_link_manager = get_magic_link_manager()
 
 
 @events_bp.route('/api/events', methods=['POST'])
@@ -32,16 +46,19 @@ validator = BusinessRuleValidator()
 @require_magic_link
 def submit_event():
     """
-    Submit a single event.
+    Submit a single event with optional client-generated PDF.
 
     Request:
     {
-        "event_type": "vederlag_krav_sendt",
+        "event": {
+            "event_type": "vederlag_krav_sendt",
+            "data": { ... }
+        },
         "sak_id": "KOE-20251201-001",
         "expected_version": 3,
-        "aktor": "ola.nordmann@example.com",
-        "aktor_rolle": "TE",
-        "data": { ... }
+        "catenda_topic_id": "optional-topic-guid",
+        "pdf_base64": "optional-base64-pdf",
+        "pdf_filename": "optional-filename.pdf"
     }
 
     Response 201:
@@ -49,7 +66,9 @@ def submit_event():
         "success": true,
         "event_id": "uuid",
         "new_version": 4,
-        "state": { ... computed SakState ... }
+        "state": { ... computed SakState ... },
+        "pdf_uploaded": true,
+        "pdf_source": "client" | "server"
     }
 
     Response 409 (Conflict):
@@ -62,21 +81,36 @@ def submit_event():
     }
     """
     try:
-        data = request.json
-        expected_version = data.pop('expected_version', None)
+        payload = request.json
+        sak_id = payload.get('sak_id')
+        expected_version = payload.get('expected_version')
+        event_data = payload.get('event')
+        catenda_topic_id = payload.get('catenda_topic_id')
 
-        if expected_version is None:
+        # Optional client-generated PDF (PREFERRED)
+        client_pdf_base64 = payload.get('pdf_base64')
+        client_pdf_filename = payload.get('pdf_filename')
+
+        if not sak_id or expected_version is None or not event_data:
             return jsonify({
                 "success": False,
-                "error": "MISSING_VERSION",
-                "message": "expected_version er påkrevd"
+                "error": "MISSING_PARAMETERS",
+                "message": "sak_id, expected_version, and event are required"
             }), 400
 
+        logger.info(f"📥 Event submission for case {sak_id}, expected version: {expected_version}")
+
+        if client_pdf_base64:
+            logger.info(f"✅ Client provided PDF: {client_pdf_filename}")
+        else:
+            logger.info(f"⚠️ No client PDF, backend will generate as fallback if needed")
+
         # 1. Parse event (validates server-controlled fields)
-        event = parse_event_from_request(data)
+        event_data['sak_id'] = sak_id
+        event = parse_event_from_request(event_data)
 
         # 2. Load current state for validation
-        existing_events_data, current_version = event_repo.get_events(event.sak_id)
+        existing_events_data, current_version = event_repo.get_events(sak_id)
 
         # 3. Validate expected version BEFORE business rules
         if current_version != expected_version:
@@ -122,27 +156,47 @@ def submit_event():
 
         # 7. Update cached metadata
         metadata_repo.update_cache(
-            sak_id=event.sak_id,
+            sak_id=sak_id,
             cached_title=new_state.sakstittel,
             cached_status=new_state.overordnet_status,
             last_event_at=datetime.now()
         )
 
-        # 8. Return success with new state
+        logger.info(f"✅ Event persisted, new version: {new_version}")
+
+        # 8. Catenda Integration (PDF + Comment) - optional
+        catenda_success = False
+        pdf_source = None
+
+        if catenda_topic_id:
+            catenda_success, pdf_source = _post_to_catenda(
+                sak_id=sak_id,
+                state=new_state,
+                event=event,
+                topic_id=catenda_topic_id,
+                client_pdf_base64=client_pdf_base64,
+                client_pdf_filename=client_pdf_filename
+            )
+
+        # 9. Return success with new state
         return jsonify({
             "success": True,
             "event_id": event.event_id,
             "new_version": new_version,
-            "state": new_state.model_dump(mode='json')
+            "state": new_state.model_dump(mode='json'),
+            "pdf_uploaded": catenda_success,
+            "pdf_source": pdf_source
         }), 201
 
     except ValueError as e:
+        logger.error(f"❌ Validation error: {e}")
         return jsonify({
             "success": False,
             "error": "VALIDATION_ERROR",
             "message": str(e)
         }), 400
     except Exception as e:
+        logger.error(f"❌ Internal error: {e}", exc_info=True)
         return jsonify({
             "success": False,
             "error": "INTERNAL_ERROR",
@@ -319,3 +373,187 @@ def get_case_timeline(sak_id: str):
         "version": version,
         "events": timeline
     })
+
+
+# ============================================================
+# CATENDA INTEGRATION HELPERS
+# ============================================================
+
+def _post_to_catenda(
+    sak_id: str,
+    state,
+    event,
+    topic_id: str,
+    client_pdf_base64: Optional[str] = None,
+    client_pdf_filename: Optional[str] = None
+) -> Tuple[bool, Optional[str]]:
+    """
+    Post PDF and comment to Catenda (hybrid approach).
+
+    Priority:
+    1. Use client-generated PDF if provided (PREFERRED)
+    2. Generate PDF on server as fallback (WeasyPrint)
+
+    Args:
+        sak_id: Case identifier
+        state: Current SakState
+        event: The event that triggered this
+        topic_id: Catenda topic GUID
+        client_pdf_base64: Optional base64 PDF from client
+        client_pdf_filename: Optional filename from client
+
+    Returns:
+        (success, pdf_source)  # pdf_source = "client" | "server" | None
+    """
+    try:
+        catenda_service = get_catenda_service()
+        if not catenda_service:
+            logger.warning("Catenda service not configured, skipping")
+            return False, None
+
+        # Get case metadata for project/board IDs
+        metadata = metadata_repo.get(sak_id)
+        if not metadata:
+            logger.warning(f"No metadata found for case {sak_id}")
+            return False, None
+
+        config = settings.get_catenda_config()
+        project_id = config.get('catenda_project_id')
+        board_id = metadata.catenda_board_id if metadata else None
+
+        if not project_id or not board_id:
+            logger.warning(f"Missing project/board ID for case {sak_id}")
+            return False, None
+
+        catenda_service.set_topic_board_id(board_id)
+
+        pdf_path = None
+        pdf_source = None
+        filename = None
+
+        # PRIORITY 1: Try to use client-generated PDF (PREFERRED)
+        if client_pdf_base64:
+            try:
+                logger.info(f"📄 Using client-generated PDF: {client_pdf_filename}")
+
+                # Decode base64 PDF
+                pdf_data = base64.b64decode(client_pdf_base64)
+
+                # Save to temp file
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_pdf:
+                    temp_pdf.write(pdf_data)
+                    pdf_path = temp_pdf.name
+
+                filename = client_pdf_filename or f"KOE_{sak_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                pdf_source = "client"
+
+                logger.info(f"✅ Client PDF decoded: {len(pdf_data)} bytes")
+
+            except Exception as e:
+                logger.error(f"❌ Failed to decode client PDF: {e}")
+                # Fall through to server generation
+                pdf_path = None
+                pdf_source = None
+
+        # PRIORITY 2: Fallback - Generate PDF on server (WeasyPrint)
+        if not pdf_path:
+            logger.info("📄 Generating PDF on server (fallback)")
+
+            # Import WeasyPrint generator dynamically to avoid import errors if not installed
+            try:
+                from services.weasyprint_generator import WeasyPrintGenerator
+                pdf_generator = WeasyPrintGenerator()
+
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_pdf:
+                    pdf_path = temp_pdf.name
+
+                filename = f"KOE_{sak_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+                if not pdf_generator.generate_koe_pdf(state, pdf_path):
+                    logger.error("❌ Failed to generate PDF on server")
+                    return False, None
+
+                pdf_source = "server"
+                logger.info(f"✅ Server PDF generated: {filename}")
+
+            except ImportError:
+                logger.error("❌ WeasyPrint generator not available (not installed)")
+                return False, None
+            except Exception as e:
+                logger.error(f"❌ Failed to generate PDF on server: {e}")
+                return False, None
+
+        # Upload PDF to Catenda
+        doc_result = catenda_service.upload_document(project_id, pdf_path, filename)
+
+        if not doc_result:
+            logger.error("❌ Failed to upload PDF to Catenda")
+            # Cleanup temp file
+            if pdf_path:
+                try:
+                    os.remove(pdf_path)
+                except:
+                    pass
+            return False, pdf_source
+
+        document_guid = doc_result.get('library_item_id')
+        logger.info(f"✅ PDF uploaded to Catenda: {document_guid}")
+
+        # Link document to topic
+        catenda_service.create_document_reference(topic_id, document_guid)
+
+        # Generate and post comment (if comment generator is available)
+        try:
+            from services.catenda_comment_generator import CatendaCommentGenerator
+            comment_generator = CatendaCommentGenerator()
+
+            # Generate magic link for comment
+            magic_token = magic_link_manager.generate(sak_id=sak_id)
+            base_url = settings.dev_react_app_url or settings.react_app_url
+            magic_link = f"{base_url}?magicToken={magic_token}" if base_url else None
+
+            comment_text = comment_generator.generate_comment(state, event, magic_link)
+            catenda_service.create_comment(topic_id, comment_text)
+
+            logger.info(f"✅ Comment posted to Catenda for case {sak_id}")
+
+        except ImportError:
+            logger.warning("Comment generator not available, skipping comment")
+        except Exception as e:
+            logger.error(f"❌ Failed to post comment: {e}")
+            # Continue anyway - PDF was uploaded successfully
+
+        # Cleanup temp file
+        if pdf_path:
+            try:
+                os.remove(pdf_path)
+            except:
+                pass
+
+        return True, pdf_source
+
+    except Exception as e:
+        logger.error(f"❌ Failed to post to Catenda: {e}", exc_info=True)
+        return False, None
+
+
+def get_catenda_service() -> Optional[CatendaService]:
+    """Get configured Catenda service or None if not available."""
+    try:
+        config = settings.get_catenda_config()
+        catenda_client = CatendaClient(
+            client_id=config['catenda_client_id'],
+            client_secret=config.get('catenda_client_secret')
+        )
+
+        access_token = config.get('catenda_access_token')
+        if access_token:
+            catenda_client.set_access_token(access_token)
+        elif config.get('catenda_client_secret'):
+            catenda_client.authenticate()
+
+        return CatendaService(catenda_api_client=catenda_client)
+
+    except Exception as e:
+        logger.warning(f"Catenda service not available: {e}")
+        return None

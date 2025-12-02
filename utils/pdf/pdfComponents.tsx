@@ -1,6 +1,7 @@
 import React from 'react';
 import { Document, Page, Text, View, Image } from '@react-pdf/renderer';
 import { FormDataModel } from '../../types';
+import { SakState } from '../../types/timeline';
 import { pdfLabels } from '../pdfLabels';
 import { getKravStatusSkin, getSvarStatusSkin, getSakStatusSkin } from '../statusHelpers';
 import { styles, COLORS, baseUrl } from './pdfStyles';
@@ -598,7 +599,18 @@ export const BhSvarRevisionSection: React.FC<{
 );
 
 // Main Document Component
-export const KoePdfDocument: React.FC<{ data: FormDataModel }> = ({ data }) => {
+export const KoePdfDocument: React.FC<{ data?: FormDataModel; state?: SakState }> = ({ data, state }) => {
+  // HYBRID SUPPORT: Use SakState if provided, otherwise fall back to FormDataModel
+  if (state) {
+    // NEW: Event Sourcing mode - render simplified PDF from SakState
+    return <KoePdfDocumentFromState state={state} />;
+  }
+
+  if (!data) {
+    throw new Error('Either data or state must be provided to KoePdfDocument');
+  }
+
+  // LEGACY: FormDataModel mode (keep existing implementation)
   // FASE 1.1: Filtrer revisjoner som skal vises i PDF
   // Inkluderer:
   // 1. Alle krav som har dato_krav_sendt (faktisk sendt)
@@ -692,6 +704,175 @@ export const KoePdfDocument: React.FC<{ data: FormDataModel }> = ({ data }) => {
           <Footer pageNumber={totalPages} totalPages={totalPages} />
         </Page>
       )}
+    </Document>
+  );
+};
+
+// ============================================================
+// NEW: Event Sourcing PDF Component (from SakState)
+// ============================================================
+
+const SimpleHeader: React.FC<{ sakstittel: string }> = ({ sakstittel }) => (
+  <View style={styles.header}>
+    <View style={styles.headerContent}>
+      <Text style={styles.headerTitle}>KOE – Krav om endringsordre</Text>
+      <Text style={styles.headerSubtitle}>{sakstittel}</Text>
+    </View>
+    <Image
+      src={`${baseUrl}/logos/Oslo-logo-hvit-RGB.png`}
+      style={styles.headerLogo}
+    />
+  </View>
+);
+
+const SimpleFooter: React.FC = () => (
+  <View style={styles.footer} fixed>
+    <Text>
+      Generert: {new Date().toLocaleDateString('no-NO', { day: 'numeric', month: 'long', year: 'numeric' })} kl.{' '}
+      {new Date().toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' })}
+    </Text>
+    <Text>Side 1 av 1</Text>
+  </View>
+);
+
+const KoePdfDocumentFromState: React.FC<{ state: SakState }> = ({ state }) => {
+  const formatStatus = (status: string): string => {
+    const statusMap: Record<string, string> = {
+      'ikke_relevant': 'Ikke relevant',
+      'utkast': 'Utkast',
+      'sendt': 'Sendt til BH',
+      'under_behandling': 'Under behandling',
+      'godkjent': 'Godkjent',
+      'delvis_godkjent': 'Delvis godkjent',
+      'avvist': 'Avvist',
+      'under_forhandling': 'Under forhandling',
+      'trukket': 'Trukket',
+      'laast': 'Låst',
+    };
+    return statusMap[status] || status;
+  };
+
+  return (
+    <Document
+      title={state.sakstittel || 'KOE – Krav om endringsordre'}
+      author="Oslo Kommune"
+    >
+      <Page size="A4" style={styles.page}>
+        <SimpleHeader sakstittel={state.sakstittel} />
+
+        {/* Metadata Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Saksinformasjon</Text>
+          <TableRow label="Sak-ID:" value={state.sak_id} />
+          <TableRow label="Sakstittel:" value={state.sakstittel} striped />
+          <TableRow label="Overordnet status:" value={state.overordnet_status} />
+        </View>
+
+        {/* GRUNNLAG Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>1. GRUNNLAG</Text>
+          {state.grunnlag.status === 'ikke_relevant' ? (
+            <Text style={styles.notRelevant}>Ikke relevant</Text>
+          ) : (
+            <>
+              <TableRow label="Status:" value={formatStatus(state.grunnlag.status)} />
+              {state.grunnlag.hovedkategori && (
+                <TableRow label="Hovedkategori:" value={state.grunnlag.hovedkategori} striped />
+              )}
+              {state.grunnlag.underkategori && (
+                <TableRow label="Underkategori:" value={state.grunnlag.underkategori} />
+              )}
+              {state.grunnlag.beskrivelse && (
+                <TextBlock title="Beskrivelse" content={state.grunnlag.beskrivelse} />
+              )}
+              {state.grunnlag.dato_oppdaget && (
+                <TableRow label="Dato oppdaget:" value={state.grunnlag.dato_oppdaget} striped />
+              )}
+              {state.grunnlag.bh_resultat && (
+                <>
+                  <TableRow label="BH Resultat:" value={formatStatus(state.grunnlag.bh_resultat)} />
+                  {state.grunnlag.bh_begrunnelse && (
+                    <TextBlock title="BH Begrunnelse" content={state.grunnlag.bh_begrunnelse} />
+                  )}
+                </>
+              )}
+            </>
+          )}
+        </View>
+
+        {/* VEDERLAG Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>2. VEDERLAG</Text>
+          {state.vederlag.status === 'ikke_relevant' ? (
+            <Text style={styles.notRelevant}>Ikke relevant</Text>
+          ) : (
+            <>
+              <TableRow label="Status:" value={formatStatus(state.vederlag.status)} />
+              {state.vederlag.krevd_belop !== undefined && (
+                <TableRow
+                  label="Krevd beløp:"
+                  value={`${state.vederlag.krevd_belop.toLocaleString('no-NO')} NOK`}
+                  striped
+                />
+              )}
+              {state.vederlag.metode && (
+                <TableRow label="Metode:" value={state.vederlag.metode} />
+              )}
+              {state.vederlag.begrunnelse && (
+                <TextBlock title="Begrunnelse" content={state.vederlag.begrunnelse} />
+              )}
+              {state.vederlag.bh_resultat && (
+                <>
+                  <TableRow label="BH Resultat:" value={formatStatus(state.vederlag.bh_resultat)} striped />
+                  {state.vederlag.godkjent_belop !== undefined && (
+                    <TableRow
+                      label="Godkjent beløp:"
+                      value={`${state.vederlag.godkjent_belop.toLocaleString('no-NO')} NOK`}
+                    />
+                  )}
+                  {state.vederlag.bh_begrunnelse && (
+                    <TextBlock title="BH Begrunnelse" content={state.vederlag.bh_begrunnelse} />
+                  )}
+                </>
+              )}
+            </>
+          )}
+        </View>
+
+        {/* FRIST Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>3. FRISTFORLENGELSE</Text>
+          {state.frist.status === 'ikke_relevant' ? (
+            <Text style={styles.notRelevant}>Ikke relevant</Text>
+          ) : (
+            <>
+              <TableRow label="Status:" value={formatStatus(state.frist.status)} />
+              {state.frist.krevd_dager !== undefined && (
+                <TableRow label="Antall dager:" value={String(state.frist.krevd_dager)} striped />
+              )}
+              {state.frist.frist_type && (
+                <TableRow label="Type:" value={state.frist.frist_type} />
+              )}
+              {state.frist.begrunnelse && (
+                <TextBlock title="Begrunnelse" content={state.frist.begrunnelse} />
+              )}
+              {state.frist.bh_resultat && (
+                <>
+                  <TableRow label="BH Resultat:" value={formatStatus(state.frist.bh_resultat)} striped />
+                  {state.frist.godkjent_dager !== undefined && (
+                    <TableRow label="Godkjente dager:" value={String(state.frist.godkjent_dager)} />
+                  )}
+                  {state.frist.bh_begrunnelse && (
+                    <TextBlock title="BH Begrunnelse" content={state.frist.bh_begrunnelse} />
+                  )}
+                </>
+              )}
+            </>
+          )}
+        </View>
+
+        <SimpleFooter />
+      </Page>
     </Document>
   );
 };

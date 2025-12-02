@@ -335,4 +335,10 @@ export const styles = StyleSheet.create({
     fontWeight: 'bold',
     // ENDRING: Fjernet 'marginRight: 60'
   },
+  notRelevant: {
+    fontSize: 9,
+    color: COLORS.muted,
+    fontStyle: 'italic',
+    marginTop: 5,
+  },
 });
