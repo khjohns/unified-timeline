@@ -54,8 +54,30 @@ class EventType(str, Enum):
     EO_UTSTEDT = "eo_utstedt"
 
 
+# Vederlag response results (includes "godkjent med annen metode")
+class VederlagResponsResultat(str, Enum):
+    """Mulige utfall av en BH-respons på vederlag"""
+    GODKJENT_FULLT = "godkjent_fullt"
+    DELVIS_GODKJENT = "delvis_godkjent"
+    AVSLATT_UENIG_GRUNNLAG = "avslatt_uenig_grunnlag"
+    AVSLATT_FOR_SENT = "avslatt_for_sent"
+    AVVENTER_SPESIFIKASJON = "avventer_spesifikasjon"
+    GODKJENT_ANNEN_METODE = "godkjent_annen_metode"
+
+
+# Frist response results (includes "delvis godkjent bestrider beregning")
+class FristResponsResultat(str, Enum):
+    """Mulige utfall av en BH-respons på frist"""
+    GODKJENT_FULLT = "godkjent_fullt"
+    DELVIS_GODKJENT_BESTRIDER_BEREGNING = "delvis_godkjent_bestrider_beregning"
+    AVSLATT_UENIG_GRUNNLAG = "avslatt_uenig_grunnlag"
+    AVSLATT_FOR_SENT = "avslatt_for_sent"
+    AVVENTER_SPESIFIKASJON = "avventer_spesifikasjon"
+
+
+# Generic response result (for backward compatibility)
 class ResponsResultat(str, Enum):
-    """Mulige utfall av en BH-respons"""
+    """Mulige utfall av en BH-respons (generisk)"""
     GODKJENT = "godkjent"
     DELVIS_GODKJENT = "delvis_godkjent"
     AVVIST_UENIG = "avvist_uenig"
@@ -132,10 +154,21 @@ class SakEvent(BaseModel):
 
 class GrunnlagData(BaseModel):
     """Data for grunnlag (erstatter Varsel)"""
-    hovedkategori: str = Field(..., description="Hovedkategori (f.eks. 'Risiko')")
-    underkategori: str = Field(..., description="Underkategori (f.eks. 'Grunnforhold')")
+    hovedkategori: str = Field(..., description="Hovedkategori (NS 8407 code)")
+    underkategori: Union[str, List[str]] = Field(
+        ...,
+        description="Underkategori - can be single string or array of codes"
+    )
     beskrivelse: str = Field(..., min_length=1, description="Beskrivelse av forholdet")
     dato_oppdaget: str = Field(..., description="Når forholdet ble oppdaget (YYYY-MM-DD)")
+    dato_varsel_sendt: Optional[str] = Field(
+        default=None,
+        description="Når varselet faktisk ble sendt til BH (kan være forskjellig fra oppdaget)"
+    )
+    varsel_metode: Optional[List[str]] = Field(
+        default=None,
+        description="Metoder brukt for å varsle BH (f.eks. ['epost', 'byggemote'])"
+    )
     kontraktsreferanser: List[str] = Field(
         default_factory=list,
         description="Relevante kontraktsbestemmelser (f.eks. ['NS8407 §25.2', 'Kap. 3.2'])"
@@ -183,7 +216,7 @@ class VederlagData(BaseModel):
     krav_belop: float = Field(..., ge=0, description="Krevd beløp i NOK")
     metode: str = Field(
         ...,
-        description="Vederlagsmetode-kode (ENTREPRENORENS_TILBUD, KONTRAKTENS_ENHETSPRISER, etc.)"
+        description="Vederlagsmetode-kode fra NS 8407 (f.eks. 'entreprenorens_tilbud')"
     )
     begrunnelse: str = Field(..., min_length=1, description="Begrunnelse for kravet")
 
@@ -201,6 +234,10 @@ class VederlagData(BaseModel):
     inkluderer_rigg_drift: bool = Field(
         default=False,
         description="Om kravet inkluderer rigg/drift"
+    )
+    saerskilt_varsel_rigg_drift: bool = Field(
+        default=False,
+        description="Om det er sendt særskilt varsel for rigg/drift"
     )
     rigg_drift_belop: Optional[float] = Field(
         default=None,
@@ -332,13 +369,17 @@ class GrunnlagResponsData(ResponsData):
 
 class VederlagResponsData(ResponsData):
     """Spesifikk data for vederlag-respons"""
+    resultat: VederlagResponsResultat = Field(
+        ...,
+        description="Spesifikt utfall for vederlag (inkluderer 'godkjent_annen_metode')"
+    )
     godkjent_belop: Optional[float] = Field(
         default=None,
-        description="Godkjent beløp (hvis delvis godkjent)"
+        description="Godkjent beløp (hvis delvis godkjent eller godkjent)"
     )
     godkjent_metode: Optional[str] = Field(
         default=None,
-        description="BH-godkjent vederlagsmetode"
+        description="BH-godkjent vederlagsmetode (hvis 'godkjent_annen_metode')"
     )
     frist_for_spesifikasjon: Optional[str] = Field(
         default=None,
@@ -348,9 +389,13 @@ class VederlagResponsData(ResponsData):
 
 class FristResponsData(ResponsData):
     """Spesifikk data for frist-respons"""
+    resultat: FristResponsResultat = Field(
+        ...,
+        description="Spesifikt utfall for frist (inkluderer 'delvis_godkjent_bestrider_beregning')"
+    )
     godkjent_dager: Optional[int] = Field(
         default=None,
-        description="Godkjent antall dager (hvis delvis godkjent)"
+        description="Godkjent antall dager (hvis delvis godkjent eller godkjent)"
     )
     ny_sluttdato: Optional[str] = Field(
         default=None,
