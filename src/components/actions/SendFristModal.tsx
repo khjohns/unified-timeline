@@ -14,7 +14,7 @@ import { useSubmitEvent } from '../../hooks/useSubmitEvent';
 
 const fristSchema = z.object({
   antall_dager: z.number().min(1, 'Antall dager må være minst 1'),
-  frist_type: z.enum(['kalenderdager', 'arbeidsdager'], {
+  frist_type: z.enum(['uspesifisert_krav', 'spesifisert_krav'], {
     errorMap: () => ({ message: 'Fristtype er påkrevd' }),
   }),
   begrunnelse: z.string().min(10, 'Begrunnelse må være minst 10 tegn'),
@@ -42,7 +42,7 @@ export function SendFristModal({
   } = useForm<FristFormData>({
     resolver: zodResolver(fristSchema),
     defaultValues: {
-      frist_type: 'kalenderdager',
+      frist_type: 'uspesifisert_krav',
     },
   });
 
@@ -92,37 +92,40 @@ export function SendFristModal({
           )}
         </div>
 
-        {/* Deadline Type */}
+        {/* Deadline Type - NS 8407 Compliant */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-pkt-02">
-            Fristtype <span className="text-error">*</span>
+            Type fristkrav (NS 8407) <span className="text-error">*</span>
           </label>
           <div className="space-y-pkt-02">
             <div className="flex items-center">
               <input
-                id="frist_type_kalender"
+                id="frist_type_uspesifisert"
                 type="radio"
-                value="kalenderdager"
+                value="uspesifisert_krav"
                 {...register('frist_type')}
                 className="h-4 w-4 border-gray-300 text-oslo-blue focus:ring-oslo-blue"
               />
-              <label htmlFor="frist_type_kalender" className="ml-pkt-02 text-sm text-gray-700">
-                Kalenderdager
+              <label htmlFor="frist_type_uspesifisert" className="ml-pkt-02 text-sm text-gray-700">
+                Uspesifisert krav (§33.6.2)
               </label>
             </div>
             <div className="flex items-center">
               <input
-                id="frist_type_arbeid"
+                id="frist_type_spesifisert"
                 type="radio"
-                value="arbeidsdager"
+                value="spesifisert_krav"
                 {...register('frist_type')}
                 className="h-4 w-4 border-gray-300 text-oslo-blue focus:ring-oslo-blue"
               />
-              <label htmlFor="frist_type_arbeid" className="ml-pkt-02 text-sm text-gray-700">
-                Arbeidsdager
+              <label htmlFor="frist_type_spesifisert" className="ml-pkt-02 text-sm text-gray-700">
+                Spesifisert krav (§33.6.1)
               </label>
             </div>
           </div>
+          <p className="mt-pkt-02 text-xs text-gray-500">
+            Uspesifisert: Krav fremsettes uten fullstendig spesifikasjon. Spesifisert: Detaljert dokumentert krav.
+          </p>
           {errors.frist_type && (
             <p className="mt-pkt-02 text-sm text-error" role="alert">
               {errors.frist_type.message}
