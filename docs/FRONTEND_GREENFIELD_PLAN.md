@@ -343,6 +343,232 @@ body {
 }
 ```
 
+### 2.4 Font Assets Handling (CRITICAL)
+
+> ⚠️ **Common Pitfall:** CSS cannot automatically resolve font files from `node_modules/@oslokommune/punkt-assets/fonts/` in production builds.
+
+**Problem:** The `@font-face` declarations in section 2.3 reference fonts directly from `node_modules`, which works in Vite dev mode but will fail in production builds unless properly configured.
+
+**Solution: Use Vite Static Asset Plugin**
+
+The project already has `vite-plugin-static-copy` installed. Configure it to copy fonts to the build output:
+
+**vite.config.ts**
+```typescript
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { viteStaticCopy } from 'vite-plugin-static-copy';
+import path from 'path';
+
+export default defineConfig({
+  plugins: [
+    react(),
+    viteStaticCopy({
+      targets: [
+        {
+          src: 'node_modules/@oslokommune/punkt-assets/fonts/*.woff2',
+          dest: 'fonts'
+        },
+        {
+          src: 'node_modules/@oslokommune/punkt-assets/fonts/*.woff',
+          dest: 'fonts'
+        }
+      ]
+    })
+  ],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src')
+    }
+  }
+});
+```
+
+**Updated `src/index.css`** (change font paths):
+```css
+/* Import Punkt CSS variables - MUST BE FIRST! */
+@import '@oslokommune/punkt-css';
+
+/* Import Tailwind directives */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Oslo Sans Font - Use /fonts/ path for production builds */
+@font-face {
+  font-family: 'Oslo Sans';
+  src: url('/fonts/OsloSans-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Oslo Sans';
+  src: url('/fonts/OsloSans-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Oslo Sans';
+  src: url('/fonts/OsloSans-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Rest of styles... */
+```
+
+**Verification Steps:**
+```bash
+# 1. Build for production
+npm run build
+
+# 2. Verify fonts were copied
+ls dist/fonts/
+# Should show: OsloSans-Regular.woff2, OsloSans-Medium.woff2, OsloSans-Bold.woff2
+
+# 3. Test production build
+npm run preview
+# Open browser DevTools -> Network -> Filter by "font" -> Verify 200 OK status
+```
+
+### 2.5 Z-Index Strategy (Radix Portals + Punkt CSS)
+
+> ⚠️ **Common Pitfall:** Radix Dialog/Tooltip portals may appear behind fixed headers or other positioned elements.
+
+**Problem:** Radix UI components that use Portals (Dialog, Tooltip, Dropdown) render at the end of `<body>`, outside your component tree. If your app has fixed headers or other high z-index elements, modals may appear behind them.
+
+**Solution: Establish a Z-Index Scale**
+
+Add explicit z-index values to your Tailwind config that coordinate with Punkt CSS and Radix:
+
+**Updated `tailwind.config.js`:**
+```javascript
+export default defineConfig({
+  theme: {
+    extend: {
+      // ... existing color/spacing config ...
+
+      // Z-Index scale (coordinated with Punkt CSS)
+      zIndex: {
+        'dropdown': '1000',        // Dropdowns
+        'sticky': '1020',          // Sticky headers
+        'fixed': '1030',           // Fixed headers/footers
+        'modal-backdrop': '1040',  // Modal overlays
+        'modal': '1050',           // Modal content
+        'popover': '1060',         // Popovers/tooltips
+        'tooltip': '1070',         // Tooltips (highest)
+      },
+    },
+  },
+});
+```
+
+**Updated `Modal.tsx`** (add explicit z-index):
+```tsx
+<Dialog.Overlay
+  className={clsx(
+    'fixed inset-0 bg-black/50 backdrop-blur-sm',
+    'z-modal-backdrop', // 👈 Explicit z-index
+    // ... animation classes
+  )}
+/>
+
+<Dialog.Content
+  className={clsx(
+    'fixed left-[50%] top-[50%]',
+    'z-modal', // 👈 Explicit z-index
+    // ... other classes
+  )}
+>
+```
+
+**For Fixed Headers:**
+```tsx
+<header className="sticky top-0 z-fixed bg-white border-b">
+  {/* Your header content */}
+</header>
+```
+
+**Verification:**
+1. Open a modal
+2. Inspect with DevTools → Check computed `z-index` values
+3. Ensure: Modal (1050) > Modal Backdrop (1040) > Fixed Header (1030)
+
+### 2.6 Preventing FOUC (Flash of Unstyled Content)
+
+> ⚠️ **Common Pitfall:** If Tailwind utilities reference Punkt CSS variables before they're loaded, you'll see a brief flash of unstyled content.
+
+**Problem:** CSS import order matters. If `@tailwind base` loads before `@import '@oslokommune/punkt-css'`, Tailwind won't have access to the CSS variables.
+
+**Solution: Strict Import Order**
+
+**✅ CORRECT `src/index.css`:**
+```css
+/* 1. Load Punkt CSS variables FIRST - before anything else! */
+@import '@oslokommune/punkt-css';
+
+/* 2. Then load Tailwind (which may reference Punkt variables) */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 3. Then custom styles (which reference both) */
+@font-face { /* ... */ }
+```
+
+**❌ WRONG (will cause FOUC):**
+```css
+/* DON'T DO THIS - Tailwind loads before Punkt variables are defined */
+@tailwind base;
+@import '@oslokommune/punkt-css'; /* TOO LATE! */
+```
+
+**Verification in Browser:**
+1. Open DevTools → Elements → `<html>` tag
+2. Inspect Computed styles
+3. Verify `--pkt-color-brand-dark-blue-1000` is defined
+4. If it shows "invalid" or empty, check import order
+
+**Additional FOUC Prevention:**
+
+In `index.html`, add a minimal inline style to prevent layout shift:
+```html
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Skjema Endringsmeldinger</title>
+
+  <!-- Prevent FOUC: Set font immediately -->
+  <style>
+    html {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>
+```
+
+**Testing FOUC:**
+```bash
+# Throttle network in DevTools to "Slow 3G"
+# Reload page multiple times
+# Should NOT see:
+#  - Colors changing after page load
+#  - Fonts changing after page load
+#  - Layout shifting after styles load
+```
+
 ---
 
 ## 3. Component Architecture
@@ -1051,13 +1277,25 @@ npm install @radix-ui/react-dialog@^1.1.2 \
             clsx@^2.1.1
 ```
 
-#### Step 1.2: Configure Tailwind CSS
-1. Create `tailwind.config.js` (see section 2.2)
-2. Update `src/index.css` (see section 2.3)
-3. Verify Punkt tokens are available:
+#### Step 1.2: Configure Tailwind CSS & Critical Setup
+1. Create `tailwind.config.js` with z-index scale (see section 2.2 + 2.5)
+2. Configure `vite.config.ts` for font asset copying (see section 2.4) ⚠️ CRITICAL
+3. Update `src/index.css` with correct import order (see section 2.6) ⚠️ CRITICAL
+4. Update `index.html` with FOUC prevention (see section 2.6)
+5. Verify setup:
    ```bash
+   # Start dev server
    npm run dev
-   # Inspect browser DevTools -> Computed styles -> verify CSS vars
+
+   # In browser DevTools:
+   # 1. Elements tab → <html> → Computed styles
+   # 2. Verify --pkt-color-brand-dark-blue-1000 exists
+   # 3. Network tab → Filter "font" → Should see Oslo Sans loading
+
+   # Test production build
+   npm run build
+   ls dist/fonts/  # Verify fonts were copied
+   npm run preview
    ```
 
 #### Step 1.3: Create Type Definitions
@@ -1597,40 +1835,83 @@ Update `.eslintrc.json`:
 
 ## 9. Deployment Checklist
 
-Before launching:
+### Critical Configuration (Must Verify BEFORE First Deploy)
+- [ ] ⚠️ Font assets copying configured in `vite.config.ts` (Section 2.4)
+- [ ] ⚠️ CSS import order correct: Punkt CSS → Tailwind (Section 2.6)
+- [ ] ⚠️ Z-index scale defined in `tailwind.config.js` (Section 2.5)
+- [ ] ⚠️ Production build test: `npm run build && ls dist/fonts/`
+- [ ] ⚠️ Fonts load in production preview: `npm run preview` → DevTools Network tab
+
+### Functionality Testing
 - [ ] All Radix components tested in production build
-- [ ] Punkt fonts loading correctly
-- [ ] WCAG audit passed (lighthouse accessibility score > 95)
+- [ ] Punkt fonts loading correctly (check Network tab, no 404s)
+- [ ] Modals appear above all other content (z-index correct)
+- [ ] No FOUC on page load (throttle to Slow 3G and test)
+- [ ] Focus management verified in all modals (Tab key cycles correctly)
+
+### Accessibility (WCAG 2.1 AA)
+- [ ] WCAG audit passed (Lighthouse accessibility score > 95)
 - [ ] Screen reader tested (NVDA or JAWS)
-- [ ] Keyboard navigation complete
-- [ ] Mobile responsive tested
-- [ ] Focus management verified in all modals
+- [ ] Keyboard navigation complete (no mouse required)
+- [ ] Color contrast verified (all text meets 4.5:1 ratio)
 - [ ] Error states have proper ARIA announcements
 - [ ] Loading states announced to screen readers
+- [ ] Status changes announced via aria-live
+
+### Responsive & Visual
+- [ ] Mobile responsive tested (320px → 1920px)
+- [ ] Touch targets minimum 44x44px
+- [ ] 200% text zoom tested (no overflow/overlap)
+- [ ] Works in: Chrome, Firefox, Safari, Edge (latest 2 versions)
 
 ---
 
 ## 10. Known Issues & Workarounds
 
-### Issue 1: Radix Portal and Tailwind z-index
-**Problem:** Modals appear behind other content.
-**Solution:** Ensure `<Dialog.Portal>` is used and set explicit z-index:
-```css
-[data-radix-dialog-overlay] { z-index: 50; }
-[data-radix-dialog-content] { z-index: 51; }
+### Issue 1: Font Files Not Loading in Production
+**Problem:** Fonts work in dev mode but fail in production (`404 Not Found` for `.woff2` files).
+**Root Cause:** CSS cannot resolve `node_modules/` paths after build.
+**Solution:** See **Section 2.4: Font Assets Handling** for complete Vite configuration.
+
+### Issue 2: Modals Appearing Behind Fixed Headers
+**Problem:** Radix Dialog opens but appears behind sticky/fixed navigation.
+**Root Cause:** Z-index conflicts between Radix Portals and app layout.
+**Solution:** See **Section 2.5: Z-Index Strategy** for coordinated z-index scale.
+
+### Issue 3: Flash of Unstyled Content (FOUC)
+**Problem:** Page briefly shows unstyled content before Punkt colors/fonts load.
+**Root Cause:** Incorrect CSS import order causes Tailwind to load before Punkt variables.
+**Solution:** See **Section 2.6: Preventing FOUC** for correct import order and verification steps.
+
+### Issue 4: Focus Trap Not Working in Modals
+**Problem:** Tab key escapes modal instead of cycling through modal controls.
+**Root Cause:** `<Dialog.Content>` doesn't wrap all interactive elements.
+**Solution:** Ensure `<Dialog.Content>` wraps the entire modal, including close button:
+```tsx
+<Dialog.Content>
+  <div className="flex justify-between">
+    <Dialog.Title>Title</Dialog.Title>
+    <Dialog.Close>X</Dialog.Close> {/* Must be inside Content */}
+  </div>
+  {/* Form fields */}
+</Dialog.Content>
 ```
 
-### Issue 2: Punkt CSS Variables Not Loading
-**Problem:** Colors show as undefined.
-**Solution:** Verify import order in `index.css`:
-```css
-@import '@oslokommune/punkt-css'; /* MUST be first */
-@tailwind base;
-```
+### Issue 5: Tailwind Classes Not Applied to Radix Components
+**Problem:** Custom classes (e.g., `bg-oslo-blue`) don't appear on Radix primitives.
+**Root Cause:** Radix renders to Portal outside of parent component scope.
+**Solution:** Use `className` prop directly on Radix components (not wrapper divs):
+```tsx
+// ❌ Wrong - div outside Portal
+<div className="bg-oslo-blue">
+  <Dialog.Content>...</Dialog.Content>
+</div>
 
-### Issue 3: Focus Trap Not Working
-**Problem:** Tab escapes modal.
-**Solution:** Ensure `<Dialog.Content>` wraps all modal content (including close button).
+// ✅ Correct - className on Content
+<Dialog.Content className="bg-oslo-blue">
+  ...
+</Dialog.Content>
+```
 
 ---
 
