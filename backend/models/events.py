@@ -434,3 +434,68 @@ AnyEvent = Union[
     SakOpprettetEvent,
     EOUtstedtEvent,
 ]
+
+
+# ============ EVENT PARSING ============
+
+def parse_event(data: dict) -> AnyEvent:
+    """
+    Parse a dict into the correct event type.
+
+    Uses event_type field to determine which model to instantiate.
+    """
+    event_type = data.get("event_type")
+
+    if not event_type:
+        raise ValueError("Mangler event_type i event-data")
+
+    # Map event types to classes
+    type_map = {
+        EventType.SAK_OPPRETTET.value: SakOpprettetEvent,
+        EventType.GRUNNLAG_OPPRETTET.value: GrunnlagEvent,
+        EventType.GRUNNLAG_OPPDATERT.value: GrunnlagEvent,
+        EventType.GRUNNLAG_TRUKKET.value: GrunnlagEvent,
+        EventType.VEDERLAG_KRAV_SENDT.value: VederlagEvent,
+        EventType.VEDERLAG_KRAV_OPPDATERT.value: VederlagEvent,
+        EventType.VEDERLAG_KRAV_TRUKKET.value: VederlagEvent,
+        EventType.FRIST_KRAV_SENDT.value: FristEvent,
+        EventType.FRIST_KRAV_OPPDATERT.value: FristEvent,
+        EventType.FRIST_KRAV_TRUKKET.value: FristEvent,
+        EventType.RESPONS_GRUNNLAG.value: ResponsEvent,
+        EventType.RESPONS_VEDERLAG.value: ResponsEvent,
+        EventType.RESPONS_FRIST.value: ResponsEvent,
+        EventType.EO_UTSTEDT.value: EOUtstedtEvent,
+    }
+
+    event_class = type_map.get(event_type)
+    if not event_class:
+        raise ValueError(f"Ukjent event_type: {event_type}")
+
+    return event_class.model_validate(data)
+
+
+def parse_event_from_request(request_data: dict) -> AnyEvent:
+    """
+    Parse API request into event, adding server-side fields.
+
+    SECURITY: Validates that client doesn't send server-controlled fields.
+
+    Adds:
+    - event_id (generated)
+    - tidsstempel (server time)
+    """
+    from uuid import uuid4
+
+    # SIKKERHET: Blokker klient-kontrollerte felter
+    forbidden_fields = {'event_id', 'tidsstempel'}
+    for field in forbidden_fields:
+        if field in request_data:
+            raise ValueError(
+                f"Feltet '{field}' kan ikke sendes av klient - genereres av server"
+            )
+
+    # Add server-controlled fields
+    request_data["event_id"] = str(uuid4())
+    request_data["tidsstempel"] = datetime.now().isoformat()
+
+    return parse_event(request_data)
