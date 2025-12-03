@@ -9,35 +9,73 @@ interface ButtonProps extends ComponentPropsWithoutRef<'button'> {
   size?: ButtonSize;
 }
 
+/**
+ * Button component with Punkt design system styling
+ * - Sharp corners (radius: 0)
+ * - border-pkt-border-default (#2a2859) with 2px width
+ * - Larger sizes for better clickability
+ * - Focus state with pkt-border-focus (#e0adff)
+ */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ variant = 'primary', size = 'md', className, children, ...props }, ref) => {
     return (
       <button
         ref={ref}
         className={clsx(
-          // Base styles
-          'inline-flex items-center justify-center rounded-pkt-md',
-          'font-medium transition-colors',
-          'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2',
+          // Base styles - SKARPE KANTER
+          'inline-flex items-center justify-center rounded-none',
+          'font-medium transition-colors duration-200',
+          'border-2',
+
+          // Focus state - different for danger variant
+          variant !== 'danger'
+            ? 'focus:outline-none focus:ring-4 focus:ring-pkt-brand-purple-1000/30 focus:border-pkt-border-focus'
+            : 'focus:outline-none focus:ring-4 focus:ring-pkt-brand-red-400/50 focus:border-pkt-border-red',
+
+          // Disabled state
           'disabled:opacity-50 disabled:cursor-not-allowed',
+          'disabled:border-pkt-border-disabled',
 
           // Variant styles
           {
-            'bg-oslo-blue text-white hover:bg-oslo-blue-700 focus-visible:outline-oslo-blue':
+            // Primary: dark blue background with white text
+            'bg-pkt-surface-strong-dark-blue text-pkt-text-body-light':
               variant === 'primary',
-            'bg-oslo-beige text-oslo-blue hover:bg-oslo-beige-300 focus-visible:outline-oslo-blue':
+            'border-pkt-border-default':
+              variant === 'primary',
+            'hover:bg-pkt-brand-warm-blue-1000 hover:border-pkt-border-hover':
+              variant === 'primary' && !props.disabled,
+
+            // Secondary: beige background with dark blue text
+            'bg-pkt-surface-strong-beige text-pkt-text-body-dark':
               variant === 'secondary',
-            'bg-transparent hover:bg-oslo-beige-100 focus-visible:outline-oslo-blue':
+            'border-pkt-border-beige':
+              variant === 'secondary',
+            'hover:bg-pkt-brand-dark-beige-1000 hover:border-pkt-border-hover':
+              variant === 'secondary' && !props.disabled,
+
+            // Ghost: transparent background
+            'bg-transparent text-pkt-text-body-dark':
               variant === 'ghost',
-            'bg-error text-white hover:bg-error-500 focus-visible:outline-error':
+            'border-transparent':
+              variant === 'ghost',
+            'hover:bg-pkt-surface-light-beige hover:border-pkt-border-light-beige':
+              variant === 'ghost' && !props.disabled,
+
+            // Danger: red background with white text
+            'bg-pkt-surface-strong-red text-pkt-text-body-light':
               variant === 'danger',
+            'border-pkt-border-red':
+              variant === 'danger',
+            'hover:bg-pkt-brand-red-600 hover:border-pkt-brand-red-600':
+              variant === 'danger' && !props.disabled,
           },
 
-          // Size styles
+          // Size styles - INCREASED for better clickability
           {
-            'px-pkt-03 py-pkt-02 text-sm': size === 'sm',
-            'px-pkt-04 py-pkt-03 text-base': size === 'md',
-            'px-pkt-06 py-pkt-04 text-lg': size === 'lg',
+            'px-pkt-04 py-pkt-02 text-sm': size === 'sm',
+            'px-pkt-06 py-pkt-03 text-base': size === 'md',
+            'px-pkt-08 py-pkt-04 text-lg': size === 'lg',
           },
 
           className

@@ -3,12 +3,23 @@
  *
  * Action modal for submitting a new grunnlag (basis/foundation) claim.
  * Uses React Hook Form + Zod for validation.
- * Now includes legacy NS 8407 categories and varsel fields.
+ * Now uses Radix UI primitives with Punkt design system styling.
  */
 
 import { Modal } from '../primitives/Modal';
 import { Button } from '../primitives/Button';
-import { useForm } from 'react-hook-form';
+import { Input } from '../primitives/Input';
+import { Textarea } from '../primitives/Textarea';
+import { Checkbox } from '../primitives/Checkbox';
+import { FormField } from '../primitives/FormField';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../primitives/Select';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
@@ -50,13 +61,18 @@ export function SendGrunnlagModal({
     formState: { errors, isSubmitting },
     reset,
     setValue,
+    control,
+    watch,
   } = useForm<GrunnlagFormData>({
     resolver: zodResolver(grunnlagSchema),
     defaultValues: {
+      hovedkategori: '',
       underkategori: [],
       varsel_metode: [],
     },
   });
+
+  const hovedkategoriValue = watch('hovedkategori');
 
   const mutation = useSubmitEvent(sakId, {
     onSuccess: () => {
@@ -67,9 +83,9 @@ export function SendGrunnlagModal({
   });
 
   // Reset underkategori when hovedkategori changes
-  const handleHovedkategoriChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
+  const handleHovedkategoriChange = (value: string) => {
     setSelectedHovedkategori(value);
+    setValue('hovedkategori', value);
     setValue('underkategori', []); // Clear underkategorier when hovedkategori changes
   };
 
@@ -101,195 +117,160 @@ export function SendGrunnlagModal({
       description="Fyll ut informasjon om grunnlaget for endringsmeldingen."
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-pkt-05">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-pkt-06">
         {/* Hovedkategori */}
-        <div>
-          <label htmlFor="hovedkategori" className="block text-sm font-medium text-gray-700">
-            Hovedkategori (NS 8407) <span className="text-error">*</span>
-          </label>
-          <select
-            id="hovedkategori"
-            {...register('hovedkategori')}
-            onChange={handleHovedkategoriChange}
-            className="mt-pkt-02 block w-full rounded-pkt-md border-gray-300 shadow-sm focus:border-oslo-blue focus:ring-oslo-blue"
-            aria-required="true"
-            aria-invalid={!!errors.hovedkategori}
-            aria-describedby={errors.hovedkategori ? 'hovedkategori-error' : undefined}
-          >
-            {HOVEDKATEGORI_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          {errors.hovedkategori && (
-            <p id="hovedkategori-error" className="mt-pkt-02 text-sm text-error" role="alert">
-              {errors.hovedkategori.message}
-            </p>
-          )}
-        </div>
+        <FormField
+          label="Hovedkategori (NS 8407)"
+          required
+          error={errors.hovedkategori?.message}
+        >
+          <Controller
+            name="hovedkategori"
+            control={control}
+            render={({ field }) => (
+              <Select
+                value={field.value}
+                onValueChange={(value) => {
+                  field.onChange(value);
+                  handleHovedkategoriChange(value);
+                }}
+              >
+                <SelectTrigger error={!!errors.hovedkategori}>
+                  <SelectValue placeholder="Velg hovedkategori" />
+                </SelectTrigger>
+                <SelectContent>
+                  {HOVEDKATEGORI_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
+        </FormField>
 
         {/* Underkategori - Dynamic based on hovedkategori */}
         {selectedHovedkategori && getUnderkategorier(selectedHovedkategori).length > 0 && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-pkt-02">
-              Underkategori <span className="text-error">*</span>
-            </label>
-            <div className="space-y-pkt-02 max-h-48 overflow-y-auto border border-gray-300 rounded-pkt-md p-pkt-03">
+          <FormField
+            label="Underkategori"
+            required
+            error={errors.underkategori?.message}
+          >
+            <div className="space-y-pkt-03 max-h-60 overflow-y-auto border-2 border-pkt-border-gray rounded-none p-pkt-04 bg-pkt-bg-subtle">
               {getUnderkategorier(selectedHovedkategori).map((option) => (
-                <div key={option.value} className="flex items-start">
-                  <input
-                    type="checkbox"
-                    id={`underkategori-${option.value}`}
-                    value={option.value}
-                    {...register('underkategori')}
-                    className="mt-1 h-4 w-4 rounded border-gray-300 text-oslo-blue focus:ring-oslo-blue"
-                  />
-                  <label
-                    htmlFor={`underkategori-${option.value}`}
-                    className="ml-pkt-02 text-sm text-gray-700"
-                  >
-                    {option.label}
-                  </label>
-                </div>
+                <Checkbox
+                  key={option.value}
+                  id={`underkategori-${option.value}`}
+                  label={option.label}
+                  value={option.value}
+                  {...register('underkategori')}
+                />
               ))}
             </div>
-            {errors.underkategori && (
-              <p className="mt-pkt-02 text-sm text-error" role="alert">
-                {errors.underkategori.message}
-              </p>
-            )}
-          </div>
+          </FormField>
         )}
 
         {/* Beskrivelse */}
-        <div>
-          <label htmlFor="beskrivelse" className="block text-sm font-medium text-gray-700">
-            Beskrivelse <span className="text-error">*</span>
-          </label>
-          <textarea
+        <FormField
+          label="Beskrivelse"
+          required
+          error={errors.beskrivelse?.message}
+        >
+          <Textarea
             id="beskrivelse"
             {...register('beskrivelse')}
-            rows={4}
-            className="mt-pkt-02 block w-full rounded-pkt-md border-gray-300 shadow-sm focus:border-oslo-blue focus:ring-oslo-blue"
+            rows={5}
+            fullWidth
             placeholder="Beskriv grunnlaget for endringsmeldingen..."
-            aria-required="true"
-            aria-invalid={!!errors.beskrivelse}
-            aria-describedby={errors.beskrivelse ? 'beskrivelse-error' : undefined}
+            error={!!errors.beskrivelse}
           />
-          {errors.beskrivelse && (
-            <p id="beskrivelse-error" className="mt-pkt-02 text-sm text-error" role="alert">
-              {errors.beskrivelse.message}
-            </p>
-          )}
-        </div>
+        </FormField>
 
         {/* Dato forhold oppdaget */}
-        <div>
-          <label htmlFor="dato_oppdaget" className="block text-sm font-medium text-gray-700">
-            Dato forhold oppdaget <span className="text-error">*</span>
-          </label>
-          <input
+        <FormField
+          label="Dato forhold oppdaget"
+          required
+          error={errors.dato_oppdaget?.message}
+        >
+          <Input
             id="dato_oppdaget"
             type="date"
             {...register('dato_oppdaget')}
-            className="mt-pkt-02 block w-full rounded-pkt-md border-gray-300 shadow-sm focus:border-oslo-blue focus:ring-oslo-blue"
-            aria-required="true"
-            aria-invalid={!!errors.dato_oppdaget}
-            aria-describedby={errors.dato_oppdaget ? 'dato_oppdaget-error' : undefined}
+            fullWidth
+            error={!!errors.dato_oppdaget}
           />
-          {errors.dato_oppdaget && (
-            <p id="dato_oppdaget-error" className="mt-pkt-02 text-sm text-error" role="alert">
-              {errors.dato_oppdaget.message}
-            </p>
-          )}
-        </div>
+        </FormField>
 
         {/* Dato varsel sendt */}
-        <div>
-          <label htmlFor="dato_varsel_sendt" className="block text-sm font-medium text-gray-700">
-            Dato varsel sendt
-          </label>
-          <input
+        <FormField
+          label="Dato varsel sendt"
+          helpText="Når ble forholdet formelt varslet til BH? (Kan være forskjellig fra oppdaget-dato)"
+        >
+          <Input
             id="dato_varsel_sendt"
             type="date"
             {...register('dato_varsel_sendt')}
-            className="mt-pkt-02 block w-full rounded-pkt-md border-gray-300 shadow-sm focus:border-oslo-blue focus:ring-oslo-blue"
+            fullWidth
           />
-          <p className="mt-pkt-02 text-xs text-gray-500">
-            Når ble forholdet formelt varslet til BH? (Kan være forskjellig fra oppdaget-dato)
-          </p>
-        </div>
+        </FormField>
 
         {/* Varsel metode */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-pkt-02">
-            Varselmetode
-          </label>
-          <div className="space-y-pkt-02 border border-gray-300 rounded-pkt-md p-pkt-03">
+        <FormField
+          label="Varselmetode"
+          helpText="Hvordan ble BH varslet? (Kan velge flere)"
+        >
+          <div className="space-y-pkt-03 border-2 border-pkt-border-gray rounded-none p-pkt-04 bg-pkt-bg-subtle">
             {VARSEL_METODER_OPTIONS.map((option) => (
-              <div key={option.value} className="flex items-center">
-                <input
-                  type="checkbox"
-                  id={`varsel-${option.value}`}
-                  value={option.value}
-                  {...register('varsel_metode')}
-                  className="h-4 w-4 rounded border-gray-300 text-oslo-blue focus:ring-oslo-blue"
-                />
-                <label
-                  htmlFor={`varsel-${option.value}`}
-                  className="ml-pkt-02 text-sm text-gray-700"
-                >
-                  {option.label}
-                </label>
-              </div>
+              <Checkbox
+                key={option.value}
+                id={`varsel-${option.value}`}
+                label={option.label}
+                value={option.value}
+                {...register('varsel_metode')}
+              />
             ))}
           </div>
-          <p className="mt-pkt-02 text-xs text-gray-500">
-            Hvordan ble BH varslet? (Kan velge flere)
-          </p>
-        </div>
+        </FormField>
 
         {/* Kontraktsreferanser */}
-        <div>
-          <label htmlFor="kontraktsreferanser" className="block text-sm font-medium text-gray-700">
-            Kontraktsreferanser
-          </label>
-          <input
+        <FormField
+          label="Kontraktsreferanser"
+          helpText="Separer flere referanser med komma, f.eks. '§3.2, §4.1'"
+        >
+          <Input
             id="kontraktsreferanser"
             type="text"
             {...register('kontraktsreferanser')}
-            className="mt-pkt-02 block w-full rounded-pkt-md border-gray-300 shadow-sm focus:border-oslo-blue focus:ring-oslo-blue"
-            placeholder="F.eks. '§3.2, §4.1' (kommaseparert)"
+            fullWidth
+            placeholder="F.eks. '§3.2, §4.1'"
           />
-          <p className="mt-pkt-02 text-xs text-gray-500">
-            Separer flere referanser med komma
-          </p>
-        </div>
+        </FormField>
 
         {/* Error Message */}
         {mutation.isError && (
           <div
-            className="p-pkt-04 bg-error-100 border border-error-500 rounded-pkt-md"
+            className="p-pkt-05 bg-pkt-surface-subtle-light-red border-2 border-pkt-border-red rounded-none"
             role="alert"
           >
-            <p className="text-sm text-error-700">
+            <p className="text-base text-pkt-border-red font-medium">
               {mutation.error instanceof Error ? mutation.error.message : 'En feil oppstod'}
             </p>
           </div>
         )}
 
         {/* Actions */}
-        <div className="flex justify-end gap-pkt-03 pt-pkt-04 border-t border-gray-200">
+        <div className="flex justify-end gap-pkt-04 pt-pkt-06 border-t-2 border-pkt-border-subtle">
           <Button
             type="button"
             variant="ghost"
             onClick={() => onOpenChange(false)}
             disabled={isSubmitting}
+            size="lg"
           >
             Avbryt
           </Button>
-          <Button type="submit" variant="primary" disabled={isSubmitting}>
+          <Button type="submit" variant="primary" disabled={isSubmitting} size="lg">
             {isSubmitting ? 'Sender...' : 'Send grunnlag'}
           </Button>
         </div>

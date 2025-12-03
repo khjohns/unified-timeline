@@ -6,22 +6,35 @@ interface CardProps extends ComponentPropsWithoutRef<'div'> {
   padding?: 'sm' | 'md' | 'lg';
 }
 
+/**
+ * Card component with Punkt design system styling
+ * - Sharp corners (radius: 0)
+ * - border-pkt-border-default (#2a2859) for outlined variant
+ * - Larger padding for better content spacing
+ */
 export const Card = forwardRef<HTMLDivElement, CardProps>(
   ({ variant = 'default', padding = 'md', className, children, ...props }, ref) => {
     return (
       <div
         ref={ref}
         className={clsx(
-          'rounded-pkt-md',
+          // Sharp corners
+          'rounded-none',
           {
-            'bg-white': variant === 'default',
-            'bg-white shadow-lg': variant === 'elevated',
-            'bg-white border-2 border-oslo-beige-300': variant === 'outlined',
+            // Default: white background
+            'bg-pkt-bg-card': variant === 'default',
+
+            // Elevated: white background with shadow
+            'bg-pkt-bg-card shadow-lg': variant === 'elevated',
+
+            // Outlined: white background with border-default
+            'bg-pkt-bg-card border-2 border-pkt-border-default': variant === 'outlined',
           },
           {
-            'p-pkt-04': padding === 'sm',
+            // Increased padding for better spacing
+            'p-pkt-05': padding === 'sm',
             'p-pkt-06': padding === 'md',
-            'p-pkt-08': padding === 'lg',
+            'p-pkt-10': padding === 'lg',
           },
           className
         )}
