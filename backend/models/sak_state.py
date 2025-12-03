@@ -13,7 +13,7 @@ from datetime import datetime
 from models.events import (
     SporStatus,
     SporType,
-    ResponsResultat,
+    GrunnlagResponsResultat,
     VederlagBeregningResultat,
     FristBeregningResultat,
     AnyEvent,
@@ -46,9 +46,9 @@ class GrunnlagTilstand(BaseModel):
     kontraktsreferanser: List[str] = Field(default_factory=list)
 
     # BH respons
-    bh_resultat: Optional[ResponsResultat] = Field(
+    bh_resultat: Optional[GrunnlagResponsResultat] = Field(
         default=None,
-        description="BHs siste respons"
+        description="BHs siste respons på ansvarsgrunnlaget"
     )
     bh_begrunnelse: Optional[str] = Field(default=None)
     laast: bool = Field(
@@ -227,6 +227,23 @@ class SakState(BaseModel):
     # ============ SUBSIDIÆR LOGIKK (Computed Fields) ============
     # Disse computed fields håndterer kombinasjonen av Grunnlag-avslag
     # med Vederlag/Frist-godkjenning (subsidiære betraktninger).
+    #
+    # VIKTIG FOR FRONTEND:
+    # Subsidiær logikk er en KOMBINASJON av:
+    #   1. Grunnlag-sporet: BH avviser ansvarsgrunnlaget (AVVIST)
+    #   2. Vederlag/Frist-sporet: BH godkjenner beregningen (GODKJENT_FULLT/DELVIS_GODKJENT)
+    #
+    # Dette betyr: "BH mener TE har ansvaret, MEN erkjenner at hvis BH hadde hatt
+    # ansvaret, så ville beløpet/dagene vært riktige."
+    #
+    # Event-modellene (VederlagResponsData, FristResponsData) inneholder KUN beregningen.
+    # De har INGEN "avslått_pga_grunnlag" status - det ville bryte separasjonen av spor.
+    #
+    # FRONTEND MÅ:
+    # 1. Bruke disse computed fields for å detektere subsidiær godkjenning
+    # 2. Vise kombinert status: "Avslått pga. ansvar (Subsidiært enighet om X kr/dager)"
+    # 3. Ikke legge til logikk i Vederlag/Frist-komponenter som refererer til Grunnlag
+    # 4. La SakState være "sannheten" - ikke dupliser logikken i frontend
 
     @computed_field
     @property
@@ -236,10 +253,13 @@ class SakState(BaseModel):
 
         Returns True hvis:
         - Grunnlag er AVVIST av BH, MEN
-        - Vederlag-beregningen er godkjent (fullt/delvis)
+        - Vederlag-beregningen er godkjent (fullt/delvis/annen metode)
 
         Dette betyr: "BH mener TE har ansvar, men erkjenner at
         beløpet ville vært riktig hvis BH hadde hatt ansvar."
+
+        FRONTEND: Bruk dette for å vise subsidiær status.
+        Ikke implementer denne logikken selv i frontend.
         """
         grunnlag_avvist = self.grunnlag.status == SporStatus.AVVIST
         beregning_godkjent = self.vederlag.bh_resultat in {
@@ -261,6 +281,9 @@ class SakState(BaseModel):
 
         Dette betyr: "BH mener TE har ansvar, men erkjenner at
         dagene ville vært riktige hvis BH hadde hatt ansvar."
+
+        FRONTEND: Bruk dette for å vise subsidiær status.
+        Ikke implementer denne logikken selv i frontend.
         """
         grunnlag_avvist = self.grunnlag.status == SporStatus.AVVIST
         beregning_godkjent = self.frist.bh_resultat in {

@@ -24,11 +24,11 @@ export type SporStatus =
 // ========== VEDERLAG ENUMS ==========
 
 export type VederlagsMetode =
-  | 'kontrakt_ep'      // Kontraktens enhetspriser
-  | 'justert_ep'       // Justerte enhetspriser
-  | 'regning'          // Regningsarbeid
-  | 'tilbud'           // Fastpris / Tilbud
-  | 'skjonn';          // Skjønnsmessig vurdering
+  | 'kontrakt_ep'      // Kontraktens enhetspriser (§34.3.1)
+  | 'justert_ep'       // Justerte enhetspriser (§34.3.2)
+  | 'regning'          // Regningsarbeid (§30.1)
+  | 'overslag'         // Regningsarbeid med prisoverslag (§30.2)
+  | 'tilbud';          // Fastpris / Tilbud (§34.2.1)
 
 // Vederlag beregning results (UTEN "avslatt_uenig_grunnlag" - det hører hjemme i Grunnlag!)
 export type VederlagBeregningResultat =
@@ -41,18 +41,20 @@ export type VederlagBeregningResultat =
 // ========== FRIST ENUMS ==========
 
 export type FristVarselType =
-  | 'noytralt'      // §33.4 - Nøytralt varsel (uten dager)
-  | 'spesifisert'   // §33.6 - Spesifisert krav (med dager)
-  | 'begge';        // Først nøytralt, så spesifisert
+  | 'noytralt'        // §33.4 - Nøytralt varsel (uten dager)
+  | 'spesifisert'     // §33.6 - Spesifisert krav (med dager)
+  | 'begge'           // Først nøytralt, så spesifisert
+  | 'force_majeure';  // §33.3 - Force majeure
 
 // Frist beregning results (UTEN "avslatt_uenig_grunnlag" - det hører hjemme i Grunnlag!)
 export type FristBeregningResultat =
   | 'godkjent_fullt'
   | 'delvis_godkjent'
-  | 'avventer_spesifikasjon';
+  | 'avventer_spesifikasjon'
+  | 'avslatt_ingen_hindring';  // BH mener det ikke medførte forsinkelse
 
-// Generic response result (for backward compatibility)
-export type ResponsResultat =
+// Grunnlag response result (BH's vurdering av ansvarsgrunnlaget)
+export type GrunnlagResponsResultat =
   | 'godkjent'
   | 'delvis_godkjent'
   | 'avvist_uenig'
@@ -77,10 +79,15 @@ export interface GrunnlagTilstand {
   underkategori?: string | string[]; // Support both single and multiple underkategorier
   beskrivelse?: string;
   dato_oppdaget?: string;
-  dato_varsel_sendt?: string; // NEW: Separate date for when warning was sent
-  varsel_metode?: string[]; // NEW: Methods used to notify (e.g., ["epost", "byggemote"])
+
+  // Varsel info
+  grunnlag_varsel?: {
+    dato_sendt?: string;
+    metode?: string[];
+  };
+
   kontraktsreferanser: string[];
-  bh_resultat?: ResponsResultat;
+  bh_resultat?: GrunnlagResponsResultat;
   bh_begrunnelse?: string;
   laast: boolean;
   siste_oppdatert?: string;
@@ -96,11 +103,14 @@ export interface VederlagTilstand {
   begrunnelse?: string;
   inkluderer_produktivitetstap?: boolean;
   inkluderer_rigg_drift?: boolean;
+  rigg_drift_belop?: number;
+  produktivitetstap_belop?: number;
 
-  // TE's varselinfo (Port 1)
-  saerskilt_varsel_rigg_drift_dato?: string;
-  varsel_justert_ep_dato?: string;
-  varsel_start_regning_dato?: string;
+  // TE's varselinfo (Port 1) - NEW: Using VarselInfo structure
+  rigg_drift_varsel?: VarselInfo;
+  justert_ep_varsel?: VarselInfo;
+  regningsarbeid_varsel?: VarselInfo;
+  produktivitetstap_varsel?: VarselInfo;
   krav_fremmet_dato?: string;
 
   // BH respons - Port 1 (Varsling)
@@ -130,8 +140,8 @@ export interface FristTilstand {
 
   // TE's krav
   varsel_type?: FristVarselType;
-  noytralt_varsel_dato?: string;
-  spesifisert_krav_dato?: string;
+  noytralt_varsel?: VarselInfo;  // NEW: Structured info
+  spesifisert_varsel?: VarselInfo;  // NEW: Structured info
   krevd_dager?: number;
   frist_type?: 'kalenderdager' | 'arbeidsdager';
   begrunnelse?: string;
@@ -219,13 +229,18 @@ export type EventType =
   | 'respons_frist'
   | 'eo_utstedt';
 
+// Varsel info structure (reusable)
+export interface VarselInfo {
+  dato_sendt?: string;
+  metode?: string[];
+}
+
 export interface GrunnlagEventData {
   hovedkategori: string; // Code from HOVEDKATEGORI_OPTIONS (e.g., "endring_initiert_bh")
   underkategori: string | string[]; // Code(s) from UNDERKATEGORI_MAP
   beskrivelse: string;
   dato_oppdaget: string;
-  dato_varsel_sendt?: string; // NEW: When the warning was actually sent
-  varsel_metode?: string[]; // NEW: Methods used (e.g., ["epost", "byggemote"])
+  grunnlag_varsel?: VarselInfo; // NEW: Structured varsel info
   kontraktsreferanser?: string[];
   vedlegg_ids?: string[];
 }
@@ -234,37 +249,40 @@ export interface VederlagEventData {
   krav_belop: number;
   metode: VederlagsMetode;
   begrunnelse: string;
-  spesifikasjon?: Record<string, any>;
+  vedlegg_ids?: string[];
 
-  // Port 1: Spesifikke varsler
+  // Port 1: Spesifikke varsler (NEW: Using VarselInfo structure)
   inkluderer_rigg_drift?: boolean;
-  saerskilt_varsel_rigg_drift_dato?: string;
   rigg_drift_belop?: number;
+  rigg_drift_varsel?: VarselInfo;
+
   krever_justert_ep?: boolean;
-  varsel_justert_ep_dato?: string;
+  justert_ep_varsel?: VarselInfo;
+
   krever_regningsarbeid?: boolean;
-  varsel_start_regning_dato?: string;
-  krav_fremmet_dato?: string;
+  regningsarbeid_varsel?: VarselInfo;
 
   inkluderer_produktivitetstap?: boolean;
+  produktivitetstap_belop?: number;
+  produktivitetstap_varsel?: VarselInfo;
+
+  krav_fremmet_dato?: string;
 }
 
 export interface FristEventData {
   // Port 1: Varseltype
   varsel_type: FristVarselType;
-  noytralt_varsel_dato?: string;
-  spesifisert_krav_dato?: string;
+  noytralt_varsel?: VarselInfo;  // NEW: Structured info (dato + metode)
+  spesifisert_varsel?: VarselInfo;  // NEW: Structured info (dato + metode)
 
   // Kravet (kun relevant ved spesifisert)
   antall_dager?: number;
-  frist_type?: 'kalenderdager' | 'arbeidsdager';
   begrunnelse: string;
 
   // Fremdriftsinfo (Port 2)
-  pavirker_kritisk_linje?: boolean;
-  milepael_pavirket?: string;
-  fremdriftsanalyse_vedlagt?: boolean;
+  fremdriftshindring_dokumentasjon?: string;
   ny_sluttdato?: string;
+  vedlegg_ids?: string[];
 }
 
 // Vederlag response event (Port Model)
@@ -304,12 +322,14 @@ export interface ResponsFristEventData {
   frist_for_spesifisering?: string;
 }
 
-// Generic response event (for backward compatibility)
-export interface ResponsEventData {
-  resultat: ResponsResultat;
+// Grunnlag response event
+export interface ResponsGrunnlagEventData {
+  resultat: GrunnlagResponsResultat;
   begrunnelse: string;
-  godkjent_belop?: number;
-  godkjent_dager?: number;
+  akseptert_kategori?: string;
+  krever_dokumentasjon?: string[];
+  varsel_for_sent?: boolean;
+  varsel_begrunnelse?: string;
 }
 
 // ========== TIMELINE DISPLAY ==========
