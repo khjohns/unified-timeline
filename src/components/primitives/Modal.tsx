@@ -13,6 +13,12 @@ interface ModalProps {
   className?: string;
 }
 
+/**
+ * Modal component with Punkt design system styling
+ * - Sharp corners (radius: 0)
+ * - border-pkt-border-default (#2a2859)
+ * - Larger padding and text for better readability
+ */
 export function Modal({
   open,
   onOpenChange,
@@ -39,8 +45,11 @@ export function Modal({
         <Dialog.Content
           className={clsx(
             'fixed left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%]',
-            'bg-white rounded-pkt-lg shadow-xl',
-            'p-pkt-06',
+            // Sharp corners and border
+            'bg-pkt-bg-card rounded-none shadow-xl',
+            'border-2 border-pkt-border-default',
+            // Increased padding for better spacing
+            'p-pkt-08',
             'z-modal',
             'focus:outline-none',
             'data-[state=open]:animate-in data-[state=closed]:animate-out',
@@ -57,34 +66,34 @@ export function Modal({
           )}
         >
           {/* Header */}
-          <div className="flex items-start justify-between mb-pkt-04">
+          <div className="flex items-start justify-between mb-pkt-06">
             <div>
-              <Dialog.Title className="text-heading-lg font-bold text-oslo-blue">
+              <Dialog.Title className="text-2xl font-bold text-pkt-text-body-dark">
                 {title}
               </Dialog.Title>
               {description && (
-                <Dialog.Description className="mt-pkt-02 text-body-md text-gray-600">
+                <Dialog.Description className="mt-pkt-03 text-lg text-pkt-grays-gray-600">
                   {description}
                 </Dialog.Description>
               )}
             </div>
 
-            {/* Close button */}
+            {/* Close button - sharp corners */}
             <Dialog.Close
               className={clsx(
-                'rounded-pkt-sm p-pkt-02',
-                'text-gray-500 hover:text-gray-700',
-                'hover:bg-oslo-beige-100',
-                'focus-visible:outline focus-visible:outline-2 focus-visible:outline-oslo-blue'
+                'rounded-none p-pkt-02',
+                'text-pkt-grays-gray-500 hover:text-pkt-grays-gray-700',
+                'hover:bg-pkt-surface-light-beige',
+                'focus:outline-none focus:ring-4 focus:ring-pkt-brand-purple-1000/30'
               )}
               aria-label="Lukk dialog"
             >
-              <Cross2Icon className="w-5 h-5" />
+              <Cross2Icon className="w-6 h-6" />
             </Dialog.Close>
           </div>
 
           {/* Body */}
-          <div>{children}</div>
+          <div className="text-base">{children}</div>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

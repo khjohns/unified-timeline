@@ -12,86 +12,189 @@
    All custom values must be defined here in @theme.
    ============================================ */
 @theme {
-    /* ---- Oslo Brand Colors ---- */
-    --color-oslo-blue: var(--pkt-color-brand-dark-blue-1000, #2a2859);
-    --color-oslo-blue-50: var(--pkt-color-brand-dark-blue-50, #f2f2f8);
-    --color-oslo-blue-100: var(--pkt-color-brand-dark-blue-100, #e5e5f0);
-    --color-oslo-blue-700: var(--pkt-color-brand-dark-blue-700, #6a698b);
-    --color-oslo-blue-1000: var(--pkt-color-brand-dark-blue-1000, #2a2859);
+    /* ============================================
+       PUNKT BRAND COLORS
+       ============================================ */
+    /* Blues */
+    --color-pkt-brand-blue-100: #f1fdff;
+    --color-pkt-brand-blue-200: #e5fcff;
+    --color-pkt-brand-blue-300: #d1f9ff;
+    --color-pkt-brand-blue-500: #b3f5ff;
+    --color-pkt-brand-blue-1000: #6fe9ff;
+    --color-pkt-brand-dark-blue-700: #6a698b;
+    --color-pkt-brand-dark-blue-1000: #2a2859;
+    --color-pkt-brand-warm-blue-1000: #1f42aa;
 
-    --color-oslo-beige: var(--pkt-color-brand-beige-400, #d0bfae);
-    --color-oslo-beige-100: var(--pkt-color-brand-beige-100, #f8f0dd);
-    --color-oslo-beige-200: var(--pkt-color-brand-beige-200, #f0e5d5);
-    --color-oslo-beige-300: var(--pkt-color-brand-beige-300, #e0d2c2);
-    --color-oslo-beige-400: var(--pkt-color-brand-beige-400, #d0bfae);
+    /* Greens */
+    --color-pkt-brand-green-400: #c7fde9;
+    --color-pkt-brand-green-1000: #43f8b6;
+    --color-pkt-brand-light-green-400: #e5ffe6;
+    --color-pkt-brand-light-green-1000: #c7f6c9;
+    --color-pkt-brand-dark-green-1000: #034b45;
 
-    --color-oslo-green: var(--pkt-color-brand-green-700, #034b45);
-    --color-oslo-green-300: var(--pkt-color-brand-green-300, #c7fde9);
-    --color-oslo-green-500: var(--pkt-color-brand-green-500, #43f8b6);
-    --color-oslo-green-700: var(--pkt-color-brand-green-700, #034b45);
+    /* Yellows */
+    --color-pkt-brand-yellow-500: #ffe7bc;
+    --color-pkt-brand-yellow-1000: #f9c66b;
 
-    /* ---- Semantic Colors ---- */
-    --color-success: var(--pkt-color-success-500, #034b45);
-    --color-success-100: var(--pkt-color-success-100, #e5ffe6);
-    --color-success-500: var(--pkt-color-success-500, #034b45);
-    --color-success-700: var(--pkt-color-success-700, #023d38);
+    /* Reds */
+    --color-pkt-brand-red-100: #fff2f1;
+    --color-pkt-brand-red-400: #ffdfdc;
+    --color-pkt-brand-red-600: #ffb4ac;
+    --color-pkt-brand-red-1000: #ff8274;
 
-    --color-warning: var(--pkt-color-warning-500, #f9c66b);
-    --color-warning-100: var(--pkt-color-warning-100, #ffe7bc);
-    --color-warning-500: var(--pkt-color-warning-500, #f9c66b);
-    --color-warning-700: var(--pkt-color-warning-700, #774c01);
+    /* Beiges */
+    --color-pkt-brand-light-beige-1000: #f8f0dd;
+    --color-pkt-brand-dark-beige-1000: #d0bfae;
 
-    --color-error: var(--pkt-color-error-500, #ff8274);
-    --color-error-100: var(--pkt-color-error-100, #fff2f1);
-    --color-error-500: var(--pkt-color-error-500, #ff8274);
-    --color-error-700: var(--pkt-color-error-700, #96281c);
+    /* Neutrals */
+    --color-pkt-brand-neutrals-white: #ffffff;
+    --color-pkt-brand-neutrals-100: #f9f9f9;
+    --color-pkt-brand-neutrals-200: #f2f2f2;
+    --color-pkt-brand-neutrals-1000: #2c2c2c;
+    --color-pkt-brand-neutrals-black: #000000;
+    --color-pkt-brand-neutrals-transparent: transparent;
 
-    --color-info: var(--pkt-color-info-500, #2a2859);
-    --color-info-100: var(--pkt-color-info-100, #e5fcff);
-    --color-info-500: var(--pkt-color-info-500, #2a2859);
-    --color-info-700: var(--pkt-color-info-700, #1f1f42);
+    /* Purple */
+    --color-pkt-brand-purple-1000: #e0adff;
 
-    /* ---- Legacy colors ---- */
-    --color-pri: #1F42AA;
-    --color-pri-600: #193587;
-    --color-pri-light: #E5FCFF;
-    --color-ok: #43F8B6;
-    --color-warn: #FF8274;
-    --color-ink: #2C2C2C;
-    --color-ink-dim: #4D4D4D;
-    --color-muted: #666666;
-    --color-border-color: #E6E6E6;
-    --color-card-bg: #FFFFFF;
-    --color-body-bg: #F8F8F8;
-    --color-ring-color: var(--color-pri);
+    /* Grays */
+    --color-pkt-grays-gray-100: #e6e6e6;
+    --color-pkt-grays-gray-200: #cccccc;
+    --color-pkt-grays-gray-300: #b3b3b3;
+    --color-pkt-grays-gray-400: #9a9a9a;
+    --color-pkt-grays-gray-500: #808080;
+    --color-pkt-grays-gray-600: #666666;
+    --color-pkt-grays-gray-700: #4d4d4d;
+    --color-pkt-grays-gray-800: #333333;
+    --color-pkt-grays-gray-900: #1a1a1a;
+    --color-pkt-grays-gray-1000: #2c2c2c;
 
-    /* ---- Typography ---- */
+    /* ============================================
+       PUNKT SEMANTIC COLORS - BACKGROUNDS
+       ============================================ */
+    --color-pkt-bg-card: #ffffff;
+    --color-pkt-bg-default: #ffffff;
+    --color-pkt-bg-subtle: #f9f9f9;
+    --color-pkt-bg-transparent: transparent;
+
+    /* ============================================
+       PUNKT SEMANTIC COLORS - BORDERS
+       ============================================ */
+    --color-pkt-border-default: #2a2859;
+    --color-pkt-border-beige: #d0bfae;
+    --color-pkt-border-blue: #6fe9ff;
+    --color-pkt-border-gray: #cccccc;
+    --color-pkt-border-green: #43f8b6;
+    --color-pkt-border-light-beige: #f8f0dd;
+    --color-pkt-border-red: #ff8274;
+    --color-pkt-border-subtle: #f2f2f2;
+    --color-pkt-border-yellow: #f9c66b;
+    --color-pkt-border-active: #1f42aa;
+    --color-pkt-border-disabled: #b3b3b3;
+    --color-pkt-border-focus: #e0adff;
+    --color-pkt-border-hover: #1f42aa;
+
+    /* ============================================
+       PUNKT SEMANTIC COLORS - SURFACES
+       ============================================ */
+    --color-pkt-surface-faded-green: #e5ffe6;
+    --color-pkt-surface-faded-red: #ffdfdc;
+    --color-pkt-surface-gray: #f9f9f9;
+    --color-pkt-surface-light-beige: #f8f0dd;
+    --color-pkt-surface-light-blue: #d1f9ff;
+    --color-pkt-surface-light-green: #c7fde9;
+    --color-pkt-surface-red: #ffb4ac;
+    --color-pkt-surface-yellow: #ffe7bc;
+    --color-pkt-surface-strong-beige: #d0bfae;
+    --color-pkt-surface-strong-blue: #6fe9ff;
+    --color-pkt-surface-strong-dark-blue: #2a2859;
+    --color-pkt-surface-strong-dark-green: #034b45;
+    --color-pkt-surface-strong-gray: #f2f2f2;
+    --color-pkt-surface-strong-green: #43f8b6;
+    --color-pkt-surface-strong-light-green: #c7f6c9;
+    --color-pkt-surface-strong-red: #ff8274;
+    --color-pkt-surface-strong-yellow: #f9c66b;
+    --color-pkt-surface-subtle-light-blue: #e5fcff;
+    --color-pkt-surface-subtle-light-red: #fff2f1;
+    --color-pkt-surface-subtle-pale-blue: #f1fdff;
+    --color-pkt-surface-subtle-white: #ffffff;
+
+    /* ============================================
+       PUNKT SEMANTIC COLORS - TEXT
+       ============================================ */
+    --color-pkt-text-body-dark: #2a2859;
+    --color-pkt-text-body-default: #2a2859;
+    --color-pkt-text-body-light: #ffffff;
+    --color-pkt-text-placeholder: #666666;
+    --color-pkt-text-action-disabled: #666666;
+    --color-pkt-text-action-active: #1f42aa;
+    --color-pkt-text-action-hover: #1f42aa;
+    --color-pkt-text-action-normal: #2a2859;
+
+    /* ============================================
+       LEGACY ALIASES (for backward compatibility)
+       ============================================ */
+    --color-oslo-blue: #2a2859;
+    --color-oslo-blue-700: #6a698b;
+    --color-oslo-beige: #d0bfae;
+    --color-oslo-beige-100: #f8f0dd;
+    --color-oslo-green: #034b45;
+    --color-success: #034b45;
+    --color-success-100: #e5ffe6;
+    --color-warning: #f9c66b;
+    --color-warning-100: #ffe7bc;
+    --color-error: #ff8274;
+    --color-error-100: #fff2f1;
+    --color-info: #2a2859;
+    --color-pri: #1f42aa;
+    --color-pri-light: #e5fcff;
+
+    /* ============================================
+       TYPOGRAPHY
+       ============================================ */
     --font-sans: 'Oslo Sans', system-ui, -apple-system, arial, sans-serif;
 
-    /* Font sizes: --text-* creates text-* utilities */
-    --text-body-sm: 0.875rem;
-    --text-body-md: 1rem;
-    --text-body-lg: 1.125rem;
-    --text-heading-sm: 1.25rem;
-    --text-heading-md: 1.5rem;
-    --text-heading-lg: 2rem;
+    /* Font sizes - INCREASED for better readability */
+    --text-xs: 0.75rem;      /* 12px */
+    --text-sm: 0.875rem;     /* 14px */
+    --text-base: 1rem;       /* 16px */
+    --text-lg: 1.125rem;     /* 18px */
+    --text-xl: 1.25rem;      /* 20px */
+    --text-2xl: 1.5rem;      /* 24px */
+    --text-3xl: 1.875rem;    /* 30px */
+    --text-4xl: 2.25rem;     /* 36px */
 
-    /* ---- Spacing (Punkt scale) ---- */
-    --spacing-pkt-01: 0.25rem;
-    --spacing-pkt-02: 0.5rem;
-    --spacing-pkt-03: 0.75rem;
-    --spacing-pkt-04: 1rem;
-    --spacing-pkt-05: 1.25rem;
-    --spacing-pkt-06: 1.5rem;
-    --spacing-pkt-08: 2rem;
-    --spacing-pkt-10: 2.5rem;
+    /* ============================================
+       SPACING (Punkt scale + extended)
+       ============================================ */
+    --spacing-pkt-01: 0.25rem;  /* 4px */
+    --spacing-pkt-02: 0.5rem;   /* 8px */
+    --spacing-pkt-03: 0.75rem;  /* 12px */
+    --spacing-pkt-04: 1rem;     /* 16px */
+    --spacing-pkt-05: 1.25rem;  /* 20px */
+    --spacing-pkt-06: 1.5rem;   /* 24px */
+    --spacing-pkt-08: 2rem;     /* 32px */
+    --spacing-pkt-10: 2.5rem;   /* 40px */
+    --spacing-pkt-12: 3rem;     /* 48px */
+    --spacing-pkt-16: 4rem;     /* 64px */
 
-    /* ---- Border Radius ---- */
-    --radius-pkt-sm: 0.25rem;
-    --radius-pkt-md: 0.5rem;
-    --radius-pkt-lg: 1rem;
+    /* ============================================
+       BORDER RADIUS - SKARPE KANTER
+       ============================================ */
+    --radius-none: 0;
+    --radius-pkt-sm: 0;
+    --radius-pkt-md: 0;
+    --radius-pkt-lg: 0;
 
-    /* ---- Z-Index Scale ---- */
+    /* ============================================
+       BORDER WIDTH
+       ============================================ */
+    --border-width-default: 2px;
+    --border-width-thick: 3px;
+
+    /* ============================================
+       Z-INDEX SCALE
+       ============================================ */
     --z-dropdown: 1000;
     --z-sticky: 1020;
     --z-fixed: 1030;
@@ -175,7 +278,8 @@ body {
     font-family: 'Oslo Sans', system-ui, -apple-system, arial, sans-serif !important;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    font-size: 14px;
+    font-size: 16px; /* Increased from 14px for better readability */
+    color: var(--color-pkt-text-body-default);
 }
 
 * {
