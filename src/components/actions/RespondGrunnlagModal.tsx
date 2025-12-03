@@ -3,11 +3,21 @@
  *
  * Action modal for BH (client) to respond to a grunnlag claim.
  * Uses React Hook Form + Zod for validation.
+ * Now uses Radix UI primitives with Punkt design system styling.
  */
 
 import { Modal } from '../primitives/Modal';
 import { Button } from '../primitives/Button';
-import { useForm } from 'react-hook-form';
+import { Textarea } from '../primitives/Textarea';
+import { FormField } from '../primitives/FormField';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../primitives/Select';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
@@ -50,8 +60,12 @@ export function RespondGrunnlagModal({
     formState: { errors, isSubmitting },
     reset,
     watch,
+    control,
   } = useForm<RespondGrunnlagFormData>({
     resolver: zodResolver(respondGrunnlagSchema),
+    defaultValues: {
+      resultat: undefined,
+    },
   });
 
   const mutation = useSubmitEvent(sakId, {
@@ -78,46 +92,45 @@ export function RespondGrunnlagModal({
       description="Gi din vurdering av grunnlaget for endringsmeldingen."
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-pkt-05">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-pkt-06">
         {/* Resultat */}
-        <div>
-          <label htmlFor="resultat" className="block text-sm font-medium text-gray-700">
-            Resultat <span className="text-error">*</span>
-          </label>
-          <select
-            id="resultat"
-            {...register('resultat')}
-            className="mt-pkt-02 block w-full rounded-pkt-md border-gray-300 shadow-sm focus:border-oslo-blue focus:ring-oslo-blue"
-            aria-required="true"
-            aria-invalid={!!errors.resultat}
-            aria-describedby={errors.resultat ? 'resultat-error' : undefined}
-          >
-            <option value="">Velg resultat</option>
-            {RESULTAT_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          {errors.resultat && (
-            <p id="resultat-error" className="mt-pkt-02 text-sm text-error" role="alert">
-              {errors.resultat.message}
-            </p>
-          )}
-        </div>
+        <FormField
+          label="Resultat"
+          required
+          error={errors.resultat?.message}
+        >
+          <Controller
+            name="resultat"
+            control={control}
+            render={({ field }) => (
+              <Select value={field.value} onValueChange={field.onChange}>
+                <SelectTrigger error={!!errors.resultat}>
+                  <SelectValue placeholder="Velg resultat" />
+                </SelectTrigger>
+                <SelectContent>
+                  {RESULTAT_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
+        </FormField>
 
         {/* Status indicator based on selection */}
         {selectedResultat && (
           <div
-            className={`p-pkt-04 rounded-pkt-md ${
+            className={`p-pkt-05 rounded-none border-2 ${
               selectedResultat === 'godkjent'
-                ? 'bg-success-100 border border-success-500'
+                ? 'bg-pkt-surface-faded-green border-pkt-border-green'
                 : selectedResultat === 'delvis_godkjent'
-                ? 'bg-warning-100 border border-warning-500'
-                : 'bg-error-100 border border-error-500'
+                ? 'bg-pkt-surface-yellow border-pkt-border-yellow'
+                : 'bg-pkt-surface-faded-red border-pkt-border-red'
             }`}
           >
-            <p className="text-sm font-medium">
+            <p className="text-base font-medium text-pkt-text-body-dark">
               {selectedResultat === 'godkjent'
                 ? '✓ Grunnlaget vil bli godkjent'
                 : selectedResultat === 'delvis_godkjent'
@@ -128,50 +141,45 @@ export function RespondGrunnlagModal({
         )}
 
         {/* Begrunnelse */}
-        <div>
-          <label htmlFor="begrunnelse" className="block text-sm font-medium text-gray-700">
-            Begrunnelse <span className="text-error">*</span>
-          </label>
-          <textarea
+        <FormField
+          label="Begrunnelse"
+          required
+          error={errors.begrunnelse?.message}
+        >
+          <Textarea
             id="begrunnelse"
             {...register('begrunnelse')}
             rows={5}
-            className="mt-pkt-02 block w-full rounded-pkt-md border-gray-300 shadow-sm focus:border-oslo-blue focus:ring-oslo-blue"
+            fullWidth
             placeholder="Begrunn din vurdering av grunnlaget..."
-            aria-required="true"
-            aria-invalid={!!errors.begrunnelse}
-            aria-describedby={errors.begrunnelse ? 'begrunnelse-error' : undefined}
+            error={!!errors.begrunnelse}
           />
-          {errors.begrunnelse && (
-            <p id="begrunnelse-error" className="mt-pkt-02 text-sm text-error" role="alert">
-              {errors.begrunnelse.message}
-            </p>
-          )}
-        </div>
+        </FormField>
 
         {/* Error Message */}
         {mutation.isError && (
           <div
-            className="p-pkt-04 bg-error-100 border border-error-500 rounded-pkt-md"
+            className="p-pkt-05 bg-pkt-surface-subtle-light-red border-2 border-pkt-border-red rounded-none"
             role="alert"
           >
-            <p className="text-sm text-error-700">
+            <p className="text-base text-pkt-border-red font-medium">
               {mutation.error instanceof Error ? mutation.error.message : 'En feil oppstod'}
             </p>
           </div>
         )}
 
         {/* Actions */}
-        <div className="flex justify-end gap-pkt-03 pt-pkt-04 border-t border-gray-200">
+        <div className="flex justify-end gap-pkt-04 pt-pkt-06 border-t-2 border-pkt-border-subtle">
           <Button
             type="button"
             variant="ghost"
             onClick={() => onOpenChange(false)}
             disabled={isSubmitting}
+            size="lg"
           >
             Avbryt
           </Button>
-          <Button type="submit" variant="primary" disabled={isSubmitting}>
+          <Button type="submit" variant="primary" disabled={isSubmitting} size="lg">
             {isSubmitting ? 'Sender...' : 'Send svar'}
           </Button>
         </div>
