@@ -12,20 +12,24 @@ import { DropdownOption } from './categories';
 export const VEDERLAGSMETODER_OPTIONS: DropdownOption[] = [
   { value: "", label: "— Velg —" },
   {
-    value: "entreprenorens_tilbud",
-    label: "Entreprenørens tilbud (§34.2.1)"
+    value: "tilbud",
+    label: "Entreprenørens tilbud / Fastpris (§34.2.1)"
   },
   {
-    value: "kontraktens_enhetspriser",
+    value: "kontrakt_ep",
     label: "Kontraktens enhetspriser (§34.3.1)"
   },
   {
-    value: "justerte_enhetspriser",
+    value: "justert_ep",
     label: "Justerte enhetspriser (§34.3.2)"
   },
   {
-    value: "regningsarbeid",
+    value: "regning",
     label: "Regningsarbeid (§30.1)"
+  },
+  {
+    value: "overslag",
+    label: "Regningsarbeid med prisoverslag (§30.2)"
   },
 ];
 

@@ -451,15 +451,15 @@ class FristData(BaseModel):
     )
 
     # Nøytralt varsel (§33.4) - kan sendes uten dager
-    noytralt_varsel_dato: Optional[str] = Field(
+    noytralt_varsel: Optional[VarselInfo] = Field(
         default=None,
-        description="Dato for nøytralt varsel (YYYY-MM-DD) - §33.4"
+        description="Info om nøytralt varsel (§33.4) - dato + metode (f.eks. muntlig på byggemøte)"
     )
 
     # Spesifisert krav (§33.6) - må inneholde dager
-    spesifisert_krav_dato: Optional[str] = Field(
+    spesifisert_varsel: Optional[VarselInfo] = Field(
         default=None,
-        description="Dato for spesifisert krav (YYYY-MM-DD) - §33.6"
+        description="Info om spesifisert krav (§33.6) - dato + metode (f.eks. formelt brev/epost)"
     )
 
     # ============ KRAVET (Kun relevant ved SPESIFISERT eller BEGGE) ============

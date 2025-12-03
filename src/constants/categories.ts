@@ -19,19 +19,19 @@ export const HOVEDKATEGORI_OPTIONS: DropdownOption[] = [
     label: "Endring initiert av BH (§31.1)"
   },
   {
-    value: "forsinkelse_svikt_bh",
+    value: "forsinkelse_bh",
     label: "Forsinkelse eller svikt i BHs ytelser (§22, §24)"
   },
   {
-    value: "risiko_grunnforhold",
+    value: "grunnforhold",
     label: "Risiko for grunnforhold (§23.1)"
   },
   {
-    value: "offentlige_paalegg",
+    value: "offentlige_paaleg",
     label: "Offentlige pålegg (§16.3)"
   },
   {
-    value: "forsering_tidsmessig_omlegging",
+    value: "forsering",
     label: "Forsering / Tidsmessig omlegging"
   },
   {
@@ -43,7 +43,7 @@ export const HOVEDKATEGORI_OPTIONS: DropdownOption[] = [
     label: "Hindringer BH har risikoen for (§33.1c)"
   },
   {
-    value: "ovrige_forhold",
+    value: "ovrige",
     label: "Øvrige forhold"
   },
 ];
@@ -53,11 +53,11 @@ export const HOVEDKATEGORI_OPTIONS: DropdownOption[] = [
 export const UNDERKATEGORI_MAP: Record<string, DropdownOption[]> = {
   "endring_initiert_bh": [
     {
-      value: "regulaer_endringsordre",
+      value: "regulaer_eo",
       label: "Regulær endringsordre (§31.1, §31.3) - BH har rett til å endre prosjektet"
     },
     {
-      value: "irregulaer_endring_uten_eo",
+      value: "irregulaer_endring",
       label: "Irregulær endring/pålegg uten EO (§32.1) - BH gir ordre uten forutgående EO"
     },
     {
@@ -66,48 +66,48 @@ export const UNDERKATEGORI_MAP: Record<string, DropdownOption[]> = {
     },
   ],
 
-  "forsinkelse_svikt_bh": [
+  "forsinkelse_bh": [
     {
-      value: "prosjektering_mangel",
+      value: "prosjektering",
       label: "Prosjektering (§24.1) - Mangler i prosjekteringsunderlag fra BH"
     },
     {
-      value: "svikt_arbeidsgrunnlag",
-      label: "Svikt i arbeidsgrunnlaget (§22.3, §25) - BH har ikke levert komplett/korrekt arbeidsgrunnlag. TEs plikt til å undersøke og varsle (§25)"
+      value: "arbeidsgrunnlag",
+      label: "Svikt i arbeidsgrunnlaget (§22.3, §25) - BH har ikke levert komplett/korrekt arbeidsgrunnlag"
     },
     {
-      value: "materialer_fra_bh",
+      value: "materialer_bh",
       label: "Materialer fra BH (§22.4) - BH-leverte materialer mangler eller er forsinkert"
     },
     {
-      value: "tillatelser_godkjenninger",
+      value: "tillatelser",
       label: "Tillatelser og godkjenninger (§16.3) - BH har ikke skaffet nødvendige tillatelser"
     },
     {
-      value: "fastmerker_utstikking",
+      value: "fastmerker",
       label: "Fastmerker og utstikking (§18.4) - BH har ikke etablert korrekte fastmerker"
     },
     {
-      value: "svikt_bh_losninger",
+      value: "foreskrevne_losninger",
       label: "Svikt i BHs foreskrevne løsninger (§24.1) - BHs valgte løsninger er ikke egnet"
     },
     {
-      value: "koordinering_sideentreprenorer",
+      value: "koordinering",
       label: "Koordinering av sideentreprenører (§21) - BH koordinerer ikke andre entreprenører tilfredsstillende"
     },
   ],
 
-  "risiko_grunnforhold": [
+  "grunnforhold": [
     {
       value: "uforutsette_grunnforhold",
       label: "Uforutsette grunnforhold (§23.1a) - Grunnforhold avviker fra det som var kjent"
     },
     {
-      value: "uriktige_grunnopplysninger",
+      value: "uriktige_opplysninger",
       label: "Uriktige grunnopplysninger fra BH (§23.1b) - BH har gitt feil informasjon"
     },
     {
-      value: "forurensning_grunn",
+      value: "forurensning",
       label: "Forurensning i grunnen (§23.1) - Uventet forurensning oppdages"
     },
     {
@@ -116,9 +116,9 @@ export const UNDERKATEGORI_MAP: Record<string, DropdownOption[]> = {
     },
   ],
 
-  "forsering_tidsmessig_omlegging": [
+  "forsering": [
     {
-      value: "palagt_forsering",
+      value: "paalegt_forsering",
       label: "Pålagt forsering / omlegging (§31.2) - BH pålegger endret tidsplan som en endring"
     },
     {
@@ -127,9 +127,24 @@ export const UNDERKATEGORI_MAP: Record<string, DropdownOption[]> = {
     },
   ],
 
+  "force_majeure": [
+    {
+      value: "naturkatastrofe",
+      label: "Naturkatastrofe (§33.3) - Flom, ras, storm eller lignende"
+    },
+    {
+      value: "krig_opprør",
+      label: "Krig, opprør eller unntakstilstand (§33.3)"
+    },
+    {
+      value: "streik",
+      label: "Streik eller lockout (§33.3) - Arbeidskonflikter"
+    },
+  ],
+
   "hindringer_bh_risiko": [
     {
-      value: "hindringer_byggeplass",
+      value: "fysiske_hindringer",
       label: "Hindringer på byggeplassen (§33.1c) - Fysiske hindringer BH har risikoen for"
     },
     {
@@ -137,8 +152,26 @@ export const UNDERKATEGORI_MAP: Record<string, DropdownOption[]> = {
       label: "Offentlige restriksjoner (§33.1c) - Myndighetspålagte begrensninger"
     },
     {
-      value: "tilstotende_arbeider_forsinket",
+      value: "tilstotende_arbeider",
       label: "Tilstøtende arbeider forsinket (§33.1c) - Andre entreprenører forsinker"
+    },
+  ],
+
+  "offentlige_paaleg": [
+    {
+      value: "nye_krav",
+      label: "Nye myndighetskrav (§16.3) - Nye lover eller forskrifter"
+    },
+    {
+      value: "endrede_vilkaar",
+      label: "Endrede tillatelsesvilkår (§16.3) - Endringer i godkjenninger"
+    },
+  ],
+
+  "ovrige": [
+    {
+      value: "annet",
+      label: "Annet forhold - Andre forhold som ikke passer i kategoriene over"
     },
   ],
 };

@@ -140,8 +140,8 @@ export interface FristTilstand {
 
   // TE's krav
   varsel_type?: FristVarselType;
-  noytralt_varsel_dato?: string;
-  spesifisert_krav_dato?: string;
+  noytralt_varsel?: VarselInfo;  // NEW: Structured info
+  spesifisert_varsel?: VarselInfo;  // NEW: Structured info
   krevd_dager?: number;
   frist_type?: 'kalenderdager' | 'arbeidsdager';
   begrunnelse?: string;
@@ -272,8 +272,8 @@ export interface VederlagEventData {
 export interface FristEventData {
   // Port 1: Varseltype
   varsel_type: FristVarselType;
-  noytralt_varsel_dato?: string;
-  spesifisert_krav_dato?: string;
+  noytralt_varsel?: VarselInfo;  // NEW: Structured info (dato + metode)
+  spesifisert_varsel?: VarselInfo;  // NEW: Structured info (dato + metode)
 
   // Kravet (kun relevant ved spesifisert)
   antall_dager?: number;
