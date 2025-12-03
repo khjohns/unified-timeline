@@ -54,25 +54,48 @@ class EventType(str, Enum):
     EO_UTSTEDT = "eo_utstedt"
 
 
-# Vederlag response results (includes "godkjent med annen metode")
-class VederlagResponsResultat(str, Enum):
-    """Mulige utfall av en BH-respons på vederlag"""
+# ============ VEDERLAG ENUMS ============
+
+class VederlagsMetode(str, Enum):
+    """NS 8407 vederlagsmetoder"""
+    KONTRAKT_EP = "kontrakt_ep"  # Kontraktens enhetspriser
+    JUSTERT_EP = "justert_ep"  # Justerte enhetspriser
+    REGNING = "regning"  # Regningsarbeid
+    TILBUD = "tilbud"  # Fastpris / Tilbud
+    SKJONN = "skjonn"  # Skjønnsmessig vurdering
+
+
+class VederlagBeregningResultat(str, Enum):
+    """Resultat av beregningsvurdering (Port 2 - ren utmåling)"""
     GODKJENT_FULLT = "godkjent_fullt"
     DELVIS_GODKJENT = "delvis_godkjent"
-    AVSLATT_UENIG_GRUNNLAG = "avslatt_uenig_grunnlag"
-    AVSLATT_FOR_SENT = "avslatt_for_sent"
-    AVVENTER_SPESIFIKASJON = "avventer_spesifikasjon"
     GODKJENT_ANNEN_METODE = "godkjent_annen_metode"
-
-
-# Frist response results (includes "delvis godkjent bestrider beregning")
-class FristResponsResultat(str, Enum):
-    """Mulige utfall av en BH-respons på frist"""
-    GODKJENT_FULLT = "godkjent_fullt"
-    DELVIS_GODKJENT_BESTRIDER_BEREGNING = "delvis_godkjent_bestrider_beregning"
-    AVSLATT_UENIG_GRUNNLAG = "avslatt_uenig_grunnlag"
-    AVSLATT_FOR_SENT = "avslatt_for_sent"
     AVVENTER_SPESIFIKASJON = "avventer_spesifikasjon"
+    AVSLATT_TOTALT = "avslatt_totalt"  # Kun ved f.eks. dobbeltfakturering, ikke grunnlag
+
+
+# FJERNET: avslatt_uenig_grunnlag - det hører hjemme i Grunnlag-sporet, ikke her!
+# Vederlag-responsen skal kun beskrive beregningen, ikke ansvar.
+
+
+# ============ FRIST ENUMS ============
+
+class FristVarselType(str, Enum):
+    """Type varsel for frist (NS 8407 §33)"""
+    NOYTRALT = "noytralt"  # §33.4 - Nøytralt varsel (uten dager)
+    SPESIFISERT = "spesifisert"  # §33.6 - Spesifisert krav (med dager)
+    BEGGE = "begge"  # Først nøytralt, så spesifisert
+
+
+class FristBeregningResultat(str, Enum):
+    """Resultat av fristberegning (Port 3 - ren utmåling)"""
+    GODKJENT_FULLT = "godkjent_fullt"
+    DELVIS_GODKJENT = "delvis_godkjent"
+    AVVENTER_SPESIFIKASJON = "avventer_spesifikasjon"
+
+
+# FJERNET: avslatt_uenig_grunnlag - det hører hjemme i Grunnlag-sporet!
+# Frist-responsen skal kun beskrive tid-vurderingen, ikke ansvar.
 
 
 # Generic response result (for backward compatibility)
@@ -212,11 +235,16 @@ class GrunnlagEvent(SakEvent):
 # ============ VEDERLAG EVENTS ============
 
 class VederlagData(BaseModel):
-    """Data for vederlagskrav"""
-    krav_belop: float = Field(..., ge=0, description="Krevd beløp i NOK")
-    metode: str = Field(
+    """
+    Data for vederlagskrav (Entreprenørens krav).
+
+    Denne modellen inneholder TEs krav på penger, inkludert dokumentasjon
+    av alle relevante varsler som kreves etter NS 8407.
+    """
+    krav_belop: float = Field(..., ge=0, description="Krevd beløp i NOK (ekskl. mva)")
+    metode: VederlagsMetode = Field(
         ...,
-        description="Vederlagsmetode-kode fra NS 8407 (f.eks. 'entreprenorens_tilbud')"
+        description="Vederlagsmetode etter NS 8407"
     )
     begrunnelse: str = Field(..., min_length=1, description="Begrunnelse for kravet")
 
@@ -226,22 +254,54 @@ class VederlagData(BaseModel):
         description="Detaljert kostnadsoppstilling (poster, timer, materialer, etc.)"
     )
 
-    # Tilleggsinfo
-    inkluderer_produktivitetstap: bool = Field(
-        default=False,
-        description="Om kravet inkluderer produktivitetstap"
-    )
+    # ============ PORT 1: SPESIFIKKE VARSLER (NS 8407) ============
+    # Disse varselfristene er kritiske for om kravet kan tapes ved preklusjon.
+    # BH skal vurdere om disse er sendt i tide.
+
+    # Rigg & Drift (§34.1.3)
     inkluderer_rigg_drift: bool = Field(
         default=False,
-        description="Om kravet inkluderer rigg/drift"
+        description="Om kravet inkluderer rigg/drift-kostnader"
     )
-    saerskilt_varsel_rigg_drift: bool = Field(
-        default=False,
-        description="Om det er sendt særskilt varsel for rigg/drift"
+    saerskilt_varsel_rigg_drift_dato: Optional[str] = Field(
+        default=None,
+        description="Dato for særskilt varsel om rigg/drift (YYYY-MM-DD) - §34.1.3"
     )
     rigg_drift_belop: Optional[float] = Field(
         default=None,
         description="Separat beløp for rigg/drift hvis aktuelt"
+    )
+
+    # Justerte enhetspriser (§34.3.3)
+    krever_justert_ep: bool = Field(
+        default=False,
+        description="Om kravet krever justering av kontraktens enhetspriser"
+    )
+    varsel_justert_ep_dato: Optional[str] = Field(
+        default=None,
+        description="Dato for varsel om justerte enhetspriser (YYYY-MM-DD) - §34.3.3"
+    )
+
+    # Regningsarbeid (§30.1)
+    krever_regningsarbeid: bool = Field(
+        default=False,
+        description="Om kravet involverer regningsarbeid"
+    )
+    varsel_start_regning_dato: Optional[str] = Field(
+        default=None,
+        description="Dato BH ble varslet før regningsarbeid startet (YYYY-MM-DD) - §30.1"
+    )
+
+    # Generelt krav fremmet
+    krav_fremmet_dato: Optional[str] = Field(
+        default=None,
+        description="Dato spesifisert vederlagskrav ble fremmet (YYYY-MM-DD)"
+    )
+
+    # Tilleggsinfo
+    inkluderer_produktivitetstap: bool = Field(
+        default=False,
+        description="Om kravet inkluderer produktivitetstap"
     )
 
 
@@ -281,27 +341,74 @@ class VederlagEvent(SakEvent):
 # ============ FRIST EVENTS ============
 
 class FristData(BaseModel):
-    """Data for fristforlengelseskrav"""
-    antall_dager: int = Field(..., ge=0, description="Antall dager forlengelse")
-    frist_type: Literal["kalenderdager", "arbeidsdager"] = Field(
+    """
+    Data for fristforlengelseskrav (Entreprenørens krav).
+
+    Denne modellen støtter både nøytralt varsel (§33.4) og spesifisert krav (§33.6).
+
+    NS 8407 skiller mellom:
+    - Nøytralt varsel: Varsler om at det *kan* bli krav, uten å spesifisere antall dager
+    - Spesifisert krav: Konkret krav om X antall dager
+    """
+
+    # ============ VARSELTYPE (PORT 1) ============
+    varsel_type: FristVarselType = Field(
         ...,
+        description="Type varsel sendt til BH"
+    )
+
+    # Nøytralt varsel (§33.4) - kan sendes uten dager
+    noytralt_varsel_dato: Optional[str] = Field(
+        default=None,
+        description="Dato for nøytralt varsel (YYYY-MM-DD) - §33.4"
+    )
+
+    # Spesifisert krav (§33.6) - må inneholde dager
+    spesifisert_krav_dato: Optional[str] = Field(
+        default=None,
+        description="Dato for spesifisert krav (YYYY-MM-DD) - §33.6"
+    )
+
+    # ============ KRAVET (Kun relevant ved SPESIFISERT eller BEGGE) ============
+    antall_dager: Optional[int] = Field(
+        default=None,
+        ge=0,
+        description="Antall dager forlengelse (kun ved spesifisert krav)"
+    )
+    frist_type: Literal["kalenderdager", "arbeidsdager"] = Field(
+        default="kalenderdager",
         description="Type dager"
     )
     begrunnelse: str = Field(..., min_length=1, description="Begrunnelse for kravet")
 
-    # Fremdriftsinfo
+    # ============ FREMDRIFTSINFO (PORT 2 - Vilkår) ============
+    # Dette brukes av BH for å vurdere om forholdet faktisk har medført hindring.
     pavirker_kritisk_linje: bool = Field(
         default=False,
-        description="Om forsinkelsen påvirker kritisk linje"
+        description="Om forsinkelsen påvirker kritisk linje/slutt­frist"
     )
     milepael_pavirket: Optional[str] = Field(
         default=None,
         description="Hvilken milepæl som påvirkes"
     )
+    fremdriftsanalyse_vedlagt: bool = Field(
+        default=False,
+        description="Om det er vedlagt fremdriftsanalyse/planleggingsgrunnlag"
+    )
     ny_sluttdato: Optional[str] = Field(
         default=None,
         description="Foreslått ny sluttdato (YYYY-MM-DD)"
     )
+
+    @field_validator('antall_dager')
+    @classmethod
+    def validate_antall_dager(cls, v, info):
+        """Valider at antall_dager er satt hvis varsel_type er SPESIFISERT eller BEGGE"""
+        varsel_type = info.data.get('varsel_type')
+        if varsel_type in [FristVarselType.SPESIFISERT, FristVarselType.BEGGE]:
+            if v is None:
+                raise ValueError("antall_dager må være satt for spesifisert krav")
+        return v
 
 
 class FristEvent(SakEvent):
@@ -367,43 +474,162 @@ class GrunnlagResponsData(ResponsData):
     )
 
 
-class VederlagResponsData(ResponsData):
-    """Spesifikk data for vederlag-respons"""
-    resultat: VederlagResponsResultat = Field(
-        ...,
-        description="Spesifikt utfall for vederlag (inkluderer 'godkjent_annen_metode')"
+class VederlagResponsData(BaseModel):
+    """
+    Byggherrens respons på vederlagskrav (Port-modellen).
+
+    VIKTIG: Denne modellen beskriver KUN beregningen/utmålingen av penger.
+    Avslag basert på grunnlag (ansvar) håndteres i Grunnlag-sporet.
+
+    Dette muliggjør subsidiære betraktninger:
+    - BH kan avvise Grunnlag (ansvar), MEN samtidig godkjenne beregningen
+      som subsidiær vurdering ("hvis jeg hadde hatt ansvar, er 50k riktig").
+    """
+
+    # ============ PORT 1: SPESIFIKKE VARSLER FOR PENGER ============
+    # Sjekk av om kravtypen er varslet i tide (preklusjon).
+
+    # Rigg & Drift (§34.1.3)
+    saerskilt_varsel_rigg_drift_ok: Optional[bool] = Field(
+        default=None,
+        description="Er det varslet særskilt om rigg/drift uten ugrunnet opphold? (§34.1.3)"
     )
+
+    # Justerte enhetspriser (§34.3.3)
+    varsel_justert_ep_ok: Optional[bool] = Field(
+        default=None,
+        description="Er det varslet om justerte enhetspriser uten ugrunnet opphold? (§34.3.3)"
+    )
+
+    # Regningsarbeid (§30.1)
+    varsel_start_regning_ok: Optional[bool] = Field(
+        default=None,
+        description="Ble BH varslet før regningsarbeid startet? (§30.1)"
+    )
+
+    # Generelt krav fremmet i tide
+    krav_fremmet_i_tide: bool = Field(
+        default=True,
+        description="Er vederlagskravet fremmet uten ugrunnet opphold?"
+    )
+
+    begrunnelse_varsel: Optional[str] = Field(
+        default=None,
+        description="Begrunnelse for vurdering av varsler/frister"
+    )
+
+    # ============ PORT 2: BEREGNING & METODE (Utmålingen) ============
+    # Dette er den "rene" beregningen - vurderes prinsipalt eller subsidiært.
+
+    vederlagsmetode: Optional[VederlagsMetode] = Field(
+        default=None,
+        description="Hvilken metode BH legger til grunn"
+    )
+
+    beregnings_resultat: VederlagBeregningResultat = Field(
+        ...,
+        description="BHs vurdering av kravets størrelse (ren beregning)"
+    )
+
     godkjent_belop: Optional[float] = Field(
         default=None,
-        description="Godkjent beløp (hvis delvis godkjent eller godkjent)"
+        description="Godkjent beløp i NOK (ekskl. mva). Utbetales kun hvis Grunnlag også godkjennes."
     )
-    godkjent_metode: Optional[str] = Field(
-        default=None,
-        description="BH-godkjent vederlagsmetode (hvis 'godkjent_annen_metode')"
+
+    begrunnelse_beregning: str = Field(
+        default="",
+        description="BHs kommentar til beregningen"
     )
+
     frist_for_spesifikasjon: Optional[str] = Field(
         default=None,
-        description="Frist for TE å levere spesifikasjon (YYYY-MM-DD)"
+        description="Frist for TE å levere ytterligere spesifikasjon (YYYY-MM-DD)"
     )
 
 
-class FristResponsData(ResponsData):
-    """Spesifikk data for frist-respons"""
-    resultat: FristResponsResultat = Field(
+class FristResponsData(BaseModel):
+    """
+    Byggherrens respons på fristforlengelseskrav (Port-modellen).
+
+    VIKTIG: Denne modellen beskriver KUN tid-vurderingen.
+    Avslag basert på grunnlag (ansvar) håndteres i Grunnlag-sporet.
+
+    Dette muliggjør subsidiære betraktninger:
+    - BH kan avvise Grunnlag (ansvar), MEN samtidig godkjenne dagberegningen
+      som subsidiær vurdering ("hvis jeg hadde hatt ansvar, er 14 dager riktig").
+
+    Port-modellen med tre sekvensielle vurderinger:
+    1. PORT 1: Er varselet sendt i tide? (Preklusjon)
+    2. PORT 2: Har forholdet medført faktisk fremdriftshindring? (Vilkår)
+    3. PORT 3: Hvor mange dager godkjennes? (Utmåling)
+    """
+
+    # ============ PORT 1: PREKLUSJON (Varslene) ============
+    # Sjekker om TE har fulgt spillereglene for tidskrav (NS 8407 §33).
+
+    # Nøytralt varsel (§33.4)
+    noytralt_varsel_ok: Optional[bool] = Field(
+        default=None,
+        description="Er nøytralt varsel sendt i tide? (§33.4). None hvis ikke relevant."
+    )
+
+    # Spesifisert krav (§33.6)
+    spesifisert_krav_ok: bool = Field(
+        default=True,
+        description="Er spesifisert krav sendt i tide? (§33.6)"
+    )
+
+    # Hvis spesifisert krav er for sent
+    har_bh_etterlyst: Optional[bool] = Field(
+        default=None,
+        description="Har BH etterlyst kravet skriftlig? (§33.6.2). Relevant kun hvis krav er sent."
+    )
+
+    begrunnelse_varsel: Optional[str] = Field(
+        default=None,
+        description="BHs begrunnelse for vurdering av varsling"
+    )
+
+    # ============ PORT 2: VILKÅR (Årsakssammenheng) ============
+    # Dette er IKKE vurdering av "Grunnlaget" (Event 1), men om grunnlaget
+    # faktisk har medført en fremdriftshindring (§33.1).
+
+    vilkar_oppfylt: bool = Field(
+        default=True,
+        description="Har forholdet medført en faktisk fremdriftshindring? (§33.1)"
+    )
+
+    begrunnelse_vilkar: Optional[str] = Field(
+        default=None,
+        description="BHs begrunnelse for vurdering av årsakssammenheng"
+    )
+
+    # ============ PORT 3: UTMÅLING (Beregning av dager) ============
+    # Den "rene" dagberegningen - vurderes prinsipalt eller subsidiært.
+
+    beregnings_resultat: FristBeregningResultat = Field(
         ...,
-        description="Spesifikt utfall for frist (inkluderer 'delvis_godkjent_bestrider_beregning')"
+        description="BHs vurdering av antall dager (ren beregning)"
     )
+
     godkjent_dager: Optional[int] = Field(
         default=None,
-        description="Godkjent antall dager (hvis delvis godkjent eller godkjent)"
+        description="Godkjent antall dager. Innvilges kun hvis Grunnlag også godkjennes."
     )
+
     ny_sluttdato: Optional[str] = Field(
         default=None,
-        description="BH-godkjent ny sluttdato"
+        description="BH-godkjent ny sluttdato (YYYY-MM-DD)"
     )
+
+    begrunnelse_beregning: Optional[str] = Field(
+        default=None,
+        description="BHs kommentar til dagberegningen"
+    )
+
     frist_for_spesifisering: Optional[str] = Field(
         default=None,
-        description="Frist for TE å levere ytterligere spesifikasjon (YYYY-MM-DD)"
+        description="Frist for TE å levere ytterligere spesifikasjon/fremdriftsplan (YYYY-MM-DD)"
     )
 
 

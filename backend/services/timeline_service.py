@@ -179,10 +179,16 @@ class TimelineService:
 
         # Oppdater data
         vederlag.krevd_belop = event.data.krav_belop
-        vederlag.metode = event.data.metode
+        vederlag.metode = event.data.metode.value if hasattr(event.data.metode, 'value') else event.data.metode
         vederlag.begrunnelse = event.data.begrunnelse
         vederlag.inkluderer_produktivitetstap = event.data.inkluderer_produktivitetstap
         vederlag.inkluderer_rigg_drift = event.data.inkluderer_rigg_drift
+
+        # Port 1: Varseldatoer
+        vederlag.saerskilt_varsel_rigg_drift_dato = event.data.saerskilt_varsel_rigg_drift_dato
+        vederlag.varsel_justert_ep_dato = event.data.varsel_justert_ep_dato
+        vederlag.varsel_start_regning_dato = event.data.varsel_start_regning_dato
+        vederlag.krav_fremmet_dato = event.data.krav_fremmet_dato
 
         # Oppdater status
         if event.event_type == EventType.VEDERLAG_KRAV_SENDT:
@@ -215,11 +221,15 @@ class TimelineService:
         frist = state.frist
 
         # Oppdater data
+        frist.varsel_type = event.data.varsel_type.value if hasattr(event.data.varsel_type, 'value') else event.data.varsel_type
+        frist.noytralt_varsel_dato = event.data.noytralt_varsel_dato
+        frist.spesifisert_krav_dato = event.data.spesifisert_krav_dato
         frist.krevd_dager = event.data.antall_dager
         frist.frist_type = event.data.frist_type
         frist.begrunnelse = event.data.begrunnelse
         frist.pavirker_kritisk_linje = event.data.pavirker_kritisk_linje
         frist.milepael_pavirket = event.data.milepael_pavirket
+        frist.fremdriftsanalyse_vedlagt = event.data.fremdriftsanalyse_vedlagt
 
         # Oppdater status
         if event.event_type == EventType.FRIST_KRAV_SENDT:
@@ -270,21 +280,41 @@ class TimelineService:
         return state
 
     def _handle_respons_vederlag(self, state: SakState, event: ResponsEvent) -> SakState:
-        """Håndterer RESPONS_VEDERLAG fra BH"""
+        """
+        Håndterer RESPONS_VEDERLAG fra BH.
+
+        Denne handlerne extraherer både Port 1 (varsling) og Port 2 (beregning) data.
+        """
         vederlag = state.vederlag
 
-        # Lagre BH respons
-        vederlag.bh_resultat = event.data.resultat
-        vederlag.bh_begrunnelse = event.data.begrunnelse
+        # Port 1: Varselvurderinger
+        if hasattr(event.data, 'saerskilt_varsel_rigg_drift_ok'):
+            vederlag.saerskilt_varsel_rigg_drift_ok = event.data.saerskilt_varsel_rigg_drift_ok
+        if hasattr(event.data, 'varsel_justert_ep_ok'):
+            vederlag.varsel_justert_ep_ok = event.data.varsel_justert_ep_ok
+        if hasattr(event.data, 'varsel_start_regning_ok'):
+            vederlag.varsel_start_regning_ok = event.data.varsel_start_regning_ok
+        if hasattr(event.data, 'krav_fremmet_i_tide'):
+            vederlag.krav_fremmet_i_tide = event.data.krav_fremmet_i_tide
+        if hasattr(event.data, 'begrunnelse_varsel'):
+            vederlag.begrunnelse_varsel = event.data.begrunnelse_varsel
 
-        # Spesifikke verdier fra VederlagResponsData
+        # Port 2: Beregning
+        if hasattr(event.data, 'beregnings_resultat'):
+            vederlag.bh_resultat = event.data.beregnings_resultat
+        if hasattr(event.data, 'begrunnelse_beregning'):
+            vederlag.bh_begrunnelse = event.data.begrunnelse_beregning
+        if hasattr(event.data, 'vederlagsmetode'):
+            vederlag.bh_metode = event.data.vederlagsmetode.value if hasattr(event.data.vederlagsmetode, 'value') else event.data.vederlagsmetode
         if hasattr(event.data, 'godkjent_belop'):
             vederlag.godkjent_belop = event.data.godkjent_belop
-        if hasattr(event.data, 'godkjent_metode'):
-            vederlag.godkjent_metode = event.data.godkjent_metode
 
-        # Map respons til status
-        vederlag.status = self._respons_til_status(event.data.resultat)
+        # Map beregnings_resultat til status
+        if hasattr(event.data, 'beregnings_resultat'):
+            vederlag.status = self._beregnings_resultat_til_status(event.data.beregnings_resultat)
+        # Fallback for backward compatibility
+        elif hasattr(event.data, 'resultat'):
+            vederlag.status = self._respons_til_status(event.data.resultat)
 
         # Metadata
         vederlag.siste_event_id = event.event_id
@@ -294,21 +324,51 @@ class TimelineService:
         return state
 
     def _handle_respons_frist(self, state: SakState, event: ResponsEvent) -> SakState:
-        """Håndterer RESPONS_FRIST fra BH"""
+        """
+        Håndterer RESPONS_FRIST fra BH.
+
+        Denne handlerne extraherer Port 1 (varsling), Port 2 (vilkår), og Port 3 (beregning) data.
+        """
         frist = state.frist
 
-        # Lagre BH respons
-        frist.bh_resultat = event.data.resultat
-        frist.bh_begrunnelse = event.data.begrunnelse
+        # Port 1: Varselvurderinger
+        if hasattr(event.data, 'noytralt_varsel_ok'):
+            frist.noytralt_varsel_ok = event.data.noytralt_varsel_ok
+        if hasattr(event.data, 'spesifisert_krav_ok'):
+            frist.spesifisert_krav_ok = event.data.spesifisert_krav_ok
+        if hasattr(event.data, 'har_bh_etterlyst'):
+            frist.har_bh_etterlyst = event.data.har_bh_etterlyst
+        if hasattr(event.data, 'begrunnelse_varsel'):
+            frist.begrunnelse_varsel = event.data.begrunnelse_varsel
 
-        # Spesifikke verdier fra FristResponsData
+        # Port 2: Vilkår (Årsakssammenheng)
+        if hasattr(event.data, 'vilkar_oppfylt'):
+            frist.vilkar_oppfylt = event.data.vilkar_oppfylt
+        if hasattr(event.data, 'begrunnelse_vilkar'):
+            frist.begrunnelse_vilkar = event.data.begrunnelse_vilkar
+
+        # Port 3: Beregning
+        if hasattr(event.data, 'beregnings_resultat'):
+            frist.bh_resultat = event.data.beregnings_resultat
+        if hasattr(event.data, 'begrunnelse_beregning'):
+            frist.begrunnelse_beregning = event.data.begrunnelse_beregning
         if hasattr(event.data, 'godkjent_dager'):
             frist.godkjent_dager = event.data.godkjent_dager
         if hasattr(event.data, 'ny_sluttdato'):
             frist.ny_sluttdato = event.data.ny_sluttdato
+        if hasattr(event.data, 'frist_for_spesifisering'):
+            frist.frist_for_spesifisering = event.data.frist_for_spesifisering
 
-        # Map respons til status
-        frist.status = self._respons_til_status(event.data.resultat)
+        # Også lagre gammel bh_begrunnelse for backward compatibility
+        if hasattr(event.data, 'begrunnelse'):
+            frist.bh_begrunnelse = event.data.begrunnelse
+
+        # Map beregnings_resultat til status
+        if hasattr(event.data, 'beregnings_resultat'):
+            frist.status = self._beregnings_resultat_til_status(event.data.beregnings_resultat)
+        # Fallback for backward compatibility
+        elif hasattr(event.data, 'resultat'):
+            frist.status = self._respons_til_status(event.data.resultat)
 
         # Metadata
         frist.siste_event_id = event.event_id
@@ -338,7 +398,7 @@ class TimelineService:
     # ============ HELPERS ============
 
     def _respons_til_status(self, resultat: ResponsResultat) -> SporStatus:
-        """Mapper ResponsResultat til SporStatus"""
+        """Mapper ResponsResultat til SporStatus (backward compatibility)"""
         mapping = {
             ResponsResultat.GODKJENT: SporStatus.GODKJENT,
             ResponsResultat.DELVIS_GODKJENT: SporStatus.DELVIS_GODKJENT,
@@ -347,6 +407,34 @@ class TimelineService:
             ResponsResultat.KREVER_AVKLARING: SporStatus.UNDER_FORHANDLING,
         }
         return mapping.get(resultat, SporStatus.UNDER_BEHANDLING)
+
+    def _beregnings_resultat_til_status(self, resultat) -> SporStatus:
+        """
+        Mapper VederlagBeregningResultat eller FristBeregningResultat til SporStatus.
+
+        VIKTIG: Dette mapper KUN beregningsresultatet, ikke grunnlag.
+        Kombinasjonen av grunnlag + beregning håndteres av computed fields i SakState.
+        """
+        from models.events import VederlagBeregningResultat, FristBeregningResultat
+
+        # Felles mapping for både vederlag og frist
+        if hasattr(resultat, 'value'):
+            resultat_value = resultat.value
+        else:
+            resultat_value = str(resultat)
+
+        # Map til status
+        if resultat_value in ['godkjent_fullt', 'godkjent_annen_metode']:
+            return SporStatus.GODKJENT
+        elif resultat_value == 'delvis_godkjent':
+            return SporStatus.DELVIS_GODKJENT
+        elif resultat_value == 'avventer_spesifikasjon':
+            return SporStatus.UNDER_FORHANDLING
+        elif resultat_value == 'avslatt_totalt':
+            # Kun ved f.eks. dobbeltfakturering, IKKE ansvar
+            return SporStatus.AVVIST
+        else:
+            return SporStatus.UNDER_BEHANDLING
 
     # ============ CONVENIENCE METHODS ============
 

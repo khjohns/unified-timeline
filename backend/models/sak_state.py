@@ -14,8 +14,8 @@ from models.events import (
     SporStatus,
     SporType,
     ResponsResultat,
-    VederlagResponsResultat,
-    FristResponsResultat,
+    VederlagBeregningResultat,
+    FristBeregningResultat,
     AnyEvent,
 )
 
@@ -73,20 +73,29 @@ class VederlagTilstand(BaseModel):
     krevd_belop: Optional[float] = Field(default=None)
     metode: Optional[str] = Field(
         default=None,
-        description="Uses codes from VEDERLAGSMETODER_OPTIONS"
+        description="Vederlagsmetode kode"
     )
     begrunnelse: Optional[str] = Field(default=None)
     inkluderer_produktivitetstap: bool = Field(default=False)
     inkluderer_rigg_drift: bool = Field(default=False)
-    saerskilt_varsel_rigg_drift: bool = Field(
-        default=False,
-        description="Separate notification for rigg/drift"
-    )
 
-    # BH respons
-    bh_resultat: Optional[Union[VederlagResponsResultat, ResponsResultat]] = Field(
+    # Varselinfo fra TE
+    saerskilt_varsel_rigg_drift_dato: Optional[str] = Field(default=None)
+    varsel_justert_ep_dato: Optional[str] = Field(default=None)
+    varsel_start_regning_dato: Optional[str] = Field(default=None)
+    krav_fremmet_dato: Optional[str] = Field(default=None)
+
+    # BH respons - Port 1 (Varsling)
+    saerskilt_varsel_rigg_drift_ok: Optional[bool] = Field(default=None)
+    varsel_justert_ep_ok: Optional[bool] = Field(default=None)
+    varsel_start_regning_ok: Optional[bool] = Field(default=None)
+    krav_fremmet_i_tide: Optional[bool] = Field(default=None)
+    begrunnelse_varsel: Optional[str] = Field(default=None)
+
+    # BH respons - Port 2 (Beregning)
+    bh_resultat: Optional[VederlagBeregningResultat] = Field(
         default=None,
-        description="Use specific vederlag response type (backward compatible)"
+        description="BH vurdering av beregningen (ren utmåling)"
     )
     bh_begrunnelse: Optional[str] = Field(default=None)
     bh_metode: Optional[str] = Field(
@@ -96,10 +105,6 @@ class VederlagTilstand(BaseModel):
     godkjent_belop: Optional[float] = Field(
         default=None,
         description="Beløp godkjent av BH (hvis delvis/full godkjenning)"
-    )
-    godkjent_metode: Optional[str] = Field(
-        default=None,
-        description="Deprecated: use bh_metode instead"
     )
 
     # Differanse-info (nyttig for UI)
@@ -133,6 +138,12 @@ class FristTilstand(BaseModel):
     )
 
     # Siste krav fra TE
+    varsel_type: Optional[str] = Field(
+        default=None,
+        description="Type varsel: noytralt, spesifisert, eller begge"
+    )
+    noytralt_varsel_dato: Optional[str] = Field(default=None)
+    spesifisert_krav_dato: Optional[str] = Field(default=None)
     krevd_dager: Optional[int] = Field(default=None)
     frist_type: Optional[str] = Field(default=None)
     begrunnelse: Optional[str] = Field(default=None)
@@ -141,11 +152,22 @@ class FristTilstand(BaseModel):
         description="Whether this affects critical path"
     )
     milepael_pavirket: Optional[str] = Field(default=None)
+    fremdriftsanalyse_vedlagt: bool = Field(default=False)
 
-    # BH respons
-    bh_resultat: Optional[Union[FristResponsResultat, ResponsResultat]] = Field(
+    # BH respons - Port 1 (Varsling)
+    noytralt_varsel_ok: Optional[bool] = Field(default=None)
+    spesifisert_krav_ok: Optional[bool] = Field(default=None)
+    har_bh_etterlyst: Optional[bool] = Field(default=None)
+    begrunnelse_varsel: Optional[str] = Field(default=None)
+
+    # BH respons - Port 2 (Vilkår/Årsakssammenheng)
+    vilkar_oppfylt: Optional[bool] = Field(default=None)
+    begrunnelse_vilkar: Optional[str] = Field(default=None)
+
+    # BH respons - Port 3 (Beregning)
+    bh_resultat: Optional[FristBeregningResultat] = Field(
         default=None,
-        description="Use specific frist response type (backward compatible)"
+        description="BH vurdering av dagberegningen (ren utmåling)"
     )
     bh_begrunnelse: Optional[str] = Field(default=None)
     godkjent_dager: Optional[int] = Field(
@@ -153,6 +175,7 @@ class FristTilstand(BaseModel):
         description="Dager godkjent av BH"
     )
     ny_sluttdato: Optional[str] = Field(default=None)
+    begrunnelse_beregning: Optional[str] = Field(default=None)
     frist_for_spesifisering: Optional[str] = Field(
         default=None,
         description="Frist for TE å levere ytterligere spesifikasjon (YYYY-MM-DD)"
@@ -200,6 +223,125 @@ class SakState(BaseModel):
         default_factory=FristTilstand,
         description="Tilstand for frist-sporet"
     )
+
+    # ============ SUBSIDIÆR LOGIKK (Computed Fields) ============
+    # Disse computed fields håndterer kombinasjonen av Grunnlag-avslag
+    # med Vederlag/Frist-godkjenning (subsidiære betraktninger).
+
+    @computed_field
+    @property
+    def er_subsidiaert_vederlag(self) -> bool:
+        """
+        Sjekker om vederlag er vurdert subsidiært.
+
+        Returns True hvis:
+        - Grunnlag er AVVIST av BH, MEN
+        - Vederlag-beregningen er godkjent (fullt/delvis)
+
+        Dette betyr: "BH mener TE har ansvar, men erkjenner at
+        beløpet ville vært riktig hvis BH hadde hatt ansvar."
+        """
+        grunnlag_avvist = self.grunnlag.status == SporStatus.AVVIST
+        beregning_godkjent = self.vederlag.bh_resultat in {
+            VederlagBeregningResultat.GODKJENT_FULLT,
+            VederlagBeregningResultat.DELVIS_GODKJENT,
+            VederlagBeregningResultat.GODKJENT_ANNEN_METODE,
+        }
+        return grunnlag_avvist and beregning_godkjent
+
+    @computed_field
+    @property
+    def er_subsidiaert_frist(self) -> bool:
+        """
+        Sjekker om frist er vurdert subsidiært.
+
+        Returns True hvis:
+        - Grunnlag er AVVIST av BH, MEN
+        - Frist-beregningen er godkjent (fullt/delvis)
+
+        Dette betyr: "BH mener TE har ansvar, men erkjenner at
+        dagene ville vært riktige hvis BH hadde hatt ansvar."
+        """
+        grunnlag_avvist = self.grunnlag.status == SporStatus.AVVIST
+        beregning_godkjent = self.frist.bh_resultat in {
+            FristBeregningResultat.GODKJENT_FULLT,
+            FristBeregningResultat.DELVIS_GODKJENT,
+        }
+        return grunnlag_avvist and beregning_godkjent
+
+    @computed_field
+    @property
+    def visningsstatus_vederlag(self) -> str:
+        """
+        Beregner visningsstatus for Vederlag som tar hensyn til subsidiær logikk.
+
+        Eksempler:
+        - "Avslått (Subsidiært enighet om 50 000 kr)"
+        - "Godkjent - 120 000 kr"
+        - "Under behandling"
+        """
+        if self.vederlag.status == SporStatus.IKKE_RELEVANT:
+            return "Ikke aktuelt"
+
+        if self.er_subsidiaert_vederlag:
+            belop = f"{self.vederlag.godkjent_belop:,.0f} kr" if self.vederlag.godkjent_belop else "beløp"
+            if self.vederlag.bh_resultat == VederlagBeregningResultat.GODKJENT_FULLT:
+                return f"Avslått pga. ansvar (Subsidiært enighet om {belop})"
+            elif self.vederlag.bh_resultat == VederlagBeregningResultat.DELVIS_GODKJENT:
+                return f"Avslått pga. ansvar (Subsidiært delvis enig om {belop})"
+            else:
+                return f"Avslått pga. ansvar (Subsidiært enighet med annen metode)"
+
+        # Normal (prinsipal) status
+        if self.vederlag.status == SporStatus.GODKJENT:
+            belop = f"{self.vederlag.godkjent_belop:,.0f} kr" if self.vederlag.godkjent_belop else ""
+            return f"Godkjent - {belop}"
+        elif self.vederlag.status == SporStatus.DELVIS_GODKJENT:
+            return f"Delvis godkjent - {self.vederlag.godkjent_belop:,.0f} kr"
+        elif self.vederlag.status == SporStatus.AVVIST:
+            return "Avvist"
+        elif self.vederlag.status == SporStatus.SENDT:
+            return "Sendt - venter på svar"
+        elif self.vederlag.status == SporStatus.UNDER_BEHANDLING:
+            return "Under behandling"
+        else:
+            return self.vederlag.status.value
+
+    @computed_field
+    @property
+    def visningsstatus_frist(self) -> str:
+        """
+        Beregner visningsstatus for Frist som tar hensyn til subsidiær logikk.
+
+        Eksempler:
+        - "Avslått (Subsidiært enighet om 14 dager)"
+        - "Godkjent - 10 dager"
+        - "Under behandling"
+        """
+        if self.frist.status == SporStatus.IKKE_RELEVANT:
+            return "Ikke aktuelt"
+
+        if self.er_subsidiaert_frist:
+            dager = f"{self.frist.godkjent_dager} dager" if self.frist.godkjent_dager else "dager"
+            if self.frist.bh_resultat == FristBeregningResultat.GODKJENT_FULLT:
+                return f"Avslått pga. ansvar (Subsidiært enighet om {dager})"
+            elif self.frist.bh_resultat == FristBeregningResultat.DELVIS_GODKJENT:
+                return f"Avslått pga. ansvar (Subsidiært delvis enig om {dager})"
+
+        # Normal (prinsipal) status
+        if self.frist.status == SporStatus.GODKJENT:
+            dager = f"{self.frist.godkjent_dager} dager" if self.frist.godkjent_dager else ""
+            return f"Godkjent - {dager}"
+        elif self.frist.status == SporStatus.DELVIS_GODKJENT:
+            return f"Delvis godkjent - {self.frist.godkjent_dager} dager"
+        elif self.frist.status == SporStatus.AVVIST:
+            return "Avvist"
+        elif self.frist.status == SporStatus.SENDT:
+            return "Sendt - venter på svar"
+        elif self.frist.status == SporStatus.UNDER_BEHANDLING:
+            return "Under behandling"
+        else:
+            return self.frist.status.value
 
     # Overordnet sak-status
     @computed_field

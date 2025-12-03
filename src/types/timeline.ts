@@ -21,21 +21,34 @@ export type SporStatus =
   | 'trukket'
   | 'laast';
 
-// Vederlag response results (includes "godkjent med annen metode")
-export type VederlagResponsResultat =
+// ========== VEDERLAG ENUMS ==========
+
+export type VederlagsMetode =
+  | 'kontrakt_ep'      // Kontraktens enhetspriser
+  | 'justert_ep'       // Justerte enhetspriser
+  | 'regning'          // Regningsarbeid
+  | 'tilbud'           // Fastpris / Tilbud
+  | 'skjonn';          // Skjønnsmessig vurdering
+
+// Vederlag beregning results (UTEN "avslatt_uenig_grunnlag" - det hører hjemme i Grunnlag!)
+export type VederlagBeregningResultat =
   | 'godkjent_fullt'
   | 'delvis_godkjent'
-  | 'avslatt_uenig_grunnlag'
-  | 'avslatt_for_sent'
+  | 'godkjent_annen_metode'
   | 'avventer_spesifikasjon'
-  | 'godkjent_annen_metode';
+  | 'avslatt_totalt';  // Kun ved f.eks. dobbeltfakturering, ikke grunnlag
 
-// Frist response results (includes "delvis godkjent bestrider beregning")
-export type FristResponsResultat =
+// ========== FRIST ENUMS ==========
+
+export type FristVarselType =
+  | 'noytralt'      // §33.4 - Nøytralt varsel (uten dager)
+  | 'spesifisert'   // §33.6 - Spesifisert krav (med dager)
+  | 'begge';        // Først nøytralt, så spesifisert
+
+// Frist beregning results (UTEN "avslatt_uenig_grunnlag" - det hører hjemme i Grunnlag!)
+export type FristBeregningResultat =
   | 'godkjent_fullt'
-  | 'delvis_godkjent_bestrider_beregning'
-  | 'avslatt_uenig_grunnlag'
-  | 'avslatt_for_sent'
+  | 'delvis_godkjent'
   | 'avventer_spesifikasjon';
 
 // Generic response result (for backward compatibility)
@@ -76,33 +89,78 @@ export interface GrunnlagTilstand {
 
 export interface VederlagTilstand {
   status: SporStatus;
+
+  // TE's krav
   krevd_belop?: number;
-  metode?: string; // Uses codes from VEDERLAGSMETODER_OPTIONS
+  metode?: VederlagsMetode;
   begrunnelse?: string;
   inkluderer_produktivitetstap?: boolean;
   inkluderer_rigg_drift?: boolean;
-  saerskilt_varsel_rigg_drift?: boolean; // NEW: Separate notification for rigg/drift
-  bh_resultat?: VederlagResponsResultat; // Use specific vederlag response type
+
+  // TE's varselinfo (Port 1)
+  saerskilt_varsel_rigg_drift_dato?: string;
+  varsel_justert_ep_dato?: string;
+  varsel_start_regning_dato?: string;
+  krav_fremmet_dato?: string;
+
+  // BH respons - Port 1 (Varsling)
+  saerskilt_varsel_rigg_drift_ok?: boolean;
+  varsel_justert_ep_ok?: boolean;
+  varsel_start_regning_ok?: boolean;
+  krav_fremmet_i_tide?: boolean;
+  begrunnelse_varsel?: string;
+
+  // BH respons - Port 2 (Beregning)
+  bh_resultat?: VederlagBeregningResultat;
   bh_begrunnelse?: string;
-  bh_metode?: string; // NEW: If BH approves with different method
+  bh_metode?: VederlagsMetode;
   godkjent_belop?: number;
+
+  // Computed
   differanse?: number;
   godkjenningsgrad_prosent?: number;
+
+  // Metadata
   siste_oppdatert?: string;
   antall_versjoner: number;
 }
 
 export interface FristTilstand {
   status: SporStatus;
+
+  // TE's krav
+  varsel_type?: FristVarselType;
+  noytralt_varsel_dato?: string;
+  spesifisert_krav_dato?: string;
   krevd_dager?: number;
-  frist_type?: 'uspesifisert_krav' | 'spesifisert_krav'; // NS 8407 §33.6.1 and §33.6.2
+  frist_type?: 'kalenderdager' | 'arbeidsdager';
   begrunnelse?: string;
-  pavirker_kritisk_linje?: boolean; // NEW: Whether this affects critical path
-  bh_resultat?: FristResponsResultat; // Use specific frist response type
+  pavirker_kritisk_linje?: boolean;
+  milepael_pavirket?: string;
+  fremdriftsanalyse_vedlagt?: boolean;
+
+  // BH respons - Port 1 (Varsling)
+  noytralt_varsel_ok?: boolean;
+  spesifisert_krav_ok?: boolean;
+  har_bh_etterlyst?: boolean;
+  begrunnelse_varsel?: string;
+
+  // BH respons - Port 2 (Vilkår/Årsakssammenheng)
+  vilkar_oppfylt?: boolean;
+  begrunnelse_vilkar?: string;
+
+  // BH respons - Port 3 (Beregning)
+  bh_resultat?: FristBeregningResultat;
   bh_begrunnelse?: string;
   godkjent_dager?: number;
+  ny_sluttdato?: string;
+  begrunnelse_beregning?: string;
+  frist_for_spesifisering?: string;
+
+  // Computed
   differanse_dager?: number;
-  frist_for_spesifisering?: string; // NEW: Date for when specification is due (YYYY-MM-DD)
+
+  // Metadata
   siste_oppdatert?: string;
   antall_versjoner: number;
 }
@@ -118,7 +176,13 @@ export interface SakState {
   vederlag: VederlagTilstand;
   frist: FristTilstand;
 
-  // Computed
+  // Computed - Subsidiær logikk
+  er_subsidiaert_vederlag: boolean;
+  er_subsidiaert_frist: boolean;
+  visningsstatus_vederlag: string;
+  visningsstatus_frist: string;
+
+  // Computed - Overordnet
   overordnet_status: OverordnetStatus;
   kan_utstede_eo: boolean;
   neste_handling: {
@@ -168,34 +232,76 @@ export interface GrunnlagEventData {
 
 export interface VederlagEventData {
   krav_belop: number;
-  metode: string; // Code from VEDERLAGSMETODER_OPTIONS (e.g., "entreprenorens_tilbud")
+  metode: VederlagsMetode;
   begrunnelse: string;
-  inkluderer_produktivitetstap?: boolean;
+  spesifikasjon?: Record<string, any>;
+
+  // Port 1: Spesifikke varsler
   inkluderer_rigg_drift?: boolean;
-  saerskilt_varsel_rigg_drift?: boolean; // NEW: From legacy
+  saerskilt_varsel_rigg_drift_dato?: string;
+  rigg_drift_belop?: number;
+  krever_justert_ep?: boolean;
+  varsel_justert_ep_dato?: string;
+  krever_regningsarbeid?: boolean;
+  varsel_start_regning_dato?: string;
+  krav_fremmet_dato?: string;
+
+  inkluderer_produktivitetstap?: boolean;
 }
 
 export interface FristEventData {
-  antall_dager: number;
-  frist_type: 'uspesifisert_krav' | 'spesifisert_krav'; // NS 8407 §33.6.1 and §33.6.2
+  // Port 1: Varseltype
+  varsel_type: FristVarselType;
+  noytralt_varsel_dato?: string;
+  spesifisert_krav_dato?: string;
+
+  // Kravet (kun relevant ved spesifisert)
+  antall_dager?: number;
+  frist_type?: 'kalenderdager' | 'arbeidsdager';
   begrunnelse: string;
+
+  // Fremdriftsinfo (Port 2)
   pavirker_kritisk_linje?: boolean;
+  milepael_pavirket?: string;
+  fremdriftsanalyse_vedlagt?: boolean;
+  ny_sluttdato?: string;
 }
 
-// Vederlag response event
+// Vederlag response event (Port Model)
 export interface ResponsVederlagEventData {
-  resultat: VederlagResponsResultat; // Use specific vederlag response type
-  begrunnelse: string;
+  // Port 1: Spesifikke varsler
+  saerskilt_varsel_rigg_drift_ok?: boolean;
+  varsel_justert_ep_ok?: boolean;
+  varsel_start_regning_ok?: boolean;
+  krav_fremmet_i_tide?: boolean;
+  begrunnelse_varsel?: string;
+
+  // Port 2: Beregning & Metode
+  vederlagsmetode?: VederlagsMetode;
+  beregnings_resultat: VederlagBeregningResultat;
   godkjent_belop?: number;
-  godkjent_metode?: string; // NEW: If approved with different method
+  begrunnelse_beregning?: string;
+  frist_for_spesifikasjon?: string;
 }
 
-// Frist response event
+// Frist response event (Port Model)
 export interface ResponsFristEventData {
-  resultat: FristResponsResultat; // Use specific frist response type
-  begrunnelse: string;
+  // Port 1: Preklusjon (Varsling)
+  noytralt_varsel_ok?: boolean;
+  spesifisert_krav_ok?: boolean;
+  har_bh_etterlyst?: boolean;
+  begrunnelse_varsel?: string;
+
+  // Port 2: Vilkår (Årsakssammenheng)
+  vilkar_oppfylt?: boolean;
+  begrunnelse_vilkar?: string;
+
+  // Port 3: Utmåling (Beregning)
+  beregnings_resultat: FristBeregningResultat;
   godkjent_dager?: number;
-  frist_for_spesifisering?: string; // NEW: Date for when specification is due (YYYY-MM-DD)
+  ny_sluttdato?: string;
+  begrunnelse_beregning?: string;
+  frist_for_spesifisering?: string;
 }
 
 // Generic response event (for backward compatibility)
