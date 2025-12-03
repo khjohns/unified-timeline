@@ -3,12 +3,23 @@
  *
  * Action modal for submitting a new vederlag (compensation) claim.
  * Uses React Hook Form + Zod for validation.
- * Now includes legacy NS 8407 payment methods.
+ * Now uses Radix UI primitives with Punkt design system styling.
  */
 
 import { Modal } from '../primitives/Modal';
 import { Button } from '../primitives/Button';
-import { useForm } from 'react-hook-form';
+import { Input } from '../primitives/Input';
+import { Textarea } from '../primitives/Textarea';
+import { Checkbox } from '../primitives/Checkbox';
+import { FormField } from '../primitives/FormField';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../primitives/Select';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
@@ -41,8 +52,12 @@ export function SendVederlagModal({
     handleSubmit,
     formState: { errors, isSubmitting },
     reset,
+    control,
   } = useForm<VederlagFormData>({
     resolver: zodResolver(vederlagSchema),
+    defaultValues: {
+      metode: '',
+    },
   });
 
   const mutation = useSubmitEvent(sakId, {
@@ -67,149 +82,110 @@ export function SendVederlagModal({
       description="Fyll ut detaljer for det nye vederlagskravet."
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-pkt-05">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-pkt-06">
         {/* Amount Field */}
-        <div>
-          <label htmlFor="krav_belop" className="block text-sm font-medium text-gray-700">
-            Krevd beløp (NOK) <span className="text-error">*</span>
-          </label>
-          <input
+        <FormField
+          label="Krevd beløp (NOK)"
+          required
+          error={errors.krav_belop?.message}
+        >
+          <Input
             id="krav_belop"
             type="number"
             step="0.01"
             {...register('krav_belop', { valueAsNumber: true })}
-            className="mt-pkt-02 block w-full rounded-pkt-md border-gray-300 shadow-sm focus:border-oslo-blue focus:ring-oslo-blue"
+            fullWidth
             placeholder="0.00"
-            aria-required="true"
-            aria-invalid={!!errors.krav_belop}
-            aria-describedby={errors.krav_belop ? 'krav_belop-error' : undefined}
+            error={!!errors.krav_belop}
           />
-          {errors.krav_belop && (
-            <p id="krav_belop-error" className="mt-pkt-02 text-sm text-error" role="alert">
-              {errors.krav_belop.message}
-            </p>
-          )}
-        </div>
+        </FormField>
 
         {/* Method Field - Using NS 8407 options */}
-        <div>
-          <label htmlFor="metode" className="block text-sm font-medium text-gray-700">
-            Vederlagsmetode (NS 8407) <span className="text-error">*</span>
-          </label>
-          <select
-            id="metode"
-            {...register('metode')}
-            className="mt-pkt-02 block w-full rounded-pkt-md border-gray-300 shadow-sm focus:border-oslo-blue focus:ring-oslo-blue"
-            aria-required="true"
-            aria-invalid={!!errors.metode}
-            aria-describedby={errors.metode ? 'metode-error' : undefined}
-          >
-            {VEDERLAGSMETODER_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          {errors.metode && (
-            <p id="metode-error" className="mt-pkt-02 text-sm text-error" role="alert">
-              {errors.metode.message}
-            </p>
-          )}
-          <p className="mt-pkt-02 text-xs text-gray-500">
-            Hvilken beregningsmetode brukes for vederlagskravet?
-          </p>
-        </div>
+        <FormField
+          label="Vederlagsmetode (NS 8407)"
+          required
+          error={errors.metode?.message}
+          helpText="Hvilken beregningsmetode brukes for vederlagskravet?"
+        >
+          <Controller
+            name="metode"
+            control={control}
+            render={({ field }) => (
+              <Select value={field.value} onValueChange={field.onChange}>
+                <SelectTrigger error={!!errors.metode}>
+                  <SelectValue placeholder="Velg metode" />
+                </SelectTrigger>
+                <SelectContent>
+                  {VEDERLAGSMETODER_OPTIONS.filter(opt => opt.value !== '').map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
+        </FormField>
 
         {/* Justification Field */}
-        <div>
-          <label htmlFor="begrunnelse" className="block text-sm font-medium text-gray-700">
-            Begrunnelse <span className="text-error">*</span>
-          </label>
-          <textarea
+        <FormField
+          label="Begrunnelse"
+          required
+          error={errors.begrunnelse?.message}
+        >
+          <Textarea
             id="begrunnelse"
             {...register('begrunnelse')}
-            rows={4}
-            className="mt-pkt-02 block w-full rounded-pkt-md border-gray-300 shadow-sm focus:border-oslo-blue focus:ring-oslo-blue"
+            rows={5}
+            fullWidth
             placeholder="Beskriv hvordan beløpet er beregnet..."
-            aria-required="true"
-            aria-invalid={!!errors.begrunnelse}
-            aria-describedby={errors.begrunnelse ? 'begrunnelse-error' : undefined}
+            error={!!errors.begrunnelse}
           />
-          {errors.begrunnelse && (
-            <p id="begrunnelse-error" className="mt-pkt-02 text-sm text-error" role="alert">
-              {errors.begrunnelse.message}
-            </p>
-          )}
-        </div>
+        </FormField>
 
         {/* Checkboxes */}
         <div className="space-y-pkt-03">
-          <div className="flex items-center">
-            <input
-              id="inkluderer_produktivitetstap"
-              type="checkbox"
-              {...register('inkluderer_produktivitetstap')}
-              className="h-4 w-4 rounded border-gray-300 text-oslo-blue focus:ring-oslo-blue"
-            />
-            <label
-              htmlFor="inkluderer_produktivitetstap"
-              className="ml-pkt-02 text-sm text-gray-700"
-            >
-              Inkluderer produktivitetstap
-            </label>
-          </div>
-
-          <div className="flex items-center">
-            <input
-              id="inkluderer_rigg_drift"
-              type="checkbox"
-              {...register('inkluderer_rigg_drift')}
-              className="h-4 w-4 rounded border-gray-300 text-oslo-blue focus:ring-oslo-blue"
-            />
-            <label htmlFor="inkluderer_rigg_drift" className="ml-pkt-02 text-sm text-gray-700">
-              Inkluderer rigg/drift
-            </label>
-          </div>
-
-          <div className="flex items-center">
-            <input
-              id="saerskilt_varsel_rigg_drift"
-              type="checkbox"
-              {...register('saerskilt_varsel_rigg_drift')}
-              className="h-4 w-4 rounded border-gray-300 text-oslo-blue focus:ring-oslo-blue"
-            />
-            <label
-              htmlFor="saerskilt_varsel_rigg_drift"
-              className="ml-pkt-02 text-sm text-gray-700"
-            >
-              Særskilt varsel for rigg/drift sendt
-            </label>
-          </div>
+          <Checkbox
+            id="inkluderer_produktivitetstap"
+            label="Inkluderer produktivitetstap"
+            {...register('inkluderer_produktivitetstap')}
+          />
+          <Checkbox
+            id="inkluderer_rigg_drift"
+            label="Inkluderer rigg/drift"
+            {...register('inkluderer_rigg_drift')}
+          />
+          <Checkbox
+            id="saerskilt_varsel_rigg_drift"
+            label="Særskilt varsel for rigg/drift sendt"
+            {...register('saerskilt_varsel_rigg_drift')}
+          />
         </div>
 
         {/* Error Message */}
         {mutation.isError && (
           <div
-            className="p-pkt-04 bg-error-100 border border-error-500 rounded-pkt-md"
+            className="p-pkt-05 bg-pkt-surface-subtle-light-red border-2 border-pkt-border-red rounded-none"
             role="alert"
           >
-            <p className="text-sm text-error-700">
+            <p className="text-base text-pkt-border-red font-medium">
               {mutation.error instanceof Error ? mutation.error.message : 'En feil oppstod'}
             </p>
           </div>
         )}
 
         {/* Actions */}
-        <div className="flex justify-end gap-pkt-03 pt-pkt-04 border-t border-gray-200">
+        <div className="flex justify-end gap-pkt-04 pt-pkt-06 border-t-2 border-pkt-border-subtle">
           <Button
             type="button"
             variant="ghost"
             onClick={() => onOpenChange(false)}
             disabled={isSubmitting}
+            size="lg"
           >
             Avbryt
           </Button>
-          <Button type="submit" variant="primary" disabled={isSubmitting}>
+          <Button type="submit" variant="primary" disabled={isSubmitting} size="lg">
             {isSubmitting ? 'Sender...' : 'Send krav'}
           </Button>
         </div>

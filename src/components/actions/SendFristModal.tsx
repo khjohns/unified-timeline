@@ -3,11 +3,17 @@
  *
  * Action modal for submitting a new frist (deadline extension) claim.
  * Uses React Hook Form + Zod for validation.
+ * Now uses Radix UI primitives with Punkt design system styling.
  */
 
 import { Modal } from '../primitives/Modal';
 import { Button } from '../primitives/Button';
-import { useForm } from 'react-hook-form';
+import { Input } from '../primitives/Input';
+import { Textarea } from '../primitives/Textarea';
+import { Checkbox } from '../primitives/Checkbox';
+import { RadioGroup, RadioItem } from '../primitives/RadioGroup';
+import { FormField } from '../primitives/FormField';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
@@ -39,10 +45,12 @@ export function SendFristModal({
     handleSubmit,
     formState: { errors, isSubmitting },
     reset,
+    control,
   } = useForm<FristFormData>({
     resolver: zodResolver(fristSchema),
     defaultValues: {
       frist_type: 'uspesifisert_krav',
+      pavirker_kritisk_linje: false,
     },
   });
 
@@ -68,129 +76,98 @@ export function SendFristModal({
       description="Fyll ut informasjon om fristforlengelsen."
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-pkt-05">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-pkt-06">
         {/* Number of Days */}
-        <div>
-          <label htmlFor="antall_dager" className="block text-sm font-medium text-gray-700">
-            Antall dager <span className="text-error">*</span>
-          </label>
-          <input
+        <FormField
+          label="Antall dager"
+          required
+          error={errors.antall_dager?.message}
+        >
+          <Input
             id="antall_dager"
             type="number"
             {...register('antall_dager', { valueAsNumber: true })}
-            className="mt-pkt-02 block w-full rounded-pkt-md border-gray-300 shadow-sm focus:border-oslo-blue focus:ring-oslo-blue"
+            fullWidth
             placeholder="0"
-            min="1"
-            aria-required="true"
-            aria-invalid={!!errors.antall_dager}
-            aria-describedby={errors.antall_dager ? 'antall_dager-error' : undefined}
+            min={1}
+            error={!!errors.antall_dager}
           />
-          {errors.antall_dager && (
-            <p id="antall_dager-error" className="mt-pkt-02 text-sm text-error" role="alert">
-              {errors.antall_dager.message}
-            </p>
-          )}
-        </div>
+        </FormField>
 
         {/* Deadline Type - NS 8407 Compliant */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-pkt-02">
-            Type fristkrav (NS 8407) <span className="text-error">*</span>
-          </label>
-          <div className="space-y-pkt-02">
-            <div className="flex items-center">
-              <input
-                id="frist_type_uspesifisert"
-                type="radio"
-                value="uspesifisert_krav"
-                {...register('frist_type')}
-                className="h-4 w-4 border-gray-300 text-oslo-blue focus:ring-oslo-blue"
-              />
-              <label htmlFor="frist_type_uspesifisert" className="ml-pkt-02 text-sm text-gray-700">
-                Uspesifisert krav (§33.6.2)
-              </label>
-            </div>
-            <div className="flex items-center">
-              <input
-                id="frist_type_spesifisert"
-                type="radio"
-                value="spesifisert_krav"
-                {...register('frist_type')}
-                className="h-4 w-4 border-gray-300 text-oslo-blue focus:ring-oslo-blue"
-              />
-              <label htmlFor="frist_type_spesifisert" className="ml-pkt-02 text-sm text-gray-700">
-                Spesifisert krav (§33.6.1)
-              </label>
-            </div>
-          </div>
-          <p className="mt-pkt-02 text-xs text-gray-500">
-            Uspesifisert: Krav fremsettes uten fullstendig spesifikasjon. Spesifisert: Detaljert dokumentert krav.
-          </p>
-          {errors.frist_type && (
-            <p className="mt-pkt-02 text-sm text-error" role="alert">
-              {errors.frist_type.message}
-            </p>
-          )}
-        </div>
+        <FormField
+          label="Type fristkrav (NS 8407)"
+          required
+          error={errors.frist_type?.message}
+          helpText="Uspesifisert: Krav fremsettes uten fullstendig spesifikasjon. Spesifisert: Detaljert dokumentert krav."
+        >
+          <Controller
+            name="frist_type"
+            control={control}
+            render={({ field }) => (
+              <RadioGroup value={field.value} onValueChange={field.onChange}>
+                <RadioItem
+                  id="frist_type_uspesifisert"
+                  value="uspesifisert_krav"
+                  label="Uspesifisert krav (§33.6.2)"
+                />
+                <RadioItem
+                  id="frist_type_spesifisert"
+                  value="spesifisert_krav"
+                  label="Spesifisert krav (§33.6.1)"
+                />
+              </RadioGroup>
+            )}
+          />
+        </FormField>
 
         {/* Justification */}
-        <div>
-          <label htmlFor="begrunnelse" className="block text-sm font-medium text-gray-700">
-            Begrunnelse <span className="text-error">*</span>
-          </label>
-          <textarea
+        <FormField
+          label="Begrunnelse"
+          required
+          error={errors.begrunnelse?.message}
+        >
+          <Textarea
             id="begrunnelse"
             {...register('begrunnelse')}
-            rows={4}
-            className="mt-pkt-02 block w-full rounded-pkt-md border-gray-300 shadow-sm focus:border-oslo-blue focus:ring-oslo-blue"
+            rows={5}
+            fullWidth
             placeholder="Beskriv hvorfor fristforlengelse er nødvendig..."
-            aria-required="true"
-            aria-invalid={!!errors.begrunnelse}
-            aria-describedby={errors.begrunnelse ? 'begrunnelse-error' : undefined}
+            error={!!errors.begrunnelse}
           />
-          {errors.begrunnelse && (
-            <p id="begrunnelse-error" className="mt-pkt-02 text-sm text-error" role="alert">
-              {errors.begrunnelse.message}
-            </p>
-          )}
-        </div>
+        </FormField>
 
         {/* Critical Path Checkbox */}
-        <div className="flex items-center">
-          <input
-            id="pavirker_kritisk_linje"
-            type="checkbox"
-            {...register('pavirker_kritisk_linje')}
-            className="h-4 w-4 rounded border-gray-300 text-oslo-blue focus:ring-oslo-blue"
-          />
-          <label htmlFor="pavirker_kritisk_linje" className="ml-pkt-02 text-sm text-gray-700">
-            Påvirker kritisk linje
-          </label>
-        </div>
+        <Checkbox
+          id="pavirker_kritisk_linje"
+          label="Påvirker kritisk linje"
+          {...register('pavirker_kritisk_linje')}
+        />
 
         {/* Error Message */}
         {mutation.isError && (
           <div
-            className="p-pkt-04 bg-error-100 border border-error-500 rounded-pkt-md"
+            className="p-pkt-05 bg-pkt-surface-subtle-light-red border-2 border-pkt-border-red rounded-none"
             role="alert"
           >
-            <p className="text-sm text-error-700">
+            <p className="text-base text-pkt-border-red font-medium">
               {mutation.error instanceof Error ? mutation.error.message : 'En feil oppstod'}
             </p>
           </div>
         )}
 
         {/* Actions */}
-        <div className="flex justify-end gap-pkt-03 pt-pkt-04 border-t border-gray-200">
+        <div className="flex justify-end gap-pkt-04 pt-pkt-06 border-t-2 border-pkt-border-subtle">
           <Button
             type="button"
             variant="ghost"
             onClick={() => onOpenChange(false)}
             disabled={isSubmitting}
+            size="lg"
           >
             Avbryt
           </Button>
-          <Button type="submit" variant="primary" disabled={isSubmitting}>
+          <Button type="submit" variant="primary" disabled={isSubmitting} size="lg">
             {isSubmitting ? 'Sender...' : 'Send fristkrav'}
           </Button>
         </div>
