@@ -21,15 +21,16 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
-import { ResponsResultat } from '../../types/timeline';
+import {
+  BH_GRUNNLAGSVAR_OPTIONS,
+  getBhGrunnlagssvarValues,
+  BH_GRUNNLAGSVAR_DESCRIPTIONS,
+} from '../../constants';
 
 const respondGrunnlagSchema = z.object({
-  resultat: z.enum(
-    ['godkjent', 'delvis_godkjent', 'avvist_uenig', 'avvist_for_sent', 'krever_avklaring'],
-    {
-      errorMap: () => ({ message: 'Resultat er påkrevd' }),
-    }
-  ),
+  resultat: z.enum(getBhGrunnlagssvarValues(), {
+    errorMap: () => ({ message: 'Resultat er påkrevd' }),
+  }),
   begrunnelse: z.string().min(10, 'Begrunnelse må være minst 10 tegn'),
 });
 
@@ -40,14 +41,6 @@ interface RespondGrunnlagModalProps {
   onOpenChange: (open: boolean) => void;
   sakId: string;
 }
-
-const RESULTAT_OPTIONS: Array<{ value: ResponsResultat; label: string }> = [
-  { value: 'godkjent', label: 'Godkjent' },
-  { value: 'delvis_godkjent', label: 'Delvis godkjent' },
-  { value: 'avvist_uenig', label: 'Avvist - uenig i grunnlaget' },
-  { value: 'avvist_for_sent', label: 'Avvist - for sent varsel' },
-  { value: 'krever_avklaring', label: 'Krever ytterligere avklaring' },
-];
 
 export function RespondGrunnlagModal({
   open,
@@ -89,15 +82,16 @@ export function RespondGrunnlagModal({
       open={open}
       onOpenChange={onOpenChange}
       title="Svar på grunnlag"
-      description="Gi din vurdering av grunnlaget for endringsmeldingen."
+      description="Vurder ansvarsgrunnlaget (hvem sin feil). Dette påvirker om vederlag/frist vurderes prinsipalt eller subsidiært."
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-pkt-06">
         {/* Resultat */}
         <FormField
-          label="Resultat"
+          label="Resultat (ansvarsgrunnlag)"
           required
           error={errors.resultat?.message}
+          labelTooltip="Vurder BARE ansvaret. Hvis avvist, kan vederlag/frist fortsatt vurderes subsidiært."
         >
           <Controller
             name="resultat"
@@ -108,7 +102,7 @@ export function RespondGrunnlagModal({
                   <SelectValue placeholder="Velg resultat" />
                 </SelectTrigger>
                 <SelectContent>
-                  {RESULTAT_OPTIONS.map((option) => (
+                  {BH_GRUNNLAGSVAR_OPTIONS.filter(opt => opt.value !== '').map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
                     </SelectItem>
@@ -119,23 +113,11 @@ export function RespondGrunnlagModal({
           />
         </FormField>
 
-        {/* Status indicator based on selection */}
-        {selectedResultat && (
-          <div
-            className={`p-pkt-05 rounded-none border-2 ${
-              selectedResultat === 'godkjent'
-                ? 'bg-pkt-surface-faded-green border-pkt-border-green'
-                : selectedResultat === 'delvis_godkjent'
-                ? 'bg-pkt-surface-yellow border-pkt-border-yellow'
-                : 'bg-pkt-surface-faded-red border-pkt-border-red'
-            }`}
-          >
-            <p className="text-base font-medium text-pkt-text-body-dark">
-              {selectedResultat === 'godkjent'
-                ? '✓ Grunnlaget vil bli godkjent'
-                : selectedResultat === 'delvis_godkjent'
-                ? '◐ Grunnlaget vil bli delvis godkjent'
-                : '✗ Grunnlaget vil bli avvist eller krever avklaring'}
+        {/* Show description of selected resultat */}
+        {selectedResultat && BH_GRUNNLAGSVAR_DESCRIPTIONS[selectedResultat] && (
+          <div className="p-pkt-04 bg-pkt-surface-subtle rounded-none border-l-4 border-pkt-border-focus">
+            <p className="text-sm text-pkt-text-body-subtle">
+              {BH_GRUNNLAGSVAR_DESCRIPTIONS[selectedResultat]}
             </p>
           </div>
         )}

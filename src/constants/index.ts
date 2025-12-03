@@ -8,6 +8,7 @@ export * from './categories';
 export * from './paymentMethods';
 export * from './responseOptions';
 export * from './varselMetoder';
+export * from './fristVarselTypes';
 
 // Re-export types
 export type { DropdownOption } from './categories';
