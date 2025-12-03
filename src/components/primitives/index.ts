@@ -17,6 +17,7 @@ export { Label } from './Label';
 export { Textarea } from './Textarea';
 export { Checkbox } from './Checkbox';
 export { RadioGroup, RadioItem } from './RadioGroup';
+export { DatePicker } from './DatePicker';
 export {
   Select,
   SelectContent,

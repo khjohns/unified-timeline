@@ -11,6 +11,7 @@ import { Button } from '../primitives/Button';
 import { Input } from '../primitives/Input';
 import { Textarea } from '../primitives/Textarea';
 import { Checkbox } from '../primitives/Checkbox';
+import { DatePicker } from '../primitives/DatePicker';
 import { FormField } from '../primitives/FormField';
 import {
   Select,
@@ -193,12 +194,19 @@ export function SendGrunnlagModal({
           required
           error={errors.dato_oppdaget?.message}
         >
-          <Input
-            id="dato_oppdaget"
-            type="date"
-            {...register('dato_oppdaget')}
-            fullWidth
-            error={!!errors.dato_oppdaget}
+          <Controller
+            name="dato_oppdaget"
+            control={control}
+            render={({ field }) => (
+              <DatePicker
+                id="dato_oppdaget"
+                value={field.value}
+                onChange={field.onChange}
+                fullWidth
+                error={!!errors.dato_oppdaget}
+                placeholder="Velg dato"
+              />
+            )}
           />
         </FormField>
 
@@ -207,11 +215,18 @@ export function SendGrunnlagModal({
           label="Dato varsel sendt"
           helpText="Når ble forholdet formelt varslet til BH? (Kan være forskjellig fra oppdaget-dato)"
         >
-          <Input
-            id="dato_varsel_sendt"
-            type="date"
-            {...register('dato_varsel_sendt')}
-            fullWidth
+          <Controller
+            name="dato_varsel_sendt"
+            control={control}
+            render={({ field }) => (
+              <DatePicker
+                id="dato_varsel_sendt"
+                value={field.value}
+                onChange={field.onChange}
+                fullWidth
+                placeholder="Velg dato"
+              />
+            )}
           />
         </FormField>
 
