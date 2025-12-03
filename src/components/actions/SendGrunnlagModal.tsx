@@ -96,6 +96,14 @@ export function SendGrunnlagModal({
       ? data.kontraktsreferanser.split(',').map((ref) => ref.trim())
       : [];
 
+    // Build VarselInfo structure if varsel data is provided
+    const grunnlagVarsel = data.dato_varsel_sendt
+      ? {
+          dato_sendt: data.dato_varsel_sendt,
+          metode: data.varsel_metode || [],
+        }
+      : undefined;
+
     mutation.mutate({
       eventType: 'grunnlag_opprettet',
       data: {
@@ -103,8 +111,7 @@ export function SendGrunnlagModal({
         underkategori: data.underkategori,
         beskrivelse: data.beskrivelse,
         dato_oppdaget: data.dato_oppdaget,
-        dato_varsel_sendt: data.dato_varsel_sendt,
-        varsel_metode: data.varsel_metode,
+        grunnlag_varsel: grunnlagVarsel,
         kontraktsreferanser,
       },
     });
@@ -124,6 +131,7 @@ export function SendGrunnlagModal({
           label="Hovedkategori (NS 8407)"
           required
           error={errors.hovedkategori?.message}
+          labelTooltip="Velg juridisk grunnlag iht. NS 8407. Dette bestemmer hvilke kontraktsbestemmelser som gjelder og hvilke krav som kan fremmes."
         >
           <Controller
             name="hovedkategori"
@@ -213,7 +221,8 @@ export function SendGrunnlagModal({
         {/* Dato varsel sendt */}
         <FormField
           label="Dato varsel sendt"
-          helpText="Når ble forholdet formelt varslet til BH? (Kan være forskjellig fra oppdaget-dato)"
+          labelTooltip="Dokumenter når BH ble varslet. Varselfrist er kritisk for om kravet kan tapes ved preklusjon."
+          helpText="Kan være forskjellig fra oppdaget-dato. Både formelle og uformelle varsler (f.eks. byggemøte) teller."
         >
           <Controller
             name="dato_varsel_sendt"

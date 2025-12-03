@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import clsx from 'clsx';
+import { InfoLabel } from './InfoLabel';
 
 export interface FormFieldProps {
   /** Field label */
@@ -10,6 +11,8 @@ export interface FormFieldProps {
   error?: string;
   /** Help text to display below the input */
   helpText?: string;
+  /** Optional tooltip for the label (adds info icon) */
+  labelTooltip?: string;
   /** The form input/select/textarea component */
   children: ReactNode;
   /** Additional className for the container */
@@ -21,6 +24,7 @@ export interface FormFieldProps {
  * - Handles spacing and layout
  * - Shows error messages with proper styling
  * - Shows help text when no error
+ * - Supports info tooltips via labelTooltip prop
  * - Larger spacing for better readability
  */
 export function FormField({
@@ -28,12 +32,17 @@ export function FormField({
   required,
   error,
   helpText,
+  labelTooltip,
   children,
   className,
 }: FormFieldProps) {
   return (
     <div className={clsx('mb-pkt-05', className)}>
-      {label && (
+      {label && labelTooltip ? (
+        <InfoLabel tooltip={labelTooltip} required={required}>
+          {label}
+        </InfoLabel>
+      ) : label ? (
         <label className="block text-base font-medium text-pkt-text-body-default mb-pkt-02">
           {label}
           {required && (
@@ -42,7 +51,7 @@ export function FormField({
             </span>
           )}
         </label>
-      )}
+      ) : null}
 
       {children}
 

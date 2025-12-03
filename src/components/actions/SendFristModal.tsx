@@ -12,19 +12,38 @@ import { Input } from '../primitives/Input';
 import { Textarea } from '../primitives/Textarea';
 import { Checkbox } from '../primitives/Checkbox';
 import { RadioGroup, RadioItem } from '../primitives/RadioGroup';
+import { DatePicker } from '../primitives/DatePicker';
 import { FormField } from '../primitives/FormField';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
+import {
+  FRIST_VARSELTYPE_OPTIONS,
+  getFristVarseltypeValues,
+  FRIST_VARSELTYPE_DESCRIPTIONS,
+  VARSEL_METODER_OPTIONS,
+} from '../../constants';
 
 const fristSchema = z.object({
-  antall_dager: z.number().min(1, 'Antall dager må være minst 1'),
-  frist_type: z.enum(['uspesifisert_krav', 'spesifisert_krav'], {
-    errorMap: () => ({ message: 'Fristtype er påkrevd' }),
+  varsel_type: z.enum(getFristVarseltypeValues(), {
+    errorMap: () => ({ message: 'Varseltype er påkrevd' }),
   }),
+
+  // VarselInfo for nøytralt varsel (§33.4)
+  noytralt_varsel_dato: z.string().optional(),
+  noytralt_varsel_metoder: z.array(z.string()).optional(),
+
+  // VarselInfo for spesifisert krav (§33.6)
+  spesifisert_varsel_dato: z.string().optional(),
+  spesifisert_varsel_metoder: z.array(z.string()).optional(),
+
+  antall_dager: z.number().min(0, 'Antall dager kan ikke være negativt').optional(),
   begrunnelse: z.string().min(10, 'Begrunnelse må være minst 10 tegn'),
+  fremdriftshindring_dokumentasjon: z.string().optional(),
+  ny_sluttdato: z.string().optional(),
   pavirker_kritisk_linje: z.boolean().optional(),
+  vedlegg_ids: z.array(z.string()).optional(),
 });
 
 type FristFormData = z.infer<typeof fristSchema>;
@@ -46,11 +65,15 @@ export function SendFristModal({
     formState: { errors, isSubmitting },
     reset,
     control,
+    watch,
   } = useForm<FristFormData>({
     resolver: zodResolver(fristSchema),
     defaultValues: {
-      frist_type: 'uspesifisert_krav',
+      varsel_type: 'noytralt',
       pavirker_kritisk_linje: false,
+      noytralt_varsel_metoder: [],
+      spesifisert_varsel_metoder: [],
+      vedlegg_ids: [],
     },
   });
 
@@ -61,10 +84,38 @@ export function SendFristModal({
     },
   });
 
+  // Watch for conditional rendering
+  const selectedVarselType = watch('varsel_type');
+
   const onSubmit = (data: FristFormData) => {
+    // Build VarselInfo structures
+    const noytraltVarsel = data.noytralt_varsel_dato
+      ? {
+          dato_sendt: data.noytralt_varsel_dato,
+          metode: data.noytralt_varsel_metoder || [],
+        }
+      : undefined;
+
+    const spesifisertVarsel = data.spesifisert_varsel_dato
+      ? {
+          dato_sendt: data.spesifisert_varsel_dato,
+          metode: data.spesifisert_varsel_metoder || [],
+        }
+      : undefined;
+
     mutation.mutate({
       eventType: 'frist_krav_sendt',
-      data,
+      data: {
+        varsel_type: data.varsel_type,
+        noytralt_varsel: noytraltVarsel,
+        spesifisert_varsel: spesifisertVarsel,
+        antall_dager: data.antall_dager,
+        begrunnelse: data.begrunnelse,
+        fremdriftshindring_dokumentasjon: data.fremdriftshindring_dokumentasjon,
+        ny_sluttdato: data.ny_sluttdato,
+        pavirker_kritisk_linje: data.pavirker_kritisk_linje,
+        vedlegg_ids: data.vedlegg_ids,
+      },
     });
   };
 
@@ -77,47 +128,186 @@ export function SendFristModal({
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-pkt-06">
-        {/* Number of Days */}
+        {/* Varsel Type - NS 8407 §33 */}
         <FormField
-          label="Antall dager"
+          label="Type varsel/krav (NS 8407 §33)"
           required
-          error={errors.antall_dager?.message}
-        >
-          <Input
-            id="antall_dager"
-            type="number"
-            {...register('antall_dager', { valueAsNumber: true })}
-            fullWidth
-            placeholder="0"
-            min={1}
-            error={!!errors.antall_dager}
-          />
-        </FormField>
-
-        {/* Deadline Type - NS 8407 Compliant */}
-        <FormField
-          label="Type fristkrav (NS 8407)"
-          required
-          error={errors.frist_type?.message}
-          helpText="Uspesifisert: Krav fremsettes uten fullstendig spesifikasjon. Spesifisert: Detaljert dokumentert krav."
+          error={errors.varsel_type?.message}
+          labelTooltip="Velg hvordan du varsler fristkrav iht. §33. Nøytralt varsel sendes først når omfang ikke er kjent."
+          helpText={selectedVarselType && FRIST_VARSELTYPE_DESCRIPTIONS[selectedVarselType] ? FRIST_VARSELTYPE_DESCRIPTIONS[selectedVarselType] : undefined}
         >
           <Controller
-            name="frist_type"
+            name="varsel_type"
             control={control}
             render={({ field }) => (
               <RadioGroup value={field.value} onValueChange={field.onChange}>
-                <RadioItem
-                  id="frist_type_uspesifisert"
-                  value="uspesifisert_krav"
-                  label="Uspesifisert krav (§33.6.2)"
-                />
-                <RadioItem
-                  id="frist_type_spesifisert"
-                  value="spesifisert_krav"
-                  label="Spesifisert krav (§33.6.1)"
-                />
+                {FRIST_VARSELTYPE_OPTIONS.filter(opt => opt.value !== '').map((option) => (
+                  <RadioItem
+                    key={option.value}
+                    id={`varsel_type_${option.value}`}
+                    value={option.value}
+                    label={option.label}
+                  />
+                ))}
               </RadioGroup>
             )}
+          />
+        </FormField>
+
+        {/* VarselInfo fields based on selected type */}
+        {(selectedVarselType === 'noytralt' || selectedVarselType === 'begge') && (
+          <div className="p-pkt-05 bg-pkt-surface-subtle-light-blue rounded-none border-2 border-pkt-border-focus">
+            <h4 className="text-base font-medium text-pkt-text-body-default mb-pkt-04">
+              Nøytralt/Foreløpig varsel (§33.4)
+            </h4>
+
+            <div className="space-y-pkt-04">
+              <FormField
+                label="Dato nøytralt varsel sendt"
+                error={errors.noytralt_varsel_dato?.message}
+                labelTooltip="§33.4: Sendes når omfang ikke er kjent. Bevarer rett til senere spesifisert krav."
+              >
+                <Controller
+                  name="noytralt_varsel_dato"
+                  control={control}
+                  render={({ field }) => (
+                    <DatePicker
+                      id="noytralt_varsel_dato"
+                      value={field.value}
+                      onChange={field.onChange}
+                      fullWidth
+                      error={!!errors.noytralt_varsel_dato}
+                      placeholder="Velg dato"
+                    />
+                  )}
+                />
+              </FormField>
+
+              <FormField
+                label="Varselmetoder (nøytralt)"
+                helpText="Velg alle metoder som ble brukt"
+              >
+                <div className="space-y-pkt-03 border-2 border-pkt-border-gray rounded-none p-pkt-04 bg-pkt-bg-subtle">
+                  {VARSEL_METODER_OPTIONS.map((option) => (
+                    <Checkbox
+                      key={option.value}
+                      id={`noytralt_varsel-${option.value}`}
+                      label={option.label}
+                      value={option.value}
+                      {...register('noytralt_varsel_metoder')}
+                    />
+                  ))}
+                </div>
+              </FormField>
+            </div>
+          </div>
+        )}
+
+        {(selectedVarselType === 'spesifisert' || selectedVarselType === 'begge') && (
+          <div className="p-pkt-05 bg-pkt-surface-subtle-light-blue rounded-none border-2 border-pkt-border-focus">
+            <h4 className="text-base font-medium text-pkt-text-body-default mb-pkt-04">
+              Spesifisert krav (§33.6)
+            </h4>
+
+            <div className="space-y-pkt-04">
+              <FormField
+                label="Dato spesifisert krav sendt"
+                error={errors.spesifisert_varsel_dato?.message}
+                labelTooltip="§33.6.1: Konkret krav med antall dager og begrunnelse. Må sendes innen rimelig tid etter at omfang er kjent."
+              >
+                <Controller
+                  name="spesifisert_varsel_dato"
+                  control={control}
+                  render={({ field }) => (
+                    <DatePicker
+                      id="spesifisert_varsel_dato"
+                      value={field.value}
+                      onChange={field.onChange}
+                      fullWidth
+                      error={!!errors.spesifisert_varsel_dato}
+                      placeholder="Velg dato"
+                    />
+                  )}
+                />
+              </FormField>
+
+              <FormField
+                label="Varselmetoder (spesifisert)"
+                helpText="Velg alle metoder som ble brukt"
+              >
+                <div className="space-y-pkt-03 border-2 border-pkt-border-gray rounded-none p-pkt-04 bg-pkt-bg-subtle">
+                  {VARSEL_METODER_OPTIONS.map((option) => (
+                    <Checkbox
+                      key={option.value}
+                      id={`spesifisert_varsel-${option.value}`}
+                      label={option.label}
+                      value={option.value}
+                      {...register('spesifisert_varsel_metoder')}
+                    />
+                  ))}
+                </div>
+              </FormField>
+            </div>
+          </div>
+        )}
+
+        {/* Number of Days - Required for spesifisert, optional for noytralt */}
+        {(selectedVarselType === 'spesifisert' || selectedVarselType === 'begge' || selectedVarselType === 'force_majeure') && (
+          <FormField
+            label="Antall dager fristforlengelse"
+            required={selectedVarselType === 'spesifisert' || selectedVarselType === 'force_majeure'}
+            error={errors.antall_dager?.message}
+            helpText={selectedVarselType === 'begge' ? 'Skal fylles ut sammen med spesifisert krav' : undefined}
+          >
+            <Input
+              id="antall_dager"
+              type="number"
+              {...register('antall_dager', { valueAsNumber: true })}
+              fullWidth
+              placeholder="0"
+              min={0}
+              error={!!errors.antall_dager}
+            />
+          </FormField>
+        )}
+
+        {/* Ny sluttdato */}
+        {selectedVarselType !== 'noytralt' && (
+          <FormField
+            label="Ny forventet sluttdato"
+            error={errors.ny_sluttdato?.message}
+            helpText="Forventet ny sluttdato etter fristforlengelsen"
+          >
+            <Controller
+              name="ny_sluttdato"
+              control={control}
+              render={({ field }) => (
+                <DatePicker
+                  id="ny_sluttdato"
+                  value={field.value}
+                  onChange={field.onChange}
+                  fullWidth
+                  error={!!errors.ny_sluttdato}
+                  placeholder="Velg dato"
+                />
+              )}
+            />
+          </FormField>
+        )}
+
+        {/* Fremdriftshindring dokumentasjon */}
+        <FormField
+          label="Dokumentasjon av fremdriftshindring"
+          error={errors.fremdriftshindring_dokumentasjon?.message}
+          helpText="Beskriv hvordan forsinkelsen påvirker fremdriften (f.eks. referanse til fremdriftsplan)"
+        >
+          <Textarea
+            id="fremdriftshindring_dokumentasjon"
+            {...register('fremdriftshindring_dokumentasjon')}
+            rows={3}
+            fullWidth
+            placeholder="Referanse til fremdriftsplan, påvirkning på kritisk linje, etc..."
+            error={!!errors.fremdriftshindring_dokumentasjon}
           />
         </FormField>
 
