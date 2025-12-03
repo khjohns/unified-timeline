@@ -139,7 +139,7 @@ export function SendGrunnlagModal({
                   <SelectValue placeholder="Velg hovedkategori" />
                 </SelectTrigger>
                 <SelectContent>
-                  {HOVEDKATEGORI_OPTIONS.map((option) => (
+                  {HOVEDKATEGORI_OPTIONS.filter(opt => opt.value !== '').map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
                     </SelectItem>
