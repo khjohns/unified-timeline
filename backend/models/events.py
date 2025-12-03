@@ -25,6 +25,18 @@ class SporType(str, Enum):
     VEDERLAG = "vederlag"
     FRIST = "frist"
 
+class SporStatus(str, Enum):
+    """Mulige statuser for hvert spor"""
+    IKKE_RELEVANT = "ikke_relevant"
+    UTKAST = "utkast"
+    SENDT = "sendt"
+    UNDER_BEHANDLING = "under_behandling"
+    GODKJENT = "godkjent"
+    DELVIS_GODKJENT = "delvis_godkjent"
+    AVVIST = "avvist"
+    UNDER_FORHANDLING = "under_forhandling"
+    TRUKKET = "trukket"
+    LAAST = "laast"  # Grunnlag kan låses etter godkjenning
 
 class EventType(str, Enum):
     """Alle mulige event-typer i systemet"""
@@ -58,68 +70,37 @@ class EventType(str, Enum):
 
 class VederlagsMetode(str, Enum):
     """NS 8407 vederlagsmetoder"""
-    KONTRAKT_EP = "kontrakt_ep"  # Kontraktens enhetspriser
-    JUSTERT_EP = "justert_ep"  # Justerte enhetspriser
-    REGNING = "regning"  # Regningsarbeid
-    TILBUD = "tilbud"  # Fastpris / Tilbud
-    SKJONN = "skjonn"  # Skjønnsmessig vurdering
-
-
+    KONTRAKT_EP = "kontrakt_ep"  # Kontraktens enhetspriser (§34.3.1) - Anvendelse av eksisterende enhetspriser. Indeksregulert iht. §26.2
+    JUSTERT_EP = "justert_ep"  # Justerte enhetspriser (§34.3.2) - Enhetspriser justert for endrede forhold. Indeksregulert iht. §26.2
+    REGNING = "regning"  # Regningsarbeid (§30.1) - Oppgjør etter medgått tid og materialer. Delvis indeksregulert (kun timerater)
+    OVERSLAG = "overslag" SKJONN = "skjonn"  # Regningsarbeid med prisoverslag (§30.2 ??). Delvis indeksregulert (kun timerater)
+    TILBUD = "tilbud"  # Entreprenørens tilbud (§34.2.1) - TE gir pristilbud som BH kan akseptere. Ikke indeksregulert
+    
 class VederlagBeregningResultat(str, Enum):
     """Resultat av beregningsvurdering (Port 2 - ren utmåling)"""
-    GODKJENT_FULLT = "godkjent_fullt"
-    DELVIS_GODKJENT = "delvis_godkjent"
-    GODKJENT_ANNEN_METODE = "godkjent_annen_metode"
-    AVVENTER_SPESIFIKASJON = "avventer_spesifikasjon"
+    GODKJENT_FULLT = "godkjent_fullt" # Enighet om sum og metode. Brukes også ved subsidiær godkjenning (hvis grunnlag er avvist).
+    DELVIS_GODKJENT = "delvis_godkjent" # Enighet om at det skal betales (prinsipalt eller subsidiært), men uenighet om beløpet (f.eks. antall timer eller påslag).
+    GODKJENT_ANNEN_METODE = "godkjent_annen_metode" # BH aksepterer beløpet, men endrer forutsetningen (f.eks. fra "Regningsarbeid" til "Fastpris"). Krever ofte aksept fra TE.
+    AVVENTER_SPESIFIKASJON = "avventer_spesifikasjon" # BH kan ikke ta stilling til kravet fordi dokumentasjon mangler. Stopper saksbehandlingstiden ("ballen er hos TE").
     AVSLATT_TOTALT = "avslatt_totalt"  # Kun ved f.eks. dobbeltfakturering, ikke grunnlag
-
-
-# FJERNET: avslatt_uenig_grunnlag - det hører hjemme i Grunnlag-sporet, ikke her!
-# Vederlag-responsen skal kun beskrive beregningen, ikke ansvar.
 
 
 # ============ FRIST ENUMS ============
 
 class FristVarselType(str, Enum):
     """Type varsel for frist (NS 8407 §33)"""
-    NOYTRALT = "noytralt"  # §33.4 - Nøytralt varsel (uten dager)
-    SPESIFISERT = "spesifisert"  # §33.6 - Spesifisert krav (med dager)
+    NOYTRALT = "noytralt"  # §33.4 - Nøytralt/Foreløpig varsel (§33.4) - når omfang ikke er kjent. Bevarer rett til senere krav
+    SPESIFISERT = "spesifisert"  # §33.6.1 - Spesifisert krav (med dager)
     BEGGE = "begge"  # Først nøytralt, så spesifisert
+    FORCE_MAJEURE "force_majeure" # Tilleggsfrist ved force majeure (§33.3) - Frist ved ekstraordinære hendelser utenfor partenes kontroll
 
 
 class FristBeregningResultat(str, Enum):
     """Resultat av fristberegning (Port 3 - ren utmåling)"""
-    GODKJENT_FULLT = "godkjent_fullt"
-    DELVIS_GODKJENT = "delvis_godkjent"
-    AVVENTER_SPESIFIKASJON = "avventer_spesifikasjon"
-
-
-# FJERNET: avslatt_uenig_grunnlag - det hører hjemme i Grunnlag-sporet!
-# Frist-responsen skal kun beskrive tid-vurderingen, ikke ansvar.
-
-
-# Generic response result (for backward compatibility)
-class ResponsResultat(str, Enum):
-    """Mulige utfall av en BH-respons (generisk)"""
-    GODKJENT = "godkjent"
-    DELVIS_GODKJENT = "delvis_godkjent"
-    AVVIST_UENIG = "avvist_uenig"
-    AVVIST_FOR_SENT = "avvist_for_sent"
-    KREVER_AVKLARING = "krever_avklaring"
-
-
-class SporStatus(str, Enum):
-    """Mulige statuser for hvert spor"""
-    IKKE_RELEVANT = "ikke_relevant"
-    UTKAST = "utkast"
-    SENDT = "sendt"
-    UNDER_BEHANDLING = "under_behandling"
-    GODKJENT = "godkjent"
-    DELVIS_GODKJENT = "delvis_godkjent"
-    AVVIST = "avvist"
-    UNDER_FORHANDLING = "under_forhandling"
-    TRUKKET = "trukket"
-    LAAST = "laast"  # Grunnlag kan låses etter godkjenning
+    GODKJENT_FULLT = "godkjent_fullt" # Enighet om antall dager. (Prinsipalt eller subsidiært).
+    DELVIS_GODKJENT = "delvis_godkjent" # BH mener forsinkelsen er kortere enn TE krever; uenighet om hvor mye fremdriften hindres
+    AVVENTER_SPESIFIKASJON = "avventer_spesifikasjon" # Brukes ved nøytrale varsler, eller når fremdriftsplan/dokumentasjon mangler for å vurdere konsekvensen.
+    AVSLATT_INGEN_HINDRING = "avslått" # BH erkjenner grunnlaget, men mener det ikke medførte forsinkelse (f.eks. TE hadde slakk). Dette er et avslag på utregningen av tid, ikke ansvaret
 
 
 # ============ BASE EVENT ============
@@ -175,8 +156,58 @@ class SakEvent(BaseModel):
 
 # ============ GRUNNLAG EVENTS ============
 
+"""
+KOMMENTARER FRA ARKITEKT:
+
+HOVEDKATEGORIER - må flettes inn i modell (kan fjerne tall - men fin referanse til riktig underkategori):
+100000000: Endring initiert av BH - Byggherre igangsetter endring (§31.1)
+100000001: Forsinkelse eller svikt i BHs ytelser - BH oppfyller ikke sine forpliktelser (§22, §24)
+100000002: Risiko for grunnforhold - Uforutsette eller uriktige grunnforhold (§23.1)
+100000003: Offentlige pålegg - Myndighetskrav som endrer forutsetninger (§16.3)
+100000004: Forsering / Tidsmessig omlegging
+100000005: Force majeure - Ekstraordinære hendelser (§33.3)
+100000006: Hindringer BH har risikoen for - Forhold som hindrer fremdrift (§33.1c)
+100000007: Øvrige forhold - Andre grunnlag for fristforlengelse/vederlag
+
+UNDERKATEGORIER - hører til hovedkategorier over:
+For “Endring initiert av BH” (100000000):
+
+110000000: Regulær endringsordre (§31.1, §31.3) - BH har rett til å endre prosjektet
+110000001: Irregulær endring/pålegg uten EO (§32.1) - BH gir ordre uten forutgående EO
+110000002: Mengdeendring (§31.1 siste avsnitt, §34.3) - Endring i mengde av kontraktsarbeid
+
+For “Forsinkelse eller svikt i BHs ytelser” (100000001):
+
+120000000: Prosjektering (§24.1) - Mangler i prosjekteringsunderlag fra BH
+120000001: Svikt i arbeidsgrunnlaget (§22.3, §25) - BH har ikke levert komplett/korrekt arbeidsgrunnlag. TEs plikt til å undersøke og varsle (§25)
+120000002: Materialer fra BH (§22.4) - BH-leverte materialer mangler eller er forsinkert
+120000003: Tillatelser og godkjenninger (§16.3) - BH har ikke skaffet nødvendige tillatelser
+120000004: Fastmerker og utstikking (§18.4) - BH har ikke etablert korrekte fastmerker
+120000005: Svikt i BHs foreskrevne løsninger (§24.1) - BHs valgte løsninger er ikke egnet
+120000006: Koordinering av sideentreprenører (§21) - BH koordinerer ikke andre entreprenører tilfredsstillende
+
+For “Risiko for grunnforhold” (100000002):
+
+130000000: Uforutsette grunnforhold (§23.1a) - Grunnforhold avviker fra det som var kjent
+130000001: Uriktige grunnopplysninger fra BH (§23.1b) - BH har gitt feil informasjon
+130000002: Forurensning i grunnen (§23.1) - Uventet forurensning oppdages
+130000003: Kulturminner (§23.3) - Funn av kulturminner som krever stans og varsling
+
+For “Forsering / Tidsmessig omlegging” (100000004):
+
+140000000: Pålagt forsering / omlegging (§31.2) - BH pålegger endret tidsplan som en endring
+140000001: Forsering ved uberettiget avslag på fristkrav (§33.8) - TE velger å forsere etter avslag
+
+
+For “Hindringer BH har risikoen for” (100000006):
+
+160000000: Hindringer på byggeplassen (§33.1c) - Fysiske hindringer BH har risikoen for
+160000001: Offentlige restriksjoner (§33.1c) - Myndighetspålagte begrensninger
+160000002: Tilstøtende arbeider forsinket (§33.1c) - Andre entreprenører forsinker
+"""
+
 class GrunnlagData(BaseModel):
-    """Data for grunnlag (erstatter Varsel)"""
+    """Data for ansvarsgrunnlag"""
     hovedkategori: str = Field(..., description="Hovedkategori (NS 8407 code)")
     underkategori: Union[str, List[str]] = Field(
         ...,
@@ -241,37 +272,62 @@ class VederlagData(BaseModel):
     Denne modellen inneholder TEs krav på penger, inkludert dokumentasjon
     av alle relevante varsler som kreves etter NS 8407.
     """
+    # Binær indikator for om kravet inkluderer vederlagsjustering. Styrer synlighet av vederlagsfelter i skjema
     krav_belop: float = Field(..., ge=0, description="Krevd beløp i NOK (ekskl. mva)")
+    
+    # Klassifisering av oppgjørsmetode iht. NS 8407 kapittel 34 (se ENUMs ovenfor). Påvirker om indeksregulering skal anvendes og hvordan endringsordre håndteres økonomisk
     metode: VederlagsMetode = Field(
         ...,
         description="Vederlagsmetode etter NS 8407"
     )
+    
+    # Detaljert begrunnelse for vederlagskravet. Skal dokumentere grunnlaget for beløpet med referanse til kostnadsunderlag.
     begrunnelse: str = Field(..., min_length=1, description="Begrunnelse for kravet")
 
-    # Detaljert spesifikasjon
-    spesifikasjon: Optional[dict] = Field(
-        default=None,
-        description="Detaljert kostnadsoppstilling (poster, timer, materialer, etc.)"
+    # Faktisk kostnadsunderlag som vedlegg
+    vedlegg_ids: List[str] = Field(
+        default_factory=list,
+        description="Referanser til vedlagte dokumenter"
     )
 
     # ============ PORT 1: SPESIFIKKE VARSLER (NS 8407) ============
     # Disse varselfristene er kritiske for om kravet kan tapes ved preklusjon.
     # BH skal vurdere om disse er sendt i tide.
+    """
+    KOMMENTARER FRA ARKITEKT:
+    Formelt sett er det tidspunktet dette kravet (event) blir sendt som også er dato varsel om rigg/drift/etc er varslet.
+    MEN det kan være varslet uformelt. I praksis bør vi derfor gi samme mulighet som i event for grunnlag:
 
+    HVIS includerer_rigg_drift (eller noen av de spesifikke varslene)
+    SÅ (betinget):
+    dato_varsel_sendt: Optional[str] = Field(
+        default=None,
+        description="Når varselet faktisk ble sendt til BH (kan være forskjellig fra oppdaget)"
+    )
+    varsel_metode: Optional[List[str]] = Field(
+        default=None,
+        description="Metoder brukt for å varsle BH (f.eks. ['epost', 'byggemote'])"
+    )
+
+    Dette holder grensesnittet (skjema for utfylling) rent,
+    samtidig som TE gis anledning til å spesifisere om varselet ble sendt på et tidligere tidspunkt enn innsending av kravet formelt.
+    """
     # Rigg & Drift (§34.1.3)
     inkluderer_rigg_drift: bool = Field(
         default=False,
         description="Om kravet inkluderer rigg/drift-kostnader"
     )
-    saerskilt_varsel_rigg_drift_dato: Optional[str] = Field(
-        default=None,
-        description="Dato for særskilt varsel om rigg/drift (YYYY-MM-DD) - §34.1.3"
-    )
+    
     rigg_drift_belop: Optional[float] = Field(
         default=None,
         description="Separat beløp for rigg/drift hvis aktuelt"
     )
 
+    varsel_justert_rd_dato: Optional[str] = Field(
+        default=None,
+        description="Dato for varsel om rigg og drift (YYYY-MM-DD) - §34.1.3"
+    )
+    
     # Justerte enhetspriser (§34.3.3)
     krever_justert_ep: bool = Field(
         default=False,
@@ -292,16 +348,25 @@ class VederlagData(BaseModel):
         description="Dato BH ble varslet før regningsarbeid startet (YYYY-MM-DD) - §30.1"
     )
 
-    # Generelt krav fremmet
+    # Generelt krav fremmet (dette kan automatisk være tidspunkt for innsendelse av kravet/event)
     krav_fremmet_dato: Optional[str] = Field(
         default=None,
         description="Dato spesifisert vederlagskrav ble fremmet (YYYY-MM-DD)"
     )
 
-    # Tilleggsinfo
+    # Indikerer om kravet inkluderer vederlag for nedsatt produktivitet eller forstyrrelser iht. § 34.1.3, andre ledd. Krever særskilt varsel og en annen type dokumentasjon enn rigg/drift
     inkluderer_produktivitetstap: bool = Field(
         default=False,
         description="Om kravet inkluderer produktivitetstap"
+    )
+    produktivitetstap_belop: Optional[float] = Field(
+        default=None,
+        description="Separat beløp for produktivitetstap hvis aktuelt"
+    )
+
+    varsel_justert_prod_dato: Optional[str] = Field(
+        default=None,
+        description="Dato for varsel om produktivitetstap (YYYY-MM-DD)"
     )
 
 
@@ -349,6 +414,18 @@ class FristData(BaseModel):
     NS 8407 skiller mellom:
     - Nøytralt varsel: Varsler om at det *kan* bli krav, uten å spesifisere antall dager
     - Spesifisert krav: Konkret krav om X antall dager
+   
+    KOMMENTAR FRA ARKITEKT:
+    // Hvis spesifisert krav er for sent, sjekk om BH har etterlyst det
+    If (spesifisert_krav_ok == NEI) {
+       Field har_bh_etterlyst: Boolean {
+         Label: "Har BH etterlyst kravet skriftlig (§ 33.6.2)?"
+         Options: [JA, NEI]
+         Note: "Hvis NEI, tapes ikke kravet helt, men reduseres."
+       }
+    }
+
+    NB! Vi avventer med å ta det ovenfor med i modellen.
     """
 
     # ============ VARSELTYPE (PORT 1) ============
@@ -375,26 +452,18 @@ class FristData(BaseModel):
         ge=0,
         description="Antall dager forlengelse (kun ved spesifisert krav)"
     )
-    frist_type: Literal["kalenderdager", "arbeidsdager"] = Field(
-        default="kalenderdager",
-        description="Type dager"
-    )
+    
     begrunnelse: str = Field(..., min_length=1, description="Begrunnelse for kravet")
 
-    # ============ FREMDRIFTSINFO (PORT 2 - Vilkår) ============
-    # Dette brukes av BH for å vurdere om forholdet faktisk har medført hindring.
-    pavirker_kritisk_linje: bool = Field(
+    # ============ FREMDRIFTSHINDRING/ÅRSAKSSAMMENHENG (PORT 2 - Vilkår) ============
+    # Dette brukes av BH for å vurdere om forholdet faktisk har medført hindring, jf. § 33.1
+    fremdriftshindring: bool = Field(
         default=False,
-        description="Om forsinkelsen påvirker kritisk linje/slutt­frist"
+        description="Om det aktuelle forholdet (grunnlaget) har medført en fremdriftshindring"
     )
-    milepael_pavirket: Optional[str] = Field(
-        default=None,
-        description="Hvilken milepæl som påvirkes"
-    )
-    fremdriftsanalyse_vedlagt: bool = Field(
-        default=False,
-        description="Om det er vedlagt fremdriftsanalyse/planleggingsgrunnlag"
-    )
+
+    begrunnelse: str = Field(..., min_length=1, description="Begrunnelse for om forholdet har medført fremdriftshindring")
+    
     ny_sluttdato: Optional[str] = Field(
         default=None,
         description="Foreslått ny sluttdato (YYYY-MM-DD)"
@@ -484,10 +553,20 @@ class VederlagResponsData(BaseModel):
     Dette muliggjør subsidiære betraktninger:
     - BH kan avvise Grunnlag (ansvar), MEN samtidig godkjenne beregningen
       som subsidiær vurdering ("hvis jeg hadde hatt ansvar, er 50k riktig").
+    
+    KOMMENTAR FRA ARKITEKT:
+    Her mangler et eksplisitt felt for subsidiær godkjenning i tilfeller der vederlagBeregningResultat er GODKJENT_FULLT, men Port 1 (Varsler) er False.
+    Modellen fungerer som den er, men frontend må vite at:
+    HVIS krav_fremmet_i_tide == False
+    OG beregnings_resultat == GODKJENT_FULLT
+    SÅ er status: Avslått (Prekludert) (men med subsidiær enighet om beløp)
+
+    NB: MÅ vurderes om dette hører til backend eller frontend. Utgangspunktet er at forretningslogikk hører til backend.
     """
 
     # ============ PORT 1: SPESIFIKKE VARSLER FOR PENGER ============
     # Sjekk av om kravtypen er varslet i tide (preklusjon).
+    # Kommentar fra arkitekt: Sjekk om vi mangler noen spesifikke varsler her, sml. med ovenfor.
 
     # Rigg & Drift (§34.1.3)
     saerskilt_varsel_rigg_drift_ok: Optional[bool] = Field(
@@ -580,6 +659,19 @@ class FristResponsData(BaseModel):
     )
 
     # Hvis spesifisert krav er for sent
+    """
+    KOMMENTAR FRA ARKITEKT:
+    # Forslag til validator i FristResponsData
+    @field_validator('har_bh_etterlyst')
+    def validate_etterlyst(cls, v, info):
+        if v is not None and info.data.get('spesifisert_krav_ok') is True:
+            # Ikke en feil, men logisk inkonsekvent:
+            # Hvorfor etterlyse et krav som kom i tide?
+            pass 
+    return v
+
+    Vurdering: Ikke strengt nødvendig for databasen, men nyttig for frontend-logikk.
+    """
     har_bh_etterlyst: Optional[bool] = Field(
         default=None,
         description="Har BH etterlyst kravet skriftlig? (§33.6.2). Relevant kun hvis krav er sent."
