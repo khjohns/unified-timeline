@@ -23,7 +23,8 @@ from models.events import (
     EOUtstedtEvent,
     EventType,
     SporType,
-    ResponsResultat
+    GrunnlagResponsResultat,
+    VederlagBeregningResultat
 )
 from models.sak_state import SakState, SporStatus
 
@@ -112,7 +113,7 @@ class TestBusinessRuleValidator:
             aktor_rolle="TE",  # Wrong role!
             spor=SporType.GRUNNLAG,
             data=GrunnlagResponsData(
-                resultat=ResponsResultat.GODKJENT,
+                resultat=GrunnlagResponsResultat.GODKJENT,
                 begrunnelse="Test"
             )
         )
@@ -131,7 +132,7 @@ class TestBusinessRuleValidator:
             aktor_rolle="BH",
             spor=SporType.GRUNNLAG,
             data=GrunnlagResponsData(
-                resultat=ResponsResultat.GODKJENT,
+                resultat=GrunnlagResponsResultat.GODKJENT,
                 begrunnelse="Test"
             )
         )
@@ -232,7 +233,7 @@ class TestBusinessRuleValidator:
             aktor_rolle="BH",
             spor=SporType.VEDERLAG,
             data=VederlagResponsData(
-                resultat=ResponsResultat.GODKJENT,
+                beregnings_resultat=VederlagBeregningResultat.GODKJENT_FULLT,
                 begrunnelse="Test",
                 godkjent_belop=100000.0
             )
@@ -285,7 +286,7 @@ class TestBusinessRuleValidator:
             aktor_rolle="BH",
             spor=SporType.VEDERLAG,
             data=VederlagResponsData(
-                resultat=ResponsResultat.GODKJENT,
+                beregnings_resultat=VederlagBeregningResultat.GODKJENT_FULLT,
                 begrunnelse="Approved",
                 godkjent_belop=100000.0
             )
@@ -325,7 +326,7 @@ class TestBusinessRuleValidator:
                 aktor_rolle="BH",
                 spor=SporType.GRUNNLAG,
                 data=GrunnlagResponsData(
-                    resultat=ResponsResultat.GODKJENT,  # This locks it!
+                    resultat=GrunnlagResponsResultat.GODKJENT,  # This locks it!
                     begrunnelse="Approved"
                 )
             ),
@@ -458,7 +459,7 @@ class TestBusinessRuleValidator:
                 aktor_rolle="BH",
                 spor=SporType.GRUNNLAG,
                 data=GrunnlagResponsData(
-                    resultat=ResponsResultat.GODKJENT,
+                    resultat=GrunnlagResponsResultat.GODKJENT,
                     begrunnelse="Approved"
                 )
             )

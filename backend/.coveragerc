@@ -1,0 +1,25 @@
+[run]
+source = .
+omit =
+    */tests/*
+    */lib/*
+    */integrations/*
+    */utils/*
+    */mocks/*
+    */models/sak.py
+    */models/varsel.py
+    */models/koe_revisjon.py
+    */models/bh_svar.py
+    */repositories/csv_repository.py
+    */core/system_context.py
+    app.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    @abstractmethod
