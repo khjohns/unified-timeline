@@ -45,11 +45,13 @@ const vederlagSchema = z.object({
   // Produktivitetstap (§34.1.3, 2. ledd)
   inkluderer_produktivitetstap: z.boolean().optional(),
   produktivitetstap_belop: z.number().optional(),
+  produktivitetstap_varsel_sendes_na: z.boolean().optional(),
   produktivitetstap_varsel_dato: z.string().optional(),
   produktivitetstap_varsel_metoder: z.array(z.string()).optional(),
 
   // Regningsarbeid (§30.1)
   krever_regningsarbeid: z.boolean().optional(),
+  regningsarbeid_varsel_sendes_na: z.boolean().optional(),
   regningsarbeid_varsel_dato: z.string().optional(),
   regningsarbeid_varsel_metoder: z.array(z.string()).optional(),
 
@@ -86,8 +88,10 @@ export function SendVederlagModal({
       rigg_drift_varsel_sendes_na: false,
       rigg_drift_varsel_metoder: [],
       inkluderer_produktivitetstap: false,
+      produktivitetstap_varsel_sendes_na: false,
       produktivitetstap_varsel_metoder: [],
       krever_regningsarbeid: false,
+      regningsarbeid_varsel_sendes_na: false,
       regningsarbeid_varsel_metoder: [],
       justert_ep_varsel_metoder: [],
     },
@@ -105,7 +109,9 @@ export function SendVederlagModal({
   const inkludererRiggDrift = watch('inkluderer_rigg_drift');
   const riggDriftVarselSendesNa = watch('rigg_drift_varsel_sendes_na');
   const inkludererProduktivitetstap = watch('inkluderer_produktivitetstap');
+  const produktivitetstapVarselSendesNa = watch('produktivitetstap_varsel_sendes_na');
   const kreverRegningsarbeid = watch('krever_regningsarbeid');
+  const regningsarbeidVarselSendesNa = watch('regningsarbeid_varsel_sendes_na');
 
   const onSubmit = (data: VederlagFormData) => {
     // Build VarselInfo structures
@@ -125,17 +131,35 @@ export function SendVederlagModal({
         }
       : undefined;
 
-    const produktivitetstapVarsel = data.produktivitetstap_varsel_dato
+    // For produktivitetstap: use today's date and 'system' method if "sendes nå" is checked
+    const produktivitetstapDato = data.produktivitetstap_varsel_sendes_na
+      ? new Date().toISOString().split('T')[0]
+      : data.produktivitetstap_varsel_dato;
+
+    const produktivitetstapMetode = data.produktivitetstap_varsel_sendes_na
+      ? ['system']
+      : (data.produktivitetstap_varsel_metoder || []);
+
+    const produktivitetstapVarsel = produktivitetstapDato
       ? {
-          dato_sendt: data.produktivitetstap_varsel_dato,
-          metode: data.produktivitetstap_varsel_metoder || [],
+          dato_sendt: produktivitetstapDato,
+          metode: produktivitetstapMetode,
         }
       : undefined;
 
-    const regningsarbeidVarsel = data.regningsarbeid_varsel_dato
+    // For regningsarbeid: use today's date and 'system' method if "sendes nå" is checked
+    const regningsarbeidDato = data.regningsarbeid_varsel_sendes_na
+      ? new Date().toISOString().split('T')[0]
+      : data.regningsarbeid_varsel_dato;
+
+    const regningsarbeidMetode = data.regningsarbeid_varsel_sendes_na
+      ? ['system']
+      : (data.regningsarbeid_varsel_metoder || []);
+
+    const regningsarbeidVarsel = regningsarbeidDato
       ? {
-          dato_sendt: data.regningsarbeid_varsel_dato,
-          metode: data.regningsarbeid_varsel_metoder || [],
+          dato_sendt: regningsarbeidDato,
+          metode: regningsarbeidMetode,
         }
       : undefined;
 
@@ -370,43 +394,61 @@ export function SendVederlagModal({
                   />
                 </FormField>
 
-                <FormField
-                  label="Dato varsel sendt (produktivitetstap)"
-                  error={errors.produktivitetstap_varsel_dato?.message}
-                  labelTooltip="§34.1.3, 2. ledd: Særskilt varsel må sendes for produktivitetstap. KRITISK for å unngå preklusjon."
-                >
-                  <Controller
-                    name="produktivitetstap_varsel_dato"
-                    control={control}
-                    render={({ field }) => (
-                      <DatePicker
-                        id="produktivitetstap_varsel_dato"
-                        value={field.value}
-                        onChange={field.onChange}
-                        fullWidth
-                        error={!!errors.produktivitetstap_varsel_dato}
-                        placeholder="Velg dato"
-                      />
-                    )}
-                  />
-                </FormField>
+                <Controller
+                  name="produktivitetstap_varsel_sendes_na"
+                  control={control}
+                  render={({ field }) => (
+                    <Checkbox
+                      id="produktivitetstap_varsel_sendes_na"
+                      label="Varsel sendes nå (sammen med dette skjemaet)"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  )}
+                />
 
-                <FormField
-                  label="Varselmetoder (produktivitetstap)"
-                  helpText="Velg alle metoder som ble brukt"
-                >
-                  <div className="space-y-pkt-03 border-2 border-pkt-border-gray rounded-none p-pkt-04 bg-pkt-bg-subtle">
-                    {VARSEL_METODER_OPTIONS.map((option) => (
-                      <Checkbox
-                        key={option.value}
-                        id={`produktivitetstap_varsel-${option.value}`}
-                        label={option.label}
-                        value={option.value}
-                        {...register('produktivitetstap_varsel_metoder')}
-                      />
-                    ))}
-                  </div>
-                </FormField>
+                {!produktivitetstapVarselSendesNa && (
+                  <FormField
+                    label="Dato varsel sendt tidligere (produktivitetstap)"
+                    error={errors.produktivitetstap_varsel_dato?.message}
+                    labelTooltip="§34.1.3, 2. ledd: Særskilt varsel må sendes for produktivitetstap. KRITISK for å unngå preklusjon."
+                  >
+                    <Controller
+                      name="produktivitetstap_varsel_dato"
+                      control={control}
+                      render={({ field }) => (
+                        <DatePicker
+                          id="produktivitetstap_varsel_dato"
+                          value={field.value}
+                          onChange={field.onChange}
+                          fullWidth
+                          error={!!errors.produktivitetstap_varsel_dato}
+                          placeholder="Velg dato"
+                        />
+                      )}
+                    />
+                  </FormField>
+                )}
+
+                {/* Varselmetoder - only show if NOT sending now */}
+                {!produktivitetstapVarselSendesNa && (
+                  <FormField
+                    label="Varselmetoder (produktivitetstap)"
+                    helpText="Velg alle metoder som ble brukt"
+                  >
+                    <div className="space-y-pkt-03 border-2 border-pkt-border-gray rounded-none p-pkt-04 bg-pkt-bg-subtle">
+                      {VARSEL_METODER_OPTIONS.map((option) => (
+                        <Checkbox
+                          key={option.value}
+                          id={`produktivitetstap_varsel-${option.value}`}
+                          label={option.label}
+                          value={option.value}
+                          {...register('produktivitetstap_varsel_metoder')}
+                        />
+                      ))}
+                    </div>
+                  </FormField>
+                )}
               </div>
             )}
           </div>
@@ -428,43 +470,61 @@ export function SendVederlagModal({
 
             {kreverRegningsarbeid && (
               <div className="ml-pkt-07 space-y-pkt-04 p-pkt-05 bg-pkt-surface-subtle-light-blue rounded-none border-2 border-pkt-border-focus">
-                <FormField
-                  label="Dato varsel sendt FØR oppstart (regningsarbeid)"
-                  error={errors.regningsarbeid_varsel_dato?.message}
-                  labelTooltip="§30.1: BH må varsles FØR regningsarbeid starter. Manglende varsel kan føre til tap av krav."
-                >
-                  <Controller
-                    name="regningsarbeid_varsel_dato"
-                    control={control}
-                    render={({ field }) => (
-                      <DatePicker
-                        id="regningsarbeid_varsel_dato"
-                        value={field.value}
-                        onChange={field.onChange}
-                        fullWidth
-                        error={!!errors.regningsarbeid_varsel_dato}
-                        placeholder="Velg dato"
-                      />
-                    )}
-                  />
-                </FormField>
+                <Controller
+                  name="regningsarbeid_varsel_sendes_na"
+                  control={control}
+                  render={({ field }) => (
+                    <Checkbox
+                      id="regningsarbeid_varsel_sendes_na"
+                      label="Varsel sendes nå (sammen med dette skjemaet)"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  )}
+                />
 
-                <FormField
-                  label="Varselmetoder (regningsarbeid)"
-                  helpText="Velg alle metoder som ble brukt"
-                >
-                  <div className="space-y-pkt-03 border-2 border-pkt-border-gray rounded-none p-pkt-04 bg-pkt-bg-subtle">
-                    {VARSEL_METODER_OPTIONS.map((option) => (
-                      <Checkbox
-                        key={option.value}
-                        id={`regningsarbeid_varsel-${option.value}`}
-                        label={option.label}
-                        value={option.value}
-                        {...register('regningsarbeid_varsel_metoder')}
-                      />
-                    ))}
-                  </div>
-                </FormField>
+                {!regningsarbeidVarselSendesNa && (
+                  <FormField
+                    label="Dato varsel sendt tidligere FØR oppstart (regningsarbeid)"
+                    error={errors.regningsarbeid_varsel_dato?.message}
+                    labelTooltip="§30.1: BH må varsles FØR regningsarbeid starter. Manglende varsel kan føre til tap av krav."
+                  >
+                    <Controller
+                      name="regningsarbeid_varsel_dato"
+                      control={control}
+                      render={({ field }) => (
+                        <DatePicker
+                          id="regningsarbeid_varsel_dato"
+                          value={field.value}
+                          onChange={field.onChange}
+                          fullWidth
+                          error={!!errors.regningsarbeid_varsel_dato}
+                          placeholder="Velg dato"
+                        />
+                      )}
+                    />
+                  </FormField>
+                )}
+
+                {/* Varselmetoder - only show if NOT sending now */}
+                {!regningsarbeidVarselSendesNa && (
+                  <FormField
+                    label="Varselmetoder (regningsarbeid)"
+                    helpText="Velg alle metoder som ble brukt"
+                  >
+                    <div className="space-y-pkt-03 border-2 border-pkt-border-gray rounded-none p-pkt-04 bg-pkt-bg-subtle">
+                      {VARSEL_METODER_OPTIONS.map((option) => (
+                        <Checkbox
+                          key={option.value}
+                          id={`regningsarbeid_varsel-${option.value}`}
+                          label={option.label}
+                          value={option.value}
+                          {...register('regningsarbeid_varsel_metoder')}
+                        />
+                      ))}
+                    </div>
+                  </FormField>
+                )}
               </div>
             )}
           </div>

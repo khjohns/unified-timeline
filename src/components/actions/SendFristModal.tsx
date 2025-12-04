@@ -31,10 +31,12 @@ const fristSchema = z.object({
   }),
 
   // VarselInfo for nøytralt varsel (§33.4)
+  noytralt_varsel_sendes_na: z.boolean().optional(),
   noytralt_varsel_dato: z.string().optional(),
   noytralt_varsel_metoder: z.array(z.string()).optional(),
 
   // VarselInfo for spesifisert krav (§33.6)
+  spesifisert_varsel_sendes_na: z.boolean().optional(),
   spesifisert_varsel_dato: z.string().optional(),
   spesifisert_varsel_metoder: z.array(z.string()).optional(),
 
@@ -68,7 +70,9 @@ export function SendFristModal({
     resolver: zodResolver(fristSchema),
     defaultValues: {
       varsel_type: '',
+      noytralt_varsel_sendes_na: false,
       noytralt_varsel_metoder: [],
+      spesifisert_varsel_sendes_na: false,
       spesifisert_varsel_metoder: [],
       vedlegg_ids: [],
     },
@@ -83,20 +87,40 @@ export function SendFristModal({
 
   // Watch for conditional rendering
   const selectedVarselType = watch('varsel_type');
+  const noytraltVarselSendesNa = watch('noytralt_varsel_sendes_na');
+  const spesifisertVarselSendesNa = watch('spesifisert_varsel_sendes_na');
 
   const onSubmit = (data: FristFormData) => {
     // Build VarselInfo structures
-    const noytraltVarsel = data.noytralt_varsel_dato
+    // For nøytralt varsel: use today's date and 'system' method if "sendes nå" is checked
+    const noytraltDato = data.noytralt_varsel_sendes_na
+      ? new Date().toISOString().split('T')[0]
+      : data.noytralt_varsel_dato;
+
+    const noytraltMetode = data.noytralt_varsel_sendes_na
+      ? ['system']
+      : (data.noytralt_varsel_metoder || []);
+
+    const noytraltVarsel = noytraltDato
       ? {
-          dato_sendt: data.noytralt_varsel_dato,
-          metode: data.noytralt_varsel_metoder || [],
+          dato_sendt: noytraltDato,
+          metode: noytraltMetode,
         }
       : undefined;
 
-    const spesifisertVarsel = data.spesifisert_varsel_dato
+    // For spesifisert varsel: use today's date and 'system' method if "sendes nå" is checked
+    const spesifisertDato = data.spesifisert_varsel_sendes_na
+      ? new Date().toISOString().split('T')[0]
+      : data.spesifisert_varsel_dato;
+
+    const spesifisertMetode = data.spesifisert_varsel_sendes_na
+      ? ['system']
+      : (data.spesifisert_varsel_metoder || []);
+
+    const spesifisertVarsel = spesifisertDato
       ? {
-          dato_sendt: data.spesifisert_varsel_dato,
-          metode: data.spesifisert_varsel_metoder || [],
+          dato_sendt: spesifisertDato,
+          metode: spesifisertMetode,
         }
       : undefined;
 
@@ -157,43 +181,61 @@ export function SendFristModal({
             </h4>
 
             <div className="space-y-pkt-04">
-              <FormField
-                label="Dato nøytralt varsel sendt"
-                error={errors.noytralt_varsel_dato?.message}
-                labelTooltip="§33.4: Sendes når omfang ikke er kjent. Bevarer rett til senere spesifisert krav."
-              >
-                <Controller
-                  name="noytralt_varsel_dato"
-                  control={control}
-                  render={({ field }) => (
-                    <DatePicker
-                      id="noytralt_varsel_dato"
-                      value={field.value}
-                      onChange={field.onChange}
-                      fullWidth
-                      error={!!errors.noytralt_varsel_dato}
-                      placeholder="Velg dato"
-                    />
-                  )}
-                />
-              </FormField>
+              <Controller
+                name="noytralt_varsel_sendes_na"
+                control={control}
+                render={({ field }) => (
+                  <Checkbox
+                    id="noytralt_varsel_sendes_na"
+                    label="Varsel sendes nå (sammen med dette skjemaet)"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                )}
+              />
 
-              <FormField
-                label="Varselmetoder (nøytralt)"
-                helpText="Velg alle metoder som ble brukt"
-              >
-                <div className="space-y-pkt-03 border-2 border-pkt-border-gray rounded-none p-pkt-04 bg-pkt-bg-subtle">
-                  {VARSEL_METODER_OPTIONS.map((option) => (
-                    <Checkbox
-                      key={option.value}
-                      id={`noytralt_varsel-${option.value}`}
-                      label={option.label}
-                      value={option.value}
-                      {...register('noytralt_varsel_metoder')}
-                    />
-                  ))}
-                </div>
-              </FormField>
+              {!noytraltVarselSendesNa && (
+                <FormField
+                  label="Dato nøytralt varsel sendt tidligere"
+                  error={errors.noytralt_varsel_dato?.message}
+                  labelTooltip="§33.4: Sendes når omfang ikke er kjent. Bevarer rett til senere spesifisert krav."
+                >
+                  <Controller
+                    name="noytralt_varsel_dato"
+                    control={control}
+                    render={({ field }) => (
+                      <DatePicker
+                        id="noytralt_varsel_dato"
+                        value={field.value}
+                        onChange={field.onChange}
+                        fullWidth
+                        error={!!errors.noytralt_varsel_dato}
+                        placeholder="Velg dato"
+                      />
+                    )}
+                  />
+                </FormField>
+              )}
+
+              {/* Varselmetoder - only show if NOT sending now */}
+              {!noytraltVarselSendesNa && (
+                <FormField
+                  label="Varselmetoder (nøytralt)"
+                  helpText="Velg alle metoder som ble brukt"
+                >
+                  <div className="space-y-pkt-03 border-2 border-pkt-border-gray rounded-none p-pkt-04 bg-pkt-bg-subtle">
+                    {VARSEL_METODER_OPTIONS.map((option) => (
+                      <Checkbox
+                        key={option.value}
+                        id={`noytralt_varsel-${option.value}`}
+                        label={option.label}
+                        value={option.value}
+                        {...register('noytralt_varsel_metoder')}
+                      />
+                    ))}
+                  </div>
+                </FormField>
+              )}
             </div>
           </div>
         )}
@@ -205,43 +247,61 @@ export function SendFristModal({
             </h4>
 
             <div className="space-y-pkt-04">
-              <FormField
-                label="Dato spesifisert krav sendt"
-                error={errors.spesifisert_varsel_dato?.message}
-                labelTooltip="§33.6.1: Konkret krav med antall dager og begrunnelse. Må sendes innen rimelig tid etter at omfang er kjent."
-              >
-                <Controller
-                  name="spesifisert_varsel_dato"
-                  control={control}
-                  render={({ field }) => (
-                    <DatePicker
-                      id="spesifisert_varsel_dato"
-                      value={field.value}
-                      onChange={field.onChange}
-                      fullWidth
-                      error={!!errors.spesifisert_varsel_dato}
-                      placeholder="Velg dato"
-                    />
-                  )}
-                />
-              </FormField>
+              <Controller
+                name="spesifisert_varsel_sendes_na"
+                control={control}
+                render={({ field }) => (
+                  <Checkbox
+                    id="spesifisert_varsel_sendes_na"
+                    label="Varsel sendes nå (sammen med dette skjemaet)"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                )}
+              />
 
-              <FormField
-                label="Varselmetoder (spesifisert)"
-                helpText="Velg alle metoder som ble brukt"
-              >
-                <div className="space-y-pkt-03 border-2 border-pkt-border-gray rounded-none p-pkt-04 bg-pkt-bg-subtle">
-                  {VARSEL_METODER_OPTIONS.map((option) => (
-                    <Checkbox
-                      key={option.value}
-                      id={`spesifisert_varsel-${option.value}`}
-                      label={option.label}
-                      value={option.value}
-                      {...register('spesifisert_varsel_metoder')}
-                    />
-                  ))}
-                </div>
-              </FormField>
+              {!spesifisertVarselSendesNa && (
+                <FormField
+                  label="Dato spesifisert krav sendt tidligere"
+                  error={errors.spesifisert_varsel_dato?.message}
+                  labelTooltip="§33.6.1: Konkret krav med antall dager og begrunnelse. Må sendes innen rimelig tid etter at omfang er kjent."
+                >
+                  <Controller
+                    name="spesifisert_varsel_dato"
+                    control={control}
+                    render={({ field }) => (
+                      <DatePicker
+                        id="spesifisert_varsel_dato"
+                        value={field.value}
+                        onChange={field.onChange}
+                        fullWidth
+                        error={!!errors.spesifisert_varsel_dato}
+                        placeholder="Velg dato"
+                      />
+                    )}
+                  />
+                </FormField>
+              )}
+
+              {/* Varselmetoder - only show if NOT sending now */}
+              {!spesifisertVarselSendesNa && (
+                <FormField
+                  label="Varselmetoder (spesifisert)"
+                  helpText="Velg alle metoder som ble brukt"
+                >
+                  <div className="space-y-pkt-03 border-2 border-pkt-border-gray rounded-none p-pkt-04 bg-pkt-bg-subtle">
+                    {VARSEL_METODER_OPTIONS.map((option) => (
+                      <Checkbox
+                        key={option.value}
+                        id={`spesifisert_varsel-${option.value}`}
+                        label={option.label}
+                        value={option.value}
+                        {...register('spesifisert_varsel_metoder')}
+                      />
+                    ))}
+                  </div>
+                </FormField>
+              )}
             </div>
           </div>
         )}
