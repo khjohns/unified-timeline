@@ -1,11 +1,25 @@
 """
 Varsel (notification) domain model.
 
-Represents a notification about a discovered issue that may lead to a KOE.
+⚠️ DEPRECATED - This model is deprecated and will be removed.
+Use Event Sourcing models instead:
+- models.events.GrunnlagEvent for notification/grunnlag events
+- models.events.GrunnlagData for grunnlag data
+
+This file is kept temporarily for data migration purposes only.
+DO NOT USE in new code.
 """
+import warnings
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from datetime import datetime
+
+# Emit deprecation warning when module is imported
+warnings.warn(
+    "models.varsel is deprecated. Use models.events.GrunnlagEvent instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 
 class Varsel(BaseModel):

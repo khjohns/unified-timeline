@@ -18,7 +18,7 @@ from lib.security.webhook_security import (
 from lib.security.rate_limiter import limit_webhook
 from lib.monitoring.audit import audit
 from services.webhook_service import WebhookService
-from repositories.csv_repository import CSVRepository
+from repositories.event_repository import JsonFileEventRepository
 from integrations.catenda import CatendaClient
 from core.config import settings
 
@@ -37,10 +37,10 @@ if not WEBHOOK_SECRET_PATH:
 
 def get_webhook_service() -> WebhookService:
     """
-    Get or create WebhookService instance.
+    Get or create WebhookService instance (Event Sourcing).
 
     Uses dependency injection to provide:
-    - CSVRepository for data access
+    - EventRepository for event persistence
     - CatendaClient for Catenda API integration
     - Config from settings
     - MagicLinkManager for generating links
@@ -55,8 +55,8 @@ def get_webhook_service() -> WebhookService:
     # Get config from settings
     config = settings.get_catenda_config()
 
-    # Create repository
-    repository = CSVRepository(config.get('data_dir', 'koe_data'))
+    # Create event repository
+    event_repository = JsonFileEventRepository()
 
     # Create and authenticate Catenda client
     catenda_client = CatendaClient(
@@ -73,7 +73,7 @@ def get_webhook_service() -> WebhookService:
 
     # Create and return service
     return WebhookService(
-        repository=repository,
+        event_repository=event_repository,
         catenda_client=catenda_client,
         config=config,
         magic_link_generator=magic_link_mgr

@@ -1,11 +1,25 @@
 """
 Sak (case) domain model.
 
-Represents a KOE case/issue that tracks the entire workflow from notification to resolution.
+⚠️ DEPRECATED - This model is deprecated and will be removed.
+Use Event Sourcing models instead:
+- models.events.SakOpprettetEvent for case creation
+- models.sak_state.SakState for computed state
+
+This file is kept temporarily for data migration purposes only.
+DO NOT USE in new code.
 """
+import warnings
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from datetime import datetime
+
+# Emit deprecation warning when module is imported
+warnings.warn(
+    "models.sak is deprecated. Use models.events (Event Sourcing) instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 
 class Sak(BaseModel):

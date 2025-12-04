@@ -1,11 +1,31 @@
 """
 BH Svar (Client Response) domain model.
 
-Represents the client's (byggherre/BH) response to a KOE claim.
+⚠️ DEPRECATED - This model is deprecated and will be removed.
+Use Event Sourcing models instead:
+- models.events.ResponsEvent for BH responses
+- models.events.GrunnlagResponsData / VederlagResponsData / FristResponsData for response data
+
+This file is kept temporarily for data migration purposes only.
+DO NOT USE in new code.
 """
+import warnings
 from pydantic import BaseModel, Field
 from typing import Optional
-from core.generated_constants import BH_SVAR_STATUS
+
+# Emit deprecation warning when module is imported
+warnings.warn(
+    "models.bh_svar is deprecated. Use models.events.ResponsEvent instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
+
+# Legacy constants (from deleted generated_constants.py)
+BH_SVAR_STATUS = {
+    'UTKAST': '100000000',
+    'SENDT': '100000001',
+    'GODKJENT': '100000002'
+}
 
 
 class BHVederlagSvar(BaseModel):

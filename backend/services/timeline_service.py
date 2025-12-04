@@ -23,7 +23,9 @@ from models.events import (
     EventType,
     SporType,
     SporStatus,
-    ResponsResultat,
+    GrunnlagResponsResultat,
+    VederlagBeregningResultat,
+    FristBeregningResultat,
     AnyEvent,
 )
 from models.sak_state import (
@@ -267,7 +269,7 @@ class TimelineService:
         grunnlag.status = self._respons_til_status(event.data.resultat)
 
         # Hvis godkjent, lås grunnlaget
-        if event.data.resultat == ResponsResultat.GODKJENT:
+        if event.data.resultat == GrunnlagResponsResultat.GODKJENT:
             grunnlag.laast = True
             grunnlag.status = SporStatus.LAAST
 
@@ -396,14 +398,14 @@ class TimelineService:
 
     # ============ HELPERS ============
 
-    def _respons_til_status(self, resultat: ResponsResultat) -> SporStatus:
-        """Mapper ResponsResultat til SporStatus (backward compatibility)"""
+    def _respons_til_status(self, resultat: GrunnlagResponsResultat) -> SporStatus:
+        """Mapper GrunnlagResponsResultat til SporStatus"""
         mapping = {
-            ResponsResultat.GODKJENT: SporStatus.GODKJENT,
-            ResponsResultat.DELVIS_GODKJENT: SporStatus.DELVIS_GODKJENT,
-            ResponsResultat.AVVIST_UENIG: SporStatus.AVVIST,
-            ResponsResultat.AVVIST_FOR_SENT: SporStatus.AVVIST,
-            ResponsResultat.KREVER_AVKLARING: SporStatus.UNDER_FORHANDLING,
+            GrunnlagResponsResultat.GODKJENT: SporStatus.GODKJENT,
+            GrunnlagResponsResultat.DELVIS_GODKJENT: SporStatus.DELVIS_GODKJENT,
+            GrunnlagResponsResultat.AVVIST_UENIG: SporStatus.AVVIST,
+            GrunnlagResponsResultat.AVVIST_FOR_SENT: SporStatus.AVVIST,
+            GrunnlagResponsResultat.KREVER_AVKLARING: SporStatus.UNDER_FORHANDLING,
         }
         return mapping.get(resultat, SporStatus.UNDER_BEHANDLING)
 
@@ -736,15 +738,15 @@ class MigrationHelper:
 
         return events
 
-    def _map_bh_svar_to_resultat(self, svar_kode: str) -> ResponsResultat:
-        """Mapper gammel BH svar-kode til ResponsResultat"""
+    def _map_bh_svar_to_resultat(self, svar_kode: str) -> GrunnlagResponsResultat:
+        """Mapper gammel BH svar-kode til GrunnlagResponsResultat"""
         # Fra generated_constants.py
         mapping = {
-            '100000000': ResponsResultat.GODKJENT,           # GODKJENT_FULLT
-            '100000001': ResponsResultat.DELVIS_GODKJENT,    # DELVIS_GODKJENT
-            '100000002': ResponsResultat.AVVIST_UENIG,       # AVSLÅTT_UENIG
-            '100000003': ResponsResultat.AVVIST_FOR_SENT,    # AVSLÅTT_FOR_SENT
-            '100000004': ResponsResultat.KREVER_AVKLARING,   # AVVENTER
-            '100000005': ResponsResultat.GODKJENT,           # GODKJENT_ANNEN_METODE
+            '100000000': GrunnlagResponsResultat.GODKJENT,           # GODKJENT_FULLT
+            '100000001': GrunnlagResponsResultat.DELVIS_GODKJENT,    # DELVIS_GODKJENT
+            '100000002': GrunnlagResponsResultat.AVVIST_UENIG,       # AVSLÅTT_UENIG
+            '100000003': GrunnlagResponsResultat.AVVIST_FOR_SENT,    # AVSLÅTT_FOR_SENT
+            '100000004': GrunnlagResponsResultat.KREVER_AVKLARING,   # AVVENTER
+            '100000005': GrunnlagResponsResultat.GODKJENT,           # GODKJENT_ANNEN_METODE
         }
-        return mapping.get(svar_kode, ResponsResultat.KREVER_AVKLARING)
+        return mapping.get(svar_kode, GrunnlagResponsResultat.KREVER_AVKLARING)

@@ -1,13 +1,13 @@
 """
-WebhookService - Business logic for Catenda webhook operations.
+WebhookService - Event Sourcing compatible webhook handler.
 
-This service is framework-agnostic and can be used from:
-- Flask routes
-- Azure Functions
-- CLI tools
-- Testing
+Handles Catenda webhook events by generating appropriate domain events
+instead of directly manipulating state.
 
-Extracted from KOEAutomationSystem (app.py) as part of backend refactoring.
+Architecture:
+- Uses EventRepository instead of CSVRepository
+- Generates domain events (SakOpprettetEvent) instead of documents
+- State is computed from events, not stored directly
 """
 import os
 import base64
@@ -16,8 +16,11 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 from threading import Thread
 
-from repositories.base_repository import BaseRepository
-from core.generated_constants import SAK_STATUS
+from repositories.event_repository import JsonFileEventRepository
+from repositories.sak_metadata_repository import SakMetadataRepository
+from models.events import SakOpprettetEvent
+from models.sak_state import SakState
+from services.timeline_service import TimelineService
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -25,15 +28,15 @@ logger = get_logger(__name__)
 
 class WebhookService:
     """
-    Service for handling Catenda webhook events.
+    Service for handling Catenda webhook events (Event Sourcing Architecture).
 
-    This class is framework-agnostic and contains no Flask dependencies.
-    All webhook business rules and integration logic are encapsulated here.
+    This service is framework-agnostic and generates domain events
+    instead of directly modifying state.
     """
 
     def __init__(
         self,
-        repository: BaseRepository,
+        event_repository: JsonFileEventRepository,
         catenda_client: Any,
         config: Optional[Dict[str, Any]] = None,
         magic_link_generator: Optional[Any] = None
@@ -42,12 +45,14 @@ class WebhookService:
         Initialize WebhookService.
 
         Args:
-            repository: Data repository for case storage
+            event_repository: Event store for persisting events
             catenda_client: Authenticated Catenda API client
             config: Optional configuration dict (project_id, library_id, etc.)
             magic_link_generator: Optional magic link generator for URLs
         """
-        self.repo = repository
+        self.event_repo = event_repository
+        self.metadata_repo = SakMetadataRepository()
+        self.timeline_service = TimelineService()
         self.catenda = catenda_client
         self.config = config or {}
         self.magic_link_generator = magic_link_generator
@@ -78,17 +83,16 @@ class WebhookService:
 
     def handle_new_topic_created(self, webhook_payload: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Håndterer ny topic.
-        Oppretter sak, henter metadata, og poster lenke til React-app.
+        Handles new Catenda topic by creating a SakOpprettetEvent.
 
-        Business rules:
-        1. Validate topic passes filters (should_process_topic)
-        2. Extract topic_id and board_id from webhook payload
-        3. Fetch full topic details from Catenda API
-        4. Extract metadata (title, author, custom fields)
-        5. Create new case in repository
-        6. Generate magic link for React app
-        7. Post comment to Catenda topic (async)
+        Event Sourcing Flow:
+        1. Validate topic passes filters
+        2. Extract metadata from Catenda
+        3. Generate SakOpprettetEvent
+        4. Persist event to event store
+        5. Create metadata cache entry
+        6. Generate magic link
+        7. Post comment to Catenda (async)
 
         Args:
             webhook_payload: Webhook event payload from Catenda
@@ -111,31 +115,30 @@ class WebhookService:
 
             should_proc, reason = should_process_topic(filter_data)
             if not should_proc:
-                logger.info(f"⏭️  Ignorerer topic (årsak: {reason})")
+                logger.info(f"⏭️  Ignoring topic (reason: {reason})")
                 return {'success': True, 'action': 'ignored_due_to_filter', 'reason': reason}
 
             # Extract topic ID
             topic_id = temp_topic_data.get('id') or temp_topic_data.get('guid') or webhook_payload.get('guid')
 
             if not topic_id or not board_id:
-                logger.error(f"Webhook mangler 'topic_id' eller 'board_id'. Payload: {webhook_payload}")
-                return {'success': False, 'error': 'Mangler topic_id eller board_id i webhook'}
+                logger.error(f"Webhook missing 'topic_id' or 'board_id'. Payload: {webhook_payload}")
+                return {'success': False, 'error': 'Missing topic_id or board_id in webhook'}
 
             # Fetch full topic details from Catenda API
             self.catenda.topic_board_id = board_id
             topic_data = self.catenda.get_topic_details(topic_id)
 
             if not topic_data:
-                logger.error(f"Klarte ikke å hente topic-detaljer for ID {topic_id} fra Catenda API.")
-                return {'success': False, 'error': f'Kunne ikke hente topic-detaljer for {topic_id}'}
+                logger.error(f"Failed to fetch topic details for ID {topic_id} from Catenda API.")
+                return {'success': False, 'error': f'Could not fetch topic details for {topic_id}'}
 
             # Extract metadata
-            title = topic_data.get('title', 'Uten tittel')
+            title = topic_data.get('title', 'Untitled')
 
-            byggherre = 'Ikke spesifisert'
-            leverandor = 'Ikke spesifisert'
-            saksstatus = SAK_STATUS['UNDER_VARSLING']
-            project_name = 'Ukjent prosjekt'
+            byggherre = 'Not specified'
+            leverandor = 'Not specified'
+            project_name = 'Unknown project'
             v2_project_id = None
 
             # Get project details
@@ -147,7 +150,7 @@ class WebhookService:
                     if project_details:
                         project_name = project_details.get('name', project_name)
 
-            # Extract custom fields (Byggherre, Leverandør, Saksstatus)
+            # Extract custom fields (Byggherre, Leverandør)
             custom_fields = topic_data.get('bimsync_custom_fields', [])
             for field in custom_fields:
                 field_name = field.get('customFieldName')
@@ -156,75 +159,94 @@ class WebhookService:
                     byggherre = field_value
                 elif field_name == 'Leverandør' and field_value:
                     leverandor = field_value
-                elif field_name == 'Saksstatus KOE' and field_value:
-                    saksstatus = field_value
 
             # Extract author
-            author_name = topic_data.get('bimsync_creation_author', {}).get('user', {}).get('name', topic_data.get('creation_author', 'Ukjent'))
+            author_name = topic_data.get('bimsync_creation_author', {}).get('user', {}).get('name', topic_data.get('creation_author', 'Unknown'))
+            author_email = topic_data.get('bimsync_creation_author', {}).get('user', {}).get('email')
 
-            # Create case data
-            sak_data = {
-                'catenda_topic_id': topic_id,
-                'catenda_project_id': v2_project_id,
-                'catenda_board_id': board_id,
-                'sakstittel': title,
-                'te_navn': author_name,
-                'status': saksstatus,
-                'byggherre': byggherre,
-                'entreprenor': leverandor,
-                'prosjekt_navn': project_name,
-            }
-            sak_id = self.repo.create_case(sak_data)
+            # Generate sak_id (timestamp-based)
+            timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
+            sak_id = f"SAK-{timestamp}"
+
+            # Create SakOpprettetEvent (Event Sourcing)
+            event = SakOpprettetEvent(
+                sak_id=sak_id,
+                sakstittel=title,
+                aktor=author_name,
+                aktor_rolle="TE",  # Assume TE created the case
+                prosjekt_id=v2_project_id or "unknown",
+                catenda_topic_id=topic_id,
+            )
+
+            # Persist event (version 0 = new case)
+            try:
+                new_version = self.event_repo.append(event, expected_version=0)
+                logger.info(f"✅ SakOpprettetEvent persisted for {sak_id}, version: {new_version}")
+            except Exception as e:
+                logger.error(f"❌ Failed to persist SakOpprettetEvent: {e}")
+                return {'success': False, 'error': f'Failed to persist event: {e}'}
+
+            # Create metadata cache entry
+            self.metadata_repo.create(
+                sak_id=sak_id,
+                catenda_topic_id=topic_id,
+                catenda_project_id=v2_project_id,
+                catenda_board_id=board_id,
+                cached_title=title,
+                cached_status="UNDER_VARSLING",  # Initial status
+                te_navn=author_name,
+                te_epost=author_email,
+                byggherre=byggherre,
+                entreprenor=leverandor,
+                prosjekt_navn=project_name,
+            )
 
             # Generate magic link
-            author_email = topic_data.get('bimsync_creation_author', {}).get('user', {}).get('email')
             magic_token = None
             if self.magic_link_generator:
                 magic_token = self.magic_link_generator.generate(sak_id=sak_id, email=author_email)
 
             base_url = self.get_react_app_base_url()
-            magic_link = f"{base_url}?magicToken={magic_token}" if magic_token else base_url
+            magic_link = f"{base_url}/saker/{sak_id}?magicToken={magic_token}" if magic_token else f"{base_url}/saker/{sak_id}"
 
             # Post comment to Catenda (async to avoid blocking)
             dato = datetime.now().strftime('%Y-%m-%d')
             comment_text = (
-                f"✅ **Ny KOE-sak opprettet**\n\n"
-                f"📋 Intern Sak-ID: `{sak_id}`\n"
-                f"📅 Dato: {dato}\n"
-                f"🏗️ Prosjekt: {project_name}\n\n"
-                f"**Neste steg:** Entreprenør sender varsel\n"
-                f"👉 [Åpne skjema]({magic_link})"
+                f"✅ **New KOE case created**\n\n"
+                f"📋 Internal Case ID: `{sak_id}`\n"
+                f"📅 Date: {dato}\n"
+                f"🏗️ Project: {project_name}\n\n"
+                f"**Next step:** Contractor sends notification (grunnlag)\n"
+                f"👉 [Open form]({magic_link})"
             )
 
             def post_comment_async():
                 try:
                     self.catenda.create_comment(topic_id, comment_text)
-                    logger.info(f"✅ Kommentar sendt til Catenda for sak {sak_id}")
+                    logger.info(f"✅ Comment posted to Catenda for case {sak_id}")
                 except Exception as e:
-                    logger.error(f"❌ Feil ved posting av kommentar til Catenda: {e}")
+                    logger.error(f"❌ Error posting comment to Catenda: {e}")
 
             # TODO: Azure Service Bus - Replace with queue for production
             # Background threads are unreliable in Azure Functions (may be killed after HTTP response)
             Thread(target=post_comment_async, daemon=True).start()
-            logger.info(f"✅ Sak {sak_id} opprettet, kommentar sendes i bakgrunnen.")
+            logger.info(f"✅ Case {sak_id} created, comment being posted in background.")
 
             return {'success': True, 'sak_id': sak_id}
 
         except Exception as e:
-            logger.exception(f"Feil i handle_new_topic_created: {e}")
+            logger.exception(f"Error in handle_new_topic_created: {e}")
             return {'success': False, 'error': str(e)}
 
     def handle_topic_modification(self, webhook_payload: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Håndterer endringer på topic (statusendring eller kommentar).
+        Handles changes to Catenda topic.
 
-        Business rules:
-        1. Extract topic_id from webhook payload
-        2. Find existing case by topic_id
-        3. If case not found, ignore (not our case)
-        4. Detect status changes or relevant comments
-        5. Update case status if changed (Godkjent, Avslått, Lukket)
-        6. Log to history
+        Note: In Event Sourcing architecture, external status changes from Catenda
+        are NOT directly synced to our event log. Status is derived from events
+        submitted by TE/BH through our API.
+
+        This handler only logs the change for audit purposes and updates metadata cache.
 
         Args:
             webhook_payload: Webhook event payload from Catenda
@@ -237,57 +259,53 @@ class WebhookService:
             topic_data = webhook_payload.get('issue', {}) or webhook_payload.get('topic', {})
             topic_id = topic_data.get('id') or topic_data.get('guid')
 
-            # Find existing case
-            sak = self.repo.get_case_by_topic_id(topic_id)
-            if not sak:
+            # Find existing case by topic_id
+            metadata = self.metadata_repo.get_by_topic_id(topic_id)
+            if not metadata:
+                logger.info(f"Topic {topic_id} not found in our system, ignoring modification")
                 return {'success': True, 'action': 'ignored_unknown_topic'}
 
-            sak_id = sak['sak_id']
+            sak_id = metadata.sak_id
 
             # Extract modification data
             modification_data = webhook_payload.get('modification', {})
             comment_data = webhook_payload.get('comment', {})
 
-            new_status = None
+            # Log the modification for audit purposes
+            modification_type = None
 
             # Check for status updates
             if modification_data.get('event') == 'status_updated':
-                new_status_val = modification_data.get('value', '').lower()
-                logger.info(f"Status endret til: {new_status_val}")
+                new_status_val = modification_data.get('value', '')
+                logger.info(f"📝 Catenda status changed for {sak_id}: {new_status_val}")
+                modification_type = f"catenda_status_changed: {new_status_val}"
 
-                if 'lukket' in new_status_val or 'closed' in new_status_val:
-                    new_status = 'Lukket'
-                elif 'godkjent' in new_status_val:
-                    new_status = 'Godkjent'
-
-            # Check for relevant comments
+            # Check for comments
             elif 'comment' in comment_data:
-                comment_text = comment_data.get('comment', '').lower()
-                if 'godkjent' in comment_text:
-                    new_status = 'Godkjent'
-                elif 'avslått' in comment_text or 'avvist' in comment_text:
-                    new_status = 'Avslått'
+                comment_text = comment_data.get('comment', '')
+                logger.info(f"💬 New Catenda comment on {sak_id}: {comment_text[:100]}...")
+                modification_type = "catenda_comment_added"
 
-            # Update case if status changed
-            if new_status:
-                self.repo.update_case_status(sak_id, new_status)
+            # Note: We do NOT create events from Catenda status changes
+            # State is only changed through our API (TE/BH submissions)
 
-                # Log to history (via repository helper if available)
-                if hasattr(self.repo, 'log_historikk'):
-                    self.repo.log_historikk(sak_id, 'catenda_oppdatering', f"Status oppdatert til {new_status} via Catenda")
+            if modification_type:
+                # Could log to audit trail or history if needed
+                logger.info(f"ℹ️ Case {sak_id}: {modification_type} (not syncing to event log)")
+                return {'success': True, 'action': 'logged', 'modification': modification_type}
 
-                logger.info(f"✅ Sak {sak_id} oppdatert til {new_status} basert på Catenda-hendelse.")
-                return {'success': True, 'action': 'updated', 'status': new_status}
-
-            return {'success': True, 'action': 'no_change'}
+            return {'success': True, 'action': 'no_action_needed'}
 
         except Exception as e:
-            logger.exception(f"Feil i handle_topic_modification: {e}")
+            logger.exception(f"Error in handle_topic_modification: {e}")
             return {'success': False, 'error': str(e)}
 
     def handle_pdf_upload(self, sak_id: str, pdf_base64: str, filename: str, topic_guid: str) -> Dict[str, Any]:
         """
-        Tar imot Base64 PDF, laster opp til Catenda og kobler til topic.
+        Receives Base64 PDF, uploads to Catenda and links to topic.
+
+        Note: This method is compatible with both old and new architecture.
+        It only handles Catenda document upload, not state management.
 
         Business rules:
         1. Decode base64 PDF data
@@ -315,7 +333,7 @@ class WebhookService:
                 temp_file.write(pdf_data)
                 temp_path = temp_file.name
 
-            logger.info(f"PDF lagret midlertidig: {temp_path}")
+            logger.info(f"PDF saved temporarily: {temp_path}")
 
             # Get project and library IDs from config
             project_id = self.config.get('catenda_project_id')
@@ -331,10 +349,10 @@ class WebhookService:
             doc_result = self.catenda.upload_document(project_id, temp_path, filename)
 
             if not doc_result or 'id' not in doc_result:
-                raise Exception("Feil ved opplasting av dokument til Catenda")
+                raise Exception("Error uploading document to Catenda")
 
             compact_doc_guid = doc_result['id']
-            logger.info(f"PDF lastet opp til Catenda. Kompakt GUID: {compact_doc_guid}")
+            logger.info(f"PDF uploaded to Catenda. Compact GUID: {compact_doc_guid}")
 
             # Format GUID (add dashes if compact format)
             if len(compact_doc_guid) == 32:
@@ -345,33 +363,33 @@ class WebhookService:
             else:
                 formatted_doc_guid = compact_doc_guid
 
-            # Get board ID from case data
-            sak_info = self.repo.get_case(sak_id)
-            if sak_info and 'sak' in sak_info and sak_info['sak'].get('catenda_board_id'):
-                self.catenda.topic_board_id = sak_info['sak']['catenda_board_id']
-                logger.info(f"Bruker lagret board ID: {self.catenda.topic_board_id}")
+            # Get board ID from metadata
+            metadata = self.metadata_repo.get(sak_id)
+            if metadata and metadata.catenda_board_id:
+                self.catenda.topic_board_id = metadata.catenda_board_id
+                logger.info(f"Using stored board ID: {self.catenda.topic_board_id}")
             elif not self.catenda.topic_board_id:
-                logger.warning("Fant ikke board ID i sak, prøver default...")
+                logger.warning("Board ID not found in metadata, trying default...")
                 self.catenda.select_topic_board(0)
 
             # Try to create document reference with formatted GUID
             ref_result = self.catenda.create_document_reference(topic_guid, formatted_doc_guid)
 
             if ref_result:
-                logger.info(f"PDF koblet til topic {topic_guid}")
+                logger.info(f"PDF linked to topic {topic_guid}")
                 return {'success': True, 'documentGuid': formatted_doc_guid, 'filename': filename}
             else:
                 # Try compact GUID as fallback
-                logger.warning(f"Kunne ikke koble med formatert GUID. Prøver kompakt GUID: {compact_doc_guid}")
+                logger.warning(f"Could not link with formatted GUID. Trying compact GUID: {compact_doc_guid}")
                 ref_result_compact = self.catenda.create_document_reference(topic_guid, compact_doc_guid)
                 if ref_result_compact:
-                    logger.info(f"PDF koblet til topic {topic_guid} med kompakt GUID.")
+                    logger.info(f"PDF linked to topic {topic_guid} with compact GUID.")
                     return {'success': True, 'documentGuid': compact_doc_guid, 'filename': filename}
                 else:
-                    return {'success': False, 'error': 'Kunne ikke koble dokument til topic (begge GUID-formater feilet)'}
+                    return {'success': False, 'error': 'Could not link document to topic (both GUID formats failed)'}
 
         except Exception as e:
-            logger.exception(f"Feil ved PDF-håndtering: {e}")
+            logger.exception(f"Error handling PDF: {e}")
             return {'success': False, 'error': str(e)}
         finally:
             # Clean up temporary file

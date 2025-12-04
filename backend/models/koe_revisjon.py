@@ -1,11 +1,31 @@
 """
 KOE Revisjon (KOE revision) domain model.
 
-Represents a revision of a KOE (change order request) from the contractor.
+⚠️ DEPRECATED - This model is deprecated and will be removed.
+Use Event Sourcing models instead:
+- models.events.VederlagEvent for compensation claims
+- models.events.FristEvent for deadline extension claims
+
+This file is kept temporarily for data migration purposes only.
+DO NOT USE in new code.
 """
+import warnings
 from pydantic import BaseModel, Field
 from typing import Optional
-from core.generated_constants import KOE_STATUS
+
+# Emit deprecation warning when module is imported
+warnings.warn(
+    "models.koe_revisjon is deprecated. Use models.events (VederlagEvent, FristEvent) instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
+
+# Legacy constants (from deleted generated_constants.py)
+KOE_STATUS = {
+    'UTKAST': '100000000',
+    'SENDT': '100000001',
+    'GODKJENT': '100000002'
+}
 
 
 class VederlagKrav(BaseModel):
