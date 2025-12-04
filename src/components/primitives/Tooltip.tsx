@@ -19,10 +19,14 @@ interface TooltipProps {
 export function Tooltip({ content, children, side = 'top', delayDuration = 200 }: TooltipProps) {
   const [open, setOpen] = useState(false);
 
+  const handleClick = () => {
+    setOpen(!open);
+  };
+
   return (
     <TooltipPrimitive.Provider delayDuration={delayDuration}>
       <TooltipPrimitive.Root open={open} onOpenChange={setOpen}>
-        <TooltipPrimitive.Trigger asChild>
+        <TooltipPrimitive.Trigger asChild onClick={handleClick}>
           {children}
         </TooltipPrimitive.Trigger>
         <TooltipPrimitive.Portal>
