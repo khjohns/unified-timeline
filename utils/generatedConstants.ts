@@ -1,9 +1,6 @@
 /**
- * AUTO-GENERERT FIL - IKKE REDIGER MANUELT
- * Generert fra: shared/status-codes.json
- * Generert: 2025-12-03T12:23:11.953Z
- *
- * Versjon: 1.0.0
+ * Status codes and constants for the application.
+ * These values correspond to CRM option set values.
  */
 
 export const SAK_STATUS = {
