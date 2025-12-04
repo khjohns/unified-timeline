@@ -9,7 +9,7 @@ export interface FormFieldProps {
   required?: boolean;
   /** Error message to display */
   error?: string;
-  /** Help text to display below the input */
+  /** Help text to display below the label and above the input */
   helpText?: string;
   /** Optional tooltip for the label (adds info icon) */
   labelTooltip?: string;
@@ -23,7 +23,7 @@ export interface FormFieldProps {
  * FormField wrapper component that combines Label + Input/Select/Textarea + Error message
  * - Handles spacing and layout
  * - Shows error messages with proper styling
- * - Shows help text when no error
+ * - Shows help text below label and above input
  * - Supports info tooltips via labelTooltip prop
  * - Larger spacing for better readability
  */
@@ -53,17 +53,17 @@ export function FormField({
         </label>
       ) : null}
 
+      {helpText && (
+        <p className="mb-pkt-03 text-sm text-pkt-text-placeholder">
+          {helpText}
+        </p>
+      )}
+
       {children}
 
       {error && (
         <p className="mt-pkt-02 text-base text-pkt-border-red" role="alert">
           {error}
-        </p>
-      )}
-
-      {!error && helpText && (
-        <p className="mt-pkt-02 text-sm text-pkt-text-placeholder">
-          {helpText}
         </p>
       )}
     </div>

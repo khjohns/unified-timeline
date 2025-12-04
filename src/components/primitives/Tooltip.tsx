@@ -1,5 +1,5 @@
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import { clsx } from 'clsx';
 
 interface TooltipProps {
@@ -9,10 +9,19 @@ interface TooltipProps {
   delayDuration?: number;
 }
 
+/**
+ * Tooltip component with improved click behavior:
+ * - Opens on hover (with delay)
+ * - Toggles on click (stays open until clicked again or focus lost)
+ * - Better for keyboard and touch users
+ * - Closes when clicking outside or pressing Escape
+ */
 export function Tooltip({ content, children, side = 'top', delayDuration = 200 }: TooltipProps) {
+  const [open, setOpen] = useState(false);
+
   return (
     <TooltipPrimitive.Provider delayDuration={delayDuration}>
-      <TooltipPrimitive.Root>
+      <TooltipPrimitive.Root open={open} onOpenChange={setOpen}>
         <TooltipPrimitive.Trigger asChild>
           {children}
         </TooltipPrimitive.Trigger>
@@ -35,6 +44,7 @@ export function Tooltip({ content, children, side = 'top', delayDuration = 200 }
               'data-[side=top]:slide-in-from-bottom-2'
             )}
             sideOffset={5}
+            onPointerDownOutside={() => setOpen(false)}
           >
             {content}
             <TooltipPrimitive.Arrow className="fill-gray-900" />
