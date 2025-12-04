@@ -979,16 +979,16 @@ This document outlines a comprehensive accessibility and UX review plan for the 
 
 Items that can typically be addressed quickly:
 
-- [ ] Add missing `autocomplete` attributes to forms
-- [ ] Fix any missing `alt` text on images
-- [ ] Ensure all buttons have accessible names
-- [ ] Fix any color contrast issues
-- [ ] Add `lang` attribute to HTML element
-- [ ] Ensure focus indicators visible on all elements
-- [ ] Add missing form labels
-- [ ] Fix any heading hierarchy skips
-- [ ] Add ARIA live regions for dynamic content
-- [ ] Ensure all touch targets meet 44x44px minimum
+- [x] Add missing `autocomplete` attributes to forms (N/A - forms don't use common personal data fields)
+- [x] Fix any missing `alt` text on images (N/A - no images in codebase)
+- [x] Ensure all buttons have accessible names (✓ All buttons have text or aria-label)
+- [x] Fix any color contrast issues (✓ Fixed error color from #ff8274 to #c9302c for 5.33:1 contrast)
+- [x] Add `lang` attribute to HTML element (✓ Already present: lang="no")
+- [x] Ensure focus indicators visible on all elements (✓ All components have focus:ring-4)
+- [x] Add missing form labels (✓ FormField component properly implements labels)
+- [x] Fix any heading hierarchy skips (✓ No skips found: h1→h2→h3)
+- [x] Add ARIA live regions for dynamic content (✓ StatusDashboard has aria-live="polite")
+- [x] Ensure all touch targets meet 44x44px minimum (✓ Updated Button, Input, Select, Checkbox)
 
 ---
 

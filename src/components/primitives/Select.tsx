@@ -31,9 +31,9 @@ export const SelectTrigger = forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={clsx(
-      // Base styles
+      // Base styles - 44px minimum height for WCAG 2.5.5
       'flex items-center justify-between gap-2',
-      'w-full px-pkt-04 py-pkt-03',
+      'w-full px-pkt-04 py-pkt-04 min-h-[44px]',
       'text-base font-normal',
       'bg-pkt-bg-default',
       'transition-colors duration-200',
