@@ -16,7 +16,7 @@ from models.events import (
     ResponsEvent,
     EventType,
     SporType,
-    ResponsResultat
+    GrunnlagResponsResultat
 )
 
 
@@ -131,7 +131,7 @@ class TestParseEvent:
 
         assert isinstance(event, ResponsEvent)
         assert event.spor == SporType.GRUNNLAG
-        assert event.data.resultat == ResponsResultat.GODKJENT
+        assert event.data.resultat == GrunnlagResponsResultat.GODKJENT
 
     def test_parse_event_missing_event_type(self):
         """Test that parsing fails without event_type."""
