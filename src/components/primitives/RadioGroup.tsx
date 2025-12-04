@@ -40,19 +40,17 @@ export const RadioItem = forwardRef<
   const radio = (
     <RadioGroupPrimitive.Item
       ref={ref}
-      // TVING border-width med inline style for å omgå Punkt CSS reset som vinner over Tailwind
-      style={{ borderWidth: 2 }} 
       className={clsx(
         // Size
         'h-6 w-6',
         'shrink-0',
 
-        // Base styles
+        // Base styles - border-2 now works with Punkt CSS in @layer
         'appearance-none',
         'rounded-full',
-        'border-solid', // Sikre at stilen er solid
-        // Vi beholder klassene for farger og states
-        
+        'border-2',
+        'border-solid',
+
         'transition-colors duration-200',
 
         // Default state
