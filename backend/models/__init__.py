@@ -33,8 +33,12 @@ from models.events import (
     # Enums
     SporType,
     EventType,
-    ResponsResultat,
     SporStatus,
+    VederlagsMetode,
+    FristVarselType,
+    GrunnlagResponsResultat,
+    VederlagBeregningResultat,
+    FristBeregningResultat,
     # Base
     SakEvent,
     # Events
@@ -45,6 +49,7 @@ from models.events import (
     SakOpprettetEvent,
     EOUtstedtEvent,
     # Data classes
+    VarselInfo,
     GrunnlagData,
     VederlagData,
     FristData,
@@ -79,12 +84,14 @@ __all__ = [
     'Sak', 'Varsel', 'KoeRevisjon', 'VederlagKrav', 'FristKrav',
     'BHSvarRevisjon', 'BHVederlagSvar', 'BHFristSvar',
     # Enums
-    'SporType', 'EventType', 'ResponsResultat', 'SporStatus',
+    'SporType', 'EventType', 'SporStatus',
+    'VederlagsMetode', 'FristVarselType',
+    'GrunnlagResponsResultat', 'VederlagBeregningResultat', 'FristBeregningResultat',
     # Events
     'SakEvent', 'GrunnlagEvent', 'VederlagEvent', 'FristEvent',
     'ResponsEvent', 'SakOpprettetEvent', 'EOUtstedtEvent', 'AnyEvent',
     # Data
-    'GrunnlagData', 'VederlagData', 'FristData',
+    'VarselInfo', 'GrunnlagData', 'VederlagData', 'FristData',
     'GrunnlagResponsData', 'VederlagResponsData', 'FristResponsData',
     # State
     'SakState', 'GrunnlagTilstand', 'VederlagTilstand', 'FristTilstand',

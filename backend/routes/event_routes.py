@@ -21,13 +21,20 @@ from services.timeline_service import TimelineService
 from services.business_rules import BusinessRuleValidator
 from repositories.event_repository import JsonFileEventRepository, ConcurrencyError
 from repositories.sak_metadata_repository import SakMetadataRepository
-from models.events import parse_event_from_request, parse_event
+from models.events import parse_event_from_request, parse_event, EventType
 from lib.auth.csrf_protection import require_csrf
 from lib.auth.magic_link import require_magic_link, get_magic_link_manager
 from services.catenda_service import CatendaService
 from integrations.catenda import CatendaClient
 from core.config import settings
 from utils.logger import get_logger
+from api.validators import (
+    validate_grunnlag_event,
+    validate_vederlag_event,
+    validate_frist_event,
+    validate_respons_event,
+    ValidationError as ApiValidationError,
+)
 
 logger = get_logger(__name__)
 
@@ -105,14 +112,39 @@ def submit_event():
         else:
             logger.info(f"⚠️ No client PDF, backend will generate as fallback if needed")
 
-        # 1. Parse event (validates server-controlled fields)
+        # 1. Validate event data against constants BEFORE parsing
+        event_type = event_data.get('event_type')
+        data_payload = event_data.get('data')
+
+        try:
+            if event_type in [EventType.GRUNNLAG_OPPRETTET.value, EventType.GRUNNLAG_OPPDATERT.value]:
+                validate_grunnlag_event(data_payload)
+            elif event_type in [EventType.VEDERLAG_KRAV_SENDT.value, EventType.VEDERLAG_KRAV_OPPDATERT.value]:
+                validate_vederlag_event(data_payload)
+            elif event_type in [EventType.FRIST_KRAV_SENDT.value, EventType.FRIST_KRAV_OPPDATERT.value]:
+                validate_frist_event(data_payload)
+            elif event_type == EventType.RESPONS_GRUNNLAG.value:
+                validate_respons_event(data_payload, 'grunnlag')
+            elif event_type == EventType.RESPONS_VEDERLAG.value:
+                validate_respons_event(data_payload, 'vederlag')
+            elif event_type == EventType.RESPONS_FRIST.value:
+                validate_respons_event(data_payload, 'frist')
+        except ApiValidationError as e:
+            logger.error(f"❌ API validation error: {e}")
+            return jsonify({
+                "success": False,
+                "error": "VALIDATION_ERROR",
+                "message": str(e)
+            }), 400
+
+        # 2. Parse event (validates server-controlled fields)
         event_data['sak_id'] = sak_id
         event = parse_event_from_request(event_data)
 
-        # 2. Load current state for validation
+        # 3. Load current state for validation
         existing_events_data, current_version = event_repo.get_events(sak_id)
 
-        # 3. Validate expected version BEFORE business rules
+        # 4. Validate expected version BEFORE business rules
         if current_version != expected_version:
             return jsonify({
                 "success": False,
@@ -122,7 +154,7 @@ def submit_event():
                 "message": "Tilstanden har endret seg. Vennligst last inn på nytt."
             }), 409
 
-        # 4. Compute current state and validate business rules
+        # 5. Compute current state and validate business rules
         if existing_events_data:
             existing_events = [parse_event(e) for e in existing_events_data]
             current_state = timeline_service.compute_state(existing_events)
@@ -138,7 +170,7 @@ def submit_event():
         else:
             existing_events = []
 
-        # 5. Persist event (with optimistic lock)
+        # 6. Persist event (with optimistic lock)
         try:
             new_version = event_repo.append(event, expected_version)
         except ConcurrencyError as e:
@@ -150,11 +182,11 @@ def submit_event():
                 "message": "Samtidig endring oppdaget. Vennligst last inn på nytt."
             }), 409
 
-        # 6. Compute new state
+        # 7. Compute new state
         all_events = existing_events + [event]
         new_state = timeline_service.compute_state(all_events)
 
-        # 7. Update cached metadata
+        # 8. Update cached metadata
         metadata_repo.update_cache(
             sak_id=sak_id,
             cached_title=new_state.sakstittel,
@@ -164,7 +196,7 @@ def submit_event():
 
         logger.info(f"✅ Event persisted, new version: {new_version}")
 
-        # 8. Catenda Integration (PDF + Comment) - optional
+        # 9. Catenda Integration (PDF + Comment) - optional
         catenda_success = False
         pdf_source = None
 
@@ -178,7 +210,7 @@ def submit_event():
                 client_pdf_filename=client_pdf_filename
             )
 
-        # 9. Return success with new state
+        # 10. Return success with new state
         return jsonify({
             "success": True,
             "event_id": event.event_id,
@@ -331,7 +363,7 @@ def submit_batch():
         }), 500
 
 
-@events_bp.route('/api/case/<sak_id>/state', methods=['GET'])
+@events_bp.route('/api/cases/<sak_id>/state', methods=['GET'])
 @require_magic_link
 def get_case_state(sak_id: str):
     """
@@ -354,7 +386,7 @@ def get_case_state(sak_id: str):
     })
 
 
-@events_bp.route('/api/case/<sak_id>/timeline', methods=['GET'])
+@events_bp.route('/api/cases/<sak_id>/timeline', methods=['GET'])
 @require_magic_link
 def get_case_timeline(sak_id: str):
     """
