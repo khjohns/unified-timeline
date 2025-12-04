@@ -147,10 +147,6 @@ class FristTilstand(BaseModel):
     krevd_dager: Optional[int] = Field(default=None)
     frist_type: Optional[str] = Field(default=None)
     begrunnelse: Optional[str] = Field(default=None)
-    pavirker_kritisk_linje: bool = Field(
-        default=False,
-        description="Whether this affects critical path"
-    )
     milepael_pavirket: Optional[str] = Field(default=None)
     fremdriftsanalyse_vedlagt: bool = Field(default=False)
 

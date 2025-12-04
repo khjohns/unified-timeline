@@ -282,7 +282,6 @@ class SakApiService:
             frist_type=f.frist_type or "kalenderdager",
             frist_type_label="Kalenderdager" if f.frist_type == "kalenderdager" else "Arbeidsdager",
             krav_begrunnelse=f.begrunnelse or "",
-            pavirker_kritisk_linje=f.pavirker_kritisk_linje,
             milepael_pavirket=f.milepael_pavirket,
             bh_har_svart=f.bh_resultat is not None,
             bh_resultat=f.bh_resultat,

@@ -15,6 +15,7 @@ export const VARSEL_METODER_OPTIONS: DropdownOption[] = [
   { value: "brev", label: "Brev" },
   { value: "telefon", label: "Telefon" },
   { value: "prosjektportal", label: "Prosjektportal (Catenda/BIM360)" },
+  { value: "system", label: "System (sendes automatisk)" },
   { value: "annet", label: "Annet" },
 ];
 

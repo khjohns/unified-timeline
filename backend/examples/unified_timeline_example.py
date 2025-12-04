@@ -112,7 +112,6 @@ def scenario_paralell_behandling():
             antall_dager=10,
             frist_type="arbeidsdager",
             begrunnelse="Tid for sprengning og herdning av nytt fundament",
-            pavirker_kritisk_linje=True,
             milepael_pavirket="M2: Grunnarbeider ferdig",
         ),
     ))

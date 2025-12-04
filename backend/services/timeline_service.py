@@ -227,7 +227,6 @@ class TimelineService:
         frist.krevd_dager = event.data.antall_dager
         frist.frist_type = event.data.frist_type
         frist.begrunnelse = event.data.begrunnelse
-        frist.pavirker_kritisk_linje = event.data.pavirker_kritisk_linje
         frist.milepael_pavirket = event.data.milepael_pavirket
         frist.fremdriftsanalyse_vedlagt = event.data.fremdriftsanalyse_vedlagt
 
@@ -679,7 +678,6 @@ class MigrationHelper:
                         antall_dager=dager,
                         frist_type=frist_info.get('krav_frist_type', 'kalenderdager'),
                         begrunnelse=frist_info.get('krav_frist_begrunnelse', ''),
-                        pavirker_kritisk_linje=frist_info.get('forsinkelse_kritisk_linje', False),
                     ),
                 )
                 events.append(frist_event)
