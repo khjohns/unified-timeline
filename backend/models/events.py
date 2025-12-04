@@ -10,7 +10,7 @@ kan prosesseres uavhengig på tre parallelle spor:
 
 Hver event er immutable og representerer en faktisk hendelse i tid.
 """
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional, Literal, List, Union
 from datetime import datetime
 from enum import Enum
@@ -154,6 +154,25 @@ class SakEvent(BaseModel):
     model_config = {"extra": "allow"}
 
 
+# ============ VARSEL INFO (Reusable) ============
+
+class VarselInfo(BaseModel):
+    """
+    Informasjon om når og hvordan et varsel ble sendt.
+
+    Brukes for å dokumentere både formelle og uformelle varsler.
+    Samme struktur brukes i både GrunnlagData og VederlagData.
+    """
+    dato_sendt: Optional[str] = Field(
+        default=None,
+        description="Når varselet faktisk ble sendt til BH (YYYY-MM-DD)"
+    )
+    metode: Optional[List[str]] = Field(
+        default=None,
+        description="Metoder brukt for å varsle (f.eks. ['epost', 'byggemote', 'telefon'])"
+    )
+
+
 # ============ GRUNNLAG EVENTS ============
 
 """
@@ -276,25 +295,6 @@ class GrunnlagEvent(SakEvent):
         if v not in valid_types:
             raise ValueError(f"Ugyldig event_type for GrunnlagEvent: {v}")
         return v
-
-
-# ============ VARSEL INFO (Reusable) ============
-
-class VarselInfo(BaseModel):
-    """
-    Informasjon om når og hvordan et varsel ble sendt.
-
-    Brukes for å dokumentere både formelle og uformelle varsler.
-    Samme struktur brukes i både GrunnlagData og VederlagData.
-    """
-    dato_sendt: Optional[str] = Field(
-        default=None,
-        description="Når varselet faktisk ble sendt til BH (YYYY-MM-DD)"
-    )
-    metode: Optional[List[str]] = Field(
-        default=None,
-        description="Metoder brukt for å varsle (f.eks. ['epost', 'byggemote', 'telefon'])"
-    )
 
 
 # ============ VEDERLAG EVENTS ============
@@ -493,15 +493,13 @@ class FristData(BaseModel):
         description="Referanser til vedlagte dokumenter (fremdriftsplan, fremdriftsanalyse, etc.)"
     )
 
-    @field_validator('antall_dager')
-    @classmethod
-    def validate_antall_dager(cls, v, info):
+    @model_validator(mode='after')
+    def validate_antall_dager(self):
         """Valider at antall_dager er satt hvis varsel_type er SPESIFISERT eller BEGGE"""
-        varsel_type = info.data.get('varsel_type')
-        if varsel_type in [FristVarselType.SPESIFISERT, FristVarselType.BEGGE]:
-            if v is None:
+        if self.varsel_type in [FristVarselType.SPESIFISERT, FristVarselType.BEGGE]:
+            if self.antall_dager is None:
                 raise ValueError("antall_dager må være satt for spesifisert krav")
-        return v
+        return self
 
 
 class FristEvent(SakEvent):

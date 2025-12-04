@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field, computed_field
 from typing import Optional, List, Literal
 from datetime import datetime
 
-from models.events import SporStatus, ResponsResultat, SporType
+from models.events import SporStatus, SporType, GrunnlagResponsResultat, VederlagBeregningResultat, FristBeregningResultat
 
 
 # ============ COMMON TYPES ============
@@ -128,7 +128,7 @@ class GrunnlagResponse(BaseModel):
 
     # BH respons (hvis finnes)
     bh_har_svart: bool
-    bh_resultat: Optional[ResponsResultat] = None
+    bh_resultat: Optional[GrunnlagResponsResultat] = None
     bh_begrunnelse: Optional[str] = None
     bh_svart_dato: Optional[datetime] = None
     bh_svart_av: Optional[str] = None
@@ -189,7 +189,7 @@ class VederlagResponse(BaseModel):
 
     # BH respons
     bh_har_svart: bool
-    bh_resultat: Optional[ResponsResultat] = None
+    bh_resultat: Optional[VederlagBeregningResultat] = None
     bh_begrunnelse: Optional[str] = None
     bh_godkjent_belop: Optional[float] = None
     bh_godkjent_metode: Optional[str] = None
@@ -254,7 +254,7 @@ class FristResponse(BaseModel):
 
     # BH respons
     bh_har_svart: bool
-    bh_resultat: Optional[ResponsResultat] = None
+    bh_resultat: Optional[FristBeregningResultat] = None
     bh_begrunnelse: Optional[str] = None
     bh_godkjent_dager: Optional[int] = None
     bh_ny_sluttdato: Optional[str] = None
