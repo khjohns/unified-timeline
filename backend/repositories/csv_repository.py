@@ -1,10 +1,14 @@
 """
 CSV-based data repository for prototype/development.
 
-This repository implements data persistence using CSV files for case overview
-and JSON files for detailed form data. It's suitable for local development
-and prototyping.
+⚠️ DEPRECATED - This repository is deprecated and will be removed.
+Use Event Sourcing repository instead:
+- repositories.event_repository.JsonFileEventRepository for event persistence
+
+This file is kept temporarily for data migration purposes only.
+DO NOT USE in new code.
 """
+import warnings
 import csv
 import json
 from datetime import datetime
@@ -13,8 +17,27 @@ from threading import RLock
 from typing import Optional, Dict, Any, List
 
 from repositories.base_repository import BaseRepository
-from core.generated_constants import SAK_STATUS, KOE_STATUS
 from utils.logger import get_logger
+
+# Emit deprecation warning when module is imported
+warnings.warn(
+    "repositories.csv_repository is deprecated. Use repositories.event_repository instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
+
+# Legacy constants (from deleted generated_constants.py)
+SAK_STATUS = {
+    'OPPRETTET': '100000000',
+    'UNDER_VARSLING': '100000001',
+    'SENDT': '100000002',
+    'GODKJENT': '100000003'
+}
+KOE_STATUS = {
+    'UTKAST': '100000000',
+    'SENDT': '100000001',
+    'GODKJENT': '100000002'
+}
 
 logger = get_logger(__name__)
 

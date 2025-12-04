@@ -30,7 +30,24 @@ lib.auth.require_csrf = mock_require_csrf
 
 from app import app as flask_app, SystemContext
 from repositories.csv_repository import CSVRepository
-from core.generated_constants import SAK_STATUS, KOE_STATUS, BH_SVAR_STATUS
+
+# Legacy constants for test fixtures (from deleted generated_constants.py)
+SAK_STATUS = {
+    'OPPRETTET': '100000000',
+    'UNDER_VARSLING': '100000001',
+    'SENDT': '100000002',
+    'GODKJENT': '100000003'
+}
+KOE_STATUS = {
+    'UTKAST': '100000000',
+    'SENDT': '100000001',
+    'GODKJENT': '100000002'
+}
+BH_SVAR_STATUS = {
+    'UTKAST': '100000000',
+    'SENDT': '100000001',
+    'GODKJENT': '100000002'
+}
 
 
 @pytest.fixture

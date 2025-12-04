@@ -9,7 +9,6 @@
 export type {
   SporType,
   SporStatus,
-  ResponsResultat,
   OverordnetStatus,
   GrunnlagTilstand,
   VederlagTilstand,
