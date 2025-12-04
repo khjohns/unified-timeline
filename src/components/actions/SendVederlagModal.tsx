@@ -38,6 +38,7 @@ const vederlagSchema = z.object({
   // Rigg & Drift (§34.1.3)
   inkluderer_rigg_drift: z.boolean().optional(),
   rigg_drift_belop: z.number().optional(),
+  rigg_drift_varsel_sendes_na: z.boolean().optional(),
   rigg_drift_varsel_dato: z.string().optional(),
   rigg_drift_varsel_metoder: z.array(z.string()).optional(),
 
@@ -98,14 +99,20 @@ export function SendVederlagModal({
   // Watch form values for conditional rendering
   const selectedMetode = watch('metode');
   const inkludererRiggDrift = watch('inkluderer_rigg_drift');
+  const riggDriftVarselSendesNa = watch('rigg_drift_varsel_sendes_na');
   const inkludererProduktivitetstap = watch('inkluderer_produktivitetstap');
   const kreverRegningsarbeid = watch('krever_regningsarbeid');
 
   const onSubmit = (data: VederlagFormData) => {
     // Build VarselInfo structures
-    const riggDriftVarsel = data.rigg_drift_varsel_dato
+    // For rigg_drift: use today's date if "sendes nå" is checked
+    const riggDriftDato = data.rigg_drift_varsel_sendes_na
+      ? new Date().toISOString().split('T')[0]
+      : data.rigg_drift_varsel_dato;
+
+    const riggDriftVarsel = riggDriftDato
       ? {
-          dato_sendt: data.rigg_drift_varsel_dato,
+          dato_sendt: riggDriftDato,
           metode: data.rigg_drift_varsel_metoder || [],
         }
       : undefined;
@@ -228,14 +235,21 @@ export function SendVederlagModal({
 
           {/* Rigg & Drift (§34.1.3) */}
           <div className="space-y-pkt-04">
-            <Checkbox
-              id="inkluderer_rigg_drift"
-              label="Inkluderer rigg/drift-kostnader (§34.1.3)"
-              {...register('inkluderer_rigg_drift')}
+            <Controller
+              name="inkluderer_rigg_drift"
+              control={control}
+              render={({ field }) => (
+                <Checkbox
+                  id="inkluderer_rigg_drift"
+                  label="Inkluderer rigg/drift-kostnader (§34.1.3)"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              )}
             />
 
             {inkludererRiggDrift && (
-              <div className="ml-pkt-07 space-y-pkt-04 p-pkt-04 bg-pkt-surface-white rounded-none border-l-4 border-pkt-border-focus">
+              <div className="ml-pkt-07 space-y-pkt-04 p-pkt-05 bg-pkt-surface-subtle-light-blue rounded-none border-2 border-pkt-border-focus">
                 <FormField
                   label="Rigg/drift beløp (NOK)"
                   error={errors.rigg_drift_belop?.message}
@@ -252,26 +266,41 @@ export function SendVederlagModal({
                   />
                 </FormField>
 
-                <FormField
-                  label="Dato varsel sendt (rigg/drift)"
-                  error={errors.rigg_drift_varsel_dato?.message}
-                  labelTooltip="§34.1.3: Særskilt varsel må sendes uten ugrunnet opphold. KRITISK for å unngå preklusjon."
-                >
-                  <Controller
-                    name="rigg_drift_varsel_dato"
-                    control={control}
-                    render={({ field }) => (
-                      <DatePicker
-                        id="rigg_drift_varsel_dato"
-                        value={field.value}
-                        onChange={field.onChange}
-                        fullWidth
-                        error={!!errors.rigg_drift_varsel_dato}
-                        placeholder="Velg dato"
-                      />
-                    )}
-                  />
-                </FormField>
+                <Controller
+                  name="rigg_drift_varsel_sendes_na"
+                  control={control}
+                  render={({ field }) => (
+                    <Checkbox
+                      id="rigg_drift_varsel_sendes_na"
+                      label="Varsel sendes nå (sammen med dette skjemaet)"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  )}
+                />
+
+                {!riggDriftVarselSendesNa && (
+                  <FormField
+                    label="Dato varsel sendt tidligere (rigg/drift)"
+                    error={errors.rigg_drift_varsel_dato?.message}
+                    labelTooltip="§34.1.3: Særskilt varsel må sendes uten ugrunnet opphold. KRITISK for å unngå preklusjon."
+                  >
+                    <Controller
+                      name="rigg_drift_varsel_dato"
+                      control={control}
+                      render={({ field }) => (
+                        <DatePicker
+                          id="rigg_drift_varsel_dato"
+                          value={field.value}
+                          onChange={field.onChange}
+                          fullWidth
+                          error={!!errors.rigg_drift_varsel_dato}
+                          placeholder="Velg dato"
+                        />
+                      )}
+                    />
+                  </FormField>
+                )}
 
                 <FormField
                   label="Varselmetoder (rigg/drift)"
@@ -295,14 +324,21 @@ export function SendVederlagModal({
 
           {/* Produktivitetstap (§34.1.3, 2. ledd) */}
           <div className="space-y-pkt-04">
-            <Checkbox
-              id="inkluderer_produktivitetstap"
-              label="Inkluderer produktivitetstap (§34.1.3, 2. ledd)"
-              {...register('inkluderer_produktivitetstap')}
+            <Controller
+              name="inkluderer_produktivitetstap"
+              control={control}
+              render={({ field }) => (
+                <Checkbox
+                  id="inkluderer_produktivitetstap"
+                  label="Inkluderer produktivitetstap (§34.1.3, 2. ledd)"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              )}
             />
 
             {inkludererProduktivitetstap && (
-              <div className="ml-pkt-07 space-y-pkt-04 p-pkt-04 bg-pkt-surface-white rounded-none border-l-4 border-pkt-border-focus">
+              <div className="ml-pkt-07 space-y-pkt-04 p-pkt-05 bg-pkt-surface-subtle-light-blue rounded-none border-2 border-pkt-border-focus">
                 <FormField
                   label="Produktivitetstap beløp (NOK)"
                   error={errors.produktivitetstap_belop?.message}
@@ -362,14 +398,21 @@ export function SendVederlagModal({
 
           {/* Regningsarbeid (§30.1) */}
           <div className="space-y-pkt-04">
-            <Checkbox
-              id="krever_regningsarbeid"
-              label="Krever varsel før oppstart av regningsarbeid (§30.1)"
-              {...register('krever_regningsarbeid')}
+            <Controller
+              name="krever_regningsarbeid"
+              control={control}
+              render={({ field }) => (
+                <Checkbox
+                  id="krever_regningsarbeid"
+                  label="Krever varsel før oppstart av regningsarbeid (§30.1)"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              )}
             />
 
             {kreverRegningsarbeid && (
-              <div className="ml-pkt-07 space-y-pkt-04 p-pkt-04 bg-pkt-surface-white rounded-none border-l-4 border-pkt-border-focus">
+              <div className="ml-pkt-07 space-y-pkt-04 p-pkt-05 bg-pkt-surface-subtle-light-blue rounded-none border-2 border-pkt-border-focus">
                 <FormField
                   label="Dato varsel sendt FØR oppstart (regningsarbeid)"
                   error={errors.regningsarbeid_varsel_dato?.message}

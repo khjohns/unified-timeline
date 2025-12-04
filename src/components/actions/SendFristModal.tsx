@@ -40,7 +40,6 @@ const fristSchema = z.object({
 
   antall_dager: z.number().min(0, 'Antall dager kan ikke være negativt').optional(),
   begrunnelse: z.string().min(10, 'Begrunnelse må være minst 10 tegn'),
-  fremdriftshindring_dokumentasjon: z.string().optional(),
   ny_sluttdato: z.string().optional(),
   pavirker_kritisk_linje: z.boolean().optional(),
   vedlegg_ids: z.array(z.string()).optional(),
@@ -69,7 +68,6 @@ export function SendFristModal({
   } = useForm<FristFormData>({
     resolver: zodResolver(fristSchema),
     defaultValues: {
-      varsel_type: 'noytralt',
       pavirker_kritisk_linje: false,
       noytralt_varsel_metoder: [],
       spesifisert_varsel_metoder: [],
@@ -111,7 +109,6 @@ export function SendFristModal({
         spesifisert_varsel: spesifisertVarsel,
         antall_dager: data.antall_dager,
         begrunnelse: data.begrunnelse,
-        fremdriftshindring_dokumentasjon: data.fremdriftshindring_dokumentasjon,
         ny_sluttdato: data.ny_sluttdato,
         pavirker_kritisk_linje: data.pavirker_kritisk_linje,
         vedlegg_ids: data.vedlegg_ids,
@@ -295,34 +292,19 @@ export function SendFristModal({
           </FormField>
         )}
 
-        {/* Fremdriftshindring dokumentasjon */}
+        {/* Begrunnelse for fristforlengelse */}
         <FormField
-          label="Dokumentasjon av fremdriftshindring"
-          error={errors.fremdriftshindring_dokumentasjon?.message}
-          helpText="Beskriv hvordan forsinkelsen påvirker fremdriften (f.eks. referanse til fremdriftsplan)"
-        >
-          <Textarea
-            id="fremdriftshindring_dokumentasjon"
-            {...register('fremdriftshindring_dokumentasjon')}
-            rows={3}
-            fullWidth
-            placeholder="Referanse til fremdriftsplan, påvirkning på kritisk linje, etc..."
-            error={!!errors.fremdriftshindring_dokumentasjon}
-          />
-        </FormField>
-
-        {/* Justification */}
-        <FormField
-          label="Begrunnelse"
+          label="Begrunnelse for fristforlengelse"
           required
           error={errors.begrunnelse?.message}
+          helpText="Redegjør for hvorfor det aktuelle forholdet medfører at fremdriften hindres"
         >
           <Textarea
             id="begrunnelse"
             {...register('begrunnelse')}
             rows={5}
             fullWidth
-            placeholder="Beskriv hvorfor fristforlengelse er nødvendig..."
+            placeholder="Beskriv hvorfor fristforlengelse er nødvendig og hvordan det påvirker fremdriften..."
             error={!!errors.begrunnelse}
           />
         </FormField>

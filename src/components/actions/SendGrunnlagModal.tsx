@@ -36,6 +36,7 @@ const grunnlagSchema = z.object({
   underkategori: z.array(z.string()).min(1, 'Minst én underkategori må velges'),
   beskrivelse: z.string().min(10, 'Beskrivelse må være minst 10 tegn'),
   dato_oppdaget: z.string().min(1, 'Dato oppdaget er påkrevd'),
+  varsel_sendes_na: z.boolean().optional(),
   dato_varsel_sendt: z.string().optional(),
   varsel_metode: z.array(z.string()).optional(),
   kontraktsreferanser: z.string().optional(),
@@ -74,6 +75,7 @@ export function SendGrunnlagModal({
   });
 
   const hovedkategoriValue = watch('hovedkategori');
+  const varselSendesNa = watch('varsel_sendes_na');
 
   const mutation = useSubmitEvent(sakId, {
     onSuccess: () => {
@@ -97,9 +99,14 @@ export function SendGrunnlagModal({
       : [];
 
     // Build VarselInfo structure if varsel data is provided
-    const grunnlagVarsel = data.dato_varsel_sendt
+    // If "varsel sendes nå" is checked, use today's date
+    const varselDato = data.varsel_sendes_na
+      ? new Date().toISOString().split('T')[0]  // Today's date in YYYY-MM-DD format
+      : data.dato_varsel_sendt;
+
+    const grunnlagVarsel = varselDato
       ? {
-          dato_sendt: data.dato_varsel_sendt,
+          dato_sendt: varselDato,
           metode: data.varsel_metode || [],
         }
       : undefined;
@@ -218,26 +225,42 @@ export function SendGrunnlagModal({
           />
         </FormField>
 
-        {/* Dato varsel sendt */}
-        <FormField
-          label="Dato varsel sendt"
-          labelTooltip="Dokumenter når BH ble varslet. Varselfrist er kritisk for om kravet kan tapes ved preklusjon."
-          helpText="Kan være forskjellig fra oppdaget-dato. Både formelle og uformelle varsler (f.eks. byggemøte) teller."
-        >
-          <Controller
-            name="dato_varsel_sendt"
-            control={control}
-            render={({ field }) => (
-              <DatePicker
-                id="dato_varsel_sendt"
-                value={field.value}
-                onChange={field.onChange}
-                fullWidth
-                placeholder="Velg dato"
-              />
-            )}
-          />
-        </FormField>
+        {/* Varsel sendes nå checkbox */}
+        <Controller
+          name="varsel_sendes_na"
+          control={control}
+          render={({ field }) => (
+            <Checkbox
+              id="varsel_sendes_na"
+              label="Varsel sendes nå (sammen med dette skjemaet)"
+              checked={field.value}
+              onCheckedChange={field.onChange}
+            />
+          )}
+        />
+
+        {/* Dato varsel sendt - only show if NOT sending now */}
+        {!varselSendesNa && (
+          <FormField
+            label="Dato varsel sendt tidligere"
+            labelTooltip="Dokumenter når BH ble varslet. Varselfrist er kritisk for om kravet kan tapes ved preklusjon."
+            helpText="Kan være forskjellig fra oppdaget-dato. Både formelle og uformelle varsler (f.eks. byggemøte) teller."
+          >
+            <Controller
+              name="dato_varsel_sendt"
+              control={control}
+              render={({ field }) => (
+                <DatePicker
+                  id="dato_varsel_sendt"
+                  value={field.value}
+                  onChange={field.onChange}
+                  fullWidth
+                  placeholder="Velg dato"
+                />
+              )}
+            />
+          </FormField>
+        )}
 
         {/* Varsel metode */}
         <FormField
