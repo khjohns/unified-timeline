@@ -1,5 +1,5 @@
-/* Import Punkt CSS variables FIRST - before anything else! */
-@import '@oslokommune/punkt-css/dist/css/pkt.min.css';
+/* Import Punkt CSS variables FIRST - wrapped in a layer so Tailwind utilities can override */
+@import '@oslokommune/punkt-css/dist/css/pkt.min.css' layer(punkt);
 
 /* Import Tailwind CSS */
 @import "tailwindcss";
