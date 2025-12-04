@@ -70,6 +70,7 @@ export function SendGrunnlagModal({
     defaultValues: {
       hovedkategori: '',
       underkategori: [],
+      varsel_sendes_na: false,
       varsel_metode: [],
     },
   });
@@ -99,15 +100,19 @@ export function SendGrunnlagModal({
       : [];
 
     // Build VarselInfo structure if varsel data is provided
-    // If "varsel sendes nå" is checked, use today's date
+    // If "varsel sendes nå" is checked, use today's date and 'system' as method
     const varselDato = data.varsel_sendes_na
       ? new Date().toISOString().split('T')[0]  // Today's date in YYYY-MM-DD format
       : data.dato_varsel_sendt;
 
+    const varselMetode = data.varsel_sendes_na
+      ? ['system']  // Automatically use 'system' when sending now
+      : (data.varsel_metode || []);
+
     const grunnlagVarsel = varselDato
       ? {
           dato_sendt: varselDato,
-          metode: data.varsel_metode || [],
+          metode: varselMetode,
         }
       : undefined;
 
@@ -262,23 +267,25 @@ export function SendGrunnlagModal({
           </FormField>
         )}
 
-        {/* Varsel metode */}
-        <FormField
-          label="Varselmetode"
-          helpText="Hvordan ble BH varslet? (Kan velge flere)"
-        >
-          <div className="space-y-pkt-03 border-2 border-pkt-border-gray rounded-none p-pkt-04 bg-pkt-bg-subtle">
-            {VARSEL_METODER_OPTIONS.map((option) => (
-              <Checkbox
-                key={option.value}
-                id={`varsel-${option.value}`}
-                label={option.label}
-                value={option.value}
-                {...register('varsel_metode')}
-              />
-            ))}
-          </div>
-        </FormField>
+        {/* Varsel metode - only show if NOT sending now */}
+        {!varselSendesNa && (
+          <FormField
+            label="Varselmetode"
+            helpText="Hvordan ble BH varslet? (Kan velge flere)"
+          >
+            <div className="space-y-pkt-03 border-2 border-pkt-border-gray rounded-none p-pkt-04 bg-pkt-bg-subtle">
+              {VARSEL_METODER_OPTIONS.map((option) => (
+                <Checkbox
+                  key={option.value}
+                  id={`varsel-${option.value}`}
+                  label={option.label}
+                  value={option.value}
+                  {...register('varsel_metode')}
+                />
+              ))}
+            </div>
+          </FormField>
+        )}
 
         {/* Kontraktsreferanser */}
         <FormField
