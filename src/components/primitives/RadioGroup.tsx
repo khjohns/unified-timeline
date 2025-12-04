@@ -46,8 +46,9 @@ export const RadioItem = forwardRef<
         'shrink-0',
 
         // Base styles - CIRCULAR (not square like checkbox)
+        'appearance-none',
         'rounded-full',
-        'border-2',
+        '!border-2',
         'transition-colors duration-200',
 
         // Default state
