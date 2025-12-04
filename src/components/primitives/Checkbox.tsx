@@ -25,8 +25,8 @@ export const Checkbox = forwardRef<
     <CheckboxPrimitive.Root
       ref={ref}
       className={clsx(
-        // Size
-        'h-6 w-6',
+        // Size - 44px minimum touch target for WCAG 2.5.5
+        'h-11 w-11',
         'shrink-0',
 
         // Base styles
@@ -65,7 +65,7 @@ export const Checkbox = forwardRef<
       {...props}
     >
       <CheckboxPrimitive.Indicator className="flex items-center justify-center text-pkt-text-body-light">
-        <CheckIcon className="h-5 w-5" />
+        <CheckIcon className="h-7 w-7" />
       </CheckboxPrimitive.Indicator>
     </CheckboxPrimitive.Root>
   );

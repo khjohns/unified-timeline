@@ -71,10 +71,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
               variant === 'danger' && !props.disabled,
           },
 
-          // Size styles - INCREASED for better clickability
+          // Size styles - INCREASED for better clickability (44px minimum height for WCAG 2.5.5)
           {
-            'px-pkt-04 py-pkt-02 text-sm': size === 'sm',
-            'px-pkt-06 py-pkt-03 text-base': size === 'md',
+            'px-pkt-04 py-pkt-03 text-sm min-h-[44px]': size === 'sm',
+            'px-pkt-06 py-pkt-04 text-base min-h-[44px]': size === 'md',
             'px-pkt-08 py-pkt-04 text-lg': size === 'lg',
           },
 

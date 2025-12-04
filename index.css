@@ -37,7 +37,7 @@
     --color-pkt-brand-red-100: #fff2f1;
     --color-pkt-brand-red-400: #ffdfdc;
     --color-pkt-brand-red-600: #ffb4ac;
-    --color-pkt-brand-red-1000: #ff8274;
+    --color-pkt-brand-red-1000: #c9302c; /* Updated for WCAG AA compliance (5.33:1 contrast) */
 
     /* Beiges */
     --color-pkt-brand-light-beige-1000: #f8f0dd;
@@ -83,7 +83,7 @@
     --color-pkt-border-gray: #cccccc;
     --color-pkt-border-green: #43f8b6;
     --color-pkt-border-light-beige: #f8f0dd;
-    --color-pkt-border-red: #ff8274;
+    --color-pkt-border-red: #c9302c; /* Updated for WCAG AA compliance */
     --color-pkt-border-subtle: #f2f2f2;
     --color-pkt-border-yellow: #f9c66b;
     --color-pkt-border-active: #1f42aa;
@@ -109,7 +109,7 @@
     --color-pkt-surface-strong-gray: #f2f2f2;
     --color-pkt-surface-strong-green: #43f8b6;
     --color-pkt-surface-strong-light-green: #c7f6c9;
-    --color-pkt-surface-strong-red: #ff8274;
+    --color-pkt-surface-strong-red: #c9302c; /* Updated for WCAG AA compliance */
     --color-pkt-surface-strong-yellow: #f9c66b;
     --color-pkt-surface-subtle-light-blue: #e5fcff;
     --color-pkt-surface-subtle-light-red: #fff2f1;
@@ -140,7 +140,7 @@
     --color-success-100: #e5ffe6;
     --color-warning: #f9c66b;
     --color-warning-100: #ffe7bc;
-    --color-error: #ff8274;
+    --color-error: #c9302c; /* Updated for WCAG AA compliance (5.33:1 contrast) */
     --color-error-100: #fff2f1;
     --color-info: #2a2859;
     --color-pri: #1f42aa;
