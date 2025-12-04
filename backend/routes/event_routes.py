@@ -363,7 +363,7 @@ def submit_batch():
         }), 500
 
 
-@events_bp.route('/api/case/<sak_id>/state', methods=['GET'])
+@events_bp.route('/api/cases/<sak_id>/state', methods=['GET'])
 @require_magic_link
 def get_case_state(sak_id: str):
     """
@@ -386,7 +386,7 @@ def get_case_state(sak_id: str):
     })
 
 
-@events_bp.route('/api/case/<sak_id>/timeline', methods=['GET'])
+@events_bp.route('/api/cases/<sak_id>/timeline', methods=['GET'])
 @require_magic_link
 def get_case_timeline(sak_id: str):
     """

@@ -27,5 +27,5 @@ export async function fetchCaseState(sakId: string): Promise<StateResponse> {
   }
 
   // Real API call
-  return apiFetch<StateResponse>(`/api/saker/${sakId}/state`);
+  return apiFetch<StateResponse>(`/api/cases/${sakId}/state`);
 }
