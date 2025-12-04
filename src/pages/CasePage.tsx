@@ -96,12 +96,7 @@ export function CasePage() {
               </h1>
               <p className="mt-pkt-02 text-body-md text-gray-600">Sak #{sakId}</p>
             </div>
-            <div className="flex flex-col items-end gap-pkt-03">
-              <ModeToggle userRole={userRole} onToggle={setUserRole} />
-              <span className="text-xs text-gray-500">
-                Viser tilgjengelige handlinger for valgt rolle
-              </span>
-            </div>
+            <ModeToggle userRole={userRole} onToggle={setUserRole} />
           </div>
         </div>
       </header>

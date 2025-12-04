@@ -1,7 +1,7 @@
 /**
  * ModeToggle Component
  *
- * Toggle switch for testing between Totalentreprenør (TE) and Byggherre (BH) modes.
+ * Compact toggle switch for testing between Totalentreprenør (TE) and Byggherre (BH) modes.
  * Used for development and testing purposes to view different permissions and actions.
  */
 
@@ -14,19 +14,18 @@ interface ModeToggleProps {
 }
 
 /**
- * ModeToggle provides a visual toggle to switch between TE and BH roles
+ * ModeToggle provides a compact visual toggle to switch between TE and BH roles
  */
 export function ModeToggle({ userRole, onToggle }: ModeToggleProps) {
   return (
-    <div className="flex items-center gap-pkt-03">
-      <span className="text-sm font-medium text-gray-700">Testmodus:</span>
-      <div className="inline-flex rounded-none border-2 border-pkt-border-default overflow-hidden">
+    <div className="inline-flex items-center gap-2">
+      <span className="text-xs text-gray-600">Test:</span>
+      <div className="inline-flex rounded-none border border-pkt-border-default overflow-hidden">
         <button
           onClick={() => onToggle('TE')}
           className={clsx(
-            'px-pkt-04 py-pkt-02 text-sm font-medium transition-colors',
-            'focus:outline-none focus:ring-2 focus:ring-inset focus:ring-pkt-border-focus',
-            'min-h-[44px]',
+            'px-2 py-1 text-xs font-medium transition-colors',
+            'focus:outline-none focus:ring-1 focus:ring-inset focus:ring-pkt-border-focus',
             userRole === 'TE'
               ? 'bg-pkt-surface-strong-dark-blue text-pkt-text-body-light'
               : 'bg-white text-pkt-text-body-dark hover:bg-pkt-surface-light-beige'
@@ -34,15 +33,14 @@ export function ModeToggle({ userRole, onToggle }: ModeToggleProps) {
           aria-pressed={userRole === 'TE'}
           aria-label="Bytt til Totalentreprenør modus"
         >
-          Entreprenør (TE)
+          TE
         </button>
         <button
           onClick={() => onToggle('BH')}
           className={clsx(
-            'px-pkt-04 py-pkt-02 text-sm font-medium transition-colors',
-            'border-l-2 border-pkt-border-default',
-            'focus:outline-none focus:ring-2 focus:ring-inset focus:ring-pkt-border-focus',
-            'min-h-[44px]',
+            'px-2 py-1 text-xs font-medium transition-colors',
+            'border-l border-pkt-border-default',
+            'focus:outline-none focus:ring-1 focus:ring-inset focus:ring-pkt-border-focus',
             userRole === 'BH'
               ? 'bg-pkt-surface-strong-dark-blue text-pkt-text-body-light'
               : 'bg-white text-pkt-text-body-dark hover:bg-pkt-surface-light-beige'
@@ -50,7 +48,7 @@ export function ModeToggle({ userRole, onToggle }: ModeToggleProps) {
           aria-pressed={userRole === 'BH'}
           aria-label="Bytt til Byggherre modus"
         >
-          Byggherre (BH)
+          BH
         </button>
       </div>
     </div>
