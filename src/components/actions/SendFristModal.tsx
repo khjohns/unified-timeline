@@ -41,7 +41,6 @@ const fristSchema = z.object({
   antall_dager: z.number().min(0, 'Antall dager kan ikke være negativt').optional(),
   begrunnelse: z.string().min(10, 'Begrunnelse må være minst 10 tegn'),
   ny_sluttdato: z.string().optional(),
-  pavirker_kritisk_linje: z.boolean().optional(),
   vedlegg_ids: z.array(z.string()).optional(),
 });
 
@@ -68,7 +67,7 @@ export function SendFristModal({
   } = useForm<FristFormData>({
     resolver: zodResolver(fristSchema),
     defaultValues: {
-      pavirker_kritisk_linje: false,
+      varsel_type: '',
       noytralt_varsel_metoder: [],
       spesifisert_varsel_metoder: [],
       vedlegg_ids: [],
@@ -110,7 +109,6 @@ export function SendFristModal({
         antall_dager: data.antall_dager,
         begrunnelse: data.begrunnelse,
         ny_sluttdato: data.ny_sluttdato,
-        pavirker_kritisk_linje: data.pavirker_kritisk_linje,
         vedlegg_ids: data.vedlegg_ids,
       },
     });
@@ -259,7 +257,9 @@ export function SendFristModal({
             <Input
               id="antall_dager"
               type="number"
-              {...register('antall_dager', { valueAsNumber: true })}
+              {...register('antall_dager', {
+                setValueAs: (v) => (v === '' ? undefined : Number(v)),
+              })}
               fullWidth
               placeholder="0"
               min={0}
@@ -308,13 +308,6 @@ export function SendFristModal({
             error={!!errors.begrunnelse}
           />
         </FormField>
-
-        {/* Critical Path Checkbox */}
-        <Checkbox
-          id="pavirker_kritisk_linje"
-          label="Påvirker kritisk linje"
-          {...register('pavirker_kritisk_linje')}
-        />
 
         {/* Error Message */}
         {mutation.isError && (

@@ -82,8 +82,12 @@ export function SendVederlagModal({
     resolver: zodResolver(vederlagSchema),
     defaultValues: {
       metode: '',
+      inkluderer_rigg_drift: false,
+      rigg_drift_varsel_sendes_na: false,
       rigg_drift_varsel_metoder: [],
+      inkluderer_produktivitetstap: false,
       produktivitetstap_varsel_metoder: [],
+      krever_regningsarbeid: false,
       regningsarbeid_varsel_metoder: [],
       justert_ep_varsel_metoder: [],
     },
@@ -105,15 +109,19 @@ export function SendVederlagModal({
 
   const onSubmit = (data: VederlagFormData) => {
     // Build VarselInfo structures
-    // For rigg_drift: use today's date if "sendes nå" is checked
+    // For rigg_drift: use today's date and 'system' method if "sendes nå" is checked
     const riggDriftDato = data.rigg_drift_varsel_sendes_na
       ? new Date().toISOString().split('T')[0]
       : data.rigg_drift_varsel_dato;
 
+    const riggDriftMetode = data.rigg_drift_varsel_sendes_na
+      ? ['system']
+      : (data.rigg_drift_varsel_metoder || []);
+
     const riggDriftVarsel = riggDriftDato
       ? {
           dato_sendt: riggDriftDato,
-          metode: data.rigg_drift_varsel_metoder || [],
+          metode: riggDriftMetode,
         }
       : undefined;
 
@@ -259,7 +267,9 @@ export function SendVederlagModal({
                     id="rigg_drift_belop"
                     type="number"
                     step="0.01"
-                    {...register('rigg_drift_belop', { valueAsNumber: true })}
+                    {...register('rigg_drift_belop', {
+                      setValueAs: (v) => (v === '' ? undefined : Number(v)),
+                    })}
                     fullWidth
                     placeholder="0.00"
                     error={!!errors.rigg_drift_belop}
@@ -302,22 +312,25 @@ export function SendVederlagModal({
                   </FormField>
                 )}
 
-                <FormField
-                  label="Varselmetoder (rigg/drift)"
-                  helpText="Velg alle metoder som ble brukt"
-                >
-                  <div className="space-y-pkt-03 border-2 border-pkt-border-gray rounded-none p-pkt-04 bg-pkt-bg-subtle">
-                    {VARSEL_METODER_OPTIONS.map((option) => (
-                      <Checkbox
-                        key={option.value}
-                        id={`rigg_drift_varsel-${option.value}`}
-                        label={option.label}
-                        value={option.value}
-                        {...register('rigg_drift_varsel_metoder')}
-                      />
-                    ))}
-                  </div>
-                </FormField>
+                {/* Varselmetoder - only show if NOT sending now */}
+                {!riggDriftVarselSendesNa && (
+                  <FormField
+                    label="Varselmetoder (rigg/drift)"
+                    helpText="Velg alle metoder som ble brukt"
+                  >
+                    <div className="space-y-pkt-03 border-2 border-pkt-border-gray rounded-none p-pkt-04 bg-pkt-bg-subtle">
+                      {VARSEL_METODER_OPTIONS.map((option) => (
+                        <Checkbox
+                          key={option.value}
+                          id={`rigg_drift_varsel-${option.value}`}
+                          label={option.label}
+                          value={option.value}
+                          {...register('rigg_drift_varsel_metoder')}
+                        />
+                      ))}
+                    </div>
+                  </FormField>
+                )}
               </div>
             )}
           </div>
@@ -348,7 +361,9 @@ export function SendVederlagModal({
                     id="produktivitetstap_belop"
                     type="number"
                     step="0.01"
-                    {...register('produktivitetstap_belop', { valueAsNumber: true })}
+                    {...register('produktivitetstap_belop', {
+                      setValueAs: (v) => (v === '' ? undefined : Number(v)),
+                    })}
                     fullWidth
                     placeholder="0.00"
                     error={!!errors.produktivitetstap_belop}
