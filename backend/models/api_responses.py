@@ -249,7 +249,6 @@ class FristResponse(BaseModel):
     frist_type: str  # "kalenderdager" eller "arbeidsdager"
     frist_type_label: str
     krav_begrunnelse: str
-    pavirker_kritisk_linje: bool
     milepael_pavirket: Optional[str] = None
     foreslatt_ny_sluttdato: Optional[str] = None
 
