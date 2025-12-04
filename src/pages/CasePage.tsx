@@ -9,11 +9,13 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useCaseState } from '../hooks/useCaseState';
 import { useActionPermissions } from '../hooks/useActionPermissions';
+import { useUserRole } from '../hooks/useUserRole';
 import { StatusDashboard } from '../components/views/StatusDashboard';
 import { Timeline } from '../components/views/Timeline';
 import { ComprehensiveMetadata } from '../components/views/ComprehensiveMetadata';
 import { RevisionHistory } from '../components/views/RevisionHistory';
 import { Button } from '../components/primitives/Button';
+import { ModeToggle } from '../components/ModeToggle';
 import {
   SendGrunnlagModal,
   SendVederlagModal,
@@ -39,9 +41,8 @@ export function CasePage() {
   const [respondVederlagOpen, setRespondVederlagOpen] = useState(false);
   const [respondFristOpen, setRespondFristOpen] = useState(false);
 
-  // TODO: Get user role from authentication context
-  // For now, defaulting to 'TE' for demonstration
-  const userRole = 'TE' as 'TE' | 'BH';
+  // User role management for testing different modes
+  const { userRole, setUserRole } = useUserRole();
 
   // Loading state
   if (isLoading) {
@@ -95,9 +96,10 @@ export function CasePage() {
               </h1>
               <p className="mt-pkt-02 text-body-md text-gray-600">Sak #{sakId}</p>
             </div>
-            <div className="text-right">
-              <span className="inline-block px-pkt-03 py-pkt-02 bg-oslo-blue text-white text-sm font-medium rounded-pkt-sm">
-                {userRole === 'TE' ? 'Totalentreprenør' : 'Byggherre'}
+            <div className="flex flex-col items-end gap-pkt-03">
+              <ModeToggle userRole={userRole} onToggle={setUserRole} />
+              <span className="text-xs text-gray-500">
+                Viser tilgjengelige handlinger for valgt rolle
               </span>
             </div>
           </div>
