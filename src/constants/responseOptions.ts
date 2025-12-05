@@ -30,6 +30,10 @@ export const BH_GRUNNLAGSVAR_OPTIONS: DropdownOption[] = [
     label: "Avvist - Varselet kom for sent (preklusjon)"
   },
   {
+    value: "frafalt",
+    label: "Frafall pålegget (§32.3 c) - BH frafaller kravet ved irregulær endring"
+  },
+  {
     value: "krever_avklaring",
     label: "Krever avklaring - BH trenger mer dokumentasjon"
   },
@@ -53,8 +57,16 @@ export const BH_VEDERLAGSSVAR_OPTIONS: DropdownOption[] = [
     label: "Godkjent med annen metode - BH endrer beregningsmetode"
   },
   {
+    value: "hold_tilbake",
+    label: "Hold tilbake betaling (§30.2) - Krev overslag for regningsarbeid"
+  },
+  {
     value: "avventer_spesifikasjon",
     label: "Avventer spesifikasjon - Mangler dokumentasjon"
+  },
+  {
+    value: "avvist_preklusjon_rigg",
+    label: "Avvist - Rigg/drift varslet for sent (§34.1.3 preklusjon)"
   },
   {
     value: "avslatt_totalt",
@@ -150,6 +162,7 @@ export const BH_GRUNNLAGSVAR_DESCRIPTIONS: Record<string, string> = {
   delvis_godkjent: "BH aksepterer deler av grunnlaget. Kan påvirke vederlag/frist-vurdering.",
   avvist_uenig: "BH er uenig i ansvarsgrunnlaget. Vederlag og frist vurderes subsidiært (hvis ansvar hadde foreligget).",
   avvist_for_sent: "Varselet kom for sent (preklusjon). Kravet kan tapes helt eller reduseres.",
+  frafalt: "BH frafaller pålegget (§32.3 c). Kun for irregulære endringer. Arbeidet trenger ikke utføres.",
   krever_avklaring: "BH trenger mer dokumentasjon før beslutning. Angir hvilke dokumenter som mangler."
 };
 
@@ -157,7 +170,9 @@ export const BH_VEDERLAGSSVAR_DESCRIPTIONS: Record<string, string> = {
   godkjent_fullt: "Enighet om sum og metode. Beløpet utbetales hvis grunnlag også godkjennes (prinsipalt) eller som subsidiær enighet.",
   delvis_godkjent: "Enighet om at det skal betales (prinsipalt eller subsidiært), men uenighet om beløpet (f.eks. antall timer eller påslag).",
   godkjent_annen_metode: "BH aksepterer beløpet, men endrer forutsetningen (f.eks. fra 'Regningsarbeid' til 'Fastpris'). Krever ofte aksept fra TE.",
+  hold_tilbake: "§30.2: BH holder tilbake betaling inntil kostnadsoverslag for regningsarbeid mottas. Kun for regningsarbeid uten overslag.",
   avventer_spesifikasjon: "BH kan ikke ta stilling til kravet fordi dokumentasjon mangler. Stopper saksbehandlingstiden ('ballen er hos TE').",
+  avvist_preklusjon_rigg: "§34.1.3: Krav om rigg/drift ble ikke varslet 'uten ugrunnet opphold'. Kravet kan avvises pga preklusjon.",
   avslatt_totalt: "Kun ved f.eks. dobbeltfakturering. IKKE ved uenighet om grunnlag (det håndteres i Grunnlag-sporet)."
 };
 

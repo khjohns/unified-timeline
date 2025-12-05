@@ -101,7 +101,7 @@ komplett_regelsett_ns8407: List[ProsessFlyt] = [
         "navn": "3. Fristforlengelse (Tid)",
         "regler": [
             {
-                "kode": "FRIST_VARSEL_NØYTRALT",
+                "kode": "FRIST_VARSEL_NOEYTRALT",
                 "paragraf": "33.4",
                 "beskrivelse": "Varsel om at en hendelse medfører behov for fristforlengelse.",
                 "aktor": "TE",
