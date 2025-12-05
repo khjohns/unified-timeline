@@ -2,7 +2,8 @@
  * Hovedkategori and Underkategori Constants
  * Based on NS 8407 Norwegian Standard Building Contract
  *
- * Ported from legacy/config/dropdownOptions.ts with improved codes
+ * Enhanced with complete legal references and claim type information
+ * from Komplett_Python_Datasett_NS 8407.py
  */
 
 export interface DropdownOption {
@@ -10,188 +11,330 @@ export interface DropdownOption {
   label: string;
 }
 
-// ========== HOVEDKATEGORIER (Main Categories) ==========
+// Vederlagsmetode type for standard methods
+export type StandardVederlagsmetode =
+  | 'Enhetspriser (34.3)'
+  | 'Regningsarbeid (34.4)'
+  | 'Ingen (Kun fristforlengelse)'
+  | 'Avtalt/Tilbud (34.2.1)';
 
-export const HOVEDKATEGORI_OPTIONS: DropdownOption[] = [
-  { value: "", label: "— Velg —" },
+// Type krav - what can be claimed
+export type TypeKrav = 'Tid' | 'Penger' | 'Tid og Penger';
+
+// Enhanced Underkategori with legal references
+export interface Underkategori {
+  kode: string;
+  label: string;
+  hjemmel_basis: string;      // The triggering paragraph
+  beskrivelse: string;
+  varselkrav_ref: string;     // Legal reference for notification requirement
+}
+
+// Enhanced Hovedkategori with full legal context
+export interface Hovedkategori {
+  kode: string;
+  label: string;
+  beskrivelse: string;
+  hjemmel_frist: string;                  // Reference in section 33
+  hjemmel_vederlag: string | null;        // Reference in section 34 (null for FM)
+  standard_vederlagsmetode: StandardVederlagsmetode;
+  type_krav: TypeKrav;
+  underkategorier: Underkategori[];
+}
+
+// Complete NS 8407 claim structure with legal references
+export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
   {
-    value: "endring_initiert_bh",
-    label: "Endring initiert av BH (§31.1)"
+    kode: 'ENDRING',
+    label: 'Endringer',
+    beskrivelse: 'Avvik fra det opprinnelig avtalte, enten ved formell ordre, endrede rammebetingelser eller pålegg.',
+    hjemmel_frist: '33.1 a)',
+    hjemmel_vederlag: '34.1.1',
+    standard_vederlagsmetode: 'Enhetspriser (34.3)',
+    type_krav: 'Tid og Penger',
+    underkategorier: [
+      {
+        kode: 'EO',
+        label: 'Formell endringsordre',
+        hjemmel_basis: '31.1',
+        beskrivelse: 'Skriftlig endringsordre utstedt av byggherren.',
+        varselkrav_ref: '31.3 (Mottatt ordre)',
+      },
+      {
+        kode: 'IRREG',
+        label: 'Irregulær endring (Pålegg)',
+        hjemmel_basis: '32.1',
+        beskrivelse: 'Pålegg/anvisning som TE mener er endring, men som ikke er gitt som EO.',
+        varselkrav_ref: '32.2',
+      },
+      {
+        kode: 'SVAR_VARSEL',
+        label: 'Endring via svar på varsel',
+        hjemmel_basis: '25.3 / 32.3',
+        beskrivelse: 'BHs svar på varsel om svikt/mangler innebærer en endring (f.eks. nye løsninger).',
+        varselkrav_ref: '32.2',
+      },
+      {
+        kode: 'LOV_GJENSTAND',
+        label: 'Endring i lover/vedtak (Gjenstand)',
+        hjemmel_basis: '14.4',
+        beskrivelse: 'Nye offentlige krav som krever fysisk endring av kontraktsgjenstanden.',
+        varselkrav_ref: '32.2',
+      },
+      {
+        kode: 'LOV_PROSESS',
+        label: 'Endring i lover/vedtak (Prosess)',
+        hjemmel_basis: '15.2',
+        beskrivelse: 'Nye offentlige krav som endrer måten arbeidet må utføres på.',
+        varselkrav_ref: '32.2',
+      },
+      {
+        kode: 'GEBYR',
+        label: 'Endring i gebyrer/avgifter',
+        hjemmel_basis: '26.3',
+        beskrivelse: 'Endringer i offentlige gebyrer/avgifter etter tilbudstidspunktet.',
+        varselkrav_ref: '32.2',
+      },
+      {
+        kode: 'SAMORD',
+        label: 'Samordning/Omlegging',
+        hjemmel_basis: '21.4',
+        beskrivelse: 'Pålagt omlegging som følge av samordning utover det påregnelige.',
+        varselkrav_ref: '32.2',
+      },
+      {
+        kode: 'FORSERING',
+        label: 'Forsering ved uberettiget avslag',
+        hjemmel_basis: '33.8',
+        beskrivelse: 'Byggherren avslår rettmessig fristforlengelse, TE velger å forsere.',
+        varselkrav_ref: '33.8 (Før iverksettelse)',
+      },
+    ],
   },
   {
-    value: "forsinkelse_bh",
-    label: "Forsinkelse eller svikt i BHs ytelser (§22, §24)"
+    kode: 'SVIKT',
+    label: 'Forsinkelse eller svikt ved byggherrens ytelser',
+    beskrivelse: 'Forhold definert som byggherrens ytelser eller risiko i kapittel V.',
+    hjemmel_frist: '33.1 b)',
+    hjemmel_vederlag: '34.1.2',
+    standard_vederlagsmetode: 'Regningsarbeid (34.4)',
+    type_krav: 'Tid og Penger',
+    underkategorier: [
+      {
+        kode: 'MEDVIRK',
+        label: 'Manglende medvirkning/leveranser',
+        hjemmel_basis: '22',
+        beskrivelse: 'Forsinkede tegninger, beslutninger, materialer eller fysisk arbeidsgrunnlag (22.3).',
+        varselkrav_ref: '34.1.2 / 25.1.2',
+      },
+      {
+        kode: 'ADKOMST',
+        label: 'Manglende tilkomst/råderett',
+        hjemmel_basis: '22.2',
+        beskrivelse: 'Byggherren har ikke nødvendig råderett over eiendommen.',
+        varselkrav_ref: '34.1.2',
+      },
+      {
+        kode: 'GRUNN',
+        label: 'Uforutsette grunnforhold',
+        hjemmel_basis: '23.1',
+        beskrivelse: 'Forhold ved grunnen som avviker fra det TE hadde grunn til å regne med.',
+        varselkrav_ref: '34.1.2 / 25.1.2',
+      },
+      {
+        kode: 'KULTURMINNER',
+        label: 'Funn av kulturminner',
+        hjemmel_basis: '23.3',
+        beskrivelse: 'Stans i arbeidet som følge av funn av ukjente kulturminner.',
+        varselkrav_ref: '34.1.2 / 23.3 annet ledd',
+      },
+      {
+        kode: 'PROSJ_RISIKO',
+        label: 'Svikt i BHs prosjektering',
+        hjemmel_basis: '24.1',
+        beskrivelse: 'Feil, mangler eller uklarheter i prosjektering/løsninger BH har risikoen for.',
+        varselkrav_ref: '34.1.2 / 25.2',
+      },
+      {
+        kode: 'BH_FASTHOLDER',
+        label: 'BH fastholder løsning etter varsel',
+        hjemmel_basis: '24.2.2 tredje ledd',
+        beskrivelse: 'BH fastholder sin prosjektering etter varsel fra TE, og løsningen viser seg uegnet.',
+        varselkrav_ref: '34.1.2',
+      },
+    ],
   },
   {
-    value: "grunnforhold",
-    label: "Risiko for grunnforhold (§23.1)"
+    kode: 'ANDRE',
+    label: 'Andre forhold byggherren har risikoen for',
+    beskrivelse: 'Sekkepost for risikoforhold som ikke er endringer eller "ytelser".',
+    hjemmel_frist: '33.1 c)',
+    hjemmel_vederlag: '34.1.2',
+    standard_vederlagsmetode: 'Regningsarbeid (34.4)',
+    type_krav: 'Tid og Penger',
+    underkategorier: [
+      {
+        kode: 'NEKT_MH',
+        label: 'Nektelse av kontraktsmedhjelper',
+        hjemmel_basis: '10.2',
+        beskrivelse: 'BH nekter å godta valgt medhjelper uten saklig grunn.',
+        varselkrav_ref: '34.1.2',
+      },
+      {
+        kode: 'NEKT_TILTRANSPORT',
+        label: 'Nektelse av tiltransport',
+        hjemmel_basis: '12.1.2',
+        beskrivelse: 'BH nekter tiltransport av sideentreprenør/TE uten saklig grunn.',
+        varselkrav_ref: '34.1.2 / 12.1.2 annet ledd',
+      },
+      {
+        kode: 'SKADE_BH',
+        label: 'Skade forårsaket av BH/Sideentreprenør',
+        hjemmel_basis: '19.1',
+        beskrivelse: 'Skade på kontraktsgjenstanden forårsaket av BH eller hans kontraktsmedhjelpere.',
+        varselkrav_ref: '34.1.2 / 20.5',
+      },
+      {
+        kode: 'BRUKSTAKELSE',
+        label: 'Urettmessig brukstakelse',
+        hjemmel_basis: '38.1 annet ledd',
+        beskrivelse: 'BH tar kontraktsgjenstanden i bruk før overtakelse/avtalt tid.',
+        varselkrav_ref: '34.1.2 / 33.4',
+      },
+      {
+        kode: 'STANS_BET',
+        label: 'Stans ved betalingsmislighold',
+        hjemmel_basis: '29.2',
+        beskrivelse: 'Konsekvenser av rettmessig stans grunnet manglende betaling/sikkerhet.',
+        varselkrav_ref: '34.1.2 / 29.2',
+      },
+      {
+        kode: 'STANS_UENIGHET',
+        label: 'Pålagt stans/utsettelse',
+        hjemmel_basis: '35.1',
+        beskrivelse: 'BH pålegger utsettelse av arbeidet ved uenighet om endring.',
+        varselkrav_ref: '34.1.2',
+      },
+    ],
   },
   {
-    value: "offentlige_paaleg",
-    label: "Offentlige pålegg (§16.3)"
-  },
-  {
-    value: "forsering",
-    label: "Forsering / Tidsmessig omlegging"
-  },
-  {
-    value: "force_majeure",
-    label: "Force majeure (§33.3)"
-  },
-  {
-    value: "hindringer_bh_risiko",
-    label: "Hindringer BH har risikoen for (§33.1c)"
-  },
-  {
-    value: "ovrige",
-    label: "Øvrige forhold"
+    kode: 'FORCE_MAJEURE',
+    label: 'Force Majeure',
+    beskrivelse: 'Ekstraordinære hendelser utenfor partenes kontroll.',
+    hjemmel_frist: '33.3',
+    hjemmel_vederlag: null,
+    standard_vederlagsmetode: 'Ingen (Kun fristforlengelse)',
+    type_krav: 'Tid',
+    underkategorier: [
+      {
+        kode: 'FM_EGEN',
+        label: 'Force Majeure (Egen)',
+        hjemmel_basis: '33.3 første ledd',
+        beskrivelse: 'Krig, opprør, naturkatastrofe, streik etc. som rammer TE direkte.',
+        varselkrav_ref: '33.4',
+      },
+      {
+        kode: 'FM_MH',
+        label: 'Force Majeure (Medhjelper)',
+        hjemmel_basis: '33.3 annet ledd',
+        beskrivelse: 'Hindring hos kontraktsmedhjelper som skyldes FM.',
+        varselkrav_ref: '33.4',
+      },
+    ],
   },
 ];
 
-// ========== UNDERKATEGORIER (Sub-Categories) ==========
+// ========== LEGACY DROPDOWN OPTIONS (for backwards compatibility) ==========
 
-export const UNDERKATEGORI_MAP: Record<string, DropdownOption[]> = {
-  "endring_initiert_bh": [
-    {
-      value: "regulaer_eo",
-      label: "Regulær endringsordre (§31.1, §31.3) - BH har rett til å endre prosjektet"
-    },
-    {
-      value: "irregulaer_endring",
-      label: "Irregulær endring/pålegg uten EO (§32.1) - BH gir ordre uten forutgående EO"
-    },
-    {
-      value: "mengdeendring",
-      label: "Mengdeendring (§31.1 siste avsnitt, §34.3) - Endring i mengde av kontraktsarbeid"
-    },
-  ],
+export const HOVEDKATEGORI_OPTIONS: DropdownOption[] = [
+  { value: '', label: '— Velg —' },
+  ...KRAV_STRUKTUR_NS8407.map((k) => ({
+    value: k.kode,
+    label: `${k.label} (${k.hjemmel_frist})`,
+  })),
+];
 
-  "forsinkelse_bh": [
-    {
-      value: "prosjektering",
-      label: "Prosjektering (§24.1) - Mangler i prosjekteringsunderlag fra BH"
+// Generate UNDERKATEGORI_MAP from enhanced structure
+export const UNDERKATEGORI_MAP: Record<string, DropdownOption[]> =
+  KRAV_STRUKTUR_NS8407.reduce(
+    (acc, hovedkategori) => {
+      acc[hovedkategori.kode] = hovedkategori.underkategorier.map((u) => ({
+        value: u.kode,
+        label: `${u.label} (§${u.hjemmel_basis})`,
+      }));
+      return acc;
     },
-    {
-      value: "arbeidsgrunnlag",
-      label: "Svikt i arbeidsgrunnlaget (§22.3, §25) - BH har ikke levert komplett/korrekt arbeidsgrunnlag"
-    },
-    {
-      value: "materialer_bh",
-      label: "Materialer fra BH (§22.4) - BH-leverte materialer mangler eller er forsinkert"
-    },
-    {
-      value: "tillatelser",
-      label: "Tillatelser og godkjenninger (§16.3) - BH har ikke skaffet nødvendige tillatelser"
-    },
-    {
-      value: "fastmerker",
-      label: "Fastmerker og utstikking (§18.4) - BH har ikke etablert korrekte fastmerker"
-    },
-    {
-      value: "foreskrevne_losninger",
-      label: "Svikt i BHs foreskrevne løsninger (§24.1) - BHs valgte løsninger er ikke egnet"
-    },
-    {
-      value: "koordinering",
-      label: "Koordinering av sideentreprenører (§21) - BH koordinerer ikke andre entreprenører tilfredsstillende"
-    },
-  ],
+    {} as Record<string, DropdownOption[]>
+  );
 
-  "grunnforhold": [
-    {
-      value: "uforutsette_grunnforhold",
-      label: "Uforutsette grunnforhold (§23.1a) - Grunnforhold avviker fra det som var kjent"
-    },
-    {
-      value: "uriktige_opplysninger",
-      label: "Uriktige grunnopplysninger fra BH (§23.1b) - BH har gitt feil informasjon"
-    },
-    {
-      value: "forurensning",
-      label: "Forurensning i grunnen (§23.1) - Uventet forurensning oppdages"
-    },
-    {
-      value: "kulturminner",
-      label: "Kulturminner (§23.3) - Funn av kulturminner som krever stans og varsling"
-    },
-  ],
+// ========== HELPER FUNCTIONS ==========
 
-  "forsering": [
-    {
-      value: "paalegt_forsering",
-      label: "Pålagt forsering / omlegging (§31.2) - BH pålegger endret tidsplan som en endring"
-    },
-    {
-      value: "forsering_etter_avslag",
-      label: "Forsering ved uberettiget avslag på fristkrav (§33.8) - TE velger å forsere etter avslag"
-    },
-  ],
-
-  "force_majeure": [
-    {
-      value: "naturkatastrofe",
-      label: "Naturkatastrofe (§33.3) - Flom, ras, storm eller lignende"
-    },
-    {
-      value: "krig_opprør",
-      label: "Krig, opprør eller unntakstilstand (§33.3)"
-    },
-    {
-      value: "streik",
-      label: "Streik eller lockout (§33.3) - Arbeidskonflikter"
-    },
-  ],
-
-  "hindringer_bh_risiko": [
-    {
-      value: "fysiske_hindringer",
-      label: "Hindringer på byggeplassen (§33.1c) - Fysiske hindringer BH har risikoen for"
-    },
-    {
-      value: "offentlige_restriksjoner",
-      label: "Offentlige restriksjoner (§33.1c) - Myndighetspålagte begrensninger"
-    },
-    {
-      value: "tilstotende_arbeider",
-      label: "Tilstøtende arbeider forsinket (§33.1c) - Andre entreprenører forsinker"
-    },
-  ],
-
-  "offentlige_paaleg": [
-    {
-      value: "nye_krav",
-      label: "Nye myndighetskrav (§16.3) - Nye lover eller forskrifter"
-    },
-    {
-      value: "endrede_vilkaar",
-      label: "Endrede tillatelsesvilkår (§16.3) - Endringer i godkjenninger"
-    },
-  ],
-
-  "ovrige": [
-    {
-      value: "annet",
-      label: "Annet forhold - Andre forhold som ikke passer i kategoriene over"
-    },
-  ],
-};
-
-// Helper function to get all underkategorier for a given hovedkategori
+// Get underkategorier for a given hovedkategori
 export function getUnderkategorier(hovedkategori: string): DropdownOption[] {
   return UNDERKATEGORI_MAP[hovedkategori] || [];
 }
 
-// Helper function to get hovedkategori label from code
+// Get hovedkategori label from code
 export function getHovedkategoriLabel(code: string): string {
-  const option = HOVEDKATEGORI_OPTIONS.find(opt => opt.value === code);
-  return option?.label || code;
+  const kategori = KRAV_STRUKTUR_NS8407.find((k) => k.kode === code);
+  return kategori?.label || code;
 }
 
-// Helper function to get underkategori label from code
+// Get underkategori label from code
 export function getUnderkategoriLabel(code: string): string {
-  for (const hovedkategori in UNDERKATEGORI_MAP) {
-    const option = UNDERKATEGORI_MAP[hovedkategori].find(opt => opt.value === code);
-    if (option) return option.label;
+  for (const hovedkategori of KRAV_STRUKTUR_NS8407) {
+    const underkategori = hovedkategori.underkategorier.find((u) => u.kode === code);
+    if (underkategori) return underkategori.label;
   }
   return code;
+}
+
+// Get full hovedkategori object by code
+export function getHovedkategori(code: string): Hovedkategori | undefined {
+  return KRAV_STRUKTUR_NS8407.find((k) => k.kode === code);
+}
+
+// Get full underkategori object by code
+export function getUnderkategoriObj(code: string): Underkategori | undefined {
+  for (const hovedkategori of KRAV_STRUKTUR_NS8407) {
+    const underkategori = hovedkategori.underkategorier.find((u) => u.kode === code);
+    if (underkategori) return underkategori;
+  }
+  return undefined;
+}
+
+// Check if underkategori is a law change (requires special handling for §14.4)
+export function erLovendring(underkategoriKode: string): boolean {
+  return ['LOV_GJENSTAND', 'LOV_PROSESS', 'GEBYR'].includes(underkategoriKode);
+}
+
+// Check if hovedkategori is Force Majeure (no compensation, only time)
+export function erForceMajeure(hovedkategoriKode: string): boolean {
+  return hovedkategoriKode === 'FORCE_MAJEURE';
+}
+
+// Check if this is an irregular change (special passivity rules apply)
+export function erIrregulaerEndring(hovedkategoriKode: string, underkategoriKode: string): boolean {
+  return hovedkategoriKode === 'ENDRING' && underkategoriKode === 'IRREG';
+}
+
+// Get type krav for a hovedkategori
+export function getTypeKrav(hovedkategoriKode: string): TypeKrav | undefined {
+  const kategori = getHovedkategori(hovedkategoriKode);
+  return kategori?.type_krav;
+}
+
+// Get hjemmel references for a claim
+export function getHjemmelReferanser(
+  hovedkategoriKode: string,
+  underkategoriKode?: string
+): { frist: string; vederlag: string | null; varsel: string } {
+  const hovedkategori = getHovedkategori(hovedkategoriKode);
+  const underkategori = underkategoriKode ? getUnderkategoriObj(underkategoriKode) : undefined;
+
+  return {
+    frist: hovedkategori?.hjemmel_frist || '',
+    vederlag: hovedkategori?.hjemmel_vederlag || null,
+    varsel: underkategori?.varselkrav_ref || '',
+  };
 }

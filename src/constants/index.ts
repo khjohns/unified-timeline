@@ -9,6 +9,8 @@ export * from './paymentMethods';
 export * from './responseOptions';
 export * from './varselMetoder';
 export * from './fristVarselTypes';
+export * from './varslingsregler';
 
 // Re-export types
-export type { DropdownOption } from './categories';
+export type { DropdownOption, Hovedkategori, Underkategori } from './categories';
+export type { VarslingsRegel, FristType, KonsekvensType, Aktor } from './varslingsregler';
