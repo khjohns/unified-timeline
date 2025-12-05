@@ -216,34 +216,7 @@ export const VARSLINGSREGLER_NS8407: ProsessFlyt[] = [
     ],
   },
   {
-    navn: '6. Regningsarbeid (Overslag)',
-    regler: [
-      {
-        kode: 'VARSEL_OVERSLAG_SPREKK',
-        paragraf: '30.2 annet ledd',
-        beskrivelse: 'Varsel når det er grunn til å anta at overslaget vil overskrides vesentlig.',
-        aktor: 'TE',
-        trigger_beskrivelse: 'Når TE blir klar over at overslaget vil sprekke',
-        frist_type: 'UTEN_UGRUNNET_OPPHOLD',
-        frist_dager: null,
-        konsekvens_type: 'REDUKSJON_SKJONN',
-        konsekvens_beskrivelse: 'TE kan bli bundet av overslaget.',
-      },
-      {
-        kode: 'BH_TILBAKEHOLDELSE',
-        paragraf: '30.2 første ledd',
-        beskrivelse: 'BH kan holde tilbake betaling inntil TE leverer overslag.',
-        aktor: 'BH',
-        trigger_beskrivelse: 'Når TE krever betaling uten å ha gitt overslag',
-        frist_type: 'LOPENDE',
-        frist_dager: null,
-        konsekvens_type: 'INGEN_DIREKTE',
-        konsekvens_beskrivelse: 'Betalingsplikt suspenderes midlertidig.',
-      },
-    ],
-  },
-  {
-    navn: '7. Aktører og Kontraktsmedhjelpere',
+    navn: '6. Aktører og Kontraktsmedhjelpere',
     regler: [
       {
         kode: 'NEKTELSE_VALG_MH',
@@ -270,7 +243,7 @@ export const VARSLINGSREGLER_NS8407: ProsessFlyt[] = [
     ],
   },
   {
-    navn: '8. Sluttoppgjør',
+    navn: '7. Sluttoppgjør',
     regler: [
       {
         kode: 'INNSENDING_SLUTTOPPSTILLING',
@@ -297,7 +270,7 @@ export const VARSLINGSREGLER_NS8407: ProsessFlyt[] = [
     ],
   },
   {
-    navn: '9. Mangel/Reklamasjon',
+    navn: '8. Mangel/Reklamasjon',
     regler: [
       {
         kode: 'REKLAMASJON_OVERTAK',

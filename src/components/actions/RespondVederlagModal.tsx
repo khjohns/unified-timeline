@@ -269,7 +269,15 @@ export function RespondVederlagModal({
                   <SelectValue placeholder="Velg resultat" />
                 </SelectTrigger>
                 <SelectContent>
-                  {BH_VEDERLAGSSVAR_OPTIONS.filter(opt => opt.value !== '').map((option) => (
+                  {BH_VEDERLAGSSVAR_OPTIONS.filter(opt => {
+                    // Filter out empty placeholder
+                    if (opt.value === '') return false;
+                    // Filter out "hold_tilbake" if NOT regningsarbeid without overslag (§30.2)
+                    if (opt.value === 'hold_tilbake' && !kanHoldeTilbake) return false;
+                    // Filter out "avvist_preklusjon_rigg" if NO rigg/drift claims (§34.1.3)
+                    if (opt.value === 'avvist_preklusjon_rigg' && !harSaerskiltKrav) return false;
+                    return true;
+                  }).map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
                     </SelectItem>

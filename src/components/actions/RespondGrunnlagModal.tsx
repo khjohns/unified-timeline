@@ -226,13 +226,17 @@ export function RespondGrunnlagModal({
                   <SelectValue placeholder="Velg resultat" />
                 </SelectTrigger>
                 <SelectContent>
-                  {BH_GRUNNLAGSVAR_OPTIONS.filter((opt) => opt.value !== '').map(
-                    (option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    )
-                  )}
+                  {BH_GRUNNLAGSVAR_OPTIONS.filter((opt) => {
+                    // Filter out empty placeholder
+                    if (opt.value === '') return false;
+                    // Filter out "frafalt" if NOT irregular change (§32.3 c)
+                    if (opt.value === 'frafalt' && !erIrregulaer) return false;
+                    return true;
+                  }).map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             )}
@@ -248,6 +252,21 @@ export function RespondGrunnlagModal({
               </p>
             </div>
           )}
+
+        {/* Frafall info (§32.3 c) */}
+        {selectedResultat === 'frafalt' && (
+          <div className="p-pkt-04 bg-blue-50 border-2 border-blue-300 rounded-none">
+            <p className="text-sm font-medium text-blue-900 mb-2">
+              §32.3 c) - Frafall av pålegget:
+            </p>
+            <p className="text-sm text-blue-800">
+              Ved å frafalle pålegget bekrefter du at arbeidet <strong>ikke skal
+              utføres</strong>. Dette er en endelig beslutning for irregulære
+              endringer (§32.2). Entreprenøren trenger ikke å utføre det pålagte
+              arbeidet, og saken avsluttes.
+            </p>
+          </div>
+        )}
 
         {/* Subsidiary treatment warning when rejecting */}
         {selectedResultat === 'avvist_uenig' && (
