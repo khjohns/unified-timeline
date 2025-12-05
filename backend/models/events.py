@@ -83,6 +83,8 @@ class VederlagBeregningResultat(str, Enum):
     GODKJENT_ANNEN_METODE = "godkjent_annen_metode" # BH aksepterer beløpet, men endrer forutsetningen (f.eks. fra "Regningsarbeid" til "Fastpris"). Krever ofte aksept fra TE.
     AVVENTER_SPESIFIKASJON = "avventer_spesifikasjon" # BH kan ikke ta stilling til kravet fordi dokumentasjon mangler. Stopper saksbehandlingstiden ("ballen er hos TE").
     AVSLATT_TOTALT = "avslatt_totalt"  # Kun ved f.eks. dobbeltfakturering, ikke grunnlag
+    HOLD_TILBAKE = "hold_tilbake"  # §30.2 - BH holder tilbake betaling inntil kostnadsoverslag mottatt
+    AVVIST_PREKLUSJON_RIGG = "avvist_preklusjon_rigg"  # §34.1.3 - Rigg/drift varslet for sent, kravet prekludert
 
 
 # ============ FRIST ENUMS ============

@@ -3,6 +3,10 @@
  *
  * Modal for BH to update their response on vederlag claim.
  * Key logic: Can release HOLD_TILBAKE when TE has provided overslag (§30.2)
+ *
+ * UPDATED (2025-12-05):
+ * - Fixed overslag detection to check vederlagTilstand.kostnads_overslag
+ * - Updated to use new field names (belop_direkte/kostnads_overslag)
  */
 
 import { Modal } from '../primitives/Modal';
@@ -59,14 +63,24 @@ export function UpdateResponseVederlagModal({
 }: UpdateResponseVederlagModalProps) {
   const forrigeResultat = lastResponseEvent.resultat;
   const erTilbakehold = forrigeResultat === 'hold_tilbake';
-  const krevdBelop = vederlagTilstand.krevd_belop ?? 0;
 
-  // Check if TE has now provided overslag (simulated - would come from state)
+  // Determine the relevant amount based on metode
+  const erRegningsarbeid = vederlagTilstand.metode === 'REGNINGSARBEID';
+  const visningsbelop = erRegningsarbeid
+    ? vederlagTilstand.kostnads_overslag
+    : vederlagTilstand.belop_direkte;
+  // Fallback to legacy field if new fields not populated
+  const krevdBelop = visningsbelop ?? vederlagTilstand.krevd_belop ?? 0;
+
+  // Check if TE has now provided kostnadsoverslag (§30.2)
   const overslagMottatt = useMemo(() => {
-    // In real implementation, check if a new overslag has been submitted
-    // For now, assume it's available if modal is opened while in hold_tilbake state
-    return erTilbakehold;
-  }, [erTilbakehold]);
+    // For REGNINGSARBEID: check if kostnads_overslag is set
+    if (erTilbakehold && erRegningsarbeid) {
+      return (vederlagTilstand.kostnads_overslag ?? 0) > 0;
+    }
+    // For other metoder, overslag is not relevant
+    return false;
+  }, [erTilbakehold, erRegningsarbeid, vederlagTilstand.kostnads_overslag]);
 
   const {
     handleSubmit,
@@ -175,7 +189,9 @@ export function UpdateResponseVederlagModal({
               </Badge>
             </div>
             <div className="text-right">
-              <p className="text-sm text-gray-600">Krevd beløp:</p>
+              <p className="text-sm text-gray-600">
+                {erRegningsarbeid ? 'Kostnadsoverslag:' : 'Krevd beløp:'}
+              </p>
               <p className="text-xl font-bold">kr {krevdBelop.toLocaleString('nb-NO')},-</p>
             </div>
           </div>
@@ -183,10 +199,21 @@ export function UpdateResponseVederlagModal({
 
         {/* Overslag received notification */}
         {erTilbakehold && overslagMottatt && (
-          <Alert variant="success" title="Overslag mottatt">
+          <Alert variant="success" title="Kostnadsoverslag mottatt">
             <p>
-              Entreprenøren har nå levert prisoverslag i henhold til §30.2.
-              Du kan nå oppheve tilbakeholdelsen og ta stilling til kravet.
+              Entreprenøren har nå levert kostnadsoverslag på{' '}
+              <strong>kr {vederlagTilstand.kostnads_overslag?.toLocaleString('nb-NO')},-</strong>{' '}
+              i henhold til §30.2. Du kan nå oppheve tilbakeholdelsen og ta stilling til kravet.
+            </p>
+          </Alert>
+        )}
+
+        {/* Warning if still waiting for overslag */}
+        {erTilbakehold && !overslagMottatt && erRegningsarbeid && (
+          <Alert variant="warning" title="Venter på kostnadsoverslag">
+            <p>
+              Tilbakeholdelsen ble satt fordi regningsarbeid mangler kostnadsoverslag (§30.2).
+              Entreprenøren har ikke levert overslag ennå. Du kan likevel endre status hvis situasjonen har endret seg.
             </p>
           </Alert>
         )}
