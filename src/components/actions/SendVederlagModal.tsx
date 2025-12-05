@@ -34,11 +34,14 @@ import { sjekkRiggDriftFrist } from '../../utils/preklusjonssjekk';
 
 const vederlagSchema = z.object({
   // Direkte kostnader - tillater negative for fradrag (§34.4)
-  belop_direkte: z.number({ required_error: 'Beløp er påkrevd' }),
+  belop_direkte: z.number().optional(),
   metode: z.enum(['ENHETSPRISER', 'REGNINGSARBEID', 'FASTPRIS_TILBUD'], {
     errorMap: () => ({ message: 'Beregningsmetode er påkrevd' }),
   }),
   begrunnelse: z.string().min(10, 'Begrunnelse må være minst 10 tegn'),
+
+  // Kostnadsoverslag for regningsarbeid (§30.2)
+  kostnads_overslag: z.number().optional(),
 
   // Justerte enhetspriser (§34.3.3) - kun for ENHETSPRISER metode
   krever_justert_ep: z.boolean().optional(),
@@ -152,7 +155,8 @@ export function SendVederlagModal({
     mutation.mutate({
       eventType: 'vederlag_krav_sendt',
       data: {
-        belop_direkte: data.metode === 'REGNINGSARBEID' ? null : data.belop_direkte,
+        belop_direkte: data.metode === 'REGNINGSARBEID' ? undefined : data.belop_direkte,
+        kostnads_overslag: data.metode === 'REGNINGSARBEID' ? data.kostnads_overslag : undefined,
         metode: data.metode,
         begrunnelse: data.begrunnelse,
         krever_justert_ep: data.metode === 'ENHETSPRISER' ? data.krever_justert_ep : undefined,
@@ -273,28 +277,46 @@ export function SendVederlagModal({
           {selectedMetode === 'REGNINGSARBEID' && (
             <>
               <Alert variant="info" className="mb-3">
-                Ved regningsarbeid faktureres kostnadene løpende. Dette varselet gjelder oppstarten.
+                Ved regningsarbeid faktureres kostnadene løpende. Oppgi et kostnadsoverslag (estimat).
               </Alert>
 
-              <Controller
-                name="varslet_for_oppstart"
-                control={control}
-                render={({ field }) => (
-                  <Checkbox
-                    id="varslet_for_oppstart"
-                    label="Er Byggherren varslet FØR arbeidet startet? (§34.4)"
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                )}
-              />
+              <FormField
+                label="Kostnadsoverslag (estimat)"
+                error={errors.kostnads_overslag?.message}
+                helpText="§30.2: BH kan holde tilbake betaling inntil overslag mottas. Du må varsle ved vesentlig økning."
+              >
+                <Input
+                  id="kostnads_overslag"
+                  type="number"
+                  step="0.01"
+                  {...register('kostnads_overslag', { valueAsNumber: true })}
+                  fullWidth
+                  placeholder="0.00"
+                  error={!!errors.kostnads_overslag}
+                />
+              </FormField>
 
-              {!varsletForOppstart && (
-                <Alert variant="danger" className="mt-2">
-                  <strong>Advarsel:</strong> Når du ikke varsler før oppstart, får du en strengere bevisbyrde
-                  for at kostnadene var nødvendige (§30 / §34.4).
-                </Alert>
-              )}
+              <div className="mt-4">
+                <Controller
+                  name="varslet_for_oppstart"
+                  control={control}
+                  render={({ field }) => (
+                    <Checkbox
+                      id="varslet_for_oppstart"
+                      label="Er Byggherren varslet FØR arbeidet startet? (§34.4)"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  )}
+                />
+
+                {!varsletForOppstart && (
+                  <Alert variant="danger" className="mt-2">
+                    <strong>Advarsel:</strong> Når du ikke varsler før oppstart, får du en strengere bevisbyrde
+                    for at kostnadene var nødvendige (§30 / §34.4).
+                  </Alert>
+                )}
+              </div>
             </>
           )}
 
