@@ -119,18 +119,6 @@ export interface VederlagTilstand {
   produktivitetstap_varsel?: VarselInfo;
   krav_fremmet_dato?: string;
 
-  // Legacy fields (for backwards compatibility during migration)
-  /** @deprecated Use belop_direkte or kostnads_overslag instead */
-  krevd_belop?: number;
-  /** @deprecated Use saerskilt_krav instead */
-  inkluderer_produktivitetstap?: boolean;
-  /** @deprecated Use saerskilt_krav instead */
-  inkluderer_rigg_drift?: boolean;
-  /** @deprecated Use saerskilt_krav.belop instead */
-  rigg_drift_belop?: number;
-  /** @deprecated Use saerskilt_krav.belop instead */
-  produktivitetstap_belop?: number;
-
   // BH respons - Port 1 (Varsling)
   saerskilt_varsel_rigg_drift_ok?: boolean;
   varsel_justert_ep_ok?: boolean;
@@ -311,20 +299,6 @@ export interface VederlagEventData {
   regningsarbeid_varsel?: VarselInfo;
   produktivitetstap_varsel?: VarselInfo;
   krav_fremmet_dato?: string;
-
-  // Legacy fields (deprecated)
-  /** @deprecated Use belop_direkte or kostnads_overslag instead */
-  krav_belop?: number;
-  /** @deprecated Use saerskilt_krav instead */
-  inkluderer_rigg_drift?: boolean;
-  /** @deprecated Use saerskilt_krav.belop instead */
-  rigg_drift_belop?: number;
-  /** @deprecated Use saerskilt_krav instead */
-  inkluderer_produktivitetstap?: boolean;
-  /** @deprecated Use saerskilt_krav.belop instead */
-  produktivitetstap_belop?: number;
-  /** @deprecated Not needed with new metode values */
-  krever_regningsarbeid?: boolean;
 }
 
 export interface FristEventData {
@@ -418,12 +392,6 @@ export interface VederlagOppdatertEventData {
   nytt_kostnads_overslag?: number;  // For REGNINGSARBEID (§30.2)
   begrunnelse: string;
   dato_revidert: string;
-
-  // Legacy fields (deprecated)
-  /** @deprecated Use nytt_belop_direkte instead */
-  nytt_belop?: number;
-  /** @deprecated Use nytt_kostnads_overslag instead */
-  nytt_overslag?: number;
 }
 
 // Vederlag response update event (BH opphever tilbakeholdelse etc)
