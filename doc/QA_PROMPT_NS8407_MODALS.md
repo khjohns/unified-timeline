@@ -104,14 +104,14 @@ Sammenlign implementasjon mot spesifikasjon:
 ├─────────────────────────────────┼──────────────────────────────────┤
 │ SendGrunnlagModal.tsx           │ SendGrunnlagModal.tsx            │
 │ SendGrunnlagUpdateModal.tsx     │ SendGrunnlagUpdateModal.tsx      │
-│ RespondGrunnlagModal.tsx        │ (eksisterende - ikke endret)     │
+│ RespondGrunnlagModal.tsx        │ RespondGrunnlagModal.tsx         │
 │ RespondGrunnlagUpdateModal.tsx  │ RespondGrunnlagUpdateModal.tsx   │
-│ SendVederlagModal.tsx           │ (eksisterende - ikke endret)     │
-│ RespondVederlagModal.tsx        │ (eksisterende - ikke endret)     │
+│ SendVederlagModal.tsx           │ SendVederlagModal.tsx            │
+│ RespondVederlagModal.tsx        │ RespondVederlagModal.tsx         │
 │ ReviseVederlagModal_utkast.tsx  │ ReviseVederlagModal.tsx          │
 │ UpdateResponseVederlagModal...  │ UpdateResponseVederlagModal.tsx  │
-│ SendFristModal.tsx              │ (eksisterende - ikke endret)     │
-│ RespondFristModal.tsx           │ (eksisterende - ikke endret)     │
+│ SendFristModal.tsx              │  SendFristModal.tsx              │
+│ RespondFristModal.tsx           │  RespondFristModal.tsx           │
 │ ReviseFristModal_utkast.tsx     │ ReviseFristModal.tsx             │
 │ UpdateResponseFristModal_...    │ UpdateResponseFristModal.tsx     │
 └─────────────────────────────────┴──────────────────────────────────┘
