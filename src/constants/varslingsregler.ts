@@ -1,0 +1,409 @@
+/**
+ * Varslingsregler NS 8407
+ *
+ * Complete notification rules based on Datasett_varslingsregler_8407.py
+ * Covers the entire lifecycle from contract to warranty period.
+ */
+
+// Actor type
+export type Aktor = 'TE' | 'BH';
+
+// Deadline types
+export type FristType =
+  | 'UTEN_UGRUNNET_OPPHOLD'  // "UUO" - Without undue delay
+  | 'RIMELIG_TID'            // Reasonable time
+  | 'SPESIFIKK_DAGER'        // Specific number of days
+  | 'LOPENDE'                // Ongoing/weekly
+  | 'INNEN_FRIST_UTLOP'      // Before deadline expires
+  | 'INNEN_OPPSTART';        // Before work starts
+
+// Consequence types for missed deadlines
+export type KonsekvensType =
+  | 'PREKLUSJON_KRAV'        // Claim is lost
+  | 'PREKLUSJON_INNSIGELSE'  // Objection rights lost (passive acceptance)
+  | 'REDUKSJON_SKJONN'       // Claim reduced to "obvious" amount
+  | 'ANSVAR_SKADE'           // Liability for damages
+  | 'BEVISBYRDE_TAP'         // Loss of invoice as evidence
+  | 'INGEN_DIREKTE';         // No direct consequence
+
+// Notification rule structure
+export interface VarslingsRegel {
+  kode: string;
+  paragraf: string;
+  beskrivelse: string;
+  aktor: Aktor;
+  trigger_beskrivelse: string;      // What triggers the obligation?
+  frist_type: FristType;
+  frist_dager: number | null;       // Only for SPESIFIKK_DAGER
+  konsekvens_type: KonsekvensType;
+  konsekvens_beskrivelse: string;
+}
+
+// Process flow grouping
+export interface ProsessFlyt {
+  navn: string;
+  regler: VarslingsRegel[];
+}
+
+// Complete notification rules
+export const VARSLINGSREGLER_NS8407: ProsessFlyt[] = [
+  {
+    navn: '1. Endringshåndtering (Irregulær)',
+    regler: [
+      {
+        kode: 'VARSEL_IRREGULAER',
+        paragraf: '32.2',
+        beskrivelse: 'TE må varsle hvis han mottar et pålegg han mener er en endring.',
+        aktor: 'TE',
+        trigger_beskrivelse: 'Mottak av instruks/pålegg/referat',
+        frist_type: 'UTEN_UGRUNNET_OPPHOLD',
+        frist_dager: null,
+        konsekvens_type: 'PREKLUSJON_KRAV',
+        konsekvens_beskrivelse: 'TE taper retten til å kreve endring (arbeidet blir en del av kontrakten).',
+      },
+      {
+        kode: 'SVAR_IRREGULAER',
+        paragraf: '32.3',
+        beskrivelse: 'BH må ta stilling til varselet (Avslå, Godta, Frafalle).',
+        aktor: 'BH',
+        trigger_beskrivelse: 'Mottak av varsel etter 32.2',
+        frist_type: 'UTEN_UGRUNNET_OPPHOLD',
+        frist_dager: null,
+        konsekvens_type: 'PREKLUSJON_INNSIGELSE',
+        konsekvens_beskrivelse: 'Pålegget ANSES som en endring (BH taper retten til å nekte).',
+      },
+    ],
+  },
+  {
+    navn: '2. Varsel om svikt/avvik (Startfasen)',
+    regler: [
+      {
+        kode: 'VARSEL_SVIKT_BH',
+        paragraf: '34.1.2 / 25.1.2',
+        beskrivelse: 'TE må varsle om svikt ved BHs ytelser, forsinket leveranse, feil i underlag etc.',
+        aktor: 'TE',
+        trigger_beskrivelse: 'Oppdagelse av forholdet',
+        frist_type: 'UTEN_UGRUNNET_OPPHOLD',
+        frist_dager: null,
+        konsekvens_type: 'PREKLUSJON_KRAV',
+        konsekvens_beskrivelse: 'Krav på vederlagsjustering tapes.',
+      },
+      {
+        kode: 'VARSEL_RIGG_DRIFT',
+        paragraf: '34.1.3',
+        beskrivelse: 'Særskilt varsel hvis TE vil kreve dekning for rigg, drift eller nedsatt produktivitet.',
+        aktor: 'TE',
+        trigger_beskrivelse: 'Når det blir klart at slike utgifter påløper',
+        frist_type: 'UTEN_UGRUNNET_OPPHOLD',
+        frist_dager: null,
+        konsekvens_type: 'PREKLUSJON_KRAV',
+        konsekvens_beskrivelse: 'Retten til å kreve disse spesifikke postene tapes.',
+      },
+    ],
+  },
+  {
+    navn: '3. Fristforlengelse (Tid)',
+    regler: [
+      {
+        kode: 'FRIST_VARSEL_NOEYTRALT',
+        paragraf: '33.4',
+        beskrivelse: 'Varsel om at en hendelse medfører behov for fristforlengelse.',
+        aktor: 'TE',
+        trigger_beskrivelse: 'Hendelsen inntreffer',
+        frist_type: 'UTEN_UGRUNNET_OPPHOLD',
+        frist_dager: null,
+        konsekvens_type: 'PREKLUSJON_KRAV',
+        konsekvens_beskrivelse: 'Kravet på fristforlengelse tapes.',
+      },
+      {
+        kode: 'FRIST_SPESIFISERING',
+        paragraf: '33.6.1',
+        beskrivelse: 'Beregning av antall dager.',
+        aktor: 'TE',
+        trigger_beskrivelse: 'Når grunnlag for beregning foreligger',
+        frist_type: 'UTEN_UGRUNNET_OPPHOLD',
+        frist_dager: null,
+        konsekvens_type: 'REDUKSJON_SKJONN',
+        konsekvens_beskrivelse: 'Kravet reduseres til det BH måtte forstå.',
+      },
+      {
+        kode: 'SVAR_PA_ETTERLYSNING',
+        paragraf: '33.6.2',
+        beskrivelse: 'Svar på BHs brev om etterlysning av beregning.',
+        aktor: 'TE',
+        trigger_beskrivelse: 'Mottak av brev fra BH',
+        frist_type: 'UTEN_UGRUNNET_OPPHOLD',
+        frist_dager: null,
+        konsekvens_type: 'PREKLUSJON_KRAV',
+        konsekvens_beskrivelse: 'Total tap av fristkravet.',
+      },
+      {
+        kode: 'BH_SVAR_KRAV',
+        paragraf: '33.7',
+        beskrivelse: 'BHs aksept/avslag på spesifisert krav.',
+        aktor: 'BH',
+        trigger_beskrivelse: 'Mottak av begrunnet krav (33.6.1)',
+        frist_type: 'UTEN_UGRUNNET_OPPHOLD',
+        frist_dager: null,
+        konsekvens_type: 'PREKLUSJON_INNSIGELSE',
+        konsekvens_beskrivelse: 'BH taper sine innsigelser (kravet godtas).',
+      },
+    ],
+  },
+  {
+    navn: '4. Prisjustering (Enhetspriser)',
+    regler: [
+      {
+        kode: 'VARSEL_EP_JUSTERING',
+        paragraf: '34.3.3 første ledd',
+        beskrivelse: 'Krav om justering av enhetspris pga endrede forutsetninger.',
+        aktor: 'TE',
+        trigger_beskrivelse: 'Når forholdet foreligger',
+        frist_type: 'UTEN_UGRUNNET_OPPHOLD',
+        frist_dager: null,
+        konsekvens_type: 'REDUKSJON_SKJONN',
+        konsekvens_beskrivelse: 'Justering begrenses til det BH måtte forstå.',
+      },
+      {
+        kode: 'SVAR_EP_JUSTERING',
+        paragraf: '34.3.3 annet ledd',
+        beskrivelse: 'BHs svar på krav om justering.',
+        aktor: 'BH',
+        trigger_beskrivelse: 'Mottak av varsel',
+        frist_type: 'UTEN_UGRUNNET_OPPHOLD',
+        frist_dager: null,
+        konsekvens_type: 'PREKLUSJON_INNSIGELSE',
+        konsekvens_beskrivelse: 'BH mister sine innsigelser mot kravet.',
+      },
+    ],
+  },
+  {
+    navn: '5. Regningsarbeid (Løpende kontroll)',
+    regler: [
+      {
+        kode: 'VARSEL_OPPSTART_REGNING',
+        paragraf: '34.4',
+        beskrivelse: 'Varsel før regningsarbeid igangsettes (når enhetspriser ikke finnes).',
+        aktor: 'TE',
+        trigger_beskrivelse: 'Før arbeidet starter',
+        frist_type: 'INNEN_OPPSTART',
+        frist_dager: null,
+        konsekvens_type: 'BEVISBYRDE_TAP',
+        konsekvens_beskrivelse: 'Strengere bevisbyrde for at arbeidet var nødvendig/kostnadene rimelige.',
+      },
+      {
+        kode: 'INNSENDING_OPPGAVER',
+        paragraf: '30.3.1',
+        beskrivelse: 'Innsending av spesifiserte oppgaver (timer/materialer).',
+        aktor: 'TE',
+        trigger_beskrivelse: 'Ukentlig (evt månedlig)',
+        frist_type: 'LOPENDE',
+        frist_dager: 7,
+        konsekvens_type: 'REDUKSJON_SKJONN',
+        konsekvens_beskrivelse: 'Dekning begrenses til utgifter BH måtte forstå + påslag.',
+      },
+      {
+        kode: 'KONTROLL_AV_OPPGAVER',
+        paragraf: '30.3.2',
+        beskrivelse: 'BHs kontroll og protest på mottatte oppgaver.',
+        aktor: 'BH',
+        trigger_beskrivelse: 'Mottak av oppgaver',
+        frist_type: 'SPESIFIKK_DAGER',
+        frist_dager: 14,
+        konsekvens_type: 'PREKLUSJON_INNSIGELSE',
+        konsekvens_beskrivelse: 'Oppgavene legges til grunn for oppgjøret (akseptert mengde).',
+      },
+    ],
+  },
+  {
+    navn: '6. Regningsarbeid (Overslag)',
+    regler: [
+      {
+        kode: 'VARSEL_OVERSLAG_SPREKK',
+        paragraf: '30.2 annet ledd',
+        beskrivelse: 'Varsel når det er grunn til å anta at overslaget vil overskrides vesentlig.',
+        aktor: 'TE',
+        trigger_beskrivelse: 'Når TE blir klar over at overslaget vil sprekke',
+        frist_type: 'UTEN_UGRUNNET_OPPHOLD',
+        frist_dager: null,
+        konsekvens_type: 'REDUKSJON_SKJONN',
+        konsekvens_beskrivelse: 'TE kan bli bundet av overslaget.',
+      },
+      {
+        kode: 'BH_TILBAKEHOLDELSE',
+        paragraf: '30.2 første ledd',
+        beskrivelse: 'BH kan holde tilbake betaling inntil TE leverer overslag.',
+        aktor: 'BH',
+        trigger_beskrivelse: 'Når TE krever betaling uten å ha gitt overslag',
+        frist_type: 'LOPENDE',
+        frist_dager: null,
+        konsekvens_type: 'INGEN_DIREKTE',
+        konsekvens_beskrivelse: 'Betalingsplikt suspenderes midlertidig.',
+      },
+    ],
+  },
+  {
+    navn: '7. Aktører og Kontraktsmedhjelpere',
+    regler: [
+      {
+        kode: 'NEKTELSE_VALG_MH',
+        paragraf: '10.2',
+        beskrivelse: 'BH nekter å godta TEs valg av kontraktsmedhjelper.',
+        aktor: 'BH',
+        trigger_beskrivelse: 'Mottak av underretning om valg',
+        frist_type: 'SPESIFIKK_DAGER',
+        frist_dager: 14,
+        konsekvens_type: 'PREKLUSJON_INNSIGELSE',
+        konsekvens_beskrivelse: 'Valget anses som godkjent.',
+      },
+      {
+        kode: 'NEKTELSE_TILTRANSPORT',
+        paragraf: '12.1.2',
+        beskrivelse: 'TE nekter tiltransport av sideentreprenør.',
+        aktor: 'TE',
+        trigger_beskrivelse: 'Mottak av melding om tiltransport',
+        frist_type: 'SPESIFIKK_DAGER',
+        frist_dager: 14,
+        konsekvens_type: 'PREKLUSJON_INNSIGELSE',
+        konsekvens_beskrivelse: 'Tiltransporten anses iverksatt.',
+      },
+    ],
+  },
+  {
+    navn: '8. Sluttoppgjør',
+    regler: [
+      {
+        kode: 'INNSENDING_SLUTTOPPSTILLING',
+        paragraf: '39.1',
+        beskrivelse: 'Innsending av komplett sluttoppstilling.',
+        aktor: 'TE',
+        trigger_beskrivelse: 'Overtakelse',
+        frist_type: 'SPESIFIKK_DAGER',
+        frist_dager: 60,
+        konsekvens_type: 'INGEN_DIREKTE',
+        konsekvens_beskrivelse: 'Ingen direkte tap, men BH kan sette preklusiv frist.',
+      },
+      {
+        kode: 'INNSIGELSER_SLUTTOPPSTILLING',
+        paragraf: '39.2',
+        beskrivelse: 'BHs innsigelser mot krav i sluttoppstillingen.',
+        aktor: 'BH',
+        trigger_beskrivelse: 'Mottak av sluttoppstilling',
+        frist_type: 'INNEN_FRIST_UTLOP',
+        frist_dager: null,
+        konsekvens_type: 'PREKLUSJON_INNSIGELSE',
+        konsekvens_beskrivelse: 'Innsigelser og motkrav tapes (må betale).',
+      },
+    ],
+  },
+  {
+    navn: '9. Mangel/Reklamasjon',
+    regler: [
+      {
+        kode: 'REKLAMASJON_OVERTAK',
+        paragraf: '42.2.1',
+        beskrivelse: 'Mangler som kunne vært oppdaget ved overtakelse.',
+        aktor: 'BH',
+        trigger_beskrivelse: 'Avslutning av overtakelsesforretning',
+        frist_type: 'INNEN_FRIST_UTLOP',
+        frist_dager: null,
+        konsekvens_type: 'PREKLUSJON_KRAV',
+        konsekvens_beskrivelse: 'Kravet på utbedring/prisavslag tapes.',
+      },
+      {
+        kode: 'REKLAMASJON_SENERE',
+        paragraf: '42.2.2',
+        beskrivelse: 'Skjulte mangler som oppdages senere.',
+        aktor: 'BH',
+        trigger_beskrivelse: 'Oppdagelse (eller burde oppdaget)',
+        frist_type: 'RIMELIG_TID',
+        frist_dager: null,
+        konsekvens_type: 'PREKLUSJON_KRAV',
+        konsekvens_beskrivelse: 'Kravet tapes.',
+      },
+    ],
+  },
+];
+
+// ========== HELPER FUNCTIONS ==========
+
+/**
+ * Get rule by code
+ */
+export function getVarslingsRegel(kode: string): VarslingsRegel | undefined {
+  for (const flyt of VARSLINGSREGLER_NS8407) {
+    const regel = flyt.regler.find((r) => r.kode === kode);
+    if (regel) return regel;
+  }
+  return undefined;
+}
+
+/**
+ * Get all rules for an actor
+ */
+export function getReglerForAktor(aktor: Aktor): VarslingsRegel[] {
+  const regler: VarslingsRegel[] = [];
+  for (const flyt of VARSLINGSREGLER_NS8407) {
+    regler.push(...flyt.regler.filter((r) => r.aktor === aktor));
+  }
+  return regler;
+}
+
+/**
+ * Get consequence description for a rule
+ */
+export function getKonsekvensLabel(konsekvens_type: KonsekvensType): string {
+  switch (konsekvens_type) {
+    case 'PREKLUSJON_KRAV':
+      return 'Kravet tapes';
+    case 'PREKLUSJON_INNSIGELSE':
+      return 'Innsigelse tapes (passiv aksept)';
+    case 'REDUKSJON_SKJONN':
+      return 'Redusert etter skjønn';
+    case 'ANSVAR_SKADE':
+      return 'Erstatningsansvar';
+    case 'BEVISBYRDE_TAP':
+      return 'Skjerpet bevisbyrde';
+    case 'INGEN_DIREKTE':
+      return 'Ingen direkte konsekvens';
+    default:
+      return konsekvens_type;
+  }
+}
+
+/**
+ * Get deadline type label
+ */
+export function getFristTypeLabel(frist_type: FristType): string {
+  switch (frist_type) {
+    case 'UTEN_UGRUNNET_OPPHOLD':
+      return 'Uten ugrunnet opphold';
+    case 'RIMELIG_TID':
+      return 'Innen rimelig tid';
+    case 'SPESIFIKK_DAGER':
+      return 'Innen angitt antall dager';
+    case 'LOPENDE':
+      return 'Løpende';
+    case 'INNEN_FRIST_UTLOP':
+      return 'Før frist utløper';
+    case 'INNEN_OPPSTART':
+      return 'Før arbeid starter';
+    default:
+      return frist_type;
+  }
+}
+
+/**
+ * Get rules that may cause preclusion (loss of rights)
+ */
+export function getPreklusjonsRegler(): VarslingsRegel[] {
+  const regler: VarslingsRegel[] = [];
+  for (const flyt of VARSLINGSREGLER_NS8407) {
+    regler.push(
+      ...flyt.regler.filter((r) =>
+        ['PREKLUSJON_KRAV', 'PREKLUSJON_INNSIGELSE'].includes(r.konsekvens_type)
+      )
+    );
+  }
+  return regler;
+}

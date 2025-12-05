@@ -3,7 +3,7 @@
  *
  * Action modal for submitting a new grunnlag (basis/foundation) claim.
  * Uses React Hook Form + Zod for validation.
- * Now uses Radix UI primitives with Punkt design system styling.
+ * Enhanced with preclusion checks and legal warnings based on NS 8407.
  */
 
 import { Modal } from '../primitives/Modal';
@@ -13,6 +13,8 @@ import { Textarea } from '../primitives/Textarea';
 import { Checkbox } from '../primitives/Checkbox';
 import { DatePicker } from '../primitives/DatePicker';
 import { FormField } from '../primitives/FormField';
+import { Alert } from '../primitives/Alert';
+import { Collapsible } from '../primitives/Collapsible';
 import {
   Select,
   SelectContent,
@@ -24,12 +26,16 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   HOVEDKATEGORI_OPTIONS,
   getUnderkategorier,
   VARSEL_METODER_OPTIONS,
+  getHovedkategori,
+  getUnderkategoriObj,
+  erLovendring,
 } from '../../constants';
+import { getPreklusjonsvarsel, beregnDagerSiden } from '../../utils/preklusjonssjekk';
 
 const grunnlagSchema = z.object({
   hovedkategori: z.string().min(1, 'Hovedkategori er påkrevd'),
@@ -40,6 +46,7 @@ const grunnlagSchema = z.object({
   dato_varsel_sendt: z.string().optional(),
   varsel_metode: z.array(z.string()).optional(),
   kontraktsreferanser: z.string().optional(),
+  er_etter_tilbud: z.boolean().optional(), // For law changes (§14.4)
 });
 
 type GrunnlagFormData = z.infer<typeof grunnlagSchema>;
@@ -72,11 +79,39 @@ export function SendGrunnlagModal({
       underkategori: [],
       varsel_sendes_na: false,
       varsel_metode: [],
+      er_etter_tilbud: false,
     },
   });
 
   const hovedkategoriValue = watch('hovedkategori');
   const varselSendesNa = watch('varsel_sendes_na');
+  const datoOppdaget = watch('dato_oppdaget');
+  const selectedUnderkategorier = watch('underkategori');
+  const erEtterTilbud = watch('er_etter_tilbud');
+
+  // Get selected category info
+  const valgtHovedkategori = useMemo(
+    () => getHovedkategori(selectedHovedkategori),
+    [selectedHovedkategori]
+  );
+
+  const valgtUnderkategori = useMemo(() => {
+    if (selectedUnderkategorier?.length > 0) {
+      return getUnderkategoriObj(selectedUnderkategorier[0]);
+    }
+    return undefined;
+  }, [selectedUnderkategorier]);
+
+  // Check if any selected underkategori is a law change (§14.4)
+  const harLovendring = useMemo(() => {
+    return selectedUnderkategorier?.some((kode) => erLovendring(kode)) ?? false;
+  }, [selectedUnderkategorier]);
+
+  // Calculate preclusion risk
+  const preklusjonsResultat = useMemo(() => {
+    if (!datoOppdaget) return null;
+    return getPreklusjonsvarsel(beregnDagerSiden(datoOppdaget));
+  }, [datoOppdaget]);
 
   const mutation = useSubmitEvent(sakId, {
     onSuccess: () => {
@@ -90,7 +125,8 @@ export function SendGrunnlagModal({
   const handleHovedkategoriChange = (value: string) => {
     setSelectedHovedkategori(value);
     setValue('hovedkategori', value);
-    setValue('underkategori', []); // Clear underkategorier when hovedkategori changes
+    setValue('underkategori', []);
+    setValue('er_etter_tilbud', false);
   };
 
   const onSubmit = (data: GrunnlagFormData) => {
@@ -99,14 +135,13 @@ export function SendGrunnlagModal({
       ? data.kontraktsreferanser.split(',').map((ref) => ref.trim())
       : [];
 
-    // Build VarselInfo structure if varsel data is provided
-    // If "varsel sendes nå" is checked, use today's date and 'system' as method
+    // Build VarselInfo structure
     const varselDato = data.varsel_sendes_na
-      ? new Date().toISOString().split('T')[0]  // Today's date in YYYY-MM-DD format
+      ? new Date().toISOString().split('T')[0]
       : data.dato_varsel_sendt;
 
     const varselMetode = data.varsel_sendes_na
-      ? ['system']  // Automatically use 'system' when sending now
+      ? ['system']
       : (data.varsel_metode || []);
 
     const grunnlagVarsel = varselDato
@@ -125,6 +160,7 @@ export function SendGrunnlagModal({
         dato_oppdaget: data.dato_oppdaget,
         grunnlag_varsel: grunnlagVarsel,
         kontraktsreferanser,
+        meta: harLovendring ? { er_etter_tilbud: data.er_etter_tilbud } : undefined,
       },
     });
   };
@@ -171,6 +207,19 @@ export function SendGrunnlagModal({
           />
         </FormField>
 
+        {/* Category info box */}
+        {valgtHovedkategori && (
+          <Alert variant="info" title={`Hjemmel: NS 8407 §${valgtHovedkategori.hjemmel_frist}`}>
+            {valgtHovedkategori.beskrivelse}
+            <div className="mt-2 text-xs">
+              <strong>Type krav:</strong> {valgtHovedkategori.type_krav}
+              {valgtHovedkategori.hjemmel_vederlag && (
+                <> | <strong>Vederlag:</strong> §{valgtHovedkategori.hjemmel_vederlag}</>
+              )}
+            </div>
+          </Alert>
+        )}
+
         {/* Underkategori - Dynamic based on hovedkategori */}
         {selectedHovedkategori && getUnderkategorier(selectedHovedkategori).length > 0 && (
           <FormField
@@ -192,6 +241,40 @@ export function SendGrunnlagModal({
           </FormField>
         )}
 
+        {/* Underkategori info */}
+        {valgtUnderkategori && (
+          <div className="bg-blue-50 p-3 rounded border border-blue-200 text-sm">
+            <strong>{valgtUnderkategori.label}</strong>
+            <p className="text-gray-700 mt-1">{valgtUnderkategori.beskrivelse}</p>
+            <p className="text-xs mt-2">
+              <strong>Varslingskrav:</strong> §{valgtUnderkategori.varselkrav_ref}
+            </p>
+          </div>
+        )}
+
+        {/* Law change check (§14.4) */}
+        {harLovendring && (
+          <div className="bg-blue-50 p-4 rounded border-2 border-blue-200">
+            <Controller
+              name="er_etter_tilbud"
+              control={control}
+              render={({ field }) => (
+                <Checkbox
+                  id="er_etter_tilbud"
+                  label="Bekreft at endringen inntraff ETTER tilbudsfristens utløp (§14.4)"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              )}
+            />
+            {!erEtterTilbud && (
+              <p className="text-xs text-red-600 mt-2">
+                Hvis lovendringen var kjent ved tilbudsfrist, ligger risikoen normalt hos deg.
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Beskrivelse */}
         <FormField
           label="Beskrivelse"
@@ -209,26 +292,47 @@ export function SendGrunnlagModal({
         </FormField>
 
         {/* Dato forhold oppdaget */}
-        <FormField
-          label="Dato forhold oppdaget"
-          required
-          error={errors.dato_oppdaget?.message}
-        >
-          <Controller
-            name="dato_oppdaget"
-            control={control}
-            render={({ field }) => (
-              <DatePicker
-                id="dato_oppdaget"
-                value={field.value}
-                onChange={field.onChange}
-                fullWidth
-                error={!!errors.dato_oppdaget}
-                placeholder="Velg dato"
+        <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
+          <FormField
+            label="Dato forhold oppdaget"
+            required
+            error={errors.dato_oppdaget?.message}
+          >
+            <div className="flex items-center gap-4">
+              <Controller
+                name="dato_oppdaget"
+                control={control}
+                render={({ field }) => (
+                  <DatePicker
+                    id="dato_oppdaget"
+                    value={field.value}
+                    onChange={field.onChange}
+                    fullWidth
+                    error={!!errors.dato_oppdaget}
+                    placeholder="Velg dato"
+                  />
+                )}
               />
-            )}
-          />
-        </FormField>
+              {datoOppdaget && (
+                <span className="text-sm text-gray-600 whitespace-nowrap">
+                  {beregnDagerSiden(datoOppdaget)} dager siden
+                </span>
+              )}
+            </div>
+          </FormField>
+
+          {/* Preclusion warnings */}
+          {preklusjonsResultat?.alert && (
+            <div className="mt-3">
+              <Alert
+                variant={preklusjonsResultat.alert.variant}
+                title={preklusjonsResultat.alert.title}
+              >
+                {preklusjonsResultat.alert.message}
+              </Alert>
+            </div>
+          )}
+        </div>
 
         {/* Varsel sendes nå checkbox */}
         <Controller
@@ -288,10 +392,7 @@ export function SendGrunnlagModal({
         )}
 
         {/* Kontraktsreferanser */}
-        <FormField
-          label="Kontraktsreferanser"
-          helpText="Separer flere referanser med komma, f.eks. '§3.2, §4.1'"
-        >
+        <Collapsible title="Kontraktsreferanser (Valgfritt)">
           <Input
             id="kontraktsreferanser"
             type="text"
@@ -299,18 +400,22 @@ export function SendGrunnlagModal({
             fullWidth
             placeholder="F.eks. '§3.2, §4.1'"
           />
-        </FormField>
+          <p className="text-xs text-gray-500 mt-2">
+            Separer flere referanser med komma
+          </p>
+        </Collapsible>
+
+        {/* Guidance text */}
+        <p className="text-xs text-gray-500">
+          Dette er et nøytralt varsel om grunnlaget. Spesifiserte krav om penger (Vederlag)
+          og tid (Frist) legger du til i egne steg etterpå.
+        </p>
 
         {/* Error Message */}
         {mutation.isError && (
-          <div
-            className="p-pkt-05 bg-pkt-surface-subtle-light-red border-2 border-pkt-border-red rounded-none"
-            role="alert"
-          >
-            <p className="text-base text-pkt-border-red font-medium">
-              {mutation.error instanceof Error ? mutation.error.message : 'En feil oppstod'}
-            </p>
-          </div>
+          <Alert variant="danger" title="Feil ved innsending">
+            {mutation.error instanceof Error ? mutation.error.message : 'En feil oppstod'}
+          </Alert>
         )}
 
         {/* Actions */}

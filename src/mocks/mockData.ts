@@ -458,6 +458,304 @@ export const mockTimelineEvents4: TimelineEntry[] = [
 ];
 
 /**
+ * Example case 5: Disputed case with subsidiary responses
+ * Grunnlag rejected, but vederlag/frist handled subsidiarily
+ */
+export const mockSakState5: SakState = {
+  sak_id: 'SAK-2025-005',
+  sakstittel: 'Omtvistet endring - Teknisk rom',
+
+  grunnlag: {
+    status: 'avvist',
+    hovedkategori: 'ENDRING',
+    underkategori: ['IRREG'],
+    beskrivelse:
+      'Entreprenøren hevder at muntlig beskjed om endret plassering av teknisk rom utgjør en irregulær endring.',
+    dato_oppdaget: '2025-02-01',
+    grunnlag_varsel: {
+      dato_sendt: '2025-02-02',
+      metode: ['epost'],
+    },
+    kontraktsreferanser: ['§32.1'],
+    bh_resultat: 'avvist_uenig',
+    bh_begrunnelse:
+      'BH bestrider at det foreligger en endring. Plasseringen var allerede avtalt i kontrakten.',
+    laast: false,
+    siste_oppdatert: '2025-02-05',
+    antall_versjoner: 1,
+  },
+
+  vederlag: {
+    status: 'under_behandling',
+    krevd_belop: 450000,
+    metode: 'regning',
+    begrunnelse: 'Ekstra rørlegging og tilpasningsarbeid.',
+    inkluderer_rigg_drift: true,
+    rigg_drift_varsel: {
+      dato_sendt: '2025-02-02',
+      metode: ['epost'],
+    },
+    // BH has given subsidiary response
+    bh_resultat: 'delvis_godkjent',
+    bh_begrunnelse: 'Subsidiært: Beløp OK, men bestrider grunnlaget.',
+    godkjent_belop: 400000,
+    siste_oppdatert: '2025-02-06',
+    antall_versjoner: 1,
+  },
+
+  frist: {
+    status: 'under_behandling',
+    varsel_type: 'spesifisert',
+    krevd_dager: 14,
+    begrunnelse: 'Omlegging av rør krever 14 ekstra dager.',
+    pavirker_kritisk_linje: true,
+    bh_resultat: 'godkjent_fullt',
+    bh_begrunnelse: 'Subsidiært: Dagene godkjennes dersom ansvar avklares.',
+    godkjent_dager: 14,
+    siste_oppdatert: '2025-02-06',
+    antall_versjoner: 1,
+  },
+
+  // Computed - Subsidiær logikk
+  er_subsidiaert_vederlag: true,
+  er_subsidiaert_frist: true,
+  visningsstatus_vederlag: 'Avslått pga. ansvar (Subsidiært: 400 000 kr godkjent)',
+  visningsstatus_frist: 'Avslått pga. ansvar (Subsidiært: 14 dager godkjent)',
+
+  overordnet_status: 'UNDER_FORHANDLING',
+  kan_utstede_eo: false,
+  neste_handling: {
+    rolle: null,
+    handling: 'Avklare tvist om grunnlag',
+    spor: 'grunnlag',
+  },
+
+  sum_krevd: 450000,
+  sum_godkjent: 0,
+
+  opprettet: '2025-02-01',
+  siste_aktivitet: '2025-02-06',
+  antall_events: 6,
+};
+
+/**
+ * Example case 6: Forsering in progress
+ * BH rejected frist, TE has declared forsering (§33.8)
+ */
+export const mockSakState6: SakState = {
+  sak_id: 'SAK-2025-006',
+  sakstittel: 'Forsering - Prosjekteringsforsinkelse',
+
+  grunnlag: {
+    status: 'godkjent',
+    hovedkategori: 'SVIKT',
+    underkategori: ['MEDVIRK'],
+    beskrivelse:
+      'Forsinket leveranse av tegninger for elektroinstallasjon medførte stopp i arbeidet.',
+    dato_oppdaget: '2025-01-20',
+    grunnlag_varsel: {
+      dato_sendt: '2025-01-20',
+      metode: ['epost', 'byggemote'],
+    },
+    kontraktsreferanser: ['§22.3'],
+    bh_resultat: 'godkjent',
+    bh_begrunnelse: 'Forsinkelsen erkjennes.',
+    laast: true,
+    siste_oppdatert: '2025-01-25',
+    antall_versjoner: 1,
+  },
+
+  vederlag: {
+    status: 'under_behandling',
+    krevd_belop: 850000,
+    metode: 'regning',
+    begrunnelse: 'Stillstand og omorganisering av mannskap.',
+    inkluderer_produktivitetstap: true,
+    produktivitetstap_varsel: {
+      dato_sendt: '2025-01-20',
+      metode: ['epost'],
+    },
+    siste_oppdatert: '2025-01-28',
+    antall_versjoner: 1,
+  },
+
+  frist: {
+    status: 'avvist',
+    varsel_type: 'spesifisert',
+    krevd_dager: 21,
+    begrunnelse: 'Stopp i elektroarbeid i 3 uker.',
+    pavirker_kritisk_linje: true,
+    bh_resultat: 'avslatt_ingen_hindring',
+    bh_begrunnelse: 'BH mener forsinkelsen kan tas igjen med parallellarbeid.',
+    godkjent_dager: 0,
+    differanse_dager: -21,
+
+    // FORSERING IS ACTIVE
+    forsering: {
+      er_varslet: true,
+      dato_varslet: '2025-02-01',
+      estimert_kostnad: 380000,
+      begrunnelse: 'Overtid og ekstra skift for elektrikere i 3 uker.',
+      bekreft_30_prosent_regel: true,
+      er_iverksatt: true,
+      dato_iverksatt: '2025-02-02',
+      er_stoppet: false,
+    },
+
+    siste_oppdatert: '2025-02-02',
+    antall_versjoner: 2,
+  },
+
+  er_subsidiaert_vederlag: false,
+  er_subsidiaert_frist: false,
+  visningsstatus_vederlag: 'Under behandling',
+  visningsstatus_frist: 'Avslått - Forsering iverksatt',
+
+  overordnet_status: 'UNDER_FORHANDLING',
+  kan_utstede_eo: false,
+  neste_handling: {
+    rolle: 'BH',
+    handling: 'Vurder å godkjenne frist for å stoppe forsering',
+    spor: 'frist',
+  },
+
+  sum_krevd: 850000,
+  sum_godkjent: 0,
+
+  opprettet: '2025-01-20',
+  siste_aktivitet: '2025-02-02',
+  antall_events: 8,
+};
+
+/**
+ * Example case 7: Hold-back case (§30.2)
+ * BH is holding back payment until overslag is received
+ */
+export const mockSakState7: SakState = {
+  sak_id: 'SAK-2025-007',
+  sakstittel: 'Tilbakeholdelse - Mangler overslag',
+
+  grunnlag: {
+    status: 'godkjent',
+    hovedkategori: 'ENDRING',
+    underkategori: ['IRREG'],
+    beskrivelse: 'Endret utforming av resepsjon etter muntlig instruks.',
+    dato_oppdaget: '2025-02-10',
+    grunnlag_varsel: {
+      dato_sendt: '2025-02-10',
+      metode: ['system'],
+    },
+    kontraktsreferanser: ['§32.1'],
+    bh_resultat: 'godkjent',
+    bh_begrunnelse: 'Endringen aksepteres.',
+    laast: true,
+    siste_oppdatert: '2025-02-12',
+    antall_versjoner: 1,
+  },
+
+  vederlag: {
+    status: 'under_behandling',
+    krevd_belop: 220000,
+    metode: 'overslag',  // Regningsarbeid with overslag
+    begrunnelse: 'Snekkerarbeid og ny innredning. Endelig beløp kommer.',
+    // BH is holding back until proper overslag is provided
+    bh_resultat: 'hold_tilbake',
+    bh_begrunnelse:
+      'Jf. §30.2: Betaling holdes tilbake inntil TE leverer bindende prisoverslag.',
+    siste_oppdatert: '2025-02-15',
+    antall_versjoner: 1,
+  },
+
+  frist: {
+    status: 'godkjent',
+    varsel_type: 'spesifisert',
+    krevd_dager: 7,
+    begrunnelse: 'Enkelt snekkerarbeid.',
+    pavirker_kritisk_linje: false,
+    bh_resultat: 'godkjent_fullt',
+    bh_begrunnelse: 'Dagene godkjennes.',
+    godkjent_dager: 7,
+    differanse_dager: 0,
+    siste_oppdatert: '2025-02-15',
+    antall_versjoner: 1,
+  },
+
+  er_subsidiaert_vederlag: false,
+  er_subsidiaert_frist: false,
+  visningsstatus_vederlag: 'Tilbakeholdt (Avventer overslag)',
+  visningsstatus_frist: 'Godkjent (7 dager)',
+
+  overordnet_status: 'UNDER_BEHANDLING',
+  kan_utstede_eo: false,
+  neste_handling: {
+    rolle: 'TE',
+    handling: 'Lever bindende prisoverslag (§30.2)',
+    spor: 'vederlag',
+  },
+
+  sum_krevd: 220000,
+  sum_godkjent: 0,
+
+  opprettet: '2025-02-10',
+  siste_aktivitet: '2025-02-15',
+  antall_events: 5,
+};
+
+export const mockTimelineEvents5: TimelineEntry[] = [
+  {
+    event_id: 'evt-501',
+    tidsstempel: '2025-02-06T10:00:00Z',
+    type: 'Subsidiært svar på frist',
+    aktor: 'Kari Nordmann',
+    rolle: 'BH',
+    spor: 'frist',
+    sammendrag: 'Subsidiært godkjent 14 dager (bestrider grunnlag)',
+  },
+  {
+    event_id: 'evt-502',
+    tidsstempel: '2025-02-05T14:00:00Z',
+    type: 'Respons på grunnlag',
+    aktor: 'Kari Nordmann',
+    rolle: 'BH',
+    spor: 'grunnlag',
+    sammendrag: 'Grunnlag avvist - uenig i at det er en endring',
+  },
+];
+
+export const mockTimelineEvents6: TimelineEntry[] = [
+  {
+    event_id: 'evt-601',
+    tidsstempel: '2025-02-02T09:00:00Z',
+    type: 'Forsering varslet',
+    aktor: 'Per Hansen',
+    rolle: 'TE',
+    spor: 'frist',
+    sammendrag: 'Forsering iverksatt - estimert kostnad kr 380 000,-',
+  },
+  {
+    event_id: 'evt-602',
+    tidsstempel: '2025-02-01T15:00:00Z',
+    type: 'Fristkrav avslått',
+    aktor: 'Kari Nordmann',
+    rolle: 'BH',
+    spor: 'frist',
+    sammendrag: 'Avslått - mener forsinkelse kan hentes inn',
+  },
+];
+
+export const mockTimelineEvents7: TimelineEntry[] = [
+  {
+    event_id: 'evt-701',
+    tidsstempel: '2025-02-15T11:00:00Z',
+    type: 'Vederlag tilbakeholdt',
+    aktor: 'Kari Nordmann',
+    rolle: 'BH',
+    spor: 'vederlag',
+    sammendrag: 'Holder tilbake betaling - avventer overslag (§30.2)',
+  },
+];
+
+/**
  * Get mock data by case ID
  */
 export function getMockStateById(sakId: string): SakState {
@@ -470,8 +768,13 @@ export function getMockStateById(sakId: string): SakState {
       return mockSakState3;
     case 'SAK-2025-003':
       return mockSakState4;
+    case 'SAK-2025-005':
+      return mockSakState5;
+    case 'SAK-2025-006':
+      return mockSakState6;
+    case 'SAK-2025-007':
+      return mockSakState7;
     default:
-      // Return first example for any unknown ID
       return mockSakState1;
   }
 }
@@ -489,6 +792,12 @@ export function getMockTimelineById(sakId: string): TimelineEntry[] {
       return mockTimelineEvents3;
     case 'SAK-2025-003':
       return mockTimelineEvents4;
+    case 'SAK-2025-005':
+      return mockTimelineEvents5;
+    case 'SAK-2025-006':
+      return mockTimelineEvents6;
+    case 'SAK-2025-007':
+      return mockTimelineEvents7;
     default:
       return mockTimelineEvents1;
   }
@@ -517,5 +826,20 @@ export const mockCaseList = [
     id: 'SAK-2024-089',
     title: 'Ekstraarbeid - Fasadeendringer',
     status: 'Klar for EO',
+  },
+  {
+    id: 'SAK-2025-005',
+    title: 'Omtvistet endring - Teknisk rom',
+    status: 'Omtvistet (Subsidiær)',
+  },
+  {
+    id: 'SAK-2025-006',
+    title: 'Forsering - Prosjekteringsforsinkelse',
+    status: 'Forsering aktiv',
+  },
+  {
+    id: 'SAK-2025-007',
+    title: 'Tilbakeholdelse - Mangler overslag',
+    status: 'Tilbakeholdt (§30.2)',
   },
 ];

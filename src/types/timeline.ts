@@ -36,7 +36,9 @@ export type VederlagBeregningResultat =
   | 'delvis_godkjent'
   | 'godkjent_annen_metode'
   | 'avventer_spesifikasjon'
-  | 'avslatt_totalt';  // Kun ved f.eks. dobbeltfakturering, ikke grunnlag
+  | 'avslatt_totalt'        // Kun ved f.eks. dobbeltfakturering, ikke grunnlag
+  | 'hold_tilbake'          // §30.2 - Holder tilbake betaling inntil overslag mottatt
+  | 'avvist_preklusjon_rigg'; // §34.1.3 - Rigg/drift varslet for sent
 
 // ========== FRIST ENUMS ==========
 
@@ -148,6 +150,7 @@ export interface FristTilstand {
   pavirker_kritisk_linje?: boolean;
   milepael_pavirket?: string;
   fremdriftsanalyse_vedlagt?: boolean;
+  berorte_aktiviteter?: string;  // Critical path activities
 
   // BH respons - Port 1 (Varsling)
   noytralt_varsel_ok?: boolean;
@@ -167,12 +170,29 @@ export interface FristTilstand {
   begrunnelse_beregning?: string;
   frist_for_spesifisering?: string;
 
+  // Forsering (§33.8)
+  forsering?: ForseringTilstand;
+
   // Computed
   differanse_dager?: number;
 
   // Metadata
   siste_oppdatert?: string;
   antall_versjoner: number;
+}
+
+// Forsering state (§33.8)
+export interface ForseringTilstand {
+  er_varslet: boolean;
+  dato_varslet?: string;
+  estimert_kostnad?: number;
+  begrunnelse?: string;
+  bekreft_30_prosent_regel?: boolean;  // TE bekrefter at kostnad < dagmulkt + 30%
+  er_iverksatt: boolean;
+  dato_iverksatt?: string;
+  er_stoppet: boolean;               // True if BH godkjenner frist etter varsling
+  dato_stoppet?: string;
+  paalopte_kostnader?: number;       // Costs incurred before stop
 }
 
 // ========== MAIN STATE (Read-Only) ==========
@@ -225,8 +245,12 @@ export type EventType =
   | 'frist_krav_oppdatert'
   | 'frist_krav_trukket'
   | 'respons_grunnlag'
+  | 'respons_grunnlag_oppdatert'   // BH's "snuoperasjon" - endrer standpunkt
   | 'respons_vederlag'
+  | 'respons_vederlag_oppdatert'   // BH opphever tilbakeholdelse eller endrer standpunkt
   | 'respons_frist'
+  | 'respons_frist_oppdatert'      // BH endrer standpunkt, evt stopper forsering
+  | 'forsering_varsel'             // §33.8 - TE varsler om iverksettelse av forsering
   | 'eo_utstedt';
 
 // Varsel info structure (reusable)
@@ -330,6 +354,71 @@ export interface ResponsGrunnlagEventData {
   krever_dokumentasjon?: string[];
   varsel_for_sent?: boolean;
   varsel_begrunnelse?: string;
+}
+
+// ========== UPDATE EVENT PAYLOADS (for revisions/updates) ==========
+
+// Grunnlag update event (TE updates previously sent grunnlag)
+export interface GrunnlagOppdatertEventData {
+  original_event_id: string;
+  tittel?: string;
+  beskrivelse?: string;
+  dato_oppdaget?: string;
+  hovedkategori?: string;
+  underkategori?: string | string[];
+  endrings_begrunnelse: string;
+}
+
+// Grunnlag response update event (BH's "snuoperasjon")
+export interface ResponsGrunnlagOppdatertEventData {
+  original_respons_id: string;
+  nytt_resultat: GrunnlagResponsResultat;
+  begrunnelse: string;
+  dato_endret: string;
+}
+
+// Vederlag update event (TE revises claim amount)
+export interface VederlagOppdatertEventData {
+  original_event_id: string;
+  nytt_belop?: number;
+  nytt_overslag?: number;  // For regningsarbeid
+  begrunnelse: string;
+  dato_revidert: string;
+}
+
+// Vederlag response update event (BH opphever tilbakeholdelse etc)
+export interface ResponsVederlagOppdatertEventData {
+  original_respons_id: string;
+  nytt_resultat: VederlagBeregningResultat;
+  kommentar: string;
+  dato_endret: string;
+}
+
+// Frist update event (TE revises days claim)
+export interface FristOppdatertEventData {
+  original_event_id: string;
+  nytt_antall_dager?: number;
+  begrunnelse: string;
+  dato_revidert: string;
+}
+
+// Frist response update event (BH changes mind, stops forsering)
+export interface ResponsFristOppdatertEventData {
+  original_respons_id: string;
+  nytt_resultat: FristBeregningResultat;
+  ny_godkjent_dager?: number;
+  kommentar: string;
+  stopper_forsering?: boolean;
+  dato_endret: string;
+}
+
+// Forsering varsel event (§33.8 - TE varsler om forsering)
+export interface ForseringVarselEventData {
+  frist_krav_id: string;  // Reference to the rejected frist claim
+  estimert_kostnad: number;
+  begrunnelse: string;
+  bekreft_30_prosent: boolean;  // TE confirms cost < dagmulkt + 30%
+  dato_iverksettelse: string;
 }
 
 // ========== TIMELINE DISPLAY ==========
