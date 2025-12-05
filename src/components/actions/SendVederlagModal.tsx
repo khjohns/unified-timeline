@@ -69,6 +69,8 @@ interface SendVederlagModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sakId: string;
+  /** ID of the grunnlag event this vederlag claim is linked to (required for event sourcing) */
+  grunnlagEventId: string;
   /** Optional grunnlag event data for context display and subsidiary logic */
   grunnlagEvent?: GrunnlagEventInfo;
 }
@@ -96,6 +98,7 @@ export function SendVederlagModal({
   open,
   onOpenChange,
   sakId,
+  grunnlagEventId,
   grunnlagEvent,
 }: SendVederlagModalProps) {
   const {
@@ -155,6 +158,7 @@ export function SendVederlagModal({
     mutation.mutate({
       eventType: 'vederlag_krav_sendt',
       data: {
+        grunnlag_event_id: grunnlagEventId,
         belop_direkte: data.metode === 'REGNINGSARBEID' ? undefined : data.belop_direkte,
         kostnads_overslag: data.metode === 'REGNINGSARBEID' ? data.kostnads_overslag : undefined,
         metode: data.metode,

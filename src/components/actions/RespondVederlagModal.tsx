@@ -68,6 +68,8 @@ interface RespondVederlagModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sakId: string;
+  /** ID of the vederlag claim event being responded to (required for event sourcing) */
+  vederlagKravId: string;
   krevdBelop?: number;
   /** Optional vederlag event data for context display and conditional logic */
   vederlagEvent?: VederlagEventInfo;
@@ -79,6 +81,7 @@ export function RespondVederlagModal({
   open,
   onOpenChange,
   sakId,
+  vederlagKravId,
   krevdBelop,
   vederlagEvent,
   grunnlagStatus,
@@ -132,7 +135,10 @@ export function RespondVederlagModal({
   const onSubmit = (data: RespondVederlagFormData) => {
     mutation.mutate({
       eventType: 'respons_vederlag',
-      data,
+      data: {
+        vederlag_krav_id: vederlagKravId,
+        ...data,
+      },
     });
   };
 

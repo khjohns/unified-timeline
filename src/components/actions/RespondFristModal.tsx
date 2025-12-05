@@ -57,6 +57,8 @@ interface RespondFristModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sakId: string;
+  /** ID of the frist claim event being responded to (required for event sourcing) */
+  fristKravId: string;
   krevdDager?: number;
   fristType?: 'kalenderdager' | 'arbeidsdager';
   /** Optional frist event data for context display */
@@ -69,6 +71,7 @@ export function RespondFristModal({
   open,
   onOpenChange,
   sakId,
+  fristKravId,
   krevdDager,
   fristType,
   fristEvent,
@@ -111,7 +114,10 @@ export function RespondFristModal({
   const onSubmit = (data: RespondFristFormData) => {
     mutation.mutate({
       eventType: 'respons_frist',
-      data,
+      data: {
+        frist_krav_id: fristKravId,
+        ...data,
+      },
     });
   };
 
