@@ -296,19 +296,54 @@
 ├─────────────────────────────────┼──────────────────────────────────┼─────────┤
 │ SendGrunnlagModal.tsx           │ SendGrunnlagModal.tsx            │ ✅      │
 │ SendGrunnlagUpdateModal.tsx     │ SendGrunnlagUpdateModal.tsx      │ ✅      │
-│ RespondGrunnlagModal.tsx        │ RespondGrunnlagModal.tsx         │ ✅ (*)  │
+│ RespondGrunnlagModal.tsx        │ RespondGrunnlagModal.tsx         │ ✅ (+)  │
 │ RespondGrunnlagUpdateModal.tsx  │ RespondGrunnlagUpdateModal.tsx   │ ✅      │
-│ SendVederlagModal.tsx           │ SendVederlagModal.tsx            │ ✅ (*)  │
-│ RespondVederlagModal.tsx        │ RespondVederlagModal.tsx         │ ✅ (*)  │
+│ SendVederlagModal.tsx           │ SendVederlagModal.tsx            │ ✅ (+)  │
+│ RespondVederlagModal.tsx        │ RespondVederlagModal.tsx         │ ✅ (+)  │
 │ ReviseVederlagModal_utkast.tsx  │ ReviseVederlagModal.tsx          │ ✅      │
 │ UpdateResponseVederlagModal...  │ UpdateResponseVederlagModal.tsx  │ ✅      │
-│ SendFristModal.tsx              │ SendFristModal.tsx               │ ✅ (*)  │
-│ RespondFristModal.tsx           │ RespondFristModal.tsx            │ ✅ (*)  │
+│ SendFristModal.tsx              │ SendFristModal.tsx               │ ✅ (+)  │
+│ RespondFristModal.tsx           │ RespondFristModal.tsx            │ ✅ (+)  │
 │ ReviseFristModal_utkast.tsx     │ ReviseFristModal.tsx             │ ✅      │
 │ UpdateResponseFristModal_...    │ UpdateResponseFristModal.tsx     │ ✅      │
 └─────────────────────────────────┴──────────────────────────────────┴─────────┘
-(*) = Eksisterende komponent, ikke endret i denne iterasjonen
+(+) = Oppdatert 2025-12-05 med NS 8407 funksjoner fra spesifikasjon
 ```
+
+---
+
+## Oppdaterte modaler (2025-12-05)
+
+Følgende 5 eksisterende modaler ble oppdatert for å matche NS 8407 spesifikasjoner:
+
+### RespondGrunnlagModal.tsx
+- Lagt til BH passivitetsvarsel (§32.3) for irregulære endringer (>10 dager)
+- Lagt til Force Majeure info-banner
+- Lagt til subsidiær behandling-varsel ved avslag
+- Lagt til EO-generering info ved godkjenning
+- Lagt til visning av grunnlag-detaljer (kategori, beskrivelse, datoer)
+
+### SendVederlagModal.tsx
+- Lagt til subsidiær behandling-alert når grunnlag er avvist
+- Lagt til grunnlag-kontekst visning (tittel, status)
+- Lagt til preklusjonsvarsler med datoberegning ("X dager siden")
+
+### RespondVederlagModal.tsx
+- Lagt til subsidiær badge og info-panel
+- Lagt til §34.3.3 EP-justering svarplikt-alert
+- Lagt til §30.2 tilbakeholdelse-varsel for regningsarbeid uten overslag
+- Lagt til visning av vederlagskrav-detaljer (metode, beløp, begrunnelse, rigg/drift)
+
+### SendFristModal.tsx
+- Lagt til BH etterlysning-varsel (§33.6.2) - kritisk
+- Lagt til §33.6.1 reduksjonsvarsel når sent
+- Lagt til grunnlag-kontekst visning
+- Lagt til berørte aktiviteter-felt
+
+### RespondFristModal.tsx
+- Lagt til §33.8 forseringsvarsel ved avslag/delvis godkjenning
+- Lagt til subsidiær badge og info-panel
+- Lagt til visning av fristkrav-detaljer (antall dager, ny sluttfrist, begrunnelse)
 
 ---
 
@@ -335,7 +370,7 @@ Ny modal for visning av komplette innsendte skjemadata:
 Implementasjonen er **juridisk korrekt** og **funksjonelt komplett** i henhold til NS 8407. Alle kritiske funksjoner er på plass:
 
 - ✅ Preklusjonslogikk med varsler
-- ✅ Subsidiær respons-håndtering
+- ✅ Subsidiær respons-håndtering (alle 5 respons-modaler)
 - ✅ Forsering (§33.8) med 30%-regel
 - ✅ Tilbakeholdelse (§30.2) med 15%-regel
 - ✅ Komplett kategorihierarki fra Python-datasett
@@ -343,8 +378,11 @@ Implementasjonen er **juridisk korrekt** og **funksjonelt komplett** i henhold t
 - ✅ Force Majeure scenario (§33.3)
 - ✅ BH passivitet scenario (§32.3)
 - ✅ Visning av innsendte skjemaer via modal
+- ✅ BH etterlysning (§33.6.2) i SendFristModal
+- ✅ §34.3.3 EP-justering svarplikt i RespondVederlagModal
+- ✅ Grunnlag/vederlag/frist kontekst-visning i alle modaler
 
-**Status**: Alle prioritet 1 og 2 anbefalinger er implementert. Testdekning er komplett.
+**Status**: Alle modaler er nå oppdatert i henhold til spesifikasjonene. 12/12 modaler komplett implementert.
 
 ---
 

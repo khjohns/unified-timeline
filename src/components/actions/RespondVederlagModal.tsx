@@ -4,6 +4,13 @@
  * Action modal for BH (client) to respond to a vederlag (compensation) claim.
  * Includes fields for approved amount and result.
  * Now includes legacy NS 8407 response options.
+ *
+ * UPDATED (2025-12-05):
+ * - Added subsidiary badge and info when grunnlag is rejected
+ * - Added §30.2 hold_tilbake option for regningsarbeid without kostnadsoverslag
+ * - Added §34.1.3 rigg-preklusjon option
+ * - Added §34.3.3 EP-justering alert
+ * - Added display of vederlagskrav details
  */
 
 import { Modal } from '../primitives/Modal';
@@ -11,6 +18,7 @@ import { Button } from '../primitives/Button';
 import { FormField } from '../primitives/FormField';
 import { Input } from '../primitives/Input';
 import { Textarea } from '../primitives/Textarea';
+import { Badge } from '../primitives/Badge';
 import {
   Select,
   SelectContent,
@@ -27,6 +35,7 @@ import {
   VEDERLAGSMETODER_OPTIONS,
   getBhVederlagssvarValues,
   BH_VEDERLAGSSVAR_DESCRIPTIONS,
+  getVederlagsmetodeLabel,
 } from '../../constants';
 
 const respondVederlagSchema = z.object({
@@ -40,11 +49,26 @@ const respondVederlagSchema = z.object({
 
 type RespondVederlagFormData = z.infer<typeof respondVederlagSchema>;
 
+// Vederlag event info for context display and conditional logic
+interface VederlagEventInfo {
+  metode?: string;
+  krav_belop?: number;
+  begrunnelse?: string;
+  inkluderer_rigg_drift?: boolean;
+  inkluderer_produktivitetstap?: boolean;
+  krever_justert_ep?: boolean;
+  kostnads_overslag?: number;
+}
+
 interface RespondVederlagModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sakId: string;
   krevdBelop?: number;
+  /** Optional vederlag event data for context display and conditional logic */
+  vederlagEvent?: VederlagEventInfo;
+  /** Status of the grunnlag response (for subsidiary treatment) */
+  grunnlagStatus?: 'godkjent' | 'avvist_uenig' | 'delvis_godkjent';
 }
 
 export function RespondVederlagModal({
@@ -52,6 +76,8 @@ export function RespondVederlagModal({
   onOpenChange,
   sakId,
   krevdBelop,
+  vederlagEvent,
+  grunnlagStatus,
 }: RespondVederlagModalProps) {
   const {
     register,
@@ -73,6 +99,26 @@ export function RespondVederlagModal({
 
   const selectedResultat = watch('resultat');
   const godkjentBelop = watch('godkjent_belop');
+
+  // Determine if this is subsidiary treatment (grunnlag was rejected)
+  const erSubsidiaer = grunnlagStatus === 'avvist_uenig';
+
+  // §30.2 Logic: Can hold back payment if regningsarbeid without kostnadsoverslag
+  const kanHoldeTilbake =
+    vederlagEvent?.metode === 'regningsarbeid' && !vederlagEvent?.kostnads_overslag;
+
+  // §34.3.3 Logic: Must respond to EP adjustment request
+  const maSvarePaJustering =
+    vederlagEvent?.metode === 'justert_ep' || vederlagEvent?.krever_justert_ep;
+
+  // §34.1.3 Logic: Can reject rigg/drift if sent too late
+  const harSaerskiltKrav =
+    vederlagEvent?.inkluderer_rigg_drift || vederlagEvent?.inkluderer_produktivitetstap;
+
+  // Get method label for display
+  const metodeLabel = vederlagEvent?.metode
+    ? getVederlagsmetodeLabel(vederlagEvent.metode)
+    : undefined;
 
   const onSubmit = (data: RespondVederlagFormData) => {
     mutation.mutate({
@@ -99,11 +145,110 @@ export function RespondVederlagModal({
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-pkt-05">
-        {/* Show claimed amount if available */}
-        {krevdBelop !== undefined && (
+        {/* Subsidiary badge and info */}
+        {erSubsidiaer && (
+          <div className="p-pkt-04 bg-amber-50 border-2 border-amber-300 rounded-none">
+            <div className="flex items-center gap-2 mb-2">
+              <Badge variant="warning">Subsidiær behandling</Badge>
+            </div>
+            <p className="text-sm text-amber-900 font-medium mb-1">
+              Viktig prinsipp:
+            </p>
+            <p className="text-sm text-amber-800">
+              Du har avvist ansvarsgrunnlaget i denne saken. Dine svar nedenfor
+              gjelder derfor <strong>kun subsidiært</strong>.
+            </p>
+            <ul className="list-disc pl-5 mt-2 text-sm text-amber-800">
+              <li>
+                Hvis du svarer &ldquo;Godkjenn&rdquo;: Du godkjenner beløpet,
+                men opprettholder at du ikke skal betale det (ingen endring).
+              </li>
+              <li>
+                Dette hindrer at du senere møter et ukontrollert krav hvis
+                Entreprenøren vinner frem med endringskravet.
+              </li>
+            </ul>
+          </div>
+        )}
+
+        {/* §34.3.3 EP-justering alert */}
+        {maSvarePaJustering && (
+          <div
+            className="p-pkt-05 bg-pkt-surface-subtle-light-red border-2 border-pkt-border-red rounded-none"
+            role="alert"
+          >
+            <p className="text-base text-pkt-border-red font-medium">
+              Svarplikt (§34.3.3)
+            </p>
+            <p className="text-sm text-pkt-border-red mt-1">
+              TE krever justerte enhetspriser. Hvis du er uenig <strong>MÅ</strong> du
+              svare nå. Passivitet kan medføre at kravet anses akseptert.
+            </p>
+          </div>
+        )}
+
+        {/* Display of vederlagskrav details */}
+        {vederlagEvent && (metodeLabel || vederlagEvent.krav_belop) && (
+          <div className="p-pkt-04 bg-pkt-surface-subtle-light-blue border-2 border-pkt-border-focus rounded-none">
+            <h4 className="font-bold text-sm text-pkt-text-body-dark mb-2">
+              Entreprenørens krav:
+            </h4>
+            <div className="flex justify-between items-center">
+              {metodeLabel && (
+                <span className="font-medium">{metodeLabel}</span>
+              )}
+              {vederlagEvent.krav_belop !== undefined && (
+                <span className="text-lg font-mono">
+                  {vederlagEvent.metode === 'regningsarbeid'
+                    ? 'Etter medgått tid'
+                    : `kr ${vederlagEvent.krav_belop.toLocaleString('nb-NO')},-`}
+                </span>
+              )}
+            </div>
+            {vederlagEvent.metode === 'regningsarbeid' &&
+              vederlagEvent.kostnads_overslag && (
+                <p className="text-sm mt-1 text-pkt-text-body-subtle">
+                  Kostnadsoverslag: kr{' '}
+                  {vederlagEvent.kostnads_overslag.toLocaleString('nb-NO')},-
+                </p>
+              )}
+            {vederlagEvent.begrunnelse && (
+              <p className="italic text-pkt-text-body-subtle mt-2 text-sm">
+                &ldquo;{vederlagEvent.begrunnelse}&rdquo;
+              </p>
+            )}
+            {(vederlagEvent.inkluderer_rigg_drift ||
+              vederlagEvent.inkluderer_produktivitetstap) && (
+              <div className="mt-2 flex gap-2">
+                {vederlagEvent.inkluderer_rigg_drift && (
+                  <Badge variant="default">Inkl. Rigg/Drift</Badge>
+                )}
+                {vederlagEvent.inkluderer_produktivitetstap && (
+                  <Badge variant="default">Inkl. Produktivitetstap</Badge>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Show claimed amount if available (fallback if no vederlagEvent) */}
+        {krevdBelop !== undefined && !vederlagEvent?.krav_belop && (
           <div className="p-pkt-04 bg-info-100 rounded-pkt-md">
             <p className="text-sm font-medium text-info-700">
               Krevd beløp: {krevdBelop.toLocaleString('nb-NO')} NOK
+            </p>
+          </div>
+        )}
+
+        {/* §30.2 Tilbakeholdelse warning */}
+        {kanHoldeTilbake && (
+          <div className="p-pkt-04 bg-amber-50 border-2 border-amber-300 rounded-none">
+            <p className="text-sm font-medium text-amber-900">
+              Mangler kostnadsoverslag (§30.2)
+            </p>
+            <p className="text-sm text-amber-800 mt-1">
+              TE har ikke levert kostnadsoverslag for regningsarbeidet. Du kan
+              velge å holde tilbake betaling inntil overslag mottas.
             </p>
           </div>
         )}

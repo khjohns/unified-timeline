@@ -4,6 +4,11 @@
  * Action modal for BH (client) to respond to a frist (deadline extension) claim.
  * Includes fields for approved number of days and result.
  * Now includes legacy NS 8407 response options.
+ *
+ * UPDATED (2025-12-05):
+ * - Added §33.8 forsering warning when rejecting/partial approval
+ * - Added subsidiary badge and info when grunnlag is rejected
+ * - Added display of fristkrav details
  */
 
 import { Modal } from '../primitives/Modal';
@@ -12,6 +17,7 @@ import { FormField } from '../primitives/FormField';
 import { Input } from '../primitives/Input';
 import { Textarea } from '../primitives/Textarea';
 import { DatePicker } from '../primitives/DatePicker';
+import { Badge } from '../primitives/Badge';
 import {
   Select,
   SelectContent,
@@ -40,12 +46,23 @@ const respondFristSchema = z.object({
 
 type RespondFristFormData = z.infer<typeof respondFristSchema>;
 
+// Frist event info for context display
+interface FristEventInfo {
+  antall_dager?: number;
+  ny_sluttfrist?: string;
+  begrunnelse?: string;
+}
+
 interface RespondFristModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sakId: string;
   krevdDager?: number;
   fristType?: 'kalenderdager' | 'arbeidsdager';
+  /** Optional frist event data for context display */
+  fristEvent?: FristEventInfo;
+  /** Status of the grunnlag response (for subsidiary treatment) */
+  grunnlagStatus?: 'godkjent' | 'avvist_uenig' | 'delvis_godkjent';
 }
 
 export function RespondFristModal({
@@ -54,6 +71,8 @@ export function RespondFristModal({
   sakId,
   krevdDager,
   fristType,
+  fristEvent,
+  grunnlagStatus,
 }: RespondFristModalProps) {
   const {
     register,
@@ -76,6 +95,19 @@ export function RespondFristModal({
   const selectedResultat = watch('resultat');
   const godkjentDager = watch('godkjent_dager');
 
+  // Determine if this is subsidiary treatment (grunnlag was rejected)
+  const erSubsidiaer = grunnlagStatus === 'avvist_uenig';
+
+  // Effective days to compare (from fristEvent or krevdDager prop)
+  const effektivKrevdDager = fristEvent?.antall_dager ?? krevdDager ?? 0;
+
+  // §33.8: Show forsering warning when rejecting or partial approval
+  const visForsering =
+    selectedResultat === 'avvist_uenig' ||
+    (selectedResultat === 'delvis_godkjent' &&
+      godkjentDager !== undefined &&
+      godkjentDager < effektivKrevdDager);
+
   const onSubmit = (data: RespondFristFormData) => {
     mutation.mutate({
       eventType: 'respons_frist',
@@ -97,8 +129,65 @@ export function RespondFristModal({
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-pkt-06">
-        {/* Show claimed days if available */}
-        {krevdDager !== undefined && (
+        {/* Subsidiary badge and info */}
+        {erSubsidiaer && (
+          <div className="p-pkt-04 bg-amber-50 border-2 border-amber-300 rounded-none">
+            <div className="flex items-center gap-2 mb-2">
+              <Badge variant="warning">Subsidiær behandling</Badge>
+            </div>
+            <p className="text-sm text-amber-900 font-medium mb-1">
+              Viktig prinsipp:
+            </p>
+            <p className="text-sm text-amber-800">
+              Du har avvist ansvarsgrunnlaget i denne saken. Dine svar nedenfor
+              gjelder derfor <strong>kun subsidiært</strong>.
+            </p>
+            <ul className="list-disc pl-5 mt-2 text-sm text-amber-800">
+              <li>
+                Hvis du svarer &ldquo;Godkjenn&rdquo;: Du godkjenner antall
+                dager, men opprettholder at det ikke foreligger grunnlag for
+                fristforlengelse.
+              </li>
+              <li>
+                Dette sikrer at du har tatt stilling til beregningen tidlig,
+                selv om ansvaret er omtvistet.
+              </li>
+            </ul>
+          </div>
+        )}
+
+        {/* Display of fristkrav details */}
+        {fristEvent && (fristEvent.antall_dager || fristEvent.begrunnelse) && (
+          <div className="p-pkt-04 bg-pkt-surface-subtle-light-blue border-2 border-pkt-border-focus rounded-none">
+            <h4 className="font-bold text-sm text-pkt-text-body-dark mb-2">
+              Entreprenørens krav:
+            </h4>
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-pkt-text-body-subtle uppercase font-bold">
+                Krav fra Entreprenør
+              </span>
+              {fristEvent.antall_dager !== undefined && (
+                <span className="text-2xl font-bold">
+                  {fristEvent.antall_dager} dager
+                </span>
+              )}
+            </div>
+            {fristEvent.ny_sluttfrist && (
+              <p className="text-sm text-pkt-text-body-subtle mt-1">
+                Ny sluttfrist:{' '}
+                {new Date(fristEvent.ny_sluttfrist).toLocaleDateString('nb-NO')}
+              </p>
+            )}
+            {fristEvent.begrunnelse && (
+              <p className="italic text-pkt-text-body-subtle mt-2 text-sm border-t pt-2 border-pkt-border-subtle">
+                &ldquo;{fristEvent.begrunnelse}&rdquo;
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Show claimed days if available (fallback if no fristEvent) */}
+        {krevdDager !== undefined && !fristEvent?.antall_dager && (
           <div className="p-pkt-04 bg-pkt-surface-subtle-light-blue border-2 border-pkt-border-focus rounded-none">
             <p className="text-sm font-medium text-pkt-text-body-default">
               Krevd forlengelse: {krevdDager} {fristType || 'dager'}
@@ -165,6 +254,32 @@ export function RespondFristModal({
               error={!!errors.godkjent_dager}
             />
           </FormField>
+        )}
+
+        {/* §33.8 Forsering warning - show when rejecting or partial approval */}
+        {visForsering && (
+          <div className="p-pkt-04 bg-pkt-surface-subtle-light-blue border-2 border-pkt-border-focus rounded-none">
+            <p className="text-sm font-medium text-pkt-text-body-default mb-2">
+              Informasjon om risiko (§33.8)
+            </p>
+            <p className="text-sm text-pkt-text-body-subtle">
+              Du avslår nå dager som TE mener å ha krav på.
+            </p>
+            <ul className="list-disc pl-5 mt-2 text-sm text-pkt-text-body-subtle">
+              <li>
+                Dersom avslaget ditt er uberettiget, kan TE velge å anse avslaget
+                som et <strong>pålegg om forsering</strong>.
+              </li>
+              <li>
+                TE må i så fall sende et nytt varsel med kostnadsoverslag for
+                forseringen før de setter i gang (Fase 4).
+              </li>
+              <li>
+                Du trenger ikke ta stilling til forsering nå, men vær forberedt
+                på at et slikt krav kan komme.
+              </li>
+            </ul>
+          </div>
         )}
 
         {/* Begrunnelse */}

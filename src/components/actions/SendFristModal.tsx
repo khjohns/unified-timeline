@@ -4,6 +4,12 @@
  * Action modal for submitting a new frist (deadline extension) claim.
  * Uses React Hook Form + Zod for validation.
  * Now uses Radix UI primitives with Punkt design system styling.
+ *
+ * UPDATED (2025-12-05):
+ * - Added BH etterlysning warning (§33.6.2) - critical
+ * - Added §33.6.1 reduction warning when late
+ * - Added grunnlag context display
+ * - Added berørte aktiviteter field
  */
 
 import { Modal } from '../primitives/Modal';
@@ -14,6 +20,7 @@ import { Checkbox } from '../primitives/Checkbox';
 import { RadioGroup, RadioItem } from '../primitives/RadioGroup';
 import { DatePicker } from '../primitives/DatePicker';
 import { FormField } from '../primitives/FormField';
+import { Badge } from '../primitives/Badge';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -23,7 +30,9 @@ import {
   getFristVarseltypeValues,
   FRIST_VARSELTYPE_DESCRIPTIONS,
   VARSEL_METODER_OPTIONS,
+  getHovedkategoriLabel,
 } from '../../constants';
+import { differenceInDays } from 'date-fns';
 
 const fristSchema = z.object({
   varsel_type: z.enum(getFristVarseltypeValues(), {
@@ -44,20 +53,34 @@ const fristSchema = z.object({
   begrunnelse: z.string().min(10, 'Begrunnelse må være minst 10 tegn'),
   ny_sluttdato: z.string().optional(),
   vedlegg_ids: z.array(z.string()).optional(),
+  berorte_aktiviteter: z.string().optional(),
 });
 
 type FristFormData = z.infer<typeof fristSchema>;
+
+// Grunnlag event info for context display
+interface GrunnlagEventInfo {
+  tittel?: string;
+  hovedkategori?: string;
+  dato_varslet?: string;
+}
 
 interface SendFristModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sakId: string;
+  /** Optional grunnlag event data for context display */
+  grunnlagEvent?: GrunnlagEventInfo;
+  /** Whether BH has sent an etterlysning (§33.6.2) - triggers critical warning */
+  harMottattEtterlysning?: boolean;
 }
 
 export function SendFristModal({
   open,
   onOpenChange,
   sakId,
+  grunnlagEvent,
+  harMottattEtterlysning,
 }: SendFristModalProps) {
   const {
     register,
@@ -89,6 +112,19 @@ export function SendFristModal({
   const selectedVarselType = watch('varsel_type');
   const noytraltVarselSendesNa = watch('noytralt_varsel_sendes_na');
   const spesifisertVarselSendesNa = watch('spesifisert_varsel_sendes_na');
+
+  // Calculate days since grunnlag was submitted (for §33.6.1 reduction warning)
+  const dagerSidenGrunnlag = grunnlagEvent?.dato_varslet
+    ? differenceInDays(new Date(), new Date(grunnlagEvent.dato_varslet))
+    : 0;
+
+  // §33.6.1: Late specification without BH etterlysning triggers reduction warning
+  const erSentUtenEtterlysning = !harMottattEtterlysning && dagerSidenGrunnlag > 21;
+
+  // Get category label for display
+  const kategoriLabel = grunnlagEvent?.hovedkategori
+    ? getHovedkategoriLabel(grunnlagEvent.hovedkategori)
+    : undefined;
 
   const onSubmit = (data: FristFormData) => {
     // Build VarselInfo structures
@@ -134,6 +170,9 @@ export function SendFristModal({
         begrunnelse: data.begrunnelse,
         ny_sluttdato: data.ny_sluttdato,
         vedlegg_ids: data.vedlegg_ids,
+        berorte_aktiviteter: data.berorte_aktiviteter,
+        // Metadata for tracking if this was forced by BH etterlysning
+        er_svar_pa_etterlysning: harMottattEtterlysning,
       },
     });
   };
@@ -147,6 +186,64 @@ export function SendFristModal({
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-pkt-06">
+        {/* BH Etterlysning warning (§33.6.2) - CRITICAL */}
+        {harMottattEtterlysning && (
+          <div
+            className="p-pkt-05 bg-pkt-surface-subtle-light-red border-2 border-pkt-border-red rounded-none"
+            role="alert"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Badge variant="danger">Svar på BHs etterlysning (§33.6.2)</Badge>
+            </div>
+            <p className="text-base text-pkt-border-red font-medium">
+              KRITISK: Byggherren har etterlyst dette kravet.
+            </p>
+            <p className="text-sm text-pkt-border-red mt-1">
+              Du må svare &ldquo;uten ugrunnet opphold&rdquo;. Hvis du ikke
+              sender kravet nå, <strong>tapes hele retten til fristforlengelse</strong>{' '}
+              i denne saken (§33.6.2).
+            </p>
+          </div>
+        )}
+
+        {/* Grunnlag context display */}
+        {grunnlagEvent && grunnlagEvent.tittel && (
+          <div className="p-pkt-04 bg-pkt-surface-subtle-light-blue border-2 border-pkt-border-focus rounded-none">
+            <span className="text-sm text-pkt-text-body-subtle">
+              Knyttet til grunnlag:
+            </span>
+            <p className="font-medium text-pkt-text-body-dark mt-1">
+              {grunnlagEvent.tittel}
+              {kategoriLabel && (
+                <span className="text-pkt-text-body-subtle font-normal">
+                  {' '}
+                  ({kategoriLabel})
+                </span>
+              )}
+            </p>
+            {grunnlagEvent.dato_varslet && dagerSidenGrunnlag > 0 && (
+              <p className="text-xs text-pkt-text-body-subtle mt-1">
+                Varslet for {dagerSidenGrunnlag} dager siden
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* §33.6.1 Reduction warning - late specification without etterlysning */}
+        {erSentUtenEtterlysning && (
+          <div className="p-pkt-04 bg-amber-50 border-2 border-amber-300 rounded-none">
+            <p className="text-sm font-medium text-amber-900">
+              Risiko for avkortning (§33.6.1)
+            </p>
+            <p className="text-sm text-amber-800 mt-1">
+              Det er gått <strong>{dagerSidenGrunnlag} dager</strong> siden du
+              varslet om hendelsen. Når du venter med å spesifisere, har du kun
+              krav på den fristforlengelsen Byggherren &ldquo;måtte forstå&rdquo;
+              at du trengte. Begrunn behovet ekstra godt.
+            </p>
+          </div>
+        )}
+
         {/* Varsel Type - NS 8407 §33 */}
         <FormField
           label="Type varsel/krav (NS 8407 §33)"
@@ -366,6 +463,21 @@ export function SendFristModal({
             fullWidth
             placeholder="Beskriv hvorfor fristforlengelse er nødvendig og hvordan det påvirker fremdriften..."
             error={!!errors.begrunnelse}
+          />
+        </FormField>
+
+        {/* Berørte aktiviteter (Fremdriftsplan) */}
+        <FormField
+          label="Berørte aktiviteter (Fremdriftsplan)"
+          error={errors.berorte_aktiviteter?.message}
+          helpText="Dokumentasjon av påvirkning på kritisk linje er avgjørende for å vinne frem med kravet"
+        >
+          <Input
+            id="berorte_aktiviteter"
+            {...register('berorte_aktiviteter')}
+            fullWidth
+            placeholder="F.eks. ID 402 Tett Hus, ID 505 Innregulering"
+            error={!!errors.berorte_aktiviteter}
           />
         </FormField>
 
