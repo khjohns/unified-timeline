@@ -24,11 +24,9 @@ export type SporStatus =
 // ========== VEDERLAG ENUMS ==========
 
 export type VederlagsMetode =
-  | 'kontrakt_ep'      // Kontraktens enhetspriser (§34.3.1)
-  | 'justert_ep'       // Justerte enhetspriser (§34.3.2)
-  | 'regning'          // Regningsarbeid (§30.1)
-  | 'overslag'         // Regningsarbeid med prisoverslag (§30.2)
-  | 'tilbud';          // Fastpris / Tilbud (§34.2.1)
+  | 'ENHETSPRISER'      // Enhetspriser (§34.3) - kontrakts- eller justerte
+  | 'REGNINGSARBEID'    // Regningsarbeid med kostnadsoverslag (§30.2/§34.4)
+  | 'FASTPRIS_TILBUD';  // Fastpris / Tilbud (§34.2.1)
 
 // Vederlag beregning results (UTEN "avslatt_uenig_grunnlag" - det hører hjemme i Grunnlag!)
 export type VederlagBeregningResultat =
@@ -99,21 +97,39 @@ export interface GrunnlagTilstand {
 export interface VederlagTilstand {
   status: SporStatus;
 
-  // TE's krav
-  krevd_belop?: number;
+  // TE's krav - hovedbeløp
   metode?: VederlagsMetode;
+  belop_direkte?: number;        // For ENHETSPRISER/FASTPRIS_TILBUD (kan være negativt = fradrag)
+  kostnads_overslag?: number;    // For REGNINGSARBEID (§30.2)
+  krever_justert_ep?: boolean;   // For ENHETSPRISER - krever justerte EP
   begrunnelse?: string;
-  inkluderer_produktivitetstap?: boolean;
-  inkluderer_rigg_drift?: boolean;
-  rigg_drift_belop?: number;
-  produktivitetstap_belop?: number;
 
-  // TE's varselinfo (Port 1) - NEW: Using VarselInfo structure
+  // Særskilte krav (§34.1.3)
+  saerskilt_krav?: {
+    rigg_drift?: boolean;
+    produktivitet?: boolean;
+    belop?: number;
+    dato_klar_over?: string;     // For 7-dagers sjekk
+  };
+
+  // TE's varselinfo (Port 1) - Using VarselInfo structure
   rigg_drift_varsel?: VarselInfo;
   justert_ep_varsel?: VarselInfo;
   regningsarbeid_varsel?: VarselInfo;
   produktivitetstap_varsel?: VarselInfo;
   krav_fremmet_dato?: string;
+
+  // Legacy fields (for backwards compatibility during migration)
+  /** @deprecated Use belop_direkte or kostnads_overslag instead */
+  krevd_belop?: number;
+  /** @deprecated Use saerskilt_krav instead */
+  inkluderer_produktivitetstap?: boolean;
+  /** @deprecated Use saerskilt_krav instead */
+  inkluderer_rigg_drift?: boolean;
+  /** @deprecated Use saerskilt_krav.belop instead */
+  rigg_drift_belop?: number;
+  /** @deprecated Use saerskilt_krav.belop instead */
+  produktivitetstap_belop?: number;
 
   // BH respons - Port 1 (Varsling)
   saerskilt_varsel_rigg_drift_ok?: boolean;
@@ -270,27 +286,45 @@ export interface GrunnlagEventData {
 }
 
 export interface VederlagEventData {
-  krav_belop: number;
   metode: VederlagsMetode;
   begrunnelse: string;
   vedlegg_ids?: string[];
 
-  // Port 1: Spesifikke varsler (NEW: Using VarselInfo structure)
-  inkluderer_rigg_drift?: boolean;
-  rigg_drift_belop?: number;
-  rigg_drift_varsel?: VarselInfo;
+  // Beløp - avhenger av metode
+  belop_direkte?: number;        // For ENHETSPRISER/FASTPRIS_TILBUD (kan være negativt = fradrag)
+  kostnads_overslag?: number;    // For REGNINGSARBEID (§30.2)
 
+  // For ENHETSPRISER
   krever_justert_ep?: boolean;
+
+  // Særskilte krav (§34.1.3) - rigg/drift og produktivitetstap
+  saerskilt_krav?: {
+    rigg_drift?: boolean;
+    produktivitet?: boolean;
+    belop?: number;
+    dato_klar_over?: string;     // For 7-dagers varslingssjekk
+  };
+
+  // Varsler (VarselInfo structure)
+  rigg_drift_varsel?: VarselInfo;
   justert_ep_varsel?: VarselInfo;
-
-  krever_regningsarbeid?: boolean;
   regningsarbeid_varsel?: VarselInfo;
-
-  inkluderer_produktivitetstap?: boolean;
-  produktivitetstap_belop?: number;
   produktivitetstap_varsel?: VarselInfo;
-
   krav_fremmet_dato?: string;
+
+  // Legacy fields (deprecated)
+  /** @deprecated Use belop_direkte or kostnads_overslag instead */
+  krav_belop?: number;
+  /** @deprecated Use saerskilt_krav instead */
+  inkluderer_rigg_drift?: boolean;
+  /** @deprecated Use saerskilt_krav.belop instead */
+  rigg_drift_belop?: number;
+  /** @deprecated Use saerskilt_krav instead */
+  inkluderer_produktivitetstap?: boolean;
+  /** @deprecated Use saerskilt_krav.belop instead */
+  produktivitetstap_belop?: number;
+  /** @deprecated Not needed with new metode values */
+  krever_regningsarbeid?: boolean;
 }
 
 export interface FristEventData {
@@ -380,10 +414,16 @@ export interface ResponsGrunnlagOppdatertEventData {
 // Vederlag update event (TE revises claim amount)
 export interface VederlagOppdatertEventData {
   original_event_id: string;
-  nytt_belop?: number;
-  nytt_overslag?: number;  // For regningsarbeid
+  nytt_belop_direkte?: number;      // For ENHETSPRISER/FASTPRIS_TILBUD
+  nytt_kostnads_overslag?: number;  // For REGNINGSARBEID (§30.2)
   begrunnelse: string;
   dato_revidert: string;
+
+  // Legacy fields (deprecated)
+  /** @deprecated Use nytt_belop_direkte instead */
+  nytt_belop?: number;
+  /** @deprecated Use nytt_kostnads_overslag instead */
+  nytt_overslag?: number;
 }
 
 // Vederlag response update event (BH opphever tilbakeholdelse etc)
