@@ -4,6 +4,11 @@
  * Action modal for submitting a new vederlag (compensation) claim.
  * Uses React Hook Form + Zod for validation.
  * Now uses Radix UI primitives with Punkt design system styling.
+ *
+ * UPDATED (2025-12-05):
+ * - Added subsidiary treatment alert when grunnlag is rejected
+ * - Added display of grunnlag context (title, status)
+ * - Added preklusjon warnings with date calculations
  */
 
 import { Modal } from '../primitives/Modal';
@@ -13,6 +18,7 @@ import { Textarea } from '../primitives/Textarea';
 import { Checkbox } from '../primitives/Checkbox';
 import { FormField } from '../primitives/FormField';
 import { DatePicker } from '../primitives/DatePicker';
+import { Badge } from '../primitives/Badge';
 import {
   Select,
   SelectContent,
@@ -29,6 +35,7 @@ import {
   VARSEL_METODER_OPTIONS,
   VEDERLAGSMETODE_DESCRIPTIONS,
 } from '../../constants';
+import { differenceInDays } from 'date-fns';
 
 const vederlagSchema = z.object({
   krav_belop: z.number().min(1, 'Beløp må være større enn 0'),
@@ -62,16 +69,26 @@ const vederlagSchema = z.object({
 
 type VederlagFormData = z.infer<typeof vederlagSchema>;
 
+// Grunnlag event info for context display
+interface GrunnlagEventInfo {
+  tittel?: string;
+  status?: 'godkjent' | 'avvist_uenig' | 'delvis_godkjent';
+  dato_varslet?: string;
+}
+
 interface SendVederlagModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sakId: string;
+  /** Optional grunnlag event data for context display and subsidiary logic */
+  grunnlagEvent?: GrunnlagEventInfo;
 }
 
 export function SendVederlagModal({
   open,
   onOpenChange,
   sakId,
+  grunnlagEvent,
 }: SendVederlagModalProps) {
   const {
     register,
@@ -112,6 +129,18 @@ export function SendVederlagModal({
   const produktivitetstapVarselSendesNa = watch('produktivitetstap_varsel_sendes_na');
   const kreverRegningsarbeid = watch('krever_regningsarbeid');
   const regningsarbeidVarselSendesNa = watch('regningsarbeid_varsel_sendes_na');
+
+  // Determine if this is a subsidiary claim (grunnlag was rejected)
+  const erSubsidiaer = grunnlagEvent?.status === 'avvist_uenig';
+
+  // Calculate days since grunnlag was submitted (for preclusion warnings)
+  const dagerSidenGrunnlag = grunnlagEvent?.dato_varslet
+    ? differenceInDays(new Date(), new Date(grunnlagEvent.dato_varslet))
+    : 0;
+
+  // Preclusion warning thresholds
+  const erPreklusjonRisiko = dagerSidenGrunnlag > 3; // "uten ugrunnet opphold"
+  const erPreklusjonKritisk = dagerSidenGrunnlag > 14;
 
   const onSubmit = (data: VederlagFormData) => {
     // Build VarselInfo structures
@@ -198,6 +227,72 @@ export function SendVederlagModal({
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-pkt-06">
+        {/* Grunnlag context display */}
+        {grunnlagEvent && grunnlagEvent.tittel && (
+          <div className="p-pkt-04 bg-pkt-surface-subtle-light-blue border-2 border-pkt-border-focus rounded-none">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-pkt-text-body-subtle">
+                Knyttet til grunnlag:
+              </span>
+              {erSubsidiaer && (
+                <Badge variant="warning">Subsidiær behandling</Badge>
+              )}
+            </div>
+            <p className="font-medium text-pkt-text-body-dark mt-1">
+              {grunnlagEvent.tittel}
+            </p>
+            {grunnlagEvent.dato_varslet && dagerSidenGrunnlag > 0 && (
+              <p className="text-xs text-pkt-text-body-subtle mt-1">
+                Varslet for {dagerSidenGrunnlag} dager siden
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Subsidiary treatment alert */}
+        {erSubsidiaer && (
+          <div className="p-pkt-04 bg-amber-50 border-2 border-amber-300 rounded-none">
+            <p className="text-sm font-medium text-amber-900 mb-1">
+              Subsidiær behandling
+            </p>
+            <p className="text-sm text-amber-800">
+              Ansvarsgrunnlaget er avvist av Byggherre. Du sender nå inn dette
+              kravet for <strong>subsidiær behandling</strong>. Dette sikrer at
+              kravet ditt er registrert og beregnet iht. fristene i NS 8407,
+              selv om ansvaret er omtvistet.
+            </p>
+          </div>
+        )}
+
+        {/* Preclusion warning */}
+        {erPreklusjonKritisk && (
+          <div
+            className="p-pkt-05 bg-pkt-surface-subtle-light-red border-2 border-pkt-border-red rounded-none"
+            role="alert"
+          >
+            <p className="text-base text-pkt-border-red font-medium">
+              Preklusjonsfare (§34.1)
+            </p>
+            <p className="text-sm text-pkt-border-red mt-1">
+              Det er gått <strong>{dagerSidenGrunnlag} dager</strong> siden
+              grunnlaget ble varslet. Kravet må sendes &ldquo;uten ugrunnet
+              opphold&rdquo;. Du risikerer at retten til vederlagsjustering er
+              tapt eller redusert.
+            </p>
+          </div>
+        )}
+        {erPreklusjonRisiko && !erPreklusjonKritisk && (
+          <div className="p-pkt-04 bg-amber-50 border-2 border-amber-300 rounded-none">
+            <p className="text-sm font-medium text-amber-900">
+              Varsel om frist (§34.1)
+            </p>
+            <p className="text-sm text-amber-800 mt-1">
+              Det er gått {dagerSidenGrunnlag} dager siden grunnlaget ble
+              varslet. Kravet bør sendes snarest for å unngå preklusjonsrisiko.
+            </p>
+          </div>
+        )}
+
         {/* Amount Field */}
         <FormField
           label="Krevd beløp (NOK)"
