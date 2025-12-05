@@ -163,8 +163,8 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
 
               .rdp-day {
                 font-size: 16px;
-                width: 40px;
-                height: 40px;
+                width: 36px;
+                height: 36px;
                 border-radius: 0;
               }
 

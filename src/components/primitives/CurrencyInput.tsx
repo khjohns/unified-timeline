@@ -116,8 +116,8 @@ export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
             onChange={handleChange}
             onBlur={handleBlur}
             className={clsx(
-              // Base styles - 44px minimum height for WCAG 2.5.5
-              'px-pkt-04 py-pkt-04 min-h-[44px] pr-16',
+              // Base styles - standard input size
+              'px-pkt-04 py-pkt-03 min-h-[40px] pr-16',
               'text-base font-normal text-right',
               'bg-pkt-bg-default',
               'transition-colors duration-200',
