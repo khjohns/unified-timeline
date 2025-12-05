@@ -103,7 +103,7 @@ export function RespondFristModal({
 
   // §33.8: Show forsering warning when rejecting or partial approval
   const visForsering =
-    selectedResultat === 'avvist_uenig' ||
+    selectedResultat === 'avslatt_ingen_hindring' ||
     (selectedResultat === 'delvis_godkjent' &&
       godkjentDager !== undefined &&
       godkjentDager < effektivKrevdDager);
