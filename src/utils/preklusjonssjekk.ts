@@ -232,3 +232,61 @@ export function erOverslagsokningVarselpliktig(
   const okning = (nyttOverslag - gammeltOverslag) / gammeltOverslag;
   return okning > vesentlighetsterskel;
 }
+
+/**
+ * Get preclusion warning based on time between two dates (e.g., discovery and notification)
+ * Used when user reports that notification was sent earlier (not now via system)
+ */
+export function getPreklusjonsvarselMellomDatoer(
+  datoOppdaget: string | Date,
+  datoVarselSendt: string | Date,
+  regelType?: string
+): PreklusjonsResultat {
+  const parsedOppdaget = typeof datoOppdaget === 'string' ? parseISO(datoOppdaget) : datoOppdaget;
+  const parsedVarsel = typeof datoVarselSendt === 'string' ? parseISO(datoVarselSendt) : datoVarselSendt;
+  const dager = differenceInDays(parsedVarsel, parsedOppdaget);
+
+  // Negative days means varsel was sent before discovery (which is fine/unusual)
+  if (dager < 0) {
+    return {
+      status: 'ok',
+      dagerSiden: 0,
+      alert: {
+        variant: 'info',
+        title: 'Varseldato før oppdagelse',
+        message: 'Varselet ble sendt før oppdagelsesdato. Kontroller at datoene er korrekte.',
+      },
+    };
+  }
+
+  const kritisk = erPreklusjonKritisk(dager, regelType);
+
+  if (kritisk) {
+    return {
+      status: 'kritisk',
+      dagerSiden: dager,
+      alert: {
+        variant: 'danger',
+        title: 'Preklusjonsrisiko ved varsling',
+        message: `Det gikk ${dager} dager fra oppdagelse til varsling. NS 8407 krever varsling "uten ugrunnet opphold". Dokumenter godt hvorfor det tok tid.`,
+      },
+    };
+  }
+
+  if (dager > VARSEL_TERSKEL_DAGER) {
+    return {
+      status: 'varsel',
+      dagerSiden: dager,
+      alert: {
+        variant: 'warning',
+        title: 'Varselfrist',
+        message: `Det gikk ${dager} dager fra oppdagelse til varsling. Sørg for å dokumentere årsaken til tidsbruken.`,
+      },
+    };
+  }
+
+  return {
+    status: 'ok',
+    dagerSiden: dager,
+  };
+}

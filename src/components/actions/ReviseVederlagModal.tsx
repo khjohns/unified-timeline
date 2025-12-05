@@ -2,7 +2,11 @@
  * ReviseVederlagModal Component
  *
  * Modal for TE to revise vederlag claim amount or cost estimate.
- * Key logic: For REGNINGSARBEID, increasing overslag triggers varslingsplikt (§30.2)
+ * Key logic: For REGNINGSARBEID, ANY increase in overslag triggers varslingsplikt (§30.2)
+ *
+ * UPDATED (2025-12-05):
+ * - Synced interface with SendVederlagModal (uppercase metode, consistent fields)
+ * - Changed overslagsøkning to trigger on ANY increase per §30.2 andre ledd
  */
 
 import { Modal } from '../primitives/Modal';
@@ -17,36 +21,38 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
 import { useMemo } from 'react';
-import { VederlagTilstand, VederlagsMetode } from '../../types/timeline';
-import { erOverslagsokningVarselpliktig } from '../../utils/preklusjonssjekk';
 
 const reviseVederlagSchema = z.object({
-  nytt_belop: z.number().optional(),
-  nytt_overslag: z.number().optional(),
+  nytt_belop_direkte: z.number().optional(),
+  nytt_kostnads_overslag: z.number().optional(),
   begrunnelse: z.string().min(10, 'Begrunnelse er påkrevd'),
 });
 
 type ReviseVederlagFormData = z.infer<typeof reviseVederlagSchema>;
 
+// Metode type synced with SendVederlagModal
+type VederlagsMetode = 'ENHETSPRISER' | 'REGNINGSARBEID' | 'FASTPRIS_TILBUD';
+
+// Last vederlag event info - matches SendVederlagModal payload structure
+interface LastVederlagEventInfo {
+  event_id: string;
+  metode: VederlagsMetode;
+  belop_direkte?: number;
+  kostnads_overslag?: number;
+  begrunnelse?: string;
+}
+
 interface ReviseVederlagModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sakId: string;
-  lastVederlagEvent: {
-    event_id: string;
-    belop: number;
-    metode: VederlagsMetode;
-    overslag?: number;
-  };
-  vederlagTilstand: VederlagTilstand;
+  lastVederlagEvent: LastVederlagEventInfo;
 }
 
 const METODE_LABELS: Record<VederlagsMetode, string> = {
-  kontrakt_ep: 'Kontraktens enhetspriser',
-  justert_ep: 'Justerte enhetspriser',
-  regning: 'Regningsarbeid',
-  overslag: 'Regningsarbeid med overslag',
-  tilbud: 'Fastpris/Tilbud',
+  ENHETSPRISER: 'Enhetspriser (§34.3)',
+  REGNINGSARBEID: 'Regningsarbeid (§34.4)',
+  FASTPRIS_TILBUD: 'Fastpris/Tilbud (§34.2.1)',
 };
 
 export function ReviseVederlagModal({
@@ -54,11 +60,14 @@ export function ReviseVederlagModal({
   onOpenChange,
   sakId,
   lastVederlagEvent,
-  vederlagTilstand,
 }: ReviseVederlagModalProps) {
-  const erRegningsarbeid = lastVederlagEvent.metode === 'overslag' ||
-    lastVederlagEvent.metode === 'regning';
-  const harOverslag = lastVederlagEvent.metode === 'overslag';
+  // Determine if this is regningsarbeid (uses kostnads_overslag instead of belop_direkte)
+  const erRegningsarbeid = lastVederlagEvent.metode === 'REGNINGSARBEID';
+
+  // Get current values based on metode
+  const gjeldendeBelop = erRegningsarbeid
+    ? lastVederlagEvent.kostnads_overslag
+    : lastVederlagEvent.belop_direkte;
 
   const {
     handleSubmit,
@@ -69,31 +78,34 @@ export function ReviseVederlagModal({
   } = useForm<ReviseVederlagFormData>({
     resolver: zodResolver(reviseVederlagSchema),
     defaultValues: {
-      nytt_belop: harOverslag ? undefined : lastVederlagEvent.belop,
-      nytt_overslag: harOverslag ? lastVederlagEvent.overslag : undefined,
+      nytt_belop_direkte: erRegningsarbeid ? undefined : lastVederlagEvent.belop_direkte,
+      nytt_kostnads_overslag: erRegningsarbeid ? lastVederlagEvent.kostnads_overslag : undefined,
       begrunnelse: '',
     },
   });
 
-  const nyttBelop = watch('nytt_belop');
-  const nyttOverslag = watch('nytt_overslag');
+  const nyttBelopDirekte = watch('nytt_belop_direkte');
+  const nyttKostnadsOverslag = watch('nytt_kostnads_overslag');
 
-  // Check if overslag increase triggers varslingsplikt (§30.2)
+  // §30.2 andre ledd: ANY increase in overslag triggers varslingsplikt
+  // TE must notify "uten ugrunnet opphold" when there is "grunn til å anta" overslag will be exceeded
   const overslagsokningVarselpliktig = useMemo(() => {
-    if (!harOverslag || !nyttOverslag || !lastVederlagEvent.overslag) return false;
-    return erOverslagsokningVarselpliktig(lastVederlagEvent.overslag, nyttOverslag);
-  }, [harOverslag, nyttOverslag, lastVederlagEvent.overslag]);
+    if (!erRegningsarbeid) return false;
+    if (!nyttKostnadsOverslag || !lastVederlagEvent.kostnads_overslag) return false;
+    // Any increase triggers warning - per §30.2 andre ledd
+    return nyttKostnadsOverslag > lastVederlagEvent.kostnads_overslag;
+  }, [erRegningsarbeid, nyttKostnadsOverslag, lastVederlagEvent.kostnads_overslag]);
 
   // Calculate change amounts
   const belopEndring = useMemo(() => {
-    if (harOverslag) {
-      if (!nyttOverslag || !lastVederlagEvent.overslag) return null;
-      return nyttOverslag - lastVederlagEvent.overslag;
+    if (erRegningsarbeid) {
+      if (!nyttKostnadsOverslag || !lastVederlagEvent.kostnads_overslag) return null;
+      return nyttKostnadsOverslag - lastVederlagEvent.kostnads_overslag;
     } else {
-      if (!nyttBelop) return null;
-      return nyttBelop - lastVederlagEvent.belop;
+      if (!nyttBelopDirekte || !lastVederlagEvent.belop_direkte) return null;
+      return nyttBelopDirekte - lastVederlagEvent.belop_direkte;
     }
-  }, [harOverslag, nyttBelop, nyttOverslag, lastVederlagEvent]);
+  }, [erRegningsarbeid, nyttBelopDirekte, nyttKostnadsOverslag, lastVederlagEvent]);
 
   const mutation = useSubmitEvent(sakId, {
     onSuccess: () => {
@@ -107,8 +119,8 @@ export function ReviseVederlagModal({
       eventType: 'vederlag_krav_oppdatert',
       data: {
         original_event_id: lastVederlagEvent.event_id,
-        nytt_belop: harOverslag ? undefined : data.nytt_belop,
-        nytt_overslag: harOverslag ? data.nytt_overslag : undefined,
+        nytt_belop_direkte: erRegningsarbeid ? undefined : data.nytt_belop_direkte,
+        nytt_kostnads_overslag: erRegningsarbeid ? data.nytt_kostnads_overslag : undefined,
         begrunnelse: data.begrunnelse,
         dato_revidert: new Date().toISOString().split('T')[0],
       },
@@ -133,35 +145,35 @@ export function ReviseVederlagModal({
             </div>
             <div className="text-right">
               <p className="text-sm text-gray-600">
-                {harOverslag ? 'Nåværende overslag:' : 'Nåværende krav:'}
+                {erRegningsarbeid ? 'Nåværende overslag:' : 'Nåværende krav:'}
               </p>
               <p className="text-2xl font-bold">
-                kr {(harOverslag ? lastVederlagEvent.overslag : lastVederlagEvent.belop)?.toLocaleString('nb-NO')},-
+                kr {gjeldendeBelop?.toLocaleString('nb-NO')},-
               </p>
             </div>
           </div>
         </div>
 
-        {/* Overslag increase warning (§30.2) */}
+        {/* Overslag increase warning (§30.2) - ANY increase triggers warning */}
         {overslagsokningVarselpliktig && (
-          <Alert variant="danger" title="Varslingspikt (§30.2)">
+          <Alert variant="danger" title="Varslingsplikt (§30.2 andre ledd)">
             <p>
-              Overslagsøkningen på mer enn 15% utløser varslingspikt. Du må varsle BH
-              "uten ugrunnet opphold" om at kostnadene vil overskride opprinnelig overslag.
+              Du øker kostnadsoverslaget. I henhold til §30.2 andre ledd <strong>må</strong> du varsle BH
+              &ldquo;uten ugrunnet opphold&rdquo; når det er grunn til å anta at overslaget vil bli overskredet.
             </p>
             <p className="mt-2 text-sm">
-              Ved å sende denne revisjonen, dokumenterer du at varselet nå sendes.
+              Ved å sende denne revisjonen dokumenterer du varselet. Begrunn hvorfor kostnadene øker.
             </p>
           </Alert>
         )}
 
         {/* New amount/estimate input */}
         <FormField
-          label={harOverslag ? 'Nytt prisoverslag' : 'Nytt beløp'}
-          helpText={harOverslag ? 'Det reviderte overslaget for regningsarbeidet' : undefined}
+          label={erRegningsarbeid ? 'Nytt kostnadsoverslag' : 'Nytt beløp'}
+          helpText={erRegningsarbeid ? 'Det reviderte overslaget for regningsarbeidet' : undefined}
         >
           <Controller
-            name={harOverslag ? 'nytt_overslag' : 'nytt_belop'}
+            name={erRegningsarbeid ? 'nytt_kostnads_overslag' : 'nytt_belop_direkte'}
             control={control}
             render={({ field }) => (
               <CurrencyInput
@@ -174,14 +186,14 @@ export function ReviseVederlagModal({
         </FormField>
 
         {/* Change display */}
-        {belopEndring !== null && belopEndring !== 0 && (
+        {belopEndring !== null && belopEndring !== 0 && gjeldendeBelop && (
           <div className={`p-3 rounded border ${belopEndring > 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
             <p className="text-sm">
               Endring: <strong className={belopEndring > 0 ? 'text-red-700' : 'text-green-700'}>
                 {belopEndring > 0 ? '+' : ''}{belopEndring.toLocaleString('nb-NO')} kr
               </strong>
               {' '}
-              ({((belopEndring / (harOverslag ? lastVederlagEvent.overslag! : lastVederlagEvent.belop)) * 100).toFixed(1)}%)
+              ({((belopEndring / gjeldendeBelop) * 100).toFixed(1)}%)
             </p>
           </div>
         )}

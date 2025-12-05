@@ -229,10 +229,17 @@ export function RespondGrunnlagModal({
                   {BH_GRUNNLAGSVAR_OPTIONS.filter((opt) => {
                     // Filter out empty placeholder
                     if (opt.value === '') return false;
+
+                    // Force Majeure: ONLY show "erkjenn_fm" option (§33.3)
+                    // FM is a special category - you can only recognize it or not
+                    if (erForceMajeure) {
+                      return opt.value === 'erkjenn_fm';
+                    }
+
+                    // Non-FM cases: filter out FM option and conditional options
+                    if (opt.value === 'erkjenn_fm') return false;
                     // Filter out "frafalt" if NOT irregular change (§32.3 c)
                     if (opt.value === 'frafalt' && !erIrregulaer) return false;
-                    // Filter out "erkjenn_fm" if NOT Force Majeure (§33.3)
-                    if (opt.value === 'erkjenn_fm' && !erForceMajeure) return false;
                     return true;
                   }).map((option) => (
                     <SelectItem key={option.value} value={option.value}>

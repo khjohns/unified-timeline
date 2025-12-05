@@ -3,12 +3,15 @@
  *
  * Action modal for submitting a new vederlag (compensation) claim.
  * Uses React Hook Form + Zod for validation.
- * Now uses Radix UI primitives with Punkt design system styling.
  *
  * UPDATED (2025-12-05):
  * - Added subsidiary treatment alert when grunnlag is rejected
- * - Added display of grunnlag context (title, status)
- * - Added preklusjon warnings with date calculations
+ * - Restructured to match NS 8407 spec:
+ *   - belopDirekte with support for negative values (fradrag)
+ *   - RadioGroup for method selection (vertical)
+ *   - Combined rigg/drift + produktivitet with shared datoKlarOver and 7-day check
+ *   - kreverJustertEP as checkbox under ENHETSPRISER method
+ *   - Bevisbyrde warning for regningsarbeid without prior notice
  */
 
 import { Modal } from '../primitives/Modal';
@@ -19,52 +22,38 @@ import { Checkbox } from '../primitives/Checkbox';
 import { FormField } from '../primitives/FormField';
 import { DatePicker } from '../primitives/DatePicker';
 import { Badge } from '../primitives/Badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../primitives/Select';
+import { Alert } from '../primitives/Alert';
+import { RadioGroup, RadioItem } from '../primitives/RadioGroup';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
-import {
-  VEDERLAGSMETODER_OPTIONS,
-  VARSEL_METODER_OPTIONS,
-  VEDERLAGSMETODE_DESCRIPTIONS,
-} from '../../constants';
+import { useMemo } from 'react';
 import { differenceInDays } from 'date-fns';
+import { sjekkRiggDriftFrist } from '../../utils/preklusjonssjekk';
 
 const vederlagSchema = z.object({
-  krav_belop: z.number().min(1, 'Beløp må være større enn 0'),
-  metode: z.string().min(1, 'Metode er påkrevd'),
+  // Direkte kostnader - tillater negative for fradrag (§34.4)
+  belop_direkte: z.number().optional(),
+  metode: z.enum(['ENHETSPRISER', 'REGNINGSARBEID', 'FASTPRIS_TILBUD'], {
+    errorMap: () => ({ message: 'Beregningsmetode er påkrevd' }),
+  }),
   begrunnelse: z.string().min(10, 'Begrunnelse må være minst 10 tegn'),
 
-  // Rigg & Drift (§34.1.3)
-  inkluderer_rigg_drift: z.boolean().optional(),
-  rigg_drift_belop: z.number().optional(),
-  rigg_drift_varsel_sendes_na: z.boolean().optional(),
-  rigg_drift_varsel_dato: z.string().optional(),
-  rigg_drift_varsel_metoder: z.array(z.string()).optional(),
+  // Kostnadsoverslag for regningsarbeid (§30.2)
+  kostnads_overslag: z.number().optional(),
 
-  // Produktivitetstap (§34.1.3, 2. ledd)
-  inkluderer_produktivitetstap: z.boolean().optional(),
-  produktivitetstap_belop: z.number().optional(),
-  produktivitetstap_varsel_sendes_na: z.boolean().optional(),
-  produktivitetstap_varsel_dato: z.string().optional(),
-  produktivitetstap_varsel_metoder: z.array(z.string()).optional(),
+  // Justerte enhetspriser (§34.3.3) - kun for ENHETSPRISER metode
+  krever_justert_ep: z.boolean().optional(),
 
-  // Regningsarbeid (§30.1)
-  krever_regningsarbeid: z.boolean().optional(),
-  regningsarbeid_varsel_sendes_na: z.boolean().optional(),
-  regningsarbeid_varsel_dato: z.string().optional(),
-  regningsarbeid_varsel_metoder: z.array(z.string()).optional(),
+  // Regningsarbeid (§34.4)
+  varslet_for_oppstart: z.boolean().optional(),
 
-  // Justerte enhetspriser (§34.3.3) - kun relevant hvis metode='justert_ep'
-  justert_ep_varsel_dato: z.string().optional(),
-  justert_ep_varsel_metoder: z.array(z.string()).optional(),
+  // Særskilte krav (§34.1.3) - Rigg/Drift og Produktivitet
+  har_rigg_krav: z.boolean().optional(),
+  har_produktivitet_krav: z.boolean().optional(),
+  belop_saerskilt: z.number().optional(),
+  dato_klar_over: z.string().optional(),
 });
 
 type VederlagFormData = z.infer<typeof vederlagSchema>;
@@ -84,6 +73,25 @@ interface SendVederlagModalProps {
   grunnlagEvent?: GrunnlagEventInfo;
 }
 
+// Method options for RadioGroup
+const METODE_OPTIONS = [
+  {
+    value: 'ENHETSPRISER',
+    label: 'Enhetspriser (§34.3)',
+    description: 'Beregning basert på kontraktens enhetspriser',
+  },
+  {
+    value: 'REGNINGSARBEID',
+    label: 'Regningsarbeid (§34.4)',
+    description: 'Kostnader faktureres løpende etter medgått tid og materialer',
+  },
+  {
+    value: 'FASTPRIS_TILBUD',
+    label: 'Fastpris/Tilbud (§34.2.1)',
+    description: 'Avtalt fastpris for endringsarbeidet',
+  },
+] as const;
+
 export function SendVederlagModal({
   open,
   onOpenChange,
@@ -100,17 +108,11 @@ export function SendVederlagModal({
   } = useForm<VederlagFormData>({
     resolver: zodResolver(vederlagSchema),
     defaultValues: {
-      metode: '',
-      inkluderer_rigg_drift: false,
-      rigg_drift_varsel_sendes_na: false,
-      rigg_drift_varsel_metoder: [],
-      inkluderer_produktivitetstap: false,
-      produktivitetstap_varsel_sendes_na: false,
-      produktivitetstap_varsel_metoder: [],
-      krever_regningsarbeid: false,
-      regningsarbeid_varsel_sendes_na: false,
-      regningsarbeid_varsel_metoder: [],
-      justert_ep_varsel_metoder: [],
+      metode: undefined,
+      krever_justert_ep: false,
+      varslet_for_oppstart: true,
+      har_rigg_krav: false,
+      har_produktivitet_krav: false,
     },
   });
 
@@ -123,97 +125,43 @@ export function SendVederlagModal({
 
   // Watch form values for conditional rendering
   const selectedMetode = watch('metode');
-  const inkludererRiggDrift = watch('inkluderer_rigg_drift');
-  const riggDriftVarselSendesNa = watch('rigg_drift_varsel_sendes_na');
-  const inkludererProduktivitetstap = watch('inkluderer_produktivitetstap');
-  const produktivitetstapVarselSendesNa = watch('produktivitetstap_varsel_sendes_na');
-  const kreverRegningsarbeid = watch('krever_regningsarbeid');
-  const regningsarbeidVarselSendesNa = watch('regningsarbeid_varsel_sendes_na');
+  const kreverJustertEp = watch('krever_justert_ep');
+  const varsletForOppstart = watch('varslet_for_oppstart');
+  const harRiggKrav = watch('har_rigg_krav');
+  const harProduktivitetKrav = watch('har_produktivitet_krav');
+  const datoKlarOver = watch('dato_klar_over');
 
   // Determine if this is a subsidiary claim (grunnlag was rejected)
   const erSubsidiaer = grunnlagEvent?.status === 'avvist_uenig';
 
-  // Calculate days since grunnlag was submitted (for preclusion warnings)
-  const dagerSidenGrunnlag = grunnlagEvent?.dato_varslet
-    ? differenceInDays(new Date(), new Date(grunnlagEvent.dato_varslet))
-    : 0;
-
-  // Preclusion warning thresholds
-  const erPreklusjonRisiko = dagerSidenGrunnlag > 3; // "uten ugrunnet opphold"
-  const erPreklusjonKritisk = dagerSidenGrunnlag > 14;
+  // Check preclusion for særskilte krav (§34.1.3) - 7 days threshold
+  const saerskiltPreklusjon = useMemo(() => {
+    if ((!harRiggKrav && !harProduktivitetKrav) || !datoKlarOver) return null;
+    return sjekkRiggDriftFrist(datoKlarOver);
+  }, [harRiggKrav, harProduktivitetKrav, datoKlarOver]);
 
   const onSubmit = (data: VederlagFormData) => {
-    // Build VarselInfo structures
-    // For rigg_drift: use today's date and 'system' method if "sendes nå" is checked
-    const riggDriftDato = data.rigg_drift_varsel_sendes_na
-      ? new Date().toISOString().split('T')[0]
-      : data.rigg_drift_varsel_dato;
-
-    const riggDriftMetode = data.rigg_drift_varsel_sendes_na
-      ? ['system']
-      : (data.rigg_drift_varsel_metoder || []);
-
-    const riggDriftVarsel = riggDriftDato
-      ? {
-          dato_sendt: riggDriftDato,
-          metode: riggDriftMetode,
-        }
-      : undefined;
-
-    // For produktivitetstap: use today's date and 'system' method if "sendes nå" is checked
-    const produktivitetstapDato = data.produktivitetstap_varsel_sendes_na
-      ? new Date().toISOString().split('T')[0]
-      : data.produktivitetstap_varsel_dato;
-
-    const produktivitetstapMetode = data.produktivitetstap_varsel_sendes_na
-      ? ['system']
-      : (data.produktivitetstap_varsel_metoder || []);
-
-    const produktivitetstapVarsel = produktivitetstapDato
-      ? {
-          dato_sendt: produktivitetstapDato,
-          metode: produktivitetstapMetode,
-        }
-      : undefined;
-
-    // For regningsarbeid: use today's date and 'system' method if "sendes nå" is checked
-    const regningsarbeidDato = data.regningsarbeid_varsel_sendes_na
-      ? new Date().toISOString().split('T')[0]
-      : data.regningsarbeid_varsel_dato;
-
-    const regningsarbeidMetode = data.regningsarbeid_varsel_sendes_na
-      ? ['system']
-      : (data.regningsarbeid_varsel_metoder || []);
-
-    const regningsarbeidVarsel = regningsarbeidDato
-      ? {
-          dato_sendt: regningsarbeidDato,
-          metode: regningsarbeidMetode,
-        }
-      : undefined;
-
-    const justertEpVarsel = data.justert_ep_varsel_dato
-      ? {
-          dato_sendt: data.justert_ep_varsel_dato,
-          metode: data.justert_ep_varsel_metoder || [],
-        }
-      : undefined;
+    // Build særskilt krav structure
+    const saerskiltKrav =
+      data.har_rigg_krav || data.har_produktivitet_krav
+        ? {
+            rigg_drift: data.har_rigg_krav,
+            produktivitet: data.har_produktivitet_krav,
+            belop: data.belop_saerskilt,
+            dato_klar_over: data.dato_klar_over,
+          }
+        : null;
 
     mutation.mutate({
       eventType: 'vederlag_krav_sendt',
       data: {
-        krav_belop: data.krav_belop,
+        belop_direkte: data.metode === 'REGNINGSARBEID' ? undefined : data.belop_direkte,
+        kostnads_overslag: data.metode === 'REGNINGSARBEID' ? data.kostnads_overslag : undefined,
         metode: data.metode,
         begrunnelse: data.begrunnelse,
-        inkluderer_rigg_drift: data.inkluderer_rigg_drift,
-        rigg_drift_belop: data.rigg_drift_belop,
-        rigg_drift_varsel: riggDriftVarsel,
-        inkluderer_produktivitetstap: data.inkluderer_produktivitetstap,
-        produktivitetstap_belop: data.produktivitetstap_belop,
-        produktivitetstap_varsel: produktivitetstapVarsel,
-        krever_regningsarbeid: data.krever_regningsarbeid,
-        regningsarbeid_varsel: regningsarbeidVarsel,
-        justert_ep_varsel: justertEpVarsel,
+        krever_justert_ep: data.metode === 'ENHETSPRISER' ? data.krever_justert_ep : undefined,
+        varslet_for_oppstart: data.metode === 'REGNINGSARBEID' ? data.varslet_for_oppstart : undefined,
+        saerskilt_krav: saerskiltKrav,
       },
     });
   };
@@ -222,17 +170,17 @@ export function SendVederlagModal({
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title="Send vederlagskrav"
-      description="Fyll ut detaljer for det nye vederlagskravet."
+      title="Krav om Vederlagsjustering"
+      description="Fyll ut detaljer for kravet om vederlagsjustering."
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-pkt-06">
         {/* Grunnlag context display */}
         {grunnlagEvent && grunnlagEvent.tittel && (
-          <div className="p-pkt-04 bg-pkt-surface-subtle-light-blue border-2 border-pkt-border-focus rounded-none">
+          <div className="p-pkt-04 bg-pkt-surface-subtle border-2 border-pkt-border-subtle rounded-none">
             <div className="flex items-center justify-between">
               <span className="text-sm text-pkt-text-body-subtle">
-                Knyttet til grunnlag:
+                Knyttet til:
               </span>
               {erSubsidiaer && (
                 <Badge variant="warning">Subsidiær behandling</Badge>
@@ -241,447 +189,261 @@ export function SendVederlagModal({
             <p className="font-medium text-pkt-text-body-dark mt-1">
               {grunnlagEvent.tittel}
             </p>
-            {grunnlagEvent.dato_varslet && dagerSidenGrunnlag > 0 && (
-              <p className="text-xs text-pkt-text-body-subtle mt-1">
-                Varslet for {dagerSidenGrunnlag} dager siden
-              </p>
-            )}
           </div>
         )}
 
         {/* Subsidiary treatment alert */}
         {erSubsidiaer && (
-          <div className="p-pkt-04 bg-amber-50 border-2 border-amber-300 rounded-none">
-            <p className="text-sm font-medium text-amber-900 mb-1">
-              Subsidiær behandling
-            </p>
-            <p className="text-sm text-amber-800">
-              Ansvarsgrunnlaget er avvist av Byggherre. Du sender nå inn dette
-              kravet for <strong>subsidiær behandling</strong>. Dette sikrer at
-              kravet ditt er registrert og beregnet iht. fristene i NS 8407,
-              selv om ansvaret er omtvistet.
-            </p>
-          </div>
+          <Alert variant="info">
+            <strong>Merk:</strong> Ansvarsgrunnlaget er avvist av Byggherre.
+            Du sender nå inn dette kravet for <strong>subsidiær behandling</strong>.
+            Dette sikrer at kravet ditt er registrert og beregnet iht. fristene i NS 8407.
+          </Alert>
         )}
 
-        {/* Preclusion warning */}
-        {erPreklusjonKritisk && (
-          <div
-            className="p-pkt-05 bg-pkt-surface-subtle-light-red border-2 border-pkt-border-red rounded-none"
-            role="alert"
-          >
-            <p className="text-base text-pkt-border-red font-medium">
-              Preklusjonsfare (§34.1)
-            </p>
-            <p className="text-sm text-pkt-border-red mt-1">
-              Det er gått <strong>{dagerSidenGrunnlag} dager</strong> siden
-              grunnlaget ble varslet. Kravet må sendes &ldquo;uten ugrunnet
-              opphold&rdquo;. Du risikerer at retten til vederlagsjustering er
-              tapt eller redusert.
-            </p>
-          </div>
-        )}
-        {erPreklusjonRisiko && !erPreklusjonKritisk && (
-          <div className="p-pkt-04 bg-amber-50 border-2 border-amber-300 rounded-none">
-            <p className="text-sm font-medium text-amber-900">
-              Varsel om frist (§34.1)
-            </p>
-            <p className="text-sm text-amber-800 mt-1">
-              Det er gått {dagerSidenGrunnlag} dager siden grunnlaget ble
-              varslet. Kravet bør sendes snarest for å unngå preklusjonsrisiko.
-            </p>
-          </div>
-        )}
-
-        {/* Amount Field */}
+        {/* 1. Beregningsmetode (§34.2) - RadioGroup vertical */}
         <FormField
-          label="Krevd beløp (NOK)"
-          required
-          error={errors.krav_belop?.message}
-        >
-          <Input
-            id="krav_belop"
-            type="number"
-            step="0.01"
-            {...register('krav_belop', { valueAsNumber: true })}
-            fullWidth
-            placeholder="0.00"
-            error={!!errors.krav_belop}
-          />
-        </FormField>
-
-        {/* Method Field - Using NS 8407 options */}
-        <FormField
-          label="Vederlagsmetode (NS 8407)"
+          label="Beregningsmetode (§34.2)"
           required
           error={errors.metode?.message}
-          labelTooltip="Velg beregningsmetode iht. NS 8407 kapittel 34. Påvirker indeksregulering og varslingskrav."
-          helpText={selectedMetode && VEDERLAGSMETODE_DESCRIPTIONS[selectedMetode] ? VEDERLAGSMETODE_DESCRIPTIONS[selectedMetode] : undefined}
         >
           <Controller
             name="metode"
             control={control}
             render={({ field }) => (
-              <Select value={field.value} onValueChange={field.onChange}>
-                <SelectTrigger error={!!errors.metode}>
-                  <SelectValue placeholder="Velg metode" />
-                </SelectTrigger>
-                <SelectContent>
-                  {VEDERLAGSMETODER_OPTIONS.filter(opt => opt.value !== '').map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <RadioGroup
+                value={field.value}
+                onValueChange={field.onChange}
+              >
+                {METODE_OPTIONS.map((option) => (
+                  <RadioItem
+                    key={option.value}
+                    value={option.value}
+                    label={option.label}
+                    description={option.description}
+                  />
+                ))}
+              </RadioGroup>
             )}
           />
         </FormField>
 
-        {/* Justification Field */}
+        {/* 2. Direkte kostnader - Metodespesifikk */}
+        <div className="bg-gray-50 p-4 rounded border border-gray-200">
+          <h4 className="font-bold text-sm mb-3">Direkte kostnader (Materialer/Arbeid)</h4>
+
+          {selectedMetode === 'ENHETSPRISER' && (
+            <>
+              <FormField
+                label="Sum direkte kostnader (Bruk minus for fradrag)"
+                required
+                error={errors.belop_direkte?.message}
+                helpText="Fradrag skal gjøres med reduksjon for fortjeneste (§34.4)"
+              >
+                <Input
+                  id="belop_direkte"
+                  type="number"
+                  step="0.01"
+                  {...register('belop_direkte', { valueAsNumber: true })}
+                  fullWidth
+                  placeholder="0.00"
+                  error={!!errors.belop_direkte}
+                />
+              </FormField>
+
+              <div className="mt-4">
+                <Controller
+                  name="krever_justert_ep"
+                  control={control}
+                  render={({ field }) => (
+                    <Checkbox
+                      id="krever_justert_ep"
+                      label="Krever JUSTERING av enhetsprisene (§34.3.3)?"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  )}
+                />
+                {kreverJustertEp && (
+                  <Alert variant="warning" className="mt-2">
+                    <strong>OBS:</strong> Krav om justert enhetspris må varsles &ldquo;uten ugrunnet opphold&rdquo;
+                    etter at forholdet oppsto. Hvis ikke, får du kun det BH &ldquo;måtte forstå&rdquo;.
+                  </Alert>
+                )}
+              </div>
+            </>
+          )}
+
+          {selectedMetode === 'REGNINGSARBEID' && (
+            <>
+              <Alert variant="info" className="mb-3">
+                Ved regningsarbeid faktureres kostnadene løpende. Oppgi et kostnadsoverslag (estimat).
+              </Alert>
+
+              <FormField
+                label="Kostnadsoverslag (estimat)"
+                error={errors.kostnads_overslag?.message}
+                helpText="§30.2: BH kan holde tilbake betaling inntil overslag mottas. Du må varsle ved vesentlig økning."
+              >
+                <Input
+                  id="kostnads_overslag"
+                  type="number"
+                  step="0.01"
+                  {...register('kostnads_overslag', { valueAsNumber: true })}
+                  fullWidth
+                  placeholder="0.00"
+                  error={!!errors.kostnads_overslag}
+                />
+              </FormField>
+
+              <div className="mt-4">
+                <Controller
+                  name="varslet_for_oppstart"
+                  control={control}
+                  render={({ field }) => (
+                    <Checkbox
+                      id="varslet_for_oppstart"
+                      label="Er Byggherren varslet FØR arbeidet startet? (§34.4)"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  )}
+                />
+
+                {!varsletForOppstart && (
+                  <Alert variant="danger" className="mt-2">
+                    <strong>Advarsel:</strong> Når du ikke varsler før oppstart, får du en strengere bevisbyrde
+                    for at kostnadene var nødvendige (§30 / §34.4).
+                  </Alert>
+                )}
+              </div>
+            </>
+          )}
+
+          {selectedMetode === 'FASTPRIS_TILBUD' && (
+            <FormField
+              label="Tilbudt fastpris (eks. mva)"
+              required
+              error={errors.belop_direkte?.message}
+            >
+              <Input
+                id="belop_direkte"
+                type="number"
+                step="0.01"
+                {...register('belop_direkte', { valueAsNumber: true })}
+                fullWidth
+                placeholder="0.00"
+                error={!!errors.belop_direkte}
+              />
+            </FormField>
+          )}
+        </div>
+
+        {/* 3. Særskilte krav (§34.1.3) - Rigg, Drift, Produktivitet */}
+        <div className="border-2 border-orange-200 bg-orange-50 p-4 rounded">
+          <h4 className="font-bold text-sm text-orange-900 mb-2">
+            Særskilte krav (Rigg, Drift, Produktivitet)
+          </h4>
+          <p className="text-xs text-orange-800 mb-3">
+            NB: Disse postene krever <strong>særskilt varsel</strong>. Kravet tapes totalt ved manglende varsel (§34.1.3).
+          </p>
+
+          <div className="flex gap-4 mb-3">
+            <Controller
+              name="har_rigg_krav"
+              control={control}
+              render={({ field }) => (
+                <Checkbox
+                  id="har_rigg_krav"
+                  label="Økt Rigg/Drift"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              )}
+            />
+            <Controller
+              name="har_produktivitet_krav"
+              control={control}
+              render={({ field }) => (
+                <Checkbox
+                  id="har_produktivitet_krav"
+                  label="Nedsatt produktivitet"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              )}
+            />
+          </div>
+
+          {(harRiggKrav || harProduktivitetKrav) && (
+            <div className="grid grid-cols-2 gap-4 mt-3">
+              <FormField
+                label="Estimert beløp særskilte krav"
+                error={errors.belop_saerskilt?.message}
+              >
+                <Input
+                  id="belop_saerskilt"
+                  type="number"
+                  step="0.01"
+                  {...register('belop_saerskilt', { valueAsNumber: true })}
+                  fullWidth
+                  placeholder="0.00"
+                />
+              </FormField>
+
+              <FormField
+                label="Når ble du klar over disse utgiftene?"
+              >
+                <Controller
+                  name="dato_klar_over"
+                  control={control}
+                  render={({ field }) => (
+                    <DatePicker
+                      id="dato_klar_over"
+                      value={field.value}
+                      onChange={field.onChange}
+                      fullWidth
+                      placeholder="Velg dato"
+                    />
+                  )}
+                />
+              </FormField>
+            </div>
+          )}
+
+          {/* 7-day preclusion warning for særskilte krav */}
+          {saerskiltPreklusjon?.alert && (
+            <Alert
+              variant={saerskiltPreklusjon.alert.variant}
+              title={saerskiltPreklusjon.alert.title}
+              className="mt-3"
+            >
+              {saerskiltPreklusjon.alert.message}
+            </Alert>
+          )}
+        </div>
+
+        {/* 4. Begrunnelse/Dokumentasjon */}
         <FormField
-          label="Begrunnelse"
+          label="Begrunnelse/Dokumentasjon"
           required
           error={errors.begrunnelse?.message}
         >
           <Textarea
             id="begrunnelse"
             {...register('begrunnelse')}
-            rows={5}
+            rows={3}
             fullWidth
-            placeholder="Beskriv hvordan beløpet er beregnet..."
+            placeholder="Henvis til vedlegg, beskriv beregningsgrunnlag..."
             error={!!errors.begrunnelse}
           />
         </FormField>
 
-        {/* === VARSLINGSKRAV (NS 8407) === */}
-        <div className="space-y-pkt-06 p-pkt-05 bg-pkt-surface-subtle rounded-none border-2 border-pkt-border-subtle">
-          <h3 className="text-lg font-medium text-pkt-text-body-default">
-            Varslingskrav (kritisk for preklusjon)
-          </h3>
-
-          {/* Rigg & Drift (§34.1.3) */}
-          <div className="space-y-pkt-04">
-            <Controller
-              name="inkluderer_rigg_drift"
-              control={control}
-              render={({ field }) => (
-                <Checkbox
-                  id="inkluderer_rigg_drift"
-                  label="Inkluderer rigg/drift-kostnader (§34.1.3)"
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              )}
-            />
-
-            {inkludererRiggDrift && (
-              <div className="ml-pkt-07 space-y-pkt-04 p-pkt-05 bg-pkt-surface-subtle-light-blue rounded-none border-2 border-pkt-border-focus">
-                <FormField
-                  label="Rigg/drift beløp (NOK)"
-                  error={errors.rigg_drift_belop?.message}
-                  helpText="Separat beløp for rigg/drift hvis aktuelt"
-                >
-                  <Input
-                    id="rigg_drift_belop"
-                    type="number"
-                    step="0.01"
-                    {...register('rigg_drift_belop', {
-                      setValueAs: (v) => (v === '' ? undefined : Number(v)),
-                    })}
-                    fullWidth
-                    placeholder="0.00"
-                    error={!!errors.rigg_drift_belop}
-                  />
-                </FormField>
-
-                <Controller
-                  name="rigg_drift_varsel_sendes_na"
-                  control={control}
-                  render={({ field }) => (
-                    <Checkbox
-                      id="rigg_drift_varsel_sendes_na"
-                      label="Varsel sendes nå (sammen med dette skjemaet)"
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  )}
-                />
-
-                {!riggDriftVarselSendesNa && (
-                  <FormField
-                    label="Dato varsel sendt tidligere (rigg/drift)"
-                    error={errors.rigg_drift_varsel_dato?.message}
-                    labelTooltip="§34.1.3: Særskilt varsel må sendes uten ugrunnet opphold. KRITISK for å unngå preklusjon."
-                  >
-                    <Controller
-                      name="rigg_drift_varsel_dato"
-                      control={control}
-                      render={({ field }) => (
-                        <DatePicker
-                          id="rigg_drift_varsel_dato"
-                          value={field.value}
-                          onChange={field.onChange}
-                          fullWidth
-                          error={!!errors.rigg_drift_varsel_dato}
-                          placeholder="Velg dato"
-                        />
-                      )}
-                    />
-                  </FormField>
-                )}
-
-                {/* Varselmetoder - only show if NOT sending now */}
-                {!riggDriftVarselSendesNa && (
-                  <FormField
-                    label="Varselmetoder (rigg/drift)"
-                    helpText="Velg alle metoder som ble brukt"
-                  >
-                    <div className="space-y-pkt-03 border-2 border-pkt-border-gray rounded-none p-pkt-04 bg-pkt-bg-subtle">
-                      {VARSEL_METODER_OPTIONS.map((option) => (
-                        <Checkbox
-                          key={option.value}
-                          id={`rigg_drift_varsel-${option.value}`}
-                          label={option.label}
-                          value={option.value}
-                          {...register('rigg_drift_varsel_metoder')}
-                        />
-                      ))}
-                    </div>
-                  </FormField>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Produktivitetstap (§34.1.3, 2. ledd) */}
-          <div className="space-y-pkt-04">
-            <Controller
-              name="inkluderer_produktivitetstap"
-              control={control}
-              render={({ field }) => (
-                <Checkbox
-                  id="inkluderer_produktivitetstap"
-                  label="Inkluderer produktivitetstap (§34.1.3, 2. ledd)"
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              )}
-            />
-
-            {inkludererProduktivitetstap && (
-              <div className="ml-pkt-07 space-y-pkt-04 p-pkt-05 bg-pkt-surface-subtle-light-blue rounded-none border-2 border-pkt-border-focus">
-                <FormField
-                  label="Produktivitetstap beløp (NOK)"
-                  error={errors.produktivitetstap_belop?.message}
-                  helpText="Separat beløp for produktivitetstap/nedsatt produktivitet"
-                >
-                  <Input
-                    id="produktivitetstap_belop"
-                    type="number"
-                    step="0.01"
-                    {...register('produktivitetstap_belop', {
-                      setValueAs: (v) => (v === '' ? undefined : Number(v)),
-                    })}
-                    fullWidth
-                    placeholder="0.00"
-                    error={!!errors.produktivitetstap_belop}
-                  />
-                </FormField>
-
-                <Controller
-                  name="produktivitetstap_varsel_sendes_na"
-                  control={control}
-                  render={({ field }) => (
-                    <Checkbox
-                      id="produktivitetstap_varsel_sendes_na"
-                      label="Varsel sendes nå (sammen med dette skjemaet)"
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  )}
-                />
-
-                {!produktivitetstapVarselSendesNa && (
-                  <FormField
-                    label="Dato varsel sendt tidligere (produktivitetstap)"
-                    error={errors.produktivitetstap_varsel_dato?.message}
-                    labelTooltip="§34.1.3, 2. ledd: Særskilt varsel må sendes for produktivitetstap. KRITISK for å unngå preklusjon."
-                  >
-                    <Controller
-                      name="produktivitetstap_varsel_dato"
-                      control={control}
-                      render={({ field }) => (
-                        <DatePicker
-                          id="produktivitetstap_varsel_dato"
-                          value={field.value}
-                          onChange={field.onChange}
-                          fullWidth
-                          error={!!errors.produktivitetstap_varsel_dato}
-                          placeholder="Velg dato"
-                        />
-                      )}
-                    />
-                  </FormField>
-                )}
-
-                {/* Varselmetoder - only show if NOT sending now */}
-                {!produktivitetstapVarselSendesNa && (
-                  <FormField
-                    label="Varselmetoder (produktivitetstap)"
-                    helpText="Velg alle metoder som ble brukt"
-                  >
-                    <div className="space-y-pkt-03 border-2 border-pkt-border-gray rounded-none p-pkt-04 bg-pkt-bg-subtle">
-                      {VARSEL_METODER_OPTIONS.map((option) => (
-                        <Checkbox
-                          key={option.value}
-                          id={`produktivitetstap_varsel-${option.value}`}
-                          label={option.label}
-                          value={option.value}
-                          {...register('produktivitetstap_varsel_metoder')}
-                        />
-                      ))}
-                    </div>
-                  </FormField>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Regningsarbeid (§30.1) */}
-          <div className="space-y-pkt-04">
-            <Controller
-              name="krever_regningsarbeid"
-              control={control}
-              render={({ field }) => (
-                <Checkbox
-                  id="krever_regningsarbeid"
-                  label="Krever varsel før oppstart av regningsarbeid (§30.1)"
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              )}
-            />
-
-            {kreverRegningsarbeid && (
-              <div className="ml-pkt-07 space-y-pkt-04 p-pkt-05 bg-pkt-surface-subtle-light-blue rounded-none border-2 border-pkt-border-focus">
-                <Controller
-                  name="regningsarbeid_varsel_sendes_na"
-                  control={control}
-                  render={({ field }) => (
-                    <Checkbox
-                      id="regningsarbeid_varsel_sendes_na"
-                      label="Varsel sendes nå (sammen med dette skjemaet)"
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  )}
-                />
-
-                {!regningsarbeidVarselSendesNa && (
-                  <FormField
-                    label="Dato varsel sendt tidligere FØR oppstart (regningsarbeid)"
-                    error={errors.regningsarbeid_varsel_dato?.message}
-                    labelTooltip="§30.1: BH må varsles FØR regningsarbeid starter. Manglende varsel kan føre til tap av krav."
-                  >
-                    <Controller
-                      name="regningsarbeid_varsel_dato"
-                      control={control}
-                      render={({ field }) => (
-                        <DatePicker
-                          id="regningsarbeid_varsel_dato"
-                          value={field.value}
-                          onChange={field.onChange}
-                          fullWidth
-                          error={!!errors.regningsarbeid_varsel_dato}
-                          placeholder="Velg dato"
-                        />
-                      )}
-                    />
-                  </FormField>
-                )}
-
-                {/* Varselmetoder - only show if NOT sending now */}
-                {!regningsarbeidVarselSendesNa && (
-                  <FormField
-                    label="Varselmetoder (regningsarbeid)"
-                    helpText="Velg alle metoder som ble brukt"
-                  >
-                    <div className="space-y-pkt-03 border-2 border-pkt-border-gray rounded-none p-pkt-04 bg-pkt-bg-subtle">
-                      {VARSEL_METODER_OPTIONS.map((option) => (
-                        <Checkbox
-                          key={option.value}
-                          id={`regningsarbeid_varsel-${option.value}`}
-                          label={option.label}
-                          value={option.value}
-                          {...register('regningsarbeid_varsel_metoder')}
-                        />
-                      ))}
-                    </div>
-                  </FormField>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Justerte enhetspriser (§34.3.3) - kun hvis metode='justert_ep' */}
-          {selectedMetode === 'justert_ep' && (
-            <div className="space-y-pkt-04 p-pkt-04 bg-pkt-surface-subtle-light-blue rounded-none border-2 border-pkt-border-focus">
-              <p className="text-base font-medium text-pkt-text-body-default">
-                Justerte enhetspriser (§34.3.3) - Særskilt varsel påkrevd
-              </p>
-
-              <FormField
-                label="Dato varsel sendt (justerte EP)"
-                error={errors.justert_ep_varsel_dato?.message}
-                labelTooltip="§34.3.3: Særskilt varsel må sendes for justerte enhetspriser. KRITISK for å unngå preklusjon."
-              >
-                <Controller
-                  name="justert_ep_varsel_dato"
-                  control={control}
-                  render={({ field }) => (
-                    <DatePicker
-                      id="justert_ep_varsel_dato"
-                      value={field.value}
-                      onChange={field.onChange}
-                      fullWidth
-                      error={!!errors.justert_ep_varsel_dato}
-                      placeholder="Velg dato"
-                    />
-                  )}
-                />
-              </FormField>
-
-              <FormField
-                label="Varselmetoder (justerte EP)"
-                helpText="Velg alle metoder som ble brukt"
-              >
-                <div className="space-y-pkt-03 border-2 border-pkt-border-gray rounded-none p-pkt-04 bg-pkt-bg-subtle">
-                  {VARSEL_METODER_OPTIONS.map((option) => (
-                    <Checkbox
-                      key={option.value}
-                      id={`justert_ep_varsel-${option.value}`}
-                      label={option.label}
-                      value={option.value}
-                      {...register('justert_ep_varsel_metoder')}
-                    />
-                  ))}
-                </div>
-              </FormField>
-            </div>
-          )}
-        </div>
-
         {/* Error Message */}
         {mutation.isError && (
-          <div
-            className="p-pkt-05 bg-pkt-surface-subtle-light-red border-2 border-pkt-border-red rounded-none"
-            role="alert"
-          >
-            <p className="text-base text-pkt-border-red font-medium">
-              {mutation.error instanceof Error ? mutation.error.message : 'En feil oppstod'}
-            </p>
-          </div>
+          <Alert variant="danger" title="Feil ved innsending">
+            {mutation.error instanceof Error ? mutation.error.message : 'En feil oppstod'}
+          </Alert>
         )}
 
         {/* Actions */}
@@ -696,7 +458,7 @@ export function SendVederlagModal({
             Avbryt
           </Button>
           <Button type="submit" variant="primary" disabled={isSubmitting} size="lg">
-            {isSubmitting ? 'Sender...' : 'Send krav'}
+            {isSubmitting ? 'Sender...' : 'Send Krav'}
           </Button>
         </div>
       </form>

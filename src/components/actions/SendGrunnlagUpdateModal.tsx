@@ -35,6 +35,7 @@ import { beregnDagerSiden, getPreklusjonsvarsel } from '../../utils/preklusjonss
 import { GrunnlagTilstand } from '../../types/timeline';
 
 const updateSchema = z.object({
+  tittel: z.string().optional(),
   beskrivelse: z.string().optional(),
   dato_oppdaget: z.string().optional(),
   hovedkategori: z.string().optional(),
@@ -72,6 +73,7 @@ export function SendGrunnlagUpdateModal({
   } = useForm<UpdateFormData>({
     resolver: zodResolver(updateSchema),
     defaultValues: {
+      tittel: grunnlag.tittel || '',
       beskrivelse: grunnlag.beskrivelse || '',
       dato_oppdaget: grunnlag.dato_oppdaget || '',
       hovedkategori: grunnlag.hovedkategori || '',
@@ -127,6 +129,7 @@ export function SendGrunnlagUpdateModal({
       eventType: 'grunnlag_oppdatert',
       data: {
         original_event_id: originalEvent.event_id,
+        tittel: data.tittel !== grunnlag.tittel ? data.tittel : undefined,
         beskrivelse: data.beskrivelse !== grunnlag.beskrivelse ? data.beskrivelse : undefined,
         dato_oppdaget: data.dato_oppdaget !== grunnlag.dato_oppdaget ? data.dato_oppdaget : undefined,
         hovedkategori: kategoriEndres ? data.hovedkategori : undefined,
@@ -145,6 +148,12 @@ export function SendGrunnlagUpdateModal({
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-pkt-06">
+        {/* Info about editing */}
+        <Alert variant="info">
+          Du redigerer nå et eksisterende varsel sendt {grunnlag.grunnlag_varsel?.dato_sendt || 'ukjent dato'}.
+          Endringer her vil bli loggført i historikken.
+        </Alert>
+
         {/* Current state info */}
         <div className="bg-gray-50 p-4 rounded border border-gray-200">
           <h4 className="font-medium text-sm text-gray-700 mb-2">Nåværende grunnlag</h4>
@@ -181,9 +190,21 @@ export function SendGrunnlagUpdateModal({
           </Alert>
         )}
 
+        {/* Tittel */}
+        <FormField
+          label="Tittel"
+          helpText="Oppdater tittel på varselet"
+        >
+          <Input
+            id="tittel"
+            {...register('tittel')}
+            fullWidth
+          />
+        </FormField>
+
         {/* Beskrivelse */}
         <FormField
-          label="Beskrivelse"
+          label="Beskrivelse / Tilleggsinfo"
           helpText="Oppdater beskrivelsen av grunnlaget"
         >
           <Textarea

@@ -50,14 +50,18 @@ const respondVederlagSchema = z.object({
 type RespondVederlagFormData = z.infer<typeof respondVederlagSchema>;
 
 // Vederlag event info for context display and conditional logic
+// Matches payload from SendVederlagModal
 interface VederlagEventInfo {
-  metode?: string;
-  krav_belop?: number;
-  begrunnelse?: string;
-  inkluderer_rigg_drift?: boolean;
-  inkluderer_produktivitetstap?: boolean;
-  krever_justert_ep?: boolean;
+  metode?: 'ENHETSPRISER' | 'REGNINGSARBEID' | 'FASTPRIS_TILBUD';
+  belop_direkte?: number;
   kostnads_overslag?: number;
+  begrunnelse?: string;
+  krever_justert_ep?: boolean;
+  saerskilt_krav?: {
+    rigg_drift?: boolean;
+    produktivitet?: boolean;
+    belop?: number;
+  };
 }
 
 interface RespondVederlagModalProps {
@@ -105,20 +109,25 @@ export function RespondVederlagModal({
 
   // §30.2 Logic: Can hold back payment if regningsarbeid without kostnadsoverslag
   const kanHoldeTilbake =
-    vederlagEvent?.metode === 'regningsarbeid' && !vederlagEvent?.kostnads_overslag;
+    vederlagEvent?.metode === 'REGNINGSARBEID' && !vederlagEvent?.kostnads_overslag;
 
   // §34.3.3 Logic: Must respond to EP adjustment request
   const maSvarePaJustering =
-    vederlagEvent?.metode === 'justert_ep' || vederlagEvent?.krever_justert_ep;
+    vederlagEvent?.metode === 'ENHETSPRISER' && vederlagEvent?.krever_justert_ep;
 
   // §34.1.3 Logic: Can reject rigg/drift if sent too late
   const harSaerskiltKrav =
-    vederlagEvent?.inkluderer_rigg_drift || vederlagEvent?.inkluderer_produktivitetstap;
+    vederlagEvent?.saerskilt_krav?.rigg_drift || vederlagEvent?.saerskilt_krav?.produktivitet;
 
   // Get method label for display
   const metodeLabel = vederlagEvent?.metode
     ? getVederlagsmetodeLabel(vederlagEvent.metode)
     : undefined;
+
+  // Get display amount (belop_direkte for ENHETSPRISER/FASTPRIS, kostnads_overslag for REGNINGSARBEID)
+  const visningsbelop = vederlagEvent?.metode === 'REGNINGSARBEID'
+    ? vederlagEvent?.kostnads_overslag
+    : vederlagEvent?.belop_direkte;
 
   const onSubmit = (data: RespondVederlagFormData) => {
     mutation.mutate({
@@ -188,7 +197,7 @@ export function RespondVederlagModal({
         )}
 
         {/* Display of vederlagskrav details */}
-        {vederlagEvent && (metodeLabel || vederlagEvent.krav_belop) && (
+        {vederlagEvent && (metodeLabel || visningsbelop !== undefined) && (
           <div className="p-pkt-04 bg-pkt-surface-subtle-light-blue border-2 border-pkt-border-focus rounded-none">
             <h4 className="font-bold text-sm text-pkt-text-body-dark mb-2">
               Entreprenørens krav:
@@ -197,33 +206,31 @@ export function RespondVederlagModal({
               {metodeLabel && (
                 <span className="font-medium">{metodeLabel}</span>
               )}
-              {vederlagEvent.krav_belop !== undefined && (
+              {visningsbelop !== undefined && (
                 <span className="text-lg font-mono">
-                  {vederlagEvent.metode === 'regningsarbeid'
-                    ? 'Etter medgått tid'
-                    : `kr ${vederlagEvent.krav_belop.toLocaleString('nb-NO')},-`}
+                  {vederlagEvent.metode === 'REGNINGSARBEID'
+                    ? `Overslag: kr ${visningsbelop.toLocaleString('nb-NO')},-`
+                    : `kr ${visningsbelop.toLocaleString('nb-NO')},-`}
                 </span>
               )}
             </div>
-            {vederlagEvent.metode === 'regningsarbeid' &&
-              vederlagEvent.kostnads_overslag && (
-                <p className="text-sm mt-1 text-pkt-text-body-subtle">
-                  Kostnadsoverslag: kr{' '}
-                  {vederlagEvent.kostnads_overslag.toLocaleString('nb-NO')},-
-                </p>
-              )}
+            {vederlagEvent.metode === 'REGNINGSARBEID' && (
+              <p className="text-sm mt-1 text-pkt-text-body-subtle">
+                Endelig beløp fastsettes etter medgått tid
+              </p>
+            )}
             {vederlagEvent.begrunnelse && (
               <p className="italic text-pkt-text-body-subtle mt-2 text-sm">
                 &ldquo;{vederlagEvent.begrunnelse}&rdquo;
               </p>
             )}
-            {(vederlagEvent.inkluderer_rigg_drift ||
-              vederlagEvent.inkluderer_produktivitetstap) && (
+            {(vederlagEvent.saerskilt_krav?.rigg_drift ||
+              vederlagEvent.saerskilt_krav?.produktivitet) && (
               <div className="mt-2 flex gap-2">
-                {vederlagEvent.inkluderer_rigg_drift && (
+                {vederlagEvent.saerskilt_krav.rigg_drift && (
                   <Badge variant="default">Inkl. Rigg/Drift</Badge>
                 )}
-                {vederlagEvent.inkluderer_produktivitetstap && (
+                {vederlagEvent.saerskilt_krav.produktivitet && (
                   <Badge variant="default">Inkl. Produktivitetstap</Badge>
                 )}
               </div>
@@ -232,7 +239,7 @@ export function RespondVederlagModal({
         )}
 
         {/* Show claimed amount if available (fallback if no vederlagEvent) */}
-        {krevdBelop !== undefined && !vederlagEvent?.krav_belop && (
+        {krevdBelop !== undefined && visningsbelop === undefined && (
           <div className="p-pkt-04 bg-info-100 rounded-pkt-md">
             <p className="text-sm font-medium text-info-700">
               Krevd beløp: {krevdBelop.toLocaleString('nb-NO')} NOK
