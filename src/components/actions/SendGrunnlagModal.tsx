@@ -35,7 +35,7 @@ import {
   getUnderkategoriObj,
   erLovendring,
 } from '../../constants';
-import { getPreklusjonsvarsel, beregnDagerSiden } from '../../utils/preklusjonssjekk';
+import { getPreklusjonsvarsel, getPreklusjonsvarselMellomDatoer, beregnDagerSiden } from '../../utils/preklusjonssjekk';
 
 const grunnlagSchema = z.object({
   hovedkategori: z.string().min(1, 'Hovedkategori er påkrevd'),
@@ -87,6 +87,7 @@ export function SendGrunnlagModal({
   const hovedkategoriValue = watch('hovedkategori');
   const varselSendesNa = watch('varsel_sendes_na');
   const datoOppdaget = watch('dato_oppdaget');
+  const datoVarselSendt = watch('dato_varsel_sendt');
   const selectedUnderkategorier = watch('underkategori');
   const erEtterTilbud = watch('er_etter_tilbud');
 
@@ -108,11 +109,17 @@ export function SendGrunnlagModal({
     return selectedUnderkategorier?.some((kode) => erLovendring(kode)) ?? false;
   }, [selectedUnderkategorier]);
 
-  // Calculate preclusion risk
+  // Calculate preclusion risk for current moment (when sending now)
   const preklusjonsResultat = useMemo(() => {
     if (!datoOppdaget) return null;
     return getPreklusjonsvarsel(beregnDagerSiden(datoOppdaget));
   }, [datoOppdaget]);
+
+  // Calculate preclusion risk between discovery and earlier notification date
+  const preklusjonsResultatVarsel = useMemo(() => {
+    if (!datoOppdaget || !datoVarselSendt || varselSendesNa) return null;
+    return getPreklusjonsvarselMellomDatoer(datoOppdaget, datoVarselSendt);
+  }, [datoOppdaget, datoVarselSendt, varselSendesNa]);
 
   const mutation = useSubmitEvent(sakId, {
     onSuccess: () => {
@@ -385,6 +392,17 @@ export function SendGrunnlagModal({
                 />
               )}
             />
+            {/* Preclusion warning for time between discovery and notification */}
+            {preklusjonsResultatVarsel?.alert && (
+              <div className="mt-3">
+                <Alert
+                  variant={preklusjonsResultatVarsel.alert.variant}
+                  title={preklusjonsResultatVarsel.alert.title}
+                >
+                  {preklusjonsResultatVarsel.alert.message}
+                </Alert>
+              </div>
+            )}
           </FormField>
         )}
 
