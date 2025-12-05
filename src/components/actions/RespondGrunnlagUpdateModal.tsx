@@ -38,12 +38,13 @@ interface RespondGrunnlagUpdateModalProps {
   sakState: SakState;
 }
 
-const RESULTAT_LABELS: Record<GrunnlagResponsResultat, string> = {
+const RESULTAT_LABELS: Record<GrunnlagResponsResultat | 'frafalt', string> = {
   godkjent: 'Godkjent',
   delvis_godkjent: 'Delvis godkjent',
   avvist_uenig: 'Avvist (Uenig i ansvar)',
   avvist_for_sent: 'Avvist (Varslet for sent)',
   krever_avklaring: 'Krever avklaring',
+  frafalt: 'Frafalt (§32.3 c)',
 };
 
 export function RespondGrunnlagUpdateModal({
@@ -56,6 +57,19 @@ export function RespondGrunnlagUpdateModal({
   const forrigeResultat = lastResponseEvent.resultat;
   const varAvvist = forrigeResultat === 'avvist_uenig' || forrigeResultat === 'avvist_for_sent';
   const harSubsidiaereSvar = sakState.er_subsidiaert_vederlag || sakState.er_subsidiaert_frist;
+
+  // Check if grunnlag is irregular change (§32.3 c - frafall only for irregular)
+  const erIrregulaer = useMemo(() => {
+    const grunnlag = sakState.grunnlag;
+    if (!grunnlag) return false;
+    const underkategorier = Array.isArray(grunnlag.underkategori)
+      ? grunnlag.underkategori
+      : grunnlag.underkategori ? [grunnlag.underkategori] : [];
+    return grunnlag.hovedkategori === 'ENDRING' && underkategorier.includes('IRREG');
+  }, [sakState.grunnlag]);
+
+  // Get previous begrunnelse from grunnlag state
+  const forrigeBegrunnelse = sakState.grunnlag?.bh_begrunnelse;
 
   const {
     handleSubmit,
@@ -86,7 +100,7 @@ export function RespondGrunnlagUpdateModal({
 
   // Get available options based on current state
   const getOptions = () => {
-    const options: { value: GrunnlagResponsResultat; label: string; description?: string }[] = [];
+    const options: { value: GrunnlagResponsResultat | 'frafalt'; label: string; description?: string }[] = [];
 
     if (varAvvist) {
       options.push({
@@ -101,6 +115,14 @@ export function RespondGrunnlagUpdateModal({
         label: 'Snu til: Delvis godkjent',
         description: 'Delvis aksept av ansvarsgrunnlaget.',
       });
+      // Frafall only for irregular changes (§32.3 c)
+      if (erIrregulaer) {
+        options.push({
+          value: 'frafalt',
+          label: 'Frafall pålegget (§32.3 c)',
+          description: 'Arbeidet skal IKKE utføres. Endringssaken bortfaller.',
+        });
+      }
     } else {
       options.push({
         value: 'avvist_uenig',
@@ -159,6 +181,11 @@ export function RespondGrunnlagUpdateModal({
               {RESULTAT_LABELS[forrigeResultat]}
             </Badge>
           </div>
+          {forrigeBegrunnelse && (
+            <p className="text-sm text-gray-700 mt-2 italic">
+              &ldquo;{forrigeBegrunnelse}&rdquo;
+            </p>
+          )}
           {harSubsidiaereSvar && varAvvist && (
             <p className="text-xs text-gray-500 mt-2">
               Det finnes subsidiære svar på vederlag og/eller frist.
