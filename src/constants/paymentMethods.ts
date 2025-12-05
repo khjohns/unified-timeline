@@ -2,34 +2,32 @@
  * Vederlagsmetoder (Payment/Compensation Calculation Methods)
  * Based on NS 8407 Norwegian Standard Building Contract
  *
- * Ported from legacy/config/dropdownOptions.ts
+ * Simplified to 3 main methods:
+ * - ENHETSPRISER: Covers both kontrakts- and justerte enhetspriser (§34.3)
+ * - REGNINGSARBEID: Regningsarbeid with kostnadsoverslag (§30.2/§34.4)
+ * - FASTPRIS_TILBUD: Fastpris / Tilbud (§34.2.1)
  */
 
 import { DropdownOption } from './categories';
+
+// Type definition matching timeline.ts
+export type VederlagsMetode = 'ENHETSPRISER' | 'REGNINGSARBEID' | 'FASTPRIS_TILBUD';
 
 // ========== VEDERLAGSMETODER ==========
 
 export const VEDERLAGSMETODER_OPTIONS: DropdownOption[] = [
   { value: "", label: "— Velg —" },
   {
-    value: "tilbud",
-    label: "Entreprenørens tilbud / Fastpris (§34.2.1)"
+    value: "ENHETSPRISER",
+    label: "Enhetspriser (§34.3)"
   },
   {
-    value: "kontrakt_ep",
-    label: "Kontraktens enhetspriser (§34.3.1)"
+    value: "REGNINGSARBEID",
+    label: "Regningsarbeid (§30.2/§34.4)"
   },
   {
-    value: "justert_ep",
-    label: "Justerte enhetspriser (§34.3.2)"
-  },
-  {
-    value: "regning",
-    label: "Regningsarbeid (§30.1)"
-  },
-  {
-    value: "overslag",
-    label: "Regningsarbeid med prisoverslag (§30.2)"
+    value: "FASTPRIS_TILBUD",
+    label: "Fastpris / Tilbud (§34.2.1)"
   },
 ];
 
@@ -41,10 +39,8 @@ export function getVederlagsmetodeLabel(code: string): string {
 
 // ========== DESCRIPTIVE HELP TEXT ==========
 
-export const VEDERLAGSMETODE_DESCRIPTIONS: Record<string, string> = {
-  kontrakt_ep: "Kontraktens enhetspriser (§34.3.1) - Anvendelse av eksisterende enhetspriser. Indeksregulert iht. §26.2.",
-  justert_ep: "Justerte enhetspriser (§34.3.2) - Enhetspriser justert for endrede forhold. Indeksregulert iht. §26.2. Krever særskilt varsel.",
-  regning: "Regningsarbeid (§30.1) - Oppgjør etter medgått tid og materialer. Delvis indeksregulert (kun timerater). Krever varsel FØR oppstart.",
-  overslag: "Regningsarbeid med prisoverslag (§30.2) - Som regning, men med forhåndsgodkjent maksbeløp. Delvis indeksregulert (kun timerater).",
-  tilbud: "Entreprenørens tilbud (§34.2.1) - TE gir pristilbud som BH kan akseptere. Ikke indeksregulert."
+export const VEDERLAGSMETODE_DESCRIPTIONS: Record<VederlagsMetode, string> = {
+  ENHETSPRISER: "Enhetspriser (§34.3) - Kontraktens eller justerte enhetspriser. Indeksregulert iht. §26.2. Krever særskilt varsel ved justering (§34.3.3).",
+  REGNINGSARBEID: "Regningsarbeid med kostnadsoverslag (§30.2/§34.4) - Oppgjør etter medgått tid og materialer med forhåndsoverslag. Krever varsel FØR oppstart.",
+  FASTPRIS_TILBUD: "Fastpris / Tilbud (§34.2.1) - TE gir pristilbud som BH kan akseptere. Ikke indeksregulert.",
 };

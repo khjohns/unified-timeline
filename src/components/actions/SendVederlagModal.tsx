@@ -16,7 +16,6 @@
 
 import { Modal } from '../primitives/Modal';
 import { Button } from '../primitives/Button';
-import { Input } from '../primitives/Input';
 import { Textarea } from '../primitives/Textarea';
 import { Checkbox } from '../primitives/Checkbox';
 import { FormField } from '../primitives/FormField';
@@ -24,13 +23,14 @@ import { DatePicker } from '../primitives/DatePicker';
 import { Badge } from '../primitives/Badge';
 import { Alert } from '../primitives/Alert';
 import { RadioGroup, RadioItem } from '../primitives/RadioGroup';
+import { CurrencyInput } from '../primitives/CurrencyInput';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
 import { useMemo } from 'react';
-import { differenceInDays } from 'date-fns';
 import { sjekkRiggDriftFrist } from '../../utils/preklusjonssjekk';
+import type { VederlagsMetode } from '../../types/timeline';
 
 const vederlagSchema = z.object({
   // Direkte kostnader - tillater negative for fradrag (§34.4)
@@ -240,14 +240,17 @@ export function SendVederlagModal({
                 error={errors.belop_direkte?.message}
                 helpText="Fradrag skal gjøres med reduksjon for fortjeneste (§34.4)"
               >
-                <Input
-                  id="belop_direkte"
-                  type="number"
-                  step="0.01"
-                  {...register('belop_direkte', { valueAsNumber: true })}
-                  fullWidth
-                  placeholder="0.00"
-                  error={!!errors.belop_direkte}
+                <Controller
+                  name="belop_direkte"
+                  control={control}
+                  render={({ field }) => (
+                    <CurrencyInput
+                      value={field.value ?? null}
+                      onChange={field.onChange}
+                      fullWidth
+                      allowNegative
+                    />
+                  )}
                 />
               </FormField>
 
@@ -283,16 +286,18 @@ export function SendVederlagModal({
               <FormField
                 label="Kostnadsoverslag (estimat)"
                 error={errors.kostnads_overslag?.message}
-                helpText="§30.2: BH kan holde tilbake betaling inntil overslag mottas. Du må varsle ved vesentlig økning."
+                helpText="§30.2: BH kan holde tilbake betaling inntil overslag mottas. Du må varsle ved enhver økning."
               >
-                <Input
-                  id="kostnads_overslag"
-                  type="number"
-                  step="0.01"
-                  {...register('kostnads_overslag', { valueAsNumber: true })}
-                  fullWidth
-                  placeholder="0.00"
-                  error={!!errors.kostnads_overslag}
+                <Controller
+                  name="kostnads_overslag"
+                  control={control}
+                  render={({ field }) => (
+                    <CurrencyInput
+                      value={field.value ?? null}
+                      onChange={field.onChange}
+                      fullWidth
+                    />
+                  )}
                 />
               </FormField>
 
@@ -326,14 +331,16 @@ export function SendVederlagModal({
               required
               error={errors.belop_direkte?.message}
             >
-              <Input
-                id="belop_direkte"
-                type="number"
-                step="0.01"
-                {...register('belop_direkte', { valueAsNumber: true })}
-                fullWidth
-                placeholder="0.00"
-                error={!!errors.belop_direkte}
+              <Controller
+                name="belop_direkte"
+                control={control}
+                render={({ field }) => (
+                  <CurrencyInput
+                    value={field.value ?? null}
+                    onChange={field.onChange}
+                    fullWidth
+                  />
+                )}
               />
             </FormField>
           )}
@@ -381,13 +388,16 @@ export function SendVederlagModal({
                 label="Estimert beløp særskilte krav"
                 error={errors.belop_saerskilt?.message}
               >
-                <Input
-                  id="belop_saerskilt"
-                  type="number"
-                  step="0.01"
-                  {...register('belop_saerskilt', { valueAsNumber: true })}
-                  fullWidth
-                  placeholder="0.00"
+                <Controller
+                  name="belop_saerskilt"
+                  control={control}
+                  render={({ field }) => (
+                    <CurrencyInput
+                      value={field.value ?? null}
+                      onChange={field.onChange}
+                      fullWidth
+                    />
+                  )}
                 />
               </FormField>
 

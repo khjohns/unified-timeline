@@ -69,12 +69,10 @@ class EventType(str, Enum):
 # ============ VEDERLAG ENUMS ============
 
 class VederlagsMetode(str, Enum):
-    """NS 8407 vederlagsmetoder"""
-    KONTRAKT_EP = "kontrakt_ep"  # Kontraktens enhetspriser (§34.3.1) - Anvendelse av eksisterende enhetspriser. Indeksregulert iht. §26.2
-    JUSTERT_EP = "justert_ep"  # Justerte enhetspriser (§34.3.2) - Enhetspriser justert for endrede forhold. Indeksregulert iht. §26.2
-    REGNING = "regning"  # Regningsarbeid (§30.1) - Oppgjør etter medgått tid og materialer. Delvis indeksregulert (kun timerater)
-    OVERSLAG = "overslag"  # Regningsarbeid med prisoverslag (§30.2). Delvis indeksregulert (kun timerater)
-    TILBUD = "tilbud"  # Entreprenørens tilbud (§34.2.1) - TE gir pristilbud som BH kan akseptere. Ikke indeksregulert
+    """NS 8407 vederlagsmetoder (forenklet til 3 hovedmetoder)"""
+    ENHETSPRISER = "ENHETSPRISER"  # Enhetspriser (§34.3) - kontrakts- eller justerte
+    REGNINGSARBEID = "REGNINGSARBEID"  # Regningsarbeid med kostnadsoverslag (§30.2/§34.4)
+    FASTPRIS_TILBUD = "FASTPRIS_TILBUD"  # Fastpris / Tilbud (§34.2.1)
     
 class VederlagBeregningResultat(str, Enum):
     """Resultat av beregningsvurdering (Port 2 - ren utmåling)"""
@@ -83,6 +81,8 @@ class VederlagBeregningResultat(str, Enum):
     GODKJENT_ANNEN_METODE = "godkjent_annen_metode" # BH aksepterer beløpet, men endrer forutsetningen (f.eks. fra "Regningsarbeid" til "Fastpris"). Krever ofte aksept fra TE.
     AVVENTER_SPESIFIKASJON = "avventer_spesifikasjon" # BH kan ikke ta stilling til kravet fordi dokumentasjon mangler. Stopper saksbehandlingstiden ("ballen er hos TE").
     AVSLATT_TOTALT = "avslatt_totalt"  # Kun ved f.eks. dobbeltfakturering, ikke grunnlag
+    HOLD_TILBAKE = "hold_tilbake"  # §30.2 - BH holder tilbake betaling inntil kostnadsoverslag mottatt
+    AVVIST_PREKLUSJON_RIGG = "avvist_preklusjon_rigg"  # §34.1.3 - Rigg/drift varslet for sent, kravet prekludert
 
 
 # ============ FRIST ENUMS ============

@@ -9,9 +9,18 @@ Valg av metode har juridiske konsekvenser:
 - Dokumentasjonskrav
 
 Strukturen følger NS 8407 kapittel 30 og 34.
+
+UPDATED 2025-12-05: Simplified to 3 main methods (uppercase values)
+- ENHETSPRISER: Covers both kontrakts- and justerte enhetspriser (§34.3)
+- REGNINGSARBEID: Regningsarbeid with kostnadsoverslag (§30.2/§34.4)
+- FASTPRIS_TILBUD: Fastpris / Tilbud (§34.2.1)
 """
 
-from typing import Dict, TypedDict
+from typing import Dict, TypedDict, Literal
+
+
+# Type alias for the new simplified metode values
+VederlagsMetodeType = Literal["ENHETSPRISER", "REGNINGSARBEID", "FASTPRIS_TILBUD"]
 
 
 class VederlagsMetodeInfo(TypedDict):
@@ -27,9 +36,47 @@ class VederlagsMetodeInfo(TypedDict):
     dokumentasjonskrav: str
 
 
-# ============ VEDERLAGSMETODER ============
+# ============ VEDERLAGSMETODER (NEW - Uppercase) ============
 
 VEDERLAG_METODER: Dict[str, VederlagsMetodeInfo] = {
+    "ENHETSPRISER": {
+        "kode": "ENHETSPRISER",
+        "label": "Enhetspriser",
+        "paragraf": "§34.3",
+        "beskrivelse": "Kontraktens eller justerte enhetspriser. Indeksregulert iht. §26.2. Krever særskilt varsel ved justering (§34.3.3).",
+        "indeksregulering": "full",
+        "krever_varsel": False,  # Only if justert_ep
+        "varsel_tidspunkt": "Uten ugrunnet opphold ved justering (§34.3.3)",
+        "krever_bh_aksept": False,
+        "dokumentasjonskrav": "Mengdeoversikt med referanse til enhetspriser. Ved justering: dokumentasjon av endrede forhold."
+    },
+    "REGNINGSARBEID": {
+        "kode": "REGNINGSARBEID",
+        "label": "Regningsarbeid med kostnadsoverslag",
+        "paragraf": "§30.2, §34.4",
+        "beskrivelse": "Oppgjør etter medgått tid og materialer med forhåndsoverslag. Krever varsel FØR oppstart.",
+        "indeksregulering": "delvis",
+        "krever_varsel": True,
+        "varsel_tidspunkt": "FØR regningsarbeidet påbegynnes (§30.1, 3. ledd)",
+        "krever_bh_aksept": False,
+        "dokumentasjonskrav": "Kostnadsoverslag før oppstart, timelister, materialfakturaer, forklaring hvis overslag overskrides (§30.2)."
+    },
+    "FASTPRIS_TILBUD": {
+        "kode": "FASTPRIS_TILBUD",
+        "label": "Fastpris / Tilbud",
+        "paragraf": "§34.2.1",
+        "beskrivelse": "TE gir pristilbud som BH kan akseptere. Fast pris uten etterfølgende justering.",
+        "indeksregulering": "ingen",
+        "krever_varsel": False,
+        "varsel_tidspunkt": None,
+        "krever_bh_aksept": True,
+        "dokumentasjonskrav": "Skriftlig tilbud med fast sum. BH må akseptere tilbudet før arbeid igangsettes."
+    },
+}
+
+# ============ LEGACY METHODS (for backwards compatibility) ============
+
+LEGACY_VEDERLAG_METODER: Dict[str, VederlagsMetodeInfo] = {
     "kontrakt_ep": {
         "kode": "kontrakt_ep",
         "label": "Kontraktens enhetspriser",
@@ -87,6 +134,15 @@ VEDERLAG_METODER: Dict[str, VederlagsMetodeInfo] = {
     },
 }
 
+# Mapping from legacy to new codes
+LEGACY_TO_NEW_METODE: Dict[str, str] = {
+    "kontrakt_ep": "ENHETSPRISER",
+    "justert_ep": "ENHETSPRISER",
+    "regning": "REGNINGSARBEID",
+    "overslag": "REGNINGSARBEID",
+    "tilbud": "FASTPRIS_TILBUD",
+}
+
 
 # ============ VARSLINGSKRAV (Spesifikke kostnadstyper) ============
 
@@ -138,9 +194,20 @@ VARSLING_KOSTNADSTYPER: Dict[str, VarselKravInfo] = {
 
 # ============ HELPER FUNCTIONS ============
 
+def normalize_metode(kode: str) -> str:
+    """Convert legacy metode code to new uppercase format"""
+    return LEGACY_TO_NEW_METODE.get(kode, kode)
+
+
 def get_vederlag_metode(kode: str) -> VederlagsMetodeInfo | None:
-    """Hent vederlagsmetode basert på kode"""
-    return VEDERLAG_METODER.get(kode)
+    """Hent vederlagsmetode basert på kode (støtter både nye og legacy koder)"""
+    # Try new codes first
+    if kode in VEDERLAG_METODER:
+        return VEDERLAG_METODER[kode]
+    # Try legacy codes
+    if kode in LEGACY_VEDERLAG_METODER:
+        return LEGACY_VEDERLAG_METODER[kode]
+    return None
 
 
 def get_varsel_krav(kode: str) -> VarselKravInfo | None:
@@ -173,8 +240,13 @@ def krever_bh_godkjenning(metode_kode: str) -> bool:
 
 
 def get_alle_vederlag_metoder() -> list[str]:
-    """Hent alle vederlagsmetode-koder"""
+    """Hent alle vederlagsmetode-koder (kun nye uppercase koder)"""
     return list(VEDERLAG_METODER.keys())
+
+
+def get_alle_legacy_metoder() -> list[str]:
+    """Hent alle legacy vederlagsmetode-koder"""
+    return list(LEGACY_VEDERLAG_METODER.keys())
 
 
 def get_alle_varsel_krav() -> list[str]:
