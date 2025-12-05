@@ -22,6 +22,10 @@ export const BH_GRUNNLAGSVAR_OPTIONS: DropdownOption[] = [
     label: "Delvis godkjent - BH aksepterer deler av grunnlaget"
   },
   {
+    value: "erkjenn_fm",
+    label: "Erkjenn Force Majeure (§33.3)"
+  },
+  {
     value: "avvist_uenig",
     label: "Avvist - Uenig i ansvarsgrunnlaget"
   },
@@ -160,6 +164,7 @@ export function getBhFristsvarValues(): [string, ...string[]] {
 export const BH_GRUNNLAGSVAR_DESCRIPTIONS: Record<string, string> = {
   godkjent: "BH aksepterer ansvarsgrunnlaget fullt ut. Vederlag og frist vurderes prinsipalt.",
   delvis_godkjent: "BH aksepterer deler av grunnlaget. Kan påvirke vederlag/frist-vurdering.",
+  erkjenn_fm: "§33.3: BH erkjenner at forholdet er Force Majeure. TE får kun fristforlengelse, ikke vederlag.",
   avvist_uenig: "BH er uenig i ansvarsgrunnlaget. Vederlag og frist vurderes subsidiært (hvis ansvar hadde foreligget).",
   avvist_for_sent: "Varselet kom for sent (preklusjon). Kravet kan tapes helt eller reduseres.",
   frafalt: "BH frafaller pålegget (§32.3 c). Kun for irregulære endringer. Arbeidet trenger ikke utføres.",
