@@ -32,5 +32,10 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "exclude": [
+    "refactor",
+    "node_modules",
+    "dist"
+  ]
 }

@@ -423,12 +423,30 @@ export interface ForseringVarselEventData {
 
 // ========== TIMELINE DISPLAY ==========
 
+// Union type for all possible event data
+export type EventData =
+  | GrunnlagEventData
+  | GrunnlagOppdatertEventData
+  | VederlagEventData
+  | VederlagOppdatertEventData
+  | FristEventData
+  | FristOppdatertEventData
+  | ResponsGrunnlagEventData
+  | ResponsGrunnlagOppdatertEventData
+  | ResponsVederlagEventData
+  | ResponsVederlagOppdatertEventData
+  | ResponsFristEventData
+  | ResponsFristOppdatertEventData
+  | ForseringVarselEventData;
+
 export interface TimelineEntry {
   event_id: string;
   tidsstempel: string;
   type: string;
+  event_type?: EventType;  // Machine-readable event type
   aktor: string;
   rolle: 'TE' | 'BH';
   spor: SporType | null;
   sammendrag: string;
+  event_data?: EventData;  // Full submitted form data
 }
