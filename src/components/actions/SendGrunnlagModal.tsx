@@ -40,6 +40,7 @@ import { getPreklusjonsvarsel, beregnDagerSiden } from '../../utils/preklusjonss
 const grunnlagSchema = z.object({
   hovedkategori: z.string().min(1, 'Hovedkategori er påkrevd'),
   underkategori: z.array(z.string()).min(1, 'Minst én underkategori må velges'),
+  tittel: z.string().min(3, 'Tittel må være minst 3 tegn').max(100, 'Tittel kan ikke være lengre enn 100 tegn'),
   beskrivelse: z.string().min(10, 'Beskrivelse må være minst 10 tegn'),
   dato_oppdaget: z.string().min(1, 'Dato oppdaget er påkrevd'),
   varsel_sendes_na: z.boolean().optional(),
@@ -156,6 +157,7 @@ export function SendGrunnlagModal({
       data: {
         hovedkategori: data.hovedkategori,
         underkategori: data.underkategori,
+        tittel: data.tittel,
         beskrivelse: data.beskrivelse,
         dato_oppdaget: data.dato_oppdaget,
         grunnlag_varsel: grunnlagVarsel,
@@ -251,6 +253,21 @@ export function SendGrunnlagModal({
             </p>
           </div>
         )}
+
+        {/* Tittel */}
+        <FormField
+          label="Tittel på varselet"
+          required
+          error={errors.tittel?.message}
+          helpText="Kort beskrivende tittel for enkel identifikasjon av saken"
+        >
+          <Input
+            id="tittel"
+            {...register('tittel')}
+            placeholder="F.eks. 'Forsinkede leveranser tomt' eller 'Pålegg om endret føringsvei'"
+            fullWidth
+          />
+        </FormField>
 
         {/* Law change check (§14.4) */}
         {harLovendring && (

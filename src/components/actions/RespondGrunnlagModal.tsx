@@ -231,6 +231,8 @@ export function RespondGrunnlagModal({
                     if (opt.value === '') return false;
                     // Filter out "frafalt" if NOT irregular change (§32.3 c)
                     if (opt.value === 'frafalt' && !erIrregulaer) return false;
+                    // Filter out "erkjenn_fm" if NOT Force Majeure (§33.3)
+                    if (opt.value === 'erkjenn_fm' && !erForceMajeure) return false;
                     return true;
                   }).map((option) => (
                     <SelectItem key={option.value} value={option.value}>
@@ -264,6 +266,26 @@ export function RespondGrunnlagModal({
               utføres</strong>. Dette er en endelig beslutning for irregulære
               endringer (§32.2). Entreprenøren trenger ikke å utføre det pålagte
               arbeidet, og saken avsluttes.
+            </p>
+          </div>
+        )}
+
+        {/* Force Majeure recognition info (§33.3) */}
+        {selectedResultat === 'erkjenn_fm' && (
+          <div className="p-pkt-04 bg-blue-50 border-2 border-blue-300 rounded-none">
+            <p className="text-sm font-medium text-blue-900 mb-2">
+              §33.3 - Force Majeure erkjennelse:
+            </p>
+            <p className="text-sm text-blue-800">
+              Ved å erkjenne Force Majeure bekrefter du at forholdet er utenfor
+              begge parters kontroll. Entreprenøren får kun rett til{' '}
+              <strong>fristforlengelse</strong>, ikke vederlagsjustering. Dette
+              gjelder ekstraordinære hendelser som krig, naturkatastrofer, streik
+              etc.
+            </p>
+            <p className="text-sm text-blue-800 mt-2">
+              Dokumentasjonskravet er høyt: Hendelsen må være ekstraordinær og
+              uforutsigbar, og ligge utenfor begge parters kontroll og innflytelse.
             </p>
           </div>
         )}
