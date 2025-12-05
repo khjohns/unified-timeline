@@ -756,6 +756,307 @@ export const mockTimelineEvents7: TimelineEntry[] = [
 ];
 
 /**
+ * Example case 8: Force Majeure (§33.3)
+ * Only time extension, no compensation - demonstrates FM handling
+ */
+export const mockSakState8: SakState = {
+  sak_id: 'SAK-2025-008',
+  sakstittel: 'Force Majeure - Storflom Drammenselva',
+
+  grunnlag: {
+    status: 'godkjent',
+    hovedkategori: 'FORCE_MAJEURE',
+    underkategori: ['FM_EGEN'],
+    beskrivelse:
+      'Ekstrem flom i Drammenselva 15.-22. mars 2025 medførte full stopp i arbeidet. Byggeplassen var oversvømt og utilgjengelig. Dokumentert med bilder, værdata fra MET og presseoppslag.',
+    dato_oppdaget: '2025-03-15',
+    grunnlag_varsel: {
+      dato_sendt: '2025-03-15',
+      metode: ['epost', 'telefon', 'byggemote'],
+    },
+    kontraktsreferanser: ['§33.3'],
+    bh_resultat: 'godkjent',
+    bh_begrunnelse:
+      'Force majeure-situasjon bekreftes. Flommen var ekstraordinær og utenfor partenes kontroll.',
+    laast: true,
+    siste_oppdatert: '2025-03-25',
+    antall_versjoner: 1,
+  },
+
+  vederlag: {
+    status: 'ikke_relevant',
+    begrunnelse: 'Force majeure gir ikke rett til vederlagsjustering, kun fristforlengelse.',
+    antall_versjoner: 0,
+  },
+
+  frist: {
+    status: 'godkjent',
+    varsel_type: 'force_majeure',
+    noytralt_varsel: {
+      dato_sendt: '2025-03-15',
+      metode: ['epost', 'telefon'],
+    },
+    spesifisert_varsel: {
+      dato_sendt: '2025-03-23',
+      metode: ['epost'],
+    },
+    krevd_dager: 8,
+    begrunnelse:
+      'Byggeplass utilgjengelig i 8 kalenderdager. Kunne ikke utføre noe arbeid. Dokumentert med daglige rapporter.',
+    pavirker_kritisk_linje: true,
+    bh_resultat: 'godkjent_fullt',
+    bh_begrunnelse: 'Fristforlengelse godkjent i henhold til §33.3.',
+    godkjent_dager: 8,
+    differanse_dager: 0,
+    siste_oppdatert: '2025-03-25',
+    antall_versjoner: 1,
+  },
+
+  er_subsidiaert_vederlag: false,
+  er_subsidiaert_frist: false,
+  visningsstatus_vederlag: 'Ikke relevant (Force Majeure)',
+  visningsstatus_frist: 'Godkjent (8 dager)',
+
+  overordnet_status: 'OMFORENT',
+  kan_utstede_eo: false,  // FM gir ikke EO, kun fristforlengelse
+  neste_handling: {
+    rolle: null,
+    handling: 'Saken er avsluttet - fristforlengelse innvilget',
+    spor: null,
+  },
+
+  sum_krevd: 0,
+  sum_godkjent: 0,
+
+  opprettet: '2025-03-15',
+  siste_aktivitet: '2025-03-25',
+  antall_events: 4,
+};
+
+export const mockTimelineEvents8: TimelineEntry[] = [
+  {
+    event_id: 'evt-801',
+    tidsstempel: '2025-03-25T14:00:00Z',
+    type: 'Respons på fristkrav',
+    event_type: 'respons_frist',
+    aktor: 'Kari Nordmann',
+    rolle: 'BH',
+    spor: 'frist',
+    sammendrag: 'Force majeure godkjent - 8 dager fristforlengelse',
+    event_data: {
+      noytralt_varsel_ok: true,
+      spesifisert_krav_ok: true,
+      vilkar_oppfylt: true,
+      begrunnelse_vilkar: 'Ekstraordinær flom bekreftet. Utenfor partenes kontroll.',
+      beregnings_resultat: 'godkjent_fullt',
+      godkjent_dager: 8,
+      begrunnelse_beregning: 'Alle 8 dager godkjennes.',
+    },
+  },
+  {
+    event_id: 'evt-802',
+    tidsstempel: '2025-03-23T10:00:00Z',
+    type: 'Fristkrav sendt',
+    event_type: 'frist_krav_sendt',
+    aktor: 'Per Hansen',
+    rolle: 'TE',
+    spor: 'frist',
+    sammendrag: 'Spesifisert krav: 8 dager fristforlengelse pga. flom',
+    event_data: {
+      varsel_type: 'force_majeure',
+      noytralt_varsel: { dato_sendt: '2025-03-15', metode: ['epost', 'telefon'] },
+      spesifisert_varsel: { dato_sendt: '2025-03-23', metode: ['epost'] },
+      antall_dager: 8,
+      begrunnelse: 'Byggeplass oversvømt og utilgjengelig i 8 dager.',
+    },
+  },
+  {
+    event_id: 'evt-803',
+    tidsstempel: '2025-03-20T09:00:00Z',
+    type: 'Respons på grunnlag',
+    event_type: 'respons_grunnlag',
+    aktor: 'Kari Nordmann',
+    rolle: 'BH',
+    spor: 'grunnlag',
+    sammendrag: 'Force majeure-grunnlag godkjent',
+    event_data: {
+      resultat: 'godkjent',
+      begrunnelse: 'Ekstraordinær flom bekreftet. Force majeure anerkjennes.',
+    },
+  },
+  {
+    event_id: 'evt-804',
+    tidsstempel: '2025-03-15T08:30:00Z',
+    type: 'Grunnlag opprettet',
+    event_type: 'grunnlag_opprettet',
+    aktor: 'Per Hansen',
+    rolle: 'TE',
+    spor: 'grunnlag',
+    sammendrag: 'Varsel om force majeure - storflom',
+    event_data: {
+      hovedkategori: 'FORCE_MAJEURE',
+      underkategori: ['FM_EGEN'],
+      beskrivelse: 'Ekstrem flom i Drammenselva. Byggeplass oversvømt.',
+      dato_oppdaget: '2025-03-15',
+      grunnlag_varsel: { dato_sendt: '2025-03-15', metode: ['epost', 'telefon', 'byggemote'] },
+      kontraktsreferanser: ['§33.3'],
+    },
+  },
+];
+
+/**
+ * Example case 9: BH Passivity on Irregular Change (§32.3)
+ * BH did not respond in time - passive acceptance
+ */
+export const mockSakState9: SakState = {
+  sak_id: 'SAK-2025-009',
+  sakstittel: 'Passivitet - Irregulær endring ventilasjon',
+
+  grunnlag: {
+    status: 'godkjent',  // Godkjent via passivitet!
+    hovedkategori: 'ENDRING',
+    underkategori: ['IRREG'],
+    beskrivelse:
+      'I byggemøte 5. februar ga BHs representant muntlig instruks om å endre ventilasjonsanlegget fra balansert til hybrid løsning. TE varslet umiddelbart om at dette utgjør en endring.',
+    dato_oppdaget: '2025-02-05',
+    grunnlag_varsel: {
+      dato_sendt: '2025-02-05',
+      metode: ['epost', 'byggemote'],
+    },
+    kontraktsreferanser: ['§32.1', '§32.2'],
+    // BH svarte ikke - passiv aksept!
+    bh_resultat: 'godkjent',
+    bh_begrunnelse:
+      'PASSIV AKSEPT (§32.3): BH svarte ikke på varsel om irregulær endring innen rimelig tid. Endringen anses derfor som godkjent.',
+    laast: true,
+    siste_oppdatert: '2025-02-20',
+    antall_versjoner: 1,
+  },
+
+  vederlag: {
+    status: 'under_behandling',
+    krevd_belop: 320000,
+    metode: 'regning',
+    begrunnelse:
+      'Merarbeid for omlegging av ventilasjonsanlegg. Inkluderer: Demontering av eksisterende (40.000), nytt hybridanlegg (220.000), tilpasninger (60.000).',
+    inkluderer_rigg_drift: false,
+    regningsarbeid_varsel: {
+      dato_sendt: '2025-02-06',
+      metode: ['epost'],
+    },
+    siste_oppdatert: '2025-02-22',
+    antall_versjoner: 1,
+  },
+
+  frist: {
+    status: 'under_behandling',
+    varsel_type: 'spesifisert',
+    noytralt_varsel: {
+      dato_sendt: '2025-02-05',
+      metode: ['epost'],
+    },
+    spesifisert_varsel: {
+      dato_sendt: '2025-02-10',
+      metode: ['epost'],
+    },
+    krevd_dager: 10,
+    begrunnelse: 'Omlegging av ventilasjonsanlegg krever 10 arbeidsdager.',
+    pavirker_kritisk_linje: false,
+    siste_oppdatert: '2025-02-22',
+    antall_versjoner: 1,
+  },
+
+  er_subsidiaert_vederlag: false,
+  er_subsidiaert_frist: false,
+  visningsstatus_vederlag: 'Under behandling',
+  visningsstatus_frist: 'Under behandling',
+
+  overordnet_status: 'UNDER_BEHANDLING',
+  kan_utstede_eo: false,
+  neste_handling: {
+    rolle: 'BH',
+    handling: 'Svar på vederlag- og fristkrav (grunnlag godkjent via passivitet)',
+    spor: 'vederlag',
+  },
+
+  sum_krevd: 320000,
+  sum_godkjent: 0,
+
+  opprettet: '2025-02-05',
+  siste_aktivitet: '2025-02-22',
+  antall_events: 6,
+};
+
+export const mockTimelineEvents9: TimelineEntry[] = [
+  {
+    event_id: 'evt-901',
+    tidsstempel: '2025-02-22T10:00:00Z',
+    type: 'Fristkrav sendt',
+    event_type: 'frist_krav_sendt',
+    aktor: 'Per Hansen',
+    rolle: 'TE',
+    spor: 'frist',
+    sammendrag: 'Krav på 10 dager fristforlengelse for ventilasjonsendring',
+    event_data: {
+      varsel_type: 'spesifisert',
+      noytralt_varsel: { dato_sendt: '2025-02-05', metode: ['epost'] },
+      spesifisert_varsel: { dato_sendt: '2025-02-10', metode: ['epost'] },
+      antall_dager: 10,
+      begrunnelse: 'Omlegging av ventilasjonsanlegg krever 10 arbeidsdager.',
+    },
+  },
+  {
+    event_id: 'evt-902',
+    tidsstempel: '2025-02-22T09:30:00Z',
+    type: 'Vederlagskrav sendt',
+    event_type: 'vederlag_krav_sendt',
+    aktor: 'Per Hansen',
+    rolle: 'TE',
+    spor: 'vederlag',
+    sammendrag: 'Krav på 320.000 NOK for ventilasjonsendring',
+    event_data: {
+      krav_belop: 320000,
+      metode: 'regning',
+      begrunnelse: 'Merarbeid for omlegging av ventilasjonsanlegg.',
+      krever_regningsarbeid: true,
+      regningsarbeid_varsel: { dato_sendt: '2025-02-06', metode: ['epost'] },
+    },
+  },
+  {
+    event_id: 'evt-903',
+    tidsstempel: '2025-02-20T08:00:00Z',
+    type: 'Passiv aksept registrert',
+    event_type: 'respons_grunnlag',
+    aktor: 'System',
+    rolle: 'BH',
+    spor: 'grunnlag',
+    sammendrag: '§32.3: BH svarte ikke i tide - endring anses godkjent',
+    event_data: {
+      resultat: 'godkjent',
+      begrunnelse: 'PASSIV AKSEPT: BH svarte ikke på varsel innen rimelig tid (15 dager). Jf. §32.3 anses varselet som godtatt.',
+    },
+  },
+  {
+    event_id: 'evt-904',
+    tidsstempel: '2025-02-05T14:00:00Z',
+    type: 'Grunnlag opprettet',
+    event_type: 'grunnlag_opprettet',
+    aktor: 'Per Hansen',
+    rolle: 'TE',
+    spor: 'grunnlag',
+    sammendrag: 'Varsel om irregulær endring - ventilasjon',
+    event_data: {
+      hovedkategori: 'ENDRING',
+      underkategori: ['IRREG'],
+      beskrivelse: 'Muntlig instruks om endret ventilasjonsløsning i byggemøte.',
+      dato_oppdaget: '2025-02-05',
+      grunnlag_varsel: { dato_sendt: '2025-02-05', metode: ['epost', 'byggemote'] },
+      kontraktsreferanser: ['§32.1', '§32.2'],
+    },
+  },
+];
+
+/**
  * Get mock data by case ID
  */
 export function getMockStateById(sakId: string): SakState {
@@ -774,6 +1075,10 @@ export function getMockStateById(sakId: string): SakState {
       return mockSakState6;
     case 'SAK-2025-007':
       return mockSakState7;
+    case 'SAK-2025-008':
+      return mockSakState8;
+    case 'SAK-2025-009':
+      return mockSakState9;
     default:
       return mockSakState1;
   }
@@ -798,6 +1103,10 @@ export function getMockTimelineById(sakId: string): TimelineEntry[] {
       return mockTimelineEvents6;
     case 'SAK-2025-007':
       return mockTimelineEvents7;
+    case 'SAK-2025-008':
+      return mockTimelineEvents8;
+    case 'SAK-2025-009':
+      return mockTimelineEvents9;
     default:
       return mockTimelineEvents1;
   }
@@ -841,5 +1150,15 @@ export const mockCaseList = [
     id: 'SAK-2025-007',
     title: 'Tilbakeholdelse - Mangler overslag',
     status: 'Tilbakeholdt (§30.2)',
+  },
+  {
+    id: 'SAK-2025-008',
+    title: 'Force Majeure - Storflom Drammenselva',
+    status: 'Force Majeure (§33.3)',
+  },
+  {
+    id: 'SAK-2025-009',
+    title: 'Passivitet - Irregulær endring ventilasjon',
+    status: 'Passiv aksept (§32.3)',
   },
 ];
