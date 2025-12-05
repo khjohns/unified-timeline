@@ -69,6 +69,8 @@ interface SendFristModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sakId: string;
+  /** ID of the grunnlag event this frist claim is linked to (required for event sourcing) */
+  grunnlagEventId: string;
   /** Optional grunnlag event data for context display */
   grunnlagEvent?: GrunnlagEventInfo;
   /** Whether BH has sent an etterlysning (§33.6.2) - triggers critical warning */
@@ -79,6 +81,7 @@ export function SendFristModal({
   open,
   onOpenChange,
   sakId,
+  grunnlagEventId,
   grunnlagEvent,
   harMottattEtterlysning,
 }: SendFristModalProps) {
@@ -163,6 +166,7 @@ export function SendFristModal({
     mutation.mutate({
       eventType: 'frist_krav_sendt',
       data: {
+        grunnlag_event_id: grunnlagEventId,
         varsel_type: data.varsel_type,
         noytralt_varsel: noytraltVarsel,
         spesifisert_varsel: spesifisertVarsel,

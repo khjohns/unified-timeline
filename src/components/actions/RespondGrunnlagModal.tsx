@@ -59,6 +59,8 @@ interface RespondGrunnlagModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sakId: string;
+  /** ID of the grunnlag event being responded to (required for event sourcing) */
+  grunnlagEventId: string;
   /** Optional grunnlag event data for context display and logic */
   grunnlagEvent?: GrunnlagEventInfo;
 }
@@ -67,6 +69,7 @@ export function RespondGrunnlagModal({
   open,
   onOpenChange,
   sakId,
+  grunnlagEventId,
   grunnlagEvent,
 }: RespondGrunnlagModalProps) {
   const {
@@ -122,6 +125,7 @@ export function RespondGrunnlagModal({
     mutation.mutate({
       eventType: 'respons_grunnlag',
       data: {
+        grunnlag_event_id: grunnlagEventId,
         ...data,
         // Include metadata about passive acceptance if relevant
         dager_siden_varsel: dagerSidenVarsel > 0 ? dagerSidenVarsel : undefined,
