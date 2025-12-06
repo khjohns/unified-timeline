@@ -24,6 +24,8 @@ import { FormField } from '../primitives/FormField';
 import { Input } from '../primitives/Input';
 import { Textarea } from '../primitives/Textarea';
 import { Badge } from '../primitives/Badge';
+import { Alert } from '../primitives/Alert';
+import { AlertDialog } from '../primitives/AlertDialog';
 import {
   Select,
   SelectContent,
@@ -35,6 +37,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
+import { useConfirmClose } from '../../hooks/useConfirmClose';
 import {
   BH_VEDERLAGSSVAR_OPTIONS,
   VEDERLAGSMETODER_OPTIONS,
@@ -99,12 +102,18 @@ export function RespondVederlagModal({
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
     reset,
     watch,
     control,
   } = useForm<RespondVederlagFormData>({
     resolver: zodResolver(respondVederlagSchema),
+  });
+
+  const { showConfirmDialog, setShowConfirmDialog, handleClose, confirmClose } = useConfirmClose({
+    isDirty,
+    onReset: reset,
+    onClose: () => onOpenChange(false),
   });
 
   const mutation = useSubmitEvent(sakId, {
@@ -421,14 +430,9 @@ export function RespondVederlagModal({
 
         {/* Error Message */}
         {mutation.isError && (
-          <div
-            className="p-pkt-05 bg-pkt-surface-subtle-light-red border-2 border-pkt-border-red rounded-none"
-            role="alert"
-          >
-            <p className="text-base text-pkt-border-red font-medium">
-              {mutation.error instanceof Error ? mutation.error.message : 'En feil oppstod'}
-            </p>
-          </div>
+          <Alert variant="danger" title="Feil ved innsending">
+            {mutation.error instanceof Error ? mutation.error.message : 'En feil oppstod'}
+          </Alert>
         )}
 
         {/* Actions */}
@@ -436,7 +440,7 @@ export function RespondVederlagModal({
           <Button
             type="button"
             variant="ghost"
-            onClick={() => onOpenChange(false)}
+            onClick={handleClose}
             disabled={isSubmitting}
             size="lg"
           >
@@ -447,6 +451,18 @@ export function RespondVederlagModal({
           </Button>
         </div>
       </form>
+
+      {/* Confirm close dialog */}
+      <AlertDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        title="Forkast endringer?"
+        description="Du har ulagrede endringer som vil gå tapt hvis du lukker skjemaet."
+        confirmLabel="Forkast"
+        cancelLabel="Fortsett redigering"
+        onConfirm={confirmClose}
+        variant="warning"
+      />
     </Modal>
   );
 }

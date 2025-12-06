@@ -14,6 +14,7 @@ import { Checkbox } from '../primitives/Checkbox';
 import { DatePicker } from '../primitives/DatePicker';
 import { FormField } from '../primitives/FormField';
 import { Alert } from '../primitives/Alert';
+import { AlertDialog } from '../primitives/AlertDialog';
 import { Collapsible } from '../primitives/Collapsible';
 import {
   Select,
@@ -26,6 +27,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
+import { useConfirmClose } from '../../hooks/useConfirmClose';
 import { useState, useMemo } from 'react';
 import {
   HOVEDKATEGORI_OPTIONS,
@@ -68,7 +70,7 @@ export function SendGrunnlagModal({
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
     reset,
     setValue,
     control,
@@ -82,6 +84,15 @@ export function SendGrunnlagModal({
       varsel_metode: [],
       er_etter_tilbud: false,
     },
+  });
+
+  const { showConfirmDialog, setShowConfirmDialog, handleClose, confirmClose } = useConfirmClose({
+    isDirty,
+    onReset: () => {
+      reset();
+      setSelectedHovedkategori('');
+    },
+    onClose: () => onOpenChange(false),
   });
 
   const hovedkategoriValue = watch('hovedkategori');
@@ -458,7 +469,7 @@ export function SendGrunnlagModal({
           <Button
             type="button"
             variant="ghost"
-            onClick={() => onOpenChange(false)}
+            onClick={handleClose}
             disabled={isSubmitting}
             size="lg"
           >
@@ -469,6 +480,18 @@ export function SendGrunnlagModal({
           </Button>
         </div>
       </form>
+
+      {/* Confirm close dialog */}
+      <AlertDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        title="Forkast endringer?"
+        description="Du har ulagrede endringer som vil gå tapt hvis du lukker skjemaet."
+        confirmLabel="Forkast"
+        cancelLabel="Fortsett redigering"
+        onConfirm={confirmClose}
+        variant="warning"
+      />
     </Modal>
   );
 }

@@ -11,12 +11,14 @@ import { Input } from '../primitives/Input';
 import { Textarea } from '../primitives/Textarea';
 import { FormField } from '../primitives/FormField';
 import { Alert } from '../primitives/Alert';
+import { AlertDialog } from '../primitives/AlertDialog';
 import { Badge } from '../primitives/Badge';
 import { RadioGroup, RadioItem } from '../primitives/RadioGroup';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
+import { useConfirmClose } from '../../hooks/useConfirmClose';
 import { useMemo } from 'react';
 import { FristTilstand, FristBeregningResultat, ForseringTilstand } from '../../types/timeline';
 
@@ -61,7 +63,7 @@ export function UpdateResponseFristModal({
 
   const {
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
     control,
     watch,
     reset,
@@ -72,6 +74,12 @@ export function UpdateResponseFristModal({
       ny_godkjent_dager: undefined,
       kommentar: '',
     },
+  });
+
+  const { showConfirmDialog, setShowConfirmDialog, handleClose, confirmClose } = useConfirmClose({
+    isDirty,
+    onReset: reset,
+    onClose: () => onOpenChange(false),
   });
 
   const nyttResultat = watch('nytt_resultat') as FristBeregningResultat;
@@ -289,7 +297,7 @@ export function UpdateResponseFristModal({
           <Button
             type="button"
             variant="ghost"
-            onClick={() => onOpenChange(false)}
+            onClick={handleClose}
             disabled={isSubmitting}
             size="lg"
           >
@@ -314,6 +322,18 @@ export function UpdateResponseFristModal({
           </Button>
         </div>
       </form>
+
+      {/* Confirm close dialog */}
+      <AlertDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        title="Forkast endringer?"
+        description="Du har ulagrede endringer som vil gå tapt hvis du lukker skjemaet."
+        confirmLabel="Forkast"
+        cancelLabel="Fortsett redigering"
+        onConfirm={confirmClose}
+        variant="warning"
+      />
     </Modal>
   );
 }

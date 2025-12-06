@@ -27,12 +27,14 @@ import { FormField } from '../primitives/FormField';
 import { DatePicker } from '../primitives/DatePicker';
 import { Badge } from '../primitives/Badge';
 import { Alert } from '../primitives/Alert';
+import { AlertDialog } from '../primitives/AlertDialog';
 import { RadioGroup, RadioItem } from '../primitives/RadioGroup';
 import { CurrencyInput } from '../primitives/CurrencyInput';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
+import { useConfirmClose } from '../../hooks/useConfirmClose';
 import { useMemo } from 'react';
 import { sjekkRiggDriftFrist } from '../../utils/preklusjonssjekk';
 import type { VederlagsMetode } from '../../types/timeline';
@@ -62,7 +64,19 @@ const vederlagSchema = z.object({
   belop_produktivitet: z.number().optional(),
   dato_klar_over_rigg: z.string().optional(),
   dato_klar_over_produktivitet: z.string().optional(),
-});
+}).refine(
+  (data) => {
+    // belop_direkte is required for ENHETSPRISER and FASTPRIS_TILBUD
+    if (data.metode === 'ENHETSPRISER' || data.metode === 'FASTPRIS_TILBUD') {
+      return data.belop_direkte !== undefined;
+    }
+    return true;
+  },
+  {
+    message: 'Beløp er påkrevd',
+    path: ['belop_direkte'],
+  }
+);
 
 type VederlagFormData = z.infer<typeof vederlagSchema>;
 
@@ -112,7 +126,7 @@ export function SendVederlagModal({
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
     reset,
     control,
     watch,
@@ -125,6 +139,12 @@ export function SendVederlagModal({
       har_rigg_krav: false,
       har_produktivitet_krav: false,
     },
+  });
+
+  const { showConfirmDialog, setShowConfirmDialog, handleClose, confirmClose } = useConfirmClose({
+    isDirty,
+    onReset: reset,
+    onClose: () => onOpenChange(false),
   });
 
   const mutation = useSubmitEvent(sakId, {
@@ -547,7 +567,7 @@ export function SendVederlagModal({
           <Button
             type="button"
             variant="ghost"
-            onClick={() => onOpenChange(false)}
+            onClick={handleClose}
             disabled={isSubmitting}
             size="lg"
           >
@@ -558,6 +578,18 @@ export function SendVederlagModal({
           </Button>
         </div>
       </form>
+
+      {/* Confirm close dialog */}
+      <AlertDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        title="Forkast endringer?"
+        description="Du har ulagrede endringer som vil gå tapt hvis du lukker skjemaet."
+        confirmLabel="Forkast"
+        cancelLabel="Fortsett redigering"
+        onConfirm={confirmClose}
+        variant="warning"
+      />
     </Modal>
   );
 }

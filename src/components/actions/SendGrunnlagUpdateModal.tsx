@@ -12,6 +12,7 @@ import { Textarea } from '../primitives/Textarea';
 import { DatePicker } from '../primitives/DatePicker';
 import { FormField } from '../primitives/FormField';
 import { Alert } from '../primitives/Alert';
+import { AlertDialog } from '../primitives/AlertDialog';
 import {
   Select,
   SelectContent,
@@ -24,6 +25,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
+import { useConfirmClose } from '../../hooks/useConfirmClose';
 import { useMemo } from 'react';
 import {
   HOVEDKATEGORI_OPTIONS,
@@ -66,7 +68,7 @@ export function SendGrunnlagUpdateModal({
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
     control,
     watch,
     reset,
@@ -84,6 +86,12 @@ export function SendGrunnlagUpdateModal({
           : [],
       endrings_begrunnelse: '',
     },
+  });
+
+  const { showConfirmDialog, setShowConfirmDialog, handleClose, confirmClose } = useConfirmClose({
+    isDirty,
+    onReset: reset,
+    onClose: () => onOpenChange(false),
   });
 
   const nyDatoOppdaget = watch('dato_oppdaget');
@@ -302,7 +310,7 @@ export function SendGrunnlagUpdateModal({
           <Button
             type="button"
             variant="ghost"
-            onClick={() => onOpenChange(false)}
+            onClick={handleClose}
             disabled={isSubmitting}
             size="lg"
           >
@@ -318,6 +326,18 @@ export function SendGrunnlagUpdateModal({
           </Button>
         </div>
       </form>
+
+      {/* Confirm close dialog */}
+      <AlertDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        title="Forkast endringer?"
+        description="Du har ulagrede endringer som vil gå tapt hvis du lukker skjemaet."
+        confirmLabel="Forkast"
+        cancelLabel="Fortsett redigering"
+        onConfirm={confirmClose}
+        variant="warning"
+      />
     </Modal>
   );
 }

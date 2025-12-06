@@ -21,10 +21,13 @@ import { RadioGroup, RadioItem } from '../primitives/RadioGroup';
 import { DatePicker } from '../primitives/DatePicker';
 import { FormField } from '../primitives/FormField';
 import { Badge } from '../primitives/Badge';
+import { Alert } from '../primitives/Alert';
+import { AlertDialog } from '../primitives/AlertDialog';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
+import { useConfirmClose } from '../../hooks/useConfirmClose';
 import {
   FRIST_VARSELTYPE_OPTIONS,
   getFristVarseltypeValues,
@@ -54,7 +57,19 @@ const fristSchema = z.object({
   ny_sluttdato: z.string().optional(),
   vedlegg_ids: z.array(z.string()).optional(),
   berorte_aktiviteter: z.string().optional(),
-});
+}).refine(
+  (data) => {
+    // antall_dager is required for spesifisert, begge, and force_majeure
+    if (['spesifisert', 'begge', 'force_majeure'].includes(data.varsel_type)) {
+      return data.antall_dager !== undefined && data.antall_dager >= 0;
+    }
+    return true;
+  },
+  {
+    message: 'Antall dager er påkrevd for spesifisert krav',
+    path: ['antall_dager'],
+  }
+);
 
 type FristFormData = z.infer<typeof fristSchema>;
 
@@ -88,20 +103,25 @@ export function SendFristModal({
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
     reset,
     control,
     watch,
   } = useForm<FristFormData>({
     resolver: zodResolver(fristSchema),
     defaultValues: {
-      varsel_type: '',
       noytralt_varsel_sendes_na: false,
       noytralt_varsel_metoder: [],
       spesifisert_varsel_sendes_na: false,
       spesifisert_varsel_metoder: [],
       vedlegg_ids: [],
     },
+  });
+
+  const { showConfirmDialog, setShowConfirmDialog, handleClose, confirmClose } = useConfirmClose({
+    isDirty,
+    onReset: reset,
+    onClose: () => onOpenChange(false),
   });
 
   const mutation = useSubmitEvent(sakId, {
@@ -487,14 +507,9 @@ export function SendFristModal({
 
         {/* Error Message */}
         {mutation.isError && (
-          <div
-            className="p-pkt-05 bg-pkt-surface-subtle-light-red border-2 border-pkt-border-red rounded-none"
-            role="alert"
-          >
-            <p className="text-base text-pkt-border-red font-medium">
-              {mutation.error instanceof Error ? mutation.error.message : 'En feil oppstod'}
-            </p>
-          </div>
+          <Alert variant="danger" title="Feil ved innsending">
+            {mutation.error instanceof Error ? mutation.error.message : 'En feil oppstod'}
+          </Alert>
         )}
 
         {/* Actions */}
@@ -502,7 +517,7 @@ export function SendFristModal({
           <Button
             type="button"
             variant="ghost"
-            onClick={() => onOpenChange(false)}
+            onClick={handleClose}
             disabled={isSubmitting}
             size="lg"
           >
@@ -513,6 +528,18 @@ export function SendFristModal({
           </Button>
         </div>
       </form>
+
+      {/* Confirm close dialog */}
+      <AlertDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        title="Forkast endringer?"
+        description="Du har ulagrede endringer som vil gå tapt hvis du lukker skjemaet."
+        confirmLabel="Forkast"
+        cancelLabel="Fortsett redigering"
+        onConfirm={confirmClose}
+        variant="warning"
+      />
     </Modal>
   );
 }
