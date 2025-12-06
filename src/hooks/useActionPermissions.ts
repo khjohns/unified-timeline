@@ -22,6 +22,10 @@ export interface AvailableActions {
   canRespondToGrunnlag: boolean;
   canRespondToVederlag: boolean;
   canRespondToFrist: boolean;
+  // BH Actions: Update existing responses
+  canUpdateGrunnlagResponse: boolean;
+  canUpdateVederlagResponse: boolean;
+  canUpdateFristResponse: boolean;
   canIssueEO: boolean;
 }
 
@@ -100,6 +104,20 @@ export function useActionPermissions(
       (state.vederlag.status === 'sendt' || state.vederlag.status === 'under_behandling'),
     canRespondToFrist:
       isBH && (state.frist.status === 'sendt' || state.frist.status === 'under_behandling'),
+
+    // BH Actions: Update existing responses (snuoperasjon, endre avgjørelse)
+    canUpdateGrunnlagResponse:
+      isBH &&
+      state.grunnlag.bh_resultat !== undefined &&
+      state.grunnlag.status !== 'utkast',
+    canUpdateVederlagResponse:
+      isBH &&
+      state.vederlag.bh_resultat !== undefined &&
+      state.vederlag.status !== 'utkast',
+    canUpdateFristResponse:
+      isBH &&
+      state.frist.bh_resultat !== undefined &&
+      state.frist.status !== 'utkast',
 
     // Special: Issue EO (Endringsordre)
     canIssueEO: state.kan_utstede_eo,
