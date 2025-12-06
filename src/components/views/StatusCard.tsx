@@ -3,7 +3,7 @@
  *
  * Read-only display component for track status.
  * Shows current status, krevd/godkjent values, and contextual actions.
- * Uses dark background (Punkt dark blue) with white text.
+ * Uses white background with Punkt semantic colors and dark blue borders.
  */
 
 import { SporStatus, SporType } from '../../types/timeline';
@@ -30,61 +30,61 @@ const STATUS_CONFIG: Record<
 > = {
   ikke_relevant: {
     label: 'Ikke relevant',
-    badgeClass: 'bg-white/20 text-white',
+    badgeClass: 'bg-pkt-surface-strong-gray text-pkt-text-body-dark border border-pkt-border-gray',
     icon: '○',
     ariaLabel: 'Status: Ikke relevant',
   },
   utkast: {
     label: 'Utkast',
-    badgeClass: 'bg-white/20 text-white',
+    badgeClass: 'bg-pkt-surface-light-beige text-pkt-text-body-dark border border-pkt-border-beige',
     icon: '○',
     ariaLabel: 'Status: Utkast',
   },
   sendt: {
     label: 'Sendt',
-    badgeClass: 'bg-pkt-brand-blue-500 text-pkt-brand-dark-blue-1000',
+    badgeClass: 'bg-pkt-surface-light-blue text-pkt-brand-dark-blue-1000 border border-pkt-brand-blue-500',
     icon: '→',
     ariaLabel: 'Status: Sendt til byggherre',
   },
   under_behandling: {
     label: 'Under behandling',
-    badgeClass: 'bg-pkt-brand-yellow-1000 text-pkt-brand-dark-blue-1000',
+    badgeClass: 'bg-pkt-surface-yellow text-pkt-brand-dark-blue-1000 border border-pkt-border-yellow',
     icon: '⏳',
     ariaLabel: 'Status: Under behandling',
   },
   godkjent: {
     label: 'Godkjent',
-    badgeClass: 'bg-pkt-brand-green-1000 text-pkt-brand-dark-blue-1000',
+    badgeClass: 'bg-pkt-surface-light-green text-pkt-brand-dark-green-1000 border border-pkt-border-green',
     icon: '✓',
     ariaLabel: 'Status: Godkjent',
   },
   delvis_godkjent: {
     label: 'Delvis godkjent',
-    badgeClass: 'bg-pkt-brand-yellow-1000 text-pkt-brand-dark-blue-1000',
+    badgeClass: 'bg-pkt-surface-yellow text-pkt-brand-dark-blue-1000 border border-pkt-border-yellow',
     icon: '◐',
     ariaLabel: 'Status: Delvis godkjent',
   },
   avvist: {
     label: 'Avvist',
-    badgeClass: 'bg-pkt-brand-red-600 text-white',
+    badgeClass: 'bg-pkt-surface-faded-red text-pkt-brand-red-1000 border border-pkt-border-red',
     icon: '✗',
     ariaLabel: 'Status: Avvist',
   },
   under_forhandling: {
     label: 'Under forhandling',
-    badgeClass: 'bg-pkt-brand-yellow-1000 text-pkt-brand-dark-blue-1000',
+    badgeClass: 'bg-pkt-surface-yellow text-pkt-brand-dark-blue-1000 border border-pkt-border-yellow',
     icon: '⇄',
     ariaLabel: 'Status: Under forhandling',
   },
   trukket: {
     label: 'Trukket',
-    badgeClass: 'bg-white/20 text-white',
+    badgeClass: 'bg-pkt-surface-strong-gray text-pkt-text-body-dark border border-pkt-border-gray',
     icon: '⌫',
     ariaLabel: 'Status: Trukket tilbake',
   },
   laast: {
     label: 'Låst',
-    badgeClass: 'bg-pkt-brand-green-1000 text-pkt-brand-dark-blue-1000',
+    badgeClass: 'bg-pkt-surface-light-green text-pkt-brand-dark-green-1000 border border-pkt-border-green',
     icon: '🔒',
     ariaLabel: 'Status: Låst',
   },
@@ -123,10 +123,10 @@ export function StatusCard({
   const hasValues = krevd !== null && krevd !== undefined;
 
   return (
-    <div className="bg-pkt-surface-strong-dark-blue rounded-none p-4 sm:p-5 flex flex-col">
+    <div className="bg-white rounded-none p-4 sm:p-5 flex flex-col border-2 border-pkt-border-default">
       {/* Header: Track title and status badge */}
       <div className="flex items-start justify-between gap-3 mb-3">
-        <h3 className="text-sm font-bold text-white/80 uppercase tracking-wide">
+        <h3 className="text-sm font-bold text-pkt-brand-dark-blue-1000 uppercase tracking-wide">
           {SPOR_LABELS[spor]}
         </h3>
         <div
@@ -148,19 +148,19 @@ export function StatusCard({
       {/* Values: Krevd and Godkjent */}
       {hasValues && (
         <div className="flex-1 mb-3">
-          <dl className="space-y-1">
+          <dl className="space-y-2">
             {krevd !== null && krevd !== undefined && (
               <div className="flex justify-between items-baseline">
-                <dt className="text-sm text-white/70">Krevd:</dt>
-                <dd className="text-lg font-bold text-white">
+                <dt className="text-sm text-pkt-grays-gray-600 font-medium">Krevd:</dt>
+                <dd className="text-lg font-bold text-pkt-text-body-dark">
                   {formatValue(krevd, unit)}
                 </dd>
               </div>
             )}
             {godkjent !== null && godkjent !== undefined && (
               <div className="flex justify-between items-baseline">
-                <dt className="text-sm text-white/70">Godkjent:</dt>
-                <dd className="text-lg font-bold text-pkt-brand-green-1000">
+                <dt className="text-sm text-pkt-grays-gray-600 font-medium">Godkjent:</dt>
+                <dd className="text-lg font-bold text-pkt-brand-dark-green-1000 bg-pkt-surface-faded-green px-2 py-0.5 rounded-none">
                   {formatValue(godkjent, unit)}
                 </dd>
               </div>
@@ -171,7 +171,7 @@ export function StatusCard({
 
       {/* Grunnlag doesn't have values, show last updated instead */}
       {!hasValues && lastUpdated && (
-        <p className="flex-1 text-sm text-white/60 mb-3">
+        <p className="flex-1 text-sm text-pkt-grays-gray-500 mb-3">
           Sist oppdatert:{' '}
           {new Date(lastUpdated).toLocaleDateString('nb-NO', {
             day: 'numeric',
@@ -183,7 +183,7 @@ export function StatusCard({
 
       {/* Contextual Actions */}
       {actions && (
-        <div className="pt-3 border-t border-white/20">
+        <div className="pt-3 border-t border-pkt-border-subtle">
           <div className="flex flex-wrap gap-2">{actions}</div>
         </div>
       )}
