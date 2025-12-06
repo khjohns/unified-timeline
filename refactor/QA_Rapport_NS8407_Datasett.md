@@ -8,7 +8,7 @@
 
 ## Sammendrag
 
-Kvalitetssikringen identifiserte **1 feil** (nå rettet) og **3 forbedringsforslag**. Hovedstrukturen og de fleste hjemmelreferanser er korrekte.
+Kvalitetssikringen identifiserte **1 feil** og **3 forbedringsforslag**. Alle er nå rettet (2025-12-06). Hovedstrukturen og hjemmelreferanser er korrekte.
 
 ---
 
@@ -37,40 +37,35 @@ Beskrivelsen reflekterer nå korrekt at dette handler om situasjonen der BH gjen
 
 ## FORBEDRINGSFORSLAG
 
-### 1. MEDVIRK - Ufullstendig hjemmelreferanse for materialer
+### 1. ~~MEDVIRK - Ufullstendig hjemmelreferanse for materialer~~ ✅ RETTET (2025-12-06)
 
 **Lokasjon:** `SVIKT > MEDVIRK`
 
-**I datasettet:**
+**Opprinnelig:** Beskrivelsen nevnte "materialer" men refererte kun til 22.3.
+
+**Rettelse:**
 ```python
-"beskrivelse": "Forsinkede tegninger, beslutninger, materialer eller fysisk arbeidsgrunnlag (22.3)."
+"beskrivelse": "Forsinkede tegninger, beslutninger, fysisk arbeidsgrunnlag (22.3) eller materialer (22.4)."
 ```
-
-**Observasjon:** Beskrivelsen nevner "materialer", men refererer kun til 22.3. Materialleveranse er dekket av **22.4**.
-
-**Fra kildetekst:**
-- 22.3: Fysisk arbeidsgrunnlag
-- 22.4: "Byggherren skal levere materialer og produkter..."
-
-**Forslag:** Endre referansen til "(22.3/22.4)" eller fjern "materialer" fra beskrivelsen.
 
 ---
 
-### 2. FM_EGEN/FM_MH - Beskrivelse bruker eksempler fra annen paragraf
+### 2. ~~FM_EGEN/FM_MH - Beskrivelse bruker eksempler fra annen paragraf~~ ✅ RETTET (2025-12-06)
 
-**Lokasjon:** `FORCE_MAJEURE > FM_EGEN`
+**Lokasjon:** `FORCE_MAJEURE > FM_EGEN/FM_MH`
 
-**I datasettet:**
+**Opprinnelig:** Eksemplene "krig, opprør, naturkatastrofe" var fra §19.1, ikke §33.3.
+
+**Rettelse:**
 ```python
-"beskrivelse": "Krig, opprør, naturkatastrofe, streik etc. som rammer TE direkte."
+# FM_EGEN
+"beskrivelse": "Ekstraordinære værforhold, offentlige påbud/forbud, streik, lockout etc. som rammer TE direkte."
+
+# FM_MH
+"beskrivelse": "Hindring hos kontraktsmedhjelper som skyldes forhold utenfor dennes kontroll."
 ```
 
-**Observasjon:** Eksemplene "krig, opprør, naturkatastrofe" er fra 19.1, ikke fra 33.3.
-
-**Fra kildetekst (33.3):**
-> "...forhold utenfor deres kontroll, så som ekstraordinære værforhold, offentlige påbud og forbud, streik, lockout og overenskomstbestemmelser."
-
-**Forslag:** Justér beskrivelsen til å bruke eksempler fra 33.3, eller legg til referanse til 19.1.
+Beskrivelsene bruker nå eksempler direkte fra §33.3.
 
 ---
 
@@ -131,4 +126,10 @@ Beskrivelsen fokuserer kun på svikt-scenariet (25.3), men hjemmelen inkluderer 
 
 ## Konklusjon
 
-Datasettet har høy kvalitet med korrekt strukturering av hovedkategorier og de fleste underkategorier. Den identifiserte feilen (NEKT_TILTRANSPORT) bør rettes, og forbedringsforslagne kan vurderes for økt presisjon.
+Datasettet har høy kvalitet med korrekt strukturering av hovedkategorier og alle underkategorier.
+
+**Status (2025-12-06):**
+- ~~NEKT_TILTRANSPORT~~ ✅ Rettet
+- ~~MEDVIRK~~ ✅ Rettet
+- ~~FM_EGEN/FM_MH~~ ✅ Rettet
+- SVAR_VARSEL: Valgfri forbedring (ikke kritisk)

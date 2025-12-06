@@ -92,30 +92,31 @@ Beskrivelsen reflekterer nå korrekt at dette handler om situasjonen der BH gjen
 
 ## Forbedringsforslag (arvet fra Python-QA)
 
-### 1. MEDVIRK - Ufullstendig referanse
+### 1. ~~MEDVIRK - Ufullstendig referanse~~ ✅ RETTET (2025-12-06)
 
-**Nåværende:**
+**Opprinnelig:** Beskrivelsen nevnte "materialer" men refererte kun til 22.3.
+
+**Rettelse:**
 ```typescript
-beskrivelse: 'Forsinkede tegninger, beslutninger, materialer eller fysisk arbeidsgrunnlag (22.3).',
+beskrivelse: 'Forsinkede tegninger, beslutninger, fysisk arbeidsgrunnlag (22.3) eller materialer (22.4).',
 ```
-
-**Problem:** Beskrivelsen nevner "materialer", men §22.3 handler om fysisk arbeidsgrunnlag. Materialleveranse er dekket av §22.4.
-
-**Forslag:** Endre til `"(22.3/22.4)"` eller fjern "materialer".
 
 ---
 
-### 2. FM_EGEN/FM_MH - Eksempler fra feil paragraf
+### 2. ~~FM_EGEN/FM_MH - Eksempler fra feil paragraf~~ ✅ RETTET (2025-12-06)
 
-**Nåværende:**
+**Opprinnelig:** Eksemplene "krig, opprør, naturkatastrofe" var fra §19.1.
+
+**Rettelse:**
 ```typescript
-beskrivelse: 'Krig, opprør, naturkatastrofe, streik etc. som rammer TE direkte.',
+// FM_EGEN
+beskrivelse: 'Ekstraordinære værforhold, offentlige påbud/forbud, streik, lockout etc. som rammer TE direkte.',
+
+// FM_MH
+beskrivelse: 'Hindring hos kontraktsmedhjelper som skyldes forhold utenfor dennes kontroll.',
 ```
 
-**Problem:** Eksemplene "krig, opprør, naturkatastrofe" er fra §19.1, ikke §33.3.
-
-**Fra §33.3:**
-> "...ekstraordinære værforhold, offentlige påbud og forbud, streik, lockout og overenskomstbestemmelser."
+Beskrivelsene bruker nå eksempler direkte fra §33.3.
 
 ---
 
@@ -156,7 +157,8 @@ beskrivelse: 'Krig, opprør, naturkatastrofe, streik etc. som rammer TE direkte.
 
 **categories.ts er korrekt implementert** som en TypeScript-versjon av Python-datasettet.
 
-**Status:**
-1. ~~Rett NEKT_TILTRANSPORT (feil/beskrivelse mismatch)~~ ✅ RETTET (2025-12-06)
-2. Vurder forbedringsforslagene for MEDVIRK og FM-beskrivelser
-3. Vurder TypeScript-forbedringene for økt type-sikkerhet
+**Status (2025-12-06) - Alle feil og forbedringsforslag rettet:**
+1. ~~NEKT_TILTRANSPORT~~ ✅ Rettet
+2. ~~MEDVIRK~~ ✅ Rettet
+3. ~~FM_EGEN/FM_MH~~ ✅ Rettet
+4. Vurder TypeScript-forbedringene for økt type-sikkerhet (valgfritt)
