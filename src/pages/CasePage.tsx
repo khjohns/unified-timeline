@@ -47,10 +47,10 @@ export function CasePage() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-oslo-beige-100 flex items-center justify-center">
+      <div className="min-h-screen bg-pkt-bg-default flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-oslo-blue mx-auto mb-4"></div>
-          <p className="text-gray-600">Laster sak...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pkt-border-default mx-auto mb-4"></div>
+          <p className="text-pkt-text-body-subtle">Laster sak...</p>
         </div>
       </div>
     );
@@ -59,12 +59,12 @@ export function CasePage() {
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-oslo-beige-100 flex items-center justify-center">
-        <div className="max-w-md p-8 bg-white rounded-none shadow-lg" role="alert">
-          <h2 className="text-heading-md font-bold text-error mb-4">
+      <div className="min-h-screen bg-pkt-bg-default flex items-center justify-center px-4">
+        <div className="max-w-md w-full p-6 sm:p-8 bg-white rounded-none shadow-lg border-2 border-pkt-border-default" role="alert">
+          <h2 className="text-xl sm:text-2xl font-bold text-pkt-brand-red-1000 mb-4">
             Feil ved lasting av sak
           </h2>
-          <p className="text-gray-700 mb-4">{error.message}</p>
+          <p className="text-pkt-text-body-default mb-4">{error.message}</p>
           <Button variant="primary" onClick={() => window.location.reload()}>
             Prøv igjen
           </Button>
@@ -85,24 +85,27 @@ export function CasePage() {
   const mockTimelineEvents = getMockTimelineById(sakId || '');
 
   return (
-    <div className="min-h-screen bg-oslo-beige-100">
+    <div className="min-h-screen bg-pkt-bg-default">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b-2 border-oslo-blue">
-        <div className="max-w-7xl mx-auto px-6 py-5">
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-heading-lg font-bold text-oslo-blue">
+      <header className="bg-white shadow-sm border-b-2 border-pkt-border-default">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5">
+          {/* Stack on mobile, side-by-side on larger screens */}
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl sm:text-2xl font-bold text-pkt-text-body-dark truncate">
                 {state.sakstittel}
               </h1>
-              <p className="mt-2 text-body-md text-gray-600">Sak #{sakId}</p>
+              <p className="mt-1 text-sm sm:text-base text-pkt-text-body-subtle">Sak #{sakId}</p>
             </div>
-            <ModeToggle userRole={userRole} onToggle={setUserRole} />
+            <div className="shrink-0">
+              <ModeToggle userRole={userRole} onToggle={setUserRole} />
+            </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Status Dashboard with Contextual Actions */}
         <StatusDashboard
           state={state}
@@ -198,23 +201,23 @@ export function CasePage() {
         />
 
         {/* Timeline Section */}
-        <section className="mt-8" aria-labelledby="timeline-heading">
+        <section className="mt-6 sm:mt-8" aria-labelledby="timeline-heading">
           <h2
             id="timeline-heading"
-            className="text-heading-md font-bold text-oslo-blue mb-4"
+            className="text-lg sm:text-xl font-bold text-pkt-text-body-dark mb-3 sm:mb-4"
           >
             Hendelser
           </h2>
-          <div className="bg-white rounded-none shadow p-6">
+          <div className="bg-white rounded-none shadow-sm border-2 border-pkt-border-subtle p-4 sm:p-6">
             <Timeline events={mockTimelineEvents} />
           </div>
         </section>
 
         {/* Summary Section - Enhanced with Comprehensive Metadata and Revision History */}
-        <section className="mt-8" aria-labelledby="summary-heading">
+        <section className="mt-6 sm:mt-8" aria-labelledby="summary-heading">
           <h2
             id="summary-heading"
-            className="text-heading-md font-bold text-oslo-blue mb-4"
+            className="text-lg sm:text-xl font-bold text-pkt-text-body-dark mb-3 sm:mb-4"
           >
             Sammendrag
           </h2>
@@ -224,7 +227,7 @@ export function CasePage() {
 
           {/* Revision History */}
           <div className="mt-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <h3 className="text-base sm:text-lg font-semibold text-pkt-text-body-dark mb-3 sm:mb-4">
               Revisjonshistorikk
             </h3>
             <RevisionHistory state={state} />
