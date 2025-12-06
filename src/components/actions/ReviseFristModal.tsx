@@ -13,6 +13,7 @@ import { Input } from '../primitives/Input';
 import { Textarea } from '../primitives/Textarea';
 import { FormField } from '../primitives/FormField';
 import { Alert } from '../primitives/Alert';
+import { AlertDialog } from '../primitives/AlertDialog';
 import { Badge } from '../primitives/Badge';
 import { Checkbox } from '../primitives/Checkbox';
 import { CurrencyInput } from '../primitives/CurrencyInput';
@@ -20,6 +21,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
+import { useConfirmClose } from '../../hooks/useConfirmClose';
 import { useMemo } from 'react';
 import { FristTilstand, FristBeregningResultat } from '../../types/timeline';
 
@@ -77,7 +79,7 @@ export function ReviseFristModal({
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
     control,
     watch,
     reset,
@@ -91,6 +93,12 @@ export function ReviseFristModal({
       forserings_kostnad: undefined,
       bekreft_30_prosent: false,
     },
+  });
+
+  const { showConfirmDialog, setShowConfirmDialog, handleClose, confirmClose } = useConfirmClose({
+    isDirty,
+    onReset: reset,
+    onClose: () => onOpenChange(false),
   });
 
   const iverksettForsering = watch('iverksett_forsering');
@@ -139,7 +147,7 @@ export function ReviseFristModal({
       title={iverksettForsering ? 'Varsel om Forsering (§33.8)' : 'Revider fristkrav'}
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-pkt-06">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Header with escalation badge if forsering */}
         {iverksettForsering && (
           <div className="flex justify-center mb-2">
@@ -316,11 +324,11 @@ export function ReviseFristModal({
         )}
 
         {/* Actions */}
-        <div className="flex justify-end gap-pkt-04 pt-pkt-06 border-t-2 border-pkt-border-subtle">
+        <div className="flex justify-end gap-4 pt-6 border-t-2 border-pkt-border-subtle">
           <Button
             type="button"
             variant="ghost"
-            onClick={() => onOpenChange(false)}
+            onClick={handleClose}
             disabled={isSubmitting}
             size="lg"
           >
@@ -344,6 +352,18 @@ export function ReviseFristModal({
           </Button>
         </div>
       </form>
+
+      {/* Confirm close dialog */}
+      <AlertDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        title="Forkast endringer?"
+        description="Du har ulagrede endringer som vil gå tapt hvis du lukker skjemaet."
+        confirmLabel="Forkast"
+        cancelLabel="Fortsett redigering"
+        onConfirm={confirmClose}
+        variant="warning"
+      />
     </Modal>
   );
 }

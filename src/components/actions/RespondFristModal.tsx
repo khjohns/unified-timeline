@@ -18,6 +18,8 @@ import { Input } from '../primitives/Input';
 import { Textarea } from '../primitives/Textarea';
 import { DatePicker } from '../primitives/DatePicker';
 import { Badge } from '../primitives/Badge';
+import { Alert } from '../primitives/Alert';
+import { AlertDialog } from '../primitives/AlertDialog';
 import {
   Select,
   SelectContent,
@@ -29,6 +31,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
+import { useConfirmClose } from '../../hooks/useConfirmClose';
 import {
   BH_FRISTSVAR_OPTIONS,
   getBhFristsvarValues,
@@ -80,12 +83,18 @@ export function RespondFristModal({
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
     reset,
     watch,
     control,
   } = useForm<RespondFristFormData>({
     resolver: zodResolver(respondFristSchema),
+  });
+
+  const { showConfirmDialog, setShowConfirmDialog, handleClose, confirmClose } = useConfirmClose({
+    isDirty,
+    onReset: reset,
+    onClose: () => onOpenChange(false),
   });
 
   const mutation = useSubmitEvent(sakId, {
@@ -134,10 +143,10 @@ export function RespondFristModal({
       description="Vurder tid-beregning (ren utmåling). Ansvarsvurdering håndteres i Grunnlag-sporet."
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-pkt-06">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Subsidiary badge and info */}
         {erSubsidiaer && (
-          <div className="p-pkt-04 bg-amber-50 border-2 border-amber-300 rounded-none">
+          <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-none">
             <div className="flex items-center gap-2 mb-2">
               <Badge variant="warning">Subsidiær behandling</Badge>
             </div>
@@ -164,7 +173,7 @@ export function RespondFristModal({
 
         {/* Display of fristkrav details */}
         {fristEvent && (fristEvent.antall_dager || fristEvent.begrunnelse) && (
-          <div className="p-pkt-04 bg-pkt-surface-subtle-light-blue border-2 border-pkt-border-focus rounded-none">
+          <div className="p-4 bg-pkt-surface-subtle-light-blue border-2 border-pkt-border-focus rounded-none">
             <h4 className="font-bold text-sm text-pkt-text-body-dark mb-2">
               Entreprenørens krav:
             </h4>
@@ -194,7 +203,7 @@ export function RespondFristModal({
 
         {/* Show claimed days if available (fallback if no fristEvent) */}
         {krevdDager !== undefined && !fristEvent?.antall_dager && (
-          <div className="p-pkt-04 bg-pkt-surface-subtle-light-blue border-2 border-pkt-border-focus rounded-none">
+          <div className="p-4 bg-pkt-surface-subtle-light-blue border-2 border-pkt-border-focus rounded-none">
             <p className="text-sm font-medium text-pkt-text-body-default">
               Krevd forlengelse: {krevdDager} {fristType || 'dager'}
             </p>
@@ -230,7 +239,7 @@ export function RespondFristModal({
 
         {/* Show description of selected resultat */}
         {selectedResultat && BH_FRISTSVAR_DESCRIPTIONS[selectedResultat] && (
-          <div className="p-pkt-04 bg-pkt-surface-subtle rounded-none border-l-4 border-pkt-border-focus">
+          <div className="p-4 bg-pkt-surface-subtle rounded-none border-l-4 border-pkt-border-focus">
             <p className="text-sm text-pkt-text-body-subtle">
               {BH_FRISTSVAR_DESCRIPTIONS[selectedResultat]}
             </p>
@@ -264,7 +273,7 @@ export function RespondFristModal({
 
         {/* §33.8 Forsering warning - show when rejecting or partial approval */}
         {visForsering && (
-          <div className="p-pkt-04 bg-pkt-surface-subtle-light-blue border-2 border-pkt-border-focus rounded-none">
+          <div className="p-4 bg-pkt-surface-subtle-light-blue border-2 border-pkt-border-focus rounded-none">
             <p className="text-sm font-medium text-pkt-text-body-default mb-2">
               Informasjon om risiko (§33.8)
             </p>
@@ -330,22 +339,17 @@ export function RespondFristModal({
 
         {/* Error Message */}
         {mutation.isError && (
-          <div
-            className="p-pkt-05 bg-pkt-surface-subtle-light-red border-2 border-pkt-border-red rounded-none"
-            role="alert"
-          >
-            <p className="text-base text-pkt-border-red font-medium">
-              {mutation.error instanceof Error ? mutation.error.message : 'En feil oppstod'}
-            </p>
-          </div>
+          <Alert variant="danger" title="Feil ved innsending">
+            {mutation.error instanceof Error ? mutation.error.message : 'En feil oppstod'}
+          </Alert>
         )}
 
         {/* Actions */}
-        <div className="flex justify-end gap-pkt-04 pt-pkt-06 border-t-2 border-pkt-border-subtle">
+        <div className="flex justify-end gap-4 pt-6 border-t-2 border-pkt-border-subtle">
           <Button
             type="button"
             variant="ghost"
-            onClick={() => onOpenChange(false)}
+            onClick={handleClose}
             disabled={isSubmitting}
             size="lg"
           >
@@ -356,6 +360,18 @@ export function RespondFristModal({
           </Button>
         </div>
       </form>
+
+      {/* Confirm close dialog */}
+      <AlertDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        title="Forkast endringer?"
+        description="Du har ulagrede endringer som vil gå tapt hvis du lukker skjemaet."
+        confirmLabel="Forkast"
+        cancelLabel="Fortsett redigering"
+        onConfirm={confirmClose}
+        variant="warning"
+      />
     </Modal>
   );
 }

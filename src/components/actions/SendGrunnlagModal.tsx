@@ -14,6 +14,7 @@ import { Checkbox } from '../primitives/Checkbox';
 import { DatePicker } from '../primitives/DatePicker';
 import { FormField } from '../primitives/FormField';
 import { Alert } from '../primitives/Alert';
+import { AlertDialog } from '../primitives/AlertDialog';
 import { Collapsible } from '../primitives/Collapsible';
 import {
   Select,
@@ -26,6 +27,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
+import { useConfirmClose } from '../../hooks/useConfirmClose';
 import { useState, useMemo } from 'react';
 import {
   HOVEDKATEGORI_OPTIONS,
@@ -68,7 +70,7 @@ export function SendGrunnlagModal({
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
     reset,
     setValue,
     control,
@@ -82,6 +84,15 @@ export function SendGrunnlagModal({
       varsel_metode: [],
       er_etter_tilbud: false,
     },
+  });
+
+  const { showConfirmDialog, setShowConfirmDialog, handleClose, confirmClose } = useConfirmClose({
+    isDirty,
+    onReset: () => {
+      reset();
+      setSelectedHovedkategori('');
+    },
+    onClose: () => onOpenChange(false),
   });
 
   const hovedkategoriValue = watch('hovedkategori');
@@ -182,7 +193,7 @@ export function SendGrunnlagModal({
       description="Fyll ut informasjon om grunnlaget for endringsmeldingen."
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-pkt-06">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Hovedkategori */}
         <FormField
           label="Hovedkategori (NS 8407)"
@@ -236,7 +247,7 @@ export function SendGrunnlagModal({
             required
             error={errors.underkategori?.message}
           >
-            <div className="space-y-pkt-03 max-h-60 overflow-y-auto border-2 border-pkt-border-gray rounded-none p-pkt-04 bg-pkt-bg-subtle">
+            <div className="space-y-3 max-h-60 overflow-y-auto border-2 border-pkt-border-gray rounded-none p-4 bg-pkt-bg-subtle">
               {getUnderkategorier(selectedHovedkategori).map((option) => (
                 <Checkbox
                   key={option.value}
@@ -412,7 +423,7 @@ export function SendGrunnlagModal({
             label="Varselmetode"
             helpText="Hvordan ble BH varslet? (Kan velge flere)"
           >
-            <div className="space-y-pkt-03 border-2 border-pkt-border-gray rounded-none p-pkt-04 bg-pkt-bg-subtle">
+            <div className="space-y-3 border-2 border-pkt-border-gray rounded-none p-4 bg-pkt-bg-subtle">
               {VARSEL_METODER_OPTIONS.map((option) => (
                 <Checkbox
                   key={option.value}
@@ -454,11 +465,11 @@ export function SendGrunnlagModal({
         )}
 
         {/* Actions */}
-        <div className="flex justify-end gap-pkt-04 pt-pkt-06 border-t-2 border-pkt-border-subtle">
+        <div className="flex justify-end gap-4 pt-6 border-t-2 border-pkt-border-subtle">
           <Button
             type="button"
             variant="ghost"
-            onClick={() => onOpenChange(false)}
+            onClick={handleClose}
             disabled={isSubmitting}
             size="lg"
           >
@@ -469,6 +480,18 @@ export function SendGrunnlagModal({
           </Button>
         </div>
       </form>
+
+      {/* Confirm close dialog */}
+      <AlertDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        title="Forkast endringer?"
+        description="Du har ulagrede endringer som vil gå tapt hvis du lukker skjemaet."
+        confirmLabel="Forkast"
+        cancelLabel="Fortsett redigering"
+        onConfirm={confirmClose}
+        variant="warning"
+      />
     </Modal>
   );
 }

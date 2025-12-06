@@ -17,6 +17,8 @@ import { Button } from '../primitives/Button';
 import { Textarea } from '../primitives/Textarea';
 import { FormField } from '../primitives/FormField';
 import { Badge } from '../primitives/Badge';
+import { Alert } from '../primitives/Alert';
+import { AlertDialog } from '../primitives/AlertDialog';
 import {
   Select,
   SelectContent,
@@ -28,6 +30,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
+import { useConfirmClose } from '../../hooks/useConfirmClose';
 import {
   BH_GRUNNLAGSVAR_OPTIONS,
   getBhGrunnlagssvarValues,
@@ -75,7 +78,7 @@ export function RespondGrunnlagModal({
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
     reset,
     watch,
     control,
@@ -84,6 +87,12 @@ export function RespondGrunnlagModal({
     defaultValues: {
       resultat: undefined,
     },
+  });
+
+  const { showConfirmDialog, setShowConfirmDialog, handleClose, confirmClose } = useConfirmClose({
+    isDirty,
+    onReset: reset,
+    onClose: () => onOpenChange(false),
   });
 
   const mutation = useSubmitEvent(sakId, {
@@ -141,10 +150,10 @@ export function RespondGrunnlagModal({
       description="Vurder ansvarsgrunnlaget (hvem sin feil). Dette påvirker om vederlag/frist vurderes prinsipalt eller subsidiært."
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-pkt-06">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Grunnlag summary - show if event data is available */}
         {grunnlagEvent && (hovedkategoriLabel || grunnlagEvent.beskrivelse) && (
-          <div className="p-pkt-04 bg-pkt-surface-subtle-light-blue border-2 border-pkt-border-focus rounded-none">
+          <div className="p-4 bg-pkt-surface-subtle-light-blue border-2 border-pkt-border-focus rounded-none">
             <h4 className="font-bold text-sm text-pkt-text-body-dark mb-2">
               Entreprenørens påstand:
             </h4>
@@ -181,7 +190,7 @@ export function RespondGrunnlagModal({
 
         {/* Force Majeure info */}
         {erForceMajeure && (
-          <div className="p-pkt-04 bg-amber-50 border-2 border-amber-300 rounded-none">
+          <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-none">
             <div className="flex items-center gap-2 mb-2">
               <Badge variant="warning">Force Majeure (§33.3)</Badge>
             </div>
@@ -196,7 +205,7 @@ export function RespondGrunnlagModal({
         {/* BH Passivity warning (§32.3) */}
         {erPassiv && (
           <div
-            className="p-pkt-05 bg-pkt-surface-subtle-light-red border-2 border-pkt-border-red rounded-none"
+            className="p-5 bg-pkt-surface-subtle-light-red border-2 border-pkt-border-red rounded-none"
             role="alert"
           >
             <div className="flex items-center gap-2 mb-2">
@@ -259,7 +268,7 @@ export function RespondGrunnlagModal({
         {/* Show description of selected resultat */}
         {selectedResultat &&
           BH_GRUNNLAGSVAR_DESCRIPTIONS[selectedResultat] && (
-            <div className="p-pkt-04 bg-pkt-surface-subtle rounded-none border-l-4 border-pkt-border-focus">
+            <div className="p-4 bg-pkt-surface-subtle rounded-none border-l-4 border-pkt-border-focus">
               <p className="text-sm text-pkt-text-body-subtle">
                 {BH_GRUNNLAGSVAR_DESCRIPTIONS[selectedResultat]}
               </p>
@@ -268,7 +277,7 @@ export function RespondGrunnlagModal({
 
         {/* Frafall info (§32.3 c) */}
         {selectedResultat === 'frafalt' && (
-          <div className="p-pkt-04 bg-blue-50 border-2 border-blue-300 rounded-none">
+          <div className="p-4 bg-blue-50 border-2 border-blue-300 rounded-none">
             <p className="text-sm font-medium text-blue-900 mb-2">
               §32.3 c) - Frafall av pålegget:
             </p>
@@ -283,7 +292,7 @@ export function RespondGrunnlagModal({
 
         {/* Force Majeure recognition info (§33.3) */}
         {selectedResultat === 'erkjenn_fm' && (
-          <div className="p-pkt-04 bg-blue-50 border-2 border-blue-300 rounded-none">
+          <div className="p-4 bg-blue-50 border-2 border-blue-300 rounded-none">
             <p className="text-sm font-medium text-blue-900 mb-2">
               §33.3 - Force Majeure erkjennelse:
             </p>
@@ -303,7 +312,7 @@ export function RespondGrunnlagModal({
 
         {/* Subsidiary treatment warning when rejecting */}
         {selectedResultat === 'avvist_uenig' && (
-          <div className="p-pkt-04 bg-amber-50 border-2 border-amber-300 rounded-none">
+          <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-none">
             <p className="text-sm font-medium text-amber-900 mb-2">
               Konsekvens av avslag:
             </p>
@@ -322,7 +331,7 @@ export function RespondGrunnlagModal({
 
         {/* EO generation info when approving */}
         {selectedResultat === 'godkjent' && !erForceMajeure && (
-          <div className="p-pkt-04 bg-green-50 border-2 border-green-300 rounded-none">
+          <div className="p-4 bg-green-50 border-2 border-green-300 rounded-none">
             <p className="text-sm font-medium text-green-900 mb-1">
               Systemhandling:
             </p>
@@ -356,24 +365,17 @@ export function RespondGrunnlagModal({
 
         {/* Error Message */}
         {mutation.isError && (
-          <div
-            className="p-pkt-05 bg-pkt-surface-subtle-light-red border-2 border-pkt-border-red rounded-none"
-            role="alert"
-          >
-            <p className="text-base text-pkt-border-red font-medium">
-              {mutation.error instanceof Error
-                ? mutation.error.message
-                : 'En feil oppstod'}
-            </p>
-          </div>
+          <Alert variant="danger" title="Feil ved innsending">
+            {mutation.error instanceof Error ? mutation.error.message : 'En feil oppstod'}
+          </Alert>
         )}
 
         {/* Actions */}
-        <div className="flex justify-end gap-pkt-04 pt-pkt-06 border-t-2 border-pkt-border-subtle">
+        <div className="flex justify-end gap-4 pt-6 border-t-2 border-pkt-border-subtle">
           <Button
             type="button"
             variant="ghost"
-            onClick={() => onOpenChange(false)}
+            onClick={handleClose}
             disabled={isSubmitting}
             size="lg"
           >
@@ -389,6 +391,18 @@ export function RespondGrunnlagModal({
           </Button>
         </div>
       </form>
+
+      {/* Confirm close dialog */}
+      <AlertDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        title="Forkast endringer?"
+        description="Du har ulagrede endringer som vil gå tapt hvis du lukker skjemaet."
+        confirmLabel="Forkast"
+        cancelLabel="Fortsett redigering"
+        onConfirm={confirmClose}
+        variant="warning"
+      />
     </Modal>
   );
 }

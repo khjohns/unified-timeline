@@ -21,10 +21,13 @@ import { RadioGroup, RadioItem } from '../primitives/RadioGroup';
 import { DatePicker } from '../primitives/DatePicker';
 import { FormField } from '../primitives/FormField';
 import { Badge } from '../primitives/Badge';
+import { Alert } from '../primitives/Alert';
+import { AlertDialog } from '../primitives/AlertDialog';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
+import { useConfirmClose } from '../../hooks/useConfirmClose';
 import {
   FRIST_VARSELTYPE_OPTIONS,
   getFristVarseltypeValues,
@@ -54,7 +57,19 @@ const fristSchema = z.object({
   ny_sluttdato: z.string().optional(),
   vedlegg_ids: z.array(z.string()).optional(),
   berorte_aktiviteter: z.string().optional(),
-});
+}).refine(
+  (data) => {
+    // antall_dager is required for spesifisert, begge, and force_majeure
+    if (['spesifisert', 'begge', 'force_majeure'].includes(data.varsel_type)) {
+      return data.antall_dager !== undefined && data.antall_dager >= 0;
+    }
+    return true;
+  },
+  {
+    message: 'Antall dager er påkrevd for spesifisert krav',
+    path: ['antall_dager'],
+  }
+);
 
 type FristFormData = z.infer<typeof fristSchema>;
 
@@ -88,20 +103,25 @@ export function SendFristModal({
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
     reset,
     control,
     watch,
   } = useForm<FristFormData>({
     resolver: zodResolver(fristSchema),
     defaultValues: {
-      varsel_type: '',
       noytralt_varsel_sendes_na: false,
       noytralt_varsel_metoder: [],
       spesifisert_varsel_sendes_na: false,
       spesifisert_varsel_metoder: [],
       vedlegg_ids: [],
     },
+  });
+
+  const { showConfirmDialog, setShowConfirmDialog, handleClose, confirmClose } = useConfirmClose({
+    isDirty,
+    onReset: reset,
+    onClose: () => onOpenChange(false),
   });
 
   const mutation = useSubmitEvent(sakId, {
@@ -189,11 +209,11 @@ export function SendFristModal({
       description="Fyll ut informasjon om fristforlengelsen."
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-pkt-06">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* BH Etterlysning warning (§33.6.2) - CRITICAL */}
         {harMottattEtterlysning && (
           <div
-            className="p-pkt-05 bg-pkt-surface-subtle-light-red border-2 border-pkt-border-red rounded-none"
+            className="p-5 bg-pkt-surface-subtle-light-red border-2 border-pkt-border-red rounded-none"
             role="alert"
           >
             <div className="flex items-center gap-2 mb-2">
@@ -212,7 +232,7 @@ export function SendFristModal({
 
         {/* Grunnlag context display */}
         {grunnlagEvent && grunnlagEvent.tittel && (
-          <div className="p-pkt-04 bg-pkt-surface-subtle-light-blue border-2 border-pkt-border-focus rounded-none">
+          <div className="p-4 bg-pkt-surface-subtle-light-blue border-2 border-pkt-border-focus rounded-none">
             <span className="text-sm text-pkt-text-body-subtle">
               Knyttet til grunnlag:
             </span>
@@ -235,7 +255,7 @@ export function SendFristModal({
 
         {/* §33.6.1 Reduction warning - late specification without etterlysning */}
         {erSentUtenEtterlysning && (
-          <div className="p-pkt-04 bg-amber-50 border-2 border-amber-300 rounded-none">
+          <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-none">
             <p className="text-sm font-medium text-amber-900">
               Risiko for avkortning (§33.6.1)
             </p>
@@ -276,12 +296,12 @@ export function SendFristModal({
 
         {/* VarselInfo fields based on selected type */}
         {(selectedVarselType === 'noytralt' || selectedVarselType === 'begge') && (
-          <div className="p-pkt-05 bg-pkt-surface-subtle-light-blue rounded-none border-2 border-pkt-border-focus">
-            <h4 className="text-base font-medium text-pkt-text-body-default mb-pkt-04">
+          <div className="p-5 bg-pkt-surface-subtle-light-blue rounded-none border-2 border-pkt-border-focus">
+            <h4 className="text-base font-medium text-pkt-text-body-default mb-4">
               Nøytralt/Foreløpig varsel (§33.4)
             </h4>
 
-            <div className="space-y-pkt-04">
+            <div className="space-y-4">
               <Controller
                 name="noytralt_varsel_sendes_na"
                 control={control}
@@ -324,7 +344,7 @@ export function SendFristModal({
                   label="Varselmetoder (nøytralt)"
                   helpText="Velg alle metoder som ble brukt"
                 >
-                  <div className="space-y-pkt-03 border-2 border-pkt-border-gray rounded-none p-pkt-04 bg-pkt-bg-subtle">
+                  <div className="space-y-3 border-2 border-pkt-border-gray rounded-none p-4 bg-pkt-bg-subtle">
                     {VARSEL_METODER_OPTIONS.map((option) => (
                       <Checkbox
                         key={option.value}
@@ -342,12 +362,12 @@ export function SendFristModal({
         )}
 
         {(selectedVarselType === 'spesifisert' || selectedVarselType === 'begge') && (
-          <div className="p-pkt-05 bg-pkt-surface-subtle-light-blue rounded-none border-2 border-pkt-border-focus">
-            <h4 className="text-base font-medium text-pkt-text-body-default mb-pkt-04">
+          <div className="p-5 bg-pkt-surface-subtle-light-blue rounded-none border-2 border-pkt-border-focus">
+            <h4 className="text-base font-medium text-pkt-text-body-default mb-4">
               Spesifisert krav (§33.6)
             </h4>
 
-            <div className="space-y-pkt-04">
+            <div className="space-y-4">
               <Controller
                 name="spesifisert_varsel_sendes_na"
                 control={control}
@@ -390,7 +410,7 @@ export function SendFristModal({
                   label="Varselmetoder (spesifisert)"
                   helpText="Velg alle metoder som ble brukt"
                 >
-                  <div className="space-y-pkt-03 border-2 border-pkt-border-gray rounded-none p-pkt-04 bg-pkt-bg-subtle">
+                  <div className="space-y-3 border-2 border-pkt-border-gray rounded-none p-4 bg-pkt-bg-subtle">
                     {VARSEL_METODER_OPTIONS.map((option) => (
                       <Checkbox
                         key={option.value}
@@ -487,22 +507,17 @@ export function SendFristModal({
 
         {/* Error Message */}
         {mutation.isError && (
-          <div
-            className="p-pkt-05 bg-pkt-surface-subtle-light-red border-2 border-pkt-border-red rounded-none"
-            role="alert"
-          >
-            <p className="text-base text-pkt-border-red font-medium">
-              {mutation.error instanceof Error ? mutation.error.message : 'En feil oppstod'}
-            </p>
-          </div>
+          <Alert variant="danger" title="Feil ved innsending">
+            {mutation.error instanceof Error ? mutation.error.message : 'En feil oppstod'}
+          </Alert>
         )}
 
         {/* Actions */}
-        <div className="flex justify-end gap-pkt-04 pt-pkt-06 border-t-2 border-pkt-border-subtle">
+        <div className="flex justify-end gap-4 pt-6 border-t-2 border-pkt-border-subtle">
           <Button
             type="button"
             variant="ghost"
-            onClick={() => onOpenChange(false)}
+            onClick={handleClose}
             disabled={isSubmitting}
             size="lg"
           >
@@ -513,6 +528,18 @@ export function SendFristModal({
           </Button>
         </div>
       </form>
+
+      {/* Confirm close dialog */}
+      <AlertDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        title="Forkast endringer?"
+        description="Du har ulagrede endringer som vil gå tapt hvis du lukker skjemaet."
+        confirmLabel="Forkast"
+        cancelLabel="Fortsett redigering"
+        onConfirm={confirmClose}
+        variant="warning"
+      />
     </Modal>
   );
 }
