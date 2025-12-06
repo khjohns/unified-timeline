@@ -1,55 +1,65 @@
 # Backend Structure
 
-**Sist oppdatert:** 2025-12-01
-**Backend versjon:** Refaktorert (app.py: 155 linjer)
+**Sist oppdatert:** 2025-12-06
+**Backend versjon:** Event Sourcing + CQRS
 
 ## 📁 Directory Organization
 
 ```
 backend/
-├── app.py                           # Flask entrypoint (155 linjer, minimal)
+├── app.py                           # Flask entrypoint
 ├── function_app.py                  # Azure Functions entrypoint
-├── constants.py                     # ⚠️ Deprecated → bruk core/generated_constants.py
-├── generated_constants.py           # ⚠️ Deprecated → bruk core/generated_constants.py
 │
 ├── core/                            # Sentralisert konfigurasjon
 │   ├── __init__.py
-│   ├── config.py                    # Pydantic BaseSettings (85 linjer)
-│   ├── constants.py                 # Statiske konstanter (12 linjer)
-│   ├── generated_constants.py       # Auto-generert fra shared/status-codes.json (161 linjer)
-│   ├── cors_config.py               # CORS-konfigurasjon (40 linjer)
-│   ├── logging_config.py            # Sentralisert logging setup (28 linjer)
-│   └── system_context.py            # SystemContext - erstatter KOEAutomationSystem (64 linjer)
+│   ├── config.py                    # Pydantic BaseSettings
+│   ├── constants.py                 # Statiske konstanter
+│   ├── generated_constants.py       # Auto-generert fra shared/status-codes.json
+│   ├── cors_config.py               # CORS-konfigurasjon
+│   └── logging_config.py            # Sentralisert logging setup
+│
+├── models/                          # Pydantic v2 domenemodeller (EVENT SOURCING)
+│   ├── __init__.py
+│   ├── events.py                    # 🆕 Event-definisjoner (933 linjer)
+│   │                                # - SakEvent (base)
+│   │                                # - GrunnlagData, VederlagData, FristData
+│   │                                # - GrunnlagResponsData, VederlagResponsData, FristResponsData
+│   │                                # - EventType enum
+│   └── sak_state.py                 # 🆕 Read model/projeksjon (562 linjer)
+│                                    # - SakState (aggregate root)
+│                                    # - GrunnlagTilstand, VederlagTilstand, FristTilstand
+│                                    # - Beregnede felter, subsidiary-logikk
+│
+├── repositories/                    # Data Access Layer (EVENT STORE)
+│   ├── __init__.py
+│   ├── event_repository.py          # 🆕 Event store (190 linjer)
+│   │                                # - JsonFileEventRepository
+│   │                                # - Optimistisk låsing (versjonsnummer)
+│   │                                # - Atomic batch operations
+│   │                                # - File locking (fcntl)
+│   └── sak_metadata_repository.py   # 🆕 Metadata-cache for sakliste (134 linjer)
+│
+├── services/                        # Forretningslogikk (CQRS)
+│   ├── __init__.py
+│   ├── timeline_service.py          # 🆕 State-projeksjon (753 linjer)
+│   │                                # - compute_state(events) → SakState
+│   │                                # - Event handlers (reducers)
+│   │                                # - Tre-spor koordinering
+│   ├── business_rules.py            # 🆕 Forretningsregler (240 linjer)
+│   │                                # - BusinessRuleValidator
+│   │                                # - Regler per event-type
+│   │                                # - Validering før persistering
+│   └── catenda_service.py           # Catenda API-operasjoner
 │
 ├── routes/                          # Flask Blueprints (HTTP-lag)
 │   ├── __init__.py
-│   ├── utility_routes.py            # CSRF, health, magic-link (115 linjer)
-│   ├── case_routes.py               # Get case, save draft (81 linjer)
-│   ├── varsel_routes.py             # Varsel submission (115 linjer)
-│   ├── koe_routes.py                # KOE submission, PDF upload (312 linjer)
-│   ├── svar_routes.py               # BH svar submission (188 linjer)
-│   ├── webhook_routes.py            # Catenda webhook handling (164 linjer)
-│   └── error_handlers.py            # Globale feilhåndterere (49 linjer)
-│
-├── services/                        # Forretningslogikk (framework-agnostisk)
-│   ├── __init__.py
-│   ├── varsel_service.py            # Varsel business logic (216 linjer)
-│   ├── koe_service.py               # KOE business logic (312 linjer)
-│   ├── svar_service.py              # BH svar business logic (334 linjer)
-│   ├── catenda_service.py           # Catenda API-operasjoner (268 linjer)
-│   └── webhook_service.py           # Webhook-håndtering (379 linjer) ← NY
-│
-├── repositories/                    # Data Access Layer (lagrings-agnostisk)
-│   ├── __init__.py
-│   ├── base_repository.py           # Abstract interface (111 linjer, 7 metoder)
-│   └── csv_repository.py            # CSV-implementasjon for prototype (457 linjer)
-│
-├── models/                          # Pydantic v2 domenemodeller
-│   ├── __init__.py
-│   ├── varsel.py                    # Varsel (notification) modell (111 linjer)
-│   ├── koe_revisjon.py              # KOE revisjon modell (98 linjer)
-│   ├── bh_svar.py                   # Byggherresvar modell (109 linjer)
-│   └── sak.py                       # Komplett sak-modell (235 linjer) ← NY
+│   ├── event_routes.py              # 🆕 Event API (592 linjer)
+│   │                                # - POST /api/events (submit event)
+│   │                                # - GET /api/cases/{id}/state
+│   │                                # - GET /api/cases/{id}/timeline
+│   ├── utility_routes.py            # CSRF, health, magic-link
+│   ├── webhook_routes.py            # Catenda webhook handling
+│   └── error_handlers.py            # Globale feilhåndterere
 │
 ├── lib/                             # Gjenbrukbare bibliotekskomponenter
 │   ├── __init__.py
@@ -134,118 +144,205 @@ backend/
 
 ## 🏗️ Architecture Layers
 
-### Arkitekturoversikt
+### Event Sourcing + CQRS Arkitektur
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                      HTTP Layer                                  │
+│                      HTTP Layer (routes/)                        │
 │  ┌─────────────────────────────────────────────────────────────┐│
-│  │  Flask Blueprints (routes/)  │  Azure Functions (functions/)││
+│  │                    event_routes.py                           ││
+│  │  POST /api/events          GET /api/cases/{id}/state         ││
+│  │  (Write Side)              (Read Side)                       ││
 │  └─────────────────────────────────────────────────────────────┘│
 └────────────────────────────┬────────────────────────────────────┘
                              │
-                             ▼
+         ┌───────────────────┴───────────────────┐
+         │                                       │
+         ▼                                       ▼
+┌─────────────────────────┐       ┌─────────────────────────────┐
+│    WRITE SIDE           │       │      READ SIDE              │
+│ ┌─────────────────────┐ │       │ ┌─────────────────────────┐ │
+│ │ BusinessRuleValidator│ │       │ │   TimelineService       │ │
+│ │ • Valider event     │ │       │ │   • compute_state()     │ │
+│ │ • Sjekk forretnings-│ │       │ │   • Event handlers      │ │
+│ │   regler            │ │       │ │   • Tre-spor projeksjon │ │
+│ └─────────────────────┘ │       │ └─────────────────────────┘ │
+│           │             │       │             ▲               │
+│           ▼             │       │             │               │
+│ ┌─────────────────────┐ │       │             │               │
+│ │  EventRepository    │ │       │             │               │
+│ │  • append(event)    │─┼───────┼─────────────┘               │
+│ │  • get_events()     │ │       │                             │
+│ │  • Optimistisk lås  │ │       │                             │
+│ └─────────────────────┘ │       │                             │
+└─────────────────────────┘       └─────────────────────────────┘
+         │
+         ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Service Layer (services/)                     │
-│  ┌───────────────┐ ┌───────────────┐ ┌───────────────┐          │
-│  │ VarselService │ │  KoeService   │ │  SvarService  │          │
-│  └───────────────┘ └───────────────┘ └───────────────┘          │
-│  ┌───────────────┐ ┌───────────────┐                            │
-│  │CatendaService │ │WebhookService │                            │
-│  └───────────────┘ └───────────────┘                            │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   Data Access Layer (repositories/)              │
+│                    EVENT STORE                                   │
 │  ┌─────────────────────────────────────────────────────────────┐│
-│  │              BaseRepository (interface)                      ││
+│  │  JsonFileEventRepository (prototype)                         ││
+│  │  • JSON-fil per sak                                          ││
+│  │  • Versjonsnummer for optimistisk låsing                     ││
+│  │  • File locking (fcntl) for atomiske operasjoner             ││
 │  └─────────────────────────────────────────────────────────────┘│
-│       ▲                                        ▲                 │
-│  ┌────┴────────────┐              ┌────────────┴────────────┐   │
-│  │  CSVRepository  │              │  DataverseRepository    │   │
-│  │   (prototype)   │              │     (produksjon)        │   │
-│  └─────────────────┘              └─────────────────────────┘   │
+│       ▲                                                          │
+│  ┌────┴────────────────────────────────────────────────────┐    │
+│  │  DataverseEventRepository (produksjon - planlagt)       │    │
+│  └─────────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### 1. **HTTP Layer** (`routes/` og `functions/`)
+### Tre-spor modell (NS 8407)
+
+```
+SakState (Aggregate Root)
+│
+├── GrunnlagTilstand
+│   ├── status: SporStatus
+│   ├── hovedkategori, underkategori, beskrivelse
+│   ├── bh_resultat: GrunnlagResponsResultat
+│   └── laast: boolean
+│
+├── VederlagTilstand
+│   ├── status: SporStatus
+│   ├── krevd_belop, metode, begrunnelse
+│   ├── Port 1: varsel-vurdering (rigg_drift_ok, justert_ep_ok, ...)
+│   ├── Port 2: bh_resultat, godkjent_belop
+│   └── visningsstatus (med subsidiary-logikk)
+│
+└── FristTilstand
+    ├── status: SporStatus
+    ├── krevd_dager, varsel_type, begrunnelse
+    ├── Port 1: noytralt_varsel_ok, spesifisert_krav_ok
+    ├── Port 2: vilkar_oppfylt
+    ├── Port 3: bh_resultat, godkjent_dager
+    └── visningsstatus (med subsidiary-logikk)
+```
+
+### 1. **HTTP Layer** (`routes/`)
 
 | Modul | Ansvar | Linjer |
 |-------|--------|--------|
+| `event_routes.py` | **Event API (CQRS)** | 592 |
 | `utility_routes.py` | CSRF, health, magic-link | 115 |
-| `case_routes.py` | Get case, save draft | 81 |
-| `varsel_routes.py` | Varsel submission | 115 |
-| `koe_routes.py` | KOE submission, PDF upload | 312 |
-| `svar_routes.py` | BH svar submission | 188 |
 | `webhook_routes.py` | Catenda webhooks | 164 |
 | `error_handlers.py` | Globale feilhåndterere | 49 |
 
 **Ansvar:**
 - Flask Blueprints for modulær ruteorganisering
-- Request/response-håndtering
-- CSRF-beskyttelse (via `@require_csrf`)
-- Rate limiting (via `@limiter.limit()`)
-- Mapper HTTP-forespørsler til service-kall
+- **Write Side:** POST /api/events (event submission)
+- **Read Side:** GET /api/cases/{id}/state, GET /api/cases/{id}/timeline
+- CSRF-beskyttelse, Rate limiting
+- Optimistisk låsing via `expected_version`
 
 ### 2. **Service Layer** (`services/`)
 
 | Service | Ansvar | Linjer |
 |---------|--------|--------|
-| `varsel_service.py` | Varsel-innsending og validering | 216 |
-| `koe_service.py` | KOE-innsending, revisjoner | 312 |
-| `svar_service.py` | Byggherresvar-håndtering | 334 |
+| `timeline_service.py` | **State-projeksjon fra events** | 753 |
+| `business_rules.py` | **Forretningsregler-validering** | 240 |
 | `catenda_service.py` | Catenda API-operasjoner | 268 |
-| `webhook_service.py` | Webhook event-prosessering | 379 |
 
-**Ansvar:**
-- Domenelogikk-implementasjon
-- Workflow-orkestrering
-- Validering og forretningsregler
-- Framework-agnostisk (kan brukes fra Flask OG Azure Functions)
-
-**Dependency Injection:**
+**TimelineService (Projector):**
 ```python
-class VarselService:
-    def __init__(self, repository: BaseRepository = None, catenda_service = None):
-        self.repo = repository or CSVRepository()
-        self.catenda = catenda_service or CatendaService()
+class TimelineService:
+    def compute_state(self, events: List[SakEvent]) -> SakState:
+        """Projiser events til SakState via reducer-pattern."""
+        state = SakState.empty()
+        for event in sorted(events, key=lambda e: e.tidsstempel):
+            state = self._apply_event(state, event)
+        return state
+
+    def _apply_event(self, state: SakState, event: SakEvent) -> SakState:
+        """Dispatch til riktig handler basert på event_type."""
+        handlers = {
+            EventType.GRUNNLAG_OPPRETTET: self._handle_grunnlag,
+            EventType.VEDERLAG_KRAV_SENDT: self._handle_vederlag,
+            EventType.RESPONS_GRUNNLAG: self._handle_respons_grunnlag,
+            # ... flere handlers
+        }
+        return handlers[event.event_type](state, event)
+```
+
+**BusinessRuleValidator:**
+```python
+class BusinessRuleValidator:
+    def validate(self, event: SakEvent, state: SakState) -> ValidationResult:
+        """Valider event mot nåværende state før persistering."""
+        rules = self._get_rules_for_event_type(event.event_type)
+        for rule in rules:
+            result = rule(event, state)
+            if not result.is_valid:
+                return result
+        return ValidationResult.ok()
 ```
 
 ### 3. **Data Access Layer** (`repositories/`)
 
 | Repository | Implementasjon | Linjer |
 |------------|----------------|--------|
-| `base_repository.py` | Abstract interface | 111 |
-| `csv_repository.py` | CSV-filer (prototype) | 457 |
-| *`dataverse_repository.py`* | *Dataverse (planlagt)* | *-* |
+| `event_repository.py` | **Event store med optimistisk låsing** | 190 |
+| `sak_metadata_repository.py` | Metadata-cache for sakliste | 134 |
 
-**BaseRepository Interface:**
+**EventRepository Interface:**
 ```python
-class BaseRepository(ABC):
-    def get_case(self, case_id: str) -> Optional[Dict[str, Any]]
-    def update_case(self, case_id: str, data: Dict[str, Any]) -> None
-    def create_case(self, case_data: Dict[str, Any]) -> str
-    def list_cases(self, project_id: Optional[str] = None) -> List[Dict[str, Any]]
-    def delete_case(self, case_id: str) -> None
-    def case_exists(self, case_id: str) -> bool
-    def get_cases_by_catenda_topic(self, topic_id: str) -> List[Dict[str, Any]]
+class EventRepository(ABC):
+    def append(self, event: SakEvent, expected_version: int) -> int:
+        """Legg til event med optimistisk låsing. Returnerer ny versjon."""
+
+    def append_batch(self, events: List[SakEvent], expected_version: int) -> int:
+        """Atomisk batch-operasjon for flere events."""
+
+    def get_events(self, sak_id: str) -> Tuple[List[SakEvent], int]:
+        """Hent alle events for sak, returnerer (events, version)."""
+```
+
+**Optimistisk låsing:**
+```python
+# Ved konflikt kastes ConcurrencyError
+try:
+    new_version = repo.append(event, expected_version=5)
+except ConcurrencyError as e:
+    # Returnerer 409 Conflict til klient med faktisk versjon
+    return {"error": "conflict", "actual_version": e.actual_version}
 ```
 
 ### 4. **Models** (`models/`)
 
 | Modell | Beskrivelse | Linjer |
 |--------|-------------|--------|
-| `varsel.py` | Varsel (notification) data | 111 |
-| `koe_revisjon.py` | KOE revisjon data | 98 |
-| `bh_svar.py` | Byggherresvar data | 109 |
-| `sak.py` | Komplett sak-modell | 235 |
+| `events.py` | **Event-definisjoner** | 933 |
+| `sak_state.py` | **Read model (projeksjon)** | 562 |
 
-**Pydantic v2 Features:**
-- Automatisk validering
-- `model_dump()` / `model_dump_json()` for serialisering
-- `@field_validator` for custom validering
-- JSON Schema generering
+**Event-modeller (Pydantic v2):**
+```python
+class SakEvent(BaseModel):
+    event_id: UUID
+    sak_id: str
+    event_type: EventType
+    tidsstempel: datetime
+    aktor: str
+    aktor_rolle: Literal["TE", "BH"]
+    data: Union[GrunnlagData, VederlagData, FristData, ...]
+    kommentar: Optional[str] = None
+    referrer_til_event_id: Optional[UUID] = None
+
+class GrunnlagData(BaseModel):
+    hovedkategori: str
+    underkategori: List[str]
+    beskrivelse: str
+    dato_oppdaget: date
+    # ...
+
+class VederlagData(BaseModel):
+    krav_belop: Decimal
+    metode: VederlagMetode
+    # Port 1 varsler
+    rigg_drift_varsel: Optional[VarselInfo]
+    justert_ep_varsel: Optional[VarselInfo]
+    # ...
+```
 
 ### 5. **Core Configuration** (`core/`)
 
@@ -315,40 +412,64 @@ def adapt_request(req: func.HttpRequest) -> Dict[str, Any]:
 
 ---
 
-## 🔄 Request Flow
+## 🔄 Request Flow (Event Sourcing)
 
-### Flask (Prototype)
+### Write Flow (POST /api/events)
+
+```
+HTTP Request (event + expected_version)
+    ↓
+event_routes.py
+    ↓
+1. Parse event fra request
+    ↓
+2. Hent nåværende events fra EventRepository
+    ↓
+3. Sjekk versjon (optimistisk låsing)
+    ↓                      ↓
+   OK                   KONFLIKT → 409 Conflict
+    ↓
+4. Beregn nåværende state (TimelineService)
+    ↓
+5. Valider forretningsregler (BusinessRuleValidator)
+    ↓                      ↓
+   OK                   UGYLDIG → 400 Bad Request
+    ↓
+6. Persist event (EventRepository.append)
+    ↓
+7. Beregn ny state
+    ↓
+8. Oppdater metadata-cache
+    ↓
+9. (Valgfritt) Post til Catenda
+    ↓
+Response: { event_id, new_version, state }
+```
+
+### Read Flow (GET /api/cases/{id}/state)
 
 ```
 HTTP Request
     ↓
-app.py (Flask)
+event_routes.py
     ↓
-routes/*.py (Blueprint)
+1. Hent events fra EventRepository
     ↓
-lib/auth/csrf_protection.py (validering)
+2. Projiser til SakState (TimelineService.compute_state)
     ↓
-services/*.py (forretningslogikk)
-    ↓
-repositories/csv_repository.py (datalagring)
-    ↓
-koe_data/*.json (CSV-filer)
+Response: { state, version, events_count }
 ```
 
-### Azure Functions (Produksjon)
+### Event Store (Prototype vs Produksjon)
 
 ```
-HTTP Request
-    ↓
-function_app.py (Azure Functions)
-    ↓
-functions/adapters.py (request-konvertering)
-    ↓
-services/*.py (forretningslogikk)
-    ↓
-repositories/dataverse_repository.py (datalagring)
-    ↓
-Microsoft Dataverse
+Prototype:                        Produksjon:
+────────────                      ────────────
+JsonFileEventRepository           DataverseEventRepository
+    ↓                                 ↓
+koe_data/{sak_id}.json            Microsoft Dataverse
+• version: number                 • koe_events tabell
+• events: [...]                   • Optimistisk låsing via ETag
 ```
 
 ---
@@ -444,36 +565,51 @@ python -m pytest tests/test_services/ -v
 
 ```python
 # ============================================================================
+# Event Sourcing - Models
+# ============================================================================
+from models.events import (
+    SakEvent,
+    EventType,
+    GrunnlagData,
+    VederlagData,
+    FristData,
+    GrunnlagResponsData,
+    VederlagResponsData,
+    FristResponsData,
+)
+from models.sak_state import (
+    SakState,
+    GrunnlagTilstand,
+    VederlagTilstand,
+    FristTilstand,
+    SporStatus,
+    OverordnetStatus,
+)
+
+# ============================================================================
+# Event Sourcing - Repository
+# ============================================================================
+from repositories.event_repository import (
+    EventRepository,
+    JsonFileEventRepository,
+    ConcurrencyError,
+)
+from repositories.sak_metadata_repository import SakMetadataRepository
+
+# ============================================================================
+# Event Sourcing - Services
+# ============================================================================
+from services.timeline_service import TimelineService
+from services.business_rules import BusinessRuleValidator, ValidationResult
+from services.catenda_service import CatendaService
+
+# ============================================================================
 # Core
 # ============================================================================
 from core.config import settings
-from core.generated_constants import SAK_STATUS, KOE_STATUS
-from core.system_context import SystemContext
+from core.generated_constants import SAK_STATUS, SPOR_STATUS
 from core.logging_config import setup_logging
 from core.cors_config import setup_cors
-
-# ============================================================================
-# Services (Framework-agnostisk forretningslogikk)
-# ============================================================================
-from services.varsel_service import VarselService
-from services.koe_service import KoeService
-from services.svar_service import SvarService
-from services.catenda_service import CatendaService
-from services.webhook_service import WebhookService
-
-# ============================================================================
-# Repositories (Data Access)
-# ============================================================================
-from repositories.base_repository import BaseRepository
-from repositories.csv_repository import CSVRepository
-
-# ============================================================================
-# Models (Pydantic v2)
-# ============================================================================
-from models.varsel import Varsel
-from models.koe_revisjon import KoeRevisjon
-from models.bh_svar import BhSvar
-from models.sak import Sak
 
 # ============================================================================
 # Library - Auth
@@ -489,11 +625,6 @@ from lib.security.webhook_security import validate_webhook_event
 from lib.security.rate_limiter import init_limiter, get_limiter
 
 # ============================================================================
-# Library - Monitoring
-# ============================================================================
-from lib.monitoring.audit import log_event, AuditEventType
-
-# ============================================================================
 # Integrations
 # ============================================================================
 from integrations.catenda import CatendaClient
@@ -502,13 +633,6 @@ from integrations.catenda import CatendaClient
 # Utils
 # ============================================================================
 from utils.logger import get_logger
-from utils.filtering_config import get_filter_summary
-from utils.network import get_local_ip
-
-# ============================================================================
-# Azure Functions Adapters
-# ============================================================================
-from functions.adapters import adapt_request, create_response
 ```
 
 ---
