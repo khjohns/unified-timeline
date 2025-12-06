@@ -209,11 +209,11 @@ export function SendFristModal({
       description="Fyll ut informasjon om fristforlengelsen."
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-pkt-06">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* BH Etterlysning warning (§33.6.2) - CRITICAL */}
         {harMottattEtterlysning && (
           <div
-            className="p-pkt-05 bg-pkt-surface-subtle-light-red border-2 border-pkt-border-red rounded-none"
+            className="p-5 bg-pkt-surface-subtle-light-red border-2 border-pkt-border-red rounded-none"
             role="alert"
           >
             <div className="flex items-center gap-2 mb-2">
@@ -232,7 +232,7 @@ export function SendFristModal({
 
         {/* Grunnlag context display */}
         {grunnlagEvent && grunnlagEvent.tittel && (
-          <div className="p-pkt-04 bg-pkt-surface-subtle-light-blue border-2 border-pkt-border-focus rounded-none">
+          <div className="p-4 bg-pkt-surface-subtle-light-blue border-2 border-pkt-border-focus rounded-none">
             <span className="text-sm text-pkt-text-body-subtle">
               Knyttet til grunnlag:
             </span>
@@ -255,7 +255,7 @@ export function SendFristModal({
 
         {/* §33.6.1 Reduction warning - late specification without etterlysning */}
         {erSentUtenEtterlysning && (
-          <div className="p-pkt-04 bg-amber-50 border-2 border-amber-300 rounded-none">
+          <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-none">
             <p className="text-sm font-medium text-amber-900">
               Risiko for avkortning (§33.6.1)
             </p>
@@ -296,12 +296,12 @@ export function SendFristModal({
 
         {/* VarselInfo fields based on selected type */}
         {(selectedVarselType === 'noytralt' || selectedVarselType === 'begge') && (
-          <div className="p-pkt-05 bg-pkt-surface-subtle-light-blue rounded-none border-2 border-pkt-border-focus">
-            <h4 className="text-base font-medium text-pkt-text-body-default mb-pkt-04">
+          <div className="p-5 bg-pkt-surface-subtle-light-blue rounded-none border-2 border-pkt-border-focus">
+            <h4 className="text-base font-medium text-pkt-text-body-default mb-4">
               Nøytralt/Foreløpig varsel (§33.4)
             </h4>
 
-            <div className="space-y-pkt-04">
+            <div className="space-y-4">
               <Controller
                 name="noytralt_varsel_sendes_na"
                 control={control}
@@ -344,7 +344,7 @@ export function SendFristModal({
                   label="Varselmetoder (nøytralt)"
                   helpText="Velg alle metoder som ble brukt"
                 >
-                  <div className="space-y-pkt-03 border-2 border-pkt-border-gray rounded-none p-pkt-04 bg-pkt-bg-subtle">
+                  <div className="space-y-3 border-2 border-pkt-border-gray rounded-none p-4 bg-pkt-bg-subtle">
                     {VARSEL_METODER_OPTIONS.map((option) => (
                       <Checkbox
                         key={option.value}
@@ -362,12 +362,12 @@ export function SendFristModal({
         )}
 
         {(selectedVarselType === 'spesifisert' || selectedVarselType === 'begge') && (
-          <div className="p-pkt-05 bg-pkt-surface-subtle-light-blue rounded-none border-2 border-pkt-border-focus">
-            <h4 className="text-base font-medium text-pkt-text-body-default mb-pkt-04">
+          <div className="p-5 bg-pkt-surface-subtle-light-blue rounded-none border-2 border-pkt-border-focus">
+            <h4 className="text-base font-medium text-pkt-text-body-default mb-4">
               Spesifisert krav (§33.6)
             </h4>
 
-            <div className="space-y-pkt-04">
+            <div className="space-y-4">
               <Controller
                 name="spesifisert_varsel_sendes_na"
                 control={control}
@@ -410,7 +410,7 @@ export function SendFristModal({
                   label="Varselmetoder (spesifisert)"
                   helpText="Velg alle metoder som ble brukt"
                 >
-                  <div className="space-y-pkt-03 border-2 border-pkt-border-gray rounded-none p-pkt-04 bg-pkt-bg-subtle">
+                  <div className="space-y-3 border-2 border-pkt-border-gray rounded-none p-4 bg-pkt-bg-subtle">
                     {VARSEL_METODER_OPTIONS.map((option) => (
                       <Checkbox
                         key={option.value}
@@ -513,7 +513,7 @@ export function SendFristModal({
         )}
 
         {/* Actions */}
-        <div className="flex justify-end gap-pkt-04 pt-pkt-06 border-t-2 border-pkt-border-subtle">
+        <div className="flex justify-end gap-4 pt-6 border-t-2 border-pkt-border-subtle">
           <Button
             type="button"
             variant="ghost"

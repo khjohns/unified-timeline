@@ -193,7 +193,7 @@ export function SendGrunnlagModal({
       description="Fyll ut informasjon om grunnlaget for endringsmeldingen."
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-pkt-06">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Hovedkategori */}
         <FormField
           label="Hovedkategori (NS 8407)"
@@ -247,7 +247,7 @@ export function SendGrunnlagModal({
             required
             error={errors.underkategori?.message}
           >
-            <div className="space-y-pkt-03 max-h-60 overflow-y-auto border-2 border-pkt-border-gray rounded-none p-pkt-04 bg-pkt-bg-subtle">
+            <div className="space-y-3 max-h-60 overflow-y-auto border-2 border-pkt-border-gray rounded-none p-4 bg-pkt-bg-subtle">
               {getUnderkategorier(selectedHovedkategori).map((option) => (
                 <Checkbox
                   key={option.value}
@@ -423,7 +423,7 @@ export function SendGrunnlagModal({
             label="Varselmetode"
             helpText="Hvordan ble BH varslet? (Kan velge flere)"
           >
-            <div className="space-y-pkt-03 border-2 border-pkt-border-gray rounded-none p-pkt-04 bg-pkt-bg-subtle">
+            <div className="space-y-3 border-2 border-pkt-border-gray rounded-none p-4 bg-pkt-bg-subtle">
               {VARSEL_METODER_OPTIONS.map((option) => (
                 <Checkbox
                   key={option.value}
@@ -465,7 +465,7 @@ export function SendGrunnlagModal({
         )}
 
         {/* Actions */}
-        <div className="flex justify-end gap-pkt-04 pt-pkt-06 border-t-2 border-pkt-border-subtle">
+        <div className="flex justify-end gap-4 pt-6 border-t-2 border-pkt-border-subtle">
           <Button
             type="button"
             variant="ghost"

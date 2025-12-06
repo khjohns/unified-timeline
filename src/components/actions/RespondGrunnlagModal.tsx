@@ -150,10 +150,10 @@ export function RespondGrunnlagModal({
       description="Vurder ansvarsgrunnlaget (hvem sin feil). Dette påvirker om vederlag/frist vurderes prinsipalt eller subsidiært."
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-pkt-06">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Grunnlag summary - show if event data is available */}
         {grunnlagEvent && (hovedkategoriLabel || grunnlagEvent.beskrivelse) && (
-          <div className="p-pkt-04 bg-pkt-surface-subtle-light-blue border-2 border-pkt-border-focus rounded-none">
+          <div className="p-4 bg-pkt-surface-subtle-light-blue border-2 border-pkt-border-focus rounded-none">
             <h4 className="font-bold text-sm text-pkt-text-body-dark mb-2">
               Entreprenørens påstand:
             </h4>
@@ -190,7 +190,7 @@ export function RespondGrunnlagModal({
 
         {/* Force Majeure info */}
         {erForceMajeure && (
-          <div className="p-pkt-04 bg-amber-50 border-2 border-amber-300 rounded-none">
+          <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-none">
             <div className="flex items-center gap-2 mb-2">
               <Badge variant="warning">Force Majeure (§33.3)</Badge>
             </div>
@@ -205,7 +205,7 @@ export function RespondGrunnlagModal({
         {/* BH Passivity warning (§32.3) */}
         {erPassiv && (
           <div
-            className="p-pkt-05 bg-pkt-surface-subtle-light-red border-2 border-pkt-border-red rounded-none"
+            className="p-5 bg-pkt-surface-subtle-light-red border-2 border-pkt-border-red rounded-none"
             role="alert"
           >
             <div className="flex items-center gap-2 mb-2">
@@ -268,7 +268,7 @@ export function RespondGrunnlagModal({
         {/* Show description of selected resultat */}
         {selectedResultat &&
           BH_GRUNNLAGSVAR_DESCRIPTIONS[selectedResultat] && (
-            <div className="p-pkt-04 bg-pkt-surface-subtle rounded-none border-l-4 border-pkt-border-focus">
+            <div className="p-4 bg-pkt-surface-subtle rounded-none border-l-4 border-pkt-border-focus">
               <p className="text-sm text-pkt-text-body-subtle">
                 {BH_GRUNNLAGSVAR_DESCRIPTIONS[selectedResultat]}
               </p>
@@ -277,7 +277,7 @@ export function RespondGrunnlagModal({
 
         {/* Frafall info (§32.3 c) */}
         {selectedResultat === 'frafalt' && (
-          <div className="p-pkt-04 bg-blue-50 border-2 border-blue-300 rounded-none">
+          <div className="p-4 bg-blue-50 border-2 border-blue-300 rounded-none">
             <p className="text-sm font-medium text-blue-900 mb-2">
               §32.3 c) - Frafall av pålegget:
             </p>
@@ -292,7 +292,7 @@ export function RespondGrunnlagModal({
 
         {/* Force Majeure recognition info (§33.3) */}
         {selectedResultat === 'erkjenn_fm' && (
-          <div className="p-pkt-04 bg-blue-50 border-2 border-blue-300 rounded-none">
+          <div className="p-4 bg-blue-50 border-2 border-blue-300 rounded-none">
             <p className="text-sm font-medium text-blue-900 mb-2">
               §33.3 - Force Majeure erkjennelse:
             </p>
@@ -312,7 +312,7 @@ export function RespondGrunnlagModal({
 
         {/* Subsidiary treatment warning when rejecting */}
         {selectedResultat === 'avvist_uenig' && (
-          <div className="p-pkt-04 bg-amber-50 border-2 border-amber-300 rounded-none">
+          <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-none">
             <p className="text-sm font-medium text-amber-900 mb-2">
               Konsekvens av avslag:
             </p>
@@ -331,7 +331,7 @@ export function RespondGrunnlagModal({
 
         {/* EO generation info when approving */}
         {selectedResultat === 'godkjent' && !erForceMajeure && (
-          <div className="p-pkt-04 bg-green-50 border-2 border-green-300 rounded-none">
+          <div className="p-4 bg-green-50 border-2 border-green-300 rounded-none">
             <p className="text-sm font-medium text-green-900 mb-1">
               Systemhandling:
             </p>
@@ -371,7 +371,7 @@ export function RespondGrunnlagModal({
         )}
 
         {/* Actions */}
-        <div className="flex justify-end gap-pkt-04 pt-pkt-06 border-t-2 border-pkt-border-subtle">
+        <div className="flex justify-end gap-4 pt-6 border-t-2 border-pkt-border-subtle">
           <Button
             type="button"
             variant="ghost"

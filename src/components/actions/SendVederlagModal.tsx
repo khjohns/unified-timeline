@@ -222,10 +222,10 @@ export function SendVederlagModal({
       description="Fyll ut detaljer for kravet om vederlagsjustering."
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-pkt-06">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Grunnlag context display */}
         {grunnlagEvent && grunnlagEvent.tittel && (
-          <div className="p-pkt-04 bg-pkt-surface-subtle border-2 border-pkt-border-subtle rounded-none">
+          <div className="p-4 bg-pkt-surface-subtle border-2 border-pkt-border-subtle rounded-none">
             <div className="flex items-center justify-between">
               <span className="text-sm text-pkt-text-body-subtle">
                 Knyttet til:
@@ -563,7 +563,7 @@ export function SendVederlagModal({
         )}
 
         {/* Actions */}
-        <div className="flex justify-end gap-pkt-04 pt-pkt-06 border-t-2 border-pkt-border-subtle">
+        <div className="flex justify-end gap-4 pt-6 border-t-2 border-pkt-border-subtle">
           <Button
             type="button"
             variant="ghost"

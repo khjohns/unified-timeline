@@ -181,7 +181,7 @@ export function UpdateResponseVederlagModal({
       title="Oppdater svar på vederlagskrav"
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-pkt-06">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Current state */}
         <div className="bg-gray-50 p-4 rounded border border-gray-200">
           <div className="flex justify-between items-start">
@@ -307,7 +307,7 @@ export function UpdateResponseVederlagModal({
         )}
 
         {/* Actions */}
-        <div className="flex justify-end gap-pkt-04 pt-pkt-06 border-t-2 border-pkt-border-subtle">
+        <div className="flex justify-end gap-4 pt-6 border-t-2 border-pkt-border-subtle">
           <Button
             type="button"
             variant="ghost"

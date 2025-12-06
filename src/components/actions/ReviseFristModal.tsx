@@ -147,7 +147,7 @@ export function ReviseFristModal({
       title={iverksettForsering ? 'Varsel om Forsering (§33.8)' : 'Revider fristkrav'}
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-pkt-06">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Header with escalation badge if forsering */}
         {iverksettForsering && (
           <div className="flex justify-center mb-2">
@@ -324,7 +324,7 @@ export function ReviseFristModal({
         )}
 
         {/* Actions */}
-        <div className="flex justify-end gap-pkt-04 pt-pkt-06 border-t-2 border-pkt-border-subtle">
+        <div className="flex justify-end gap-4 pt-6 border-t-2 border-pkt-border-subtle">
           <Button
             type="button"
             variant="ghost"

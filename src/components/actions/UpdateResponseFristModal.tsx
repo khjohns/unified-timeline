@@ -161,7 +161,7 @@ export function UpdateResponseFristModal({
       title="Oppdater svar på frist/forsering"
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-pkt-06">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* DRAMATIC FORSERING WARNING */}
         {erForseringVarslet && (
           <div className="bg-red-50 p-4 border-l-4 border-red-600 rounded">
@@ -293,7 +293,7 @@ export function UpdateResponseFristModal({
         )}
 
         {/* Actions */}
-        <div className="flex justify-end gap-pkt-04 pt-pkt-06 border-t-2 border-pkt-border-subtle">
+        <div className="flex justify-end gap-4 pt-6 border-t-2 border-pkt-border-subtle">
           <Button
             type="button"
             variant="ghost"

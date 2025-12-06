@@ -155,7 +155,7 @@ export function SendGrunnlagUpdateModal({
       description="Endre informasjon i det innsendte grunnlaget."
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-pkt-06">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Info about editing */}
         <Alert variant="info">
           Du redigerer nå et eksisterende varsel sendt {grunnlag.grunnlag_varsel?.dato_sendt || 'ukjent dato'}.
@@ -268,7 +268,7 @@ export function SendGrunnlagUpdateModal({
         {/* Underkategori */}
         {nyHovedkategori && getUnderkategorier(nyHovedkategori).length > 0 && (
           <FormField label="Underkategori">
-            <div className="space-y-pkt-03 max-h-48 overflow-y-auto border-2 border-pkt-border-gray rounded-none p-pkt-04 bg-pkt-bg-subtle">
+            <div className="space-y-3 max-h-48 overflow-y-auto border-2 border-pkt-border-gray rounded-none p-4 bg-pkt-bg-subtle">
               {getUnderkategorier(nyHovedkategori).map((option) => (
                 <Checkbox
                   key={option.value}
@@ -306,7 +306,7 @@ export function SendGrunnlagUpdateModal({
         )}
 
         {/* Actions */}
-        <div className="flex justify-end gap-pkt-04 pt-pkt-06 border-t-2 border-pkt-border-subtle">
+        <div className="flex justify-end gap-4 pt-6 border-t-2 border-pkt-border-subtle">
           <Button
             type="button"
             variant="ghost"

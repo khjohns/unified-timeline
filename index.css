@@ -162,20 +162,6 @@
     --text-4xl: 2.25rem;     /* 36px */
 
     /* ============================================
-       SPACING (Punkt scale + extended)
-       ============================================ */
-    --spacing-pkt-01: 0.25rem;  /* 4px */
-    --spacing-pkt-02: 0.5rem;   /* 8px */
-    --spacing-pkt-03: 0.75rem;  /* 12px */
-    --spacing-pkt-04: 1rem;     /* 16px */
-    --spacing-pkt-05: 1.25rem;  /* 20px */
-    --spacing-pkt-06: 1.5rem;   /* 24px */
-    --spacing-pkt-08: 2rem;     /* 32px */
-    --spacing-pkt-10: 2.5rem;   /* 40px */
-    --spacing-pkt-12: 3rem;     /* 48px */
-    --spacing-pkt-16: 4rem;     /* 64px */
-
-    /* ============================================
        BORDER RADIUS - SKARPE KANTER
        ============================================ */
     --radius-none: 0;
