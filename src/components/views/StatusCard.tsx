@@ -9,6 +9,17 @@
 import { SporStatus, SporType } from '../../types/timeline';
 import { clsx } from 'clsx';
 import { ReactNode } from 'react';
+import {
+  CircleIcon,
+  ArrowRightIcon,
+  TimerIcon,
+  CheckIcon,
+  Cross2Icon,
+  UpdateIcon,
+  TrashIcon,
+  LockClosedIcon,
+  Half2Icon,
+} from '@radix-ui/react-icons';
 
 interface StatusCardProps {
   spor: SporType;
@@ -26,66 +37,66 @@ interface StatusCardProps {
 
 const STATUS_CONFIG: Record<
   SporStatus,
-  { label: string; badgeClass: string; icon: string; ariaLabel: string }
+  { label: string; badgeClass: string; icon: ReactNode; ariaLabel: string }
 > = {
   ikke_relevant: {
     label: 'Ikke relevant',
     badgeClass: 'bg-pkt-surface-strong-gray text-pkt-text-body-dark border border-pkt-border-gray',
-    icon: '○',
+    icon: <CircleIcon className="w-3.5 h-3.5" />,
     ariaLabel: 'Status: Ikke relevant',
   },
   utkast: {
     label: 'Utkast',
     badgeClass: 'bg-pkt-surface-light-beige text-pkt-text-body-dark border border-pkt-border-beige',
-    icon: '○',
+    icon: <CircleIcon className="w-3.5 h-3.5" />,
     ariaLabel: 'Status: Utkast',
   },
   sendt: {
     label: 'Sendt',
     badgeClass: 'bg-pkt-surface-light-blue text-pkt-brand-dark-blue-1000 border border-pkt-brand-blue-500',
-    icon: '→',
+    icon: <ArrowRightIcon className="w-3.5 h-3.5" />,
     ariaLabel: 'Status: Sendt til byggherre',
   },
   under_behandling: {
     label: 'Under behandling',
     badgeClass: 'bg-pkt-surface-yellow text-pkt-brand-dark-blue-1000 border border-pkt-border-yellow',
-    icon: '⏳',
+    icon: <TimerIcon className="w-3.5 h-3.5" />,
     ariaLabel: 'Status: Under behandling',
   },
   godkjent: {
     label: 'Godkjent',
     badgeClass: 'bg-pkt-surface-light-green text-pkt-brand-dark-green-1000 border border-pkt-border-green',
-    icon: '✓',
+    icon: <CheckIcon className="w-3.5 h-3.5" />,
     ariaLabel: 'Status: Godkjent',
   },
   delvis_godkjent: {
     label: 'Delvis godkjent',
     badgeClass: 'bg-pkt-surface-yellow text-pkt-brand-dark-blue-1000 border border-pkt-border-yellow',
-    icon: '◐',
+    icon: <Half2Icon className="w-3.5 h-3.5" />,
     ariaLabel: 'Status: Delvis godkjent',
   },
   avvist: {
     label: 'Avvist',
     badgeClass: 'bg-pkt-surface-faded-red text-pkt-brand-red-1000 border border-pkt-border-red',
-    icon: '✗',
+    icon: <Cross2Icon className="w-3.5 h-3.5" />,
     ariaLabel: 'Status: Avvist',
   },
   under_forhandling: {
     label: 'Under forhandling',
     badgeClass: 'bg-pkt-surface-yellow text-pkt-brand-dark-blue-1000 border border-pkt-border-yellow',
-    icon: '⇄',
+    icon: <UpdateIcon className="w-3.5 h-3.5" />,
     ariaLabel: 'Status: Under forhandling',
   },
   trukket: {
     label: 'Trukket',
     badgeClass: 'bg-pkt-surface-strong-gray text-pkt-text-body-dark border border-pkt-border-gray',
-    icon: '⌫',
+    icon: <TrashIcon className="w-3.5 h-3.5" />,
     ariaLabel: 'Status: Trukket tilbake',
   },
   laast: {
     label: 'Låst',
     badgeClass: 'bg-pkt-surface-light-green text-pkt-brand-dark-green-1000 border border-pkt-border-green',
-    icon: '🔒',
+    icon: <LockClosedIcon className="w-3.5 h-3.5" />,
     ariaLabel: 'Status: Låst',
   },
 };

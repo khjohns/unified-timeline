@@ -10,6 +10,7 @@ import { SakState } from '../../types/timeline';
 import { Collapsible } from '../primitives/Collapsible';
 import { getVederlagsmetodeLabel } from '../../constants/paymentMethods';
 import { getBhVederlagssvarLabel, getBhFristsvarLabel } from '../../constants/responseOptions';
+import { StackIcon, ClockIcon } from '@radix-ui/react-icons';
 
 interface RevisionHistoryProps {
   state: SakState;
@@ -69,16 +70,7 @@ export function RevisionHistory({ state }: RevisionHistoryProps) {
         <Collapsible
           title="Vederlag - Revisjonshistorikk"
           defaultOpen
-          icon={
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          }
+          icon={<StackIcon className="w-5 h-5" />}
         >
           <div className="overflow-x-auto rounded-lg border border-gray-300 bg-white shadow-sm">
             <table className="revision-table">
@@ -175,16 +167,7 @@ export function RevisionHistory({ state }: RevisionHistoryProps) {
         <Collapsible
           title="Frist - Revisjonshistorikk"
           defaultOpen
-          icon={
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          }
+          icon={<ClockIcon className="w-5 h-5" />}
         >
           <div className="overflow-x-auto rounded-lg border border-gray-300 bg-white shadow-sm">
             <table className="revision-table">

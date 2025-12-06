@@ -26,6 +26,7 @@ import {
 } from '../components/actions';
 import { getMockTimelineById } from '../mocks/mockData';
 import type { SakState, GrunnlagResponsResultat } from '../types/timeline';
+import { ReloadIcon, ExclamationTriangleIcon } from '@radix-ui/react-icons';
 
 // Default empty state for when data is not yet loaded
 const EMPTY_STATE: SakState = {
@@ -114,7 +115,7 @@ export function CasePage() {
     return (
       <div className="min-h-screen bg-pkt-bg-default flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pkt-border-default mx-auto mb-4"></div>
+          <ReloadIcon className="w-12 h-12 mx-auto mb-4 text-pkt-border-default animate-spin" />
           <p className="text-pkt-text-body-subtle">Laster sak...</p>
         </div>
       </div>
@@ -126,13 +127,16 @@ export function CasePage() {
     return (
       <div className="min-h-screen bg-pkt-bg-default flex items-center justify-center px-4">
         <div className="max-w-md w-full p-6 sm:p-8 bg-white rounded-none shadow-lg border-2 border-pkt-border-default" role="alert">
-          <h2 className="text-xl sm:text-2xl font-bold text-pkt-brand-red-1000 mb-4">
+          <ExclamationTriangleIcon className="w-12 h-12 mx-auto mb-4 text-pkt-brand-red-1000" />
+          <h2 className="text-xl sm:text-2xl font-bold text-pkt-brand-red-1000 mb-4 text-center">
             Feil ved lasting av sak
           </h2>
-          <p className="text-pkt-text-body-default mb-4">{error.message}</p>
-          <Button variant="primary" onClick={() => window.location.reload()}>
-            Prøv igjen
-          </Button>
+          <p className="text-pkt-text-body-default mb-4 text-center">{error.message}</p>
+          <div className="text-center">
+            <Button variant="primary" onClick={() => window.location.reload()}>
+              Prøv igjen
+            </Button>
+          </div>
         </div>
       </div>
     );
