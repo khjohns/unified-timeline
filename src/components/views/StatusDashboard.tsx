@@ -46,6 +46,9 @@ export function StatusDashboard({
           title="Vederlag"
           lastUpdated={state.vederlag.siste_oppdatert}
           actions={vederlagActions}
+          krevd={state.vederlag.krevd_belop}
+          godkjent={state.vederlag.godkjent_belop}
+          unit="kr"
         />
         <StatusCard
           spor="frist"
@@ -53,6 +56,9 @@ export function StatusDashboard({
           title="Frist"
           lastUpdated={state.frist.siste_oppdatert}
           actions={fristActions}
+          krevd={state.frist.krevd_dager}
+          godkjent={state.frist.godkjent_dager}
+          unit="dager"
         />
       </div>
 
