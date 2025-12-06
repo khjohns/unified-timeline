@@ -89,7 +89,7 @@ export function FormField({
       {error && (
         <p
           id={errorId}
-          className="mt-2 text-base text-pkt-border-red"
+          className="mt-2 text-sm font-medium text-pkt-brand-red-1000"
           role="alert"
           aria-live="polite"
         >

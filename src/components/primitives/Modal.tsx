@@ -48,19 +48,20 @@ export function Modal({
             // Sharp corners and border
             'bg-pkt-bg-card rounded-none shadow-xl',
             'border-2 border-pkt-border-default',
-            // Increased padding for better spacing
-            'p-8',
+            // Responsive padding - smaller on mobile for more content space
+            'p-4 sm:p-6 md:p-8',
             'z-modal',
             'focus:outline-none',
             'data-[state=open]:animate-in data-[state=closed]:animate-out',
             'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
             'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
-            'max-h-[90vh] overflow-y-auto',
+            // Mobile-safe max-height using dvh (dynamic viewport height) for keyboard handling
+            'max-h-[85dvh] overflow-y-auto',
             {
-              'w-[90vw] max-w-md': size === 'sm',
-              'w-[90vw] max-w-lg': size === 'md',
-              'w-[90vw] max-w-2xl': size === 'lg',
-              'w-[90vw] max-w-4xl': size === 'xl',
+              'w-[95vw] sm:w-[90vw] max-w-md': size === 'sm',
+              'w-[95vw] sm:w-[90vw] max-w-lg': size === 'md',
+              'w-[95vw] sm:w-[90vw] max-w-2xl': size === 'lg',
+              'w-[95vw] sm:w-[90vw] max-w-4xl': size === 'xl',
             },
             className
           )}

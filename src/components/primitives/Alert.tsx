@@ -20,26 +20,27 @@ export interface AlertProps {
   icon?: ReactNode;
 }
 
+// Using Punkt design system colors for consistency
 const variantStyles: Record<AlertVariant, { container: string; title: string; icon: string }> = {
   info: {
-    container: 'bg-blue-50 border-blue-500 text-blue-800',
-    title: 'text-blue-900',
-    icon: 'text-blue-500',
+    container: 'bg-pkt-brand-blue-100 border-pkt-brand-warm-blue-1000 text-pkt-brand-dark-blue-1000',
+    title: 'text-pkt-brand-dark-blue-1000',
+    icon: 'text-pkt-brand-warm-blue-1000',
   },
   success: {
-    container: 'bg-green-50 border-green-500 text-green-800',
-    title: 'text-green-900',
-    icon: 'text-green-500',
+    container: 'bg-pkt-brand-light-green-400 border-pkt-brand-dark-green-1000 text-pkt-brand-dark-green-1000',
+    title: 'text-pkt-brand-dark-green-1000',
+    icon: 'text-pkt-brand-dark-green-1000',
   },
   warning: {
-    container: 'bg-yellow-50 border-yellow-500 text-yellow-800',
-    title: 'text-yellow-900',
-    icon: 'text-yellow-600',
+    container: 'bg-pkt-brand-yellow-500 border-pkt-brand-yellow-1000 text-pkt-brand-dark-blue-1000',
+    title: 'text-pkt-brand-dark-blue-1000',
+    icon: 'text-pkt-brand-dark-blue-1000',
   },
   danger: {
-    container: 'bg-red-50 border-red-500 text-red-800',
-    title: 'text-red-900',
-    icon: 'text-red-500',
+    container: 'bg-pkt-brand-red-100 border-pkt-brand-red-1000 text-pkt-brand-red-1000',
+    title: 'text-pkt-brand-red-1000',
+    icon: 'text-pkt-brand-red-1000',
   },
 };
 
