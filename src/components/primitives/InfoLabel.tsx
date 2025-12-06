@@ -72,7 +72,7 @@ export function InfoLabel({
         </span>
 
         {tooltip && (
-          <Tooltip content={tooltip} side="right">
+          <Tooltip content={tooltip} side="bottom">
             <button
               type="button"
               className={clsx(
