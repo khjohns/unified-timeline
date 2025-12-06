@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button, Card, Modal, Tooltip, AlertDialog } from '../components/primitives';
 
 /**
@@ -8,6 +9,7 @@ import { Button, Card, Modal, Tooltip, AlertDialog } from '../components/primiti
  * Used for testing and verification during Phase 2 implementation.
  */
 export function ComponentShowcase() {
+  const navigate = useNavigate();
   const [modalOpen, setModalOpen] = useState(false);
   const [alertOpen, setAlertOpen] = useState(false);
 
@@ -15,12 +17,23 @@ export function ComponentShowcase() {
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-6xl mx-auto space-y-8">
         <header className="mb-8">
-          <h1 className="text-4xl font-bold text-oslo-blue mb-2">
-            Primitive Components Showcase
-          </h1>
-          <p className="text-gray-600">
-            Testing all primitive components from Phase 2 implementation
-          </p>
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h1 className="text-4xl font-bold text-oslo-blue mb-2">
+                Primitive Components Showcase
+              </h1>
+              <p className="text-gray-600">
+                Testing all primitive components from Phase 2 implementation
+              </p>
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => navigate('/')}
+            >
+              ← Tilbake til forsiden
+            </Button>
+          </div>
         </header>
 
         {/* Buttons Section */}

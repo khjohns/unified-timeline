@@ -19,14 +19,26 @@ export function ExampleCasesPage() {
       {/* Header */}
       <header className="bg-white shadow-sm border-b-2 border-oslo-blue">
         <div className="max-w-7xl mx-auto px-6 py-5">
-          <h1 className="text-heading-lg font-bold text-oslo-blue">
-            Eksempler - Endringsmeldinger
-          </h1>
-          <p className="mt-2 text-body-md text-gray-600">
-            {USE_MOCK_API
-              ? 'Velg en eksempelsak for å se Event Sourcing-arkitekturen i aksjon'
-              : 'Mock API er deaktivert - koble til backend for ekte data'}
-          </p>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <h1 className="text-heading-lg font-bold text-oslo-blue">
+                Eksempler - Endringsmeldinger
+              </h1>
+              <p className="mt-2 text-body-md text-gray-600">
+                {USE_MOCK_API
+                  ? 'Velg en eksempelsak for å se Event Sourcing-arkitekturen i aksjon'
+                  : 'Mock API er deaktivert - koble til backend for ekte data'}
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/showcase')}
+              className="ml-4"
+            >
+              Komponentvisning
+            </Button>
+          </div>
         </div>
       </header>
 
