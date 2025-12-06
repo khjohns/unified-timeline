@@ -173,6 +173,41 @@ class VarselInfo(BaseModel):
     )
 
 
+class SaerskiltKravItem(BaseModel):
+    """
+    Særskilt krav item for rigg/drift eller produktivitetstap (§34.1.3).
+
+    Per standarden kan TE bli klar over rigg/drift og produktivitetstap
+    på ulike tidspunkt, så vi trenger separate datoer per type.
+    """
+    belop: Optional[float] = Field(
+        default=None,
+        ge=0,
+        description="Beløp for dette særskilte kravet"
+    )
+    dato_klar_over: Optional[str] = Field(
+        default=None,
+        description="Når TE ble klar over at utgifter ville påløpe (YYYY-MM-DD). Brukes til 7-dagers varslingssjekk."
+    )
+
+
+class SaerskiltKrav(BaseModel):
+    """
+    Samlet struktur for særskilte krav (§34.1.3).
+
+    Separate objekter for rigg/drift og produktivitetstap,
+    hver med eget beløp og dato for når TE ble klar over kravet.
+    """
+    rigg_drift: Optional[SaerskiltKravItem] = Field(
+        default=None,
+        description="Rigg/drift krav (§34.1.3 første ledd)"
+    )
+    produktivitet: Optional[SaerskiltKravItem] = Field(
+        default=None,
+        description="Produktivitetstap krav (§34.1.3 annet ledd)"
+    )
+
+
 # ============ GRUNNLAG EVENTS ============
 
 """
@@ -232,13 +267,18 @@ class GrunnlagData(BaseModel):
     Denne modellen beskriver ÅRSAKEN til kravet og TE's vurdering av ANSVAR.
     Kategoriseringen følger NS 8407 og bestemmer hvilke juridiske regler som gjelder.
     """
+    tittel: str = Field(
+        ...,
+        min_length=1,
+        description="Kort beskrivende tittel for varselet (f.eks. 'Forsinket tegningsunderlag uke 45')"
+    )
     hovedkategori: str = Field(
         ...,
-        description="Hovedkategori for ansvarsgrunnlag (f.eks. 'endring_initiert_bh', 'forsinkelse_bh')"
+        description="Hovedkategori for ansvarsgrunnlag (f.eks. 'ENDRING', 'FORSINKELSE_BH')"
     )
     underkategori: Union[str, List[str]] = Field(
         ...,
-        description="Underkategori(er) - enkelt kode eller liste av koder (f.eks. 'prosjektering', 'arbeidsgrunnlag')"
+        description="Underkategori(er) - enkelt kode eller liste av koder (f.eks. 'PROJ', 'ARBEIDSGRUNNLAG')"
     )
     beskrivelse: str = Field(
         ...,
@@ -305,17 +345,30 @@ class VederlagData(BaseModel):
 
     Denne modellen inneholder TEs krav på penger, inkludert dokumentasjon
     av alle relevante varsler som kreves etter NS 8407.
+
+    UPDATED (2025-12-06):
+    - Replaced krav_belop with belop_direkte/kostnads_overslag per metode
+    - Moved rigg_drift_belop and produktivitetstap_belop into saerskilt_krav structure
+    - Each særskilt krav type now has its own dato_klar_over for 7-day warning check
     """
-    # Binær indikator for om kravet inkluderer vederlagsjustering. Styrer synlighet av vederlagsfelter i skjema
-    krav_belop: float = Field(..., ge=0, description="Krevd beløp i NOK (ekskl. mva)")
-    
-    # Klassifisering av oppgjørsmetode iht. NS 8407 kapittel 34 (se ENUMs ovenfor). Påvirker om indeksregulering skal anvendes og hvordan endringsordre håndteres økonomisk
+    # Klassifisering av oppgjørsmetode iht. NS 8407 kapittel 34
     metode: VederlagsMetode = Field(
         ...,
         description="Vederlagsmetode etter NS 8407"
     )
-    
-    # Detaljert begrunnelse for vederlagskravet. Skal dokumentere grunnlaget for beløpet med referanse til kostnadsunderlag.
+
+    # Beløp - avhenger av metode
+    belop_direkte: Optional[float] = Field(
+        default=None,
+        description="For ENHETSPRISER/FASTPRIS_TILBUD: Krevd beløp i NOK (kan være negativt = fradrag)"
+    )
+    kostnads_overslag: Optional[float] = Field(
+        default=None,
+        ge=0,
+        description="For REGNINGSARBEID (§30.2): Kostnadsoverslag i NOK"
+    )
+
+    # Detaljert begrunnelse for vederlagskravet
     begrunnelse: str = Field(..., min_length=1, description="Begrunnelse for kravet")
 
     # Faktisk kostnadsunderlag som vedlegg
@@ -324,22 +377,19 @@ class VederlagData(BaseModel):
         description="Referanser til vedlagte dokumenter"
     )
 
+    # ============ SÆRSKILTE KRAV (§34.1.3) ============
+    # Separate beløp og datoer per type - TE kan bli klar over
+    # rigg/drift og produktivitetstap på ulike tidspunkt
+    saerskilt_krav: Optional[SaerskiltKrav] = Field(
+        default=None,
+        description="Særskilte krav for rigg/drift og/eller produktivitetstap (§34.1.3)"
+    )
+
     # ============ PORT 1: SPESIFIKKE VARSLER (NS 8407) ============
     # Disse varselfristene er kritiske for om kravet kan tapes ved preklusjon.
     # BH skal vurdere om disse er sendt i tide.
-    #
-    # VarselInfo-strukturen gir TE mulighet til å dokumentere både formelle
-    # og uformelle varsler (f.eks. varslet muntlig på byggemøte før formelt krav).
 
-    # Rigg & Drift (§34.1.3)
-    inkluderer_rigg_drift: bool = Field(
-        default=False,
-        description="Om kravet inkluderer rigg/drift-kostnader (§34.1.3)"
-    )
-    rigg_drift_belop: Optional[float] = Field(
-        default=None,
-        description="Separat beløp for rigg/drift hvis aktuelt"
-    )
+    # Rigg & Drift varsel (§34.1.3)
     rigg_drift_varsel: Optional[VarselInfo] = Field(
         default=None,
         description="Varselinfo for rigg/drift (§34.1.3) - når og hvordan BH ble varslet"
@@ -356,24 +406,12 @@ class VederlagData(BaseModel):
     )
 
     # Regningsarbeid (§30.1)
-    krever_regningsarbeid: bool = Field(
-        default=False,
-        description="Om kravet involverer regningsarbeid (§30.1)"
-    )
     regningsarbeid_varsel: Optional[VarselInfo] = Field(
         default=None,
         description="Varselinfo før start av regningsarbeid (§30.1) - BH må varsles FØR oppstart"
     )
 
-    # Produktivitetstap (§34.1.3, andre ledd)
-    inkluderer_produktivitetstap: bool = Field(
-        default=False,
-        description="Om kravet inkluderer produktivitetstap/nedsatt produktivitet (§34.1.3, 2. ledd)"
-    )
-    produktivitetstap_belop: Optional[float] = Field(
-        default=None,
-        description="Separat beløp for produktivitetstap hvis aktuelt"
-    )
+    # Produktivitetstap varsel (§34.1.3, andre ledd)
     produktivitetstap_varsel: Optional[VarselInfo] = Field(
         default=None,
         description="Varselinfo for produktivitetstap (§34.1.3, 2. ledd)"
@@ -541,8 +579,10 @@ class GrunnlagResponsResultat(str, Enum):
     """Resultat av BH's vurdering av grunnlag (ansvar)"""
     GODKJENT = "godkjent"  # BH aksepterer ansvarsgrunnlaget fullt ut
     DELVIS_GODKJENT = "delvis_godkjent"  # BH aksepterer deler av grunnlaget
+    ERKJENN_FM = "erkjenn_fm"  # §33.3 - BH erkjenner Force Majeure (kun frist, ikke vederlag)
     AVVIST_UENIG = "avvist_uenig"  # BH er uenig i ansvarsgrunnlaget
     AVVIST_FOR_SENT = "avvist_for_sent"  # Varselet kom for sent (preklusjon)
+    FRAFALT = "frafalt"  # §32.3 c - BH frafaller pålegget (kun irregulær endring)
     KREVER_AVKLARING = "krever_avklaring"  # BH trenger mer dokumentasjon før beslutning
 
 

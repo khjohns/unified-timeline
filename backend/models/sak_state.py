@@ -28,6 +28,10 @@ class GrunnlagTilstand(BaseModel):
         default=SporStatus.IKKE_RELEVANT,
         description="Nåværende status for grunnlag"
     )
+    tittel: Optional[str] = Field(
+        default=None,
+        description="Kort beskrivende tittel for varselet"
+    )
     hovedkategori: Optional[str] = Field(default=None)
     underkategori: Optional[Union[str, List[str]]] = Field(
         default=None,
@@ -63,26 +67,48 @@ class GrunnlagTilstand(BaseModel):
 
 
 class VederlagTilstand(BaseModel):
-    """Aggregert tilstand for vederlag-sporet"""
+    """
+    Aggregert tilstand for vederlag-sporet.
+
+    UPDATED (2025-12-06):
+    - Replaced krevd_belop with belop_direkte/kostnads_overslag per metode
+    - Added saerskilt_krav with nested rigg_drift/produktivitet items
+    """
     status: SporStatus = Field(
         default=SporStatus.IKKE_RELEVANT,
         description="Nåværende status for vederlag"
     )
 
-    # Siste krav fra TE
-    krevd_belop: Optional[float] = Field(default=None)
+    # Siste krav fra TE - hovedbeløp avhenger av metode
     metode: Optional[str] = Field(
         default=None,
-        description="Vederlagsmetode kode"
+        description="Vederlagsmetode kode (ENHETSPRISER, REGNINGSARBEID, FASTPRIS_TILBUD)"
+    )
+    belop_direkte: Optional[float] = Field(
+        default=None,
+        description="For ENHETSPRISER/FASTPRIS_TILBUD: Krevd beløp (kan være negativt = fradrag)"
+    )
+    kostnads_overslag: Optional[float] = Field(
+        default=None,
+        description="For REGNINGSARBEID (§30.2): Kostnadsoverslag"
+    )
+    krever_justert_ep: bool = Field(
+        default=False,
+        description="For ENHETSPRISER: Krever justerte enhetspriser"
     )
     begrunnelse: Optional[str] = Field(default=None)
-    inkluderer_produktivitetstap: bool = Field(default=False)
-    inkluderer_rigg_drift: bool = Field(default=False)
 
-    # Varselinfo fra TE
-    saerskilt_varsel_rigg_drift_dato: Optional[str] = Field(default=None)
-    varsel_justert_ep_dato: Optional[str] = Field(default=None)
-    varsel_start_regning_dato: Optional[str] = Field(default=None)
+    # Særskilte krav (§34.1.3) - separate beløp og datoer per type
+    saerskilt_krav: Optional[dict] = Field(
+        default=None,
+        description="Nested struktur: {rigg_drift: {belop, dato_klar_over}, produktivitet: {belop, dato_klar_over}}"
+    )
+
+    # Varselinfo fra TE (VarselInfo structure)
+    rigg_drift_varsel: Optional[dict] = Field(default=None)
+    justert_ep_varsel: Optional[dict] = Field(default=None)
+    regningsarbeid_varsel: Optional[dict] = Field(default=None)
+    produktivitetstap_varsel: Optional[dict] = Field(default=None)
     krav_fremmet_dato: Optional[str] = Field(default=None)
 
     # BH respons - Port 1 (Varsling)
@@ -107,21 +133,32 @@ class VederlagTilstand(BaseModel):
         description="Beløp godkjent av BH (hvis delvis/full godkjenning)"
     )
 
+    # Computed: Krevd beløp basert på metode
+    @computed_field
+    @property
+    def krevd_belop(self) -> Optional[float]:
+        """Returnerer krevd beløp basert på metode (for bakoverkompatibilitet)"""
+        if self.metode == "REGNINGSARBEID":
+            return self.kostnads_overslag
+        return self.belop_direkte
+
     # Differanse-info (nyttig for UI)
     @computed_field
     @property
     def differanse(self) -> Optional[float]:
         """Differansen mellom krevd og godkjent beløp"""
-        if self.krevd_belop is not None and self.godkjent_belop is not None:
-            return self.krevd_belop - self.godkjent_belop
+        krevd = self.krevd_belop
+        if krevd is not None and self.godkjent_belop is not None:
+            return krevd - self.godkjent_belop
         return None
 
     @computed_field
     @property
     def godkjenningsgrad_prosent(self) -> Optional[float]:
         """Hvor mange prosent av kravet som er godkjent"""
-        if self.krevd_belop and self.krevd_belop > 0 and self.godkjent_belop is not None:
-            return round((self.godkjent_belop / self.krevd_belop) * 100, 1)
+        krevd = self.krevd_belop
+        if krevd and krevd > 0 and self.godkjent_belop is not None:
+            return round((self.godkjent_belop / krevd) * 100, 1)
         return None
 
     # Metadata
@@ -243,6 +280,35 @@ class SakState(BaseModel):
 
     @computed_field
     @property
+    def er_force_majeure(self) -> bool:
+        """
+        Sjekker om saken er erkjent som Force Majeure (§33.3).
+
+        Force Majeure betyr:
+        - TE får fristforlengelse (ingen dagmulkt)
+        - TE får IKKE vederlag (§33.3 - partene bærer egne kostnader)
+
+        FRONTEND: Vis dette tydelig - TE kan ikke kreve vederlag.
+        """
+        return self.grunnlag.bh_resultat == GrunnlagResponsResultat.ERKJENN_FM
+
+    @computed_field
+    @property
+    def er_frafalt(self) -> bool:
+        """
+        Sjekker om BH har frafalt pålegget (§32.3 c).
+
+        Frafall betyr:
+        - BH trekker tilbake den irregulære endringen
+        - TE trenger ikke utføre arbeidet
+        - TE kan kreve erstatning for påløpte kostnader
+
+        Kun relevant for irregulære endringer (pålegg uten EO).
+        """
+        return self.grunnlag.bh_resultat == GrunnlagResponsResultat.FRAFALT
+
+    @computed_field
+    @property
     def er_subsidiaert_vederlag(self) -> bool:
         """
         Sjekker om vederlag er vurdert subsidiært.
@@ -251,12 +317,19 @@ class SakState(BaseModel):
         - Grunnlag er AVVIST av BH, MEN
         - Vederlag-beregningen er godkjent (fullt/delvis/annen metode)
 
+        NB: Gjelder IKKE ved Force Majeure (da er vederlag alltid avslått)
+        eller frafall (da lukkes saken).
+
         Dette betyr: "BH mener TE har ansvar, men erkjenner at
         beløpet ville vært riktig hvis BH hadde hatt ansvar."
 
         FRONTEND: Bruk dette for å vise subsidiær status.
         Ikke implementer denne logikken selv i frontend.
         """
+        # Force Majeure og frafall håndteres separat
+        if self.er_force_majeure or self.er_frafalt:
+            return False
+
         grunnlag_avvist = self.grunnlag.status == SporStatus.AVVIST
         beregning_godkjent = self.vederlag.bh_resultat in {
             VederlagBeregningResultat.GODKJENT_FULLT,
@@ -298,9 +371,18 @@ class SakState(BaseModel):
         - "Avslått (Subsidiært enighet om 50 000 kr)"
         - "Godkjent - 120 000 kr"
         - "Under behandling"
+        - "Ikke aktuelt (Force Majeure)"
         """
         if self.vederlag.status == SporStatus.IKKE_RELEVANT:
             return "Ikke aktuelt"
+
+        # Force Majeure: Vederlag er alltid avslått per §33.3
+        if self.er_force_majeure:
+            return "Ikke aktuelt (Force Majeure - §33.3)"
+
+        # Frafall: Saken er lukket, men TE kan kreve påløpte kostnader
+        if self.er_frafalt:
+            return "Avventer (pålegg frafalt - §32.3 c)"
 
         if self.er_subsidiaert_vederlag:
             belop = f"{self.vederlag.godkjent_belop:,.0f} kr" if self.vederlag.godkjent_belop else "beløp"
