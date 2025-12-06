@@ -69,8 +69,7 @@ export function UpdateResponseVederlagModal({
   const visningsbelop = erRegningsarbeid
     ? vederlagTilstand.kostnads_overslag
     : vederlagTilstand.belop_direkte;
-  // Fallback to legacy field if new fields not populated
-  const krevdBelop = visningsbelop ?? vederlagTilstand.krevd_belop ?? 0;
+  const krevdBelop = visningsbelop ?? 0;
 
   // Check if TE has now provided kostnadsoverslag (§30.2)
   const overslagMottatt = useMemo(() => {
