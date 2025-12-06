@@ -104,7 +104,7 @@ export function StatusCard({
 
   return (
     <Card variant="outlined" padding="md">
-      <div className="flex flex-col gap-pkt-04">
+      <div className="flex flex-col gap-4">
         {/* Status Information */}
         <div className="flex-1">
           {/* Track Title */}
@@ -115,8 +115,8 @@ export function StatusCard({
           {/* Status Badge */}
           <div
             className={clsx(
-              'mt-pkt-02 inline-flex items-center gap-pkt-02',
-              'px-pkt-03 py-pkt-02 rounded-pkt-sm',
+              'mt-2 inline-flex items-center gap-2',
+              'px-3 py-2 rounded-none',
               'text-sm font-medium',
               config.color
             )}
@@ -130,7 +130,7 @@ export function StatusCard({
 
           {/* Last Updated */}
           {lastUpdated && (
-            <p className="mt-pkt-02 text-sm text-gray-600">
+            <p className="mt-2 text-sm text-gray-600">
               Sist oppdatert:{' '}
               {new Date(lastUpdated).toLocaleDateString('nb-NO', {
                 year: 'numeric',
@@ -143,8 +143,8 @@ export function StatusCard({
 
         {/* Contextual Actions */}
         {actions && (
-          <div className="pt-pkt-03 border-t border-gray-200">
-            <div className="flex flex-wrap gap-pkt-02">{actions}</div>
+          <div className="pt-3 border-t border-gray-200">
+            <div className="flex flex-wrap gap-2">{actions}</div>
           </div>
         )}
       </div>

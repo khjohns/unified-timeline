@@ -58,7 +58,7 @@ export function FormField({
     .join(' ') || undefined;
 
   return (
-    <div className={clsx('mb-pkt-05', className)}>
+    <div className={clsx('mb-5', className)}>
       {label && labelTooltip ? (
         <InfoLabel tooltip={labelTooltip} required={required} htmlFor={fieldId}>
           {label}
@@ -66,7 +66,7 @@ export function FormField({
       ) : label ? (
         <label
           htmlFor={fieldId}
-          className="block text-base font-medium text-pkt-text-body-default mb-pkt-02"
+          className="block text-base font-medium text-pkt-text-body-default mb-2"
         >
           {label}
           {required && (
@@ -78,7 +78,7 @@ export function FormField({
       ) : null}
 
       {helpText && (
-        <p id={helpTextId} className="mb-pkt-03 text-sm text-pkt-text-placeholder">
+        <p id={helpTextId} className="mb-3 text-sm text-pkt-text-placeholder">
           {helpText}
         </p>
       )}
@@ -89,7 +89,7 @@ export function FormField({
       {error && (
         <p
           id={errorId}
-          className="mt-pkt-02 text-base text-pkt-border-red"
+          className="mt-2 text-base text-pkt-border-red"
           role="alert"
           aria-live="polite"
         >

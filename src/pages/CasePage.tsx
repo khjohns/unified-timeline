@@ -60,11 +60,11 @@ export function CasePage() {
   if (error) {
     return (
       <div className="min-h-screen bg-oslo-beige-100 flex items-center justify-center">
-        <div className="max-w-md p-pkt-08 bg-white rounded-pkt-lg shadow-lg" role="alert">
-          <h2 className="text-heading-md font-bold text-error mb-pkt-04">
+        <div className="max-w-md p-8 bg-white rounded-none shadow-lg" role="alert">
+          <h2 className="text-heading-md font-bold text-error mb-4">
             Feil ved lasting av sak
           </h2>
-          <p className="text-gray-700 mb-pkt-04">{error.message}</p>
+          <p className="text-gray-700 mb-4">{error.message}</p>
           <Button variant="primary" onClick={() => window.location.reload()}>
             Prøv igjen
           </Button>
@@ -88,13 +88,13 @@ export function CasePage() {
     <div className="min-h-screen bg-oslo-beige-100">
       {/* Header */}
       <header className="bg-white shadow-sm border-b-2 border-oslo-blue">
-        <div className="max-w-7xl mx-auto px-pkt-06 py-pkt-05">
+        <div className="max-w-7xl mx-auto px-6 py-5">
           <div className="flex items-start justify-between">
             <div>
               <h1 className="text-heading-lg font-bold text-oslo-blue">
                 {state.sakstittel}
               </h1>
-              <p className="mt-pkt-02 text-body-md text-gray-600">Sak #{sakId}</p>
+              <p className="mt-2 text-body-md text-gray-600">Sak #{sakId}</p>
             </div>
             <ModeToggle userRole={userRole} onToggle={setUserRole} />
           </div>
@@ -102,7 +102,7 @@ export function CasePage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-pkt-06 py-pkt-08">
+      <main className="max-w-7xl mx-auto px-6 py-8">
         {/* Status Dashboard with Contextual Actions */}
         <StatusDashboard
           state={state}
@@ -198,23 +198,23 @@ export function CasePage() {
         />
 
         {/* Timeline Section */}
-        <section className="mt-pkt-08" aria-labelledby="timeline-heading">
+        <section className="mt-8" aria-labelledby="timeline-heading">
           <h2
             id="timeline-heading"
-            className="text-heading-md font-bold text-oslo-blue mb-pkt-04"
+            className="text-heading-md font-bold text-oslo-blue mb-4"
           >
             Hendelser
           </h2>
-          <div className="bg-white rounded-pkt-lg shadow p-pkt-06">
+          <div className="bg-white rounded-none shadow p-6">
             <Timeline events={mockTimelineEvents} />
           </div>
         </section>
 
         {/* Summary Section - Enhanced with Comprehensive Metadata and Revision History */}
-        <section className="mt-pkt-08" aria-labelledby="summary-heading">
+        <section className="mt-8" aria-labelledby="summary-heading">
           <h2
             id="summary-heading"
-            className="text-heading-md font-bold text-oslo-blue mb-pkt-04"
+            className="text-heading-md font-bold text-oslo-blue mb-4"
           >
             Sammendrag
           </h2>
@@ -223,8 +223,8 @@ export function CasePage() {
           <ComprehensiveMetadata state={state} sakId={sakId || ''} />
 
           {/* Revision History */}
-          <div className="mt-pkt-06">
-            <h3 className="text-lg font-semibold text-gray-900 mb-pkt-04">
+          <div className="mt-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Revisjonshistorikk
             </h3>
             <RevisionHistory state={state} />

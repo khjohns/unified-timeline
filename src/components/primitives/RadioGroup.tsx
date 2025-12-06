@@ -26,7 +26,7 @@ export const RadioGroup = forwardRef<
   return (
     <RadioGroupPrimitive.Root
       ref={ref}
-      className={clsx('flex flex-col gap-pkt-03', className)}
+      className={clsx('flex flex-col gap-3', className)}
       {...props}
     />
   );
@@ -90,7 +90,7 @@ export const RadioItem = forwardRef<
 
   if (label) {
     return (
-      <div className="flex items-center gap-pkt-03">
+      <div className="flex items-center gap-3">
         {radio}
         <label
           htmlFor={props.id}

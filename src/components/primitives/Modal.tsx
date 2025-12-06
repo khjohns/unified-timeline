@@ -49,7 +49,7 @@ export function Modal({
             'bg-pkt-bg-card rounded-none shadow-xl',
             'border-2 border-pkt-border-default',
             // Increased padding for better spacing
-            'p-pkt-08',
+            'p-8',
             'z-modal',
             'focus:outline-none',
             'data-[state=open]:animate-in data-[state=closed]:animate-out',
@@ -66,13 +66,13 @@ export function Modal({
           )}
         >
           {/* Header */}
-          <div className="flex items-start justify-between mb-pkt-06">
+          <div className="flex items-start justify-between mb-6">
             <div>
               <Dialog.Title className="text-2xl font-bold text-pkt-text-body-dark">
                 {title}
               </Dialog.Title>
               {description && (
-                <Dialog.Description className="mt-pkt-03 text-lg text-pkt-grays-gray-600">
+                <Dialog.Description className="mt-3 text-lg text-pkt-grays-gray-600">
                   {description}
                 </Dialog.Description>
               )}
@@ -81,7 +81,7 @@ export function Modal({
             {/* Close button - sharp corners */}
             <Dialog.Close
               className={clsx(
-                'rounded-none p-pkt-02',
+                'rounded-none p-2',
                 'text-pkt-grays-gray-500 hover:text-pkt-grays-gray-700',
                 'hover:bg-pkt-surface-light-beige',
                 'focus:outline-none focus:ring-4 focus:ring-pkt-brand-purple-1000/30'

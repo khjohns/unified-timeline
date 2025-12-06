@@ -163,11 +163,9 @@
 
     /* ============================================
        BORDER RADIUS - SKARPE KANTER
+       Using Tailwind's rounded-none for sharp corners
        ============================================ */
     --radius-none: 0;
-    --radius-pkt-sm: 0;
-    --radius-pkt-md: 0;
-    --radius-pkt-lg: 0;
 
     /* ============================================
        BORDER WIDTH

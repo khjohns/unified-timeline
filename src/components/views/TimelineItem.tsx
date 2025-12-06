@@ -33,14 +33,14 @@ export function TimelineItem({
   onToggle,
 }: TimelineItemProps) {
   return (
-    <li className="relative pb-pkt-06">
+    <li className="relative pb-6">
       {/* Timeline connector line */}
       <div
         className="absolute left-4 top-6 bottom-0 w-0.5 bg-oslo-beige-300"
         aria-hidden="true"
       />
 
-      <div className="flex gap-pkt-04">
+      <div className="flex gap-4">
         {/* Timeline dot */}
         <div
           className="relative flex-shrink-0 w-8 h-8 rounded-full bg-oslo-blue flex items-center justify-center"
@@ -63,12 +63,12 @@ export function TimelineItem({
           </div>
 
           {/* Event Type */}
-          <h3 className="mt-pkt-02 text-body-md font-semibold text-gray-900">
+          <h3 className="mt-2 text-body-md font-semibold text-gray-900">
             {eventType}
           </h3>
 
           {/* Description */}
-          <div className="mt-pkt-02 text-body-md text-gray-700">
+          <div className="mt-2 text-body-md text-gray-700">
             {description}
           </div>
 
@@ -78,10 +78,10 @@ export function TimelineItem({
               <button
                 onClick={onToggle}
                 className={clsx(
-                  'mt-pkt-03 text-sm font-medium text-oslo-blue',
+                  'mt-3 text-sm font-medium text-oslo-blue',
                   'hover:underline focus-visible:underline',
                   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-oslo-blue',
-                  'rounded-pkt-sm px-2 py-1 -ml-2'
+                  'rounded-none px-2 py-1 -ml-2'
                 )}
                 aria-expanded={isExpanded}
                 aria-controls={`details-${timestamp}`}
@@ -92,7 +92,7 @@ export function TimelineItem({
               {isExpanded && (
                 <div
                   id={`details-${timestamp}`}
-                  className="mt-pkt-04 p-pkt-04 bg-oslo-beige-100 rounded-pkt-md"
+                  className="mt-4 p-4 bg-oslo-beige-100 rounded-none"
                 >
                   {details}
                 </div>

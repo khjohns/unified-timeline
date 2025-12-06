@@ -34,9 +34,9 @@ export function Tooltip({ content, children, side = 'top', delayDuration = 200 }
             side={side}
             className={clsx(
               'z-tooltip',
-              'px-pkt-03 py-pkt-02',
+              'px-3 py-2',
               'bg-gray-900 text-white text-sm',
-              'rounded-pkt-sm shadow-lg',
+              'rounded-none shadow-lg',
               'max-w-xs',
               'data-[state=delayed-open]:animate-in',
               'data-[state=closed]:animate-out',

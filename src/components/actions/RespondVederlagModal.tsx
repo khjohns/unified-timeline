@@ -295,7 +295,7 @@ export function RespondVederlagModal({
 
         {/* Show claimed amount if available (fallback if no vederlagEvent) */}
         {krevdBelop !== undefined && visningsbelop === undefined && (
-          <div className="p-4 bg-info-100 rounded-pkt-md">
+          <div className="p-4 bg-info-100 rounded-none">
             <p className="text-sm font-medium text-info-700">
               Krevd beløp: {krevdBelop.toLocaleString('nb-NO')} NOK
             </p>

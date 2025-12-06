@@ -100,7 +100,7 @@ export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
         {label && (
           <label
             htmlFor={id}
-            className="block text-sm font-medium text-pkt-text-default mb-pkt-02"
+            className="block text-sm font-medium text-pkt-text-default mb-2"
           >
             {label}
           </label>
@@ -117,7 +117,7 @@ export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
             onBlur={handleBlur}
             className={clsx(
               // Base styles - standard input size
-              'px-pkt-04 py-pkt-03 min-h-[40px] pr-16',
+              'px-4 py-3 min-h-[40px] pr-16',
               'text-base font-normal text-right',
               'bg-pkt-bg-default',
               'transition-colors duration-200',
@@ -172,7 +172,7 @@ export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
           </span>
         </div>
         {helperText && (
-          <p className="mt-pkt-02 text-sm text-pkt-text-subtle">{helperText}</p>
+          <p className="mt-2 text-sm text-pkt-text-subtle">{helperText}</p>
         )}
       </div>
     );
