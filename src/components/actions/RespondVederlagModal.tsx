@@ -11,6 +11,11 @@
  * - Added §34.1.3 rigg-preklusjon option
  * - Added §34.3.3 EP-justering alert
  * - Added display of vederlagskrav details
+ *
+ * UPDATED (2025-12-06):
+ * - Updated saerskilt_krav interface to handle separate rigg_drift and produktivitet
+ *   objects with individual belop and dato_klar_over fields (per §34.1.3)
+ * - Enhanced display to show amounts and dates for each særskilt krav type
  */
 
 import { Modal } from '../primitives/Modal';
@@ -49,8 +54,14 @@ const respondVederlagSchema = z.object({
 
 type RespondVederlagFormData = z.infer<typeof respondVederlagSchema>;
 
+// Særskilt krav item structure (§34.1.3)
+interface SaerskiltKravItem {
+  belop?: number;
+  dato_klar_over?: string;
+}
+
 // Vederlag event info for context display and conditional logic
-// Matches payload from SendVederlagModal
+// Matches payload from SendVederlagModal (updated 2025-12-06)
 interface VederlagEventInfo {
   metode?: 'ENHETSPRISER' | 'REGNINGSARBEID' | 'FASTPRIS_TILBUD';
   belop_direkte?: number;
@@ -58,9 +69,8 @@ interface VederlagEventInfo {
   begrunnelse?: string;
   krever_justert_ep?: boolean;
   saerskilt_krav?: {
-    rigg_drift?: boolean;
-    produktivitet?: boolean;
-    belop?: number;
+    rigg_drift?: SaerskiltKravItem;
+    produktivitet?: SaerskiltKravItem;
   };
 }
 
@@ -120,7 +130,8 @@ export function RespondVederlagModal({
 
   // §34.1.3 Logic: Can reject rigg/drift if sent too late
   const harSaerskiltKrav =
-    vederlagEvent?.saerskilt_krav?.rigg_drift || vederlagEvent?.saerskilt_krav?.produktivitet;
+    vederlagEvent?.saerskilt_krav?.rigg_drift !== undefined ||
+    vederlagEvent?.saerskilt_krav?.produktivitet !== undefined;
 
   // Get method label for display
   const metodeLabel = vederlagEvent?.metode
@@ -232,13 +243,42 @@ export function RespondVederlagModal({
             )}
             {(vederlagEvent.saerskilt_krav?.rigg_drift ||
               vederlagEvent.saerskilt_krav?.produktivitet) && (
-              <div className="mt-2 flex gap-2">
-                {vederlagEvent.saerskilt_krav.rigg_drift && (
-                  <Badge variant="default">Inkl. Rigg/Drift</Badge>
-                )}
-                {vederlagEvent.saerskilt_krav.produktivitet && (
-                  <Badge variant="default">Inkl. Produktivitetstap</Badge>
-                )}
+              <div className="mt-3 pt-2 border-t border-blue-200">
+                <p className="text-xs font-medium text-pkt-text-body-subtle mb-2">
+                  Særskilte krav (§34.1.3):
+                </p>
+                <div className="flex flex-col gap-1">
+                  {vederlagEvent.saerskilt_krav.rigg_drift && (
+                    <div className="flex items-center gap-2">
+                      <Badge variant="default">Rigg/Drift</Badge>
+                      {vederlagEvent.saerskilt_krav.rigg_drift.belop && (
+                        <span className="text-sm font-mono">
+                          kr {vederlagEvent.saerskilt_krav.rigg_drift.belop.toLocaleString('nb-NO')},-
+                        </span>
+                      )}
+                      {vederlagEvent.saerskilt_krav.rigg_drift.dato_klar_over && (
+                        <span className="text-xs text-gray-500">
+                          (klar over: {vederlagEvent.saerskilt_krav.rigg_drift.dato_klar_over})
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {vederlagEvent.saerskilt_krav.produktivitet && (
+                    <div className="flex items-center gap-2">
+                      <Badge variant="default">Produktivitetstap</Badge>
+                      {vederlagEvent.saerskilt_krav.produktivitet.belop && (
+                        <span className="text-sm font-mono">
+                          kr {vederlagEvent.saerskilt_krav.produktivitet.belop.toLocaleString('nb-NO')},-
+                        </span>
+                      )}
+                      {vederlagEvent.saerskilt_krav.produktivitet.dato_klar_over && (
+                        <span className="text-xs text-gray-500">
+                          (klar over: {vederlagEvent.saerskilt_krav.produktivitet.dato_klar_over})
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>

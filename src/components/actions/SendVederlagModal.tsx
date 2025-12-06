@@ -9,9 +9,14 @@
  * - Restructured to match NS 8407 spec:
  *   - belopDirekte with support for negative values (fradrag)
  *   - RadioGroup for method selection (vertical)
- *   - Combined rigg/drift + produktivitet with shared datoKlarOver and 7-day check
  *   - kreverJustertEP as checkbox under ENHETSPRISER method
  *   - Bevisbyrde warning for regningsarbeid without prior notice
+ *
+ * UPDATED (2025-12-06):
+ * - Fixed §34.1.3: Separate date fields for rigg/drift and produktivitet
+ *   Per standarden: "etter at han blir eller burde ha blitt klar over at utgifter ville påløpe"
+ *   TE kan bli klar over disse kostnadene på ulike tidspunkt, så separate frister er korrekt
+ * - Separate amount fields for each særskilt krav type
  */
 
 import { Modal } from '../primitives/Modal';
@@ -50,10 +55,13 @@ const vederlagSchema = z.object({
   varslet_for_oppstart: z.boolean().optional(),
 
   // Særskilte krav (§34.1.3) - Rigg/Drift og Produktivitet
+  // Per §34.1.3: Separate datoer fordi TE kan bli klar over ulike kostnader på ulike tidspunkt
   har_rigg_krav: z.boolean().optional(),
   har_produktivitet_krav: z.boolean().optional(),
-  belop_saerskilt: z.number().optional(),
-  dato_klar_over: z.string().optional(),
+  belop_rigg: z.number().optional(),
+  belop_produktivitet: z.number().optional(),
+  dato_klar_over_rigg: z.string().optional(),
+  dato_klar_over_produktivitet: z.string().optional(),
 });
 
 type VederlagFormData = z.infer<typeof vederlagSchema>;
@@ -132,26 +140,42 @@ export function SendVederlagModal({
   const varsletForOppstart = watch('varslet_for_oppstart');
   const harRiggKrav = watch('har_rigg_krav');
   const harProduktivitetKrav = watch('har_produktivitet_krav');
-  const datoKlarOver = watch('dato_klar_over');
+  const datoKlarOverRigg = watch('dato_klar_over_rigg');
+  const datoKlarOverProduktivitet = watch('dato_klar_over_produktivitet');
 
   // Determine if this is a subsidiary claim (grunnlag was rejected)
   const erSubsidiaer = grunnlagEvent?.status === 'avvist_uenig';
 
-  // Check preclusion for særskilte krav (§34.1.3) - 7 days threshold
-  const saerskiltPreklusjon = useMemo(() => {
-    if ((!harRiggKrav && !harProduktivitetKrav) || !datoKlarOver) return null;
-    return sjekkRiggDriftFrist(datoKlarOver);
-  }, [harRiggKrav, harProduktivitetKrav, datoKlarOver]);
+  // Check preclusion for rigg/drift (§34.1.3 første ledd) - 7 days threshold
+  const riggPreklusjon = useMemo(() => {
+    if (!harRiggKrav || !datoKlarOverRigg) return null;
+    return sjekkRiggDriftFrist(datoKlarOverRigg);
+  }, [harRiggKrav, datoKlarOverRigg]);
+
+  // Check preclusion for produktivitet (§34.1.3 annet ledd) - 7 days threshold
+  const produktivitetPreklusjon = useMemo(() => {
+    if (!harProduktivitetKrav || !datoKlarOverProduktivitet) return null;
+    return sjekkRiggDriftFrist(datoKlarOverProduktivitet);
+  }, [harProduktivitetKrav, datoKlarOverProduktivitet]);
 
   const onSubmit = (data: VederlagFormData) => {
-    // Build særskilt krav structure
+    // Build særskilt krav structure with separate dates per §34.1.3
+    // TE kan bli klar over rigg/drift og produktivitetstap på ulike tidspunkt
     const saerskiltKrav =
       data.har_rigg_krav || data.har_produktivitet_krav
         ? {
-            rigg_drift: data.har_rigg_krav,
-            produktivitet: data.har_produktivitet_krav,
-            belop: data.belop_saerskilt,
-            dato_klar_over: data.dato_klar_over,
+            rigg_drift: data.har_rigg_krav
+              ? {
+                  belop: data.belop_rigg,
+                  dato_klar_over: data.dato_klar_over_rigg,
+                }
+              : undefined,
+            produktivitet: data.har_produktivitet_krav
+              ? {
+                  belop: data.belop_produktivitet,
+                  dato_klar_over: data.dato_klar_over_produktivitet,
+                }
+              : undefined,
           }
         : null;
 
@@ -357,84 +381,142 @@ export function SendVederlagModal({
           </h4>
           <p className="text-xs text-orange-800 mb-3">
             NB: Disse postene krever <strong>særskilt varsel</strong>. Kravet tapes totalt ved manglende varsel (§34.1.3).
+            Varslingsfristen løper separat for hver kostnadstype fra når TE blir klar over at utgifter vil påløpe.
           </p>
 
-          <div className="flex gap-4 mb-3">
+          {/* Rigg/Drift section (§34.1.3 første ledd) */}
+          <div className="mb-4">
             <Controller
               name="har_rigg_krav"
               control={control}
               render={({ field }) => (
                 <Checkbox
                   id="har_rigg_krav"
-                  label="Økt Rigg/Drift"
+                  label="Økt Rigg/Drift (§34.1.3 første ledd)"
                   checked={field.value}
                   onCheckedChange={field.onChange}
                 />
               )}
             />
+
+            {harRiggKrav && (
+              <div className="grid grid-cols-2 gap-4 mt-3 ml-6 p-3 bg-white rounded border border-orange-200">
+                <FormField
+                  label="Estimert beløp rigg/drift"
+                  error={errors.belop_rigg?.message}
+                >
+                  <Controller
+                    name="belop_rigg"
+                    control={control}
+                    render={({ field }) => (
+                      <CurrencyInput
+                        value={field.value ?? null}
+                        onChange={field.onChange}
+                        fullWidth
+                      />
+                    )}
+                  />
+                </FormField>
+
+                <FormField
+                  label="Når ble du klar over rigg/drift-utgiftene?"
+                >
+                  <Controller
+                    name="dato_klar_over_rigg"
+                    control={control}
+                    render={({ field }) => (
+                      <DatePicker
+                        id="dato_klar_over_rigg"
+                        value={field.value}
+                        onChange={field.onChange}
+                        fullWidth
+                        placeholder="Velg dato"
+                      />
+                    )}
+                  />
+                </FormField>
+
+                {/* 7-day preclusion warning for rigg/drift */}
+                {riggPreklusjon?.alert && (
+                  <div className="col-span-2">
+                    <Alert
+                      variant={riggPreklusjon.alert.variant}
+                      title={riggPreklusjon.alert.title}
+                    >
+                      {riggPreklusjon.alert.message}
+                    </Alert>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Produktivitet section (§34.1.3 annet ledd) */}
+          <div>
             <Controller
               name="har_produktivitet_krav"
               control={control}
               render={({ field }) => (
                 <Checkbox
                   id="har_produktivitet_krav"
-                  label="Nedsatt produktivitet"
+                  label="Nedsatt produktivitet (§34.1.3 annet ledd)"
                   checked={field.value}
                   onCheckedChange={field.onChange}
                 />
               )}
             />
+
+            {harProduktivitetKrav && (
+              <div className="grid grid-cols-2 gap-4 mt-3 ml-6 p-3 bg-white rounded border border-orange-200">
+                <FormField
+                  label="Estimert beløp produktivitetstap"
+                  error={errors.belop_produktivitet?.message}
+                >
+                  <Controller
+                    name="belop_produktivitet"
+                    control={control}
+                    render={({ field }) => (
+                      <CurrencyInput
+                        value={field.value ?? null}
+                        onChange={field.onChange}
+                        fullWidth
+                      />
+                    )}
+                  />
+                </FormField>
+
+                <FormField
+                  label="Når ble du klar over produktivitetstapet?"
+                >
+                  <Controller
+                    name="dato_klar_over_produktivitet"
+                    control={control}
+                    render={({ field }) => (
+                      <DatePicker
+                        id="dato_klar_over_produktivitet"
+                        value={field.value}
+                        onChange={field.onChange}
+                        fullWidth
+                        placeholder="Velg dato"
+                      />
+                    )}
+                  />
+                </FormField>
+
+                {/* 7-day preclusion warning for produktivitet */}
+                {produktivitetPreklusjon?.alert && (
+                  <div className="col-span-2">
+                    <Alert
+                      variant={produktivitetPreklusjon.alert.variant}
+                      title={produktivitetPreklusjon.alert.title}
+                    >
+                      {produktivitetPreklusjon.alert.message}
+                    </Alert>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-
-          {(harRiggKrav || harProduktivitetKrav) && (
-            <div className="grid grid-cols-2 gap-4 mt-3">
-              <FormField
-                label="Estimert beløp særskilte krav"
-                error={errors.belop_saerskilt?.message}
-              >
-                <Controller
-                  name="belop_saerskilt"
-                  control={control}
-                  render={({ field }) => (
-                    <CurrencyInput
-                      value={field.value ?? null}
-                      onChange={field.onChange}
-                      fullWidth
-                    />
-                  )}
-                />
-              </FormField>
-
-              <FormField
-                label="Når ble du klar over disse utgiftene?"
-              >
-                <Controller
-                  name="dato_klar_over"
-                  control={control}
-                  render={({ field }) => (
-                    <DatePicker
-                      id="dato_klar_over"
-                      value={field.value}
-                      onChange={field.onChange}
-                      fullWidth
-                      placeholder="Velg dato"
-                    />
-                  )}
-                />
-              </FormField>
-            </div>
-          )}
-
-          {/* 7-day preclusion warning for særskilte krav */}
-          {saerskiltPreklusjon?.alert && (
-            <Alert
-              variant={saerskiltPreklusjon.alert.variant}
-              title={saerskiltPreklusjon.alert.title}
-              className="mt-3"
-            >
-              {saerskiltPreklusjon.alert.message}
-            </Alert>
-          )}
         </div>
 
         {/* 4. Begrunnelse/Dokumentasjon */}

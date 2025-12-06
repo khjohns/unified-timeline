@@ -108,7 +108,7 @@ krav_struktur_ns8407_komplett: List[Hovedkategori] = [
                 "kode": "MEDVIRK",
                 "label": "Manglende medvirkning/leveranser",
                 "hjemmel_basis": "22",
-                "beskrivelse": "Forsinkede tegninger, beslutninger, materialer eller fysisk arbeidsgrunnlag (22.3).",
+                "beskrivelse": "Forsinkede tegninger, beslutninger, fysisk arbeidsgrunnlag (22.3) eller materialer (22.4).",
                 "varselkrav_ref": "34.1.2 / 25.1.2"
             },
             {
@@ -166,9 +166,9 @@ krav_struktur_ns8407_komplett: List[Hovedkategori] = [
             },
             {
                 "kode": "NEKT_TILTRANSPORT",
-                "label": "Nektelse av tiltransport",
+                "label": "Tvungen tiltransport",
                 "hjemmel_basis": "12.1.2",
-                "beskrivelse": "BH nekter tiltransport av sideentreprenør/TE uten saklig grunn.",
+                "beskrivelse": "BH gjennomfører tiltransport til tross for TEs saklige innvendinger etter 12.1.2.",
                 "varselkrav_ref": "34.1.2 / 12.1.2 annet ledd"
             },
             {
@@ -214,14 +214,14 @@ krav_struktur_ns8407_komplett: List[Hovedkategori] = [
                 "kode": "FM_EGEN",
                 "label": "Force Majeure (Egen)",
                 "hjemmel_basis": "33.3 første ledd",
-                "beskrivelse": "Krig, opprør, naturkatastrofe, streik etc. som rammer TE direkte.",
+                "beskrivelse": "Ekstraordinære værforhold, offentlige påbud/forbud, streik, lockout etc. som rammer TE direkte.",
                 "varselkrav_ref": "33.4"
             },
             {
                 "kode": "FM_MH",
                 "label": "Force Majeure (Medhjelper)",
                 "hjemmel_basis": "33.3 annet ledd",
-                "beskrivelse": "Hindring hos kontraktsmedhjelper som skyldes FM.",
+                "beskrivelse": "Hindring hos kontraktsmedhjelper som skyldes forhold utenfor dennes kontroll.",
                 "varselkrav_ref": "33.4"
             }
         ]
