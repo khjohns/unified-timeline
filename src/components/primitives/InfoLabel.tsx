@@ -57,11 +57,11 @@ export function InfoLabel({
       id={labelId}
       htmlFor={htmlFor}
       className={clsx(
-        'block text-base font-medium text-pkt-text-body-default mb-pkt-02',
+        'block text-base font-medium text-pkt-text-body-default mb-2',
         className
       )}
     >
-      <span className="inline-flex items-center gap-pkt-02">
+      <span className="inline-flex items-center gap-2">
         <span>
           {children}
           {required && (

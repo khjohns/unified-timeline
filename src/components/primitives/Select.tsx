@@ -33,7 +33,7 @@ export const SelectTrigger = forwardRef<
     className={clsx(
       // Base styles - standard select size
       'flex items-center justify-between gap-2',
-      'w-full px-pkt-04 py-pkt-03 min-h-[40px]',
+      'w-full px-4 py-3 min-h-[40px]',
       'text-base font-normal',
       'bg-pkt-bg-default',
       'transition-colors duration-200',
@@ -167,7 +167,7 @@ export const SelectLabel = forwardRef<
   <SelectPrimitive.Label
     ref={ref}
     className={clsx(
-      'px-pkt-03 py-pkt-02',
+      'px-3 py-2',
       'text-sm font-semibold',
       'text-pkt-text-body-default',
       className
@@ -185,7 +185,7 @@ export const SelectItem = forwardRef<
     ref={ref}
     className={clsx(
       'relative flex w-full cursor-default select-none items-center',
-      'px-pkt-04 py-pkt-03',
+      'px-4 py-3',
       'text-base font-normal',
       'outline-none',
       'transition-colors duration-150',

@@ -23,7 +23,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         disabled={disabled}
         className={clsx(
           // Base styles - standard input size
-          'px-pkt-04 py-pkt-03 min-h-[40px]',
+          'px-4 py-3 min-h-[40px]',
           'text-base font-normal',
           'bg-pkt-bg-default',
           'transition-colors duration-200',

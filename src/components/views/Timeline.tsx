@@ -25,7 +25,7 @@ export function Timeline({ events }: TimelineProps) {
   // Show empty state if no events
   if (events.length === 0) {
     return (
-      <div className="p-pkt-08 text-center text-gray-500">
+      <div className="p-8 text-center text-gray-500">
         <p>Ingen hendelser ennå.</p>
       </div>
     );

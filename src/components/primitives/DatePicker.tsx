@@ -74,7 +74,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
             className={clsx(
               // Base styles
               'flex items-center justify-between gap-2',
-              'px-pkt-04 py-pkt-03',
+              'px-4 py-3',
               'text-base font-normal text-left',
               'bg-pkt-bg-default',
               'transition-colors duration-200',
@@ -129,7 +129,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
               'bg-pkt-bg-card',
               'border-2 border-pkt-border-default rounded-none',
               'shadow-xl',
-              'p-pkt-04',
+              'p-4',
               // Animations
               'data-[state=open]:animate-in data-[state=closed]:animate-out',
               'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',

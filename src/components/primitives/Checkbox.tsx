@@ -72,7 +72,7 @@ export const Checkbox = forwardRef<
 
   if (label) {
     return (
-      <div className="flex items-center gap-pkt-03">
+      <div className="flex items-center gap-3">
         {checkbox}
         <label
           htmlFor={props.id}

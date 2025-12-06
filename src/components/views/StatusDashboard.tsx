@@ -32,7 +32,7 @@ export function StatusDashboard({
       </h2>
 
       {/* Three-column grid for status cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-pkt-04">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatusCard
           spor="grunnlag"
           status={state.grunnlag.status}

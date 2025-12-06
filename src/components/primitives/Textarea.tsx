@@ -24,7 +24,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         rows={rows}
         className={clsx(
           // Base styles
-          'px-pkt-04 py-pkt-03',
+          'px-4 py-3',
           'text-base font-normal',
           'bg-pkt-bg-default',
           'transition-colors duration-200',
