@@ -18,7 +18,7 @@ export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
-    public data?: any
+    public data?: unknown
   ) {
     super(message);
     this.name = 'ApiError';
@@ -52,7 +52,7 @@ export async function apiFetch<T>(
 
     // Parse response body
     const contentType = response.headers.get('content-type');
-    let data: any;
+    let data: unknown;
 
     if (contentType && contentType.includes('application/json')) {
       data = await response.json();
@@ -63,8 +63,8 @@ export async function apiFetch<T>(
     // Handle error responses
     if (!response.ok) {
       const errorMessage =
-        typeof data === 'object' && data.message
-          ? data.message
+        typeof data === 'object' && data !== null && 'message' in data && typeof (data as Record<string, unknown>).message === 'string'
+          ? (data as Record<string, unknown>).message as string
           : typeof data === 'string'
           ? data
           : `HTTP ${response.status}: ${response.statusText}`;

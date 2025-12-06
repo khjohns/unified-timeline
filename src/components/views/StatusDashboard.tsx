@@ -7,13 +7,26 @@
 
 import { StatusCard } from './StatusCard';
 import { SakState } from '../../types/timeline';
-import { ReactNode } from 'react';
+import { ReactNode, useMemo } from 'react';
 
 interface StatusDashboardProps {
   state: SakState;
   grunnlagActions?: ReactNode;
   vederlagActions?: ReactNode;
   fristActions?: ReactNode;
+}
+
+/**
+ * Get krevd beløp based on vederlagsmetode
+ * - ENHETSPRISER/FASTPRIS_TILBUD: belop_direkte
+ * - REGNINGSARBEID: kostnads_overslag
+ */
+function getKrevdBelop(state: SakState): number | undefined {
+  const v = state.vederlag;
+  if (v.metode === 'REGNINGSARBEID' && v.kostnads_overslag !== undefined) {
+    return v.kostnads_overslag;
+  }
+  return v.belop_direkte;
 }
 
 /**
@@ -25,6 +38,8 @@ export function StatusDashboard({
   vederlagActions,
   fristActions,
 }: StatusDashboardProps) {
+  const krevdBelop = useMemo(() => getKrevdBelop(state), [state]);
+
   return (
     <section aria-labelledby="dashboard-heading">
       <h2 id="dashboard-heading" className="sr-only">
@@ -46,7 +61,7 @@ export function StatusDashboard({
           title="Vederlag"
           lastUpdated={state.vederlag.siste_oppdatert}
           actions={vederlagActions}
-          krevd={state.vederlag.krevd_belop}
+          krevd={krevdBelop}
           godkjent={state.vederlag.godkjent_belop}
           unit="kr"
         />

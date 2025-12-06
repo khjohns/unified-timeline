@@ -5,7 +5,7 @@
  * Displays status dashboard, available actions, and event timeline.
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { useCaseState } from '../hooks/useCaseState';
 import { useActionPermissions } from '../hooks/useActionPermissions';
@@ -25,6 +25,41 @@ import {
   RespondFristModal,
 } from '../components/actions';
 import { getMockTimelineById } from '../mocks/mockData';
+import type { SakState, GrunnlagResponsResultat } from '../types/timeline';
+
+// Default empty state for when data is not yet loaded
+const EMPTY_STATE: SakState = {
+  sak_id: '',
+  sakstittel: '',
+  grunnlag: {
+    status: 'utkast',
+    kontraktsreferanser: [],
+    laast: false,
+    antall_versjoner: 0,
+  },
+  vederlag: {
+    status: 'utkast',
+    antall_versjoner: 0,
+  },
+  frist: {
+    status: 'utkast',
+    antall_versjoner: 0,
+  },
+  er_subsidiaert_vederlag: false,
+  er_subsidiaert_frist: false,
+  visningsstatus_vederlag: '',
+  visningsstatus_frist: '',
+  overordnet_status: 'UTKAST',
+  kan_utstede_eo: false,
+  neste_handling: {
+    rolle: null,
+    handling: '',
+    spor: null,
+  },
+  sum_krevd: 0,
+  sum_godkjent: 0,
+  antall_events: 0,
+};
 
 /**
  * CasePage renders the complete case view with dashboard and timeline
@@ -43,6 +78,36 @@ export function CasePage() {
 
   // User role management for testing different modes
   const { userRole, setUserRole } = useUserRole();
+
+  // Use state from data or empty state - hooks must be called unconditionally
+  const state = data?.state ?? EMPTY_STATE;
+
+  // Compute actions based on state - hooks must be called unconditionally
+  const actions = useActionPermissions(state, userRole);
+
+  // Get mock timeline events for display
+  const mockTimelineEvents = useMemo(
+    () => getMockTimelineById(sakId || ''),
+    [sakId]
+  );
+
+  // Compute grunnlag status for subsidiary logic in response modals
+  const grunnlagStatus = useMemo((): 'godkjent' | 'avvist_uenig' | 'delvis_godkjent' | undefined => {
+    const result = state.grunnlag.bh_resultat;
+    if (result === 'godkjent' || result === 'avvist_uenig' || result === 'delvis_godkjent') {
+      return result;
+    }
+    return undefined;
+  }, [state.grunnlag.bh_resultat]);
+
+  // Compute krevd beløp for vederlag (from belop_direkte or kostnads_overslag)
+  const krevdBelop = useMemo(() => {
+    const v = state.vederlag;
+    if (v.metode === 'REGNINGSARBEID' && v.kostnads_overslag !== undefined) {
+      return v.kostnads_overslag;
+    }
+    return v.belop_direkte;
+  }, [state.vederlag]);
 
   // Loading state
   if (isLoading) {
@@ -77,12 +142,6 @@ export function CasePage() {
   if (!data) {
     return null;
   }
-
-  const { state } = data;
-  const actions = useActionPermissions(state, userRole);
-
-  // Get mock timeline events for display
-  const mockTimelineEvents = getMockTimelineById(sakId || '');
 
   return (
     <div className="min-h-screen bg-pkt-bg-default">
@@ -247,29 +306,61 @@ export function CasePage() {
             open={sendVederlagOpen}
             onOpenChange={setSendVederlagOpen}
             sakId={sakId}
+            grunnlagEventId={`grunnlag-${sakId}`}
+            grunnlagEvent={{
+              tittel: state.sakstittel,
+              status: grunnlagStatus,
+            }}
           />
           <SendFristModal
             open={sendFristOpen}
             onOpenChange={setSendFristOpen}
             sakId={sakId}
+            grunnlagEventId={`grunnlag-${sakId}`}
+            grunnlagEvent={{
+              tittel: state.sakstittel,
+              hovedkategori: state.grunnlag.hovedkategori,
+            }}
           />
           <RespondGrunnlagModal
             open={respondGrunnlagOpen}
             onOpenChange={setRespondGrunnlagOpen}
             sakId={sakId}
+            grunnlagEventId={`grunnlag-${sakId}`}
+            grunnlagEvent={{
+              hovedkategori: state.grunnlag.hovedkategori,
+              underkategori: state.grunnlag.underkategori,
+              beskrivelse: state.grunnlag.beskrivelse,
+              dato_oppdaget: state.grunnlag.dato_oppdaget,
+            }}
           />
           <RespondVederlagModal
             open={respondVederlagOpen}
             onOpenChange={setRespondVederlagOpen}
             sakId={sakId}
-            krevdBelop={state.vederlag.krevd_belop}
+            vederlagKravId={`vederlag-${sakId}`}
+            krevdBelop={krevdBelop}
+            grunnlagStatus={grunnlagStatus}
+            vederlagEvent={{
+              metode: state.vederlag.metode,
+              belop_direkte: state.vederlag.belop_direkte,
+              kostnads_overslag: state.vederlag.kostnads_overslag,
+              begrunnelse: state.vederlag.begrunnelse,
+              krever_justert_ep: state.vederlag.krever_justert_ep,
+            }}
           />
           <RespondFristModal
             open={respondFristOpen}
             onOpenChange={setRespondFristOpen}
             sakId={sakId}
+            fristKravId={`frist-${sakId}`}
             krevdDager={state.frist.krevd_dager}
             fristType={state.frist.frist_type}
+            grunnlagStatus={grunnlagStatus}
+            fristEvent={{
+              antall_dager: state.frist.krevd_dager,
+              begrunnelse: state.frist.begrunnelse,
+            }}
           />
         </>
       )}
