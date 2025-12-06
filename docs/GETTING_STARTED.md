@@ -1,6 +1,6 @@
 # Getting Started – Utvikleroppsett
 
-**Sist oppdatert:** 2025-12-01
+**Sist oppdatert:** 2025-12-06
 
 Denne guiden beskriver hvordan du setter opp utviklingsmiljøet for Skjema Endringsmeldinger-prosjektet.
 
@@ -386,6 +386,56 @@ npm run playwright:install
 
 ---
 
+## Event Sourcing-konsepter
+
+### Grunnleggende prinsipper
+
+Systemet bruker **Event Sourcing** der alle endringer lagres som uforanderlige hendelser:
+
+```
+Event (hendelse)          →  Event Store  →  State (tilstand)
+GRUNNLAG_OPPRETTET            append()        compute_state()
+VEDERLAG_KRAV_SENDT                            ↓
+RESPONS_GRUNNLAG                           SakState
+```
+
+### Tre-spor modell
+
+Hver sak har tre uavhengige spor som kan behandles parallelt:
+
+| Spor | Formål | TE-hendelser | BH-hendelser |
+|------|--------|--------------|--------------|
+| **Grunnlag** | Ansvar ("Hvorfor?") | `GRUNNLAG_OPPRETTET`, `GRUNNLAG_OPPDATERT` | `RESPONS_GRUNNLAG` |
+| **Vederlag** | Betaling ("Hva koster det?") | `VEDERLAG_KRAV_SENDT`, `VEDERLAG_KRAV_OPPDATERT` | `RESPONS_VEDERLAG` |
+| **Frist** | Tidsfrist ("Hvor lang tid?") | `FRIST_KRAV_SENDT`, `FRIST_KRAV_OPPDATERT` | `RESPONS_FRIST` |
+
+### Optimistisk låsing
+
+Alle event-submissions krever `expected_version` for å håndtere samtidige endringer:
+
+```typescript
+// Frontend: Send event med versjonsnummer
+const response = await submitEvent(sakId, eventType, data, {
+  expectedVersion: currentVersion
+});
+
+// Ved konflikt (409): Last inn ny state og prøv på nytt
+if (response.status === 409) {
+  const newState = await getState(sakId);
+  // Oppdater UI med ny state, la bruker bekrefte endringer
+}
+```
+
+### Viktige API-endepunkter
+
+| Endepunkt | Metode | Beskrivelse |
+|-----------|--------|-------------|
+| `/api/events` | POST | Send ny event |
+| `/api/cases/{sak_id}/state` | GET | Hent beregnet tilstand |
+| `/api/cases/{sak_id}/timeline` | GET | Hent formatert tidslinje |
+
+---
+
 ## Utviklingsarbeidsflyt
 
 ### Generell arbeidsflyt
@@ -397,13 +447,22 @@ npm run playwright:install
 
 ### Kodeorganisering
 
-- **Frontend-komponenter:** `src/components/`
-- **Frontend-hooks:** `src/hooks/`
-- **Frontend-services:** `src/services/`
-- **Backend-routes:** `backend/routes/`
-- **Backend-services:** `backend/services/`
-- **Backend-konfigurasjon:** `backend/core/`
-- **Delte statuskoder:** `shared/status-codes.json`
+**Frontend:**
+- **Komponenter:** `src/components/`
+- **Hooks:** `src/hooks/`
+- **API-klient:** `src/api/events.ts` (event submission)
+- **Typer:** `src/types/timeline.ts` (speiler backend-modeller)
+
+**Backend (Event Sourcing):**
+- **Event-modeller:** `backend/models/events.py`
+- **State-modell:** `backend/models/sak_state.py`
+- **Event store:** `backend/repositories/event_repository.py`
+- **State-projeksjon:** `backend/services/timeline_service.py`
+- **Forretningsregler:** `backend/services/business_rules.py`
+- **Event API:** `backend/routes/event_routes.py`
+
+**Delt:**
+- **Statuskoder:** `shared/status-codes.json`
 
 ### Statuskoder
 

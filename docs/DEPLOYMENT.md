@@ -1,6 +1,6 @@
 # Deployment Guide
 
-**Sist oppdatert:** 2025-12-01
+**Sist oppdatert:** 2025-12-06
 
 Veiledning for utrulling av Skjema Endringsmeldinger til produksjon.
 
@@ -29,7 +29,8 @@ Veiledning for utrulling av Skjema Endringsmeldinger til produksjon.
 |--------|-----------|------------|
 | Frontend | Vite dev server | Azure Static Web Apps |
 | Backend | Flask (Python) | Azure Functions (Python) |
-| Database | CSV-filer | Microsoft Dataverse |
+| Event Store | JSON-filer (per sak) | Microsoft Dataverse |
+| Arkitektur | Event Sourcing + CQRS | Event Sourcing + CQRS |
 | Autentisering | Magic links | Magic links + Entra ID |
 | Sikkerhet | Basis CSRF/CORS | WAF, DDoS, RLS |
 | Hosting | Lokal/ngrok | Azure |
@@ -253,50 +254,73 @@ az functionapp deployment source config-zip \
 
 ---
 
-## Database: Dataverse
+## Database: Dataverse (Event Store)
 
-### Dataverse-tabeller
+### Event Sourcing med Dataverse
 
-Erstatter CSV-filer med Dataverse-tabeller:
+Systemet bruker Event Sourcing der alle endringer lagres som uforanderlige hendelser:
 
 | Tabell | Beskrivelse | Primærnøkkel |
 |--------|-------------|--------------|
-| `koe_sak` | Hovedtabell for saker | `sak_id` |
-| `koe_varsel` | Varsel-data | `varsel_id` |
-| `koe_revisjon` | KOE-revisjoner | `revisjon_id` |
-| `koe_bh_svar` | BH svar-revisjoner | `svar_id` |
+| `koe_events` | Event store (append-only) | `event_id` |
+| `koe_sak_metadata` | Metadata-cache for sakliste | `sak_id` |
 | `koe_magic_link` | Magic link tokens | `token_id` |
-| `koe_audit_log` | Audit log | `log_id` |
 
-### Dataverse Repository
-
-Ny repository-implementasjon:
+### Event-struktur i Dataverse
 
 ```python
-# repositories/dataverse_repository.py
-from dataverse_api import DataverseClient
-from repositories.base_repository import BaseRepository
+# Hver event lagres med følgende struktur:
+{
+    "event_id": "uuid",
+    "sak_id": "SAK-001",
+    "event_type": "GRUNNLAG_OPPRETTET",  # eller andre EventType
+    "tidsstempel": "2025-12-06T10:00:00Z",
+    "aktor": "ola.nordmann@firma.no",
+    "aktor_rolle": "TE",  # eller "BH"
+    "data": { ... },  # Event-spesifikk payload (JSON)
+    "kommentar": "Valgfri kommentar",
+    "referrer_til_event_id": null  # Referanse til tidligere event
+}
+```
 
-class DataverseRepository(BaseRepository):
+### Dataverse Event Repository
+
+```python
+# repositories/dataverse_event_repository.py
+from dataverse_api import DataverseClient
+from repositories.event_repository import EventRepository
+
+class DataverseEventRepository(EventRepository):
     def __init__(self, connection_string: str):
         self.client = DataverseClient(connection_string)
 
-    def get_form_data(self, sak_id: str) -> dict:
-        sak = self.client.get("koe_sak", sak_id)
-        varsel = self.client.get_related("koe_varsel", sak_id)
-        revisjoner = self.client.get_related("koe_revisjon", sak_id)
-        svar = self.client.get_related("koe_bh_svar", sak_id)
-        return self._combine_form_data(sak, varsel, revisjoner, svar)
+    def append(self, event: SakEvent, expected_version: int) -> int:
+        """Legg til event med optimistisk låsing."""
+        current_version = self._get_version(event.sak_id)
+        if current_version != expected_version:
+            raise ConcurrencyError(f"Version mismatch: {current_version} != {expected_version}")
 
-    def save_form_data(self, sak_id: str, data: dict) -> None:
-        # Transaksjonell oppdatering av alle tabeller
-        with self.client.transaction():
-            self.client.upsert("koe_sak", data['sak'])
-            self.client.upsert("koe_varsel", data['varsel'])
-            for rev in data['koe_revisjoner']:
-                self.client.upsert("koe_revisjon", rev)
-            for svar in data['bh_svar_revisjoner']:
-                self.client.upsert("koe_bh_svar", svar)
+        self.client.create("koe_events", event.model_dump())
+        return current_version + 1
+
+    def get_events(self, sak_id: str) -> tuple[list[SakEvent], int]:
+        """Hent alle events for en sak, sortert kronologisk."""
+        events = self.client.query(
+            "koe_events",
+            filter=f"sak_id eq '{sak_id}'",
+            orderby="tidsstempel asc"
+        )
+        return events, len(events)
+```
+
+### State-projeksjon
+
+SakState beregnes alltid fra events via TimelineService:
+
+```python
+# Aldri direkte state-oppdatering - alltid via events
+events, version = event_repo.get_events(sak_id)
+state = timeline_service.compute_state(events)
 ```
 
 ### Row-Level Security
@@ -538,7 +562,8 @@ Lag Azure Dashboard med:
 - [ ] Alerts konfigurert
 - [ ] CI/CD pipeline testet
 - [ ] Backup-strategi dokumentert
-- [ ] Dataverse-tabeller opprettet
+- [ ] **Dataverse event store tabell (`koe_events`) opprettet**
+- [ ] **Dataverse metadata tabell (`koe_sak_metadata`) opprettet**
 - [ ] Row-Level Security konfigurert
 - [ ] Catenda webhooks oppdatert til produksjons-URL
 - [ ] Load testing gjennomført
@@ -548,11 +573,12 @@ Lag Azure Dashboard med:
 
 - [ ] Smoke test: Health endpoint
 - [ ] Smoke test: Magic link flow
-- [ ] Smoke test: Submit varsel
-- [ ] Smoke test: Submit KOE
+- [ ] Smoke test: Submit event (GRUNNLAG_OPPRETTET)
+- [ ] Smoke test: Hent state (GET /api/cases/{id}/state)
+- [ ] Smoke test: Optimistisk låsing (conflict handling)
 - [ ] Smoke test: Webhook mottak
 - [ ] Verifiser logging i App Insights
-- [ ] Verifiser audit log i Dataverse
+- [ ] Verifiser event log i Dataverse
 
 ---
 
