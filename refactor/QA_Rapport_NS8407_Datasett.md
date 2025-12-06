@@ -8,35 +8,30 @@
 
 ## Sammendrag
 
-Kvalitetssikringen identifiserte **1 feil** og **3 forbedringsforslag**. Hovedstrukturen og de fleste hjemmelreferanser er korrekte.
+Kvalitetssikringen identifiserte **1 feil** (nå rettet) og **3 forbedringsforslag**. Hovedstrukturen og de fleste hjemmelreferanser er korrekte.
 
 ---
 
 ## FEIL
 
-### 1. NEKT_TILTRANSPORT - Feil hjemmel/beskrivelse-kombinasjon
+### 1. ~~NEKT_TILTRANSPORT - Feil hjemmel/beskrivelse-kombinasjon~~ ✅ RETTET (2025-12-06)
 
 **Lokasjon:** `ANDRE > NEKT_TILTRANSPORT`
 
-**I datasettet:**
+**Opprinnelig problem:** Beskrivelsen sa "BH nekter tiltransport" mens §12.1.2 handler om TEs rett til å nekte.
+
+**Rettelse:**
 ```python
 {
     "kode": "NEKT_TILTRANSPORT",
-    "label": "Nektelse av tiltransport",
+    "label": "Tvungen tiltransport",  # Endret fra "Nektelse av tiltransport"
     "hjemmel_basis": "12.1.2",
-    "beskrivelse": "BH nekter tiltransport av sideentreprenør/TE uten saklig grunn.",
+    "beskrivelse": "BH gjennomfører tiltransport til tross for TEs saklige innvendinger etter 12.1.2.",
     ...
 }
 ```
 
-**Problem:** Hjemmel 12.1.2 handler om *totalentreprenørens* rett til å nekte en tiltransport, ikke byggherrens nektelse. Beskrivelsen antyder at BH nekter, men hjemmelen gir TE rett til å nekte.
-
-**Fra kildetekst (12.1.2):**
-> "Totalentreprenøren kan nekte å godta en tiltransport etter 12.2 og 12.3 dersom han godtgjør at det foreligger saklig grunn."
-
-**Forslag til rettelse:**
-- Enten endre beskrivelsen til å handle om konsekvenser av TEs nektelse, eller
-- Finne alternativ hjemmel dersom intensjonen er å dekke BHs usaklige nektelse
+Beskrivelsen reflekterer nå korrekt at dette handler om situasjonen der BH gjennomfører tiltransport mot TEs saklige innvendinger, som er BHs risiko.
 
 ---
 

@@ -71,25 +71,22 @@ Alle hovedkategorier, underkategorier, hjemmelreferanser og varselkrav matcher P
 
 ## Arvede Feil fra Python-datasett
 
-Følgende feil er identisk med Python-datasettet og bør rettes begge steder:
+### 1. ~~NEKT_TILTRANSPORT - Feil hjemmel/beskrivelse~~ ✅ RETTET (2025-12-06)
 
-### 1. NEKT_TILTRANSPORT - Feil hjemmel/beskrivelse
+**Opprinnelig problem:** Beskrivelsen sa "BH nekter tiltransport" mens §12.1.2 handler om TEs rett til å nekte.
 
-**Nåværende:**
+**Rettelse:**
 ```typescript
 {
   kode: 'NEKT_TILTRANSPORT',
-  label: 'Nektelse av tiltransport',
+  label: 'Tvungen tiltransport',  // Endret fra "Nektelse av tiltransport"
   hjemmel_basis: '12.1.2',
-  beskrivelse: 'BH nekter tiltransport av sideentreprenør/TE uten saklig grunn.',
+  beskrivelse: 'BH gjennomfører tiltransport til tross for TEs saklige innvendinger etter 12.1.2.',
   ...
 }
 ```
 
-**Problem:** §12.1.2 handler om *totalentreprenørens* rett til å nekte en tiltransport, ikke byggherrens nektelse.
-
-**Fra kildetekst:**
-> "Totalentreprenøren kan nekte å godta en tiltransport..."
+Beskrivelsen reflekterer nå korrekt at dette handler om situasjonen der BH gjennomfører tiltransport mot TEs saklige innvendinger.
 
 ---
 
@@ -159,7 +156,7 @@ beskrivelse: 'Krig, opprør, naturkatastrofe, streik etc. som rammer TE direkte.
 
 **categories.ts er korrekt implementert** som en TypeScript-versjon av Python-datasettet.
 
-**Handlingsliste:**
-1. Rett NEKT_TILTRANSPORT (feil/beskrivelse mismatch) - **både her og i Python**
+**Status:**
+1. ~~Rett NEKT_TILTRANSPORT (feil/beskrivelse mismatch)~~ ✅ RETTET (2025-12-06)
 2. Vurder forbedringsforslagene for MEDVIRK og FM-beskrivelser
 3. Vurder TypeScript-forbedringene for økt type-sikkerhet

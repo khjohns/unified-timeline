@@ -182,9 +182,9 @@ export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
       },
       {
         kode: 'NEKT_TILTRANSPORT',
-        label: 'Nektelse av tiltransport',
+        label: 'Tvungen tiltransport',
         hjemmel_basis: '12.1.2',
-        beskrivelse: 'BH nekter tiltransport av sideentreprenør/TE uten saklig grunn.',
+        beskrivelse: 'BH gjennomfører tiltransport til tross for TEs saklige innvendinger etter 12.1.2.',
         varselkrav_ref: '34.1.2 / 12.1.2 annet ledd',
       },
       {
