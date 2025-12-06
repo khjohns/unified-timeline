@@ -68,6 +68,7 @@ describe('Action Components (Modals) - Accessibility', () => {
           open={true}
           onOpenChange={() => {}}
           sakId="test-sak-123"
+          grunnlagEventId="grunnlag-1"
         />,
         { wrapper: createWrapper() }
       );
@@ -81,6 +82,7 @@ describe('Action Components (Modals) - Accessibility', () => {
           open={true}
           onOpenChange={() => {}}
           sakId="test-sak-123"
+          grunnlagEventId="grunnlag-1"
         />,
         { wrapper: createWrapper() }
       );
@@ -100,6 +102,7 @@ describe('Action Components (Modals) - Accessibility', () => {
           open={true}
           onOpenChange={() => {}}
           sakId="test-sak-123"
+          grunnlagEventId="grunnlag-1"
         />,
         { wrapper: createWrapper() }
       );
@@ -192,6 +195,7 @@ describe('Action Components (Modals) - Accessibility', () => {
           open={true}
           onOpenChange={() => {}}
           sakId="test-sak-123"
+          grunnlagEventId="grunnlag-1"
         />,
         { wrapper: createWrapper() }
       );
