@@ -10,7 +10,8 @@ FristType = Literal[
     "RIMELIG_TID",
     "SPESIFIKK_DAGER",
     "LOPENDE",
-    "INNEN_FRIST_UTLOP"      # F.eks. innen betalingsfristen
+    "INNEN_FRIST_UTLOP",     # F.eks. innen betalingsfristen
+    "INNEN_OPPSTART"         # Før arbeidet starter (§34.4)
 ]
 
 KonsekvensType = Literal[
@@ -18,7 +19,8 @@ KonsekvensType = Literal[
     "PREKLUSJON_INNSIGELSE",  # Motparten anses å ha godtatt (Passiv aksept)
     "REDUKSJON_SKJONN",       # Kravet reduseres til det "åpenbare"
     "ANSVAR_SKADE",           # Erstatningsansvar for tapet
-    "BEVISBYRDE_TAP"          # Mister retten til å bruke faktura som bevis
+    "BEVISBYRDE_TAP",         # Mister retten til å bruke faktura som bevis
+    "INGEN_DIREKTE"           # Ingen direkte tap, men BH kan sette preklusiv frist
 ]
 
 class VarslingsRegel(TypedDict):

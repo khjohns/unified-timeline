@@ -1,67 +1,55 @@
-# QA-rapport: Datasett_varslingsregler_8407.py
+# QA-rapport: Varslingsregler NS 8407
 
-**Dato:** 2025-12-05
+**Dato:** 2025-12-05 (oppdatert 2025-12-06)
 **Kildetekst:** NS_8407.md
-**Datasett:** Datasett_varslingsregler_8407.py
+**Python:** Datasett_varslingsregler_8407.py
+**TypeScript:** src/constants/varslingsregler.ts
 
 ---
 
 ## Sammendrag
 
-Kvalitetssikringen identifiserte **2 feil** (type-inkonsistens) og **4 forbedringsforslag** (manglende regler). Hovedstrukturen og de fleste varslingsregler er korrekte.
+Kvalitetssikringen identifiserte **2 type-inkonsistenser** (nå rettet) og **4 forbedringsforslag** (manglende regler). Alle 18 eksisterende varslingsregler er korrekte.
 
 ---
 
 ## FEIL
 
-### 1. VARSEL_OPPSTART_REGNING - Ugyldig FristType
+### 1. ~~VARSEL_OPPSTART_REGNING - Ugyldig FristType~~ ✅ RETTET (2025-12-06)
 
-**Lokasjon:** `5. Regningsarbeid > VARSEL_OPPSTART_REGNING`
+**Opprinnelig problem:** Verdien `"INNEN_OPPSTART"` var ikke definert i FristType-enum.
 
-**I datasettet:**
+**Rettelse:** Lagt til i begge filer:
 ```python
-"frist_type": "INNEN_OPPSTART",
-```
-
-**Problem:** Verdien `"INNEN_OPPSTART"` er ikke definert i FristType-enum:
-```python
+# Python
 FristType = Literal[
-    "UTEN_UGRUNNET_OPPHOLD",
-    "RIMELIG_TID",
-    "SPESIFIKK_DAGER",
-    "LOPENDE",
-    "INNEN_FRIST_UTLOP"
+    ...
+    "INNEN_OPPSTART"  # Før arbeidet starter (§34.4)
 ]
 ```
-
-**Forslag til rettelse:**
-- Legg til `"INNEN_OPPSTART"` i FristType-definisjonen, eller
-- Bruk eksisterende type som `"UTEN_UGRUNNET_OPPHOLD"` med trigger "Før arbeidet starter"
+```typescript
+// TypeScript
+export type FristType = ... | 'INNEN_OPPSTART';
+```
 
 ---
 
-### 2. INNSENDING_SLUTTOPPSTILLING - Ugyldig KonsekvensType
+### 2. ~~INNSENDING_SLUTTOPPSTILLING - Ugyldig KonsekvensType~~ ✅ RETTET (2025-12-06)
 
-**Lokasjon:** `7. Sluttoppgjør > INNSENDING_SLUTTOPPSTILLING`
+**Opprinnelig problem:** Verdien `"INGEN_DIREKTE"` var ikke definert i KonsekvensType-enum.
 
-**I datasettet:**
+**Rettelse:** Lagt til i begge filer:
 ```python
-"konsekvens_type": "INGEN_DIREKTE",
-```
-
-**Problem:** Verdien `"INGEN_DIREKTE"` er ikke definert i KonsekvensType-enum:
-```python
+# Python
 KonsekvensType = Literal[
-    "PREKLUSJON_KRAV",
-    "PREKLUSJON_INNSIGELSE",
-    "REDUKSJON_SKJONN",
-    "ANSVAR_SKADE",
-    "BEVISBYRDE_TAP"
+    ...
+    "INGEN_DIREKTE"  # Ingen direkte tap, men BH kan sette preklusiv frist
 ]
 ```
-
-**Forslag til rettelse:**
-- Legg til `"INGEN_DIREKTE"` eller `"MULIGHET_PREKLUSJON"` i KonsekvensType-definisjonen
+```typescript
+// TypeScript
+export type KonsekvensType = ... | 'INGEN_DIREKTE';
+```
 
 ---
 
@@ -196,9 +184,18 @@ KonsekvensType = Literal[
 
 ## Konklusjon
 
-Datasettet har god struktur og korrekt innhold for de fleste varslingsregler. De to typefeilene (INNEN_OPPSTART og INGEN_DIREKTE) bør rettes ved å utvide enum-definisjonene. De fire manglende reglene dekker viktige varslingsscenarier og bør vurderes for tillegg.
+Datasettet har god struktur og korrekt innhold for alle 18 varslingsregler.
 
-**Prioritert handlingsliste:**
-1. Legg til `"INNEN_OPPSTART"` i FristType
-2. Legg til `"INGEN_DIREKTE"` eller `"MULIGHET_PREKLUSJON"` i KonsekvensType
-3. Vurder å legge til de 4 foreslåtte reglene
+**Status (2025-12-06):**
+- ~~FristType mangler INNEN_OPPSTART~~ ✅ Rettet (Python + TypeScript)
+- ~~KonsekvensType mangler INGEN_DIREKTE~~ ✅ Rettet (Python + TypeScript)
+- 4 foreslåtte regler (valgfritt): §5.3, §42.2.2 absolutt, §33.8, §20.3
+
+**Implementering:** Både Python og TypeScript er nå korrekte og konsistente.
+
+**Verifiserte hjelpefunksjoner:**
+- `getVarslingsRegel()` - Hent regel etter kode ✓
+- `getReglerForAktor()` - Hent alle regler for TE/BH ✓
+- `getKonsekvensLabel()` - Hent lesbar konsekvens ✓
+- `getFristTypeLabel()` - Hent lesbar fristtype ✓
+- `getPreklusjonsRegler()` - Hent alle preklusjonsregler ✓
