@@ -420,7 +420,7 @@ export function SendVederlagModal({
             />
 
             {harRiggKrav && (
-              <div className="grid grid-cols-2 gap-4 mt-3 ml-6 p-3 bg-white rounded border border-orange-200">
+              <div className="mt-3 ml-6 space-y-4 border-l-2 border-orange-300 pl-4">
                 <FormField
                   label="Estimert beløp rigg/drift"
                   error={errors.belop_rigg?.message}
@@ -458,14 +458,12 @@ export function SendVederlagModal({
 
                 {/* 7-day preclusion warning for rigg/drift */}
                 {riggPreklusjon?.alert && (
-                  <div className="col-span-2">
-                    <Alert
-                      variant={riggPreklusjon.alert.variant}
-                      title={riggPreklusjon.alert.title}
-                    >
-                      {riggPreklusjon.alert.message}
-                    </Alert>
-                  </div>
+                  <Alert
+                    variant={riggPreklusjon.alert.variant}
+                    title={riggPreklusjon.alert.title}
+                  >
+                    {riggPreklusjon.alert.message}
+                  </Alert>
                 )}
               </div>
             )}
@@ -487,7 +485,7 @@ export function SendVederlagModal({
             />
 
             {harProduktivitetKrav && (
-              <div className="grid grid-cols-2 gap-4 mt-3 ml-6 p-3 bg-white rounded border border-orange-200">
+              <div className="mt-3 ml-6 space-y-4 border-l-2 border-orange-300 pl-4">
                 <FormField
                   label="Estimert beløp produktivitetstap"
                   error={errors.belop_produktivitet?.message}
@@ -525,14 +523,12 @@ export function SendVederlagModal({
 
                 {/* 7-day preclusion warning for produktivitet */}
                 {produktivitetPreklusjon?.alert && (
-                  <div className="col-span-2">
-                    <Alert
-                      variant={produktivitetPreklusjon.alert.variant}
-                      title={produktivitetPreklusjon.alert.title}
-                    >
-                      {produktivitetPreklusjon.alert.message}
-                    </Alert>
-                  </div>
+                  <Alert
+                    variant={produktivitetPreklusjon.alert.variant}
+                    title={produktivitetPreklusjon.alert.title}
+                  >
+                    {produktivitetPreklusjon.alert.message}
+                  </Alert>
                 )}
               </div>
             )}

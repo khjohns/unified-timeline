@@ -1,9 +1,10 @@
 import * as Popover from '@radix-ui/react-popover';
-import { CalendarIcon } from '@radix-ui/react-icons';
+import * as Dialog from '@radix-ui/react-dialog';
+import { CalendarIcon, Cross2Icon } from '@radix-ui/react-icons';
 import { DayPicker } from 'react-day-picker';
 import { format } from 'date-fns';
 import { nb } from 'date-fns/locale';
-import { forwardRef, useState } from 'react';
+import { forwardRef, useState, useEffect } from 'react';
 import clsx from 'clsx';
 import 'react-day-picker/style.css';
 
@@ -26,11 +27,90 @@ export interface DatePickerProps {
   name?: string;
 }
 
+/** Hook to detect mobile screen size */
+function useIsMobile(breakpoint = 640) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < breakpoint);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, [breakpoint]);
+
+  return isMobile;
+}
+
+/** Shared calendar styles for Punkt design system */
+const calendarStyles = `
+  /* Punkt design system styling for DayPicker */
+  .rdp {
+    --rdp-accent-color: var(--color-pkt-surface-strong-dark-blue);
+    --rdp-background-color: var(--color-pkt-surface-light-blue);
+    --rdp-font-family: 'Oslo Sans', system-ui, sans-serif;
+  }
+
+  .rdp-months {
+    font-size: 16px;
+  }
+
+  .rdp-month_caption {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-pkt-text-body-dark);
+    margin-bottom: 1rem;
+  }
+
+  .rdp-weekday {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-pkt-text-body-dark);
+  }
+
+  .rdp-day {
+    font-size: 16px;
+    width: 40px;
+    height: 40px;
+    border-radius: 0;
+  }
+
+  .rdp-day_button {
+    width: 40px;
+    height: 40px;
+  }
+
+  .rdp-day_button:hover:not([disabled]) {
+    background-color: var(--color-pkt-surface-light-blue);
+  }
+
+  .rdp-day_selected {
+    background-color: var(--color-pkt-surface-strong-dark-blue);
+    color: var(--color-pkt-text-body-light);
+    font-weight: 600;
+  }
+
+  .rdp-day_today {
+    font-weight: 700;
+    color: var(--color-pkt-brand-warm-blue-1000);
+  }
+
+  .rdp-nav button {
+    width: 40px;
+    height: 40px;
+    border-radius: 0;
+  }
+
+  .rdp-nav button:hover {
+    background-color: var(--color-pkt-surface-light-blue);
+  }
+`;
+
 /**
  * DatePicker component with Radix UI Popover and react-day-picker
  * - Sharp corners (radius: 0)
  * - border-pkt-border-default (#2a2859)
- * - Calendar opens right below the input field
+ * - On mobile: Uses full-screen modal for better UX
+ * - On desktop: Uses popover positioned below the input
  * - Norwegian locale
  */
 export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
@@ -48,6 +128,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
     ref
   ) => {
     const [open, setOpen] = useState(false);
+    const isMobile = useIsMobile();
 
     // Parse the ISO string to Date object
     const selectedDate = value ? new Date(value) : undefined;
@@ -65,55 +146,151 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
       ? format(selectedDate, 'dd.MM.yyyy', { locale: nb })
       : '';
 
+    // Trigger button styles (shared between mobile and desktop)
+    const triggerClassName = clsx(
+      // Base styles
+      'flex items-center justify-between gap-2',
+      'px-4 py-3',
+      'text-base font-normal text-left',
+      'bg-pkt-bg-default',
+      'transition-colors duration-200',
+
+      // Border - 2px width, sharp corners
+      'border-2 rounded-none',
+
+      // Default border color
+      !error && !disabled && 'border-pkt-border-default',
+
+      // Error state
+      error && 'border-pkt-border-red',
+
+      // Disabled state
+      disabled && [
+        'border-pkt-border-disabled',
+        'bg-pkt-surface-gray',
+        'text-pkt-text-action-disabled',
+        'cursor-not-allowed',
+      ],
+
+      // Focus state
+      !disabled && [
+        'focus:outline-none',
+        'focus:ring-4',
+        error
+          ? 'focus:ring-pkt-brand-red-400/50 focus:border-pkt-border-red'
+          : 'focus:ring-pkt-brand-purple-1000/30 focus:border-pkt-border-focus',
+      ],
+
+      // Hover state
+      !disabled && 'hover:border-pkt-border-hover',
+
+      // Width
+      fullWidth && 'w-full',
+
+      // Placeholder color
+      !displayValue && 'text-pkt-text-placeholder'
+    );
+
+    // Calendar component (shared between mobile and desktop)
+    const calendarContent = (
+      <>
+        <style>{calendarStyles}</style>
+        <DayPicker
+          mode="single"
+          selected={selectedDate}
+          onSelect={handleSelect}
+          locale={nb}
+          showOutsideDays
+        />
+      </>
+    );
+
+    // Mobile: Use full-screen modal
+    if (isMobile) {
+      return (
+        <Dialog.Root open={open} onOpenChange={setOpen}>
+          <Dialog.Trigger asChild>
+            <button
+              type="button"
+              disabled={disabled}
+              className={triggerClassName}
+            >
+              <span>{displayValue || placeholder}</span>
+              <CalendarIcon className="h-5 w-5 shrink-0" />
+            </button>
+          </Dialog.Trigger>
+
+          <Dialog.Portal>
+            {/* Overlay */}
+            <Dialog.Overlay
+              className={clsx(
+                'fixed inset-0 bg-black/50 backdrop-blur-sm',
+                'z-modal-backdrop',
+                'data-[state=open]:animate-in data-[state=closed]:animate-out',
+                'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0'
+              )}
+            />
+
+            {/* Content - Bottom sheet style on mobile */}
+            <Dialog.Content
+              className={clsx(
+                'fixed inset-x-0 bottom-0',
+                'bg-pkt-bg-card rounded-none shadow-xl',
+                'border-t-2 border-pkt-border-default',
+                'p-6 pb-8',
+                'z-modal',
+                'focus:outline-none',
+                // Slide up animation
+                'data-[state=open]:animate-in data-[state=closed]:animate-out',
+                'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+                'data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom'
+              )}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between mb-4">
+                <Dialog.Title className="text-lg font-bold text-pkt-text-body-dark">
+                  Velg dato
+                </Dialog.Title>
+                <Dialog.Close
+                  className={clsx(
+                    'rounded-none p-2',
+                    'text-pkt-grays-gray-500 hover:text-pkt-grays-gray-700',
+                    'hover:bg-pkt-surface-light-beige',
+                    'focus:outline-none focus:ring-4 focus:ring-pkt-brand-purple-1000/30'
+                  )}
+                  aria-label="Lukk"
+                >
+                  <Cross2Icon className="w-5 h-5" />
+                </Dialog.Close>
+              </div>
+
+              {/* Calendar - centered */}
+              <div className="flex justify-center">
+                {calendarContent}
+              </div>
+            </Dialog.Content>
+          </Dialog.Portal>
+
+          {/* Hidden input for form compatibility */}
+          <input
+            ref={ref}
+            type="hidden"
+            value={value || ''}
+            name={name}
+            id={id}
+          />
+        </Dialog.Root>
+      );
+    }
+
+    // Desktop: Use popover
     return (
       <Popover.Root open={open} onOpenChange={setOpen}>
         <Popover.Trigger asChild>
           <button
             type="button"
             disabled={disabled}
-            className={clsx(
-              // Base styles
-              'flex items-center justify-between gap-2',
-              'px-4 py-3',
-              'text-base font-normal text-left',
-              'bg-pkt-bg-default',
-              'transition-colors duration-200',
-
-              // Border - 2px width, sharp corners
-              'border-2 rounded-none',
-
-              // Default border color
-              !error && !disabled && 'border-pkt-border-default',
-
-              // Error state
-              error && 'border-pkt-border-red',
-
-              // Disabled state
-              disabled && [
-                'border-pkt-border-disabled',
-                'bg-pkt-surface-gray',
-                'text-pkt-text-action-disabled',
-                'cursor-not-allowed',
-              ],
-
-              // Focus state
-              !disabled && [
-                'focus:outline-none',
-                'focus:ring-4',
-                error
-                  ? 'focus:ring-pkt-brand-red-400/50 focus:border-pkt-border-red'
-                  : 'focus:ring-pkt-brand-purple-1000/30 focus:border-pkt-border-focus',
-              ],
-
-              // Hover state
-              !disabled && 'hover:border-pkt-border-hover',
-
-              // Width
-              fullWidth && 'w-full',
-
-              // Placeholder color
-              !displayValue && 'text-pkt-text-placeholder'
-            )}
+            className={triggerClassName}
           >
             <span>{displayValue || placeholder}</span>
             <CalendarIcon className="h-5 w-5 shrink-0" />
@@ -124,6 +301,8 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
           <Popover.Content
             align="start"
             sideOffset={4}
+            collisionPadding={16}
+            avoidCollisions
             className={clsx(
               'z-popover',
               'bg-pkt-bg-card',
@@ -136,70 +315,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
               'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95'
             )}
           >
-            <style>{`
-              /* Punkt design system styling for DayPicker */
-              .rdp {
-                --rdp-accent-color: var(--color-pkt-surface-strong-dark-blue);
-                --rdp-background-color: var(--color-pkt-surface-light-blue);
-                --rdp-font-family: 'Oslo Sans', system-ui, sans-serif;
-              }
-
-              .rdp-months {
-                font-size: 16px;
-              }
-
-              .rdp-month_caption {
-                font-size: 18px;
-                font-weight: 700;
-                color: var(--color-pkt-text-body-dark);
-                margin-bottom: 1rem;
-              }
-
-              .rdp-weekday {
-                font-size: 14px;
-                font-weight: 500;
-                color: var(--color-pkt-text-body-dark);
-              }
-
-              .rdp-day {
-                font-size: 16px;
-                width: 36px;
-                height: 36px;
-                border-radius: 0;
-              }
-
-              .rdp-day_button:hover:not([disabled]) {
-                background-color: var(--color-pkt-surface-light-blue);
-              }
-
-              .rdp-day_selected {
-                background-color: var(--color-pkt-surface-strong-dark-blue);
-                color: var(--color-pkt-text-body-light);
-                font-weight: 600;
-              }
-
-              .rdp-day_today {
-                font-weight: 700;
-                color: var(--color-pkt-brand-warm-blue-1000);
-              }
-
-              .rdp-nav button {
-                width: 36px;
-                height: 36px;
-                border-radius: 0;
-              }
-
-              .rdp-nav button:hover {
-                background-color: var(--color-pkt-surface-light-blue);
-              }
-            `}</style>
-            <DayPicker
-              mode="single"
-              selected={selectedDate}
-              onSelect={handleSelect}
-              locale={nb}
-              showOutsideDays
-            />
+            {calendarContent}
           </Popover.Content>
         </Popover.Portal>
 
