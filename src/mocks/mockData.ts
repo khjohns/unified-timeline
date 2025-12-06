@@ -36,13 +36,18 @@ export const mockSakState1: SakState = {
   // Vederlag track
   vederlag: {
     status: 'under_behandling',
-    krevd_belop: 2500000,
-    metode: 'direkte_kostnader',
+    metode: 'REGNINGSARBEID',
+    kostnads_overslag: 2500000,
     begrunnelse:
       'Kravet inkluderer:\n- Ekstra borekostnader: 1.200.000 NOK\n- Endret fundamentløsning: 800.000 NOK\n- Prosjektering og rådgivning: 300.000 NOK\n- Rigg og drift: 200.000 NOK',
-    inkluderer_produktivitetstap: false,
-    inkluderer_rigg_drift: true,
-    saerskilt_varsel_rigg_drift: true,
+    saerskilt_krav: {
+      rigg_drift: true,
+      belop: 200000,
+    },
+    rigg_drift_varsel: {
+      dato_sendt: '2025-01-15',
+      metode: ['epost'],
+    },
     siste_oppdatert: '2025-01-18',
     antall_versjoner: 1,
   },
@@ -148,11 +153,9 @@ export const mockSakState3: SakState = {
 
   vederlag: {
     status: 'godkjent',
-    krevd_belop: 850000,
-    metode: 'enhetspriser',
+    metode: 'ENHETSPRISER',
+    belop_direkte: 850000,
     begrunnelse: 'Basert på enhetspriser i kontrakten for glassarbeider.',
-    inkluderer_produktivitetstap: false,
-    inkluderer_rigg_drift: false,
     bh_resultat: 'godkjent_fullt',
     bh_begrunnelse: 'Beløp stemmer med kontraktspriser. Godkjent.',
     godkjent_belop: 850000,
@@ -218,12 +221,14 @@ export const mockSakState4: SakState = {
 
   vederlag: {
     status: 'under_behandling',
-    krevd_belop: 450000,
-    metode: 'direkte_kostnader',
+    metode: 'REGNINGSARBEID',
+    kostnads_overslag: 450000,
     begrunnelse:
       'Foreløpig krav basert på estimat. Endelig spesifikasjon med detaljert kostnadskalkyle følger innen fastsatt frist.',
-    inkluderer_produktivitetstap: true,
-    inkluderer_rigg_drift: true,
+    saerskilt_krav: {
+      produktivitet: true,
+      rigg_drift: true,
+    },
     bh_resultat: 'avventer_spesifikasjon',
     bh_begrunnelse:
       'Grunnlaget er akseptert, men kravet mangler tilstrekkelig spesifikasjon. TE må levere detaljert kostnadskalkyle og dokumentasjon innen 2025-02-15.',
@@ -633,10 +638,12 @@ export const mockSakState5: SakState = {
 
   vederlag: {
     status: 'under_behandling',
-    krevd_belop: 450000,
-    metode: 'regning',
+    metode: 'REGNINGSARBEID',
+    kostnads_overslag: 450000,
     begrunnelse: 'Ekstra rørlegging og tilpasningsarbeid.',
-    inkluderer_rigg_drift: true,
+    saerskilt_krav: {
+      rigg_drift: true,
+    },
     rigg_drift_varsel: {
       dato_sendt: '2025-02-02',
       metode: ['epost'],
@@ -713,10 +720,12 @@ export const mockSakState6: SakState = {
 
   vederlag: {
     status: 'under_behandling',
-    krevd_belop: 850000,
-    metode: 'regning',
+    metode: 'REGNINGSARBEID',
+    kostnads_overslag: 850000,
     begrunnelse: 'Stillstand og omorganisering av mannskap.',
-    inkluderer_produktivitetstap: true,
+    saerskilt_krav: {
+      produktivitet: true,
+    },
     produktivitetstap_varsel: {
       dato_sendt: '2025-01-20',
       metode: ['epost'],
@@ -801,8 +810,8 @@ export const mockSakState7: SakState = {
 
   vederlag: {
     status: 'under_behandling',
-    krevd_belop: 220000,
-    metode: 'overslag',  // Regningsarbeid with overslag
+    metode: 'REGNINGSARBEID',
+    kostnads_overslag: 220000,
     begrunnelse: 'Snekkerarbeid og ny innredning. Endelig beløp kommer.',
     // BH is holding back until proper overslag is provided
     bh_resultat: 'hold_tilbake',
@@ -1348,11 +1357,10 @@ export const mockSakState9: SakState = {
 
   vederlag: {
     status: 'under_behandling',
-    krevd_belop: 320000,
-    metode: 'regning',
+    metode: 'REGNINGSARBEID',
+    kostnads_overslag: 320000,
     begrunnelse:
       'Merarbeid for omlegging av ventilasjonsanlegg. Inkluderer: Demontering av eksisterende (40.000), nytt hybridanlegg (220.000), tilpasninger (60.000).',
-    inkluderer_rigg_drift: false,
     regningsarbeid_varsel: {
       dato_sendt: '2025-02-06',
       metode: ['epost'],

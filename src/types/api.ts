@@ -39,23 +39,13 @@ export interface TimelineResponse {
 
 export interface EventSubmitRequest {
   event_type: EventType;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   actor?: string;
   role?: 'TE' | 'BH';
 }
 
 // ========== API ERROR ==========
-
-export class ApiError extends Error {
-  constructor(
-    public status: number,
-    message: string,
-    public details?: any
-  ) {
-    super(message);
-    this.name = 'ApiError';
-  }
-}
+// Note: ApiError class is defined in api/client.ts to avoid circular dependencies
 
 // ========== API CLIENT CONFIGURATION ==========
 

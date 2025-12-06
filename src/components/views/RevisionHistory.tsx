@@ -95,9 +95,15 @@ export function RevisionHistory({ state }: RevisionHistoryProps) {
                 <ComparisonRow
                   label="Krevd beløp"
                   values={[
-                    state.vederlag.krevd_belop !== null && state.vederlag.krevd_belop !== undefined
-                      ? `${state.vederlag.krevd_belop.toLocaleString('nb-NO')} NOK`
-                      : '—',
+                    (() => {
+                      // Get krevd beløp based on metode
+                      const belop = state.vederlag.metode === 'REGNINGSARBEID'
+                        ? state.vederlag.kostnads_overslag
+                        : state.vederlag.belop_direkte;
+                      return belop !== null && belop !== undefined
+                        ? `${belop.toLocaleString('nb-NO')} NOK`
+                        : '—';
+                    })(),
                   ]}
                 />
                 <ComparisonRow
@@ -110,15 +116,15 @@ export function RevisionHistory({ state }: RevisionHistoryProps) {
                 />
                 <ComparisonRow
                   label="Produktivitetstap"
-                  values={[state.vederlag.inkluderer_produktivitetstap ? '✓' : '—']}
+                  values={[state.vederlag.saerskilt_krav?.produktivitet ? '✓' : '—']}
                 />
                 <ComparisonRow
                   label="Rigg/drift"
-                  values={[state.vederlag.inkluderer_rigg_drift ? '✓' : '—']}
+                  values={[state.vederlag.saerskilt_krav?.rigg_drift ? '✓' : '—']}
                 />
                 <ComparisonRow
                   label="Særskilt varsel"
-                  values={[state.vederlag.saerskilt_varsel_rigg_drift ? '✓' : '—']}
+                  values={[state.vederlag.rigg_drift_varsel?.dato_sendt ? '✓' : '—']}
                 />
                 <ComparisonRow
                   label="BH Resultat"

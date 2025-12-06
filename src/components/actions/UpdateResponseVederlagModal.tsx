@@ -68,11 +68,9 @@ export function UpdateResponseVederlagModal({
 
   // Determine the relevant amount based on metode
   const erRegningsarbeid = vederlagTilstand.metode === 'REGNINGSARBEID';
-  const visningsbelop = erRegningsarbeid
-    ? vederlagTilstand.kostnads_overslag
-    : vederlagTilstand.belop_direkte;
-  // Fallback to legacy field if new fields not populated
-  const krevdBelop = visningsbelop ?? vederlagTilstand.krevd_belop ?? 0;
+  const krevdBelop = erRegningsarbeid
+    ? vederlagTilstand.kostnads_overslag ?? 0
+    : vederlagTilstand.belop_direkte ?? 0;
 
   // Check if TE has now provided kostnadsoverslag (§30.2)
   const overslagMottatt = useMemo(() => {

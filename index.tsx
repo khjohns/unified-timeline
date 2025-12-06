@@ -27,12 +27,14 @@ if (!rootElement) {
 
 const root = ReactDOM.createRoot(rootElement);
 root.render(
-  // StrictMode disabled to prevent double-rendering issues during development
-  // <React.StrictMode>
+  // StrictMode helps identify potential problems in the application during development.
+  // It intentionally double-renders components to detect side effects.
+  // TanStack Query v5 handles StrictMode correctly.
+  <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter basename={import.meta.env.BASE_URL}>
         <App />
       </BrowserRouter>
     </QueryClientProvider>
-  // </React.StrictMode>
+  </React.StrictMode>
 );

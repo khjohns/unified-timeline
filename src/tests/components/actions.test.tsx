@@ -464,8 +464,9 @@ describe('Action/Modal Components - Functional Tests', () => {
       vederlagTilstand: {
         metode: 'ENHETSPRISER' as const,
         belop_direkte: 100000,
-        krevd_belop: 100000,
-      } as any,
+        status: 'under_behandling' as const,
+        antall_versjoner: 1,
+      },
     };
 
     it('should render when open', () => {
@@ -477,7 +478,7 @@ describe('Action/Modal Components - Functional Tests', () => {
     it('should have resultat field', () => {
       renderWithQueryClient(<UpdateResponseVederlagModal {...defaultProps} />);
 
-      expect(screen.getByText(/Nytt resultat/i)).toBeInTheDocument();
+      expect(screen.getByText(/Ny avgjørelse/i)).toBeInTheDocument();
     });
 
     it('should not render when closed', () => {
