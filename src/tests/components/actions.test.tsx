@@ -16,6 +16,12 @@ import { RespondFristModal } from '@/src/components/actions/RespondFristModal';
 import { SendGrunnlagModal } from '@/src/components/actions/SendGrunnlagModal';
 import { SendVederlagModal } from '@/src/components/actions/SendVederlagModal';
 import { SendFristModal } from '@/src/components/actions/SendFristModal';
+import { SendGrunnlagUpdateModal } from '@/src/components/actions/SendGrunnlagUpdateModal';
+import { RespondGrunnlagUpdateModal } from '@/src/components/actions/RespondGrunnlagUpdateModal';
+import { ReviseVederlagModal } from '@/src/components/actions/ReviseVederlagModal';
+import { ReviseFristModal } from '@/src/components/actions/ReviseFristModal';
+import { UpdateResponseVederlagModal } from '@/src/components/actions/UpdateResponseVederlagModal';
+import { UpdateResponseFristModal } from '@/src/components/actions/UpdateResponseFristModal';
 
 // Wrapper with React Query provider
 const createTestQueryClient = () =>
@@ -273,6 +279,260 @@ describe('Action/Modal Components - Functional Tests', () => {
 
       expect(screen.getByRole('button', { name: /Avbryt/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Send fristkrav/i })).toBeInTheDocument();
+    });
+  });
+
+  describe('SendGrunnlagUpdateModal', () => {
+    const defaultProps = {
+      open: true,
+      onOpenChange: vi.fn(),
+      sakId: 'TEST-001',
+      originalEvent: {
+        event_id: 'event-1',
+        grunnlag: {
+          tittel: 'Original tittel',
+          beskrivelse: 'Original beskrivelse',
+          dato_oppdaget: '2025-01-10',
+          hovedkategori: 'ENDRING',
+          underkategori: ['EO'],
+        },
+      },
+    };
+
+    it('should render when open', () => {
+      renderWithQueryClient(<SendGrunnlagUpdateModal {...defaultProps} />);
+
+      expect(screen.getByRole('dialog', { name: /Oppdater grunnlag/i })).toBeInTheDocument();
+    });
+
+    it('should have endrings_begrunnelse field', () => {
+      renderWithQueryClient(<SendGrunnlagUpdateModal {...defaultProps} />);
+
+      expect(screen.getByText(/Begrunnelse for endring/i)).toBeInTheDocument();
+    });
+
+    it('should not render when closed', () => {
+      renderWithQueryClient(<SendGrunnlagUpdateModal {...defaultProps} open={false} />);
+
+      expect(screen.queryByRole('dialog', { name: /Oppdater grunnlag/i })).not.toBeInTheDocument();
+    });
+
+    it('should have submit and cancel buttons', () => {
+      renderWithQueryClient(<SendGrunnlagUpdateModal {...defaultProps} />);
+
+      expect(screen.getByRole('button', { name: /Avbryt/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Lagre endringer/i })).toBeInTheDocument();
+    });
+  });
+
+  describe('RespondGrunnlagUpdateModal', () => {
+    const defaultProps = {
+      open: true,
+      onOpenChange: vi.fn(),
+      sakId: 'TEST-001',
+      lastResponseEvent: {
+        event_id: 'response-1',
+        resultat: 'godkjent' as const,
+      },
+      sakState: {
+        grunnlag: {
+          hovedkategori: 'ENDRING',
+          underkategori: ['EO'],
+        },
+        er_subsidiaert_vederlag: false,
+        er_subsidiaert_frist: false,
+      } as any,
+    };
+
+    it('should render when open', () => {
+      renderWithQueryClient(<RespondGrunnlagUpdateModal {...defaultProps} />);
+
+      expect(screen.getByRole('dialog', { name: /Endre svar på grunnlag/i })).toBeInTheDocument();
+    });
+
+    it('should have resultat field', () => {
+      renderWithQueryClient(<RespondGrunnlagUpdateModal {...defaultProps} />);
+
+      expect(screen.getByText(/Ny avgjørelse/i)).toBeInTheDocument();
+    });
+
+    it('should not render when closed', () => {
+      renderWithQueryClient(<RespondGrunnlagUpdateModal {...defaultProps} open={false} />);
+
+      expect(screen.queryByRole('dialog', { name: /Endre svar på grunnlag/i })).not.toBeInTheDocument();
+    });
+
+    it('should have submit and cancel buttons', () => {
+      renderWithQueryClient(<RespondGrunnlagUpdateModal {...defaultProps} />);
+
+      expect(screen.getByRole('button', { name: /Avbryt/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Lagre endring/i })).toBeInTheDocument();
+    });
+  });
+
+  describe('ReviseVederlagModal', () => {
+    const defaultProps = {
+      open: true,
+      onOpenChange: vi.fn(),
+      sakId: 'TEST-001',
+      lastVederlagEvent: {
+        event_id: 'vederlag-1',
+        metode: 'ENHETSPRISER' as const,
+        belop_direkte: 100000,
+        begrunnelse: 'Original begrunnelse',
+      },
+    };
+
+    it('should render when open', () => {
+      renderWithQueryClient(<ReviseVederlagModal {...defaultProps} />);
+
+      expect(screen.getByRole('dialog', { name: /Revider vederlagskrav/i })).toBeInTheDocument();
+    });
+
+    it('should have begrunnelse field', () => {
+      renderWithQueryClient(<ReviseVederlagModal {...defaultProps} />);
+
+      expect(screen.getByText(/Begrunnelse/i)).toBeInTheDocument();
+    });
+
+    it('should not render when closed', () => {
+      renderWithQueryClient(<ReviseVederlagModal {...defaultProps} open={false} />);
+
+      expect(screen.queryByRole('dialog', { name: /Revider vederlagskrav/i })).not.toBeInTheDocument();
+    });
+
+    it('should have submit and cancel buttons', () => {
+      renderWithQueryClient(<ReviseVederlagModal {...defaultProps} />);
+
+      expect(screen.getByRole('button', { name: /Avbryt/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Oppdater Krav/i })).toBeInTheDocument();
+    });
+  });
+
+  describe('ReviseFristModal', () => {
+    const defaultProps = {
+      open: true,
+      onOpenChange: vi.fn(),
+      sakId: 'TEST-001',
+      lastFristEvent: {
+        event_id: 'frist-1',
+        antall_dager: 10,
+        begrunnelse: 'Original begrunnelse',
+      },
+      fristTilstand: {
+        krevd_dager: 10,
+        godkjent_dager: 0,
+      } as any,
+    };
+
+    it('should render when open', () => {
+      renderWithQueryClient(<ReviseFristModal {...defaultProps} />);
+
+      expect(screen.getByRole('dialog', { name: /Revider fristkrav/i })).toBeInTheDocument();
+    });
+
+    it('should have begrunnelse field', () => {
+      renderWithQueryClient(<ReviseFristModal {...defaultProps} />);
+
+      expect(screen.getByText(/Begrunnelse/i)).toBeInTheDocument();
+    });
+
+    it('should not render when closed', () => {
+      renderWithQueryClient(<ReviseFristModal {...defaultProps} open={false} />);
+
+      expect(screen.queryByRole('dialog', { name: /Revider fristkrav/i})).not.toBeInTheDocument();
+    });
+
+    it('should have submit and cancel buttons', () => {
+      renderWithQueryClient(<ReviseFristModal {...defaultProps} />);
+
+      expect(screen.getByRole('button', { name: /Avbryt/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Oppdater Krav/i })).toBeInTheDocument();
+    });
+  });
+
+  describe('UpdateResponseVederlagModal', () => {
+    const defaultProps = {
+      open: true,
+      onOpenChange: vi.fn(),
+      sakId: 'TEST-001',
+      lastResponseEvent: {
+        event_id: 'response-1',
+        resultat: 'godkjent_fullt' as const,
+        godkjent_belop: 100000,
+      },
+      vederlagTilstand: {
+        metode: 'ENHETSPRISER' as const,
+        belop_direkte: 100000,
+        krevd_belop: 100000,
+      } as any,
+    };
+
+    it('should render when open', () => {
+      renderWithQueryClient(<UpdateResponseVederlagModal {...defaultProps} />);
+
+      expect(screen.getByRole('dialog', { name: /Oppdater svar på vederlagskrav/i })).toBeInTheDocument();
+    });
+
+    it('should have resultat field', () => {
+      renderWithQueryClient(<UpdateResponseVederlagModal {...defaultProps} />);
+
+      expect(screen.getByText(/Nytt resultat/i)).toBeInTheDocument();
+    });
+
+    it('should not render when closed', () => {
+      renderWithQueryClient(<UpdateResponseVederlagModal {...defaultProps} open={false} />);
+
+      expect(screen.queryByRole('dialog', { name: /Oppdater svar på vederlagskrav/i })).not.toBeInTheDocument();
+    });
+
+    it('should have submit and cancel buttons', () => {
+      renderWithQueryClient(<UpdateResponseVederlagModal {...defaultProps} />);
+
+      expect(screen.getByRole('button', { name: /Avbryt/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Lagre Svar/i })).toBeInTheDocument();
+    });
+  });
+
+  describe('UpdateResponseFristModal', () => {
+    const defaultProps = {
+      open: true,
+      onOpenChange: vi.fn(),
+      sakId: 'TEST-001',
+      lastResponseEvent: {
+        event_id: 'response-1',
+        resultat: 'godkjent_fullt' as const,
+        godkjent_dager: 10,
+      },
+      fristTilstand: {
+        krevd_dager: 10,
+        godkjent_dager: 10,
+      } as any,
+    };
+
+    it('should render when open', () => {
+      renderWithQueryClient(<UpdateResponseFristModal {...defaultProps} />);
+
+      expect(screen.getByRole('dialog', { name: /Oppdater svar på frist\/forsering/i })).toBeInTheDocument();
+    });
+
+    it('should have resultat field', () => {
+      renderWithQueryClient(<UpdateResponseFristModal {...defaultProps} />);
+
+      expect(screen.getByText(/Ny avgjørelse/i)).toBeInTheDocument();
+    });
+
+    it('should not render when closed', () => {
+      renderWithQueryClient(<UpdateResponseFristModal {...defaultProps} open={false} />);
+
+      expect(screen.queryByRole('dialog', { name: /Oppdater svar på frist\/forsering/i })).not.toBeInTheDocument();
+    });
+
+    it('should have submit and cancel buttons', () => {
+      renderWithQueryClient(<UpdateResponseFristModal {...defaultProps} />);
+
+      expect(screen.getByRole('button', { name: /Avbryt/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Lagre Svar/i })).toBeInTheDocument();
     });
   });
 });
