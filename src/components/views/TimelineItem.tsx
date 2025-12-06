@@ -9,6 +9,7 @@ import { ReactNode } from 'react';
 import { clsx } from 'clsx';
 import { format } from 'date-fns';
 import { nb } from 'date-fns/locale';
+import { ChevronDownIcon } from '@radix-ui/react-icons';
 
 interface TimelineItemProps {
   timestamp: string;
@@ -78,7 +79,7 @@ export function TimelineItem({
               <button
                 onClick={onToggle}
                 className={clsx(
-                  'mt-3 text-sm font-medium text-oslo-blue',
+                  'mt-3 text-sm font-medium text-oslo-blue inline-flex items-center gap-1',
                   'hover:underline focus-visible:underline',
                   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-oslo-blue',
                   'rounded-none px-2 py-1 -ml-2'
@@ -86,6 +87,9 @@ export function TimelineItem({
                 aria-expanded={isExpanded}
                 aria-controls={`details-${timestamp}`}
               >
+                <ChevronDownIcon
+                  className={clsx('w-4 h-4 transition-transform', isExpanded && 'rotate-180')}
+                />
                 {isExpanded ? 'Skjul detaljer' : 'Vis detaljer'}
               </button>
 
