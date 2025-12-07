@@ -134,33 +134,12 @@ export const styles = StyleSheet.create({
     marginBottom: 20,
   },
 
-  // Info box (case metadata) - professional with border
-  infoBox: {
+  // Metadata table - professional with border and striped rows
+  metadataTable: {
     backgroundColor: COLORS.white,
-    padding: 14,
-    marginBottom: 20,
-    flexDirection: 'row',
-    gap: 20,
     borderWidth: 1,
     borderColor: COLORS.border,
-  },
-  infoColumn: {
-    width: '50%',
-  },
-  infoRow: {
-    flexDirection: 'row',
-    marginBottom: 6,
-  },
-  infoLabel: {
-    fontSize: 9,
-    fontWeight: 'bold',
-    color: COLORS.inkDim,
-    width: 90,
-  },
-  infoValue: {
-    fontSize: 9,
-    color: COLORS.ink,
-    flex: 1,
+    marginBottom: 28,
   },
 
   // Section styling - with proper spacing
@@ -200,22 +179,23 @@ export const styles = StyleSheet.create({
 
   // Table rows
   table: {
-    marginBottom: 10,
+    marginBottom: 12,
   },
   tableRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
-    paddingVertical: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
   },
   tableRowStriped: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: COLORS.grayBg,
   },
   tableLabel: {
     fontSize: 9,
     fontWeight: 'bold',
     width: '40%',
-    paddingRight: 10,
+    paddingRight: 12,
     color: COLORS.inkDim,
   },
   tableValue: {

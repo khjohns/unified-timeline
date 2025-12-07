@@ -226,43 +226,42 @@ interface CaseInfoProps {
   state: SakState;
 }
 
-const CaseInfoSection: React.FC<CaseInfoProps> = ({ state }) => (
-  <View>
-    <Text style={styles.title}>{state.sakstittel || 'Uten tittel'}</Text>
-    <Text style={styles.sakId}>Sak-ID: {state.sak_id}</Text>
+const CaseInfoSection: React.FC<CaseInfoProps> = ({ state }) => {
+  const hasVederlag = state.vederlag.status !== 'ikke_relevant';
+  const hasFrist = state.frist.status !== 'ikke_relevant';
+  const krevdBelop = state.vederlag.belop_direkte ?? state.vederlag.kostnads_overslag ?? 0;
+  const godkjentBelop = state.vederlag.godkjent_belop ?? 0;
 
-    <View style={styles.infoBox}>
-      <View style={styles.infoColumn}>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Overordnet status:</Text>
-          <Text style={styles.infoValue}>{state.overordnet_status}</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Opprettet:</Text>
-          <Text style={styles.infoValue}>{formatDate(state.opprettet)}</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Siste aktivitet:</Text>
-          <Text style={styles.infoValue}>{formatDate(state.siste_aktivitet)}</Text>
-        </View>
-      </View>
-      <View style={styles.infoColumn}>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Sum krevd:</Text>
-          <Text style={styles.infoValue}>{formatCurrency(state.sum_krevd)}</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Sum godkjent:</Text>
-          <Text style={styles.infoValue}>{formatCurrency(state.sum_godkjent)}</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Antall hendelser:</Text>
-          <Text style={styles.infoValue}>{state.antall_events}</Text>
-        </View>
+  return (
+    <View>
+      <Text style={styles.title}>{state.sakstittel || 'Uten tittel'}</Text>
+      <Text style={styles.sakId}>Sak-ID: {state.sak_id}</Text>
+
+      <View style={styles.metadataTable}>
+        <TableRow label="Overordnet status" value={state.overordnet_status} />
+        <TableRow label="Opprettet" value={formatDate(state.opprettet)} striped />
+        <TableRow label="Siste aktivitet" value={formatDate(state.siste_aktivitet)} />
+        <TableRow label="Antall hendelser" value={String(state.antall_events)} striped />
+
+        {/* Economic summary integrated */}
+        {hasVederlag && (
+          <>
+            <TableRow label="Krevd vederlag" value={formatCurrency(krevdBelop)} />
+            <TableRow label="Godkjent vederlag" value={formatCurrency(godkjentBelop)} striped />
+          </>
+        )}
+        {hasFrist && state.frist.krevd_dager !== undefined && (
+          <>
+            <TableRow label="Krevd fristforlengelse" value={`${state.frist.krevd_dager} dager`} />
+            {state.frist.godkjent_dager !== undefined && (
+              <TableRow label="Godkjent fristforlengelse" value={`${state.frist.godkjent_dager} dager`} striped />
+            )}
+          </>
+        )}
       </View>
     </View>
-  </View>
-);
+  );
+};
 
 const GrunnlagSection: React.FC<{ state: SakState }> = ({ state }) => {
   const { grunnlag } = state;
@@ -719,71 +718,6 @@ const FristSection: React.FC<{ state: SakState }> = ({ state }) => {
   );
 };
 
-// Summary section showing economic overview - professional styling
-const SummarySection: React.FC<{ state: SakState }> = ({ state }) => {
-  const hasVederlag = state.vederlag.status !== 'ikke_relevant';
-  const hasFrist = state.frist.status !== 'ikke_relevant';
-
-  if (!hasVederlag && !hasFrist) return null;
-
-  const krevdBelop = state.vederlag.belop_direkte ?? state.vederlag.kostnads_overslag ?? 0;
-  const godkjentBelop = state.vederlag.godkjent_belop ?? 0;
-  const differanse = krevdBelop - godkjentBelop;
-
-  return (
-    <View style={styles.summaryContainer}>
-      <Text style={styles.summaryHeader}>Økonomisk sammendrag</Text>
-
-      {hasVederlag && (
-        <View style={styles.summaryGrid}>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryCardTitle}>Krevd vederlag</Text>
-            <Text style={styles.summaryCardValue}>{formatCurrency(krevdBelop)}</Text>
-          </View>
-
-          <View style={[styles.summaryCard, styles.summaryCardSuccess]}>
-            <Text style={styles.summaryCardTitle}>Godkjent vederlag</Text>
-            <Text style={styles.summaryCardValue}>{formatCurrency(godkjentBelop)}</Text>
-          </View>
-
-          {differanse !== 0 && (
-            <View style={[styles.summaryCard, differanse > 0 ? styles.summaryCardWarning : undefined]}>
-              <Text style={styles.summaryCardTitle}>Differanse</Text>
-              <Text style={styles.summaryCardValue}>{formatCurrency(differanse)}</Text>
-              <Text style={styles.summaryCardSubtext}>
-                {differanse > 0 ? 'Under behandling' : 'Fullt godkjent'}
-              </Text>
-            </View>
-          )}
-        </View>
-      )}
-
-      {hasFrist && state.frist.krevd_dager !== undefined && (
-        <View style={[styles.summaryGrid, { marginTop: 12 }]}>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryCardTitle}>Krevd fristforlengelse</Text>
-            <Text style={styles.summaryCardValue}>{state.frist.krevd_dager} dager</Text>
-          </View>
-
-          {state.frist.godkjent_dager !== undefined && (
-            <View style={[styles.summaryCard, styles.summaryCardSuccess]}>
-              <Text style={styles.summaryCardTitle}>Godkjent fristforlengelse</Text>
-              <Text style={styles.summaryCardValue}>{state.frist.godkjent_dager} dager</Text>
-            </View>
-          )}
-
-          {state.frist.differanse_dager !== undefined && state.frist.differanse_dager !== 0 && (
-            <View style={[styles.summaryCard, state.frist.differanse_dager > 0 ? styles.summaryCardWarning : undefined]}>
-              <Text style={styles.summaryCardTitle}>Differanse</Text>
-              <Text style={styles.summaryCardValue}>{state.frist.differanse_dager} dager</Text>
-            </View>
-          )}
-        </View>
-      )}
-    </View>
-  );
-};
-
 // ============================================================
 // Main Document Component
 // ============================================================
@@ -803,9 +737,6 @@ export const ContractorClaimPdf: React.FC<ContractorClaimPdfProps> = ({ state })
         <Header />
 
         <CaseInfoSection state={state} />
-
-        {/* Summary moved up after metadata for quick overview */}
-        <SummarySection state={state} />
 
         <GrunnlagSection state={state} />
 
