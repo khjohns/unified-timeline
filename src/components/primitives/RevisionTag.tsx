@@ -58,6 +58,34 @@ export function RevisionTag({
 }
 
 /**
+ * UpdatedTag Component
+ *
+ * Shows "Oppdatert" tag for BH response updates (not new revisions).
+ * Used when BH updates their response to the same claim version.
+ */
+export interface UpdatedTagProps {
+  /** Size variant */
+  size?: 'sm' | 'md';
+  /** Additional CSS classes */
+  className?: string;
+}
+
+export function UpdatedTag({ size = 'sm', className }: UpdatedTagProps) {
+  return (
+    <span
+      className={clsx(
+        'inline-flex items-center gap-1 font-medium border rounded-none',
+        'bg-amber-50 text-amber-700 border-amber-300',
+        size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-sm',
+        className
+      )}
+    >
+      Oppdatert
+    </span>
+  );
+}
+
+/**
  * RevisionTagGroup Component
  *
  * Shows version tag with optional "outdated" warning.
