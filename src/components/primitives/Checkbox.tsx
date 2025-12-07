@@ -25,8 +25,8 @@ export const Checkbox = forwardRef<
     <CheckboxPrimitive.Root
       ref={ref}
       className={clsx(
-        // Size - standard checkbox size for desktop/web
-        'h-5 w-5',
+        // Size - 24x24px for better touch targets (WCAG 2.1 recommends 44px, but checkbox + label gap provides adequate touch area)
+        'h-6 w-6',
         'shrink-0',
 
         // Base styles
@@ -65,14 +65,14 @@ export const Checkbox = forwardRef<
       {...props}
     >
       <CheckboxPrimitive.Indicator className="flex items-center justify-center text-pkt-text-body-light">
-        <CheckIcon className="h-3.5 w-3.5" />
+        <CheckIcon className="h-4 w-4" />
       </CheckboxPrimitive.Indicator>
     </CheckboxPrimitive.Root>
   );
 
   if (label) {
     return (
-      <div className="flex items-center gap-pkt-03">
+      <div className="flex items-center gap-3">
         {checkbox}
         <label
           htmlFor={props.id}

@@ -73,9 +73,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
           // Size styles - standard button sizes
           {
-            'px-pkt-04 py-pkt-02 text-sm min-h-[36px]': size === 'sm',
-            'px-pkt-06 py-pkt-03 text-base min-h-[40px]': size === 'md',
-            'px-pkt-08 py-pkt-04 text-lg min-h-[44px]': size === 'lg',
+            'px-4 py-2 text-sm min-h-[36px]': size === 'sm',
+            'px-6 py-3 text-base min-h-[40px]': size === 'md',
+            'px-8 py-4 text-lg min-h-[44px]': size === 'lg',
           },
 
           className

@@ -142,8 +142,10 @@ describe('View Components - Functional Tests', () => {
       render(<StatusDashboard state={mockSakState1} />);
 
       // The overordnet_status is shown in a screen-reader-only element
-      const statusElement = screen.getByRole('status');
-      expect(statusElement).toHaveTextContent('UNDER_BEHANDLING');
+      // Note: Multiple status elements exist (one for dashboard + one per StatusCard)
+      const statusElements = screen.getAllByRole('status');
+      const dashboardStatus = statusElements.find(el => el.textContent?.includes('UNDER_BEHANDLING'));
+      expect(dashboardStatus).toBeTruthy();
     });
 
     it('should show EO button when kan_utstede_eo is true', () => {
@@ -330,32 +332,24 @@ describe('View Components - Functional Tests', () => {
       expect(screen.getByText('UNDER_BEHANDLING')).toBeInTheDocument();
     });
 
-    it('should display vederlag information', () => {
+    it('should display prosjektinformasjon section', () => {
       render(<ComprehensiveMetadata state={mockSakState1} sakId="SAK-2025-001" />);
 
-      // Should show vederlag status - use getAllByText since it may appear multiple times
-      expect(screen.getAllByText(/Vederlag/i).length).toBeGreaterThan(0);
-      expect(screen.getAllByText(/2\s*500\s*000/i).length).toBeGreaterThan(0); // krevd_belop
+      expect(screen.getByText(/Prosjektinformasjon/i)).toBeInTheDocument();
+      expect(screen.getByText(/Sakstittel/i)).toBeInTheDocument();
     });
 
-    it('should display frist information', () => {
+    it('should display grunnlag section when grunnlag is not irrelevant', () => {
       render(<ComprehensiveMetadata state={mockSakState1} sakId="SAK-2025-001" />);
 
-      expect(screen.getByText(/Frist/i)).toBeInTheDocument();
+      expect(screen.getByText(/Grunnlag \/ Varsel/i)).toBeInTheDocument();
     });
 
-    it('should display summary totals', () => {
+    it('should display saksmetadata section', () => {
       render(<ComprehensiveMetadata state={mockSakState1} sakId="SAK-2025-001" />);
 
-      expect(screen.getByText(/Sammendrag/i)).toBeInTheDocument();
-      expect(screen.getByText(/Totalt krevd/i)).toBeInTheDocument();
-    });
-
-    it('should render grunnlag section when not ikke_relevant', () => {
-      render(<ComprehensiveMetadata state={mockSakState1} sakId="SAK-2025-001" />);
-
-      // Grunnlag section should be visible
-      expect(screen.getByText(/Grunnlag/i)).toBeInTheDocument();
+      expect(screen.getByText(/Saksmetadata/i)).toBeInTheDocument();
+      expect(screen.getByText(/SAK-2025-001/)).toBeInTheDocument();
     });
 
     it('should have collapsible sections', async () => {

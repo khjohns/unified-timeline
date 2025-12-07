@@ -85,3 +85,42 @@ const localStorageMock = (() => {
 Object.defineProperty(window, 'localStorage', {
   value: localStorageMock,
 });
+
+// Mock ResizeObserver (required for Radix UI components)
+global.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
+// Mock HTMLCanvasElement.getContext (required for PDF rendering in tests)
+HTMLCanvasElement.prototype.getContext = function () {
+  return {
+    fillRect: () => {},
+    clearRect: () => {},
+    getImageData: () => ({
+      data: new Array(4),
+    }),
+    putImageData: () => {},
+    createImageData: () => [],
+    setTransform: () => {},
+    drawImage: () => {},
+    save: () => {},
+    fillText: () => {},
+    restore: () => {},
+    beginPath: () => {},
+    moveTo: () => {},
+    lineTo: () => {},
+    closePath: () => {},
+    stroke: () => {},
+    translate: () => {},
+    scale: () => {},
+    rotate: () => {},
+    arc: () => {},
+    fill: () => {},
+    measureText: () => ({ width: 0 }),
+    transform: () => {},
+    rect: () => {},
+    clip: () => {},
+  } as any;
+};

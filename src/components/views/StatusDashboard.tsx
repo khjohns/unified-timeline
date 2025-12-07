@@ -7,13 +7,26 @@
 
 import { StatusCard } from './StatusCard';
 import { SakState } from '../../types/timeline';
-import { ReactNode } from 'react';
+import { ReactNode, useMemo } from 'react';
 
 interface StatusDashboardProps {
   state: SakState;
   grunnlagActions?: ReactNode;
   vederlagActions?: ReactNode;
   fristActions?: ReactNode;
+}
+
+/**
+ * Get krevd beløp based on vederlagsmetode
+ * - ENHETSPRISER/FASTPRIS_TILBUD: belop_direkte
+ * - REGNINGSARBEID: kostnads_overslag
+ */
+function getKrevdBelop(state: SakState): number | undefined {
+  const v = state.vederlag;
+  if (v.metode === 'REGNINGSARBEID' && v.kostnads_overslag !== undefined) {
+    return v.kostnads_overslag;
+  }
+  return v.belop_direkte;
 }
 
 /**
@@ -25,6 +38,8 @@ export function StatusDashboard({
   vederlagActions,
   fristActions,
 }: StatusDashboardProps) {
+  const krevdBelop = useMemo(() => getKrevdBelop(state), [state]);
+
   return (
     <section aria-labelledby="dashboard-heading">
       <h2 id="dashboard-heading" className="sr-only">
@@ -32,7 +47,7 @@ export function StatusDashboard({
       </h2>
 
       {/* Three-column grid for status cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-pkt-04">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatusCard
           spor="grunnlag"
           status={state.grunnlag.status}
@@ -46,6 +61,9 @@ export function StatusDashboard({
           title="Vederlag"
           lastUpdated={state.vederlag.siste_oppdatert}
           actions={vederlagActions}
+          krevd={krevdBelop}
+          godkjent={state.vederlag.godkjent_belop}
+          unit="kr"
         />
         <StatusCard
           spor="frist"
@@ -53,6 +71,9 @@ export function StatusDashboard({
           title="Frist"
           lastUpdated={state.frist.siste_oppdatert}
           actions={fristActions}
+          krevd={state.frist.krevd_dager}
+          godkjent={state.frist.godkjent_dager}
+          unit="dager"
         />
       </div>
 

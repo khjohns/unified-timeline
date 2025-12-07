@@ -7,6 +7,12 @@
 
 import { ReactNode } from 'react';
 import clsx from 'clsx';
+import {
+  InfoCircledIcon,
+  CheckCircledIcon,
+  ExclamationTriangleIcon,
+  CrossCircledIcon,
+} from '@radix-ui/react-icons';
 
 export type AlertVariant = 'info' | 'success' | 'warning' | 'danger';
 export type AlertSize = 'sm' | 'md' | 'lg';
@@ -20,26 +26,27 @@ export interface AlertProps {
   icon?: ReactNode;
 }
 
+// Using Punkt design system colors for consistency
 const variantStyles: Record<AlertVariant, { container: string; title: string; icon: string }> = {
   info: {
-    container: 'bg-blue-50 border-blue-500 text-blue-800',
-    title: 'text-blue-900',
-    icon: 'text-blue-500',
+    container: 'bg-pkt-brand-blue-100 border-pkt-brand-warm-blue-1000 text-pkt-brand-dark-blue-1000',
+    title: 'text-pkt-brand-dark-blue-1000',
+    icon: 'text-pkt-brand-warm-blue-1000',
   },
   success: {
-    container: 'bg-green-50 border-green-500 text-green-800',
-    title: 'text-green-900',
-    icon: 'text-green-500',
+    container: 'bg-pkt-brand-light-green-400 border-pkt-brand-dark-green-1000 text-pkt-brand-dark-green-1000',
+    title: 'text-pkt-brand-dark-green-1000',
+    icon: 'text-pkt-brand-dark-green-1000',
   },
   warning: {
-    container: 'bg-yellow-50 border-yellow-500 text-yellow-800',
-    title: 'text-yellow-900',
-    icon: 'text-yellow-600',
+    container: 'bg-pkt-brand-yellow-500 border-pkt-brand-yellow-1000 text-pkt-brand-dark-blue-1000',
+    title: 'text-pkt-brand-dark-blue-1000',
+    icon: 'text-pkt-brand-dark-blue-1000',
   },
   danger: {
-    container: 'bg-red-50 border-red-500 text-red-800',
-    title: 'text-red-900',
-    icon: 'text-red-500',
+    container: 'bg-pkt-brand-red-100 border-pkt-brand-red-1000 text-pkt-brand-red-1000',
+    title: 'text-pkt-brand-red-1000',
+    icon: 'text-pkt-brand-red-1000',
   },
 };
 
@@ -49,28 +56,12 @@ const sizeStyles: Record<AlertSize, string> = {
   lg: 'p-4 text-base',
 };
 
-// Default icons for each variant
+// Default icons for each variant using Radix UI icons
 const defaultIcons: Record<AlertVariant, ReactNode> = {
-  info: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  ),
-  success: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  ),
-  warning: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-    </svg>
-  ),
-  danger: (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  ),
+  info: <InfoCircledIcon className="w-5 h-5" />,
+  success: <CheckCircledIcon className="w-5 h-5" />,
+  warning: <ExclamationTriangleIcon className="w-5 h-5" />,
+  danger: <CrossCircledIcon className="w-5 h-5" />,
 };
 
 export function Alert({

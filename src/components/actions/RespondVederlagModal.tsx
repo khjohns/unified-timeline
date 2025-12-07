@@ -24,6 +24,8 @@ import { FormField } from '../primitives/FormField';
 import { Input } from '../primitives/Input';
 import { Textarea } from '../primitives/Textarea';
 import { Badge } from '../primitives/Badge';
+import { Alert } from '../primitives/Alert';
+import { AlertDialog } from '../primitives/AlertDialog';
 import {
   Select,
   SelectContent,
@@ -35,6 +37,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
+import { useConfirmClose } from '../../hooks/useConfirmClose';
 import {
   BH_VEDERLAGSSVAR_OPTIONS,
   VEDERLAGSMETODER_OPTIONS,
@@ -99,12 +102,18 @@ export function RespondVederlagModal({
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
     reset,
     watch,
     control,
   } = useForm<RespondVederlagFormData>({
     resolver: zodResolver(respondVederlagSchema),
+  });
+
+  const { showConfirmDialog, setShowConfirmDialog, handleClose, confirmClose } = useConfirmClose({
+    isDirty,
+    onReset: reset,
+    onClose: () => onOpenChange(false),
   });
 
   const mutation = useSubmitEvent(sakId, {
@@ -170,10 +179,10 @@ export function RespondVederlagModal({
       description="Vurder beregning og beløp (ren utmåling). Ansvarsvurdering håndteres i Grunnlag-sporet."
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-pkt-05">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         {/* Subsidiary badge and info */}
         {erSubsidiaer && (
-          <div className="p-pkt-04 bg-amber-50 border-2 border-amber-300 rounded-none">
+          <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-none">
             <div className="flex items-center gap-2 mb-2">
               <Badge variant="warning">Subsidiær behandling</Badge>
             </div>
@@ -200,7 +209,7 @@ export function RespondVederlagModal({
         {/* §34.3.3 EP-justering alert */}
         {maSvarePaJustering && (
           <div
-            className="p-pkt-05 bg-pkt-surface-subtle-light-red border-2 border-pkt-border-red rounded-none"
+            className="p-5 bg-pkt-surface-subtle-light-red border-2 border-pkt-border-red rounded-none"
             role="alert"
           >
             <p className="text-base text-pkt-border-red font-medium">
@@ -215,7 +224,7 @@ export function RespondVederlagModal({
 
         {/* Display of vederlagskrav details */}
         {vederlagEvent && (metodeLabel || visningsbelop !== undefined) && (
-          <div className="p-pkt-04 bg-pkt-surface-subtle-light-blue border-2 border-pkt-border-focus rounded-none">
+          <div className="p-4 bg-pkt-surface-subtle-light-blue border-2 border-pkt-border-focus rounded-none">
             <h4 className="font-bold text-sm text-pkt-text-body-dark mb-2">
               Entreprenørens krav:
             </h4>
@@ -286,7 +295,7 @@ export function RespondVederlagModal({
 
         {/* Show claimed amount if available (fallback if no vederlagEvent) */}
         {krevdBelop !== undefined && visningsbelop === undefined && (
-          <div className="p-pkt-04 bg-info-100 rounded-pkt-md">
+          <div className="p-4 bg-info-100 rounded-none">
             <p className="text-sm font-medium text-info-700">
               Krevd beløp: {krevdBelop.toLocaleString('nb-NO')} NOK
             </p>
@@ -295,7 +304,7 @@ export function RespondVederlagModal({
 
         {/* §30.2 Tilbakeholdelse warning */}
         {kanHoldeTilbake && (
-          <div className="p-pkt-04 bg-amber-50 border-2 border-amber-300 rounded-none">
+          <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-none">
             <p className="text-sm font-medium text-amber-900">
               Mangler kostnadsoverslag (§30.2)
             </p>
@@ -343,7 +352,7 @@ export function RespondVederlagModal({
 
         {/* Show description of selected resultat */}
         {selectedResultat && BH_VEDERLAGSSVAR_DESCRIPTIONS[selectedResultat] && (
-          <div className="p-pkt-04 bg-pkt-surface-subtle rounded-none border-l-4 border-pkt-border-focus">
+          <div className="p-4 bg-pkt-surface-subtle rounded-none border-l-4 border-pkt-border-focus">
             <p className="text-sm text-pkt-text-body-subtle">
               {BH_VEDERLAGSSVAR_DESCRIPTIONS[selectedResultat]}
             </p>
@@ -421,22 +430,17 @@ export function RespondVederlagModal({
 
         {/* Error Message */}
         {mutation.isError && (
-          <div
-            className="p-pkt-05 bg-pkt-surface-subtle-light-red border-2 border-pkt-border-red rounded-none"
-            role="alert"
-          >
-            <p className="text-base text-pkt-border-red font-medium">
-              {mutation.error instanceof Error ? mutation.error.message : 'En feil oppstod'}
-            </p>
-          </div>
+          <Alert variant="danger" title="Feil ved innsending">
+            {mutation.error instanceof Error ? mutation.error.message : 'En feil oppstod'}
+          </Alert>
         )}
 
         {/* Actions */}
-        <div className="flex justify-end gap-pkt-04 pt-pkt-06 border-t-2 border-pkt-border-subtle">
+        <div className="flex justify-end gap-4 pt-6 border-t-2 border-pkt-border-subtle">
           <Button
             type="button"
             variant="ghost"
-            onClick={() => onOpenChange(false)}
+            onClick={handleClose}
             disabled={isSubmitting}
             size="lg"
           >
@@ -447,6 +451,18 @@ export function RespondVederlagModal({
           </Button>
         </div>
       </form>
+
+      {/* Confirm close dialog */}
+      <AlertDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        title="Forkast endringer?"
+        description="Du har ulagrede endringer som vil gå tapt hvis du lukker skjemaet."
+        confirmLabel="Forkast"
+        cancelLabel="Fortsett redigering"
+        onConfirm={confirmClose}
+        variant="warning"
+      />
     </Modal>
   );
 }

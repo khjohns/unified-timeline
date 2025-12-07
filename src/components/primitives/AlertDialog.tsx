@@ -48,8 +48,8 @@ export function AlertDialog({
         <AlertDialogPrimitive.Content
           className={clsx(
             'fixed left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%]',
-            'bg-white rounded-pkt-lg shadow-xl',
-            'p-pkt-06',
+            'bg-white rounded-none shadow-xl',
+            'p-6',
             'z-modal',
             'w-[90vw] max-w-md',
             'focus:outline-none',
@@ -59,20 +59,20 @@ export function AlertDialog({
           )}
         >
           {/* Header */}
-          <AlertDialogPrimitive.Title className="text-heading-md font-bold text-oslo-blue mb-pkt-03">
+          <AlertDialogPrimitive.Title className="text-heading-md font-bold text-oslo-blue mb-3">
             {title}
           </AlertDialogPrimitive.Title>
 
           {/* Description */}
-          <AlertDialogPrimitive.Description className="text-body-md text-gray-700 mb-pkt-05">
+          <AlertDialogPrimitive.Description className="text-body-md text-gray-700 mb-5">
             {description}
           </AlertDialogPrimitive.Description>
 
           {/* Optional custom content */}
-          {children && <div className="mb-pkt-05">{children}</div>}
+          {children && <div className="mb-5">{children}</div>}
 
           {/* Actions */}
-          <div className="flex gap-pkt-03 justify-end">
+          <div className="flex gap-3 justify-end">
             <AlertDialogPrimitive.Cancel asChild>
               <Button variant="secondary" size="md">
                 {cancelLabel}

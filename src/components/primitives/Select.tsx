@@ -33,7 +33,7 @@ export const SelectTrigger = forwardRef<
     className={clsx(
       // Base styles - standard select size
       'flex items-center justify-between gap-2',
-      'w-full px-pkt-04 py-pkt-03 min-h-[40px]',
+      'w-full px-4 py-3 min-h-[40px]',
       'text-base font-normal',
       'bg-pkt-bg-default',
       'transition-colors duration-200',
@@ -125,7 +125,10 @@ export const SelectContent = forwardRef<
       ref={ref}
       className={clsx(
         'relative z-dropdown',
-        'max-h-96 min-w-[8rem] overflow-hidden',
+        // Responsive max-height: smaller on mobile, larger on desktop
+        'max-h-[min(24rem,50vh)] min-w-[8rem] overflow-hidden',
+        // Prevent overflow on mobile screens
+        'max-w-[calc(100vw-2rem)]',
         'bg-pkt-bg-default',
         'border-2 border-pkt-border-default rounded-none',
         'shadow-lg',
@@ -142,6 +145,9 @@ export const SelectContent = forwardRef<
         className
       )}
       position={position}
+      // Collision handling for viewport awareness
+      collisionPadding={16}
+      avoidCollisions
       {...props}
     >
       <SelectScrollUpButton />
@@ -167,7 +173,7 @@ export const SelectLabel = forwardRef<
   <SelectPrimitive.Label
     ref={ref}
     className={clsx(
-      'px-pkt-03 py-pkt-02',
+      'px-3 py-2',
       'text-sm font-semibold',
       'text-pkt-text-body-default',
       className
@@ -185,7 +191,7 @@ export const SelectItem = forwardRef<
     ref={ref}
     className={clsx(
       'relative flex w-full cursor-default select-none items-center',
-      'px-pkt-04 py-pkt-03',
+      'px-4 py-3',
       'text-base font-normal',
       'outline-none',
       'transition-colors duration-150',

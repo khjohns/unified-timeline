@@ -32,9 +32,9 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
           },
           {
             // Increased padding for better spacing
-            'p-pkt-05': padding === 'sm',
-            'p-pkt-06': padding === 'md',
-            'p-pkt-10': padding === 'lg',
+            'p-5': padding === 'sm',
+            'p-6': padding === 'md',
+            'p-10': padding === 'lg',
           },
           className
         )}

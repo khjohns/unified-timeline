@@ -2,7 +2,7 @@
 
 Oversikt over frontend-arkitekturen i Skjema Endringsmeldinger.
 
-**Sist oppdatert:** 2025-12-01
+**Sist oppdatert:** 2025-12-06
 
 ---
 
@@ -36,11 +36,12 @@ Frontend er bygget med:
 
 ### Arkitekturprinsipper
 
-1. **Komponentbasert** – Gjenbrukbare UI-komponenter
-2. **Hook-basert state** – Custom hooks for logikk-separering
-3. **Lazy loading** – Paneler lastes ved behov
-4. **Typesikkerhet** – Streng TypeScript-konfigurasjon
-5. **Sentraliserte konstanter** – Statuskoder fra `shared/status-codes.json`
+1. **Event Sourcing-integrasjon** – Frontend sender events, mottar projisert state
+2. **Optimistisk låsing** – Versjonsnummer for samtidighetskontroll
+3. **Tre-spor modell** – Grunnlag, Vederlag, Frist som uavhengige komponenter
+4. **Komponentbasert** – Gjenbrukbare UI-komponenter
+5. **Hook-basert state** – Custom hooks for logikk-separering
+6. **Typesikkerhet** – Streng TypeScript med typer som speiler backend
 
 ### Refaktoreringsresultat
 
@@ -141,96 +142,107 @@ Frontend er bygget med:
 
 ---
 
-## Datamodell
+## Datamodell (Event Sourcing)
 
-Definert i `types.ts`:
+Frontend-typene er definert i `src/types/timeline.ts` og speiler backend-modellene nøyaktig.
+
+### Event-typer
 
 ```typescript
-interface FormDataModel {
-  versjon: string;
-  rolle: 'TE' | 'BH';           // Totalentreprenør | Byggherre
-  sak: Sak;                     // Grunnleggende saksinformasjon
-  varsel: Varsel;               // Varsel om endringsforhold
-  koe_revisjoner: Koe[];        // Array av KOE-revisjoner
-  bh_svar_revisjoner: BhSvar[]; // Array av BH-svar-revisjoner
+// Event-typer som kan sendes til backend
+enum EventType {
+  // Grunnlag (TE)
+  GRUNNLAG_OPPRETTET = "GRUNNLAG_OPPRETTET",
+  GRUNNLAG_OPPDATERT = "GRUNNLAG_OPPDATERT",
+  GRUNNLAG_TRUKKET = "GRUNNLAG_TRUKKET",
+
+  // Vederlag (TE)
+  VEDERLAG_KRAV_SENDT = "VEDERLAG_KRAV_SENDT",
+  VEDERLAG_KRAV_OPPDATERT = "VEDERLAG_KRAV_OPPDATERT",
+  VEDERLAG_KRAV_TRUKKET = "VEDERLAG_KRAV_TRUKKET",
+
+  // Frist (TE)
+  FRIST_KRAV_SENDT = "FRIST_KRAV_SENDT",
+  FRIST_KRAV_OPPDATERT = "FRIST_KRAV_OPPDATERT",
+  FRIST_KRAV_TRUKKET = "FRIST_KRAV_TRUKKET",
+
+  // Respons (BH)
+  RESPONS_GRUNNLAG = "RESPONS_GRUNNLAG",
+  RESPONS_VEDERLAG = "RESPONS_VEDERLAG",
+  RESPONS_FRIST = "RESPONS_FRIST",
+
+  // Sak-hendelser
+  SAK_OPPRETTET = "SAK_OPPRETTET",
+  EO_UTSTEDT = "EO_UTSTEDT"
 }
 ```
 
-### Sak
+### SakState (Read Model)
 
 ```typescript
-interface Sak {
-  sak_id_display: string;     // Lesbar sak-ID
+// Projisert tilstand fra events - aldri direkte mutert
+interface SakState {
+  sak_id: string;
   sakstittel: string;
-  opprettet_av: string;
-  opprettet_dato: string;
-  prosjekt_navn: string;
-  kontrakt_referanse: string;
-  entreprenor: string;
-  byggherre: string;
-  status?: SakStatus;
+
+  // Tre uavhengige spor
+  grunnlag: GrunnlagTilstand;
+  vederlag: VederlagTilstand;
+  frist: FristTilstand;
+
+  // Beregnede felter
+  overordnet_status: OverordnetStatus;
+  kan_utstede_eo: boolean;
+  neste_handling: NesteHandling | null;
+}
+
+interface GrunnlagTilstand {
+  status: SporStatus;
+  hovedkategori: string | null;
+  underkategori: string[] | null;
+  beskrivelse: string | null;
+  bh_resultat: GrunnlagResponsResultat | null;
+  laast: boolean;
+}
+
+interface VederlagTilstand {
+  status: SporStatus;
+  krevd_belop: number | null;
+  metode: VederlagMetode | null;
+  // Port 1: Varsel-vurdering
+  saerskilt_varsel_rigg_drift_ok: boolean | null;
+  varsel_justert_ep_ok: boolean | null;
+  // Port 2: Beregning
+  bh_resultat: VederlagBeregningResultat | null;
+  godkjent_belop: number | null;
+}
+
+interface FristTilstand {
+  status: SporStatus;
+  krevd_dager: number | null;
+  // Port 1: Varsel
+  noytralt_varsel_ok: boolean | null;
+  // Port 2: Vilkår
+  vilkar_oppfylt: boolean | null;
+  // Port 3: Utmåling
+  bh_resultat: FristBeregningResultat | null;
+  godkjent_dager: number | null;
 }
 ```
 
-### Varsel
+### Spor-status
 
 ```typescript
-interface Varsel {
-  dato_forhold_oppdaget: string;
-  dato_varsel_sendt: string;
-  for_entreprenor?: string;
-  hovedkategori: string;
-  underkategori: string[];      // Multivalg
-  varsel_beskrivelse: string;
-  varsel_metode: string;        // Kommaseparert
-  varsel_metode_annet?: string;
-  tidligere_varsel_referanse?: string;
-  vedlegg?: string[];
-}
-```
-
-### KOE (Krav om Endringsordre)
-
-```typescript
-interface Koe {
-  koe_revisjonsnr: string;
-  dato_krav_sendt: string;
-  for_entreprenor: string;
-  vederlag: KoeVederlag;        // Vederlagskrav
-  frist: KoeFrist;              // Fristforlengelse
-  status?: KoeStatus;
-  vedlegg?: string[];
-}
-
-interface KoeVederlag {
-  krav_vederlag: boolean;
-  krav_produktivitetstap: boolean;
-  saerskilt_varsel_rigg_drift: boolean;
-  krav_vederlag_metode: string;
-  krav_vederlag_belop: string;
-  krav_vederlag_begrunnelse: string;
-}
-
-interface KoeFrist {
-  krav_fristforlengelse: boolean;
-  krav_frist_type: string;
-  krav_frist_antall_dager: string;
-  forsinkelse_kritisk_linje: boolean;
-  krav_frist_begrunnelse: string;
-}
-```
-
-### BH Svar (Byggherre-svar)
-
-```typescript
-interface BhSvar {
-  vederlag: BhSvarVederlag;
-  frist: BhSvarFrist;
-  mote_dato: string;
-  mote_referat: string;
-  sign: BhSvarSign;
-  status?: BhSvarStatus;
-  vedlegg?: string[];
+enum SporStatus {
+  IKKE_PAABEGYNT = "IKKE_PAABEGYNT",
+  UTKAST = "UTKAST",
+  SENDT = "SENDT",
+  UNDER_BEHANDLING = "UNDER_BEHANDLING",
+  GODKJENT = "GODKJENT",
+  DELVIS_GODKJENT = "DELVIS_GODKJENT",
+  AVVIST = "AVVIST",
+  TRUKKET = "TRUKKET",
+  LAAST = "LAAST"
 }
 ```
 
@@ -451,24 +463,65 @@ const { uploadFile, uploadProgress, uploadedFiles } = useFileUpload({
 
 ## Services
 
-### `api.ts` (552 linjer)
+### `api/events.ts` (Event Submission)
 
-API-klient for backend-kommunikasjon.
+API-klient for event sourcing-basert backend-kommunikasjon.
 
 ```typescript
-// Modus-typer
-type Modus = 'varsel' | 'koe' | 'svar' | 'oversikt' | 'test';
+// Event submission med optimistisk låsing
+submitEvent(
+  sakId: string,
+  eventType: EventType,
+  data: Record<string, any>,
+  options?: {
+    expectedVersion?: number;      // For optimistisk låsing
+    catendaTopicId?: string;       // For Catenda-integrasjon
+    pdfBase64?: string;            // PDF-vedlegg
+    pdfFilename?: string;
+  }
+): Promise<EventSubmitResponse>
 
-// Hovedfunksjoner
-api.getCase(sakId): Promise<CaseResponse>
-api.saveDraft(sakId, formData): Promise<void>
-api.submitVarsel(sakId, formData, topicGuid): Promise<SubmitResponse>
-api.submitKoe(sakId, formData, topicGuid): Promise<SubmitResponse>
-api.submitSvar(sakId, formData, topicGuid): Promise<SubmitResponse>
-api.uploadPdf(sakId, pdfBase64, filename, topicGuid): Promise<void>
-api.verifyMagicLink(token): Promise<{ sakId: string }>
-api.validateUser(email, sakId): Promise<UserValidation>
-api.getCsrfToken(): Promise<string>
+interface EventSubmitResponse {
+  success: boolean;
+  event_id: string;
+  new_version: number;            // Ny versjon etter event
+  state: SakState;                // Oppdatert projisert tilstand
+}
+
+// Hent beregnet tilstand
+getState(sakId: string): Promise<StateResponse>
+
+interface StateResponse {
+  state: SakState;
+  version: number;
+  events_count: number;
+}
+
+// Hent tidslinje for visning
+getTimeline(sakId: string): Promise<TimelineEvent[]>
+```
+
+### Optimistisk låsing-flyt
+
+```typescript
+// 1. Hent nåværende state og versjon
+const { state, version } = await getState(sakId);
+
+// 2. Bruker fyller ut skjema basert på state
+
+// 3. Send event med forventet versjon
+try {
+  const response = await submitEvent(sakId, EventType.GRUNNLAG_OPPRETTET, data, {
+    expectedVersion: version
+  });
+  // Oppdater lokal state med response.state
+} catch (error) {
+  if (error.status === 409) {
+    // Konflikt: Noen andre har oppdatert saken
+    const newState = await getState(sakId);
+    // Vis bruker endringene og la dem bekrefte
+  }
+}
 ```
 
 ### `validationService.ts`
@@ -509,20 +562,24 @@ revisionService.compareRevisions(rev1, rev2): RevisionDiff
 
 ---
 
-## State Management
+## State Management (Event Sourcing)
 
-Frontend bruker **React hooks** for state management (ingen Redux/Zustand).
+Frontend bruker **React hooks** for state management, med state som kommer fra backend-projeksjon.
+
+### State-prinsipper
+
+1. **SakState er read-only** – Aldri direkte mutert, alltid projisert fra events
+2. **Versjonssporing** – Hver state har et versjonsnummer for optimistisk låsing
+3. **Tre-spor uavhengighet** – Grunnlag, Vederlag, Frist kan oppdateres uavhengig
 
 ### State-typer
 
-| State | Hook | Scope |
-|-------|------|-------|
-| Form data | `useSkjemaData` | Global (App.tsx) |
-| Auto-save | `useAutoSave` | localStorage |
-| API-data | `useCaseLoader` | Per session |
-| UI state | `useState` | Komponent-lokal |
-| URL params | `useUrlParams` | Per navigasjon |
-| Modal state | `useModal` | Komponent-lokal |
+| State | Kilde | Beskrivelse |
+|-------|-------|-------------|
+| `SakState` | Backend (projeksjon) | Beregnet tilstand fra events |
+| `version` | Backend | Versjonsnummer for optimistisk låsing |
+| Form draft | `useState` / localStorage | Lokalt utkast før event sendes |
+| UI state | `useState` | Komponent-lokal (dialogs, loading, etc.) |
 
 ### Data-flyt
 
@@ -530,16 +587,24 @@ Frontend bruker **React hooks** for state management (ingen Redux/Zustand).
 URL params (magicToken/sakId)
         │
         ▼
-    useCaseLoader
-        │
-        ▼
-    formData (useSkjemaData)
-        │
-        ├──▶ Panel-komponenter (props)
-        │
-        ├──▶ useAutoSave (localStorage)
-        │
-        └──▶ api.saveDraft (backend)
+    getState(sakId)  ◄─────────────────────┐
+        │                                  │
+        ▼                                  │
+    SakState + version                     │
+        │                                  │
+        ├──▶ Panel-komponenter (props)     │
+        │                                  │
+        └──▶ Bruker fyller ut skjema       │
+                    │                      │
+                    ▼                      │
+            submitEvent(eventType, data,   │
+                       expectedVersion)    │
+                    │                      │
+                    ▼                      │
+            Backend validerer + persisterer│
+                    │                      │
+                    └──────────────────────┘
+                    (ny state returneres)
 ```
 
 ### Props drilling

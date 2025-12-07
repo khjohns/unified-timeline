@@ -566,7 +566,7 @@ describe('Primitive Components - Functional Tests', () => {
     it('should apply padding', () => {
       const { container } = render(<Card padding="lg">Padded</Card>);
       expect(container.firstChild).toBeInTheDocument();
-      expect(container.firstChild).toHaveClass('p-pkt-10');
+      expect(container.firstChild).toHaveClass('p-10');
     });
 
     it('should forward ref correctly', () => {

@@ -23,6 +23,8 @@ export interface InfoLabelProps {
   required?: boolean;
   /** ID for aria-describedby linkage */
   id?: string;
+  /** htmlFor attribute to associate label with input */
+  htmlFor?: string;
   /** Additional className */
   className?: string;
 }
@@ -45,6 +47,7 @@ export function InfoLabel({
   tooltip,
   required,
   id,
+  htmlFor,
   className,
 }: InfoLabelProps) {
   const labelId = id || `label-${Math.random().toString(36).slice(2, 9)}`;
@@ -52,12 +55,13 @@ export function InfoLabel({
   return (
     <label
       id={labelId}
+      htmlFor={htmlFor}
       className={clsx(
-        'block text-base font-medium text-pkt-text-body-default mb-pkt-02',
+        'block text-base font-medium text-pkt-text-body-default mb-2',
         className
       )}
     >
-      <span className="inline-flex items-center gap-pkt-02">
+      <span className="inline-flex items-center gap-2">
         <span>
           {children}
           {required && (
@@ -68,7 +72,7 @@ export function InfoLabel({
         </span>
 
         {tooltip && (
-          <Tooltip content={tooltip} side="right">
+          <Tooltip content={tooltip} side="bottom">
             <button
               type="button"
               className={clsx(

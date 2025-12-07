@@ -23,7 +23,7 @@ export const Label = forwardRef<
       className={clsx(
         'block text-base font-medium',
         'text-pkt-text-body-default',
-        'mb-pkt-02',
+        'mb-2',
         className
       )}
       {...props}

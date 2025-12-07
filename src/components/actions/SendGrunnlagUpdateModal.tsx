@@ -12,6 +12,7 @@ import { Textarea } from '../primitives/Textarea';
 import { DatePicker } from '../primitives/DatePicker';
 import { FormField } from '../primitives/FormField';
 import { Alert } from '../primitives/Alert';
+import { AlertDialog } from '../primitives/AlertDialog';
 import {
   Select,
   SelectContent,
@@ -24,6 +25,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
+import { useConfirmClose } from '../../hooks/useConfirmClose';
 import { useMemo } from 'react';
 import {
   HOVEDKATEGORI_OPTIONS,
@@ -66,7 +68,7 @@ export function SendGrunnlagUpdateModal({
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
     control,
     watch,
     reset,
@@ -84,6 +86,12 @@ export function SendGrunnlagUpdateModal({
           : [],
       endrings_begrunnelse: '',
     },
+  });
+
+  const { showConfirmDialog, setShowConfirmDialog, handleClose, confirmClose } = useConfirmClose({
+    isDirty,
+    onReset: reset,
+    onClose: () => onOpenChange(false),
   });
 
   const nyDatoOppdaget = watch('dato_oppdaget');
@@ -147,7 +155,7 @@ export function SendGrunnlagUpdateModal({
       description="Endre informasjon i det innsendte grunnlaget."
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-pkt-06">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Info about editing */}
         <Alert variant="info">
           Du redigerer nå et eksisterende varsel sendt {grunnlag.grunnlag_varsel?.dato_sendt || 'ukjent dato'}.
@@ -260,7 +268,7 @@ export function SendGrunnlagUpdateModal({
         {/* Underkategori */}
         {nyHovedkategori && getUnderkategorier(nyHovedkategori).length > 0 && (
           <FormField label="Underkategori">
-            <div className="space-y-pkt-03 max-h-48 overflow-y-auto border-2 border-pkt-border-gray rounded-none p-pkt-04 bg-pkt-bg-subtle">
+            <div className="space-y-3 max-h-48 overflow-y-auto border-2 border-pkt-border-gray rounded-none p-4 bg-pkt-bg-subtle">
               {getUnderkategorier(nyHovedkategori).map((option) => (
                 <Checkbox
                   key={option.value}
@@ -298,11 +306,11 @@ export function SendGrunnlagUpdateModal({
         )}
 
         {/* Actions */}
-        <div className="flex justify-end gap-pkt-04 pt-pkt-06 border-t-2 border-pkt-border-subtle">
+        <div className="flex justify-end gap-4 pt-6 border-t-2 border-pkt-border-subtle">
           <Button
             type="button"
             variant="ghost"
-            onClick={() => onOpenChange(false)}
+            onClick={handleClose}
             disabled={isSubmitting}
             size="lg"
           >
@@ -318,6 +326,18 @@ export function SendGrunnlagUpdateModal({
           </Button>
         </div>
       </form>
+
+      {/* Confirm close dialog */}
+      <AlertDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        title="Forkast endringer?"
+        description="Du har ulagrede endringer som vil gå tapt hvis du lukker skjemaet."
+        confirmLabel="Forkast"
+        cancelLabel="Fortsett redigering"
+        onConfirm={confirmClose}
+        variant="warning"
+      />
     </Modal>
   );
 }

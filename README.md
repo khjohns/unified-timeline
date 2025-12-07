@@ -4,7 +4,7 @@
 
 Et system for håndtering av endringsordrer (KOE) etter NS 8407:2011, integrert med prosjekthotellet Catenda. Utviklet av Oslobygg KF for å erstatte manuelle PDF/Word-baserte prosesser med strukturerte, sporbare data.
 
-**Sist oppdatert:** 2025-12-01
+**Sist oppdatert:** 2025-12-06
 
 ---
 
@@ -39,10 +39,11 @@ Endringsmeldinger i byggeprosjekter håndteres tradisjonelt via PDF/Word-skjemae
 
 Denne plattformen digitaliserer prosessen ved å:
 
-- **Strukturere data** – Alle felt lagres i database, ikke innelåst i dokumenter
+- **Event Sourcing** – Alle endringer lagres som uforanderlige hendelser, gir komplett historikk
+- **Tre uavhengige spor** – Grunnlag, Vederlag og Frist behandles parallelt (NS 8407 Port-modell)
 - **Integrere med Catenda** – Saker opprettes i prosjekthotellet, lenker til skjema
 - **Automatisere arkivering** – PDF genereres og lastes opp til Catenda automatisk
-- **Sikre sporbarhet** – Komplett audit trail for alle handlinger
+- **Sikre sporbarhet** – Komplett audit trail via event log
 
 ---
 
@@ -147,7 +148,9 @@ FASE 1.1          FASE 1.2          FASE 2            FASE 3            FASE 4
 
 ## Arkitektur
 
-### Prototype (nåværende)
+### Event Sourcing-arkitektur
+
+Systemet bruker **Event Sourcing med CQRS** (Command Query Responsibility Segregation):
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -156,28 +159,62 @@ FASE 1.1          FASE 1.2          FASE 2            FASE 3            FASE 4
 │              Oslo kommunes designsystem (Punkt)                 │
 │                      Vite dev server                            │
 └───────────────────────────┬─────────────────────────────────────┘
-                            │ HTTP/REST
+                            │ HTTP/REST (Events + Queries)
                             ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                         BACKEND                                 │
-│              Flask 3 + Python (app.py: 155 linjer)              │
-│                  Pydantic v2 validering                         │
+│              Flask 3 + Python + Pydantic v2                     │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│   HTTP Layer         Service Layer         Data Layer           │
-│  ┌──────────┐       ┌──────────┐         ┌──────────┐          │
-│  │ routes/  │ ────▶ │services/ │ ───────▶│repos/    │          │
-│  │ 7 filer  │       │ 5 filer  │         │CSVRepo   │          │
-│  └──────────┘       └──────────┘         └──────────┘          │
-│                                                 │               │
-└─────────────────────────────────────────────────┼───────────────┘
-                            │ Catenda API         │
-                            ▼                     ▼
-┌─────────────────────────────────────────┐  ┌──────────┐
-│                CATENDA                   │  │ koe_data/│
-│     Prosjekthotell (ekstern tjeneste)   │  │ (JSON)   │
-│   Topics, Comments, Documents, Webhooks │  └──────────┘
-└─────────────────────────────────────────┘
+│   WRITE SIDE (Commands)              READ SIDE (Queries)        │
+│  ┌──────────────────────┐          ┌──────────────────────┐    │
+│  │ POST /api/events     │          │ GET /api/cases/{id}/ │    │
+│  │ • Valider event      │          │     state            │    │
+│  │ • Kjør forretnings-  │          │ • Hent events        │    │
+│  │   regler             │          │ • Beregn SakState    │    │
+│  │ • Persist til        │          │ • Returner projeksjon│    │
+│  │   EventStore         │          └──────────────────────┘    │
+│  └──────────────────────┘                    ▲                  │
+│            │                                 │                  │
+│            ▼                                 │                  │
+│  ┌──────────────────────────────────────────┴─────────────┐    │
+│  │              TimelineService (Projector)                │    │
+│  │  • compute_state(events) → SakState                     │    │
+│  │  • Tre spor: Grunnlag, Vederlag, Frist                  │    │
+│  │  • Port-modell for NS 8407                              │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+                            │
+            ┌───────────────┴───────────────┐
+            ▼                               ▼
+┌─────────────────────────────┐  ┌─────────────────────────────┐
+│      EVENT STORE            │  │         CATENDA             │
+│  JsonFileEventRepository    │  │   Prosjekthotell            │
+│  • Append-only log          │  │   Topics, Comments, Docs    │
+│  • Optimistisk låsing       │  └─────────────────────────────┘
+│  • Versjonsnummer           │
+└─────────────────────────────┘
+```
+
+### Tre-spor modell (NS 8407)
+
+```
+SAK (Endringsmelding)
+├── GRUNNLAG (Ansvar - "Hvorfor?")
+│   ├── TE sender: GRUNNLAG_OPPRETTET
+│   ├── TE oppdaterer: GRUNNLAG_OPPDATERT
+│   └── BH svarer: RESPONS_GRUNNLAG
+│
+├── VEDERLAG (Betaling - "Hva koster det?")
+│   ├── TE sender: VEDERLAG_KRAV_SENDT
+│   ├── TE oppdaterer: VEDERLAG_KRAV_OPPDATERT
+│   └── BH svarer: RESPONS_VEDERLAG (Port 1 + Port 2)
+│
+└── FRIST (Tidsfrist - "Hvor lang tid?")
+    ├── TE sender: FRIST_KRAV_SENDT
+    ├── TE oppdaterer: FRIST_KRAV_OPPDATERT
+    └── BH svarer: RESPONS_FRIST (Port 1 + Port 2 + Port 3)
 ```
 
 ### Produksjon (planlagt)
@@ -303,64 +340,46 @@ Se [GETTING_STARTED.md](docs/GETTING_STARTED.md) for detaljert oppsettguide inkl
 ```
 Skjema_Endringsmeldinger/
 │
-├── App.tsx                         # Hovedkomponent (344 linjer)
-├── index.tsx                       # Entry point
-├── types.ts                        # TypeScript-definisjoner (interfaces, statustyper)
-│
-├── config/                         # Konfigurasjon og standardverdier
-│   ├── formDefaults.ts             # Standard skjemaverdier
-│   ├── dropdownOptions.ts          # Dropdown-alternativer
-│   ├── demoData.ts                 # Demo-/testdata
-│   ├── tabs.ts                     # Fane-konfigurasjon
-│   └── fileUpload.ts               # Filopplasting-innstillinger
-│
-├── components/
-│   ├── layout/                     # Layout-komponenter
-│   │   ├── AppLayout.tsx           # Hovedlayout wrapper
-│   │   ├── AppHeader.tsx           # Header med logo
-│   │   ├── TabNavigation.tsx       # Fane-navigasjon
-│   │   └── BottomBar.tsx           # Bunnseksjon
-│   ├── panels/                     # Hovedpaneler
-│   │   ├── VarselPanel.tsx         # Varsel-skjema
-│   │   ├── KravKoePanel.tsx        # KOE-skjema
-│   │   ├── BhSvarPanel.tsx         # Byggherre-svar
-│   │   └── TestOversiktPanel.tsx   # Saksoversikt
-│   └── ui/                         # Gjenbrukbare UI-komponenter
-│
-├── hooks/                          # Custom React hooks (10 stk)
-│   ├── useApiConnection.ts
-│   ├── useCaseLoader.ts
-│   ├── useFormSubmission.ts
-│   └── ...
-│
-├── services/                       # Frontend-tjenester
-│   ├── validationService.ts
-│   └── submissionService.ts
-│
-├── utils/                          # Hjelpefunksjoner
-│   └── pdf/                        # PDF-generering
+├── src/                            # Frontend (React/TypeScript)
+│   ├── App.tsx                     # Hovedkomponent
+│   ├── types/
+│   │   └── timeline.ts             # Event/State-typer (speiler backend)
+│   ├── api/
+│   │   ├── events.ts               # Event submission med optimistisk låsing
+│   │   └── client.ts               # HTTP-klient
+│   ├── components/
+│   │   ├── layout/                 # Layout-komponenter
+│   │   ├── panels/                 # Hovedpaneler (Grunnlag, Vederlag, Frist)
+│   │   └── ui/                     # Gjenbrukbare UI-komponenter
+│   ├── hooks/                      # Custom React hooks
+│   └── utils/                      # Hjelpefunksjoner
 │
 ├── backend/                        # Backend (Python/Flask)
-│   ├── app.py                      # Flask entrypoint (155 linjer)
-│   ├── core/                       # Sentralisert konfigurasjon
-│   │   ├── config.py               # Pydantic BaseSettings
-│   │   └── system_context.py       # SystemContext
-│   ├── routes/                     # Flask blueprints (7 filer)
-│   ├── services/                   # Forretningslogikk (5 filer)
-│   ├── repositories/               # Dataaksess (CSV, fremtidig Dataverse)
-│   ├── models/                     # Pydantic-modeller (4 filer)
+│   ├── app.py                      # Flask entrypoint
+│   │
+│   ├── models/                     # Pydantic v2 modeller
+│   │   ├── events.py               # Event-definisjoner (933 linjer)
+│   │   └── sak_state.py            # Read model/projeksjon (562 linjer)
+│   │
+│   ├── repositories/               # Data Access Layer
+│   │   ├── event_repository.py     # Event store (optimistisk låsing)
+│   │   └── sak_metadata_repository.py  # Metadata-cache
+│   │
+│   ├── services/                   # Forretningslogikk
+│   │   ├── timeline_service.py     # State-projeksjon (753 linjer)
+│   │   └── business_rules.py       # Forretningsregler (240 linjer)
+│   │
+│   ├── routes/
+│   │   └── event_routes.py         # Event API (592 linjer)
+│   │
 │   ├── integrations/catenda/       # Catenda API-klient
 │   ├── lib/                        # Auth, security, monitoring
-│   ├── functions/                  # Azure Functions adapter
-│   └── tests/                      # Testsuite (379 tester)
+│   └── tests/                      # Testsuite
 │
 ├── docs/                           # Dokumentasjon
 │
-├── shared/                         # Delt konfigurasjon
-│   └── status-codes.json           # Statuskoder (frontend + backend)
-│
-└── public/                         # Statiske assets
-    └── logos/
+└── shared/                         # Delt konfigurasjon
+    └── status-codes.json           # Statuskoder (frontend + backend)
 ```
 
 Se [backend/STRUCTURE.md](backend/STRUCTURE.md) for detaljert backend-arkitektur med linjetall.
@@ -483,20 +502,23 @@ npm run test:coverage
 
 ### Implementert
 
-- ✅ Frontend med alle paneler (Varsel, KOE, BH Svar, Oppsummering)
-- ✅ Backend med lagdelt arkitektur (app.py: 1231 → 155 linjer)
+- ✅ **Event Sourcing-arkitektur** med CQRS-mønster
+- ✅ **Tre-spor modell** (Grunnlag, Vederlag, Frist) etter NS 8407
+- ✅ **Port-modell** for strukturert vurdering (Port 1, 2, 3)
+- ✅ **Optimistisk låsing** med versjonsnummer for samtidighetskontroll
+- ✅ **Event store** med append-only log og komplett historikk
+- ✅ **State-projeksjon** via TimelineService
 - ✅ Catenda-integrasjon (API-klient, webhooks, magic links)
 - ✅ PDF-generering og automatisk opplasting
 - ✅ Sikkerhetstiltak (CSRF, validering, rate limiting, audit logging)
-- ✅ Comprehensive testing (379 backend + 95 frontend tester)
 
 ### Gjenstår for produksjon
 
 - ⏳ Azure Landing Zone (infrastruktur)
-- ⏳ DataverseRepository (erstatte CSV)
+- ⏳ DataverseRepository (erstatte JSON-filer)
 - ⏳ Azure Functions-migrering
 - ⏳ Redis for state (rate limiting, idempotency)
-- ⏳ EO-skjema (endringsordre)
+- ⏳ EO-hendelse (endringsordre-utstedelse)
 
 Se [PRE_PRODUCTION_PLAN.md](docs/PRE_PRODUCTION_PLAN.md) for detaljert sjekkliste.
 
