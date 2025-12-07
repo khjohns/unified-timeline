@@ -23,6 +23,14 @@ import {
   RespondGrunnlagModal,
   RespondVederlagModal,
   RespondFristModal,
+  // Update modals (TE)
+  SendGrunnlagUpdateModal,
+  ReviseVederlagModal,
+  ReviseFristModal,
+  // Update response modals (BH)
+  RespondGrunnlagUpdateModal,
+  UpdateResponseVederlagModal,
+  UpdateResponseFristModal,
 } from '../components/actions';
 import { getMockTimelineById } from '../mocks/mockData';
 import type { SakState, GrunnlagResponsResultat } from '../types/timeline';
@@ -69,13 +77,23 @@ export function CasePage() {
   const { sakId } = useParams<{ sakId: string }>();
   const { data, isLoading, error } = useCaseState(sakId || '');
 
-  // Modal state management
+  // Modal state management - Initial submissions
   const [sendGrunnlagOpen, setSendGrunnlagOpen] = useState(false);
   const [sendVederlagOpen, setSendVederlagOpen] = useState(false);
   const [sendFristOpen, setSendFristOpen] = useState(false);
   const [respondGrunnlagOpen, setRespondGrunnlagOpen] = useState(false);
   const [respondVederlagOpen, setRespondVederlagOpen] = useState(false);
   const [respondFristOpen, setRespondFristOpen] = useState(false);
+
+  // Modal state management - Updates (TE)
+  const [updateGrunnlagOpen, setUpdateGrunnlagOpen] = useState(false);
+  const [reviseVederlagOpen, setReviseVederlagOpen] = useState(false);
+  const [reviseFristOpen, setReviseFristOpen] = useState(false);
+
+  // Modal state management - Update responses (BH)
+  const [updateGrunnlagResponseOpen, setUpdateGrunnlagResponseOpen] = useState(false);
+  const [updateVederlagResponseOpen, setUpdateVederlagResponseOpen] = useState(false);
+  const [updateFristResponseOpen, setUpdateFristResponseOpen] = useState(false);
 
   // User role management for testing different modes
   const { userRole, setUserRole } = useUserRole();
@@ -187,7 +205,11 @@ export function CasePage() {
                 </Button>
               )}
               {userRole === 'TE' && actions.canUpdateGrunnlag && (
-                <Button variant="secondary" size="sm" disabled>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setUpdateGrunnlagOpen(true)}
+                >
                   Oppdater grunnlag
                 </Button>
               )}
@@ -199,6 +221,16 @@ export function CasePage() {
                   onClick={() => setRespondGrunnlagOpen(true)}
                 >
                   Svar på grunnlag
+                </Button>
+              )}
+              {/* BH Actions: Update existing response (snuoperasjon) */}
+              {userRole === 'BH' && actions.canUpdateGrunnlagResponse && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setUpdateGrunnlagResponseOpen(true)}
+                >
+                  Endre svar
                 </Button>
               )}
             </>
@@ -216,7 +248,11 @@ export function CasePage() {
                 </Button>
               )}
               {userRole === 'TE' && actions.canUpdateVederlag && (
-                <Button variant="secondary" size="sm" disabled>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setReviseVederlagOpen(true)}
+                >
                   Oppdater vederlag
                 </Button>
               )}
@@ -228,6 +264,16 @@ export function CasePage() {
                   onClick={() => setRespondVederlagOpen(true)}
                 >
                   Svar på vederlag
+                </Button>
+              )}
+              {/* BH Actions: Update existing response */}
+              {userRole === 'BH' && actions.canUpdateVederlagResponse && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setUpdateVederlagResponseOpen(true)}
+                >
+                  Endre svar
                 </Button>
               )}
             </>
@@ -245,7 +291,11 @@ export function CasePage() {
                 </Button>
               )}
               {userRole === 'TE' && actions.canUpdateFrist && (
-                <Button variant="secondary" size="sm" disabled>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setReviseFristOpen(true)}
+                >
                   Oppdater frist
                 </Button>
               )}
@@ -257,6 +307,16 @@ export function CasePage() {
                   onClick={() => setRespondFristOpen(true)}
                 >
                   Svar på frist
+                </Button>
+              )}
+              {/* BH Actions: Update existing response */}
+              {userRole === 'BH' && actions.canUpdateFristResponse && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setUpdateFristResponseOpen(true)}
+                >
+                  Endre svar
                 </Button>
               )}
             </>
@@ -365,6 +425,79 @@ export function CasePage() {
               antall_dager: state.frist.krevd_dager,
               begrunnelse: state.frist.begrunnelse,
             }}
+          />
+
+          {/* Update Modals (TE) */}
+          <SendGrunnlagUpdateModal
+            open={updateGrunnlagOpen}
+            onOpenChange={setUpdateGrunnlagOpen}
+            sakId={sakId}
+            originalEvent={{
+              event_id: `grunnlag-${sakId}`,
+              grunnlag: state.grunnlag,
+            }}
+          />
+          <ReviseVederlagModal
+            open={reviseVederlagOpen}
+            onOpenChange={setReviseVederlagOpen}
+            sakId={sakId}
+            lastVederlagEvent={{
+              event_id: `vederlag-${sakId}`,
+              metode: state.vederlag.metode || 'ENHETSPRISER',
+              belop_direkte: state.vederlag.belop_direkte,
+              kostnads_overslag: state.vederlag.kostnads_overslag,
+              begrunnelse: state.vederlag.begrunnelse,
+            }}
+          />
+          <ReviseFristModal
+            open={reviseFristOpen}
+            onOpenChange={setReviseFristOpen}
+            sakId={sakId}
+            lastFristEvent={{
+              event_id: `frist-${sakId}`,
+              antall_dager: state.frist.krevd_dager || 0,
+              begrunnelse: state.frist.begrunnelse,
+            }}
+            lastResponseEvent={state.frist.bh_resultat ? {
+              event_id: `frist-response-${sakId}`,
+              resultat: state.frist.bh_resultat,
+              godkjent_dager: state.frist.godkjent_dager,
+            } : undefined}
+            fristTilstand={state.frist}
+          />
+
+          {/* Update Response Modals (BH) */}
+          <RespondGrunnlagUpdateModal
+            open={updateGrunnlagResponseOpen}
+            onOpenChange={setUpdateGrunnlagResponseOpen}
+            sakId={sakId}
+            lastResponseEvent={{
+              event_id: `grunnlag-response-${sakId}`,
+              resultat: state.grunnlag.bh_resultat || 'godkjent',
+            }}
+            sakState={state}
+          />
+          <UpdateResponseVederlagModal
+            open={updateVederlagResponseOpen}
+            onOpenChange={setUpdateVederlagResponseOpen}
+            sakId={sakId}
+            lastResponseEvent={{
+              event_id: `vederlag-response-${sakId}`,
+              resultat: state.vederlag.bh_resultat || 'godkjent_fullt',
+              godkjent_belop: state.vederlag.godkjent_belop,
+            }}
+            vederlagTilstand={state.vederlag}
+          />
+          <UpdateResponseFristModal
+            open={updateFristResponseOpen}
+            onOpenChange={setUpdateFristResponseOpen}
+            sakId={sakId}
+            lastResponseEvent={{
+              event_id: `frist-response-${sakId}`,
+              resultat: state.frist.bh_resultat || 'godkjent_fullt',
+              godkjent_dager: state.frist.godkjent_dager,
+            }}
+            fristTilstand={state.frist}
           />
         </>
       )}
