@@ -34,7 +34,8 @@ import {
 } from '../components/actions';
 import { getMockTimelineById } from '../mocks/mockData';
 import type { SakState, GrunnlagResponsResultat } from '../types/timeline';
-import { ReloadIcon, ExclamationTriangleIcon } from '@radix-ui/react-icons';
+import { ReloadIcon, ExclamationTriangleIcon, DownloadIcon } from '@radix-ui/react-icons';
+import { downloadContractorClaimPdf } from '../pdf';
 
 // Default empty state for when data is not yet loaded
 const EMPTY_STATE: SakState = {
@@ -178,7 +179,16 @@ export function CasePage() {
               </h1>
               <p className="mt-1 text-sm sm:text-base text-pkt-text-body-subtle">Sak #{sakId}</p>
             </div>
-            <div className="shrink-0">
+            <div className="shrink-0 flex items-center gap-3">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => downloadContractorClaimPdf(state)}
+                title="Last ned PDF"
+              >
+                <DownloadIcon className="w-4 h-4 mr-2" />
+                Last ned PDF
+              </Button>
               <ModeToggle userRole={userRole} onToggle={setUserRole} />
             </div>
           </div>
