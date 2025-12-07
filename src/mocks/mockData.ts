@@ -1478,6 +1478,242 @@ export const mockTimelineEvents9: TimelineEntry[] = [
 ];
 
 /**
+ * Example case 10: Multiple revisions - complete TE→BH→TE→BH cycle
+ * This case demonstrates:
+ * - TE sends initial vederlag claim
+ * - BH partially approves
+ * - TE revises claim
+ * - BH updates response to full approval
+ */
+export const mockSakState10: SakState = {
+  sak_id: 'SAK-2025-010',
+  sakstittel: 'Revisjonssyklus - Ekstra sprinkleranlegg',
+
+  // Grunnlag - godkjent
+  grunnlag: {
+    status: 'godkjent',
+    hovedkategori: 'ENDRING',
+    underkategori: 'REG',
+    beskrivelse:
+      'Pålagt utvidelse av sprinkleranlegg til teknisk rom etter krav fra brannvesenet. Ikke del av opprinnelig kontrakt.',
+    dato_oppdaget: '2025-02-01',
+    dato_varsel_sendt: '2025-02-01',
+    varsel_metode: ['epost'],
+    kontraktsreferanser: ['§32.1'],
+    bh_resultat: 'godkjent',
+    bh_begrunnelse: 'Godkjent som endring. Kravet fra brannvesenet dokumentert.',
+    laast: true,
+    siste_oppdatert: '2025-02-05',
+    antall_versjoner: 1,
+  },
+
+  // Vederlag - har gjennomgått revisjon
+  vederlag: {
+    status: 'godkjent',
+    metode: 'ENHETSPRISER',
+    belop_direkte: 185000, // Revidert beløp (ned fra 220000)
+    begrunnelse:
+      'Revidert krav etter gjennomgang med BH. Fjernet post for prosjektering da dette inngår i enhetsprisene.',
+    bh_resultat: 'godkjent_fullt',
+    bh_begrunnelse: 'Revidert krav godkjent i sin helhet.',
+    godkjent_belop: 185000,
+    siste_oppdatert: '2025-02-15',
+    antall_versjoner: 2, // Har blitt revidert
+  },
+
+  // Frist - godkjent
+  frist: {
+    status: 'godkjent',
+    krevd_dager: 5,
+    frist_type: 'spesifisert_krav',
+    begrunnelse: '5 dager for installasjon av sprinkleranlegg.',
+    pavirker_kritisk_linje: false,
+    bh_resultat: 'godkjent_fullt',
+    bh_begrunnelse: '5 dager godkjent.',
+    godkjent_dager: 5,
+    siste_oppdatert: '2025-02-10',
+    antall_versjoner: 1,
+  },
+
+  // Status
+  overordnet_status: 'KLAR_FOR_EO',
+  kan_utstede_eo: true,
+  neste_handling: {
+    rolle: 'BH',
+    handling: 'Utsted endringsordre',
+    spor: null,
+  },
+
+  // Aggregates
+  sum_krevd: 185000,
+  sum_godkjent: 185000,
+  er_subsidiaert_vederlag: false,
+  er_subsidiaert_frist: false,
+  visningsstatus_vederlag: 'Godkjent: 185.000 NOK',
+  visningsstatus_frist: 'Godkjent: 5 dager',
+
+  // Metadata
+  opprettet: '2025-02-01',
+  siste_aktivitet: '2025-02-15',
+  antall_events: 8,
+};
+
+/**
+ * Timeline for case 10 - showing complete TE→BH→TE→BH revision cycle for vederlag
+ */
+export const mockTimelineEvents10: TimelineEntry[] = [
+  // Event 8: BH oppdaterer vederlagsrespons - godkjenner fullt ut
+  {
+    event_id: 'evt-1008',
+    tidsstempel: '2025-02-15T11:00:00Z',
+    type: 'Vederlagsrespons oppdatert',
+    event_type: 'respons_vederlag_oppdatert',
+    aktor: 'Kari Nordmann',
+    rolle: 'BH',
+    spor: 'vederlag',
+    sammendrag: 'Endret til full godkjenning - 185.000 NOK',
+    event_data: {
+      original_respons_id: 'evt-1004',
+      nytt_resultat: 'godkjent_fullt',
+      godkjent_belop: 185000,
+      kommentar:
+        'Etter revisjon av kravet godkjennes hele beløpet. Prosjekteringskostnader korrekt fjernet.',
+      dato_endret: '2025-02-15',
+    },
+  },
+  // Event 7: TE reviderer vederlagskrav (ned fra 220k til 185k)
+  {
+    event_id: 'evt-1007',
+    tidsstempel: '2025-02-12T14:30:00Z',
+    type: 'Vederlagskrav oppdatert',
+    event_type: 'vederlag_krav_oppdatert',
+    aktor: 'Per Hansen',
+    rolle: 'TE',
+    spor: 'vederlag',
+    sammendrag: 'Revidert krav: 220.000 → 185.000 NOK',
+    event_data: {
+      original_event_id: 'evt-1003',
+      nytt_belop_direkte: 185000,
+      begrunnelse:
+        'Fjernet post for prosjektering (35.000 NOK) etter gjennomgang med BH. Prosjektering inngår i enhetsprisene.',
+      dato_revidert: '2025-02-12',
+    },
+  },
+  // Event 6: Frist godkjent
+  {
+    event_id: 'evt-1006',
+    tidsstempel: '2025-02-10T10:00:00Z',
+    type: 'Respons på fristkrav',
+    event_type: 'respons_frist',
+    aktor: 'Kari Nordmann',
+    rolle: 'BH',
+    spor: 'frist',
+    sammendrag: 'Fristkrav godkjent - 5 dager',
+    event_data: {
+      beregnings_resultat: 'godkjent_fullt',
+      godkjent_dager: 5,
+      begrunnelse_beregning: '5 dager godkjent for sprinklerinstallasjon.',
+    },
+  },
+  // Event 5: Grunnlag godkjent
+  {
+    event_id: 'evt-1005',
+    tidsstempel: '2025-02-05T09:00:00Z',
+    type: 'Respons på grunnlag',
+    event_type: 'respons_grunnlag',
+    aktor: 'Kari Nordmann',
+    rolle: 'BH',
+    spor: 'grunnlag',
+    sammendrag: 'Grunnlag godkjent - endring akseptert',
+    event_data: {
+      resultat: 'godkjent',
+      begrunnelse: 'Godkjent som endring. Kravet fra brannvesenet dokumentert.',
+    },
+  },
+  // Event 4: BH gir delvis godkjenning på første vederlagskrav
+  {
+    event_id: 'evt-1004',
+    tidsstempel: '2025-02-08T15:00:00Z',
+    type: 'Respons på vederlagskrav',
+    event_type: 'respons_vederlag',
+    aktor: 'Kari Nordmann',
+    rolle: 'BH',
+    spor: 'vederlag',
+    sammendrag: 'Delvis godkjent - 185.000 av 220.000 NOK',
+    event_data: {
+      beregnings_resultat: 'delvis_godkjent',
+      godkjent_belop: 185000,
+      begrunnelse_beregning:
+        'Prosjekteringskostnader (35.000 NOK) inngår allerede i enhetsprisene og kan ikke kreves separat.',
+    },
+  },
+  // Event 3: TE sender vederlagskrav
+  {
+    event_id: 'evt-1003',
+    tidsstempel: '2025-02-03T10:00:00Z',
+    type: 'Vederlagskrav sendt',
+    event_type: 'vederlag_krav_sendt',
+    aktor: 'Per Hansen',
+    rolle: 'TE',
+    spor: 'vederlag',
+    sammendrag: 'Krav på 220.000 NOK - enhetspriser',
+    event_data: {
+      metode: 'ENHETSPRISER',
+      belop_direkte: 220000,
+      begrunnelse:
+        'Materialer og montering iht. enhetspriskontrakt:\n- Sprinklerrør og dyser: 120.000 NOK\n- Montering: 65.000 NOK\n- Prosjektering: 35.000 NOK',
+    },
+  },
+  // Event 2: TE sender fristkrav
+  {
+    event_id: 'evt-1002',
+    tidsstempel: '2025-02-02T14:00:00Z',
+    type: 'Fristkrav sendt',
+    event_type: 'frist_krav_sendt',
+    aktor: 'Per Hansen',
+    rolle: 'TE',
+    spor: 'frist',
+    sammendrag: 'Krav på 5 dager forlengelse',
+    event_data: {
+      varsel_type: 'spesifisert',
+      antall_dager: 5,
+      begrunnelse: '5 dager for installasjon av sprinkleranlegg i teknisk rom.',
+    },
+  },
+  // Event 1: TE sender grunnlag
+  {
+    event_id: 'evt-1001',
+    tidsstempel: '2025-02-01T09:00:00Z',
+    type: 'Grunnlag opprettet',
+    event_type: 'grunnlag_opprettet',
+    aktor: 'Per Hansen',
+    rolle: 'TE',
+    spor: 'grunnlag',
+    sammendrag: 'Varsel om pålagt sprinklerutvidelse',
+    event_data: {
+      hovedkategori: 'ENDRING',
+      underkategori: 'REG',
+      beskrivelse:
+        'Pålagt utvidelse av sprinkleranlegg til teknisk rom etter krav fra brannvesenet. Ikke del av opprinnelig kontrakt.',
+      dato_oppdaget: '2025-02-01',
+      grunnlag_varsel: { dato_sendt: '2025-02-01', metode: ['epost'] },
+      kontraktsreferanser: ['§32.1'],
+    },
+  },
+  // Event 0: Sak opprettet
+  {
+    event_id: 'evt-1000',
+    tidsstempel: '2025-02-01T08:00:00Z',
+    type: 'Sak opprettet',
+    event_type: 'sak_opprettet',
+    aktor: 'System',
+    rolle: 'TE',
+    spor: null,
+    sammendrag: 'Ny endringsmelding opprettet',
+  },
+];
+
+/**
  * Get mock data by case ID
  */
 export function getMockStateById(sakId: string): SakState {
@@ -1500,6 +1736,8 @@ export function getMockStateById(sakId: string): SakState {
       return mockSakState8;
     case 'SAK-2025-009':
       return mockSakState9;
+    case 'SAK-2025-010':
+      return mockSakState10;
     default:
       return mockSakState1;
   }
@@ -1528,6 +1766,8 @@ export function getMockTimelineById(sakId: string): TimelineEntry[] {
       return mockTimelineEvents8;
     case 'SAK-2025-009':
       return mockTimelineEvents9;
+    case 'SAK-2025-010':
+      return mockTimelineEvents10;
     default:
       return mockTimelineEvents1;
   }
@@ -1581,5 +1821,10 @@ export const mockCaseList = [
     id: 'SAK-2025-009',
     title: 'Passivitet - Irregulær endring ventilasjon',
     status: 'Passiv aksept (§32.3)',
+  },
+  {
+    id: 'SAK-2025-010',
+    title: 'Revisjonssyklus - Ekstra sprinkleranlegg',
+    status: 'Klar for EO (TE→BH→TE→BH)',
   },
 ];
