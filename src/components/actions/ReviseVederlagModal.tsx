@@ -16,6 +16,7 @@ import { FormField } from '../primitives/FormField';
 import { Alert } from '../primitives/Alert';
 import { AlertDialog } from '../primitives/AlertDialog';
 import { Badge } from '../primitives/Badge';
+import { RevisionTag } from '../primitives/RevisionTag';
 import { CurrencyInput } from '../primitives/CurrencyInput';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -49,6 +50,8 @@ interface ReviseVederlagModalProps {
   onOpenChange: (open: boolean) => void;
   sakId: string;
   lastVederlagEvent: LastVederlagEventInfo;
+  /** Current version number (0 = original, 1+ = revisions). Next revision will be currentVersion + 1. */
+  currentVersion?: number;
 }
 
 const METODE_LABELS: Record<VederlagsMetode, string> = {
@@ -62,6 +65,7 @@ export function ReviseVederlagModal({
   onOpenChange,
   sakId,
   lastVederlagEvent,
+  currentVersion = 0,
 }: ReviseVederlagModalProps) {
   // Determine if this is regningsarbeid (uses kostnads_overslag instead of belop_direkte)
   const erRegningsarbeid = lastVederlagEvent.metode === 'REGNINGSARBEID';
@@ -70,6 +74,9 @@ export function ReviseVederlagModal({
   const gjeldendeBelop = erRegningsarbeid
     ? lastVederlagEvent.kostnads_overslag
     : lastVederlagEvent.belop_direkte;
+
+  // This revision will become the next version
+  const nextVersion = currentVersion + 1;
 
   const {
     handleSubmit,
@@ -144,6 +151,18 @@ export function ReviseVederlagModal({
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* Revision info header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">Nåværende:</span>
+            <RevisionTag version={currentVersion} size="sm" />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">Oppretter:</span>
+            <RevisionTag version={nextVersion} size="sm" />
+          </div>
+        </div>
+
         {/* Current state */}
         <div className="bg-gray-50 p-4 rounded border border-gray-200">
           <div className="flex justify-between items-start">
