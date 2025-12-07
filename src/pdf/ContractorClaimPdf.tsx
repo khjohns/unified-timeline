@@ -180,14 +180,6 @@ function formatFristVarselType(type?: FristVarselType): string {
   return typeMap[type] || type;
 }
 
-function formatFristType(type?: string): string {
-  if (!type) return 'dager';
-  // Only show valid frist types
-  if (type === 'kalenderdager' || type === 'arbeidsdager') {
-    return type;
-  }
-  return 'dager';
-}
 
 function formatCurrency(amount?: number): string {
   if (amount === undefined || amount === null) return '—';
@@ -598,7 +590,7 @@ const FristSection: React.FC<{ state: SakState }> = ({ state }) => {
               {frist.krevd_dager !== undefined && (
                 <TableRow
                   label="Krevd dager"
-                  value={`${frist.krevd_dager} ${formatFristType(frist.frist_type)}`}
+                  value={`${frist.krevd_dager} dager`}
                   striped
                 />
               )}
