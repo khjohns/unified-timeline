@@ -8,9 +8,50 @@
 
 import { TimelineItem } from './TimelineItem';
 import { ViewSubmittedEventModal } from './ViewSubmittedEventModal';
-import { TimelineEntry } from '../../types/timeline';
-import { useState } from 'react';
+import { RevisionTag } from '../primitives/RevisionTag';
+import { TimelineEntry, SporType } from '../../types/timeline';
+import { useState, useMemo } from 'react';
 import { FileTextIcon, ClipboardIcon } from '@radix-ui/react-icons';
+
+// Event types that represent updates/revisions
+const UPDATE_EVENT_TYPES = [
+  'grunnlag_oppdatert',
+  'vederlag_krav_oppdatert',
+  'frist_krav_oppdatert',
+  'respons_grunnlag_oppdatert',
+  'respons_vederlag_oppdatert',
+  'respons_frist_oppdatert',
+];
+
+/**
+ * Calculate revision number for an event based on timeline history
+ */
+function getRevisionNumber(
+  event: TimelineEntry,
+  events: TimelineEntry[]
+): number | null {
+  if (!event.event_type || !UPDATE_EVENT_TYPES.includes(event.event_type)) {
+    return null;
+  }
+
+  // Count how many updates of the same type came before this one
+  const sameTypeUpdates = events
+    .filter(
+      (e) =>
+        e.event_type === event.event_type &&
+        e.spor === event.spor &&
+        e.rolle === event.rolle &&
+        new Date(e.tidsstempel) <= new Date(event.tidsstempel)
+    )
+    .sort(
+      (a, b) =>
+        new Date(a.tidsstempel).getTime() - new Date(b.tidsstempel).getTime()
+    );
+
+  const index = sameTypeUpdates.findIndex((e) => e.event_id === event.event_id);
+  // Return revision number (1-indexed since 0 is the original)
+  return index >= 0 ? index + 1 : null;
+}
 
 interface TimelineProps {
   events: TimelineEntry[];
@@ -36,13 +77,24 @@ export function Timeline({ events }: TimelineProps) {
   return (
     <>
       <ul className="space-y-0" aria-label="Tidslinje over hendelser">
-        {events.map((event) => (
+        {events.map((event) => {
+          const revisionNumber = getRevisionNumber(event, events);
+          const isRevision = revisionNumber !== null;
+
+          return (
           <TimelineItem
             key={event.event_id}
             timestamp={event.tidsstempel}
             actor={`${event.aktor} (${event.rolle})`}
             eventType={event.type}
-            description={event.sammendrag}
+            description={
+              <div className="flex items-start gap-2">
+                <span>{event.sammendrag}</span>
+                {isRevision && (
+                  <RevisionTag version={revisionNumber} size="sm" />
+                )}
+              </div>
+            }
             details={
               <div className="text-sm text-gray-600 space-y-3">
                 <div>
@@ -69,7 +121,8 @@ export function Timeline({ events }: TimelineProps) {
               setExpandedId(expandedId === event.event_id ? null : event.event_id)
             }
           />
-        ))}
+          );
+        })}
       </ul>
 
       {/* Modal for viewing full submitted form */}

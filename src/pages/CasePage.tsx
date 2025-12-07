@@ -448,6 +448,7 @@ export function CasePage() {
               kostnads_overslag: state.vederlag.kostnads_overslag,
               begrunnelse: state.vederlag.begrunnelse,
             }}
+            currentVersion={Math.max(0, (state.vederlag.antall_versjoner ?? 1) - 1)}
           />
           <ReviseFristModal
             open={reviseFristOpen}

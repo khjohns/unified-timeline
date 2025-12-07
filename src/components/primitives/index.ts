@@ -12,6 +12,7 @@ export { Tooltip } from './Tooltip';
 export { AlertDialog } from './AlertDialog';
 export { Alert } from './Alert';
 export { Badge } from './Badge';
+export { RevisionTag, RevisionTagGroup } from './RevisionTag';
 export { Collapsible } from './Collapsible';
 export { CurrencyInput } from './CurrencyInput';
 

@@ -16,6 +16,7 @@ import { FormField } from '../primitives/FormField';
 import { Alert } from '../primitives/Alert';
 import { AlertDialog } from '../primitives/AlertDialog';
 import { Badge } from '../primitives/Badge';
+import { RevisionTag } from '../primitives/RevisionTag';
 import { RadioGroup, RadioItem } from '../primitives/RadioGroup';
 import { CurrencyInput } from '../primitives/CurrencyInput';
 import { useForm, Controller } from 'react-hook-form';
@@ -42,6 +43,8 @@ interface UpdateResponseVederlagModalProps {
     event_id: string;
     resultat: VederlagBeregningResultat;
     godkjent_belop?: number;
+    /** Which version of the claim this response was for (0-indexed) */
+    respondedToVersion?: number;
   };
   vederlagTilstand: VederlagTilstand;
 }
@@ -81,6 +84,15 @@ export function UpdateResponseVederlagModal({
     // For other metoder, overslag is not relevant
     return false;
   }, [erTilbakehold, erRegningsarbeid, vederlagTilstand.kostnads_overslag]);
+
+  // Current claim version (0-indexed: 0 = original, 1 = first revision, etc.)
+  const currentClaimVersion = Math.max(0, (vederlagTilstand.antall_versjoner ?? 1) - 1);
+
+  // Check if claim has been revised since BH's last response
+  const kravRevidertEtterSvar = useMemo(() => {
+    const respondedTo = lastResponseEvent.respondedToVersion ?? 0;
+    return currentClaimVersion > respondedTo;
+  }, [currentClaimVersion, lastResponseEvent.respondedToVersion]);
 
   const {
     handleSubmit,
@@ -180,11 +192,24 @@ export function UpdateResponseVederlagModal({
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* Revision warning - claim has been revised since last response */}
+        {kravRevidertEtterSvar && (
+          <Alert variant="warning" title="Kravet er revidert">
+            <p>
+              Entreprenøren har revidert vederlagskravet etter ditt forrige svar.
+              Gjeldende krav er nå <strong>Rev. {currentClaimVersion}</strong>.
+              Sørg for at du vurderer det oppdaterte kravet.
+            </p>
+          </Alert>
+        )}
+
         {/* Current state */}
         <div className="bg-gray-50 p-4 rounded border border-gray-200">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-sm text-gray-600">Nåværende svar:</p>
+              <div className="flex items-center gap-2 mb-1">
+                <p className="text-sm text-gray-600">Nåværende svar:</p>
+              </div>
               <Badge
                 variant={
                   forrigeResultat === 'hold_tilbake' ? 'warning' :
@@ -195,9 +220,12 @@ export function UpdateResponseVederlagModal({
               </Badge>
             </div>
             <div className="text-right">
-              <p className="text-sm text-gray-600">
-                {erRegningsarbeid ? 'Kostnadsoverslag:' : 'Krevd beløp:'}
-              </p>
+              <div className="flex items-center justify-end gap-2 mb-1">
+                <p className="text-sm text-gray-600">
+                  {erRegningsarbeid ? 'Kostnadsoverslag:' : 'Krevd beløp:'}
+                </p>
+                <RevisionTag version={currentClaimVersion} size="sm" />
+              </div>
               <p className="text-xl font-bold">kr {krevdBelop.toLocaleString('nb-NO')},-</p>
             </div>
           </div>
