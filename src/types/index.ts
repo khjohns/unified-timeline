@@ -15,10 +15,17 @@ export type {
   FristTilstand,
   SakState,
   EventType,
+  VarselInfo,
+  SaerskiltKravItem,
   GrunnlagEventData,
   VederlagEventData,
   FristEventData,
-  ResponsEventData,
+  GrunnlagResponsResultat,
+  VederlagBeregningResultat,
+  FristBeregningResultat,
+  VederlagsMetode,
+  FristVarselType,
+  ForseringTilstand,
   TimelineEntry,
 } from './timeline';
 

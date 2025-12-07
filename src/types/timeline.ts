@@ -57,8 +57,10 @@ export type FristBeregningResultat =
 export type GrunnlagResponsResultat =
   | 'godkjent'
   | 'delvis_godkjent'
+  | 'erkjenn_fm'       // §33.3 - BH erkjenner Force Majeure (kun frist, ikke vederlag)
   | 'avvist_uenig'
   | 'avvist_for_sent'
+  | 'frafalt'          // §32.3 c - BH frafaller pålegget (kun irregulær endring)
   | 'krever_avklaring';
 
 export type OverordnetStatus =
@@ -75,6 +77,7 @@ export type OverordnetStatus =
 
 export interface GrunnlagTilstand {
   status: SporStatus;
+  tittel?: string;                   // Kort beskrivende tittel for varselet
   hovedkategori?: string;
   underkategori?: string | string[]; // Support both single and multiple underkategorier
   beskrivelse?: string;
@@ -104,12 +107,11 @@ export interface VederlagTilstand {
   krever_justert_ep?: boolean;   // For ENHETSPRISER - krever justerte EP
   begrunnelse?: string;
 
-  // Særskilte krav (§34.1.3)
+  // Særskilte krav (§34.1.3) - separate frister per kostnadstype
+  // Per standarden: TE kan bli klar over rigg/drift og produktivitetstap på ulike tidspunkt
   saerskilt_krav?: {
-    rigg_drift?: boolean;
-    produktivitet?: boolean;
-    belop?: number;
-    dato_klar_over?: string;     // For 7-dagers sjekk
+    rigg_drift?: SaerskiltKravItem;      // §34.1.3 første ledd
+    produktivitet?: SaerskiltKravItem;   // §34.1.3 annet ledd
   };
 
   // TE's varselinfo (Port 1) - Using VarselInfo structure
@@ -263,12 +265,19 @@ export interface VarselInfo {
   metode?: string[];
 }
 
+// Særskilt krav item (§34.1.3) - separate beløp og datoer per type
+export interface SaerskiltKravItem {
+  belop?: number;
+  dato_klar_over?: string;  // Når TE ble klar over at utgifter ville påløpe
+}
+
 export interface GrunnlagEventData {
-  hovedkategori: string; // Code from HOVEDKATEGORI_OPTIONS (e.g., "endring_initiert_bh")
-  underkategori: string | string[]; // Code(s) from UNDERKATEGORI_MAP
+  tittel: string;                    // Kort beskrivende tittel for varselet
+  hovedkategori: string;             // Code from HOVEDKATEGORI_OPTIONS (e.g., "ENDRING")
+  underkategori: string | string[];  // Code(s) from UNDERKATEGORI_MAP
   beskrivelse: string;
   dato_oppdaget: string;
-  grunnlag_varsel?: VarselInfo; // NEW: Structured varsel info
+  grunnlag_varsel?: VarselInfo;      // Structured varsel info
   kontraktsreferanser?: string[];
   vedlegg_ids?: string[];
 }
@@ -285,12 +294,10 @@ export interface VederlagEventData {
   // For ENHETSPRISER
   krever_justert_ep?: boolean;
 
-  // Særskilte krav (§34.1.3) - rigg/drift og produktivitetstap
+  // Særskilte krav (§34.1.3) - separate frister per kostnadstype
   saerskilt_krav?: {
-    rigg_drift?: boolean;
-    produktivitet?: boolean;
-    belop?: number;
-    dato_klar_over?: string;     // For 7-dagers varslingssjekk
+    rigg_drift?: SaerskiltKravItem;      // §34.1.3 første ledd
+    produktivitet?: SaerskiltKravItem;   // §34.1.3 annet ledd
   };
 
   // Varsler (VarselInfo structure)
