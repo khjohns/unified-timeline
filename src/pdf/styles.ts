@@ -123,24 +123,26 @@ export const styles = StyleSheet.create({
 
   // Title section
   title: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 4,
+    marginBottom: 8,
     color: COLORS.primary,
   },
   sakId: {
     fontSize: 11,
-    color: COLORS.primaryDark,
-    marginBottom: 15,
+    color: COLORS.inkDim,
+    marginBottom: 20,
   },
 
-  // Info box (case metadata)
+  // Info box (case metadata) - professional with border
   infoBox: {
-    backgroundColor: COLORS.lightBg,
-    padding: 12,
+    backgroundColor: COLORS.white,
+    padding: 14,
     marginBottom: 20,
     flexDirection: 'row',
     gap: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   infoColumn: {
     width: '50%',
@@ -161,28 +163,39 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Section styling
+  // Section styling - with proper spacing
   section: {
-    marginBottom: 20,
+    marginBottom: 24,
+    marginTop: 16,
   },
   sectionTitle: {
     fontSize: 12,
     fontWeight: 'bold',
     color: COLORS.primary,
-    marginBottom: 10,
-    paddingBottom: 4,
+    marginBottom: 12,
+    paddingBottom: 6,
     borderBottomWidth: 2,
     borderBottomColor: COLORS.primary,
   },
   subSection: {
-    marginTop: 12,
-    marginBottom: 8,
+    marginTop: 14,
+    marginBottom: 10,
   },
   subSectionTitle: {
     fontSize: 10,
     fontWeight: 'bold',
     color: COLORS.inkDim,
-    marginBottom: 6,
+    marginBottom: 8,
+  },
+
+  // Section container with border (professional look)
+  sectionContainer: {
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 16,
+    marginBottom: 24,
+    marginTop: 16,
   },
 
   // Table rows
@@ -299,24 +312,44 @@ export const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
 
+  // Summary section - professional with border
+  summaryContainer: {
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 14,
+    marginBottom: 20,
+  },
+  summaryHeader: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+    marginBottom: 12,
+    paddingBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
   // Summary cards
   summaryGrid: {
     flexDirection: 'row',
-    gap: 10,
-    marginTop: 10,
+    gap: 12,
   },
   summaryCard: {
     flex: 1,
-    backgroundColor: COLORS.lightBg,
-    padding: 10,
-    borderLeftWidth: 3,
-    borderLeftColor: COLORS.primary,
+    backgroundColor: COLORS.grayBg,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   summaryCardSuccess: {
+    borderColor: COLORS.success,
+    borderLeftWidth: 3,
     borderLeftColor: COLORS.success,
     backgroundColor: COLORS.successFaded,
   },
   summaryCardWarning: {
+    borderColor: COLORS.warning,
+    borderLeftWidth: 3,
     borderLeftColor: COLORS.warning,
     backgroundColor: COLORS.warningBg,
   },

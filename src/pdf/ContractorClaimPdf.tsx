@@ -180,6 +180,15 @@ function formatFristVarselType(type?: FristVarselType): string {
   return typeMap[type] || type;
 }
 
+function formatFristType(type?: string): string {
+  if (!type) return 'dager';
+  // Only show valid frist types
+  if (type === 'kalenderdager' || type === 'arbeidsdager') {
+    return type;
+  }
+  return 'dager';
+}
+
 function formatCurrency(amount?: number): string {
   if (amount === undefined || amount === null) return '—';
   const prefix = amount < 0 ? '−' : '';
@@ -589,7 +598,7 @@ const FristSection: React.FC<{ state: SakState }> = ({ state }) => {
               {frist.krevd_dager !== undefined && (
                 <TableRow
                   label="Krevd dager"
-                  value={`${frist.krevd_dager} ${frist.frist_type || 'dager'}`}
+                  value={`${frist.krevd_dager} ${formatFristType(frist.frist_type)}`}
                   striped
                 />
               )}
@@ -718,7 +727,7 @@ const FristSection: React.FC<{ state: SakState }> = ({ state }) => {
   );
 };
 
-// Summary section showing economic overview
+// Summary section showing economic overview - professional styling
 const SummarySection: React.FC<{ state: SakState }> = ({ state }) => {
   const hasVederlag = state.vederlag.status !== 'ikke_relevant';
   const hasFrist = state.frist.status !== 'ikke_relevant';
@@ -730,37 +739,35 @@ const SummarySection: React.FC<{ state: SakState }> = ({ state }) => {
   const differanse = krevdBelop - godkjentBelop;
 
   return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>SAMMENDRAG</Text>
+    <View style={styles.summaryContainer}>
+      <Text style={styles.summaryHeader}>Økonomisk sammendrag</Text>
 
-      <View style={styles.summaryGrid}>
-        {hasVederlag && (
-          <>
-            <View style={styles.summaryCard}>
-              <Text style={styles.summaryCardTitle}>Krevd vederlag</Text>
-              <Text style={styles.summaryCardValue}>{formatCurrency(krevdBelop)}</Text>
+      {hasVederlag && (
+        <View style={styles.summaryGrid}>
+          <View style={styles.summaryCard}>
+            <Text style={styles.summaryCardTitle}>Krevd vederlag</Text>
+            <Text style={styles.summaryCardValue}>{formatCurrency(krevdBelop)}</Text>
+          </View>
+
+          <View style={[styles.summaryCard, styles.summaryCardSuccess]}>
+            <Text style={styles.summaryCardTitle}>Godkjent vederlag</Text>
+            <Text style={styles.summaryCardValue}>{formatCurrency(godkjentBelop)}</Text>
+          </View>
+
+          {differanse !== 0 && (
+            <View style={[styles.summaryCard, differanse > 0 ? styles.summaryCardWarning : undefined]}>
+              <Text style={styles.summaryCardTitle}>Differanse</Text>
+              <Text style={styles.summaryCardValue}>{formatCurrency(differanse)}</Text>
+              <Text style={styles.summaryCardSubtext}>
+                {differanse > 0 ? 'Under behandling' : 'Fullt godkjent'}
+              </Text>
             </View>
-
-            <View style={[styles.summaryCard, styles.summaryCardSuccess]}>
-              <Text style={styles.summaryCardTitle}>Godkjent vederlag</Text>
-              <Text style={styles.summaryCardValue}>{formatCurrency(godkjentBelop)}</Text>
-            </View>
-
-            {differanse !== 0 && (
-              <View style={[styles.summaryCard, differanse > 0 ? styles.summaryCardWarning : undefined]}>
-                <Text style={styles.summaryCardTitle}>Differanse</Text>
-                <Text style={styles.summaryCardValue}>{formatCurrency(differanse)}</Text>
-                <Text style={styles.summaryCardSubtext}>
-                  {differanse > 0 ? 'Under behandling' : 'Fullt godkjent'}
-                </Text>
-              </View>
-            )}
-          </>
-        )}
-      </View>
+          )}
+        </View>
+      )}
 
       {hasFrist && state.frist.krevd_dager !== undefined && (
-        <View style={[styles.summaryGrid, { marginTop: 10 }]}>
+        <View style={[styles.summaryGrid, { marginTop: 12 }]}>
           <View style={styles.summaryCard}>
             <Text style={styles.summaryCardTitle}>Krevd fristforlengelse</Text>
             <Text style={styles.summaryCardValue}>{state.frist.krevd_dager} dager</Text>
@@ -805,17 +812,14 @@ export const ContractorClaimPdf: React.FC<ContractorClaimPdfProps> = ({ state })
 
         <CaseInfoSection state={state} />
 
-        <View style={styles.divider} />
+        {/* Summary moved up after metadata for quick overview */}
+        <SummarySection state={state} />
 
         <GrunnlagSection state={state} />
 
         <VederlagSection state={state} />
 
         <FristSection state={state} />
-
-        <View style={styles.divider} />
-
-        <SummarySection state={state} />
 
         <Footer pageNumber={1} totalPages={1} />
       </Page>
