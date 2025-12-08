@@ -101,43 +101,34 @@ backend/
 │   ├── manual_testing.sh            # Bash script for API-testing
 │   └── KOE_Backend_API.postman_collection.json  # Postman collection
 │
-└── tests/                           # Testsuite (379 tester, 62% coverage)
+└── tests/                           # Testsuite (345 tester, 32% coverage)
     ├── __init__.py
     ├── conftest.py                  # pytest fixtures
     ├── fixtures/                    # Testdata
     │   └── __init__.py
+    ├── test_auth/                   # Auth-tester
+    │   ├── test_magic_link_decorator.py
+    │   └── test_session_based_magic_links.py
     ├── test_models/                 # Modelltester
-    │   ├── __init__.py
-    │   └── test_sak.py              # 30 tester (100% coverage)
+    │   ├── test_events.py           # Event modell-tester
+    │   └── test_event_parsing.py    # Event parsing-tester
     ├── test_repositories/           # Repository-tester
-    │   ├── __init__.py
-    │   └── test_csv_repository.py   # 91% coverage
+    │   ├── test_event_repository.py # Event store-tester
+    │   └── test_sak_metadata_repository.py
     ├── test_services/               # Service-tester (forretningslogikk)
-    │   ├── __init__.py
-    │   ├── test_varsel_service.py
-    │   ├── test_koe_service.py
-    │   ├── test_svar_service.py
-    │   ├── test_catenda_service.py
-    │   └── test_webhook_service.py
-    ├── test_routes/                 # Route-tester (integrasjon)
-    │   ├── __init__.py
-    │   ├── test_case_routes.py
-    │   ├── test_utility_routes.py
-    │   └── test_workflow_routes.py
+    │   ├── test_business_rules.py
+    │   └── test_catenda_service.py
     ├── test_security/               # Sikkerhetstester
-    │   ├── __init__.py
     │   ├── test_csrf.py
     │   ├── test_magic_link.py
-    │   ├── test_validation.py       # 93 tester (95% coverage)
+    │   ├── test_validation.py
     │   └── test_webhook.py
     ├── test_monitoring/             # Overvåkingstester
-    │   ├── __init__.py
-    │   └── test_audit.py            # 38 tester (79% coverage)
+    │   └── test_audit.py
     └── test_utils/                  # Utility-tester
-        ├── __init__.py
-        ├── test_filtering_config.py # 30 tester (100% coverage)
-        ├── test_logger.py           # 19 tester (100% coverage)
-        └── test_network.py          # 12 tester (100% coverage)
+        ├── test_filtering_config.py
+        ├── test_logger.py
+        └── test_network.py
 ```
 
 ---
@@ -530,18 +521,21 @@ Produksjonsklar Catenda API-klient:
 
 ## 🧪 Testing
 
-### Test Coverage (2025-12-01)
+### Test Coverage (2025-12-08)
 
-| Kategori | Tester | Coverage |
-|----------|--------|----------|
-| Services | 5 filer | 83-93% |
-| Routes | 3 filer | 91-100% |
-| Repositories | 1 fil | 91% |
-| Security | 4 filer | 79-95% |
-| Models | 1 fil | 100% |
-| Monitoring | 1 fil | 79% |
-| Utils | 3 filer | 100% |
-| **Totalt** | **379 tester** | **62%** |
+| Kategori | Filer | Status |
+|----------|-------|--------|
+| Auth | 2 filer | Auth decorators og sessions |
+| Models | 2 filer | Event-modeller og parsing |
+| Repositories | 2 filer | Event store og metadata |
+| Services | 2 filer | Business rules og Catenda |
+| Security | 4 filer | CSRF, magic link, validation |
+| Monitoring | 1 fil | Audit logging |
+| Utils | 3 filer | Filtering, logging, network |
+| **Totalt** | **345 tester** | **32% overall** |
+
+> **Merk:** Flask route-tester er fjernet (produksjon bruker Azure Functions).
+> Kritisk forretningslogikk har 85-99% coverage.
 
 ### Kjør tester
 

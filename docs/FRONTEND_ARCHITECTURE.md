@@ -149,31 +149,32 @@ Frontend-typene er definert i `src/types/timeline.ts` og speiler backend-modelle
 ### Event-typer
 
 ```typescript
-// Event-typer som kan sendes til backend
+// Event-typer som kan sendes til backend (lowercase verdier)
 enum EventType {
   // Grunnlag (TE)
-  GRUNNLAG_OPPRETTET = "GRUNNLAG_OPPRETTET",
-  GRUNNLAG_OPPDATERT = "GRUNNLAG_OPPDATERT",
-  GRUNNLAG_TRUKKET = "GRUNNLAG_TRUKKET",
+  GRUNNLAG_OPPRETTET = "grunnlag_opprettet",
+  GRUNNLAG_OPPDATERT = "grunnlag_oppdatert",
+  GRUNNLAG_TRUKKET = "grunnlag_trukket",
 
   // Vederlag (TE)
-  VEDERLAG_KRAV_SENDT = "VEDERLAG_KRAV_SENDT",
-  VEDERLAG_KRAV_OPPDATERT = "VEDERLAG_KRAV_OPPDATERT",
-  VEDERLAG_KRAV_TRUKKET = "VEDERLAG_KRAV_TRUKKET",
+  VEDERLAG_KRAV_SENDT = "vederlag_krav_sendt",
+  VEDERLAG_KRAV_OPPDATERT = "vederlag_krav_oppdatert",
+  VEDERLAG_KRAV_TRUKKET = "vederlag_krav_trukket",
 
   // Frist (TE)
-  FRIST_KRAV_SENDT = "FRIST_KRAV_SENDT",
-  FRIST_KRAV_OPPDATERT = "FRIST_KRAV_OPPDATERT",
-  FRIST_KRAV_TRUKKET = "FRIST_KRAV_TRUKKET",
+  FRIST_KRAV_SENDT = "frist_krav_sendt",
+  FRIST_KRAV_OPPDATERT = "frist_krav_oppdatert",
+  FRIST_KRAV_TRUKKET = "frist_krav_trukket",
 
   // Respons (BH)
-  RESPONS_GRUNNLAG = "RESPONS_GRUNNLAG",
-  RESPONS_VEDERLAG = "RESPONS_VEDERLAG",
-  RESPONS_FRIST = "RESPONS_FRIST",
+  RESPONS_GRUNNLAG = "respons_grunnlag",
+  RESPONS_VEDERLAG = "respons_vederlag",
+  RESPONS_FRIST = "respons_frist",
 
   // Sak-hendelser
-  SAK_OPPRETTET = "SAK_OPPRETTET",
-  EO_UTSTEDT = "EO_UTSTEDT"
+  SAK_OPPRETTET = "sak_opprettet",
+  SAK_LUKKET = "sak_lukket",
+  EO_UTSTEDT = "eo_utstedt"
 }
 ```
 
@@ -737,9 +738,9 @@ PDF bruker Oslo kommunes designprofil:
 
 ## Testing
 
-### Test-status (2025-12-01)
+### Test-status (2025-12-08)
 
-- **95 tester** passerer
+- **95 tester** passerer (frontend)
 - **8 testfiler**
 - Kjøretid: ~14.5 sekunder
 

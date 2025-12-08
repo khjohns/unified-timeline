@@ -257,7 +257,7 @@ python -m pytest tests/ --cov=. --cov-report=html
 
 # Kjør spesifikke tester
 python -m pytest tests/test_services/ -v
-python -m pytest tests/test_routes/test_varsel_routes.py -v
+python -m pytest tests/test_models/test_event_parsing.py -v
 ```
 
 ### Frontend-tester
@@ -480,10 +480,9 @@ npm run generate:constants
 
 ## Neste steg
 
-- [API.md](API.md) – Backend API-referanse
 - [FRONTEND_ARCHITECTURE.md](FRONTEND_ARCHITECTURE.md) – Frontend-arkitektur
+- [DEPLOYMENT.md](DEPLOYMENT.md) – Deployment-guide
 - [backend/STRUCTURE.md](../backend/STRUCTURE.md) – Backend-mappestruktur
-- [HLD - Overordnet Design.md](HLD%20-%20Overordnet%20Design.md) – Systemarkitektur
 
 ---
 

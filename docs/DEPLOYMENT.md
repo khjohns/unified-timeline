@@ -140,9 +140,9 @@ Backend er delvis klargjort for Azure Functions. Eksisterende struktur:
 
 ```
 backend/
-├── function_app.py           # Azure Functions entry point (må opprettes)
+├── function_app.py           # ✅ Azure Functions entry point (eksisterer)
 ├── host.json                 # ✅ Host konfigurasjon (eksisterer)
-├── local.settings.json       # Lokale innstillinger (må opprettes)
+├── local.settings.json       # Lokale innstillinger (kopieres fra template)
 ├── requirements.txt          # ✅ Python avhengigheter
 │
 ├── functions/                # ✅ Azure Functions adapters (delvis implementert)
@@ -573,7 +573,7 @@ Lag Azure Dashboard med:
 
 - [ ] Smoke test: Health endpoint
 - [ ] Smoke test: Magic link flow
-- [ ] Smoke test: Submit event (GRUNNLAG_OPPRETTET)
+- [ ] Smoke test: Submit event (grunnlag_opprettet)
 - [ ] Smoke test: Hent state (GET /api/cases/{id}/state)
 - [ ] Smoke test: Optimistisk låsing (conflict handling)
 - [ ] Smoke test: Webhook mottak
@@ -584,7 +584,6 @@ Lag Azure Dashboard med:
 
 ## Se også
 
-- [HLD - Overordnet Design](HLD%20-%20Overordnet%20Design.md) – Detaljert arkitektur
-- [API.md](API.md) – API-referanse
-- [Handlingsplan_Sikkerhetstiltak.md](Handlingsplan_Sikkerhetstiltak.md) – Sikkerhetstiltak
+- [FRONTEND_ARCHITECTURE.md](FRONTEND_ARCHITECTURE.md) – Frontend-arkitektur
 - [GETTING_STARTED.md](GETTING_STARTED.md) – Lokal utvikling
+- [backend/STRUCTURE.md](../backend/STRUCTURE.md) – Backend-mappestruktur

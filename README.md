@@ -4,7 +4,7 @@
 
 Et system for håndtering av endringsordrer (KOE) etter NS 8407:2011, integrert med prosjekthotellet Catenda. Utviklet av Oslobygg KF for å erstatte manuelle PDF/Word-baserte prosesser med strukturerte, sporbare data.
 
-**Sist oppdatert:** 2025-12-06
+**Sist oppdatert:** 2025-12-08
 
 ---
 
@@ -49,100 +49,147 @@ Denne plattformen digitaliserer prosessen ved å:
 
 ## Arbeidsflyt
 
-Prosessen følger NS 8407:2011 for håndtering av krav om endring (KOE):
+Prosessen følger NS 8407:2011 for håndtering av krav om endring (KOE), implementert med event sourcing og tre parallelle spor.
 
 ### Oversikt
 
 ```
-FASE 1.1          FASE 1.2          FASE 2            FASE 3            FASE 4
-┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
-│ VARSLING │────▶│ LAGRING  │────▶│  KRAV    │────▶│  SVAR    │────▶│   EO     │
-│          │     │          │     │  (KOE)   │     │  (BH)    │     │          │
-└──────────┘     └──────────┘     └──────────┘     └────┬─────┘     └──────────┘
-                                        ▲               │
-                                        │               │ Delvis/Avvist
-                                        └───────────────┘ (revisjon)
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              SAK (KOE)                                       │
+│  ┌─────────────────────────────────────────────────────────────────────────┐│
+│  │ GRUNNLAG (Ansvar)     VEDERLAG (Betaling)     FRIST (Tid)              ││
+│  │ "Hvorfor?"            "Hva koster det?"       "Hvor lang tid?"         ││
+│  │                                                                         ││
+│  │ TE: grunnlag_         TE: vederlag_krav_      TE: frist_krav_          ││
+│  │     opprettet             sendt                   sendt                 ││
+│  │         │                    │                       │                  ││
+│  │         ▼                    ▼                       ▼                  ││
+│  │ BH: respons_          BH: respons_            BH: respons_             ││
+│  │     grunnlag              vederlag                frist                ││
+│  │     (Port 1)              (Port 1+2)              (Port 1+2+3)         ││
+│  └─────────────────────────────────────────────────────────────────────────┘│
+│                                    │                                         │
+│                                    ▼                                         │
+│                            ┌──────────────┐                                 │
+│                            │  EO UTSTEDT  │                                 │
+│                            └──────────────┘                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### FASE 1.1: VARSLING
+### Steg 1: Sak opprettes via Catenda
 
 ```
 ┌─────────────────┐
-│  ENTREPRENØR    │  1. Oppretter sak i Catenda (varsel om endring)
+│  ENTREPRENØR    │  1. Oppretter topic i Catenda (varsel om endring)
 └────────┬────────┘
          │
          ▼
 ┌─────────────────┐
-│  LØSNINGEN      │  2. Oppdager saken automatisk via webhook
-│                 │  3. Legger sikker lenke (magic link) i kommentarfeltet
+│  LØSNINGEN      │  2. Mottar webhook fra Catenda
+│                 │  3. Genererer magic link (gyldig 72 timer)
+│                 │  4. Poster lenke som kommentar i Catenda-topic
 └────────┬────────┘
          │
          ▼
 ┌─────────────────┐
-│  ENTREPRENØR    │  4. Fyller ut digitalt varselskjema
-│                 │  5. Sender formelt varsel → PDF genereres
+│  ENTREPRENØR    │  5. Klikker lenken og åpner KOE-skjema
+│                 │  → Event: sak_opprettet
 └─────────────────┘
 ```
 
-### FASE 1.2: OPPDATERING I DATABASE OG CATENDA
+### Steg 2: Grunnlag (Ansvarsgrunnlag)
+
+Entreprenør dokumenterer årsaken til kravet.
 
 ```
 ┌─────────────────┐
-│  LØSNINGEN      │  1. Sender data til database (CSV i prototype, Dataverse i prod)
-│                 │  2. Laster automatisk opp PDF til saken i Catenda
-│                 │  3. Legger ny lenke i kommentarfeltet for neste steg
-└─────────────────┘
-```
-
-### FASE 2: INNSENDING AV KRAV (KOE)
-
-```
-┌─────────────────┐
-│  ENTREPRENØR    │  1. Klikker på lenken fra Fase 1.2
-│                 │  2. Fyller ut kravskjema (vederlag, fristforlengelse)
-│                 │  3. Sender kravet → PDF genereres
+│  ENTREPRENØR    │  Fyller ut grunnlagsskjema:
+│  (TE)           │  • Hovedkategori (forsinkelse, endring, etc.)
+│                 │  • Beskrivelse og kontraktsreferanser
+│                 │  → Event: grunnlag_opprettet
 └────────┬────────┘
          │
          ▼
 ┌─────────────────┐
-│  LØSNINGEN      │  Fase 1.2 gjentas med oppdaterte data
+│  LØSNINGEN      │  • PDF genereres automatisk
+│                 │  • Lastes opp til Catenda
+│                 │  • Statuskommentar postes
 └─────────────────┘
 ```
 
-### FASE 3: BYGGHERRENS SVAR
+Magic link forblir gyldig, så TE kan umiddelbart fortsette til vederlag/frist.
+
+### Steg 3: Vederlag og/eller Frist (parallelt)
+
+Entreprenør kan sende krav om vederlag og/eller fristforlengelse:
+
+```
+┌─────────────────┐              ┌─────────────────┐
+│  VEDERLAGSKRAV  │              │  FRISTKRAV      │
+│                 │              │                 │
+│  • Metode       │              │  • Varseltype   │
+│  • Beløp        │              │  • Antall dager │
+│  • Begrunnelse  │              │  • Begrunnelse  │
+│                 │              │                 │
+│  → vederlag_    │              │  → frist_krav_  │
+│    krav_sendt   │              │    sendt        │
+└─────────────────┘              └─────────────────┘
+```
+
+### Steg 4: Byggherrens respons
+
+Byggherre vurderer hvert spor separat med Port-modellen:
+
+```
+GRUNNLAG                  VEDERLAG                   FRIST
+────────────────────────────────────────────────────────────────
+Port 1: Ansvar            Port 1: Varsling           Port 1: Varsling
+• godkjent                • Varslet i tide?          • Varslet i tide?
+• delvis_godkjent
+• avvist                  Port 2: Beregning          Port 2: Beregning
+• subsidiær_godkjenning   • godkjent_fullt           • godkjent_fullt
+                          • delvis_godkjent          • delvis_godkjent
+→ respons_grunnlag        • avslatt_totalt           • avslatt_ingen_hindring
+
+                          → respons_vederlag         Port 3: Frist
+                                                     • (tid-spesifikk vurdering)
+
+                                                     → respons_frist
+```
+
+Ved delvis godkjenning eller avvisning kan TE sende revidert krav:
+- `grunnlag_oppdatert` / `vederlag_krav_oppdatert` / `frist_krav_oppdatert`
+
+### Steg 5: Endringsordre (EO)
+
+Når alle spor er avklart, kan endringsordre utstedes:
 
 ```
 ┌─────────────────┐
-│  BYGGHERRE/PL   │  1. Åpner lenken for å svare på kravet
-│                 │  2. Vurderer kravet
-└────────┬────────┘
-         │
-         ├──────────────────────────────────────────┐
-         │                                          │
-         ▼                                          ▼
-┌─────────────────┐                      ┌─────────────────┐
-│  GODKJENT       │                      │  DELVIS GODKJENT│
-│                 │                      │  ELLER AVVIST   │
-│  → Gå til       │                      │                 │
-│    FASE 4       │                      │  → Entreprenør  │
-│                 │                      │    kan sende    │
-│                 │                      │    revidert     │
-│                 │                      │    krav (FASE 2)│
-└─────────────────┘                      └─────────────────┘
-```
-
-### FASE 4: ENDRINGSORDRE (EO)
-
-```
-┌─────────────────┐
-│  EO UTSTEDES    │  KOE-sak avsluttes. Endringsordre utstedes.
-│                 │
+│  EO UTSTEDES    │  → Event: eo_utstedt
+│                 │  Saken avsluttes.
 │  (Ikke impl.    │
 │   i prototype)  │
 └─────────────────┘
 ```
 
-**Merk:** Databaselagring til Dataverse og skjema for EO (endringsordre) er planlagt for produksjon, ikke implementert i prototypen.
+### Event-oversikt
+
+| Event | Aktør | Beskrivelse |
+|-------|-------|-------------|
+| `sak_opprettet` | System | Sak opprettes fra Catenda webhook |
+| `grunnlag_opprettet` | TE | Første innsending av ansvarsgrunnlag |
+| `grunnlag_oppdatert` | TE | Revidert grunnlag |
+| `vederlag_krav_sendt` | TE | Vederlagskrav sendes |
+| `vederlag_krav_oppdatert` | TE | Revidert vederlagskrav |
+| `frist_krav_sendt` | TE | Fristkrav sendes |
+| `frist_krav_oppdatert` | TE | Revidert fristkrav |
+| `respons_grunnlag` | BH | Svar på grunnlag (Port 1) |
+| `respons_vederlag` | BH | Svar på vederlag (Port 1+2) |
+| `respons_frist` | BH | Svar på frist (Port 1+2+3) |
+| `eo_utstedt` | BH | Endringsordre utstedt |
+
+**Merk:** Databaselagring til Dataverse og EO-skjema er planlagt for produksjon.
 
 ---
 
@@ -246,14 +293,14 @@ SAK (Endringsmelding)
 | Vite | 6.2 | Bygg og utviklingsserver |
 | Vitest | 4.0 | Testing |
 | Tailwind CSS | 4.1 | Styling |
-| @oslokommune/punkt-react | 13.15 | Oslo kommunes designsystem |
+| @oslokommune/punkt-assets | 13.11 | Oslo kommunes designsystem |
 | @react-pdf/renderer | 4.3 | PDF-generering |
 
 ### Backend
 
 | Teknologi | Versjon | Formål |
 |-----------|---------|--------|
-| Python | 3.8+ | Språk |
+| Python | 3.10+ | Språk |
 | Flask | 3.0 | Web-rammeverk |
 | Pydantic | 2.0+ | Datavalidering og modeller |
 | pydantic-settings | 2.0+ | Miljøvariabel-håndtering |
@@ -280,7 +327,7 @@ SAK (Endringsmelding)
 ### Forutsetninger
 
 - **Node.js** 18+ og npm
-- **Python** 3.8+
+- **Python** 3.10+
 - **Git**
 
 ### 1. Klon repositoriet
@@ -358,28 +405,25 @@ Skjema_Endringsmeldinger/
 │   ├── app.py                      # Flask entrypoint
 │   │
 │   ├── models/                     # Pydantic v2 modeller
-│   │   ├── events.py               # Event-definisjoner (933 linjer)
-│   │   └── sak_state.py            # Read model/projeksjon (562 linjer)
+│   │   ├── events.py               # Event-definisjoner (992 linjer)
+│   │   └── sak_state.py            # Read model/projeksjon (643 linjer)
 │   │
 │   ├── repositories/               # Data Access Layer
 │   │   ├── event_repository.py     # Event store (optimistisk låsing)
 │   │   └── sak_metadata_repository.py  # Metadata-cache
 │   │
 │   ├── services/                   # Forretningslogikk
-│   │   ├── timeline_service.py     # State-projeksjon (753 linjer)
-│   │   └── business_rules.py       # Forretningsregler (240 linjer)
+│   │   ├── timeline_service.py     # State-projeksjon (772 linjer)
+│   │   └── business_rules.py       # Forretningsregler (239 linjer)
 │   │
 │   ├── routes/
-│   │   └── event_routes.py         # Event API (592 linjer)
+│   │   └── event_routes.py         # Event API (591 linjer)
 │   │
 │   ├── integrations/catenda/       # Catenda API-klient
 │   ├── lib/                        # Auth, security, monitoring
 │   └── tests/                      # Testsuite
 │
-├── docs/                           # Dokumentasjon
-│
-└── shared/                         # Delt konfigurasjon
-    └── status-codes.json           # Statuskoder (frontend + backend)
+└── docs/                           # Dokumentasjon
 ```
 
 Se [backend/STRUCTURE.md](backend/STRUCTURE.md) for detaljert backend-arkitektur med linjetall.
@@ -411,7 +455,7 @@ Backend-arkitekturen er designet for gjenbruk på tvers av skjematyper. Den lagd
 - **Catenda-integrasjon** – Webhook-mottak, kommentarer, dokumentopplasting
 - **Sikkerhetsmønstre** – CSRF, magic links, validering, audit logging
 - **PDF-generering** – Tilpassbare maler med Oslo kommunes design
-- **Statuskoder** – Sentralisert i `shared/status-codes.json`
+- **Statuskoder** – Definert i backend (`constants/`) og frontend (`types/`)
 
 ---
 
@@ -419,21 +463,16 @@ Backend-arkitekturen er designet for gjenbruk på tvers av skjematyper. Den lagd
 
 | Dokument | Beskrivelse |
 |----------|-------------|
-| [HLD - Overordnet Design](docs/HLD%20-%20Overordnet%20Design.md) | Arkitektur, datamodell, integrasjoner |
 | [GETTING_STARTED.md](docs/GETTING_STARTED.md) | Detaljert oppsettguide |
-| [API.md](docs/API.md) | Backend API-referanse |
 | [FRONTEND_ARCHITECTURE.md](docs/FRONTEND_ARCHITECTURE.md) | Frontend-arkitektur og komponenter |
 | [DEPLOYMENT.md](docs/DEPLOYMENT.md) | Azure-utrulling |
 | [backend/STRUCTURE.md](backend/STRUCTURE.md) | Backend-mappestruktur (detaljert) |
-| [Refaktoreringsplan - Backend](docs/Refaktoreringsplan%20-%20Backend.md) | Backend-refaktorering |
-| [PRE_PRODUCTION_PLAN.md](docs/PRE_PRODUCTION_PLAN.md) | Pre-produksjon sjekkliste |
-| [Handlingsplan Sikkerhetstiltak](docs/Handlingsplan_Sikkerhetstiltak.md) | Sikkerhetsimplementering |
 
 ---
 
 ## Testing
 
-### Backend (379 tester, 62% coverage)
+### Backend (345 tester, 32% coverage)
 
 ```bash
 cd backend
@@ -448,17 +487,17 @@ python -m pytest tests/ --cov=. --cov-report=html
 ./scripts/manual_testing.sh
 ```
 
-**Testdekning:**
+**Testdekning (32% totalt):**
 
-| Kategori | Tester | Coverage |
-|----------|--------|----------|
-| Services | 5 filer | 83-93% |
-| Routes | 3 filer | 91-100% |
-| Security | 4 filer | 79-95% |
-| Models | 1 fil | 100% |
+| Kategori | Filer | Coverage |
+|----------|-------|----------|
+| Models | 2 filer | 95-100% |
+| Services | 2 filer | 87-89% |
+| Security | 4 filer | 73-95% |
+| Repositories | 2 filer | 95-99% |
 | Utils | 3 filer | 100% |
 
-### Frontend (95 tester)
+### Frontend
 
 ```bash
 # Kjør alle tester
@@ -483,7 +522,7 @@ npm run test:coverage
 | `npm run build` | Bygg for produksjon |
 | `npm run preview` | Forhåndsvis produksjonsbygg |
 | `npm test` | Kjør tester |
-| `npm run generate:constants` | Generer statuskoder fra JSON |
+| `npm run test:e2e` | Kjør E2E-tester (Playwright) |
 
 ### Backend
 
@@ -519,8 +558,6 @@ npm run test:coverage
 - ⏳ Azure Functions-migrering
 - ⏳ Redis for state (rate limiting, idempotency)
 - ⏳ EO-hendelse (endringsordre-utstedelse)
-
-Se [PRE_PRODUCTION_PLAN.md](docs/PRE_PRODUCTION_PLAN.md) for detaljert sjekkliste.
 
 ---
 

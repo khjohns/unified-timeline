@@ -43,7 +43,7 @@ echo "VITE_USE_MOCK_API=true" > .env.local
 npm run dev
 
 # 4. Open browser
-# http://localhost:5173
+# http://localhost:3000
 ```
 
 **What you'll see:**
@@ -195,7 +195,7 @@ echo "VITE_API_BASE_URL=http://localhost:8081" > .env.local
 
 ### Events (Event Store)
 ```
-backend/data/events_<sak_id>.json
+backend/koe_data/events/<sak_id>.json
 ```
 
 Each case has its own event log file with:
