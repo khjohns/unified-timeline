@@ -78,7 +78,7 @@ def handle_new_topic_created(self, webhook_payload: Dict[str, Any]) -> Dict[str,
         logger.info(f"Form data initialisert med webhook-data for sak {sak_id}")
 
         # 2. Generer lenke og post kommentar (som før)
-        base_url = self.config.get('react_app_url', 'http://localhost:5173')
+        base_url = self.config.get('react_app_url', 'http://localhost:3000')
         app_link = f"{base_url}?sakId={sak_id}&modus=varsel&topicGuid={topic_id}"
 
         comment_text = (
@@ -313,7 +313,7 @@ Forventet output:
 
 ### 3. Test i frontend
 
-Åpne `http://localhost:5173?sakId={sak_id}&modus=varsel`
+Åpne `http://localhost:3000?sakId={sak_id}&modus=varsel`
 
 Verifiser at:
 - Sakstittel er forhåndsutfylt

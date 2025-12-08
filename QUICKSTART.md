@@ -76,7 +76,7 @@ python3 -c "import secrets; print('CSRF_SECRET=' + secrets.token_urlsafe(32))" >
 python3 -c "import secrets; print('FLASK_SECRET_KEY=' + secrets.token_hex(32))" >> .env
 
 # Set CORS for frontend
-echo "ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173" >> .env
+echo "ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000" >> .env
 
 # Start backend server
 python app.py
@@ -90,7 +90,7 @@ python app.py
 
 📡 Server: http://localhost:8080
 🔍 Environment: Development
-🔗 CORS: http://localhost:5173
+🔗 CORS: http://localhost:3000
 
 📋 Available Endpoints:
   ┌─ Event Submission
@@ -122,7 +122,7 @@ npm run dev
 
 ### Step 3: Test End-to-End
 
-1. Open http://localhost:5173
+1. Open http://localhost:3000
 2. Click on a case (e.g., "SAK-001")
 3. Open browser console (F12) to see API calls
 4. Try submitting an event (e.g., "Send Grunnlag")
@@ -174,7 +174,7 @@ pip install -r requirements.txt
    ```
 3. Check CORS settings in `backend/.env`:
    ```
-   ALLOWED_ORIGINS=http://localhost:5173
+   ALLOWED_ORIGINS=http://localhost:3000
    ```
 
 ### Port 8080 already in use
