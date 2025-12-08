@@ -23,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../primitives/Select';
+import { RadioGroup, RadioItem } from '../primitives/RadioGroup';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -205,24 +206,23 @@ export function SendGrunnlagModal({
             name="hovedkategori"
             control={control}
             render={({ field }) => (
-              <Select
+              <RadioGroup
                 value={field.value}
                 onValueChange={(value) => {
                   field.onChange(value);
                   handleHovedkategoriChange(value);
                 }}
+                data-testid="grunnlag-hovedkategori"
               >
-                <SelectTrigger error={!!errors.hovedkategori} data-testid="grunnlag-hovedkategori">
-                  <SelectValue placeholder="Velg hovedkategori" />
-                </SelectTrigger>
-                <SelectContent>
-                  {HOVEDKATEGORI_OPTIONS.filter(opt => opt.value !== '').map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {HOVEDKATEGORI_OPTIONS.filter(opt => opt.value !== '').map((option) => (
+                  <RadioItem
+                    key={option.value}
+                    value={option.value}
+                    label={option.label}
+                    error={!!errors.hovedkategori}
+                  />
+                ))}
+              </RadioGroup>
             )}
           />
         </FormField>
@@ -358,7 +358,7 @@ export function SendGrunnlagModal({
                     data-testid="grunnlag-dato-oppdaget"
                     value={field.value}
                     onChange={field.onChange}
-                    fullWidth
+                    
                     error={!!errors.dato_oppdaget}
                     placeholder="Velg dato"
                   />
@@ -413,7 +413,7 @@ export function SendGrunnlagModal({
                   id="dato_varsel_sendt"
                   value={field.value}
                   onChange={field.onChange}
-                  fullWidth
+                  
                   placeholder="Velg dato"
                 />
               )}

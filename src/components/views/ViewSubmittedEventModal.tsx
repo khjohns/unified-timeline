@@ -84,7 +84,6 @@ const FRIST_RESULTAT_LABELS: Record<string, string> = {
 const VARSEL_TYPE_LABELS: Record<string, string> = {
   noytralt: 'Nøytralt varsel (§33.4)',
   spesifisert: 'Spesifisert krav (§33.6)',
-  begge: 'Nøytralt + Spesifisert',
   force_majeure: 'Force Majeure (§33.3)',
 };
 

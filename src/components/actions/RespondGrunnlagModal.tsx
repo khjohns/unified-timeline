@@ -19,13 +19,7 @@ import { FormField } from '../primitives/FormField';
 import { Badge } from '../primitives/Badge';
 import { Alert } from '../primitives/Alert';
 import { AlertDialog } from '../primitives/AlertDialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../primitives/Select';
+import { RadioGroup, RadioItem } from '../primitives/RadioGroup';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -235,33 +229,35 @@ export function RespondGrunnlagModal({
             name="resultat"
             control={control}
             render={({ field }) => (
-              <Select value={field.value} onValueChange={field.onChange}>
-                <SelectTrigger error={!!errors.resultat} data-testid="respond-grunnlag-resultat">
-                  <SelectValue placeholder="Velg resultat" />
-                </SelectTrigger>
-                <SelectContent>
-                  {BH_GRUNNLAGSVAR_OPTIONS.filter((opt) => {
-                    // Filter out empty placeholder
-                    if (opt.value === '') return false;
+              <RadioGroup
+                value={field.value}
+                onValueChange={field.onChange}
+                data-testid="respond-grunnlag-resultat"
+              >
+                {BH_GRUNNLAGSVAR_OPTIONS.filter((opt) => {
+                  // Filter out empty placeholder
+                  if (opt.value === '') return false;
 
-                    // Force Majeure: ONLY show "erkjenn_fm" option (§33.3)
-                    // FM is a special category - you can only recognize it or not
-                    if (erForceMajeure) {
-                      return opt.value === 'erkjenn_fm';
-                    }
+                  // Force Majeure: ONLY show "erkjenn_fm" option (§33.3)
+                  // FM is a special category - you can only recognize it or not
+                  if (erForceMajeure) {
+                    return opt.value === 'erkjenn_fm';
+                  }
 
-                    // Non-FM cases: filter out FM option and conditional options
-                    if (opt.value === 'erkjenn_fm') return false;
-                    // Filter out "frafalt" if NOT irregular change (§32.3 c)
-                    if (opt.value === 'frafalt' && !erIrregulaer) return false;
-                    return true;
-                  }).map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                  // Non-FM cases: filter out FM option and conditional options
+                  if (opt.value === 'erkjenn_fm') return false;
+                  // Filter out "frafalt" if NOT irregular change (§32.3 c)
+                  if (opt.value === 'frafalt' && !erIrregulaer) return false;
+                  return true;
+                }).map((option) => (
+                  <RadioItem
+                    key={option.value}
+                    value={option.value}
+                    label={option.label}
+                    error={!!errors.resultat}
+                  />
+                ))}
+              </RadioGroup>
             )}
           />
         </FormField>

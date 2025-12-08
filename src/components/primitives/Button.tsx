@@ -41,18 +41,18 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             // Primary: dark blue background with white text
             'bg-pkt-surface-strong-dark-blue text-pkt-text-body-light':
               variant === 'primary',
-            'border-pkt-border-default':
-              variant === 'primary',
             'hover:bg-pkt-brand-warm-blue-1000 hover:border-pkt-border-hover':
               variant === 'primary' && !props.disabled,
 
-            // Secondary: beige background with dark blue text
-            'bg-pkt-surface-strong-beige text-pkt-text-body-dark':
+            // Secondary: white background with dark blue border (matching primary)
+            'bg-white text-pkt-text-body-dark':
               variant === 'secondary',
-            'border-pkt-border-beige':
-              variant === 'secondary',
-            'hover:bg-pkt-brand-dark-beige-1000 hover:border-pkt-border-hover':
+            'hover:bg-pkt-bg-subtle hover:border-pkt-border-hover':
               variant === 'secondary' && !props.disabled,
+
+            // Primary and Secondary share the same border
+            'border-pkt-border-default':
+              variant === 'primary' || variant === 'secondary',
 
             // Ghost: transparent background
             'bg-transparent text-pkt-text-body-dark':

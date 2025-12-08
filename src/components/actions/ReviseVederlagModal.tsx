@@ -206,7 +206,7 @@ export function ReviseVederlagModal({
               <CurrencyInput
                 value={field.value ?? null}
                 onChange={field.onChange}
-                fullWidth
+                
               />
             )}
           />

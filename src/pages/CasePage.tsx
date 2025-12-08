@@ -34,7 +34,15 @@ import {
   UpdateResponseFristModal,
 } from '../components/actions';
 import type { SakState, GrunnlagResponsResultat, TimelineEntry } from '../types/timeline';
-import { ReloadIcon, ExclamationTriangleIcon, DownloadIcon } from '@radix-ui/react-icons';
+import {
+  ReloadIcon,
+  ExclamationTriangleIcon,
+  DownloadIcon,
+  PaperPlaneIcon,
+  Pencil1Icon,
+  ChatBubbleIcon,
+  Pencil2Icon,
+} from '@radix-ui/react-icons';
 import { downloadContractorClaimPdf } from '../pdf';
 
 // Default empty state for when data is not yet loaded
@@ -141,10 +149,10 @@ export function CasePage() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-pkt-bg-default flex items-center justify-center">
+      <div className="min-h-screen bg-pkt-bg-subtle flex items-center justify-center">
         <div className="text-center">
-          <ReloadIcon className="w-12 h-12 mx-auto mb-4 text-pkt-border-default animate-spin" />
-          <p className="text-pkt-text-body-subtle">Laster sak...</p>
+          <ReloadIcon className="w-12 h-12 mx-auto mb-4 text-pkt-grays-gray-400 animate-spin" />
+          <p className="text-pkt-grays-gray-500">Laster sak...</p>
         </div>
       </div>
     );
@@ -153,10 +161,10 @@ export function CasePage() {
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-pkt-bg-default flex items-center justify-center px-4">
-        <div className="max-w-md w-full p-6 sm:p-8 bg-white rounded-none shadow-lg border-2 border-pkt-border-default" role="alert">
+      <div className="min-h-screen bg-pkt-bg-subtle flex items-center justify-center px-4">
+        <div className="max-w-md w-full p-6 sm:p-8 bg-white rounded-lg border border-pkt-grays-gray-200" role="alert">
           <ExclamationTriangleIcon className="w-12 h-12 mx-auto mb-4 text-pkt-brand-red-1000" />
-          <h2 className="text-xl sm:text-2xl font-bold text-pkt-brand-red-1000 mb-4 text-center">
+          <h2 className="text-xl font-semibold text-pkt-brand-red-1000 mb-4 text-center">
             Feil ved lasting av sak
           </h2>
           <p className="text-pkt-text-body-default mb-4 text-center">{error.message}</p>
@@ -176,27 +184,25 @@ export function CasePage() {
   }
 
   return (
-    <div className="min-h-screen bg-pkt-bg-default">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b-2 border-pkt-border-default">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5">
-          {/* Stack on mobile, side-by-side on larger screens */}
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
-            <div className="min-w-0 flex-1">
-              <h1 className="text-xl sm:text-2xl font-bold text-pkt-text-body-dark truncate">
+    <div className="min-h-screen bg-pkt-bg-subtle">
+      {/* Header - Minimalistisk */}
+      <header className="bg-white border-b border-pkt-grays-gray-200">
+        <div className="max-w-3xl mx-auto px-8 py-6">
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-xl font-semibold text-pkt-text-body-dark">
                 {state.sakstittel}
               </h1>
-              <p className="mt-1 text-sm sm:text-base text-pkt-text-body-subtle">Sak #{sakId}</p>
+              <p className="text-sm text-pkt-grays-gray-500 mt-1">Sak #{sakId}</p>
             </div>
-            <div className="shrink-0 flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <Button
-                variant="secondary"
+                variant="ghost"
                 size="sm"
                 onClick={() => downloadContractorClaimPdf(state)}
                 title="Last ned PDF"
               >
-                <DownloadIcon className="w-4 h-4 mr-2" />
-                Last ned PDF
+                <DownloadIcon className="w-4 h-4" />
               </Button>
               <ModeToggle userRole={userRole} onToggle={setUserRole} />
             </div>
@@ -205,7 +211,7 @@ export function CasePage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <main className="max-w-3xl mx-auto px-8 py-8 bg-white min-h-[calc(100vh-88px)]">
         {/* Status Dashboard with Contextual Actions */}
         <StatusDashboard
           state={state}
@@ -220,6 +226,7 @@ export function CasePage() {
                   size="sm"
                   onClick={() => setSendGrunnlagOpen(true)}
                 >
+                  <PaperPlaneIcon className="w-4 h-4 mr-2" />
                   Send grunnlag
                 </Button>
               )}
@@ -229,7 +236,8 @@ export function CasePage() {
                   size="sm"
                   onClick={() => setUpdateGrunnlagOpen(true)}
                 >
-                  Oppdater grunnlag
+                  <Pencil1Icon className="w-4 h-4 mr-2" />
+                  Oppdater
                 </Button>
               )}
               {/* BH Actions: Respond to TE's submission */}
@@ -239,7 +247,8 @@ export function CasePage() {
                   size="sm"
                   onClick={() => setRespondGrunnlagOpen(true)}
                 >
-                  Svar på grunnlag
+                  <ChatBubbleIcon className="w-4 h-4 mr-2" />
+                  Svar
                 </Button>
               )}
               {/* BH Actions: Update existing response (snuoperasjon) */}
@@ -249,6 +258,7 @@ export function CasePage() {
                   size="sm"
                   onClick={() => setUpdateGrunnlagResponseOpen(true)}
                 >
+                  <Pencil2Icon className="w-4 h-4 mr-2" />
                   Endre svar
                 </Button>
               )}
@@ -263,7 +273,8 @@ export function CasePage() {
                   size="sm"
                   onClick={() => setSendVederlagOpen(true)}
                 >
-                  Send vederlagskrav
+                  <PaperPlaneIcon className="w-4 h-4 mr-2" />
+                  Send krav
                 </Button>
               )}
               {userRole === 'TE' && actions.canUpdateVederlag && (
@@ -272,7 +283,8 @@ export function CasePage() {
                   size="sm"
                   onClick={() => setReviseVederlagOpen(true)}
                 >
-                  Oppdater vederlag
+                  <Pencil1Icon className="w-4 h-4 mr-2" />
+                  Oppdater
                 </Button>
               )}
               {/* BH Actions: Respond to TE's submission */}
@@ -282,7 +294,8 @@ export function CasePage() {
                   size="sm"
                   onClick={() => setRespondVederlagOpen(true)}
                 >
-                  Svar på vederlag
+                  <ChatBubbleIcon className="w-4 h-4 mr-2" />
+                  Svar
                 </Button>
               )}
               {/* BH Actions: Update existing response */}
@@ -292,6 +305,7 @@ export function CasePage() {
                   size="sm"
                   onClick={() => setUpdateVederlagResponseOpen(true)}
                 >
+                  <Pencil2Icon className="w-4 h-4 mr-2" />
                   Endre svar
                 </Button>
               )}
@@ -306,7 +320,8 @@ export function CasePage() {
                   size="sm"
                   onClick={() => setSendFristOpen(true)}
                 >
-                  Send fristkrav
+                  <PaperPlaneIcon className="w-4 h-4 mr-2" />
+                  Send krav
                 </Button>
               )}
               {userRole === 'TE' && actions.canUpdateFrist && (
@@ -315,7 +330,8 @@ export function CasePage() {
                   size="sm"
                   onClick={() => setReviseFristOpen(true)}
                 >
-                  Oppdater frist
+                  <Pencil1Icon className="w-4 h-4 mr-2" />
+                  Oppdater
                 </Button>
               )}
               {/* BH Actions: Respond to TE's submission */}
@@ -325,7 +341,8 @@ export function CasePage() {
                   size="sm"
                   onClick={() => setRespondFristOpen(true)}
                 >
-                  Svar på frist
+                  <ChatBubbleIcon className="w-4 h-4 mr-2" />
+                  Svar
                 </Button>
               )}
               {/* BH Actions: Update existing response */}
@@ -335,6 +352,7 @@ export function CasePage() {
                   size="sm"
                   onClick={() => setUpdateFristResponseOpen(true)}
                 >
+                  <Pencil2Icon className="w-4 h-4 mr-2" />
                   Endre svar
                 </Button>
               )}
@@ -343,23 +361,21 @@ export function CasePage() {
         />
 
         {/* Timeline Section */}
-        <section className="mt-6 sm:mt-8" aria-labelledby="timeline-heading">
+        <section className="mt-8" aria-labelledby="timeline-heading">
           <h2
             id="timeline-heading"
-            className="text-lg sm:text-xl font-bold text-pkt-text-body-dark mb-3 sm:mb-4"
+            className="text-base font-semibold text-pkt-text-body-dark mb-4"
           >
             Hendelser
           </h2>
-          <div className="bg-white rounded-none shadow-sm border-2 border-pkt-border-subtle p-4 sm:p-6">
-            <Timeline events={timelineEvents} />
-          </div>
+          <Timeline events={timelineEvents} />
         </section>
 
         {/* Summary Section - Enhanced with Comprehensive Metadata and Revision History */}
-        <section className="mt-6 sm:mt-8" aria-labelledby="summary-heading">
+        <section className="mt-8" aria-labelledby="summary-heading">
           <h2
             id="summary-heading"
-            className="text-lg sm:text-xl font-bold text-pkt-text-body-dark mb-3 sm:mb-4"
+            className="text-base font-semibold text-pkt-text-body-dark mb-4"
           >
             Sammendrag
           </h2>
@@ -369,7 +385,7 @@ export function CasePage() {
 
           {/* Revision History */}
           <div className="mt-6">
-            <h3 className="text-base sm:text-lg font-semibold text-pkt-text-body-dark mb-3 sm:mb-4">
+            <h3 className="text-sm font-semibold text-pkt-text-body-dark mb-3">
               Revisjonshistorikk
             </h3>
             <RevisionHistory state={state} />
@@ -403,7 +419,9 @@ export function CasePage() {
             grunnlagEvent={{
               tittel: state.sakstittel,
               hovedkategori: state.grunnlag.hovedkategori,
+              dato_varslet: state.grunnlag.grunnlag_varsel?.dato_sendt,
             }}
+            harMottattEtterlysning={state.frist.har_bh_etterlyst}
           />
           <RespondGrunnlagModal
             open={respondGrunnlagOpen}
@@ -415,6 +433,7 @@ export function CasePage() {
               underkategori: state.grunnlag.underkategori,
               beskrivelse: state.grunnlag.beskrivelse,
               dato_oppdaget: state.grunnlag.dato_oppdaget,
+              dato_varslet: state.grunnlag.grunnlag_varsel?.dato_sendt,
             }}
           />
           <RespondVederlagModal
@@ -430,6 +449,7 @@ export function CasePage() {
               kostnads_overslag: state.vederlag.kostnads_overslag,
               begrunnelse: state.vederlag.begrunnelse,
               krever_justert_ep: state.vederlag.krever_justert_ep,
+              saerskilt_krav: state.vederlag.saerskilt_krav,
             }}
           />
           <RespondFristModal
@@ -440,9 +460,11 @@ export function CasePage() {
             krevdDager={state.frist.krevd_dager}
             fristType={state.frist.frist_type}
             grunnlagStatus={grunnlagStatus}
+            varselType={state.frist.varsel_type}
             fristEvent={{
               antall_dager: state.frist.krevd_dager,
               begrunnelse: state.frist.begrunnelse,
+              dato_krav_mottatt: state.frist.spesifisert_varsel?.dato_sendt,
             }}
           />
 
@@ -505,6 +527,7 @@ export function CasePage() {
               event_id: `vederlag-response-${sakId}`,
               resultat: state.vederlag.bh_resultat || 'godkjent_fullt',
               godkjent_belop: state.vederlag.godkjent_belop,
+              respondedToVersion: state.vederlag.bh_respondert_versjon,
             }}
             vederlagTilstand={state.vederlag}
           />

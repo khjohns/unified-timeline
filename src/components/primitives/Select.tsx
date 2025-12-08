@@ -3,6 +3,22 @@ import { ChevronDownIcon, ChevronUpIcon } from '@radix-ui/react-icons';
 import { forwardRef, ComponentPropsWithoutRef } from 'react';
 import clsx from 'clsx';
 
+export type SelectWidth = 'sm' | 'md' | 'lg' | 'full';
+
+/**
+ * Width classes for semantic sizing:
+ * - sm: ~12 chars (e.g., short options like "Ja/Nei")
+ * - md: ~20 chars (e.g., medium options)
+ * - lg: ~32 chars (e.g., longer category names)
+ * - full: 100% width (default for backwards compatibility)
+ */
+const WIDTH_CLASSES: Record<SelectWidth, string> = {
+  sm: 'w-36',      // 9rem
+  md: 'w-48',      // 12rem
+  lg: 'w-72',      // 18rem
+  full: 'w-full',
+};
+
 /**
  * Select component based on Radix UI Select
  * - Sharp corners (radius: 0)
@@ -26,17 +42,24 @@ export const SelectValue = SelectPrimitive.Value;
 
 export const SelectTrigger = forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
-  ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger> & { error?: boolean }
->(({ className, error, children, ...props }, ref) => (
+  ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger> & {
+    error?: boolean;
+    /** Semantic width of the select (default: 'full' for backwards compatibility) */
+    width?: SelectWidth;
+  }
+>(({ className, error, width = 'full', children, ...props }, ref) => (
   <SelectPrimitive.Trigger
     ref={ref}
     className={clsx(
       // Base styles - standard select size
       'flex items-center justify-between gap-2',
-      'w-full px-4 py-3 min-h-[40px]',
+      'px-4 py-3 min-h-[40px]',
       'text-base font-normal',
       'bg-pkt-bg-default',
       'transition-colors duration-200',
+
+      // Width
+      WIDTH_CLASSES[width],
 
       // Border - 2px width, sharp corners
       'border-2 rounded-none',

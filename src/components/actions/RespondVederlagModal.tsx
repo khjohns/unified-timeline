@@ -21,8 +21,9 @@
 import { Modal } from '../primitives/Modal';
 import { Button } from '../primitives/Button';
 import { FormField } from '../primitives/FormField';
-import { Input } from '../primitives/Input';
+import { CurrencyInput } from '../primitives/CurrencyInput';
 import { Textarea } from '../primitives/Textarea';
+import { RadioGroup, RadioItem } from '../primitives/RadioGroup';
 import { Badge } from '../primitives/Badge';
 import { Alert } from '../primitives/Alert';
 import { AlertDialog } from '../primitives/AlertDialog';
@@ -46,6 +47,21 @@ import {
   getVederlagsmetodeLabel,
 } from '../../constants';
 
+// Response options for særskilte krav (§34.1.3)
+const SAERSKILT_KRAV_RESULTAT_OPTIONS = [
+  { value: 'godkjent', label: 'Godkjent' },
+  { value: 'delvis_godkjent', label: 'Delvis godkjent' },
+  { value: 'avvist_preklusjon', label: 'Avvist - Varslet for sent (preklusjon)' },
+  { value: 'avvist_uenig', label: 'Avvist - Uenig i kravet' },
+] as const;
+
+// Schema for særskilt krav response
+const saerskiltKravResponseSchema = z.object({
+  resultat: z.enum(['godkjent', 'delvis_godkjent', 'avvist_preklusjon', 'avvist_uenig']),
+  godkjent_belop: z.number().min(0).optional(),
+  begrunnelse: z.string().optional(),
+});
+
 const respondVederlagSchema = z.object({
   resultat: z.enum(getBhVederlagssvarValues(), {
     errorMap: () => ({ message: 'Resultat er påkrevd' }),
@@ -53,6 +69,9 @@ const respondVederlagSchema = z.object({
   begrunnelse: z.string().min(10, 'Begrunnelse må være minst 10 tegn'),
   godkjent_belop: z.number().min(0, 'Beløp kan ikke være negativt').optional(),
   godkjent_metode: z.string().optional(),
+  // Separate responses for særskilte krav (§34.1.3)
+  saerskilt_rigg_drift: saerskiltKravResponseSchema.optional(),
+  saerskilt_produktivitet: saerskiltKravResponseSchema.optional(),
 });
 
 type RespondVederlagFormData = z.infer<typeof respondVederlagSchema>;
@@ -362,23 +381,27 @@ export function RespondVederlagModal({
         {/* Godkjent beløp - show if godkjent, delvis_godkjent, or godkjent_annen_metode */}
         {showAmountField && (
           <FormField
-            label="Godkjent beløp (NOK)"
+            label="Godkjent beløp"
             required={selectedResultat === 'godkjent_fullt'}
             error={errors.godkjent_belop?.message}
             helpText={
               krevdBelop !== undefined && godkjentBelop !== undefined
-                ? `Differanse: ${(krevdBelop - godkjentBelop).toLocaleString('nb-NO')} NOK (${((godkjentBelop / krevdBelop) * 100).toFixed(1)}% godkjent)`
+                ? `Differanse: ${(krevdBelop - godkjentBelop).toLocaleString('nb-NO')} kr (${((godkjentBelop / krevdBelop) * 100).toFixed(1)}% godkjent)`
                 : undefined
             }
           >
-            <Input
-              id="godkjent_belop"
-              type="number"
-              step="0.01"
-              {...register('godkjent_belop', { valueAsNumber: true })}
-              fullWidth
-              placeholder="0.00"
-              error={!!errors.godkjent_belop}
+            <Controller
+              name="godkjent_belop"
+              control={control}
+              render={({ field }) => (
+                <CurrencyInput
+                  id="godkjent_belop"
+                  value={field.value ?? null}
+                  onChange={field.onChange}
+                  error={!!errors.godkjent_belop}
+                  allowNegative={false}
+                />
+              )}
             />
           </FormField>
         )}
@@ -410,6 +433,113 @@ export function RespondVederlagModal({
               )}
             />
           </FormField>
+        )}
+
+        {/* Særskilte krav (§34.1.3) - Separate responses required */}
+        {vederlagEvent?.saerskilt_krav?.rigg_drift && (
+          <div className="p-4 bg-pkt-bg-subtle border-2 border-pkt-border-default rounded-none">
+            <div className="flex items-center gap-2 mb-3">
+              <Badge variant="default">Særskilt krav: Rigg/Drift</Badge>
+              <span className="text-sm font-mono">
+                kr {vederlagEvent.saerskilt_krav.rigg_drift.belop?.toLocaleString('nb-NO') || 0},-
+              </span>
+              {vederlagEvent.saerskilt_krav.rigg_drift.dato_klar_over && (
+                <span className="text-xs text-pkt-grays-gray-500">
+                  (TE klar over: {vederlagEvent.saerskilt_krav.rigg_drift.dato_klar_over})
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-pkt-grays-gray-600 mb-3">
+              §34.1.3: Krav på dekning av rigg/drift må varsles uten ugrunnet opphold etter at TE ble klar over grunnlaget.
+            </p>
+            <FormField label="Resultat for rigg/drift-krav" required>
+              <Controller
+                name="saerskilt_rigg_drift.resultat"
+                control={control}
+                render={({ field }) => (
+                  <RadioGroup value={field.value} onValueChange={field.onChange}>
+                    {SAERSKILT_KRAV_RESULTAT_OPTIONS.map((option) => (
+                      <RadioItem
+                        key={option.value}
+                        value={option.value}
+                        label={option.label}
+                      />
+                    ))}
+                  </RadioGroup>
+                )}
+              />
+            </FormField>
+            {watch('saerskilt_rigg_drift.resultat') === 'delvis_godkjent' && (
+              <div className="mt-3">
+                <FormField label="Godkjent beløp for rigg/drift">
+                  <Controller
+                    name="saerskilt_rigg_drift.godkjent_belop"
+                    control={control}
+                    render={({ field }) => (
+                      <CurrencyInput
+                        value={field.value ?? null}
+                        onChange={field.onChange}
+                        allowNegative={false}
+                      />
+                    )}
+                  />
+                </FormField>
+              </div>
+            )}
+          </div>
+        )}
+
+        {vederlagEvent?.saerskilt_krav?.produktivitet && (
+          <div className="p-4 bg-pkt-bg-subtle border-2 border-pkt-border-default rounded-none">
+            <div className="flex items-center gap-2 mb-3">
+              <Badge variant="default">Særskilt krav: Produktivitetstap</Badge>
+              <span className="text-sm font-mono">
+                kr {vederlagEvent.saerskilt_krav.produktivitet.belop?.toLocaleString('nb-NO') || 0},-
+              </span>
+              {vederlagEvent.saerskilt_krav.produktivitet.dato_klar_over && (
+                <span className="text-xs text-pkt-grays-gray-500">
+                  (TE klar over: {vederlagEvent.saerskilt_krav.produktivitet.dato_klar_over})
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-pkt-grays-gray-600 mb-3">
+              §34.1.3: Krav på dekning av nedsatt produktivitet må varsles uten ugrunnet opphold etter at TE ble klar over grunnlaget.
+            </p>
+            <FormField label="Resultat for produktivitetstap-krav" required>
+              <Controller
+                name="saerskilt_produktivitet.resultat"
+                control={control}
+                render={({ field }) => (
+                  <RadioGroup value={field.value} onValueChange={field.onChange}>
+                    {SAERSKILT_KRAV_RESULTAT_OPTIONS.map((option) => (
+                      <RadioItem
+                        key={option.value}
+                        value={option.value}
+                        label={option.label}
+                      />
+                    ))}
+                  </RadioGroup>
+                )}
+              />
+            </FormField>
+            {watch('saerskilt_produktivitet.resultat') === 'delvis_godkjent' && (
+              <div className="mt-3">
+                <FormField label="Godkjent beløp for produktivitetstap">
+                  <Controller
+                    name="saerskilt_produktivitet.godkjent_belop"
+                    control={control}
+                    render={({ field }) => (
+                      <CurrencyInput
+                        value={field.value ?? null}
+                        onChange={field.onChange}
+                        allowNegative={false}
+                      />
+                    )}
+                  />
+                </FormField>
+              </div>
+            )}
+          </div>
         )}
 
         {/* Begrunnelse */}

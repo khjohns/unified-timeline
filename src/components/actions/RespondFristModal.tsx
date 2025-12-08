@@ -26,13 +26,6 @@ import { Badge } from '../primitives/Badge';
 import { Alert } from '../primitives/Alert';
 import { AlertDialog } from '../primitives/AlertDialog';
 import { RadioGroup, RadioItem } from '../primitives/RadioGroup';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../primitives/Select';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -91,6 +84,8 @@ interface RespondFristModalProps {
   fristEvent?: FristEventInfo;
   /** Status of the grunnlag response (for subsidiary treatment) */
   grunnlagStatus?: 'godkjent' | 'avvist_uenig' | 'delvis_godkjent';
+  /** Type of varsel TE sent (nøytralt or spesifisert) - determines which checks to show */
+  varselType?: 'noytralt' | 'spesifisert' | 'force_majeure';
 }
 
 // Step indicator component
@@ -154,6 +149,7 @@ export function RespondFristModal({
   fristType,
   fristEvent,
   grunnlagStatus,
+  varselType,
 }: RespondFristModalProps) {
   const [currentPort, setCurrentPort] = useState(1);
 
@@ -353,68 +349,136 @@ export function RespondFristModal({
                 Vurder om entreprenøren har varslet i tide. Hvis ikke, kan kravet avvises pga preklusjon.
               </p>
 
-              {/* Nøytralt varsel */}
-              <FormField
-                label="Nøytralt varsel sendt i tide? (§33.4)"
-                helpText="Entreprenøren skal varsle 'uten ugrunnet opphold' når han blir klar over at det kan oppstå forsinkelse."
-              >
-                <Controller
-                  name="noytralt_varsel_ok"
-                  control={control}
-                  render={({ field }) => (
-                    <RadioGroup
-                      value={field.value === undefined ? undefined : field.value ? 'ja' : 'nei'}
-                      onValueChange={(val: string) => field.onChange(val === 'ja')}
-                    >
-                      <RadioItem value="ja" label="Ja - varslet i tide" />
-                      <RadioItem value="nei" label="Nei - varslet for sent" />
-                      <RadioItem value="ikke_relevant" label="Ikke relevant (kun spesifisert krav)" />
-                    </RadioGroup>
-                  )}
-                />
-              </FormField>
+              {/* Show what type of varsel TE sent */}
+              {varselType && (
+                <div className="p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle mb-4">
+                  <span className="text-sm text-pkt-text-body-subtle">Entreprenøren har sendt: </span>
+                  <Badge variant="default">
+                    {varselType === 'noytralt' && 'Nøytralt varsel (§33.4)'}
+                    {varselType === 'spesifisert' && 'Spesifisert krav (§33.6)'}
+                    {varselType === 'force_majeure' && 'Force majeure (§33.3)'}
+                  </Badge>
+                </div>
+              )}
 
-              {/* Spesifisert krav */}
-              <FormField
-                label="Spesifisert krav sendt i tide? (§33.6)"
-                required
-                helpText="Entreprenøren skal 'uten ugrunnet opphold' angi og begrunne antall dager når han har grunnlag."
-              >
-                <Controller
-                  name="spesifisert_krav_ok"
-                  control={control}
-                  render={({ field }) => (
-                    <RadioGroup
-                      value={field.value ? 'ja' : 'nei'}
-                      onValueChange={(val: string) => field.onChange(val === 'ja')}
-                    >
-                      <RadioItem value="ja" label="Ja - kravet kom i tide" />
-                      <RadioItem value="nei" label="Nei - kravet kom for sent" />
-                    </RadioGroup>
-                  )}
-                />
-              </FormField>
+              {/* Nøytralt varsel - only show if TE sent nøytralt varsel */}
+              {varselType === 'noytralt' && (
+                <>
+                  <FormField
+                    label="Nøytralt varsel sendt i tide? (§33.4)"
+                    required
+                    helpText="Entreprenøren skal varsle 'uten ugrunnet opphold' når han blir klar over at det kan oppstå forsinkelse."
+                  >
+                    <Controller
+                      name="noytralt_varsel_ok"
+                      control={control}
+                      render={({ field }) => (
+                        <RadioGroup
+                          value={field.value === undefined ? undefined : field.value ? 'ja' : 'nei'}
+                          onValueChange={(val: string) => field.onChange(val === 'ja')}
+                        >
+                          <RadioItem value="ja" label="Ja - varslet i tide" />
+                          <RadioItem value="nei" label="Nei - varslet for sent (preklusjon)" />
+                        </RadioGroup>
+                      )}
+                    />
+                  </FormField>
 
-              {/* Har BH etterlyst - only if krav is late */}
-              {!spesifisertKravOk && (
+                  {/* Option to send etterlysning when TE only sent nøytralt varsel */}
+                  <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-none">
+                    <p className="text-sm font-medium text-amber-900 mb-2">
+                      Etterlys spesifisert krav (§33.6.2)
+                    </p>
+                    <p className="text-sm text-amber-800 mb-3">
+                      Entreprenøren har kun sendt nøytralt varsel. Du kan etterspørre et spesifisert krav
+                      med antall dager. Hvis TE ikke svarer &ldquo;uten ugrunnet opphold&rdquo;, tapes kravet.
+                    </p>
+                    <Controller
+                      name="har_bh_etterlyst"
+                      control={control}
+                      render={({ field }) => (
+                        <RadioGroup
+                          value={field.value === undefined ? undefined : field.value ? 'ja' : 'nei'}
+                          onValueChange={(val: string) => field.onChange(val === 'ja')}
+                        >
+                          <RadioItem value="ja" label="Ja - send etterlysning nå" />
+                          <RadioItem value="nei" label="Nei - avvent spesifisert krav" />
+                        </RadioGroup>
+                      )}
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Spesifisert krav - only show if TE sent spesifisert krav */}
+              {varselType === 'spesifisert' && (
                 <FormField
-                  label="Har du etterlyst kravet skriftlig? (§33.6.2)"
-                  helpText="Hvis du har etterlyst og TE ikke svarte, kan kravet tapes helt."
+                  label="Spesifisert krav sendt i tide? (§33.6)"
+                  required
+                  helpText="Entreprenøren skal 'uten ugrunnet opphold' angi og begrunne antall dager når han har grunnlag."
                 >
                   <Controller
-                    name="har_bh_etterlyst"
+                    name="spesifisert_krav_ok"
                     control={control}
                     render={({ field }) => (
                       <RadioGroup
-                        value={field.value === undefined ? undefined : field.value ? 'ja' : 'nei'}
+                        value={field.value ? 'ja' : 'nei'}
                         onValueChange={(val: string) => field.onChange(val === 'ja')}
                       >
-                        <RadioItem value="ja" label="Ja - etterlyst skriftlig" />
-                        <RadioItem value="nei" label="Nei - ikke etterlyst" />
+                        <RadioItem value="ja" label="Ja - kravet kom i tide" />
+                        <RadioItem value="nei" label="Nei - kravet kom for sent (preklusjon)" />
                       </RadioGroup>
                     )}
                   />
                 </FormField>
+              )}
+
+              {/* Force majeure - simplified check */}
+              {varselType === 'force_majeure' && (
+                <FormField
+                  label="Force majeure varslet i tide? (§33.3)"
+                  required
+                  helpText="Force majeure skal varsles 'uten ugrunnet opphold' etter at forholdet inntrådte."
+                >
+                  <Controller
+                    name="spesifisert_krav_ok"
+                    control={control}
+                    render={({ field }) => (
+                      <RadioGroup
+                        value={field.value ? 'ja' : 'nei'}
+                        onValueChange={(val: string) => field.onChange(val === 'ja')}
+                      >
+                        <RadioItem value="ja" label="Ja - varslet i tide" />
+                        <RadioItem value="nei" label="Nei - varslet for sent" />
+                      </RadioGroup>
+                    )}
+                  />
+                </FormField>
+              )}
+
+              {/* Fallback if varselType not set - show both options */}
+              {!varselType && (
+                <>
+                  <FormField
+                    label="Varsel/krav sendt i tide?"
+                    required
+                    helpText="Vurder om entreprenøren har varslet innen fristen."
+                  >
+                    <Controller
+                      name="spesifisert_krav_ok"
+                      control={control}
+                      render={({ field }) => (
+                        <RadioGroup
+                          value={field.value ? 'ja' : 'nei'}
+                          onValueChange={(val: string) => field.onChange(val === 'ja')}
+                        >
+                          <RadioItem value="ja" label="Ja - varslet i tide" />
+                          <RadioItem value="nei" label="Nei - varslet for sent" />
+                        </RadioGroup>
+                      )}
+                    />
+                  </FormField>
+                </>
               )}
 
               {/* Begrunnelse varsel */}
@@ -512,18 +576,19 @@ export function RespondFristModal({
                   name="beregnings_resultat"
                   control={control}
                   render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger error={!!errors.beregnings_resultat}>
-                        <SelectValue placeholder="Velg resultat" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {BH_FRISTSVAR_OPTIONS.filter(opt => opt.value !== '').map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <RadioGroup
+                      value={field.value}
+                      onValueChange={field.onChange}
+                    >
+                      {BH_FRISTSVAR_OPTIONS.filter(opt => opt.value !== '').map((option) => (
+                        <RadioItem
+                          key={option.value}
+                          value={option.value}
+                          label={option.label}
+                          error={!!errors.beregnings_resultat}
+                        />
+                      ))}
+                    </RadioGroup>
                   )}
                 />
               </FormField>
@@ -553,7 +618,7 @@ export function RespondFristModal({
                     id="godkjent_dager"
                     type="number"
                     {...register('godkjent_dager', { valueAsNumber: true })}
-                    fullWidth
+                    width="xs"
                     placeholder="0"
                     error={!!errors.godkjent_dager}
                   />
@@ -574,7 +639,7 @@ export function RespondFristModal({
                         id="ny_sluttdato"
                         value={field.value}
                         onChange={field.onChange}
-                        fullWidth
+                        
                         placeholder="Velg dato"
                       />
                     )}
@@ -596,7 +661,7 @@ export function RespondFristModal({
                         id="frist_for_spesifisering"
                         value={field.value}
                         onChange={field.onChange}
-                        fullWidth
+                        
                         placeholder="Velg dato"
                       />
                     )}

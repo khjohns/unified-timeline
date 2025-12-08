@@ -290,7 +290,7 @@ export function UpdateResponseVederlagModal({
                   <CurrencyInput
                     value={field.value ?? null}
                     onChange={field.onChange}
-                    fullWidth
+                    
                   />
                 )}
               />

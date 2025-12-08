@@ -202,13 +202,13 @@ export function ReviseFristModal({
 
         {/* Scenario A: Normal revision */}
         {!iverksettForsering && (
-          <div className="grid grid-cols-2 gap-4 items-end">
+          <div className="flex gap-4 items-end">
             <FormField label="Opprinnelig krav (dager)">
               <Input
                 type="number"
                 value={lastFristEvent.antall_dager}
                 disabled
-                fullWidth
+                width="xs"
               />
             </FormField>
             <FormField
@@ -223,7 +223,7 @@ export function ReviseFristModal({
                     type="number"
                     value={field.value}
                     onChange={(e) => field.onChange(Number(e.target.value))}
-                    fullWidth
+                    width="xs"
                     min={0}
                   />
                 )}
@@ -251,7 +251,7 @@ export function ReviseFristModal({
                   <CurrencyInput
                     value={field.value ?? null}
                     onChange={field.onChange}
-                    fullWidth
+                    
                     placeholder="0"
                   />
                 )}

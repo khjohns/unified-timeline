@@ -59,8 +59,8 @@ const fristSchema = z.object({
   berorte_aktiviteter: z.string().optional(),
 }).refine(
   (data) => {
-    // antall_dager is required for spesifisert, begge, and force_majeure
-    if (['spesifisert', 'begge', 'force_majeure'].includes(data.varsel_type)) {
+    // antall_dager is required for spesifisert and force_majeure
+    if (['spesifisert', 'force_majeure'].includes(data.varsel_type)) {
       return data.antall_dager !== undefined && data.antall_dager >= 0;
     }
     return true;
@@ -300,7 +300,7 @@ export function SendFristModal({
         </FormField>
 
         {/* VarselInfo fields based on selected type */}
-        {(selectedVarselType === 'noytralt' || selectedVarselType === 'begge') && (
+        {selectedVarselType === 'noytralt' && (
           <div className="p-5 bg-pkt-surface-subtle-light-blue rounded-none border-2 border-pkt-border-focus">
             <h4 className="text-base font-medium text-pkt-text-body-default mb-4">
               Nøytralt/Foreløpig varsel (§33.4)
@@ -356,7 +356,7 @@ export function SendFristModal({
                         id="noytralt_varsel_dato"
                         value={field.value}
                         onChange={field.onChange}
-                        fullWidth
+                        
                         error={!!errors.noytralt_varsel_dato}
                         placeholder="Velg dato"
                       />
@@ -388,7 +388,7 @@ export function SendFristModal({
           </div>
         )}
 
-        {(selectedVarselType === 'spesifisert' || selectedVarselType === 'begge') && (
+        {selectedVarselType === 'spesifisert' && (
           <div className="p-5 bg-pkt-surface-subtle-light-blue rounded-none border-2 border-pkt-border-focus">
             <h4 className="text-base font-medium text-pkt-text-body-default mb-4">
               Spesifisert krav (§33.6)
@@ -422,7 +422,7 @@ export function SendFristModal({
                         id="spesifisert_varsel_dato"
                         value={field.value}
                         onChange={field.onChange}
-                        fullWidth
+                        
                         error={!!errors.spesifisert_varsel_dato}
                         placeholder="Velg dato"
                       />
@@ -454,13 +454,12 @@ export function SendFristModal({
           </div>
         )}
 
-        {/* Number of Days - Required for spesifisert, optional for noytralt */}
-        {(selectedVarselType === 'spesifisert' || selectedVarselType === 'begge' || selectedVarselType === 'force_majeure') && (
+        {/* Number of Days - Required for spesifisert and force_majeure */}
+        {(selectedVarselType === 'spesifisert' || selectedVarselType === 'force_majeure') && (
           <FormField
             label="Antall dager fristforlengelse"
-            required={selectedVarselType === 'spesifisert' || selectedVarselType === 'force_majeure'}
+            required
             error={errors.antall_dager?.message}
-            helpText={selectedVarselType === 'begge' ? 'Skal fylles ut sammen med spesifisert krav' : undefined}
           >
             <Input
               id="antall_dager"
@@ -468,7 +467,7 @@ export function SendFristModal({
               {...register('antall_dager', {
                 setValueAs: (v) => (v === '' ? undefined : Number(v)),
               })}
-              fullWidth
+              width="xs"
               placeholder="0"
               min={0}
               error={!!errors.antall_dager}
@@ -491,7 +490,7 @@ export function SendFristModal({
                   id="ny_sluttdato"
                   value={field.value}
                   onChange={field.onChange}
-                  fullWidth
+                  
                   error={!!errors.ny_sluttdato}
                   placeholder="Velg dato"
                 />

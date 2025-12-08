@@ -1,12 +1,32 @@
 import { forwardRef, InputHTMLAttributes } from 'react';
 import clsx from 'clsx';
 
+export type InputWidth = 'xs' | 'sm' | 'md' | 'lg' | 'full';
+
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   /** Whether the input has an error state */
   error?: boolean;
-  /** Full width input */
+  /** Full width input (deprecated, use width="full" instead) */
   fullWidth?: boolean;
+  /** Semantic width of the input field */
+  width?: InputWidth;
 }
+
+/**
+ * Width classes for semantic sizing:
+ * - xs: ~6 chars (e.g., short numbers, codes)
+ * - sm: ~12 chars (e.g., dates, short amounts)
+ * - md: ~20 chars (e.g., amounts with currency, phone numbers)
+ * - lg: ~32 chars (e.g., emails, medium text)
+ * - full: 100% width
+ */
+const WIDTH_CLASSES: Record<InputWidth, string> = {
+  xs: 'w-24',      // 6rem = ~6-8 chars
+  sm: 'w-36',      // 9rem = ~10-12 chars
+  md: 'w-48',      // 12rem = ~16-20 chars
+  lg: 'w-72',      // 18rem = ~28-32 chars
+  full: 'w-full',
+};
 
 /**
  * Input component with Punkt design system styling
@@ -16,7 +36,10 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
  * - Focus state with pkt-border-focus (#e0adff)
  */
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, error, fullWidth, disabled, ...props }, ref) => {
+  ({ className, error, fullWidth, width, disabled, ...props }, ref) => {
+    // Determine width class (width prop takes precedence over fullWidth)
+    const widthClass = width ? WIDTH_CLASSES[width] : (fullWidth ? 'w-full' : undefined);
+
     return (
       <input
         ref={ref}
@@ -61,7 +84,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           'placeholder:text-pkt-text-placeholder',
 
           // Width
-          fullWidth && 'w-full',
+          widthClass,
 
           className
         )}

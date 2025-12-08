@@ -3,10 +3,12 @@
  *
  * Specialized input for currency values with Norwegian formatting.
  * Supports negative values (for deductions/fradrag).
+ * Default width is 'md' (~16-20 chars) which fits most currency amounts.
  */
 
 import { forwardRef, InputHTMLAttributes, useState, useEffect } from 'react';
 import clsx from 'clsx';
+import { InputWidth } from './Input';
 
 export interface CurrencyInputProps
   extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'value' | 'onChange'> {
@@ -16,8 +18,10 @@ export interface CurrencyInputProps
   onChange?: (value: number | null) => void;
   /** Whether the input has an error state */
   error?: boolean;
-  /** Full width input */
+  /** Full width input (deprecated, use width="full" instead) */
   fullWidth?: boolean;
+  /** Semantic width of the input field (default: 'md') */
+  width?: InputWidth;
   /** Allow negative values (for deductions) */
   allowNegative?: boolean;
   /** Helper text shown below input */
@@ -25,6 +29,17 @@ export interface CurrencyInputProps
   /** Label text */
   label?: string;
 }
+
+/**
+ * Width classes for semantic sizing
+ */
+const WIDTH_CLASSES: Record<InputWidth, string> = {
+  xs: 'w-24',      // 6rem = ~6-8 chars
+  sm: 'w-36',      // 9rem = ~10-12 chars
+  md: 'w-48',      // 12rem = ~16-20 chars
+  lg: 'w-72',      // 18rem = ~28-32 chars
+  full: 'w-full',
+};
 
 /**
  * Format number with Norwegian thousand separators
@@ -56,6 +71,7 @@ export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
       className,
       error,
       fullWidth,
+      width = 'md', // Default to medium width for currency
       disabled,
       value,
       onChange,
@@ -95,8 +111,11 @@ export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
       setDisplayValue(formatCurrency(numericValue));
     };
 
+    // Determine width class (fullWidth overrides width prop for backwards compat)
+    const widthClass = fullWidth ? 'w-full' : WIDTH_CLASSES[width];
+
     return (
-      <div className={clsx(fullWidth && 'w-full', className)}>
+      <div className={clsx(widthClass, className)}>
         {label && (
           <label
             htmlFor={id}
@@ -154,8 +173,8 @@ export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
               // Placeholder
               'placeholder:text-pkt-text-placeholder',
 
-              // Width
-              fullWidth && 'w-full'
+              // Always full width within container
+              'w-full'
             )}
             aria-invalid={error ? 'true' : 'false'}
             {...props}

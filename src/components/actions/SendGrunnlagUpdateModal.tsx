@@ -236,7 +236,7 @@ export function SendGrunnlagUpdateModal({
                 id="dato_oppdaget"
                 value={field.value}
                 onChange={field.onChange}
-                fullWidth
+                
                 placeholder="Velg dato"
               />
             )}

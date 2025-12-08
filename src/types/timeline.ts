@@ -43,7 +43,6 @@ export type VederlagBeregningResultat =
 export type FristVarselType =
   | 'noytralt'        // §33.4 - Nøytralt varsel (uten dager)
   | 'spesifisert'     // §33.6 - Spesifisert krav (med dager)
-  | 'begge'           // Først nøytralt, så spesifisert
   | 'force_majeure';  // §33.3 - Force majeure
 
 // Frist beregning results (UTEN "avslatt_uenig_grunnlag" - det hører hjemme i Grunnlag!)
@@ -133,6 +132,8 @@ export interface VederlagTilstand {
   bh_begrunnelse?: string;
   bh_metode?: VederlagsMetode;
   godkjent_belop?: number;
+  /** Which version of the claim BH last responded to (0-indexed: 0 = original, 1 = rev 1, etc.) */
+  bh_respondert_versjon?: number;
 
   // Computed
   differanse?: number;

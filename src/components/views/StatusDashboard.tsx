@@ -31,6 +31,7 @@ function getKrevdBelop(state: SakState): number | undefined {
 
 /**
  * StatusDashboard renders the three-track status overview with contextual actions
+ * Using vertical list layout (Forslag B: Minimal Soft)
  */
 export function StatusDashboard({
   state,
@@ -46,8 +47,8 @@ export function StatusDashboard({
         Status Dashboard
       </h2>
 
-      {/* Three-column grid for status cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Vertical list layout with rounded container */}
+      <div className="bg-pkt-bg-subtle rounded-lg overflow-hidden divide-y divide-pkt-grays-gray-200">
         <StatusCard
           spor="grunnlag"
           status={state.grunnlag.status}

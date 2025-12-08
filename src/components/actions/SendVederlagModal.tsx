@@ -297,7 +297,7 @@ export function SendVederlagModal({
                     <CurrencyInput
                       value={field.value ?? null}
                       onChange={field.onChange}
-                      fullWidth
+                      
                       allowNegative
                     />
                   )}
@@ -345,7 +345,7 @@ export function SendVederlagModal({
                     <CurrencyInput
                       value={field.value ?? null}
                       onChange={field.onChange}
-                      fullWidth
+                      
                     />
                   )}
                 />
@@ -388,7 +388,7 @@ export function SendVederlagModal({
                   <CurrencyInput
                     value={field.value ?? null}
                     onChange={field.onChange}
-                    fullWidth
+                    
                   />
                 )}
               />
@@ -434,7 +434,7 @@ export function SendVederlagModal({
                       <CurrencyInput
                         value={field.value ?? null}
                         onChange={field.onChange}
-                        fullWidth
+                        
                       />
                     )}
                   />
@@ -451,7 +451,7 @@ export function SendVederlagModal({
                         id="dato_klar_over_rigg"
                         value={field.value}
                         onChange={field.onChange}
-                        fullWidth
+                        
                         placeholder="Velg dato"
                       />
                     )}
@@ -499,7 +499,7 @@ export function SendVederlagModal({
                       <CurrencyInput
                         value={field.value ?? null}
                         onChange={field.onChange}
-                        fullWidth
+                        
                       />
                     )}
                   />
@@ -516,7 +516,7 @@ export function SendVederlagModal({
                         id="dato_klar_over_produktivitet"
                         value={field.value}
                         onChange={field.onChange}
-                        fullWidth
+                        
                         placeholder="Velg dato"
                       />
                     )}

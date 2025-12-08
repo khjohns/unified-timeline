@@ -174,7 +174,6 @@ function formatFristVarselType(type?: FristVarselType): string {
   const typeMap: Record<FristVarselType, string> = {
     'noytralt': 'Nøytralt varsel (§33.4)',
     'spesifisert': 'Spesifisert krav (§33.6)',
-    'begge': 'Nøytralt + spesifisert',
     'force_majeure': 'Force majeure (§33.3)',
   };
   return typeMap[type] || type;

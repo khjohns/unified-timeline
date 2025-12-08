@@ -240,7 +240,7 @@ export function UpdateResponseFristModal({
                     onChange={(e) => field.onChange(Number(e.target.value))}
                     max={krevdDager - 1}
                     min={0}
-                    fullWidth
+                    width="xs"
                   />
                 )}
               />

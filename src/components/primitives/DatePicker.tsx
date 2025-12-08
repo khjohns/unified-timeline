@@ -8,6 +8,20 @@ import { forwardRef, useState, useEffect } from 'react';
 import clsx from 'clsx';
 import 'react-day-picker/style.css';
 
+export type DatePickerWidth = 'sm' | 'md' | 'full';
+
+/**
+ * Width classes for semantic sizing:
+ * - sm: ~12 chars (e.g., dd.mm.yyyy format)
+ * - md: ~16 chars (with some padding)
+ * - full: 100% width
+ */
+const WIDTH_CLASSES: Record<DatePickerWidth, string> = {
+  sm: 'w-36',      // 9rem = fits dd.mm.yyyy comfortably
+  md: 'w-48',      // 12rem = extra breathing room
+  full: 'w-full',
+};
+
 export interface DatePickerProps {
   /** Selected date value (ISO string YYYY-MM-DD) */
   value?: string;
@@ -15,8 +29,10 @@ export interface DatePickerProps {
   onChange?: (date: string) => void;
   /** Whether the input has an error state */
   error?: boolean;
-  /** Full width input */
+  /** Full width input (deprecated, use width="full" instead) */
   fullWidth?: boolean;
+  /** Semantic width of the date picker (default: 'sm') */
+  width?: DatePickerWidth;
   /** Disabled state */
   disabled?: boolean;
   /** Placeholder text */
@@ -122,6 +138,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
       onChange,
       error,
       fullWidth,
+      width = 'sm', // Default to small width for dates
       disabled,
       placeholder = 'Velg dato',
       id,
@@ -132,6 +149,9 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
   ) => {
     const [open, setOpen] = useState(false);
     const isMobile = useIsMobile();
+
+    // Determine width class (fullWidth overrides width prop for backwards compat)
+    const widthClass = fullWidth ? 'w-full' : WIDTH_CLASSES[width];
 
     // Parse the ISO string to Date object
     const selectedDate = value ? new Date(value) : undefined;
@@ -188,7 +208,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
       !disabled && 'hover:border-pkt-border-hover',
 
       // Width
-      fullWidth && 'w-full',
+      widthClass,
 
       // Placeholder color
       !displayValue && 'text-pkt-text-placeholder'
