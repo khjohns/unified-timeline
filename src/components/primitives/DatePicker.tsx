@@ -25,6 +25,8 @@ export interface DatePickerProps {
   id?: string;
   /** Input name */
   name?: string;
+  /** Test ID for E2E testing */
+  'data-testid'?: string;
 }
 
 /** Hook to detect mobile screen size */
@@ -124,6 +126,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
       placeholder = 'Velg dato',
       id,
       name,
+      'data-testid': dataTestId,
     },
     ref
   ) => {
@@ -214,6 +217,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
               type="button"
               disabled={disabled}
               className={triggerClassName}
+              data-testid={dataTestId}
             >
               <span>{displayValue || placeholder}</span>
               <CalendarIcon className="h-5 w-5 shrink-0" />
@@ -291,6 +295,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
             type="button"
             disabled={disabled}
             className={triggerClassName}
+            data-testid={dataTestId}
           >
             <span>{displayValue || placeholder}</span>
             <CalendarIcon className="h-5 w-5 shrink-0" />

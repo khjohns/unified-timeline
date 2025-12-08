@@ -8,6 +8,7 @@
 import { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { useCaseState } from '../hooks/useCaseState';
+import { useTimeline } from '../hooks/useTimeline';
 import { useActionPermissions } from '../hooks/useActionPermissions';
 import { useUserRole } from '../hooks/useUserRole';
 import { StatusDashboard } from '../components/views/StatusDashboard';
@@ -32,8 +33,7 @@ import {
   UpdateResponseVederlagModal,
   UpdateResponseFristModal,
 } from '../components/actions';
-import { getMockTimelineById } from '../mocks/mockData';
-import type { SakState, GrunnlagResponsResultat } from '../types/timeline';
+import type { SakState, GrunnlagResponsResultat, TimelineEntry } from '../types/timeline';
 import { ReloadIcon, ExclamationTriangleIcon, DownloadIcon } from '@radix-ui/react-icons';
 import { downloadContractorClaimPdf } from '../pdf';
 
@@ -77,6 +77,7 @@ const EMPTY_STATE: SakState = {
 export function CasePage() {
   const { sakId } = useParams<{ sakId: string }>();
   const { data, isLoading, error } = useCaseState(sakId || '');
+  const { data: timelineData } = useTimeline(sakId || '');
 
   // Modal state management - Initial submissions
   const [sendGrunnlagOpen, setSendGrunnlagOpen] = useState(false);
@@ -105,10 +106,18 @@ export function CasePage() {
   // Compute actions based on state - hooks must be called unconditionally
   const actions = useActionPermissions(state, userRole);
 
-  // Get mock timeline events for display
-  const mockTimelineEvents = useMemo(
-    () => getMockTimelineById(sakId || ''),
-    [sakId]
+  // Convert API timeline events to TimelineEntry format
+  const timelineEvents: TimelineEntry[] = useMemo(
+    () => timelineData?.events.map(e => ({
+      event_id: e.event_id,
+      tidsstempel: e.tidsstempel,
+      type: e.type,
+      aktor: e.aktor,
+      rolle: e.rolle,
+      spor: e.spor,
+      sammendrag: e.sammendrag,
+    })) ?? [],
+    [timelineData]
   );
 
   // Compute grunnlag status for subsidiary logic in response modals
@@ -342,7 +351,7 @@ export function CasePage() {
             Hendelser
           </h2>
           <div className="bg-white rounded-none shadow-sm border-2 border-pkt-border-subtle p-4 sm:p-6">
-            <Timeline events={mockTimelineEvents} />
+            <Timeline events={timelineEvents} />
           </div>
         </section>
 

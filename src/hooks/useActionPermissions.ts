@@ -58,11 +58,15 @@ export function useActionPermissions(
   const isTE = userRole === 'TE';
   const isBH = userRole === 'BH';
 
+  // Helper: Check if a track is in initial state (not yet sent)
+  const isInitialStatus = (status: string | undefined) =>
+    status === 'utkast' || status === 'ikke_relevant';
+
   return {
     // TE Actions: Send initial claims
-    canSendGrunnlag: isTE && state.grunnlag.status === 'utkast',
-    canSendVederlag: isTE && state.vederlag.status === 'utkast',
-    canSendFrist: isTE && state.frist.status === 'utkast',
+    canSendGrunnlag: isTE && isInitialStatus(state.grunnlag.status),
+    canSendVederlag: isTE && isInitialStatus(state.vederlag.status),
+    canSendFrist: isTE && isInitialStatus(state.frist.status),
 
     // TE Actions: Update existing claims
     canUpdateGrunnlag:
@@ -106,18 +110,19 @@ export function useActionPermissions(
       isBH && (state.frist.status === 'sendt' || state.frist.status === 'under_behandling'),
 
     // BH Actions: Update existing responses (snuoperasjon, endre avgjørelse)
+    // Must have actually responded (bh_resultat is set, not null/undefined)
     canUpdateGrunnlagResponse:
       isBH &&
-      state.grunnlag.bh_resultat !== undefined &&
-      state.grunnlag.status !== 'utkast',
+      state.grunnlag.bh_resultat != null &&
+      !isInitialStatus(state.grunnlag.status),
     canUpdateVederlagResponse:
       isBH &&
-      state.vederlag.bh_resultat !== undefined &&
-      state.vederlag.status !== 'utkast',
+      state.vederlag.bh_resultat != null &&
+      !isInitialStatus(state.vederlag.status),
     canUpdateFristResponse:
       isBH &&
-      state.frist.bh_resultat !== undefined &&
-      state.frist.status !== 'utkast',
+      state.frist.bh_resultat != null &&
+      !isInitialStatus(state.frist.status),
 
     // Special: Issue EO (Endringsordre)
     canIssueEO: state.kan_utstede_eo,

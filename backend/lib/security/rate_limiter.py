@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 # Rate limit verdier fra miljøvariabler (eller defaults)
 RATE_LIMIT_SUBMIT = os.getenv('RATE_LIMIT_SUBMIT', '10')  # per minutt
 RATE_LIMIT_WEBHOOK = os.getenv('RATE_LIMIT_WEBHOOK', '100')  # per minutt
-RATE_LIMIT_DEFAULT = os.getenv('RATE_LIMIT_DEFAULT', '200 per day, 50 per hour')
+RATE_LIMIT_DEFAULT = os.getenv('RATE_LIMIT_DEFAULT', '2000 per day, 500 per hour')
 
 # Storage backend
 # For prototype: memory://

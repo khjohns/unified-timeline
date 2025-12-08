@@ -1,252 +1,251 @@
 """
 Grunnlagskategorier for NS 8407 endringsordrer.
 
-Disse kategoriene beskriver ÅRSAKEN til kravet og bestemmer hvilke
-juridiske regler som gjelder. Kategoriseringen er kritisk for:
-- Hvem som har ansvaret (TE vs BH)
-- Hvilke varselfrister som gjelder
-- Hvordan vederlag beregnes
-- Om det gis rett til fristforlengelse
+Struktur basert på NS 8407 §33 (Fristforlengelse) og §34 (Vederlagsjustering).
 
-Strukturen følger NS 8407 og vanlig praksis i byggebransjen.
+Hovedkategorier følger §33.1 bokstav a), b), c) og §33.3:
+- ENDRING: §33.1 a) - Endringer (jf. punkt 31 og 32)
+- SVIKT: §33.1 b) - Forsinkelse eller svikt ved byggherrens ytelser (punkt 22, 23, 24)
+- ANDRE: §33.1 c) - Andre forhold byggherren har risikoen for
+- FORCE_MAJEURE: §33.3 - Force majeure
+
+Navnekonvensjon: SCREAMING_SNAKE_CASE (f.eks. 'ENDRING', 'LOV_GJENSTAND', 'FM_EGEN')
+Synkronisert med frontend: src/constants/categories.ts
 """
 
-from typing import Dict, List, TypedDict
+from typing import Dict, List, TypedDict, Literal
 
+
+# ============ TYPE DEFINITIONS ============
 
 class Underkategori(TypedDict):
-    """Underkategori for grunnlag"""
+    """Underkategori for grunnlag med juridiske referanser."""
     kode: str
     label: str
-    paragraf: str
+    hjemmel_basis: str      # Den utløsende paragrafen
     beskrivelse: str
+    varselkrav_ref: str     # Juridisk referanse for varselkrav
 
 
 class Hovedkategori(TypedDict):
-    """Hovedkategori for grunnlag"""
+    """Hovedkategori for grunnlag med full juridisk kontekst."""
     kode: str
     label: str
-    paragraf: str
     beskrivelse: str
+    hjemmel_frist: str                          # Referanse i §33
+    hjemmel_vederlag: str | None                # Referanse i §34 (None for FM)
+    standard_vederlagsmetode: str               # F.eks. 'Enhetspriser (34.3)'
+    type_krav: Literal['Tid', 'Penger', 'Tid og Penger']
     underkategorier: List[Underkategori]
 
 
-# ============ HOVEDKATEGORIER ============
+# ============ HOVEDKATEGORIER MED UNDERKATEGORIER ============
 
 GRUNNLAG_KATEGORIER: Dict[str, Hovedkategori] = {
-    "endring_initiert_bh": {
-        "kode": "endring_initiert_bh",
-        "label": "Endring initiert av BH",
-        "paragraf": "§31.1",
-        "beskrivelse": "Byggherre igangsetter endring av kontraktsarbeidene",
+    # ========== §33.1 a) ENDRINGER ==========
+    "ENDRING": {
+        "kode": "ENDRING",
+        "label": "Endringer",
+        "beskrivelse": "Avvik fra det opprinnelig avtalte, enten ved formell ordre, endrede rammebetingelser eller pålegg.",
+        "hjemmel_frist": "33.1 a)",
+        "hjemmel_vederlag": "34.1.1",
+        "standard_vederlagsmetode": "Enhetspriser (34.3)",
+        "type_krav": "Tid og Penger",
         "underkategorier": [
             {
-                "kode": "regulaer_eo",
-                "label": "Regulær endringsordre",
-                "paragraf": "§31.1, §31.3",
-                "beskrivelse": "BH har rett til å endre prosjektet. TE har rett til vederlag og fristforlengelse."
+                "kode": "EO",
+                "label": "Formell endringsordre",
+                "hjemmel_basis": "31.1",
+                "beskrivelse": "Skriftlig endringsordre utstedt av byggherren.",
+                "varselkrav_ref": "31.3 (Mottatt ordre)",
             },
             {
-                "kode": "irregulaer_endring",
-                "label": "Irregulær endring/pålegg uten EO",
-                "paragraf": "§32.1",
-                "beskrivelse": "BH gir ordre uten forutgående endringsordre. TE kan kreve etterfølgende EO."
+                "kode": "IRREG",
+                "label": "Irregulær endring (Pålegg)",
+                "hjemmel_basis": "32.1",
+                "beskrivelse": "Pålegg/anvisning som TE mener er endring, men som ikke er gitt som EO.",
+                "varselkrav_ref": "32.2",
             },
             {
-                "kode": "mengdeendring",
-                "label": "Mengdeendring",
-                "paragraf": "§31.1 siste avsnitt, §34.3",
-                "beskrivelse": "Endring i mengde av kontraktsarbeid som påvirker enhetspriser."
+                "kode": "SVAR_VARSEL",
+                "label": "Endring via svar på varsel",
+                "hjemmel_basis": "25.3 / 32.3",
+                "beskrivelse": "BHs svar på varsel om svikt/mangler innebærer en endring (f.eks. nye løsninger).",
+                "varselkrav_ref": "32.2",
             },
-        ]
+            {
+                "kode": "LOV_GJENSTAND",
+                "label": "Endring i lover/vedtak (Gjenstand)",
+                "hjemmel_basis": "14.4",
+                "beskrivelse": "Nye offentlige krav som krever fysisk endring av kontraktsgjenstanden.",
+                "varselkrav_ref": "32.2",
+            },
+            {
+                "kode": "LOV_PROSESS",
+                "label": "Endring i lover/vedtak (Prosess)",
+                "hjemmel_basis": "15.2",
+                "beskrivelse": "Nye offentlige krav som endrer måten arbeidet må utføres på.",
+                "varselkrav_ref": "32.2",
+            },
+            {
+                "kode": "GEBYR",
+                "label": "Endring i gebyrer/avgifter",
+                "hjemmel_basis": "26.3",
+                "beskrivelse": "Endringer i offentlige gebyrer/avgifter etter tilbudstidspunktet.",
+                "varselkrav_ref": "32.2",
+            },
+            {
+                "kode": "SAMORD",
+                "label": "Samordning/Omlegging",
+                "hjemmel_basis": "21.4",
+                "beskrivelse": "Pålagt omlegging som følge av samordning utover det påregnelige.",
+                "varselkrav_ref": "32.2",
+            },
+            {
+                "kode": "FORSERING",
+                "label": "Forsering ved uberettiget avslag",
+                "hjemmel_basis": "33.8",
+                "beskrivelse": "Byggherren avslår rettmessig fristforlengelse, TE velger å forsere.",
+                "varselkrav_ref": "33.8 (Før iverksettelse)",
+            },
+        ],
     },
-    "forsinkelse_bh": {
-        "kode": "forsinkelse_bh",
-        "label": "Forsinkelse eller svikt i BHs ytelser",
-        "paragraf": "§22, §24",
-        "beskrivelse": "BH oppfyller ikke sine forpliktelser, noe som hindrer TEs fremdrift",
+
+    # ========== §33.1 b) FORSINKELSE/SVIKT ==========
+    "SVIKT": {
+        "kode": "SVIKT",
+        "label": "Forsinkelse eller svikt ved byggherrens ytelser",
+        "beskrivelse": "Forhold definert som byggherrens ytelser eller risiko i kapittel V.",
+        "hjemmel_frist": "33.1 b)",
+        "hjemmel_vederlag": "34.1.2",
+        "standard_vederlagsmetode": "Regningsarbeid (34.4)",
+        "type_krav": "Tid og Penger",
         "underkategorier": [
             {
-                "kode": "prosjektering",
-                "label": "Svikt i prosjektering",
-                "paragraf": "§24.1",
-                "beskrivelse": "Mangler, feil eller forsinkelser i prosjekteringsunderlag fra BH."
+                "kode": "MEDVIRK",
+                "label": "Manglende medvirkning/leveranser",
+                "hjemmel_basis": "22",
+                "beskrivelse": "Forsinkede tegninger, beslutninger, fysisk arbeidsgrunnlag (22.3) eller materialer (22.4).",
+                "varselkrav_ref": "34.1.2 / 25.1.2",
             },
             {
-                "kode": "arbeidsgrunnlag",
-                "label": "Svikt i arbeidsgrunnlaget",
-                "paragraf": "§22.3, §25",
-                "beskrivelse": "BH har ikke levert komplett/korrekt arbeidsgrunnlag. TE har plikt til å undersøke og varsle."
+                "kode": "ADKOMST",
+                "label": "Manglende tilkomst/råderett",
+                "hjemmel_basis": "22.2",
+                "beskrivelse": "Byggherren har ikke nødvendig råderett over eiendommen.",
+                "varselkrav_ref": "34.1.2",
             },
             {
-                "kode": "materialer_bh",
-                "label": "BH-leverte materialer",
-                "paragraf": "§22.4",
-                "beskrivelse": "Materialer som BH skal levere mangler eller er forsinkete."
-            },
-            {
-                "kode": "tillatelser",
-                "label": "Tillatelser og godkjenninger",
-                "paragraf": "§16.3",
-                "beskrivelse": "BH har ikke skaffet nødvendige tillatelser i tide."
-            },
-            {
-                "kode": "fastmerker",
-                "label": "Fastmerker og utstikking",
-                "paragraf": "§18.4",
-                "beskrivelse": "BH har ikke etablert korrekte fastmerker eller utført utstikking."
-            },
-            {
-                "kode": "foreskrevne_losninger",
-                "label": "Svikt i BHs foreskrevne løsninger",
-                "paragraf": "§24.1",
-                "beskrivelse": "BHs valgte løsninger er ikke egnet eller har feil."
-            },
-            {
-                "kode": "koordinering",
-                "label": "Koordinering av sideentreprenører",
-                "paragraf": "§21",
-                "beskrivelse": "BH koordinerer ikke andre entreprenører tilfredsstillende."
-            },
-        ]
-    },
-    "grunnforhold": {
-        "kode": "grunnforhold",
-        "label": "Risiko for grunnforhold",
-        "paragraf": "§23.1",
-        "beskrivelse": "Uforutsette eller uriktige grunnforhold som BH har risikoen for",
-        "underkategorier": [
-            {
-                "kode": "uforutsette_grunnforhold",
+                "kode": "GRUNN",
                 "label": "Uforutsette grunnforhold",
-                "paragraf": "§23.1a",
-                "beskrivelse": "Grunnforhold avviker fra det som var kjent eller kunne forventes."
+                "hjemmel_basis": "23.1",
+                "beskrivelse": "Forhold ved grunnen som avviker fra det TE hadde grunn til å regne med.",
+                "varselkrav_ref": "34.1.2 / 25.1.2",
             },
             {
-                "kode": "uriktige_opplysninger",
-                "label": "Uriktige grunnopplysninger fra BH",
-                "paragraf": "§23.1b",
-                "beskrivelse": "BH har gitt feil eller mangelfulle opplysninger om grunnforholdene."
+                "kode": "KULTURMINNER",
+                "label": "Funn av kulturminner",
+                "hjemmel_basis": "23.3",
+                "beskrivelse": "Stans i arbeidet som følge av funn av ukjente kulturminner.",
+                "varselkrav_ref": "34.1.2 / 23.3 annet ledd",
             },
             {
-                "kode": "forurensning",
-                "label": "Forurensning i grunnen",
-                "paragraf": "§23.1",
-                "beskrivelse": "Uventet forurensning oppdages under utførelsen."
+                "kode": "PROSJ_RISIKO",
+                "label": "Svikt i BHs prosjektering",
+                "hjemmel_basis": "24.1",
+                "beskrivelse": "Feil, mangler eller uklarheter i prosjektering/løsninger BH har risikoen for.",
+                "varselkrav_ref": "34.1.2 / 25.2",
             },
             {
-                "kode": "kulturminner",
-                "label": "Kulturminner",
-                "paragraf": "§23.3",
-                "beskrivelse": "Funn av kulturminner som krever stans og varsling til myndigheter."
+                "kode": "BH_FASTHOLDER",
+                "label": "BH fastholder løsning etter varsel",
+                "hjemmel_basis": "24.2.2 tredje ledd",
+                "beskrivelse": "BH fastholder sin prosjektering etter varsel fra TE, og løsningen viser seg uegnet.",
+                "varselkrav_ref": "34.1.2",
             },
-        ]
+        ],
     },
-    "offentlige_paaleg": {
-        "kode": "offentlige_paaleg",
-        "label": "Offentlige pålegg",
-        "paragraf": "§16.3",
-        "beskrivelse": "Myndighetskrav som endrer forutsetningene for arbeidet",
+
+    # ========== §33.1 c) ANDRE FORHOLD ==========
+    "ANDRE": {
+        "kode": "ANDRE",
+        "label": "Andre forhold byggherren har risikoen for",
+        "beskrivelse": "Sekkepost for risikoforhold som ikke er endringer eller 'ytelser'.",
+        "hjemmel_frist": "33.1 c)",
+        "hjemmel_vederlag": "34.1.2",
+        "standard_vederlagsmetode": "Regningsarbeid (34.4)",
+        "type_krav": "Tid og Penger",
         "underkategorier": [
             {
-                "kode": "nye_krav",
-                "label": "Nye myndighetskrav",
-                "paragraf": "§16.3",
-                "beskrivelse": "Nye lover, forskrifter eller pålegg som påvirker utførelsen."
+                "kode": "NEKT_MH",
+                "label": "Nektelse av kontraktsmedhjelper",
+                "hjemmel_basis": "10.2",
+                "beskrivelse": "BH nekter å godta valgt medhjelper uten saklig grunn.",
+                "varselkrav_ref": "34.1.2",
             },
             {
-                "kode": "endrede_vilkaar",
-                "label": "Endrede tillatelsesvilkår",
-                "paragraf": "§16.3",
-                "beskrivelse": "Endringer i vilkår for byggetillatelse eller andre godkjenninger."
+                "kode": "NEKT_TILTRANSPORT",
+                "label": "Tvungen tiltransport",
+                "hjemmel_basis": "12.1.2",
+                "beskrivelse": "BH gjennomfører tiltransport til tross for TEs saklige innvendinger etter 12.1.2.",
+                "varselkrav_ref": "34.1.2 / 12.1.2 annet ledd",
             },
-        ]
+            {
+                "kode": "SKADE_BH",
+                "label": "Skade forårsaket av BH/Sideentreprenør",
+                "hjemmel_basis": "19.1",
+                "beskrivelse": "Skade på kontraktsgjenstanden forårsaket av BH eller hans kontraktsmedhjelpere.",
+                "varselkrav_ref": "34.1.2 / 20.5",
+            },
+            {
+                "kode": "BRUKSTAKELSE",
+                "label": "Urettmessig brukstakelse",
+                "hjemmel_basis": "38.1 annet ledd",
+                "beskrivelse": "BH tar kontraktsgjenstanden i bruk før overtakelse/avtalt tid.",
+                "varselkrav_ref": "34.1.2 / 33.4",
+            },
+            {
+                "kode": "STANS_BET",
+                "label": "Stans ved betalingsmislighold",
+                "hjemmel_basis": "29.2",
+                "beskrivelse": "Konsekvenser av rettmessig stans grunnet manglende betaling/sikkerhet.",
+                "varselkrav_ref": "34.1.2 / 29.2",
+            },
+            {
+                "kode": "STANS_UENIGHET",
+                "label": "Pålagt stans/utsettelse",
+                "hjemmel_basis": "35.1",
+                "beskrivelse": "BH pålegger utsettelse av arbeidet ved uenighet om endring.",
+                "varselkrav_ref": "34.1.2",
+            },
+        ],
     },
-    "forsering": {
-        "kode": "forsering",
-        "label": "Forsering / Tidsmessig omlegging",
-        "paragraf": "§31.2, §33.8",
-        "beskrivelse": "BH pålegger endret tidsplan eller TE velger å forsere",
+
+    # ========== §33.3 FORCE MAJEURE ==========
+    "FORCE_MAJEURE": {
+        "kode": "FORCE_MAJEURE",
+        "label": "Force Majeure",
+        "beskrivelse": "Ekstraordinære hendelser utenfor partenes kontroll.",
+        "hjemmel_frist": "33.3",
+        "hjemmel_vederlag": None,
+        "standard_vederlagsmetode": "Ingen (Kun fristforlengelse)",
+        "type_krav": "Tid",
         "underkategorier": [
             {
-                "kode": "paalegt_forsering",
-                "label": "Pålagt forsering / omlegging",
-                "paragraf": "§31.2",
-                "beskrivelse": "BH pålegger endret tidsplan som en endring. TE har krav på vederlag."
+                "kode": "FM_EGEN",
+                "label": "Force Majeure (Egen)",
+                "hjemmel_basis": "33.3 første ledd",
+                "beskrivelse": "Ekstraordinære værforhold, offentlige påbud/forbud, streik, lockout etc. som rammer TE direkte.",
+                "varselkrav_ref": "33.4",
             },
             {
-                "kode": "forsering_etter_avslag",
-                "label": "Forsering ved uberettiget avslag på fristkrav",
-                "paragraf": "§33.8",
-                "beskrivelse": "TE velger å forsere etter at BH har avslått fristkrav. TE kan ha krav på vederlag."
+                "kode": "FM_MH",
+                "label": "Force Majeure (Medhjelper)",
+                "hjemmel_basis": "33.3 annet ledd",
+                "beskrivelse": "Hindring hos kontraktsmedhjelper som skyldes forhold utenfor dennes kontroll.",
+                "varselkrav_ref": "33.4",
             },
-        ]
-    },
-    "force_majeure": {
-        "kode": "force_majeure",
-        "label": "Force majeure",
-        "paragraf": "§33.3",
-        "beskrivelse": "Ekstraordinære hendelser utenfor partenes kontroll",
-        "underkategorier": [
-            {
-                "kode": "naturkatastrofe",
-                "label": "Naturkatastrofe",
-                "paragraf": "§33.3",
-                "beskrivelse": "Flom, ras, storm eller lignende ekstraordinære naturhendelser."
-            },
-            {
-                "kode": "krig_opprør",
-                "label": "Krig, opprør eller unntakstilstand",
-                "paragraf": "§33.3",
-                "beskrivelse": "Krig, militære aksjoner, opprør eller unntakstilstand."
-            },
-            {
-                "kode": "streik",
-                "label": "Streik eller lockout",
-                "paragraf": "§33.3",
-                "beskrivelse": "Arbeidskonflikter som hindrer utførelsen."
-            },
-        ]
-    },
-    "hindringer_bh_risiko": {
-        "kode": "hindringer_bh_risiko",
-        "label": "Hindringer BH har risikoen for",
-        "paragraf": "§33.1c",
-        "beskrivelse": "Forhold som hindrer fremdrift og som BH har risikoen for",
-        "underkategorier": [
-            {
-                "kode": "fysiske_hindringer",
-                "label": "Hindringer på byggeplassen",
-                "paragraf": "§33.1c",
-                "beskrivelse": "Fysiske hindringer på byggeplassen som BH har risikoen for."
-            },
-            {
-                "kode": "offentlige_restriksjoner",
-                "label": "Offentlige restriksjoner",
-                "paragraf": "§33.1c",
-                "beskrivelse": "Myndighetspålagte begrensninger i arbeidstid eller metode."
-            },
-            {
-                "kode": "tilstotende_arbeider",
-                "label": "Tilstøtende arbeider forsinket",
-                "paragraf": "§33.1c",
-                "beskrivelse": "Andre entreprenører forsinker arbeidet og påvirker TEs fremdrift."
-            },
-        ]
-    },
-    "ovrige": {
-        "kode": "ovrige",
-        "label": "Øvrige forhold",
-        "paragraf": "Diverse",
-        "beskrivelse": "Andre grunnlag for fristforlengelse eller vederlag",
-        "underkategorier": [
-            {
-                "kode": "annet",
-                "label": "Annet forhold",
-                "paragraf": "Diverse",
-                "beskrivelse": "Andre forhold som ikke passer i kategoriene over."
-            },
-        ]
+        ],
     },
 }
 
@@ -254,12 +253,29 @@ GRUNNLAG_KATEGORIER: Dict[str, Hovedkategori] = {
 # ============ HELPER FUNCTIONS ============
 
 def get_hovedkategori(kode: str) -> Hovedkategori | None:
-    """Hent hovedkategori basert på kode"""
+    """
+    Hent hovedkategori basert på kode.
+
+    Args:
+        kode: Hovedkategori-kode (f.eks. 'ENDRING', 'SVIKT')
+
+    Returns:
+        Hovedkategori dict eller None hvis ikke funnet
+    """
     return GRUNNLAG_KATEGORIER.get(kode)
 
 
 def get_underkategori(hovedkategori_kode: str, underkategori_kode: str) -> Underkategori | None:
-    """Hent underkategori basert på hoved- og underkategori-kode"""
+    """
+    Hent underkategori basert på hoved- og underkategori-kode.
+
+    Args:
+        hovedkategori_kode: Hovedkategori-kode (f.eks. 'ENDRING')
+        underkategori_kode: Underkategori-kode (f.eks. 'EO')
+
+    Returns:
+        Underkategori dict eller None hvis ikke funnet
+    """
     hovedkat = get_hovedkategori(hovedkategori_kode)
     if not hovedkat:
         return None
@@ -271,12 +287,25 @@ def get_underkategori(hovedkategori_kode: str, underkategori_kode: str) -> Under
 
 
 def get_alle_hovedkategorier() -> List[str]:
-    """Hent alle hovedkategori-koder"""
+    """
+    Hent alle hovedkategori-koder.
+
+    Returns:
+        Liste med koder: ['ENDRING', 'SVIKT', 'ANDRE', 'FORCE_MAJEURE']
+    """
     return list(GRUNNLAG_KATEGORIER.keys())
 
 
 def get_underkategorier_for_hovedkategori(hovedkategori_kode: str) -> List[str]:
-    """Hent alle underkategori-koder for en hovedkategori"""
+    """
+    Hent alle underkategori-koder for en hovedkategori.
+
+    Args:
+        hovedkategori_kode: Hovedkategori-kode
+
+    Returns:
+        Liste med underkategori-koder, eller tom liste hvis hovedkategori ikke finnes
+    """
     hovedkat = get_hovedkategori(hovedkategori_kode)
     if not hovedkat:
         return []
@@ -288,11 +317,19 @@ def validate_kategori_kombinasjon(hovedkategori: str, underkategori: str | List[
     Valider at en kombinasjon av hoved- og underkategori er gyldig.
 
     Args:
-        hovedkategori: Hovedkategori-kode
-        underkategori: Underkategori-kode(r) - enkelt eller liste
+        hovedkategori: Hovedkategori-kode (f.eks. 'ENDRING')
+        underkategori: Underkategori-kode(r) - enkelt string eller liste
 
     Returns:
         True hvis kombinasjonen er gyldig
+
+    Examples:
+        >>> validate_kategori_kombinasjon('ENDRING', 'EO')
+        True
+        >>> validate_kategori_kombinasjon('ENDRING', ['EO', 'IRREG'])
+        True
+        >>> validate_kategori_kombinasjon('ENDRING', 'MEDVIRK')  # MEDVIRK hører til SVIKT
+        False
     """
     hovedkat = get_hovedkategori(hovedkategori)
     if not hovedkat:
@@ -306,3 +343,81 @@ def validate_kategori_kombinasjon(hovedkategori: str, underkategori: str | List[
 
     # Liste av underkategorier
     return all(uk in gyldige_underkategorier for uk in underkategori)
+
+
+def er_lovendring(underkategori_kode: str) -> bool:
+    """
+    Sjekk om underkategori er en lovendring (krever spesiell håndtering iht. §14.4).
+
+    Args:
+        underkategori_kode: Underkategori-kode
+
+    Returns:
+        True hvis lovendring (LOV_GJENSTAND, LOV_PROSESS, GEBYR)
+    """
+    return underkategori_kode in ['LOV_GJENSTAND', 'LOV_PROSESS', 'GEBYR']
+
+
+def er_force_majeure(hovedkategori_kode: str) -> bool:
+    """
+    Sjekk om hovedkategori er Force Majeure (ingen vederlag, kun tid).
+
+    Args:
+        hovedkategori_kode: Hovedkategori-kode
+
+    Returns:
+        True hvis FORCE_MAJEURE
+    """
+    return hovedkategori_kode == 'FORCE_MAJEURE'
+
+
+def er_irregulaer_endring(hovedkategori_kode: str, underkategori_kode: str) -> bool:
+    """
+    Sjekk om dette er en irregulær endring (spesielle passivitetsregler gjelder).
+
+    Args:
+        hovedkategori_kode: Hovedkategori-kode
+        underkategori_kode: Underkategori-kode
+
+    Returns:
+        True hvis irregulær endring (ENDRING + IRREG)
+    """
+    return hovedkategori_kode == 'ENDRING' and underkategori_kode == 'IRREG'
+
+
+def get_type_krav(hovedkategori_kode: str) -> str | None:
+    """
+    Hent type krav for en hovedkategori.
+
+    Args:
+        hovedkategori_kode: Hovedkategori-kode
+
+    Returns:
+        'Tid', 'Penger', eller 'Tid og Penger', eller None hvis ikke funnet
+    """
+    kategori = get_hovedkategori(hovedkategori_kode)
+    return kategori["type_krav"] if kategori else None
+
+
+def get_hjemmel_referanser(
+    hovedkategori_kode: str,
+    underkategori_kode: str | None = None
+) -> Dict[str, str | None]:
+    """
+    Hent hjemmelreferanser for et krav.
+
+    Args:
+        hovedkategori_kode: Hovedkategori-kode
+        underkategori_kode: Valgfri underkategori-kode
+
+    Returns:
+        Dict med 'frist', 'vederlag', og 'varsel' referanser
+    """
+    hovedkategori = get_hovedkategori(hovedkategori_kode)
+    underkategori = get_underkategori(hovedkategori_kode, underkategori_kode) if underkategori_kode else None
+
+    return {
+        "frist": hovedkategori["hjemmel_frist"] if hovedkategori else "",
+        "vederlag": hovedkategori["hjemmel_vederlag"] if hovedkategori else None,
+        "varsel": underkategori["varselkrav_ref"] if underkategori else "",
+    }

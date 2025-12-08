@@ -71,7 +71,6 @@ export default defineConfig({
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-gpu',
-            '--single-process',
             '--disable-extensions',
           ],
         },

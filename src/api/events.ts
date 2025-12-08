@@ -8,6 +8,29 @@
 import { apiFetch, USE_MOCK_API, mockDelay } from './client';
 import { EventType } from '../types/timeline';
 
+// Storage key for user role (must match useUserRole.ts)
+const USER_ROLE_STORAGE_KEY = 'koe-user-role';
+
+/**
+ * Get current user role from localStorage.
+ * In production, this will come from Catenda API team membership.
+ */
+function getCurrentUserRole(): 'TE' | 'BH' {
+  // TODO: I produksjon hentes rolle fra Catenda API basert på team-tilhørighet
+  const stored = localStorage.getItem(USER_ROLE_STORAGE_KEY);
+  return stored === 'BH' ? 'BH' : 'TE'; // Default to TE
+}
+
+/**
+ * Get current user identifier.
+ * In production, this will come from Catenda API (name) after authentication.
+ */
+function getCurrentAktor(): string {
+  // TODO: I produksjon hentes navn fra Catenda API etter autentisering
+  // (e-post + step-up for TE, Entra ID for BH)
+  return 'Ukjent bruker';
+}
+
 export interface EventSubmitResponse {
   event_id: string;
   tidsstempel: string;
@@ -71,7 +94,9 @@ export async function submitEvent(
       sak_id: sakId,
       event: {
         event_type: eventType,
-        ...data,
+        aktor: getCurrentAktor(),
+        aktor_rolle: getCurrentUserRole(),
+        data: data,
       },
       expected_version: options?.expectedVersion ?? 0,
       catenda_topic_id: options?.catendaTopicId,

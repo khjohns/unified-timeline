@@ -212,7 +212,7 @@ export function SendGrunnlagModal({
                   handleHovedkategoriChange(value);
                 }}
               >
-                <SelectTrigger error={!!errors.hovedkategori}>
+                <SelectTrigger error={!!errors.hovedkategori} data-testid="grunnlag-hovedkategori">
                   <SelectValue placeholder="Velg hovedkategori" />
                 </SelectTrigger>
                 <SelectContent>
@@ -242,23 +242,36 @@ export function SendGrunnlagModal({
 
         {/* Underkategori - Dynamic based on hovedkategori */}
         {selectedHovedkategori && getUnderkategorier(selectedHovedkategori).length > 0 && (
-          <FormField
-            label="Underkategori"
-            required
-            error={errors.underkategori?.message}
-          >
-            <div className="space-y-3 max-h-60 overflow-y-auto border-2 border-pkt-border-gray rounded-none p-4 bg-pkt-bg-subtle">
-              {getUnderkategorier(selectedHovedkategori).map((option) => (
-                <Checkbox
-                  key={option.value}
-                  id={`underkategori-${option.value}`}
-                  label={option.label}
-                  value={option.value}
-                  {...register('underkategori')}
-                />
-              ))}
-            </div>
-          </FormField>
+          <Controller
+            name="underkategori"
+            control={control}
+            render={({ field }) => (
+              <FormField
+                label="Underkategori"
+                required
+                error={errors.underkategori?.message}
+              >
+                <div className="space-y-3 max-h-60 overflow-y-auto border-2 border-pkt-border-gray rounded-none p-4 bg-pkt-bg-subtle" data-testid="grunnlag-underkategori-list">
+                  {getUnderkategorier(selectedHovedkategori).map((option) => (
+                    <Checkbox
+                      key={option.value}
+                      id={`underkategori-${option.value}`}
+                      label={option.label}
+                      checked={field.value?.includes(option.value) ?? false}
+                      onCheckedChange={(checked) => {
+                        const current = field.value ?? [];
+                        if (checked) {
+                          field.onChange([...current, option.value]);
+                        } else {
+                          field.onChange(current.filter((v: string) => v !== option.value));
+                        }
+                      }}
+                    />
+                  ))}
+                </div>
+              </FormField>
+            )}
+          />
         )}
 
         {/* Underkategori info */}
@@ -281,6 +294,7 @@ export function SendGrunnlagModal({
         >
           <Input
             id="tittel"
+            data-testid="grunnlag-tittel"
             {...register('tittel')}
             placeholder="F.eks. 'Forsinkede leveranser tomt' eller 'Pålegg om endret føringsvei'"
             fullWidth
@@ -318,6 +332,7 @@ export function SendGrunnlagModal({
         >
           <Textarea
             id="beskrivelse"
+            data-testid="grunnlag-beskrivelse"
             {...register('beskrivelse')}
             rows={5}
             fullWidth
@@ -326,8 +341,8 @@ export function SendGrunnlagModal({
           />
         </FormField>
 
-        {/* Dato forhold oppdaget */}
-        <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
+        {/* Dato og varsel-seksjon */}
+        <div className="bg-gray-50 p-4 rounded-md border border-gray-200 space-y-4">
           <FormField
             label="Dato forhold oppdaget"
             required
@@ -340,6 +355,7 @@ export function SendGrunnlagModal({
                 render={({ field }) => (
                   <DatePicker
                     id="dato_oppdaget"
+                    data-testid="grunnlag-dato-oppdaget"
                     value={field.value}
                     onChange={field.onChange}
                     fullWidth
@@ -358,30 +374,29 @@ export function SendGrunnlagModal({
 
           {/* Preclusion warnings */}
           {preklusjonsResultat?.alert && (
-            <div className="mt-3">
-              <Alert
-                variant={preklusjonsResultat.alert.variant}
-                title={preklusjonsResultat.alert.title}
-              >
-                {preklusjonsResultat.alert.message}
-              </Alert>
-            </div>
+            <Alert
+              variant={preklusjonsResultat.alert.variant}
+              title={preklusjonsResultat.alert.title}
+            >
+              {preklusjonsResultat.alert.message}
+            </Alert>
           )}
-        </div>
 
-        {/* Varsel sendes nå checkbox */}
-        <Controller
-          name="varsel_sendes_na"
-          control={control}
-          render={({ field }) => (
-            <Checkbox
-              id="varsel_sendes_na"
-              label="Varsel sendes nå (sammen med dette skjemaet)"
-              checked={field.value}
-              onCheckedChange={field.onChange}
-            />
-          )}
-        />
+          {/* Varsel sendes nå checkbox */}
+          <Controller
+            name="varsel_sendes_na"
+            control={control}
+            render={({ field }) => (
+              <Checkbox
+                id="varsel_sendes_na"
+                data-testid="grunnlag-varsel-sendes-na"
+                label="Varsel sendes nå (sammen med dette skjemaet)"
+                checked={field.value}
+                onCheckedChange={field.onChange}
+              />
+            )}
+          />
+        </div>
 
         {/* Dato varsel sendt - only show if NOT sending now */}
         {!varselSendesNa && (
@@ -475,7 +490,7 @@ export function SendGrunnlagModal({
           >
             Avbryt
           </Button>
-          <Button type="submit" variant="primary" disabled={isSubmitting} size="lg">
+          <Button type="submit" variant="primary" disabled={isSubmitting} size="lg" data-testid="grunnlag-submit">
             {isSubmitting ? 'Sender...' : 'Send grunnlag'}
           </Button>
         </div>

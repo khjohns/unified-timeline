@@ -223,7 +223,7 @@ export function RespondVederlagModal({
         )}
 
         {/* Display of vederlagskrav details */}
-        {vederlagEvent && (metodeLabel || visningsbelop !== undefined) && (
+        {vederlagEvent && (metodeLabel || visningsbelop != null) && (
           <div className="p-4 bg-pkt-surface-subtle-light-blue border-2 border-pkt-border-focus rounded-none">
             <h4 className="font-bold text-sm text-pkt-text-body-dark mb-2">
               Entreprenørens krav:
@@ -232,7 +232,7 @@ export function RespondVederlagModal({
               {metodeLabel && (
                 <span className="font-medium">{metodeLabel}</span>
               )}
-              {visningsbelop !== undefined && (
+              {visningsbelop != null && (
                 <span className="text-lg font-mono">
                   {vederlagEvent.metode === 'REGNINGSARBEID'
                     ? `Overslag: kr ${visningsbelop.toLocaleString('nb-NO')},-`
@@ -294,7 +294,7 @@ export function RespondVederlagModal({
         )}
 
         {/* Show claimed amount if available (fallback if no vederlagEvent) */}
-        {krevdBelop !== undefined && visningsbelop === undefined && (
+        {krevdBelop != null && visningsbelop == null && (
           <div className="p-4 bg-info-100 rounded-none">
             <p className="text-sm font-medium text-info-700">
               Krevd beløp: {krevdBelop.toLocaleString('nb-NO')} NOK

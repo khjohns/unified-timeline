@@ -116,8 +116,9 @@ export function useSubmitEvent(sakId: string, options: UseSubmitEventOptions = {
         console.log('✅ Client PDF uploaded successfully');
       }
 
-      // Invalidate case state to trigger refetch
+      // Invalidate case state and timeline to trigger refetch
       queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'state'] });
+      queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'timeline'] });
 
       // Call user callback
       onSuccess?.(data);

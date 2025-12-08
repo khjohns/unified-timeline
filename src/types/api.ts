@@ -23,16 +23,19 @@ export interface EventSubmitResponse {
   message?: string;
 }
 
+export interface TimelineEvent {
+  event_id: string;
+  tidsstempel: string;
+  type: string;
+  aktor: string;
+  rolle: 'TE' | 'BH';
+  spor: 'grunnlag' | 'vederlag' | 'frist' | null;
+  sammendrag: string;
+}
+
 export interface TimelineResponse {
-  events: Array<{
-    event_id: string;
-    tidsstempel: string;
-    type: string;
-    aktor: string;
-    rolle: 'TE' | 'BH';
-    spor: 'grunnlag' | 'vederlag' | 'frist' | null;
-    sammendrag: string;
-  }>;
+  events: TimelineEvent[];
+  version: number;
 }
 
 // ========== API REQUESTS ==========

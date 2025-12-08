@@ -9,10 +9,51 @@
  * Useful for development, testing, and GitHub Pages preview.
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 // Check if we should use mock API
 export const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_API === 'true';
+
+// Auth token storage (set by AuthContext)
+let authToken: string | null = null;
+
+export function setAuthToken(token: string | null) {
+  authToken = token;
+}
+
+export function getAuthToken(): string | null {
+  return authToken;
+}
+
+// CSRF token storage and fetching
+let csrfToken: string | null = null;
+let csrfTokenPromise: Promise<string> | null = null;
+
+async function fetchCsrfToken(): Promise<string> {
+  const response = await fetch(`${API_BASE_URL}/api/csrf-token`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch CSRF token');
+  }
+  const data = await response.json();
+  return data.csrfToken;
+}
+
+async function getCsrfToken(): Promise<string> {
+  if (csrfToken) {
+    return csrfToken;
+  }
+
+  // Prevent multiple simultaneous fetches
+  if (!csrfTokenPromise) {
+    csrfTokenPromise = fetchCsrfToken().then(token => {
+      csrfToken = token;
+      csrfTokenPromise = null;
+      return token;
+    });
+  }
+
+  return csrfTokenPromise;
+}
 
 export class ApiError extends Error {
   constructor(
@@ -41,11 +82,27 @@ export async function apiFetch<T>(
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
 
+  // Build headers with auth token if available
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
+  }
+
+  // Add CSRF token for state-changing methods
+  const method = options?.method?.toUpperCase() ?? 'GET';
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+    const csrf = await getCsrfToken();
+    headers['X-CSRF-Token'] = csrf;
+  }
+
   try {
     const response = await fetch(url, {
       ...options,
       headers: {
-        'Content-Type': 'application/json',
+        ...headers,
         ...options?.headers,
       },
     });
