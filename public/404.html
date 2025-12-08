@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Redirecting...</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script>
+    // Redirect to index.html for React Router to handle SPA routing
+    // This file is served by GitHub Pages when a route returns 404
+    const path = window.location.pathname;
+    // Remove /unified-timeline from the path to get the route
+    const route = path.replace('/unified-timeline', '');
+    // Redirect to index.html, preserving the route for React Router
+    window.location.replace('/unified-timeline/index.html?route=' + encodeURIComponent(route));
+  </script>
+</head>
+<body>
+</body>
+</html>
