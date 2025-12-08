@@ -144,6 +144,11 @@ export function SendFristModal({
   // §33.6.1: Late specification without BH etterlysning triggers reduction warning
   const erSentUtenEtterlysning = !harMottattEtterlysning && dagerSidenGrunnlag > 21;
 
+  // §33.4: Nøytralt varsel skal sendes "uten ugrunnet opphold" - typisk 7-14 dager
+  // Over 7 dager: advarsel. Over 14 dager: kritisk.
+  const erNoytraltVarselSent = dagerSidenGrunnlag > 7;
+  const erNoytraltVarselKritisk = dagerSidenGrunnlag > 14;
+
   // Get category label for display
   const kategoriLabel = grunnlagEvent?.hovedkategori
     ? getHovedkategoriLabel(grunnlagEvent.hovedkategori)
@@ -300,6 +305,28 @@ export function SendFristModal({
             <h4 className="text-base font-medium text-pkt-text-body-default mb-4">
               Nøytralt/Foreløpig varsel (§33.4)
             </h4>
+
+            {/* §33.4 Preklusjonsvarsel for nøytralt varsel */}
+            {erNoytraltVarselSent && noytraltVarselSendesNa && (
+              <div
+                className={`p-4 mb-4 rounded-none border-2 ${
+                  erNoytraltVarselKritisk
+                    ? 'bg-pkt-surface-subtle-light-red border-pkt-border-red'
+                    : 'bg-amber-50 border-amber-300'
+                }`}
+                role="alert"
+              >
+                <p className={`text-sm font-medium ${erNoytraltVarselKritisk ? 'text-pkt-border-red' : 'text-amber-900'}`}>
+                  {erNoytraltVarselKritisk ? 'Preklusjonsrisiko (§33.4)' : 'Advarsel: Sen varsling (§33.4)'}
+                </p>
+                <p className={`text-sm mt-1 ${erNoytraltVarselKritisk ? 'text-pkt-border-red' : 'text-amber-800'}`}>
+                  Det er gått <strong>{dagerSidenGrunnlag} dager</strong> siden hendelsen.
+                  {erNoytraltVarselKritisk
+                    ? ' Nøytralt varsel skal sendes "uten ugrunnet opphold". Du risikerer at kravet anses tapt (§33.4 annet ledd).'
+                    : ' Nøytralt varsel bør sendes snarest for å bevare retten til fristforlengelse.'}
+                </p>
+              </div>
+            )}
 
             <div className="space-y-4">
               <Controller
