@@ -52,6 +52,7 @@ class TestParseEvent:
             "aktor": "Test User",
             "aktor_rolle": "TE",
             "data": {
+                "tittel": "Test grunnlag",
                 "hovedkategori": "Risiko",
                 "underkategori": "Grunnforhold",
                 "beskrivelse": "Test beskrivelse",
@@ -76,8 +77,8 @@ class TestParseEvent:
             "aktor_rolle": "TE",
             "versjon": 1,
             "data": {
-                "krav_belop": 150000.0,
-                "metode": "ENTREPRENORENS_TILBUD",
+                "belop_direkte": 150000.0,
+                "metode": "FASTPRIS_TILBUD",
                 "begrunnelse": "Test begrunnelse"
             }
         }
@@ -85,7 +86,7 @@ class TestParseEvent:
         event = parse_event(data)
 
         assert isinstance(event, VederlagEvent)
-        assert event.data.krav_belop == 150000.0
+        assert event.data.belop_direkte == 150000.0
         assert event.versjon == 1
 
     def test_parse_frist_event(self):
@@ -99,8 +100,9 @@ class TestParseEvent:
             "aktor_rolle": "TE",
             "versjon": 1,
             "data": {
+                "varsel_type": "spesifisert",
+                "spesifisert_varsel": {"dato_sendt": "2025-01-01", "metode": ["epost"]},
                 "antall_dager": 14,
-                "frist_type": "kalenderdager",
                 "begrunnelse": "Test begrunnelse"
             }
         }
@@ -109,7 +111,7 @@ class TestParseEvent:
 
         assert isinstance(event, FristEvent)
         assert event.data.antall_dager == 14
-        assert event.data.frist_type == "kalenderdager"
+        assert event.data.varsel_type.value == "spesifisert"
 
     def test_parse_respons_event(self):
         """Test parsing RESPONS event."""
@@ -165,6 +167,7 @@ class TestParseEvent:
                 "aktor": "Test User",
                 "aktor_rolle": "TE",
                 "data": {
+                    "tittel": "Test grunnlag",
                     "hovedkategori": "Test",
                     "underkategori": "Test",
                     "beskrivelse": "Test",
@@ -249,11 +252,10 @@ class TestParseEventFromRequest:
             "aktor_rolle": "TE",
             "versjon": 1,
             "data": {
-                "krav_belop": 250000.0,
-                "metode": "KONTRAKTENS_ENHETSPRISER",
+                "belop_direkte": 250000.0,
+                "metode": "ENHETSPRISER",
                 "begrunnelse": "Ekstra arbeid",
-                "inkluderer_produktivitetstap": True,
-                "inkluderer_rigg_drift": False
+                "krever_justert_ep": True
             }
         }
 
@@ -262,8 +264,8 @@ class TestParseEventFromRequest:
         assert isinstance(event, VederlagEvent)
         assert event.event_id is not None
         assert event.tidsstempel is not None
-        assert event.data.krav_belop == 250000.0
-        assert event.data.inkluderer_produktivitetstap is True
+        assert event.data.belop_direkte == 250000.0
+        assert event.data.krever_justert_ep is True
 
     def test_parse_request_preserves_optional_fields(self):
         """Test that optional fields are preserved."""
@@ -274,6 +276,7 @@ class TestParseEventFromRequest:
             "aktor_rolle": "TE",
             "kommentar": "Optional comment",  # Optional field
             "data": {
+                "tittel": "Test grunnlag",
                 "hovedkategori": "Test",
                 "underkategori": "Test",
                 "beskrivelse": "Test",
@@ -301,6 +304,7 @@ class TestEventParsingSecurity:
             "aktor": "Test User",
             "aktor_rolle": "TE",
             "data": {
+                "tittel": "Test grunnlag",
                 "hovedkategori": "Test",
                 "underkategori": "Test",
                 "beskrivelse": "Reference to event_id: xyz",  # OK in text

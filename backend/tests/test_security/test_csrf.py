@@ -34,47 +34,8 @@ class TestCSRFProtection:
         # Tokens should be different (contains timestamp)
         assert token1 != token2
 
-    def test_varsel_submit_requires_csrf_in_production(self, app, client, mock_system, test_sak_with_data):
-        """
-        Test that varsel-submit requires CSRF token.
-
-        Note: In tests, CSRF is mocked out. This test verifies the decorator is present.
-        """
-        # This test just verifies the route works (CSRF is mocked in tests)
-        # The actual CSRF enforcement is tested by verifying the decorator exists
-        from routes.varsel_routes import submit_varsel
-        # Check that the function has been decorated (would have __wrapped__ attribute)
-        # Note: Due to how mocking works in tests, we verify by checking the route works
-        sak_id = test_sak_with_data['sak_id']
-        form_data = test_sak_with_data['data'].copy()
-        form_data['varsel'] = {'hovedkategori': 'Test'}
-
-        response = client.post(
-            '/api/varsel-submit',
-            data=json.dumps({
-                'sakId': sak_id,
-                'formData': form_data,
-                'topicGuid': 'topic-abc-123'
-            }),
-            content_type='application/json'
-        )
-
-        # Should succeed with mocked CSRF
-        assert response.status_code == 200
-
-    def test_save_draft_requires_csrf_in_production(self, client, mock_system, test_sak_with_data):
-        """Test that save-draft requires CSRF token"""
-        sak_id = test_sak_with_data['sak_id']
-        form_data = test_sak_with_data['data'].copy()
-
-        response = client.put(
-            f'/api/cases/{sak_id}/draft',
-            data=json.dumps({'formData': form_data}),
-            content_type='application/json'
-        )
-
-        # Should succeed with mocked CSRF
-        assert response.status_code == 200
+    # NOTE: Flask route tests removed - using Azure Functions in production
+    # CSRF protection is verified via E2E tests and unit tests below
 
 
 class TestCSRFTokenValidation:
@@ -112,12 +73,16 @@ class TestCSRFTokenValidation:
     def test_csrf_token_contains_valid_timestamp(self):
         """Test that CSRF token contains a valid timestamp"""
         from lib.auth.csrf_protection import generate_csrf_token
-        import time
+        from datetime import datetime
 
+        # Generate token and immediately check - should be within seconds
+        # Note: generate_csrf_token uses datetime.utcnow().timestamp()
+        before = int(datetime.utcnow().timestamp())
         token = generate_csrf_token()
+        after = int(datetime.utcnow().timestamp())
+
         parts = token.split(':')
         timestamp = int(parts[1])
 
-        # Timestamp should be recent (within last minute)
-        now = int(time.time())
-        assert abs(now - timestamp) < 60
+        # Timestamp should be between before and after (with small margin)
+        assert before - 5 <= timestamp <= after + 5

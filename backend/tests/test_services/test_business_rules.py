@@ -14,8 +14,11 @@ from models.events import (
     GrunnlagData,
     VederlagEvent,
     VederlagData,
+    VederlagsMetode,
     FristEvent,
     FristData,
+    FristVarselType,
+    VarselInfo,
     ResponsEvent,
     GrunnlagResponsData,
     VederlagResponsData,
@@ -57,6 +60,7 @@ class TestBusinessRuleValidator:
                 aktor="TE User",
                 aktor_rolle="TE",
                 data=GrunnlagData(
+                    tittel="Test grunnlag",
                     hovedkategori="Risiko",
                     underkategori="Grunnforhold",
                     beskrivelse="Test beskrivelse",
@@ -75,6 +79,7 @@ class TestBusinessRuleValidator:
             aktor="TE User",
             aktor_rolle="TE",
             data=GrunnlagData(
+                tittel="Test grunnlag",
                 hovedkategori="Test",
                 underkategori="Test",
                 beskrivelse="Test",
@@ -92,6 +97,7 @@ class TestBusinessRuleValidator:
             aktor="BH User",
             aktor_rolle="BH",  # Wrong role!
             data=GrunnlagData(
+                tittel="Test grunnlag",
                 hovedkategori="Test",
                 underkategori="Test",
                 beskrivelse="Test",
@@ -162,8 +168,8 @@ class TestBusinessRuleValidator:
             aktor_rolle="TE",
             versjon=1,
             data=VederlagData(
-                krav_belop=100000.0,
-                metode="TEST",
+                kostnads_overslag=100000.0,
+                metode=VederlagsMetode.REGNINGSARBEID,
                 begrunnelse="Test"
             )
         )
@@ -181,8 +187,8 @@ class TestBusinessRuleValidator:
             aktor_rolle="TE",
             versjon=1,
             data=VederlagData(
-                krav_belop=100000.0,
-                metode="TEST",
+                kostnads_overslag=100000.0,
+                metode=VederlagsMetode.REGNINGSARBEID,
                 begrunnelse="Test"
             )
         )
@@ -210,8 +216,9 @@ class TestBusinessRuleValidator:
             aktor_rolle="TE",
             versjon=1,
             data=FristData(
+                varsel_type=FristVarselType.SPESIFISERT,
+                spesifisert_varsel=VarselInfo(dato_sendt="2025-01-01", metode=["epost"]),
                 antall_dager=14,
-                frist_type="kalenderdager",
                 begrunnelse="Test"
             )
         )
@@ -259,6 +266,7 @@ class TestBusinessRuleValidator:
                 aktor="TE User",
                 aktor_rolle="TE",
                 data=GrunnlagData(
+                    tittel="Test grunnlag",
                     hovedkategori="Test",
                     underkategori="Test",
                     beskrivelse="Test",
@@ -271,8 +279,8 @@ class TestBusinessRuleValidator:
                 aktor_rolle="TE",
                 versjon=1,
                 data=VederlagData(
-                    krav_belop=100000.0,
-                    metode="TEST",
+                    kostnads_overslag=100000.0,
+                    metode=VederlagsMetode.REGNINGSARBEID,
                     begrunnelse="Test"
                 )
             )
@@ -313,6 +321,7 @@ class TestBusinessRuleValidator:
                 aktor="TE User",
                 aktor_rolle="TE",
                 data=GrunnlagData(
+                    tittel="Test grunnlag",
                     hovedkategori="Test",
                     underkategori="Test",
                     beskrivelse="Test",
@@ -337,8 +346,8 @@ class TestBusinessRuleValidator:
                 aktor_rolle="TE",
                 versjon=1,
                 data=VederlagData(
-                    krav_belop=100000.0,
-                    metode="TEST",
+                    kostnads_overslag=100000.0,
+                    metode=VederlagsMetode.REGNINGSARBEID,
                     begrunnelse="Test"
                 )
             )
@@ -354,6 +363,7 @@ class TestBusinessRuleValidator:
             aktor="TE User",
             aktor_rolle="TE",
             data=GrunnlagData(
+                tittel="Updated grunnlag",
                 hovedkategori="Updated",
                 underkategori="Updated",
                 beskrivelse="Updated",
@@ -379,8 +389,8 @@ class TestBusinessRuleValidator:
             aktor_rolle="TE",
             versjon=2,  # Trying to update
             data=VederlagData(
-                krav_belop=150000.0,
-                metode="TEST",
+                kostnads_overslag=150000.0,
+                metode=VederlagsMetode.REGNINGSARBEID,
                 begrunnelse="Updated"
             )
         )
@@ -400,8 +410,9 @@ class TestBusinessRuleValidator:
             aktor_rolle="TE",
             versjon=2,  # Trying to update
             data=FristData(
+                varsel_type=FristVarselType.SPESIFISERT,
+                spesifisert_varsel=VarselInfo(dato_sendt="2025-01-01", metode=["epost"]),
                 antall_dager=21,
-                frist_type="kalenderdager",
                 begrunnelse="Updated"
             )
         )
@@ -446,6 +457,7 @@ class TestBusinessRuleValidator:
                 aktor="TE User",
                 aktor_rolle="TE",
                 data=GrunnlagData(
+                    tittel="Test grunnlag",
                     hovedkategori="Test",
                     underkategori="Test",
                     beskrivelse="Test",

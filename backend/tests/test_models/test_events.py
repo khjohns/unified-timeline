@@ -65,11 +65,13 @@ def test_varselinfo_single_method():
 def test_grunnlag_data_basic():
     """Test basic GrunnlagData structure"""
     data = GrunnlagData(
+        tittel="Test grunnlag",
         hovedkategori="forsinkelse_bh",
         underkategori="prosjektering",
         beskrivelse="Mangler i tegninger",
         dato_oppdaget="2025-01-10"
     )
+    assert data.tittel == "Test grunnlag"
     assert data.hovedkategori == "forsinkelse_bh"
     assert data.underkategori == "prosjektering"
     assert data.beskrivelse == "Mangler i tegninger"
@@ -79,6 +81,7 @@ def test_grunnlag_data_basic():
 def test_grunnlag_data_with_varsel():
     """Test GrunnlagData with grunnlag_varsel"""
     data = GrunnlagData(
+        tittel="Test varsel",
         hovedkategori="forsinkelse_bh",
         underkategori="prosjektering",
         beskrivelse="Mangler i tegninger",
@@ -96,6 +99,7 @@ def test_grunnlag_data_with_varsel():
 def test_grunnlag_data_with_multiple_underkategorier():
     """Test GrunnlagData with list of underkategorier"""
     data = GrunnlagData(
+        tittel="Multiple issues",
         hovedkategori="forsinkelse_bh",
         underkategori=["prosjektering", "arbeidsgrunnlag"],
         beskrivelse="Multiple issues",
@@ -112,6 +116,7 @@ def test_grunnlag_event_creation():
         aktor="Ole Olsen",
         aktor_rolle="TE",
         data=GrunnlagData(
+            tittel="Test grunnlag event",
             hovedkategori="forsinkelse_bh",
             underkategori="prosjektering",
             beskrivelse="Test beskrivelse",
@@ -143,6 +148,7 @@ def test_grunnlag_event_invalid_type():
             aktor_rolle="TE",
             event_type=EventType.VEDERLAG_KRAV_SENDT,  # Wrong type!
             data=GrunnlagData(
+                tittel="Invalid type test",
                 hovedkategori="forsinkelse_bh",
                 underkategori="prosjektering",
                 beskrivelse="Test",
@@ -156,30 +162,35 @@ def test_grunnlag_event_invalid_type():
 def test_vederlag_data_basic():
     """Test basic VederlagData structure"""
     data = VederlagData(
-        krav_belop=50000,
-        metode=VederlagsMetode.REGNING,
+        kostnads_overslag=50000,
+        metode=VederlagsMetode.REGNINGSARBEID,
         begrunnelse="Ekstra arbeid"
     )
-    assert data.krav_belop == 50000
-    assert data.metode == VederlagsMetode.REGNING
+    assert data.kostnads_overslag == 50000
+    assert data.metode == VederlagsMetode.REGNINGSARBEID
     assert data.begrunnelse == "Ekstra arbeid"
 
 
 def test_vederlag_data_rigg_drift_varsel():
     """Test VederlagData with rigg/drift varsel"""
+    from models.events import SaerskiltKrav, SaerskiltKravItem
     data = VederlagData(
-        krav_belop=50000,
-        metode=VederlagsMetode.REGNING,
+        kostnads_overslag=50000,
+        metode=VederlagsMetode.REGNINGSARBEID,
         begrunnelse="Ekstra rigg",
-        inkluderer_rigg_drift=True,
-        rigg_drift_belop=15000,
+        saerskilt_krav=SaerskiltKrav(
+            rigg_drift=SaerskiltKravItem(
+                belop=15000,
+                dato_klar_over="2025-01-12"
+            )
+        ),
         rigg_drift_varsel=VarselInfo(
             dato_sendt="2025-01-12",
             metode=["byggemote", "epost"]
         )
     )
-    assert data.inkluderer_rigg_drift is True
-    assert data.rigg_drift_belop == 15000
+    assert data.saerskilt_krav.rigg_drift is not None
+    assert data.saerskilt_krav.rigg_drift.belop == 15000
     assert data.rigg_drift_varsel.dato_sendt == "2025-01-12"
     assert len(data.rigg_drift_varsel.metode) == 2
 
@@ -187,42 +198,46 @@ def test_vederlag_data_rigg_drift_varsel():
 def test_vederlag_data_regningsarbeid_varsel():
     """Test VederlagData with regningsarbeid varsel"""
     data = VederlagData(
-        krav_belop=75000,
-        metode=VederlagsMetode.REGNING,
+        kostnads_overslag=75000,
+        metode=VederlagsMetode.REGNINGSARBEID,
         begrunnelse="Regningsarbeid",
-        krever_regningsarbeid=True,
         regningsarbeid_varsel=VarselInfo(
             dato_sendt="2025-01-11",
             metode=["byggemote"]
         )
     )
-    assert data.krever_regningsarbeid is True
+    assert data.metode == VederlagsMetode.REGNINGSARBEID
     assert data.regningsarbeid_varsel.dato_sendt == "2025-01-11"
 
 
 def test_vederlag_data_produktivitetstap_varsel():
     """Test VederlagData with produktivitetstap varsel"""
+    from models.events import SaerskiltKrav, SaerskiltKravItem
     data = VederlagData(
-        krav_belop=100000,
-        metode=VederlagsMetode.REGNING,
+        kostnads_overslag=100000,
+        metode=VederlagsMetode.REGNINGSARBEID,
         begrunnelse="Produktivitetstap",
-        inkluderer_produktivitetstap=True,
-        produktivitetstap_belop=30000,
+        saerskilt_krav=SaerskiltKrav(
+            produktivitet=SaerskiltKravItem(
+                belop=30000,
+                dato_klar_over="2025-01-15"
+            )
+        ),
         produktivitetstap_varsel=VarselInfo(
             dato_sendt="2025-01-15",
             metode=["epost"]
         )
     )
-    assert data.inkluderer_produktivitetstap is True
-    assert data.produktivitetstap_belop == 30000
+    assert data.saerskilt_krav.produktivitet is not None
+    assert data.saerskilt_krav.produktivitet.belop == 30000
     assert data.produktivitetstap_varsel.dato_sendt == "2025-01-15"
 
 
 def test_vederlag_data_justert_ep_varsel():
     """Test VederlagData with justert enhetspris varsel"""
     data = VederlagData(
-        krav_belop=80000,
-        metode=VederlagsMetode.JUSTERT_EP,
+        belop_direkte=80000,
+        metode=VederlagsMetode.ENHETSPRISER,
         begrunnelse="Justerte EP",
         krever_justert_ep=True,
         justert_ep_varsel=VarselInfo(
@@ -241,10 +256,9 @@ def test_vederlag_event_creation():
         aktor="Ole Olsen",
         aktor_rolle="TE",
         data=VederlagData(
-            krav_belop=50000,
-            metode=VederlagsMetode.REGNING,
+            kostnads_overslag=50000,
+            metode=VederlagsMetode.REGNINGSARBEID,
             begrunnelse="Test",
-            krever_regningsarbeid=True,
             regningsarbeid_varsel=VarselInfo(
                 dato_sendt="2025-01-11",
                 metode=["byggemote"]
@@ -256,15 +270,15 @@ def test_vederlag_event_creation():
     assert event.sak_id == "SAK-001"
     assert event.event_type == EventType.VEDERLAG_KRAV_SENDT
     assert event.versjon == 1
-    assert event.data.krav_belop == 50000
+    assert event.data.kostnads_overslag == 50000
 
 
 def test_vederlag_negative_amount_fails():
-    """Test that negative krav_belop raises error"""
+    """Test that negative kostnads_overslag raises error"""
     with pytest.raises(ValueError):
         VederlagData(
-            krav_belop=-1000,  # Negative!
-            metode=VederlagsMetode.REGNING,
+            kostnads_overslag=-1000,  # Negative!
+            metode=VederlagsMetode.REGNINGSARBEID,
             begrunnelse="Test"
         )
 
@@ -522,6 +536,7 @@ def test_event_serialization():
         aktor="Test",
         aktor_rolle="TE",
         data=GrunnlagData(
+            tittel="Serialization test",
             hovedkategori="forsinkelse_bh",
             underkategori="prosjektering",
             beskrivelse="Test",
@@ -545,8 +560,8 @@ def test_event_with_varsel_serialization():
         aktor="Test",
         aktor_rolle="TE",
         data=VederlagData(
-            krav_belop=50000,
-            metode=VederlagsMetode.REGNING,
+            kostnads_overslag=50000,
+            metode=VederlagsMetode.REGNINGSARBEID,
             begrunnelse="Test",
             rigg_drift_varsel=VarselInfo(
                 dato_sendt="2025-01-15",

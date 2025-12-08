@@ -119,7 +119,16 @@ def mock_catenda():
 
 
 @pytest.fixture
-def mock_system(mock_repository, mock_catenda, temp_data_dir, monkeypatch):
+def mock_magic_link_manager():
+    """Create mock MagicLinkManager"""
+    manager = MagicMock()
+    manager.create_magic_link.return_value = ('http://localhost:3000/verify?token=test-token', 'test-token')
+    manager.verify_token.return_value = {'email': 'test@example.com', 'sak_id': 'SAK-001'}
+    return manager
+
+
+@pytest.fixture
+def mock_system(mock_repository, mock_catenda, mock_magic_link_manager, temp_data_dir, monkeypatch):
     """Create mock SystemContext (replaces KOEAutomationSystem)"""
     config = {
         'catenda_client_id': 'test-client-id',
@@ -130,8 +139,8 @@ def mock_system(mock_repository, mock_catenda, temp_data_dir, monkeypatch):
         'react_app_url': 'http://localhost:3000'
     }
 
-    # Create system with mocked catenda
-    system = SystemContext(config)
+    # Create system with mocked catenda and magic link manager
+    system = SystemContext(config, mock_magic_link_manager)
     system.catenda = mock_catenda
 
     # Patch the global system variable directly

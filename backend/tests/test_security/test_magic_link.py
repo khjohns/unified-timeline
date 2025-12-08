@@ -95,54 +95,5 @@ class TestMagicLinkVerification:
         assert not is_valid
 
 
-class TestMagicLinkEndpoint:
-    """Test magic link verification endpoint"""
-
-    def test_verify_magic_link_endpoint_success(self, client, monkeypatch):
-        """Test successful magic link verification via API"""
-        # Mock the magic_link_mgr instance in utility_routes
-        mock_mgr = MagicMock()
-        mock_mgr.verify.return_value = (True, None, {'sak_id': 'TEST-123'})
-
-        import routes.utility_routes as utility_routes
-        monkeypatch.setattr(utility_routes, 'magic_link_mgr', mock_mgr)
-
-        response = client.get('/api/magic-link/verify?token=test-token-123')
-
-        assert response.status_code == 200
-        data = response.get_json()
-        assert data['success'] is True
-        assert 'sakId' in data
-
-    def test_verify_magic_link_endpoint_missing_token(self, client, monkeypatch):
-        """Test magic link verification with missing token"""
-        # Mock the magic_link_mgr to simulate empty token verification
-        mock_mgr = MagicMock()
-        mock_mgr.verify.return_value = (False, 'No token provided', None)
-
-        import routes.utility_routes as utility_routes
-        monkeypatch.setattr(utility_routes, 'magic_link_mgr', mock_mgr)
-
-        response = client.get('/api/magic-link/verify')
-
-        # Returns 403 for invalid/missing token (authentication required)
-        assert response.status_code == 403
-        data = response.get_json()
-        assert 'error' in data
-
-    def test_verify_magic_link_endpoint_invalid_token(self, client, monkeypatch):
-        """Test magic link verification with invalid token"""
-        # Mock the magic_link_mgr to return invalid
-        mock_mgr = MagicMock()
-        mock_mgr.verify.return_value = (False, 'Token expired', None)
-
-        import routes.utility_routes as utility_routes
-        monkeypatch.setattr(utility_routes, 'magic_link_mgr', mock_mgr)
-
-        response = client.get('/api/magic-link/verify?token=expired-token')
-
-        # Returns 403 for invalid token (authentication required)
-        assert response.status_code == 403
-        data = response.get_json()
-        assert 'error' in data
-        assert 'Invalid or expired link' in data['error']
+# NOTE: Flask endpoint tests removed - using Azure Functions in production
+# Magic link verification is tested via E2E tests and unit tests above

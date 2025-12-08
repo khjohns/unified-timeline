@@ -73,6 +73,7 @@ class TestEventRepository:
                 aktor="User1",
                 aktor_rolle="TE",
                 data=GrunnlagData(
+                    tittel="Test grunnlag",
                     hovedkategori="Risiko",
                     underkategori="Grunnforhold",
                     beskrivelse="Test beskrivelse",
@@ -101,6 +102,7 @@ class TestEventRepository:
             aktor="User2",
             aktor_rolle="TE",
             data=GrunnlagData(
+                tittel="Test grunnlag",
                 hovedkategori="Test",
                 underkategori="Test",
                 beskrivelse="Test",
@@ -126,6 +128,7 @@ class TestEventRepository:
             aktor="User2",
             aktor_rolle="TE",
             data=GrunnlagData(
+                tittel="Test grunnlag",
                 hovedkategori="Test",
                 underkategori="Test",
                 beskrivelse="Test",
@@ -170,6 +173,7 @@ class TestEventRepository:
                 aktor=f"User-{event_data}",
                 aktor_rolle="TE",
                 data=GrunnlagData(
+                    tittel=f"Test grunnlag {event_data}",
                     hovedkategori="Test",
                     underkategori="Test",
                     beskrivelse=f"Event {event_data}",
@@ -213,6 +217,7 @@ class TestEventRepository:
                 aktor="User1",
                 aktor_rolle="TE",
                 data=GrunnlagData(
+                    tittel="Test grunnlag",
                     hovedkategori="Test",
                     underkategori="Test",
                     beskrivelse="Test",
@@ -274,6 +279,7 @@ class TestEventRepository:
                     aktor=f"User-{event_num}",
                     aktor_rolle="TE",
                     data=GrunnlagData(
+                        tittel=f"Test grunnlag {event_num}",
                         hovedkategori=f"Cat-{event_num}",
                         underkategori="Test",
                         beskrivelse=f"Event {event_num}",
