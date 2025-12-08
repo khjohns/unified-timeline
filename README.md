@@ -168,8 +168,7 @@ Når alle spor er avklart, kan endringsordre utstedes:
 ┌─────────────────┐
 │  EO UTSTEDES    │  → Event: eo_utstedt
 │                 │  Saken avsluttes.
-│  (Ikke impl.    │
-│   i prototype)  │
+│                 │  (§31.3 Endringsordre)
 └─────────────────┘
 ```
 
@@ -263,6 +262,28 @@ SAK (Endringsmelding)
     ├── TE oppdaterer: FRIST_KRAV_OPPDATERT
     └── BH svarer: RESPONS_FRIST (Port 1 + Port 2 + Port 3)
 ```
+
+### NS 8407-implementasjon
+
+Systemet implementerer NS 8407:2011 totalentreprisekontrakt med følgende hjemmelstruktur:
+
+| Spor | Hjemmel | Beskrivelse |
+|------|---------|-------------|
+| **Grunnlag** | §33.1 a-c, §33.3 | Ansvarsgrunnlag for krav |
+| **Vederlag** | §34.1-34.4 | Vederlagsjustering |
+| **Frist** | §33.4-33.8 | Fristforlengelse |
+| **EO** | §31.3 | Endringsordre |
+
+**Kategorier (4 hovedkategorier, 22 underkategorier):**
+
+| Hovedkategori | Frist-hjemmel | Vederlag-hjemmel | Type krav |
+|---------------|---------------|------------------|-----------|
+| ENDRING | §33.1 a) | §34.1.1 | Tid og Penger |
+| SVIKT | §33.1 b) | §34.1.2 | Tid og Penger |
+| ANDRE | §33.1 c) | §34.1.2 | Tid og Penger |
+| FORCE_MAJEURE | §33.3 | - | Kun Tid |
+
+**Verifisert mot NS 8407:** Se [docs/NS8407_KONTROLLPLAN.md](docs/NS8407_KONTROLLPLAN.md) for komplett kontrollrapport.
 
 ### Produksjon (planlagt)
 
@@ -544,6 +565,8 @@ npm run test:coverage
 - ✅ **Event Sourcing-arkitektur** med CQRS-mønster
 - ✅ **Tre-spor modell** (Grunnlag, Vederlag, Frist) etter NS 8407
 - ✅ **Port-modell** for strukturert vurdering (Port 1, 2, 3)
+- ✅ **NS 8407-kategorier** – 4 hovedkategorier, 22 underkategorier med hjemmelreferanser
+- ✅ **EOUtstedtEvent** (§31.3) – Endringsordre-utstedelse med `kan_utstede_eo` logikk
 - ✅ **Optimistisk låsing** med versjonsnummer for samtidighetskontroll
 - ✅ **Event store** med append-only log og komplett historikk
 - ✅ **State-projeksjon** via TimelineService
@@ -557,7 +580,7 @@ npm run test:coverage
 - ⏳ DataverseRepository (erstatte JSON-filer)
 - ⏳ Azure Functions-migrering
 - ⏳ Redis for state (rate limiting, idempotency)
-- ⏳ EO-hendelse (endringsordre-utstedelse)
+- ⏳ EO-skjema UI (frontend for endringsordre-utstedelse)
 
 ---
 
