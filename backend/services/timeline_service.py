@@ -179,17 +179,27 @@ class TimelineService:
         """Håndterer VEDERLAG_KRAV_SENDT og VEDERLAG_KRAV_OPPDATERT"""
         vederlag = state.vederlag
 
-        # Oppdater data
-        vederlag.krevd_belop = event.data.krav_belop
+        # Oppdater data - VederlagTilstand uses belop_direkte/kostnads_overslag (not krevd_belop)
+        vederlag.belop_direkte = event.data.belop_direkte
+        vederlag.kostnads_overslag = event.data.kostnads_overslag
         vederlag.metode = event.data.metode.value if hasattr(event.data.metode, 'value') else event.data.metode
         vederlag.begrunnelse = event.data.begrunnelse
-        vederlag.inkluderer_produktivitetstap = event.data.inkluderer_produktivitetstap
-        vederlag.inkluderer_rigg_drift = event.data.inkluderer_rigg_drift
+        # Handle saerskilt_krav - store as dict in VederlagTilstand
+        if event.data.saerskilt_krav:
+            vederlag.saerskilt_krav = event.data.saerskilt_krav.model_dump() if hasattr(event.data.saerskilt_krav, 'model_dump') else event.data.saerskilt_krav
 
-        # Port 1: Varseldatoer
-        vederlag.saerskilt_varsel_rigg_drift_dato = event.data.saerskilt_varsel_rigg_drift_dato
-        vederlag.varsel_justert_ep_dato = event.data.varsel_justert_ep_dato
-        vederlag.varsel_start_regning_dato = event.data.varsel_start_regning_dato
+        # Handle krever_justert_ep flag
+        vederlag.krever_justert_ep = event.data.krever_justert_ep
+
+        # Port 1: Varselinfo (VarselInfo objects serialized as dicts)
+        if event.data.rigg_drift_varsel:
+            vederlag.rigg_drift_varsel = event.data.rigg_drift_varsel.model_dump() if hasattr(event.data.rigg_drift_varsel, 'model_dump') else event.data.rigg_drift_varsel
+        if event.data.justert_ep_varsel:
+            vederlag.justert_ep_varsel = event.data.justert_ep_varsel.model_dump() if hasattr(event.data.justert_ep_varsel, 'model_dump') else event.data.justert_ep_varsel
+        if event.data.regningsarbeid_varsel:
+            vederlag.regningsarbeid_varsel = event.data.regningsarbeid_varsel.model_dump() if hasattr(event.data.regningsarbeid_varsel, 'model_dump') else event.data.regningsarbeid_varsel
+        if event.data.produktivitetstap_varsel:
+            vederlag.produktivitetstap_varsel = event.data.produktivitetstap_varsel.model_dump() if hasattr(event.data.produktivitetstap_varsel, 'model_dump') else event.data.produktivitetstap_varsel
         vederlag.krav_fremmet_dato = event.data.krav_fremmet_dato
 
         # Oppdater status
@@ -224,13 +234,20 @@ class TimelineService:
 
         # Oppdater data
         frist.varsel_type = event.data.varsel_type.value if hasattr(event.data.varsel_type, 'value') else event.data.varsel_type
-        frist.noytralt_varsel_dato = event.data.noytralt_varsel_dato
-        frist.spesifisert_krav_dato = event.data.spesifisert_krav_dato
+
+        # Extract dates from VarselInfo objects (new model structure)
+        # VarselInfo has `dato_sendt` field, not `dato`
+        if event.data.noytralt_varsel:
+            frist.noytralt_varsel_dato = event.data.noytralt_varsel.dato_sendt
+        if event.data.spesifisert_varsel:
+            frist.spesifisert_krav_dato = event.data.spesifisert_varsel.dato_sendt
+
         frist.krevd_dager = event.data.antall_dager
-        frist.frist_type = event.data.frist_type
         frist.begrunnelse = event.data.begrunnelse
-        frist.milepael_pavirket = event.data.milepael_pavirket
-        frist.fremdriftsanalyse_vedlagt = event.data.fremdriftsanalyse_vedlagt
+
+        # Optional fields - use getattr for backwards compatibility
+        frist.milepael_pavirket = getattr(event.data, 'fremdriftshindring_dokumentasjon', None)
+        frist.fremdriftsanalyse_vedlagt = getattr(event.data, 'fremdriftsanalyse_vedlagt', None)
 
         # Oppdater status
         if event.event_type == EventType.FRIST_KRAV_SENDT:
@@ -460,11 +477,13 @@ class TimelineService:
             ))
 
         if state.vederlag.status != SporStatus.IKKE_RELEVANT:
+            # Calculate krevd value from belop_direkte or kostnads_overslag
+            krevd_belop = state.vederlag.belop_direkte or state.vederlag.kostnads_overslag
             spor_oversikter.append(SporOversikt(
                 spor=SporType.VEDERLAG,
                 status=state.vederlag.status,
                 siste_aktivitet=state.vederlag.siste_oppdatert,
-                verdi_krevd=f"{state.vederlag.krevd_belop:,.0f} NOK" if state.vederlag.krevd_belop else None,
+                verdi_krevd=f"{krevd_belop:,.0f} NOK" if krevd_belop else None,
                 verdi_godkjent=f"{state.vederlag.godkjent_belop:,.0f} NOK" if state.vederlag.godkjent_belop else None,
             ))
 
@@ -556,7 +575,8 @@ class TimelineService:
         if isinstance(event, GrunnlagEvent):
             return f"{event.data.hovedkategori}: {event.data.underkategori}"
         elif isinstance(event, VederlagEvent):
-            return f"Krav: {event.data.krav_belop:,.0f} NOK"
+            belop = event.data.belop_direkte or event.data.kostnads_overslag or 0
+            return f"Krav: {belop:,.0f} NOK"
         elif isinstance(event, FristEvent):
             return f"Krav: {event.data.antall_dager} {event.data.frist_type}"
         elif isinstance(event, ResponsEvent):

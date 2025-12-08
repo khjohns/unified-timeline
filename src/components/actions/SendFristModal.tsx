@@ -280,7 +280,7 @@ export function SendFristModal({
             name="varsel_type"
             control={control}
             render={({ field }) => (
-              <RadioGroup value={field.value} onValueChange={field.onChange}>
+              <RadioGroup value={field.value} onValueChange={field.onChange} data-testid="frist-varsel-type">
                 {FRIST_VARSELTYPE_OPTIONS.filter(opt => opt.value !== '').map((option) => (
                   <RadioItem
                     key={option.value}
@@ -487,6 +487,7 @@ export function SendFristModal({
             fullWidth
             placeholder="Beskriv hvorfor fristforlengelse er nødvendig og hvordan det påvirker fremdriften..."
             error={!!errors.begrunnelse}
+            data-testid="frist-begrunnelse"
           />
         </FormField>
 
@@ -523,7 +524,7 @@ export function SendFristModal({
           >
             Avbryt
           </Button>
-          <Button type="submit" variant="primary" disabled={isSubmitting} size="lg">
+          <Button type="submit" variant="primary" disabled={isSubmitting} size="lg" data-testid="frist-submit">
             {isSubmitting ? 'Sender...' : 'Send fristkrav'}
           </Button>
         </div>

@@ -135,6 +135,7 @@ export function RespondGrunnlagModal({
       eventType: 'respons_grunnlag',
       data: {
         grunnlag_event_id: grunnlagEventId,
+        // NOTE: spor is auto-derived from event_type in backend parse_event_from_request
         ...data,
         // Include metadata about passive acceptance if relevant
         dager_siden_varsel: dagerSidenVarsel > 0 ? dagerSidenVarsel : undefined,
@@ -235,7 +236,7 @@ export function RespondGrunnlagModal({
             control={control}
             render={({ field }) => (
               <Select value={field.value} onValueChange={field.onChange}>
-                <SelectTrigger error={!!errors.resultat}>
+                <SelectTrigger error={!!errors.resultat} data-testid="respond-grunnlag-resultat">
                   <SelectValue placeholder="Velg resultat" />
                 </SelectTrigger>
                 <SelectContent>
@@ -360,6 +361,7 @@ export function RespondGrunnlagModal({
                 : 'Begrunn din vurdering av grunnlaget...'
             }
             error={!!errors.begrunnelse}
+            data-testid="respond-grunnlag-begrunnelse"
           />
         </FormField>
 
@@ -386,6 +388,7 @@ export function RespondGrunnlagModal({
             variant={selectedResultat === 'avvist_uenig' ? 'danger' : 'primary'}
             disabled={isSubmitting}
             size="lg"
+            data-testid="respond-grunnlag-submit"
           >
             {isSubmitting ? 'Sender...' : 'Send svar'}
           </Button>

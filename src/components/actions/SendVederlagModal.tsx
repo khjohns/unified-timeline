@@ -203,6 +203,7 @@ export function SendVederlagModal({
       eventType: 'vederlag_krav_sendt',
       data: {
         grunnlag_event_id: grunnlagEventId,
+        // Backend VederlagData model expects belop_direkte (updated 2025-12-06)
         belop_direkte: data.metode === 'REGNINGSARBEID' ? undefined : data.belop_direkte,
         kostnads_overslag: data.metode === 'REGNINGSARBEID' ? data.kostnads_overslag : undefined,
         metode: data.metode,
@@ -262,6 +263,7 @@ export function SendVederlagModal({
               <RadioGroup
                 value={field.value}
                 onValueChange={field.onChange}
+                data-testid="vederlag-metode"
               >
                 {METODE_OPTIONS.map((option) => (
                   <RadioItem
@@ -548,6 +550,7 @@ export function SendVederlagModal({
             fullWidth
             placeholder="Henvis til vedlegg, beskriv beregningsgrunnlag..."
             error={!!errors.begrunnelse}
+            data-testid="vederlag-begrunnelse"
           />
         </FormField>
 
@@ -569,7 +572,7 @@ export function SendVederlagModal({
           >
             Avbryt
           </Button>
-          <Button type="submit" variant="primary" disabled={isSubmitting} size="lg">
+          <Button type="submit" variant="primary" disabled={isSubmitting} size="lg" data-testid="vederlag-submit">
             {isSubmitting ? 'Sender...' : 'Send Krav'}
           </Button>
         </div>

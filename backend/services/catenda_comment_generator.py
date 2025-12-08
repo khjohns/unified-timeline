@@ -141,8 +141,10 @@ class CatendaCommentGenerator:
                 lines.append(f"- {track_name}: {track_emoji} {status_display}")
 
                 # Add details if available
-                if track_name == 'Vederlag' and hasattr(track, 'krevd_belop') and track.krevd_belop:
-                    lines.append(f"  - Krevd: {track.krevd_belop:,.0f} NOK")
+                if track_name == 'Vederlag':
+                    krevd_belop = getattr(track, 'belop_direkte', None) or getattr(track, 'kostnads_overslag', None)
+                    if krevd_belop:
+                        lines.append(f"  - Krevd: {krevd_belop:,.0f} NOK")
                     if track.godkjent_belop is not None:
                         lines.append(f"  - Godkjent: {track.godkjent_belop:,.0f} NOK")
 

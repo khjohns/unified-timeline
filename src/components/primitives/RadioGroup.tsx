@@ -37,9 +37,13 @@ export const RadioItem = forwardRef<
   React.ElementRef<typeof RadioGroupPrimitive.Item>,
   RadioItemProps
 >(({ className, label, error, ...props }, ref) => {
+  // Auto-generate id from value if not provided (fixes accessibility for label linkage)
+  const radioId = props.id || (props.value ? `radio-${props.value}` : undefined);
+
   const radio = (
     <RadioGroupPrimitive.Item
       ref={ref}
+      id={radioId}
       className={clsx(
         // Size
         'h-6 w-6',
@@ -93,7 +97,7 @@ export const RadioItem = forwardRef<
       <div className="flex items-center gap-3">
         {radio}
         <label
-          htmlFor={props.id}
+          htmlFor={radioId}
           className={clsx(
             'text-base font-normal cursor-pointer',
             'text-pkt-text-body-default',

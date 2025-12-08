@@ -949,6 +949,9 @@ def parse_event_from_request(request_data: dict) -> AnyEvent:
     Adds:
     - event_id (generated)
     - tidsstempel (server time)
+
+    Auto-derives:
+    - spor (for ResponsEvent, derived from event_type if not provided)
     """
     from uuid import uuid4
 
@@ -963,5 +966,27 @@ def parse_event_from_request(request_data: dict) -> AnyEvent:
     # Add server-controlled fields
     request_data["event_id"] = str(uuid4())
     request_data["tidsstempel"] = datetime.now().isoformat()
+
+    # For ResponsEvent: Auto-derive 'spor' from event_type if not provided
+    # This allows frontend to send spor inside 'data' or rely on auto-derivation
+    event_type = request_data.get("event_type")
+    if event_type in [
+        EventType.RESPONS_GRUNNLAG.value,
+        EventType.RESPONS_VEDERLAG.value,
+        EventType.RESPONS_FRIST.value,
+    ]:
+        # Try to extract spor from data (if frontend sent it there)
+        data = request_data.get("data", {})
+        if isinstance(data, dict) and "spor" in data:
+            request_data["spor"] = data.pop("spor")
+
+        # If still no spor, derive from event_type
+        if "spor" not in request_data:
+            spor_map = {
+                EventType.RESPONS_GRUNNLAG.value: SporType.GRUNNLAG.value,
+                EventType.RESPONS_VEDERLAG.value: SporType.VEDERLAG.value,
+                EventType.RESPONS_FRIST.value: SporType.FRIST.value,
+            }
+            request_data["spor"] = spor_map.get(event_type)
 
     return parse_event(request_data)

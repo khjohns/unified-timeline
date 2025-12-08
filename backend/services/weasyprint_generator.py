@@ -238,10 +238,11 @@ class WeasyPrintGenerator:
                         </span>
                     </div>
                 </div>
-                {% if state.vederlag.krevd_belop is not none %}
+                {% set krevd_belop = state.vederlag.belop_direkte or state.vederlag.kostnads_overslag %}
+                {% if krevd_belop is not none %}
                 <div class="field-group">
                     <div class="field-label">Krevd beløp:</div>
-                    <div class="field-value">{{ '{:,}'.format(state.vederlag.krevd_belop) }} NOK</div>
+                    <div class="field-value">{{ '{:,}'.format(krevd_belop) }} NOK</div>
                 </div>
                 {% endif %}
                 {% if state.vederlag.metode %}

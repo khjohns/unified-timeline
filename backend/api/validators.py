@@ -91,13 +91,14 @@ def validate_vederlag_event(data: Dict[str, Any]) -> None:
     if not metode_info:
         raise ValidationError(f"Ukjent vederlagsmetode: {metode}")
 
-    # Validate amount
-    krav_belop = data.get('krav_belop')
-    if krav_belop is None:
-        raise ValidationError("krav_belop er påkrevd")
-
-    if krav_belop < 0:
-        raise ValidationError("krav_belop må være >= 0")
+    # Validate amount based on method (updated 2025-12-08 to use new field names)
+    # - ENHETSPRISER/FASTPRIS_TILBUD: require belop_direkte (can be negative for fradrag)
+    # - REGNINGSARBEID: kostnads_overslag is optional (work not done yet = estimate)
+    if metode in ['ENHETSPRISER', 'FASTPRIS_TILBUD']:
+        belop_direkte = data.get('belop_direkte')
+        if belop_direkte is None:
+            raise ValidationError("belop_direkte er påkrevd for denne metoden")
+    # Note: For REGNINGSARBEID, kostnads_overslag is optional per §30.2
 
     # Validate begrunnelse
     if not data.get('begrunnelse'):

@@ -8,8 +8,8 @@
 import { apiFetch, USE_MOCK_API, mockDelay } from './client';
 import { EventType } from '../types/timeline';
 
-// Storage key for user role (must match useUserRole.ts)
-const USER_ROLE_STORAGE_KEY = 'koe-user-role';
+// Storage key for user role (MUST match useUserRole.ts)
+const USER_ROLE_STORAGE_KEY = 'unified-timeline-user-role';
 
 /**
  * Get current user role from localStorage.
