@@ -2,8 +2,8 @@
 
 > **Context**: This document outlines the implementation plan for enhancing the EventDetailModal component and related data flow. It is intended for handoff to another LLM developer.
 
-**Date**: 2024-12-09
-**Status**: Ready for implementation
+**Date**: 2025-12-09
+**Status**: Partially implemented - Backend changes pending
 **Priority**: High
 
 ---
@@ -26,15 +26,19 @@
 
 The timeline component on CasePage should display event history and allow users to click on events to see full submitted form data. Currently:
 
-- ✅ Frontend `EventDetailModal` exists with type-specific section rendering
-- ✅ Frontend types support `event_type` and `event_data` fields
+- ✅ Frontend `EventDetailModal` component exists (`src/components/views/EventDetailModal.tsx`, 783 lines)
+- ✅ Frontend has type-specific section rendering for all 18 event types
+- ✅ Frontend types support `event_type` and `event_data` fields (`src/types/timeline.ts`)
+- ✅ Mock data includes `event_type` and `event_data` (works in development mode)
 - ❌ **Backend** `TimelineService.get_timeline()` does NOT return `event_type` or `event_data`
-- ❌ **EventDetailModal** does not show port-structure for BH response events
+- ❌ **Backend** label mapping missing some event types (update events, forsering)
+- ⚠️ **EventDetailModal** BH response sections use flat structure (port-based enhancement optional)
 
 ### Key Changes Required
 
-1. **Backend**: Modify `TimelineService.get_timeline()` to include `event_type` and `event_data`
-2. **Frontend**: Enhance response sections in EventDetailModal to show port-based structure
+1. **Backend (Required)**: Modify `TimelineService.get_timeline()` to include `event_type` and `event_data`
+2. **Backend (Required)**: Add missing event type labels to `_event_type_to_label()`
+3. **Frontend (Optional)**: Enhance response sections in EventDetailModal to show port-based structure
 
 ---
 
@@ -177,18 +181,48 @@ def _serialize_event_data(self, event: AnyEvent) -> Optional[Dict[str, Any]]:
     return None
 ```
 
+**Additional requirement**: Update `_event_type_to_label()` method (lines 541-559) to include missing event types:
+
+```python
+def _event_type_to_label(self, event_type: EventType) -> str:
+    """Konverterer event-type til lesbar label"""
+    labels = {
+        EventType.SAK_OPPRETTET: "Sak opprettet",
+        EventType.GRUNNLAG_OPPRETTET: "Grunnlag sendt",
+        EventType.GRUNNLAG_OPPDATERT: "Grunnlag oppdatert",
+        EventType.GRUNNLAG_TRUKKET: "Grunnlag trukket",
+        EventType.VEDERLAG_KRAV_SENDT: "Vederlagskrav sendt",
+        EventType.VEDERLAG_KRAV_OPPDATERT: "Vederlagskrav oppdatert",
+        EventType.VEDERLAG_KRAV_TRUKKET: "Vederlagskrav trukket",
+        EventType.FRIST_KRAV_SENDT: "Fristkrav sendt",
+        EventType.FRIST_KRAV_OPPDATERT: "Fristkrav oppdatert",
+        EventType.FRIST_KRAV_TRUKKET: "Fristkrav trukket",
+        EventType.RESPONS_GRUNNLAG: "BH svarte på grunnlag",
+        EventType.RESPONS_GRUNNLAG_OPPDATERT: "BH oppdaterte svar på grunnlag",  # ADD
+        EventType.RESPONS_VEDERLAG: "BH svarte på vederlag",
+        EventType.RESPONS_VEDERLAG_OPPDATERT: "BH oppdaterte svar på vederlag",  # ADD
+        EventType.RESPONS_FRIST: "BH svarte på frist",
+        EventType.RESPONS_FRIST_OPPDATERT: "BH oppdaterte svar på frist",  # ADD
+        EventType.FORSERING_VARSEL: "Varsel om forsering (§33.8)",  # ADD
+        EventType.EO_UTSTEDT: "Endringsordre utstedt",
+    }
+    return labels.get(event_type, str(event_type))
+```
+
 **Validation**:
 - Test with mock data
 - Test with real backend by creating new events and checking timeline response
 
 ---
 
-### Task 2: Frontend - Enhance ResponsVederlagSection for port structure
+### Task 2: Frontend - Enhance ResponsVederlagSection for port structure (OPTIONAL)
+
+> **Note**: This enhancement is optional. The current flat structure is functional and displays all fields correctly. Port-based grouping is a UX improvement for better visual organization.
 
 **File**: `src/components/views/EventDetailModal.tsx`
 **Section**: `ResponsVederlagSection` (lines 440-503)
 
-The current implementation shows BH response data flat, but the 4-port wizard structure should be reflected:
+The current implementation shows BH response data flat, but the 4-port wizard structure could be reflected for better UX:
 
 **Port structure for vederlag response**:
 ```
@@ -281,7 +315,9 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
 
 ---
 
-### Task 3: Frontend - Enhance ResponsFristSection for port structure
+### Task 3: Frontend - Enhance ResponsFristSection for port structure (OPTIONAL)
+
+> **Note**: This enhancement is optional. Same consideration as Task 2.
 
 **File**: `src/components/views/EventDetailModal.tsx`
 **Section**: `ResponsFristSection` (lines 521-577)
@@ -349,7 +385,7 @@ The current `EventDetailModal` does not distinguish these. Consider adding:
 
 | File | Purpose | Lines to modify |
 |------|---------|-----------------|
-| `backend/services/timeline_service.py` | Main timeline service | 515-539 (get_timeline) |
+| `backend/services/timeline_service.py` | Main timeline service | 515-539 (get_timeline), 541-559 (_event_type_to_label) |
 | `backend/models/events.py` | Event model definitions | Reference only |
 | `backend/routes/event_routes.py` | API endpoints | 389-407 (get_case_timeline) |
 
@@ -357,12 +393,13 @@ The current `EventDetailModal` does not distinguish these. Consider adding:
 
 | File | Purpose | Lines to modify |
 |------|---------|-----------------|
-| `src/components/views/EventDetailModal.tsx` | Modal component | 440-503, 521-577 |
-| `src/components/views/Timeline.tsx` | Timeline list | Reference only |
-| `src/types/timeline.ts` | TypeScript types | Reference only |
+| `src/components/views/EventDetailModal.tsx` | Modal component (783 lines) | 440-503, 521-577 (optional port-structure) |
+| `src/components/views/Timeline.tsx` | Timeline list (232 lines) | Reference only |
+| `src/types/timeline.ts` | TypeScript types (469 lines) | Reference only |
 | `src/types/api.ts` | API response types | Reference only |
 | `src/api/state.ts` | API fetch functions | Reference only |
 | `src/pages/CasePage.tsx` | Main page | Reference only |
+| `src/mocks/mockData.ts` | Mock data with event_type/event_data | Reference only (verified) |
 
 ### Reference Files (for understanding)
 
@@ -810,6 +847,7 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
 - [ ] `get_timeline()` returns `event_data` for vederlag events
 - [ ] `get_timeline()` returns `event_data` for frist events
 - [ ] `get_timeline()` returns `event_data` for respons events (all types)
+- [ ] `_event_type_to_label()` handles all 18 event types (including update types)
 - [ ] `event_data` serialization handles Pydantic v1 and v2
 - [ ] `event_data` is `null` for events without data (graceful fallback)
 
@@ -846,9 +884,17 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
 
 4. **Subsidiary display is future work**: Don't implement principal/subsidiary distinction now unless specifically requested.
 
-5. **Mock data**: The mock data in `src/mock/events.ts` should already include `event_type` and `event_data` (verify this).
+5. **Mock data**: The mock data in `src/mocks/mockData.ts` already includes `event_type` and `event_data` (verified).
 
 6. **Error handling**: The `GenericSection` component serves as a fallback for unknown event types or malformed data.
+
+7. **Field name inconsistency**: Note that field naming varies slightly between types:
+   - `frist_for_spesifisering` in `ResponsFristEventData`
+   - `frist_for_spesifikasjon` in `ResponsVederlagEventData`
+
+   This is intentional and matches the backend model. Do not attempt to "fix" this.
+
+8. **Frontend is complete**: The `EventDetailModal` component (783 lines) already handles all 18 event types with dedicated section components. Only backend changes are blocking.
 
 ---
 
@@ -862,4 +908,5 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
 ---
 
 *Document prepared by: Claude (LLM Assistant)*
-*Last updated: 2024-12-09*
+*Last updated: 2025-12-09*
+*Quality reviewed: 2025-12-09*
