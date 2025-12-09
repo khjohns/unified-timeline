@@ -1109,50 +1109,43 @@ sequenceDiagram
 
 I produksjon vil JSON-filer erstattes med Microsoft Dataverse. Her er foreslått tabellstruktur:
 
-```mermaid
-erDiagram
-    koe_sak ||--o{ koe_event : "har mange"
-    koe_sak ||--o| koe_sak_state_cache : "caches"
-    koe_sak }o--|| koe_prosjekt : "tilhorer"
-
-    koe_sak {
-        guid sak_id PK
-        string sak_nummer UK
-        string sakstittel
-        guid prosjekt_id FK
-        string catenda_topic_id
-        datetime opprettet
-        datetime siste_aktivitet
-        string opprettet_av
-    }
-
-    koe_event {
-        guid event_id PK
-        guid sak_id FK
-        int sekvensnummer
-        string event_type
-        datetime tidsstempel
-        string aktor
-        string aktor_rolle
-        json data
-        string kommentar
-        guid refererer_til_event_id
-    }
-
-    koe_sak_state_cache {
-        guid sak_id PK_FK
-        int version
-        json state_json
-        datetime beregnet_tidspunkt
-    }
-
-    koe_prosjekt {
-        guid prosjekt_id PK
-        string prosjekt_navn
-        string catenda_project_id
-        string te_organisasjon
-        string bh_organisasjon
-    }
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                     DATAVERSE TABELLSTRUKTUR                             │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  ┌─────────────────┐         ┌─────────────────────┐                    │
+│  │  koe_prosjekt   │         │     koe_event       │                    │
+│  ├─────────────────┤         ├─────────────────────┤                    │
+│  │ prosjekt_id  PK │         │ event_id         PK │                    │
+│  │ prosjekt_navn   │         │ sak_id           FK │◄──┐                │
+│  │ catenda_proj_id │         │ sekvensnummer       │   │                │
+│  │ te_organisasjon │         │ event_type          │   │                │
+│  │ bh_organisasjon │         │ tidsstempel         │   │                │
+│  └────────┬────────┘         │ aktor               │   │                │
+│           │                  │ aktor_rolle         │   │                │
+│           │ 1:N              │ data (JSON)         │   │                │
+│           │                  │ kommentar           │   │                │
+│           ▼                  │ refererer_til_id    │   │                │
+│  ┌─────────────────┐         └─────────────────────┘   │                │
+│  │    koe_sak      │                                   │                │
+│  ├─────────────────┤                                   │                │
+│  │ sak_id       PK │───────────────────────────────────┘                │
+│  │ sak_nummer   UK │         ┌─────────────────────┐                    │
+│  │ sakstittel      │         │ koe_sak_state_cache │                    │
+│  │ prosjekt_id  FK │         ├─────────────────────┤                    │
+│  │ catenda_topic   │    1:1  │ sak_id        PK/FK │                    │
+│  │ opprettet       │────────►│ version             │                    │
+│  │ siste_aktivitet │         │ state_json          │                    │
+│  │ opprettet_av    │         │ beregnet_tidspunkt  │                    │
+│  └─────────────────┘         └─────────────────────┘                    │
+│                                                                          │
+│  Relasjoner:                                                             │
+│  • koe_prosjekt 1:N koe_sak (ett prosjekt har mange saker)              │
+│  • koe_sak 1:N koe_event (én sak har mange events)                      │
+│  • koe_sak 1:1 koe_sak_state_cache (valgfri cache)                      │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 6.2 Event Store tabell (koe_event)
