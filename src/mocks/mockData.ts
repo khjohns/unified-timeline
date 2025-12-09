@@ -17,14 +17,17 @@ export const mockSakState1: SakState = {
   // Grunnlag track
   grunnlag: {
     status: 'godkjent',
-    hovedkategori: 'uforutsette_forhold',
-    underkategori: 'Grunnforhold',
+    tittel: 'Uventet fjell ved fundament B3',
+    hovedkategori: 'SVIKT',
+    underkategori: 'GRUNN',
     beskrivelse:
       'Ved peling av fundament B3 ble det påtruffet uventet fjell 2,5 meter høyere enn antatt i prosjekteringsgrunnlaget. Dette krever omprosjektering og endrede løsninger for fundamentering.',
     dato_oppdaget: '2025-01-15',
-    dato_varsel_sendt: '2025-01-15',
-    varsel_metode: ['epost', 'byggemote'],
-    kontraktsreferanser: ['§3.2', '§4.1', 'Vedlegg A'],
+    grunnlag_varsel: {
+      dato_sendt: '2025-01-15',
+      metode: ['epost', 'byggemote'],
+    },
+    kontraktsreferanser: ['§23.1', 'Vedlegg A - Geoteknisk rapport'],
     bh_resultat: 'godkjent',
     bh_begrunnelse:
       'Grunnlaget er godkjent. Fjellforhold bekreftet av geolog. Endringsordre kan utstedes.',
@@ -41,10 +44,16 @@ export const mockSakState1: SakState = {
     begrunnelse:
       'Kravet inkluderer:\n- Ekstra borekostnader: 1.200.000 NOK\n- Endret fundamentløsning: 800.000 NOK\n- Prosjektering og rådgivning: 300.000 NOK\n- Rigg og drift: 200.000 NOK',
     saerskilt_krav: {
-      rigg_drift: true,
-      belop: 200000,
+      rigg_drift: {
+        belop: 200000,
+        dato_klar_over: '2025-01-15',
+      },
     },
     rigg_drift_varsel: {
+      dato_sendt: '2025-01-15',
+      metode: ['epost'],
+    },
+    regningsarbeid_varsel: {
       dato_sendt: '2025-01-15',
       metode: ['epost'],
     },
@@ -55,11 +64,18 @@ export const mockSakState1: SakState = {
   // Frist track
   frist: {
     status: 'delvis_godkjent',
+    varsel_type: 'noytralt',
+    noytralt_varsel: {
+      dato_sendt: '2025-01-15',
+      metode: ['epost', 'byggemote'],
+    },
     krevd_dager: 45,
-    frist_type: 'uspesifisert_krav',
+    frist_type: 'kalenderdager',
     begrunnelse:
       'Fristforlengelse nødvendig pga. omprosjektering av fundament (20 dager) og ekstra boring/sprengning (25 dager). Påvirker kritisk linje.',
     pavirker_kritisk_linje: true,
+    noytralt_varsel_ok: true,
+    vilkar_oppfylt: true,
     bh_resultat: 'delvis_godkjent',
     bh_begrunnelse:
       '30 dager godkjent. Omprosjektering kan gjøres parallelt med andre arbeider. Sprengningsarbeider påvirker kritisk linje.',
@@ -68,6 +84,12 @@ export const mockSakState1: SakState = {
     siste_oppdatert: '2025-01-22',
     antall_versjoner: 2,
   },
+
+  // Computed - Subsidiær logikk
+  er_subsidiaert_vederlag: false,
+  er_subsidiaert_frist: false,
+  visningsstatus_vederlag: 'Under behandling',
+  visningsstatus_frist: 'Delvis godkjent (30 av 45 dager)',
 
   // Computed status
   overordnet_status: 'UNDER_BEHANDLING',
@@ -112,6 +134,12 @@ export const mockSakState2: SakState = {
     antall_versjoner: 0,
   },
 
+  // Computed - Subsidiær logikk
+  er_subsidiaert_vederlag: false,
+  er_subsidiaert_frist: false,
+  visningsstatus_vederlag: 'Utkast',
+  visningsstatus_frist: 'Utkast',
+
   overordnet_status: 'UTKAST',
   kan_utstede_eo: false,
   neste_handling: {
@@ -137,13 +165,16 @@ export const mockSakState3: SakState = {
 
   grunnlag: {
     status: 'laast',
-    hovedkategori: 'byggherre_endringsordre',
-    underkategori: 'Fasadeendringer',
+    tittel: 'Fasadeendring fra betong til glass',
+    hovedkategori: 'ENDRING',
+    underkategori: 'EO',
     beskrivelse: 'Byggherre ønsker endring av fasademateriale fra betong til glass.',
     dato_oppdaget: '2024-11-10',
-    dato_varsel_sendt: '2024-11-10',
-    varsel_metode: ['epost'],
-    kontraktsreferanser: ['§5.3'],
+    grunnlag_varsel: {
+      dato_sendt: '2024-11-10',
+      metode: ['epost'],
+    },
+    kontraktsreferanser: ['§31.1'],
     bh_resultat: 'godkjent',
     bh_begrunnelse: 'Designendring godkjent av arkitekt og byggherre.',
     laast: true,
@@ -167,10 +198,22 @@ export const mockSakState3: SakState = {
 
   frist: {
     status: 'godkjent',
+    varsel_type: 'spesifisert',
+    noytralt_varsel: {
+      dato_sendt: '2024-11-10',
+      metode: ['epost'],
+    },
+    spesifisert_varsel: {
+      dato_sendt: '2024-11-12',
+      metode: ['epost'],
+    },
     krevd_dager: 14,
-    frist_type: 'spesifisert_krav',
+    frist_type: 'arbeidsdager',
     begrunnelse: 'Tid for levering og montering av glassfasade.',
     pavirker_kritisk_linje: false,
+    noytralt_varsel_ok: true,
+    spesifisert_krav_ok: true,
+    vilkar_oppfylt: true,
     bh_resultat: 'godkjent_fullt',
     bh_begrunnelse: 'Tid er i henhold til leverandørens spesifikasjoner.',
     godkjent_dager: 14,
@@ -178,6 +221,12 @@ export const mockSakState3: SakState = {
     siste_oppdatert: '2024-11-20',
     antall_versjoner: 1,
   },
+
+  // Computed - Subsidiær logikk
+  er_subsidiaert_vederlag: false,
+  er_subsidiaert_frist: false,
+  visningsstatus_vederlag: 'Godkjent: 850.000 NOK',
+  visningsstatus_frist: 'Godkjent (14 dager)',
 
   overordnet_status: 'OMFORENT',
   kan_utstede_eo: true,
@@ -204,14 +253,17 @@ export const mockSakState4: SakState = {
 
   grunnlag: {
     status: 'godkjent',
-    hovedkategori: 'uforutsette_forhold',
-    underkategori: 'Rørføring',
+    tittel: 'Avvik i eksisterende rørføring',
+    hovedkategori: 'SVIKT',
+    underkategori: 'PROSJ_RISIKO',
     beskrivelse:
       'Eksisterende rørføring for vann og avløp avviker fra tegninger. Må legges om for å unngå kollisjon med nye konstruksjoner.',
     dato_oppdaget: '2025-01-28',
-    dato_varsel_sendt: '2025-01-28',
-    varsel_metode: ['epost', 'telefon'],
-    kontraktsreferanser: ['§3.2', '§4.2'],
+    grunnlag_varsel: {
+      dato_sendt: '2025-01-28',
+      metode: ['epost', 'telefon'],
+    },
+    kontraktsreferanser: ['§24.1', '§25.2'],
     bh_resultat: 'godkjent',
     bh_begrunnelse: 'Grunnlag godkjent. Dokumentert med foto og nye målinger.',
     laast: true,
@@ -226,8 +278,26 @@ export const mockSakState4: SakState = {
     begrunnelse:
       'Foreløpig krav basert på estimat. Endelig spesifikasjon med detaljert kostnadskalkyle følger innen fastsatt frist.',
     saerskilt_krav: {
-      produktivitet: true,
-      rigg_drift: true,
+      produktivitet: {
+        belop: 50000,
+        dato_klar_over: '2025-01-28',
+      },
+      rigg_drift: {
+        belop: 30000,
+        dato_klar_over: '2025-01-28',
+      },
+    },
+    regningsarbeid_varsel: {
+      dato_sendt: '2025-01-28',
+      metode: ['epost'],
+    },
+    rigg_drift_varsel: {
+      dato_sendt: '2025-01-28',
+      metode: ['epost'],
+    },
+    produktivitetstap_varsel: {
+      dato_sendt: '2025-01-28',
+      metode: ['epost'],
     },
     bh_resultat: 'avventer_spesifikasjon',
     bh_begrunnelse:
@@ -238,11 +308,18 @@ export const mockSakState4: SakState = {
 
   frist: {
     status: 'under_behandling',
+    varsel_type: 'noytralt',
+    noytralt_varsel: {
+      dato_sendt: '2025-01-28',
+      metode: ['epost', 'telefon'],
+    },
     krevd_dager: 21,
-    frist_type: 'uspesifisert_krav',
+    frist_type: 'arbeidsdager',
     begrunnelse:
       'Foreløpig krav. Detaljert framdriftsplan med arbeidsoperasjoner følger i endelig spesifikasjon.',
     pavirker_kritisk_linje: true,
+    noytralt_varsel_ok: true,
+    vilkar_oppfylt: true,
     bh_resultat: 'avventer_spesifikasjon',
     bh_begrunnelse:
       'Fristkravet mangler dokumentasjon av arbeidsoperasjoner og påvirkning på framdrift. TE må levere detaljert framdriftsplan innen 2025-02-15.',
@@ -250,6 +327,12 @@ export const mockSakState4: SakState = {
     siste_oppdatert: '2025-02-01',
     antall_versjoner: 1,
   },
+
+  // Computed - Subsidiær logikk
+  er_subsidiaert_vederlag: false,
+  er_subsidiaert_frist: false,
+  visningsstatus_vederlag: 'Avventer spesifikasjon (frist: 2025-02-15)',
+  visningsstatus_frist: 'Avventer spesifikasjon (frist: 2025-02-15)',
 
   overordnet_status: 'UNDER_BEHANDLING',
   kan_utstede_eo: false,
@@ -366,12 +449,13 @@ export const mockTimelineEvents1: TimelineEntry[] = [
     spor: 'grunnlag',
     sammendrag: 'Varsel om endrede grunnforhold - uventet fjell',
     event_data: {
-      hovedkategori: 'uforutsette_forhold',
-      underkategori: 'Grunnforhold',
+      tittel: 'Uventet fjell ved fundament B3',
+      hovedkategori: 'SVIKT',
+      underkategori: 'GRUNN',
       beskrivelse: 'Ved peling av fundament B3 ble det påtruffet uventet fjell 2,5 meter høyere enn antatt i prosjekteringsgrunnlaget. Dette krever omprosjektering og endrede løsninger for fundamentering.',
       dato_oppdaget: '2025-01-15',
       grunnlag_varsel: { dato_sendt: '2025-01-15', metode: ['epost', 'byggemote'] },
-      kontraktsreferanser: ['§3.2', '§4.1', 'Vedlegg A'],
+      kontraktsreferanser: ['§23.1', 'Vedlegg A - Geoteknisk rapport'],
     },
   },
   {
@@ -492,12 +576,13 @@ export const mockTimelineEvents3: TimelineEntry[] = [
     spor: 'grunnlag',
     sammendrag: 'Fasadeendring etter byggherre sitt ønske',
     event_data: {
-      hovedkategori: 'byggherre_endringsordre',
-      underkategori: 'Fasadeendringer',
+      tittel: 'Fasadeendring fra betong til glass',
+      hovedkategori: 'ENDRING',
+      underkategori: 'EO',
       beskrivelse: 'Byggherre ønsker endring av fasademateriale fra betong til glass.',
       dato_oppdaget: '2024-11-10',
       grunnlag_varsel: { dato_sendt: '2024-11-10', metode: ['epost'] },
-      kontraktsreferanser: ['§5.3'],
+      kontraktsreferanser: ['§31.1'],
     },
   },
 ];
@@ -598,12 +683,13 @@ export const mockTimelineEvents4: TimelineEntry[] = [
     spor: 'grunnlag',
     sammendrag: 'Varsel om avvik i rørføring - må legges om',
     event_data: {
-      hovedkategori: 'uforutsette_forhold',
-      underkategori: 'Rørføring',
+      tittel: 'Avvik i eksisterende rørføring',
+      hovedkategori: 'SVIKT',
+      underkategori: 'PROSJ_RISIKO',
       beskrivelse: 'Eksisterende rørføring for vann og avløp avviker fra tegninger. Må legges om for å unngå kollisjon med nye konstruksjoner.',
       dato_oppdaget: '2025-01-28',
       grunnlag_varsel: { dato_sendt: '2025-01-28', metode: ['epost', 'telefon'] },
-      kontraktsreferanser: ['§3.2', '§4.2'],
+      kontraktsreferanser: ['§24.1', '§25.2'],
     },
   },
 ];
@@ -618,8 +704,9 @@ export const mockSakState5: SakState = {
 
   grunnlag: {
     status: 'avvist',
+    tittel: 'Irregulær endring - plassering av teknisk rom',
     hovedkategori: 'ENDRING',
-    underkategori: ['IRREG'],
+    underkategori: 'IRREG',
     beskrivelse:
       'Entreprenøren hevder at muntlig beskjed om endret plassering av teknisk rom utgjør en irregulær endring.',
     dato_oppdaget: '2025-02-01',
@@ -627,7 +714,7 @@ export const mockSakState5: SakState = {
       dato_sendt: '2025-02-02',
       metode: ['epost'],
     },
-    kontraktsreferanser: ['§32.1'],
+    kontraktsreferanser: ['§32.1', '§32.2'],
     bh_resultat: 'avvist_uenig',
     bh_begrunnelse:
       'BH bestrider at det foreligger en endring. Plasseringen var allerede avtalt i kontrakten.',
@@ -642,12 +729,20 @@ export const mockSakState5: SakState = {
     kostnads_overslag: 450000,
     begrunnelse: 'Ekstra rørlegging og tilpasningsarbeid.',
     saerskilt_krav: {
-      rigg_drift: true,
+      rigg_drift: {
+        belop: 50000,
+        dato_klar_over: '2025-02-01',
+      },
     },
     rigg_drift_varsel: {
       dato_sendt: '2025-02-02',
       metode: ['epost'],
     },
+    regningsarbeid_varsel: {
+      dato_sendt: '2025-02-02',
+      metode: ['epost'],
+    },
+    saerskilt_varsel_rigg_drift_ok: true,
     // BH has given subsidiary response
     bh_resultat: 'delvis_godkjent',
     bh_begrunnelse: 'Subsidiært: Beløp OK, men bestrider grunnlaget.',
@@ -659,12 +754,26 @@ export const mockSakState5: SakState = {
   frist: {
     status: 'under_behandling',
     varsel_type: 'spesifisert',
+    noytralt_varsel: {
+      dato_sendt: '2025-02-02',
+      metode: ['epost'],
+    },
+    spesifisert_varsel: {
+      dato_sendt: '2025-02-03',
+      metode: ['epost'],
+    },
     krevd_dager: 14,
+    frist_type: 'arbeidsdager',
     begrunnelse: 'Omlegging av rør krever 14 ekstra dager.',
     pavirker_kritisk_linje: true,
+    noytralt_varsel_ok: true,
+    spesifisert_krav_ok: true,
+    vilkar_oppfylt: false,
+    begrunnelse_vilkar: 'Subsidiært: Grunnlaget bestrides, men dersom ansvar avklares godkjennes dagene.',
     bh_resultat: 'godkjent_fullt',
     bh_begrunnelse: 'Subsidiært: Dagene godkjennes dersom ansvar avklares.',
     godkjent_dager: 14,
+    differanse_dager: 0,
     siste_oppdatert: '2025-02-06',
     antall_versjoner: 1,
   },
@@ -701,8 +810,9 @@ export const mockSakState6: SakState = {
 
   grunnlag: {
     status: 'godkjent',
+    tittel: 'Forsinket tegningsleveranse - elektro',
     hovedkategori: 'SVIKT',
-    underkategori: ['MEDVIRK'],
+    underkategori: 'MEDVIRK',
     beskrivelse:
       'Forsinket leveranse av tegninger for elektroinstallasjon medførte stopp i arbeidet.',
     dato_oppdaget: '2025-01-20',
@@ -724,9 +834,16 @@ export const mockSakState6: SakState = {
     kostnads_overslag: 850000,
     begrunnelse: 'Stillstand og omorganisering av mannskap.',
     saerskilt_krav: {
-      produktivitet: true,
+      produktivitet: {
+        belop: 150000,
+        dato_klar_over: '2025-01-20',
+      },
     },
     produktivitetstap_varsel: {
+      dato_sendt: '2025-01-20',
+      metode: ['epost'],
+    },
+    regningsarbeid_varsel: {
       dato_sendt: '2025-01-20',
       metode: ['epost'],
     },
@@ -737,9 +854,22 @@ export const mockSakState6: SakState = {
   frist: {
     status: 'avvist',
     varsel_type: 'spesifisert',
+    noytralt_varsel: {
+      dato_sendt: '2025-01-20',
+      metode: ['epost', 'byggemote'],
+    },
+    spesifisert_varsel: {
+      dato_sendt: '2025-01-28',
+      metode: ['epost'],
+    },
     krevd_dager: 21,
+    frist_type: 'arbeidsdager',
     begrunnelse: 'Stopp i elektroarbeid i 3 uker.',
     pavirker_kritisk_linje: true,
+    noytralt_varsel_ok: true,
+    spesifisert_krav_ok: true,
+    vilkar_oppfylt: false,
+    begrunnelse_vilkar: 'BH mener forsinkelsen kan tas igjen med parallellarbeid.',
     bh_resultat: 'avslatt_ingen_hindring',
     bh_begrunnelse: 'BH mener forsinkelsen kan tas igjen med parallellarbeid.',
     godkjent_dager: 0,
@@ -792,15 +922,16 @@ export const mockSakState7: SakState = {
 
   grunnlag: {
     status: 'godkjent',
+    tittel: 'Irregulær endring - resepsjonsutforming',
     hovedkategori: 'ENDRING',
-    underkategori: ['IRREG'],
+    underkategori: 'IRREG',
     beskrivelse: 'Endret utforming av resepsjon etter muntlig instruks.',
     dato_oppdaget: '2025-02-10',
     grunnlag_varsel: {
       dato_sendt: '2025-02-10',
       metode: ['system'],
     },
-    kontraktsreferanser: ['§32.1'],
+    kontraktsreferanser: ['§32.1', '§32.2'],
     bh_resultat: 'godkjent',
     bh_begrunnelse: 'Endringen aksepteres.',
     laast: true,
@@ -813,6 +944,10 @@ export const mockSakState7: SakState = {
     metode: 'REGNINGSARBEID',
     kostnads_overslag: 220000,
     begrunnelse: 'Snekkerarbeid og ny innredning. Endelig beløp kommer.',
+    regningsarbeid_varsel: {
+      dato_sendt: '2025-02-10',
+      metode: ['system'],
+    },
     // BH is holding back until proper overslag is provided
     bh_resultat: 'hold_tilbake',
     bh_begrunnelse:
@@ -824,9 +959,21 @@ export const mockSakState7: SakState = {
   frist: {
     status: 'godkjent',
     varsel_type: 'spesifisert',
+    noytralt_varsel: {
+      dato_sendt: '2025-02-10',
+      metode: ['system'],
+    },
+    spesifisert_varsel: {
+      dato_sendt: '2025-02-11',
+      metode: ['epost'],
+    },
     krevd_dager: 7,
+    frist_type: 'arbeidsdager',
     begrunnelse: 'Enkelt snekkerarbeid.',
     pavirker_kritisk_linje: false,
+    noytralt_varsel_ok: true,
+    spesifisert_krav_ok: true,
+    vilkar_oppfylt: true,
     bh_resultat: 'godkjent_fullt',
     bh_begrunnelse: 'Dagene godkjennes.',
     godkjent_dager: 7,
@@ -1187,8 +1334,9 @@ export const mockSakState8: SakState = {
 
   grunnlag: {
     status: 'godkjent',
+    tittel: 'Force Majeure - Ekstrem flom',
     hovedkategori: 'FORCE_MAJEURE',
-    underkategori: ['FM_EGEN'],
+    underkategori: 'FM_EGEN',
     beskrivelse:
       'Ekstrem flom i Drammenselva 15.-22. mars 2025 medførte full stopp i arbeidet. Byggeplassen var oversvømt og utilgjengelig. Dokumentert med bilder, værdata fra MET og presseoppslag.',
     dato_oppdaget: '2025-03-15',
@@ -1223,9 +1371,13 @@ export const mockSakState8: SakState = {
       metode: ['epost'],
     },
     krevd_dager: 8,
+    frist_type: 'kalenderdager',
     begrunnelse:
       'Byggeplass utilgjengelig i 8 kalenderdager. Kunne ikke utføre noe arbeid. Dokumentert med daglige rapporter.',
     pavirker_kritisk_linje: true,
+    noytralt_varsel_ok: true,
+    spesifisert_krav_ok: true,
+    vilkar_oppfylt: true,
     bh_resultat: 'godkjent_fullt',
     bh_begrunnelse: 'Fristforlengelse godkjent i henhold til §33.3.',
     godkjent_dager: 8,
@@ -1316,8 +1468,9 @@ export const mockTimelineEvents8: TimelineEntry[] = [
     spor: 'grunnlag',
     sammendrag: 'Varsel om force majeure - storflom',
     event_data: {
+      tittel: 'Force Majeure - Ekstrem flom',
       hovedkategori: 'FORCE_MAJEURE',
-      underkategori: ['FM_EGEN'],
+      underkategori: 'FM_EGEN',
       beskrivelse: 'Ekstrem flom i Drammenselva. Byggeplass oversvømt.',
       dato_oppdaget: '2025-03-15',
       grunnlag_varsel: { dato_sendt: '2025-03-15', metode: ['epost', 'telefon', 'byggemote'] },
@@ -1336,8 +1489,9 @@ export const mockSakState9: SakState = {
 
   grunnlag: {
     status: 'godkjent',  // Godkjent via passivitet!
+    tittel: 'Irregulær endring - ventilasjonsomlegging',
     hovedkategori: 'ENDRING',
-    underkategori: ['IRREG'],
+    underkategori: 'IRREG',
     beskrivelse:
       'I byggemøte 5. februar ga BHs representant muntlig instruks om å endre ventilasjonsanlegget fra balansert til hybrid løsning. TE varslet umiddelbart om at dette utgjør en endring.',
     dato_oppdaget: '2025-02-05',
@@ -1381,6 +1535,7 @@ export const mockSakState9: SakState = {
       metode: ['epost'],
     },
     krevd_dager: 10,
+    frist_type: 'arbeidsdager',
     begrunnelse: 'Omlegging av ventilasjonsanlegg krever 10 arbeidsdager.',
     pavirker_kritisk_linje: false,
     siste_oppdatert: '2025-02-22',
@@ -1436,10 +1591,9 @@ export const mockTimelineEvents9: TimelineEntry[] = [
     spor: 'vederlag',
     sammendrag: 'Krav på 320.000 NOK for ventilasjonsendring',
     event_data: {
-      krav_belop: 320000,
-      metode: 'regning',
+      metode: 'REGNINGSARBEID',
+      kostnads_overslag: 320000,
       begrunnelse: 'Merarbeid for omlegging av ventilasjonsanlegg.',
-      krever_regningsarbeid: true,
       regningsarbeid_varsel: { dato_sendt: '2025-02-06', metode: ['epost'] },
     },
   },
@@ -1467,8 +1621,9 @@ export const mockTimelineEvents9: TimelineEntry[] = [
     spor: 'grunnlag',
     sammendrag: 'Varsel om irregulær endring - ventilasjon',
     event_data: {
+      tittel: 'Irregulær endring - ventilasjonsomlegging',
       hovedkategori: 'ENDRING',
-      underkategori: ['IRREG'],
+      underkategori: 'IRREG',
       beskrivelse: 'Muntlig instruks om endret ventilasjonsløsning i byggemøte.',
       dato_oppdaget: '2025-02-05',
       grunnlag_varsel: { dato_sendt: '2025-02-05', metode: ['epost', 'byggemote'] },
@@ -1492,14 +1647,17 @@ export const mockSakState10: SakState = {
   // Grunnlag - godkjent
   grunnlag: {
     status: 'godkjent',
+    tittel: 'Pålagt sprinklerutvidelse - brannkrav',
     hovedkategori: 'ENDRING',
-    underkategori: 'REG',
+    underkategori: 'IRREG',
     beskrivelse:
       'Pålagt utvidelse av sprinkleranlegg til teknisk rom etter krav fra brannvesenet. Ikke del av opprinnelig kontrakt.',
     dato_oppdaget: '2025-02-01',
-    dato_varsel_sendt: '2025-02-01',
-    varsel_metode: ['epost'],
-    kontraktsreferanser: ['§32.1'],
+    grunnlag_varsel: {
+      dato_sendt: '2025-02-01',
+      metode: ['epost'],
+    },
+    kontraktsreferanser: ['§32.1', '§32.2'],
     bh_resultat: 'godkjent',
     bh_begrunnelse: 'Godkjent som endring. Kravet fra brannvesenet dokumentert.',
     laast: true,
@@ -1517,6 +1675,8 @@ export const mockSakState10: SakState = {
     bh_resultat: 'godkjent_fullt',
     bh_begrunnelse: 'Revidert krav godkjent i sin helhet.',
     godkjent_belop: 185000,
+    differanse: 0,
+    godkjenningsgrad_prosent: 100,
     siste_oppdatert: '2025-02-15',
     antall_versjoner: 2, // Har blitt revidert
   },
@@ -1524,19 +1684,38 @@ export const mockSakState10: SakState = {
   // Frist - godkjent
   frist: {
     status: 'godkjent',
+    varsel_type: 'spesifisert',
+    noytralt_varsel: {
+      dato_sendt: '2025-02-01',
+      metode: ['epost'],
+    },
+    spesifisert_varsel: {
+      dato_sendt: '2025-02-02',
+      metode: ['epost'],
+    },
     krevd_dager: 5,
-    frist_type: 'spesifisert_krav',
+    frist_type: 'arbeidsdager',
     begrunnelse: '5 dager for installasjon av sprinkleranlegg.',
     pavirker_kritisk_linje: false,
+    noytralt_varsel_ok: true,
+    spesifisert_krav_ok: true,
+    vilkar_oppfylt: true,
     bh_resultat: 'godkjent_fullt',
     bh_begrunnelse: '5 dager godkjent.',
     godkjent_dager: 5,
+    differanse_dager: 0,
     siste_oppdatert: '2025-02-10',
     antall_versjoner: 1,
   },
 
+  // Computed - Subsidiær logikk
+  er_subsidiaert_vederlag: false,
+  er_subsidiaert_frist: false,
+  visningsstatus_vederlag: 'Godkjent: 185.000 NOK',
+  visningsstatus_frist: 'Godkjent: 5 dager',
+
   // Status
-  overordnet_status: 'KLAR_FOR_EO',
+  overordnet_status: 'OMFORENT',
   kan_utstede_eo: true,
   neste_handling: {
     rolle: 'BH',
@@ -1547,10 +1726,6 @@ export const mockSakState10: SakState = {
   // Aggregates
   sum_krevd: 185000,
   sum_godkjent: 185000,
-  er_subsidiaert_vederlag: false,
-  er_subsidiaert_frist: false,
-  visningsstatus_vederlag: 'Godkjent: 185.000 NOK',
-  visningsstatus_frist: 'Godkjent: 5 dager',
 
   // Metadata
   opprettet: '2025-02-01',
@@ -1691,13 +1866,14 @@ export const mockTimelineEvents10: TimelineEntry[] = [
     spor: 'grunnlag',
     sammendrag: 'Varsel om pålagt sprinklerutvidelse',
     event_data: {
+      tittel: 'Pålagt sprinklerutvidelse - brannkrav',
       hovedkategori: 'ENDRING',
-      underkategori: 'REG',
+      underkategori: 'IRREG',
       beskrivelse:
         'Pålagt utvidelse av sprinkleranlegg til teknisk rom etter krav fra brannvesenet. Ikke del av opprinnelig kontrakt.',
       dato_oppdaget: '2025-02-01',
       grunnlag_varsel: { dato_sendt: '2025-02-01', metode: ['epost'] },
-      kontraktsreferanser: ['§32.1'],
+      kontraktsreferanser: ['§32.1', '§32.2'],
     },
   },
   // Event 0: Sak opprettet
