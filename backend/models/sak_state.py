@@ -133,6 +133,24 @@ class VederlagTilstand(BaseModel):
         description="Beløp godkjent av BH (hvis delvis/full godkjenning)"
     )
 
+    # Subsidiært standpunkt (fra BH respons event)
+    subsidiaer_triggers: Optional[List[str]] = Field(
+        default=None,
+        description="Liste over triggere for subsidiær vurdering"
+    )
+    subsidiaer_resultat: Optional[VederlagBeregningResultat] = Field(
+        default=None,
+        description="Subsidiært beregningsresultat"
+    )
+    subsidiaer_godkjent_belop: Optional[float] = Field(
+        default=None,
+        description="Subsidiært godkjent beløp"
+    )
+    subsidiaer_begrunnelse: Optional[str] = Field(
+        default=None,
+        description="BH's begrunnelse for subsidiær vurdering"
+    )
+
     # Computed: Krevd beløp basert på metode
     @computed_field
     @property
@@ -160,6 +178,43 @@ class VederlagTilstand(BaseModel):
         if krevd and krevd > 0 and self.godkjent_belop is not None:
             return round((self.godkjent_belop / krevd) * 100, 1)
         return None
+
+    @computed_field
+    @property
+    def har_subsidiaert_standpunkt(self) -> bool:
+        """True hvis BH har tatt subsidiær stilling på event-nivå"""
+        return self.subsidiaer_resultat is not None
+
+    @computed_field
+    @property
+    def visningsstatus(self) -> str:
+        """
+        Kombinert status for UI-visning inkludert subsidiær info.
+
+        Returnerer en av:
+        - "godkjent" / "delvis_godkjent" / "avslatt"
+        - "avslatt_subsidiaert_godkjent" (prinsipal avslått, subsidiært godkjent)
+        - "avventer_spesifikasjon"
+        - etc.
+        """
+        if self.bh_resultat is None:
+            return self.status.value
+
+        # Sjekk om prinsipal avslått men subsidiært godkjent
+        avslatt_koder = {
+            VederlagBeregningResultat.AVSLATT_TOTALT,
+            VederlagBeregningResultat.AVVIST_PREKLUSJON_RIGG,
+        }
+        godkjent_koder = {
+            VederlagBeregningResultat.GODKJENT_FULLT,
+            VederlagBeregningResultat.DELVIS_GODKJENT,
+        }
+
+        if self.bh_resultat in avslatt_koder:
+            if self.subsidiaer_resultat in godkjent_koder:
+                return "avslatt_subsidiaert_godkjent"
+
+        return self.bh_resultat.value
 
     # Metadata
     siste_event_id: Optional[str] = Field(default=None)
@@ -242,6 +297,24 @@ class FristTilstand(BaseModel):
         description="Frist for TE å levere ytterligere spesifikasjon (YYYY-MM-DD)"
     )
 
+    # Subsidiært standpunkt (fra BH respons event)
+    subsidiaer_triggers: Optional[List[str]] = Field(
+        default=None,
+        description="Liste over triggere for subsidiær vurdering"
+    )
+    subsidiaer_resultat: Optional[FristBeregningResultat] = Field(
+        default=None,
+        description="Subsidiært beregningsresultat"
+    )
+    subsidiaer_godkjent_dager: Optional[int] = Field(
+        default=None,
+        description="Subsidiært godkjent antall dager"
+    )
+    subsidiaer_begrunnelse: Optional[str] = Field(
+        default=None,
+        description="BH's begrunnelse for subsidiær vurdering"
+    )
+
     # Differanse-info
     @computed_field
     @property
@@ -250,6 +323,42 @@ class FristTilstand(BaseModel):
         if self.krevd_dager is not None and self.godkjent_dager is not None:
             return self.krevd_dager - self.godkjent_dager
         return None
+
+    @computed_field
+    @property
+    def har_subsidiaert_standpunkt(self) -> bool:
+        """True hvis BH har tatt subsidiær stilling på event-nivå"""
+        return self.subsidiaer_resultat is not None
+
+    @computed_field
+    @property
+    def visningsstatus(self) -> str:
+        """
+        Kombinert status for UI-visning inkludert subsidiær info.
+
+        Returnerer en av:
+        - "godkjent_fullt" / "delvis_godkjent" / "avslatt"
+        - "avslatt_subsidiaert_godkjent" (prinsipal avslått, subsidiært godkjent)
+        - "avventer_spesifikasjon"
+        - etc.
+        """
+        if self.bh_resultat is None:
+            return self.status.value
+
+        # Sjekk om prinsipal avslått men subsidiært godkjent
+        avslatt_koder = {
+            FristBeregningResultat.AVSLATT_INGEN_HINDRING,
+        }
+        godkjent_koder = {
+            FristBeregningResultat.GODKJENT_FULLT,
+            FristBeregningResultat.DELVIS_GODKJENT,
+        }
+
+        if self.bh_resultat in avslatt_koder:
+            if self.subsidiaer_resultat in godkjent_koder:
+                return "avslatt_subsidiaert_godkjent"
+
+        return self.bh_resultat.value
 
     # Forsering (§33.8)
     forsering: Optional[ForseringTilstand] = Field(

@@ -39,6 +39,7 @@ from models.events import (
     GrunnlagResponsResultat,
     VederlagBeregningResultat,
     FristBeregningResultat,
+    SubsidiaerTrigger,
     # Base
     SakEvent,
     # Events
@@ -87,6 +88,7 @@ __all__ = [
     'SporType', 'EventType', 'SporStatus',
     'VederlagsMetode', 'FristVarselType',
     'GrunnlagResponsResultat', 'VederlagBeregningResultat', 'FristBeregningResultat',
+    'SubsidiaerTrigger',
     # Events
     'SakEvent', 'GrunnlagEvent', 'VederlagEvent', 'FristEvent',
     'ResponsEvent', 'SakOpprettetEvent', 'EOUtstedtEvent', 'AnyEvent',

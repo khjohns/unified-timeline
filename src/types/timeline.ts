@@ -62,6 +62,17 @@ export type GrunnlagResponsResultat =
   | 'frafalt'          // §32.3 c - BH frafaller pålegget (kun irregulær endring)
   | 'krever_avklaring';
 
+// Årsaker til at subsidiær vurdering er relevant (NS 8407)
+export type SubsidiaerTrigger =
+  | 'grunnlag_avvist'          // Nivå 0: BH avviste ansvarsgrunnlaget
+  | 'preklusjon_rigg'          // Nivå 1: Rigg/drift varslet for sent (§34.1.3)
+  | 'preklusjon_produktivitet' // Nivå 1: Produktivitet varslet for sent (§34.1.3)
+  | 'preklusjon_ep_justering'  // Nivå 1: EP-justering varslet for sent (§34.3.3)
+  | 'preklusjon_noytralt'      // Nivå 1: Nøytralt varsel for sent (§33.4)
+  | 'preklusjon_spesifisert'   // Nivå 1: Spesifisert krav for sent (§33.6)
+  | 'ingen_hindring'           // Nivå 2: Ingen reell fremdriftshindring (§33.5)
+  | 'metode_avvist';           // Nivå 2: BH aksepterer ikke foreslått metode
+
 export type OverordnetStatus =
   | 'UTKAST'
   | 'SENDT'
@@ -135,9 +146,17 @@ export interface VederlagTilstand {
   /** Which version of the claim BH last responded to (0-indexed: 0 = original, 1 = rev 1, etc.) */
   bh_respondert_versjon?: number;
 
+  // Subsidiært standpunkt (når BH tar prinsipalt avslag men subsidiært godkjenner)
+  subsidiaer_triggers?: SubsidiaerTrigger[];
+  subsidiaer_resultat?: VederlagBeregningResultat;
+  subsidiaer_godkjent_belop?: number;
+  subsidiaer_begrunnelse?: string;
+
   // Computed
   differanse?: number;
   godkjenningsgrad_prosent?: number;
+  har_subsidiaert_standpunkt?: boolean;
+  visningsstatus?: string;
 
   // Metadata
   siste_oppdatert?: string;
@@ -177,11 +196,19 @@ export interface FristTilstand {
   begrunnelse_beregning?: string;
   frist_for_spesifisering?: string;
 
+  // Subsidiært standpunkt (når BH tar prinsipalt avslag men subsidiært godkjenner)
+  subsidiaer_triggers?: SubsidiaerTrigger[];
+  subsidiaer_resultat?: FristBeregningResultat;
+  subsidiaer_godkjent_dager?: number;
+  subsidiaer_begrunnelse?: string;
+
   // Forsering (§33.8)
   forsering?: ForseringTilstand;
 
   // Computed
   differanse_dager?: number;
+  har_subsidiaert_standpunkt?: boolean;
+  visningsstatus?: string;
 
   // Metadata
   siste_oppdatert?: string;
@@ -340,6 +367,12 @@ export interface ResponsVederlagEventData {
   godkjent_belop?: number;
   begrunnelse_beregning?: string;
   frist_for_spesifikasjon?: string;
+
+  // Subsidiært standpunkt (når BH tar prinsipalt avslag men subsidiært godkjenner)
+  subsidiaer_triggers?: SubsidiaerTrigger[];
+  subsidiaer_resultat?: VederlagBeregningResultat;
+  subsidiaer_godkjent_belop?: number;
+  subsidiaer_begrunnelse?: string;
 }
 
 // Frist response event (Port Model)
@@ -360,6 +393,12 @@ export interface ResponsFristEventData {
   ny_sluttdato?: string;
   begrunnelse_beregning?: string;
   frist_for_spesifisering?: string;
+
+  // Subsidiært standpunkt (når BH tar prinsipalt avslag men subsidiært godkjenner)
+  subsidiaer_triggers?: SubsidiaerTrigger[];
+  subsidiaer_resultat?: FristBeregningResultat;
+  subsidiaer_godkjent_dager?: number;
+  subsidiaer_begrunnelse?: string;
 }
 
 // Grunnlag response event

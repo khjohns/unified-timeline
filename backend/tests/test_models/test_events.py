@@ -464,14 +464,21 @@ def test_frist_respons_data():
 
 
 def test_frist_respons_har_bh_etterlyst_validator():
-    """Test that validator catches illogical har_bh_etterlyst"""
-    with pytest.raises(ValueError, match="kom i tide trenger ikke å etterlyses"):
-        FristResponsData(
-            spesifisert_krav_ok=True,  # Krav kom i tide
-            har_bh_etterlyst=True,     # Men satt til True - logisk feil!
-            vilkar_oppfylt=True,
-            beregnings_resultat=FristBeregningResultat.GODKJENT_FULLT
-        )
+    """Test that har_bh_etterlyst is allowed even when krav came on time.
+
+    This is valid because BH may have sent an inquiry before TE responded,
+    so spesifisert_krav_ok=True just means TE responded within deadline.
+    The validator was relaxed to allow this combination.
+    """
+    # This should NOT raise - the strict validation was removed
+    data = FristResponsData(
+        spesifisert_krav_ok=True,  # Krav kom i tide
+        har_bh_etterlyst=True,     # OK! BH kan ha etterlyst før TE responderte
+        vilkar_oppfylt=True,
+        beregnings_resultat=FristBeregningResultat.GODKJENT_FULLT
+    )
+    assert data.har_bh_etterlyst is True
+    assert data.spesifisert_krav_ok is True
 
 
 def test_frist_respons_etterlyst_allowed_when_late():

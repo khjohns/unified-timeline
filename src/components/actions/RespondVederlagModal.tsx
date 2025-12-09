@@ -60,6 +60,7 @@ import {
   type VederlagsMetode,
 } from '../../constants';
 import { differenceInDays } from 'date-fns';
+import type { SubsidiaerTrigger } from '../../types/timeline';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -480,6 +481,16 @@ export function RespondVederlagModal({
 
   // Submit handler
   const onSubmit = (data: RespondVederlagFormData) => {
+    // Beregn subsidiære triggere basert på Port 1 og 2 valg
+    const triggers: SubsidiaerTrigger[] = [];
+    if (riggPrekludert) triggers.push('preklusjon_rigg');
+    if (produktivitetPrekludert) triggers.push('preklusjon_produktivitet');
+    // §34.3.3: EP-justering prekludert hvis TE krevde det men BH avviser varselet
+    if (vederlagEvent?.krever_justert_ep && data.ep_justering_akseptert === false) {
+      triggers.push('preklusjon_ep_justering');
+    }
+    if (!data.aksepterer_metode) triggers.push('metode_avvist');
+
     mutation.mutate({
       eventType: 'respons_vederlag',
       data: {
@@ -535,10 +546,14 @@ export function RespondVederlagModal({
         total_godkjent_belop: computed.totalGodkjent,
         total_krevd_belop: computed.totalKrevd,
 
-        // Subsidiært (kun når særskilte krav er prekludert)
-        subsidiaert_resultat: visSubsidiaertResultat ? subsidiaertResultat : undefined,
-        subsidiaert_godkjent_belop: visSubsidiaertResultat
+        // Subsidiært standpunkt (kun når relevant)
+        subsidiaer_triggers: triggers.length > 0 ? triggers : undefined,
+        subsidiaer_resultat: visSubsidiaertResultat ? subsidiaertResultat : undefined,
+        subsidiaer_godkjent_belop: visSubsidiaertResultat
           ? computed.totalGodkjentInklPrekludert
+          : undefined,
+        subsidiaer_begrunnelse: visSubsidiaertResultat
+          ? data.begrunnelse_samlet
           : undefined,
       },
     });

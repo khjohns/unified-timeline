@@ -332,6 +332,16 @@ class TimelineService:
         if hasattr(event.data, 'godkjent_belop'):
             vederlag.godkjent_belop = event.data.godkjent_belop
 
+        # Subsidiært standpunkt (NYE linjer)
+        if hasattr(event.data, 'subsidiaer_triggers') and event.data.subsidiaer_triggers:
+            vederlag.subsidiaer_triggers = [t.value if hasattr(t, 'value') else t for t in event.data.subsidiaer_triggers]
+        if hasattr(event.data, 'subsidiaer_resultat') and event.data.subsidiaer_resultat:
+            vederlag.subsidiaer_resultat = event.data.subsidiaer_resultat
+        if hasattr(event.data, 'subsidiaer_godkjent_belop') and event.data.subsidiaer_godkjent_belop is not None:
+            vederlag.subsidiaer_godkjent_belop = event.data.subsidiaer_godkjent_belop
+        if hasattr(event.data, 'subsidiaer_begrunnelse') and event.data.subsidiaer_begrunnelse:
+            vederlag.subsidiaer_begrunnelse = event.data.subsidiaer_begrunnelse
+
         # Map beregnings_resultat til status
         if hasattr(event.data, 'beregnings_resultat'):
             vederlag.status = self._beregnings_resultat_til_status(event.data.beregnings_resultat)
@@ -381,6 +391,16 @@ class TimelineService:
             frist.ny_sluttdato = event.data.ny_sluttdato
         if hasattr(event.data, 'frist_for_spesifisering'):
             frist.frist_for_spesifisering = event.data.frist_for_spesifisering
+
+        # Subsidiært standpunkt (NYE linjer)
+        if hasattr(event.data, 'subsidiaer_triggers') and event.data.subsidiaer_triggers:
+            frist.subsidiaer_triggers = [t.value if hasattr(t, 'value') else t for t in event.data.subsidiaer_triggers]
+        if hasattr(event.data, 'subsidiaer_resultat') and event.data.subsidiaer_resultat:
+            frist.subsidiaer_resultat = event.data.subsidiaer_resultat
+        if hasattr(event.data, 'subsidiaer_godkjent_dager') and event.data.subsidiaer_godkjent_dager is not None:
+            frist.subsidiaer_godkjent_dager = event.data.subsidiaer_godkjent_dager
+        if hasattr(event.data, 'subsidiaer_begrunnelse') and event.data.subsidiaer_begrunnelse:
+            frist.subsidiaer_begrunnelse = event.data.subsidiaer_begrunnelse
 
         # Også lagre gammel bh_begrunnelse for backward compatibility
         if hasattr(event.data, 'begrunnelse'):

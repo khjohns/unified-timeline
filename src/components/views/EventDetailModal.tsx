@@ -30,6 +30,7 @@ import {
   GrunnlagResponsResultat,
   VederlagBeregningResultat,
   FristBeregningResultat,
+  SubsidiaerTrigger,
 } from '../../types/timeline';
 import {
   getHovedkategoriLabel,
@@ -41,6 +42,7 @@ import {
   getBhGrunnlagssvarLabel,
   getBhVederlagssvarLabel,
   getBhFristsvarLabel,
+  getSubsidiaerTriggerLabel,
 } from '../../constants/responseOptions';
 import { format } from 'date-fns';
 import { nb } from 'date-fns/locale';
@@ -480,6 +482,13 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
     data.begrunnelse_beregning ||
     data.frist_for_spesifikasjon;
 
+  // Check if we have subsidiary data
+  const hasSubsidiaerFields =
+    (data.subsidiaer_triggers && data.subsidiaer_triggers.length > 0) ||
+    data.subsidiaer_resultat ||
+    data.subsidiaer_godkjent_belop !== undefined ||
+    data.subsidiaer_begrunnelse;
+
   return (
     <dl>
       {/* ── Sammendrag ─────────────────────────────────────────────── */}
@@ -552,6 +561,41 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
           )}
         </>
       )}
+
+      {/* ── Subsidiært standpunkt ──────────────────────────────────── */}
+      {hasSubsidiaerFields && (
+        <>
+          <SectionDivider title="Subsidiært standpunkt" />
+          {data.subsidiaer_triggers && data.subsidiaer_triggers.length > 0 && (
+            <Field
+              label="Årsak til subsidiær vurdering"
+              value={
+                <div className="flex flex-wrap gap-1">
+                  {data.subsidiaer_triggers.map((trigger) => (
+                    <Badge key={trigger} variant="warning" size="sm">
+                      {getSubsidiaerTriggerLabel(trigger as SubsidiaerTrigger)}
+                    </Badge>
+                  ))}
+                </div>
+              }
+            />
+          )}
+          {data.subsidiaer_resultat && (
+            <Field
+              label="Subsidiært resultat"
+              value={
+                <Badge variant={getVederlagResultatBadge(data.subsidiaer_resultat).variant}>
+                  {getVederlagResultatBadge(data.subsidiaer_resultat).label}
+                </Badge>
+              }
+            />
+          )}
+          {data.subsidiaer_godkjent_belop !== undefined && (
+            <Field label="Subsidiært godkjent beløp" value={formatCurrency(data.subsidiaer_godkjent_belop)} />
+          )}
+          <LongTextField label="Subsidiær begrunnelse" value={data.subsidiaer_begrunnelse} />
+        </>
+      )}
     </dl>
   );
 }
@@ -590,6 +634,13 @@ function ResponsFristSection({ data }: { data: ResponsFristEventData }) {
   const hasBeregningFields =
     data.begrunnelse_beregning ||
     data.frist_for_spesifisering;
+
+  // Check if we have subsidiary data
+  const hasSubsidiaerFields =
+    (data.subsidiaer_triggers && data.subsidiaer_triggers.length > 0) ||
+    data.subsidiaer_resultat ||
+    data.subsidiaer_godkjent_dager !== undefined ||
+    data.subsidiaer_begrunnelse;
 
   return (
     <dl>
@@ -660,6 +711,41 @@ function ResponsFristSection({ data }: { data: ResponsFristEventData }) {
           {data.frist_for_spesifisering && (
             <Field label="Frist for spesifisering" value={formatDate(data.frist_for_spesifisering)} />
           )}
+        </>
+      )}
+
+      {/* ── Subsidiært standpunkt ──────────────────────────────────── */}
+      {hasSubsidiaerFields && (
+        <>
+          <SectionDivider title="Subsidiært standpunkt" />
+          {data.subsidiaer_triggers && data.subsidiaer_triggers.length > 0 && (
+            <Field
+              label="Årsak til subsidiær vurdering"
+              value={
+                <div className="flex flex-wrap gap-1">
+                  {data.subsidiaer_triggers.map((trigger) => (
+                    <Badge key={trigger} variant="warning" size="sm">
+                      {getSubsidiaerTriggerLabel(trigger as SubsidiaerTrigger)}
+                    </Badge>
+                  ))}
+                </div>
+              }
+            />
+          )}
+          {data.subsidiaer_resultat && (
+            <Field
+              label="Subsidiært resultat"
+              value={
+                <Badge variant={getFristResultatBadge(data.subsidiaer_resultat).variant}>
+                  {getFristResultatBadge(data.subsidiaer_resultat).label}
+                </Badge>
+              }
+            />
+          )}
+          {data.subsidiaer_godkjent_dager !== undefined && (
+            <Field label="Subsidiært godkjent dager" value={`${data.subsidiaer_godkjent_dager} dager`} />
+          )}
+          <LongTextField label="Subsidiær begrunnelse" value={data.subsidiaer_begrunnelse} />
         </>
       )}
     </dl>

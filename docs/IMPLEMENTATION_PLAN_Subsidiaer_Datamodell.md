@@ -118,8 +118,11 @@ Subsidiær behandling kan utløses på flere nivåer som bygger på hverandre:
 | `grunnlag_avvist` | 0 | BH avviste ansvarsgrunnlaget | Hele vederlagskravet er subsidiært |
 | `preklusjon_rigg` | 1 | Rigg/drift varslet for sent (§34.1.3) | Rigg/drift-beløp er subsidiært |
 | `preklusjon_produktivitet` | 1 | Produktivitet varslet for sent (§34.1.3) | Produktivitets-beløp er subsidiært |
+| `preklusjon_ep_justering` | 1 | EP-justering varslet for sent (§34.3.3) | EP-justering avvist, subsidiært beløp uten justering |
 | `metode_avvist` | 2 | BH krever annen metode | Metodevalg er omtvistet |
 | `belop_redusert` | 3 | BH godkjenner lavere beløp | Differanse er omtvistet |
+
+> **§34.3.3**: *"Den part som vil gjøre krav på justering av enhetsprisene, skal varsle den andre parten uten ugrunnet opphold [...] Unnlater han dette, har han bare krav på slik justering av enhetsprisen som den andre parten måtte forstå at forholdet ville føre til."*
 
 ### Frist: Subsidiære triggere
 
@@ -469,6 +472,7 @@ class SubsidiaerTrigger(str, Enum):
     # Nivå 1: Preklusjon (Vederlag)
     PREKLUSJON_RIGG = "preklusjon_rigg"
     PREKLUSJON_PRODUKTIVITET = "preklusjon_produktivitet"
+    PREKLUSJON_EP_JUSTERING = "preklusjon_ep_justering"  # §34.3.3 - EP-justering varslet for sent
 
     # Nivå 1: Preklusjon (Frist)
     PREKLUSJON_NOYTRALT = "preklusjon_noytralt"
@@ -671,6 +675,7 @@ export type SubsidiaerTrigger =
   | 'grunnlag_avvist'
   | 'preklusjon_rigg'
   | 'preklusjon_produktivitet'
+  | 'preklusjon_ep_justering'  // §34.3.3
   | 'preklusjon_noytralt'
   | 'preklusjon_spesifisert'
   | 'ingen_hindring'
@@ -753,6 +758,7 @@ class SubsidiaerTrigger(str, Enum):
     # Nivå 1: Preklusjon (Vederlag)
     PREKLUSJON_RIGG = "preklusjon_rigg"
     PREKLUSJON_PRODUKTIVITET = "preklusjon_produktivitet"
+    PREKLUSJON_EP_JUSTERING = "preklusjon_ep_justering"  # §34.3.3
 
     # Nivå 1: Preklusjon (Frist)
     PREKLUSJON_NOYTRALT = "preklusjon_noytralt"
@@ -826,6 +832,7 @@ export type SubsidiaerTrigger =
   | 'grunnlag_avvist'
   | 'preklusjon_rigg'
   | 'preklusjon_produktivitet'
+  | 'preklusjon_ep_justering'  // §34.3.3
   | 'preklusjon_noytralt'
   | 'preklusjon_spesifisert'
   | 'ingen_hindring'
@@ -871,6 +878,10 @@ const onSubmit = (data: RespondVederlagFormData) => {
   const triggers: string[] = [];
   if (riggPrekludert) triggers.push('preklusjon_rigg');
   if (produktivitetPrekludert) triggers.push('preklusjon_produktivitet');
+  // §34.3.3: EP-justering prekludert hvis TE krevde det men BH avviser varselet
+  if (vederlagEvent?.krever_justert_ep && data.ep_justering_akseptert === false) {
+    triggers.push('preklusjon_ep_justering');
+  }
   if (!formValues.aksepterer_metode) triggers.push('metode_avvist');
   // Merk: grunnlag_avvist settes basert på grunnlagStatus prop
 
@@ -962,6 +973,7 @@ const SUBSIDIAER_TRIGGER_LABELS: Record<string, string> = {
   grunnlag_avvist: 'Grunnlag avvist',
   preklusjon_rigg: 'Rigg/drift varslet for sent (§34.1.3)',
   preklusjon_produktivitet: 'Produktivitet varslet for sent (§34.1.3)',
+  preklusjon_ep_justering: 'EP-justering varslet for sent (§34.3.3)',
   preklusjon_noytralt: 'Nøytralt varsel for sent (§33.4)',
   preklusjon_spesifisert: 'Spesifisert krav for sent (§33.6)',
   ingen_hindring: 'Ingen reell fremdriftshindring (§33.5)',
@@ -1587,6 +1599,167 @@ describe('EventDetailModal - Subsidiært standpunkt', () => {
 3. **Så**: Oppgave 10-11 (frontend synkronisering + typer)
 4. **Så**: Oppgave 4-5 (frontend modaler)
 5. **Til slutt**: Testing
+
+---
+
+## Komplett frontend-filoversikt
+
+Denne seksjonen gir en detaljert oversikt over alle frontend-filer som må oppdateres.
+
+### 1. Types (`src/types/timeline.ts`)
+
+**Endringer:**
+1. Legg til `SubsidiaerTrigger` type (etter linje ~63)
+2. Oppdater `VederlagTilstand` interface med subsidiære felt
+3. Oppdater `FristTilstand` interface med subsidiære felt
+
+```typescript
+// Ny type - legg til etter GrunnlagResponsResultat
+export type SubsidiaerTrigger =
+  | 'grunnlag_avvist'
+  | 'preklusjon_rigg'
+  | 'preklusjon_produktivitet'
+  | 'preklusjon_ep_justering'  // §34.3.3
+  | 'preklusjon_noytralt'
+  | 'preklusjon_spesifisert'
+  | 'ingen_hindring'
+  | 'metode_avvist';
+
+// Oppdater VederlagTilstand - legg til etter bh_respondert_versjon
+interface VederlagTilstand {
+  // ... eksisterende felt ...
+
+  // Subsidiært standpunkt
+  subsidiaer_triggers?: SubsidiaerTrigger[];
+  subsidiaer_resultat?: VederlagBeregningResultat;
+  subsidiaer_godkjent_belop?: number;
+  subsidiaer_begrunnelse?: string;
+}
+
+// Tilsvarende for FristTilstand
+```
+
+### 2. Constants (`src/constants/responseOptions.ts`)
+
+**Endringer:**
+1. Legg til konstant for trigger-labels
+2. Legg til helper-funksjon for trigger-labels
+
+```typescript
+// Ny konstant - legg til etter BH_FRISTSVAR_DESCRIPTIONS
+export const SUBSIDIAER_TRIGGER_LABELS: Record<SubsidiaerTrigger, string> = {
+  grunnlag_avvist: 'Grunnlag avvist av BH',
+  preklusjon_rigg: 'Rigg/drift varslet for sent (§34.1.3)',
+  preklusjon_produktivitet: 'Produktivitet varslet for sent (§34.1.3)',
+  preklusjon_ep_justering: 'EP-justering varslet for sent (§34.3.3)',
+  preklusjon_noytralt: 'Nøytralt varsel for sent (§33.4)',
+  preklusjon_spesifisert: 'Spesifisert krav for sent (§33.6)',
+  ingen_hindring: 'Ingen reell fremdriftshindring (§33.5)',
+  metode_avvist: 'Metode ikke akseptert',
+};
+
+export function getSubsidiaerTriggerLabel(trigger: SubsidiaerTrigger): string {
+  return SUBSIDIAER_TRIGGER_LABELS[trigger] || trigger;
+}
+```
+
+### 3. RespondVederlagModal (`src/components/actions/RespondVederlagModal.tsx`)
+
+**Endringer:**
+1. Import SubsidiaerTrigger type
+2. Oppdater onSubmit for å beregne og sende subsidiære triggere
+
+**Logikk for EP-justering trigger (§34.3.3):**
+```typescript
+// I onSubmit funksjonen
+const triggers: SubsidiaerTrigger[] = [];
+
+// Eksisterende triggere
+if (riggPrekludert) triggers.push('preklusjon_rigg');
+if (produktivitetPrekludert) triggers.push('preklusjon_produktivitet');
+
+// NY: EP-justering trigger (§34.3.3)
+// Utløses når: TE krever justert EP OG BH avviser varselet som for sent
+if (vederlagEvent?.krever_justert_ep && data.ep_justering_akseptert === false) {
+  triggers.push('preklusjon_ep_justering');
+}
+
+if (!formValues.aksepterer_metode) triggers.push('metode_avvist');
+```
+
+### 4. RespondFristModal (`src/components/actions/RespondFristModal.tsx`)
+
+**Endringer:**
+1. Import SubsidiaerTrigger type
+2. Oppdater onSubmit for å beregne og sende subsidiære triggere
+
+```typescript
+// I onSubmit funksjonen
+const triggers: SubsidiaerTrigger[] = [];
+
+if (erPrekludert) {
+  if (varselType === 'noytralt') {
+    triggers.push('preklusjon_noytralt');
+  } else {
+    triggers.push('preklusjon_spesifisert');
+  }
+}
+if (!harHindring) triggers.push('ingen_hindring');
+```
+
+### 5. SendVederlagModal (`src/components/actions/SendVederlagModal.tsx`)
+
+**Ingen endringer nødvendig** for subsidiær-funksjonalitet. TE sender krav som før. Subsidiær behandling er BH-side.
+
+Men vurder å legge til:
+- Tydeligere label for `krever_justert_ep` checkbox med §34.3.3-referanse
+- Tooltip/info-tekst om varslingskrav
+
+### 6. EventDetailModal (`src/components/views/EventDetailModal.tsx`)
+
+**Endringer:**
+1. Import SUBSIDIAER_TRIGGER_LABELS og getSubsidiaerTriggerLabel
+2. Oppdater `ResponsVederlagSection` med subsidiær visning
+3. Oppdater `ResponsFristSection` med subsidiær visning
+
+Se detaljert kode i Oppgave 5 ovenfor.
+
+### 7. Timeline-komponenter
+
+**Vurderes senere** (etter datamodell er implementert):
+
+| Fil | Mulig endring |
+|-----|---------------|
+| `TimelinePanel.tsx` | Vise kort indikator for subsidiært standpunkt |
+| `SakPanel.tsx` | Aggregert subsidiær status i oversikt |
+| `StatusBadge.tsx` | Ny variant for "avslått_subsidiaert_godkjent" |
+
+### 8. API-typer (`src/types/api.ts`)
+
+**Endringer** (hvis nødvendig):
+- Oppdater event data interfaces for API-respons
+
+---
+
+## Oppsummering av alle filer
+
+| Fil | Type endring | Prioritet |
+|-----|--------------|-----------|
+| **Backend** | | |
+| `backend/models/events.py` | Datamodell | Høy |
+| `backend/models/sak_state.py` | State-modell | Høy |
+| `backend/services/timeline_service.py` | Event-applisering | Høy |
+| **Frontend - Types** | | |
+| `src/types/timeline.ts` | SubsidiaerTrigger + interface-endringer | Høy |
+| **Frontend - Constants** | | |
+| `src/constants/responseOptions.ts` | Trigger labels og helpers | Middels |
+| **Frontend - Modaler** | | |
+| `src/components/actions/RespondVederlagModal.tsx` | onSubmit med EP-trigger | Høy |
+| `src/components/actions/RespondFristModal.tsx` | onSubmit med triggere | Høy |
+| `src/components/views/EventDetailModal.tsx` | Subsidiær visning | Høy |
+| **Frontend - Senere** | | |
+| `src/components/views/TimelinePanel.tsx` | Kompakt visning | Lav |
+| `src/components/views/SakPanel.tsx` | Aggregert status | Lav |
 
 ---
 

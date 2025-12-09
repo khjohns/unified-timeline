@@ -109,6 +109,31 @@ class FristBeregningResultat(str, Enum):
     AVSLATT_INGEN_HINDRING = "avslatt_ingen_hindring"  # BH erkjenner grunnlaget, men mener det ikke medførte forsinkelse (f.eks. TE hadde slakk). Dette er et avslag på utregningen av tid, ikke ansvaret
 
 
+class SubsidiaerTrigger(str, Enum):
+    """
+    Årsaker til at subsidiær vurdering er relevant.
+    Kan kombineres - flere triggere kan gjelde samtidig.
+
+    Subsidiært standpunkt brukes når BH tar prinsipal stilling (f.eks. avslag)
+    men også vil angi hva resultatet ville vært hvis prinsipalt standpunkt ikke får medhold.
+    """
+    # Nivå 0: Grunnlag
+    GRUNNLAG_AVVIST = "grunnlag_avvist"  # BH avviste ansvarsgrunnlaget
+
+    # Nivå 1: Preklusjon (Vederlag)
+    PREKLUSJON_RIGG = "preklusjon_rigg"  # Rigg/drift varslet for sent (§34.1.3)
+    PREKLUSJON_PRODUKTIVITET = "preklusjon_produktivitet"  # Produktivitet varslet for sent (§34.1.3)
+    PREKLUSJON_EP_JUSTERING = "preklusjon_ep_justering"  # EP-justering varslet for sent (§34.3.3)
+
+    # Nivå 1: Preklusjon (Frist)
+    PREKLUSJON_NOYTRALT = "preklusjon_noytralt"  # Nøytralt varsel for sent (§33.4)
+    PREKLUSJON_SPESIFISERT = "preklusjon_spesifisert"  # Spesifisert krav for sent (§33.6)
+
+    # Nivå 2: Vilkår
+    INGEN_HINDRING = "ingen_hindring"  # Ingen reell fremdriftshindring (§33.5)
+    METODE_AVVIST = "metode_avvist"  # BH aksepterer ikke foreslått metode
+
+
 # ============ BASE EVENT ============
 
 class SakEvent(BaseModel):
@@ -714,6 +739,27 @@ class VederlagResponsData(BaseModel):
         description="Frist for TE å levere ytterligere spesifikasjon (YYYY-MM-DD)"
     )
 
+    # ============ SUBSIDIÆRT STANDPUNKT ============
+    # Brukes når BH tar et prinsipalt standpunkt (f.eks. avslag pga preklusjon)
+    # men også vil angi hva resultatet ville vært subsidiært.
+
+    subsidiaer_triggers: Optional[List[SubsidiaerTrigger]] = Field(
+        default=None,
+        description="Liste over årsaker til subsidiær vurdering"
+    )
+    subsidiaer_resultat: Optional[VederlagBeregningResultat] = Field(
+        default=None,
+        description="Subsidiært beregningsresultat"
+    )
+    subsidiaer_godkjent_belop: Optional[float] = Field(
+        default=None,
+        description="Subsidiært godkjent beløp i NOK"
+    )
+    subsidiaer_begrunnelse: Optional[str] = Field(
+        default=None,
+        description="BH's begrunnelse for subsidiær vurdering"
+    )
+
 
 class FristResponsData(BaseModel):
     """
@@ -811,6 +857,27 @@ class FristResponsData(BaseModel):
     frist_for_spesifisering: Optional[str] = Field(
         default=None,
         description="Frist for TE å levere ytterligere spesifikasjon/fremdriftsplan (YYYY-MM-DD)"
+    )
+
+    # ============ SUBSIDIÆRT STANDPUNKT ============
+    # Brukes når BH tar et prinsipalt standpunkt (f.eks. avslag pga preklusjon)
+    # men også vil angi hva resultatet ville vært subsidiært.
+
+    subsidiaer_triggers: Optional[List[SubsidiaerTrigger]] = Field(
+        default=None,
+        description="Liste over årsaker til subsidiær vurdering"
+    )
+    subsidiaer_resultat: Optional[FristBeregningResultat] = Field(
+        default=None,
+        description="Subsidiært beregningsresultat"
+    )
+    subsidiaer_godkjent_dager: Optional[int] = Field(
+        default=None,
+        description="Subsidiært godkjent antall dager"
+    )
+    subsidiaer_begrunnelse: Optional[str] = Field(
+        default=None,
+        description="BH's begrunnelse for subsidiær vurdering"
     )
 
     @field_validator('har_bh_etterlyst')

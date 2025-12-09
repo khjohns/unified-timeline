@@ -45,6 +45,7 @@ import { useSubmitEvent } from '../../hooks/useSubmitEvent';
 import { useConfirmClose } from '../../hooks/useConfirmClose';
 import { BH_FRISTSVAR_DESCRIPTIONS } from '../../constants';
 import { differenceInDays } from 'date-fns';
+import type { SubsidiaerTrigger } from '../../types/timeline';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -365,6 +366,24 @@ export function RespondFristModal({
 
   // Submit handler
   const onSubmit = (data: RespondFristFormData) => {
+    // Beregn subsidiære triggere basert på Port 1 og Port 2 beslutninger
+    const triggers: SubsidiaerTrigger[] = [];
+
+    // Port 1: Preklusjon-triggere
+    if (erPrekludert) {
+      if (varselType === 'noytralt') {
+        triggers.push('preklusjon_noytralt');
+      } else {
+        // spesifisert eller force_majeure
+        triggers.push('preklusjon_spesifisert');
+      }
+    }
+
+    // Port 2: Ingen hindring trigger
+    if (!harHindring) {
+      triggers.push('ingen_hindring');
+    }
+
     mutation.mutate({
       eventType: 'respons_frist',
       data: {
@@ -393,9 +412,11 @@ export function RespondFristModal({
         resultat: prinsipaltResultat,
         krevd_dager: effektivKrevdDager,
 
-        // Subsidiært (hvis relevant)
-        subsidiaert_resultat: visSubsidiaertResultat ? subsidiaertResultat : undefined,
-        subsidiaert_godkjent_dager: visSubsidiaertResultat ? godkjentDager : undefined,
+        // Subsidiært standpunkt (nye felt)
+        subsidiaer_triggers: triggers.length > 0 ? triggers : undefined,
+        subsidiaer_resultat: visSubsidiaertResultat ? subsidiaertResultat : undefined,
+        subsidiaer_godkjent_dager: visSubsidiaertResultat ? godkjentDager : undefined,
+        subsidiaer_begrunnelse: visSubsidiaertResultat ? data.begrunnelse_samlet : undefined,
       },
     });
   };

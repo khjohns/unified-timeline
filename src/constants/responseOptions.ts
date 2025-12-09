@@ -8,6 +8,7 @@
  */
 
 import { DropdownOption } from './categories';
+import type { SubsidiaerTrigger } from '../types/timeline';
 
 // ========== GRUNNLAG RESPONSE OPTIONS ==========
 
@@ -192,3 +193,20 @@ export const BH_FRISTSVAR_DESCRIPTIONS: Record<string, string> = {
   avslatt_ingen_hindring: "BH erkjenner grunnlaget, men mener det ikke medførte forsinkelse (f.eks. TE hadde slakk). Dette er et avslag på utregningen av tid, ikke ansvaret.",
   avvist_preklusjon: "§33.4/§33.6: Kravet avvises fordi TE ikke varslet 'uten ugrunnet opphold'. Kravet tapes helt eller reduseres til det BH måtte forstå."
 };
+
+// ========== SUBSIDIÆR TRIGGER LABELS ==========
+
+export const SUBSIDIAER_TRIGGER_LABELS: Record<SubsidiaerTrigger, string> = {
+  grunnlag_avvist: 'Grunnlag avvist av BH',
+  preklusjon_rigg: 'Rigg/drift varslet for sent (§34.1.3)',
+  preklusjon_produktivitet: 'Produktivitet varslet for sent (§34.1.3)',
+  preklusjon_ep_justering: 'EP-justering varslet for sent (§34.3.3)',
+  preklusjon_noytralt: 'Nøytralt varsel for sent (§33.4)',
+  preklusjon_spesifisert: 'Spesifisert krav for sent (§33.6)',
+  ingen_hindring: 'Ingen reell fremdriftshindring (§33.5)',
+  metode_avvist: 'Metode ikke akseptert',
+};
+
+export function getSubsidiaerTriggerLabel(trigger: SubsidiaerTrigger): string {
+  return SUBSIDIAER_TRIGGER_LABELS[trigger] || trigger;
+}
