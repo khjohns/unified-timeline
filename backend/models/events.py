@@ -811,16 +811,18 @@ class FristResponsData(BaseModel):
     @classmethod
     def validate_etterlyst(cls, v, info):
         """
-        Valider at har_bh_etterlyst bare brukes når spesifisert_krav_ok=False.
+        Valider at har_bh_etterlyst brukes korrekt.
 
-        Logikk: Hvis kravet kom i tide (spesifisert_krav_ok=True), er det
-        logisk inkonsekvent at BH skulle etterlyst det.
+        har_bh_etterlyst har to bruksområder:
+        1. Når TE kun har sendt nøytralt varsel: BH etterspør spesifisert krav (§33.6.2)
+           - I dette tilfellet er spesifisert_krav_ok irrelevant (TE har ikke sendt spesifisert)
+        2. Når TE har sendt spesifisert krav som var for sent: BH har etterlyst tidligere
+           - I dette tilfellet skal spesifisert_krav_ok=False
+
+        Valideringen tillater nå har_bh_etterlyst=True selv når spesifisert_krav_ok=True,
+        fordi dette kan skje når BH sender etterlysning og TE responderer i tide.
         """
-        if v is not None and info.data.get('spesifisert_krav_ok') is True:
-            raise ValueError(
-                "har_bh_etterlyst er kun relevant når spesifisert_krav_ok=False. "
-                "Et krav som kom i tide trenger ikke å etterlyses."
-            )
+        # Fjernet streng validering - har_bh_etterlyst kan være True i flere scenarier
         return v
 
 

@@ -443,22 +443,16 @@ export function RespondFristModal({
           </div>
         )}
 
-        {/* Fristkrav context */}
-        {fristEvent && (fristEvent.antall_dager !== undefined || fristEvent.begrunnelse) && (
+        {/* Display of fristkrav details - only for spesifisert krav with actual days */}
+        {varselType === 'spesifisert' && fristEvent?.antall_dager !== undefined && (
           <div className="p-4 bg-pkt-surface-subtle-light-blue border-2 border-pkt-border-focus rounded-none">
-            <h4 className="font-bold text-sm text-pkt-text-body-dark mb-2">
-              Entreprenørens krav:
-            </h4>
             <div className="flex justify-between items-center">
               <span className="text-xs text-pkt-text-body-subtle uppercase font-bold">
-                Krav fra Entreprenør
+                Spesifisert krav fra Entreprenør
               </span>
-              {fristEvent.antall_dager !== undefined && (
-                <span className="text-2xl font-bold">
-                  {fristEvent.antall_dager}{' '}
-                  {fristType === 'arbeidsdager' ? 'arbeidsdager' : 'dager'}
-                </span>
-              )}
+              <span className="text-2xl font-bold">
+                {fristEvent.antall_dager} dager
+              </span>
             </div>
             {fristEvent.ny_sluttfrist && (
               <p className="text-sm mt-1 text-pkt-text-body-subtle">
