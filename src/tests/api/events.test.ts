@@ -36,7 +36,8 @@ describe('Events API', () => {
 
       it('should return mock success response', async () => {
         const result = await submitEvent('SAK-001', 'grunnlag_opprettet', {
-          hovedkategori: 'uforutsette_forhold',
+          hovedkategori: 'SVIKT',
+          underkategori: 'GRUNN',
           beskrivelse: 'Test',
         });
 
@@ -147,7 +148,7 @@ describe('Events API', () => {
 
         await submitEvent('SAK-001', 'vederlag_krav_sendt', {
           krav_belop: 250000,
-          metode: 'regning',
+          metode: 'REGNINGSARBEID',
         });
 
         const callArgs = vi.mocked(clientModule.apiFetch).mock.calls[0];
@@ -155,7 +156,7 @@ describe('Events API', () => {
 
         expect(body.event.event_type).toBe('vederlag_krav_sendt');
         expect(body.event.krav_belop).toBe(250000);
-        expect(body.event.metode).toBe('regning');
+        expect(body.event.metode).toBe('REGNINGSARBEID');
       });
 
       it('should include expected_version when provided', async () => {
