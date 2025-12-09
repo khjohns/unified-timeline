@@ -57,8 +57,14 @@ class EventType(str, Enum):
 
     # Respons-events (BH)
     RESPONS_GRUNNLAG = "respons_grunnlag"
+    RESPONS_GRUNNLAG_OPPDATERT = "respons_grunnlag_oppdatert"  # BH's "snuoperasjon"
     RESPONS_VEDERLAG = "respons_vederlag"
+    RESPONS_VEDERLAG_OPPDATERT = "respons_vederlag_oppdatert"  # BH opphever tilbakeholdelse
     RESPONS_FRIST = "respons_frist"
+    RESPONS_FRIST_OPPDATERT = "respons_frist_oppdatert"  # BH endrer standpunkt
+
+    # Forsering-events (TE)
+    FORSERING_VARSEL = "forsering_varsel"  # §33.8 - TE varsler om forsering
 
     # Saks-events
     SAK_OPPRETTET = "sak_opprettet"
@@ -854,11 +860,70 @@ class ResponsEvent(SakEvent):
     def validate_event_type(cls, v):
         valid_types = [
             EventType.RESPONS_GRUNNLAG,
+            EventType.RESPONS_GRUNNLAG_OPPDATERT,
             EventType.RESPONS_VEDERLAG,
+            EventType.RESPONS_VEDERLAG_OPPDATERT,
             EventType.RESPONS_FRIST,
+            EventType.RESPONS_FRIST_OPPDATERT,
         ]
         if v not in valid_types:
             raise ValueError(f"Ugyldig event_type for ResponsEvent: {v}")
+        return v
+
+
+# ============ FORSERING EVENTS (§33.8) ============
+
+class ForseringVarselData(BaseModel):
+    """
+    Data for forsering varsel (§33.8).
+
+    Når BH avslår fristkrav, kan TE varsle om at de vil iverksette forsering.
+    Forseringskostnader kan da kreves dekket (innenfor 30%-grensen).
+    """
+    frist_krav_id: str = Field(
+        ...,
+        description="Event-ID til fristkravet som ble avslått"
+    )
+    estimert_kostnad: float = Field(
+        ...,
+        ge=0,
+        description="Estimert kostnad for forsering i NOK"
+    )
+    begrunnelse: str = Field(
+        ...,
+        min_length=1,
+        description="Begrunnelse for forsering"
+    )
+    bekreft_30_prosent: bool = Field(
+        default=False,
+        description="TE bekrefter at estimert kostnad er innenfor dagmulkt + 30%"
+    )
+    dato_iverksettelse: str = Field(
+        ...,
+        description="Dato forsering iverksettes (YYYY-MM-DD)"
+    )
+
+
+class ForseringVarselEvent(SakEvent):
+    """
+    Event for forsering varsel (§33.8).
+
+    TE kan varsle om forsering når BH avslår fristkrav.
+    """
+    event_type: EventType = Field(
+        default=EventType.FORSERING_VARSEL,
+        description="Forsering varsel"
+    )
+    data: ForseringVarselData = Field(
+        ...,
+        description="Forseringsdata"
+    )
+
+    @field_validator('event_type')
+    @classmethod
+    def validate_event_type(cls, v):
+        if v != EventType.FORSERING_VARSEL:
+            raise ValueError(f"Ugyldig event_type for ForseringVarselEvent: {v}")
         return v
 
 
@@ -899,6 +964,7 @@ AnyEvent = Union[
     VederlagEvent,
     FristEvent,
     ResponsEvent,
+    ForseringVarselEvent,
     SakOpprettetEvent,
     EOUtstedtEvent,
 ]
@@ -930,8 +996,12 @@ def parse_event(data: dict) -> AnyEvent:
         EventType.FRIST_KRAV_OPPDATERT.value: FristEvent,
         EventType.FRIST_KRAV_TRUKKET.value: FristEvent,
         EventType.RESPONS_GRUNNLAG.value: ResponsEvent,
+        EventType.RESPONS_GRUNNLAG_OPPDATERT.value: ResponsEvent,
         EventType.RESPONS_VEDERLAG.value: ResponsEvent,
+        EventType.RESPONS_VEDERLAG_OPPDATERT.value: ResponsEvent,
         EventType.RESPONS_FRIST.value: ResponsEvent,
+        EventType.RESPONS_FRIST_OPPDATERT.value: ResponsEvent,
+        EventType.FORSERING_VARSEL.value: ForseringVarselEvent,
         EventType.EO_UTSTEDT.value: EOUtstedtEvent,
     }
 
@@ -972,11 +1042,15 @@ def parse_event_from_request(request_data: dict) -> AnyEvent:
     # For ResponsEvent: Auto-derive 'spor' from event_type if not provided
     # This allows frontend to send spor inside 'data' or rely on auto-derivation
     event_type = request_data.get("event_type")
-    if event_type in [
+    respons_event_types = [
         EventType.RESPONS_GRUNNLAG.value,
+        EventType.RESPONS_GRUNNLAG_OPPDATERT.value,
         EventType.RESPONS_VEDERLAG.value,
+        EventType.RESPONS_VEDERLAG_OPPDATERT.value,
         EventType.RESPONS_FRIST.value,
-    ]:
+        EventType.RESPONS_FRIST_OPPDATERT.value,
+    ]
+    if event_type in respons_event_types:
         # Try to extract spor from data (if frontend sent it there)
         data = request_data.get("data", {})
         if isinstance(data, dict) and "spor" in data:
@@ -986,8 +1060,11 @@ def parse_event_from_request(request_data: dict) -> AnyEvent:
         if "spor" not in request_data:
             spor_map = {
                 EventType.RESPONS_GRUNNLAG.value: SporType.GRUNNLAG.value,
+                EventType.RESPONS_GRUNNLAG_OPPDATERT.value: SporType.GRUNNLAG.value,
                 EventType.RESPONS_VEDERLAG.value: SporType.VEDERLAG.value,
+                EventType.RESPONS_VEDERLAG_OPPDATERT.value: SporType.VEDERLAG.value,
                 EventType.RESPONS_FRIST.value: SporType.FRIST.value,
+                EventType.RESPONS_FRIST_OPPDATERT.value: SporType.FRIST.value,
             }
             request_data["spor"] = spor_map.get(event_type)
 

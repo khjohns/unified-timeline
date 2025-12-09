@@ -167,6 +167,34 @@ class VederlagTilstand(BaseModel):
     antall_versjoner: int = Field(default=0)
 
 
+class ForseringTilstand(BaseModel):
+    """
+    Tilstand for forsering (§33.8).
+
+    Når BH avslår fristkrav, kan TE varsle om at de vil iverksette forsering.
+    Forseringskostnader kan da kreves dekket (innenfor 30%-grensen).
+    """
+    er_varslet: bool = Field(default=False)
+    dato_varslet: Optional[str] = Field(default=None)
+    estimert_kostnad: Optional[float] = Field(default=None)
+    begrunnelse: Optional[str] = Field(default=None)
+    bekreft_30_prosent_regel: Optional[bool] = Field(
+        default=None,
+        description="TE bekrefter at kostnad < dagmulkt + 30%"
+    )
+    er_iverksatt: bool = Field(default=False)
+    dato_iverksatt: Optional[str] = Field(default=None)
+    er_stoppet: bool = Field(
+        default=False,
+        description="True hvis BH godkjenner frist etter varsling"
+    )
+    dato_stoppet: Optional[str] = Field(default=None)
+    paalopte_kostnader: Optional[float] = Field(
+        default=None,
+        description="Costs incurred before stop"
+    )
+
+
 class FristTilstand(BaseModel):
     """Aggregert tilstand for frist-sporet"""
     status: SporStatus = Field(
@@ -222,6 +250,12 @@ class FristTilstand(BaseModel):
         if self.krevd_dager is not None and self.godkjent_dager is not None:
             return self.krevd_dager - self.godkjent_dager
         return None
+
+    # Forsering (§33.8)
+    forsering: Optional[ForseringTilstand] = Field(
+        default=None,
+        description="Forseringstilstand hvis TE har varslet om forsering"
+    )
 
     # Metadata
     siste_event_id: Optional[str] = Field(default=None)
