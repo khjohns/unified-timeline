@@ -1,6 +1,6 @@
 # Design: Forseringsvarsel (§33.8)
 
-> **Status**: Utkast - til vurdering
+> **Status**: Godkjent - klar for implementering
 > **Dato**: 2025-12-09
 > **Kontekst**: Implementering av TE's rett til å varsle om forsering ved avslag på fristkrav
 
@@ -66,6 +66,16 @@ Forseringsvarsel skal være tilgjengelig for TE når **ett** av følgende er opp
 | **C** | BH har avslått grunnlaget | `grunnlag.bh_resultat` in `[avvist_uenig, avvist_for_sent]` |
 
 **Viktig**: Scenario C medfører implisitt at fristkravet også avslås (fordi grunnlaget er forutsetningen).
+
+**Beregning av avslåtte dager ved scenario C**:
+Når grunnlag er avvist, har BH typisk gitt et subsidiært standpunkt på frist. For beregning av 30%-grensen brukes differansen mellom krevde dager og *subsidiært* godkjente dager:
+
+```
+Eksempel:
+- TE krever 30 dager
+- BH: Grunnlag avvist, subsidiært maks 10 dager
+- Avslåtte dager for 30%-beregning = 30 - 10 = 20 dager
+```
 
 ### 3.2 Flytdiagram
 
@@ -198,13 +208,17 @@ class ForseringVarselData(BaseModel):
     dato_iverksettelse: str
 
     # Nye felt:
+    respons_frist_id: str = Field(
+        ...,
+        description="Event-ID til BH's frist-respons som utløste forseringen"
+    )
     avslatte_dager: int = Field(
         ...,
         description="Antall dager som ble avslått av BH"
     )
-    dagmulktsats: Optional[float] = Field(
-        default=None,
-        description="Dagmulktsats (for beregning av 30%-grense)"
+    dagmulktsats: float = Field(
+        ...,
+        description="Dagmulktsats (påkrevd for beregning av 30%-grense)"
     )
     grunnlag_avslag_trigger: bool = Field(
         default=False,
@@ -233,8 +247,8 @@ interface SendForseringModalProps {
     godkjent_dager: number;  // 0 hvis helt avslått
     bh_resultat: FristBeregningResultat;
   };
-  /** Dagmulktsats fra kontrakt (hvis tilgjengelig) */
-  dagmulktsats?: number;
+  /** Dagmulktsats - påkrevd for 30%-beregning */
+  dagmulktsats: number;
   /** True hvis trigger er grunnlagsavslag */
   grunnlagAvslagTrigger?: boolean;
 }
@@ -417,5 +431,15 @@ TIDSLINJE:
 ---
 
 *Dokument opprettet: 2025-12-09*
+*Oppdatert: 2025-12-09 - Godkjent med forbedringer*
 *Forfatter: Claude (LLM Assistant)*
-*Status: Utkast - til vurdering*
+*Status: Godkjent - klar for implementering*
+
+---
+
+## Endringslogg
+
+| Dato | Endring |
+|------|---------|
+| 2025-12-09 | Opprettet utkast |
+| 2025-12-09 | Godkjent med forbedringer: (1) Presisert beregning av avslåtte dager ved subsidiært standpunkt, (2) Lagt til `respons_frist_id` for sporbarhet, (3) Gjort `dagmulktsats` påkrevd |

@@ -24,3 +24,6 @@ export { ReviseFristModal } from './ReviseFristModal';
 export { RespondGrunnlagUpdateModal } from './RespondGrunnlagUpdateModal';
 export { UpdateResponseVederlagModal } from './UpdateResponseVederlagModal';
 export { UpdateResponseFristModal } from './UpdateResponseFristModal';
+
+// Special action modals (TE)
+export { SendForseringModal } from './SendForseringModal';

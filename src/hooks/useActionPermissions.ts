@@ -26,6 +26,8 @@ export interface AvailableActions {
   canUpdateGrunnlagResponse: boolean;
   canUpdateVederlagResponse: boolean;
   canUpdateFristResponse: boolean;
+  // TE Actions: Forsering (§33.8)
+  canSendForsering: boolean;
   canIssueEO: boolean;
 }
 
@@ -123,6 +125,19 @@ export function useActionPermissions(
       isBH &&
       state.frist.bh_resultat != null &&
       !isInitialStatus(state.frist.status),
+
+    // TE Actions: Forsering (§33.8)
+    // Available when BH has rejected frist (wholly or partially) OR rejected grunnlag
+    canSendForsering:
+      isTE &&
+      state.frist.bh_resultat != null &&
+      (
+        // Direct frist rejection
+        ['avslatt_ingen_hindring', 'avvist_preklusjon', 'delvis_godkjent'].includes(state.frist.bh_resultat) ||
+        // Grunnlag rejection (implies frist rejection)
+        (state.grunnlag.bh_resultat != null &&
+          ['avvist_uenig', 'avvist_for_sent'].includes(state.grunnlag.bh_resultat))
+      ),
 
     // Special: Issue EO (Endringsordre)
     canIssueEO: state.kan_utstede_eo,

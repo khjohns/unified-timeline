@@ -951,6 +951,10 @@ class ForseringVarselData(BaseModel):
         ...,
         description="Event-ID til fristkravet som ble avslått"
     )
+    respons_frist_id: str = Field(
+        ...,
+        description="Event-ID til BH's frist-respons som utløste forseringen"
+    )
     estimert_kostnad: float = Field(
         ...,
         ge=0,
@@ -968,6 +972,20 @@ class ForseringVarselData(BaseModel):
     dato_iverksettelse: str = Field(
         ...,
         description="Dato forsering iverksettes (YYYY-MM-DD)"
+    )
+    avslatte_dager: int = Field(
+        ...,
+        ge=0,
+        description="Antall dager som ble avslått av BH"
+    )
+    dagmulktsats: float = Field(
+        ...,
+        ge=0,
+        description="Dagmulktsats i NOK per dag (påkrevd for 30%-beregning)"
+    )
+    grunnlag_avslag_trigger: bool = Field(
+        default=False,
+        description="True hvis forsering utløses av grunnlagsavslag (ikke direkte frist-avslag)"
     )
 
 

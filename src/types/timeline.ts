@@ -470,10 +470,14 @@ export interface ResponsFristOppdatertEventData {
 // Forsering varsel event (§33.8 - TE varsler om forsering)
 export interface ForseringVarselEventData {
   frist_krav_id: string;  // Reference to the rejected frist claim
+  respons_frist_id: string;  // Reference to BH's frist response that triggered this
   estimert_kostnad: number;
   begrunnelse: string;
   bekreft_30_prosent: boolean;  // TE confirms cost < dagmulkt + 30%
   dato_iverksettelse: string;
+  avslatte_dager: number;  // Number of days rejected by BH
+  dagmulktsats: number;  // Daily liquidated damages rate in NOK
+  grunnlag_avslag_trigger: boolean;  // True if triggered by grunnlag rejection
 }
 
 // ========== TIMELINE DISPLAY ==========

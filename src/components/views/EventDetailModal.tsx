@@ -774,25 +774,47 @@ function ResponsFristOppdatertSection({ data }: { data: ResponsFristOppdatertEve
 }
 
 function ForseringVarselSection({ data }: { data: ForseringVarselEventData }) {
+  // Beregn 30%-grense for visning
+  const maksKostnad = data.avslatte_dager * data.dagmulktsats * 1.3;
+  const erInnenforGrense = data.estimert_kostnad <= maksKostnad;
+
   return (
     <dl>
       <div className="py-3 bg-red-50 -mx-4 px-4 mb-2 border-b border-red-200">
-        <Badge variant="danger" size="lg">Forsering iverksatt (§33.8)</Badge>
+        <Badge variant="danger" size="lg">Forseringsvarsel (§33.8)</Badge>
+        {data.grunnlag_avslag_trigger && (
+          <span className="ml-2 text-sm text-red-700">(utløst av grunnlagsavslag)</span>
+        )}
       </div>
-      <Field label="Estimert kostnad" value={formatCurrency(data.estimert_kostnad)} />
+
+      {/* Sammendrag */}
+      <Field label="Estimert forseringskostnad" value={formatCurrency(data.estimert_kostnad)} />
       <Field label="Dato iverksettelse" value={formatDate(data.dato_iverksettelse)} />
-      <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
+
+      {/* 30%-beregning */}
+      <SectionDivider title="30%-beregning" subtitle="§33.8" />
+      <Field label="Avslåtte dager" value={`${data.avslatte_dager} dager`} />
+      <Field label="Dagmulktsats" value={formatCurrency(data.dagmulktsats)} />
+      <Field label="Maks forseringskostnad" value={formatCurrency(maksKostnad)} />
       <Field
-        label="30%-regel bekreftet"
+        label="Innenfor 30%-grense"
         value={
-          data.bekreft_30_prosent ? (
-            <Badge variant="success">Ja - innenfor grensen</Badge>
+          erInnenforGrense ? (
+            <Badge variant="success">Ja ({((data.estimert_kostnad / maksKostnad) * 100).toFixed(0)}% av grensen)</Badge>
           ) : (
-            <Badge variant="danger">Nei</Badge>
+            <Badge variant="danger">Nei - overstiger grensen</Badge>
           )
         }
       />
-      <Field label="Referanse fristkrav" value={data.frist_krav_id} />
+
+      {/* Begrunnelse */}
+      <SectionDivider title="Begrunnelse" />
+      <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
+
+      {/* Referanser */}
+      <SectionDivider title="Referanser" />
+      <Field label="Fristkrav-ID" value={data.frist_krav_id} />
+      <Field label="Fristrespons-ID" value={data.respons_frist_id} />
     </dl>
   );
 }

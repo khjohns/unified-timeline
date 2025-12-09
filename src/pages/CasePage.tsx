@@ -32,6 +32,8 @@ import {
   RespondGrunnlagUpdateModal,
   UpdateResponseVederlagModal,
   UpdateResponseFristModal,
+  // Special action modals (TE)
+  SendForseringModal,
 } from '../components/actions';
 import type { SakState, GrunnlagResponsResultat, TimelineEntry } from '../types/timeline';
 import {
@@ -42,6 +44,7 @@ import {
   Pencil1Icon,
   ChatBubbleIcon,
   Pencil2Icon,
+  RocketIcon,
 } from '@radix-ui/react-icons';
 import { downloadContractorClaimPdf } from '../pdf';
 
@@ -104,6 +107,9 @@ export function CasePage() {
   const [updateGrunnlagResponseOpen, setUpdateGrunnlagResponseOpen] = useState(false);
   const [updateVederlagResponseOpen, setUpdateVederlagResponseOpen] = useState(false);
   const [updateFristResponseOpen, setUpdateFristResponseOpen] = useState(false);
+
+  // Modal state management - Special actions (TE)
+  const [sendForseringOpen, setSendForseringOpen] = useState(false);
 
   // User role management for testing different modes
   const { userRole, setUserRole } = useUserRole();
@@ -336,6 +342,18 @@ export function CasePage() {
                   Oppdater
                 </Button>
               )}
+              {/* TE Actions: Forsering (§33.8) - available when BH has rejected */}
+              {userRole === 'TE' && actions.canSendForsering && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setSendForseringOpen(true)}
+                  className="border-red-500 text-red-700 hover:bg-red-50"
+                >
+                  <RocketIcon className="w-4 h-4 mr-2" />
+                  Forsering (§33.8)
+                </Button>
+              )}
               {/* BH Actions: Respond to TE's submission */}
               {userRole === 'BH' && actions.canRespondToFrist && (
                 <Button
@@ -543,6 +561,28 @@ export function CasePage() {
               godkjent_dager: state.frist.godkjent_dager,
             }}
             fristTilstand={state.frist}
+          />
+
+          {/* Special Action Modals (TE) */}
+          <SendForseringModal
+            open={sendForseringOpen}
+            onOpenChange={setSendForseringOpen}
+            sakId={sakId}
+            fristKravId={`frist-${sakId}`}
+            responsFristId={`frist-response-${sakId}`}
+            fristData={{
+              krevde_dager: state.frist.krevd_dager || 0,
+              godkjent_dager: state.grunnlag.bh_resultat &&
+                ['avvist_uenig', 'avvist_for_sent'].includes(state.grunnlag.bh_resultat)
+                  ? (state.frist.subsidiaer_godkjent_dager ?? 0)  // Use subsidiary days when grunnlag rejected
+                  : (state.frist.godkjent_dager ?? 0),
+              bh_resultat: state.frist.bh_resultat || 'godkjent_fullt',
+            }}
+            dagmulktsats={50000}  // TODO: Get from contract config
+            grunnlagAvslagTrigger={
+              state.grunnlag.bh_resultat != null &&
+              ['avvist_uenig', 'avvist_for_sent'].includes(state.grunnlag.bh_resultat)
+            }
           />
         </>
       )}
