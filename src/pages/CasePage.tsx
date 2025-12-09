@@ -120,10 +120,12 @@ export function CasePage() {
       event_id: e.event_id,
       tidsstempel: e.tidsstempel,
       type: e.type,
+      event_type: e.event_type,
       aktor: e.aktor,
       rolle: e.rolle,
       spor: e.spor,
       sammendrag: e.sammendrag,
+      event_data: e.event_data,
     })) ?? [],
     [timelineData]
   );

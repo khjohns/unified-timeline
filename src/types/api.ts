@@ -5,7 +5,7 @@
  * These types define the contract between frontend and backend.
  */
 
-import { SakState, EventType } from './timeline';
+import { SakState, EventType, EventData, SporType } from './timeline';
 
 // ========== API RESPONSES ==========
 
@@ -27,10 +27,12 @@ export interface TimelineEvent {
   event_id: string;
   tidsstempel: string;
   type: string;
+  event_type?: EventType;
   aktor: string;
   rolle: 'TE' | 'BH';
-  spor: 'grunnlag' | 'vederlag' | 'frist' | null;
+  spor: SporType | null;
   sammendrag: string;
+  event_data?: EventData;
 }
 
 export interface TimelineResponse {

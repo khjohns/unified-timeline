@@ -6,7 +6,7 @@
  * Includes "Vis skjema" button to view full submitted form data.
  */
 
-import { ViewSubmittedEventModal } from './ViewSubmittedEventModal';
+import { EventDetailModal } from './EventDetailModal';
 import { RevisionTag, UpdatedTag } from '../primitives/RevisionTag';
 import { TimelineEntry, SporType } from '../../types/timeline';
 import { useState } from 'react';
@@ -221,7 +221,7 @@ export function Timeline({ events }: TimelineProps) {
 
       {/* Modal for viewing full submitted form */}
       {selectedEvent && (
-        <ViewSubmittedEventModal
+        <EventDetailModal
           open={!!selectedEvent}
           onOpenChange={(open) => !open && setSelectedEvent(null)}
           event={selectedEvent}

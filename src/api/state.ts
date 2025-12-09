@@ -35,26 +35,32 @@ export async function fetchCaseState(sakId: string): Promise<StateResponse> {
  *
  * @param sakId - The case ID
  * @returns The timeline events and version
+ *
+ * Note: Both mock data and real backend return TimelineEvent[] with:
+ * - event_id, tidsstempel, type, event_type, aktor, rolle, spor, sammendrag, event_data
  */
 export async function fetchTimeline(sakId: string): Promise<TimelineResponse> {
   // Use mock data if enabled
   if (USE_MOCK_API) {
     await mockDelay(200);
     const events = getMockTimelineById(sakId);
+    // Mock data already has correct TimelineEntry structure - map to TimelineEvent
     return {
       events: events.map(e => ({
-        event_id: e.id,
-        tidsstempel: e.timestamp,
+        event_id: e.event_id,
+        tidsstempel: e.tidsstempel,
         type: e.type,
-        aktor: e.actor,
-        rolle: e.role,
-        spor: e.track,
-        sammendrag: e.summary,
+        event_type: e.event_type,
+        aktor: e.aktor,
+        rolle: e.rolle,
+        spor: e.spor,
+        sammendrag: e.sammendrag,
+        event_data: e.event_data,
       })),
       version: 1,
     };
   }
 
-  // Real API call
+  // Real API call - backend returns TimelineResponse with full event data
   return apiFetch<TimelineResponse>(`/api/cases/${sakId}/timeline`);
 }
