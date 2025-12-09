@@ -26,6 +26,7 @@ import { Badge } from '../primitives/Badge';
 import { Alert } from '../primitives/Alert';
 import { AlertDialog } from '../primitives/AlertDialog';
 import { RadioGroup, RadioItem } from '../primitives/RadioGroup';
+import { StepIndicator } from '../primitives/StepIndicator';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -37,7 +38,6 @@ import {
   BH_FRISTSVAR_DESCRIPTIONS,
 } from '../../constants';
 import { differenceInDays } from 'date-fns';
-import clsx from 'clsx';
 
 // Extended schema with port fields
 const respondFristSchema = z.object({
@@ -86,58 +86,6 @@ interface RespondFristModalProps {
   grunnlagStatus?: 'godkjent' | 'avvist_uenig' | 'delvis_godkjent';
   /** Type of varsel TE sent (nøytralt or spesifisert) - determines which checks to show */
   varselType?: 'noytralt' | 'spesifisert' | 'force_majeure';
-}
-
-// Step indicator component
-function StepIndicator({
-  currentStep,
-  steps
-}: {
-  currentStep: number;
-  steps: { label: string; description: string }[]
-}) {
-  return (
-    <div className="flex items-center justify-between mb-6">
-      {steps.map((step, index) => {
-        const stepNumber = index + 1;
-        const isActive = stepNumber === currentStep;
-        const isCompleted = stepNumber < currentStep;
-
-        return (
-          <div key={index} className="flex items-center flex-1">
-            <div className="flex flex-col items-center">
-              <div
-                className={clsx(
-                  'w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg border-2 transition-colors',
-                  isActive && 'bg-pkt-surface-strong-dark-blue text-white border-pkt-surface-strong-dark-blue',
-                  isCompleted && 'bg-green-600 text-white border-green-600',
-                  !isActive && !isCompleted && 'bg-pkt-surface-gray text-pkt-text-body-subtle border-pkt-border-subtle'
-                )}
-              >
-                {isCompleted ? '✓' : stepNumber}
-              </div>
-              <span className={clsx(
-                'text-xs mt-1 font-medium text-center',
-                isActive && 'text-pkt-text-body-dark',
-                !isActive && 'text-pkt-text-body-subtle'
-              )}>
-                {step.label}
-              </span>
-              <span className="text-xs text-pkt-text-body-subtle text-center max-w-[100px]">
-                {step.description}
-              </span>
-            </div>
-            {index < steps.length - 1 && (
-              <div className={clsx(
-                'flex-1 h-1 mx-2',
-                isCompleted ? 'bg-green-600' : 'bg-pkt-border-subtle'
-              )} />
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
 }
 
 export function RespondFristModal({
