@@ -474,9 +474,8 @@ class SakState(BaseModel):
 
         grunnlag_avvist = self.grunnlag.status == SporStatus.AVVIST
         beregning_godkjent = self.vederlag.bh_resultat in {
-            VederlagBeregningResultat.GODKJENT_FULLT,
+            VederlagBeregningResultat.GODKJENT,
             VederlagBeregningResultat.DELVIS_GODKJENT,
-            VederlagBeregningResultat.GODKJENT_ANNEN_METODE,
         }
         return grunnlag_avvist and beregning_godkjent
 
@@ -498,7 +497,7 @@ class SakState(BaseModel):
         """
         grunnlag_avvist = self.grunnlag.status == SporStatus.AVVIST
         beregning_godkjent = self.frist.bh_resultat in {
-            FristBeregningResultat.GODKJENT_FULLT,
+            FristBeregningResultat.GODKJENT,
             FristBeregningResultat.DELVIS_GODKJENT,
         }
         return grunnlag_avvist and beregning_godkjent
@@ -528,12 +527,12 @@ class SakState(BaseModel):
 
         if self.er_subsidiaert_vederlag:
             belop = f"{self.vederlag.godkjent_belop:,.0f} kr" if self.vederlag.godkjent_belop else "beløp"
-            if self.vederlag.bh_resultat == VederlagBeregningResultat.GODKJENT_FULLT:
+            if self.vederlag.bh_resultat == VederlagBeregningResultat.GODKJENT:
                 return f"Avslått pga. ansvar (Subsidiært enighet om {belop})"
             elif self.vederlag.bh_resultat == VederlagBeregningResultat.DELVIS_GODKJENT:
                 return f"Avslått pga. ansvar (Subsidiært delvis enig om {belop})"
             else:
-                return f"Avslått pga. ansvar (Subsidiært enighet med annen metode)"
+                return f"Avslått pga. ansvar (Subsidiært)"
 
         # Normal (prinsipal) status
         if self.vederlag.status == SporStatus.GODKJENT:
@@ -566,7 +565,7 @@ class SakState(BaseModel):
 
         if self.er_subsidiaert_frist:
             dager = f"{self.frist.godkjent_dager} dager" if self.frist.godkjent_dager else "dager"
-            if self.frist.bh_resultat == FristBeregningResultat.GODKJENT_FULLT:
+            if self.frist.bh_resultat == FristBeregningResultat.GODKJENT:
                 return f"Avslått pga. ansvar (Subsidiært enighet om {dager})"
             elif self.frist.bh_resultat == FristBeregningResultat.DELVIS_GODKJENT:
                 return f"Avslått pga. ansvar (Subsidiært delvis enig om {dager})"

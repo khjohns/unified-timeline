@@ -178,7 +178,7 @@ MOCK_EVENTS_SCENARIO_1 = [
             ),
             # Port 2: Beregning
             vederlagsmetode=VederlagsMetode.REGNING,
-            beregnings_resultat=VederlagBeregningResultat.GODKJENT_FULLT,
+            beregnings_resultat=VederlagBeregningResultat.GODKJENT,
             godkjent_belop=75000,
             begrunnelse_beregning=(
                 "BH er enig om timeforbruk og timepriser. "
@@ -212,7 +212,7 @@ MOCK_EVENTS_SCENARIO_1 = [
                 "Forsinkelsen i prosjektering har medført faktisk fremdriftshindring."
             ),
             # Port 3: Beregning
-            beregnings_resultat=FristBeregningResultat.GODKJENT_FULLT,
+            beregnings_resultat=FristBeregningResultat.GODKJENT,
             godkjent_dager=10,
             ny_sluttdato="2025-03-15",
             begrunnelse_beregning=(
@@ -306,7 +306,7 @@ MOCK_EVENTS_SCENARIO_2 = [
             krav_fremmet_i_tide=True,
             varsel_start_regning_ok=True,
             vederlagsmetode=VederlagsMetode.REGNING,
-            beregnings_resultat=VederlagBeregningResultat.GODKJENT_FULLT,
+            beregnings_resultat=VederlagBeregningResultat.GODKJENT,
             godkjent_belop=50000,
             begrunnelse_beregning=(
                 "SUBSIDIÆRT: BH er enig om at hvis vi hadde hatt ansvar, "

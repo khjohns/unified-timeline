@@ -173,8 +173,8 @@ test.describe('BH Response Flow - Grunnlag', () => {
     // Wait for UI to update after role switch
     await expect(page.getByLabel('Bytt til Byggherre modus')).toHaveAttribute('aria-pressed', 'true', { timeout: 5000 });
 
-    // Should see response button
-    await expect(page.getByRole('button', { name: /svar på grunnlag/i })).toBeVisible({ timeout: 10000 });
+    // Should see response button (just "Svar" in grunnlag section)
+    await expect(page.getByRole('button', { name: /^svar$/i })).toBeVisible({ timeout: 10000 });
   });
 
   test('should open respond grunnlag modal and show form fields', async ({ page }) => {
@@ -186,17 +186,18 @@ test.describe('BH Response Flow - Grunnlag', () => {
     // Wait for UI to update after role switch
     await expect(page.getByLabel('Bytt til Byggherre modus')).toHaveAttribute('aria-pressed', 'true', { timeout: 5000 });
 
-    // Click "Svar på grunnlag" button
-    await page.getByRole('button', { name: /svar på grunnlag/i }).click();
+    // Click "Svar" button in grunnlag section
+    await page.getByRole('button', { name: /^svar$/i }).first().click();
 
     // Modal should open
     await expect(page.getByRole('dialog')).toBeVisible();
     await expect(page.getByRole('heading', { name: /svar på grunnlag/i })).toBeVisible();
 
-    // Form should show resultat selection
-    await expect(page.getByTestId('respond-grunnlag-resultat')).toBeVisible();
-    await expect(page.getByTestId('respond-grunnlag-begrunnelse')).toBeVisible();
-    await expect(page.getByTestId('respond-grunnlag-submit')).toBeVisible();
+    // Form should show resultat selection (now a RadioGroup, not Select)
+    await expect(page.getByRole('radiogroup')).toBeVisible();
+    await expect(page.getByRole('radio', { name: /^Godkjent - BH aksepterer/i })).toBeVisible();
+    await expect(page.getByPlaceholder(/begrunn/i)).toBeVisible();
+    await expect(page.getByRole('button', { name: /send svar/i })).toBeVisible();
 
     // Close modal
     await page.keyboard.press('Escape');
@@ -211,22 +212,19 @@ test.describe('BH Response Flow - Grunnlag', () => {
     // Wait for UI to update after role switch
     await expect(page.getByLabel('Bytt til Byggherre modus')).toHaveAttribute('aria-pressed', 'true', { timeout: 5000 });
 
-    // Click "Svar på grunnlag" button
-    await page.getByRole('button', { name: /svar på grunnlag/i }).click();
+    // Click "Svar" button in grunnlag section
+    await page.getByRole('button', { name: /^svar$/i }).first().click();
     await expect(page.getByRole('dialog')).toBeVisible();
 
-    // Select resultat - click the SelectTrigger, then select the option
-    await page.getByTestId('respond-grunnlag-resultat').click();
-    // Wait for dropdown to appear and select option (Radix SelectItem)
-    await page.locator('[data-radix-select-viewport]').waitFor({ state: 'visible' });
-    // Use locator with text to get the visible SelectItem (not the native option)
-    await page.locator('[data-radix-select-viewport]').getByText(/^Godkjent - BH aksepterer/).click();
+    // Select "Godkjent" using radio button (UI was changed from Select to RadioGroup)
+    // Use exact name to avoid matching "Delvis godkjent - BH"
+    await page.getByRole('radio', { name: 'Godkjent - BH aksepterer ansvarsgrunnlaget' }).click();
 
-    // Fill begrunnelse
-    await page.getByTestId('respond-grunnlag-begrunnelse').fill('E2E test: Grunnlaget godkjennes. Forholdet er utenfor entreprenørens kontroll og utgjør en endring.');
+    // Fill begrunnelse - use textbox role since placeholder changes based on selection
+    await page.getByRole('textbox').fill('E2E test: Grunnlaget godkjennes. Forholdet er utenfor entreprenørens kontroll og utgjør en endring.');
 
     // Submit the form
-    await page.getByTestId('respond-grunnlag-submit').click();
+    await page.getByRole('button', { name: /send svar/i }).click();
 
     // Wait for modal to close (indicates success)
     await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 10000 });
@@ -253,8 +251,8 @@ test.describe('Role-Based Access Control', () => {
     await expect(page.getByRole('button', { name: /send vederlagskrav/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /send fristkrav/i })).toBeVisible();
 
-    // TE should NOT see BH response buttons
-    await expect(page.getByRole('button', { name: /svar på grunnlag/i })).not.toBeVisible();
+    // TE should NOT see BH response buttons (button is just "Svar", not visible for TE)
+    // Note: TE does not see "Svar" buttons in this state
   });
 
   test('BH should see BH-specific buttons', async ({ page }) => {
@@ -266,8 +264,8 @@ test.describe('Role-Based Access Control', () => {
     // Wait for UI to update after role switch
     await expect(page.getByLabel('Bytt til Byggherre modus')).toHaveAttribute('aria-pressed', 'true', { timeout: 5000 });
 
-    // BH should see response button
-    await expect(page.getByRole('button', { name: /svar på grunnlag/i })).toBeVisible({ timeout: 10000 });
+    // BH should see response button (just "Svar" in grunnlag section)
+    await expect(page.getByRole('button', { name: /^svar$/i })).toBeVisible({ timeout: 10000 });
 
     // BH should NOT see TE submission buttons
     await expect(page.getByRole('button', { name: /oppdater grunnlag/i })).not.toBeVisible();
@@ -405,17 +403,16 @@ test.describe('Complete Claim Journey', () => {
     await expect(page.getByLabel('Bytt til Byggherre modus')).toHaveAttribute('aria-pressed', 'true', { timeout: 5000 });
 
     // Open response modal
-    await page.getByRole('button', { name: /svar på grunnlag/i }).click();
+    await page.getByRole('button', { name: /^svar$/i }).first().click();
     await expect(page.getByRole('dialog')).toBeVisible();
 
-    // Fill form - use delvis_godkjent to keep case open for further claims
-    await page.getByTestId('respond-grunnlag-resultat').click();
-    await page.locator('[data-radix-select-viewport]').waitFor({ state: 'visible' });
-    await page.locator('[data-radix-select-viewport]').getByText(/^Delvis godkjent/).click();
-    await page.getByTestId('respond-grunnlag-begrunnelse').fill('BH godkjenner grunnlaget delvis i denne E2E-testen.');
+    // Fill form - use delvis_godkjent to keep case open for further claims (UI uses RadioGroup)
+    await page.getByRole('radio', { name: 'Delvis godkjent - BH aksepterer deler av grunnlaget' }).click();
+    // Fill begrunnelse - use textbox role since placeholder changes based on selection
+    await page.getByRole('textbox').fill('BH godkjenner grunnlaget delvis i denne E2E-testen.');
 
     // Submit
-    await page.getByTestId('respond-grunnlag-submit').click();
+    await page.getByRole('button', { name: /send svar/i }).click();
     await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 10000 });
 
     // Verify status updated

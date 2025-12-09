@@ -426,12 +426,12 @@ def test_vederlag_respons_data():
     data = VederlagResponsData(
         krav_fremmet_i_tide=True,
         varsel_start_regning_ok=True,
-        beregnings_resultat=VederlagBeregningResultat.GODKJENT_FULLT,
+        beregnings_resultat=VederlagBeregningResultat.GODKJENT,
         godkjent_belop=50000,
         begrunnelse_beregning="Enig om beløp"
     )
     assert data.krav_fremmet_i_tide is True
-    assert data.beregnings_resultat == VederlagBeregningResultat.GODKJENT_FULLT
+    assert data.beregnings_resultat == VederlagBeregningResultat.GODKJENT
     assert data.godkjent_belop == 50000
 
 
@@ -453,13 +453,13 @@ def test_frist_respons_data():
         noytralt_varsel_ok=True,
         spesifisert_krav_ok=True,
         vilkar_oppfylt=True,
-        beregnings_resultat=FristBeregningResultat.GODKJENT_FULLT,
+        beregnings_resultat=FristBeregningResultat.GODKJENT,
         godkjent_dager=14,
         ny_sluttdato="2025-03-01"
     )
     assert data.spesifisert_krav_ok is True
     assert data.vilkar_oppfylt is True
-    assert data.beregnings_resultat == FristBeregningResultat.GODKJENT_FULLT
+    assert data.beregnings_resultat == FristBeregningResultat.GODKJENT
     assert data.godkjent_dager == 14
 
 
@@ -475,7 +475,7 @@ def test_frist_respons_har_bh_etterlyst_validator():
         spesifisert_krav_ok=True,  # Krav kom i tide
         har_bh_etterlyst=True,     # OK! BH kan ha etterlyst før TE responderte
         vilkar_oppfylt=True,
-        beregnings_resultat=FristBeregningResultat.GODKJENT_FULLT
+        beregnings_resultat=FristBeregningResultat.GODKJENT
     )
     assert data.har_bh_etterlyst is True
     assert data.spesifisert_krav_ok is True
@@ -504,7 +504,7 @@ def test_respons_event_creation():
         refererer_til_event_id="original-vederlag-event-id",
         data=VederlagResponsData(
             krav_fremmet_i_tide=True,
-            beregnings_resultat=VederlagBeregningResultat.GODKJENT_FULLT,
+            beregnings_resultat=VederlagBeregningResultat.GODKJENT,
             godkjent_belop=50000,
             begrunnelse_beregning="OK"
         )

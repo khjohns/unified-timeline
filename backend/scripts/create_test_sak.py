@@ -241,7 +241,7 @@ def create_frist_respons(sak_id: str, now: datetime, frist_event_id: str) -> Res
         spor=SporType.FRIST,
         refererer_til_event_id=frist_event_id,
         data=FristResponsData(
-            beregnings_resultat=FristBeregningResultat.GODKJENT_FULLT,
+            beregnings_resultat=FristBeregningResultat.GODKJENT,
             godkjente_dager=15,
             begrunnelse_beregning="BH godkjenner fristforlengelsen paa 15 dager.",
         ),

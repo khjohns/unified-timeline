@@ -408,7 +408,7 @@ export function RespondFristModal({
         begrunnelse: data.begrunnelse_samlet,
 
         // Automatisk beregnet - prinsipalt
-        resultat: prinsipaltResultat,
+        beregnings_resultat: prinsipaltResultat,
         krevd_dager: effektivKrevdDager,
 
         // Subsidiært standpunkt (nye felt)

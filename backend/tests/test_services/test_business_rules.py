@@ -240,7 +240,7 @@ class TestBusinessRuleValidator:
             aktor_rolle="BH",
             spor=SporType.VEDERLAG,
             data=VederlagResponsData(
-                beregnings_resultat=VederlagBeregningResultat.GODKJENT_FULLT,
+                beregnings_resultat=VederlagBeregningResultat.GODKJENT,
                 begrunnelse="Test",
                 godkjent_belop=100000.0
             )
@@ -294,7 +294,7 @@ class TestBusinessRuleValidator:
             aktor_rolle="BH",
             spor=SporType.VEDERLAG,
             data=VederlagResponsData(
-                beregnings_resultat=VederlagBeregningResultat.GODKJENT_FULLT,
+                beregnings_resultat=VederlagBeregningResultat.GODKJENT,
                 begrunnelse="Approved",
                 godkjent_belop=100000.0
             )
