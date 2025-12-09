@@ -18,6 +18,7 @@ from models.events import (
     VederlagEvent,
     FristEvent,
     ResponsEvent,
+    ForseringVarselEvent,
     SakOpprettetEvent,
     EOUtstedtEvent,
     EventType,
@@ -116,8 +117,12 @@ class TimelineService:
             EventType.FRIST_KRAV_OPPDATERT: self._handle_frist,
             EventType.FRIST_KRAV_TRUKKET: self._handle_frist_trukket,
             EventType.RESPONS_GRUNNLAG: self._handle_respons_grunnlag,
+            EventType.RESPONS_GRUNNLAG_OPPDATERT: self._handle_respons_grunnlag,  # Re-use handler
             EventType.RESPONS_VEDERLAG: self._handle_respons_vederlag,
+            EventType.RESPONS_VEDERLAG_OPPDATERT: self._handle_respons_vederlag,  # Re-use handler
             EventType.RESPONS_FRIST: self._handle_respons_frist,
+            EventType.RESPONS_FRIST_OPPDATERT: self._handle_respons_frist,  # Re-use handler
+            EventType.FORSERING_VARSEL: self._handle_forsering_varsel,
             EventType.EO_UTSTEDT: self._handle_eo_utstedt,
         }
 
@@ -395,6 +400,35 @@ class TimelineService:
         state.frist = frist
         return state
 
+    def _handle_forsering_varsel(self, state: SakState, event: ForseringVarselEvent) -> SakState:
+        """
+        Håndterer FORSERING_VARSEL - TE varsler om forsering (§33.8).
+
+        Når BH avslår fristkrav, kan TE varsle om at de vil iverksette forsering.
+        """
+        frist = state.frist
+
+        # Opprett forsering-tilstand hvis den ikke finnes
+        if frist.forsering is None:
+            from models.sak_state import ForseringTilstand
+            frist.forsering = ForseringTilstand()
+
+        # Oppdater forsering-tilstand
+        frist.forsering.er_varslet = True
+        frist.forsering.dato_varslet = event.data.dato_iverksettelse
+        frist.forsering.estimert_kostnad = event.data.estimert_kostnad
+        frist.forsering.begrunnelse = event.data.begrunnelse
+        frist.forsering.bekreft_30_prosent_regel = event.data.bekreft_30_prosent
+        frist.forsering.er_iverksatt = True
+        frist.forsering.dato_iverksatt = event.data.dato_iverksettelse
+
+        # Metadata
+        frist.siste_event_id = event.event_id
+        frist.siste_oppdatert = event.tidsstempel
+
+        state.frist = frist
+        return state
+
     def _handle_eo_utstedt(self, state: SakState, event: EOUtstedtEvent) -> SakState:
         """Håndterer EO_UTSTEDT - saken lukkes"""
         # Alle aktive spor blir GODKJENT/LAAST
@@ -520,9 +554,11 @@ class TimelineService:
         - event_id
         - tidsstempel
         - type (lesbar tekst)
+        - event_type (maskinlesbar enum-verdi)
         - aktor/rolle
         - spor (hvis relevant)
         - sammendrag (kort beskrivelse)
+        - event_data (full skjemadata, hvis tilgjengelig)
         """
         timeline = []
         for event in sorted(events, key=lambda e: e.tidsstempel, reverse=True):
@@ -530,13 +566,63 @@ class TimelineService:
                 "event_id": event.event_id,
                 "tidsstempel": event.tidsstempel.isoformat(),
                 "type": self._event_type_to_label(event.event_type),
+                "event_type": event.event_type.value,  # Machine-readable type
                 "aktor": event.aktor,
                 "rolle": event.aktor_rolle,
                 "spor": self._get_spor_for_event(event),
                 "sammendrag": self._get_event_summary(event),
+                "event_data": self._serialize_event_data(event),  # Full form data
             }
             timeline.append(entry)
         return timeline
+
+    def _serialize_event_data(self, event: AnyEvent) -> Optional[Dict[str, Any]]:
+        """
+        Serialize event data for frontend consumption.
+
+        Handles different event types and their data structures.
+        Returns None for events without data (e.g., sak_opprettet).
+        """
+        # SakOpprettetEvent - return basic sak info
+        if isinstance(event, SakOpprettetEvent):
+            return {
+                "sakstittel": event.sakstittel,
+                "catenda_topic_id": event.catenda_topic_id,
+            }
+
+        # EOUtstedtEvent - return EO details
+        if isinstance(event, EOUtstedtEvent):
+            return {
+                "eo_nummer": event.eo_nummer,
+                "endelig_vederlag": event.endelig_vederlag,
+                "endelig_frist_dager": event.endelig_frist_dager,
+            }
+
+        # ForseringVarselEvent - return forsering data
+        if isinstance(event, ForseringVarselEvent):
+            if hasattr(event, 'data') and event.data is not None:
+                try:
+                    if hasattr(event.data, 'model_dump'):
+                        return event.data.model_dump(mode='json')
+                    elif hasattr(event.data, 'dict'):
+                        return event.data.dict()
+                except Exception as e:
+                    logger.warning(f"Failed to serialize ForseringVarselEvent data: {e}")
+            return None
+
+        # Events with data attribute (GrunnlagEvent, VederlagEvent, FristEvent, ResponsEvent)
+        if hasattr(event, 'data') and event.data is not None:
+            try:
+                if hasattr(event.data, 'model_dump'):
+                    # Pydantic v2
+                    return event.data.model_dump(mode='json')
+                elif hasattr(event.data, 'dict'):
+                    # Pydantic v1
+                    return event.data.dict()
+            except Exception as e:
+                logger.warning(f"Failed to serialize event data: {e}")
+
+        return None
 
     def _event_type_to_label(self, event_type: EventType) -> str:
         """Konverterer event-type til lesbar label"""
@@ -552,8 +638,12 @@ class TimelineService:
             EventType.FRIST_KRAV_OPPDATERT: "Fristkrav oppdatert",
             EventType.FRIST_KRAV_TRUKKET: "Fristkrav trukket",
             EventType.RESPONS_GRUNNLAG: "BH svarte på grunnlag",
+            EventType.RESPONS_GRUNNLAG_OPPDATERT: "BH oppdaterte svar på grunnlag",
             EventType.RESPONS_VEDERLAG: "BH svarte på vederlag",
+            EventType.RESPONS_VEDERLAG_OPPDATERT: "BH oppdaterte svar på vederlag",
             EventType.RESPONS_FRIST: "BH svarte på frist",
+            EventType.RESPONS_FRIST_OPPDATERT: "BH oppdaterte svar på frist",
+            EventType.FORSERING_VARSEL: "Varsel om forsering (§33.8)",
             EventType.EO_UTSTEDT: "Endringsordre utstedt",
         }
         return labels.get(event_type, str(event_type))
@@ -566,6 +656,8 @@ class TimelineService:
             return "vederlag"
         elif isinstance(event, FristEvent):
             return "frist"
+        elif isinstance(event, ForseringVarselEvent):
+            return "frist"  # Forsering hører til frist-sporet
         elif isinstance(event, ResponsEvent):
             return event.spor.value
         return None
@@ -579,6 +671,8 @@ class TimelineService:
             return f"Krav: {belop:,.0f} NOK"
         elif isinstance(event, FristEvent):
             return f"Krav: {event.data.antall_dager} {event.data.frist_type}"
+        elif isinstance(event, ForseringVarselEvent):
+            return f"Forsering: {event.data.estimert_kostnad:,.0f} NOK"
         elif isinstance(event, ResponsEvent):
             return f"{event.data.resultat.value}"
         elif isinstance(event, SakOpprettetEvent):
