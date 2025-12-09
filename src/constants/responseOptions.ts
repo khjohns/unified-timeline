@@ -99,6 +99,10 @@ export const BH_FRISTSVAR_OPTIONS: DropdownOption[] = [
     value: "avslatt_ingen_hindring",
     label: "Avslått - Ingen fremdriftshindring (TE hadde slakk)"
   },
+  {
+    value: "avvist_preklusjon",
+    label: "Avvist - Varslet for sent (§33.4/§33.6 preklusjon)"
+  },
 ];
 
 // ========== HELPER FUNCTIONS ==========
@@ -185,5 +189,6 @@ export const BH_FRISTSVAR_DESCRIPTIONS: Record<string, string> = {
   godkjent_fullt: "Enighet om antall dager (prinsipalt eller subsidiært). Dagen innvilges hvis grunnlag også godkjennes.",
   delvis_godkjent: "BH mener forsinkelsen er kortere enn TE krever; uenighet om hvor mye fremdriften hindres.",
   avventer_spesifikasjon: "Brukes ved nøytrale varsler, eller når fremdriftsplan/dokumentasjon mangler for å vurdere konsekvensen.",
-  avslatt_ingen_hindring: "BH erkjenner grunnlaget, men mener det ikke medførte forsinkelse (f.eks. TE hadde slakk). Dette er et avslag på utregningen av tid, ikke ansvaret."
+  avslatt_ingen_hindring: "BH erkjenner grunnlaget, men mener det ikke medførte forsinkelse (f.eks. TE hadde slakk). Dette er et avslag på utregningen av tid, ikke ansvaret.",
+  avvist_preklusjon: "§33.4/§33.6: Kravet avvises fordi TE ikke varslet 'uten ugrunnet opphold'. Kravet tapes helt eller reduseres til det BH måtte forstå."
 };
