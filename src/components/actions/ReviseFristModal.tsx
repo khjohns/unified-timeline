@@ -53,10 +53,10 @@ interface ReviseFristModalProps {
 }
 
 const RESULTAT_LABELS: Record<FristBeregningResultat, string> = {
-  godkjent_fullt: 'Godkjent fullt',
+  godkjent: 'Godkjent',
   delvis_godkjent: 'Delvis godkjent',
-  avventer_spesifikasjon: 'Avventer spesifikasjon',
-  avslatt_ingen_hindring: 'Avslått',
+  avslatt: 'Avslått',
+  avventer: 'Avventer dokumentasjon',
 };
 
 export function ReviseFristModal({
@@ -67,7 +67,7 @@ export function ReviseFristModal({
   lastResponseEvent,
   fristTilstand,
 }: ReviseFristModalProps) {
-  const erAvslag = lastResponseEvent?.resultat === 'avslatt_ingen_hindring' ||
+  const erAvslag = lastResponseEvent?.resultat === 'avslatt' ||
     lastResponseEvent?.resultat === 'delvis_godkjent';
 
   const avslatteDager = useMemo(() => {

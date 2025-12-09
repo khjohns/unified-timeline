@@ -132,8 +132,8 @@ export function useActionPermissions(
       isTE &&
       state.frist.bh_resultat != null &&
       (
-        // Direct frist rejection
-        ['avslatt_ingen_hindring', 'avvist_preklusjon', 'delvis_godkjent'].includes(state.frist.bh_resultat) ||
+        // Direct frist rejection (avslatt or delvis_godkjent)
+        ['avslatt', 'delvis_godkjent'].includes(state.frist.bh_resultat) ||
         // Grunnlag rejection (implies frist rejection)
         (state.grunnlag.bh_resultat != null &&
           ['avvist_uenig', 'avvist_for_sent'].includes(state.grunnlag.bh_resultat))

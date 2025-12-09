@@ -45,64 +45,52 @@ export const BH_GRUNNLAGSVAR_OPTIONS: DropdownOption[] = [
 ];
 
 // ========== VEDERLAG RESPONSE OPTIONS ==========
-// PURE calculation/computation responses - NO "avslatt_uenig_grunnlag"
+// Forenklet til tre hovedkategorier - årsak til avslag fanges av subsidiaer_triggers
 
 export const BH_VEDERLAGSSVAR_OPTIONS: DropdownOption[] = [
   { value: "", label: "— Velg —" },
   {
-    value: "godkjent_fullt",
-    label: "Godkjent fullt ut - Enighet om sum og metode"
+    value: "godkjent",
+    label: "Godkjent - Enighet om sum og metode"
   },
   {
     value: "delvis_godkjent",
-    label: "Delvis godkjent - Uenighet om beløpet"
+    label: "Delvis godkjent - Uenighet om beløp eller metode"
   },
   {
-    value: "godkjent_annen_metode",
-    label: "Godkjent med annen metode - BH endrer beregningsmetode"
+    value: "avslatt",
+    label: "Avslått - BH avviser kravet"
+  },
+  {
+    value: "avventer",
+    label: "Avventer dokumentasjon - BH trenger mer informasjon"
   },
   {
     value: "hold_tilbake",
     label: "Hold tilbake betaling (§30.2) - Krev overslag for regningsarbeid"
   },
-  {
-    value: "avventer_spesifikasjon",
-    label: "Avventer spesifikasjon - Mangler dokumentasjon"
-  },
-  {
-    value: "avvist_preklusjon_rigg",
-    label: "Avvist - Rigg/drift varslet for sent (§34.1.3 preklusjon)"
-  },
-  {
-    value: "avslatt_totalt",
-    label: "Avslått totalt - Kun ved dobbeltfakturering e.l. (IKKE grunnlag)"
-  },
 ];
 
 // ========== FRIST RESPONSE OPTIONS ==========
-// PURE time calculation responses - NO "avslatt_uenig_grunnlag"
+// Forenklet til tre hovedkategorier - årsak til avslag fanges av subsidiaer_triggers
 
 export const BH_FRISTSVAR_OPTIONS: DropdownOption[] = [
   { value: "", label: "— Velg —" },
   {
-    value: "godkjent_fullt",
-    label: "Godkjent fullt ut - Enighet om antall dager"
+    value: "godkjent",
+    label: "Godkjent - Enighet om antall dager"
   },
   {
     value: "delvis_godkjent",
     label: "Delvis godkjent - Uenighet om antall dager"
   },
   {
-    value: "avventer_spesifikasjon",
-    label: "Avventer spesifikasjon - Mangler fremdriftsplan/dokumentasjon"
+    value: "avslatt",
+    label: "Avslått - BH avviser kravet"
   },
   {
-    value: "avslatt_ingen_hindring",
-    label: "Avslått - Ingen fremdriftshindring (TE hadde slakk)"
-  },
-  {
-    value: "avvist_preklusjon",
-    label: "Avvist - Varslet for sent (§33.4/§33.6 preklusjon)"
+    value: "avventer",
+    label: "Avventer dokumentasjon - Mangler fremdriftsplan/dokumentasjon"
   },
 ];
 
@@ -177,21 +165,18 @@ export const BH_GRUNNLAGSVAR_DESCRIPTIONS: Record<string, string> = {
 };
 
 export const BH_VEDERLAGSSVAR_DESCRIPTIONS: Record<string, string> = {
-  godkjent_fullt: "Enighet om sum og metode. Beløpet utbetales hvis grunnlag også godkjennes (prinsipalt) eller som subsidiær enighet.",
+  godkjent: "Enighet om sum og metode. Beløpet utbetales hvis grunnlag også godkjennes (prinsipalt) eller som subsidiær enighet.",
   delvis_godkjent: "Enighet om at det skal betales (prinsipalt eller subsidiært), men uenighet om beløpet (f.eks. antall timer eller påslag).",
-  godkjent_annen_metode: "BH aksepterer beløpet, men endrer forutsetningen (f.eks. fra 'Regningsarbeid' til 'Fastpris'). Krever ofte aksept fra TE.",
+  avslatt: "BH avviser kravet. Årsaken (preklusjon, metode, etc.) spesifiseres via subsidiaer_triggers.",
+  avventer: "BH kan ikke ta stilling til kravet fordi dokumentasjon mangler. Stopper saksbehandlingstiden ('ballen er hos TE').",
   hold_tilbake: "§30.2: BH holder tilbake betaling inntil kostnadsoverslag for regningsarbeid mottas. Kun for regningsarbeid uten overslag.",
-  avventer_spesifikasjon: "BH kan ikke ta stilling til kravet fordi dokumentasjon mangler. Stopper saksbehandlingstiden ('ballen er hos TE').",
-  avvist_preklusjon_rigg: "§34.1.3: Krav om rigg/drift ble ikke varslet 'uten ugrunnet opphold'. Kravet kan avvises pga preklusjon.",
-  avslatt_totalt: "Kun ved f.eks. dobbeltfakturering. IKKE ved uenighet om grunnlag (det håndteres i Grunnlag-sporet)."
 };
 
 export const BH_FRISTSVAR_DESCRIPTIONS: Record<string, string> = {
-  godkjent_fullt: "Enighet om antall dager (prinsipalt eller subsidiært). Dagen innvilges hvis grunnlag også godkjennes.",
+  godkjent: "Enighet om antall dager (prinsipalt eller subsidiært). Dagene innvilges hvis grunnlag også godkjennes.",
   delvis_godkjent: "BH mener forsinkelsen er kortere enn TE krever; uenighet om hvor mye fremdriften hindres.",
-  avventer_spesifikasjon: "Brukes ved nøytrale varsler, eller når fremdriftsplan/dokumentasjon mangler for å vurdere konsekvensen.",
-  avslatt_ingen_hindring: "BH erkjenner grunnlaget, men mener det ikke medførte forsinkelse (f.eks. TE hadde slakk). Dette er et avslag på utregningen av tid, ikke ansvaret.",
-  avvist_preklusjon: "§33.4/§33.6: Kravet avvises fordi TE ikke varslet 'uten ugrunnet opphold'. Kravet tapes helt eller reduseres til det BH måtte forstå."
+  avslatt: "BH avviser kravet. Årsaken (preklusjon, ingen hindring, etc.) spesifiseres via subsidiaer_triggers.",
+  avventer: "Brukes ved nøytrale varsler, eller når fremdriftsplan/dokumentasjon mangler for å vurdere konsekvensen.",
 };
 
 // ========== SUBSIDIÆR TRIGGER LABELS ==========

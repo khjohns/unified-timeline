@@ -63,21 +63,19 @@ const GRUNNLAG_RESULTAT_LABELS: Record<string, string> = {
 
 // Labels for vederlag resultat
 const VEDERLAG_RESULTAT_LABELS: Record<string, string> = {
-  godkjent_fullt: 'Godkjent fullt',
+  godkjent: 'Godkjent',
   delvis_godkjent: 'Delvis godkjent',
-  godkjent_annen_metode: 'Godkjent (annen metode)',
-  avventer_spesifikasjon: 'Avventer spesifikasjon',
-  avslatt_totalt: 'Avslått',
+  avslatt: 'Avslått',
+  avventer: 'Avventer dokumentasjon',
   hold_tilbake: 'Holder tilbake (§30.2)',
-  avvist_preklusjon_rigg: 'Avvist - preklusjon rigg/drift',
 };
 
 // Labels for frist resultat
 const FRIST_RESULTAT_LABELS: Record<string, string> = {
-  godkjent_fullt: 'Godkjent fullt',
+  godkjent: 'Godkjent',
   delvis_godkjent: 'Delvis godkjent',
-  avventer_spesifikasjon: 'Avventer spesifikasjon',
-  avslatt_ingen_hindring: 'Avslått (ingen hindring)',
+  avslatt: 'Avslått',
+  avventer: 'Avventer dokumentasjon',
 };
 
 // Labels for varsel type
@@ -288,11 +286,11 @@ function ResponsVederlagView({ data }: { data: any }) {
         value={
           <Badge
             variant={
-              data.beregnings_resultat === 'godkjent_fullt'
+              data.beregnings_resultat === 'godkjent'
                 ? 'success'
-                : data.beregnings_resultat === 'hold_tilbake'
+                : data.beregnings_resultat === 'hold_tilbake' || data.beregnings_resultat === 'avventer'
                   ? 'warning'
-                  : data.beregnings_resultat?.startsWith('avs')
+                  : data.beregnings_resultat === 'avslatt'
                     ? 'danger'
                     : 'neutral'
             }
@@ -349,9 +347,9 @@ function ResponsFristView({ data }: { data: any }) {
         value={
           <Badge
             variant={
-              data.beregnings_resultat === 'godkjent_fullt'
+              data.beregnings_resultat === 'godkjent'
                 ? 'success'
-                : data.beregnings_resultat === 'delvis_godkjent'
+                : data.beregnings_resultat === 'delvis_godkjent' || data.beregnings_resultat === 'avventer'
                   ? 'warning'
                   : 'danger'
             }

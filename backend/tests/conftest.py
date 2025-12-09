@@ -217,7 +217,7 @@ def test_svar_data():
         'vederlag': {
             'varsel_for_sent': False,
             'varsel_for_sent_begrunnelse': '',
-            'bh_svar_vederlag': 'godkjent_fullt',
+            'bh_svar_vederlag': 'godkjent',
             'bh_vederlag_metode': 'regning',
             'bh_godkjent_vederlag_belop': '50000',
             'bh_begrunnelse_vederlag': 'Kravet er rimelig'
@@ -225,7 +225,7 @@ def test_svar_data():
         'frist': {
             'varsel_for_sent': False,
             'varsel_for_sent_begrunnelse': '',
-            'bh_svar_frist': 'godkjent_fullt',
+            'bh_svar_frist': 'godkjent',
             'bh_godkjent_frist_dager': '14',
             'bh_frist_for_spesifisering': '',
             'bh_begrunnelse_frist': 'Rimelig forlengelse'

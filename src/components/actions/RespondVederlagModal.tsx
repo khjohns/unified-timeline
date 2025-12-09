@@ -165,20 +165,15 @@ function beregnPrinsipaltResultat(
 
   // 3. Total rejection (only for calculation errors, not grunnlag disputes)
   if (godkjentProsent === 0 && data.hovedkrav_vurdering === 'avvist') {
-    return 'avslatt_totalt';
+    return 'avslatt';
   }
 
-  // 4. Full approval with same method
+  // 4. Full approval
   if (godkjentProsent >= 0.99 && !computed.harMetodeendring) {
-    return 'godkjent_fullt';
+    return 'godkjent';
   }
 
-  // 5. Method change (regardless of amount)
-  if (computed.harMetodeendring) {
-    return 'godkjent_annen_metode';
-  }
-
-  // 6. Partial approval
+  // 5. Method change or partial approval
   return 'delvis_godkjent';
 }
 
@@ -201,19 +196,15 @@ function beregnSubsidiaertResultat(
 
   // Total rejection
   if (godkjentProsent === 0 && data.hovedkrav_vurdering === 'avvist') {
-    return 'avslatt_totalt';
+    return 'avslatt';
   }
 
-  // Full approval with same method
+  // Full approval
   if (godkjentProsent >= 0.99 && !computed.harMetodeendring) {
-    return 'godkjent_fullt';
+    return 'godkjent';
   }
 
-  // Method change
-  if (computed.harMetodeendring) {
-    return 'godkjent_annen_metode';
-  }
-
+  // Method change or partial approval
   return 'delvis_godkjent';
 }
 
@@ -222,11 +213,11 @@ function beregnSubsidiaertResultat(
  */
 function getResultatLabel(resultat: string): string {
   const labels: Record<string, string> = {
-    godkjent_fullt: 'Godkjent fullt ut',
+    godkjent: 'Godkjent',
     delvis_godkjent: 'Delvis godkjent',
-    godkjent_annen_metode: 'Godkjent med annen metode',
+    avslatt: 'Avslått',
+    avventer: 'Avventer dokumentasjon',
     hold_tilbake: 'Hold tilbake betaling (§30.2)',
-    avslatt_totalt: 'Avslått totalt',
   };
   return labels[resultat] || resultat;
 }

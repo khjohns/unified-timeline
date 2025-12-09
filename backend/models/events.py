@@ -81,14 +81,21 @@ class VederlagsMetode(str, Enum):
     FASTPRIS_TILBUD = "FASTPRIS_TILBUD"  # Fastpris / Tilbud (§34.2.1)
     
 class VederlagBeregningResultat(str, Enum):
-    """Resultat av beregningsvurdering (Port 2 - ren utmåling)"""
-    GODKJENT_FULLT = "godkjent_fullt" # Enighet om sum og metode. Brukes også ved subsidiær godkjenning (hvis grunnlag er avvist).
-    DELVIS_GODKJENT = "delvis_godkjent" # Enighet om at det skal betales (prinsipalt eller subsidiært), men uenighet om beløpet (f.eks. antall timer eller påslag).
-    GODKJENT_ANNEN_METODE = "godkjent_annen_metode" # BH aksepterer beløpet, men endrer forutsetningen (f.eks. fra "Regningsarbeid" til "Fastpris"). Krever ofte aksept fra TE.
-    AVVENTER_SPESIFIKASJON = "avventer_spesifikasjon" # BH kan ikke ta stilling til kravet fordi dokumentasjon mangler. Stopper saksbehandlingstiden ("ballen er hos TE").
-    AVSLATT_TOTALT = "avslatt_totalt"  # Kun ved f.eks. dobbeltfakturering, ikke grunnlag
-    HOLD_TILBAKE = "hold_tilbake"  # §30.2 - BH holder tilbake betaling inntil kostnadsoverslag mottatt
-    AVVIST_PREKLUSJON_RIGG = "avvist_preklusjon_rigg"  # §34.1.3 - Rigg/drift varslet for sent, kravet prekludert
+    """
+    Resultat av vederlagsvurdering - forenklet til tre hovedkategorier.
+
+    Årsaken til avslag fanges av `subsidiaer_triggers` i stedet for
+    granulære statuskoder. Badge/markering for subsidiær vurdering
+    vises i UI når grunnlag er helt eller delvis avslått.
+    """
+    # Hovedkategorier
+    GODKJENT = "godkjent"              # BH aksepterer kravet (sum og metode)
+    DELVIS_GODKJENT = "delvis_godkjent"  # BH aksepterer deler (uenighet om beløp/metode)
+    AVSLATT = "avslatt"                # BH avviser kravet
+
+    # Spesialstatuser (midlertidige)
+    AVVENTER = "avventer"              # BH trenger mer dokumentasjon
+    HOLD_TILBAKE = "hold_tilbake"      # §30.2 tilbakeholdelse
 
 
 # ============ FRIST ENUMS ============
@@ -102,11 +109,20 @@ class FristVarselType(str, Enum):
 
 
 class FristBeregningResultat(str, Enum):
-    """Resultat av fristberegning (Port 3 - ren utmåling)"""
-    GODKJENT_FULLT = "godkjent_fullt"  # Enighet om antall dager. (Prinsipalt eller subsidiært).
-    DELVIS_GODKJENT = "delvis_godkjent"  # BH mener forsinkelsen er kortere enn TE krever; uenighet om hvor mye fremdriften hindres
-    AVVENTER_SPESIFIKASJON = "avventer_spesifikasjon"  # Brukes ved nøytrale varsler, eller når fremdriftsplan/dokumentasjon mangler for å vurdere konsekvensen.
-    AVSLATT_INGEN_HINDRING = "avslatt_ingen_hindring"  # BH erkjenner grunnlaget, men mener det ikke medførte forsinkelse (f.eks. TE hadde slakk). Dette er et avslag på utregningen av tid, ikke ansvaret
+    """
+    Resultat av fristberegning - forenklet til tre hovedkategorier.
+
+    Årsaken til avslag fanges av `subsidiaer_triggers` i stedet for
+    granulære statuskoder. Badge/markering for subsidiær vurdering
+    vises i UI når grunnlag er helt eller delvis avslått.
+    """
+    # Hovedkategorier
+    GODKJENT = "godkjent"              # BH aksepterer kravet (enighet om antall dager)
+    DELVIS_GODKJENT = "delvis_godkjent"  # BH aksepterer deler (uenighet om antall dager)
+    AVSLATT = "avslatt"                # BH avviser kravet
+
+    # Spesialstatus (midlertidig)
+    AVVENTER = "avventer"              # BH trenger mer dokumentasjon
 
 
 class SubsidiaerTrigger(str, Enum):

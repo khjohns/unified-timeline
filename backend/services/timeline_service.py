@@ -495,15 +495,14 @@ class TimelineService:
         else:
             resultat_value = str(resultat)
 
-        # Map til status
-        if resultat_value in ['godkjent_fullt', 'godkjent_annen_metode']:
+        # Map til status (forenklede statuskoder)
+        if resultat_value == 'godkjent':
             return SporStatus.GODKJENT
         elif resultat_value == 'delvis_godkjent':
             return SporStatus.DELVIS_GODKJENT
-        elif resultat_value == 'avventer_spesifikasjon':
+        elif resultat_value == 'avventer':
             return SporStatus.UNDER_FORHANDLING
-        elif resultat_value == 'avslatt_totalt':
-            # Kun ved f.eks. dobbeltfakturering, IKKE ansvar
+        elif resultat_value == 'avslatt':
             return SporStatus.AVVIST
         else:
             return SporStatus.UNDER_BEHANDLING

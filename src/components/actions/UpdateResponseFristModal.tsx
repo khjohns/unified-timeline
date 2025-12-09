@@ -43,10 +43,10 @@ interface UpdateResponseFristModalProps {
 }
 
 const RESULTAT_LABELS: Record<FristBeregningResultat, string> = {
-  godkjent_fullt: 'Godkjent fullt',
+  godkjent: 'Godkjent',
   delvis_godkjent: 'Delvis godkjent',
-  avventer_spesifikasjon: 'Avventer spesifikasjon',
-  avslatt_ingen_hindring: 'Avslått',
+  avslatt: 'Avslått',
+  avventer: 'Avventer dokumentasjon',
 };
 
 export function UpdateResponseFristModal({
@@ -88,7 +88,7 @@ export function UpdateResponseFristModal({
   // Check if this will stop forsering
   const stopperForsering = useMemo(() => {
     return erForseringVarslet &&
-      (nyttResultat === 'godkjent_fullt' || nyttResultat === 'delvis_godkjent');
+      (nyttResultat === 'godkjent' || nyttResultat === 'delvis_godkjent');
   }, [erForseringVarslet, nyttResultat]);
 
   // Get available options based on forsering status
@@ -96,7 +96,7 @@ export function UpdateResponseFristModal({
     const options: { value: FristBeregningResultat; label: string; description?: string }[] = [];
 
     options.push({
-      value: 'godkjent_fullt',
+      value: 'godkjent',
       label: erForseringVarslet
         ? 'Snu i saken: Godkjenn fristforlengelsen'
         : `Godkjenn ${krevdDager} dager`,
@@ -115,13 +115,13 @@ export function UpdateResponseFristModal({
 
     if (erForseringVarslet) {
       options.push({
-        value: 'avslatt_ingen_hindring',
+        value: 'avslatt',
         label: 'Oppretthold avslag (Bestrid forsering)',
         description: 'Du mener fortsatt TE ikke har krav på frist. Du tar risikoen for forseringskostnaden.',
       });
     } else {
       options.push({
-        value: 'avslatt_ingen_hindring',
+        value: 'avslatt',
         label: 'Oppretthold avslag',
         description: 'Det er ikke grunnlag for fristforlengelse.',
       });
@@ -144,7 +144,7 @@ export function UpdateResponseFristModal({
         original_respons_id: lastResponseEvent.event_id,
         nytt_resultat: data.nytt_resultat,
         ny_godkjent_dager:
-          data.nytt_resultat === 'godkjent_fullt'
+          data.nytt_resultat === 'godkjent'
             ? krevdDager
             : data.ny_godkjent_dager,
         kommentar: data.kommentar,
@@ -187,7 +187,7 @@ export function UpdateResponseFristModal({
           <div className="bg-gray-50 p-4 rounded border border-gray-200">
             <div className="flex items-center gap-3">
               <span className="text-sm text-gray-600">Nåværende svar:</span>
-              <Badge variant={lastResponseEvent.resultat === 'avslatt_ingen_hindring' ? 'danger' : 'success'}>
+              <Badge variant={lastResponseEvent.resultat === 'avslatt' ? 'danger' : 'success'}>
                 {RESULTAT_LABELS[lastResponseEvent.resultat]}
               </Badge>
             </div>
@@ -276,7 +276,7 @@ export function UpdateResponseFristModal({
                 fullWidth
                 error={!!errors.kommentar}
                 placeholder={
-                  erForseringVarslet && nyttResultat === 'godkjent_fullt'
+                  erForseringVarslet && nyttResultat === 'godkjent'
                     ? 'Vi aksepterer fristkravet for å begrense kostnadene...'
                     : 'Begrunnelse...'
                 }
@@ -305,7 +305,7 @@ export function UpdateResponseFristModal({
           </Button>
           <Button
             type="submit"
-            variant={stopperForsering ? 'primary' : nyttResultat === 'avslatt_ingen_hindring' && erForseringVarslet ? 'danger' : 'primary'}
+            variant={stopperForsering ? 'primary' : nyttResultat === 'avslatt' && erForseringVarslet ? 'danger' : 'primary'}
             disabled={
               isSubmitting ||
               !nyttResultat ||

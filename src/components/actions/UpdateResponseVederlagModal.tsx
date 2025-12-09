@@ -50,13 +50,11 @@ interface UpdateResponseVederlagModalProps {
 }
 
 const RESULTAT_LABELS: Record<VederlagBeregningResultat, string> = {
-  godkjent_fullt: 'Godkjent fullt',
+  godkjent: 'Godkjent',
   delvis_godkjent: 'Delvis godkjent',
-  godkjent_annen_metode: 'Godkjent (annen metode)',
-  avventer_spesifikasjon: 'Avventer spesifikasjon',
-  avslatt_totalt: 'Avslått',
+  avslatt: 'Avslått',
+  avventer: 'Avventer dokumentasjon',
   hold_tilbake: 'Holder tilbake (§30.2)',
-  avvist_preklusjon_rigg: 'Avvist pga preklusjon rigg/drift',
 };
 
 export function UpdateResponseVederlagModal({
@@ -124,7 +122,7 @@ export function UpdateResponseVederlagModal({
 
     if (erTilbakehold) {
       options.push({
-        value: 'godkjent_fullt',
+        value: 'godkjent',
         label: 'Opphev tilbakeholdelse: Godkjenn fullt',
         description: 'Overslag mottatt og akseptert. Betaling frigis.',
       });
@@ -134,13 +132,13 @@ export function UpdateResponseVederlagModal({
         description: 'Overslag mottatt, men kun deler av beløpet aksepteres.',
       });
       options.push({
-        value: 'avslatt_totalt',
+        value: 'avslatt',
         label: 'Avslå kravet',
         description: 'Selv med overslag godtas ikke kravet.',
       });
     } else {
       options.push({
-        value: 'godkjent_fullt',
+        value: 'godkjent',
         label: `Endre til: Godkjent fullt (${krevdBelop.toLocaleString('nb-NO')} kr)`,
       });
       options.push({
@@ -153,7 +151,7 @@ export function UpdateResponseVederlagModal({
         description: 'Krever overslag før betaling.',
       });
       options.push({
-        value: 'avslatt_totalt',
+        value: 'avslatt',
         label: 'Endre til: Avslå kravet',
       });
     }
@@ -175,7 +173,7 @@ export function UpdateResponseVederlagModal({
         original_respons_id: lastResponseEvent.event_id,
         nytt_resultat: data.nytt_resultat,
         godkjent_belop:
-          data.nytt_resultat === 'godkjent_fullt'
+          data.nytt_resultat === 'godkjent'
             ? krevdBelop
             : data.godkjent_belop,
         kommentar: data.kommentar,
@@ -213,7 +211,7 @@ export function UpdateResponseVederlagModal({
               <Badge
                 variant={
                   forrigeResultat === 'hold_tilbake' ? 'warning' :
-                  forrigeResultat === 'avslatt_totalt' ? 'danger' : 'success'
+                  forrigeResultat === 'avslatt' ? 'danger' : 'success'
                 }
               >
                 {RESULTAT_LABELS[forrigeResultat]}
