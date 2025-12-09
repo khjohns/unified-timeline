@@ -1,0 +1,783 @@
+/**
+ * EventDetailModal Component
+ *
+ * Modal for viewing detailed event data from the timeline.
+ * Supports all event types with type-specific rendering.
+ * Uses accordion (Collapsible) for long text fields.
+ */
+
+import React from 'react';
+import { Modal } from '../primitives/Modal';
+import { Badge, BadgeVariant } from '../primitives/Badge';
+import { Collapsible } from '../primitives/Collapsible';
+import {
+  TimelineEntry,
+  EventType,
+  GrunnlagEventData,
+  VederlagEventData,
+  FristEventData,
+  ResponsGrunnlagEventData,
+  ResponsVederlagEventData,
+  ResponsFristEventData,
+  GrunnlagOppdatertEventData,
+  VederlagOppdatertEventData,
+  FristOppdatertEventData,
+  ResponsGrunnlagOppdatertEventData,
+  ResponsVederlagOppdatertEventData,
+  ResponsFristOppdatertEventData,
+  ForseringVarselEventData,
+  VarselInfo,
+  GrunnlagResponsResultat,
+  VederlagBeregningResultat,
+  FristBeregningResultat,
+} from '../../types/timeline';
+import {
+  getHovedkategoriLabel,
+  getUnderkategoriLabel,
+} from '../../constants/categories';
+import { getVederlagsmetodeLabel } from '../../constants/paymentMethods';
+import { getFristVarseltypeLabel } from '../../constants/fristVarselTypes';
+import {
+  getBhGrunnlagssvarLabel,
+  getBhVederlagssvarLabel,
+  getBhFristsvarLabel,
+} from '../../constants/responseOptions';
+import { format } from 'date-fns';
+import { nb } from 'date-fns/locale';
+import {
+  FileTextIcon,
+  CalendarIcon,
+  PersonIcon,
+  TargetIcon,
+} from '@radix-ui/react-icons';
+
+// ========== TYPES ==========
+
+interface EventDetailModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  event: TimelineEntry;
+}
+
+// ========== LABELS ==========
+
+const EVENT_TYPE_LABELS: Record<EventType, string> = {
+  sak_opprettet: 'Sak opprettet',
+  grunnlag_opprettet: 'Grunnlag sendt',
+  grunnlag_oppdatert: 'Grunnlag oppdatert',
+  grunnlag_trukket: 'Grunnlag trukket',
+  vederlag_krav_sendt: 'Vederlagskrav sendt',
+  vederlag_krav_oppdatert: 'Vederlagskrav oppdatert',
+  vederlag_krav_trukket: 'Vederlagskrav trukket',
+  frist_krav_sendt: 'Fristkrav sendt',
+  frist_krav_oppdatert: 'Fristkrav oppdatert',
+  frist_krav_trukket: 'Fristkrav trukket',
+  respons_grunnlag: 'Svar på grunnlag',
+  respons_grunnlag_oppdatert: 'Svar på grunnlag oppdatert',
+  respons_vederlag: 'Svar på vederlagskrav',
+  respons_vederlag_oppdatert: 'Svar på vederlagskrav oppdatert',
+  respons_frist: 'Svar på fristkrav',
+  respons_frist_oppdatert: 'Svar på fristkrav oppdatert',
+  forsering_varsel: 'Varsel om forsering',
+  eo_utstedt: 'Endringsordre utstedt',
+};
+
+const SPOR_LABELS: Record<string, string> = {
+  grunnlag: 'Grunnlag',
+  vederlag: 'Vederlag',
+  frist: 'Frist',
+};
+
+// ========== HELPER FUNCTIONS ==========
+
+function formatCurrency(amount: number | undefined): string {
+  if (amount === undefined || amount === null) return '—';
+  return `${amount.toLocaleString('nb-NO')} kr`;
+}
+
+function formatDate(dateStr: string | undefined): string {
+  if (!dateStr) return '—';
+  try {
+    return format(new Date(dateStr), 'PPP', { locale: nb });
+  } catch {
+    return dateStr;
+  }
+}
+
+function formatDateTime(dateStr: string): string {
+  try {
+    return format(new Date(dateStr), 'PPPp', { locale: nb });
+  } catch {
+    return dateStr;
+  }
+}
+
+function getGrunnlagResultatBadge(resultat: GrunnlagResponsResultat | string): { variant: BadgeVariant; label: string } {
+  const label = getBhGrunnlagssvarLabel(resultat);
+  let variant: BadgeVariant = 'neutral';
+
+  switch (resultat) {
+    case 'godkjent':
+      variant = 'success';
+      break;
+    case 'delvis_godkjent':
+    case 'erkjenn_fm':
+    case 'krever_avklaring':
+      variant = 'warning';
+      break;
+    case 'avvist_uenig':
+    case 'avvist_for_sent':
+    case 'frafalt':
+      variant = 'danger';
+      break;
+  }
+
+  return { variant, label };
+}
+
+function getVederlagResultatBadge(resultat: VederlagBeregningResultat | string): { variant: BadgeVariant; label: string } {
+  const label = getBhVederlagssvarLabel(resultat);
+  let variant: BadgeVariant = 'neutral';
+
+  switch (resultat) {
+    case 'godkjent_fullt':
+    case 'godkjent_annen_metode':
+      variant = 'success';
+      break;
+    case 'delvis_godkjent':
+    case 'hold_tilbake':
+    case 'avventer_spesifikasjon':
+      variant = 'warning';
+      break;
+    case 'avslatt_totalt':
+    case 'avvist_preklusjon_rigg':
+      variant = 'danger';
+      break;
+  }
+
+  return { variant, label };
+}
+
+function getFristResultatBadge(resultat: FristBeregningResultat | string): { variant: BadgeVariant; label: string } {
+  const label = getBhFristsvarLabel(resultat);
+  let variant: BadgeVariant = 'neutral';
+
+  switch (resultat) {
+    case 'godkjent_fullt':
+      variant = 'success';
+      break;
+    case 'delvis_godkjent':
+    case 'avventer_spesifikasjon':
+      variant = 'warning';
+      break;
+    case 'avslatt_ingen_hindring':
+      variant = 'danger';
+      break;
+  }
+
+  return { variant, label };
+}
+
+// ========== FIELD COMPONENTS ==========
+
+interface FieldProps {
+  label: string;
+  value: React.ReactNode;
+  className?: string;
+}
+
+function Field({ label, value, className = '' }: FieldProps) {
+  if (value === undefined || value === null || value === '' || value === '—') return null;
+  return (
+    <div className={`py-3 border-b border-gray-100 last:border-b-0 ${className}`}>
+      <dt className="text-sm font-medium text-pkt-grays-gray-500">{label}</dt>
+      <dd className="mt-1 text-sm text-pkt-text-body-dark">{value}</dd>
+    </div>
+  );
+}
+
+interface VarselInfoDisplayProps {
+  label: string;
+  varsel: VarselInfo | undefined;
+}
+
+function VarselInfoDisplay({ label, varsel }: VarselInfoDisplayProps) {
+  if (!varsel?.dato_sendt) return null;
+  return (
+    <Field
+      label={label}
+      value={
+        <span>
+          {formatDate(varsel.dato_sendt)}
+          {varsel.metode && varsel.metode.length > 0 && (
+            <span className="ml-2 text-pkt-grays-gray-500">
+              ({varsel.metode.join(', ')})
+            </span>
+          )}
+        </span>
+      }
+    />
+  );
+}
+
+interface LongTextFieldProps {
+  label: string;
+  value: string | undefined;
+  defaultOpen?: boolean;
+}
+
+function LongTextField({ label, value, defaultOpen = false }: LongTextFieldProps) {
+  if (!value) return null;
+
+  // For short texts (less than 150 chars), display inline
+  if (value.length < 150) {
+    return <Field label={label} value={value} />;
+  }
+
+  // For longer texts, use collapsible
+  return (
+    <div className="py-3 border-b border-gray-100 last:border-b-0">
+      <Collapsible title={label} defaultOpen={defaultOpen}>
+        <p className="text-sm text-pkt-text-body-dark whitespace-pre-wrap">
+          {value}
+        </p>
+      </Collapsible>
+    </div>
+  );
+}
+
+// ========== SECTION COMPONENTS ==========
+
+function GrunnlagSection({ data }: { data: GrunnlagEventData }) {
+  const underkategorier = Array.isArray(data.underkategori)
+    ? data.underkategori.map(getUnderkategoriLabel).join(', ')
+    : getUnderkategoriLabel(data.underkategori);
+
+  return (
+    <dl>
+      <Field label="Tittel" value={data.tittel} />
+      <Field label="Hovedkategori" value={getHovedkategoriLabel(data.hovedkategori)} />
+      <Field label="Underkategori" value={underkategorier} />
+      <Field label="Dato oppdaget" value={formatDate(data.dato_oppdaget)} />
+      <VarselInfoDisplay label="Varsel sendt" varsel={data.grunnlag_varsel} />
+      <LongTextField label="Beskrivelse" value={data.beskrivelse} defaultOpen={true} />
+      {data.kontraktsreferanser && data.kontraktsreferanser.length > 0 && (
+        <Field label="Kontraktsreferanser" value={data.kontraktsreferanser.join(', ')} />
+      )}
+    </dl>
+  );
+}
+
+function GrunnlagOppdatertSection({ data }: { data: GrunnlagOppdatertEventData }) {
+  const underkategorier = data.underkategori
+    ? (Array.isArray(data.underkategori)
+      ? data.underkategori.map(getUnderkategoriLabel).join(', ')
+      : getUnderkategoriLabel(data.underkategori))
+    : undefined;
+
+  return (
+    <dl>
+      {data.tittel && <Field label="Ny tittel" value={data.tittel} />}
+      {data.hovedkategori && <Field label="Ny hovedkategori" value={getHovedkategoriLabel(data.hovedkategori)} />}
+      {underkategorier && <Field label="Ny underkategori" value={underkategorier} />}
+      {data.dato_oppdaget && <Field label="Ny dato oppdaget" value={formatDate(data.dato_oppdaget)} />}
+      <LongTextField label="Ny beskrivelse" value={data.beskrivelse} />
+      <LongTextField label="Begrunnelse for endring" value={data.endrings_begrunnelse} defaultOpen={true} />
+    </dl>
+  );
+}
+
+function VederlagSection({ data }: { data: VederlagEventData }) {
+  const harSaerskiltKrav = data.saerskilt_krav?.rigg_drift || data.saerskilt_krav?.produktivitet;
+
+  return (
+    <dl>
+      <Field label="Metode" value={getVederlagsmetodeLabel(data.metode)} />
+      {data.belop_direkte !== undefined && (
+        <Field label="Beløp" value={formatCurrency(data.belop_direkte)} />
+      )}
+      {data.kostnads_overslag !== undefined && (
+        <Field label="Kostnadsoverslag" value={formatCurrency(data.kostnads_overslag)} />
+      )}
+      {data.krever_justert_ep && (
+        <Field label="Krever justerte EP" value={<Badge variant="info">Ja</Badge>} />
+      )}
+      <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
+
+      {/* Særskilte krav */}
+      {harSaerskiltKrav && (
+        <div className="py-3 border-b border-gray-100">
+          <dt className="text-sm font-medium text-pkt-grays-gray-500 mb-2">Særskilte krav (§34.1.3)</dt>
+          <dd className="space-y-2">
+            {data.saerskilt_krav?.rigg_drift && (
+              <div className="pl-3 border-l-2 border-blue-300">
+                <span className="text-sm font-medium">Rigg/drift:</span>
+                <span className="ml-2 text-sm">
+                  {data.saerskilt_krav.rigg_drift.belop !== undefined
+                    ? formatCurrency(data.saerskilt_krav.rigg_drift.belop)
+                    : 'Ja'}
+                </span>
+                {data.saerskilt_krav.rigg_drift.dato_klar_over && (
+                  <span className="ml-2 text-sm text-pkt-grays-gray-500">
+                    (klar over: {formatDate(data.saerskilt_krav.rigg_drift.dato_klar_over)})
+                  </span>
+                )}
+              </div>
+            )}
+            {data.saerskilt_krav?.produktivitet && (
+              <div className="pl-3 border-l-2 border-yellow-300">
+                <span className="text-sm font-medium">Produktivitetstap:</span>
+                <span className="ml-2 text-sm">
+                  {data.saerskilt_krav.produktivitet.belop !== undefined
+                    ? formatCurrency(data.saerskilt_krav.produktivitet.belop)
+                    : 'Ja'}
+                </span>
+                {data.saerskilt_krav.produktivitet.dato_klar_over && (
+                  <span className="ml-2 text-sm text-pkt-grays-gray-500">
+                    (klar over: {formatDate(data.saerskilt_krav.produktivitet.dato_klar_over)})
+                  </span>
+                )}
+              </div>
+            )}
+          </dd>
+        </div>
+      )}
+
+      {/* Varsler */}
+      <VarselInfoDisplay label="Rigg/drift varsel" varsel={data.rigg_drift_varsel} />
+      <VarselInfoDisplay label="Justert EP varsel" varsel={data.justert_ep_varsel} />
+      <VarselInfoDisplay label="Regningsarbeid varsel" varsel={data.regningsarbeid_varsel} />
+      <VarselInfoDisplay label="Produktivitetstap varsel" varsel={data.produktivitetstap_varsel} />
+      {data.krav_fremmet_dato && (
+        <Field label="Krav fremmet dato" value={formatDate(data.krav_fremmet_dato)} />
+      )}
+    </dl>
+  );
+}
+
+function VederlagOppdatertSection({ data }: { data: VederlagOppdatertEventData }) {
+  return (
+    <dl>
+      {data.nytt_belop_direkte !== undefined && (
+        <Field label="Nytt beløp" value={formatCurrency(data.nytt_belop_direkte)} />
+      )}
+      {data.nytt_kostnads_overslag !== undefined && (
+        <Field label="Nytt kostnadsoverslag" value={formatCurrency(data.nytt_kostnads_overslag)} />
+      )}
+      <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
+      <Field label="Revidert dato" value={formatDate(data.dato_revidert)} />
+    </dl>
+  );
+}
+
+function FristSection({ data }: { data: FristEventData }) {
+  return (
+    <dl>
+      <Field label="Varseltype" value={getFristVarseltypeLabel(data.varsel_type)} />
+      <VarselInfoDisplay label="Nøytralt varsel" varsel={data.noytralt_varsel} />
+      <VarselInfoDisplay label="Spesifisert varsel" varsel={data.spesifisert_varsel} />
+      {data.antall_dager !== undefined && (
+        <Field label="Krevde dager" value={`${data.antall_dager} dager`} />
+      )}
+      <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
+      {data.ny_sluttdato && <Field label="Ny sluttdato" value={formatDate(data.ny_sluttdato)} />}
+      <LongTextField label="Fremdriftsdokumentasjon" value={data.fremdriftshindring_dokumentasjon} />
+    </dl>
+  );
+}
+
+function FristOppdatertSection({ data }: { data: FristOppdatertEventData }) {
+  return (
+    <dl>
+      {data.nytt_antall_dager !== undefined && (
+        <Field label="Nytt antall dager" value={`${data.nytt_antall_dager} dager`} />
+      )}
+      <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
+      <Field label="Revidert dato" value={formatDate(data.dato_revidert)} />
+    </dl>
+  );
+}
+
+function ResponsGrunnlagSection({ data }: { data: ResponsGrunnlagEventData }) {
+  const badge = getGrunnlagResultatBadge(data.resultat);
+
+  return (
+    <dl>
+      <Field
+        label="Resultat"
+        value={<Badge variant={badge.variant}>{badge.label}</Badge>}
+      />
+      <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
+      {data.akseptert_kategori && (
+        <Field label="Akseptert kategori" value={data.akseptert_kategori} />
+      )}
+      {data.varsel_for_sent && (
+        <Field label="Varsel for sent" value={<Badge variant="danger">Ja - preklusjonsrisiko</Badge>} />
+      )}
+      <LongTextField label="Varselbegrunnelse" value={data.varsel_begrunnelse} />
+      {data.krever_dokumentasjon && data.krever_dokumentasjon.length > 0 && (
+        <Field label="Krever dokumentasjon" value={data.krever_dokumentasjon.join(', ')} />
+      )}
+    </dl>
+  );
+}
+
+function ResponsGrunnlagOppdatertSection({ data }: { data: ResponsGrunnlagOppdatertEventData }) {
+  const badge = getGrunnlagResultatBadge(data.nytt_resultat);
+
+  return (
+    <dl>
+      <Field
+        label="Nytt resultat"
+        value={<Badge variant={badge.variant}>{badge.label}</Badge>}
+      />
+      <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
+      <Field label="Endret dato" value={formatDate(data.dato_endret)} />
+    </dl>
+  );
+}
+
+function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
+  const badge = getVederlagResultatBadge(data.beregnings_resultat);
+
+  return (
+    <dl>
+      <Field
+        label="Resultat"
+        value={<Badge variant={badge.variant}>{badge.label}</Badge>}
+      />
+      {data.godkjent_belop !== undefined && (
+        <Field label="Godkjent beløp" value={formatCurrency(data.godkjent_belop)} />
+      )}
+      {data.vederlagsmetode && (
+        <Field label="Valgt metode" value={getVederlagsmetodeLabel(data.vederlagsmetode)} />
+      )}
+      <LongTextField label="Begrunnelse (beregning)" value={data.begrunnelse_beregning} defaultOpen={true} />
+      <LongTextField label="Begrunnelse (varsel)" value={data.begrunnelse_varsel} />
+
+      {/* Varsel-vurderinger */}
+      {data.saerskilt_varsel_rigg_drift_ok !== undefined && (
+        <Field
+          label="Rigg/drift varsel OK"
+          value={
+            <Badge variant={data.saerskilt_varsel_rigg_drift_ok ? 'success' : 'danger'}>
+              {data.saerskilt_varsel_rigg_drift_ok ? 'Ja' : 'Nei'}
+            </Badge>
+          }
+        />
+      )}
+      {data.varsel_justert_ep_ok !== undefined && (
+        <Field
+          label="Justert EP varsel OK"
+          value={
+            <Badge variant={data.varsel_justert_ep_ok ? 'success' : 'danger'}>
+              {data.varsel_justert_ep_ok ? 'Ja' : 'Nei'}
+            </Badge>
+          }
+        />
+      )}
+      {data.varsel_start_regning_ok !== undefined && (
+        <Field
+          label="Regningsarbeid varsel OK"
+          value={
+            <Badge variant={data.varsel_start_regning_ok ? 'success' : 'danger'}>
+              {data.varsel_start_regning_ok ? 'Ja' : 'Nei'}
+            </Badge>
+          }
+        />
+      )}
+      {data.krav_fremmet_i_tide !== undefined && (
+        <Field
+          label="Krav fremmet i tide"
+          value={
+            <Badge variant={data.krav_fremmet_i_tide ? 'success' : 'warning'}>
+              {data.krav_fremmet_i_tide ? 'Ja' : 'Nei'}
+            </Badge>
+          }
+        />
+      )}
+      {data.frist_for_spesifikasjon && (
+        <Field label="Frist for spesifikasjon" value={formatDate(data.frist_for_spesifikasjon)} />
+      )}
+    </dl>
+  );
+}
+
+function ResponsVederlagOppdatertSection({ data }: { data: ResponsVederlagOppdatertEventData }) {
+  const badge = getVederlagResultatBadge(data.nytt_resultat);
+
+  return (
+    <dl>
+      <Field
+        label="Nytt resultat"
+        value={<Badge variant={badge.variant}>{badge.label}</Badge>}
+      />
+      <LongTextField label="Kommentar" value={data.kommentar} defaultOpen={true} />
+      <Field label="Endret dato" value={formatDate(data.dato_endret)} />
+    </dl>
+  );
+}
+
+function ResponsFristSection({ data }: { data: ResponsFristEventData }) {
+  const badge = getFristResultatBadge(data.beregnings_resultat);
+
+  return (
+    <dl>
+      <Field
+        label="Resultat"
+        value={<Badge variant={badge.variant}>{badge.label}</Badge>}
+      />
+      {data.godkjent_dager !== undefined && (
+        <Field label="Godkjente dager" value={`${data.godkjent_dager} dager`} />
+      )}
+      {data.ny_sluttdato && <Field label="Ny sluttdato" value={formatDate(data.ny_sluttdato)} />}
+
+      <LongTextField label="Begrunnelse (beregning)" value={data.begrunnelse_beregning} defaultOpen={true} />
+      <LongTextField label="Begrunnelse (vilkår)" value={data.begrunnelse_vilkar} />
+      <LongTextField label="Begrunnelse (varsel)" value={data.begrunnelse_varsel} />
+
+      {/* Varsel-vurderinger */}
+      {data.noytralt_varsel_ok !== undefined && (
+        <Field
+          label="Nøytralt varsel OK"
+          value={
+            <Badge variant={data.noytralt_varsel_ok ? 'success' : 'danger'}>
+              {data.noytralt_varsel_ok ? 'Ja' : 'Nei'}
+            </Badge>
+          }
+        />
+      )}
+      {data.spesifisert_krav_ok !== undefined && (
+        <Field
+          label="Spesifisert krav OK"
+          value={
+            <Badge variant={data.spesifisert_krav_ok ? 'success' : 'danger'}>
+              {data.spesifisert_krav_ok ? 'Ja' : 'Nei'}
+            </Badge>
+          }
+        />
+      )}
+      {data.vilkar_oppfylt !== undefined && (
+        <Field
+          label="Vilkår oppfylt"
+          value={
+            <Badge variant={data.vilkar_oppfylt ? 'success' : 'danger'}>
+              {data.vilkar_oppfylt ? 'Ja' : 'Nei'}
+            </Badge>
+          }
+        />
+      )}
+      {data.har_bh_etterlyst && (
+        <Field label="BH har etterlyst" value={<Badge variant="warning">Ja</Badge>} />
+      )}
+      {data.frist_for_spesifisering && (
+        <Field label="Frist for spesifisering" value={formatDate(data.frist_for_spesifisering)} />
+      )}
+    </dl>
+  );
+}
+
+function ResponsFristOppdatertSection({ data }: { data: ResponsFristOppdatertEventData }) {
+  const badge = getFristResultatBadge(data.nytt_resultat);
+
+  return (
+    <dl>
+      <Field
+        label="Nytt resultat"
+        value={<Badge variant={badge.variant}>{badge.label}</Badge>}
+      />
+      {data.ny_godkjent_dager !== undefined && (
+        <Field label="Nye godkjente dager" value={`${data.ny_godkjent_dager} dager`} />
+      )}
+      {data.stopper_forsering && (
+        <Field label="Stopper forsering" value={<Badge variant="info">Ja - §33.8</Badge>} />
+      )}
+      <LongTextField label="Kommentar" value={data.kommentar} defaultOpen={true} />
+      <Field label="Endret dato" value={formatDate(data.dato_endret)} />
+    </dl>
+  );
+}
+
+function ForseringVarselSection({ data }: { data: ForseringVarselEventData }) {
+  return (
+    <dl>
+      <div className="py-3 bg-red-50 -mx-4 px-4 mb-2 border-b border-red-200">
+        <Badge variant="danger" size="lg">Forsering iverksatt (§33.8)</Badge>
+      </div>
+      <Field label="Estimert kostnad" value={formatCurrency(data.estimert_kostnad)} />
+      <Field label="Dato iverksettelse" value={formatDate(data.dato_iverksettelse)} />
+      <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
+      <Field
+        label="30%-regel bekreftet"
+        value={
+          data.bekreft_30_prosent ? (
+            <Badge variant="success">Ja - innenfor grensen</Badge>
+          ) : (
+            <Badge variant="danger">Nei</Badge>
+          )
+        }
+      />
+      <Field label="Referanse fristkrav" value={data.frist_krav_id} />
+    </dl>
+  );
+}
+
+function GenericSection({ data }: { data: Record<string, unknown> }) {
+  if (!data || typeof data !== 'object') {
+    return <p className="text-pkt-grays-gray-500 italic">Ingen skjemadata tilgjengelig.</p>;
+  }
+
+  return (
+    <dl>
+      {Object.entries(data).map(([key, value]) => {
+        if (typeof value === 'object' && value !== null) {
+          return (
+            <Field
+              key={key}
+              label={key}
+              value={
+                <pre className="text-xs bg-gray-50 p-2 rounded overflow-x-auto">
+                  {JSON.stringify(value, null, 2)}
+                </pre>
+              }
+            />
+          );
+        }
+        return (
+          <Field
+            key={key}
+            label={key}
+            value={String(value)}
+          />
+        );
+      })}
+    </dl>
+  );
+}
+
+// ========== MAIN COMPONENT ==========
+
+export function EventDetailModal({
+  open,
+  onOpenChange,
+  event,
+}: EventDetailModalProps) {
+  const eventTypeLabel = event.event_type
+    ? EVENT_TYPE_LABELS[event.event_type] || event.type
+    : event.type;
+
+  const sporLabel = event.spor ? SPOR_LABELS[event.spor] : 'Generelt';
+
+  // Render event-specific data section
+  const renderEventData = () => {
+    if (!event.event_data) {
+      return (
+        <p className="text-pkt-grays-gray-500 italic py-4">
+          Ingen detaljert skjemadata tilgjengelig for denne hendelsen.
+        </p>
+      );
+    }
+
+    const data = event.event_data;
+    const eventType = event.event_type;
+
+    switch (eventType) {
+      case 'grunnlag_opprettet':
+        return <GrunnlagSection data={data as GrunnlagEventData} />;
+
+      case 'grunnlag_oppdatert':
+        return <GrunnlagOppdatertSection data={data as GrunnlagOppdatertEventData} />;
+
+      case 'vederlag_krav_sendt':
+        return <VederlagSection data={data as VederlagEventData} />;
+
+      case 'vederlag_krav_oppdatert':
+        return <VederlagOppdatertSection data={data as VederlagOppdatertEventData} />;
+
+      case 'frist_krav_sendt':
+        return <FristSection data={data as FristEventData} />;
+
+      case 'frist_krav_oppdatert':
+        return <FristOppdatertSection data={data as FristOppdatertEventData} />;
+
+      case 'respons_grunnlag':
+        return <ResponsGrunnlagSection data={data as ResponsGrunnlagEventData} />;
+
+      case 'respons_grunnlag_oppdatert':
+        return <ResponsGrunnlagOppdatertSection data={data as ResponsGrunnlagOppdatertEventData} />;
+
+      case 'respons_vederlag':
+        return <ResponsVederlagSection data={data as ResponsVederlagEventData} />;
+
+      case 'respons_vederlag_oppdatert':
+        return <ResponsVederlagOppdatertSection data={data as ResponsVederlagOppdatertEventData} />;
+
+      case 'respons_frist':
+        return <ResponsFristSection data={data as ResponsFristEventData} />;
+
+      case 'respons_frist_oppdatert':
+        return <ResponsFristOppdatertSection data={data as ResponsFristOppdatertEventData} />;
+
+      case 'forsering_varsel':
+        return <ForseringVarselSection data={data as ForseringVarselEventData} />;
+
+      default:
+        return <GenericSection data={data as Record<string, unknown>} />;
+    }
+  };
+
+  return (
+    <Modal
+      open={open}
+      onOpenChange={onOpenChange}
+      title={eventTypeLabel}
+      description={`Innsendt av ${event.aktor} (${event.rolle})`}
+      size="lg"
+    >
+      <div className="space-y-6">
+        {/* Metadata header */}
+        <div className="flex flex-wrap items-center gap-4 text-sm text-pkt-grays-gray-600 pb-4 border-b border-gray-200">
+          <span className="flex items-center gap-1.5">
+            <CalendarIcon className="w-4 h-4" />
+            {formatDateTime(event.tidsstempel)}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <PersonIcon className="w-4 h-4" />
+            {event.aktor}
+          </span>
+          <Badge variant={event.rolle === 'TE' ? 'info' : 'warning'}>
+            {event.rolle}
+          </Badge>
+          {event.spor && (
+            <span className="flex items-center gap-1.5">
+              <TargetIcon className="w-4 h-4" />
+              <Badge variant="neutral">{sporLabel}</Badge>
+            </span>
+          )}
+        </div>
+
+        {/* Summary */}
+        <div className="bg-pkt-surface-subtle p-4 border border-gray-200">
+          <p className="text-sm font-medium text-pkt-grays-gray-700 mb-1">Sammendrag</p>
+          <p className="text-pkt-text-body-dark">{event.sammendrag}</p>
+        </div>
+
+        {/* Full form data */}
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <FileTextIcon className="w-5 h-5 text-pkt-grays-gray-500" />
+            <h4 className="text-base font-semibold text-pkt-text-body-dark">Skjemadata</h4>
+          </div>
+          <div className="bg-white border border-gray-200 p-4">
+            {renderEventData()}
+          </div>
+        </div>
+
+        {/* Event ID footer */}
+        <p className="text-xs text-pkt-grays-gray-400 pt-4 border-t border-gray-200">
+          Event ID: {event.event_id}
+        </p>
+      </div>
+    </Modal>
+  );
+}
