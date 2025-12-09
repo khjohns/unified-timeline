@@ -14,11 +14,12 @@
 2. [Problem Statement](#problem-statement)
 3. [Architecture Overview](#architecture-overview)
 4. [Implementation Tasks](#implementation-tasks)
-5. [File Reference](#file-reference)
-6. [Type Definitions](#type-definitions)
-7. [Port Model Documentation](#port-model-documentation)
-8. [Code Examples](#code-examples)
-9. [Testing Checklist](#testing-checklist)
+5. [UI Mockups](#ui-mockups)
+6. [File Reference](#file-reference)
+7. [Type Definitions](#type-definitions)
+8. [Port Model Documentation](#port-model-documentation)
+9. [Code Examples](#code-examples)
+10. [Testing Checklist](#testing-checklist)
 
 ---
 
@@ -215,134 +216,321 @@ def _event_type_to_label(self, event_type: EventType) -> str:
 
 ---
 
-### Task 2: Frontend - Enhance ResponsVederlagSection for port structure (OPTIONAL)
+### Task 2: Frontend - Visual Organization of BH Response Sections (OPTIONAL)
 
-> **Note**: This enhancement is optional. The current flat structure is functional and displays all fields correctly. Port-based grouping is a UX improvement for better visual organization.
+> **Note**: This enhancement is optional. The current flat structure displays all fields correctly.
+
+**Design Principles**:
+- ✅ **ALL data visible at once** - No wizard steps, no hidden content
+- ✅ **Visual grouping** with headers and dividers (not collapsible sections)
+- ✅ **Long text fields** (>150 chars) use `LongTextField` with expand/collapse
+- ❌ **NO port-based collapsibles** - users should see everything immediately
 
 **File**: `src/components/views/EventDetailModal.tsx`
 **Section**: `ResponsVederlagSection` (lines 440-503)
 
-The current implementation shows BH response data flat, but the 4-port wizard structure could be reflected for better UX:
+---
 
-**Port structure for vederlag response**:
+## UI Mockups
+
+### General Modal Structure
+
 ```
-Port 1: Særskilte krav - Preklusjon (§34.1.3)
-  - saerskilt_varsel_rigg_drift_ok: boolean
-  - varsel_justert_ep_ok: boolean
-  - varsel_start_regning_ok: boolean
-  - krav_fremmet_i_tide: boolean
-  - begrunnelse_varsel: string
-
-Port 2: Metode & Svarplikt
-  - vederlagsmetode: VederlagsMetode
-  - (handled as part of beregnings_resultat)
-
-Port 3: Beløpsvurdering
-  - beregnings_resultat: VederlagBeregningResultat
-  - godkjent_belop: number
-  - begrunnelse_beregning: string
-
-Port 4: Oppsummering
-  - (computed: principal vs subsidiary results)
+┌─────────────────────────────────────────────────────────────────────┐
+│  ╳  Svar på vederlagskrav                                           │
+│      Innsendt av Kari Nordmann (BH)                                 │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  📅 22. jan. 2025 kl. 14:30    👤 Kari Nordmann    [BH]    [Vederlag]│
+│  ─────────────────────────────────────────────────────────────────  │
+│                                                                     │
+│  ┌─ Sammendrag ──────────────────────────────────────────────────┐  │
+│  │ Vederlagskrav delvis godkjent - 1 200 000 av 2 500 000 kr     │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+│  ═══════════════════════════════════════════════════════════════    │
+│  📄 Skjemadata                                                      │
+│  ═══════════════════════════════════════════════════════════════    │
+│                                                                     │
+│  [INNHOLD VARIERER BASERT PÅ EVENT TYPE - SE MOCKUPS UNDER]         │
+│                                                                     │
+│  ─────────────────────────────────────────────────────────────────  │
+│  Event ID: evt-001-abc-123                                          │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-**Suggested UI enhancement**:
+### Mockup: BH Respons på Vederlagskrav
+
+Alle felt synlige - visuelt gruppert med overskrifter:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  📄 Skjemadata                                                      │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  Resultat                    [████ Delvis godkjent ████]            │
+│  Godkjent beløp              1 200 000 kr                           │
+│  Valgt metode                Regningsarbeid (§30.2/§34.4)           │
+│                                                                     │
+│  ── Varselvurdering (§34.1.3) ─────────────────────────────────     │
+│                                                                     │
+│  Rigg/drift varsel OK        [✓ Ja]                                 │
+│  Justert EP varsel OK        [✓ Ja]                                 │
+│  Regningsarbeid varsel OK    [✗ Nei]                                │
+│  Krav fremmet i tide         [✓ Ja]                                 │
+│                                                                     │
+│  Begrunnelse varselvurdering ▼                                      │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │ Varsler for rigg/drift og justert EP ble sendt innen fristen. │  │
+│  │ Regningsarbeid ble ikke varslet før oppstart, men BH velger   │  │
+│  │ å ikke gjøre preklusjon gjeldende da...                       │  │
+│  │ [Klikk for å utvide]                                          │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+│  ── Beløpsvurdering ───────────────────────────────────────────     │
+│                                                                     │
+│  Begrunnelse beregning       ▼                                      │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │ Godkjenner 1 200 000 kr av totalt 2 500 000 kr krevd.         │  │
+│  │ Avslag på 800 000 kr skyldes manglende dokumentasjon på...    │  │
+│  │ [Klikk for å utvide]                                          │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+│  Frist for spesifikasjon     15. feb. 2025                          │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Mockup: BH Respons på Fristkrav
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  📄 Skjemadata                                                      │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  Resultat                    [████ Delvis godkjent ████]            │
+│  Godkjente dager             30 dager                               │
+│  Ny sluttdato                15. mars 2025                          │
+│                                                                     │
+│  ── Varselvurdering (§33.4, §33.6) ────────────────────────────     │
+│                                                                     │
+│  Nøytralt varsel OK          [✓ Ja]                                 │
+│  Spesifisert krav OK         [✗ Nei]                                │
+│  BH har etterlyst            [⚠ Ja]                                 │
+│                                                                     │
+│  Begrunnelse varselvurdering ▼                                      │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │ Nøytralt varsel mottatt i tide. Spesifisert krav mangler...   │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+│  ── Vilkårsvurdering (§33.5) ──────────────────────────────────     │
+│                                                                     │
+│  Vilkår oppfylt              [✓ Ja]                                 │
+│                                                                     │
+│  Begrunnelse vilkår          ▼                                      │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │ Årsakssammenheng mellom uventet fjell og forsinkelse er...    │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+│  ── Beregning ─────────────────────────────────────────────────     │
+│                                                                     │
+│  Begrunnelse beregning       ▼                                      │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │ 30 dager godkjent. Omprosjektering kan gjøres parallelt...    │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+│  Frist for spesifisering     1. feb. 2025                           │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Mockup: TE Vederlagskrav
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  📄 Skjemadata                                                      │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  Metode                      Regningsarbeid (§30.2/§34.4)           │
+│  Kostnadsoverslag            2 500 000 kr                           │
+│                                                                     │
+│  Begrunnelse                 ▼                                      │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │ Kravet inkluderer:                                            │  │
+│  │ - Ekstra borekostnader: 1 200 000 NOK                         │  │
+│  │ - Endret fundamentløsning: 800 000 NOK                        │  │
+│  │ - Prosjektering og rådgivning: 300 000 NOK                    │  │
+│  │ - Rigg og drift: 200 000 NOK                                  │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+│  ── Særskilte krav (§34.1.3) ──────────────────────────────────     │
+│                                                                     │
+│  │ Rigg/drift                                                       │
+│  │   Beløp                   200 000 kr                             │
+│  │   Klar over dato          15. jan. 2025                          │
+│                                                                     │
+│  ── Varsler ───────────────────────────────────────────────────     │
+│                                                                     │
+│  Rigg/drift varsel           15. jan. 2025 (epost)                  │
+│  Regningsarbeid varsel       15. jan. 2025 (epost)                  │
+│  Krav fremmet dato           18. jan. 2025                          │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Mockup: TE Grunnlag
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  📄 Skjemadata                                                      │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  Tittel                      Uventet fjell ved fundament B3         │
+│  Hovedkategori               Svikt i BH forutsetninger              │
+│  Underkategori               Grunnforhold                           │
+│  Dato oppdaget               15. jan. 2025                          │
+│  Varsel sendt                15. jan. 2025 (epost, byggemøte)       │
+│                                                                     │
+│  Beskrivelse                 ▼                                      │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │ Ved peling av fundament B3 ble det påtruffet uventet fjell    │  │
+│  │ 2,5 meter høyere enn antatt i prosjekteringsgrunnlaget.       │  │
+│  │ Dette krever omprosjektering og endrede løsninger for         │  │
+│  │ fundamentering. Geoteknisk rapport fra Multiconsult vedlagt.  │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+│  Kontraktsreferanser         §23.1, Vedlegg A - Geoteknisk rapport  │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Mockup: Forsering Varsel (§33.8)
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  📄 Skjemadata                                                      │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  [████████ Forsering iverksatt (§33.8) ████████]                    │
+│                                                                     │
+│  Estimert kostnad            450 000 kr                             │
+│  Dato iverksettelse          1. feb. 2025                           │
+│  30%-regel bekreftet         [✓ Ja - innenfor grensen]              │
+│                                                                     │
+│  Begrunnelse                 ▼                                      │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │ BH har avslått fristkrav. TE varsler herved om iverksettelse  │  │
+│  │ av forsering iht. §33.8. Estimert forseringskostnad er...     │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+│  Referanse fristkrav         evt-frist-001                          │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### LongTextField Behavior
+
+For tekstfelt over 150 tegn brukes `LongTextField`-komponenten:
+
+```
+┌─ Kort tekst (<150 tegn) ─────────────────────────────────────────┐
+│                                                                   │
+│  Begrunnelse                 Grunnlaget godkjennes.               │
+│                                                                   │
+└───────────────────────────────────────────────────────────────────┘
+
+┌─ Lang tekst (≥150 tegn) - KOLLAPSET ─────────────────────────────┐
+│                                                                   │
+│  Begrunnelse                 ▼                                    │
+│  ┌─────────────────────────────────────────────────────────────┐  │
+│  │ Ved peling av fundament B3 ble det påtruffet uventet...     │  │
+│  │ [Klikk for å utvide]                                        │  │
+│  └─────────────────────────────────────────────────────────────┘  │
+│                                                                   │
+└───────────────────────────────────────────────────────────────────┘
+
+┌─ Lang tekst (≥150 tegn) - UTVIDET ───────────────────────────────┐
+│                                                                   │
+│  Begrunnelse                 ▲                                    │
+│  ┌─────────────────────────────────────────────────────────────┐  │
+│  │ Ved peling av fundament B3 ble det påtruffet uventet fjell  │  │
+│  │ 2,5 meter høyere enn antatt i prosjekteringsgrunnlaget.     │  │
+│  │ Dette krever omprosjektering og endrede løsninger for       │  │
+│  │ fundamentering.                                             │  │
+│  │                                                             │  │
+│  │ Følgende tiltak er nødvendige:                              │  │
+│  │ 1. Ny geoteknisk vurdering                                  │  │
+│  │ 2. Omprosjektering av fundament                             │  │
+│  │ 3. Endret boremetode                                        │  │
+│  └─────────────────────────────────────────────────────────────┘  │
+│                                                                   │
+└───────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Task 3: Frontend - Visuell Gruppering (OPTIONAL)
+
+> **Note**: Se UI Mockups-seksjonen over for visuell referanse.
+
+**File**: `src/components/views/EventDetailModal.tsx`
+
+**Implementation approach**:
+
+For å implementere visuell gruppering uten wizard/collapsibles, bruk enkle overskrifter med CSS-skillelinjer:
+
 ```tsx
+// Visual section divider - NOT a collapsible
+function SectionDivider({ title }: { title: string }) {
+  return (
+    <div className="flex items-center gap-3 py-2 mt-4">
+      <span className="text-xs font-medium text-pkt-grays-gray-500 uppercase tracking-wide">
+        {title}
+      </span>
+      <div className="flex-1 border-t border-gray-200" />
+    </div>
+  );
+}
+
+// Usage in ResponsVederlagSection:
 function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
   const badge = getVederlagResultatBadge(data.beregnings_resultat);
-
-  // Determine if Port 1 has any evaluations
-  const hasPort1 = data.saerskilt_varsel_rigg_drift_ok !== undefined ||
-                   data.varsel_justert_ep_ok !== undefined ||
-                   data.varsel_start_regning_ok !== undefined ||
-                   data.krav_fremmet_i_tide !== undefined;
+  const hasVarselFields = /* check if any varsel fields exist */;
 
   return (
-    <dl className="space-y-4">
-      {/* Overall Result */}
-      <Field
-        label="Samlet resultat"
-        value={<Badge variant={badge.variant}>{badge.label}</Badge>}
-      />
+    <dl>
+      {/* Summary fields - always visible */}
+      <Field label="Resultat" value={<Badge ...>{badge.label}</Badge>} />
+      <Field label="Godkjent beløp" value={formatCurrency(data.godkjent_belop)} />
+      <Field label="Valgt metode" value={getVederlagsmetodeLabel(data.vederlagsmetode)} />
 
-      {/* Port 1: Varselvurdering */}
-      {hasPort1 && (
-        <Collapsible
-          title="Port 1: Varselvurdering (§34.1.3)"
-          defaultOpen={false}
-        >
-          <div className="space-y-2 pl-4 border-l-2 border-blue-300">
-            {data.saerskilt_varsel_rigg_drift_ok !== undefined && (
-              <Field
-                label="Rigg/drift varsel OK"
-                value={<Badge variant={data.saerskilt_varsel_rigg_drift_ok ? 'success' : 'danger'}>
-                  {data.saerskilt_varsel_rigg_drift_ok ? 'Ja' : 'Nei - prekludert'}
-                </Badge>}
-              />
-            )}
-            {/* ... other Port 1 fields ... */}
-            {data.begrunnelse_varsel && (
-              <LongTextField label="Begrunnelse varselvurdering" value={data.begrunnelse_varsel} />
-            )}
-          </div>
-        </Collapsible>
+      {/* Varsel section - with visual divider */}
+      {hasVarselFields && (
+        <>
+          <SectionDivider title="Varselvurdering (§34.1.3)" />
+          <Field label="Rigg/drift varsel OK" value={...} />
+          <Field label="Justert EP varsel OK" value={...} />
+          {/* etc. */}
+          <LongTextField label="Begrunnelse varselvurdering" value={data.begrunnelse_varsel} />
+        </>
       )}
 
-      {/* Port 2: Metode */}
-      {data.vederlagsmetode && (
-        <Collapsible title="Port 2: Metode" defaultOpen={false}>
-          <div className="pl-4 border-l-2 border-green-300">
-            <Field label="Valgt metode" value={getVederlagsmetodeLabel(data.vederlagsmetode)} />
-          </div>
-        </Collapsible>
-      )}
-
-      {/* Port 3: Beløpsvurdering */}
-      <Collapsible title="Port 3: Beløpsvurdering" defaultOpen={true}>
-        <div className="space-y-2 pl-4 border-l-2 border-yellow-300">
-          {data.godkjent_belop !== undefined && (
-            <Field label="Godkjent beløp" value={formatCurrency(data.godkjent_belop)} />
-          )}
-          {data.begrunnelse_beregning && (
-            <LongTextField label="Begrunnelse" value={data.begrunnelse_beregning} />
-          )}
-        </div>
-      </Collapsible>
+      {/* Beløpsvurdering section */}
+      <SectionDivider title="Beløpsvurdering" />
+      <LongTextField label="Begrunnelse beregning" value={data.begrunnelse_beregning} />
+      <Field label="Frist for spesifikasjon" value={formatDate(data.frist_for_spesifikasjon)} />
     </dl>
   );
 }
 ```
 
----
-
-### Task 3: Frontend - Enhance ResponsFristSection for port structure (OPTIONAL)
-
-> **Note**: This enhancement is optional. Same consideration as Task 2.
-
-**File**: `src/components/views/EventDetailModal.tsx`
-**Section**: `ResponsFristSection` (lines 521-577)
-
-**Port structure for frist response**:
-```
-Port 1: Preklusjon (§33.4, §33.6)
-  - noytralt_varsel_ok: boolean
-  - spesifisert_krav_ok: boolean
-  - har_bh_etterlyst: boolean
-  - begrunnelse_varsel: string
-  - frist_for_spesifisering: string (if etterlysning)
-
-Port 2: Vilkår (§33.5)
-  - vilkar_oppfylt: boolean
-  - begrunnelse_vilkar: string
-
-Port 3: Beregning
-  - beregnings_resultat: FristBeregningResultat
-  - godkjent_dager: number
-  - ny_sluttdato: string
-  - begrunnelse_beregning: string
-```
-
-Similar enhancement pattern as Task 2.
+**Key points**:
+- All data visible immediately - no hidden content
+- Visual dividers separate logical groups
+- Only `LongTextField` (>150 chars) uses expand/collapse
+- Groups are NOT collapsible sections
 
 ---
 
