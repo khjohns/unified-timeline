@@ -137,13 +137,11 @@ function formatGrunnlagResultat(resultat?: GrunnlagResponsResultat): string {
 function formatVederlagResultat(resultat?: VederlagBeregningResultat): string {
   if (!resultat) return '—';
   const map: Record<VederlagBeregningResultat, string> = {
-    'godkjent_fullt': 'Godkjent fullt ut',
+    'godkjent': 'Godkjent',
     'delvis_godkjent': 'Delvis godkjent',
-    'godkjent_annen_metode': 'Godkjent med annen metode',
-    'avventer_spesifikasjon': 'Avventer spesifikasjon',
-    'avslatt_totalt': 'Avslått totalt',
+    'avslatt': 'Avslått',
+    'avventer': 'Avventer dokumentasjon',
     'hold_tilbake': 'Betaling holdes tilbake',
-    'avvist_preklusjon_rigg': 'Avvist - rigg/drift varslet for sent',
   };
   return map[resultat] || resultat;
 }
@@ -151,10 +149,10 @@ function formatVederlagResultat(resultat?: VederlagBeregningResultat): string {
 function formatFristResultat(resultat?: FristBeregningResultat): string {
   if (!resultat) return '—';
   const map: Record<FristBeregningResultat, string> = {
-    'godkjent_fullt': 'Godkjent fullt ut',
+    'godkjent': 'Godkjent',
     'delvis_godkjent': 'Delvis godkjent',
-    'avventer_spesifikasjon': 'Avventer spesifikasjon',
-    'avslatt_ingen_hindring': 'Avslått - ingen hindring',
+    'avslatt': 'Avslått',
+    'avventer': 'Avventer dokumentasjon',
   };
   return map[resultat] || resultat;
 }

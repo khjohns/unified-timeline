@@ -142,17 +142,15 @@ function getVederlagResultatBadge(resultat: VederlagBeregningResultat | string):
   let variant: BadgeVariant = 'neutral';
 
   switch (resultat) {
-    case 'godkjent_fullt':
-    case 'godkjent_annen_metode':
+    case 'godkjent':
       variant = 'success';
       break;
     case 'delvis_godkjent':
     case 'hold_tilbake':
-    case 'avventer_spesifikasjon':
+    case 'avventer':
       variant = 'warning';
       break;
-    case 'avslatt_totalt':
-    case 'avvist_preklusjon_rigg':
+    case 'avslatt':
       variant = 'danger';
       break;
   }
@@ -165,14 +163,14 @@ function getFristResultatBadge(resultat: FristBeregningResultat | string): { var
   let variant: BadgeVariant = 'neutral';
 
   switch (resultat) {
-    case 'godkjent_fullt':
+    case 'godkjent':
       variant = 'success';
       break;
     case 'delvis_godkjent':
-    case 'avventer_spesifikasjon':
+    case 'avventer':
       variant = 'warning';
       break;
-    case 'avslatt_ingen_hindring':
+    case 'avslatt':
       variant = 'danger';
       break;
   }

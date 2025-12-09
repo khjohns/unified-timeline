@@ -10,7 +10,7 @@
  * - TE must notify BH before acceleration starts with estimated cost
  *
  * TRIGGERS (when this modal should be available):
- * - BH rejected frist claim (avslatt_ingen_hindring, avvist_preklusjon)
+ * - BH rejected frist claim (avslatt)
  * - BH partially approved frist claim (delvis_godkjent with godkjent < krevd)
  * - BH rejected grunnlag (implies frist rejection) - uses subsidiary days
  */

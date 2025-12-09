@@ -117,30 +117,30 @@ function beregnPrinsipaltResultat(data: {
   krevdDager: number;
   godkjentDager: number;
 }): string {
-  // 1. Etterlysning sendes - avventer spesifikasjon
+  // 1. Etterlysning sendes - avventer
   if (data.sendEtterlysning) {
-    return 'avventer_spesifikasjon';
+    return 'avventer';
   }
 
-  // 2. Preklusjon (Port 1)
+  // 2. Preklusjon (Port 1) - avslått
   if (data.erPrekludert) {
-    return 'avvist_preklusjon';
+    return 'avslatt';
   }
 
-  // 3. Ingen hindring (Port 2)
+  // 3. Ingen hindring (Port 2) - avslått
   if (!data.harHindring) {
-    return 'avslatt_ingen_hindring';
+    return 'avslatt';
   }
 
   // 4. Beregning (Port 3)
   if (data.krevdDager === 0) {
-    return 'godkjent_fullt';
+    return 'godkjent';
   }
 
   const godkjentProsent = data.godkjentDager / data.krevdDager;
 
   if (godkjentProsent >= 0.99) {
-    return 'godkjent_fullt';
+    return 'godkjent';
   }
 
   return 'delvis_godkjent';
@@ -154,20 +154,20 @@ function beregnSubsidiaertResultat(data: {
   krevdDager: number;
   godkjentDager: number;
 }): string {
-  // Ingen hindring
+  // Ingen hindring - avslått
   if (!data.harHindring) {
-    return 'avslatt_ingen_hindring';
+    return 'avslatt';
   }
 
   // Beregning
   if (data.krevdDager === 0) {
-    return 'godkjent_fullt';
+    return 'godkjent';
   }
 
   const godkjentProsent = data.godkjentDager / data.krevdDager;
 
   if (godkjentProsent >= 0.99) {
-    return 'godkjent_fullt';
+    return 'godkjent';
   }
 
   return 'delvis_godkjent';
@@ -178,11 +178,10 @@ function beregnSubsidiaertResultat(data: {
  */
 function getResultatLabel(resultat: string): string {
   const labels: Record<string, string> = {
-    godkjent_fullt: 'Godkjent fullt ut',
+    godkjent: 'Godkjent',
     delvis_godkjent: 'Delvis godkjent',
-    avventer_spesifikasjon: 'Avventer spesifikasjon',
-    avslatt_ingen_hindring: 'Avslått - Ingen fremdriftshindring',
-    avvist_preklusjon: 'Avvist - Varslet for sent (preklusjon)',
+    avslatt: 'Avslått',
+    avventer: 'Avventer dokumentasjon',
   };
   return labels[resultat] || resultat;
 }
@@ -303,19 +302,19 @@ export function RespondFristModal({
   );
 
   // Determine if we need to show subsidiary result
-  const visSubsidiaertResultat =
-    prinsipaltResultat === 'avvist_preklusjon' || prinsipaltResultat === 'avslatt_ingen_hindring';
+  // Show when principal is rejected (due to preclusion or no hindring)
+  const visSubsidiaertResultat = prinsipaltResultat === 'avslatt';
 
   // §33.8: Show forsering warning when rejecting or partial approval
   const visForsering = useMemo(() => {
-    // For principal result
-    if (prinsipaltResultat === 'avslatt_ingen_hindring') return true;
+    // For principal result - rejected
+    if (prinsipaltResultat === 'avslatt') return true;
     if (prinsipaltResultat === 'delvis_godkjent' && godkjentDager < effektivKrevdDager) {
       return true;
     }
-    // For subsidiary result when principal is avvist
+    // For subsidiary result when principal is avslatt
     if (
-      prinsipaltResultat === 'avvist_preklusjon' &&
+      prinsipaltResultat === 'avslatt' &&
       subsidiaertResultat === 'delvis_godkjent' &&
       godkjentDager < effektivKrevdDager
     ) {
@@ -1093,14 +1092,14 @@ export function RespondFristModal({
                 <div className="p-4 bg-pkt-surface-strong-dark-blue text-white rounded-none">
                   <h5 className="font-medium text-sm mb-2 opacity-80">PRINSIPALT RESULTAT</h5>
                   <div className="text-xl font-bold">{getResultatLabel(prinsipaltResultat)}</div>
-                  {!sendEtterlysning && prinsipaltResultat !== 'avvist_preklusjon' && (
+                  {!sendEtterlysning && prinsipaltResultat !== 'avslatt' && (
                     <div className="mt-2 text-lg font-mono">
                       Godkjent: {godkjentDager} av {effektivKrevdDager} dager
                     </div>
                   )}
                 </div>
 
-                {/* Subsidiært resultat - shown when principal is avvist */}
+                {/* Subsidiært resultat - shown when principal is avslatt */}
                 {visSubsidiaertResultat && !sendEtterlysning && (
                   <div className="p-4 bg-amber-100 border-2 border-amber-400 rounded-none">
                     <h5 className="font-medium text-sm mb-2 text-amber-900">SUBSIDIÆRT RESULTAT</h5>
@@ -1108,8 +1107,8 @@ export function RespondFristModal({
                       {getResultatLabel(subsidiaertResultat)}
                     </div>
                     <div className="mt-2 text-lg font-mono text-amber-900">
-                      {subsidiaertResultat === 'avslatt_ingen_hindring'
-                        ? 'Subsidiært: Ingen hindring erkjent'
+                      {subsidiaertResultat === 'avslatt'
+                        ? 'Subsidiært: Avslått'
                         : `Subsidiært: Maks ${godkjentDager} av ${effektivKrevdDager} dager`}
                     </div>
                     <p className="text-sm text-amber-800 mt-2 italic">

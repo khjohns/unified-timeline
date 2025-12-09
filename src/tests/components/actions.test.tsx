@@ -458,7 +458,7 @@ describe('Action/Modal Components - Functional Tests', () => {
       sakId: 'TEST-001',
       lastResponseEvent: {
         event_id: 'response-1',
-        resultat: 'godkjent_fullt' as const,
+        resultat: 'godkjent' as const,
         godkjent_belop: 100000,
       },
       vederlagTilstand: {
@@ -502,7 +502,7 @@ describe('Action/Modal Components - Functional Tests', () => {
       sakId: 'TEST-001',
       lastResponseEvent: {
         event_id: 'response-1',
-        resultat: 'godkjent_fullt' as const,
+        resultat: 'godkjent' as const,
         godkjent_dager: 10,
       },
       fristTilstand: {

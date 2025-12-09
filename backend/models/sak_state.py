@@ -194,7 +194,7 @@ class VederlagTilstand(BaseModel):
         Returnerer en av:
         - "godkjent" / "delvis_godkjent" / "avslatt"
         - "avslatt_subsidiaert_godkjent" (prinsipal avslått, subsidiært godkjent)
-        - "avventer_spesifikasjon"
+        - "avventer"
         - etc.
         """
         if self.bh_resultat is None:
@@ -202,11 +202,10 @@ class VederlagTilstand(BaseModel):
 
         # Sjekk om prinsipal avslått men subsidiært godkjent
         avslatt_koder = {
-            VederlagBeregningResultat.AVSLATT_TOTALT,
-            VederlagBeregningResultat.AVVIST_PREKLUSJON_RIGG,
+            VederlagBeregningResultat.AVSLATT,
         }
         godkjent_koder = {
-            VederlagBeregningResultat.GODKJENT_FULLT,
+            VederlagBeregningResultat.GODKJENT,
             VederlagBeregningResultat.DELVIS_GODKJENT,
         }
 
@@ -337,9 +336,9 @@ class FristTilstand(BaseModel):
         Kombinert status for UI-visning inkludert subsidiær info.
 
         Returnerer en av:
-        - "godkjent_fullt" / "delvis_godkjent" / "avslatt"
+        - "godkjent" / "delvis_godkjent" / "avslatt"
         - "avslatt_subsidiaert_godkjent" (prinsipal avslått, subsidiært godkjent)
-        - "avventer_spesifikasjon"
+        - "avventer"
         - etc.
         """
         if self.bh_resultat is None:
@@ -347,10 +346,10 @@ class FristTilstand(BaseModel):
 
         # Sjekk om prinsipal avslått men subsidiært godkjent
         avslatt_koder = {
-            FristBeregningResultat.AVSLATT_INGEN_HINDRING,
+            FristBeregningResultat.AVSLATT,
         }
         godkjent_koder = {
-            FristBeregningResultat.GODKJENT_FULLT,
+            FristBeregningResultat.GODKJENT,
             FristBeregningResultat.DELVIS_GODKJENT,
         }
 

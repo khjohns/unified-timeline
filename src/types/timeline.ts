@@ -28,15 +28,14 @@ export type VederlagsMetode =
   | 'REGNINGSARBEID'    // Regningsarbeid med kostnadsoverslag (§30.2/§34.4)
   | 'FASTPRIS_TILBUD';  // Fastpris / Tilbud (§34.2.1)
 
-// Vederlag beregning results (UTEN "avslatt_uenig_grunnlag" - det hører hjemme i Grunnlag!)
+// Vederlag beregning results - forenklet til tre hovedkategorier
+// Årsaken til avslag fanges av `subsidiaer_triggers`
 export type VederlagBeregningResultat =
-  | 'godkjent_fullt'
-  | 'delvis_godkjent'
-  | 'godkjent_annen_metode'
-  | 'avventer_spesifikasjon'
-  | 'avslatt_totalt'        // Kun ved f.eks. dobbeltfakturering, ikke grunnlag
-  | 'hold_tilbake'          // §30.2 - Holder tilbake betaling inntil overslag mottatt
-  | 'avvist_preklusjon_rigg'; // §34.1.3 - Rigg/drift varslet for sent
+  | 'godkjent'              // BH aksepterer kravet (sum og metode)
+  | 'delvis_godkjent'       // BH aksepterer deler (uenighet om beløp/metode)
+  | 'avslatt'               // BH avviser kravet
+  | 'avventer'              // BH trenger mer dokumentasjon
+  | 'hold_tilbake';         // §30.2 tilbakeholdelse
 
 // ========== FRIST ENUMS ==========
 
@@ -45,12 +44,13 @@ export type FristVarselType =
   | 'spesifisert'     // §33.6 - Spesifisert krav (med dager)
   | 'force_majeure';  // §33.3 - Force majeure
 
-// Frist beregning results (UTEN "avslatt_uenig_grunnlag" - det hører hjemme i Grunnlag!)
+// Frist beregning results - forenklet til tre hovedkategorier
+// Årsaken til avslag fanges av `subsidiaer_triggers`
 export type FristBeregningResultat =
-  | 'godkjent_fullt'
-  | 'delvis_godkjent'
-  | 'avventer_spesifikasjon'
-  | 'avslatt_ingen_hindring';  // BH mener det ikke medførte forsinkelse
+  | 'godkjent'              // BH aksepterer kravet (enighet om antall dager)
+  | 'delvis_godkjent'       // BH aksepterer deler (uenighet om antall dager)
+  | 'avslatt'               // BH avviser kravet
+  | 'avventer';             // BH trenger mer dokumentasjon
 
 // Grunnlag response result (BH's vurdering av ansvarsgrunnlaget)
 export type GrunnlagResponsResultat =

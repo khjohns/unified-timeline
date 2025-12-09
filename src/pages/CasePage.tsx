@@ -545,7 +545,7 @@ export function CasePage() {
             sakId={sakId}
             lastResponseEvent={{
               event_id: `vederlag-response-${sakId}`,
-              resultat: state.vederlag.bh_resultat || 'godkjent_fullt',
+              resultat: state.vederlag.bh_resultat || 'godkjent',
               godkjent_belop: state.vederlag.godkjent_belop,
               respondedToVersion: state.vederlag.bh_respondert_versjon,
             }}
@@ -557,7 +557,7 @@ export function CasePage() {
             sakId={sakId}
             lastResponseEvent={{
               event_id: `frist-response-${sakId}`,
-              resultat: state.frist.bh_resultat || 'godkjent_fullt',
+              resultat: state.frist.bh_resultat || 'godkjent',
               godkjent_dager: state.frist.godkjent_dager,
             }}
             fristTilstand={state.frist}
@@ -576,7 +576,7 @@ export function CasePage() {
                 ['avvist_uenig', 'avvist_for_sent'].includes(state.grunnlag.bh_resultat)
                   ? (state.frist.subsidiaer_godkjent_dager ?? 0)  // Use subsidiary days when grunnlag rejected
                   : (state.frist.godkjent_dager ?? 0),
-              bh_resultat: state.frist.bh_resultat || 'godkjent_fullt',
+              bh_resultat: state.frist.bh_resultat || 'godkjent',
             }}
             dagmulktsats={50000}  // TODO: Get from contract config
             grunnlagAvslagTrigger={
