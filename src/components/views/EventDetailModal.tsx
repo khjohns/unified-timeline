@@ -246,6 +246,33 @@ function LongTextField({ label, value, defaultOpen = false }: LongTextFieldProps
   );
 }
 
+/**
+ * SectionDivider - Visual separator for grouping fields
+ *
+ * Used to organize BH response data into logical sections without
+ * hiding any content. All data remains visible at all times.
+ */
+interface SectionDividerProps {
+  title: string;
+  subtitle?: string;
+}
+
+function SectionDivider({ title, subtitle }: SectionDividerProps) {
+  return (
+    <div className="flex items-center gap-3 py-2 mt-4 first:mt-0">
+      <span className="text-xs font-medium text-pkt-grays-gray-500 uppercase tracking-wide whitespace-nowrap">
+        {title}
+      </span>
+      <div className="flex-1 border-t border-gray-200" />
+      {subtitle && (
+        <span className="text-xs text-pkt-grays-gray-400 whitespace-nowrap">
+          {subtitle}
+        </span>
+      )}
+    </div>
+  );
+}
+
 // ========== SECTION COMPONENTS ==========
 
 function GrunnlagSection({ data }: { data: GrunnlagEventData }) {
@@ -440,8 +467,22 @@ function ResponsGrunnlagOppdatertSection({ data }: { data: ResponsGrunnlagOppdat
 function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
   const badge = getVederlagResultatBadge(data.beregnings_resultat);
 
+  // Check if we have any varsel fields to show
+  const hasVarselFields =
+    data.saerskilt_varsel_rigg_drift_ok !== undefined ||
+    data.varsel_justert_ep_ok !== undefined ||
+    data.varsel_start_regning_ok !== undefined ||
+    data.krav_fremmet_i_tide !== undefined ||
+    data.begrunnelse_varsel;
+
+  // Check if we have calculation details
+  const hasBeregningFields =
+    data.begrunnelse_beregning ||
+    data.frist_for_spesifikasjon;
+
   return (
     <dl>
+      {/* ── Sammendrag ─────────────────────────────────────────────── */}
       <Field
         label="Resultat"
         value={<Badge variant={badge.variant}>{badge.label}</Badge>}
@@ -452,52 +493,64 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
       {data.vederlagsmetode && (
         <Field label="Valgt metode" value={getVederlagsmetodeLabel(data.vederlagsmetode)} />
       )}
-      <LongTextField label="Begrunnelse (beregning)" value={data.begrunnelse_beregning} defaultOpen={true} />
-      <LongTextField label="Begrunnelse (varsel)" value={data.begrunnelse_varsel} />
 
-      {/* Varsel-vurderinger */}
-      {data.saerskilt_varsel_rigg_drift_ok !== undefined && (
-        <Field
-          label="Rigg/drift varsel OK"
-          value={
-            <Badge variant={data.saerskilt_varsel_rigg_drift_ok ? 'success' : 'danger'}>
-              {data.saerskilt_varsel_rigg_drift_ok ? 'Ja' : 'Nei'}
-            </Badge>
-          }
-        />
+      {/* ── Varselvurdering (§34.1.3) ─────────────────────────────── */}
+      {hasVarselFields && (
+        <>
+          <SectionDivider title="Varselvurdering" subtitle="§34.1.3" />
+          {data.saerskilt_varsel_rigg_drift_ok !== undefined && (
+            <Field
+              label="Rigg/drift varsel OK"
+              value={
+                <Badge variant={data.saerskilt_varsel_rigg_drift_ok ? 'success' : 'danger'}>
+                  {data.saerskilt_varsel_rigg_drift_ok ? 'Ja' : 'Nei'}
+                </Badge>
+              }
+            />
+          )}
+          {data.varsel_justert_ep_ok !== undefined && (
+            <Field
+              label="Justert EP varsel OK"
+              value={
+                <Badge variant={data.varsel_justert_ep_ok ? 'success' : 'danger'}>
+                  {data.varsel_justert_ep_ok ? 'Ja' : 'Nei'}
+                </Badge>
+              }
+            />
+          )}
+          {data.varsel_start_regning_ok !== undefined && (
+            <Field
+              label="Regningsarbeid varsel OK"
+              value={
+                <Badge variant={data.varsel_start_regning_ok ? 'success' : 'danger'}>
+                  {data.varsel_start_regning_ok ? 'Ja' : 'Nei'}
+                </Badge>
+              }
+            />
+          )}
+          {data.krav_fremmet_i_tide !== undefined && (
+            <Field
+              label="Krav fremmet i tide"
+              value={
+                <Badge variant={data.krav_fremmet_i_tide ? 'success' : 'warning'}>
+                  {data.krav_fremmet_i_tide ? 'Ja' : 'Nei'}
+                </Badge>
+              }
+            />
+          )}
+          <LongTextField label="Begrunnelse" value={data.begrunnelse_varsel} />
+        </>
       )}
-      {data.varsel_justert_ep_ok !== undefined && (
-        <Field
-          label="Justert EP varsel OK"
-          value={
-            <Badge variant={data.varsel_justert_ep_ok ? 'success' : 'danger'}>
-              {data.varsel_justert_ep_ok ? 'Ja' : 'Nei'}
-            </Badge>
-          }
-        />
-      )}
-      {data.varsel_start_regning_ok !== undefined && (
-        <Field
-          label="Regningsarbeid varsel OK"
-          value={
-            <Badge variant={data.varsel_start_regning_ok ? 'success' : 'danger'}>
-              {data.varsel_start_regning_ok ? 'Ja' : 'Nei'}
-            </Badge>
-          }
-        />
-      )}
-      {data.krav_fremmet_i_tide !== undefined && (
-        <Field
-          label="Krav fremmet i tide"
-          value={
-            <Badge variant={data.krav_fremmet_i_tide ? 'success' : 'warning'}>
-              {data.krav_fremmet_i_tide ? 'Ja' : 'Nei'}
-            </Badge>
-          }
-        />
-      )}
-      {data.frist_for_spesifikasjon && (
-        <Field label="Frist for spesifikasjon" value={formatDate(data.frist_for_spesifikasjon)} />
+
+      {/* ── Beløpsvurdering ───────────────────────────────────────── */}
+      {hasBeregningFields && (
+        <>
+          <SectionDivider title="Beløpsvurdering" />
+          <LongTextField label="Begrunnelse" value={data.begrunnelse_beregning} defaultOpen={true} />
+          {data.frist_for_spesifikasjon && (
+            <Field label="Frist for spesifikasjon" value={formatDate(data.frist_for_spesifikasjon)} />
+          )}
+        </>
       )}
     </dl>
   );
@@ -521,8 +574,26 @@ function ResponsVederlagOppdatertSection({ data }: { data: ResponsVederlagOppdat
 function ResponsFristSection({ data }: { data: ResponsFristEventData }) {
   const badge = getFristResultatBadge(data.beregnings_resultat);
 
+  // Check if we have any varsel fields to show
+  const hasVarselFields =
+    data.noytralt_varsel_ok !== undefined ||
+    data.spesifisert_krav_ok !== undefined ||
+    data.har_bh_etterlyst ||
+    data.begrunnelse_varsel;
+
+  // Check if we have vilkår fields
+  const hasVilkarFields =
+    data.vilkar_oppfylt !== undefined ||
+    data.begrunnelse_vilkar;
+
+  // Check if we have calculation details
+  const hasBeregningFields =
+    data.begrunnelse_beregning ||
+    data.frist_for_spesifisering;
+
   return (
     <dl>
+      {/* ── Sammendrag ─────────────────────────────────────────────── */}
       <Field
         label="Resultat"
         value={<Badge variant={badge.variant}>{badge.label}</Badge>}
@@ -532,46 +603,64 @@ function ResponsFristSection({ data }: { data: ResponsFristEventData }) {
       )}
       {data.ny_sluttdato && <Field label="Ny sluttdato" value={formatDate(data.ny_sluttdato)} />}
 
-      <LongTextField label="Begrunnelse (beregning)" value={data.begrunnelse_beregning} defaultOpen={true} />
-      <LongTextField label="Begrunnelse (vilkår)" value={data.begrunnelse_vilkar} />
-      <LongTextField label="Begrunnelse (varsel)" value={data.begrunnelse_varsel} />
+      {/* ── Varselvurdering (§33.4/§33.6) ─────────────────────────── */}
+      {hasVarselFields && (
+        <>
+          <SectionDivider title="Varselvurdering" subtitle="§33.4 / §33.6" />
+          {data.noytralt_varsel_ok !== undefined && (
+            <Field
+              label="Nøytralt varsel OK"
+              value={
+                <Badge variant={data.noytralt_varsel_ok ? 'success' : 'danger'}>
+                  {data.noytralt_varsel_ok ? 'Ja' : 'Nei'}
+                </Badge>
+              }
+            />
+          )}
+          {data.spesifisert_krav_ok !== undefined && (
+            <Field
+              label="Spesifisert krav OK"
+              value={
+                <Badge variant={data.spesifisert_krav_ok ? 'success' : 'danger'}>
+                  {data.spesifisert_krav_ok ? 'Ja' : 'Nei'}
+                </Badge>
+              }
+            />
+          )}
+          {data.har_bh_etterlyst && (
+            <Field label="BH har etterlyst" value={<Badge variant="warning">Ja</Badge>} />
+          )}
+          <LongTextField label="Begrunnelse" value={data.begrunnelse_varsel} />
+        </>
+      )}
 
-      {/* Varsel-vurderinger */}
-      {data.noytralt_varsel_ok !== undefined && (
-        <Field
-          label="Nøytralt varsel OK"
-          value={
-            <Badge variant={data.noytralt_varsel_ok ? 'success' : 'danger'}>
-              {data.noytralt_varsel_ok ? 'Ja' : 'Nei'}
-            </Badge>
-          }
-        />
+      {/* ── Vilkårsvurdering (§33.5) ──────────────────────────────── */}
+      {hasVilkarFields && (
+        <>
+          <SectionDivider title="Vilkårsvurdering" subtitle="§33.5" />
+          {data.vilkar_oppfylt !== undefined && (
+            <Field
+              label="Vilkår oppfylt"
+              value={
+                <Badge variant={data.vilkar_oppfylt ? 'success' : 'danger'}>
+                  {data.vilkar_oppfylt ? 'Ja' : 'Nei'}
+                </Badge>
+              }
+            />
+          )}
+          <LongTextField label="Begrunnelse" value={data.begrunnelse_vilkar} />
+        </>
       )}
-      {data.spesifisert_krav_ok !== undefined && (
-        <Field
-          label="Spesifisert krav OK"
-          value={
-            <Badge variant={data.spesifisert_krav_ok ? 'success' : 'danger'}>
-              {data.spesifisert_krav_ok ? 'Ja' : 'Nei'}
-            </Badge>
-          }
-        />
-      )}
-      {data.vilkar_oppfylt !== undefined && (
-        <Field
-          label="Vilkår oppfylt"
-          value={
-            <Badge variant={data.vilkar_oppfylt ? 'success' : 'danger'}>
-              {data.vilkar_oppfylt ? 'Ja' : 'Nei'}
-            </Badge>
-          }
-        />
-      )}
-      {data.har_bh_etterlyst && (
-        <Field label="BH har etterlyst" value={<Badge variant="warning">Ja</Badge>} />
-      )}
-      {data.frist_for_spesifisering && (
-        <Field label="Frist for spesifisering" value={formatDate(data.frist_for_spesifisering)} />
+
+      {/* ── Beregning ─────────────────────────────────────────────── */}
+      {hasBeregningFields && (
+        <>
+          <SectionDivider title="Beregning" />
+          <LongTextField label="Begrunnelse" value={data.begrunnelse_beregning} defaultOpen={true} />
+          {data.frist_for_spesifisering && (
+            <Field label="Frist for spesifisering" value={formatDate(data.frist_for_spesifisering)} />
+          )}
+        </>
       )}
     </dl>
   );
