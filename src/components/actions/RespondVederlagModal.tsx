@@ -7,8 +7,8 @@
  * WIZARD STRUCTURE:
  * - Port 1: Særskilte krav - Preklusjon (§34.1.3) - Only for rigg/drift/produktivitet
  * - Port 2: Metode & Svarplikt - Method acceptance, EP-justering, tilbakeholdelse
- * - Port 3: Beløpsvurdering - Amount evaluation for all non-precluded claims
- * - Port 4: Oppsummering - Summary with auto-calculated result
+ * - Port 3: Beløpsvurdering - Amount evaluation (subsidiært for precluded særskilte krav)
+ * - Port 4: Oppsummering - Summary with principal AND subsidiary results
  *
  * KEY RULES (from Datasett_varslingsregler_8407.py):
  * - §34.1.3: Særskilte krav (rigg/drift/produktivitet) requires separate notice - PRECLUSION if late
@@ -20,11 +20,14 @@
  * IMPORTANT: There is NO general preclusion for the main vederlag claim from BH side.
  * Preclusion of main claim is handled in Grunnlag track (§34.1.2).
  *
+ * IMPORTANT: BH must ALWAYS be able to take subsidiary position on særskilte krav.
+ * Even if precluded, BH should evaluate the amount subsidiarily.
+ *
  * UPDATED (2025-12-09):
  * - Complete rewrite with 4-port wizard
- * - Automatic result calculation based on port inputs
+ * - Subsidiary evaluation always available for precluded særskilte krav
+ * - Principal AND subsidiary results shown in summary
  * - Correct NS 8407 rule implementation
- * - Separate amount evaluation for main claim and særskilte krav
  */
 
 import { useState, useMemo, useCallback } from 'react';
@@ -138,10 +141,10 @@ type RespondVederlagFormData = z.infer<typeof respondVederlagSchema>;
 // ============================================================================
 
 /**
- * Calculate automatic result based on wizard inputs
+ * Calculate principal result based on wizard inputs (respects preclusion)
  * Following NS 8407 logic from Datasett_varslingsregler_8407.py
  */
-function beregnResultat(
+function beregnPrinsipaltResultat(
   data: Partial<RespondVederlagFormData>,
   computed: {
     totalKrevd: number;
@@ -175,6 +178,41 @@ function beregnResultat(
   }
 
   // 6. Partial approval
+  return 'delvis_godkjent';
+}
+
+/**
+ * Calculate subsidiary result (ignores preclusion, evaluates all amounts)
+ * Used when særskilte krav are precluded but BH still evaluates subsidiarily
+ */
+function beregnSubsidiaertResultat(
+  data: Partial<RespondVederlagFormData>,
+  computed: {
+    totalKrevdInklPrekludert: number;
+    totalGodkjentInklPrekludert: number;
+    harMetodeendring: boolean;
+  }
+): string {
+  const godkjentProsent =
+    computed.totalKrevdInklPrekludert > 0
+      ? computed.totalGodkjentInklPrekludert / computed.totalKrevdInklPrekludert
+      : 0;
+
+  // Total rejection
+  if (godkjentProsent === 0 && data.hovedkrav_vurdering === 'avvist') {
+    return 'avslatt_totalt';
+  }
+
+  // Full approval with same method
+  if (godkjentProsent >= 0.99 && !computed.harMetodeendring) {
+    return 'godkjent_fullt';
+  }
+
+  // Method change
+  if (computed.harMetodeendring) {
+    return 'godkjent_annen_metode';
+  }
+
   return 'delvis_godkjent';
 }
 
@@ -285,15 +323,21 @@ export function RespondVederlagModal({
   const produktivitetPrekludert =
     harProduktivitetKrav && formValues.produktivitet_varslet_i_tide === false;
 
-  // Calculate totals for automatic result
+  // Calculate totals for automatic result (both principal and subsidiary)
   const computed = useMemo(() => {
-    // Total krevd
+    // Principal totals (respects preclusion)
     const totalKrevd =
       (hovedkravBelop || 0) +
       (harRiggKrav && !riggPrekludert ? riggBelop || 0 : 0) +
       (harProduktivitetKrav && !produktivitetPrekludert ? produktivitetBelop || 0 : 0);
 
-    // Total godkjent
+    // Total krevd including precluded (for subsidiary calculation)
+    const totalKrevdInklPrekludert =
+      (hovedkravBelop || 0) +
+      (harRiggKrav ? riggBelop || 0 : 0) +
+      (harProduktivitetKrav ? produktivitetBelop || 0 : 0);
+
+    // Principal godkjent (respects preclusion)
     let totalGodkjent = 0;
 
     // Hovedkrav
@@ -303,7 +347,7 @@ export function RespondVederlagModal({
       totalGodkjent += formValues.hovedkrav_godkjent_belop || 0;
     }
 
-    // Rigg (kun hvis ikke prekludert)
+    // Rigg (kun hvis ikke prekludert - prinsipalt)
     if (harRiggKrav && !riggPrekludert) {
       if (formValues.rigg_vurdering === 'godkjent') {
         totalGodkjent += riggBelop || 0;
@@ -312,7 +356,7 @@ export function RespondVederlagModal({
       }
     }
 
-    // Produktivitet (kun hvis ikke prekludert)
+    // Produktivitet (kun hvis ikke prekludert - prinsipalt)
     if (harProduktivitetKrav && !produktivitetPrekludert) {
       if (formValues.produktivitet_vurdering === 'godkjent') {
         totalGodkjent += produktivitetBelop || 0;
@@ -321,11 +365,35 @@ export function RespondVederlagModal({
       }
     }
 
+    // Subsidiary godkjent (includes precluded særskilte krav evaluations)
+    let totalGodkjentInklPrekludert = totalGodkjent;
+
+    // Add precluded rigg (subsidiært)
+    if (harRiggKrav && riggPrekludert) {
+      if (formValues.rigg_vurdering === 'godkjent') {
+        totalGodkjentInklPrekludert += riggBelop || 0;
+      } else if (formValues.rigg_vurdering === 'delvis') {
+        totalGodkjentInklPrekludert += formValues.rigg_godkjent_belop || 0;
+      }
+    }
+
+    // Add precluded produktivitet (subsidiært)
+    if (harProduktivitetKrav && produktivitetPrekludert) {
+      if (formValues.produktivitet_vurdering === 'godkjent') {
+        totalGodkjentInklPrekludert += produktivitetBelop || 0;
+      } else if (formValues.produktivitet_vurdering === 'delvis') {
+        totalGodkjentInklPrekludert += formValues.produktivitet_godkjent_belop || 0;
+      }
+    }
+
     return {
       totalKrevd,
       totalGodkjent,
+      totalKrevdInklPrekludert,
+      totalGodkjentInklPrekludert,
       harMetodeendring: !formValues.aksepterer_metode,
       holdTilbake: formValues.hold_tilbake === true,
+      harPrekludertKrav: riggPrekludert || produktivitetPrekludert,
     };
   }, [
     formValues,
@@ -338,11 +406,24 @@ export function RespondVederlagModal({
     produktivitetPrekludert,
   ]);
 
-  // Calculate automatic result
-  const automatiskResultat = useMemo(
-    () => beregnResultat(formValues, computed),
+  // Calculate automatic results (principal and subsidiary)
+  const prinsipaltResultat = useMemo(
+    () => beregnPrinsipaltResultat(formValues, computed),
     [formValues, computed]
   );
+
+  const subsidiaertResultat = useMemo(
+    () =>
+      beregnSubsidiaertResultat(formValues, {
+        totalKrevdInklPrekludert: computed.totalKrevdInklPrekludert,
+        totalGodkjentInklPrekludert: computed.totalGodkjentInklPrekludert,
+        harMetodeendring: computed.harMetodeendring,
+      }),
+    [formValues, computed]
+  );
+
+  // Show subsidiary result when there are precluded særskilte krav
+  const visSubsidiaertResultat = computed.harPrekludertKrav;
 
   // Steps configuration
   const steps = useMemo(() => {
@@ -449,10 +530,16 @@ export function RespondVederlagModal({
         // Port 4: Oppsummering
         begrunnelse: data.begrunnelse_samlet,
 
-        // Automatisk beregnet
-        resultat: automatiskResultat,
+        // Automatisk beregnet (prinsipalt)
+        resultat: prinsipaltResultat,
         total_godkjent_belop: computed.totalGodkjent,
         total_krevd_belop: computed.totalKrevd,
+
+        // Subsidiært (kun når særskilte krav er prekludert)
+        subsidiaert_resultat: visSubsidiaertResultat ? subsidiaertResultat : undefined,
+        subsidiaert_godkjent_belop: visSubsidiaertResultat
+          ? computed.totalGodkjentInklPrekludert
+          : undefined,
       },
     });
   };
@@ -883,19 +970,24 @@ export function RespondVederlagModal({
                 )}
               </div>
 
-              {/* RIGG/DRIFT - kun hvis ikke prekludert */}
+              {/* RIGG/DRIFT - alltid evaluerbar (subsidiært hvis prekludert) */}
               {harRiggKrav && (
                 <div
                   className={`p-4 rounded-none border-2 ${
                     riggPrekludert
-                      ? 'bg-gray-100 border-gray-300'
+                      ? 'bg-amber-50 border-amber-300'
                       : 'bg-pkt-surface-subtle border-pkt-border-default'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
                       <h4 className="font-bold">Særskilt: Rigg/Drift</h4>
-                      {riggPrekludert && <Badge variant="danger">PREKLUDERT</Badge>}
+                      {riggPrekludert && (
+                        <>
+                          <Badge variant="danger">PREKLUDERT</Badge>
+                          <Badge variant="warning">Subsidiært</Badge>
+                        </>
+                      )}
                     </div>
                     <div className="text-right">
                       <span className="text-sm text-pkt-text-body-subtle">TE krever: </span>
@@ -907,62 +999,76 @@ export function RespondVederlagModal({
                     </div>
                   </div>
 
-                  {riggPrekludert ? (
-                    <p className="text-sm text-gray-600">
-                      Du avviste dette kravet i Port 1 pga. for sen varsling (§34.1.3). Godkjent
-                      beløp: <strong>kr 0,-</strong>
-                    </p>
-                  ) : (
-                    <>
-                      <FormField label="Din vurdering av beløpet" required>
+                  {riggPrekludert && (
+                    <div className="mb-4 p-3 bg-amber-100 rounded-none">
+                      <p className="text-sm text-amber-800">
+                        <strong>Prinsipalt:</strong> Kravet er prekludert (for sen varsling §34.1.3).
+                        Godkjent beløp: <strong>kr 0,-</strong>
+                      </p>
+                      <p className="text-sm text-amber-800 mt-1">
+                        <strong>Subsidiært:</strong> Evaluer beløpet dersom kravet hadde vært varslet
+                        i tide.
+                      </p>
+                    </div>
+                  )}
+
+                  <FormField
+                    label={
+                      riggPrekludert ? 'Din subsidiære vurdering av beløpet' : 'Din vurdering av beløpet'
+                    }
+                    required
+                  >
+                    <Controller
+                      name="rigg_vurdering"
+                      control={control}
+                      render={({ field }) => (
+                        <RadioGroup value={field.value} onValueChange={field.onChange}>
+                          <RadioItem value="godkjent" label="Godkjent fullt ut" />
+                          <RadioItem value="delvis" label="Delvis godkjent" />
+                          <RadioItem value="avvist" label="Avvist - uenig i kravet" />
+                        </RadioGroup>
+                      )}
+                    />
+                  </FormField>
+
+                  {formValues.rigg_vurdering === 'delvis' && (
+                    <div className="mt-4 ml-6 border-l-2 border-pkt-border-subtle pl-4">
+                      <FormField label="Godkjent beløp" required>
                         <Controller
-                          name="rigg_vurdering"
+                          name="rigg_godkjent_belop"
                           control={control}
                           render={({ field }) => (
-                            <RadioGroup value={field.value} onValueChange={field.onChange}>
-                              <RadioItem value="godkjent" label="Godkjent fullt ut" />
-                              <RadioItem value="delvis" label="Delvis godkjent" />
-                              <RadioItem value="avvist" label="Avvist - uenig i kravet" />
-                            </RadioGroup>
+                            <CurrencyInput
+                              value={field.value ?? null}
+                              onChange={field.onChange}
+                              allowNegative={false}
+                            />
                           )}
                         />
                       </FormField>
-
-                      {formValues.rigg_vurdering === 'delvis' && (
-                        <div className="mt-4 ml-6 border-l-2 border-pkt-border-subtle pl-4">
-                          <FormField label="Godkjent beløp" required>
-                            <Controller
-                              name="rigg_godkjent_belop"
-                              control={control}
-                              render={({ field }) => (
-                                <CurrencyInput
-                                  value={field.value ?? null}
-                                  onChange={field.onChange}
-                                  allowNegative={false}
-                                />
-                              )}
-                            />
-                          </FormField>
-                        </div>
-                      )}
-                    </>
+                    </div>
                   )}
                 </div>
               )}
 
-              {/* PRODUKTIVITET - kun hvis ikke prekludert */}
+              {/* PRODUKTIVITET - alltid evaluerbar (subsidiært hvis prekludert) */}
               {harProduktivitetKrav && (
                 <div
                   className={`p-4 rounded-none border-2 ${
                     produktivitetPrekludert
-                      ? 'bg-gray-100 border-gray-300'
+                      ? 'bg-amber-50 border-amber-300'
                       : 'bg-pkt-surface-subtle border-pkt-border-default'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
                       <h4 className="font-bold">Særskilt: Produktivitetstap</h4>
-                      {produktivitetPrekludert && <Badge variant="danger">PREKLUDERT</Badge>}
+                      {produktivitetPrekludert && (
+                        <>
+                          <Badge variant="danger">PREKLUDERT</Badge>
+                          <Badge variant="warning">Subsidiært</Badge>
+                        </>
+                      )}
                     </div>
                     <div className="text-right">
                       <span className="text-sm text-pkt-text-body-subtle">TE krever: </span>
@@ -974,45 +1080,56 @@ export function RespondVederlagModal({
                     </div>
                   </div>
 
-                  {produktivitetPrekludert ? (
-                    <p className="text-sm text-gray-600">
-                      Du avviste dette kravet i Port 1 pga. for sen varsling (§34.1.3). Godkjent
-                      beløp: <strong>kr 0,-</strong>
-                    </p>
-                  ) : (
-                    <>
-                      <FormField label="Din vurdering av beløpet" required>
+                  {produktivitetPrekludert && (
+                    <div className="mb-4 p-3 bg-amber-100 rounded-none">
+                      <p className="text-sm text-amber-800">
+                        <strong>Prinsipalt:</strong> Kravet er prekludert (for sen varsling §34.1.3).
+                        Godkjent beløp: <strong>kr 0,-</strong>
+                      </p>
+                      <p className="text-sm text-amber-800 mt-1">
+                        <strong>Subsidiært:</strong> Evaluer beløpet dersom kravet hadde vært varslet
+                        i tide.
+                      </p>
+                    </div>
+                  )}
+
+                  <FormField
+                    label={
+                      produktivitetPrekludert
+                        ? 'Din subsidiære vurdering av beløpet'
+                        : 'Din vurdering av beløpet'
+                    }
+                    required
+                  >
+                    <Controller
+                      name="produktivitet_vurdering"
+                      control={control}
+                      render={({ field }) => (
+                        <RadioGroup value={field.value} onValueChange={field.onChange}>
+                          <RadioItem value="godkjent" label="Godkjent fullt ut" />
+                          <RadioItem value="delvis" label="Delvis godkjent" />
+                          <RadioItem value="avvist" label="Avvist - uenig i kravet" />
+                        </RadioGroup>
+                      )}
+                    />
+                  </FormField>
+
+                  {formValues.produktivitet_vurdering === 'delvis' && (
+                    <div className="mt-4 ml-6 border-l-2 border-pkt-border-subtle pl-4">
+                      <FormField label="Godkjent beløp" required>
                         <Controller
-                          name="produktivitet_vurdering"
+                          name="produktivitet_godkjent_belop"
                           control={control}
                           render={({ field }) => (
-                            <RadioGroup value={field.value} onValueChange={field.onChange}>
-                              <RadioItem value="godkjent" label="Godkjent fullt ut" />
-                              <RadioItem value="delvis" label="Delvis godkjent" />
-                              <RadioItem value="avvist" label="Avvist - uenig i kravet" />
-                            </RadioGroup>
+                            <CurrencyInput
+                              value={field.value ?? null}
+                              onChange={field.onChange}
+                              allowNegative={false}
+                            />
                           )}
                         />
                       </FormField>
-
-                      {formValues.produktivitet_vurdering === 'delvis' && (
-                        <div className="mt-4 ml-6 border-l-2 border-pkt-border-subtle pl-4">
-                          <FormField label="Godkjent beløp" required>
-                            <Controller
-                              name="produktivitet_godkjent_belop"
-                              control={control}
-                              render={({ field }) => (
-                                <CurrencyInput
-                                  value={field.value ?? null}
-                                  onChange={field.onChange}
-                                  allowNegative={false}
-                                />
-                              )}
-                            />
-                          </FormField>
-                        </div>
-                      )}
-                    </>
+                    </div>
                   )}
                 </div>
               )}
@@ -1104,68 +1221,138 @@ export function RespondVederlagModal({
 
                       {/* Rigg/Drift */}
                       {harRiggKrav && (
-                        <tr className="border-b border-pkt-border-subtle">
-                          <td className="py-2">Rigg/Drift</td>
-                          <td
-                            className={`text-right font-mono ${riggPrekludert ? 'line-through text-gray-400' : ''}`}
-                          >
-                            {riggBelop?.toLocaleString('nb-NO') || 0}
-                          </td>
-                          <td className="text-right font-mono">
-                            {riggPrekludert
-                              ? 0
-                              : formValues.rigg_vurdering === 'godkjent'
-                                ? riggBelop?.toLocaleString('nb-NO') || 0
-                                : formValues.rigg_vurdering === 'delvis'
-                                  ? formValues.rigg_godkjent_belop?.toLocaleString('nb-NO') || 0
-                                  : 0}
-                          </td>
-                          <td className="text-right">
-                            {riggPrekludert ? (
-                              <Badge variant="danger">Prekludert</Badge>
-                            ) : formValues.rigg_vurdering === 'godkjent' ? (
-                              <Badge variant="success">Godkjent</Badge>
-                            ) : formValues.rigg_vurdering === 'delvis' ? (
-                              <Badge variant="warning">Delvis</Badge>
-                            ) : (
-                              <Badge variant="danger">Avvist</Badge>
-                            )}
-                          </td>
-                        </tr>
+                        <>
+                          <tr className="border-b border-pkt-border-subtle">
+                            <td className="py-2">
+                              Rigg/Drift
+                              {riggPrekludert && (
+                                <span className="text-xs text-gray-500 ml-1">(prinsipalt)</span>
+                              )}
+                            </td>
+                            <td
+                              className={`text-right font-mono ${riggPrekludert ? 'line-through text-gray-400' : ''}`}
+                            >
+                              {riggBelop?.toLocaleString('nb-NO') || 0}
+                            </td>
+                            <td className="text-right font-mono">
+                              {riggPrekludert
+                                ? 0
+                                : formValues.rigg_vurdering === 'godkjent'
+                                  ? riggBelop?.toLocaleString('nb-NO') || 0
+                                  : formValues.rigg_vurdering === 'delvis'
+                                    ? formValues.rigg_godkjent_belop?.toLocaleString('nb-NO') || 0
+                                    : 0}
+                            </td>
+                            <td className="text-right">
+                              {riggPrekludert ? (
+                                <Badge variant="danger">Prekludert</Badge>
+                              ) : formValues.rigg_vurdering === 'godkjent' ? (
+                                <Badge variant="success">Godkjent</Badge>
+                              ) : formValues.rigg_vurdering === 'delvis' ? (
+                                <Badge variant="warning">Delvis</Badge>
+                              ) : (
+                                <Badge variant="danger">Avvist</Badge>
+                              )}
+                            </td>
+                          </tr>
+                          {/* Subsidiary row for precluded rigg */}
+                          {riggPrekludert && (
+                            <tr className="border-b border-pkt-border-subtle bg-amber-50">
+                              <td className="py-2 text-amber-800 italic">
+                                ↳ Subsidiært
+                              </td>
+                              <td className="text-right font-mono text-amber-700">
+                                ({riggBelop?.toLocaleString('nb-NO') || 0})
+                              </td>
+                              <td className="text-right font-mono text-amber-700">
+                                {formValues.rigg_vurdering === 'godkjent'
+                                  ? riggBelop?.toLocaleString('nb-NO') || 0
+                                  : formValues.rigg_vurdering === 'delvis'
+                                    ? formValues.rigg_godkjent_belop?.toLocaleString('nb-NO') || 0
+                                    : 0}
+                              </td>
+                              <td className="text-right">
+                                {formValues.rigg_vurdering === 'godkjent' ? (
+                                  <Badge variant="success">Godkjent</Badge>
+                                ) : formValues.rigg_vurdering === 'delvis' ? (
+                                  <Badge variant="warning">Delvis</Badge>
+                                ) : (
+                                  <Badge variant="danger">Avvist</Badge>
+                                )}
+                              </td>
+                            </tr>
+                          )}
+                        </>
                       )}
 
                       {/* Produktivitet */}
                       {harProduktivitetKrav && (
-                        <tr className="border-b border-pkt-border-subtle">
-                          <td className="py-2">Produktivitet</td>
-                          <td
-                            className={`text-right font-mono ${produktivitetPrekludert ? 'line-through text-gray-400' : ''}`}
-                          >
-                            {produktivitetBelop?.toLocaleString('nb-NO') || 0}
-                          </td>
-                          <td className="text-right font-mono">
-                            {produktivitetPrekludert
-                              ? 0
-                              : formValues.produktivitet_vurdering === 'godkjent'
-                                ? produktivitetBelop?.toLocaleString('nb-NO') || 0
-                                : formValues.produktivitet_vurdering === 'delvis'
-                                  ? formValues.produktivitet_godkjent_belop?.toLocaleString(
-                                      'nb-NO'
-                                    ) || 0
-                                  : 0}
-                          </td>
-                          <td className="text-right">
-                            {produktivitetPrekludert ? (
-                              <Badge variant="danger">Prekludert</Badge>
-                            ) : formValues.produktivitet_vurdering === 'godkjent' ? (
-                              <Badge variant="success">Godkjent</Badge>
-                            ) : formValues.produktivitet_vurdering === 'delvis' ? (
-                              <Badge variant="warning">Delvis</Badge>
-                            ) : (
-                              <Badge variant="danger">Avvist</Badge>
-                            )}
-                          </td>
-                        </tr>
+                        <>
+                          <tr className="border-b border-pkt-border-subtle">
+                            <td className="py-2">
+                              Produktivitet
+                              {produktivitetPrekludert && (
+                                <span className="text-xs text-gray-500 ml-1">(prinsipalt)</span>
+                              )}
+                            </td>
+                            <td
+                              className={`text-right font-mono ${produktivitetPrekludert ? 'line-through text-gray-400' : ''}`}
+                            >
+                              {produktivitetBelop?.toLocaleString('nb-NO') || 0}
+                            </td>
+                            <td className="text-right font-mono">
+                              {produktivitetPrekludert
+                                ? 0
+                                : formValues.produktivitet_vurdering === 'godkjent'
+                                  ? produktivitetBelop?.toLocaleString('nb-NO') || 0
+                                  : formValues.produktivitet_vurdering === 'delvis'
+                                    ? formValues.produktivitet_godkjent_belop?.toLocaleString(
+                                        'nb-NO'
+                                      ) || 0
+                                    : 0}
+                            </td>
+                            <td className="text-right">
+                              {produktivitetPrekludert ? (
+                                <Badge variant="danger">Prekludert</Badge>
+                              ) : formValues.produktivitet_vurdering === 'godkjent' ? (
+                                <Badge variant="success">Godkjent</Badge>
+                              ) : formValues.produktivitet_vurdering === 'delvis' ? (
+                                <Badge variant="warning">Delvis</Badge>
+                              ) : (
+                                <Badge variant="danger">Avvist</Badge>
+                              )}
+                            </td>
+                          </tr>
+                          {/* Subsidiary row for precluded produktivitet */}
+                          {produktivitetPrekludert && (
+                            <tr className="border-b border-pkt-border-subtle bg-amber-50">
+                              <td className="py-2 text-amber-800 italic">
+                                ↳ Subsidiært
+                              </td>
+                              <td className="text-right font-mono text-amber-700">
+                                ({produktivitetBelop?.toLocaleString('nb-NO') || 0})
+                              </td>
+                              <td className="text-right font-mono text-amber-700">
+                                {formValues.produktivitet_vurdering === 'godkjent'
+                                  ? produktivitetBelop?.toLocaleString('nb-NO') || 0
+                                  : formValues.produktivitet_vurdering === 'delvis'
+                                    ? formValues.produktivitet_godkjent_belop?.toLocaleString(
+                                        'nb-NO'
+                                      ) || 0
+                                    : 0}
+                              </td>
+                              <td className="text-right">
+                                {formValues.produktivitet_vurdering === 'godkjent' ? (
+                                  <Badge variant="success">Godkjent</Badge>
+                                ) : formValues.produktivitet_vurdering === 'delvis' ? (
+                                  <Badge variant="warning">Delvis</Badge>
+                                ) : (
+                                  <Badge variant="danger">Avvist</Badge>
+                                )}
+                              </td>
+                            </tr>
+                          )}
+                        </>
                       )}
 
                       {/* Totalt */}
@@ -1189,16 +1376,41 @@ export function RespondVederlagModal({
                   </table>
                 </div>
 
-                {/* Automatisk beregnet resultat */}
+                {/* Automatisk beregnet resultat - Prinsipalt */}
                 <div className="p-4 bg-pkt-surface-strong-dark-blue text-white rounded-none">
                   <h5 className="font-medium text-sm mb-2 opacity-80">
-                    AUTOMATISK BEREGNET RESULTAT
+                    {visSubsidiaertResultat ? 'PRINSIPALT RESULTAT' : 'AUTOMATISK BEREGNET RESULTAT'}
                   </h5>
-                  <div className="text-xl font-bold">{getResultatLabel(automatiskResultat)}</div>
+                  <div className="text-xl font-bold">{getResultatLabel(prinsipaltResultat)}</div>
                   <div className="mt-2 text-lg font-mono">
                     Samlet godkjent: kr {computed.totalGodkjent.toLocaleString('nb-NO')},-
                   </div>
                 </div>
+
+                {/* Subsidiært resultat - kun når særskilte krav er prekludert */}
+                {visSubsidiaertResultat && (
+                  <div className="p-4 bg-amber-100 border-2 border-amber-400 rounded-none">
+                    <h5 className="font-medium text-sm mb-2 text-amber-800">
+                      SUBSIDIÆRT RESULTAT
+                    </h5>
+                    <p className="text-sm text-amber-700 mb-3">
+                      Dersom de prekluderte særskilte kravene hadde vært varslet i tide:
+                    </p>
+                    <div className="text-xl font-bold text-amber-900">
+                      {getResultatLabel(subsidiaertResultat)}
+                    </div>
+                    <div className="mt-2 text-lg font-mono text-amber-900">
+                      Samlet godkjent (inkl. subsidiært):{' '}
+                      kr {computed.totalGodkjentInklPrekludert.toLocaleString('nb-NO')},-
+                    </div>
+                    <p className="text-sm text-amber-800 mt-3 italic">
+                      &ldquo;Byggherren er etter dette uenig i kravet, og kan dessuten under ingen
+                      omstendigheter se at mer enn kr{' '}
+                      {computed.totalGodkjentInklPrekludert.toLocaleString('nb-NO')},- er berettiget
+                      å kreve.&rdquo;
+                    </p>
+                  </div>
+                )}
 
                 {/* Samlet begrunnelse */}
                 <FormField
