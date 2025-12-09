@@ -6,6 +6,7 @@
 > **Status**: Klar for implementering
 > **Prioritet**: Høy
 > **Estimert omfang**: Backend + Frontend endringer
+> **Sist oppdatert**: 2025-12-09 (QA-gjennomgang)
 
 ---
 
@@ -262,62 +263,106 @@ NY MÅTE:
   → Full informasjon om både prinsipal og subsidiær vurdering
 ```
 
-### Anbefaling: Forenkle BeregningResultat
+### Anbefaling: Forenkle til tre hovedkategorier
+
+Den beste løsningen er å forenkle statuskodene til tre hovedkategorier som speiler juridisk praksis:
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                  FORENKLET STATUSKODE-MODELL                            │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  HOVEDKATEGORIER (prinsipal vurdering):                                 │
+│  ───────────────────────────────────────                                │
+│  GODKJENT       = BH aksepterer kravet fullt ut                         │
+│  DELVIS_GODKJENT = BH aksepterer deler av kravet                        │
+│  AVSLATT        = BH avviser kravet                                     │
+│                                                                         │
+│  SPESIALSTATUSER (midlertidige tilstander):                             │
+│  ───────────────────────────────────────────                            │
+│  AVVENTER       = BH trenger mer dokumentasjon                          │
+│  HOLD_TILBAKE   = §30.2 tilbakeholdelse (kun vederlag)                  │
+│                                                                         │
+│  SUBSIDIÆR MARKERING:                                                   │
+│  ────────────────────                                                   │
+│  Hvis grunnlag er avvist → Hele vurderingen er subsidiær                │
+│  Hvis preklusjon/vilkår → Deler av vurderingen er subsidiær             │
+│                                                                         │
+│  Årsaken til avslag fanges av `subsidiaer_triggers`:                    │
+│  - "preklusjon_rigg", "preklusjon_noytralt", "ingen_hindring" etc.      │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
 
 **Forslag for VederlagBeregningResultat:**
 
 ```python
 class VederlagBeregningResultat(str, Enum):
-    """Resultat av vederlagsvurdering (prinsipal)"""
-    GODKJENT_FULLT = "godkjent_fullt"
-    DELVIS_GODKJENT = "delvis_godkjent"
-    GODKJENT_ANNEN_METODE = "godkjent_annen_metode"
-    AVVENTER_SPESIFIKASJON = "avventer_spesifikasjon"
-    AVSLATT = "avslatt"  # Erstatter AVSLATT_TOTALT og AVVIST_PREKLUSJON_RIGG
-    HOLD_TILBAKE = "hold_tilbake"
+    """Resultat av vederlagsvurdering - forenklet til tre hovedkategorier"""
+    # Hovedkategorier
+    GODKJENT = "godkjent"              # BH aksepterer kravet
+    DELVIS_GODKJENT = "delvis_godkjent"  # BH aksepterer deler (f.eks. bestrider metode)
+    AVSLATT = "avslatt"                # BH avviser kravet
+
+    # Spesialstatuser (midlertidige)
+    AVVENTER = "avventer"              # BH trenger mer dokumentasjon
+    HOLD_TILBAKE = "hold_tilbake"      # §30.2 tilbakeholdelse
 ```
 
 **Forslag for FristBeregningResultat:**
 
 ```python
 class FristBeregningResultat(str, Enum):
-    """Resultat av fristberegning (prinsipal)"""
-    GODKJENT_FULLT = "godkjent_fullt"
-    DELVIS_GODKJENT = "delvis_godkjent"
-    AVVENTER_SPESIFIKASJON = "avventer_spesifikasjon"
-    AVSLATT = "avslatt"  # Erstatter AVSLATT_INGEN_HINDRING
+    """Resultat av fristberegning - forenklet til tre hovedkategorier"""
+    # Hovedkategorier
+    GODKJENT = "godkjent"              # BH aksepterer kravet
+    DELVIS_GODKJENT = "delvis_godkjent"  # BH aksepterer deler
+    AVSLATT = "avslatt"                # BH avviser kravet
+
+    # Spesialstatus (midlertidig)
+    AVVENTER = "avventer"              # BH trenger mer dokumentasjon
 ```
 
-**Hvorfor forenkle:**
+**Hvorfor tre hovedkategorier:**
 
-1. **Årsaken til avslag fanges av `subsidiaer_triggers`** - Vi trenger ikke egne statuskoder per årsak
-2. **Reduserer kompleksitet** - Færre koder å håndtere i frontend og rapporter
-3. **Mer konsistent** - Samme mønster for vederlag og frist
-4. **Bakoverkompatibel** - Gamle koder kan mappes til nye
+1. **Speiler juridisk praksis** - BH sier enten ja, delvis ja, eller nei
+2. **Årsaken fanges av triggere** - `subsidiaer_triggers` forklarer hvorfor
+3. **Enklere for brukere** - Lett å forstå statusen
+4. **Subsidiært som tag** - Hvis grunnlag er avvist, vises "Subsidiært" som badge
 
 ### Migreringsplan for statuskoder
 
-**Fase 1: Legg til nye koder (bakoverkompatibelt)**
+**Fase 1: Legg til nye forenklede koder (bakoverkompatibelt)**
 
 ```python
 class VederlagBeregningResultat(str, Enum):
-    # Eksisterende (beholdes for bakoverkompatibilitet)
-    GODKJENT_FULLT = "godkjent_fullt"
+    """Forenklet modell med bakoverkompatibilitet"""
+    # NYE forenklede koder (bruk disse fremover)
+    GODKJENT = "godkjent"
     DELVIS_GODKJENT = "delvis_godkjent"
-    GODKJENT_ANNEN_METODE = "godkjent_annen_metode"
-    AVVENTER_SPESIFIKASJON = "avventer_spesifikasjon"
-    AVSLATT_TOTALT = "avslatt_totalt"
+    AVSLATT = "avslatt"
+    AVVENTER = "avventer"
     HOLD_TILBAKE = "hold_tilbake"
-    AVVIST_PREKLUSJON_RIGG = "avvist_preklusjon_rigg"  # Deprecated
 
-    # Ny generisk avslags-kode
-    AVSLATT = "avslatt"  # Bruk denne fremover
+    # DEPRECATED - beholdes kun for eksisterende data
+    GODKJENT_FULLT = "godkjent_fullt"              # → bruk GODKJENT
+    GODKJENT_ANNEN_METODE = "godkjent_annen_metode"  # → bruk DELVIS_GODKJENT
+    AVVENTER_SPESIFIKASJON = "avventer_spesifikasjon"  # → bruk AVVENTER
+    AVSLATT_TOTALT = "avslatt_totalt"              # → bruk AVSLATT
+    AVVIST_PREKLUSJON_RIGG = "avvist_preklusjon_rigg"  # → bruk AVSLATT + trigger
 ```
 
 **Fase 2: Oppdater frontend til å bruke nye koder**
 
-- Nye responser bruker `AVSLATT` + `subsidiaer_triggers`
-- Frontend behandler `AVVIST_PREKLUSJON_RIGG` og `AVSLATT` likt for visning
+- Nye responser bruker `GODKJENT`, `DELVIS_GODKJENT`, `AVSLATT` + `subsidiaer_triggers`
+- Frontend mapper gamle koder til nye for visning:
+  ```typescript
+  const mapToSimplified = (code: string): 'godkjent' | 'delvis_godkjent' | 'avslatt' => {
+    if (['godkjent', 'godkjent_fullt'].includes(code)) return 'godkjent';
+    if (['delvis_godkjent', 'godkjent_annen_metode'].includes(code)) return 'delvis_godkjent';
+    return 'avslatt';  // alt annet er avslag
+  };
+  ```
 
 **Fase 3: (Fremtidig) Fjern deprecated koder**
 
@@ -1023,48 +1068,64 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
 
 ---
 
-### Oppgave 7: Backend - Oppdater BeregningResultat enums
+### Oppgave 7: Backend - Forenkle BeregningResultat enums
 
 **Fil**: `backend/models/events.py`
 
 **Endringer**:
-1. Legg til `AVSLATT` i `VederlagBeregningResultat` (linje ~83)
-2. Legg til `AVSLATT` i `FristBeregningResultat` (linje ~104)
-3. Legg til kommentar om deprecated koder
+1. Forenkle `VederlagBeregningResultat` til 3 hovedkategorier (linje 83-92)
+2. Forenkle `FristBeregningResultat` til 3 hovedkategorier (linje 104-110)
+3. Behold gamle koder som deprecated for bakoverkompatibilitet
 
 **Kode for VederlagBeregningResultat** (oppdater linje 83-92):
 
 ```python
 class VederlagBeregningResultat(str, Enum):
-    """Resultat av beregningsvurdering (Port 2 - ren utmåling)"""
-    GODKJENT_FULLT = "godkjent_fullt"
-    DELVIS_GODKJENT = "delvis_godkjent"
-    GODKJENT_ANNEN_METODE = "godkjent_annen_metode"
-    AVVENTER_SPESIFIKASJON = "avventer_spesifikasjon"
-    HOLD_TILBAKE = "hold_tilbake"
+    """
+    Resultat av vederlagsvurdering - forenklet til tre hovedkategorier.
 
-    # Generisk avslag (bruk sammen med subsidiaer_triggers for detaljer)
-    AVSLATT = "avslatt"
+    Årsaken til avslag fanges av `subsidiaer_triggers` i stedet for
+    granulære statuskoder.
+    """
+    # Hovedkategorier (bruk disse fremover)
+    GODKJENT = "godkjent"              # BH aksepterer kravet
+    DELVIS_GODKJENT = "delvis_godkjent"  # BH aksepterer deler
+    AVSLATT = "avslatt"                # BH avviser kravet
 
-    # Deprecated - bruk AVSLATT + subsidiaer_triggers i stedet
-    AVSLATT_TOTALT = "avslatt_totalt"  # @deprecated
-    AVVIST_PREKLUSJON_RIGG = "avvist_preklusjon_rigg"  # @deprecated
+    # Spesialstatuser
+    AVVENTER = "avventer"              # BH trenger mer dokumentasjon
+    HOLD_TILBAKE = "hold_tilbake"      # §30.2 tilbakeholdelse
+
+    # DEPRECATED - beholdes for bakoverkompatibilitet
+    GODKJENT_FULLT = "godkjent_fullt"  # @deprecated → bruk GODKJENT
+    GODKJENT_ANNEN_METODE = "godkjent_annen_metode"  # @deprecated → bruk DELVIS_GODKJENT
+    AVVENTER_SPESIFIKASJON = "avventer_spesifikasjon"  # @deprecated → bruk AVVENTER
+    AVSLATT_TOTALT = "avslatt_totalt"  # @deprecated → bruk AVSLATT
+    AVVIST_PREKLUSJON_RIGG = "avvist_preklusjon_rigg"  # @deprecated → bruk AVSLATT + trigger
 ```
 
 **Kode for FristBeregningResultat** (oppdater linje 104-110):
 
 ```python
 class FristBeregningResultat(str, Enum):
-    """Resultat av fristberegning (Port 3 - ren utmåling)"""
-    GODKJENT_FULLT = "godkjent_fullt"
-    DELVIS_GODKJENT = "delvis_godkjent"
-    AVVENTER_SPESIFIKASJON = "avventer_spesifikasjon"
+    """
+    Resultat av fristberegning - forenklet til tre hovedkategorier.
 
-    # Generisk avslag (bruk sammen med subsidiaer_triggers for detaljer)
-    AVSLATT = "avslatt"
+    Årsaken til avslag fanges av `subsidiaer_triggers` i stedet for
+    granulære statuskoder.
+    """
+    # Hovedkategorier (bruk disse fremover)
+    GODKJENT = "godkjent"              # BH aksepterer kravet
+    DELVIS_GODKJENT = "delvis_godkjent"  # BH aksepterer deler
+    AVSLATT = "avslatt"                # BH avviser kravet
 
-    # Deprecated - bruk AVSLATT + subsidiaer_triggers i stedet
-    AVSLATT_INGEN_HINDRING = "avslatt_ingen_hindring"  # @deprecated
+    # Spesialstatus
+    AVVENTER = "avventer"              # BH trenger mer dokumentasjon
+
+    # DEPRECATED - beholdes for bakoverkompatibilitet
+    GODKJENT_FULLT = "godkjent_fullt"  # @deprecated → bruk GODKJENT
+    AVVENTER_SPESIFIKASJON = "avventer_spesifikasjon"  # @deprecated → bruk AVVENTER
+    AVSLATT_INGEN_HINDRING = "avslatt_ingen_hindring"  # @deprecated → bruk AVSLATT + trigger
 ```
 
 ---
@@ -1138,29 +1199,111 @@ class FristBeregningResultat(str, Enum):
 
 **Fil**: `backend/services/timeline_service.py`
 
-**Endringer**: Oppdater `_apply_respons_vederlag()` og `_apply_respons_frist()` for å kopiere subsidiære felt til tilstand.
+**Endringer**: Oppdater `_handle_respons_vederlag()` (linje 305-347) og `_handle_respons_frist()` (linje 349-401) for å kopiere subsidiære felt til tilstand.
 
-**Eksempel for vederlag** (i `_apply_respons_vederlag`, ca. linje 350):
+**Eksempel for vederlag** (i `_handle_respons_vederlag`, linje 305-347):
 
 ```python
-def _apply_respons_vederlag(self, state: SakState, event: VederlagResponsEvent) -> None:
-    """Appliser BH respons på vederlag"""
-    data = event.data
+def _handle_respons_vederlag(self, state: SakState, event: ResponsEvent) -> SakState:
+    """Håndterer RESPONS_VEDERLAG fra BH"""
+    vederlag = state.vederlag
 
-    # ... eksisterende kode for prinsipalt resultat ...
+    # ... eksisterende kode for prinsipalt resultat (linje 313-344) ...
 
-    # Subsidiært standpunkt (NYE linjer)
-    if data.subsidiaer_triggers:
-        state.vederlag.subsidiaer_triggers = [t.value for t in data.subsidiaer_triggers]
-    if data.subsidiaer_resultat:
-        state.vederlag.subsidiaer_resultat = data.subsidiaer_resultat
-    if data.subsidiaer_godkjent_belop is not None:
-        state.vederlag.subsidiaer_godkjent_belop = data.subsidiaer_godkjent_belop
-    if data.subsidiaer_begrunnelse:
-        state.vederlag.subsidiaer_begrunnelse = data.subsidiaer_begrunnelse
+    # Subsidiært standpunkt (NYE linjer - legg til før metadata)
+    if hasattr(event.data, 'subsidiaer_triggers') and event.data.subsidiaer_triggers:
+        vederlag.subsidiaer_triggers = [t.value if hasattr(t, 'value') else t for t in event.data.subsidiaer_triggers]
+    if hasattr(event.data, 'subsidiaer_resultat') and event.data.subsidiaer_resultat:
+        vederlag.subsidiaer_resultat = event.data.subsidiaer_resultat
+    if hasattr(event.data, 'subsidiaer_godkjent_belop') and event.data.subsidiaer_godkjent_belop is not None:
+        vederlag.subsidiaer_godkjent_belop = event.data.subsidiaer_godkjent_belop
+    if hasattr(event.data, 'subsidiaer_begrunnelse') and event.data.subsidiaer_begrunnelse:
+        vederlag.subsidiaer_begrunnelse = event.data.subsidiaer_begrunnelse
+
+    # Metadata
+    vederlag.siste_event_id = event.event_id
+    vederlag.siste_oppdatert = event.tidsstempel
+
+    state.vederlag = vederlag
+    return state
 ```
 
-**Tilsvarende for `_apply_respons_frist()`.**
+**Tilsvarende for `_handle_respons_frist()` (linje 349-401).**
+
+---
+
+### Oppgave 10: Navnesynkronisering frontend ↔ backend
+
+**Problem**: Frontend bruker `subsidiaert_*` (norsk bøyning), mens planen foreslår `subsidiaer_*`.
+
+**Fil**: `src/components/actions/RespondVederlagModal.tsx` og `RespondFristModal.tsx`
+
+**Nåværende kode** (linje 539-542 i RespondVederlagModal):
+```typescript
+// Eksisterende navngivning:
+subsidiaert_resultat: visSubsidiaertResultat ? subsidiaertResultat : undefined,
+subsidiaert_godkjent_belop: visSubsidiaertResultat ? computed.totalGodkjentInklPrekludert : undefined,
+```
+
+**Anbefalt løsning**: Bruk `subsidiaer_*` konsekvent i hele kodebasen:
+
+```typescript
+// Synkronisert med backend:
+subsidiaer_triggers: triggers.length > 0 ? triggers : undefined,
+subsidiaer_resultat: visSubsidiaertResultat ? subsidiaertResultat : undefined,
+subsidiaer_godkjent_belop: visSubsidiaertResultat ? computed.totalGodkjentInklPrekludert : undefined,
+subsidiaer_begrunnelse: visSubsidiaertResultat ? data.begrunnelse_samlet : undefined,
+```
+
+---
+
+### Oppgave 11: Frontend - Oppdater TypeScript typer for forenklede statuskoder
+
+**Fil**: `src/types/timeline.ts`
+
+**Endringer**: Oppdater TypeScript-typene til å reflektere den forenklede modellen:
+
+```typescript
+// Forenklet VederlagBeregningResultat (linje 32-39)
+export type VederlagBeregningResultat =
+  | 'godkjent'           // BH aksepterer kravet
+  | 'delvis_godkjent'    // BH aksepterer deler
+  | 'avslatt'            // BH avviser kravet
+  | 'avventer'           // BH trenger mer dokumentasjon
+  | 'hold_tilbake'       // §30.2 tilbakeholdelse
+  // Deprecated (beholdes for eksisterende data)
+  | 'godkjent_fullt'
+  | 'godkjent_annen_metode'
+  | 'avventer_spesifikasjon'
+  | 'avslatt_totalt'
+  | 'avvist_preklusjon_rigg';
+
+// Forenklet FristBeregningResultat (linje 49-53)
+export type FristBeregningResultat =
+  | 'godkjent'           // BH aksepterer kravet
+  | 'delvis_godkjent'    // BH aksepterer deler
+  | 'avslatt'            // BH avviser kravet
+  | 'avventer'           // BH trenger mer dokumentasjon
+  // Deprecated (beholdes for eksisterende data)
+  | 'godkjent_fullt'
+  | 'avventer_spesifikasjon'
+  | 'avslatt_ingen_hindring';
+```
+
+**Legg til mapper-funksjon** for visning:
+
+```typescript
+// src/utils/statusMapper.ts
+export const mapToSimplifiedStatus = (
+  code: VederlagBeregningResultat | FristBeregningResultat
+): 'godkjent' | 'delvis_godkjent' | 'avslatt' | 'avventer' | 'hold_tilbake' => {
+  if (['godkjent', 'godkjent_fullt'].includes(code)) return 'godkjent';
+  if (['delvis_godkjent', 'godkjent_annen_metode'].includes(code)) return 'delvis_godkjent';
+  if (['avventer', 'avventer_spesifikasjon'].includes(code)) return 'avventer';
+  if (code === 'hold_tilbake') return 'hold_tilbake';
+  return 'avslatt';
+};
+```
 
 ---
 
@@ -1358,35 +1501,39 @@ describe('EventDetailModal - Subsidiært standpunkt', () => {
 
 ## Filreferanser
 
+> **Merk**: Linjereferanser er verifisert per 2025-12-09
+
 ### Backend - Datamodell
 
 | Fil | Linjer | Endring |
 |-----|--------|---------|
-| `backend/models/events.py` | ~110 | Legg til `SubsidiaerTrigger` enum |
-| `backend/models/events.py` | 83-92 | Oppdater `VederlagBeregningResultat` (legg til AVSLATT) |
-| `backend/models/events.py` | 104-110 | Oppdater `FristBeregningResultat` (legg til AVSLATT) |
-| `backend/models/events.py` | 635-716 | Oppdater `VederlagResponsData` |
-| `backend/models/events.py` | 718-815 | Oppdater `FristResponsData` |
+| `backend/models/events.py` | etter 110 | Legg til `SubsidiaerTrigger` enum (etter `FristBeregningResultat`) |
+| `backend/models/events.py` | 83-92 | Forenkle `VederlagBeregningResultat` til 3 hovedkategorier |
+| `backend/models/events.py` | 104-110 | Forenkle `FristBeregningResultat` til 3 hovedkategorier |
+| `backend/models/events.py` | 635-716 | Oppdater `VederlagResponsData` med subsidiære felt |
+| `backend/models/events.py` | 718-833 | Oppdater `FristResponsData` med subsidiære felt |
 
 ### Backend - SakState og Services
 
 | Fil | Linjer | Endring |
 |-----|--------|---------|
-| `backend/models/sak_state.py` | 69-167 | Oppdater `VederlagTilstand` med subsidiære felt |
-| `backend/models/sak_state.py` | 198-263 | Oppdater `FristTilstand` med subsidiære felt |
-| `backend/services/timeline_service.py` | ~350 | Oppdater `_apply_respons_vederlag()` |
-| `backend/services/timeline_service.py` | ~400 | Oppdater `_apply_respons_frist()` |
+| `backend/models/sak_state.py` | 69-168 | Oppdater `VederlagTilstand` med subsidiære felt |
+| `backend/models/sak_state.py` | 198-264 | Oppdater `FristTilstand` med subsidiære felt |
+| `backend/services/timeline_service.py` | 305-347 | Oppdater `_handle_respons_vederlag()` |
+| `backend/services/timeline_service.py` | 349-401 | Oppdater `_handle_respons_frist()` |
 
 ### Frontend
 
 | Fil | Linjer | Endring |
 |-----|--------|---------|
-| `src/types/timeline.ts` | ~63 | Legg til `SubsidiaerTrigger` type |
+| `src/types/timeline.ts` | etter 63 | Legg til `SubsidiaerTrigger` type |
+| `src/types/timeline.ts` | 32-39 | Forenkle `VederlagBeregningResultat` |
+| `src/types/timeline.ts` | 49-53 | Forenkle `FristBeregningResultat` |
 | `src/types/timeline.ts` | 329-343 | Oppdater `ResponsVederlagEventData` |
 | `src/types/timeline.ts` | 346-363 | Oppdater `ResponsFristEventData` |
-| `src/components/actions/RespondVederlagModal.tsx` | 482-545 | Oppdater `onSubmit` |
-| `src/components/actions/RespondFristModal.tsx` | 367-401 | Oppdater `onSubmit` |
-| `src/components/views/EventDetailModal.tsx` | ~179, ~467, ~574 | Legg til subsidiær visning |
+| `src/components/actions/RespondVederlagModal.tsx` | 482-545 | Oppdater `onSubmit` + synkroniser feltnavn |
+| `src/components/actions/RespondFristModal.tsx` | 367-401 | Oppdater `onSubmit` + synkroniser feltnavn |
+| `src/components/views/EventDetailModal.tsx` | diverse | Legg til subsidiær visning |
 
 ---
 
@@ -1398,27 +1545,31 @@ describe('EventDetailModal - Subsidiært standpunkt', () => {
 - [ ] **Backend**: Oppdater `FristResponsData` med subsidiære felt
 - [ ] **Backend**: Verifiser bakoverkompatibilitet med eksisterende data
 
-### Oppgave 4-5: Frontend typer og modaler
-- [ ] **Frontend**: Legg til `SubsidiaerTrigger` type i `timeline.ts`
-- [ ] **Frontend**: Oppdater `ResponsVederlagEventData` interface
-- [ ] **Frontend**: Oppdater `ResponsFristEventData` interface
-- [ ] **Frontend**: Oppdater `RespondVederlagModal` submit handler
-- [ ] **Frontend**: Oppdater `RespondFristModal` submit handler
-- [ ] **Frontend**: Legg til subsidiær visning i `EventDetailModal`
-
-### Oppgave 7: Statuskoder (BeregningResultat enums)
-- [ ] **Backend**: Legg til `AVSLATT` i `VederlagBeregningResultat`
-- [ ] **Backend**: Legg til `AVSLATT` i `FristBeregningResultat`
-- [ ] **Backend**: Marker deprecated koder med kommentarer
-- [ ] **Frontend**: Oppdater TypeScript typer for nye statuskoder
+### Oppgave 7: Forenkle BeregningResultat enums
+- [ ] **Backend**: Forenkle `VederlagBeregningResultat` til 3 hovedkategorier
+- [ ] **Backend**: Forenkle `FristBeregningResultat` til 3 hovedkategorier
+- [ ] **Backend**: Behold deprecated koder for bakoverkompatibilitet
 
 ### Oppgave 8-9: SakState og TimelineService
 - [ ] **Backend**: Legg til subsidiære felt i `VederlagTilstand` (sak_state.py)
 - [ ] **Backend**: Legg til subsidiære felt i `FristTilstand` (sak_state.py)
 - [ ] **Backend**: Legg til `har_subsidiaert_standpunkt` computed field
 - [ ] **Backend**: Legg til `visningsstatus` computed field
-- [ ] **Backend**: Oppdater `_apply_respons_vederlag()` i TimelineService
-- [ ] **Backend**: Oppdater `_apply_respons_frist()` i TimelineService
+- [ ] **Backend**: Oppdater `_handle_respons_vederlag()` i TimelineService
+- [ ] **Backend**: Oppdater `_handle_respons_frist()` i TimelineService
+
+### Oppgave 10-11: Frontend navnesynkronisering og typer
+- [ ] **Frontend**: Synkroniser feltnavn (`subsidiaer_*` konsekvent)
+- [ ] **Frontend**: Oppdater TypeScript typer for forenklede statuskoder
+- [ ] **Frontend**: Legg til `mapToSimplifiedStatus()` hjelpefunksjon
+
+### Oppgave 4-5: Frontend modaler og visning
+- [ ] **Frontend**: Legg til `SubsidiaerTrigger` type i `timeline.ts`
+- [ ] **Frontend**: Oppdater `ResponsVederlagEventData` interface
+- [ ] **Frontend**: Oppdater `ResponsFristEventData` interface
+- [ ] **Frontend**: Oppdater `RespondVederlagModal` submit handler
+- [ ] **Frontend**: Oppdater `RespondFristModal` submit handler
+- [ ] **Frontend**: Legg til subsidiær visning i `EventDetailModal`
 
 ### Testing
 - [ ] **Test**: Kjør eksisterende backend-tester
@@ -1427,17 +1578,19 @@ describe('EventDetailModal - Subsidiært standpunkt', () => {
 - [ ] **Test**: Verifiser at data lagres i JSON-fil
 - [ ] **Test**: Verifiser at EventDetailModal viser subsidiært korrekt
 - [ ] **Test**: Verifiser at SakState.visningsstatus fungerer
+- [ ] **Test**: Verifiser at mapper-funksjon håndterer deprecated koder
 
 ### Prioritert rekkefølge
 
-1. **Først**: Oppgave 1-3 (datamodell) + Oppgave 7 (statuskoder)
+1. **Først**: Oppgave 1-3 (datamodell) + Oppgave 7 (forenkle statuskoder)
 2. **Deretter**: Oppgave 8-9 (SakState + TimelineService)
-3. **Så**: Oppgave 4-5 (frontend)
-4. **Til slutt**: Testing
+3. **Så**: Oppgave 10-11 (frontend synkronisering + typer)
+4. **Så**: Oppgave 4-5 (frontend modaler)
+5. **Til slutt**: Testing
 
 ---
 
 *Dokument opprettet: 2025-12-09*
-*Sist oppdatert: 2025-12-09*
+*Sist oppdatert: 2025-12-09 (QA-gjennomgang: korrigerte linjereferanser, forenklet statuskoder, lagt til oppgave 10-11)*
 *Forfatter: Claude (LLM Assistant)*
 *Kontekst: Analyse og implementeringsplan for subsidiær standpunkt-lagring*
