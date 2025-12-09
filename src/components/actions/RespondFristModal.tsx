@@ -6,9 +6,12 @@
  *
  * WIZARD STRUCTURE:
  * - Port 1: Preklusjon (§33.4, §33.6) - Evaluate if TE notified in time
- * - Port 2: Vilkår (§33.5) - Evaluate if there was actual hindrance
- * - Port 3: Beregning - Calculate days (only if not precluded and has hindrance)
- * - Port 4: Oppsummering - Summary with auto-calculated result
+ * - Port 2: Vilkår (§33.5) - Evaluate if there was actual hindrance (subsidiært if prekludert)
+ * - Port 3: Beregning - Calculate days (subsidiært if prekludert or no hindrance)
+ * - Port 4: Oppsummering - Summary with principal AND subsidiary results
+ *
+ * IMPORTANT: BH must ALWAYS be able to take subsidiary position on all conditions.
+ * Even if precluded, BH evaluates hindrance and days subsidiarily.
  *
  * KEY RULES (from Datasett_varslingsregler_8407.py):
  * - §33.4: TE must notify "uten ugrunnet opphold" when hindrance occurs - PRECLUSION if late
@@ -19,9 +22,8 @@
  *
  * UPDATED (2025-12-09):
  * - Complete rewrite with 4-port wizard
- * - Automatic result calculation based on port inputs
- * - Port logic connection (preklusjon → vilkår → beregning)
- * - Summary table with krevd vs godkjent
+ * - Subsidiary evaluation always available for all ports
+ * - Principal AND subsidiary results shown in summary
  */
 
 import { useState, useMemo, useCallback } from 'react';
@@ -85,12 +87,12 @@ const respondFristSchema = z.object({
   frist_for_spesifisering: z.string().optional(),
   begrunnelse_preklusjon: z.string().optional(),
 
-  // Port 2: Vilkår
+  // Port 2: Vilkår (alltid vurderes, evt. subsidiært)
   vilkar_oppfylt: z.boolean(),
   begrunnelse_vilkar: z.string().optional(),
 
-  // Port 3: Beregning
-  godkjent_dager: z.number().min(0, 'Antall dager kan ikke være negativt').optional(),
+  // Port 3: Beregning (alltid vurderes, evt. subsidiært)
+  godkjent_dager: z.number().min(0, 'Antall dager kan ikke være negativt'),
   ny_sluttdato: z.string().optional(),
   begrunnelse_beregning: z.string().optional(),
 
@@ -105,18 +107,15 @@ type RespondFristFormData = z.infer<typeof respondFristSchema>;
 // ============================================================================
 
 /**
- * Calculate automatic result based on wizard inputs
- * Following NS 8407 logic from Datasett_varslingsregler_8407.py
+ * Calculate principal result based on wizard inputs
  */
-function beregnFristResultat(
-  data: {
-    erPrekludert: boolean;
-    sendEtterlysning: boolean;
-    harHindring: boolean;
-    krevdDager: number;
-    godkjentDager: number;
-  }
-): string {
+function beregnPrinsipaltResultat(data: {
+  erPrekludert: boolean;
+  sendEtterlysning: boolean;
+  harHindring: boolean;
+  krevdDager: number;
+  godkjentDager: number;
+}): string {
   // 1. Etterlysning sendes - avventer spesifikasjon
   if (data.sendEtterlysning) {
     return 'avventer_spesifikasjon';
@@ -134,7 +133,34 @@ function beregnFristResultat(
 
   // 4. Beregning (Port 3)
   if (data.krevdDager === 0) {
-    return 'godkjent_fullt'; // Edge case - no days requested
+    return 'godkjent_fullt';
+  }
+
+  const godkjentProsent = data.godkjentDager / data.krevdDager;
+
+  if (godkjentProsent >= 0.99) {
+    return 'godkjent_fullt';
+  }
+
+  return 'delvis_godkjent';
+}
+
+/**
+ * Calculate subsidiary result (ignoring preclusion)
+ */
+function beregnSubsidiaertResultat(data: {
+  harHindring: boolean;
+  krevdDager: number;
+  godkjentDager: number;
+}): string {
+  // Ingen hindring
+  if (!data.harHindring) {
+    return 'avslatt_ingen_hindring';
+  }
+
+  // Beregning
+  if (data.krevdDager === 0) {
+    return 'godkjent_fullt';
   }
 
   const godkjentProsent = data.godkjentDager / data.krevdDager;
@@ -221,8 +247,8 @@ export function RespondFristModal({
   // Watch all form values
   const formValues = watch();
 
-  // Derived state
-  const erSubsidiaer = grunnlagStatus === 'avvist_uenig';
+  // Derived state from grunnlag
+  const erGrunnlagSubsidiaer = grunnlagStatus === 'avvist_uenig';
 
   // §33.7: Calculate BH response time for preclusion warning
   const dagerSidenKrav = fristEvent?.dato_krav_mottatt
@@ -238,43 +264,67 @@ export function RespondFristModal({
     return formValues.spesifisert_krav_ok === false;
   }, [formValues.noytralt_varsel_ok, formValues.spesifisert_krav_ok, varselType]);
 
-  // Check if sending etterlysning
+  // Check if sending etterlysning (blocks further evaluation)
   const sendEtterlysning = formValues.send_etterlysning === true;
 
   // Check hindrance status from Port 2
   const harHindring = formValues.vilkar_oppfylt === true;
 
-  // Calculate effective godkjent dager
-  const effektivGodkjentDager = useMemo(() => {
-    if (erPrekludert || sendEtterlysning) return 0;
-    if (!harHindring) return 0;
-    return formValues.godkjent_dager ?? 0;
-  }, [erPrekludert, sendEtterlysning, harHindring, formValues.godkjent_dager]);
+  // Determine subsidiary treatment levels
+  const port2ErSubsidiaer = erPrekludert && !sendEtterlysning;
+  const port3ErSubsidiaer = (erPrekludert || !harHindring) && !sendEtterlysning;
 
-  // Calculate automatic result
-  const automatiskResultat = useMemo(
+  // Get godkjent dager (respecting subsidiary logic)
+  const godkjentDager = formValues.godkjent_dager ?? 0;
+
+  // Calculate principal result
+  const prinsipaltResultat = useMemo(
     () =>
-      beregnFristResultat({
+      beregnPrinsipaltResultat({
         erPrekludert,
         sendEtterlysning,
         harHindring,
         krevdDager: effektivKrevdDager,
-        godkjentDager: effektivGodkjentDager,
+        godkjentDager,
       }),
-    [erPrekludert, sendEtterlysning, harHindring, effektivKrevdDager, effektivGodkjentDager]
+    [erPrekludert, sendEtterlysning, harHindring, effektivKrevdDager, godkjentDager]
   );
+
+  // Calculate subsidiary result (only relevant if prinsipalt is avvist)
+  const subsidiaertResultat = useMemo(
+    () =>
+      beregnSubsidiaertResultat({
+        harHindring,
+        krevdDager: effektivKrevdDager,
+        godkjentDager,
+      }),
+    [harHindring, effektivKrevdDager, godkjentDager]
+  );
+
+  // Determine if we need to show subsidiary result
+  const visSubsidiaertResultat =
+    prinsipaltResultat === 'avvist_preklusjon' || prinsipaltResultat === 'avslatt_ingen_hindring';
 
   // §33.8: Show forsering warning when rejecting or partial approval
   const visForsering = useMemo(() => {
-    if (automatiskResultat === 'avslatt_ingen_hindring') return true;
-    if (automatiskResultat === 'delvis_godkjent' && effektivGodkjentDager < effektivKrevdDager) {
+    // For principal result
+    if (prinsipaltResultat === 'avslatt_ingen_hindring') return true;
+    if (prinsipaltResultat === 'delvis_godkjent' && godkjentDager < effektivKrevdDager) {
+      return true;
+    }
+    // For subsidiary result when principal is avvist
+    if (
+      prinsipaltResultat === 'avvist_preklusjon' &&
+      subsidiaertResultat === 'delvis_godkjent' &&
+      godkjentDager < effektivKrevdDager
+    ) {
       return true;
     }
     return false;
-  }, [automatiskResultat, effektivGodkjentDager, effektivKrevdDager]);
+  }, [prinsipaltResultat, subsidiaertResultat, godkjentDager, effektivKrevdDager]);
 
   // Avslåtte dager for forsering warning
-  const avslatteDager = effektivKrevdDager - effektivGodkjentDager;
+  const avslatteDager = effektivKrevdDager - godkjentDager;
 
   // Steps configuration
   const steps = [
@@ -332,16 +382,20 @@ export function RespondFristModal({
         begrunnelse_vilkar: data.begrunnelse_vilkar,
 
         // Port 3: Beregning
-        godkjent_dager: effektivGodkjentDager,
+        godkjent_dager: godkjentDager,
         ny_sluttdato: data.ny_sluttdato,
         begrunnelse_beregning: data.begrunnelse_beregning,
 
         // Port 4: Oppsummering
         begrunnelse: data.begrunnelse_samlet,
 
-        // Automatisk beregnet
-        resultat: automatiskResultat,
+        // Automatisk beregnet - prinsipalt
+        resultat: prinsipaltResultat,
         krevd_dager: effektivKrevdDager,
+
+        // Subsidiært (hvis relevant)
+        subsidiaert_resultat: visSubsidiaertResultat ? subsidiaertResultat : undefined,
+        subsidiaert_godkjent_dager: visSubsidiaertResultat ? godkjentDager : undefined,
       },
     });
   };
@@ -350,14 +404,10 @@ export function RespondFristModal({
   const handleOpenChange = (newOpen: boolean) => {
     if (newOpen) {
       setCurrentPort(1);
-      // Reset godkjent_dager to krevd when opening
       setValue('godkjent_dager', effektivKrevdDager);
     }
     onOpenChange(newOpen);
   };
-
-  // Determine if Port 3 should be disabled (prekludert or no hindrance)
-  const port3Disabled = erPrekludert || sendEtterlysning || !harHindring;
 
   return (
     <Modal
@@ -380,14 +430,14 @@ export function RespondFristModal({
           </Alert>
         )}
 
-        {/* Subsidiary treatment info */}
-        {erSubsidiaer && (
+        {/* Grunnlag subsidiary treatment info */}
+        {erGrunnlagSubsidiaer && (
           <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-none">
             <div className="flex items-center gap-2 mb-2">
-              <Badge variant="warning">Subsidiær behandling</Badge>
+              <Badge variant="warning">Subsidiær behandling (Grunnlag)</Badge>
             </div>
             <p className="text-sm text-amber-800">
-              Du har avvist ansvarsgrunnlaget. Dine svar gjelder derfor{' '}
+              Du har avvist ansvarsgrunnlaget. Dine svar på frist gjelder derfor{' '}
               <strong>kun subsidiært</strong>.
             </p>
           </div>
@@ -405,7 +455,8 @@ export function RespondFristModal({
               </span>
               {fristEvent.antall_dager !== undefined && (
                 <span className="text-2xl font-bold">
-                  {fristEvent.antall_dager} {fristType === 'arbeidsdager' ? 'arbeidsdager' : 'dager'}
+                  {fristEvent.antall_dager}{' '}
+                  {fristType === 'arbeidsdager' ? 'arbeidsdager' : 'dager'}
                 </span>
               )}
             </div>
@@ -474,7 +525,7 @@ export function RespondFristModal({
                             <RadioItem value="ja" label="Ja - varslet i tide" />
                             <RadioItem
                               value="nei"
-                              label="Nei - varslet for sent → Kravet prekluderes"
+                              label="Nei - varslet for sent (prinsipalt prekludert)"
                             />
                           </RadioGroup>
                         )}
@@ -511,7 +562,6 @@ export function RespondFristModal({
                         />
                       </FormField>
 
-                      {/* Frist for spesifisering */}
                       {formValues.send_etterlysning && (
                         <FormField
                           label="Frist for svar fra TE"
@@ -558,7 +608,7 @@ export function RespondFristModal({
                           <RadioItem value="ja" label="Ja - kravet kom i tide" />
                           <RadioItem
                             value="nei"
-                            label="Nei - kravet kom for sent → Kravet prekluderes"
+                            label="Nei - kravet kom for sent (prinsipalt prekludert)"
                           />
                         </RadioGroup>
                       )}
@@ -586,7 +636,10 @@ export function RespondFristModal({
                           onValueChange={(val: string) => field.onChange(val === 'ja')}
                         >
                           <RadioItem value="ja" label="Ja - varslet i tide" />
-                          <RadioItem value="nei" label="Nei - varslet for sent → Preklusjon" />
+                          <RadioItem
+                            value="nei"
+                            label="Nei - varslet for sent (prinsipalt prekludert)"
+                          />
                         </RadioGroup>
                       )}
                     />
@@ -613,7 +666,10 @@ export function RespondFristModal({
                           onValueChange={(val: string) => field.onChange(val === 'ja')}
                         >
                           <RadioItem value="ja" label="Ja - varslet i tide" />
-                          <RadioItem value="nei" label="Nei - varslet for sent → Preklusjon" />
+                          <RadioItem
+                            value="nei"
+                            label="Nei - varslet for sent (prinsipalt prekludert)"
+                          />
                         </RadioGroup>
                       )}
                     />
@@ -622,40 +678,32 @@ export function RespondFristModal({
               )}
 
               {/* Begrunnelse for preklusjon */}
-              {(erPrekludert || sendEtterlysning) && (
+              {erPrekludert && (
                 <FormField
-                  label={sendEtterlysning ? 'Begrunnelse for etterlysning' : 'Begrunnelse for preklusjon'}
-                  helpText={
-                    sendEtterlysning
-                      ? 'Begrunn hvorfor du etterspør spesifisert krav'
-                      : 'Begrunn hvorfor varselet kom for sent'
-                  }
+                  label="Begrunnelse for preklusjon"
+                  helpText="Begrunn hvorfor varselet kom for sent"
                 >
                   <Textarea
                     {...register('begrunnelse_preklusjon')}
                     rows={3}
                     fullWidth
-                    placeholder={
-                      sendEtterlysning
-                        ? 'Begrunn din etterlysning...'
-                        : 'Begrunn din vurdering av at varselet kom for sent...'
-                    }
+                    placeholder="Begrunn din vurdering av at varselet kom for sent..."
                   />
                 </FormField>
               )}
 
               {/* Preview of consequence */}
-              {erPrekludert && (
-                <Alert variant="warning" title="Konsekvens">
-                  Fordi varselet kom for sent, vil kravet automatisk bli{' '}
-                  <strong>avvist pga preklusjon</strong>. Du trenger ikke vurdere vilkår eller
-                  beregning.
+              {erPrekludert && !sendEtterlysning && (
+                <Alert variant="info" title="Subsidiær vurdering">
+                  Selv om kravet prinsipalt avvises pga. preklusjon, må du{' '}
+                  <strong>subsidiært</strong> ta stilling til om fremdriften ble hindret og antall
+                  dager.
                 </Alert>
               )}
 
               {sendEtterlysning && (
-                <Alert variant="info" title="Konsekvens">
-                  Du sender etterlysning til TE. Svaret blir automatisk{' '}
+                <Alert variant="info" title="Avventer svar">
+                  Du sender etterlysning til TE. Svaret blir{' '}
                   <strong>&ldquo;Avventer spesifikasjon&rdquo;</strong>. TE må svare med spesifisert
                   krav.
                 </Alert>
@@ -664,35 +712,33 @@ export function RespondFristModal({
           )}
 
           {/* ================================================================
-              PORT 2: VILKÅR (§33.5)
+              PORT 2: VILKÅR (§33.5) - Alltid vurderes, evt. subsidiært
               ================================================================ */}
           {currentPort === 2 && (
             <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
               <div className="flex items-center gap-2 mb-4">
                 <Badge variant="info">Port 2</Badge>
                 <h3 className="font-bold text-lg">Vilkår (§33.5)</h3>
+                {port2ErSubsidiaer && <Badge variant="warning">Subsidiært</Badge>}
               </div>
 
-              {/* Show if prekludert or etterlysning - this port is informational only */}
-              {(erPrekludert || sendEtterlysning) ? (
+              {/* Subsidiary banner */}
+              {port2ErSubsidiaer && (
+                <Alert variant="warning" title="Subsidiær vurdering">
+                  Du har prinsipalt avvist kravet pga. preklusjon. Ta nå{' '}
+                  <strong>subsidiært</strong> stilling til om forholdet medførte
+                  fremdriftshindring.
+                </Alert>
+              )}
+
+              {/* Etterlysning blocks further evaluation */}
+              {sendEtterlysning ? (
                 <div className="p-4 bg-gray-100 border-2 border-gray-300 rounded-none">
+                  <Badge variant="warning" className="mb-2">
+                    Etterlysning sendt
+                  </Badge>
                   <p className="text-gray-600">
-                    {erPrekludert && (
-                      <>
-                        <Badge variant="danger" className="mb-2">Prekludert i Port 1</Badge>
-                        <br />
-                        Kravet er allerede avvist pga. for sen varsling. Vilkårsvurdering er ikke
-                        nødvendig.
-                      </>
-                    )}
-                    {sendEtterlysning && (
-                      <>
-                        <Badge variant="warning" className="mb-2">Etterlysning sendt</Badge>
-                        <br />
-                        Du avventer spesifisert krav fra TE. Vilkårsvurdering gjøres når svaret
-                        kommer.
-                      </>
-                    )}
+                    Du avventer spesifisert krav fra TE. Vilkårsvurdering gjøres når svaret kommer.
                   </p>
                 </div>
               ) : (
@@ -704,7 +750,11 @@ export function RespondFristModal({
 
                   <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
                     <FormField
-                      label="Har forholdet medført faktisk fremdriftshindring?"
+                      label={
+                        port2ErSubsidiaer
+                          ? 'Subsidiært: Har forholdet medført faktisk fremdriftshindring?'
+                          : 'Har forholdet medført faktisk fremdriftshindring?'
+                      }
                       required
                       helpText="Selv om grunnlaget (ansvaret) er erkjent, kan du vurdere at det ikke medførte reell forsinkelse."
                     >
@@ -744,11 +794,11 @@ export function RespondFristModal({
                     />
                   </FormField>
 
-                  {/* Warning if no hindrance */}
-                  {!harHindring && (
-                    <Alert variant="warning" title="Konsekvens">
-                      Fordi du mener det ikke var reell hindring, vil kravet automatisk bli{' '}
-                      <strong>avslått med 0 dager</strong> godkjent.
+                  {/* Info about subsidiary calculation */}
+                  {!harHindring && !port2ErSubsidiaer && (
+                    <Alert variant="info" title="Subsidiær beregning">
+                      Selv om du mener det ikke var reell hindring, må du{' '}
+                      <strong>subsidiært</strong> ta stilling til antall dager i Port 3.
                     </Alert>
                   )}
                 </>
@@ -757,54 +807,51 @@ export function RespondFristModal({
           )}
 
           {/* ================================================================
-              PORT 3: BEREGNING
+              PORT 3: BEREGNING - Alltid vurderes, evt. subsidiært
               ================================================================ */}
           {currentPort === 3 && (
             <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
               <div className="flex items-center gap-2 mb-4">
                 <Badge variant="info">Port 3</Badge>
                 <h3 className="font-bold text-lg">Beregning</h3>
+                {port3ErSubsidiaer && <Badge variant="warning">Subsidiært</Badge>}
               </div>
 
-              {/* Show if disabled */}
-              {port3Disabled ? (
+              {/* Etterlysning blocks evaluation */}
+              {sendEtterlysning ? (
                 <div className="p-4 bg-gray-100 border-2 border-gray-300 rounded-none">
+                  <Badge variant="warning" className="mb-2">
+                    Avventer svar
+                  </Badge>
                   <p className="text-gray-600">
-                    {erPrekludert && (
-                      <>
-                        <Badge variant="danger" className="mb-2">Prekludert</Badge>
-                        <br />
-                        Kravet er avvist pga. for sen varsling. Godkjent: <strong>0 dager</strong>
-                      </>
-                    )}
-                    {sendEtterlysning && (
-                      <>
-                        <Badge variant="warning" className="mb-2">Avventer svar</Badge>
-                        <br />
-                        Du avventer spesifisert krav fra TE. Beregning gjøres senere.
-                      </>
-                    )}
-                    {!erPrekludert && !sendEtterlysning && !harHindring && (
-                      <>
-                        <Badge variant="warning" className="mb-2">Ingen hindring</Badge>
-                        <br />
-                        Du vurderte at det ikke var reell fremdriftshindring. Godkjent:{' '}
-                        <strong>0 dager</strong>
-                      </>
-                    )}
+                    Du avventer spesifisert krav fra TE. Beregning gjøres senere.
                   </p>
                 </div>
               ) : (
                 <>
+                  {/* Subsidiary banner */}
+                  {port3ErSubsidiaer && (
+                    <Alert variant="warning" title="Subsidiær beregning">
+                      {erPrekludert && !harHindring
+                        ? 'Du har prinsipalt avvist kravet pga. preklusjon og mener det ikke var hindring. Ta nå subsidiært stilling til antall dager som under ingen omstendigheter kan godkjennes utover.'
+                        : erPrekludert
+                          ? 'Du har prinsipalt avvist kravet pga. preklusjon. Ta nå subsidiært stilling til antall dager.'
+                          : 'Du mener det ikke var reell hindring. Ta subsidiært stilling til antall dager som under ingen omstendigheter kan godkjennes utover.'}
+                    </Alert>
+                  )}
+
                   <p className="text-sm text-pkt-text-body-subtle mb-4">
-                    Beregn antall dager fristforlengelse. Dette er ren utmåling - ansvarsvurdering
-                    håndteres i Grunnlag-sporet.
+                    {port3ErSubsidiaer
+                      ? 'Angi det maksimale antall dager du under alle omstendigheter kan akseptere.'
+                      : 'Beregn antall dager fristforlengelse. Dette er ren utmåling - ansvarsvurdering håndteres i Grunnlag-sporet.'}
                   </p>
 
                   {/* Hovedkrav beregning */}
                   <div className="p-4 bg-pkt-surface-subtle rounded-none border-2 border-pkt-border-default">
                     <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-bold">Fristkrav</h4>
+                      <h4 className="font-bold">
+                        {port3ErSubsidiaer ? 'Subsidiær beregning' : 'Fristkrav'}
+                      </h4>
                       <div className="text-right">
                         <span className="text-sm text-pkt-text-body-subtle">TE krever: </span>
                         <span className="text-lg font-mono font-bold">
@@ -814,13 +861,19 @@ export function RespondFristModal({
                     </div>
 
                     <FormField
-                      label="Godkjent antall dager"
+                      label={
+                        port3ErSubsidiaer
+                          ? 'Maksimalt godkjent antall dager (subsidiært)'
+                          : 'Godkjent antall dager'
+                      }
                       required
                       error={errors.godkjent_dager?.message}
                       helpText={
-                        effektivKrevdDager > 0 && formValues.godkjent_dager !== undefined
-                          ? `Differanse: ${effektivKrevdDager - formValues.godkjent_dager} dager (${((formValues.godkjent_dager / effektivKrevdDager) * 100).toFixed(1)}% godkjent)`
-                          : undefined
+                        port3ErSubsidiaer
+                          ? 'Antall dager du under ingen omstendigheter kan se er berettiget utover'
+                          : effektivKrevdDager > 0 && formValues.godkjent_dager !== undefined
+                            ? `Differanse: ${effektivKrevdDager - formValues.godkjent_dager} dager (${((formValues.godkjent_dager / effektivKrevdDager) * 100).toFixed(1)}% godkjent)`
+                            : undefined
                       }
                     >
                       <Input
@@ -833,43 +886,57 @@ export function RespondFristModal({
                     </FormField>
 
                     {/* Ny sluttdato */}
-                    <FormField
-                      label="Ny sluttdato"
-                      className="mt-4"
-                      helpText="Beregnet ny sluttdato basert på godkjent forlengelse."
-                    >
-                      <Controller
-                        name="ny_sluttdato"
-                        control={control}
-                        render={({ field }) => (
-                          <DatePicker
-                            id="ny_sluttdato"
-                            value={field.value}
-                            onChange={field.onChange}
-                            placeholder="Velg dato"
-                          />
-                        )}
-                      />
-                    </FormField>
+                    {!port3ErSubsidiaer && (
+                      <FormField
+                        label="Ny sluttdato"
+                        className="mt-4"
+                        helpText="Beregnet ny sluttdato basert på godkjent forlengelse."
+                      >
+                        <Controller
+                          name="ny_sluttdato"
+                          control={control}
+                          render={({ field }) => (
+                            <DatePicker
+                              id="ny_sluttdato"
+                              value={field.value}
+                              onChange={field.onChange}
+                              placeholder="Velg dato"
+                            />
+                          )}
+                        />
+                      </FormField>
+                    )}
                   </div>
 
                   {/* Begrunnelse beregning */}
-                  {formValues.godkjent_dager !== effektivKrevdDager && (
+                  {(formValues.godkjent_dager !== effektivKrevdDager || port3ErSubsidiaer) && (
                     <FormField
-                      label="Begrunnelse for beregning"
-                      helpText="Begrunn din vurdering av antall dager"
+                      label={
+                        port3ErSubsidiaer
+                          ? 'Begrunnelse for subsidiær beregning'
+                          : 'Begrunnelse for beregning'
+                      }
+                      helpText={
+                        port3ErSubsidiaer
+                          ? 'Begrunn hvorfor du under ingen omstendigheter kan akseptere mer enn dette'
+                          : 'Begrunn din vurdering av antall dager'
+                      }
                     >
                       <Textarea
                         {...register('begrunnelse_beregning')}
                         rows={3}
                         fullWidth
-                        placeholder="Begrunn hvorfor du godkjenner færre/flere dager enn krevd..."
+                        placeholder={
+                          port3ErSubsidiaer
+                            ? 'Byggherren kan under ingen omstendighet se at mer enn X dager er berettiget fordi...'
+                            : 'Begrunn hvorfor du godkjenner færre/flere dager enn krevd...'
+                        }
                       />
                     </FormField>
                   )}
 
                   {/* §33.8 Forsering warning */}
-                  {visForsering && avslatteDager > 0 && (
+                  {visForsering && avslatteDager > 0 && !port3ErSubsidiaer && (
                     <Alert variant="info" title="Forsering-risiko (§33.8)">
                       Du avslår <strong>{avslatteDager} dager</strong> som TE mener å ha krav på.
                       <ul className="list-disc pl-5 mt-2 text-sm">
@@ -912,7 +979,7 @@ export function RespondFristModal({
                       </>
                     ) : erPrekludert ? (
                       <>
-                        <Badge variant="danger">Prekludert</Badge>
+                        <Badge variant="danger">Prinsipalt prekludert</Badge>
                         <span className="text-sm">Varslet for sent</span>
                       </>
                     ) : (
@@ -926,18 +993,24 @@ export function RespondFristModal({
 
                 {/* Vilkår (Port 2) */}
                 <div className="p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
-                  <h5 className="font-medium text-sm mb-2">Vilkår (Port 2)</h5>
+                  <h5 className="font-medium text-sm mb-2">
+                    Vilkår (Port 2) {port2ErSubsidiaer && '- Subsidiært'}
+                  </h5>
                   <div className="flex items-center gap-2">
-                    {erPrekludert || sendEtterlysning ? (
-                      <span className="text-sm text-gray-500">(Ikke vurdert)</span>
+                    {sendEtterlysning ? (
+                      <span className="text-sm text-gray-500">(Avventer)</span>
                     ) : harHindring ? (
                       <>
-                        <Badge variant="success">Hindring erkjent</Badge>
+                        <Badge variant="success">
+                          {port2ErSubsidiaer ? 'Subsidiært: ' : ''}Hindring erkjent
+                        </Badge>
                         <span className="text-sm">Forholdet forårsaket forsinkelse</span>
                       </>
                     ) : (
                       <>
-                        <Badge variant="warning">Ingen hindring</Badge>
+                        <Badge variant="warning">
+                          {port2ErSubsidiaer ? 'Subsidiært: ' : ''}Ingen hindring
+                        </Badge>
                         <span className="text-sm">TE hadde slakk / ikke reell forsinkelse</span>
                       </>
                     )}
@@ -946,79 +1019,105 @@ export function RespondFristModal({
 
                 {/* Beregning (Port 3) */}
                 <div className="p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
-                  <h5 className="font-medium text-sm mb-3">Beregning (Port 3)</h5>
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-pkt-border-subtle">
-                        <th className="text-left py-1">Krav</th>
-                        <th className="text-right py-1">Krevd</th>
-                        <th className="text-right py-1">Godkjent</th>
-                        <th className="text-right py-1">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="border-b border-pkt-border-subtle">
-                        <td className="py-2">Fristforlengelse</td>
-                        <td className="text-right font-mono">{effektivKrevdDager} dager</td>
-                        <td className="text-right font-mono">{effektivGodkjentDager} dager</td>
-                        <td className="text-right">
-                          {erPrekludert ? (
-                            <Badge variant="danger">Prekludert</Badge>
-                          ) : sendEtterlysning ? (
-                            <Badge variant="warning">Avventer</Badge>
-                          ) : !harHindring ? (
-                            <Badge variant="warning">Avslått</Badge>
-                          ) : effektivGodkjentDager >= effektivKrevdDager ? (
-                            <Badge variant="success">Godkjent</Badge>
-                          ) : (
-                            <Badge variant="warning">Delvis</Badge>
-                          )}
-                        </td>
-                      </tr>
-                      <tr className="font-bold">
-                        <td className="py-2">DIFFERANSE</td>
-                        <td className="text-right font-mono"></td>
-                        <td className="text-right font-mono">
-                          {effektivKrevdDager - effektivGodkjentDager} dager
-                        </td>
-                        <td className="text-right">
-                          {effektivKrevdDager > 0 && (
-                            <span className="text-sm">
-                              {((effektivGodkjentDager / effektivKrevdDager) * 100).toFixed(1)}%
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                  <h5 className="font-medium text-sm mb-3">
+                    Beregning (Port 3) {port3ErSubsidiaer && '- Subsidiært'}
+                  </h5>
+                  {sendEtterlysning ? (
+                    <span className="text-sm text-gray-500">(Avventer)</span>
+                  ) : (
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-pkt-border-subtle">
+                          <th className="text-left py-1">Krav</th>
+                          <th className="text-right py-1">Krevd</th>
+                          <th className="text-right py-1">
+                            {port3ErSubsidiaer ? 'Maks. subs.' : 'Godkjent'}
+                          </th>
+                          <th className="text-right py-1">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="border-b border-pkt-border-subtle">
+                          <td className="py-2">Fristforlengelse</td>
+                          <td className="text-right font-mono">{effektivKrevdDager} dager</td>
+                          <td className="text-right font-mono">{godkjentDager} dager</td>
+                          <td className="text-right">
+                            {godkjentDager >= effektivKrevdDager ? (
+                              <Badge variant="success">
+                                {port3ErSubsidiaer ? 'Subs. godkj.' : 'Godkjent'}
+                              </Badge>
+                            ) : godkjentDager > 0 ? (
+                              <Badge variant="warning">
+                                {port3ErSubsidiaer ? 'Subs. delvis' : 'Delvis'}
+                              </Badge>
+                            ) : (
+                              <Badge variant="danger">
+                                {port3ErSubsidiaer ? 'Subs. avsl.' : 'Avslått'}
+                              </Badge>
+                            )}
+                          </td>
+                        </tr>
+                        <tr className="font-bold">
+                          <td className="py-2">DIFFERANSE</td>
+                          <td className="text-right font-mono"></td>
+                          <td className="text-right font-mono">{avslatteDager} dager</td>
+                          <td className="text-right">
+                            {effektivKrevdDager > 0 && (
+                              <span className="text-sm">
+                                {((godkjentDager / effektivKrevdDager) * 100).toFixed(1)}%
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  )}
                 </div>
 
-                {/* Automatisk beregnet resultat */}
+                {/* Prinsipalt resultat */}
                 <div className="p-4 bg-pkt-surface-strong-dark-blue text-white rounded-none">
-                  <h5 className="font-medium text-sm mb-2 opacity-80">
-                    AUTOMATISK BEREGNET RESULTAT
-                  </h5>
-                  <div className="text-xl font-bold">{getResultatLabel(automatiskResultat)}</div>
-                  {!sendEtterlysning && (
+                  <h5 className="font-medium text-sm mb-2 opacity-80">PRINSIPALT RESULTAT</h5>
+                  <div className="text-xl font-bold">{getResultatLabel(prinsipaltResultat)}</div>
+                  {!sendEtterlysning && prinsipaltResultat !== 'avvist_preklusjon' && (
                     <div className="mt-2 text-lg font-mono">
-                      Godkjent: {effektivGodkjentDager} av {effektivKrevdDager} dager
+                      Godkjent: {godkjentDager} av {effektivKrevdDager} dager
                     </div>
                   )}
                 </div>
 
+                {/* Subsidiært resultat - shown when principal is avvist */}
+                {visSubsidiaertResultat && !sendEtterlysning && (
+                  <div className="p-4 bg-amber-100 border-2 border-amber-400 rounded-none">
+                    <h5 className="font-medium text-sm mb-2 text-amber-900">SUBSIDIÆRT RESULTAT</h5>
+                    <div className="text-xl font-bold text-amber-900">
+                      {getResultatLabel(subsidiaertResultat)}
+                    </div>
+                    <div className="mt-2 text-lg font-mono text-amber-900">
+                      {subsidiaertResultat === 'avslatt_ingen_hindring'
+                        ? 'Subsidiært: Ingen hindring erkjent'
+                        : `Subsidiært: Maks ${godkjentDager} av ${effektivKrevdDager} dager`}
+                    </div>
+                    <p className="text-sm text-amber-800 mt-2 italic">
+                      &ldquo;Byggherren er etter dette uenig i kravet, og kan dessuten under ingen
+                      omstendigheter se at mer enn {godkjentDager} dager er berettiget å
+                      kreve.&rdquo;
+                    </p>
+                  </div>
+                )}
+
                 {/* §33.8 Forsering warning in summary */}
-                {visForsering && avslatteDager > 0 && (
+                {visForsering && avslatteDager > 0 && !sendEtterlysning && (
                   <Alert variant="warning" title="§33.8 Forsering-risiko">
                     Du avslår <strong>{avslatteDager} dager</strong>. Hvis avslaget er uberettiget,
                     kan TE velge å anse det som et pålegg om forsering.
                   </Alert>
                 )}
 
-                {/* Show description of result */}
-                {automatiskResultat && BH_FRISTSVAR_DESCRIPTIONS[automatiskResultat] && (
+                {/* Show description of principal result */}
+                {prinsipaltResultat && BH_FRISTSVAR_DESCRIPTIONS[prinsipaltResultat] && (
                   <div className="p-4 bg-pkt-surface-subtle rounded-none border-l-4 border-pkt-border-focus">
                     <p className="text-sm text-pkt-text-body-subtle">
-                      {BH_FRISTSVAR_DESCRIPTIONS[automatiskResultat]}
+                      {BH_FRISTSVAR_DESCRIPTIONS[prinsipaltResultat]}
                     </p>
                   </div>
                 )}
@@ -1028,13 +1127,17 @@ export function RespondFristModal({
                   label="Samlet begrunnelse"
                   required
                   error={errors.begrunnelse_samlet?.message}
-                  helpText="Oppsummer din vurdering av fristkravet"
+                  helpText="Oppsummer din vurdering av fristkravet (prinsipalt og evt. subsidiært)"
                 >
                   <Textarea
                     {...register('begrunnelse_samlet')}
                     rows={4}
                     fullWidth
-                    placeholder="Begrunn din samlede vurdering av fristkravet..."
+                    placeholder={
+                      visSubsidiaertResultat
+                        ? 'Begrunn din prinsipale og subsidiære vurdering av fristkravet...'
+                        : 'Begrunn din samlede vurdering av fristkravet...'
+                    }
                     error={!!errors.begrunnelse_samlet}
                   />
                 </FormField>
