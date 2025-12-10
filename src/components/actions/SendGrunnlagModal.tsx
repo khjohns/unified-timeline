@@ -109,11 +109,12 @@ export function SendGrunnlagModal({
     [selectedHovedkategori]
   );
 
-  const valgtUnderkategori = useMemo(() => {
-    if (selectedUnderkategorier?.length > 0) {
-      return getUnderkategoriObj(selectedUnderkategorier[0]);
-    }
-    return undefined;
+  // Get all selected underkategorier info (not just first one)
+  const valgteUnderkategorier = useMemo(() => {
+    if (!selectedUnderkategorier?.length) return [];
+    return selectedUnderkategorier
+      .map((kode) => getUnderkategoriObj(kode))
+      .filter((obj): obj is NonNullable<typeof obj> => obj !== undefined);
   }, [selectedUnderkategorier]);
 
   // Check if any selected underkategori is a law change (§14.4)
@@ -273,14 +274,18 @@ export function SendGrunnlagModal({
           />
         )}
 
-        {/* Underkategori info */}
-        {valgtUnderkategori && (
-          <Alert variant="info" title={valgtUnderkategori.label}>
-            {valgtUnderkategori.beskrivelse}
-            <p className="text-xs mt-2">
-              <strong>Varslingskrav:</strong> §{valgtUnderkategori.varselkrav_ref}
-            </p>
-          </Alert>
+        {/* Underkategori info - show all selected */}
+        {valgteUnderkategorier.length > 0 && (
+          <div className="space-y-3">
+            {valgteUnderkategorier.map((underkat) => (
+              <Alert key={underkat.kode} variant="info" title={underkat.label}>
+                {underkat.beskrivelse}
+                <p className="text-xs mt-2">
+                  <strong>Hjemmel:</strong> §{underkat.hjemmel_basis} | <strong>Varslingskrav:</strong> §{underkat.varselkrav_ref}
+                </p>
+              </Alert>
+            ))}
+          </div>
         )}
 
         {/* Tittel */}
