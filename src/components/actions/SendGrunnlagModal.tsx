@@ -37,6 +37,7 @@ import {
   getHovedkategori,
   getUnderkategoriObj,
   erLovendring,
+  getGrupperteUnderkategorier,
 } from '../../constants';
 import { getPreklusjonsvarsel, getPreklusjonsvarselMellomDatoer, beregnDagerSiden } from '../../utils/preklusjonssjekk';
 
@@ -240,37 +241,49 @@ export function SendGrunnlagModal({
           </Alert>
         )}
 
-        {/* Underkategori - Dynamic based on hovedkategori */}
-        {selectedHovedkategori && getUnderkategorier(selectedHovedkategori).length > 0 && (
+        {/* Underkategori - Dynamic based on hovedkategori, grouped */}
+        {selectedHovedkategori && valgtHovedkategori && valgtHovedkategori.underkategorier.length > 0 && (
           <Controller
             name="underkategori"
             control={control}
-            render={({ field }) => (
-              <FormField
-                label="Underkategori"
-                required
-                error={errors.underkategori?.message}
-              >
-                <div className="space-y-3 max-h-60 overflow-y-auto border-2 border-pkt-border-gray rounded-none p-4 bg-pkt-bg-subtle" data-testid="grunnlag-underkategori-list">
-                  {getUnderkategorier(selectedHovedkategori).map((option) => (
-                    <Checkbox
-                      key={option.value}
-                      id={`underkategori-${option.value}`}
-                      label={option.label}
-                      checked={field.value?.includes(option.value) ?? false}
-                      onCheckedChange={(checked) => {
-                        const current = field.value ?? [];
-                        if (checked) {
-                          field.onChange([...current, option.value]);
-                        } else {
-                          field.onChange(current.filter((v: string) => v !== option.value));
-                        }
-                      }}
-                    />
-                  ))}
-                </div>
-              </FormField>
-            )}
+            render={({ field }) => {
+              const grupperteUnderkategorier = getGrupperteUnderkategorier(valgtHovedkategori.underkategorier);
+              return (
+                <FormField
+                  label="Underkategori"
+                  required
+                  error={errors.underkategori?.message}
+                >
+                  <div className="space-y-4 max-h-80 overflow-y-auto border-2 border-pkt-border-gray rounded-none p-4 bg-pkt-bg-subtle" data-testid="grunnlag-underkategori-list">
+                    {Array.from(grupperteUnderkategorier.entries()).map(([gruppeNavn, underkategorier]) => (
+                      <div key={gruppeNavn ?? 'ungrouped'}>
+                        {gruppeNavn && (
+                          <p className="text-sm font-semibold text-pkt-text-body mb-2">{gruppeNavn}</p>
+                        )}
+                        <div className="space-y-2 pl-0">
+                          {underkategorier.map((uk) => (
+                            <Checkbox
+                              key={uk.kode}
+                              id={`underkategori-${uk.kode}`}
+                              label={`${uk.label} (§${uk.hjemmel_basis})`}
+                              checked={field.value?.includes(uk.kode) ?? false}
+                              onCheckedChange={(checked) => {
+                                const current = field.value ?? [];
+                                if (checked) {
+                                  field.onChange([...current, uk.kode]);
+                                } else {
+                                  field.onChange(current.filter((v: string) => v !== uk.kode));
+                                }
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </FormField>
+              );
+            }}
           />
         )}
 
