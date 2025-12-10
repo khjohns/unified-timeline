@@ -8,6 +8,7 @@
 import { StatusCard } from './StatusCard';
 import { SakState } from '../../types/timeline';
 import { ReactNode, useMemo } from 'react';
+import { getOverordnetStatusLabel } from '../../constants/statusLabels';
 
 interface StatusDashboardProps {
   state: SakState;
@@ -93,7 +94,7 @@ export function StatusDashboard({
         aria-live="polite"
         aria-atomic="true"
       >
-        Overordnet status: {state.overordnet_status}
+        Overordnet status: {getOverordnetStatusLabel(state.overordnet_status)}
       </div>
     </section>
   );

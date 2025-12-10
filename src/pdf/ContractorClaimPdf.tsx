@@ -10,6 +10,7 @@ import type {
   FristBeregningResultat,
 } from '../types/timeline';
 import { styles, COLORS, baseUrl } from './styles';
+import { getOverordnetStatusLabel } from '../constants/statusLabels';
 
 // ============================================================
 // Helper Components
@@ -235,7 +236,7 @@ const CaseInfoSection: React.FC<CaseInfoProps> = ({ state }) => {
       <Text style={styles.sakId}>Sak-ID: {state.sak_id}</Text>
 
       <View style={styles.metadataTable}>
-        <TableRow label="Overordnet status" value={state.overordnet_status} />
+        <TableRow label="Overordnet status" value={getOverordnetStatusLabel(state.overordnet_status)} />
         <TableRow label="Opprettet" value={formatDate(state.opprettet)} striped />
         <TableRow label="Siste aktivitet" value={formatDate(state.siste_aktivitet)} />
         <TableRow label="Antall hendelser" value={String(state.antall_events)} striped />

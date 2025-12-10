@@ -14,6 +14,7 @@ import {
   getHovedkategoriLabel,
   getUnderkategoriLabel,
 } from '../../constants/categories';
+import { getOverordnetStatusLabel } from '../../constants/statusLabels';
 
 interface ComprehensiveMetadataProps {
   state: SakState;
@@ -50,7 +51,7 @@ export function ComprehensiveMetadata({
             label="Overordnet status"
             value={
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-none text-xs font-medium bg-pkt-brand-blue-100 text-pkt-brand-dark-blue-1000">
-                {state.overordnet_status}
+                {getOverordnetStatusLabel(state.overordnet_status)}
               </span>
             }
           />
