@@ -22,7 +22,6 @@ import { FormField } from '../primitives/FormField';
 import { Input } from '../primitives/Input';
 import { Textarea } from '../primitives/Textarea';
 import { DatePicker } from '../primitives/DatePicker';
-import { Badge } from '../primitives/Badge';
 import { Alert } from '../primitives/Alert';
 import { AlertDialog } from '../primitives/AlertDialog';
 import { Checkbox } from '../primitives/Checkbox';
@@ -164,45 +163,53 @@ export function SendForseringModal({
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title="Send forseringsvarsel (§33.8)"
-      description="Varsle BH om at du vil behandle avslaget som et pålegg om forsering"
+      title="Forseringsvarsel (§33.8)"
       size="lg"
     >
       <div className="space-y-6">
         {/* Info banner about §33.8 */}
-        <Alert variant="info" title="§33.8 Forsering ved uberettiget avslag">
-          Hvis du mener fristkravet er berettiget, kan du velge å anse BH&apos;s avslag som et
-          pålegg om forsering. Du må varsle BH før forsering iverksettes.
+        <Alert variant="info" title="Forsering ved uberettiget avslag (§33.8)">
+          Når byggherren avslår et berettiget fristkrav, kan du velge å behandle avslaget som
+          et pålegg om forsering gitt ved endringsordre (jf. §31.2). Byggherren må da betale
+          forseringskostnadene. Du må varsle byggherren før forsering iverksettes.
+        </Alert>
+
+        {/* Risk warning */}
+        <Alert variant="warning" title="Risiko ved forsering">
+          Ved å velge forsering tar du risiko for at fristkravet var berettiget. Hvis det
+          senere viser seg at byggherren hadde rett til å avslå fristforlengelsen, må du
+          dekke forseringskostnadene selv.
         </Alert>
 
         {/* Grunnlag rejection trigger info */}
         {grunnlagAvslagTrigger && (
-          <Alert variant="warning" title="Utløst av grunnlagsavslag">
-            BH har avslått ansvarsgrunnlaget. Forseringsvarselet baseres på BH&apos;s{' '}
+          <Alert variant="info" title="Utløst av grunnlagsavslag">
+            Byggherren har avslått ansvarsgrunnlaget. Forseringsvarselet baseres på byggherrens{' '}
             <strong>subsidiære</strong> standpunkt til fristforlengelse.
           </Alert>
         )}
 
         {/* Context: Rejected days */}
-        <div className="p-4 bg-pkt-surface-subtle-light-blue border-2 border-pkt-border-focus rounded-none">
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div>
+        <div className="p-4 bg-pkt-surface-subtle border-2 border-pkt-border-default rounded-none">
+          <h4 className="font-bold text-sm mb-3">Fristkrav - oversikt</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+            <div className="p-3 bg-pkt-bg-subtle rounded-none">
               <span className="text-xs text-pkt-text-body-subtle uppercase font-bold block">
                 Krevde dager
               </span>
               <span className="text-2xl font-bold">{fristData.krevde_dager}</span>
             </div>
-            <div>
+            <div className="p-3 bg-pkt-bg-subtle rounded-none">
               <span className="text-xs text-pkt-text-body-subtle uppercase font-bold block">
                 {grunnlagAvslagTrigger ? 'Subsidiært godkjent' : 'Godkjent'}
               </span>
               <span className="text-2xl font-bold">{fristData.godkjent_dager}</span>
             </div>
-            <div>
+            <div className="p-3 bg-pkt-surface-red rounded-none">
               <span className="text-xs text-pkt-text-body-subtle uppercase font-bold block">
                 Avslåtte dager
               </span>
-              <span className="text-2xl font-bold text-red-600">{avslatteDager}</span>
+              <span className="text-2xl font-bold text-pkt-text-danger">{avslatteDager}</span>
             </div>
           </div>
         </div>
@@ -210,46 +217,51 @@ export function SendForseringModal({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Dagmulktsats input */}
           <FormField
-            label="Dagmulktsats"
+            label="Dagmulktsats (NOK)"
             required
             error={errors.dagmulktsats?.message}
-            helpText="Dagmulkt per dag forsinkelse iht. kontrakten (NOK)"
+            helpText="Dagmulkt per dag forsinkelse iht. kontrakten"
           >
             <Input
               type="number"
               {...register('dagmulktsats', { valueAsNumber: true })}
               width="sm"
-              placeholder="50000"
               error={!!errors.dagmulktsats}
             />
           </FormField>
 
           {/* 30% calculation display */}
-          <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-none">
-            <h4 className="font-bold text-amber-900 mb-3">30%-beregning (§33.8)</h4>
+          <Alert variant="info" title="30%-grensen (§33.8)">
+            Du har kun valgrett til forsering hvis forseringskostnaden er lavere enn
+            dagmulkten du ville fått + 30%. Dette sikrer at forsering er økonomisk
+            fornuftig sammenlignet med å ta dagmulkt.
+          </Alert>
+
+          <div className="p-4 bg-pkt-surface-yellow border-2 border-pkt-border-yellow rounded-none">
+            <h4 className="font-bold text-pkt-text-body-dark mb-3">Beregning av kostnadsgrense</h4>
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
+              <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                 <span>Avslåtte dager:</span>
-                <span className="font-mono">{avslatteDager} dager</span>
+                <span className="font-mono font-bold">{avslatteDager} dager</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                 <span>Dagmulktsats:</span>
                 <span className="font-mono">{formatCurrency(inputDagmulktsats)}</span>
               </div>
-              <div className="flex justify-between">
-                <span>Dagmulkt totalt:</span>
+              <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                <span>Dagmulkt totalt ({avslatteDager} × {formatCurrency(inputDagmulktsats)}):</span>
                 <span className="font-mono">{formatCurrency(avslatteDager * inputDagmulktsats)}</span>
               </div>
-              <div className="flex justify-between border-t border-amber-400 pt-2 font-bold">
-                <span>Maks forseringskostnad (dagmulkt + 30%):</span>
-                <span className="font-mono">{formatCurrency(maksKostnad)}</span>
+              <div className="flex flex-col sm:flex-row sm:justify-between gap-1 border-t border-pkt-border-yellow pt-2 font-bold">
+                <span>Maks forseringskostnad (+ 30%):</span>
+                <span className="font-mono text-lg">{formatCurrency(maksKostnad)}</span>
               </div>
             </div>
           </div>
 
           {/* Estimated cost input */}
           <FormField
-            label="Estimert forseringskostnad"
+            label="Estimert forseringskostnad (NOK)"
             required
             error={errors.estimert_kostnad?.message}
             helpText="Angi hva forseringen antas å ville koste"
@@ -258,37 +270,24 @@ export function SendForseringModal({
               type="number"
               {...register('estimert_kostnad', { valueAsNumber: true })}
               width="md"
-              placeholder="0"
               error={!!errors.estimert_kostnad}
             />
           </FormField>
 
           {/* Cost validation feedback */}
           {estimertKostnad > 0 && (
-            <div className={`p-3 rounded-none border-2 ${
-              erInnenforGrense
-                ? 'bg-green-50 border-green-400'
-                : 'bg-red-50 border-red-400'
-            }`}>
-              <div className="flex items-center justify-between">
-                <span className={erInnenforGrense ? 'text-green-800' : 'text-red-800'}>
-                  {erInnenforGrense ? (
-                    <>Innenfor grensen ({prosentAvGrense.toFixed(0)}% av maks)</>
-                  ) : (
-                    <>Overstiger grensen med {formatCurrency(estimertKostnad - maksKostnad)}</>
-                  )}
-                </span>
-                <Badge variant={erInnenforGrense ? 'success' : 'danger'}>
-                  {erInnenforGrense ? 'OK' : 'For høy'}
-                </Badge>
-              </div>
-              {!erInnenforGrense && (
-                <p className="text-sm text-red-700 mt-2">
-                  Hvis forseringskostnaden overstiger dagmulkt + 30%, har du ikke valgrett
-                  til å anse avslaget som et forseringspålegg.
-                </p>
-              )}
-            </div>
+            erInnenforGrense ? (
+              <Alert variant="success" title="Innenfor kostnadsgrensen">
+                Estimert kostnad utgjør {prosentAvGrense.toFixed(0)}% av maksgrensen.
+                Du har valgrett til å behandle avslaget som et forseringspålegg.
+              </Alert>
+            ) : (
+              <Alert variant="danger" title="Overstiger kostnadsgrensen">
+                Estimert kostnad overstiger grensen med {formatCurrency(estimertKostnad - maksKostnad)}.
+                Hvis forseringskostnaden overstiger dagmulkt + 30%, har du ikke valgrett
+                til å anse avslaget som et forseringspålegg (§33.8).
+              </Alert>
+            )
           )}
 
           {/* Date for acceleration start */}
@@ -306,7 +305,6 @@ export function SendForseringModal({
                   id="dato_iverksettelse"
                   value={field.value}
                   onChange={field.onChange}
-                  placeholder="Velg dato"
                 />
               )}
             />
@@ -323,7 +321,6 @@ export function SendForseringModal({
               {...register('begrunnelse')}
               rows={4}
               fullWidth
-              placeholder="TE mener at fristkravet er berettiget og velger derfor å anse BH's avslag som et pålegg om forsering iht. NS 8407 §33.8..."
               error={!!errors.begrunnelse}
             />
           </FormField>
@@ -343,7 +340,7 @@ export function SendForseringModal({
               )}
             />
             {errors.bekreft_30_prosent && (
-              <p className="text-sm text-red-600 mt-1">{errors.bekreft_30_prosent.message}</p>
+              <p className="text-sm text-pkt-text-danger mt-1">{errors.bekreft_30_prosent.message}</p>
             )}
           </div>
 
@@ -355,13 +352,14 @@ export function SendForseringModal({
           )}
 
           {/* Actions */}
-          <div className="flex justify-end gap-4 pt-6 border-t-2 border-pkt-border-subtle">
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-6 border-t-2 border-pkt-border-subtle">
             <Button
               type="button"
               variant="ghost"
               onClick={handleClose}
               disabled={isSubmitting}
               size="lg"
+              className="w-full sm:w-auto"
             >
               Avbryt
             </Button>
@@ -370,6 +368,7 @@ export function SendForseringModal({
               variant="primary"
               disabled={isSubmitting || !erInnenforGrense}
               size="lg"
+              className="w-full sm:w-auto"
             >
               {isSubmitting ? 'Sender...' : 'Send forseringsvarsel'}
             </Button>
