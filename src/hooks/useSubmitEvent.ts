@@ -8,7 +8,7 @@
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { submitEvent, EventSubmitResponse } from '../api/events';
 import { EventType } from '../types/timeline';
-import { generatePdfBlobFromState, blobToBase64 } from '../../utils/pdf/pdfGenerator';
+import { generatePdfBlobFromState, blobToBase64 } from '../utils/pdf/pdfGenerator';
 import { fetchCaseState } from '../api/state';
 
 export interface SubmitEventPayload {

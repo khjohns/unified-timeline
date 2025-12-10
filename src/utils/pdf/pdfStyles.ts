@@ -23,43 +23,36 @@ try {
       { src: `${baseUrl}/fonts/OsloSans-BoldItalic.woff2`, fontWeight: 'bold', fontStyle: 'italic' },
     ],
   });
-  PDF_FONT = 'Oslo Sans'; // Use custom font if registration succeeds
+  PDF_FONT = 'Oslo Sans';
 } catch (error) {
   console.warn('Failed to register Oslo Sans fonts, using Helvetica fallback:', error);
 }
 
 // Design System Colors (Oslo Kommune official palette)
-// FASE 1.3: Utvidet fargepalett basert på Oslo kommunes offisielle designsystem
 export const COLORS = {
-  // Primærfarger (Oslo Kommune offisielle)
-  primary: '#2A2859',      // Oslo mørk blå
+  // Primary colors
+  primary: '#2A2859',
   primaryDark: '#2A2859',
-  ink: '#2C2C2C',          // Oslo sort
+  ink: '#2C2C2C',
   white: '#FFFFFF',
-  lightBg: '#F8F0DD',      // Oslo lys beige
+  lightBg: '#F8F0DD',
 
-  // Sekundærfarger (Oslo Kommune offisielle)
-  success: '#034B45',      // Oslo mørk grønn
-  successBg: '#C7F6C9',    // Oslo lys grønn
+  // Secondary colors
+  success: '#034B45',
+  successBg: '#C7F6C9',
+  warning: '#F9C66B',
+  warningBg: '#F8F0DD',
+  danger: '#FF8274',
+  dangerBg: '#F8F0DD',
+  info: '#2A2859',
+  infoBg: '#B3F5FF',
+  neutral: '#D0BFAE',
+  neutralBg: '#F8F0DD',
 
-  warning: '#F9C66B',      // Oslo gul
-  warningBg: '#F8F0DD',    // Oslo lys beige (brukes som varm bakgrunn)
-
-  danger: '#FF8274',       // Oslo rød
-  dangerBg: '#F8F0DD',     // Oslo lys beige (ingen lys rød finnes i paletten)
-
-  info: '#2A2859',         // Oslo mørk blå (gjenbruk av primary)
-  infoBg: '#B3F5FF',       // Oslo lys blå
-
-  neutral: '#D0BFAE',      // Oslo mørk beige
-  neutralBg: '#F8F0DD',    // Oslo lys beige
-
-  // DEPRECATED - Bruk opacity i stedet for å følge designsystemet
-  // Disse fargene er ikke en del av Oslo kommunes offisielle palett
-  // For dimmet tekst, bruk: style={{ color: COLORS.ink, opacity: 0.7 }}
-  inkDim: '#4D4D4D',       // DEPRECATED: Bruk COLORS.ink med opacity: 0.7
-  muted: '#666666',        // DEPRECATED: Bruk COLORS.ink med opacity: 0.5
-  border: '#E6E6E6',       // DEPRECATED: Bruk COLORS.neutral med opacity: 0.3
+  // Utility colors
+  inkDim: '#4D4D4D',
+  muted: '#666666',
+  border: '#E6E6E6',
 };
 
 // Stylesheet
@@ -81,25 +74,20 @@ export const styles = StyleSheet.create({
     paddingLeft: 42,
     paddingRight: 42,
     marginBottom: 25,
-    // Negative marger for å fylle hele bredden med bakgrunnsfarge
     marginLeft: -42,
     marginRight: -42,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between', // Logo til høyre, tekst til venstre
+    justifyContent: 'space-between',
   },
   headerLogo: {
-    // ENDRING: Satt kun høyde for å bevare aspect ratio. Flyttet til høyre.
     height: 60,
   },
-  headerContent: {
-    // Fjernet flex: 1 for å la tekst ligge helt til venstre
-  },
+  headerContent: {},
   headerTitle: {
     fontSize: 14,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    // ENDRING: Økt avstand til undertittel
     marginBottom: 8,
   },
   headerSubtitle: {
@@ -172,22 +160,22 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
-    paddingVertical: 6, // FASE 1.2: Økt fra 5 til 6 for bedre lesbarhet
+    paddingVertical: 6,
   },
   tableRowStriped: {
-    backgroundColor: '#F5F5F5', // FASE 1.2: Mørkere fra #F9F9F9 for bedre visuell separasjon
+    backgroundColor: '#F5F5F5',
   },
   tableLabel: {
     fontSize: 9,
     fontWeight: 'bold',
-    width: '45%', // FASE 1.2: Økt fra 40% til 45%
+    width: '45%',
     paddingRight: 10,
-    color: COLORS.inkDim, // FASE 1.2: Lagt til farge for bedre visuell hierarki
+    color: COLORS.inkDim,
   },
   tableValue: {
     fontSize: 9,
-    width: '55%', // FASE 1.2: Redusert fra 60% til 55%
-    color: COLORS.ink, // FASE 1.2: Lagt til farge for konsistens
+    width: '55%',
+    color: COLORS.ink,
   },
   textBlock: {
     marginBottom: 8,
@@ -203,7 +191,18 @@ export const styles = StyleSheet.create({
     lineHeight: 1.4,
     paddingLeft: 5,
   },
-  // FASE 2.1: Executive Summary styles
+  section: {
+    marginBottom: 15,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+    marginBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    paddingBottom: 4,
+  },
   executiveSummary: {
     marginTop: 15,
     marginBottom: 15,
@@ -254,7 +253,6 @@ export const styles = StyleSheet.create({
     fontSize: 9,
     color: COLORS.ink,
   },
-  // FASE 2.3: Status Badge styles
   statusBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -316,7 +314,6 @@ export const styles = StyleSheet.create({
   footer: {
     position: 'absolute',
     bottom: 15,
-    // ENDRING: Justert for å matche ny sidemarg
     left: 42,
     right: 42,
     borderTopWidth: 1,
@@ -333,7 +330,6 @@ export const styles = StyleSheet.create({
   },
   signatureLabel: {
     fontWeight: 'bold',
-    // ENDRING: Fjernet 'marginRight: 60'
   },
   notRelevant: {
     fontSize: 9,
