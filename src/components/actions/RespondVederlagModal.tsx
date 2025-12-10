@@ -595,7 +595,7 @@ export function RespondVederlagModal({
               ================================================================ */}
           {currentPort === 1 && harSaerskiltKrav && (
             <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
                 <Badge variant="info">Port 1</Badge>
                 <h3 className="font-bold text-lg">Særskilte krav - Preklusjon (§34.1.3)</h3>
               </div>
@@ -607,7 +607,7 @@ export function RespondVederlagModal({
               {/* Rigg/Drift */}
               {harRiggKrav && (
                 <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
                     <div className="flex items-center gap-2">
                       <Badge variant="default">Rigg/Drift</Badge>
                       <span className="font-mono">
@@ -645,7 +645,7 @@ export function RespondVederlagModal({
               {/* Produktivitet */}
               {harProduktivitetKrav && (
                 <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
                     <div className="flex items-center gap-2">
                       <Badge variant="default">Produktivitetstap</Badge>
                       <span className="font-mono">
@@ -701,7 +701,7 @@ export function RespondVederlagModal({
               ================================================================ */}
           {currentPort === 2 && (
             <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
                 <Badge variant="info">Port 2</Badge>
                 <h3 className="font-bold text-lg">Metode & Svarplikt</h3>
               </div>
@@ -848,7 +848,7 @@ export function RespondVederlagModal({
               ================================================================ */}
           {currentPort === 3 && (
             <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
                 <Badge variant="info">Port 3</Badge>
                 <h3 className="font-bold text-lg">Beløpsvurdering</h3>
               </div>
@@ -860,9 +860,9 @@ export function RespondVederlagModal({
 
               {/* HOVEDKRAV */}
               <div className="p-4 bg-pkt-surface-subtle rounded-none border-2 border-pkt-border-default">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
                   <h4 className="font-bold">Hovedkrav</h4>
-                  <div className="text-right">
+                  <div className="text-left sm:text-right">
                     <span className="text-sm text-pkt-text-body-subtle">Krevd: </span>
                     <span className="text-lg font-mono font-bold">
                       kr {hovedkravBelop?.toLocaleString('nb-NO') || 0},-
@@ -935,8 +935,8 @@ export function RespondVederlagModal({
                       : 'bg-pkt-surface-subtle border-pkt-border-default'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+                    <div className="flex flex-wrap items-center gap-2">
                       <h4 className="font-bold">Særskilt: Rigg/Drift</h4>
                       {riggPrekludert && (
                         <>
@@ -945,7 +945,7 @@ export function RespondVederlagModal({
                         </>
                       )}
                     </div>
-                    <div className="text-right">
+                    <div className="text-left sm:text-right">
                       <span className="text-sm text-pkt-text-body-subtle">Krevd: </span>
                       <span
                         className={`text-lg font-mono font-bold ${riggPrekludert ? 'line-through text-gray-400' : ''}`}
@@ -1016,8 +1016,8 @@ export function RespondVederlagModal({
                       : 'bg-pkt-surface-subtle border-pkt-border-default'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+                    <div className="flex flex-wrap items-center gap-2">
                       <h4 className="font-bold">Særskilt: Produktivitetstap</h4>
                       {produktivitetPrekludert && (
                         <>
@@ -1026,7 +1026,7 @@ export function RespondVederlagModal({
                         </>
                       )}
                     </div>
-                    <div className="text-right">
+                    <div className="text-left sm:text-right">
                       <span className="text-sm text-pkt-text-body-subtle">Krevd: </span>
                       <span
                         className={`text-lg font-mono font-bold ${produktivitetPrekludert ? 'line-through text-gray-400' : ''}`}
@@ -1097,7 +1097,7 @@ export function RespondVederlagModal({
               ================================================================ */}
           {currentPort === 4 && (
             <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
                 <Badge variant="info">Port 4</Badge>
                 <h3 className="font-bold text-lg">Oppsummering</h3>
               </div>
@@ -1139,7 +1139,9 @@ export function RespondVederlagModal({
                 {/* Beløpsoversikt */}
                 <div className="p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
                   <h5 className="font-medium text-sm mb-3">Beløpsvurdering (Port 3)</h5>
-                  <table className="w-full text-sm">
+
+                  {/* Desktop: tabell */}
+                  <table className="hidden sm:table w-full text-sm">
                     <thead>
                       <tr className="border-b border-pkt-border-subtle">
                         <th className="text-left py-1">Krav</th>
@@ -1330,6 +1332,187 @@ export function RespondVederlagModal({
                       </tr>
                     </tbody>
                   </table>
+
+                  {/* Mobil: card-liste */}
+                  <div className="sm:hidden space-y-3">
+                    {/* Hovedkrav card */}
+                    <div className="p-3 border border-pkt-border-subtle rounded-none">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="font-medium">Hovedkrav</span>
+                        {formValues.hovedkrav_vurdering === 'godkjent' && (
+                          <Badge variant="success">Godkjent</Badge>
+                        )}
+                        {formValues.hovedkrav_vurdering === 'delvis' && (
+                          <Badge variant="warning">Delvis</Badge>
+                        )}
+                        {formValues.hovedkrav_vurdering === 'avvist' && (
+                          <Badge variant="danger">Avvist</Badge>
+                        )}
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-pkt-text-body-subtle">Krevd:</span>
+                        <span className="font-mono">{hovedkravBelop?.toLocaleString('nb-NO') || 0}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-pkt-text-body-subtle">Godkjent:</span>
+                        <span className="font-mono">
+                          {formValues.hovedkrav_vurdering === 'godkjent'
+                            ? hovedkravBelop?.toLocaleString('nb-NO') || 0
+                            : formValues.hovedkrav_vurdering === 'delvis'
+                              ? formValues.hovedkrav_godkjent_belop?.toLocaleString('nb-NO') || 0
+                              : 0}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Rigg/Drift card */}
+                    {harRiggKrav && (
+                      <div className={`p-3 border rounded-none ${riggPrekludert ? 'border-pkt-border-yellow bg-pkt-surface-yellow' : 'border-pkt-border-subtle'}`}>
+                        <div className="flex flex-wrap justify-between items-start gap-2 mb-2">
+                          <span className="font-medium">
+                            Rigg/Drift
+                            {riggPrekludert && <span className="text-xs text-gray-500 ml-1">(prinsipalt)</span>}
+                          </span>
+                          {riggPrekludert ? (
+                            <Badge variant="danger">Prekludert</Badge>
+                          ) : formValues.rigg_vurdering === 'godkjent' ? (
+                            <Badge variant="success">Godkjent</Badge>
+                          ) : formValues.rigg_vurdering === 'delvis' ? (
+                            <Badge variant="warning">Delvis</Badge>
+                          ) : (
+                            <Badge variant="danger">Avvist</Badge>
+                          )}
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-pkt-text-body-subtle">Krevd:</span>
+                          <span className={`font-mono ${riggPrekludert ? 'line-through text-gray-400' : ''}`}>
+                            {riggBelop?.toLocaleString('nb-NO') || 0}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-pkt-text-body-subtle">Godkjent:</span>
+                          <span className="font-mono">
+                            {riggPrekludert
+                              ? 0
+                              : formValues.rigg_vurdering === 'godkjent'
+                                ? riggBelop?.toLocaleString('nb-NO') || 0
+                                : formValues.rigg_vurdering === 'delvis'
+                                  ? formValues.rigg_godkjent_belop?.toLocaleString('nb-NO') || 0
+                                  : 0}
+                          </span>
+                        </div>
+                        {/* Subsidiært på mobil */}
+                        {riggPrekludert && (
+                          <div className="mt-2 pt-2 border-t border-pkt-border-yellow">
+                            <div className="flex justify-between items-center text-sm mb-1">
+                              <span className="italic text-pkt-text-body-dark">↳ Subsidiært</span>
+                              {formValues.rigg_vurdering === 'godkjent' ? (
+                                <Badge variant="success">Godkjent</Badge>
+                              ) : formValues.rigg_vurdering === 'delvis' ? (
+                                <Badge variant="warning">Delvis</Badge>
+                              ) : (
+                                <Badge variant="danger">Avvist</Badge>
+                              )}
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-pkt-text-body-dark">Subs. godkjent:</span>
+                              <span className="font-mono text-pkt-text-body-dark">
+                                {formValues.rigg_vurdering === 'godkjent'
+                                  ? riggBelop?.toLocaleString('nb-NO') || 0
+                                  : formValues.rigg_vurdering === 'delvis'
+                                    ? formValues.rigg_godkjent_belop?.toLocaleString('nb-NO') || 0
+                                    : 0}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Produktivitet card */}
+                    {harProduktivitetKrav && (
+                      <div className={`p-3 border rounded-none ${produktivitetPrekludert ? 'border-pkt-border-yellow bg-pkt-surface-yellow' : 'border-pkt-border-subtle'}`}>
+                        <div className="flex flex-wrap justify-between items-start gap-2 mb-2">
+                          <span className="font-medium">
+                            Produktivitet
+                            {produktivitetPrekludert && <span className="text-xs text-gray-500 ml-1">(prinsipalt)</span>}
+                          </span>
+                          {produktivitetPrekludert ? (
+                            <Badge variant="danger">Prekludert</Badge>
+                          ) : formValues.produktivitet_vurdering === 'godkjent' ? (
+                            <Badge variant="success">Godkjent</Badge>
+                          ) : formValues.produktivitet_vurdering === 'delvis' ? (
+                            <Badge variant="warning">Delvis</Badge>
+                          ) : (
+                            <Badge variant="danger">Avvist</Badge>
+                          )}
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-pkt-text-body-subtle">Krevd:</span>
+                          <span className={`font-mono ${produktivitetPrekludert ? 'line-through text-gray-400' : ''}`}>
+                            {produktivitetBelop?.toLocaleString('nb-NO') || 0}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-pkt-text-body-subtle">Godkjent:</span>
+                          <span className="font-mono">
+                            {produktivitetPrekludert
+                              ? 0
+                              : formValues.produktivitet_vurdering === 'godkjent'
+                                ? produktivitetBelop?.toLocaleString('nb-NO') || 0
+                                : formValues.produktivitet_vurdering === 'delvis'
+                                  ? formValues.produktivitet_godkjent_belop?.toLocaleString('nb-NO') || 0
+                                  : 0}
+                          </span>
+                        </div>
+                        {/* Subsidiært på mobil */}
+                        {produktivitetPrekludert && (
+                          <div className="mt-2 pt-2 border-t border-pkt-border-yellow">
+                            <div className="flex justify-between items-center text-sm mb-1">
+                              <span className="italic text-pkt-text-body-dark">↳ Subsidiært</span>
+                              {formValues.produktivitet_vurdering === 'godkjent' ? (
+                                <Badge variant="success">Godkjent</Badge>
+                              ) : formValues.produktivitet_vurdering === 'delvis' ? (
+                                <Badge variant="warning">Delvis</Badge>
+                              ) : (
+                                <Badge variant="danger">Avvist</Badge>
+                              )}
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-pkt-text-body-dark">Subs. godkjent:</span>
+                              <span className="font-mono text-pkt-text-body-dark">
+                                {formValues.produktivitet_vurdering === 'godkjent'
+                                  ? produktivitetBelop?.toLocaleString('nb-NO') || 0
+                                  : formValues.produktivitet_vurdering === 'delvis'
+                                    ? formValues.produktivitet_godkjent_belop?.toLocaleString('nb-NO') || 0
+                                    : 0}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Totalt card */}
+                    <div className="p-3 border-2 border-pkt-border-default rounded-none bg-pkt-surface-subtle">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-bold">TOTALT</span>
+                        {computed.totalKrevd > 0 && (
+                          <span className="text-sm font-medium">
+                            {((computed.totalGodkjent / computed.totalKrevd) * 100).toFixed(1)}%
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-pkt-text-body-subtle">Krevd:</span>
+                        <span className="font-mono font-bold">{computed.totalKrevd.toLocaleString('nb-NO')}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-pkt-text-body-subtle">Godkjent:</span>
+                        <span className="font-mono font-bold">{computed.totalGodkjent.toLocaleString('nb-NO')}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Automatisk beregnet resultat - Prinsipalt */}
@@ -1394,32 +1577,33 @@ export function RespondVederlagModal({
           )}
 
           {/* Navigation Actions */}
-          <div className="flex justify-between pt-6 border-t-2 border-pkt-border-subtle">
-            <div>
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-4 pt-6 border-t-2 border-pkt-border-subtle">
+            <div className="sm:order-1">
               {currentPort > startPort && (
-                <Button type="button" variant="ghost" onClick={goToPrevPort} size="lg">
+                <Button type="button" variant="ghost" onClick={goToPrevPort} size="lg" className="w-full sm:w-auto">
                   ← Forrige
                 </Button>
               )}
             </div>
 
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
               <Button
                 type="button"
                 variant="ghost"
                 onClick={handleClose}
                 disabled={isSubmitting}
                 size="lg"
+                className="w-full sm:w-auto order-2 sm:order-1"
               >
                 Avbryt
               </Button>
 
               {currentPort < totalPorts ? (
-                <Button type="button" variant="primary" onClick={goToNextPort} size="lg">
+                <Button type="button" variant="primary" onClick={goToNextPort} size="lg" className="w-full sm:w-auto order-1 sm:order-2">
                   Neste →
                 </Button>
               ) : (
-                <Button type="submit" variant="primary" disabled={isSubmitting} size="lg">
+                <Button type="submit" variant="primary" disabled={isSubmitting} size="lg" className="w-full sm:w-auto order-1 sm:order-2">
                   {isSubmitting ? 'Sender...' : 'Send svar'}
                 </Button>
               )}

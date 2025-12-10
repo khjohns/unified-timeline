@@ -463,7 +463,7 @@ export function RespondFristModal({
               ================================================================ */}
           {currentPort === 1 && (
             <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
                 <Badge variant="info">Port 1</Badge>
                 <h3 className="font-bold text-lg">Preklusjon (§33.4, §33.6)</h3>
               </div>
@@ -694,7 +694,7 @@ export function RespondFristModal({
               ================================================================ */}
           {currentPort === 2 && (
             <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
                 <Badge variant="info">Port 2</Badge>
                 <h3 className="font-bold text-lg">Vilkår (§33.5)</h3>
                 {port2ErSubsidiaer && <Badge variant="warning">Subsidiært</Badge>}
@@ -783,7 +783,7 @@ export function RespondFristModal({
               ================================================================ */}
           {currentPort === 3 && (
             <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
                 <Badge variant="info">Port 3</Badge>
                 <h3 className="font-bold text-lg">Beregning</h3>
                 {port3ErSubsidiaer && <Badge variant="warning">Subsidiært</Badge>}
@@ -815,11 +815,11 @@ export function RespondFristModal({
 
                   {/* Hovedkrav beregning */}
                   <div className="p-4 bg-pkt-surface-subtle rounded-none border-2 border-pkt-border-default">
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
                       <h4 className="font-bold">
                         {port3ErSubsidiaer ? 'Subsidiær beregning' : 'Fristkrav'}
                       </h4>
-                      <div className="text-right">
+                      <div className="text-left sm:text-right">
                         <span className="text-sm text-pkt-text-body-subtle">Krevd: </span>
                         <span className="text-lg font-mono font-bold">
                           {effektivKrevdDager} dager
@@ -915,7 +915,7 @@ export function RespondFristModal({
               ================================================================ */}
           {currentPort === 4 && (
             <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
                 <Badge variant="info">Port 4</Badge>
                 <h3 className="font-bold text-lg">Oppsummering</h3>
               </div>
@@ -979,23 +979,61 @@ export function RespondFristModal({
                   {sendEtterlysning ? (
                     <span className="text-sm text-pkt-text-body-subtle">(Avventer)</span>
                   ) : (
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-pkt-border-subtle">
-                          <th className="text-left py-1">Krav</th>
-                          <th className="text-right py-1">Krevd</th>
-                          <th className="text-right py-1">
-                            {port3ErSubsidiaer ? 'Maks. subs.' : 'Godkjent'}
-                          </th>
-                          <th className="text-right py-1">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr className="border-b border-pkt-border-subtle">
-                          <td className="py-2">Fristforlengelse</td>
-                          <td className="text-right font-mono">{effektivKrevdDager} dager</td>
-                          <td className="text-right font-mono">{godkjentDager} dager</td>
-                          <td className="text-right">
+                    <>
+                      {/* Desktop: tabell */}
+                      <table className="hidden sm:table w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-pkt-border-subtle">
+                            <th className="text-left py-1">Krav</th>
+                            <th className="text-right py-1">Krevd</th>
+                            <th className="text-right py-1">
+                              {port3ErSubsidiaer ? 'Maks. subs.' : 'Godkjent'}
+                            </th>
+                            <th className="text-right py-1">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="border-b border-pkt-border-subtle">
+                            <td className="py-2">Fristforlengelse</td>
+                            <td className="text-right font-mono">{effektivKrevdDager} dager</td>
+                            <td className="text-right font-mono">{godkjentDager} dager</td>
+                            <td className="text-right">
+                              {godkjentDager >= effektivKrevdDager ? (
+                                <Badge variant="success">
+                                  {port3ErSubsidiaer ? 'Subs. godkj.' : 'Godkjent'}
+                                </Badge>
+                              ) : godkjentDager > 0 ? (
+                                <Badge variant="warning">
+                                  {port3ErSubsidiaer ? 'Subs. delvis' : 'Delvis'}
+                                </Badge>
+                              ) : (
+                                <Badge variant="danger">
+                                  {port3ErSubsidiaer ? 'Subs. avsl.' : 'Avslått'}
+                                </Badge>
+                              )}
+                            </td>
+                          </tr>
+                          <tr className="font-bold">
+                            <td className="py-2">DIFFERANSE</td>
+                            <td className="text-right font-mono"></td>
+                            <td className="text-right font-mono">{avslatteDager} dager</td>
+                            <td className="text-right">
+                              {effektivKrevdDager > 0 && (
+                                <span className="text-sm">
+                                  {((godkjentDager / effektivKrevdDager) * 100).toFixed(1)}%
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+
+                      {/* Mobil: card-liste */}
+                      <div className="sm:hidden space-y-3">
+                        {/* Fristforlengelse card */}
+                        <div className="p-3 border border-pkt-border-subtle rounded-none">
+                          <div className="flex justify-between items-start mb-2">
+                            <span className="font-medium">Fristforlengelse</span>
                             {godkjentDager >= effektivKrevdDager ? (
                               <Badge variant="success">
                                 {port3ErSubsidiaer ? 'Subs. godkj.' : 'Godkjent'}
@@ -1009,22 +1047,36 @@ export function RespondFristModal({
                                 {port3ErSubsidiaer ? 'Subs. avsl.' : 'Avslått'}
                               </Badge>
                             )}
-                          </td>
-                        </tr>
-                        <tr className="font-bold">
-                          <td className="py-2">DIFFERANSE</td>
-                          <td className="text-right font-mono"></td>
-                          <td className="text-right font-mono">{avslatteDager} dager</td>
-                          <td className="text-right">
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-pkt-text-body-subtle">Krevd:</span>
+                            <span className="font-mono">{effektivKrevdDager} dager</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-pkt-text-body-subtle">
+                              {port3ErSubsidiaer ? 'Maks. subs.:' : 'Godkjent:'}
+                            </span>
+                            <span className="font-mono">{godkjentDager} dager</span>
+                          </div>
+                        </div>
+
+                        {/* Differanse card */}
+                        <div className="p-3 border-2 border-pkt-border-default rounded-none bg-pkt-surface-subtle">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="font-bold">DIFFERANSE</span>
                             {effektivKrevdDager > 0 && (
-                              <span className="text-sm">
+                              <span className="text-sm font-medium">
                                 {((godkjentDager / effektivKrevdDager) * 100).toFixed(1)}%
                               </span>
                             )}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-pkt-text-body-subtle">Avslått:</span>
+                            <span className="font-mono font-bold">{avslatteDager} dager</span>
+                          </div>
+                        </div>
+                      </div>
+                    </>
                   )}
                 </div>
 
@@ -1101,32 +1153,33 @@ export function RespondFristModal({
           )}
 
           {/* Navigation Actions */}
-          <div className="flex justify-between pt-6 border-t-2 border-pkt-border-subtle">
-            <div>
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-4 pt-6 border-t-2 border-pkt-border-subtle">
+            <div className="sm:order-1">
               {currentPort > 1 && (
-                <Button type="button" variant="ghost" onClick={goToPrevPort} size="lg">
+                <Button type="button" variant="ghost" onClick={goToPrevPort} size="lg" className="w-full sm:w-auto">
                   ← Forrige
                 </Button>
               )}
             </div>
 
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
               <Button
                 type="button"
                 variant="ghost"
                 onClick={handleClose}
                 disabled={isSubmitting}
                 size="lg"
+                className="w-full sm:w-auto order-2 sm:order-1"
               >
                 Avbryt
               </Button>
 
               {currentPort < 4 ? (
-                <Button type="button" variant="primary" onClick={goToNextPort} size="lg">
+                <Button type="button" variant="primary" onClick={goToNextPort} size="lg" className="w-full sm:w-auto order-1 sm:order-2">
                   Neste →
                 </Button>
               ) : (
-                <Button type="submit" variant="primary" disabled={isSubmitting} size="lg">
+                <Button type="submit" variant="primary" disabled={isSubmitting} size="lg" className="w-full sm:w-auto order-1 sm:order-2">
                   {isSubmitting ? 'Sender...' : 'Send svar'}
                 </Button>
               )}

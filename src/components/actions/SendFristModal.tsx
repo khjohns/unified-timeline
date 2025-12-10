@@ -492,17 +492,18 @@ export function SendFristModal({
         )}
 
         {/* Actions */}
-        <div className="flex justify-end gap-4 pt-6 border-t-2 border-pkt-border-subtle">
+        <div className="flex flex-col sm:flex-row sm:justify-end gap-2 sm:gap-4 pt-6 border-t-2 border-pkt-border-subtle">
           <Button
             type="button"
             variant="ghost"
             onClick={handleClose}
             disabled={isSubmitting}
             size="lg"
+            className="w-full sm:w-auto order-2 sm:order-1"
           >
             Avbryt
           </Button>
-          <Button type="submit" variant="primary" disabled={isSubmitting} size="lg" data-testid="frist-submit">
+          <Button type="submit" variant="primary" disabled={isSubmitting} size="lg" className="w-full sm:w-auto order-1 sm:order-2" data-testid="frist-submit">
             {isSubmitting ? 'Sender...' : 'Send fristkrav'}
           </Button>
         </div>
