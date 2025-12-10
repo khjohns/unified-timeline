@@ -119,16 +119,7 @@ def mock_catenda():
 
 
 @pytest.fixture
-def mock_magic_link_manager():
-    """Create mock MagicLinkManager"""
-    manager = MagicMock()
-    manager.create_magic_link.return_value = ('http://localhost:3000/verify?token=test-token', 'test-token')
-    manager.verify_token.return_value = {'email': 'test@example.com', 'sak_id': 'SAK-001'}
-    return manager
-
-
-@pytest.fixture
-def mock_system(mock_repository, mock_catenda, mock_magic_link_manager, temp_data_dir, monkeypatch):
+def mock_system(mock_repository, mock_catenda, temp_data_dir, monkeypatch):
     """Create mock SystemContext (replaces KOEAutomationSystem)"""
     config = {
         'catenda_client_id': 'test-client-id',
@@ -139,8 +130,13 @@ def mock_system(mock_repository, mock_catenda, mock_magic_link_manager, temp_dat
         'react_app_url': 'http://localhost:3000'
     }
 
+    # Create mock magic link manager
+    mock_mlm = MagicMock()
+    mock_mlm.generate.return_value = 'test-magic-token-123'
+    mock_mlm.verify.return_value = (True, None, {'sak_id': 'TEST-123'})
+
     # Create system with mocked catenda and magic link manager
-    system = SystemContext(config, mock_magic_link_manager)
+    system = SystemContext(config, mock_mlm)
     system.catenda = mock_catenda
 
     # Patch the global system variable directly
@@ -176,62 +172,6 @@ def test_sak_with_data(mock_system, test_sak_data):
     return {
         'sak_id': sak_id,
         'data': data
-    }
-
-
-@pytest.fixture
-def test_varsel_data():
-    """Sample varsel form data"""
-    return {
-        'dato_forhold_oppdaget': '2025-11-20',
-        'hovedkategori': 'Risiko',
-        'underkategori': 'Grunnforhold',
-        'varsel_beskrivelse': 'Test beskrivelse av forhold',
-        'varsel_type': 'Uforutsett forhold',
-        'varsel_konsekvens': 'Forsinkelse'
-    }
-
-
-@pytest.fixture
-def test_koe_data():
-    """Sample KOE form data"""
-    return {
-        'krav_vederlag': True,
-        'krav_vederlag_metode': 'regning',
-        'krav_vederlag_belop': '50000',
-        'krav_vederlag_begrunnelse': 'Ekstra arbeid',
-        'krav_produktivitetstap': False,
-        'saerskilt_varsel_rigg_drift': False,
-        'krav_fristforlengelse': True,
-        'krav_frist_type': 'kontraktsfrist',
-        'krav_frist_antall_dager': '14',
-        'forsinkelse_kritisk_linje': True,
-        'krav_frist_begrunnelse': 'Grunnforhold tar lenger tid'
-    }
-
-
-@pytest.fixture
-def test_svar_data():
-    """Sample BH svar form data"""
-    return {
-        'vederlag': {
-            'varsel_for_sent': False,
-            'varsel_for_sent_begrunnelse': '',
-            'bh_svar_vederlag': 'godkjent',
-            'bh_vederlag_metode': 'regning',
-            'bh_godkjent_vederlag_belop': '50000',
-            'bh_begrunnelse_vederlag': 'Kravet er rimelig'
-        },
-        'frist': {
-            'varsel_for_sent': False,
-            'varsel_for_sent_begrunnelse': '',
-            'bh_svar_frist': 'godkjent',
-            'bh_godkjent_frist_dager': '14',
-            'bh_frist_for_spesifisering': '',
-            'bh_begrunnelse_frist': 'Rimelig forlengelse'
-        },
-        'mote_dato': '2025-12-01',
-        'mote_referat': 'Møte avholdt, enighet om krav'
     }
 
 
