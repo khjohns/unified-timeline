@@ -623,14 +623,13 @@ class FristEvent(SakEvent):
 # ============ RESPONS EVENTS (BH) ============
 
 class GrunnlagResponsResultat(str, Enum):
-    """Resultat av BH's vurdering av grunnlag (ansvar)"""
-    GODKJENT = "godkjent"  # BH aksepterer ansvarsgrunnlaget fullt ut
-    DELVIS_GODKJENT = "delvis_godkjent"  # BH aksepterer deler av grunnlaget
-    ERKJENN_FM = "erkjenn_fm"  # §33.3 - BH erkjenner Force Majeure (kun frist, ikke vederlag)
-    AVVIST_UENIG = "avvist_uenig"  # BH er uenig i ansvarsgrunnlaget
-    AVVIST_FOR_SENT = "avvist_for_sent"  # Varselet kom for sent (preklusjon)
-    FRAFALT = "frafalt"  # §32.3 c - BH frafaller pålegget (kun irregulær endring)
-    KREVER_AVKLARING = "krever_avklaring"  # BH trenger mer dokumentasjon før beslutning
+    """Resultat av byggherrens vurdering av grunnlag (ansvar)"""
+    GODKJENT = "godkjent"  # Byggherren aksepterer ansvarsgrunnlaget fullt ut
+    DELVIS_GODKJENT = "delvis_godkjent"  # Byggherren aksepterer deler av grunnlaget
+    ERKJENN_FM = "erkjenn_fm"  # §33.3 - Byggherren erkjenner Force Majeure (kun frist, ikke vederlag)
+    AVVIST_UENIG = "avvist_uenig"  # Byggherren er uenig i ansvarsgrunnlaget
+    FRAFALT = "frafalt"  # §32.3 c - Byggherren frafaller pålegget (kun irregulær endring)
+    KREVER_AVKLARING = "krever_avklaring"  # Byggherren trenger mer dokumentasjon før beslutning
 
 
 class GrunnlagResponsData(BaseModel):

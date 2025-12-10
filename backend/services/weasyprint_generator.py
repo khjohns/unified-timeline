@@ -398,9 +398,9 @@ class WeasyPrintGenerator:
             'under_forhandling': 'Under forhandling',
             'trukket': 'Trukket',
             'laast': 'Låst',
-            'godkjent': 'Godkjent',
             'avvist_uenig': 'Avvist (uenig)',
-            'avvist_for_sent': 'Avvist (for sent)',
             'krever_avklaring': 'Krever avklaring',
+            'erkjenn_fm': 'Force Majeure erkjent',
+            'frafalt': 'Pålegget frafalt',
         }
         return status_map.get(status, status)
