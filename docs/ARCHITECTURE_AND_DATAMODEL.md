@@ -2,7 +2,7 @@
 
 **Dokumentasjon av systemarkitektur, event sourcing og datastrukturer**
 
-*Sist oppdatert: 2025-12-09*
+*Sist oppdatert: 2025-12-10*
 
 ---
 
@@ -404,9 +404,11 @@ GRUNNLAG - Port 1 (Ansvar)
       ├── delvis_godkjent
       ├── erkjenn_fm (Force Majeure)
       ├── avvist_uenig
-      ├── avvist_for_sent
       ├── frafalt (§32.3 c)
       └── krever_avklaring
+
+      NB: Preklusjon (for sent varsel) håndteres på
+      vederlag/frist-nivå via subsidiaer_triggers
 
 
 VEDERLAG - Port 1 + Port 2
@@ -617,9 +619,9 @@ class GrunnlagResponsResultat(str, Enum):
     DELVIS_GODKJENT = "delvis_godkjent"
     ERKJENN_FM = "erkjenn_fm"        # Force Majeure (§33.3)
     AVVIST_UENIG = "avvist_uenig"
-    AVVIST_FOR_SENT = "avvist_for_sent"  # Preklusjon
     FRAFALT = "frafalt"              # §32.3 c - BH frafaller pålegg
     KREVER_AVKLARING = "krever_avklaring"
+    # Preklusjon håndteres via subsidiaer_triggers på vederlag/frist
 
 class GrunnlagResponsData(BaseModel):
     """BH's respons på grunnlag"""
@@ -944,7 +946,128 @@ stateDiagram-v2
     LAAST --> [*]
 ```
 
-### 4.10 Enums - Komplett oversikt
+### 4.10 Status-beregning og Subsidiær logikk
+
+Systemet har flere nivåer av status-beregning som håndteres av computed fields i `SakState`.
+
+#### Overordnet status (`overordnet_status`)
+
+Beregnes basert på de tre sporenes statuser:
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    OVERORDNET STATUS LOGIKK                              │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  Input: grunnlag.status, vederlag.status, frist.status                  │
+│  Filtrer ut: IKKE_RELEVANT                                               │
+│                                                                          │
+│  Prioritert rekkefølge:                                                  │
+│  ─────────────────────────────────────────────────────────────────────  │
+│  1. INGEN_AKTIVE_SPOR   → Alle spor er IKKE_RELEVANT                    │
+│  2. OMFORENT            → Alle aktive spor er GODKJENT eller LAAST      │
+│  3. LUKKET_TRUKKET      → Alle aktive spor er TRUKKET                   │
+│  4. UNDER_FORHANDLING   → Minst ett spor er AVVIST/DELVIS/FORHANDLING   │
+│  5. UNDER_BEHANDLING    → Minst ett spor er UNDER_BEHANDLING            │
+│  6. VENTER_PAA_SVAR     → Minst ett spor er SENDT                       │
+│  7. UTKAST              → Alle aktive spor er UTKAST                    │
+│  8. UKJENT              → Fallback                                       │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+**Viktig:** `overordnet_status` bruker kun rå spor-statuser, ikke subsidiær logikk.
+
+#### Subsidiær status-beregning
+
+Når BH avslår ansvarsgrunnlaget men godkjenner beløp/dager subsidiært:
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    SUBSIDIÆR VURDERING                                   │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  Scenario: BH mener TE ikke har rett, men erkjenner beregningen         │
+│                                                                          │
+│  PRINSIPALT:                                                             │
+│    grunnlag.status = AVVIST                                              │
+│    → "BH mener TE har ansvaret selv"                                    │
+│                                                                          │
+│  SUBSIDIÆRT:                                                             │
+│    vederlag.bh_resultat = GODKJENT                                       │
+│    vederlag.godkjent_belop = 150 000                                     │
+│    → "Men HVIS vi tok feil, er beløpet riktig"                          │
+│                                                                          │
+│  COMPUTED FIELDS:                                                        │
+│  ───────────────────────────────────────────────────────────────────    │
+│  er_subsidiaert_vederlag = True                                          │
+│    (grunnlag.status == AVVIST) AND                                       │
+│    (vederlag.bh_resultat ∈ {GODKJENT, DELVIS_GODKJENT})                  │
+│                                                                          │
+│  visningsstatus_vederlag = "Avslått pga. ansvar                         │
+│                             (Subsidiært enighet om 150 000 kr)"         │
+│                                                                          │
+│  overordnet_status = UNDER_FORHANDLING                                   │
+│    (fordi grunnlag er AVVIST - partene er uenige)                       │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+**Hvorfor UNDER_FORHANDLING ved subsidiær godkjenning?**
+
+Subsidiær godkjenning er en **forhandlingsposisjon**, ikke en endelig løsning:
+- Partene er **ikke enige** - det er fortsatt tvist om ansvarsgrunnlaget
+- Saken er **ikke omforent** - TE har ikke fått det de krevde
+- Hvis TE aksepterer avslaget → får ingenting
+- Hvis TE tar saken videre og vinner på ansvaret → beløpet er allerede avklart
+
+#### Computed fields i SakState
+
+| Field | Beskrivelse | Logikk |
+|-------|-------------|--------|
+| `er_force_majeure` | §33.3 erkjent | `grunnlag.bh_resultat == ERKJENN_FM` |
+| `er_frafalt` | §32.3 c pålegg frafalt | `grunnlag.bh_resultat == FRAFALT` |
+| `er_subsidiaert_vederlag` | Grunnlag avvist + vederlag godkjent | Se over |
+| `er_subsidiaert_frist` | Grunnlag avvist + frist godkjent | Tilsvarende |
+| `visningsstatus_vederlag` | UI-vennlig kombinert status | Inkl. subsidiær info |
+| `visningsstatus_frist` | UI-vennlig kombinert status | Inkl. subsidiær info |
+| `overordnet_status` | Sak-nivå status | Basert på spor-statuser |
+| `kan_utstede_eo` | Kan EO utstedes? | Alle spor GODKJENT/LAAST |
+| `neste_handling` | Foreslått neste steg | `{rolle, handling, spor}` |
+
+#### Status-mapping ved BH-respons
+
+```python
+# Grunnlag respons → SporStatus
+GODKJENT         → GODKJENT
+DELVIS_GODKJENT  → DELVIS_GODKJENT
+AVVIST_UENIG     → AVVIST
+ERKJENN_FM       → GODKJENT    # Force Majeure gir fristforlengelse
+FRAFALT          → TRUKKET     # Pålegg frafalt, sak lukkes
+KREVER_AVKLARING → UNDER_FORHANDLING
+
+# Vederlag/Frist beregning → SporStatus
+godkjent         → GODKJENT
+delvis_godkjent  → DELVIS_GODKJENT
+avventer         → UNDER_FORHANDLING
+avslatt          → AVVIST
+```
+
+#### Spesialtilfeller
+
+**Force Majeure (§33.3):**
+- Grunnlag godkjennes (ERKJENN_FM → GODKJENT)
+- Frist kan godkjennes
+- Vederlag er **alltid avslått** (§33.3: "har ikke krav på vederlagsjustering")
+- `visningsstatus_vederlag = "Ikke aktuelt (Force Majeure - §33.3)"`
+
+**Frafall (§32.3 c):**
+- BH frafaller pålegget som utløste kravet
+- Grunnlag blir TRUKKET
+- TE kan fortsatt kreve påløpte kostnader
+- `visningsstatus_vederlag = "Avventer (pålegg frafalt - §32.3 c)"`
+
+### 4.11 Enums - Komplett oversikt
 
 ```python
 # ═══════════════════════════════════════════════════════════════════
@@ -999,9 +1122,10 @@ class GrunnlagResponsResultat(str, Enum):
     DELVIS_GODKJENT = "delvis_godkjent"
     ERKJENN_FM = "erkjenn_fm"          # Force Majeure
     AVVIST_UENIG = "avvist_uenig"
-    AVVIST_FOR_SENT = "avvist_for_sent"
     FRAFALT = "frafalt"                # §32.3 c
     KREVER_AVKLARING = "krever_avklaring"
+    # NB: AVVIST_FOR_SENT er fjernet - preklusjon håndteres via
+    # subsidiaer_triggers på vederlag/frist-nivå
 ```
 
 ---
