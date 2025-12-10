@@ -191,7 +191,6 @@ export function SendGrunnlagModal({
       open={open}
       onOpenChange={onOpenChange}
       title="Send grunnlag"
-      description="Fyll ut informasjon om grunnlaget for endringsmeldingen."
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -276,13 +275,12 @@ export function SendGrunnlagModal({
 
         {/* Underkategori info */}
         {valgtUnderkategori && (
-          <div className="bg-blue-50 p-3 rounded border border-blue-200 text-sm">
-            <strong>{valgtUnderkategori.label}</strong>
-            <p className="text-gray-700 mt-1">{valgtUnderkategori.beskrivelse}</p>
+          <Alert variant="info" title={valgtUnderkategori.label}>
+            {valgtUnderkategori.beskrivelse}
             <p className="text-xs mt-2">
               <strong>Varslingskrav:</strong> §{valgtUnderkategori.varselkrav_ref}
             </p>
-          </div>
+          </Alert>
         )}
 
         {/* Tittel */}
@@ -296,32 +294,31 @@ export function SendGrunnlagModal({
             id="tittel"
             data-testid="grunnlag-tittel"
             {...register('tittel')}
-            placeholder="F.eks. 'Forsinkede leveranser tomt' eller 'Pålegg om endret føringsvei'"
             fullWidth
           />
         </FormField>
 
         {/* Law change check (§14.4) */}
         {harLovendring && (
-          <div className="bg-blue-50 p-4 rounded border-2 border-blue-200">
+          <Alert variant="warning" title="Lovendring (§14.4)">
             <Controller
               name="er_etter_tilbud"
               control={control}
               render={({ field }) => (
                 <Checkbox
                   id="er_etter_tilbud"
-                  label="Bekreft at endringen inntraff ETTER tilbudsfristens utløp (§14.4)"
+                  label="Bekreft at endringen inntraff ETTER tilbudsfristens utløp"
                   checked={field.value}
                   onCheckedChange={field.onChange}
                 />
               )}
             />
             {!erEtterTilbud && (
-              <p className="text-xs text-red-600 mt-2">
+              <p className="text-xs text-pkt-text-danger mt-2">
                 Hvis lovendringen var kjent ved tilbudsfrist, ligger risikoen normalt hos deg.
               </p>
             )}
-          </div>
+          </Alert>
         )}
 
         {/* Beskrivelse */}
@@ -329,6 +326,7 @@ export function SendGrunnlagModal({
           label="Beskrivelse"
           required
           error={errors.beskrivelse?.message}
+          helpText="Beskriv grunnlaget for endringsmeldingen"
         >
           <Textarea
             id="beskrivelse"
@@ -336,19 +334,18 @@ export function SendGrunnlagModal({
             {...register('beskrivelse')}
             rows={5}
             fullWidth
-            placeholder="Beskriv grunnlaget for endringsmeldingen..."
             error={!!errors.beskrivelse}
           />
         </FormField>
 
         {/* Dato og varsel-seksjon */}
-        <div className="bg-gray-50 p-4 rounded-md border border-gray-200 space-y-4">
+        <div className="bg-pkt-surface-subtle p-4 rounded-none border-2 border-pkt-border-default space-y-4">
           <FormField
             label="Dato forhold oppdaget"
             required
             error={errors.dato_oppdaget?.message}
           >
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
               <Controller
                 name="dato_oppdaget"
                 control={control}
@@ -358,14 +355,12 @@ export function SendGrunnlagModal({
                     data-testid="grunnlag-dato-oppdaget"
                     value={field.value}
                     onChange={field.onChange}
-                    
                     error={!!errors.dato_oppdaget}
-                    placeholder="Velg dato"
                   />
                 )}
               />
               {datoOppdaget && (
-                <span className="text-sm text-gray-600 whitespace-nowrap">
+                <span className="text-sm text-pkt-text-body-subtle whitespace-nowrap">
                   {beregnDagerSiden(datoOppdaget)} dager siden
                 </span>
               )}
@@ -402,7 +397,7 @@ export function SendGrunnlagModal({
         {!varselSendesNa && (
           <FormField
             label="Dato varsel sendt tidligere"
-            labelTooltip="Dokumenter når BH ble varslet. Varselfrist er kritisk for om kravet kan tapes ved preklusjon."
+            labelTooltip="Dokumenter når byggherren ble varslet. Varselfrist er kritisk for om kravet kan tapes ved preklusjon."
             helpText="Kan være forskjellig fra oppdaget-dato. Både formelle og uformelle varsler (f.eks. byggemøte) teller."
           >
             <Controller
@@ -413,8 +408,6 @@ export function SendGrunnlagModal({
                   id="dato_varsel_sendt"
                   value={field.value}
                   onChange={field.onChange}
-                  
-                  placeholder="Velg dato"
                 />
               )}
             />
@@ -436,7 +429,7 @@ export function SendGrunnlagModal({
         {!varselSendesNa && (
           <FormField
             label="Varselmetode"
-            helpText="Hvordan ble BH varslet? (Kan velge flere)"
+            helpText="Hvordan ble byggherren varslet? (Kan velge flere)"
           >
             <div className="space-y-3 border-2 border-pkt-border-gray rounded-none p-4 bg-pkt-bg-subtle">
               {VARSEL_METODER_OPTIONS.map((option) => (
@@ -459,15 +452,14 @@ export function SendGrunnlagModal({
             type="text"
             {...register('kontraktsreferanser')}
             fullWidth
-            placeholder="F.eks. '§3.2, §4.1'"
           />
-          <p className="text-xs text-gray-500 mt-2">
+          <p className="text-xs text-pkt-text-body-subtle mt-2">
             Separer flere referanser med komma
           </p>
         </Collapsible>
 
         {/* Guidance text */}
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-pkt-text-body-subtle">
           Dette er et nøytralt varsel om grunnlaget. Spesifiserte krav om penger (Vederlag)
           og tid (Frist) legger du til i egne steg etterpå.
         </p>
@@ -480,17 +472,25 @@ export function SendGrunnlagModal({
         )}
 
         {/* Actions */}
-        <div className="flex justify-end gap-4 pt-6 border-t-2 border-pkt-border-subtle">
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-6 border-t-2 border-pkt-border-subtle">
           <Button
             type="button"
             variant="ghost"
             onClick={handleClose}
             disabled={isSubmitting}
             size="lg"
+            className="w-full sm:w-auto"
           >
             Avbryt
           </Button>
-          <Button type="submit" variant="primary" disabled={isSubmitting} size="lg" data-testid="grunnlag-submit">
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={isSubmitting}
+            size="lg"
+            className="w-full sm:w-auto"
+            data-testid="grunnlag-submit"
+          >
             {isSubmitting ? 'Sender...' : 'Send grunnlag'}
           </Button>
         </div>

@@ -16,7 +16,6 @@ import { Modal } from '../primitives/Modal';
 import { Button } from '../primitives/Button';
 import { Textarea } from '../primitives/Textarea';
 import { FormField } from '../primitives/FormField';
-import { Badge } from '../primitives/Badge';
 import { Alert } from '../primitives/Alert';
 import { AlertDialog } from '../primitives/AlertDialog';
 import { RadioGroup, RadioItem } from '../primitives/RadioGroup';
@@ -142,7 +141,6 @@ export function RespondGrunnlagModal({
       open={open}
       onOpenChange={onOpenChange}
       title="Svar på grunnlag"
-      description="Vurder ansvarsgrunnlaget (hvem sin feil). Dette påvirker om vederlag/frist vurderes prinsipalt eller subsidiært."
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -185,37 +183,26 @@ export function RespondGrunnlagModal({
 
         {/* Force Majeure info */}
         {erForceMajeure && (
-          <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-none">
-            <div className="flex items-center gap-2 mb-2">
-              <Badge variant="warning">Force Majeure (§33.3)</Badge>
-            </div>
-            <p className="text-sm text-amber-900">
-              Force Majeure gir kun rett til <strong>fristforlengelse</strong>,
-              ikke vederlagsjustering. Vurder om hendelsen ligger utenfor begge
-              parters kontroll.
-            </p>
-          </div>
+          <Alert variant="warning" title="Force Majeure (§33.3)">
+            Force Majeure gir kun rett til <strong>fristforlengelse</strong>,
+            ikke vederlagsjustering. Vurder om hendelsen ligger utenfor begge
+            parters kontroll.
+          </Alert>
         )}
 
         {/* BH Passivity warning (§32.3) */}
         {erPassiv && (
-          <div
-            className="p-5 bg-pkt-surface-subtle-light-red border-2 border-pkt-border-red rounded-none"
-            role="alert"
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <Badge variant="danger">Passivitetsrisiko (§32.3)</Badge>
-            </div>
-            <p className="text-base text-pkt-border-red font-medium">
+          <Alert variant="danger" title="Passivitetsrisiko (§32.3)">
+            <p className="font-medium">
               Du har brukt <strong>{dagerSidenVarsel} dager</strong> på å svare
               på dette varselet om irregulær endring.
             </p>
-            <p className="text-sm text-pkt-border-red mt-2">
+            <p className="mt-2">
               Ved irregulær endring kan passivitet medføre at endringen anses
               akseptert. Hvis du avslår, bør du dokumentere hvorfor forsinkelsen
               var begrunnet.
             </p>
-          </div>
+          </Alert>
         )}
 
         {/* Resultat */}
@@ -274,70 +261,54 @@ export function RespondGrunnlagModal({
 
         {/* Frafall info (§32.3 c) */}
         {selectedResultat === 'frafalt' && (
-          <div className="p-4 bg-blue-50 border-2 border-blue-300 rounded-none">
-            <p className="text-sm font-medium text-blue-900 mb-2">
-              §32.3 c) - Frafall av pålegget:
-            </p>
-            <p className="text-sm text-blue-800">
-              Ved å frafalle pålegget bekrefter du at arbeidet <strong>ikke skal
-              utføres</strong>. Dette er en endelig beslutning for irregulære
-              endringer (§32.2). Entreprenøren trenger ikke å utføre det pålagte
-              arbeidet, og saken avsluttes.
-            </p>
-          </div>
+          <Alert variant="info" title="Frafall av pålegget (§32.3 c)">
+            Ved å frafalle pålegget bekrefter du at arbeidet <strong>ikke skal
+            utføres</strong>. Dette er en endelig beslutning for irregulære
+            endringer (§32.2). Entreprenøren trenger ikke å utføre det pålagte
+            arbeidet, og saken avsluttes.
+          </Alert>
         )}
 
         {/* Force Majeure recognition info (§33.3) */}
         {selectedResultat === 'erkjenn_fm' && (
-          <div className="p-4 bg-blue-50 border-2 border-blue-300 rounded-none">
-            <p className="text-sm font-medium text-blue-900 mb-2">
-              §33.3 - Force Majeure erkjennelse:
-            </p>
-            <p className="text-sm text-blue-800">
+          <Alert variant="info" title="Force Majeure erkjennelse (§33.3)">
+            <p>
               Ved å erkjenne Force Majeure bekrefter du at forholdet er utenfor
               begge parters kontroll. Entreprenøren får kun rett til{' '}
               <strong>fristforlengelse</strong>, ikke vederlagsjustering. Dette
               gjelder ekstraordinære hendelser som krig, naturkatastrofer, streik
               etc.
             </p>
-            <p className="text-sm text-blue-800 mt-2">
+            <p className="mt-2">
               Dokumentasjonskravet er høyt: Hendelsen må være ekstraordinær og
               uforutsigbar, og ligge utenfor begge parters kontroll og innflytelse.
             </p>
-          </div>
+          </Alert>
         )}
 
         {/* Subsidiary treatment warning when rejecting */}
         {selectedResultat === 'avvist_uenig' && (
-          <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-none">
-            <p className="text-sm font-medium text-amber-900 mb-2">
-              Konsekvens av avslag:
-            </p>
-            <p className="text-sm text-amber-800">
+          <Alert variant="warning" title="Konsekvens av avslag">
+            <p>
               Saken markeres som <em>omtvistet</em>. Entreprenøren vil likevel
               kunne sende inn krav om Vederlag og Frist. Du må da behandle disse
               kravene <strong>subsidiært</strong> (dvs. &ldquo;hva kravet hadde
               vært verdt <em>hvis</em> du tok feil om ansvaret&rdquo;).
             </p>
-            <p className="text-sm text-amber-800 mt-2">
+            <p className="mt-2">
               Dette sikrer at dere får avklart uenighet om beregning (utmåling)
               tidlig, selv om dere er uenige om ansvaret.
             </p>
-          </div>
+          </Alert>
         )}
 
         {/* EO generation info when approving */}
         {selectedResultat === 'godkjent' && !erForceMajeure && (
-          <div className="p-4 bg-green-50 border-2 border-green-300 rounded-none">
-            <p className="text-sm font-medium text-green-900 mb-1">
-              Systemhandling:
-            </p>
-            <p className="text-sm text-green-800">
-              Når du sender svaret, vil systemet automatisk registrere at
-              grunnlaget er godkjent. Endringsordre (EO) kan utstedes når
-              vederlag og frist også er avklart.
-            </p>
-          </div>
+          <Alert variant="success" title="Systemhandling">
+            Når du sender svaret, vil systemet automatisk registrere at
+            grunnlaget er godkjent. Endringsordre (EO) kan utstedes når
+            vederlag og frist også er avklart.
+          </Alert>
         )}
 
         {/* Begrunnelse */}
@@ -345,17 +316,17 @@ export function RespondGrunnlagModal({
           label="Begrunnelse"
           required
           error={errors.begrunnelse?.message}
+          helpText={
+            selectedResultat === 'avvist_uenig'
+              ? 'Forklar hvorfor du mener forholdet er en del av kontrakten eller entreprenørens risiko'
+              : 'Begrunn din vurdering av grunnlaget'
+          }
         >
           <Textarea
             id="begrunnelse"
             {...register('begrunnelse')}
             rows={5}
             fullWidth
-            placeholder={
-              selectedResultat === 'avvist_uenig'
-                ? 'Forklar hvorfor du mener forholdet er en del av kontrakten eller TE sin risiko...'
-                : 'Begrunn din vurdering av grunnlaget...'
-            }
             error={!!errors.begrunnelse}
             data-testid="respond-grunnlag-begrunnelse"
           />
@@ -369,13 +340,14 @@ export function RespondGrunnlagModal({
         )}
 
         {/* Actions */}
-        <div className="flex justify-end gap-4 pt-6 border-t-2 border-pkt-border-subtle">
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-6 border-t-2 border-pkt-border-subtle">
           <Button
             type="button"
             variant="ghost"
             onClick={handleClose}
             disabled={isSubmitting}
             size="lg"
+            className="w-full sm:w-auto"
           >
             Avbryt
           </Button>
@@ -384,6 +356,7 @@ export function RespondGrunnlagModal({
             variant={selectedResultat === 'avvist_uenig' ? 'danger' : 'primary'}
             disabled={isSubmitting}
             size="lg"
+            className="w-full sm:w-auto"
             data-testid="respond-grunnlag-submit"
           >
             {isSubmitting ? 'Sender...' : 'Send svar'}
