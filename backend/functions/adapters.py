@@ -113,7 +113,7 @@ class ServiceContext:
 
     Usage:
         with ServiceContext() as ctx:
-            result = ctx.varsel_service.submit_varsel(...)
+            ctx.repository.save_form_data(...)
     """
 
     def __init__(self, repository_type: str = 'csv'):
@@ -125,9 +125,6 @@ class ServiceContext:
         """
         self.repository_type = repository_type
         self._repository = None
-        self._varsel_service = None
-        self._koe_service = None
-        self._svar_service = None
         self._catenda_service = None
 
     def __enter__(self):
@@ -150,39 +147,6 @@ class ServiceContext:
             else:
                 raise ValueError(f"Ukjent repository type: {self.repository_type}")
         return self._repository
-
-    @property
-    def varsel_service(self):
-        """Lazy-load VarselService."""
-        if self._varsel_service is None:
-            from services.varsel_service import VarselService
-            self._varsel_service = VarselService(
-                repository=self.repository,
-                catenda_service=self.catenda_service
-            )
-        return self._varsel_service
-
-    @property
-    def koe_service(self):
-        """Lazy-load KoeService."""
-        if self._koe_service is None:
-            from services.koe_service import KoeService
-            self._koe_service = KoeService(
-                repository=self.repository,
-                catenda_service=self.catenda_service
-            )
-        return self._koe_service
-
-    @property
-    def svar_service(self):
-        """Lazy-load SvarService."""
-        if self._svar_service is None:
-            from services.svar_service import SvarService
-            self._svar_service = SvarService(
-                repository=self.repository,
-                catenda_service=self.catenda_service
-            )
-        return self._svar_service
 
     @property
     def catenda_service(self):

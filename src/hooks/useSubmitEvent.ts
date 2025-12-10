@@ -8,7 +8,7 @@
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { submitEvent, EventSubmitResponse } from '../api/events';
 import { EventType } from '../types/timeline';
-import { generatePdfBlobFromState, blobToBase64 } from '../utils/pdf/pdfGenerator';
+import { generateContractorClaimPdf, blobToBase64 } from '../pdf';
 import { fetchCaseState } from '../api/state';
 
 export interface SubmitEventPayload {
@@ -86,17 +86,11 @@ export function useSubmitEvent(sakId: string, options: UseSubmitEventOptions = {
       // Generate PDF from current state if enabled
       if (generatePdf && stateData?.state) {
         try {
-          console.log('📄 Generating PDF from state...');
-          const { blob, filename } = await generatePdfBlobFromState(
-            stateData.state,
-            expectedVersion + 1
-          );
+          const { blob, filename } = await generateContractorClaimPdf(stateData.state);
           pdfBase64 = await blobToBase64(blob);
           pdfFilename = filename;
-          console.log(`✅ PDF generated: ${filename} (${(blob.size / 1024).toFixed(2)} KB)`);
-        } catch (pdfError) {
-          console.warn('⚠️ Failed to generate PDF on client, backend will generate as fallback:', pdfError);
-          // Continue without PDF - backend will generate
+        } catch {
+          // Continue without PDF - backend will generate as fallback
         }
       }
 
@@ -109,13 +103,6 @@ export function useSubmitEvent(sakId: string, options: UseSubmitEventOptions = {
       });
     },
     onSuccess: (data) => {
-      // Log PDF source for monitoring
-      if (data.pdf_source === 'server') {
-        console.warn('⚠️ Backend generated PDF (client generation failed)');
-      } else if (data.pdf_source === 'client') {
-        console.log('✅ Client PDF uploaded successfully');
-      }
-
       // Invalidate case state and timeline to trigger refetch
       queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'state'] });
       queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'timeline'] });
