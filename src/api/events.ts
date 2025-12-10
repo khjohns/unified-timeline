@@ -73,7 +73,6 @@ export async function submitEvent(
   // Use mock data if enabled
   if (USE_MOCK_API) {
     await mockDelay(800); // Simulate network delay for submission
-    console.log('Mock event submitted:', { sakId, eventType, data, options });
 
     // Return mock success response
     return {

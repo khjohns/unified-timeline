@@ -191,9 +191,7 @@ export function ComponentShowcase() {
             confirmLabel="Delete"
             cancelLabel="Cancel"
             variant="danger"
-            onConfirm={() => {
-              console.log('Item deleted');
-            }}
+            onConfirm={() => {}}
           />
         </Card>
 
