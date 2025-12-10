@@ -427,13 +427,13 @@ VEDERLAG - Port 1 + Port 2
       │
       │   "Er beløpet riktig beregnet?"
       │
-      ├── godkjent_fullt
+      ├── godkjent
       ├── delvis_godkjent
-      ├── godkjent_annen_metode
-      ├── avventer_spesifikasjon
-      ├── avslatt_totalt
-      ├── hold_tilbake (§30.2)
-      └── avvist_preklusjon_rigg
+      ├── avslatt
+      ├── avventer
+      └── hold_tilbake (§30.2)
+
+      Årsak til avslag fanges av subsidiaer_triggers
 
 
 FRIST - Port 1 + Port 2 + Port 3
@@ -457,15 +457,17 @@ FRIST - Port 1 + Port 2 + Port 3
       │
       │   "Hvor mange dager godkjennes?"
       │
-      ├── godkjent_fullt
+      ├── godkjent
       ├── delvis_godkjent
-      ├── avventer_spesifikasjon
-      └── avslatt_ingen_hindring
+      ├── avslatt
+      └── avventer
+
+      Årsak til avslag fanges av subsidiaer_triggers
 ```
 
 ### 4.4 Event-typer
 
-Systemet har **26 event-typer** fordelt på kategorier:
+Systemet har **19 event-typer** fordelt på kategorier:
 
 ```python
 class EventType(str, Enum):
@@ -637,14 +639,15 @@ class GrunnlagResponsData(BaseModel):
 
 ```python
 class VederlagBeregningResultat(str, Enum):
-    """Resultat av beregningsvurdering (Port 2)"""
-    GODKJENT_FULLT = "godkjent_fullt"
+    """
+    Resultat av beregningsvurdering (Port 2).
+    Forenklet - årsak til avslag fanges av subsidiaer_triggers.
+    """
+    GODKJENT = "godkjent"
     DELVIS_GODKJENT = "delvis_godkjent"
-    GODKJENT_ANNEN_METODE = "godkjent_annen_metode"
-    AVVENTER_SPESIFIKASJON = "avventer_spesifikasjon"
-    AVSLATT_TOTALT = "avslatt_totalt"
+    AVSLATT = "avslatt"
+    AVVENTER = "avventer"
     HOLD_TILBAKE = "hold_tilbake"              # §30.2
-    AVVIST_PREKLUSJON_RIGG = "avvist_preklusjon_rigg"  # §34.1.3
 
 class VederlagResponsData(BaseModel):
     """BH's respons på vederlag (Port 1 + Port 2)"""
@@ -674,11 +677,14 @@ class VederlagResponsData(BaseModel):
 
 ```python
 class FristBeregningResultat(str, Enum):
-    """Resultat av fristberegning (Port 3)"""
-    GODKJENT_FULLT = "godkjent_fullt"
+    """
+    Resultat av fristberegning (Port 3).
+    Forenklet - årsak til avslag fanges av subsidiaer_triggers.
+    """
+    GODKJENT = "godkjent"
     DELVIS_GODKJENT = "delvis_godkjent"
-    AVVENTER_SPESIFIKASJON = "avventer_spesifikasjon"
-    AVSLATT_INGEN_HINDRING = "avslatt_ingen_hindring"
+    AVSLATT = "avslatt"
+    AVVENTER = "avventer"
 
 class FristResponsData(BaseModel):
     """BH's respons på frist (Port 1 + Port 2 + Port 3)"""
@@ -756,7 +762,7 @@ Scenario: BH avviser ansvarsgrunnlaget, men erkjenner beløpet
 │   korrekt beregnet."                                            │
 │                                                                  │
 │  subsidiaer_triggers: [GRUNNLAG_AVVIST]                         │
-│  subsidiaer_resultat: GODKJENT_FULLT                            │
+│  subsidiaer_resultat: GODKJENT                                  │
 │  subsidiaer_godkjent_belop: 150000                              │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
@@ -1082,14 +1088,15 @@ class VederlagsMetode(str, Enum):
 
 
 class VederlagBeregningResultat(str, Enum):
-    """Resultat av beregning (Port 2)"""
-    GODKJENT_FULLT = "godkjent_fullt"
+    """
+    Resultat av beregning (Port 2).
+    Forenklet til 5 hovedkategorier - årsak til avslag fanges av subsidiaer_triggers.
+    """
+    GODKJENT = "godkjent"
     DELVIS_GODKJENT = "delvis_godkjent"
-    GODKJENT_ANNEN_METODE = "godkjent_annen_metode"
-    AVVENTER_SPESIFIKASJON = "avventer_spesifikasjon"
-    AVSLATT_TOTALT = "avslatt_totalt"
-    HOLD_TILBAKE = "hold_tilbake"
-    AVVIST_PREKLUSJON_RIGG = "avvist_preklusjon_rigg"
+    AVSLATT = "avslatt"
+    AVVENTER = "avventer"           # Trenger mer dokumentasjon
+    HOLD_TILBAKE = "hold_tilbake"   # §30.2
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -1105,11 +1112,14 @@ class FristVarselType(str, Enum):
 
 
 class FristBeregningResultat(str, Enum):
-    """Resultat av fristberegning (Port 3)"""
-    GODKJENT_FULLT = "godkjent_fullt"
+    """
+    Resultat av fristberegning (Port 3).
+    Forenklet til 4 hovedkategorier - årsak til avslag fanges av subsidiaer_triggers.
+    """
+    GODKJENT = "godkjent"
     DELVIS_GODKJENT = "delvis_godkjent"
-    AVVENTER_SPESIFIKASJON = "avventer_spesifikasjon"
-    AVSLATT_INGEN_HINDRING = "avslatt_ingen_hindring"
+    AVSLATT = "avslatt"
+    AVVENTER = "avventer"           # Trenger mer dokumentasjon
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -1364,8 +1374,8 @@ Valgfri cache for å unngå å beregne state hver gang:
 
 | Fil | Beskrivelse |
 |-----|-------------|
-| `backend/models/events.py` | Event-definisjoner (1157 linjer) |
-| `backend/models/sak_state.py` | State-modeller (787 linjer) |
+| `backend/models/events.py` | Event-definisjoner (~1170 linjer) |
+| `backend/models/sak_state.py` | State-modeller (~780 linjer) |
 | `backend/services/timeline_service.py` | State-projeksjon |
 | `backend/repositories/event_repository.py` | Event store |
 | `src/types/timeline.ts` | Frontend type-definisjoner |
