@@ -20,7 +20,6 @@ import { Checkbox } from '../primitives/Checkbox';
 import { RadioGroup, RadioItem } from '../primitives/RadioGroup';
 import { DatePicker } from '../primitives/DatePicker';
 import { FormField } from '../primitives/FormField';
-import { Badge } from '../primitives/Badge';
 import { Alert } from '../primitives/Alert';
 import { AlertDialog } from '../primitives/AlertDialog';
 import { useForm, Controller } from 'react-hook-form';
@@ -78,6 +77,7 @@ interface GrunnlagEventInfo {
   tittel?: string;
   hovedkategori?: string;
   dato_varslet?: string;
+  status?: 'godkjent' | 'avvist_uenig' | 'delvis_godkjent' | 'ubesvart';
 }
 
 interface SendFristModalProps {
@@ -154,6 +154,9 @@ export function SendFristModal({
     ? getHovedkategoriLabel(grunnlagEvent.hovedkategori)
     : undefined;
 
+  // Determine if this is a subsidiary claim (grunnlag was rejected)
+  const erSubsidiaer = grunnlagEvent?.status === 'avvist_uenig';
+
   const onSubmit = (data: FristFormData) => {
     // Build VarselInfo structures
     // For nøytralt varsel: use today's date and 'system' method if "sendes nå" is checked
@@ -210,67 +213,32 @@ export function SendFristModal({
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title="Send fristkrav"
-      description="Fyll ut informasjon om fristforlengelsen."
+      title="Krav om fristforlengelse"
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* BH Etterlysning warning (§33.6.2) - CRITICAL */}
         {harMottattEtterlysning && (
-          <div
-            className="p-5 bg-pkt-surface-subtle-light-red border-2 border-pkt-border-red rounded-none"
-            role="alert"
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <Badge variant="danger">Svar på BHs etterlysning (§33.6.2)</Badge>
-            </div>
-            <p className="text-base text-pkt-border-red font-medium">
-              KRITISK: Byggherren har etterlyst dette kravet.
-            </p>
-            <p className="text-sm text-pkt-border-red mt-1">
-              Du må svare &ldquo;uten ugrunnet opphold&rdquo;. Hvis du ikke
-              sender kravet nå, <strong>tapes hele retten til fristforlengelse</strong>{' '}
-              i denne saken (§33.6.2).
-            </p>
-          </div>
+          <Alert variant="danger" title="Svar på byggherrens etterlysning (§33.6.2)">
+            Byggherren har etterlyst dette kravet. Du må svare «uten ugrunnet opphold».
+            Hvis du ikke sender kravet nå, <strong>tapes hele retten til fristforlengelse</strong> i denne saken.
+          </Alert>
         )}
 
-        {/* Grunnlag context display */}
-        {grunnlagEvent && grunnlagEvent.tittel && (
-          <div className="p-4 bg-pkt-surface-subtle-light-blue border-2 border-pkt-border-focus rounded-none">
-            <span className="text-sm text-pkt-text-body-subtle">
-              Knyttet til grunnlag:
-            </span>
-            <p className="font-medium text-pkt-text-body-dark mt-1">
-              {grunnlagEvent.tittel}
-              {kategoriLabel && (
-                <span className="text-pkt-text-body-subtle font-normal">
-                  {' '}
-                  ({kategoriLabel})
-                </span>
-              )}
-            </p>
-            {grunnlagEvent.dato_varslet && dagerSidenGrunnlag > 0 && (
-              <p className="text-xs text-pkt-text-body-subtle mt-1">
-                Varslet for {dagerSidenGrunnlag} dager siden
-              </p>
-            )}
-          </div>
+        {/* Subsidiary treatment info */}
+        {erSubsidiaer && (
+          <Alert variant="info" title="Subsidiær behandling">
+            Grunnlaget er avvist – kravet behandles subsidiært for å sikre fristene i NS 8407.
+          </Alert>
         )}
 
         {/* §33.6.1 Reduction warning - late specification without etterlysning */}
         {erSentUtenEtterlysning && (
-          <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-none">
-            <p className="text-sm font-medium text-amber-900">
-              Risiko for avkortning (§33.6.1)
-            </p>
-            <p className="text-sm text-amber-800 mt-1">
-              Det er gått <strong>{dagerSidenGrunnlag} dager</strong> siden du
-              varslet om hendelsen. Når du venter med å spesifisere, har du kun
-              krav på den fristforlengelsen Byggherren &ldquo;måtte forstå&rdquo;
-              at du trengte. Begrunn behovet ekstra godt.
-            </p>
-          </div>
+          <Alert variant="warning" title="Risiko for avkortning (§33.6.1)">
+            Det er gått <strong>{dagerSidenGrunnlag} dager</strong> siden du varslet om hendelsen.
+            Når du venter med å spesifisere, har du kun krav på den fristforlengelsen byggherren
+            «måtte forstå» at du trengte. Begrunn behovet ekstra godt.
+          </Alert>
         )}
 
         {/* Varsel Type - NS 8407 §33 */}
@@ -301,156 +269,139 @@ export function SendFristModal({
 
         {/* VarselInfo fields based on selected type */}
         {selectedVarselType === 'noytralt' && (
-          <div className="p-5 bg-pkt-surface-subtle-light-blue rounded-none border-2 border-pkt-border-focus">
-            <h4 className="text-base font-medium text-pkt-text-body-default mb-4">
+          <div className="space-y-4">
+            <h4 className="text-base font-medium text-pkt-text-body-default">
               Nøytralt/Foreløpig varsel (§33.4)
             </h4>
 
             {/* §33.4 Preklusjonsvarsel for nøytralt varsel */}
             {erNoytraltVarselSent && noytraltVarselSendesNa && (
-              <div
-                className={`p-4 mb-4 rounded-none border-2 ${
-                  erNoytraltVarselKritisk
-                    ? 'bg-pkt-surface-subtle-light-red border-pkt-border-red'
-                    : 'bg-amber-50 border-amber-300'
-                }`}
-                role="alert"
+              <Alert
+                variant={erNoytraltVarselKritisk ? 'danger' : 'warning'}
+                title={erNoytraltVarselKritisk ? 'Preklusjonsrisiko (§33.4)' : 'Sen varsling (§33.4)'}
               >
-                <p className={`text-sm font-medium ${erNoytraltVarselKritisk ? 'text-pkt-border-red' : 'text-amber-900'}`}>
-                  {erNoytraltVarselKritisk ? 'Preklusjonsrisiko (§33.4)' : 'Advarsel: Sen varsling (§33.4)'}
-                </p>
-                <p className={`text-sm mt-1 ${erNoytraltVarselKritisk ? 'text-pkt-border-red' : 'text-amber-800'}`}>
-                  Det er gått <strong>{dagerSidenGrunnlag} dager</strong> siden hendelsen.
-                  {erNoytraltVarselKritisk
-                    ? ' Nøytralt varsel skal sendes "uten ugrunnet opphold". Du risikerer at kravet anses tapt (§33.4 annet ledd).'
-                    : ' Nøytralt varsel bør sendes snarest for å bevare retten til fristforlengelse.'}
-                </p>
-              </div>
+                Det er gått <strong>{dagerSidenGrunnlag} dager</strong> siden hendelsen.
+                {erNoytraltVarselKritisk
+                  ? ' Nøytralt varsel skal sendes «uten ugrunnet opphold». Du risikerer at kravet anses tapt.'
+                  : ' Nøytralt varsel bør sendes snarest for å bevare retten til fristforlengelse.'}
+              </Alert>
             )}
 
-            <div className="space-y-4">
-              <Controller
-                name="noytralt_varsel_sendes_na"
-                control={control}
-                render={({ field }) => (
-                  <Checkbox
-                    id="noytralt_varsel_sendes_na"
-                    label="Varsel sendes nå (sammen med dette skjemaet)"
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                )}
-              />
-
-              {!noytraltVarselSendesNa && (
-                <FormField
-                  label="Dato nøytralt varsel sendt tidligere"
-                  error={errors.noytralt_varsel_dato?.message}
-                  labelTooltip="§33.4: Sendes når omfang ikke er kjent. Bevarer rett til senere spesifisert krav."
-                >
-                  <Controller
-                    name="noytralt_varsel_dato"
-                    control={control}
-                    render={({ field }) => (
-                      <DatePicker
-                        id="noytralt_varsel_dato"
-                        value={field.value}
-                        onChange={field.onChange}
-                        
-                        error={!!errors.noytralt_varsel_dato}
-                        placeholder="Velg dato"
-                      />
-                    )}
-                  />
-                </FormField>
+            <Controller
+              name="noytralt_varsel_sendes_na"
+              control={control}
+              render={({ field }) => (
+                <Checkbox
+                  id="noytralt_varsel_sendes_na"
+                  label="Varsel sendes nå (sammen med dette skjemaet)"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
               )}
+            />
 
-              {/* Varselmetoder - only show if NOT sending now */}
-              {!noytraltVarselSendesNa && (
-                <FormField
-                  label="Varselmetoder (nøytralt)"
-                  helpText="Velg alle metoder som ble brukt"
-                >
-                  <div className="space-y-3 border-2 border-pkt-border-gray rounded-none p-4 bg-pkt-bg-subtle">
-                    {VARSEL_METODER_OPTIONS.map((option) => (
-                      <Checkbox
-                        key={option.value}
-                        id={`noytralt_varsel-${option.value}`}
-                        label={option.label}
-                        value={option.value}
-                        {...register('noytralt_varsel_metoder')}
-                      />
-                    ))}
-                  </div>
-                </FormField>
-              )}
-            </div>
+            {!noytraltVarselSendesNa && (
+              <FormField
+                label="Dato nøytralt varsel sendt tidligere"
+                error={errors.noytralt_varsel_dato?.message}
+                helpText="Sendes når omfang ikke er kjent. Bevarer rett til senere spesifisert krav."
+              >
+                <Controller
+                  name="noytralt_varsel_dato"
+                  control={control}
+                  render={({ field }) => (
+                    <DatePicker
+                      id="noytralt_varsel_dato"
+                      value={field.value}
+                      onChange={field.onChange}
+                      error={!!errors.noytralt_varsel_dato}
+                    />
+                  )}
+                />
+              </FormField>
+            )}
+
+            {/* Varselmetoder - only show if NOT sending now */}
+            {!noytraltVarselSendesNa && (
+              <FormField
+                label="Varselmetoder"
+                helpText="Velg alle metoder som ble brukt"
+              >
+                <div className="space-y-3 border-2 border-pkt-border-subtle rounded-none p-4 bg-pkt-bg-subtle">
+                  {VARSEL_METODER_OPTIONS.map((option) => (
+                    <Checkbox
+                      key={option.value}
+                      id={`noytralt_varsel-${option.value}`}
+                      label={option.label}
+                      value={option.value}
+                      {...register('noytralt_varsel_metoder')}
+                    />
+                  ))}
+                </div>
+              </FormField>
+            )}
           </div>
         )}
 
         {selectedVarselType === 'spesifisert' && (
-          <div className="p-5 bg-pkt-surface-subtle-light-blue rounded-none border-2 border-pkt-border-focus">
-            <h4 className="text-base font-medium text-pkt-text-body-default mb-4">
+          <div className="space-y-4">
+            <h4 className="text-base font-medium text-pkt-text-body-default">
               Spesifisert krav (§33.6)
             </h4>
 
-            <div className="space-y-4">
-              <Controller
-                name="spesifisert_varsel_sendes_na"
-                control={control}
-                render={({ field }) => (
-                  <Checkbox
-                    id="spesifisert_varsel_sendes_na"
-                    label="Varsel sendes nå (sammen med dette skjemaet)"
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                )}
-              />
-
-              {!spesifisertVarselSendesNa && (
-                <FormField
-                  label="Dato spesifisert krav sendt tidligere"
-                  error={errors.spesifisert_varsel_dato?.message}
-                  labelTooltip="§33.6.1: Konkret krav med antall dager og begrunnelse. Må sendes innen rimelig tid etter at omfang er kjent."
-                >
-                  <Controller
-                    name="spesifisert_varsel_dato"
-                    control={control}
-                    render={({ field }) => (
-                      <DatePicker
-                        id="spesifisert_varsel_dato"
-                        value={field.value}
-                        onChange={field.onChange}
-                        
-                        error={!!errors.spesifisert_varsel_dato}
-                        placeholder="Velg dato"
-                      />
-                    )}
-                  />
-                </FormField>
+            <Controller
+              name="spesifisert_varsel_sendes_na"
+              control={control}
+              render={({ field }) => (
+                <Checkbox
+                  id="spesifisert_varsel_sendes_na"
+                  label="Varsel sendes nå (sammen med dette skjemaet)"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
               )}
+            />
 
-              {/* Varselmetoder - only show if NOT sending now */}
-              {!spesifisertVarselSendesNa && (
-                <FormField
-                  label="Varselmetoder (spesifisert)"
-                  helpText="Velg alle metoder som ble brukt"
-                >
-                  <div className="space-y-3 border-2 border-pkt-border-gray rounded-none p-4 bg-pkt-bg-subtle">
-                    {VARSEL_METODER_OPTIONS.map((option) => (
-                      <Checkbox
-                        key={option.value}
-                        id={`spesifisert_varsel-${option.value}`}
-                        label={option.label}
-                        value={option.value}
-                        {...register('spesifisert_varsel_metoder')}
-                      />
-                    ))}
-                  </div>
-                </FormField>
-              )}
-            </div>
+            {!spesifisertVarselSendesNa && (
+              <FormField
+                label="Dato spesifisert krav sendt tidligere"
+                error={errors.spesifisert_varsel_dato?.message}
+                helpText="Konkret krav med antall dager og begrunnelse. Må sendes innen rimelig tid etter at omfang er kjent."
+              >
+                <Controller
+                  name="spesifisert_varsel_dato"
+                  control={control}
+                  render={({ field }) => (
+                    <DatePicker
+                      id="spesifisert_varsel_dato"
+                      value={field.value}
+                      onChange={field.onChange}
+                      error={!!errors.spesifisert_varsel_dato}
+                    />
+                  )}
+                />
+              </FormField>
+            )}
+
+            {/* Varselmetoder - only show if NOT sending now */}
+            {!spesifisertVarselSendesNa && (
+              <FormField
+                label="Varselmetoder"
+                helpText="Velg alle metoder som ble brukt"
+              >
+                <div className="space-y-3 border-2 border-pkt-border-subtle rounded-none p-4 bg-pkt-bg-subtle">
+                  {VARSEL_METODER_OPTIONS.map((option) => (
+                    <Checkbox
+                      key={option.value}
+                      id={`spesifisert_varsel-${option.value}`}
+                      label={option.label}
+                      value={option.value}
+                      {...register('spesifisert_varsel_metoder')}
+                    />
+                  ))}
+                </div>
+              </FormField>
+            )}
           </div>
         )}
 
@@ -468,7 +419,6 @@ export function SendFristModal({
                 setValueAs: (v) => (v === '' ? undefined : Number(v)),
               })}
               width="xs"
-              placeholder="0"
               min={0}
               error={!!errors.antall_dager}
             />
@@ -490,28 +440,31 @@ export function SendFristModal({
                   id="ny_sluttdato"
                   value={field.value}
                   onChange={field.onChange}
-                  
                   error={!!errors.ny_sluttdato}
-                  placeholder="Velg dato"
                 />
               )}
             />
           </FormField>
         )}
 
+        {/* Vilkår-info for begrunnelse */}
+        <Alert variant="info" title="Vilkår for fristforlengelse (§33.1, §33.5)">
+          For å ha krav på fristforlengelse må du vise at: (1) fremdriften har vært hindret, og
+          (2) hindringen skyldes det påberopte forholdet (årsakssammenheng). Begrunn hvordan
+          forholdet konkret har forårsaket forsinkelse i prosjektet.
+        </Alert>
+
         {/* Begrunnelse for fristforlengelse */}
         <FormField
-          label="Begrunnelse for fristforlengelse"
+          label="Begrunnelse"
           required
           error={errors.begrunnelse?.message}
-          helpText="Redegjør for hvorfor det aktuelle forholdet medfører at fremdriften hindres"
         >
           <Textarea
             id="begrunnelse"
             {...register('begrunnelse')}
             rows={5}
             fullWidth
-            placeholder="Beskriv hvorfor fristforlengelse er nødvendig og hvordan det påvirker fremdriften..."
             error={!!errors.begrunnelse}
             data-testid="frist-begrunnelse"
           />
@@ -519,7 +472,7 @@ export function SendFristModal({
 
         {/* Berørte aktiviteter (Fremdriftsplan) */}
         <FormField
-          label="Berørte aktiviteter (Fremdriftsplan)"
+          label="Berørte aktiviteter"
           error={errors.berorte_aktiviteter?.message}
           helpText="Dokumentasjon av påvirkning på kritisk linje er avgjørende for å vinne frem med kravet"
         >
@@ -527,7 +480,6 @@ export function SendFristModal({
             id="berorte_aktiviteter"
             {...register('berorte_aktiviteter')}
             fullWidth
-            placeholder="F.eks. ID 402 Tett Hus, ID 505 Innregulering"
             error={!!errors.berorte_aktiviteter}
           />
         </FormField>
