@@ -563,7 +563,6 @@ export function RespondVederlagModal({
       open={open}
       onOpenChange={handleOpenChange}
       title="Svar på vederlagskrav"
-      description="Vurder vederlagskravet gjennom portmodellen"
       size="lg"
     >
       <div className="space-y-6">
@@ -583,51 +582,11 @@ export function RespondVederlagModal({
 
         {/* Subsidiary treatment info */}
         {erSubsidiaer && (
-          <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-none">
-            <div className="flex items-center gap-2 mb-2">
-              <Badge variant="warning">Subsidiær behandling</Badge>
-            </div>
-            <p className="text-sm text-amber-800">
-              Du har avvist ansvarsgrunnlaget. Dine svar gjelder derfor{' '}
-              <strong>kun subsidiært</strong>.
-            </p>
-          </div>
+          <Alert variant="info" title="Subsidiær behandling">
+            Du har avvist ansvarsgrunnlaget. Dine svar gjelder derfor kun subsidiært.
+          </Alert>
         )}
 
-        {/* Vederlagskrav context */}
-        {vederlagEvent && (metodeLabel || hovedkravBelop != null) && (
-          <div className="p-4 bg-pkt-surface-subtle-light-blue border-2 border-pkt-border-focus rounded-none">
-            <h4 className="font-bold text-sm text-pkt-text-body-dark mb-2">
-              Entreprenørens krav:
-            </h4>
-            <div className="flex justify-between items-center">
-              {metodeLabel && <span className="font-medium">{metodeLabel}</span>}
-              {hovedkravBelop != null && (
-                <span className="text-lg font-mono">
-                  {vederlagEvent.metode === 'REGNINGSARBEID'
-                    ? `Overslag: kr ${hovedkravBelop.toLocaleString('nb-NO')},-`
-                    : `kr ${hovedkravBelop.toLocaleString('nb-NO')},-`}
-                </span>
-              )}
-            </div>
-            {vederlagEvent.metode === 'REGNINGSARBEID' && (
-              <p className="text-sm mt-1 text-pkt-text-body-subtle">
-                Endelig beløp fastsettes etter medgått tid
-                {!vederlagEvent.varslet_for_oppstart && (
-                  <span className="text-amber-600 font-medium">
-                    {' '}
-                    (NB: TE varslet IKKE før oppstart - strengere bevisbyrde)
-                  </span>
-                )}
-              </p>
-            )}
-            {vederlagEvent.begrunnelse && (
-              <p className="italic text-pkt-text-body-subtle mt-2 text-sm border-t pt-2 border-pkt-border-subtle">
-                &ldquo;{vederlagEvent.begrunnelse}&rdquo;
-              </p>
-            )}
-          </div>
-        )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* ================================================================
@@ -641,10 +600,8 @@ export function RespondVederlagModal({
                 <h3 className="font-bold text-lg">Særskilte krav - Preklusjon (§34.1.3)</h3>
               </div>
 
-              <Alert variant="warning" title="Særskilt varslingskrav">
-                Krav på rigg/drift og produktivitetstap krever <strong>særskilt varsel</strong>{' '}
-                &ldquo;uten ugrunnet opphold&rdquo; etter at TE ble klar over at utgifter ville
-                påløpe. Hvis varslet for sent, tapes kravet <strong>helt</strong>.
+              <Alert variant="warning">
+                Disse postene krever særskilt varsel. Ved manglende varsel tapes kravet (§34.1.3).
               </Alert>
 
               {/* Rigg/Drift */}
@@ -659,7 +616,7 @@ export function RespondVederlagModal({
                     </div>
                     {vederlagEvent?.saerskilt_krav?.rigg_drift?.dato_klar_over && (
                       <span className="text-xs text-gray-500">
-                        TE klar over: {vederlagEvent.saerskilt_krav.rigg_drift.dato_klar_over}
+                        Entreprenøren klar over: {vederlagEvent.saerskilt_krav.rigg_drift.dato_klar_over}
                       </span>
                     )}
                   </div>
@@ -697,7 +654,7 @@ export function RespondVederlagModal({
                     </div>
                     {vederlagEvent?.saerskilt_krav?.produktivitet?.dato_klar_over && (
                       <span className="text-xs text-gray-500">
-                        TE klar over: {vederlagEvent.saerskilt_krav.produktivitet.dato_klar_over}
+                        Entreprenøren klar over: {vederlagEvent.saerskilt_krav.produktivitet.dato_klar_over}
                       </span>
                     )}
                   </div>
@@ -733,7 +690,6 @@ export function RespondVederlagModal({
                     {...register('begrunnelse_preklusjon')}
                     rows={3}
                     fullWidth
-                    placeholder="Begrunn din vurdering av at varselet kom for sent..."
                   />
                 </FormField>
               )}
@@ -755,11 +711,7 @@ export function RespondVederlagModal({
                 <FormField
                   label="Aksepterer du den foreslåtte vederlagsmetoden?"
                   required
-                  helpText={
-                    metodeLabel
-                      ? `Entreprenøren har foreslått: ${metodeLabel}`
-                      : 'Vurder om metoden er i samsvar med kontrakten.'
-                  }
+                  helpText={metodeLabel ? `Foreslått metode: ${metodeLabel}` : undefined}
                 >
                   <Controller
                     name="aksepterer_metode"
@@ -775,6 +727,15 @@ export function RespondVederlagModal({
                     )}
                   />
                 </FormField>
+
+                {/* Regningsarbeid: varsling-info */}
+                {vederlagEvent?.metode === 'REGNINGSARBEID' &&
+                  vederlagEvent?.varslet_for_oppstart === false && (
+                    <Alert variant="info" className="mt-3">
+                      Entreprenøren har ikke varslet før oppstart – strengere bevisbyrde for
+                      nødvendige kostnader (§34.4).
+                    </Alert>
+                  )}
 
                 {/* Ønsket metode - show when rejecting */}
                 {!formValues.aksepterer_metode && (
@@ -814,13 +775,12 @@ export function RespondVederlagModal({
                     <FormField
                       label="Begrunnelse for metodeendring"
                       className="mt-3"
-                      helpText="Begrunn hvorfor du krever en annen vederlagsmetode"
+                      helpText="Begrunn hvorfor du krever en annen metode"
                     >
                       <Textarea
                         {...register('begrunnelse_metode')}
                         rows={3}
                         fullWidth
-                        placeholder="Begrunn hvorfor den foreslåtte metoden ikke er akseptabel..."
                       />
                     </FormField>
                   </div>
@@ -829,15 +789,11 @@ export function RespondVederlagModal({
 
               {/* §34.3.3 EP-justering - SVARPLIKT */}
               {maSvarePaJustering && (
-                <div className="p-4 bg-pkt-surface-subtle-light-red border-2 border-pkt-border-red rounded-none">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Badge variant="danger">Svarplikt</Badge>
-                    <span className="font-bold text-pkt-border-red">EP-justering (§34.3.3)</span>
-                  </div>
-                  <p className="text-sm text-pkt-border-red mb-3">
-                    TE krever justerte enhetspriser. Du <strong>må</strong> ta stilling til dette
-                    nå. Passivitet medfører at kravet anses akseptert!
-                  </p>
+                <div className="space-y-3">
+                  <Alert variant="danger" title="Svarplikt: EP-justering (§34.3.3)">
+                    Entreprenøren krever justerte enhetspriser. Du må ta stilling til dette nå.
+                    Passivitet medfører at kravet anses akseptert.
+                  </Alert>
                   <FormField label="Aksepterer du justering av enhetspriser?" required>
                     <Controller
                       name="ep_justering_akseptert"
@@ -860,14 +816,11 @@ export function RespondVederlagModal({
 
               {/* §30.2 Tilbakeholdelse */}
               {kanHoldeTilbake && (
-                <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-none">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Badge variant="warning">Tilbakeholdelse (§30.2)</Badge>
-                  </div>
-                  <p className="text-sm text-amber-800 mb-3">
-                    TE har ikke levert kostnadsoverslag for regningsarbeidet. Du kan holde tilbake
-                    betaling inntil overslag mottas.
-                  </p>
+                <div className="space-y-3">
+                  <Alert variant="warning" title="Tilbakeholdelse (§30.2)">
+                    Entreprenøren har ikke levert kostnadsoverslag for regningsarbeidet. Du kan holde
+                    tilbake betaling inntil overslag mottas.
+                  </Alert>
                   <FormField label="Vil du holde tilbake betaling?">
                     <Controller
                       name="hold_tilbake"
@@ -910,7 +863,7 @@ export function RespondVederlagModal({
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="font-bold">Hovedkrav</h4>
                   <div className="text-right">
-                    <span className="text-sm text-pkt-text-body-subtle">TE krever: </span>
+                    <span className="text-sm text-pkt-text-body-subtle">Krevd: </span>
                     <span className="text-lg font-mono font-bold">
                       kr {hovedkravBelop?.toLocaleString('nb-NO') || 0},-
                     </span>
@@ -925,10 +878,7 @@ export function RespondVederlagModal({
                       <RadioGroup value={field.value} onValueChange={field.onChange}>
                         <RadioItem value="godkjent" label="Godkjent fullt ut" />
                         <RadioItem value="delvis" label="Delvis godkjent" />
-                        <RadioItem
-                          value="avvist"
-                          label="Avvist (kun ved feil i beregning, ikke grunnlag)"
-                        />
+                        <RadioItem value="avvist" label="Avvist" />
                       </RadioGroup>
                     )}
                   />
@@ -981,7 +931,7 @@ export function RespondVederlagModal({
                 <div
                   className={`p-4 rounded-none border-2 ${
                     riggPrekludert
-                      ? 'bg-amber-50 border-amber-300'
+                      ? 'bg-pkt-surface-yellow border-pkt-border-yellow'
                       : 'bg-pkt-surface-subtle border-pkt-border-default'
                   }`}
                 >
@@ -996,7 +946,7 @@ export function RespondVederlagModal({
                       )}
                     </div>
                     <div className="text-right">
-                      <span className="text-sm text-pkt-text-body-subtle">TE krever: </span>
+                      <span className="text-sm text-pkt-text-body-subtle">Krevd: </span>
                       <span
                         className={`text-lg font-mono font-bold ${riggPrekludert ? 'line-through text-gray-400' : ''}`}
                       >
@@ -1006,12 +956,12 @@ export function RespondVederlagModal({
                   </div>
 
                   {riggPrekludert && (
-                    <div className="mb-4 p-3 bg-amber-100 rounded-none">
-                      <p className="text-sm text-amber-800">
+                    <div className="mb-4 p-3 bg-pkt-surface-strong-yellow rounded-none">
+                      <p className="text-sm text-pkt-text-body-dark">
                         <strong>Prinsipalt:</strong> Kravet er prekludert (for sen varsling §34.1.3).
                         Godkjent beløp: <strong>kr 0,-</strong>
                       </p>
-                      <p className="text-sm text-amber-800 mt-1">
+                      <p className="text-sm text-pkt-text-body-dark mt-1">
                         <strong>Subsidiært:</strong> Evaluer beløpet dersom kravet hadde vært varslet
                         i tide.
                       </p>
@@ -1031,7 +981,7 @@ export function RespondVederlagModal({
                         <RadioGroup value={field.value} onValueChange={field.onChange}>
                           <RadioItem value="godkjent" label="Godkjent fullt ut" />
                           <RadioItem value="delvis" label="Delvis godkjent" />
-                          <RadioItem value="avvist" label="Avvist - uenig i kravet" />
+                          <RadioItem value="avvist" label="Avvist" />
                         </RadioGroup>
                       )}
                     />
@@ -1062,7 +1012,7 @@ export function RespondVederlagModal({
                 <div
                   className={`p-4 rounded-none border-2 ${
                     produktivitetPrekludert
-                      ? 'bg-amber-50 border-amber-300'
+                      ? 'bg-pkt-surface-yellow border-pkt-border-yellow'
                       : 'bg-pkt-surface-subtle border-pkt-border-default'
                   }`}
                 >
@@ -1077,7 +1027,7 @@ export function RespondVederlagModal({
                       )}
                     </div>
                     <div className="text-right">
-                      <span className="text-sm text-pkt-text-body-subtle">TE krever: </span>
+                      <span className="text-sm text-pkt-text-body-subtle">Krevd: </span>
                       <span
                         className={`text-lg font-mono font-bold ${produktivitetPrekludert ? 'line-through text-gray-400' : ''}`}
                       >
@@ -1087,12 +1037,12 @@ export function RespondVederlagModal({
                   </div>
 
                   {produktivitetPrekludert && (
-                    <div className="mb-4 p-3 bg-amber-100 rounded-none">
-                      <p className="text-sm text-amber-800">
+                    <div className="mb-4 p-3 bg-pkt-surface-strong-yellow rounded-none">
+                      <p className="text-sm text-pkt-text-body-dark">
                         <strong>Prinsipalt:</strong> Kravet er prekludert (for sen varsling §34.1.3).
                         Godkjent beløp: <strong>kr 0,-</strong>
                       </p>
-                      <p className="text-sm text-amber-800 mt-1">
+                      <p className="text-sm text-pkt-text-body-dark mt-1">
                         <strong>Subsidiært:</strong> Evaluer beløpet dersom kravet hadde vært varslet
                         i tide.
                       </p>
@@ -1114,7 +1064,7 @@ export function RespondVederlagModal({
                         <RadioGroup value={field.value} onValueChange={field.onChange}>
                           <RadioItem value="godkjent" label="Godkjent fullt ut" />
                           <RadioItem value="delvis" label="Delvis godkjent" />
-                          <RadioItem value="avvist" label="Avvist - uenig i kravet" />
+                          <RadioItem value="avvist" label="Avvist" />
                         </RadioGroup>
                       )}
                     />
@@ -1263,14 +1213,14 @@ export function RespondVederlagModal({
                           </tr>
                           {/* Subsidiary row for precluded rigg */}
                           {riggPrekludert && (
-                            <tr className="border-b border-pkt-border-subtle bg-amber-50">
-                              <td className="py-2 text-amber-800 italic">
+                            <tr className="border-b border-pkt-border-subtle bg-pkt-surface-yellow">
+                              <td className="py-2 text-pkt-text-body-dark italic">
                                 ↳ Subsidiært
                               </td>
-                              <td className="text-right font-mono text-amber-700">
+                              <td className="text-right font-mono text-pkt-text-body-dark">
                                 ({riggBelop?.toLocaleString('nb-NO') || 0})
                               </td>
-                              <td className="text-right font-mono text-amber-700">
+                              <td className="text-right font-mono text-pkt-text-body-dark">
                                 {formValues.rigg_vurdering === 'godkjent'
                                   ? riggBelop?.toLocaleString('nb-NO') || 0
                                   : formValues.rigg_vurdering === 'delvis'
@@ -1331,14 +1281,14 @@ export function RespondVederlagModal({
                           </tr>
                           {/* Subsidiary row for precluded produktivitet */}
                           {produktivitetPrekludert && (
-                            <tr className="border-b border-pkt-border-subtle bg-amber-50">
-                              <td className="py-2 text-amber-800 italic">
+                            <tr className="border-b border-pkt-border-subtle bg-pkt-surface-yellow">
+                              <td className="py-2 text-pkt-text-body-dark italic">
                                 ↳ Subsidiært
                               </td>
-                              <td className="text-right font-mono text-amber-700">
+                              <td className="text-right font-mono text-pkt-text-body-dark">
                                 ({produktivitetBelop?.toLocaleString('nb-NO') || 0})
                               </td>
-                              <td className="text-right font-mono text-amber-700">
+                              <td className="text-right font-mono text-pkt-text-body-dark">
                                 {formValues.produktivitet_vurdering === 'godkjent'
                                   ? produktivitetBelop?.toLocaleString('nb-NO') || 0
                                   : formValues.produktivitet_vurdering === 'delvis'
@@ -1395,25 +1345,25 @@ export function RespondVederlagModal({
 
                 {/* Subsidiært resultat - kun når særskilte krav er prekludert */}
                 {visSubsidiaertResultat && (
-                  <div className="p-4 bg-amber-100 border-2 border-amber-400 rounded-none">
-                    <h5 className="font-medium text-sm mb-2 text-amber-800">
+                  <div className="p-4 bg-pkt-surface-yellow border-2 border-pkt-surface-strong-yellow rounded-none">
+                    <h5 className="font-medium text-sm mb-2 text-pkt-text-body-dark">
                       SUBSIDIÆRT RESULTAT
                     </h5>
-                    <p className="text-sm text-amber-700 mb-3">
+                    <p className="text-sm text-pkt-text-body-dark mb-3">
                       Dersom de prekluderte særskilte kravene hadde vært varslet i tide:
                     </p>
-                    <div className="text-xl font-bold text-amber-900">
+                    <div className="text-xl font-bold text-pkt-text-body-dark">
                       {getResultatLabel(subsidiaertResultat)}
                     </div>
-                    <div className="mt-2 text-lg font-mono text-amber-900">
-                      Samlet godkjent (inkl. subsidiært):{' '}
+                    <div className="mt-2 text-lg font-mono text-pkt-text-body-dark">
+                      Samlet godkjent (inkludert subsidiært):{' '}
                       kr {computed.totalGodkjentInklPrekludert.toLocaleString('nb-NO')},-
                     </div>
-                    <p className="text-sm text-amber-800 mt-3 italic">
-                      &ldquo;Byggherren er etter dette uenig i kravet, og kan dessuten under ingen
-                      omstendigheter se at mer enn kr{' '}
+                    <p className="text-sm text-pkt-text-body-dark mt-3 italic">
+                      «Byggherren er etter dette uenig i kravet, og kan dessuten under ingen
+                      omstendigheter se at kr{' '}
                       {computed.totalGodkjentInklPrekludert.toLocaleString('nb-NO')},- er berettiget
-                      å kreve.&rdquo;
+                      å kreve.»
                     </p>
                   </div>
                 )}
@@ -1423,13 +1373,12 @@ export function RespondVederlagModal({
                   label="Samlet begrunnelse"
                   required
                   error={errors.begrunnelse_samlet?.message}
-                  helpText="Oppsummer din vurdering av vederlagskravet"
+                  helpText="Oppsummer din vurdering av kravet"
                 >
                   <Textarea
                     {...register('begrunnelse_samlet')}
                     rows={4}
                     fullWidth
-                    placeholder="Begrunn din samlede vurdering av vederlagskravet..."
                     error={!!errors.begrunnelse_samlet}
                   />
                 </FormField>

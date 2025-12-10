@@ -25,7 +25,6 @@ import { Textarea } from '../primitives/Textarea';
 import { Checkbox } from '../primitives/Checkbox';
 import { FormField } from '../primitives/FormField';
 import { DatePicker } from '../primitives/DatePicker';
-import { Badge } from '../primitives/Badge';
 import { Alert } from '../primitives/Alert';
 import { AlertDialog } from '../primitives/AlertDialog';
 import { RadioGroup, RadioItem } from '../primitives/RadioGroup';
@@ -85,6 +84,7 @@ interface GrunnlagEventInfo {
   tittel?: string;
   status?: 'godkjent' | 'avvist_uenig' | 'delvis_godkjent';
   dato_varslet?: string;
+  dato_oppdaget?: string;
 }
 
 interface SendVederlagModalProps {
@@ -199,6 +199,12 @@ export function SendVederlagModal({
           }
         : null;
 
+    // Build justert_ep_varsel if krever_justert_ep is true (§34.3.3)
+    // Uses dato_oppdaget from grunnlag as the date the condition arose
+    const justertEpVarsel = data.krever_justert_ep && grunnlagEvent?.dato_oppdaget
+      ? { dato_sendt: grunnlagEvent.dato_oppdaget }
+      : undefined;
+
     mutation.mutate({
       eventType: 'vederlag_krav_sendt',
       data: {
@@ -209,6 +215,7 @@ export function SendVederlagModal({
         metode: data.metode,
         begrunnelse: data.begrunnelse,
         krever_justert_ep: data.metode === 'ENHETSPRISER' ? data.krever_justert_ep : undefined,
+        justert_ep_varsel: data.metode === 'ENHETSPRISER' ? justertEpVarsel : undefined,
         varslet_for_oppstart: data.metode === 'REGNINGSARBEID' ? data.varslet_for_oppstart : undefined,
         saerskilt_krav: saerskiltKrav,
       },
@@ -219,40 +226,21 @@ export function SendVederlagModal({
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title="Krav om Vederlagsjustering"
-      description="Fyll ut detaljer for kravet om vederlagsjustering."
+      title="Krav om vederlagsjustering"
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Grunnlag context display */}
-        {grunnlagEvent && grunnlagEvent.tittel && (
-          <div className="p-4 bg-pkt-surface-subtle border-2 border-pkt-border-subtle rounded-none">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-pkt-text-body-subtle">
-                Knyttet til:
-              </span>
-              {erSubsidiaer && (
-                <Badge variant="warning">Subsidiær behandling</Badge>
-              )}
-            </div>
-            <p className="font-medium text-pkt-text-body-dark mt-1">
-              {grunnlagEvent.tittel}
-            </p>
-          </div>
-        )}
-
-        {/* Subsidiary treatment alert */}
+        {/* Subsidiary treatment info */}
         {erSubsidiaer && (
-          <Alert variant="info">
-            <strong>Merk:</strong> Ansvarsgrunnlaget er avvist av Byggherre.
-            Du sender nå inn dette kravet for <strong>subsidiær behandling</strong>.
-            Dette sikrer at kravet ditt er registrert og beregnet iht. fristene i NS 8407.
+          <Alert variant="info" title="Subsidiær behandling">
+            Grunnlaget er avvist – kravet behandles subsidiært for å sikre fristene i NS 8407.
           </Alert>
         )}
 
-        {/* 1. Beregningsmetode (§34.2) - RadioGroup vertical */}
+        {/* 1. Beregningsmetode - RadioGroup vertical */}
         <FormField
-          label="Beregningsmetode (§34.2)"
+          label="Beregningsmetode"
+          helpText="Velg metode for beregning av vederlaget (NS 8407 §34.2)"
           required
           error={errors.metode?.message}
         >
@@ -279,16 +267,16 @@ export function SendVederlagModal({
         </FormField>
 
         {/* 2. Direkte kostnader - Metodespesifikk */}
-        <div className="bg-gray-50 p-4 rounded border border-gray-200">
-          <h4 className="font-bold text-sm mb-3">Direkte kostnader (Materialer/Arbeid)</h4>
+        <div className="bg-pkt-bg-subtle p-4 rounded-none border-2 border-pkt-border-subtle">
+          <h4 className="font-bold text-sm mb-3">Direkte kostnader</h4>
 
           {selectedMetode === 'ENHETSPRISER' && (
             <>
               <FormField
-                label="Sum direkte kostnader (Bruk minus for fradrag)"
+                label="Sum direkte kostnader"
                 required
                 error={errors.belop_direkte?.message}
-                helpText="Fradrag skal gjøres med reduksjon for fortjeneste (§34.4)"
+                helpText="Bruk negativt beløp for fradrag. Fradrag gjøres med reduksjon for fortjeneste (§34.4)"
               >
                 <Controller
                   name="belop_direkte"
@@ -311,16 +299,16 @@ export function SendVederlagModal({
                   render={({ field }) => (
                     <Checkbox
                       id="krever_justert_ep"
-                      label="Krever JUSTERING av enhetsprisene (§34.3.3)?"
+                      label="Krever justerte enhetspriser"
                       checked={field.value}
                       onCheckedChange={field.onChange}
                     />
                   )}
                 />
                 {kreverJustertEp && (
-                  <Alert variant="warning" className="mt-2">
-                    <strong>OBS:</strong> Krav om justert enhetspris må varsles &ldquo;uten ugrunnet opphold&rdquo;
-                    etter at forholdet oppsto. Hvis ikke, får du kun det BH &ldquo;måtte forstå&rdquo;.
+                  <Alert variant="warning" className="mt-3">
+                    Krav om justert enhetspris må varsles «uten ugrunnet opphold» etter at forholdet oppsto.
+                    Hvis ikke, får du kun det byggherren «måtte forstå» (§34.3.3).
                   </Alert>
                 )}
               </div>
@@ -330,13 +318,13 @@ export function SendVederlagModal({
           {selectedMetode === 'REGNINGSARBEID' && (
             <>
               <Alert variant="info" className="mb-3">
-                Ved regningsarbeid faktureres kostnadene løpende. Oppgi et kostnadsoverslag (estimat).
+                Ved regningsarbeid faktureres kostnadene løpende.
               </Alert>
 
               <FormField
-                label="Kostnadsoverslag (estimat)"
+                label="Kostnadsoverslag"
                 error={errors.kostnads_overslag?.message}
-                helpText="§30.2: BH kan holde tilbake betaling inntil overslag mottas. Du må varsle ved enhver økning."
+                helpText="Estimert totalkostnad. Byggherren kan holde tilbake betaling inntil overslag mottas (§30.2)"
               >
                 <Controller
                   name="kostnads_overslag"
@@ -358,7 +346,7 @@ export function SendVederlagModal({
                   render={({ field }) => (
                     <Checkbox
                       id="varslet_for_oppstart"
-                      label="Er Byggherren varslet FØR arbeidet startet? (§34.4)"
+                      label="Byggherren er varslet før arbeidet startet"
                       checked={field.value}
                       onCheckedChange={field.onChange}
                     />
@@ -367,8 +355,7 @@ export function SendVederlagModal({
 
                 {!varsletForOppstart && (
                   <Alert variant="danger" className="mt-2">
-                    <strong>Advarsel:</strong> Når du ikke varsler før oppstart, får du en strengere bevisbyrde
-                    for at kostnadene var nødvendige (§30 / §34.4).
+                    Manglende forhåndsvarsel gir strengere bevisbyrde for at kostnadene var nødvendige (§34.4).
                   </Alert>
                 )}
               </div>
@@ -397,13 +384,12 @@ export function SendVederlagModal({
         </div>
 
         {/* 3. Særskilte krav (§34.1.3) - Rigg, Drift, Produktivitet */}
-        <div className="border-2 border-orange-200 bg-orange-50 p-4 rounded">
-          <h4 className="font-bold text-sm text-orange-900 mb-2">
-            Særskilte krav (Rigg, Drift, Produktivitet)
+        <div className="border-2 border-pkt-border-yellow bg-pkt-surface-yellow p-4 rounded-none">
+          <h4 className="font-bold text-sm text-pkt-text-body-dark mb-2">
+            Særskilte krav
           </h4>
-          <p className="text-xs text-orange-800 mb-3">
-            NB: Disse postene krever <strong>særskilt varsel</strong>. Kravet tapes totalt ved manglende varsel (§34.1.3).
-            Varslingsfristen løper separat for hver kostnadstype fra når TE blir klar over at utgifter vil påløpe.
+          <p className="text-sm text-pkt-text-body-dark mb-3">
+            Disse postene krever særskilt varsel. Ved manglende varsel tapes kravet (§34.1.3).
           </p>
 
           {/* Rigg/Drift section (§34.1.3 første ledd) */}
@@ -414,7 +400,7 @@ export function SendVederlagModal({
               render={({ field }) => (
                 <Checkbox
                   id="har_rigg_krav"
-                  label="Økt Rigg/Drift (§34.1.3 første ledd)"
+                  label="Økte rigg- og driftsutgifter"
                   checked={field.value}
                   onCheckedChange={field.onChange}
                 />
@@ -422,9 +408,9 @@ export function SendVederlagModal({
             />
 
             {harRiggKrav && (
-              <div className="mt-3 ml-6 space-y-4 border-l-2 border-orange-300 pl-4">
+              <div className="mt-3 ml-6 space-y-4 border-l-2 border-pkt-border-yellow pl-4">
                 <FormField
-                  label="Estimert beløp rigg/drift"
+                  label="Estimert beløp"
                   error={errors.belop_rigg?.message}
                 >
                   <Controller
@@ -441,7 +427,8 @@ export function SendVederlagModal({
                 </FormField>
 
                 <FormField
-                  label="Når ble du klar over rigg/drift-utgiftene?"
+                  label="Dato du ble klar over utgiftene"
+                  helpText="Varslingsfristen løper fra dette tidspunktet"
                 >
                   <Controller
                     name="dato_klar_over_rigg"
@@ -451,8 +438,6 @@ export function SendVederlagModal({
                         id="dato_klar_over_rigg"
                         value={field.value}
                         onChange={field.onChange}
-                        
-                        placeholder="Velg dato"
                       />
                     )}
                   />
@@ -479,7 +464,7 @@ export function SendVederlagModal({
               render={({ field }) => (
                 <Checkbox
                   id="har_produktivitet_krav"
-                  label="Nedsatt produktivitet (§34.1.3 annet ledd)"
+                  label="Nedsatt produktivitet"
                   checked={field.value}
                   onCheckedChange={field.onChange}
                 />
@@ -487,9 +472,9 @@ export function SendVederlagModal({
             />
 
             {harProduktivitetKrav && (
-              <div className="mt-3 ml-6 space-y-4 border-l-2 border-orange-300 pl-4">
+              <div className="mt-3 ml-6 space-y-4 border-l-2 border-pkt-border-yellow pl-4">
                 <FormField
-                  label="Estimert beløp produktivitetstap"
+                  label="Estimert beløp"
                   error={errors.belop_produktivitet?.message}
                 >
                   <Controller
@@ -506,7 +491,8 @@ export function SendVederlagModal({
                 </FormField>
 
                 <FormField
-                  label="Når ble du klar over produktivitetstapet?"
+                  label="Dato du ble klar over produktivitetstapet"
+                  helpText="Varslingsfristen løper fra dette tidspunktet"
                 >
                   <Controller
                     name="dato_klar_over_produktivitet"
@@ -516,8 +502,6 @@ export function SendVederlagModal({
                         id="dato_klar_over_produktivitet"
                         value={field.value}
                         onChange={field.onChange}
-                        
-                        placeholder="Velg dato"
                       />
                     )}
                   />
@@ -537,9 +521,10 @@ export function SendVederlagModal({
           </div>
         </div>
 
-        {/* 4. Begrunnelse/Dokumentasjon */}
+        {/* 4. Begrunnelse */}
         <FormField
-          label="Begrunnelse/Dokumentasjon"
+          label="Begrunnelse"
+          helpText="Beskriv beregningsgrunnlag og henvis til vedlegg"
           required
           error={errors.begrunnelse?.message}
         >
@@ -548,7 +533,6 @@ export function SendVederlagModal({
             {...register('begrunnelse')}
             rows={3}
             fullWidth
-            placeholder="Henvis til vedlegg, beskriv beregningsgrunnlag..."
             error={!!errors.begrunnelse}
             data-testid="vederlag-begrunnelse"
           />
@@ -573,7 +557,7 @@ export function SendVederlagModal({
             Avbryt
           </Button>
           <Button type="submit" variant="primary" disabled={isSubmitting} size="lg" data-testid="vederlag-submit">
-            {isSubmitting ? 'Sender...' : 'Send Krav'}
+            {isSubmitting ? 'Sender...' : 'Send krav'}
           </Button>
         </div>
       </form>

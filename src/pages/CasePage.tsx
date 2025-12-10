@@ -429,6 +429,7 @@ export function CasePage() {
             grunnlagEvent={{
               tittel: state.sakstittel,
               status: grunnlagStatus,
+              dato_oppdaget: state.grunnlag.dato_oppdaget,
             }}
           />
           <SendFristModal
