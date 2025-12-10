@@ -4,7 +4,7 @@
 
 Et system for håndtering av endringsordrer (KOE) etter NS 8407:2011, integrert med prosjekthotellet Catenda. Utviklet av Oslobygg KF for å erstatte manuelle PDF/Word-baserte prosesser med strukturerte, sporbare data.
 
-**Sist oppdatert:** 2025-12-08
+**Sist oppdatert:** 2025-12-10
 
 ---
 
@@ -146,13 +146,14 @@ GRUNNLAG                  VEDERLAG                   FRIST
 Port 1: Ansvar            Port 1: Varsling           Port 1: Varsling
 • godkjent                • Varslet i tide?          • Varslet i tide?
 • delvis_godkjent
-• avvist                  Port 2: Beregning          Port 2: Beregning
-• subsidiær_godkjenning   • godkjent_fullt           • godkjent_fullt
-                          • delvis_godkjent          • delvis_godkjent
-→ respons_grunnlag        • avslatt_totalt           • avslatt_ingen_hindring
-
-                          → respons_vederlag         Port 3: Frist
-                                                     • (tid-spesifikk vurdering)
+• avvist                  Port 2: Beregning          Port 2: Vilkår
+• erkjenn_fm              • godkjent                 • vilkar_oppfylt?
+• frafalt                 • delvis_godkjent
+• krever_avklaring        • avslatt                  Port 3: Utmåling
+                          • avventer                 • godkjent
+→ respons_grunnlag        • hold_tilbake             • delvis_godkjent
+                                                     • avslatt
+                          → respons_vederlag         • avventer
 
                                                      → respons_frist
 ```
@@ -172,20 +173,28 @@ Når alle spor er avklart, kan endringsordre utstedes:
 └─────────────────┘
 ```
 
-### Event-oversikt
+### Event-oversikt (19 event-typer)
 
 | Event | Aktør | Beskrivelse |
 |-------|-------|-------------|
 | `sak_opprettet` | System | Sak opprettes fra Catenda webhook |
+| `sak_lukket` | System | Sak lukkes |
 | `grunnlag_opprettet` | TE | Første innsending av ansvarsgrunnlag |
 | `grunnlag_oppdatert` | TE | Revidert grunnlag |
+| `grunnlag_trukket` | TE | TE trekker grunnlaget |
 | `vederlag_krav_sendt` | TE | Vederlagskrav sendes |
 | `vederlag_krav_oppdatert` | TE | Revidert vederlagskrav |
+| `vederlag_krav_trukket` | TE | TE trekker vederlagskravet |
 | `frist_krav_sendt` | TE | Fristkrav sendes |
 | `frist_krav_oppdatert` | TE | Revidert fristkrav |
+| `frist_krav_trukket` | TE | TE trekker fristkravet |
 | `respons_grunnlag` | BH | Svar på grunnlag (Port 1) |
+| `respons_grunnlag_oppdatert` | BH | BH endrer standpunkt |
 | `respons_vederlag` | BH | Svar på vederlag (Port 1+2) |
+| `respons_vederlag_oppdatert` | BH | BH endrer standpunkt |
 | `respons_frist` | BH | Svar på frist (Port 1+2+3) |
+| `respons_frist_oppdatert` | BH | BH endrer standpunkt |
+| `forsering_varsel` | TE | TE varsler om forsering (§33.8) |
 | `eo_utstedt` | BH | Endringsordre utstedt |
 
 **Merk:** Databaselagring til Dataverse og EO-skjema er planlagt for produksjon.
@@ -426,19 +435,19 @@ Skjema_Endringsmeldinger/
 │   ├── app.py                      # Flask entrypoint
 │   │
 │   ├── models/                     # Pydantic v2 modeller
-│   │   ├── events.py               # Event-definisjoner (992 linjer)
-│   │   └── sak_state.py            # Read model/projeksjon (643 linjer)
+│   │   ├── events.py               # Event-definisjoner (~1170 linjer)
+│   │   └── sak_state.py            # Read model/projeksjon (~780 linjer)
 │   │
 │   ├── repositories/               # Data Access Layer
 │   │   ├── event_repository.py     # Event store (optimistisk låsing)
 │   │   └── sak_metadata_repository.py  # Metadata-cache
 │   │
 │   ├── services/                   # Forretningslogikk
-│   │   ├── timeline_service.py     # State-projeksjon (772 linjer)
-│   │   └── business_rules.py       # Forretningsregler (239 linjer)
+│   │   ├── timeline_service.py     # State-projeksjon (~915 linjer)
+│   │   └── business_rules.py       # Forretningsregler (~240 linjer)
 │   │
 │   ├── routes/
-│   │   └── event_routes.py         # Event API (591 linjer)
+│   │   └── event_routes.py         # Event API (~590 linjer)
 │   │
 │   ├── integrations/catenda/       # Catenda API-klient
 │   ├── lib/                        # Auth, security, monitoring
@@ -484,6 +493,7 @@ Backend-arkitekturen er designet for gjenbruk på tvers av skjematyper. Den lagd
 
 | Dokument | Beskrivelse |
 |----------|-------------|
+| [ARCHITECTURE_AND_DATAMODEL.md](docs/ARCHITECTURE_AND_DATAMODEL.md) | Event sourcing, datamodeller, status-beregning |
 | [GETTING_STARTED.md](docs/GETTING_STARTED.md) | Detaljert oppsettguide |
 | [FRONTEND_ARCHITECTURE.md](docs/FRONTEND_ARCHITECTURE.md) | Frontend-arkitektur og komponenter |
 | [DEPLOYMENT.md](docs/DEPLOYMENT.md) | Azure-utrulling |
