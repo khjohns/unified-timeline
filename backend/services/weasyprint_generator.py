@@ -298,12 +298,6 @@ class WeasyPrintGenerator:
                     <div class="field-value">{{ state.frist.krevd_dager }}</div>
                 </div>
                 {% endif %}
-                {% if state.frist.frist_type %}
-                <div class="field-group">
-                    <div class="field-label">Type:</div>
-                    <div class="field-value">{{ state.frist.frist_type }}</div>
-                </div>
-                {% endif %}
                 {% if state.frist.begrunnelse %}
                 <div class="field-group">
                     <div class="field-label">Begrunnelse:</div>

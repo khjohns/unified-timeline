@@ -691,7 +691,7 @@ class TimelineService:
             belop = event.data.belop_direkte or event.data.kostnads_overslag or 0
             return f"Krav: {belop:,.0f} NOK"
         elif isinstance(event, FristEvent):
-            return f"Krav: {event.data.antall_dager} {event.data.frist_type}"
+            return f"Krav: {event.data.antall_dager} dager"
         elif isinstance(event, ForseringVarselEvent):
             return f"Forsering: {event.data.estimert_kostnad:,.0f} NOK"
         elif isinstance(event, ResponsEvent):
@@ -840,7 +840,6 @@ class MigrationHelper:
                     versjon=i + 1,
                     data=FristData(
                         antall_dager=dager,
-                        frist_type=frist_info.get('krav_frist_type', 'kalenderdager'),
                         begrunnelse=frist_info.get('krav_frist_begrunnelse', ''),
                     ),
                 )

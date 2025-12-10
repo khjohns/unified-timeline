@@ -35,6 +35,7 @@ import {
 import {
   getHovedkategoriLabel,
   getUnderkategoriLabel,
+  getUnderkategoriObj,
 } from '../../constants/categories';
 import { getVederlagsmetodeLabel } from '../../constants/paymentMethods';
 import { getFristVarseltypeLabel } from '../../constants/fristVarselTypes';
@@ -85,7 +86,7 @@ const EVENT_TYPE_LABELS: Record<EventType, string> = {
 };
 
 const SPOR_LABELS: Record<string, string> = {
-  grunnlag: 'Grunnlag',
+  grunnlag: 'Ansvarsgrunnlag',
   vederlag: 'Vederlag',
   frist: 'Frist',
 };
@@ -247,6 +248,35 @@ function LongTextField({ label, value, defaultOpen = false }: LongTextFieldProps
 }
 
 /**
+ * VedleggDisplay - Shows list of attached documents
+ */
+interface VedleggDisplayProps {
+  vedleggIds: string[] | undefined;
+}
+
+function VedleggDisplay({ vedleggIds }: VedleggDisplayProps) {
+  if (!vedleggIds || vedleggIds.length === 0) return null;
+
+  return (
+    <Field
+      label="Vedlegg"
+      value={
+        <ul className="space-y-1">
+          {vedleggIds.map((id) => (
+            <li key={id} className="flex items-center gap-2">
+              <FileTextIcon className="w-4 h-4 text-pkt-grays-gray-400" />
+              <span className="text-sm text-pkt-brand-dark-blue-1000 hover:underline cursor-pointer">
+                {id}
+              </span>
+            </li>
+          ))}
+        </ul>
+      }
+    />
+  );
+}
+
+/**
  * SectionDivider - Visual separator for grouping fields
  *
  * Used to organize BH response data into logical sections without
@@ -276,21 +306,59 @@ function SectionDivider({ title, subtitle }: SectionDividerProps) {
 // ========== SECTION COMPONENTS ==========
 
 function GrunnlagSection({ data }: { data: GrunnlagEventData }) {
-  const underkategorier = Array.isArray(data.underkategori)
-    ? data.underkategori.map(getUnderkategoriLabel).join(', ')
-    : getUnderkategoriLabel(data.underkategori);
+  // Get underkategori codes as array
+  const underkategoriKoder = Array.isArray(data.underkategori)
+    ? data.underkategori
+    : [data.underkategori];
+
+  // Get full underkategori objects for hjemmel info
+  const underkategoriObjekter = underkategoriKoder
+    .map((kode) => getUnderkategoriObj(kode))
+    .filter((obj): obj is NonNullable<typeof obj> => obj !== undefined);
+
+  // Format underkategori labels
+  const underkategoriLabels = underkategoriObjekter
+    .map((obj) => obj.label)
+    .join(', ');
+
+  // Get unique hjemmel references
+  const hjemmelRefs = [...new Set(underkategoriObjekter.map((obj) => `§${obj.hjemmel_basis}`))];
+  const varselkravRefs = [...new Set(underkategoriObjekter.map((obj) => obj.varselkrav_ref))];
 
   return (
     <dl>
       <Field label="Tittel" value={data.tittel} />
       <Field label="Hovedkategori" value={getHovedkategoriLabel(data.hovedkategori)} />
-      <Field label="Underkategori" value={underkategorier} />
+      <Field
+        label="Underkategori"
+        value={
+          <span>
+            {underkategoriLabels}
+            {hjemmelRefs.length > 0 && (
+              <span className="ml-2 text-pkt-grays-gray-500 text-xs">
+                ({hjemmelRefs.join(', ')})
+              </span>
+            )}
+          </span>
+        }
+      />
+      {varselkravRefs.length > 0 && (
+        <Field
+          label="Varselkrav"
+          value={
+            <span className="text-pkt-grays-gray-600">
+              NS 8407 §{varselkravRefs.join(' / §')}
+            </span>
+          }
+        />
+      )}
       <Field label="Dato oppdaget" value={formatDate(data.dato_oppdaget)} />
       <VarselInfoDisplay label="Varsel sendt" varsel={data.grunnlag_varsel} />
       <LongTextField label="Beskrivelse" value={data.beskrivelse} defaultOpen={true} />
       {data.kontraktsreferanser && data.kontraktsreferanser.length > 0 && (
         <Field label="Kontraktsreferanser" value={data.kontraktsreferanser.join(', ')} />
       )}
+      <VedleggDisplay vedleggIds={data.vedlegg_ids} />
     </dl>
   );
 }
@@ -378,6 +446,7 @@ function VederlagSection({ data }: { data: VederlagEventData }) {
       {data.krav_fremmet_dato && (
         <Field label="Krav fremmet dato" value={formatDate(data.krav_fremmet_dato)} />
       )}
+      <VedleggDisplay vedleggIds={data.vedlegg_ids} />
     </dl>
   );
 }
@@ -401,14 +470,15 @@ function FristSection({ data }: { data: FristEventData }) {
   return (
     <dl>
       <Field label="Varseltype" value={getFristVarseltypeLabel(data.varsel_type)} />
-      <VarselInfoDisplay label="Nøytralt varsel" varsel={data.noytralt_varsel} />
-      <VarselInfoDisplay label="Spesifisert varsel" varsel={data.spesifisert_varsel} />
+      <VarselInfoDisplay label="Nøytralt varsel (§33.4)" varsel={data.noytralt_varsel} />
+      <VarselInfoDisplay label="Spesifisert varsel (§33.6)" varsel={data.spesifisert_varsel} />
       {data.antall_dager !== undefined && (
         <Field label="Krevde dager" value={`${data.antall_dager} dager`} />
       )}
       <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
       {data.ny_sluttdato && <Field label="Ny sluttdato" value={formatDate(data.ny_sluttdato)} />}
       <LongTextField label="Fremdriftsdokumentasjon" value={data.fremdriftshindring_dokumentasjon} />
+      <VedleggDisplay vedleggIds={data.vedlegg_ids} />
     </dl>
   );
 }

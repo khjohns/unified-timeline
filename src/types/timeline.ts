@@ -171,7 +171,6 @@ export interface FristTilstand {
   noytralt_varsel?: VarselInfo;  // NEW: Structured info
   spesifisert_varsel?: VarselInfo;  // NEW: Structured info
   krevd_dager?: number;
-  frist_type?: 'kalenderdager' | 'arbeidsdager';
   begrunnelse?: string;
   pavirker_kritisk_linje?: boolean;
   milepael_pavirket?: string;

@@ -190,10 +190,6 @@ export function RevisionHistory({ state }: RevisionHistoryProps) {
                   ]}
                 />
                 <ComparisonRow
-                  label="Fristtype"
-                  values={[state.frist.frist_type || '—']}
-                />
-                <ComparisonRow
                   label="Påvirker kritisk linje"
                   values={[state.frist.pavirker_kritisk_linje ? '✓' : '—']}
                 />

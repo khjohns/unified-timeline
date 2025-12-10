@@ -479,7 +479,6 @@ export function CasePage() {
             sakId={sakId}
             fristKravId={`frist-${sakId}`}
             krevdDager={state.frist.krevd_dager}
-            fristType={state.frist.frist_type}
             grunnlagStatus={grunnlagStatus}
             varselType={state.frist.varsel_type}
             fristEvent={{

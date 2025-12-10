@@ -67,7 +67,6 @@ interface RespondFristModalProps {
   /** ID of the frist claim event being responded to */
   fristKravId: string;
   krevdDager?: number;
-  fristType?: 'kalenderdager' | 'arbeidsdager';
   /** Optional frist event data for context display */
   fristEvent?: FristEventInfo;
   /** Status of the grunnlag response (for subsidiary treatment) */
@@ -196,7 +195,6 @@ export function RespondFristModal({
   sakId,
   fristKravId,
   krevdDager,
-  fristType,
   fristEvent,
   grunnlagStatus,
   varselType,

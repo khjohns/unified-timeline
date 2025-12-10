@@ -205,7 +205,6 @@ class CSVRepository(BaseRepository):
                         },
                         "frist": {
                             "krav_fristforlengelse": False,
-                            "krav_frist_type": "",
                             "krav_frist_antall_dager": "",
                             "forsinkelse_kritisk_linje": False,
                             "krav_frist_begrunnelse": "",

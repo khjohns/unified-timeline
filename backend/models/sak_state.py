@@ -264,7 +264,6 @@ class FristTilstand(BaseModel):
     noytralt_varsel_dato: Optional[str] = Field(default=None)
     spesifisert_krav_dato: Optional[str] = Field(default=None)
     krevd_dager: Optional[int] = Field(default=None)
-    frist_type: Optional[str] = Field(default=None)
     begrunnelse: Optional[str] = Field(default=None)
     milepael_pavirket: Optional[str] = Field(default=None)
     fremdriftsanalyse_vedlagt: bool = Field(default=False)
