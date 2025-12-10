@@ -409,16 +409,14 @@ def test_grunnlag_respons_data():
     assert data.varsel_for_sent is False  # Default
 
 
-def test_grunnlag_respons_with_varsel_vurdering():
-    """Test GrunnlagResponsData with varsel timing assessment"""
+def test_grunnlag_respons_with_avvist_uenig():
+    """Test GrunnlagResponsData with rejection"""
     data = GrunnlagResponsData(
-        resultat=GrunnlagResponsResultat.AVVIST_FOR_SENT,
-        begrunnelse="Varselet kom for sent",
-        varsel_for_sent=True,
-        varsel_begrunnelse="Varselet ble sendt 3 måneder etter oppdagelse"
+        resultat=GrunnlagResponsResultat.AVVIST_UENIG,
+        begrunnelse="Varselet kom for sent - preklusjon håndteres via subsidiær_triggers på vederlag/frist",
     )
-    assert data.varsel_for_sent is True
-    assert data.varsel_begrunnelse is not None
+    assert data.resultat == GrunnlagResponsResultat.AVVIST_UENIG
+    assert data.begrunnelse is not None
 
 
 def test_vederlag_respons_data():

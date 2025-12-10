@@ -463,14 +463,12 @@ MOCK_EVENTS_SCENARIO_4 = [
         spor=SporType.GRUNNLAG,
         refererer_til_event_id="evt-402",
         data=GrunnlagResponsData(
-            resultat=GrunnlagResponsResultat.AVVIST_FOR_SENT,
+            resultat=GrunnlagResponsResultat.AVVIST_UENIG,
             begrunnelse=(
                 "Varselet kom 4 måneder for sent. "
                 "TE oppdaget forholdet i oktober 2024, men varslet først i februar 2025. "
-                "Dette er ugrunnet opphold, og kravet tapes ved preklusjon."
+                "Dette er ugrunnet opphold, og kravet avvises."
             ),
-            varsel_for_sent=True,
-            varsel_begrunnelse="4 måneders forsinkelse fra oppdagelse til varsel er ugrunnet opphold"
         )
     ),
 

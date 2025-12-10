@@ -475,7 +475,8 @@ class TimelineService:
             GrunnlagResponsResultat.GODKJENT: SporStatus.GODKJENT,
             GrunnlagResponsResultat.DELVIS_GODKJENT: SporStatus.DELVIS_GODKJENT,
             GrunnlagResponsResultat.AVVIST_UENIG: SporStatus.AVVIST,
-            GrunnlagResponsResultat.AVVIST_FOR_SENT: SporStatus.AVVIST,
+            GrunnlagResponsResultat.ERKJENN_FM: SporStatus.GODKJENT,  # Force Majeure erkjent
+            GrunnlagResponsResultat.FRAFALT: SporStatus.TRUKKET,  # Pålegg frafalt
             GrunnlagResponsResultat.KREVER_AVKLARING: SporStatus.UNDER_FORHANDLING,
         }
         return mapping.get(resultat, SporStatus.UNDER_BEHANDLING)
@@ -684,7 +685,8 @@ class TimelineService:
     def _get_event_summary(self, event: AnyEvent) -> str:
         """Genererer kort sammendrag av eventen"""
         if isinstance(event, GrunnlagEvent):
-            return f"{event.data.hovedkategori}: {event.data.underkategori}"
+            from constants.grunnlag_categories import get_grunnlag_sammendrag
+            return get_grunnlag_sammendrag(event.data.hovedkategori, event.data.underkategori)
         elif isinstance(event, VederlagEvent):
             belop = event.data.belop_direkte or event.data.kostnads_overslag or 0
             return f"Krav: {belop:,.0f} NOK"
@@ -693,12 +695,39 @@ class TimelineService:
         elif isinstance(event, ForseringVarselEvent):
             return f"Forsering: {event.data.estimert_kostnad:,.0f} NOK"
         elif isinstance(event, ResponsEvent):
-            return f"{event.data.resultat.value}"
+            return self._get_respons_summary(event)
         elif isinstance(event, SakOpprettetEvent):
             return event.sakstittel
         elif isinstance(event, EOUtstedtEvent):
             return f"EO-{event.eo_nummer}: {event.endelig_vederlag:,.0f} NOK"
         return ""
+
+    def _get_respons_summary(self, event: ResponsEvent) -> str:
+        """Genererer lesbart sammendrag for ResponsEvent"""
+        # Map resultat til lesbar tekst
+        resultat_labels = {
+            'godkjent': 'Godkjent',
+            'delvis_godkjent': 'Delvis godkjent',
+            'erkjenn_fm': 'Force Majeure erkjent',
+            'avvist_uenig': 'Avvist',
+            'frafalt': 'Pålegg frafalt',
+            'krever_avklaring': 'Krever avklaring',
+            'avventer': 'Avventer',
+            'avslatt': 'Avslått',
+        }
+
+        resultat_value = event.data.resultat.value if hasattr(event.data.resultat, 'value') else str(event.data.resultat)
+        resultat_label = resultat_labels.get(resultat_value, resultat_value)
+
+        # Legg til beløp/dager hvis tilgjengelig
+        if event.spor == SporType.VEDERLAG:
+            if hasattr(event.data, 'godkjent_belop') and event.data.godkjent_belop:
+                return f"{resultat_label}: {event.data.godkjent_belop:,.0f} kr"
+        elif event.spor == SporType.FRIST:
+            if hasattr(event.data, 'godkjent_dager') and event.data.godkjent_dager:
+                return f"{resultat_label}: {event.data.godkjent_dager} dager"
+
+        return resultat_label
 
 
 # ============ MIGRATION HELPER ============
@@ -874,11 +903,13 @@ class MigrationHelper:
     def _map_bh_svar_to_resultat(self, svar_kode: str) -> GrunnlagResponsResultat:
         """Mapper gammel BH svar-kode til GrunnlagResponsResultat"""
         # Fra generated_constants.py
+        # NB: AVVIST_FOR_SENT er fjernet - preklusjon håndteres nå via
+        # subsidiær_triggers på vederlag/frist-nivå, ikke på grunnlag
         mapping = {
             '100000000': GrunnlagResponsResultat.GODKJENT,           # GODKJENT_FULLT
             '100000001': GrunnlagResponsResultat.DELVIS_GODKJENT,    # DELVIS_GODKJENT
             '100000002': GrunnlagResponsResultat.AVVIST_UENIG,       # AVSLÅTT_UENIG
-            '100000003': GrunnlagResponsResultat.AVVIST_FOR_SENT,    # AVSLÅTT_FOR_SENT
+            '100000003': GrunnlagResponsResultat.AVVIST_UENIG,       # AVSLÅTT_FOR_SENT -> nå AVVIST_UENIG
             '100000004': GrunnlagResponsResultat.KREVER_AVKLARING,   # AVVENTER
             '100000005': GrunnlagResponsResultat.GODKJENT,           # GODKJENT_ANNEN_METODE
         }

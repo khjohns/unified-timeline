@@ -25,6 +25,10 @@ interface StatusCardProps {
   godkjent?: number | null;
   /** Unit label for values (e.g., "kr" or "dager") */
   unit?: string;
+  /** Full display status from backend (includes subsidiary info) */
+  visningsstatus?: string;
+  /** Whether this track has subsidiary approval */
+  erSubsidiaert?: boolean;
 }
 
 const STATUS_CONFIG: Record<
@@ -94,7 +98,7 @@ const STATUS_CONFIG: Record<
 };
 
 const SPOR_LABELS: Record<SporType, string> = {
-  grunnlag: 'Grunnlag',
+  grunnlag: 'Ansvarsgrunnlag',
   vederlag: 'Vederlag',
   frist: 'Frist',
 };
@@ -126,6 +130,8 @@ function formatValueSummary(krevd?: number | null, godkjent?: number | null, uni
 /**
  * StatusCard displays the current status of a track (grunnlag, vederlag, frist)
  * Forslag B: Minimal Soft - List-item style with hover effects and status-colored left border.
+ *
+ * Supports subsidiary status display when grunnlag is rejected but vederlag/frist is approved.
  */
 export function StatusCard({
   spor,
@@ -134,44 +140,66 @@ export function StatusCard({
   krevd,
   godkjent,
   unit = 'kr',
+  visningsstatus,
+  erSubsidiaert,
 }: StatusCardProps) {
   const config = STATUS_CONFIG[status];
   const valueSummary = formatValueSummary(krevd, godkjent, unit);
+
+  // Use visningsstatus if provided (includes subsidiary info), otherwise fall back to config.label
+  const displayLabel = visningsstatus || config.label;
+
+  // Determine if we should show subsidiary styling
+  // Subsidiary means: avvist on grunnlag but vederlag/frist approved
+  const isSubsidiary = erSubsidiaert === true;
+
+  // Subsidiary status gets a special border color (amber/orange) to indicate mixed status
+  const borderClass = isSubsidiary
+    ? 'border-l-pkt-brand-yellow-500'
+    : config.borderClass;
+
+  const dotClass = isSubsidiary
+    ? 'bg-pkt-brand-yellow-500'
+    : config.dotClass;
 
   return (
     <div
       className={clsx(
         'group bg-white px-4 py-4',
         'border-l-4',
-        config.borderClass,
+        borderClass,
         'hover:bg-pkt-bg-subtle',
         'transition-colors'
       )}
     >
       <div className="flex items-center justify-between">
         {/* Left side: Status dot, title, and status label */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
           <div
-            className={clsx('w-2 h-2 rounded-full', config.dotClass)}
+            className={clsx('w-2 h-2 rounded-full shrink-0', dotClass)}
             role="status"
             aria-label={config.ariaLabel}
           />
-          <span className="font-medium text-pkt-text-body-dark">
+          <span className="font-medium text-pkt-text-body-dark shrink-0">
             {SPOR_LABELS[spor]}
           </span>
-          <span className="text-sm text-pkt-grays-gray-500">
-            {config.label}
+          {/* Status label - use visningsstatus for full info */}
+          <span className={clsx(
+            'text-sm truncate',
+            isSubsidiary ? 'text-pkt-grays-gray-700' : 'text-pkt-grays-gray-500'
+          )}>
+            {displayLabel}
           </span>
-          {/* Value summary inline */}
-          {valueSummary && (
-            <span className="text-sm font-medium text-pkt-text-body-dark ml-2">
+          {/* Value summary inline - only show if not already in visningsstatus */}
+          {valueSummary && !visningsstatus && (
+            <span className="text-sm font-medium text-pkt-text-body-dark ml-2 shrink-0">
               {valueSummary}
             </span>
           )}
         </div>
 
         {/* Right side: Actions or chevron */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {actions ? (
             <div className="flex items-center gap-2">{actions}</div>
           ) : (

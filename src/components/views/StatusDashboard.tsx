@@ -32,6 +32,10 @@ function getKrevdBelop(state: SakState): number | undefined {
 /**
  * StatusDashboard renders the three-track status overview with contextual actions
  * Using vertical list layout (Forslag B: Minimal Soft)
+ *
+ * Supports subsidiary status display:
+ * - When grunnlag is rejected but vederlag/frist is approved
+ * - Uses visningsstatus from backend for full status text
  */
 export function StatusDashboard({
   state,
@@ -52,7 +56,7 @@ export function StatusDashboard({
         <StatusCard
           spor="grunnlag"
           status={state.grunnlag.status}
-          title="Grunnlag"
+          title="Ansvarsgrunnlag"
           lastUpdated={state.grunnlag.siste_oppdatert}
           actions={grunnlagActions}
         />
@@ -65,6 +69,8 @@ export function StatusDashboard({
           krevd={krevdBelop}
           godkjent={state.vederlag.godkjent_belop}
           unit="kr"
+          visningsstatus={state.visningsstatus_vederlag}
+          erSubsidiaert={state.er_subsidiaert_vederlag}
         />
         <StatusCard
           spor="frist"
@@ -75,6 +81,8 @@ export function StatusDashboard({
           krevd={state.frist.krevd_dager}
           godkjent={state.frist.godkjent_dager}
           unit="dager"
+          visningsstatus={state.visningsstatus_frist}
+          erSubsidiaert={state.er_subsidiaert_frist}
         />
       </div>
 

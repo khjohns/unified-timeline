@@ -338,6 +338,71 @@ def validate_kategori_kombinasjon(hovedkategori: str, underkategori: str | List[
     return all(uk in gyldige_underkategorier for uk in underkategori)
 
 
+def get_hovedkategori_label(kode: str) -> str:
+    """
+    Hent lesbar label for en hovedkategori.
+
+    Args:
+        kode: Hovedkategori-kode (f.eks. 'ENDRING')
+
+    Returns:
+        Lesbar label (f.eks. 'Endringer') eller koden selv hvis ikke funnet
+    """
+    hovedkat = get_hovedkategori(kode)
+    if hovedkat:
+        return hovedkat["label"]
+    return kode
+
+
+def get_underkategori_label(hovedkategori_kode: str, underkategori_kode: str) -> str:
+    """
+    Hent lesbar label for en underkategori.
+
+    Args:
+        hovedkategori_kode: Hovedkategori-kode (f.eks. 'ENDRING')
+        underkategori_kode: Underkategori-kode (f.eks. 'IRREG')
+
+    Returns:
+        Lesbar label (f.eks. 'Irregulær endring (Pålegg)') eller koden selv hvis ikke funnet
+    """
+    underkat = get_underkategori(hovedkategori_kode, underkategori_kode)
+    if underkat:
+        return underkat["label"]
+    return underkategori_kode
+
+
+def get_grunnlag_sammendrag(hovedkategori_kode: str, underkategori: str | List[str]) -> str:
+    """
+    Generer lesbart sammendrag for grunnlag.
+
+    Args:
+        hovedkategori_kode: Hovedkategori-kode (f.eks. 'ENDRING')
+        underkategori: Underkategori-kode(r) - enkelt string eller liste
+
+    Returns:
+        Lesbart sammendrag (f.eks. 'Endringer: Irregulær endring (Pålegg)')
+        eller 'Endringer: Irregulær endring (Pålegg), Formell endringsordre' for flere
+
+    Examples:
+        >>> get_grunnlag_sammendrag('ENDRING', 'IRREG')
+        'Endringer: Irregulær endring (Pålegg)'
+        >>> get_grunnlag_sammendrag('ENDRING', ['IRREG', 'EO'])
+        'Endringer: Irregulær endring (Pålegg), Formell endringsordre'
+    """
+    hovedkat_label = get_hovedkategori_label(hovedkategori_kode)
+
+    # Håndter både enkelt string og liste
+    if isinstance(underkategori, str):
+        underkat_labels = [get_underkategori_label(hovedkategori_kode, underkategori)]
+    else:
+        underkat_labels = [
+            get_underkategori_label(hovedkategori_kode, uk)
+            for uk in underkategori
+        ]
+
+    return f"{hovedkat_label}: {', '.join(underkat_labels)}"
+
+
 def er_lovendring(underkategori_kode: str) -> bool:
     """
     Sjekk om underkategori er en lovendring (krever spesiell håndtering iht. §14.4).

@@ -4,13 +4,18 @@
  * Displays an immutable, chronological history of all events.
  * Provides expandable details for each event.
  * Includes "Vis skjema" button to view full submitted form data.
+ *
+ * Design: Forslag 5 - Rolle-stripe + Spor-tag
+ * - Farget rolle-indikator (TE=grønn, BH=gul)
+ * - Spor som tag/badge (Ansvarsgrunnlag, Vederlag, Frist)
+ * - Sammendrag forblir lesbart
  */
 
 import { EventDetailModal } from './EventDetailModal';
 import { RevisionTag, UpdatedTag } from '../primitives/RevisionTag';
 import { TimelineEntry, SporType } from '../../types/timeline';
 import { useState } from 'react';
-import { FileTextIcon, ClipboardIcon } from '@radix-ui/react-icons';
+import { FileTextIcon, ClipboardIcon, ChevronDownIcon } from '@radix-ui/react-icons';
 
 // TE claim update event types - these get numbered revisions (Rev. 1, Rev. 2, etc.)
 const TE_CLAIM_UPDATE_TYPES = [
@@ -133,6 +138,53 @@ interface TimelineProps {
 }
 
 /**
+ * Get display label for spor type
+ * "grunnlag" -> "Ansvarsgrunnlag" for clarity
+ */
+function getSporLabel(spor: SporType | null): string {
+  if (!spor) return 'Generelt';
+  const labels: Record<string, string> = {
+    grunnlag: 'Ansvarsgrunnlag',
+    vederlag: 'Vederlag',
+    frist: 'Frist',
+  };
+  return labels[spor] || spor;
+}
+
+/**
+ * Get role indicator styling
+ * TE = Green (brand-green), BH = Yellow (brand-yellow)
+ */
+function getRolleStyles(rolle: 'TE' | 'BH'): { bg: string; text: string; ring: string } {
+  if (rolle === 'TE') {
+    return {
+      bg: 'bg-pkt-brand-green-1000',
+      text: 'text-pkt-brand-dark-green-1000',
+      ring: 'ring-pkt-brand-green-1000',
+    };
+  }
+  return {
+    bg: 'bg-pkt-brand-yellow-1000',
+    text: 'text-pkt-grays-gray-800',
+    ring: 'ring-pkt-brand-yellow-1000',
+  };
+}
+
+/**
+ * Get spor tag styling
+ */
+function getSporTagStyles(spor: SporType | null): string {
+  if (!spor) return 'bg-pkt-grays-gray-100 text-pkt-grays-gray-600';
+
+  const styles: Record<string, string> = {
+    grunnlag: 'bg-pkt-surface-light-blue text-pkt-brand-dark-blue-1000',
+    vederlag: 'bg-pkt-surface-light-green text-pkt-brand-dark-green-1000',
+    frist: 'bg-pkt-surface-yellow text-pkt-grays-gray-800',
+  };
+  return styles[spor] || 'bg-pkt-grays-gray-100 text-pkt-grays-gray-600';
+}
+
+/**
  * Timeline renders a chronological list of events
  */
 export function Timeline({ events }: TimelineProps) {
@@ -150,6 +202,20 @@ export function Timeline({ events }: TimelineProps) {
     });
   }
 
+  /**
+   * Format date for expanded view (full date with year)
+   */
+  function formatDateFull(dateStr: string): string {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('nb-NO', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
   // Show empty state if no events
   if (events.length === 0) {
     return (
@@ -162,27 +228,46 @@ export function Timeline({ events }: TimelineProps) {
 
   return (
     <>
-      {/* Simple line-style timeline (Forslag B: Minimal Soft) */}
+      {/* Forslag 5: Rolle-stripe + Spor-tag timeline */}
       <div className="space-y-0" role="list" aria-label="Tidslinje over hendelser">
         {events.map((event) => {
           const tagInfo = getEventTagInfo(event, events);
+          const rolleStyles = getRolleStyles(event.rolle);
+          const isExpanded = expandedId === event.event_id;
 
           return (
             <div
               key={event.event_id}
-              className="flex gap-4 py-3 border-b border-pkt-grays-gray-100 last:border-b-0 group cursor-pointer hover:bg-pkt-bg-subtle transition-colors"
-              onClick={() => setExpandedId(expandedId === event.event_id ? null : event.event_id)}
+              className="group cursor-pointer hover:bg-pkt-bg-subtle transition-colors"
+              onClick={() => setExpandedId(isExpanded ? null : event.event_id)}
               role="listitem"
             >
-              {/* Date column */}
-              <span className="text-sm text-pkt-grays-gray-500 w-12 shrink-0">
-                {formatDateMinimal(event.tidsstempel)}
-              </span>
+              {/* Main row */}
+              <div className="flex items-center gap-3 py-3 px-2 border-b border-pkt-grays-gray-100">
+                {/* Role indicator - colored dot */}
+                <div
+                  className={`w-2.5 h-2.5 rounded-full shrink-0 ${rolleStyles.bg}`}
+                  title={event.rolle === 'TE' ? 'Entreprenør' : 'Byggherre'}
+                  aria-label={event.rolle === 'TE' ? 'Entreprenør' : 'Byggherre'}
+                />
 
-              {/* Content */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start gap-2">
-                  <span className="text-sm text-pkt-text-body-dark">
+                {/* Date */}
+                <span className="text-sm text-pkt-grays-gray-500 w-12 shrink-0 tabular-nums">
+                  {formatDateMinimal(event.tidsstempel)}
+                </span>
+
+                {/* Spor tag */}
+                {event.spor && (
+                  <span
+                    className={`text-xs font-medium px-2 py-0.5 rounded shrink-0 ${getSporTagStyles(event.spor)}`}
+                  >
+                    {getSporLabel(event.spor)}
+                  </span>
+                )}
+
+                {/* Content */}
+                <div className="flex-1 min-w-0 flex items-center gap-2">
+                  <span className="text-sm text-pkt-text-body-dark truncate">
                     {event.sammendrag}
                   </span>
                   {tagInfo.showRevision && tagInfo.version !== undefined && (
@@ -193,27 +278,47 @@ export function Timeline({ events }: TimelineProps) {
                   )}
                 </div>
 
-                {/* Expanded details */}
-                {expandedId === event.event_id && (
-                  <div className="mt-3 text-sm text-pkt-grays-gray-600 space-y-2">
+                {/* Role label + expand indicator */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className={`text-xs font-medium ${rolleStyles.text}`}>
+                    {event.rolle}
+                  </span>
+                  <ChevronDownIcon
+                    className={`w-4 h-4 text-pkt-grays-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                  />
+                </div>
+              </div>
+
+              {/* Expanded details */}
+              {isExpanded && (
+                <div className="px-2 py-3 bg-pkt-bg-subtle border-b border-pkt-grays-gray-100">
+                  <div className="ml-5 pl-3 border-l-2 border-pkt-grays-gray-200 space-y-2">
+                    {/* Full timestamp and actor */}
                     <p className="text-xs text-pkt-grays-gray-500">
-                      {event.aktor} ({event.rolle}) • {event.spor || 'Generelt'}
+                      {formatDateFull(event.tidsstempel)} • {event.aktor}
                     </p>
+
+                    {/* Event type description */}
+                    <p className="text-sm text-pkt-text-body-dark">
+                      {event.type}
+                    </p>
+
+                    {/* View form button */}
                     {event.event_data && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedEvent(event);
                         }}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-pkt-brand-blue-1000 bg-pkt-surface-light-blue hover:bg-pkt-brand-blue-100 rounded-lg transition-colors"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-pkt-brand-dark-blue-1000 bg-pkt-surface-light-blue hover:bg-pkt-brand-blue-200 rounded-lg transition-colors mt-2"
                       >
                         <FileTextIcon className="h-4 w-4" />
                         Vis innsendt skjema
                       </button>
                     )}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           );
         })}
