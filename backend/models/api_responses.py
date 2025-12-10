@@ -153,15 +153,26 @@ class VederlagPostering(BaseModel):
 
 
 class VederlagHistorikkEntry(BaseModel):
-    """Én versjon av vederlagskravet"""
+    """Én versjon av vederlagskravet eller BH-respons"""
     versjon: int
     tidsstempel: datetime
     aktor: AktorInfo
-    endring_type: Literal["sendt", "oppdatert", "trukket"]
+    endring_type: Literal["sendt", "oppdatert", "trukket", "respons", "respons_oppdatert"]
+    event_id: str
 
-    krav_belop: float
-    metode: str
-    metode_label: str
+    # TE-krav felter (for sendt/oppdatert/trukket)
+    krav_belop: Optional[float] = None
+    metode: Optional[str] = None
+    metode_label: Optional[str] = None
+    begrunnelse: Optional[str] = None
+    inkluderer_rigg_drift: Optional[bool] = None
+    inkluderer_produktivitet: Optional[bool] = None
+
+    # BH-respons felter (for respons/respons_oppdatert)
+    bh_resultat: Optional[str] = None
+    bh_resultat_label: Optional[str] = None
+    godkjent_belop: Optional[float] = None
+    bh_begrunnelse: Optional[str] = None
 
 
 class VederlagResponse(BaseModel):
@@ -223,13 +234,25 @@ class VederlagResponse(BaseModel):
 # ============ TAB: TID (FRIST) ============
 
 class FristHistorikkEntry(BaseModel):
-    """Én versjon av fristkravet"""
+    """Én versjon av fristkravet eller BH-respons"""
     versjon: int
     tidsstempel: datetime
     aktor: AktorInfo
-    endring_type: Literal["sendt", "oppdatert", "trukket"]
+    endring_type: Literal["sendt", "oppdatert", "trukket", "respons", "respons_oppdatert"]
+    event_id: str
 
-    krav_dager: int
+    # TE-krav felter (for sendt/oppdatert/trukket)
+    krav_dager: Optional[int] = None
+    varsel_type: Optional[str] = None
+    varsel_type_label: Optional[str] = None
+    begrunnelse: Optional[str] = None
+    ny_sluttdato: Optional[str] = None
+
+    # BH-respons felter (for respons/respons_oppdatert)
+    bh_resultat: Optional[str] = None
+    bh_resultat_label: Optional[str] = None
+    godkjent_dager: Optional[int] = None
+    bh_begrunnelse: Optional[str] = None
 
 
 class FristResponse(BaseModel):

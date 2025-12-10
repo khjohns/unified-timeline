@@ -407,6 +407,34 @@ def get_case_timeline(sak_id: str):
     })
 
 
+@events_bp.route('/api/cases/<sak_id>/historikk', methods=['GET'])
+@require_magic_link
+def get_case_historikk(sak_id: str):
+    """
+    Get revision history for vederlag and frist tracks.
+
+    Returns a chronological list of all claim versions and BH responses,
+    with version numbers to enable side-by-side comparison in the UI.
+    """
+    events_data, version = event_repo.get_events(sak_id)
+
+    if not events_data:
+        return jsonify({"error": "Sak ikke funnet"}), 404
+
+    # Parse events from stored data
+    events = [parse_event(e) for e in events_data]
+
+    # Build historikk for both tracks
+    vederlag_historikk = timeline_service.get_vederlag_historikk(events)
+    frist_historikk = timeline_service.get_frist_historikk(events)
+
+    return jsonify({
+        "version": version,
+        "vederlag": vederlag_historikk,
+        "frist": frist_historikk
+    })
+
+
 # ============================================================
 # CATENDA INTEGRATION HELPERS
 # ============================================================

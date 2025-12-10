@@ -102,11 +102,11 @@ Denne planen beskriver oppdateringer som trengs for å holde dokumentasjonen syn
 |-------|---------|---------|
 | Generelt | Refererer til mock mode og `data/events_*.json` | Verifiser faktiske stier |
 | 194-233 | Data storage beskrivelse | Verifiser at stiene er korrekte (`koe_data/events/`) |
-| 46-47 | Port 5173 vs 3000 | Verifiser hvilken port som brukes |
+| 46-47 | Port 5173 vs 3000 | ✅ Fikset 2025-12-08: Port er 3000 |
 
 **Endringer:**
 - [ ] Verifiser data-stier
-- [ ] Verifiser port-konfigurasjon
+- [x] Verifiser port-konfigurasjon (port 3000)
 - [ ] Oppdater eventuelt utdaterte eksempler
 
 ---

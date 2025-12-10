@@ -729,6 +729,270 @@ class TimelineService:
 
         return resultat_label
 
+    # ============ REVISJONSHISTORIKK ============
+
+    def get_vederlag_historikk(self, events: List[AnyEvent]) -> List[Dict[str, Any]]:
+        """
+        Bygger revisjonshistorikk for vederlag fra events.
+
+        Returnerer en kronologisk liste med alle versjoner av vederlagskravet
+        og BH-responser, med versjonsnummer for hver TE-revisjon.
+        """
+        from models.api_responses import VederlagHistorikkEntry, AktorInfo
+
+        historikk = []
+        te_versjon = 0  # Teller for TE-revisjoner
+
+        # Filtrer og sorter vederlag-relaterte events
+        vederlag_events = [
+            e for e in events
+            if e.event_type in {
+                EventType.VEDERLAG_KRAV_SENDT,
+                EventType.VEDERLAG_KRAV_OPPDATERT,
+                EventType.VEDERLAG_KRAV_TRUKKET,
+                EventType.RESPONS_VEDERLAG,
+                EventType.RESPONS_VEDERLAG_OPPDATERT,
+            }
+        ]
+        vederlag_events.sort(key=lambda e: e.tidsstempel)
+
+        for event in vederlag_events:
+            aktor_info = AktorInfo(
+                navn=event.aktor,
+                rolle=event.aktor_rolle,
+                tidsstempel=event.tidsstempel,
+            )
+
+            if event.event_type == EventType.VEDERLAG_KRAV_SENDT:
+                te_versjon = 1
+                entry = VederlagHistorikkEntry(
+                    versjon=te_versjon,
+                    tidsstempel=event.tidsstempel,
+                    aktor=aktor_info,
+                    endring_type="sendt",
+                    event_id=event.event_id,
+                    krav_belop=self._get_vederlag_belop(event),
+                    metode=event.data.metode.value if event.data.metode else None,
+                    metode_label=self._get_metode_label(event.data.metode) if event.data.metode else None,
+                    begrunnelse=event.data.begrunnelse,
+                    inkluderer_rigg_drift=bool(event.data.saerskilt_krav and event.data.saerskilt_krav.rigg_drift),
+                    inkluderer_produktivitet=bool(event.data.saerskilt_krav and event.data.saerskilt_krav.produktivitet),
+                )
+                historikk.append(entry.model_dump(mode='json'))
+
+            elif event.event_type == EventType.VEDERLAG_KRAV_OPPDATERT:
+                te_versjon += 1
+                entry = VederlagHistorikkEntry(
+                    versjon=te_versjon,
+                    tidsstempel=event.tidsstempel,
+                    aktor=aktor_info,
+                    endring_type="oppdatert",
+                    event_id=event.event_id,
+                    krav_belop=self._get_vederlag_belop(event),
+                    metode=event.data.metode.value if event.data.metode else None,
+                    metode_label=self._get_metode_label(event.data.metode) if event.data.metode else None,
+                    begrunnelse=event.data.begrunnelse,
+                    inkluderer_rigg_drift=bool(event.data.saerskilt_krav and event.data.saerskilt_krav.rigg_drift),
+                    inkluderer_produktivitet=bool(event.data.saerskilt_krav and event.data.saerskilt_krav.produktivitet),
+                )
+                historikk.append(entry.model_dump(mode='json'))
+
+            elif event.event_type == EventType.VEDERLAG_KRAV_TRUKKET:
+                entry = VederlagHistorikkEntry(
+                    versjon=te_versjon,
+                    tidsstempel=event.tidsstempel,
+                    aktor=aktor_info,
+                    endring_type="trukket",
+                    event_id=event.event_id,
+                )
+                historikk.append(entry.model_dump(mode='json'))
+
+            elif event.event_type == EventType.RESPONS_VEDERLAG:
+                entry = VederlagHistorikkEntry(
+                    versjon=te_versjon,  # Refererer til hvilken TE-versjon den svarer på
+                    tidsstempel=event.tidsstempel,
+                    aktor=aktor_info,
+                    endring_type="respons",
+                    event_id=event.event_id,
+                    bh_resultat=event.data.beregnings_resultat.value if event.data.beregnings_resultat else None,
+                    bh_resultat_label=self._get_vederlag_resultat_label(event.data.beregnings_resultat),
+                    godkjent_belop=event.data.godkjent_belop,
+                    bh_begrunnelse=event.data.begrunnelse_beregning,
+                )
+                historikk.append(entry.model_dump(mode='json'))
+
+            elif event.event_type == EventType.RESPONS_VEDERLAG_OPPDATERT:
+                entry = VederlagHistorikkEntry(
+                    versjon=te_versjon,
+                    tidsstempel=event.tidsstempel,
+                    aktor=aktor_info,
+                    endring_type="respons_oppdatert",
+                    event_id=event.event_id,
+                    bh_resultat=event.data.beregnings_resultat.value if event.data.beregnings_resultat else None,
+                    bh_resultat_label=self._get_vederlag_resultat_label(event.data.beregnings_resultat),
+                    godkjent_belop=event.data.godkjent_belop,
+                    bh_begrunnelse=event.data.begrunnelse_beregning,
+                )
+                historikk.append(entry.model_dump(mode='json'))
+
+        return historikk
+
+    def get_frist_historikk(self, events: List[AnyEvent]) -> List[Dict[str, Any]]:
+        """
+        Bygger revisjonshistorikk for frist fra events.
+
+        Returnerer en kronologisk liste med alle versjoner av fristkravet
+        og BH-responser, med versjonsnummer for hver TE-revisjon.
+        """
+        from models.api_responses import FristHistorikkEntry, AktorInfo
+
+        historikk = []
+        te_versjon = 0  # Teller for TE-revisjoner
+
+        # Filtrer og sorter frist-relaterte events
+        frist_events = [
+            e for e in events
+            if e.event_type in {
+                EventType.FRIST_KRAV_SENDT,
+                EventType.FRIST_KRAV_OPPDATERT,
+                EventType.FRIST_KRAV_TRUKKET,
+                EventType.RESPONS_FRIST,
+                EventType.RESPONS_FRIST_OPPDATERT,
+            }
+        ]
+        frist_events.sort(key=lambda e: e.tidsstempel)
+
+        for event in frist_events:
+            aktor_info = AktorInfo(
+                navn=event.aktor,
+                rolle=event.aktor_rolle,
+                tidsstempel=event.tidsstempel,
+            )
+
+            if event.event_type == EventType.FRIST_KRAV_SENDT:
+                te_versjon = 1
+                entry = FristHistorikkEntry(
+                    versjon=te_versjon,
+                    tidsstempel=event.tidsstempel,
+                    aktor=aktor_info,
+                    endring_type="sendt",
+                    event_id=event.event_id,
+                    krav_dager=event.data.antall_dager,
+                    varsel_type=event.data.varsel_type.value if event.data.varsel_type else None,
+                    varsel_type_label=self._get_frist_varseltype_label(event.data.varsel_type),
+                    begrunnelse=event.data.begrunnelse,
+                    ny_sluttdato=event.data.ny_sluttdato,
+                )
+                historikk.append(entry.model_dump(mode='json'))
+
+            elif event.event_type == EventType.FRIST_KRAV_OPPDATERT:
+                te_versjon += 1
+                entry = FristHistorikkEntry(
+                    versjon=te_versjon,
+                    tidsstempel=event.tidsstempel,
+                    aktor=aktor_info,
+                    endring_type="oppdatert",
+                    event_id=event.event_id,
+                    krav_dager=event.data.antall_dager,
+                    varsel_type=event.data.varsel_type.value if event.data.varsel_type else None,
+                    varsel_type_label=self._get_frist_varseltype_label(event.data.varsel_type),
+                    begrunnelse=event.data.begrunnelse,
+                    ny_sluttdato=event.data.ny_sluttdato,
+                )
+                historikk.append(entry.model_dump(mode='json'))
+
+            elif event.event_type == EventType.FRIST_KRAV_TRUKKET:
+                entry = FristHistorikkEntry(
+                    versjon=te_versjon,
+                    tidsstempel=event.tidsstempel,
+                    aktor=aktor_info,
+                    endring_type="trukket",
+                    event_id=event.event_id,
+                )
+                historikk.append(entry.model_dump(mode='json'))
+
+            elif event.event_type == EventType.RESPONS_FRIST:
+                entry = FristHistorikkEntry(
+                    versjon=te_versjon,  # Refererer til hvilken TE-versjon den svarer på
+                    tidsstempel=event.tidsstempel,
+                    aktor=aktor_info,
+                    endring_type="respons",
+                    event_id=event.event_id,
+                    bh_resultat=event.data.beregnings_resultat.value if event.data.beregnings_resultat else None,
+                    bh_resultat_label=self._get_frist_resultat_label(event.data.beregnings_resultat),
+                    godkjent_dager=event.data.godkjent_dager,
+                    bh_begrunnelse=event.data.begrunnelse_vilkar,
+                )
+                historikk.append(entry.model_dump(mode='json'))
+
+            elif event.event_type == EventType.RESPONS_FRIST_OPPDATERT:
+                entry = FristHistorikkEntry(
+                    versjon=te_versjon,
+                    tidsstempel=event.tidsstempel,
+                    aktor=aktor_info,
+                    endring_type="respons_oppdatert",
+                    event_id=event.event_id,
+                    bh_resultat=event.data.beregnings_resultat.value if event.data.beregnings_resultat else None,
+                    bh_resultat_label=self._get_frist_resultat_label(event.data.beregnings_resultat),
+                    godkjent_dager=event.data.godkjent_dager,
+                    bh_begrunnelse=event.data.begrunnelse_vilkar,
+                )
+                historikk.append(entry.model_dump(mode='json'))
+
+        return historikk
+
+    def _get_vederlag_belop(self, event: VederlagEvent) -> Optional[float]:
+        """Hent krevd beløp basert på metode."""
+        if event.data.metode and event.data.metode.value == 'REGNINGSARBEID':
+            return event.data.kostnads_overslag
+        return event.data.belop_direkte
+
+    def _get_metode_label(self, metode) -> str:
+        """Konverter metode-enum til lesbar label."""
+        labels = {
+            'ENHETSPRISER': 'Enhetspriser (§34.3)',
+            'REGNINGSARBEID': 'Regningsarbeid (§30.2/§34.4)',
+            'FASTPRIS_TILBUD': 'Fastpris/Tilbud (§34.2.1)',
+        }
+        return labels.get(metode.value if hasattr(metode, 'value') else metode, str(metode))
+
+    def _get_vederlag_resultat_label(self, resultat) -> Optional[str]:
+        """Konverter vederlag-resultat til lesbar label."""
+        if not resultat:
+            return None
+        labels = {
+            'godkjent': 'Godkjent',
+            'delvis_godkjent': 'Delvis godkjent',
+            'avslatt': 'Avslått',
+            'avventer': 'Avventer dokumentasjon',
+            'hold_tilbake': 'Holdes tilbake (§30.2)',
+        }
+        return labels.get(resultat.value if hasattr(resultat, 'value') else resultat, str(resultat))
+
+    def _get_frist_varseltype_label(self, varsel_type) -> Optional[str]:
+        """Konverter varseltype til lesbar label."""
+        if not varsel_type:
+            return None
+        labels = {
+            'noytralt': 'Nøytralt varsel (§33.4)',
+            'spesifisert': 'Spesifisert krav (§33.6)',
+            'begge': 'Nøytralt + Spesifisert',
+            'force_majeure': 'Force Majeure (§33.3)',
+        }
+        return labels.get(varsel_type.value if hasattr(varsel_type, 'value') else varsel_type, str(varsel_type))
+
+    def _get_frist_resultat_label(self, resultat) -> Optional[str]:
+        """Konverter frist-resultat til lesbar label."""
+        if not resultat:
+            return None
+        labels = {
+            'godkjent': 'Godkjent',
+            'delvis_godkjent': 'Delvis godkjent',
+            'avslatt': 'Avslått',
+            'avventer': 'Avventer dokumentasjon',
+        }
+        return labels.get(resultat.value if hasattr(resultat, 'value') else resultat, str(resultat))
+
 
 # ============ MIGRATION HELPER ============
 

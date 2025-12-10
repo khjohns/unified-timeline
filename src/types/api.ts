@@ -40,6 +40,66 @@ export interface TimelineResponse {
   version: number;
 }
 
+// ========== HISTORIKK (REVISION HISTORY) ==========
+
+export interface AktorInfo {
+  navn: string;
+  rolle: 'TE' | 'BH';
+  tidsstempel: string;
+}
+
+export type VederlagEndringType = 'sendt' | 'oppdatert' | 'trukket' | 'respons' | 'respons_oppdatert';
+export type FristEndringType = 'sendt' | 'oppdatert' | 'trukket' | 'respons' | 'respons_oppdatert';
+
+export interface VederlagHistorikkEntry {
+  versjon: number;
+  tidsstempel: string;
+  aktor: AktorInfo;
+  endring_type: VederlagEndringType;
+  event_id: string;
+
+  // TE-krav felter (for sendt/oppdatert/trukket)
+  krav_belop?: number | null;
+  metode?: string | null;
+  metode_label?: string | null;
+  begrunnelse?: string | null;
+  inkluderer_rigg_drift?: boolean | null;
+  inkluderer_produktivitet?: boolean | null;
+
+  // BH-respons felter (for respons/respons_oppdatert)
+  bh_resultat?: string | null;
+  bh_resultat_label?: string | null;
+  godkjent_belop?: number | null;
+  bh_begrunnelse?: string | null;
+}
+
+export interface FristHistorikkEntry {
+  versjon: number;
+  tidsstempel: string;
+  aktor: AktorInfo;
+  endring_type: FristEndringType;
+  event_id: string;
+
+  // TE-krav felter (for sendt/oppdatert/trukket)
+  krav_dager?: number | null;
+  varsel_type?: string | null;
+  varsel_type_label?: string | null;
+  begrunnelse?: string | null;
+  ny_sluttdato?: string | null;
+
+  // BH-respons felter (for respons/respons_oppdatert)
+  bh_resultat?: string | null;
+  bh_resultat_label?: string | null;
+  godkjent_dager?: number | null;
+  bh_begrunnelse?: string | null;
+}
+
+export interface HistorikkResponse {
+  version: number;
+  vederlag: VederlagHistorikkEntry[];
+  frist: FristHistorikkEntry[];
+}
+
 // ========== API REQUESTS ==========
 
 export interface EventSubmitRequest {

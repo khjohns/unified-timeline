@@ -6,8 +6,8 @@
  */
 
 import { apiFetch, USE_MOCK_API, mockDelay } from './client';
-import { StateResponse, TimelineResponse } from '../types/api';
-import { getMockStateById, getMockTimelineById } from '../mocks/mockData';
+import { StateResponse, TimelineResponse, HistorikkResponse } from '../types/api';
+import { getMockStateById, getMockTimelineById, getMockHistorikkById } from '../mocks/mockData';
 
 /**
  * Fetch the current state of a case
@@ -63,4 +63,21 @@ export async function fetchTimeline(sakId: string): Promise<TimelineResponse> {
 
   // Real API call - backend returns TimelineResponse with full event data
   return apiFetch<TimelineResponse>(`/api/cases/${sakId}/timeline`);
+}
+
+/**
+ * Fetch the revision history for vederlag and frist tracks
+ *
+ * @param sakId - The case ID
+ * @returns The revision history for both tracks
+ */
+export async function fetchHistorikk(sakId: string): Promise<HistorikkResponse> {
+  // Use mock data if enabled
+  if (USE_MOCK_API) {
+    await mockDelay(200);
+    return getMockHistorikkById(sakId);
+  }
+
+  // Real API call
+  return apiFetch<HistorikkResponse>(`/api/cases/${sakId}/historikk`);
 }

@@ -3,10 +3,14 @@
  *
  * Extracts revision information from timeline events.
  * Uses the timeline as the source of truth for revision history.
+ *
+ * Also provides useHistorikk hook for fetching revision history from backend API.
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { TimelineEntry, SporType } from '../types/timeline';
+import { HistorikkResponse, VederlagHistorikkEntry, FristHistorikkEntry } from '../types/api';
+import { fetchHistorikk } from '../api/state';
 
 export interface RevisionInfo {
   versjon: number; // 0 = original, 1 = first revision, etc.
@@ -219,4 +223,127 @@ export function formatRevisionDate(isoDate: string): string {
     month: '2-digit',
     year: 'numeric',
   });
+}
+
+// ============ NEW: Backend-based Historikk Hook ============
+
+export interface UseHistorikkResult {
+  vederlag: VederlagHistorikkEntry[];
+  frist: FristHistorikkEntry[];
+  isLoading: boolean;
+  error: Error | null;
+  refetch: () => void;
+}
+
+/**
+ * Hook for fetching revision history from backend API.
+ *
+ * This hook fetches the full revision history for vederlag and frist tracks,
+ * including all TE submissions and BH responses with version numbers.
+ */
+export function useHistorikk(sakId: string): UseHistorikkResult {
+  const [data, setData] = useState<HistorikkResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchData = useCallback(async () => {
+    if (!sakId) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetchHistorikk(sakId);
+      setData(response);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to fetch historikk'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [sakId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  return {
+    vederlag: data?.vederlag ?? [],
+    frist: data?.frist ?? [],
+    isLoading,
+    error,
+    refetch: fetchData,
+  };
+}
+
+/**
+ * Group historikk entries by version for side-by-side comparison.
+ *
+ * Returns entries grouped by TE version number, with BH responses
+ * attached to the version they responded to.
+ */
+export interface VersionGroup<T> {
+  versjon: number;
+  teEntry?: T;
+  bhEntry?: T;
+}
+
+export function groupByVersion<T extends { versjon: number; aktor: { rolle: 'TE' | 'BH' } }>(
+  entries: T[]
+): VersionGroup<T>[] {
+  const groups = new Map<number, VersionGroup<T>>();
+
+  for (const entry of entries) {
+    const versjon = entry.versjon;
+    if (!groups.has(versjon)) {
+      groups.set(versjon, { versjon });
+    }
+    const group = groups.get(versjon)!;
+
+    if (entry.aktor.rolle === 'TE') {
+      group.teEntry = entry;
+    } else {
+      group.bhEntry = entry;
+    }
+  }
+
+  // Sort by version number
+  return Array.from(groups.values()).sort((a, b) => a.versjon - b.versjon);
+}
+
+/**
+ * Get only TE entries (claims/updates) from historikk
+ */
+export function getTeEntries<T extends { aktor: { rolle: 'TE' | 'BH' }; endring_type: string }>(
+  entries: T[]
+): T[] {
+  return entries.filter(
+    (e) => e.aktor.rolle === 'TE' && ['sendt', 'oppdatert', 'trukket'].includes(e.endring_type)
+  );
+}
+
+/**
+ * Get only BH entries (responses) from historikk
+ */
+export function getBhEntries<T extends { aktor: { rolle: 'TE' | 'BH' }; endring_type: string }>(
+  entries: T[]
+): T[] {
+  return entries.filter(
+    (e) => e.aktor.rolle === 'BH' && ['respons', 'respons_oppdatert'].includes(e.endring_type)
+  );
+}
+
+/**
+ * Format currency for historikk display
+ */
+export function formatHistorikkBelop(belop: number | null | undefined): string {
+  if (belop === null || belop === undefined) return '—';
+  return `${belop.toLocaleString('nb-NO')} NOK`;
+}
+
+/**
+ * Format days for historikk display
+ */
+export function formatHistorikkDager(dager: number | null | undefined): string {
+  if (dager === null || dager === undefined) return '—';
+  return `${dager} dager`;
 }
