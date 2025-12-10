@@ -74,76 +74,6 @@ VEDERLAG_METODER: Dict[str, VederlagsMetodeInfo] = {
     },
 }
 
-# ============ LEGACY METHODS (for backwards compatibility) ============
-
-LEGACY_VEDERLAG_METODER: Dict[str, VederlagsMetodeInfo] = {
-    "kontrakt_ep": {
-        "kode": "kontrakt_ep",
-        "label": "Kontraktens enhetspriser",
-        "paragraf": "§34.3.1",
-        "beskrivelse": "Anvendelse av eksisterende enhetspriser fra kontrakten på endringsarbeidet.",
-        "indeksregulering": "full",
-        "krever_varsel": False,
-        "varsel_tidspunkt": None,
-        "krever_bh_aksept": False,
-        "dokumentasjonskrav": "Mengdeoversikt med referanse til kontrakt-enhetspriser. Beregning av totalkostnad."
-    },
-    "justert_ep": {
-        "kode": "justert_ep",
-        "label": "Justerte enhetspriser",
-        "paragraf": "§34.3.2, §34.3.3",
-        "beskrivelse": "Enhetspriser justert for endrede forhold (f.eks. økt omfang, vanskeliggjorte forhold).",
-        "indeksregulering": "full",
-        "krever_varsel": True,
-        "varsel_tidspunkt": "Uten ugrunnet opphold etter at TE blir klar over at justering er nødvendig (§34.3.3)",
-        "krever_bh_aksept": False,
-        "dokumentasjonskrav": "Varsel om justering, dokumentasjon av endrede forhold, kalkyle over nye enhetspriser, mengdeoversikt."
-    },
-    "regning": {
-        "kode": "regning",
-        "label": "Regningsarbeid",
-        "paragraf": "§30.1",
-        "beskrivelse": "Oppgjør etter medgått tid (timer) og materialer. Timepriser fra kontrakt eller bransjestandarder.",
-        "indeksregulering": "delvis",
-        "krever_varsel": True,
-        "varsel_tidspunkt": "FØR regningsarbeidet påbegynnes (§30.1, 3. ledd)",
-        "krever_bh_aksept": False,
-        "dokumentasjonskrav": "Varsel før oppstart, timelister, materialfakturaer, dokumentasjon av påslag (adm, rigg, drift)."
-    },
-    "overslag": {
-        "kode": "overslag",
-        "label": "Regningsarbeid med prisoverslag",
-        "paragraf": "§30.2",
-        "beskrivelse": "Regningsarbeid hvor TE har gitt et prisoverslag på forhånd. Endelig pris avregnes som regning.",
-        "indeksregulering": "delvis",
-        "krever_varsel": True,
-        "varsel_tidspunkt": "FØR arbeidet påbegynnes - BH skal få prisoverslag",
-        "krever_bh_aksept": False,
-        "dokumentasjonskrav": "Prisoverslag før oppstart, timelister, materialfakturaer, forklaring hvis overslag overskrides."
-    },
-    "tilbud": {
-        "kode": "tilbud",
-        "label": "Entreprenørens tilbud (fastpris)",
-        "paragraf": "§34.2.1",
-        "beskrivelse": "TE gir pristilbud som BH kan akseptere. Fast pris uten etterfølgende justering.",
-        "indeksregulering": "ingen",
-        "krever_varsel": False,
-        "varsel_tidspunkt": None,
-        "krever_bh_aksept": True,
-        "dokumentasjonskrav": "Skriftlig tilbud med fast sum. BH må akseptere tilbudet før arbeid igangsettes."
-    },
-}
-
-# Mapping from legacy to new codes
-LEGACY_TO_NEW_METODE: Dict[str, str] = {
-    "kontrakt_ep": "ENHETSPRISER",
-    "justert_ep": "ENHETSPRISER",
-    "regning": "REGNINGSARBEID",
-    "overslag": "REGNINGSARBEID",
-    "tilbud": "FASTPRIS_TILBUD",
-}
-
-
 # ============ VARSLINGSKRAV (Spesifikke kostnadstyper) ============
 
 class VarselKravInfo(TypedDict):
@@ -194,20 +124,9 @@ VARSLING_KOSTNADSTYPER: Dict[str, VarselKravInfo] = {
 
 # ============ HELPER FUNCTIONS ============
 
-def normalize_metode(kode: str) -> str:
-    """Convert legacy metode code to new uppercase format"""
-    return LEGACY_TO_NEW_METODE.get(kode, kode)
-
-
 def get_vederlag_metode(kode: str) -> VederlagsMetodeInfo | None:
-    """Hent vederlagsmetode basert på kode (støtter både nye og legacy koder)"""
-    # Try new codes first
-    if kode in VEDERLAG_METODER:
-        return VEDERLAG_METODER[kode]
-    # Try legacy codes
-    if kode in LEGACY_VEDERLAG_METODER:
-        return LEGACY_VEDERLAG_METODER[kode]
-    return None
+    """Hent vederlagsmetode basert på kode"""
+    return VEDERLAG_METODER.get(kode)
 
 
 def get_varsel_krav(kode: str) -> VarselKravInfo | None:
@@ -240,13 +159,8 @@ def krever_bh_godkjenning(metode_kode: str) -> bool:
 
 
 def get_alle_vederlag_metoder() -> list[str]:
-    """Hent alle vederlagsmetode-koder (kun nye uppercase koder)"""
+    """Hent alle vederlagsmetode-koder"""
     return list(VEDERLAG_METODER.keys())
-
-
-def get_alle_legacy_metoder() -> list[str]:
-    """Hent alle legacy vederlagsmetode-koder"""
-    return list(LEGACY_VEDERLAG_METODER.keys())
 
 
 def get_alle_varsel_krav() -> list[str]:
