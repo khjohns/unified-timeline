@@ -7,7 +7,7 @@
 
 import { apiFetch, USE_MOCK_API, mockDelay } from './client';
 import { StateResponse, TimelineResponse, HistorikkResponse } from '../types/api';
-import { getMockStateById, getMockTimelineById, getMockHistorikkById } from '../mocks/mockData';
+import { getMockStateById, getMockTimelineById, getMockHistorikkById } from '../mocks';
 
 /**
  * Fetch the current state of a case
