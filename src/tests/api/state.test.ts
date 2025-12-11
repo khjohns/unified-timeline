@@ -7,7 +7,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { fetchCaseState } from '@/src/api/state';
 import * as clientModule from '@/src/api/client';
-import { mockSakState1, mockSakState2, mockSakState3, mockSakState4 } from '@/src/mocks/mockData';
+import { mockSakState1, mockSakState2, mockSakState3, mockSakState4 } from '@/src/mocks';
 
 // Mock the client module
 vi.mock('@/src/api/client', async () => {

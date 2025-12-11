@@ -8,7 +8,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/primitives/Card';
 import { Button } from '../components/primitives/Button';
-import { mockCaseList } from '../mocks/mockData';
+import { mockCaseList } from '../mocks';
 import { USE_MOCK_API } from '../api/client';
 
 export function ExampleCasesPage() {

@@ -14,7 +14,7 @@ import { StatusCard } from '@/src/components/views/StatusCard';
 import { StatusDashboard } from '@/src/components/views/StatusDashboard';
 import { Timeline } from '@/src/components/views/Timeline';
 import { TimelineItem } from '@/src/components/views/TimelineItem';
-import { mockSakState1, mockSakState2, mockSakState3, getMockHistorikkById } from '@/src/mocks/mockData';
+import { mockSakState1, mockSakState2, mockSakState3, getMockHistorikkById } from '@/src/mocks';
 import type { SakState, SporStatus, TimelineEntry } from '@/src/types/timeline';
 
 // Mock the API module
