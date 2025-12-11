@@ -190,7 +190,7 @@ interface FieldProps {
 function Field({ label, value, className = '' }: FieldProps) {
   if (value === undefined || value === null || value === '' || value === '—') return null;
   return (
-    <div className={`py-3 border-b border-gray-100 last:border-b-0 ${className}`}>
+    <div className={`py-3 border-b border-pkt-grays-gray-200 last:border-b-0 ${className}`}>
       <dt className="text-sm font-medium text-pkt-grays-gray-500">{label}</dt>
       <dd className="mt-1 text-sm text-pkt-text-body-dark">{value}</dd>
     </div>
@@ -237,7 +237,7 @@ function LongTextField({ label, value, defaultOpen = false }: LongTextFieldProps
 
   // For longer texts, use collapsible
   return (
-    <div className="py-3 border-b border-gray-100 last:border-b-0">
+    <div className="py-3 border-b border-pkt-grays-gray-100 last:border-b-0">
       <Collapsible title={label} defaultOpen={defaultOpen}>
         <p className="text-sm text-pkt-text-body-dark whitespace-pre-wrap">
           {value}
@@ -293,7 +293,7 @@ function SectionDivider({ title, subtitle }: SectionDividerProps) {
       <span className="text-xs font-medium text-pkt-grays-gray-500 uppercase tracking-wide whitespace-nowrap">
         {title}
       </span>
-      <div className="flex-1 border-t border-gray-200" />
+      <div className="flex-1 border-t border-pkt-grays-gray-200" />
       {subtitle && (
         <span className="text-xs text-pkt-grays-gray-400 whitespace-nowrap">
           {subtitle}
@@ -401,11 +401,11 @@ function VederlagSection({ data }: { data: VederlagEventData }) {
 
       {/* Særskilte krav */}
       {harSaerskiltKrav && (
-        <div className="py-3 border-b border-gray-100">
+        <div className="py-3 border-b border-pkt-grays-gray-100">
           <dt className="text-sm font-medium text-pkt-grays-gray-500 mb-2">Særskilte krav (§34.1.3)</dt>
           <dd className="space-y-2">
             {data.saerskilt_krav?.rigg_drift && (
-              <div className="pl-3 border-l-2 border-blue-300">
+              <div className="pl-3 border-l-2 border-pkt-brand-dark-blue-1000">
                 <span className="text-sm font-medium">Rigg/drift:</span>
                 <span className="ml-2 text-sm">
                   {data.saerskilt_krav.rigg_drift.belop !== undefined
@@ -420,7 +420,7 @@ function VederlagSection({ data }: { data: VederlagEventData }) {
               </div>
             )}
             {data.saerskilt_krav?.produktivitet && (
-              <div className="pl-3 border-l-2 border-yellow-300">
+              <div className="pl-3 border-l-2 border-pkt-brand-yellow-1000">
                 <span className="text-sm font-medium">Produktivitetstap:</span>
                 <span className="ml-2 text-sm">
                   {data.saerskilt_krav.produktivitet.belop !== undefined
@@ -848,10 +848,10 @@ function ForseringVarselSection({ data }: { data: ForseringVarselEventData }) {
 
   return (
     <dl>
-      <div className="py-3 bg-red-50 -mx-4 px-4 mb-2 border-b border-red-200">
+      <div className="py-3 bg-pkt-surface-faded-red -mx-4 px-4 mb-2 border-b border-pkt-brand-red-1000">
         <Badge variant="danger" size="lg">Forseringsvarsel (§33.8)</Badge>
         {data.grunnlag_avslag_trigger && (
-          <span className="ml-2 text-sm text-red-700">(utløst av grunnlagsavslag)</span>
+          <span className="ml-2 text-sm text-pkt-brand-red-1000">(utløst av grunnlagsavslag)</span>
         )}
       </div>
 
@@ -901,7 +901,7 @@ function GenericSection({ data }: { data: Record<string, unknown> }) {
               key={key}
               label={key}
               value={
-                <pre className="text-xs bg-gray-50 p-2 rounded overflow-x-auto">
+                <pre className="text-xs bg-pkt-bg-subtle p-2 rounded overflow-x-auto">
                   {JSON.stringify(value, null, 2)}
                 </pre>
               }
@@ -1001,7 +1001,7 @@ export function EventDetailModal({
     >
       <div className="space-y-6">
         {/* Metadata header */}
-        <div className="flex flex-wrap items-center gap-4 text-sm text-pkt-grays-gray-600 pb-4 border-b border-gray-200">
+        <div className="flex flex-wrap items-center gap-4 text-sm text-pkt-grays-gray-600 pb-4 border-b border-pkt-grays-gray-200">
           <span className="flex items-center gap-1.5">
             <CalendarIcon className="w-4 h-4" />
             {formatDateTime(event.tidsstempel)}
@@ -1022,7 +1022,7 @@ export function EventDetailModal({
         </div>
 
         {/* Summary */}
-        <div className="bg-pkt-surface-subtle p-4 border border-gray-200">
+        <div className="bg-pkt-bg-subtle p-4 border border-pkt-grays-gray-200">
           <p className="text-sm font-medium text-pkt-grays-gray-700 mb-1">Sammendrag</p>
           <p className="text-pkt-text-body-dark">{event.sammendrag}</p>
         </div>
@@ -1033,13 +1033,13 @@ export function EventDetailModal({
             <FileTextIcon className="w-5 h-5 text-pkt-grays-gray-500" />
             <h4 className="text-base font-semibold text-pkt-text-body-dark">Skjemadata</h4>
           </div>
-          <div className="bg-white border border-gray-200 p-4">
+          <div className="bg-pkt-bg-card border border-pkt-grays-gray-200 p-4">
             {renderEventData()}
           </div>
         </div>
 
         {/* Event ID footer */}
-        <p className="text-xs text-pkt-grays-gray-400 pt-4 border-t border-gray-200">
+        <p className="text-xs text-pkt-grays-gray-400 pt-4 border-t border-pkt-grays-gray-200">
           Event ID: {event.event_id}
         </p>
       </div>
