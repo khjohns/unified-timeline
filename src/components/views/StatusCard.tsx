@@ -165,41 +165,73 @@ export function StatusCard({
   return (
     <div
       className={clsx(
-        'group bg-white px-4 py-4',
+        'group bg-white px-3 py-3 sm:px-4 sm:py-4',
         'border-l-4',
         borderClass,
         'hover:bg-pkt-bg-subtle',
         'transition-colors'
       )}
     >
-      <div className="flex items-center justify-between">
-        {/* Left side: Status dot, title, and status label */}
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <div
-            className={clsx('w-2 h-2 rounded-full shrink-0', dotClass)}
-            role="status"
-            aria-label={config.ariaLabel}
-          />
-          <span className="font-medium text-pkt-text-body-dark shrink-0">
-            {SPOR_LABELS[spor]}
-          </span>
-          {/* Status label - use visningsstatus for full info */}
+      {/* Mobile: Stacked layout, Desktop: Single row */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+        {/* Top row on mobile / Left side on desktop */}
+        <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-3 flex-1 min-w-0">
+          {/* Status dot and title - always together */}
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div
+              className={clsx('w-2 h-2 rounded-full shrink-0', dotClass)}
+              role="status"
+              aria-label={config.ariaLabel}
+            />
+            <span className="font-medium text-pkt-text-body-dark shrink-0">
+              {SPOR_LABELS[spor]}
+            </span>
+            {/* Status label - hidden on mobile, shown on desktop */}
+            <span className={clsx(
+              'text-sm truncate hidden sm:inline',
+              isSubsidiary ? 'text-pkt-grays-gray-700' : 'text-pkt-grays-gray-500'
+            )}>
+              {displayLabel}
+            </span>
+            {/* Value summary inline on desktop - only show if not already in visningsstatus */}
+            {valueSummary && !visningsstatus && (
+              <span className="text-sm font-medium text-pkt-text-body-dark ml-2 shrink-0 hidden sm:inline">
+                {valueSummary}
+              </span>
+            )}
+          </div>
+
+          {/* Actions/chevron - shown on right side for mobile top row */}
+          <div className="flex items-center gap-2 shrink-0 sm:hidden">
+            {actions ? (
+              <div className="flex items-center gap-2">{actions}</div>
+            ) : (
+              <ChevronRightIcon
+                className="w-4 h-4 text-pkt-grays-gray-400 group-hover:text-pkt-text-body-dark transition-colors"
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Mobile only: Status and value on second row */}
+        <div className="flex flex-col gap-1 pl-4 sm:hidden">
+          {/* Status label on mobile */}
           <span className={clsx(
-            'text-sm truncate',
+            'text-sm',
             isSubsidiary ? 'text-pkt-grays-gray-700' : 'text-pkt-grays-gray-500'
           )}>
             {displayLabel}
           </span>
-          {/* Value summary inline - only show if not already in visningsstatus */}
+          {/* Value summary on mobile - only show if not already in visningsstatus */}
           {valueSummary && !visningsstatus && (
-            <span className="text-sm font-medium text-pkt-text-body-dark ml-2 shrink-0">
+            <span className="text-sm font-medium text-pkt-text-body-dark">
               {valueSummary}
             </span>
           )}
         </div>
 
-        {/* Right side: Actions or chevron */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Desktop only: Right side actions/chevron */}
+        <div className="hidden sm:flex items-center gap-2 shrink-0">
           {actions ? (
             <div className="flex items-center gap-2">{actions}</div>
           ) : (

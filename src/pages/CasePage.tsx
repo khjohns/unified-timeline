@@ -157,10 +157,10 @@ export function CasePage() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-pkt-bg-subtle flex items-center justify-center">
+      <div className="min-h-screen bg-pkt-bg-subtle flex items-center justify-center px-4">
         <div className="text-center">
-          <ReloadIcon className="w-12 h-12 mx-auto mb-4 text-pkt-grays-gray-400 animate-spin" />
-          <p className="text-pkt-grays-gray-500">Laster sak...</p>
+          <ReloadIcon className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 text-pkt-grays-gray-400 animate-spin" />
+          <p className="text-sm sm:text-base text-pkt-grays-gray-500">Laster sak...</p>
         </div>
       </div>
     );
@@ -170,12 +170,12 @@ export function CasePage() {
   if (error) {
     return (
       <div className="min-h-screen bg-pkt-bg-subtle flex items-center justify-center px-4">
-        <div className="max-w-md w-full p-6 sm:p-8 bg-white rounded-lg border border-pkt-grays-gray-200" role="alert">
-          <ExclamationTriangleIcon className="w-12 h-12 mx-auto mb-4 text-pkt-brand-red-1000" />
-          <h2 className="text-xl font-semibold text-pkt-brand-red-1000 mb-4 text-center">
+        <div className="max-w-md w-full p-4 sm:p-8 bg-white rounded-lg border border-pkt-grays-gray-200" role="alert">
+          <ExclamationTriangleIcon className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 text-pkt-brand-red-1000" />
+          <h2 className="text-lg sm:text-xl font-semibold text-pkt-brand-red-1000 mb-3 sm:mb-4 text-center">
             Feil ved lasting av sak
           </h2>
-          <p className="text-pkt-text-body-default mb-4 text-center">{error.message}</p>
+          <p className="text-sm sm:text-base text-pkt-text-body-default mb-4 text-center">{error.message}</p>
           <div className="text-center">
             <Button variant="primary" onClick={() => window.location.reload()}>
               Prøv igjen
@@ -195,15 +195,18 @@ export function CasePage() {
     <div className="min-h-screen bg-pkt-bg-subtle">
       {/* Header - Minimalistisk */}
       <header className="bg-white border-b border-pkt-grays-gray-200">
-        <div className="max-w-3xl mx-auto px-8 py-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-xl font-semibold text-pkt-text-body-dark">
+        <div className="max-w-3xl mx-auto px-4 py-4 sm:px-8 sm:py-6">
+          {/* Mobile: Stacked layout, Desktop: Side-by-side */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+            {/* Title and sak ID */}
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-xl font-semibold text-pkt-text-body-dark">
                 {state.sakstittel}
               </h1>
               <p className="text-sm text-pkt-grays-gray-500 mt-1">Sak #{sakId}</p>
             </div>
-            <div className="flex items-center gap-2">
+            {/* Actions - full width on mobile, auto on desktop */}
+            <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
               <Button
                 variant="ghost"
                 size="sm"
@@ -211,6 +214,7 @@ export function CasePage() {
                 title="Last ned PDF"
               >
                 <DownloadIcon className="w-4 h-4" />
+                <span className="ml-2 sm:hidden">Last ned PDF</span>
               </Button>
               <ModeToggle userRole={userRole} onToggle={setUserRole} />
             </div>
@@ -219,7 +223,7 @@ export function CasePage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-3xl mx-auto px-8 py-8 bg-white min-h-[calc(100vh-88px)]">
+      <main className="max-w-3xl mx-auto px-4 py-6 sm:px-8 sm:py-8 bg-white min-h-[calc(100vh-88px)]">
         {/* Status Dashboard with Contextual Actions */}
         <StatusDashboard
           state={state}
@@ -381,10 +385,10 @@ export function CasePage() {
         />
 
         {/* Timeline Section */}
-        <section className="mt-8" aria-labelledby="timeline-heading">
+        <section className="mt-6 sm:mt-8" aria-labelledby="timeline-heading">
           <h2
             id="timeline-heading"
-            className="text-base font-semibold text-pkt-text-body-dark mb-4"
+            className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4"
           >
             Hendelser
           </h2>
@@ -392,10 +396,10 @@ export function CasePage() {
         </section>
 
         {/* Summary Section - Enhanced with Comprehensive Metadata and Revision History */}
-        <section className="mt-8" aria-labelledby="summary-heading">
+        <section className="mt-6 sm:mt-8" aria-labelledby="summary-heading">
           <h2
             id="summary-heading"
-            className="text-base font-semibold text-pkt-text-body-dark mb-4"
+            className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4"
           >
             Sammendrag
           </h2>
@@ -404,8 +408,8 @@ export function CasePage() {
           <ComprehensiveMetadata state={state} sakId={sakId || ''} />
 
           {/* Revision History */}
-          <div className="mt-6">
-            <h3 className="text-sm font-semibold text-pkt-text-body-dark mb-3">
+          <div className="mt-4 sm:mt-6">
+            <h3 className="text-sm font-semibold text-pkt-text-body-dark mb-2 sm:mb-3">
               Revisjonshistorikk
             </h3>
             <RevisionHistory state={state} />
