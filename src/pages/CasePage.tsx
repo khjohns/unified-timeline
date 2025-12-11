@@ -196,14 +196,17 @@ export function CasePage() {
       {/* Header - Minimalistisk */}
       <header className="bg-white border-b border-pkt-grays-gray-200">
         <div className="max-w-3xl mx-auto px-4 py-4 sm:px-8 sm:py-6">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <h1 className="text-lg sm:text-xl font-semibold text-pkt-text-body-dark truncate">
+          {/* Mobile: Stacked layout, Desktop: Side-by-side */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+            {/* Title and sak ID */}
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-xl font-semibold text-pkt-text-body-dark">
                 {state.sakstittel}
               </h1>
               <p className="text-sm text-pkt-grays-gray-500 mt-1">Sak #{sakId}</p>
             </div>
-            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+            {/* Actions - full width on mobile, auto on desktop */}
+            <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
               <Button
                 variant="ghost"
                 size="sm"
@@ -211,6 +214,7 @@ export function CasePage() {
                 title="Last ned PDF"
               >
                 <DownloadIcon className="w-4 h-4" />
+                <span className="ml-2 sm:hidden">Last ned PDF</span>
               </Button>
               <ModeToggle userRole={userRole} onToggle={setUserRole} />
             </div>

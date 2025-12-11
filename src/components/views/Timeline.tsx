@@ -307,12 +307,12 @@ export function Timeline({ events }: TimelineProps) {
                       {formatDateMinimal(event.tidsstempel)}
                     </span>
 
-                    {/* Spor tag - shortened on mobile */}
+                    {/* Spor tag */}
                     {event.spor && (
                       <span
                         className={`text-xs font-medium px-1.5 py-0.5 rounded shrink-0 ${getSporTagStyles(event.spor)}`}
                       >
-                        {event.spor === 'grunnlag' ? 'Grunnlag' : getSporLabel(event.spor)}
+                        {getSporLabel(event.spor)}
                       </span>
                     )}
 
