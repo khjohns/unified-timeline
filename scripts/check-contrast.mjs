@@ -80,7 +80,7 @@ const darkColors = {
   'surface-faded-red': '#3a2a2a',
   'surface-light-blue': '#1a3a5a',
   'surface-light-green': '#1a4a3a',
-  'surface-yellow': '#3d3520',  // Updated to warmer amber
+  'surface-yellow': '#302818',  // Deep amber - cleaner than brown
 
   // Brand colors (dark mode adjusted)
   'brand-dark-blue-1000': '#8ab4ff',
@@ -88,7 +88,9 @@ const darkColors = {
   'brand-warm-blue-1000': '#6a9aff',
   'brand-neutrals-1000': '#e8e8f0',
   'brand-red-1000': '#ff6b6b',
-  'brand-yellow-1000': '#f9c66b',
+  'brand-yellow-500': '#302818',  // Warning alert background
+  'brand-yellow-1000': '#fbbf24',  // Golden amber accent
+  'brand-light-green-400': '#1a3a2a',  // Success alert background
 };
 
 // Define color combinations to test
@@ -113,6 +115,10 @@ const combinations = [
   { name: 'Warning: neutrals text on yellow surface', fg: 'brand-neutrals-1000', bg: 'surface-yellow', type: 'normal' },
   { name: 'Frist tag: dark text on yellow surface', fg: 'text-body-dark', bg: 'surface-yellow', type: 'normal' },
   { name: 'Danger: red text on red surface', fg: 'brand-red-1000', bg: 'surface-faded-red', type: 'normal' },
+
+  // Alert component combinations
+  { name: 'Warning Alert: blue text on yellow-500', fg: 'brand-dark-blue-1000', bg: 'brand-yellow-500', type: 'normal' },
+  { name: 'Success Alert: green text on green-400', fg: 'brand-dark-green-1000', bg: 'brand-light-green-400', type: 'normal' },
 
   // Borders/UI components (need 3:1)
   { name: 'Gray-300 border on card bg', fg: 'grays-gray-300', bg: 'bg-card', type: 'ui' },
