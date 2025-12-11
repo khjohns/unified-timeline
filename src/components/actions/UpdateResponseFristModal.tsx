@@ -164,18 +164,18 @@ export function UpdateResponseFristModal({
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* DRAMATIC FORSERING WARNING */}
         {erForseringVarslet && (
-          <div className="bg-red-50 p-4 border-l-4 border-red-600 rounded">
-            <h4 className="text-red-800 font-bold flex items-center gap-2">
+          <div className="bg-pkt-surface-faded-red p-4 border-l-4 border-pkt-border-red rounded">
+            <h4 className="text-pkt-brand-red-1000 font-bold flex items-center gap-2">
               <span className="text-xl">!</span>
               FORSERING VARSLET
             </h4>
-            <p className="text-sm text-red-700 mt-2">
+            <p className="text-sm text-pkt-brand-red-1000 mt-2">
               Entreprenøren har iverksatt forsering med en estimert kostnad på:
             </p>
-            <div className="text-3xl font-mono font-bold text-red-800 my-3">
+            <div className="text-3xl font-mono font-bold text-pkt-brand-red-1000 my-3">
               kr {forseringsKostnad.toLocaleString('nb-NO')},-
             </div>
-            <p className="text-sm text-red-700">
+            <p className="text-sm text-pkt-brand-red-1000">
               Hvis du godkjenner fristforlengelsen nå, <strong>faller plikten til å forsere bort</strong>.
               Du betaler da kun evt. påløpt kostnad frem til nå, men slipper resten.
             </p>
@@ -184,15 +184,15 @@ export function UpdateResponseFristModal({
 
         {/* Normal state display */}
         {!erForseringVarslet && (
-          <div className="bg-gray-50 p-4 rounded border border-gray-200">
+          <div className="bg-pkt-bg-subtle p-4 rounded border border-pkt-grays-gray-200">
             <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-600">Nåværende svar:</span>
+              <span className="text-sm text-pkt-grays-gray-600">Nåværende svar:</span>
               <Badge variant={lastResponseEvent.resultat === 'avslatt' ? 'danger' : 'success'}>
                 {RESULTAT_LABELS[lastResponseEvent.resultat]}
               </Badge>
             </div>
             {lastResponseEvent.godkjent_dager !== undefined && (
-              <p className="text-sm text-gray-600 mt-2">
+              <p className="text-sm text-pkt-grays-gray-600 mt-2">
                 Godkjent: {lastResponseEvent.godkjent_dager} dager av {krevdDager}
               </p>
             )}
@@ -228,7 +228,7 @@ export function UpdateResponseFristModal({
 
         {/* Partial approval input */}
         {nyttResultat === 'delvis_godkjent' && (
-          <div className="ml-6 p-4 bg-gray-100 rounded animate-in fade-in duration-200">
+          <div className="ml-6 p-4 bg-pkt-grays-gray-100 rounded animate-in fade-in duration-200">
             <FormField label="Antall dager du godkjenner">
               <Controller
                 name="ny_godkjent_dager"

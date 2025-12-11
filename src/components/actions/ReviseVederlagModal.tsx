@@ -154,24 +154,24 @@ export function ReviseVederlagModal({
         {/* Revision info header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">Nåværende:</span>
+            <span className="text-sm text-pkt-grays-gray-600">Nåværende:</span>
             <RevisionTag version={currentVersion} size="sm" />
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">Oppretter:</span>
+            <span className="text-sm text-pkt-grays-gray-600">Oppretter:</span>
             <RevisionTag version={nextVersion} size="sm" />
           </div>
         </div>
 
         {/* Current state */}
-        <div className="bg-gray-50 p-4 rounded border border-gray-200">
+        <div className="bg-pkt-bg-subtle p-4 rounded border border-pkt-grays-gray-200">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-sm text-gray-600">Metode:</p>
+              <p className="text-sm text-pkt-grays-gray-600">Metode:</p>
               <Badge variant="neutral">{METODE_LABELS[lastVederlagEvent.metode]}</Badge>
             </div>
             <div className="text-right">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-pkt-grays-gray-600">
                 {erRegningsarbeid ? 'Nåværende overslag:' : 'Nåværende krav:'}
               </p>
               <p className="text-2xl font-bold">
@@ -214,9 +214,9 @@ export function ReviseVederlagModal({
 
         {/* Change display */}
         {belopEndring !== null && belopEndring !== 0 && gjeldendeBelop && (
-          <div className={`p-3 rounded border ${belopEndring > 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+          <div className={`p-3 rounded border ${belopEndring > 0 ? 'bg-pkt-surface-faded-red border-pkt-border-red' : 'bg-pkt-surface-faded-green border-pkt-border-green'}`}>
             <p className="text-sm">
-              Endring: <strong className={belopEndring > 0 ? 'text-red-700' : 'text-green-700'}>
+              Endring: <strong className={belopEndring > 0 ? 'text-pkt-brand-red-1000' : 'text-pkt-brand-dark-green-1000'}>
                 {belopEndring > 0 ? '+' : ''}{belopEndring.toLocaleString('nb-NO')} kr
               </strong>
               {' '}

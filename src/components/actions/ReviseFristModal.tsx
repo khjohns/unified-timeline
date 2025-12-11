@@ -156,15 +156,15 @@ export function ReviseFristModal({
         )}
 
         {/* Status box */}
-        <div className="bg-gray-50 p-4 rounded border border-gray-200">
+        <div className="bg-pkt-bg-subtle p-4 rounded border border-pkt-grays-gray-200">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-sm text-gray-600">Ditt opprinnelige krav:</p>
+              <p className="text-sm text-pkt-grays-gray-600">Ditt opprinnelige krav:</p>
               <p className="text-2xl font-bold">{lastFristEvent.antall_dager} dager</p>
             </div>
             {lastResponseEvent && (
               <div className="text-right">
-                <p className="text-sm text-gray-600">BHs svar:</p>
+                <p className="text-sm text-pkt-grays-gray-600">BHs svar:</p>
                 <Badge variant={erAvslag ? 'danger' : 'success'}>
                   {RESULTAT_LABELS[lastResponseEvent.resultat]}
                 </Badge>
@@ -180,7 +180,7 @@ export function ReviseFristModal({
 
         {/* Forsering option - only show if BH rejected/partially approved */}
         {erAvslag && (
-          <div className="border-l-4 border-red-500 pl-4 py-3 bg-red-50 rounded">
+          <div className="border-l-4 border-pkt-border-red pl-4 py-3 bg-pkt-surface-faded-red rounded">
             <Controller
               name="iverksett_forsering"
               control={control}
@@ -193,7 +193,7 @@ export function ReviseFristModal({
                 />
               )}
             />
-            <p className="text-sm text-gray-600 mt-2 ml-6">
+            <p className="text-sm text-pkt-grays-gray-600 mt-2 ml-6">
               Du velger å anse avslaget som et pålegg om forsering. Du opprettholder
               fristkravet, men setter inn tiltak for å nå opprinnelig frist.
             </p>
@@ -258,7 +258,7 @@ export function ReviseFristModal({
               />
             </FormField>
 
-            <div className="bg-yellow-50 p-4 rounded border border-yellow-200">
+            <div className="bg-pkt-surface-yellow p-4 rounded border border-pkt-border-yellow">
               <Controller
                 name="bekreft_30_prosent"
                 control={control}
@@ -272,7 +272,7 @@ export function ReviseFristModal({
                 )}
               />
               {!bekreft30Prosent && (
-                <p className="text-xs text-red-600 mt-2 ml-6">
+                <p className="text-xs text-pkt-brand-red-1000 mt-2 ml-6">
                   Hvis kostnaden er høyere, har du ikke valgrett og må avvente instruks.
                 </p>
               )}
