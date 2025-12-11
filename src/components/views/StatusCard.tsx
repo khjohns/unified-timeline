@@ -201,16 +201,14 @@ export function StatusCard({
             )}
           </div>
 
-          {/* Actions/chevron - shown on right side for mobile top row */}
-          <div className="flex items-center gap-2 shrink-0 sm:hidden">
-            {actions ? (
-              <div className="flex items-center gap-2">{actions}</div>
-            ) : (
+          {/* Chevron on mobile (only when no actions) */}
+          {!actions && (
+            <div className="flex items-center shrink-0 sm:hidden">
               <ChevronRightIcon
                 className="w-4 h-4 text-pkt-grays-gray-400 group-hover:text-pkt-text-body-dark transition-colors"
               />
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Mobile only: Status and value on second row */}
@@ -229,6 +227,13 @@ export function StatusCard({
             </span>
           )}
         </div>
+
+        {/* Mobile only: Actions at bottom (full width for better touch targets) */}
+        {actions && (
+          <div className="flex items-center gap-2 pl-4 pt-1 sm:hidden">
+            {actions}
+          </div>
+        )}
 
         {/* Desktop only: Right side actions/chevron */}
         <div className="hidden sm:flex items-center gap-2 shrink-0">
