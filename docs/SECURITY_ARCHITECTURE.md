@@ -189,8 +189,8 @@ Produksjonsarkitekturen bygger på **Defense in Depth** med flere sikkerhetslag.
 
 | Gap | Nåværende | Produksjon |
 |-----|-----------|------------|
-| Token-lagring | Plaintext JSON-filer | Database med kryptering |
-| Magic Link TTL | 72 timer, gjenbrukbar | 24 timer, single-use |
+| Token-lagring | Plaintext JSON-filer | Azure Key Vault |
+| Magic Link TTL | 72 timer, gjenbrukbar | 24/72 timer, gjenbrukbar |
 | CSRF Secret | Dev default hvis ikke satt | Påkrevd env-variabel |
 | Rate Limiting | In-memory | Redis-backend |
 | Fil-låsing | fcntl (kun Unix) | Database-transaksjoner |
@@ -204,7 +204,7 @@ Produksjonsarkitekturen bygger på **Defense in Depth** med flere sikkerhetslag.
 |-----|-----------|------------|
 | Logging | Lokal fil | Application Insights |
 | Secrets | Env-variabler (plaintext) | Azure Key Vault |
-| Autentisering | Kun Magic Link | + Entra ID SSO + MFA |
+| Autentisering | Catenda + Magic Link | + Entra ID SSO + MFA |
 | Kryptering | Ingen | AES-256 at rest |
 | RLS | Applikasjonsnivå | Dataverse RLS |
 
