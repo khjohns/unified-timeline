@@ -15,16 +15,16 @@ export function ExampleCasesPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-oslo-beige-100">
+    <div className="min-h-screen bg-pkt-bg-default">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b-2 border-oslo-blue">
+      <header className="bg-pkt-bg-card shadow-sm border-b-2 border-oslo-blue">
         <div className="max-w-7xl mx-auto px-6 py-5">
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <h1 className="text-heading-lg font-bold text-oslo-blue">
                 Eksempler - Endringsmeldinger
               </h1>
-              <p className="mt-2 text-body-md text-gray-600">
+              <p className="mt-2 text-body-md text-pkt-grays-gray-600">
                 {USE_MOCK_API
                   ? 'Velg en eksempelsak for å se Event Sourcing-arkitekturen i aksjon'
                   : 'Mock API er deaktivert - koble til backend for ekte data'}
@@ -45,10 +45,10 @@ export function ExampleCasesPage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">
         {!USE_MOCK_API && (
-          <div className="mb-6 p-4 bg-warning-100 border border-warning-500 rounded-none">
-            <p className="text-sm text-warning-700">
+          <div className="mb-6 p-4 bg-pkt-brand-yellow-500 border border-pkt-brand-yellow-1000 rounded-none">
+            <p className="text-sm text-pkt-text-body-dark">
               <strong>Merk:</strong> Mock API er deaktivert. Sett{' '}
-              <code className="bg-white px-2 py-1 rounded">VITE_USE_MOCK_API=true</code> i .env
+              <code className="bg-pkt-bg-subtle px-2 py-1 rounded">VITE_USE_MOCK_API=true</code> i .env
               filen for å bruke eksempeldata.
             </p>
           </div>
@@ -61,17 +61,17 @@ export function ExampleCasesPage() {
                 <h2 className="text-heading-md font-bold text-oslo-blue mb-3">
                   {mockCase.id}
                 </h2>
-                <p className="text-body-md text-gray-700 mb-4 flex-1">
+                <p className="text-body-md text-pkt-grays-gray-700 mb-4 flex-1">
                   {mockCase.title}
                 </p>
                 <div className="mb-4">
                   <span
                     className={`inline-block px-3 py-2 rounded-none text-sm font-medium ${
                       mockCase.status === 'Klar for EO'
-                        ? 'bg-success-100 text-success-700'
+                        ? 'bg-pkt-surface-light-green text-pkt-brand-dark-green-1000'
                         : mockCase.status === 'Under behandling'
-                        ? 'bg-warning-100 text-warning-700'
-                        : 'bg-gray-100 text-gray-700'
+                        ? 'bg-pkt-surface-yellow text-pkt-text-body-dark'
+                        : 'bg-pkt-grays-gray-100 text-pkt-grays-gray-700'
                     }`}
                   >
                     {mockCase.status}
@@ -95,7 +95,7 @@ export function ExampleCasesPage() {
             <h3 className="text-heading-sm font-bold text-oslo-blue mb-4">
               Om eksempelsakene
             </h3>
-            <div className="space-y-3 text-body-md text-gray-700">
+            <div className="space-y-3 text-body-md text-pkt-grays-gray-700">
               <p>
                 <strong>SAK-2025-001:</strong> Demonstrerer et aktivt krav med grunnlag godkjent,
                 vederlag under behandling, og delvis godkjent frist. Viser kompleks
@@ -116,10 +116,10 @@ export function ExampleCasesPage() {
         {/* Technical Info */}
         <div className="mt-6">
           <Card variant="default" padding="md">
-            <h4 className="text-sm font-semibold text-gray-700 mb-3">
+            <h4 className="text-sm font-semibold text-pkt-grays-gray-700 mb-3">
               Teknisk informasjon
             </h4>
-            <ul className="text-sm text-gray-600 space-y-2">
+            <ul className="text-sm text-pkt-grays-gray-600 space-y-2">
               <li>
                 • <strong>Mock Mode:</strong> {USE_MOCK_API ? 'Aktivert' : 'Deaktivert'}
               </li>
