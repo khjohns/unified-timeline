@@ -25,17 +25,20 @@
 
 Dette dokumentet sammenligner to teknologitilnærminger for håndtering av endringsmeldinger i byggeprosjekter etter NS 8407:
 
-| Aspekt | Custom-løsning | Power Platform |
-|--------|----------------|----------------|
-| **Teknologi** | React/TypeScript + Python/Flask + Dataverse | Power Apps + Power Automate + Dataverse |
-| **Arkitektur** | Event Sourcing med CQRS | CRUD-basert med audit trail |
+| Aspekt | Custom-løsning | Power Platform (foreslått) |
+|--------|----------------|----------------------------|
+| **Teknologi** | React/TypeScript + Python/Flask + Dataverse | Power Apps + Power Automate + SharePoint |
+| **Arkitektur** | Event Sourcing med CQRS | CRUD-basert med SharePoint-lister |
 | **Utviklingsmodell** | Kode-først | Low-code/No-code |
-| **Kompleksitetshåndtering** | Full fleksibilitet | Begrensninger ved høy kompleksitet |
+| **Kompleksitetshåndtering** | Full fleksibilitet | Betydelige begrensninger |
 
 **Hovedfunn:**
 - Custom-løsningen er implementert med event sourcing, subsidiær logikk og kompleks port-modell som følger NS 8407 nøyaktig
-- Power Platform kan håndtere enklere versjoner av funksjonaliteten, men har arkitektoniske begrensninger for de mest komplekse delene
+- Power Platform med SharePoint har strengere begrensninger enn med Dataverse (som ikke er i bruk i dag)
+- SharePoint-basert løsning vil møte utfordringer med delegation limits (500 rader), relasjonell data og kompleks forretningslogikk
 - Valget avhenger av prioritering mellom: full funksjonalitet vs. intern kompetanseutnyttelse
+
+**Merknad om Dataverse:** Dokumentet diskuterer også Dataverse som et potensielt alternativ til SharePoint dersom Power Platform velges. Dataverse er ikke i bruk i dag, men ville redusere noen av SharePoint-begrensningene.
 
 ---
 
@@ -108,17 +111,17 @@ Gi et objektivt beslutningsgrunnlag for teknologivalg ved å:
 - Subsidiær logikk (prinsipal + alternativ vurdering)
 - ~20 varslingsregler med preklusjonslogikk fra NS 8407
 
-### 3.2 Power Platform-alternativ (hypotetisk)
+### 3.2 Power Platform-alternativ (foreslått: SharePoint)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                      Power Apps                                  │
-│              Canvas App eller Model-Driven App                  │
+│                      Canvas App                                  │
 │                                                                 │
 │    ┌─────────────────────────────────────────────────────────┐  │
-│    │  Skjemaer med forretningsregler                         │  │
-│    │  • Dataverse Business Rules                             │  │
-│    │  • Power Fx formler                                     │  │
+│    │  Skjemaer med Power Fx                                  │  │
+│    │  • Ingen native business rules (SharePoint)             │  │
+│    │  • Delegation limit: 500 rader                          │  │
 │    └─────────────────────────────────────────────────────────┘  │
 └─────────────────────────────┬───────────────────────────────────┘
                               │
@@ -129,24 +132,39 @@ Gi et objektivt beslutningsgrunnlag for teknologivalg ved å:
 │    │  Arbeidsflyter                                          │  │
 │    │  • Godkjenningsflyter                                   │  │
 │    │  • Varsler og notifikasjoner                            │  │
-│    │  • Integrasjoner (custom connectors)                    │  │
+│    │  • Integrasjoner (custom connectors = premium)          │  │
 │    └─────────────────────────────────────────────────────────┘  │
 └─────────────────────────────┬───────────────────────────────────┘
                               │
               ┌───────────────┼───────────────┐
               ▼               ▼               ▼
       ┌─────────────┐  ┌─────────────┐  ┌─────────────┐
-      │  Dataverse  │  │   Custom    │  │  Entra ID   │
-      │   Tabeller  │  │  Connector  │  │ / External  │
+      │ SharePoint  │  │   Custom    │  │  Entra ID   │
+      │   Lister    │  │  Connector  │  │ / External  │
       │             │  │  (Catenda)  │  │     ID      │
       └─────────────┘  └─────────────┘  └─────────────┘
 ```
 
-**Nøkkelegenskaper:**
+**Nøkkelegenskaper (SharePoint-variant):**
 - Low-code utvikling med visuell designer
-- Innebygd Dataverse-audit trail (ikke event sourcing)
+- SharePoint-lister som datalager (standard connector)
 - Godkjenningsflyter med sekvensielle/parallelle trinn
-- Premium-lisens kreves for Dataverse og custom connectors
+- Premium-lisens kreves for custom connectors (Catenda)
+
+**SharePoint vs. Dataverse:**
+
+| Aspekt | SharePoint (foreslått) | Dataverse (alternativ) |
+|--------|------------------------|------------------------|
+| **Delegation limit** | 500 rader (fast) | 500-2000 (konfigurerbart) |
+| **Business rules** | Ingen | Innebygd |
+| **Relasjoner** | Lookup-kolonner (begrenset) | Ekte relasjoner med integritet |
+| **Transaksjoner** | Nei | Ja |
+| **Row-level security** | Begrenset | Robust |
+| **Audit trail** | Versjonhistorikk | Komplett endringssporing |
+| **Lisensiering** | Inkludert i M365 | Premium-lisens påkrevd |
+| **Erfaring i org** | ✅ Eksisterende | ❌ Ikke i bruk |
+
+**Vurdering:** Hvis Power Platform velges, bør Dataverse vurderes fremfor SharePoint for å redusere tekniske begrensninger. Dette krever imidlertid Premium-lisensiering og kompetansebygging.
 
 ---
 
@@ -343,57 +361,75 @@ Custom-løsningen har en **ferdig utviklet, testet og validert** Catenda-integra
 
 #### JSON-håndtering
 
-| Aspekt | Custom | Power Platform |
-|--------|--------|----------------|
-| Event-data | JSON-payload per event | Multiline Text + ParseJSON |
-| Native JSON-kolonne | ✅ (Dataverse/Azure) | ❌ Ikke støttet (2025) |
-| Nested objekter | ✅ Full støtte | ⚠️ Må flates ut eller serialiseres |
+| Aspekt | Custom | SharePoint | Dataverse |
+|--------|--------|------------|-----------|
+| Event-data | JSON-payload per event | Multiline Text | Multiline Text + ParseJSON |
+| Native JSON-kolonne | ✅ (Azure) | ❌ Nei | ❌ Nei |
+| Nested objekter | ✅ Full støtte | ❌ Må flates helt ut | ⚠️ Må serialiseres |
 
-**Vurdering:** Custom-løsningen lagrer komplekse event-payloads som JSON. Power Platform må enten:
-- Serialisere til Multiline Text og parse ved lesing
-- Opprette separate tabeller/kolonner for alle felter (denormalisering)
+**Vurdering:** Custom-løsningen lagrer komplekse event-payloads som JSON. SharePoint-basert løsning må:
+- Opprette separate kolonner for hvert felt (SharePoint har maks ~400 kolonner per liste)
+- Bruke flere lister med lookup-relasjoner (kompliserer queries)
+- Miste muligheten for nested data uten betydelig workaround
 
 #### Delegering og ytelse
 
-| Aspekt | Custom | Power Platform |
-|--------|--------|----------------|
-| Maks poster per query | Ubegrenset | 500-2000 (delegation limit) |
-| Store datasett | Azure skalering | Krever delegerbare queries |
-| Aggregering | Backend-beregning | 50 000 rader maks |
+| Aspekt | Custom | SharePoint | Dataverse |
+|--------|--------|------------|-----------|
+| Maks poster per query | Ubegrenset | **500 (fast grense)** | 500-2000 (konfigurerbart) |
+| Listevisningsterskel | N/A | **5 000 elementer** | Ingen |
+| Store datasett | Azure skalering | ❌ Alvorlig begrensning | ⚠️ Krever delegerbare queries |
+| Aggregering | Backend-beregning | Meget begrenset | 50 000 rader maks |
+| Indeksering | Full kontroll | Maks 20 indekserte kolonner | Automatisk |
 
-**Estimert volum:** ~1 000 saker/år × 10-15 events/sak = 10 000-15 000 events/år
+**Estimert volum:** ~1 000 saker/år × 10-15 events/sak = **10 000-15 000 events/år**
 
-**Vurdering:** Ved estimert volum (10 000+ events/år) vil delegation limits i Power Apps kunne påvirke:
-- Sakliste-visning (må filtreres/pagineres)
-- Søk på tvers av alle saker
-- Aggregerte rapporter
+**Kritisk vurdering for SharePoint:**
+- Med 500 raders delegation limit vil sakliste **ikke kunne vise mer enn 500 saker** uten workarounds
+- SharePoints listevisningsterskel på 5 000 elementer vil nås innen 1-2 år
+- Søk på tvers av alle saker blir umulig uten ekstra filtrering
+- **Dette er en fundamental arkitektonisk begrensning** som ikke kan løses med kode
 
-Dataverse delegerer bedre enn SharePoint, men grensene eksisterer fortsatt.
+**Hvis Dataverse velges i stedet:**
+- 2000 raders grense er håndterbart med god filtrering
+- Ingen listevisningsterskel
+- Bedre ytelse på store datasett
 
 ### 5.3 Skalerbarhet
 
-| Aspekt | Custom | Power Platform |
-|--------|--------|----------------|
-| **Horisontal skalering** | Azure Functions autoscaling | Ikke relevant (SaaS) |
-| **Database** | Dataverse/Azure SQL | Dataverse |
-| **API-kall** | Ubegrenset (egen backend) | 2 000-50 000/dag avhengig av lisens |
-| **Flow-begrensninger** | N/A | 500 actions per flow |
+| Aspekt | Custom | SharePoint | Dataverse |
+|--------|--------|------------|-----------|
+| **Horisontal skalering** | Azure Functions autoscaling | Microsoft-håndtert | Microsoft-håndtert |
+| **Datalagringsgrense** | Ubegrenset (Azure) | Begrenset per site | Kapasitetsbasert |
+| **API-kall** | Ubegrenset (egen backend) | Throttling-grenser | 2 000-50 000/dag |
+| **Listeterskel** | N/A | **5 000 elementer** | Ingen |
+| **Flow-begrensninger** | N/A | 500 actions per flow | 500 actions per flow |
 
-**Power Automate-begrensninger:**
+**Power Automate-begrensninger (gjelder begge):**
 - Maks 500 actions per flow
 - Flyter som throttles 14 dager sammenhengende blir automatisk slått av
-- Connector-spesifikke grenser (f.eks. SharePoint: 600 kall/min)
+- SharePoint connector: 600 kall/min
+
+**SharePoint-spesifikke begrensninger:**
+- Listevisningsterskel: 5 000 elementer før ytelsen degraderer kraftig
+- Ingen transaksjonsstøtte (kan ikke rulle tilbake flere operasjoner)
+- Lookup-kolonner: maks 12 per liste
+- Beregnet kolonne-begrensninger
 
 ### 5.4 Sikkerhet og tilgangskontroll
 
-| Aspekt | Custom | Power Platform |
-|--------|--------|----------------|
-| **Autentisering** | Entra ID + Magic Links | Entra ID + External ID/B2C |
-| **Autorisasjon** | Rolle-basert (TE/BH) i kode | Dataverse Security Roles |
-| **Felt-nivå tilgang** | Implementert i backend | Field Security Profiles |
-| **Row-Level Security** | Planlagt (Dataverse) | ✅ Innebygd |
+| Aspekt | Custom | SharePoint | Dataverse |
+|--------|--------|------------|-----------|
+| **Autentisering** | Entra ID + Magic Links | Entra ID | Entra ID + External ID/B2C |
+| **Autorisasjon** | Rolle-basert (TE/BH) i kode | SharePoint-grupper | Security Roles |
+| **Felt-nivå tilgang** | Implementert i backend | ❌ Ikke støttet | Field Security Profiles |
+| **Row-Level Security** | Planlagt (Dataverse) | Begrenset (item permissions) | ✅ Robust |
+| **Eksterne brukere** | Magic links (fleksibelt) | Gjestetilgang | External ID/B2C |
 
-**Vurdering:** Power Platform har modne sikkerhetsfunksjoner via Dataverse. Custom-løsningen implementerer tilsvarende i applikasjonskode, noe som gir mer fleksibilitet men også mer vedlikeholdsansvar.
+**Vurdering:**
+- SharePoint mangler felt-nivå sikkerhet, noe som er problematisk når TE ikke skal se BH-felter og vice versa
+- SharePoint item-level permissions skalerer dårlig (anbefalt maks ~5 000 unike permissions)
+- Dataverse har langt mer robuste sikkerhetsfunksjoner, men krever Premium-lisens
 
 ---
 
@@ -401,13 +437,13 @@ Dataverse delegerer bedre enn SharePoint, men grensene eksisterer fortsatt.
 
 ### 6.1 Utviklingskompetanse
 
-| Kompetanse | Custom | Power Platform |
-|------------|--------|----------------|
-| **Primært språk** | TypeScript, Python | Power Fx, konfigurering |
-| **Frontend** | React-erfaring | Canvas App designer |
-| **Backend** | Python/Node.js | Power Automate, (C# plugins) |
-| **Database** | SQL/Dataverse | Dataverse |
-| **Læringskurve** | Bratt for low-code erfarne | Bratt for kompleks logikk |
+| Kompetanse | Custom | Power Platform (SharePoint) | Power Platform (Dataverse) |
+|------------|--------|----------------------------|---------------------------|
+| **Primært språk** | TypeScript, Python | Power Fx | Power Fx + evt. C# |
+| **Frontend** | React-erfaring | Canvas App designer | Canvas/Model-driven |
+| **Backend** | Python/Node.js | Power Automate | Power Automate + plugins |
+| **Database** | SQL/Dataverse | SharePoint-lister | Dataverse-tabeller |
+| **Læringskurve** | Bratt for low-code erfarne | Kjent for org | Ny for org |
 
 ### 6.2 Vedlikeholdskompetanse
 
@@ -486,17 +522,26 @@ Vanskelig å estimere uten mer data. Faktorer:
 | Skaleringsutfordringer | Lav | Middels | Azure autoscaling |
 | Sikkerhetshull | Lav | Høy | Security review, WAF |
 
-### 8.2 Power Platform
+### 8.2 Power Platform (SharePoint-variant)
 
-| Risiko | Sannsynlighet | Konsekvens | Konsekvens |
+| Risiko | Sannsynlighet | Konsekvens | Mitigering |
 |--------|---------------|------------|------------|
-| Funksjonelle begrensninger | Høy | Høy | Forenkling eller C# plugins |
-| Delegation limits | Middels | Middels | Arkitektur-tilpasning |
-| Lisenskostnad-økning | Middels | Middels | Langsiktig avtale |
-| Leverandøravhengighet | Lav | Lav | Microsoft er stabil |
+| **Delegation limit (500 rader)** | **Høy** | **Høy** | Bytte til Dataverse |
+| **Listeterskel (5 000 elementer)** | **Høy** | **Høy** | Arkivering/splitting av lister |
+| Manglende felt-sikkerhet | Høy | Middels | Separate lister per rolle |
+| Funksjonelle begrensninger | Høy | Høy | Forenkling av scope |
 | Custom connector-vedlikehold | Middels | Middels | Intern kompetanse |
 
-### 8.3 Juridisk risiko (begge)
+### 8.3 Power Platform (Dataverse-alternativ)
+
+| Risiko | Sannsynlighet | Konsekvens | Mitigering |
+|--------|---------------|------------|------------|
+| Manglende kompetanse | Høy | Middels | Opplæring, konsulentbistand |
+| Delegation limits (2000) | Middels | Middels | God filtrering |
+| Premium-lisenskostnad | Middels | Middels | Budsjettplanlegging |
+| Subsidiær logikk i C# | Høy | Høy | Forenkle eller ekstern bistand |
+
+### 8.4 Juridisk risiko (begge)
 
 Feil i preklusjonslogikk eller subsidiær vurdering kan ha økonomiske konsekvenser. Dette gjelder uavhengig av teknologivalg, men:
 - Custom-løsningen har implementert logikken eksplisitt
@@ -510,13 +555,23 @@ Følgende punkter bør avklares før endelig beslutning:
 
 ### 9.1 Power Platform-spesifikke
 
+#### SharePoint-variant (foreslått)
+
 | Tema | Spørsmål | Hvorfor viktig |
 |------|----------|----------------|
-| **Dataverse-kapasitet** | Hvilken kapasitet er inkludert i eksisterende lisenser? | Påvirker kostnad |
-| **Catenda connector** | Det finnes ingen standard connector - må bygges fra scratch (2 400+ linjer i custom-løsningen) | Betydelig utviklingsarbeid |
+| **500-raders grense** | Hvordan skal sakliste fungere med >500 saker? | Fundamental begrensning |
+| **5 000-elementers terskel** | Når nås denne grensen? Hva er planen da? | Ytelse og arkitektur |
+| **Felt-sikkerhet** | Hvordan skille TE/BH-felter uten felt-nivå sikkerhet? | Sikkerhetskrav |
+| **Catenda connector** | Må bygges fra scratch (2 400+ linjer i custom-løsningen) | Betydelig utviklingsarbeid |
+
+#### Dataverse-alternativ
+
+| Tema | Spørsmål | Hvorfor viktig |
+|------|----------|----------------|
+| **Premium-lisensiering** | Hva koster Dataverse-kapasitet for estimert brukervolum? | Budsjettering |
+| **Kompetansebygging** | Hvor lang tid tar det å bygge Dataverse-kompetanse? | Prosjekttidsplan |
+| **Plugin-kompetanse** | Finnes intern kompetanse på Dataverse C# plugins? | Subsidiær logikk |
 | **External ID** | Er External ID i produksjon for Power Pages per i dag? | Var i preview feb 2025 |
-| **Plugin-kompetanse** | Finnes intern eller tilgjengelig kompetanse på Dataverse C# plugins? | Subsidiær logikk |
-| **Delegation i praksis** | Hvordan håndtere 10 000+ events med delegation limits? | Arkitekturvalg |
 
 ### 9.2 Custom-løsning-spesifikke
 
@@ -544,45 +599,64 @@ Følgende punkter bør avklares før endelig beslutning:
 **Custom-løsningen:**
 - ✅ Implementerer full NS 8407-logikk inkludert subsidiær vurdering
 - ✅ Event Sourcing gir komplett audit trail og replay-mulighet
-- ✅ Catenda-integrasjon er på plass
+- ✅ Catenda-integrasjon er ferdig utviklet (2 400+ linjer)
+- ✅ Ingen volumbegrensninger
 - ⚠️ Krever vedlikeholdskompetanse på TypeScript/Python
 - ⚠️ Avhengighet av spesifikk teknologikompetanse
 
-**Power Platform-alternativ:**
+**Power Platform + SharePoint (foreslått):**
 - ✅ Utnytter eksisterende organisatorisk kompetanse
-- ✅ Raskere å gjøre enkle endringer
-- ✅ Integrert i Microsoft 365-økosystemet
-- ⚠️ Subsidiær logikk vil kreve custom C# utvikling
-- ⚠️ Delegation limits kan påvirke store datasett
-- ⚠️ Premium-lisensiering for Catenda-integrasjon
+- ✅ Ingen ekstra lisensiering (inkludert i M365)
+- ❌ **500 raders delegation limit** - kritisk ved 1000+ saker/år
+- ❌ **5 000 elementers listeterskel** - nås innen 1-2 år
+- ❌ Ingen felt-nivå sikkerhet (TE/BH-separasjon problematisk)
+- ❌ Catenda-integrasjon må bygges fra scratch
+- ⚠️ Subsidiær logikk kan ikke implementeres
+
+**Power Platform + Dataverse (alternativ):**
+- ✅ Bedre skalerbarhet enn SharePoint (2000 raders grense)
+- ✅ Felt-nivå sikkerhet og robuste relasjoner
+- ✅ Strategisk plattform for fremtidig datavarehus
+- ⚠️ Krever Premium-lisensiering
+- ⚠️ Ingen eksisterende kompetanse i organisasjonen
+- ⚠️ Subsidiær logikk krever C# plugin-utvikling
+- ⚠️ Catenda-integrasjon må fortsatt bygges
 
 ### 10.2 Scenariobasert vurdering
 
-| Scenario | Anbefalt tilnærming | Begrunnelse |
-|----------|---------------------|-------------|
-| Full NS 8407-støtte er kritisk | Custom-løsning | Subsidiær logikk og port-modell er implementert |
-| Subsidiær logikk kan forenkles/fjernes | Begge er mulige | Power Platform kan håndtere enklere logikk |
-| Minimal ekstern kompetanseavhengighet | Power Platform (med forenklet scope) | Utnytter intern kompetanse |
-| Tett Catenda-integrasjon er essensielt | Custom-løsning | 2 400+ linjer ferdig utviklet, testet og validert |
-| Rask tid til produksjon | Custom-løsning | Allerede implementert vs. bygge fra scratch |
-| Fremtidig datavarehus-integrasjon | Begge bruker Dataverse | Likeverdige på dette punktet |
+| Scenario | Custom | SharePoint | Dataverse |
+|----------|--------|------------|-----------|
+| Full NS 8407-støtte | ✅ Anbefalt | ❌ Ikke mulig | ⚠️ Krever plugins |
+| Volum >500 saker | ✅ Ingen problem | ❌ Kritisk | ⚠️ Håndterbart |
+| Volum >5000 events | ✅ Ingen problem | ❌ Kritisk | ✅ OK |
+| Eksisterende kompetanse | ⚠️ Ny | ✅ Kjent | ⚠️ Ny |
+| Catenda-integrasjon | ✅ Ferdig | ❌ Må bygges | ❌ Må bygges |
+| Tid til produksjon | ✅ Kort | ⚠️ Lang | ⚠️ Lang |
+| Felt-sikkerhet (TE/BH) | ✅ Implementert | ❌ Ikke mulig | ✅ Mulig |
+| Fremtidig datavarehus | ✅ Via Dataverse | ⚠️ Begrenset | ✅ God match |
 
-### 10.3 Hybride alternativer
+### 10.3 Anbefaling for fremtidig Dataverse-satsing
 
-Det er mulig å kombinere tilnærminger:
+Hvis organisasjonen ønsker å satse på Dataverse som strategisk plattform for datavarehus, kan følgende tilnærming vurderes:
 
-1. **Power Platform UI + Custom backend:** Power Apps som frontend, Azure Functions for kompleks logikk
-2. **Custom løsning + Power BI:** Bruk eksisterende løsning, koble Power BI for rapportering
-3. **Faseinndelt migrering:** Start med custom, evaluer Power Platform for fremtidige moduler
+1. **Kort sikt:** Bruk custom-løsningen (allerede ferdig) med Dataverse som event store
+2. **Mellomlang sikt:** Bygg Dataverse-kompetanse på enklere prosjekter
+3. **Lang sikt:** Evaluer migrering av UI-lag til Power Platform når kompetansen er på plass
+
+Dette gir:
+- Umiddelbar produksjonskapasitet
+- Dataverse som felles datalager for begge tilnærminger
+- Tid til kompetansebygging uten tidspress
 
 ### 10.4 Beslutningsfaktorer
 
 Endelig valg bør baseres på:
 
-1. **Funksjonskrav:** Er subsidiær logikk et må-krav eller nice-to-have?
-2. **Kompetansestrategi:** Bygge intern TypeScript/Python-kompetanse eller satse på Power Platform?
-3. **Total eierskapskostnad:** Lisenser + utvikling + vedlikehold over 5+ år
-4. **Strategisk alignment:** Hvordan passer dette inn i større digitaliseringsstrategi?
+1. **Volumkrav:** Med 10 000+ events/år er SharePoint-varianten teknisk problematisk
+2. **Funksjonskrav:** Er subsidiær logikk et må-krav? (Hvis ja → Custom)
+3. **Kompetansestrategi:** Bygge intern TypeScript/Python-kompetanse eller satse på Power Platform?
+4. **Datavarehus-strategi:** Dataverse bør vurderes uavhengig av UI-valg
+5. **Total eierskapskostnad:** Lisenser + utvikling + vedlikehold over 5+ år
 
 ---
 
