@@ -243,17 +243,37 @@ Subsidiært:   "MEN hvis vi tar feil, er beløpet på 150 000 kr korrekt"
 
 #### Catenda (prosjekthotell)
 
+Custom-løsningen har en **ferdig utviklet, testet og validert** Catenda-integrasjon:
+
+| Komponent | Beskrivelse | Linjer |
+|-----------|-------------|--------|
+| `CatendaClient` | REST v2 + BCF v3.0 API | 1 649 |
+| `catenda/auth.py` | OAuth 2.0 (client credentials + user tokens) | 534 |
+| `catenda_service.py` | Forretningslogikk for Catenda-operasjoner | 268 |
+| `webhook_routes.py` | Webhook-mottak og håndtering | 164 |
+
+**Implementert funksjonalitet:**
+- OAuth 2.0 med automatisk token-refresh
+- BCF 3.0 API (topics, comments, viewpoints)
+- Document API v2 (upload, download, metadata)
+- Project members og team-håndtering
+- Webhook-mottak med signaturvalidering
+- Interaktiv CLI-meny for testing (`catenda_menu.py`)
+
 | Funksjon | Custom | Power Platform |
 |----------|--------|----------------|
-| Webhook-mottak | ✅ Flask/Azure Functions | ⚠️ Power Automate HTTP trigger (premium) |
-| Document API v2 | ✅ Python client | ⚠️ Custom connector (premium) |
-| BCF 3.0 API | ✅ Kan implementeres | ⚠️ Custom connector (premium) |
+| Webhook-mottak | ✅ Implementert og testet | ⚠️ Power Automate HTTP trigger (premium) |
+| Document API v2 | ✅ Fullt implementert | ⚠️ Custom connector må bygges |
+| BCF 3.0 API | ✅ Fullt implementert | ⚠️ Custom connector må bygges |
 | Team/rolle-inferens | ✅ Implementert | ⚠️ Custom connector + logikk |
+| OAuth token-refresh | ✅ Automatisk | ⚠️ Må implementeres i connector |
 
-**Vurdering:** Catenda-integrasjon er mulig i Power Platform via custom connector, men:
-- Custom connectors krever Premium-lisens for alle brukere
-- Kompleks autentisering (OAuth) må konfigureres
+**Vurdering:** For Power Platform må Catenda-integrasjonen bygges fra scratch:
+- Custom connector krever Premium-lisens for alle brukere
+- OAuth 2.0-flyt må konfigureres manuelt
+- BCF 3.0-støtte finnes ikke som standard connector
 - Webhook-mottak krever HTTP-trigger (også premium)
+- Estimert utviklingsarbeid: Betydelig (sammenlign med 2 400+ linjer eksisterende kode)
 
 #### Entra ID / External ID
 
@@ -493,7 +513,7 @@ Følgende punkter bør avklares før endelig beslutning:
 | Tema | Spørsmål | Hvorfor viktig |
 |------|----------|----------------|
 | **Dataverse-kapasitet** | Hvilken kapasitet er inkludert i eksisterende lisenser? | Påvirker kostnad |
-| **Custom connector** | Finnes det eksisterende Catenda-connector, eller må den bygges? | Påvirker utviklingstid |
+| **Catenda connector** | Det finnes ingen standard connector - må bygges fra scratch (2 400+ linjer i custom-løsningen) | Betydelig utviklingsarbeid |
 | **External ID** | Er External ID i produksjon for Power Pages per i dag? | Var i preview feb 2025 |
 | **Plugin-kompetanse** | Finnes intern eller tilgjengelig kompetanse på Dataverse C# plugins? | Subsidiær logikk |
 | **Delegation i praksis** | Hvordan håndtere 10 000+ events med delegation limits? | Arkitekturvalg |
@@ -538,13 +558,14 @@ Følgende punkter bør avklares før endelig beslutning:
 
 ### 10.2 Scenariobasert vurdering
 
-| Scenario | Anbefalt tilnærming |
-|----------|---------------------|
-| Full NS 8407-støtte er kritisk | Custom-løsning |
-| Subsidiær logikk kan forenkles/fjernes | Begge er mulige |
-| Minimal ekstern kompetanseavhengighet | Power Platform (med forenklet scope) |
-| Tett Catenda-integrasjon er essensielt | Custom-løsning (allerede implementert) |
-| Fremtidig datavarehus-integrasjon | Begge bruker Dataverse - likeverdige |
+| Scenario | Anbefalt tilnærming | Begrunnelse |
+|----------|---------------------|-------------|
+| Full NS 8407-støtte er kritisk | Custom-løsning | Subsidiær logikk og port-modell er implementert |
+| Subsidiær logikk kan forenkles/fjernes | Begge er mulige | Power Platform kan håndtere enklere logikk |
+| Minimal ekstern kompetanseavhengighet | Power Platform (med forenklet scope) | Utnytter intern kompetanse |
+| Tett Catenda-integrasjon er essensielt | Custom-løsning | 2 400+ linjer ferdig utviklet, testet og validert |
+| Rask tid til produksjon | Custom-løsning | Allerede implementert vs. bygge fra scratch |
+| Fremtidig datavarehus-integrasjon | Begge bruker Dataverse | Likeverdige på dette punktet |
 
 ### 10.3 Hybride alternativer
 
@@ -569,12 +590,20 @@ Endelig valg bør baseres på:
 
 ### A. Referanser til kildekode
 
-| Fil | Beskrivelse |
-|-----|-------------|
-| `src/constants/varslingsregler.ts` | NS 8407 varslingsregler (~380 linjer) |
-| `src/types/timeline.ts` | Datamodeller og state-typer |
-| `backend/services/timeline_service.py` | Event sourcing og state-projeksjon |
-| `backend/models/events.py` | Event-definisjoner (~1170 linjer) |
+| Fil | Beskrivelse | Linjer |
+|-----|-------------|--------|
+| `src/constants/varslingsregler.ts` | NS 8407 varslingsregler | ~380 |
+| `src/types/timeline.ts` | Datamodeller og state-typer | ~900 |
+| `backend/services/timeline_service.py` | Event sourcing og state-projeksjon | 753 |
+| `backend/models/events.py` | Event-definisjoner | 933 |
+| `backend/models/sak_state.py` | Read model (projeksjon) | 562 |
+| `backend/integrations/catenda/client.py` | Catenda REST + BCF API | 1 649 |
+| `backend/integrations/catenda/auth.py` | OAuth 2.0 autentisering | 534 |
+| `backend/services/business_rules.py` | Forretningsregler-validering | 240 |
+
+**Total backend:** ~13 700 linjer (59 filer, 345 tester)
+
+For komplett backend-struktur, se [backend/STRUCTURE.md](../backend/STRUCTURE.md).
 
 ### B. Kilder for Power Platform-vurdering
 
