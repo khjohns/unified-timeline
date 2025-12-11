@@ -242,61 +242,123 @@ export function Timeline({ events }: TimelineProps) {
               onClick={() => setExpandedId(isExpanded ? null : event.event_id)}
               role="listitem"
             >
-              {/* Main row */}
-              <div className="flex items-center gap-3 py-3 px-2 border-b border-pkt-grays-gray-100">
-                {/* Role indicator - colored dot */}
-                <div
-                  className={`w-2.5 h-2.5 rounded-full shrink-0 ${rolleStyles.bg}`}
-                  title={event.rolle === 'TE' ? 'Entreprenør' : 'Byggherre'}
-                  aria-label={event.rolle === 'TE' ? 'Entreprenør' : 'Byggherre'}
-                />
+              {/* Main content - responsive layout */}
+              <div className="py-2 px-2 sm:py-3 border-b border-pkt-grays-gray-100">
+                {/* Desktop: Single row layout */}
+                <div className="hidden sm:flex items-center gap-3">
+                  {/* Role indicator - colored dot */}
+                  <div
+                    className={`w-2.5 h-2.5 rounded-full shrink-0 ${rolleStyles.bg}`}
+                    title={event.rolle === 'TE' ? 'Entreprenør' : 'Byggherre'}
+                    aria-label={event.rolle === 'TE' ? 'Entreprenør' : 'Byggherre'}
+                  />
 
-                {/* Date */}
-                <span className="text-sm text-pkt-grays-gray-500 w-12 shrink-0 tabular-nums">
-                  {formatDateMinimal(event.tidsstempel)}
-                </span>
-
-                {/* Spor tag */}
-                {event.spor && (
-                  <span
-                    className={`text-xs font-medium px-2 py-0.5 rounded shrink-0 ${getSporTagStyles(event.spor)}`}
-                  >
-                    {getSporLabel(event.spor)}
+                  {/* Date */}
+                  <span className="text-sm text-pkt-grays-gray-500 w-12 shrink-0 tabular-nums">
+                    {formatDateMinimal(event.tidsstempel)}
                   </span>
-                )}
 
-                {/* Content */}
-                <div className="flex-1 min-w-0 flex items-center gap-2">
-                  <span className="text-sm text-pkt-text-body-dark truncate">
-                    {event.sammendrag}
-                  </span>
-                  {tagInfo.showRevision && tagInfo.version !== undefined && (
-                    <RevisionTag version={tagInfo.version} size="sm" />
+                  {/* Spor tag */}
+                  {event.spor && (
+                    <span
+                      className={`text-xs font-medium px-2 py-0.5 rounded shrink-0 ${getSporTagStyles(event.spor)}`}
+                    >
+                      {getSporLabel(event.spor)}
+                    </span>
                   )}
-                  {tagInfo.showUpdated && (
-                    <UpdatedTag size="sm" />
-                  )}
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0 flex items-center gap-2">
+                    <span className="text-sm text-pkt-text-body-dark truncate">
+                      {event.sammendrag}
+                    </span>
+                    {tagInfo.showRevision && tagInfo.version !== undefined && (
+                      <RevisionTag version={tagInfo.version} size="sm" />
+                    )}
+                    {tagInfo.showUpdated && (
+                      <UpdatedTag size="sm" />
+                    )}
+                  </div>
+
+                  {/* Role label + expand indicator */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={`text-xs font-medium ${rolleStyles.text}`}>
+                      {event.rolle}
+                    </span>
+                    <ChevronDownIcon
+                      className={`w-4 h-4 text-pkt-grays-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                    />
+                  </div>
                 </div>
 
-                {/* Role label + expand indicator */}
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className={`text-xs font-medium ${rolleStyles.text}`}>
-                    {event.rolle}
-                  </span>
-                  <ChevronDownIcon
-                    className={`w-4 h-4 text-pkt-grays-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                  />
+                {/* Mobile: Two-row layout */}
+                <div className="flex flex-col gap-1.5 sm:hidden">
+                  {/* Row 1: Date, spor tag, role, chevron */}
+                  <div className="flex items-center gap-2">
+                    {/* Role indicator - colored dot */}
+                    <div
+                      className={`w-2 h-2 rounded-full shrink-0 ${rolleStyles.bg}`}
+                      title={event.rolle === 'TE' ? 'Entreprenør' : 'Byggherre'}
+                      aria-label={event.rolle === 'TE' ? 'Entreprenør' : 'Byggherre'}
+                    />
+
+                    {/* Date */}
+                    <span className="text-xs text-pkt-grays-gray-500 shrink-0 tabular-nums">
+                      {formatDateMinimal(event.tidsstempel)}
+                    </span>
+
+                    {/* Spor tag - shortened on mobile */}
+                    {event.spor && (
+                      <span
+                        className={`text-xs font-medium px-1.5 py-0.5 rounded shrink-0 ${getSporTagStyles(event.spor)}`}
+                      >
+                        {event.spor === 'grunnlag' ? 'Grunnlag' : getSporLabel(event.spor)}
+                      </span>
+                    )}
+
+                    {/* Spacer */}
+                    <div className="flex-1" />
+
+                    {/* Role label + expand indicator */}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className={`text-xs font-medium ${rolleStyles.text}`}>
+                        {event.rolle}
+                      </span>
+                      <ChevronDownIcon
+                        className={`w-4 h-4 text-pkt-grays-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Row 2: Summary and tags */}
+                  <div className="flex items-center gap-2 pl-4">
+                    <span className="text-sm text-pkt-text-body-dark line-clamp-2 flex-1 min-w-0">
+                      {event.sammendrag}
+                    </span>
+                    {tagInfo.showRevision && tagInfo.version !== undefined && (
+                      <RevisionTag version={tagInfo.version} size="sm" />
+                    )}
+                    {tagInfo.showUpdated && (
+                      <UpdatedTag size="sm" />
+                    )}
+                  </div>
                 </div>
               </div>
 
               {/* Expanded details */}
               {isExpanded && (
-                <div className="px-2 py-3 bg-pkt-bg-subtle border-b border-pkt-grays-gray-100">
-                  <div className="ml-5 pl-3 border-l-2 border-pkt-grays-gray-200 space-y-2">
-                    {/* Full timestamp and actor */}
-                    <p className="text-xs text-pkt-grays-gray-500">
-                      {formatDateFull(event.tidsstempel)} • {event.aktor}
-                    </p>
+                <div className="px-2 py-2 sm:py-3 bg-pkt-bg-subtle border-b border-pkt-grays-gray-100">
+                  <div className="ml-4 sm:ml-5 pl-3 border-l-2 border-pkt-grays-gray-200 space-y-2">
+                    {/* Full timestamp and actor - stacked on mobile */}
+                    <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-0">
+                      <span className="text-xs text-pkt-grays-gray-500">
+                        {formatDateFull(event.tidsstempel)}
+                      </span>
+                      <span className="text-xs text-pkt-grays-gray-500 hidden sm:inline"> • </span>
+                      <span className="text-xs text-pkt-grays-gray-500">
+                        {event.aktor}
+                      </span>
+                    </div>
 
                     {/* Event type description */}
                     <p className="text-sm text-pkt-text-body-dark">
@@ -310,7 +372,7 @@ export function Timeline({ events }: TimelineProps) {
                           e.stopPropagation();
                           setSelectedEvent(event);
                         }}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-pkt-brand-dark-blue-1000 bg-pkt-surface-light-blue hover:bg-pkt-brand-blue-200 rounded-lg transition-colors mt-2"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-pkt-brand-dark-blue-1000 bg-pkt-surface-light-blue hover:bg-pkt-brand-blue-200 rounded-lg transition-colors mt-2 w-full sm:w-auto justify-center sm:justify-start"
                       >
                         <FileTextIcon className="h-4 w-4" />
                         Vis innsendt skjema

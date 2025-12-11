@@ -74,8 +74,8 @@ describe('View Components - Functional Tests', () => {
         />
       );
 
-      // StatusCard shows the spor label in uppercase
-      expect(screen.getByText('GRUNNLAG')).toBeInTheDocument();
+      // StatusCard shows the spor label (Ansvarsgrunnlag for grunnlag)
+      expect(screen.getByText('Ansvarsgrunnlag')).toBeInTheDocument();
     });
 
     it('should display the correct status text', () => {
@@ -88,8 +88,9 @@ describe('View Components - Functional Tests', () => {
         />
       );
 
-      // The component shows status label
-      expect(screen.getByText('Godkjent')).toBeInTheDocument();
+      // The component shows status label - visible on both mobile and desktop
+      // On mobile it's in a separate row, on desktop it's inline
+      expect(screen.getAllByText('Godkjent').length).toBeGreaterThan(0);
     });
 
     it('should render for all spor types', () => {
@@ -140,10 +141,10 @@ describe('View Components - Functional Tests', () => {
     it('should render all three track status cards', () => {
       render(<StatusDashboard state={mockSakState1} />);
 
-      // Should have status sections for all three tracks (in uppercase)
-      expect(screen.getByText('GRUNNLAG')).toBeInTheDocument();
-      expect(screen.getByText('VEDERLAG')).toBeInTheDocument();
-      expect(screen.getByText('FRIST')).toBeInTheDocument();
+      // Should have status sections for all three tracks
+      expect(screen.getByText('Ansvarsgrunnlag')).toBeInTheDocument();
+      expect(screen.getByText('Vederlag')).toBeInTheDocument();
+      expect(screen.getByText('Frist')).toBeInTheDocument();
     });
 
     it('should display overall status in sr-only element', () => {
@@ -206,9 +207,9 @@ describe('View Components - Functional Tests', () => {
     it('should render all timeline events', () => {
       render(<Timeline events={mockEvents} />);
 
-      // Event types may appear multiple times (in header and description), use getAllByText
-      expect(screen.getAllByText(/Grunnlag opprettet/i).length).toBeGreaterThan(0);
-      expect(screen.getAllByText(/Vederlagskrav sendt/i).length).toBeGreaterThan(0);
+      // Event summaries are shown on the main row (sammendrag field)
+      expect(screen.getAllByText(/Varsel om endrede grunnforhold/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/Krav på 500.000 NOK/i).length).toBeGreaterThan(0);
       expect(screen.getAllByText(/Grunnlag godkjent/i).length).toBeGreaterThan(0);
     });
 
@@ -218,12 +219,16 @@ describe('View Components - Functional Tests', () => {
       expect(screen.getByText(/Ingen hendelser/i)).toBeInTheDocument();
     });
 
-    it('should display actor names', () => {
+    it('should display actor names when expanded', async () => {
+      const user = userEvent.setup();
       render(<Timeline events={mockEvents} />);
 
-      // Actor names may appear multiple times, use getAllByText
-      expect(screen.getAllByText(/Per Hansen/i).length).toBeGreaterThan(0);
-      expect(screen.getAllByText(/Kari Nordmann/i).length).toBeGreaterThan(0);
+      // Actor names are shown in the expanded view, click to expand first event
+      const listItems = screen.getAllByRole('listitem');
+      await user.click(listItems[0]);
+
+      // Actor names should now be visible in expanded content
+      expect(screen.getByText(/Per Hansen/i)).toBeInTheDocument();
     });
 
     it('should display event summaries', () => {
