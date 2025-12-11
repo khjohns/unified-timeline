@@ -44,8 +44,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             'hover:bg-pkt-brand-warm-blue-1000 hover:border-pkt-border-hover':
               variant === 'primary' && !props.disabled,
 
-            // Secondary: white background with dark blue border (matching primary)
-            'bg-white text-pkt-text-body-dark':
+            // Secondary: card background with dark blue border (matching primary)
+            'bg-pkt-bg-card text-pkt-text-body-dark':
               variant === 'secondary',
             'hover:bg-pkt-bg-subtle hover:border-pkt-border-hover':
               variant === 'secondary' && !props.disabled,

@@ -165,7 +165,7 @@ export function StatusCard({
   return (
     <div
       className={clsx(
-        'group bg-white px-3 py-3 sm:px-4 sm:py-4',
+        'group bg-pkt-bg-card px-3 py-3 sm:px-4 sm:py-4',
         'border-l-4',
         borderClass,
         'hover:bg-pkt-bg-subtle',

@@ -17,6 +17,7 @@ import { ComprehensiveMetadata } from '../components/views/ComprehensiveMetadata
 import { RevisionHistory } from '../components/views/RevisionHistory';
 import { Button } from '../components/primitives/Button';
 import { ModeToggle } from '../components/ModeToggle';
+import { ThemeToggle } from '../components/ThemeToggle';
 import {
   SendGrunnlagModal,
   SendVederlagModal,
@@ -170,7 +171,7 @@ export function CasePage() {
   if (error) {
     return (
       <div className="min-h-screen bg-pkt-bg-subtle flex items-center justify-center px-4">
-        <div className="max-w-md w-full p-4 sm:p-8 bg-white rounded-lg border border-pkt-grays-gray-200" role="alert">
+        <div className="max-w-md w-full p-4 sm:p-8 bg-pkt-bg-card rounded-lg border border-pkt-grays-gray-200" role="alert">
           <ExclamationTriangleIcon className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 text-pkt-brand-red-1000" />
           <h2 className="text-lg sm:text-xl font-semibold text-pkt-brand-red-1000 mb-3 sm:mb-4 text-center">
             Feil ved lasting av sak
@@ -194,7 +195,7 @@ export function CasePage() {
   return (
     <div className="min-h-screen bg-pkt-bg-subtle">
       {/* Header - Minimalistisk */}
-      <header className="bg-white border-b border-pkt-grays-gray-200">
+      <header className="bg-pkt-bg-card border-b border-pkt-grays-gray-200">
         <div className="max-w-3xl mx-auto px-4 py-4 sm:px-8 sm:py-6">
           {/* Mobile: Stacked layout, Desktop: Side-by-side */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
@@ -207,6 +208,7 @@ export function CasePage() {
             </div>
             {/* Actions - full width on mobile, auto on desktop */}
             <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
+              <ThemeToggle />
               <Button
                 variant="ghost"
                 size="sm"
@@ -223,7 +225,7 @@ export function CasePage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-3xl mx-auto px-4 py-6 sm:px-8 sm:py-8 bg-white min-h-[calc(100vh-88px)]">
+      <main className="max-w-3xl mx-auto px-4 py-6 sm:px-8 sm:py-8 bg-pkt-bg-card min-h-[calc(100vh-88px)]">
         {/* Status Dashboard with Contextual Actions */}
         <StatusDashboard
           state={state}

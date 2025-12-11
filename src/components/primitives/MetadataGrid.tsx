@@ -11,7 +11,7 @@ interface MetadataGridProps {
 
 export function MetadataGrid({ children }: MetadataGridProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-[minmax(150px,auto)_1fr_minmax(150px,auto)_1fr] border border-gray-300 rounded-lg overflow-hidden bg-white shadow-sm">
+    <div className="grid grid-cols-1 md:grid-cols-[minmax(150px,auto)_1fr_minmax(150px,auto)_1fr] border border-pkt-grays-gray-300 rounded-lg overflow-hidden bg-pkt-bg-card shadow-sm">
       {children}
     </div>
   );
@@ -26,11 +26,11 @@ interface GridItemProps {
 export function GridItem({ label, value, span = false }: GridItemProps) {
   return (
     <>
-      <div className="bg-gray-50 px-4 py-3 font-medium text-gray-700 border-b md:border-b-0 md:border-r border-gray-300 flex items-center text-sm">
+      <div className="bg-pkt-bg-subtle px-4 py-3 font-medium text-pkt-grays-gray-700 border-b md:border-b-0 md:border-r border-pkt-grays-gray-300 flex items-center text-sm">
         {label}
       </div>
       <div
-        className={`px-4 py-3 border-b border-gray-300 md:border-b-0 flex items-center text-sm ${
+        className={`px-4 py-3 border-b border-pkt-grays-gray-300 md:border-b-0 flex items-center text-sm ${
           span ? 'md:col-span-3' : 'md:border-r'
         }`}
       >
@@ -41,5 +41,5 @@ export function GridItem({ label, value, span = false }: GridItemProps) {
 }
 
 export function GridDivider() {
-  return <div className="col-span-1 md:col-span-4 h-px bg-gray-300 hidden md:block" />;
+  return <div className="col-span-1 md:col-span-4 h-px bg-pkt-grays-gray-300 hidden md:block" />;
 }
