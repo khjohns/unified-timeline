@@ -80,7 +80,7 @@ const darkColors = {
   'surface-faded-red': '#3a2a2a',
   'surface-light-blue': '#1a3a5a',
   'surface-light-green': '#1a4a3a',
-  'surface-yellow': '#4a4a2a',
+  'surface-yellow': '#3d3520',  // Updated to warmer amber
 
   // Brand colors (dark mode adjusted)
   'brand-dark-blue-1000': '#8ab4ff',
@@ -111,6 +111,7 @@ const combinations = [
   { name: 'Success: green text on green surface', fg: 'brand-dark-green-1000', bg: 'surface-light-green', type: 'normal' },
   { name: 'Info: blue text on blue surface', fg: 'brand-dark-blue-1000', bg: 'surface-light-blue', type: 'normal' },
   { name: 'Warning: neutrals text on yellow surface', fg: 'brand-neutrals-1000', bg: 'surface-yellow', type: 'normal' },
+  { name: 'Frist tag: dark text on yellow surface', fg: 'text-body-dark', bg: 'surface-yellow', type: 'normal' },
   { name: 'Danger: red text on red surface', fg: 'brand-red-1000', bg: 'surface-faded-red', type: 'normal' },
 
   // Borders/UI components (need 3:1)

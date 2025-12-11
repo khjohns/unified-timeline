@@ -241,7 +241,7 @@
   --color-pkt-surface-light-blue: #1a3a5a;
   --color-pkt-surface-light-green: #1a4a3a;
   --color-pkt-surface-red: #5a3a3a;
-  --color-pkt-surface-yellow: #4a4a2a;
+  --color-pkt-surface-yellow: #3d3520;  /* Warmer amber, less muddy brown */
   --color-pkt-surface-strong-beige: #5a4a3a;
   --color-pkt-surface-strong-blue: #3a6a8a;
   --color-pkt-surface-strong-dark-blue: #4a4a8a;
@@ -257,6 +257,7 @@
   --color-pkt-surface-subtle-white: #2a2a4a;
 
   /* Brand colors - adjusted for dark mode visibility */
+  --color-pkt-brand-blue-100: #1a2a4a;  /* Dark blue background for badges */
   --color-pkt-brand-blue-200: #2a4a6a;
   --color-pkt-brand-dark-blue-1000: #8ab4ff;
   --color-pkt-brand-dark-green-1000: #6adb8a;

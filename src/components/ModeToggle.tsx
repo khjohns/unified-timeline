@@ -19,7 +19,7 @@ interface ModeToggleProps {
 export function ModeToggle({ userRole, onToggle }: ModeToggleProps) {
   return (
     <div className="inline-flex items-center gap-2">
-      <span className="text-xs text-gray-600">Test:</span>
+      <span className="text-xs text-pkt-grays-gray-600">Test:</span>
       <div className="inline-flex rounded-none border border-pkt-border-default overflow-hidden">
         <button
           onClick={() => onToggle('TE')}
@@ -28,7 +28,7 @@ export function ModeToggle({ userRole, onToggle }: ModeToggleProps) {
             'focus:outline-none focus:ring-1 focus:ring-inset focus:ring-pkt-border-focus',
             userRole === 'TE'
               ? 'bg-pkt-surface-strong-dark-blue text-pkt-text-body-light'
-              : 'bg-white text-pkt-text-body-dark hover:bg-pkt-surface-light-beige'
+              : 'bg-pkt-bg-card text-pkt-text-body-dark hover:bg-pkt-bg-subtle'
           )}
           aria-pressed={userRole === 'TE'}
           aria-label="Bytt til Totalentreprenør modus"
@@ -43,7 +43,7 @@ export function ModeToggle({ userRole, onToggle }: ModeToggleProps) {
             'focus:outline-none focus:ring-1 focus:ring-inset focus:ring-pkt-border-focus',
             userRole === 'BH'
               ? 'bg-pkt-surface-strong-dark-blue text-pkt-text-body-light'
-              : 'bg-white text-pkt-text-body-dark hover:bg-pkt-surface-light-beige'
+              : 'bg-pkt-bg-card text-pkt-text-body-dark hover:bg-pkt-bg-subtle'
           )}
           aria-pressed={userRole === 'BH'}
           aria-label="Bytt til Byggherre modus"
