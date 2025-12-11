@@ -182,20 +182,20 @@ export function RespondGrunnlagUpdateModal({
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Current state */}
-        <div className="bg-gray-50 p-4 rounded border border-gray-200">
+        <div className="bg-pkt-bg-subtle p-4 rounded border border-pkt-grays-gray-200">
           <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-600">Nåværende svar:</span>
+            <span className="text-sm text-pkt-grays-gray-600">Nåværende svar:</span>
             <Badge variant={varAvvist ? 'danger' : 'success'}>
               {RESULTAT_LABELS[forrigeResultat]}
             </Badge>
           </div>
           {forrigeBegrunnelse && (
-            <p className="text-sm text-gray-700 mt-2 italic">
+            <p className="text-sm text-pkt-grays-gray-700 mt-2 italic">
               &ldquo;{forrigeBegrunnelse}&rdquo;
             </p>
           )}
           {harSubsidiaereSvar && varAvvist && (
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-pkt-grays-gray-500 mt-2">
               Det finnes subsidiære svar på vederlag og/eller frist.
             </p>
           )}

@@ -615,7 +615,7 @@ export function RespondVederlagModal({
                       </span>
                     </div>
                     {vederlagEvent?.saerskilt_krav?.rigg_drift?.dato_klar_over && (
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-pkt-grays-gray-500">
                         Entreprenøren klar over: {vederlagEvent.saerskilt_krav.rigg_drift.dato_klar_over}
                       </span>
                     )}
@@ -653,7 +653,7 @@ export function RespondVederlagModal({
                       </span>
                     </div>
                     {vederlagEvent?.saerskilt_krav?.produktivitet?.dato_klar_over && (
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-pkt-grays-gray-500">
                         Entreprenøren klar over: {vederlagEvent.saerskilt_krav.produktivitet.dato_klar_over}
                       </span>
                     )}
@@ -948,7 +948,7 @@ export function RespondVederlagModal({
                     <div className="text-left sm:text-right">
                       <span className="text-sm text-pkt-text-body-subtle">Krevd: </span>
                       <span
-                        className={`text-lg font-mono font-bold ${riggPrekludert ? 'line-through text-gray-400' : ''}`}
+                        className={`text-lg font-mono font-bold ${riggPrekludert ? 'line-through text-pkt-grays-gray-400' : ''}`}
                       >
                         kr {riggBelop?.toLocaleString('nb-NO') || 0},-
                       </span>
@@ -1029,7 +1029,7 @@ export function RespondVederlagModal({
                     <div className="text-left sm:text-right">
                       <span className="text-sm text-pkt-text-body-subtle">Krevd: </span>
                       <span
-                        className={`text-lg font-mono font-bold ${produktivitetPrekludert ? 'line-through text-gray-400' : ''}`}
+                        className={`text-lg font-mono font-bold ${produktivitetPrekludert ? 'line-through text-pkt-grays-gray-400' : ''}`}
                       >
                         kr {produktivitetBelop?.toLocaleString('nb-NO') || 0},-
                       </span>
@@ -1184,11 +1184,11 @@ export function RespondVederlagModal({
                             <td className="py-2">
                               Rigg/Drift
                               {riggPrekludert && (
-                                <span className="text-xs text-gray-500 ml-1">(prinsipalt)</span>
+                                <span className="text-xs text-pkt-grays-gray-500 ml-1">(prinsipalt)</span>
                               )}
                             </td>
                             <td
-                              className={`text-right font-mono ${riggPrekludert ? 'line-through text-gray-400' : ''}`}
+                              className={`text-right font-mono ${riggPrekludert ? 'line-through text-pkt-grays-gray-400' : ''}`}
                             >
                               {riggBelop?.toLocaleString('nb-NO') || 0}
                             </td>
@@ -1250,11 +1250,11 @@ export function RespondVederlagModal({
                             <td className="py-2">
                               Produktivitet
                               {produktivitetPrekludert && (
-                                <span className="text-xs text-gray-500 ml-1">(prinsipalt)</span>
+                                <span className="text-xs text-pkt-grays-gray-500 ml-1">(prinsipalt)</span>
                               )}
                             </td>
                             <td
-                              className={`text-right font-mono ${produktivitetPrekludert ? 'line-through text-gray-400' : ''}`}
+                              className={`text-right font-mono ${produktivitetPrekludert ? 'line-through text-pkt-grays-gray-400' : ''}`}
                             >
                               {produktivitetBelop?.toLocaleString('nb-NO') || 0}
                             </td>
@@ -1371,7 +1371,7 @@ export function RespondVederlagModal({
                         <div className="flex flex-wrap justify-between items-start gap-2 mb-2">
                           <span className="font-medium">
                             Rigg/Drift
-                            {riggPrekludert && <span className="text-xs text-gray-500 ml-1">(prinsipalt)</span>}
+                            {riggPrekludert && <span className="text-xs text-pkt-grays-gray-500 ml-1">(prinsipalt)</span>}
                           </span>
                           {riggPrekludert ? (
                             <Badge variant="danger">Prekludert</Badge>
@@ -1385,7 +1385,7 @@ export function RespondVederlagModal({
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-pkt-text-body-subtle">Krevd:</span>
-                          <span className={`font-mono ${riggPrekludert ? 'line-through text-gray-400' : ''}`}>
+                          <span className={`font-mono ${riggPrekludert ? 'line-through text-pkt-grays-gray-400' : ''}`}>
                             {riggBelop?.toLocaleString('nb-NO') || 0}
                           </span>
                         </div>
@@ -1435,7 +1435,7 @@ export function RespondVederlagModal({
                         <div className="flex flex-wrap justify-between items-start gap-2 mb-2">
                           <span className="font-medium">
                             Produktivitet
-                            {produktivitetPrekludert && <span className="text-xs text-gray-500 ml-1">(prinsipalt)</span>}
+                            {produktivitetPrekludert && <span className="text-xs text-pkt-grays-gray-500 ml-1">(prinsipalt)</span>}
                           </span>
                           {produktivitetPrekludert ? (
                             <Badge variant="danger">Prekludert</Badge>
@@ -1449,7 +1449,7 @@ export function RespondVederlagModal({
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-pkt-text-body-subtle">Krevd:</span>
-                          <span className={`font-mono ${produktivitetPrekludert ? 'line-through text-gray-400' : ''}`}>
+                          <span className={`font-mono ${produktivitetPrekludert ? 'line-through text-pkt-grays-gray-400' : ''}`}>
                             {produktivitetBelop?.toLocaleString('nb-NO') || 0}
                           </span>
                         </div>

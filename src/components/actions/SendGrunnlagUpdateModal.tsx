@@ -163,14 +163,14 @@ export function SendGrunnlagUpdateModal({
         </Alert>
 
         {/* Current state info */}
-        <div className="bg-gray-50 p-4 rounded border border-gray-200">
-          <h4 className="font-medium text-sm text-gray-700 mb-2">Nåværende grunnlag</h4>
+        <div className="bg-pkt-bg-subtle p-4 rounded border border-pkt-grays-gray-200">
+          <h4 className="font-medium text-sm text-pkt-grays-gray-700 mb-2">Nåværende grunnlag</h4>
           <dl className="grid grid-cols-2 gap-2 text-sm">
-            <dt className="text-gray-500">Kategori:</dt>
+            <dt className="text-pkt-grays-gray-500">Kategori:</dt>
             <dd className="font-medium">{getHovedkategoriLabel(grunnlag.hovedkategori || '')}</dd>
-            <dt className="text-gray-500">Oppdaget:</dt>
+            <dt className="text-pkt-grays-gray-500">Oppdaget:</dt>
             <dd>{grunnlag.dato_oppdaget}</dd>
-            <dt className="text-gray-500">Varslet:</dt>
+            <dt className="text-pkt-grays-gray-500">Varslet:</dt>
             <dd>{grunnlag.grunnlag_varsel?.dato_sendt || 'Ikke varslet'}</dd>
           </dl>
         </div>

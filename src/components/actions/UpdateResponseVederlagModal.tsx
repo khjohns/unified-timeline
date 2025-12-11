@@ -202,11 +202,11 @@ export function UpdateResponseVederlagModal({
         )}
 
         {/* Current state */}
-        <div className="bg-gray-50 p-4 rounded border border-gray-200">
+        <div className="bg-pkt-bg-subtle p-4 rounded border border-pkt-grays-gray-200">
           <div className="flex justify-between items-start">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <p className="text-sm text-gray-600">Nåværende svar:</p>
+                <p className="text-sm text-pkt-grays-gray-600">Nåværende svar:</p>
               </div>
               <Badge
                 variant={
@@ -219,7 +219,7 @@ export function UpdateResponseVederlagModal({
             </div>
             <div className="text-right">
               <div className="flex items-center justify-end gap-2 mb-1">
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-pkt-grays-gray-600">
                   {erRegningsarbeid ? 'Kostnadsoverslag:' : 'Krevd beløp:'}
                 </p>
                 <RevisionTag version={currentClaimVersion} size="sm" />
@@ -279,7 +279,7 @@ export function UpdateResponseVederlagModal({
 
         {/* Partial approval amount */}
         {nyttResultat === 'delvis_godkjent' && (
-          <div className="ml-6 p-4 bg-gray-100 rounded animate-in fade-in duration-200">
+          <div className="ml-6 p-4 bg-pkt-grays-gray-100 rounded animate-in fade-in duration-200">
             <FormField label="Godkjent beløp">
               <Controller
                 name="godkjent_belop"
