@@ -1,6 +1,6 @@
 # Deployment Guide
 
-**Sist oppdatert:** 2025-12-06
+**Sist oppdatert:** 2025-12-11
 
 Veiledning for utrulling av Skjema Endringsmeldinger til produksjon.
 
@@ -38,30 +38,77 @@ Veiledning for utrulling av Skjema Endringsmeldinger til produksjon.
 ### Produksjonsmiljø
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Azure Front Door + WAF                       │
-│           (DDoS Protection, Rate Limiting, Geo-filter)          │
-└───────────────────────────┬─────────────────────────────────────┘
-                            │
-            ┌───────────────┴───────────────┐
-            │                               │
-            ▼                               ▼
-┌───────────────────────┐       ┌───────────────────────┐
-│  Azure Static Web     │       │   Azure Functions     │
-│  Apps (Frontend)      │──────▶│   (Backend API)       │
-│  - React 19           │       │   - Python 3.11       │
-│  - TypeScript         │       │   - Pydantic          │
-│  - Punkt design       │       │   - Catenda client    │
-└───────────────────────┘       └───────────┬───────────┘
-                                            │
-                        ┌───────────────────┼───────────────────┐
-                        │                   │                   │
-                        ▼                   ▼                   ▼
-              ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
-              │   Dataverse     │ │     Catenda     │ │   Key Vault     │
-              │   (Database)    │ │   (Prosjekt-    │ │   (Secrets)     │
-              │                 │ │    hotell)      │ │                 │
-              └─────────────────┘ └─────────────────┘ └─────────────────┘
+                                    ┌──────────────────┐
+                                    │    Bruker        │
+                                    │  (Ekstern/       │
+                                    │   Intern)        │
+                                    └────────┬─────────┘
+                                             │
+                                             ▼
+                              ┌──────────────────────────────┐
+                              │  Azure Front Door + WAF      │
+                              │  - DDoS Protection           │
+                              │  - Rate Limiting             │
+                              │  - Geo-filtering             │
+                              └──────────────┬───────────────┘
+                                             │
+                                             ▼
+┌───────────────────────────────────────────────────────────────────────┐
+│                    Azure Static Web Apps                              │
+│  ┌─────────────────────────────────────────────────────────────────┐  │
+│  │                     React Frontend                              │  │
+│  │  - React 19 + TypeScript                                        │  │
+│  │  - Punkt (Oslo kommunes designsystem)                           │  │
+│  │  - Client-side PDF-generering (@react-pdf)                      │  │
+│  └─────────────────────────────────────────────────────────────────┘  │
+└───────────────────────────────────┬───────────────────────────────────┘
+                                    │ HTTPS/REST
+                                    ▼
+┌───────────────────────────────────────────────────────────────────────┐
+│                      Azure Functions (Python 3.11)                    │
+│  ┌──────────────────────────────────────────────────────────────────┐ │
+│  │  Forretningslogikk og API-lag                                    │ │
+│  │  - Event Sourcing (immutabel hendelseslogg)                      │ │
+│  │  - Gatekeeper (autorisasjon + rollebasert tilgang)               │ │
+│  │  - Input-validering (UUID, felt-validering)                      │ │
+│  │  - Magic Link-håndtering                                         │ │
+│  │  - Webhook-mottak fra Catenda                                    │ │
+│  │  - Optimistisk låsing (versjonskontroll)                         │ │
+│  └──────────────────────────────────────────────────────────────────┘ │
+└───────────────┬───────────────────────────────────┬───────────────────┘
+                │                                   │
+                │ Managed Identity                  │ HTTPS
+                ▼                                   ▼
+┌───────────────────────────────┐    ┌──────────────────────────────────┐
+│      Dataverse (Event Store)  │    │           Catenda                │
+│  ┌─────────────────────────┐  │    │  ┌────────────────────────────┐  │
+│  │  - koe_events           │  │    │  │  - Webhook (inn)           │  │
+│  │    (append-only log)    │  │    │  │  - Document API v2         │  │
+│  │  - koe_sak_metadata     │  │    │  │  - BCF 3.0 API             │  │
+│  │  - koe_magic_links      │  │    │  │  - Project Members         │  │
+│  └─────────────────────────┘  │    │  └────────────────────────────┘  │
+│  Row-Level Security           │    │  Autoritativ dokument-kilde      │
+│  Encryption at rest           │    └──────────────────────────────────┘
+└───────────────────────────────┘
+                │
+                │ Native Connector
+                ▼
+┌───────────────────────────────┐
+│        Power BI               │
+│  - Rapporter                  │
+│  - Dashboards                 │
+│  - Analyse                    │
+└───────────────────────────────┘
+
+        ┌──────────────────────────────────────┐
+        │  Microsoft 365 Økosystem             │
+        │  ┌────────────────────────────────┐  │
+        │  │  Entra ID (SSO, MFA)           │  │
+        │  │  Microsoft Graph API           │  │
+        │  │  Key Vault (Secrets)           │  │
+        │  │  Application Insights          │  │
+        │  └────────────────────────────────┘  │
+        └──────────────────────────────────────┘
 ```
 
 ---
@@ -154,10 +201,18 @@ backend/
 │   └── system_context.py     # Dependency injection
 │
 ├── services/                 # ✅ Forretningslogikk (ferdig)
-├── repositories/             # ✅ CSV (Dataverse må implementeres)
+│   ├── timeline_service.py   # State-projeksjon fra events
+│   └── ...
+├── repositories/             # ✅ Event Sourcing (JSON → Dataverse)
+│   ├── event_repository.py   # Abstrakt interface + JSON-impl
+│   └── csv_repository.py     # Deprecated (bakoverkompatibilitet)
 ├── integrations/             # ✅ Catenda client (ferdig)
 ├── lib/                      # ✅ Sikkerhet (ferdig)
+│   ├── auth/                 # Magic links, CSRF
+│   ├── security/             # Validering, rate limiting, webhook
+│   └── monitoring/           # Audit logging
 └── models/                   # ✅ Pydantic modeller (ferdig)
+    └── events/               # Event-typer (SakEvent, EventType)
 ```
 
 > **Merk:** `functions/adapters.py` inneholder allerede `ServiceContext` for lazy-loading av services, samt request/response adapters.
@@ -214,22 +269,28 @@ app = func.FunctionApp()
 def health(req: func.HttpRequest) -> func.HttpResponse:
     return func.HttpResponse('{"status": "healthy"}', mimetype="application/json")
 
-@app.route(route="cases/{sakId}", methods=["GET"])
-def get_case(req: func.HttpRequest) -> func.HttpResponse:
+@app.route(route="cases/{sakId}/state", methods=["GET"])
+def get_case_state(req: func.HttpRequest) -> func.HttpResponse:
+    """Hent beregnet state for en sak (projisert fra events)."""
     sak_id = req.route_params.get('sakId')
     with ServiceContext() as ctx:
-        data = ctx.repository.get_form_data(sak_id)
-    return create_response(data)
+        events, version = ctx.event_repository.get_events(sak_id)
+        state = ctx.timeline_service.compute_state(events)
+    return create_response({"state": state, "version": version})
 
-@app.route(route="varsel-submit", methods=["POST"])
-def submit_varsel(req: func.HttpRequest) -> func.HttpResponse:
+@app.route(route="events", methods=["POST"])
+def append_event(req: func.HttpRequest) -> func.HttpResponse:
+    """Legg til ny event med optimistisk låsing."""
     request_data = adapt_request(req)
+    expected_version = request_data['json'].get('expected_version', 0)
+    event_data = request_data['json'].get('event')
     with ServiceContext() as ctx:
-        result = ctx.varsel_service.submit_varsel(request_data['json'])
-    return create_response(result)
+        new_version = ctx.event_repository.append(event_data, expected_version)
+    return create_response({"version": new_version})
 
 @app.route(route="webhook/catenda/{secret_path}", methods=["POST"])
 def webhook_catenda(req: func.HttpRequest) -> func.HttpResponse:
+    """Mottak av webhooks fra Catenda."""
     secret_path = req.route_params.get('secret_path')
     with ServiceContext() as ctx:
         result = ctx.catenda_service.handle_webhook(
@@ -584,6 +645,7 @@ Lag Azure Dashboard med:
 
 ## Se også
 
+- [SECURITY_ARCHITECTURE.md](SECURITY_ARCHITECTURE.md) – Sikkerhetsarkitektur (prototype vs. produksjon)
 - [FRONTEND_ARCHITECTURE.md](FRONTEND_ARCHITECTURE.md) – Frontend-arkitektur
 - [GETTING_STARTED.md](GETTING_STARTED.md) – Lokal utvikling
 - [backend/STRUCTURE.md](../backend/STRUCTURE.md) – Backend-mappestruktur
