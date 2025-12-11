@@ -47,7 +47,7 @@ export function TimelineItem({
           className="relative flex-shrink-0 w-8 h-8 rounded-full bg-oslo-blue flex items-center justify-center"
           aria-hidden="true"
         >
-          <div className="w-3 h-3 rounded-full bg-white" />
+          <div className="w-3 h-3 rounded-full bg-pkt-bg-card" />
         </div>
 
         {/* Content */}
@@ -60,16 +60,16 @@ export function TimelineItem({
             >
               {format(new Date(timestamp), 'PPpp', { locale: nb })}
             </time>
-            <span className="text-sm text-gray-600">{actor}</span>
+            <span className="text-sm text-pkt-grays-gray-600">{actor}</span>
           </div>
 
           {/* Event Type */}
-          <h3 className="mt-2 text-body-md font-semibold text-gray-900">
+          <h3 className="mt-2 text-body-md font-semibold text-pkt-text-body-dark">
             {eventType}
           </h3>
 
           {/* Description */}
-          <div className="mt-2 text-body-md text-gray-700">
+          <div className="mt-2 text-body-md text-pkt-grays-gray-700">
             {description}
           </div>
 

@@ -36,7 +36,7 @@ export function Tooltip({ content, children, side = 'top', delayDuration = 200 }
             className={clsx(
               'z-tooltip',
               'px-3 py-2',
-              'bg-gray-900 text-white text-sm',
+              'bg-pkt-grays-gray-900 text-pkt-text-body-light text-sm',
               'rounded-none shadow-lg',
               // Viewport-safe max-width: smaller on mobile, larger on desktop
               'max-w-[calc(100vw-2rem)] sm:max-w-xs',
@@ -56,7 +56,7 @@ export function Tooltip({ content, children, side = 'top', delayDuration = 200 }
             onPointerDownOutside={() => setOpen(false)}
           >
             {content}
-            <TooltipPrimitive.Arrow className="fill-gray-900" />
+            <TooltipPrimitive.Arrow className="fill-pkt-grays-gray-900" />
           </TooltipPrimitive.Content>
         </TooltipPrimitive.Portal>
       </TooltipPrimitive.Root>

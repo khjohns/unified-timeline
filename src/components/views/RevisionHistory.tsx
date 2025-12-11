@@ -28,20 +28,20 @@ export function RevisionHistory() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-8 bg-gray-50 rounded-lg border border-gray-300">
-        <ReloadIcon className="w-5 h-5 animate-spin mr-2 text-gray-500" />
-        <span className="text-gray-600">Laster revisjonshistorikk...</span>
+      <div className="flex items-center justify-center p-8 bg-pkt-bg-subtle rounded-lg border border-pkt-grays-gray-300">
+        <ReloadIcon className="w-5 h-5 animate-spin mr-2 text-pkt-grays-gray-500" />
+        <span className="text-pkt-grays-gray-600">Laster revisjonshistorikk...</span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-center p-8 bg-red-50 rounded-lg border border-red-300">
-        <p className="text-red-600 mb-2">Kunne ikke laste revisjonshistorikk</p>
+      <div className="text-center p-8 bg-pkt-surface-subtle-light-red rounded-lg border border-pkt-border-red">
+        <p className="text-pkt-brand-red-1000 mb-2">Kunne ikke laste revisjonshistorikk</p>
         <button
           onClick={refetch}
-          className="text-sm text-red-700 hover:underline flex items-center justify-center gap-1 mx-auto"
+          className="text-sm text-pkt-brand-red-1000 hover:underline flex items-center justify-center gap-1 mx-auto"
         >
           <ReloadIcon className="w-4 h-4" />
           Prøv igjen
@@ -55,8 +55,8 @@ export function RevisionHistory() {
 
   if (!hasVederlag && !hasFrist) {
     return (
-      <div className="text-center p-8 bg-gray-50 rounded-lg border border-gray-300">
-        <p className="text-gray-600">Ingen krav er fremsatt ennå.</p>
+      <div className="text-center p-8 bg-pkt-bg-subtle rounded-lg border border-pkt-grays-gray-300">
+        <p className="text-pkt-grays-gray-600">Ingen krav er fremsatt ennå.</p>
       </div>
     );
   }
@@ -73,8 +73,8 @@ export function RevisionHistory() {
         .revision-table td {
           padding: 12px 16px;
           font-size: 0.875rem;
-          border-right: 1px solid #d1d5db;
-          border-bottom: 1px solid #d1d5db;
+          border-right: 1px solid var(--color-pkt-grays-gray-300);
+          border-bottom: 1px solid var(--color-pkt-grays-gray-300);
         }
         .revision-table th:last-child,
         .revision-table td:last-child {
@@ -87,28 +87,28 @@ export function RevisionHistory() {
           position: sticky;
           left: 0;
           z-index: 10;
-          background-color: #f9fafb;
+          background-color: var(--color-pkt-bg-subtle);
           font-weight: 500;
-          color: #4b5563;
-          border-right: 2px solid #d1d5db !important;
+          color: var(--color-pkt-grays-gray-600);
+          border-right: 2px solid var(--color-pkt-grays-gray-300) !important;
         }
         .te-header {
-          background-color: #d1fae5;
-          color: #065f46;
+          background-color: var(--color-pkt-surface-light-green);
+          color: var(--color-pkt-brand-dark-green-1000);
         }
         .bh-header {
-          background-color: #fef3c7;
-          color: #92400e;
+          background-color: var(--color-pkt-surface-yellow);
+          color: var(--color-pkt-brand-neutrals-1000);
         }
         .te-cell {
-          background-color: #f0fdf4;
+          background-color: var(--color-pkt-surface-faded-green);
         }
         .bh-cell {
-          background-color: #fffbeb;
+          background-color: var(--color-pkt-surface-yellow);
         }
         .changed-value {
           font-weight: 600;
-          color: #0369a1;
+          color: var(--color-pkt-brand-warm-blue-1000);
         }
       `}</style>
 
@@ -157,20 +157,20 @@ function VederlagHistorikkTable({ entries }: VederlagHistorikkTableProps) {
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-300 bg-white shadow-sm">
+    <div className="overflow-x-auto rounded-lg border border-pkt-grays-gray-300 bg-pkt-bg-card shadow-sm">
       <table className="revision-table">
         <thead>
-          <tr className="bg-gray-50">
+          <tr className="bg-pkt-bg-subtle">
             <th className="sticky-col text-left min-w-[180px]">Felt</th>
             {versions.map((v) => {
               const te = teEntries.find((e) => e.versjon === v);
               const bh = bhByVersion.get(v);
               return (
                 <th key={v} colSpan={bh ? 2 : 1} className="text-center min-w-[160px]">
-                  <div className="font-semibold text-gray-700">
+                  <div className="font-semibold text-pkt-grays-gray-700">
                     {v === 1 ? 'Versjon 1' : `Rev. ${v}`}
                   </div>
-                  <div className="text-xs text-gray-500 font-normal">
+                  <div className="text-xs text-pkt-grays-gray-500 font-normal">
                     {te && formatRevisionDate(te.tidsstempel)}
                   </div>
                 </th>
@@ -310,14 +310,14 @@ function VederlagRow({
         return bh ? (
           <React.Fragment key={`row-${v}`}>
             <td
-              className={`te-cell text-center ${highlight ? 'bg-green-100' : ''} ${
+              className={`te-cell text-center ${highlight ? 'bg-pkt-surface-faded-green' : ''} ${
                 isChanged ? 'changed-value' : ''
               }`}
             >
               {teValue}
             </td>
             <td
-              className={`bh-cell text-center ${highlight ? 'bg-yellow-100 font-semibold' : ''}`}
+              className={`bh-cell text-center ${highlight ? 'bg-pkt-surface-yellow font-semibold' : ''}`}
             >
               {getBhValue(bh)}
             </td>
@@ -325,7 +325,7 @@ function VederlagRow({
         ) : (
           <td
             key={`te-${v}`}
-            className={`te-cell text-center ${highlight ? 'bg-green-100' : ''} ${
+            className={`te-cell text-center ${highlight ? 'bg-pkt-surface-faded-green' : ''} ${
               isChanged ? 'changed-value' : ''
             }`}
           >
@@ -357,20 +357,20 @@ function FristHistorikkTable({ entries }: FristHistorikkTableProps) {
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-300 bg-white shadow-sm">
+    <div className="overflow-x-auto rounded-lg border border-pkt-grays-gray-300 bg-pkt-bg-card shadow-sm">
       <table className="revision-table">
         <thead>
-          <tr className="bg-gray-50">
+          <tr className="bg-pkt-bg-subtle">
             <th className="sticky-col text-left min-w-[180px]">Felt</th>
             {versions.map((v) => {
               const te = teEntries.find((e) => e.versjon === v);
               const bh = bhByVersion.get(v);
               return (
                 <th key={v} colSpan={bh ? 2 : 1} className="text-center min-w-[160px]">
-                  <div className="font-semibold text-gray-700">
+                  <div className="font-semibold text-pkt-grays-gray-700">
                     {v === 1 ? 'Versjon 1' : `Rev. ${v}`}
                   </div>
-                  <div className="text-xs text-gray-500 font-normal">
+                  <div className="text-xs text-pkt-grays-gray-500 font-normal">
                     {te && formatRevisionDate(te.tidsstempel)}
                   </div>
                 </th>
@@ -502,14 +502,14 @@ function FristRow({
         return bh ? (
           <React.Fragment key={`frist-row-${v}`}>
             <td
-              className={`te-cell text-center ${highlight ? 'bg-green-100' : ''} ${
+              className={`te-cell text-center ${highlight ? 'bg-pkt-surface-faded-green' : ''} ${
                 isChanged ? 'changed-value' : ''
               }`}
             >
               {teValue}
             </td>
             <td
-              className={`bh-cell text-center ${highlight ? 'bg-yellow-100 font-semibold' : ''}`}
+              className={`bh-cell text-center ${highlight ? 'bg-pkt-surface-yellow font-semibold' : ''}`}
             >
               {getBhValue(bh)}
             </td>
@@ -517,7 +517,7 @@ function FristRow({
         ) : (
           <td
             key={`te-${v}`}
-            className={`te-cell text-center ${highlight ? 'bg-green-100' : ''} ${
+            className={`te-cell text-center ${highlight ? 'bg-pkt-surface-faded-green' : ''} ${
               isChanged ? 'changed-value' : ''
             }`}
           >

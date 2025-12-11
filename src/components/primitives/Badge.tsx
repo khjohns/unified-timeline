@@ -19,12 +19,12 @@ export interface BadgeProps {
 }
 
 const variantStyles: Record<BadgeVariant, string> = {
-  default: 'bg-pkt-surface-gray text-pkt-text-default border-pkt-border-gray',
-  info: 'bg-blue-50 text-blue-800 border-blue-200',
-  success: 'bg-green-50 text-green-800 border-green-200',
-  warning: 'bg-yellow-50 text-yellow-800 border-yellow-200',
-  danger: 'bg-red-50 text-red-800 border-red-200',
-  neutral: 'bg-gray-100 text-gray-700 border-gray-300',
+  default: 'bg-pkt-surface-gray text-pkt-text-body-default border-pkt-border-gray',
+  info: 'bg-pkt-surface-light-blue text-pkt-brand-dark-blue-1000 border-pkt-border-blue',
+  success: 'bg-pkt-surface-light-green text-pkt-brand-dark-green-1000 border-pkt-border-green',
+  warning: 'bg-pkt-surface-yellow text-pkt-brand-neutrals-1000 border-pkt-border-yellow',
+  danger: 'bg-pkt-surface-faded-red text-pkt-brand-red-1000 border-pkt-border-red',
+  neutral: 'bg-pkt-grays-gray-100 text-pkt-grays-gray-700 border-pkt-grays-gray-300',
 };
 
 const sizeStyles: Record<BadgeSize, string> = {

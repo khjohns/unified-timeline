@@ -186,6 +186,105 @@
 }
 
 /* ============================================
+   DARK MODE THEME OVERRIDES
+   Applied when .dark class is on <html>
+   ============================================ */
+.dark {
+  /* Backgrounds */
+  --color-pkt-bg-default: #1a1a2e;
+  --color-pkt-bg-card: #252542;
+  --color-pkt-bg-subtle: #1e1e36;
+  --color-pkt-bg-transparent: transparent;
+
+  /* Text */
+  --color-pkt-text-body-dark: #e8e8f0;
+  --color-pkt-text-body-default: #c8c8d8;
+  --color-pkt-text-body-light: #ffffff;
+  --color-pkt-text-placeholder: #9a9ab0;
+  --color-pkt-text-action-disabled: #6a6a8a;
+  --color-pkt-text-action-active: #8ab4ff;
+  --color-pkt-text-action-hover: #8ab4ff;
+  --color-pkt-text-action-normal: #c8c8d8;
+
+  /* Borders */
+  --color-pkt-border-default: #5a5a8a;
+  --color-pkt-border-beige: #6a5a4a;
+  --color-pkt-border-blue: #4a8aaa;
+  --color-pkt-border-gray: #4a4a6a;
+  --color-pkt-border-green: #2a8a6a;
+  --color-pkt-border-light-beige: #4a4a3a;
+  --color-pkt-border-red: #aa4a4a;
+  --color-pkt-border-subtle: #3a3a5a;
+  --color-pkt-border-yellow: #8a7a3a;
+  --color-pkt-border-active: #6a9aff;
+  --color-pkt-border-disabled: #4a4a6a;
+  --color-pkt-border-focus: #6a9aff;
+  --color-pkt-border-hover: #6a9aff;
+
+  /* Grays - adjusted for dark mode */
+  --color-pkt-grays-gray-100: #2a2a4a;
+  --color-pkt-grays-gray-200: #3a3a5a;
+  --color-pkt-grays-gray-300: #4a4a6a;
+  --color-pkt-grays-gray-400: #5a5a7a;
+  --color-pkt-grays-gray-500: #7a7a9a;
+  --color-pkt-grays-gray-600: #9a9ab0;
+  --color-pkt-grays-gray-700: #a8a8c8;
+  --color-pkt-grays-gray-800: #c8c8d8;
+  --color-pkt-grays-gray-900: #e8e8f0;
+  --color-pkt-grays-gray-1000: #f0f0f8;
+
+  /* Surfaces - darker versions for dark mode */
+  --color-pkt-surface-faded-green: #1a3a2a;
+  --color-pkt-surface-faded-red: #3a2a2a;
+  --color-pkt-surface-gray: #2a2a4a;
+  --color-pkt-surface-light-beige: #3a3a2a;
+  --color-pkt-surface-light-blue: #1a3a5a;
+  --color-pkt-surface-light-green: #1a4a3a;
+  --color-pkt-surface-red: #5a3a3a;
+  --color-pkt-surface-yellow: #4a4a2a;
+  --color-pkt-surface-strong-beige: #5a4a3a;
+  --color-pkt-surface-strong-blue: #3a6a8a;
+  --color-pkt-surface-strong-dark-blue: #4a4a8a;
+  --color-pkt-surface-strong-dark-green: #1a5a4a;
+  --color-pkt-surface-strong-gray: #3a3a5a;
+  --color-pkt-surface-strong-green: #2a7a5a;
+  --color-pkt-surface-strong-light-green: #2a5a3a;
+  --color-pkt-surface-strong-red: #8a3a3a;
+  --color-pkt-surface-strong-yellow: #7a6a3a;
+  --color-pkt-surface-subtle-light-blue: #2a3a5a;
+  --color-pkt-surface-subtle-light-red: #3a2a3a;
+  --color-pkt-surface-subtle-pale-blue: #2a3a4a;
+  --color-pkt-surface-subtle-white: #2a2a4a;
+
+  /* Brand colors - adjusted for dark mode visibility */
+  --color-pkt-brand-blue-200: #2a4a6a;
+  --color-pkt-brand-dark-blue-1000: #8ab4ff;
+  --color-pkt-brand-dark-green-1000: #6adb8a;
+  --color-pkt-brand-warm-blue-1000: #6a9aff;
+  --color-pkt-brand-neutrals-white: #1a1a2e;
+  --color-pkt-brand-neutrals-100: #252542;
+  --color-pkt-brand-neutrals-200: #2a2a4a;
+  --color-pkt-brand-neutrals-1000: #e8e8f0;
+  --color-pkt-brand-neutrals-black: #ffffff;
+
+  /* Legacy aliases - dark mode */
+  --color-oslo-blue: #8ab4ff;
+  --color-oslo-blue-700: #9aaac8;
+  --color-oslo-beige: #6a5a4a;
+  --color-oslo-beige-100: #3a3a2a;
+  --color-oslo-green: #6adb8a;
+  --color-success: #6adb8a;
+  --color-success-100: #1a3a2a;
+  --color-warning: #f9c66b;
+  --color-warning-100: #4a4a2a;
+  --color-error: #ff6b6b;
+  --color-error-100: #3a2a2a;
+  --color-info: #8ab4ff;
+  --color-pri: #6a9aff;
+  --color-pri-light: #2a3a5a;
+}
+
+/* ============================================
    Font Face Declarations
    ============================================ */
 @font-face {
@@ -271,18 +370,18 @@ body {
     outline-color: var(--color-pri);
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar - uses CSS variables for dark mode support */
 ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
 }
 ::-webkit-scrollbar-track {
-    background: #eefbff;
+    background: var(--color-pkt-bg-subtle);
 }
 ::-webkit-scrollbar-thumb {
-    background-color: #bdc5d1;
+    background-color: var(--color-pkt-grays-gray-400);
     border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-    background-color: #9daab5;
+    background-color: var(--color-pkt-grays-gray-500);
 }

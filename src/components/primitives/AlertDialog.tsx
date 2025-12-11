@@ -48,7 +48,7 @@ export function AlertDialog({
         <AlertDialogPrimitive.Content
           className={clsx(
             'fixed left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%]',
-            'bg-white rounded-none shadow-xl',
+            'bg-pkt-bg-card rounded-none shadow-xl',
             'p-6',
             'z-modal',
             'w-[90vw] max-w-md',
@@ -64,7 +64,7 @@ export function AlertDialog({
           </AlertDialogPrimitive.Title>
 
           {/* Description */}
-          <AlertDialogPrimitive.Description className="text-body-md text-gray-700 mb-5">
+          <AlertDialogPrimitive.Description className="text-body-md text-pkt-grays-gray-700 mb-5">
             {description}
           </AlertDialogPrimitive.Description>
 
