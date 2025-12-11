@@ -35,10 +35,10 @@ Dette dokumentet sammenligner to teknologitilnærminger for håndtering av endri
 **Hovedfunn:**
 - Custom-løsningen er implementert med event sourcing, subsidiær logikk og kompleks port-modell som følger NS 8407 nøyaktig
 - Power Platform med SharePoint har strengere begrensninger enn med Dataverse (som ikke er i bruk i dag)
-- SharePoint-basert løsning vil møte utfordringer med delegation limits (500 rader), relasjonell data og kompleks forretningslogikk
+- SharePoint-basert løsning vil møte utfordringer med 5 000-elementers listeterskel, begrenset delegasjonsstøtte, og manglende felt-sikkerhet
 - Valget avhenger av prioritering mellom: full funksjonalitet vs. intern kompetanseutnyttelse
 
-**Merknad om Dataverse:** Dokumentet diskuterer også Dataverse som et potensielt alternativ til SharePoint dersom Power Platform velges. Dataverse er ikke i bruk i dag, men ville redusere noen av SharePoint-begrensningene.
+**Merknad om Dataverse:** Dokumentet diskuterer også Dataverse som et potensielt alternativ til SharePoint dersom Power Platform velges. Dataverse er ikke i bruk i dag, men ville redusere noen av SharePoint-begrensningene (bredere delegasjonsstøtte, ingen listeterskel, felt-nivå sikkerhet).
 
 ---
 
@@ -155,14 +155,20 @@ Gi et objektivt beslutningsgrunnlag for teknologivalg ved å:
 
 | Aspekt | SharePoint (foreslått) | Dataverse (alternativ) |
 |--------|------------------------|------------------------|
-| **Delegation limit** | 500 rader (fast) | 500-2000 (konfigurerbart) |
+| **Ikke-delegerbare spørringer** | 500 (kan økes til 2 000)¹ | 500 (kan økes til 2 000)¹ |
+| **Delegerbare spørringer** | Begrenset støtte | Bred støtte |
+| **Listeterskel** | 5 000 elementer | Ingen |
 | **Business rules** | Ingen | Innebygd |
-| **Relasjoner** | Lookup-kolonner (begrenset) | Ekte relasjoner med integritet |
-| **Transaksjoner** | Nei | Ja |
+| **Relasjoner** | Lookup-kolonner (~12 per visning)² | Ekte relasjoner med integritet |
+| **Transaksjoner** | Nei | Ja (ExecuteTransaction) |
 | **Row-level security** | Begrenset | Robust |
-| **Audit trail** | Versjonhistorikk | Komplett endringssporing |
+| **Audit trail** | Versjonhistorikk | Komplett + Long-Term Retention |
 | **Lisensiering** | Inkludert i M365 | Premium-lisens påkrevd |
 | **Erfaring i org** | ✅ Eksisterende | ❌ Ikke i bruk |
+
+**Fotnoter:**
+1. 500 er standardgrense for ikke-delegerbare spørringer i Power Apps; kan økes til 2 000 i app-innstillinger.
+2. ~12 lookup/people/managed-metadata-kolonner per *visning* kan utløse terskelfeil.
 
 **Vurdering:** Hvis Power Platform velges, bør Dataverse vurderes fremfor SharePoint for å redusere tekniske begrensninger. Dette krever imidlertid Premium-lisensiering og kompetansebygging.
 
@@ -287,7 +293,7 @@ Custom-løsningen har en **ferdig utviklet, testet og validert** Catenda-integra
 | OAuth token-refresh | ✅ Automatisk | ⚠️ Må implementeres i connector |
 
 **Vurdering:** For Power Platform må Catenda-integrasjonen bygges fra scratch:
-- Custom connector krever Premium-lisens for alle brukere
+- Custom connector klassifiseres som **Premium** og krever Premium-lisens for alle brukere som benytter funksjonen
 - OAuth 2.0-flyt må konfigureres manuelt
 - BCF 3.0-støtte finnes ikke som standard connector
 - Webhook-mottak krever HTTP-trigger (også premium)
@@ -298,12 +304,12 @@ Custom-løsningen har en **ferdig utviklet, testet og validert** Catenda-integra
 | Aspekt | Custom | Power Platform |
 |--------|--------|----------------|
 | Intern SSO | ✅ Entra ID | ✅ Innebygd |
-| Eksterne brukere | Magic links + Entra ID | Power Pages + External ID / B2C |
-| Fleksibilitet | Høy (magic links 72t) | Middels (krever Microsoft-konto eller B2C) |
+| Eksterne brukere | Magic links + Entra ID | Power Pages + External ID |
+| Fleksibilitet | Høy (magic links 72t) | Middels (krever Microsoft-konto eller External ID) |
 
 **Vurdering:** Power Platform kan gi eksterne tilgang via:
-- Azure AD B2C (sunset for nye kunder mai 2025, støttes til 2030)
-- Microsoft Entra External ID (nyere, preview for Power Pages feb 2025)
+- **Microsoft Entra External ID** (anbefalt for nye prosjekter, GA i Power Pages 2025)
+- Azure AD B2C (ikke tilgjengelig for nye kunder etter 1. mai 2025; B2C P2 avvikles 15. mars 2026; eksisterende kunder støttes minst til mai 2030)
 - Begge krever oppsett og potensielt ekstra lisensiering
 
 ### 4.4 Samlet funksjonell vurdering
@@ -337,15 +343,17 @@ Custom-løsningen har en **ferdig utviklet, testet og validert** Catenda-integra
 | **Kompleksitet** | Høyere | Lavere |
 
 **Dataverse Auditing (2024-2025):**
-- Logger CRUD-operasjoner
+- Logger CRUD-operasjoner på tabell-, kolonne- og miljønivå
 - Konfigurerbar retention (90 dager til 1+ år)
+- **Long-Term Retention (LTR)** for kostnadseffektiv langtidslagring av historikk
 - AI-assistert endringssporing
-- Kan eksporteres til Azure Synapse Link
+- Kan eksporteres til Azure Synapse Link for analyse
+- Støtter **ExecuteTransaction** for ACID-transaksjoner ved samtidige oppdateringer
 
-**Vurdering:** Event Sourcing gir sterkere garantier for historikk og audit trail, men Dataverse auditing kan være tilstrekkelig for mange formål. Forskjellen er viktigst når:
-- Man trenger å rekonstruere tilstand på et gitt tidspunkt
-- Man vil "replay" events for debugging/analyse
-- Det er juridiske krav til komplett sporbarhet
+**Vurdering:** Event Sourcing gir sterkere garantier for historikk og audit trail, men Dataverse auditing med LTR kan være tilstrekkelig for mange formål. Forskjellen er viktigst når:
+- Man trenger å rekonstruere tilstand på et vilkårlig tidspunkt (event sourcing)
+- Man vil "replay" events for debugging/analyse (event sourcing)
+- Det er juridiske krav til komplett sporbarhet (begge kan dekke dette)
 
 #### Optimistisk låsing
 
@@ -376,22 +384,28 @@ Custom-løsningen har en **ferdig utviklet, testet og validert** Catenda-integra
 
 | Aspekt | Custom | SharePoint | Dataverse |
 |--------|--------|------------|-----------|
-| Maks poster per query | Ubegrenset | **500 (fast grense)** | 500-2000 (konfigurerbart) |
-| Listevisningsterskel | N/A | **5 000 elementer** | Ingen |
-| Store datasett | Azure skalering | ❌ Alvorlig begrensning | ⚠️ Krever delegerbare queries |
+| Ikke-delegerbare spørringer | N/A | 500 (kan økes til 2 000)¹ | 500 (kan økes til 2 000)¹ |
+| Delegerbare spørringer | N/A | Server-side, men begrenset² | Server-side, bred støtte |
+| Listevisningsterskel | N/A | **5 000 elementer**³ | Ingen |
+| Store datasett | Azure skalering | ⚠️ Krever indeksering/filtrering | ⚠️ Krever delegerbare queries |
 | Aggregering | Backend-beregning | Meget begrenset | 50 000 rader maks |
 | Indeksering | Full kontroll | Maks 20 indekserte kolonner | Automatisk |
 
+**Fotnoter:**
+1. I Power Apps er 500 standardgrense for *ikke-delegerbare* spørringer (kan økes til 2 000 i app-innstillinger). Ved *delegerbare* spørringer kjøres filtrering/sortering på server.
+2. SharePoint har begrenset delegasjonsstøtte sammenlignet med Dataverse.
+3. SharePoints 5 000-visningsterskel håndheves i Online-tjenesten. Indekserte kolonner og filtrerte visninger er anbefalt mitigasjon, men grensen fjernes ikke.
+
 **Estimert volum:** ~1 000 saker/år × 10-15 events/sak = **10 000-15 000 events/år**
 
-**Kritisk vurdering for SharePoint:**
-- Med 500 raders delegation limit vil sakliste **ikke kunne vise mer enn 500 saker** uten workarounds
-- SharePoints listevisningsterskel på 5 000 elementer vil nås innen 1-2 år
-- Søk på tvers av alle saker blir umulig uten ekstra filtrering
-- **Dette er en fundamental arkitektonisk begrensning** som ikke kan løses med kode
+**Vurdering for SharePoint:**
+- Med ikke-delegerbare spørringer (f.eks. komplekse filtre) vil maks 500-2 000 rader returneres
+- SharePoints listevisningsterskel på 5 000 elementer vil nås innen 1-2 år uten arkivering
+- Søk på tvers av alle saker krever delegasjonssikre formler og indekserte kolonner
+- Indeksering og filtrerte visninger kan avhjelpe, men krever bevisst informasjonsarkitektur
 
 **Hvis Dataverse velges i stedet:**
-- 2000 raders grense er håndterbart med god filtrering
+- Bredere delegasjonsstøtte gjør at flere spørringer kjører server-side
 - Ingen listevisningsterskel
 - Bedre ytelse på store datasett
 
@@ -401,19 +415,28 @@ Custom-løsningen har en **ferdig utviklet, testet og validert** Catenda-integra
 |--------|--------|------------|-----------|
 | **Horisontal skalering** | Azure Functions autoscaling | Microsoft-håndtert | Microsoft-håndtert |
 | **Datalagringsgrense** | Ubegrenset (Azure) | Begrenset per site | Kapasitetsbasert |
-| **API-kall** | Ubegrenset (egen backend) | Throttling-grenser | 2 000-50 000/dag |
+| **API-kall (per 24t)** | Ubegrenset (egen backend) | Throttling-grenser | Se tabell under |
 | **Listeterskel** | N/A | **5 000 elementer** | Ingen |
 | **Flow-begrensninger** | N/A | 500 actions per flow | 500 actions per flow |
 
+**Power Platform API-forespørselsgrenser (per 2025):**
+
+| Lisenstype | Grense per 24 timer |
+|------------|---------------------|
+| Betalte brukerlisenser (Power Apps/Automate/D365) | 40 000 |
+| Microsoft 365-seeded / Per-app | 6 000 |
+| Per-flow plan | 250 000 |
+
 **Power Automate-begrensninger (gjelder begge):**
 - Maks 500 actions per flow
-- Flyter som throttles 14 dager sammenhengende blir automatisk slått av
-- SharePoint connector: 600 kall/min
+- Flyter som throttles kontinuerlig i 14 dager kan bli slått av automatisk
+- Flyter uten vellykkede kjøringer på ~90 dager kan auto-deaktiveres (inaktivitet)
+- SharePoint connector: ~600 kall/min (veiledende; design for å unngå bursts)
 
 **SharePoint-spesifikke begrensninger:**
-- Listevisningsterskel: 5 000 elementer før ytelsen degraderer kraftig
+- Listevisningsterskel: 5 000 elementer (indeksering/filtrerte visninger anbefalt)
 - Ingen transaksjonsstøtte (kan ikke rulle tilbake flere operasjoner)
-- Lookup-kolonner: maks 12 per liste
+- Lookup-kolonner: ~12 lookup/people/managed-metadata-kolonner per *visning* kan utløse terskelfeil
 - Beregnet kolonne-begrensninger
 
 ### 5.4 Sikkerhet og tilgangskontroll
@@ -571,7 +594,7 @@ Følgende punkter bør avklares før endelig beslutning:
 | **Premium-lisensiering** | Hva koster Dataverse-kapasitet for estimert brukervolum? | Budsjettering |
 | **Kompetansebygging** | Hvor lang tid tar det å bygge Dataverse-kompetanse? | Prosjekttidsplan |
 | **Plugin-kompetanse** | Finnes intern kompetanse på Dataverse C# plugins? | Subsidiær logikk |
-| **External ID** | Er External ID i produksjon for Power Pages per i dag? | Var i preview feb 2025 |
+| **LTR-strategi** | Skal historikk lagres med Long-Term Retention for koststyring? | Arkitektur og kostnad |
 
 ### 9.2 Custom-løsning-spesifikke
 
@@ -681,11 +704,30 @@ For komplett backend-struktur, se [backend/STRUCTURE.md](../backend/STRUCTURE.md
 
 ### B. Kilder for Power Platform-vurdering
 
-- Microsoft Learn: Dataverse delegation limits
-- Microsoft Learn: Power Automate limits and configuration
-- Microsoft Power Platform Blog: Dataverse Auditing (2025)
-- Microsoft: Power Apps licensing guide (2024-2025)
-- Microsoft: Entra External ID dokumentasjon
+**Delegering og grenser:**
+- [Power Apps delegation overview](https://learn.microsoft.com/en-us/power-apps/maker/canvas-apps/delegation-overview)
+- [SharePoint list view threshold](https://learn.microsoft.com/en-us/troubleshoot/sharepoint/lists-and-libraries/items-exceeds-list-view-threshold)
+- [Working with list view threshold limits](https://support.microsoft.com/en-us/office/working-with-the-list-view-threshold-limit-for-all-versions-of-sharepoint-4a40bbdc-c5f8-4bbd-b9b6-745daf71c132)
+
+**Power Automate:**
+- [Power Automate limits and configuration](https://learn.microsoft.com/en-us/power-automate/limits-and-config)
+- [Understand limits to avoid throttling](https://learn.microsoft.com/en-us/power-automate/guidance/coding-guidelines/understand-limits)
+
+**Lisensiering og API-grenser:**
+- [Power Platform Licensing Guide (June 2025)](https://www.microsoft.com/content/dam/microsoft/final/en-us/microsoft-brand/documents/Power-Platform-Licensing-Guide-June-2025.pdf)
+- [Request limits and allocations](https://learn.microsoft.com/en-us/power-platform/admin/api-request-limits-allocations)
+- [About Power Apps per app plan](https://learn.microsoft.com/en-us/power-platform/admin/about-powerapps-perapp)
+- [Custom connectors overview](https://learn.microsoft.com/en-us/connectors/custom-connectors/)
+
+**Dataverse:**
+- [Manage Dataverse auditing](https://learn.microsoft.com/en-us/power-platform/admin/manage-dataverse-auditing)
+- [Data retention overview (LTR)](https://learn.microsoft.com/en-us/power-apps/maker/data-platform/data-retention-overview)
+- [Use ExecuteTransaction](https://learn.microsoft.com/en-us/power-apps/developer/data-platform/org-service/use-executetransaction)
+
+**Ekstern identitet:**
+- [Azure AD B2C FAQ (end-of-sale/support)](https://learn.microsoft.com/en-us/azure/active-directory-b2c/faq)
+- [Configure Entra External ID in Power Pages](https://learn.microsoft.com/en-us/power-pages/security/authentication/entra-external-id)
+- [2025 Wave 1: Entra External ID in Power Pages](https://learn.microsoft.com/en-us/power-platform/release-plan/2025wave1/power-pages/utilize-entra-external-id-power-pages)
 
 ### C. Relatert dokumentasjon
 
