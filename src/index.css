@@ -221,14 +221,14 @@
   --color-pkt-border-focus: #6a9aff;
   --color-pkt-border-hover: #6a9aff;
 
-  /* Grays - adjusted for dark mode */
+  /* Grays - adjusted for dark mode with WCAG AA compliance */
   --color-pkt-grays-gray-100: #2a2a4a;
   --color-pkt-grays-gray-200: #3a3a5a;
-  --color-pkt-grays-gray-300: #4a4a6a;
-  --color-pkt-grays-gray-400: #5a5a7a;
-  --color-pkt-grays-gray-500: #7a7a9a;
-  --color-pkt-grays-gray-600: #9a9ab0;
-  --color-pkt-grays-gray-700: #a8a8c8;
+  --color-pkt-grays-gray-300: #707090;  /* Lightened for 3:1 border contrast */
+  --color-pkt-grays-gray-400: #7a7a9a;  /* Lightened for 3:1 border contrast */
+  --color-pkt-grays-gray-500: #9090b0;  /* Lightened for 4.5:1 text contrast */
+  --color-pkt-grays-gray-600: #a0a0c0;
+  --color-pkt-grays-gray-700: #b0b0d0;
   --color-pkt-grays-gray-800: #c8c8d8;
   --color-pkt-grays-gray-900: #e8e8f0;
   --color-pkt-grays-gray-1000: #f0f0f8;
