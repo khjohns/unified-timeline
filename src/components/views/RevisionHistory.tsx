@@ -1,16 +1,11 @@
 /**
  * RevisionHistory Component
  *
- * Displays side-by-side comparison of all revisions for each track.
- * Fetches revision history from backend API and shows:
- * - All TE claim versions chronologically
- * - BH responses attached to the version they responded to
- * - Visual indicators for changes between versions
+ * Displays revision history for each track with categorical grouping.
+ * Shows TE claims and BH responses in a clear, scannable format.
  */
 
-import React from 'react';
 import { useParams } from 'react-router-dom';
-import { Collapsible } from '../primitives/Collapsible';
 import { StackIcon, ClockIcon, ReloadIcon } from '@radix-ui/react-icons';
 import {
   useHistorikk,
@@ -28,7 +23,7 @@ export function RevisionHistory() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-8 bg-pkt-bg-subtle rounded-lg border border-pkt-grays-gray-300">
+      <div className="flex items-center justify-center p-8 bg-pkt-bg-subtle border border-pkt-grays-gray-300">
         <ReloadIcon className="w-5 h-5 animate-spin mr-2 text-pkt-grays-gray-500" />
         <span className="text-pkt-grays-gray-600">Laster revisjonshistorikk...</span>
       </div>
@@ -37,7 +32,7 @@ export function RevisionHistory() {
 
   if (error) {
     return (
-      <div className="text-center p-8 bg-pkt-surface-subtle-light-red rounded-lg border border-pkt-border-red">
+      <div className="text-center p-8 bg-pkt-surface-subtle-light-red border border-pkt-border-red">
         <p className="text-pkt-brand-red-1000 mb-2">Kunne ikke laste revisjonshistorikk</p>
         <button
           onClick={refetch}
@@ -55,86 +50,42 @@ export function RevisionHistory() {
 
   if (!hasVederlag && !hasFrist) {
     return (
-      <div className="text-center p-8 bg-pkt-bg-subtle rounded-lg border border-pkt-grays-gray-300">
+      <div className="text-center p-8 bg-pkt-bg-subtle border border-pkt-grays-gray-300">
         <p className="text-pkt-grays-gray-600">Ingen krav er fremsatt ennå.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <style>{`
-        .revision-table {
-          border-collapse: separate;
-          border-spacing: 0;
-          width: 100%;
-        }
-        .revision-table th,
-        .revision-table td {
-          padding: 12px 16px;
-          font-size: 0.875rem;
-          border-right: 1px solid var(--color-pkt-grays-gray-300);
-          border-bottom: 1px solid var(--color-pkt-grays-gray-300);
-        }
-        .revision-table th:last-child,
-        .revision-table td:last-child {
-          border-right: none;
-        }
-        .revision-table tr:last-child td {
-          border-bottom: none;
-        }
-        .sticky-col {
-          position: sticky;
-          left: 0;
-          z-index: 10;
-          background-color: var(--color-pkt-bg-subtle);
-          font-weight: 500;
-          color: var(--color-pkt-grays-gray-600);
-          border-right: 2px solid var(--color-pkt-grays-gray-300) !important;
-        }
-        .te-header {
-          background-color: var(--color-pkt-surface-light-green);
-          color: var(--color-pkt-brand-dark-green-1000);
-        }
-        .bh-header {
-          background-color: var(--color-pkt-surface-yellow);
-          color: var(--color-pkt-brand-neutrals-1000);
-        }
-        .te-cell {
-          background-color: var(--color-pkt-surface-faded-green);
-        }
-        .bh-cell {
-          background-color: var(--color-pkt-surface-yellow);
-        }
-        .changed-value {
-          font-weight: 600;
-          color: var(--color-pkt-brand-warm-blue-1000);
-        }
-      `}</style>
-
+    <div className="space-y-8">
       {/* Vederlag Revision History */}
       {hasVederlag && (
-        <Collapsible
-          title="Vederlag - Revisjonshistorikk"
-          defaultOpen
-          icon={<StackIcon className="w-5 h-5" />}
-        >
+        <section>
+          <h3 className="flex items-center gap-2 text-base font-semibold text-pkt-text-body-default mb-4">
+            <StackIcon className="w-5 h-5" />
+            Vederlag - Revisjonshistorikk
+          </h3>
           <VederlagHistorikkTable entries={vederlag} />
-        </Collapsible>
+        </section>
       )}
 
       {/* Frist Revision History */}
       {hasFrist && (
-        <Collapsible
-          title="Frist - Revisjonshistorikk"
-          defaultOpen
-          icon={<ClockIcon className="w-5 h-5" />}
-        >
+        <section>
+          <h3 className="flex items-center gap-2 text-base font-semibold text-pkt-text-body-default mb-4">
+            <ClockIcon className="w-5 h-5" />
+            Frist - Revisjonshistorikk
+          </h3>
           <FristHistorikkTable entries={frist} />
-        </Collapsible>
+        </section>
       )}
     </div>
   );
+}
+
+/** Format version label - 0 = Opprinnelig, 1+ = Rev. N */
+function formatVersionLabel(version: number): string {
+  return version === 0 ? 'Opprinnelig' : `Rev. ${version}`;
 }
 
 // ============ VEDERLAG TABLE ============
@@ -147,193 +98,105 @@ function VederlagHistorikkTable({ entries }: VederlagHistorikkTableProps) {
   const teEntries = getTeEntries(entries);
   const bhEntries = getBhEntries(entries);
 
-  // Get unique versions for columns
+  // Get unique versions for columns, sorted
   const versions = [...new Set(teEntries.map((e) => e.versjon))].sort((a, b) => a - b);
 
-  // Map BH responses to the TE version they responded to
+  // Map entries by version for quick lookup
+  const teByVersion = new Map<number, VederlagHistorikkEntry>();
+  for (const te of teEntries) {
+    teByVersion.set(te.versjon, te);
+  }
+
   const bhByVersion = new Map<number, VederlagHistorikkEntry>();
   for (const bh of bhEntries) {
     bhByVersion.set(bh.versjon, bh);
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-pkt-grays-gray-300 bg-pkt-bg-card shadow-sm">
-      <table className="revision-table">
+    <div className="overflow-x-auto border border-pkt-grays-gray-300 bg-pkt-bg-card">
+      <table className="w-full border-collapse text-sm">
+        {/* Header */}
         <thead>
-          <tr className="bg-pkt-bg-subtle">
-            <th className="sticky-col text-left min-w-[180px]">Felt</th>
+          <tr className="bg-pkt-bg-subtle border-b-2 border-pkt-grays-gray-300">
+            <th className="sticky left-0 z-10 bg-pkt-bg-subtle text-left py-3 px-4 font-medium text-pkt-grays-gray-600 min-w-[160px] border-r-2 border-pkt-grays-gray-300">
+              Felt
+            </th>
             {versions.map((v) => {
-              const te = teEntries.find((e) => e.versjon === v);
-              const bh = bhByVersion.get(v);
+              const te = teByVersion.get(v);
               return (
-                <th key={v} colSpan={bh ? 2 : 1} className="text-center min-w-[160px]">
-                  <div className="font-semibold text-pkt-grays-gray-700">
-                    {v === 1 ? 'Versjon 1' : `Rev. ${v}`}
+                <th key={v} className="text-center py-3 px-4 min-w-[140px] border-r border-pkt-grays-gray-200 last:border-r-0">
+                  <div className="font-semibold text-pkt-text-body-default">
+                    {formatVersionLabel(v)}
                   </div>
-                  <div className="text-xs text-pkt-grays-gray-500 font-normal">
+                  <div className="text-xs text-pkt-grays-gray-500 font-normal mt-0.5">
                     {te && formatRevisionDate(te.tidsstempel)}
                   </div>
                 </th>
               );
             })}
           </tr>
-          <tr>
-            <th className="sticky-col text-left">Kilde</th>
-            {versions.map((v) => {
-              const bh = bhByVersion.get(v);
-              return bh ? (
-                <React.Fragment key={`kilde-${v}`}>
-                  <th className="te-header text-center">TE</th>
-                  <th className="bh-header text-center">BH</th>
-                </React.Fragment>
-              ) : (
-                <th key={`te-${v}`} className="te-header text-center">
-                  TE
-                </th>
-              );
-            })}
-          </tr>
         </thead>
+
         <tbody>
-          <VederlagRow
-            label="Krevd beløp"
+          {/* KRAV (TE) Section */}
+          <GroupHeader label="Krav (TE)" colSpan={versions.length + 1} color="green" />
+          <DataRow
+            label="Beløp"
             versions={versions}
-            teEntries={teEntries}
-            bhByVersion={bhByVersion}
-            getValue={(e) => formatHistorikkBelop(e.krav_belop)}
-            getBhValue={() => '—'}
+            getValue={(v) => formatHistorikkBelop(teByVersion.get(v)?.krav_belop)}
           />
-          <VederlagRow
+          <DataRow
             label="Metode"
             versions={versions}
-            teEntries={teEntries}
-            bhByVersion={bhByVersion}
-            getValue={(e) => e.metode_label || '—'}
-            getBhValue={() => '—'}
+            getValue={(v) => teByVersion.get(v)?.metode_label || '—'}
           />
-          <VederlagRow
+          <DataRow
             label="Rigg/drift"
             versions={versions}
-            teEntries={teEntries}
-            bhByVersion={bhByVersion}
-            getValue={(e) => (e.inkluderer_rigg_drift ? '✓' : '—')}
-            getBhValue={() => '—'}
+            getValue={(v) => {
+              const te = teByVersion.get(v);
+              return te?.inkluderer_rigg_drift ? '✓' : '—';
+            }}
           />
-          <VederlagRow
+          <DataRow
             label="Produktivitetstap"
             versions={versions}
-            teEntries={teEntries}
-            bhByVersion={bhByVersion}
-            getValue={(e) => (e.inkluderer_produktivitet ? '✓' : '—')}
-            getBhValue={() => '—'}
+            getValue={(v) => {
+              const te = teByVersion.get(v);
+              return te?.inkluderer_produktivitet ? '✓' : '—';
+            }}
           />
-          <VederlagRow
-            label="BH Resultat"
+
+          {/* RESPONS (BH) Section */}
+          <GroupHeader label="Respons (BH)" colSpan={versions.length + 1} color="yellow" />
+          <DataRow
+            label="Resultat"
             versions={versions}
-            teEntries={teEntries}
-            bhByVersion={bhByVersion}
-            getValue={() => '—'}
-            getBhValue={(e) => e.bh_resultat_label || '—'}
+            getValue={(v) => bhByVersion.get(v)?.bh_resultat_label || '—'}
             highlight
           />
-          <VederlagRow
+          <DataRow
             label="Godkjent beløp"
             versions={versions}
-            teEntries={teEntries}
-            bhByVersion={bhByVersion}
-            getValue={() => '—'}
-            getBhValue={(e) => formatHistorikkBelop(e.godkjent_belop)}
+            getValue={(v) => formatHistorikkBelop(bhByVersion.get(v)?.godkjent_belop)}
             highlight
           />
-          <VederlagRow
-            label="Aktør"
+
+          {/* META Section */}
+          <GroupHeader label="Detaljer" colSpan={versions.length + 1} color="gray" />
+          <DataRow
+            label="TE aktør"
             versions={versions}
-            teEntries={teEntries}
-            bhByVersion={bhByVersion}
-            getValue={(e) => e.aktor.navn}
-            getBhValue={(e) => e.aktor.navn}
+            getValue={(v) => teByVersion.get(v)?.aktor.navn || '—'}
           />
-          <VederlagRow
-            label="Status"
+          <DataRow
+            label="BH aktør"
             versions={versions}
-            teEntries={teEntries}
-            bhByVersion={bhByVersion}
-            getValue={(e) =>
-              e.endring_type === 'sendt'
-                ? 'Sendt'
-                : e.endring_type === 'oppdatert'
-                ? 'Oppdatert'
-                : 'Trukket'
-            }
-            getBhValue={(e) =>
-              e.endring_type === 'respons' ? 'Svar sendt' : 'Svar oppdatert'
-            }
+            getValue={(v) => bhByVersion.get(v)?.aktor.navn || '—'}
           />
         </tbody>
       </table>
     </div>
-  );
-}
-
-interface VederlagRowProps {
-  label: string;
-  versions: number[];
-  teEntries: VederlagHistorikkEntry[];
-  bhByVersion: Map<number, VederlagHistorikkEntry>;
-  getValue: (entry: VederlagHistorikkEntry) => string;
-  getBhValue: (entry: VederlagHistorikkEntry) => string;
-  highlight?: boolean;
-}
-
-function VederlagRow({
-  label,
-  versions,
-  teEntries,
-  bhByVersion,
-  getValue,
-  getBhValue,
-  highlight = false,
-}: VederlagRowProps) {
-  // Track previous value for change highlighting
-  let prevTeValue: string | null = null;
-
-  return (
-    <tr>
-      <td className="sticky-col">{label}</td>
-      {versions.map((v) => {
-        const te = teEntries.find((e) => e.versjon === v);
-        const bh = bhByVersion.get(v);
-        const teValue = te ? getValue(te) : '—';
-        const isChanged = prevTeValue !== null && teValue !== prevTeValue && teValue !== '—';
-        prevTeValue = teValue;
-
-        return bh ? (
-          <React.Fragment key={`row-${v}`}>
-            <td
-              className={`te-cell text-center ${highlight ? 'bg-pkt-surface-faded-green' : ''} ${
-                isChanged ? 'changed-value' : ''
-              }`}
-            >
-              {teValue}
-            </td>
-            <td
-              className={`bh-cell text-center ${highlight ? 'bg-pkt-surface-yellow font-semibold' : ''}`}
-            >
-              {getBhValue(bh)}
-            </td>
-          </React.Fragment>
-        ) : (
-          <td
-            key={`te-${v}`}
-            className={`te-cell text-center ${highlight ? 'bg-pkt-surface-faded-green' : ''} ${
-              isChanged ? 'changed-value' : ''
-            }`}
-          >
-            {teValue}
-          </td>
-        );
-      })}
-    </tr>
   );
 }
 
@@ -347,119 +210,90 @@ function FristHistorikkTable({ entries }: FristHistorikkTableProps) {
   const teEntries = getTeEntries(entries);
   const bhEntries = getBhEntries(entries);
 
-  // Get unique versions for columns
+  // Get unique versions for columns, sorted
   const versions = [...new Set(teEntries.map((e) => e.versjon))].sort((a, b) => a - b);
 
-  // Map BH responses to the TE version they responded to
+  // Map entries by version for quick lookup
+  const teByVersion = new Map<number, FristHistorikkEntry>();
+  for (const te of teEntries) {
+    teByVersion.set(te.versjon, te);
+  }
+
   const bhByVersion = new Map<number, FristHistorikkEntry>();
   for (const bh of bhEntries) {
     bhByVersion.set(bh.versjon, bh);
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-pkt-grays-gray-300 bg-pkt-bg-card shadow-sm">
-      <table className="revision-table">
+    <div className="overflow-x-auto border border-pkt-grays-gray-300 bg-pkt-bg-card">
+      <table className="w-full border-collapse text-sm">
+        {/* Header */}
         <thead>
-          <tr className="bg-pkt-bg-subtle">
-            <th className="sticky-col text-left min-w-[180px]">Felt</th>
+          <tr className="bg-pkt-bg-subtle border-b-2 border-pkt-grays-gray-300">
+            <th className="sticky left-0 z-10 bg-pkt-bg-subtle text-left py-3 px-4 font-medium text-pkt-grays-gray-600 min-w-[160px] border-r-2 border-pkt-grays-gray-300">
+              Felt
+            </th>
             {versions.map((v) => {
-              const te = teEntries.find((e) => e.versjon === v);
-              const bh = bhByVersion.get(v);
+              const te = teByVersion.get(v);
               return (
-                <th key={v} colSpan={bh ? 2 : 1} className="text-center min-w-[160px]">
-                  <div className="font-semibold text-pkt-grays-gray-700">
-                    {v === 1 ? 'Versjon 1' : `Rev. ${v}`}
+                <th key={v} className="text-center py-3 px-4 min-w-[140px] border-r border-pkt-grays-gray-200 last:border-r-0">
+                  <div className="font-semibold text-pkt-text-body-default">
+                    {formatVersionLabel(v)}
                   </div>
-                  <div className="text-xs text-pkt-grays-gray-500 font-normal">
+                  <div className="text-xs text-pkt-grays-gray-500 font-normal mt-0.5">
                     {te && formatRevisionDate(te.tidsstempel)}
                   </div>
                 </th>
               );
             })}
           </tr>
-          <tr>
-            <th className="sticky-col text-left">Kilde</th>
-            {versions.map((v) => {
-              const bh = bhByVersion.get(v);
-              return bh ? (
-                <React.Fragment key={`frist-kilde-${v}`}>
-                  <th className="te-header text-center">TE</th>
-                  <th className="bh-header text-center">BH</th>
-                </React.Fragment>
-              ) : (
-                <th key={`te-${v}`} className="te-header text-center">
-                  TE
-                </th>
-              );
-            })}
-          </tr>
         </thead>
+
         <tbody>
-          <FristRow
-            label="Krevd dager"
+          {/* KRAV (TE) Section */}
+          <GroupHeader label="Krav (TE)" colSpan={versions.length + 1} color="green" />
+          <DataRow
+            label="Antall dager"
             versions={versions}
-            teEntries={teEntries}
-            bhByVersion={bhByVersion}
-            getValue={(e) => formatHistorikkDager(e.krav_dager)}
-            getBhValue={() => '—'}
+            getValue={(v) => formatHistorikkDager(teByVersion.get(v)?.krav_dager)}
           />
-          <FristRow
+          <DataRow
             label="Varseltype"
             versions={versions}
-            teEntries={teEntries}
-            bhByVersion={bhByVersion}
-            getValue={(e) => e.varsel_type_label || '—'}
-            getBhValue={() => '—'}
+            getValue={(v) => teByVersion.get(v)?.varsel_type_label || '—'}
           />
-          <FristRow
+          <DataRow
             label="Ny sluttdato"
             versions={versions}
-            teEntries={teEntries}
-            bhByVersion={bhByVersion}
-            getValue={(e) => e.ny_sluttdato || '—'}
-            getBhValue={() => '—'}
+            getValue={(v) => teByVersion.get(v)?.ny_sluttdato || '—'}
           />
-          <FristRow
-            label="BH Resultat"
+
+          {/* RESPONS (BH) Section */}
+          <GroupHeader label="Respons (BH)" colSpan={versions.length + 1} color="yellow" />
+          <DataRow
+            label="Resultat"
             versions={versions}
-            teEntries={teEntries}
-            bhByVersion={bhByVersion}
-            getValue={() => '—'}
-            getBhValue={(e) => e.bh_resultat_label || '—'}
+            getValue={(v) => bhByVersion.get(v)?.bh_resultat_label || '—'}
             highlight
           />
-          <FristRow
+          <DataRow
             label="Godkjent dager"
             versions={versions}
-            teEntries={teEntries}
-            bhByVersion={bhByVersion}
-            getValue={() => '—'}
-            getBhValue={(e) => formatHistorikkDager(e.godkjent_dager)}
+            getValue={(v) => formatHistorikkDager(bhByVersion.get(v)?.godkjent_dager)}
             highlight
           />
-          <FristRow
-            label="Aktør"
+
+          {/* META Section */}
+          <GroupHeader label="Detaljer" colSpan={versions.length + 1} color="gray" />
+          <DataRow
+            label="TE aktør"
             versions={versions}
-            teEntries={teEntries}
-            bhByVersion={bhByVersion}
-            getValue={(e) => e.aktor.navn}
-            getBhValue={(e) => e.aktor.navn}
+            getValue={(v) => teByVersion.get(v)?.aktor.navn || '—'}
           />
-          <FristRow
-            label="Status"
+          <DataRow
+            label="BH aktør"
             versions={versions}
-            teEntries={teEntries}
-            bhByVersion={bhByVersion}
-            getValue={(e) =>
-              e.endring_type === 'sendt'
-                ? 'Sendt'
-                : e.endring_type === 'oppdatert'
-                ? 'Oppdatert'
-                : 'Trukket'
-            }
-            getBhValue={(e) =>
-              e.endring_type === 'respons' ? 'Svar sendt' : 'Svar oppdatert'
-            }
+            getValue={(v) => bhByVersion.get(v)?.aktor.navn || '—'}
           />
         </tbody>
       </table>
@@ -467,61 +301,61 @@ function FristHistorikkTable({ entries }: FristHistorikkTableProps) {
   );
 }
 
-interface FristRowProps {
+// ============ SHARED COMPONENTS ============
+
+interface GroupHeaderProps {
   label: string;
-  versions: number[];
-  teEntries: FristHistorikkEntry[];
-  bhByVersion: Map<number, FristHistorikkEntry>;
-  getValue: (entry: FristHistorikkEntry) => string;
-  getBhValue: (entry: FristHistorikkEntry) => string;
-  highlight?: boolean;
+  colSpan: number;
+  color: 'green' | 'yellow' | 'gray';
 }
 
-function FristRow({
-  label,
-  versions,
-  teEntries,
-  bhByVersion,
-  getValue,
-  getBhValue,
-  highlight = false,
-}: FristRowProps) {
-  // Track previous value for change highlighting
-  let prevTeValue: string | null = null;
+function GroupHeader({ label, colSpan, color }: GroupHeaderProps) {
+  const colorClasses = {
+    green: 'bg-pkt-surface-light-green text-pkt-brand-dark-green-1000',
+    yellow: 'bg-pkt-surface-yellow text-pkt-grays-gray-800',
+    gray: 'bg-pkt-bg-subtle text-pkt-grays-gray-600',
+  };
 
   return (
     <tr>
-      <td className="sticky-col">{label}</td>
-      {versions.map((v) => {
-        const te = teEntries.find((e) => e.versjon === v);
-        const bh = bhByVersion.get(v);
-        const teValue = te ? getValue(te) : '—';
-        const isChanged = prevTeValue !== null && teValue !== prevTeValue && teValue !== '—';
-        prevTeValue = teValue;
+      <td
+        colSpan={colSpan}
+        className={`py-2 px-4 text-xs font-semibold uppercase tracking-wide border-y border-pkt-grays-gray-200 ${colorClasses[color]}`}
+      >
+        {label}
+      </td>
+    </tr>
+  );
+}
 
-        return bh ? (
-          <React.Fragment key={`frist-row-${v}`}>
-            <td
-              className={`te-cell text-center ${highlight ? 'bg-pkt-surface-faded-green' : ''} ${
-                isChanged ? 'changed-value' : ''
-              }`}
-            >
-              {teValue}
-            </td>
-            <td
-              className={`bh-cell text-center ${highlight ? 'bg-pkt-surface-yellow font-semibold' : ''}`}
-            >
-              {getBhValue(bh)}
-            </td>
-          </React.Fragment>
-        ) : (
+interface DataRowProps {
+  label: string;
+  versions: number[];
+  getValue: (version: number) => string;
+  highlight?: boolean;
+}
+
+function DataRow({ label, versions, getValue, highlight = false }: DataRowProps) {
+  let prevValue: string | null = null;
+
+  return (
+    <tr className="border-b border-pkt-grays-gray-100 last:border-b-0">
+      <td className="sticky left-0 z-10 bg-pkt-bg-card py-2.5 px-4 text-pkt-grays-gray-600 border-r-2 border-pkt-grays-gray-300">
+        {label}
+      </td>
+      {versions.map((v) => {
+        const value = getValue(v);
+        const isChanged = prevValue !== null && value !== prevValue && value !== '—';
+        prevValue = value;
+
+        return (
           <td
-            key={`te-${v}`}
-            className={`te-cell text-center ${highlight ? 'bg-pkt-surface-faded-green' : ''} ${
-              isChanged ? 'changed-value' : ''
-            }`}
+            key={v}
+            className={`py-2.5 px-4 text-center border-r border-pkt-grays-gray-100 last:border-r-0 ${
+              highlight ? 'font-medium' : ''
+            } ${isChanged ? 'text-pkt-brand-warm-blue-1000 font-semibold' : 'text-pkt-text-body-default'}`}
           >
-            {teValue}
+            {value}
           </td>
         );
       })}
