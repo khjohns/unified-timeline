@@ -132,7 +132,7 @@ export const mockSakState11: SakState = {
   visningsstatus_vederlag: 'Avslått prinsipalt, subsidiært 535.000 kr',
   visningsstatus_frist: 'Avslått prinsipalt, subsidiært 10 dager',
 
-  overordnet_status: 'AVSLATT',
+  overordnet_status: 'UNDER_FORHANDLING',
   kan_utstede_eo: false,
   neste_handling: {
     rolle: 'TE',
@@ -145,5 +145,5 @@ export const mockSakState11: SakState = {
 
   opprettet: '2025-02-10',
   siste_aktivitet: '2025-02-25',
-  antall_events: 7,
+  antall_events: 8,
 };
