@@ -14,6 +14,7 @@ import {
   mockSakState8,
   mockSakState9,
   mockSakState10,
+  mockSakState11,
 } from './cases';
 import {
   mockTimelineEvents1,
@@ -26,6 +27,7 @@ import {
   mockTimelineEvents8,
   mockTimelineEvents9,
   mockTimelineEvents10,
+  mockTimelineEvents11,
 } from './timelines';
 
 /**
@@ -53,6 +55,8 @@ export function getMockStateById(sakId: string): SakState {
       return mockSakState9;
     case 'SAK-2025-010':
       return mockSakState10;
+    case 'SAK-2025-011':
+      return mockSakState11;
     default:
       return mockSakState1;
   }
@@ -83,6 +87,8 @@ export function getMockTimelineById(sakId: string): TimelineEntry[] {
       return mockTimelineEvents9;
     case 'SAK-2025-010':
       return mockTimelineEvents10;
+    case 'SAK-2025-011':
+      return mockTimelineEvents11;
     default:
       return mockTimelineEvents1;
   }

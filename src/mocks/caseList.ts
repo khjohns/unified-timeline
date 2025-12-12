@@ -15,7 +15,7 @@ export const mockCaseList = [
   {
     id: 'SAK-2025-003',
     title: 'Tilleggsarbeid - Rørføring omlegging',
-    status: 'Avventer spesifikasjon',
+    status: 'Avslått - mangler spesifikasjon',
   },
   {
     id: 'SAK-2024-089',
@@ -51,5 +51,10 @@ export const mockCaseList = [
     id: 'SAK-2025-010',
     title: 'Revisjonssyklus - Ekstra sprinkleranlegg',
     status: 'Klar for EO (TE→BH→TE→BH)',
+  },
+  {
+    id: 'SAK-2025-011',
+    title: 'Subsidiær preklusjon - Rigg varslet for sent',
+    status: 'Avslått prinsipalt, subsidiært (preklusjon)',
   },
 ];
