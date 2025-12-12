@@ -444,6 +444,7 @@ export interface VederlagOppdatertEventData {
 export interface ResponsVederlagOppdatertEventData {
   original_respons_id: string;
   nytt_resultat: VederlagBeregningResultat;
+  nytt_godkjent_belop?: number;  // Nytt godkjent beløp (ved revisjon av standpunkt)
   kommentar: string;
   dato_endret: string;
 }

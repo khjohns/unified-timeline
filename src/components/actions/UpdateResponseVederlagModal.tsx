@@ -172,7 +172,7 @@ export function UpdateResponseVederlagModal({
       data: {
         original_respons_id: lastResponseEvent.event_id,
         nytt_resultat: data.nytt_resultat,
-        godkjent_belop:
+        nytt_godkjent_belop:
           data.nytt_resultat === 'godkjent'
             ? krevdBelop
             : data.godkjent_belop,

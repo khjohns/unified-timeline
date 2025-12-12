@@ -48,7 +48,7 @@ export const mockTimelineEvents10: TimelineEntry[] = [
     event_data: {
       original_respons_id: 'evt-1004',
       nytt_resultat: 'godkjent',
-      godkjent_belop: 185000,
+      nytt_godkjent_belop: 185000,
       kommentar:
         'Etter revisjon av kravet godkjennes hele beløpet. Prosjekteringskostnader korrekt fjernet.',
       dato_endret: '2025-02-15',
