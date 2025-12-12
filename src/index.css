@@ -141,6 +141,16 @@
     --color-action-danger-border: #ef4444;  /* Red border */
     --color-action-danger-hover-bg: #fef2f2;  /* Light red hover */
 
+    /* Step indicator - completed state */
+    --color-step-completed-bg: #16a34a;  /* Green background */
+    --color-step-completed-border: #16a34a;
+    --color-step-completed-text: #ffffff;
+
+    /* Modal field colors */
+    --color-field-label: #6b7280;  /* Gray-500 equivalent */
+    --color-field-value: #111827;  /* Gray-900 equivalent */
+    --color-field-muted: #9ca3af;  /* Gray-400 equivalent */
+
     /* ============================================
        SEMANTIC TAG COLORS
        Used for revision tags, badges, and status indicators
@@ -328,6 +338,16 @@
   --color-action-danger-text: #fca5a5;  /* Lighter red for dark bg */
   --color-action-danger-border: #f87171;  /* Bright red border */
   --color-action-danger-hover-bg: #3a2028;  /* Dark red hover */
+
+  /* Step indicator - completed state - dark mode */
+  --color-step-completed-bg: #22c55e;  /* Brighter green for dark */
+  --color-step-completed-border: #22c55e;
+  --color-step-completed-text: #052e16;  /* Dark green text */
+
+  /* Modal field colors - dark mode */
+  --color-field-label: #9ca3af;  /* Lighter gray for dark bg */
+  --color-field-value: #f3f4f6;  /* Near white */
+  --color-field-muted: #6b7280;  /* Medium gray */
 
   /* Semantic tag colors - dark mode */
   --color-tag-neutral-bg: #3a3a5a;

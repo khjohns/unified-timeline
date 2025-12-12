@@ -91,8 +91,8 @@ function Field({ label, value, className = '' }: { label: string; value: React.R
   if (value === undefined || value === null || value === '') return null;
   return (
     <div className={`py-2 ${className}`}>
-      <dt className="text-sm font-medium text-gray-500">{label}</dt>
-      <dd className="mt-1 text-sm text-gray-900">{value}</dd>
+      <dt className="text-sm font-medium text-field-label">{label}</dt>
+      <dd className="mt-1 text-sm text-field-value">{value}</dd>
     </div>
   );
 }
@@ -104,11 +104,11 @@ function VarselInfo({ label, varsel }: { label: string; varsel?: { dato_sendt?: 
   if (!varsel || !varsel.dato_sendt) return null;
   return (
     <div className="py-2">
-      <dt className="text-sm font-medium text-gray-500">{label}</dt>
-      <dd className="mt-1 text-sm text-gray-900">
+      <dt className="text-sm font-medium text-field-label">{label}</dt>
+      <dd className="mt-1 text-sm text-field-value">
         <span>{varsel.dato_sendt}</span>
         {varsel.metode && varsel.metode.length > 0 && (
-          <span className="ml-2 text-gray-500">
+          <span className="ml-2 text-field-muted">
             ({varsel.metode.join(', ')})
           </span>
         )}
@@ -126,7 +126,7 @@ function GrunnlagEventView({ data }: { data: any }) {
     : getUnderkategoriLabel(data.underkategori);
 
   return (
-    <dl className="divide-y divide-gray-200">
+    <dl className="divide-y divide-pkt-border-subtle">
       <Field label="Hovedkategori" value={getHovedkategoriLabel(data.hovedkategori)} />
       <Field label="Underkategori" value={underkategorier} />
       <Field label="Dato oppdaget" value={data.dato_oppdaget} />
@@ -151,7 +151,7 @@ function GrunnlagEventView({ data }: { data: any }) {
  */
 function VederlagEventView({ data }: { data: any }) {
   return (
-    <dl className="divide-y divide-gray-200">
+    <dl className="divide-y divide-pkt-border-subtle">
       <Field
         label="Krevd beløp"
         value={
@@ -217,7 +217,7 @@ function VederlagEventView({ data }: { data: any }) {
  */
 function FristEventView({ data }: { data: any }) {
   return (
-    <dl className="divide-y divide-gray-200">
+    <dl className="divide-y divide-pkt-border-subtle">
       <Field label="Varseltype" value={VARSEL_TYPE_LABELS[data.varsel_type] || data.varsel_type} />
       <VarselInfo label="Nøytralt varsel" varsel={data.noytralt_varsel} />
       <VarselInfo label="Spesifisert varsel" varsel={data.spesifisert_varsel} />
@@ -240,7 +240,7 @@ function FristEventView({ data }: { data: any }) {
  */
 function ResponsGrunnlagView({ data }: { data: any }) {
   return (
-    <dl className="divide-y divide-gray-200">
+    <dl className="divide-y divide-pkt-border-subtle">
       <Field
         label="Resultat"
         value={
@@ -279,7 +279,7 @@ function ResponsGrunnlagView({ data }: { data: any }) {
  */
 function ResponsVederlagView({ data }: { data: any }) {
   return (
-    <dl className="divide-y divide-gray-200">
+    <dl className="divide-y divide-pkt-border-subtle">
       <Field
         label="Resultat"
         value={
@@ -340,7 +340,7 @@ function ResponsVederlagView({ data }: { data: any }) {
  */
 function ResponsFristView({ data }: { data: any }) {
   return (
-    <dl className="divide-y divide-gray-200">
+    <dl className="divide-y divide-pkt-border-subtle">
       <Field
         label="Resultat"
         value={
@@ -400,8 +400,8 @@ function ResponsFristView({ data }: { data: any }) {
  */
 function ForseringVarselView({ data }: { data: any }) {
   return (
-    <dl className="divide-y divide-gray-200">
-      <div className="py-3 bg-red-50 -mx-4 px-4 mb-2">
+    <dl className="divide-y divide-pkt-border-subtle">
+      <div className="py-3 bg-pkt-surface-faded-red -mx-4 px-4 mb-2">
         <Badge variant="danger" size="lg">Forsering iverksatt (§33.8)</Badge>
       </div>
       <Field
@@ -434,11 +434,11 @@ function ForseringVarselView({ data }: { data: any }) {
  */
 function GenericEventView({ data }: { data: any }) {
   if (!data || typeof data !== 'object') {
-    return <p className="text-gray-500 italic">Ingen skjemadata tilgjengelig.</p>;
+    return <p className="text-field-label italic">Ingen skjemadata tilgjengelig.</p>;
   }
 
   return (
-    <dl className="divide-y divide-gray-200">
+    <dl className="divide-y divide-pkt-border-subtle">
       {Object.entries(data).map(([key, value]) => {
         // Skip complex objects for simple display
         if (typeof value === 'object' && value !== null) {
@@ -446,7 +446,7 @@ function GenericEventView({ data }: { data: any }) {
             <Field
               key={key}
               label={key}
-              value={<pre className="text-xs bg-gray-100 p-2 rounded overflow-x-auto">{JSON.stringify(value, null, 2)}</pre>}
+              value={<pre className="text-xs bg-pkt-grays-gray-100 p-2 rounded overflow-x-auto">{JSON.stringify(value, null, 2)}</pre>}
             />
           );
         }
@@ -477,7 +477,7 @@ export function ViewSubmittedEventModal({
   // Determine which view to render based on event_type
   const renderEventData = () => {
     if (!event.event_data) {
-      return <p className="text-gray-500 italic">Ingen detaljert skjemadata tilgjengelig for denne hendelsen.</p>;
+      return <p className="text-field-label italic">Ingen detaljert skjemadata tilgjengelig for denne hendelsen.</p>;
     }
 
     const data = event.event_data;
@@ -526,7 +526,7 @@ export function ViewSubmittedEventModal({
     >
       <div className="space-y-4">
         {/* Meta info */}
-        <div className="flex items-center justify-between text-sm text-gray-500 pb-4 border-b">
+        <div className="flex items-center justify-between text-sm text-field-label pb-4 border-b">
           <span>
             {format(new Date(event.tidsstempel), 'PPPp', { locale: nb })}
           </span>
@@ -536,21 +536,21 @@ export function ViewSubmittedEventModal({
         </div>
 
         {/* Summary */}
-        <div className="bg-gray-50 p-4 rounded border border-gray-200">
-          <p className="text-sm font-medium text-gray-700">Sammendrag:</p>
+        <div className="bg-pkt-bg-subtle p-4 rounded border border-pkt-border-subtle">
+          <p className="text-sm font-medium text-field-value">Sammendrag:</p>
           <p className="mt-1">{event.sammendrag}</p>
         </div>
 
         {/* Full form data */}
         <div>
-          <h4 className="text-sm font-medium text-gray-700 mb-3">Skjemadata:</h4>
-          <div className="bg-white border border-gray-200 rounded p-4">
+          <h4 className="text-sm font-medium text-field-value mb-3">Skjemadata:</h4>
+          <div className="bg-pkt-bg-card border border-pkt-border-subtle rounded p-4">
             {renderEventData()}
           </div>
         </div>
 
         {/* Event ID */}
-        <p className="text-xs text-gray-400 pt-4 border-t">
+        <p className="text-xs text-field-muted pt-4 border-t">
           Event ID: {event.event_id}
         </p>
       </div>
