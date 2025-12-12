@@ -53,7 +53,6 @@ const RESULTAT_LABELS: Record<VederlagBeregningResultat, string> = {
   godkjent: 'Godkjent',
   delvis_godkjent: 'Delvis godkjent',
   avslatt: 'Avslått',
-  avventer: 'Avventer dokumentasjon',
   hold_tilbake: 'Holder tilbake (§30.2)',
 };
 

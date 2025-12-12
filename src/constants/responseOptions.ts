@@ -58,10 +58,6 @@ export const BH_VEDERLAGSSVAR_OPTIONS: DropdownOption[] = [
     label: "Avslått - BH avviser kravet"
   },
   {
-    value: "avventer",
-    label: "Avventer dokumentasjon - BH trenger mer informasjon"
-  },
-  {
     value: "hold_tilbake",
     label: "Hold tilbake betaling (§30.2) - Krev overslag for regningsarbeid"
   },
@@ -83,10 +79,6 @@ export const BH_FRISTSVAR_OPTIONS: DropdownOption[] = [
   {
     value: "avslatt",
     label: "Avslått - BH avviser kravet"
-  },
-  {
-    value: "avventer",
-    label: "Avventer dokumentasjon - Mangler fremdriftsplan/dokumentasjon"
   },
 ];
 
@@ -162,16 +154,14 @@ export const BH_GRUNNLAGSVAR_DESCRIPTIONS: Record<string, string> = {
 export const BH_VEDERLAGSSVAR_DESCRIPTIONS: Record<string, string> = {
   godkjent: "Enighet om sum og metode. Beløpet utbetales hvis grunnlag også godkjennes (prinsipalt) eller som subsidiær enighet.",
   delvis_godkjent: "Enighet om at det skal betales (prinsipalt eller subsidiært), men uenighet om beløpet (f.eks. antall timer eller påslag).",
-  avslatt: "BH avviser kravet. Årsaken (preklusjon, metode, etc.) spesifiseres via subsidiaer_triggers.",
-  avventer: "BH kan ikke ta stilling til kravet fordi dokumentasjon mangler. Stopper saksbehandlingstiden ('ballen er hos TE').",
+  avslatt: "BH avviser kravet. Årsaken (preklusjon, metode, etc.) spesifiseres via subsidiaer_triggers. Kan avslås midlertidig pga manglende dokumentasjon.",
   hold_tilbake: "§30.2: BH holder tilbake betaling inntil kostnadsoverslag for regningsarbeid mottas. Kun for regningsarbeid uten overslag.",
 };
 
 export const BH_FRISTSVAR_DESCRIPTIONS: Record<string, string> = {
   godkjent: "Enighet om antall dager (prinsipalt eller subsidiært). Dagene innvilges hvis grunnlag også godkjennes.",
   delvis_godkjent: "BH mener forsinkelsen er kortere enn TE krever; uenighet om hvor mye fremdriften hindres.",
-  avslatt: "BH avviser kravet. Årsaken (preklusjon, ingen hindring, etc.) spesifiseres via subsidiaer_triggers.",
-  avventer: "Brukes ved nøytrale varsler, eller når fremdriftsplan/dokumentasjon mangler for å vurdere konsekvensen.",
+  avslatt: "BH avviser kravet. Årsaken (preklusjon, ingen hindring, etc.) spesifiseres via subsidiaer_triggers. Kan avslås midlertidig pga manglende dokumentasjon.",
 };
 
 // ========== SUBSIDIÆR TRIGGER LABELS ==========

@@ -148,7 +148,6 @@ function getVederlagResultatBadge(resultat: VederlagBeregningResultat | string):
       break;
     case 'delvis_godkjent':
     case 'hold_tilbake':
-    case 'avventer':
       variant = 'warning';
       break;
     case 'avslatt':
@@ -168,7 +167,6 @@ function getFristResultatBadge(resultat: FristBeregningResultat | string): { var
       variant = 'success';
       break;
     case 'delvis_godkjent':
-    case 'avventer':
       variant = 'warning';
       break;
     case 'avslatt':

@@ -141,7 +141,6 @@ function formatVederlagResultat(resultat?: VederlagBeregningResultat): string {
     'godkjent': 'Godkjent',
     'delvis_godkjent': 'Delvis godkjent',
     'avslatt': 'Avslått',
-    'avventer': 'Avventer dokumentasjon',
     'hold_tilbake': 'Betaling holdes tilbake',
   };
   return map[resultat] || resultat;
@@ -153,7 +152,6 @@ function formatFristResultat(resultat?: FristBeregningResultat): string {
     'godkjent': 'Godkjent',
     'delvis_godkjent': 'Delvis godkjent',
     'avslatt': 'Avslått',
-    'avventer': 'Avventer dokumentasjon',
   };
   return map[resultat] || resultat;
 }

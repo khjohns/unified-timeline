@@ -222,7 +222,6 @@ export function getMockHistorikkById(sakId: string): {
         bh_resultat_label: state.vederlag.bh_resultat === 'godkjent' ? 'Godkjent'
           : state.vederlag.bh_resultat === 'delvis_godkjent' ? 'Delvis godkjent'
           : state.vederlag.bh_resultat === 'avslatt' ? 'Avslått'
-          : state.vederlag.bh_resultat === 'avventer' ? 'Avventer dokumentasjon'
           : 'Holdes tilbake (§30.2)',
         godkjent_belop: state.vederlag.godkjent_belop,
         bh_begrunnelse: state.vederlag.bh_begrunnelse || 'Se vurdering',

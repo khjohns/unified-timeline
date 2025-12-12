@@ -56,7 +56,6 @@ const RESULTAT_LABELS: Record<FristBeregningResultat, string> = {
   godkjent: 'Godkjent',
   delvis_godkjent: 'Delvis godkjent',
   avslatt: 'Avslått',
-  avventer: 'Avventer dokumentasjon',
 };
 
 export function ReviseFristModal({
