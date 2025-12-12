@@ -160,8 +160,8 @@ class TimelineService:
             grunnlag.antall_versjoner = 1
         else:  # OPPDATERT
             grunnlag.antall_versjoner += 1
-            # Hvis det var avvist og TE oppdaterer, går det tilbake til SENDT
-            if grunnlag.status == SporStatus.AVVIST:
+            # Hvis det var avslått og TE oppdaterer, går det tilbake til SENDT
+            if grunnlag.status == SporStatus.AVSLATT:
                 grunnlag.status = SporStatus.SENDT
 
         # Metadata
@@ -213,8 +213,8 @@ class TimelineService:
             vederlag.antall_versjoner = 1
         else:  # OPPDATERT
             vederlag.antall_versjoner += 1
-            # Hvis det var avvist/under forhandling og TE oppdaterer
-            if vederlag.status in {SporStatus.AVVIST, SporStatus.UNDER_FORHANDLING, SporStatus.DELVIS_GODKJENT}:
+            # Hvis det var avslått/under forhandling og TE oppdaterer
+            if vederlag.status in {SporStatus.AVSLATT, SporStatus.UNDER_FORHANDLING, SporStatus.DELVIS_GODKJENT}:
                 vederlag.status = SporStatus.SENDT
 
         # Metadata
@@ -260,7 +260,7 @@ class TimelineService:
             frist.antall_versjoner = 1
         else:  # OPPDATERT
             frist.antall_versjoner += 1
-            if frist.status in {SporStatus.AVVIST, SporStatus.UNDER_FORHANDLING, SporStatus.DELVIS_GODKJENT}:
+            if frist.status in {SporStatus.AVSLATT, SporStatus.UNDER_FORHANDLING, SporStatus.DELVIS_GODKJENT}:
                 frist.status = SporStatus.SENDT
 
         # Metadata
@@ -474,7 +474,7 @@ class TimelineService:
         mapping = {
             GrunnlagResponsResultat.GODKJENT: SporStatus.GODKJENT,
             GrunnlagResponsResultat.DELVIS_GODKJENT: SporStatus.DELVIS_GODKJENT,
-            GrunnlagResponsResultat.AVVIST_UENIG: SporStatus.AVVIST,
+            GrunnlagResponsResultat.AVSLATT: SporStatus.AVSLATT,
             GrunnlagResponsResultat.ERKJENN_FM: SporStatus.GODKJENT,  # Force Majeure erkjent
             GrunnlagResponsResultat.FRAFALT: SporStatus.TRUKKET,  # Pålegg frafalt
             GrunnlagResponsResultat.KREVER_AVKLARING: SporStatus.UNDER_FORHANDLING,
@@ -502,7 +502,7 @@ class TimelineService:
         elif resultat_value == 'delvis_godkjent':
             return SporStatus.DELVIS_GODKJENT
         elif resultat_value == 'avslatt':
-            return SporStatus.AVVIST
+            return SporStatus.AVSLATT
         else:
             return SporStatus.UNDER_BEHANDLING
 
@@ -707,10 +707,9 @@ class TimelineService:
             'godkjent': 'Godkjent',
             'delvis_godkjent': 'Delvis godkjent',
             'erkjenn_fm': 'Force Majeure erkjent',
-            'avvist_uenig': 'Avvist',
+            'avslatt': 'Avslått',
             'frafalt': 'Pålegg frafalt',
             'krever_avklaring': 'Krever avklaring',
-            'avslatt': 'Avslått',
         }
 
         resultat_value = event.data.resultat.value if hasattr(event.data.resultat, 'value') else str(event.data.resultat)
@@ -1161,13 +1160,13 @@ class MigrationHelper:
     def _map_bh_svar_to_resultat(self, svar_kode: str) -> GrunnlagResponsResultat:
         """Mapper gammel BH svar-kode til GrunnlagResponsResultat"""
         # Fra generated_constants.py
-        # NB: AVVIST_FOR_SENT er fjernet - preklusjon håndteres nå via
+        # NB: avslått_for_sent er fjernet - preklusjon håndteres nå via
         # subsidiær_triggers på vederlag/frist-nivå, ikke på grunnlag
         mapping = {
             '100000000': GrunnlagResponsResultat.GODKJENT,           # GODKJENT_FULLT
             '100000001': GrunnlagResponsResultat.DELVIS_GODKJENT,    # DELVIS_GODKJENT
-            '100000002': GrunnlagResponsResultat.AVVIST_UENIG,       # AVSLÅTT_UENIG
-            '100000003': GrunnlagResponsResultat.AVVIST_UENIG,       # AVSLÅTT_FOR_SENT -> nå AVVIST_UENIG
+            '100000002': GrunnlagResponsResultat.AVSLATT,            # AVSLÅTT_UENIG
+            '100000003': GrunnlagResponsResultat.AVSLATT,            # AVSLÅTT_FOR_SENT -> nå AVSLATT
             '100000004': GrunnlagResponsResultat.KREVER_AVKLARING,   # AVVENTER
             '100000005': GrunnlagResponsResultat.GODKJENT,           # GODKJENT_ANNEN_METODE
         }

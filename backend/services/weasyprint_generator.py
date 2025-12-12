@@ -122,7 +122,7 @@ class WeasyPrintGenerator:
                 color: #0c5460;
             }
 
-            .status-avvist {
+            .status-avslatt {
                 background-color: #f8d7da;
                 color: #721c24;
             }
@@ -379,7 +379,7 @@ class WeasyPrintGenerator:
             'SENDT': 'Sendt til BH',
             'GODKJENT': 'Godkjent',
             'DELVIS_GODKJENT': 'Delvis godkjent',
-            'AVVIST_UENIG': 'Avvist (uenig)',
+            'AVSLATT': 'Avslått',
             'ERKJENN_FM': 'Force Majeure erkjent',
             'FRAFALT': 'Pålegg frafalt',
             'KREVER_AVKLARING': 'Krever avklaring',
@@ -390,11 +390,10 @@ class WeasyPrintGenerator:
             'under_behandling': 'Under behandling',
             'godkjent': 'Godkjent',
             'delvis_godkjent': 'Delvis godkjent',
-            'avvist': 'Avvist',
+            'avslatt': 'Avslått',
             'under_forhandling': 'Under forhandling',
             'trukket': 'Trukket',
             'laast': 'Låst',
-            'avvist_uenig': 'Avvist (uenig)',
             'krever_avklaring': 'Krever avklaring',
             'erkjenn_fm': 'Force Majeure erkjent',
             'frafalt': 'Pålegget frafalt',

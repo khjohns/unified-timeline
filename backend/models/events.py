@@ -33,7 +33,7 @@ class SporStatus(str, Enum):
     UNDER_BEHANDLING = "under_behandling"
     GODKJENT = "godkjent"
     DELVIS_GODKJENT = "delvis_godkjent"
-    AVVIST = "avvist"
+    AVSLATT = "avslatt"
     UNDER_FORHANDLING = "under_forhandling"
     TRUKKET = "trukket"
     LAAST = "laast"  # Grunnlag kan låses etter godkjenning
@@ -133,7 +133,7 @@ class SubsidiaerTrigger(str, Enum):
     men også vil angi hva resultatet ville vært hvis prinsipalt standpunkt ikke får medhold.
     """
     # Nivå 0: Grunnlag
-    GRUNNLAG_AVVIST = "grunnlag_avvist"  # BH avviste ansvarsgrunnlaget
+    GRUNNLAG_AVSLATT = "grunnlag_avslatt"  # BH avslo ansvarsgrunnlaget
 
     # Nivå 1: Preklusjon (Vederlag)
     PREKLUSJON_RIGG = "preklusjon_rigg"  # Rigg/drift varslet for sent (§34.1.3)
@@ -146,7 +146,7 @@ class SubsidiaerTrigger(str, Enum):
 
     # Nivå 2: Vilkår
     INGEN_HINDRING = "ingen_hindring"  # Ingen reell fremdriftshindring (§33.5)
-    METODE_AVVIST = "metode_avvist"  # BH aksepterer ikke foreslått metode
+    METODE_AVSLATT = "metode_avslatt"  # BH aksepterer ikke foreslått metode
 
 
 # ============ BASE EVENT ============
@@ -626,7 +626,7 @@ class GrunnlagResponsResultat(str, Enum):
     GODKJENT = "godkjent"  # Byggherren aksepterer ansvarsgrunnlaget fullt ut
     DELVIS_GODKJENT = "delvis_godkjent"  # Byggherren aksepterer deler av grunnlaget
     ERKJENN_FM = "erkjenn_fm"  # §33.3 - Byggherren erkjenner Force Majeure (kun frist, ikke vederlag)
-    AVVIST_UENIG = "avvist_uenig"  # Byggherren er uenig i ansvarsgrunnlaget
+    AVSLATT = "avslatt"  # Byggherren avslår ansvarsgrunnlaget
     FRAFALT = "frafalt"  # §32.3 c - Byggherren frafaller pålegget (kun irregulær endring)
     KREVER_AVKLARING = "krever_avklaring"  # Byggherren trenger mer dokumentasjon før beslutning
 
@@ -681,7 +681,7 @@ class BelopVurdering(str, Enum):
     """
     GODKJENT = "godkjent"
     DELVIS = "delvis"
-    AVVIST = "avvist"
+    AVSLATT = "avslatt"
 
 
 class VederlagResponsData(BaseModel):
