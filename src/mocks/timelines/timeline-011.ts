@@ -175,9 +175,8 @@ export const mockTimelineEvents11: TimelineEntry[] = [
           dato_klar_over: '2025-02-15',
         },
       },
+      // Forhåndsvarsel for regningsarbeid (§34.4) - varslet før oppstart
       regningsarbeid_varsel: { dato_sendt: '2025-02-12', metode: ['epost'] },
-      // NB: Produktivitetstap varsles samme dag som kravet (i tide - 0 dager etter kjennskap)
-      produktivitetstap_varsel: { dato_sendt: '2025-02-15', metode: ['epost'] },
     },
   },
   {

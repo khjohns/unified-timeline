@@ -382,21 +382,34 @@ function GrunnlagOppdatertSection({ data }: { data: GrunnlagOppdatertEventData }
 function VederlagSection({ data }: { data: VederlagEventData }) {
   const harSaerskiltKrav = data.saerskilt_krav?.rigg_drift || data.saerskilt_krav?.produktivitet;
 
+  // Beregn total krevd beløp
+  const hovedbelop = data.belop_direkte ?? data.kostnads_overslag ?? 0;
+  const riggBelop = data.saerskilt_krav?.rigg_drift?.belop ?? 0;
+  const produktivitetBelop = data.saerskilt_krav?.produktivitet?.belop ?? 0;
+  const totalBelop = hovedbelop + riggBelop + produktivitetBelop;
+
   return (
     <dl>
-      <Field label="Metode" value={getVederlagsmetodeLabel(data.metode)} />
-      {data.belop_direkte !== undefined && (
-        <Field label="Beløp" value={formatCurrency(data.belop_direkte)} />
-      )}
-      {data.kostnads_overslag !== undefined && (
-        <Field label="Kostnadsoverslag" value={formatCurrency(data.kostnads_overslag)} />
-      )}
-      {data.krever_justert_ep && (
-        <Field label="Krever justerte EP" value={<Badge variant="info">Ja</Badge>} />
-      )}
+      {/* Sammendrag - kompakt oversikt øverst */}
+      <div className="bg-pkt-bg-subtle p-3 mb-4 border-l-4 border-pkt-brand-dark-blue-1000">
+        <div className="flex items-baseline justify-between">
+          <span className="text-lg font-semibold text-pkt-text-body-dark">
+            {formatCurrency(totalBelop)}
+          </span>
+          <Badge variant="info">{getVederlagsmetodeLabel(data.metode)}</Badge>
+        </div>
+        {harSaerskiltKrav && (
+          <div className="text-sm text-pkt-grays-gray-600 mt-1">
+            {hovedbelop > 0 && <span>Hovedkrav {formatCurrency(hovedbelop)}</span>}
+            {riggBelop > 0 && <span> + Rigg {formatCurrency(riggBelop)}</span>}
+            {produktivitetBelop > 0 && <span> + Produktivitet {formatCurrency(produktivitetBelop)}</span>}
+          </div>
+        )}
+      </div>
+
       <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
 
-      {/* Særskilte krav */}
+      {/* Særskilte krav - detaljer */}
       {harSaerskiltKrav && (
         <div className="py-3 border-b border-pkt-grays-gray-100">
           <dt className="text-sm font-medium text-pkt-grays-gray-500 mb-2">Særskilte krav (§34.1.3)</dt>
@@ -435,14 +448,12 @@ function VederlagSection({ data }: { data: VederlagEventData }) {
         </div>
       )}
 
-      {/* Varsler */}
-      <VarselInfoDisplay label="Rigg/drift varsel" varsel={data.rigg_drift_varsel} />
-      <VarselInfoDisplay label="Justert EP varsel" varsel={data.justert_ep_varsel} />
-      <VarselInfoDisplay label="Regningsarbeid varsel" varsel={data.regningsarbeid_varsel} />
-      <VarselInfoDisplay label="Produktivitetstap varsel" varsel={data.produktivitetstap_varsel} />
-      {data.krav_fremmet_dato && (
-        <Field label="Krav fremmet dato" value={formatDate(data.krav_fremmet_dato)} />
+      {data.krever_justert_ep && (
+        <Field label="Krever justerte EP" value={<Badge variant="warning">Ja - §34.3.3</Badge>} />
       )}
+
+      {/* Forhåndsvarsel for regningsarbeid (§34.4) - kun denne har separat varslingskrav */}
+      <VarselInfoDisplay label="Forhåndsvarsel regningsarbeid" varsel={data.regningsarbeid_varsel} />
       <VedleggDisplay vedleggIds={data.vedlegg_ids} />
     </dl>
   );

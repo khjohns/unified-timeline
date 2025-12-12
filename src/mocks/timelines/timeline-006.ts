@@ -67,9 +67,12 @@ export const mockTimelineEvents6: TimelineEntry[] = [
       begrunnelse: 'Stillstand og omorganisering av mannskap.',
       kostnads_overslag: 850000,
       saerskilt_krav: {
-        produktivitet: true,
+        produktivitet: {
+          belop: 150000,
+          dato_klar_over: '2025-01-20',
+        },
       },
-      produktivitetstap_varsel: { dato_sendt: '2025-01-20', metode: ['epost'] },
+      // Forhåndsvarsel for regningsarbeid (§34.4) - varslet før oppstart
       regningsarbeid_varsel: { dato_sendt: '2025-01-20', metode: ['epost'] },
     },
   },
