@@ -2,6 +2,14 @@
 @import "tailwindcss";
 
 /* ============================================
+   Tailwind v4 Dark Mode Configuration
+
+   Enable class-based dark mode (using .dark class on <html>)
+   instead of the default prefers-color-scheme media query.
+   ============================================ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ============================================
    Tailwind v4 Theme Configuration
 
    NOTE: Tailwind v4 uses CSS-first configuration.
