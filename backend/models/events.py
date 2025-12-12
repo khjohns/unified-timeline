@@ -672,6 +672,19 @@ class GrunnlagResponsData(BaseModel):
     )
 
 
+class BelopVurdering(str, Enum):
+    """
+    Vurdering av enkelt beløpspost.
+
+    NB: 'prekludert' er IKKE en beløpsvurdering - preklusjon bestemmes av
+    rigg_varslet_i_tide/produktivitet_varslet_i_tide i Port 1.
+    Beløpsvurderingen representerer BH's faktiske vurdering av kravet.
+    """
+    GODKJENT = "godkjent"
+    DELVIS = "delvis"
+    AVVIST = "avvist"
+
+
 class VederlagResponsData(BaseModel):
     """
     Byggherrens respons på vederlagskrav (Port-modellen).
@@ -682,73 +695,133 @@ class VederlagResponsData(BaseModel):
     Dette muliggjør subsidiære betraktninger:
     - BH kan avvise Grunnlag (ansvar), MEN samtidig godkjenne beregningen
       som subsidiær vurdering ("hvis jeg hadde hatt ansvar, er 50k riktig").
-    
-    KOMMENTAR FRA ARKITEKT:
-    Her mangler et eksplisitt felt for subsidiær godkjenning i tilfeller der vederlagBeregningResultat er GODKJENT_FULLT, men Port 1 (Varsler) er False.
-    Modellen fungerer som den er, men frontend må vite at:
-    HVIS krav_fremmet_i_tide == False
-    OG beregnings_resultat == GODKJENT_FULLT
-    SÅ er status: Avslått (Prekludert) (men med subsidiær enighet om beløp)
-
-    NB: MÅ vurderes om dette hører til backend eller frontend. Utgangspunktet er at forretningslogikk hører til backend.
     """
 
-    # ============ PORT 1: SPESIFIKKE VARSLER FOR PENGER ============
-    # Sjekk av om kravtypen er varslet i tide (preklusjon).
-    # Kommentar fra arkitekt: Sjekk om vi mangler noen spesifikke varsler her, sml. med ovenfor.
-
-    # Rigg & Drift (§34.1.3)
-    saerskilt_varsel_rigg_drift_ok: Optional[bool] = Field(
+    # ============ REFERANSE ============
+    vederlag_krav_id: Optional[str] = Field(
         default=None,
-        description="Er det varslet særskilt om rigg/drift uten ugrunnet opphold? (§34.1.3)"
+        description="Event-ID til vederlagskravet som besvares"
     )
 
-    # Justerte enhetspriser (§34.3.3)
+    # ============ PORT 1: PREKLUSJON AV SÆRSKILTE KRAV (§34.1.3) ============
+    rigg_varslet_i_tide: Optional[bool] = Field(
+        default=None,
+        description="Er rigg/drift-kravet varslet i tide? (§34.1.3)"
+    )
+    produktivitet_varslet_i_tide: Optional[bool] = Field(
+        default=None,
+        description="Er produktivitetskravet varslet i tide? (§34.1.3)"
+    )
+    begrunnelse_preklusjon: Optional[str] = Field(
+        default=None,
+        description="Begrunnelse for preklusjonsvurdering"
+    )
+
+    # Legacy felter (for bakoverkompatibilitet)
+    saerskilt_varsel_rigg_drift_ok: Optional[bool] = Field(
+        default=None,
+        description="DEPRECATED: Bruk rigg_varslet_i_tide"
+    )
     varsel_justert_ep_ok: Optional[bool] = Field(
         default=None,
         description="Er det varslet om justerte enhetspriser uten ugrunnet opphold? (§34.3.3)"
     )
-
-    # Regningsarbeid (§30.1)
     varsel_start_regning_ok: Optional[bool] = Field(
         default=None,
         description="Ble BH varslet før regningsarbeid startet? (§30.1)"
     )
-
-    # Generelt krav fremmet i tide
-    krav_fremmet_i_tide: bool = Field(
+    krav_fremmet_i_tide: Optional[bool] = Field(
         default=True,
         description="Er vederlagskravet fremmet uten ugrunnet opphold?"
     )
-
     begrunnelse_varsel: Optional[str] = Field(
         default=None,
         description="Begrunnelse for vurdering av varsler/frister"
     )
 
-    # ============ PORT 2: BEREGNING & METODE (Utmålingen) ============
-    # Dette er den "rene" beregningen - vurderes prinsipalt eller subsidiært.
-
+    # ============ PORT 2: METODE ============
+    aksepterer_metode: Optional[bool] = Field(
+        default=None,
+        description="Aksepterer BH den foreslåtte vederlagsmetoden?"
+    )
+    oensket_metode: Optional[VederlagsMetode] = Field(
+        default=None,
+        description="Metode BH ønsker dersom foreslått metode ikke aksepteres"
+    )
+    ep_justering_akseptert: Optional[bool] = Field(
+        default=None,
+        description="Aksepterer BH justering av enhetspriser? (§34.3.3)"
+    )
+    hold_tilbake: Optional[bool] = Field(
+        default=None,
+        description="Holder BH tilbake betaling? (§30.2)"
+    )
+    begrunnelse_metode: Optional[str] = Field(
+        default=None,
+        description="Begrunnelse for metodevalg"
+    )
     vederlagsmetode: Optional[VederlagsMetode] = Field(
         default=None,
-        description="Hvilken metode BH legger til grunn"
+        description="Hvilken metode BH legger til grunn (legacy)"
     )
 
+    # ============ PORT 3: BELØPSVURDERING - HOVEDKRAV ============
+    hovedkrav_vurdering: Optional[BelopVurdering] = Field(
+        default=None,
+        description="BHs vurdering av hovedkravet"
+    )
+    hovedkrav_godkjent_belop: Optional[float] = Field(
+        default=None,
+        description="Godkjent beløp for hovedkravet i NOK"
+    )
+    hovedkrav_begrunnelse: Optional[str] = Field(
+        default=None,
+        description="Begrunnelse for hovedkravvurdering"
+    )
+
+    # ============ PORT 3: BELØPSVURDERING - SÆRSKILTE KRAV (§34.1.3) ============
+    rigg_vurdering: Optional[BelopVurdering] = Field(
+        default=None,
+        description="BHs vurdering av rigg/drift-kravet"
+    )
+    rigg_godkjent_belop: Optional[float] = Field(
+        default=None,
+        description="Godkjent beløp for rigg/drift i NOK"
+    )
+    produktivitet_vurdering: Optional[BelopVurdering] = Field(
+        default=None,
+        description="BHs vurdering av produktivitetskravet"
+    )
+    produktivitet_godkjent_belop: Optional[float] = Field(
+        default=None,
+        description="Godkjent beløp for produktivitetstap i NOK"
+    )
+
+    # ============ PORT 4: SAMLET RESULTAT ============
     beregnings_resultat: VederlagBeregningResultat = Field(
         ...,
-        description="BHs vurdering av kravets størrelse (ren beregning)"
+        description="BHs samlede vurdering av kravets størrelse"
     )
-
     godkjent_belop: Optional[float] = Field(
         default=None,
-        description="Godkjent beløp i NOK (ekskl. mva). Utbetales kun hvis Grunnlag også godkjennes."
+        description="DEPRECATED: Bruk total_godkjent_belop"
     )
-
-    begrunnelse_beregning: str = Field(
+    total_godkjent_belop: Optional[float] = Field(
+        default=None,
+        description="Totalt godkjent beløp i NOK (hovedkrav + særskilte krav)"
+    )
+    total_krevd_belop: Optional[float] = Field(
+        default=None,
+        description="Totalt krevd beløp i NOK"
+    )
+    begrunnelse: Optional[str] = Field(
+        default=None,
+        description="Samlet begrunnelse"
+    )
+    begrunnelse_beregning: Optional[str] = Field(
         default="",
-        description="BHs kommentar til beregningen"
+        description="BHs kommentar til beregningen (legacy)"
     )
-
     frist_for_spesifikasjon: Optional[str] = Field(
         default=None,
         description="Frist for TE å levere ytterligere spesifikasjon (YYYY-MM-DD)"
@@ -768,7 +841,7 @@ class VederlagResponsData(BaseModel):
     )
     subsidiaer_godkjent_belop: Optional[float] = Field(
         default=None,
-        description="Subsidiært godkjent beløp i NOK"
+        description="Subsidiært godkjent beløp i NOK (totalt)"
     )
     subsidiaer_begrunnelse: Optional[str] = Field(
         default=None,
