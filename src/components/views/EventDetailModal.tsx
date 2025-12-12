@@ -435,14 +435,8 @@ function VederlagSection({ data }: { data: VederlagEventData }) {
         </div>
       )}
 
-      {/* Varsler */}
-      <VarselInfoDisplay label="Rigg/drift varsel" varsel={data.rigg_drift_varsel} />
-      <VarselInfoDisplay label="Justert EP varsel" varsel={data.justert_ep_varsel} />
-      <VarselInfoDisplay label="Regningsarbeid varsel" varsel={data.regningsarbeid_varsel} />
-      <VarselInfoDisplay label="Produktivitetstap varsel" varsel={data.produktivitetstap_varsel} />
-      {data.krav_fremmet_dato && (
-        <Field label="Krav fremmet dato" value={formatDate(data.krav_fremmet_dato)} />
-      )}
+      {/* Forhåndsvarsel for regningsarbeid (§34.4) - kun denne har separat varslingskrav */}
+      <VarselInfoDisplay label="Forhåndsvarsel regningsarbeid" varsel={data.regningsarbeid_varsel} />
       <VedleggDisplay vedleggIds={data.vedlegg_ids} />
     </dl>
   );
