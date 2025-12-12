@@ -36,13 +36,12 @@ export const mockSakState7: SakState = {
   vederlag: {
     status: 'under_behandling',
     metode: 'REGNINGSARBEID',
-    kostnads_overslag: 220000,
-    begrunnelse: 'Snekkerarbeid og ny innredning. Endelig beløp kommer.',
+    begrunnelse: 'Snekkerarbeid og ny innredning. Overslag ettersendes.',
     regningsarbeid_varsel: {
       dato_sendt: '2025-02-10',
       metode: ['system'],
     },
-    // BH is holding back until proper overslag is provided
+    // BH is holding back until TE provides kostnads_overslag
     bh_resultat: 'hold_tilbake',
     bh_begrunnelse:
       'Jf. §30.2: Betaling holdes tilbake inntil TE leverer bindende prisoverslag.',
@@ -88,7 +87,7 @@ export const mockSakState7: SakState = {
     spor: 'vederlag',
   },
 
-  sum_krevd: 220000,
+  sum_krevd: 0,  // Overslag ikke levert ennå
   sum_godkjent: 0,
 
   opprettet: '2025-02-10',

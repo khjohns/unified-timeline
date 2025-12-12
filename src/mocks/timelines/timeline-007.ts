@@ -85,11 +85,10 @@ export const mockTimelineEvents7: TimelineEntry[] = [
     aktor: 'Per Hansen',
     rolle: 'TE',
     spor: 'vederlag',
-    sammendrag: 'Krav på 220.000 NOK (foreløpig overslag)',
+    sammendrag: 'Varsel om regningsarbeid - overslag kommer',
     event_data: {
       metode: 'REGNINGSARBEID',
-      begrunnelse: 'Snekkerarbeid og ny innredning. Endelig beløp kommer.',
-      kostnads_overslag: 220000,
+      begrunnelse: 'Snekkerarbeid og ny innredning. Overslag ettersendes.',
       regningsarbeid_varsel: { dato_sendt: '2025-02-10', metode: ['system'] },
     },
   },
