@@ -352,7 +352,10 @@ export interface FristEventData {
 }
 
 // Beløpsvurdering for enkelt krav
-export type BelopVurdering = 'godkjent' | 'delvis' | 'avvist' | 'prekludert';
+// NB: 'prekludert' er IKKE en beløpsvurdering - preklusjon bestemmes av
+// rigg_varslet_i_tide/produktivitet_varslet_i_tide i Port 1.
+// Beløpsvurderingen representerer BH's faktiske vurdering av kravet.
+export type BelopVurdering = 'godkjent' | 'delvis' | 'avvist';
 
 // Vederlag response event (Port Model)
 export interface ResponsVederlagEventData {

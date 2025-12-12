@@ -673,11 +673,16 @@ class GrunnlagResponsData(BaseModel):
 
 
 class BelopVurdering(str, Enum):
-    """Vurdering av enkelt beløpspost"""
+    """
+    Vurdering av enkelt beløpspost.
+
+    NB: 'prekludert' er IKKE en beløpsvurdering - preklusjon bestemmes av
+    rigg_varslet_i_tide/produktivitet_varslet_i_tide i Port 1.
+    Beløpsvurderingen representerer BH's faktiske vurdering av kravet.
+    """
     GODKJENT = "godkjent"
     DELVIS = "delvis"
     AVVIST = "avvist"
-    PREKLUDERT = "prekludert"
 
 
 class VederlagResponsData(BaseModel):

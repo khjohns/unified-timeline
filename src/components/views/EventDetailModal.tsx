@@ -537,17 +537,33 @@ function ResponsGrunnlagOppdatertSection({ data }: { data: ResponsGrunnlagOppdat
 function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
   const badge = getVederlagResultatBadge(data.beregnings_resultat);
 
-  // Check if we have any varsel fields to show
-  const hasVarselFields =
+  // Check if we have Port 1 preclusion fields
+  const hasPreklusjonsFields =
+    data.rigg_varslet_i_tide !== undefined ||
+    data.produktivitet_varslet_i_tide !== undefined ||
+    data.begrunnelse_preklusjon;
+
+  // Check if we have legacy varsel fields
+  const hasLegacyVarselFields =
     data.saerskilt_varsel_rigg_drift_ok !== undefined ||
     data.varsel_justert_ep_ok !== undefined ||
     data.varsel_start_regning_ok !== undefined ||
     data.krav_fremmet_i_tide !== undefined ||
     data.begrunnelse_varsel;
 
+  // Check if we have detailed breakdown
+  const hasBelopBreakdown =
+    data.hovedkrav_vurdering ||
+    data.hovedkrav_godkjent_belop !== undefined ||
+    data.rigg_vurdering ||
+    data.rigg_godkjent_belop !== undefined ||
+    data.produktivitet_vurdering ||
+    data.produktivitet_godkjent_belop !== undefined;
+
   // Check if we have calculation details
   const hasBeregningFields =
     data.begrunnelse_beregning ||
+    data.begrunnelse ||
     data.frist_for_spesifikasjon;
 
   // Check if we have subsidiary data
@@ -557,6 +573,20 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
     data.subsidiaer_godkjent_belop !== undefined ||
     data.subsidiaer_begrunnelse;
 
+  // Helper to get beløpsvurdering badge
+  const getBelopVurderingBadge = (vurdering: string | undefined) => {
+    switch (vurdering) {
+      case 'godkjent': return { variant: 'success' as const, label: 'Godkjent' };
+      case 'delvis': return { variant: 'warning' as const, label: 'Delvis godkjent' };
+      case 'avvist': return { variant: 'danger' as const, label: 'Avvist' };
+      default: return { variant: 'neutral' as const, label: '-' };
+    }
+  };
+
+  // Check if rigg/produktivitet is precluded
+  const riggPrekludert = data.rigg_varslet_i_tide === false;
+  const produktivitetPrekludert = data.produktivitet_varslet_i_tide === false;
+
   return (
     <dl>
       {/* ── Sammendrag ─────────────────────────────────────────────── */}
@@ -564,15 +594,46 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
         label="Resultat"
         value={<Badge variant={badge.variant}>{badge.label}</Badge>}
       />
-      {data.godkjent_belop !== undefined && (
-        <Field label="Godkjent beløp" value={formatCurrency(data.godkjent_belop)} />
+      {(data.total_godkjent_belop !== undefined || data.godkjent_belop !== undefined) && (
+        <Field
+          label="Totalt godkjent beløp"
+          value={formatCurrency(data.total_godkjent_belop ?? data.godkjent_belop ?? 0)}
+        />
       )}
       {data.vederlagsmetode && (
         <Field label="Valgt metode" value={getVederlagsmetodeLabel(data.vederlagsmetode)} />
       )}
 
-      {/* ── Varselvurdering (§34.1.3) ─────────────────────────────── */}
-      {hasVarselFields && (
+      {/* ── Port 1: Preklusjonsvurdering (§34.1.3) ─────────────────── */}
+      {hasPreklusjonsFields && (
+        <>
+          <SectionDivider title="Preklusjonsvurdering" subtitle="§34.1.3" />
+          {data.rigg_varslet_i_tide !== undefined && (
+            <Field
+              label="Rigg/drift varslet i tide"
+              value={
+                <Badge variant={data.rigg_varslet_i_tide ? 'success' : 'danger'}>
+                  {data.rigg_varslet_i_tide ? 'Ja' : 'Nei (prekludert)'}
+                </Badge>
+              }
+            />
+          )}
+          {data.produktivitet_varslet_i_tide !== undefined && (
+            <Field
+              label="Produktivitet varslet i tide"
+              value={
+                <Badge variant={data.produktivitet_varslet_i_tide ? 'success' : 'danger'}>
+                  {data.produktivitet_varslet_i_tide ? 'Ja' : 'Nei (prekludert)'}
+                </Badge>
+              }
+            />
+          )}
+          <LongTextField label="Begrunnelse" value={data.begrunnelse_preklusjon} />
+        </>
+      )}
+
+      {/* ── Legacy varselvurdering ──────────────────────────────────── */}
+      {hasLegacyVarselFields && !hasPreklusjonsFields && (
         <>
           <SectionDivider title="Varselvurdering" subtitle="§34.1.3" />
           {data.saerskilt_varsel_rigg_drift_ok !== undefined && (
@@ -619,11 +680,98 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
         </>
       )}
 
-      {/* ── Beløpsvurdering ───────────────────────────────────────── */}
-      {hasBeregningFields && (
+      {/* ── Port 3: Beløpsvurdering per kravtype ───────────────────── */}
+      {hasBelopBreakdown && (
         <>
           <SectionDivider title="Beløpsvurdering" />
-          <LongTextField label="Begrunnelse" value={data.begrunnelse_beregning} defaultOpen={true} />
+
+          {/* Hovedkrav */}
+          {(data.hovedkrav_vurdering || data.hovedkrav_godkjent_belop !== undefined) && (
+            <div className="py-2 border-b border-pkt-border-subtle">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium">Hovedkrav</span>
+                <div className="flex items-center gap-2">
+                  {data.hovedkrav_vurdering && (
+                    <Badge variant={getBelopVurderingBadge(data.hovedkrav_vurdering).variant} size="sm">
+                      {getBelopVurderingBadge(data.hovedkrav_vurdering).label}
+                    </Badge>
+                  )}
+                  {data.hovedkrav_godkjent_belop !== undefined && (
+                    <span className="font-mono">{formatCurrency(data.hovedkrav_godkjent_belop)}</span>
+                  )}
+                </div>
+              </div>
+              {data.hovedkrav_begrunnelse && (
+                <p className="text-sm text-pkt-grays-gray-600 mt-1">{data.hovedkrav_begrunnelse}</p>
+              )}
+            </div>
+          )}
+
+          {/* Rigg/drift */}
+          {(data.rigg_vurdering || data.rigg_godkjent_belop !== undefined) && (
+            <div className={`py-2 border-b border-pkt-border-subtle ${riggPrekludert ? 'bg-pkt-surface-yellow' : ''}`}>
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium">
+                  Rigg/drift
+                  {riggPrekludert && <span className="text-xs text-pkt-grays-gray-500 ml-1">(prekludert)</span>}
+                </span>
+                <div className="flex items-center gap-2">
+                  {data.rigg_vurdering && (
+                    <Badge variant={getBelopVurderingBadge(data.rigg_vurdering).variant} size="sm">
+                      {getBelopVurderingBadge(data.rigg_vurdering).label}
+                    </Badge>
+                  )}
+                  {data.rigg_godkjent_belop !== undefined && (
+                    <span className={`font-mono ${riggPrekludert ? 'line-through text-pkt-grays-gray-400' : ''}`}>
+                      {formatCurrency(data.rigg_godkjent_belop)}
+                    </span>
+                  )}
+                </div>
+              </div>
+              {riggPrekludert && data.rigg_godkjent_belop !== undefined && data.rigg_godkjent_belop > 0 && (
+                <p className="text-xs text-pkt-text-warning mt-1">
+                  Subsidiært godkjent: {formatCurrency(data.rigg_godkjent_belop)}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Produktivitet */}
+          {(data.produktivitet_vurdering || data.produktivitet_godkjent_belop !== undefined) && (
+            <div className={`py-2 border-b border-pkt-border-subtle ${produktivitetPrekludert ? 'bg-pkt-surface-yellow' : ''}`}>
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium">
+                  Produktivitetstap
+                  {produktivitetPrekludert && <span className="text-xs text-pkt-grays-gray-500 ml-1">(prekludert)</span>}
+                </span>
+                <div className="flex items-center gap-2">
+                  {data.produktivitet_vurdering && (
+                    <Badge variant={getBelopVurderingBadge(data.produktivitet_vurdering).variant} size="sm">
+                      {getBelopVurderingBadge(data.produktivitet_vurdering).label}
+                    </Badge>
+                  )}
+                  {data.produktivitet_godkjent_belop !== undefined && (
+                    <span className={`font-mono ${produktivitetPrekludert ? 'line-through text-pkt-grays-gray-400' : ''}`}>
+                      {formatCurrency(data.produktivitet_godkjent_belop)}
+                    </span>
+                  )}
+                </div>
+              </div>
+              {produktivitetPrekludert && data.produktivitet_godkjent_belop !== undefined && data.produktivitet_godkjent_belop > 0 && (
+                <p className="text-xs text-pkt-text-warning mt-1">
+                  Subsidiært godkjent: {formatCurrency(data.produktivitet_godkjent_belop)}
+                </p>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── Begrunnelse ────────────────────────────────────────────── */}
+      {hasBeregningFields && (
+        <>
+          <SectionDivider title="Begrunnelse" />
+          <LongTextField label="Samlet begrunnelse" value={data.begrunnelse ?? data.begrunnelse_beregning} defaultOpen={true} />
           {data.frist_for_spesifikasjon && (
             <Field label="Frist for spesifikasjon" value={formatDate(data.frist_for_spesifikasjon)} />
           )}

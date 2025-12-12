@@ -509,21 +509,19 @@ export function RespondVederlagModal({
               : 0,
         hovedkrav_begrunnelse: data.hovedkrav_begrunnelse,
 
-        rigg_vurdering: riggPrekludert ? 'prekludert' : data.rigg_vurdering,
-        rigg_godkjent_belop: riggPrekludert
-          ? 0
-          : data.rigg_vurdering === 'godkjent'
+        // Rigg/drift: BH's faktiske vurdering (preklusion bestemmes av rigg_varslet_i_tide)
+        rigg_vurdering: data.rigg_vurdering,
+        rigg_godkjent_belop:
+          data.rigg_vurdering === 'godkjent'
             ? riggBelop
             : data.rigg_vurdering === 'delvis'
               ? data.rigg_godkjent_belop
               : 0,
 
-        produktivitet_vurdering: produktivitetPrekludert
-          ? 'prekludert'
-          : data.produktivitet_vurdering,
-        produktivitet_godkjent_belop: produktivitetPrekludert
-          ? 0
-          : data.produktivitet_vurdering === 'godkjent'
+        // Produktivitet: BH's faktiske vurdering (preklusion bestemmes av produktivitet_varslet_i_tide)
+        produktivitet_vurdering: data.produktivitet_vurdering,
+        produktivitet_godkjent_belop:
+          data.produktivitet_vurdering === 'godkjent'
             ? produktivitetBelop
             : data.produktivitet_vurdering === 'delvis'
               ? data.produktivitet_godkjent_belop
