@@ -241,7 +241,7 @@
   --color-pkt-surface-light-blue: #1a3a5a;
   --color-pkt-surface-light-green: #1a4a3a;
   --color-pkt-surface-red: #5a3a3a;
-  --color-pkt-surface-yellow: #302818;  /* Deep amber - cleaner than brown */
+  --color-pkt-surface-yellow: #4a4020;  /* Clean dark amber - warmer, not muddy */
   --color-pkt-surface-strong-beige: #5a4a3a;
   --color-pkt-surface-strong-blue: #3a6a8a;
   --color-pkt-surface-strong-dark-blue: #4a4a8a;
@@ -259,8 +259,11 @@
   /* Brand colors - adjusted for dark mode visibility */
   --color-pkt-brand-blue-100: #1a2a4a;  /* Dark blue background for badges */
   --color-pkt-brand-blue-200: #2a4a6a;
-  --color-pkt-brand-yellow-500: #302818;  /* Dark amber background for warning alerts */
+  --color-pkt-brand-yellow-500: #4a4020;  /* Clean dark amber background for warning alerts */
   --color-pkt-brand-yellow-1000: #fbbf24;  /* Bright golden amber for borders/accents */
+  --color-pkt-brand-red-100: #3a2028;  /* Dark red background for danger alerts */
+  --color-pkt-brand-red-600: #ff8a80;  /* Coral/salmon for subsidiary status - lighter red */
+  --color-pkt-brand-red-1000: #ff6b6b;  /* Vibrant red for errors/danger in dark mode */
   --color-pkt-brand-light-green-400: #1a3a2a;  /* Dark green background for success */
   --color-pkt-brand-dark-blue-1000: #8ab4ff;
   --color-pkt-brand-dark-green-1000: #6adb8a;
@@ -280,7 +283,7 @@
   --color-success: #6adb8a;
   --color-success-100: #1a3a2a;
   --color-warning: #fbbf24;  /* Bright golden amber */
-  --color-warning-100: #302818;  /* Deep amber background */
+  --color-warning-100: #4a4020;  /* Clean dark amber background */
   --color-error: #ff6b6b;
   --color-error-100: #3a2a2a;
   --color-info: #8ab4ff;
