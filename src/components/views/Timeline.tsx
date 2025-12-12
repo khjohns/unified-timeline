@@ -154,7 +154,7 @@ function getSporLabel(spor: SporType | null): string {
 /**
  * Get role indicator styling
  * TE = Green (brand-green), BH = Yellow (brand-yellow)
- * In dark mode, BH text color matches the yellow circle for visual consistency
+ * BH text uses semantic color that matches circle in dark mode
  */
 function getRolleStyles(rolle: 'TE' | 'BH'): { bg: string; text: string; ring: string } {
   if (rolle === 'TE') {
@@ -166,7 +166,7 @@ function getRolleStyles(rolle: 'TE' | 'BH'): { bg: string; text: string; ring: s
   }
   return {
     bg: 'bg-pkt-brand-yellow-1000',
-    text: 'text-pkt-grays-gray-800 dark:text-pkt-brand-yellow-1000',
+    text: 'text-role-bh-text',
     ring: 'ring-pkt-brand-yellow-1000',
   };
 }

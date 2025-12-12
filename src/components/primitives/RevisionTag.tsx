@@ -35,11 +35,10 @@ export function RevisionTag({
     <span
       className={clsx(
         'inline-flex items-center gap-1.5 font-medium border rounded-none',
-        // Original is neutral, revisions are highlighted
-        // Dark mode: use darker backgrounds for better contrast
+        // Original is neutral, revisions are highlighted (uses semantic colors)
         isOriginal
-          ? 'bg-gray-100 text-gray-600 border-gray-300 dark:bg-pkt-grays-gray-200 dark:text-pkt-grays-gray-700 dark:border-pkt-grays-gray-300'
-          : 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-pkt-surface-light-blue dark:text-pkt-brand-blue-1000 dark:border-pkt-border-blue',
+          ? 'bg-tag-neutral-bg text-tag-neutral-text border-tag-neutral-border'
+          : 'bg-tag-info-bg text-tag-info-text border-tag-info-border',
         // Size variants
         size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-sm',
         className
@@ -48,8 +47,8 @@ export function RevisionTag({
       <span>{label}</span>
       {showDate && date && (
         <>
-          <span className="text-gray-400 dark:text-pkt-grays-gray-500">•</span>
-          <span className={isOriginal ? 'text-gray-500 dark:text-pkt-grays-gray-600' : 'text-blue-600 dark:text-pkt-brand-blue-1000'}>
+          <span className="text-tag-neutral-text">•</span>
+          <span className={isOriginal ? 'text-tag-neutral-text' : 'text-tag-info-text'}>
             {formatRevisionDate(date)}
           </span>
         </>
@@ -76,9 +75,8 @@ export function UpdatedTag({ size = 'sm', className }: UpdatedTagProps) {
     <span
       className={clsx(
         'inline-flex items-center gap-1 font-medium border rounded-none',
-        // Amber in light mode, warm amber in dark mode
-        'bg-amber-50 text-amber-700 border-amber-300',
-        'dark:bg-pkt-surface-yellow dark:text-pkt-brand-yellow-1000 dark:border-pkt-border-yellow',
+        // Uses semantic warning colors (amber in light, golden in dark)
+        'bg-tag-warning-bg text-tag-warning-text border-tag-warning-border',
         size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-sm',
         className
       )}
@@ -122,7 +120,7 @@ export function RevisionTagGroup({
       {totalRevisions !== undefined && totalRevisions > 0 && (
         <span
           className={clsx(
-            'text-gray-500 dark:text-pkt-grays-gray-600',
+            'text-tag-neutral-text',
             size === 'sm' ? 'text-xs' : 'text-sm'
           )}
         >
@@ -133,9 +131,8 @@ export function RevisionTagGroup({
         <span
           className={clsx(
             'inline-flex items-center gap-1 font-medium border rounded-none',
-            // Yellow warning in light mode, warm amber in dark mode
-            'bg-yellow-50 text-yellow-700 border-yellow-300',
-            'dark:bg-pkt-surface-yellow dark:text-pkt-brand-yellow-1000 dark:border-pkt-border-yellow',
+            // Uses semantic warning colors
+            'bg-tag-warning-bg text-tag-warning-text border-tag-warning-border',
             size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-sm'
           )}
         >
