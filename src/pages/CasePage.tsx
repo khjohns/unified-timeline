@@ -354,7 +354,7 @@ export function CasePage() {
                   variant="secondary"
                   size="sm"
                   onClick={() => setSendForseringOpen(true)}
-                  className="border-red-500 text-red-700 hover:bg-red-50"
+                  className="border-action-danger-border text-action-danger-text hover:bg-action-danger-hover-bg"
                 >
                   <RocketIcon className="w-4 h-4 mr-2" />
                   Forsering (§33.8)

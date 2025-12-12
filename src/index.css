@@ -136,6 +136,11 @@
     --color-role-bh-text: #b45309;  /* BH role label - amber/gold matching circle */
     --color-subsidiary-indicator: #ffe7bc;  /* Subsidiary status border/dot */
 
+    /* Danger action button (e.g., Forsering) */
+    --color-action-danger-text: #b91c1c;  /* Red text readable on white */
+    --color-action-danger-border: #ef4444;  /* Red border */
+    --color-action-danger-hover-bg: #fef2f2;  /* Light red hover */
+
     /* ============================================
        SEMANTIC TAG COLORS
        Used for revision tags, badges, and status indicators
@@ -318,6 +323,11 @@
   --color-role-te-text: #6adb8a;  /* TE matches green circle */
   --color-role-bh-text: #fbbf24;  /* BH matches yellow circle */
   --color-subsidiary-indicator: #ff8a80;  /* Coral/salmon red */
+
+  /* Danger action button - dark mode */
+  --color-action-danger-text: #fca5a5;  /* Lighter red for dark bg */
+  --color-action-danger-border: #f87171;  /* Bright red border */
+  --color-action-danger-hover-bg: #3a2028;  /* Dark red hover */
 
   /* Semantic tag colors - dark mode */
   --color-tag-neutral-bg: #3a3a5a;
