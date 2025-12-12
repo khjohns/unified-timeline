@@ -128,8 +128,7 @@ function getGrunnlagResultatBadge(resultat: GrunnlagResponsResultat | string): {
     case 'krever_avklaring':
       variant = 'warning';
       break;
-    case 'avvist_uenig':
-    case 'avvist_for_sent':
+    case 'avslatt':
     case 'frafalt':
       variant = 'danger';
       break;
@@ -576,7 +575,7 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
     switch (vurdering) {
       case 'godkjent': return { variant: 'success' as const, label: 'Godkjent' };
       case 'delvis': return { variant: 'warning' as const, label: 'Delvis godkjent' };
-      case 'avvist': return { variant: 'danger' as const, label: 'Avvist' };
+      case 'avslatt': return { variant: 'danger' as const, label: 'Avslått' };
       default: return { variant: 'neutral' as const, label: '-' };
     }
   };

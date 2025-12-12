@@ -24,7 +24,7 @@ export const mockTimelineEvents5: TimelineEntry[] = [
     sammendrag: 'Utdypet begrunnelse for avvisning',
     event_data: {
       original_respons_id: 'evt-502',
-      nytt_resultat: 'avvist_uenig',
+      nytt_resultat: 'avslatt',
       begrunnelse: 'BH bestrider at det foreligger en endring. Plasseringen var allerede avtalt i kontrakten. Se protokoll fra byggemøte 2024-12-15 hvor rominndelingen ble bekreftet.',
       dato_endret: '2025-02-07',
     },
@@ -50,7 +50,7 @@ export const mockTimelineEvents5: TimelineEntry[] = [
       beregnings_resultat: 'avslatt',
       begrunnelse_beregning: 'Prinsipalt avslått da grunnlaget bestrides.',
       // Subsidiært standpunkt
-      subsidiaer_triggers: ['grunnlag_avvist'],
+      subsidiaer_triggers: ['grunnlag_avslatt'],
       subsidiaer_resultat: 'godkjent',
       subsidiaer_godkjent_dager: 14,
       subsidiaer_begrunnelse: 'Dersom ansvar avklares til TEs fordel, godkjennes 14 dager.',
@@ -74,7 +74,7 @@ export const mockTimelineEvents5: TimelineEntry[] = [
       vederlagsmetode: 'REGNINGSARBEID',
       begrunnelse_beregning: 'Prinsipalt avslått da grunnlaget bestrides.',
       // Subsidiært standpunkt
-      subsidiaer_triggers: ['grunnlag_avvist'],
+      subsidiaer_triggers: ['grunnlag_avslatt'],
       subsidiaer_resultat: 'delvis_godkjent',
       subsidiaer_godkjent_belop: 400000,
       subsidiaer_begrunnelse: 'Dersom ansvar avklares til TEs fordel, godkjennes 400.000 NOK.',
@@ -90,7 +90,7 @@ export const mockTimelineEvents5: TimelineEntry[] = [
     spor: 'grunnlag',
     sammendrag: 'Grunnlag avvist - uenig i at det er en endring',
     event_data: {
-      resultat: 'avvist_uenig',
+      resultat: 'avslatt',
       begrunnelse: 'BH bestrider at det foreligger en endring. Plasseringen var allerede avtalt i kontrakten.',
     },
   },

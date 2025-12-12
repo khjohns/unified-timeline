@@ -92,7 +92,7 @@ export const mockSakState4: SakState = {
   visningsstatus_vederlag: 'Avslått - mangler spesifikasjon',
   visningsstatus_frist: 'Avslått - mangler spesifikasjon',
 
-  overordnet_status: 'AVSLATT',
+  overordnet_status: 'UNDER_FORHANDLING',
   kan_utstede_eo: false,
   neste_handling: {
     rolle: 'TE',

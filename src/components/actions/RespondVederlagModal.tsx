@@ -67,7 +67,7 @@ import type { SubsidiaerTrigger } from '../../types/timeline';
 // ============================================================================
 
 // Vurdering options for beløp
-type BelopVurdering = 'godkjent' | 'delvis' | 'avvist';
+type BelopVurdering = 'godkjent' | 'delvis' | 'avslatt';
 
 // Særskilt krav item structure (§34.1.3)
 interface SaerskiltKravItem {
@@ -100,7 +100,7 @@ interface RespondVederlagModalProps {
   /** Optional vederlag event data for context display and conditional logic */
   vederlagEvent?: VederlagEventInfo;
   /** Status of the grunnlag response (for subsidiary treatment) */
-  grunnlagStatus?: 'godkjent' | 'avvist_uenig' | 'delvis_godkjent';
+  grunnlagStatus?: 'godkjent' | 'avslatt' | 'delvis_godkjent';
 }
 
 // ============================================================================
@@ -121,14 +121,14 @@ const respondVederlagSchema = z.object({
   begrunnelse_metode: z.string().optional(),
 
   // Port 3: Beløpsvurdering - Hovedkrav
-  hovedkrav_vurdering: z.enum(['godkjent', 'delvis', 'avvist']),
+  hovedkrav_vurdering: z.enum(['godkjent', 'delvis', 'avslatt']),
   hovedkrav_godkjent_belop: z.number().min(0).optional(),
   hovedkrav_begrunnelse: z.string().optional(),
 
   // Port 3: Beløpsvurdering - Særskilte (kun hvis ikke prekludert)
-  rigg_vurdering: z.enum(['godkjent', 'delvis', 'avvist']).optional(),
+  rigg_vurdering: z.enum(['godkjent', 'delvis', 'avslatt']).optional(),
   rigg_godkjent_belop: z.number().min(0).optional(),
-  produktivitet_vurdering: z.enum(['godkjent', 'delvis', 'avvist']).optional(),
+  produktivitet_vurdering: z.enum(['godkjent', 'delvis', 'avslatt']).optional(),
   produktivitet_godkjent_belop: z.number().min(0).optional(),
 
   // Port 4: Oppsummering
@@ -164,7 +164,7 @@ function beregnPrinsipaltResultat(
     computed.totalKrevd > 0 ? computed.totalGodkjent / computed.totalKrevd : 0;
 
   // 3. Total rejection (only for calculation errors, not grunnlag disputes)
-  if (godkjentProsent === 0 && data.hovedkrav_vurdering === 'avvist') {
+  if (godkjentProsent === 0 && data.hovedkrav_vurdering === 'avslatt') {
     return 'avslatt';
   }
 
@@ -195,7 +195,7 @@ function beregnSubsidiaertResultat(
       : 0;
 
   // Total rejection
-  if (godkjentProsent === 0 && data.hovedkrav_vurdering === 'avvist') {
+  if (godkjentProsent === 0 && data.hovedkrav_vurdering === 'avslatt') {
     return 'avslatt';
   }
 
@@ -285,7 +285,7 @@ export function RespondVederlagModal({
   const formValues = watch();
 
   // Derived state
-  const erSubsidiaer = grunnlagStatus === 'avvist_uenig';
+  const erSubsidiaer = grunnlagStatus === 'avslatt';
   const kanHoldeTilbake =
     vederlagEvent?.metode === 'REGNINGSARBEID' && !vederlagEvent?.kostnads_overslag;
   const maSvarePaJustering =
@@ -479,7 +479,7 @@ export function RespondVederlagModal({
     if (vederlagEvent?.krever_justert_ep && data.ep_justering_akseptert === false) {
       triggers.push('preklusjon_ep_justering');
     }
-    if (!data.aksepterer_metode) triggers.push('metode_avvist');
+    if (!data.aksepterer_metode) triggers.push('metode_avslatt');
 
     mutation.mutate({
       eventType: 'respons_vederlag',
@@ -875,7 +875,7 @@ export function RespondVederlagModal({
                       <RadioGroup value={field.value} onValueChange={field.onChange}>
                         <RadioItem value="godkjent" label="Godkjent fullt ut" />
                         <RadioItem value="delvis" label="Delvis godkjent" />
-                        <RadioItem value="avvist" label="Avvist" />
+                        <RadioItem value="avslatt" label="Avvist" />
                       </RadioGroup>
                     )}
                   />
@@ -978,7 +978,7 @@ export function RespondVederlagModal({
                         <RadioGroup value={field.value} onValueChange={field.onChange}>
                           <RadioItem value="godkjent" label="Godkjent fullt ut" />
                           <RadioItem value="delvis" label="Delvis godkjent" />
-                          <RadioItem value="avvist" label="Avvist" />
+                          <RadioItem value="avslatt" label="Avvist" />
                         </RadioGroup>
                       )}
                     />
@@ -1061,7 +1061,7 @@ export function RespondVederlagModal({
                         <RadioGroup value={field.value} onValueChange={field.onChange}>
                           <RadioItem value="godkjent" label="Godkjent fullt ut" />
                           <RadioItem value="delvis" label="Delvis godkjent" />
-                          <RadioItem value="avvist" label="Avvist" />
+                          <RadioItem value="avslatt" label="Avvist" />
                         </RadioGroup>
                       )}
                     />
@@ -1168,7 +1168,7 @@ export function RespondVederlagModal({
                           {formValues.hovedkrav_vurdering === 'delvis' && (
                             <Badge variant="warning">Delvis</Badge>
                           )}
-                          {formValues.hovedkrav_vurdering === 'avvist' && (
+                          {formValues.hovedkrav_vurdering === 'avslatt' && (
                             <Badge variant="danger">Avvist</Badge>
                           )}
                         </td>
@@ -1342,7 +1342,7 @@ export function RespondVederlagModal({
                         {formValues.hovedkrav_vurdering === 'delvis' && (
                           <Badge variant="warning">Delvis</Badge>
                         )}
-                        {formValues.hovedkrav_vurdering === 'avvist' && (
+                        {formValues.hovedkrav_vurdering === 'avslatt' && (
                           <Badge variant="danger">Avvist</Badge>
                         )}
                       </div>

@@ -70,7 +70,7 @@ describe('useActionPermissions', () => {
       });
 
       it('should not allow sending grunnlag when status is not utkast', () => {
-        const statuses: SporStatus[] = ['sendt', 'under_behandling', 'godkjent', 'avvist'];
+        const statuses: SporStatus[] = ['sendt', 'under_behandling', 'godkjent', 'avslatt'];
         for (const status of statuses) {
           const state = createMockState({ grunnlagStatus: status });
           const actions = useActionPermissions(state, role);
@@ -105,7 +105,7 @@ describe('useActionPermissions', () => {
       });
 
       it('should allow updating grunnlag when avvist and not locked', () => {
-        const state = createMockState({ grunnlagStatus: 'avvist', grunnlagLaast: false });
+        const state = createMockState({ grunnlagStatus: 'avslatt', grunnlagLaast: false });
         const actions = useActionPermissions(state, role);
         expect(actions.canUpdateGrunnlag).toBe(true);
       });
@@ -135,7 +135,7 @@ describe('useActionPermissions', () => {
       });
 
       it('should allow updating vederlag when avvist', () => {
-        const state = createMockState({ vederlagStatus: 'avvist' });
+        const state = createMockState({ vederlagStatus: 'avslatt' });
         const actions = useActionPermissions(state, role);
         expect(actions.canUpdateVederlag).toBe(true);
       });
@@ -153,7 +153,7 @@ describe('useActionPermissions', () => {
       });
 
       it('should allow updating frist when avvist', () => {
-        const state = createMockState({ fristStatus: 'avvist' });
+        const state = createMockState({ fristStatus: 'avslatt' });
         const actions = useActionPermissions(state, role);
         expect(actions.canUpdateFrist).toBe(true);
       });
@@ -179,7 +179,7 @@ describe('useActionPermissions', () => {
       });
 
       it('should not allow withdrawing grunnlag when avvist', () => {
-        const state = createMockState({ grunnlagStatus: 'avvist', grunnlagLaast: false });
+        const state = createMockState({ grunnlagStatus: 'avslatt', grunnlagLaast: false });
         const actions = useActionPermissions(state, role);
         expect(actions.canWithdrawGrunnlag).toBe(false);
       });
@@ -197,7 +197,7 @@ describe('useActionPermissions', () => {
       });
 
       it('should not allow withdrawing vederlag when avvist', () => {
-        const state = createMockState({ vederlagStatus: 'avvist' });
+        const state = createMockState({ vederlagStatus: 'avslatt' });
         const actions = useActionPermissions(state, role);
         expect(actions.canWithdrawVederlag).toBe(false);
       });

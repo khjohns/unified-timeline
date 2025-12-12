@@ -400,7 +400,7 @@ class SakState(BaseModel):
     #
     # VIKTIG FOR FRONTEND:
     # Subsidiær logikk er en KOMBINASJON av:
-    #   1. Grunnlag-sporet: BH avviser ansvarsgrunnlaget (AVVIST)
+    #   1. Grunnlag-sporet: BH avslår ansvarsgrunnlaget (AVSLATT)
     #   2. Vederlag/Frist-sporet: BH godkjenner beregningen (GODKJENT_FULLT/DELVIS_GODKJENT)
     #
     # Dette betyr: "BH mener TE har ansvaret, MEN erkjenner at hvis BH hadde hatt
@@ -451,7 +451,7 @@ class SakState(BaseModel):
         Sjekker om vederlag er vurdert subsidiært.
 
         Returns True hvis:
-        - Grunnlag er AVVIST av BH, MEN
+        - Grunnlag er AVSLATT av BH, MEN
         - Vederlag-beregningen er godkjent (fullt/delvis/annen metode)
 
         NB: Gjelder IKKE ved Force Majeure (da er vederlag alltid avslått)
@@ -467,12 +467,12 @@ class SakState(BaseModel):
         if self.er_force_majeure or self.er_frafalt:
             return False
 
-        grunnlag_avvist = self.grunnlag.status == SporStatus.AVVIST
+        grunnlag_avslatt = self.grunnlag.status == SporStatus.AVSLATT
         beregning_godkjent = self.vederlag.bh_resultat in {
             VederlagBeregningResultat.GODKJENT,
             VederlagBeregningResultat.DELVIS_GODKJENT,
         }
-        return grunnlag_avvist and beregning_godkjent
+        return grunnlag_avslatt and beregning_godkjent
 
     @computed_field
     @property
@@ -481,7 +481,7 @@ class SakState(BaseModel):
         Sjekker om frist er vurdert subsidiært.
 
         Returns True hvis:
-        - Grunnlag er AVVIST av BH, MEN
+        - Grunnlag er AVSLATT av BH, MEN
         - Frist-beregningen er godkjent (fullt/delvis)
 
         Dette betyr: "BH mener TE har ansvar, men erkjenner at
@@ -490,12 +490,12 @@ class SakState(BaseModel):
         FRONTEND: Bruk dette for å vise subsidiær status.
         Ikke implementer denne logikken selv i frontend.
         """
-        grunnlag_avvist = self.grunnlag.status == SporStatus.AVVIST
+        grunnlag_avslatt = self.grunnlag.status == SporStatus.AVSLATT
         beregning_godkjent = self.frist.bh_resultat in {
             FristBeregningResultat.GODKJENT,
             FristBeregningResultat.DELVIS_GODKJENT,
         }
-        return grunnlag_avvist and beregning_godkjent
+        return grunnlag_avslatt and beregning_godkjent
 
     @computed_field
     @property
@@ -535,7 +535,7 @@ class SakState(BaseModel):
             return f"Godkjent - {belop}"
         elif self.vederlag.status == SporStatus.DELVIS_GODKJENT:
             return f"Delvis godkjent - {self.vederlag.godkjent_belop:,.0f} kr"
-        elif self.vederlag.status == SporStatus.AVVIST:
+        elif self.vederlag.status == SporStatus.AVSLATT:
             return "Avvist"
         elif self.vederlag.status == SporStatus.SENDT:
             return "Sendt - venter på svar"
@@ -571,7 +571,7 @@ class SakState(BaseModel):
             return f"Godkjent - {dager}"
         elif self.frist.status == SporStatus.DELVIS_GODKJENT:
             return f"Delvis godkjent - {self.frist.godkjent_dager} dager"
-        elif self.frist.status == SporStatus.AVVIST:
+        elif self.frist.status == SporStatus.AVSLATT:
             return "Avvist"
         elif self.frist.status == SporStatus.SENDT:
             return "Sendt - venter på svar"
@@ -591,7 +591,7 @@ class SakState(BaseModel):
         - UTKAST: Ingen spor er sendt ennå
         - SENDT: Minst ett spor er sendt, venter på BH
         - UNDER_BEHANDLING: BH har svart på minst ett spor
-        - UNDER_FORHANDLING: BH har avvist/delvis godkjent noe
+        - UNDER_FORHANDLING: BH har avslått/delvis godkjent noe
         - OMFORENT: Alle aktive spor er godkjent
         - LUKKET: Saken er lukket (EO utstedt eller trukket)
         """
@@ -618,7 +618,7 @@ class SakState(BaseModel):
                 return "LUKKET_TRUKKET"
 
         # Sjekk om noen er under forhandling
-        forhandling_statuser = {SporStatus.UNDER_FORHANDLING, SporStatus.DELVIS_GODKJENT, SporStatus.AVVIST}
+        forhandling_statuser = {SporStatus.UNDER_FORHANDLING, SporStatus.DELVIS_GODKJENT, SporStatus.AVSLATT}
         if any(s in forhandling_statuser for s in aktive_statuser):
             return "UNDER_FORHANDLING"
 
@@ -678,7 +678,7 @@ class SakState(BaseModel):
         if self.grunnlag.status == SporStatus.SENDT:
             return {"rolle": "BH", "handling": "Vurder grunnlag", "spor": "grunnlag"}
 
-        if self.grunnlag.status == SporStatus.AVVIST:
+        if self.grunnlag.status == SporStatus.AVSLATT:
             return {"rolle": "TE", "handling": "Oppdater grunnlag eller trekk saken", "spor": "grunnlag"}
 
         # Sjekk vederlag
@@ -688,7 +688,7 @@ class SakState(BaseModel):
         if self.vederlag.status == SporStatus.SENDT:
             return {"rolle": "BH", "handling": "Vurder vederlagskrav", "spor": "vederlag"}
 
-        if self.vederlag.status in {SporStatus.AVVIST, SporStatus.UNDER_FORHANDLING}:
+        if self.vederlag.status in {SporStatus.AVSLATT, SporStatus.UNDER_FORHANDLING}:
             return {"rolle": "TE", "handling": "Oppdater vederlagskrav", "spor": "vederlag"}
 
         # Sjekk frist
@@ -698,7 +698,7 @@ class SakState(BaseModel):
         if self.frist.status == SporStatus.SENDT:
             return {"rolle": "BH", "handling": "Vurder fristkrav", "spor": "frist"}
 
-        if self.frist.status in {SporStatus.AVVIST, SporStatus.UNDER_FORHANDLING}:
+        if self.frist.status in {SporStatus.AVSLATT, SporStatus.UNDER_FORHANDLING}:
             return {"rolle": "TE", "handling": "Oppdater fristkrav", "spor": "frist"}
 
         # Alt er klart

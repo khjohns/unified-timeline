@@ -77,7 +77,7 @@ interface GrunnlagEventInfo {
   tittel?: string;
   hovedkategori?: string;
   dato_varslet?: string;
-  status?: 'godkjent' | 'avvist_uenig' | 'delvis_godkjent' | 'ubesvart';
+  status?: 'godkjent' | 'avslatt' | 'delvis_godkjent' | 'ubesvart';
 }
 
 interface SendFristModalProps {
@@ -155,7 +155,7 @@ export function SendFristModal({
     : undefined;
 
   // Determine if this is a subsidiary claim (grunnlag was rejected)
-  const erSubsidiaer = grunnlagEvent?.status === 'avvist_uenig';
+  const erSubsidiaer = grunnlagEvent?.status === 'avslatt';
 
   const onSubmit = (data: FristFormData) => {
     // Build VarselInfo structures

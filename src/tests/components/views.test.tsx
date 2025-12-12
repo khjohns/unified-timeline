@@ -117,7 +117,7 @@ describe('View Components - Functional Tests', () => {
         'under_behandling',
         'godkjent',
         'delvis_godkjent',
-        'avvist',
+        'avslatt',
         'under_forhandling',
         'trukket',
         'laast',

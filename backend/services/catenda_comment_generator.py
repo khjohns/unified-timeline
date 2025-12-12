@@ -39,7 +39,7 @@ class CatendaCommentGenerator:
         # Statuses
         'godkjent': '✅',
         'delvis_godkjent': '⚠️',
-        'avvist': '❌',
+        'avslatt': '❌',
         'under_forhandling': '💬',
         'sendt': '📤',
         'utkast': '📝',
@@ -183,7 +183,7 @@ class CatendaCommentGenerator:
             'under_behandling': 'Under behandling',
             'godkjent': 'Godkjent',
             'delvis_godkjent': 'Delvis godkjent',
-            'avvist': 'Avvist',
+            'avslatt': 'Avslått',
             'under_forhandling': 'Under forhandling',
             'trukket': 'Trukket',
             'laast': 'Låst',

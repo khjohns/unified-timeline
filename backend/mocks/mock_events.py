@@ -225,7 +225,7 @@ MOCK_EVENTS_SCENARIO_1 = [
 
 
 # ============================================================
-# MOCK SCENARIO 2: Subsidiær godkjenning (grunnlag avvist, men vederlag godkjent)
+# MOCK SCENARIO 2: Subsidiær godkjenning (grunnlag avslått, men vederlag godkjent)
 # ============================================================
 
 MOCK_EVENTS_SCENARIO_2 = [
@@ -275,7 +275,7 @@ MOCK_EVENTS_SCENARIO_2 = [
         )
     ),
 
-    # BH avviser grunnlag (uenig om ansvar)
+    # BH avslår grunnlag (uenig om ansvar)
     ResponsEvent(
         event_id="evt-204",
         sak_id="SAK-002",
@@ -285,7 +285,7 @@ MOCK_EVENTS_SCENARIO_2 = [
         spor=SporType.GRUNNLAG,
         refererer_til_event_id="evt-202",
         data=GrunnlagResponsData(
-            resultat=GrunnlagResponsResultat.AVVIST_UENIG,
+            resultat=GrunnlagResponsResultat.AVSLATT,
             begrunnelse=(
                 "BH er uenig i ansvarsgrunnlaget. "
                 "Vi mener forsinkelsen skyldes forhold på TEs side, ikke BHs prosjektering."
@@ -453,7 +453,7 @@ MOCK_EVENTS_SCENARIO_4 = [
         )
     ),
 
-    # BH avviser grunnlag på grunn av sent varsel
+    # BH avslår grunnlag på grunn av sent varsel
     ResponsEvent(
         event_id="evt-404",
         sak_id="SAK-004",
@@ -463,11 +463,11 @@ MOCK_EVENTS_SCENARIO_4 = [
         spor=SporType.GRUNNLAG,
         refererer_til_event_id="evt-402",
         data=GrunnlagResponsData(
-            resultat=GrunnlagResponsResultat.AVVIST_UENIG,
+            resultat=GrunnlagResponsResultat.AVSLATT,
             begrunnelse=(
                 "Varselet kom 4 måneder for sent. "
                 "TE oppdaget forholdet i oktober 2024, men varslet først i februar 2025. "
-                "Dette er ugrunnet opphold, og kravet avvises."
+                "Dette er ugrunnet opphold, og kravet avslås."
             ),
         )
     ),

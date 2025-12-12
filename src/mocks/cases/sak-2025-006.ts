@@ -58,7 +58,7 @@ export const mockSakState6: SakState = {
   },
 
   frist: {
-    status: 'avvist',
+    status: 'avslatt',
     varsel_type: 'spesifisert',
     noytralt_varsel: {
       dato_sendt: '2025-01-20',

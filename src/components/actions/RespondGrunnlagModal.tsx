@@ -287,7 +287,7 @@ export function RespondGrunnlagModal({
         )}
 
         {/* Subsidiary treatment warning when rejecting */}
-        {selectedResultat === 'avvist_uenig' && (
+        {selectedResultat === 'avslatt' && (
           <Alert variant="warning" title="Konsekvens av avslag">
             <p>
               Saken markeres som <em>omtvistet</em>. Entreprenøren vil likevel
@@ -317,7 +317,7 @@ export function RespondGrunnlagModal({
           required
           error={errors.begrunnelse?.message}
           helpText={
-            selectedResultat === 'avvist_uenig'
+            selectedResultat === 'avslatt'
               ? 'Forklar hvorfor du mener forholdet er en del av kontrakten eller entreprenørens risiko'
               : 'Begrunn din vurdering av grunnlaget'
           }
@@ -353,7 +353,7 @@ export function RespondGrunnlagModal({
           </Button>
           <Button
             type="submit"
-            variant={selectedResultat === 'avvist_uenig' ? 'danger' : 'primary'}
+            variant={selectedResultat === 'avslatt' ? 'danger' : 'primary'}
             disabled={isSubmitting}
             size="lg"
             className="w-full sm:w-auto"

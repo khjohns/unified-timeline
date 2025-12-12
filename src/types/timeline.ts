@@ -16,7 +16,7 @@ export type SporStatus =
   | 'under_behandling'
   | 'godkjent'
   | 'delvis_godkjent'
-  | 'avvist'
+  | 'avslatt'
   | 'under_forhandling'
   | 'trukket'
   | 'laast';
@@ -53,25 +53,25 @@ export type FristBeregningResultat =
   | 'avslatt';              // BH avviser kravet
 
 // Grunnlag response result (BH's vurdering av ansvarsgrunnlaget)
+// NB: 'avvist_for_sent' er fjernet - preklusjon håndteres av kravspor-status
 export type GrunnlagResponsResultat =
   | 'godkjent'
   | 'delvis_godkjent'
   | 'erkjenn_fm'       // §33.3 - BH erkjenner Force Majeure (kun frist, ikke vederlag)
-  | 'avvist_uenig'
-  | 'avvist_for_sent'
+  | 'avslatt'          // BH avslår ansvarsgrunnlaget
   | 'frafalt'          // §32.3 c - BH frafaller pålegget (kun irregulær endring)
   | 'krever_avklaring';
 
 // Årsaker til at subsidiær vurdering er relevant (NS 8407)
 export type SubsidiaerTrigger =
-  | 'grunnlag_avvist'          // Nivå 0: BH avviste ansvarsgrunnlaget
+  | 'grunnlag_avslatt'         // Nivå 0: BH avslo ansvarsgrunnlaget
   | 'preklusjon_rigg'          // Nivå 1: Rigg/drift varslet for sent (§34.1.3)
   | 'preklusjon_produktivitet' // Nivå 1: Produktivitet varslet for sent (§34.1.3)
   | 'preklusjon_ep_justering'  // Nivå 1: EP-justering varslet for sent (§34.3.3)
   | 'preklusjon_noytralt'      // Nivå 1: Nøytralt varsel for sent (§33.4)
   | 'preklusjon_spesifisert'   // Nivå 1: Spesifisert krav for sent (§33.6)
   | 'ingen_hindring'           // Nivå 2: Ingen reell fremdriftshindring (§33.5)
-  | 'metode_avvist';           // Nivå 2: BH aksepterer ikke foreslått metode
+  | 'metode_avslatt';          // Nivå 2: BH aksepterer ikke foreslått metode
 
 export type OverordnetStatus =
   | 'UTKAST'
@@ -355,7 +355,7 @@ export interface FristEventData {
 // NB: 'prekludert' er IKKE en beløpsvurdering - preklusjon bestemmes av
 // rigg_varslet_i_tide/produktivitet_varslet_i_tide i Port 1.
 // Beløpsvurderingen representerer BH's faktiske vurdering av kravet.
-export type BelopVurdering = 'godkjent' | 'delvis' | 'avvist';
+export type BelopVurdering = 'godkjent' | 'delvis' | 'avslatt';
 
 // Vederlag response event (Port Model)
 export interface ResponsVederlagEventData {

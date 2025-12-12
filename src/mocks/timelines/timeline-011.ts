@@ -4,13 +4,33 @@ import type { TimelineEntry } from '@/types/timeline';
  * Timeline for SAK-2025-011: Subsidiær preklusjonslogikk - Rigg varslet for sent
  *
  * Demonstrerer:
- * - BH bestrider grunnlag (avvist_uenig) som utløser subsidiær vurdering
+ * - BH avslår grunnlag som utløser subsidiær vurdering
  * - Rigg/drift varslet for sent (prekludert via rigg_varslet_i_tide = false)
  * - Produktivitet varslet i tide, vurdert subsidiært
  * - BelopVurdering er BH's faktiske vurdering - preklusjon er separat
  */
 export const mockTimelineEvents11: TimelineEntry[] = [
   // === Nyeste først ===
+  // Sent rigg-varsel (sendt ETTER BH-respons - viser preklusjonskonsekvens)
+  {
+    event_id: 'evt-1108',
+    tidsstempel: '2025-03-01T10:00:00Z',
+    type: 'Særskilt varsel rigg/drift (FOR SENT)',
+    event_type: 'vederlag_saerskilt_varsel',
+    aktor: 'Per Hansen',
+    rolle: 'TE',
+    spor: 'vederlag',
+    sammendrag: 'Rigg/drift varsel - sendt 19 dager etter kjennskap (for sent)',
+    event_data: {
+      varsel_type: 'rigg_drift',
+      rigg_drift_varsel: { dato_sendt: '2025-03-01', metode: ['epost'] },
+      dato_klar_over: '2025-02-10',
+      dager_siden_kjennskap: 19,
+      frist_beskrivelse: 'uten ugrunnet opphold (§34.1.3)',
+      begrunnelse:
+        'Varsel om rigg/drift-kostnader på 80.000 kr. (NB: Sendt 19 dager etter kjennskap - for sent jf. §34.1.3)',
+    },
+  },
   {
     event_id: 'evt-1101',
     tidsstempel: '2025-02-25T15:00:00Z',
@@ -35,8 +55,11 @@ export const mockTimelineEvents11: TimelineEntry[] = [
       beregnings_resultat: 'avslatt',
       begrunnelse_beregning: 'Kravet avslås prinsipalt da grunnlaget bestrides.',
 
+      // Port 3: Beregning - Prinsipalt
+      godkjent_dager: 0,
+
       // Subsidiært standpunkt
-      subsidiaer_triggers: ['grunnlag_avvist'],
+      subsidiaer_triggers: ['grunnlag_avslatt'],
       subsidiaer_resultat: 'delvis_godkjent',
       subsidiaer_godkjent_dager: 10,
       subsidiaer_begrunnelse:
@@ -55,9 +78,9 @@ export const mockTimelineEvents11: TimelineEntry[] = [
     event_data: {
       // Port 1: Preklusjon av særskilte krav
       rigg_varslet_i_tide: false, // PREKLUDERT - 19 dager etter kjennskap
-      produktivitet_varslet_i_tide: true, // OK - 5 dager etter kjennskap
+      produktivitet_varslet_i_tide: true, // OK - varslet samme dag som kjennskap
       begrunnelse_preklusjon:
-        'Rigg/drift ble varslet 2025-03-01, 19 dager etter at forholdet ble kjent (2025-02-10). Fristen er 14 dager jf. §34.1.3. Produktivitetstap ble varslet i tide.',
+        'Rigg/drift ble varslet 2025-03-01, 19 dager etter at forholdet ble kjent (2025-02-10). Dette overskrider "uten ugrunnet opphold" jf. §34.1.3. Produktivitetstap ble varslet samme dag som kjennskap (2025-02-15).',
 
       // Port 2: Metode (regningsarbeid OK subsidiært)
       aksepterer_metode: true,
@@ -68,7 +91,7 @@ export const mockTimelineEvents11: TimelineEntry[] = [
       hovedkrav_vurdering: 'delvis',
       hovedkrav_godkjent_belop: 500000,
       hovedkrav_begrunnelse:
-        'Subsidiært: Dokumentasjonen understøtter 500k av 700k krevd.',
+        'Dokumentasjonen understøtter 500.000 kr av 700.000 kr krevd. Manglende spesifikasjon av ventetidskostnader.',
 
       // Port 3: Beløpsvurdering - Rigg/drift
       // NB: Selv om rigg er prekludert (rigg_varslet_i_tide = false),
@@ -88,7 +111,7 @@ export const mockTimelineEvents11: TimelineEntry[] = [
       total_godkjent_belop: 0,
 
       // Subsidiært standpunkt
-      subsidiaer_triggers: ['grunnlag_avvist', 'preklusjon_rigg'],
+      subsidiaer_triggers: ['grunnlag_avslatt', 'preklusjon_rigg'],
       subsidiaer_resultat: 'delvis_godkjent',
       subsidiaer_godkjent_belop: 535000,
       subsidiaer_begrunnelse:
@@ -105,7 +128,7 @@ export const mockTimelineEvents11: TimelineEntry[] = [
     spor: 'grunnlag',
     sammendrag: 'Grunnlag bestridt - subsidiært standpunkt avgis',
     event_data: {
-      resultat: 'avvist_uenig',
+      resultat: 'avslatt',
       begrunnelse:
         'BH bestrider at forsinkelsen skyldes byggherreforhold. Leverandøren hadde egen forsinkelse som ikke er BH risiko. Subsidiært standpunkt avgis for vederlag og frist.',
     },
@@ -153,8 +176,8 @@ export const mockTimelineEvents11: TimelineEntry[] = [
         },
       },
       regningsarbeid_varsel: { dato_sendt: '2025-02-12', metode: ['epost'] },
-      // NB: Produktivitet varslet her (i tide)
-      produktivitetstap_varsel: { dato_sendt: '2025-02-20', metode: ['epost'] },
+      // NB: Produktivitetstap varsles samme dag som kravet (i tide - 0 dager etter kjennskap)
+      produktivitetstap_varsel: { dato_sendt: '2025-02-15', metode: ['epost'] },
     },
   },
   {
@@ -190,26 +213,6 @@ export const mockTimelineEvents11: TimelineEntry[] = [
       dato_oppdaget: '2025-02-10',
       grunnlag_varsel: { dato_sendt: '2025-02-12', metode: ['epost', 'telefon'] },
       kontraktsreferanser: ['§24.1', '§25.1'],
-    },
-  },
-  // === Sent rigg-varsel (legges til etter 14-dagers fristen) ===
-  {
-    event_id: 'evt-1108',
-    tidsstempel: '2025-03-01T10:00:00Z',
-    type: 'Særskilt varsel rigg/drift (FOR SENT)',
-    event_type: 'vederlag_saerskilt_varsel',
-    aktor: 'Per Hansen',
-    rolle: 'TE',
-    spor: 'vederlag',
-    sammendrag: 'Rigg/drift varsel - sendt 19 dager etter kjennskap (for sent)',
-    event_data: {
-      varsel_type: 'rigg_drift',
-      rigg_drift_varsel: { dato_sendt: '2025-03-01', metode: ['epost'] },
-      dato_klar_over: '2025-02-10',
-      dager_siden_kjennskap: 19,
-      frist_dager: 14,
-      begrunnelse:
-        'Varsel om rigg/drift-kostnader på 80.000 kr. (NB: Sendt for sent jf. §34.1.3)',
     },
   },
 ];
