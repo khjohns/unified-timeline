@@ -227,7 +227,14 @@ export function CasePage() {
       {/* Main Content */}
       <main className="max-w-3xl mx-auto px-4 py-6 sm:px-8 sm:py-8 bg-pkt-bg-card min-h-[calc(100vh-88px)]">
         {/* Status Dashboard with Contextual Actions */}
-        <StatusDashboard
+        <section aria-labelledby="krav-respons-heading">
+          <h2
+            id="krav-respons-heading"
+            className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4"
+          >
+            Krav og respons
+          </h2>
+          <StatusDashboard
           state={state}
           grunnlagActions={
             <>
@@ -384,7 +391,8 @@ export function CasePage() {
               )}
             </>
           }
-        />
+          />
+        </section>
 
         {/* Timeline Section */}
         <section className="mt-6 sm:mt-8" aria-labelledby="timeline-heading">
