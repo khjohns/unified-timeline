@@ -153,15 +153,13 @@ export function StatusCard({
   // Subsidiary means: avvist on grunnlag but vederlag/frist approved
   const isSubsidiary = erSubsidiaert === true;
 
-  // Subsidiary status gets a special border color
-  // Light mode: amber/orange to indicate mixed status
-  // Dark mode: coral/salmon red - cleaner and indicates the rejection aspect
+  // Subsidiary status uses semantic color (amber in light, coral in dark)
   const borderClass = isSubsidiary
-    ? 'border-l-pkt-brand-yellow-500 dark:border-l-pkt-brand-red-600'
+    ? 'border-l-subsidiary-indicator'
     : config.borderClass;
 
   const dotClass = isSubsidiary
-    ? 'bg-pkt-brand-yellow-500 dark:bg-pkt-brand-red-600'
+    ? 'bg-subsidiary-indicator'
     : config.dotClass;
 
   return (

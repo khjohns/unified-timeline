@@ -2,14 +2,6 @@
 @import "tailwindcss";
 
 /* ============================================
-   Tailwind v4 Dark Mode Configuration
-
-   Enable class-based dark mode (using .dark class on <html>)
-   instead of the default prefers-color-scheme media query.
-   ============================================ */
-@custom-variant dark (&:where(.dark, .dark *));
-
-/* ============================================
    Tailwind v4 Theme Configuration
 
    NOTE: Tailwind v4 uses CSS-first configuration.
@@ -135,6 +127,27 @@
     --color-pkt-text-action-active: #1f42aa;
     --color-pkt-text-action-hover: #1f42aa;
     --color-pkt-text-action-normal: #2a2859;
+
+    /* ============================================
+       SEMANTIC ROLE COLORS
+       Used for role indicators in timeline and status cards
+       ============================================ */
+    --color-role-bh-text: #333333;  /* BH role label text */
+    --color-subsidiary-indicator: #ffe7bc;  /* Subsidiary status border/dot */
+
+    /* ============================================
+       SEMANTIC TAG COLORS
+       Used for revision tags, badges, and status indicators
+       ============================================ */
+    --color-tag-neutral-bg: #f3f4f6;
+    --color-tag-neutral-text: #4b5563;
+    --color-tag-neutral-border: #d1d5db;
+    --color-tag-info-bg: #eff6ff;
+    --color-tag-info-text: #1d4ed8;
+    --color-tag-info-border: #bfdbfe;
+    --color-tag-warning-bg: #fffbeb;
+    --color-tag-warning-text: #b45309;
+    --color-tag-warning-border: #fcd34d;
 
     /* ============================================
        LEGACY ALIASES (for backward compatibility)
@@ -297,6 +310,21 @@
   --color-info: #8ab4ff;
   --color-pri: #6a9aff;
   --color-pri-light: #2a3a5a;
+
+  /* Semantic role colors - dark mode */
+  --color-role-bh-text: #fbbf24;  /* BH matches yellow circle */
+  --color-subsidiary-indicator: #ff8a80;  /* Coral/salmon red */
+
+  /* Semantic tag colors - dark mode */
+  --color-tag-neutral-bg: #3a3a5a;
+  --color-tag-neutral-text: #b0b0d0;
+  --color-tag-neutral-border: #5a5a7a;
+  --color-tag-info-bg: #1a3a5a;
+  --color-tag-info-text: #6fe9ff;
+  --color-tag-info-border: #4a8aaa;
+  --color-tag-warning-bg: #4a4020;
+  --color-tag-warning-text: #fbbf24;
+  --color-tag-warning-border: #8a7a3a;
 }
 
 /* ============================================
