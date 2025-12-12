@@ -82,7 +82,7 @@ type VederlagFormData = z.infer<typeof vederlagSchema>;
 // Grunnlag event info for context display
 interface GrunnlagEventInfo {
   tittel?: string;
-  status?: 'godkjent' | 'avvist_uenig' | 'delvis_godkjent';
+  status?: 'godkjent' | 'avslatt' | 'delvis_godkjent';
   dato_varslet?: string;
   dato_oppdaget?: string;
 }
@@ -164,7 +164,7 @@ export function SendVederlagModal({
   const datoKlarOverProduktivitet = watch('dato_klar_over_produktivitet');
 
   // Determine if this is a subsidiary claim (grunnlag was rejected)
-  const erSubsidiaer = grunnlagEvent?.status === 'avvist_uenig';
+  const erSubsidiaer = grunnlagEvent?.status === 'avslatt';
 
   // Check preclusion for rigg/drift (§34.1.3 første ledd) - 7 days threshold
   const riggPreklusjon = useMemo(() => {

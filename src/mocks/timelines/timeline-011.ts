@@ -4,7 +4,7 @@ import type { TimelineEntry } from '@/types/timeline';
  * Timeline for SAK-2025-011: Subsidiær preklusjonslogikk - Rigg varslet for sent
  *
  * Demonstrerer:
- * - BH bestrider grunnlag (avvist_uenig) som utløser subsidiær vurdering
+ * - BH avslår grunnlag som utløser subsidiær vurdering
  * - Rigg/drift varslet for sent (prekludert via rigg_varslet_i_tide = false)
  * - Produktivitet varslet i tide, vurdert subsidiært
  * - BelopVurdering er BH's faktiske vurdering - preklusjon er separat
@@ -59,7 +59,7 @@ export const mockTimelineEvents11: TimelineEntry[] = [
       godkjent_dager: 0,
 
       // Subsidiært standpunkt
-      subsidiaer_triggers: ['grunnlag_avvist'],
+      subsidiaer_triggers: ['grunnlag_avslatt'],
       subsidiaer_resultat: 'delvis_godkjent',
       subsidiaer_godkjent_dager: 10,
       subsidiaer_begrunnelse:
@@ -111,7 +111,7 @@ export const mockTimelineEvents11: TimelineEntry[] = [
       total_godkjent_belop: 0,
 
       // Subsidiært standpunkt
-      subsidiaer_triggers: ['grunnlag_avvist', 'preklusjon_rigg'],
+      subsidiaer_triggers: ['grunnlag_avslatt', 'preklusjon_rigg'],
       subsidiaer_resultat: 'delvis_godkjent',
       subsidiaer_godkjent_belop: 535000,
       subsidiaer_begrunnelse:
@@ -128,7 +128,7 @@ export const mockTimelineEvents11: TimelineEntry[] = [
     spor: 'grunnlag',
     sammendrag: 'Grunnlag bestridt - subsidiært standpunkt avgis',
     event_data: {
-      resultat: 'avvist_uenig',
+      resultat: 'avslatt',
       begrunnelse:
         'BH bestrider at forsinkelsen skyldes byggherreforhold. Leverandøren hadde egen forsinkelse som ikke er BH risiko. Subsidiært standpunkt avgis for vederlag og frist.',
     },

@@ -43,8 +43,8 @@ interface RespondGrunnlagUpdateModalProps {
 const RESULTAT_LABELS: Record<GrunnlagResponsResultat | 'frafalt', string> = {
   godkjent: 'Godkjent',
   delvis_godkjent: 'Delvis godkjent',
-  avvist_uenig: 'Avvist (Uenig i ansvar)',
-  avvist_for_sent: 'Avvist (Varslet for sent)',
+  avslatt: 'Avslått',
+  erkjenn_fm: 'Force Majeure (§33.3)',
   krever_avklaring: 'Krever avklaring',
   frafalt: 'Frafalt (§32.3 c)',
 };
@@ -57,7 +57,7 @@ export function RespondGrunnlagUpdateModal({
   sakState,
 }: RespondGrunnlagUpdateModalProps) {
   const forrigeResultat = lastResponseEvent.resultat;
-  const varAvvist = forrigeResultat === 'avvist_uenig' || forrigeResultat === 'avvist_for_sent';
+  const varAvvist = forrigeResultat === 'avslatt';
   const harSubsidiaereSvar = sakState.er_subsidiaert_vederlag || sakState.er_subsidiaert_frist;
 
   // Check if grunnlag is irregular change (§32.3 c - frafall only for irregular)
@@ -103,7 +103,7 @@ export function RespondGrunnlagUpdateModal({
   // Check if pulling back approval
   const trekkeTilbakeGodkjenning = useMemo(() => {
     return (forrigeResultat === 'godkjent' || forrigeResultat === 'delvis_godkjent') &&
-      (nyttResultat === 'avvist_uenig' || nyttResultat === 'avvist_for_sent');
+      nyttResultat === 'avslatt';
   }, [forrigeResultat, nyttResultat]);
 
   // Get available options based on current state
@@ -133,14 +133,9 @@ export function RespondGrunnlagUpdateModal({
       }
     } else {
       options.push({
-        value: 'avvist_uenig',
-        label: 'Trekk tilbake: Avvis (Uenig)',
+        value: 'avslatt',
+        label: 'Trekk tilbake: Avslå',
         description: 'Du mener likevel ikke at dette er BHs ansvar.',
-      });
-      options.push({
-        value: 'avvist_for_sent',
-        label: 'Trekk tilbake: Avvis (For sent)',
-        description: 'Du mener varselet ble sendt for sent (preklusjon).',
       });
     }
 

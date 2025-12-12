@@ -138,9 +138,9 @@ export function CasePage() {
   );
 
   // Compute grunnlag status for subsidiary logic in response modals
-  const grunnlagStatus = useMemo((): 'godkjent' | 'avvist_uenig' | 'delvis_godkjent' | undefined => {
+  const grunnlagStatus = useMemo((): 'godkjent' | 'avslatt' | 'delvis_godkjent' | undefined => {
     const result = state.grunnlag.bh_resultat;
-    if (result === 'godkjent' || result === 'avvist_uenig' || result === 'delvis_godkjent') {
+    if (result === 'godkjent' || result === 'avslatt' || result === 'delvis_godkjent') {
       return result;
     }
     return undefined;
@@ -578,17 +578,13 @@ export function CasePage() {
             responsFristId={`frist-response-${sakId}`}
             fristData={{
               krevde_dager: state.frist.krevd_dager || 0,
-              godkjent_dager: state.grunnlag.bh_resultat &&
-                ['avvist_uenig', 'avvist_for_sent'].includes(state.grunnlag.bh_resultat)
+              godkjent_dager: state.grunnlag.bh_resultat === 'avslatt'
                   ? (state.frist.subsidiaer_godkjent_dager ?? 0)  // Use subsidiary days when grunnlag rejected
                   : (state.frist.godkjent_dager ?? 0),
               bh_resultat: state.frist.bh_resultat || 'godkjent',
             }}
             dagmulktsats={50000}  // TODO: Get from contract config
-            grunnlagAvslagTrigger={
-              state.grunnlag.bh_resultat != null &&
-              ['avvist_uenig', 'avvist_for_sent'].includes(state.grunnlag.bh_resultat)
-            }
+            grunnlagAvslagTrigger={state.grunnlag.bh_resultat === 'avslatt'}
           />
         </>
       )}

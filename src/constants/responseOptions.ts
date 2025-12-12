@@ -27,8 +27,8 @@ export const BH_GRUNNLAGSVAR_OPTIONS: DropdownOption[] = [
     label: "Erkjenn Force Majeure (§33.3)"
   },
   {
-    value: "avvist_uenig",
-    label: "Avvist - Uenig i ansvarsgrunnlaget"
+    value: "avslatt",
+    label: "Avslått - BH avslår ansvarsgrunnlaget"
   },
   {
     value: "frafalt",
@@ -146,7 +146,7 @@ export const BH_GRUNNLAGSVAR_DESCRIPTIONS: Record<string, string> = {
   godkjent: "Byggherren aksepterer ansvarsgrunnlaget fullt ut. Vederlag og frist vurderes prinsipalt.",
   delvis_godkjent: "Byggherren aksepterer deler av grunnlaget. Kan påvirke vederlag/frist-vurdering.",
   erkjenn_fm: "§33.3: Byggherren erkjenner at forholdet er Force Majeure. Entreprenøren får kun fristforlengelse, ikke vederlag.",
-  avvist_uenig: "Byggherren er uenig i ansvarsgrunnlaget. Vederlag og frist vurderes subsidiært (hvis ansvar hadde foreligget).",
+  avslatt: "Byggherren avslår ansvarsgrunnlaget. Vederlag og frist vurderes subsidiært (hvis ansvar hadde foreligget).",
   frafalt: "Byggherren frafaller pålegget (§32.3 c). Kun for irregulære endringer. Arbeidet trenger ikke utføres.",
   krever_avklaring: "Byggherren trenger mer dokumentasjon før beslutning. Angir hvilke dokumenter som mangler."
 };
@@ -167,14 +167,14 @@ export const BH_FRISTSVAR_DESCRIPTIONS: Record<string, string> = {
 // ========== SUBSIDIÆR TRIGGER LABELS ==========
 
 export const SUBSIDIAER_TRIGGER_LABELS: Record<SubsidiaerTrigger, string> = {
-  grunnlag_avvist: 'Grunnlag avvist av BH',
+  grunnlag_avslatt: 'Grunnlag avslått av BH',
   preklusjon_rigg: 'Rigg/drift varslet for sent (§34.1.3)',
   preklusjon_produktivitet: 'Produktivitet varslet for sent (§34.1.3)',
   preklusjon_ep_justering: 'EP-justering varslet for sent (§34.3.3)',
   preklusjon_noytralt: 'Nøytralt varsel for sent (§33.4)',
   preklusjon_spesifisert: 'Spesifisert krav for sent (§33.6)',
   ingen_hindring: 'Ingen reell fremdriftshindring (§33.5)',
-  metode_avvist: 'Metode ikke akseptert',
+  metode_avslatt: 'Metode ikke akseptert',
 };
 
 export function getSubsidiaerTriggerLabel(trigger: SubsidiaerTrigger): string {

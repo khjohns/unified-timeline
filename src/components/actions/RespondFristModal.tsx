@@ -70,7 +70,7 @@ interface RespondFristModalProps {
   /** Optional frist event data for context display */
   fristEvent?: FristEventInfo;
   /** Status of the grunnlag response (for subsidiary treatment) */
-  grunnlagStatus?: 'godkjent' | 'avvist_uenig' | 'delvis_godkjent';
+  grunnlagStatus?: 'godkjent' | 'avslatt' | 'delvis_godkjent';
   /** Type of varsel TE sent (nøytralt or spesifisert) - determines which checks to show */
   varselType?: 'noytralt' | 'spesifisert' | 'force_majeure';
 }
@@ -245,7 +245,7 @@ export function RespondFristModal({
   const formValues = watch();
 
   // Derived state from grunnlag
-  const erGrunnlagSubsidiaer = grunnlagStatus === 'avvist_uenig';
+  const erGrunnlagSubsidiaer = grunnlagStatus === 'avslatt';
 
   // §33.7: Calculate BH response time for preclusion warning
   const dagerSidenKrav = fristEvent?.dato_krav_mottatt

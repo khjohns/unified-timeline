@@ -56,9 +56,10 @@ const METODE_LABELS: Record<string, string> = {
 const GRUNNLAG_RESULTAT_LABELS: Record<string, string> = {
   godkjent: 'Godkjent',
   delvis_godkjent: 'Delvis godkjent',
-  avvist_uenig: 'Avvist (Uenig i ansvar)',
-  avvist_for_sent: 'Avvist (Varslet for sent)',
+  avslatt: 'Avslått',
+  erkjenn_fm: 'Force Majeure (§33.3)',
   krever_avklaring: 'Krever avklaring',
+  frafalt: 'Frafalt (§32.3 c)',
 };
 
 // Labels for vederlag resultat
@@ -247,7 +248,7 @@ function ResponsGrunnlagView({ data }: { data: any }) {
             variant={
               data.resultat === 'godkjent'
                 ? 'success'
-                : data.resultat?.startsWith('avvist')
+                : data.resultat === 'avslatt'
                   ? 'danger'
                   : 'warning'
             }

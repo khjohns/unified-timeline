@@ -73,7 +73,7 @@ const StatusBadge: React.FC<{ status: SporStatus; label?: string }> = ({ status,
       badgeStyle = styles.statusYellow;
       textStyle = styles.statusYellowText;
       break;
-    case 'avvist':
+    case 'avslatt':
       badgeStyle = styles.statusRed;
       textStyle = styles.statusRedText;
       break;
@@ -113,7 +113,7 @@ function formatStatus(status: SporStatus): string {
     'under_behandling': 'Under behandling',
     'godkjent': 'Godkjent',
     'delvis_godkjent': 'Delvis godkjent',
-    'avvist': 'Avvist',
+    'avslatt': 'Avslått',
     'under_forhandling': 'Under forhandling',
     'trukket': 'Trukket',
     'laast': 'Låst',
@@ -127,8 +127,7 @@ function formatGrunnlagResultat(resultat?: GrunnlagResponsResultat): string {
     'godkjent': 'Godkjent',
     'delvis_godkjent': 'Delvis godkjent',
     'erkjenn_fm': 'Force majeure erkjent',
-    'avvist_uenig': 'Avvist - uenig i grunnlag',
-    'avvist_for_sent': 'Avvist - varslet for sent',
+    'avslatt': 'Avslått',
     'frafalt': 'Frafalt (pålegg trukket)',
     'krever_avklaring': 'Krever avklaring',
   };

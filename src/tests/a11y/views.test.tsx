@@ -44,7 +44,7 @@ describe('View Components - Accessibility', () => {
         'under_behandling',
         'godkjent',
         'delvis_godkjent',
-        'avvist',
+        'avslatt',
         'under_forhandling',
         'trukket',
         'laast',

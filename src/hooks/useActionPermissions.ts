@@ -75,18 +75,18 @@ export function useActionPermissions(
       isTE &&
       (state.grunnlag.status === 'sendt' ||
         state.grunnlag.status === 'under_behandling' ||
-        state.grunnlag.status === 'avvist') &&
+        state.grunnlag.status === 'avslatt') &&
       !state.grunnlag.laast,
     canUpdateVederlag:
       isTE &&
       (state.vederlag.status === 'sendt' ||
         state.vederlag.status === 'under_behandling' ||
-        state.vederlag.status === 'avvist'),
+        state.vederlag.status === 'avslatt'),
     canUpdateFrist:
       isTE &&
       (state.frist.status === 'sendt' ||
         state.frist.status === 'under_behandling' ||
-        state.frist.status === 'avvist'),
+        state.frist.status === 'avslatt'),
 
     // TE Actions: Withdraw claims
     canWithdrawGrunnlag:
@@ -136,7 +136,7 @@ export function useActionPermissions(
         ['avslatt', 'delvis_godkjent'].includes(state.frist.bh_resultat) ||
         // Grunnlag rejection (implies frist rejection)
         (state.grunnlag.bh_resultat != null &&
-          ['avvist_uenig', 'avvist_for_sent'].includes(state.grunnlag.bh_resultat))
+          state.grunnlag.bh_resultat === 'avslatt')
       ),
 
     // Special: Issue EO (Endringsordre)

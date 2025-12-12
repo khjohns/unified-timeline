@@ -6,7 +6,7 @@ import type { SakState } from '@/types/timeline';
  * Scenario: BH bestrider grunnlag men gir subsidiært standpunkt.
  * Illustrerer hvordan preklusjon av rigg/drift påvirker vederlagsberegningen.
  *
- * - Grunnlag: Avvist av BH (avvist_uenig) - utløser subsidiær vurdering
+ * - Grunnlag: Avslått av BH - utløser subsidiær vurdering
  * - Vederlag (subsidiært):
  *     - Hovedkrav: delvis godkjent (500k av 700k)
  *     - Rigg/drift: varslet for sent (rigg_varslet_i_tide = false) → prekludert → 0 kr
@@ -23,7 +23,7 @@ export const mockSakState11: SakState = {
   sakstittel: 'Subsidiær preklusjon - Rigg varslet for sent',
 
   grunnlag: {
-    status: 'avvist',
+    status: 'avslatt',
     tittel: 'Forsinket leveranse av stålkonstruksjoner',
     hovedkategori: 'BH_FORHOLD',
     underkategori: 'FORSINKET_LEVERANSE',
@@ -35,7 +35,7 @@ export const mockSakState11: SakState = {
       metode: ['epost', 'telefon'],
     },
     kontraktsreferanser: ['§24.1', '§25.1'],
-    bh_resultat: 'avvist_uenig',
+    bh_resultat: 'avslatt',
     bh_begrunnelse:
       'BH bestrider at forsinkelsen skyldes byggherreforhold. Leverandøren hadde egen forsinkelse. Subsidiært standpunkt avgis for det tilfelle at ansvar skulle foreligge.',
     laast: false,
@@ -80,7 +80,7 @@ export const mockSakState11: SakState = {
     bh_begrunnelse: 'Kravet avslås prinsipalt da grunnlaget bestrides.',
 
     // Subsidiært standpunkt
-    subsidiaer_triggers: ['grunnlag_avvist', 'preklusjon_rigg'],
+    subsidiaer_triggers: ['grunnlag_avslatt', 'preklusjon_rigg'],
     subsidiaer_resultat: 'delvis_godkjent',
     subsidiaer_godkjent_belop: 535000, // 500k hovedkrav + 0 rigg (prekludert) + 35k produktivitet
     subsidiaer_begrunnelse:
@@ -115,7 +115,7 @@ export const mockSakState11: SakState = {
     bh_begrunnelse: 'Kravet avslås prinsipalt da grunnlaget bestrides.',
 
     // Subsidiært standpunkt
-    subsidiaer_triggers: ['grunnlag_avvist'],
+    subsidiaer_triggers: ['grunnlag_avslatt'],
     subsidiaer_resultat: 'delvis_godkjent',
     subsidiaer_godkjent_dager: 10,
     subsidiaer_begrunnelse:

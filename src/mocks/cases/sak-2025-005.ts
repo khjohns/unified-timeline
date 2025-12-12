@@ -4,7 +4,7 @@ import type { SakState } from '@/types/timeline';
  * SAK-2025-005: Omtvistet endring - Teknisk rom
  *
  * Scenario: Subsidiær respons på omtvistet sak
- * - Grunnlag: Avvist (uenig)
+ * - Grunnlag: Avslått
  * - Vederlag: Subsidiært delvis godkjent
  * - Frist: Subsidiært godkjent
  *
@@ -15,7 +15,7 @@ export const mockSakState5: SakState = {
   sakstittel: 'Omtvistet endring - Teknisk rom',
 
   grunnlag: {
-    status: 'avvist',
+    status: 'avslatt',
     tittel: 'Irregulær endring - plassering av teknisk rom',
     hovedkategori: 'ENDRING',
     underkategori: 'IRREG',
@@ -27,7 +27,7 @@ export const mockSakState5: SakState = {
       metode: ['epost'],
     },
     kontraktsreferanser: ['§32.1', '§32.2'],
-    bh_resultat: 'avvist_uenig',
+    bh_resultat: 'avslatt',
     bh_begrunnelse:
       'BH bestrider at det foreligger en endring. Plasseringen var allerede avtalt i kontrakten.',
     laast: false,
