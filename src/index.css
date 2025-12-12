@@ -148,6 +148,8 @@
     --color-tag-warning-bg: #fffbeb;
     --color-tag-warning-text: #b45309;
     --color-tag-warning-border: #fcd34d;
+    --color-tag-frist-bg: #ffe7bc;  /* Soft amber/beige for Frist tag */
+    --color-tag-frist-text: #2a2859;
 
     /* ============================================
        LEGACY ALIASES (for backward compatibility)
@@ -325,6 +327,8 @@
   --color-tag-warning-bg: #4a4020;
   --color-tag-warning-text: #fbbf24;
   --color-tag-warning-border: #8a7a3a;
+  --color-tag-frist-bg: #4d4538;  /* Warm beige/sand - clean, not brown */
+  --color-tag-frist-text: #f5e6c8;  /* Soft cream text */
 }
 
 /* ============================================
