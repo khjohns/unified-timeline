@@ -501,8 +501,6 @@ class TimelineService:
             return SporStatus.GODKJENT
         elif resultat_value == 'delvis_godkjent':
             return SporStatus.DELVIS_GODKJENT
-        elif resultat_value == 'avventer':
-            return SporStatus.UNDER_FORHANDLING
         elif resultat_value == 'avslatt':
             return SporStatus.AVVIST
         else:
@@ -712,7 +710,6 @@ class TimelineService:
             'avvist_uenig': 'Avvist',
             'frafalt': 'Pålegg frafalt',
             'krever_avklaring': 'Krever avklaring',
-            'avventer': 'Avventer',
             'avslatt': 'Avslått',
         }
 
@@ -964,7 +961,6 @@ class TimelineService:
             'godkjent': 'Godkjent',
             'delvis_godkjent': 'Delvis godkjent',
             'avslatt': 'Avslått',
-            'avventer': 'Avventer dokumentasjon',
             'hold_tilbake': 'Holdes tilbake (§30.2)',
         }
         return labels.get(resultat.value if hasattr(resultat, 'value') else resultat, str(resultat))
@@ -989,7 +985,6 @@ class TimelineService:
             'godkjent': 'Godkjent',
             'delvis_godkjent': 'Delvis godkjent',
             'avslatt': 'Avslått',
-            'avventer': 'Avventer dokumentasjon',
         }
         return labels.get(resultat.value if hasattr(resultat, 'value') else resultat, str(resultat))
 

@@ -3,12 +3,13 @@ import type { SakState } from '@/types/timeline';
 /**
  * SAK-2025-003: Tilleggsarbeid - Rørføring omlegging
  *
- * Scenario: Sak med avventer spesifikasjon
+ * Scenario: Sak med krav avslått pga manglende spesifikasjon
  * - Grunnlag: Godkjent
- * - Vederlag: Avventer spesifikasjon
- * - Frist: Avventer spesifikasjon
+ * - Vederlag: Avslått (mangler spesifikasjon - TE kan revidere kravet)
+ * - Frist: Avslått (mangler spesifikasjon - TE kan revidere kravet)
  *
- * Demonstrerer: BH har gitt frist for ytterligere spesifisering av krav
+ * Demonstrerer: BH avslår krav som mangler dokumentasjon, men gir TE mulighet
+ * til å revidere og sende på nytt med fullstendig spesifikasjon.
  */
 export const mockSakState4: SakState = {
   sak_id: 'SAK-2025-003',
@@ -58,9 +59,9 @@ export const mockSakState4: SakState = {
       dato_sendt: '2025-01-28',
       metode: ['epost'],
     },
-    bh_resultat: 'avventer',
+    bh_resultat: 'avslatt',
     bh_begrunnelse:
-      'Grunnlaget er akseptert, men kravet mangler tilstrekkelig spesifikasjon. TE må levere detaljert kostnadskalkyle og dokumentasjon innen 2025-02-15.',
+      'Grunnlaget er akseptert, men vederlagskravet avslås da det mangler tilstrekkelig spesifikasjon. TE oppfordres til å revidere kravet med detaljert kostnadskalkyle og dokumentasjon.',
     siste_oppdatert: '2025-02-01',
     antall_versjoner: 1,
   },
@@ -78,10 +79,9 @@ export const mockSakState4: SakState = {
     pavirker_kritisk_linje: true,
     noytralt_varsel_ok: true,
     vilkar_oppfylt: true,
-    bh_resultat: 'avventer',
+    bh_resultat: 'avslatt',
     bh_begrunnelse:
-      'Fristkravet mangler dokumentasjon av arbeidsoperasjoner og påvirkning på framdrift. TE må levere detaljert framdriftsplan innen 2025-02-15.',
-    frist_for_spesifisering: '2025-02-15',
+      'Fristkravet avslås da det mangler dokumentasjon av arbeidsoperasjoner og påvirkning på framdrift. TE oppfordres til å revidere kravet med detaljert framdriftsplan.',
     siste_oppdatert: '2025-02-01',
     antall_versjoner: 1,
   },
@@ -89,14 +89,14 @@ export const mockSakState4: SakState = {
   // Computed - Subsidiær logikk
   er_subsidiaert_vederlag: false,
   er_subsidiaert_frist: false,
-  visningsstatus_vederlag: 'Avventer spesifikasjon (frist: 2025-02-15)',
-  visningsstatus_frist: 'Avventer spesifikasjon (frist: 2025-02-15)',
+  visningsstatus_vederlag: 'Avslått - mangler spesifikasjon',
+  visningsstatus_frist: 'Avslått - mangler spesifikasjon',
 
-  overordnet_status: 'UNDER_BEHANDLING',
+  overordnet_status: 'AVSLATT',
   kan_utstede_eo: false,
   neste_handling: {
     rolle: 'TE',
-    handling: 'Lever ytterligere spesifikasjon innen 2025-02-15',
+    handling: 'Revider krav med fullstendig spesifikasjon',
     spor: null,
   },
 

@@ -30,12 +30,12 @@ export type VederlagsMetode =
 
 // Vederlag beregning results - forenklet til tre hovedkategorier
 // Årsaken til avslag fanges av `subsidiaer_triggers`
+// NB: 'avventer' er fjernet - BH må enten avslå eller delvis godkjenne med forklaring
 export type VederlagBeregningResultat =
   | 'godkjent'              // BH aksepterer kravet (sum og metode)
   | 'delvis_godkjent'       // BH aksepterer deler (uenighet om beløp/metode)
   | 'avslatt'               // BH avviser kravet
-  | 'avventer'              // BH trenger mer dokumentasjon
-  | 'hold_tilbake';         // §30.2 tilbakeholdelse
+  | 'hold_tilbake';         // §30.2 tilbakeholdelse (kun ved manglende overslag)
 
 // ========== FRIST ENUMS ==========
 
@@ -46,11 +46,11 @@ export type FristVarselType =
 
 // Frist beregning results - forenklet til tre hovedkategorier
 // Årsaken til avslag fanges av `subsidiaer_triggers`
+// NB: 'avventer' er fjernet - BH må enten avslå eller delvis godkjenne med forklaring
 export type FristBeregningResultat =
   | 'godkjent'              // BH aksepterer kravet (enighet om antall dager)
   | 'delvis_godkjent'       // BH aksepterer deler (uenighet om antall dager)
-  | 'avslatt'               // BH avviser kravet
-  | 'avventer';             // BH trenger mer dokumentasjon
+  | 'avslatt';              // BH avviser kravet
 
 // Grunnlag response result (BH's vurdering av ansvarsgrunnlaget)
 export type GrunnlagResponsResultat =

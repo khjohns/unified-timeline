@@ -116,9 +116,9 @@ function beregnPrinsipaltResultat(data: {
   krevdDager: number;
   godkjentDager: number;
 }): string {
-  // 1. Etterlysning sendes - avventer
+  // 1. Etterlysning sendes - avslått (BH avslår midlertidig, venter på spesifisert krav)
   if (data.sendEtterlysning) {
-    return 'avventer';
+    return 'avslatt';
   }
 
   // 2. Preklusjon (Port 1) - avslått
@@ -180,7 +180,6 @@ function getResultatLabel(resultat: string): string {
     godkjent: 'Godkjent',
     delvis_godkjent: 'Delvis godkjent',
     avslatt: 'Avslått',
-    avventer: 'Avventer dokumentasjon',
   };
   return labels[resultat] || resultat;
 }

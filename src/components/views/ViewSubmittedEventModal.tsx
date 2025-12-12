@@ -66,7 +66,6 @@ const VEDERLAG_RESULTAT_LABELS: Record<string, string> = {
   godkjent: 'Godkjent',
   delvis_godkjent: 'Delvis godkjent',
   avslatt: 'Avslått',
-  avventer: 'Avventer dokumentasjon',
   hold_tilbake: 'Holder tilbake (§30.2)',
 };
 
@@ -75,7 +74,6 @@ const FRIST_RESULTAT_LABELS: Record<string, string> = {
   godkjent: 'Godkjent',
   delvis_godkjent: 'Delvis godkjent',
   avslatt: 'Avslått',
-  avventer: 'Avventer dokumentasjon',
 };
 
 // Labels for varsel type
@@ -288,7 +286,7 @@ function ResponsVederlagView({ data }: { data: any }) {
             variant={
               data.beregnings_resultat === 'godkjent'
                 ? 'success'
-                : data.beregnings_resultat === 'hold_tilbake' || data.beregnings_resultat === 'avventer'
+                : data.beregnings_resultat === 'hold_tilbake'
                   ? 'warning'
                   : data.beregnings_resultat === 'avslatt'
                     ? 'danger'
@@ -349,7 +347,7 @@ function ResponsFristView({ data }: { data: any }) {
             variant={
               data.beregnings_resultat === 'godkjent'
                 ? 'success'
-                : data.beregnings_resultat === 'delvis_godkjent' || data.beregnings_resultat === 'avventer'
+                : data.beregnings_resultat === 'delvis_godkjent'
                   ? 'warning'
                   : 'danger'
             }

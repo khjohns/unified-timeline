@@ -192,10 +192,8 @@ class VederlagTilstand(BaseModel):
         Kombinert status for UI-visning inkludert subsidiær info.
 
         Returnerer en av:
-        - "godkjent" / "delvis_godkjent" / "avslatt"
+        - "godkjent" / "delvis_godkjent" / "avslatt" / "hold_tilbake"
         - "avslatt_subsidiaert_godkjent" (prinsipal avslått, subsidiært godkjent)
-        - "avventer"
-        - etc.
         """
         if self.bh_resultat is None:
             return self.status.value
@@ -337,8 +335,6 @@ class FristTilstand(BaseModel):
         Returnerer en av:
         - "godkjent" / "delvis_godkjent" / "avslatt"
         - "avslatt_subsidiaert_godkjent" (prinsipal avslått, subsidiært godkjent)
-        - "avventer"
-        - etc.
         """
         if self.bh_resultat is None:
             return self.status.value

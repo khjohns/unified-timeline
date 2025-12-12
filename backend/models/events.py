@@ -93,9 +93,9 @@ class VederlagBeregningResultat(str, Enum):
     DELVIS_GODKJENT = "delvis_godkjent"  # BH aksepterer deler (uenighet om beløp/metode)
     AVSLATT = "avslatt"                # BH avviser kravet
 
-    # Spesialstatuser (midlertidige)
-    AVVENTER = "avventer"              # BH trenger mer dokumentasjon
-    HOLD_TILBAKE = "hold_tilbake"      # §30.2 tilbakeholdelse
+    # Spesialstatus
+    # NB: 'avventer' er fjernet - BH må enten avslå eller delvis godkjenne med forklaring
+    HOLD_TILBAKE = "hold_tilbake"      # §30.2 tilbakeholdelse (kun ved manglende overslag)
 
 
 # ============ FRIST ENUMS ============
@@ -115,14 +115,13 @@ class FristBeregningResultat(str, Enum):
     Årsaken til avslag fanges av `subsidiaer_triggers` i stedet for
     granulære statuskoder. Badge/markering for subsidiær vurdering
     vises i UI når grunnlag er helt eller delvis avslått.
+
+    NB: 'avventer' er fjernet - BH må enten avslå eller delvis godkjenne med forklaring.
     """
     # Hovedkategorier
     GODKJENT = "godkjent"              # BH aksepterer kravet (enighet om antall dager)
     DELVIS_GODKJENT = "delvis_godkjent"  # BH aksepterer deler (uenighet om antall dager)
     AVSLATT = "avslatt"                # BH avviser kravet
-
-    # Spesialstatus (midlertidig)
-    AVVENTER = "avventer"              # BH trenger mer dokumentasjon
 
 
 class SubsidiaerTrigger(str, Enum):
