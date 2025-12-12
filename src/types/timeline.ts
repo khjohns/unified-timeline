@@ -351,20 +351,52 @@ export interface FristEventData {
   vedlegg_ids?: string[];
 }
 
+// Beløpsvurdering for enkelt krav
+export type BelopVurdering = 'godkjent' | 'delvis' | 'avvist' | 'prekludert';
+
 // Vederlag response event (Port Model)
 export interface ResponsVederlagEventData {
-  // Port 1: Spesifikke varsler
-  saerskilt_varsel_rigg_drift_ok?: boolean;
+  // Referanse til kravet som besvares
+  vederlag_krav_id?: string;
+
+  // Port 1: Preklusjon av særskilte krav (§34.1.3)
+  rigg_varslet_i_tide?: boolean;
+  produktivitet_varslet_i_tide?: boolean;
+  begrunnelse_preklusjon?: string;
+
+  // Port 1: Andre varsler (legacy felter for kompatibilitet)
+  saerskilt_varsel_rigg_drift_ok?: boolean;  // Deprecated: bruk rigg_varslet_i_tide
   varsel_justert_ep_ok?: boolean;
   varsel_start_regning_ok?: boolean;
   krav_fremmet_i_tide?: boolean;
   begrunnelse_varsel?: string;
 
-  // Port 2: Beregning & Metode
-  vederlagsmetode?: VederlagsMetode;
+  // Port 2: Metode
+  aksepterer_metode?: boolean;
+  oensket_metode?: VederlagsMetode;
+  ep_justering_akseptert?: boolean;
+  hold_tilbake?: boolean;
+  begrunnelse_metode?: string;
+  vederlagsmetode?: VederlagsMetode;  // BH's valgte metode (legacy)
+
+  // Port 3: Beløpsvurdering - Hovedkrav
+  hovedkrav_vurdering?: BelopVurdering;
+  hovedkrav_godkjent_belop?: number;
+  hovedkrav_begrunnelse?: string;
+
+  // Port 3: Beløpsvurdering - Særskilte krav (§34.1.3)
+  rigg_vurdering?: BelopVurdering;
+  rigg_godkjent_belop?: number;
+  produktivitet_vurdering?: BelopVurdering;
+  produktivitet_godkjent_belop?: number;
+
+  // Port 4: Samlet resultat
   beregnings_resultat: VederlagBeregningResultat;
-  godkjent_belop?: number;
-  begrunnelse_beregning?: string;
+  godkjent_belop?: number;  // Deprecated: bruk total_godkjent_belop
+  total_godkjent_belop?: number;
+  total_krevd_belop?: number;
+  begrunnelse?: string;  // Samlet begrunnelse
+  begrunnelse_beregning?: string;  // Legacy
   frist_for_spesifikasjon?: string;
 
   // Subsidiært standpunkt (når BH tar prinsipalt avslag men subsidiært godkjenner)
@@ -444,7 +476,15 @@ export interface VederlagOppdatertEventData {
 export interface ResponsVederlagOppdatertEventData {
   original_respons_id: string;
   nytt_resultat: VederlagBeregningResultat;
-  nytt_godkjent_belop?: number;  // Nytt godkjent beløp (ved revisjon av standpunkt)
+
+  // Oppdaterte beløp per kravtype (valgfritt - kun de som endres)
+  nytt_hovedkrav_godkjent_belop?: number;
+  nytt_rigg_godkjent_belop?: number;
+  nytt_produktivitet_godkjent_belop?: number;
+
+  // Totalt godkjent beløp (beregnet fra individuelle poster)
+  nytt_godkjent_belop?: number;
+
   kommentar: string;
   dato_endret: string;
 }
