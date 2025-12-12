@@ -64,10 +64,14 @@ export const mockSakState1: SakState = {
   // Frist track
   frist: {
     status: 'delvis_godkjent',
-    varsel_type: 'noytralt',
+    varsel_type: 'spesifisert',
     noytralt_varsel: {
       dato_sendt: '2025-01-15',
       metode: ['epost', 'byggemote'],
+    },
+    spesifisert_varsel: {
+      dato_sendt: '2025-01-18',
+      metode: ['epost'],
     },
     krevd_dager: 45,
     begrunnelse:

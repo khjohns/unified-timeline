@@ -24,7 +24,8 @@ export const mockTimelineEvents5: TimelineEntry[] = [
     sammendrag: 'Utdypet begrunnelse for avvisning',
     event_data: {
       original_respons_id: 'evt-502',
-      ny_begrunnelse: 'BH bestrider at det foreligger en endring. Plasseringen var allerede avtalt i kontrakten. Se protokoll fra byggemøte 2024-12-15 hvor rominndelingen ble bekreftet.',
+      nytt_resultat: 'avvist_uenig',
+      begrunnelse: 'BH bestrider at det foreligger en endring. Plasseringen var allerede avtalt i kontrakten. Se protokoll fra byggemøte 2024-12-15 hvor rominndelingen ble bekreftet.',
       dato_endret: '2025-02-07',
     },
   },
@@ -38,14 +39,21 @@ export const mockTimelineEvents5: TimelineEntry[] = [
     spor: 'frist',
     sammendrag: 'Subsidiært godkjent 14 dager (bestrider grunnlag)',
     event_data: {
+      // Port 1: Varsling
       noytralt_varsel_ok: true,
       spesifisert_krav_ok: true,
       begrunnelse_varsel: 'Varsler er mottatt i tide.',
+      // Port 2: Vilkår - prinsipalt avslag pga grunnlag
       vilkar_oppfylt: false,
-      begrunnelse_vilkar: 'SUBSIDIÆRT: Grunnlaget bestrides, men dersom ansvar avklares til TEs fordel, godkjennes fristforlengelsen.',
-      beregnings_resultat: 'godkjent',
-      godkjent_dager: 14,
-      begrunnelse_beregning: 'Subsidiært: Dagene godkjennes dersom ansvar avklares.',
+      begrunnelse_vilkar: 'Grunnlaget bestrides - vilkår ikke oppfylt.',
+      // Port 3: Beregning - prinsipalt avslag
+      beregnings_resultat: 'avslatt',
+      begrunnelse_beregning: 'Prinsipalt avslått da grunnlaget bestrides.',
+      // Subsidiært standpunkt
+      subsidiaer_triggers: ['grunnlag_avvist'],
+      subsidiaer_resultat: 'godkjent',
+      subsidiaer_godkjent_dager: 14,
+      subsidiaer_begrunnelse: 'Dersom ansvar avklares til TEs fordel, godkjennes 14 dager.',
     },
   },
   {
@@ -58,12 +66,18 @@ export const mockTimelineEvents5: TimelineEntry[] = [
     spor: 'vederlag',
     sammendrag: 'Subsidiært delvis godkjent 400.000 NOK (bestrider grunnlag)',
     event_data: {
+      // Port 1: Varsling
       saerskilt_varsel_rigg_drift_ok: true,
-      begrunnelse_varsel: 'Særskilt varsel om rigg/drift mottatt.',
-      beregnings_resultat: 'delvis_godkjent',
-      godkjent_belop: 400000,
+      begrunnelse_varsel: 'Særskilt varsel om rigg/drift mottatt i tide.',
+      // Port 2: Beregning - prinsipalt avslag
+      beregnings_resultat: 'avslatt',
       vederlagsmetode: 'REGNINGSARBEID',
-      begrunnelse_beregning: 'SUBSIDIÆRT: Beløp OK, men bestrider grunnlaget. Dersom ansvar avklares, godkjennes 400.000 NOK.',
+      begrunnelse_beregning: 'Prinsipalt avslått da grunnlaget bestrides.',
+      // Subsidiært standpunkt
+      subsidiaer_triggers: ['grunnlag_avvist'],
+      subsidiaer_resultat: 'delvis_godkjent',
+      subsidiaer_godkjent_belop: 400000,
+      subsidiaer_begrunnelse: 'Dersom ansvar avklares til TEs fordel, godkjennes 400.000 NOK.',
     },
   },
   {
@@ -111,7 +125,10 @@ export const mockTimelineEvents5: TimelineEntry[] = [
       begrunnelse: 'Ekstra rørlegging og tilpasningsarbeid.',
       kostnads_overslag: 450000,
       saerskilt_krav: {
-        rigg_drift: true,
+        rigg_drift: {
+          belop: 50000,
+          dato_klar_over: '2025-02-01',
+        },
       },
       rigg_drift_varsel: { dato_sendt: '2025-02-02', metode: ['epost'] },
       regningsarbeid_varsel: { dato_sendt: '2025-02-02', metode: ['epost'] },
@@ -127,6 +144,7 @@ export const mockTimelineEvents5: TimelineEntry[] = [
     spor: 'grunnlag',
     sammendrag: 'Varsel om irregulær endring - teknisk rom',
     event_data: {
+      tittel: 'Irregulær endring - plassering av teknisk rom',
       hovedkategori: 'ENDRING',
       underkategori: ['IRREG'],
       beskrivelse: 'Entreprenøren hevder at muntlig beskjed om endret plassering av teknisk rom utgjør en irregulær endring.',

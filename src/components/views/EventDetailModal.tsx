@@ -677,6 +677,9 @@ function ResponsVederlagOppdatertSection({ data }: { data: ResponsVederlagOppdat
         label="Nytt resultat"
         value={<Badge variant={badge.variant}>{badge.label}</Badge>}
       />
+      {data.nytt_godkjent_belop !== undefined && (
+        <Field label="Nytt godkjent beløp" value={formatCurrency(data.nytt_godkjent_belop)} />
+      )}
       <LongTextField label="Kommentar" value={data.kommentar} defaultOpen={true} />
       <Field label="Endret dato" value={formatDate(data.dato_endret)} />
     </dl>

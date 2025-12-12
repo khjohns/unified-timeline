@@ -72,9 +72,9 @@ export const mockSakState4: SakState = {
       dato_sendt: '2025-01-28',
       metode: ['epost', 'telefon'],
     },
-    krevd_dager: 21,
+    // krevd_dager kommer først med spesifisert krav
     begrunnelse:
-      'Foreløpig krav. Detaljert framdriftsplan med arbeidsoperasjoner følger i endelig spesifikasjon.',
+      'Nøytralt varsel sendt. Spesifisert krav med framdriftsplan følger.',
     pavirker_kritisk_linje: true,
     noytralt_varsel_ok: true,
     vilkar_oppfylt: true,

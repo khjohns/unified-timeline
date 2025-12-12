@@ -29,6 +29,8 @@ export const mockTimelineEvents10: TimelineEntry[] = [
     sammendrag: 'Bekrefter 5 dager fortsatt godkjent',
     event_data: {
       original_respons_id: 'evt-1006',
+      nytt_resultat: 'godkjent',
+      ny_godkjent_dager: 5,
       kommentar: 'Etter gjennomgang av revidert tidsplan bekreftes at 5 dager fortsatt er korrekt.',
       dato_endret: '2025-02-16',
     },
@@ -46,7 +48,7 @@ export const mockTimelineEvents10: TimelineEntry[] = [
     event_data: {
       original_respons_id: 'evt-1004',
       nytt_resultat: 'godkjent',
-      godkjent_belop: 185000,
+      nytt_godkjent_belop: 185000,
       kommentar:
         'Etter revisjon av kravet godkjennes hele beløpet. Prosjekteringskostnader korrekt fjernet.',
       dato_endret: '2025-02-15',
@@ -64,7 +66,7 @@ export const mockTimelineEvents10: TimelineEntry[] = [
     sammendrag: 'Bekreftet krav: 5 dager',
     event_data: {
       original_event_id: 'evt-1002',
-      nye_dager: 5,
+      nytt_antall_dager: 5,
       begrunnelse: 'Etter gjennomgang av arbeidsplan bekreftes at 5 dager er korrekt estimat.',
       dato_revidert: '2025-02-13',
     },
@@ -98,6 +100,13 @@ export const mockTimelineEvents10: TimelineEntry[] = [
     spor: 'frist',
     sammendrag: 'Fristkrav godkjent - 5 dager',
     event_data: {
+      // Port 1: Varsling
+      spesifisert_krav_ok: true,
+      begrunnelse_varsel: 'Spesifisert krav mottatt.',
+      // Port 2: Vilkår
+      vilkar_oppfylt: true,
+      begrunnelse_vilkar: 'Grunnlag godkjent, årsakssammenheng dokumentert.',
+      // Port 3: Beregning
       beregnings_resultat: 'godkjent',
       godkjent_dager: 5,
       begrunnelse_beregning: '5 dager godkjent for sprinklerinstallasjon.',
@@ -152,7 +161,7 @@ export const mockTimelineEvents10: TimelineEntry[] = [
         'Materialer og montering iht. enhetspriskontrakt:\n- Sprinklerrør og dyser: 120.000 NOK\n- Montering: 65.000 NOK\n- Prosjektering: 35.000 NOK',
     },
   },
-  // Event 2: TE sender fristkrav
+  // Event 2: TE sender fristkrav (spesifisert direkte, uten nøytralt først)
   {
     event_id: 'evt-1002',
     tidsstempel: '2025-02-02T14:00:00Z',
@@ -164,6 +173,7 @@ export const mockTimelineEvents10: TimelineEntry[] = [
     sammendrag: 'Krav på 5 dager forlengelse',
     event_data: {
       varsel_type: 'spesifisert',
+      spesifisert_varsel: { dato_sendt: '2025-02-02', metode: ['epost'] },
       antall_dager: 5,
       begrunnelse: '5 dager for installasjon av sprinkleranlegg i teknisk rom.',
     },

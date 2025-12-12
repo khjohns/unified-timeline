@@ -64,17 +64,15 @@ export const mockTimelineEvents4: TimelineEntry[] = [
   {
     event_id: 'evt-304',
     tidsstempel: '2025-01-29T11:30:00Z',
-    type: 'Fristkrav sendt',
-    event_type: 'frist_krav_sendt',
+    type: 'Nøytralt varsel sendt',
+    event_type: 'frist_varsel_noytralt',
     aktor: 'Per Hansen',
     rolle: 'TE',
     spor: 'frist',
-    sammendrag: 'Krav på 21 dager forlengelse (uspesifisert krav)',
+    sammendrag: 'Nøytralt varsel om mulig fristforlengelse',
     event_data: {
-      varsel_type: 'noytralt',
       noytralt_varsel: { dato_sendt: '2025-01-28', metode: ['epost', 'telefon'] },
-      antall_dager: 21,
-      begrunnelse: 'Foreløpig krav. Detaljert framdriftsplan med arbeidsoperasjoner følger i endelig spesifikasjon.',
+      begrunnelse: 'Fristforlengelse kan bli nødvendig pga. omlegging av rørføring. Spesifisert krav med framdriftsplan følger.',
     },
   },
   {

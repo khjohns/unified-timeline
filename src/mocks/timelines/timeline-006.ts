@@ -23,10 +23,14 @@ export const mockTimelineEvents6: TimelineEntry[] = [
     sammendrag: 'Forsering iverksatt - estimert kostnad kr 380 000,-',
     event_data: {
       frist_krav_id: 'evt-604',
+      respons_frist_id: 'evt-602',
       estimert_kostnad: 380000,
       begrunnelse: 'Overtid og ekstra skift for elektrikere i 3 uker.',
       bekreft_30_prosent: true,
       dato_iverksettelse: '2025-02-02',
+      avslatte_dager: 21,
+      dagmulktsats: 50000,
+      grunnlag_avslag_trigger: false,
     },
   },
   {
