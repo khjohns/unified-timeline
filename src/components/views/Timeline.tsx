@@ -180,7 +180,7 @@ function getSporTagStyles(spor: SporType | null): string {
   const styles: Record<string, string> = {
     grunnlag: 'bg-pkt-surface-light-blue text-pkt-brand-dark-blue-1000',
     vederlag: 'bg-pkt-surface-light-green text-pkt-brand-dark-green-1000',
-    frist: 'bg-pkt-surface-yellow text-pkt-text-body-dark',
+    frist: 'bg-tag-frist-bg text-tag-frist-text',
   };
   return styles[spor] || 'bg-pkt-grays-gray-100 text-pkt-grays-gray-600';
 }
