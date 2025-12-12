@@ -61,10 +61,10 @@ export function RevisionHistory() {
       {/* Vederlag Revision History */}
       {hasVederlag && (
         <section>
-          <h3 className="flex items-center gap-2 text-base font-semibold text-pkt-text-body-default mb-4">
-            <StackIcon className="w-5 h-5" />
-            Vederlag - Revisjonshistorikk
-          </h3>
+          <h4 className="flex items-center gap-2 text-sm font-semibold text-pkt-text-body-default mb-3">
+            <StackIcon className="w-4 h-4" />
+            Vederlag
+          </h4>
           <VederlagHistorikkTable entries={vederlag} />
         </section>
       )}
@@ -72,10 +72,10 @@ export function RevisionHistory() {
       {/* Frist Revision History */}
       {hasFrist && (
         <section>
-          <h3 className="flex items-center gap-2 text-base font-semibold text-pkt-text-body-default mb-4">
-            <ClockIcon className="w-5 h-5" />
-            Frist - Revisjonshistorikk
-          </h3>
+          <h4 className="flex items-center gap-2 text-sm font-semibold text-pkt-text-body-default mb-3">
+            <ClockIcon className="w-4 h-4" />
+            Frist
+          </h4>
           <FristHistorikkTable entries={frist} />
         </section>
       )}
@@ -181,19 +181,6 @@ function VederlagHistorikkTable({ entries }: VederlagHistorikkTableProps) {
             getValue={(v) => formatHistorikkBelop(bhByVersion.get(v)?.godkjent_belop)}
             highlight
           />
-
-          {/* META Section */}
-          <GroupHeader label="Detaljer" colSpan={versions.length + 1} color="gray" />
-          <DataRow
-            label="TE aktør"
-            versions={versions}
-            getValue={(v) => teByVersion.get(v)?.aktor.navn || '—'}
-          />
-          <DataRow
-            label="BH aktør"
-            versions={versions}
-            getValue={(v) => bhByVersion.get(v)?.aktor.navn || '—'}
-          />
         </tbody>
       </table>
     </div>
@@ -282,19 +269,6 @@ function FristHistorikkTable({ entries }: FristHistorikkTableProps) {
             getValue={(v) => formatHistorikkDager(bhByVersion.get(v)?.godkjent_dager)}
             highlight
           />
-
-          {/* META Section */}
-          <GroupHeader label="Detaljer" colSpan={versions.length + 1} color="gray" />
-          <DataRow
-            label="TE aktør"
-            versions={versions}
-            getValue={(v) => teByVersion.get(v)?.aktor.navn || '—'}
-          />
-          <DataRow
-            label="BH aktør"
-            versions={versions}
-            getValue={(v) => bhByVersion.get(v)?.aktor.navn || '—'}
-          />
         </tbody>
       </table>
     </div>
@@ -306,24 +280,26 @@ function FristHistorikkTable({ entries }: FristHistorikkTableProps) {
 interface GroupHeaderProps {
   label: string;
   colSpan: number;
-  color: 'green' | 'yellow' | 'gray';
+  color: 'green' | 'yellow';
 }
 
 function GroupHeader({ label, colSpan, color }: GroupHeaderProps) {
   const colorClasses = {
     green: 'bg-pkt-surface-light-green text-pkt-brand-dark-green-1000',
     yellow: 'bg-pkt-surface-yellow text-pkt-grays-gray-800',
-    gray: 'bg-pkt-bg-subtle text-pkt-grays-gray-600',
   };
 
   return (
     <tr>
       <td
-        colSpan={colSpan}
-        className={`py-2 px-4 text-xs font-semibold uppercase tracking-wide border-y border-pkt-grays-gray-200 ${colorClasses[color]}`}
+        className={`sticky left-0 z-10 py-2 px-4 text-xs font-semibold uppercase tracking-wide border-y border-pkt-grays-gray-200 border-r-2 border-r-pkt-grays-gray-300 ${colorClasses[color]}`}
       >
         {label}
       </td>
+      <td
+        colSpan={colSpan - 1}
+        className={`py-2 px-4 border-y border-pkt-grays-gray-200 ${colorClasses[color]}`}
+      />
     </tr>
   );
 }
