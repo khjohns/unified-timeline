@@ -153,14 +153,14 @@ function getSporLabel(spor: SporType | null): string {
 
 /**
  * Get role indicator styling
- * TE = Green (brand-green), BH = Yellow (brand-yellow)
- * BH text uses semantic color that matches circle in dark mode
+ * TE = Green, BH = Yellow
+ * Text colors use semantic variables that match circles in both light and dark mode
  */
 function getRolleStyles(rolle: 'TE' | 'BH'): { bg: string; text: string; ring: string } {
   if (rolle === 'TE') {
     return {
       bg: 'bg-pkt-brand-green-1000',
-      text: 'text-pkt-brand-dark-green-1000',
+      text: 'text-role-te-text',
       ring: 'ring-pkt-brand-green-1000',
     };
   }

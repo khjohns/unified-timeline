@@ -132,7 +132,8 @@
        SEMANTIC ROLE COLORS
        Used for role indicators in timeline and status cards
        ============================================ */
-    --color-role-bh-text: #333333;  /* BH role label text */
+    --color-role-te-text: #034b45;  /* TE role label - dark green matching circle */
+    --color-role-bh-text: #b45309;  /* BH role label - amber/gold matching circle */
     --color-subsidiary-indicator: #ffe7bc;  /* Subsidiary status border/dot */
 
     /* ============================================
@@ -314,6 +315,7 @@
   --color-pri-light: #2a3a5a;
 
   /* Semantic role colors - dark mode */
+  --color-role-te-text: #6adb8a;  /* TE matches green circle */
   --color-role-bh-text: #fbbf24;  /* BH matches yellow circle */
   --color-subsidiary-indicator: #ff8a80;  /* Coral/salmon red */
 
