@@ -71,11 +71,11 @@ const STATUS_CONFIG: Record<
     dotClass: 'bg-pkt-brand-yellow-1000',
     ariaLabel: 'Status: Delvis godkjent',
   },
-  avvist: {
-    label: 'Avvist',
+  avslatt: {
+    label: 'Avslått',
     borderClass: 'border-l-pkt-brand-red-1000',
     dotClass: 'bg-pkt-brand-red-1000',
-    ariaLabel: 'Status: Avvist',
+    ariaLabel: 'Status: Avslått',
   },
   under_forhandling: {
     label: 'Under forhandling',
