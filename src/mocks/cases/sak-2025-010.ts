@@ -51,14 +51,10 @@ export const mockSakState10: SakState = {
     antall_versjoner: 2, // Har blitt revidert
   },
 
-  // Frist - godkjent
+  // Frist - godkjent (spesifisert direkte, uten nøytralt først)
   frist: {
     status: 'godkjent',
     varsel_type: 'spesifisert',
-    noytralt_varsel: {
-      dato_sendt: '2025-02-01',
-      metode: ['epost'],
-    },
     spesifisert_varsel: {
       dato_sendt: '2025-02-02',
       metode: ['epost'],
@@ -66,7 +62,6 @@ export const mockSakState10: SakState = {
     krevd_dager: 5,
     begrunnelse: '5 dager for installasjon av sprinkleranlegg.',
     pavirker_kritisk_linje: false,
-    noytralt_varsel_ok: true,
     spesifisert_krav_ok: true,
     vilkar_oppfylt: true,
     bh_resultat: 'godkjent',
@@ -98,6 +93,6 @@ export const mockSakState10: SakState = {
 
   // Metadata
   opprettet: '2025-02-01',
-  siste_aktivitet: '2025-02-15',
-  antall_events: 8,
+  siste_aktivitet: '2025-02-16',
+  antall_events: 10,
 };

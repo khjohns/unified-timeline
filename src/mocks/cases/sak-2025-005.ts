@@ -107,6 +107,6 @@ export const mockSakState5: SakState = {
   sum_godkjent: 0,
 
   opprettet: '2025-02-01',
-  siste_aktivitet: '2025-02-06',
-  antall_events: 6,
+  siste_aktivitet: '2025-02-07',
+  antall_events: 7,
 };

@@ -86,5 +86,5 @@ export const mockSakState9: SakState = {
 
   opprettet: '2025-02-05',
   siste_aktivitet: '2025-02-22',
-  antall_events: 6,
+  antall_events: 4,
 };
