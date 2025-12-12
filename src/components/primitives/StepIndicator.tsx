@@ -49,7 +49,7 @@ export function StepIndicator({ currentStep, steps, className }: StepIndicatorPr
                     'w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg border-2 transition-colors',
                     isActive &&
                       'bg-pkt-surface-strong-dark-blue text-white border-pkt-surface-strong-dark-blue',
-                    isCompleted && 'bg-green-600 text-white border-green-600',
+                    isCompleted && 'bg-step-completed-bg text-step-completed-text border-step-completed-border',
                     !isActive &&
                       !isCompleted &&
                       'bg-pkt-surface-gray text-pkt-text-body-subtle border-pkt-border-subtle'
@@ -76,7 +76,7 @@ export function StepIndicator({ currentStep, steps, className }: StepIndicatorPr
                 <div
                   className={clsx(
                     'flex-1 h-1 mx-3 mt-5 -translate-y-1/2',
-                    isCompleted ? 'bg-green-600' : 'bg-pkt-border-subtle'
+                    isCompleted ? 'bg-step-completed-bg' : 'bg-pkt-border-subtle'
                   )}
                 />
               )}

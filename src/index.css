@@ -132,8 +132,24 @@
        SEMANTIC ROLE COLORS
        Used for role indicators in timeline and status cards
        ============================================ */
-    --color-role-bh-text: #333333;  /* BH role label text */
+    --color-role-te-text: #034b45;  /* TE role label - dark green matching circle */
+    --color-role-bh-text: #b45309;  /* BH role label - amber/gold matching circle */
     --color-subsidiary-indicator: #ffe7bc;  /* Subsidiary status border/dot */
+
+    /* Danger action button (e.g., Forsering) */
+    --color-action-danger-text: #b91c1c;  /* Red text readable on white */
+    --color-action-danger-border: #ef4444;  /* Red border */
+    --color-action-danger-hover-bg: #fef2f2;  /* Light red hover */
+
+    /* Step indicator - completed state */
+    --color-step-completed-bg: #16a34a;  /* Green background */
+    --color-step-completed-border: #16a34a;
+    --color-step-completed-text: #ffffff;
+
+    /* Modal field colors */
+    --color-field-label: #6b7280;  /* Gray-500 equivalent */
+    --color-field-value: #111827;  /* Gray-900 equivalent */
+    --color-field-muted: #9ca3af;  /* Gray-400 equivalent */
 
     /* ============================================
        SEMANTIC TAG COLORS
@@ -314,8 +330,24 @@
   --color-pri-light: #2a3a5a;
 
   /* Semantic role colors - dark mode */
+  --color-role-te-text: #6adb8a;  /* TE matches green circle */
   --color-role-bh-text: #fbbf24;  /* BH matches yellow circle */
   --color-subsidiary-indicator: #ff8a80;  /* Coral/salmon red */
+
+  /* Danger action button - dark mode */
+  --color-action-danger-text: #fca5a5;  /* Lighter red for dark bg */
+  --color-action-danger-border: #f87171;  /* Bright red border */
+  --color-action-danger-hover-bg: #3a2028;  /* Dark red hover */
+
+  /* Step indicator - completed state - dark mode */
+  --color-step-completed-bg: #22c55e;  /* Brighter green for dark */
+  --color-step-completed-border: #22c55e;
+  --color-step-completed-text: #052e16;  /* Dark green text */
+
+  /* Modal field colors - dark mode */
+  --color-field-label: #9ca3af;  /* Lighter gray for dark bg */
+  --color-field-value: #f3f4f6;  /* Near white */
+  --color-field-muted: #6b7280;  /* Medium gray */
 
   /* Semantic tag colors - dark mode */
   --color-tag-neutral-bg: #3a3a5a;
