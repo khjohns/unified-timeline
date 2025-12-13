@@ -346,38 +346,32 @@ describe('View Components - Functional Tests', () => {
       expect(screen.getByText('Under behandling')).toBeInTheDocument();
     });
 
-    it('should display prosjektinformasjon section', () => {
+    it('should display prosjekt field', () => {
       render(<ComprehensiveMetadata state={mockSakState1} sakId="SAK-2025-001" />);
 
-      expect(screen.getByText(/Prosjektinformasjon/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Prosjekt/i).length).toBeGreaterThan(0);
       expect(screen.getByText(/Sakstittel/i)).toBeInTheDocument();
     });
 
-    it('should display grunnlag section when grunnlag is not irrelevant', () => {
+    it('should display entreprenør and byggherre', () => {
       render(<ComprehensiveMetadata state={mockSakState1} sakId="SAK-2025-001" />);
 
-      expect(screen.getByText(/Grunnlag \/ Varsel/i)).toBeInTheDocument();
+      expect(screen.getByText(/Entreprenør \(TE\)/i)).toBeInTheDocument();
+      expect(screen.getByText(/Byggherre \(BH\)/i)).toBeInTheDocument();
     });
 
-    it('should display saksmetadata section', () => {
+    it('should display opprettet and status fields', () => {
       render(<ComprehensiveMetadata state={mockSakState1} sakId="SAK-2025-001" />);
 
-      expect(screen.getByText(/Saksmetadata/i)).toBeInTheDocument();
+      expect(screen.getByText(/Opprettet/i)).toBeInTheDocument();
+      expect(screen.getByText(/Status/i)).toBeInTheDocument();
+    });
+
+    it('should display sak-id', () => {
+      render(<ComprehensiveMetadata state={mockSakState1} sakId="SAK-2025-001" />);
+
+      expect(screen.getByText(/Sak-ID/i)).toBeInTheDocument();
       expect(screen.getByText(/SAK-2025-001/)).toBeInTheDocument();
-    });
-
-    it('should have collapsible sections', async () => {
-      const user = userEvent.setup();
-      render(<ComprehensiveMetadata state={mockSakState1} sakId="SAK-2025-001" />);
-
-      // Find collapsible triggers
-      const buttons = screen.getAllByRole('button');
-      expect(buttons.length).toBeGreaterThan(0);
-
-      // Click to toggle
-      if (buttons[0]) {
-        await user.click(buttons[0]);
-      }
     });
   });
 
@@ -418,7 +412,7 @@ describe('View Components - Functional Tests', () => {
       renderRevisionHistory('SAK-2025-001');
 
       await waitFor(() => {
-        expect(screen.getByText(/Vederlag - Revisjonshistorikk/i)).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /Vederlag/i })).toBeInTheDocument();
       });
     });
 
@@ -428,7 +422,7 @@ describe('View Components - Functional Tests', () => {
       renderRevisionHistory('SAK-2025-001');
 
       await waitFor(() => {
-        expect(screen.getByText(/Frist - Revisjonshistorikk/i)).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /Frist/i })).toBeInTheDocument();
       });
     });
 
@@ -438,8 +432,8 @@ describe('View Components - Functional Tests', () => {
       renderRevisionHistory('SAK-2025-001');
 
       await waitFor(() => {
-        // Should show krevd_belop from historikk
-        expect(screen.getAllByText(/NOK/i).length).toBeGreaterThan(0);
+        // Should show Beløp row in table
+        expect(screen.getByText('Beløp')).toBeInTheDocument();
       });
     });
 
@@ -449,8 +443,8 @@ describe('View Components - Functional Tests', () => {
       renderRevisionHistory('SAK-2025-001');
 
       await waitFor(() => {
-        // Should show krevd_dager from historikk
-        expect(screen.getAllByText(/dager/i).length).toBeGreaterThan(0);
+        // Should show Antall dager row in table
+        expect(screen.getByText('Antall dager')).toBeInTheDocument();
       });
     });
 
@@ -460,29 +454,31 @@ describe('View Components - Functional Tests', () => {
       renderRevisionHistory('SAK-2025-001');
 
       await waitFor(() => {
+        // Should have Felt column header and version headers
         expect(screen.getAllByText(/Felt/i).length).toBeGreaterThan(0);
-        expect(screen.getAllByText(/Versjon/i).length).toBeGreaterThan(0);
+        expect(screen.getAllByText(/Opprinnelig|Rev\./i).length).toBeGreaterThan(0);
       });
     });
 
-    it('should display status row', async () => {
+    it('should display resultat row', async () => {
       vi.mocked(fetchHistorikk).mockResolvedValue(getMockHistorikkById('SAK-2025-001'));
 
       renderRevisionHistory('SAK-2025-001');
 
       await waitFor(() => {
-        // Both vederlag and frist tables should have Status row
-        expect(screen.getAllByText('Status').length).toBe(2);
+        // Both vederlag and frist tables should have Resultat row
+        expect(screen.getAllByText('Resultat').length).toBe(2);
       });
     });
 
-    it('should display BH resultat when available', async () => {
+    it('should display respons section', async () => {
       vi.mocked(fetchHistorikk).mockResolvedValue(getMockHistorikkById('SAK-2025-001'));
 
       renderRevisionHistory('SAK-2025-001');
 
       await waitFor(() => {
-        expect(screen.getAllByText(/BH Resultat/i).length).toBeGreaterThan(0);
+        // Both tables should have Respons (BH) group header
+        expect(screen.getAllByText(/Respons \(BH\)/i).length).toBe(2);
       });
     });
 
@@ -498,15 +494,14 @@ describe('View Components - Functional Tests', () => {
       });
     });
 
-    it('should render collapsible sections', async () => {
+    it('should display krav section', async () => {
       vi.mocked(fetchHistorikk).mockResolvedValue(getMockHistorikkById('SAK-2025-001'));
 
       renderRevisionHistory('SAK-2025-001');
 
       await waitFor(() => {
-        // Find collapsible triggers
-        const buttons = screen.getAllByRole('button');
-        expect(buttons.length).toBeGreaterThan(0);
+        // Both tables should have Krav (TE) group header
+        expect(screen.getAllByText(/Krav \(TE\)/i).length).toBe(2);
       });
     });
 

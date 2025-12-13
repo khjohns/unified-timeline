@@ -87,18 +87,26 @@ describe('API Client', () => {
     });
 
     it('should make a POST request with body', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        headers: new Headers({ 'content-type': 'application/json' }),
-        json: () => Promise.resolve({ id: 123 }),
-      });
+      // First call is for CSRF token, second is the actual POST
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          headers: new Headers({ 'content-type': 'application/json' }),
+          json: () => Promise.resolve({ csrfToken: 'test-csrf-token' }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          headers: new Headers({ 'content-type': 'application/json' }),
+          json: () => Promise.resolve({ id: 123 }),
+        });
 
       const result = await apiFetch('/api/test', {
         method: 'POST',
         body: JSON.stringify({ name: 'test' }),
       });
 
-      expect(mockFetch).toHaveBeenCalledWith(
+      // Second call should be the POST request
+      expect(mockFetch).toHaveBeenLastCalledWith(
         expect.stringContaining('/api/test'),
         expect.objectContaining({
           method: 'POST',

@@ -79,9 +79,9 @@ describe('KRAV_STRUKTUR_NS8407', () => {
     expect(eo).toBeDefined();
     expect(eo?.kode).toBe('EO');
     expect(eo?.label).toBe('Formell endringsordre');
-    expect(eo?.hjemmel_basis).toBe('31.1');
+    expect(eo?.hjemmel_basis).toBe('31.3');
     expect(eo?.beskrivelse).toBeTruthy();
-    expect(eo?.varselkrav_ref).toBe('31.3 (Mottatt ordre)');
+    expect(eo?.varselkrav_ref).toBe('33.4 / 34.2');
   });
 
   it('should have law change underkategorier', () => {
@@ -190,7 +190,7 @@ describe('Helper Functions', () => {
       const underkategori = getUnderkategoriObj('EO');
       expect(underkategori).toBeDefined();
       expect(underkategori?.kode).toBe('EO');
-      expect(underkategori?.hjemmel_basis).toBe('31.1');
+      expect(underkategori?.hjemmel_basis).toBe('31.3');
     });
 
     it('should return undefined for invalid code', () => {
@@ -257,7 +257,7 @@ describe('Helper Functions', () => {
       const refs = getHjemmelReferanser('ENDRING', 'EO');
       expect(refs.frist).toBe('33.1 a)');
       expect(refs.vederlag).toBe('34.1.1');
-      expect(refs.varsel).toBe('31.3 (Mottatt ordre)');
+      expect(refs.varsel).toBe('33.4 / 34.2');
     });
 
     it('should return null for vederlag when Force Majeure', () => {

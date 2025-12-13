@@ -60,15 +60,18 @@ export function useActionPermissions(
   const isTE = userRole === 'TE';
   const isBH = userRole === 'BH';
 
-  // Helper: Check if a track is in initial state (not yet sent)
+  // Helper: Check if a track is in draft state (can send initial claim)
+  const isDraftStatus = (status: string | undefined) => status === 'utkast';
+
+  // Helper: Check if a track is in initial state (not yet actively processed)
   const isInitialStatus = (status: string | undefined) =>
     status === 'utkast' || status === 'ikke_relevant';
 
   return {
-    // TE Actions: Send initial claims
-    canSendGrunnlag: isTE && isInitialStatus(state.grunnlag.status),
-    canSendVederlag: isTE && isInitialStatus(state.vederlag.status),
-    canSendFrist: isTE && isInitialStatus(state.frist.status),
+    // TE Actions: Send initial claims (only from draft, not from ikke_relevant)
+    canSendGrunnlag: isTE && isDraftStatus(state.grunnlag.status),
+    canSendVederlag: isTE && isDraftStatus(state.vederlag.status),
+    canSendFrist: isTE && isDraftStatus(state.frist.status),
 
     // TE Actions: Update existing claims
     canUpdateGrunnlag:
