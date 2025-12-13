@@ -152,11 +152,11 @@
     --color-field-value: #111827;  /* Gray-900 equivalent */
     --color-field-muted: #9ca3af;  /* Gray-400 equivalent */
 
-    /* TE/BH category row colors (for RevisionHistory table) */
-    --color-row-te-bg: #e5ffe6;  /* Light green matching TE */
-    --color-row-te-text: #034b45;  /* Dark green text */
-    --color-row-bh-bg: #ffe7bc;  /* Light amber matching BH */
-    --color-row-bh-text: #92400e;  /* Darker amber text */
+    /* TE/BH category row colors (for RevisionHistory table) - light mode matches original */
+    --color-row-te-bg: #c7fde9;  /* pkt-surface-light-green */
+    --color-row-te-text: #034b45;  /* pkt-brand-dark-green-1000 */
+    --color-row-bh-bg: #ffe7bc;  /* pkt-surface-yellow */
+    --color-row-bh-text: #333333;  /* pkt-grays-gray-800 */
 
     /* Alert component colors - light mode (matching original brand colors) */
     --color-alert-info-bg: #f1fdff;  /* pkt-brand-blue-100 */
