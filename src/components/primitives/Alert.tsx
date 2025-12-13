@@ -26,27 +26,27 @@ export interface AlertProps {
   icon?: ReactNode;
 }
 
-// Using Punkt design system colors for consistency
+// Using semantic alert colors for consistent dark/light mode support
 const variantStyles: Record<AlertVariant, { container: string; title: string; icon: string }> = {
   info: {
-    container: 'bg-pkt-brand-blue-100 border-pkt-brand-warm-blue-1000 text-pkt-brand-dark-blue-1000',
-    title: 'text-pkt-brand-dark-blue-1000',
-    icon: 'text-pkt-brand-warm-blue-1000',
+    container: 'bg-alert-info-bg border-alert-info-border text-alert-info-text',
+    title: 'text-alert-info-text',
+    icon: 'text-alert-info-border',
   },
   success: {
-    container: 'bg-pkt-brand-light-green-400 border-pkt-brand-dark-green-1000 text-pkt-brand-dark-green-1000',
-    title: 'text-pkt-brand-dark-green-1000',
-    icon: 'text-pkt-brand-dark-green-1000',
+    container: 'bg-alert-success-bg border-alert-success-border text-alert-success-text',
+    title: 'text-alert-success-text',
+    icon: 'text-alert-success-border',
   },
   warning: {
-    container: 'bg-pkt-brand-yellow-500 border-pkt-brand-yellow-1000 text-pkt-brand-dark-blue-1000',
-    title: 'text-pkt-brand-dark-blue-1000',
-    icon: 'text-pkt-brand-dark-blue-1000',
+    container: 'bg-alert-warning-bg border-alert-warning-border text-alert-warning-text',
+    title: 'text-alert-warning-text',
+    icon: 'text-alert-warning-border',
   },
   danger: {
-    container: 'bg-pkt-brand-red-100 border-pkt-brand-red-1000 text-pkt-brand-red-1000',
-    title: 'text-pkt-brand-red-1000',
-    icon: 'text-pkt-brand-red-1000',
+    container: 'bg-alert-danger-bg border-alert-danger-border text-alert-danger-text',
+    title: 'text-alert-danger-text',
+    icon: 'text-alert-danger-border',
   },
 };
 

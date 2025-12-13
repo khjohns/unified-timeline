@@ -284,9 +284,10 @@ interface GroupHeaderProps {
 }
 
 function GroupHeader({ label, colSpan, color }: GroupHeaderProps) {
+  // Use semantic TE/BH row colors that match event colors in both light and dark mode
   const colorClasses = {
-    green: 'bg-pkt-surface-light-green text-pkt-brand-dark-green-1000',
-    yellow: 'bg-pkt-surface-yellow text-pkt-grays-gray-800',
+    green: 'bg-row-te-bg text-row-te-text',
+    yellow: 'bg-row-bh-bg text-row-bh-text',
   };
 
   return (
