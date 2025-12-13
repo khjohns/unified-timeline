@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import { CasePage } from '@/src/pages/CasePage';
 import { ComponentShowcase } from '@/src/pages/ComponentShowcase';
+import { ThemeProvider } from '@/src/context/ThemeContext';
 
 // Mock the useCaseState hook
 vi.mock('@/src/hooks/useCaseState', () => ({
@@ -70,7 +71,9 @@ const createWrapper = () => {
   });
   return ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>{children}</BrowserRouter>
+      <ThemeProvider>
+        <BrowserRouter>{children}</BrowserRouter>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 };

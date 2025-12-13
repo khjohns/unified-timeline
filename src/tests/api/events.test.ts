@@ -155,8 +155,8 @@ describe('Events API', () => {
         const body = JSON.parse(callArgs[1]?.body as string);
 
         expect(body.event.event_type).toBe('vederlag_krav_sendt');
-        expect(body.event.krav_belop).toBe(250000);
-        expect(body.event.metode).toBe('REGNINGSARBEID');
+        expect(body.event.data.krav_belop).toBe(250000);
+        expect(body.event.data.metode).toBe('REGNINGSARBEID');
       });
 
       it('should include expected_version when provided', async () => {
