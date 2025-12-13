@@ -251,6 +251,7 @@ export function Timeline({ events }: TimelineProps) {
                   <div
                     className={`w-2.5 h-2.5 rounded-full shrink-0 ${rolleStyles.bg}`}
                     title={event.rolle === 'TE' ? 'Entreprenør' : 'Byggherre'}
+                    role="img"
                     aria-label={event.rolle === 'TE' ? 'Entreprenør' : 'Byggherre'}
                   />
 
@@ -300,6 +301,7 @@ export function Timeline({ events }: TimelineProps) {
                     <div
                       className={`w-2 h-2 rounded-full shrink-0 ${rolleStyles.bg}`}
                       title={event.rolle === 'TE' ? 'Entreprenør' : 'Byggherre'}
+                      role="img"
                       aria-label={event.rolle === 'TE' ? 'Entreprenør' : 'Byggherre'}
                     />
 
