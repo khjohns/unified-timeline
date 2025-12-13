@@ -247,197 +247,162 @@
 
 /* ============================================
    DARK MODE THEME OVERRIDES
-   Generated from Digdir Designsystemet using Punkt brand colors
    Applied when .dark class is on <html>
    ============================================ */
 .dark {
-  /* ============================================
-     BACKGROUNDS (oslo-blue 1-3)
-     ============================================ */
-  --color-pkt-bg-default: #161628;  /* oslo-blue.1 */
-  --color-pkt-bg-card: #252542;  /* oslo-blue.3 */
-  --color-pkt-bg-subtle: #1d1d34;  /* oslo-blue.2 */
+  /* Backgrounds */
+  --color-pkt-bg-default: #1a1a2e;
+  --color-pkt-bg-card: #252542;
+  --color-pkt-bg-subtle: #1e1e36;
   --color-pkt-bg-transparent: transparent;
 
-  /* ============================================
-     TEXT (oslo-blue 9-11, neutral)
-     ============================================ */
-  --color-pkt-text-body-dark: #ececef;  /* oslo-blue.11 - high contrast */
-  --color-pkt-text-body-default: #a7a7b5;  /* oslo-blue.9 */
+  /* Text - Improved contrast for dark mode */
+  --color-pkt-text-body-dark: #f0f0f8;  /* Brightened for better contrast */
+  --color-pkt-text-body-default: #e0e0ec;  /* Brightened for better readability */
   --color-pkt-text-body-light: #ffffff;
-  --color-pkt-text-body-subtle: #808094;  /* oslo-blue.8 */
-  --color-pkt-text-placeholder: #808094;  /* oslo-blue.8 */
-  --color-pkt-text-action-disabled: #4d4d6a;  /* oslo-blue.7 */
-  --color-pkt-text-action-active: #94a5d7;  /* warm-blue.12 */
-  --color-pkt-text-action-hover: #7b8fcd;  /* warm-blue.13 */
-  --color-pkt-text-action-normal: #a7a7b5;  /* oslo-blue.9 */
+  --color-pkt-text-body-subtle: #a8a8c0;  /* Muted text - improved contrast */
+  --color-pkt-text-placeholder: #9a9ab0;
+  --color-pkt-text-action-disabled: #6a6a8a;
+  --color-pkt-text-action-active: #8ab4ff;
+  --color-pkt-text-action-hover: #8ab4ff;
+  --color-pkt-text-action-normal: #e0e0ec;  /* Brightened to match body-default */
 
-  /* ============================================
-     BORDERS (oslo-blue 6-7, color-specific)
-     ============================================ */
-  --color-pkt-border-default: #4d4d6a;  /* oslo-blue.7 */
-  --color-pkt-border-beige: #5c4e37;  /* yellow.7 */
-  --color-pkt-border-blue: #6e80b1;  /* warm-blue.8 */
-  --color-pkt-border-gray: #505050;  /* neutral.7 */
-  --color-pkt-border-green: #325653;  /* green.7 */
-  --color-pkt-border-light-beige: #4d412e;  /* yellow.6 */
-  --color-pkt-border-red: #833933;  /* red.7 */
-  --color-pkt-border-subtle: #40405f;  /* oslo-blue.6 */
-  --color-pkt-border-yellow: #5c4e37;  /* yellow.7 */
-  --color-pkt-border-active: #6079c3;  /* warm-blue.14 */
-  --color-pkt-border-disabled: #40405f;  /* oslo-blue.6 */
-  --color-pkt-border-focus: #6079c3;  /* warm-blue.14 */
-  --color-pkt-border-hover: #7b8fcd;  /* warm-blue.13 */
+  /* Borders */
+  --color-pkt-border-default: #5a5a8a;
+  --color-pkt-border-beige: #6a5a4a;
+  --color-pkt-border-blue: #4a8aaa;
+  --color-pkt-border-gray: #4a4a6a;
+  --color-pkt-border-green: #2a8a6a;
+  --color-pkt-border-light-beige: #4a4a3a;
+  --color-pkt-border-red: #aa4a4a;
+  --color-pkt-border-subtle: #3a3a5a;
+  --color-pkt-border-yellow: #8a7a3a;
+  --color-pkt-border-active: #6a9aff;
+  --color-pkt-border-disabled: #4a4a6a;
+  --color-pkt-border-focus: #6a9aff;
+  --color-pkt-border-hover: #6a9aff;
 
-  /* ============================================
-     GRAYS (neutral scale from Digdir)
-     ============================================ */
-  --color-pkt-grays-gray-100: #1f1f1f;  /* neutral.2 */
-  --color-pkt-grays-gray-200: #282828;  /* neutral.3 */
-  --color-pkt-grays-gray-300: #353535;  /* neutral.5 */
-  --color-pkt-grays-gray-400: #505050;  /* neutral.7 */
-  --color-pkt-grays-gray-500: #818181;  /* neutral.8 */
-  --color-pkt-grays-gray-600: #a8a8a8;  /* neutral.9 */
-  --color-pkt-grays-gray-700: #b3b3b3;  /* neutral.14 */
-  --color-pkt-grays-gray-800: #ececec;  /* neutral.11 */
-  --color-pkt-grays-gray-900: #ececec;  /* neutral.11 */
-  --color-pkt-grays-gray-1000: #ececec;  /* neutral.11 */
+  /* Grays - improved for dark mode with better WCAG contrast */
+  --color-pkt-grays-gray-100: #2a2a4a;
+  --color-pkt-grays-gray-200: #3a3a5a;
+  --color-pkt-grays-gray-300: #707090;  /* Lightened for 3:1 border contrast */
+  --color-pkt-grays-gray-400: #8888a8;  /* Brightened for better visibility */
+  --color-pkt-grays-gray-500: #a0a0c0;  /* Brightened - secondary text needs 4.5:1 */
+  --color-pkt-grays-gray-600: #b8b8d0;  /* Brightened - labels and descriptions */
+  --color-pkt-grays-gray-700: #c8c8e0;  /* Brightened - important secondary text */
+  --color-pkt-grays-gray-800: #d8d8e8;  /* Brightened for readability */
+  --color-pkt-grays-gray-900: #e8e8f0;
+  --color-pkt-grays-gray-1000: #f0f0f8;
 
-  /* ============================================
-     SURFACES (color-specific 3-6)
-     ============================================ */
-  --color-pkt-surface-faded-green: #142c29;  /* green.3 */
-  --color-pkt-surface-faded-red: #421d1a;  /* red.3 */
-  --color-pkt-surface-gray: #282828;  /* neutral.3 */
-  --color-pkt-surface-light-beige: #2e271b;  /* yellow.3 */
-  --color-pkt-surface-light-blue: #18264b;  /* warm-blue.3 */
-  --color-pkt-surface-light-green: #142c29;  /* green.3 */
-  --color-pkt-surface-red: #582622;  /* red.5 */
-  --color-pkt-surface-yellow: #2e271b;  /* yellow.3 */
-  --color-pkt-surface-strong-beige: #4d412e;  /* yellow.6 */
-  --color-pkt-surface-strong-blue: #28407d;  /* warm-blue.6 */
-  --color-pkt-surface-strong-dark-blue: #40405f;  /* oslo-blue.6 */
-  --color-pkt-surface-strong-dark-green: #234945;  /* green.6 */
-  --color-pkt-surface-strong-gray: #434343;  /* neutral.6 */
-  --color-pkt-surface-strong-green: #234945;  /* green.6 */
-  --color-pkt-surface-strong-light-green: #1b3b37;  /* green.5 */
-  --color-pkt-surface-strong-red: #6e302b;  /* red.6 */
-  --color-pkt-surface-strong-yellow: #4d412e;  /* yellow.6 */
-  --color-pkt-surface-subtle-light-blue: #131e3b;  /* warm-blue.2 */
-  --color-pkt-surface-subtle-light-red: #341714;  /* red.2 */
-  --color-pkt-surface-subtle-pale-blue: #0e172d;  /* warm-blue.1 */
-  --color-pkt-surface-subtle-white: #1d1d34;  /* oslo-blue.2 */
+  /* Surfaces - darker versions for dark mode */
+  --color-pkt-surface-faded-green: #1a3a2a;
+  --color-pkt-surface-faded-red: #3a2a2a;
+  --color-pkt-surface-gray: #2a2a4a;
+  --color-pkt-surface-light-beige: #3a3a2a;
+  --color-pkt-surface-light-blue: #1a3a5a;
+  --color-pkt-surface-light-green: #1a4a3a;
+  --color-pkt-surface-red: #5a3a3a;
+  --color-pkt-surface-yellow: #4a4020;  /* Clean dark amber - warmer, not muddy */
+  --color-pkt-surface-strong-beige: #5a4a3a;
+  --color-pkt-surface-strong-blue: #3a6a8a;
+  --color-pkt-surface-strong-dark-blue: #4a4a8a;
+  --color-pkt-surface-strong-dark-green: #1a5a4a;
+  --color-pkt-surface-strong-gray: #3a3a5a;
+  --color-pkt-surface-strong-green: #2a7a5a;
+  --color-pkt-surface-strong-light-green: #2a5a3a;
+  --color-pkt-surface-strong-red: #8a3a3a;
+  --color-pkt-surface-strong-yellow: #806020;  /* Golden amber */
+  --color-pkt-surface-subtle-light-blue: #2a3a5a;
+  --color-pkt-surface-subtle-light-red: #3a2a3a;
+  --color-pkt-surface-subtle-pale-blue: #2a3a4a;
+  --color-pkt-surface-subtle-white: #2a2a4a;
 
-  /* ============================================
-     BRAND COLORS (mapped from Digdir scales)
-     ============================================ */
-  --color-pkt-brand-blue-100: #131e3b;  /* warm-blue.2 */
-  --color-pkt-brand-blue-200: #18264b;  /* warm-blue.3 */
-  --color-pkt-brand-blue-300: #1c2c56;  /* warm-blue.4 */
-  --color-pkt-brand-blue-500: #203364;  /* warm-blue.5 */
-  --color-pkt-brand-blue-1000: #6e80b1;  /* warm-blue.8 */
-  --color-pkt-brand-dark-blue-700: #9594ac;  /* oslo-blue.13 */
-  --color-pkt-brand-dark-blue-1000: #aaa9bd;  /* oslo-blue.12 */
-  --color-pkt-brand-warm-blue-1000: #6079c3;  /* warm-blue.14 */
-
-  --color-pkt-brand-green-400: #1b3b37;  /* green.5 */
-  --color-pkt-brand-green-1000: #6d8684;  /* green.8 */
-  --color-pkt-brand-light-green-400: #142c29;  /* green.3 */
-  --color-pkt-brand-light-green-1000: #325653;  /* green.7 */
-  --color-pkt-brand-dark-green-1000: #92b1af;  /* green.12 - readable text */
-
-  --color-pkt-brand-yellow-500: #2e271b;  /* yellow.3 */
-  --color-pkt-brand-yellow-1000: #c1a474;  /* yellow.9 */
-
-  --color-pkt-brand-red-100: #341714;  /* red.2 */
-  --color-pkt-brand-red-400: #4c211d;  /* red.4 */
-  --color-pkt-brand-red-600: #be6962;  /* red.8 */
-  --color-pkt-brand-red-1000: #d55d5a;  /* red.12 */
-
-  --color-pkt-brand-neutrals-white: #161628;  /* oslo-blue.1 */
-  --color-pkt-brand-neutrals-100: #1d1d34;  /* oslo-blue.2 */
-  --color-pkt-brand-neutrals-200: #252542;  /* oslo-blue.3 */
-  --color-pkt-brand-neutrals-1000: #ececef;  /* oslo-blue.11 */
+  /* Brand colors - adjusted for dark mode visibility */
+  --color-pkt-brand-blue-100: #1a2a4a;  /* Dark blue background for badges */
+  --color-pkt-brand-blue-200: #2a4a6a;
+  --color-pkt-brand-yellow-500: #4a4020;  /* Clean dark amber background for warning alerts */
+  --color-pkt-brand-yellow-1000: #fbbf24;  /* Bright golden amber for borders/accents */
+  --color-pkt-brand-red-100: #3a2028;  /* Dark red background for danger alerts */
+  --color-pkt-brand-red-600: #ff8a80;  /* Coral/salmon for subsidiary status - lighter red */
+  --color-pkt-brand-red-1000: #ff6b6b;  /* Vibrant red for errors/danger in dark mode */
+  --color-pkt-brand-light-green-400: #1a3a2a;  /* Dark green background for success */
+  --color-pkt-brand-dark-blue-1000: #8ab4ff;
+  --color-pkt-brand-dark-green-1000: #6adb8a;
+  --color-pkt-brand-warm-blue-1000: #6a9aff;
+  --color-pkt-brand-neutrals-white: #1a1a2e;
+  --color-pkt-brand-neutrals-100: #252542;
+  --color-pkt-brand-neutrals-200: #2a2a4a;
+  --color-pkt-brand-neutrals-1000: #f0f0f8;  /* Brightened for better contrast */
   --color-pkt-brand-neutrals-black: #ffffff;
 
-  /* ============================================
-     LEGACY ALIASES
-     ============================================ */
-  --color-oslo-blue: #aaa9bd;  /* oslo-blue.12 */
-  --color-oslo-blue-700: #9594ac;  /* oslo-blue.13 */
-  --color-oslo-beige: #5c4e37;  /* yellow.7 */
-  --color-oslo-beige-100: #2e271b;  /* yellow.3 */
-  --color-oslo-green: #92b1af;  /* green.12 */
-  --color-success: #3ca14b;  /* success.13 */
-  --color-success-100: #152d15;  /* success.3 */
-  --color-warning: #d39e5b;  /* warning.9 */
-  --color-warning-100: #322616;  /* warning.3 */
-  --color-error: #d76e6e;  /* danger.12 */
-  --color-error-100: #451b17;  /* danger.3 */
-  --color-info: #519ad2;  /* info.13 */
-  --color-pri: #6079c3;  /* warm-blue.14 */
-  --color-pri-light: #18264b;  /* warm-blue.3 */
+  /* Legacy aliases - dark mode */
+  --color-oslo-blue: #8ab4ff;
+  --color-oslo-blue-700: #9aaac8;
+  --color-oslo-beige: #6a5a4a;
+  --color-oslo-beige-100: #3a3a2a;
+  --color-oslo-green: #6adb8a;
+  --color-success: #6adb8a;
+  --color-success-100: #1a3a2a;
+  --color-warning: #fbbf24;  /* Bright golden amber */
+  --color-warning-100: #4a4020;  /* Clean dark amber background */
+  --color-error: #ff6b6b;
+  --color-error-100: #3a2a2a;
+  --color-info: #8ab4ff;
+  --color-pri: #6a9aff;
+  --color-pri-light: #2a3a5a;
 
-  /* ============================================
-     SEMANTIC ROLE COLORS
-     ============================================ */
-  --color-role-te-text: #92b1af;  /* green.12 - TE text */
-  --color-role-bh-text: #c1a474;  /* yellow.9 - BH text */
-  --color-subsidiary-indicator: #be6962;  /* red.8 */
+  /* Semantic role colors - dark mode */
+  --color-role-te-text: #6adb8a;  /* TE matches green circle */
+  --color-role-bh-text: #fbbf24;  /* BH matches yellow circle */
+  --color-subsidiary-indicator: #ff8a80;  /* Coral/salmon red */
 
-  /* Danger action button */
-  --color-action-danger-text: #d39a95;  /* red.9 */
-  --color-action-danger-border: #be6962;  /* red.8 */
-  --color-action-danger-hover-bg: #421d1a;  /* red.3 */
+  /* Danger action button - dark mode */
+  --color-action-danger-text: #fca5a5;  /* Lighter red for dark bg */
+  --color-action-danger-border: #f87171;  /* Bright red border */
+  --color-action-danger-hover-bg: #3a2028;  /* Dark red hover */
 
-  /* Step indicator - completed state */
-  --color-step-completed-bg: #3ca14b;  /* success.13 */
-  --color-step-completed-border: #3ca14b;  /* success.13 */
-  --color-step-completed-text: #e6efe6;  /* success.11 */
+  /* Step indicator - completed state - dark mode */
+  --color-step-completed-bg: #22c55e;  /* Brighter green for dark */
+  --color-step-completed-border: #22c55e;
+  --color-step-completed-text: #052e16;  /* Dark green text */
 
-  /* Modal field colors */
-  --color-field-label: #a8a8a8;  /* neutral.9 */
-  --color-field-value: #ececec;  /* neutral.11 */
-  --color-field-muted: #818181;  /* neutral.8 */
+  /* Modal field colors - dark mode */
+  --color-field-label: #b0b0c8;  /* Lighter gray for dark bg - improved contrast */
+  --color-field-value: #f8f8fc;  /* Near white - improved for readability */
+  --color-field-muted: #8888a8;  /* Medium gray - improved contrast */
 
-  /* ============================================
-     TE/BH CATEGORY ROW COLORS
-     ============================================ */
-  --color-row-te-bg: #142c29;  /* green.3 */
-  --color-row-te-text: #92b1af;  /* green.12 */
-  --color-row-bh-bg: #2e271b;  /* yellow.3 */
-  --color-row-bh-text: #c1a474;  /* yellow.9 */
+  /* TE/BH category row colors - dark mode */
+  --color-row-te-bg: #1a3a2a;  /* Dark green background */
+  --color-row-te-text: #6adb8a;  /* Bright green matching TE events */
+  --color-row-bh-bg: #3d3520;  /* Dark amber background */
+  --color-row-bh-text: #fbbf24;  /* Bright amber matching BH events */
 
-  /* ============================================
-     ALERT COMPONENT COLORS (semantic from Digdir)
-     ============================================ */
-  --color-alert-info-bg: #15293d;  /* info.3 */
-  --color-alert-info-border: #5585b4;  /* info.8 */
-  --color-alert-info-text: #e6edf4;  /* info.11 */
-  --color-alert-success-bg: #152d15;  /* success.3 */
-  --color-alert-success-border: #528f52;  /* success.8 */
-  --color-alert-success-text: #e6efe6;  /* success.11 */
-  --color-alert-warning-bg: #322616;  /* warning.3 */
-  --color-alert-warning-border: #a37a46;  /* warning.8 */
-  --color-alert-warning-text: #f7ebdb;  /* warning.11 */
-  --color-alert-danger-bg: #451b17;  /* danger.3 */
-  --color-alert-danger-border: #bc6b64;  /* danger.8 */
-  --color-alert-danger-text: #f5eae9;  /* danger.11 */
+  /* Alert component colors - dark mode */
+  --color-alert-info-bg: #1a2a4a;  /* Dark blue background */
+  --color-alert-info-border: #6a9aff;  /* Bright blue border */
+  --color-alert-info-text: #d0e0ff;  /* Light blue text */
+  --color-alert-success-bg: #1a3a2a;  /* Dark green background */
+  --color-alert-success-border: #4ade80;  /* Bright green border */
+  --color-alert-success-text: #a7f3d0;  /* Light green text */
+  --color-alert-warning-bg: #3d3520;  /* Clean dark amber - warm, not brown */
+  --color-alert-warning-border: #fbbf24;  /* Bright golden amber */
+  --color-alert-warning-text: #fef3c7;  /* Light cream text */
+  --color-alert-danger-bg: #3a2028;  /* Dark red background */
+  --color-alert-danger-border: #f87171;  /* Bright red border */
+  --color-alert-danger-text: #fecaca;  /* Light red text */
 
-  /* ============================================
-     SEMANTIC TAG COLORS
-     ============================================ */
-  --color-tag-neutral-bg: #282828;  /* neutral.3 */
-  --color-tag-neutral-text: #a8a8a8;  /* neutral.9 */
-  --color-tag-neutral-border: #505050;  /* neutral.7 */
-  --color-tag-info-bg: #15293d;  /* info.3 */
-  --color-tag-info-text: #8aabcb;  /* info.9 */
-  --color-tag-info-border: #5585b4;  /* info.8 */
-  --color-tag-warning-bg: #322616;  /* warning.3 */
-  --color-tag-warning-text: #d39e5b;  /* warning.9 */
-  --color-tag-warning-border: #a37a46;  /* warning.8 */
-  --color-tag-frist-bg: #2e271b;  /* yellow.3 */
-  --color-tag-frist-text: #f8ebd4;  /* yellow.11 */
+  /* Semantic tag colors - dark mode */
+  --color-tag-neutral-bg: #3a3a5a;
+  --color-tag-neutral-text: #b0b0d0;
+  --color-tag-neutral-border: #5a5a7a;
+  --color-tag-info-bg: #1a3a5a;
+  --color-tag-info-text: #6fe9ff;
+  --color-tag-info-border: #4a8aaa;
+  --color-tag-warning-bg: #4a4020;
+  --color-tag-warning-text: #fbbf24;
+  --color-tag-warning-border: #8a7a3a;
+  --color-tag-frist-bg: #4d4538;  /* Warm beige/sand - clean, not brown */
+  --color-tag-frist-text: #f5e6c8;  /* Soft cream text */
 }
 
 /* ============================================
