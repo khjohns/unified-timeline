@@ -152,25 +152,25 @@
     --color-field-value: #111827;  /* Gray-900 equivalent */
     --color-field-muted: #9ca3af;  /* Gray-400 equivalent */
 
-    /* TE/BH category row colors (for RevisionHistory table) */
-    --color-row-te-bg: #e5ffe6;  /* Light green matching TE */
-    --color-row-te-text: #034b45;  /* Dark green text */
-    --color-row-bh-bg: #ffe7bc;  /* Light amber matching BH */
-    --color-row-bh-text: #92400e;  /* Darker amber text */
+    /* TE/BH category row colors (for RevisionHistory table) - light mode matches original */
+    --color-row-te-bg: #c7fde9;  /* pkt-surface-light-green */
+    --color-row-te-text: #034b45;  /* pkt-brand-dark-green-1000 */
+    --color-row-bh-bg: #ffe7bc;  /* pkt-surface-yellow */
+    --color-row-bh-text: #333333;  /* pkt-grays-gray-800 */
 
-    /* Alert component colors */
-    --color-alert-info-bg: #f1fdff;
-    --color-alert-info-border: #1f42aa;
-    --color-alert-info-text: #2a2859;
-    --color-alert-success-bg: #e5ffe6;
-    --color-alert-success-border: #034b45;
-    --color-alert-success-text: #034b45;
-    --color-alert-warning-bg: #fff7ed;
-    --color-alert-warning-border: #d97706;
-    --color-alert-warning-text: #92400e;
-    --color-alert-danger-bg: #fff2f1;
-    --color-alert-danger-border: #c9302c;
-    --color-alert-danger-text: #c9302c;
+    /* Alert component colors - light mode (matching original brand colors) */
+    --color-alert-info-bg: #f1fdff;  /* pkt-brand-blue-100 */
+    --color-alert-info-border: #1f42aa;  /* pkt-brand-warm-blue-1000 */
+    --color-alert-info-text: #2a2859;  /* pkt-brand-dark-blue-1000 */
+    --color-alert-success-bg: #e5ffe6;  /* pkt-brand-light-green-400 */
+    --color-alert-success-border: #034b45;  /* pkt-brand-dark-green-1000 */
+    --color-alert-success-text: #034b45;  /* pkt-brand-dark-green-1000 */
+    --color-alert-warning-bg: #ffe7bc;  /* pkt-brand-yellow-500 - original amber */
+    --color-alert-warning-border: #f9c66b;  /* pkt-brand-yellow-1000 */
+    --color-alert-warning-text: #2a2859;  /* pkt-brand-dark-blue-1000 */
+    --color-alert-danger-bg: #fff2f1;  /* pkt-brand-red-100 */
+    --color-alert-danger-border: #c9302c;  /* pkt-brand-red-1000 */
+    --color-alert-danger-text: #c9302c;  /* pkt-brand-red-1000 */
 
     /* ============================================
        SEMANTIC TAG COLORS
