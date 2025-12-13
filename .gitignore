@@ -46,7 +46,3 @@ htmlcov/
 playwright-report/
 playwright/.cache/
 test-results/
-
-# Digdir design tokens (generated, can be regenerated with CLI)
-design-tokens/
-designsystemet.config.json
