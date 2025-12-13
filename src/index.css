@@ -122,6 +122,7 @@
     --color-pkt-text-body-dark: #2a2859;
     --color-pkt-text-body-default: #2a2859;
     --color-pkt-text-body-light: #ffffff;
+    --color-pkt-text-body-subtle: #6b7280;  /* Muted text for secondary info */
     --color-pkt-text-placeholder: #666666;
     --color-pkt-text-action-disabled: #666666;
     --color-pkt-text-action-active: #1f42aa;
@@ -150,6 +151,26 @@
     --color-field-label: #6b7280;  /* Gray-500 equivalent */
     --color-field-value: #111827;  /* Gray-900 equivalent */
     --color-field-muted: #9ca3af;  /* Gray-400 equivalent */
+
+    /* TE/BH category row colors (for RevisionHistory table) */
+    --color-row-te-bg: #e5ffe6;  /* Light green matching TE */
+    --color-row-te-text: #034b45;  /* Dark green text */
+    --color-row-bh-bg: #ffe7bc;  /* Light amber matching BH */
+    --color-row-bh-text: #92400e;  /* Darker amber text */
+
+    /* Alert component colors */
+    --color-alert-info-bg: #f1fdff;
+    --color-alert-info-border: #1f42aa;
+    --color-alert-info-text: #2a2859;
+    --color-alert-success-bg: #e5ffe6;
+    --color-alert-success-border: #034b45;
+    --color-alert-success-text: #034b45;
+    --color-alert-warning-bg: #fff7ed;
+    --color-alert-warning-border: #d97706;
+    --color-alert-warning-text: #92400e;
+    --color-alert-danger-bg: #fff2f1;
+    --color-alert-danger-border: #c9302c;
+    --color-alert-danger-text: #c9302c;
 
     /* ============================================
        SEMANTIC TAG COLORS
@@ -235,15 +256,16 @@
   --color-pkt-bg-subtle: #1e1e36;
   --color-pkt-bg-transparent: transparent;
 
-  /* Text */
-  --color-pkt-text-body-dark: #e8e8f0;
-  --color-pkt-text-body-default: #c8c8d8;
+  /* Text - Improved contrast for dark mode */
+  --color-pkt-text-body-dark: #f0f0f8;  /* Brightened for better contrast */
+  --color-pkt-text-body-default: #e0e0ec;  /* Brightened for better readability */
   --color-pkt-text-body-light: #ffffff;
+  --color-pkt-text-body-subtle: #a8a8c0;  /* Muted text - improved contrast */
   --color-pkt-text-placeholder: #9a9ab0;
   --color-pkt-text-action-disabled: #6a6a8a;
   --color-pkt-text-action-active: #8ab4ff;
   --color-pkt-text-action-hover: #8ab4ff;
-  --color-pkt-text-action-normal: #c8c8d8;
+  --color-pkt-text-action-normal: #e0e0ec;  /* Brightened to match body-default */
 
   /* Borders */
   --color-pkt-border-default: #5a5a8a;
@@ -260,15 +282,15 @@
   --color-pkt-border-focus: #6a9aff;
   --color-pkt-border-hover: #6a9aff;
 
-  /* Grays - adjusted for dark mode with WCAG AA compliance */
+  /* Grays - improved for dark mode with better WCAG contrast */
   --color-pkt-grays-gray-100: #2a2a4a;
   --color-pkt-grays-gray-200: #3a3a5a;
   --color-pkt-grays-gray-300: #707090;  /* Lightened for 3:1 border contrast */
-  --color-pkt-grays-gray-400: #7a7a9a;  /* Lightened for 3:1 border contrast */
-  --color-pkt-grays-gray-500: #9090b0;  /* Lightened for 4.5:1 text contrast */
-  --color-pkt-grays-gray-600: #a0a0c0;
-  --color-pkt-grays-gray-700: #b0b0d0;
-  --color-pkt-grays-gray-800: #c8c8d8;
+  --color-pkt-grays-gray-400: #8888a8;  /* Brightened for better visibility */
+  --color-pkt-grays-gray-500: #a0a0c0;  /* Brightened - secondary text needs 4.5:1 */
+  --color-pkt-grays-gray-600: #b8b8d0;  /* Brightened - labels and descriptions */
+  --color-pkt-grays-gray-700: #c8c8e0;  /* Brightened - important secondary text */
+  --color-pkt-grays-gray-800: #d8d8e8;  /* Brightened for readability */
   --color-pkt-grays-gray-900: #e8e8f0;
   --color-pkt-grays-gray-1000: #f0f0f8;
 
@@ -310,7 +332,7 @@
   --color-pkt-brand-neutrals-white: #1a1a2e;
   --color-pkt-brand-neutrals-100: #252542;
   --color-pkt-brand-neutrals-200: #2a2a4a;
-  --color-pkt-brand-neutrals-1000: #e8e8f0;
+  --color-pkt-brand-neutrals-1000: #f0f0f8;  /* Brightened for better contrast */
   --color-pkt-brand-neutrals-black: #ffffff;
 
   /* Legacy aliases - dark mode */
@@ -345,9 +367,29 @@
   --color-step-completed-text: #052e16;  /* Dark green text */
 
   /* Modal field colors - dark mode */
-  --color-field-label: #9ca3af;  /* Lighter gray for dark bg */
-  --color-field-value: #f3f4f6;  /* Near white */
-  --color-field-muted: #6b7280;  /* Medium gray */
+  --color-field-label: #b0b0c8;  /* Lighter gray for dark bg - improved contrast */
+  --color-field-value: #f8f8fc;  /* Near white - improved for readability */
+  --color-field-muted: #8888a8;  /* Medium gray - improved contrast */
+
+  /* TE/BH category row colors - dark mode */
+  --color-row-te-bg: #1a3a2a;  /* Dark green background */
+  --color-row-te-text: #6adb8a;  /* Bright green matching TE events */
+  --color-row-bh-bg: #3d3520;  /* Dark amber background */
+  --color-row-bh-text: #fbbf24;  /* Bright amber matching BH events */
+
+  /* Alert component colors - dark mode */
+  --color-alert-info-bg: #1a2a4a;  /* Dark blue background */
+  --color-alert-info-border: #6a9aff;  /* Bright blue border */
+  --color-alert-info-text: #d0e0ff;  /* Light blue text */
+  --color-alert-success-bg: #1a3a2a;  /* Dark green background */
+  --color-alert-success-border: #4ade80;  /* Bright green border */
+  --color-alert-success-text: #a7f3d0;  /* Light green text */
+  --color-alert-warning-bg: #3d3520;  /* Clean dark amber - warm, not brown */
+  --color-alert-warning-border: #fbbf24;  /* Bright golden amber */
+  --color-alert-warning-text: #fef3c7;  /* Light cream text */
+  --color-alert-danger-bg: #3a2028;  /* Dark red background */
+  --color-alert-danger-border: #f87171;  /* Bright red border */
+  --color-alert-danger-text: #fecaca;  /* Light red text */
 
   /* Semantic tag colors - dark mode */
   --color-tag-neutral-bg: #3a3a5a;
