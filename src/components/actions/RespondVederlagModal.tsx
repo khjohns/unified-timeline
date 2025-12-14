@@ -240,9 +240,9 @@ export function RespondVederlagModal({
   const harProduktivitetKrav = vederlagEvent?.saerskilt_krav?.produktivitet !== undefined;
   const harSaerskiltKrav = harRiggKrav || harProduktivitetKrav;
 
-  // Calculate total ports (skip Port 1 if no särskilda krav)
-  const startPort = harSaerskiltKrav ? 1 : 2;
-  const totalPorts = 4;
+  // Calculate total ports (5 with særskilte krav, 4 without)
+  const startPort = 1;
+  const totalPorts = harSaerskiltKrav ? 5 : 4;
 
   // Form setup
   const {
@@ -416,30 +416,57 @@ export function RespondVederlagModal({
   // Show subsidiary result when there are precluded særskilte krav
   const visSubsidiaertResultat = computed.harPrekludertKrav;
 
-  // Steps configuration
+  // Steps configuration - 5 steps with optional preklusjon
   const steps = useMemo(() => {
-    const allSteps = [
-      { label: 'Særskilte krav' },
+    if (harSaerskiltKrav) {
+      return [
+        { label: 'Oversikt' },
+        { label: 'Preklusjon' },
+        { label: 'Metode' },
+        { label: 'Beløp' },
+        { label: 'Oppsummering' },
+      ];
+    }
+    return [
+      { label: 'Oversikt' },
       { label: 'Metode' },
       { label: 'Beløp' },
       { label: 'Oppsummering' },
     ];
-    // If no særskilte krav, remove Port 1 from display
-    return harSaerskiltKrav ? allSteps : allSteps.slice(1);
   }, [harSaerskiltKrav]);
+
+  // Determine which step type we're on based on currentPort
+  const getStepType = useCallback(
+    (port: number): 'oversikt' | 'preklusjon' | 'metode' | 'belop' | 'oppsummering' => {
+      if (port === 1) return 'oversikt';
+      if (harSaerskiltKrav) {
+        if (port === 2) return 'preklusjon';
+        if (port === 3) return 'metode';
+        if (port === 4) return 'belop';
+        return 'oppsummering';
+      } else {
+        if (port === 2) return 'metode';
+        if (port === 3) return 'belop';
+        return 'oppsummering';
+      }
+    },
+    [harSaerskiltKrav]
+  );
+
+  const currentStepType = getStepType(currentPort);
 
   // Navigation
   const goToNextPort = useCallback(async () => {
     let isValid = true;
 
-    // Validate current port
-    if (currentPort === 1) {
+    // Validate current port based on step type
+    if (currentStepType === 'preklusjon') {
       isValid = await trigger([
         'rigg_varslet_i_tide',
         'produktivitet_varslet_i_tide',
         'begrunnelse_preklusjon',
       ]);
-    } else if (currentPort === 2) {
+    } else if (currentStepType === 'metode') {
       isValid = await trigger([
         'aksepterer_metode',
         'oensket_metode',
@@ -447,7 +474,7 @@ export function RespondVederlagModal({
         'hold_tilbake',
         'begrunnelse_metode',
       ]);
-    } else if (currentPort === 3) {
+    } else if (currentStepType === 'belop') {
       isValid = await trigger([
         'hovedkrav_vurdering',
         'hovedkrav_godkjent_belop',
@@ -457,11 +484,12 @@ export function RespondVederlagModal({
         'produktivitet_godkjent_belop',
       ]);
     }
+    // 'oversikt' has no validation - just informational
 
     if (isValid && currentPort < totalPorts) {
       setCurrentPort(currentPort + 1);
     }
-  }, [currentPort, totalPorts, trigger]);
+  }, [currentPort, totalPorts, trigger, currentStepType]);
 
   const goToPrevPort = useCallback(() => {
     if (currentPort > startPort) {
@@ -564,10 +592,7 @@ export function RespondVederlagModal({
     >
       <div className="space-y-6">
         {/* Step Indicator */}
-        <StepIndicator
-          currentStep={harSaerskiltKrav ? currentPort : currentPort - 1}
-          steps={steps}
-        />
+        <StepIndicator currentStep={currentPort} steps={steps} />
 
         {/* BH svarplikt warning */}
         {bhSvarpliktAdvarsel && (
@@ -577,25 +602,138 @@ export function RespondVederlagModal({
           </Alert>
         )}
 
-        {/* Subsidiary treatment info */}
-        {erSubsidiaer && (
-          <Alert variant="info" title="Subsidiær behandling">
-            Du har avvist ansvarsgrunnlaget. Dine svar gjelder derfor kun subsidiært.
-          </Alert>
-        )}
-
-
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* ================================================================
-              PORT 1: SÆRSKILTE KRAV - PREKLUSJON (§34.1.3)
-              Only shown if there are særskilte krav
+              STEG 1: OVERSIKT
+              Shows claim summary and explains what will be evaluated
               ================================================================ */}
-          {currentPort === 1 && harSaerskiltKrav && (
-            <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
-                <Badge variant="info">Port 1</Badge>
-                <h3 className="font-bold text-lg">Særskilte krav - Preklusjon (§34.1.3)</h3>
+          {currentStepType === 'oversikt' && (
+            <div className="space-y-6">
+              {/* Kravsammendrag */}
+              <div className="p-4 border-2 border-pkt-border-subtle rounded-none">
+                <h3 className="font-bold text-lg mb-4">Krav fra entreprenør</h3>
+
+                <div className="space-y-3">
+                  {/* Hovedkrav */}
+                  <div className="flex justify-between items-center py-2 border-b border-pkt-border-subtle">
+                    <div>
+                      <span className="font-medium">Hovedkrav</span>
+                      {metodeLabel && (
+                        <span className="text-sm text-pkt-text-body-subtle ml-2">({metodeLabel})</span>
+                      )}
+                    </div>
+                    <span className="font-mono font-medium">
+                      kr {hovedkravBelop?.toLocaleString('nb-NO') || 0},-
+                    </span>
+                  </div>
+
+                  {/* Særskilte krav */}
+                  {harRiggKrav && (
+                    <div className="flex justify-between items-center py-2 border-b border-pkt-border-subtle">
+                      <div>
+                        <span className="font-medium">Rigg/drift</span>
+                        <span className="text-sm text-pkt-text-body-subtle ml-2">(særskilt krav)</span>
+                      </div>
+                      <span className="font-mono font-medium">
+                        kr {riggBelop?.toLocaleString('nb-NO') || 0},-
+                      </span>
+                    </div>
+                  )}
+
+                  {harProduktivitetKrav && (
+                    <div className="flex justify-between items-center py-2 border-b border-pkt-border-subtle">
+                      <div>
+                        <span className="font-medium">Produktivitetstap</span>
+                        <span className="text-sm text-pkt-text-body-subtle ml-2">(særskilt krav)</span>
+                      </div>
+                      <span className="font-mono font-medium">
+                        kr {produktivitetBelop?.toLocaleString('nb-NO') || 0},-
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Total */}
+                  <div className="flex justify-between items-center py-2 font-bold">
+                    <span>Totalt krevd</span>
+                    <span className="font-mono">
+                      kr{' '}
+                      {(
+                        (hovedkravBelop || 0) +
+                        (harRiggKrav ? riggBelop || 0 : 0) +
+                        (harProduktivitetKrav ? produktivitetBelop || 0 : 0)
+                      ).toLocaleString('nb-NO')}
+                      ,-
+                    </span>
+                  </div>
+                </div>
               </div>
+
+              {/* Subsidiær behandling info */}
+              {erSubsidiaer && (
+                <Alert variant="warning" title="Subsidiær behandling">
+                  Du har avvist ansvarsgrunnlaget. Dine vurderinger i dette skjemaet gjelder derfor{' '}
+                  <strong>subsidiært</strong> - det vil si for det tilfellet at du ikke får medhold i
+                  avvisningen.
+                </Alert>
+              )}
+
+              {/* Veiviser */}
+              <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
+                <h4 className="font-medium mb-3">Hva du skal vurdere</h4>
+                <div className="space-y-2 text-sm">
+                  {harSaerskiltKrav && (
+                    <div className="flex gap-3">
+                      <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">Steg 2</span>
+                      <div>
+                        <span className="font-medium">Preklusjon</span>
+                        <span className="text-pkt-text-body-subtle">
+                          {' '}
+                          — Ta stilling til om særskilte krav ble varslet i tide
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex gap-3">
+                    <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">
+                      Steg {harSaerskiltKrav ? 3 : 2}
+                    </span>
+                    <div>
+                      <span className="font-medium">Metode</span>
+                      <span className="text-pkt-text-body-subtle">
+                        {' '}
+                        — Akseptere eller endre vederlagsmetode
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">
+                      Steg {harSaerskiltKrav ? 4 : 3}
+                    </span>
+                    <div>
+                      <span className="font-medium">Beløp</span>
+                      <span className="text-pkt-text-body-subtle"> — Vurdere beløpene for hvert krav</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">
+                      Steg {harSaerskiltKrav ? 5 : 4}
+                    </span>
+                    <div>
+                      <span className="font-medium">Oppsummering</span>
+                      <span className="text-pkt-text-body-subtle"> — Se samlet resultat og send svar</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ================================================================
+              STEG 2 (med særskilte krav): PREKLUSJON (§34.1.3)
+              ================================================================ */}
+          {currentStepType === 'preklusjon' && (
+            <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
+              <h3 className="font-bold text-lg">Preklusjon av særskilte krav (§34.1.3)</h3>
 
               <Alert variant="warning">
                 Disse postene krever særskilt varsel. Ved manglende varsel tapes kravet (§34.1.3).
@@ -694,14 +832,11 @@ export function RespondVederlagModal({
           )}
 
           {/* ================================================================
-              PORT 2: METODE & SVARPLIKT
+              METODE & SVARPLIKT
               ================================================================ */}
-          {currentPort === 2 && (
+          {currentStepType === 'metode' && (
             <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
-                <Badge variant="info">Port 2</Badge>
-                <h3 className="font-bold text-lg">Metode & Svarplikt</h3>
-              </div>
+              <h3 className="font-bold text-lg">Metode & Svarplikt</h3>
 
               {/* Metode aksept */}
               <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
@@ -841,14 +976,11 @@ export function RespondVederlagModal({
           )}
 
           {/* ================================================================
-              PORT 3: BELØPSVURDERING
+              BELØPSVURDERING
               ================================================================ */}
-          {currentPort === 3 && (
+          {currentStepType === 'belop' && (
             <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
-                <Badge variant="info">Port 3</Badge>
-                <h3 className="font-bold text-lg">Beløpsvurdering</h3>
-              </div>
+              <h3 className="font-bold text-lg">Beløpsvurdering</h3>
 
               <p className="text-sm text-pkt-text-body-subtle mb-4">
                 Vurder beløpet for hvert krav. Dette er ren utmåling - ansvarsvurdering håndteres i
@@ -1090,20 +1222,17 @@ export function RespondVederlagModal({
           )}
 
           {/* ================================================================
-              PORT 4: OPPSUMMERING
+              OPPSUMMERING
               ================================================================ */}
-          {currentPort === 4 && (
+          {currentStepType === 'oppsummering' && (
             <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
-                <Badge variant="info">Port 4</Badge>
-                <h3 className="font-bold text-lg">Oppsummering</h3>
-              </div>
+              <h3 className="font-bold text-lg">Oppsummering</h3>
 
               {/* Sammendrag av valg */}
               <div className="space-y-4">
                 {/* Metode */}
                 <div className="p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
-                  <h5 className="font-medium text-sm mb-2">Metode (Port 2)</h5>
+                  <h5 className="font-medium text-sm mb-2">Metode</h5>
                   <div className="flex items-center gap-2">
                     {formValues.aksepterer_metode ? (
                       <Badge variant="success">Akseptert</Badge>
@@ -1135,7 +1264,7 @@ export function RespondVederlagModal({
 
                 {/* Beløpsoversikt */}
                 <div className="p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
-                  <h5 className="font-medium text-sm mb-3">Beløpsvurdering (Port 3)</h5>
+                  <h5 className="font-medium text-sm mb-3">Beløpsvurdering</h5>
 
                   {/* Desktop: tabell */}
                   <table className="hidden sm:table w-full text-sm">
