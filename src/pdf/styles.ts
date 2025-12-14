@@ -109,14 +109,18 @@ export const styles = StyleSheet.create({
   // Footer
   footer: {
     position: 'absolute',
-    bottom: 15,
-    left: 42,
-    right: 42,
+    bottom: 20,
+    left: 0,
+    right: 0,
+    paddingLeft: 42,
+    paddingRight: 42,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     paddingTop: 8,
     flexDirection: 'row',
     justifyContent: 'space-between',
+  },
+  footerText: {
     fontSize: 8,
     color: COLORS.muted,
   },
