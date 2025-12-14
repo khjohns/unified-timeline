@@ -29,15 +29,23 @@ const Header: React.FC = () => (
   </View>
 );
 
-const Footer: React.FC = () => (
-  <View style={styles.footer} fixed>
-    <Text>
-      Generert: {new Date().toLocaleDateString('no-NO', { day: 'numeric', month: 'long', year: 'numeric' })} kl.{' '}
-      {new Date().toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' })}
-    </Text>
-    <Text render={({ pageNumber, totalPages }) => `Side ${pageNumber} av ${totalPages}`} />
-  </View>
-);
+const Footer: React.FC = () => {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('no-NO', { day: 'numeric', month: 'long', year: 'numeric' });
+  const timeStr = now.toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' });
+
+  return (
+    <View style={styles.footer} fixed>
+      <Text style={styles.footerText}>
+        Generert: {dateStr} kl. {timeStr}
+      </Text>
+      <Text
+        style={styles.footerText}
+        render={({ pageNumber, totalPages }) => `Side ${pageNumber} av ${totalPages}`}
+      />
+    </View>
+  );
+};
 
 const TableRow: React.FC<{ label: string; value: string; striped?: boolean }> = ({ label, value, striped }) => (
   <View style={[styles.tableRow, striped && styles.tableRowStriped]}>
