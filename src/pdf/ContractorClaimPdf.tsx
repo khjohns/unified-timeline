@@ -46,6 +46,27 @@ const TableRow: React.FC<{ label: string; value: string; striped?: boolean }> = 
   </View>
 );
 
+const TableRow4Col: React.FC<{
+  label1: string;
+  value1: string;
+  label2: string;
+  value2: string;
+  striped?: boolean;
+}> = ({ label1, value1, label2, value2, striped }) => (
+  <View style={[styles.tableRow4Col, striped && styles.tableRowStriped]}>
+    <Text style={styles.tableLabel4Col}>{label1}</Text>
+    <Text style={styles.tableValue4Col}>{value1}</Text>
+    <Text style={styles.tableLabel4Col}>{label2}</Text>
+    <Text style={styles.tableValue4Col}>{value2}</Text>
+  </View>
+);
+
+const TableCategoryHeader: React.FC<{ title: string }> = ({ title }) => (
+  <View style={styles.tableCategoryHeader}>
+    <Text style={styles.tableCategoryText}>{title}</Text>
+  </View>
+);
+
 const TextBlock: React.FC<{ title: string; content?: string }> = ({ title, content }) => {
   if (!content?.trim()) return null;
   return (
@@ -231,24 +252,45 @@ const CaseInfoSection: React.FC<CaseInfoProps> = ({ state }) => {
       <Text style={styles.sakId}>Sak-ID: {state.sak_id}</Text>
 
       <View style={styles.metadataTable}>
-        <TableRow label="Overordnet status" value={getOverordnetStatusLabel(state.overordnet_status)} />
-        <TableRow label="Opprettet" value={formatDate(state.opprettet)} striped />
-        <TableRow label="Siste aktivitet" value={formatDate(state.siste_aktivitet)} />
-        <TableRow label="Antall hendelser" value={String(state.antall_events)} striped />
+        {/* Saksinformasjon */}
+        <TableCategoryHeader title="Saksinformasjon" />
+        <TableRow4Col
+          label1="Status"
+          value1={getOverordnetStatusLabel(state.overordnet_status)}
+          label2="Opprettet"
+          value2={formatDate(state.opprettet)}
+        />
+        <TableRow4Col
+          label1="Siste aktivitet"
+          value1={formatDate(state.siste_aktivitet)}
+          label2="Hendelser"
+          value2={String(state.antall_events)}
+          striped
+        />
 
-        {/* Economic summary integrated */}
+        {/* Økonomisk sammendrag */}
         {hasVederlag && (
           <>
-            <TableRow label="Krevd vederlag" value={formatCurrency(krevdBelop)} />
-            <TableRow label="Godkjent vederlag" value={formatCurrency(godkjentBelop)} striped />
+            <TableCategoryHeader title="Økonomisk sammendrag" />
+            <TableRow4Col
+              label1="Krevd"
+              value1={formatCurrency(krevdBelop)}
+              label2="Godkjent"
+              value2={formatCurrency(godkjentBelop)}
+            />
           </>
         )}
+
+        {/* Fristforlengelse */}
         {hasFrist && state.frist.krevd_dager !== undefined && (
           <>
-            <TableRow label="Krevd fristforlengelse" value={`${state.frist.krevd_dager} dager`} />
-            {state.frist.godkjent_dager !== undefined && (
-              <TableRow label="Godkjent fristforlengelse" value={`${state.frist.godkjent_dager} dager`} striped />
-            )}
+            <TableCategoryHeader title="Fristforlengelse" />
+            <TableRow4Col
+              label1="Krevd"
+              value1={`${state.frist.krevd_dager} dager`}
+              label2="Godkjent"
+              value2={state.frist.godkjent_dager !== undefined ? `${state.frist.godkjent_dager} dager` : '—'}
+            />
           </>
         )}
       </View>
