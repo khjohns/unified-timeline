@@ -424,15 +424,19 @@ const VederlagSection: React.FC<{ state: SakState }> = ({ state }) => {
                 label2={vederlag.metode === 'REGNINGSARBEID' ? 'Kostnadsoverslag' : 'Krevd beløp'}
                 value2={krevdBelop !== undefined ? formatCurrency(krevdBelop) : '—'}
               />
-              <TableRow4Col
-                label1="Justerte EP"
-                value1={formatBoolean(vederlag.krever_justert_ep)}
-                label2="Krav fremmet"
-                value2={formatDate(vederlag.krav_fremmet_dato)}
-                striped
-              />
-              {vederlag.siste_oppdatert && (
-                <TableRow label="Sist oppdatert" value={formatDate(vederlag.siste_oppdatert)} />
+              {/* Justerte EP kun relevant for ENHETSPRISER */}
+              {vederlag.metode === 'ENHETSPRISER' && vederlag.krever_justert_ep && (
+                <TableRow4Col
+                  label1="Justerte EP"
+                  value1={formatBoolean(vederlag.krever_justert_ep)}
+                  label2="Krav fremmet"
+                  value2={formatDate(vederlag.krav_fremmet_dato)}
+                  striped
+                />
+              )}
+              {/* For andre metoder, vis kun krav fremmet hvis satt */}
+              {vederlag.metode !== 'ENHETSPRISER' && vederlag.krav_fremmet_dato && (
+                <TableRow label="Krav fremmet" value={formatDate(vederlag.krav_fremmet_dato)} striped />
               )}
             </View>
 
@@ -440,31 +444,36 @@ const VederlagSection: React.FC<{ state: SakState }> = ({ state }) => {
             <TextBlock title="Begrunnelse og kalkyle" content={vederlag.begrunnelse} />
           </View>
 
-          {/* Varsler */}
-          {(vederlag.rigg_drift_varsel || vederlag.justert_ep_varsel || vederlag.regningsarbeid_varsel || vederlag.produktivitetstap_varsel) && (
-            <View style={styles.subSection} wrap={false}>
-              <Text style={styles.subSectionTitle}>Varsler</Text>
-              <View style={styles.table}>
-                {(vederlag.rigg_drift_varsel?.dato_sendt || vederlag.justert_ep_varsel?.dato_sendt) && (
-                  <TableRow4Col
-                    label1="Rigg/drift"
-                    value1={formatDate(vederlag.rigg_drift_varsel?.dato_sendt)}
-                    label2="Justerte EP"
-                    value2={formatDate(vederlag.justert_ep_varsel?.dato_sendt)}
-                  />
-                )}
-                {(vederlag.regningsarbeid_varsel?.dato_sendt || vederlag.produktivitetstap_varsel?.dato_sendt) && (
-                  <TableRow4Col
-                    label1="Regningsarbeid"
-                    value1={formatDate(vederlag.regningsarbeid_varsel?.dato_sendt)}
-                    label2="Produktivitetstap"
-                    value2={formatDate(vederlag.produktivitetstap_varsel?.dato_sendt)}
-                    striped
-                  />
-                )}
+          {/* Varsler - kun vis varsler som er relevante for valgt metode */}
+          {(() => {
+            const hasRiggDrift = vederlag.rigg_drift_varsel?.dato_sendt;
+            const hasJustertEP = vederlag.metode === 'ENHETSPRISER' && vederlag.justert_ep_varsel?.dato_sendt;
+            const hasRegning = vederlag.metode === 'REGNINGSARBEID' && vederlag.regningsarbeid_varsel?.dato_sendt;
+            const hasProdTap = vederlag.produktivitetstap_varsel?.dato_sendt;
+            const hasAnyVarsel = hasRiggDrift || hasJustertEP || hasRegning || hasProdTap;
+
+            if (!hasAnyVarsel) return null;
+
+            return (
+              <View style={styles.subSection} wrap={false}>
+                <Text style={styles.subSectionTitle}>Varsler</Text>
+                <View style={styles.table}>
+                  {hasRiggDrift && (
+                    <TableRow label="Rigg/drift varsel" value={formatDate(vederlag.rigg_drift_varsel?.dato_sendt)} />
+                  )}
+                  {hasJustertEP && (
+                    <TableRow label="Justerte EP varsel" value={formatDate(vederlag.justert_ep_varsel?.dato_sendt)} striped />
+                  )}
+                  {hasRegning && (
+                    <TableRow label="Regningsarbeid varsel" value={formatDate(vederlag.regningsarbeid_varsel?.dato_sendt)} striped />
+                  )}
+                  {hasProdTap && (
+                    <TableRow label="Produktivitetstap varsel" value={formatDate(vederlag.produktivitetstap_varsel?.dato_sendt)} />
+                  )}
+                </View>
               </View>
-            </View>
-          )}
+            );
+          })()}
 
           {/* Særskilte krav (§34.1.3) */}
           {vederlag.saerskilt_krav && (vederlag.saerskilt_krav.rigg_drift || vederlag.saerskilt_krav.produktivitet) && (
@@ -492,31 +501,37 @@ const VederlagSection: React.FC<{ state: SakState }> = ({ state }) => {
             </View>
           )}
 
-          {/* BH Response - Port 1: Varsling */}
-          {(vederlag.saerskilt_varsel_rigg_drift_ok !== undefined ||
-            vederlag.varsel_justert_ep_ok !== undefined ||
-            vederlag.varsel_start_regning_ok !== undefined ||
-            vederlag.krav_fremmet_i_tide !== undefined) && (
-            <View style={styles.mainSubSection} wrap={false}>
-              <Text style={styles.mainSubSectionTitle}>Byggherrens vurdering – Varsling</Text>
-              <View style={styles.table}>
-                <TableRow4Col
-                  label1="Rigg/drift OK"
-                  value1={formatBoolean(vederlag.saerskilt_varsel_rigg_drift_ok)}
-                  label2="Justerte EP OK"
-                  value2={formatBoolean(vederlag.varsel_justert_ep_ok)}
-                />
-                <TableRow4Col
-                  label1="Start regning OK"
-                  value1={formatBoolean(vederlag.varsel_start_regning_ok)}
-                  label2="Krav i tide"
-                  value2={formatBoolean(vederlag.krav_fremmet_i_tide)}
-                  striped
-                />
+          {/* BH Response - Varsling - kun vis relevante felt basert på metode */}
+          {(() => {
+            const hasRiggDriftOk = vederlag.saerskilt_varsel_rigg_drift_ok !== undefined;
+            const hasJustertEpOk = vederlag.metode === 'ENHETSPRISER' && vederlag.varsel_justert_ep_ok !== undefined;
+            const hasStartRegningOk = vederlag.metode === 'REGNINGSARBEID' && vederlag.varsel_start_regning_ok !== undefined;
+            const hasKravITide = vederlag.krav_fremmet_i_tide !== undefined;
+            const hasAnyVarsling = hasRiggDriftOk || hasJustertEpOk || hasStartRegningOk || hasKravITide || vederlag.begrunnelse_varsel;
+
+            if (!hasAnyVarsling) return null;
+
+            return (
+              <View style={styles.mainSubSection} wrap={false}>
+                <Text style={styles.mainSubSectionTitle}>Byggherrens vurdering – Varsling</Text>
+                <View style={styles.table}>
+                  {hasRiggDriftOk && (
+                    <TableRow label="Rigg/drift varsel OK" value={formatBoolean(vederlag.saerskilt_varsel_rigg_drift_ok)} />
+                  )}
+                  {hasJustertEpOk && (
+                    <TableRow label="Justerte EP varsel OK" value={formatBoolean(vederlag.varsel_justert_ep_ok)} striped />
+                  )}
+                  {hasStartRegningOk && (
+                    <TableRow label="Start regning varsel OK" value={formatBoolean(vederlag.varsel_start_regning_ok)} striped />
+                  )}
+                  {hasKravITide && (
+                    <TableRow label="Krav fremmet i tide" value={formatBoolean(vederlag.krav_fremmet_i_tide)} />
+                  )}
+                </View>
+                <TextBlock title="Begrunnelse varselvurdering" content={vederlag.begrunnelse_varsel} />
               </View>
-              <TextBlock title="Begrunnelse varselvurdering" content={vederlag.begrunnelse_varsel} />
-            </View>
-          )}
+            );
+          })()}
 
           {/* BH Response - Port 2: Beregning */}
           {vederlag.bh_resultat && (
@@ -590,19 +605,32 @@ const FristSection: React.FC<{ state: SakState }> = ({ state }) => {
                 label2="Krevd dager"
                 value2={frist.krevd_dager !== undefined ? `${frist.krevd_dager} dager` : '—'}
               />
-              <TableRow4Col
-                label1="Nøytralt varsel"
-                value1={formatDate(frist.noytralt_varsel?.dato_sendt)}
-                label2="Spesifisert krav"
-                value2={formatDate(frist.spesifisert_varsel?.dato_sendt)}
-                striped
-              />
-              <TableRow4Col
-                label1="Kritisk linje"
-                value1={formatBoolean(frist.pavirker_kritisk_linje)}
-                label2="Fremdriftsanalyse"
-                value2={formatBoolean(frist.fremdriftsanalyse_vedlagt)}
-              />
+              {/* Varseldatoer - vis basert på varsel_type */}
+              {frist.varsel_type === 'noytralt' && frist.noytralt_varsel?.dato_sendt && (
+                <TableRow label="Nøytralt varsel sendt" value={formatDate(frist.noytralt_varsel?.dato_sendt)} striped />
+              )}
+              {(frist.varsel_type === 'spesifisert' || frist.varsel_type === 'force_majeure') && frist.spesifisert_varsel?.dato_sendt && (
+                <TableRow label="Spesifisert krav sendt" value={formatDate(frist.spesifisert_varsel?.dato_sendt)} striped />
+              )}
+              {/* Fallback - vis begge hvis varsel_type ikke er satt men datoer finnes */}
+              {!frist.varsel_type && (frist.noytralt_varsel?.dato_sendt || frist.spesifisert_varsel?.dato_sendt) && (
+                <TableRow4Col
+                  label1="Nøytralt varsel"
+                  value1={formatDate(frist.noytralt_varsel?.dato_sendt)}
+                  label2="Spesifisert krav"
+                  value2={formatDate(frist.spesifisert_varsel?.dato_sendt)}
+                  striped
+                />
+              )}
+              {/* Kritisk linje og fremdriftsanalyse - kun vis hvis satt */}
+              {(frist.pavirker_kritisk_linje !== undefined || frist.fremdriftsanalyse_vedlagt !== undefined) && (
+                <TableRow4Col
+                  label1="Kritisk linje"
+                  value1={formatBoolean(frist.pavirker_kritisk_linje)}
+                  label2="Fremdriftsanalyse"
+                  value2={formatBoolean(frist.fremdriftsanalyse_vedlagt)}
+                />
+              )}
               {(frist.milepael_pavirket || frist.siste_oppdatert) && (
                 <TableRow4Col
                   label1="Milepæl påvirket"
@@ -621,26 +649,39 @@ const FristSection: React.FC<{ state: SakState }> = ({ state }) => {
             <TextBlock title="Berørte aktiviteter" content={frist.berorte_aktiviteter} />
           </View>
 
-          {/* BH Response - Port 1: Varsling */}
-          {(frist.noytralt_varsel_ok !== undefined ||
-            frist.spesifisert_krav_ok !== undefined ||
-            frist.har_bh_etterlyst !== undefined) && (
-            <View style={styles.mainSubSection} wrap={false}>
-              <Text style={styles.mainSubSectionTitle}>Byggherrens vurdering – Varsling</Text>
-              <View style={styles.table}>
-                <TableRow4Col
-                  label1="Nøytralt varsel OK"
-                  value1={formatBoolean(frist.noytralt_varsel_ok)}
-                  label2="Spesifisert krav OK"
-                  value2={formatBoolean(frist.spesifisert_krav_ok)}
-                />
-                {frist.har_bh_etterlyst !== undefined && (
-                  <TableRow label="BH har etterlyst" value={formatBoolean(frist.har_bh_etterlyst)} striped />
-                )}
+          {/* BH Response - Varsling - kun vis relevante felt basert på varsel_type */}
+          {(() => {
+            const isNoytralt = frist.varsel_type === 'noytralt';
+            const isSpesifisertOrFM = frist.varsel_type === 'spesifisert' || frist.varsel_type === 'force_majeure';
+            const hasNoytraltOk = isNoytralt && frist.noytralt_varsel_ok !== undefined;
+            const hasSpesifisertOk = (isSpesifisertOrFM || !frist.varsel_type) && frist.spesifisert_krav_ok !== undefined;
+            const hasEtterlyst = frist.har_bh_etterlyst !== undefined;
+            const hasFristForSpesifisering = frist.frist_for_spesifisering;
+            const hasAnyVarsling = hasNoytraltOk || hasSpesifisertOk || hasEtterlyst || hasFristForSpesifisering || frist.begrunnelse_varsel;
+
+            if (!hasAnyVarsling) return null;
+
+            return (
+              <View style={styles.mainSubSection} wrap={false}>
+                <Text style={styles.mainSubSectionTitle}>Byggherrens vurdering – Varsling</Text>
+                <View style={styles.table}>
+                  {hasNoytraltOk && (
+                    <TableRow label="Nøytralt varsel OK" value={formatBoolean(frist.noytralt_varsel_ok)} />
+                  )}
+                  {hasSpesifisertOk && (
+                    <TableRow label="Spesifisert krav OK" value={formatBoolean(frist.spesifisert_krav_ok)} striped={hasNoytraltOk} />
+                  )}
+                  {hasEtterlyst && (
+                    <TableRow label="BH har etterlyst" value={formatBoolean(frist.har_bh_etterlyst)} striped />
+                  )}
+                  {hasFristForSpesifisering && (
+                    <TableRow label="Frist for spesifisering" value={formatDate(frist.frist_for_spesifisering)} />
+                  )}
+                </View>
+                <TextBlock title="Begrunnelse varselvurdering" content={frist.begrunnelse_varsel} />
               </View>
-              <TextBlock title="Begrunnelse varselvurdering" content={frist.begrunnelse_varsel} />
-            </View>
-          )}
+            );
+          })()}
 
           {/* BH Response - Port 2: Vilkår */}
           {frist.vilkar_oppfylt !== undefined && (
@@ -653,7 +694,7 @@ const FristSection: React.FC<{ state: SakState }> = ({ state }) => {
             </View>
           )}
 
-          {/* BH Response - Port 3: Beregning */}
+          {/* BH Response - Beregning */}
           {frist.bh_resultat && (
             <View style={styles.mainSubSection} wrap={false}>
               <Text style={styles.mainSubSectionTitle}>Byggherrens vurdering – Beregning</Text>
@@ -664,15 +705,14 @@ const FristSection: React.FC<{ state: SakState }> = ({ state }) => {
                   label2="Godkjent dager"
                   value2={frist.godkjent_dager !== undefined ? `${frist.godkjent_dager} dager` : '—'}
                 />
-                <TableRow4Col
-                  label1="Differanse"
-                  value1={frist.differanse_dager !== undefined ? `${frist.differanse_dager} dager` : '—'}
-                  label2="Ny sluttdato"
-                  value2={formatDate(frist.ny_sluttdato)}
-                  striped
-                />
-                {frist.frist_for_spesifisering && (
-                  <TableRow label="Frist for spesifisering" value={formatDate(frist.frist_for_spesifisering)} />
+                {(frist.differanse_dager !== undefined || frist.ny_sluttdato) && (
+                  <TableRow4Col
+                    label1="Differanse"
+                    value1={frist.differanse_dager !== undefined ? `${frist.differanse_dager} dager` : '—'}
+                    label2="Ny sluttdato"
+                    value2={formatDate(frist.ny_sluttdato)}
+                    striped
+                  />
                 )}
               </View>
               <TextBlock title="Byggherrens begrunnelse" content={frist.bh_begrunnelse} />
