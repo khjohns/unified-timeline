@@ -131,6 +131,7 @@ export const styles = StyleSheet.create({
     fontSize: 8,
     color: COLORS.muted,
     textAlign: 'right',
+    minWidth: 80,
   },
 
   // Title section
