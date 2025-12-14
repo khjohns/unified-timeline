@@ -29,13 +29,15 @@ const Header: React.FC = () => (
   </View>
 );
 
-const Footer: React.FC = () => (
+const Footer: React.FC<{ pageNumber: number; totalPages: number }> = ({ pageNumber, totalPages }) => (
   <View style={styles.footer} fixed>
     <Text>
       Generert: {new Date().toLocaleDateString('no-NO', { day: 'numeric', month: 'long', year: 'numeric' })} kl.{' '}
       {new Date().toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' })}
     </Text>
-    <Text render={({ pageNumber, totalPages }) => `Side ${pageNumber} av ${totalPages}`} />
+    <Text>
+      Side {pageNumber} av {totalPages}
+    </Text>
   </View>
 );
 
@@ -785,7 +787,7 @@ export const ContractorClaimPdf: React.FC<ContractorClaimPdfProps> = ({ state })
 
         <FristSection state={state} />
 
-        <Footer />
+        <Footer pageNumber={1} totalPages={1} />
       </Page>
     </Document>
   );
