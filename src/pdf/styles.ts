@@ -207,6 +207,42 @@ export const styles = StyleSheet.create({
     color: COLORS.ink,
   },
 
+  // 4-column table rows for compact layout
+  tableRow4Col: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  tableLabel4Col: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    width: '22%',
+    color: COLORS.inkDim,
+  },
+  tableValue4Col: {
+    fontSize: 9,
+    width: '28%',
+    color: COLORS.ink,
+  },
+
+  // Category header row
+  tableCategoryHeader: {
+    backgroundColor: COLORS.grayBg,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  tableCategoryText: {
+    fontSize: 8,
+    fontWeight: 'bold',
+    color: COLORS.inkDim,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+
   // Text blocks
   textBlock: {
     marginTop: 8,
