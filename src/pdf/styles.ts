@@ -147,6 +147,9 @@ export const styles = StyleSheet.create({
     marginBottom: 24,
     marginTop: 16,
   },
+  sectionHeader: {
+    marginBottom: 4,
+  },
   sectionTitle: {
     fontSize: 12,
     fontWeight: 'bold',
