@@ -120,6 +120,12 @@ const NotClaimedBox: React.FC<{ message: string }> = ({ message }) => (
   </View>
 );
 
+const SubsidiaerBadge: React.FC = () => (
+  <View style={[styles.statusBadge, styles.statusSubsidiaer]}>
+    <Text style={[styles.statusBadgeText, styles.statusSubsidiaerText]}>Subsidiært</Text>
+  </View>
+);
+
 // ============================================================
 // Formatting Helpers
 // ============================================================
@@ -306,15 +312,17 @@ const GrunnlagSection: React.FC<{ state: SakState }> = ({ state }) => {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader} wrap={false}>
-        <Text style={styles.sectionTitle}>1. GRUNNLAG</Text>
+        <View style={styles.sectionTitleRow}>
+          <Text style={styles.sectionTitle}>1. GRUNNLAG</Text>
+          {grunnlag.antall_versjoner > 1 && (
+            <Text style={{ fontSize: 8, color: COLORS.muted }}>
+              (Rev. {grunnlag.antall_versjoner})
+            </Text>
+          )}
+        </View>
         {!isNotRelevant && (
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 10 }}>
+          <View style={styles.sectionStatusRow}>
             <StatusBadge status={grunnlag.status} />
-            {grunnlag.antall_versjoner > 1 && (
-              <Text style={{ fontSize: 8, color: COLORS.muted }}>
-                (Revisjon {grunnlag.antall_versjoner})
-              </Text>
-            )}
           </View>
         )}
       </View>
@@ -378,20 +386,18 @@ const VederlagSection: React.FC<{ state: SakState }> = ({ state }) => {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader} wrap={false}>
-        <Text style={styles.sectionTitle}>2. VEDERLAGSJUSTERING</Text>
+        <View style={styles.sectionTitleRow}>
+          <Text style={styles.sectionTitle}>2. VEDERLAGSJUSTERING</Text>
+          {vederlag.antall_versjoner > 1 && (
+            <Text style={{ fontSize: 8, color: COLORS.muted }}>
+              (Rev. {vederlag.antall_versjoner})
+            </Text>
+          )}
+        </View>
         {!isNotClaimed && (
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 10 }}>
+          <View style={styles.sectionStatusRow}>
             <StatusBadge status={vederlag.status} />
-            {vederlag.antall_versjoner > 1 && (
-              <Text style={{ fontSize: 8, color: COLORS.muted }}>
-                (Revisjon {vederlag.antall_versjoner})
-              </Text>
-            )}
-            {state.er_subsidiaert_vederlag && (
-              <Text style={{ fontSize: 8, color: COLORS.warning, fontStyle: 'italic' }}>
-                Subsidiært krav
-              </Text>
-            )}
+            {state.er_subsidiaert_vederlag && <SubsidiaerBadge />}
           </View>
         )}
       </View>
@@ -590,20 +596,18 @@ const FristSection: React.FC<{ state: SakState }> = ({ state }) => {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader} wrap={false}>
-        <Text style={styles.sectionTitle}>3. FRISTFORLENGELSE</Text>
+        <View style={styles.sectionTitleRow}>
+          <Text style={styles.sectionTitle}>3. FRISTFORLENGELSE</Text>
+          {frist.antall_versjoner > 1 && (
+            <Text style={{ fontSize: 8, color: COLORS.muted }}>
+              (Rev. {frist.antall_versjoner})
+            </Text>
+          )}
+        </View>
         {!isNotClaimed && (
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 10 }}>
+          <View style={styles.sectionStatusRow}>
             <StatusBadge status={frist.status} />
-            {frist.antall_versjoner > 1 && (
-              <Text style={{ fontSize: 8, color: COLORS.muted }}>
-                (Revisjon {frist.antall_versjoner})
-              </Text>
-            )}
-            {state.er_subsidiaert_frist && (
-              <Text style={{ fontSize: 8, color: COLORS.warning, fontStyle: 'italic' }}>
-                Subsidiært krav
-              </Text>
-            )}
+            {state.er_subsidiaert_frist && <SubsidiaerBadge />}
           </View>
         )}
       </View>

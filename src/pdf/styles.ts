@@ -148,16 +148,28 @@ export const styles = StyleSheet.create({
     marginTop: 16,
   },
   sectionHeader: {
-    marginBottom: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    paddingBottom: 6,
+    borderBottomWidth: 2,
+    borderBottomColor: COLORS.primary,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   sectionTitle: {
     fontSize: 12,
     fontWeight: 'bold',
     color: COLORS.primary,
-    marginBottom: 12,
-    paddingBottom: 6,
-    borderBottomWidth: 2,
-    borderBottomColor: COLORS.primary,
+  },
+  sectionStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   subSection: {
     marginTop: 14,
@@ -315,6 +327,16 @@ export const styles = StyleSheet.create({
   },
   statusGrayText: {
     color: COLORS.muted,
+  },
+  // Subsidiært badge - orange/brown for good contrast
+  statusSubsidiaer: {
+    backgroundColor: '#FFF3E0',
+    borderWidth: 1,
+    borderColor: '#E65100',
+  },
+  statusSubsidiaerText: {
+    color: '#E65100',
+    fontStyle: 'italic',
   },
 
   // "Not claimed" box
