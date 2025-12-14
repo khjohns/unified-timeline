@@ -325,10 +325,10 @@ export function RespondFristModal({
 
   // Steps configuration
   const steps = [
-    { label: 'Port 1', description: 'Preklusjon' },
-    { label: 'Port 2', description: 'Vilkår' },
-    { label: 'Port 3', description: 'Beregning' },
-    { label: 'Port 4', description: 'Oppsummering' },
+    { label: 'Preklusjon' },
+    { label: 'Vilkår' },
+    { label: 'Beregning' },
+    { label: 'Oppsummering' },
   ];
 
   // Navigation

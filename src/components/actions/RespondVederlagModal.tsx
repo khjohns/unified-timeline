@@ -419,10 +419,10 @@ export function RespondVederlagModal({
   // Steps configuration
   const steps = useMemo(() => {
     const allSteps = [
-      { label: 'Port 1', description: 'Særskilte krav' },
-      { label: 'Port 2', description: 'Metode' },
-      { label: 'Port 3', description: 'Beløp' },
-      { label: 'Port 4', description: 'Oppsummering' },
+      { label: 'Særskilte krav' },
+      { label: 'Metode' },
+      { label: 'Beløp' },
+      { label: 'Oppsummering' },
     ];
     // If no særskilte krav, remove Port 1 from display
     return harSaerskiltKrav ? allSteps : allSteps.slice(1);
