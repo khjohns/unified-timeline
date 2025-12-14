@@ -331,7 +331,7 @@ const GrunnlagSection: React.FC<{ state: SakState }> = ({ state }) => {
         <NotClaimedBox message="Grunnlag er ikke fastsatt for denne saken." />
       ) : (
         <View>
-          <View style={styles.table} wrap={false}>
+          <View style={styles.table}>
             {/* Kategorier */}
             {(grunnlag.hovedkategori || grunnlag.underkategori) && (
               <TableRow4Col
@@ -371,7 +371,7 @@ const GrunnlagSection: React.FC<{ state: SakState }> = ({ state }) => {
 
           {/* BH Response */}
           {grunnlag.bh_resultat && (
-            <View style={styles.mainSubSection} wrap={false}>
+            <View style={styles.mainSubSection}>
               <Text style={styles.mainSubSectionTitle}>Byggherrens vurdering</Text>
               <View style={styles.table}>
                 <TableRow label="Resultat" value={formatGrunnlagResultat(grunnlag.bh_resultat)} />
@@ -415,7 +415,7 @@ const VederlagSection: React.FC<{ state: SakState }> = ({ state }) => {
       ) : (
         <View>
           {/* Entreprenørens krav */}
-          <View style={styles.mainSubSection} wrap={false}>
+          <View style={styles.mainSubSection}>
             <Text style={styles.mainSubSectionTitle}>Entreprenørens krav</Text>
             <View style={styles.table}>
               <TableRow4Col
@@ -455,7 +455,7 @@ const VederlagSection: React.FC<{ state: SakState }> = ({ state }) => {
             if (!hasAnyVarsel) return null;
 
             return (
-              <View style={styles.subSection} wrap={false}>
+              <View style={styles.subSection}>
                 <Text style={styles.subSectionTitle}>Varsler</Text>
                 <View style={styles.table}>
                   {hasRiggDrift && (
@@ -477,7 +477,7 @@ const VederlagSection: React.FC<{ state: SakState }> = ({ state }) => {
 
           {/* Særskilte krav (§34.1.3) */}
           {vederlag.saerskilt_krav && (vederlag.saerskilt_krav.rigg_drift || vederlag.saerskilt_krav.produktivitet) && (
-            <View style={styles.subSection} wrap={false}>
+            <View style={styles.subSection}>
               <Text style={styles.subSectionTitle}>Særskilte krav (§34.1.3)</Text>
               <View style={styles.table}>
                 {vederlag.saerskilt_krav.rigg_drift?.belop !== undefined && (
@@ -512,7 +512,7 @@ const VederlagSection: React.FC<{ state: SakState }> = ({ state }) => {
             if (!hasAnyVarsling) return null;
 
             return (
-              <View style={styles.mainSubSection} wrap={false}>
+              <View style={styles.mainSubSection}>
                 <Text style={styles.mainSubSectionTitle}>Byggherrens vurdering – Varsling</Text>
                 <View style={styles.table}>
                   {hasRiggDriftOk && (
@@ -533,9 +533,9 @@ const VederlagSection: React.FC<{ state: SakState }> = ({ state }) => {
             );
           })()}
 
-          {/* BH Response - Port 2: Beregning */}
+          {/* BH Response - Beregning */}
           {vederlag.bh_resultat && (
-            <View style={styles.mainSubSection} wrap={false}>
+            <View style={styles.mainSubSection}>
               <Text style={styles.mainSubSectionTitle}>Byggherrens vurdering – Beregning</Text>
               <View style={styles.table}>
                 <TableRow4Col
@@ -596,7 +596,7 @@ const FristSection: React.FC<{ state: SakState }> = ({ state }) => {
       ) : (
         <View>
           {/* Entreprenørens krav */}
-          <View style={styles.mainSubSection} wrap={false}>
+          <View style={styles.mainSubSection}>
             <Text style={styles.mainSubSectionTitle}>Entreprenørens krav</Text>
             <View style={styles.table}>
               <TableRow4Col
@@ -662,7 +662,7 @@ const FristSection: React.FC<{ state: SakState }> = ({ state }) => {
             if (!hasAnyVarsling) return null;
 
             return (
-              <View style={styles.mainSubSection} wrap={false}>
+              <View style={styles.mainSubSection}>
                 <Text style={styles.mainSubSectionTitle}>Byggherrens vurdering – Varsling</Text>
                 <View style={styles.table}>
                   {hasNoytraltOk && (
@@ -683,9 +683,9 @@ const FristSection: React.FC<{ state: SakState }> = ({ state }) => {
             );
           })()}
 
-          {/* BH Response - Port 2: Vilkår */}
+          {/* BH Response - Vilkår */}
           {frist.vilkar_oppfylt !== undefined && (
-            <View style={styles.mainSubSection} wrap={false}>
+            <View style={styles.mainSubSection}>
               <Text style={styles.mainSubSectionTitle}>Byggherrens vurdering – Vilkår</Text>
               <View style={styles.table}>
                 <TableRow label="Vilkår oppfylt" value={formatBoolean(frist.vilkar_oppfylt)} />
@@ -696,7 +696,7 @@ const FristSection: React.FC<{ state: SakState }> = ({ state }) => {
 
           {/* BH Response - Beregning */}
           {frist.bh_resultat && (
-            <View style={styles.mainSubSection} wrap={false}>
+            <View style={styles.mainSubSection}>
               <Text style={styles.mainSubSectionTitle}>Byggherrens vurdering – Beregning</Text>
               <View style={styles.table}>
                 <TableRow4Col
@@ -722,7 +722,7 @@ const FristSection: React.FC<{ state: SakState }> = ({ state }) => {
 
           {/* Forsering (§33.8) */}
           {frist.forsering?.er_varslet && (
-            <View style={styles.subSection} wrap={false}>
+            <View style={styles.subSection}>
               <Text style={styles.subSectionTitle}>Forsering (§33.8)</Text>
               <View style={styles.table}>
                 <TableRow4Col
