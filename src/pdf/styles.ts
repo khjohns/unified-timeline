@@ -131,6 +131,14 @@ export const styles = StyleSheet.create({
     fontSize: 8,
     color: COLORS.muted,
     textAlign: 'right',
+    minWidth: 80,
+  },
+  pageNumber: {
+    position: 'absolute',
+    bottom: 15,
+    right: 42,
+    fontSize: 8,
+    color: COLORS.muted,
   },
 
   // Title section
