@@ -70,7 +70,7 @@ export const styles = StyleSheet.create({
     paddingTop: 0,
     paddingLeft: 42,
     paddingRight: 42,
-    paddingBottom: 50,
+    paddingBottom: 60,
     fontFamily: PDF_FONT,
     fontSize: 9,
     color: COLORS.ink,
@@ -112,10 +112,10 @@ export const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: 35,
+    height: 40,
     paddingLeft: 42,
     paddingRight: 42,
-    paddingTop: 8,
+    paddingTop: 12,
     backgroundColor: COLORS.white,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
@@ -126,6 +126,11 @@ export const styles = StyleSheet.create({
   footerText: {
     fontSize: 8,
     color: COLORS.muted,
+  },
+  footerPageNumber: {
+    fontSize: 8,
+    color: COLORS.muted,
+    textAlign: 'right',
   },
 
   // Title section

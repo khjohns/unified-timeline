@@ -40,8 +40,11 @@ const Footer: React.FC = () => {
         Generert: {dateStr} kl. {timeStr}
       </Text>
       <Text
-        style={styles.footerText}
-        render={({ pageNumber, totalPages }) => `Side ${pageNumber} av ${totalPages}`}
+        style={styles.footerPageNumber}
+        render={({ pageNumber, totalPages }) => (
+          `Side ${pageNumber} av ${totalPages}`
+        )}
+        fixed
       />
     </View>
   );
