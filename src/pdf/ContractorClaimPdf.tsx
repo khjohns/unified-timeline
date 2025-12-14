@@ -35,12 +35,18 @@ const Footer: React.FC = () => {
   const timeStr = now.toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' });
 
   return (
-    <View style={styles.footer} fixed>
-      <Text style={styles.footerText}>
-        Generert: {dateStr} kl. {timeStr}
-      </Text>
-      <Text style={styles.footerPageNumber} render={({ pageNumber, totalPages }) => `Side ${pageNumber} av ${totalPages}`} />
-    </View>
+    <>
+      <View style={styles.footer} fixed>
+        <Text style={styles.footerText}>
+          Generert: {dateStr} kl. {timeStr}
+        </Text>
+      </View>
+      <Text
+        style={styles.pageNumber}
+        render={({ pageNumber, totalPages }) => `Side ${pageNumber} av ${totalPages}`}
+        fixed
+      />
+    </>
   );
 };
 
