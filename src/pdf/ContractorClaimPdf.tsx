@@ -120,6 +120,12 @@ const NotClaimedBox: React.FC<{ message: string }> = ({ message }) => (
   </View>
 );
 
+const SubsidiaerBadge: React.FC = () => (
+  <View style={[styles.statusBadge, styles.statusSubsidiaer]}>
+    <Text style={[styles.statusBadgeText, styles.statusSubsidiaerText]}>Subsidiært</Text>
+  </View>
+);
+
 // ============================================================
 // Formatting Helpers
 // ============================================================
@@ -306,15 +312,17 @@ const GrunnlagSection: React.FC<{ state: SakState }> = ({ state }) => {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader} wrap={false}>
-        <Text style={styles.sectionTitle}>1. GRUNNLAG</Text>
+        <View style={styles.sectionTitleRow}>
+          <Text style={styles.sectionTitle}>1. GRUNNLAG</Text>
+          {grunnlag.antall_versjoner > 1 && (
+            <Text style={{ fontSize: 8, color: COLORS.muted }}>
+              (Rev. {grunnlag.antall_versjoner})
+            </Text>
+          )}
+        </View>
         {!isNotRelevant && (
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 10 }}>
+          <View style={styles.sectionStatusRow}>
             <StatusBadge status={grunnlag.status} />
-            {grunnlag.antall_versjoner > 1 && (
-              <Text style={{ fontSize: 8, color: COLORS.muted }}>
-                (Revisjon {grunnlag.antall_versjoner})
-              </Text>
-            )}
           </View>
         )}
       </View>
@@ -324,29 +332,37 @@ const GrunnlagSection: React.FC<{ state: SakState }> = ({ state }) => {
       ) : (
         <View>
           <View style={styles.table} wrap={false}>
-            {grunnlag.tittel && (
-              <TableRow label="Tittel" value={grunnlag.tittel} />
+            {/* Kategorier */}
+            {(grunnlag.hovedkategori || grunnlag.underkategori) && (
+              <TableRow4Col
+                label1="Hovedkategori"
+                value1={grunnlag.hovedkategori || '—'}
+                label2="Underkategori"
+                value2={formatUnderkategori(grunnlag.underkategori)}
+              />
             )}
-            {grunnlag.hovedkategori && (
-              <TableRow label="Hovedkategori" value={grunnlag.hovedkategori} striped />
+            {/* Datoer */}
+            {(grunnlag.dato_oppdaget || grunnlag.grunnlag_varsel?.dato_sendt) && (
+              <TableRow4Col
+                label1="Dato oppdaget"
+                value1={formatDate(grunnlag.dato_oppdaget)}
+                label2="Varsel sendt"
+                value2={formatDate(grunnlag.grunnlag_varsel?.dato_sendt)}
+                striped
+              />
             )}
-            {grunnlag.underkategori && (
-              <TableRow label="Underkategori" value={formatUnderkategori(grunnlag.underkategori)} />
+            {/* Varselmetode og sist oppdatert */}
+            {(grunnlag.grunnlag_varsel?.metode || grunnlag.siste_oppdatert) && (
+              <TableRow4Col
+                label1="Varselmetode"
+                value1={formatVarselMetode(grunnlag.grunnlag_varsel?.metode)}
+                label2="Sist oppdatert"
+                value2={formatDate(grunnlag.siste_oppdatert)}
+              />
             )}
-            {grunnlag.dato_oppdaget && (
-              <TableRow label="Dato oppdaget" value={formatDate(grunnlag.dato_oppdaget)} striped />
-            )}
-            {grunnlag.grunnlag_varsel?.dato_sendt && (
-              <TableRow label="Varsel sendt" value={formatDate(grunnlag.grunnlag_varsel.dato_sendt)} />
-            )}
-            {grunnlag.grunnlag_varsel?.metode && (
-              <TableRow label="Varselmetode" value={formatVarselMetode(grunnlag.grunnlag_varsel.metode)} striped />
-            )}
+            {/* Kontraktsreferanser - full bredde */}
             {grunnlag.kontraktsreferanser && grunnlag.kontraktsreferanser.length > 0 && (
-              <TableRow label="Kontraktsreferanser" value={grunnlag.kontraktsreferanser.join(', ')} />
-            )}
-            {grunnlag.siste_oppdatert && (
-              <TableRow label="Sist oppdatert" value={formatDate(grunnlag.siste_oppdatert)} striped />
+              <TableRow label="Kontraktsreferanser" value={grunnlag.kontraktsreferanser.join(', ')} striped />
             )}
           </View>
 
@@ -378,20 +394,18 @@ const VederlagSection: React.FC<{ state: SakState }> = ({ state }) => {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader} wrap={false}>
-        <Text style={styles.sectionTitle}>2. VEDERLAGSJUSTERING</Text>
+        <View style={styles.sectionTitleRow}>
+          <Text style={styles.sectionTitle}>2. VEDERLAGSJUSTERING</Text>
+          {vederlag.antall_versjoner > 1 && (
+            <Text style={{ fontSize: 8, color: COLORS.muted }}>
+              (Rev. {vederlag.antall_versjoner})
+            </Text>
+          )}
+        </View>
         {!isNotClaimed && (
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 10 }}>
+          <View style={styles.sectionStatusRow}>
             <StatusBadge status={vederlag.status} />
-            {vederlag.antall_versjoner > 1 && (
-              <Text style={{ fontSize: 8, color: COLORS.muted }}>
-                (Revisjon {vederlag.antall_versjoner})
-              </Text>
-            )}
-            {state.er_subsidiaert_vederlag && (
-              <Text style={{ fontSize: 8, color: COLORS.warning, fontStyle: 'italic' }}>
-                Subsidiært krav
-              </Text>
-            )}
+            {state.er_subsidiaert_vederlag && <SubsidiaerBadge />}
           </View>
         )}
       </View>
@@ -404,20 +418,19 @@ const VederlagSection: React.FC<{ state: SakState }> = ({ state }) => {
           <View style={styles.subSection} wrap={false}>
             <Text style={styles.subSectionTitle}>Entreprenørens krav</Text>
             <View style={styles.table}>
-              <TableRow label="Oppgjørsmetode" value={formatVederlagsmetode(vederlag.metode)} />
-              {krevdBelop !== undefined && (
-                <TableRow
-                  label={vederlag.metode === 'REGNINGSARBEID' ? 'Kostnadsoverslag' : 'Krevd beløp'}
-                  value={formatCurrency(krevdBelop)}
-                  striped
-                />
-              )}
-              {vederlag.krever_justert_ep !== undefined && (
-                <TableRow label="Krever justerte enhetspriser" value={formatBoolean(vederlag.krever_justert_ep)} />
-              )}
-              {vederlag.krav_fremmet_dato && (
-                <TableRow label="Krav fremmet dato" value={formatDate(vederlag.krav_fremmet_dato)} striped />
-              )}
+              <TableRow4Col
+                label1="Oppgjørsmetode"
+                value1={formatVederlagsmetode(vederlag.metode)}
+                label2={vederlag.metode === 'REGNINGSARBEID' ? 'Kostnadsoverslag' : 'Krevd beløp'}
+                value2={krevdBelop !== undefined ? formatCurrency(krevdBelop) : '—'}
+              />
+              <TableRow4Col
+                label1="Justerte EP"
+                value1={formatBoolean(vederlag.krever_justert_ep)}
+                label2="Krav fremmet"
+                value2={formatDate(vederlag.krav_fremmet_dato)}
+                striped
+              />
               {vederlag.siste_oppdatert && (
                 <TableRow label="Sist oppdatert" value={formatDate(vederlag.siste_oppdatert)} />
               )}
@@ -432,29 +445,20 @@ const VederlagSection: React.FC<{ state: SakState }> = ({ state }) => {
             <View style={styles.subSection} wrap={false}>
               <Text style={styles.subSectionTitle}>Varsler</Text>
               <View style={styles.table}>
-                {vederlag.rigg_drift_varsel?.dato_sendt && (
-                  <TableRow
-                    label="Rigg/drift varsel"
-                    value={`${formatDate(vederlag.rigg_drift_varsel.dato_sendt)} (${formatVarselMetode(vederlag.rigg_drift_varsel.metode)})`}
+                {(vederlag.rigg_drift_varsel?.dato_sendt || vederlag.justert_ep_varsel?.dato_sendt) && (
+                  <TableRow4Col
+                    label1="Rigg/drift"
+                    value1={formatDate(vederlag.rigg_drift_varsel?.dato_sendt)}
+                    label2="Justerte EP"
+                    value2={formatDate(vederlag.justert_ep_varsel?.dato_sendt)}
                   />
                 )}
-                {vederlag.justert_ep_varsel?.dato_sendt && (
-                  <TableRow
-                    label="Justerte EP varsel"
-                    value={`${formatDate(vederlag.justert_ep_varsel.dato_sendt)} (${formatVarselMetode(vederlag.justert_ep_varsel.metode)})`}
-                    striped
-                  />
-                )}
-                {vederlag.regningsarbeid_varsel?.dato_sendt && (
-                  <TableRow
-                    label="Regningsarbeid varsel"
-                    value={`${formatDate(vederlag.regningsarbeid_varsel.dato_sendt)} (${formatVarselMetode(vederlag.regningsarbeid_varsel.metode)})`}
-                  />
-                )}
-                {vederlag.produktivitetstap_varsel?.dato_sendt && (
-                  <TableRow
-                    label="Produktivitetstap varsel"
-                    value={`${formatDate(vederlag.produktivitetstap_varsel.dato_sendt)} (${formatVarselMetode(vederlag.produktivitetstap_varsel.metode)})`}
+                {(vederlag.regningsarbeid_varsel?.dato_sendt || vederlag.produktivitetstap_varsel?.dato_sendt) && (
+                  <TableRow4Col
+                    label1="Regningsarbeid"
+                    value1={formatDate(vederlag.regningsarbeid_varsel?.dato_sendt)}
+                    label2="Produktivitetstap"
+                    value2={formatDate(vederlag.produktivitetstap_varsel?.dato_sendt)}
                     striped
                   />
                 )}
@@ -468,34 +472,21 @@ const VederlagSection: React.FC<{ state: SakState }> = ({ state }) => {
               <Text style={styles.subSectionTitle}>Særskilte krav (§34.1.3)</Text>
               <View style={styles.table}>
                 {vederlag.saerskilt_krav.rigg_drift?.belop !== undefined && (
-                  <>
-                    <TableRow
-                      label="Rigg/drift beløp"
-                      value={formatCurrency(vederlag.saerskilt_krav.rigg_drift.belop)}
-                    />
-                    {vederlag.saerskilt_krav.rigg_drift.dato_klar_over && (
-                      <TableRow
-                        label="Dato klar over rigg/drift"
-                        value={formatDate(vederlag.saerskilt_krav.rigg_drift.dato_klar_over)}
-                        striped
-                      />
-                    )}
-                  </>
+                  <TableRow4Col
+                    label1="Rigg/drift beløp"
+                    value1={formatCurrency(vederlag.saerskilt_krav.rigg_drift.belop)}
+                    label2="Dato klar over"
+                    value2={formatDate(vederlag.saerskilt_krav.rigg_drift.dato_klar_over)}
+                  />
                 )}
                 {vederlag.saerskilt_krav.produktivitet?.belop !== undefined && (
-                  <>
-                    <TableRow
-                      label="Produktivitetstap beløp"
-                      value={formatCurrency(vederlag.saerskilt_krav.produktivitet.belop)}
-                    />
-                    {vederlag.saerskilt_krav.produktivitet.dato_klar_over && (
-                      <TableRow
-                        label="Dato klar over produktivitetstap"
-                        value={formatDate(vederlag.saerskilt_krav.produktivitet.dato_klar_over)}
-                        striped
-                      />
-                    )}
-                  </>
+                  <TableRow4Col
+                    label1="Produktivitetstap"
+                    value1={formatCurrency(vederlag.saerskilt_krav.produktivitet.belop)}
+                    label2="Dato klar over"
+                    value2={formatDate(vederlag.saerskilt_krav.produktivitet.dato_klar_over)}
+                    striped
+                  />
                 )}
               </View>
             </View>
@@ -509,32 +500,19 @@ const VederlagSection: React.FC<{ state: SakState }> = ({ state }) => {
             <View style={styles.subSection} wrap={false}>
               <Text style={styles.subSectionTitle}>Byggherrens vurdering - Port 1: Varsling</Text>
               <View style={styles.table}>
-                {vederlag.saerskilt_varsel_rigg_drift_ok !== undefined && (
-                  <TableRow
-                    label="Varsel rigg/drift OK"
-                    value={formatBoolean(vederlag.saerskilt_varsel_rigg_drift_ok)}
-                  />
-                )}
-                {vederlag.varsel_justert_ep_ok !== undefined && (
-                  <TableRow
-                    label="Varsel justerte EP OK"
-                    value={formatBoolean(vederlag.varsel_justert_ep_ok)}
-                    striped
-                  />
-                )}
-                {vederlag.varsel_start_regning_ok !== undefined && (
-                  <TableRow
-                    label="Varsel start regning OK"
-                    value={formatBoolean(vederlag.varsel_start_regning_ok)}
-                  />
-                )}
-                {vederlag.krav_fremmet_i_tide !== undefined && (
-                  <TableRow
-                    label="Krav fremmet i tide"
-                    value={formatBoolean(vederlag.krav_fremmet_i_tide)}
-                    striped
-                  />
-                )}
+                <TableRow4Col
+                  label1="Rigg/drift OK"
+                  value1={formatBoolean(vederlag.saerskilt_varsel_rigg_drift_ok)}
+                  label2="Justerte EP OK"
+                  value2={formatBoolean(vederlag.varsel_justert_ep_ok)}
+                />
+                <TableRow4Col
+                  label1="Start regning OK"
+                  value1={formatBoolean(vederlag.varsel_start_regning_ok)}
+                  label2="Krav i tide"
+                  value2={formatBoolean(vederlag.krav_fremmet_i_tide)}
+                  striped
+                />
               </View>
               <TextBlock title="Begrunnelse varselvurdering" content={vederlag.begrunnelse_varsel} />
             </View>
@@ -545,27 +523,19 @@ const VederlagSection: React.FC<{ state: SakState }> = ({ state }) => {
             <View style={styles.subSection} wrap={false}>
               <Text style={styles.subSectionTitle}>Byggherrens vurdering - Port 2: Beregning</Text>
               <View style={styles.table}>
-                <TableRow label="Resultat" value={formatVederlagResultat(vederlag.bh_resultat)} />
-                {vederlag.bh_metode && (
-                  <TableRow
-                    label="Godkjent metode"
-                    value={formatVederlagsmetode(vederlag.bh_metode)}
-                    striped
-                  />
-                )}
-                {vederlag.godkjent_belop !== undefined && (
-                  <TableRow
-                    label="Godkjent beløp"
-                    value={formatCurrency(vederlag.godkjent_belop)}
-                  />
-                )}
-                {vederlag.differanse !== undefined && vederlag.differanse !== 0 && (
-                  <TableRow
-                    label="Differanse"
-                    value={formatCurrency(vederlag.differanse)}
-                    striped
-                  />
-                )}
+                <TableRow4Col
+                  label1="Resultat"
+                  value1={formatVederlagResultat(vederlag.bh_resultat)}
+                  label2="Godkjent metode"
+                  value2={formatVederlagsmetode(vederlag.bh_metode)}
+                />
+                <TableRow4Col
+                  label1="Godkjent beløp"
+                  value1={vederlag.godkjent_belop !== undefined ? formatCurrency(vederlag.godkjent_belop) : '—'}
+                  label2="Differanse"
+                  value2={vederlag.differanse !== undefined ? formatCurrency(vederlag.differanse) : '—'}
+                  striped
+                />
                 {vederlag.godkjenningsgrad_prosent !== undefined && (
                   <TableRow
                     label="Godkjenningsgrad"
@@ -590,20 +560,18 @@ const FristSection: React.FC<{ state: SakState }> = ({ state }) => {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader} wrap={false}>
-        <Text style={styles.sectionTitle}>3. FRISTFORLENGELSE</Text>
+        <View style={styles.sectionTitleRow}>
+          <Text style={styles.sectionTitle}>3. FRISTFORLENGELSE</Text>
+          {frist.antall_versjoner > 1 && (
+            <Text style={{ fontSize: 8, color: COLORS.muted }}>
+              (Rev. {frist.antall_versjoner})
+            </Text>
+          )}
+        </View>
         {!isNotClaimed && (
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 10 }}>
+          <View style={styles.sectionStatusRow}>
             <StatusBadge status={frist.status} />
-            {frist.antall_versjoner > 1 && (
-              <Text style={{ fontSize: 8, color: COLORS.muted }}>
-                (Revisjon {frist.antall_versjoner})
-              </Text>
-            )}
-            {state.er_subsidiaert_frist && (
-              <Text style={{ fontSize: 8, color: COLORS.warning, fontStyle: 'italic' }}>
-                Subsidiært krav
-              </Text>
-            )}
+            {state.er_subsidiaert_frist && <SubsidiaerBadge />}
           </View>
         )}
       </View>
@@ -616,38 +584,33 @@ const FristSection: React.FC<{ state: SakState }> = ({ state }) => {
           <View style={styles.subSection} wrap={false}>
             <Text style={styles.subSectionTitle}>Entreprenørens krav</Text>
             <View style={styles.table}>
-              <TableRow label="Varseltype" value={formatFristVarselType(frist.varsel_type)} />
-              {frist.noytralt_varsel?.dato_sendt && (
-                <TableRow
-                  label="Nøytralt varsel sendt"
-                  value={`${formatDate(frist.noytralt_varsel.dato_sendt)} (${formatVarselMetode(frist.noytralt_varsel.metode)})`}
+              <TableRow4Col
+                label1="Varseltype"
+                value1={formatFristVarselType(frist.varsel_type)}
+                label2="Krevd dager"
+                value2={frist.krevd_dager !== undefined ? `${frist.krevd_dager} dager` : '—'}
+              />
+              <TableRow4Col
+                label1="Nøytralt varsel"
+                value1={formatDate(frist.noytralt_varsel?.dato_sendt)}
+                label2="Spesifisert krav"
+                value2={formatDate(frist.spesifisert_varsel?.dato_sendt)}
+                striped
+              />
+              <TableRow4Col
+                label1="Kritisk linje"
+                value1={formatBoolean(frist.pavirker_kritisk_linje)}
+                label2="Fremdriftsanalyse"
+                value2={formatBoolean(frist.fremdriftsanalyse_vedlagt)}
+              />
+              {(frist.milepael_pavirket || frist.siste_oppdatert) && (
+                <TableRow4Col
+                  label1="Milepæl påvirket"
+                  value1={frist.milepael_pavirket || '—'}
+                  label2="Sist oppdatert"
+                  value2={formatDate(frist.siste_oppdatert)}
                   striped
                 />
-              )}
-              {frist.spesifisert_varsel?.dato_sendt && (
-                <TableRow
-                  label="Spesifisert krav sendt"
-                  value={`${formatDate(frist.spesifisert_varsel.dato_sendt)} (${formatVarselMetode(frist.spesifisert_varsel.metode)})`}
-                />
-              )}
-              {frist.krevd_dager !== undefined && (
-                <TableRow
-                  label="Krevd dager"
-                  value={`${frist.krevd_dager} dager`}
-                  striped
-                />
-              )}
-              {frist.pavirker_kritisk_linje !== undefined && (
-                <TableRow label="Påvirker kritisk linje" value={formatBoolean(frist.pavirker_kritisk_linje)} />
-              )}
-              {frist.milepael_pavirket && (
-                <TableRow label="Milepæl påvirket" value={frist.milepael_pavirket} striped />
-              )}
-              {frist.fremdriftsanalyse_vedlagt !== undefined && (
-                <TableRow label="Fremdriftsanalyse vedlagt" value={formatBoolean(frist.fremdriftsanalyse_vedlagt)} />
-              )}
-              {frist.siste_oppdatert && (
-                <TableRow label="Sist oppdatert" value={formatDate(frist.siste_oppdatert)} striped />
               )}
             </View>
 
@@ -665,14 +628,14 @@ const FristSection: React.FC<{ state: SakState }> = ({ state }) => {
             <View style={styles.subSection} wrap={false}>
               <Text style={styles.subSectionTitle}>Byggherrens vurdering - Port 1: Varsling</Text>
               <View style={styles.table}>
-                {frist.noytralt_varsel_ok !== undefined && (
-                  <TableRow label="Nøytralt varsel OK" value={formatBoolean(frist.noytralt_varsel_ok)} />
-                )}
-                {frist.spesifisert_krav_ok !== undefined && (
-                  <TableRow label="Spesifisert krav OK" value={formatBoolean(frist.spesifisert_krav_ok)} striped />
-                )}
+                <TableRow4Col
+                  label1="Nøytralt varsel OK"
+                  value1={formatBoolean(frist.noytralt_varsel_ok)}
+                  label2="Spesifisert krav OK"
+                  value2={formatBoolean(frist.spesifisert_krav_ok)}
+                />
                 {frist.har_bh_etterlyst !== undefined && (
-                  <TableRow label="BH har etterlyst" value={formatBoolean(frist.har_bh_etterlyst)} />
+                  <TableRow label="BH har etterlyst" value={formatBoolean(frist.har_bh_etterlyst)} striped />
                 )}
               </View>
               <TextBlock title="Begrunnelse varselvurdering" content={frist.begrunnelse_varsel} />
@@ -695,16 +658,19 @@ const FristSection: React.FC<{ state: SakState }> = ({ state }) => {
             <View style={styles.subSection} wrap={false}>
               <Text style={styles.subSectionTitle}>Byggherrens vurdering - Port 3: Beregning</Text>
               <View style={styles.table}>
-                <TableRow label="Resultat" value={formatFristResultat(frist.bh_resultat)} />
-                {frist.godkjent_dager !== undefined && (
-                  <TableRow label="Godkjent dager" value={`${frist.godkjent_dager} dager`} striped />
-                )}
-                {frist.differanse_dager !== undefined && frist.differanse_dager !== 0 && (
-                  <TableRow label="Differanse" value={`${frist.differanse_dager} dager`} />
-                )}
-                {frist.ny_sluttdato && (
-                  <TableRow label="Ny sluttdato" value={formatDate(frist.ny_sluttdato)} striped />
-                )}
+                <TableRow4Col
+                  label1="Resultat"
+                  value1={formatFristResultat(frist.bh_resultat)}
+                  label2="Godkjent dager"
+                  value2={frist.godkjent_dager !== undefined ? `${frist.godkjent_dager} dager` : '—'}
+                />
+                <TableRow4Col
+                  label1="Differanse"
+                  value1={frist.differanse_dager !== undefined ? `${frist.differanse_dager} dager` : '—'}
+                  label2="Ny sluttdato"
+                  value2={formatDate(frist.ny_sluttdato)}
+                  striped
+                />
                 {frist.frist_for_spesifisering && (
                   <TableRow label="Frist for spesifisering" value={formatDate(frist.frist_for_spesifisering)} />
                 )}
@@ -719,38 +685,29 @@ const FristSection: React.FC<{ state: SakState }> = ({ state }) => {
             <View style={styles.subSection} wrap={false}>
               <Text style={styles.subSectionTitle}>Forsering (§33.8)</Text>
               <View style={styles.table}>
-                <TableRow label="Varslet dato" value={formatDate(frist.forsering.dato_varslet)} />
-                {frist.forsering.estimert_kostnad !== undefined && (
-                  <TableRow
-                    label="Estimert kostnad"
-                    value={formatCurrency(frist.forsering.estimert_kostnad)}
-                    striped
+                <TableRow4Col
+                  label1="Varslet dato"
+                  value1={formatDate(frist.forsering.dato_varslet)}
+                  label2="Estimert kostnad"
+                  value2={frist.forsering.estimert_kostnad !== undefined ? formatCurrency(frist.forsering.estimert_kostnad) : '—'}
+                />
+                <TableRow4Col
+                  label1="30%-regel"
+                  value1={formatBoolean(frist.forsering.bekreft_30_prosent_regel)}
+                  label2="Iverksatt"
+                  value2={formatBoolean(frist.forsering.er_iverksatt)}
+                  striped
+                />
+                {(frist.forsering.dato_iverksatt || frist.forsering.er_stoppet) && (
+                  <TableRow4Col
+                    label1="Dato iverksatt"
+                    value1={formatDate(frist.forsering.dato_iverksatt)}
+                    label2="Stoppet"
+                    value2={frist.forsering.er_stoppet ? `Ja (${formatDate(frist.forsering.dato_stoppet)})` : 'Nei'}
                   />
-                )}
-                {frist.forsering.bekreft_30_prosent_regel !== undefined && (
-                  <TableRow
-                    label="Bekreftet 30%-regel"
-                    value={formatBoolean(frist.forsering.bekreft_30_prosent_regel)}
-                  />
-                )}
-                <TableRow label="Iverksatt" value={formatBoolean(frist.forsering.er_iverksatt)} striped />
-                {frist.forsering.dato_iverksatt && (
-                  <TableRow label="Dato iverksatt" value={formatDate(frist.forsering.dato_iverksatt)} />
-                )}
-                {frist.forsering.er_stoppet && (
-                  <>
-                    <TableRow label="Stoppet" value="Ja" striped />
-                    {frist.forsering.dato_stoppet && (
-                      <TableRow label="Dato stoppet" value={formatDate(frist.forsering.dato_stoppet)} />
-                    )}
-                  </>
                 )}
                 {frist.forsering.paalopte_kostnader !== undefined && (
-                  <TableRow
-                    label="Påløpte kostnader"
-                    value={formatCurrency(frist.forsering.paalopte_kostnader)}
-                    striped
-                  />
+                  <TableRow label="Påløpte kostnader" value={formatCurrency(frist.forsering.paalopte_kostnader)} striped />
                 )}
               </View>
               <TextBlock title="Begrunnelse for forsering" content={frist.forsering.begrunnelse} />
