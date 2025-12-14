@@ -371,8 +371,8 @@ const GrunnlagSection: React.FC<{ state: SakState }> = ({ state }) => {
 
           {/* BH Response */}
           {grunnlag.bh_resultat && (
-            <View style={styles.subSection} wrap={false}>
-              <Text style={styles.subSectionTitle}>Byggherrens vurdering av grunnlag</Text>
+            <View style={styles.mainSubSection} wrap={false}>
+              <Text style={styles.mainSubSectionTitle}>Byggherrens vurdering</Text>
               <View style={styles.table}>
                 <TableRow label="Resultat" value={formatGrunnlagResultat(grunnlag.bh_resultat)} />
               </View>
@@ -415,8 +415,8 @@ const VederlagSection: React.FC<{ state: SakState }> = ({ state }) => {
       ) : (
         <View>
           {/* Entreprenørens krav */}
-          <View style={styles.subSection} wrap={false}>
-            <Text style={styles.subSectionTitle}>Entreprenørens krav</Text>
+          <View style={styles.mainSubSection} wrap={false}>
+            <Text style={styles.mainSubSectionTitle}>Entreprenørens krav</Text>
             <View style={styles.table}>
               <TableRow4Col
                 label1="Oppgjørsmetode"
@@ -497,8 +497,8 @@ const VederlagSection: React.FC<{ state: SakState }> = ({ state }) => {
             vederlag.varsel_justert_ep_ok !== undefined ||
             vederlag.varsel_start_regning_ok !== undefined ||
             vederlag.krav_fremmet_i_tide !== undefined) && (
-            <View style={styles.subSection} wrap={false}>
-              <Text style={styles.subSectionTitle}>Byggherrens vurdering - Port 1: Varsling</Text>
+            <View style={styles.mainSubSection} wrap={false}>
+              <Text style={styles.mainSubSectionTitle}>Byggherrens vurdering – Varsling</Text>
               <View style={styles.table}>
                 <TableRow4Col
                   label1="Rigg/drift OK"
@@ -520,8 +520,8 @@ const VederlagSection: React.FC<{ state: SakState }> = ({ state }) => {
 
           {/* BH Response - Port 2: Beregning */}
           {vederlag.bh_resultat && (
-            <View style={styles.subSection} wrap={false}>
-              <Text style={styles.subSectionTitle}>Byggherrens vurdering - Port 2: Beregning</Text>
+            <View style={styles.mainSubSection} wrap={false}>
+              <Text style={styles.mainSubSectionTitle}>Byggherrens vurdering – Beregning</Text>
               <View style={styles.table}>
                 <TableRow4Col
                   label1="Resultat"
@@ -581,8 +581,8 @@ const FristSection: React.FC<{ state: SakState }> = ({ state }) => {
       ) : (
         <View>
           {/* Entreprenørens krav */}
-          <View style={styles.subSection} wrap={false}>
-            <Text style={styles.subSectionTitle}>Entreprenørens krav</Text>
+          <View style={styles.mainSubSection} wrap={false}>
+            <Text style={styles.mainSubSectionTitle}>Entreprenørens krav</Text>
             <View style={styles.table}>
               <TableRow4Col
                 label1="Varseltype"
@@ -625,8 +625,8 @@ const FristSection: React.FC<{ state: SakState }> = ({ state }) => {
           {(frist.noytralt_varsel_ok !== undefined ||
             frist.spesifisert_krav_ok !== undefined ||
             frist.har_bh_etterlyst !== undefined) && (
-            <View style={styles.subSection} wrap={false}>
-              <Text style={styles.subSectionTitle}>Byggherrens vurdering - Port 1: Varsling</Text>
+            <View style={styles.mainSubSection} wrap={false}>
+              <Text style={styles.mainSubSectionTitle}>Byggherrens vurdering – Varsling</Text>
               <View style={styles.table}>
                 <TableRow4Col
                   label1="Nøytralt varsel OK"
@@ -644,8 +644,8 @@ const FristSection: React.FC<{ state: SakState }> = ({ state }) => {
 
           {/* BH Response - Port 2: Vilkår */}
           {frist.vilkar_oppfylt !== undefined && (
-            <View style={styles.subSection} wrap={false}>
-              <Text style={styles.subSectionTitle}>Byggherrens vurdering - Port 2: Vilkår</Text>
+            <View style={styles.mainSubSection} wrap={false}>
+              <Text style={styles.mainSubSectionTitle}>Byggherrens vurdering – Vilkår</Text>
               <View style={styles.table}>
                 <TableRow label="Vilkår oppfylt" value={formatBoolean(frist.vilkar_oppfylt)} />
               </View>
@@ -655,8 +655,8 @@ const FristSection: React.FC<{ state: SakState }> = ({ state }) => {
 
           {/* BH Response - Port 3: Beregning */}
           {frist.bh_resultat && (
-            <View style={styles.subSection} wrap={false}>
-              <Text style={styles.subSectionTitle}>Byggherrens vurdering - Port 3: Beregning</Text>
+            <View style={styles.mainSubSection} wrap={false}>
+              <Text style={styles.mainSubSectionTitle}>Byggherrens vurdering – Beregning</Text>
               <View style={styles.table}>
                 <TableRow4Col
                   label1="Resultat"

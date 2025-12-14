@@ -181,6 +181,22 @@ export const styles = StyleSheet.create({
     color: COLORS.inkDim,
     marginBottom: 8,
   },
+  // Main subsection headers (Entreprenørens krav, Byggherrens vurdering)
+  mainSubSection: {
+    marginTop: 16,
+    marginBottom: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  mainSubSectionTitle: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
 
   // Section container with border (professional look)
   sectionContainer: {
