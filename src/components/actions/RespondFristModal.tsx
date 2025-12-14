@@ -323,36 +323,54 @@ export function RespondFristModal({
   // Avslåtte dager for forsering warning
   const avslatteDager = effektivKrevdDager - godkjentDager;
 
-  // Steps configuration
+  // Steps configuration - 5 steps
   const steps = [
+    { label: 'Oversikt' },
     { label: 'Preklusjon' },
     { label: 'Vilkår' },
     { label: 'Beregning' },
     { label: 'Oppsummering' },
   ];
 
+  const totalPorts = 5;
+
+  // Determine which step type we're on based on currentPort
+  const getStepType = useCallback(
+    (port: number): 'oversikt' | 'preklusjon' | 'vilkar' | 'beregning' | 'oppsummering' => {
+      if (port === 1) return 'oversikt';
+      if (port === 2) return 'preklusjon';
+      if (port === 3) return 'vilkar';
+      if (port === 4) return 'beregning';
+      return 'oppsummering';
+    },
+    []
+  );
+
+  const currentStepType = getStepType(currentPort);
+
   // Navigation
   const goToNextPort = useCallback(async () => {
     let isValid = true;
 
-    // Validate current port
-    if (currentPort === 1) {
+    // Validate current port based on step type
+    if (currentStepType === 'preklusjon') {
       isValid = await trigger([
         'noytralt_varsel_ok',
         'spesifisert_krav_ok',
         'send_etterlysning',
         'begrunnelse_preklusjon',
       ]);
-    } else if (currentPort === 2) {
+    } else if (currentStepType === 'vilkar') {
       isValid = await trigger(['vilkar_oppfylt', 'begrunnelse_vilkar']);
-    } else if (currentPort === 3) {
+    } else if (currentStepType === 'beregning') {
       isValid = await trigger(['godkjent_dager', 'begrunnelse_beregning']);
     }
+    // 'oversikt' has no validation - just informational
 
-    if (isValid && currentPort < 4) {
+    if (isValid && currentPort < totalPorts) {
       setCurrentPort(currentPort + 1);
     }
-  }, [currentPort, trigger]);
+  }, [currentPort, totalPorts, trigger, currentStepType]);
 
   const goToPrevPort = useCallback(() => {
     if (currentPort > 1) {
@@ -446,24 +464,115 @@ export function RespondFristModal({
           </Alert>
         )}
 
-        {/* Grunnlag subsidiary treatment info */}
-        {erGrunnlagSubsidiaer && (
-          <Alert variant="info" title="Subsidiær behandling">
-            Du har avvist ansvarsgrunnlaget. Dine svar på frist gjelder derfor kun subsidiært.
-          </Alert>
-        )}
-
-
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* ================================================================
-              PORT 1: PREKLUSJON (§33.4, §33.6)
+              STEG 1: OVERSIKT
+              Shows claim summary and explains what will be evaluated
               ================================================================ */}
-          {currentPort === 1 && (
-            <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
-                <Badge variant="info">Port 1</Badge>
-                <h3 className="font-bold text-lg">Preklusjon (§33.4, §33.6)</h3>
+          {currentStepType === 'oversikt' && (
+            <div className="space-y-6">
+              {/* Kravsammendrag */}
+              <div className="p-4 border-2 border-pkt-border-subtle rounded-none">
+                <h3 className="font-bold text-lg mb-4">Fristkrav fra entreprenør</h3>
+
+                <div className="space-y-3">
+                  {/* Krevd forlengelse */}
+                  <div className="flex justify-between items-center py-2 border-b border-pkt-border-subtle">
+                    <span className="font-medium">Krevd forlengelse</span>
+                    <span className="font-mono font-medium">{effektivKrevdDager} dager</span>
+                  </div>
+
+                  {/* Ny sluttdato */}
+                  {fristEvent?.ny_sluttfrist && (
+                    <div className="flex justify-between items-center py-2 border-b border-pkt-border-subtle">
+                      <span className="font-medium">Ønsket ny sluttdato</span>
+                      <span className="font-mono font-medium">{fristEvent.ny_sluttfrist}</span>
+                    </div>
+                  )}
+
+                  {/* Type varsel */}
+                  {varselType && (
+                    <div className="flex justify-between items-center py-2">
+                      <span className="font-medium">Type varsel</span>
+                      <Badge variant="default">
+                        {varselType === 'noytralt' && 'Nøytralt varsel (§33.4)'}
+                        {varselType === 'spesifisert' && 'Spesifisert krav (§33.6)'}
+                        {varselType === 'force_majeure' && 'Force majeure (§33.3)'}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
               </div>
+
+              {/* Subsidiær behandling info */}
+              {erGrunnlagSubsidiaer && (
+                <Alert variant="warning" title="Subsidiær behandling">
+                  Du har avvist ansvarsgrunnlaget. Dine vurderinger i dette skjemaet gjelder derfor{' '}
+                  <strong>subsidiært</strong> - det vil si for det tilfellet at du ikke får medhold i
+                  avvisningen.
+                </Alert>
+              )}
+
+              {/* Veiviser */}
+              <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
+                <h4 className="font-medium mb-3">Hva du skal vurdere</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex gap-3">
+                    <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">Steg 2</span>
+                    <div>
+                      <span className="font-medium">Preklusjon</span>
+                      <span className="text-pkt-text-body-subtle">
+                        {' '}
+                        — Ble kravet varslet i tide? (§33.4/§33.6)
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">Steg 3</span>
+                    <div>
+                      <span className="font-medium">Vilkår</span>
+                      <span className="text-pkt-text-body-subtle">
+                        {' '}
+                        — Forårsaket forholdet faktisk forsinkelse? (§33.5)
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">Steg 4</span>
+                    <div>
+                      <span className="font-medium">Beregning</span>
+                      <span className="text-pkt-text-body-subtle">
+                        {' '}
+                        — Hvor mange dager fristforlengelse?
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">Steg 5</span>
+                    <div>
+                      <span className="font-medium">Oppsummering</span>
+                      <span className="text-pkt-text-body-subtle"> — Se resultat og send svar</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Etterlysning-info for nøytralt varsel */}
+                {varselType === 'noytralt' && (
+                  <div className="mt-4 pt-3 border-t border-pkt-border-subtle text-sm text-pkt-text-body-subtle">
+                    <strong>Merk:</strong> Ved nøytralt varsel kan du etterspørre et spesifisert krav
+                    (§33.6.2). Hvis TE ikke svarer i tide, tapes kravet.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ================================================================
+              STEG 2: PREKLUSJON (§33.4, §33.6)
+              ================================================================ */}
+          {currentStepType === 'preklusjon' && (
+            <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
+              <h3 className="font-bold text-lg">Preklusjon (§33.4, §33.6)</h3>
 
               <p className="text-sm text-pkt-text-body-subtle mb-4">
                 Vurder om entreprenøren har varslet i tide. Hvis ikke, kan kravet avvises pga
@@ -687,12 +796,11 @@ export function RespondFristModal({
           )}
 
           {/* ================================================================
-              PORT 2: VILKÅR (§33.5) - Alltid vurderes, evt. subsidiært
+              STEG 3: VILKÅR (§33.5) - Alltid vurderes, evt. subsidiært
               ================================================================ */}
-          {currentPort === 2 && (
+          {currentStepType === 'vilkar' && (
             <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
-                <Badge variant="info">Port 2</Badge>
                 <h3 className="font-bold text-lg">Vilkår (§33.5)</h3>
                 {port2ErSubsidiaer && <Badge variant="warning">Subsidiært</Badge>}
               </div>
@@ -776,12 +884,11 @@ export function RespondFristModal({
           )}
 
           {/* ================================================================
-              PORT 3: BEREGNING - Alltid vurderes, evt. subsidiært
+              STEG 4: BEREGNING - Alltid vurderes, evt. subsidiært
               ================================================================ */}
-          {currentPort === 3 && (
+          {currentStepType === 'beregning' && (
             <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
-                <Badge variant="info">Port 3</Badge>
                 <h3 className="font-bold text-lg">Beregning</h3>
                 {port3ErSubsidiaer && <Badge variant="warning">Subsidiært</Badge>}
               </div>
@@ -908,20 +1015,17 @@ export function RespondFristModal({
           )}
 
           {/* ================================================================
-              PORT 4: OPPSUMMERING
+              STEG 5: OPPSUMMERING
               ================================================================ */}
-          {currentPort === 4 && (
+          {currentStepType === 'oppsummering' && (
             <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
-                <Badge variant="info">Port 4</Badge>
-                <h3 className="font-bold text-lg">Oppsummering</h3>
-              </div>
+              <h3 className="font-bold text-lg">Oppsummering</h3>
 
               {/* Sammendrag av valg */}
               <div className="space-y-4">
-                {/* Preklusjon (Port 1) */}
+                {/* Preklusjon */}
                 <div className="p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
-                  <h5 className="font-medium text-sm mb-2">Preklusjon (Port 1)</h5>
+                  <h5 className="font-medium text-sm mb-2">Preklusjon</h5>
                   <div className="flex items-center gap-2">
                     {sendEtterlysning ? (
                       <>
@@ -942,10 +1046,10 @@ export function RespondFristModal({
                   </div>
                 </div>
 
-                {/* Vilkår (Port 2) */}
+                {/* Vilkår */}
                 <div className="p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
                   <h5 className="font-medium text-sm mb-2">
-                    Vilkår (Port 2) {port2ErSubsidiaer && '- Subsidiært'}
+                    Vilkår {port2ErSubsidiaer && '(subsidiært)'}
                   </h5>
                   <div className="flex items-center gap-2">
                     {sendEtterlysning ? (
@@ -968,10 +1072,10 @@ export function RespondFristModal({
                   </div>
                 </div>
 
-                {/* Beregning (Port 3) */}
+                {/* Beregning */}
                 <div className="p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
                   <h5 className="font-medium text-sm mb-3">
-                    Beregning (Port 3) {port3ErSubsidiaer && '- Subsidiært'}
+                    Beregning {port3ErSubsidiaer && '(subsidiært)'}
                   </h5>
                   {sendEtterlysning ? (
                     <span className="text-sm text-pkt-text-body-subtle">(Avventer)</span>
@@ -1171,7 +1275,7 @@ export function RespondFristModal({
                 Avbryt
               </Button>
 
-              {currentPort < 4 ? (
+              {currentPort < totalPorts ? (
                 <Button type="button" variant="primary" onClick={goToNextPort} size="lg" className="w-full sm:w-auto order-1 sm:order-2">
                   Neste →
                 </Button>
