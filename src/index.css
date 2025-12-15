@@ -270,13 +270,13 @@
   /* Borders */
   --color-pkt-border-default: #5a5a8a;
   --color-pkt-border-beige: #6a5a4a;
-  --color-pkt-border-blue: #4a8aaa;
+  --color-pkt-border-blue: #1a3a5a;  /* Darker blue - matches text */
   --color-pkt-border-gray: #4a4a6a;
-  --color-pkt-border-green: #2a8a6a;
+  --color-pkt-border-green: #0a4030;  /* Darker green - matches text */
   --color-pkt-border-light-beige: #4a4a3a;
-  --color-pkt-border-red: #aa4a4a;
+  --color-pkt-border-red: #5a2020;  /* Darker red - matches text */
   --color-pkt-border-subtle: #3a3a5a;
-  --color-pkt-border-yellow: #8a7a3a;
+  --color-pkt-border-yellow: #5a4a20;  /* Darker amber - matches text */
   --color-pkt-border-active: #6a9aff;
   --color-pkt-border-disabled: #4a4a6a;
   --color-pkt-border-focus: #6a9aff;
@@ -295,14 +295,14 @@
   --color-pkt-grays-gray-1000: #f0f0f8;
 
   /* Surfaces - darker versions for dark mode */
-  --color-pkt-surface-faded-green: #1a3a2a;
-  --color-pkt-surface-faded-red: #3a2a2a;
+  --color-pkt-surface-faded-green: rgba(176, 240, 208, 0.85);  /* Semi-transparent mint */
+  --color-pkt-surface-faded-red: rgba(255, 202, 202, 0.85);  /* Semi-transparent coral */
   --color-pkt-surface-gray: #2a2a4a;
   --color-pkt-surface-light-beige: #3a3a2a;
-  --color-pkt-surface-light-blue: #1a3a5a;
-  --color-pkt-surface-light-green: #1a4a3a;
-  --color-pkt-surface-red: #5a3a3a;
-  --color-pkt-surface-yellow: #4a4020;  /* Clean dark amber - warmer, not muddy */
+  --color-pkt-surface-light-blue: rgba(180, 210, 255, 0.85);  /* Semi-transparent light blue */
+  --color-pkt-surface-light-green: rgba(176, 240, 208, 0.85);  /* Semi-transparent mint */
+  --color-pkt-surface-red: rgba(255, 180, 172, 0.85);  /* Semi-transparent light red */
+  --color-pkt-surface-yellow: rgba(255, 224, 160, 0.85);  /* Semi-transparent light amber */
   --color-pkt-surface-strong-beige: #5a4a3a;
   --color-pkt-surface-strong-blue: #3a6a8a;
   --color-pkt-surface-strong-dark-blue: #4a4a8a;
@@ -318,14 +318,14 @@
   --color-pkt-surface-subtle-white: #2a2a4a;
 
   /* Brand colors - adjusted for dark mode visibility */
-  --color-pkt-brand-blue-100: #1a2a4a;  /* Dark blue background for badges */
-  --color-pkt-brand-blue-200: #2a4a6a;
-  --color-pkt-brand-yellow-500: #4a4020;  /* Clean dark amber background for warning alerts */
+  --color-pkt-brand-blue-100: rgba(180, 210, 255, 0.85);  /* Semi-transparent light blue */
+  --color-pkt-brand-blue-200: rgba(160, 200, 255, 0.85);  /* Semi-transparent blue */
+  --color-pkt-brand-yellow-500: rgba(255, 224, 160, 0.85);  /* Semi-transparent amber */
   --color-pkt-brand-yellow-1000: #fbbf24;  /* Bright golden amber for borders/accents */
-  --color-pkt-brand-red-100: #3a2028;  /* Dark red background for danger alerts */
+  --color-pkt-brand-red-100: rgba(255, 202, 202, 0.85);  /* Semi-transparent coral */
   --color-pkt-brand-red-600: #ff8a80;  /* Coral/salmon for subsidiary status - lighter red */
   --color-pkt-brand-red-1000: #ff6b6b;  /* Vibrant red for errors/danger in dark mode */
-  --color-pkt-brand-light-green-400: #1a3a2a;  /* Dark green background for success */
+  --color-pkt-brand-light-green-400: rgba(176, 240, 208, 0.85);  /* Semi-transparent mint */
   --color-pkt-brand-dark-blue-1000: #8ab4ff;
   --color-pkt-brand-dark-green-1000: #6adb8a;
   --color-pkt-brand-warm-blue-1000: #6a9aff;
@@ -342,11 +342,11 @@
   --color-oslo-beige-100: #3a3a2a;
   --color-oslo-green: #6adb8a;
   --color-success: #6adb8a;
-  --color-success-100: #1a3a2a;
-  --color-warning: #fbbf24;  /* Bright golden amber */
-  --color-warning-100: #4a4020;  /* Clean dark amber background */
-  --color-error: #ff6b6b;
-  --color-error-100: #3a2a2a;
+  --color-success-100: rgba(176, 240, 208, 0.85);  /* Semi-transparent mint */
+  --color-warning: #5a4a20;  /* Dark amber - matches text */
+  --color-warning-100: rgba(255, 224, 160, 0.85);  /* Semi-transparent amber */
+  --color-error: #5a2020;  /* Dark red - matches text */
+  --color-error-100: rgba(255, 202, 202, 0.85);  /* Semi-transparent coral */
   --color-info: #8ab4ff;
   --color-pri: #6a9aff;
   --color-pri-light: #2a3a5a;
@@ -371,38 +371,38 @@
   --color-field-value: #f8f8fc;  /* Near white - improved for readability */
   --color-field-muted: #8888a8;  /* Medium gray - improved contrast */
 
-  /* TE/BH category row colors - dark mode */
-  --color-row-te-bg: #1a3a2a;  /* Dark green background */
-  --color-row-te-text: #6adb8a;  /* Bright green matching TE events */
-  --color-row-bh-bg: #3d3520;  /* Dark amber background */
-  --color-row-bh-text: #fbbf24;  /* Bright amber matching BH events */
+  /* TE/BH category row colors - dark mode (semi-transparent) */
+  --color-row-te-bg: rgba(176, 240, 208, 0.85);  /* Semi-transparent mint */
+  --color-row-te-text: #0a4030;  /* Dark green text */
+  --color-row-bh-bg: rgba(255, 224, 160, 0.85);  /* Semi-transparent amber */
+  --color-row-bh-text: #3a3020;  /* Dark brown text */
 
   /* Alert component colors - dark mode (semi-transparent pastels) */
   --color-alert-info-bg: rgba(180, 210, 255, 0.85);  /* Semi-transparent light blue */
-  --color-alert-info-border: #5a8ac0;  /* Darker blue border */
+  --color-alert-info-border: #1a3a5a;  /* Same as text - dark blue */
   --color-alert-info-text: #1a3a5a;  /* Dark blue text */
   --color-alert-success-bg: rgba(176, 240, 208, 0.85);  /* Semi-transparent mint */
-  --color-alert-success-border: #43f8b6;  /* Bright green border */
+  --color-alert-success-border: #0a4030;  /* Same as text - dark green */
   --color-alert-success-text: #0a4030;  /* Dark green text */
   --color-alert-warning-bg: rgba(255, 224, 160, 0.85);  /* Semi-transparent amber */
-  --color-alert-warning-border: #fbbf24;  /* Bright golden amber border */
+  --color-alert-warning-border: #3a3020;  /* Same as text - dark brown */
   --color-alert-warning-text: #3a3020;  /* Dark brown text */
   --color-alert-danger-bg: rgba(255, 202, 202, 0.85);  /* Semi-transparent coral */
-  --color-alert-danger-border: #ff6b6b;  /* Bright red border */
+  --color-alert-danger-border: #5a2020;  /* Same as text - dark red */
   --color-alert-danger-text: #5a2020;  /* Dark red text */
 
-  /* Semantic tag colors - dark mode */
-  --color-tag-neutral-bg: #3a3a5a;
-  --color-tag-neutral-text: #b0b0d0;
-  --color-tag-neutral-border: #5a5a7a;
-  --color-tag-info-bg: #1a3a5a;
-  --color-tag-info-text: #6fe9ff;
-  --color-tag-info-border: #4a8aaa;
-  --color-tag-warning-bg: #4a4020;
-  --color-tag-warning-text: #fbbf24;
-  --color-tag-warning-border: #8a7a3a;
-  --color-tag-frist-bg: #4d4538;  /* Warm beige/sand - clean, not brown */
-  --color-tag-frist-text: #f5e6c8;  /* Soft cream text */
+  /* Semantic tag colors - dark mode (semi-transparent light backgrounds) */
+  --color-tag-neutral-bg: rgba(200, 200, 220, 0.85);  /* Semi-transparent gray */
+  --color-tag-neutral-text: #3a3a5a;  /* Dark gray text */
+  --color-tag-neutral-border: #3a3a5a;  /* Same as text */
+  --color-tag-info-bg: rgba(180, 210, 255, 0.85);  /* Semi-transparent blue */
+  --color-tag-info-text: #1a3a5a;  /* Dark blue text */
+  --color-tag-info-border: #1a3a5a;  /* Same as text */
+  --color-tag-warning-bg: rgba(255, 224, 160, 0.85);  /* Semi-transparent amber */
+  --color-tag-warning-text: #3a3020;  /* Dark brown text */
+  --color-tag-warning-border: #3a3020;  /* Same as text */
+  --color-tag-frist-bg: rgba(255, 231, 188, 0.85);  /* Semi-transparent beige */
+  --color-tag-frist-text: #3a3020;  /* Dark brown text */
 }
 
 /* ============================================
