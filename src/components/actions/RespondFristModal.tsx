@@ -1194,17 +1194,17 @@ export function RespondFristModal({
 
                 {/* Subsidiært resultat - shown when principal is avslatt */}
                 {visSubsidiaertResultat && !sendEtterlysning && (
-                  <div className="p-4 bg-pkt-surface-yellow border-2 border-pkt-surface-strong-yellow rounded-none">
-                    <h5 className="font-medium text-sm mb-2 text-pkt-text-body-dark">SUBSIDIÆRT RESULTAT</h5>
-                    <div className="text-xl font-bold text-pkt-text-body-dark">
+                  <div className="p-4 bg-alert-warning-bg border-2 border-alert-warning-border rounded-none text-alert-warning-text">
+                    <h5 className="font-medium text-sm mb-2">SUBSIDIÆRT RESULTAT</h5>
+                    <div className="text-xl font-bold">
                       {getResultatLabel(subsidiaertResultat)}
                     </div>
-                    <div className="mt-2 text-lg font-mono text-pkt-text-body-dark">
+                    <div className="mt-2 text-lg font-mono">
                       {subsidiaertResultat === 'avslatt'
                         ? 'Subsidiært: Avslått'
                         : `Subsidiært: Maks ${godkjentDager} av ${effektivKrevdDager} dager`}
                     </div>
-                    <p className="text-sm text-pkt-text-body-subtle mt-2 italic">
+                    <p className="text-sm mt-2 italic opacity-80">
                       «Byggherren er etter dette uenig i kravet, og kan dessuten under ingen
                       omstendigheter se at mer enn {godkjentDager} dager er berettiget å kreve.»
                     </p>
