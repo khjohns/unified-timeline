@@ -114,7 +114,7 @@ def validate_vederlag_event(data: Dict[str, Any]) -> None:
 
         # Validate that varsel has required fields
         regn_varsel = data.get('regningsarbeid_varsel')
-        if not regn_varsel.get('dato_sendt'):
+        if regn_varsel and not regn_varsel.get('dato_sendt'):
             raise ValidationError(
                 "regningsarbeid_varsel må ha dato_sendt"
             )
@@ -127,7 +127,7 @@ def validate_vederlag_event(data: Dict[str, Any]) -> None:
             )
 
         rigg_varsel = data.get('rigg_drift_varsel')
-        if not rigg_varsel.get('dato_sendt'):
+        if rigg_varsel and not rigg_varsel.get('dato_sendt'):
             raise ValidationError(
                 "rigg_drift_varsel må ha dato_sendt"
             )
@@ -140,7 +140,7 @@ def validate_vederlag_event(data: Dict[str, Any]) -> None:
             )
 
         justert_varsel = data.get('justert_ep_varsel')
-        if not justert_varsel.get('dato_sendt'):
+        if justert_varsel and not justert_varsel.get('dato_sendt'):
             raise ValidationError(
                 "justert_ep_varsel må ha dato_sendt"
             )
@@ -153,7 +153,7 @@ def validate_vederlag_event(data: Dict[str, Any]) -> None:
             )
 
         prod_varsel = data.get('produktivitetstap_varsel')
-        if not prod_varsel.get('dato_sendt'):
+        if prod_varsel and not prod_varsel.get('dato_sendt'):
             raise ValidationError(
                 "produktivitetstap_varsel må ha dato_sendt"
             )

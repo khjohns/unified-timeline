@@ -91,6 +91,7 @@ def get_system() -> SystemContext:
         except Exception as e:
             logger.error(f"Could not start system: {e}")
             sys.exit(1)
+    assert system is not None  # Guaranteed by sys.exit(1) above
     return system
 
 

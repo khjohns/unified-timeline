@@ -36,7 +36,7 @@ class CatendaClient:
     Tester for Catenda API (REST v2 og BCF v3.0)
     """
     
-    def __init__(self, client_id: str, client_secret: str = None, access_token: str = None):
+    def __init__(self, client_id: str, client_secret: Optional[str] = None, access_token: Optional[str] = None):
         """
         Initialiser API tester med OAuth credentials.
         
