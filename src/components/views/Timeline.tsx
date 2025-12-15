@@ -178,8 +178,8 @@ function getSporTagStyles(spor: SporType | null): string {
   if (!spor) return 'bg-pkt-grays-gray-100 text-pkt-grays-gray-600';
 
   const styles: Record<string, string> = {
-    grunnlag: 'bg-pkt-surface-light-blue text-pkt-brand-dark-blue-1000',
-    vederlag: 'bg-pkt-surface-light-green text-pkt-brand-dark-green-1000',
+    grunnlag: 'bg-badge-info-bg text-badge-info-text',
+    vederlag: 'bg-badge-success-bg text-badge-success-text',
     frist: 'bg-tag-frist-bg text-tag-frist-text',
   };
   return styles[spor] || 'bg-pkt-grays-gray-100 text-pkt-grays-gray-600';
@@ -375,7 +375,7 @@ export function Timeline({ events }: TimelineProps) {
                           e.stopPropagation();
                           setSelectedEvent(event);
                         }}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-pkt-brand-dark-blue-1000 bg-pkt-surface-light-blue hover:bg-pkt-brand-blue-200 rounded-lg transition-colors mt-2 w-full sm:w-auto justify-center sm:justify-start"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-badge-info-text bg-badge-info-bg hover:opacity-90 rounded-lg transition-colors mt-2 w-full sm:w-auto justify-center sm:justify-start"
                       >
                         <FileTextIcon className="h-4 w-4" />
                         Vis innsendt skjema

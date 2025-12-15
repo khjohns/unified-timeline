@@ -20,10 +20,10 @@ export interface BadgeProps {
 
 const variantStyles: Record<BadgeVariant, string> = {
   default: 'bg-pkt-surface-gray text-pkt-text-body-default border-pkt-border-gray',
-  info: 'bg-pkt-surface-light-blue text-pkt-brand-dark-blue-1000 border-pkt-border-blue',
-  success: 'bg-pkt-surface-light-green text-pkt-brand-dark-green-1000 border-pkt-border-green',
-  warning: 'bg-pkt-surface-yellow text-pkt-brand-neutrals-1000 border-pkt-border-yellow',
-  danger: 'bg-pkt-surface-faded-red text-pkt-brand-red-1000 border-pkt-border-red',
+  info: 'bg-badge-info-bg text-badge-info-text border-badge-info-border',
+  success: 'bg-badge-success-bg text-badge-success-text border-badge-success-border',
+  warning: 'bg-badge-warning-bg text-badge-warning-text border-badge-warning-border',
+  danger: 'bg-badge-danger-bg text-badge-danger-text border-badge-danger-border',
   neutral: 'bg-pkt-grays-gray-100 text-pkt-grays-gray-700 border-pkt-grays-gray-300',
 };
 

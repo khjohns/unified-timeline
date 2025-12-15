@@ -67,8 +67,7 @@ function getLuminance(rgb) {
 
 // Calculate contrast ratio
 function getContrastRatio(color1, color2, baseBackground = '#1a1a2e') {
-  // If color1 (foreground text) is on a semi-transparent background (color2),
-  // we need to blend the background with the base first
+  // If color2 (background) is semi-transparent, blend with base first
   let bgRgb;
   if (color2.startsWith('rgba')) {
     bgRgb = getEffectiveRgb(color2, baseBackground);
@@ -91,16 +90,6 @@ function rgbToHex(rgb) {
   return '#' + [rgb.r, rgb.g, rgb.b].map(x => x.toString(16).padStart(2, '0')).join('');
 }
 
-// Check if passes WCAG
-function checkWCAG(ratio) {
-  return {
-    AANormal: ratio >= 4.5,
-    AALarge: ratio >= 3.0,
-    AAANormal: ratio >= 7.0,
-    AAALarge: ratio >= 4.5,
-  };
-}
-
 // Dark mode base backgrounds
 const baseBackgrounds = {
   'bg-default': '#1a1a2e',
@@ -108,7 +97,7 @@ const baseBackgrounds = {
   'bg-subtle': '#1e1e36',
 };
 
-// Current dark mode colors from index.css (updated with new values)
+// Current dark mode colors from index.css
 const darkColors = {
   // Base backgrounds
   ...baseBackgrounds,
@@ -120,52 +109,70 @@ const darkColors = {
   'text-body-subtle': '#a8a8c0',
   'text-placeholder': '#9a9ab0',
 
-  // Alert backgrounds (semi-transparent on dark bg)
+  // Grays
+  'grays-gray-100': '#2a2a4a',
+  'grays-gray-300': '#707090',
+  'grays-gray-700': '#c8c8e0',
+
+  // ============ ALERT COLORS ============
   'alert-info-bg': 'rgba(180, 210, 255, 0.85)',
   'alert-success-bg': 'rgba(176, 240, 208, 0.85)',
   'alert-warning-bg': 'rgba(255, 224, 160, 0.85)',
   'alert-danger-bg': 'rgba(255, 202, 202, 0.85)',
-
-  // Alert text/border colors (dark, matching)
   'alert-info-text': '#1a3a5a',
   'alert-success-text': '#0a4030',
   'alert-warning-text': '#3a3020',
   'alert-danger-text': '#5a2020',
 
-  // Tag backgrounds (semi-transparent)
+  // ============ TAG COLORS ============
   'tag-neutral-bg': 'rgba(200, 200, 220, 0.85)',
   'tag-info-bg': 'rgba(180, 210, 255, 0.85)',
   'tag-warning-bg': 'rgba(255, 224, 160, 0.85)',
   'tag-frist-bg': 'rgba(255, 231, 188, 0.85)',
-
-  // Tag text colors
   'tag-neutral-text': '#3a3a5a',
   'tag-info-text': '#1a3a5a',
   'tag-warning-text': '#3a3020',
   'tag-frist-text': '#3a3020',
 
-  // Row backgrounds (semi-transparent)
+  // ============ ROW COLORS ============
   'row-te-bg': 'rgba(176, 240, 208, 0.85)',
   'row-bh-bg': 'rgba(255, 224, 160, 0.85)',
-
-  // Row text colors
   'row-te-text': '#0a4030',
   'row-bh-text': '#3a3020',
 
-  // Surface colors (semi-transparent)
+  // ============ SURFACE COLORS (semi-transparent) ============
   'surface-yellow': 'rgba(255, 224, 160, 0.85)',
   'surface-light-blue': 'rgba(180, 210, 255, 0.85)',
   'surface-light-green': 'rgba(176, 240, 208, 0.85)',
   'surface-faded-red': 'rgba(255, 202, 202, 0.85)',
   'surface-red': 'rgba(255, 180, 172, 0.85)',
+  'surface-faded-green': 'rgba(176, 240, 208, 0.85)',
 
-  // Border colors (dark, for contrast on light bg)
+  // ============ SURFACE COLORS (solid dark) ============
+  'surface-gray': '#2a2a4a',
+  'surface-subtle': '#1e1e36',
+  'surface-subtle-light-blue': '#2a3a5a',
+  'surface-subtle-light-red': '#3a2a3a',
+
+  // ============ BADGE COLORS ============
+  'badge-info-bg': 'rgba(180, 210, 255, 0.85)',
+  'badge-info-text': '#1a3a5a',
+  'badge-success-bg': 'rgba(176, 240, 208, 0.85)',
+  'badge-success-text': '#0a4030',
+  'badge-warning-bg': 'rgba(255, 224, 160, 0.85)',
+  'badge-warning-text': '#3a3020',
+  'badge-danger-bg': 'rgba(255, 202, 202, 0.85)',
+  'badge-danger-text': '#5a2020',
+
+  // ============ BORDER COLORS ============
   'border-blue': '#1a3a5a',
   'border-green': '#0a4030',
   'border-red': '#5a2020',
   'border-yellow': '#5a4a20',
+  'border-gray': '#7a7a9a',  /* Lightened */
+  'border-default': '#7a7aaa',  /* Lightened */
 
-  // Brand colors
+  // ============ BRAND COLORS ============
   'brand-dark-blue-1000': '#8ab4ff',
   'brand-dark-green-1000': '#6adb8a',
   'brand-yellow-1000': '#fbbf24',
@@ -181,6 +188,14 @@ const combinations = [
   { name: 'Alert Warning: text on bg', fg: 'alert-warning-text', bg: 'alert-warning-bg', type: 'normal', category: 'Alerts' },
   { name: 'Alert Danger: text on bg', fg: 'alert-danger-text', bg: 'alert-danger-bg', type: 'normal', category: 'Alerts' },
 
+  // ============ BADGES (using dedicated badge colors) ============
+  { name: 'Badge Default: body-default on surface-gray', fg: 'text-body-default', bg: 'surface-gray', type: 'normal', category: 'Badges' },
+  { name: 'Badge Info: badge-text on badge-bg', fg: 'badge-info-text', bg: 'badge-info-bg', type: 'normal', category: 'Badges' },
+  { name: 'Badge Success: badge-text on badge-bg', fg: 'badge-success-text', bg: 'badge-success-bg', type: 'normal', category: 'Badges' },
+  { name: 'Badge Warning: badge-text on badge-bg', fg: 'badge-warning-text', bg: 'badge-warning-bg', type: 'normal', category: 'Badges' },
+  { name: 'Badge Danger: badge-text on badge-bg', fg: 'badge-danger-text', bg: 'badge-danger-bg', type: 'normal', category: 'Badges' },
+  { name: 'Badge Neutral: gray-700 on grays-gray-100', fg: 'grays-gray-700', bg: 'grays-gray-100', type: 'normal', category: 'Badges' },
+
   // ============ TAGS ============
   { name: 'Tag Neutral: text on bg', fg: 'tag-neutral-text', bg: 'tag-neutral-bg', type: 'normal', category: 'Tags' },
   { name: 'Tag Info: text on bg', fg: 'tag-info-text', bg: 'tag-info-bg', type: 'normal', category: 'Tags' },
@@ -191,17 +206,39 @@ const combinations = [
   { name: 'Row TE: text on bg', fg: 'row-te-text', bg: 'row-te-bg', type: 'normal', category: 'Table Rows' },
   { name: 'Row BH: text on bg', fg: 'row-bh-text', bg: 'row-bh-bg', type: 'normal', category: 'Table Rows' },
 
-  // ============ BORDERS ON LIGHT BG ============
+  // ============ MODAL BOXES (Beregning av kostnadsgrense etc.) ============
+  // Note: These use alert/badge text colors for proper contrast on light surfaces
+  { name: 'Modal Yellow Box: warning-text on surface-yellow', fg: 'alert-warning-text', bg: 'surface-yellow', type: 'normal', category: 'Modal Boxes' },
+  { name: 'Modal Red Box: danger-text on surface-faded-red', fg: 'alert-danger-text', bg: 'surface-faded-red', type: 'normal', category: 'Modal Boxes' },
+  { name: 'Modal Red Box: danger-text on surface-red', fg: 'alert-danger-text', bg: 'surface-red', type: 'normal', category: 'Modal Boxes' },
+  { name: 'Modal Blue Box: body-default on surface-subtle-light-blue', fg: 'text-body-default', bg: 'surface-subtle-light-blue', type: 'normal', category: 'Modal Boxes' },
+
+  // ============ TIMELINE EVENT BADGES ============
+  // Note: Timeline badges should use badge colors, same as Badge component
+  { name: 'Timeline Grunnlag: badge-info-text on surface-light-blue', fg: 'badge-info-text', bg: 'surface-light-blue', type: 'normal', category: 'Timeline' },
+  { name: 'Timeline Vederlag: badge-success-text on surface-light-green', fg: 'badge-success-text', bg: 'surface-light-green', type: 'normal', category: 'Timeline' },
+  { name: 'Timeline Frist: frist-text on frist-bg', fg: 'tag-frist-text', bg: 'tag-frist-bg', type: 'normal', category: 'Timeline' },
+
+  // ============ BORDERS ON LIGHT BACKGROUNDS ============
   { name: 'Border blue on info bg', fg: 'border-blue', bg: 'alert-info-bg', type: 'ui', category: 'Borders' },
   { name: 'Border green on success bg', fg: 'border-green', bg: 'alert-success-bg', type: 'ui', category: 'Borders' },
   { name: 'Border yellow on warning bg', fg: 'border-yellow', bg: 'alert-warning-bg', type: 'ui', category: 'Borders' },
   { name: 'Border red on danger bg', fg: 'border-red', bg: 'alert-danger-bg', type: 'ui', category: 'Borders' },
+  { name: 'Border gray on surface-gray', fg: 'border-gray', bg: 'surface-gray', type: 'ui', category: 'Borders' },
+  { name: 'Border default on bg-card', fg: 'border-default', bg: 'bg-card', type: 'ui', category: 'Borders' },
 
-  // ============ MAIN TEXT ON DARK BG ============
+  // ============ MAIN TEXT ON DARK BACKGROUNDS ============
   { name: 'Body text on default bg', fg: 'text-body-default', bg: 'bg-default', type: 'normal', category: 'Main Text' },
   { name: 'Body text on card bg', fg: 'text-body-default', bg: 'bg-card', type: 'normal', category: 'Main Text' },
   { name: 'Subtle text on card bg', fg: 'text-body-subtle', bg: 'bg-card', type: 'normal', category: 'Main Text' },
   { name: 'Placeholder on card bg', fg: 'text-placeholder', bg: 'bg-card', type: 'normal', category: 'Main Text' },
+  { name: 'Body-dark on subtle bg', fg: 'text-body-dark', bg: 'bg-subtle', type: 'normal', category: 'Main Text' },
+
+  // ============ ERROR/STATUS TEXT ============
+  { name: 'Error: red-1000 on card bg', fg: 'brand-red-1000', bg: 'bg-card', type: 'normal', category: 'Status Text' },
+  { name: 'Success: dark-green on card bg', fg: 'brand-dark-green-1000', bg: 'bg-card', type: 'normal', category: 'Status Text' },
+  { name: 'Info: dark-blue on card bg', fg: 'brand-dark-blue-1000', bg: 'bg-card', type: 'normal', category: 'Status Text' },
+  { name: 'Warning: yellow-1000 on card bg', fg: 'brand-yellow-1000', bg: 'bg-card', type: 'normal', category: 'Status Text' },
 ];
 
 console.log('='.repeat(80));
@@ -215,11 +252,13 @@ console.log('');
 let failures = [];
 let warnings = [];
 let currentCategory = '';
+let categoryStats = {};
 
 combinations.forEach(combo => {
   // Print category header
   if (combo.category !== currentCategory) {
     currentCategory = combo.category;
+    categoryStats[currentCategory] = { pass: 0, fail: 0 };
     console.log('-'.repeat(40));
     console.log(`${currentCategory.toUpperCase()}`);
     console.log('-'.repeat(40));
@@ -227,6 +266,14 @@ combinations.forEach(combo => {
 
   const fgColor = darkColors[combo.fg];
   const bgColor = darkColors[combo.bg];
+
+  if (!fgColor || !bgColor) {
+    console.log(`⚠️  SKIP ${combo.name} - color not found`);
+    console.log(`       fg: ${combo.fg} = ${fgColor}`);
+    console.log(`       bg: ${combo.bg} = ${bgColor}`);
+    console.log('');
+    return;
+  }
 
   // Calculate effective background (blend rgba with base if needed)
   let effectiveBg = bgColor;
@@ -242,6 +289,12 @@ combinations.forEach(combo => {
   const passes = ratio >= requiredRatio;
   const status = passes ? '✅ PASS' : '❌ FAIL';
 
+  if (passes) {
+    categoryStats[currentCategory].pass++;
+  } else {
+    categoryStats[currentCategory].fail++;
+  }
+
   console.log(`${status} ${combo.name}`);
   console.log(`       FG: ${fgColor}`);
   console.log(`       BG: ${effectiveBg}`);
@@ -253,7 +306,7 @@ combinations.forEach(combo => {
       ...combo,
       fgColor,
       bgColor,
-      effectiveBgHex,
+      effectiveBgHex: effectiveBgHex.startsWith('#') ? effectiveBgHex : bgColor,
       ratio,
       requiredRatio,
     });
@@ -269,7 +322,17 @@ combinations.forEach(combo => {
 });
 
 console.log('='.repeat(80));
-console.log('SUMMARY');
+console.log('SUMMARY BY CATEGORY');
+console.log('='.repeat(80));
+Object.entries(categoryStats).forEach(([cat, stats]) => {
+  const total = stats.pass + stats.fail;
+  const icon = stats.fail === 0 ? '✅' : '❌';
+  console.log(`${icon} ${cat}: ${stats.pass}/${total} passed`);
+});
+
+console.log('');
+console.log('='.repeat(80));
+console.log('OVERALL SUMMARY');
 console.log('='.repeat(80));
 
 if (failures.length === 0) {
@@ -299,11 +362,12 @@ if (failures.length > 0) {
 
   failures.forEach(f => {
     console.log(`\n${f.name}:`);
-    console.log(`  Current: ${f.fgColor} on ${f.effectiveBgHex} = ${f.ratio.toFixed(2)}:1`);
+    const displayBg = f.effectiveBgHex.startsWith('#') ? f.effectiveBgHex : rgbToHex(getEffectiveRgb(f.bgColor, baseBackgrounds['bg-default']));
+    console.log(`  Current: ${f.fgColor} on ${displayBg} = ${f.ratio.toFixed(2)}:1`);
 
     // Calculate needed luminance adjustment
     const fgRgb = hexToRgb(f.fgColor);
-    const bgRgb = hexToRgb(f.effectiveBgHex);
+    const bgRgb = hexToRgb(displayBg);
     const fgLum = getLuminance(fgRgb);
     const bgLum = getLuminance(bgRgb);
 
@@ -326,3 +390,11 @@ if (failures.length > 0) {
     }
   });
 }
+
+// Final statistics
+console.log('');
+console.log('='.repeat(80));
+const totalTests = combinations.length;
+const totalPassed = totalTests - failures.length;
+console.log(`TOTAL: ${totalPassed}/${totalTests} tests passed (${((totalPassed/totalTests)*100).toFixed(1)}%)`);
+console.log('='.repeat(80));
