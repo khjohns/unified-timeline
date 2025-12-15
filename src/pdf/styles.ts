@@ -37,6 +37,10 @@ export const COLORS = {
   white: '#FFFFFF',
   lightBg: '#F8F0DD',        // Oslo light beige
 
+  // Punkt blue shades (for category headers)
+  punktBlueLight: '#E5FCFF', // pkt-brand-blue-200
+  punktBlueBorder: '#B3F5FF', // pkt-brand-blue-500
+
   // Status colors
   success: '#034B45',        // Oslo dark green
   successBg: '#C7F6C9',      // Oslo light green
@@ -144,6 +148,7 @@ export const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 8,
     color: COLORS.primary,
+    lineHeight: 1.3,
   },
   sakId: {
     fontSize: 11,
@@ -274,18 +279,25 @@ export const styles = StyleSheet.create({
 
   // Category header row
   tableCategoryHeader: {
-    backgroundColor: COLORS.grayBg,
+    backgroundColor: COLORS.punktBlueLight,
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: COLORS.punktBlueBorder,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   tableCategoryText: {
     fontSize: 8,
     fontWeight: 'bold',
-    color: COLORS.inkDim,
+    color: COLORS.primary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  tableCategoryRight: {
+    fontSize: 8,
+    color: COLORS.primary,
   },
 
   // Text blocks
@@ -315,9 +327,24 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     alignSelf: 'flex-start',
+    borderRadius: 2,
   },
   statusBadgeText: {
     fontSize: 8,
+    fontWeight: 'bold',
+  },
+  // Revision badge
+  revisionBadge: {
+    backgroundColor: COLORS.punktBlueLight,
+    borderWidth: 1,
+    borderColor: COLORS.punktBlueBorder,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 2,
+  },
+  revisionBadgeText: {
+    fontSize: 7,
+    color: COLORS.primary,
     fontWeight: 'bold',
   },
   // Status badge variants

@@ -63,9 +63,16 @@ const TableRow4Col: React.FC<{
   </View>
 );
 
-const TableCategoryHeader: React.FC<{ title: string }> = ({ title }) => (
+const TableCategoryHeader: React.FC<{ title: string; rightText?: string }> = ({ title, rightText }) => (
   <View style={styles.tableCategoryHeader}>
     <Text style={styles.tableCategoryText}>{title}</Text>
+    {rightText && <Text style={styles.tableCategoryRight}>{rightText}</Text>}
+  </View>
+);
+
+const RevisionBadge: React.FC<{ revision: number }> = ({ revision }) => (
+  <View style={styles.revisionBadge}>
+    <Text style={styles.revisionBadgeText}>Rev. {revision}</Text>
   </View>
 );
 
@@ -257,11 +264,10 @@ const CaseInfoSection: React.FC<CaseInfoProps> = ({ state }) => {
   return (
     <View>
       <Text style={styles.title}>{state.sakstittel || 'Uten tittel'}</Text>
-      <Text style={styles.sakId}>Sak-ID: {state.sak_id}</Text>
 
       <View style={styles.metadataTable}>
         {/* Saksinformasjon */}
-        <TableCategoryHeader title="Saksinformasjon" />
+        <TableCategoryHeader title="Saksinformasjon" rightText={`Sak-ID: ${state.sak_id}`} />
         <TableRow4Col
           label1="Status"
           value1={getOverordnetStatusLabel(state.overordnet_status)}
@@ -276,10 +282,10 @@ const CaseInfoSection: React.FC<CaseInfoProps> = ({ state }) => {
           striped
         />
 
-        {/* Økonomisk sammendrag */}
+        {/* Vederlagsjustering */}
         {hasVederlag && (
           <>
-            <TableCategoryHeader title="Økonomisk sammendrag" />
+            <TableCategoryHeader title="Vederlagsjustering" />
             <TableRow4Col
               label1="Krevd"
               value1={formatCurrency(krevdBelop)}
@@ -334,7 +340,7 @@ const TableOfContents: React.FC<{ state: SakState }> = ({ state }) => {
       <Text style={styles.tocHeader}>Innhold</Text>
       <TocEntry
         number="1."
-        title="Grunnlag"
+        title="Ansvarsgrunnlag"
         status={getStatusInfo(state.grunnlag.status)}
         statusType={state.grunnlag.status}
       />
@@ -363,11 +369,9 @@ const GrunnlagSection: React.FC<{ state: SakState }> = ({ state }) => {
     <View style={styles.section}>
       <View style={styles.sectionHeader} wrap={false}>
         <View style={styles.sectionTitleRow}>
-          <Text style={styles.sectionTitle}>1. GRUNNLAG</Text>
+          <Text style={styles.sectionTitle}>1. ANSVARSGRUNNLAG</Text>
           {grunnlag.antall_versjoner > 1 && (
-            <Text style={{ fontSize: 8, color: COLORS.muted }}>
-              (Rev. {grunnlag.antall_versjoner})
-            </Text>
+            <RevisionBadge revision={grunnlag.antall_versjoner} />
           )}
         </View>
         {!isNotRelevant && (
@@ -447,9 +451,7 @@ const VederlagSection: React.FC<{ state: SakState }> = ({ state }) => {
         <View style={styles.sectionTitleRow}>
           <Text style={styles.sectionTitle}>2. VEDERLAGSJUSTERING</Text>
           {vederlag.antall_versjoner > 1 && (
-            <Text style={{ fontSize: 8, color: COLORS.muted }}>
-              (Rev. {vederlag.antall_versjoner})
-            </Text>
+            <RevisionBadge revision={vederlag.antall_versjoner} />
           )}
         </View>
         {!isNotClaimed && (
@@ -628,9 +630,7 @@ const FristSection: React.FC<{ state: SakState }> = ({ state }) => {
         <View style={styles.sectionTitleRow}>
           <Text style={styles.sectionTitle}>3. FRISTFORLENGELSE</Text>
           {frist.antall_versjoner > 1 && (
-            <Text style={{ fontSize: 8, color: COLORS.muted }}>
-              (Rev. {frist.antall_versjoner})
-            </Text>
+            <RevisionBadge revision={frist.antall_versjoner} />
           )}
         </View>
         {!isNotClaimed && (
