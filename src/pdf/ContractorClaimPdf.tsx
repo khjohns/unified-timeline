@@ -818,9 +818,19 @@ export interface ContractorClaimPdfProps {
 }
 
 export const ContractorClaimPdf: React.FC<ContractorClaimPdfProps> = ({ state }) => {
-  // Fast struktur: 4 sider (tittel, grunnlag, vederlag, frist)
-  // Merk: Hvis innhold flyter over til ekstra sider, vil disse ha samme sidetall
-  const totalPages = 4;
+  // Bestem hvilke seksjoner som skal inkluderes
+  const harGrunnlag = state.grunnlag.status !== 'ikke_relevant' && state.grunnlag.status !== 'utkast';
+  const harVederlag = state.vederlag.status !== 'ikke_relevant';
+  const harFrist = state.frist.status !== 'ikke_relevant';
+
+  // Dynamisk beregning av totale sider
+  // Side 1 = Tittelside (alltid) + 1 per relevant seksjon
+  const totalPages = 1 + (harGrunnlag ? 1 : 0) + (harVederlag ? 1 : 0) + (harFrist ? 1 : 0);
+
+  // Forhåndsberegn sidetall for hver seksjon
+  const grunnlagPage = 2;
+  const vederlagPage = harGrunnlag ? 3 : 2;
+  const fristPage = (harGrunnlag ? 1 : 0) + (harVederlag ? 1 : 0) + 2;
 
   return (
     <Document
@@ -836,26 +846,32 @@ export const ContractorClaimPdf: React.FC<ContractorClaimPdfProps> = ({ state })
         <Footer pageNumber={1} totalPages={totalPages} />
       </Page>
 
-      {/* Side 2: Grunnlag */}
-      <Page size="A4" style={styles.page}>
-        <Header />
-        <GrunnlagSection state={state} />
-        <Footer pageNumber={2} totalPages={totalPages} />
-      </Page>
+      {/* Grunnlag (hvis relevant) */}
+      {harGrunnlag && (
+        <Page size="A4" style={styles.page}>
+          <Header />
+          <GrunnlagSection state={state} />
+          <Footer pageNumber={grunnlagPage} totalPages={totalPages} />
+        </Page>
+      )}
 
-      {/* Side 3: Vederlagsjustering */}
-      <Page size="A4" style={styles.page}>
-        <Header />
-        <VederlagSection state={state} />
-        <Footer pageNumber={3} totalPages={totalPages} />
-      </Page>
+      {/* Vederlagsjustering (hvis relevant) */}
+      {harVederlag && (
+        <Page size="A4" style={styles.page}>
+          <Header />
+          <VederlagSection state={state} />
+          <Footer pageNumber={vederlagPage} totalPages={totalPages} />
+        </Page>
+      )}
 
-      {/* Side 4: Fristforlengelse */}
-      <Page size="A4" style={styles.page}>
-        <Header />
-        <FristSection state={state} />
-        <Footer pageNumber={4} totalPages={totalPages} />
-      </Page>
+      {/* Fristforlengelse (hvis relevant) */}
+      {harFrist && (
+        <Page size="A4" style={styles.page}>
+          <Header />
+          <FristSection state={state} />
+          <Footer pageNumber={fristPage} totalPages={totalPages} />
+        </Page>
+      )}
     </Document>
   );
 };
