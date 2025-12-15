@@ -205,11 +205,11 @@ export function SendForseringModal({
               </span>
               <span className="text-2xl font-bold">{fristData.godkjent_dager}</span>
             </div>
-            <div className="p-3 bg-pkt-surface-red rounded-none">
-              <span className="text-xs text-pkt-text-body-subtle uppercase font-bold block">
+            <div className="p-3 bg-alert-danger-bg rounded-none text-alert-danger-text">
+              <span className="text-xs uppercase font-bold block">
                 Avslåtte dager
               </span>
-              <span className="text-2xl font-bold text-pkt-text-danger">{avslatteDager}</span>
+              <span className="text-2xl font-bold">{avslatteDager}</span>
             </div>
           </div>
         </div>

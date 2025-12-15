@@ -384,11 +384,11 @@ export function SendVederlagModal({
         </div>
 
         {/* 3. Særskilte krav (§34.1.3) - Rigg, Drift, Produktivitet */}
-        <div className="border-2 border-pkt-border-yellow bg-pkt-surface-yellow p-4 rounded-none">
-          <h4 className="font-bold text-sm text-pkt-text-body-dark mb-2">
+        <div className="border-2 border-alert-warning-border bg-alert-warning-bg p-4 rounded-none text-alert-warning-text">
+          <h4 className="font-bold text-sm mb-2">
             Særskilte krav
           </h4>
-          <p className="text-sm text-pkt-text-body-dark mb-3">
+          <p className="text-sm mb-3">
             Disse postene krever særskilt varsel. Ved manglende varsel tapes kravet (§34.1.3).
           </p>
 
@@ -408,7 +408,7 @@ export function SendVederlagModal({
             />
 
             {harRiggKrav && (
-              <div className="mt-3 ml-6 space-y-4 border-l-2 border-pkt-border-yellow pl-4">
+              <div className="mt-3 ml-6 space-y-4 border-l-2 border-alert-warning-border pl-4">
                 <FormField
                   label="Estimert beløp"
                   error={errors.belop_rigg?.message}
@@ -472,7 +472,7 @@ export function SendVederlagModal({
             />
 
             {harProduktivitetKrav && (
-              <div className="mt-3 ml-6 space-y-4 border-l-2 border-pkt-border-yellow pl-4">
+              <div className="mt-3 ml-6 space-y-4 border-l-2 border-alert-warning-border pl-4">
                 <FormField
                   label="Estimert beløp"
                   error={errors.belop_produktivitet?.message}

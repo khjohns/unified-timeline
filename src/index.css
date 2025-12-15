@@ -142,10 +142,10 @@
     --color-action-danger-border: #ef4444;  /* Red border */
     --color-action-danger-hover-bg: #fef2f2;  /* Light red hover */
 
-    /* Step indicator - completed state */
-    --color-step-completed-bg: #16a34a;  /* Green background */
-    --color-step-completed-border: #16a34a;
-    --color-step-completed-text: #ffffff;
+    /* Step indicator - completed state - matches app's success palette */
+    --color-step-completed-bg: #c7fde9;  /* Light mint - matches badge-success-bg */
+    --color-step-completed-border: #034b45;  /* Dark green - matches success text */
+    --color-step-completed-text: #034b45;  /* Dark green text */
 
     /* Modal field colors */
     --color-field-label: #6b7280;  /* Gray-500 equivalent */
@@ -378,10 +378,10 @@
   --color-action-danger-border: #f87171;  /* Bright red border */
   --color-action-danger-hover-bg: #3a2028;  /* Dark red hover */
 
-  /* Step indicator - completed state - dark mode */
-  --color-step-completed-bg: #22c55e;  /* Brighter green for dark */
-  --color-step-completed-border: #22c55e;
-  --color-step-completed-text: #052e16;  /* Dark green text */
+  /* Step indicator - completed state - dark mode - matches app's success palette */
+  --color-step-completed-bg: rgba(176, 240, 208, 0.85);  /* Semi-transparent mint */
+  --color-step-completed-border: #0a4030;  /* Dark green - matches success colors */
+  --color-step-completed-text: #0a4030;  /* Dark green text */
 
   /* Modal field colors - dark mode */
   --color-field-label: #b0b0c8;  /* Lighter gray for dark bg - improved contrast */
