@@ -284,10 +284,10 @@ interface GroupHeaderProps {
 }
 
 function GroupHeader({ label, colSpan, color }: GroupHeaderProps) {
-  // Use semantic TE/BH row colors that match event colors in both light and dark mode
+  // Use semantic TE/BH row colors with subtle background + left border accent
   const colorClasses = {
-    green: 'bg-row-te-bg text-row-te-text',
-    yellow: 'bg-row-bh-bg text-row-bh-text',
+    green: 'bg-row-te-bg text-row-te-text border-l-4 border-l-row-te-border',
+    yellow: 'bg-row-bh-bg text-row-bh-text border-l-4 border-l-row-bh-border',
   };
 
   return (
@@ -299,7 +299,7 @@ function GroupHeader({ label, colSpan, color }: GroupHeaderProps) {
       </td>
       <td
         colSpan={colSpan - 1}
-        className={`py-2 px-4 border-y border-pkt-grays-gray-200 ${colorClasses[color]}`}
+        className={`py-2 px-4 border-y border-pkt-grays-gray-200 bg-row-te-bg ${color === 'yellow' ? 'bg-row-bh-bg' : 'bg-row-te-bg'}`}
       />
     </tr>
   );
