@@ -449,4 +449,45 @@ export const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
     marginVertical: 15,
   },
+
+  // Table of Contents
+  tocContainer: {
+    marginBottom: 20,
+    marginTop: 8,
+    padding: 12,
+    backgroundColor: COLORS.grayBg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  tocHeader: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+    marginBottom: 10,
+    paddingBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  tocEntry: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  tocLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  tocNumber: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+    width: 20,
+  },
+  tocTitle: {
+    fontSize: 9,
+    color: COLORS.ink,
+  },
 });
