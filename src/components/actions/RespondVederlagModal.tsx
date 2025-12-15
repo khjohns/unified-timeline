@@ -1057,13 +1057,7 @@ export function RespondVederlagModal({
 
               {/* RIGG/DRIFT - alltid evaluerbar (subsidiært hvis prekludert) */}
               {harRiggKrav && (
-                <div
-                  className={`p-4 rounded-none border-2 ${
-                    riggPrekludert
-                      ? 'bg-alert-warning-bg border-alert-warning-border text-alert-warning-text'
-                      : 'bg-pkt-surface-subtle border-pkt-border-default'
-                  }`}
-                >
+                <div className="p-4 rounded-none border-2 bg-pkt-surface-subtle border-pkt-border-default">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
                     <div className="flex flex-wrap items-center gap-2">
                       <h4 className="font-bold">Særskilt: Rigg/Drift</h4>
@@ -1085,7 +1079,7 @@ export function RespondVederlagModal({
                   </div>
 
                   {riggPrekludert && (
-                    <div className="mb-4 p-3 bg-alert-warning-bg border border-alert-warning-border rounded-none">
+                    <Alert variant="warning" className="mb-4">
                       <p className="text-sm">
                         <strong>Prinsipalt:</strong> Kravet er prekludert (for sen varsling §34.1.3).
                         Godkjent beløp: <strong>kr 0,-</strong>
@@ -1094,7 +1088,7 @@ export function RespondVederlagModal({
                         <strong>Subsidiært:</strong> Evaluer beløpet dersom kravet hadde vært varslet
                         i tide.
                       </p>
-                    </div>
+                    </Alert>
                   )}
 
                   <FormField
@@ -1138,13 +1132,7 @@ export function RespondVederlagModal({
 
               {/* PRODUKTIVITET - alltid evaluerbar (subsidiært hvis prekludert) */}
               {harProduktivitetKrav && (
-                <div
-                  className={`p-4 rounded-none border-2 ${
-                    produktivitetPrekludert
-                      ? 'bg-alert-warning-bg border-alert-warning-border text-alert-warning-text'
-                      : 'bg-pkt-surface-subtle border-pkt-border-default'
-                  }`}
-                >
+                <div className="p-4 rounded-none border-2 bg-pkt-surface-subtle border-pkt-border-default">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
                     <div className="flex flex-wrap items-center gap-2">
                       <h4 className="font-bold">Særskilt: Produktivitetstap</h4>
@@ -1166,7 +1154,7 @@ export function RespondVederlagModal({
                   </div>
 
                   {produktivitetPrekludert && (
-                    <div className="mb-4 p-3 bg-alert-warning-bg border border-alert-warning-border rounded-none">
+                    <Alert variant="warning" className="mb-4">
                       <p className="text-sm">
                         <strong>Prinsipalt:</strong> Kravet er prekludert (for sen varsling §34.1.3).
                         Godkjent beløp: <strong>kr 0,-</strong>
@@ -1175,7 +1163,7 @@ export function RespondVederlagModal({
                         <strong>Subsidiært:</strong> Evaluer beløpet dersom kravet hadde vært varslet
                         i tide.
                       </p>
-                    </div>
+                    </Alert>
                   )}
 
                   <FormField
