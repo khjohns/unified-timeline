@@ -29,15 +29,16 @@ const Header: React.FC = () => (
   </View>
 );
 
-const Footer: React.FC<{ pageNumber: number; totalPages: number }> = ({ pageNumber, totalPages }) => (
+const Footer: React.FC = () => (
   <View style={styles.footer} fixed>
-    <Text>
+    <Text style={styles.footerText}>
       Generert: {new Date().toLocaleDateString('no-NO', { day: 'numeric', month: 'long', year: 'numeric' })} kl.{' '}
       {new Date().toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' })}
     </Text>
-    <Text>
-      Side {pageNumber} av {totalPages}
-    </Text>
+    <Text
+      style={styles.footerPageNumber}
+      render={({ pageNumber, totalPages }) => `Side ${pageNumber} av ${totalPages}`}
+    />
   </View>
 );
 
@@ -302,6 +303,54 @@ const CaseInfoSection: React.FC<CaseInfoProps> = ({ state }) => {
           </>
         )}
       </View>
+    </View>
+  );
+};
+
+// Table of Contents Component
+const TocEntry: React.FC<{ number: string; title: string; status: string; statusType: SporStatus }> = ({
+  number,
+  title,
+  status,
+  statusType,
+}) => (
+  <View style={styles.tocEntry}>
+    <View style={styles.tocLeft}>
+      <Text style={styles.tocNumber}>{number}</Text>
+      <Text style={styles.tocTitle}>{title}</Text>
+    </View>
+    <StatusBadge status={statusType} label={status} />
+  </View>
+);
+
+const TableOfContents: React.FC<{ state: SakState }> = ({ state }) => {
+  const getStatusInfo = (status: SporStatus): string => {
+    if (status === 'ikke_relevant') return 'Ikke krevd';
+    if (status === 'utkast') return 'Utkast';
+    return formatStatus(status);
+  };
+
+  return (
+    <View style={styles.tocContainer}>
+      <Text style={styles.tocHeader}>Innhold</Text>
+      <TocEntry
+        number="1."
+        title="Grunnlag"
+        status={getStatusInfo(state.grunnlag.status)}
+        statusType={state.grunnlag.status}
+      />
+      <TocEntry
+        number="2."
+        title="Vederlagsjustering"
+        status={getStatusInfo(state.vederlag.status)}
+        statusType={state.vederlag.status}
+      />
+      <TocEntry
+        number="3."
+        title="Fristforlengelse"
+        status={getStatusInfo(state.frist.status)}
+        statusType={state.frist.status}
+      />
     </View>
   );
 };
@@ -781,13 +830,15 @@ export const ContractorClaimPdf: React.FC<ContractorClaimPdfProps> = ({ state })
 
         <CaseInfoSection state={state} />
 
+        <TableOfContents state={state} />
+
         <GrunnlagSection state={state} />
 
         <VederlagSection state={state} />
 
         <FristSection state={state} />
 
-        <Footer pageNumber={1} totalPages={1} />
+        <Footer />
       </Page>
     </Document>
   );
