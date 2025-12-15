@@ -152,11 +152,13 @@
     --color-field-value: #111827;  /* Gray-900 equivalent */
     --color-field-muted: #9ca3af;  /* Gray-400 equivalent */
 
-    /* TE/BH category row colors (for RevisionHistory table) - light mode matches original */
-    --color-row-te-bg: #c7fde9;  /* pkt-surface-light-green */
+    /* TE/BH category row colors (for RevisionHistory table) - light mode */
+    --color-row-te-bg: rgba(199, 253, 233, 0.4);  /* Very subtle mint */
     --color-row-te-text: #034b45;  /* pkt-brand-dark-green-1000 */
-    --color-row-bh-bg: #ffe7bc;  /* pkt-surface-yellow */
+    --color-row-te-border: #34d399;  /* Green border accent */
+    --color-row-bh-bg: rgba(255, 231, 188, 0.4);  /* Very subtle amber */
     --color-row-bh-text: #333333;  /* pkt-grays-gray-800 */
+    --color-row-bh-border: #f59e0b;  /* Amber border accent */
 
     /* Alert component colors - light mode (matching original brand colors) */
     --color-alert-info-bg: #f1fdff;  /* pkt-brand-blue-100 */
@@ -388,11 +390,13 @@
   --color-field-value: #f8f8fc;  /* Near white - improved for readability */
   --color-field-muted: #8888a8;  /* Medium gray - improved contrast */
 
-  /* TE/BH category row colors - dark mode (semi-transparent) */
-  --color-row-te-bg: rgba(176, 240, 208, 0.85);  /* Semi-transparent mint */
-  --color-row-te-text: #0a4030;  /* Dark green text */
-  --color-row-bh-bg: rgba(255, 224, 160, 0.85);  /* Semi-transparent amber */
-  --color-row-bh-text: #3a3020;  /* Dark brown text */
+  /* TE/BH category row colors - dark mode (subtle background + border accent) */
+  --color-row-te-bg: rgba(176, 240, 208, 0.15);  /* Very subtle mint */
+  --color-row-te-text: #a0e0c0;  /* Light green text for dark mode */
+  --color-row-te-border: #4a9a7a;  /* Green border accent */
+  --color-row-bh-bg: rgba(255, 224, 160, 0.15);  /* Very subtle amber */
+  --color-row-bh-text: #e0c090;  /* Light amber text for dark mode */
+  --color-row-bh-border: #d4a050;  /* Amber border accent */
 
   /* Badge component colors - dark mode (semi-transparent with dark text) */
   --color-badge-info-bg: rgba(180, 210, 255, 0.85);  /* Semi-transparent light blue */
