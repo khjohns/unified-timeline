@@ -379,9 +379,9 @@
   --color-action-danger-hover-bg: #3a2028;  /* Dark red hover */
 
   /* Step indicator - completed state - dark mode - matches app's success palette */
-  --color-step-completed-bg: rgba(176, 240, 208, 0.85);  /* Semi-transparent mint */
-  --color-step-completed-border: #0a4030;  /* Dark green - matches success colors */
-  --color-step-completed-text: #0a4030;  /* Dark green text */
+  --color-step-completed-bg: #4a9a7a;  /* Solid mint green - no transparency to avoid line showing through */
+  --color-step-completed-border: #3a7a5a;  /* Darker green border */
+  --color-step-completed-text: #f0fff8;  /* Light text for contrast */
 
   /* Modal field colors - dark mode */
   --color-field-label: #b0b0c8;  /* Lighter gray for dark bg - improved contrast */
