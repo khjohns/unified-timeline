@@ -173,6 +173,23 @@
     --color-alert-danger-text: #c9302c;  /* pkt-brand-red-1000 */
 
     /* ============================================
+       BADGE COMPONENT COLORS
+       Used for Badge component variants
+       ============================================ */
+    --color-badge-info-bg: #d1f9ff;  /* Light cyan */
+    --color-badge-info-text: #1f42aa;  /* Dark blue */
+    --color-badge-info-border: #1f42aa;
+    --color-badge-success-bg: #c7fde9;  /* Light mint */
+    --color-badge-success-text: #034b45;  /* Dark green */
+    --color-badge-success-border: #034b45;
+    --color-badge-warning-bg: #ffe7bc;  /* Light amber */
+    --color-badge-warning-text: #92400e;  /* Dark amber/brown */
+    --color-badge-warning-border: #92400e;
+    --color-badge-danger-bg: #ffdfdc;  /* Light coral */
+    --color-badge-danger-text: #991b1b;  /* Dark red */
+    --color-badge-danger-border: #991b1b;
+
+    /* ============================================
        SEMANTIC TAG COLORS
        Used for revision tags, badges, and status indicators
        ============================================ */
@@ -268,10 +285,10 @@
   --color-pkt-text-action-normal: #e0e0ec;  /* Brightened to match body-default */
 
   /* Borders */
-  --color-pkt-border-default: #5a5a8a;
+  --color-pkt-border-default: #7a7aaa;  /* Lightened for 3:1 contrast on bg-card */
   --color-pkt-border-beige: #6a5a4a;
   --color-pkt-border-blue: #1a3a5a;  /* Darker blue - matches text */
-  --color-pkt-border-gray: #4a4a6a;
+  --color-pkt-border-gray: #7a7a9a;  /* Lightened for 3:1 contrast on surface-gray */
   --color-pkt-border-green: #0a4030;  /* Darker green - matches text */
   --color-pkt-border-light-beige: #4a4a3a;
   --color-pkt-border-red: #5a2020;  /* Darker red - matches text */
@@ -376,6 +393,20 @@
   --color-row-te-text: #0a4030;  /* Dark green text */
   --color-row-bh-bg: rgba(255, 224, 160, 0.85);  /* Semi-transparent amber */
   --color-row-bh-text: #3a3020;  /* Dark brown text */
+
+  /* Badge component colors - dark mode (semi-transparent with dark text) */
+  --color-badge-info-bg: rgba(180, 210, 255, 0.85);  /* Semi-transparent light blue */
+  --color-badge-info-text: #1a3a5a;  /* Dark blue text */
+  --color-badge-info-border: #1a3a5a;
+  --color-badge-success-bg: rgba(176, 240, 208, 0.85);  /* Semi-transparent mint */
+  --color-badge-success-text: #0a4030;  /* Dark green text */
+  --color-badge-success-border: #0a4030;
+  --color-badge-warning-bg: rgba(255, 224, 160, 0.85);  /* Semi-transparent amber */
+  --color-badge-warning-text: #3a3020;  /* Dark brown text */
+  --color-badge-warning-border: #3a3020;
+  --color-badge-danger-bg: rgba(255, 202, 202, 0.85);  /* Semi-transparent coral */
+  --color-badge-danger-text: #5a2020;  /* Dark red text */
+  --color-badge-danger-border: #5a2020;
 
   /* Alert component colors - dark mode (semi-transparent pastels) */
   --color-alert-info-bg: rgba(180, 210, 255, 0.85);  /* Semi-transparent light blue */

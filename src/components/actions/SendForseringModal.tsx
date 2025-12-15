@@ -237,8 +237,8 @@ export function SendForseringModal({
             fornuftig sammenlignet med å ta dagmulkt.
           </Alert>
 
-          <div className="p-4 bg-pkt-surface-yellow border-2 border-pkt-border-yellow rounded-none">
-            <h4 className="font-bold text-pkt-text-body-dark mb-3">Beregning av kostnadsgrense</h4>
+          <div className="p-4 bg-pkt-surface-yellow border-2 border-pkt-border-yellow rounded-none text-alert-warning-text">
+            <h4 className="font-bold mb-3">Beregning av kostnadsgrense</h4>
             <div className="space-y-2 text-sm">
               <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                 <span>Avslåtte dager:</span>

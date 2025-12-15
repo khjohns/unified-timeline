@@ -45,8 +45,8 @@ export function ExampleCasesPage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">
         {!USE_MOCK_API && (
-          <div className="mb-6 p-4 bg-pkt-brand-yellow-500 border border-pkt-brand-yellow-1000 rounded-none">
-            <p className="text-sm text-pkt-text-body-dark">
+          <div className="mb-6 p-4 bg-pkt-brand-yellow-500 border border-pkt-border-yellow rounded-none text-alert-warning-text">
+            <p className="text-sm">
               <strong>Merk:</strong> Mock API er deaktivert. Sett{' '}
               <code className="bg-pkt-bg-subtle px-2 py-1 rounded">VITE_USE_MOCK_API=true</code> i .env
               filen for å bruke eksempeldata.
@@ -68,9 +68,9 @@ export function ExampleCasesPage() {
                   <span
                     className={`inline-block px-3 py-2 rounded-none text-sm font-medium ${
                       mockCase.status === 'Klar for EO'
-                        ? 'bg-pkt-surface-light-green text-pkt-brand-dark-green-1000'
+                        ? 'bg-badge-success-bg text-badge-success-text'
                         : mockCase.status === 'Under behandling'
-                        ? 'bg-pkt-surface-yellow text-pkt-text-body-dark'
+                        ? 'bg-badge-warning-bg text-badge-warning-text'
                         : 'bg-pkt-grays-gray-100 text-pkt-grays-gray-700'
                     }`}
                   >

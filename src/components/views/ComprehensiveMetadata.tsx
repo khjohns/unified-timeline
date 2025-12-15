@@ -28,7 +28,7 @@ export function ComprehensiveMetadata({
       <DataListItem label="Byggherre (BH)">{state.byggherre || '—'}</DataListItem>
       <DataListItem label="Opprettet">{state.grunnlag.siste_oppdatert || '—'}</DataListItem>
       <DataListItem label="Status">
-        <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium bg-pkt-brand-blue-100 text-pkt-brand-dark-blue-1000">
+        <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium bg-badge-info-bg text-badge-info-text">
           {getOverordnetStatusLabel(state.overordnet_status)}
         </span>
       </DataListItem>
