@@ -1692,7 +1692,7 @@ export function RespondVederlagModal({
 
           {/* Navigation Actions */}
           <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-4 pt-6 border-t-2 border-pkt-border-subtle">
-            <div className="sm:order-1">
+            <div>
               {currentPort > startPort && (
                 <Button type="button" variant="ghost" onClick={goToPrevPort} size="lg" className="w-full sm:w-auto">
                   ← Forrige
