@@ -30,7 +30,7 @@
  * - Correct NS 8407 rule implementation
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { Modal } from '../primitives/Modal';
 import { Button } from '../primitives/Button';
 import { FormField } from '../primitives/FormField';
@@ -132,7 +132,7 @@ const respondVederlagSchema = z.object({
   produktivitet_godkjent_belop: z.number().min(0).optional(),
 
   // Port 4: Oppsummering
-  begrunnelse_samlet: z.string().min(10, 'Samlet begrunnelse må være minst 10 tegn'),
+  begrunnelse_samlet: z.string().optional(),
 });
 
 type RespondVederlagFormData = z.infer<typeof respondVederlagSchema>;
@@ -234,6 +234,12 @@ export function RespondVederlagModal({
   grunnlagStatus,
 }: RespondVederlagModalProps) {
   const [currentPort, setCurrentPort] = useState(1);
+  const topRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to top of modal content
+  const scrollToTop = useCallback(() => {
+    topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
 
   // Determine if särskilda krav exists (affects which ports to show)
   const harRiggKrav = vederlagEvent?.saerskilt_krav?.rigg_drift !== undefined;
@@ -254,8 +260,10 @@ export function RespondVederlagModal({
     control,
     trigger,
     setValue,
+    clearErrors,
   } = useForm<RespondVederlagFormData>({
     resolver: zodResolver(respondVederlagSchema),
+    mode: 'onTouched', // Only show errors after field is touched
     defaultValues: {
       aksepterer_metode: true,
       hovedkrav_vurdering: 'godkjent',
@@ -488,14 +496,19 @@ export function RespondVederlagModal({
 
     if (isValid && currentPort < totalPorts) {
       setCurrentPort(currentPort + 1);
+      // Clear errors for next step's fields to prevent premature validation display
+      clearErrors('begrunnelse_samlet');
+      // Small delay to ensure DOM has updated before scrolling
+      setTimeout(scrollToTop, 50);
     }
-  }, [currentPort, totalPorts, trigger, currentStepType]);
+  }, [currentPort, totalPorts, trigger, currentStepType, scrollToTop, clearErrors]);
 
   const goToPrevPort = useCallback(() => {
     if (currentPort > startPort) {
       setCurrentPort(currentPort - 1);
+      setTimeout(scrollToTop, 50);
     }
-  }, [currentPort, startPort]);
+  }, [currentPort, startPort, scrollToTop]);
 
   // Submit handler
   const onSubmit = (data: RespondVederlagFormData) => {
@@ -591,6 +604,8 @@ export function RespondVederlagModal({
       size="lg"
     >
       <div className="space-y-6">
+        {/* Scroll target marker */}
+        <div ref={topRef} />
         {/* Step Indicator */}
         <StepIndicator currentStep={currentPort} steps={steps} />
 
@@ -602,7 +617,16 @@ export function RespondVederlagModal({
           </Alert>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          onKeyDown={(e) => {
+            // Prevent Enter from submitting form while navigating through wizard steps
+            if (e.key === 'Enter' && currentPort < totalPorts) {
+              e.preventDefault();
+            }
+          }}
+          className="space-y-6"
+        >
           {/* ================================================================
               STEG 1: OVERSIKT
               Shows claim summary and explains what will be evaluated
@@ -1668,7 +1692,6 @@ export function RespondVederlagModal({
                 {/* Samlet begrunnelse */}
                 <FormField
                   label="Samlet begrunnelse"
-                  required
                   error={errors.begrunnelse_samlet?.message}
                   helpText="Oppsummer din vurdering av kravet"
                 >
@@ -1694,7 +1717,17 @@ export function RespondVederlagModal({
           <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-4 pt-6 border-t-2 border-pkt-border-subtle">
             <div>
               {currentPort > startPort && (
-                <Button type="button" variant="ghost" onClick={goToPrevPort} size="lg" className="w-full sm:w-auto">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    goToPrevPort();
+                  }}
+                  size="lg"
+                  className="w-full sm:w-auto"
+                >
                   ← Forrige
                 </Button>
               )}
@@ -1713,7 +1746,17 @@ export function RespondVederlagModal({
               </Button>
 
               {currentPort < totalPorts ? (
-                <Button type="button" variant="primary" onClick={goToNextPort} size="lg" className="w-full sm:w-auto order-1 sm:order-2">
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    goToNextPort();
+                  }}
+                  size="lg"
+                  className="w-full sm:w-auto order-1 sm:order-2"
+                >
                   Neste →
                 </Button>
               ) : (

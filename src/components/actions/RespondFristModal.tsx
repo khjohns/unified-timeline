@@ -26,7 +26,7 @@
  * - Principal AND subsidiary results shown in summary
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { Modal } from '../primitives/Modal';
 import { Button } from '../primitives/Button';
 import { FormField } from '../primitives/FormField';
@@ -97,7 +97,7 @@ const respondFristSchema = z.object({
   begrunnelse_beregning: z.string().optional(),
 
   // Port 4: Oppsummering
-  begrunnelse_samlet: z.string().min(10, 'Samlet begrunnelse må være minst 10 tegn'),
+  begrunnelse_samlet: z.string().optional(),
 });
 
 type RespondFristFormData = z.infer<typeof respondFristSchema>;
@@ -199,6 +199,12 @@ export function RespondFristModal({
   varselType,
 }: RespondFristModalProps) {
   const [currentPort, setCurrentPort] = useState(1);
+  const topRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to top of modal content
+  const scrollToTop = useCallback(() => {
+    topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
 
   // Effective days to compare (from fristEvent or krevdDager prop)
   const effektivKrevdDager = fristEvent?.antall_dager ?? krevdDager ?? 0;
@@ -213,8 +219,10 @@ export function RespondFristModal({
     control,
     trigger,
     setValue,
+    clearErrors,
   } = useForm<RespondFristFormData>({
     resolver: zodResolver(respondFristSchema),
+    mode: 'onTouched', // Only show errors after field is touched
     defaultValues: {
       noytralt_varsel_ok: true,
       spesifisert_krav_ok: true,
@@ -369,14 +377,19 @@ export function RespondFristModal({
 
     if (isValid && currentPort < totalPorts) {
       setCurrentPort(currentPort + 1);
+      // Clear errors for next step's fields to prevent premature validation display
+      clearErrors('begrunnelse_samlet');
+      // Small delay to ensure DOM has updated before scrolling
+      setTimeout(scrollToTop, 50);
     }
-  }, [currentPort, totalPorts, trigger, currentStepType]);
+  }, [currentPort, totalPorts, trigger, currentStepType, scrollToTop, clearErrors]);
 
   const goToPrevPort = useCallback(() => {
     if (currentPort > 1) {
       setCurrentPort(currentPort - 1);
+      setTimeout(scrollToTop, 50);
     }
-  }, [currentPort]);
+  }, [currentPort, scrollToTop]);
 
   // Submit handler
   const onSubmit = (data: RespondFristFormData) => {
@@ -452,6 +465,8 @@ export function RespondFristModal({
       size="lg"
     >
       <div className="space-y-6">
+        {/* Scroll target marker */}
+        <div ref={topRef} />
         {/* Step Indicator */}
         <StepIndicator currentStep={currentPort} steps={steps} />
 
@@ -464,7 +479,16 @@ export function RespondFristModal({
           </Alert>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          onKeyDown={(e) => {
+            // Prevent Enter from submitting form while navigating through wizard steps
+            if (e.key === 'Enter' && currentPort < totalPorts) {
+              e.preventDefault();
+            }
+          }}
+          className="space-y-6"
+        >
           {/* ================================================================
               STEG 1: OVERSIKT
               Shows claim summary and explains what will be evaluated
@@ -1231,7 +1255,6 @@ export function RespondFristModal({
                 {/* Samlet begrunnelse */}
                 <FormField
                   label="Samlet begrunnelse"
-                  required
                   error={errors.begrunnelse_samlet?.message}
                   helpText="Oppsummer din vurdering av fristkravet (prinsipalt og eventuelt subsidiært)"
                 >
@@ -1257,7 +1280,17 @@ export function RespondFristModal({
           <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-4 pt-6 border-t-2 border-pkt-border-subtle">
             <div>
               {currentPort > 1 && (
-                <Button type="button" variant="ghost" onClick={goToPrevPort} size="lg" className="w-full sm:w-auto">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    goToPrevPort();
+                  }}
+                  size="lg"
+                  className="w-full sm:w-auto"
+                >
                   ← Forrige
                 </Button>
               )}
@@ -1276,7 +1309,17 @@ export function RespondFristModal({
               </Button>
 
               {currentPort < totalPorts ? (
-                <Button type="button" variant="primary" onClick={goToNextPort} size="lg" className="w-full sm:w-auto order-1 sm:order-2">
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    goToNextPort();
+                  }}
+                  size="lg"
+                  className="w-full sm:w-auto order-1 sm:order-2"
+                >
                   Neste →
                 </Button>
               ) : (

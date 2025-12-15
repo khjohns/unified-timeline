@@ -198,7 +198,7 @@ export function CasePage() {
       <header className="bg-pkt-bg-card border-b border-pkt-grays-gray-200">
         <div className="max-w-3xl mx-auto px-4 py-4 sm:px-8 sm:py-6">
           {/* Mobile: Stacked layout, Desktop: Side-by-side */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             {/* Title and sak ID */}
             <div className="min-w-0">
               <h1 className="text-lg sm:text-xl font-semibold text-pkt-text-body-dark">
@@ -206,19 +206,25 @@ export function CasePage() {
               </h1>
               <p className="text-sm text-pkt-grays-gray-500 mt-1">Sak #{sakId}</p>
             </div>
-            {/* Actions - full width on mobile, auto on desktop */}
-            <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
-              <ThemeToggle />
-              <Button
-                variant="ghost"
-                size="sm"
+            {/* Actions - grouped toggles with separator */}
+            <div className="flex items-center gap-3 shrink-0">
+              {/* Toggle group */}
+              <div className="flex items-center gap-2">
+                <ThemeToggle />
+                <ModeToggle userRole={userRole} onToggle={setUserRole} />
+              </div>
+              {/* Separator */}
+              <div className="hidden sm:block h-6 w-px bg-pkt-border-subtle" />
+              {/* PDF download - styled as icon button matching toggles */}
+              <button
                 onClick={() => downloadContractorClaimPdf(state)}
+                className="flex items-center gap-2 p-2 rounded-lg border border-pkt-grays-gray-200 bg-pkt-bg-subtle text-pkt-grays-gray-500 hover:text-pkt-text-body-dark hover:bg-pkt-bg-card transition-colors"
                 title="Last ned PDF"
+                aria-label="Last ned PDF"
               >
                 <DownloadIcon className="w-4 h-4" />
-                <span className="ml-2 sm:hidden">Last ned PDF</span>
-              </Button>
-              <ModeToggle userRole={userRole} onToggle={setUserRole} />
+                <span className="text-xs font-medium sm:hidden">PDF</span>
+              </button>
             </div>
           </div>
         </div>

@@ -3,6 +3,7 @@
  *
  * Compact toggle switch for testing between Totalentreprenør (TE) and Byggherre (BH) modes.
  * Used for development and testing purposes to view different permissions and actions.
+ * Styled to match ThemeToggle for visual consistency.
  */
 
 import { UserRole } from '../hooks/useUserRole';
@@ -13,44 +14,38 @@ interface ModeToggleProps {
   onToggle: (role: UserRole) => void;
 }
 
+const options = [
+  { value: 'TE' as const, label: 'Totalentreprenør' },
+  { value: 'BH' as const, label: 'Byggherre' },
+];
+
 /**
  * ModeToggle provides a compact visual toggle to switch between TE and BH roles
  */
 export function ModeToggle({ userRole, onToggle }: ModeToggleProps) {
   return (
-    <div className="inline-flex items-center gap-2">
-      <span className="text-xs text-pkt-grays-gray-600">Test:</span>
-      <div className="inline-flex rounded-none border border-pkt-border-default overflow-hidden">
+    <div
+      className="flex items-center gap-1 p-1 bg-pkt-bg-subtle rounded-lg border border-pkt-grays-gray-200"
+      role="group"
+      aria-label="Velg rolle"
+    >
+      {options.map(({ value, label }) => (
         <button
-          onClick={() => onToggle('TE')}
+          key={value}
+          onClick={() => onToggle(value)}
           className={clsx(
-            'px-2 py-1 text-xs font-medium transition-colors',
-            'focus:outline-none focus:ring-1 focus:ring-inset focus:ring-pkt-border-focus',
-            userRole === 'TE'
-              ? 'bg-pkt-surface-strong-dark-blue text-pkt-text-body-light'
-              : 'bg-pkt-bg-card text-pkt-text-body-dark hover:bg-pkt-bg-subtle'
+            'px-3 py-1.5 text-xs font-medium rounded-md transition-colors',
+            userRole === value
+              ? 'bg-pkt-bg-card text-pkt-text-body-dark shadow-sm'
+              : 'text-pkt-grays-gray-500 hover:text-pkt-text-body-dark hover:bg-pkt-bg-card/50'
           )}
-          aria-pressed={userRole === 'TE'}
-          aria-label="Bytt til Totalentreprenør modus"
+          title={label}
+          aria-label={`Bytt til ${label} modus`}
+          aria-pressed={userRole === value}
         >
-          TE
+          {value}
         </button>
-        <button
-          onClick={() => onToggle('BH')}
-          className={clsx(
-            'px-2 py-1 text-xs font-medium transition-colors',
-            'border-l border-pkt-border-default',
-            'focus:outline-none focus:ring-1 focus:ring-inset focus:ring-pkt-border-focus',
-            userRole === 'BH'
-              ? 'bg-pkt-surface-strong-dark-blue text-pkt-text-body-light'
-              : 'bg-pkt-bg-card text-pkt-text-body-dark hover:bg-pkt-bg-subtle'
-          )}
-          aria-pressed={userRole === 'BH'}
-          aria-label="Bytt til Byggherre modus"
-        >
-          BH
-        </button>
-      </div>
+      ))}
     </div>
   );
 }
