@@ -377,19 +377,19 @@
   --color-row-bh-bg: #3d3520;  /* Dark amber background */
   --color-row-bh-text: #fbbf24;  /* Bright amber matching BH events */
 
-  /* Alert component colors - dark mode */
-  --color-alert-info-bg: #1a2a4a;  /* Dark blue background */
-  --color-alert-info-border: #6a9aff;  /* Bright blue border */
-  --color-alert-info-text: #d0e0ff;  /* Light blue text */
-  --color-alert-success-bg: #1a3a2a;  /* Dark green background */
-  --color-alert-success-border: #4ade80;  /* Bright green border */
-  --color-alert-success-text: #a7f3d0;  /* Light green text */
-  --color-alert-warning-bg: #3d3520;  /* Clean dark amber - warm, not brown */
-  --color-alert-warning-border: #fbbf24;  /* Bright golden amber */
-  --color-alert-warning-text: #fef3c7;  /* Light cream text */
-  --color-alert-danger-bg: #3a2028;  /* Dark red background */
-  --color-alert-danger-border: #f87171;  /* Bright red border */
-  --color-alert-danger-text: #fecaca;  /* Light red text */
+  /* Alert component colors - dark mode (Alternative A: lyse pasteller) */
+  --color-alert-info-bg: #d0e8ff;  /* Light sky blue background */
+  --color-alert-info-border: #6fe9ff;  /* Bright cyan border */
+  --color-alert-info-text: #1a3a5a;  /* Dark blue text */
+  --color-alert-success-bg: #b0f0d0;  /* Light mint green background */
+  --color-alert-success-border: #43f8b6;  /* Bright green border */
+  --color-alert-success-text: #0a4030;  /* Dark green text */
+  --color-alert-warning-bg: #ffe0a0;  /* Light amber background */
+  --color-alert-warning-border: #fbbf24;  /* Bright golden amber border */
+  --color-alert-warning-text: #3a3020;  /* Dark brown text */
+  --color-alert-danger-bg: #ffcaca;  /* Light coral background */
+  --color-alert-danger-border: #ff6b6b;  /* Bright red border */
+  --color-alert-danger-text: #5a2020;  /* Dark red text */
 
   /* Semantic tag colors - dark mode */
   --color-tag-neutral-bg: #3a3a5a;
