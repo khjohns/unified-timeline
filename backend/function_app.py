@@ -98,7 +98,7 @@ if AZURE_FUNCTIONS_AVAILABLE:
 
     @app.route(route="cases/{sakId}", methods=["GET"])
     def get_case(req: func.HttpRequest) -> func.HttpResponse:
-        """Hent sak-data."""
+        """Hent sak-data (legacy CSV repository)."""
         sak_id = req.route_params.get('sakId')
 
         with ServiceContext() as ctx:
@@ -114,6 +114,60 @@ if AZURE_FUNCTIONS_AVAILABLE:
                 "status": sak.get('status', ''),
                 "modus": sak.get('modus', 'varsel'),
                 "formData": case_data
+            })
+
+    @app.route(route="cases/{sakId}/state", methods=["GET"])
+    def get_case_state(req: func.HttpRequest) -> func.HttpResponse:
+        """
+        Hent beregnet state for en sak (Event Sourcing).
+
+        Returnerer projisert SakState fra alle events, samt versjonsnummer
+        for optimistisk låsing ved senere oppdateringer.
+        """
+        from models.events import parse_event
+
+        sak_id = req.route_params.get('sakId')
+
+        with ServiceContext() as ctx:
+            events_data, version = ctx.event_repository.get_events(sak_id)
+
+            if not events_data:
+                return create_error_response(f"Sak ikke funnet: {sak_id}", 404)
+
+            # Parse events from stored data
+            events = [parse_event(e) for e in events_data]
+            state = ctx.timeline_service.compute_state(events)
+
+            return create_response({
+                "version": version,
+                "state": state.model_dump(mode='json')
+            })
+
+    @app.route(route="cases/{sakId}/timeline", methods=["GET"])
+    def get_case_timeline(req: func.HttpRequest) -> func.HttpResponse:
+        """
+        Hent full event-tidslinje for UI-visning.
+
+        Returnerer alle events formatert for tidslinje-visning,
+        med lesbare labels og sammendrag.
+        """
+        from models.events import parse_event
+
+        sak_id = req.route_params.get('sakId')
+
+        with ServiceContext() as ctx:
+            events_data, version = ctx.event_repository.get_events(sak_id)
+
+            if not events_data:
+                return create_error_response(f"Sak ikke funnet: {sak_id}", 404)
+
+            # Parse events from stored data
+            events = [parse_event(e) for e in events_data]
+            timeline = ctx.timeline_service.get_timeline(events)
+
+            return create_response({
+                "version": version,
+                "events": timeline
             })
 
     @app.route(route="cases/{sakId}/draft", methods=["PUT"])

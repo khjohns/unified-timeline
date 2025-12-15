@@ -1,6 +1,6 @@
 # Deployment Guide
 
-**Sist oppdatert:** 2025-12-11
+**Sist oppdatert:** 2025-12-15
 
 Veiledning for utrulling av Skjema Endringsmeldinger til produksjon.
 
@@ -149,9 +149,6 @@ Opprett fil i rot-mappen:
 ### Bygging
 
 ```bash
-# Generer statuskonstanter
-npm run generate:constants
-
 # Bygg for produksjon
 npm run build
 
@@ -203,9 +200,10 @@ backend/
 ├── services/                 # ✅ Forretningslogikk (ferdig)
 │   ├── timeline_service.py   # State-projeksjon fra events
 │   └── ...
-├── repositories/             # ✅ Event Sourcing (JSON → Dataverse)
-│   ├── event_repository.py   # Abstrakt interface + JSON-impl
-│   └── csv_repository.py     # Deprecated (bakoverkompatibilitet)
+├── repositories/             # ✅ Event Sourcing
+│   ├── event_repository.py   # Abstrakt interface + JSON-fil impl (prototype)
+│   ├── supabase_event_repository.py  # Supabase/PostgreSQL impl (produksjon)
+│   └── csv_repository.py     # ⚠️ Deprecated (kun bakoverkompatibilitet)
 ├── integrations/             # ✅ Catenda client (ferdig)
 ├── lib/                      # ✅ Sikkerhet (ferdig)
 │   ├── auth/                 # Magic links, CSRF
@@ -250,9 +248,9 @@ Eksisterende konfigurasjon i `backend/host.json`:
 }
 ```
 
-### `function_app.py` (eksempel)
+### `function_app.py` (faktisk implementasjon)
 
-Bruk eksisterende `ServiceContext` fra `functions/adapters.py`:
+Nåværende implementasjon i `backend/function_app.py` bruker `ServiceContext` fra `functions/adapters.py`:
 
 ```python
 import azure.functions as func
@@ -260,45 +258,53 @@ from functions.adapters import (
     ServiceContext,
     adapt_request,
     create_response,
-    create_error_response
+    create_error_response,
+    validate_required_fields
 )
+from models.events import parse_event
 
-app = func.FunctionApp()
+app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
 @app.route(route="health", methods=["GET"])
 def health(req: func.HttpRequest) -> func.HttpResponse:
-    return func.HttpResponse('{"status": "healthy"}', mimetype="application/json")
+    """Health check endpoint."""
+    return create_response({
+        "status": "healthy",
+        "service": "KOE Automation System",
+        "version": "1.0.0"
+    })
 
 @app.route(route="cases/{sakId}/state", methods=["GET"])
 def get_case_state(req: func.HttpRequest) -> func.HttpResponse:
-    """Hent beregnet state for en sak (projisert fra events)."""
+    """Hent beregnet state for en sak (Event Sourcing)."""
     sak_id = req.route_params.get('sakId')
     with ServiceContext() as ctx:
-        events, version = ctx.event_repository.get_events(sak_id)
+        events_data, version = ctx.event_repository.get_events(sak_id)
+        if not events_data:
+            return create_error_response(f"Sak ikke funnet: {sak_id}", 404)
+        events = [parse_event(e) for e in events_data]
         state = ctx.timeline_service.compute_state(events)
-    return create_response({"state": state, "version": version})
+        return create_response({"version": version, "state": state.model_dump(mode='json')})
 
-@app.route(route="events", methods=["POST"])
-def append_event(req: func.HttpRequest) -> func.HttpResponse:
-    """Legg til ny event med optimistisk låsing."""
-    request_data = adapt_request(req)
-    expected_version = request_data['json'].get('expected_version', 0)
-    event_data = request_data['json'].get('event')
+@app.route(route="cases/{sakId}/timeline", methods=["GET"])
+def get_case_timeline(req: func.HttpRequest) -> func.HttpResponse:
+    """Hent full event-tidslinje for UI-visning."""
+    sak_id = req.route_params.get('sakId')
     with ServiceContext() as ctx:
-        new_version = ctx.event_repository.append(event_data, expected_version)
-    return create_response({"version": new_version})
+        events_data, version = ctx.event_repository.get_events(sak_id)
+        if not events_data:
+            return create_error_response(f"Sak ikke funnet: {sak_id}", 404)
+        events = [parse_event(e) for e in events_data]
+        timeline = ctx.timeline_service.get_timeline(events)
+        return create_response({"version": version, "events": timeline})
 
 @app.route(route="webhook/catenda/{secret_path}", methods=["POST"])
 def webhook_catenda(req: func.HttpRequest) -> func.HttpResponse:
-    """Mottak av webhooks fra Catenda."""
-    secret_path = req.route_params.get('secret_path')
-    with ServiceContext() as ctx:
-        result = ctx.catenda_service.handle_webhook(
-            secret_path,
-            adapt_request(req)['json']
-        )
-    return create_response(result)
+    """Catenda webhook endpoint med secret path validering."""
+    # ... se function_app.py for full implementasjon
 ```
+
+> **⚠️ Manglende POST-endpoints:** `function_app.py` mangler fortsatt `POST /api/events` og `POST /api/events/batch` for event submission. Disse finnes i Flask-versjonen (`routes/event_routes.py`) og må porteres før full produksjonsdeploy.
 
 ### Deploy
 
@@ -344,34 +350,44 @@ Systemet bruker Event Sourcing der alle endringer lagres som uforanderlige hende
 }
 ```
 
-### Dataverse Event Repository
+### Produksjons Event Repository
+
+Det finnes flere alternativer for produksjons event store:
+
+#### Alternativ 1: Supabase (PostgreSQL)
+
+Allerede implementert i `repositories/supabase_event_repository.py`:
 
 ```python
-# repositories/dataverse_event_repository.py
-from dataverse_api import DataverseClient
-from repositories.event_repository import EventRepository
+# Supabase bruker PostgreSQL med:
+# - Native JSONB for event payloads
+# - Row Level Security for TE/BH separasjon
+# - Optimistisk låsing via versjon-constraint
 
+# SQL-skjema (se supabase_event_repository.py for full migrasjon):
+CREATE TABLE koe_events (
+    id SERIAL PRIMARY KEY,
+    event_id UUID NOT NULL UNIQUE,
+    sak_id TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    tidsstempel TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    aktor TEXT NOT NULL,
+    aktor_rolle TEXT NOT NULL CHECK (aktor_rolle IN ('TE', 'BH')),
+    data JSONB NOT NULL,
+    versjon INTEGER NOT NULL,
+    CONSTRAINT unique_sak_version UNIQUE (sak_id, versjon)
+);
+```
+
+#### Alternativ 2: Dataverse (planlagt)
+
+```python
+# repositories/dataverse_event_repository.py (ikke implementert)
+# Følger samme EventRepository interface som Supabase-versjonen
 class DataverseEventRepository(EventRepository):
-    def __init__(self, connection_string: str):
-        self.client = DataverseClient(connection_string)
-
     def append(self, event: SakEvent, expected_version: int) -> int:
         """Legg til event med optimistisk låsing."""
-        current_version = self._get_version(event.sak_id)
-        if current_version != expected_version:
-            raise ConcurrencyError(f"Version mismatch: {current_version} != {expected_version}")
-
-        self.client.create("koe_events", event.model_dump())
-        return current_version + 1
-
-    def get_events(self, sak_id: str) -> tuple[list[SakEvent], int]:
-        """Hent alle events for en sak, sortert kronologisk."""
-        events = self.client.query(
-            "koe_events",
-            filter=f"sak_id eq '{sak_id}'",
-            orderby="tidsstempel asc"
-        )
-        return events, len(events)
+        # ... Dataverse-spesifikk implementasjon
 ```
 
 ### State-projeksjon
@@ -517,9 +533,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Generate constants
-        run: npm run generate:constants
-
       - name: Build
         run: npm run build
         env:
@@ -629,17 +642,25 @@ Lag Azure Dashboard med:
 - [ ] Catenda webhooks oppdatert til produksjons-URL
 - [ ] Load testing gjennomført
 - [ ] Security review gjennomført
+- [x] **Event Sourcing GET-endpoints portert til Azure Functions** (`/state`, `/timeline`)
+- [ ] **Event Sourcing POST-endpoints portert til Azure Functions** (`/events`, `/events/batch`)
 
 ### Etter deploy
 
-- [ ] Smoke test: Health endpoint
-- [ ] Smoke test: Magic link flow
-- [ ] Smoke test: Submit event (grunnlag_opprettet)
-- [ ] Smoke test: Hent state (GET /api/cases/{id}/state)
-- [ ] Smoke test: Optimistisk låsing (conflict handling)
-- [ ] Smoke test: Webhook mottak
+- [ ] Smoke test: Health endpoint (`GET /api/health`)
+- [ ] Smoke test: Magic link flow (`POST /api/verify-magic-link`)
+- [ ] Smoke test: Hent sak (`GET /api/cases/{id}`)
+- [ ] Smoke test: Hent state (`GET /api/cases/{id}/state`) ✅
+- [ ] Smoke test: Hent timeline (`GET /api/cases/{id}/timeline`) ✅
+- [ ] Smoke test: Lagre utkast (`PUT /api/cases/{id}/draft`)
+- [ ] Smoke test: Webhook mottak (`POST /webhook/catenda/{secret}`)
 - [ ] Verifiser logging i App Insights
-- [ ] Verifiser event log i Dataverse
+- [ ] Verifiser event log i event store
+
+**Event Sourcing POST-endpoints (krever portering fra Flask):**
+- [ ] Smoke test: Submit event (`POST /api/events`) ⚠️
+- [ ] Smoke test: Submit batch (`POST /api/events/batch`) ⚠️
+- [ ] Smoke test: Optimistisk låsing (conflict handling) ⚠️
 
 ---
 

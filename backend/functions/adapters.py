@@ -114,6 +114,8 @@ class ServiceContext:
     Usage:
         with ServiceContext() as ctx:
             ctx.repository.save_form_data(...)
+            events, version = ctx.event_repository.get_events(sak_id)
+            state = ctx.timeline_service.compute_state(events)
     """
 
     def __init__(self, repository_type: str = 'csv'):
@@ -126,6 +128,8 @@ class ServiceContext:
         self.repository_type = repository_type
         self._repository = None
         self._catenda_service = None
+        self._event_repository = None
+        self._timeline_service = None
 
     def __enter__(self):
         return self
@@ -136,7 +140,7 @@ class ServiceContext:
 
     @property
     def repository(self):
-        """Lazy-load repository."""
+        """Lazy-load legacy CSV repository."""
         if self._repository is None:
             if self.repository_type == 'csv':
                 from repositories.csv_repository import CSVRepository
@@ -147,6 +151,22 @@ class ServiceContext:
             else:
                 raise ValueError(f"Ukjent repository type: {self.repository_type}")
         return self._repository
+
+    @property
+    def event_repository(self):
+        """Lazy-load Event Sourcing repository."""
+        if self._event_repository is None:
+            from repositories.event_repository import JsonFileEventRepository
+            self._event_repository = JsonFileEventRepository()
+        return self._event_repository
+
+    @property
+    def timeline_service(self):
+        """Lazy-load TimelineService for state projection."""
+        if self._timeline_service is None:
+            from services.timeline_service import TimelineService
+            self._timeline_service = TimelineService()
+        return self._timeline_service
 
     @property
     def catenda_service(self):
