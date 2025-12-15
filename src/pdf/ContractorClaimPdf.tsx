@@ -29,17 +29,15 @@ const Header: React.FC = () => (
   </View>
 );
 
-const Footer: React.FC = () => (
+const Footer: React.FC<{ pageNumber: number; totalPages: number }> = ({ pageNumber, totalPages }) => (
   <View style={styles.footer} fixed>
     <Text style={styles.footerText}>
       Generert: {new Date().toLocaleDateString('no-NO', { day: 'numeric', month: 'long', year: 'numeric' })} kl.{' '}
       {new Date().toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' })}
     </Text>
-    <Text
-      style={styles.footerPageNumber}
-      render={({ pageNumber, totalPages }) => `Side ${pageNumber} av ${totalPages}`}
-      fixed
-    />
+    <Text style={styles.footerPageNumber}>
+      Side {pageNumber} av {totalPages}
+    </Text>
   </View>
 );
 
@@ -820,6 +818,10 @@ export interface ContractorClaimPdfProps {
 }
 
 export const ContractorClaimPdf: React.FC<ContractorClaimPdfProps> = ({ state }) => {
+  // Fast struktur: 4 sider (tittel, grunnlag, vederlag, frist)
+  // Merk: Hvis innhold flyter over til ekstra sider, vil disse ha samme sidetall
+  const totalPages = 4;
+
   return (
     <Document
       title={`Entreprenørkrav - ${state.sakstittel || state.sak_id}`}
@@ -831,28 +833,28 @@ export const ContractorClaimPdf: React.FC<ContractorClaimPdfProps> = ({ state })
         <Header />
         <CaseInfoSection state={state} />
         <TableOfContents state={state} />
-        <Footer />
+        <Footer pageNumber={1} totalPages={totalPages} />
       </Page>
 
-      {/* Side 2+: Grunnlag */}
+      {/* Side 2: Grunnlag */}
       <Page size="A4" style={styles.page}>
         <Header />
         <GrunnlagSection state={state} />
-        <Footer />
+        <Footer pageNumber={2} totalPages={totalPages} />
       </Page>
 
-      {/* Side 3+: Vederlagsjustering */}
+      {/* Side 3: Vederlagsjustering */}
       <Page size="A4" style={styles.page}>
         <Header />
         <VederlagSection state={state} />
-        <Footer />
+        <Footer pageNumber={3} totalPages={totalPages} />
       </Page>
 
-      {/* Side 4+: Fristforlengelse */}
+      {/* Side 4: Fristforlengelse */}
       <Page size="A4" style={styles.page}>
         <Header />
         <FristSection state={state} />
-        <Footer />
+        <Footer pageNumber={4} totalPages={totalPages} />
       </Page>
     </Document>
   );
