@@ -17,6 +17,45 @@ function hexToRgb(hex) {
   } : null;
 }
 
+// Parse rgba string to RGB + alpha
+function parseRgba(rgba) {
+  const match = rgba.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+  if (match) {
+    return {
+      r: parseInt(match[1]),
+      g: parseInt(match[2]),
+      b: parseInt(match[3]),
+      a: match[4] ? parseFloat(match[4]) : 1
+    };
+  }
+  return null;
+}
+
+// Blend semi-transparent color with background
+function blendColors(fgRgba, bgRgb) {
+  const alpha = fgRgba.a;
+  return {
+    r: Math.round(fgRgba.r * alpha + bgRgb.r * (1 - alpha)),
+    g: Math.round(fgRgba.g * alpha + bgRgb.g * (1 - alpha)),
+    b: Math.round(fgRgba.b * alpha + bgRgb.b * (1 - alpha))
+  };
+}
+
+// Get RGB from any color format (hex or rgba)
+function getEffectiveRgb(color, bgHex = null) {
+  if (color.startsWith('#')) {
+    return hexToRgb(color);
+  } else if (color.startsWith('rgba')) {
+    const rgba = parseRgba(color);
+    if (rgba && bgHex) {
+      const bgRgb = hexToRgb(bgHex);
+      return blendColors(rgba, bgRgb);
+    }
+    return rgba;
+  }
+  return null;
+}
+
 // Calculate relative luminance (WCAG formula)
 function getLuminance(rgb) {
   const [r, g, b] = [rgb.r, rgb.g, rgb.b].map(v => {
@@ -27,106 +66,142 @@ function getLuminance(rgb) {
 }
 
 // Calculate contrast ratio
-function getContrastRatio(hex1, hex2) {
-  const rgb1 = hexToRgb(hex1);
-  const rgb2 = hexToRgb(hex2);
-  const l1 = getLuminance(rgb1);
-  const l2 = getLuminance(rgb2);
+function getContrastRatio(color1, color2, baseBackground = '#1a1a2e') {
+  // If color1 (foreground text) is on a semi-transparent background (color2),
+  // we need to blend the background with the base first
+  let bgRgb;
+  if (color2.startsWith('rgba')) {
+    bgRgb = getEffectiveRgb(color2, baseBackground);
+  } else {
+    bgRgb = hexToRgb(color2);
+  }
+
+  // Text color is always solid
+  const fgRgb = hexToRgb(color1);
+
+  const l1 = getLuminance(fgRgb);
+  const l2 = getLuminance(bgRgb);
   const lighter = Math.max(l1, l2);
   const darker = Math.min(l1, l2);
   return (lighter + 0.05) / (darker + 0.05);
 }
 
-// Check if passes WCAG
-function checkWCAG(ratio, level = 'AA') {
-  const AANormal = 4.5;
-  const AALarge = 3.0;
-  const AAANormal = 7.0;
-  const AAALarge = 4.5;
+// RGB to hex for display
+function rgbToHex(rgb) {
+  return '#' + [rgb.r, rgb.g, rgb.b].map(x => x.toString(16).padStart(2, '0')).join('');
+}
 
+// Check if passes WCAG
+function checkWCAG(ratio) {
   return {
-    AANormal: ratio >= AANormal,
-    AALarge: ratio >= AALarge,
-    AAANormal: ratio >= AAANormal,
-    AAALarge: ratio >= AAALarge,
+    AANormal: ratio >= 4.5,
+    AALarge: ratio >= 3.0,
+    AAANormal: ratio >= 7.0,
+    AAALarge: ratio >= 4.5,
   };
 }
 
-// Dark mode colors from index.css
-const darkColors = {
-  // Backgrounds
+// Dark mode base backgrounds
+const baseBackgrounds = {
   'bg-default': '#1a1a2e',
   'bg-card': '#252542',
   'bg-subtle': '#1e1e36',
+};
 
-  // Text
-  'text-body-dark': '#e8e8f0',
-  'text-body-default': '#c8c8d8',
+// Current dark mode colors from index.css (updated with new values)
+const darkColors = {
+  // Base backgrounds
+  ...baseBackgrounds,
+
+  // Text colors
+  'text-body-dark': '#f0f0f8',
+  'text-body-default': '#e0e0ec',
   'text-body-light': '#ffffff',
+  'text-body-subtle': '#a8a8c0',
   'text-placeholder': '#9a9ab0',
 
-  // Grays (WCAG AA compliant)
-  'grays-gray-100': '#2a2a4a',
-  'grays-gray-200': '#3a3a5a',
-  'grays-gray-300': '#707090',  // Updated for 3:1 border contrast
-  'grays-gray-400': '#7a7a9a',  // Updated for 3:1 border contrast
-  'grays-gray-500': '#9090b0',  // Updated for 4.5:1 text contrast
-  'grays-gray-600': '#a0a0c0',  // Updated
-  'grays-gray-700': '#b0b0d0',  // Updated
-  'grays-gray-900': '#e8e8f0',
+  // Alert backgrounds (semi-transparent on dark bg)
+  'alert-info-bg': 'rgba(180, 210, 255, 0.85)',
+  'alert-success-bg': 'rgba(176, 240, 208, 0.85)',
+  'alert-warning-bg': 'rgba(255, 224, 160, 0.85)',
+  'alert-danger-bg': 'rgba(255, 202, 202, 0.85)',
 
-  // Surfaces
-  'surface-faded-green': '#1a3a2a',
-  'surface-faded-red': '#3a2a2a',
-  'surface-light-blue': '#1a3a5a',
-  'surface-light-green': '#1a4a3a',
-  'surface-yellow': '#302818',  // Deep amber - cleaner than brown
+  // Alert text/border colors (dark, matching)
+  'alert-info-text': '#1a3a5a',
+  'alert-success-text': '#0a4030',
+  'alert-warning-text': '#3a3020',
+  'alert-danger-text': '#5a2020',
 
-  // Brand colors (dark mode adjusted)
+  // Tag backgrounds (semi-transparent)
+  'tag-neutral-bg': 'rgba(200, 200, 220, 0.85)',
+  'tag-info-bg': 'rgba(180, 210, 255, 0.85)',
+  'tag-warning-bg': 'rgba(255, 224, 160, 0.85)',
+  'tag-frist-bg': 'rgba(255, 231, 188, 0.85)',
+
+  // Tag text colors
+  'tag-neutral-text': '#3a3a5a',
+  'tag-info-text': '#1a3a5a',
+  'tag-warning-text': '#3a3020',
+  'tag-frist-text': '#3a3020',
+
+  // Row backgrounds (semi-transparent)
+  'row-te-bg': 'rgba(176, 240, 208, 0.85)',
+  'row-bh-bg': 'rgba(255, 224, 160, 0.85)',
+
+  // Row text colors
+  'row-te-text': '#0a4030',
+  'row-bh-text': '#3a3020',
+
+  // Surface colors (semi-transparent)
+  'surface-yellow': 'rgba(255, 224, 160, 0.85)',
+  'surface-light-blue': 'rgba(180, 210, 255, 0.85)',
+  'surface-light-green': 'rgba(176, 240, 208, 0.85)',
+  'surface-faded-red': 'rgba(255, 202, 202, 0.85)',
+  'surface-red': 'rgba(255, 180, 172, 0.85)',
+
+  // Border colors (dark, for contrast on light bg)
+  'border-blue': '#1a3a5a',
+  'border-green': '#0a4030',
+  'border-red': '#5a2020',
+  'border-yellow': '#5a4a20',
+
+  // Brand colors
   'brand-dark-blue-1000': '#8ab4ff',
   'brand-dark-green-1000': '#6adb8a',
-  'brand-warm-blue-1000': '#6a9aff',
-  'brand-neutrals-1000': '#e8e8f0',
+  'brand-yellow-1000': '#fbbf24',
   'brand-red-1000': '#ff6b6b',
-  'brand-yellow-500': '#302818',  // Warning alert background
-  'brand-yellow-1000': '#fbbf24',  // Golden amber accent
-  'brand-light-green-400': '#1a3a2a',  // Success alert background
+  'brand-neutrals-1000': '#f0f0f8',
 };
 
 // Define color combinations to test
 const combinations = [
-  // Main text on backgrounds
-  { name: 'Body text on default bg', fg: 'text-body-default', bg: 'bg-default', type: 'normal' },
-  { name: 'Dark text on default bg', fg: 'text-body-dark', bg: 'bg-default', type: 'normal' },
-  { name: 'Body text on card bg', fg: 'text-body-default', bg: 'bg-card', type: 'normal' },
-  { name: 'Dark text on card bg', fg: 'text-body-dark', bg: 'bg-card', type: 'normal' },
-  { name: 'Body text on subtle bg', fg: 'text-body-default', bg: 'bg-subtle', type: 'normal' },
-  { name: 'Placeholder text on card bg', fg: 'text-placeholder', bg: 'bg-card', type: 'normal' },
+  // ============ ALERTS ============
+  { name: 'Alert Info: text on bg', fg: 'alert-info-text', bg: 'alert-info-bg', type: 'normal', category: 'Alerts' },
+  { name: 'Alert Success: text on bg', fg: 'alert-success-text', bg: 'alert-success-bg', type: 'normal', category: 'Alerts' },
+  { name: 'Alert Warning: text on bg', fg: 'alert-warning-text', bg: 'alert-warning-bg', type: 'normal', category: 'Alerts' },
+  { name: 'Alert Danger: text on bg', fg: 'alert-danger-text', bg: 'alert-danger-bg', type: 'normal', category: 'Alerts' },
 
-  // Gray text variations
-  { name: 'Gray-500 on card bg', fg: 'grays-gray-500', bg: 'bg-card', type: 'normal' },
-  { name: 'Gray-600 on card bg', fg: 'grays-gray-600', bg: 'bg-card', type: 'normal' },
-  { name: 'Gray-700 on card bg', fg: 'grays-gray-700', bg: 'bg-card', type: 'normal' },
-  { name: 'Gray-700 on subtle bg', fg: 'grays-gray-700', bg: 'bg-subtle', type: 'normal' },
+  // ============ TAGS ============
+  { name: 'Tag Neutral: text on bg', fg: 'tag-neutral-text', bg: 'tag-neutral-bg', type: 'normal', category: 'Tags' },
+  { name: 'Tag Info: text on bg', fg: 'tag-info-text', bg: 'tag-info-bg', type: 'normal', category: 'Tags' },
+  { name: 'Tag Warning: text on bg', fg: 'tag-warning-text', bg: 'tag-warning-bg', type: 'normal', category: 'Tags' },
+  { name: 'Tag Frist: text on bg', fg: 'tag-frist-text', bg: 'tag-frist-bg', type: 'normal', category: 'Tags' },
 
-  // Badge/Status combinations
-  { name: 'Success: green text on green surface', fg: 'brand-dark-green-1000', bg: 'surface-light-green', type: 'normal' },
-  { name: 'Info: blue text on blue surface', fg: 'brand-dark-blue-1000', bg: 'surface-light-blue', type: 'normal' },
-  { name: 'Warning: neutrals text on yellow surface', fg: 'brand-neutrals-1000', bg: 'surface-yellow', type: 'normal' },
-  { name: 'Frist tag: dark text on yellow surface', fg: 'text-body-dark', bg: 'surface-yellow', type: 'normal' },
-  { name: 'Danger: red text on red surface', fg: 'brand-red-1000', bg: 'surface-faded-red', type: 'normal' },
+  // ============ TABLE ROWS ============
+  { name: 'Row TE: text on bg', fg: 'row-te-text', bg: 'row-te-bg', type: 'normal', category: 'Table Rows' },
+  { name: 'Row BH: text on bg', fg: 'row-bh-text', bg: 'row-bh-bg', type: 'normal', category: 'Table Rows' },
 
-  // Alert component combinations
-  { name: 'Warning Alert: blue text on yellow-500', fg: 'brand-dark-blue-1000', bg: 'brand-yellow-500', type: 'normal' },
-  { name: 'Success Alert: green text on green-400', fg: 'brand-dark-green-1000', bg: 'brand-light-green-400', type: 'normal' },
+  // ============ BORDERS ON LIGHT BG ============
+  { name: 'Border blue on info bg', fg: 'border-blue', bg: 'alert-info-bg', type: 'ui', category: 'Borders' },
+  { name: 'Border green on success bg', fg: 'border-green', bg: 'alert-success-bg', type: 'ui', category: 'Borders' },
+  { name: 'Border yellow on warning bg', fg: 'border-yellow', bg: 'alert-warning-bg', type: 'ui', category: 'Borders' },
+  { name: 'Border red on danger bg', fg: 'border-red', bg: 'alert-danger-bg', type: 'ui', category: 'Borders' },
 
-  // Borders/UI components (need 3:1)
-  { name: 'Gray-300 border on card bg', fg: 'grays-gray-300', bg: 'bg-card', type: 'ui' },
-  { name: 'Gray-400 border on card bg', fg: 'grays-gray-400', bg: 'bg-card', type: 'ui' },
-  { name: 'Gray-500 border on subtle bg', fg: 'grays-gray-500', bg: 'bg-subtle', type: 'ui' },
-
-  // Tooltip
-  { name: 'Light text on gray-900 (tooltip)', fg: 'text-body-light', bg: 'grays-gray-100', type: 'normal' },
+  // ============ MAIN TEXT ON DARK BG ============
+  { name: 'Body text on default bg', fg: 'text-body-default', bg: 'bg-default', type: 'normal', category: 'Main Text' },
+  { name: 'Body text on card bg', fg: 'text-body-default', bg: 'bg-card', type: 'normal', category: 'Main Text' },
+  { name: 'Subtle text on card bg', fg: 'text-body-subtle', bg: 'bg-card', type: 'normal', category: 'Main Text' },
+  { name: 'Placeholder on card bg', fg: 'text-placeholder', bg: 'bg-card', type: 'normal', category: 'Main Text' },
 ];
 
 console.log('='.repeat(80));
@@ -134,23 +209,42 @@ console.log('WCAG CONTRAST CHECK FOR DARK MODE COLORS');
 console.log('='.repeat(80));
 console.log('');
 console.log('Requirements: AA Normal text = 4.5:1, AA Large text/UI = 3:1');
+console.log('Base background for blending: #1a1a2e (bg-default)');
 console.log('');
 
 let failures = [];
 let warnings = [];
+let currentCategory = '';
 
 combinations.forEach(combo => {
+  // Print category header
+  if (combo.category !== currentCategory) {
+    currentCategory = combo.category;
+    console.log('-'.repeat(40));
+    console.log(`${currentCategory.toUpperCase()}`);
+    console.log('-'.repeat(40));
+  }
+
   const fgColor = darkColors[combo.fg];
   const bgColor = darkColors[combo.bg];
-  const ratio = getContrastRatio(fgColor, bgColor);
-  const wcag = checkWCAG(ratio);
 
+  // Calculate effective background (blend rgba with base if needed)
+  let effectiveBg = bgColor;
+  let effectiveBgHex = bgColor;
+  if (bgColor.startsWith('rgba')) {
+    const blended = getEffectiveRgb(bgColor, baseBackgrounds['bg-default']);
+    effectiveBgHex = rgbToHex(blended);
+    effectiveBg = `${bgColor} → ${effectiveBgHex}`;
+  }
+
+  const ratio = getContrastRatio(fgColor, bgColor, baseBackgrounds['bg-default']);
   const requiredRatio = combo.type === 'ui' ? 3.0 : 4.5;
   const passes = ratio >= requiredRatio;
   const status = passes ? '✅ PASS' : '❌ FAIL';
 
   console.log(`${status} ${combo.name}`);
-  console.log(`       ${combo.fg} (${fgColor}) on ${combo.bg} (${bgColor})`);
+  console.log(`       FG: ${fgColor}`);
+  console.log(`       BG: ${effectiveBg}`);
   console.log(`       Ratio: ${ratio.toFixed(2)}:1 (Required: ${requiredRatio}:1)`);
   console.log('');
 
@@ -159,6 +253,7 @@ combinations.forEach(combo => {
       ...combo,
       fgColor,
       bgColor,
+      effectiveBgHex,
       ratio,
       requiredRatio,
     });
@@ -204,19 +299,30 @@ if (failures.length > 0) {
 
   failures.forEach(f => {
     console.log(`\n${f.name}:`);
-    console.log(`  Current: ${f.fgColor} on ${f.bgColor} = ${f.ratio.toFixed(2)}:1`);
+    console.log(`  Current: ${f.fgColor} on ${f.effectiveBgHex} = ${f.ratio.toFixed(2)}:1`);
 
     // Calculate needed luminance adjustment
     const fgRgb = hexToRgb(f.fgColor);
-    const bgRgb = hexToRgb(f.bgColor);
+    const bgRgb = hexToRgb(f.effectiveBgHex);
+    const fgLum = getLuminance(fgRgb);
     const bgLum = getLuminance(bgRgb);
 
-    // For dark backgrounds, we need lighter foreground
-    // (L1 + 0.05) / (L2 + 0.05) >= 4.5
-    // L1 >= 4.5 * (L2 + 0.05) - 0.05
-    const neededLum = f.requiredRatio * (bgLum + 0.05) - 0.05;
-    console.log(`  Background luminance: ${bgLum.toFixed(4)}`);
-    console.log(`  Foreground needs luminance >= ${neededLum.toFixed(4)}`);
-    console.log(`  Consider: Lighten the foreground color or darken the background`);
+    // For light backgrounds (high luminance), we need darker foreground
+    // For dark backgrounds (low luminance), we need lighter foreground
+    if (bgLum > 0.5) {
+      // Light background - need darker text
+      const neededLum = (bgLum + 0.05) / f.requiredRatio - 0.05;
+      console.log(`  Background luminance: ${bgLum.toFixed(4)} (LIGHT)`);
+      console.log(`  Foreground luminance: ${fgLum.toFixed(4)}`);
+      console.log(`  Foreground needs luminance <= ${neededLum.toFixed(4)}`);
+      console.log(`  → DARKEN the text color`);
+    } else {
+      // Dark background - need lighter text
+      const neededLum = f.requiredRatio * (bgLum + 0.05) - 0.05;
+      console.log(`  Background luminance: ${bgLum.toFixed(4)} (DARK)`);
+      console.log(`  Foreground luminance: ${fgLum.toFixed(4)}`);
+      console.log(`  Foreground needs luminance >= ${neededLum.toFixed(4)}`);
+      console.log(`  → LIGHTEN the text color`);
+    }
   });
 }
