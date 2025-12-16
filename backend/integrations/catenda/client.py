@@ -1173,6 +1173,134 @@ class CatendaClient:
             return None
     
     # ==========================================
+    # TOPIC RELATIONS (BCF API - Catenda Extension)
+    # ==========================================
+
+    def list_related_topics(
+        self,
+        topic_id: str,
+        include_project_topics: bool = True
+    ) -> List[Dict]:
+        """
+        List alle relaterte topics for en gitt topic.
+
+        Args:
+            topic_id: Topic GUID
+            include_project_topics: Inkluder topics fra andre topic boards i samme prosjekt
+
+        Returns:
+            Liste med relaterte topics
+        """
+        if not self.topic_board_id:
+            logger.error("❌ Ingen topic board valgt")
+            return []
+
+        logger.info(f"🔗 Henter relaterte topics for {topic_id}...")
+
+        url = (f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}"
+               f"/topics/{topic_id}/related_topics")
+
+        params = {}
+        if include_project_topics:
+            params["includeBimsyncProjectTopics"] = "true"
+
+        try:
+            response = requests.get(url, headers=self.get_headers(), params=params)
+            response.raise_for_status()
+
+            related = response.json()
+            logger.info(f"✅ Fant {len(related)} relatert(e) topic(s)")
+
+            for rel in related:
+                logger.info(f"  - {rel.get('related_topic_guid')} (Board: {rel.get('bimsync_issue_board_ref')})")
+
+            return related
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved henting av relaterte topics: {e}")
+            return []
+
+    def create_topic_relations(
+        self,
+        topic_id: str,
+        related_topic_guids: List[str]
+    ) -> bool:
+        """
+        Opprett relasjoner fra en topic til andre topics.
+
+        Brukes for å knytte f.eks. en forseringssak til fristforlengelsessaker.
+
+        Args:
+            topic_id: Topic GUID (f.eks. forseringssaken)
+            related_topic_guids: Liste med GUIDs til topics som skal relateres
+
+        Returns:
+            True hvis vellykket
+        """
+        if not self.topic_board_id:
+            logger.error("❌ Ingen topic board valgt")
+            return False
+
+        logger.info(f"🔗 Oppretter {len(related_topic_guids)} relasjon(er) for topic {topic_id}...")
+
+        url = (f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}"
+               f"/topics/{topic_id}/related_topics")
+
+        # Payload er en liste med objekter
+        payload = [{"related_topic_guid": guid} for guid in related_topic_guids]
+
+        try:
+            response = requests.put(url, headers=self.get_headers(), json=payload)
+            response.raise_for_status()
+
+            logger.info(f"✅ Relasjoner opprettet!")
+            for guid in related_topic_guids:
+                logger.info(f"  - {topic_id} → {guid}")
+
+            return True
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved oppretting av topic-relasjoner: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"Response: {e.response.text}")
+            return False
+
+    def delete_topic_relation(
+        self,
+        topic_id: str,
+        related_topic_id: str
+    ) -> bool:
+        """
+        Slett en relasjon mellom to topics.
+
+        Args:
+            topic_id: Topic GUID
+            related_topic_id: GUID til relatert topic som skal fjernes
+
+        Returns:
+            True hvis vellykket
+        """
+        if not self.topic_board_id:
+            logger.error("❌ Ingen topic board valgt")
+            return False
+
+        logger.info(f"🗑️ Sletter relasjon {topic_id} → {related_topic_id}...")
+
+        url = (f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}"
+               f"/topics/{topic_id}/related_topics/{related_topic_id}")
+
+        try:
+            response = requests.delete(url, headers=self.get_headers())
+            response.raise_for_status()
+
+            logger.info("✅ Relasjon slettet")
+            return True
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved sletting av relasjon: {e}")
+            return False
+
+    # ==========================================
     # WEBHOOK MANAGEMENT (v2 API)
     # ==========================================
     
