@@ -160,13 +160,13 @@ function getRolleStyles(rolle: 'TE' | 'BH'): { bg: string; text: string; ring: s
   if (rolle === 'TE') {
     return {
       bg: 'bg-pkt-brand-green-1000',
-      text: 'text-role-te-text',
+      text: 'text-pkt-brand-green-1000',
       ring: 'ring-pkt-brand-green-1000',
     };
   }
   return {
     bg: 'bg-pkt-brand-yellow-1000',
-    text: 'text-role-bh-text',
+    text: 'text-pkt-brand-yellow-1000',
     ring: 'ring-pkt-brand-yellow-1000',
   };
 }

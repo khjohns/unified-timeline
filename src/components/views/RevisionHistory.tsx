@@ -118,7 +118,7 @@ function VederlagHistorikkTable({ entries }: VederlagHistorikkTableProps) {
         {/* Header */}
         <thead>
           <tr className="bg-pkt-bg-subtle border-b-2 border-pkt-grays-gray-300">
-            <th className="sticky left-0 z-10 bg-pkt-bg-subtle text-left py-3 px-4 font-medium text-pkt-grays-gray-600 min-w-[160px] border-r-2 border-pkt-grays-gray-300">
+            <th className="sticky left-0 z-10 bg-pkt-bg-subtle text-left py-3 px-4 font-medium text-pkt-grays-gray-600 w-[160px] border-r-2 border-pkt-grays-gray-300">
               Felt
             </th>
             {versions.map((v) => {
@@ -217,7 +217,7 @@ function FristHistorikkTable({ entries }: FristHistorikkTableProps) {
         {/* Header */}
         <thead>
           <tr className="bg-pkt-bg-subtle border-b-2 border-pkt-grays-gray-300">
-            <th className="sticky left-0 z-10 bg-pkt-bg-subtle text-left py-3 px-4 font-medium text-pkt-grays-gray-600 min-w-[160px] border-r-2 border-pkt-grays-gray-300">
+            <th className="sticky left-0 z-10 bg-pkt-bg-subtle text-left py-3 px-4 font-medium text-pkt-grays-gray-600 w-[160px] border-r-2 border-pkt-grays-gray-300">
               Felt
             </th>
             {versions.map((v) => {
@@ -290,6 +290,8 @@ function GroupHeader({ label, colSpan, color }: GroupHeaderProps) {
     yellow: 'bg-row-bh-bg text-row-bh-text border-l-4 border-l-row-bh-border',
   };
 
+  const bgClass = color === 'yellow' ? 'bg-row-bh-bg' : 'bg-row-te-bg';
+
   return (
     <tr>
       <td
@@ -299,7 +301,7 @@ function GroupHeader({ label, colSpan, color }: GroupHeaderProps) {
       </td>
       <td
         colSpan={colSpan - 1}
-        className={`py-2 px-4 border-y border-pkt-grays-gray-200 bg-row-te-bg ${color === 'yellow' ? 'bg-row-bh-bg' : 'bg-row-te-bg'}`}
+        className={`py-2 px-4 border-y border-pkt-grays-gray-200 ${bgClass}`}
       />
     </tr>
   );
