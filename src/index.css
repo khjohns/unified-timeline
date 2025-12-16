@@ -135,6 +135,8 @@
        ============================================ */
     --color-role-te-text: #034b45;  /* TE role label - dark green matching circle */
     --color-role-bh-text: #b45309;  /* BH role label - amber/gold matching circle */
+    --color-role-te-pill-bg: #43f8b6;  /* TE pill background - matches circle */
+    --color-role-bh-pill-bg: #f9c66b;  /* BH pill background - matches circle */
     --color-subsidiary-indicator: #ffe7bc;  /* Subsidiary status border/dot */
 
     /* Danger action button (e.g., Forsering) */
@@ -373,6 +375,8 @@
   /* Semantic role colors - dark mode */
   --color-role-te-text: #6adb8a;  /* TE matches green circle */
   --color-role-bh-text: #fbbf24;  /* BH matches yellow circle */
+  --color-role-te-pill-bg: rgba(67, 248, 182, 0.35);  /* TE pill - semi-transparent green */
+  --color-role-bh-pill-bg: rgba(251, 191, 36, 0.35);  /* BH pill - semi-transparent amber */
   --color-subsidiary-indicator: #ff8a80;  /* Coral/salmon red */
 
   /* Danger action button - dark mode */

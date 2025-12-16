@@ -162,7 +162,7 @@ function getRolleStyles(rolle: 'TE' | 'BH'): { bg: string; text: string; ring: s
       bg: 'bg-pkt-brand-green-1000',
       text: 'text-pkt-brand-green-1000',
       ring: 'ring-pkt-brand-green-1000',
-      pillBg: 'bg-pkt-brand-green-1000',
+      pillBg: 'bg-role-te-pill-bg',
       pillText: 'text-row-te-text',
     };
   }
@@ -170,7 +170,7 @@ function getRolleStyles(rolle: 'TE' | 'BH'): { bg: string; text: string; ring: s
     bg: 'bg-pkt-brand-yellow-1000',
     text: 'text-pkt-brand-yellow-1000',
     ring: 'ring-pkt-brand-yellow-1000',
-    pillBg: 'bg-pkt-brand-yellow-1000',
+    pillBg: 'bg-role-bh-pill-bg',
     pillText: 'text-row-bh-text',
   };
 }
