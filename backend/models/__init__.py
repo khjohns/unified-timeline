@@ -41,10 +41,17 @@ from models.events import (
 )
 
 from models.sak_state import (
+    # Sakstype og relasjoner
+    SaksType,
+    SakRelasjon,
+    # Spor-tilstander
     SakState,
     GrunnlagTilstand,
     VederlagTilstand,
     FristTilstand,
+    ForseringTilstand,
+    ForseringData,
+    # Oversikter
     SakOversikt,
     SporOversikt,
 )
@@ -71,8 +78,10 @@ __all__ = [
     # Data
     'VarselInfo', 'GrunnlagData', 'VederlagData', 'FristData',
     'GrunnlagResponsData', 'VederlagResponsData', 'FristResponsData',
-    # State
+    # State & Sakstype
+    'SaksType', 'SakRelasjon',
     'SakState', 'GrunnlagTilstand', 'VederlagTilstand', 'FristTilstand',
+    'ForseringTilstand', 'ForseringData',
     'SakOversikt', 'SporOversikt',
     # API
     'OversiktResponse', 'GrunnlagResponse', 'VederlagResponse',

@@ -124,14 +124,16 @@ init_limiter(app)
 from routes.utility_routes import utility_bp
 from routes.event_routes import events_bp
 from routes.webhook_routes import webhook_bp
+from routes.forsering_routes import forsering_bp
 from routes.error_handlers import register_error_handlers
 
 # Register event-sourced routes
 app.register_blueprint(utility_bp)
 app.register_blueprint(events_bp)
 app.register_blueprint(webhook_bp)
+app.register_blueprint(forsering_bp)
 
-logger.info("✅ Event Sourcing Blueprints registered")
+logger.info("✅ Event Sourcing Blueprints registered (inkl. Forsering)")
 
 # Register error handlers
 register_error_handlers(app)
@@ -160,6 +162,11 @@ if __name__ == "__main__":
     print("\n  ┌─ State & Timeline")
     print("  ├── GET    /api/cases/<id>/state    Get computed case state")
     print("  └── GET    /api/cases/<id>/timeline Get event timeline")
+    print("\n  ┌─ Forsering (§33.8)")
+    print("  ├── POST   /api/forsering/opprett           Opprett forseringssak")
+    print("  ├── GET    /api/forsering/<id>/relaterte    Hent relaterte saker")
+    print("  ├── GET    /api/forsering/<id>/kontekst     Hent komplett kontekst")
+    print("  └── POST   /api/forsering/valider           Valider 30%-regelen")
     print("\n  ┌─ Utilities")
     print("  ├── GET    /api/health              Health check")
     print("  ├── GET    /api/csrf                Get CSRF token")

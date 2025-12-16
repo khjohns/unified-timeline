@@ -6,6 +6,7 @@ Den beregnes fra event-loggen og representerer "nå-situasjonen".
 
 SakState er READ-ONLY og regenereres hver gang fra events.
 """
+from enum import Enum
 from pydantic import BaseModel, Field, computed_field
 from typing import Optional, List, Union
 from datetime import datetime
@@ -18,6 +19,50 @@ from models.events import (
     FristBeregningResultat,
     AnyEvent,
 )
+
+
+# ============ SAKSTYPE OG RELASJONER ============
+
+class SaksType(str, Enum):
+    """
+    Type sak.
+
+    STANDARD: Ordinær endringssak med grunnlag/vederlag/frist-spor
+    FORSERING: § 33.8 forseringssak som refererer til avslåtte fristforlengelser
+    """
+    STANDARD = "standard"
+    FORSERING = "forsering"
+    # Fremtidige utvidelser:
+    # REKLAMASJON = "reklamasjon"
+    # SLUTTOPPGJOR = "sluttoppgjor"
+
+
+class SakRelasjon(BaseModel):
+    """
+    Relasjon til en annen sak.
+
+    Merk: Catenda API lagrer kun `related_topic_guid` uten semantisk type.
+    Relasjonstype utledes fra sakstype:
+    - FORSERING sak → relaterte saker er "basert_paa" (avslåtte fristforlengelser)
+    - Fremtidige sakstyper kan ha egne utledningsregler
+    """
+    relatert_sak_id: str = Field(
+        ...,
+        description="Catenda topic GUID for relatert sak"
+    )
+    relatert_sak_tittel: Optional[str] = Field(
+        default=None,
+        description="Cached tittel for display"
+    )
+    # Fra Catenda API response:
+    bimsync_issue_board_ref: Optional[str] = Field(
+        default=None,
+        description="Topic board ID for cross-board relasjoner"
+    )
+    bimsync_issue_number: Optional[int] = Field(
+        default=None,
+        description="Lesbart saksnummer i Catenda"
+    )
 
 
 # ============ SPOR-TILSTANDER ============
@@ -247,6 +292,97 @@ class ForseringTilstand(BaseModel):
     )
 
 
+class ForseringData(BaseModel):
+    """
+    Data spesifikk for forseringssaker (§ 33.8) som egen sak.
+
+    Denne modellen brukes når forsering er modellert som en egen sak
+    med relasjoner til avslåtte fristforlengelsessaker (relasjonell modell).
+
+    Forskjell fra ForseringTilstand:
+    - ForseringTilstand: Embedded i FristTilstand (gammel modell)
+    - ForseringData: For forseringssak som egen sak (ny modell)
+    """
+    # Referanser til opprinnelige saker
+    avslatte_fristkrav: List[str] = Field(
+        default_factory=list,
+        description="SAK-IDs til avslåtte fristforlengelser"
+    )
+
+    # Varsling
+    dato_varslet: str = Field(
+        ...,
+        description="Dato forsering ble varslet (ISO format)"
+    )
+    estimert_kostnad: float = Field(
+        ...,
+        description="TE's estimerte forseringskostnad"
+    )
+    bekreft_30_prosent_regel: bool = Field(
+        default=False,
+        description="TE bekrefter kostnad < dagmulkt + 30%"
+    )
+
+    # Kalkulasjonsgrunnlag
+    avslatte_dager: int = Field(
+        default=0,
+        description="Sum av avslåtte dager fra fristforlengelsene"
+    )
+    dagmulktsats: float = Field(
+        default=0.0,
+        description="Dagmulktsats fra kontrakten (NOK per dag)"
+    )
+    maks_forseringskostnad: float = Field(
+        default=0.0,
+        description="Beregnet: avslatte_dager * dagmulktsats * 1.3"
+    )
+
+    # Status
+    er_iverksatt: bool = Field(
+        default=False,
+        description="Om forsering er iverksatt"
+    )
+    dato_iverksatt: Optional[str] = Field(
+        default=None,
+        description="Dato forsering ble iverksatt"
+    )
+    er_stoppet: bool = Field(
+        default=False,
+        description="True hvis BH godkjenner frist etter varsling"
+    )
+    dato_stoppet: Optional[str] = Field(
+        default=None,
+        description="Dato forsering ble stoppet"
+    )
+    paalopte_kostnader: Optional[float] = Field(
+        default=None,
+        description="Påløpte kostnader ved stopp"
+    )
+
+    # BH respons
+    bh_aksepterer_forsering: Optional[bool] = Field(
+        default=None,
+        description="Om BH aksepterer forseringskravet"
+    )
+    bh_godkjent_kostnad: Optional[float] = Field(
+        default=None,
+        description="Kostnad godkjent av BH"
+    )
+    bh_begrunnelse: Optional[str] = Field(
+        default=None,
+        description="BH's begrunnelse"
+    )
+
+    # Computed field for visning
+    @computed_field
+    @property
+    def kostnad_innenfor_grense(self) -> bool:
+        """Sjekker om estimert kostnad er innenfor 30%-grensen"""
+        if self.maks_forseringskostnad <= 0:
+            return False
+        return self.estimert_kostnad <= self.maks_forseringskostnad
+
+
 class FristTilstand(BaseModel):
     """Aggregert tilstand for frist-sporet"""
     status: SporStatus = Field(
@@ -380,7 +516,23 @@ class SakState(BaseModel):
     sak_id: str = Field(..., description="Sak-ID")
     sakstittel: str = Field(default="", description="Sakstittel")
 
-    # De tre sporene
+    # Sakstype og relasjoner (ny relasjonell modell for forsering)
+    sakstype: SaksType = Field(
+        default=SaksType.STANDARD,
+        description="Type sak: standard endringssak eller forseringssak"
+    )
+    relaterte_saker: List[SakRelasjon] = Field(
+        default_factory=list,
+        description="Relasjoner til andre saker (f.eks. forseringssak → avslåtte fristforlengelser)"
+    )
+
+    # Forseringsdata (kun for sakstype=FORSERING)
+    forsering_data: Optional[ForseringData] = Field(
+        default=None,
+        description="Data for forseringssak (kun når sakstype=FORSERING)"
+    )
+
+    # De tre sporene (kun relevant for sakstype=STANDARD)
     grunnlag: GrunnlagTilstand = Field(
         default_factory=GrunnlagTilstand,
         description="Tilstand for grunnlag-sporet"

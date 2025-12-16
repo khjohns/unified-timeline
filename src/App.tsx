@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { ExampleCasesPage } from './pages/ExampleCasesPage';
 import { CasePage } from './pages/CasePage';
+import { ForseringPage } from './pages/ForseringPage';
 import { ComponentShowcase } from './pages/ComponentShowcase';
 import { AuthLanding } from './pages/AuthLanding';
 
@@ -12,6 +13,7 @@ import { AuthLanding } from './pages/AuthLanding';
  * - / : Auth landing (handles magic link token, redirects to case)
  * - /demo : Example cases selector (mock mode)
  * - /saker/:sakId : Case detail view (timeline + dashboard + actions)
+ * - /forsering/:sakId : Forsering case view (§33.8)
  * - /showcase : Component showcase for testing primitives
  */
 const App: React.FC = () => {
@@ -20,6 +22,7 @@ const App: React.FC = () => {
       <Route path="/" element={<AuthLanding />} />
       <Route path="/demo" element={<ExampleCasesPage />} />
       <Route path="/saker/:sakId" element={<CasePage />} />
+      <Route path="/forsering/:sakId" element={<ForseringPage />} />
       <Route path="/showcase" element={<ComponentShowcase />} />
     </Routes>
   );

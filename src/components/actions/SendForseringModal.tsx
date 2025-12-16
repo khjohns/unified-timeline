@@ -16,6 +16,7 @@
  */
 
 import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Modal } from '../primitives/Modal';
 import { Button } from '../primitives/Button';
 import { FormField } from '../primitives/FormField';
@@ -28,8 +29,9 @@ import { Checkbox } from '../primitives/Checkbox';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useSubmitEvent } from '../../hooks/useSubmitEvent';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useConfirmClose } from '../../hooks/useConfirmClose';
+import { apiFetch } from '../../api/client';
 import type { FristBeregningResultat } from '../../types/timeline';
 
 // ============================================================================
@@ -76,6 +78,24 @@ const sendForseringSchema = z.object({
 type SendForseringFormData = z.infer<typeof sendForseringSchema>;
 
 // ============================================================================
+// API TYPES
+// ============================================================================
+
+interface OpprettForseringRequest {
+  avslatte_sak_ids: string[];
+  estimert_kostnad: number;
+  dagmulktsats: number;
+  begrunnelse: string;
+  avslatte_dager: number;
+}
+
+interface OpprettForseringResponse {
+  success: boolean;
+  forsering_sak_id: string;
+  message?: string;
+}
+
+// ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
 
@@ -97,6 +117,9 @@ export function SendForseringModal({
   dagmulktsats,
   grunnlagAvslagTrigger = false,
 }: SendForseringModalProps) {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
   // Calculate rejected days
   const avslatteDager = fristData.krevde_dager - fristData.godkjent_dager;
 
@@ -104,7 +127,7 @@ export function SendForseringModal({
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting, isDirty },
+    formState: { errors, isDirty },
     reset,
     watch,
     control,
@@ -122,10 +145,20 @@ export function SendForseringModal({
     onClose: () => onOpenChange(false),
   });
 
-  const mutation = useSubmitEvent(sakId, {
-    onSuccess: () => {
+  // Mutation to create forsering case and navigate to it
+  const mutation = useMutation({
+    mutationFn: (data: OpprettForseringRequest) =>
+      apiFetch<OpprettForseringResponse>('/api/forsering/opprett', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: (response) => {
+      // Invalidate queries to refetch case data
+      queryClient.invalidateQueries({ queryKey: ['case', sakId] });
       reset();
       onOpenChange(false);
+      // Navigate to the new forsering case
+      navigate(`/forsering/${response.forsering_sak_id}`);
     },
   });
 
@@ -144,18 +177,11 @@ export function SendForseringModal({
   // Submit handler
   const onSubmit = (data: SendForseringFormData) => {
     mutation.mutate({
-      eventType: 'forsering_varsel',
-      data: {
-        frist_krav_id: fristKravId,
-        respons_frist_id: responsFristId,
-        estimert_kostnad: data.estimert_kostnad,
-        begrunnelse: data.begrunnelse,
-        bekreft_30_prosent: data.bekreft_30_prosent,
-        dato_iverksettelse: data.dato_iverksettelse,
-        avslatte_dager: avslatteDager,
-        dagmulktsats: data.dagmulktsats,
-        grunnlag_avslag_trigger: grunnlagAvslagTrigger,
-      },
+      avslatte_sak_ids: [sakId],
+      estimert_kostnad: data.estimert_kostnad,
+      dagmulktsats: data.dagmulktsats,
+      begrunnelse: data.begrunnelse,
+      avslatte_dager: avslatteDager,
     });
   };
 
@@ -357,7 +383,7 @@ export function SendForseringModal({
               type="button"
               variant="ghost"
               onClick={handleClose}
-              disabled={isSubmitting}
+              disabled={mutation.isPending}
               size="lg"
               className="w-full sm:w-auto"
             >
@@ -366,11 +392,11 @@ export function SendForseringModal({
             <Button
               type="submit"
               variant="primary"
-              disabled={isSubmitting || !erInnenforGrense}
+              disabled={mutation.isPending || !erInnenforGrense}
               size="lg"
               className="w-full sm:w-auto"
             >
-              {isSubmitting ? 'Sender...' : 'Send forseringsvarsel'}
+              {mutation.isPending ? 'Oppretter forseringssak...' : 'Opprett forseringssak'}
             </Button>
           </div>
         </form>

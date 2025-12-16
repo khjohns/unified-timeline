@@ -83,6 +83,30 @@ export type OverordnetStatus =
   | 'LUKKET'
   | 'LUKKET_TRUKKET';
 
+// ========== SAKSTYPE OG RELASJONER ==========
+
+/**
+ * Type sak.
+ * - standard: Ordinær endringssak med grunnlag/vederlag/frist-spor
+ * - forsering: § 33.8 forseringssak som refererer til avslåtte fristforlengelser
+ */
+export type SaksType = 'standard' | 'forsering';
+
+/**
+ * Relasjon til en annen sak.
+ *
+ * Merk: Catenda API lagrer kun related_topic_guid uten semantisk type.
+ * Relasjonstype utledes fra sakstype i UI-laget:
+ * - forsering sak → relaterte saker er "basert_paa" (avslåtte fristforlengelser)
+ */
+export interface SakRelasjon {
+  relatert_sak_id: string;
+  relatert_sak_tittel?: string;
+  // Fra Catenda API response:
+  bimsync_issue_board_ref?: string;  // Topic board ID for cross-board relasjoner
+  bimsync_issue_number?: number;     // Lesbart saksnummer i Catenda
+}
+
 // ========== TRACK STATES (Read-Only) ==========
 
 export interface GrunnlagTilstand {
@@ -214,7 +238,7 @@ export interface FristTilstand {
   antall_versjoner: number;
 }
 
-// Forsering state (§33.8)
+// Forsering state (§33.8) - Embedded i FristTilstand (gammel modell)
 export interface ForseringTilstand {
   er_varslet: boolean;
   dato_varslet?: string;
@@ -228,13 +252,58 @@ export interface ForseringTilstand {
   paalopte_kostnader?: number;       // Costs incurred before stop
 }
 
+/**
+ * Data spesifikk for forseringssaker (§ 33.8) som egen sak.
+ *
+ * Denne interfacen brukes når forsering er modellert som en egen sak
+ * med relasjoner til avslåtte fristforlengelsessaker (relasjonell modell).
+ *
+ * Forskjell fra ForseringTilstand:
+ * - ForseringTilstand: Embedded i FristTilstand (gammel modell)
+ * - ForseringData: For forseringssak som egen sak (ny modell)
+ */
+export interface ForseringData {
+  // Referanser til opprinnelige saker
+  avslatte_fristkrav: string[];  // SAK-IDs til avslåtte fristforlengelser
+
+  // Varsling
+  dato_varslet: string;
+  estimert_kostnad: number;
+  bekreft_30_prosent_regel: boolean;
+
+  // Kalkulasjonsgrunnlag
+  avslatte_dager: number;           // Sum av avslåtte dager
+  dagmulktsats: number;             // NOK per dag
+  maks_forseringskostnad: number;   // Beregnet: avslatte_dager * dagmulktsats * 1.3
+
+  // Status
+  er_iverksatt: boolean;
+  dato_iverksatt?: string;
+  er_stoppet: boolean;
+  dato_stoppet?: string;
+  paalopte_kostnader?: number;
+
+  // BH respons
+  bh_aksepterer_forsering?: boolean;
+  bh_godkjent_kostnad?: number;
+  bh_begrunnelse?: string;
+
+  // Computed (fra backend)
+  kostnad_innenfor_grense: boolean;
+}
+
 // ========== MAIN STATE (Read-Only) ==========
 
 export interface SakState {
   sak_id: string;
   sakstittel: string;
 
-  // The three tracks
+  // Sakstype og relasjoner (ny relasjonell modell for forsering)
+  sakstype: SaksType;
+  relaterte_saker: SakRelasjon[];
+  forsering_data?: ForseringData;  // Kun for sakstype='forsering'
+
+  // The three tracks (kun relevant for sakstype='standard')
   grunnlag: GrunnlagTilstand;
   vederlag: VederlagTilstand;
   frist: FristTilstand;

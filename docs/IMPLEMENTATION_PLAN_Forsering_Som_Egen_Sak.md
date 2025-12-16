@@ -45,18 +45,21 @@ class SaksType(str, Enum):
     # REKLAMASJON = "reklamasjon"
     # SLUTTOPPGJOR = "sluttoppgjor"
 
-class RelasjonsType(str, Enum):
-    BASERT_PAA = "basert_paa"       # Forsering basert på avslått fristforlengelse
-    UTLOST_AV = "utlost_av"         # Generisk "triggered by" relasjon
-    ERSTATTER = "erstatter"         # Sak som erstatter en annen
-
 @dataclass
 class SakRelasjon:
-    """Relasjon til en annen sak."""
-    relatert_sak_id: str            # Catenda topic GUID
-    relasjonstype: RelasjonsType
-    relatert_sak_tittel: Optional[str] = None  # Cached for display
-    relatert_event_id: Optional[str] = None    # Spesifikt event (f.eks. BH's avslag)
+    """
+    Relasjon til en annen sak.
+
+    Merk: Catenda API lagrer kun `related_topic_guid` uten semantisk type.
+    Relasjonstype utledes fra sakstype:
+    - FORSERING sak → relaterte saker er "basert_paa" (avslåtte fristforlengelser)
+    - Fremtidige sakstyper kan ha egne utledningsregler
+    """
+    relatert_sak_id: str                        # Catenda topic GUID
+    relatert_sak_tittel: Optional[str] = None   # Cached for display
+    # Fra Catenda API response:
+    bimsync_issue_board_ref: Optional[str] = None  # Topic board ID for cross-board relasjoner
+    bimsync_issue_number: Optional[int] = None     # Lesbart saksnummer
 ```
 
 ### 1.2 Oppdater `SakState` klassen
@@ -125,14 +128,18 @@ class ForseringData:
 // Sakstyper
 export type SaksType = 'standard' | 'forsering';
 
-// Relasjonstyper mellom saker
-export type RelasjonsType = 'basert_paa' | 'utlost_av' | 'erstatter';
-
+/**
+ * Relasjon til en annen sak.
+ *
+ * Merk: Catenda API lagrer kun related_topic_guid uten semantisk type.
+ * Relasjonstype utledes fra sakstype i UI-laget.
+ */
 export interface SakRelasjon {
   relatert_sak_id: string;
-  relasjonstype: RelasjonsType;
   relatert_sak_tittel?: string;
-  relatert_event_id?: string;
+  // Fra Catenda API response:
+  bimsync_issue_board_ref?: string;  // Topic board ID for cross-board relasjoner
+  bimsync_issue_number?: number;     // Lesbart saksnummer
 }
 
 // Forseringsspesifikke data
@@ -190,7 +197,7 @@ class ForseringService:
     def __init__(self, catenda_client: CatendaClient):
         self.client = catenda_client
 
-    async def opprett_forseringssak(
+    def opprett_forseringssak(
         self,
         avslatte_sak_ids: List[str],
         estimert_kostnad: float,
@@ -212,7 +219,7 @@ class ForseringService:
         # 1. Hent info fra avslåtte saker
         avslatte_dager = 0
         for sak_id in avslatte_sak_ids:
-            sak = await self._hent_sak(sak_id)
+            sak = self._hent_sak(sak_id)
             if sak and sak.frist and sak.frist.bh_resultat == 'avslatt':
                 avslatte_dager += sak.frist.krevd_dager or 0
 
@@ -226,7 +233,7 @@ class ForseringService:
                 f"dagmulkt + 30% ({maks_kostnad:,.0f})"
             )
 
-        # 4. Opprett topic i Catenda
+        # 4. Opprett topic i Catenda (NB: "Forsering" må legges til som topic_type i Catenda først)
         titler = ", ".join([f"SAK-{id[:8]}" for id in avslatte_sak_ids])
         topic = self.client.create_topic(
             title=f"Forsering § 33.8 - {titler}",
@@ -249,7 +256,7 @@ class ForseringService:
             "sak_id": topic['guid'],
             "sakstype": "forsering",
             "relaterte_saker": [
-                {"relatert_sak_id": id, "relasjonstype": "basert_paa"}
+                {"relatert_sak_id": id}
                 for id in avslatte_sak_ids
             ],
             "forsering_data": {
@@ -265,7 +272,7 @@ class ForseringService:
             }
         }
 
-    async def hent_relaterte_saker(self, sak_id: str) -> List[SakRelasjon]:
+    def hent_relaterte_saker(self, sak_id: str) -> List[SakRelasjon]:
         """Henter alle relaterte saker for en gitt sak."""
         related = self.client.list_related_topics(sak_id)
 
@@ -275,8 +282,9 @@ class ForseringService:
             topic = self.client.get_topic_details(rel['related_topic_guid'])
             relasjoner.append(SakRelasjon(
                 relatert_sak_id=rel['related_topic_guid'],
-                relasjonstype=RelasjonsType.BASERT_PAA,  # Default, kan utvides
-                relatert_sak_tittel=topic['title'] if topic else None
+                relatert_sak_tittel=topic['title'] if topic else None,
+                bimsync_issue_board_ref=rel.get('bimsync_issue_board_ref'),
+                bimsync_issue_number=rel.get('bimsync_issue_number')
             ))
 
         return relasjoner
@@ -362,10 +370,17 @@ Viser:
 ```tsx
 interface Props {
   relaterteSaker: SakRelasjon[];
+  sakstype: SaksType;  // Brukes for å utlede visning av relasjonstype
 }
 
-export function RelaterteSakerBadge({ relaterteSaker }: Props) {
+export function RelaterteSakerBadge({ relaterteSaker, sakstype }: Props) {
   if (relaterteSaker.length === 0) return null;
+
+  // Utled relasjonsikon basert på sakstype
+  const getRelationPrefix = () => {
+    if (sakstype === 'forsering') return '← ';  // "basert på"
+    return '';
+  };
 
   return (
     <div className="flex gap-2">
@@ -374,9 +389,10 @@ export function RelaterteSakerBadge({ relaterteSaker }: Props) {
           key={rel.relatert_sak_id}
           to={`/sak/${rel.relatert_sak_id}`}
           className="badge badge-outline"
+          title={rel.bimsync_issue_number ? `#${rel.bimsync_issue_number}` : undefined}
         >
-          {rel.relasjonstype === 'basert_paa' && '← '}
-          {rel.relatert_sak_tittel || rel.relatert_sak_id.slice(0, 8)}
+          {getRelationPrefix()}
+          {rel.relatert_sak_tittel || `#${rel.bimsync_issue_number || rel.relatert_sak_id.slice(0, 8)}`}
         </Link>
       ))}
     </div>
@@ -426,12 +442,7 @@ For saker som allerede har `frist.forsering` (embedded modell):
 
 ## Risiko og avveininger
 
-### Risiko 1: Catenda topic_type
-Catenda kan ha begrensninger på hvilke `topic_type` verdier som er gyldige. Må verifiseres mot API.
-
-**Mitigering:** Test med `topic_type="Request"` først, utvid ved behov.
-
-### Risiko 2: Synkronisering
+### Risiko 1: Synkronisering
 Med forsering som egen sak må vi holde to saker synkronisert (original fristforlengelse og forseringssak).
 
 **Mitigering:** Bruk webhooks for å lytte på endringer i begge saker.
@@ -440,6 +451,29 @@ Med forsering som egen sak må vi holde to saker synkronisert (original fristfor
 Embedded modell er enklere, men relasjonell modell er mer korrekt ift. NS 8407 og gir bedre sporbarhet.
 
 **Beslutning:** Gå for relasjonell modell for langsiktig vedlikeholdbarhet.
+
+---
+
+## API-verifisering
+
+Implementeringsplanen er kvalitetssikret mot `topic-api-openapi.yaml` (2025-12-16).
+
+### Verifiserte endepunkter
+
+| Endepunkt | Metode | Status |
+|-----------|--------|--------|
+| `/topics` | POST | Støtter `title`, `description`, `topic_type`, `topic_status` |
+| `/topics/{id}/related_topics` | GET | Returnerer `related_topic_guid`, `bimsync_issue_board_ref`, `bimsync_issue_number` |
+| `/topics/{id}/related_topics` | PUT | Tar array med `{ related_topic_guid }` |
+| `/topics/{id}/related_topics/{related-id}` | DELETE | Returnerer 204 |
+
+### Designvalg basert på API-begrensninger
+
+1. **Relasjonstype lagres ikke i Catenda** - API-et støtter kun `related_topic_guid`. Semantisk type utledes fra `sakstype` på applikasjonsnivå.
+
+2. **topic_type="Forsering"** - Må legges til som ny type i Catenda UI før bruk.
+
+3. **Synkron CatendaClient** - ForseringService bruker synkrone kall for konsistens med eksisterende klient.
 
 ---
 
