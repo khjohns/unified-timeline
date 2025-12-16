@@ -84,47 +84,59 @@ export function UpdateResponseFristModal({
   const nyttResultat = watch('nytt_resultat') as FristBeregningResultat;
   const nyGodkjentDager = watch('ny_godkjent_dager');
 
+  // Asymmetrisk endringsrett: BH kan kun endre til TEs gunst
+  const forrigeResultat = lastResponseEvent.resultat;
+  const varAvslatt = forrigeResultat === 'avslatt';
+  const varDelvisGodkjent = forrigeResultat === 'delvis_godkjent';
+  const varGodkjent = forrigeResultat === 'godkjent';
+  const tidligereGodkjentDager = lastResponseEvent.godkjent_dager ?? 0;
+
   // Check if this will stop forsering
   const stopperForsering = useMemo(() => {
     return erForseringVarslet &&
       (nyttResultat === 'godkjent' || nyttResultat === 'delvis_godkjent');
   }, [erForseringVarslet, nyttResultat]);
 
-  // Get available options based on forsering status
+  // Get available options based on current state - kun endringer til TEs gunst
   const getOptions = () => {
     const options: { value: FristBeregningResultat; label: string; description?: string }[] = [];
 
-    options.push({
-      value: 'godkjent',
-      label: erForseringVarslet
-        ? 'Snu i saken: Godkjenn fristforlengelsen'
-        : `Godkjenn ${krevdDager} dager`,
-      description: erForseringVarslet
-        ? 'STOPPER FORSERINGEN. TE får dagene, og du slipper å betale forseringskostnaden.'
-        : 'Fristen forlenges tilsvarende.',
-    });
-
-    options.push({
-      value: 'delvis_godkjent',
-      label: 'Snu i saken: Godkjenn delvis',
-      description: erForseringVarslet
-        ? 'Delvis godkjenning kan også stoppe forsering.'
-        : 'Godkjenn færre dager enn kravet.',
-    });
-
-    if (erForseringVarslet) {
+    if (varAvslatt) {
+      // Fra avslått: Kan snu til godkjent eller delvis_godkjent (til TEs gunst)
       options.push({
-        value: 'avslatt',
-        label: 'Oppretthold avslag (Bestrid forsering)',
-        description: 'Du mener fortsatt TE ikke har krav på frist. Du tar risikoen for forseringskostnaden.',
+        value: 'godkjent',
+        label: erForseringVarslet
+          ? 'Snu i saken: Godkjenn fristforlengelsen'
+          : `Snu til: Godkjenn ${krevdDager} dager`,
+        description: erForseringVarslet
+          ? 'STOPPER FORSERINGEN. TE får dagene, og du slipper å betale forseringskostnaden.'
+          : 'Fristen forlenges tilsvarende.',
       });
-    } else {
       options.push({
-        value: 'avslatt',
-        label: 'Oppretthold avslag',
-        description: 'Det er ikke grunnlag for fristforlengelse.',
+        value: 'delvis_godkjent',
+        label: 'Snu til: Delvis godkjent',
+        description: erForseringVarslet
+          ? 'Delvis godkjenning kan også stoppe forsering.'
+          : 'Godkjenn færre dager enn kravet.',
+      });
+    } else if (varDelvisGodkjent) {
+      // Fra delvis_godkjent: Kan kun øke antall dager (til TEs gunst)
+      options.push({
+        value: 'godkjent',
+        label: erForseringVarslet
+          ? 'Øk til: Godkjenn fullt (stopper forsering)'
+          : `Øk til: Godkjenn ${krevdDager} dager`,
+        description: erForseringVarslet
+          ? 'STOPPER FORSERINGEN. TE får alle krevde dager.'
+          : 'Fristen forlenges tilsvarende.',
+      });
+      options.push({
+        value: 'delvis_godkjent',
+        label: 'Øk antall godkjente dager',
+        description: `Nåværende: ${tidligereGodkjentDager} dager. Du kan kun øke antallet.`,
       });
     }
+    // Fra godkjent: Ingen alternativer - standpunktet er bindende
 
     return options;
   };
@@ -198,6 +210,16 @@ export function UpdateResponseFristModal({
           </div>
         )}
 
+        {/* Info when already approved - standpoint is binding */}
+        {varGodkjent && (
+          <Alert variant="info" title="Standpunktet er bindende">
+            <p>
+              Du har allerede godkjent fristforlengelsen fullt ut. Dette standpunktet er bindende
+              og kan ikke endres til entreprenørens ugunst.
+            </p>
+          </Alert>
+        )}
+
         {/* Response options */}
         <FormField
           label="Ny avgjørelse"
@@ -228,7 +250,13 @@ export function UpdateResponseFristModal({
         {/* Partial approval input */}
         {nyttResultat === 'delvis_godkjent' && (
           <div className="ml-6 p-4 bg-pkt-grays-gray-100 rounded animate-in fade-in duration-200">
-            <FormField label="Antall dager du godkjenner">
+            <FormField
+              label="Antall dager du godkjenner"
+              hint={varDelvisGodkjent
+                ? `Må være høyere enn tidligere godkjent (${tidligereGodkjentDager} dager)`
+                : undefined
+              }
+            >
               <Controller
                 name="ny_godkjent_dager"
                 control={control}
@@ -238,12 +266,17 @@ export function UpdateResponseFristModal({
                     value={field.value ?? ''}
                     onChange={(e) => field.onChange(Number(e.target.value))}
                     max={krevdDager - 1}
-                    min={0}
+                    min={varDelvisGodkjent ? tidligereGodkjentDager + 1 : 1}
                     width="xs"
                   />
                 )}
               />
             </FormField>
+            {varDelvisGodkjent && nyGodkjentDager !== undefined && nyGodkjentDager <= tidligereGodkjentDager && (
+              <p className="text-sm text-pkt-brand-red-1000 mt-2">
+                Antall dager må være høyere enn tidligere godkjent ({tidligereGodkjentDager} dager)
+              </p>
+            )}
           </div>
         )}
 
@@ -304,11 +337,13 @@ export function UpdateResponseFristModal({
           </Button>
           <Button
             type="submit"
-            variant={stopperForsering ? 'primary' : nyttResultat === 'avslatt' && erForseringVarslet ? 'danger' : 'primary'}
+            variant="primary"
             disabled={
               isSubmitting ||
               !nyttResultat ||
+              varGodkjent ||
               (nyttResultat === 'delvis_godkjent' && !nyGodkjentDager) ||
+              (nyttResultat === 'delvis_godkjent' && varDelvisGodkjent && (nyGodkjentDager ?? 0) <= tidligereGodkjentDager) ||
               !watch('kommentar')
             }
             size="lg"

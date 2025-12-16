@@ -115,11 +115,18 @@ export function UpdateResponseVederlagModal({
   const nyttResultat = watch('nytt_resultat') as VederlagBeregningResultat;
   const godkjentBelop = watch('godkjent_belop');
 
-  // Get available options based on current state
+  // Asymmetrisk endringsrett: BH kan kun endre til TEs gunst
+  const varAvslatt = forrigeResultat === 'avslatt';
+  const varDelvisGodkjent = forrigeResultat === 'delvis_godkjent';
+  const varGodkjent = forrigeResultat === 'godkjent';
+  const tidligereGodkjentBelop = lastResponseEvent.godkjent_belop ?? 0;
+
+  // Get available options based on current state - kun endringer til TEs gunst
   const getOptions = () => {
     const options: { value: VederlagBeregningResultat; label: string; description?: string }[] = [];
 
     if (erTilbakehold) {
+      // Tilbakeholdelse er ikke en endelig avgjørelse - kan oppheves i alle retninger
       options.push({
         value: 'godkjent',
         label: 'Opphev tilbakeholdelse: Godkjenn fullt',
@@ -135,25 +142,32 @@ export function UpdateResponseVederlagModal({
         label: 'Avslå kravet',
         description: 'Selv med overslag godtas ikke kravet.',
       });
-    } else {
+    } else if (varAvslatt) {
+      // Fra avslått: Kan snu til godkjent eller delvis_godkjent (til TEs gunst)
       options.push({
         value: 'godkjent',
-        label: `Endre til: Godkjent fullt (${krevdBelop.toLocaleString('nb-NO')} kr)`,
+        label: `Snu til: Godkjent fullt (${krevdBelop.toLocaleString('nb-NO')} kr)`,
+        description: 'Kravet aksepteres fullt ut.',
       });
       options.push({
         value: 'delvis_godkjent',
-        label: 'Endre til: Delvis godkjent',
+        label: 'Snu til: Delvis godkjent',
+        description: 'Deler av kravet aksepteres.',
+      });
+    } else if (varDelvisGodkjent) {
+      // Fra delvis_godkjent: Kan kun øke beløpet (til TEs gunst)
+      options.push({
+        value: 'godkjent',
+        label: `Øk til: Godkjent fullt (${krevdBelop.toLocaleString('nb-NO')} kr)`,
+        description: 'Kravet aksepteres fullt ut.',
       });
       options.push({
-        value: 'hold_tilbake',
-        label: 'Endre til: Hold tilbake (§30.2)',
-        description: 'Krever overslag før betaling.',
-      });
-      options.push({
-        value: 'avslatt',
-        label: 'Endre til: Avslå kravet',
+        value: 'delvis_godkjent',
+        label: 'Øk godkjent beløp',
+        description: `Nåværende: ${tidligereGodkjentBelop.toLocaleString('nb-NO')} kr. Du kan kun øke beløpet.`,
       });
     }
+    // Fra godkjent: Ingen alternativer - standpunktet er bindende
 
     return options;
   };
@@ -249,6 +263,16 @@ export function UpdateResponseVederlagModal({
           </Alert>
         )}
 
+        {/* Info when already approved - standpoint is binding */}
+        {varGodkjent && (
+          <Alert variant="info" title="Standpunktet er bindende">
+            <p>
+              Du har allerede godkjent vederlagskravet fullt ut. Dette standpunktet er bindende
+              og kan ikke endres til entreprenørens ugunst.
+            </p>
+          </Alert>
+        )}
+
         {/* Response options */}
         <FormField
           label="Ny avgjørelse"
@@ -279,7 +303,13 @@ export function UpdateResponseVederlagModal({
         {/* Partial approval amount */}
         {nyttResultat === 'delvis_godkjent' && (
           <div className="ml-6 p-4 bg-pkt-grays-gray-100 rounded animate-in fade-in duration-200">
-            <FormField label="Godkjent beløp">
+            <FormField
+              label="Godkjent beløp"
+              hint={varDelvisGodkjent
+                ? `Må være høyere enn tidligere godkjent (${tidligereGodkjentBelop.toLocaleString('nb-NO')} kr)`
+                : undefined
+              }
+            >
               <Controller
                 name="godkjent_belop"
                 control={control}
@@ -287,11 +317,17 @@ export function UpdateResponseVederlagModal({
                   <CurrencyInput
                     value={field.value ?? null}
                     onChange={field.onChange}
-                    
+                    min={varDelvisGodkjent ? tidligereGodkjentBelop + 1 : 0}
+                    max={krevdBelop - 1}
                   />
                 )}
               />
             </FormField>
+            {varDelvisGodkjent && godkjentBelop !== undefined && godkjentBelop <= tidligereGodkjentBelop && (
+              <p className="text-sm text-pkt-brand-red-1000 mt-2">
+                Beløpet må være høyere enn tidligere godkjent ({tidligereGodkjentBelop.toLocaleString('nb-NO')} kr)
+              </p>
+            )}
           </div>
         )}
 
@@ -346,7 +382,9 @@ export function UpdateResponseVederlagModal({
             disabled={
               isSubmitting ||
               !nyttResultat ||
+              varGodkjent ||
               (nyttResultat === 'delvis_godkjent' && !godkjentBelop) ||
+              (nyttResultat === 'delvis_godkjent' && varDelvisGodkjent && (godkjentBelop ?? 0) <= tidligereGodkjentBelop) ||
               !watch('kommentar')
             }
             size="lg"
