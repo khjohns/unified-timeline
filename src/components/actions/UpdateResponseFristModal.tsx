@@ -2,6 +2,13 @@
  * UpdateResponseFristModal Component
  *
  * Modal for BH to update their response on frist claim.
+ *
+ * ASYMMETRISK ENDRINGSRETT (NS 8407):
+ * BH kan kun endre standpunkt til TEs gunst:
+ * - Preklusjon: Fra "for sent" → "i tide" (ikke omvendt)
+ * - Vilkår: Fra "ingen hindring" → "hindring erkjent" (ikke omvendt)
+ * - Beregning: Kun øke antall dager (ikke redusere)
+ *
  * Critical: If forsering is in progress, BH can stop it by approving the frist claim.
  */
 
@@ -20,11 +27,23 @@ import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
 import { useConfirmClose } from '../../hooks/useConfirmClose';
 import { useMemo } from 'react';
-import { FristTilstand, FristBeregningResultat, ForseringTilstand } from '../../types/timeline';
+import { FristTilstand, FristBeregningResultat } from '../../types/timeline';
 
 const updateResponseSchema = z.object({
-  nytt_resultat: z.string().min(1, 'Du må velge et svar'),
+  // Port 2: Preklusjon - kan kun endres til TEs gunst
+  endre_preklusjon: z.boolean().optional(),
+  ny_noytralt_varsel_ok: z.boolean().optional(),
+  ny_spesifisert_krav_ok: z.boolean().optional(),
+
+  // Port 3: Vilkår - kan kun endres til TEs gunst
+  endre_vilkar: z.boolean().optional(),
+  ny_vilkar_oppfylt: z.boolean().optional(),
+
+  // Port 4: Beregning
+  nytt_resultat: z.string().optional(),
   ny_godkjent_dager: z.number().optional(),
+
+  // Samlet
   kommentar: z.string().min(10, 'Begrunnelse er påkrevd'),
 });
 
@@ -59,6 +78,24 @@ export function UpdateResponseFristModal({
   const erForseringVarslet = forsering?.er_varslet ?? false;
   const forseringsKostnad = forsering?.estimert_kostnad ?? 0;
   const krevdDager = fristTilstand.krevd_dager ?? 0;
+  const varselType = fristTilstand.varsel_type;
+
+  // Tidligere vurderinger fra fristTilstand
+  const tidligereNoytraltVarselOk = fristTilstand.noytralt_varsel_ok;
+  const tidligereSpesifisertKravOk = fristTilstand.spesifisert_krav_ok;
+  const tidligereVilkarOppfylt = fristTilstand.vilkar_oppfylt;
+
+  // Asymmetrisk endringsrett: Kan disse endres til TEs gunst?
+  // Preklusjon: Kun hvis tidligere vurdert som "for sent" (false)
+  const kanEndrePreklusjonTilGunst = useMemo(() => {
+    if (varselType === 'noytralt') {
+      return tidligereNoytraltVarselOk === false;
+    }
+    return tidligereSpesifisertKravOk === false;
+  }, [varselType, tidligereNoytraltVarselOk, tidligereSpesifisertKravOk]);
+
+  // Vilkår: Kun hvis tidligere vurdert som "ingen hindring" (false)
+  const kanEndreVilkarTilGunst = tidligereVilkarOppfylt === false;
 
   const {
     handleSubmit,
@@ -69,6 +106,11 @@ export function UpdateResponseFristModal({
   } = useForm<UpdateResponseFormData>({
     resolver: zodResolver(updateResponseSchema),
     defaultValues: {
+      endre_preklusjon: false,
+      ny_noytralt_varsel_ok: true,
+      ny_spesifisert_krav_ok: true,
+      endre_vilkar: false,
+      ny_vilkar_oppfylt: true,
       nytt_resultat: '',
       ny_godkjent_dager: undefined,
       kommentar: '',
@@ -81,28 +123,35 @@ export function UpdateResponseFristModal({
     onClose: () => onOpenChange(false),
   });
 
+  const endrePreklusjon = watch('endre_preklusjon');
+  const endreVilkar = watch('endre_vilkar');
   const nyttResultat = watch('nytt_resultat') as FristBeregningResultat;
   const nyGodkjentDager = watch('ny_godkjent_dager');
 
-  // Asymmetrisk endringsrett: BH kan kun endre til TEs gunst
+  // Asymmetrisk endringsrett for beregning
   const forrigeResultat = lastResponseEvent.resultat;
   const varAvslatt = forrigeResultat === 'avslatt';
   const varDelvisGodkjent = forrigeResultat === 'delvis_godkjent';
   const varGodkjent = forrigeResultat === 'godkjent';
   const tidligereGodkjentDager = lastResponseEvent.godkjent_dager ?? 0;
 
+  // Sjekk om noe kan endres
+  const harNoeAAendre = kanEndrePreklusjonTilGunst || kanEndreVilkarTilGunst || !varGodkjent;
+
   // Check if this will stop forsering
   const stopperForsering = useMemo(() => {
+    // Stopper forsering hvis vi endrer preklusjon eller vilkår til gunst
+    if (endrePreklusjon || endreVilkar) return erForseringVarslet;
+    // Eller hvis vi øker godkjente dager
     return erForseringVarslet &&
       (nyttResultat === 'godkjent' || nyttResultat === 'delvis_godkjent');
-  }, [erForseringVarslet, nyttResultat]);
+  }, [erForseringVarslet, nyttResultat, endrePreklusjon, endreVilkar]);
 
-  // Get available options based on current state - kun endringer til TEs gunst
-  const getOptions = () => {
+  // Get available options for beregning - kun endringer til TEs gunst
+  const getBeregningOptions = () => {
     const options: { value: FristBeregningResultat; label: string; description?: string }[] = [];
 
     if (varAvslatt) {
-      // Fra avslått: Kan snu til godkjent eller delvis_godkjent (til TEs gunst)
       options.push({
         value: 'godkjent',
         label: erForseringVarslet
@@ -120,7 +169,6 @@ export function UpdateResponseFristModal({
           : 'Godkjenn færre dager enn kravet.',
       });
     } else if (varDelvisGodkjent) {
-      // Fra delvis_godkjent: Kan kun øke antall dager (til TEs gunst)
       options.push({
         value: 'godkjent',
         label: erForseringVarslet
@@ -136,7 +184,6 @@ export function UpdateResponseFristModal({
         description: `Nåværende: ${tidligereGodkjentDager} dager. Du kan kun øke antallet.`,
       });
     }
-    // Fra godkjent: Ingen alternativer - standpunktet er bindende
 
     return options;
   };
@@ -149,27 +196,50 @@ export function UpdateResponseFristModal({
   });
 
   const onSubmit = (data: UpdateResponseFormData) => {
+    // Bygg event data basert på hva som endres
+    const eventData: Record<string, unknown> = {
+      original_respons_id: lastResponseEvent.event_id,
+      kommentar: data.kommentar,
+      stopper_forsering: stopperForsering,
+      dato_endret: new Date().toISOString().split('T')[0],
+    };
+
+    // Port 2: Preklusjon-endringer
+    if (data.endre_preklusjon && kanEndrePreklusjonTilGunst) {
+      if (varselType === 'noytralt') {
+        eventData.ny_noytralt_varsel_ok = true;
+      } else {
+        eventData.ny_spesifisert_krav_ok = true;
+      }
+    }
+
+    // Port 3: Vilkår-endringer
+    if (data.endre_vilkar && kanEndreVilkarTilGunst) {
+      eventData.ny_vilkar_oppfylt = true;
+    }
+
+    // Port 4: Beregning-endringer
+    if (data.nytt_resultat) {
+      eventData.nytt_resultat = data.nytt_resultat;
+      eventData.ny_godkjent_dager = data.nytt_resultat === 'godkjent'
+        ? krevdDager
+        : data.ny_godkjent_dager;
+    }
+
     mutation.mutate({
       eventType: 'respons_frist_oppdatert',
-      data: {
-        original_respons_id: lastResponseEvent.event_id,
-        nytt_resultat: data.nytt_resultat,
-        ny_godkjent_dager:
-          data.nytt_resultat === 'godkjent'
-            ? krevdDager
-            : data.ny_godkjent_dager,
-        kommentar: data.kommentar,
-        stopper_forsering: stopperForsering,
-        dato_endret: new Date().toISOString().split('T')[0],
-      },
+      data: eventData,
     });
   };
+
+  // Sjekk om noe faktisk er endret
+  const harEndringer = endrePreklusjon || endreVilkar || nyttResultat;
 
   return (
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title="Oppdater svar på frist/forsering"
+      title="Oppdater svar på fristkrav"
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -187,104 +257,233 @@ export function UpdateResponseFristModal({
               kr {forseringsKostnad.toLocaleString('nb-NO')},-
             </div>
             <p className="text-sm text-pkt-brand-red-1000">
-              Hvis du godkjenner fristforlengelsen nå, <strong>faller plikten til å forsere bort</strong>.
-              Du betaler da kun evt. påløpt kostnad frem til nå, men slipper resten.
+              Hvis du endrer til TEs gunst, <strong>faller plikten til å forsere bort</strong>.
             </p>
           </div>
         )}
 
-        {/* Normal state display */}
-        {!erForseringVarslet && (
-          <div className="bg-pkt-bg-subtle p-4 rounded border border-pkt-grays-gray-200">
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-pkt-grays-gray-600">Nåværende svar:</span>
-              <Badge variant={lastResponseEvent.resultat === 'avslatt' ? 'danger' : 'success'}>
-                {RESULTAT_LABELS[lastResponseEvent.resultat]}
+        {/* Info om asymmetrisk endringsrett */}
+        <Alert variant="info" title="Asymmetrisk endringsrett">
+          <p>
+            Du kan kun endre standpunkt til <strong>entreprenørens gunst</strong>.
+            Standpunkter som allerede er til TEs gunst kan ikke endres tilbake.
+          </p>
+        </Alert>
+
+        {/* Nåværende status */}
+        <div className="bg-pkt-bg-subtle p-4 rounded border border-pkt-grays-gray-200">
+          <h4 className="font-medium mb-3">Nåværende vurdering</h4>
+          <div className="space-y-2 text-sm">
+            {/* Preklusjon */}
+            <div className="flex justify-between items-center">
+              <span>Preklusjon ({varselType === 'noytralt' ? '§33.4' : '§33.6'}):</span>
+              {varselType === 'noytralt' ? (
+                <Badge variant={tidligereNoytraltVarselOk ? 'success' : 'danger'}>
+                  {tidligereNoytraltVarselOk ? 'Varslet i tide' : 'For sent'}
+                </Badge>
+              ) : (
+                <Badge variant={tidligereSpesifisertKravOk ? 'success' : 'danger'}>
+                  {tidligereSpesifisertKravOk ? 'Kravet i tide' : 'For sent'}
+                </Badge>
+              )}
+            </div>
+            {/* Vilkår */}
+            <div className="flex justify-between items-center">
+              <span>Vilkår (§33.5):</span>
+              <Badge variant={tidligereVilkarOppfylt ? 'success' : 'warning'}>
+                {tidligereVilkarOppfylt ? 'Hindring erkjent' : 'Ingen hindring'}
               </Badge>
             </div>
-            {lastResponseEvent.godkjent_dager !== undefined && (
-              <p className="text-sm text-pkt-grays-gray-600 mt-2">
-                Godkjent: {lastResponseEvent.godkjent_dager} dager av {krevdDager}
-              </p>
-            )}
+            {/* Beregning */}
+            <div className="flex justify-between items-center">
+              <span>Resultat:</span>
+              <Badge variant={varGodkjent ? 'success' : varDelvisGodkjent ? 'warning' : 'danger'}>
+                {RESULTAT_LABELS[forrigeResultat]}
+                {tidligereGodkjentDager > 0 && ` (${tidligereGodkjentDager} dager)`}
+              </Badge>
+            </div>
           </div>
-        )}
+        </div>
 
-        {/* Info when already approved - standpoint is binding */}
-        {varGodkjent && (
-          <Alert variant="info" title="Standpunktet er bindende">
+        {/* Alt er bindende - ingen endringer mulig */}
+        {!harNoeAAendre && (
+          <Alert variant="info" title="Alle standpunkter er bindende">
             <p>
-              Du har allerede godkjent fristforlengelsen fullt ut. Dette standpunktet er bindende
-              og kan ikke endres til entreprenørens ugunst.
+              Alle dine standpunkter er allerede til entreprenørens gunst.
+              Det er ingenting å endre.
             </p>
           </Alert>
         )}
 
-        {/* Response options */}
-        <FormField
-          label="Ny avgjørelse"
-          required
-          error={errors.nytt_resultat?.message}
-        >
-          <Controller
-            name="nytt_resultat"
-            control={control}
-            render={({ field }) => (
-              <RadioGroup
-                value={field.value}
-                onValueChange={field.onChange}
-              >
-                {getOptions().map((option) => (
-                  <RadioItem
-                    key={option.value}
-                    value={option.value}
-                    label={option.label}
-                    description={option.description}
-                  />
-                ))}
-              </RadioGroup>
-            )}
-          />
-        </FormField>
+        {/* ============================================
+            PORT 2: PREKLUSJON - Endre til TEs gunst
+            ============================================ */}
+        {kanEndrePreklusjonTilGunst && (
+          <div className="p-4 border-2 border-pkt-border-subtle rounded-none space-y-4">
+            <div className="flex items-center gap-2">
+              <h4 className="font-bold">Preklusjon ({varselType === 'noytralt' ? '§33.4' : '§33.6'})</h4>
+              <Badge variant="warning">Kan endres</Badge>
+            </div>
 
-        {/* Partial approval input */}
-        {nyttResultat === 'delvis_godkjent' && (
-          <div className="ml-6 p-4 bg-pkt-grays-gray-100 rounded animate-in fade-in duration-200">
-            <FormField
-              label="Antall dager du godkjenner"
-              hint={varDelvisGodkjent
-                ? `Må være høyere enn tidligere godkjent (${tidligereGodkjentDager} dager)`
-                : undefined
-              }
-            >
+            <p className="text-sm text-pkt-text-body-subtle">
+              Du vurderte tidligere at varselet kom <strong>for sent</strong>.
+              Du kan nå endre dette til &ldquo;i tide&rdquo; hvis du har fått ny informasjon.
+            </p>
+
+            <FormField label="Vil du endre preklusjonsvurderingen?">
               <Controller
-                name="ny_godkjent_dager"
+                name="endre_preklusjon"
                 control={control}
                 render={({ field }) => (
-                  <Input
-                    type="number"
-                    value={field.value ?? ''}
-                    onChange={(e) => field.onChange(Number(e.target.value))}
-                    max={krevdDager - 1}
-                    min={varDelvisGodkjent ? tidligereGodkjentDager + 1 : 1}
-                    width="xs"
-                  />
+                  <RadioGroup
+                    value={field.value ? 'ja' : 'nei'}
+                    onValueChange={(val: string) => field.onChange(val === 'ja')}
+                  >
+                    <RadioItem
+                      value="ja"
+                      label={varselType === 'noytralt'
+                        ? 'Ja - nøytralt varsel var likevel i tide'
+                        : 'Ja - spesifisert krav var likevel i tide'
+                      }
+                      description="Kravet er ikke lenger prekludert"
+                    />
+                    <RadioItem
+                      value="nei"
+                      label="Nei - behold vurdering (for sent)"
+                    />
+                  </RadioGroup>
                 )}
               />
             </FormField>
-            {varDelvisGodkjent && nyGodkjentDager !== undefined && nyGodkjentDager <= tidligereGodkjentDager && (
-              <p className="text-sm text-pkt-brand-red-1000 mt-2">
-                Antall dager må være høyere enn tidligere godkjent ({tidligereGodkjentDager} dager)
-              </p>
+          </div>
+        )}
+
+        {/* ============================================
+            PORT 3: VILKÅR - Endre til TEs gunst
+            ============================================ */}
+        {kanEndreVilkarTilGunst && (
+          <div className="p-4 border-2 border-pkt-border-subtle rounded-none space-y-4">
+            <div className="flex items-center gap-2">
+              <h4 className="font-bold">Vilkår (§33.5)</h4>
+              <Badge variant="warning">Kan endres</Badge>
+            </div>
+
+            <p className="text-sm text-pkt-text-body-subtle">
+              Du vurderte tidligere at det <strong>ikke var reell hindring</strong>.
+              Du kan nå erkjenne at forholdet faktisk hindret fremdriften.
+            </p>
+
+            <FormField label="Vil du endre vilkårsvurderingen?">
+              <Controller
+                name="endre_vilkar"
+                control={control}
+                render={({ field }) => (
+                  <RadioGroup
+                    value={field.value ? 'ja' : 'nei'}
+                    onValueChange={(val: string) => field.onChange(val === 'ja')}
+                  >
+                    <RadioItem
+                      value="ja"
+                      label="Ja - forholdet medførte likevel hindring"
+                      description="Vilkårene for fristforlengelse er oppfylt"
+                    />
+                    <RadioItem
+                      value="nei"
+                      label="Nei - behold vurdering (ingen hindring)"
+                    />
+                  </RadioGroup>
+                )}
+              />
+            </FormField>
+          </div>
+        )}
+
+        {/* ============================================
+            PORT 4: BEREGNING - Endre til TEs gunst
+            ============================================ */}
+        {!varGodkjent && (
+          <div className="p-4 border-2 border-pkt-border-subtle rounded-none space-y-4">
+            <div className="flex items-center gap-2">
+              <h4 className="font-bold">Beregning</h4>
+              <Badge variant="warning">Kan endres</Badge>
+            </div>
+
+            <p className="text-sm text-pkt-text-body-subtle">
+              {varAvslatt
+                ? 'Du avviste kravet. Du kan nå godkjenne helt eller delvis.'
+                : `Du godkjente ${tidligereGodkjentDager} dager. Du kan kun øke antallet.`
+              }
+            </p>
+
+            <FormField
+              label="Ny avgjørelse"
+              error={errors.nytt_resultat?.message}
+            >
+              <Controller
+                name="nytt_resultat"
+                control={control}
+                render={({ field }) => (
+                  <RadioGroup
+                    value={field.value ?? ''}
+                    onValueChange={field.onChange}
+                  >
+                    <RadioItem
+                      value=""
+                      label="Ingen endring i beregning"
+                    />
+                    {getBeregningOptions().map((option) => (
+                      <RadioItem
+                        key={option.value}
+                        value={option.value}
+                        label={option.label}
+                        description={option.description}
+                      />
+                    ))}
+                  </RadioGroup>
+                )}
+              />
+            </FormField>
+
+            {/* Partial approval input */}
+            {nyttResultat === 'delvis_godkjent' && (
+              <div className="ml-6 p-4 bg-pkt-grays-gray-100 rounded animate-in fade-in duration-200">
+                <FormField
+                  label="Antall dager du godkjenner"
+                  hint={varDelvisGodkjent
+                    ? `Må være høyere enn tidligere godkjent (${tidligereGodkjentDager} dager)`
+                    : undefined
+                  }
+                >
+                  <Controller
+                    name="ny_godkjent_dager"
+                    control={control}
+                    render={({ field }) => (
+                      <Input
+                        type="number"
+                        value={field.value ?? ''}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        max={krevdDager - 1}
+                        min={varDelvisGodkjent ? tidligereGodkjentDager + 1 : 1}
+                        width="xs"
+                      />
+                    )}
+                  />
+                </FormField>
+                {varDelvisGodkjent && nyGodkjentDager !== undefined && nyGodkjentDager <= tidligereGodkjentDager && (
+                  <p className="text-sm text-pkt-brand-red-1000 mt-2">
+                    Antall dager må være høyere enn tidligere godkjent ({tidligereGodkjentDager} dager)
+                  </p>
+                )}
+              </div>
             )}
           </div>
         )}
 
         {/* Confirmation alert when stopping forsering */}
-        {stopperForsering && (
+        {stopperForsering && harEndringer && (
           <Alert variant="success" title="Forsering stoppes">
             <p>
-              Ved å godkjenne fristforlengelsen vil forseringen stoppes.
+              Ved å endre til entreprenørens gunst vil forseringen stoppes.
               Du vil kun måtte betale for påløpte forseringskostnader frem til i dag.
             </p>
           </Alert>
@@ -292,7 +491,7 @@ export function UpdateResponseFristModal({
 
         {/* Begrunnelse */}
         <FormField
-          label="Begrunnelse"
+          label="Begrunnelse for endring"
           required
           error={errors.kommentar?.message}
         >
@@ -307,11 +506,7 @@ export function UpdateResponseFristModal({
                 rows={4}
                 fullWidth
                 error={!!errors.kommentar}
-                placeholder={
-                  erForseringVarslet && nyttResultat === 'godkjent'
-                    ? 'Vi aksepterer fristkravet for å begrense kostnadene...'
-                    : 'Begrunnelse...'
-                }
+                placeholder="Begrunn hvorfor du endrer standpunkt..."
               />
             )}
           />
@@ -340,8 +535,8 @@ export function UpdateResponseFristModal({
             variant="primary"
             disabled={
               isSubmitting ||
-              !nyttResultat ||
-              varGodkjent ||
+              !harEndringer ||
+              !harNoeAAendre ||
               (nyttResultat === 'delvis_godkjent' && !nyGodkjentDager) ||
               (nyttResultat === 'delvis_godkjent' && varDelvisGodkjent && (nyGodkjentDager ?? 0) <= tidligereGodkjentDager) ||
               !watch('kommentar')
@@ -351,8 +546,8 @@ export function UpdateResponseFristModal({
             {isSubmitting
               ? 'Lagrer...'
               : stopperForsering
-                ? 'Stopp Forsering & Godkjenn'
-                : 'Lagre Svar'}
+                ? 'Stopp Forsering & Lagre'
+                : 'Lagre Endringer'}
           </Button>
         </div>
       </form>
