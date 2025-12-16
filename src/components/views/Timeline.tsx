@@ -156,18 +156,22 @@ function getSporLabel(spor: SporType | null): string {
  * TE = Green, BH = Yellow
  * Text colors use semantic variables that match circles in both light and dark mode
  */
-function getRolleStyles(rolle: 'TE' | 'BH'): { bg: string; text: string; ring: string } {
+function getRolleStyles(rolle: 'TE' | 'BH'): { bg: string; text: string; ring: string; pillBg: string; pillText: string } {
   if (rolle === 'TE') {
     return {
       bg: 'bg-pkt-brand-green-1000',
       text: 'text-pkt-brand-green-1000',
       ring: 'ring-pkt-brand-green-1000',
+      pillBg: 'bg-pkt-brand-green-1000',
+      pillText: 'text-row-te-text',
     };
   }
   return {
     bg: 'bg-pkt-brand-yellow-1000',
     text: 'text-pkt-brand-yellow-1000',
     ring: 'ring-pkt-brand-yellow-1000',
+    pillBg: 'bg-pkt-brand-yellow-1000',
+    pillText: 'text-row-bh-text',
   };
 }
 
@@ -284,7 +288,7 @@ export function Timeline({ events }: TimelineProps) {
 
                   {/* Role label + expand indicator */}
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className={`text-xs font-medium ${rolleStyles.text}`}>
+                    <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${rolleStyles.pillBg} ${rolleStyles.pillText}`}>
                       {event.rolle}
                     </span>
                     <ChevronDownIcon
@@ -324,7 +328,7 @@ export function Timeline({ events }: TimelineProps) {
 
                     {/* Role label + expand indicator */}
                     <div className="flex items-center gap-1.5 shrink-0">
-                      <span className={`text-xs font-medium ${rolleStyles.text}`}>
+                      <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${rolleStyles.pillBg} ${rolleStyles.pillText}`}>
                         {event.rolle}
                       </span>
                       <ChevronDownIcon
