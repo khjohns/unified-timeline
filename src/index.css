@@ -137,6 +137,8 @@
     --color-role-bh-text: #b45309;  /* BH role label - amber/gold matching circle */
     --color-role-te-pill-bg: #43f8b6;  /* TE pill background - matches circle */
     --color-role-bh-pill-bg: #f9c66b;  /* BH pill background - matches circle */
+    --color-role-te-pill-text: #034b45;  /* TE pill text - dark green for contrast */
+    --color-role-bh-pill-text: #333333;  /* BH pill text - dark gray for contrast */
     --color-subsidiary-indicator: #ffe7bc;  /* Subsidiary status border/dot */
 
     /* Danger action button (e.g., Forsering) */
@@ -377,6 +379,8 @@
   --color-role-bh-text: #fbbf24;  /* BH matches yellow circle */
   --color-role-te-pill-bg: rgba(67, 248, 182, 0.35);  /* TE pill - semi-transparent green */
   --color-role-bh-pill-bg: rgba(251, 191, 36, 0.35);  /* BH pill - semi-transparent amber */
+  --color-role-te-pill-text: #a0e0c0;  /* TE pill text - light green for dark mode */
+  --color-role-bh-pill-text: #e0c090;  /* BH pill text - light amber for dark mode */
   --color-subsidiary-indicator: #ff8a80;  /* Coral/salmon red */
 
   /* Danger action button - dark mode */
