@@ -58,7 +58,7 @@ export const mockSakState6: SakState = {
   },
 
   frist: {
-    status: 'avslatt',
+    status: 'delvis_godkjent',
     varsel_type: 'spesifisert',
     noytralt_varsel: {
       dato_sendt: '2025-01-20',
@@ -73,14 +73,17 @@ export const mockSakState6: SakState = {
     pavirker_kritisk_linje: true,
     noytralt_varsel_ok: true,
     spesifisert_krav_ok: true,
-    vilkar_oppfylt: false,
-    begrunnelse_vilkar: 'BH mener forsinkelsen kan tas igjen med parallellarbeid.',
-    bh_resultat: 'avslatt',
-    bh_begrunnelse: 'BH mener forsinkelsen kan tas igjen med parallellarbeid.',
-    godkjent_dager: 0,
-    differanse_dager: -21,
+    vilkar_oppfylt: true,
+    // BH HAS CHANGED POSITION: Originally rejected, now partially approved
+    // This happened AFTER forsering was started (dato_iverksatt: 2025-02-02)
+    bh_resultat: 'delvis_godkjent',
+    bh_begrunnelse:
+      'Etter nærmere vurdering godkjenner BH 14 av 21 dager. ' +
+      'BH erkjenner at parallellarbeid ikke var fullt mulig, men mener 7 dager kunne vært spart med bedre planlegging.',
+    godkjent_dager: 14,
+    differanse_dager: -7,
 
-    // FORSERING IS ACTIVE
+    // FORSERING WAS ACTIVE - but position changed
     forsering: {
       er_varslet: true,
       dato_varslet: '2025-02-01',
@@ -92,20 +95,21 @@ export const mockSakState6: SakState = {
       er_stoppet: false,
     },
 
-    siste_oppdatert: '2025-02-02',
-    antall_versjoner: 2,
+    // BH changed position on 2025-02-15 (after forsering started)
+    siste_oppdatert: '2025-02-15',
+    antall_versjoner: 3,
   },
 
   er_subsidiaert_vederlag: false,
   er_subsidiaert_frist: false,
   visningsstatus_vederlag: 'Under behandling',
-  visningsstatus_frist: 'Avslått - Forsering iverksatt',
+  visningsstatus_frist: 'Delvis godkjent - BH endret standpunkt',
 
   overordnet_status: 'UNDER_FORHANDLING',
   kan_utstede_eo: false,
   neste_handling: {
-    rolle: 'BH',
-    handling: 'Vurder å godkjenne frist for å stoppe forsering',
+    rolle: 'TE',
+    handling: 'Krev kompensasjon for forseringskostnader påløpt før BH endret standpunkt',
     spor: 'frist',
   },
 

@@ -7,7 +7,7 @@
 
 import { Card } from '../primitives/Card';
 import { Badge } from '../primitives/Badge';
-import { DataList } from '../primitives/DataList';
+import { DataList, DataListItem } from '../primitives/DataList';
 import type { ForseringData } from '../../types/timeline';
 
 interface ForseringDashboardProps {
@@ -53,55 +53,6 @@ function getBHResponseBadge(forseringData: ForseringData) {
 }
 
 export function ForseringDashboard({ forseringData }: ForseringDashboardProps) {
-  const statusItems = [
-    {
-      label: 'Status',
-      value: getStatusBadge(forseringData),
-    },
-    {
-      label: 'Varslet',
-      value: formatDate(forseringData.dato_varslet),
-    },
-    ...(forseringData.er_iverksatt ? [{
-      label: 'Iverksatt',
-      value: formatDate(forseringData.dato_iverksatt),
-    }] : []),
-    ...(forseringData.er_stoppet ? [{
-      label: 'Stoppet',
-      value: formatDate(forseringData.dato_stoppet),
-    }] : []),
-  ];
-
-  const kostnadItems = [
-    {
-      label: 'Estimert kostnad',
-      value: formatCurrency(forseringData.estimert_kostnad),
-    },
-    {
-      label: 'Maks kostnad (30%-regel)',
-      value: formatCurrency(forseringData.maks_forseringskostnad),
-    },
-    ...(forseringData.paalopte_kostnader !== undefined ? [{
-      label: 'Påløpte kostnader',
-      value: formatCurrency(forseringData.paalopte_kostnader),
-    }] : []),
-  ];
-
-  const bhResponseItems = forseringData.bh_aksepterer_forsering !== undefined ? [
-    {
-      label: 'BH standpunkt',
-      value: getBHResponseBadge(forseringData),
-    },
-    ...(forseringData.bh_godkjent_kostnad !== undefined ? [{
-      label: 'Godkjent kostnad',
-      value: formatCurrency(forseringData.bh_godkjent_kostnad),
-    }] : []),
-    ...(forseringData.bh_begrunnelse ? [{
-      label: 'Begrunnelse',
-      value: forseringData.bh_begrunnelse,
-    }] : []),
-  ] : [];
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {/* Status card */}
@@ -110,7 +61,24 @@ export function ForseringDashboard({ forseringData }: ForseringDashboardProps) {
           <h3 className="font-bold text-sm">Forseringsstatus</h3>
         </div>
         <div className="p-4">
-          <DataList items={statusItems} />
+          <DataList>
+            <DataListItem label="Status">
+              {getStatusBadge(forseringData)}
+            </DataListItem>
+            <DataListItem label="Varslet">
+              {formatDate(forseringData.dato_varslet)}
+            </DataListItem>
+            {forseringData.er_iverksatt && (
+              <DataListItem label="Iverksatt">
+                {formatDate(forseringData.dato_iverksatt)}
+              </DataListItem>
+            )}
+            {forseringData.er_stoppet && (
+              <DataListItem label="Stoppet">
+                {formatDate(forseringData.dato_stoppet)}
+              </DataListItem>
+            )}
+          </DataList>
         </div>
       </Card>
 
@@ -120,18 +88,44 @@ export function ForseringDashboard({ forseringData }: ForseringDashboardProps) {
           <h3 className="font-bold text-sm">Kostnader</h3>
         </div>
         <div className="p-4">
-          <DataList items={kostnadItems} />
+          <DataList>
+            <DataListItem label="Estimert kostnad">
+              {formatCurrency(forseringData.estimert_kostnad)}
+            </DataListItem>
+            <DataListItem label="Maks kostnad (30%-regel)">
+              {formatCurrency(forseringData.maks_forseringskostnad)}
+            </DataListItem>
+            {forseringData.paalopte_kostnader !== undefined && (
+              <DataListItem label="Påløpte kostnader">
+                {formatCurrency(forseringData.paalopte_kostnader)}
+              </DataListItem>
+            )}
+          </DataList>
         </div>
       </Card>
 
       {/* BH Response card (only if BH has responded) */}
-      {bhResponseItems.length > 0 && (
+      {forseringData.bh_aksepterer_forsering !== undefined && (
         <Card className="p-0 overflow-hidden md:col-span-2">
           <div className="px-4 py-3 bg-pkt-surface-subtle border-b-2 border-pkt-border-subtle">
             <h3 className="font-bold text-sm">Byggherrens standpunkt</h3>
           </div>
           <div className="p-4">
-            <DataList items={bhResponseItems} />
+            <DataList>
+              <DataListItem label="BH standpunkt">
+                {getBHResponseBadge(forseringData)}
+              </DataListItem>
+              {forseringData.bh_godkjent_kostnad !== undefined && (
+                <DataListItem label="Godkjent kostnad">
+                  {formatCurrency(forseringData.bh_godkjent_kostnad)}
+                </DataListItem>
+              )}
+              {forseringData.bh_begrunnelse && (
+                <DataListItem label="Begrunnelse">
+                  {forseringData.bh_begrunnelse}
+                </DataListItem>
+              )}
+            </DataList>
           </div>
         </Card>
       )}

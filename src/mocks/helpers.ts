@@ -15,6 +15,8 @@ import {
   mockSakState9,
   mockSakState10,
   mockSakState11,
+  mockSakState12,
+  mockSakState13,
 } from './cases';
 import {
   mockTimelineEvents1,
@@ -28,6 +30,8 @@ import {
   mockTimelineEvents9,
   mockTimelineEvents10,
   mockTimelineEvents11,
+  mockTimelineEvents12,
+  mockTimelineEvents13,
 } from './timelines';
 
 /**
@@ -57,6 +61,10 @@ export function getMockStateById(sakId: string): SakState {
       return mockSakState10;
     case 'SAK-2025-011':
       return mockSakState11;
+    case 'SAK-2025-012':
+      return mockSakState12;
+    case 'SAK-2025-013':
+      return mockSakState13;
     default:
       return mockSakState1;
   }
@@ -89,6 +97,10 @@ export function getMockTimelineById(sakId: string): TimelineEntry[] {
       return mockTimelineEvents10;
     case 'SAK-2025-011':
       return mockTimelineEvents11;
+    case 'SAK-2025-012':
+      return mockTimelineEvents12;
+    case 'SAK-2025-013':
+      return mockTimelineEvents13;
     default:
       return mockTimelineEvents1;
   }
@@ -300,4 +312,168 @@ export function getMockHistorikkById(sakId: string): {
     vederlag,
     frist,
   };
+}
+
+/**
+ * Get mock forsering kontekst data
+ * Returns related cases, their states, events, and summary for a forsering case
+ */
+export function getMockForseringKontekstById(sakId: string): {
+  success: boolean;
+  sak_id: string;
+  relaterte_saker: Array<{
+    relatert_sak_id: string;
+    relatert_sak_tittel?: string;
+    bimsync_issue_number?: number;
+  }>;
+  sak_states: Record<string, SakState>;
+  hendelser: Record<string, TimelineEntry[]>;
+  oppsummering: {
+    antall_relaterte_saker: number;
+    total_krevde_dager: number;
+    total_avslatte_dager: number;
+    grunnlag_oversikt: Array<{
+      sak_id: string;
+      tittel: string;
+      hovedkategori: string;
+      bh_resultat: string;
+    }>;
+  };
+} {
+  const state = getMockStateById(sakId);
+
+  // If not a forsering case, return empty context
+  if (state.sakstype !== 'forsering' || !state.relaterte_saker) {
+    return {
+      success: true,
+      sak_id: sakId,
+      relaterte_saker: [],
+      sak_states: {},
+      hendelser: {},
+      oppsummering: {
+        antall_relaterte_saker: 0,
+        total_krevde_dager: 0,
+        total_avslatte_dager: 0,
+        grunnlag_oversikt: [],
+      },
+    };
+  }
+
+  // Gather related case data
+  const sakStates: Record<string, SakState> = {};
+  const hendelser: Record<string, TimelineEntry[]> = {};
+  const grunnlagOversikt: Array<{
+    sak_id: string;
+    tittel: string;
+    hovedkategori: string;
+    bh_resultat: string;
+  }> = [];
+
+  let totalKrevdeDager = 0;
+  let totalAvslatteDager = 0;
+
+  for (const relasjon of state.relaterte_saker) {
+    const relatertState = getMockStateById(relasjon.relatert_sak_id);
+    const relatertTimeline = getMockTimelineById(relasjon.relatert_sak_id);
+
+    sakStates[relasjon.relatert_sak_id] = relatertState;
+    hendelser[relasjon.relatert_sak_id] = relatertTimeline;
+
+    // Gather grunnlag info
+    if (relatertState.grunnlag?.hovedkategori) {
+      grunnlagOversikt.push({
+        sak_id: relasjon.relatert_sak_id,
+        tittel: relatertState.sakstittel,
+        hovedkategori: relatertState.grunnlag.hovedkategori,
+        bh_resultat: relatertState.grunnlag.bh_resultat || 'under_behandling',
+      });
+    }
+
+    // Sum up days
+    if (relatertState.frist?.krevd_dager) {
+      totalKrevdeDager += relatertState.frist.krevd_dager;
+    }
+    if (relatertState.frist?.bh_resultat === 'avslatt') {
+      totalAvslatteDager += relatertState.frist.krevd_dager || 0;
+    } else if (relatertState.frist?.bh_resultat === 'delvis_godkjent') {
+      totalAvslatteDager +=
+        (relatertState.frist.krevd_dager || 0) - (relatertState.frist.godkjent_dager || 0);
+    }
+  }
+
+  return {
+    success: true,
+    sak_id: sakId,
+    relaterte_saker: state.relaterte_saker,
+    sak_states: sakStates,
+    hendelser,
+    oppsummering: {
+      antall_relaterte_saker: state.relaterte_saker.length,
+      total_krevde_dager: totalKrevdeDager,
+      total_avslatte_dager: totalAvslatteDager,
+      grunnlag_oversikt: grunnlagOversikt,
+    },
+  };
+}
+
+/**
+ * Get candidate cases for forsering
+ * Returns cases with rejected or partially approved frist that can be added to a forsering case
+ *
+ * Per NS 8407 §33.8: Forsering is relevant when:
+ * - BH has rejected a frist claim (avslatt)
+ * - BH has partially approved a frist claim (delvis_godkjent)
+ * - BH has rejected grunnlag but subsidiarily agrees with frist (avslått grunnlag med akseptert frist)
+ */
+export function getMockKandidatSaker(): Array<{
+  sak_id: string;
+  sakstittel: string;
+  frist_krevd_dager?: number;
+  frist_godkjent_dager?: number;
+  frist_bh_resultat?: string;
+  grunnlag_hovedkategori?: string;
+  grunnlag_bh_resultat?: string;
+}> {
+  const allStates = [
+    mockSakState1,
+    mockSakState2,
+    mockSakState3,
+    mockSakState4,
+    mockSakState5,
+    mockSakState6,
+    mockSakState7,
+    mockSakState8,
+    mockSakState9,
+    mockSakState10,
+    mockSakState11,
+    mockSakState13, // Skip 12 as it's the forsering case itself
+  ];
+
+  return allStates
+    .filter((state) => {
+      // Skip forsering cases
+      if (state.sakstype === 'forsering') return false;
+
+      // Include cases where:
+      // 1. Frist was rejected (avslatt)
+      // 2. Frist was partially approved (delvis_godkjent)
+      // 3. Grunnlag was rejected but frist was claimed (relevant per NS 8407)
+      const fristRejected = state.frist?.bh_resultat === 'avslatt';
+      const fristPartial = state.frist?.bh_resultat === 'delvis_godkjent';
+      const grunnlagRejectedWithFrist =
+        state.grunnlag?.bh_resultat === 'avslatt' &&
+        state.frist?.status !== 'ikke_relevant' &&
+        state.frist?.krevd_dager;
+
+      return fristRejected || fristPartial || grunnlagRejectedWithFrist;
+    })
+    .map((state) => ({
+      sak_id: state.sak_id,
+      sakstittel: state.sakstittel,
+      frist_krevd_dager: state.frist?.krevd_dager,
+      frist_godkjent_dager: state.frist?.godkjent_dager,
+      frist_bh_resultat: state.frist?.bh_resultat,
+      grunnlag_hovedkategori: state.grunnlag?.hovedkategori,
+      grunnlag_bh_resultat: state.grunnlag?.bh_resultat,
+    }));
 }

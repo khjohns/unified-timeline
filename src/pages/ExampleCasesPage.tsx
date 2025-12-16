@@ -67,7 +67,9 @@ export function ExampleCasesPage() {
                 <div className="mb-4">
                   <span
                     className={`inline-block px-3 py-2 rounded-none text-sm font-medium ${
-                      mockCase.status === 'Klar for EO'
+                      mockCase.sakstype === 'forsering'
+                        ? 'bg-pkt-brand-yellow-500 text-alert-warning-text border-2 border-pkt-border-yellow'
+                        : mockCase.status === 'Klar for EO'
                         ? 'bg-badge-success-bg text-badge-success-text'
                         : mockCase.status === 'Under behandling'
                         ? 'bg-badge-warning-bg text-badge-warning-text'
@@ -78,11 +80,17 @@ export function ExampleCasesPage() {
                   </span>
                 </div>
                 <Button
-                  variant="primary"
-                  onClick={() => navigate(`/saker/${mockCase.id}`)}
+                  variant={mockCase.sakstype === 'forsering' ? 'secondary' : 'primary'}
+                  onClick={() =>
+                    navigate(
+                      mockCase.sakstype === 'forsering'
+                        ? `/forsering/${mockCase.id}`
+                        : `/saker/${mockCase.id}`
+                    )
+                  }
                   className="w-full"
                 >
-                  Vis sak
+                  {mockCase.sakstype === 'forsering' ? 'Vis forseringssak' : 'Vis sak'}
                 </Button>
               </div>
             </Card>
@@ -108,6 +116,15 @@ export function ExampleCasesPage() {
               <p>
                 <strong>SAK-2024-089:</strong> En fullstendig godkjent sak som er klar for
                 utstedelse av endringsordre (EO). Demonstrerer suksessfull gjennomføring.
+              </p>
+              <p>
+                <strong>SAK-2025-012:</strong> 🔶 <em>Forseringssak</em> - Demonstrerer den nye
+                relasjonelle modellen der forsering er en egen sak med relasjoner til avslåtte
+                fristforlengelser. Viser kombinert tidslinje fra 3 relaterte saker.
+              </p>
+              <p>
+                <strong>SAK-2025-013:</strong> Sak med avslått fristforlengelse som kan utløse
+                opprettelse av forseringssak. Tryk på "Opprett forseringssak" for å teste flyten.
               </p>
             </div>
           </Card>

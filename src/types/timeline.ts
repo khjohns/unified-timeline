@@ -299,8 +299,8 @@ export interface SakState {
   sakstittel: string;
 
   // Sakstype og relasjoner (ny relasjonell modell for forsering)
-  sakstype: SaksType;
-  relaterte_saker: SakRelasjon[];
+  sakstype?: SaksType;  // Default: 'standard'
+  relaterte_saker?: SakRelasjon[];  // Kun for sakstype='forsering'
   forsering_data?: ForseringData;  // Kun for sakstype='forsering'
 
   // The three tracks (kun relevant for sakstype='standard')

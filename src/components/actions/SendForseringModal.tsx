@@ -31,7 +31,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useConfirmClose } from '../../hooks/useConfirmClose';
-import { apiFetch } from '../../api/client';
+import {
+  opprettForseringssak,
+  type OpprettForseringRequest,
+  type OpprettForseringResponse,
+} from '../../api/forsering';
 import type { FristBeregningResultat } from '../../types/timeline';
 
 // ============================================================================
@@ -76,24 +80,6 @@ const sendForseringSchema = z.object({
 });
 
 type SendForseringFormData = z.infer<typeof sendForseringSchema>;
-
-// ============================================================================
-// API TYPES
-// ============================================================================
-
-interface OpprettForseringRequest {
-  avslatte_sak_ids: string[];
-  estimert_kostnad: number;
-  dagmulktsats: number;
-  begrunnelse: string;
-  avslatte_dager: number;
-}
-
-interface OpprettForseringResponse {
-  success: boolean;
-  forsering_sak_id: string;
-  message?: string;
-}
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -147,11 +133,7 @@ export function SendForseringModal({
 
   // Mutation to create forsering case and navigate to it
   const mutation = useMutation({
-    mutationFn: (data: OpprettForseringRequest) =>
-      apiFetch<OpprettForseringResponse>('/api/forsering/opprett', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }),
+    mutationFn: (data: OpprettForseringRequest) => opprettForseringssak(data),
     onSuccess: (response) => {
       // Invalidate queries to refetch case data
       queryClient.invalidateQueries({ queryKey: ['case', sakId] });

@@ -6,9 +6,9 @@
  * and a combined timeline of events from all related cases.
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCaseState } from '../hooks/useCaseState';
 import { useUserRole } from '../hooks/useUserRole';
 import { Timeline } from '../components/views/Timeline';
@@ -21,41 +21,26 @@ import {
   ForseringDashboard,
   ForseringKostnadskort,
   RelaterteSakerListe,
+  LeggTilRelatertSakModal,
+  BHStandpunktEndring,
 } from '../components/forsering';
 import {
   ReloadIcon,
-  ExclamationTriangleIcon,
   ArrowLeftIcon,
+  PlusIcon,
 } from '@radix-ui/react-icons';
-import type { SakState, TimelineEntry, ForseringData, SakRelasjon } from '../types/timeline';
-import { apiFetch } from '../api/client';
+import type { ForseringData, TimelineEntry, SakRelasjon } from '../types/timeline';
+import {
+  fetchForseringKontekst,
+  fetchKandidatSaker,
+  leggTilRelaterteSaker,
+  type ForseringKontekstResponse,
+  type KandidatSak,
+} from '../api/forsering';
 
 // ============================================================================
-// API FETCHING
+// HOOKS
 // ============================================================================
-
-interface ForseringKontekstResponse {
-  success: boolean;
-  sak_id: string;
-  relaterte_saker: SakRelasjon[];
-  sak_states: Record<string, SakState>;
-  hendelser: Record<string, TimelineEntry[]>;
-  oppsummering: {
-    antall_relaterte_saker: number;
-    total_krevde_dager: number;
-    total_avslatte_dager: number;
-    grunnlag_oversikt: Array<{
-      sak_id: string;
-      tittel: string;
-      hovedkategori: string;
-      bh_resultat: string;
-    }>;
-  };
-}
-
-async function fetchForseringKontekst(sakId: string): Promise<ForseringKontekstResponse> {
-  return apiFetch<ForseringKontekstResponse>(`/api/forsering/${sakId}/kontekst`);
-}
 
 function useForseringKontekst(sakId: string) {
   return useQuery<ForseringKontekstResponse, Error>({
@@ -63,6 +48,14 @@ function useForseringKontekst(sakId: string) {
     queryFn: () => fetchForseringKontekst(sakId),
     staleTime: 30_000,
     enabled: !!sakId,
+  });
+}
+
+function useKandidatSaker() {
+  return useQuery<{ success: boolean; kandidat_saker: KandidatSak[] }, Error>({
+    queryKey: ['forsering', 'kandidater'],
+    queryFn: fetchKandidatSaker,
+    staleTime: 60_000,
   });
 }
 
@@ -90,6 +83,10 @@ const EMPTY_FORSERING_DATA: ForseringData = {
 export function ForseringPage() {
   const { sakId } = useParams<{ sakId: string }>();
   const { userRole, setUserRole } = useUserRole();
+  const queryClient = useQueryClient();
+
+  // Modal state
+  const [leggTilModalOpen, setLeggTilModalOpen] = useState(false);
 
   // Fetch forsering case state
   const {
@@ -105,6 +102,23 @@ export function ForseringPage() {
     isLoading: kontekstLoading,
     error: kontekstError,
   } = useForseringKontekst(sakId || '');
+
+  // Fetch candidate cases for adding
+  const { data: kandidatData } = useKandidatSaker();
+
+  // Mutation for adding related cases
+  const leggTilMutation = useMutation({
+    mutationFn: (sakIds: string[]) =>
+      leggTilRelaterteSaker({
+        forsering_sak_id: sakId || '',
+        relatert_sak_ids: sakIds,
+      }),
+    onSuccess: () => {
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['forsering', sakId, 'kontekst'] });
+      queryClient.invalidateQueries({ queryKey: ['case', sakId] });
+    },
+  });
 
   const state = caseData?.state;
   const forseringData = state?.forsering_data || EMPTY_FORSERING_DATA;
@@ -247,6 +261,15 @@ export function ForseringPage() {
             {/* Status dashboard */}
             <ForseringDashboard forseringData={forseringData} />
 
+            {/* BH position change alerts (if any) */}
+            {kontekstData && (
+              <BHStandpunktEndring
+                forseringData={forseringData}
+                relaterteSaker={kontekstData.relaterte_saker}
+                sakStates={kontekstData.sak_states}
+              />
+            )}
+
             {/* Cost calculation card */}
             <ForseringKostnadskort forseringData={forseringData} />
 
@@ -296,13 +319,38 @@ export function ForseringPage() {
 
           {/* Right column: Related cases */}
           <div className="space-y-6">
-            <RelaterteSakerListe
-              relaterteSaker={kontekstData?.relaterte_saker || []}
-              sakStates={kontekstData?.sak_states}
-            />
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold">Relaterte saker</h3>
+                {userRole === 'TE' && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setLeggTilModalOpen(true)}
+                  >
+                    <PlusIcon className="w-4 h-4 mr-1" />
+                    Legg til sak
+                  </Button>
+                )}
+              </div>
+              <RelaterteSakerListe
+                relaterteSaker={kontekstData?.relaterte_saker || []}
+                sakStates={kontekstData?.sak_states}
+              />
+            </div>
           </div>
         </div>
       </main>
+
+      {/* Add related case modal */}
+      <LeggTilRelatertSakModal
+        open={leggTilModalOpen}
+        onOpenChange={setLeggTilModalOpen}
+        eksisterendeRelasjoner={kontekstData?.relaterte_saker || []}
+        kandidatSaker={kandidatData?.kandidat_saker || []}
+        onLeggTil={(sakIds) => leggTilMutation.mutate(sakIds)}
+        isLoading={leggTilMutation.isPending}
+      />
     </div>
   );
 }

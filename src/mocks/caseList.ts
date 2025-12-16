@@ -57,4 +57,15 @@ export const mockCaseList = [
     title: 'Subsidiær preklusjon - Rigg varslet for sent',
     status: 'Avslått prinsipalt, subsidiært (preklusjon)',
   },
+  {
+    id: 'SAK-2025-012',
+    title: '🔶 Forseringssak - Samlekrav',
+    status: 'Forsering iverksatt (§33.8)',
+    sakstype: 'forsering',
+  },
+  {
+    id: 'SAK-2025-013',
+    title: 'Forsinkelse - Ventilasjonsmontasje',
+    status: 'Frist avslått - kan utløse forsering',
+  },
 ];
