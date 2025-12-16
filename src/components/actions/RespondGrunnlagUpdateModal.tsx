@@ -100,17 +100,19 @@ export function RespondGrunnlagUpdateModal({
     return varAvvist && (nyttResultat === 'godkjent' || nyttResultat === 'delvis_godkjent');
   }, [varAvvist, nyttResultat]);
 
-  // Check if pulling back approval
-  const trekkeTilbakeGodkjenning = useMemo(() => {
-    return (forrigeResultat === 'godkjent' || forrigeResultat === 'delvis_godkjent') &&
-      nyttResultat === 'avslatt';
-  }, [forrigeResultat, nyttResultat]);
+  // Asymmetrisk endringsrett: BH kan kun endre til TEs gunst
+  // Fra avslått kan BH snu til godkjent/delvis_godkjent
+  // Fra delvis_godkjent kan BH kun øke til godkjent
+  // Fra godkjent kan BH IKKE endre (allerede maksimalt til TEs gunst)
+  const varDelvisGodkjent = forrigeResultat === 'delvis_godkjent';
+  const varGodkjent = forrigeResultat === 'godkjent';
 
-  // Get available options based on current state
+  // Get available options based on current state - kun endringer til TEs gunst
   const getOptions = () => {
     const options: { value: GrunnlagResponsResultat | 'frafalt'; label: string; description?: string }[] = [];
 
     if (varAvvist) {
+      // Fra avslått: Kan snu til godkjent eller delvis_godkjent (til TEs gunst)
       options.push({
         value: 'godkjent',
         label: 'Snu til: Godkjent',
@@ -123,7 +125,7 @@ export function RespondGrunnlagUpdateModal({
         label: 'Snu til: Delvis godkjent',
         description: 'Delvis aksept av ansvarsgrunnlaget.',
       });
-      // Frafall only for irregular changes (§32.3 c)
+      // Frafall only for irregular changes (§32.3 c) - dette er til TEs gunst (arbeidet utgår)
       if (erIrregulaer) {
         options.push({
           value: 'frafalt',
@@ -131,19 +133,26 @@ export function RespondGrunnlagUpdateModal({
           description: 'Arbeidet skal IKKE utføres. Endringssaken bortfaller.',
         });
       }
-    } else {
+    } else if (varDelvisGodkjent) {
+      // Fra delvis_godkjent: Kan kun øke til godkjent (til TEs gunst)
       options.push({
-        value: 'avslatt',
-        label: 'Trekk tilbake: Avslå',
-        description: 'Du mener likevel ikke at dette er BHs ansvar.',
+        value: 'godkjent',
+        label: 'Øk til: Godkjent fullt',
+        description: harSubsidiaereSvar
+          ? 'VIKTIG: Alle subsidiære svar på vederlag/frist blir prinsipale.'
+          : 'Ansvar aksepteres fullt ut.',
       });
     }
+    // Fra godkjent: Ingen alternativer - standpunktet er bindende
 
-    options.push({
-      value: 'krever_avklaring',
-      label: 'Krever avklaring',
-      description: 'Du trenger mer informasjon før du kan ta stilling.',
-    });
+    // Krever avklaring er alltid tilgjengelig (nøytral handling)
+    if (!varGodkjent) {
+      options.push({
+        value: 'krever_avklaring',
+        label: 'Krever avklaring',
+        description: 'Du trenger mer informasjon før du kan ta stilling.',
+      });
+    }
 
     return options;
   };
@@ -218,15 +227,12 @@ export function RespondGrunnlagUpdateModal({
           </Alert>
         )}
 
-        {/* Warning about pulling back approval */}
-        {trekkeTilbakeGodkjenning && (
-          <Alert variant="danger" title="Advarsel: Trekker tilbake godkjenning">
+        {/* Info when already approved - standpoint is binding */}
+        {varGodkjent && (
+          <Alert variant="info" title="Standpunktet er bindende">
             <p>
-              Du trekker tilbake en tidligere godkjenning. Dette kan føre til tvist og
-              potensielle konsekvenser i henhold til kontrakten.
-            </p>
-            <p className="mt-2 text-sm">
-              Sørg for at du har god dokumentasjon for hvorfor godkjenningen trekkes tilbake.
+              Du har allerede godkjent ansvarsgrunnlaget. Dette standpunktet er bindende
+              og kan ikke endres til entreprenørens ugunst.
             </p>
           </Alert>
         )}
@@ -307,8 +313,8 @@ export function RespondGrunnlagUpdateModal({
           </Button>
           <Button
             type="submit"
-            variant={erSnuoperasjon ? 'primary' : trekkeTilbakeGodkjenning ? 'danger' : 'primary'}
-            disabled={isSubmitting || !nyttResultat}
+            variant="primary"
+            disabled={isSubmitting || !nyttResultat || varGodkjent}
             size="lg"
           >
             {isSubmitting ? 'Lagrer...' : erSnuoperasjon ? 'Godkjenn grunnlag' : 'Lagre endring'}
