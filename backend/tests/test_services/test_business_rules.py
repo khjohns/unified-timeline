@@ -24,6 +24,7 @@ from models.events import (
     VederlagResponsData,
     FristResponsData,
     EOUtstedtEvent,
+    EOUtstedtData,
     EventType,
     SporType,
     GrunnlagResponsResultat,
@@ -431,16 +432,16 @@ class TestBusinessRuleValidator:
             sak_id="TEST-001",
             aktor="BH User",
             aktor_rolle="BH",
-            eo_nummer="EO-001",
-            endelig_vederlag=100000.0,
-            signert_av_te="TE User",
-            signert_av_bh="BH User"
+            data=EOUtstedtData(
+                eo_nummer="EO-001",
+                beskrivelse="Test endringsordre",
+                kompensasjon_belop=100000.0
+            )
         )
 
         result = validator.validate(eo_event, base_state)
         assert not result.is_valid
-        assert result.violated_rule == "ALL_APPROVED"
-        assert "godkjent" in result.message
+        assert result.violated_rule == "EO_CAN_BE_ISSUED"
 
     def test_can_issue_eo_when_all_approved(self, validator, timeline_service):
         """Test that EO can be issued when all tracks are approved."""
@@ -483,10 +484,11 @@ class TestBusinessRuleValidator:
             sak_id="TEST-006",
             aktor="BH User",
             aktor_rolle="BH",
-            eo_nummer="EO-001",
-            endelig_vederlag=100000.0,
-            signert_av_te="TE User",
-            signert_av_bh="BH User"
+            data=EOUtstedtData(
+                eo_nummer="EO-001",
+                beskrivelse="Test endringsordre",
+                kompensasjon_belop=100000.0
+            )
         )
 
         result = validator.validate(eo_event, state)

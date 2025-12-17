@@ -10,7 +10,7 @@ kan prosesseres uavhengig på tre parallelle spor:
 
 Hver event er immutable og representerer en faktisk hendelse i tid.
 """
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator, computed_field
 from typing import Optional, Literal, List, Union
 from datetime import datetime
 from enum import Enum
@@ -87,7 +87,80 @@ class VederlagsMetode(str, Enum):
     ENHETSPRISER = "ENHETSPRISER"  # Enhetspriser (§34.3) - kontrakts- eller justerte
     REGNINGSARBEID = "REGNINGSARBEID"  # Regningsarbeid med kostnadsoverslag (§30.2/§34.4)
     FASTPRIS_TILBUD = "FASTPRIS_TILBUD"  # Fastpris / Tilbud (§34.2.1)
-    
+
+
+# ============ VEDERLAG KOMPENSASJON BASE MODEL ============
+
+class VederlagKompensasjon(BaseModel):
+    """
+    Felles base-modell for vederlagskompensasjon.
+
+    Brukes av både VederlagData (TEs krav) og EOUtstedtData (BHs formelle EO).
+    Følger NS 8407 §34 for vederlagsjustering.
+
+    Beløpsstrukturen avhenger av metode:
+    - ENHETSPRISER / FASTPRIS_TILBUD: belop_direkte (kan være negativt = fradrag)
+    - REGNINGSARBEID: kostnads_overslag (alltid >= 0)
+
+    Fradrag (§34.4): "For fradrag skal det gjøres en reduksjon i vederlaget som
+    tilsvarer den besparelsen fradraget har ført til, med en tilsvarende
+    reduksjon av fortjenesten."
+    """
+    metode: VederlagsMetode = Field(
+        ...,
+        description="Vederlagsmetode etter NS 8407 (§34)"
+    )
+
+    # Beløp - avhenger av metode
+    belop_direkte: Optional[float] = Field(
+        default=None,
+        description="For ENHETSPRISER/FASTPRIS_TILBUD: Beløp i NOK"
+    )
+    kostnads_overslag: Optional[float] = Field(
+        default=None,
+        ge=0,
+        description="For REGNINGSARBEID (§30.2): Kostnadsoverslag i NOK"
+    )
+
+    # Fradrag (§34.4) - separat felt for eksplisitt sporing
+    fradrag_belop: Optional[float] = Field(
+        default=None,
+        ge=0,
+        description="Fradrag i NOK (§34.4) - reduksjon for besparelser"
+    )
+
+    # Estimat-markering
+    er_estimat: bool = Field(
+        default=False,
+        description="Om beløpet er et estimat (endelig oppgjør senere)"
+    )
+
+    @computed_field
+    @property
+    def netto_belop(self) -> float:
+        """
+        Beregner netto beløp basert på metode.
+
+        For ENHETSPRISER/FASTPRIS_TILBUD: belop_direkte - fradrag
+        For REGNINGSARBEID: kostnads_overslag - fradrag
+        """
+        if self.metode == VederlagsMetode.REGNINGSARBEID:
+            brutto = self.kostnads_overslag or 0.0
+        else:
+            brutto = self.belop_direkte or 0.0
+        fradrag = self.fradrag_belop or 0.0
+        return brutto - fradrag
+
+    @computed_field
+    @property
+    def krevd_belop(self) -> float:
+        """
+        Alias for netto_belop - brukes i state-modellen.
+        Returnerer det totale kravet/kompensasjonen.
+        """
+        return self.netto_belop
+
+
 class VederlagBeregningResultat(str, Enum):
     """
     Resultat av vederlagsvurdering - forenklet til tre hovedkategorier.
@@ -393,35 +466,23 @@ class GrunnlagEvent(SakEvent):
 
 # ============ VEDERLAG EVENTS ============
 
-class VederlagData(BaseModel):
+class VederlagData(VederlagKompensasjon):
     """
     Data for vederlagskrav (Entreprenørens krav).
 
-    Denne modellen inneholder TEs krav på penger, inkludert dokumentasjon
-    av alle relevante varsler som kreves etter NS 8407.
+    Arver fra VederlagKompensasjon som gir felles struktur for beløp/metode.
+    Denne modellen utvider med TEs spesifikke dokumentasjon og varsler
+    som kreves etter NS 8407.
 
-    UPDATED (2025-12-06):
-    - Replaced krav_belop with belop_direkte/kostnads_overslag per metode
-    - Moved rigg_drift_belop and produktivitetstap_belop into saerskilt_krav structure
-    - Each særskilt krav type now has its own dato_klar_over for 7-day warning check
+    Arvede felter fra VederlagKompensasjon:
+    - metode: VederlagsMetode
+    - belop_direkte: For ENHETSPRISER/FASTPRIS_TILBUD
+    - kostnads_overslag: For REGNINGSARBEID
+    - fradrag_belop: Fradrag (§34.4)
+    - er_estimat: Om beløpet er et estimat
+    - netto_belop: Computed (brutto - fradrag)
+    - krevd_belop: Alias for netto_belop
     """
-    # Klassifisering av oppgjørsmetode iht. NS 8407 kapittel 34
-    metode: VederlagsMetode = Field(
-        ...,
-        description="Vederlagsmetode etter NS 8407"
-    )
-
-    # Beløp - avhenger av metode
-    belop_direkte: Optional[float] = Field(
-        default=None,
-        description="For ENHETSPRISER/FASTPRIS_TILBUD: Krevd beløp i NOK (kan være negativt = fradrag)"
-    )
-    kostnads_overslag: Optional[float] = Field(
-        default=None,
-        ge=0,
-        description="For REGNINGSARBEID (§30.2): Kostnadsoverslag i NOK"
-    )
-
     # Detaljert begrunnelse for vederlagskravet
     begrunnelse: str = Field(..., min_length=1, description="Begrunnelse for kravet")
 
@@ -1194,6 +1255,9 @@ class EOUtstedtData(BaseModel):
 
     Dette er det komplette datasettet når BH formelt utsteder EO.
     Følger strukturen i Endringsordre.md malen.
+
+    Vederlagskompensasjonen bruker VederlagKompensasjon for konsistens
+    med VederlagData (TEs krav). Samme metoder og beløpsstruktur.
     """
     # Identifikasjon
     eo_nummer: str = Field(..., description="Endringsordre-nummer")
@@ -1213,22 +1277,29 @@ class EOUtstedtData(BaseModel):
         description="Beskrivelse av konsekvensene"
     )
 
-    # Oppgjør
+    # Vederlag/oppgjør - bruker felles VederlagKompensasjon for konsistens
+    vederlag: Optional[VederlagKompensasjon] = Field(
+        default=None,
+        description="Vederlagskompensasjon (metode, beløp, fradrag) - konsistent med VederlagData"
+    )
+
+    # Legacy-felter for bakoverkompatibilitet (migreres til vederlag-feltet)
+    # TODO: Fjern disse når alle eksisterende data er migrert
     oppgjorsform: Optional[str] = Field(
         default=None,
-        description="Oppgjørsform: ENHETSPRISER, REGNINGSARBEID, FASTPRIS_TILBUD"
+        description="DEPRECATED: Bruk vederlag.metode"
     )
     kompensasjon_belop: Optional[float] = Field(
         default=None,
-        description="Kompensasjonsbeløp (positivt = tillegg)"
+        description="DEPRECATED: Bruk vederlag.belop_direkte"
     )
     fradrag_belop: Optional[float] = Field(
         default=None,
-        description="Fradragsbeløp"
+        description="DEPRECATED: Bruk vederlag.fradrag_belop"
     )
-    er_estimat: bool = Field(
-        default=False,
-        description="Om beløpet er et estimat"
+    er_estimat: Optional[bool] = Field(
+        default=None,
+        description="DEPRECATED: Bruk vederlag.er_estimat"
     )
 
     # Frist
@@ -1246,6 +1317,32 @@ class EOUtstedtData(BaseModel):
         default_factory=list,
         description="SAK-IDs til KOE-er som inngår"
     )
+
+    @computed_field
+    @property
+    def netto_belop(self) -> float:
+        """
+        Beregner netto beløp.
+        Prioriterer vederlag-feltet, faller tilbake til legacy-felter.
+        """
+        if self.vederlag:
+            return self.vederlag.netto_belop
+        # Legacy fallback
+        komp = self.kompensasjon_belop or 0.0
+        frad = self.fradrag_belop or 0.0
+        return komp - frad
+
+    @computed_field
+    @property
+    def har_priskonsekvens(self) -> bool:
+        """Sjekker om EO har priskonsekvens"""
+        return self.konsekvenser.pris or self.netto_belop != 0.0
+
+    @computed_field
+    @property
+    def har_fristkonsekvens(self) -> bool:
+        """Sjekker om EO har fristkonsekvens"""
+        return self.konsekvenser.fremdrift or (self.frist_dager is not None and self.frist_dager > 0)
 
 
 class EOUtstedtEvent(SakEvent):

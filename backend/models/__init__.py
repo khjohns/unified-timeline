@@ -21,6 +21,7 @@ from models.events import (
     SubsidiaerTrigger,
     # Base
     SakEvent,
+    VederlagKompensasjon,
     # Events
     GrunnlagEvent,
     VederlagEvent,
@@ -72,6 +73,8 @@ __all__ = [
     'VederlagsMetode', 'FristVarselType',
     'GrunnlagResponsResultat', 'VederlagBeregningResultat', 'FristBeregningResultat',
     'SubsidiaerTrigger',
+    # Base models
+    'VederlagKompensasjon',
     # Events
     'SakEvent', 'GrunnlagEvent', 'VederlagEvent', 'FristEvent',
     'ResponsEvent', 'SakOpprettetEvent', 'EOUtstedtEvent', 'AnyEvent',

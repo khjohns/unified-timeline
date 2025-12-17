@@ -388,12 +388,12 @@ class ForseringService:
                             state = self.timeline_service.compute_state(events)
 
                             if state.sakstype == 'forsering' and state.forsering_data:
-                                relaterte = state.forsering_data.relaterte_avslatte_saker or []
+                                relaterte = state.forsering_data.avslatte_fristkrav or []
                                 if sak_id in relaterte:
                                     forseringer.append({
                                         "forsering_sak_id": topic_id,
                                         "tittel": state.sakstittel,
-                                        "status": state.forsering_data.status,
+                                        "er_iverksatt": state.forsering_data.er_iverksatt,
                                         "estimert_kostnad": state.forsering_data.estimert_kostnad,
                                     })
                     except Exception as e:

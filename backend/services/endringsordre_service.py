@@ -394,11 +394,11 @@ class EndringsordreService:
 
             # Vederlag
             if state.vederlag:
-                if state.vederlag.hovedkrav_belop:
-                    total_krevd_vederlag += state.vederlag.hovedkrav_belop
+                if state.vederlag.krevd_belop:
+                    total_krevd_vederlag += state.vederlag.krevd_belop
                 if state.vederlag.godkjent_belop:
                     total_godkjent_vederlag += state.vederlag.godkjent_belop
-                koe_info["krevd_vederlag"] = state.vederlag.hovedkrav_belop
+                koe_info["krevd_vederlag"] = state.vederlag.krevd_belop
                 koe_info["godkjent_vederlag"] = state.vederlag.godkjent_belop
 
             # Frist
