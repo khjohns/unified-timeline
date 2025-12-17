@@ -1,6 +1,6 @@
 # Backend Structure
 
-**Sist oppdatert:** 2025-12-06
+**Sist oppdatert:** 2025-12-17
 **Backend versjon:** Event Sourcing + CQRS
 
 ## 📁 Directory Organization
@@ -13,53 +13,54 @@ backend/
 ├── core/                            # Sentralisert konfigurasjon
 │   ├── __init__.py
 │   ├── config.py                    # Pydantic BaseSettings
-│   ├── constants.py                 # Statiske konstanter
-│   ├── generated_constants.py       # Auto-generert fra shared/status-codes.json
 │   ├── cors_config.py               # CORS-konfigurasjon
 │   └── logging_config.py            # Sentralisert logging setup
 │
+├── constants/                       # Forretningskonstanter
+│   ├── __init__.py
+│   ├── grunnlag_categories.py       # NS 8407 kategorier (481 linjer)
+│   └── vederlag_methods.py          # Vederlagsmetoder (168 linjer)
+│
 ├── models/                          # Pydantic v2 domenemodeller (EVENT SOURCING)
 │   ├── __init__.py
-│   ├── events.py                    # 🆕 Event-definisjoner (933 linjer)
-│   │                                # - SakEvent (base)
+│   ├── events.py                    # Event-definisjoner (1575 linjer)
+│   │                                # - SakEvent (base), EventType enum
 │   │                                # - GrunnlagData, VederlagData, FristData
-│   │                                # - GrunnlagResponsData, VederlagResponsData, FristResponsData
-│   │                                # - EventType enum
-│   └── sak_state.py                 # 🆕 Read model/projeksjon (562 linjer)
-│                                    # - SakState (aggregate root)
-│                                    # - GrunnlagTilstand, VederlagTilstand, FristTilstand
-│                                    # - Beregnede felter, subsidiary-logikk
+│   │                                # - Forsering og Endringsordre events
+│   ├── sak_state.py                 # Read model/projeksjon (1122 linjer)
+│   │                                # - SakState (aggregate root)
+│   │                                # - GrunnlagTilstand, VederlagTilstand, FristTilstand
+│   │                                # - ForseringData, EndringsordreData
+│   ├── api_responses.py             # API response DTOs (381 linjer)
+│   └── sak_metadata.py              # Metadata for sakliste (36 linjer)
 │
 ├── repositories/                    # Data Access Layer (EVENT STORE)
 │   ├── __init__.py
-│   ├── event_repository.py          # 🆕 Event store (190 linjer)
-│   │                                # - JsonFileEventRepository
-│   │                                # - Optimistisk låsing (versjonsnummer)
-│   │                                # - Atomic batch operations
-│   │                                # - File locking (fcntl)
-│   └── sak_metadata_repository.py   # 🆕 Metadata-cache for sakliste (134 linjer)
+│   ├── base_repository.py           # Repository interface (111 linjer)
+│   ├── event_repository.py          # Event store med optimistisk låsing (189 linjer)
+│   ├── sak_metadata_repository.py   # Metadata-cache for sakliste (133 linjer)
+│   └── supabase_event_repository.py # Supabase implementasjon (287 linjer)
 │
 ├── services/                        # Forretningslogikk (CQRS)
 │   ├── __init__.py
-│   ├── timeline_service.py          # 🆕 State-projeksjon (753 linjer)
-│   │                                # - compute_state(events) → SakState
-│   │                                # - Event handlers (reducers)
-│   │                                # - Tre-spor koordinering
-│   ├── business_rules.py            # 🆕 Forretningsregler (240 linjer)
-│   │                                # - BusinessRuleValidator
-│   │                                # - Regler per event-type
-│   │                                # - Validering før persistering
-│   └── catenda_service.py           # Catenda API-operasjoner
+│   ├── timeline_service.py          # State-projeksjon (1184 linjer)
+│   ├── business_rules.py            # Forretningsregler-validering (321 linjer)
+│   ├── forsering_service.py         # Forsering §33.8 logikk (416 linjer)
+│   ├── endringsordre_service.py     # Endringsordre §31.3 logikk (540 linjer)
+│   ├── related_cases_service.py     # Relaterte saker (167 linjer)
+│   ├── catenda_service.py           # Catenda API-operasjoner (268 linjer)
+│   ├── catenda_comment_generator.py # Kommentar-generering (191 linjer)
+│   ├── webhook_service.py           # Webhook-håndtering (397 linjer)
+│   └── weasyprint_generator.py      # PDF-generering (401 linjer)
 │
 ├── routes/                          # Flask Blueprints (HTTP-lag)
 │   ├── __init__.py
-│   ├── event_routes.py              # 🆕 Event API (592 linjer)
-│   │                                # - POST /api/events (submit event)
-│   │                                # - GET /api/cases/{id}/state
-│   │                                # - GET /api/cases/{id}/timeline
-│   ├── utility_routes.py            # CSRF, health, magic-link
-│   ├── webhook_routes.py            # Catenda webhook handling
-│   └── error_handlers.py            # Globale feilhåndterere
+│   ├── event_routes.py              # Event API (619 linjer)
+│   ├── forsering_routes.py          # Forsering §33.8 API (358 linjer)
+│   ├── endringsordre_routes.py      # Endringsordre §31.3 API (454 linjer)
+│   ├── utility_routes.py            # CSRF, health, magic-link (114 linjer)
+│   ├── webhook_routes.py            # Catenda webhook handling (160 linjer)
+│   └── error_handlers.py            # Globale feilhåndterere (67 linjer)
 │
 ├── lib/                             # Gjenbrukbare bibliotekskomponenter
 │   ├── __init__.py
@@ -94,10 +95,11 @@ backend/
 │
 ├── scripts/                         # CLI-verktøy og setup-scripts
 │   ├── __init__.py
-│   ├── catenda_menu.py              # Interaktiv Catenda-meny (998 linjer)
-│   ├── webhook_listener.py          # Webhook-lytter (utvikling) (369 linjer)
-│   ├── setup_authentication.py      # Catenda auth setup (421 linjer)
-│   └── setup_webhooks.py            # Webhook-konfigurasjon (532 linjer)
+│   ├── catenda_menu.py              # Interaktiv Catenda-meny
+│   ├── create_test_sak.py           # Opprett testdata
+│   ├── setup_authentication.py      # Catenda auth setup
+│   ├── setup_webhooks.py            # Webhook-konfigurasjon
+│   └── webhook_listener.py          # Webhook-lytter (utvikling)
 │
 └── tests/                           # Testsuite (427 tester, 63% coverage)
     ├── __init__.py
@@ -213,25 +215,32 @@ SakState (Aggregate Root)
 
 | Modul | Ansvar | Linjer |
 |-------|--------|--------|
-| `event_routes.py` | **Event API (CQRS)** | 592 |
-| `utility_routes.py` | CSRF, health, magic-link | 115 |
-| `webhook_routes.py` | Catenda webhooks | 164 |
-| `error_handlers.py` | Globale feilhåndterere | 49 |
+| `event_routes.py` | **Event API (CQRS)** | 619 |
+| `forsering_routes.py` | **Forsering API (§33.8)** | 358 |
+| `endringsordre_routes.py` | **Endringsordre API (§31.3)** | 454 |
+| `utility_routes.py` | CSRF, health, magic-link | 114 |
+| `webhook_routes.py` | Catenda webhooks | 160 |
+| `error_handlers.py` | Globale feilhåndterere | 67 |
 
 **Ansvar:**
 - Flask Blueprints for modulær ruteorganisering
 - **Write Side:** POST /api/events (event submission)
 - **Read Side:** GET /api/cases/{id}/state, GET /api/cases/{id}/timeline
-- CSRF-beskyttelse, Rate limiting
-- Optimistisk låsing via `expected_version`
+- **Forsering:** POST /api/forsering/opprett, GET /api/forsering/{id}/kontekst
+- **Endringsordre:** POST /api/endringsordre/opprett, POST /api/endringsordre/{id}/koe
+- CSRF-beskyttelse, Rate limiting, Optimistisk låsing
 
 ### 2. **Service Layer** (`services/`)
 
 | Service | Ansvar | Linjer |
 |---------|--------|--------|
-| `timeline_service.py` | **State-projeksjon fra events** | 753 |
-| `business_rules.py` | **Forretningsregler-validering** | 240 |
+| `timeline_service.py` | **State-projeksjon fra events** | 1184 |
+| `endringsordre_service.py` | **Endringsordre §31.3 logikk** | 540 |
+| `forsering_service.py` | **Forsering §33.8 logikk** | 416 |
+| `webhook_service.py` | Webhook-håndtering | 397 |
+| `business_rules.py` | Forretningsregler-validering | 321 |
 | `catenda_service.py` | Catenda API-operasjoner | 268 |
+| `related_cases_service.py` | Relaterte saker | 167 |
 
 **TimelineService (Projector):**
 ```python
@@ -271,8 +280,10 @@ class BusinessRuleValidator:
 
 | Repository | Implementasjon | Linjer |
 |------------|----------------|--------|
-| `event_repository.py` | **Event store med optimistisk låsing** | 190 |
-| `sak_metadata_repository.py` | Metadata-cache for sakliste | 134 |
+| `event_repository.py` | **Event store med optimistisk låsing** | 189 |
+| `supabase_event_repository.py` | Supabase implementasjon | 287 |
+| `sak_metadata_repository.py` | Metadata-cache for sakliste | 133 |
+| `base_repository.py` | Repository interface | 111 |
 
 **EventRepository Interface:**
 ```python
@@ -301,8 +312,10 @@ except ConcurrencyError as e:
 
 | Modell | Beskrivelse | Linjer |
 |--------|-------------|--------|
-| `events.py` | **Event-definisjoner** | 933 |
-| `sak_state.py` | **Read model (projeksjon)** | 562 |
+| `events.py` | **Event-definisjoner** | 1575 |
+| `sak_state.py` | **Read model (projeksjon)** | 1122 |
+| `api_responses.py` | API response DTOs | 381 |
+| `sak_metadata.py` | Metadata for sakliste | 36 |
 
 **Event-modeller (Pydantic v2):**
 ```python
@@ -519,21 +532,22 @@ Produksjonsklar Catenda API-klient:
 
 ## 🧪 Testing
 
-### Test Coverage (2025-12-08)
+### Test Coverage (2025-12-17)
 
-| Kategori | Filer | Status |
-|----------|-------|--------|
-| Auth | 2 filer | Auth decorators og sessions |
-| Models | 2 filer | Event-modeller og parsing |
-| Repositories | 2 filer | Event store og metadata |
-| Services | 2 filer | Business rules og Catenda |
-| Security | 4 filer | CSRF, magic link, validation |
-| Monitoring | 1 fil | Audit logging |
-| Utils | 3 filer | Filtering, logging, network |
-| **Totalt** | **345 tester** | **32% overall** |
+| Modul | Coverage |
+|-------|----------|
+| repositories/event_repository.py | 99% |
+| models/api_responses.py | 95% |
+| models/events.py | 93% |
+| services/endringsordre_service.py | 88% |
+| services/catenda_service.py | 87% |
+| services/forsering_service.py | 83% |
+| services/business_rules.py | 80% |
+| models/sak_state.py | 70% |
+| **Totalt** | **427 tester, 63% coverage** |
 
-> **Merk:** Flask route-tester er fjernet (produksjon bruker Azure Functions).
-> Kritisk forretningslogikk har 85-99% coverage.
+> **Merk:** Coverage beregnet for kjernelogikk (ekskl. routes/).
+> E2E-tester (39 stk) dekker routes via Playwright.
 
 ### Kjør tester
 
@@ -661,26 +675,26 @@ from utils.logger import get_logger
 
 | Kategori | Filer | Total linjer |
 |----------|-------|--------------|
-| Core | 6 | ~400 |
-| Routes | 7 | ~1,024 |
-| Services | 5 | ~1,509 |
-| Repositories | 2 | ~568 |
-| Models | 4 | ~553 |
+| Models | 4 | ~3,114 |
+| Services | 10 | ~3,885 |
+| Routes | 6 | ~1,772 |
+| Repositories | 4 | ~720 |
+| Constants | 2 | ~649 |
 | Lib | 7 | ~1,576 |
 | Integrations | 2 | ~2,183 |
+| Core | 4 | ~200 |
 | Utils | 3 | ~362 |
-| Scripts | 4 | ~2,320 |
-| Functions | 1 | ~214 |
-| Tests | 18 | ~3,000+ |
-| **Totalt** | **59** | **~13,700** |
+| Scripts | 5 | ~2,500 |
+| **Totalt** | **47** | **~16,961** |
 
-### Refaktoreringsresultat
+### Test-statistikk
 
-| Før | Etter | Reduksjon |
-|-----|-------|-----------|
-| `app.py`: 1231 linjer | `app.py`: 155 linjer | **87%** |
-| Alt i én fil | 7 routes + 5 services | Modulær |
-| Tett koblet | Dependency injection | Testbar |
+| Type | Antall |
+|------|--------|
+| Backend unit tests | 427 |
+| Frontend unit tests | 334 |
+| E2E tests (Playwright) | 39 |
+| **Totalt** | **800** |
 
 ---
 
