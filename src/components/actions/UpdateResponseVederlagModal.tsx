@@ -441,9 +441,9 @@ export function UpdateResponseVederlagModal({
               </div>
             )}
 
-            {/* Metode */}
+            {/* Oppgjørsform */}
             <div className="flex justify-between items-center">
-              <span>Metode:</span>
+              <span>Oppgjørsform:</span>
               <Badge variant={tidligereAkseptererMetode ? 'success' : 'warning'}>
                 {tidligereAkseptererMetode ? 'Akseptert' : 'Avvist'}
               </Badge>
@@ -562,22 +562,22 @@ export function UpdateResponseVederlagModal({
         )}
 
         {/* ============================================
-            PORT 3: METODE - Endre til TEs gunst
+            PORT 3: OPPGJØRSFORM - Endre til TEs gunst
             ============================================ */}
         {kanEndreMetode && (
           <div className="p-4 border-2 border-pkt-border-subtle rounded-none space-y-4">
             <div className="flex items-center gap-2">
-              <h4 className="font-bold">Metode</h4>
+              <h4 className="font-bold">Oppgjørsform</h4>
               <Badge variant="warning">Kan endres</Badge>
             </div>
 
             {kanEndreMetodeAksept && (
               <>
                 <p className="text-sm text-pkt-text-body-subtle">
-                  Du avviste tidligere den foreslåtte vederlagsmetoden.
+                  Du avviste tidligere den foreslåtte oppgjørsformen.
                   Du kan nå akseptere den.
                 </p>
-                <FormField label="Vil du akseptere metoden?">
+                <FormField label="Vil du akseptere oppgjørsformen?">
                   <Controller
                     name="endre_metode_aksept"
                     control={control}
@@ -588,7 +588,7 @@ export function UpdateResponseVederlagModal({
                       >
                         <RadioItem
                           value="ja"
-                          label="Ja - aksepter den foreslåtte metoden"
+                          label="Ja - aksepter den foreslåtte oppgjørsformen"
                         />
                         <RadioItem value="nei" label="Nei - behold avvisning" />
                       </RadioGroup>

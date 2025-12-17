@@ -7,3 +7,4 @@
 export { UtstEndringsordreModal } from './UtstEndringsordreModal';
 export { EODashboard } from './EODashboard';
 export { RelatertKOEListe, type KOEOversiktItem } from './RelatertKOEListe';
+export { LeggTilKOEModal } from './LeggTilKOEModal';

@@ -167,7 +167,7 @@ export function ReviseVederlagModal({
         <div className="bg-pkt-bg-subtle p-4 rounded border border-pkt-grays-gray-200">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-sm text-pkt-grays-gray-600">Metode:</p>
+              <p className="text-sm text-pkt-grays-gray-600">Oppgjørsform:</p>
               <Badge variant="neutral">{METODE_LABELS[lastVederlagEvent.metode]}</Badge>
             </div>
             <div className="text-right">

@@ -3,10 +3,10 @@ import type { SakState } from '@/types/timeline';
 /**
  * SAK-EO-001: Endringsordre - Sprinkler og fasadeendringer
  *
- * Scenario: Utstedt endringsordre som samler to KOE-saker
+ * Scenario: Endringsordre i utkast som samler to KOE-saker
  * - sakstype: 'endringsordre'
  * - Relatert til SAK-2025-010 og SAK-2024-089
- * - Status: Utstedt, venter på TE aksept
+ * - Status: Utkast, BH kan redigere og legge til/fjerne KOE-saker
  *
  * Demonstrerer: Endringsordre-siden med relaterte KOE-saker og oppgjørsoversikt
  */
@@ -51,9 +51,9 @@ export const mockSakStateEO001: SakState = {
     er_estimat: false,
     frist_dager: 19, // 5 + 14 fra KOE-sakene
     ny_sluttdato: '2025-04-15',
-    status: 'utstedt',
-    dato_utstedt: '2025-02-20',
-    utstedt_av: 'Kari Byggherre',
+    status: 'utkast',
+    // dato_utstedt: '2025-02-20',  // Ikke utstedt ennå
+    // utstedt_av: 'Kari Byggherre',
     netto_belop: 1035000,
     har_priskonsekvens: true,
     har_fristkonsekvens: true,
@@ -87,14 +87,14 @@ export const mockSakStateEO001: SakState = {
 
   er_subsidiaert_vederlag: false,
   er_subsidiaert_frist: false,
-  visningsstatus_vederlag: 'EO utstedt: 1.035.000 kr',
-  visningsstatus_frist: 'EO utstedt: 19 dager',
+  visningsstatus_vederlag: 'EO utkast: 1.035.000 kr',
+  visningsstatus_frist: 'EO utkast: 19 dager',
 
-  overordnet_status: 'UTSTEDT',
-  kan_utstede_eo: false,
+  overordnet_status: 'UTKAST',
+  kan_utstede_eo: true,
   neste_handling: {
-    rolle: 'TE',
-    handling: 'Aksepter eller bestrid endringsordre',
+    rolle: 'BH',
+    handling: 'Fullfør og utstede endringsordre',
     spor: null,
   },
 

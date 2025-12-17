@@ -146,7 +146,7 @@ function VederlagHistorikkTable({ entries }: VederlagHistorikkTableProps) {
             getValue={(v) => formatHistorikkBelop(teByVersion.get(v)?.krav_belop)}
           />
           <DataRow
-            label="Metode"
+            label="Oppgjørsform"
             versions={versions}
             getValue={(v) => teByVersion.get(v)?.metode_label || '—'}
           />

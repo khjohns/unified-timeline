@@ -42,7 +42,7 @@ const vederlagSchema = z.object({
   // Direkte kostnader - tillater negative for fradrag (§34.4)
   belop_direkte: z.number().optional(),
   metode: z.enum(['ENHETSPRISER', 'REGNINGSARBEID', 'FASTPRIS_TILBUD'], {
-    errorMap: () => ({ message: 'Beregningsmetode er påkrevd' }),
+    errorMap: () => ({ message: 'Oppgjørsform er påkrevd' }),
   }),
   begrunnelse: z.string().min(10, 'Begrunnelse må være minst 10 tegn'),
 
@@ -237,10 +237,10 @@ export function SendVederlagModal({
           </Alert>
         )}
 
-        {/* 1. Beregningsmetode - RadioGroup vertical */}
+        {/* 1. Oppgjørsform - RadioGroup vertical */}
         <FormField
-          label="Beregningsmetode"
-          helpText="Velg metode for beregning av vederlaget (NS 8407 §34.2)"
+          label="Oppgjørsform"
+          helpText="Velg oppgjørsform for vederlaget (NS 8407 §34.2)"
           required
           error={errors.metode?.message}
         >

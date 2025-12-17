@@ -145,7 +145,7 @@ export function ForseringDashboard({
           title="Forseringsstatus"
           headerBadge={getStatusBadge(forseringData)}
           action={canStoppForsering && onStoppForsering && (
-            <Button variant="danger" size="sm" onClick={onStoppForsering} className="w-full">
+            <Button variant="danger" size="sm" onClick={onStoppForsering}>
               <StopIcon className="w-4 h-4 mr-2" />
               Stopp forsering
             </Button>
@@ -190,7 +190,7 @@ export function ForseringDashboard({
             </Badge>
           )}
           action={canOppdaterKostnader && onOppdaterKostnader && (
-            <Button variant="secondary" size="sm" onClick={onOppdaterKostnader} className="w-full">
+            <Button variant="secondary" size="sm" onClick={onOppdaterKostnader}>
               <Pencil1Icon className="w-4 h-4 mr-2" />
               Oppdater kostnader
             </Button>
@@ -227,7 +227,6 @@ export function ForseringDashboard({
             variant={hasGittStandpunkt ? 'secondary' : 'primary'}
             size="sm"
             onClick={onGiStandpunkt}
-            className="w-full"
           >
             <ChatBubbleIcon className="w-4 h-4 mr-2" />
             {hasGittStandpunkt ? 'Endre standpunkt' : 'Gi standpunkt'}

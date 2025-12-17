@@ -19,7 +19,7 @@ import { Timeline } from '../components/views/Timeline';
 import { Button } from '../components/primitives/Button';
 import { Alert } from '../components/primitives/Alert';
 import { PageHeader } from '../components/PageHeader';
-import { EODashboard, RelatertKOEListe } from '../components/endringsordre';
+import { EODashboard, RelatertKOEListe, LeggTilKOEModal } from '../components/endringsordre';
 import {
   ReloadIcon,
   ArrowLeftIcon,
@@ -335,7 +335,17 @@ export function EndringsordePage() {
         </div>
       </main>
 
-      {/* TODO: Implement modals for aksepter, bestrid, revider, legg til KOE */}
+      {/* Add KOE modal */}
+      <LeggTilKOEModal
+        open={leggTilKOEModalOpen}
+        onOpenChange={setLeggTilKOEModalOpen}
+        eksisterendeKOE={eoData.relaterte_koe_saker || []}
+        kandidatSaker={kandidatData?.kandidat_saker || []}
+        onLeggTil={(sakId) => leggTilMutation.mutate(sakId)}
+        isLoading={leggTilMutation.isPending}
+      />
+
+      {/* TODO: Implement modals for aksepter, bestrid, revider */}
     </div>
   );
 }

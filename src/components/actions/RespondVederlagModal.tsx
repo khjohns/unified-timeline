@@ -6,7 +6,7 @@
  *
  * WIZARD STRUCTURE:
  * - Port 1: Særskilte krav - Preklusjon (§34.1.3) - Only for rigg/drift/produktivitet
- * - Port 2: Metode & Svarplikt - Method acceptance, EP-justering, tilbakeholdelse
+ * - Port 2: Oppgjørsform & Svarplikt - Method acceptance, EP-justering, tilbakeholdelse
  * - Port 3: Beløpsvurdering - Amount evaluation (subsidiært for precluded særskilte krav)
  * - Port 4: Oppsummering - Summary with principal AND subsidiary results
  *
@@ -430,14 +430,14 @@ export function RespondVederlagModal({
       return [
         { label: 'Oversikt' },
         { label: 'Preklusjon' },
-        { label: 'Metode' },
+        { label: 'Oppgjørsform' },
         { label: 'Beløp' },
         { label: 'Oppsummering' },
       ];
     }
     return [
       { label: 'Oversikt' },
-      { label: 'Metode' },
+      { label: 'Oppgjørsform' },
       { label: 'Beløp' },
       { label: 'Oppsummering' },
     ];
@@ -722,10 +722,10 @@ export function RespondVederlagModal({
                       Steg {harSaerskiltKrav ? 3 : 2}
                     </span>
                     <div>
-                      <span className="font-medium">Metode</span>
+                      <span className="font-medium">Oppgjørsform</span>
                       <span className="text-pkt-text-body-subtle">
                         {' '}
-                        — Akseptere eller endre vederlagsmetode
+                        — Akseptere eller endre oppgjørsform
                       </span>
                     </div>
                   </div>
@@ -856,18 +856,18 @@ export function RespondVederlagModal({
           )}
 
           {/* ================================================================
-              METODE & SVARPLIKT
+              OPPGJØRSFORM & SVARPLIKT
               ================================================================ */}
           {currentStepType === 'metode' && (
             <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <h3 className="font-bold text-lg">Metode & Svarplikt</h3>
+              <h3 className="font-bold text-lg">Oppgjørsform & Svarplikt</h3>
 
-              {/* Metode aksept */}
+              {/* Oppgjørsform aksept */}
               <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
                 <FormField
-                  label="Aksepterer du den foreslåtte vederlagsmetoden?"
+                  label="Aksepterer du den foreslåtte oppgjørsformen?"
                   required
-                  helpText={metodeLabel ? `Foreslått metode: ${metodeLabel}` : undefined}
+                  helpText={metodeLabel ? `Foreslått oppgjørsform: ${metodeLabel}` : undefined}
                 >
                   <Controller
                     name="aksepterer_metode"
@@ -877,8 +877,8 @@ export function RespondVederlagModal({
                         value={field.value ? 'ja' : 'nei'}
                         onValueChange={(val: string) => field.onChange(val === 'ja')}
                       >
-                        <RadioItem value="ja" label="Ja - aksepterer metoden" />
-                        <RadioItem value="nei" label="Nei - krever annen metode" />
+                        <RadioItem value="ja" label="Ja - aksepterer oppgjørsformen" />
+                        <RadioItem value="nei" label="Nei - krever annen oppgjørsform" />
                       </RadioGroup>
                     )}
                   />
@@ -896,14 +896,14 @@ export function RespondVederlagModal({
                 {/* Ønsket metode - show when rejecting */}
                 {!formValues.aksepterer_metode && (
                   <div className="mt-4 ml-6 border-l-2 border-pkt-border-subtle pl-4">
-                    <FormField label="Hvilken metode krever du?" required>
+                    <FormField label="Hvilken oppgjørsform krever du?" required>
                       <Controller
                         name="oensket_metode"
                         control={control}
                         render={({ field }) => (
                           <Select value={field.value} onValueChange={field.onChange}>
                             <SelectTrigger>
-                              <SelectValue placeholder="Velg metode" />
+                              <SelectValue placeholder="Velg oppgjørsform" />
                             </SelectTrigger>
                             <SelectContent>
                               {VEDERLAGSMETODER_OPTIONS.filter(
@@ -929,9 +929,9 @@ export function RespondVederlagModal({
                     )}
 
                     <FormField
-                      label="Begrunnelse for metodeendring"
+                      label="Begrunnelse for endring av oppgjørsform"
                       className="mt-3"
-                      helpText="Begrunn hvorfor du krever en annen metode"
+                      helpText="Begrunn hvorfor du krever en annen oppgjørsform"
                     >
                       <Textarea
                         {...register('begrunnelse_metode')}
@@ -1244,7 +1244,7 @@ export function RespondVederlagModal({
               <div className="space-y-4">
                 {/* Metode */}
                 <div className="p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
-                  <h5 className="font-medium text-sm mb-2">Metode</h5>
+                  <h5 className="font-medium text-sm mb-2">Oppgjørsform</h5>
                   <div className="flex items-center gap-2">
                     {formValues.aksepterer_metode ? (
                       <Badge variant="success">Akseptert</Badge>
