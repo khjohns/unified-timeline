@@ -193,10 +193,11 @@ class CatendaInteractiveMenu:
             print("  6. ⚙️  Endre konfigurasjon")
             print("  7. 🔄 Full KOE-flyt demonstrasjon")
             print("  8. 🏗️  Inspiser BIM-objekt direkte")
+            print("  9. 🎛️  Administrer Topic Board (statuser, typer)")
             print("  0. 🚪 Avslutt")
             print()
-            
-            choice = input("Velg (0-8): ").strip()
+
+            choice = input("Velg (0-9): ").strip()
             
             if choice == "1":
                 self.menu_topics()
@@ -214,13 +215,151 @@ class CatendaInteractiveMenu:
                 self.demo_koe_flow()
             elif choice == "8":
                 self.action_inspect_bim_object()
+            elif choice == "9":
+                self.menu_topic_boards()
             elif choice == "0":
                 print("\n👋 Ha det!")
                 sys.exit(0)
             else:
                 print("❌ Ugyldig valg")
                 self.pause()
-    
+
+    def menu_topic_boards(self):
+        """Meny for Topic Board-administrasjon"""
+        while True:
+            self.print_header("🎛️  Topic Board Administrasjon")
+
+            print(f"Aktivt board: {self.topic_board_id or '(ikke satt)'}\n")
+
+            print("VALG:")
+            print("  1. 📋 Vis board-info og extensions")
+            print("  2. 📋 Liste alle topic boards")
+            print("  3. ➕ Opprett nytt topic board")
+            print("  4. ✏️  Endre board-navn")
+            print("  5. 🎨 Administrer statuser")
+            print("  6. 🏷️  Administrer typer")
+            print("  7. 🔧 Administrer custom fields")
+            print("  0. Tilbake til hovedmeny")
+            print()
+
+            choice = input("Velg (0-7): ").strip()
+
+            if choice == "1":
+                self.action_show_board_info()
+            elif choice == "2":
+                self.action_list_all_boards()
+            elif choice == "3":
+                self.action_create_topic_board()
+            elif choice == "4":
+                self.action_update_board_name()
+            elif choice == "5":
+                self.menu_statuses()
+            elif choice == "6":
+                self.menu_types()
+            elif choice == "7":
+                self.menu_custom_fields()
+            elif choice == "0":
+                break
+            else:
+                print("❌ Ugyldig valg")
+                self.pause()
+
+    def menu_statuses(self):
+        """Submeny for status-administrasjon"""
+        while True:
+            self.print_header("🎨 Status-administrasjon")
+
+            print("VALG:")
+            print("  1. 📋 Liste alle statuser")
+            print("  2. ➕ Opprett ny status")
+            print("  3. ✏️  Oppdater status")
+            print("  4. 🗑️  Slett status")
+            print("  0. Tilbake")
+            print()
+
+            choice = input("Velg (0-4): ").strip()
+
+            if choice == "1":
+                self.action_list_statuses()
+            elif choice == "2":
+                self.action_create_status()
+            elif choice == "3":
+                self.action_update_status()
+            elif choice == "4":
+                self.action_delete_status()
+            elif choice == "0":
+                break
+            else:
+                print("❌ Ugyldig valg")
+                self.pause()
+
+    def menu_types(self):
+        """Submeny for type-administrasjon"""
+        while True:
+            self.print_header("🏷️  Type-administrasjon")
+
+            print("VALG:")
+            print("  1. 📋 Liste alle typer")
+            print("  2. ➕ Opprett ny type")
+            print("  3. ✏️  Oppdater type")
+            print("  4. 🗑️  Slett type")
+            print("  0. Tilbake")
+            print()
+
+            choice = input("Velg (0-4): ").strip()
+
+            if choice == "1":
+                self.action_list_types()
+            elif choice == "2":
+                self.action_create_type()
+            elif choice == "3":
+                self.action_update_type()
+            elif choice == "4":
+                self.action_delete_type()
+            elif choice == "0":
+                break
+            else:
+                print("❌ Ugyldig valg")
+                self.pause()
+
+    def menu_custom_fields(self):
+        """Submeny for custom field-administrasjon"""
+        while True:
+            self.print_header("🔧 Custom Field-administrasjon")
+
+            print("VALG:")
+            print("  1. 📋 Vis custom fields på boardet")
+            print("  2. 📋 Vis alle tilgjengelige custom fields")
+            print("  3. ➕ Legg til custom field på board")
+            print("  4. ✏️  Endre innstillinger for field")
+            print("  5. 🚫 Deaktiver custom field")
+            print("  6. ♻️  Gjenopprett deaktivert field")
+            print("  7. 🗑️  Fjern custom field fra board")
+            print("  0. Tilbake")
+            print()
+
+            choice = input("Velg (0-7): ").strip()
+
+            if choice == "1":
+                self.action_show_custom_fields()
+            elif choice == "2":
+                self.action_list_available_custom_fields()
+            elif choice == "3":
+                self.action_add_custom_field()
+            elif choice == "4":
+                self.action_modify_custom_field()
+            elif choice == "5":
+                self.action_disable_custom_field()
+            elif choice == "6":
+                self.action_restore_custom_field()
+            elif choice == "7":
+                self.action_delete_custom_field()
+            elif choice == "0":
+                break
+            else:
+                print("❌ Ugyldig valg")
+                self.pause()
+
     def menu_topics(self):
         """Meny for topic-håndtering"""
         while True:
@@ -599,27 +738,45 @@ class CatendaInteractiveMenu:
         print("Opprett toveis-relasjoner (begge topics peker på hverandre).\n")
         print("Dette er nyttig for å knytte f.eks. KOE ↔ Endringsordre.\n")
 
+        # Topic A - bruk aktiv topic eller velg fra liste
         topic_a = self.current_topic_id
+        topic_a_title = "Aktiv topic"
         if not topic_a:
-            topic_a = input("Topic A GUID: ").strip()
+            result = self._select_topic("Velg Topic A:")
+            if not result:
+                print("❌ Avbrutt")
+                self.pause()
+                return
+            topic_a, topic_a_title = result
         else:
-            print(f"Bruker aktiv topic som Topic A: {topic_a}")
-            confirm = input("Vil du bruke denne? (j/n): ").strip().lower()
-            if confirm != 'j':
-                topic_a = input("Topic A GUID: ").strip()
+            print(f"Aktiv topic: {topic_a[:8]}...")
+            choice = input("Bruk aktiv topic som Topic A? (j/n) [j]: ").strip().lower()
+            if choice == 'n':
+                result = self._select_topic("Velg Topic A:")
+                if not result:
+                    print("❌ Avbrutt")
+                    self.pause()
+                    return
+                topic_a, topic_a_title = result
 
         if not topic_a:
-            print("❌ Topic A GUID er påkrevd")
+            print("❌ Topic A er påkrevd")
             self.pause()
             return
 
-        topic_b = input("Topic B GUID: ").strip()
-        if not topic_b:
-            print("❌ Topic B GUID er påkrevd")
+        print(f"\n📌 Topic A: {topic_a_title} ({topic_a[:8]}...)")
+
+        # Topic B - velg fra liste (ekskluder topic A)
+        result = self._select_topic("Velg Topic B:", exclude_guid=topic_a)
+        if not result:
+            print("❌ Avbrutt")
             self.pause()
             return
+        topic_b, topic_b_title = result
 
-        print(f"\nOppretter toveis-relasjon: {topic_a} ↔ {topic_b}...")
+        print(f"\n📌 Topic A: {topic_a_title}")
+        print(f"📌 Topic B: {topic_b_title}")
+        print(f"\nOppretter toveis-relasjon: {topic_a_title} ↔ {topic_b_title}...")
 
         try:
             # A → B
@@ -636,12 +793,12 @@ class CatendaInteractiveMenu:
 
             if success_a and success_b:
                 print(f"✅ Toveis-relasjon opprettet!")
-                print(f"   {topic_a} → {topic_b}")
-                print(f"   {topic_b} → {topic_a}")
+                print(f"   {topic_a_title} → {topic_b_title}")
+                print(f"   {topic_b_title} → {topic_a_title}")
             else:
                 print("⚠️ Delvis feil ved opprettelse")
-                print(f"   A → B: {'✅' if success_a else '❌'}")
-                print(f"   B → A: {'✅' if success_b else '❌'}")
+                print(f"   {topic_a_title} → {topic_b_title}: {'✅' if success_a else '❌'}")
+                print(f"   {topic_b_title} → {topic_a_title}: {'✅' if success_b else '❌'}")
 
         except Exception as e:
             print(f"❌ Feil: {e}")
@@ -699,6 +856,1004 @@ class CatendaInteractiveMenu:
 
         self.pause()
 
+    # ==========================================================================
+    # TOPIC BOARD MANAGEMENT ACTIONS
+    # ==========================================================================
+
+    def action_show_board_info(self):
+        """Vis informasjon om aktivt topic board"""
+        self.print_header("📋 Board-informasjon")
+
+        if not self.topic_board_id:
+            print("❌ Ingen topic board valgt. Velg et board først.")
+            self.pause()
+            return
+
+        print(f"Board ID: {self.topic_board_id}\n")
+
+        try:
+            # Hent board-info
+            board = self.tester.get_topic_board(self.topic_board_id)
+            if board:
+                print("📌 BOARD-INFO:")
+                print(f"   Navn: {board.get('name', 'N/A')}")
+                print(f"   Project ID: {board.get('bimsync_project_id', 'N/A')}")
+                print(f"   Project: {board.get('bimsync_project_name', 'N/A')}")
+                print()
+
+            # Hent extensions
+            extensions = self.tester.get_topic_board_extensions(self.topic_board_id)
+            if extensions:
+                print("📌 EXTENSIONS:")
+
+                statuses = extensions.get('topic_status', [])
+                print(f"\n   Statuser ({len(statuses)}):")
+                for s in statuses:
+                    print(f"     - {s}")
+
+                types = extensions.get('topic_type', [])
+                print(f"\n   Typer ({len(types)}):")
+                for t in types:
+                    print(f"     - {t}")
+
+                labels = extensions.get('topic_label', [])
+                print(f"\n   Labels ({len(labels)}):")
+                for l in labels[:10]:
+                    print(f"     - {l}")
+                if len(labels) > 10:
+                    print(f"     ... og {len(labels) - 10} til")
+
+                priorities = extensions.get('priority', [])
+                print(f"\n   Prioriteter ({len(priorities)}):")
+                for p in priorities:
+                    print(f"     - {p}")
+
+                users = extensions.get('users', [])
+                print(f"\n   Brukere ({len(users)}):")
+                for u in users[:5]:
+                    print(f"     - {u}")
+                if len(users) > 5:
+                    print(f"     ... og {len(users) - 5} til")
+
+        except Exception as e:
+            print(f"❌ Feil: {e}")
+            self.logger.exception("Error showing board info")
+
+        self.pause()
+
+    def action_list_all_boards(self):
+        """Liste alle topic boards i prosjektet"""
+        self.print_header("📋 Alle Topic Boards")
+
+        try:
+            boards = self.tester.list_topic_boards()
+
+            if not boards:
+                print("Ingen topic boards funnet.")
+            else:
+                print(f"Fant {len(boards)} board(s):\n")
+                for i, board in enumerate(boards, 1):
+                    is_active = "⭐" if board.get('project_id') == self.topic_board_id else "  "
+                    print(f"{is_active} {i}. {board.get('name', 'Uten navn')}")
+                    print(f"      ID: {board.get('project_id')}")
+                    print(f"      Project: {board.get('bimsync_project_name', 'N/A')}")
+                    print()
+
+                # Tilby å velge et board
+                choice = input("Vil du velge et board som aktivt? (j/n): ").strip().lower()
+                if choice == 'j':
+                    try:
+                        idx = int(input(f"Velg nummer (1-{len(boards)}): ")) - 1
+                        if 0 <= idx < len(boards):
+                            self.topic_board_id = boards[idx]['project_id']
+                            self.tester.topic_board_id = self.topic_board_id
+                            print(f"✅ Satt aktivt board: {boards[idx]['name']}")
+                    except ValueError:
+                        print("❌ Ugyldig valg")
+
+        except Exception as e:
+            print(f"❌ Feil: {e}")
+            self.logger.exception("Error listing boards")
+
+        self.pause()
+
+    def action_create_topic_board(self):
+        """Opprett nytt topic board"""
+        self.print_header("➕ Opprett Topic Board")
+
+        name = input("Navn på nytt board: ").strip()
+        if not name:
+            print("❌ Navn er påkrevd")
+            self.pause()
+            return
+
+        print(f"\nOppretter board '{name}'...")
+
+        try:
+            board = self.tester.create_topic_board(name, self.project_id)
+
+            if board:
+                print(f"✅ Opprettet board: {board.get('name')}")
+                print(f"   ID: {board.get('project_id')}")
+
+                # Tilby å sette som aktivt
+                choice = input("\nSett som aktivt board? (j/n): ").strip().lower()
+                if choice == 'j':
+                    self.topic_board_id = board.get('project_id')
+                    self.tester.topic_board_id = self.topic_board_id
+                    print("✅ Board satt som aktivt")
+            else:
+                print("❌ Kunne ikke opprette board")
+
+        except Exception as e:
+            print(f"❌ Feil: {e}")
+            self.logger.exception("Error creating board")
+
+        self.pause()
+
+    def action_update_board_name(self):
+        """Oppdater navn på aktivt board"""
+        self.print_header("✏️  Endre Board-navn")
+
+        if not self.topic_board_id:
+            print("❌ Ingen topic board valgt")
+            self.pause()
+            return
+
+        # Vis nåværende navn
+        board = self.tester.get_topic_board(self.topic_board_id)
+        if board:
+            print(f"Nåværende navn: {board.get('name')}\n")
+
+        new_name = input("Nytt navn: ").strip()
+        if not new_name:
+            print("❌ Navn er påkrevd")
+            self.pause()
+            return
+
+        try:
+            updated = self.tester.update_topic_board(new_name, self.topic_board_id)
+            if updated:
+                print(f"✅ Oppdatert board-navn til: {updated.get('name')}")
+            else:
+                print("❌ Kunne ikke oppdatere board")
+
+        except Exception as e:
+            print(f"❌ Feil: {e}")
+            self.logger.exception("Error updating board")
+
+        self.pause()
+
+    def action_show_custom_fields(self):
+        """Vis custom fields konfigurert på boardet med innstillinger"""
+        self.print_header("🔧 Custom Fields på Boardet")
+
+        if not self.topic_board_id:
+            print("❌ Ingen topic board valgt")
+            self.pause()
+            return
+
+        try:
+            board = self.tester.get_topic_board_with_custom_fields(
+                self.topic_board_id,
+                self.project_id
+            )
+
+            if not board:
+                print("❌ Kunne ikke hente board")
+                self.pause()
+                return
+
+            fields = board.get('customFields', [])
+            instances = board.get('customFieldInstances', [])
+
+            print(f"Board: {board.get('name')}\n")
+
+            if not instances:
+                print("Ingen custom fields konfigurert på dette boardet.")
+                print("\nBruk 'Vis alle tilgjengelige' for å se fields du kan legge til.")
+            else:
+                print(f"Konfigurerte fields ({len(instances)}):\n")
+
+                # Bygg map fra field ID til field-data
+                field_map = {f.get('id'): f for f in fields}
+
+                for i, inst in enumerate(instances, 1):
+                    field_id = inst.get('id')
+                    field = field_map.get(field_id, {})
+
+                    name = field.get('name', 'Ukjent')
+                    field_type = field.get('type', 'N/A')
+
+                    print(f"  {i}. {name} [{field_type}]")
+                    print(f"      ID: {field_id}")
+                    print(f"      Påkrevd: {'Ja' if inst.get('required') else 'Nei'}")
+                    print(f"      Deaktivert: {'Ja' if inst.get('disabled') else 'Nei'}")
+
+                    if inst.get('defaultValue'):
+                        print(f"      Standardverdi: {inst.get('defaultValue')}")
+
+                    # Vis dropdown-verdier for enumeration
+                    if field_type == 'enumeration':
+                        items = field.get('dropdownItems', [])
+                        if items:
+                            active_items = [i for i in items if not i.get('disabled')]
+                            print(f"      Verdier: {len(active_items)} aktive av {len(items)} totalt")
+                    print()
+
+        except Exception as e:
+            print(f"❌ Feil: {e}")
+            self.logger.exception("Error showing custom fields")
+
+        self.pause()
+
+    def action_list_available_custom_fields(self):
+        """Vis alle tilgjengelige custom fields på prosjektnivå"""
+        self.print_header("📋 Alle Custom Fields i Prosjektet")
+
+        if not self.project_id:
+            print("❌ Ingen project ID satt")
+            self.pause()
+            return
+
+        try:
+            # Hent ALLE custom fields fra prosjektnivå
+            fields = self.tester.list_project_custom_fields(self.project_id)
+
+            if not fields:
+                print("Ingen custom fields definert i prosjektet.")
+            else:
+                # Hent også instanser for å vise hvilke som er aktive på boardet
+                active_ids = set()
+                if self.topic_board_id:
+                    board = self.tester.get_topic_board_with_custom_fields(
+                        self.topic_board_id,
+                        self.project_id
+                    )
+                    if board:
+                        active_ids = {inst.get('id') for inst in board.get('customFieldInstances', [])}
+
+                print(f"Fant {len(fields)} custom field(s) i prosjektet:\n")
+                for i, field in enumerate(fields, 1):
+                    field_id = field.get('id', 'N/A')
+                    name = field.get('name', 'Ukjent')
+                    field_type = field.get('type', 'N/A')
+                    archived = " (arkivert)" if field.get('archived') else ""
+                    active = f" ✓ på board" if field_id in active_ids else ""
+
+                    print(f"  {i}. {name} [{field_type}]{archived}{active}")
+                    print(f"      ID: {field_id}")
+
+                    if field.get('description'):
+                        print(f"      Beskrivelse: {field.get('description')}")
+
+                    if field_type == 'enumeration':
+                        items = field.get('dropdownItems', [])
+                        if items:
+                            item_names = [item.get('name') for item in items[:3]]
+                            more = f" (+{len(items)-3})" if len(items) > 3 else ""
+                            print(f"      Verdier: {', '.join(item_names)}{more}")
+                    print()
+
+        except Exception as e:
+            print(f"❌ Feil: {e}")
+            self.logger.exception("Error listing available custom fields")
+
+        self.pause()
+
+    def action_add_custom_field(self):
+        """Legg til custom field på board"""
+        self.print_header("➕ Legg til Custom Field")
+
+        if not self.topic_board_id:
+            print("❌ Ingen topic board valgt")
+            self.pause()
+            return
+
+        try:
+            # Hent ALLE fields fra prosjektnivå
+            all_fields = self.tester.list_project_custom_fields(self.project_id)
+
+            if not all_fields:
+                print("Ingen custom fields definert i prosjektet.")
+                self.pause()
+                return
+
+            # Hent aktive på boardet
+            board = self.tester.get_topic_board_with_custom_fields(
+                self.topic_board_id,
+                self.project_id
+            )
+            active_ids = set()
+            if board:
+                active_ids = {inst.get('id') for inst in board.get('customFieldInstances', [])}
+
+            # Filtrer ut allerede aktive og arkiverte
+            available = [f for f in all_fields if f.get('id') not in active_ids and not f.get('archived')]
+
+            if not available:
+                print("Alle custom fields er allerede lagt til på boardet.")
+                self.pause()
+                return
+
+            print(f"Tilgjengelige custom fields ({len(available)} av {len(all_fields)}):\n")
+            for i, field in enumerate(available, 1):
+                print(f"  {i}. {field.get('name')} [{field.get('type')}]")
+
+            try:
+                idx = int(input("\nVelg field å legge til: ")) - 1
+                if not 0 <= idx < len(available):
+                    print("❌ Ugyldig valg")
+                    self.pause()
+                    return
+            except ValueError:
+                print("❌ Ugyldig valg")
+                self.pause()
+                return
+
+            field = available[idx]
+            print(f"\nLegger til: {field.get('name')}")
+
+            required = input("Skal feltet være påkrevd? (j/n) [n]: ").strip().lower() == 'j'
+
+            result = self.tester.add_custom_field_to_board(
+                field.get('id'),
+                self.topic_board_id,
+                self.project_id,
+                required=required
+            )
+
+            if result:
+                print(f"\n✅ Custom field '{field.get('name')}' lagt til på boardet")
+            else:
+                print("❌ Kunne ikke legge til custom field")
+
+        except Exception as e:
+            print(f"❌ Feil: {e}")
+            self.logger.exception("Error adding custom field")
+
+        self.pause()
+
+    def action_modify_custom_field(self):
+        """Endre innstillinger for custom field"""
+        self.print_header("✏️  Endre Custom Field")
+
+        if not self.topic_board_id:
+            print("❌ Ingen topic board valgt")
+            self.pause()
+            return
+
+        try:
+            board = self.tester.get_topic_board_with_custom_fields(
+                self.topic_board_id,
+                self.project_id
+            )
+            if not board:
+                print("❌ Kunne ikke hente board")
+                self.pause()
+                return
+
+            instances = board.get('customFieldInstances', [])
+            fields = {f.get('id'): f for f in board.get('customFields', [])}
+
+            if not instances:
+                print("Ingen custom fields på boardet.")
+                self.pause()
+                return
+
+            print("Custom fields på boardet:\n")
+            for i, inst in enumerate(instances, 1):
+                field = fields.get(inst.get('id'), {})
+                required = "✓ påkrevd" if inst.get('required') else ""
+                disabled = "(deaktivert)" if inst.get('disabled') else ""
+                print(f"  {i}. {field.get('name', 'Ukjent')} {required} {disabled}")
+
+            try:
+                idx = int(input("\nVelg field å endre: ")) - 1
+                if not 0 <= idx < len(instances):
+                    print("❌ Ugyldig valg")
+                    self.pause()
+                    return
+            except ValueError:
+                print("❌ Ugyldig valg")
+                self.pause()
+                return
+
+            inst = instances[idx]
+            field = fields.get(inst.get('id'), {})
+            print(f"\nEndrer: {field.get('name')}")
+            print(f"  Nåværende: required={inst.get('required')}, disabled={inst.get('disabled')}")
+
+            print("\nHva vil du endre?")
+            print("  1. Påkrevd (required)")
+            print("  2. Deaktivert (disabled)")
+            print("  0. Avbryt")
+            choice = input("Velg: ").strip()
+
+            if choice == "1":
+                new_required = input("Skal feltet være påkrevd? (j/n): ").strip().lower() == 'j'
+                result = self.tester.modify_custom_field_on_board(
+                    inst.get('id'),
+                    self.topic_board_id,
+                    self.project_id,
+                    required=new_required
+                )
+            elif choice == "2":
+                new_disabled = input("Skal feltet være deaktivert? (j/n): ").strip().lower() == 'j'
+                result = self.tester.modify_custom_field_on_board(
+                    inst.get('id'),
+                    self.topic_board_id,
+                    self.project_id,
+                    disabled=new_disabled
+                )
+            else:
+                print("❌ Avbrutt")
+                self.pause()
+                return
+
+            if result:
+                print(f"\n✅ Custom field oppdatert")
+            else:
+                print("❌ Kunne ikke oppdatere custom field")
+
+        except Exception as e:
+            print(f"❌ Feil: {e}")
+            self.logger.exception("Error modifying custom field")
+
+        self.pause()
+
+    def action_disable_custom_field(self):
+        """Deaktiver custom field"""
+        self.print_header("🚫 Deaktiver Custom Field")
+
+        if not self.topic_board_id:
+            print("❌ Ingen topic board valgt")
+            self.pause()
+            return
+
+        try:
+            board = self.tester.get_topic_board_with_custom_fields(
+                self.topic_board_id,
+                self.project_id
+            )
+            if not board:
+                print("❌ Kunne ikke hente board")
+                self.pause()
+                return
+
+            instances = [i for i in board.get('customFieldInstances', []) if not i.get('disabled')]
+            fields = {f.get('id'): f for f in board.get('customFields', [])}
+
+            if not instances:
+                print("Ingen aktive custom fields å deaktivere.")
+                self.pause()
+                return
+
+            print("Aktive custom fields:\n")
+            for i, inst in enumerate(instances, 1):
+                field = fields.get(inst.get('id'), {})
+                print(f"  {i}. {field.get('name', 'Ukjent')}")
+
+            try:
+                idx = int(input("\nVelg field å deaktivere: ")) - 1
+                if not 0 <= idx < len(instances):
+                    print("❌ Ugyldig valg")
+                    self.pause()
+                    return
+            except ValueError:
+                print("❌ Ugyldig valg")
+                self.pause()
+                return
+
+            inst = instances[idx]
+            field = fields.get(inst.get('id'), {})
+
+            confirm = input(f"\nDeaktiver '{field.get('name')}'? (j/n): ").strip().lower()
+            if confirm != 'j':
+                print("❌ Avbrutt")
+                self.pause()
+                return
+
+            result = self.tester.disable_custom_field_on_board(
+                inst.get('id'),
+                self.topic_board_id,
+                self.project_id
+            )
+
+            if result:
+                print(f"\n✅ Custom field '{field.get('name')}' deaktivert")
+            else:
+                print("❌ Kunne ikke deaktivere custom field")
+
+        except Exception as e:
+            print(f"❌ Feil: {e}")
+            self.logger.exception("Error disabling custom field")
+
+        self.pause()
+
+    def action_restore_custom_field(self):
+        """Gjenopprett deaktivert custom field"""
+        self.print_header("♻️  Gjenopprett Custom Field")
+
+        if not self.topic_board_id:
+            print("❌ Ingen topic board valgt")
+            self.pause()
+            return
+
+        try:
+            board = self.tester.get_topic_board_with_custom_fields(
+                self.topic_board_id,
+                self.project_id
+            )
+            if not board:
+                print("❌ Kunne ikke hente board")
+                self.pause()
+                return
+
+            instances = [i for i in board.get('customFieldInstances', []) if i.get('disabled')]
+            fields = {f.get('id'): f for f in board.get('customFields', [])}
+
+            if not instances:
+                print("Ingen deaktiverte custom fields å gjenopprette.")
+                self.pause()
+                return
+
+            print("Deaktiverte custom fields:\n")
+            for i, inst in enumerate(instances, 1):
+                field = fields.get(inst.get('id'), {})
+                print(f"  {i}. {field.get('name', 'Ukjent')}")
+
+            try:
+                idx = int(input("\nVelg field å gjenopprette: ")) - 1
+                if not 0 <= idx < len(instances):
+                    print("❌ Ugyldig valg")
+                    self.pause()
+                    return
+            except ValueError:
+                print("❌ Ugyldig valg")
+                self.pause()
+                return
+
+            inst = instances[idx]
+            field = fields.get(inst.get('id'), {})
+
+            result = self.tester.restore_custom_field_on_board(
+                inst.get('id'),
+                self.topic_board_id,
+                self.project_id
+            )
+
+            if result:
+                print(f"\n✅ Custom field '{field.get('name')}' gjenopprettet")
+            else:
+                print("❌ Kunne ikke gjenopprette custom field")
+
+        except Exception as e:
+            print(f"❌ Feil: {e}")
+            self.logger.exception("Error restoring custom field")
+
+        self.pause()
+
+    def action_delete_custom_field(self):
+        """Fjern custom field fra board"""
+        self.print_header("🗑️  Fjern Custom Field")
+
+        if not self.topic_board_id:
+            print("❌ Ingen topic board valgt")
+            self.pause()
+            return
+
+        try:
+            board = self.tester.get_topic_board_with_custom_fields(
+                self.topic_board_id,
+                self.project_id
+            )
+            if not board:
+                print("❌ Kunne ikke hente board")
+                self.pause()
+                return
+
+            instances = board.get('customFieldInstances', [])
+            fields = {f.get('id'): f for f in board.get('customFields', [])}
+
+            if not instances:
+                print("Ingen custom fields på boardet.")
+                self.pause()
+                return
+
+            print("Custom fields på boardet:\n")
+            for i, inst in enumerate(instances, 1):
+                field = fields.get(inst.get('id'), {})
+                disabled = " (deaktivert)" if inst.get('disabled') else ""
+                print(f"  {i}. {field.get('name', 'Ukjent')}{disabled}")
+
+            try:
+                idx = int(input("\nVelg field å fjerne: ")) - 1
+                if not 0 <= idx < len(instances):
+                    print("❌ Ugyldig valg")
+                    self.pause()
+                    return
+            except ValueError:
+                print("❌ Ugyldig valg")
+                self.pause()
+                return
+
+            inst = instances[idx]
+            field = fields.get(inst.get('id'), {})
+
+            print(f"\n⚠️  Dette fjerner feltet fra boardet.")
+            print("   Eksisterende data på topics beholdes, men feltet vises ikke.")
+            confirm = input(f"\nFjern '{field.get('name')}'? (j/n): ").strip().lower()
+            if confirm != 'j':
+                print("❌ Avbrutt")
+                self.pause()
+                return
+
+            result = self.tester.delete_custom_field_from_board(
+                inst.get('id'),
+                self.topic_board_id,
+                self.project_id
+            )
+
+            if result:
+                print(f"\n✅ Custom field '{field.get('name')}' fjernet fra boardet")
+            else:
+                print("❌ Kunne ikke fjerne custom field")
+
+        except Exception as e:
+            print(f"❌ Feil: {e}")
+            self.logger.exception("Error deleting custom field")
+
+        self.pause()
+
+    # --------------------------------------------------------------------------
+    # STATUS ACTIONS
+    # --------------------------------------------------------------------------
+
+    def action_list_statuses(self):
+        """Liste alle statuser"""
+        self.print_header("📋 Statuser")
+
+        if not self.topic_board_id:
+            print("❌ Ingen topic board valgt")
+            self.pause()
+            return
+
+        try:
+            statuses = self.tester.list_statuses(self.topic_board_id, include_unlinked=True)
+
+            if not statuses:
+                print("Ingen statuser funnet.")
+            else:
+                print(f"Fant {len(statuses)} status(er):\n")
+                for s in statuses:
+                    color = s.get('color', '#???')
+                    stype = s.get('type', 'N/A')
+                    unlinked = " (ukoblet)" if s.get('unlinked') else ""
+                    print(f"  • {s.get('name')} [{stype}] {color}{unlinked}")
+
+        except Exception as e:
+            print(f"❌ Feil: {e}")
+            self.logger.exception("Error listing statuses")
+
+        self.pause()
+
+    def action_create_status(self):
+        """Opprett ny status"""
+        self.print_header("➕ Opprett Status")
+
+        if not self.topic_board_id:
+            print("❌ Ingen topic board valgt")
+            self.pause()
+            return
+
+        name = input("Navn på status: ").strip()
+        if not name:
+            print("❌ Navn er påkrevd")
+            self.pause()
+            return
+
+        print("\nType:")
+        print("  1. open (åpen)")
+        print("  2. closed (lukket)")
+        print("  3. candidate (kandidat)")
+        type_choice = input("Velg type (1-3) [1]: ").strip()
+        status_type = {"1": "open", "2": "closed", "3": "candidate"}.get(type_choice, "open")
+
+        color = input("Farge (hex, f.eks. #FF0000) [Enter for standard]: ").strip() or None
+
+        try:
+            status = self.tester.create_status(name, color, status_type, self.topic_board_id)
+            if status:
+                print(f"\n✅ Opprettet status: {status.get('name')} [{status.get('type')}]")
+            else:
+                print("❌ Kunne ikke opprette status")
+
+        except Exception as e:
+            print(f"❌ Feil: {e}")
+            self.logger.exception("Error creating status")
+
+        self.pause()
+
+    def action_update_status(self):
+        """Oppdater eksisterende status"""
+        self.print_header("✏️  Oppdater Status")
+
+        if not self.topic_board_id:
+            print("❌ Ingen topic board valgt")
+            self.pause()
+            return
+
+        # List eksisterende statuser
+        statuses = self.tester.list_statuses(self.topic_board_id)
+        if not statuses:
+            print("Ingen statuser å oppdatere.")
+            self.pause()
+            return
+
+        print("Eksisterende statuser:")
+        for i, s in enumerate(statuses, 1):
+            print(f"  {i}. {s.get('name')} [{s.get('type')}] {s.get('color')}")
+
+        try:
+            idx = int(input("\nVelg status å oppdatere: ")) - 1
+            if not 0 <= idx < len(statuses):
+                print("❌ Ugyldig valg")
+                self.pause()
+                return
+        except ValueError:
+            print("❌ Ugyldig valg")
+            self.pause()
+            return
+
+        existing = statuses[idx]
+        print(f"\nOppdaterer: {existing.get('name')}")
+
+        new_name = input(f"Nytt navn [{existing.get('name')}]: ").strip() or None
+
+        print("\nType:")
+        print("  1. open (åpen)")
+        print("  2. closed (lukket)")
+        print("  3. candidate (kandidat)")
+        print("  0. Behold eksisterende")
+        type_choice = input("Velg type [0]: ").strip()
+        status_type = {"1": "open", "2": "closed", "3": "candidate"}.get(type_choice, None)
+
+        color = input(f"Farge [{existing.get('color')}]: ").strip() or None
+
+        try:
+            result = self.tester.update_status(
+                existing.get('name'),
+                new_name, color, status_type,
+                self.topic_board_id
+            )
+            if result:
+                print(f"\n✅ Oppdatert status: {result.get('name')}")
+            else:
+                print("❌ Kunne ikke oppdatere status")
+
+        except Exception as e:
+            print(f"❌ Feil: {e}")
+            self.logger.exception("Error updating status")
+
+        self.pause()
+
+    def action_delete_status(self):
+        """Slett status"""
+        self.print_header("🗑️  Slett Status")
+
+        if not self.topic_board_id:
+            print("❌ Ingen topic board valgt")
+            self.pause()
+            return
+
+        statuses = self.tester.list_statuses(self.topic_board_id)
+        if not statuses:
+            print("Ingen statuser å slette.")
+            self.pause()
+            return
+
+        print("Eksisterende statuser:")
+        for i, s in enumerate(statuses, 1):
+            print(f"  {i}. {s.get('name')} [{s.get('type')}]")
+
+        try:
+            idx = int(input("\nVelg status å slette: ")) - 1
+            if not 0 <= idx < len(statuses):
+                print("❌ Ugyldig valg")
+                self.pause()
+                return
+        except ValueError:
+            print("❌ Ugyldig valg")
+            self.pause()
+            return
+
+        status = statuses[idx]
+        confirm = input(f"\nSlett '{status.get('name')}'? (j/n): ").strip().lower()
+        if confirm != 'j':
+            print("❌ Avbrutt")
+            self.pause()
+            return
+
+        try:
+            if self.tester.delete_status(status.get('name'), self.topic_board_id):
+                print(f"✅ Slettet status: {status.get('name')}")
+            else:
+                print("❌ Kunne ikke slette status")
+
+        except Exception as e:
+            print(f"❌ Feil: {e}")
+            self.logger.exception("Error deleting status")
+
+        self.pause()
+
+    # --------------------------------------------------------------------------
+    # TYPE ACTIONS
+    # --------------------------------------------------------------------------
+
+    def action_list_types(self):
+        """Liste alle typer"""
+        self.print_header("📋 Typer")
+
+        if not self.topic_board_id:
+            print("❌ Ingen topic board valgt")
+            self.pause()
+            return
+
+        try:
+            types = self.tester.list_types(self.topic_board_id, include_unlinked=True)
+
+            if not types:
+                print("Ingen typer funnet.")
+            else:
+                print(f"Fant {len(types)} type(r):\n")
+                for t in types:
+                    color = t.get('color', '#???')
+                    unlinked = " (ukoblet)" if t.get('unlinked') else ""
+                    print(f"  • {t.get('name')} {color}{unlinked}")
+
+        except Exception as e:
+            print(f"❌ Feil: {e}")
+            self.logger.exception("Error listing types")
+
+        self.pause()
+
+    def action_create_type(self):
+        """Opprett ny type"""
+        self.print_header("➕ Opprett Type")
+
+        if not self.topic_board_id:
+            print("❌ Ingen topic board valgt")
+            self.pause()
+            return
+
+        name = input("Navn på type: ").strip()
+        if not name:
+            print("❌ Navn er påkrevd")
+            self.pause()
+            return
+
+        color = input("Farge (hex, f.eks. #3D85C6) [Enter for standard]: ").strip() or None
+
+        try:
+            topic_type = self.tester.create_type(name, color, self.topic_board_id)
+            if topic_type:
+                print(f"\n✅ Opprettet type: {topic_type.get('name')}")
+            else:
+                print("❌ Kunne ikke opprette type")
+
+        except Exception as e:
+            print(f"❌ Feil: {e}")
+            self.logger.exception("Error creating type")
+
+        self.pause()
+
+    def action_update_type(self):
+        """Oppdater eksisterende type"""
+        self.print_header("✏️  Oppdater Type")
+
+        if not self.topic_board_id:
+            print("❌ Ingen topic board valgt")
+            self.pause()
+            return
+
+        types = self.tester.list_types(self.topic_board_id)
+        if not types:
+            print("Ingen typer å oppdatere.")
+            self.pause()
+            return
+
+        print("Eksisterende typer:")
+        for i, t in enumerate(types, 1):
+            print(f"  {i}. {t.get('name')} {t.get('color')}")
+
+        try:
+            idx = int(input("\nVelg type å oppdatere: ")) - 1
+            if not 0 <= idx < len(types):
+                print("❌ Ugyldig valg")
+                self.pause()
+                return
+        except ValueError:
+            print("❌ Ugyldig valg")
+            self.pause()
+            return
+
+        existing = types[idx]
+        print(f"\nOppdaterer: {existing.get('name')}")
+
+        new_name = input(f"Nytt navn [{existing.get('name')}]: ").strip() or None
+        color = input(f"Farge [{existing.get('color')}]: ").strip() or None
+
+        try:
+            result = self.tester.update_type(
+                existing.get('name'),
+                new_name, color,
+                self.topic_board_id
+            )
+            if result:
+                print(f"\n✅ Oppdatert type: {result.get('name')}")
+            else:
+                print("❌ Kunne ikke oppdatere type")
+
+        except Exception as e:
+            print(f"❌ Feil: {e}")
+            self.logger.exception("Error updating type")
+
+        self.pause()
+
+    def action_delete_type(self):
+        """Slett type"""
+        self.print_header("🗑️  Slett Type")
+
+        if not self.topic_board_id:
+            print("❌ Ingen topic board valgt")
+            self.pause()
+            return
+
+        types = self.tester.list_types(self.topic_board_id)
+        if not types:
+            print("Ingen typer å slette.")
+            self.pause()
+            return
+
+        print("Eksisterende typer:")
+        for i, t in enumerate(types, 1):
+            print(f"  {i}. {t.get('name')}")
+
+        try:
+            idx = int(input("\nVelg type å slette: ")) - 1
+            if not 0 <= idx < len(types):
+                print("❌ Ugyldig valg")
+                self.pause()
+                return
+        except ValueError:
+            print("❌ Ugyldig valg")
+            self.pause()
+            return
+
+        topic_type = types[idx]
+        confirm = input(f"\nSlett '{topic_type.get('name')}'? (j/n): ").strip().lower()
+        if confirm != 'j':
+            print("❌ Avbrutt")
+            self.pause()
+            return
+
+        try:
+            if self.tester.delete_type(topic_type.get('name'), self.topic_board_id):
+                print(f"✅ Slettet type: {topic_type.get('name')}")
+            else:
+                print("❌ Kunne ikke slette type")
+
+        except Exception as e:
+            print(f"❌ Feil: {e}")
+            self.logger.exception("Error deleting type")
+
+        self.pause()
+
+    # ==========================================================================
+    # END TOPIC BOARD MANAGEMENT ACTIONS
+    # ==========================================================================
+
     def _select_or_create_folder(self) -> Optional[str]:
         """Hjelpefunksjon for å velge eller opprette mappe"""
         print("\n📁 Velg mappe:")
@@ -738,6 +1893,117 @@ class CatendaInteractiveMenu:
             return None
 
         return None
+
+    def _select_topic(self, prompt: str = "Velg topic", exclude_guid: Optional[str] = None) -> Optional[tuple]:
+        """
+        Vis liste over topics og la bruker velge én.
+
+        Args:
+            prompt: Tekst som vises over listen
+            exclude_guid: GUID som skal ekskluderes fra listen (f.eks. aktiv topic)
+
+        Returns:
+            Tuple (guid, title) eller None hvis avbrutt
+        """
+        print(f"\n{prompt}")
+        print("-" * 50)
+
+        try:
+            topics = self.tester.list_topics()
+
+            if not topics:
+                print("Ingen topics funnet.")
+                return None
+
+            # Filtrer ut excluded guid
+            if exclude_guid:
+                topics = [t for t in topics if t.get('guid') != exclude_guid]
+
+            if not topics:
+                print("Ingen andre topics tilgjengelig.")
+                return None
+
+            # Sorter alfabetisk på tittel
+            topics.sort(key=lambda t: t.get('title', '').lower())
+
+            # Vis liste
+            print(f"\nFant {len(topics)} topic(s):\n")
+            for i, topic in enumerate(topics, 1):
+                title = topic.get('title', 'Uten tittel')
+                guid = topic.get('guid', '')[:8]
+                topic_type = topic.get('topic_type', '')
+                status = topic.get('topic_status', '')
+                print(f"  {i:3}. {title}")
+                print(f"       [{topic_type}] {status} - {guid}...")
+
+            print("\n  S = Søk etter tittel")
+            print("  G = Skriv GUID direkte")
+            print("  0 = Avbryt\n")
+
+            while True:
+                choice = input("Velg (nummer/S/G/0): ").strip()
+
+                if choice == '0':
+                    return None
+
+                if choice.upper() == 'S':
+                    search_term = input("Søkeord: ").strip().lower()
+                    if search_term:
+                        matches = [
+                            t for t in topics
+                            if search_term in t.get('title', '').lower()
+                        ]
+                        if not matches:
+                            print("Ingen treff.")
+                            continue
+                        elif len(matches) == 1:
+                            topic = matches[0]
+                            print(f"✅ Valgt: {topic.get('title')}")
+                            return (topic.get('guid'), topic.get('title'))
+                        else:
+                            print(f"\nFant {len(matches)} treff:")
+                            for i, t in enumerate(matches, 1):
+                                print(f"  {i}. {t.get('title')}")
+                            try:
+                                idx = int(input("Velg nummer: ")) - 1
+                                if 0 <= idx < len(matches):
+                                    topic = matches[idx]
+                                    print(f"✅ Valgt: {topic.get('title')}")
+                                    return (topic.get('guid'), topic.get('title'))
+                            except ValueError:
+                                pass
+                    continue
+
+                if choice.upper() == 'G':
+                    guid = input("GUID: ").strip()
+                    if guid:
+                        # Sjekk om det finnes i listen
+                        matching = [t for t in topics if t.get('guid') == guid]
+                        if matching:
+                            topic = matching[0]
+                            print(f"✅ Valgt: {topic.get('title')}")
+                            return (topic.get('guid'), topic.get('title'))
+                        else:
+                            # Godta GUID uansett (kan være fra annet board)
+                            print(f"⚠️ GUID ikke i listen, bruker likevel: {guid}")
+                            return (guid, "Ukjent topic")
+                    continue
+
+                try:
+                    idx = int(choice) - 1
+                    if 0 <= idx < len(topics):
+                        topic = topics[idx]
+                        print(f"✅ Valgt: {topic.get('title')}")
+                        return (topic.get('guid'), topic.get('title'))
+                    else:
+                        print(f"❌ Velg mellom 1 og {len(topics)}")
+                except ValueError:
+                    print("❌ Ugyldig valg")
+
+        except Exception as e:
+            print(f"❌ Feil ved henting av topics: {e}")
+            self.logger.exception("Error selecting topic")
+            return None
 
     def _browse_folders(self, parent_id: Optional[str] = None, path: str = "/") -> Optional[str]:
         """Naviger i mappestrukturen"""

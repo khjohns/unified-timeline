@@ -119,6 +119,7 @@ def setup_authentication():
         'catenda_redirect_uri': get_env_value('CATENDA_REDIRECT_URI', 'http://localhost:8080/callback'),
         'catenda_project_id': get_env_value('CATENDA_PROJECT_ID'),
         'catenda_library_id': get_env_value('CATENDA_LIBRARY_ID'),
+        'catenda_folder_id': get_env_value('CATENDA_FOLDER_ID'),
     }
 
     # Client ID (påkrevd for begge metoder)
@@ -354,6 +355,27 @@ def setup_project_info(config: dict) -> dict:
     if library_id:
         config['catenda_library_id'] = library_id
 
+        # Folder ID (valgfri, krever Library ID)
+        print("\n📁 DOCUMENT FOLDER")
+        print("-" * 70)
+        print("Folder ID angir hvilken mappe dokumenter lastes opp til.")
+        print("Du finner det i URL-en når du er inne i en mappe i Document Library.")
+        print("(Kan hoppes over - dokumenter havner da i root av biblioteket)\n")
+
+        existing_folder = config.get('catenda_folder_id', '')
+        if existing_folder:
+            print(f"Eksisterende Folder ID: {existing_folder}")
+            use_existing = input("Bruk eksisterende? (j/n) [j]: ").strip().lower()
+            if use_existing != 'n':
+                folder_id = existing_folder
+            else:
+                folder_id = input("Folder ID (Enter for å hoppe over): ").strip()
+        else:
+            folder_id = input("Folder ID (Enter for å hoppe over): ").strip()
+
+        if folder_id:
+            config['catenda_folder_id'] = folder_id
+
     return config
 
 
@@ -388,6 +410,7 @@ def main():
             'CATENDA_REDIRECT_URI': config.get('catenda_redirect_uri', ''),
             'CATENDA_PROJECT_ID': config.get('catenda_project_id', ''),
             'CATENDA_LIBRARY_ID': config.get('catenda_library_id', ''),
+            'CATENDA_FOLDER_ID': config.get('catenda_folder_id', ''),
         }
 
         # Fjern tomme verdier

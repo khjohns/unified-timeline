@@ -15,7 +15,7 @@ import requests
 import json
 import time
 from datetime import datetime, timedelta
-from typing import Dict, Optional, List, Tuple
+from typing import Any, Dict, Optional, List, Tuple
 import logging
 from pathlib import Path
 
@@ -336,7 +336,955 @@ class CatendaClient:
         
         logger.info(f"✅ Valgte topic board: {selected['name']}")
         return True
-    
+
+    def get_topic_board(self, board_id: Optional[str] = None) -> Optional[Dict]:
+        """
+        Hent detaljer for et topic board.
+
+        Args:
+            board_id: Topic board ID (bruker self.topic_board_id hvis ikke angitt)
+
+        Returns:
+            Board-data eller None
+        """
+        board_id = board_id or self.topic_board_id
+        if not board_id:
+            logger.error("❌ Ingen topic board ID angitt")
+            return None
+
+        logger.info(f"📋 Henter topic board {board_id}...")
+        url = f"{self.base_url}/opencde/bcf/3.0/projects/{board_id}"
+
+        try:
+            response = requests.get(url, headers=self.get_headers())
+            response.raise_for_status()
+
+            board = response.json()
+            logger.info(f"✅ Hentet board: {board.get('name')}")
+            return board
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved henting av topic board: {e}")
+            return None
+
+    def create_topic_board(self, name: str, project_id: Optional[str] = None) -> Optional[Dict]:
+        """
+        Opprett nytt topic board.
+
+        Args:
+            name: Navn på boardet
+            project_id: Catenda project ID (bruker self.project_id hvis ikke angitt)
+
+        Returns:
+            Opprettet board eller None
+        """
+        project_id = project_id or self.project_id
+        if not project_id:
+            logger.error("❌ Ingen project ID angitt")
+            return None
+
+        logger.info(f"📋 Oppretter topic board '{name}'...")
+        url = f"{self.base_url}/opencde/bcf/3.0/projects"
+
+        payload = {
+            "name": name,
+            "bimsync_project_id": project_id
+        }
+
+        try:
+            response = requests.post(url, headers=self.get_headers(), json=payload)
+            response.raise_for_status()
+
+            board = response.json()
+            logger.info(f"✅ Opprettet board: {board.get('name')} (ID: {board.get('project_id')})")
+            return board
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved opprettelse av topic board: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"   Response: {e.response.text}")
+            return None
+
+    def update_topic_board(self, name: str, board_id: Optional[str] = None) -> Optional[Dict]:
+        """
+        Oppdater navn på topic board.
+
+        Args:
+            name: Nytt navn
+            board_id: Topic board ID (bruker self.topic_board_id hvis ikke angitt)
+
+        Returns:
+            Oppdatert board eller None
+        """
+        board_id = board_id or self.topic_board_id
+        if not board_id:
+            logger.error("❌ Ingen topic board ID angitt")
+            return None
+
+        logger.info(f"📋 Oppdaterer topic board '{board_id}'...")
+        url = f"{self.base_url}/opencde/bcf/3.0/projects/{board_id}"
+
+        payload = {"name": name}
+
+        try:
+            response = requests.put(url, headers=self.get_headers(), json=payload)
+            response.raise_for_status()
+
+            board = response.json()
+            logger.info(f"✅ Oppdatert board: {board.get('name')}")
+            return board
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved oppdatering av topic board: {e}")
+            return None
+
+    def get_topic_board_extensions(self, board_id: Optional[str] = None) -> Optional[Dict]:
+        """
+        Hent extensions (statuser, typer, labels, prioriteter, brukere, etc) for et board.
+
+        Args:
+            board_id: Topic board ID (bruker self.topic_board_id hvis ikke angitt)
+
+        Returns:
+            Extensions-data eller None
+        """
+        board_id = board_id or self.topic_board_id
+        if not board_id:
+            logger.error("❌ Ingen topic board ID angitt")
+            return None
+
+        logger.info(f"📋 Henter extensions for board {board_id}...")
+        url = f"{self.base_url}/opencde/bcf/3.0/projects/{board_id}/extensions"
+
+        try:
+            response = requests.get(url, headers=self.get_headers())
+            response.raise_for_status()
+
+            extensions = response.json()
+            logger.info(f"✅ Hentet extensions")
+            return extensions
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved henting av extensions: {e}")
+            return None
+
+    def get_topic_board_with_custom_fields(
+        self,
+        board_id: Optional[str] = None,
+        project_id: Optional[str] = None
+    ) -> Optional[Dict]:
+        """
+        Hent topic board med custom fields (v2 API).
+
+        Args:
+            board_id: Topic board ID (bruker self.topic_board_id hvis ikke angitt)
+            project_id: Catenda project ID (bruker self.project_id hvis ikke angitt)
+
+        Returns:
+            Board-data med custom fields eller None
+        """
+        board_id = board_id or self.topic_board_id
+        if not board_id:
+            logger.error("❌ Ingen topic board ID angitt")
+            return None
+
+        project_id = project_id or self.project_id
+        if not project_id:
+            logger.error("❌ Ingen project ID angitt")
+            return None
+
+        logger.info(f"📋 Henter board med custom fields...")
+        url = f"{self.base_url}/v2/projects/{project_id}/issues/boards/{board_id}"
+        params = {"include": "customFields,customFieldInstances"}
+
+        try:
+            response = requests.get(url, headers=self.get_headers(), params=params)
+            response.raise_for_status()
+
+            board = response.json()
+            logger.info(f"✅ Hentet board med {len(board.get('customFieldInstances', []))} custom field(s)")
+            return board
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved henting av board med custom fields: {e}")
+            return None
+
+    # ------------------------------------------
+    # Custom Field Management
+    # ------------------------------------------
+
+    def _update_custom_fields(
+        self,
+        board_id: str,
+        project_id: str,
+        payload: Dict
+    ) -> Optional[Dict]:
+        """
+        Intern hjelpemetode for å oppdatere custom fields på et board.
+
+        Args:
+            board_id: Topic board ID
+            project_id: Catenda project ID
+            payload: Request body med custom field-operasjoner
+
+        Returns:
+            Oppdatert board eller None
+        """
+        url = f"{self.base_url}/v2/projects/{project_id}/issues/boards/{board_id}"
+        params = {"include": "customFields,customFieldInstances"}
+
+        try:
+            response = requests.patch(url, headers=self.get_headers(), json=payload, params=params)
+            response.raise_for_status()
+
+            board = response.json()
+            return board
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved oppdatering av custom fields: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"   Response: {e.response.text}")
+            return None
+
+    def add_custom_field_to_board(
+        self,
+        custom_field_id: str,
+        board_id: Optional[str] = None,
+        project_id: Optional[str] = None,
+        required: bool = False,
+        default_value: Optional[Any] = None,
+        disabled: bool = False
+    ) -> Optional[Dict]:
+        """
+        Legg til et eksisterende custom field på et topic board.
+
+        Args:
+            custom_field_id: ID til custom field som skal legges til
+            board_id: Topic board ID
+            project_id: Catenda project ID
+            required: Om feltet er påkrevd
+            default_value: Standardverdi for feltet
+            disabled: Om feltet skal være deaktivert
+
+        Returns:
+            Oppdatert board eller None
+        """
+        board_id = board_id or self.topic_board_id
+        project_id = project_id or self.project_id
+
+        if not board_id or not project_id:
+            logger.error("❌ board_id og project_id er påkrevd")
+            return None
+
+        logger.info(f"📋 Legger til custom field {custom_field_id} på board...")
+
+        field_config = {
+            "id": custom_field_id,
+            "required": required,
+            "disabled": disabled
+        }
+        if default_value is not None:
+            field_config["defaultValue"] = default_value
+
+        payload = {"customFieldsToAdd": [field_config]}
+        result = self._update_custom_fields(board_id, project_id, payload)
+
+        if result:
+            logger.info(f"✅ Custom field lagt til")
+        return result
+
+    def modify_custom_field_on_board(
+        self,
+        custom_field_id: str,
+        board_id: Optional[str] = None,
+        project_id: Optional[str] = None,
+        required: Optional[bool] = None,
+        default_value: Optional[Any] = None,
+        disabled: Optional[bool] = None
+    ) -> Optional[Dict]:
+        """
+        Endre innstillinger for et custom field på et board.
+
+        Args:
+            custom_field_id: ID til custom field
+            board_id: Topic board ID
+            project_id: Catenda project ID
+            required: Om feltet er påkrevd (None = ikke endre)
+            default_value: Standardverdi (None = ikke endre)
+            disabled: Om feltet skal være deaktivert (None = ikke endre)
+
+        Returns:
+            Oppdatert board eller None
+        """
+        board_id = board_id or self.topic_board_id
+        project_id = project_id or self.project_id
+
+        if not board_id or not project_id:
+            logger.error("❌ board_id og project_id er påkrevd")
+            return None
+
+        logger.info(f"📋 Oppdaterer custom field {custom_field_id}...")
+
+        field_config = {"id": custom_field_id}
+        if required is not None:
+            field_config["required"] = required
+        if default_value is not None:
+            field_config["defaultValue"] = default_value
+        if disabled is not None:
+            field_config["disabled"] = disabled
+
+        payload = {"customFieldsToModify": [field_config]}
+        result = self._update_custom_fields(board_id, project_id, payload)
+
+        if result:
+            logger.info(f"✅ Custom field oppdatert")
+        return result
+
+    def disable_custom_field_on_board(
+        self,
+        custom_field_id: str,
+        board_id: Optional[str] = None,
+        project_id: Optional[str] = None
+    ) -> Optional[Dict]:
+        """
+        Deaktiver et custom field på et board.
+
+        Args:
+            custom_field_id: ID til custom field
+            board_id: Topic board ID
+            project_id: Catenda project ID
+
+        Returns:
+            Oppdatert board eller None
+        """
+        board_id = board_id or self.topic_board_id
+        project_id = project_id or self.project_id
+
+        if not board_id or not project_id:
+            logger.error("❌ board_id og project_id er påkrevd")
+            return None
+
+        logger.info(f"📋 Deaktiverer custom field {custom_field_id}...")
+
+        payload = {"customFieldsToDisable": [{"id": custom_field_id}]}
+        result = self._update_custom_fields(board_id, project_id, payload)
+
+        if result:
+            logger.info(f"✅ Custom field deaktivert")
+        return result
+
+    def restore_custom_field_on_board(
+        self,
+        custom_field_id: str,
+        board_id: Optional[str] = None,
+        project_id: Optional[str] = None
+    ) -> Optional[Dict]:
+        """
+        Gjenopprett et deaktivert custom field på et board.
+
+        Args:
+            custom_field_id: ID til custom field
+            board_id: Topic board ID
+            project_id: Catenda project ID
+
+        Returns:
+            Oppdatert board eller None
+        """
+        board_id = board_id or self.topic_board_id
+        project_id = project_id or self.project_id
+
+        if not board_id or not project_id:
+            logger.error("❌ board_id og project_id er påkrevd")
+            return None
+
+        logger.info(f"📋 Gjenoppretter custom field {custom_field_id}...")
+
+        payload = {"customFieldstoRestore": [{"id": custom_field_id}]}
+        result = self._update_custom_fields(board_id, project_id, payload)
+
+        if result:
+            logger.info(f"✅ Custom field gjenopprettet")
+        return result
+
+    def delete_custom_field_from_board(
+        self,
+        custom_field_id: str,
+        board_id: Optional[str] = None,
+        project_id: Optional[str] = None
+    ) -> Optional[Dict]:
+        """
+        Fjern et custom field fra et board.
+
+        Args:
+            custom_field_id: ID til custom field
+            board_id: Topic board ID
+            project_id: Catenda project ID
+
+        Returns:
+            Oppdatert board eller None
+        """
+        board_id = board_id or self.topic_board_id
+        project_id = project_id or self.project_id
+
+        if not board_id or not project_id:
+            logger.error("❌ board_id og project_id er påkrevd")
+            return None
+
+        logger.info(f"🗑️ Fjerner custom field {custom_field_id} fra board...")
+
+        payload = {"customFieldsToDelete": [{"id": custom_field_id}]}
+        result = self._update_custom_fields(board_id, project_id, payload)
+
+        if result:
+            logger.info(f"✅ Custom field fjernet")
+        return result
+
+    def list_available_custom_fields(
+        self,
+        board_id: Optional[str] = None,
+        project_id: Optional[str] = None
+    ) -> List[Dict]:
+        """
+        List alle tilgjengelige custom fields (både aktive og ikke-aktive på boardet).
+
+        Args:
+            board_id: Topic board ID
+            project_id: Catenda project ID
+
+        Returns:
+            Liste med custom fields
+        """
+        board = self.get_topic_board_with_custom_fields(board_id, project_id)
+        if not board:
+            return []
+
+        return board.get('customFields', [])
+
+    # ------------------------------------------
+    # Project-level Custom Fields (v2 API)
+    # ------------------------------------------
+
+    def list_project_custom_fields(self, project_id: Optional[str] = None) -> List[Dict]:
+        """
+        List alle custom fields definert på prosjektnivå.
+
+        Args:
+            project_id: Catenda project ID
+
+        Returns:
+            Liste med custom fields
+        """
+        project_id = project_id or self.project_id
+        if not project_id:
+            logger.error("❌ project_id er påkrevd")
+            return []
+
+        logger.info(f"📋 Henter custom fields for prosjekt {project_id}...")
+        url = f"{self.base_url}/v2/projects/{project_id}/custom-fields"
+
+        try:
+            response = requests.get(url, headers=self.get_headers())
+            response.raise_for_status()
+
+            fields = response.json()
+            logger.info(f"✅ Fant {len(fields)} custom field(s)")
+            return fields
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved henting av custom fields: {e}")
+            return []
+
+    def create_project_custom_field(
+        self,
+        name: str,
+        field_type: str = "text",
+        description: Optional[str] = None,
+        project_id: Optional[str] = None
+    ) -> Optional[Dict]:
+        """
+        Opprett ny custom field på prosjektnivå.
+
+        Args:
+            name: Navn på custom field
+            field_type: Type ('text', 'integer', 'double', 'enumeration')
+            description: Beskrivelse (valgfri)
+            project_id: Catenda project ID
+
+        Returns:
+            Opprettet custom field eller None
+        """
+        project_id = project_id or self.project_id
+        if not project_id:
+            logger.error("❌ project_id er påkrevd")
+            return None
+
+        logger.info(f"📋 Oppretter custom field '{name}'...")
+        url = f"{self.base_url}/v2/projects/{project_id}/custom-fields"
+
+        payload = {
+            "name": name,
+            "type": field_type
+        }
+        if description:
+            payload["description"] = description
+
+        try:
+            response = requests.post(url, headers=self.get_headers(), json=payload)
+            response.raise_for_status()
+
+            field = response.json()
+            logger.info(f"✅ Opprettet custom field: {field.get('name')} (ID: {field.get('id')})")
+            return field
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved opprettelse av custom field: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"   Response: {e.response.text}")
+            return None
+
+    def get_project_custom_field(
+        self,
+        custom_field_id: str,
+        project_id: Optional[str] = None
+    ) -> Optional[Dict]:
+        """
+        Hent én custom field fra prosjektnivå.
+
+        Args:
+            custom_field_id: ID til custom field
+            project_id: Catenda project ID
+
+        Returns:
+            Custom field eller None
+        """
+        project_id = project_id or self.project_id
+        if not project_id:
+            logger.error("❌ project_id er påkrevd")
+            return None
+
+        url = f"{self.base_url}/v2/projects/{project_id}/custom-fields/{custom_field_id}"
+
+        try:
+            response = requests.get(url, headers=self.get_headers())
+            response.raise_for_status()
+            return response.json()
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved henting av custom field: {e}")
+            return None
+
+    def update_project_custom_field(
+        self,
+        custom_field_id: str,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        archived: Optional[bool] = None,
+        project_id: Optional[str] = None
+    ) -> Optional[Dict]:
+        """
+        Oppdater custom field på prosjektnivå.
+
+        Args:
+            custom_field_id: ID til custom field
+            name: Nytt navn (valgfri)
+            description: Ny beskrivelse (valgfri)
+            archived: Arkiver/gjenopprett (valgfri)
+            project_id: Catenda project ID
+
+        Returns:
+            Oppdatert custom field eller None
+        """
+        project_id = project_id or self.project_id
+        if not project_id:
+            logger.error("❌ project_id er påkrevd")
+            return None
+
+        logger.info(f"📋 Oppdaterer custom field {custom_field_id}...")
+        url = f"{self.base_url}/v2/projects/{project_id}/custom-fields/{custom_field_id}"
+
+        payload = {}
+        if name is not None:
+            payload["name"] = name
+        if description is not None:
+            payload["description"] = description
+        if archived is not None:
+            payload["archived"] = archived
+
+        try:
+            response = requests.patch(url, headers=self.get_headers(), json=payload)
+            response.raise_for_status()
+
+            field = response.json()
+            logger.info(f"✅ Oppdatert custom field: {field.get('name')}")
+            return field
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved oppdatering av custom field: {e}")
+            return None
+
+    def add_enumeration_items(
+        self,
+        custom_field_id: str,
+        items: List[Dict],
+        project_id: Optional[str] = None
+    ) -> Optional[Dict]:
+        """
+        Legg til enumeration items på en custom field.
+
+        Args:
+            custom_field_id: ID til custom field
+            items: Liste med items [{"name": "Item 1"}, {"name": "Item 2"}]
+            project_id: Catenda project ID
+
+        Returns:
+            Oppdatert custom field eller None
+        """
+        project_id = project_id or self.project_id
+        if not project_id:
+            logger.error("❌ project_id er påkrevd")
+            return None
+
+        logger.info(f"📋 Legger til {len(items)} enumeration items...")
+        url = f"{self.base_url}/v2/projects/{project_id}/custom-fields/{custom_field_id}"
+
+        payload = {"enumerationItemsToAdd": items}
+
+        try:
+            response = requests.patch(url, headers=self.get_headers(), json=payload)
+            response.raise_for_status()
+
+            field = response.json()
+            logger.info(f"✅ Enumeration items lagt til")
+            return field
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved tillegg av enumeration items: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"   Response: {e.response.text}")
+            return None
+
+    # ------------------------------------------
+    # Topic Board Statuses
+    # ------------------------------------------
+
+    def list_statuses(self, board_id: Optional[str] = None, include_unlinked: bool = False) -> List[Dict]:
+        """
+        List statuser for et topic board.
+
+        Args:
+            board_id: Topic board ID (bruker self.topic_board_id hvis ikke angitt)
+            include_unlinked: Inkluder ukoblede statuser
+
+        Returns:
+            Liste med statuser
+        """
+        board_id = board_id or self.topic_board_id
+        if not board_id:
+            logger.error("❌ Ingen topic board ID angitt")
+            return []
+
+        logger.info(f"📋 Henter statuser for board {board_id}...")
+        url = f"{self.base_url}/opencde/bcf/3.0/projects/{board_id}/extensions/statuses"
+        params = {"includeUnlinked": str(include_unlinked).lower()}
+
+        try:
+            response = requests.get(url, headers=self.get_headers(), params=params)
+            response.raise_for_status()
+
+            statuses = response.json()
+            logger.info(f"✅ Fant {len(statuses)} status(er)")
+            return statuses
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved henting av statuser: {e}")
+            return []
+
+    def create_status(
+        self,
+        name: str,
+        color: Optional[str] = None,
+        status_type: str = "open",
+        board_id: Optional[str] = None
+    ) -> Optional[Dict]:
+        """
+        Opprett ny status for topic board.
+
+        Args:
+            name: Navn på status
+            color: Farge (hex, f.eks. '#FF0000')
+            status_type: Type ('open', 'closed', 'candidate')
+            board_id: Topic board ID
+
+        Returns:
+            Opprettet status eller None
+        """
+        board_id = board_id or self.topic_board_id
+        if not board_id:
+            logger.error("❌ Ingen topic board ID angitt")
+            return None
+
+        logger.info(f"📋 Oppretter status '{name}'...")
+        url = f"{self.base_url}/opencde/bcf/3.0/projects/{board_id}/extensions/statuses"
+
+        payload = {"name": name, "type": status_type}
+        if color:
+            payload["color"] = color
+
+        try:
+            response = requests.post(url, headers=self.get_headers(), json=payload)
+            response.raise_for_status()
+
+            status = response.json()
+            logger.info(f"✅ Opprettet status: {status.get('name')}")
+            return status
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved opprettelse av status: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"   Response: {e.response.text}")
+            return None
+
+    def update_status(
+        self,
+        existing_name: str,
+        new_name: Optional[str] = None,
+        color: Optional[str] = None,
+        status_type: Optional[str] = None,
+        board_id: Optional[str] = None
+    ) -> Optional[Dict]:
+        """
+        Oppdater status for topic board.
+
+        Args:
+            existing_name: Eksisterende navn på status
+            new_name: Nytt navn (valgfri)
+            color: Ny farge (valgfri)
+            status_type: Ny type (valgfri)
+            board_id: Topic board ID
+
+        Returns:
+            Oppdatert status eller None
+        """
+        board_id = board_id or self.topic_board_id
+        if not board_id:
+            logger.error("❌ Ingen topic board ID angitt")
+            return None
+
+        logger.info(f"📋 Oppdaterer status '{existing_name}'...")
+        url = f"{self.base_url}/opencde/bcf/3.0/projects/{board_id}/extensions/statuses"
+
+        payload = {"existingName": existing_name}
+        if new_name:
+            payload["name"] = new_name
+        if color:
+            payload["color"] = color
+        if status_type:
+            payload["type"] = status_type
+
+        try:
+            response = requests.put(url, headers=self.get_headers(), json=payload)
+            response.raise_for_status()
+
+            status = response.json()
+            logger.info(f"✅ Oppdatert status: {status.get('name')}")
+            return status
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved oppdatering av status: {e}")
+            return None
+
+    def delete_status(self, name: str, board_id: Optional[str] = None) -> bool:
+        """
+        Slett status fra topic board.
+
+        Args:
+            name: Navn på status som skal slettes
+            board_id: Topic board ID
+
+        Returns:
+            True hvis vellykket
+        """
+        board_id = board_id or self.topic_board_id
+        if not board_id:
+            logger.error("❌ Ingen topic board ID angitt")
+            return False
+
+        logger.info(f"🗑️ Sletter status '{name}'...")
+        url = f"{self.base_url}/opencde/bcf/3.0/projects/{board_id}/extensions/statuses"
+
+        payload = {"name": name}
+
+        try:
+            response = requests.delete(url, headers=self.get_headers(), json=payload)
+            response.raise_for_status()
+
+            logger.info(f"✅ Slettet status: {name}")
+            return True
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved sletting av status: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"   Response: {e.response.text}")
+            return False
+
+    # ------------------------------------------
+    # Topic Board Types
+    # ------------------------------------------
+
+    def list_types(self, board_id: Optional[str] = None, include_unlinked: bool = False) -> List[Dict]:
+        """
+        List typer for et topic board.
+
+        Args:
+            board_id: Topic board ID (bruker self.topic_board_id hvis ikke angitt)
+            include_unlinked: Inkluder ukoblede typer
+
+        Returns:
+            Liste med typer
+        """
+        board_id = board_id or self.topic_board_id
+        if not board_id:
+            logger.error("❌ Ingen topic board ID angitt")
+            return []
+
+        logger.info(f"📋 Henter typer for board {board_id}...")
+        url = f"{self.base_url}/opencde/bcf/3.0/projects/{board_id}/extensions/types"
+        params = {"includeUnlinked": str(include_unlinked).lower()}
+
+        try:
+            response = requests.get(url, headers=self.get_headers(), params=params)
+            response.raise_for_status()
+
+            types = response.json()
+            logger.info(f"✅ Fant {len(types)} type(r)")
+            return types
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved henting av typer: {e}")
+            return []
+
+    def create_type(
+        self,
+        name: str,
+        color: Optional[str] = None,
+        board_id: Optional[str] = None
+    ) -> Optional[Dict]:
+        """
+        Opprett ny type for topic board.
+
+        Args:
+            name: Navn på type
+            color: Farge (hex, f.eks. '#3D85C6')
+            board_id: Topic board ID
+
+        Returns:
+            Opprettet type eller None
+        """
+        board_id = board_id or self.topic_board_id
+        if not board_id:
+            logger.error("❌ Ingen topic board ID angitt")
+            return None
+
+        logger.info(f"📋 Oppretter type '{name}'...")
+        url = f"{self.base_url}/opencde/bcf/3.0/projects/{board_id}/extensions/types"
+
+        payload = {"name": name}
+        if color:
+            payload["color"] = color
+
+        try:
+            response = requests.post(url, headers=self.get_headers(), json=payload)
+            response.raise_for_status()
+
+            topic_type = response.json()
+            logger.info(f"✅ Opprettet type: {topic_type.get('name')}")
+            return topic_type
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved opprettelse av type: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"   Response: {e.response.text}")
+            return None
+
+    def update_type(
+        self,
+        existing_name: str,
+        new_name: Optional[str] = None,
+        color: Optional[str] = None,
+        board_id: Optional[str] = None
+    ) -> Optional[Dict]:
+        """
+        Oppdater type for topic board.
+
+        Args:
+            existing_name: Eksisterende navn på type
+            new_name: Nytt navn (valgfri)
+            color: Ny farge (valgfri)
+            board_id: Topic board ID
+
+        Returns:
+            Oppdatert type eller None
+        """
+        board_id = board_id or self.topic_board_id
+        if not board_id:
+            logger.error("❌ Ingen topic board ID angitt")
+            return None
+
+        logger.info(f"📋 Oppdaterer type '{existing_name}'...")
+        url = f"{self.base_url}/opencde/bcf/3.0/projects/{board_id}/extensions/types"
+
+        payload = {"existingName": existing_name}
+        if new_name:
+            payload["name"] = new_name
+        if color:
+            payload["color"] = color
+
+        try:
+            response = requests.put(url, headers=self.get_headers(), json=payload)
+            response.raise_for_status()
+
+            topic_type = response.json()
+            logger.info(f"✅ Oppdatert type: {topic_type.get('name')}")
+            return topic_type
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved oppdatering av type: {e}")
+            return None
+
+    def delete_type(self, name: str, board_id: Optional[str] = None) -> bool:
+        """
+        Slett type fra topic board.
+
+        Args:
+            name: Navn på type som skal slettes
+            board_id: Topic board ID
+
+        Returns:
+            True hvis vellykket
+        """
+        board_id = board_id or self.topic_board_id
+        if not board_id:
+            logger.error("❌ Ingen topic board ID angitt")
+            return False
+
+        logger.info(f"🗑️ Sletter type '{name}'...")
+        url = f"{self.base_url}/opencde/bcf/3.0/projects/{board_id}/extensions/types"
+
+        payload = {"name": name}
+
+        try:
+            response = requests.delete(url, headers=self.get_headers(), json=payload)
+            response.raise_for_status()
+
+            logger.info(f"✅ Slettet type: {name}")
+            return True
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved sletting av type: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"   Response: {e.response.text}")
+            return False
+
     # ==========================================
     # PROJECT MANAGEMENT (v2 API)
     # ==========================================
