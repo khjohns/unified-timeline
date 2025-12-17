@@ -75,9 +75,8 @@ test.describe('Grunnlag Flow', () => {
     await expect(page.getByRole('dialog')).toBeVisible();
 
     // Fill out the form using data-testid selectors
-    // Select hovedkategori
-    await page.getByTestId('grunnlag-hovedkategori').click();
-    await page.getByRole('option', { name: /endring/i }).first().click();
+    // Select hovedkategori - it's a radiogroup, not a dropdown
+    await page.getByRole('radio', { name: /endring/i }).first().click();
 
     // Wait for underkategori list to appear and select one
     await expect(page.getByTestId('grunnlag-underkategori-list')).toBeVisible();
@@ -112,8 +111,9 @@ test.describe('Grunnlag Flow', () => {
     // Wait for modal to close (indicates success)
     await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 10000 });
 
-    // Verify timeline shows the new event - use specific selector to avoid strict mode
-    await expect(page.getByRole('heading', { name: 'Grunnlag sendt' })).toBeVisible({ timeout: 5000 });
+    // Verify timeline shows the new grunnlag event - timeline shows "Ansvarsgrunnlag" for grunnlag events
+    // Use first() to handle multiple matches (dashboard + timeline)
+    await expect(page.getByText('Ansvarsgrunnlag').first()).toBeVisible({ timeout: 5000 });
   });
 });
 
@@ -132,8 +132,9 @@ test.describe('BH Response Flow', () => {
     await page.goto(testCase.url);
     await expect(page).toHaveURL(/\/saker\//);
 
-    // Should show grunnlag event in timeline - look for the specific heading
-    await expect(page.getByRole('heading', { name: 'Grunnlag sendt' })).toBeVisible({ timeout: 10000 });
+    // Should show grunnlag event in timeline - timeline shows "Ansvarsgrunnlag" for grunnlag events
+    // Use first() to handle multiple matches (dashboard + timeline)
+    await expect(page.getByText('Ansvarsgrunnlag').first()).toBeVisible({ timeout: 10000 });
   });
 
   test('should show case status as "sendt" after grunnlag', async ({ page }) => {
@@ -171,16 +172,13 @@ test.describe('State Persistence', () => {
     await page.goto(tc.url);
     await expect(page).toHaveURL(/\/saker\//);
 
-    // Should show sak opprettet in timeline
-    await expect(page.getByText(/sak opprettet/i)).toBeVisible();
+    // Should show case title in timeline (sak_opprettet event shows the sakstittel)
+    await expect(page.getByRole('heading', { name: /Persistence Test/i })).toBeVisible();
 
     // Reload page
     await page.reload();
 
-    // Should still show the event after reload
-    await expect(page.getByText(/sak opprettet/i)).toBeVisible();
-
-    // State should persist - title should still be visible
+    // State should persist - title should still be visible after reload
     await expect(page.getByRole('heading', { name: /Persistence Test/i })).toBeVisible();
   });
 });

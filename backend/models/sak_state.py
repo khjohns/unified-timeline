@@ -995,7 +995,8 @@ class SakState(BaseModel):
 
         # Sjekk vederlag og frist hvis de er aktive
         for spor in [self.vederlag, self.frist]:
-            if spor.status == SporStatus.IKKE_RELEVANT:
+            # Skip tracks that are not relevant or never used (utkast = no claim submitted)
+            if spor.status in {SporStatus.IKKE_RELEVANT, SporStatus.UTKAST}:
                 continue
             if spor.status not in {SporStatus.GODKJENT, SporStatus.LAAST, SporStatus.TRUKKET}:
                 return False

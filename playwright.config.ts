@@ -39,7 +39,8 @@ export default defineConfig({
   // Shared settings for all projects
   use: {
     // Base URL to use in actions like `await page.goto('/')`
-    baseURL: 'http://localhost:3000',
+    // Must match the webServer port (3001) to use real API, not mock data
+    baseURL: 'http://localhost:3001',
 
     // Collect trace when retrying the failed test
     trace: 'on-first-retry',
@@ -79,9 +80,14 @@ export default defineConfig({
   ],
 
   // Run local dev server before starting the tests (optional)
+  // Note: VITE_USE_MOCK_API=false ensures frontend uses real backend API
+  // Uses port 3001 to avoid conflicts with existing dev server on 3000
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
+    command: 'VITE_USE_MOCK_API=false npm run dev -- --port 3001',
+    url: 'http://localhost:3001',
+    reuseExistingServer: false,
+    env: {
+      VITE_USE_MOCK_API: 'false',
+    },
   },
 });

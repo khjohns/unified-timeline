@@ -107,6 +107,10 @@ export function RespondGrunnlagUpdateModal({
   const varDelvisGodkjent = forrigeResultat === 'delvis_godkjent';
   const varGodkjent = forrigeResultat === 'godkjent';
 
+  // Check if trying to withdraw an approval (going from godkjent to rejected)
+  // Note: This shouldn't be possible due to asymmetric change rights
+  const trekkeTilbakeGodkjenning = varGodkjent && nyttResultat === 'avslatt';
+
   // Get available options based on current state - kun endringer til TEs gunst
   const getOptions = () => {
     const options: { value: GrunnlagResponsResultat | 'frafalt'; label: string; description?: string }[] = [];

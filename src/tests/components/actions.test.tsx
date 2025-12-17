@@ -476,7 +476,7 @@ describe('Action/Modal Components - Functional Tests', () => {
     it('should have resultat field', () => {
       renderWithQueryClient(<UpdateResponseVederlagModal {...defaultProps} />);
 
-      expect(screen.getByText(/Ny avgjørelse/i)).toBeInTheDocument();
+      expect(screen.getByText(/Samlet resultat/i)).toBeInTheDocument();
     });
 
     it('should not render when closed', () => {
@@ -489,7 +489,7 @@ describe('Action/Modal Components - Functional Tests', () => {
       renderWithQueryClient(<UpdateResponseVederlagModal {...defaultProps} />);
 
       expect(screen.getByRole('button', { name: /Avbryt/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Lagre Svar/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Lagre Endringer/i })).toBeInTheDocument();
     });
   });
 
@@ -500,22 +500,23 @@ describe('Action/Modal Components - Functional Tests', () => {
       sakId: 'TEST-001',
       lastResponseEvent: {
         event_id: 'response-1',
-        resultat: 'godkjent' as const,
-        godkjent_dager: 10,
+        resultat: 'delvis_godkjent' as const,  // Not 'godkjent' so beregning section shows
+        godkjent_dager: 5,
       },
       fristTilstand: {
         krevd_dager: 10,
-        godkjent_dager: 10,
+        godkjent_dager: 5,
       } as any,
     };
 
     it('should render when open', () => {
       renderWithQueryClient(<UpdateResponseFristModal {...defaultProps} />);
 
-      expect(screen.getByRole('dialog', { name: /Oppdater svar på frist\/forsering/i })).toBeInTheDocument();
+      expect(screen.getByRole('dialog', { name: /Oppdater svar på fristkrav/i })).toBeInTheDocument();
     });
 
     it('should have resultat field', () => {
+      // Note: "Ny avgjørelse" section only shows when resultat is not 'godkjent'
       renderWithQueryClient(<UpdateResponseFristModal {...defaultProps} />);
 
       expect(screen.getByText(/Ny avgjørelse/i)).toBeInTheDocument();
@@ -524,14 +525,14 @@ describe('Action/Modal Components - Functional Tests', () => {
     it('should not render when closed', () => {
       renderWithQueryClient(<UpdateResponseFristModal {...defaultProps} open={false} />);
 
-      expect(screen.queryByRole('dialog', { name: /Oppdater svar på frist\/forsering/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog', { name: /Oppdater svar på fristkrav/i })).not.toBeInTheDocument();
     });
 
     it('should have submit and cancel buttons', () => {
       renderWithQueryClient(<UpdateResponseFristModal {...defaultProps} />);
 
       expect(screen.getByRole('button', { name: /Avbryt/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Lagre Svar/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Lagre Endringer/i })).toBeInTheDocument();
     });
   });
 });

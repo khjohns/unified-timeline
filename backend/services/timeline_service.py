@@ -136,9 +136,15 @@ class TimelineService:
     # ============ SAK HANDLERS ============
 
     def _handle_sak_opprettet(self, state: SakState, event: SakOpprettetEvent) -> SakState:
-        """Håndterer SAK_OPPRETTET event"""
+        """Håndterer SAK_OPPRETTET event.
+
+        Setter grunnlag til UTKAST (klar til å sende).
+        Vederlag og frist forblir IKKE_RELEVANT til grunnlag er sendt.
+        """
         state.sakstittel = event.sakstittel
         state.catenda_topic_id = event.catenda_topic_id
+        # Initialize grunnlag track as draft (ready to send)
+        state.grunnlag.status = SporStatus.UTKAST
         return state
 
     # ============ GRUNNLAG HANDLERS ============
@@ -158,6 +164,11 @@ class TimelineService:
         if event.event_type == EventType.GRUNNLAG_OPPRETTET:
             grunnlag.status = SporStatus.SENDT
             grunnlag.antall_versjoner = 1
+            # When grunnlag is first sent, enable vederlag and frist tracks
+            if state.vederlag.status == SporStatus.IKKE_RELEVANT:
+                state.vederlag.status = SporStatus.UTKAST
+            if state.frist.status == SporStatus.IKKE_RELEVANT:
+                state.frist.status = SporStatus.UTKAST
         else:  # OPPDATERT
             grunnlag.antall_versjoner += 1
             # Hvis det var avslått og TE oppdaterer, går det tilbake til SENDT

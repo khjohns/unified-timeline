@@ -233,7 +233,8 @@ class BusinessRuleValidator:
 
     def _rule_active_vederlag_exists(self, event: AnyEvent, state: SakState) -> ValidationResult:
         """R: Can only update if there's an active vederlag claim."""
-        if state.vederlag.status == SporStatus.IKKE_RELEVANT:
+        # IKKE_RELEVANT = track not used, UTKAST = no claim submitted yet
+        if state.vederlag.status in {SporStatus.IKKE_RELEVANT, SporStatus.UTKAST}:
             return ValidationResult(
                 is_valid=False,
                 message="Ingen aktivt vederlagskrav å oppdatere"
@@ -257,7 +258,8 @@ class BusinessRuleValidator:
 
     def _rule_active_frist_exists(self, event: AnyEvent, state: SakState) -> ValidationResult:
         """R: Can only update if there's an active frist claim."""
-        if state.frist.status == SporStatus.IKKE_RELEVANT:
+        # IKKE_RELEVANT = track not used, UTKAST = no claim submitted yet
+        if state.frist.status in {SporStatus.IKKE_RELEVANT, SporStatus.UTKAST}:
             return ValidationResult(
                 is_valid=False,
                 message="Ingen aktivt fristkrav å oppdatere"

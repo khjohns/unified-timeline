@@ -26,6 +26,9 @@ from models.events import (
     GrunnlagResponsResultat,
     VederlagBeregningResultat,
     FristBeregningResultat,
+    VederlagKompensasjon,
+    EOUtstedtData,
+    EOKonsekvenser,
 )
 
 
@@ -579,3 +582,254 @@ def test_event_with_varsel_serialization():
 
     assert event_dict['data']['rigg_drift_varsel']['dato_sendt'] == "2025-01-15"
     assert len(event_dict['data']['rigg_drift_varsel']['metode']) == 2
+
+
+# ============ VEDERLAG KOMPENSASJON TESTS (§34) ============
+
+class TestVederlagKompensasjon:
+    """Tests for VederlagKompensasjon base model and computed fields."""
+
+    def test_enhetspriser_netto_belop(self):
+        """Test netto_belop for ENHETSPRISER metode."""
+        komp = VederlagKompensasjon(
+            metode=VederlagsMetode.ENHETSPRISER,
+            belop_direkte=100000.0
+        )
+        assert komp.netto_belop == 100000.0
+        assert komp.krevd_belop == 100000.0
+
+    def test_fastpris_netto_belop(self):
+        """Test netto_belop for FASTPRIS_TILBUD metode."""
+        komp = VederlagKompensasjon(
+            metode=VederlagsMetode.FASTPRIS_TILBUD,
+            belop_direkte=75000.0
+        )
+        assert komp.netto_belop == 75000.0
+        assert komp.krevd_belop == 75000.0
+
+    def test_regningsarbeid_netto_belop(self):
+        """Test netto_belop for REGNINGSARBEID metode uses kostnads_overslag."""
+        komp = VederlagKompensasjon(
+            metode=VederlagsMetode.REGNINGSARBEID,
+            kostnads_overslag=150000.0
+        )
+        assert komp.netto_belop == 150000.0
+        assert komp.krevd_belop == 150000.0
+
+    def test_fradrag_reduces_netto_belop_enhetspriser(self):
+        """Test that fradrag_belop reduces netto for ENHETSPRISER (§34.4)."""
+        komp = VederlagKompensasjon(
+            metode=VederlagsMetode.ENHETSPRISER,
+            belop_direkte=100000.0,
+            fradrag_belop=20000.0
+        )
+        assert komp.netto_belop == 80000.0
+        assert komp.krevd_belop == 80000.0
+
+    def test_fradrag_reduces_netto_belop_regningsarbeid(self):
+        """Test that fradrag_belop reduces netto for REGNINGSARBEID (§34.4)."""
+        komp = VederlagKompensasjon(
+            metode=VederlagsMetode.REGNINGSARBEID,
+            kostnads_overslag=200000.0,
+            fradrag_belop=50000.0
+        )
+        assert komp.netto_belop == 150000.0
+        assert komp.krevd_belop == 150000.0
+
+    def test_fradrag_can_result_in_negative_netto(self):
+        """Test that fradrag larger than brutto results in negative netto."""
+        komp = VederlagKompensasjon(
+            metode=VederlagsMetode.ENHETSPRISER,
+            belop_direkte=50000.0,
+            fradrag_belop=80000.0
+        )
+        assert komp.netto_belop == -30000.0
+
+    def test_netto_belop_with_none_values(self):
+        """Test netto_belop handles None values gracefully."""
+        komp = VederlagKompensasjon(
+            metode=VederlagsMetode.ENHETSPRISER
+            # belop_direkte is None
+        )
+        assert komp.netto_belop == 0.0
+
+    def test_er_estimat_flag(self):
+        """Test er_estimat flag."""
+        komp = VederlagKompensasjon(
+            metode=VederlagsMetode.REGNINGSARBEID,
+            kostnads_overslag=100000.0,
+            er_estimat=True
+        )
+        assert komp.er_estimat is True
+
+    def test_serialization_includes_computed_fields(self):
+        """Test that computed fields are included in JSON serialization."""
+        komp = VederlagKompensasjon(
+            metode=VederlagsMetode.ENHETSPRISER,
+            belop_direkte=100000.0,
+            fradrag_belop=25000.0
+        )
+        data = komp.model_dump(mode='json')
+
+        assert data['netto_belop'] == 75000.0
+        assert data['krevd_belop'] == 75000.0
+        assert data['metode'] == 'ENHETSPRISER'
+
+    def test_negative_fradrag_raises_error(self):
+        """Test that negative fradrag_belop raises validation error."""
+        with pytest.raises(ValueError):
+            VederlagKompensasjon(
+                metode=VederlagsMetode.ENHETSPRISER,
+                belop_direkte=100000.0,
+                fradrag_belop=-5000.0  # Negative not allowed
+            )
+
+    def test_negative_kostnads_overslag_raises_error(self):
+        """Test that negative kostnads_overslag raises validation error."""
+        with pytest.raises(ValueError):
+            VederlagKompensasjon(
+                metode=VederlagsMetode.REGNINGSARBEID,
+                kostnads_overslag=-50000.0  # Negative not allowed
+            )
+
+
+# ============ VEDERLAGDATA INHERITANCE TESTS ============
+
+class TestVederlagDataInheritance:
+    """Tests for VederlagData inheriting from VederlagKompensasjon."""
+
+    def test_vederlagdata_has_computed_fields(self):
+        """Test that VederlagData inherits computed fields from VederlagKompensasjon."""
+        data = VederlagData(
+            metode=VederlagsMetode.ENHETSPRISER,
+            belop_direkte=100000.0,
+            fradrag_belop=15000.0,
+            begrunnelse="Test med fradrag"
+        )
+        assert data.netto_belop == 85000.0
+        assert data.krevd_belop == 85000.0
+
+    def test_vederlagdata_regningsarbeid_with_fradrag(self):
+        """Test VederlagData with REGNINGSARBEID and fradrag."""
+        data = VederlagData(
+            metode=VederlagsMetode.REGNINGSARBEID,
+            kostnads_overslag=200000.0,
+            fradrag_belop=30000.0,
+            begrunnelse="Regningsarbeid med fradrag for besparelser"
+        )
+        assert data.netto_belop == 170000.0
+
+
+# ============ EO UTSTEDT DATA TESTS ============
+
+class TestEOUtstedtData:
+    """Tests for EOUtstedtData with VederlagKompensasjon integration."""
+
+    def test_eo_utstedt_with_vederlag_kompensasjon(self):
+        """Test EOUtstedtData using new vederlag field."""
+        eo = EOUtstedtData(
+            eo_nummer="EO-2025-001",
+            beskrivelse="Endret fundamentering",
+            vederlag=VederlagKompensasjon(
+                metode=VederlagsMetode.ENHETSPRISER,
+                belop_direkte=250000.0,
+                fradrag_belop=30000.0
+            ),
+            frist_dager=14
+        )
+        assert eo.netto_belop == 220000.0
+        assert eo.vederlag.metode == VederlagsMetode.ENHETSPRISER
+
+    def test_eo_utstedt_legacy_fallback(self):
+        """Test EOUtstedtData falls back to legacy fields for netto_belop."""
+        eo = EOUtstedtData(
+            eo_nummer="EO-2025-002",
+            beskrivelse="Legacy EO",
+            kompensasjon_belop=100000.0,
+            fradrag_belop=10000.0
+        )
+        assert eo.netto_belop == 90000.0
+
+    def test_eo_utstedt_vederlag_takes_precedence(self):
+        """Test that vederlag field takes precedence over legacy fields."""
+        eo = EOUtstedtData(
+            eo_nummer="EO-2025-003",
+            beskrivelse="Mixed EO",
+            vederlag=VederlagKompensasjon(
+                metode=VederlagsMetode.FASTPRIS_TILBUD,
+                belop_direkte=500000.0
+            ),
+            # Legacy fields should be ignored
+            kompensasjon_belop=100000.0,
+            fradrag_belop=50000.0
+        )
+        assert eo.netto_belop == 500000.0  # Uses vederlag, not legacy
+
+    def test_eo_utstedt_har_priskonsekvens(self):
+        """Test har_priskonsekvens computed field."""
+        eo_with_pris = EOUtstedtData(
+            eo_nummer="EO-001",
+            beskrivelse="Med priskonsekvens",
+            konsekvenser=EOKonsekvenser(pris=True, fremdrift=False)
+        )
+        assert eo_with_pris.har_priskonsekvens is True
+
+        eo_without_pris = EOUtstedtData(
+            eo_nummer="EO-002",
+            beskrivelse="Uten priskonsekvens",
+            konsekvenser=EOKonsekvenser(pris=False, fremdrift=True)
+        )
+        assert eo_without_pris.har_priskonsekvens is False
+
+    def test_eo_utstedt_har_fristkonsekvens(self):
+        """Test har_fristkonsekvens computed field (uses fremdrift)."""
+        eo_with_fremdrift = EOUtstedtData(
+            eo_nummer="EO-001",
+            beskrivelse="Med fremdriftskonsekvens",
+            konsekvenser=EOKonsekvenser(pris=False, fremdrift=True)
+        )
+        assert eo_with_fremdrift.har_fristkonsekvens is True
+
+        # Also test that frist_dager triggers har_fristkonsekvens
+        eo_with_frist_dager = EOUtstedtData(
+            eo_nummer="EO-002",
+            beskrivelse="Med frist_dager",
+            frist_dager=14
+        )
+        assert eo_with_frist_dager.har_fristkonsekvens is True
+
+    def test_eo_utstedt_serialization(self):
+        """Test EOUtstedtData serializes correctly with all fields."""
+        eo = EOUtstedtData(
+            eo_nummer="EO-2025-004",
+            revisjon_nummer=1,
+            beskrivelse="Full serialization test",
+            vederlag=VederlagKompensasjon(
+                metode=VederlagsMetode.REGNINGSARBEID,
+                kostnads_overslag=300000.0,
+                fradrag_belop=45000.0,
+                er_estimat=True
+            ),
+            konsekvenser=EOKonsekvenser(pris=True, fremdrift=True),
+            frist_dager=21,
+            ny_sluttdato="2025-06-15",
+            relaterte_koe_saker=["SAK-001", "SAK-002"]
+        )
+        data = eo.model_dump(mode='json')
+
+        assert data['eo_nummer'] == "EO-2025-004"
+        assert data['revisjon_nummer'] == 1
+        assert data['vederlag']['metode'] == 'REGNINGSARBEID'
+        assert data['vederlag']['netto_belop'] == 255000.0
+        assert data['netto_belop'] == 255000.0
+        assert data['har_priskonsekvens'] is True
+        assert data['har_fristkonsekvens'] is True
+        assert len(data['relaterte_koe_saker']) == 2
+
+    def test_eo_utstedt_no_vederlag_no_legacy(self):
+        """Test EOUtstedtData with neither vederlag nor legacy fields."""
+        eo = EOUtstedtData(
+            eo_nummer="EO-2025-005",
+            beskrivelse="No compensation"
+        )
+        assert eo.netto_belop == 0.0

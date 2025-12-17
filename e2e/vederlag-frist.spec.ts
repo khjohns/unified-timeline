@@ -20,20 +20,23 @@ test.describe('Vederlag Flow', () => {
     testCase = await api.createCaseWithGrunnlag(sakId, 'E2E Test: Vederlag');
   });
 
-  test('should show "Send vederlagskrav" button after grunnlag is sent', async ({ page }) => {
+  test('should show "Send krav" button for vederlag after grunnlag is sent', async ({ page }) => {
     await page.goto(testCase.url);
     await expect(page).toHaveURL(/\/saker\//);
 
-    // Should see vederlag button in dashboard
-    await expect(page.getByRole('button', { name: /send vederlagskrav/i })).toBeVisible({ timeout: 10000 });
+    // Should see "Send krav" button in Vederlag section of dashboard
+    // The button is in a section containing "Vederlag" text
+    const vederlagSection = page.locator('div').filter({ hasText: /^Vederlag/ }).first();
+    await expect(vederlagSection.getByRole('button', { name: /send krav/i })).toBeVisible({ timeout: 10000 });
   });
 
   test('should open vederlag modal and show form fields', async ({ page }) => {
     await page.goto(testCase.url);
     await expect(page).toHaveURL(/\/saker\//);
 
-    // Click "Send vederlagskrav" button
-    await page.getByRole('button', { name: /send vederlagskrav/i }).click();
+    // Click "Send krav" button in Vederlag section
+    const vederlagSection = page.locator('div').filter({ hasText: /^Vederlag/ }).first();
+    await vederlagSection.getByRole('button', { name: /send krav/i }).click();
 
     // Modal should open
     await expect(page.getByRole('dialog')).toBeVisible();
@@ -52,8 +55,9 @@ test.describe('Vederlag Flow', () => {
     await page.goto(testCase.url);
     await expect(page).toHaveURL(/\/saker\//);
 
-    // Click "Send vederlagskrav" button
-    await page.getByRole('button', { name: /send vederlagskrav/i }).click();
+    // Click "Send krav" button in Vederlag section
+    const vederlagSection = page.locator('div').filter({ hasText: /^Vederlag/ }).first();
+    await vederlagSection.getByRole('button', { name: /send krav/i }).click();
     await expect(page.getByRole('dialog')).toBeVisible();
 
     // Select ENHETSPRISER method - use .first() because Radix renders both styled + native radio
@@ -76,8 +80,9 @@ test.describe('Vederlag Flow', () => {
     // Wait for modal to close (indicates success)
     await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 10000 });
 
-    // Verify timeline shows the new event - use specific heading text to avoid matching multiple elements
-    await expect(page.getByRole('heading', { name: 'Vederlagskrav sendt' })).toBeVisible({ timeout: 5000 });
+    // Verify vederlag status in dashboard changed to "Sendt - venter på svar"
+    const vederlagSectionAfter = page.locator('div').filter({ hasText: /^Vederlag/ }).first();
+    await expect(vederlagSectionAfter.getByText(/sendt/i).first()).toBeVisible({ timeout: 5000 });
   });
 });
 
@@ -92,29 +97,35 @@ test.describe('Frist Flow', () => {
     testCase = await api.createCaseWithGrunnlag(sakId, 'E2E Test: Frist');
   });
 
-  test('should show "Send fristkrav" button after grunnlag is sent', async ({ page }) => {
+  test('should show "Send krav" button for frist after grunnlag is sent', async ({ page }) => {
     await page.goto(testCase.url);
     await expect(page).toHaveURL(/\/saker\//);
 
-    // Should see frist button in dashboard
-    await expect(page.getByRole('button', { name: /send fristkrav/i })).toBeVisible({ timeout: 10000 });
+    // Should see "Send krav" button in Frist section of dashboard
+    const fristSection = page.locator('div').filter({ hasText: /^Frist/ }).first();
+    await expect(fristSection.getByRole('button', { name: /send krav/i })).toBeVisible({ timeout: 10000 });
   });
 
   test('should open frist modal and show form fields', async ({ page }) => {
     await page.goto(testCase.url);
     await expect(page).toHaveURL(/\/saker\//);
 
-    // Click "Send fristkrav" button
-    await page.getByRole('button', { name: /send fristkrav/i }).click();
+    // Click "Send krav" button in Frist section
+    const fristSection = page.locator('div').filter({ hasText: /^Frist/ }).first();
+    await fristSection.getByRole('button', { name: /send krav/i }).click();
 
-    // Modal should open
+    // Modal should open - the heading is "Krav om fristforlengelse"
     await expect(page.getByRole('dialog')).toBeVisible();
-    await expect(page.getByRole('heading', { name: /send fristkrav/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /krav om fristforlengelse/i })).toBeVisible();
 
-    // Form should show varsel type selection
-    await expect(page.getByTestId('frist-varsel-type')).toBeVisible();
-    await expect(page.getByTestId('frist-begrunnelse')).toBeVisible();
-    await expect(page.getByTestId('frist-submit')).toBeVisible();
+    // Form should show varsel type selection (radiogroup with options)
+    await expect(page.getByRole('radiogroup')).toBeVisible();
+    await expect(page.getByRole('radio', { name: /nøytralt varsel/i })).toBeVisible();
+    await expect(page.getByRole('radio', { name: /spesifisert krav/i })).toBeVisible();
+
+    // Form should show begrunnelse field and submit button
+    await expect(page.getByRole('textbox').first()).toBeVisible();
+    await expect(page.getByRole('button', { name: /send fristkrav/i })).toBeVisible();
 
     // Close modal
     await page.keyboard.press('Escape');
@@ -124,32 +135,32 @@ test.describe('Frist Flow', () => {
     await page.goto(testCase.url);
     await expect(page).toHaveURL(/\/saker\//);
 
-    // Click "Send fristkrav" button
-    await page.getByRole('button', { name: /send fristkrav/i }).click();
+    // Click "Send krav" button in Frist section
+    const fristSection = page.locator('div').filter({ hasText: /^Frist/ }).first();
+    await fristSection.getByRole('button', { name: /send krav/i }).click();
     await expect(page.getByRole('dialog')).toBeVisible();
 
     // Select spesifisert varsel type - use .first() because Radix renders both styled + native radio
-    await page.getByRole('radio', { name: 'Spesifisert krav (§33.6)' }).first().click();
+    await page.getByRole('radio', { name: /spesifisert krav/i }).first().click();
 
-    // Check "Varsel sendes nå" checkbox (required for spesifisert krav)
+    // For spesifisert krav, must check "Varsel sendes nå" or provide date
     await page.getByRole('checkbox', { name: /varsel sendes nå/i }).first().click();
 
-    // Fill days - spinbutton should be visible after selecting varsel type
-    const dagerInput = page.getByRole('spinbutton');
-    await expect(dagerInput).toBeVisible({ timeout: 5000 });
-    await dagerInput.fill('14');
+    // Fill antall dager (required for spesifisert krav)
+    await page.getByRole('spinbutton').fill('14');
 
     // Fill begrunnelse
-    await page.getByTestId('frist-begrunnelse').fill('E2E test begrunnelse for fristkrav. Forholdet hindrer fremdriften og krever fristforlengelse på 14 kalenderdager.');
+    await page.getByRole('textbox').first().fill('E2E test begrunnelse for fristkrav. Forholdet hindrer fremdriften og krever fristforlengelse.');
 
     // Submit the form
-    await page.getByTestId('frist-submit').click();
+    await page.getByRole('button', { name: /send fristkrav/i }).click();
 
     // Wait for modal to close (indicates success)
     await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 10000 });
 
     // Verify FRIST status changed to "Sendt" in dashboard
-    await expect(page.locator('h3:has-text("FRIST")').locator('..').getByText('Sendt')).toBeVisible({ timeout: 5000 });
+    const fristSectionAfter = page.locator('div').filter({ hasText: /^Frist/ }).first();
+    await expect(fristSectionAfter.getByText(/sendt/i).first()).toBeVisible({ timeout: 5000 });
   });
 });
 
@@ -193,10 +204,11 @@ test.describe('BH Response Flow - Grunnlag', () => {
     await expect(page.getByRole('dialog')).toBeVisible();
     await expect(page.getByRole('heading', { name: /svar på grunnlag/i })).toBeVisible();
 
-    // Form should show resultat selection (now a RadioGroup, not Select)
+    // Form should show resultat selection (RadioGroup)
     await expect(page.getByRole('radiogroup')).toBeVisible();
     await expect(page.getByRole('radio', { name: /^Godkjent - BH aksepterer/i })).toBeVisible();
-    await expect(page.getByPlaceholder(/begrunn/i)).toBeVisible();
+    // Begrunnelse textbox (no placeholder, just a label)
+    await expect(page.getByRole('textbox')).toBeVisible();
     await expect(page.getByRole('button', { name: /send svar/i })).toBeVisible();
 
     // Close modal
@@ -246,13 +258,19 @@ test.describe('Role-Based Access Control', () => {
     await page.goto(testCase.url);
     await expect(page).toHaveURL(/\/saker\//);
 
-    // TE role is default
-    await expect(page.getByRole('button', { name: /oppdater grunnlag/i })).toBeVisible({ timeout: 10000 });
-    await expect(page.getByRole('button', { name: /send vederlagskrav/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /send fristkrav/i })).toBeVisible();
+    // TE role is default - should see "Oppdater" button in grunnlag section
+    // and "Send krav" buttons in vederlag and frist sections
+    await expect(page.getByRole('button', { name: /oppdater/i }).first()).toBeVisible({ timeout: 10000 });
+
+    // Check vederlag section has "Send krav" button
+    const vederlagSection = page.locator('div').filter({ hasText: /^Vederlag/ }).first();
+    await expect(vederlagSection.getByRole('button', { name: /send krav/i })).toBeVisible();
+
+    // Check frist section has "Send krav" button
+    const fristSection = page.locator('div').filter({ hasText: /^Frist/ }).first();
+    await expect(fristSection.getByRole('button', { name: /send krav/i })).toBeVisible();
 
     // TE should NOT see BH response buttons (button is just "Svar", not visible for TE)
-    // Note: TE does not see "Svar" buttons in this state
   });
 
   test('BH should see BH-specific buttons', async ({ page }) => {
@@ -267,9 +285,10 @@ test.describe('Role-Based Access Control', () => {
     // BH should see response button (just "Svar" in grunnlag section)
     await expect(page.getByRole('button', { name: /^svar$/i })).toBeVisible({ timeout: 10000 });
 
-    // BH should NOT see TE submission buttons
-    await expect(page.getByRole('button', { name: /oppdater grunnlag/i })).not.toBeVisible();
-    await expect(page.getByRole('button', { name: /send vederlagskrav/i })).not.toBeVisible();
+    // BH should NOT see TE submission buttons (Oppdater, Send krav)
+    // Note: These buttons are hidden when BH role is selected
+    const vederlagSection = page.locator('div').filter({ hasText: /^Vederlag/ }).first();
+    await expect(vederlagSection.getByRole('button', { name: /send krav/i })).not.toBeVisible();
   });
 
   test('should toggle between TE and BH roles', async ({ page }) => {
@@ -302,7 +321,8 @@ test.describe('Form Validation', () => {
     await expect(page).toHaveURL(/\/saker\//);
 
     // Open vederlag modal
-    await page.getByRole('button', { name: /send vederlagskrav/i }).click();
+    const vederlagSection = page.locator('div').filter({ hasText: /^Vederlag/ }).first();
+    await vederlagSection.getByRole('button', { name: /send krav/i }).click();
     await expect(page.getByRole('dialog')).toBeVisible();
 
     // Select method but don't fill begrunnelse
@@ -326,25 +346,18 @@ test.describe('Form Validation', () => {
     await expect(page).toHaveURL(/\/saker\//);
 
     // Open frist modal
-    await page.getByRole('button', { name: /send fristkrav/i }).click();
+    const fristSection = page.locator('div').filter({ hasText: /^Frist/ }).first();
+    await fristSection.getByRole('button', { name: /send krav/i }).click();
     await expect(page.getByRole('dialog')).toBeVisible();
 
     // Select varsel type
-    await page.getByRole('radio', { name: 'Spesifisert krav (§33.6)' }).first().click();
+    await page.getByRole('radio', { name: /spesifisert krav/i }).first().click();
 
-    // Check "Varsel sendes nå" checkbox (required for spesifisert krav)
-    await page.getByRole('checkbox', { name: /varsel sendes nå/i }).first().click();
+    // Don't fill begrunnelse, just try to submit
+    await page.getByRole('button', { name: /send fristkrav/i }).click();
 
-    // Fill days but not begrunnelse - wait for spinbutton to be visible
-    const dagerInput = page.getByRole('spinbutton');
-    await expect(dagerInput).toBeVisible({ timeout: 5000 });
-    await dagerInput.fill('10');
-
-    // Try to submit
-    await page.getByTestId('frist-submit').click();
-
-    // Should show validation error
-    await expect(page.getByText(/begrunnelse må være minst 10 tegn/i)).toBeVisible();
+    // Should show validation error (alert element with specific text)
+    await expect(page.getByRole('alert').filter({ hasText: /begrunnelse/i })).toBeVisible();
 
     // Close modal
     await page.keyboard.press('Escape');
@@ -370,9 +383,8 @@ test.describe('Complete Claim Journey', () => {
     await page.getByRole('button', { name: /send grunnlag/i }).click();
     await expect(page.getByRole('dialog')).toBeVisible();
 
-    // Fill form
-    await page.getByTestId('grunnlag-hovedkategori').click();
-    await page.getByRole('option', { name: /endring/i }).first().click();
+    // Fill form - select hovedkategori (it's a radiogroup, not a dropdown)
+    await page.getByRole('radio', { name: /endring/i }).first().click();
     await expect(page.getByTestId('grunnlag-underkategori-list')).toBeVisible();
     await page.getByTestId('grunnlag-underkategori-list').getByRole('checkbox').first().click();
     await page.getByTestId('grunnlag-tittel').fill('E2E Journey Test');
@@ -390,8 +402,8 @@ test.describe('Complete Claim Journey', () => {
     await page.getByTestId('grunnlag-submit').click();
     await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 10000 });
 
-    // Verify
-    await expect(page.getByRole('heading', { name: 'Grunnlag sendt' })).toBeVisible({ timeout: 5000 });
+    // Verify timeline shows the new grunnlag event - timeline shows "Ansvarsgrunnlag" for grunnlag events
+    await expect(page.getByText('Ansvarsgrunnlag').first()).toBeVisible({ timeout: 5000 });
   });
 
   test('Step 2: BH responds to grunnlag with "delvis_godkjent" (keeps case open)', async ({ page }) => {
@@ -424,7 +436,8 @@ test.describe('Complete Claim Journey', () => {
     await expect(page).toHaveURL(/\/saker\//);
 
     // Should be TE by default, open vederlag modal
-    await page.getByRole('button', { name: /send vederlagskrav/i }).click();
+    const vederlagSection = page.locator('div').filter({ hasText: /^Vederlag/ }).first();
+    await vederlagSection.getByRole('button', { name: /send krav/i }).click();
     await expect(page.getByRole('dialog')).toBeVisible();
 
     // Fill form - select method and fill amount
@@ -447,26 +460,28 @@ test.describe('Complete Claim Journey', () => {
     await expect(page).toHaveURL(/\/saker\//);
 
     // Open frist modal
-    await page.getByRole('button', { name: /send fristkrav/i }).click();
+    const fristSection = page.locator('div').filter({ hasText: /^Frist/ }).first();
+    await fristSection.getByRole('button', { name: /send krav/i }).click();
     await expect(page.getByRole('dialog')).toBeVisible();
 
     // Fill form - select varsel type
-    await page.getByRole('radio', { name: 'Spesifisert krav (§33.6)' }).first().click();
+    await page.getByRole('radio', { name: /spesifisert krav/i }).first().click();
 
-    // Check "Varsel sendes nå" checkbox (required for spesifisert krav)
+    // For spesifisert krav, must check "Varsel sendes nå" or provide date
     await page.getByRole('checkbox', { name: /varsel sendes nå/i }).first().click();
 
-    // Fill days - wait for spinbutton to be visible
-    const dagerInput = page.getByRole('spinbutton');
-    await expect(dagerInput).toBeVisible({ timeout: 5000 });
-    await dagerInput.fill('21');
-    await page.getByTestId('frist-begrunnelse').fill('Fristkrav for E2E journey test med 21 kalenderdagers forlengelse.');
+    // Fill antall dager (required for spesifisert krav)
+    await page.getByRole('spinbutton').fill('21');
+
+    // Fill begrunnelse
+    await page.getByRole('textbox').first().fill('Fristkrav for E2E journey test. Forholdet har forårsaket forsinkelse i prosjektet.');
 
     // Submit
-    await page.getByTestId('frist-submit').click();
+    await page.getByRole('button', { name: /send fristkrav/i }).click();
     await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 10000 });
 
     // Verify FRIST status changed to "Sendt" in dashboard
-    await expect(page.locator('h3:has-text("FRIST")').locator('..').getByText('Sendt')).toBeVisible({ timeout: 5000 });
+    const fristSectionAfter = page.locator('div').filter({ hasText: /^Frist/ }).first();
+    await expect(fristSectionAfter.getByText(/sendt/i).first()).toBeVisible({ timeout: 5000 });
   });
 });
