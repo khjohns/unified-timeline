@@ -90,7 +90,7 @@ Gi et objektivt beslutningsgrunnlag for teknologivalg ved å:
 │               Python/Flask → Azure Functions                    │
 │    ┌─────────────────────────────────────────────────────────┐  │
 │    │  Event Sourcing + CQRS                                  │  │
-│    │  • 25 event-typer (inkl. forsering og EO)               │  │
+│    │  • 25 event-typer impl. (35+ planlagt)                  │  │
 │    │  • State-projeksjon fra immutabel hendelseslogg         │  │
 │    │  • Optimistisk låsing                                   │  │
 │    └─────────────────────────────────────────────────────────┘  │
@@ -112,7 +112,7 @@ Gi et objektivt beslutningsgrunnlag for teknologivalg ved å:
 - Port-modell for BH-vurdering (sekvensielle beslutningspunkter)
 - Subsidiær logikk (prinsipal + alternativ vurdering)
 - ~20 varslingsregler med preklusjonslogikk fra NS 8407
-- **25 event-typer** fordelt på grunnlag, vederlag, frist, respons, forsering og endringsordre
+- **25 event-typer implementert** (35+ planlagt) fordelt på grunnlag, vederlag, frist, respons, forsering og endringsordre
 
 ### 3.2 Power Platform-alternativ (foreslått: SharePoint)
 
@@ -259,17 +259,22 @@ Subsidiært:   "MEN hvis vi tar feil, er beløpet på 150 000 kr korrekt"
 
 #### Forsering (§33.8)
 
-Custom-løsningen har implementert komplett forsering-funksjonalitet:
+Custom-løsningen har implementert forsering-grunnstrukturen:
 
 | Aspekt | Custom | Power Platform |
 |--------|--------|----------------|
 | Egen sakstype | ✅ `sakstype="forsering"` | ⚠️ Må modelleres som egen entitet |
 | Relasjoner til fristkrav | ✅ Relasjoner til avslåtte saker | ⚠️ Lookup-kolonner med begrensninger |
 | 30%-regelen beregning | ✅ `maks = dager × dagmulkt × 1.3` | ⚠️ Kalkulert felt eller plugin |
-| Livssyklus (varslet→iverksatt→stoppet) | ✅ Event-drevet | ⚠️ Status-felt med workflow |
-| Kostnadsoppfølging | ✅ `paalopte_kostnader` | ⚠️ Manuell oppdatering |
+| Livssyklus (varslet→iverksatt→stoppet) | ⚠️ Modell klar, events delvis impl. | ⚠️ Status-felt med workflow |
+| Kostnadsoppfølging | ✅ `paalopte_kostnader` (i modell) | ⚠️ Manuell oppdatering |
+| ForseringService + API | ✅ 416 linjer, 5 endepunkter | ❌ Må bygges |
 
-**Vurdering:** Forsering krever koordinering mellom flere saker og dynamiske beregninger. Power Platform kan modellere dette, men mangler den naturlige støtten for sak-relasjoner og event-basert livssyklus.
+**Implementeringsstatus forsering:**
+- ✅ **Implementert:** ForseringData-modell, ForseringService, API-endepunkter, 30%-regelvalidering, `forsering_varsel` event
+- ⚠️ **Planlagt:** Livssyklus-events (`forsering_iverksatt`, `forsering_stoppet`, `forsering_kostnad_oppdatert`, `forsering_bh_respons`)
+
+**Vurdering:** Forsering krever koordinering mellom flere saker og dynamiske beregninger. Grunnstrukturen er på plass i custom-løsningen. Power Platform kan modellere dette, men mangler den naturlige støtten for sak-relasjoner og event-basert livssyklus.
 
 #### Endringsordre (§31.3)
 
@@ -655,9 +660,10 @@ Følgende punkter bør avklares før endelig beslutning:
 **Custom-løsningen:**
 - ✅ Implementerer full NS 8407-logikk inkludert subsidiær vurdering
 - ✅ Tre sakstyper: `standard` (KOE), `forsering` (§33.8), `endringsordre` (§31.3)
-- ✅ Event Sourcing gir komplett audit trail og replay-mulighet
+- ✅ Event Sourcing gir komplett audit trail og replay-mulighet (25 event-typer impl., 35+ planlagt)
 - ✅ Catenda-integrasjon er ferdig utviklet (2 700+ linjer)
 - ✅ Ingen volumbegrensninger
+- ⚠️ Forsering: Grunnstruktur implementert, livssyklus-events gjenstår
 - ⚠️ Krever vedlikeholdskompetanse på TypeScript/Python
 - ⚠️ Avhengighet av spesifikk teknologikompetanse
 
@@ -684,7 +690,7 @@ Følgende punkter bør avklares før endelig beslutning:
 | Scenario | Custom | SharePoint | Dataverse |
 |----------|--------|------------|-----------|
 | Full NS 8407-støtte | ✅ Anbefalt | ❌ Ikke mulig | ⚠️ Krever plugins |
-| Forsering (§33.8) | ✅ Implementert | ❌ Kompleks | ⚠️ Krever plugins |
+| Forsering (§33.8) | ⚠️ Grunnstruktur impl. | ❌ Kompleks | ⚠️ Krever plugins |
 | Endringsordre (§31.3) | ✅ Implementert | ⚠️ Mulig | ⚠️ Mulig |
 | Volum >500 saker | ✅ Ingen problem | ❌ Kritisk | ⚠️ Håndterbart |
 | Volum >5000 events | ✅ Ingen problem | ❌ Kritisk | ✅ OK |
@@ -717,6 +723,26 @@ Endelig valg bør baseres på:
 4. **Datavarehus-strategi:** Dataverse bør vurderes uavhengig av UI-valg
 5. **Total eierskapskostnad:** Lisenser + utvikling + vedlikehold over 5+ år
 
+### 10.5 Implementeringsstatus og implikasjoner
+
+**Oppsummering pr. 2025-12-17:**
+
+| Funksjonalitet | Backend | Frontend | Kommentar |
+|----------------|---------|----------|-----------|
+| **KOE (standard)** | ✅ Komplett | ✅ Komplett | 18 event-typer, tre-spor modell |
+| **Endringsordre** | ✅ Komplett | ✅ Komplett | 7 event-typer, N:M relasjoner |
+| **Forsering** | ⚠️ Grunnstruktur | ⚠️ Grunnstruktur | 1 av 8 event-typer impl. |
+
+**Forsering-gap og estimert ferdigstillelse:**
+- Manglende events: `forsering_opprettet`, `forsering_iverksatt`, `forsering_stoppet`, `forsering_kostnad_oppdatert`, `forsering_bh_respons`, `forsering_relatert_lagt_til`, `forsering_relatert_fjernet`
+- ForseringData-modellen støtter allerede alle felter - det gjenstår å implementere event-handlers
+- Estimert: 1-2 sprinter for full forsering-støtte
+
+**Implikasjon for teknologivalg:**
+- Custom-løsningen har et klart forsprang - grunnstrukturen for alle tre sakstyper er på plass
+- Å bygge tilsvarende fra scratch i Power Platform vil ta betydelig lengre tid
+- Forsering-gapet i custom-løsningen er mindre enn å bygge hele løsningen på nytt
+
 ---
 
 ## Vedlegg
@@ -728,7 +754,7 @@ Endelig valg bør baseres på:
 | `src/constants/varslingsregler.ts` | NS 8407 varslingsregler | ~380 |
 | `src/types/timeline.ts` | Datamodeller og state-typer | ~900 |
 | `backend/services/timeline_service.py` | Event sourcing og state-projeksjon | 1 184 |
-| `backend/models/events.py` | Event-definisjoner (25 event-typer) | 1 575 |
+| `backend/models/events.py` | Event-definisjoner (25 impl., 35+ planlagt) | 1 575 |
 | `backend/models/sak_state.py` | Read model (projeksjon) | 1 122 |
 | `backend/integrations/catenda/client.py` | Catenda REST + BCF API | 1 777 |
 | `backend/integrations/catenda/auth.py` | OAuth 2.0 autentisering | 534 |
