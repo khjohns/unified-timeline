@@ -2,7 +2,7 @@
 
 **Dokumentasjon av systemarkitektur, event sourcing og datastrukturer**
 
-*Sist oppdatert: 2025-12-10*
+*Sist oppdatert: 2025-12-17*
 
 ---
 
@@ -12,8 +12,10 @@
 2. [Systemarkitektur - Oversikt](#2-systemarkitektur---oversikt)
 3. [Event Sourcing - Deep Dive](#3-event-sourcing---deep-dive)
 4. [Datamodeller](#4-datamodeller)
-5. [Dataflyt](#5-dataflyt)
-6. [Dataverse-vurdering (Produksjon)](#6-dataverse-vurdering-produksjon)
+5. [Forsering (§33.8)](#5-forsering-338)
+6. [Endringsordre (§31.3)](#6-endringsordre-313)
+7. [Dataflyt](#7-dataflyt)
+8. [Dataverse-vurdering (Produksjon)](#8-dataverse-vurdering-produksjon)
 
 ---
 
@@ -34,10 +36,14 @@ For generell prosjektoversikt, teknologistack og oppsett, se [README.md](../READ
 |--------|------------|
 | **Event Sourcing** | Arkitekturmønster der alle endringer lagres som uforanderlige hendelser |
 | **CQRS** | Command Query Responsibility Segregation - separasjon av lese- og skriveoperasjoner |
-| **Spor** | Uavhengig behandlingslinje: Grunnlag, Vederlag eller Frist |
+| **Spor** | Uavhengig behandlingslinje: Grunnlag, Vederlag, Frist eller Forsering |
 | **Port-modell** | NS 8407-basert vurderingsstruktur med sekvensielle "porter" |
 | **Subsidiært standpunkt** | BH tar prinsipal stilling men angir også hva resultatet ville vært hvis prinsipalt ikke får medhold |
 | **Projeksjon** | Beregning av nåværende tilstand fra event-loggen |
+| **Forsering** | Akselerasjon av arbeid når BH avslår berettiget fristkrav (§33.8) |
+| **Endringsordre (EO)** | Formell instruks fra BH som endrer kontraktens omfang (§31.3) |
+| **KOE** | Krav om endringsordre - standardsak som kan inkluderes i en EO |
+| **Sakstype** | Type sak: `standard`, `forsering` eller `endringsordre` |
 
 ---
 
@@ -305,12 +311,15 @@ Systemet separerer **skriving** (commands) fra **lesing** (queries):
 erDiagram
     SAK ||--o{ EVENT : "har mange"
     SAK ||--|| SAK_STATE : "projiseres til"
+    SAK ||--o{ SAK_RELASJON : "kan relatere til"
 
     SAK_STATE ||--|| GRUNNLAG_TILSTAND : "inneholder"
     SAK_STATE ||--|| VEDERLAG_TILSTAND : "inneholder"
     SAK_STATE ||--|| FRIST_TILSTAND : "inneholder"
+    SAK_STATE ||--o| FORSERING_DATA : "kan ha (sakstype=forsering)"
+    SAK_STATE ||--o| ENDRINGSORDRE_DATA : "kan ha (sakstype=endringsordre)"
 
-    FRIST_TILSTAND ||--o| FORSERING_TILSTAND : "kan ha"
+    FRIST_TILSTAND ||--o| FORSERING_TILSTAND : "kan ha (legacy)"
 
     EVENT {
         string event_id PK
@@ -325,8 +334,16 @@ erDiagram
     SAK_STATE {
         string sak_id PK
         string sakstittel
+        string sakstype
         string overordnet_status
         boolean kan_utstede_eo
+    }
+
+    SAK_RELASJON {
+        string sak_id FK
+        string relatert_sak_id FK
+        string relasjon_type
+        string tittel
     }
 
     GRUNNLAG_TILSTAND {
@@ -355,6 +372,41 @@ erDiagram
         float estimert_kostnad
         boolean bekreft_30_prosent
     }
+
+    FORSERING_DATA {
+        list avslatte_fristkrav
+        float estimert_kostnad
+        float maks_forseringskostnad
+        boolean er_iverksatt
+        boolean er_stoppet
+    }
+
+    ENDRINGSORDRE_DATA {
+        string eo_nummer
+        string status
+        list relaterte_koe_saker
+        json konsekvenser
+        float kompensasjon_belop
+        int frist_dager
+    }
+```
+
+### 4.1.1 Sakstyper
+
+Systemet støtter tre **sakstyper** som bestemmer hvilke data og flyter som er relevante:
+
+| Sakstype | Beskrivelse | Spesielle felter |
+|----------|-------------|------------------|
+| `standard` | Ordinær KOE-sak med tre-spor behandling | Grunnlag, Vederlag, Frist |
+| `forsering` | Akselerasjonssak iht. §33.8 | `forsering_data`, relaterte fristkrav |
+| `endringsordre` | Formell EO fra BH iht. §31.3 | `endringsordre_data`, relaterte KOE-saker |
+
+```python
+class SaksType(str, Enum):
+    """Type sak i systemet"""
+    STANDARD = "standard"           # Ordinær KOE-sak
+    FORSERING = "forsering"         # Forsering (§33.8)
+    ENDRINGSORDRE = "endringsordre" # Endringsordre (§31.3)
 ```
 
 ### 4.2 Tre-spor modellen (NS 8407)
@@ -467,7 +519,7 @@ FRIST - Port 1 + Port 2 + Port 3
 
 ### 4.4 Event-typer
 
-Systemet har **19 event-typer** fordelt på kategorier:
+Systemet har **35+ event-typer** fordelt på kategorier:
 
 ```python
 class EventType(str, Enum):
@@ -505,16 +557,33 @@ class EventType(str, Enum):
     RESPONS_FRIST_OPPDATERT = "respons_frist_oppdatert"  # BH endrer
 
     # ══════════════════════════════════════════════════════════════
-    # FORSERING-EVENTS (Entreprenør - TE) - §33.8
+    # FORSERING-EVENTS (§33.8) - For forsering som egen sakstype
     # ══════════════════════════════════════════════════════════════
-    FORSERING_VARSEL = "forsering_varsel"    # TE varsler om forsering
+    FORSERING_VARSEL = "forsering_varsel"           # TE varsler om forsering (legacy)
+    FORSERING_OPPRETTET = "forsering_opprettet"     # Ny forseringssak opprettet
+    FORSERING_IVERKSATT = "forsering_iverksatt"     # Forsering iverksatt
+    FORSERING_STOPPET = "forsering_stoppet"         # Forsering stoppet
+    FORSERING_KOSTNAD_OPPDATERT = "forsering_kostnad_oppdatert"  # Påløpte kostnader oppdatert
+    FORSERING_BH_RESPONS = "forsering_bh_respons"   # BH's svar på forsering
+    FORSERING_RELATERT_LAGT_TIL = "forsering_relatert_lagt_til"  # Relatert sak lagt til
+    FORSERING_RELATERT_FJERNET = "forsering_relatert_fjernet"    # Relatert sak fjernet
+
+    # ══════════════════════════════════════════════════════════════
+    # ENDRINGSORDRE-EVENTS (§31.3) - For EO som egen sakstype
+    # ══════════════════════════════════════════════════════════════
+    EO_OPPRETTET = "eo_opprettet"                   # Ny EO-sak opprettet
+    EO_UTSTEDT = "eo_utstedt"                       # EO formelt utstedt til TE
+    EO_REVIDERT = "eo_revidert"                     # EO revidert av BH
+    EO_TE_AKSEPTERT = "eo_te_akseptert"             # TE aksepterer EO
+    EO_TE_BESTRIDT = "eo_te_bestridt"               # TE bestrider EO
+    EO_KOE_LAGT_TIL = "eo_koe_lagt_til"             # KOE-sak lagt til i EO
+    EO_KOE_FJERNET = "eo_koe_fjernet"               # KOE-sak fjernet fra EO
 
     # ══════════════════════════════════════════════════════════════
     # SAKS-EVENTS
     # ══════════════════════════════════════════════════════════════
     SAK_OPPRETTET = "sak_opprettet"          # Ny sak
     SAK_LUKKET = "sak_lukket"                # Sak lukkes
-    EO_UTSTEDT = "eo_utstedt"                # Endringsordre utstedes
 ```
 
 ### 4.5 Data-payloads per event
@@ -1140,9 +1209,343 @@ class GrunnlagResponsResultat(str, Enum):
 
 ---
 
-## 5. Dataflyt
+## 5. Forsering (§33.8)
 
-### 5.1 Event submission (Write Side)
+Forsering er en mekanisme i NS 8407 som gir TE rett til å akselerere arbeidet når BH uberettiget avslår fristforlengelseskrav. Forsering er implementert som en **egen sakstype** med relasjoner til underliggende fristkrav.
+
+### 5.1 Konsept
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    FORSERING KONSEPT (§33.8)                             │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  SITUASJON:                                                              │
+│  ──────────────────────────────────────────────────────────────────────  │
+│  • TE mener de har krav på fristforlengelse                             │
+│  • BH avslår (helt eller delvis)                                        │
+│  • TE ønsker likevel å overholde opprinnelig frist                      │
+│                                                                          │
+│  FORSERINGSRETT:                                                         │
+│  ──────────────────────────────────────────────────────────────────────  │
+│  • TE kan varsle at de vil forsere (akselerere)                         │
+│  • TE får dekket forseringskostnader opp til en grense                  │
+│  • Grense = (Avslåtte dager × Dagmulktsats) × 1.3 (30%-regelen)         │
+│                                                                          │
+│  EKSEMPEL:                                                               │
+│  ──────────────────────────────────────────────────────────────────────  │
+│  • BH avslår 15 dager fristforlengelse                                  │
+│  • Dagmulktsats: 10 000 NOK/dag                                         │
+│  • Dagmulkt totalt: 15 × 10 000 = 150 000 NOK                           │
+│  • 30% buffer: 150 000 × 0.3 = 45 000 NOK                               │
+│  • Maks forseringskostnad: 195 000 NOK                                  │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### 5.2 ForseringData-modell
+
+```python
+class ForseringData(BaseModel):
+    """
+    Data for forsering som egen sakstype.
+    Refererer til avslåtte fristkrav fra andre saker.
+    """
+
+    # Referanser til underliggende fristkrav
+    avslatte_fristkrav: List[str]  # sak_id-er med avslåtte fristkrav
+
+    # Varsling
+    dato_varslet: str              # ISO-dato for varsling
+    estimert_kostnad: float        # Estimert forseringskostnad (NOK)
+
+    # 30%-regelen
+    bekreft_30_prosent_regel: bool # TE bekrefter kostnad innenfor grense
+    avslatte_dager: int            # Sum av avslåtte dager
+    dagmulktsats: float            # Dagmulktsats fra kontrakt (NOK/dag)
+    maks_forseringskostnad: float  # Beregnet: avslatte_dager × dagmulktsats × 1.3
+
+    # Livssyklus
+    er_iverksatt: bool             # Forsering startet
+    dato_iverksatt: Optional[str]  # Dato forsering startet
+    er_stoppet: bool               # Forsering avsluttet
+    dato_stoppet: Optional[str]    # Dato forsering stoppet
+    paalopte_kostnader: Optional[float]  # Faktiske påløpte kostnader
+
+    # BH-respons
+    bh_aksepterer_forsering: Optional[bool]
+    bh_godkjent_kostnad: Optional[float]
+    bh_begrunnelse: Optional[str]
+
+    @computed_field
+    @property
+    def kostnad_innenfor_grense(self) -> bool:
+        """Validerer at estimert kostnad er innenfor 30%-grensen"""
+        return self.estimert_kostnad <= self.maks_forseringskostnad
+```
+
+### 5.3 Livssyklus
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    FORSERING LIVSSYKLUS                                  │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  1. OPPRETTET (sakstype="forsering")                                    │
+│     ├── Refererer til én eller flere saker med avslåtte fristkrav       │
+│     ├── Beregner maks forseringskostnad automatisk                      │
+│     └── Validerer 30%-regelen                                           │
+│                                                                          │
+│  2. VARSLET                                                              │
+│     ├── dato_varslet settes                                             │
+│     ├── estimert_kostnad angis                                          │
+│     └── BH må varsles før iverksettelse                                 │
+│                                                                          │
+│  3. IVERKSATT                                                            │
+│     ├── er_iverksatt = true                                             │
+│     ├── dato_iverksatt settes                                           │
+│     └── TE kan oppdatere paalopte_kostnader underveis                   │
+│                                                                          │
+│  4a. STOPPET (hvis BH godkjenner frist)                                 │
+│      ├── er_stoppet = true                                              │
+│      ├── paalopte_kostnader finaliseres                                 │
+│      └── TE får dekket påløpte kostnader                                │
+│                                                                          │
+│  4b. FULLFØRT (hvis TE fullfører forsering)                             │
+│      ├── paalopte_kostnader finaliseres                                 │
+│      └── TE kan kreve kostnader inntil grensen                          │
+│                                                                          │
+│  5. BH-RESPONS                                                           │
+│     ├── bh_aksepterer_forsering (true/false)                            │
+│     ├── bh_godkjent_kostnad (hvis akseptert)                            │
+│     └── bh_begrunnelse                                                  │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### 5.4 API-endepunkter
+
+| Endepunkt | Metode | Formål |
+|-----------|--------|--------|
+| `/api/forsering/opprett` | POST | Opprett ny forseringssak |
+| `/api/forsering/<sak_id>/relaterte` | GET | Hent relaterte fristkrav |
+| `/api/forsering/<sak_id>/kontekst` | GET | Hent komplett kontekst |
+| `/api/forsering/valider` | POST | Valider 30%-regelen |
+| `/api/forsering/by-relatert/<sak_id>` | GET | Finn forseringer som refererer en sak |
+
+### 5.5 Frontend-komponenter
+
+| Komponent | Formål |
+|-----------|--------|
+| `ForseringPage` | Hovedside for forseringssak |
+| `ForseringDashboard` | Statusoversikt med handlingsknapper |
+| `ForseringKostnadskort` | Detaljert kostnadsberegning og visualisering |
+| `RelaterteSakerListe` | Liste over refererte fristkrav |
+| `StoppForseringModal` | Modal for å stoppe forsering |
+| `BHResponsForseringModal` | Modal for BH's respons |
+
+---
+
+## 6. Endringsordre (§31.3)
+
+Endringsordre (EO) er en formell instruks fra BH som endrer kontraktens omfang. EO er implementert som en **egen sakstype** som kan samle flere godkjente KOE-saker.
+
+### 6.1 Konsept
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    ENDRINGSORDRE KONSEPT (§31.3)                         │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  DEFINISJON:                                                             │
+│  ──────────────────────────────────────────────────────────────────────  │
+│  En Endringsordre (EO) er BH's formelle godkjenning av endringer         │
+│  i kontrakten, inkludert konsekvenser for pris, tid og kvalitet.        │
+│                                                                          │
+│  RELASJON TIL KOE:                                                       │
+│  ──────────────────────────────────────────────────────────────────────  │
+│  • KOE (Krav om Endringsordre) = standardsak som behandles i tre spor   │
+│  • Når alle spor er godkjent → kan_utstede_eo = true                    │
+│  • BH kan samle flere KOE-saker i én EO                                 │
+│                                                                          │
+│  STRUKTUR:                                                               │
+│  ──────────────────────────────────────────────────────────────────────  │
+│                                                                          │
+│     ┌──────────────────────────────────────────┐                        │
+│     │          ENDRINGSORDRE (EO)               │                        │
+│     │                                           │                        │
+│     │  EO-nummer: EO-2025-042                   │                        │
+│     │  Status: utstedt                          │                        │
+│     │                                           │                        │
+│     │  Konsekvenser:                            │                        │
+│     │    ☑ Pris    ☑ Frist    ☐ SHA            │                        │
+│     │                                           │                        │
+│     │  Kompensasjon: 245 000 NOK               │                        │
+│     │  Fristforlengelse: 12 dager              │                        │
+│     └───────────────┬───────────────────────────┘                        │
+│                     │                                                    │
+│         ┌───────────┼───────────┐                                       │
+│         │           │           │                                       │
+│         ▼           ▼           ▼                                       │
+│     ┌───────┐   ┌───────┐   ┌───────┐                                  │
+│     │ KOE-1 │   │ KOE-2 │   │ KOE-3 │                                  │
+│     │ 95 000│   │ 85 000│   │ 65 000│                                  │
+│     │ 5 dgr │   │ 4 dgr │   │ 3 dgr │                                  │
+│     └───────┘   └───────┘   └───────┘                                  │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### 6.2 EndringsordreData-modell
+
+```python
+class EOStatus(str, Enum):
+    """Livssyklus for endringsordre"""
+    UTKAST = "utkast"           # Under utarbeidelse
+    UTSTEDT = "utstedt"         # Formelt utstedt til TE
+    AKSEPTERT = "akseptert"     # TE har akseptert
+    BESTRIDT = "bestridt"       # TE har bestridt
+    REVIDERT = "revidert"       # BH har revidert etter bestridelse
+
+
+class EOKonsekvenser(BaseModel):
+    """Konsekvenser av endringsordren"""
+    sha: bool = False           # Sikkerhet, helse, arbeidsmiljø
+    kvalitet: bool = False      # Kvalitetsendringer
+    fremdrift: bool = False     # Fremdriftskonsekvenser
+    pris: bool = False          # Priskonsekvenser
+    annet: bool = False         # Andre konsekvenser
+
+
+class EndringsordreData(BaseModel):
+    """
+    Data for endringsordre som egen sakstype.
+    Samler én eller flere KOE-saker.
+    """
+
+    # Identifikasjon
+    eo_nummer: str              # F.eks. "EO-2025-042"
+    beskrivelse: str            # Beskrivelse av endringen
+    status: EOStatus            # Livssyklusstatus
+
+    # Relaterte KOE-saker
+    relaterte_koe_saker: List[str]  # sak_id-er til inkluderte KOE
+
+    # Konsekvenser
+    konsekvenser: EOKonsekvenser
+
+    # Økonomiske konsekvenser (hvis pris=True)
+    oppgjorsform: Optional[str]     # "fastpris", "regning", "enhetspriser"
+    kompensasjon_belop: Optional[float]  # Beløp til TE
+    fradrag_belop: Optional[float]       # Fradrag fra TE
+
+    # Fristkonsekvenser (hvis fremdrift=True)
+    frist_dager: Optional[int]      # Antall dager fristforlengelse
+    ny_sluttdato: Optional[str]     # Ny sluttdato (ISO-format)
+
+    # Utstedelse
+    utstedt_dato: Optional[str]     # Dato EO ble utstedt
+    utstedt_av: Optional[str]       # Hvem som utstedte
+
+    # TE-respons
+    te_respons: Optional[str]       # "akseptert" | "bestridt"
+    te_respons_dato: Optional[str]
+    te_begrunnelse: Optional[str]   # Ved bestridelse
+
+    # Revisjon (hvis bestridt)
+    revisjonsnummer: int = 0
+    forrige_versjon: Optional[str]  # Referanse til forrige EO-versjon
+
+    @computed_field
+    @property
+    def netto_belop(self) -> float:
+        """Beregn netto kompensasjon/fradrag"""
+        komp = self.kompensasjon_belop or 0
+        frad = self.fradrag_belop or 0
+        return komp - frad
+```
+
+### 6.3 Livssyklus
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    ENDRINGSORDRE LIVSSYKLUS                              │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  1. UTKAST                                                               │
+│     ├── BH oppretter EO-sak (sakstype="endringsordre")                  │
+│     ├── Velger KOE-saker som skal inkluderes                            │
+│     ├── Angir konsekvenser og beløp                                     │
+│     └── Kan legge til/fjerne KOE-saker                                  │
+│                                                                          │
+│  2. UTSTEDT                                                              │
+│     ├── BH utsteder EO formelt                                          │
+│     ├── TE mottar varsel                                                │
+│     └── TE kan akseptere eller bestride                                 │
+│                                                                          │
+│  3a. AKSEPTERT (happy path)                                             │
+│      ├── TE aksepterer EO                                               │
+│      ├── Saken lukkes                                                   │
+│      └── Beløp/dager gjøres opp                                         │
+│                                                                          │
+│  3b. BESTRIDT                                                            │
+│      ├── TE bestrider EO med begrunnelse                                │
+│      ├── BH kan revidere og utstede ny versjon                          │
+│      └── Syklusen gjentas til enighet                                   │
+│                                                                          │
+│  4. REVIDERT (etter bestridelse)                                        │
+│     ├── revisjonsnummer økes                                            │
+│     ├── Forrige versjon refereres                                       │
+│     └── Ny UTSTEDT-status                                               │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### 6.4 API-endepunkter
+
+| Endepunkt | Metode | Formål |
+|-----------|--------|--------|
+| `/api/endringsordre/opprett` | POST | Opprett ny EO-sak |
+| `/api/endringsordre/<sak_id>/relaterte` | GET | Hent inkluderte KOE-saker |
+| `/api/endringsordre/<sak_id>/kontekst` | GET | Hent komplett kontekst |
+| `/api/endringsordre/<sak_id>/koe` | POST | Legg til KOE i EO |
+| `/api/endringsordre/<sak_id>/koe/<koe_id>` | DELETE | Fjern KOE fra EO |
+| `/api/endringsordre/kandidater` | GET | Hent KOE-saker som kan inkluderes |
+| `/api/endringsordre/by-relatert/<sak_id>` | GET | Finn EO-er som refererer en KOE |
+
+### 6.5 Frontend-komponenter
+
+| Komponent | Formål |
+|-----------|--------|
+| `EndringsordePage` | Hovedside for EO-sak |
+| `EODashboard` | Statusoversikt med økonomisk sammendrag |
+| `RelatertKOEListe` | Liste over inkluderte KOE-saker |
+| `UtstEndringsordreModal` | 5-stegs wizard for å opprette EO |
+| `BHStandpunktEndring` | Endre BH's standpunkt |
+
+### 6.6 KOE-kandidater
+
+En KOE-sak er kandidat for inkludering i EO når:
+
+```python
+def er_kandidat_for_eo(sak_state: SakState) -> bool:
+    """Sjekk om en sak kan inkluderes i en EO"""
+    return (
+        sak_state.sakstype == "standard" and
+        sak_state.kan_utstede_eo == True
+    )
+
+# kan_utstede_eo er True når:
+# - Grunnlag-sporet er GODKJENT eller LAAST
+# - Vederlag-sporet er GODKJENT eller LAAST (eller IKKE_RELEVANT)
+# - Frist-sporet er GODKJENT eller LAAST (eller IKKE_RELEVANT)
+```
+
+---
+
+## 7. Dataflyt
+
+### 7.1 Event submission (Write Side)
 
 ```mermaid
 sequenceDiagram
@@ -1184,7 +1587,7 @@ sequenceDiagram
     A-->>F: 201 Created<br/>{event_id, new_version, state}
 ```
 
-### 5.2 State retrieval (Read Side)
+### 7.2 State retrieval (Read Side)
 
 ```mermaid
 sequenceDiagram
@@ -1205,7 +1608,7 @@ sequenceDiagram
     A-->>F: 200 OK<br/>{state, version}
 ```
 
-### 5.3 Forsering-flyt (§33.8)
+### 7.3 Forsering-flyt (§33.8)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -1235,11 +1638,45 @@ sequenceDiagram
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
+### 7.4 Endringsordre-flyt (§31.3)
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                      ENDRINGSORDRE-FLYT (§31.3)                          │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  1. KOE-saker behandles (standard tre-spor)                             │
+│     └── Når kan_utstede_eo = true → kandidat for EO                     │
+│                                                                          │
+│  2. BH oppretter EO-sak                                                  │
+│     └── Event: eo_opprettet { sakstype: "endringsordre" }               │
+│                                                                          │
+│  3. BH legger til KOE-saker                                             │
+│     └── Event: eo_koe_lagt_til { koe_sak_id: "..." }                    │
+│                                                                          │
+│  4. BH utsteder EO                                                       │
+│     └── Event: eo_utstedt {                                             │
+│           eo_nummer: "EO-2025-042",                                     │
+│           konsekvenser: { pris: true, fremdrift: true },                │
+│           kompensasjon_belop: 245000,                                   │
+│           frist_dager: 12                                               │
+│         }                                                                │
+│                                                                          │
+│  5. TE responderer                                                       │
+│     ├── Event: eo_te_akseptert → Saken lukkes                           │
+│     └── Event: eo_te_bestridt { begrunnelse: "..." }                    │
+│                                                                          │
+│  6. Ved bestridelse: BH kan revidere                                    │
+│     └── Event: eo_revidert { revisjonsnummer: 1 }                       │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
 ---
 
-## 6. Dataverse-vurdering (Produksjon)
+## 8. Dataverse-vurdering (Produksjon)
 
-### 6.1 Foreslått tabellstruktur
+### 8.1 Foreslått tabellstruktur
 
 I produksjon vil JSON-filer erstattes med Microsoft Dataverse. Her er foreslått tabellstruktur:
 
@@ -1282,7 +1719,7 @@ I produksjon vil JSON-filer erstattes med Microsoft Dataverse. Her er foreslått
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 6.2 Event Store tabell (koe_event)
+### 8.2 Event Store tabell (koe_event)
 
 Hovedtabellen for Event Sourcing:
 
@@ -1304,7 +1741,7 @@ Hovedtabellen for Event Sourcing:
 - `tidsstempel` (for tidsbaserte queries)
 - `event_type` (for filtrering)
 
-### 6.3 State Cache tabell (koe_sak_state_cache)
+### 8.3 State Cache tabell (koe_sak_state_cache)
 
 Valgfri cache for å unngå å beregne state hver gang:
 
@@ -1320,7 +1757,7 @@ Valgfri cache for å unngå å beregne state hver gang:
 - Ved lesing: sjekk om cache er oppdatert (version match)
 - Fallback: beregn fra events hvis cache er gammel
 
-### 6.4 Metadata-tabeller
+### 8.4 Metadata-tabeller
 
 **koe_sak:**
 
@@ -1345,7 +1782,7 @@ Valgfri cache for å unngå å beregne state hver gang:
 | `te_organisasjon` | String | Totalentreprenør |
 | `bh_organisasjon` | String | Byggherre |
 
-### 6.5 Dataverse-spesifikke hensyn
+### 8.5 Dataverse-spesifikke hensyn
 
 **JSON-håndtering:**
 - Dataverse har ikke native JSON-kolonnetype
@@ -1374,11 +1811,21 @@ Valgfri cache for å unngå å beregne state hver gang:
 
 | Fil | Beskrivelse |
 |-----|-------------|
-| `backend/models/events.py` | Event-definisjoner (~1170 linjer) |
-| `backend/models/sak_state.py` | State-modeller (~780 linjer) |
+| `backend/models/events.py` | Event-definisjoner |
+| `backend/models/sak_state.py` | State-modeller (inkl. ForseringData, EndringsordreData) |
 | `backend/services/timeline_service.py` | State-projeksjon |
+| `backend/services/forsering_service.py` | Forsering-logikk og 30%-regel |
+| `backend/services/endringsordre_service.py` | Endringsordre-logikk |
+| `backend/routes/forsering_routes.py` | Forsering API-endepunkter |
+| `backend/routes/endringsordre_routes.py` | Endringsordre API-endepunkter |
 | `backend/repositories/event_repository.py` | Event store |
 | `src/types/timeline.ts` | Frontend type-definisjoner |
+| `src/api/forsering.ts` | Forsering API-klient |
+| `src/api/endringsordre.ts` | Endringsordre API-klient |
+| `src/pages/ForseringPage.tsx` | Forsering-side |
+| `src/pages/EndringsordePage.tsx` | Endringsordre-side |
+| `src/components/forsering/` | Forsering-komponenter |
+| `src/components/endringsordre/` | Endringsordre-komponenter |
 
 ### Relatert dokumentasjon
 
