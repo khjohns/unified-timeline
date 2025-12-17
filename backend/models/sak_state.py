@@ -29,9 +29,11 @@ class SaksType(str, Enum):
 
     STANDARD: Ordinær endringssak med grunnlag/vederlag/frist-spor
     FORSERING: § 33.8 forseringssak som refererer til avslåtte fristforlengelser
+    ENDRINGSORDRE: Formell endringsordre (§31.3) som samler en eller flere KOE-er
     """
     STANDARD = "standard"
     FORSERING = "forsering"
+    ENDRINGSORDRE = "endringsordre"
     # Fremtidige utvidelser:
     # REKLAMASJON = "reklamasjon"
     # SLUTTOPPGJOR = "sluttoppgjor"
@@ -383,6 +385,188 @@ class ForseringData(BaseModel):
         return self.estimert_kostnad <= self.maks_forseringskostnad
 
 
+# ============ ENDRINGSORDRE (§31.3) ============
+
+class EOStatus(str, Enum):
+    """
+    Status for endringsordre.
+
+    Livssyklus:
+    UTKAST → UTSTEDT → AKSEPTERT/BESTRIDT → (evt. REVIDERT → AKSEPTERT)
+    """
+    UTKAST = "utkast"              # BH forbereder EO
+    UTSTEDT = "utstedt"            # BH har utstedt EO
+    AKSEPTERT = "akseptert"        # TE har akseptert EO
+    BESTRIDT = "bestridt"          # TE har bestridt EO (fremmer nytt KOE)
+    REVIDERT = "revidert"          # BH har revidert EO etter bestridelse
+
+
+class EOKonsekvenser(BaseModel):
+    """
+    Konsekvenser av endringen (fra Endringsordre-malen).
+
+    Checkboxes som angir hvilke områder som påvirkes.
+    Hvis ingen er valgt, innebærer endringen ingen konsekvenser.
+    """
+    sha: bool = Field(
+        default=False,
+        description="Endringen har SHA-konsekvenser (Sikkerhet, Helse, Arbeidsmiljø)"
+    )
+    kvalitet: bool = Field(
+        default=False,
+        description="Endringen har kvalitetskonsekvenser"
+    )
+    fremdrift: bool = Field(
+        default=False,
+        description="Endringen har fremdriftskonsekvenser (fristforlengelse)"
+    )
+    pris: bool = Field(
+        default=False,
+        description="Endringen har priskonsekvenser (vederlag)"
+    )
+    annet: bool = Field(
+        default=False,
+        description="Endringen har andre konsekvenser"
+    )
+
+    @computed_field
+    @property
+    def har_konsekvenser(self) -> bool:
+        """Sjekker om minst én konsekvens er valgt"""
+        return any([self.sha, self.kvalitet, self.fremdrift, self.pris, self.annet])
+
+
+class EndringsordreData(BaseModel):
+    """
+    Data spesifikk for endringsordresaker (§31.3) som egen sak.
+
+    Endringsordre (EO) er det formelle dokumentet som bekrefter en endring
+    i kontrakten. En EO kan samle flere KOE-er (Krav om Endringsordre).
+
+    Tilsvarende ForseringData, men for endringsordrer i stedet for forsering.
+
+    Oppgjørsform og indeksregulering:
+    - ENHETSPRISER: Full indeksregulering (§26.2)
+    - REGNINGSARBEID: Delvis indeksregulering (timerater)
+    - FASTPRIS_TILBUD: Ingen indeksregulering
+    - Se backend/constants/vederlag_methods.py for detaljer
+    """
+    # Referanser til KOE-saker som inngår i denne EO-en
+    relaterte_koe_saker: List[str] = Field(
+        default_factory=list,
+        description="SAK-IDs til KOE-er som inngår i denne endringsordren"
+    )
+
+    # Identifikasjon
+    eo_nummer: str = Field(
+        ...,
+        description="Endringsordre-nummer (prosjektets nummerering)"
+    )
+    revisjon_nummer: int = Field(
+        default=0,
+        description="Revisjonsnummer (0 = original, 1+ = revisjoner)"
+    )
+
+    # Beskrivelse av endringen (§31.3: hva endringen går ut på)
+    beskrivelse: str = Field(
+        ...,
+        description="Beskrivelse av hva endringen går ut på"
+    )
+    vedlegg_ids: List[str] = Field(
+        default_factory=list,
+        description="Referanser til vedlagte dokumenter"
+    )
+
+    # Konsekvenser (fra Endringsordre-malen)
+    konsekvenser: EOKonsekvenser = Field(
+        default_factory=EOKonsekvenser,
+        description="Hvilke konsekvenser endringen har"
+    )
+    konsekvens_beskrivelse: Optional[str] = Field(
+        default=None,
+        description="Beskrivelse av konsekvensene (hvis konsekvenser finnes)"
+    )
+
+    # Oppgjørsform ved priskonsekvens (gjenbruker VederlagsMetode fra constants)
+    oppgjorsform: Optional[str] = Field(
+        default=None,
+        description="Oppgjørsform: ENHETSPRISER, REGNINGSARBEID, FASTPRIS_TILBUD"
+    )
+
+    # Beløp
+    kompensasjon_belop: Optional[float] = Field(
+        default=None,
+        description="Kompensasjonsbeløp til TE (positivt = tillegg)"
+    )
+    fradrag_belop: Optional[float] = Field(
+        default=None,
+        description="Fradragsbeløp (negativt = fratrekk fra kontraktssum)"
+    )
+    er_estimat: bool = Field(
+        default=False,
+        description="Om beløpet er et estimat (endelig oppgjør senere)"
+    )
+
+    # Fristkonsekvens
+    frist_dager: Optional[int] = Field(
+        default=None,
+        description="Antall dager fristforlengelse"
+    )
+    ny_sluttdato: Optional[str] = Field(
+        default=None,
+        description="Ny sluttdato etter fristforlengelse (YYYY-MM-DD)"
+    )
+
+    # Status og metadata
+    status: EOStatus = Field(
+        default=EOStatus.UTKAST,
+        description="Nåværende status for endringsordren"
+    )
+    dato_utstedt: Optional[str] = Field(
+        default=None,
+        description="Dato EO ble utstedt (YYYY-MM-DD)"
+    )
+    utstedt_av: Optional[str] = Field(
+        default=None,
+        description="Navn på person som utstedte EO (BH-representant)"
+    )
+
+    # TE-respons
+    te_akseptert: Optional[bool] = Field(
+        default=None,
+        description="Om TE har akseptert EO"
+    )
+    te_kommentar: Optional[str] = Field(
+        default=None,
+        description="TEs kommentar ved aksept/bestridelse"
+    )
+    dato_te_respons: Optional[str] = Field(
+        default=None,
+        description="Dato for TEs respons (YYYY-MM-DD)"
+    )
+
+    # Computed fields
+    @computed_field
+    @property
+    def netto_belop(self) -> float:
+        """Beregner netto beløp (kompensasjon - fradrag)"""
+        komp = self.kompensasjon_belop or 0.0
+        frad = self.fradrag_belop or 0.0
+        return komp - frad
+
+    @computed_field
+    @property
+    def har_priskonsekvens(self) -> bool:
+        """Sjekker om EO har priskonsekvens"""
+        return self.konsekvenser.pris or self.netto_belop != 0.0
+
+    @computed_field
+    @property
+    def har_fristkonsekvens(self) -> bool:
+        """Sjekker om EO har fristkonsekvens"""
+        return self.konsekvenser.fremdrift or (self.frist_dager is not None and self.frist_dager > 0)
+
+
 class FristTilstand(BaseModel):
     """Aggregert tilstand for frist-sporet"""
     status: SporStatus = Field(
@@ -530,6 +714,12 @@ class SakState(BaseModel):
     forsering_data: Optional[ForseringData] = Field(
         default=None,
         description="Data for forseringssak (kun når sakstype=FORSERING)"
+    )
+
+    # Endringsordredata (kun for sakstype=ENDRINGSORDRE)
+    endringsordre_data: Optional[EndringsordreData] = Field(
+        default=None,
+        description="Data for endringsordresak (kun når sakstype=ENDRINGSORDRE)"
     )
 
     # De tre sporene (kun relevant for sakstype=STANDARD)

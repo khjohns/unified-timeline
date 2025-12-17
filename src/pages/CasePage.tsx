@@ -20,6 +20,7 @@ import { RevisionHistory } from '../components/views/RevisionHistory';
 import { Button } from '../components/primitives/Button';
 import { PageHeader } from '../components/PageHeader';
 import { ForseringRelasjonBanner } from '../components/forsering';
+import { UtstEndringsordreModal } from '../components/endringsordre';
 import {
   SendGrunnlagModal,
   SendVederlagModal,
@@ -49,6 +50,7 @@ import {
   ChatBubbleIcon,
   Pencil2Icon,
   RocketIcon,
+  FileTextIcon,
 } from '@radix-ui/react-icons';
 import { downloadContractorClaimPdf } from '../pdf';
 
@@ -122,6 +124,9 @@ export function CasePage() {
 
   // Modal state management - Special actions (TE)
   const [sendForseringOpen, setSendForseringOpen] = useState(false);
+
+  // Modal state management - Special actions (BH)
+  const [utstEOOpen, setUtstEOOpen] = useState(false);
 
   // User role management for testing different modes
   const { userRole, setUserRole } = useUserRole();
@@ -212,15 +217,28 @@ export function CasePage() {
         userRole={userRole}
         onToggleRole={setUserRole}
         actions={
-          <button
-            onClick={() => downloadContractorClaimPdf(state)}
-            className="flex items-center gap-2 p-2 rounded-lg border border-pkt-grays-gray-200 bg-pkt-bg-subtle text-pkt-grays-gray-500 hover:text-pkt-text-body-dark hover:bg-pkt-bg-card transition-colors"
-            title="Last ned PDF"
-            aria-label="Last ned PDF"
-          >
-            <DownloadIcon className="w-4 h-4" />
-            <span className="text-xs font-medium sm:hidden">PDF</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Utsted EO - only for BH when kan_utstede_eo is true */}
+            {userRole === 'BH' && actions.canIssueEO && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => setUtstEOOpen(true)}
+              >
+                <FileTextIcon className="w-4 h-4 mr-2" />
+                Utsted EO
+              </Button>
+            )}
+            <button
+              onClick={() => downloadContractorClaimPdf(state)}
+              className="flex items-center gap-2 p-2 rounded-lg border border-pkt-grays-gray-200 bg-pkt-bg-subtle text-pkt-grays-gray-500 hover:text-pkt-text-body-dark hover:bg-pkt-bg-card transition-colors"
+              title="Last ned PDF"
+              aria-label="Last ned PDF"
+            >
+              <DownloadIcon className="w-4 h-4" />
+              <span className="text-xs font-medium sm:hidden">PDF</span>
+            </button>
+          </div>
         }
       />
 
@@ -600,6 +618,14 @@ export function CasePage() {
             }}
             dagmulktsats={50000}  // TODO: Get from contract config
             grunnlagAvslagTrigger={state.grunnlag.bh_resultat === 'avslatt'}
+          />
+
+          {/* BH Special Action Modals */}
+          <UtstEndringsordreModal
+            open={utstEOOpen}
+            onOpenChange={setUtstEOOpen}
+            sakId={sakId}
+            preselectedKoeIds={[sakId]}  // Pre-select current case if it's a valid KOE
           />
         </>
       )}

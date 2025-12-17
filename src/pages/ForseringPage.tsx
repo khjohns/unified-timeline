@@ -232,7 +232,7 @@ export function ForseringPage() {
   // Loading state
   if (caseLoading) {
     return (
-      <div className="min-h-screen bg-pkt-bg-default flex items-center justify-center">
+      <div className="min-h-screen bg-pkt-bg-subtle flex items-center justify-center">
         <div className="text-center">
           <ReloadIcon className="w-8 h-8 animate-spin mx-auto mb-4 text-pkt-text-action-active" />
           <p className="text-pkt-text-body-subtle">Laster forseringssak...</p>
@@ -244,7 +244,7 @@ export function ForseringPage() {
   // Error state
   if (caseError) {
     return (
-      <div className="min-h-screen bg-pkt-bg-default p-8">
+      <div className="min-h-screen bg-pkt-bg-subtle p-8">
         <div className="max-w-2xl mx-auto">
           <Alert variant="danger" title="Kunne ikke laste forseringssak">
             <p>{caseError.message}</p>
@@ -266,7 +266,7 @@ export function ForseringPage() {
   // Check if this is actually a forsering case
   if (state && state.sakstype !== 'forsering') {
     return (
-      <div className="min-h-screen bg-pkt-bg-default p-8">
+      <div className="min-h-screen bg-pkt-bg-subtle p-8">
         <div className="max-w-2xl mx-auto">
           <Alert variant="warning" title="Ikke en forseringssak">
             <p>Denne saken er ikke en forseringssak. Gå til vanlig sakvisning.</p>
@@ -283,7 +283,7 @@ export function ForseringPage() {
   }
 
   return (
-    <div className="min-h-screen bg-pkt-bg-default">
+    <div className="min-h-screen bg-pkt-bg-subtle">
       {/* Header */}
       <PageHeader
         title={state?.sakstittel || 'Forseringssak'}

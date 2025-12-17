@@ -89,8 +89,9 @@ export type OverordnetStatus =
  * Type sak.
  * - standard: Ordinær endringssak med grunnlag/vederlag/frist-spor
  * - forsering: § 33.8 forseringssak som refererer til avslåtte fristforlengelser
+ * - endringsordre: Formell endringsordre (§31.3) som samler en eller flere KOE-er
  */
-export type SaksType = 'standard' | 'forsering';
+export type SaksType = 'standard' | 'forsering' | 'endringsordre';
 
 /**
  * Relasjon til en annen sak.
@@ -292,16 +293,99 @@ export interface ForseringData {
   kostnad_innenfor_grense: boolean;
 }
 
+// ========== ENDRINGSORDRE (§31.3) ==========
+
+/**
+ * Status for endringsordre.
+ *
+ * Livssyklus:
+ * UTKAST → UTSTEDT → AKSEPTERT/BESTRIDT → (evt. REVIDERT → AKSEPTERT)
+ */
+export type EOStatus =
+  | 'utkast'       // BH forbereder EO
+  | 'utstedt'      // BH har utstedt EO
+  | 'akseptert'    // TE har akseptert EO
+  | 'bestridt'     // TE har bestridt EO (fremmer nytt KOE)
+  | 'revidert';    // BH har revidert EO etter bestridelse
+
+/**
+ * Konsekvenser av endringen (fra Endringsordre-malen).
+ * Checkboxes som angir hvilke områder som påvirkes.
+ */
+export interface EOKonsekvenser {
+  sha: boolean;        // SHA-konsekvenser (Sikkerhet, Helse, Arbeidsmiljø)
+  kvalitet: boolean;   // Kvalitetskonsekvenser
+  fremdrift: boolean;  // Fremdriftskonsekvenser (fristforlengelse)
+  pris: boolean;       // Priskonsekvenser (vederlag)
+  annet: boolean;      // Andre konsekvenser
+  // Computed (fra backend)
+  har_konsekvenser?: boolean;
+}
+
+/**
+ * Data spesifikk for endringsordresaker (§31.3) som egen sak.
+ *
+ * Endringsordre (EO) er det formelle dokumentet som bekrefter en endring
+ * i kontrakten. En EO kan samle flere KOE-er (Krav om Endringsordre).
+ *
+ * Oppgjørsform og indeksregulering:
+ * - ENHETSPRISER: Full indeksregulering (§26.2)
+ * - REGNINGSARBEID: Delvis indeksregulering (timerater)
+ * - FASTPRIS_TILBUD: Ingen indeksregulering
+ */
+export interface EndringsordreData {
+  // Referanser til KOE-saker som inngår i denne EO-en
+  relaterte_koe_saker: string[];  // SAK-IDs til KOE-er
+
+  // Identifikasjon
+  eo_nummer: string;
+  revisjon_nummer: number;
+
+  // Beskrivelse av endringen (§31.3)
+  beskrivelse: string;
+  vedlegg_ids?: string[];
+
+  // Konsekvenser (fra Endringsordre-malen)
+  konsekvenser: EOKonsekvenser;
+  konsekvens_beskrivelse?: string;
+
+  // Oppgjør
+  oppgjorsform?: VederlagsMetode;
+  kompensasjon_belop?: number;   // Tillegg
+  fradrag_belop?: number;        // Fratrekk
+  er_estimat: boolean;
+
+  // Fristkonsekvens
+  frist_dager?: number;
+  ny_sluttdato?: string;
+
+  // Status og metadata
+  status: EOStatus;
+  dato_utstedt?: string;
+  utstedt_av?: string;
+
+  // TE-respons
+  te_akseptert?: boolean;
+  te_kommentar?: string;
+  dato_te_respons?: string;
+
+  // Computed (fra backend)
+  netto_belop?: number;
+  har_priskonsekvens?: boolean;
+  har_fristkonsekvens?: boolean;
+}
+
 // ========== MAIN STATE (Read-Only) ==========
 
 export interface SakState {
   sak_id: string;
   sakstittel: string;
 
-  // Sakstype og relasjoner (ny relasjonell modell for forsering)
+  // Sakstype og relasjoner (ny relasjonell modell for forsering/endringsordre)
   sakstype?: SaksType;  // Default: 'standard'
-  relaterte_saker?: SakRelasjon[];  // Kun for sakstype='forsering'
+  relaterte_saker?: SakRelasjon[];  // Kun for sakstype='forsering' eller 'endringsordre'
   forsering_data?: ForseringData;  // Kun for sakstype='forsering'
+  endringsordre_data?: EndringsordreData;  // Kun for sakstype='endringsordre'
 
   // The three tracks (kun relevant for sakstype='standard')
   grunnlag: GrunnlagTilstand;
@@ -353,7 +437,6 @@ export type EventType =
   | 'respons_frist'
   | 'respons_frist_oppdatert'      // BH endrer standpunkt, evt stopper forsering
   | 'forsering_varsel'             // §33.8 - TE varsler om iverksettelse av forsering
-  | 'eo_utstedt'
   // Forsering-specific events (for forseringssak as separate case)
   | 'forsering_opprettet'          // Forseringssak opprettet med relasjoner
   | 'forsering_iverksatt'          // TE iverksetter forsering
@@ -361,7 +444,15 @@ export type EventType =
   | 'forsering_kostnad_oppdatert'  // TE oppdaterer påløpte kostnader
   | 'forsering_bh_respons'         // BH aksepterer/avslår forseringen
   | 'forsering_relatert_lagt_til'  // Relatert sak lagt til forsering
-  | 'forsering_relatert_fjernet';  // Relatert sak fjernet fra forsering
+  | 'forsering_relatert_fjernet'   // Relatert sak fjernet fra forsering
+  // Endringsordre-events (§31.3)
+  | 'eo_opprettet'                 // EO-sak opprettet (av BH)
+  | 'eo_koe_lagt_til'              // KOE lagt til EO
+  | 'eo_koe_fjernet'               // KOE fjernet fra EO
+  | 'eo_utstedt'                   // BH utsteder EO formelt
+  | 'eo_akseptert'                 // TE aksepterer EO
+  | 'eo_bestridt'                  // TE bestrider EO
+  | 'eo_revidert';                 // BH reviderer EO
 
 // Varsel info structure (reusable)
 export interface VarselInfo {

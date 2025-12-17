@@ -69,7 +69,15 @@ class EventType(str, Enum):
     # Saks-events
     SAK_OPPRETTET = "sak_opprettet"
     SAK_LUKKET = "sak_lukket"
-    EO_UTSTEDT = "eo_utstedt"
+
+    # Endringsordre-events (§31.3)
+    EO_OPPRETTET = "eo_opprettet"          # EO-sak opprettet (av BH)
+    EO_KOE_LAGT_TIL = "eo_koe_lagt_til"    # KOE lagt til EO
+    EO_KOE_FJERNET = "eo_koe_fjernet"      # KOE fjernet fra EO
+    EO_UTSTEDT = "eo_utstedt"              # BH utsteder EO formelt
+    EO_AKSEPTERT = "eo_akseptert"          # TE aksepterer EO
+    EO_BESTRIDT = "eo_bestridt"            # TE bestrider EO
+    EO_REVIDERT = "eo_revidert"            # BH reviderer EO
 
 
 # ============ VEDERLAG ENUMS ============
@@ -1112,20 +1120,234 @@ class SakOpprettetEvent(SakEvent):
     catenda_topic_id: Optional[str] = Field(default=None, description="Catenda topic GUID")
 
 
+# ============ ENDRINGSORDRE EVENTS (§31.3) ============
+
+class EOKonsekvenser(BaseModel):
+    """Konsekvenser av endringen (checkboxes fra EO-malen)"""
+    sha: bool = Field(default=False, description="SHA-konsekvenser")
+    kvalitet: bool = Field(default=False, description="Kvalitetskonsekvenser")
+    fremdrift: bool = Field(default=False, description="Fremdriftskonsekvenser")
+    pris: bool = Field(default=False, description="Priskonsekvenser")
+    annet: bool = Field(default=False, description="Andre konsekvenser")
+
+
+class EOOpprettetData(BaseModel):
+    """
+    Data for opprettelse av endringsordre-sak.
+
+    Dette er det initielle datasettet når BH oppretter en EO-sak.
+    Kan inkludere referanser til KOE-er som skal samles.
+    """
+    eo_nummer: str = Field(..., description="Endringsordre-nummer")
+    beskrivelse: str = Field(..., description="Beskrivelse av endringen")
+    relaterte_koe_saker: List[str] = Field(
+        default_factory=list,
+        description="SAK-IDs til KOE-er som inngår"
+    )
+
+
+class EOOpprettetEvent(SakEvent):
+    """Event når en endringsordre-sak opprettes"""
+    event_type: EventType = Field(
+        default=EventType.EO_OPPRETTET,
+        description="EO opprettet"
+    )
+    data: EOOpprettetData = Field(..., description="Opprettelsesdata")
+    sakstittel: str = Field(..., description="Sakstittel for EO-saken")
+    prosjekt_id: Optional[str] = Field(default=None, description="Prosjekt-ID")
+    catenda_topic_id: Optional[str] = Field(default=None, description="Catenda topic GUID")
+
+    @field_validator('event_type')
+    @classmethod
+    def validate_event_type(cls, v):
+        if v != EventType.EO_OPPRETTET:
+            raise ValueError(f"Ugyldig event_type for EOOpprettetEvent: {v}")
+        return v
+
+
+class EOKoeHandlingData(BaseModel):
+    """Data for å legge til eller fjerne KOE fra EO"""
+    koe_sak_id: str = Field(..., description="SAK-ID til KOE som legges til/fjernes")
+    koe_tittel: Optional[str] = Field(default=None, description="Tittel på KOE for visning")
+
+
+class EOKoeHandlingEvent(SakEvent):
+    """Event når KOE legges til eller fjernes fra EO"""
+    event_type: EventType = Field(
+        ...,
+        description="EO_KOE_LAGT_TIL eller EO_KOE_FJERNET"
+    )
+    data: EOKoeHandlingData = Field(..., description="KOE-handlingsdata")
+
+    @field_validator('event_type')
+    @classmethod
+    def validate_event_type(cls, v):
+        valid_types = [EventType.EO_KOE_LAGT_TIL, EventType.EO_KOE_FJERNET]
+        if v not in valid_types:
+            raise ValueError(f"Ugyldig event_type for EOKoeHandlingEvent: {v}")
+        return v
+
+
+class EOUtstedtData(BaseModel):
+    """
+    Data for formell utstedelse av endringsordre.
+
+    Dette er det komplette datasettet når BH formelt utsteder EO.
+    Følger strukturen i Endringsordre.md malen.
+    """
+    # Identifikasjon
+    eo_nummer: str = Field(..., description="Endringsordre-nummer")
+    revisjon_nummer: int = Field(default=0, description="Revisjonsnummer")
+
+    # Beskrivelse
+    beskrivelse: str = Field(..., description="Beskrivelse av endringen")
+    vedlegg_ids: List[str] = Field(default_factory=list, description="Vedlegg-IDer")
+
+    # Konsekvenser
+    konsekvenser: EOKonsekvenser = Field(
+        default_factory=EOKonsekvenser,
+        description="Konsekvenser av endringen"
+    )
+    konsekvens_beskrivelse: Optional[str] = Field(
+        default=None,
+        description="Beskrivelse av konsekvensene"
+    )
+
+    # Oppgjør
+    oppgjorsform: Optional[str] = Field(
+        default=None,
+        description="Oppgjørsform: ENHETSPRISER, REGNINGSARBEID, FASTPRIS_TILBUD"
+    )
+    kompensasjon_belop: Optional[float] = Field(
+        default=None,
+        description="Kompensasjonsbeløp (positivt = tillegg)"
+    )
+    fradrag_belop: Optional[float] = Field(
+        default=None,
+        description="Fradragsbeløp"
+    )
+    er_estimat: bool = Field(
+        default=False,
+        description="Om beløpet er et estimat"
+    )
+
+    # Frist
+    frist_dager: Optional[int] = Field(
+        default=None,
+        description="Fristforlengelse i dager"
+    )
+    ny_sluttdato: Optional[str] = Field(
+        default=None,
+        description="Ny sluttdato (YYYY-MM-DD)"
+    )
+
+    # Relaterte saker
+    relaterte_koe_saker: List[str] = Field(
+        default_factory=list,
+        description="SAK-IDs til KOE-er som inngår"
+    )
+
+
 class EOUtstedtEvent(SakEvent):
-    """Event når endringsordre utstedes (saken lukkes positivt)"""
+    """
+    Event når endringsordre utstedes formelt.
+
+    Dette er hoveddokumentet som bekrefter endringen i kontrakten.
+    Kan utstedes reaktivt (basert på KOE) eller proaktivt (direkte fra BH).
+    """
     event_type: EventType = Field(
         default=EventType.EO_UTSTEDT,
         description="EO utstedt"
     )
-    eo_nummer: str = Field(..., description="Endringsordre-nummer")
-    endelig_vederlag: float = Field(..., description="Endelig godkjent vederlag")
-    endelig_frist_dager: Optional[int] = Field(
-        default=None,
-        description="Endelig godkjent fristforlengelse"
+    data: EOUtstedtData = Field(..., description="Utstedelsesdata")
+
+    # Legacy-felter for bakoverkompatibilitet (kan fjernes senere)
+    eo_nummer: Optional[str] = Field(default=None, description="DEPRECATED: Bruk data.eo_nummer")
+    endelig_vederlag: Optional[float] = Field(default=None, description="DEPRECATED: Bruk data.kompensasjon_belop")
+    endelig_frist_dager: Optional[int] = Field(default=None, description="DEPRECATED: Bruk data.frist_dager")
+    signert_av_te: Optional[str] = Field(default=None, description="DEPRECATED")
+    signert_av_bh: Optional[str] = Field(default=None, description="DEPRECATED")
+
+    @field_validator('event_type')
+    @classmethod
+    def validate_event_type(cls, v):
+        if v != EventType.EO_UTSTEDT:
+            raise ValueError(f"Ugyldig event_type for EOUtstedtEvent: {v}")
+        return v
+
+
+class EOAkseptertData(BaseModel):
+    """Data for TEs aksept av endringsordre"""
+    akseptert: bool = Field(default=True, description="Om TE aksepterer")
+    kommentar: Optional[str] = Field(default=None, description="TEs kommentar")
+
+
+class EOAkseptertEvent(SakEvent):
+    """Event når TE aksepterer endringsordre"""
+    event_type: EventType = Field(
+        default=EventType.EO_AKSEPTERT,
+        description="EO akseptert"
     )
-    signert_av_te: str = Field(..., description="Signert av TE")
-    signert_av_bh: str = Field(..., description="Signert av BH")
+    data: EOAkseptertData = Field(..., description="Akseptdata")
+
+    @field_validator('event_type')
+    @classmethod
+    def validate_event_type(cls, v):
+        if v != EventType.EO_AKSEPTERT:
+            raise ValueError(f"Ugyldig event_type for EOAkseptertEvent: {v}")
+        return v
+
+
+class EOBestridtData(BaseModel):
+    """Data for TEs bestridelse av endringsordre"""
+    begrunnelse: str = Field(..., description="Begrunnelse for bestridelse")
+    nytt_koe_sak_id: Optional[str] = Field(
+        default=None,
+        description="SAK-ID til nytt KOE som fremmes som alternativ"
+    )
+
+
+class EOBestridtEvent(SakEvent):
+    """Event når TE bestrider endringsordre"""
+    event_type: EventType = Field(
+        default=EventType.EO_BESTRIDT,
+        description="EO bestridt"
+    )
+    data: EOBestridtData = Field(..., description="Bestridelsesdata")
+
+    @field_validator('event_type')
+    @classmethod
+    def validate_event_type(cls, v):
+        if v != EventType.EO_BESTRIDT:
+            raise ValueError(f"Ugyldig event_type for EOBestridtEvent: {v}")
+        return v
+
+
+class EORevidertData(BaseModel):
+    """Data for BHs revisjon av endringsordre"""
+    ny_revisjon_nummer: int = Field(..., description="Nytt revisjonsnummer")
+    endringer_beskrivelse: str = Field(..., description="Beskrivelse av endringene")
+    # Kan inkludere oppdaterte felt fra EOUtstedtData
+    oppdatert_data: Optional[EOUtstedtData] = Field(
+        default=None,
+        description="Oppdatert EO-data (hvis endret)"
+    )
+
+
+class EORevidertEvent(SakEvent):
+    """Event når BH reviderer endringsordre"""
+    event_type: EventType = Field(
+        default=EventType.EO_REVIDERT,
+        description="EO revidert"
+    )
+    data: EORevidertData = Field(..., description="Revisjonsdata")
+
+    @field_validator('event_type')
+    @classmethod
+    def validate_event_type(cls, v):
+        if v != EventType.EO_REVIDERT:
+            raise ValueError(f"Ugyldig event_type for EORevidertEvent: {v}")
+        return v
 
 
 # ============ TYPE UNION ============
@@ -1138,7 +1360,13 @@ AnyEvent = Union[
     ResponsEvent,
     ForseringVarselEvent,
     SakOpprettetEvent,
+    # Endringsordre events
+    EOOpprettetEvent,
+    EOKoeHandlingEvent,
     EOUtstedtEvent,
+    EOAkseptertEvent,
+    EOBestridtEvent,
+    EORevidertEvent,
 ]
 
 
@@ -1174,7 +1402,14 @@ def parse_event(data: dict) -> AnyEvent:
         EventType.RESPONS_FRIST.value: ResponsEvent,
         EventType.RESPONS_FRIST_OPPDATERT.value: ResponsEvent,
         EventType.FORSERING_VARSEL.value: ForseringVarselEvent,
+        # Endringsordre events
+        EventType.EO_OPPRETTET.value: EOOpprettetEvent,
+        EventType.EO_KOE_LAGT_TIL.value: EOKoeHandlingEvent,
+        EventType.EO_KOE_FJERNET.value: EOKoeHandlingEvent,
         EventType.EO_UTSTEDT.value: EOUtstedtEvent,
+        EventType.EO_AKSEPTERT.value: EOAkseptertEvent,
+        EventType.EO_BESTRIDT.value: EOBestridtEvent,
+        EventType.EO_REVIDERT.value: EORevidertEvent,
     }
 
     event_class = type_map.get(event_type)

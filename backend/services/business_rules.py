@@ -7,7 +7,7 @@ This ensures the event log never contains invalid state transitions.
 from dataclasses import dataclass
 from typing import Optional, List, Tuple, Callable
 from models.events import AnyEvent, EventType, SporStatus
-from models.sak_state import SakState
+from models.sak_state import SakState, SaksType, EOStatus
 
 
 @dataclass
@@ -80,14 +80,43 @@ class BusinessRuleValidator:
                 ("TRACK_SENT", self._rule_frist_sent),
             ],
 
-            # EO requires all tracks approved
-            EventType.EO_UTSTEDT: [
-                ("ALL_APPROVED", self._rule_all_approved_for_eo),
-            ],
-
             # Cannot update locked grunnlag
             EventType.GRUNNLAG_OPPDATERT: [
                 ("NOT_LOCKED", self._rule_grunnlag_not_locked),
+            ],
+
+            # ========== ENDRINGSORDRE RULES ==========
+
+            # EO opprettelse - ingen spesifikke regler utover rolle-sjekk
+            EventType.EO_OPPRETTET: [],
+
+            # EO KOE-håndtering - må være i ENDRINGSORDRE-sak
+            EventType.EO_KOE_LAGT_TIL: [
+                ("IS_EO_CASE", self._rule_is_eo_case),
+            ],
+            EventType.EO_KOE_FJERNET: [
+                ("IS_EO_CASE", self._rule_is_eo_case),
+            ],
+
+            # EO utstedelse - kan være fra KOE (alle godkjent) eller proaktiv (EO-sak)
+            EventType.EO_UTSTEDT: [
+                ("EO_CAN_BE_ISSUED", self._rule_eo_can_be_issued),
+            ],
+
+            # EO aksept/bestridelse - EO må være utstedt først
+            EventType.EO_AKSEPTERT: [
+                ("IS_EO_CASE", self._rule_is_eo_case),
+                ("EO_IS_ISSUED", self._rule_eo_is_issued),
+            ],
+            EventType.EO_BESTRIDT: [
+                ("IS_EO_CASE", self._rule_is_eo_case),
+                ("EO_IS_ISSUED", self._rule_eo_is_issued),
+            ],
+
+            # EO revisjon - EO må være utstedt og bestridt
+            EventType.EO_REVIDERT: [
+                ("IS_EO_CASE", self._rule_is_eo_case),
+                ("EO_IS_ISSUED", self._rule_eo_is_issued),
             ],
         }
 
@@ -104,11 +133,16 @@ class BusinessRuleValidator:
             EventType.VEDERLAG_KRAV_TRUKKET,
             EventType.FRIST_KRAV_SENDT, EventType.FRIST_KRAV_OPPDATERT,
             EventType.FRIST_KRAV_TRUKKET,
+            # EO TE-handlinger
+            EventType.EO_AKSEPTERT, EventType.EO_BESTRIDT,
         }
 
         bh_only_events = {
             EventType.RESPONS_GRUNNLAG, EventType.RESPONS_VEDERLAG,
-            EventType.RESPONS_FRIST, EventType.EO_UTSTEDT,
+            EventType.RESPONS_FRIST,
+            # EO BH-handlinger
+            EventType.EO_OPPRETTET, EventType.EO_KOE_LAGT_TIL,
+            EventType.EO_KOE_FJERNET, EventType.EO_UTSTEDT, EventType.EO_REVIDERT,
         }
 
         if event.event_type in te_only_events and event.aktor_rolle != "TE":
@@ -126,9 +160,14 @@ class BusinessRuleValidator:
         return ValidationResult(is_valid=True)
 
     def _rule_case_not_closed(self, event: AnyEvent, state: SakState) -> ValidationResult:
-        """R: Cannot modify a closed case (except EO issuance which closes it)."""
-        # EO_UTSTEDT is the event that closes the case, so it must be allowed
-        if event.event_type == EventType.EO_UTSTEDT:
+        """R: Cannot modify a closed case (except EO events which have own lifecycle)."""
+        # EO events are allowed - they have their own lifecycle
+        eo_events = {
+            EventType.EO_OPPRETTET, EventType.EO_KOE_LAGT_TIL,
+            EventType.EO_KOE_FJERNET, EventType.EO_UTSTEDT,
+            EventType.EO_AKSEPTERT, EventType.EO_BESTRIDT, EventType.EO_REVIDERT,
+        }
+        if event.event_type in eo_events:
             return ValidationResult(is_valid=True)
 
         closed_statuses = {"OMFORENT", "LUKKET", "LUKKET_TRUKKET"}
@@ -228,12 +267,53 @@ class BusinessRuleValidator:
 
     # ========== EO RULES ==========
 
-    def _rule_all_approved_for_eo(self, event: AnyEvent, state: SakState) -> ValidationResult:
-        """R: All active tracks must be approved to issue EO."""
-        if not state.kan_utstede_eo:
+    def _rule_is_eo_case(self, event: AnyEvent, state: SakState) -> ValidationResult:
+        """R: Event requires an ENDRINGSORDRE case type."""
+        if state.sakstype != SaksType.ENDRINGSORDRE:
             return ValidationResult(
                 is_valid=False,
-                message="Alle aktive spor må være godkjent før EO kan utstedes"
+                message="Denne handlingen krever en endringsordre-sak"
+            )
+
+        return ValidationResult(is_valid=True)
+
+    def _rule_eo_can_be_issued(self, event: AnyEvent, state: SakState) -> ValidationResult:
+        """
+        R: EO can be issued if:
+        - From a STANDARD case: All active tracks must be approved (kan_utstede_eo)
+        - From an ENDRINGSORDRE case: Always allowed (proactive EO)
+        """
+        # Proaktiv EO fra EO-sak - alltid tillatt
+        if state.sakstype == SaksType.ENDRINGSORDRE:
+            return ValidationResult(is_valid=True)
+
+        # Reaktiv EO fra KOE-sak - alle spor må være godkjent
+        if state.sakstype == SaksType.STANDARD:
+            if not state.kan_utstede_eo:
+                return ValidationResult(
+                    is_valid=False,
+                    message="Alle aktive spor må være godkjent før EO kan utstedes"
+                )
+            return ValidationResult(is_valid=True)
+
+        # Andre sakstyper (f.eks. FORSERING) - ikke tillatt
+        return ValidationResult(
+            is_valid=False,
+            message="EO kan ikke utstedes fra denne sakstypen"
+        )
+
+    def _rule_eo_is_issued(self, event: AnyEvent, state: SakState) -> ValidationResult:
+        """R: EO must be issued before it can be accepted/disputed/revised."""
+        if state.endringsordre_data is None:
+            return ValidationResult(
+                is_valid=False,
+                message="Endringsordre-data mangler"
+            )
+
+        if state.endringsordre_data.status not in {EOStatus.UTSTEDT, EOStatus.BESTRIDT, EOStatus.REVIDERT}:
+            return ValidationResult(
+                is_valid=False,
+                message="Endringsordren må være utstedt før den kan aksepteres/bestrides"
             )
 
         return ValidationResult(is_valid=True)
