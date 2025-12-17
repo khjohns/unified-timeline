@@ -665,22 +665,24 @@ class CatendaClient:
     # ==========================================
     
     def upload_document(
-        self, 
+        self,
         project_id: str,
         file_path: str,
-        document_name: Optional[str] = None
+        document_name: Optional[str] = None,
+        folder_id: Optional[str] = None
     ) -> Optional[Dict]:
         """
         Last opp et dokument til Catenda document library.
-        
+
         KRITISK TEST: Denne funksjonen returnerer library-item-id som må
         verifiseres mot document_guid i BCF API.
-        
+
         Args:
             project_id: Catenda project ID
             file_path: Path til fil som skal lastes opp
             document_name: Navn på dokument (bruker filnavn hvis None)
-        
+            folder_id: ID til mappe dokumentet skal lastes opp i (None = root)
+
         Returns:
             Library item data inkludert 'id' (library-item-id)
         """
@@ -713,6 +715,11 @@ class CatendaClient:
             },
             "failOnDocumentExists": False
         }
+
+        # Legg til parentId hvis mappe er spesifisert
+        if folder_id:
+            bimsync_params["parentId"] = folder_id
+            logger.info(f"   📁 Laster opp til mappe: {folder_id}")
         
         headers = self.get_headers()
         headers["Content-Type"] = "application/octet-stream"
@@ -744,7 +751,190 @@ class CatendaClient:
             if hasattr(e, 'response') and e.response is not None:
                 logger.error(f"Response: {e.response.text}")
             return None
-    
+
+    # ==========================================
+    # FOLDERS (v2 API)
+    # ==========================================
+
+    def list_folders(
+        self,
+        project_id: str,
+        parent_id: Optional[str] = None,
+        include_subfolders: bool = True
+    ) -> List[Dict]:
+        """
+        List mapper i biblioteket.
+
+        Args:
+            project_id: Catenda project ID
+            parent_id: ID til parent-mappe (None/root = root-nivå)
+            include_subfolders: Inkluder mapper i undermapper (rekursiv)
+
+        Returns:
+            Liste med mapper
+        """
+        if not self.library_id:
+            logger.error("❌ Ingen library valgt")
+            return []
+
+        url = f"{self.base_url}/v2/projects/{project_id}/libraries/{self.library_id}/items"
+
+        params = {
+            "scope": "all",      # Inkluder alle items (også upubliserte)
+            "pageSize": "1000"   # Maks antall per side
+        }
+
+        # parentId for å filtrere på nivå - "root" for root-mapper
+        if parent_id:
+            params["parentId"] = parent_id
+        else:
+            params["parentId"] = "root"  # Eksplisitt root for å få root-mapper
+
+        # Inkluder undermapper rekursivt kun hvis ønsket
+        if include_subfolders:
+            params["subFolders"] = "true"
+
+        try:
+            response = requests.get(url, headers=self.get_headers(), params=params)
+            response.raise_for_status()
+
+            items = response.json()
+
+            # Filtrer ut mapper - sjekk document.type=folder (Catenda-struktur)
+            folders = [
+                item for item in items
+                if item.get('document', {}).get('type') == 'folder'
+            ]
+
+            logger.info(f"📁 Totalt {len(items)} items, fant {len(folders)} mappe(r)")
+            return folders
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved henting av mapper: {e}")
+            return []
+
+    def get_library_item(
+        self,
+        project_id: str,
+        item_id: str
+    ) -> Optional[Dict]:
+        """
+        Hent en spesifikk library item (dokument eller mappe) via ID.
+
+        Args:
+            project_id: Catenda project ID
+            item_id: Library item ID
+
+        Returns:
+            Item-data eller None
+        """
+        if not self.library_id:
+            logger.error("❌ Ingen library valgt")
+            return None
+
+        url = f"{self.base_url}/v2/projects/{project_id}/libraries/{self.library_id}/items/{item_id}"
+
+        try:
+            response = requests.get(url, headers=self.get_headers())
+            response.raise_for_status()
+            item = response.json()
+            # Sjekk både top-level type og document.type
+            doc_type = item.get('document', {}).get('type') if item.get('document') else None
+            logger.info(f"📄 Hentet item: {item.get('name')} (type={item.get('type')}, document.type={doc_type})")
+            return item
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved henting av item {item_id}: {e}")
+            return None
+
+    def create_folder(
+        self,
+        project_id: str,
+        folder_name: str,
+        parent_id: Optional[str] = None
+    ) -> Optional[Dict]:
+        """
+        Opprett en ny mappe i biblioteket.
+
+        Args:
+            project_id: Catenda project ID
+            folder_name: Navn på mappen
+            parent_id: ID til parent-mappe (None = root)
+
+        Returns:
+            Mappe-data inkludert 'id'
+        """
+        if not self.library_id:
+            logger.error("❌ Ingen library valgt")
+            return None
+
+        url = f"{self.base_url}/v2/projects/{project_id}/libraries/{self.library_id}/items"
+
+        payload = {
+            "name": folder_name,
+            "type": "folder"
+        }
+
+        if parent_id:
+            payload["parentId"] = parent_id
+
+        logger.info(f"📁 Oppretter mappe: {folder_name}")
+
+        try:
+            response = requests.post(
+                url,
+                headers=self.get_headers(),
+                json=payload
+            )
+            response.raise_for_status()
+
+            result = response.json()
+
+            # API kan returnere liste eller objekt
+            if isinstance(result, list) and len(result) > 0:
+                folder = result[0]
+            else:
+                folder = result
+
+            logger.info(f"✅ Mappe opprettet: {folder['id']}")
+            return folder
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved opprettelse av mappe: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"Response: {e.response.text}")
+            return None
+
+    def get_or_create_folder(
+        self,
+        project_id: str,
+        folder_name: str,
+        parent_id: Optional[str] = None
+    ) -> Optional[str]:
+        """
+        Hent eksisterende mappe eller opprett ny.
+
+        Args:
+            project_id: Catenda project ID
+            folder_name: Navn på mappen
+            parent_id: ID til parent-mappe (None = root)
+
+        Returns:
+            Mappe-ID
+        """
+        # Sjekk om mappen allerede eksisterer
+        folders = self.list_folders(project_id, parent_id)
+        for folder in folders:
+            if folder.get('name') == folder_name:
+                logger.info(f"📁 Fant eksisterende mappe: {folder['id']}")
+                return folder['id']
+
+        # Opprett ny mappe
+        new_folder = self.create_folder(project_id, folder_name, parent_id)
+        if new_folder:
+            return new_folder['id']
+
+        return None
+
     # ==========================================
     # DOCUMENT REFERENCES (BCF API - CRITICAL TEST)
     # ==========================================

@@ -699,10 +699,116 @@ class CatendaInteractiveMenu:
 
         self.pause()
 
+    def _select_or_create_folder(self) -> Optional[str]:
+        """Hjelpefunksjon for å velge eller opprette mappe"""
+        print("\n📁 Velg mappe:")
+        print("  1. Velg eksisterende mappe")
+        print("  2. Opprett ny mappe")
+        print("  3. Skriv inn mappe-ID direkte")
+        print("  0. Avbryt (bruk root)")
+        print()
+
+        choice = input("Velg (0-3): ").strip()
+
+        if choice == "1":
+            return self._browse_folders()
+
+        elif choice == "2":
+            return self._create_folder_interactive()
+
+        elif choice == "3":
+            folder_id = input("Mappe-ID (32 tegn uten bindestreker): ").strip()
+            if folder_id:
+                item = self.tester.get_library_item(self.project_id, folder_id)
+                if item:
+                    is_folder = (
+                        item.get('type') == 'folder' or
+                        item.get('document', {}).get('type') == 'folder'
+                    )
+                    if is_folder:
+                        print(f"✅ Fant mappe: {item.get('name')}")
+                        return folder_id
+                    else:
+                        print(f"⚠️ ID {folder_id} er ikke en mappe")
+                        use_anyway = input("Bruke ID-en likevel som parentId? (j/n): ").strip().lower()
+                        if use_anyway == 'j':
+                            return folder_id
+                else:
+                    print(f"❌ Fant ikke item med ID {folder_id}")
+            return None
+
+        return None
+
+    def _browse_folders(self, parent_id: Optional[str] = None, path: str = "/") -> Optional[str]:
+        """Naviger i mappestrukturen"""
+        # Hent mapper på dette nivået
+        folders = self.tester.list_folders(self.project_id, parent_id=parent_id, include_subfolders=False)
+
+        if not folders and parent_id is None:
+            print("Ingen mapper funnet. Vil du opprette en?")
+            if input("(j/n): ").strip().lower() == 'j':
+                return self._create_folder_interactive()
+            return None
+
+        # Sorter alfabetisk
+        folders.sort(key=lambda f: f.get('name', '').lower())
+
+        print(f"\n📁 Mappe: {path}")
+        print("-" * 50)
+
+        if parent_id:
+            print("  0. ⬆️  Opp ett nivå")
+            print("  U. ✅ Bruk denne mappen")
+
+        if not folders:
+            print("  (ingen undermapper)")
+        else:
+            for i, folder in enumerate(folders, 1):
+                print(f"  {i}. 📁 {folder.get('name', 'Uten navn')}")
+
+        print()
+        choice = input("Velg (nummer, U for bruk, eller 0 for opp): ").strip().lower()
+
+        if choice == '0' and parent_id:
+            # Gå opp - returner None for å indikere at vi vil fortsette å browse
+            # Dette er litt komplisert, så vi bare returnerer None
+            return None
+        elif choice == 'u' and parent_id:
+            return parent_id
+        elif choice.isdigit():
+            idx = int(choice) - 1
+            if 0 <= idx < len(folders):
+                selected = folders[idx]
+                new_path = f"{path}{selected.get('name')}/"
+                # Naviger ned i denne mappen
+                result = self._browse_folders(parent_id=selected['id'], path=new_path)
+                if result:
+                    return result
+                # Hvis brukeren gikk opp, fortsett å vise denne mappen
+                return self._browse_folders(parent_id=parent_id, path=path)
+
+        print("❌ Ugyldig valg")
+        return None
+
+    def _create_folder_interactive(self) -> Optional[str]:
+        """Opprett mappe interaktivt"""
+        folder_name = input("Mappenavn: ").strip()
+        if not folder_name:
+            print("❌ Mappenavn er påkrevd")
+            return None
+
+        result = self.tester.create_folder(self.project_id, folder_name)
+        if result:
+            print(f"✅ Mappe opprettet: {result['id']}")
+            return result['id']
+
+        print("❌ Kunne ikke opprette mappe")
+        return None
+
     def action_upload_document(self):
         """Last opp dokument til library"""
         self.print_header("📤 Last Opp Dokument")
-        
+
         if not self.library_id:
             print("⚠️ Library ID er ikke satt. Velger standard 'Documents' bibliotek...")
             if not self.tester.select_library(self.project_id, "Documents"):
@@ -713,25 +819,32 @@ class CatendaInteractiveMenu:
                     self.pause()
                     return
             self.library_id = self.tester.library_id
-        
+
         # Sørg for at tester-objektet har ID-en
         self.tester.library_id = self.library_id
 
         file_path = input("\nFilsti til dokument: ").strip()
-        
+
         if not file_path or not Path(file_path).exists():
             print("❌ Filen finnes ikke")
             self.pause()
             return
-        
+
+        # Velg mappe
+        folder_id = None
+        use_folder = input("\nLaste opp til en mappe? (j/n): ").strip().lower()
+        if use_folder == 'j':
+            folder_id = self._select_or_create_folder()
+
         document_name = Path(file_path).name
         print(f"\nLaster opp {document_name}...")
-        
+
         try:
             result = self.tester.upload_document(
                 project_id=self.project_id,
                 file_path=file_path,
-                document_name=f"TEST-{document_name}"
+                document_name=f"TEST-{document_name}",
+                folder_id=folder_id
             )
             
             if result:
