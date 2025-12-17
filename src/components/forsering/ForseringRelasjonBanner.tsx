@@ -59,9 +59,10 @@ export function ForseringRelasjonBanner({ forseringer }: ForseringRelasjonBanner
               )}
             </div>
 
-            <p className="text-sm text-pkt-text-body-subtle">
-              Varslet: {formatDate(forsering.dato_varslet)}
-            </p>
+            <div className="flex items-center gap-2 text-sm">
+              <span>Varslet:</span>
+              <Badge variant="default" size="sm">{formatDate(forsering.dato_varslet)}</Badge>
+            </div>
 
             {/* Link to forsering */}
             <Link

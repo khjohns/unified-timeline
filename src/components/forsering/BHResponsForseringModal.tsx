@@ -147,15 +147,15 @@ export function BHResponsForseringModal({
               onClick={() => setResponsType('aksepterer')}
               className={`p-4 border-2 rounded-none text-left transition-colors ${
                 responsType === 'aksepterer'
-                  ? 'border-badge-success-text bg-badge-success-bg'
+                  ? 'border-badge-success-text bg-badge-success-bg text-badge-success-text'
                   : 'border-pkt-border-default hover:border-pkt-border-focus'
               }`}
             >
               <div className="flex items-center gap-2 mb-1">
-                <CheckIcon className="w-5 h-5 text-badge-success-text" />
+                <CheckIcon className={`w-5 h-5 ${responsType === 'aksepterer' ? 'text-badge-success-text' : 'text-pkt-text-body-default'}`} />
                 <span className="font-medium">Aksepterer</span>
               </div>
-              <p className="text-xs text-pkt-text-body-subtle">
+              <p className={`text-xs ${responsType === 'aksepterer' ? 'text-badge-success-text/80' : 'text-pkt-text-body-subtle'}`}>
                 Entreprenøren hadde rett til å forsere. Forseringskostnadene dekkes.
               </p>
             </button>
@@ -165,15 +165,15 @@ export function BHResponsForseringModal({
               onClick={() => setResponsType('avslaar')}
               className={`p-4 border-2 rounded-none text-left transition-colors ${
                 responsType === 'avslaar'
-                  ? 'border-alert-danger-text bg-alert-danger-bg'
+                  ? 'border-alert-danger-text bg-alert-danger-bg text-alert-danger-text'
                   : 'border-pkt-border-default hover:border-pkt-border-focus'
               }`}
             >
               <div className="flex items-center gap-2 mb-1">
-                <Cross2Icon className="w-5 h-5 text-alert-danger-text" />
+                <Cross2Icon className={`w-5 h-5 ${responsType === 'avslaar' ? 'text-alert-danger-text' : 'text-pkt-text-body-default'}`} />
                 <span className="font-medium">Avslår</span>
               </div>
-              <p className="text-xs text-pkt-text-body-subtle">
+              <p className={`text-xs ${responsType === 'avslaar' ? 'text-alert-danger-text/80' : 'text-pkt-text-body-subtle'}`}>
                 Entreprenøren hadde ikke rett til å forsere. Forseringskostnadene dekkes ikke.
               </p>
             </button>
@@ -191,7 +191,7 @@ export function BHResponsForseringModal({
               value={godkjentKostnad}
               onChange={(e) => setGodkjentKostnad(e.target.value)}
               placeholder={`Maks ${formatCurrency(forseringData.maks_forseringskostnad)}`}
-              className="w-full px-3 py-2 border-2 border-pkt-border-default rounded-none text-sm focus:outline-none focus:border-pkt-border-focus"
+              className="w-full px-3 py-2 bg-pkt-bg-card border-2 border-pkt-border-default rounded-none text-sm focus:outline-none focus:border-pkt-border-focus"
             />
             <p className="text-xs text-pkt-text-body-subtle mt-1">
               Angi beløp du godkjenner. Hvis ikke angitt, godkjennes estimert kostnad opptil maks.
@@ -217,7 +217,7 @@ export function BHResponsForseringModal({
             rows={3}
             required
             disabled={!responsType}
-            className="w-full px-3 py-2 border-2 border-pkt-border-default rounded-none text-sm focus:outline-none focus:border-pkt-border-focus resize-none disabled:bg-pkt-surface-subtle disabled:text-pkt-text-body-subtle"
+            className="w-full px-3 py-2 bg-pkt-bg-card border-2 border-pkt-border-default rounded-none text-sm focus:outline-none focus:border-pkt-border-focus resize-none disabled:bg-pkt-surface-subtle disabled:text-pkt-text-body-subtle"
           />
         </div>
 

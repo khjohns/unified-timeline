@@ -13,12 +13,12 @@ This frontend can run independently without a backend using mock data. This is u
 # The project is pre-configured to use mock API in development
 npm run dev
 
-# Visit http://localhost:3000/examples to see available mock cases
+# Visit http://localhost:3000/demo to see available mock cases
 ```
 
 ### Access Mock Cases
 
-Navigate to `/examples` to see 3 pre-configured cases:
+Navigate to `/demo` to see 3 pre-configured cases:
 
 1. **SAK-2025-001**: Active case under processing
    - Grunnlag: ✓ Godkjent

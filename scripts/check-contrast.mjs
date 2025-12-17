@@ -171,6 +171,7 @@ const darkColors = {
   'border-yellow': '#5a4a20',
   'border-gray': '#7a7a9a',  /* Lightened */
   'border-default': '#7a7aaa',  /* Lightened */
+  'border-subtle': '#3a3a5a',  /* For progress bar backgrounds */
 
   // ============ BRAND COLORS ============
   'brand-dark-blue-1000': '#8ab4ff',
@@ -239,6 +240,20 @@ const combinations = [
   { name: 'Success: dark-green on card bg', fg: 'brand-dark-green-1000', bg: 'bg-card', type: 'normal', category: 'Status Text' },
   { name: 'Info: dark-blue on card bg', fg: 'brand-dark-blue-1000', bg: 'bg-card', type: 'normal', category: 'Status Text' },
   { name: 'Warning: yellow-1000 on card bg', fg: 'brand-yellow-1000', bg: 'bg-card', type: 'normal', category: 'Status Text' },
+
+  // ============ FORSERING COMPONENTS ============
+  { name: 'Forsering: red-1000 on subtle bg', fg: 'brand-red-1000', bg: 'bg-subtle', type: 'normal', category: 'Forsering' },
+  { name: 'Forsering: dark-green on subtle bg', fg: 'brand-dark-green-1000', bg: 'bg-subtle', type: 'normal', category: 'Forsering' },
+  { name: 'Forsering: yellow-1000 on subtle bg', fg: 'brand-yellow-1000', bg: 'bg-subtle', type: 'normal', category: 'Forsering' },
+  { name: 'Forsering: body-default on subtle bg', fg: 'text-body-default', bg: 'bg-subtle', type: 'normal', category: 'Forsering' },
+  { name: 'Forsering: body-subtle on subtle bg', fg: 'text-body-subtle', bg: 'bg-subtle', type: 'normal', category: 'Forsering' },
+  { name: 'Forsering: body-default on surface-subtle', fg: 'text-body-default', bg: 'surface-subtle', type: 'normal', category: 'Forsering' },
+  { name: 'Forsering: body-subtle on surface-subtle', fg: 'text-body-subtle', bg: 'surface-subtle', type: 'normal', category: 'Forsering' },
+
+  // ============ PROGRESS BAR COLORS (UI elements) ============
+  { name: 'Progress: red-1000 on border-subtle', fg: 'brand-red-1000', bg: 'border-subtle', type: 'ui', category: 'Progress Bars' },
+  { name: 'Progress: dark-green on border-subtle', fg: 'brand-dark-green-1000', bg: 'border-subtle', type: 'ui', category: 'Progress Bars' },
+  { name: 'Progress: yellow-1000 on border-subtle', fg: 'brand-yellow-1000', bg: 'border-subtle', type: 'ui', category: 'Progress Bars' },
 ];
 
 console.log('='.repeat(80));

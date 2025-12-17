@@ -27,6 +27,8 @@ interface RelaterteSakerListeProps {
   onRemove?: (sakId: string) => void;
   /** Loading state during removal */
   isRemoving?: boolean;
+  /** Action button for header (e.g., "Legg til sak") */
+  headerAction?: React.ReactNode;
 }
 
 function getGrunnlagBadge(state?: SakState) {
@@ -79,6 +81,7 @@ export function RelaterteSakerListe({
   canRemove = false,
   onRemove,
   isRemoving = false,
+  headerAction,
 }: RelaterteSakerListeProps) {
   // Track which case is pending removal confirmation
   const [confirmingRemoval, setConfirmingRemoval] = useState<string | null>(null);
@@ -104,23 +107,25 @@ export function RelaterteSakerListe({
 
   if (relaterteSaker.length === 0) {
     return (
-      <Card className="p-4">
-        <p className="text-pkt-text-body-subtle text-sm">
-          Ingen relaterte saker funnet.
-        </p>
+      <Card className="p-0 overflow-hidden">
+        <div className="px-4 py-3 bg-pkt-surface-subtle border-b-2 border-pkt-border-subtle flex items-center justify-between">
+          <Badge variant="default" size="sm">0 saker</Badge>
+          {headerAction}
+        </div>
+        <div className="p-4">
+          <p className="text-pkt-text-body-subtle text-sm">
+            Ingen relaterte saker lagt til ennå.
+          </p>
+        </div>
       </Card>
     );
   }
 
   return (
     <Card className="p-0 overflow-hidden">
-      <div className="px-4 py-3 bg-pkt-surface-subtle border-b-2 border-pkt-border-subtle">
-        <h3 className="font-bold text-sm">
-          Relaterte saker ({relaterteSaker.length})
-        </h3>
-        <p className="text-xs text-pkt-text-body-subtle mt-1">
-          Avslåtte fristforlengelser som forseringen er basert på
-        </p>
+      <div className="px-4 py-3 bg-pkt-surface-subtle border-b-2 border-pkt-border-subtle flex items-center justify-between">
+        <Badge variant="default" size="sm">{relaterteSaker.length} {relaterteSaker.length === 1 ? 'sak' : 'saker'}</Badge>
+        {headerAction}
       </div>
 
       <ul className="divide-y-2 divide-pkt-border-subtle">
@@ -189,13 +194,6 @@ export function RelaterteSakerListe({
                         </Badge>
                       )}
                     </div>
-
-                    {/* Grunnlag category if available */}
-                    {state?.grunnlag?.hovedkategori && (
-                      <p className="text-xs text-pkt-text-body-subtle mt-2">
-                        {state.grunnlag.hovedkategori}
-                      </p>
-                    )}
                   </div>
 
                   {/* Actions */}
@@ -209,7 +207,7 @@ export function RelaterteSakerListe({
                         <TrashIcon className="w-4 h-4" />
                       </button>
                     )}
-                    <ExternalLinkIcon className="w-4 h-4 text-pkt-text-body-subtle group-hover:text-pkt-text-brand transition-colors" />
+                    <ExternalLinkIcon className="w-4 h-4 text-pkt-text-body-subtle group-hover:text-pkt-text-action-active transition-colors" />
                   </div>
                 </div>
               </Link>

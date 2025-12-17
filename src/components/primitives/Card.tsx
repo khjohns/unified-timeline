@@ -3,7 +3,7 @@ import { clsx } from 'clsx';
 
 interface CardProps extends ComponentPropsWithoutRef<'div'> {
   variant?: 'default' | 'elevated' | 'outlined';
-  padding?: 'sm' | 'md' | 'lg';
+  padding?: 'none' | 'sm' | 'md' | 'lg';
 }
 
 /**
@@ -13,7 +13,7 @@ interface CardProps extends ComponentPropsWithoutRef<'div'> {
  * - Larger padding for better content spacing
  */
 export const Card = forwardRef<HTMLDivElement, CardProps>(
-  ({ variant = 'default', padding = 'md', className, children, ...props }, ref) => {
+  ({ variant = 'default', padding = 'none', className, children, ...props }, ref) => {
     return (
       <div
         ref={ref}
@@ -31,7 +31,8 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
             'bg-pkt-bg-card border-2 border-pkt-border-default': variant === 'outlined',
           },
           {
-            // Increased padding for better spacing
+            // Padding options - default is 'none' for flexible layouts
+            'p-0': padding === 'none',
             'p-5': padding === 'sm',
             'p-6': padding === 'md',
             'p-10': padding === 'lg',

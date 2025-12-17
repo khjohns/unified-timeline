@@ -116,7 +116,7 @@ export function StoppForseringModal({
             value={paalopteKostnader}
             onChange={(e) => setPaalopteKostnader(e.target.value)}
             placeholder="F.eks. 250000"
-            className="w-full px-3 py-2 border-2 border-pkt-border-default rounded-none text-sm focus:outline-none focus:border-pkt-border-focus"
+            className="w-full px-3 py-2 bg-pkt-bg-card border-2 border-pkt-border-default rounded-none text-sm focus:outline-none focus:border-pkt-border-focus"
           />
           <p className="text-xs text-pkt-text-body-subtle mt-1">
             Angi faktiske påløpte forseringskostnader frem til nå
@@ -134,7 +134,7 @@ export function StoppForseringModal({
             placeholder="Forklar hvorfor forseringen stoppes..."
             rows={3}
             required
-            className="w-full px-3 py-2 border-2 border-pkt-border-default rounded-none text-sm focus:outline-none focus:border-pkt-border-focus resize-none"
+            className="w-full px-3 py-2 bg-pkt-bg-card border-2 border-pkt-border-default rounded-none text-sm focus:outline-none focus:border-pkt-border-focus resize-none"
           />
         </div>
 

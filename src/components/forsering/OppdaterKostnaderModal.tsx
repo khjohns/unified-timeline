@@ -103,7 +103,7 @@ export function OppdaterKostnaderModal({
             placeholder="F.eks. 350000"
             required
             min="0"
-            className="w-full px-3 py-2 border-2 border-pkt-border-default rounded-none text-sm focus:outline-none focus:border-pkt-border-focus"
+            className="w-full px-3 py-2 bg-pkt-bg-card border-2 border-pkt-border-default rounded-none text-sm focus:outline-none focus:border-pkt-border-focus"
           />
         </div>
 
@@ -132,7 +132,7 @@ export function OppdaterKostnaderModal({
             onChange={(e) => setKommentar(e.target.value)}
             placeholder="Beskriv kostnadsutvikling, f.eks. 'Ekstra skift uke 8-9 pga værforhold'"
             rows={2}
-            className="w-full px-3 py-2 border-2 border-pkt-border-default rounded-none text-sm focus:outline-none focus:border-pkt-border-focus resize-none"
+            className="w-full px-3 py-2 bg-pkt-bg-card border-2 border-pkt-border-default rounded-none text-sm focus:outline-none focus:border-pkt-border-focus resize-none"
           />
         </div>
 

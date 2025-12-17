@@ -7,6 +7,7 @@
 
 export { Button } from './Button';
 export { Card } from './Card';
+export { DashboardCard } from './DashboardCard';
 export { Modal } from './Modal';
 export { Tooltip } from './Tooltip';
 export { AlertDialog } from './AlertDialog';

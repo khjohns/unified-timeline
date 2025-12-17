@@ -229,7 +229,7 @@ export function BHStandpunktEndring({
             {endringer.map((endring) => (
               <li
                 key={endring.sakId}
-                className="p-3 bg-pkt-surface-subtle rounded-none border-l-4 border-pkt-brand-yellow-500"
+                className="p-3 bg-pkt-surface-subtle rounded-none border-l-4 border-pkt-border-yellow"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
@@ -272,7 +272,7 @@ export function BHStandpunktEndring({
       {kompensasjonsBeregning && forseringData.er_iverksatt && (
         <Card className="p-0 overflow-hidden">
           <div className="px-4 py-3 bg-pkt-surface-subtle border-b-2 border-pkt-border-subtle flex items-center gap-2">
-            <InfoCircledIcon className="w-4 h-4 text-pkt-text-brand" />
+            <InfoCircledIcon className="w-4 h-4 text-pkt-text-action-active" />
             <h3 className="font-bold text-sm">Kompensasjonsberegning</h3>
           </div>
           <div className="p-4">
@@ -288,7 +288,7 @@ export function BHStandpunktEndring({
               )}
 
               <DataListItem label="Estimert kompensasjon">
-                <span className="font-bold text-pkt-text-brand">
+                <span className="font-bold text-pkt-text-action-active">
                   {formatCurrency(kompensasjonsBeregning.estimertKompensasjon)}
                 </span>
               </DataListItem>
@@ -304,14 +304,12 @@ export function BHStandpunktEndring({
               )}
             </DataList>
 
-            <div className="mt-4 p-3 bg-pkt-brand-yellow-500/20 border-2 border-pkt-border-yellow rounded-none">
-              <p className="text-sm">
-                <strong>Merk:</strong> Kompensasjon for forseringskostnader påløpt før
-                BH endret standpunkt kan kreves som vederlagsjustering. Dokumenter
-                faktiske påløpte kostnader for perioden {formatDate(forseringData.dato_iverksatt)}
-                {' '}til standpunktendring.
-              </p>
-            </div>
+            <Alert variant="warning" size="sm" className="mt-4">
+              <strong>Merk:</strong> Kompensasjon for forseringskostnader påløpt før
+              BH endret standpunkt kan kreves som vederlagsjustering. Dokumenter
+              faktiske påløpte kostnader for perioden {formatDate(forseringData.dato_iverksatt)}
+              {' '}til standpunktendring.
+            </Alert>
           </div>
         </Card>
       )}

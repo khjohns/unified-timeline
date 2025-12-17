@@ -15,14 +15,12 @@ import { Timeline } from '../components/views/Timeline';
 import { Button } from '../components/primitives/Button';
 import { Badge } from '../components/primitives/Badge';
 import { Alert } from '../components/primitives/Alert';
-import { ModeToggle } from '../components/ModeToggle';
-import { ThemeToggle } from '../components/ThemeToggle';
+import { PageHeader } from '../components/PageHeader';
 import {
   ForseringDashboard,
   ForseringKostnadskort,
   RelaterteSakerListe,
   LeggTilRelatertSakModal,
-  BHStandpunktEndring,
   StoppForseringModal,
   BHResponsForseringModal,
   OppdaterKostnaderModal,
@@ -31,9 +29,6 @@ import {
   ReloadIcon,
   ArrowLeftIcon,
   PlusIcon,
-  StopIcon,
-  ChatBubbleIcon,
-  Pencil1Icon,
 } from '@radix-ui/react-icons';
 import type { ForseringData, TimelineEntry, SakRelasjon } from '../types/timeline';
 import {
@@ -239,7 +234,7 @@ export function ForseringPage() {
     return (
       <div className="min-h-screen bg-pkt-bg-default flex items-center justify-center">
         <div className="text-center">
-          <ReloadIcon className="w-8 h-8 animate-spin mx-auto mb-4 text-pkt-text-brand" />
+          <ReloadIcon className="w-8 h-8 animate-spin mx-auto mb-4 text-pkt-text-action-active" />
           <p className="text-pkt-text-body-subtle">Laster forseringssak...</p>
         </div>
       </div>
@@ -290,194 +285,95 @@ export function ForseringPage() {
   return (
     <div className="min-h-screen bg-pkt-bg-default">
       {/* Header */}
-      <header className="bg-pkt-surface-default border-b-2 border-pkt-border-subtle sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              {/* Back link */}
-              <Link
-                to="/"
-                className="text-pkt-text-body-subtle hover:text-pkt-text-brand transition-colors"
-              >
-                <ArrowLeftIcon className="w-5 h-5" />
-              </Link>
-
-              {/* Title and badges */}
-              <div>
-                <div className="flex items-center gap-3">
-                  <h1 className="text-xl font-bold">
-                    {state?.sakstittel || 'Forseringssak'}
-                  </h1>
-                  <Badge variant="default">Forsering §33.8</Badge>
-                  {forseringData.er_iverksatt && (
-                    <Badge variant="success">Iverksatt</Badge>
-                  )}
-                  {forseringData.er_stoppet && (
-                    <Badge variant="warning">Stoppet</Badge>
-                  )}
-                </div>
-                <p className="text-sm text-pkt-text-body-subtle mt-1">
-                  Basert på {kontekstData?.oppsummering?.antall_relaterte_saker || 0} avslåtte fristforlengelser
-                </p>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex items-center gap-2">
-              {/* Stop forsering button - only for TE when forsering is active */}
-              {userRole === 'TE' && forseringData.er_iverksatt && !forseringData.er_stoppet && (
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={() => setStoppModalOpen(true)}
-                >
-                  <StopIcon className="w-4 h-4 mr-1" />
-                  Stopp forsering
-                </Button>
-              )}
-              {/* BH response button - only for BH when forsering is active */}
-              {userRole === 'BH' && forseringData.dato_varslet && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setBhResponsModalOpen(true)}
-                >
-                  <ChatBubbleIcon className="w-4 h-4 mr-1" />
-                  {forseringData.bh_aksepterer_forsering !== undefined ? 'Endre standpunkt' : 'Gi standpunkt'}
-                </Button>
-              )}
-              <ThemeToggle />
-              <ModeToggle userRole={userRole} onToggle={setUserRole} />
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => refetchCase()}
-              >
-                <ReloadIcon className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <PageHeader
+        title={state?.sakstittel || 'Forseringssak'}
+        subtitle={`Sak #${sakId}`}
+        userRole={userRole}
+        onToggleRole={setUserRole}
+      />
 
       {/* Main content */}
-      <main className="max-w-7xl mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left column: Status and cost */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Status dashboard */}
-            <ForseringDashboard forseringData={forseringData} />
-
-            {/* BH position change alerts (if any) */}
-            {kontekstData && (
-              <BHStandpunktEndring
+      <main className="max-w-3xl mx-auto px-4 py-6 sm:px-8 sm:py-8 bg-pkt-bg-card min-h-[calc(100vh-88px)]">
+        <div className="space-y-6">
+          {/* Status and costs section */}
+          <section>
+            <h2 className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4">
+              Status og kostnader
+            </h2>
+            <div className="space-y-4">
+              <ForseringDashboard
                 forseringData={forseringData}
-                relaterteSaker={kontekstData.relaterte_saker}
-                sakStates={kontekstData.sak_states}
+                userRole={userRole}
+                onStoppForsering={() => setStoppModalOpen(true)}
+                onOppdaterKostnader={() => setKostnaderModalOpen(true)}
+                onGiStandpunkt={() => setBhResponsModalOpen(true)}
               />
-            )}
-
-            {/* Cost calculation card */}
-            <div>
-              {userRole === 'TE' && forseringData.er_iverksatt && !forseringData.er_stoppet && (
-                <div className="flex justify-end mb-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setKostnaderModalOpen(true)}
-                  >
-                    <Pencil1Icon className="w-4 h-4 mr-1" />
-                    Oppdater kostnader
-                  </Button>
-                </div>
-              )}
               <ForseringKostnadskort forseringData={forseringData} />
             </div>
+          </section>
 
-            {/* Summary from related cases */}
-            {kontekstData?.oppsummering && (
-              <div className="p-4 bg-pkt-surface-subtle border-2 border-pkt-border-default rounded-none">
-                <h3 className="font-bold text-sm mb-3">Oppsummering fra relaterte saker</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-pkt-text-body-subtle block">Totalt krevde dager:</span>
-                    <span className="font-bold text-lg">{kontekstData.oppsummering.total_krevde_dager}</span>
-                  </div>
-                  <div>
-                    <span className="text-pkt-text-body-subtle block">Totalt avslåtte dager:</span>
-                    <span className="font-bold text-lg text-alert-danger-text">
-                      {kontekstData.oppsummering.total_avslatte_dager}
-                    </span>
-                  </div>
-                </div>
-              </div>
+          {/* Related cases section */}
+          <section>
+            <h2 className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4">
+              Relaterte saker
+            </h2>
+            <RelaterteSakerListe
+            relaterteSaker={kontekstData?.relaterte_saker || []}
+            sakStates={kontekstData?.sak_states}
+            canRemove={userRole === 'TE'}
+            onRemove={(sakId) => fjernMutation.mutate(sakId)}
+            isRemoving={fjernMutation.isPending}
+            headerAction={userRole === 'TE' && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setLeggTilModalOpen(true)}
+              >
+                <PlusIcon className="w-4 h-4 mr-1" />
+                Legg til
+              </Button>
+            )}
+            />
+          </section>
+
+          {/* Forsering case's own timeline */}
+          <section className="mt-6 sm:mt-8">
+            <h2 className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4">
+              Hendelser for denne forseringen
+              {kontekstLoading && (
+                <ReloadIcon className="w-4 h-4 animate-spin inline ml-2" />
+              )}
+            </h2>
+
+            {kontekstError && (
+              <Alert variant="warning" title="Kunne ikke laste hendelser">
+                {kontekstError.message}
+              </Alert>
             )}
 
-            {/* Forsering case's own timeline */}
-            <div>
-              <h2 className="text-lg font-bold mb-4">
-                Hendelser for denne forseringen
-                {kontekstLoading && (
-                  <ReloadIcon className="w-4 h-4 animate-spin inline ml-2" />
-                )}
-              </h2>
+            {forseringTimeline.length > 0 ? (
+              <Timeline events={forseringTimeline} />
+            ) : (
+              <p className="text-pkt-text-body-subtle text-sm">
+                Ingen forseringshendelser ennå.
+              </p>
+            )}
+          </section>
 
-              {kontekstError && (
-                <Alert variant="warning" title="Kunne ikke laste hendelser">
-                  {kontekstError.message}
-                </Alert>
-              )}
+          {/* Timeline from related cases */}
+          <section className="mt-6 sm:mt-8">
+            <h2 className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4">
+              Hendelser fra relaterte saker
+            </h2>
 
-              {forseringTimeline.length > 0 ? (
-                <Timeline events={forseringTimeline} />
-              ) : (
-                <p className="text-pkt-text-body-subtle text-sm">
-                  Ingen forseringshendelser ennå.
-                </p>
-              )}
-            </div>
-
-            {/* Timeline from related cases */}
-            <div>
-              <h2 className="text-lg font-bold mb-4">
-                Hendelser fra relaterte saker
-              </h2>
-
-              {relatedCasesTimeline.length > 0 ? (
-                <Timeline events={relatedCasesTimeline} />
-              ) : (
-                <p className="text-pkt-text-body-subtle text-sm">
-                  Ingen hendelser fra relaterte saker.
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Right column: Related cases */}
-          <div className="space-y-6">
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold">Relaterte saker</h3>
-                {userRole === 'TE' && (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setLeggTilModalOpen(true)}
-                  >
-                    <PlusIcon className="w-4 h-4 mr-1" />
-                    Legg til sak
-                  </Button>
-                )}
-              </div>
-              <RelaterteSakerListe
-                relaterteSaker={kontekstData?.relaterte_saker || []}
-                sakStates={kontekstData?.sak_states}
-                canRemove={userRole === 'TE'}
-                onRemove={(sakId) => fjernMutation.mutate(sakId)}
-                isRemoving={fjernMutation.isPending}
-              />
-            </div>
-          </div>
+            {relatedCasesTimeline.length > 0 ? (
+              <Timeline events={relatedCasesTimeline} />
+            ) : (
+              <p className="text-pkt-text-body-subtle text-sm">
+                Ingen hendelser fra relaterte saker.
+              </p>
+            )}
+          </section>
         </div>
       </main>
 

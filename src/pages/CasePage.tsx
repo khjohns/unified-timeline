@@ -18,8 +18,7 @@ import { Timeline } from '../components/views/Timeline';
 import { ComprehensiveMetadata } from '../components/views/ComprehensiveMetadata';
 import { RevisionHistory } from '../components/views/RevisionHistory';
 import { Button } from '../components/primitives/Button';
-import { ModeToggle } from '../components/ModeToggle';
-import { ThemeToggle } from '../components/ThemeToggle';
+import { PageHeader } from '../components/PageHeader';
 import { ForseringRelasjonBanner } from '../components/forsering';
 import {
   SendGrunnlagModal,
@@ -206,41 +205,24 @@ export function CasePage() {
 
   return (
     <div className="min-h-screen bg-pkt-bg-subtle">
-      {/* Header - Minimalistisk */}
-      <header className="bg-pkt-bg-card border-b border-pkt-grays-gray-200">
-        <div className="max-w-3xl mx-auto px-4 py-4 sm:px-8 sm:py-6">
-          {/* Mobile: Stacked layout, Desktop: Side-by-side */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-            {/* Title and sak ID */}
-            <div className="min-w-0">
-              <h1 className="text-lg sm:text-xl font-semibold text-pkt-text-body-dark">
-                {state.sakstittel}
-              </h1>
-              <p className="text-sm text-pkt-grays-gray-500 mt-1">Sak #{sakId}</p>
-            </div>
-            {/* Actions - grouped toggles with separator */}
-            <div className="flex items-center gap-3 shrink-0">
-              {/* Toggle group */}
-              <div className="flex items-center gap-2">
-                <ThemeToggle />
-                <ModeToggle userRole={userRole} onToggle={setUserRole} />
-              </div>
-              {/* Separator */}
-              <div className="hidden sm:block h-6 w-px bg-pkt-border-subtle" />
-              {/* PDF download - styled as icon button matching toggles */}
-              <button
-                onClick={() => downloadContractorClaimPdf(state)}
-                className="flex items-center gap-2 p-2 rounded-lg border border-pkt-grays-gray-200 bg-pkt-bg-subtle text-pkt-grays-gray-500 hover:text-pkt-text-body-dark hover:bg-pkt-bg-card transition-colors"
-                title="Last ned PDF"
-                aria-label="Last ned PDF"
-              >
-                <DownloadIcon className="w-4 h-4" />
-                <span className="text-xs font-medium sm:hidden">PDF</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      {/* Header */}
+      <PageHeader
+        title={state.sakstittel}
+        subtitle={`Sak #${sakId}`}
+        userRole={userRole}
+        onToggleRole={setUserRole}
+        actions={
+          <button
+            onClick={() => downloadContractorClaimPdf(state)}
+            className="flex items-center gap-2 p-2 rounded-lg border border-pkt-grays-gray-200 bg-pkt-bg-subtle text-pkt-grays-gray-500 hover:text-pkt-text-body-dark hover:bg-pkt-bg-card transition-colors"
+            title="Last ned PDF"
+            aria-label="Last ned PDF"
+          >
+            <DownloadIcon className="w-4 h-4" />
+            <span className="text-xs font-medium sm:hidden">PDF</span>
+          </button>
+        }
+      />
 
       {/* Main Content */}
       <main className="max-w-3xl mx-auto px-4 py-6 sm:px-8 sm:py-8 bg-pkt-bg-card min-h-[calc(100vh-88px)]">

@@ -147,7 +147,7 @@ export function LeggTilRelatertSakModal({
             placeholder="Søk etter sak-ID eller tittel..."
             value={sokeTekst}
             onChange={(e) => setSokeTekst(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border-2 border-pkt-border-default rounded-none text-sm focus:outline-none focus:border-pkt-border-focus"
+            className="w-full pl-10 pr-4 py-2 bg-pkt-bg-card border-2 border-pkt-border-default rounded-none text-sm focus:outline-none focus:border-pkt-border-focus"
           />
         </div>
 
