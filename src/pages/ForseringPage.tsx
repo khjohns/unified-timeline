@@ -23,17 +23,27 @@ import {
   RelaterteSakerListe,
   LeggTilRelatertSakModal,
   BHStandpunktEndring,
+  StoppForseringModal,
+  BHResponsForseringModal,
+  OppdaterKostnaderModal,
 } from '../components/forsering';
 import {
   ReloadIcon,
   ArrowLeftIcon,
   PlusIcon,
+  StopIcon,
+  ChatBubbleIcon,
+  Pencil1Icon,
 } from '@radix-ui/react-icons';
 import type { ForseringData, TimelineEntry, SakRelasjon } from '../types/timeline';
 import {
   fetchForseringKontekst,
   fetchKandidatSaker,
   leggTilRelaterteSaker,
+  fjernRelatertSak,
+  stoppForsering,
+  bhResponsForsering,
+  oppdaterKostnader,
   type ForseringKontekstResponse,
   type KandidatSak,
 } from '../api/forsering';
@@ -87,6 +97,9 @@ export function ForseringPage() {
 
   // Modal state
   const [leggTilModalOpen, setLeggTilModalOpen] = useState(false);
+  const [stoppModalOpen, setStoppModalOpen] = useState(false);
+  const [bhResponsModalOpen, setBhResponsModalOpen] = useState(false);
+  const [kostnaderModalOpen, setKostnaderModalOpen] = useState(false);
 
   // Fetch forsering case state
   const {
@@ -120,11 +133,83 @@ export function ForseringPage() {
     },
   });
 
+  // Mutation for removing related cases
+  const fjernMutation = useMutation({
+    mutationFn: (relatertSakId: string) =>
+      fjernRelatertSak({
+        forsering_sak_id: sakId || '',
+        relatert_sak_id: relatertSakId,
+      }),
+    onSuccess: () => {
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['forsering', sakId, 'kontekst'] });
+      queryClient.invalidateQueries({ queryKey: ['case', sakId] });
+    },
+  });
+
+  // Mutation for stopping forsering
+  const stoppMutation = useMutation({
+    mutationFn: (data: { begrunnelse: string; paalopte_kostnader?: number }) =>
+      stoppForsering({
+        forsering_sak_id: sakId || '',
+        begrunnelse: data.begrunnelse,
+        paalopte_kostnader: data.paalopte_kostnader,
+      }),
+    onSuccess: () => {
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['forsering', sakId, 'kontekst'] });
+      queryClient.invalidateQueries({ queryKey: ['case', sakId] });
+      setStoppModalOpen(false);
+    },
+  });
+
+  // Mutation for BH responding to forsering
+  const bhResponsMutation = useMutation({
+    mutationFn: (data: { aksepterer: boolean; godkjent_kostnad?: number; begrunnelse: string }) =>
+      bhResponsForsering({
+        forsering_sak_id: sakId || '',
+        aksepterer: data.aksepterer,
+        godkjent_kostnad: data.godkjent_kostnad,
+        begrunnelse: data.begrunnelse,
+      }),
+    onSuccess: () => {
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['forsering', sakId, 'kontekst'] });
+      queryClient.invalidateQueries({ queryKey: ['case', sakId] });
+      setBhResponsModalOpen(false);
+    },
+  });
+
+  // Mutation for updating incurred costs
+  const kostnaderMutation = useMutation({
+    mutationFn: (data: { paalopte_kostnader: number; kommentar?: string }) =>
+      oppdaterKostnader({
+        forsering_sak_id: sakId || '',
+        paalopte_kostnader: data.paalopte_kostnader,
+        kommentar: data.kommentar,
+      }),
+    onSuccess: () => {
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['forsering', sakId, 'kontekst'] });
+      queryClient.invalidateQueries({ queryKey: ['case', sakId] });
+      setKostnaderModalOpen(false);
+    },
+  });
+
   const state = caseData?.state;
   const forseringData = state?.forsering_data || EMPTY_FORSERING_DATA;
 
+  // Forsering case's own events
+  const forseringTimeline = useMemo((): TimelineEntry[] => {
+    if (!kontekstData?.forsering_hendelser) return [];
+    // Sort by timestamp descending
+    return [...kontekstData.forsering_hendelser].sort((a, b) =>
+      new Date(b.tidsstempel).getTime() - new Date(a.tidsstempel).getTime()
+    );
+  }, [kontekstData]);
+
   // Combine timeline events from all related cases
-  const combinedTimeline = useMemo((): TimelineEntry[] => {
+  const relatedCasesTimeline = useMemo((): TimelineEntry[] => {
     if (!kontekstData?.hendelser) return [];
 
     const allEvents: TimelineEntry[] = [];
@@ -239,6 +324,28 @@ export function ForseringPage() {
 
             {/* Actions */}
             <div className="flex items-center gap-2">
+              {/* Stop forsering button - only for TE when forsering is active */}
+              {userRole === 'TE' && forseringData.er_iverksatt && !forseringData.er_stoppet && (
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => setStoppModalOpen(true)}
+                >
+                  <StopIcon className="w-4 h-4 mr-1" />
+                  Stopp forsering
+                </Button>
+              )}
+              {/* BH response button - only for BH when forsering is active */}
+              {userRole === 'BH' && forseringData.dato_varslet && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setBhResponsModalOpen(true)}
+                >
+                  <ChatBubbleIcon className="w-4 h-4 mr-1" />
+                  {forseringData.bh_aksepterer_forsering !== undefined ? 'Endre standpunkt' : 'Gi standpunkt'}
+                </Button>
+              )}
               <ThemeToggle />
               <ModeToggle userRole={userRole} onToggle={setUserRole} />
               <Button
@@ -271,7 +378,21 @@ export function ForseringPage() {
             )}
 
             {/* Cost calculation card */}
-            <ForseringKostnadskort forseringData={forseringData} />
+            <div>
+              {userRole === 'TE' && forseringData.er_iverksatt && !forseringData.er_stoppet && (
+                <div className="flex justify-end mb-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setKostnaderModalOpen(true)}
+                  >
+                    <Pencil1Icon className="w-4 h-4 mr-1" />
+                    Oppdater kostnader
+                  </Button>
+                </div>
+              )}
+              <ForseringKostnadskort forseringData={forseringData} />
+            </div>
 
             {/* Summary from related cases */}
             {kontekstData?.oppsummering && (
@@ -292,10 +413,10 @@ export function ForseringPage() {
               </div>
             )}
 
-            {/* Timeline from related cases */}
+            {/* Forsering case's own timeline */}
             <div>
               <h2 className="text-lg font-bold mb-4">
-                Hendelser fra relaterte saker
+                Hendelser for denne forseringen
                 {kontekstLoading && (
                   <ReloadIcon className="w-4 h-4 animate-spin inline ml-2" />
                 )}
@@ -307,11 +428,26 @@ export function ForseringPage() {
                 </Alert>
               )}
 
-              {combinedTimeline.length > 0 ? (
-                <Timeline events={combinedTimeline} />
+              {forseringTimeline.length > 0 ? (
+                <Timeline events={forseringTimeline} />
               ) : (
                 <p className="text-pkt-text-body-subtle text-sm">
-                  Ingen hendelser å vise.
+                  Ingen forseringshendelser ennå.
+                </p>
+              )}
+            </div>
+
+            {/* Timeline from related cases */}
+            <div>
+              <h2 className="text-lg font-bold mb-4">
+                Hendelser fra relaterte saker
+              </h2>
+
+              {relatedCasesTimeline.length > 0 ? (
+                <Timeline events={relatedCasesTimeline} />
+              ) : (
+                <p className="text-pkt-text-body-subtle text-sm">
+                  Ingen hendelser fra relaterte saker.
                 </p>
               )}
             </div>
@@ -336,6 +472,9 @@ export function ForseringPage() {
               <RelaterteSakerListe
                 relaterteSaker={kontekstData?.relaterte_saker || []}
                 sakStates={kontekstData?.sak_states}
+                canRemove={userRole === 'TE'}
+                onRemove={(sakId) => fjernMutation.mutate(sakId)}
+                isRemoving={fjernMutation.isPending}
               />
             </div>
           </div>
@@ -350,6 +489,33 @@ export function ForseringPage() {
         kandidatSaker={kandidatData?.kandidat_saker || []}
         onLeggTil={(sakIds) => leggTilMutation.mutate(sakIds)}
         isLoading={leggTilMutation.isPending}
+      />
+
+      {/* Stop forsering modal */}
+      <StoppForseringModal
+        open={stoppModalOpen}
+        onOpenChange={setStoppModalOpen}
+        forseringData={forseringData}
+        onStopp={(data) => stoppMutation.mutate(data)}
+        isLoading={stoppMutation.isPending}
+      />
+
+      {/* BH response modal */}
+      <BHResponsForseringModal
+        open={bhResponsModalOpen}
+        onOpenChange={setBhResponsModalOpen}
+        forseringData={forseringData}
+        onRespons={(data) => bhResponsMutation.mutate(data)}
+        isLoading={bhResponsMutation.isPending}
+      />
+
+      {/* Update costs modal */}
+      <OppdaterKostnaderModal
+        open={kostnaderModalOpen}
+        onOpenChange={setKostnaderModalOpen}
+        forseringData={forseringData}
+        onOppdater={(data) => kostnaderMutation.mutate(data)}
+        isLoading={kostnaderMutation.isPending}
       />
     </div>
   );

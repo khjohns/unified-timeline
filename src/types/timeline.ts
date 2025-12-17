@@ -7,7 +7,7 @@
 
 // ========== ENUMS ==========
 
-export type SporType = 'grunnlag' | 'vederlag' | 'frist';
+export type SporType = 'grunnlag' | 'vederlag' | 'frist' | 'forsering';
 
 export type SporStatus =
   | 'ikke_relevant'
@@ -353,7 +353,15 @@ export type EventType =
   | 'respons_frist'
   | 'respons_frist_oppdatert'      // BH endrer standpunkt, evt stopper forsering
   | 'forsering_varsel'             // §33.8 - TE varsler om iverksettelse av forsering
-  | 'eo_utstedt';
+  | 'eo_utstedt'
+  // Forsering-specific events (for forseringssak as separate case)
+  | 'forsering_opprettet'          // Forseringssak opprettet med relasjoner
+  | 'forsering_iverksatt'          // TE iverksetter forsering
+  | 'forsering_stoppet'            // TE stopper forsering (eller BH godkjenner frist)
+  | 'forsering_kostnad_oppdatert'  // TE oppdaterer påløpte kostnader
+  | 'forsering_bh_respons'         // BH aksepterer/avslår forseringen
+  | 'forsering_relatert_lagt_til'  // Relatert sak lagt til forsering
+  | 'forsering_relatert_fjernet';  // Relatert sak fjernet fra forsering
 
 // Varsel info structure (reusable)
 export interface VarselInfo {

@@ -3,10 +3,12 @@
  *
  * Main page for viewing a case in the unified timeline architecture.
  * Displays status dashboard, available actions, and event timeline.
+ * Shows a banner if the case is part of a forsering case.
  */
 
 import { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useCaseState } from '../hooks/useCaseState';
 import { useTimeline } from '../hooks/useTimeline';
 import { useActionPermissions } from '../hooks/useActionPermissions';
@@ -18,6 +20,7 @@ import { RevisionHistory } from '../components/views/RevisionHistory';
 import { Button } from '../components/primitives/Button';
 import { ModeToggle } from '../components/ModeToggle';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { ForseringRelasjonBanner } from '../components/forsering';
 import {
   SendGrunnlagModal,
   SendVederlagModal,
@@ -36,6 +39,7 @@ import {
   // Special action modals (TE)
   SendForseringModal,
 } from '../components/actions';
+import { findForseringerForSak, type FindForseringerResponse } from '../api/forsering';
 import type { SakState, GrunnlagResponsResultat, TimelineEntry } from '../types/timeline';
 import {
   ReloadIcon,
@@ -90,6 +94,14 @@ export function CasePage() {
   const { sakId } = useParams<{ sakId: string }>();
   const { data, isLoading, error } = useCaseState(sakId || '');
   const { data: timelineData } = useTimeline(sakId || '');
+
+  // Fetch forsering relations (check if this case is part of any forsering)
+  const { data: forseringData } = useQuery<FindForseringerResponse>({
+    queryKey: ['forsering', 'by-relatert', sakId],
+    queryFn: () => findForseringerForSak(sakId || ''),
+    staleTime: 60_000,
+    enabled: !!sakId,
+  });
 
   // Modal state management - Initial submissions
   const [sendGrunnlagOpen, setSendGrunnlagOpen] = useState(false);
@@ -232,6 +244,13 @@ export function CasePage() {
 
       {/* Main Content */}
       <main className="max-w-3xl mx-auto px-4 py-6 sm:px-8 sm:py-8 bg-pkt-bg-card min-h-[calc(100vh-88px)]">
+        {/* Forsering relation banner (if this case is part of a forsering) */}
+        {forseringData?.forseringer && forseringData.forseringer.length > 0 && (
+          <section className="mb-6">
+            <ForseringRelasjonBanner forseringer={forseringData.forseringer} />
+          </section>
+        )}
+
         {/* Status Dashboard with Contextual Actions */}
         <section aria-labelledby="krav-respons-heading">
           <h2

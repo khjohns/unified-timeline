@@ -8,8 +8,28 @@ import type { TimelineEntry } from '@/types/timeline';
  * - forsering_iverksatt: Acceleration started
  * - vederlag_krav_sendt: Cost claim sent
  * - forsering_kostnad_oppdatert: Accrued costs updated
+ * - forsering_bh_respons: BH accepts/rejects forsering
+ * - forsering_stoppet: TE stops active forsering
+ * - forsering_relatert_lagt_til: Related case added
+ * - forsering_relatert_fjernet: Related case removed
  */
 export const mockTimelineEvents12: TimelineEntry[] = [
+  {
+    event_id: 'evt-1205',
+    tidsstempel: '2025-02-18T10:00:00Z',
+    type: 'Relatert sak lagt til',
+    event_type: 'forsering_relatert_lagt_til',
+    aktor: 'Per Hansen',
+    rolle: 'TE',
+    spor: 'forsering',
+    sammendrag: 'SAK-2025-013 lagt til som grunnlag for forsering',
+    event_data: {
+      relatert_sak_id: 'SAK-2025-013',
+      relatert_sak_tittel: 'Forsinkelse - Ventilasjonsmontasje',
+      avslatte_dager_tillagt: 15,
+      ny_total_avslatte_dager: 45,
+    },
+  },
   {
     event_id: 'evt-1204',
     tidsstempel: '2025-02-15T14:00:00Z',
@@ -17,11 +37,14 @@ export const mockTimelineEvents12: TimelineEntry[] = [
     event_type: 'forsering_kostnad_oppdatert',
     aktor: 'Per Hansen',
     rolle: 'TE',
-    spor: 'vederlag',
+    spor: 'forsering',
     sammendrag: 'Påløpte kostnader oppdatert til kr 520 000,-',
     event_data: {
       paalopte_kostnader: 520000,
+      forrige_paalopte_kostnader: 0,
       estimert_kostnad: 1250000,
+      maks_forseringskostnad: 4387500,
+      prosent_av_estimert: 41.6,
       kommentar: 'Uke 1-2 av forsering fullført. Overtidskostnader og ekstra mannskap.',
     },
   },
@@ -32,10 +55,12 @@ export const mockTimelineEvents12: TimelineEntry[] = [
     event_type: 'forsering_iverksatt',
     aktor: 'Per Hansen',
     rolle: 'TE',
-    spor: 'frist',
+    spor: 'forsering',
     sammendrag: 'Forsering iverksatt - ekstra skift og overtid starter',
     event_data: {
       dato_iverksatt: '2025-02-12',
+      estimert_kostnad: 1250000,
+      avslatte_dager: 45,
       tiltak: [
         'Overtid for alle fag',
         'Ekstra skift lørdager',
@@ -73,7 +98,7 @@ export const mockTimelineEvents12: TimelineEntry[] = [
     event_type: 'forsering_opprettet',
     aktor: 'Per Hansen',
     rolle: 'TE',
-    spor: 'generelt',
+    spor: 'forsering',
     sammendrag: 'Forseringssak opprettet basert på 3 avslåtte fristforlengelser',
     event_data: {
       relaterte_saker: ['SAK-2025-003', 'SAK-2025-006', 'SAK-2025-013'],
@@ -81,6 +106,7 @@ export const mockTimelineEvents12: TimelineEntry[] = [
       estimert_kostnad: 1250000,
       dagmulktsats: 75000,
       maks_forseringskostnad: 4387500,
+      bekreft_30_prosent_regel: true,
       begrunnelse:
         'BH har avslått fristforlengelser for til sammen 45 dager. TE velger å behandle avslagene som pålegg om forsering iht. §33.8.',
     },

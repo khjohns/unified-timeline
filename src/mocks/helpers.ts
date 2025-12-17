@@ -328,6 +328,7 @@ export function getMockForseringKontekstById(sakId: string): {
   }>;
   sak_states: Record<string, SakState>;
   hendelser: Record<string, TimelineEntry[]>;
+  forsering_hendelser: TimelineEntry[];  // Forsering case's own events
   oppsummering: {
     antall_relaterte_saker: number;
     total_krevde_dager: number;
@@ -350,6 +351,7 @@ export function getMockForseringKontekstById(sakId: string): {
       relaterte_saker: [],
       sak_states: {},
       hendelser: {},
+      forsering_hendelser: [],
       oppsummering: {
         antall_relaterte_saker: 0,
         total_krevde_dager: 0,
@@ -358,6 +360,9 @@ export function getMockForseringKontekstById(sakId: string): {
       },
     };
   }
+
+  // Get the forsering case's own events
+  const forseringHendelser = getMockTimelineById(sakId);
 
   // Gather related case data
   const sakStates: Record<string, SakState> = {};
@@ -407,6 +412,7 @@ export function getMockForseringKontekstById(sakId: string): {
     relaterte_saker: state.relaterte_saker,
     sak_states: sakStates,
     hendelser,
+    forsering_hendelser: forseringHendelser,
     oppsummering: {
       antall_relaterte_saker: state.relaterte_saker.length,
       total_krevde_dager: totalKrevdeDager,

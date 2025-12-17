@@ -3,12 +3,15 @@
  *
  * Displays a list of related cases for a forsering case.
  * Each case is clickable and shows key status info.
+ * Supports removal of cases when canRemove is enabled.
  */
 
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card } from '../primitives/Card';
 import { Badge } from '../primitives/Badge';
-import { ExternalLinkIcon } from '@radix-ui/react-icons';
+import { Button } from '../primitives/Button';
+import { ExternalLinkIcon, TrashIcon, Cross2Icon } from '@radix-ui/react-icons';
 import type { SakRelasjon, SakState } from '../../types/timeline';
 
 interface RelatertSakInfo extends SakRelasjon {
@@ -18,6 +21,12 @@ interface RelatertSakInfo extends SakRelasjon {
 interface RelaterteSakerListeProps {
   relaterteSaker: RelatertSakInfo[];
   sakStates?: Record<string, SakState>;
+  /** Enable removal functionality (typically for TE role) */
+  canRemove?: boolean;
+  /** Callback when a case is removed */
+  onRemove?: (sakId: string) => void;
+  /** Loading state during removal */
+  isRemoving?: boolean;
 }
 
 function getGrunnlagBadge(state?: SakState) {
@@ -64,7 +73,35 @@ function getFristBadge(state?: SakState) {
   return <Badge variant={variant} size="sm">{label}</Badge>;
 }
 
-export function RelaterteSakerListe({ relaterteSaker, sakStates = {} }: RelaterteSakerListeProps) {
+export function RelaterteSakerListe({
+  relaterteSaker,
+  sakStates = {},
+  canRemove = false,
+  onRemove,
+  isRemoving = false,
+}: RelaterteSakerListeProps) {
+  // Track which case is pending removal confirmation
+  const [confirmingRemoval, setConfirmingRemoval] = useState<string | null>(null);
+
+  const handleRemoveClick = (sakId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setConfirmingRemoval(sakId);
+  };
+
+  const handleConfirmRemoval = (sakId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onRemove?.(sakId);
+    setConfirmingRemoval(null);
+  };
+
+  const handleCancelRemoval = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setConfirmingRemoval(null);
+  };
+
   if (relaterteSaker.length === 0) {
     return (
       <Card className="p-4">
@@ -89,11 +126,43 @@ export function RelaterteSakerListe({ relaterteSaker, sakStates = {} }: Relatert
       <ul className="divide-y-2 divide-pkt-border-subtle">
         {relaterteSaker.map((sak) => {
           const state = sakStates[sak.relatert_sak_id] || sak.state;
+          const isConfirming = confirmingRemoval === sak.relatert_sak_id;
 
           return (
-            <li key={sak.relatert_sak_id}>
+            <li key={sak.relatert_sak_id} className="relative">
+              {/* Confirmation overlay */}
+              {isConfirming && (
+                <div className="absolute inset-0 bg-alert-danger-bg/95 z-10 flex items-center justify-center p-4">
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-alert-danger-text mb-3">
+                      Fjern denne saken fra forseringen?
+                    </p>
+                    <div className="flex gap-2 justify-center">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleCancelRemoval}
+                        disabled={isRemoving}
+                      >
+                        <Cross2Icon className="w-4 h-4 mr-1" />
+                        Avbryt
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={(e) => handleConfirmRemoval(sak.relatert_sak_id, e)}
+                        disabled={isRemoving}
+                      >
+                        <TrashIcon className="w-4 h-4 mr-1" />
+                        {isRemoving ? 'Fjerner...' : 'Fjern'}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <Link
-                to={`/sak/${sak.relatert_sak_id}`}
+                to={`/saker/${sak.relatert_sak_id}`}
                 className="block p-4 hover:bg-pkt-surface-subtle transition-colors group"
               >
                 <div className="flex items-start justify-between gap-4">
@@ -129,8 +198,19 @@ export function RelaterteSakerListe({ relaterteSaker, sakStates = {} }: Relatert
                     )}
                   </div>
 
-                  {/* Link icon */}
-                  <ExternalLinkIcon className="w-4 h-4 text-pkt-text-body-subtle group-hover:text-pkt-text-brand transition-colors flex-shrink-0 mt-1" />
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 flex-shrink-0 mt-1">
+                    {canRemove && onRemove && (
+                      <button
+                        onClick={(e) => handleRemoveClick(sak.relatert_sak_id, e)}
+                        className="p-1.5 text-pkt-text-body-subtle hover:text-alert-danger-text hover:bg-alert-danger-bg rounded transition-colors"
+                        title="Fjern fra forsering"
+                      >
+                        <TrashIcon className="w-4 h-4" />
+                      </button>
+                    )}
+                    <ExternalLinkIcon className="w-4 h-4 text-pkt-text-body-subtle group-hover:text-pkt-text-brand transition-colors" />
+                  </div>
                 </div>
               </Link>
             </li>

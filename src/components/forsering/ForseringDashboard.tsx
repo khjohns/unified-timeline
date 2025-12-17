@@ -3,11 +3,14 @@
  *
  * Status dashboard for forsering cases.
  * Shows forsering status, dates, and BH response.
+ * Includes cost tracking with 30% rule warnings.
  */
 
+import { useMemo } from 'react';
 import { Card } from '../primitives/Card';
 import { Badge } from '../primitives/Badge';
 import { DataList, DataListItem } from '../primitives/DataList';
+import { ExclamationTriangleIcon, CheckCircledIcon, CrossCircledIcon } from '@radix-ui/react-icons';
 import type { ForseringData } from '../../types/timeline';
 
 interface ForseringDashboardProps {
@@ -30,6 +33,62 @@ function formatDate(dateString?: string): string {
 function formatCurrency(amount?: number): string {
   if (amount === undefined || amount === null) return '-';
   return `${amount.toLocaleString('nb-NO')} kr`;
+}
+
+/**
+ * Get cost status based on 30% rule
+ */
+function getCostStatus(forseringData: ForseringData): {
+  status: 'ok' | 'warning' | 'danger';
+  label: string;
+  icon: React.ReactNode;
+} {
+  const { paalopte_kostnader, estimert_kostnad, maks_forseringskostnad, er_iverksatt } = forseringData;
+
+  if (!er_iverksatt || paalopte_kostnader === undefined) {
+    return {
+      status: 'ok',
+      label: 'Ikke startet',
+      icon: null,
+    };
+  }
+
+  const prosentAvMaks = (paalopte_kostnader / maks_forseringskostnad) * 100;
+  const prosentAvEstimert = (paalopte_kostnader / estimert_kostnad) * 100;
+
+  if (paalopte_kostnader > maks_forseringskostnad) {
+    return {
+      status: 'danger',
+      label: 'Over maksgrense',
+      icon: <CrossCircledIcon className="w-3 h-3" />,
+    };
+  }
+  if (prosentAvMaks >= 80) {
+    return {
+      status: 'warning',
+      label: 'Nær maksgrense',
+      icon: <ExclamationTriangleIcon className="w-3 h-3" />,
+    };
+  }
+  if (paalopte_kostnader > estimert_kostnad) {
+    return {
+      status: 'warning',
+      label: 'Over estimat',
+      icon: <ExclamationTriangleIcon className="w-3 h-3" />,
+    };
+  }
+  if (prosentAvEstimert >= 80) {
+    return {
+      status: 'warning',
+      label: 'Nær estimat',
+      icon: <ExclamationTriangleIcon className="w-3 h-3" />,
+    };
+  }
+  return {
+    status: 'ok',
+    label: 'Innenfor ramme',
+    icon: <CheckCircledIcon className="w-3 h-3" />,
+  };
 }
 
 function getStatusBadge(forseringData: ForseringData) {
@@ -84,8 +143,23 @@ export function ForseringDashboard({ forseringData }: ForseringDashboardProps) {
 
       {/* Cost card */}
       <Card className="p-0 overflow-hidden">
-        <div className="px-4 py-3 bg-pkt-surface-subtle border-b-2 border-pkt-border-subtle">
+        <div className="px-4 py-3 bg-pkt-surface-subtle border-b-2 border-pkt-border-subtle flex items-center justify-between">
           <h3 className="font-bold text-sm">Kostnader</h3>
+          {forseringData.er_iverksatt && forseringData.paalopte_kostnader !== undefined && (
+            <Badge
+              variant={
+                getCostStatus(forseringData).status === 'danger' ? 'danger' :
+                getCostStatus(forseringData).status === 'warning' ? 'warning' :
+                'success'
+              }
+              size="sm"
+            >
+              <span className="flex items-center gap-1">
+                {getCostStatus(forseringData).icon}
+                {getCostStatus(forseringData).label}
+              </span>
+            </Badge>
+          )}
         </div>
         <div className="p-4">
           <DataList>
@@ -97,7 +171,13 @@ export function ForseringDashboard({ forseringData }: ForseringDashboardProps) {
             </DataListItem>
             {forseringData.paalopte_kostnader !== undefined && (
               <DataListItem label="Påløpte kostnader">
-                {formatCurrency(forseringData.paalopte_kostnader)}
+                <span className={`font-medium ${
+                  getCostStatus(forseringData).status === 'danger' ? 'text-alert-danger-text' :
+                  getCostStatus(forseringData).status === 'warning' ? 'text-badge-warning-text' :
+                  ''
+                }`}>
+                  {formatCurrency(forseringData.paalopte_kostnader)}
+                </span>
               </DataListItem>
             )}
           </DataList>

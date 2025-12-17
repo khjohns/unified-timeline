@@ -19,6 +19,7 @@ export interface ForseringKontekstResponse {
   relaterte_saker: SakRelasjon[];
   sak_states: Record<string, SakState>;
   hendelser: Record<string, TimelineEntry[]>;
+  forsering_hendelser: TimelineEntry[];  // Forsering case's own events
   oppsummering: {
     antall_relaterte_saker: number;
     total_krevde_dager: number;
@@ -65,6 +66,51 @@ export interface LeggTilRelatertSakResponse {
   success: boolean;
   message?: string;
   oppdatert_relaterte: SakRelasjon[];
+}
+
+export interface FjernRelatertSakRequest {
+  forsering_sak_id: string;
+  relatert_sak_id: string;
+}
+
+export interface FjernRelatertSakResponse {
+  success: boolean;
+  message?: string;
+}
+
+export interface StoppForseringRequest {
+  forsering_sak_id: string;
+  begrunnelse: string;
+  paalopte_kostnader?: number;
+}
+
+export interface StoppForseringResponse {
+  success: boolean;
+  message?: string;
+  dato_stoppet: string;
+}
+
+export interface BHResponsForseringRequest {
+  forsering_sak_id: string;
+  aksepterer: boolean;
+  godkjent_kostnad?: number;
+  begrunnelse: string;
+}
+
+export interface BHResponsForseringResponse {
+  success: boolean;
+  message?: string;
+}
+
+export interface OppdaterKostnaderRequest {
+  forsering_sak_id: string;
+  paalopte_kostnader: number;
+  kommentar?: string;
+}
+
+export interface OppdaterKostnaderResponse {
+  success: boolean;
+  message?: string;
 }
 
 // ============================================================================
@@ -191,4 +237,187 @@ export async function leggTilRelaterteSaker(
       body: JSON.stringify({ relatert_sak_ids: data.relatert_sak_ids }),
     }
   );
+}
+
+/**
+ * Remove a related case from a forsering case
+ */
+export async function fjernRelatertSak(
+  data: FjernRelatertSakRequest
+): Promise<FjernRelatertSakResponse> {
+  // Use mock data if enabled
+  if (USE_MOCK_API) {
+    await mockDelay(300);
+    return {
+      success: true,
+      message: 'Sak fjernet fra forsering',
+    };
+  }
+
+  // Real API call
+  return apiFetch<FjernRelatertSakResponse>(
+    `/api/forsering/${data.forsering_sak_id}/relaterte/${data.relatert_sak_id}`,
+    {
+      method: 'DELETE',
+    }
+  );
+}
+
+/**
+ * Stop an active forsering
+ */
+export async function stoppForsering(
+  data: StoppForseringRequest
+): Promise<StoppForseringResponse> {
+  // Use mock data if enabled
+  if (USE_MOCK_API) {
+    await mockDelay(400);
+    return {
+      success: true,
+      message: 'Forsering stoppet',
+      dato_stoppet: new Date().toISOString(),
+    };
+  }
+
+  // Real API call
+  return apiFetch<StoppForseringResponse>(
+    `/api/forsering/${data.forsering_sak_id}/stopp`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        begrunnelse: data.begrunnelse,
+        paalopte_kostnader: data.paalopte_kostnader,
+      }),
+    }
+  );
+}
+
+/**
+ * BH responds to a forsering claim (accept or reject)
+ */
+export async function bhResponsForsering(
+  data: BHResponsForseringRequest
+): Promise<BHResponsForseringResponse> {
+  // Use mock data if enabled
+  if (USE_MOCK_API) {
+    await mockDelay(400);
+    return {
+      success: true,
+      message: data.aksepterer
+        ? 'Forsering akseptert'
+        : 'Forsering avslått',
+    };
+  }
+
+  // Real API call
+  return apiFetch<BHResponsForseringResponse>(
+    `/api/forsering/${data.forsering_sak_id}/bh-respons`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        aksepterer: data.aksepterer,
+        godkjent_kostnad: data.godkjent_kostnad,
+        begrunnelse: data.begrunnelse,
+      }),
+    }
+  );
+}
+
+/**
+ * Update incurred costs for an active forsering
+ */
+export async function oppdaterKostnader(
+  data: OppdaterKostnaderRequest
+): Promise<OppdaterKostnaderResponse> {
+  // Use mock data if enabled
+  if (USE_MOCK_API) {
+    await mockDelay(300);
+    return {
+      success: true,
+      message: 'Kostnader oppdatert',
+    };
+  }
+
+  // Real API call
+  return apiFetch<OppdaterKostnaderResponse>(
+    `/api/forsering/${data.forsering_sak_id}/kostnader`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({
+        paalopte_kostnader: data.paalopte_kostnader,
+        kommentar: data.kommentar,
+      }),
+    }
+  );
+}
+
+// ============================================================================
+// FORSERING LOOKUP (for related cases)
+// ============================================================================
+
+export interface ForseringSomRefererer {
+  forsering_sak_id: string;
+  forsering_sak_tittel: string;
+  dato_varslet: string;
+  er_iverksatt: boolean;
+  er_stoppet: boolean;
+}
+
+export interface FindForseringerResponse {
+  success: boolean;
+  forseringer: ForseringSomRefererer[];
+}
+
+/**
+ * Find forsering cases that reference a given case
+ * Used to show back-links from related cases to their forsering
+ */
+export async function findForseringerForSak(
+  sakId: string
+): Promise<FindForseringerResponse> {
+  // Use mock data if enabled
+  if (USE_MOCK_API) {
+    await mockDelay(200);
+    return getMockForseringerForSak(sakId);
+  }
+
+  // Real API call
+  return apiFetch<FindForseringerResponse>(`/api/forsering/by-relatert/${sakId}`);
+}
+
+/**
+ * Mock helper to find forsering cases referencing a given case
+ */
+function getMockForseringerForSak(sakId: string): FindForseringerResponse {
+  // Import the mock forsering case and check if it references this sakId
+  // For now, we know SAK-2025-012 references SAK-2025-003, SAK-2025-006, SAK-2025-013
+  const forseringRelations: Record<string, ForseringSomRefererer> = {
+    'SAK-2025-003': {
+      forsering_sak_id: 'SAK-2025-012',
+      forsering_sak_tittel: 'Forsering - Samlekrav etter avslåtte fristforlengelser',
+      dato_varslet: '2025-02-10',
+      er_iverksatt: true,
+      er_stoppet: false,
+    },
+    'SAK-2025-006': {
+      forsering_sak_id: 'SAK-2025-012',
+      forsering_sak_tittel: 'Forsering - Samlekrav etter avslåtte fristforlengelser',
+      dato_varslet: '2025-02-10',
+      er_iverksatt: true,
+      er_stoppet: false,
+    },
+    'SAK-2025-013': {
+      forsering_sak_id: 'SAK-2025-012',
+      forsering_sak_tittel: 'Forsering - Samlekrav etter avslåtte fristforlengelser',
+      dato_varslet: '2025-02-10',
+      er_iverksatt: true,
+      er_stoppet: false,
+    },
+  };
+
+  const forsering = forseringRelations[sakId];
+  return {
+    success: true,
+    forseringer: forsering ? [forsering] : [],
+  };
 }

@@ -147,6 +147,7 @@ function getSporLabel(spor: SporType | null): string {
     grunnlag: 'Ansvarsgrunnlag',
     vederlag: 'Vederlag',
     frist: 'Frist',
+    forsering: 'Forsering',
   };
   return labels[spor] || spor;
 }
@@ -185,6 +186,7 @@ function getSporTagStyles(spor: SporType | null): string {
     grunnlag: 'bg-badge-info-bg text-badge-info-text',
     vederlag: 'bg-badge-success-bg text-badge-success-text',
     frist: 'bg-tag-frist-bg text-tag-frist-text',
+    forsering: 'bg-badge-warning-bg text-badge-warning-text',
   };
   return styles[spor] || 'bg-pkt-grays-gray-100 text-pkt-grays-gray-600';
 }
