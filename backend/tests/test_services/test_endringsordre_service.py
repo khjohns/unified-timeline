@@ -85,7 +85,7 @@ class TestEndringsordreService:
     # ========================================================================
 
     def test_opprett_endringsordresak_success(self, service, mock_catenda_client):
-        """Test successful EO case creation."""
+        """Test successful EO case creation with bidirectional relations."""
         result = service.opprett_endringsordresak(
             eo_nummer="EO-001",
             beskrivelse="Test endringsordre",
@@ -97,7 +97,8 @@ class TestEndringsordreService:
         assert result["sakstype"] == "endringsordre"
         assert len(result["relaterte_saker"]) == 2
         mock_catenda_client.create_topic.assert_called_once()
-        mock_catenda_client.create_topic_relations.assert_called_once()
+        # Toveis-relasjoner: 1x EO→KOE + 2x KOE→EO = 3 kall
+        assert mock_catenda_client.create_topic_relations.call_count == 3
 
     def test_opprett_endringsordresak_without_client(self, mock_event_repository, mock_timeline_service):
         """Test EO creation returns mock data without client."""
@@ -186,14 +187,12 @@ class TestEndringsordreService:
     # ========================================================================
 
     def test_legg_til_koe_success(self, service, mock_catenda_client):
-        """Test adding KOE to EO."""
+        """Test adding KOE to EO with bidirectional relations."""
         result = service.legg_til_koe("eo-001", "koe-001")
 
         assert result is True
-        mock_catenda_client.create_topic_relations.assert_called_with(
-            topic_id="eo-001",
-            related_topic_guids=["koe-001"]
-        )
+        # Toveis-relasjoner: EO→KOE og KOE→EO
+        assert mock_catenda_client.create_topic_relations.call_count == 2
 
     def test_legg_til_koe_without_client(self):
         """Test returns False without client."""
@@ -202,14 +201,12 @@ class TestEndringsordreService:
         assert result is False
 
     def test_fjern_koe_success(self, service, mock_catenda_client):
-        """Test removing KOE from EO."""
+        """Test removing KOE from EO with bidirectional relations."""
         result = service.fjern_koe("eo-001", "koe-001")
 
         assert result is True
-        mock_catenda_client.delete_topic_relation.assert_called_with(
-            topic_id="eo-001",
-            related_topic_guid="koe-001"
-        )
+        # Toveis-relasjoner: fjern EO→KOE og KOE→EO
+        assert mock_catenda_client.delete_topic_relation.call_count == 2
 
     def test_fjern_koe_without_client(self):
         """Test returns False without client."""

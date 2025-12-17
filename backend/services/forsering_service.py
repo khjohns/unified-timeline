@@ -125,11 +125,18 @@ class ForseringService:
             if not topic:
                 raise RuntimeError("Kunne ikke opprette topic i Catenda")
 
-            # Opprett relasjoner til avslåtte saker
+            # Opprett toveis-relasjoner til avslåtte saker
+            # Forsering → KOE (forseringssaken peker på KOE-sakene)
             self.client.create_topic_relations(
                 topic_id=topic['guid'],
                 related_topic_guids=avslatte_sak_ids
             )
+            # KOE → Forsering (hver KOE-sak peker tilbake på forseringssaken)
+            for koe_id in avslatte_sak_ids:
+                self.client.create_topic_relations(
+                    topic_id=koe_id,
+                    related_topic_guids=[topic['guid']]
+                )
             logger.info(f"✅ Forseringssak opprettet: {topic['guid']}")
         else:
             logger.warning("Ingen Catenda client - returnerer mock-data")

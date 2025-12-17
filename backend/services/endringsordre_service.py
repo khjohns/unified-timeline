@@ -135,12 +135,19 @@ class EndringsordreService:
             if not topic:
                 raise RuntimeError("Kunne ikke opprette topic i Catenda")
 
-            # Opprett relasjoner til KOE-saker
+            # Opprett toveis-relasjoner til KOE-saker
             if koe_sak_ids:
+                # EO → KOE (endringsordren peker på KOE-sakene)
                 self.client.create_topic_relations(
                     topic_id=topic['guid'],
                     related_topic_guids=koe_sak_ids
                 )
+                # KOE → EO (hver KOE-sak peker tilbake på endringsordren)
+                for koe_id in koe_sak_ids:
+                    self.client.create_topic_relations(
+                        topic_id=koe_id,
+                        related_topic_guids=[topic['guid']]
+                    )
             logger.info(f"✅ Endringsordresak opprettet: {topic['guid']}")
         else:
             logger.warning("Ingen Catenda client - returnerer mock-data")
@@ -241,11 +248,17 @@ class EndringsordreService:
             return False
 
         try:
+            # Toveis-relasjon: EO → KOE
             self.client.create_topic_relations(
                 topic_id=eo_sak_id,
                 related_topic_guids=[koe_sak_id]
             )
-            logger.info(f"✅ KOE {koe_sak_id} lagt til EO {eo_sak_id}")
+            # Toveis-relasjon: KOE → EO
+            self.client.create_topic_relations(
+                topic_id=koe_sak_id,
+                related_topic_guids=[eo_sak_id]
+            )
+            logger.info(f"✅ KOE {koe_sak_id} lagt til EO {eo_sak_id} (toveis)")
             return True
         except Exception as e:
             logger.error(f"Feil ved tillegging av KOE: {e}")
@@ -270,11 +283,17 @@ class EndringsordreService:
             return False
 
         try:
+            # Fjern toveis-relasjon: EO → KOE
             self.client.delete_topic_relation(
                 topic_id=eo_sak_id,
-                related_topic_guid=koe_sak_id
+                related_topic_id=koe_sak_id
             )
-            logger.info(f"✅ KOE {koe_sak_id} fjernet fra EO {eo_sak_id}")
+            # Fjern toveis-relasjon: KOE → EO
+            self.client.delete_topic_relation(
+                topic_id=koe_sak_id,
+                related_topic_id=eo_sak_id
+            )
+            logger.info(f"✅ KOE {koe_sak_id} fjernet fra EO {eo_sak_id} (toveis)")
             return True
         except Exception as e:
             logger.error(f"Feil ved fjerning av KOE: {e}")

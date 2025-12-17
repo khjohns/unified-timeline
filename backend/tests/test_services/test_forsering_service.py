@@ -90,7 +90,8 @@ class TestForseringService:
         assert result["sakstype"] == "forsering"
         assert len(result["relaterte_saker"]) == 2
         mock_catenda_client.create_topic.assert_called_once()
-        mock_catenda_client.create_topic_relations.assert_called_once()
+        # Toveis-relasjoner: 1x Forsering→KOE + 2x KOE→Forsering = 3 kall
+        assert mock_catenda_client.create_topic_relations.call_count == 3
 
     def test_opprett_forseringssak_without_client(self, mock_event_repository, mock_timeline_service):
         """Test forsering creation returns mock data without client."""

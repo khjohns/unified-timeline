@@ -231,11 +231,12 @@ class CatendaInteractiveMenu:
             print("  2. Opprett ny topic")
             print("  3. Søk etter topic")
             print("  4. Vis detaljer om en topic")
+            print("  5. 🔗 Håndter topic-relasjoner")
             print("  0. Tilbake til hovedmeny")
             print()
-            
-            choice = input("Velg (0-4): ").strip()
-            
+
+            choice = input("Velg (0-5): ").strip()
+
             if choice == "1":
                 self.action_list_topics()
             elif choice == "2":
@@ -244,6 +245,8 @@ class CatendaInteractiveMenu:
                 self.action_search_topics()
             elif choice == "4":
                 self.action_show_topic_details()
+            elif choice == "5":
+                self.menu_topic_relations()
             elif choice == "0":
                 break
             else:
@@ -463,9 +466,239 @@ class CatendaInteractiveMenu:
         except Exception as e:
             print(f"❌ Feil: {e}")
             self.logger.exception("Error showing topic details")
-        
+
         self.pause()
-    
+
+    # ========================================================================
+    # TOPIC RELATIONS
+    # ========================================================================
+
+    def menu_topic_relations(self):
+        """Meny for topic-relasjoner"""
+        while True:
+            self.print_header("🔗 Topic-relasjoner")
+
+            print(f"Aktiv Topic: {self.current_topic_id or '(ingen valgt)'}")
+            print()
+
+            print("VALG:")
+            print("  1. Se relaterte topics")
+            print("  2. Opprett relasjon (knytt saker)")
+            print("  3. Opprett toveis-relasjon")
+            print("  4. Slett relasjon")
+            print("  0. Tilbake")
+            print()
+
+            choice = input("Velg (0-4): ").strip()
+
+            if choice == "1":
+                self.action_list_related_topics()
+            elif choice == "2":
+                self.action_create_topic_relation()
+            elif choice == "3":
+                self.action_create_bidirectional_relation()
+            elif choice == "4":
+                self.action_delete_topic_relation()
+            elif choice == "0":
+                break
+            else:
+                print("❌ Ugyldig valg")
+                self.pause()
+
+    def action_list_related_topics(self):
+        """Vis relaterte topics for aktiv topic"""
+        self.print_header("🔗 Relaterte Topics")
+
+        topic_id = self.current_topic_id
+        if not topic_id:
+            topic_id = input("Topic GUID: ").strip()
+            if not topic_id:
+                print("❌ Topic GUID er påkrevd")
+                self.pause()
+                return
+
+        print(f"\nHenter relaterte topics for {topic_id}...\n")
+
+        try:
+            related = self.tester.list_related_topics(topic_id, include_project_topics=True)
+
+            if not related:
+                print("Ingen relaterte topics funnet.")
+            else:
+                print(f"Fant {len(related)} relatert(e) topic(s):\n")
+                for i, rel in enumerate(related, 1):
+                    related_guid = rel.get('related_topic_guid', 'N/A')
+                    board_ref = rel.get('bimsync_issue_board_ref', 'samme board')
+                    print(f"  {i}. {related_guid}")
+                    print(f"     Board: {board_ref}")
+                    print()
+
+        except Exception as e:
+            print(f"❌ Feil: {e}")
+            self.logger.exception("Error listing related topics")
+
+        self.pause()
+
+    def action_create_topic_relation(self):
+        """Opprett relasjon mellom topics (enveis)"""
+        self.print_header("🔗 Opprett Topic-relasjon")
+
+        print("Opprett en enveis-relasjon fra én topic til andre topics.\n")
+
+        source_topic = self.current_topic_id
+        if not source_topic:
+            source_topic = input("Kilde-topic GUID: ").strip()
+            if not source_topic:
+                print("❌ Kilde-topic GUID er påkrevd")
+                self.pause()
+                return
+        else:
+            print(f"Bruker aktiv topic som kilde: {source_topic}")
+            confirm = input("Vil du bruke denne? (j/n): ").strip().lower()
+            if confirm != 'j':
+                source_topic = input("Kilde-topic GUID: ").strip()
+
+        print("\nOppgi GUIDs til topics som skal relateres (én per linje, tom linje avslutter):")
+        target_guids = []
+        while True:
+            guid = input("  GUID: ").strip()
+            if not guid:
+                break
+            target_guids.append(guid)
+
+        if not target_guids:
+            print("❌ Minst én mål-topic er påkrevd")
+            self.pause()
+            return
+
+        print(f"\nOppretter {len(target_guids)} relasjon(er)...")
+
+        try:
+            success = self.tester.create_topic_relations(
+                topic_id=source_topic,
+                related_topic_guids=target_guids
+            )
+
+            if success:
+                print(f"✅ Relasjoner opprettet!")
+                for guid in target_guids:
+                    print(f"   {source_topic} → {guid}")
+            else:
+                print("❌ Kunne ikke opprette relasjoner")
+
+        except Exception as e:
+            print(f"❌ Feil: {e}")
+            self.logger.exception("Error creating topic relations")
+
+        self.pause()
+
+    def action_create_bidirectional_relation(self):
+        """Opprett toveis-relasjon mellom topics"""
+        self.print_header("🔗 Opprett Toveis-relasjon")
+
+        print("Opprett toveis-relasjoner (begge topics peker på hverandre).\n")
+        print("Dette er nyttig for å knytte f.eks. KOE ↔ Endringsordre.\n")
+
+        topic_a = self.current_topic_id
+        if not topic_a:
+            topic_a = input("Topic A GUID: ").strip()
+        else:
+            print(f"Bruker aktiv topic som Topic A: {topic_a}")
+            confirm = input("Vil du bruke denne? (j/n): ").strip().lower()
+            if confirm != 'j':
+                topic_a = input("Topic A GUID: ").strip()
+
+        if not topic_a:
+            print("❌ Topic A GUID er påkrevd")
+            self.pause()
+            return
+
+        topic_b = input("Topic B GUID: ").strip()
+        if not topic_b:
+            print("❌ Topic B GUID er påkrevd")
+            self.pause()
+            return
+
+        print(f"\nOppretter toveis-relasjon: {topic_a} ↔ {topic_b}...")
+
+        try:
+            # A → B
+            success_a = self.tester.create_topic_relations(
+                topic_id=topic_a,
+                related_topic_guids=[topic_b]
+            )
+
+            # B → A
+            success_b = self.tester.create_topic_relations(
+                topic_id=topic_b,
+                related_topic_guids=[topic_a]
+            )
+
+            if success_a and success_b:
+                print(f"✅ Toveis-relasjon opprettet!")
+                print(f"   {topic_a} → {topic_b}")
+                print(f"   {topic_b} → {topic_a}")
+            else:
+                print("⚠️ Delvis feil ved opprettelse")
+                print(f"   A → B: {'✅' if success_a else '❌'}")
+                print(f"   B → A: {'✅' if success_b else '❌'}")
+
+        except Exception as e:
+            print(f"❌ Feil: {e}")
+            self.logger.exception("Error creating bidirectional relation")
+
+        self.pause()
+
+    def action_delete_topic_relation(self):
+        """Slett relasjon mellom topics"""
+        self.print_header("🗑️  Slett Topic-relasjon")
+
+        topic_id = self.current_topic_id
+        if not topic_id:
+            topic_id = input("Topic GUID: ").strip()
+            if not topic_id:
+                print("❌ Topic GUID er påkrevd")
+                self.pause()
+                return
+
+        related_topic_id = input("GUID til relatert topic som skal fjernes: ").strip()
+        if not related_topic_id:
+            print("❌ Relatert topic GUID er påkrevd")
+            self.pause()
+            return
+
+        bidirectional = input("Slett begge veier (toveis)? (j/n): ").strip().lower() == 'j'
+
+        confirm = input(f"\nSlett relasjon{'er' if bidirectional else ''}? (j/n): ").strip().lower()
+        if confirm != 'j':
+            print("❌ Avbrutt")
+            self.pause()
+            return
+
+        try:
+            # Slett A → B
+            success_a = self.tester.delete_topic_relation(
+                topic_id=topic_id,
+                related_topic_id=related_topic_id
+            )
+            print(f"   {topic_id} → {related_topic_id}: {'✅ Slettet' if success_a else '❌ Feilet'}")
+
+            if bidirectional:
+                # Slett B → A
+                success_b = self.tester.delete_topic_relation(
+                    topic_id=related_topic_id,
+                    related_topic_id=topic_id
+                )
+                print(f"   {related_topic_id} → {topic_id}: {'✅ Slettet' if success_b else '❌ Feilet'}")
+
+            print("\n✅ Ferdig!")
+
+        except Exception as e:
+            print(f"❌ Feil: {e}")
+            self.logger.exception("Error deleting topic relation")
+
+        self.pause()
+
     def action_upload_document(self):
         """Last opp dokument til library"""
         self.print_header("📤 Last Opp Dokument")
