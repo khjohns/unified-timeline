@@ -15,3 +15,4 @@ export { mockSakState10 } from './sak-2025-010';
 export { mockSakState11 } from './sak-2025-011';
 export { mockSakState12 } from './sak-2025-012';
 export { mockSakState13 } from './sak-2025-013';
+export { mockSakStateEO001 } from './sak-eo-001';

@@ -10,29 +10,51 @@
  * 3. Consequences (SHA, kvalitet, fremdrift, pris, annet)
  * 4. Settlement (oppgjørsform, beløp, frist)
  * 5. Review and submit
+ *
+ * UPDATED: Uses react-hook-form + zod, primitive components, and standard patterns.
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+
+// Primitives
 import { Modal } from '../primitives/Modal';
 import { Button } from '../primitives/Button';
 import { Alert } from '../primitives/Alert';
+import { AlertDialog } from '../primitives/AlertDialog';
+import { FormField } from '../primitives/FormField';
+import { Input } from '../primitives/Input';
+import { Textarea } from '../primitives/Textarea';
+import { CurrencyInput } from '../primitives/CurrencyInput';
 import { DatePicker } from '../primitives/DatePicker';
-import {
-  CheckIcon,
-  Cross2Icon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  InfoCircledIcon,
-} from '@radix-ui/react-icons';
+import { Badge } from '../primitives/Badge';
+import { StepIndicator } from '../primitives/StepIndicator';
+import { Checkbox } from '../primitives/Checkbox';
+
+// Icons
+import { CheckIcon } from '@radix-ui/react-icons';
+
+// Hooks
+import { useConfirmClose } from '../../hooks/useConfirmClose';
+
+// API
 import {
   opprettEndringsordre,
   fetchKandidatKOESaker,
   type OpprettEORequest,
   type KandidatKOE,
 } from '../../api/endringsordre';
+
+// Types
 import type { VederlagsMetode, EOKonsekvenser } from '../../types/timeline';
+
+// ============================================================================
+// TYPES & INTERFACES
+// ============================================================================
 
 interface UtstEndringsordreModalProps {
   open: boolean;
@@ -40,18 +62,6 @@ interface UtstEndringsordreModalProps {
   sakId: string;
   preselectedKoeIds?: string[];
 }
-
-type WizardStep = 'basic' | 'koe' | 'konsekvenser' | 'oppgjor' | 'review';
-
-const WIZARD_STEPS: WizardStep[] = ['basic', 'koe', 'konsekvenser', 'oppgjor', 'review'];
-
-const STEP_TITLES: Record<WizardStep, string> = {
-  basic: 'Grunnleggende info',
-  koe: 'Velg KOE-saker',
-  konsekvenser: 'Konsekvenser',
-  oppgjor: 'Oppgjør',
-  review: 'Bekreft',
-};
 
 interface OppgjorsformOption {
   value: VederlagsMetode;
@@ -85,29 +95,64 @@ const OPPGJORSFORM_OPTIONS: OppgjorsformOption[] = [
   },
 ];
 
-function formatCurrency(amount?: number): string {
+// ============================================================================
+// ZOD SCHEMA
+// ============================================================================
+
+const utstEndringsordreSchema = z.object({
+  // Step 1: Basic info
+  eo_nummer: z.string().min(1, 'EO-nummer er påkrevd'),
+  beskrivelse: z.string().min(1, 'Beskrivelse er påkrevd'),
+
+  // Step 2: KOE selection (managed separately due to array)
+  // selectedKoeIds is handled via useState
+
+  // Step 3: Konsekvenser
+  konsekvenser_sha: z.boolean(),
+  konsekvenser_kvalitet: z.boolean(),
+  konsekvenser_fremdrift: z.boolean(),
+  konsekvenser_pris: z.boolean(),
+  konsekvenser_annet: z.boolean(),
+  konsekvens_beskrivelse: z.string().optional(),
+
+  // Step 4: Oppgjør
+  oppgjorsform: z.enum(['ENHETSPRISER', 'REGNINGSARBEID', 'FASTPRIS_TILBUD']).optional(),
+  kompensasjon_belop: z.number().min(0).optional().nullable(),
+  fradrag_belop: z.number().min(0).optional().nullable(),
+  er_estimat: z.boolean(),
+  frist_dager: z.number().min(0).optional().nullable(),
+  ny_sluttdato: z.string().optional(),
+});
+
+type UtstEndringsordreFormData = z.infer<typeof utstEndringsordreSchema>;
+
+// ============================================================================
+// HELPER COMPONENTS
+// ============================================================================
+
+function IndeksreguleringsInfo({ indeks }: { indeks: 'full' | 'delvis' | 'ingen' }) {
+  const variants: Record<string, 'success' | 'warning' | 'default'> = {
+    full: 'success',
+    delvis: 'warning',
+    ingen: 'default',
+  };
+  const labels = {
+    full: 'Full indeksreg.',
+    delvis: 'Delvis indeksreg.',
+    ingen: 'Ingen indeksreg.',
+  };
+
+  return <Badge variant={variants[indeks]}>{labels[indeks]}</Badge>;
+}
+
+function formatCurrency(amount?: number | null): string {
   if (amount === undefined || amount === null) return '-';
   return `${amount.toLocaleString('nb-NO')} kr`;
 }
 
-function IndeksreguleringsInfo({ indeks }: { indeks: 'full' | 'delvis' | 'ingen' }) {
-  const colors = {
-    full: 'text-badge-success-text bg-badge-success-bg',
-    delvis: 'text-badge-warning-text bg-badge-warning-bg',
-    ingen: 'text-pkt-text-body-subtle bg-pkt-surface-subtle',
-  };
-  const labels = {
-    full: 'Full indeksregulering',
-    delvis: 'Delvis indeksregulering',
-    ingen: 'Ingen indeksregulering',
-  };
-
-  return (
-    <span className={`px-2 py-0.5 text-xs font-medium ${colors[indeks]}`}>
-      {labels[indeks]}
-    </span>
-  );
-}
+// ============================================================================
+// COMPONENT
+// ============================================================================
 
 export function UtstEndringsordreModal({
   open,
@@ -117,28 +162,71 @@ export function UtstEndringsordreModal({
 }: UtstEndringsordreModalProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const topRef = useRef<HTMLDivElement>(null);
 
   // Wizard state
-  const [currentStep, setCurrentStep] = useState<WizardStep>('basic');
+  const [currentStep, setCurrentStep] = useState(1);
+  const totalSteps = 5;
 
-  // Form state
-  const [eoNummer, setEoNummer] = useState('');
-  const [beskrivelse, setBeskrivelse] = useState('');
+  // KOE selection state (managed separately from form due to array handling)
   const [selectedKoeIds, setSelectedKoeIds] = useState<string[]>(preselectedKoeIds);
-  const [konsekvenser, setKonsekvenser] = useState<EOKonsekvenser>({
-    sha: false,
-    kvalitet: false,
-    fremdrift: false,
-    pris: false,
-    annet: false,
+
+  // Scroll to top of modal content
+  const scrollToTop = useCallback(() => {
+    topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
+
+  // Step configuration for StepIndicator
+  const steps = [
+    { label: 'Info' },
+    { label: 'KOE-saker' },
+    { label: 'Konsekvenser' },
+    { label: 'Oppgjør' },
+    { label: 'Bekreft' },
+  ];
+
+  // Form setup with react-hook-form + zod
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isDirty },
+    reset,
+    watch,
+    control,
+    trigger,
+    clearErrors,
+  } = useForm<UtstEndringsordreFormData>({
+    resolver: zodResolver(utstEndringsordreSchema),
+    mode: 'onTouched',
+    defaultValues: {
+      eo_nummer: '',
+      beskrivelse: '',
+      konsekvenser_sha: false,
+      konsekvenser_kvalitet: false,
+      konsekvenser_fremdrift: false,
+      konsekvenser_pris: false,
+      konsekvenser_annet: false,
+      konsekvens_beskrivelse: '',
+      er_estimat: false,
+      kompensasjon_belop: null,
+      fradrag_belop: null,
+      frist_dager: null,
+    },
   });
-  const [konsekvensBeskrivelse, setKonsekvensBeskrivelse] = useState('');
-  const [oppgjorsform, setOppgjorsform] = useState<VederlagsMetode | ''>('');
-  const [kompensasjonBelop, setKompensasjonBelop] = useState('');
-  const [fradragBelop, setFradragBelop] = useState('');
-  const [erEstimat, setErEstimat] = useState(false);
-  const [fristDager, setFristDager] = useState('');
-  const [nySluttdato, setNySluttdato] = useState<Date | undefined>(undefined);
+
+  // Watch form values for conditional rendering
+  const formValues = watch();
+
+  // Confirm close hook
+  const { showConfirmDialog, setShowConfirmDialog, handleClose, confirmClose } = useConfirmClose({
+    isDirty: isDirty || selectedKoeIds.length !== preselectedKoeIds.length,
+    onReset: () => {
+      reset();
+      setSelectedKoeIds(preselectedKoeIds);
+      setCurrentStep(1);
+    },
+    onClose: () => onOpenChange(false),
+  });
 
   // Fetch candidate KOE cases
   const { data: kandidaterData, isLoading: kandidaterLoading } = useQuery({
@@ -156,18 +244,20 @@ export function UtstEndringsordreModal({
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['case', sakId] });
       queryClient.invalidateQueries({ queryKey: ['timeline', sakId] });
-      handleClose();
-      // Navigate to the new EO page
+      reset();
+      setSelectedKoeIds(preselectedKoeIds);
+      setCurrentStep(1);
+      onOpenChange(false);
       navigate(`/endringsordre/${response.sak_id}`);
     },
   });
 
   // Computed values
   const nettoBelop = useMemo(() => {
-    const komp = parseFloat(kompensasjonBelop) || 0;
-    const frad = parseFloat(fradragBelop) || 0;
+    const komp = formValues.kompensasjon_belop || 0;
+    const frad = formValues.fradrag_belop || 0;
     return komp - frad;
-  }, [kompensasjonBelop, fradragBelop]);
+  }, [formValues.kompensasjon_belop, formValues.fradrag_belop]);
 
   const totalFromKOE = useMemo(() => {
     return kandidatSaker
@@ -181,551 +271,657 @@ export function UtstEndringsordreModal({
       .reduce((sum, k) => sum + (k.godkjent_dager || 0), 0);
   }, [kandidatSaker, selectedKoeIds]);
 
-  // Validation
-  const canProceed = useMemo(() => {
-    switch (currentStep) {
-      case 'basic':
-        return eoNummer.trim() !== '' && beskrivelse.trim() !== '';
-      case 'koe':
-        return true; // KOE selection is optional
-      case 'konsekvenser':
-        return true; // At least one consequence should ideally be selected, but not required
-      case 'oppgjor':
-        // If pris consequence, oppgjørsform is required
-        if (konsekvenser.pris && !oppgjorsform) return false;
-        return true;
-      case 'review':
-        return true;
-      default:
-        return false;
-    }
-  }, [currentStep, eoNummer, beskrivelse, konsekvenser.pris, oppgjorsform]);
+  const harKonsekvens =
+    formValues.konsekvenser_sha ||
+    formValues.konsekvenser_kvalitet ||
+    formValues.konsekvenser_fremdrift ||
+    formValues.konsekvenser_pris ||
+    formValues.konsekvenser_annet;
 
-  // Navigation
-  const currentStepIndex = WIZARD_STEPS.indexOf(currentStep);
-  const isFirstStep = currentStepIndex === 0;
-  const isLastStep = currentStepIndex === WIZARD_STEPS.length - 1;
+  // Navigation with validation
+  const goToNextStep = useCallback(async () => {
+    let isValid = true;
 
-  const goNext = () => {
-    if (!isLastStep && canProceed) {
-      setCurrentStep(WIZARD_STEPS[currentStepIndex + 1]);
+    // Validate current step fields
+    if (currentStep === 1) {
+      isValid = await trigger(['eo_nummer', 'beskrivelse']);
+    } else if (currentStep === 3) {
+      isValid = await trigger([
+        'konsekvenser_sha',
+        'konsekvenser_kvalitet',
+        'konsekvenser_fremdrift',
+        'konsekvenser_pris',
+        'konsekvenser_annet',
+        'konsekvens_beskrivelse',
+      ]);
+    } else if (currentStep === 4) {
+      // Validate oppgjørsform if pris consequence
+      if (formValues.konsekvenser_pris) {
+        isValid = await trigger(['oppgjorsform', 'kompensasjon_belop', 'fradrag_belop']);
+        if (!formValues.oppgjorsform) {
+          isValid = false;
+        }
+      }
+      if (formValues.konsekvenser_fremdrift) {
+        isValid = isValid && (await trigger(['frist_dager']));
+      }
     }
+
+    if (isValid && currentStep < totalSteps) {
+      setCurrentStep(currentStep + 1);
+      clearErrors();
+      setTimeout(scrollToTop, 50);
+    }
+  }, [currentStep, totalSteps, trigger, formValues, scrollToTop, clearErrors]);
+
+  const goToPrevStep = useCallback(() => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+      setTimeout(scrollToTop, 50);
+    }
+  }, [currentStep, scrollToTop]);
+
+  // Toggle KOE selection
+  const toggleKoeSelection = (koeId: string) => {
+    setSelectedKoeIds((prev: string[]) =>
+      prev.includes(koeId) ? prev.filter((id: string) => id !== koeId) : [...prev, koeId]
+    );
   };
 
-  const goBack = () => {
-    if (!isFirstStep) {
-      setCurrentStep(WIZARD_STEPS[currentStepIndex - 1]);
-    }
-  };
-
-  const handleSubmit = () => {
+  // Submit handler
+  const onSubmit = (data: UtstEndringsordreFormData) => {
     const request: OpprettEORequest = {
-      eo_nummer: eoNummer,
-      beskrivelse,
+      eo_nummer: data.eo_nummer,
+      beskrivelse: data.beskrivelse,
       koe_sak_ids: selectedKoeIds.length > 0 ? selectedKoeIds : undefined,
-      konsekvenser,
-      konsekvens_beskrivelse: konsekvensBeskrivelse || undefined,
-      oppgjorsform: oppgjorsform || undefined,
-      kompensasjon_belop: kompensasjonBelop ? parseFloat(kompensasjonBelop) : undefined,
-      fradrag_belop: fradragBelop ? parseFloat(fradragBelop) : undefined,
-      er_estimat: erEstimat,
-      frist_dager: fristDager ? parseInt(fristDager, 10) : undefined,
-      ny_sluttdato: nySluttdato ? nySluttdato.toISOString().split('T')[0] : undefined,
+      konsekvenser: {
+        sha: data.konsekvenser_sha,
+        kvalitet: data.konsekvenser_kvalitet,
+        fremdrift: data.konsekvenser_fremdrift,
+        pris: data.konsekvenser_pris,
+        annet: data.konsekvenser_annet,
+      },
+      konsekvens_beskrivelse: data.konsekvens_beskrivelse || undefined,
+      oppgjorsform: data.oppgjorsform || undefined,
+      kompensasjon_belop: data.kompensasjon_belop ?? undefined,
+      fradrag_belop: data.fradrag_belop ?? undefined,
+      er_estimat: data.er_estimat,
+      frist_dager: data.frist_dager ?? undefined,
+      ny_sluttdato: data.ny_sluttdato || undefined,
     };
 
     createEOMutation.mutate(request);
   };
 
-  const handleClose = () => {
-    // Reset form
-    setCurrentStep('basic');
-    setEoNummer('');
-    setBeskrivelse('');
-    setSelectedKoeIds(preselectedKoeIds);
-    setKonsekvenser({
-      sha: false,
-      kvalitet: false,
-      fremdrift: false,
-      pris: false,
-      annet: false,
-    });
-    setKonsekvensBeskrivelse('');
-    setOppgjorsform('');
-    setKompensasjonBelop('');
-    setFradragBelop('');
-    setErEstimat(false);
-    setFristDager('');
-    setNySluttdato(undefined);
-    onOpenChange(false);
-  };
-
-  const toggleKoeSelection = (koeId: string) => {
-    setSelectedKoeIds((prev) =>
-      prev.includes(koeId) ? prev.filter((id) => id !== koeId) : [...prev, koeId]
-    );
-  };
-
-  const toggleKonsekvens = (key: keyof EOKonsekvenser) => {
-    setKonsekvenser((prev) => ({ ...prev, [key]: !prev[key] }));
+  // Reset to step 1 when opening
+  const handleOpenChange = (newOpen: boolean) => {
+    if (newOpen) {
+      setCurrentStep(1);
+    }
+    onOpenChange(newOpen);
   };
 
   return (
-    <Modal
-      open={open}
-      onOpenChange={onOpenChange}
-      title="Utsted Endringsordre"
-      description={`Steg ${currentStepIndex + 1} av ${WIZARD_STEPS.length}: ${STEP_TITLES[currentStep]}`}
-      size="lg"
-    >
-      {/* Progress indicator */}
-      <div className="flex items-center gap-1 mb-6">
-        {WIZARD_STEPS.map((step, index) => (
-          <div
-            key={step}
-            className={`flex-1 h-1.5 ${
-              index <= currentStepIndex
-                ? 'bg-pkt-brand-purple-1000'
-                : 'bg-pkt-border-subtle'
-            }`}
-          />
-        ))}
-      </div>
+    <Modal open={open} onOpenChange={handleOpenChange} title="Utsted Endringsordre" size="lg">
+      <div className="space-y-6">
+        {/* Scroll target marker */}
+        <div ref={topRef} />
 
-      {/* Step content */}
-      <div className="min-h-[300px]">
-        {/* Step 1: Basic info */}
-        {currentStep === 'basic' && (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                EO-nummer <span className="text-alert-danger-text">*</span>
-              </label>
-              <input
-                type="text"
-                value={eoNummer}
-                onChange={(e) => setEoNummer(e.target.value)}
-                placeholder="f.eks. EO-001"
-                className="w-full px-3 py-2 bg-pkt-bg-card border-2 border-pkt-border-default rounded-none text-sm focus:outline-none focus:border-pkt-border-focus"
-              />
-            </div>
+        {/* Step Indicator */}
+        <StepIndicator currentStep={currentStep} steps={steps} />
 
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Beskrivelse av tillegg eller endring <span className="text-alert-danger-text">*</span>
-              </label>
-              <textarea
-                value={beskrivelse}
-                onChange={(e) => setBeskrivelse(e.target.value)}
-                placeholder="Beskriv endringen som denne endringsordren gjelder..."
-                rows={4}
-                className="w-full px-3 py-2 bg-pkt-bg-card border-2 border-pkt-border-default rounded-none text-sm focus:outline-none focus:border-pkt-border-focus resize-none"
-              />
-            </div>
-          </div>
-        )}
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          onKeyDown={(e) => {
+            // Prevent Enter from submitting form while navigating through wizard steps
+            if (e.key === 'Enter' && currentStep < totalSteps) {
+              e.preventDefault();
+            }
+          }}
+          className="space-y-6"
+        >
+          {/* ================================================================
+              STEP 1: BASIC INFO
+              ================================================================ */}
+          {currentStep === 1 && (
+            <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
+              <h3 className="font-bold text-lg">Grunnleggende informasjon</h3>
 
-        {/* Step 2: Select KOE cases */}
-        {currentStep === 'koe' && (
-          <div className="space-y-4">
-            <Alert variant="info" title="Velg relaterte KOE-saker">
-              Velg KOE-saker (krav om endringsordre) som skal inkluderes i denne endringsordren.
-              Du kan også utstede en endringsordre uten tilknyttede KOE-saker.
-            </Alert>
-
-            {kandidaterLoading ? (
-              <p className="text-pkt-text-body-subtle text-sm">Laster kandidatsaker...</p>
-            ) : kandidatSaker.length === 0 ? (
-              <p className="text-pkt-text-body-subtle text-sm">
-                Ingen KOE-saker er klare for endringsordre.
-              </p>
-            ) : (
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {kandidatSaker.map((koe) => (
-                  <button
-                    key={koe.sak_id}
-                    type="button"
-                    onClick={() => toggleKoeSelection(koe.sak_id)}
-                    className={`w-full p-3 border-2 rounded-none text-left transition-colors ${
-                      selectedKoeIds.includes(koe.sak_id)
-                        ? 'border-pkt-brand-purple-1000 bg-pkt-surface-light-beige'
-                        : 'border-pkt-border-default hover:border-pkt-border-focus'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">{koe.tittel}</p>
-                        <p className="text-xs text-pkt-text-body-subtle mt-1">
-                          Status: {koe.overordnet_status}
-                        </p>
-                        <div className="flex gap-4 text-xs text-pkt-text-body-subtle mt-1">
-                          {koe.sum_godkjent !== undefined && (
-                            <span>Godkjent: {formatCurrency(koe.sum_godkjent)}</span>
-                          )}
-                          {koe.godkjent_dager !== undefined && (
-                            <span>Dager: {koe.godkjent_dager}</span>
-                          )}
-                        </div>
-                      </div>
-                      <div
-                        className={`w-5 h-5 border-2 flex items-center justify-center ${
-                          selectedKoeIds.includes(koe.sak_id)
-                            ? 'bg-pkt-brand-purple-1000 border-pkt-brand-purple-1000'
-                            : 'border-pkt-border-default'
-                        }`}
-                      >
-                        {selectedKoeIds.includes(koe.sak_id) && (
-                          <CheckIcon className="w-3 h-3 text-white" />
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {selectedKoeIds.length > 0 && (
-              <div className="p-3 bg-pkt-surface-subtle border-2 border-pkt-border-subtle rounded-none">
-                <p className="text-sm font-medium">
-                  {selectedKoeIds.length} sak(er) valgt
-                </p>
-                <div className="flex gap-6 text-xs text-pkt-text-body-subtle mt-1">
-                  <span>Totalt godkjent beløp: {formatCurrency(totalFromKOE)}</span>
-                  <span>Totalt godkjente dager: {totalDagerFromKOE}</span>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Step 3: Consequences */}
-        {currentStep === 'konsekvenser' && (
-          <div className="space-y-4">
-            <p className="text-sm text-pkt-text-body-subtle">
-              Angi hvilke konsekvenser endringen har. Kryss av for de som <strong>ikke</strong> påvirkes.
-            </p>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {(['sha', 'kvalitet', 'fremdrift', 'pris', 'annet'] as const).map((key) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => toggleKonsekvens(key)}
-                  className={`p-3 border-2 rounded-none text-left transition-colors ${
-                    !konsekvenser[key]
-                      ? 'border-badge-success-text bg-badge-success-bg'
-                      : 'border-pkt-border-default hover:border-pkt-border-focus'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    {!konsekvenser[key] ? (
-                      <CheckIcon className="w-4 h-4 text-badge-success-text" />
-                    ) : (
-                      <Cross2Icon className="w-4 h-4 text-pkt-text-body-subtle" />
-                    )}
-                    <span className="text-sm font-medium capitalize">
-                      {key === 'sha' ? 'SHA' : key}
-                    </span>
-                  </div>
-                  <p className="text-xs text-pkt-text-body-subtle mt-1">
-                    {!konsekvenser[key] ? 'Ingen konsekvens' : 'Har konsekvens'}
-                  </p>
-                </button>
-              ))}
-            </div>
-
-            {(konsekvenser.sha || konsekvenser.kvalitet || konsekvenser.fremdrift || konsekvenser.pris || konsekvenser.annet) && (
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Beskrivelse av konsekvenser
-                </label>
-                <textarea
-                  value={konsekvensBeskrivelse}
-                  onChange={(e) => setKonsekvensBeskrivelse(e.target.value)}
-                  placeholder="Beskriv konsekvensene for de avkryssede områdene..."
-                  rows={3}
-                  className="w-full px-3 py-2 bg-pkt-bg-card border-2 border-pkt-border-default rounded-none text-sm focus:outline-none focus:border-pkt-border-focus resize-none"
+              <FormField
+                label="EO-nummer"
+                required
+                error={errors.eo_nummer?.message}
+              >
+                <Input
+                  {...register('eo_nummer')}
+                  placeholder="EO-001"
+                  error={!!errors.eo_nummer}
+                  width="md"
                 />
-              </div>
-            )}
-          </div>
-        )}
+              </FormField>
 
-        {/* Step 4: Settlement */}
-        {currentStep === 'oppgjor' && (
-          <div className="space-y-4">
-            {/* Oppgjørsform */}
-            {konsekvenser.pris && (
-              <>
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Oppgjørsform ved priskonsekvens <span className="text-alert-danger-text">*</span>
-                  </label>
-                  <div className="space-y-2">
-                    {OPPGJORSFORM_OPTIONS.map((opt) => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => setOppgjorsform(opt.value)}
-                        className={`w-full p-3 border-2 rounded-none text-left transition-colors ${
-                          oppgjorsform === opt.value
-                            ? 'border-pkt-brand-purple-1000 bg-pkt-surface-light-beige'
-                            : 'border-pkt-border-default hover:border-pkt-border-focus'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium text-sm">
-                              {opt.label} <span className="text-pkt-text-body-subtle">({opt.paragraf})</span>
-                            </p>
-                            <p className="text-xs text-pkt-text-body-subtle mt-0.5">{opt.description}</p>
+              <FormField
+                label="Beskrivelse av endringen"
+                required
+                error={errors.beskrivelse?.message}
+              >
+                <Textarea
+                  {...register('beskrivelse')}
+                  rows={4}
+                  fullWidth
+                  error={!!errors.beskrivelse}
+                />
+              </FormField>
+            </div>
+          )}
+
+          {/* ================================================================
+              STEP 2: SELECT KOE CASES
+              ================================================================ */}
+          {currentStep === 2 && (
+            <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
+              <h3 className="font-bold text-lg">Velg KOE-saker</h3>
+
+              <p className="text-sm text-pkt-text-body-subtle">
+                Velg KOE-saker som skal inkluderes, eller fortsett uten for proaktiv EO.
+              </p>
+
+              {kandidaterLoading ? (
+                <p className="text-pkt-text-body-subtle text-sm">Laster kandidatsaker...</p>
+              ) : kandidatSaker.length === 0 ? (
+                <p className="text-pkt-text-body-subtle text-sm">
+                  Ingen KOE-saker er klare for endringsordre.
+                </p>
+              ) : (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {kandidatSaker.map((koe) => (
+                    <button
+                      key={koe.sak_id}
+                      type="button"
+                      onClick={() => toggleKoeSelection(koe.sak_id)}
+                      className={`w-full p-3 border-2 rounded-none text-left transition-colors ${
+                        selectedKoeIds.includes(koe.sak_id)
+                          ? 'border-pkt-brand-purple-1000 bg-pkt-surface-light-beige'
+                          : 'border-pkt-border-default hover:border-pkt-border-focus'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{koe.tittel}</p>
+                          <p className="text-xs text-pkt-text-body-subtle mt-1">
+                            Status: {koe.overordnet_status}
+                          </p>
+                          <div className="flex flex-wrap gap-4 text-xs text-pkt-text-body-subtle mt-1">
+                            {koe.sum_godkjent !== undefined && (
+                              <span>Godkjent: {formatCurrency(koe.sum_godkjent)}</span>
+                            )}
+                            {koe.godkjent_dager !== undefined && (
+                              <span>Dager: {koe.godkjent_dager}</span>
+                            )}
                           </div>
-                          <IndeksreguleringsInfo indeks={opt.indeksregulering} />
                         </div>
-                      </button>
-                    ))}
-                  </div>
+                        <div
+                          className={`w-5 h-5 border-2 flex items-center justify-center shrink-0 ${
+                            selectedKoeIds.includes(koe.sak_id)
+                              ? 'bg-pkt-brand-purple-1000 border-pkt-brand-purple-1000'
+                              : 'border-pkt-border-default'
+                          }`}
+                        >
+                          {selectedKoeIds.includes(koe.sak_id) && (
+                            <CheckIcon className="w-3 h-3 text-white" />
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
                 </div>
-
-                {/* Beløp */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">
-                      Kompensasjon (kr)
-                    </label>
-                    <input
-                      type="number"
-                      value={kompensasjonBelop}
-                      onChange={(e) => setKompensasjonBelop(e.target.value)}
-                      placeholder="0"
-                      className="w-full px-3 py-2 bg-pkt-bg-card border-2 border-pkt-border-default rounded-none text-sm focus:outline-none focus:border-pkt-border-focus"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">
-                      Fradrag (kr)
-                    </label>
-                    <input
-                      type="number"
-                      value={fradragBelop}
-                      onChange={(e) => setFradragBelop(e.target.value)}
-                      placeholder="0"
-                      className="w-full px-3 py-2 bg-pkt-bg-card border-2 border-pkt-border-default rounded-none text-sm focus:outline-none focus:border-pkt-border-focus"
-                    />
-                  </div>
-                </div>
-
-                {/* Netto */}
-                <div className="p-3 bg-pkt-surface-subtle border-2 border-pkt-border-subtle rounded-none">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Netto beløp:</span>
-                    <span className={`font-bold ${nettoBelop >= 0 ? '' : 'text-alert-danger-text'}`}>
-                      {formatCurrency(nettoBelop)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Estimat checkbox */}
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={erEstimat}
-                    onChange={(e) => setErEstimat(e.target.checked)}
-                    className="w-4 h-4"
-                  />
-                  <span className="text-sm">Beløpet er et estimat</span>
-                </label>
-              </>
-            )}
-
-            {/* Fristforlengelse */}
-            {konsekvenser.fremdrift && (
-              <div className="space-y-4 pt-4 border-t-2 border-pkt-border-subtle">
-                <h4 className="font-medium text-sm">Fristforlengelse</h4>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">
-                      Antall dager
-                    </label>
-                    <input
-                      type="number"
-                      value={fristDager}
-                      onChange={(e) => setFristDager(e.target.value)}
-                      placeholder="0"
-                      className="w-full px-3 py-2 bg-pkt-bg-card border-2 border-pkt-border-default rounded-none text-sm focus:outline-none focus:border-pkt-border-focus"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">
-                      Ny sluttdato
-                    </label>
-                    <DatePicker
-                      selected={nySluttdato}
-                      onChange={(date) => setNySluttdato(date)}
-                      placeholderText="Velg dato"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Info when neither pris nor fremdrift */}
-            {!konsekvenser.pris && !konsekvenser.fremdrift && (
-              <Alert variant="info" title="Ingen pris- eller fristkonsekvens">
-                Siden endringsordren ikke har pris- eller fremdriftskonsekvens, trengs ingen oppgjørsinfo.
-              </Alert>
-            )}
-          </div>
-        )}
-
-        {/* Step 5: Review */}
-        {currentStep === 'review' && (
-          <div className="space-y-4">
-            <Alert variant="info" title="Gjennomgå før utsendelse">
-              Kontroller at all informasjon er korrekt før du utsteder endringsordren.
-            </Alert>
-
-            {/* Summary */}
-            <div className="space-y-3">
-              <div className="p-3 bg-pkt-surface-subtle border-2 border-pkt-border-subtle rounded-none">
-                <h4 className="font-medium text-sm mb-2">Grunnleggende info</h4>
-                <dl className="grid grid-cols-2 gap-2 text-sm">
-                  <dt className="text-pkt-text-body-subtle">EO-nummer:</dt>
-                  <dd className="font-medium">{eoNummer}</dd>
-                  <dt className="text-pkt-text-body-subtle">Beskrivelse:</dt>
-                  <dd className="col-span-2 font-medium">{beskrivelse}</dd>
-                </dl>
-              </div>
+              )}
 
               {selectedKoeIds.length > 0 && (
                 <div className="p-3 bg-pkt-surface-subtle border-2 border-pkt-border-subtle rounded-none">
-                  <h4 className="font-medium text-sm mb-2">Relaterte KOE-saker</h4>
-                  <p className="text-sm">{selectedKoeIds.length} sak(er) inkludert</p>
-                  <p className="text-xs text-pkt-text-body-subtle mt-1">
-                    Totalt godkjent: {formatCurrency(totalFromKOE)} / {totalDagerFromKOE} dager
-                  </p>
-                </div>
-              )}
-
-              <div className="p-3 bg-pkt-surface-subtle border-2 border-pkt-border-subtle rounded-none">
-                <h4 className="font-medium text-sm mb-2">Konsekvenser</h4>
-                <div className="flex flex-wrap gap-2">
-                  {!konsekvenser.sha && (
-                    <span className="px-2 py-0.5 text-xs bg-badge-success-bg text-badge-success-text">
-                      Ingen SHA-konsekvens
-                    </span>
-                  )}
-                  {!konsekvenser.kvalitet && (
-                    <span className="px-2 py-0.5 text-xs bg-badge-success-bg text-badge-success-text">
-                      Ingen kvalitetskonsekvens
-                    </span>
-                  )}
-                  {!konsekvenser.fremdrift && (
-                    <span className="px-2 py-0.5 text-xs bg-badge-success-bg text-badge-success-text">
-                      Ingen fremdriftskonsekvens
-                    </span>
-                  )}
-                  {!konsekvenser.pris && (
-                    <span className="px-2 py-0.5 text-xs bg-badge-success-bg text-badge-success-text">
-                      Ingen priskonsekvens
-                    </span>
-                  )}
-                  {konsekvenser.pris && (
-                    <span className="px-2 py-0.5 text-xs bg-badge-warning-bg text-badge-warning-text">
-                      Har priskonsekvens
-                    </span>
-                  )}
-                  {konsekvenser.fremdrift && (
-                    <span className="px-2 py-0.5 text-xs bg-badge-warning-bg text-badge-warning-text">
-                      Har fremdriftskonsekvens
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {(konsekvenser.pris || konsekvenser.fremdrift) && (
-                <div className="p-3 bg-pkt-surface-subtle border-2 border-pkt-border-subtle rounded-none">
-                  <h4 className="font-medium text-sm mb-2">Oppgjør</h4>
-                  <dl className="grid grid-cols-2 gap-2 text-sm">
-                    {konsekvenser.pris && (
-                      <>
-                        <dt className="text-pkt-text-body-subtle">Oppgjørsform:</dt>
-                        <dd className="font-medium">
-                          {OPPGJORSFORM_OPTIONS.find((o) => o.value === oppgjorsform)?.label || '-'}
-                        </dd>
-                        <dt className="text-pkt-text-body-subtle">Netto beløp:</dt>
-                        <dd className="font-medium">
-                          {formatCurrency(nettoBelop)}
-                          {erEstimat && ' (estimat)'}
-                        </dd>
-                      </>
-                    )}
-                    {konsekvenser.fremdrift && (
-                      <>
-                        <dt className="text-pkt-text-body-subtle">Fristforlengelse:</dt>
-                        <dd className="font-medium">{fristDager || '-'} dager</dd>
-                        {nySluttdato && (
-                          <>
-                            <dt className="text-pkt-text-body-subtle">Ny sluttdato:</dt>
-                            <dd className="font-medium">
-                              {nySluttdato.toLocaleDateString('nb-NO')}
-                            </dd>
-                          </>
-                        )}
-                      </>
-                    )}
-                  </dl>
+                  <p className="text-sm font-medium">{selectedKoeIds.length} sak(er) valgt</p>
+                  <div className="flex flex-wrap gap-4 text-xs text-pkt-text-body-subtle mt-1">
+                    <span>Totalt godkjent beløp: {formatCurrency(totalFromKOE)}</span>
+                    <span>Totalt godkjente dager: {totalDagerFromKOE}</span>
+                  </div>
                 </div>
               )}
             </div>
+          )}
+
+          {/* ================================================================
+              STEP 3: CONSEQUENCES
+              ================================================================ */}
+          {currentStep === 3 && (
+            <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
+              <h3 className="font-bold text-lg">Konsekvenser</h3>
+
+              <p className="text-sm text-pkt-text-body-subtle">
+                Kryss av for konsekvenser endringen medfører.
+              </p>
+
+              <div className="space-y-3">
+                <Controller
+                  name="konsekvenser_sha"
+                  control={control}
+                  render={({ field }) => (
+                    <Checkbox
+                      id="konsekvenser_sha"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      label="SHA-konsekvens"
+                      description="Endringen påvirker sikkerhet, helse eller arbeidsmiljø"
+                    />
+                  )}
+                />
+
+                <Controller
+                  name="konsekvenser_kvalitet"
+                  control={control}
+                  render={({ field }) => (
+                    <Checkbox
+                      id="konsekvenser_kvalitet"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      label="Kvalitetskonsekvens"
+                      description="Endringen påvirker kvalitet eller spesifikasjoner"
+                    />
+                  )}
+                />
+
+                <Controller
+                  name="konsekvenser_fremdrift"
+                  control={control}
+                  render={({ field }) => (
+                    <Checkbox
+                      id="konsekvenser_fremdrift"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      label="Fremdriftskonsekvens"
+                      description="Endringen gir rett til fristforlengelse"
+                    />
+                  )}
+                />
+
+                <Controller
+                  name="konsekvenser_pris"
+                  control={control}
+                  render={({ field }) => (
+                    <Checkbox
+                      id="konsekvenser_pris"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      label="Priskonsekvens"
+                      description="Endringen gir rett til vederlagsjustering"
+                    />
+                  )}
+                />
+
+                <Controller
+                  name="konsekvenser_annet"
+                  control={control}
+                  render={({ field }) => (
+                    <Checkbox
+                      id="konsekvenser_annet"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      label="Andre konsekvenser"
+                      description="Endringen har andre konsekvenser som bør dokumenteres"
+                    />
+                  )}
+                />
+              </div>
+
+              {harKonsekvens && (
+                <FormField label="Utdypende beskrivelse">
+                  <Textarea
+                    {...register('konsekvens_beskrivelse')}
+                    rows={3}
+                    fullWidth
+                  />
+                </FormField>
+              )}
+
+              {!harKonsekvens && (
+                <Alert variant="warning" title="Ingen konsekvenser valgt">
+                  Er du sikker på at endringen ikke har konsekvenser?
+                </Alert>
+              )}
+            </div>
+          )}
+
+          {/* ================================================================
+              STEP 4: SETTLEMENT
+              ================================================================ */}
+          {currentStep === 4 && (
+            <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
+              <h3 className="font-bold text-lg">Oppgjør</h3>
+
+              {/* Priskonsekvens */}
+              {formValues.konsekvenser_pris && (
+                <div className="space-y-4">
+                  <h4 className="font-medium text-sm">Vederlagsjustering</h4>
+
+                  <FormField
+                    label="Oppgjørsform"
+                    required
+                    error={!formValues.oppgjorsform ? 'Velg oppgjørsform' : undefined}
+                  >
+                    <div className="space-y-2">
+                      {OPPGJORSFORM_OPTIONS.map((opt) => (
+                        <Controller
+                          key={opt.value}
+                          name="oppgjorsform"
+                          control={control}
+                          render={({ field }) => (
+                            <button
+                              type="button"
+                              onClick={() => field.onChange(opt.value)}
+                              className={`w-full p-3 border-2 rounded-none text-left transition-colors ${
+                                field.value === opt.value
+                                  ? 'border-pkt-brand-purple-1000 bg-pkt-surface-light-beige'
+                                  : 'border-pkt-border-default hover:border-pkt-border-focus'
+                              }`}
+                            >
+                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                <div>
+                                  <p className="font-medium text-sm">
+                                    {opt.label}{' '}
+                                    <span className="text-pkt-text-body-subtle">({opt.paragraf})</span>
+                                  </p>
+                                  <p className="text-xs text-pkt-text-body-subtle mt-0.5">
+                                    {opt.description}
+                                  </p>
+                                </div>
+                                <IndeksreguleringsInfo indeks={opt.indeksregulering} />
+                              </div>
+                            </button>
+                          )}
+                        />
+                      ))}
+                    </div>
+                  </FormField>
+
+                  {/* Beløp */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField label="Kompensasjon (tillegg)">
+                      <Controller
+                        name="kompensasjon_belop"
+                        control={control}
+                        render={({ field }) => (
+                          <CurrencyInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            allowNegative={false}
+                          />
+                        )}
+                      />
+                    </FormField>
+
+                    <FormField label="Fradrag">
+                      <Controller
+                        name="fradrag_belop"
+                        control={control}
+                        render={({ field }) => (
+                          <CurrencyInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            allowNegative={false}
+                          />
+                        )}
+                      />
+                    </FormField>
+                  </div>
+
+                  {/* Netto */}
+                  <div className="p-3 bg-pkt-surface-subtle border-2 border-pkt-border-subtle rounded-none">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">Netto beløp:</span>
+                      <span className={`font-bold text-lg ${nettoBelop < 0 ? 'text-alert-danger-text' : ''}`}>
+                        {formatCurrency(nettoBelop)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Estimat checkbox */}
+                  <Controller
+                    name="er_estimat"
+                    control={control}
+                    render={({ field }) => (
+                      <Checkbox
+                        id="er_estimat"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        label="Beløpet er et estimat"
+                        description="Endelig beløp fastsettes ved sluttoppgjør"
+                      />
+                    )}
+                  />
+                </div>
+              )}
+
+              {/* Fristforlengelse */}
+              {formValues.konsekvenser_fremdrift && (
+                <div className="space-y-4 pt-4 border-t-2 border-pkt-border-subtle">
+                  <h4 className="font-medium text-sm">Fristforlengelse</h4>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField label="Antall dager">
+                      <Controller
+                        name="frist_dager"
+                        control={control}
+                        render={({ field }) => (
+                          <Input
+                            type="number"
+                            value={field.value ?? ''}
+                            onChange={(e) =>
+                              field.onChange(e.target.value ? parseInt(e.target.value, 10) : null)
+                            }
+                            width="xs"
+                          />
+                        )}
+                      />
+                    </FormField>
+
+                    <FormField label="Ny sluttdato">
+                      <Controller
+                        name="ny_sluttdato"
+                        control={control}
+                        render={({ field }) => (
+                          <DatePicker id="ny_sluttdato" value={field.value} onChange={field.onChange} />
+                        )}
+                      />
+                    </FormField>
+                  </div>
+                </div>
+              )}
+
+              {/* Info when no pris or fremdrift */}
+              {!formValues.konsekvenser_pris && !formValues.konsekvenser_fremdrift && (
+                <Alert variant="info" title="Ingen oppgjørsinfo nødvendig">
+                  Endringsordren har ingen pris- eller fremdriftskonsekvens.
+                </Alert>
+              )}
+            </div>
+          )}
+
+          {/* ================================================================
+              STEP 5: REVIEW
+              ================================================================ */}
+          {currentStep === 5 && (
+            <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
+              <h3 className="font-bold text-lg">Oppsummering</h3>
+
+              <p className="text-sm text-pkt-text-body-subtle">
+                Kontroller informasjonen før du utsteder endringsordren.
+              </p>
+
+              {/* Summary cards */}
+              <div className="space-y-4">
+                {/* Basic info */}
+                <div className="p-3 bg-pkt-surface-subtle border border-pkt-border-subtle rounded-none">
+                  <h4 className="font-medium text-sm mb-2">Grunnleggende info</h4>
+                  <dl className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <dt className="text-pkt-text-body-subtle">EO-nummer:</dt>
+                      <dd className="font-medium">{formValues.eo_nummer}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-pkt-text-body-subtle">Beskrivelse:</dt>
+                      <dd className="font-medium mt-1">{formValues.beskrivelse}</dd>
+                    </div>
+                  </dl>
+                </div>
+
+                {/* KOE cases */}
+                {selectedKoeIds.length > 0 && (
+                  <div className="p-3 bg-pkt-surface-subtle border border-pkt-border-subtle rounded-none">
+                    <h4 className="font-medium text-sm mb-2">Relaterte KOE-saker</h4>
+                    <p className="text-sm">{selectedKoeIds.length} sak(er) inkludert</p>
+                    <p className="text-xs text-pkt-text-body-subtle mt-1">
+                      Totalt godkjent: {formatCurrency(totalFromKOE)} / {totalDagerFromKOE} dager
+                    </p>
+                  </div>
+                )}
+
+                {/* Consequences */}
+                <div className="p-3 bg-pkt-surface-subtle border border-pkt-border-subtle rounded-none">
+                  <h4 className="font-medium text-sm mb-2">Konsekvenser</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {!formValues.konsekvenser_sha && <Badge variant="success">Ingen SHA</Badge>}
+                    {formValues.konsekvenser_sha && <Badge variant="warning">SHA</Badge>}
+                    {!formValues.konsekvenser_kvalitet && <Badge variant="success">Ingen kvalitet</Badge>}
+                    {formValues.konsekvenser_kvalitet && <Badge variant="warning">Kvalitet</Badge>}
+                    {!formValues.konsekvenser_fremdrift && <Badge variant="success">Ingen fremdrift</Badge>}
+                    {formValues.konsekvenser_fremdrift && <Badge variant="warning">Fremdrift</Badge>}
+                    {!formValues.konsekvenser_pris && <Badge variant="success">Ingen pris</Badge>}
+                    {formValues.konsekvenser_pris && <Badge variant="warning">Pris</Badge>}
+                  </div>
+                </div>
+
+                {/* Settlement */}
+                {(formValues.konsekvenser_pris || formValues.konsekvenser_fremdrift) && (
+                  <div className="p-3 bg-pkt-surface-subtle border border-pkt-border-subtle rounded-none">
+                    <h4 className="font-medium text-sm mb-2">Oppgjør</h4>
+                    <dl className="space-y-1 text-sm">
+                      {formValues.konsekvenser_pris && (
+                        <>
+                          <div className="flex justify-between">
+                            <dt className="text-pkt-text-body-subtle">Oppgjørsform:</dt>
+                            <dd className="font-medium">
+                              {OPPGJORSFORM_OPTIONS.find((o) => o.value === formValues.oppgjorsform)?.label ||
+                                '-'}
+                            </dd>
+                          </div>
+                          <div className="flex justify-between">
+                            <dt className="text-pkt-text-body-subtle">Netto beløp:</dt>
+                            <dd className="font-medium">
+                              {formatCurrency(nettoBelop)}
+                              {formValues.er_estimat && ' (estimat)'}
+                            </dd>
+                          </div>
+                        </>
+                      )}
+                      {formValues.konsekvenser_fremdrift && (
+                        <>
+                          <div className="flex justify-between">
+                            <dt className="text-pkt-text-body-subtle">Fristforlengelse:</dt>
+                            <dd className="font-medium">{formValues.frist_dager || '-'} dager</dd>
+                          </div>
+                          {formValues.ny_sluttdato && (
+                            <div className="flex justify-between">
+                              <dt className="text-pkt-text-body-subtle">Ny sluttdato:</dt>
+                              <dd className="font-medium">{formValues.ny_sluttdato}</dd>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </dl>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Error Message */}
+          {createEOMutation.isError && (
+            <Alert variant="danger" title="Feil ved opprettelse">
+              {createEOMutation.error instanceof Error
+                ? createEOMutation.error.message
+                : 'En uventet feil oppstod'}
+            </Alert>
+          )}
+
+          {/* Navigation Actions */}
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-4 pt-6 border-t-2 border-pkt-border-subtle">
+            <div>
+              {currentStep > 1 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    goToPrevStep();
+                  }}
+                  size="lg"
+                  className="w-full sm:w-auto"
+                >
+                  ← Forrige
+                </Button>
+              )}
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={handleClose}
+                disabled={createEOMutation.isPending}
+                size="lg"
+                className="w-full sm:w-auto order-2 sm:order-1"
+              >
+                Avbryt
+              </Button>
+
+              {currentStep < totalSteps ? (
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    goToNextStep();
+                  }}
+                  size="lg"
+                  className="w-full sm:w-auto order-1 sm:order-2"
+                >
+                  Neste →
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  variant="primary"
+                  disabled={createEOMutation.isPending}
+                  size="lg"
+                  className="w-full sm:w-auto order-1 sm:order-2"
+                >
+                  {createEOMutation.isPending ? 'Oppretter...' : 'Utsted endringsordre'}
+                </Button>
+              )}
+            </div>
           </div>
-        )}
-      </div>
+        </form>
 
-      {/* Error display */}
-      {createEOMutation.isError && (
-        <Alert variant="error" title="Kunne ikke opprette endringsordre" className="mt-4">
-          {(createEOMutation.error as Error)?.message || 'En uventet feil oppstod'}
-        </Alert>
-      )}
-
-      {/* Actions */}
-      <div className="flex justify-between gap-3 pt-6 border-t-2 border-pkt-border-subtle mt-6">
-        <Button variant="ghost" type="button" onClick={handleClose}>
-          Avbryt
-        </Button>
-
-        <div className="flex gap-3">
-          {!isFirstStep && (
-            <Button variant="secondary" type="button" onClick={goBack}>
-              <ChevronLeftIcon className="w-4 h-4 mr-1" />
-              Tilbake
-            </Button>
-          )}
-
-          {!isLastStep && (
-            <Button
-              variant="primary"
-              type="button"
-              onClick={goNext}
-              disabled={!canProceed}
-            >
-              Neste
-              <ChevronRightIcon className="w-4 h-4 ml-1" />
-            </Button>
-          )}
-
-          {isLastStep && (
-            <Button
-              variant="primary"
-              type="button"
-              onClick={handleSubmit}
-              disabled={createEOMutation.isPending}
-            >
-              {createEOMutation.isPending ? 'Oppretter...' : 'Utsted endringsordre'}
-            </Button>
-          )}
-        </div>
+        {/* Confirm close dialog */}
+        <AlertDialog
+          open={showConfirmDialog}
+          onOpenChange={setShowConfirmDialog}
+          title="Forkast endringer?"
+          description="Du har ulagrede endringer som vil gå tapt hvis du lukker skjemaet."
+          confirmLabel="Forkast"
+          cancelLabel="Fortsett redigering"
+          onConfirm={confirmClose}
+          variant="warning"
+        />
       </div>
     </Modal>
   );

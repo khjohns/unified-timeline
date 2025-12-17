@@ -6,6 +6,7 @@
  */
 
 import { apiFetch, USE_MOCK_API, mockDelay } from './client';
+import { getMockStateById, getMockTimelineById } from '../mocks/helpers';
 import type {
   SakState,
   TimelineEntry,
@@ -243,66 +244,120 @@ export async function fjernKOE(
 // ============================================================================
 
 function getMockEOKontekst(sakId: string): EOKontekstResponse {
-  // Return a mock EO context
+  // Return specific data for SAK-EO-001
+  if (sakId === 'SAK-EO-001') {
+    const relaterteSaker: SakRelasjon[] = [
+      {
+        relatert_sak_id: 'SAK-2025-010',
+        relatert_sak_tittel: 'Revisjonssyklus - Ekstra sprinkleranlegg',
+        bimsync_issue_number: 61,
+      },
+      {
+        relatert_sak_id: 'SAK-2024-089',
+        relatert_sak_tittel: 'Ekstraarbeid - Fasadeendringer',
+        bimsync_issue_number: 89,
+      },
+    ];
+
+    // Fetch states and timelines for related KOE cases
+    const sakStates: Record<string, SakState> = {};
+    const hendelser: Record<string, TimelineEntry[]> = {};
+
+    for (const relasjon of relaterteSaker) {
+      const relatertState = getMockStateById(relasjon.relatert_sak_id);
+      const relatertTimeline = getMockTimelineById(relasjon.relatert_sak_id);
+
+      sakStates[relasjon.relatert_sak_id] = relatertState;
+      hendelser[relasjon.relatert_sak_id] = relatertTimeline;
+    }
+
+    return {
+      success: true,
+      sak_id: sakId,
+      relaterte_saker: relaterteSaker,
+      sak_states: sakStates,
+      hendelser: hendelser,
+      eo_hendelser: [
+        {
+          event_id: 'evt-eo-003',
+          tidsstempel: '2025-02-20T14:00:00Z',
+          type: 'Endringsordre utstedt',
+          event_type: 'eo_utstedt',
+          aktor: 'Kari Byggherre',
+          rolle: 'BH',
+          spor: null,
+          sammendrag: 'Endringsordre EO-001 utstedt for signering',
+        },
+        {
+          event_id: 'evt-eo-002',
+          tidsstempel: '2025-02-20T11:30:00Z',
+          type: 'KOE lagt til',
+          event_type: 'eo_koe_lagt_til',
+          aktor: 'Kari Byggherre',
+          rolle: 'BH',
+          spor: null,
+          sammendrag: 'SAK-2024-089 lagt til endringsordre',
+        },
+        {
+          event_id: 'evt-eo-001',
+          tidsstempel: '2025-02-20T11:00:00Z',
+          type: 'Endringsordre opprettet',
+          event_type: 'eo_opprettet',
+          aktor: 'Kari Byggherre',
+          rolle: 'BH',
+          spor: null,
+          sammendrag: 'Endringsordre EO-001 opprettet med SAK-2025-010',
+        },
+      ],
+      oppsummering: {
+        antall_koe_saker: 2,
+        total_krevd_vederlag: 1035000,
+        total_godkjent_vederlag: 1035000,
+        total_krevd_dager: 19,
+        total_godkjent_dager: 19,
+        koe_oversikt: [
+          {
+            sak_id: 'SAK-2025-010',
+            tittel: 'Revisjonssyklus - Ekstra sprinkleranlegg',
+            grunnlag_status: 'godkjent',
+            vederlag_status: 'godkjent',
+            frist_status: 'godkjent',
+            krevd_vederlag: 185000,
+            godkjent_vederlag: 185000,
+            krevd_dager: 5,
+            godkjent_dager: 5,
+          },
+          {
+            sak_id: 'SAK-2024-089',
+            tittel: 'Ekstraarbeid - Fasadeendringer',
+            grunnlag_status: 'godkjent',
+            vederlag_status: 'godkjent',
+            frist_status: 'godkjent',
+            krevd_vederlag: 850000,
+            godkjent_vederlag: 850000,
+            krevd_dager: 14,
+            godkjent_dager: 14,
+          },
+        ],
+      },
+    };
+  }
+
+  // Generic fallback for other EO cases
   return {
     success: true,
     sak_id: sakId,
-    relaterte_saker: [
-      {
-        relatert_sak_id: 'SAK-2025-001',
-        relatert_sak_tittel: 'KOE - Fundamentendring',
-        bimsync_issue_number: 1,
-      },
-      {
-        relatert_sak_id: 'SAK-2025-002',
-        relatert_sak_tittel: 'KOE - Tilleggsarbeid ventilasjon',
-        bimsync_issue_number: 2,
-      },
-    ],
+    relaterte_saker: [],
     sak_states: {},
     hendelser: {},
-    eo_hendelser: [
-      {
-        event_id: 'evt-eo-1',
-        tidsstempel: new Date().toISOString(),
-        type: 'eo_utstedt',
-        event_type: 'eo_utstedt',
-        aktor: 'Ole Byggherre',
-        rolle: 'BH',
-        spor: null,
-        sammendrag: 'Endringsordre utstedt',
-      },
-    ],
+    eo_hendelser: [],
     oppsummering: {
-      antall_koe_saker: 2,
-      total_krevd_vederlag: 350000,
-      total_godkjent_vederlag: 300000,
-      total_krevd_dager: 15,
-      total_godkjent_dager: 10,
-      koe_oversikt: [
-        {
-          sak_id: 'SAK-2025-001',
-          tittel: 'KOE - Fundamentendring',
-          grunnlag_status: 'godkjent',
-          vederlag_status: 'godkjent',
-          frist_status: 'delvis_godkjent',
-          krevd_vederlag: 200000,
-          godkjent_vederlag: 180000,
-          krevd_dager: 10,
-          godkjent_dager: 7,
-        },
-        {
-          sak_id: 'SAK-2025-002',
-          tittel: 'KOE - Tilleggsarbeid ventilasjon',
-          grunnlag_status: 'godkjent',
-          vederlag_status: 'godkjent',
-          frist_status: 'godkjent',
-          krevd_vederlag: 150000,
-          godkjent_vederlag: 120000,
-          krevd_dager: 5,
-          godkjent_dager: 3,
-        },
-      ],
+      antall_koe_saker: 0,
+      total_krevd_vederlag: 0,
+      total_godkjent_vederlag: 0,
+      total_krevd_dager: 0,
+      total_godkjent_dager: 0,
+      koe_oversikt: [],
     },
   };
 }
@@ -350,7 +405,22 @@ function getMockOpprettEOResponse(data: OpprettEORequest): OpprettEOResponse {
 
 function getMockKandidatKOESaker(): KandidatKOE[] {
   // Return mock candidate KOE cases (cases where kan_utstede_eo is true)
+  // Includes the actual mock cases for realistic demonstration
   return [
+    {
+      sak_id: 'SAK-2025-010',
+      tittel: 'Revisjonssyklus - Ekstra sprinkleranlegg',
+      overordnet_status: 'OMFORENT',
+      sum_godkjent: 185000,
+      godkjent_dager: 5,
+    },
+    {
+      sak_id: 'SAK-2024-089',
+      tittel: 'Ekstraarbeid - Fasadeendringer',
+      overordnet_status: 'OMFORENT',
+      sum_godkjent: 850000,
+      godkjent_dager: 14,
+    },
     {
       sak_id: 'SAK-2025-001',
       tittel: 'KOE - Fundamentendring',
@@ -364,13 +434,6 @@ function getMockKandidatKOESaker(): KandidatKOE[] {
       overordnet_status: 'OMFORENT',
       sum_godkjent: 120000,
       godkjent_dager: 3,
-    },
-    {
-      sak_id: 'SAK-2025-005',
-      tittel: 'KOE - Endring i bæresystem',
-      overordnet_status: 'OMFORENT',
-      sum_godkjent: 450000,
-      godkjent_dager: 14,
     },
   ];
 }

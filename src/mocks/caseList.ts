@@ -68,4 +68,10 @@ export const mockCaseList = [
     title: 'Forsinkelse - Ventilasjonsmontasje',
     status: 'Frist avslått - kan utløse forsering',
   },
+  {
+    id: 'SAK-EO-001',
+    title: '📋 Endringsordre EO-001 - Sprinkler og fasadeendringer',
+    status: 'EO utstedt - venter TE aksept',
+    sakstype: 'endringsordre',
+  },
 ];

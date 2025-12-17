@@ -15,3 +15,4 @@ export { mockTimelineEvents10 } from './timeline-010';
 export { mockTimelineEvents11 } from './timeline-011';
 export { mockTimelineEvents12 } from './timeline-012';
 export { mockTimelineEvents13 } from './timeline-013';
+export { mockTimelineEventsEO001 } from './timeline-eo-001';

@@ -19,6 +19,7 @@ from models.sak_state import (
     SakState,
 )
 from models.events import AnyEvent
+from services.related_cases_service import RelatedCasesService
 
 logger = get_logger(__name__)
 
@@ -48,6 +49,12 @@ class ForseringService:
         self.client = catenda_client
         self.event_repository = event_repository
         self.timeline_service = timeline_service
+
+        # Gjenbrukbar helper for relaterte saker
+        self.related_cases = RelatedCasesService(
+            event_repository=event_repository,
+            timeline_service=timeline_service
+        )
 
         if not self.client:
             logger.warning("ForseringService initialized without Catenda client")
@@ -193,45 +200,9 @@ class ForseringService:
     ) -> Dict[str, List[AnyEvent]]:
         """
         Henter alle hendelser fra en liste med saker.
-
-        Nyttig for å vise kontekst i en forseringssak - f.eks. hendelser
-        om grunnlag og fristforlengelse fra de avslåtte sakene.
-
-        Args:
-            sak_ids: Liste med sak-IDs å hente hendelser fra
-            spor_filter: Valgfritt filter for spor (f.eks. ['grunnlag', 'frist'])
-
-        Returns:
-            Dict med sak_id -> liste av events
+        Delegerer til RelatedCasesService.
         """
-        if not self.event_repository:
-            logger.warning("Ingen event repository - kan ikke hente hendelser")
-            return {}
-
-        result: Dict[str, List[AnyEvent]] = {}
-
-        for sak_id in sak_ids:
-            try:
-                events, _version = self.event_repository.get_events(sak_id)
-
-                # Filtrer på spor hvis angitt
-                if spor_filter:
-                    events = [
-                        e for e in events
-                        if getattr(e, 'spor', None) in spor_filter
-                        or e.get('spor') in spor_filter  # For dict-events
-                    ]
-
-                result[sak_id] = events
-                logger.debug(f"Hentet {len(events)} hendelser fra sak {sak_id}")
-
-            except Exception as e:
-                logger.error(f"Feil ved henting av hendelser fra sak {sak_id}: {e}")
-                result[sak_id] = []
-
-        total_events = sum(len(events) for events in result.values())
-        logger.info(f"Hentet totalt {total_events} hendelser fra {len(sak_ids)} saker")
-        return result
+        return self.related_cases.hent_hendelser_fra_saker(sak_ids, spor_filter)
 
     def hent_state_fra_relaterte_saker(
         self,
@@ -239,32 +210,9 @@ class ForseringService:
     ) -> Dict[str, SakState]:
         """
         Henter SakState for en liste med saker.
-
-        Args:
-            sak_ids: Liste med sak-IDs
-
-        Returns:
-            Dict med sak_id -> SakState
+        Delegerer til RelatedCasesService.
         """
-        if not self.event_repository or not self.timeline_service:
-            logger.warning("Mangler repository eller timeline service")
-            return {}
-
-        result: Dict[str, SakState] = {}
-
-        for sak_id in sak_ids:
-            try:
-                events, _version = self.event_repository.get_events(sak_id)
-                if events:
-                    state = self.timeline_service.compute_state(events)
-                    result[sak_id] = state
-                    logger.debug(f"Beregnet state for sak {sak_id}")
-
-            except Exception as e:
-                logger.error(f"Feil ved beregning av state for sak {sak_id}: {e}")
-
-        logger.info(f"Hentet state fra {len(result)} av {len(sak_ids)} saker")
-        return result
+        return self.related_cases.hent_state_fra_saker(sak_ids)
 
     def hent_komplett_forseringskontekst(
         self,
@@ -407,6 +355,56 @@ class ForseringService:
 
         logger.info(f"Totalt {total_avslatte} avslåtte dager fra {len(sak_ids)} saker")
         return total_avslatte
+
+    def finn_forseringer_for_sak(self, sak_id: str) -> List[Dict[str, Any]]:
+        """
+        Finner alle forseringssaker som refererer til en gitt KOE-sak.
+
+        Brukes for å vise back-links fra KOE-saker til deres forsering.
+
+        Args:
+            sak_id: KOE-sakens ID
+
+        Returns:
+            Liste med forseringssaker som refererer til KOE-saken
+        """
+        if not self.client:
+            logger.warning("Ingen Catenda client - kan ikke finne forseringer")
+            return []
+
+        try:
+            topics = self.client.list_topics()
+            forseringer = []
+
+            for topic in topics:
+                topic_id = topic.get('guid')
+                if not topic_id:
+                    continue
+
+                if self.event_repository and self.timeline_service:
+                    try:
+                        events, _version = self.event_repository.get_events(topic_id)
+                        if events:
+                            state = self.timeline_service.compute_state(events)
+
+                            if state.sakstype == 'forsering' and state.forsering_data:
+                                relaterte = state.forsering_data.relaterte_avslatte_saker or []
+                                if sak_id in relaterte:
+                                    forseringer.append({
+                                        "forsering_sak_id": topic_id,
+                                        "tittel": state.sakstittel,
+                                        "status": state.forsering_data.status,
+                                        "estimert_kostnad": state.forsering_data.estimert_kostnad,
+                                    })
+                    except Exception as e:
+                        logger.debug(f"Kunne ikke evaluere topic {topic_id}: {e}")
+
+            logger.info(f"Fant {len(forseringer)} forseringer som refererer til {sak_id}")
+            return forseringer
+
+        except Exception as e:
+            logger.error(f"Feil ved søk etter forseringer for {sak_id}: {e}")
+            return []
 
     def is_configured(self) -> bool:
         """

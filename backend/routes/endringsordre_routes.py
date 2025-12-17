@@ -413,3 +413,42 @@ def hent_kandidat_koe_saker():
             "error": "INTERNAL_ERROR",
             "message": "Kunne ikke hente kandidat-saker"
         }), 500
+
+
+@endringsordre_bp.route('/api/endringsordre/by-relatert/<sak_id>', methods=['GET'])
+@require_magic_link
+def finn_eoer_for_koe(sak_id: str):
+    """
+    Finn endringsordrer som refererer til en gitt KOE-sak.
+
+    Brukes for å vise back-links fra KOE-saker til deres EO.
+
+    Response 200:
+    {
+        "success": true,
+        "endringsordrer": [
+            {
+                "eo_sak_id": "eo-sak-guid",
+                "eo_nummer": "EO-001",
+                "dato_utstedt": "2025-02-15",
+                "status": "utstedt"
+            }
+        ]
+    }
+    """
+    try:
+        service = _get_endringsordre_service()
+        eoer = service.finn_eoer_for_koe(sak_id)
+
+        return jsonify({
+            "success": True,
+            "endringsordrer": eoer
+        }), 200
+
+    except Exception as e:
+        logger.exception(f"Feil ved søk etter EOer for KOE {sak_id}: {e}")
+        return jsonify({
+            "success": False,
+            "error": "INTERNAL_ERROR",
+            "message": "Kunne ikke finne endringsordrer"
+        }), 500

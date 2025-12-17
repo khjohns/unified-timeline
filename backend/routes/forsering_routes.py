@@ -317,3 +317,42 @@ def valider_forseringskostnad():
             "error": "INTERNAL_ERROR",
             "message": "Kunne ikke validere"
         }), 500
+
+
+@forsering_bp.route('/api/forsering/by-relatert/<sak_id>', methods=['GET'])
+@require_magic_link
+def finn_forseringer_for_sak(sak_id: str):
+    """
+    Finn forseringssaker som refererer til en gitt KOE-sak.
+
+    Brukes for å vise back-links fra KOE-saker til deres forsering.
+
+    Response 200:
+    {
+        "success": true,
+        "forseringer": [
+            {
+                "forsering_sak_id": "forsering-sak-guid",
+                "tittel": "Forsering - Fundamentarbeid",
+                "status": "aktiv",
+                "estimert_kostnad": 150000
+            }
+        ]
+    }
+    """
+    try:
+        service = _get_forsering_service()
+        forseringer = service.finn_forseringer_for_sak(sak_id)
+
+        return jsonify({
+            "success": True,
+            "forseringer": forseringer
+        }), 200
+
+    except Exception as e:
+        logger.exception(f"Feil ved søk etter forseringer for {sak_id}: {e}")
+        return jsonify({
+            "success": False,
+            "error": "INTERNAL_ERROR",
+            "message": "Kunne ikke finne forseringer"
+        }), 500
