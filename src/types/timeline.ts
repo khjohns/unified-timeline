@@ -28,6 +28,30 @@ export type VederlagsMetode =
   | 'REGNINGSARBEID'    // Regningsarbeid med kostnadsoverslag (§30.2/§34.4)
   | 'FASTPRIS_TILBUD';  // Fastpris / Tilbud (§34.2.1)
 
+/**
+ * Felles base-modell for vederlagskompensasjon.
+ *
+ * Brukes av både VederlagData (TEs krav) og EOUtstedtData (BHs formelle EO).
+ * Følger NS 8407 §34 for vederlagsjustering.
+ *
+ * Beløpsstrukturen avhenger av metode:
+ * - ENHETSPRISER / FASTPRIS_TILBUD: belop_direkte
+ * - REGNINGSARBEID: kostnads_overslag (alltid >= 0)
+ *
+ * Fradrag (§34.4): "For fradrag skal det gjøres en reduksjon i vederlaget som
+ * tilsvarer den besparelsen fradraget har ført til."
+ */
+export interface VederlagKompensasjon {
+  metode: VederlagsMetode;
+  belop_direkte?: number;      // For ENHETSPRISER/FASTPRIS_TILBUD
+  kostnads_overslag?: number;  // For REGNINGSARBEID (§30.2)
+  fradrag_belop?: number;      // Fradrag (§34.4)
+  er_estimat?: boolean;        // Om beløpet er et estimat
+  // Computed (fra backend)
+  netto_belop?: number;        // brutto - fradrag
+  krevd_belop?: number;        // alias for netto_belop
+}
+
 // Vederlag beregning results - forenklet til tre hovedkategorier
 // Årsaken til avslag fanges av `subsidiaer_triggers`
 // NB: 'avventer' er fjernet - BH må enten avslå eller delvis godkjenne med forklaring
@@ -135,12 +159,18 @@ export interface GrunnlagTilstand {
 export interface VederlagTilstand {
   status: SporStatus;
 
-  // TE's krav - hovedbeløp
+  // TE's krav - hovedbeløp (følger VederlagKompensasjon struktur)
   metode?: VederlagsMetode;
-  belop_direkte?: number;        // For ENHETSPRISER/FASTPRIS_TILBUD (kan være negativt = fradrag)
+  belop_direkte?: number;        // For ENHETSPRISER/FASTPRIS_TILBUD
   kostnads_overslag?: number;    // For REGNINGSARBEID (§30.2)
+  fradrag_belop?: number;        // Fradrag (§34.4) - reduksjon for besparelser
+  er_estimat?: boolean;          // Om beløpet er et estimat
   krever_justert_ep?: boolean;   // For ENHETSPRISER - krever justerte EP
   begrunnelse?: string;
+
+  // Computed beløp (fra backend)
+  netto_belop?: number;          // brutto - fradrag
+  krevd_belop?: number;          // alias for netto_belop
 
   // Særskilte krav (§34.1.3) - separate frister per kostnadstype
   // Per standarden: TE kan bli klar over rigg/drift og produktivitetstap på ulike tidspunkt
@@ -323,6 +353,51 @@ export interface EOKonsekvenser {
 }
 
 /**
+ * Data for formell utstedelse av endringsordre (event payload).
+ *
+ * Dette er data som sendes når BH formelt utsteder en EO.
+ * Bruker VederlagKompensasjon for vederlagsdelen for konsistens med VederlagData.
+ *
+ * Vederlagskompensasjonen kan enten sendes via:
+ * - Nytt `vederlag` felt (VederlagKompensasjon) - foretrukket
+ * - Legacy-felter (oppgjorsform, kompensasjon_belop, etc.) - for bakoverkompatibilitet
+ */
+export interface EOUtstedtData {
+  // Identifikasjon
+  eo_nummer: string;
+  revisjon_nummer?: number;
+
+  // Beskrivelse
+  beskrivelse: string;
+  vedlegg_ids?: string[];
+
+  // Konsekvenser
+  konsekvenser?: EOKonsekvenser;
+  konsekvens_beskrivelse?: string;
+
+  // Vederlag/oppgjør - bruker VederlagKompensasjon for konsistens
+  vederlag?: VederlagKompensasjon;
+
+  // Legacy-felter for bakoverkompatibilitet
+  oppgjorsform?: VederlagsMetode;
+  kompensasjon_belop?: number;
+  fradrag_belop?: number;
+  er_estimat?: boolean;
+
+  // Frist
+  frist_dager?: number;
+  ny_sluttdato?: string;
+
+  // Relaterte saker
+  relaterte_koe_saker?: string[];
+
+  // Computed (fra backend)
+  netto_belop?: number;
+  har_priskonsekvens?: boolean;
+  har_fristkonsekvens?: boolean;
+}
+
+/**
  * Data spesifikk for endringsordresaker (§31.3) som egen sak.
  *
  * Endringsordre (EO) er det formelle dokumentet som bekrefter en endring
@@ -349,7 +424,10 @@ export interface EndringsordreData {
   konsekvenser: EOKonsekvenser;
   konsekvens_beskrivelse?: string;
 
-  // Oppgjør
+  // Vederlag/oppgjør - ny struktur med VederlagKompensasjon
+  vederlag?: VederlagKompensasjon;
+
+  // Legacy oppgjørsfelter (bakoverkompatibilitet)
   oppgjorsform?: VederlagsMetode;
   kompensasjon_belop?: number;   // Tillegg
   fradrag_belop?: number;        // Fratrekk
