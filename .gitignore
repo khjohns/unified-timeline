@@ -39,6 +39,7 @@ backend/.env
 # Test coverage
 coverage.json
 .coverage
+coverage/
 htmlcov/
 *.coverage
 

@@ -571,7 +571,7 @@ Backend-arkitekturen er designet for gjenbruk på tvers av skjematyper. Den lagd
 
 ## Testing
 
-### Backend (345 tester, 32% coverage)
+### Backend (427 tester, 63% coverage)
 
 ```bash
 cd backend
@@ -579,24 +579,24 @@ cd backend
 # Kjør alle tester
 python -m pytest tests/ -v
 
-# Kjør med coverage
-python -m pytest tests/ --cov=. --cov-report=html
-
-# Manuell API-testing
-./scripts/manual_testing.sh
+# Kjør med coverage (ekskluderer routes/)
+python -m pytest --cov=services --cov=models --cov=repositories --cov=core --cov=constants --cov=api --cov-report=term-missing
 ```
 
-**Testdekning (32% totalt):**
+**Testdekning (63% kjernelogikk, ekskl. routes/):**
 
-| Kategori | Filer | Coverage |
-|----------|-------|----------|
-| Models | 2 filer | 95-100% |
-| Services | 2 filer | 87-89% |
-| Security | 4 filer | 73-95% |
-| Repositories | 2 filer | 95-99% |
-| Utils | 3 filer | 100% |
+| Modul | Coverage |
+|-------|----------|
+| repositories/event_repository.py | 99% |
+| models/api_responses.py | 95% |
+| models/events.py | 93% |
+| services/endringsordre_service.py | 88% |
+| services/catenda_service.py | 87% |
+| services/forsering_service.py | 83% |
+| services/business_rules.py | 80% |
+| models/sak_state.py | 70% |
 
-### Frontend
+### Frontend (334 tester, 41% coverage)
 
 ```bash
 # Kjør alle tester
@@ -606,8 +606,21 @@ npm test
 npm run test:ui
 
 # Kjør med coverage
-npm run test:coverage
+npm test -- --coverage --exclude='e2e/**'
 ```
+
+### E2E (39 tester)
+
+```bash
+# Kjør E2E-tester (krever at backend og frontend kjører)
+npm run test:e2e
+```
+
+E2E-testene dekker komplette brukerflyter med Playwright:
+- Grunnlag-flyten (9 tester)
+- Vederlag og frist-flyten (18 tester)
+- Subsidiær forsering (8 tester)
+- Smoke-tester (4 tester)
 
 ---
 
