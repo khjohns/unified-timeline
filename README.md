@@ -4,7 +4,7 @@
 
 Et system for håndtering av endringsordrer (KOE) etter NS 8407:2011, integrert med prosjekthotellet Catenda. Utviklet av Oslobygg KF for å erstatte manuelle PDF/Word-baserte prosesser med strukturerte, sporbare data.
 
-**Sist oppdatert:** 2025-12-10
+**Sist oppdatert:** 2025-12-17
 
 ---
 
@@ -49,13 +49,13 @@ Denne plattformen digitaliserer prosessen ved å:
 
 ## Arbeidsflyt
 
-Prosessen følger NS 8407:2011 for håndtering av krav om endring (KOE), implementert med event sourcing og tre parallelle spor.
+Prosessen følger NS 8407:2011 for håndtering av krav om endring (KOE), implementert med event sourcing og tre parallelle spor. Systemet støtter tre **sakstyper**: `standard` (KOE), `forsering` (§33.8) og `endringsordre` (§31.3).
 
 ### Oversikt
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              SAK (KOE)                                       │
+│                         STANDARD SAK (KOE)                                   │
 │  ┌─────────────────────────────────────────────────────────────────────────┐│
 │  │ GRUNNLAG (Ansvar)     VEDERLAG (Betaling)     FRIST (Tid)              ││
 │  │ "Hvorfor?"            "Hva koster det?"       "Hvor lang tid?"         ││
@@ -68,13 +68,24 @@ Prosessen følger NS 8407:2011 for håndtering av krav om endring (KOE), impleme
 │  │     grunnlag              vederlag                frist                ││
 │  │     (Port 1)              (Port 1+2)              (Port 1+2+3)         ││
 │  └─────────────────────────────────────────────────────────────────────────┘│
-│                                    │                                         │
-│                                    ▼                                         │
-│                            ┌──────────────┐                                 │
-│                            │  EO UTSTEDT  │                                 │
-│                            └──────────────┘                                 │
+│           │                                              │                   │
+│           │ Alle spor godkjent                          │ BH avslår frist   │
+│           ▼                                              ▼                   │
+│  ┌─────────────────┐                           ┌─────────────────┐          │
+│  │ ENDRINGSORDRE   │                           │   FORSERING     │          │
+│  │    (§31.3)      │                           │    (§33.8)      │          │
+│  │ Samler KOE-saker│                           │ TE akselererer  │          │
+│  └─────────────────┘                           └─────────────────┘          │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+### Sakstyper
+
+| Sakstype | Beskrivelse | Når brukes |
+|----------|-------------|------------|
+| `standard` | Ordinær KOE-sak med tre-spor behandling | Alle krav om endring |
+| `forsering` | Akselerasjonssak (§33.8) | Når BH avslår berettiget fristkrav |
+| `endringsordre` | Formell EO fra BH (§31.3) | Når KOE-saker er ferdigbehandlet |
 
 ### Steg 1: Sak opprettes via Catenda
 
@@ -161,19 +172,42 @@ Port 1: Ansvar            Port 1: Varsling           Port 1: Varsling
 Ved delvis godkjenning eller avvisning kan TE sende revidert krav:
 - `grunnlag_oppdatert` / `vederlag_krav_oppdatert` / `frist_krav_oppdatert`
 
-### Steg 5: Endringsordre (EO)
+### Steg 5: Endringsordre (EO) eller Forsering
 
-Når alle spor er avklart, kan endringsordre utstedes:
+#### Alternativ A: Endringsordre (§31.3)
+
+Når alle spor er godkjent (`kan_utstede_eo = true`), kan BH utstede en endringsordre:
 
 ```
-┌─────────────────┐
-│  EO UTSTEDES    │  → Event: eo_utstedt
-│                 │  Saken avsluttes.
-│                 │  (§31.3 Endringsordre)
-└─────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                    ENDRINGSORDRE (§31.3)                         │
+├─────────────────────────────────────────────────────────────────┤
+│  1. BH oppretter EO-sak (sakstype = "endringsordre")            │
+│  2. Velger KOE-saker som skal inkluderes                        │
+│  3. Angir konsekvenser (pris, frist, SHA, kvalitet)             │
+│  4. Utsteder EO → TE kan akseptere eller bestride               │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-### Event-oversikt (19 event-typer)
+#### Alternativ B: Forsering (§33.8)
+
+Hvis BH avslår fristkrav som TE mener er berettiget, kan TE varsle om forsering:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      FORSERING (§33.8)                           │
+├─────────────────────────────────────────────────────────────────┤
+│  1. BH avslår fristkrav                                         │
+│  2. TE oppretter forseringssak (sakstype = "forsering")         │
+│  3. Refererer til avslåtte fristkrav                            │
+│  4. Beregner maks kostnad: (dager × dagmulkt) × 1.3             │
+│  5. TE iverksetter forsering og kan kreve kostnader             │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Event-oversikt (35+ event-typer)
+
+#### Standard sak (KOE)
 
 | Event | Aktør | Beskrivelse |
 |-------|-------|-------------|
@@ -194,10 +228,32 @@ Når alle spor er avklart, kan endringsordre utstedes:
 | `respons_vederlag_oppdatert` | BH | BH endrer standpunkt |
 | `respons_frist` | BH | Svar på frist (Port 1+2+3) |
 | `respons_frist_oppdatert` | BH | BH endrer standpunkt |
-| `forsering_varsel` | TE | TE varsler om forsering (§33.8) |
-| `eo_utstedt` | BH | Endringsordre utstedt |
 
-**Merk:** Databaselagring til Dataverse og EO-skjema er planlagt for produksjon.
+#### Forsering (§33.8)
+
+| Event | Aktør | Beskrivelse |
+|-------|-------|-------------|
+| `forsering_opprettet` | TE | Ny forseringssak opprettet |
+| `forsering_iverksatt` | TE | Forsering iverksatt |
+| `forsering_stoppet` | TE | Forsering stoppet (BH godkjente frist) |
+| `forsering_kostnad_oppdatert` | TE | Påløpte kostnader oppdatert |
+| `forsering_bh_respons` | BH | BH's svar på forseringskostnader |
+| `forsering_relatert_lagt_til` | TE | Relatert fristkrav lagt til |
+| `forsering_relatert_fjernet` | TE | Relatert fristkrav fjernet |
+
+#### Endringsordre (§31.3)
+
+| Event | Aktør | Beskrivelse |
+|-------|-------|-------------|
+| `eo_opprettet` | BH | Ny EO-sak opprettet |
+| `eo_utstedt` | BH | EO formelt utstedt til TE |
+| `eo_revidert` | BH | EO revidert etter bestridelse |
+| `eo_te_akseptert` | TE | TE aksepterer EO |
+| `eo_te_bestridt` | TE | TE bestrider EO |
+| `eo_koe_lagt_til` | BH | KOE-sak lagt til i EO |
+| `eo_koe_fjernet` | BH | KOE-sak fjernet fra EO |
+
+**Merk:** Databaselagring til Dataverse er planlagt for produksjon.
 
 ---
 
@@ -276,12 +332,13 @@ SAK (Endringsmelding)
 
 Systemet implementerer NS 8407:2011 totalentreprisekontrakt med følgende hjemmelstruktur:
 
-| Spor | Hjemmel | Beskrivelse |
-|------|---------|-------------|
+| Spor/Sakstype | Hjemmel | Beskrivelse |
+|---------------|---------|-------------|
 | **Grunnlag** | §33.1 a-c, §33.3 | Ansvarsgrunnlag for krav |
 | **Vederlag** | §34.1-34.4 | Vederlagsjustering |
-| **Frist** | §33.4-33.8 | Fristforlengelse |
-| **EO** | §31.3 | Endringsordre |
+| **Frist** | §33.4-33.7 | Fristforlengelse |
+| **Forsering** | §33.8 | Akselerasjon ved avslått fristkrav |
+| **Endringsordre** | §31.3 | Formell instruks fra BH |
 
 **Kategorier (4 hovedkategorier, 22 underkategorier):**
 
@@ -418,15 +475,22 @@ Se [GETTING_STARTED.md](docs/GETTING_STARTED.md) for detaljert oppsettguide inkl
 Skjema_Endringsmeldinger/
 │
 ├── src/                            # Frontend (React/TypeScript)
-│   ├── App.tsx                     # Hovedkomponent
+│   ├── App.tsx                     # Hovedkomponent med routing
 │   ├── types/
 │   │   └── timeline.ts             # Event/State-typer (speiler backend)
 │   ├── api/
 │   │   ├── events.ts               # Event submission med optimistisk låsing
+│   │   ├── forsering.ts            # Forsering API-klient
+│   │   ├── endringsordre.ts        # Endringsordre API-klient
 │   │   └── client.ts               # HTTP-klient
+│   ├── pages/
+│   │   ├── ForseringPage.tsx       # Forsering-side
+│   │   └── EndringsordePage.tsx    # Endringsordre-side
 │   ├── components/
 │   │   ├── layout/                 # Layout-komponenter
 │   │   ├── panels/                 # Hovedpaneler (Grunnlag, Vederlag, Frist)
+│   │   ├── forsering/              # Forsering-komponenter
+│   │   ├── endringsordre/          # Endringsordre-komponenter
 │   │   └── ui/                     # Gjenbrukbare UI-komponenter
 │   ├── hooks/                      # Custom React hooks
 │   └── utils/                      # Hjelpefunksjoner
@@ -435,19 +499,23 @@ Skjema_Endringsmeldinger/
 │   ├── app.py                      # Flask entrypoint
 │   │
 │   ├── models/                     # Pydantic v2 modeller
-│   │   ├── events.py               # Event-definisjoner (~1170 linjer)
-│   │   └── sak_state.py            # Read model/projeksjon (~780 linjer)
+│   │   ├── events.py               # Event-definisjoner
+│   │   └── sak_state.py            # State-modeller (inkl. ForseringData, EndringsordreData)
 │   │
 │   ├── repositories/               # Data Access Layer
 │   │   ├── event_repository.py     # Event store (optimistisk låsing)
 │   │   └── sak_metadata_repository.py  # Metadata-cache
 │   │
 │   ├── services/                   # Forretningslogikk
-│   │   ├── timeline_service.py     # State-projeksjon (~915 linjer)
-│   │   └── business_rules.py       # Forretningsregler (~240 linjer)
+│   │   ├── timeline_service.py     # State-projeksjon
+│   │   ├── forsering_service.py    # Forsering-logikk og 30%-regel
+│   │   ├── endringsordre_service.py # Endringsordre-logikk
+│   │   └── business_rules.py       # Forretningsregler
 │   │
 │   ├── routes/
-│   │   └── event_routes.py         # Event API (~590 linjer)
+│   │   ├── event_routes.py         # Event API
+│   │   ├── forsering_routes.py     # Forsering API-endepunkter
+│   │   └── endringsordre_routes.py # Endringsordre API-endepunkter
 │   │
 │   ├── integrations/catenda/       # Catenda API-klient
 │   ├── lib/                        # Auth, security, monitoring
@@ -456,7 +524,7 @@ Skjema_Endringsmeldinger/
 └── docs/                           # Dokumentasjon
 ```
 
-Se [backend/STRUCTURE.md](backend/STRUCTURE.md) for detaljert backend-arkitektur med linjetall.
+Se [backend/STRUCTURE.md](backend/STRUCTURE.md) for detaljert backend-arkitektur.
 
 ---
 
@@ -576,7 +644,9 @@ npm run test:coverage
 - ✅ **Tre-spor modell** (Grunnlag, Vederlag, Frist) etter NS 8407
 - ✅ **Port-modell** for strukturert vurdering (Port 1, 2, 3)
 - ✅ **NS 8407-kategorier** – 4 hovedkategorier, 22 underkategorier med hjemmelreferanser
-- ✅ **EOUtstedtEvent** (§31.3) – Endringsordre-utstedelse med `kan_utstede_eo` logikk
+- ✅ **Forsering (§33.8)** – Komplett funksjonalitet med 30%-regel, kostnadsberegning og UI
+- ✅ **Endringsordre (§31.3)** – Egen sakstype med KOE-samling, konsekvenser og TE-respons
+- ✅ **Tre sakstyper** – `standard`, `forsering`, `endringsordre` med relasjoner mellom saker
 - ✅ **Optimistisk låsing** med versjonsnummer for samtidighetskontroll
 - ✅ **Event store** med append-only log og komplett historikk
 - ✅ **State-projeksjon** via TimelineService
@@ -590,7 +660,6 @@ npm run test:coverage
 - ⏳ DataverseRepository (erstatte JSON-filer)
 - ⏳ Azure Functions-migrering
 - ⏳ Redis for state (rate limiting, idempotency)
-- ⏳ EO-skjema UI (frontend for endringsordre-utstedelse)
 
 ---
 
