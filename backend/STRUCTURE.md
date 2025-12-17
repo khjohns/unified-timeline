@@ -97,11 +97,9 @@ backend/
 │   ├── catenda_menu.py              # Interaktiv Catenda-meny (998 linjer)
 │   ├── webhook_listener.py          # Webhook-lytter (utvikling) (369 linjer)
 │   ├── setup_authentication.py      # Catenda auth setup (421 linjer)
-│   ├── setup_webhooks.py            # Webhook-konfigurasjon (532 linjer)
-│   ├── manual_testing.sh            # Bash script for API-testing
-│   └── KOE_Backend_API.postman_collection.json  # Postman collection
+│   └── setup_webhooks.py            # Webhook-konfigurasjon (532 linjer)
 │
-└── tests/                           # Testsuite (345 tester, 32% coverage)
+└── tests/                           # Testsuite (427 tester, 63% coverage)
     ├── __init__.py
     ├── conftest.py                  # pytest fixtures
     ├── fixtures/                    # Testdata
@@ -548,9 +546,6 @@ python -m pytest tests/ --cov=. --cov-report=html
 
 # Spesifikk kategori
 python -m pytest tests/test_services/ -v
-
-# Manuell API-testing
-./scripts/manual_testing.sh
 ```
 
 ---
