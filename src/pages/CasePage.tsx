@@ -3,7 +3,7 @@
  *
  * Main page for viewing a case in the unified timeline architecture.
  * Displays status dashboard, available actions, and event timeline.
- * Shows a banner if the case is part of a forsering case.
+ * Shows a banner if the case is part of a forsering case or an endringsordre.
  */
 
 import { useState, useMemo } from 'react';
@@ -20,7 +20,7 @@ import { RevisionHistory } from '../components/views/RevisionHistory';
 import { Button } from '../components/primitives/Button';
 import { PageHeader } from '../components/PageHeader';
 import { ForseringRelasjonBanner } from '../components/forsering';
-import { UtstEndringsordreModal } from '../components/endringsordre';
+import { UtstEndringsordreModal, EndringsordreRelasjonBanner } from '../components/endringsordre';
 import {
   SendGrunnlagModal,
   SendVederlagModal,
@@ -40,6 +40,7 @@ import {
   SendForseringModal,
 } from '../components/actions';
 import { findForseringerForSak, type FindForseringerResponse } from '../api/forsering';
+import { findEOerForSak, type FindEOerResponse } from '../api/endringsordre';
 import type { SakState, GrunnlagResponsResultat, TimelineEntry } from '../types/timeline';
 import {
   ReloadIcon,
@@ -100,6 +101,14 @@ export function CasePage() {
   const { data: forseringData } = useQuery<FindForseringerResponse>({
     queryKey: ['forsering', 'by-relatert', sakId],
     queryFn: () => findForseringerForSak(sakId || ''),
+    staleTime: 60_000,
+    enabled: !!sakId,
+  });
+
+  // Fetch endringsordre relations (check if this case is part of any endringsordre)
+  const { data: endringsordreData } = useQuery<FindEOerResponse>({
+    queryKey: ['endringsordre', 'by-relatert', sakId],
+    queryFn: () => findEOerForSak(sakId || ''),
     staleTime: 60_000,
     enabled: !!sakId,
   });
@@ -248,6 +257,13 @@ export function CasePage() {
         {forseringData?.forseringer && forseringData.forseringer.length > 0 && (
           <section className="mb-6">
             <ForseringRelasjonBanner forseringer={forseringData.forseringer} />
+          </section>
+        )}
+
+        {/* Endringsordre relation banner (if this case is part of an endringsordre) */}
+        {endringsordreData?.endringsordrer && endringsordreData.endringsordrer.length > 0 && (
+          <section className="mb-6">
+            <EndringsordreRelasjonBanner endringsordrer={endringsordreData.endringsordrer} />
           </section>
         )}
 
