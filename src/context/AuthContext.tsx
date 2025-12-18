@@ -42,7 +42,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const urlToken = searchParams.get('token');
+    const urlToken = searchParams.get('magicToken') || searchParams.get('token');
     const storedToken = sessionStorage.getItem(SESSION_TOKEN_KEY);
     const storedSakId = sessionStorage.getItem(SESSION_SAK_KEY);
 

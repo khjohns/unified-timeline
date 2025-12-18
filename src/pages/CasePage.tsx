@@ -9,6 +9,7 @@
 import { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '../context/AuthContext';
 import { useCaseState } from '../hooks/useCaseState';
 import { useTimeline } from '../hooks/useTimeline';
 import { useActionPermissions } from '../hooks/useActionPermissions';
@@ -94,15 +95,18 @@ const EMPTY_STATE: SakState = {
  */
 export function CasePage() {
   const { sakId } = useParams<{ sakId: string }>();
-  const { data, isLoading, error } = useCaseState(sakId || '');
-  const { data: timelineData } = useTimeline(sakId || '');
+  const { token, isVerifying, error: authError } = useAuth();
+
+  // Wait for auth verification before loading data
+  const { data, isLoading, error } = useCaseState(sakId || '', { enabled: !!token && !isVerifying });
+  const { data: timelineData } = useTimeline(sakId || '', { enabled: !!token && !isVerifying });
 
   // Fetch forsering relations (check if this case is part of any forsering)
   const { data: forseringData } = useQuery<FindForseringerResponse>({
     queryKey: ['forsering', 'by-relatert', sakId],
     queryFn: () => findForseringerForSak(sakId || ''),
     staleTime: 60_000,
-    enabled: !!sakId,
+    enabled: !!sakId && !!token && !isVerifying,
   });
 
   // Fetch endringsordre relations (check if this case is part of any endringsordre)
@@ -110,7 +114,7 @@ export function CasePage() {
     queryKey: ['endringsordre', 'by-relatert', sakId],
     queryFn: () => findEOerForSak(sakId || ''),
     staleTime: 60_000,
-    enabled: !!sakId,
+    enabled: !!sakId && !!token && !isVerifying,
   });
 
   // Modal state management - Initial submissions
@@ -179,6 +183,35 @@ export function CasePage() {
     }
     return v.belop_direkte;
   }, [state.vederlag]);
+
+  // Auth verification in progress
+  if (isVerifying) {
+    return (
+      <div className="min-h-screen bg-pkt-bg-subtle flex items-center justify-center px-4">
+        <div className="text-center">
+          <ReloadIcon className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 text-pkt-grays-gray-400 animate-spin" />
+          <p className="text-sm sm:text-base text-pkt-grays-gray-500">Verifiserer tilgang...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Auth error - invalid or expired token
+  if (authError || !token) {
+    return (
+      <div className="min-h-screen bg-pkt-bg-subtle flex items-center justify-center px-4">
+        <div className="max-w-md w-full p-4 sm:p-8 bg-pkt-bg-card rounded-lg border border-pkt-grays-gray-200" role="alert">
+          <ExclamationTriangleIcon className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 text-pkt-brand-red-1000" />
+          <h2 className="text-lg sm:text-xl font-semibold text-pkt-brand-red-1000 mb-3 sm:mb-4 text-center">
+            Tilgang nektet
+          </h2>
+          <p className="text-sm sm:text-base text-pkt-text-body-default mb-4 text-center">
+            {authError || 'Ugyldig eller utløpt lenke. Vennligst bruk lenken du mottok på nytt.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Loading state
   if (isLoading) {
