@@ -77,14 +77,33 @@ export const mockSakState11: SakState = {
 
     // BH respons - subsidiært (pga grunnlag avvist)
     bh_resultat: 'avslatt', // Prinsipalt avslått pga grunnlag
-    bh_begrunnelse: 'Kravet avslås prinsipalt da grunnlaget bestrides.',
+    bh_begrunnelse: `Byggherren godtar den foreslåtte oppgjørsformen regningsarbeid (§34.4).
+
+Hva gjelder beløpet:
+
+Hovedkravet godkjennes delvis med kr 500 000,- av krevde kr 700 000,- (71%).
+
+Kravet om dekning av økte rigg- og driftskostnader på kr 80 000,- avvises prinsipalt som prekludert iht. §34.1.3, da varselet ikke ble fremsatt «uten ugrunnet opphold» etter at entreprenøren ble eller burde blitt klar over at utgiftene ville påløpe. Subsidiært, dersom kravet ikke anses prekludert, aksepteres kr 50 000,-.
+
+Kravet om dekning av produktivitetstap godkjennes delvis med kr 35 000,- av krevde kr 50 000,-.
+
+Samlet godkjent beløp utgjør etter dette kr 535 000,- av totalt krevde kr 830 000,-. Dersom de prekluderte særskilte kravene hadde vært varslet i tide, ville samlet godkjent beløp utgjort kr 585 000,- (subsidiært standpunkt).`,
 
     // Subsidiært standpunkt
     subsidiaer_triggers: ['grunnlag_avslatt', 'preklusjon_rigg'],
     subsidiaer_resultat: 'delvis_godkjent',
     subsidiaer_godkjent_belop: 535000, // 500k hovedkrav + 0 rigg (prekludert) + 35k produktivitet
-    subsidiaer_begrunnelse:
-      'Subsidiært: Dersom ansvar hadde foreligget, ville hovedkravet vært delvis godkjent med 500k. Rigg/drift på 80k er prekludert da varsel ble sendt 19 dager etter at forholdet ble kjent (frist: 14 dager). Produktivitetstap er delvis godkjent med 35k av 50k.',
+    subsidiaer_begrunnelse: `Byggherren godtar den foreslåtte oppgjørsformen regningsarbeid (§34.4).
+
+Hva gjelder beløpet:
+
+Hovedkravet godkjennes delvis med kr 500 000,- av krevde kr 700 000,- (71%).
+
+Kravet om dekning av økte rigg- og driftskostnader på kr 80 000,- avvises prinsipalt som prekludert iht. §34.1.3, da varselet ikke ble fremsatt «uten ugrunnet opphold» etter at entreprenøren ble eller burde blitt klar over at utgiftene ville påløpe. Subsidiært, dersom kravet ikke anses prekludert, aksepteres kr 50 000,-.
+
+Kravet om dekning av produktivitetstap godkjennes delvis med kr 35 000,- av krevde kr 50 000,-.
+
+Samlet godkjent beløp utgjør etter dette kr 535 000,- av totalt krevde kr 830 000,-. Dersom de prekluderte særskilte kravene hadde vært varslet i tide, ville samlet godkjent beløp utgjort kr 585 000,- (subsidiært standpunkt).`,
 
     har_subsidiaert_standpunkt: true,
     siste_oppdatert: '2025-02-25',
@@ -112,14 +131,29 @@ export const mockSakState11: SakState = {
 
     // BH respons - subsidiært
     bh_resultat: 'avslatt', // Prinsipalt avslått pga grunnlag
-    bh_begrunnelse: 'Kravet avslås prinsipalt da grunnlaget bestrides.',
+    bh_begrunnelse: `Kravet avvises prinsipalt som prekludert iht. §33.6, da spesifisert krav (§33.6) ikke ble fremsatt «uten ugrunnet opphold» etter at entreprenøren ble eller burde blitt klar over forholdet.
+
+Subsidiært, hva gjelder vilkårene (§33.5): Det erkjennes at det påberopte forholdet har forårsaket faktisk hindring av fremdriften, og at det foreligger årsakssammenheng mellom forholdet og forsinkelsen.
+
+Subsidiært, hva gjelder antall dager: Kravet godkjennes delvis med 10 dager av krevde 15 dager (67%).
+
+Kravet om 15 dagers fristforlengelse avvises i sin helhet. Dersom byggherren ikke får medhold i sin prinsipale avvisning, kan entreprenøren maksimalt ha krav på 10 dager (subsidiært standpunkt).
+
+Byggherren gjør oppmerksom på at dersom avslaget skulle vise seg å være uberettiget, kan entreprenøren velge å anse avslaget som et pålegg om forsering (§33.8). Denne valgretten gjelder dog ikke dersom forseringskostnadene overstiger dagmulkten med tillegg av 30%.`,
 
     // Subsidiært standpunkt
     subsidiaer_triggers: ['grunnlag_avslatt'],
     subsidiaer_resultat: 'delvis_godkjent',
     subsidiaer_godkjent_dager: 10,
-    subsidiaer_begrunnelse:
-      'Subsidiært: Dersom ansvar hadde foreligget, ville 10 av 15 dager vært godkjent. BH mener dokumentasjonen kun understøtter 10 dagers reell hindring.',
+    subsidiaer_begrunnelse: `Kravet avvises prinsipalt som prekludert iht. §33.6, da spesifisert krav (§33.6) ikke ble fremsatt «uten ugrunnet opphold» etter at entreprenøren ble eller burde blitt klar over forholdet.
+
+Subsidiært, hva gjelder vilkårene (§33.5): Det erkjennes at det påberopte forholdet har forårsaket faktisk hindring av fremdriften, og at det foreligger årsakssammenheng mellom forholdet og forsinkelsen.
+
+Subsidiært, hva gjelder antall dager: Kravet godkjennes delvis med 10 dager av krevde 15 dager (67%).
+
+Kravet om 15 dagers fristforlengelse avvises i sin helhet. Dersom byggherren ikke får medhold i sin prinsipale avvisning, kan entreprenøren maksimalt ha krav på 10 dager (subsidiært standpunkt).
+
+Byggherren gjør oppmerksom på at dersom avslaget skulle vise seg å være uberettiget, kan entreprenøren velge å anse avslaget som et pålegg om forsering (§33.8). Denne valgretten gjelder dog ikke dersom forseringskostnadene overstiger dagmulkten med tillegg av 30%.`,
 
     har_subsidiaert_standpunkt: true,
     siste_oppdatert: '2025-02-25',

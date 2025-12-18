@@ -61,6 +61,11 @@ import {
 } from '../../constants';
 import { differenceInDays } from 'date-fns';
 import type { SubsidiaerTrigger } from '../../types/timeline';
+import {
+  generateVederlagResponseBegrunnelse,
+  combineBegrunnelse,
+  type VederlagResponseInput,
+} from '../../utils/begrunnelseGenerator';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -132,7 +137,8 @@ const respondVederlagSchema = z.object({
   produktivitet_godkjent_belop: z.number().min(0).optional(),
 
   // Port 4: Oppsummering
-  begrunnelse_samlet: z.string().optional(),
+  // Note: auto_begrunnelse is generated, not user-editable
+  tilleggs_begrunnelse: z.string().optional(),
 });
 
 type RespondVederlagFormData = z.infer<typeof respondVederlagSchema>;
@@ -424,6 +430,56 @@ export function RespondVederlagModal({
   // Show subsidiary result when there are precluded særskilte krav
   const visSubsidiaertResultat = computed.harPrekludertKrav;
 
+  // Generate auto-begrunnelse based on all form selections
+  const autoBegrunnelse = useMemo(() => {
+    const input: VederlagResponseInput = {
+      // Claim context
+      metode: vederlagEvent?.metode,
+      hovedkravBelop: hovedkravBelop,
+      riggBelop: riggBelop,
+      produktivitetBelop: produktivitetBelop,
+      harRiggKrav: harRiggKrav,
+      harProduktivitetKrav: harProduktivitetKrav,
+
+      // Preklusjon
+      riggVarsletITide: formValues.rigg_varslet_i_tide,
+      produktivitetVarsletITide: formValues.produktivitet_varslet_i_tide,
+
+      // Metode
+      akseptererMetode: formValues.aksepterer_metode,
+      oensketMetode: formValues.oensket_metode,
+      epJusteringAkseptert: formValues.ep_justering_akseptert,
+      kreverJustertEp: vederlagEvent?.krever_justert_ep,
+      holdTilbake: formValues.hold_tilbake,
+
+      // Beløp
+      hovedkravVurdering: formValues.hovedkrav_vurdering,
+      hovedkravGodkjentBelop: formValues.hovedkrav_godkjent_belop,
+      riggVurdering: formValues.rigg_vurdering,
+      riggGodkjentBelop: formValues.rigg_godkjent_belop,
+      produktivitetVurdering: formValues.produktivitet_vurdering,
+      produktivitetGodkjentBelop: formValues.produktivitet_godkjent_belop,
+
+      // Computed totals
+      totalKrevd: computed.totalKrevd,
+      totalGodkjent: computed.totalGodkjent,
+      totalGodkjentSubsidiaer: computed.totalGodkjentInklPrekludert,
+      harPrekludertKrav: computed.harPrekludertKrav,
+    };
+
+    return generateVederlagResponseBegrunnelse(input);
+  }, [
+    vederlagEvent?.metode,
+    vederlagEvent?.krever_justert_ep,
+    hovedkravBelop,
+    riggBelop,
+    produktivitetBelop,
+    harRiggKrav,
+    harProduktivitetKrav,
+    formValues,
+    computed,
+  ]);
+
   // Steps configuration - 5 steps with optional preklusjon
   const steps = useMemo(() => {
     if (harSaerskiltKrav) {
@@ -497,7 +553,7 @@ export function RespondVederlagModal({
     if (isValid && currentPort < totalPorts) {
       setCurrentPort(currentPort + 1);
       // Clear errors for next step's fields to prevent premature validation display
-      clearErrors('begrunnelse_samlet');
+      clearErrors('tilleggs_begrunnelse');
       // Small delay to ensure DOM has updated before scrolling
       setTimeout(scrollToTop, 50);
     }
@@ -521,6 +577,9 @@ export function RespondVederlagModal({
       triggers.push('preklusjon_ep_justering');
     }
     if (!data.aksepterer_metode) triggers.push('metode_avslatt');
+
+    // Combine auto-generated begrunnelse with user's additional comments
+    const samletBegrunnelse = combineBegrunnelse(autoBegrunnelse, data.tilleggs_begrunnelse);
 
     mutation.mutate({
       eventType: 'respons_vederlag',
@@ -567,8 +626,10 @@ export function RespondVederlagModal({
               ? data.produktivitet_godkjent_belop
               : 0,
 
-        // Port 4: Oppsummering
-        begrunnelse: data.begrunnelse_samlet,
+        // Port 4: Oppsummering - combined auto + user begrunnelse
+        begrunnelse: samletBegrunnelse,
+        auto_begrunnelse: autoBegrunnelse,
+        tilleggs_begrunnelse: data.tilleggs_begrunnelse,
 
         // Automatisk beregnet (prinsipalt)
         beregnings_resultat: prinsipaltResultat,
@@ -582,7 +643,7 @@ export function RespondVederlagModal({
           ? computed.totalGodkjentInklPrekludert
           : undefined,
         subsidiaer_begrunnelse: visSubsidiaertResultat
-          ? data.begrunnelse_samlet
+          ? samletBegrunnelse
           : undefined,
       },
     });
@@ -1689,17 +1750,35 @@ export function RespondVederlagModal({
                   </div>
                 )}
 
-                {/* Samlet begrunnelse */}
+                {/* Auto-generert begrunnelse (ikke redigerbar) */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h5 className="font-medium text-sm">Automatisk generert begrunnelse</h5>
+                    <Badge variant="info">Generert fra dine valg</Badge>
+                  </div>
+                  <div className="p-4 bg-pkt-surface-subtle border-2 border-pkt-border-subtle rounded-none">
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                      {autoBegrunnelse || 'Fyll ut valgene ovenfor for å generere begrunnelse.'}
+                    </p>
+                  </div>
+                  <p className="text-xs text-pkt-text-body-subtle">
+                    Denne teksten er automatisk generert basert på valgene du har gjort i skjemaet.
+                    Den kan ikke redigeres direkte, men du kan legge til en tilleggskommentar nedenfor.
+                  </p>
+                </div>
+
+                {/* Tilleggsbegrunnelse (valgfri) */}
                 <FormField
-                  label="Samlet begrunnelse"
-                  error={errors.begrunnelse_samlet?.message}
-                  helpText="Oppsummer din vurdering av kravet"
+                  label="Tilleggskommentar (valgfritt)"
+                  error={errors.tilleggs_begrunnelse?.message}
+                  helpText="Legg til egne kommentarer eller utdypninger som ikke dekkes av den automatiske begrunnelsen"
                 >
                   <Textarea
-                    {...register('begrunnelse_samlet')}
-                    rows={4}
+                    {...register('tilleggs_begrunnelse')}
+                    rows={3}
                     fullWidth
-                    error={!!errors.begrunnelse_samlet}
+                    error={!!errors.tilleggs_begrunnelse}
+                    placeholder="F.eks. ytterligere detaljer om beregning, referanse til spesifikke dokumenter..."
                   />
                 </FormField>
               </div>

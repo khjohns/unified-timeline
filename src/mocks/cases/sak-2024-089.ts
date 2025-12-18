@@ -39,7 +39,13 @@ export const mockSakState3: SakState = {
     belop_direkte: 850000,
     begrunnelse: 'Basert på fastpris tilbud for glassarbeider.',
     bh_resultat: 'godkjent',
-    bh_begrunnelse: 'Beløp stemmer med kontraktspriser. Godkjent.',
+    bh_begrunnelse: `Byggherren godtar den foreslåtte oppgjørsformen fastpris/tilbud (§34.2.1).
+
+Hva gjelder beløpet:
+
+Hovedkravet på kr 850 000,- godkjennes.
+
+Samlet godkjent beløp utgjør etter dette kr 850 000,- av totalt krevde kr 850 000,-.`,
     godkjent_belop: 850000,
     differanse: 0,
     godkjenningsgrad_prosent: 100,
@@ -65,7 +71,13 @@ export const mockSakState3: SakState = {
     spesifisert_krav_ok: true,
     vilkar_oppfylt: true,
     bh_resultat: 'godkjent',
-    bh_begrunnelse: 'Tid er i henhold til leverandørens spesifikasjoner.',
+    bh_begrunnelse: `Varslingskravene i §33.6 anses oppfylt.
+
+Det erkjennes at det påberopte forholdet har forårsaket faktisk hindring av fremdriften, og at det foreligger årsakssammenheng mellom forholdet og forsinkelsen.
+
+Hva gjelder antall dager: Kravet om 14 dagers fristforlengelse godkjennes i sin helhet.
+
+Samlet godkjennes 14 dagers fristforlengelse.`,
     godkjent_dager: 14,
     differanse_dager: 0,
     siste_oppdatert: '2024-11-20',
