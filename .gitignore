@@ -47,3 +47,8 @@ htmlcov/
 playwright-report/
 playwright/.cache/
 test-results/
+
+# Local documentation and API specs (not for version control)
+Endringsordre.md
+NS_8407.md
+*-api-openapi.yaml
