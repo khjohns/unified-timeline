@@ -1026,17 +1026,21 @@ class CatendaClient:
         logger.info(f"📋 Oppretter status '{name}'...")
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{board_id}/extensions/statuses"
 
-        # Default farger basert på status type
+        # Default farger basert på status type (uppercase hex som API krever)
         default_colors = {
-            "open": "#3498db",      # Blå
-            "closed": "#27ae60",    # Grønn
-            "candidate": "#f39c12"  # Oransje
+            "open": "#3498DB",      # Blå
+            "closed": "#27AE60",    # Grønn
+            "candidate": "#F39C12"  # Oransje
         }
+
+        # Sørg for uppercase hex-farge
+        final_color = color or default_colors.get(status_type, "#3498DB")
+        final_color = final_color.upper()
 
         payload = {
             "name": name,
             "type": status_type,
-            "color": color or default_colors.get(status_type, "#3498db")
+            "color": final_color
         }
 
         try:
@@ -1197,12 +1201,15 @@ class CatendaClient:
         logger.info(f"📋 Oppretter type '{name}'...")
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{board_id}/extensions/types"
 
-        # Default farge hvis ikke angitt
+        # Default farge hvis ikke angitt (uppercase hex som API krever)
         default_color = "#3D85C6"  # Blå
+
+        # Sørg for uppercase hex-farge
+        final_color = (color or default_color).upper()
 
         payload = {
             "name": name,
-            "color": color or default_color
+            "color": final_color
         }
 
         try:
