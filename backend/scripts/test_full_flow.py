@@ -1238,14 +1238,17 @@ class KOEFlowTester:
             print_fail(f"Feil ved henting av state: {e}")
             return False
 
-        # Finn siste vederlag og frist event IDs
+        # Finn siste vederlag og frist event IDs (og varsel_type for frist)
         vederlag_event_id = None
         frist_event_id = None
+        frist_varsel_type = None
         for event in timeline:
             if event.get('event_type') in ['vederlag_krav_sendt', 'vederlag_krav_oppdatert']:
                 vederlag_event_id = event.get('event_id')
             if event.get('event_type') in ['frist_krav_sendt', 'frist_krav_oppdatert']:
                 frist_event_id = event.get('event_id')
+                # Bevar varsel_type fra original event
+                frist_varsel_type = event.get('data', {}).get('varsel_type')
 
         # 4.1 Revider vederlag
         print_subheader("4.1: TE reviderer vederlagskrav")
@@ -1308,6 +1311,7 @@ class KOEFlowTester:
                     "aktor_rolle": "TE",
                     "data": {
                         "original_event_id": frist_event_id,
+                        "varsel_type": frist_varsel_type or "spesifisert",  # Bevar fra original
                         "antall_dager": TEST_DATA['frist_revisjon']['antall_dager'],
                         "begrunnelse": TEST_DATA['frist_revisjon']['begrunnelse'],
                         "dato_revidert": datetime.now().strftime('%Y-%m-%d')

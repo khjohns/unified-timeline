@@ -158,3 +158,34 @@ class SakMetadataRepository:
                         last_event_at=datetime.fromisoformat(row['last_event_at']) if row['last_event_at'] else None
                     ))
             return cases
+
+    def delete(self, sak_id: str) -> bool:
+        """Delete case metadata by ID."""
+        with self.lock:
+            if not self.csv_path.exists():
+                return False
+
+            # Read all rows except the one to delete
+            rows = []
+            found = False
+            fieldnames = None
+
+            with open(self.csv_path, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                fieldnames = reader.fieldnames
+                for row in reader:
+                    if row['sak_id'] == sak_id:
+                        found = True
+                    else:
+                        rows.append(row)
+
+            if not found:
+                return False
+
+            # Write back without deleted row
+            with open(self.csv_path, 'w', encoding='utf-8', newline='') as f:
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(rows)
+
+            return True
