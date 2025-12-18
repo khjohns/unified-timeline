@@ -364,17 +364,19 @@ class CatendaInteractiveMenu:
         """Meny for topic-håndtering"""
         while True:
             self.print_header("📋 Topic-håndtering")
-            
+
             print("VALG:")
             print("  1. Liste alle topics")
             print("  2. Opprett ny topic")
             print("  3. Søk etter topic")
             print("  4. Vis detaljer om en topic")
             print("  5. 🔗 Håndter topic-relasjoner")
+            print("  6. 🗑️  Slett topic")
+            print("  7. 🗑️  Slett ALLE topics (opprydding)")
             print("  0. Tilbake til hovedmeny")
             print()
 
-            choice = input("Velg (0-5): ").strip()
+            choice = input("Velg (0-7): ").strip()
 
             if choice == "1":
                 self.action_list_topics()
@@ -386,6 +388,10 @@ class CatendaInteractiveMenu:
                 self.action_show_topic_details()
             elif choice == "5":
                 self.menu_topic_relations()
+            elif choice == "6":
+                self.action_delete_topic()
+            elif choice == "7":
+                self.action_delete_all_topics()
             elif choice == "0":
                 break
             else:
@@ -605,6 +611,167 @@ class CatendaInteractiveMenu:
         except Exception as e:
             print(f"❌ Feil: {e}")
             self.logger.exception("Error showing topic details")
+
+        self.pause()
+
+    def action_delete_topic(self):
+        """Slett en enkelt topic"""
+        self.print_header("🗑️ Slett Topic")
+
+        if not self.topic_board_id:
+            print("❌ Topic Board ID er ikke satt")
+            self.pause()
+            return
+
+        # La bruker velge topic
+        topic_id = self.current_topic_id
+        topic_title = None
+
+        if topic_id:
+            use_current = input(f"Bruke aktiv topic ({topic_id})? [J/n]: ").strip().lower()
+            if use_current in ('n', 'nei', 'no'):
+                topic_id = None
+
+        if not topic_id:
+            # Vis liste og la bruker velge
+            try:
+                topics = self.tester.list_topics()
+                if not topics:
+                    print("Ingen topics funnet.")
+                    self.pause()
+                    return
+
+                print(f"\nFant {len(topics)} topic(s):\n")
+                for i, topic in enumerate(topics, 1):
+                    print(f"  {i}. {topic.get('title', 'Uten tittel')}")
+                    print(f"     GUID: {topic['guid']}")
+                    print(f"     Status: {topic.get('topic_status', '?')}")
+                    print()
+
+                choice = input(f"Velg nummer (1-{len(topics)}) eller GUID: ").strip()
+                if not choice:
+                    print("Avbrutt.")
+                    self.pause()
+                    return
+
+                if choice.isdigit():
+                    idx = int(choice) - 1
+                    if 0 <= idx < len(topics):
+                        topic_id = topics[idx]['guid']
+                        topic_title = topics[idx].get('title')
+                    else:
+                        print("❌ Ugyldig valg")
+                        self.pause()
+                        return
+                else:
+                    topic_id = choice
+
+            except Exception as e:
+                print(f"❌ Feil ved henting av topics: {e}")
+                self.pause()
+                return
+
+        # Bekreftelse
+        print(f"\n⚠️  ADVARSEL: Dette vil permanent slette topic:")
+        print(f"   GUID: {topic_id}")
+        if topic_title:
+            print(f"   Tittel: {topic_title}")
+        print()
+
+        confirm = input("Er du sikker? Skriv 'SLETT' for å bekrefte: ").strip()
+        if confirm != 'SLETT':
+            print("Avbrutt.")
+            self.pause()
+            return
+
+        # Slett
+        print(f"\nSletter topic {topic_id}...")
+        try:
+            if self.tester.delete_topic(topic_id):
+                print("✅ Topic slettet!")
+                if self.current_topic_id == topic_id:
+                    self.current_topic_id = None
+            else:
+                print("❌ Kunne ikke slette topic")
+        except Exception as e:
+            print(f"❌ Feil: {e}")
+            self.logger.exception("Error deleting topic")
+
+        self.pause()
+
+    def action_delete_all_topics(self):
+        """Slett ALLE topics på topic board (opprydding)"""
+        self.print_header("🗑️ Slett ALLE Topics")
+
+        if not self.topic_board_id:
+            print("❌ Topic Board ID er ikke satt")
+            self.pause()
+            return
+
+        # Hent ALLE topics med paginering
+        print("Henter alle topics (kan ta litt tid)...\n")
+        try:
+            topics = self.tester.list_topics(fetch_all=True)
+            if not topics:
+                print("Ingen topics funnet på dette boardet.")
+                self.pause()
+                return
+
+            print(f"⚠️  ADVARSEL: Dette vil slette {len(topics)} topic(s)!\n")
+            print("Topics som vil bli slettet:")
+            # Vis maks 20 for lesbarhet
+            for topic in topics[:20]:
+                print(f"  - {topic.get('title', 'Uten tittel')} ({topic['guid'][:8]}...)")
+            if len(topics) > 20:
+                print(f"  ... og {len(topics) - 20} til")
+            print()
+
+        except Exception as e:
+            print(f"❌ Feil ved henting av topics: {e}")
+            self.pause()
+            return
+
+        # Ekstra bekreftelse
+        print("⚠️  DETTE KAN IKKE ANGRES!")
+        confirm1 = input(f"Skriv antall topics ({len(topics)}) for å bekrefte: ").strip()
+        if confirm1 != str(len(topics)):
+            print("Avbrutt.")
+            self.pause()
+            return
+
+        confirm2 = input("Skriv 'SLETT ALLE' for endelig bekreftelse: ").strip()
+        if confirm2 != 'SLETT ALLE':
+            print("Avbrutt.")
+            self.pause()
+            return
+
+        # Slett alle
+        print(f"\nSletter {len(topics)} topics...")
+        deleted = 0
+        failed = 0
+
+        for i, topic in enumerate(topics, 1):
+            topic_id = topic['guid']
+            title = topic.get('title', 'Uten tittel')[:30]
+            print(f"  [{i}/{len(topics)}] Sletter: {title}...", end=" ")
+
+            try:
+                if self.tester.delete_topic(topic_id):
+                    print("✅")
+                    deleted += 1
+                else:
+                    print("❌")
+                    failed += 1
+            except Exception as e:
+                print(f"❌ ({e})")
+                failed += 1
+
+        print(f"\n{'='*40}")
+        print(f"Resultat: {deleted} slettet, {failed} feilet")
+
+        if self.current_topic_id:
+            self.current_topic_id = None
+            print("(Aktiv topic nullstilt)")
 
         self.pause()
 

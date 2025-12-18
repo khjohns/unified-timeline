@@ -1316,6 +1316,26 @@ class CatendaClient:
     # PROJECT MANAGEMENT (v2 API)
     # ==========================================
 
+    def list_projects(self) -> List[Dict]:
+        """
+        List alle prosjekter brukeren har tilgang til.
+
+        Returns:
+            Liste med prosjekter
+        """
+        logger.info("📋 Henter tilgjengelige prosjekter...")
+        url = f"{self.base_url}/v2/projects"
+
+        try:
+            response = requests.get(url, headers=self.get_headers(), timeout=30)
+            response.raise_for_status()
+            projects = response.json()
+            logger.info(f"✅ Fant {len(projects)} prosjekt(er)")
+            return projects
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved listing av prosjekter: {e}")
+            return []
+
     def get_project_details(self, project_id: str) -> Optional[Dict]:
         """
         Hent detaljer for et v2-prosjekt.
@@ -1490,36 +1510,69 @@ class CatendaClient:
             logger.error(f"❌ Feil ved henting av topic board detaljer: {e}")
             return None
     
-    def list_topics(self, limit: int = 10) -> List[Dict]:
+    def list_topics(self, limit: Optional[int] = None, fetch_all: bool = False) -> List[Dict]:
         """
         List topics i valgt topic board.
-        
+
         Args:
-            limit: Maks antall topics å returnere
-        
+            limit: Maks antall topics å returnere (None = API default 100)
+            fetch_all: Hvis True, hent ALLE topics med paginering (ignorerer limit)
+
         Returns:
             Liste med topics
         """
         if not self.topic_board_id:
             logger.error("❌ Ingen topic board valgt")
             return []
-        
+
         logger.info(f"📝 Henter topics fra board {self.topic_board_id}...")
-        
+
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}/topics"
-        
+
         try:
-            response = requests.get(url, headers=self.get_headers())
-            response.raise_for_status()
-            
-            topics = response.json()[:limit]
+            if fetch_all:
+                # Hent alle topics med paginering
+                all_topics = []
+                page_size = 500  # Max allowed by API
+                skip = 0
+
+                while True:
+                    params = {"$top": str(page_size), "$skip": str(skip)}
+                    response = requests.get(url, headers=self.get_headers(), params=params)
+                    response.raise_for_status()
+
+                    batch = response.json()
+                    if not batch:
+                        break
+
+                    all_topics.extend(batch)
+                    logger.info(f"  Hentet {len(batch)} topics (totalt: {len(all_topics)})")
+
+                    if len(batch) < page_size:
+                        break  # Siste side
+
+                    skip += page_size
+
+                topics = all_topics
+            else:
+                # Standard henting med valgfri limit
+                params = {}
+                if limit:
+                    params["$top"] = str(limit)
+
+                response = requests.get(url, headers=self.get_headers(), params=params)
+                response.raise_for_status()
+                topics = response.json()
+
             logger.info(f"✅ Fant {len(topics)} topic(s)")
-            
-            for topic in topics:
+
+            for topic in topics[:10]:  # Log bare første 10
                 logger.info(f"  - {topic['title']} (ID: {topic['guid']}, Status: {topic.get('topic_status', 'N/A')})")
-            
+            if len(topics) > 10:
+                logger.info(f"  ... og {len(topics) - 10} til")
+
             return topics
-            
+
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ Feil ved henting av topics: {e}")
             return []
@@ -1634,7 +1687,37 @@ class CatendaClient:
             if hasattr(e, 'response') and e.response is not None:
                 logger.error(f"Response: {e.response.text}")
             return None
-    
+
+    def delete_topic(self, topic_id: str) -> bool:
+        """
+        Slett en topic fra Catenda.
+
+        Args:
+            topic_id: Topic GUID
+
+        Returns:
+            True hvis suksess, False ellers
+        """
+        if not self.topic_board_id:
+            logger.error("❌ Ingen topic board valgt")
+            return False
+
+        logger.info(f"🗑️ Sletter topic {topic_id}...")
+
+        url = f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}/topics/{topic_id}"
+
+        try:
+            response = requests.delete(url, headers=self.get_headers(), timeout=30)
+            if response.status_code == 204:
+                logger.info(f"✅ Topic slettet: {topic_id}")
+                return True
+            else:
+                logger.error(f"❌ Feil ved sletting: {response.status_code}")
+                return False
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved sletting av topic: {e}")
+            return False
+
     # ==========================================
     # DOCUMENT UPLOAD (v2 API - CRITICAL TEST)
     # ==========================================

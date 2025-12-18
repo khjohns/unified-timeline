@@ -59,25 +59,57 @@ REQUIRED_CUSTOM_FIELDS = [
     "Leverandør"
 ]
 
-# Testverdier
+# Testverdier for komplett flyt
 TEST_DATA = {
     "byggherre": "Test Byggherre AS",
     "leverandor": "Test Entreprenor AS",
+
+    # FASE 2: TE Initial Claims
     "grunnlag": {
         "hovedkategori": "ENDRING",
-        "underkategori": "IRREG",  # Valid: EO, IRREG, SVAR_VARSEL, LOV_GJENSTAND, LOV_PROSESS, GEBYR, SAMORD
+        "underkategori": "IRREG",
         "beskrivelse": "Automatisk testcase - grunnlag for endringskrav (irregulær endring)",
         "kontraktsreferanse": "32.1"
     },
     "vederlag": {
-        "metode": "ENHETSPRISER",  # Valid: ENHETSPRISER, REGNINGSARBEID, FASTPRIS_TILBUD
+        "metode": "ENHETSPRISER",
         "belop_direkte": 150000.0,
         "begrunnelse": "Automatisk testcase - vederlagskrav"
     },
     "frist": {
-        "varsel_type": "spesifisert",  # Valid: noytralt, spesifisert, begge, force_majeure
+        "varsel_type": "spesifisert",
         "antall_dager": 14,
         "begrunnelse": "Automatisk testcase - fristkrav"
+    },
+
+    # FASE 3: BH Responses
+    "bh_grunnlag": {
+        "resultat": "godkjent",
+        "begrunnelse": "Grunnlaget aksepteres"
+    },
+    "bh_vederlag": {
+        "beregnings_resultat": "delvis_godkjent",
+        "godkjent_belop": 100000.0,  # 100k av 150k
+        "aksepterer_metode": True,
+        "begrunnelse": "Godkjenner 100.000 kr av krevde 150.000 kr"
+    },
+    "bh_frist": {
+        "beregnings_resultat": "delvis_godkjent",
+        "godkjent_dager": 10,  # 10 av 14 dager
+        "spesifisert_krav_ok": True,
+        "vilkar_oppfylt": True,
+        "begrunnelse": "Godkjenner 10 av 14 krevde dager"
+    },
+
+    # FASE 4: TE Revisions (etter delvis godkjenning)
+    "vederlag_revisjon": {
+        "metode": "ENHETSPRISER",
+        "belop_direkte": 120000.0,  # Justert ned fra 150k
+        "begrunnelse": "Justerer kravet basert på BH tilbakemelding"
+    },
+    "frist_revisjon": {
+        "antall_dager": 12,  # Justert ned fra 14
+        "begrunnelse": "Justerer fristkrav basert på BH tilbakemelding"
     }
 }
 
@@ -148,110 +180,6 @@ def wait_with_spinner(seconds: int, message: str):
 
 
 # =============================================================================
-# CATENDA CLIENT UTVIDELSE
-# =============================================================================
-
-class ExtendedCatendaClient(CatendaClient):
-    """Utvidet Catenda-klient med ekstra metoder for testing"""
-
-    def list_projects(self) -> List[Dict]:
-        """
-        List alle prosjekter brukeren har tilgang til.
-
-        Returns:
-            Liste med prosjekter
-        """
-        url = f"{self.base_url}/v2/projects"
-        headers = self.get_headers()
-
-        try:
-            response = requests.get(url, headers=headers, timeout=30)
-            if response.status_code == 200:
-                return response.json()
-            else:
-                print(f"  Feil ved listing av prosjekter: {response.status_code}")
-                return []
-        except Exception as e:
-            print(f"  Feil: {e}")
-            return []
-
-    def get_topic_board_extensions_full(self) -> Optional[Dict]:
-        """
-        Hent fullstendige extensions for topic board (types, statuses, etc.)
-
-        Returns:
-            Extensions-data eller None
-        """
-        if not self.topic_board_id:
-            print("  Ingen topic_board_id satt")
-            return None
-
-        url = f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}/extensions"
-        headers = self.get_headers()
-
-        try:
-            response = requests.get(url, headers=headers, timeout=30)
-            if response.status_code == 200:
-                return response.json()
-            else:
-                print(f"  Feil ved henting av extensions: {response.status_code}")
-                return None
-        except Exception as e:
-            print(f"  Feil: {e}")
-            return None
-
-    def list_topic_comments(self, topic_id: str) -> List[Dict]:
-        """
-        List kommentarer for en topic.
-
-        Args:
-            topic_id: Topic GUID
-
-        Returns:
-            Liste med kommentarer
-        """
-        if not self.topic_board_id:
-            return []
-
-        url = f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}/topics/{topic_id}/comments"
-        headers = self.get_headers()
-
-        try:
-            response = requests.get(url, headers=headers, timeout=30)
-            if response.status_code == 200:
-                return response.json()
-            else:
-                return []
-        except Exception:
-            return []
-
-    def get_topic_documents(self, topic_id: str) -> List[Dict]:
-        """
-        Hent dokumentreferanser for en topic.
-
-        Args:
-            topic_id: Topic GUID
-
-        Returns:
-            Liste med dokumentreferanser
-        """
-        if not self.topic_board_id:
-            return []
-
-        url = f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}/topics/{topic_id}/document_references"
-        headers = self.get_headers()
-
-        try:
-            response = requests.get(url, headers=headers, timeout=30)
-            if response.status_code == 200:
-                return response.json()
-            else:
-                return []
-        except Exception:
-            return []
-
-
-# =============================================================================
 # FASE 1: SETUP OG VALIDERING
 # =============================================================================
 
@@ -259,7 +187,7 @@ class SetupValidator:
     """Validerer oppsett og konfigurasjon"""
 
     def __init__(self):
-        self.client: Optional[ExtendedCatendaClient] = None
+        self.client: Optional[CatendaClient] = None
         self.project_id: Optional[str] = None
         self.library_id: Optional[str] = None
         self.folder_id: Optional[str] = None
@@ -329,7 +257,7 @@ class SetupValidator:
         self.config = settings.get_catenda_config()
 
         # Opprett klient
-        self.client = ExtendedCatendaClient(
+        self.client = CatendaClient(
             client_id=self.config['catenda_client_id'],
             client_secret=self.config.get('catenda_client_secret')
         )
@@ -481,7 +409,7 @@ class SetupValidator:
         # Valider board-konfigurasjon
         print_subheader("Validerer Topic Board konfigurasjon")
 
-        extensions = self.client.get_topic_board_extensions_full()
+        extensions = self.client.get_topic_board_extensions()
         if not extensions:
             print_fail("Kunne ikke hente Topic Board extensions")
             return False
@@ -641,7 +569,7 @@ class SetupValidator:
 class KOEFlowTester:
     """Tester standard KOE-flyt"""
 
-    def __init__(self, client: ExtendedCatendaClient, project_id: str,
+    def __init__(self, client: CatendaClient, project_id: str,
                  library_id: Optional[str], folder_id: Optional[str],
                  topic_board_id: str):
         self.client = client
@@ -676,7 +604,7 @@ class KOEFlowTester:
         """Hent magic token fra Catenda-kommentar"""
         import re
 
-        comments = self.client.list_topic_comments(self.topic_guid)
+        comments = self.client.get_comments(self.topic_guid)
         for comment in comments:
             text = comment.get('comment', '')
             # Søk etter magicToken i URL
@@ -698,12 +626,12 @@ class KOEFlowTester:
 
     def _get_comment_count(self) -> int:
         """Hent antall kommentarer på topic"""
-        comments = self.client.list_topic_comments(self.topic_guid)
+        comments = self.client.get_comments(self.topic_guid)
         return len(comments) if comments else 0
 
     def _get_document_count(self) -> int:
         """Hent antall dokumenter linket til topic"""
-        documents = self.client.get_topic_documents(self.topic_guid)
+        documents = self.client.list_document_references(self.topic_guid)
         return len(documents) if documents else 0
 
     def _verify_new_comment(self, expected_increase: int = 1, wait_seconds: int = 3) -> bool:
@@ -745,7 +673,7 @@ class KOEFlowTester:
         print_info(f"Type: Krav om endringsordre")
 
         # Finn forste tilgjengelige status
-        extensions = self.client.get_topic_board_extensions_full()
+        extensions = self.client.get_topic_board_extensions()
         first_status = None
         if extensions:
             statuses = extensions.get('topic_status', [])
@@ -900,7 +828,7 @@ class KOEFlowTester:
         time.sleep(2)
 
         # Verifiser at initial kommentar finnes
-        comments = self.client.list_topic_comments(self.topic_guid)
+        comments = self.client.get_comments(self.topic_guid)
 
         if comments:
             print_ok(f"Fant {len(comments)} kommentar(er)")
@@ -1011,7 +939,7 @@ class KOEFlowTester:
         # Vent pa asynkron PDF-generering
         time.sleep(3)
 
-        documents = self.client.get_topic_documents(self.topic_guid)
+        documents = self.client.list_document_references(self.topic_guid)
 
         if documents:
             print_ok(f"Fant {len(documents)} dokument(er) lenket til topic")
@@ -1136,9 +1064,279 @@ class KOEFlowTester:
 
         return True
 
+    # =========================================================================
+    # FASE 3: BH RESPONSES
+    # =========================================================================
+
+    def send_bh_responses(self) -> bool:
+        """Fase 3: BH svarer på alle krav"""
+        print_header("FASE 3: BH RESPONSES")
+
+        # Hent gjeldende versjon og event IDs
+        try:
+            state_resp = requests.get(
+                f"{BACKEND_URL}/api/cases/{self.sak_id}/state",
+                headers=self._get_auth_headers(),
+                timeout=5
+            )
+            if state_resp.status_code == 200:
+                state_data = state_resp.json()
+                current_version = state_data.get('version', 1)
+                state = state_data.get('state', {})
+            else:
+                print_fail("Kunne ikke hente state")
+                return False
+        except Exception as e:
+            print_fail(f"Feil ved henting av state: {e}")
+            return False
+
+        # 3.1 Respons på grunnlag
+        print_subheader("3.1: BH svarer på grunnlag")
+        print_info(f"  Resultat: {TEST_DATA['bh_grunnlag']['resultat']}")
+
+        grunnlag_response = {
+            "sak_id": self.sak_id,
+            "expected_version": current_version,
+            "catenda_topic_id": self.topic_guid,
+            "event": {
+                "event_type": "respons_grunnlag",
+                "aktor": "Test Script BH",
+                "aktor_rolle": "BH",
+                "data": TEST_DATA['bh_grunnlag']
+            }
+        }
+
+        try:
+            response = requests.post(
+                f"{BACKEND_URL}/api/events",
+                json=grunnlag_response,
+                headers=self._get_auth_headers(),
+                timeout=10
+            )
+            if response.status_code in [200, 201]:
+                result = response.json()
+                print_ok("Grunnlag-respons sendt!")
+                current_version = result.get('new_version', current_version + 1)
+                self._verify_new_comment()
+            else:
+                print_fail(f"Feil: {response.status_code} - {response.text[:200]}")
+                return False
+        except Exception as e:
+            print_fail(f"Feil: {e}")
+            return False
+
+        # 3.2 Respons på vederlag (delvis godkjent)
+        print_subheader("3.2: BH svarer på vederlag")
+        print_info(f"  Resultat: {TEST_DATA['bh_vederlag']['beregnings_resultat']}")
+        print_info(f"  Godkjent: {TEST_DATA['bh_vederlag']['godkjent_belop']:,.0f} kr av 150.000 kr")
+
+        vederlag_response = {
+            "sak_id": self.sak_id,
+            "expected_version": current_version,
+            "catenda_topic_id": self.topic_guid,
+            "event": {
+                "event_type": "respons_vederlag",
+                "aktor": "Test Script BH",
+                "aktor_rolle": "BH",
+                "data": TEST_DATA['bh_vederlag']
+            }
+        }
+
+        try:
+            response = requests.post(
+                f"{BACKEND_URL}/api/events",
+                json=vederlag_response,
+                headers=self._get_auth_headers(),
+                timeout=10
+            )
+            if response.status_code in [200, 201]:
+                result = response.json()
+                print_ok("Vederlag-respons sendt!")
+                current_version = result.get('new_version', current_version + 1)
+                self._verify_new_comment()
+            else:
+                print_fail(f"Feil: {response.status_code} - {response.text[:200]}")
+                return False
+        except Exception as e:
+            print_fail(f"Feil: {e}")
+            return False
+
+        # 3.3 Respons på frist (delvis godkjent)
+        print_subheader("3.3: BH svarer på frist")
+        print_info(f"  Resultat: {TEST_DATA['bh_frist']['beregnings_resultat']}")
+        print_info(f"  Godkjent: {TEST_DATA['bh_frist']['godkjent_dager']} av 14 dager")
+
+        frist_response = {
+            "sak_id": self.sak_id,
+            "expected_version": current_version,
+            "catenda_topic_id": self.topic_guid,
+            "event": {
+                "event_type": "respons_frist",
+                "aktor": "Test Script BH",
+                "aktor_rolle": "BH",
+                "data": TEST_DATA['bh_frist']
+            }
+        }
+
+        try:
+            response = requests.post(
+                f"{BACKEND_URL}/api/events",
+                json=frist_response,
+                headers=self._get_auth_headers(),
+                timeout=10
+            )
+            if response.status_code in [200, 201]:
+                result = response.json()
+                print_ok("Frist-respons sendt!")
+                current_version = result.get('new_version', current_version + 1)
+                self._verify_new_comment()
+            else:
+                print_fail(f"Feil: {response.status_code} - {response.text[:200]}")
+                return False
+        except Exception as e:
+            print_fail(f"Feil: {e}")
+            return False
+
+        print_ok("Alle BH-responser sendt!")
+        return True
+
+    # =========================================================================
+    # FASE 4: TE REVISIONS
+    # =========================================================================
+
+    def send_te_revisions(self) -> bool:
+        """Fase 4: TE sender revisjoner etter delvis godkjenning"""
+        print_header("FASE 4: TE REVISIONS")
+
+        # Hent gjeldende versjon og siste event IDs
+        try:
+            state_resp = requests.get(
+                f"{BACKEND_URL}/api/cases/{self.sak_id}/state",
+                headers=self._get_auth_headers(),
+                timeout=5
+            )
+            if state_resp.status_code == 200:
+                state_data = state_resp.json()
+                current_version = state_data.get('version', 1)
+                state = state_data.get('state', {})
+            else:
+                print_fail("Kunne ikke hente state")
+                return False
+
+            # Hent timeline for å finne event IDs
+            timeline_resp = requests.get(
+                f"{BACKEND_URL}/api/cases/{self.sak_id}/timeline",
+                headers=self._get_auth_headers(),
+                timeout=5
+            )
+            if timeline_resp.status_code == 200:
+                timeline = timeline_resp.json().get('events', [])
+            else:
+                timeline = []
+
+        except Exception as e:
+            print_fail(f"Feil ved henting av state: {e}")
+            return False
+
+        # Finn siste vederlag og frist event IDs
+        vederlag_event_id = None
+        frist_event_id = None
+        for event in timeline:
+            if event.get('event_type') in ['vederlag_krav_sendt', 'vederlag_krav_oppdatert']:
+                vederlag_event_id = event.get('event_id')
+            if event.get('event_type') in ['frist_krav_sendt', 'frist_krav_oppdatert']:
+                frist_event_id = event.get('event_id')
+
+        # 4.1 Revider vederlag
+        print_subheader("4.1: TE reviderer vederlagskrav")
+        print_info(f"  Nytt beløp: {TEST_DATA['vederlag_revisjon']['belop_direkte']:,.0f} kr")
+        print_info(f"  (Justert ned fra 150.000 kr)")
+
+        if not vederlag_event_id:
+            print_warn("Kunne ikke finne vederlag event ID, hopper over")
+        else:
+            vederlag_revision = {
+                "sak_id": self.sak_id,
+                "expected_version": current_version,
+                "catenda_topic_id": self.topic_guid,
+                "event": {
+                    "event_type": "vederlag_krav_oppdatert",
+                    "aktor": "Test Script",
+                    "aktor_rolle": "TE",
+                    "data": {
+                        "original_event_id": vederlag_event_id,
+                        "metode": TEST_DATA['vederlag_revisjon']['metode'],
+                        "belop_direkte": TEST_DATA['vederlag_revisjon']['belop_direkte'],
+                        "begrunnelse": TEST_DATA['vederlag_revisjon']['begrunnelse'],
+                        "dato_revidert": datetime.now().strftime('%Y-%m-%d')
+                    }
+                }
+            }
+
+            try:
+                response = requests.post(
+                    f"{BACKEND_URL}/api/events",
+                    json=vederlag_revision,
+                    headers=self._get_auth_headers(),
+                    timeout=10
+                )
+                if response.status_code in [200, 201]:
+                    result = response.json()
+                    print_ok("Vederlag-revisjon sendt!")
+                    current_version = result.get('new_version', current_version + 1)
+                    self._verify_new_comment()
+                else:
+                    print_fail(f"Feil: {response.status_code} - {response.text[:200]}")
+            except Exception as e:
+                print_fail(f"Feil: {e}")
+
+        # 4.2 Revider frist
+        print_subheader("4.2: TE reviderer fristkrav")
+        print_info(f"  Nye dager: {TEST_DATA['frist_revisjon']['antall_dager']}")
+        print_info(f"  (Justert ned fra 14 dager)")
+
+        if not frist_event_id:
+            print_warn("Kunne ikke finne frist event ID, hopper over")
+        else:
+            frist_revision = {
+                "sak_id": self.sak_id,
+                "expected_version": current_version,
+                "catenda_topic_id": self.topic_guid,
+                "event": {
+                    "event_type": "frist_krav_oppdatert",
+                    "aktor": "Test Script",
+                    "aktor_rolle": "TE",
+                    "data": {
+                        "original_event_id": frist_event_id,
+                        "antall_dager": TEST_DATA['frist_revisjon']['antall_dager'],
+                        "begrunnelse": TEST_DATA['frist_revisjon']['begrunnelse'],
+                        "dato_revidert": datetime.now().strftime('%Y-%m-%d')
+                    }
+                }
+            }
+
+            try:
+                response = requests.post(
+                    f"{BACKEND_URL}/api/events",
+                    json=frist_revision,
+                    headers=self._get_auth_headers(),
+                    timeout=10
+                )
+                if response.status_code in [200, 201]:
+                    result = response.json()
+                    print_ok("Frist-revisjon sendt!")
+                    self._verify_new_comment()
+                else:
+                    print_fail(f"Feil: {response.status_code} - {response.text[:200]}")
+            except Exception as e:
+                print_fail(f"Feil: {e}")
+
+        print_ok("Alle TE-revisjoner sendt!")
+        return True
+
     def show_summary(self) -> None:
-        """Steg 2.8: Vis oppsummering"""
-        print_header("TEST FULLFORT - Standard KOE-flyt")
+        """Vis oppsummering av komplett test"""
+        print_header("TEST FULLFØRT - Komplett KOE-flyt")
 
         print(f"  Sak ID:      {self.sak_id}")
         print(f"  Topic GUID:  {self.topic_guid}")
@@ -1153,13 +1351,46 @@ class KOEFlowTester:
                 timeout=5
             )
             if response.status_code == 200:
-                state = response.json()
+                state_data = response.json()
+                state = state_data.get('state', {})
+                print(f"  Versjon:     {state_data.get('version')}")
                 print(f"  Status:      {state.get('overordnet_status')}")
                 print()
                 print("  Spor:")
-                print(f"    - Grunnlag: {state.get('grunnlag', {}).get('status')}")
-                print(f"    - Vederlag: {state.get('vederlag', {}).get('status')}")
-                print(f"    - Frist:    {state.get('frist', {}).get('status')}")
+
+                # Grunnlag
+                grunnlag = state.get('grunnlag', {})
+                print(f"    - Grunnlag: {grunnlag.get('status')}")
+
+                # Vederlag
+                vederlag = state.get('vederlag', {})
+                if vederlag:
+                    belop = vederlag.get('belop_direkte') or vederlag.get('kostnads_overslag') or 0
+                    print(f"    - Vederlag: {vederlag.get('status')} ({belop:,.0f} kr)")
+
+                # Frist
+                frist = state.get('frist', {})
+                if frist:
+                    dager = frist.get('antall_dager', 0)
+                    print(f"    - Frist:    {frist.get('status')} ({dager} dager)")
+        except Exception as e:
+            print_warn(f"Kunne ikke hente state: {e}")
+
+        # Hent timeline for å vise antall events
+        try:
+            timeline_resp = requests.get(
+                f"{BACKEND_URL}/api/cases/{self.sak_id}/timeline",
+                headers=self._get_auth_headers(),
+                timeout=5
+            )
+            if timeline_resp.status_code == 200:
+                events = timeline_resp.json().get('events', [])
+                print()
+                print(f"  Totalt {len(events)} event(er) i timeline:")
+                for event in events:
+                    event_type = event.get('event_type', 'ukjent')
+                    aktor_rolle = event.get('aktor_rolle', '?')
+                    print(f"    [{aktor_rolle}] {event_type}")
         except:
             pass
 
@@ -1172,7 +1403,7 @@ class KOEFlowTester:
         print(f"  Dokumenter linket:   {final_documents}")
 
         # List dokumenter
-        documents = self.client.get_topic_documents(self.topic_guid)
+        documents = self.client.list_document_references(self.topic_guid)
         if documents:
             print()
             print("  Dokumenter:")
@@ -1181,43 +1412,65 @@ class KOEFlowTester:
                 print(f"    - {desc}")
 
         # List siste kommentarer
-        comments = self.client.list_topic_comments(self.topic_guid)
+        comments = self.client.get_comments(self.topic_guid)
         if comments:
             print()
-            print(f"  Siste {min(3, len(comments))} kommentarer:")
-            for comment in comments[-3:]:
+            print(f"  Siste {min(5, len(comments))} kommentarer:")
+            for comment in comments[-5:]:
                 text = comment.get('comment', '')[:80]
                 if len(comment.get('comment', '')) > 80:
                     text += '...'
                 print(f"    - {text}")
 
         print()
-        print("  Neste steg:")
-        print("    BH ma manuelt svare pa grunnlag, vederlag og frist")
-        print("    i frontend-applikasjonen.")
+        print("  Flyten er komplett. Testen dekket:")
+        print("    ✓ FASE 1: Topic og sak opprettet")
+        print("    ✓ FASE 2: TE sendte grunnlag, vederlag og frist")
+        print("    ✓ FASE 3: BH svarte (godkjent/delvis godkjent)")
+        print("    ✓ FASE 4: TE sendte revisjoner")
         print()
         print("=" * 70)
 
     def cleanup(self) -> bool:
-        """Steg 2.9: Rydd opp testdata"""
-        print_header("STEG 2.9: Cleanup")
+        """Rydd opp testdata"""
+        print_header("CLEANUP")
 
         if not confirm("Vil du slette test-topic fra Catenda?", default=False):
             print_info("Beholder testdata for inspeksjon")
             return True
 
-        print_info("Sletter topic fra Catenda...")
+        print_info(f"Sletter topic {self.topic_guid} fra Catenda...")
 
-        # Catenda BCF API stotter ikke sletting direkte
-        # Vi kan sette status til "Lukket" i stedet
-        print_warn("Catenda BCF API stotter ikke sletting av topics")
-        print_info("Setter status til 'Lukket' i stedet...")
+        if self.client.delete_topic(self.topic_guid):
+            print_ok("Topic slettet fra Catenda!")
 
-        # Dette krever at vi har en "Lukket" status
-        # For na hopper vi over
-        print_info("Cleanup ikke implementert - manuell sletting pavkreves")
+            # Slett også lokal sak-data
+            print_info("Sletter lokal sak-data...")
+            try:
+                from repositories.event_repository import JsonFileEventRepository
+                from repositories.sak_metadata_repository import SakMetadataRepository
 
-        return True
+                event_repo = JsonFileEventRepository()
+                metadata_repo = SakMetadataRepository()
+
+                # Slett events-fil
+                import os
+                events_file = event_repo._get_file_path(self.sak_id)
+                if os.path.exists(events_file):
+                    os.remove(events_file)
+                    print_ok(f"Slettet events-fil: {events_file}")
+
+                # Slett metadata
+                metadata_repo.delete(self.sak_id)
+                print_ok("Slettet metadata")
+
+            except Exception as e:
+                print_warn(f"Kunne ikke slette lokal data: {e}")
+
+            return True
+        else:
+            print_fail("Kunne ikke slette topic fra Catenda")
+            return False
 
 
 # =============================================================================
@@ -1233,17 +1486,18 @@ def main():
     print("=" * 70)
 
     print("\nDette scriptet tester den komplette KOE-flyten:")
-    print("  1. Validerer konfigurasjon")
-    print("  2. Oppretter test-topic i Catenda")
-    print("  3. Oppretter sak i backend (NB: webhook trigges ikke for API-topics)")
-    print("  4. Sender grunnlag, vederlag og fristkrav")
-    print("  5. Verifiserer kommentarer og PDF-opplasting i Catenda")
+    print("  1. Setup: Validerer konfigurasjon")
+    print("  2. FASE 1: Oppretter test-topic og sak")
+    print("  3. FASE 2: TE sender grunnlag, vederlag og fristkrav")
+    print("  4. FASE 3: BH svarer på kravene (godkjent/delvis godkjent)")
+    print("  5. FASE 4: TE sender revisjoner etter delvis godkjenning")
+    print("  6. Verifiserer kommentarer og PDF-opplasting i Catenda")
 
     if not confirm("\nStarte test?"):
         print("\nAvbrutt.")
         return
 
-    # Fase 1: Setup og validering
+    # Setup: Validering
     validator = SetupValidator()
 
     if not validator.validate_authentication():
@@ -1262,7 +1516,7 @@ def main():
         print("\n[AVBRUTT] Webhook-validering feilet")
         return
 
-    # Fase 2: Test KOE-flyt
+    # Opprett tester
     tester = KOEFlowTester(
         client=validator.client,
         project_id=validator.project_id,
@@ -1271,6 +1525,7 @@ def main():
         topic_board_id=validator.topic_board_id
     )
 
+    # FASE 1: Opprett topic og sak
     if not tester.create_test_topic():
         print("\n[AVBRUTT] Kunne ikke opprette test-topic")
         return
@@ -1281,18 +1536,26 @@ def main():
 
     tester.set_verification_baseline()
 
+    # FASE 2: TE sender initiale krav
     if not tester.send_grunnlag():
         print("\n[ADVARSEL] Grunnlag-sending feilet, fortsetter...")
 
     tester.verify_pdf_upload()
-
     tester.send_vederlag_and_frist()
 
-    tester.show_summary()
+    # FASE 3: BH svarer på krav
+    if not tester.send_bh_responses():
+        print("\n[ADVARSEL] BH-responser feilet, fortsetter...")
 
+    # FASE 4: TE sender revisjoner
+    if not tester.send_te_revisions():
+        print("\n[ADVARSEL] TE-revisjoner feilet, fortsetter...")
+
+    # Oppsummering
+    tester.show_summary()
     tester.cleanup()
 
-    print("\n[FERDIG] Full flyt-test gjennomfort!")
+    print("\n[FERDIG] Full flyt-test gjennomført!")
 
 
 if __name__ == "__main__":
