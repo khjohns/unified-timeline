@@ -371,3 +371,225 @@ export function combineBegrunnelse(
 
   return `${autoBegrunnelse}\n\n---\n\nTilleggskommentar:\n${tilleggsBegrunnelse.trim()}`;
 }
+
+// ============================================================================
+// FRIST RESPONSE GENERATOR
+// ============================================================================
+
+type VarselType = 'noytralt' | 'spesifisert' | 'force_majeure';
+
+export interface FristResponseInput {
+  // Claim context
+  varselType?: VarselType;
+  krevdDager: number;
+
+  // Preklusjon (Port 1)
+  noytraltVarselOk?: boolean;
+  spesifisertKravOk?: boolean;
+  sendEtterlysning?: boolean;
+
+  // Vilkår (Port 2)
+  vilkarOppfylt: boolean;
+
+  // Beregning (Port 3)
+  godkjentDager: number;
+
+  // Computed
+  erPrekludert: boolean;
+  prinsipaltResultat: string;
+  subsidiaertResultat?: string;
+  visSubsidiaertResultat: boolean;
+}
+
+/**
+ * Get varsel type label for display
+ */
+function getVarselTypeLabel(varselType?: VarselType): string {
+  if (!varselType) return 'varsel';
+  const labels: Record<VarselType, string> = {
+    'noytralt': 'nøytralt varsel (§33.4)',
+    'spesifisert': 'spesifisert krav (§33.6)',
+    'force_majeure': 'force majeure-varsel (§33.3)',
+  };
+  return labels[varselType] || varselType;
+}
+
+/**
+ * Get preclusion paragraph reference based on varsel type
+ */
+function getPreklusjonParagraf(varselType?: VarselType): string {
+  switch (varselType) {
+    case 'noytralt':
+      return '§33.4';
+    case 'force_majeure':
+      return '§33.3';
+    default:
+      return '§33.6';
+  }
+}
+
+/**
+ * Generate the preclusion section for frist response
+ */
+function generateFristPreklusjonSection(input: FristResponseInput): string {
+  // Etterlysning case
+  if (input.sendEtterlysning) {
+    return (
+      'Byggherren etterspør spesifisert krav iht. §33.6.2. ' +
+      'Entreprenøren må «uten ugrunnet opphold» angi og begrunne antall dager fristforlengelse. ' +
+      'Dersom dette ikke gjøres, tapes kravet.'
+    );
+  }
+
+  // Prekludert
+  if (input.erPrekludert) {
+    const paragraf = getPreklusjonParagraf(input.varselType);
+    return (
+      `Kravet avvises prinsipalt som prekludert iht. ${paragraf}, ` +
+      `da ${getVarselTypeLabel(input.varselType)} ikke ble fremsatt «uten ugrunnet opphold» ` +
+      `etter at entreprenøren ble eller burde blitt klar over forholdet.`
+    );
+  }
+
+  // OK
+  return `Varslingskravene i ${getPreklusjonParagraf(input.varselType)} anses oppfylt.`;
+}
+
+/**
+ * Generate the conditions section for frist response (§33.5)
+ */
+function generateFristVilkarSection(input: FristResponseInput): string {
+  const { vilkarOppfylt, erPrekludert } = input;
+  const prefix = erPrekludert ? 'Subsidiært, hva gjelder vilkårene (§33.5): ' : '';
+
+  if (vilkarOppfylt) {
+    return (
+      prefix +
+      'Det erkjennes at det påberopte forholdet har forårsaket faktisk hindring av fremdriften, ' +
+      'og at det foreligger årsakssammenheng mellom forholdet og forsinkelsen.'
+    );
+  }
+
+  return (
+    prefix +
+    'Det bestrides at det påberopte forholdet har medført reell hindring av fremdriften. ' +
+    'Entreprenøren hadde tilstrekkelig slakk i fremdriftsplanen, eller forsinkelsen skyldes andre forhold.'
+  );
+}
+
+/**
+ * Generate the calculation section for frist response
+ */
+function generateFristBeregningSection(input: FristResponseInput): string {
+  const { krevdDager, godkjentDager, erPrekludert, vilkarOppfylt } = input;
+  const erSubsidiaer = erPrekludert || !vilkarOppfylt;
+  const prefix = erSubsidiaer ? 'Subsidiært, hva gjelder antall dager: ' : 'Hva gjelder antall dager: ';
+
+  if (godkjentDager === 0) {
+    return prefix + `Kravet om ${krevdDager} dager fristforlengelse kan ikke imøtekommes.`;
+  }
+
+  if (godkjentDager >= krevdDager) {
+    return prefix + `Kravet om ${krevdDager} dagers fristforlengelse godkjennes i sin helhet.`;
+  }
+
+  const prosent = krevdDager > 0 ? ((godkjentDager / krevdDager) * 100).toFixed(0) : 0;
+  return (
+    prefix +
+    `Kravet godkjennes delvis med ${godkjentDager} dager av krevde ${krevdDager} dager (${prosent}%).`
+  );
+}
+
+/**
+ * Generate the conclusion section for frist response
+ */
+function generateFristKonklusjonSection(input: FristResponseInput): string {
+  const { krevdDager, godkjentDager, prinsipaltResultat, visSubsidiaertResultat } = input;
+  const lines: string[] = [];
+
+  // Prinsipalt resultat
+  if (prinsipaltResultat === 'avslatt') {
+    lines.push(`Kravet om ${krevdDager} dagers fristforlengelse avvises i sin helhet.`);
+  } else if (prinsipaltResultat === 'godkjent') {
+    lines.push(`Samlet godkjennes ${godkjentDager} dagers fristforlengelse.`);
+  } else {
+    lines.push(`Samlet godkjennes ${godkjentDager} av ${krevdDager} krevde dager.`);
+  }
+
+  // Subsidiært standpunkt
+  if (visSubsidiaertResultat && prinsipaltResultat === 'avslatt') {
+    if (godkjentDager > 0) {
+      lines.push(
+        `Dersom byggherren ikke får medhold i sin prinsipale avvisning, ` +
+        `kan entreprenøren maksimalt ha krav på ${godkjentDager} dager (subsidiært standpunkt).`
+      );
+    } else {
+      lines.push(
+        'Selv om byggherren ikke skulle få medhold i sin prinsipale avvisning, ' +
+        'ville kravet uansett blitt avslått subsidiært.'
+      );
+    }
+  }
+
+  return lines.join(' ');
+}
+
+/**
+ * Generate §33.8 forsering warning if applicable
+ */
+function generateForseringWarningSection(input: FristResponseInput): string {
+  const { krevdDager, godkjentDager, prinsipaltResultat } = input;
+  const avslatteDager = krevdDager - godkjentDager;
+
+  // Only show if days are rejected
+  if (avslatteDager <= 0) {
+    return '';
+  }
+
+  // Only show if not fully approved
+  if (prinsipaltResultat === 'godkjent') {
+    return '';
+  }
+
+  return (
+    `Byggherren gjør oppmerksom på at dersom avslaget skulle vise seg å være uberettiget, ` +
+    `kan entreprenøren velge å anse avslaget som et pålegg om forsering (§33.8). ` +
+    `Denne valgretten gjelder dog ikke dersom forseringskostnadene overstiger dagmulkten med tillegg av 30%.`
+  );
+}
+
+/**
+ * Generate complete auto-begrunnelse for BH's response to fristkrav
+ */
+export function generateFristResponseBegrunnelse(input: FristResponseInput): string {
+  const sections: string[] = [];
+
+  // Skip if etterlysning - minimal response
+  if (input.sendEtterlysning) {
+    return generateFristPreklusjonSection(input);
+  }
+
+  // 1. Preklusjon section
+  const preklusjonSection = generateFristPreklusjonSection(input);
+  sections.push(preklusjonSection);
+
+  // 2. Vilkår section (always evaluated, possibly subsidiary)
+  const vilkarSection = generateFristVilkarSection(input);
+  sections.push(vilkarSection);
+
+  // 3. Beregning section (always evaluated, possibly subsidiary)
+  const beregningSection = generateFristBeregningSection(input);
+  sections.push(beregningSection);
+
+  // 4. Konklusjon
+  const konklusjonSection = generateFristKonklusjonSection(input);
+  sections.push(konklusjonSection);
+
+  // 5. §33.8 Forsering warning (if applicable)
+  const forseringSection = generateForseringWarningSection(input);
+  if (forseringSection) {
+    sections.push(forseringSection);
+  }
+
+  return sections.join('\n\n');
+}

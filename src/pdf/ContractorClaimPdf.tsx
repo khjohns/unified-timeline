@@ -599,7 +599,7 @@ const FristSection: React.FC<{ state: SakState }> = ({ state }) => {
         <NotClaimedBox message="Det er ikke fremsatt krav om fristforlengelse for denne saken." />
       ) : (
         <View>
-          {/* Entreprenørens krav */}
+          {/* Entreprenørens krav - Kompakt oversikt */}
           <View style={styles.mainSubSection}>
             <Text style={styles.mainSubSectionTitle}>Entreprenørens krav</Text>
             <View style={styles.table}>
@@ -609,99 +609,37 @@ const FristSection: React.FC<{ state: SakState }> = ({ state }) => {
                 label2="Krevd dager"
                 value2={frist.krevd_dager !== undefined ? `${frist.krevd_dager} dager` : '—'}
               />
-              {/* Varseldatoer - vis basert på varsel_type */}
+              {/* Varseldato - kompakt visning */}
               {frist.varsel_type === 'noytralt' && frist.noytralt_varsel?.dato_sendt && (
-                <TableRow label="Nøytralt varsel sendt" value={formatDate(frist.noytralt_varsel?.dato_sendt)} striped />
-              )}
-              {(frist.varsel_type === 'spesifisert' || frist.varsel_type === 'force_majeure') && frist.spesifisert_varsel?.dato_sendt && (
-                <TableRow label="Spesifisert krav sendt" value={formatDate(frist.spesifisert_varsel?.dato_sendt)} striped />
-              )}
-              {/* Fallback - vis begge hvis varsel_type ikke er satt men datoer finnes */}
-              {!frist.varsel_type && (frist.noytralt_varsel?.dato_sendt || frist.spesifisert_varsel?.dato_sendt) && (
                 <TableRow4Col
                   label1="Nøytralt varsel"
                   value1={formatDate(frist.noytralt_varsel?.dato_sendt)}
-                  label2="Spesifisert krav"
-                  value2={formatDate(frist.spesifisert_varsel?.dato_sendt)}
+                  label2="Kritisk linje"
+                  value2={formatBoolean(frist.pavirker_kritisk_linje)}
                   striped
                 />
               )}
-              {/* Kritisk linje og fremdriftsanalyse - kun vis hvis satt */}
-              {(frist.pavirker_kritisk_linje !== undefined || frist.fremdriftsanalyse_vedlagt !== undefined) && (
+              {(frist.varsel_type === 'spesifisert' || frist.varsel_type === 'force_majeure') && frist.spesifisert_varsel?.dato_sendt && (
                 <TableRow4Col
-                  label1="Kritisk linje"
-                  value1={formatBoolean(frist.pavirker_kritisk_linje)}
-                  label2="Fremdriftsanalyse"
-                  value2={formatBoolean(frist.fremdriftsanalyse_vedlagt)}
-                />
-              )}
-              {(frist.milepael_pavirket || frist.siste_oppdatert) && (
-                <TableRow4Col
-                  label1="Milepæl påvirket"
-                  value1={frist.milepael_pavirket || '—'}
-                  label2="Sist oppdatert"
-                  value2={formatDate(frist.siste_oppdatert)}
+                  label1="Spesifisert krav"
+                  value1={formatDate(frist.spesifisert_varsel?.dato_sendt)}
+                  label2="Kritisk linje"
+                  value2={formatBoolean(frist.pavirker_kritisk_linje)}
                   striped
                 />
               )}
             </View>
 
-            {/* Begrunnelse - Viktig for juridisk dokumentasjon */}
-            <TextBlock title="Begrunnelse for fristforlengelse" content={frist.begrunnelse} />
-
-            {/* Berørte aktiviteter */}
-            <TextBlock title="Berørte aktiviteter" content={frist.berorte_aktiviteter} />
+            {/* Entreprenørens begrunnelse */}
+            <TextBlock title="Entreprenørens begrunnelse" content={frist.begrunnelse} />
           </View>
 
-          {/* BH Response - Varsling - kun vis relevante felt basert på varsel_type */}
-          {(() => {
-            const isNoytralt = frist.varsel_type === 'noytralt';
-            const isSpesifisertOrFM = frist.varsel_type === 'spesifisert' || frist.varsel_type === 'force_majeure';
-            const hasNoytraltOk = isNoytralt && frist.noytralt_varsel_ok !== undefined;
-            const hasSpesifisertOk = (isSpesifisertOrFM || !frist.varsel_type) && frist.spesifisert_krav_ok !== undefined;
-            const hasEtterlyst = frist.har_bh_etterlyst !== undefined;
-            const hasFristForSpesifisering = frist.frist_for_spesifisering;
-            const hasAnyVarsling = hasNoytraltOk || hasSpesifisertOk || hasEtterlyst || hasFristForSpesifisering || frist.begrunnelse_varsel;
-
-            if (!hasAnyVarsling) return null;
-
-            return (
-              <View style={styles.mainSubSection}>
-                <Text style={styles.mainSubSectionTitle}>Byggherrens vurdering – Varsling</Text>
-                <View style={styles.table}>
-                  {hasNoytraltOk && (
-                    <TableRow label="Nøytralt varsel OK" value={formatBoolean(frist.noytralt_varsel_ok)} />
-                  )}
-                  {hasSpesifisertOk && (
-                    <TableRow label="Spesifisert krav OK" value={formatBoolean(frist.spesifisert_krav_ok)} striped={hasNoytraltOk} />
-                  )}
-                  {hasEtterlyst && (
-                    <TableRow label="BH har etterlyst" value={formatBoolean(frist.har_bh_etterlyst)} striped />
-                  )}
-                  {hasFristForSpesifisering && (
-                    <TableRow label="Frist for spesifisering" value={formatDate(frist.frist_for_spesifisering)} />
-                  )}
-                </View>
-                <TextBlock title="Begrunnelse varselvurdering" content={frist.begrunnelse_varsel} />
-              </View>
-            );
-          })()}
-
-          {/* BH Response - Vilkår */}
-          {frist.vilkar_oppfylt !== undefined && (
-            <View style={styles.mainSubSection}>
-              <Text style={styles.mainSubSectionTitle}>Byggherrens vurdering – Vilkår</Text>
-              <View style={styles.table}>
-                <TableRow label="Vilkår oppfylt" value={formatBoolean(frist.vilkar_oppfylt)} />
-              </View>
-              <TextBlock title="Begrunnelse vilkårsvurdering" content={frist.begrunnelse_vilkar} />
-            </View>
-          )}
-
-          {/* BH Response - Beregning */}
+          {/* Byggherrens vurdering - Narrativ begrunnelse */}
           {frist.bh_resultat && (
             <View style={styles.mainSubSection}>
-              <Text style={styles.mainSubSectionTitle}>Byggherrens vurdering – Beregning</Text>
+              <Text style={styles.mainSubSectionTitle}>Byggherrens vurdering</Text>
+
+              {/* Resultat-sammendrag */}
               <View style={styles.table}>
                 <TableRow4Col
                   label1="Resultat"
@@ -709,18 +647,35 @@ const FristSection: React.FC<{ state: SakState }> = ({ state }) => {
                   label2="Godkjent dager"
                   value2={frist.godkjent_dager !== undefined ? `${frist.godkjent_dager} dager` : '—'}
                 />
-                {(frist.differanse_dager !== undefined || frist.ny_sluttdato) && (
+                {frist.krevd_dager !== undefined && frist.godkjent_dager !== undefined && (
                   <TableRow4Col
-                    label1="Differanse"
-                    value1={frist.differanse_dager !== undefined ? `${frist.differanse_dager} dager` : '—'}
-                    label2="Ny sluttdato"
-                    value2={formatDate(frist.ny_sluttdato)}
+                    label1="Godkjenningsgrad"
+                    value1={frist.krevd_dager > 0 ? `${((frist.godkjent_dager / frist.krevd_dager) * 100).toFixed(0)}%` : '—'}
+                    label2="Differanse"
+                    value2={`${(frist.krevd_dager - frist.godkjent_dager)} dager`}
                     striped
                   />
                 )}
+                {frist.ny_sluttdato && (
+                  <TableRow
+                    label="Ny sluttdato"
+                    value={formatDate(frist.ny_sluttdato)}
+                  />
+                )}
               </View>
-              <TextBlock title="Byggherrens begrunnelse" content={frist.bh_begrunnelse} />
-              <TextBlock title="Begrunnelse beregning" content={frist.begrunnelse_beregning} />
+
+              {/* Subsidiært standpunkt */}
+              {frist.har_subsidiaert_standpunkt && frist.subsidiaer_godkjent_dager !== undefined && (
+                <View style={styles.subsidiaerBox}>
+                  <Text style={styles.subsidiaerTitle}>Subsidiært standpunkt</Text>
+                  <Text style={styles.subsidiaerText}>
+                    Dersom byggherren ikke får medhold i sin prinsipale avvisning: Maks {frist.subsidiaer_godkjent_dager} dager
+                  </Text>
+                </View>
+              )}
+
+              {/* Hovedbegrunnelse - Narrativ tekst generert fra valgene */}
+              <TextBlock title="Begrunnelse" content={frist.bh_begrunnelse} />
             </View>
           )}
 
