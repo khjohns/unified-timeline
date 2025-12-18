@@ -575,7 +575,8 @@ def _post_to_catenda(
             doc_result = catenda_service.upload_document(project_id, pdf_path, filename)
 
             if doc_result:
-                document_guid = doc_result.get('library_item_id')
+                # CatendaClient returns 'id', not 'library_item_id'
+                document_guid = doc_result.get('id') or doc_result.get('library_item_id')
                 logger.info(f"✅ PDF uploaded to Catenda: {document_guid}")
 
                 # Link document to topic
