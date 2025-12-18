@@ -20,6 +20,7 @@ from repositories.event_repository import JsonFileEventRepository
 from repositories.sak_metadata_repository import SakMetadataRepository
 from models.events import SakOpprettetEvent
 from models.sak_state import SakState
+from models.sak_metadata import SakMetadata
 from services.timeline_service import TimelineService
 from utils.logger import get_logger
 
@@ -199,19 +200,17 @@ class WebhookService:
                 return {'success': False, 'error': f'Failed to persist event: {e}'}
 
             # Create metadata cache entry
-            self.metadata_repo.create(
+            metadata = SakMetadata(
                 sak_id=sak_id,
+                prosjekt_id=v2_project_id,
                 catenda_topic_id=topic_id,
                 catenda_project_id=v2_project_id,
-                catenda_board_id=board_id,
+                created_at=datetime.now(),
+                created_by=author_name,
                 cached_title=title,
                 cached_status="UNDER_VARSLING",  # Initial status
-                te_navn=author_name,
-                te_epost=author_email,
-                byggherre=byggherre,
-                entreprenor=leverandor,
-                prosjekt_navn=project_name,
             )
+            self.metadata_repo.create(metadata)
 
             # Generate magic link with correct route based on sakstype
             magic_token = None
