@@ -65,19 +65,19 @@ TEST_DATA = {
     "leverandor": "Test Entreprenor AS",
     "grunnlag": {
         "hovedkategori": "ENDRING",
-        "underkategori": "INSTRUKS",
-        "beskrivelse": "Automatisk testcase - grunnlag for endringskrav",
-        "kontraktsreferanse": "31.1"
+        "underkategori": "IRREG",  # Valid: EO, IRREG, SVAR_VARSEL, LOV_GJENSTAND, LOV_PROSESS, GEBYR, SAMORD
+        "beskrivelse": "Automatisk testcase - grunnlag for endringskrav (irregulær endring)",
+        "kontraktsreferanse": "32.1"
     },
     "vederlag": {
-        "metode": "DIREKTE",
-        "belop": 150000.0,
-        "beskrivelse": "Automatisk testcase - vederlagskrav"
+        "metode": "ENHETSPRISER",  # Valid: ENHETSPRISER, REGNINGSARBEID, FASTPRIS_TILBUD
+        "belop_direkte": 150000.0,
+        "begrunnelse": "Automatisk testcase - vederlagskrav"
     },
     "frist": {
-        "varseltype": "SPESIFIKT",
+        "varsel_type": "spesifisert",  # Valid: noytralt, spesifisert, begge, force_majeure
         "antall_dager": 14,
-        "beskrivelse": "Automatisk testcase - fristkrav"
+        "begrunnelse": "Automatisk testcase - fristkrav"
     }
 }
 
@@ -121,8 +121,14 @@ def print_info(message: str):
     print(f"  {message}")
 
 
+# Global flag for auto-confirm mode
+AUTO_CONFIRM = False
+
 def confirm(prompt: str, default: bool = True) -> bool:
-    """Spor bruker om bekreftelse"""
+    """Spor bruker om bekreftelse (skipper hvis AUTO_CONFIRM=True)"""
+    if AUTO_CONFIRM:
+        print(f"\n{prompt} [auto-confirm: ja]")
+        return True
     suffix = "[J/n]" if default else "[j/N]"
     response = input(f"\n{prompt} {suffix}: ").strip().lower()
     if not response:
@@ -677,12 +683,13 @@ class KOEFlowTester:
         return False
 
     def _get_auth_headers(self) -> Dict[str, str]:
-        """Bygg headers med CSRF og magic token"""
+        """Bygg headers med CSRF og magic token (Bearer format)"""
         headers = {"Content-Type": "application/json"}
         if self.csrf_token:
             headers["X-CSRF-Token"] = self.csrf_token
         if self.magic_token:
-            headers["X-Magic-Token"] = self.magic_token
+            # Magic link token må sendes som Bearer token i Authorization header
+            headers["Authorization"] = f"Bearer {self.magic_token}"
         return headers
 
     def create_test_topic(self) -> bool:
@@ -888,15 +895,36 @@ class KOEFlowTester:
         print_info(f"  Hovedkategori: {TEST_DATA['grunnlag']['hovedkategori']}")
         print_info(f"  Underkategori: {TEST_DATA['grunnlag']['underkategori']}")
 
+        # Hent versjon først
+        try:
+            state_resp = requests.get(
+                f"{BACKEND_URL}/api/cases/{self.sak_id}/state",
+                headers=self._get_auth_headers(),
+                timeout=5
+            )
+            if state_resp.status_code == 200:
+                current_version = state_resp.json().get('version', 1)
+            else:
+                current_version = 1
+        except:
+            current_version = 1
+
         event_data = {
             "sak_id": self.sak_id,
-            "event_type": "grunnlag_opprettet",
-            "aktor": "Test Script",
-            "aktor_rolle": "TE",
-            "hovedkategori": TEST_DATA['grunnlag']['hovedkategori'],
-            "underkategori": TEST_DATA['grunnlag']['underkategori'],
-            "beskrivelse": TEST_DATA['grunnlag']['beskrivelse'],
-            "kontraktsreferanse": TEST_DATA['grunnlag']['kontraktsreferanse']
+            "expected_version": current_version,
+            "event": {
+                "event_type": "grunnlag_opprettet",
+                "aktor": "Test Script",
+                "aktor_rolle": "TE",
+                "data": {
+                    "tittel": "Automatisk test - Irregulær endring",
+                    "hovedkategori": TEST_DATA['grunnlag']['hovedkategori'],
+                    "underkategori": TEST_DATA['grunnlag']['underkategori'],
+                    "beskrivelse": TEST_DATA['grunnlag']['beskrivelse'],
+                    "kontraktsreferanse": TEST_DATA['grunnlag']['kontraktsreferanse'],
+                    "dato_oppdaget": datetime.now().strftime('%Y-%m-%d')
+                }
+            }
         }
 
         try:
@@ -951,33 +979,54 @@ class KOEFlowTester:
         """Steg 2.7: Send vederlag og frist"""
         print_header("STEG 2.7: Send vederlag og fristkrav")
 
+        # Hent gjeldende versjon
+        try:
+            state_resp = requests.get(
+                f"{BACKEND_URL}/api/cases/{self.sak_id}/state",
+                headers=self._get_auth_headers(),
+                timeout=5
+            )
+            if state_resp.status_code == 200:
+                current_version = state_resp.json().get('version', 1)
+            else:
+                current_version = 1
+        except:
+            current_version = 1
+
         # Vederlagskrav
         print_info("Sender vederlag_krav_sendt...")
         print_info(f"  Metode: {TEST_DATA['vederlag']['metode']}")
-        print_info(f"  Belop: {TEST_DATA['vederlag']['belop']:,.0f} kr")
+        print_info(f"  Belop: {TEST_DATA['vederlag']['belop_direkte']:,.0f} kr")
 
-        vederlag_event = {
+        vederlag_payload = {
             "sak_id": self.sak_id,
-            "event_type": "vederlag_krav_sendt",
-            "aktor": "Test Script",
-            "aktor_rolle": "TE",
-            "metode": TEST_DATA['vederlag']['metode'],
-            "belop_direkte": TEST_DATA['vederlag']['belop'],
-            "beskrivelse": TEST_DATA['vederlag']['beskrivelse']
+            "expected_version": current_version,
+            "event": {
+                "event_type": "vederlag_krav_sendt",
+                "aktor": "Test Script",
+                "aktor_rolle": "TE",
+                "data": {
+                    "metode": TEST_DATA['vederlag']['metode'],
+                    "belop_direkte": TEST_DATA['vederlag']['belop_direkte'],
+                    "begrunnelse": TEST_DATA['vederlag']['begrunnelse']
+                }
+            }
         }
 
         try:
             response = requests.post(
                 f"{BACKEND_URL}/api/events",
-                json=vederlag_event,
+                json=vederlag_payload,
                 headers=self._get_auth_headers(),
                 timeout=10
             )
 
             if response.status_code in [200, 201]:
                 print_ok("Vederlagskrav sendt!")
+                current_version = response.json().get('new_version', current_version + 1)
             else:
                 print_fail(f"Feil ved sending: {response.status_code}")
+                print_info(f"  {response.text[:200]}")
         except requests.exceptions.RequestException as e:
             print_fail(f"Nettverksfeil: {e}")
 
@@ -985,20 +1034,28 @@ class KOEFlowTester:
         print_info("\nSender frist_krav_sendt...")
         print_info(f"  Antall dager: {TEST_DATA['frist']['antall_dager']}")
 
-        frist_event = {
+        frist_payload = {
             "sak_id": self.sak_id,
-            "event_type": "frist_krav_sendt",
-            "aktor": "Test Script",
-            "aktor_rolle": "TE",
-            "varseltype": TEST_DATA['frist']['varseltype'],
-            "antall_dager": TEST_DATA['frist']['antall_dager'],
-            "beskrivelse": TEST_DATA['frist']['beskrivelse']
+            "expected_version": current_version,
+            "event": {
+                "event_type": "frist_krav_sendt",
+                "aktor": "Test Script",
+                "aktor_rolle": "TE",
+                "data": {
+                    "varsel_type": TEST_DATA['frist']['varsel_type'],
+                    "antall_dager": TEST_DATA['frist']['antall_dager'],
+                    "begrunnelse": TEST_DATA['frist']['begrunnelse'],
+                    "spesifisert_varsel": {
+                        "dato_sendt": datetime.now().strftime('%Y-%m-%d')
+                    }
+                }
+            }
         }
 
         try:
             response = requests.post(
                 f"{BACKEND_URL}/api/events",
-                json=frist_event,
+                json=frist_payload,
                 headers=self._get_auth_headers(),
                 timeout=10
             )
@@ -1007,6 +1064,7 @@ class KOEFlowTester:
                 print_ok("Fristkrav sendt!")
             else:
                 print_fail(f"Feil ved sending: {response.status_code}")
+                print_info(f"  {response.text[:200]}")
         except requests.exceptions.RequestException as e:
             print_fail(f"Nettverksfeil: {e}")
 
@@ -1144,6 +1202,15 @@ def main():
 
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Full flow test for KOE system")
+    parser.add_argument("--yes", "-y", action="store_true", help="Auto-confirm all prompts")
+    args = parser.parse_args()
+
+    if args.yes:
+        # Modify global variable
+        globals()['AUTO_CONFIRM'] = True
+
     try:
         main()
     except KeyboardInterrupt:
