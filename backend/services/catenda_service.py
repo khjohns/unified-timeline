@@ -97,7 +97,8 @@ class CatendaService:
         self,
         project_id: str,
         file_path: str,
-        filename: Optional[str] = None
+        filename: Optional[str] = None,
+        folder_id: Optional[str] = None
     ) -> Optional[Dict[str, Any]]:
         """
         Upload a document to Catenda.
@@ -106,6 +107,7 @@ class CatendaService:
             project_id: Catenda project ID
             file_path: Path to file to upload
             filename: Optional custom filename (defaults to basename)
+            folder_id: Optional folder ID to upload to (None = library root)
 
         Returns:
             Document data with library_item_id (document_guid) if successful
@@ -127,8 +129,8 @@ class CatendaService:
         upload_filename = filename or path.name
 
         try:
-            logger.info(f"Uploading document {upload_filename} to project {project_id}")
-            result = self.client.upload_document(project_id, file_path, upload_filename)
+            logger.info(f"Uploading document {upload_filename} to project {project_id}" + (f" folder {folder_id}" if folder_id else ""))
+            result = self.client.upload_document(project_id, file_path, upload_filename, folder_id)
 
             if result:
                 logger.info(f"✅ Document uploaded: {result.get('library_item_id', 'N/A')}")

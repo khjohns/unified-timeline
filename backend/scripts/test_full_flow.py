@@ -1557,7 +1557,8 @@ def main():
 
     # Oppsummering
     tester.show_summary()
-    tester.cleanup()
+    # Ikke kjør cleanup automatisk - bruk catenda_menu.py for manuell opprydding
+    # tester.cleanup()
 
     print("\n[FERDIG] Full flyt-test gjennomført!")
 

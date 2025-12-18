@@ -538,7 +538,7 @@ def _post_to_catenda(
                     temp_pdf.write(pdf_data)
                     pdf_path = temp_pdf.name
 
-                filename = client_pdf_filename or f"KOE_{sak_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                filename = client_pdf_filename or f"KOE_{sak_id}.pdf"
                 pdf_source = "client"
 
                 logger.info(f"✅ Client PDF decoded: {len(pdf_data)} bytes")
@@ -559,13 +559,13 @@ def _post_to_catenda(
                 # Get events for PDF (to show last TE/BH events per track)
                 events_list = []
                 try:
-                    events_data = event_repo.get_events(sak_id)
+                    events_data, _ = event_repo.get_events(sak_id)  # Returns (events, version) tuple
                     events_list = [e.model_dump(mode='json') for e in events_data]
                 except Exception as e:
                     logger.warning(f"Could not get events for PDF: {e}")
 
                 pdf_generator = ReportLabPdfGenerator()
-                filename = f"KOE_{sak_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                filename = f"KOE_{sak_id}.pdf"
 
                 with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_pdf:
                     pdf_path = temp_pdf.name
