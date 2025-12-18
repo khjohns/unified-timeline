@@ -96,7 +96,6 @@ def submit_event():
 
         # Look up catenda_topic_id from metadata if not provided
         if not catenda_topic_id:
-            metadata_repo = SakMetadataRepository()
             metadata = metadata_repo.get(sak_id)
             if metadata and metadata.catenda_topic_id:
                 catenda_topic_id = metadata.catenda_topic_id
