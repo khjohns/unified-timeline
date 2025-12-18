@@ -574,7 +574,7 @@ class SetupValidator:
         # Opprett statuses
         for status_name, status_type in missing_statuses:
             print_info(f"Oppretter status: {status_name} ({status_type})...")
-            result = self.client.create_status(status_name, status_type)
+            result = self.client.create_status(status_name, status_type=status_type)
             if result:
                 print_ok(f"Status opprettet: {status_name}")
             else:

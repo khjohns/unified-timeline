@@ -1026,22 +1026,29 @@ class CatendaClient:
         logger.info(f"📋 Oppretter status '{name}'...")
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{board_id}/extensions/statuses"
 
-        # Default farger basert på status type (uppercase hex som API krever)
-        default_colors = {
-            "open": "#3498DB",      # Blå
-            "closed": "#27AE60",    # Grønn
-            "candidate": "#F39C12"  # Oransje
-        }
-
-        # Sørg for uppercase hex-farge
-        final_color = color or default_colors.get(status_type, "#3498DB")
-        final_color = final_color.upper()
-
+        # Bygg payload - color er valgfritt ifølge API spec
         payload = {
             "name": name,
-            "type": status_type,
-            "color": final_color
+            "type": status_type
         }
+
+        # Legg til farge hvis angitt, ellers la API velge standard
+        if color:
+            # Sørg for uppercase hex-farge med #
+            final_color = color.upper()
+            if not final_color.startswith('#'):
+                final_color = '#' + final_color
+            payload["color"] = final_color
+        else:
+            # Bruk standard farger fra API-dokumentasjonen
+            default_colors = {
+                "open": "#DD7E6B",      # Fra API docs
+                "closed": "#57BB8A",    # Grønn
+                "candidate": "#FFD666"  # Gul
+            }
+            payload["color"] = default_colors.get(status_type, "#DD7E6B")
+
+        logger.debug(f"   Create status payload: {payload}")
 
         try:
             response = requests.post(url, headers=self.get_headers(), json=payload)
