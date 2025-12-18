@@ -1026,9 +1026,18 @@ class CatendaClient:
         logger.info(f"📋 Oppretter status '{name}'...")
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{board_id}/extensions/statuses"
 
-        payload = {"name": name, "type": status_type}
-        if color:
-            payload["color"] = color
+        # Default farger basert på status type
+        default_colors = {
+            "open": "#3498db",      # Blå
+            "closed": "#27ae60",    # Grønn
+            "candidate": "#f39c12"  # Oransje
+        }
+
+        payload = {
+            "name": name,
+            "type": status_type,
+            "color": color or default_colors.get(status_type, "#3498db")
+        }
 
         try:
             response = requests.post(url, headers=self.get_headers(), json=payload)
