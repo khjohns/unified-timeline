@@ -109,6 +109,29 @@ class SakMetadataRepository:
                 writer.writeheader()
                 writer.writerows(rows)
 
+    def get_by_topic_id(self, topic_id: str) -> Optional[SakMetadata]:
+        """Get case metadata by Catenda topic ID."""
+        with self.lock:
+            if not self.csv_path.exists():
+                return None
+
+            with open(self.csv_path, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    if row.get('catenda_topic_id') == topic_id:
+                        return SakMetadata(
+                            sak_id=row['sak_id'],
+                            prosjekt_id=row['prosjekt_id'] or None,
+                            catenda_topic_id=row['catenda_topic_id'] or None,
+                            catenda_project_id=row['catenda_project_id'] or None,
+                            created_at=datetime.fromisoformat(row['created_at']),
+                            created_by=row['created_by'],
+                            cached_title=row['cached_title'] or None,
+                            cached_status=row['cached_status'] or None,
+                            last_event_at=datetime.fromisoformat(row['last_event_at']) if row['last_event_at'] else None
+                        )
+            return None
+
     def list_all(self) -> List[SakMetadata]:
         """List all cases (for case list view)."""
         with self.lock:

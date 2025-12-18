@@ -67,6 +67,30 @@ def health_check():
     return jsonify({"status": "healthy", "service": "koe-backend"}), 200
 
 
+@utility_bp.route('/api/metadata/by-topic/<topic_id>', methods=['GET'])
+def get_metadata_by_topic(topic_id: str):
+    """
+    Hent sak-metadata basert på Catenda topic ID.
+
+    Brukes av test-scripts for å verifisere at webhook ble mottatt.
+    """
+    from repositories.sak_metadata_repository import SakMetadataRepository
+
+    repo = SakMetadataRepository()
+    metadata = repo.get_by_topic_id(topic_id)
+
+    if not metadata:
+        return jsonify({"error": "No case found for topic", "topic_id": topic_id}), 404
+
+    return jsonify({
+        "sak_id": metadata.sak_id,
+        "catenda_topic_id": metadata.catenda_topic_id,
+        "cached_title": metadata.cached_title,
+        "cached_status": metadata.cached_status,
+        "created_at": metadata.created_at.isoformat() if metadata.created_at else None
+    }), 200
+
+
 @utility_bp.route('/api/validate-user', methods=['POST'])
 @require_csrf
 def validate_user():
