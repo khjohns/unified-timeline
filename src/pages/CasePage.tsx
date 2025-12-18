@@ -596,8 +596,22 @@ export function CasePage() {
               belop_direkte: state.vederlag.belop_direkte,
               kostnads_overslag: state.vederlag.kostnads_overslag,
               begrunnelse: state.vederlag.begrunnelse,
+              krever_justert_ep: state.vederlag.krever_justert_ep,
+              varslet_for_oppstart: state.vederlag.regningsarbeid_varsel !== undefined,
             }}
             currentVersion={Math.max(0, (state.vederlag.antall_versjoner ?? 1) - 1)}
+            bhResponse={
+              state.vederlag.bh_resultat
+                ? {
+                    resultat: state.vederlag.bh_resultat,
+                    godkjent_belop: state.vederlag.godkjent_belop,
+                    aksepterer_metode: state.vederlag.bh_metode === state.vederlag.metode || state.vederlag.bh_metode === undefined,
+                    oensket_metode: state.vederlag.bh_metode !== state.vederlag.metode ? state.vederlag.bh_metode : undefined,
+                    ep_justering_akseptert: state.vederlag.varsel_justert_ep_ok,
+                    begrunnelse: state.vederlag.bh_begrunnelse,
+                  }
+                : undefined
+            }
           />
           <ReviseFristModal
             open={reviseFristOpen}
