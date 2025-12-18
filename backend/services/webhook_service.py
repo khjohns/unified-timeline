@@ -204,6 +204,7 @@ class WebhookService:
                 sak_id=sak_id,
                 prosjekt_id=v2_project_id,
                 catenda_topic_id=topic_id,
+                catenda_board_id=board_id,
                 catenda_project_id=v2_project_id,
                 created_at=datetime.now(),
                 created_by=author_name,

@@ -472,24 +472,29 @@ def _post_to_catenda(
         (success, pdf_source)  # pdf_source = "client" | "server" | None
     """
     try:
+        logger.info(f"🔄 _post_to_catenda called for case {sak_id}, topic {topic_id}")
+
         catenda_service = get_catenda_service()
         if not catenda_service:
-            logger.warning("Catenda service not configured, skipping")
+            logger.warning("❌ Catenda service not configured, skipping")
             return False, None
+        logger.info("✅ Catenda service available")
 
         # Get case metadata for project/board IDs
         metadata = metadata_repo.get(sak_id)
         if not metadata:
-            logger.warning(f"No metadata found for case {sak_id}")
+            logger.warning(f"❌ No metadata found for case {sak_id}")
             return False, None
+        logger.info(f"✅ Metadata found: board_id={metadata.catenda_board_id}")
 
         config = settings.get_catenda_config()
         project_id = config.get('catenda_project_id')
         board_id = metadata.catenda_board_id if metadata else None
 
         if not project_id or not board_id:
-            logger.warning(f"Missing project/board ID for case {sak_id}")
+            logger.warning(f"❌ Missing project/board ID for case {sak_id} (project={project_id}, board={board_id})")
             return False, None
+        logger.info(f"✅ IDs OK: project={project_id}, board={board_id}")
 
         catenda_service.set_topic_board_id(board_id)
 

@@ -27,7 +27,7 @@ class SakMetadataRepository:
                 writer = csv.writer(f)
                 writer.writerow([
                     'sak_id', 'prosjekt_id', 'catenda_topic_id',
-                    'catenda_project_id', 'created_at', 'created_by',
+                    'catenda_board_id', 'catenda_project_id', 'created_at', 'created_by',
                     'cached_title', 'cached_status', 'last_event_at'
                 ])
 
@@ -40,6 +40,7 @@ class SakMetadataRepository:
                     metadata.sak_id,
                     metadata.prosjekt_id or '',
                     metadata.catenda_topic_id or '',
+                    metadata.catenda_board_id or '',
                     metadata.catenda_project_id or '',
                     metadata.created_at.isoformat(),
                     metadata.created_by,
@@ -62,6 +63,7 @@ class SakMetadataRepository:
                             sak_id=row['sak_id'],
                             prosjekt_id=row['prosjekt_id'] or None,
                             catenda_topic_id=row['catenda_topic_id'] or None,
+                            catenda_board_id=row.get('catenda_board_id') or None,
                             catenda_project_id=row['catenda_project_id'] or None,
                             created_at=datetime.fromisoformat(row['created_at']),
                             created_by=row['created_by'],
@@ -123,6 +125,7 @@ class SakMetadataRepository:
                             sak_id=row['sak_id'],
                             prosjekt_id=row['prosjekt_id'] or None,
                             catenda_topic_id=row['catenda_topic_id'] or None,
+                            catenda_board_id=row.get('catenda_board_id') or None,
                             catenda_project_id=row['catenda_project_id'] or None,
                             created_at=datetime.fromisoformat(row['created_at']),
                             created_by=row['created_by'],
@@ -146,6 +149,7 @@ class SakMetadataRepository:
                         sak_id=row['sak_id'],
                         prosjekt_id=row['prosjekt_id'] or None,
                         catenda_topic_id=row['catenda_topic_id'] or None,
+                        catenda_board_id=row.get('catenda_board_id') or None,
                         catenda_project_id=row['catenda_project_id'] or None,
                         created_at=datetime.fromisoformat(row['created_at']),
                         created_by=row['created_by'],

@@ -25,6 +25,7 @@ class SakMetadata(BaseModel):
     sak_id: str = Field(..., description="Case ID")
     prosjekt_id: Optional[str] = Field(default=None, description="Project ID")
     catenda_topic_id: Optional[str] = Field(default=None, description="Catenda topic GUID")
+    catenda_board_id: Optional[str] = Field(default=None, description="Catenda board GUID")
     catenda_project_id: Optional[str] = Field(default=None, description="Catenda project GUID")
 
     created_at: datetime = Field(..., description="When the case was created")
