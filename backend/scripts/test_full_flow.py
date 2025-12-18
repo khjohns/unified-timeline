@@ -647,6 +647,43 @@ class KOEFlowTester:
         self.topic_guid: Optional[str] = None
         self.sak_id: Optional[str] = None
         self.topic_title: Optional[str] = None
+        self.csrf_token: Optional[str] = None
+        self.magic_token: Optional[str] = None
+
+    def _fetch_csrf_token(self) -> bool:
+        """Hent CSRF-token fra backend"""
+        try:
+            response = requests.get(f"{BACKEND_URL}/api/csrf-token", timeout=5)
+            if response.status_code == 200:
+                data = response.json()
+                self.csrf_token = data.get('csrfToken')
+                return bool(self.csrf_token)
+        except requests.exceptions.RequestException:
+            pass
+        return False
+
+    def _extract_magic_token_from_comments(self) -> bool:
+        """Hent magic token fra Catenda-kommentar"""
+        import re
+
+        comments = self.client.list_topic_comments(self.topic_guid)
+        for comment in comments:
+            text = comment.get('comment', '')
+            # Søk etter magicToken i URL
+            match = re.search(r'magicToken=([a-zA-Z0-9_-]+)', text)
+            if match:
+                self.magic_token = match.group(1)
+                return True
+        return False
+
+    def _get_auth_headers(self) -> Dict[str, str]:
+        """Bygg headers med CSRF og magic token"""
+        headers = {"Content-Type": "application/json"}
+        if self.csrf_token:
+            headers["X-CSRF-Token"] = self.csrf_token
+        if self.magic_token:
+            headers["X-Magic-Token"] = self.magic_token
+        return headers
 
     def create_test_topic(self) -> bool:
         """Steg 2.1: Opprett test-topic i Catenda"""
@@ -828,10 +865,20 @@ class KOEFlowTester:
 
             if not magic_link_found:
                 print_warn("Ingen magic link funnet i kommentarer")
+            else:
+                # Ekstraher magic token for API-kall
+                if self._extract_magic_token_from_comments():
+                    print_ok(f"Magic token ekstrahert for API-kall")
         else:
             print_warn("Ingen kommentarer funnet")
 
-        return True  # Fortsett selv om kommentar mangler
+        # Hent CSRF-token
+        if self._fetch_csrf_token():
+            print_ok("CSRF-token hentet")
+        else:
+            print_warn("Kunne ikke hente CSRF-token")
+
+        return True  # Fortsett selv om tokens mangler
 
     def send_grunnlag(self) -> bool:
         """Steg 2.4: Send grunnlag (simuler TE)"""
@@ -856,7 +903,7 @@ class KOEFlowTester:
             response = requests.post(
                 f"{BACKEND_URL}/api/events",
                 json=event_data,
-                headers={"Content-Type": "application/json"},
+                headers=self._get_auth_headers(),
                 timeout=10
             )
 
@@ -868,7 +915,7 @@ class KOEFlowTester:
                 return True
             else:
                 print_fail(f"Feil ved sending: {response.status_code}")
-                print_info(f"  {response.text}")
+                print_info(f"  {response.text[:200]}")
                 return False
 
         except requests.exceptions.RequestException as e:
@@ -923,7 +970,7 @@ class KOEFlowTester:
             response = requests.post(
                 f"{BACKEND_URL}/api/events",
                 json=vederlag_event,
-                headers={"Content-Type": "application/json"},
+                headers=self._get_auth_headers(),
                 timeout=10
             )
 
@@ -952,7 +999,7 @@ class KOEFlowTester:
             response = requests.post(
                 f"{BACKEND_URL}/api/events",
                 json=frist_event,
-                headers={"Content-Type": "application/json"},
+                headers=self._get_auth_headers(),
                 timeout=10
             )
 
@@ -978,6 +1025,7 @@ class KOEFlowTester:
         try:
             response = requests.get(
                 f"{BACKEND_URL}/api/cases/{self.sak_id}/state",
+                headers=self._get_auth_headers(),
                 timeout=5
             )
             if response.status_code == 200:
