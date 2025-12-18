@@ -404,7 +404,7 @@ export function ReviseVederlagModal({
 
             <div className="space-y-3 text-sm">
               {/* Godkjent beløp */}
-              {bhResponse.godkjent_belop !== undefined && (
+              {bhResponse.godkjent_belop != null && (
                 <div className="flex justify-between">
                   <span className="text-pkt-text-body-subtle">Godkjent beløp:</span>
                   <span className="font-mono font-medium">
