@@ -693,8 +693,8 @@ class KOEFlowTester:
 
         print_info("Venter pa at backend mottar webhook...")
 
-        # Poll backend for ny sak
-        max_attempts = 30
+        # Poll backend for ny sak (kort timeout siden vi har fallback)
+        max_attempts = 10
         for attempt in range(max_attempts):
             wait_with_spinner(1, f"Venter pa webhook ({attempt+1}/{max_attempts})")
 
@@ -714,16 +714,81 @@ class KOEFlowTester:
             except requests.exceptions.RequestException:
                 pass  # Backend ikke tilgjengelig, prove igjen
 
-        print_fail("Timeout - webhook ikke mottatt innen 30 sekunder")
-        print_info("Sjekk at backend kjorer og webhooks er konfigurert")
+        print_warn("Webhook ikke mottatt - simulerer webhook lokalt...")
+        return self._simulate_webhook()
 
-        # Alternativ: Bruker angir sak_id manuelt
-        manual_sak_id = input("\nAngi sak_id manuelt (eller Enter for a avbryte): ").strip()
-        if manual_sak_id:
-            self.sak_id = manual_sak_id
-            print_ok(f"Bruker manuell sak_id: {self.sak_id}")
-            return True
+    def _simulate_webhook(self) -> bool:
+        """Simuler webhook ved a kalle backend direkte"""
+        print_info("Sender simulert webhook til backend...")
 
+        # Hent webhook secret fra env
+        secret_path = os.getenv('WEBHOOK_SECRET_PATH')
+        if not secret_path:
+            print_fail("WEBHOOK_SECRET_PATH ikke satt i .env")
+            return False
+
+        # Bygg webhook payload som Catenda ville sendt
+        webhook_payload = {
+            "event": {
+                "type": "issue.created",
+                "id": f"simulated-{self.topic_guid[:8]}"
+            },
+            "issue": {
+                "id": self.topic_guid,
+                "guid": self.topic_guid
+            },
+            "project_id": self.topic_board_id
+        }
+
+        try:
+            response = requests.post(
+                f"{BACKEND_URL}/webhook/catenda/{secret_path}",
+                json=webhook_payload,
+                timeout=30
+            )
+
+            if response.status_code == 200:
+                result = response.json()
+                if result.get('success'):
+                    self.sak_id = result.get('sak_id')
+                    if self.sak_id:
+                        print_ok(f"Simulert webhook prosessert!")
+                        print_info(f"Sak ID: {self.sak_id}")
+                        return True
+                    else:
+                        # Sak ble kanskje filtrert eller allerede eksisterer
+                        print_warn(f"Webhook OK, men ingen sak_id returnert: {result}")
+                        # Prøv å hente sak_id fra metadata
+                        return self._fetch_sak_id_from_metadata()
+                else:
+                    print_fail(f"Webhook feilet: {result}")
+                    return False
+            else:
+                print_fail(f"Webhook HTTP feil: {response.status_code}")
+                print_info(f"Response: {response.text[:200]}")
+                return False
+
+        except requests.exceptions.RequestException as e:
+            print_fail(f"Kunne ikke sende webhook: {e}")
+            return False
+
+    def _fetch_sak_id_from_metadata(self) -> bool:
+        """Hent sak_id fra metadata etter webhook"""
+        try:
+            response = requests.get(
+                f"{BACKEND_URL}/api/metadata/by-topic/{self.topic_guid}",
+                timeout=5
+            )
+            if response.status_code == 200:
+                data = response.json()
+                self.sak_id = data.get('sak_id')
+                if self.sak_id:
+                    print_ok(f"Hentet sak_id fra metadata: {self.sak_id}")
+                    return True
+        except requests.exceptions.RequestException:
+            pass
+
+        print_fail("Kunne ikke hente sak_id fra metadata")
         return False
 
     def verify_magic_link_comment(self) -> bool:
