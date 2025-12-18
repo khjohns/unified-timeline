@@ -656,6 +656,10 @@ class KOEFlowTester:
         self.csrf_token: Optional[str] = None
         self.magic_token: Optional[str] = None
 
+        # Tracking for verification
+        self.initial_comment_count: int = 0
+        self.initial_document_count: int = 0
+
     def _fetch_csrf_token(self) -> bool:
         """Hent CSRF-token fra backend"""
         try:
@@ -691,6 +695,44 @@ class KOEFlowTester:
             # Magic link token må sendes som Bearer token i Authorization header
             headers["Authorization"] = f"Bearer {self.magic_token}"
         return headers
+
+    def _get_comment_count(self) -> int:
+        """Hent antall kommentarer på topic"""
+        comments = self.client.list_topic_comments(self.topic_guid)
+        return len(comments) if comments else 0
+
+    def _get_document_count(self) -> int:
+        """Hent antall dokumenter linket til topic"""
+        documents = self.client.get_topic_documents(self.topic_guid)
+        return len(documents) if documents else 0
+
+    def _verify_new_comment(self, expected_increase: int = 1, wait_seconds: int = 3) -> bool:
+        """Verifiser at nye kommentarer er postet"""
+        time.sleep(wait_seconds)  # Vent på asynkron posting
+        new_count = self._get_comment_count()
+        expected_count = self.initial_comment_count + expected_increase
+
+        if new_count >= expected_count:
+            print_ok(f"Kommentar verifisert ({new_count} totalt)")
+            self.initial_comment_count = new_count
+            return True
+        else:
+            print_warn(f"Forventet {expected_count} kommentarer, fant {new_count}")
+            return False
+
+    def _verify_new_document(self, expected_increase: int = 1, wait_seconds: int = 3) -> bool:
+        """Verifiser at nye dokumenter er linket"""
+        time.sleep(wait_seconds)  # Vent på asynkron opplasting
+        new_count = self._get_document_count()
+        expected_count = self.initial_document_count + expected_increase
+
+        if new_count >= expected_count:
+            print_ok(f"Dokument verifisert ({new_count} totalt)")
+            self.initial_document_count = new_count
+            return True
+        else:
+            print_warn(f"Forventet {expected_count} dokumenter, fant {new_count}")
+            return False
 
     def create_test_topic(self) -> bool:
         """Steg 2.1: Opprett test-topic i Catenda"""
@@ -732,88 +774,103 @@ class KOEFlowTester:
         return True
 
     def verify_webhook_received(self) -> bool:
-        """Steg 2.2: Verifiser at webhook ble mottatt av backend"""
-        print_header("STEG 2.2: Verifiser webhook-mottak")
+        """Steg 2.2: Verifiser at webhook ble mottatt av backend
 
-        print_info("Venter pa at backend mottar webhook...")
+        KJENT BEGRENSNING: Catenda sender IKKE webhooks for topics opprettet via API.
+        Webhooks trigges kun for topics opprettet manuelt i Catenda UI.
+        Derfor oppretter vi saken direkte via backend API i stedet.
+        """
+        print_header("STEG 2.2: Opprett sak i backend")
 
-        # Poll backend for ny sak (kort timeout siden vi har fallback)
-        max_attempts = 3
-        for attempt in range(max_attempts):
-            wait_with_spinner(1, f"Venter pa webhook ({attempt+1}/{max_attempts})")
+        # KJENT BEGRENSNING: Catenda webhook trigges ikke for API-opprettede topics
+        print_info("NB: Catenda sender ikke webhook for API-opprettede topics")
+        print_info("Oppretter sak direkte via backend...")
 
-            # Sjekk metadata repository for topic_guid
-            try:
-                response = requests.get(
-                    f"{BACKEND_URL}/api/metadata/by-topic/{self.topic_guid}",
-                    timeout=5
-                )
-                if response.status_code == 200:
-                    data = response.json()
-                    self.sak_id = data.get('sak_id')
-                    if self.sak_id:
-                        print_ok(f"Webhook mottatt!")
-                        print_info(f"Sak ID: {self.sak_id}")
-                        return True
-            except requests.exceptions.RequestException:
-                pass  # Backend ikke tilgjengelig, prove igjen
+        return self._create_case_directly()
 
-        print_warn("Webhook ikke mottatt - simulerer webhook lokalt...")
-        return self._simulate_webhook()
+    def _create_case_directly(self) -> bool:
+        """Opprett sak direkte via backend intern API.
 
-    def _simulate_webhook(self) -> bool:
-        """Simuler webhook ved a kalle backend direkte"""
-        print_info("Sender simulert webhook til backend...")
+        Siden Catenda ikke sender webhooks for API-opprettede topics,
+        oppretter vi saken direkte ved å kalle backend internt.
+        """
+        from datetime import datetime
+        from repositories.event_repository import JsonFileEventRepository
+        from repositories.sak_metadata_repository import SakMetadataRepository, SakMetadata
+        from models.events import SakOpprettetEvent
+        from lib.auth.magic_link import get_magic_link_manager
 
-        # Hent webhook secret fra env
-        secret_path = os.getenv('WEBHOOK_SECRET_PATH')
-        if not secret_path:
-            print_fail("WEBHOOK_SECRET_PATH ikke satt i .env")
-            return False
+        # Generer sak_id
+        timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
+        self.sak_id = f"SAK-{timestamp}"
 
-        # Bygg webhook payload som Catenda ville sendt
-        webhook_payload = {
-            "event": {
-                "type": "issue.created",
-                "id": f"simulated-{self.topic_guid[:8]}"
-            },
-            "issue": {
-                "id": self.topic_guid,
-                "guid": self.topic_guid
-            },
-            "project_id": self.topic_board_id
-        }
+        print_info(f"Genererer sak: {self.sak_id}")
 
         try:
-            response = requests.post(
-                f"{BACKEND_URL}/webhook/catenda/{secret_path}",
-                json=webhook_payload,
-                timeout=30
+            # Opprett SakOpprettetEvent
+            event = SakOpprettetEvent(
+                sak_id=self.sak_id,
+                sakstittel=self.topic_title,
+                aktor="Test Script",
+                aktor_rolle="TE",
+                prosjekt_id=self.project_id,
+                catenda_topic_id=self.topic_guid,
+                sakstype="koe",
             )
 
-            if response.status_code == 200:
-                result = response.json()
-                if result.get('success'):
-                    self.sak_id = result.get('sak_id')
-                    if self.sak_id:
-                        print_ok(f"Simulert webhook prosessert!")
-                        print_info(f"Sak ID: {self.sak_id}")
-                        return True
-                    else:
-                        # Sak ble kanskje filtrert eller allerede eksisterer
-                        print_warn(f"Webhook OK, men ingen sak_id returnert: {result}")
-                        # Prøv å hente sak_id fra metadata
-                        return self._fetch_sak_id_from_metadata()
-                else:
-                    print_fail(f"Webhook feilet: {result}")
-                    return False
-            else:
-                print_fail(f"Webhook HTTP feil: {response.status_code}")
-                print_info(f"Response: {response.text[:200]}")
-                return False
+            # Persist event
+            event_repo = JsonFileEventRepository()
+            new_version = event_repo.append(event, expected_version=0)
+            print_ok(f"SakOpprettetEvent lagret (versjon: {new_version})")
 
-        except requests.exceptions.RequestException as e:
-            print_fail(f"Kunne ikke sende webhook: {e}")
+            # Opprett metadata
+            metadata = SakMetadata(
+                sak_id=self.sak_id,
+                prosjekt_id=self.project_id,
+                catenda_topic_id=self.topic_guid,
+                catenda_board_id=self.topic_board_id,
+                catenda_project_id=self.project_id,
+                created_at=datetime.now(),
+                created_by="Test Script",
+                cached_title=self.topic_title,
+                cached_status="UNDER_VARSLING",
+            )
+            metadata_repo = SakMetadataRepository()
+            metadata_repo.create(metadata)
+            print_ok("Metadata opprettet")
+
+            # Generer magic link og post kommentar til Catenda
+            magic_link_manager = get_magic_link_manager()
+            magic_token = magic_link_manager.generate(sak_id=self.sak_id)
+            self.magic_token = magic_token
+
+            base_url = os.getenv('DEV_REACT_APP_URL') or os.getenv('REACT_APP_URL') or 'http://localhost:5173'
+            magic_link = f"{base_url}/saker/{self.sak_id}?magicToken={magic_token}"
+
+            # Post initial kommentar
+            dato = datetime.now().strftime('%Y-%m-%d')
+            comment_text = (
+                f"✅ **Ny Krav om endringsordre opprettet**\n\n"
+                f"📋 Intern saks-ID: `{self.sak_id}`\n"
+                f"📅 Dato: {dato}\n"
+                f"🏗️ Prosjekt: Test Project\n\n"
+                f"**Neste steg:** Entreprenor sender varsel (grunnlag)\n"
+                f"👉 [Apne skjema]({magic_link})"
+            )
+
+            self.client.create_comment(self.topic_guid, comment_text)
+            print_ok("Initial kommentar postet til Catenda")
+
+            # Hent CSRF token
+            if self._fetch_csrf_token():
+                print_ok("CSRF-token hentet")
+
+            return True
+
+        except Exception as e:
+            print_fail(f"Feil ved opprettelse av sak: {e}")
+            import traceback
+            traceback.print_exc()
             return False
 
     def _fetch_sak_id_from_metadata(self) -> bool:
@@ -835,57 +892,37 @@ class KOEFlowTester:
         print_fail("Kunne ikke hente sak_id fra metadata")
         return False
 
-    def verify_magic_link_comment(self) -> bool:
-        """Steg 2.3: Verifiser magic link-kommentar"""
-        print_header("STEG 2.3: Verifiser magic link-kommentar")
+    def set_verification_baseline(self) -> bool:
+        """Steg 2.3: Sett baseline for verifisering av Catenda-integrasjon"""
+        print_header("STEG 2.3: Verifiser initial kommentar og sett baseline")
 
-        print_info("Henter kommentarer fra topic...")
-
-        # Vent litt for asynkron kommentar-posting
+        print_info("Venter på at initial kommentar postes...")
         time.sleep(2)
 
+        # Verifiser at initial kommentar finnes
         comments = self.client.list_topic_comments(self.topic_guid)
-
-        if not comments:
-            print_warn("Ingen kommentarer funnet enna")
-            print_info("Kommentar kan ta noen sekunder a poste")
-
-            # Prov igjen
-            time.sleep(3)
-            comments = self.client.list_topic_comments(self.topic_guid)
 
         if comments:
             print_ok(f"Fant {len(comments)} kommentar(er)")
 
-            # Sok etter magic link
-            magic_link_found = False
-            for comment in comments:
-                comment_text = comment.get('comment', '')
+            # Vis siste kommentar (skal være vår initial kommentar)
+            if comments:
+                last_comment = comments[-1]
+                comment_text = last_comment.get('comment', '')
                 if 'magicToken' in comment_text or 'saker/' in comment_text:
-                    magic_link_found = True
-                    print_ok("Magic link-kommentar funnet!")
-                    # Vis utdrag
-                    lines = comment_text.split('\n')[:5]
+                    print_ok("Magic link-kommentar verifisert!")
+                    lines = comment_text.split('\n')[:3]
                     for line in lines:
                         print(f"    {line}")
-                    break
-
-            if not magic_link_found:
-                print_warn("Ingen magic link funnet i kommentarer")
-            else:
-                # Ekstraher magic token for API-kall
-                if self._extract_magic_token_from_comments():
-                    print_ok(f"Magic token ekstrahert for API-kall")
         else:
             print_warn("Ingen kommentarer funnet")
 
-        # Hent CSRF-token
-        if self._fetch_csrf_token():
-            print_ok("CSRF-token hentet")
-        else:
-            print_warn("Kunne ikke hente CSRF-token")
+        # Sett baseline for kommentar- og dokument-telling
+        self.initial_comment_count = self._get_comment_count()
+        self.initial_document_count = self._get_document_count()
+        print_info(f"Baseline: {self.initial_comment_count} kommentar(er), {self.initial_document_count} dokument(er)")
 
-        return True  # Fortsett selv om tokens mangler
+        return True
 
     def send_grunnlag(self) -> bool:
         """Steg 2.4: Send grunnlag (simuler TE)"""
@@ -912,6 +949,7 @@ class KOEFlowTester:
         event_data = {
             "sak_id": self.sak_id,
             "expected_version": current_version,
+            "catenda_topic_id": self.topic_guid,  # Required for Catenda integration
             "event": {
                 "event_type": "grunnlag_opprettet",
                 "aktor": "Test Script",
@@ -939,7 +977,17 @@ class KOEFlowTester:
                 result = response.json()
                 print_ok("Grunnlag registrert!")
                 print_info(f"  Event ID: {result.get('event_id')}")
-                print_info(f"  Versjon: {result.get('version')}")
+                print_info(f"  Versjon: {result.get('new_version')}")
+                if result.get('pdf_uploaded'):
+                    print_ok(f"  PDF lastet opp til Catenda (kilde: {result.get('pdf_source')})")
+                else:
+                    print_warn("  PDF ble ikke lastet opp")
+
+                # Verifiser Catenda-integrasjon
+                print_subheader("Verifiserer Catenda-integrasjon for grunnlag")
+                self._verify_new_comment()
+                self._verify_new_document()
+
                 return True
             else:
                 print_fail(f"Feil ved sending: {response.status_code}")
@@ -1001,6 +1049,7 @@ class KOEFlowTester:
         vederlag_payload = {
             "sak_id": self.sak_id,
             "expected_version": current_version,
+            "catenda_topic_id": self.topic_guid,  # Required for Catenda integration
             "event": {
                 "event_type": "vederlag_krav_sendt",
                 "aktor": "Test Script",
@@ -1022,8 +1071,16 @@ class KOEFlowTester:
             )
 
             if response.status_code in [200, 201]:
+                result = response.json()
                 print_ok("Vederlagskrav sendt!")
-                current_version = response.json().get('new_version', current_version + 1)
+                current_version = result.get('new_version', current_version + 1)
+                if result.get('pdf_uploaded'):
+                    print_ok(f"  PDF lastet opp (kilde: {result.get('pdf_source')})")
+
+                # Verifiser Catenda-integrasjon
+                print_subheader("Verifiserer Catenda-integrasjon for vederlag")
+                self._verify_new_comment()
+                self._verify_new_document()
             else:
                 print_fail(f"Feil ved sending: {response.status_code}")
                 print_info(f"  {response.text[:200]}")
@@ -1037,6 +1094,7 @@ class KOEFlowTester:
         frist_payload = {
             "sak_id": self.sak_id,
             "expected_version": current_version,
+            "catenda_topic_id": self.topic_guid,  # Required for Catenda integration
             "event": {
                 "event_type": "frist_krav_sendt",
                 "aktor": "Test Script",
@@ -1061,7 +1119,15 @@ class KOEFlowTester:
             )
 
             if response.status_code in [200, 201]:
+                result = response.json()
                 print_ok("Fristkrav sendt!")
+                if result.get('pdf_uploaded'):
+                    print_ok(f"  PDF lastet opp (kilde: {result.get('pdf_source')})")
+
+                # Verifiser Catenda-integrasjon
+                print_subheader("Verifiserer Catenda-integrasjon for frist")
+                self._verify_new_comment()
+                self._verify_new_document()
             else:
                 print_fail(f"Feil ved sending: {response.status_code}")
                 print_info(f"  {response.text[:200]}")
@@ -1096,6 +1162,34 @@ class KOEFlowTester:
                 print(f"    - Frist:    {state.get('frist', {}).get('status')}")
         except:
             pass
+
+        # Catenda-verifikasjon
+        print()
+        print_subheader("Catenda-integrasjon verifisering")
+        final_comments = self._get_comment_count()
+        final_documents = self._get_document_count()
+        print(f"  Kommentarer i topic: {final_comments}")
+        print(f"  Dokumenter linket:   {final_documents}")
+
+        # List dokumenter
+        documents = self.client.get_topic_documents(self.topic_guid)
+        if documents:
+            print()
+            print("  Dokumenter:")
+            for doc in documents:
+                desc = doc.get('description') or doc.get('guid', 'Ukjent')
+                print(f"    - {desc}")
+
+        # List siste kommentarer
+        comments = self.client.list_topic_comments(self.topic_guid)
+        if comments:
+            print()
+            print(f"  Siste {min(3, len(comments))} kommentarer:")
+            for comment in comments[-3:]:
+                text = comment.get('comment', '')[:80]
+                if len(comment.get('comment', '')) > 80:
+                    text += '...'
+                print(f"    - {text}")
 
         print()
         print("  Neste steg:")
@@ -1141,9 +1235,9 @@ def main():
     print("\nDette scriptet tester den komplette KOE-flyten:")
     print("  1. Validerer konfigurasjon")
     print("  2. Oppretter test-topic i Catenda")
-    print("  3. Verifiserer webhook-mottak")
+    print("  3. Oppretter sak i backend (NB: webhook trigges ikke for API-topics)")
     print("  4. Sender grunnlag, vederlag og fristkrav")
-    print("  5. Verifiserer PDF-opplasting")
+    print("  5. Verifiserer kommentarer og PDF-opplasting i Catenda")
 
     if not confirm("\nStarte test?"):
         print("\nAvbrutt.")
@@ -1182,10 +1276,10 @@ def main():
         return
 
     if not tester.verify_webhook_received():
-        print("\n[AVBRUTT] Webhook ikke mottatt")
+        print("\n[AVBRUTT] Kunne ikke opprette sak")
         return
 
-    tester.verify_magic_link_comment()
+    tester.set_verification_baseline()
 
     if not tester.send_grunnlag():
         print("\n[ADVARSEL] Grunnlag-sending feilet, fortsetter...")
