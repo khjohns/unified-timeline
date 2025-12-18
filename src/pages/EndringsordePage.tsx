@@ -13,6 +13,7 @@
 import { useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../context/AuthContext';
 import { useCaseState } from '../hooks/useCaseState';
 import { useUserRole } from '../hooks/useUserRole';
 import { Timeline } from '../components/views/Timeline';
@@ -24,6 +25,7 @@ import {
   ReloadIcon,
   ArrowLeftIcon,
   PlusIcon,
+  ExclamationTriangleIcon,
 } from '@radix-ui/react-icons';
 import type {
   EndringsordreData,
@@ -88,6 +90,7 @@ const EMPTY_EO_DATA: EndringsordreData = {
 
 export function EndringsordePage() {
   const { sakId } = useParams<{ sakId: string }>();
+  const { token, isVerifying, error: authError } = useAuth();
   const { userRole, setUserRole } = useUserRole();
   const queryClient = useQueryClient();
 
@@ -97,13 +100,13 @@ export function EndringsordePage() {
   const [reviderModalOpen, setReviderModalOpen] = useState(false);
   const [leggTilKOEModalOpen, setLeggTilKOEModalOpen] = useState(false);
 
-  // Fetch EO case state
+  // Fetch EO case state (wait for auth)
   const {
     data: caseData,
     isLoading: caseLoading,
     error: caseError,
     refetch: refetchCase,
-  } = useCaseState(sakId || '');
+  } = useCaseState(sakId || '', { enabled: !!token && !isVerifying });
 
   // Fetch EO context (related cases, events, summary)
   const {
@@ -181,6 +184,35 @@ export function EndringsordePage() {
       new Date(b.tidsstempel).getTime() - new Date(a.tidsstempel).getTime()
     );
   }, [kontekstData]);
+
+  // Auth verification in progress
+  if (isVerifying) {
+    return (
+      <div className="min-h-screen bg-pkt-bg-subtle flex items-center justify-center px-4">
+        <div className="text-center">
+          <ReloadIcon className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 text-pkt-grays-gray-400 animate-spin" />
+          <p className="text-sm sm:text-base text-pkt-grays-gray-500">Verifiserer tilgang...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Auth error - invalid or expired token
+  if (authError || !token) {
+    return (
+      <div className="min-h-screen bg-pkt-bg-subtle flex items-center justify-center px-4">
+        <div className="max-w-md w-full p-4 sm:p-8 bg-pkt-bg-card rounded-lg border border-pkt-grays-gray-200" role="alert">
+          <ExclamationTriangleIcon className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 text-pkt-brand-red-1000" />
+          <h2 className="text-lg sm:text-xl font-semibold text-pkt-brand-red-1000 mb-3 sm:mb-4 text-center">
+            Tilgang nektet
+          </h2>
+          <p className="text-sm sm:text-base text-pkt-text-body-default mb-4 text-center">
+            {authError || 'Ugyldig eller utløpt lenke. Vennligst bruk lenken du mottok på nytt.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Loading state
   if (caseLoading) {
