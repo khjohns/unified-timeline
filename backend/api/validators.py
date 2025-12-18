@@ -132,6 +132,11 @@ def validate_vederlag_event(data: Dict[str, Any]) -> None:
     """
     Validate vederlag-event data against constants.
 
+    Works for both initial claims (vederlag_krav_sendt) and updates (vederlag_krav_oppdatert).
+    Update events may use alternative field names:
+    - nytt_belop_direkte instead of belop_direkte
+    - nytt_kostnads_overslag instead of kostnads_overslag
+
     Args:
         data: The 'data' field from a vederlag event
 
@@ -163,9 +168,12 @@ def validate_vederlag_event(data: Dict[str, Any]) -> None:
     # Validate amount based on method (updated 2025-12-08 to use new field names)
     # - ENHETSPRISER/FASTPRIS_TILBUD: require belop_direkte (can be negative for fradrag)
     # - REGNINGSARBEID: kostnads_overslag is optional (work not done yet = estimate)
+    #
+    # For update events, also accept nytt_belop_direkte as alternative
     if metode in ['ENHETSPRISER', 'FASTPRIS_TILBUD']:
         belop_direkte = data.get('belop_direkte')
-        if belop_direkte is None:
+        nytt_belop_direkte = data.get('nytt_belop_direkte')
+        if belop_direkte is None and nytt_belop_direkte is None:
             raise ValidationError("belop_direkte er påkrevd for denne metoden")
     # Note: For REGNINGSARBEID, kostnads_overslag is optional per §30.2
 
@@ -228,12 +236,18 @@ def validate_vederlag_event(data: Dict[str, Any]) -> None:
             )
 
 
-def validate_frist_event(data: Dict[str, Any]) -> None:
+def validate_frist_event(data: Dict[str, Any], is_update: bool = False) -> None:
     """
     Validate frist-event data against constants.
 
+    Works for both initial claims (frist_krav_sendt) and updates (frist_krav_oppdatert).
+    Update events have different requirements:
+    - Don't require varsel_type (inherited from original)
+    - Use nytt_antall_dager instead of antall_dager
+
     Args:
         data: The 'data' field from a frist event
+        is_update: True if this is an update event (frist_krav_oppdatert)
 
     Raises:
         ValidationError: If validation fails (with valid_options when applicable)
@@ -243,6 +257,27 @@ def validate_frist_event(data: Dict[str, Any]) -> None:
 
     valid_varsel_types = [vt.value for vt in FristVarselType]
 
+    # Update events have simplified validation
+    if is_update:
+        # Must have begrunnelse
+        if not data.get('begrunnelse'):
+            raise ValidationError("begrunnelse er påkrevd")
+
+        # Must have nytt_antall_dager or antall_dager
+        nytt_antall_dager = data.get('nytt_antall_dager')
+        antall_dager = data.get('antall_dager')
+
+        if nytt_antall_dager is None and antall_dager is None:
+            raise ValidationError("nytt_antall_dager er påkrevd for oppdatering")
+
+        # Validate non-negative
+        dager = nytt_antall_dager if nytt_antall_dager is not None else antall_dager
+        if dager is not None and dager < 0:
+            raise ValidationError("antall_dager må være >= 0")
+
+        return  # Skip initial claim validation for updates
+
+    # Initial claim validation
     varsel_type = data.get('varsel_type')
     if not varsel_type:
         raise ValidationError(

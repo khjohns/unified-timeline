@@ -653,3 +653,187 @@ class TestRealisticPayloads:
             # Begrunnelse
             "begrunnelse": "Godkjenner 10 av 14 krevde dager"
         }, "frist")
+
+
+# ============================================================================
+# Vederlag update event tests (vederlag_krav_oppdatert)
+# ============================================================================
+
+class TestVederlagUpdateEvent:
+    """
+    Tests for vederlag_krav_oppdatert validation.
+
+    These events use different field names than initial claims:
+    - nytt_belop_direkte instead of belop_direkte
+    - nytt_kostnads_overslag instead of kostnads_overslag
+
+    The validator should accept EITHER the original OR the update field names.
+    """
+
+    def test_update_with_nytt_belop_direkte_enhetspriser(self):
+        """Update event with nytt_belop_direkte for ENHETSPRISER should pass."""
+        validate_vederlag_event({
+            "metode": "ENHETSPRISER",
+            "nytt_belop_direkte": 150000,  # Update field name
+            "begrunnelse": "Revidert beløp etter BH tilbakemelding",
+            "original_event_id": "event-123"
+        })
+
+    def test_update_with_nytt_belop_direkte_fastpris(self):
+        """Update event with nytt_belop_direkte for FASTPRIS_TILBUD should pass."""
+        validate_vederlag_event({
+            "metode": "FASTPRIS_TILBUD",
+            "nytt_belop_direkte": 200000,  # Update field name
+            "begrunnelse": "Justert fastpris",
+            "original_event_id": "event-456"
+        })
+
+    def test_update_with_nytt_kostnads_overslag_regningsarbeid(self):
+        """Update event with nytt_kostnads_overslag for REGNINGSARBEID should pass."""
+        validate_vederlag_event({
+            "metode": "REGNINGSARBEID",
+            "nytt_kostnads_overslag": 250000,  # Update field name
+            "begrunnelse": "Økt kostnadsoverslag",
+            "original_event_id": "event-789"
+        })
+
+    def test_update_missing_both_belop_fields_enhetspriser(self):
+        """Update with neither belop_direkte nor nytt_belop_direkte fails for ENHETSPRISER."""
+        with pytest.raises(ValidationError) as exc_info:
+            validate_vederlag_event({
+                "metode": "ENHETSPRISER",
+                "begrunnelse": "Mangler beløp",
+                "original_event_id": "event-123"
+            })
+        assert "belop_direkte er påkrevd" in str(exc_info.value)
+
+    def test_update_with_both_original_and_new_field(self):
+        """Update with both belop_direkte and nytt_belop_direkte should pass."""
+        # Frontend might send both - validator should accept this
+        validate_vederlag_event({
+            "metode": "ENHETSPRISER",
+            "belop_direkte": 100000,  # Original
+            "nytt_belop_direkte": 150000,  # Updated
+            "begrunnelse": "Begge felt sendt",
+            "original_event_id": "event-123"
+        })
+
+    def test_realistic_revise_vederlag_payload(self):
+        """
+        Realistic payload from ReviseVederlagModal.tsx should pass.
+
+        This test mirrors the exact payload structure sent by the frontend
+        when revising a vederlag claim.
+        """
+        validate_vederlag_event({
+            "original_event_id": "event-abc-123",
+            "metode": "ENHETSPRISER",
+            "nytt_belop_direkte": 175000,
+            "krever_justert_ep": False,
+            "begrunnelse": "Justerer beløpet basert på BH tilbakemelding om materialpriser",
+            "dato_revidert": "2025-01-20"
+        })
+
+    def test_revise_with_method_change_to_regningsarbeid(self):
+        """Revising claim with method change to REGNINGSARBEID should pass."""
+        validate_vederlag_event({
+            "original_event_id": "event-def-456",
+            "metode": "REGNINGSARBEID",  # New method
+            "ny_metode": "REGNINGSARBEID",  # Indicator of change
+            "nytt_kostnads_overslag": 300000,
+            "varslet_for_oppstart": True,
+            "begrunnelse": "Endrer til regningsarbeid etter BH ønske",
+            "dato_revidert": "2025-01-20"
+        })
+
+    def test_revise_regningsarbeid_without_overslag_passes(self):
+        """Revising REGNINGSARBEID without overslag should pass (per §30.2)."""
+        # REGNINGSARBEID doesn't require overslag
+        validate_vederlag_event({
+            "original_event_id": "event-ghi-789",
+            "metode": "REGNINGSARBEID",
+            "begrunnelse": "Oppdaterer varslingsstatus",
+            "varslet_for_oppstart": True,
+            "dato_revidert": "2025-01-20"
+        })
+
+
+# ============================================================================
+# Frist update event tests (frist_krav_oppdatert)
+# ============================================================================
+
+class TestFristUpdateEvent:
+    """
+    Tests for frist_krav_oppdatert validation.
+
+    These events use different field names than initial claims:
+    - nytt_antall_dager instead of antall_dager
+
+    The validator should handle update events differently.
+    """
+
+    def test_update_with_nytt_antall_dager(self):
+        """Update event with nytt_antall_dager should pass."""
+        validate_frist_event({
+            "original_event_id": "event-123",
+            "nytt_antall_dager": 21,  # Update field name
+            "begrunnelse": "Øker fristkrav basert på ny dokumentasjon"
+        }, is_update=True)
+
+    def test_update_missing_nytt_antall_dager(self):
+        """Update without nytt_antall_dager should fail."""
+        with pytest.raises(ValidationError) as exc_info:
+            validate_frist_event({
+                "original_event_id": "event-123",
+                "begrunnelse": "Mangler antall dager"
+            }, is_update=True)
+        assert "antall_dager" in str(exc_info.value).lower()
+
+    def test_update_negative_nytt_antall_dager(self):
+        """Update with negative nytt_antall_dager should fail."""
+        with pytest.raises(ValidationError) as exc_info:
+            validate_frist_event({
+                "original_event_id": "event-123",
+                "nytt_antall_dager": -5,
+                "begrunnelse": "Negativ dager"
+            }, is_update=True)
+        assert "må være >= 0" in str(exc_info.value)
+
+    def test_realistic_revise_frist_payload(self):
+        """
+        Realistic payload from ReviseFristModal.tsx should pass.
+
+        This test mirrors the exact payload structure sent by the frontend
+        when revising a frist claim (not forsering).
+        """
+        validate_frist_event({
+            "original_event_id": "event-frist-123",
+            "nytt_antall_dager": 18,
+            "begrunnelse": "Justerer fristkrav basert på oppdatert fremdriftsplan",
+            "dato_revidert": "2025-01-20"
+        }, is_update=True)
+
+
+# ============================================================================
+# Forsering event tests
+# ============================================================================
+
+class TestForseringEvent:
+    """
+    Tests for forsering_varsel validation.
+
+    Forsering (§33.8) is a special escalation event when TE chooses to
+    treat BH's frist rejection as a pålegg om forsering.
+    """
+
+    def test_forsering_requires_estimert_kostnad(self):
+        """Forsering event requires estimert_kostnad."""
+        # This is validated in ReviseFristModal but should also be checked server-side
+        # TODO: Add validate_forsering_event when implemented
+        pass
+
+    def test_forsering_requires_30_prosent_bekreftelse(self):
+        """Forsering event requires confirmation of 30% rule."""
+        # §33.8: Forsering cost must be < (Dagmulkt + 30%)
+        # TODO: Add validate_forsering_event when implemented
+        pass

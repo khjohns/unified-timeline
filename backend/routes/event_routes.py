@@ -128,8 +128,10 @@ def submit_event():
                 validate_grunnlag_event(data_payload)
             elif event_type in [EventType.VEDERLAG_KRAV_SENDT.value, EventType.VEDERLAG_KRAV_OPPDATERT.value]:
                 validate_vederlag_event(data_payload)
-            elif event_type in [EventType.FRIST_KRAV_SENDT.value, EventType.FRIST_KRAV_OPPDATERT.value]:
+            elif event_type == EventType.FRIST_KRAV_SENDT.value:
                 validate_frist_event(data_payload)
+            elif event_type == EventType.FRIST_KRAV_OPPDATERT.value:
+                validate_frist_event(data_payload, is_update=True)
             elif event_type == EventType.RESPONS_GRUNNLAG.value:
                 validate_respons_event(data_payload, 'grunnlag')
             elif event_type == EventType.RESPONS_VEDERLAG.value:
