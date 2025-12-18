@@ -77,14 +77,33 @@ export const mockSakState11: SakState = {
 
     // BH respons - subsidiært (pga grunnlag avvist)
     bh_resultat: 'avslatt', // Prinsipalt avslått pga grunnlag
-    bh_begrunnelse: 'Kravet avslås prinsipalt da grunnlaget bestrides.',
+    bh_begrunnelse: `Byggherren godtar den foreslåtte oppgjørsformen regningsarbeid (§34.4).
+
+Hva gjelder beløpet:
+
+Hovedkravet godkjennes delvis med kr 500 000,- av krevde kr 700 000,- (71%).
+
+Kravet om dekning av økte rigg- og driftskostnader på kr 80 000,- avvises prinsipalt som prekludert iht. §34.1.3, da varselet ikke ble fremsatt «uten ugrunnet opphold» etter at entreprenøren ble eller burde blitt klar over at utgiftene ville påløpe. Subsidiært, dersom kravet ikke anses prekludert, aksepteres kr 50 000,-.
+
+Kravet om dekning av produktivitetstap godkjennes delvis med kr 35 000,- av krevde kr 50 000,-.
+
+Samlet godkjent beløp utgjør etter dette kr 535 000,- av totalt krevde kr 830 000,-. Dersom de prekluderte særskilte kravene hadde vært varslet i tide, ville samlet godkjent beløp utgjort kr 585 000,- (subsidiært standpunkt).`,
 
     // Subsidiært standpunkt
     subsidiaer_triggers: ['grunnlag_avslatt', 'preklusjon_rigg'],
     subsidiaer_resultat: 'delvis_godkjent',
     subsidiaer_godkjent_belop: 535000, // 500k hovedkrav + 0 rigg (prekludert) + 35k produktivitet
-    subsidiaer_begrunnelse:
-      'Subsidiært: Dersom ansvar hadde foreligget, ville hovedkravet vært delvis godkjent med 500k. Rigg/drift på 80k er prekludert da varsel ble sendt 19 dager etter at forholdet ble kjent (frist: 14 dager). Produktivitetstap er delvis godkjent med 35k av 50k.',
+    subsidiaer_begrunnelse: `Byggherren godtar den foreslåtte oppgjørsformen regningsarbeid (§34.4).
+
+Hva gjelder beløpet:
+
+Hovedkravet godkjennes delvis med kr 500 000,- av krevde kr 700 000,- (71%).
+
+Kravet om dekning av økte rigg- og driftskostnader på kr 80 000,- avvises prinsipalt som prekludert iht. §34.1.3, da varselet ikke ble fremsatt «uten ugrunnet opphold» etter at entreprenøren ble eller burde blitt klar over at utgiftene ville påløpe. Subsidiært, dersom kravet ikke anses prekludert, aksepteres kr 50 000,-.
+
+Kravet om dekning av produktivitetstap godkjennes delvis med kr 35 000,- av krevde kr 50 000,-.
+
+Samlet godkjent beløp utgjør etter dette kr 535 000,- av totalt krevde kr 830 000,-. Dersom de prekluderte særskilte kravene hadde vært varslet i tide, ville samlet godkjent beløp utgjort kr 585 000,- (subsidiært standpunkt).`,
 
     har_subsidiaert_standpunkt: true,
     siste_oppdatert: '2025-02-25',

@@ -39,7 +39,13 @@ export const mockSakState3: SakState = {
     belop_direkte: 850000,
     begrunnelse: 'Basert på fastpris tilbud for glassarbeider.',
     bh_resultat: 'godkjent',
-    bh_begrunnelse: 'Beløp stemmer med kontraktspriser. Godkjent.',
+    bh_begrunnelse: `Byggherren godtar den foreslåtte oppgjørsformen fastpris/tilbud (§34.2.1).
+
+Hva gjelder beløpet:
+
+Hovedkravet på kr 850 000,- godkjennes.
+
+Samlet godkjent beløp utgjør etter dette kr 850 000,- av totalt krevde kr 850 000,-.`,
     godkjent_belop: 850000,
     differanse: 0,
     godkjenningsgrad_prosent: 100,
