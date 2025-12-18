@@ -571,7 +571,7 @@ export function RespondVederlagModal({
         begrunnelse: data.begrunnelse_samlet,
 
         // Automatisk beregnet (prinsipalt)
-        resultat: prinsipaltResultat,
+        beregnings_resultat: prinsipaltResultat,
         total_godkjent_belop: computed.totalGodkjent,
         total_krevd_belop: computed.totalKrevd,
 

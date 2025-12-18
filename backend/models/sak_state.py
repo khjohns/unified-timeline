@@ -876,7 +876,8 @@ class SakState(BaseModel):
             belop = f"{self.vederlag.godkjent_belop:,.0f} kr" if self.vederlag.godkjent_belop else ""
             return f"Godkjent - {belop}"
         elif self.vederlag.status == SporStatus.DELVIS_GODKJENT:
-            return f"Delvis godkjent - {self.vederlag.godkjent_belop:,.0f} kr"
+            belop = f"{self.vederlag.godkjent_belop:,.0f} kr" if self.vederlag.godkjent_belop else "beløp"
+            return f"Delvis godkjent - {belop}"
         elif self.vederlag.status == SporStatus.AVSLATT:
             return "Avvist"
         elif self.vederlag.status == SporStatus.SENDT:
