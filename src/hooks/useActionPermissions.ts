@@ -73,23 +73,26 @@ export function useActionPermissions(
     canSendVederlag: isTE && isDraftStatus(state.vederlag.status),
     canSendFrist: isTE && isDraftStatus(state.frist.status),
 
-    // TE Actions: Update existing claims
+    // TE Actions: Update existing claims (including after partial approval)
     canUpdateGrunnlag:
       isTE &&
       (state.grunnlag.status === 'sendt' ||
         state.grunnlag.status === 'under_behandling' ||
-        state.grunnlag.status === 'avslatt') &&
+        state.grunnlag.status === 'avslatt' ||
+        state.grunnlag.status === 'delvis_godkjent') &&
       !state.grunnlag.laast,
     canUpdateVederlag:
       isTE &&
       (state.vederlag.status === 'sendt' ||
         state.vederlag.status === 'under_behandling' ||
-        state.vederlag.status === 'avslatt'),
+        state.vederlag.status === 'avslatt' ||
+        state.vederlag.status === 'delvis_godkjent'),
     canUpdateFrist:
       isTE &&
       (state.frist.status === 'sendt' ||
         state.frist.status === 'under_behandling' ||
-        state.frist.status === 'avslatt'),
+        state.frist.status === 'avslatt' ||
+        state.frist.status === 'delvis_godkjent'),
 
     // TE Actions: Withdraw claims
     canWithdrawGrunnlag:
