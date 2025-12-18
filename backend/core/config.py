@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     catenda_project_id: str = ""
     catenda_organization_id: str = ""
     catenda_library_id: str = ""
+    catenda_folder_id: str = ""
+    catenda_topic_board_id: str = ""
 
     # Catenda OAuth tokens (generert av setup_authentication.py)
     catenda_access_token: str = ""
@@ -65,6 +67,8 @@ class Settings(BaseSettings):
             'catenda_client_secret': self.catenda_client_secret,
             'catenda_project_id': self.catenda_project_id,
             'catenda_library_id': self.catenda_library_id,
+            'catenda_folder_id': self.catenda_folder_id,
+            'catenda_topic_board_id': self.catenda_topic_board_id,
             'catenda_access_token': self.catenda_access_token,
             'catenda_refresh_token': self.catenda_refresh_token,
             'catenda_redirect_uri': self.catenda_redirect_uri,
