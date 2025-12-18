@@ -131,7 +131,8 @@ export function ReviseFristModal({
         eventType: 'frist_krav_oppdatert',
         data: {
           original_event_id: lastFristEvent.event_id,
-          nytt_antall_dager: data.nytt_antall_dager,
+          // Use same field name as initial claim for consistency
+          antall_dager: data.nytt_antall_dager,
           begrunnelse: data.begrunnelse,
           dato_revidert: new Date().toISOString().split('T')[0],
         },

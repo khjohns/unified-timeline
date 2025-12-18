@@ -165,15 +165,12 @@ def validate_vederlag_event(data: Dict[str, Any]) -> None:
             field="metode"
         )
 
-    # Validate amount based on method (updated 2025-12-08 to use new field names)
+    # Validate amount based on method
     # - ENHETSPRISER/FASTPRIS_TILBUD: require belop_direkte (can be negative for fradrag)
     # - REGNINGSARBEID: kostnads_overslag is optional (work not done yet = estimate)
-    #
-    # For update events, also accept nytt_belop_direkte as alternative
     if metode in ['ENHETSPRISER', 'FASTPRIS_TILBUD']:
         belop_direkte = data.get('belop_direkte')
-        nytt_belop_direkte = data.get('nytt_belop_direkte')
-        if belop_direkte is None and nytt_belop_direkte is None:
+        if belop_direkte is None:
             raise ValidationError("belop_direkte er påkrevd for denne metoden")
     # Note: For REGNINGSARBEID, kostnads_overslag is optional per §30.2
 
@@ -257,22 +254,19 @@ def validate_frist_event(data: Dict[str, Any], is_update: bool = False) -> None:
 
     valid_varsel_types = [vt.value for vt in FristVarselType]
 
-    # Update events have simplified validation
+    # Update events have simplified validation (same field names as initial)
     if is_update:
         # Must have begrunnelse
         if not data.get('begrunnelse'):
             raise ValidationError("begrunnelse er påkrevd")
 
-        # Must have nytt_antall_dager or antall_dager
-        nytt_antall_dager = data.get('nytt_antall_dager')
+        # Must have antall_dager
         antall_dager = data.get('antall_dager')
-
-        if nytt_antall_dager is None and antall_dager is None:
-            raise ValidationError("nytt_antall_dager er påkrevd for oppdatering")
+        if antall_dager is None:
+            raise ValidationError("antall_dager er påkrevd for oppdatering")
 
         # Validate non-negative
-        dager = nytt_antall_dager if nytt_antall_dager is not None else antall_dager
-        if dager is not None and dager < 0:
+        if antall_dager < 0:
             raise ValidationError("antall_dager må være >= 0")
 
         return  # Skip initial claim validation for updates

@@ -291,15 +291,10 @@ export function ReviseVederlagModal({
       data: {
         original_event_id: lastVederlagEvent.event_id,
 
-        // Always send final method (required by backend validator)
+        // Use same field names as initial claim for consistency
         metode: finalMetode,
-
-        // Method change indicator (if any)
-        ny_metode: data.endre_metode && data.ny_metode ? data.ny_metode : undefined,
-
-        // Amount
-        nytt_belop_direkte: finalErRegningsarbeid ? undefined : data.nytt_belop_direkte,
-        nytt_kostnads_overslag: finalErRegningsarbeid ? data.nytt_kostnads_overslag : undefined,
+        belop_direkte: finalErRegningsarbeid ? undefined : data.nytt_belop_direkte,
+        kostnads_overslag: finalErRegningsarbeid ? data.nytt_kostnads_overslag : undefined,
 
         // Method-related fields
         krever_justert_ep: finalErEnhetspriser ? data.krever_justert_ep : undefined,
