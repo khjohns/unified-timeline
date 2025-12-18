@@ -496,6 +496,7 @@ def _post_to_catenda(
         pdf_path = None
         pdf_source = None
         filename = None
+        pdf_uploaded = False
 
         # PRIORITY 1: Try to use client-generated PDF (PREFERRED)
         if client_pdf_base64:
@@ -537,38 +538,40 @@ def _post_to_catenda(
 
                 if not pdf_generator.generate_koe_pdf(state, pdf_path):
                     logger.error("❌ Failed to generate PDF on server")
-                    return False, None
-
-                pdf_source = "server"
-                logger.info(f"✅ Server PDF generated: {filename}")
+                    pdf_path = None
+                else:
+                    pdf_source = "server"
+                    logger.info(f"✅ Server PDF generated: {filename}")
 
             except ImportError:
-                logger.error("❌ WeasyPrint generator not available (not installed)")
-                return False, None
+                logger.warning("⚠️ WeasyPrint not installed - PDF generation skipped (use client-side PDF)")
+                pdf_path = None
             except Exception as e:
                 logger.error(f"❌ Failed to generate PDF on server: {e}")
-                return False, None
+                pdf_path = None
 
-        # Upload PDF to Catenda
-        doc_result = catenda_service.upload_document(project_id, pdf_path, filename)
+        # Upload PDF to Catenda (if we have one)
+        if pdf_path:
+            doc_result = catenda_service.upload_document(project_id, pdf_path, filename)
 
-        if not doc_result:
-            logger.error("❌ Failed to upload PDF to Catenda")
+            if doc_result:
+                document_guid = doc_result.get('library_item_id')
+                logger.info(f"✅ PDF uploaded to Catenda: {document_guid}")
+
+                # Link document to topic
+                catenda_service.create_document_reference(topic_id, document_guid)
+                pdf_uploaded = True
+            else:
+                logger.error("❌ Failed to upload PDF to Catenda")
+
             # Cleanup temp file
-            if pdf_path:
-                try:
-                    os.remove(pdf_path)
-                except:
-                    pass
-            return False, pdf_source
+            try:
+                os.remove(pdf_path)
+            except:
+                pass
 
-        document_guid = doc_result.get('library_item_id')
-        logger.info(f"✅ PDF uploaded to Catenda: {document_guid}")
-
-        # Link document to topic
-        catenda_service.create_document_reference(topic_id, document_guid)
-
-        # Generate and post comment (if comment generator is available)
+        # Generate and post comment (ALWAYS try, regardless of PDF status)
+        comment_posted = False
         try:
             from services.catenda_comment_generator import CatendaCommentGenerator
             comment_generator = CatendaCommentGenerator()
@@ -582,21 +585,15 @@ def _post_to_catenda(
             catenda_service.create_comment(topic_id, comment_text)
 
             logger.info(f"✅ Comment posted to Catenda for case {sak_id}")
+            comment_posted = True
 
         except ImportError:
             logger.warning("Comment generator not available, skipping comment")
         except Exception as e:
             logger.error(f"❌ Failed to post comment: {e}")
-            # Continue anyway - PDF was uploaded successfully
 
-        # Cleanup temp file
-        if pdf_path:
-            try:
-                os.remove(pdf_path)
-            except:
-                pass
-
-        return True, pdf_source
+        # Return success if either PDF uploaded or comment posted
+        return (pdf_uploaded or comment_posted), pdf_source
 
     except Exception as e:
         logger.error(f"❌ Failed to post to Catenda: {e}", exc_info=True)
