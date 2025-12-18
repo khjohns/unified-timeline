@@ -483,9 +483,11 @@ class SetupValidator:
         # Valider Types
         print_info("Sjekker Types...")
         available_types = extensions.get('topic_type', [])
+        print_info(f"  Tilgjengelige typer fra API: {available_types}")
         missing_types = []
         for required_type in REQUIRED_TYPES:
-            if required_type in available_types:
+            # Case-insensitive sammenligning
+            if any(t.lower() == required_type.lower() for t in available_types):
                 print_ok(f"Type: {required_type}")
             else:
                 print_fail(f"Type mangler: {required_type}")
@@ -494,9 +496,11 @@ class SetupValidator:
         # Valider Statuses
         print_info("\nSjekker Statuses...")
         available_statuses = extensions.get('topic_status', [])
+        print_info(f"  Tilgjengelige statuser fra API: {available_statuses}")
         missing_statuses = []
         for status_name, status_type in REQUIRED_STATUSES:
-            if status_name in available_statuses:
+            # Case-insensitive sammenligning
+            if any(s.lower() == status_name.lower() for s in available_statuses):
                 print_ok(f"Status: {status_name}")
             else:
                 print_fail(f"Status mangler: {status_name} ({status_type})")
@@ -504,10 +508,19 @@ class SetupValidator:
 
         # Vis custom fields (sjekkes mot board, ikke bare project)
         print_info("\nSjekker Custom Fields pa board...")
-        board_with_fields = self.client.get_topic_board_with_custom_fields(self.project_id)
+        board_with_fields = self.client.get_topic_board_with_custom_fields(
+            self.topic_board_id,
+            self.project_id
+        )
         if board_with_fields:
-            custom_fields = board_with_fields.get('bimsync_custom_fields', [])
-            available_field_names = [f.get('name') for f in custom_fields]
+            # Hent fields fra customFieldInstances (aktive på boardet)
+            instances = board_with_fields.get('customFieldInstances', [])
+            fields_map = {f.get('id'): f for f in board_with_fields.get('customFields', [])}
+            available_field_names = [
+                fields_map.get(inst.get('id'), {}).get('name')
+                for inst in instances
+                if not inst.get('disabled')
+            ]
 
             for required_field in REQUIRED_CUSTOM_FIELDS:
                 if required_field in available_field_names:
