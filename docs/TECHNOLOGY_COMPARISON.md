@@ -1,8 +1,8 @@
 # Teknologivurdering: Custom-løsning vs. Power Platform
 
 **Dokument:** Objektiv sammenligning av teknologialternativer
-**Versjon:** 1.0
-**Dato:** 2025-12-11
+**Versjon:** 1.1
+**Dato:** 2025-12-17
 
 ---
 
@@ -34,6 +34,7 @@ Dette dokumentet sammenligner to teknologitilnærminger for håndtering av endri
 
 **Hovedfunn:**
 - Custom-løsningen er implementert med event sourcing, subsidiær logikk og kompleks port-modell som følger NS 8407 nøyaktig
+- Systemet støtter nå **tre sakstyper**: `standard` (KOE), `forsering` (§33.8), og `endringsordre` (§31.3)
 - Power Platform med SharePoint har strengere begrensninger enn med Dataverse (som ikke er i bruk i dag)
 - SharePoint-basert løsning vil møte utfordringer med 5 000-elementers listeterskel, begrenset delegasjonsstøtte, og manglende felt-sikkerhet
 - Valget avhenger av prioritering mellom: full funksjonalitet vs. intern kompetanseutnyttelse
@@ -89,7 +90,7 @@ Gi et objektivt beslutningsgrunnlag for teknologivalg ved å:
 │               Python/Flask → Azure Functions                    │
 │    ┌─────────────────────────────────────────────────────────┐  │
 │    │  Event Sourcing + CQRS                                  │  │
-│    │  • 19 event-typer                                       │  │
+│    │  • 25 event-typer impl. (35+ planlagt)                  │  │
 │    │  • State-projeksjon fra immutabel hendelseslogg         │  │
 │    │  • Optimistisk låsing                                   │  │
 │    └─────────────────────────────────────────────────────────┘  │
@@ -106,10 +107,12 @@ Gi et objektivt beslutningsgrunnlag for teknologivalg ved å:
 
 **Nøkkelegenskaper:**
 - Event Sourcing gir komplett historikk og audit trail
+- **Tre sakstyper:** `standard` (KOE), `forsering` (§33.8), `endringsordre` (§31.3)
 - Tre parallelle spor (Grunnlag, Vederlag, Frist) med uavhengige tilstandsmaskiner
 - Port-modell for BH-vurdering (sekvensielle beslutningspunkter)
 - Subsidiær logikk (prinsipal + alternativ vurdering)
 - ~20 varslingsregler med preklusjonslogikk fra NS 8407
+- **25 event-typer implementert** (35+ planlagt) fordelt på grunnlag, vederlag, frist, respons, forsering og endringsordre
 
 ### 3.2 Power Platform-alternativ (foreslått: SharePoint)
 
@@ -254,6 +257,39 @@ Subsidiært:   "MEN hvis vi tar feil, er beløpet på 150 000 kr korrekt"
 - Custom C# plugin for beregningslogikk
 - Betydelig workaround med kalkulerte felter
 
+#### Forsering (§33.8)
+
+Custom-løsningen har implementert forsering-grunnstrukturen:
+
+| Aspekt | Custom | Power Platform |
+|--------|--------|----------------|
+| Egen sakstype | ✅ `sakstype="forsering"` | ⚠️ Må modelleres som egen entitet |
+| Relasjoner til fristkrav | ✅ Relasjoner til avslåtte saker | ⚠️ Lookup-kolonner med begrensninger |
+| 30%-regelen beregning | ✅ `maks = dager × dagmulkt × 1.3` | ⚠️ Kalkulert felt eller plugin |
+| Livssyklus (varslet→iverksatt→stoppet) | ⚠️ Modell klar, events delvis impl. | ⚠️ Status-felt med workflow |
+| Kostnadsoppfølging | ✅ `paalopte_kostnader` (i modell) | ⚠️ Manuell oppdatering |
+| ForseringService + API | ✅ 416 linjer, 5 endepunkter | ❌ Må bygges |
+
+**Implementeringsstatus forsering:**
+- ✅ **Implementert:** ForseringData-modell, ForseringService, API-endepunkter, 30%-regelvalidering, `forsering_varsel` event
+- ⚠️ **Planlagt:** Livssyklus-events (`forsering_iverksatt`, `forsering_stoppet`, `forsering_kostnad_oppdatert`, `forsering_bh_respons`)
+
+**Vurdering:** Forsering krever koordinering mellom flere saker og dynamiske beregninger. Grunnstrukturen er på plass i custom-løsningen. Power Platform kan modellere dette, men mangler den naturlige støtten for sak-relasjoner og event-basert livssyklus.
+
+#### Endringsordre (§31.3)
+
+Custom-løsningen har implementert komplett endringsordre-funksjonalitet:
+
+| Aspekt | Custom | Power Platform |
+|--------|--------|----------------|
+| Egen sakstype | ✅ `sakstype="endringsordre"` | ⚠️ Må modelleres som egen entitet |
+| Samle flere KOE-saker | ✅ N:M relasjoner med metadata | ⚠️ Lookup med begrensninger |
+| Konsekvenser (pris/frist/SHA/kvalitet) | ✅ Strukturert `EOKonsekvenser` | ⚠️ Separate felter |
+| TE-respons (akseptert/bestridt) | ✅ Event-drevet | ⚠️ Status-felt |
+| Automatisk sum fra KOE-er | ✅ Beregnet ved opprettelse | ⚠️ Krever workflow eller plugin |
+
+**Vurdering:** Endringsordre-funksjonaliteten er lettere å implementere i Power Platform enn forsering, men krever fortsatt håndtering av N:M-relasjoner og aggregeringer.
+
 ### 4.2 Skjemaer og brukergrensesnitt
 
 | Aspekt | Custom | Power Platform |
@@ -271,10 +307,10 @@ Custom-løsningen har en **ferdig utviklet, testet og validert** Catenda-integra
 
 | Komponent | Beskrivelse | Linjer |
 |-----------|-------------|--------|
-| `CatendaClient` | REST v2 + BCF v3.0 API | 1 649 |
+| `CatendaClient` | REST v2 + BCF v3.0 API | 1 777 |
 | `catenda/auth.py` | OAuth 2.0 (client credentials + user tokens) | 534 |
 | `catenda_service.py` | Forretningslogikk for Catenda-operasjoner | 268 |
-| `webhook_routes.py` | Webhook-mottak og håndtering | 164 |
+| `webhook_routes.py` | Webhook-mottak og håndtering | 160 |
 
 **Implementert funksjonalitet:**
 - OAuth 2.0 med automatisk token-refresh
@@ -297,7 +333,7 @@ Custom-løsningen har en **ferdig utviklet, testet og validert** Catenda-integra
 - OAuth 2.0-flyt må konfigureres manuelt
 - BCF 3.0-støtte finnes ikke som standard connector
 - Webhook-mottak krever HTTP-trigger (også premium)
-- Estimert utviklingsarbeid: Betydelig (sammenlign med 2 400+ linjer eksisterende kode)
+- Estimert utviklingsarbeid: Betydelig (sammenlign med 2 700+ linjer eksisterende kode)
 
 #### Entra ID / External ID
 
@@ -321,6 +357,8 @@ Custom-løsningen har en **ferdig utviklet, testet og validert** Catenda-integra
 | Tre-spor modell | ✅ | ⚠️ | Mulig, men krever arkitekturarbeid |
 | Port-modell | ✅ | ⚠️ | Mulig med begrensninger |
 | Subsidiær logikk | ✅ | ❌ | Krever custom utvikling |
+| Forsering (§33.8) | ✅ | ⚠️ | Komplekst - relasjoner + beregninger |
+| Endringsordre (§31.3) | ✅ | ⚠️ | Mulig - N:M relasjoner |
 | Varslingsfrister | ✅ | ⚠️ | Enkle OK, dynamiske krevende |
 | Catenda-integrasjon | ✅ | ⚠️ | Premium + custom connector |
 | Ekstern tilgang | ✅ | ⚠️ | Mulig med External ID/B2C |
@@ -621,9 +659,11 @@ Følgende punkter bør avklares før endelig beslutning:
 
 **Custom-løsningen:**
 - ✅ Implementerer full NS 8407-logikk inkludert subsidiær vurdering
-- ✅ Event Sourcing gir komplett audit trail og replay-mulighet
-- ✅ Catenda-integrasjon er ferdig utviklet (2 400+ linjer)
+- ✅ Tre sakstyper: `standard` (KOE), `forsering` (§33.8), `endringsordre` (§31.3)
+- ✅ Event Sourcing gir komplett audit trail og replay-mulighet (25 event-typer impl., 35+ planlagt)
+- ✅ Catenda-integrasjon er ferdig utviklet (2 700+ linjer)
 - ✅ Ingen volumbegrensninger
+- ⚠️ Forsering: Grunnstruktur implementert, livssyklus-events gjenstår
 - ⚠️ Krever vedlikeholdskompetanse på TypeScript/Python
 - ⚠️ Avhengighet av spesifikk teknologikompetanse
 
@@ -650,6 +690,8 @@ Følgende punkter bør avklares før endelig beslutning:
 | Scenario | Custom | SharePoint | Dataverse |
 |----------|--------|------------|-----------|
 | Full NS 8407-støtte | ✅ Anbefalt | ❌ Ikke mulig | ⚠️ Krever plugins |
+| Forsering (§33.8) | ⚠️ Grunnstruktur impl. | ❌ Kompleks | ⚠️ Krever plugins |
+| Endringsordre (§31.3) | ✅ Implementert | ⚠️ Mulig | ⚠️ Mulig |
 | Volum >500 saker | ✅ Ingen problem | ❌ Kritisk | ⚠️ Håndterbart |
 | Volum >5000 events | ✅ Ingen problem | ❌ Kritisk | ✅ OK |
 | Eksisterende kompetanse | ⚠️ Ny | ✅ Kjent | ⚠️ Ny |
@@ -681,6 +723,26 @@ Endelig valg bør baseres på:
 4. **Datavarehus-strategi:** Dataverse bør vurderes uavhengig av UI-valg
 5. **Total eierskapskostnad:** Lisenser + utvikling + vedlikehold over 5+ år
 
+### 10.5 Implementeringsstatus og implikasjoner
+
+**Oppsummering pr. 2025-12-17:**
+
+| Funksjonalitet | Backend | Frontend | Kommentar |
+|----------------|---------|----------|-----------|
+| **KOE (standard)** | ✅ Komplett | ✅ Komplett | 18 event-typer, tre-spor modell |
+| **Endringsordre** | ✅ Komplett | ✅ Komplett | 7 event-typer, N:M relasjoner |
+| **Forsering** | ⚠️ Grunnstruktur | ⚠️ Grunnstruktur | 1 av 8 event-typer impl. |
+
+**Forsering-gap og estimert ferdigstillelse:**
+- Manglende events: `forsering_opprettet`, `forsering_iverksatt`, `forsering_stoppet`, `forsering_kostnad_oppdatert`, `forsering_bh_respons`, `forsering_relatert_lagt_til`, `forsering_relatert_fjernet`
+- ForseringData-modellen støtter allerede alle felter - det gjenstår å implementere event-handlers
+- Estimert: 1-2 sprinter for full forsering-støtte
+
+**Implikasjon for teknologivalg:**
+- Custom-løsningen har et klart forsprang - grunnstrukturen for alle tre sakstyper er på plass
+- Å bygge tilsvarende fra scratch i Power Platform vil ta betydelig lengre tid
+- Forsering-gapet i custom-løsningen er mindre enn å bygge hele løsningen på nytt
+
 ---
 
 ## Vedlegg
@@ -691,14 +753,17 @@ Endelig valg bør baseres på:
 |-----|-------------|--------|
 | `src/constants/varslingsregler.ts` | NS 8407 varslingsregler | ~380 |
 | `src/types/timeline.ts` | Datamodeller og state-typer | ~900 |
-| `backend/services/timeline_service.py` | Event sourcing og state-projeksjon | 753 |
-| `backend/models/events.py` | Event-definisjoner | 933 |
-| `backend/models/sak_state.py` | Read model (projeksjon) | 562 |
-| `backend/integrations/catenda/client.py` | Catenda REST + BCF API | 1 649 |
+| `backend/services/timeline_service.py` | Event sourcing og state-projeksjon | 1 184 |
+| `backend/models/events.py` | Event-definisjoner (25 impl., 35+ planlagt) | 1 575 |
+| `backend/models/sak_state.py` | Read model (projeksjon) | 1 122 |
+| `backend/integrations/catenda/client.py` | Catenda REST + BCF API | 1 777 |
 | `backend/integrations/catenda/auth.py` | OAuth 2.0 autentisering | 534 |
-| `backend/services/business_rules.py` | Forretningsregler-validering | 240 |
+| `backend/services/business_rules.py` | Forretningsregler-validering | 321 |
+| `backend/services/forsering_service.py` | Forsering-logikk (§33.8) | 416 |
+| `backend/services/endringsordre_service.py` | Endringsordre-logikk (§31.3) | 540 |
+| `backend/services/related_cases_service.py` | Håndtering av relaterte saker | 167 |
 
-**Total backend:** ~13 700 linjer (59 filer, 345 tester)
+**Total backend:** ~26 700 linjer (97 filer, 427 tester)
 
 For komplett backend-struktur, se [backend/STRUCTURE.md](../backend/STRUCTURE.md).
 
