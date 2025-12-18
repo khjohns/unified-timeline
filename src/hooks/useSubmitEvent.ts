@@ -86,12 +86,17 @@ export function useSubmitEvent(sakId: string, options: UseSubmitEventOptions = {
       // Generate PDF from current state if enabled
       if (generatePdf && stateData?.state) {
         try {
+          console.log('📄 Generating PDF from state...');
           const { blob, filename } = await generateContractorClaimPdf(stateData.state);
           pdfBase64 = await blobToBase64(blob);
           pdfFilename = filename;
-        } catch {
+          console.log('✅ PDF generated:', filename, `(${blob.size} bytes)`);
+        } catch (error) {
+          console.error('❌ PDF generation failed:', error);
           // Continue without PDF - backend will generate as fallback
         }
+      } else if (generatePdf) {
+        console.warn('⚠️ PDF generation skipped: stateData not available');
       }
 
       // Submit event with optional PDF
