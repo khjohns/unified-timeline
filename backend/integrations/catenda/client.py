@@ -1197,9 +1197,13 @@ class CatendaClient:
         logger.info(f"📋 Oppretter type '{name}'...")
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{board_id}/extensions/types"
 
-        payload = {"name": name}
-        if color:
-            payload["color"] = color
+        # Default farge hvis ikke angitt
+        default_color = "#3D85C6"  # Blå
+
+        payload = {
+            "name": name,
+            "color": color or default_color
+        }
 
         try:
             response = requests.post(url, headers=self.get_headers(), json=payload)
