@@ -19,7 +19,7 @@ from models.sak_state import (
     EOKonsekvenser,
     SakState,
 )
-from models.events import AnyEvent
+from models.events import AnyEvent, parse_event
 from services.related_cases_service import RelatedCasesService
 
 logger = get_logger(__name__)
@@ -195,12 +195,39 @@ class EndringsordreService:
             }
         }
 
+    def _resolve_catenda_topic_id(self, sak_id: str) -> Optional[str]:
+        """
+        Slår opp catenda_topic_id fra sakens state.
+
+        Args:
+            sak_id: Lokal sak-ID (f.eks. SAK-20251218-201548)
+
+        Returns:
+            Catenda topic GUID, eller None hvis ikke funnet
+        """
+        if not self.timeline_service or not self.event_repository:
+            logger.warning("Mangler timeline_service eller event_repository")
+            return None
+
+        try:
+            events_data, _version = self.event_repository.get_events(sak_id)
+            if not events_data:
+                return None
+
+            # Parse events from stored data (dicts -> typed Event objects)
+            events = [parse_event(e) for e in events_data]
+            state = self.timeline_service.compute_state(events)
+            return state.catenda_topic_id
+        except Exception as e:
+            logger.warning(f"Kunne ikke slå opp catenda_topic_id for {sak_id}: {e}")
+            return None
+
     def hent_relaterte_saker(self, sak_id: str) -> List[SakRelasjon]:
         """
         Henter alle relaterte saker (KOE-er) for en endringsordresak.
 
         Args:
-            sak_id: Endringsordresak ID (Catenda topic GUID)
+            sak_id: Sak-ID (lokal ID eller Catenda topic GUID)
 
         Returns:
             Liste med SakRelasjon objekter
@@ -209,7 +236,16 @@ class EndringsordreService:
             logger.warning("Ingen Catenda client - returnerer tom liste")
             return []
 
-        related = self.client.list_related_topics(sak_id)
+        # Resolve sak_id to catenda_topic_id if needed
+        catenda_topic_id = self._resolve_catenda_topic_id(sak_id)
+        if not catenda_topic_id:
+            # Fallback: assume sak_id is already a Catenda GUID
+            catenda_topic_id = sak_id
+            logger.debug(f"Bruker sak_id direkte som catenda_topic_id: {sak_id}")
+        else:
+            logger.debug(f"Resolved {sak_id} -> catenda_topic_id: {catenda_topic_id}")
+
+        related = self.client.list_related_topics(catenda_topic_id)
 
         relasjoner = []
         for rel in related:
@@ -219,11 +255,19 @@ class EndringsordreService:
 
             topic = self.client.get_topic_details(relatert_guid)
 
+            # Try to resolve Catenda GUID to local sak_id
+            local_sak_id = None
+            if self.event_repository:
+                local_sak_id = self.event_repository.find_sak_id_by_catenda_topic(relatert_guid)
+                if local_sak_id:
+                    logger.debug(f"Resolved Catenda GUID {relatert_guid} -> local sak_id {local_sak_id}")
+
             relasjoner.append(SakRelasjon(
-                relatert_sak_id=relatert_guid,
+                relatert_sak_id=local_sak_id or relatert_guid,  # Prefer local sak_id
                 relatert_sak_tittel=topic.get('title') if topic else None,
                 bimsync_issue_board_ref=rel.get('bimsync_issue_board_ref'),
-                bimsync_issue_number=rel.get('bimsync_issue_number')
+                bimsync_issue_number=rel.get('bimsync_issue_number'),
+                catenda_topic_id=relatert_guid,  # Keep original GUID for reference
             ))
 
         logger.info(f"Hentet {len(relasjoner)} relaterte KOE-saker for EO {sak_id}")

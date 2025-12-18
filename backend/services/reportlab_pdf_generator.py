@@ -178,18 +178,30 @@ class ReportLabPdfGenerator:
             # Build content
             story = []
 
-            # Header
-            story.append(Paragraph("Krav om Endringsordre (KOE)", self.styles['KoeTitle']))
+            # Header - basert på sakstype
+            sakstype = getattr(state, 'sakstype', 'koe')
+            title_map = {
+                'koe': 'Krav om Endringsordre (KOE)',
+                'forsering': 'Forseringssak (§33.8)',
+                'endringsordre': 'Endringsordre (§31.3)'
+            }
+            story.append(Paragraph(title_map.get(sakstype, 'Krav om Endringsordre'), self.styles['KoeTitle']))
             story.append(HRFlowable(width="100%", thickness=2, color=colors.HexColor('#003366')))
             story.append(Spacer(1, 12))
 
             # Metadata table
             story.extend(self._build_metadata_section(state))
 
-            # Three tracks
-            story.extend(self._build_grunnlag_section(state, events))
-            story.extend(self._build_vederlag_section(state, events))
-            story.extend(self._build_frist_section(state, events))
+            # Innhold basert på sakstype
+            if sakstype == 'forsering':
+                story.extend(self._build_forsering_section(state))
+            elif sakstype == 'endringsordre':
+                story.extend(self._build_endringsordre_section(state))
+            else:
+                # Standard KOE - tre spor
+                story.extend(self._build_grunnlag_section(state, events))
+                story.extend(self._build_vederlag_section(state, events))
+                story.extend(self._build_frist_section(state, events))
 
             # Footer
             story.append(Spacer(1, 24))
@@ -445,6 +457,189 @@ class ReportLabPdfGenerator:
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
             ]))
             elements.append(table)
+
+        return elements
+
+    def _build_forsering_section(self, state: SakState) -> List:
+        """Build forsering section for §33.8 cases."""
+        elements = []
+
+        fd = state.forsering_data
+        if not fd:
+            elements.append(Paragraph("<i>Ingen forseringsdata</i>", self.styles['KoeBodyText']))
+            return elements
+
+        # 1. Beregningsgrunnlag
+        elements.append(Paragraph("1. Beregningsgrunnlag (30%-regelen)", self.styles['KoeSectionHeader']))
+
+        calc_data = [
+            ['Avslåtte dager:', f"{fd.avslatte_dager} dager"],
+            ['Dagmulktsats:', f"{fd.dagmulktsats:,.0f} kr/dag"],
+            ['Dagmulktgrunnlag:', f"{fd.avslatte_dager * fd.dagmulktsats:,.0f} kr"],
+            ['+ 30% tillegg:', f"{fd.avslatte_dager * fd.dagmulktsats * 0.3:,.0f} kr"],
+            ['= Maks forsering:', f"{fd.maks_forseringskostnad:,.0f} kr"],
+        ]
+
+        table = Table(calc_data, colWidths=[4*cm, 12*cm])
+        table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#555555')),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ('LINEBELOW', (-1, -2), (-1, -2), 0.5, colors.HexColor('#CCCCCC')),
+        ]))
+        elements.append(table)
+
+        # 2. TE varsel
+        elements.append(Paragraph("2. Entreprenør varsler forsering", self.styles['KoeSectionHeader']))
+        elements.append(Paragraph("<b>ENTREPRENØR KREVER:</b>", self.styles['KoeSubHeader']))
+
+        te_data = [
+            ['Dato varslet:', fd.dato_varslet],
+            ['Estimert kostnad:', f"{fd.estimert_kostnad:,.0f} kr"],
+            ['Innenfor grense:', 'Ja' if fd.kostnad_innenfor_grense else 'Nei'],
+        ]
+
+        if fd.avslatte_fristkrav:
+            te_data.append(['Relaterte saker:', ', '.join(fd.avslatte_fristkrav)])
+
+        table = Table(te_data, colWidths=[4*cm, 12*cm])
+        table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#555555')),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ]))
+        elements.append(table)
+
+        # 3. BH respons (hvis finnes)
+        if fd.bh_aksepterer_forsering is not None:
+            elements.append(Spacer(1, 8))
+            elements.append(Paragraph("<b>BYGGHERRE SVARER:</b>", self.styles['KoeSubHeader']))
+
+            bh_data = [
+                ['Aksepterer:', 'Ja' if fd.bh_aksepterer_forsering else 'Nei'],
+            ]
+            if fd.bh_godkjent_kostnad is not None:
+                bh_data.append(['Godkjent kostnad:', f"{fd.bh_godkjent_kostnad:,.0f} kr"])
+            if fd.bh_begrunnelse:
+                begr = fd.bh_begrunnelse[:150] + '...' if len(fd.bh_begrunnelse) > 150 else fd.bh_begrunnelse
+                bh_data.append(['Begrunnelse:', begr])
+
+            table = Table(bh_data, colWidths=[4*cm, 12*cm])
+            table.setStyle(TableStyle([
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 9),
+                ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#555555')),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            elements.append(table)
+
+        return elements
+
+    def _build_endringsordre_section(self, state: SakState) -> List:
+        """Build endringsordre section for §31.3 cases."""
+        elements = []
+
+        eo = state.endringsordre_data
+        if not eo:
+            elements.append(Paragraph("<i>Ingen endringsordredata</i>", self.styles['KoeBodyText']))
+            return elements
+
+        # 1. EO-identifikasjon
+        elements.append(Paragraph(f"1. Endringsordre {eo.eo_nummer}", self.styles['KoeSectionHeader']))
+        elements.append(Paragraph("<b>BYGGHERRE UTSTEDER:</b>", self.styles['KoeSubHeader']))
+
+        bh_data = [
+            ['EO-nummer:', eo.eo_nummer],
+            ['Revisjon:', str(eo.revisjon_nummer)],
+        ]
+
+        if eo.dato_utstedt:
+            bh_data.append(['Dato utstedt:', eo.dato_utstedt])
+
+        if eo.beskrivelse:
+            beskr = eo.beskrivelse[:150] + '...' if len(eo.beskrivelse) > 150 else eo.beskrivelse
+            bh_data.append(['Beskrivelse:', beskr])
+
+        # Konsekvenser
+        konsekvenser = []
+        if eo.konsekvenser.pris:
+            konsekvenser.append('Pris')
+        if eo.konsekvenser.fremdrift:
+            konsekvenser.append('Fremdrift')
+        if eo.konsekvenser.sha:
+            konsekvenser.append('SHA')
+        if eo.konsekvenser.kvalitet:
+            konsekvenser.append('Kvalitet')
+        if eo.konsekvenser.annet:
+            konsekvenser.append('Annet')
+        bh_data.append(['Konsekvenser:', ', '.join(konsekvenser) if konsekvenser else 'Ingen'])
+
+        # Beløp
+        if eo.kompensasjon_belop is not None:
+            bh_data.append(['Kompensasjon:', f"{eo.kompensasjon_belop:,.0f} kr"])
+
+        if eo.frist_dager is not None:
+            bh_data.append(['Fristforlengelse:', f"{eo.frist_dager} dager"])
+
+        if eo.oppgjorsform:
+            oppgjor_labels = {
+                'ENHETSPRISER': 'Enhetspriser',
+                'REGNINGSARBEID': 'Regningsarbeid',
+                'FASTPRIS_TILBUD': 'Fastpris tilbud'
+            }
+            bh_data.append(['Oppgjørsform:', oppgjor_labels.get(eo.oppgjorsform, eo.oppgjorsform)])
+
+        if eo.relaterte_koe_saker:
+            bh_data.append(['Relaterte KOE:', ', '.join(eo.relaterte_koe_saker)])
+
+        table = Table(bh_data, colWidths=[4*cm, 12*cm])
+        table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#555555')),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ]))
+        elements.append(table)
+
+        # 2. TE-respons (hvis finnes)
+        if eo.te_akseptert is not None:
+            elements.append(Paragraph("2. Entreprenør svarer", self.styles['KoeSectionHeader']))
+            elements.append(Paragraph("<b>ENTREPRENØR SVARER:</b>", self.styles['KoeSubHeader']))
+
+            te_data = [
+                ['Akseptert:', 'Ja' if eo.te_akseptert else 'Nei (bestridt)'],
+            ]
+
+            if eo.dato_te_respons:
+                te_data.append(['Dato respons:', eo.dato_te_respons])
+
+            if eo.te_kommentar:
+                komm = eo.te_kommentar[:150] + '...' if len(eo.te_kommentar) > 150 else eo.te_kommentar
+                te_data.append(['Kommentar:', komm])
+
+            table = Table(te_data, colWidths=[4*cm, 12*cm])
+            table.setStyle(TableStyle([
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 9),
+                ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#555555')),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            elements.append(table)
+
+        # Status-linje
+        elements.append(Spacer(1, 12))
+        status_label = self._format_status(eo.status.value if hasattr(eo.status, 'value') else str(eo.status))
+        elements.append(Paragraph(
+            f"<b>Status:</b> {status_label}",
+            self.styles['KoeBodyText']
+        ))
 
         return elements
 

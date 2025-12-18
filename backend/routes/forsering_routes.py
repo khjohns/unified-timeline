@@ -8,6 +8,8 @@ Endpoints:
 - GET /api/forsering/<sak_id>/relaterte - Hent relaterte saker
 - GET /api/forsering/<sak_id>/kontekst - Hent komplett kontekst
 - POST /api/forsering/valider - Valider 30%-regelen
+- GET /api/forsering/kandidater - Hent KOE-saker med avslått frist (for ny forsering)
+- GET /api/forsering/by-relatert/<sak_id> - Finn forseringer for en KOE-sak
 """
 from flask import Blueprint, request, jsonify
 from typing import Optional
@@ -39,13 +41,19 @@ def _get_forsering_service() -> ForseringService:
     """
     catenda_client = None
 
-    if settings.CATENDA_CLIENT_ID:
+    if settings.catenda_client_id:
         catenda_client = CatendaClient(
-            client_id=settings.CATENDA_CLIENT_ID,
-            client_secret=settings.CATENDA_CLIENT_SECRET
+            client_id=settings.catenda_client_id,
+            client_secret=settings.catenda_client_secret
         )
-        if settings.CATENDA_TOPIC_BOARD_ID:
-            catenda_client.topic_board_id = settings.CATENDA_TOPIC_BOARD_ID
+        if settings.catenda_topic_board_id:
+            catenda_client.topic_board_id = settings.catenda_topic_board_id
+
+        # Set access token for authentication
+        if settings.catenda_access_token:
+            catenda_client.set_access_token(settings.catenda_access_token)
+        elif settings.catenda_client_secret:
+            catenda_client.authenticate()
 
     return ForseringService(
         catenda_client=catenda_client,
@@ -316,6 +324,46 @@ def valider_forseringskostnad():
             "success": False,
             "error": "INTERNAL_ERROR",
             "message": "Kunne ikke validere"
+        }), 500
+
+
+@forsering_bp.route('/api/forsering/kandidater', methods=['GET'])
+def hent_kandidat_koe_saker():
+    """
+    Hent KOE-saker som kan brukes i en forseringssak.
+
+    En KOE er kandidat for forsering hvis:
+    - Den har sakstype='standard' (ikke forsering/endringsordre)
+    - Fristkravet er avslått av BH (bh_resultat='avslatt')
+
+    Response 200:
+    {
+        "success": true,
+        "kandidat_saker": [
+            {
+                "sak_id": "koe-sak-guid",
+                "tittel": "KOE - Fundamentarbeid",
+                "avslatte_dager": 14,
+                "catenda_topic_id": "topic-guid"
+            }
+        ]
+    }
+    """
+    try:
+        service = _get_forsering_service()
+        kandidater = service.hent_kandidat_koe_saker()
+
+        return jsonify({
+            "success": True,
+            "kandidat_saker": kandidater
+        }), 200
+
+    except Exception as e:
+        logger.exception(f"Feil ved henting av kandidat-KOE-saker for forsering: {e}")
+        return jsonify({
+            "success": False,
+            "error": "INTERNAL_ERROR",
+            "message": "Kunne ikke hente kandidat-saker"
         }), 500
 
 

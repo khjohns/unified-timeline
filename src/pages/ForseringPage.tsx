@@ -49,12 +49,12 @@ import {
 // HOOKS
 // ============================================================================
 
-function useForseringKontekst(sakId: string) {
+function useForseringKontekst(sakId: string, enabled: boolean = true) {
   return useQuery<ForseringKontekstResponse, Error>({
     queryKey: ['forsering', sakId, 'kontekst'],
     queryFn: () => fetchForseringKontekst(sakId),
     staleTime: 30_000,
-    enabled: !!sakId,
+    enabled: !!sakId && enabled,
   });
 }
 
@@ -107,12 +107,12 @@ export function ForseringPage() {
     refetch: refetchCase,
   } = useCaseState(sakId || '', { enabled: !!token && !isVerifying });
 
-  // Fetch related cases context
+  // Fetch related cases context (wait for auth)
   const {
     data: kontekstData,
     isLoading: kontekstLoading,
     error: kontekstError,
-  } = useForseringKontekst(sakId || '');
+  } = useForseringKontekst(sakId || '', !!token && !isVerifying);
 
   // Fetch candidate cases for adding
   const { data: kandidatData } = useKandidatSaker();

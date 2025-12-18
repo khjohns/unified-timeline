@@ -18,7 +18,7 @@ from models.sak_state import (
     ForseringData,
     SakState,
 )
-from models.events import AnyEvent
+from models.events import AnyEvent, parse_event
 from services.related_cases_service import RelatedCasesService
 
 logger = get_logger(__name__)
@@ -165,12 +165,39 @@ class ForseringService:
             }
         }
 
+    def _resolve_catenda_topic_id(self, sak_id: str) -> Optional[str]:
+        """
+        Slår opp catenda_topic_id fra sakens state.
+
+        Args:
+            sak_id: Lokal sak-ID (f.eks. SAK-20251218-201548)
+
+        Returns:
+            Catenda topic GUID, eller None hvis ikke funnet
+        """
+        if not self.timeline_service or not self.event_repository:
+            logger.warning("Mangler timeline_service eller event_repository")
+            return None
+
+        try:
+            events_data, _version = self.event_repository.get_events(sak_id)
+            if not events_data:
+                return None
+
+            # Parse events from stored data (dicts -> typed Event objects)
+            events = [parse_event(e) for e in events_data]
+            state = self.timeline_service.compute_state(events)
+            return state.catenda_topic_id
+        except Exception as e:
+            logger.warning(f"Kunne ikke slå opp catenda_topic_id for {sak_id}: {e}")
+            return None
+
     def hent_relaterte_saker(self, sak_id: str) -> List[SakRelasjon]:
         """
         Henter alle relaterte saker for en gitt sak.
 
         Args:
-            sak_id: Catenda topic GUID
+            sak_id: Sak-ID (lokal ID eller Catenda topic GUID)
 
         Returns:
             Liste med SakRelasjon objekter
@@ -179,7 +206,16 @@ class ForseringService:
             logger.warning("Ingen Catenda client - returnerer tom liste")
             return []
 
-        related = self.client.list_related_topics(sak_id)
+        # Resolve sak_id to catenda_topic_id if needed
+        catenda_topic_id = self._resolve_catenda_topic_id(sak_id)
+        if not catenda_topic_id:
+            # Fallback: assume sak_id is already a Catenda GUID
+            catenda_topic_id = sak_id
+            logger.debug(f"Bruker sak_id direkte som catenda_topic_id: {sak_id}")
+        else:
+            logger.debug(f"Resolved {sak_id} -> catenda_topic_id: {catenda_topic_id}")
+
+        related = self.client.list_related_topics(catenda_topic_id)
 
         relasjoner = []
         for rel in related:
@@ -190,11 +226,19 @@ class ForseringService:
 
             topic = self.client.get_topic_details(relatert_guid)
 
+            # Try to resolve Catenda GUID to local sak_id
+            local_sak_id = None
+            if self.event_repository:
+                local_sak_id = self.event_repository.find_sak_id_by_catenda_topic(relatert_guid)
+                if local_sak_id:
+                    logger.debug(f"Resolved Catenda GUID {relatert_guid} -> local sak_id {local_sak_id}")
+
             relasjoner.append(SakRelasjon(
-                relatert_sak_id=relatert_guid,
+                relatert_sak_id=local_sak_id or relatert_guid,  # Prefer local sak_id
                 relatert_sak_tittel=topic.get('title') if topic else None,
                 bimsync_issue_board_ref=rel.get('bimsync_issue_board_ref'),
-                bimsync_issue_number=rel.get('bimsync_issue_number')
+                bimsync_issue_number=rel.get('bimsync_issue_number'),
+                catenda_topic_id=relatert_guid,  # Keep original GUID for reference
             ))
 
         logger.info(f"Hentet {len(relasjoner)} relaterte saker for {sak_id}")
@@ -412,6 +456,67 @@ class ForseringService:
         except Exception as e:
             logger.error(f"Feil ved søk etter forseringer for {sak_id}: {e}")
             return []
+
+    def hent_kandidat_koe_saker(self) -> List[Dict[str, Any]]:
+        """
+        Henter KOE-saker som kan brukes for forsering.
+
+        En KOE er kandidat for forsering hvis:
+        - Den har sakstype='standard' (ikke forsering/endringsordre)
+        - Fristkravet er avslått av BH (bh_resultat='avslatt')
+
+        Returns:
+            Liste med kandidat-saker (sak_id, tittel, avslatte_dager)
+        """
+        if not self.client:
+            logger.warning("Ingen Catenda client - kan ikke hente kandidater")
+            return []
+
+        # Hent alle topics
+        try:
+            topics = self.client.list_topics()
+        except Exception as e:
+            logger.error(f"Feil ved henting av topics: {e}")
+            return []
+
+        kandidater = []
+
+        for topic in topics:
+            topic_id = topic.get('guid')
+            if not topic_id:
+                continue
+
+            # Sjekk om dette er en standard sak med avslått fristkrav
+            if self.event_repository and self.timeline_service:
+                try:
+                    events_data, _version = self.event_repository.get_events(topic_id)
+                    if events_data:
+                        from models.events import parse_event
+                        events = [parse_event(e) for e in events_data]
+                        state = self.timeline_service.compute_state(events)
+
+                        # Sjekk kriterier for forsering
+                        from models.sak_state import SaksType
+                        is_standard = state.sakstype == SaksType.STANDARD or state.sakstype is None
+                        has_rejected_frist = (
+                            state.frist and
+                            state.frist.bh_resultat == 'avslatt'
+                        )
+
+                        if is_standard and has_rejected_frist:
+                            avslatte_dager = state.frist.krevd_dager or 0
+                            kandidater.append({
+                                "sak_id": topic_id,
+                                "tittel": state.sakstittel or topic.get('title', 'Ukjent'),
+                                "overordnet_status": state.overordnet_status,
+                                "avslatte_dager": avslatte_dager,
+                                "frist_bh_resultat": state.frist.bh_resultat if state.frist else None
+                            })
+                except Exception as e:
+                    logger.debug(f"Kunne ikke evaluere topic {topic_id}: {e}")
+
+        logger.info(f"Fant {len(kandidater)} kandidater for forsering")
+        return kandidater
 
     def is_configured(self) -> bool:
         """

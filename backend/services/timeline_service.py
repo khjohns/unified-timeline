@@ -21,6 +21,7 @@ from models.events import (
     ForseringVarselEvent,
     SakOpprettetEvent,
     EOUtstedtEvent,
+    EOAkseptertEvent,
     EventType,
     SporType,
     SporStatus,
@@ -31,11 +32,15 @@ from models.events import (
 )
 from models.sak_state import (
     SakState,
+    SaksType,
     GrunnlagTilstand,
     VederlagTilstand,
     FristTilstand,
     SakOversikt,
     SporOversikt,
+    EndringsordreData,
+    EOStatus,
+    EOKonsekvenser,
 )
 from utils.logger import get_logger
 
@@ -124,6 +129,7 @@ class TimelineService:
             EventType.RESPONS_FRIST_OPPDATERT: self._handle_respons_frist,  # Re-use handler
             EventType.FORSERING_VARSEL: self._handle_forsering_varsel,
             EventType.EO_UTSTEDT: self._handle_eo_utstedt,
+            EventType.EO_AKSEPTERT: self._handle_eo_akseptert,
         }
 
         handler = handlers.get(event.event_type)
@@ -138,13 +144,26 @@ class TimelineService:
     def _handle_sak_opprettet(self, state: SakState, event: SakOpprettetEvent) -> SakState:
         """Håndterer SAK_OPPRETTET event.
 
-        Setter grunnlag til UTKAST (klar til å sende).
+        Setter sakstype og grunnlag til UTKAST (klar til å sende).
         Vederlag og frist forblir IKKE_RELEVANT til grunnlag er sendt.
         """
         state.sakstittel = event.sakstittel
         state.catenda_topic_id = event.catenda_topic_id
-        # Initialize grunnlag track as draft (ready to send)
-        state.grunnlag.status = SporStatus.UTKAST
+
+        # Map string sakstype to SaksType enum
+        sakstype_map = {
+            "standard": SaksType.STANDARD,
+            "koe": SaksType.STANDARD,  # Alias for backwards compatibility
+            "forsering": SaksType.FORSERING,
+            "endringsordre": SaksType.ENDRINGSORDRE,
+        }
+        state.sakstype = sakstype_map.get(event.sakstype, SaksType.STANDARD)
+        logger.debug(f"Set sakstype to {state.sakstype} (from event: {event.sakstype})")
+
+        # Initialize grunnlag track as draft (ready to send) for standard cases
+        if state.sakstype == SaksType.STANDARD:
+            state.grunnlag.status = SporStatus.UTKAST
+
         return state
 
     # ============ GRUNNLAG HANDLERS ============
@@ -461,20 +480,78 @@ class TimelineService:
         return state
 
     def _handle_eo_utstedt(self, state: SakState, event: EOUtstedtEvent) -> SakState:
-        """Håndterer EO_UTSTEDT - saken lukkes"""
-        # Alle aktive spor blir GODKJENT/LAAST
-        if state.grunnlag.status not in {SporStatus.IKKE_RELEVANT, SporStatus.TRUKKET}:
-            state.grunnlag.status = SporStatus.LAAST
-            state.grunnlag.laast = True
+        """Håndterer EO_UTSTEDT - endringsordre utstedt.
 
-        if state.vederlag.status not in {SporStatus.IKKE_RELEVANT, SporStatus.TRUKKET}:
-            state.vederlag.status = SporStatus.GODKJENT
-            state.vederlag.godkjent_belop = event.endelig_vederlag
+        For ENDRINGSORDRE sakstype: Setter endringsordre_data fra eventet
+        For STANDARD sakstype: Lukker alle spor (reaktiv EO fra KOE)
+        """
+        data = event.data
 
-        if state.frist.status not in {SporStatus.IKKE_RELEVANT, SporStatus.TRUKKET}:
-            state.frist.status = SporStatus.GODKJENT
-            if event.endelig_frist_dager:
-                state.frist.godkjent_dager = event.endelig_frist_dager
+        # For ENDRINGSORDRE sakstype: Sett endringsordre_data
+        if state.sakstype == SaksType.ENDRINGSORDRE:
+            # Map EOKonsekvenser from event to state
+            konsekvenser = EOKonsekvenser(
+                sha=data.konsekvenser.sha if data.konsekvenser else False,
+                kvalitet=data.konsekvenser.kvalitet if data.konsekvenser else False,
+                fremdrift=data.konsekvenser.fremdrift if data.konsekvenser else False,
+                pris=data.konsekvenser.pris if data.konsekvenser else False,
+                annet=data.konsekvenser.annet if data.konsekvenser else False,
+            )
+
+            # Handle both relaterte_sak_ids and relaterte_koe_saker
+            relaterte = data.relaterte_sak_ids or data.relaterte_koe_saker or []
+
+            state.endringsordre_data = EndringsordreData(
+                eo_nummer=data.eo_nummer,
+                revisjon_nummer=data.revisjon_nummer,
+                beskrivelse=data.beskrivelse,
+                vedlegg_ids=data.vedlegg_ids or [],
+                konsekvenser=konsekvenser,
+                konsekvens_beskrivelse=data.konsekvens_beskrivelse,
+                oppgjorsform=data.oppgjorsform,
+                kompensasjon_belop=data.kompensasjon_belop,
+                frist_dager=data.frist_dager,
+                status=EOStatus.UTSTEDT,
+                dato_utstedt=data.dato_utstedt or event.tidsstempel.strftime('%Y-%m-%d'),
+                utstedt_av=event.aktor,
+                relaterte_koe_saker=relaterte,
+            )
+            logger.info(f"EO {data.eo_nummer} utstedt med status UTSTEDT")
+        else:
+            # For STANDARD sakstype (reaktiv EO fra KOE): Lukk alle spor
+            if state.grunnlag.status not in {SporStatus.IKKE_RELEVANT, SporStatus.TRUKKET}:
+                state.grunnlag.status = SporStatus.LAAST
+                state.grunnlag.laast = True
+
+            if state.vederlag.status not in {SporStatus.IKKE_RELEVANT, SporStatus.TRUKKET}:
+                state.vederlag.status = SporStatus.GODKJENT
+                state.vederlag.godkjent_belop = data.kompensasjon_belop or event.endelig_vederlag
+
+            if state.frist.status not in {SporStatus.IKKE_RELEVANT, SporStatus.TRUKKET}:
+                state.frist.status = SporStatus.GODKJENT
+                if data.frist_dager or event.endelig_frist_dager:
+                    state.frist.godkjent_dager = data.frist_dager or event.endelig_frist_dager
+
+        return state
+
+    def _handle_eo_akseptert(self, state: SakState, event: EOAkseptertEvent) -> SakState:
+        """Håndterer EO_AKSEPTERT - TE aksepterer endringsordre.
+
+        Oppdaterer endringsordre_data med TEs respons.
+        """
+        if state.endringsordre_data is None:
+            logger.warning("Mottok EO_AKSEPTERT uten endringsordre_data - ignorerer")
+            return state
+
+        data = event.data
+
+        # Oppdater TE-respons
+        state.endringsordre_data.te_akseptert = data.akseptert
+        state.endringsordre_data.te_kommentar = data.kommentar
+        state.endringsordre_data.dato_te_respons = data.dato_aksept or event.tidsstempel.strftime('%Y-%m-%d')
+        state.endringsordre_data.status = EOStatus.AKSEPTERT
+
+        logger.info(f"EO {state.endringsordre_data.eo_nummer} akseptert av TE")
 
         return state
 

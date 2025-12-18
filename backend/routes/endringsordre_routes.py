@@ -41,13 +41,19 @@ def _get_endringsordre_service() -> EndringsordreService:
     """
     catenda_client = None
 
-    if settings.CATENDA_CLIENT_ID:
+    if settings.catenda_client_id:
         catenda_client = CatendaClient(
-            client_id=settings.CATENDA_CLIENT_ID,
-            client_secret=settings.CATENDA_CLIENT_SECRET
+            client_id=settings.catenda_client_id,
+            client_secret=settings.catenda_client_secret
         )
-        if settings.CATENDA_TOPIC_BOARD_ID:
-            catenda_client.topic_board_id = settings.CATENDA_TOPIC_BOARD_ID
+        if settings.catenda_topic_board_id:
+            catenda_client.topic_board_id = settings.catenda_topic_board_id
+
+        # Set access token for authentication
+        if settings.catenda_access_token:
+            catenda_client.set_access_token(settings.catenda_access_token)
+        elif settings.catenda_client_secret:
+            catenda_client.authenticate()
 
     return EndringsordreService(
         catenda_client=catenda_client,
@@ -378,7 +384,6 @@ def fjern_koe(sak_id: str, koe_sak_id: str):
 
 
 @endringsordre_bp.route('/api/endringsordre/kandidater', methods=['GET'])
-@require_magic_link
 def hent_kandidat_koe_saker():
     """
     Hent KOE-saker som kan legges til i en endringsordre.

@@ -59,7 +59,7 @@ REQUIRED_CUSTOM_FIELDS = [
     "Leverandør"
 ]
 
-# Testverdier for komplett flyt
+# Testverdier for komplett KOE-flyt
 TEST_DATA = {
     "byggherre": "Test Byggherre AS",
     "leverandor": "Test Entreprenor AS",
@@ -110,6 +110,120 @@ TEST_DATA = {
     "frist_revisjon": {
         "antall_dager": 12,  # Justert ned fra 14
         "begrunnelse": "Justerer fristkrav basert på BH tilbakemelding"
+    }
+}
+
+# Testverdier for forsering-flyt (§33.8)
+FORSERING_TEST_DATA = {
+    # To KOE-saker med fristkrav som vil bli avslått
+    "koe_saker": [
+        {
+            "tittel": "Forsering-test KOE-1",
+            "grunnlag": {
+                "hovedkategori": "ENDRING",
+                "underkategori": "EO",
+                "beskrivelse": "KOE-1 for forseringstest - formell endringsordre",
+                "kontraktsreferanse": "31.3"
+            },
+            "frist": {
+                "varsel_type": "spesifisert",
+                "antall_dager": 14,
+                "begrunnelse": "Fristkrav KOE-1"
+            }
+        },
+        {
+            "tittel": "Forsering-test KOE-2",
+            "grunnlag": {
+                "hovedkategori": "ENDRING",
+                "underkategori": "IRREG",
+                "beskrivelse": "KOE-2 for forseringstest - irregulær endring",
+                "kontraktsreferanse": "32.1"
+            },
+            "frist": {
+                "varsel_type": "spesifisert",
+                "antall_dager": 10,
+                "begrunnelse": "Fristkrav KOE-2"
+            }
+        }
+    ],
+
+    # BH avslag på frist (brukes for alle KOE-saker)
+    "bh_frist_avslag": {
+        "beregnings_resultat": "avslatt",
+        "spesifisert_krav_ok": False,
+        "vilkar_oppfylt": False,
+        "begrunnelse": "Fristkrav avslås - ingen grunnlag for forlengelse"
+    },
+
+    # Forsering-data
+    "forsering": {
+        "dagmulktsats": 50000.0,  # 50k kr/dag
+        "estimert_kostnad": 1200000.0,  # 1.2M kr (under 1.56M grensen)
+        "begrunnelse": "Iverksetter forsering iht. NS 8407 §33.8"
+    },
+
+    # BH aksept av forsering
+    "bh_forsering_aksept": {
+        "aksepterer": True,
+        "godkjent_kostnad": 1200000.0,
+        "begrunnelse": "Aksepterer forseringskostnad"
+    }
+}
+
+# Testverdier for endringsordre-flyt (§31.3)
+EO_TEST_DATA = {
+    # To KOE-saker som skal samles
+    "koe_saker": [
+        {
+            "tittel": "EO-test KOE-1",
+            "grunnlag": {
+                "hovedkategori": "ENDRING",
+                "underkategori": "EO",
+                "beskrivelse": "KOE-1 for EO-test - formell endringsordre",
+                "kontraktsreferanse": "31.3"
+            },
+            "vederlag": {
+                "metode": "ENHETSPRISER",
+                "belop_direkte": 100000.0,
+                "begrunnelse": "Vederlagskrav KOE-1"
+            }
+        },
+        {
+            "tittel": "EO-test KOE-2",
+            "grunnlag": {
+                "hovedkategori": "ENDRING",
+                "underkategori": "IRREG",
+                "beskrivelse": "KOE-2 for EO-test",
+                "kontraktsreferanse": "32.1"
+            },
+            "vederlag": {
+                "metode": "ENHETSPRISER",
+                "belop_direkte": 75000.0,
+                "begrunnelse": "Vederlagskrav KOE-2"
+            }
+        }
+    ],
+
+    # Endringsordre-data
+    "endringsordre": {
+        "eo_nummer": "EO-001",
+        "beskrivelse": "Samler endringskrav fra KOE-1 og KOE-2",
+        "konsekvenser": {
+            "sha": False,
+            "kvalitet": False,
+            "fremdrift": True,
+            "pris": True,
+            "annet": False
+        },
+        "kompensasjon_belop": 175000.0,  # Sum av KOE-saker
+        "frist_dager": 7,
+        "oppgjorsform": "ENHETSPRISER"
+    },
+
+    # TE aksept
+    "te_aksept": {
+        "akseptert": True,
+        "kommentar": "Aksepterer endringsordre"
     }
 }
 
@@ -563,11 +677,11 @@ class SetupValidator:
 
 
 # =============================================================================
-# FASE 2: TEST STANDARD KOE-FLYT
+# BASE TESTER - Gjenbrukbar logikk for alle flyttyper
 # =============================================================================
 
-class KOEFlowTester:
-    """Tester standard KOE-flyt"""
+class BaseTester:
+    """Gjenbrukbar testlogikk for alle flyttyper (KOE, Forsering, EO)"""
 
     def __init__(self, client: CatendaClient, project_id: str,
                  library_id: Optional[str], folder_id: Optional[str],
@@ -577,16 +691,11 @@ class KOEFlowTester:
         self.library_id = library_id
         self.folder_id = folder_id
         self.topic_board_id = topic_board_id
-
-        self.topic_guid: Optional[str] = None
-        self.sak_id: Optional[str] = None
-        self.topic_title: Optional[str] = None
         self.csrf_token: Optional[str] = None
-        self.magic_token: Optional[str] = None
 
-        # Tracking for verification
-        self.initial_comment_count: int = 0
-        self.initial_document_count: int = 0
+    # =========================================================================
+    # Auth & CSRF
+    # =========================================================================
 
     def _fetch_csrf_token(self) -> bool:
         """Hent CSRF-token fra backend"""
@@ -599,6 +708,315 @@ class KOEFlowTester:
         except requests.exceptions.RequestException:
             pass
         return False
+
+    def _get_auth_headers(self, magic_token: Optional[str] = None) -> Dict[str, str]:
+        """Bygg headers med CSRF og magic token (Bearer format)"""
+        headers = {"Content-Type": "application/json"}
+        if self.csrf_token:
+            headers["X-CSRF-Token"] = self.csrf_token
+        if magic_token:
+            headers["Authorization"] = f"Bearer {magic_token}"
+        return headers
+
+    # =========================================================================
+    # Catenda-integrasjon
+    # =========================================================================
+
+    def _create_topic(self, title: str, topic_type: str, description: str,
+                      initial_status: Optional[str] = None) -> Optional[str]:
+        """Opprett topic i Catenda og returner GUID"""
+        # Finn første tilgjengelige status hvis ikke spesifisert
+        if not initial_status:
+            extensions = self.client.get_topic_board_extensions()
+            if extensions:
+                statuses = extensions.get('topic_status', [])
+                if 'Under varsling' in statuses:
+                    initial_status = 'Under varsling'
+                elif statuses:
+                    initial_status = statuses[0]
+
+        result = self.client.create_topic(
+            title=title,
+            description=description,
+            topic_type=topic_type,
+            topic_status=initial_status
+        )
+
+        if result:
+            return result.get('guid')
+        return None
+
+    def _create_case_directly(self, topic_guid: str, topic_title: str,
+                              sakstype: str = "koe") -> Tuple[Optional[str], Optional[str]]:
+        """
+        Opprett sak direkte via backend.
+
+        Returns:
+            Tuple[sak_id, magic_token] eller (None, None) ved feil
+        """
+        from datetime import datetime
+        from repositories.event_repository import JsonFileEventRepository
+        from repositories.sak_metadata_repository import SakMetadataRepository, SakMetadata
+        from models.events import SakOpprettetEvent
+        from lib.auth.magic_link import get_magic_link_manager
+
+        # Generer sak_id
+        timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
+        sak_id = f"SAK-{timestamp}"
+
+        print_info(f"Genererer sak: {sak_id} (type: {sakstype})")
+
+        try:
+            # Opprett SakOpprettetEvent
+            event = SakOpprettetEvent(
+                sak_id=sak_id,
+                sakstittel=topic_title,
+                aktor="Test Script",
+                aktor_rolle="TE",
+                prosjekt_id=self.project_id,
+                catenda_topic_id=topic_guid,
+                sakstype=sakstype,
+            )
+
+            # Persist event
+            event_repo = JsonFileEventRepository()
+            new_version = event_repo.append(event, expected_version=0)
+            print_ok(f"SakOpprettetEvent lagret (versjon: {new_version})")
+
+            # Opprett metadata
+            metadata = SakMetadata(
+                sak_id=sak_id,
+                prosjekt_id=self.project_id,
+                catenda_topic_id=topic_guid,
+                catenda_board_id=self.topic_board_id,
+                catenda_project_id=self.project_id,
+                created_at=datetime.now(),
+                created_by="Test Script",
+                cached_title=topic_title,
+                cached_status="UNDER_VARSLING",
+            )
+            metadata_repo = SakMetadataRepository()
+            metadata_repo.create(metadata)
+            print_ok("Metadata opprettet")
+
+            # Generer magic link og post kommentar til Catenda
+            magic_link_manager = get_magic_link_manager()
+            magic_token = magic_link_manager.generate(sak_id=sak_id)
+
+            base_url = os.getenv('DEV_REACT_APP_URL') or os.getenv('REACT_APP_URL') or 'http://localhost:5173'
+
+            # Bruk riktig frontend-rute basert på sakstype
+            frontend_routes = {
+                "standard": f"/saker/{sak_id}",
+                "koe": f"/saker/{sak_id}",
+                "forsering": f"/forsering/{sak_id}",
+                "endringsordre": f"/endringsordre/{sak_id}"
+            }
+            frontend_route = frontend_routes.get(sakstype, f"/saker/{sak_id}")
+            magic_link = f"{base_url}{frontend_route}?magicToken={magic_token}"
+
+            # Post initial kommentar
+            dato = datetime.now().strftime('%Y-%m-%d')
+            sakstype_label = {
+                "koe": "Krav om endringsordre",
+                "standard": "Krav om endringsordre",
+                "forsering": "Forseringssak",
+                "endringsordre": "Endringsordre"
+            }.get(sakstype, sakstype)
+
+            comment_text = (
+                f"**Ny {sakstype_label} opprettet**\n\n"
+                f"Intern saks-ID: `{sak_id}`\n"
+                f"Dato: {dato}\n\n"
+                f"[Apne skjema]({magic_link})"
+            )
+
+            self.client.create_comment(topic_guid, comment_text)
+            print_ok("Initial kommentar postet til Catenda")
+
+            # Hent CSRF token
+            if self._fetch_csrf_token():
+                print_ok("CSRF-token hentet")
+
+            return sak_id, magic_token
+
+        except Exception as e:
+            print_fail(f"Feil ved opprettelse av sak: {e}")
+            import traceback
+            traceback.print_exc()
+            return None, None
+
+    # =========================================================================
+    # Verifikasjon av Catenda-integrasjon
+    # =========================================================================
+
+    def _get_comment_count(self, topic_guid: str) -> int:
+        """Hent antall kommentarer på topic"""
+        comments = self.client.get_comments(topic_guid)
+        return len(comments) if comments else 0
+
+    def _get_document_count(self, topic_guid: str) -> int:
+        """Hent antall dokumenter linket til topic"""
+        documents = self.client.list_document_references(topic_guid)
+        return len(documents) if documents else 0
+
+    def _verify_new_comment(self, topic_guid: str, baseline: int,
+                           expected_increase: int = 1, wait_seconds: int = 3) -> Tuple[bool, int]:
+        """
+        Verifiser at nye kommentarer er postet.
+
+        Returns:
+            Tuple[success, new_count]
+        """
+        time.sleep(wait_seconds)
+        new_count = self._get_comment_count(topic_guid)
+        expected_count = baseline + expected_increase
+
+        if new_count >= expected_count:
+            print_ok(f"Kommentar verifisert ({new_count} totalt)")
+            return True, new_count
+        else:
+            print_warn(f"Forventet {expected_count} kommentarer, fant {new_count}")
+            return False, new_count
+
+    def _verify_new_document(self, topic_guid: str, baseline: int,
+                            expected_increase: int = 1, wait_seconds: int = 3) -> Tuple[bool, int]:
+        """
+        Verifiser at nye dokumenter er linket.
+
+        Returns:
+            Tuple[success, new_count]
+        """
+        time.sleep(wait_seconds)
+        new_count = self._get_document_count(topic_guid)
+        expected_count = baseline + expected_increase
+
+        if new_count >= expected_count:
+            print_ok(f"Dokument verifisert ({new_count} totalt)")
+            return True, new_count
+        else:
+            print_warn(f"Forventet {expected_count} dokumenter, fant {new_count}")
+            return False, new_count
+
+    # =========================================================================
+    # State-håndtering
+    # =========================================================================
+
+    def _get_state_and_version(self, sak_id: str, magic_token: str) -> Tuple[Optional[Dict], int]:
+        """
+        Hent state og versjon for en sak.
+
+        Returns:
+            Tuple[state_dict, version] eller (None, 1) ved feil
+        """
+        try:
+            response = requests.get(
+                f"{BACKEND_URL}/api/cases/{sak_id}/state",
+                headers=self._get_auth_headers(magic_token),
+                timeout=5
+            )
+            if response.status_code == 200:
+                data = response.json()
+                return data.get('state', {}), data.get('version', 1)
+        except requests.exceptions.RequestException:
+            pass
+        return None, 1
+
+    def _send_event(self, sak_id: str, topic_guid: str, magic_token: str,
+                   event_type: str, event_data: Dict[str, Any],
+                   aktor: str, aktor_rolle: str,
+                   expected_version: int) -> Tuple[bool, int, Optional[str]]:
+        """
+        Send event til backend.
+
+        Returns:
+            Tuple[success, new_version, event_id]
+        """
+        payload = {
+            "sak_id": sak_id,
+            "expected_version": expected_version,
+            "catenda_topic_id": topic_guid,
+            "event": {
+                "event_type": event_type,
+                "aktor": aktor,
+                "aktor_rolle": aktor_rolle,
+                "data": event_data
+            }
+        }
+
+        try:
+            response = requests.post(
+                f"{BACKEND_URL}/api/events",
+                json=payload,
+                headers=self._get_auth_headers(magic_token),
+                timeout=10
+            )
+
+            if response.status_code in [200, 201]:
+                result = response.json()
+                new_version = result.get('new_version', expected_version + 1)
+                event_id = result.get('event_id')
+                if result.get('pdf_uploaded'):
+                    print_ok(f"  PDF lastet opp (kilde: {result.get('pdf_source')})")
+                return True, new_version, event_id
+            else:
+                print_fail(f"Feil ved sending: {response.status_code}")
+                print_info(f"  {response.text[:200]}")
+                return False, expected_version, None
+
+        except requests.exceptions.RequestException as e:
+            print_fail(f"Nettverksfeil: {e}")
+            return False, expected_version, None
+
+
+# =============================================================================
+# FASE 2: TEST STANDARD KOE-FLYT
+# =============================================================================
+
+class KOEFlowTester(BaseTester):
+    """Tester standard KOE-flyt"""
+
+    def __init__(self, client: CatendaClient, project_id: str,
+                 library_id: Optional[str], folder_id: Optional[str],
+                 topic_board_id: str):
+        super().__init__(client, project_id, library_id, folder_id, topic_board_id)
+
+        self.topic_guid: Optional[str] = None
+        self.sak_id: Optional[str] = None
+        self.topic_title: Optional[str] = None
+        self.magic_token: Optional[str] = None
+
+        # Tracking for verification
+        self.initial_comment_count: int = 0
+        self.initial_document_count: int = 0
+
+    def _get_auth_headers_local(self) -> Dict[str, str]:
+        """Lokale auth headers med instansens magic_token"""
+        return self._get_auth_headers(self.magic_token)
+
+    def _get_comment_count_local(self) -> int:
+        """Hent antall kommentarer på instansens topic"""
+        return self._get_comment_count(self.topic_guid)
+
+    def _get_document_count_local(self) -> int:
+        """Hent antall dokumenter på instansens topic"""
+        return self._get_document_count(self.topic_guid)
+
+    def _verify_new_comment_local(self, expected_increase: int = 1, wait_seconds: int = 3) -> bool:
+        """Verifiser nye kommentarer og oppdater baseline"""
+        success, new_count = self._verify_new_comment(
+            self.topic_guid, self.initial_comment_count, expected_increase, wait_seconds
+        )
+        self.initial_comment_count = new_count
+        return success
+
+    def _verify_new_document_local(self, expected_increase: int = 1, wait_seconds: int = 3) -> bool:
+        """Verifiser nye dokumenter og oppdater baseline"""
+        success, new_count = self._verify_new_document(
+            self.topic_guid, self.initial_document_count, expected_increase, wait_seconds
+        )
+        self.initial_document_count = new_count
+        return success
 
     def _extract_magic_token_from_comments(self) -> bool:
         """Hent magic token fra Catenda-kommentar"""
@@ -613,54 +1031,6 @@ class KOEFlowTester:
                 self.magic_token = match.group(1)
                 return True
         return False
-
-    def _get_auth_headers(self) -> Dict[str, str]:
-        """Bygg headers med CSRF og magic token (Bearer format)"""
-        headers = {"Content-Type": "application/json"}
-        if self.csrf_token:
-            headers["X-CSRF-Token"] = self.csrf_token
-        if self.magic_token:
-            # Magic link token må sendes som Bearer token i Authorization header
-            headers["Authorization"] = f"Bearer {self.magic_token}"
-        return headers
-
-    def _get_comment_count(self) -> int:
-        """Hent antall kommentarer på topic"""
-        comments = self.client.get_comments(self.topic_guid)
-        return len(comments) if comments else 0
-
-    def _get_document_count(self) -> int:
-        """Hent antall dokumenter linket til topic"""
-        documents = self.client.list_document_references(self.topic_guid)
-        return len(documents) if documents else 0
-
-    def _verify_new_comment(self, expected_increase: int = 1, wait_seconds: int = 3) -> bool:
-        """Verifiser at nye kommentarer er postet"""
-        time.sleep(wait_seconds)  # Vent på asynkron posting
-        new_count = self._get_comment_count()
-        expected_count = self.initial_comment_count + expected_increase
-
-        if new_count >= expected_count:
-            print_ok(f"Kommentar verifisert ({new_count} totalt)")
-            self.initial_comment_count = new_count
-            return True
-        else:
-            print_warn(f"Forventet {expected_count} kommentarer, fant {new_count}")
-            return False
-
-    def _verify_new_document(self, expected_increase: int = 1, wait_seconds: int = 3) -> bool:
-        """Verifiser at nye dokumenter er linket"""
-        time.sleep(wait_seconds)  # Vent på asynkron opplasting
-        new_count = self._get_document_count()
-        expected_count = self.initial_document_count + expected_increase
-
-        if new_count >= expected_count:
-            print_ok(f"Dokument verifisert ({new_count} totalt)")
-            self.initial_document_count = new_count
-            return True
-        else:
-            print_warn(f"Forventet {expected_count} dokumenter, fant {new_count}")
-            return False
 
     def create_test_topic(self) -> bool:
         """Steg 2.1: Opprett test-topic i Catenda"""
@@ -714,92 +1084,19 @@ class KOEFlowTester:
         print_info("NB: Catenda sender ikke webhook for API-opprettede topics")
         print_info("Oppretter sak direkte via backend...")
 
-        return self._create_case_directly()
+        # Bruk BaseTester._create_case_directly()
+        sak_id, magic_token = super()._create_case_directly(
+            topic_guid=self.topic_guid,
+            topic_title=self.topic_title,
+            sakstype="koe"
+        )
 
-    def _create_case_directly(self) -> bool:
-        """Opprett sak direkte via backend intern API.
-
-        Siden Catenda ikke sender webhooks for API-opprettede topics,
-        oppretter vi saken direkte ved å kalle backend internt.
-        """
-        from datetime import datetime
-        from repositories.event_repository import JsonFileEventRepository
-        from repositories.sak_metadata_repository import SakMetadataRepository, SakMetadata
-        from models.events import SakOpprettetEvent
-        from lib.auth.magic_link import get_magic_link_manager
-
-        # Generer sak_id
-        timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
-        self.sak_id = f"SAK-{timestamp}"
-
-        print_info(f"Genererer sak: {self.sak_id}")
-
-        try:
-            # Opprett SakOpprettetEvent
-            event = SakOpprettetEvent(
-                sak_id=self.sak_id,
-                sakstittel=self.topic_title,
-                aktor="Test Script",
-                aktor_rolle="TE",
-                prosjekt_id=self.project_id,
-                catenda_topic_id=self.topic_guid,
-                sakstype="koe",
-            )
-
-            # Persist event
-            event_repo = JsonFileEventRepository()
-            new_version = event_repo.append(event, expected_version=0)
-            print_ok(f"SakOpprettetEvent lagret (versjon: {new_version})")
-
-            # Opprett metadata
-            metadata = SakMetadata(
-                sak_id=self.sak_id,
-                prosjekt_id=self.project_id,
-                catenda_topic_id=self.topic_guid,
-                catenda_board_id=self.topic_board_id,
-                catenda_project_id=self.project_id,
-                created_at=datetime.now(),
-                created_by="Test Script",
-                cached_title=self.topic_title,
-                cached_status="UNDER_VARSLING",
-            )
-            metadata_repo = SakMetadataRepository()
-            metadata_repo.create(metadata)
-            print_ok("Metadata opprettet")
-
-            # Generer magic link og post kommentar til Catenda
-            magic_link_manager = get_magic_link_manager()
-            magic_token = magic_link_manager.generate(sak_id=self.sak_id)
+        if sak_id and magic_token:
+            self.sak_id = sak_id
             self.magic_token = magic_token
-
-            base_url = os.getenv('DEV_REACT_APP_URL') or os.getenv('REACT_APP_URL') or 'http://localhost:5173'
-            magic_link = f"{base_url}/saker/{self.sak_id}?magicToken={magic_token}"
-
-            # Post initial kommentar
-            dato = datetime.now().strftime('%Y-%m-%d')
-            comment_text = (
-                f"✅ **Ny Krav om endringsordre opprettet**\n\n"
-                f"📋 Intern saks-ID: `{self.sak_id}`\n"
-                f"📅 Dato: {dato}\n"
-                f"🏗️ Prosjekt: Test Project\n\n"
-                f"**Neste steg:** Entreprenor sender varsel (grunnlag)\n"
-                f"👉 [Apne skjema]({magic_link})"
-            )
-
-            self.client.create_comment(self.topic_guid, comment_text)
-            print_ok("Initial kommentar postet til Catenda")
-
-            # Hent CSRF token
-            if self._fetch_csrf_token():
-                print_ok("CSRF-token hentet")
-
             return True
 
-        except Exception as e:
-            print_fail(f"Feil ved opprettelse av sak: {e}")
-            import traceback
-            traceback.print_exc()
-            return False
+        return False
 
     def _fetch_sak_id_from_metadata(self) -> bool:
         """Hent sak_id fra metadata etter webhook"""
@@ -846,8 +1143,8 @@ class KOEFlowTester:
             print_warn("Ingen kommentarer funnet")
 
         # Sett baseline for kommentar- og dokument-telling
-        self.initial_comment_count = self._get_comment_count()
-        self.initial_document_count = self._get_document_count()
+        self.initial_comment_count = self._get_comment_count_local()
+        self.initial_document_count = self._get_document_count_local()
         print_info(f"Baseline: {self.initial_comment_count} kommentar(er), {self.initial_document_count} dokument(er)")
 
         return True
@@ -861,18 +1158,7 @@ class KOEFlowTester:
         print_info(f"  Underkategori: {TEST_DATA['grunnlag']['underkategori']}")
 
         # Hent versjon først
-        try:
-            state_resp = requests.get(
-                f"{BACKEND_URL}/api/cases/{self.sak_id}/state",
-                headers=self._get_auth_headers(),
-                timeout=5
-            )
-            if state_resp.status_code == 200:
-                current_version = state_resp.json().get('version', 1)
-            else:
-                current_version = 1
-        except:
-            current_version = 1
+        _, current_version = self._get_state_and_version(self.sak_id, self.magic_token)
 
         event_data = {
             "sak_id": self.sak_id,
@@ -897,7 +1183,7 @@ class KOEFlowTester:
             response = requests.post(
                 f"{BACKEND_URL}/api/events",
                 json=event_data,
-                headers=self._get_auth_headers(),
+                headers=self._get_auth_headers_local(),
                 timeout=10
             )
 
@@ -913,8 +1199,8 @@ class KOEFlowTester:
 
                 # Verifiser Catenda-integrasjon
                 print_subheader("Verifiserer Catenda-integrasjon for grunnlag")
-                self._verify_new_comment()
-                self._verify_new_document()
+                self._verify_new_comment_local()
+                self._verify_new_document_local()
 
                 return True
             else:
@@ -956,18 +1242,7 @@ class KOEFlowTester:
         print_header("STEG 2.7: Send vederlag og fristkrav")
 
         # Hent gjeldende versjon
-        try:
-            state_resp = requests.get(
-                f"{BACKEND_URL}/api/cases/{self.sak_id}/state",
-                headers=self._get_auth_headers(),
-                timeout=5
-            )
-            if state_resp.status_code == 200:
-                current_version = state_resp.json().get('version', 1)
-            else:
-                current_version = 1
-        except:
-            current_version = 1
+        _, current_version = self._get_state_and_version(self.sak_id, self.magic_token)
 
         # Vederlagskrav
         print_info("Sender vederlag_krav_sendt...")
@@ -994,7 +1269,7 @@ class KOEFlowTester:
             response = requests.post(
                 f"{BACKEND_URL}/api/events",
                 json=vederlag_payload,
-                headers=self._get_auth_headers(),
+                headers=self._get_auth_headers_local(),
                 timeout=10
             )
 
@@ -1007,8 +1282,8 @@ class KOEFlowTester:
 
                 # Verifiser Catenda-integrasjon
                 print_subheader("Verifiserer Catenda-integrasjon for vederlag")
-                self._verify_new_comment()
-                self._verify_new_document()
+                self._verify_new_comment_local()
+                self._verify_new_document_local()
             else:
                 print_fail(f"Feil ved sending: {response.status_code}")
                 print_info(f"  {response.text[:200]}")
@@ -1042,7 +1317,7 @@ class KOEFlowTester:
             response = requests.post(
                 f"{BACKEND_URL}/api/events",
                 json=frist_payload,
-                headers=self._get_auth_headers(),
+                headers=self._get_auth_headers_local(),
                 timeout=10
             )
 
@@ -1054,8 +1329,8 @@ class KOEFlowTester:
 
                 # Verifiser Catenda-integrasjon
                 print_subheader("Verifiserer Catenda-integrasjon for frist")
-                self._verify_new_comment()
-                self._verify_new_document()
+                self._verify_new_comment_local()
+                self._verify_new_document_local()
             else:
                 print_fail(f"Feil ved sending: {response.status_code}")
                 print_info(f"  {response.text[:200]}")
@@ -1072,22 +1347,10 @@ class KOEFlowTester:
         """Fase 3: BH svarer på alle krav"""
         print_header("FASE 3: BH RESPONSES")
 
-        # Hent gjeldende versjon og event IDs
-        try:
-            state_resp = requests.get(
-                f"{BACKEND_URL}/api/cases/{self.sak_id}/state",
-                headers=self._get_auth_headers(),
-                timeout=5
-            )
-            if state_resp.status_code == 200:
-                state_data = state_resp.json()
-                current_version = state_data.get('version', 1)
-                state = state_data.get('state', {})
-            else:
-                print_fail("Kunne ikke hente state")
-                return False
-        except Exception as e:
-            print_fail(f"Feil ved henting av state: {e}")
+        # Hent gjeldende versjon
+        state, current_version = self._get_state_and_version(self.sak_id, self.magic_token)
+        if state is None:
+            print_fail("Kunne ikke hente state")
             return False
 
         # 3.1 Respons på grunnlag
@@ -1110,14 +1373,14 @@ class KOEFlowTester:
             response = requests.post(
                 f"{BACKEND_URL}/api/events",
                 json=grunnlag_response,
-                headers=self._get_auth_headers(),
+                headers=self._get_auth_headers_local(),
                 timeout=10
             )
             if response.status_code in [200, 201]:
                 result = response.json()
                 print_ok("Grunnlag-respons sendt!")
                 current_version = result.get('new_version', current_version + 1)
-                self._verify_new_comment()
+                self._verify_new_comment_local()
             else:
                 print_fail(f"Feil: {response.status_code} - {response.text[:200]}")
                 return False
@@ -1146,14 +1409,14 @@ class KOEFlowTester:
             response = requests.post(
                 f"{BACKEND_URL}/api/events",
                 json=vederlag_response,
-                headers=self._get_auth_headers(),
+                headers=self._get_auth_headers_local(),
                 timeout=10
             )
             if response.status_code in [200, 201]:
                 result = response.json()
                 print_ok("Vederlag-respons sendt!")
                 current_version = result.get('new_version', current_version + 1)
-                self._verify_new_comment()
+                self._verify_new_comment_local()
             else:
                 print_fail(f"Feil: {response.status_code} - {response.text[:200]}")
                 return False
@@ -1182,14 +1445,14 @@ class KOEFlowTester:
             response = requests.post(
                 f"{BACKEND_URL}/api/events",
                 json=frist_response,
-                headers=self._get_auth_headers(),
+                headers=self._get_auth_headers_local(),
                 timeout=10
             )
             if response.status_code in [200, 201]:
                 result = response.json()
                 print_ok("Frist-respons sendt!")
                 current_version = result.get('new_version', current_version + 1)
-                self._verify_new_comment()
+                self._verify_new_comment_local()
             else:
                 print_fail(f"Feil: {response.status_code} - {response.text[:200]}")
                 return False
@@ -1208,35 +1471,26 @@ class KOEFlowTester:
         """Fase 4: TE sender revisjoner etter delvis godkjenning"""
         print_header("FASE 4: TE REVISIONS")
 
-        # Hent gjeldende versjon og siste event IDs
-        try:
-            state_resp = requests.get(
-                f"{BACKEND_URL}/api/cases/{self.sak_id}/state",
-                headers=self._get_auth_headers(),
-                timeout=5
-            )
-            if state_resp.status_code == 200:
-                state_data = state_resp.json()
-                current_version = state_data.get('version', 1)
-                state = state_data.get('state', {})
-            else:
-                print_fail("Kunne ikke hente state")
-                return False
+        # Hent gjeldende versjon
+        state, current_version = self._get_state_and_version(self.sak_id, self.magic_token)
+        if state is None:
+            print_fail("Kunne ikke hente state")
+            return False
 
-            # Hent timeline for å finne event IDs
+        # Hent timeline for å finne event IDs
+        try:
             timeline_resp = requests.get(
                 f"{BACKEND_URL}/api/cases/{self.sak_id}/timeline",
-                headers=self._get_auth_headers(),
+                headers=self._get_auth_headers_local(),
                 timeout=5
             )
             if timeline_resp.status_code == 200:
                 timeline = timeline_resp.json().get('events', [])
             else:
                 timeline = []
-
         except Exception as e:
-            print_fail(f"Feil ved henting av state: {e}")
-            return False
+            print_fail(f"Feil ved henting av timeline: {e}")
+            timeline = []
 
         # Finn siste vederlag og frist event IDs (og varsel_type for frist)
         vederlag_event_id = None
@@ -1280,14 +1534,14 @@ class KOEFlowTester:
                 response = requests.post(
                     f"{BACKEND_URL}/api/events",
                     json=vederlag_revision,
-                    headers=self._get_auth_headers(),
+                    headers=self._get_auth_headers_local(),
                     timeout=10
                 )
                 if response.status_code in [200, 201]:
                     result = response.json()
                     print_ok("Vederlag-revisjon sendt!")
                     current_version = result.get('new_version', current_version + 1)
-                    self._verify_new_comment()
+                    self._verify_new_comment_local()
                 else:
                     print_fail(f"Feil: {response.status_code} - {response.text[:200]}")
             except Exception as e:
@@ -1323,13 +1577,13 @@ class KOEFlowTester:
                 response = requests.post(
                     f"{BACKEND_URL}/api/events",
                     json=frist_revision,
-                    headers=self._get_auth_headers(),
+                    headers=self._get_auth_headers_local(),
                     timeout=10
                 )
                 if response.status_code in [200, 201]:
                     result = response.json()
                     print_ok("Frist-revisjon sendt!")
-                    self._verify_new_comment()
+                    self._verify_new_comment_local()
                 else:
                     print_fail(f"Feil: {response.status_code} - {response.text[:200]}")
             except Exception as e:
@@ -1351,7 +1605,7 @@ class KOEFlowTester:
         try:
             response = requests.get(
                 f"{BACKEND_URL}/api/cases/{self.sak_id}/state",
-                headers=self._get_auth_headers(),
+                headers=self._get_auth_headers_local(),
                 timeout=5
             )
             if response.status_code == 200:
@@ -1384,7 +1638,7 @@ class KOEFlowTester:
         try:
             timeline_resp = requests.get(
                 f"{BACKEND_URL}/api/cases/{self.sak_id}/timeline",
-                headers=self._get_auth_headers(),
+                headers=self._get_auth_headers_local(),
                 timeout=5
             )
             if timeline_resp.status_code == 200:
@@ -1401,8 +1655,8 @@ class KOEFlowTester:
         # Catenda-verifikasjon
         print()
         print_subheader("Catenda-integrasjon verifisering")
-        final_comments = self._get_comment_count()
-        final_documents = self._get_document_count()
+        final_comments = self._get_comment_count_local()
+        final_documents = self._get_document_count_local()
         print(f"  Kommentarer i topic: {final_comments}")
         print(f"  Dokumenter linket:   {final_documents}")
 
@@ -1478,10 +1732,838 @@ class KOEFlowTester:
 
 
 # =============================================================================
+# FORSERING FLOW TESTER (§33.8)
+# =============================================================================
+
+class ForseringFlowTester(BaseTester):
+    """
+    Tester forsering-flyt (NS 8407 §33.8).
+
+    Flyten:
+    1. Opprett 2+ KOE-saker med fristkrav
+    2. BH avslår fristkrav på alle KOE-saker
+    3. Valider 30%-regelen
+    4. TE oppretter forsering-sak som samler de avslåtte sakene
+    5. BH aksepterer/avviser forsering
+    """
+
+    def __init__(self, client: CatendaClient, project_id: str,
+                 library_id: Optional[str], folder_id: Optional[str],
+                 topic_board_id: str):
+        super().__init__(client, project_id, library_id, folder_id, topic_board_id)
+
+        # KOE-saker som opprettes for forsering
+        self.koe_saker: List[Dict[str, Any]] = []  # [{sak_id, topic_guid, magic_token, frist_dager}]
+
+        # Forsering-sak
+        self.forsering_sak: Optional[Dict[str, Any]] = None
+        self.forsering_topic_guid: Optional[str] = None
+
+    def run_full_flow(self) -> bool:
+        """Kjør full forsering-testflyt"""
+        print_header("FORSERING TESTFLYT (§33.8)")
+
+        print("Denne testen gjør følgende:")
+        print("  1. Oppretter 2 KOE-saker med fristkrav")
+        print("  2. BH avslår fristkravene")
+        print("  3. Validerer 30%-regelen")
+        print("  4. TE varsler forsering")
+        print("  5. BH aksepterer forsering")
+        print()
+
+        # Steg 1: Opprett KOE-saker
+        if not self.create_koe_cases():
+            print_fail("Kunne ikke opprette KOE-saker")
+            return False
+
+        # Steg 2: BH avslår fristkrav
+        if not self.bh_reject_deadlines():
+            print_fail("Kunne ikke sende frist-avslag")
+            return False
+
+        # Steg 3: Valider 30%-regelen
+        if not self.validate_30_percent_rule():
+            print_fail("30%-regelen ikke oppfylt")
+            return False
+
+        # Steg 4: TE varsler forsering
+        if not self.create_forsering():
+            print_fail("Kunne ikke opprette forsering")
+            return False
+
+        # Steg 5: BH aksepterer forsering
+        if not self.bh_respond_to_forsering():
+            print_fail("Kunne ikke sende forsering-respons")
+            return False
+
+        # Oppsummering
+        self.show_summary()
+
+        print_ok("Forsering-testflyt fullført!")
+        return True
+
+    def create_koe_cases(self) -> bool:
+        """Steg 1: Opprett KOE-saker med fristkrav"""
+        print_header("FORSERING STEG 1: Opprett KOE-saker")
+
+        for i, koe_config in enumerate(FORSERING_TEST_DATA['koe_saker'], 1):
+            print_subheader(f"Oppretter KOE-{i}")
+
+            # Opprett topic
+            topic_guid = self._create_topic(
+                title=koe_config['tittel'],
+                topic_type="Krav om endringsordre",
+                description=f"Forsering-test KOE-{i}\n\n{koe_config['grunnlag']['beskrivelse']}"
+            )
+
+            if not topic_guid:
+                print_fail(f"Kunne ikke opprette topic for KOE-{i}")
+                return False
+
+            print_ok(f"Topic opprettet: {topic_guid}")
+
+            # Opprett sak
+            sak_id, magic_token = self._create_case_directly(
+                topic_guid=topic_guid,
+                topic_title=koe_config['tittel'],
+                sakstype="koe"
+            )
+
+            if not sak_id:
+                print_fail(f"Kunne ikke opprette sak for KOE-{i}")
+                return False
+
+            print_ok(f"Sak opprettet: {sak_id}")
+
+            # Send grunnlag
+            _, version = self._get_state_and_version(sak_id, magic_token)
+            success, version, _ = self._send_event(
+                sak_id=sak_id,
+                topic_guid=topic_guid,
+                magic_token=magic_token,
+                event_type="grunnlag_opprettet",
+                event_data={
+                    "tittel": koe_config['tittel'],
+                    **koe_config['grunnlag'],
+                    "dato_oppdaget": datetime.now().strftime('%Y-%m-%d')
+                },
+                aktor="Test Script",
+                aktor_rolle="TE",
+                expected_version=version
+            )
+            if success:
+                print_ok(f"Grunnlag sendt for KOE-{i}")
+            else:
+                print_fail(f"Kunne ikke sende grunnlag for KOE-{i}")
+                return False
+
+            # Send fristkrav - track event_id for forsering reference
+            success, version, frist_krav_id = self._send_event(
+                sak_id=sak_id,
+                topic_guid=topic_guid,
+                magic_token=magic_token,
+                event_type="frist_krav_sendt",
+                event_data={
+                    **koe_config['frist'],
+                    "spesifisert_varsel": {
+                        "dato_sendt": datetime.now().strftime('%Y-%m-%d')
+                    }
+                },
+                aktor="Test Script",
+                aktor_rolle="TE",
+                expected_version=version
+            )
+            if success:
+                print_ok(f"Fristkrav sendt for KOE-{i}: {koe_config['frist']['antall_dager']} dager")
+            else:
+                print_fail(f"Kunne ikke sende fristkrav for KOE-{i}")
+                return False
+
+            # Lagre info med frist_krav_id
+            self.koe_saker.append({
+                "sak_id": sak_id,
+                "topic_guid": topic_guid,
+                "magic_token": magic_token,
+                "frist_dager": koe_config['frist']['antall_dager'],
+                "frist_krav_id": frist_krav_id,
+                "version": version
+            })
+
+            time.sleep(1)  # Kort pause mellom opprettelser
+
+        print_ok(f"Opprettet {len(self.koe_saker)} KOE-saker")
+        return True
+
+    def bh_reject_deadlines(self) -> bool:
+        """Steg 2: BH avslår fristkrav på alle KOE-saker"""
+        print_header("FORSERING STEG 2: BH avslår fristkrav")
+
+        for i, koe in enumerate(self.koe_saker, 1):
+            print_subheader(f"Avslår frist på KOE-{i}")
+
+            # Hent nyeste versjon
+            _, version = self._get_state_and_version(koe['sak_id'], koe['magic_token'])
+
+            success, new_version, respons_frist_id = self._send_event(
+                sak_id=koe['sak_id'],
+                topic_guid=koe['topic_guid'],
+                magic_token=koe['magic_token'],
+                event_type="respons_frist",
+                event_data=FORSERING_TEST_DATA['bh_frist_avslag'],
+                aktor="Test Script BH",
+                aktor_rolle="BH",
+                expected_version=version
+            )
+
+            if success:
+                print_ok(f"Frist avslått for KOE-{i}")
+                koe['version'] = new_version
+                koe['respons_frist_id'] = respons_frist_id
+            else:
+                print_fail(f"Kunne ikke avslå frist for KOE-{i}")
+                return False
+
+            time.sleep(1)
+
+        print_ok("Alle fristkrav avslått")
+        return True
+
+    def validate_30_percent_rule(self) -> bool:
+        """Steg 3: Valider 30%-regelen"""
+        print_header("FORSERING STEG 3: Valider 30%-regelen")
+
+        total_rejected_days = sum(k['frist_dager'] for k in self.koe_saker)
+        dagmulktsats = FORSERING_TEST_DATA['forsering']['dagmulktsats']
+        estimert_kostnad = FORSERING_TEST_DATA['forsering']['estimert_kostnad']
+
+        # Dagmulktgrunnlag
+        dagmulkt_grunnlag = total_rejected_days * dagmulktsats
+
+        # 30% tillegg
+        maks_forseringskostnad = dagmulkt_grunnlag * 1.3
+
+        print_info(f"  Avslåtte dager:        {total_rejected_days} dager")
+        print_info(f"  Dagmulktsats:          {dagmulktsats:,.0f} kr/dag")
+        print_info(f"  Dagmulktgrunnlag:      {dagmulkt_grunnlag:,.0f} kr")
+        print_info(f"  + 30% tillegg:         {dagmulkt_grunnlag * 0.3:,.0f} kr")
+        print_info(f"  = Maks forsering:      {maks_forseringskostnad:,.0f} kr")
+        print_info(f"  Estimert kostnad:      {estimert_kostnad:,.0f} kr")
+        print()
+
+        if estimert_kostnad <= maks_forseringskostnad:
+            print_ok(f"30%-regelen oppfylt: {estimert_kostnad:,.0f} <= {maks_forseringskostnad:,.0f}")
+            return True
+        else:
+            print_fail(f"30%-regelen IKKE oppfylt: {estimert_kostnad:,.0f} > {maks_forseringskostnad:,.0f}")
+            return False
+
+    def create_forsering(self) -> bool:
+        """Steg 4: TE varsler forsering"""
+        print_header("FORSERING STEG 4: TE varsler forsering")
+
+        # Opprett forsering-topic
+        self.forsering_topic_guid = self._create_topic(
+            title=f"FORSERING - {datetime.now().strftime('%Y%m%d-%H%M%S')}",
+            topic_type="Forsering",
+            description=f"Forseringssak (§33.8)\n\n"
+                       f"Relaterte KOE-saker: {len(self.koe_saker)}\n"
+                       f"Estimert kostnad: {FORSERING_TEST_DATA['forsering']['estimert_kostnad']:,.0f} kr"
+        )
+
+        if not self.forsering_topic_guid:
+            print_fail("Kunne ikke opprette forsering-topic")
+            return False
+
+        print_ok(f"Forsering-topic opprettet: {self.forsering_topic_guid}")
+
+        # Opprett toveis topic-relasjoner mellom forsering og KOE-saker
+        koe_topic_guids = [k['topic_guid'] for k in self.koe_saker]
+
+        # Forsering → KOE (forseringen peker på KOE-sakene)
+        self.client.create_topic_relations(
+            topic_id=self.forsering_topic_guid,
+            related_topic_guids=koe_topic_guids
+        )
+        print_ok(f"Opprettet relasjoner: Forsering → {len(koe_topic_guids)} KOE-saker")
+
+        # KOE → Forsering (hver KOE-sak peker tilbake på forseringen)
+        for koe in self.koe_saker:
+            self.client.create_topic_relations(
+                topic_id=koe['topic_guid'],
+                related_topic_guids=[self.forsering_topic_guid]
+            )
+        print_ok(f"Opprettet relasjoner: {len(koe_topic_guids)} KOE-saker → Forsering")
+
+        # Opprett forsering-sak med riktig sakstype
+        sak_id, magic_token = self._create_case_directly(
+            topic_guid=self.forsering_topic_guid,
+            topic_title=f"FORSERING - {datetime.now().strftime('%Y%m%d')}",
+            sakstype="forsering"
+        )
+
+        if not sak_id:
+            print_fail("Kunne ikke opprette forsering-sak")
+            return False
+
+        print_ok(f"Forsering-sak opprettet: {sak_id}")
+
+        self.forsering_sak = {
+            "sak_id": sak_id,
+            "topic_guid": self.forsering_topic_guid,
+            "magic_token": magic_token
+        }
+
+        # Send forsering-varsel event
+        # Bruk første KOE-sak som referanse for forsering
+        # (I praksis ville forsering kunne referere til flere avslåtte krav)
+        _, version = self._get_state_and_version(sak_id, magic_token)
+
+        total_rejected_days = sum(k['frist_dager'] for k in self.koe_saker)
+        dagmulktsats = FORSERING_TEST_DATA['forsering']['dagmulktsats']
+
+        # Bruk første KOE-sak som basis (§33.8 gjelder per avslått krav)
+        first_koe = self.koe_saker[0]
+
+        success, _, _ = self._send_event(
+            sak_id=sak_id,
+            topic_guid=self.forsering_topic_guid,
+            magic_token=magic_token,
+            event_type="forsering_varsel",
+            event_data={
+                "frist_krav_id": first_koe['frist_krav_id'],
+                "respons_frist_id": first_koe['respons_frist_id'],
+                "estimert_kostnad": FORSERING_TEST_DATA['forsering']['estimert_kostnad'],
+                "begrunnelse": FORSERING_TEST_DATA['forsering']['begrunnelse'],
+                "bekreft_30_prosent": True,
+                "dato_iverksettelse": datetime.now().strftime('%Y-%m-%d'),
+                "avslatte_dager": total_rejected_days,
+                "dagmulktsats": dagmulktsats
+            },
+            aktor="Test Script",
+            aktor_rolle="TE",
+            expected_version=version
+        )
+
+        if success:
+            print_ok("Forsering-varsel sendt")
+            print_info(f"  Refererer til KOE-sak: {first_koe['sak_id']}")
+            return True
+        else:
+            print_fail("Kunne ikke sende forsering-varsel")
+            return False
+
+    def bh_respond_to_forsering(self) -> bool:
+        """Steg 5: BH aksepterer forsering"""
+        print_header("FORSERING STEG 5: BH aksepterer forsering")
+
+        if not self.forsering_sak:
+            print_fail("Ingen forsering-sak å svare på")
+            return False
+
+        sak_id = self.forsering_sak['sak_id']
+        topic_guid = self.forsering_sak['topic_guid']
+        magic_token = self.forsering_sak['magic_token']
+
+        _, version = self._get_state_and_version(sak_id, magic_token)
+
+        success, _, _ = self._send_event(
+            sak_id=sak_id,
+            topic_guid=topic_guid,
+            magic_token=magic_token,
+            event_type="forsering_respons",
+            event_data={
+                "aksepterer": FORSERING_TEST_DATA['bh_forsering_aksept']['aksepterer'],
+                "godkjent_kostnad": FORSERING_TEST_DATA['bh_forsering_aksept']['godkjent_kostnad'],
+                "begrunnelse": FORSERING_TEST_DATA['bh_forsering_aksept']['begrunnelse'],
+                "dato_respons": datetime.now().strftime('%Y-%m-%d')
+            },
+            aktor="Test Script BH",
+            aktor_rolle="BH",
+            expected_version=version
+        )
+
+        if success:
+            print_ok("BH aksepterer forsering")
+            return True
+        else:
+            print_fail("Kunne ikke sende forsering-respons")
+            return False
+
+    def show_summary(self) -> None:
+        """Vis oppsummering av forsering-test"""
+        print_header("FORSERING TEST FULLFØRT")
+
+        print("  KOE-saker (avslåtte fristkrav):")
+        for i, koe in enumerate(self.koe_saker, 1):
+            print(f"    KOE-{i}: {koe['sak_id']} ({koe['frist_dager']} dager)")
+
+        if self.forsering_sak:
+            print()
+            print(f"  Forsering-sak: {self.forsering_sak['sak_id']}")
+            print(f"  Estimert kostnad: {FORSERING_TEST_DATA['forsering']['estimert_kostnad']:,.0f} kr")
+            print(f"  Status: Akseptert av BH")
+
+        print()
+        print("  Flyten testet:")
+        print("    1. KOE-saker opprettet med fristkrav")
+        print("    2. BH avslår fristkravene")
+        print("    3. 30%-regelen validert")
+        print("    4. TE varsler forsering")
+        print("    5. BH aksepterer forsering")
+        print()
+
+
+# =============================================================================
+# ENDRINGSORDRE FLOW TESTER (§31.3)
+# =============================================================================
+
+class EOFlowTester(BaseTester):
+    """
+    Tester endringsordre-flyt (NS 8407 §31.3).
+
+    Flyten:
+    1. Opprett 2+ KOE-saker med vederlagskrav
+    2. BH oppretter endringsordre som samler KOE-sakene
+    3. BH utsteder endringsordre
+    4. TE aksepterer/bestrider EO
+    """
+
+    def __init__(self, client: CatendaClient, project_id: str,
+                 library_id: Optional[str], folder_id: Optional[str],
+                 topic_board_id: str):
+        super().__init__(client, project_id, library_id, folder_id, topic_board_id)
+
+        # KOE-saker som samles i EO
+        self.koe_saker: List[Dict[str, Any]] = []
+
+        # Endringsordre-sak
+        self.eo_sak: Optional[Dict[str, Any]] = None
+        self.eo_topic_guid: Optional[str] = None
+
+    def run_full_flow(self) -> bool:
+        """Kjør full EO-testflyt"""
+        print_header("ENDRINGSORDRE TESTFLYT (§31.3)")
+
+        print("Denne testen gjør følgende:")
+        print("  1. Oppretter 2 KOE-saker med vederlagskrav")
+        print("  2. BH godkjenner grunnlag og vederlag på KOE-saker")
+        print("  3. BH oppretter endringsordre")
+        print("  4. BH utsteder EO")
+        print("  5. TE aksepterer EO")
+        print()
+
+        # Steg 1: Opprett KOE-saker
+        if not self.create_koe_cases():
+            print_fail("Kunne ikke opprette KOE-saker")
+            return False
+
+        # Steg 2: BH godkjenner KOE-kravene
+        if not self.bh_approve_koe_claims():
+            print_fail("Kunne ikke godkjenne KOE-krav")
+            return False
+
+        # Steg 3: BH oppretter EO
+        if not self.create_endringsordre():
+            print_fail("Kunne ikke opprette endringsordre")
+            return False
+
+        # Steg 4: BH utsteder EO
+        if not self.issue_endringsordre():
+            print_fail("Kunne ikke utstede endringsordre")
+            return False
+
+        # Steg 5: TE aksepterer EO
+        if not self.te_accept_eo():
+            print_fail("Kunne ikke akseptere EO")
+            return False
+
+        # Oppsummering
+        self.show_summary()
+
+        print_ok("Endringsordre-testflyt fullført!")
+        return True
+
+    def create_koe_cases(self) -> bool:
+        """Steg 1: Opprett KOE-saker med vederlagskrav"""
+        print_header("EO STEG 1: Opprett KOE-saker")
+
+        for i, koe_config in enumerate(EO_TEST_DATA['koe_saker'], 1):
+            print_subheader(f"Oppretter KOE-{i}")
+
+            # Opprett topic
+            topic_guid = self._create_topic(
+                title=koe_config['tittel'],
+                topic_type="Krav om endringsordre",
+                description=f"EO-test KOE-{i}\n\n{koe_config['grunnlag']['beskrivelse']}"
+            )
+
+            if not topic_guid:
+                print_fail(f"Kunne ikke opprette topic for KOE-{i}")
+                return False
+
+            print_ok(f"Topic opprettet: {topic_guid}")
+
+            # Opprett sak
+            sak_id, magic_token = self._create_case_directly(
+                topic_guid=topic_guid,
+                topic_title=koe_config['tittel'],
+                sakstype="koe"
+            )
+
+            if not sak_id:
+                print_fail(f"Kunne ikke opprette sak for KOE-{i}")
+                return False
+
+            print_ok(f"Sak opprettet: {sak_id}")
+
+            # Send grunnlag
+            _, version = self._get_state_and_version(sak_id, magic_token)
+            success, version, _ = self._send_event(
+                sak_id=sak_id,
+                topic_guid=topic_guid,
+                magic_token=magic_token,
+                event_type="grunnlag_opprettet",
+                event_data={
+                    "tittel": koe_config['tittel'],
+                    **koe_config['grunnlag'],
+                    "dato_oppdaget": datetime.now().strftime('%Y-%m-%d')
+                },
+                aktor="Test Script",
+                aktor_rolle="TE",
+                expected_version=version
+            )
+            if success:
+                print_ok(f"Grunnlag sendt for KOE-{i}")
+            else:
+                print_fail(f"Kunne ikke sende grunnlag for KOE-{i}")
+                return False
+
+            # Send vederlagskrav
+            success, version, _ = self._send_event(
+                sak_id=sak_id,
+                topic_guid=topic_guid,
+                magic_token=magic_token,
+                event_type="vederlag_krav_sendt",
+                event_data=koe_config['vederlag'],
+                aktor="Test Script",
+                aktor_rolle="TE",
+                expected_version=version
+            )
+            if success:
+                print_ok(f"Vederlagskrav sendt for KOE-{i}: {koe_config['vederlag']['belop_direkte']:,.0f} kr")
+            else:
+                print_fail(f"Kunne ikke sende vederlagskrav for KOE-{i}")
+                return False
+
+            # Lagre info
+            self.koe_saker.append({
+                "sak_id": sak_id,
+                "topic_guid": topic_guid,
+                "magic_token": magic_token,
+                "belop": koe_config['vederlag']['belop_direkte'],
+                "version": version
+            })
+
+            time.sleep(1)
+
+        print_ok(f"Opprettet {len(self.koe_saker)} KOE-saker")
+        return True
+
+    def bh_approve_koe_claims(self) -> bool:
+        """Steg 2: BH godkjenner grunnlag og vederlag på KOE-saker"""
+        print_header("EO STEG 2: BH godkjenner KOE-krav")
+
+        for i, koe in enumerate(self.koe_saker, 1):
+            print_subheader(f"Godkjenner KOE-{i}")
+
+            sak_id = koe['sak_id']
+            topic_guid = koe['topic_guid']
+            magic_token = koe['magic_token']
+
+            # Godkjenn grunnlag
+            _, version = self._get_state_and_version(sak_id, magic_token)
+            success, version, _ = self._send_event(
+                sak_id=sak_id,
+                topic_guid=topic_guid,
+                magic_token=magic_token,
+                event_type="respons_grunnlag",
+                event_data={
+                    "resultat": "godkjent",
+                    "begrunnelse": "Grunnlag godkjent for EO-aggregering"
+                },
+                aktor="Test Script BH",
+                aktor_rolle="BH",
+                expected_version=version
+            )
+            if success:
+                print_ok(f"Grunnlag godkjent for KOE-{i}")
+            else:
+                print_fail(f"Kunne ikke godkjenne grunnlag for KOE-{i}")
+                return False
+
+            # Godkjenn vederlag
+            success, version, _ = self._send_event(
+                sak_id=sak_id,
+                topic_guid=topic_guid,
+                magic_token=magic_token,
+                event_type="respons_vederlag",
+                event_data={
+                    "beregnings_resultat": "godkjent",
+                    "godkjent_belop": koe['belop'],
+                    "begrunnelse": "Vederlag godkjent for EO-aggregering"
+                },
+                aktor="Test Script BH",
+                aktor_rolle="BH",
+                expected_version=version
+            )
+            if success:
+                print_ok(f"Vederlag godkjent for KOE-{i}: {koe['belop']:,.0f} kr")
+                koe['version'] = version
+            else:
+                print_fail(f"Kunne ikke godkjenne vederlag for KOE-{i}")
+                return False
+
+            time.sleep(1)
+
+        print_ok("Alle KOE-krav godkjent")
+        return True
+
+    def create_endringsordre(self) -> bool:
+        """Steg 3: BH oppretter endringsordre"""
+        print_header("EO STEG 3: BH oppretter endringsordre")
+
+        eo_config = EO_TEST_DATA['endringsordre']
+
+        # Opprett EO-topic
+        self.eo_topic_guid = self._create_topic(
+            title=f"ENDRINGSORDRE {eo_config['eo_nummer']} - {datetime.now().strftime('%Y%m%d')}",
+            topic_type="Endringsordre",
+            description=f"Endringsordre {eo_config['eo_nummer']}\n\n{eo_config['beskrivelse']}"
+        )
+
+        if not self.eo_topic_guid:
+            print_fail("Kunne ikke opprette EO-topic")
+            return False
+
+        print_ok(f"EO-topic opprettet: {self.eo_topic_guid}")
+
+        # Opprett toveis topic-relasjoner mellom EO og KOE-saker
+        koe_topic_guids = [k['topic_guid'] for k in self.koe_saker]
+
+        # EO → KOE (endringsordren peker på KOE-sakene)
+        self.client.create_topic_relations(
+            topic_id=self.eo_topic_guid,
+            related_topic_guids=koe_topic_guids
+        )
+        print_ok(f"Opprettet relasjoner: EO → {len(koe_topic_guids)} KOE-saker")
+
+        # KOE → EO (hver KOE-sak peker tilbake på EO)
+        for koe in self.koe_saker:
+            self.client.create_topic_relations(
+                topic_id=koe['topic_guid'],
+                related_topic_guids=[self.eo_topic_guid]
+            )
+        print_ok(f"Opprettet relasjoner: {len(koe_topic_guids)} KOE-saker → EO")
+
+        # Opprett EO-sak med riktig sakstype
+        sak_id, magic_token = self._create_case_directly(
+            topic_guid=self.eo_topic_guid,
+            topic_title=f"ENDRINGSORDRE {eo_config['eo_nummer']}",
+            sakstype="endringsordre"
+        )
+
+        if not sak_id:
+            print_fail("Kunne ikke opprette EO-sak")
+            return False
+
+        print_ok(f"EO-sak opprettet: {sak_id}")
+
+        self.eo_sak = {
+            "sak_id": sak_id,
+            "topic_guid": self.eo_topic_guid,
+            "magic_token": magic_token
+        }
+
+        return True
+
+    def issue_endringsordre(self) -> bool:
+        """Steg 4: BH utsteder endringsordre"""
+        print_header("EO STEG 4: BH utsteder endringsordre")
+
+        if not self.eo_sak:
+            print_fail("Ingen EO-sak å utstede")
+            return False
+
+        sak_id = self.eo_sak['sak_id']
+        topic_guid = self.eo_sak['topic_guid']
+        magic_token = self.eo_sak['magic_token']
+        eo_config = EO_TEST_DATA['endringsordre']
+
+        _, version = self._get_state_and_version(sak_id, magic_token)
+
+        success, _, _ = self._send_event(
+            sak_id=sak_id,
+            topic_guid=topic_guid,
+            magic_token=magic_token,
+            event_type="eo_utstedt",
+            event_data={
+                "eo_nummer": eo_config['eo_nummer'],
+                "beskrivelse": eo_config['beskrivelse'],
+                "konsekvenser": eo_config['konsekvenser'],
+                "kompensasjon_belop": eo_config['kompensasjon_belop'],
+                "frist_dager": eo_config['frist_dager'],
+                "oppgjorsform": eo_config['oppgjorsform'],
+                "relaterte_sak_ids": [k['sak_id'] for k in self.koe_saker],
+                "dato_utstedt": datetime.now().strftime('%Y-%m-%d')
+            },
+            aktor="Test Script BH",
+            aktor_rolle="BH",
+            expected_version=version
+        )
+
+        if success:
+            print_ok(f"Endringsordre {eo_config['eo_nummer']} utstedt")
+            print_info(f"  Kompensasjon: {eo_config['kompensasjon_belop']:,.0f} kr")
+            print_info(f"  Frist: {eo_config['frist_dager']} dager")
+            return True
+        else:
+            print_fail("Kunne ikke utstede endringsordre")
+            return False
+
+    def te_accept_eo(self) -> bool:
+        """Steg 5: TE aksepterer endringsordre"""
+        print_header("EO STEG 5: TE aksepterer endringsordre")
+
+        if not self.eo_sak:
+            print_fail("Ingen EO-sak å akseptere")
+            return False
+
+        sak_id = self.eo_sak['sak_id']
+        topic_guid = self.eo_sak['topic_guid']
+        magic_token = self.eo_sak['magic_token']
+
+        _, version = self._get_state_and_version(sak_id, magic_token)
+
+        success, _, _ = self._send_event(
+            sak_id=sak_id,
+            topic_guid=topic_guid,
+            magic_token=magic_token,
+            event_type="eo_akseptert",
+            event_data={
+                "akseptert": EO_TEST_DATA['te_aksept']['akseptert'],
+                "kommentar": EO_TEST_DATA['te_aksept']['kommentar'],
+                "dato_akseptert": datetime.now().strftime('%Y-%m-%d')
+            },
+            aktor="Test Script",
+            aktor_rolle="TE",
+            expected_version=version
+        )
+
+        if success:
+            print_ok("TE aksepterer endringsordre")
+            return True
+        else:
+            print_fail("Kunne ikke akseptere endringsordre")
+            return False
+
+    def show_summary(self) -> None:
+        """Vis oppsummering av EO-test"""
+        print_header("ENDRINGSORDRE TEST FULLFØRT")
+
+        print("  KOE-saker (samlet i EO):")
+        total_belop = 0
+        for i, koe in enumerate(self.koe_saker, 1):
+            print(f"    KOE-{i}: {koe['sak_id']} ({koe['belop']:,.0f} kr)")
+            total_belop += koe['belop']
+
+        if self.eo_sak:
+            eo_config = EO_TEST_DATA['endringsordre']
+            print()
+            print(f"  Endringsordre: {self.eo_sak['sak_id']}")
+            print(f"  EO-nummer: {eo_config['eo_nummer']}")
+            print(f"  Sum KOE-krav: {total_belop:,.0f} kr")
+            print(f"  BH kompensasjon: {eo_config['kompensasjon_belop']:,.0f} kr")
+            print(f"  Status: Akseptert av TE")
+
+        print()
+        print("  Flyten testet:")
+        print("    1. KOE-saker opprettet med vederlagskrav")
+        print("    2. BH oppretter endringsordre")
+        print("    3. BH utsteder endringsordre")
+        print("    4. TE aksepterer endringsordre")
+        print()
+
+
+# =============================================================================
 # HOVEDFUNKSJON
 # =============================================================================
 
-def main():
+def run_koe_flow(validator: SetupValidator) -> bool:
+    """Kjør standard KOE-flyt"""
+    tester = KOEFlowTester(
+        client=validator.client,
+        project_id=validator.project_id,
+        library_id=validator.library_id,
+        folder_id=validator.folder_id,
+        topic_board_id=validator.topic_board_id
+    )
+
+    # FASE 1: Opprett topic og sak
+    if not tester.create_test_topic():
+        print("\n[AVBRUTT] Kunne ikke opprette test-topic")
+        return False
+
+    if not tester.verify_webhook_received():
+        print("\n[AVBRUTT] Kunne ikke opprette sak")
+        return False
+
+    tester.set_verification_baseline()
+
+    # FASE 2: TE sender initiale krav
+    if not tester.send_grunnlag():
+        print("\n[ADVARSEL] Grunnlag-sending feilet, fortsetter...")
+
+    tester.verify_pdf_upload()
+    tester.send_vederlag_and_frist()
+
+    # FASE 3: BH svarer på krav
+    if not tester.send_bh_responses():
+        print("\n[ADVARSEL] BH-responser feilet, fortsetter...")
+
+    # FASE 4: TE sender revisjoner
+    if not tester.send_te_revisions():
+        print("\n[ADVARSEL] TE-revisjoner feilet, fortsetter...")
+
+    # Oppsummering
+    tester.show_summary()
+    return True
+
+
+def run_forsering_flow(validator: SetupValidator) -> bool:
+    """Kjør forsering-flyt"""
+    tester = ForseringFlowTester(
+        client=validator.client,
+        project_id=validator.project_id,
+        library_id=validator.library_id,
+        folder_id=validator.folder_id,
+        topic_board_id=validator.topic_board_id
+    )
+    return tester.run_full_flow()
+
+
+def run_eo_flow(validator: SetupValidator) -> bool:
+    """Kjør endringsordre-flyt"""
+    tester = EOFlowTester(
+        client=validator.client,
+        project_id=validator.project_id,
+        library_id=validator.library_id,
+        folder_id=validator.folder_id,
+        topic_board_id=validator.topic_board_id
+    )
+    return tester.run_full_flow()
+
+
+def main(flow_type: str = "koe"):
     """Hovedfunksjon"""
 
     print("\n" + "=" * 70)
@@ -1489,13 +2571,32 @@ def main():
     print("  Se docs/FULL_FLOW_TEST_PLAN.md for detaljer")
     print("=" * 70)
 
-    print("\nDette scriptet tester den komplette KOE-flyten:")
-    print("  1. Setup: Validerer konfigurasjon")
-    print("  2. FASE 1: Oppretter test-topic og sak")
-    print("  3. FASE 2: TE sender grunnlag, vederlag og fristkrav")
-    print("  4. FASE 3: BH svarer på kravene (godkjent/delvis godkjent)")
-    print("  5. FASE 4: TE sender revisjoner etter delvis godkjenning")
-    print("  6. Verifiserer kommentarer og PDF-opplasting i Catenda")
+    # Vis meny hvis ikke spesifisert via CLI
+    if flow_type == "menu":
+        print("\nVelg testflyt:")
+        print("  1. Standard KOE-flyt (TE/BH dialog)")
+        print("  2. Forsering-flyt (33.8 - avslatt fristkrav)")
+        print("  3. Endringsordre-flyt (31.3 - samle KOE-saker)")
+        print("  4. Alle flyter")
+        print()
+
+        if AUTO_CONFIRM:
+            choice = "1"
+            print(f"[auto-confirm: valg 1]")
+        else:
+            choice = input("Valg [1]: ").strip() or "1"
+
+        flow_map = {"1": "koe", "2": "forsering", "3": "eo", "4": "all"}
+        flow_type = flow_map.get(choice, "koe")
+
+    # Vis info om valgt flyt
+    flow_descriptions = {
+        "koe": "Standard KOE-flyt: TE sender krav, BH svarer, TE reviderer",
+        "forsering": "Forsering-flyt (33.8): KOE-saker med avslatte fristkrav, 30%-regel",
+        "eo": "Endringsordre-flyt (31.3): BH samler KOE-saker i formell EO",
+        "all": "Alle flyter kjores sekvensielt"
+    }
+    print(f"\n{flow_descriptions.get(flow_type, flow_type)}")
 
     if not confirm("\nStarte test?"):
         print("\nAvbrutt.")
@@ -1520,53 +2621,40 @@ def main():
         print("\n[AVBRUTT] Webhook-validering feilet")
         return
 
-    # Opprett tester
-    tester = KOEFlowTester(
-        client=validator.client,
-        project_id=validator.project_id,
-        library_id=validator.library_id,
-        folder_id=validator.folder_id,
-        topic_board_id=validator.topic_board_id
-    )
+    # Kjor valgt flyt
+    results = {}
 
-    # FASE 1: Opprett topic og sak
-    if not tester.create_test_topic():
-        print("\n[AVBRUTT] Kunne ikke opprette test-topic")
-        return
+    if flow_type in ["koe", "all"]:
+        print_header("STARTER KOE-FLYT")
+        results["koe"] = run_koe_flow(validator)
 
-    if not tester.verify_webhook_received():
-        print("\n[AVBRUTT] Kunne ikke opprette sak")
-        return
+    if flow_type in ["forsering", "all"]:
+        print_header("STARTER FORSERING-FLYT")
+        results["forsering"] = run_forsering_flow(validator)
 
-    tester.set_verification_baseline()
-
-    # FASE 2: TE sender initiale krav
-    if not tester.send_grunnlag():
-        print("\n[ADVARSEL] Grunnlag-sending feilet, fortsetter...")
-
-    tester.verify_pdf_upload()
-    tester.send_vederlag_and_frist()
-
-    # FASE 3: BH svarer på krav
-    if not tester.send_bh_responses():
-        print("\n[ADVARSEL] BH-responser feilet, fortsetter...")
-
-    # FASE 4: TE sender revisjoner
-    if not tester.send_te_revisions():
-        print("\n[ADVARSEL] TE-revisjoner feilet, fortsetter...")
+    if flow_type in ["eo", "all"]:
+        print_header("STARTER ENDRINGSORDRE-FLYT")
+        results["eo"] = run_eo_flow(validator)
 
     # Oppsummering
-    tester.show_summary()
-    # Ikke kjør cleanup automatisk - bruk catenda_menu.py for manuell opprydding
-    # tester.cleanup()
+    print_header("TESTRESULTATER")
+    for flow_name, success in results.items():
+        status = "[OK]" if success else "[FEIL]"
+        print(f"  {status} {flow_name}")
 
-    print("\n[FERDIG] Full flyt-test gjennomført!")
+    print("\n[FERDIG] Test(er) gjennomfort!")
 
 
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Full flow test for KOE system")
     parser.add_argument("--yes", "-y", action="store_true", help="Auto-confirm all prompts")
+    parser.add_argument(
+        "--flow",
+        choices=["koe", "forsering", "eo", "all", "menu"],
+        default="menu",
+        help="Testflyt: koe (standard), forsering (33.8), eo (31.3), all, menu (interaktiv)"
+    )
     args = parser.parse_args()
 
     if args.yes:
@@ -1574,7 +2662,7 @@ if __name__ == "__main__":
         globals()['AUTO_CONFIRM'] = True
 
     try:
-        main()
+        main(flow_type=args.flow)
     except KeyboardInterrupt:
         print("\n\nAvbrutt av bruker.")
         sys.exit(0)

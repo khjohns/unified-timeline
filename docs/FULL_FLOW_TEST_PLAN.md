@@ -378,7 +378,7 @@ Bekreft sletting [j/n]:
 - Opprett flere KOE-saker
 - Test toveis-relasjoner
 - Test EO som samler KOE-saker
-- Test forsering som refererer avslåtte fristkrav
+- Test forsering som refererer avslåtte fristkrav fra minst to KOE-saker
 
 ---
 

@@ -11,7 +11,7 @@ from typing import Dict, List, Optional, Any, Tuple
 
 from utils.logger import get_logger
 from models.sak_state import SakState
-from models.events import AnyEvent
+from models.events import AnyEvent, parse_event
 
 logger = get_logger(__name__)
 
@@ -133,8 +133,10 @@ class RelatedCasesService:
 
         for sak_id in sak_ids:
             try:
-                events, _version = self.event_repository.get_events(sak_id)
-                if events:
+                events_data, _version = self.event_repository.get_events(sak_id)
+                if events_data:
+                    # Parse events from stored data (dicts -> typed Event objects)
+                    events = [parse_event(e) for e in events_data]
                     state = self.timeline_service.compute_state(events)
                     result[sak_id] = state
                     logger.debug(f"Beregnet state for sak {sak_id}")

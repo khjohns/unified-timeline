@@ -187,3 +187,53 @@ class JsonFileEventRepository(EventRepository):
     def _get_current_version(self, sak_id: str) -> int:
         _, version = self.get_events(sak_id)
         return version
+
+    def find_sak_id_by_catenda_topic(self, catenda_topic_id: str) -> Optional[str]:
+        """
+        Find local sak_id given a Catenda topic GUID.
+
+        Scans all event files and checks the SAK_OPPRETTET event for
+        matching catenda_topic_id.
+
+        Args:
+            catenda_topic_id: Catenda topic GUID to look up
+
+        Returns:
+            Local sak_id if found, None otherwise
+        """
+        if not catenda_topic_id:
+            return None
+
+        # Scan all event files
+        for file_path in self.base_path.glob("*.json"):
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+
+                events = data.get("events", [])
+                if not events:
+                    continue
+
+                # Check first event (SAK_OPPRETTET)
+                first_event = events[0]
+                if first_event.get("catenda_topic_id") == catenda_topic_id:
+                    return first_event.get("sak_id")
+
+            except Exception:
+                continue
+
+        return None
+
+    def list_all_sak_ids(self) -> List[str]:
+        """
+        List all sak_ids in the repository.
+
+        Returns:
+            List of sak_id strings
+        """
+        sak_ids = []
+        for file_path in self.base_path.glob("*.json"):
+            # Extract sak_id from filename
+            sak_id = file_path.stem
+            sak_ids.append(sak_id)
+        return sak_ids

@@ -80,6 +80,8 @@ SERVERS = [
 
 TAGS = [
     {"name": "Events", "description": "Event submission and case state management"},
+    {"name": "Forsering", "description": "Forsering (acceleration) cases per NS 8407 §33.8"},
+    {"name": "Endringsordre", "description": "Endringsordre (change order) cases per NS 8407 §31.3"},
     {"name": "Utility", "description": "Authentication and utility endpoints"},
     {"name": "Webhooks", "description": "Catenda webhook integration"},
 ]
@@ -652,6 +654,309 @@ Receives webhook events from Catenda.
             "responses": {
                 "200": {"description": "Webhook processed"},
                 "401": {"description": "Invalid secret path"}
+            }
+        }
+    }
+
+    # =========================================================================
+    # FORSERING API (§33.8)
+    # =========================================================================
+
+    paths["/api/forsering/opprett"] = {
+        "post": {
+            "tags": ["Forsering"],
+            "summary": "Create forsering case",
+            "description": """
+Create a new forsering (acceleration) case based on rejected deadline extensions.
+
+Per NS 8407 §33.8: When BH rejects a justified deadline extension claim,
+TE can treat it as an order to accelerate if the cost is within 30% of
+the liquidated damages that would have accrued.
+""".strip(),
+            "operationId": "createForsering",
+            "security": [{"csrfToken": []}, {"magicLink": []}],
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "required": ["avslatte_sak_ids", "estimert_kostnad", "dagmulktsats", "begrunnelse"],
+                            "properties": {
+                                "avslatte_sak_ids": {
+                                    "type": "array",
+                                    "items": {"type": "string"},
+                                    "description": "IDs of rejected deadline extension cases"
+                                },
+                                "estimert_kostnad": {"type": "number", "description": "Estimated acceleration cost"},
+                                "dagmulktsats": {"type": "number", "description": "Liquidated damages rate per day"},
+                                "begrunnelse": {"type": "string", "description": "Justification"},
+                                "avslatte_dager": {"type": "integer", "description": "Total rejected days (auto-calculated if omitted)"}
+                            }
+                        }
+                    }
+                }
+            },
+            "responses": {
+                "201": {"description": "Forsering case created"},
+                "400": {"description": "Validation error (e.g., cost exceeds 30% limit)"}
+            }
+        }
+    }
+
+    paths["/api/forsering/kandidater"] = {
+        "get": {
+            "tags": ["Forsering"],
+            "summary": "Get candidate KOE cases for forsering",
+            "description": """
+Get KOE cases that can be used for a forsering claim.
+
+A KOE is a candidate if:
+- It has sakstype='standard' (not forsering/endringsordre)
+- The deadline claim was rejected by BH (bh_resultat='avslatt')
+
+**Note:** No authentication required for this endpoint.
+""".strip(),
+            "operationId": "getForseringKandidater",
+            "responses": {
+                "200": {
+                    "description": "List of candidate cases",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "success": {"type": "boolean"},
+                                    "kandidat_saker": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "sak_id": {"type": "string"},
+                                                "tittel": {"type": "string"},
+                                                "avslatte_dager": {"type": "integer"},
+                                                "catenda_topic_id": {"type": "string"}
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    paths["/api/forsering/{sak_id}/kontekst"] = {
+        "get": {
+            "tags": ["Forsering"],
+            "summary": "Get forsering context",
+            "description": "Get complete context including related cases, states, and events",
+            "operationId": "getForseringKontekst",
+            "security": [{"magicLink": []}],
+            "parameters": [
+                {"name": "sak_id", "in": "path", "required": True, "schema": {"type": "string"}}
+            ],
+            "responses": {
+                "200": {"description": "Forsering context with related cases"}
+            }
+        }
+    }
+
+    paths["/api/forsering/valider"] = {
+        "post": {
+            "tags": ["Forsering"],
+            "summary": "Validate 30% rule",
+            "description": "Check if estimated cost is within the 30% limit (dagmulkt + 30%)",
+            "operationId": "validateForsering",
+            "security": [{"magicLink": []}],
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "required": ["estimert_kostnad", "avslatte_dager", "dagmulktsats"],
+                            "properties": {
+                                "estimert_kostnad": {"type": "number"},
+                                "avslatte_dager": {"type": "integer"},
+                                "dagmulktsats": {"type": "number"}
+                            }
+                        }
+                    }
+                }
+            },
+            "responses": {
+                "200": {
+                    "description": "Validation result",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "success": {"type": "boolean"},
+                                    "er_gyldig": {"type": "boolean"},
+                                    "maks_kostnad": {"type": "number"},
+                                    "prosent_av_maks": {"type": "number"}
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    # =========================================================================
+    # ENDRINGSORDRE API (§31.3)
+    # =========================================================================
+
+    paths["/api/endringsordre/opprett"] = {
+        "post": {
+            "tags": ["Endringsordre"],
+            "summary": "Create endringsordre case",
+            "description": """
+Create a new endringsordre (change order) case.
+
+Per NS 8407 §31.3: An endringsordre is the formal document confirming
+a contract change. It can aggregate multiple KOE cases.
+""".strip(),
+            "operationId": "createEndringsordre",
+            "security": [{"csrfToken": []}, {"magicLink": []}],
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "required": ["eo_nummer", "beskrivelse"],
+                            "properties": {
+                                "eo_nummer": {"type": "string", "example": "EO-001"},
+                                "beskrivelse": {"type": "string"},
+                                "koe_sak_ids": {"type": "array", "items": {"type": "string"}},
+                                "konsekvenser": {
+                                    "type": "object",
+                                    "properties": {
+                                        "sha": {"type": "boolean"},
+                                        "kvalitet": {"type": "boolean"},
+                                        "fremdrift": {"type": "boolean"},
+                                        "pris": {"type": "boolean"},
+                                        "annet": {"type": "boolean"}
+                                    }
+                                },
+                                "kompensasjon_belop": {"type": "number"},
+                                "frist_dager": {"type": "integer"}
+                            }
+                        }
+                    }
+                }
+            },
+            "responses": {
+                "201": {"description": "Endringsordre created"},
+                "400": {"description": "Validation error"}
+            }
+        }
+    }
+
+    paths["/api/endringsordre/kandidater"] = {
+        "get": {
+            "tags": ["Endringsordre"],
+            "summary": "Get candidate KOE cases for endringsordre",
+            "description": """
+Get KOE cases that can be added to an endringsordre.
+
+**Note:** No authentication required for this endpoint.
+""".strip(),
+            "operationId": "getEOKandidater",
+            "responses": {
+                "200": {
+                    "description": "List of candidate cases",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "success": {"type": "boolean"},
+                                    "kandidat_saker": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "sak_id": {"type": "string"},
+                                                "tittel": {"type": "string"},
+                                                "overordnet_status": {"type": "string"},
+                                                "sum_godkjent": {"type": "number"},
+                                                "godkjent_dager": {"type": "integer"}
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    paths["/api/endringsordre/{sak_id}/kontekst"] = {
+        "get": {
+            "tags": ["Endringsordre"],
+            "summary": "Get endringsordre context",
+            "description": "Get complete context including related KOE cases, states, and events",
+            "operationId": "getEOKontekst",
+            "security": [{"magicLink": []}],
+            "parameters": [
+                {"name": "sak_id", "in": "path", "required": True, "schema": {"type": "string"}}
+            ],
+            "responses": {
+                "200": {"description": "Endringsordre context with related cases"}
+            }
+        }
+    }
+
+    paths["/api/endringsordre/{sak_id}/koe"] = {
+        "post": {
+            "tags": ["Endringsordre"],
+            "summary": "Add KOE to endringsordre",
+            "operationId": "addKOEToEO",
+            "security": [{"csrfToken": []}, {"magicLink": []}],
+            "parameters": [
+                {"name": "sak_id", "in": "path", "required": True, "schema": {"type": "string"}}
+            ],
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "required": ["koe_sak_id"],
+                            "properties": {
+                                "koe_sak_id": {"type": "string"}
+                            }
+                        }
+                    }
+                }
+            },
+            "responses": {
+                "200": {"description": "KOE added successfully"}
+            }
+        }
+    }
+
+    paths["/api/endringsordre/{sak_id}/koe/{koe_sak_id}"] = {
+        "delete": {
+            "tags": ["Endringsordre"],
+            "summary": "Remove KOE from endringsordre",
+            "operationId": "removeKOEFromEO",
+            "security": [{"csrfToken": []}, {"magicLink": []}],
+            "parameters": [
+                {"name": "sak_id", "in": "path", "required": True, "schema": {"type": "string"}},
+                {"name": "koe_sak_id", "in": "path", "required": True, "schema": {"type": "string"}}
+            ],
+            "responses": {
+                "200": {"description": "KOE removed successfully"}
             }
         }
     }

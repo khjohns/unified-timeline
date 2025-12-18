@@ -303,3 +303,163 @@ All errors follow this format:
 - `VERSION_CONFLICT` - Optimistic concurrency conflict
 - `BUSINESS_RULE_VIOLATION` - Business rule check failed
 - `UNAUTHORIZED` - Authentication required
+
+---
+
+## Forsering API (§33.8)
+
+Forsering (acceleration) cases are created when BH rejects a justified deadline extension claim. Per NS 8407 §33.8, TE can treat the rejection as an order to accelerate if the cost is within 30% of the liquidated damages that would have accrued.
+
+### Get Candidate KOE Cases
+`GET /api/forsering/kandidater`
+
+Get KOE cases that can be used for a forsering claim (cases with rejected deadline extensions).
+
+**Note:** No authentication required.
+
+**Response:**
+```json
+{
+  "success": true,
+  "kandidat_saker": [
+    {
+      "sak_id": "SAK-20251218-001",
+      "tittel": "KOE - Fundamentarbeid",
+      "avslatte_dager": 14,
+      "catenda_topic_id": "guid-123"
+    }
+  ]
+}
+```
+
+---
+
+### Create Forsering Case
+`POST /api/forsering/opprett`
+
+Create a new forsering case based on rejected deadline extensions.
+
+**Request:**
+```json
+{
+  "avslatte_sak_ids": ["SAK-20251218-001", "SAK-20251218-002"],
+  "estimert_kostnad": 1200000,
+  "dagmulktsats": 50000,
+  "begrunnelse": "Iverksetter forsering iht. NS 8407 §33.8"
+}
+```
+
+**30% Rule Validation:**
+- `maks_kostnad = avslatte_dager × dagmulktsats × 1.3`
+- `estimert_kostnad` must be ≤ `maks_kostnad`
+
+---
+
+### Validate 30% Rule
+`POST /api/forsering/valider`
+
+Check if estimated cost is within the 30% limit.
+
+**Request:**
+```json
+{
+  "estimert_kostnad": 1200000,
+  "avslatte_dager": 24,
+  "dagmulktsats": 50000
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "er_gyldig": true,
+  "maks_kostnad": 1560000,
+  "prosent_av_maks": 76.9
+}
+```
+
+---
+
+### Get Forsering Context
+`GET /api/forsering/{sak_id}/kontekst`
+
+Get complete context including related cases, states, and events.
+
+---
+
+## Endringsordre API (§31.3)
+
+Endringsordre (change order) is the formal document confirming a contract change. It can aggregate multiple KOE cases.
+
+### Get Candidate KOE Cases
+`GET /api/endringsordre/kandidater`
+
+Get KOE cases that can be added to an endringsordre.
+
+**Note:** No authentication required.
+
+**Response:**
+```json
+{
+  "success": true,
+  "kandidat_saker": [
+    {
+      "sak_id": "SAK-20251218-001",
+      "tittel": "KOE - Fundamentarbeid",
+      "overordnet_status": "OMFORENT",
+      "sum_godkjent": 150000,
+      "godkjent_dager": 10
+    }
+  ]
+}
+```
+
+---
+
+### Create Endringsordre Case
+`POST /api/endringsordre/opprett`
+
+Create a new endringsordre case.
+
+**Request:**
+```json
+{
+  "eo_nummer": "EO-001",
+  "beskrivelse": "Samler endringskrav fra KOE-1 og KOE-2",
+  "koe_sak_ids": ["SAK-20251218-001", "SAK-20251218-002"],
+  "konsekvenser": {
+    "sha": false,
+    "kvalitet": false,
+    "fremdrift": true,
+    "pris": true,
+    "annet": false
+  },
+  "kompensasjon_belop": 175000,
+  "frist_dager": 7
+}
+```
+
+---
+
+### Get Endringsordre Context
+`GET /api/endringsordre/{sak_id}/kontekst`
+
+Get complete context including related KOE cases, states, and events.
+
+---
+
+### Add KOE to Endringsordre
+`POST /api/endringsordre/{sak_id}/koe`
+
+**Request:**
+```json
+{
+  "koe_sak_id": "SAK-20251218-003"
+}
+```
+
+---
+
+### Remove KOE from Endringsordre
+`DELETE /api/endringsordre/{sak_id}/koe/{koe_sak_id}`

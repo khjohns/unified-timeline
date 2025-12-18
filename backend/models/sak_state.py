@@ -50,11 +50,15 @@ class SakRelasjon(BaseModel):
     """
     relatert_sak_id: str = Field(
         ...,
-        description="Catenda topic GUID for relatert sak"
+        description="Lokal sak-ID for relatert sak (for event lookup)"
     )
     relatert_sak_tittel: Optional[str] = Field(
         default=None,
         description="Cached tittel for display"
+    )
+    catenda_topic_id: Optional[str] = Field(
+        default=None,
+        description="Catenda topic GUID for relatert sak"
     )
     # Fra Catenda API response:
     bimsync_issue_board_ref: Optional[str] = Field(

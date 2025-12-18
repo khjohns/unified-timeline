@@ -45,12 +45,12 @@ import {
 // HOOKS
 // ============================================================================
 
-function useEOKontekst(sakId: string) {
+function useEOKontekst(sakId: string, enabled: boolean = true) {
   return useQuery<EOKontekstResponse, Error>({
     queryKey: ['endringsordre', sakId, 'kontekst'],
     queryFn: () => fetchEOKontekst(sakId),
     staleTime: 30_000,
-    enabled: !!sakId,
+    enabled: !!sakId && enabled,
   });
 }
 
@@ -108,12 +108,12 @@ export function EndringsordePage() {
     refetch: refetchCase,
   } = useCaseState(sakId || '', { enabled: !!token && !isVerifying });
 
-  // Fetch EO context (related cases, events, summary)
+  // Fetch EO context (related cases, events, summary) - wait for auth
   const {
     data: kontekstData,
     isLoading: kontekstLoading,
     error: kontekstError,
-  } = useEOKontekst(sakId || '');
+  } = useEOKontekst(sakId || '', !!token && !isVerifying);
 
   // Fetch candidate KOE cases for adding
   const { data: kandidatData } = useKandidatKOESaker();

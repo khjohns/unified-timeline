@@ -63,8 +63,9 @@ class EventType(str, Enum):
     RESPONS_FRIST = "respons_frist"
     RESPONS_FRIST_OPPDATERT = "respons_frist_oppdatert"  # BH endrer standpunkt
 
-    # Forsering-events (TE)
-    FORSERING_VARSEL = "forsering_varsel"  # §33.8 - TE varsler om forsering
+    # Forsering-events (§33.8)
+    FORSERING_VARSEL = "forsering_varsel"  # TE varsler om forsering
+    FORSERING_RESPONS = "forsering_respons"  # BH aksepterer/avslår forsering
 
     # Saks-events
     SAK_OPPRETTET = "sak_opprettet"
@@ -1168,6 +1169,55 @@ class ForseringVarselEvent(SakEvent):
         return v
 
 
+class ForseringResponsData(BaseModel):
+    """
+    Data for BH's respons på forsering (§33.8).
+
+    BH kan akseptere eller avvise TE's forseringsvarsel.
+    """
+    aksepterer: bool = Field(
+        ...,
+        description="BH aksepterer forsering"
+    )
+    godkjent_kostnad: Optional[float] = Field(
+        default=None,
+        ge=0,
+        description="BH's godkjente forseringskostnad (kan være lavere enn estimert)"
+    )
+    begrunnelse: str = Field(
+        ...,
+        min_length=1,
+        description="BH's begrunnelse for aksept/avslag"
+    )
+    dato_respons: str = Field(
+        ...,
+        description="Dato for BH's respons (YYYY-MM-DD)"
+    )
+
+
+class ForseringResponsEvent(SakEvent):
+    """
+    Event for BH's respons på forsering (§33.8).
+
+    BH aksepterer eller avviser TE's forseringsvarsel.
+    """
+    event_type: EventType = Field(
+        default=EventType.FORSERING_RESPONS,
+        description="Forsering respons"
+    )
+    data: ForseringResponsData = Field(
+        ...,
+        description="Responsdata"
+    )
+
+    @field_validator('event_type')
+    @classmethod
+    def validate_event_type(cls, v):
+        if v != EventType.FORSERING_RESPONS:
+            raise ValueError(f"Ugyldig event_type for ForseringResponsEvent: {v}")
+        return v
+
+
 # ============ SAKS-EVENTS ============
 
 class SakOpprettetEvent(SakEvent):
@@ -1322,6 +1372,18 @@ class EOUtstedtData(BaseModel):
         description="SAK-IDs til KOE-er som inngår"
     )
 
+    # Alias for konsistens med test-skript
+    relaterte_sak_ids: List[str] = Field(
+        default_factory=list,
+        description="Alias for relaterte_koe_saker (for bakoverkompatibilitet)"
+    )
+
+    # Dato for utstedelse
+    dato_utstedt: Optional[str] = Field(
+        default=None,
+        description="Dato EO ble utstedt (YYYY-MM-DD)"
+    )
+
     @computed_field
     @property
     def netto_belop(self) -> float:
@@ -1381,6 +1443,7 @@ class EOAkseptertData(BaseModel):
     """Data for TEs aksept av endringsordre"""
     akseptert: bool = Field(default=True, description="Om TE aksepterer")
     kommentar: Optional[str] = Field(default=None, description="TEs kommentar")
+    dato_aksept: Optional[str] = Field(default=None, description="Dato for aksept (YYYY-MM-DD)")
 
 
 class EOAkseptertEvent(SakEvent):
@@ -1503,6 +1566,7 @@ def parse_event(data: dict) -> AnyEvent:
         EventType.RESPONS_FRIST.value: ResponsEvent,
         EventType.RESPONS_FRIST_OPPDATERT.value: ResponsEvent,
         EventType.FORSERING_VARSEL.value: ForseringVarselEvent,
+        EventType.FORSERING_RESPONS.value: ForseringResponsEvent,
         # Endringsordre events
         EventType.EO_OPPRETTET.value: EOOpprettetEvent,
         EventType.EO_KOE_LAGT_TIL.value: EOKoeHandlingEvent,
