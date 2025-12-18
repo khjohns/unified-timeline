@@ -731,7 +731,7 @@ class KOEFlowTester:
         print_info("Venter pa at backend mottar webhook...")
 
         # Poll backend for ny sak (kort timeout siden vi har fallback)
-        max_attempts = 10
+        max_attempts = 3
         for attempt in range(max_attempts):
             wait_with_spinner(1, f"Venter pa webhook ({attempt+1}/{max_attempts})")
 
