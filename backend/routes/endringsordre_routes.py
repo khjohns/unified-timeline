@@ -446,9 +446,9 @@ def finn_eoer_for_koe(sak_id: str):
         }), 200
 
     except Exception as e:
-        logger.exception(f"Feil ved søk etter EOer for KOE {sak_id}: {e}")
+        # Return empty list instead of 500 - this is a non-critical feature
+        logger.warning(f"Kunne ikke søke etter EOer for KOE {sak_id}: {e}")
         return jsonify({
-            "success": False,
-            "error": "INTERNAL_ERROR",
-            "message": "Kunne ikke finne endringsordrer"
-        }), 500
+            "success": True,
+            "endringsordrer": []
+        }), 200

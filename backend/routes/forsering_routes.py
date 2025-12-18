@@ -350,9 +350,9 @@ def finn_forseringer_for_sak(sak_id: str):
         }), 200
 
     except Exception as e:
-        logger.exception(f"Feil ved søk etter forseringer for {sak_id}: {e}")
+        # Return empty list instead of 500 - this is a non-critical feature
+        logger.warning(f"Kunne ikke søke etter forseringer for {sak_id}: {e}")
         return jsonify({
-            "success": False,
-            "error": "INTERNAL_ERROR",
-            "message": "Kunne ikke finne forseringer"
-        }), 500
+            "success": True,
+            "forseringer": []
+        }), 200
