@@ -1,34 +1,41 @@
 openapi: 3.0.3
 info:
   title: KOE Backend API
-  description: |
-    Event Sourcing API for NS 8407 change order claims (Krav om Endringsordre).
+  description: 'Event Sourcing API for NS 8407 change order claims (Krav om Endringsordre).
+
 
     ## Authentication
-    - **CSRF Token**: Required for all POST/PUT/DELETE requests via `X-CSRF-Token` header
-    - **Magic Link**: Required for case-specific operations via `Authorization: Bearer <token>` header
+
+    - **CSRF Token**: Required for POST/PUT/DELETE via `X-CSRF-Token` header
+
+    - **Magic Link**: Required for case operations via `Authorization: Bearer <token>`
+    header
+
+
+    ## Event Sourcing
+
+    All state changes are recorded as immutable events. State is computed by replaying
+    events.
+
+    Optimistic concurrency control via `expected_version` prevents conflicts.'
   version: 1.0.0
   contact:
     name: KOE Development Team
-
 servers:
-  - url: http://localhost:8080
-    description: Local development
-  - url: https://api.example.com
-    description: Production
-
+- url: http://localhost:8080
+  description: Local development
 tags:
-  - name: Events
-    description: Event submission and case state management
-  - name: Utility
-    description: Authentication and utility endpoints
-  - name: Webhooks
-    description: Catenda webhook integration
-
+- name: Events
+  description: Event submission and case state management
+- name: Utility
+  description: Authentication and utility endpoints
+- name: Webhooks
+  description: Catenda webhook integration
 paths:
   /api/csrf-token:
     get:
-      tags: [Utility]
+      tags:
+      - Utility
       summary: Get CSRF token
       description: Retrieve a CSRF token for state-changing requests
       operationId: getCsrfToken
@@ -42,23 +49,21 @@ paths:
                 properties:
                   csrfToken:
                     type: string
-                    example: "abc123def456..."
                   expiresIn:
                     type: integer
-                    description: Token validity in seconds
                     example: 3600
-
   /api/magic-link/verify:
     get:
-      tags: [Utility]
+      tags:
+      - Utility
       summary: Verify magic link token
       operationId: verifyMagicLink
       parameters:
-        - name: token
-          in: query
-          required: true
-          schema:
-            type: string
+      - name: token
+        in: query
+        required: true
+        schema:
+          type: string
       responses:
         '200':
           description: Token is valid
@@ -69,20 +74,18 @@ paths:
                 properties:
                   success:
                     type: boolean
-                    example: true
                   sakId:
                     type: string
-                    example: "SAK-20251218-001"
         '403':
           description: Invalid or expired token
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
   /api/health:
     get:
-      tags: [Utility]
+      tags:
+      - Utility
       summary: Health check
       operationId: healthCheck
       responses:
@@ -95,25 +98,27 @@ paths:
                 properties:
                   status:
                     type: string
-                    example: "healthy"
+                    example: healthy
                   service:
                     type: string
-                    example: "koe-backend"
-
+                    example: koe-backend
   /api/events:
     post:
-      tags: [Events]
+      tags:
+      - Events
       summary: Submit event
-      description: |
-        Submit a single event to a case with optimistic concurrency control.
+      description: 'Submit a single event to a case with optimistic concurrency control.
+
 
         **Business Rules:**
+
         - Grunnlag must be submitted before vederlag/frist claims
-        - Version must match current state version
+
+        - Version must match current state version'
       operationId: submitEvent
       security:
-        - csrfToken: []
-        - magicLink: []
+      - csrfToken: []
+      - magicLink: []
       requestBody:
         required: true
         content:
@@ -124,46 +129,31 @@ paths:
               grunnlag:
                 summary: Submit grunnlag
                 value:
-                  sak_id: "SAK-20251218-001"
+                  sak_id: SAK-20251218-001
                   expected_version: 1
                   event:
-                    event_type: "grunnlag_opprettet"
-                    aktor: "Ola Nordmann"
-                    aktor_rolle: "TE"
+                    event_type: grunnlag_opprettet
+                    aktor: Ola Nordmann
+                    aktor_rolle: TE
                     data:
-                      tittel: "Forsinket tegningsunderlag uke 45"
-                      hovedkategori: "ENDRING"
-                      underkategori: "IRREG"
-                      beskrivelse: "Mottok pålegg om endring uten formell endringsordre"
-                      dato_oppdaget: "2025-12-18"
+                      tittel: Forsinket tegningsunderlag uke 45
+                      hovedkategori: ENDRING
+                      underkategori: IRREG
+                      beskrivelse: Mottok pålegg om endring
+                      dato_oppdaget: '2025-12-18'
               vederlag:
-                summary: Submit vederlag claim
+                summary: Submit vederlag
                 value:
-                  sak_id: "SAK-20251218-001"
+                  sak_id: SAK-20251218-001
                   expected_version: 2
                   event:
-                    event_type: "vederlag_krav_sendt"
-                    aktor: "Ola Nordmann"
-                    aktor_rolle: "TE"
+                    event_type: vederlag_krav_sendt
+                    aktor: Ola Nordmann
+                    aktor_rolle: TE
                     data:
-                      metode: "ENHETSPRISER"
+                      metode: ENHETSPRISER
                       belop_direkte: 150000.0
-                      begrunnelse: "Tillegg for endret utførelse"
-              frist:
-                summary: Submit frist claim
-                value:
-                  sak_id: "SAK-20251218-001"
-                  expected_version: 3
-                  event:
-                    event_type: "frist_krav_sendt"
-                    aktor: "Ola Nordmann"
-                    aktor_rolle: "TE"
-                    data:
-                      varsel_type: "spesifisert"
-                      antall_dager: 14
-                      begrunnelse: "Forsinkelse grunnet endret arbeidsomfang"
-                      spesifisert_varsel:
-                        dato_sendt: "2025-12-18"
+                      begrunnelse: Tillegg for endring
       responses:
         '201':
           description: Event submitted successfully
@@ -179,21 +169,29 @@ paths:
                 $ref: '#/components/schemas/Error'
               examples:
                 validation:
-                  summary: Validation error
+                  summary: Validation error with valid options
                   value:
                     success: false
-                    error: "VALIDATION_ERROR"
-                    message: "Ugyldig kategori-kombinasjon: ENDRING + INSTRUKS"
+                    error: VALIDATION_ERROR
+                    message: Ugyldig underkategori 'INSTRUKS' for hovedkategori 'ENDRING'
+                    field: underkategori
                     valid_options:
-                      hovedkategori: "ENDRING"
-                      valid_underkategorier: ["EO", "IRREG", "SVAR_VARSEL", "LOV_GJENSTAND", "LOV_PROSESS", "GEBYR", "SAMORD"]
+                      hovedkategori: ENDRING
+                      underkategorier:
+                      - EO
+                      - IRREG
+                      - SVAR_VARSEL
+                      - LOV_GJENSTAND
+                      - LOV_PROSESS
+                      - GEBYR
+                      - SAMORD
                 business_rule:
                   summary: Business rule violation
                   value:
                     success: false
-                    error: "BUSINESS_RULE_VIOLATION"
-                    rule: "GRUNNLAG_REQUIRED"
-                    message: "Grunnlag må være sendt før du kan sende krav"
+                    error: BUSINESS_RULE_VIOLATION
+                    rule: GRUNNLAG_REQUIRED
+                    message: Grunnlag må være sendt før du kan sende krav
         '401':
           description: Missing or invalid authentication
           content:
@@ -206,44 +204,58 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VersionConflictError'
-
   /api/events/batch:
     post:
-      tags: [Events]
+      tags:
+      - Events
       summary: Submit batch of events
-      description: Submit multiple events atomically
+      description: Submit multiple events atomically (all-or-nothing)
       operationId: submitEventBatch
       security:
-        - csrfToken: []
-        - magicLink: []
+      - csrfToken: []
+      - magicLink: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/BatchEventSubmission'
+              type: object
+              required:
+              - sak_id
+              - expected_version
+              - events
+              properties:
+                sak_id:
+                  type: string
+                expected_version:
+                  type: integer
+                events:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Event'
       responses:
         '201':
-          description: All events submitted successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BatchEventResponse'
+          description: All events submitted
         '400':
-          $ref: '#/components/responses/ValidationError'
+          description: Validation error
         '409':
-          $ref: '#/components/responses/VersionConflict'
-
+          description: Version conflict
   /api/cases/{sak_id}/state:
     get:
-      tags: [Events]
+      tags:
+      - Events
       summary: Get case state
       description: Get computed state for a case
       operationId: getCaseState
       security:
-        - magicLink: []
+      - magicLink: []
       parameters:
-        - $ref: '#/components/parameters/sakId'
+      - name: sak_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: SAK-20251218-001
       responses:
         '200':
           description: Case state
@@ -253,77 +265,63 @@ paths:
                 $ref: '#/components/schemas/CaseStateResponse'
         '404':
           description: Case not found
-
   /api/cases/{sak_id}/timeline:
     get:
-      tags: [Events]
+      tags:
+      - Events
       summary: Get case timeline
       description: Get full event timeline for UI display
       operationId: getCaseTimeline
       security:
-        - magicLink: []
+      - magicLink: []
       parameters:
-        - $ref: '#/components/parameters/sakId'
+      - name: sak_id
+        in: path
+        required: true
+        schema:
+          type: string
       responses:
         '200':
           description: Event timeline
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  version:
-                    type: integer
-                  events:
-                    type: array
-                    items:
-                      type: object
-
+        '404':
+          description: Case not found
   /api/cases/{sak_id}/historikk:
     get:
-      tags: [Events]
+      tags:
+      - Events
       summary: Get case history
       description: Get revision history for vederlag and frist tracks
       operationId: getCaseHistory
       security:
-        - magicLink: []
+      - magicLink: []
       parameters:
-        - $ref: '#/components/parameters/sakId'
+      - name: sak_id
+        in: path
+        required: true
+        schema:
+          type: string
       responses:
         '200':
           description: Revision history
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  version:
-                    type: integer
-                  vederlag:
-                    type: array
-                    items:
-                      type: object
-                  frist:
-                    type: array
-                    items:
-                      type: object
-
+        '404':
+          description: Case not found
   /webhook/catenda/{secret_path}:
     post:
-      tags: [Webhooks]
+      tags:
+      - Webhooks
       summary: Catenda webhook
-      description: |
-        Receives webhook events from Catenda.
+      description: 'Receives webhook events from Catenda.
 
-        **Note:** Topics created via API may not trigger webhooks from Catenda.
+
+        **Note:** Topics created via API may not trigger webhooks from Catenda.'
       operationId: catendaWebhook
       parameters:
-        - name: secret_path
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Secret path for webhook authentication
+      - name: secret_path
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Secret path for webhook authentication
       requestBody:
         content:
           application/json:
@@ -334,7 +332,6 @@ paths:
           description: Webhook processed
         '401':
           description: Invalid secret path
-
 components:
   securitySchemes:
     csrfToken:
@@ -344,32 +341,801 @@ components:
     magicLink:
       type: http
       scheme: bearer
-
-  parameters:
-    sakId:
-      name: sak_id
-      in: path
-      required: true
-      schema:
-        type: string
-        pattern: '^SAK-\d{8}-\d{6}$'
-      example: "SAK-20251218-001"
-
   schemas:
+    EventType:
+      type: string
+      enum:
+      - grunnlag_opprettet
+      - grunnlag_oppdatert
+      - grunnlag_trukket
+      - vederlag_krav_sendt
+      - vederlag_krav_oppdatert
+      - vederlag_krav_trukket
+      - frist_krav_sendt
+      - frist_krav_oppdatert
+      - frist_krav_trukket
+      - respons_grunnlag
+      - respons_grunnlag_oppdatert
+      - respons_vederlag
+      - respons_vederlag_oppdatert
+      - respons_frist
+      - respons_frist_oppdatert
+      - forsering_varsel
+      - sak_opprettet
+      - sak_lukket
+      - eo_opprettet
+      - eo_koe_lagt_til
+      - eo_koe_fjernet
+      - eo_utstedt
+      - eo_akseptert
+      - eo_bestridt
+      - eo_revidert
+      description: Type of event in the system
+    VederlagsMetode:
+      type: string
+      enum:
+      - ENHETSPRISER
+      - REGNINGSARBEID
+      - FASTPRIS_TILBUD
+      description: 'Compensation method (NS 8407):
+
+        - ENHETSPRISER: Unit prices (§34.3)
+
+        - REGNINGSARBEID: Cost-plus with estimate (§30.2/§34.4)
+
+        - FASTPRIS_TILBUD: Fixed price / Tender (§34.2.1)'
+    FristVarselType:
+      type: string
+      enum:
+      - noytralt
+      - spesifisert
+      - begge
+      - force_majeure
+      description: 'Warning type for deadline extension:
+
+        - noytralt: Neutral/preliminary (§33.4)
+
+        - spesifisert: Specified with days (§33.6.1)
+
+        - begge: Both neutral and specified
+
+        - force_majeure: Force majeure extension (§33.3)'
+    Hovedkategori:
+      type: string
+      enum:
+      - ENDRING
+      - SVIKT
+      - ANDRE
+      - FORCE_MAJEURE
+      description: 'Main category for grounds (NS 8407 §33.1):
+
+        - ENDRING: Changes (§33.1 a)
+
+        - SVIKT: Delay/failure by client (§33.1 b)
+
+        - ANDRE: Other circumstances (§33.1 c)
+
+        - FORCE_MAJEURE: Force majeure (§33.3)'
+    GrunnlagData:
+      description: 'Data for ansvarsgrunnlag (Event 1 - Hvorfor/Hvem).
+
+
+        Denne modellen beskriver ÅRSAKEN til kravet og TE''s vurdering av ANSVAR.
+
+        Kategoriseringen følger NS 8407 og bestemmer hvilke juridiske regler som gjelder.'
+      properties:
+        tittel:
+          description: Kort beskrivende tittel for varselet (f.eks. 'Forsinket tegningsunderlag
+            uke 45')
+          minLength: 1
+          title: Tittel
+          type: string
+        hovedkategori:
+          description: Hovedkategori for ansvarsgrunnlag (f.eks. 'ENDRING', 'FORSINKELSE_BH')
+          title: Hovedkategori
+          type: string
+        underkategori:
+          anyOf:
+          - type: string
+          - items:
+              type: string
+            type: array
+          description: Underkategori(er) - enkelt kode eller liste av koder (f.eks.
+            'PROJ', 'ARBEIDSGRUNNLAG')
+          title: Underkategori
+        beskrivelse:
+          description: Detaljert beskrivelse av forholdet som utløste kravet
+          minLength: 1
+          title: Beskrivelse
+          type: string
+        dato_oppdaget:
+          description: Når forholdet ble oppdaget (YYYY-MM-DD)
+          title: Dato Oppdaget
+          type: string
+        grunnlag_varsel:
+          anyOf:
+          - $ref: '#/$defs/VarselInfo'
+          - type: 'null'
+          default: null
+          description: Info om når og hvordan BH ble varslet om forholdet
+        kontraktsreferanser:
+          description: Relevante kontraktsbestemmelser (f.eks. ['NS8407 §25.2', 'Kap.
+            3.2'])
+          items:
+            type: string
+          title: Kontraktsreferanser
+          type: array
+        vedlegg_ids:
+          description: Referanser til vedlagte dokumenter (bilder, rapporter, etc.)
+          items:
+            type: string
+          title: Vedlegg Ids
+          type: array
+      required:
+      - tittel
+      - hovedkategori
+      - underkategori
+      - beskrivelse
+      - dato_oppdaget
+      title: GrunnlagData
+      type: object
+    VederlagData:
+      description: 'Data for vederlagskrav (Entreprenørens krav).
+
+
+        Arver fra VederlagKompensasjon som gir felles struktur for beløp/metode.
+
+        Denne modellen utvider med TEs spesifikke dokumentasjon og varsler
+
+        som kreves etter NS 8407.
+
+
+        Arvede felter fra VederlagKompensasjon:
+
+        - metode: VederlagsMetode
+
+        - belop_direkte: For ENHETSPRISER/FASTPRIS_TILBUD
+
+        - kostnads_overslag: For REGNINGSARBEID
+
+        - fradrag_belop: Fradrag (§34.4)
+
+        - er_estimat: Om beløpet er et estimat
+
+        - netto_belop: Computed (brutto - fradrag)
+
+        - krevd_belop: Alias for netto_belop'
+      properties:
+        metode:
+          $ref: '#/$defs/VederlagsMetode'
+          description: Vederlagsmetode etter NS 8407 (§34)
+        belop_direkte:
+          anyOf:
+          - type: number
+          - type: 'null'
+          default: null
+          description: 'For ENHETSPRISER/FASTPRIS_TILBUD: Beløp i NOK'
+          title: Belop Direkte
+        kostnads_overslag:
+          anyOf:
+          - minimum: 0
+            type: number
+          - type: 'null'
+          default: null
+          description: 'For REGNINGSARBEID (§30.2): Kostnadsoverslag i NOK'
+          title: Kostnads Overslag
+        fradrag_belop:
+          anyOf:
+          - minimum: 0
+            type: number
+          - type: 'null'
+          default: null
+          description: Fradrag i NOK (§34.4) - reduksjon for besparelser
+          title: Fradrag Belop
+        er_estimat:
+          default: false
+          description: Om beløpet er et estimat (endelig oppgjør senere)
+          title: Er Estimat
+          type: boolean
+        begrunnelse:
+          description: Begrunnelse for kravet
+          minLength: 1
+          title: Begrunnelse
+          type: string
+        vedlegg_ids:
+          description: Referanser til vedlagte dokumenter
+          items:
+            type: string
+          title: Vedlegg Ids
+          type: array
+        saerskilt_krav:
+          anyOf:
+          - $ref: '#/$defs/SaerskiltKrav'
+          - type: 'null'
+          default: null
+          description: Særskilte krav for rigg/drift og/eller produktivitetstap (§34.1.3)
+        rigg_drift_varsel:
+          anyOf:
+          - $ref: '#/$defs/VarselInfo'
+          - type: 'null'
+          default: null
+          description: Varselinfo for rigg/drift (§34.1.3) - når og hvordan BH ble
+            varslet
+        krever_justert_ep:
+          default: false
+          description: Om kravet krever justering av kontraktens enhetspriser (§34.3.3)
+          title: Krever Justert Ep
+          type: boolean
+        justert_ep_varsel:
+          anyOf:
+          - $ref: '#/$defs/VarselInfo'
+          - type: 'null'
+          default: null
+          description: Varselinfo for justerte enhetspriser (§34.3.3)
+        regningsarbeid_varsel:
+          anyOf:
+          - $ref: '#/$defs/VarselInfo'
+          - type: 'null'
+          default: null
+          description: Varselinfo før start av regningsarbeid (§30.1) - BH må varsles
+            FØR oppstart
+        produktivitetstap_varsel:
+          anyOf:
+          - $ref: '#/$defs/VarselInfo'
+          - type: 'null'
+          default: null
+          description: Varselinfo for produktivitetstap (§34.1.3, 2. ledd)
+        krav_fremmet_dato:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          description: Dato spesifisert vederlagskrav ble formelt fremmet (YYYY-MM-DD)
+          title: Krav Fremmet Dato
+        netto_belop:
+          description: 'Beregner netto beløp basert på metode.
+
+
+            For ENHETSPRISER/FASTPRIS_TILBUD: belop_direkte - fradrag
+
+            For REGNINGSARBEID: kostnads_overslag - fradrag'
+          readOnly: true
+          title: Netto Belop
+          type: number
+        krevd_belop:
+          description: 'Alias for netto_belop - brukes i state-modellen.
+
+            Returnerer det totale kravet/kompensasjonen.'
+          readOnly: true
+          title: Krevd Belop
+          type: number
+      required:
+      - metode
+      - begrunnelse
+      - netto_belop
+      - krevd_belop
+      title: VederlagData
+      type: object
+    FristData:
+      description: "Data for fristforlengelseskrav (Entreprenørens krav).\n\nDenne\
+        \ modellen støtter både nøytralt varsel (§33.4) og spesifisert krav (§33.6).\n\
+        \nNS 8407 skiller mellom:\n- Nøytralt varsel: Varsler om at det *kan* bli\
+        \ krav, uten å spesifisere antall dager\n- Spesifisert krav: Konkret krav\
+        \ om X antall dager\n\nKOMMENTAR FRA ARKITEKT:\n// Hvis spesifisert krav er\
+        \ for sent, sjekk om BH har etterlyst det\nIf (spesifisert_krav_ok == NEI)\
+        \ {\n   Field har_bh_etterlyst: Boolean {\n     Label: \"Har BH etterlyst\
+        \ kravet skriftlig (§ 33.6.2)?\"\n     Options: [JA, NEI]\n     Note: \"Hvis\
+        \ NEI, tapes ikke kravet helt, men reduseres.\"\n   }\n}\n\nNB! Vi avventer\
+        \ med å ta det ovenfor med i modellen."
+      properties:
+        varsel_type:
+          $ref: '#/$defs/FristVarselType'
+          description: Type varsel sendt til BH
+        noytralt_varsel:
+          anyOf:
+          - $ref: '#/$defs/VarselInfo'
+          - type: 'null'
+          default: null
+          description: Info om nøytralt varsel (§33.4) - dato + metode (f.eks. muntlig
+            på byggemøte)
+        spesifisert_varsel:
+          anyOf:
+          - $ref: '#/$defs/VarselInfo'
+          - type: 'null'
+          default: null
+          description: Info om spesifisert krav (§33.6) - dato + metode (f.eks. formelt
+            brev/epost)
+        antall_dager:
+          anyOf:
+          - minimum: 0
+            type: integer
+          - type: 'null'
+          default: null
+          description: Antall dager forlengelse (kun ved spesifisert krav)
+          title: Antall Dager
+        begrunnelse:
+          description: Overordnet begrunnelse for fristkravet
+          minLength: 1
+          title: Begrunnelse
+          type: string
+        fremdriftshindring_dokumentasjon:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          description: Dokumentasjon av fremdriftshindring (f.eks. påvirkning på fremdriftsplan,
+            kritisk linje)
+          title: Fremdriftshindring Dokumentasjon
+        ny_sluttdato:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          description: Foreslått ny sluttdato (YYYY-MM-DD)
+          title: Ny Sluttdato
+        vedlegg_ids:
+          description: Referanser til vedlagte dokumenter (fremdriftsplan, fremdriftsanalyse,
+            etc.)
+          items:
+            type: string
+          title: Vedlegg Ids
+          type: array
+      required:
+      - varsel_type
+      - begrunnelse
+      title: FristData
+      type: object
+    GrunnlagResponsData:
+      description: 'Byggherrens respons på grunnlag/varsel.
+
+
+        Dette er BH''s vurdering av ANSVARET - hvem sin feil er det?
+
+        Hvis BH avviser grunnlaget her, kan Vederlag/Frist fortsatt vurderes subsidiært.'
+      properties:
+        resultat:
+          $ref: '#/$defs/GrunnlagResponsResultat'
+          description: BHs vurdering av ansvarsgrunnlaget
+        begrunnelse:
+          description: BHs begrunnelse for vurderingen
+          minLength: 1
+          title: Begrunnelse
+          type: string
+        akseptert_kategori:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          description: BH kan akseptere men kategorisere annerledes (f.eks. fra 'prosjektering'
+            til 'arbeidsgrunnlag')
+          title: Akseptert Kategori
+        krever_dokumentasjon:
+          description: Liste over dokumentasjon BH krever for å ta stilling (f.eks.
+            ['fremdriftsplan', 'kostnadsoverslag'])
+          items:
+            type: string
+          title: Krever Dokumentasjon
+          type: array
+        varsel_for_sent:
+          default: false
+          description: Om BH mener varselet kom for sent (preklusjon)
+          title: Varsel For Sent
+          type: boolean
+        varsel_begrunnelse:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          description: BHs begrunnelse for varsel-vurdering
+          title: Varsel Begrunnelse
+      required:
+      - resultat
+      - begrunnelse
+      title: GrunnlagResponsData
+      type: object
+    VederlagResponsData:
+      description: "Byggherrens respons på vederlagskrav (Port-modellen).\n\nVIKTIG:\
+        \ Denne modellen beskriver KUN beregningen/utmålingen av penger.\nAvslag basert\
+        \ på grunnlag (ansvar) håndteres i Grunnlag-sporet.\n\nDette muliggjør subsidiære\
+        \ betraktninger:\n- BH kan avvise Grunnlag (ansvar), MEN samtidig godkjenne\
+        \ beregningen\n  som subsidiær vurdering (\"hvis jeg hadde hatt ansvar, er\
+        \ 50k riktig\")."
+      properties:
+        vederlag_krav_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          description: Event-ID til vederlagskravet som besvares
+          title: Vederlag Krav Id
+        rigg_varslet_i_tide:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          default: null
+          description: Er rigg/drift-kravet varslet i tide? (§34.1.3)
+          title: Rigg Varslet I Tide
+        produktivitet_varslet_i_tide:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          default: null
+          description: Er produktivitetskravet varslet i tide? (§34.1.3)
+          title: Produktivitet Varslet I Tide
+        begrunnelse_preklusjon:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          description: Begrunnelse for preklusjonsvurdering
+          title: Begrunnelse Preklusjon
+        saerskilt_varsel_rigg_drift_ok:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          default: null
+          description: 'DEPRECATED: Bruk rigg_varslet_i_tide'
+          title: Saerskilt Varsel Rigg Drift Ok
+        varsel_justert_ep_ok:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          default: null
+          description: Er det varslet om justerte enhetspriser uten ugrunnet opphold?
+            (§34.3.3)
+          title: Varsel Justert Ep Ok
+        varsel_start_regning_ok:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          default: null
+          description: Ble BH varslet før regningsarbeid startet? (§30.1)
+          title: Varsel Start Regning Ok
+        krav_fremmet_i_tide:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          default: true
+          description: Er vederlagskravet fremmet uten ugrunnet opphold?
+          title: Krav Fremmet I Tide
+        begrunnelse_varsel:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          description: Begrunnelse for vurdering av varsler/frister
+          title: Begrunnelse Varsel
+        aksepterer_metode:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          default: null
+          description: Aksepterer BH den foreslåtte vederlagsmetoden?
+          title: Aksepterer Metode
+        oensket_metode:
+          anyOf:
+          - $ref: '#/$defs/VederlagsMetode'
+          - type: 'null'
+          default: null
+          description: Metode BH ønsker dersom foreslått metode ikke aksepteres
+        ep_justering_akseptert:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          default: null
+          description: Aksepterer BH justering av enhetspriser? (§34.3.3)
+          title: Ep Justering Akseptert
+        hold_tilbake:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          default: null
+          description: Holder BH tilbake betaling? (§30.2)
+          title: Hold Tilbake
+        begrunnelse_metode:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          description: Begrunnelse for metodevalg
+          title: Begrunnelse Metode
+        vederlagsmetode:
+          anyOf:
+          - $ref: '#/$defs/VederlagsMetode'
+          - type: 'null'
+          default: null
+          description: Hvilken metode BH legger til grunn (legacy)
+        hovedkrav_vurdering:
+          anyOf:
+          - $ref: '#/$defs/BelopVurdering'
+          - type: 'null'
+          default: null
+          description: BHs vurdering av hovedkravet
+        hovedkrav_godkjent_belop:
+          anyOf:
+          - type: number
+          - type: 'null'
+          default: null
+          description: Godkjent beløp for hovedkravet i NOK
+          title: Hovedkrav Godkjent Belop
+        hovedkrav_begrunnelse:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          description: Begrunnelse for hovedkravvurdering
+          title: Hovedkrav Begrunnelse
+        rigg_vurdering:
+          anyOf:
+          - $ref: '#/$defs/BelopVurdering'
+          - type: 'null'
+          default: null
+          description: BHs vurdering av rigg/drift-kravet
+        rigg_godkjent_belop:
+          anyOf:
+          - type: number
+          - type: 'null'
+          default: null
+          description: Godkjent beløp for rigg/drift i NOK
+          title: Rigg Godkjent Belop
+        produktivitet_vurdering:
+          anyOf:
+          - $ref: '#/$defs/BelopVurdering'
+          - type: 'null'
+          default: null
+          description: BHs vurdering av produktivitetskravet
+        produktivitet_godkjent_belop:
+          anyOf:
+          - type: number
+          - type: 'null'
+          default: null
+          description: Godkjent beløp for produktivitetstap i NOK
+          title: Produktivitet Godkjent Belop
+        beregnings_resultat:
+          $ref: '#/$defs/VederlagBeregningResultat'
+          description: BHs samlede vurdering av kravets størrelse
+        godkjent_belop:
+          anyOf:
+          - type: number
+          - type: 'null'
+          default: null
+          description: 'DEPRECATED: Bruk total_godkjent_belop'
+          title: Godkjent Belop
+        total_godkjent_belop:
+          anyOf:
+          - type: number
+          - type: 'null'
+          default: null
+          description: Totalt godkjent beløp i NOK (hovedkrav + særskilte krav)
+          title: Total Godkjent Belop
+        total_krevd_belop:
+          anyOf:
+          - type: number
+          - type: 'null'
+          default: null
+          description: Totalt krevd beløp i NOK
+          title: Total Krevd Belop
+        begrunnelse:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          description: Samlet begrunnelse
+          title: Begrunnelse
+        begrunnelse_beregning:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: ''
+          description: BHs kommentar til beregningen (legacy)
+          title: Begrunnelse Beregning
+        frist_for_spesifikasjon:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          description: Frist for TE å levere ytterligere spesifikasjon (YYYY-MM-DD)
+          title: Frist For Spesifikasjon
+        subsidiaer_triggers:
+          anyOf:
+          - items:
+              $ref: '#/$defs/SubsidiaerTrigger'
+            type: array
+          - type: 'null'
+          default: null
+          description: Liste over årsaker til subsidiær vurdering
+          title: Subsidiaer Triggers
+        subsidiaer_resultat:
+          anyOf:
+          - $ref: '#/$defs/VederlagBeregningResultat'
+          - type: 'null'
+          default: null
+          description: Subsidiært beregningsresultat
+        subsidiaer_godkjent_belop:
+          anyOf:
+          - type: number
+          - type: 'null'
+          default: null
+          description: Subsidiært godkjent beløp i NOK (totalt)
+          title: Subsidiaer Godkjent Belop
+        subsidiaer_begrunnelse:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          description: BH's begrunnelse for subsidiær vurdering
+          title: Subsidiaer Begrunnelse
+      required:
+      - beregnings_resultat
+      title: VederlagResponsData
+      type: object
+    FristResponsData:
+      description: "Byggherrens respons på fristforlengelseskrav (Port-modellen).\n\
+        \nVIKTIG: Denne modellen beskriver KUN tid-vurderingen.\nAvslag basert på\
+        \ grunnlag (ansvar) håndteres i Grunnlag-sporet.\n\nDette muliggjør subsidiære\
+        \ betraktninger:\n- BH kan avvise Grunnlag (ansvar), MEN samtidig godkjenne\
+        \ dagberegningen\n  som subsidiær vurdering (\"hvis jeg hadde hatt ansvar,\
+        \ er 14 dager riktig\").\n\nPort-modellen med tre sekvensielle vurderinger:\n\
+        1. PORT 1: Er varselet sendt i tide? (Preklusjon)\n2. PORT 2: Har forholdet\
+        \ medført faktisk fremdriftshindring? (Vilkår)\n3. PORT 3: Hvor mange dager\
+        \ godkjennes? (Utmåling)"
+      properties:
+        noytralt_varsel_ok:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          default: null
+          description: Er nøytralt varsel sendt i tide? (§33.4). None hvis ikke relevant.
+          title: Noytralt Varsel Ok
+        spesifisert_krav_ok:
+          default: true
+          description: Er spesifisert krav sendt i tide? (§33.6)
+          title: Spesifisert Krav Ok
+          type: boolean
+        har_bh_etterlyst:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          default: null
+          description: Har BH etterlyst kravet skriftlig? (§33.6.2). Relevant kun
+            hvis krav er sent.
+          title: Har Bh Etterlyst
+        begrunnelse_varsel:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          description: BHs begrunnelse for vurdering av varsling
+          title: Begrunnelse Varsel
+        vilkar_oppfylt:
+          default: true
+          description: Har forholdet medført en faktisk fremdriftshindring? (§33.1)
+          title: Vilkar Oppfylt
+          type: boolean
+        begrunnelse_vilkar:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          description: BHs begrunnelse for vurdering av årsakssammenheng
+          title: Begrunnelse Vilkar
+        beregnings_resultat:
+          $ref: '#/$defs/FristBeregningResultat'
+          description: BHs vurdering av antall dager (ren beregning)
+        godkjent_dager:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          default: null
+          description: Godkjent antall dager. Innvilges kun hvis Grunnlag også godkjennes.
+          title: Godkjent Dager
+        ny_sluttdato:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          description: BH-godkjent ny sluttdato (YYYY-MM-DD)
+          title: Ny Sluttdato
+        begrunnelse_beregning:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          description: BHs kommentar til dagberegningen
+          title: Begrunnelse Beregning
+        frist_for_spesifisering:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          description: Frist for TE å levere ytterligere spesifikasjon/fremdriftsplan
+            (YYYY-MM-DD)
+          title: Frist For Spesifisering
+        subsidiaer_triggers:
+          anyOf:
+          - items:
+              $ref: '#/$defs/SubsidiaerTrigger'
+            type: array
+          - type: 'null'
+          default: null
+          description: Liste over årsaker til subsidiær vurdering
+          title: Subsidiaer Triggers
+        subsidiaer_resultat:
+          anyOf:
+          - $ref: '#/$defs/FristBeregningResultat'
+          - type: 'null'
+          default: null
+          description: Subsidiært beregningsresultat
+        subsidiaer_godkjent_dager:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          default: null
+          description: Subsidiært godkjent antall dager
+          title: Subsidiaer Godkjent Dager
+        subsidiaer_begrunnelse:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          description: BH's begrunnelse for subsidiær vurdering
+          title: Subsidiaer Begrunnelse
+      required:
+      - beregnings_resultat
+      title: FristResponsData
+      type: object
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Human-readable message
+        field:
+          type: string
+          description: Field that caused the error
+        valid_options:
+          type: object
+          description: Valid options when validation fails
+      required:
+      - success
+      - error
+      - message
+    VersionConflictError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: VERSION_CONFLICT
+        expected_version:
+          type: integer
+        current_version:
+          type: integer
+        message:
+          type: string
     EventSubmission:
       type: object
       required:
-        - sak_id
-        - expected_version
-        - event
+      - sak_id
+      - expected_version
+      - event
       properties:
         sak_id:
           type: string
-          example: "SAK-20251218-001"
+          example: SAK-20251218-001
+          description: Case identifier
         expected_version:
           type: integer
           minimum: 0
-          description: Expected current version (for optimistic concurrency)
+          description: Expected current version (optimistic concurrency)
         event:
           $ref: '#/components/schemas/Event'
         catenda_topic_id:
@@ -383,159 +1149,28 @@ components:
         pdf_filename:
           type: string
           description: Optional PDF filename
-
     Event:
       type: object
       required:
-        - event_type
-        - aktor
-        - aktor_rolle
-        - data
+      - event_type
+      - aktor
+      - aktor_rolle
+      - data
       properties:
         event_type:
           $ref: '#/components/schemas/EventType'
         aktor:
           type: string
-          description: Name of the person performing the action
+          description: Name of person performing the action
         aktor_rolle:
           type: string
-          enum: [TE, BH]
-          description: Role (TE=Totalentreprenør, BH=Byggherre)
+          enum:
+          - TE
+          - BH
+          description: 'Role: TE=Totalentreprenør, BH=Byggherre'
         data:
-          oneOf:
-            - $ref: '#/components/schemas/GrunnlagData'
-            - $ref: '#/components/schemas/VederlagData'
-            - $ref: '#/components/schemas/FristData'
-
-    EventType:
-      type: string
-      enum:
-        - grunnlag_opprettet
-        - grunnlag_oppdatert
-        - grunnlag_trukket
-        - vederlag_krav_sendt
-        - vederlag_krav_oppdatert
-        - frist_krav_sendt
-        - frist_krav_oppdatert
-        - respons_grunnlag
-        - respons_vederlag
-        - respons_frist
-
-    GrunnlagData:
-      type: object
-      required:
-        - tittel
-        - hovedkategori
-        - underkategori
-        - beskrivelse
-        - dato_oppdaget
-      properties:
-        tittel:
-          type: string
-          minLength: 1
-          description: Short descriptive title
-          example: "Forsinket tegningsunderlag uke 45"
-        hovedkategori:
-          $ref: '#/components/schemas/Hovedkategori'
-        underkategori:
-          oneOf:
-            - type: string
-            - type: array
-              items:
-                type: string
-          description: Single code or list of codes
-          example: "IRREG"
-        beskrivelse:
-          type: string
-          minLength: 1
-          description: Detailed description
-        dato_oppdaget:
-          type: string
-          format: date
-          example: "2025-12-18"
-        kontraktsreferanse:
-          type: string
-          description: Contract reference
-
-    Hovedkategori:
-      type: string
-      enum: [ENDRING, SVIKT, ANDRE, FORCE_MAJEURE]
-      description: |
-        Main category for grounds:
-        - ENDRING: Changes (§33.1 a)
-        - SVIKT: Delay/failure by client (§33.1 b)
-        - ANDRE: Other circumstances (§33.1 c)
-        - FORCE_MAJEURE: Force majeure (§33.3)
-
-    VederlagData:
-      type: object
-      required:
-        - metode
-        - begrunnelse
-      properties:
-        metode:
-          $ref: '#/components/schemas/VederlagsMetode'
-        belop_direkte:
-          type: number
-          description: Direct amount (required for ENHETSPRISER, FASTPRIS_TILBUD)
-          example: 150000.0
-        kostnads_overslag:
-          type: number
-          description: Cost estimate (optional for REGNINGSARBEID)
-        begrunnelse:
-          type: string
-          minLength: 1
-          description: Justification for the claim
-
-    VederlagsMetode:
-      type: string
-      enum: [ENHETSPRISER, REGNINGSARBEID, FASTPRIS_TILBUD]
-      description: |
-        Compensation method:
-        - ENHETSPRISER: Unit prices (§34.3)
-        - REGNINGSARBEID: Cost-plus with estimate (§30.2/§34.4)
-        - FASTPRIS_TILBUD: Fixed price / Tender (§34.2.1)
-
-    FristData:
-      type: object
-      required:
-        - varsel_type
-        - begrunnelse
-      properties:
-        varsel_type:
-          $ref: '#/components/schemas/FristVarselType'
-        antall_dager:
-          type: integer
-          minimum: 0
-          description: Number of days extension (required for spesifisert/begge)
-        begrunnelse:
-          type: string
-          minLength: 1
-        noytralt_varsel:
           type: object
-          properties:
-            dato_sendt:
-              type: string
-              format: date
-        spesifisert_varsel:
-          type: object
-          required:
-            - dato_sendt
-          properties:
-            dato_sendt:
-              type: string
-              format: date
-
-    FristVarselType:
-      type: string
-      enum: [noytralt, spesifisert, begge, force_majeure]
-      description: |
-        Warning type:
-        - noytralt: Neutral/preliminary (§33.4)
-        - spesifisert: Specified with days (§33.6.1)
-        - begge: Both neutral and specified
-        - force_majeure: Force majeure extension (§33.3)
-
+          description: Event-specific data (GrunnlagData, VederlagData, etc.)
     EventSubmissionResponse:
       type: object
       properties:
@@ -554,39 +1189,10 @@ components:
           type: boolean
         pdf_source:
           type: string
-          enum: [client, server]
-
-    BatchEventSubmission:
-      type: object
-      required:
-        - sak_id
-        - expected_version
-        - events
-      properties:
-        sak_id:
-          type: string
-        expected_version:
-          type: integer
-        events:
-          type: array
-          items:
-            $ref: '#/components/schemas/Event'
-
-    BatchEventResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-        event_ids:
-          type: array
-          items:
-            type: string
-            format: uuid
-        new_version:
-          type: integer
-        state:
-          type: object
-
+          enum:
+          - client
+          - server
+          nullable: true
     CaseStateResponse:
       type: object
       properties:
@@ -596,49 +1202,3 @@ components:
         state:
           type: object
           description: Computed case state
-
-    Error:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: false
-        error:
-          type: string
-          description: Error code
-        message:
-          type: string
-          description: Human-readable message
-        valid_options:
-          type: object
-          description: Valid options when validation fails
-
-    VersionConflictError:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: false
-        error:
-          type: string
-          example: "VERSION_CONFLICT"
-        expected_version:
-          type: integer
-        current_version:
-          type: integer
-        message:
-          type: string
-
-  responses:
-    ValidationError:
-      description: Validation error
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    VersionConflict:
-      description: Version conflict
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/VersionConflictError'

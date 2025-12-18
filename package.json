@@ -19,7 +19,10 @@
     "playwright:install": "playwright install chromium",
     "lint": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
-    "lint:a11y": "eslint . --ext .ts,.tsx --rule 'jsx-a11y/*: error'"
+    "lint:a11y": "eslint . --ext .ts,.tsx --rule 'jsx-a11y/*: error'",
+    "openapi:generate": "cd backend && source venv/bin/activate && python scripts/generate_openapi.py",
+    "backend:test": "cd backend && source venv/bin/activate && python -m pytest",
+    "backend:run": "cd backend && source venv/bin/activate && python run.py"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
