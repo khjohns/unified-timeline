@@ -345,6 +345,7 @@ class SetupValidator:
         self.library_id = self.config.get('catenda_library_id')
         self.folder_id = self.config.get('catenda_folder_id')
 
+        # Bibliotek
         if self.library_id:
             print_info(f"Library ID fra .env: {self.library_id}")
         else:
@@ -363,14 +364,38 @@ class SetupValidator:
                     except (ValueError, IndexError):
                         print_warn("Ugyldig valg, fortsetter uten bibliotek")
 
-        if self.folder_id:
-            print_info(f"Folder ID fra .env: {self.folder_id}")
-
+        # Mappe (kun hvis bibliotek er valgt)
         if self.library_id:
             self.client.library_id = self.library_id
+
+            if self.folder_id:
+                print_info(f"Folder ID fra .env: {self.folder_id}")
+            else:
+                print_warn("CATENDA_FOLDER_ID ikke satt i .env")
+                # Vis tilgjengelige mapper
+                try:
+                    folders = self.client.list_folders(self.project_id)
+                    if folders:
+                        print_info("Tilgjengelige mapper:")
+                        for i, folder in enumerate(folders):
+                            print(f"  {i+1}. {folder.get('name')} ({folder.get('id')})")
+                        choice = input("Velg mappe (eller Enter for root): ").strip()
+                        if choice:
+                            try:
+                                idx = int(choice) - 1
+                                self.folder_id = folders[idx]['id']
+                            except (ValueError, IndexError):
+                                print_warn("Ugyldig valg, bruker root")
+                    else:
+                        print_info("Ingen mapper funnet - bruker root")
+                except Exception as e:
+                    print_warn(f"Kunne ikke hente mapper: {e}")
+
             print_ok(f"Bibliotek: {self.library_id}")
             if self.folder_id:
                 print_ok(f"Mappe: {self.folder_id}")
+            else:
+                print_info("Mappe: (root)")
         else:
             print_warn("Inget bibliotek valgt - PDF-opplasting vil hoppes over")
 
