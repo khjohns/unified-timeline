@@ -913,7 +913,8 @@ class SakState(BaseModel):
             dager = f"{self.frist.godkjent_dager} dager" if self.frist.godkjent_dager else ""
             return f"Godkjent - {dager}"
         elif self.frist.status == SporStatus.DELVIS_GODKJENT:
-            return f"Delvis godkjent - {self.frist.godkjent_dager} dager"
+            dager = f"{self.frist.godkjent_dager} dager" if self.frist.godkjent_dager else "dager"
+            return f"Delvis godkjent - {dager}"
         elif self.frist.status == SporStatus.AVSLATT:
             return "Avvist"
         elif self.frist.status == SporStatus.SENDT:
