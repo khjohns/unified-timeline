@@ -576,12 +576,26 @@ def _post_to_catenda(
 
             if doc_result:
                 # CatendaClient returns 'id', not 'library_item_id'
-                document_guid = doc_result.get('id') or doc_result.get('library_item_id')
-                logger.info(f"✅ PDF uploaded to Catenda: {document_guid}")
+                compact_guid = doc_result.get('id') or doc_result.get('library_item_id')
+                logger.info(f"✅ PDF uploaded to Catenda: {compact_guid}")
+
+                # Format GUID with dashes for BCF API (32 hex chars -> UUID format)
+                if compact_guid and len(compact_guid) == 32:
+                    document_guid = (
+                        f"{compact_guid[:8]}-{compact_guid[8:12]}-"
+                        f"{compact_guid[12:16]}-{compact_guid[16:20]}-{compact_guid[20:]}"
+                    )
+                else:
+                    document_guid = compact_guid
 
                 # Link document to topic
-                catenda_service.create_document_reference(topic_id, document_guid)
-                pdf_uploaded = True
+                if document_guid:
+                    ref_result = catenda_service.create_document_reference(topic_id, document_guid)
+                    if not ref_result and compact_guid != document_guid:
+                        # Fallback: try compact GUID
+                        logger.warning(f"Formatted GUID failed, trying compact: {compact_guid}")
+                        ref_result = catenda_service.create_document_reference(topic_id, compact_guid)
+                    pdf_uploaded = ref_result is not None
             else:
                 logger.error("❌ Failed to upload PDF to Catenda")
 
