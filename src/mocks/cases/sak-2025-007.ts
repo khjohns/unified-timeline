@@ -67,7 +67,13 @@ export const mockSakState7: SakState = {
     spesifisert_krav_ok: true,
     vilkar_oppfylt: true,
     bh_resultat: 'godkjent',
-    bh_begrunnelse: 'Dagene godkjennes.',
+    bh_begrunnelse: `Varslingskravene i §33.6 anses oppfylt.
+
+Det erkjennes at det påberopte forholdet har forårsaket faktisk hindring av fremdriften, og at det foreligger årsakssammenheng mellom forholdet og forsinkelsen.
+
+Hva gjelder antall dager: Kravet om 7 dagers fristforlengelse godkjennes i sin helhet.
+
+Samlet godkjennes 7 dagers fristforlengelse.`,
     godkjent_dager: 7,
     differanse_dager: 0,
     siste_oppdatert: '2025-02-15',
