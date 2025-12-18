@@ -544,32 +544,48 @@ def _post_to_catenda(
                 pdf_path = None
                 pdf_source = None
 
-        # PRIORITY 2: Fallback - Generate PDF on server (WeasyPrint)
+        # PRIORITY 2: Fallback - Generate PDF on server (ReportLab)
         if not pdf_path:
             logger.info("📄 Generating PDF on server (fallback)")
 
-            # Import WeasyPrint generator dynamically to avoid import errors if not installed
             try:
-                from services.weasyprint_generator import WeasyPrintGenerator
-                pdf_generator = WeasyPrintGenerator()
+                from services.reportlab_pdf_generator import ReportLabPdfGenerator
+
+                # Get events for PDF (to show last TE/BH events per track)
+                events_list = []
+                try:
+                    events_data = event_repo.get_events(sak_id)
+                    events_list = [e.model_dump(mode='json') for e in events_data]
+                except Exception as e:
+                    logger.warning(f"Could not get events for PDF: {e}")
+
+                pdf_generator = ReportLabPdfGenerator()
+                filename = f"KOE_{sak_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
 
                 with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_pdf:
                     pdf_path = temp_pdf.name
 
-                filename = f"KOE_{sak_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                pdf_bytes = pdf_generator.generate_pdf(state, events_list, pdf_path)
 
-                if not pdf_generator.generate_koe_pdf(state, pdf_path):
-                    logger.error("❌ Failed to generate PDF on server")
-                    pdf_path = None
-                else:
+                if pdf_bytes is None and pdf_path:
+                    # File was written directly
                     pdf_source = "server"
                     logger.info(f"✅ Server PDF generated: {filename}")
+                elif pdf_bytes:
+                    # Write bytes to file
+                    with open(pdf_path, 'wb') as f:
+                        f.write(pdf_bytes)
+                    pdf_source = "server"
+                    logger.info(f"✅ Server PDF generated: {filename}")
+                else:
+                    logger.error("❌ Failed to generate PDF on server")
+                    pdf_path = None
 
-            except ImportError:
-                logger.warning("⚠️ WeasyPrint not installed - PDF generation skipped (use client-side PDF)")
+            except ImportError as e:
+                logger.warning(f"⚠️ ReportLab not installed - PDF generation skipped: {e}")
                 pdf_path = None
             except Exception as e:
-                logger.error(f"❌ Failed to generate PDF on server: {e}")
+                logger.error(f"❌ Failed to generate PDF on server: {e}", exc_info=True)
                 pdf_path = None
 
         # Upload PDF to Catenda (if we have one)

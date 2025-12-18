@@ -1,0 +1,422 @@
+"""
+ReportLab PDF Generator for KOE case documents.
+
+Pure Python solution - no native dependencies required.
+Generates PDF showing current state and last events per track.
+"""
+from typing import Optional, List, Dict, Any
+from datetime import datetime
+from io import BytesIO
+
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import cm, mm
+from reportlab.platypus import (
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
+    HRFlowable
+)
+from reportlab.lib.enums import TA_LEFT, TA_CENTER
+
+from models.sak_state import SakState
+from utils.logger import get_logger
+
+logger = get_logger(__name__)
+
+
+class ReportLabPdfGenerator:
+    """
+    Generate PDF documents from KOE case state using ReportLab.
+
+    Shows:
+    - Case metadata and overall status
+    - Three tracks: Grunnlag, Vederlag, Frist
+    - Last event from TE and BH per track
+    """
+
+    # Status display mapping
+    STATUS_MAP = {
+        'UNDER_VARSLING': 'Under varsling',
+        'VENTER_PAA_SVAR': 'Venter på svar',
+        'UNDER_FORHANDLING': 'Under forhandling',
+        'OMFORENT': 'Omforent',
+        'AVSLUTTET': 'Avsluttet',
+        'LUKKET': 'Lukket',
+        'ikke_relevant': 'Ikke relevant',
+        'ikke_startet': 'Ikke startet',
+        'utkast': 'Utkast',
+        'sendt': 'Sendt',
+        'under_behandling': 'Under behandling',
+        'godkjent': 'Godkjent',
+        'delvis_godkjent': 'Delvis godkjent',
+        'avslatt': 'Avslått',
+        'under_forhandling': 'Under forhandling',
+        'trukket': 'Trukket',
+        'laast': 'Låst',
+    }
+
+    def __init__(self):
+        """Initialize PDF generator with styles."""
+        self.styles = getSampleStyleSheet()
+        self._setup_custom_styles()
+
+    def _setup_custom_styles(self):
+        """Setup custom paragraph styles."""
+        self.styles.add(ParagraphStyle(
+            name='KoeTitle',
+            parent=self.styles['Heading1'],
+            fontSize=18,
+            spaceAfter=12,
+            textColor=colors.HexColor('#003366'),
+        ))
+        self.styles.add(ParagraphStyle(
+            name='KoeSectionHeader',
+            parent=self.styles['Heading2'],
+            fontSize=14,
+            spaceBefore=16,
+            spaceAfter=8,
+            textColor=colors.HexColor('#005A9C'),
+        ))
+        self.styles.add(ParagraphStyle(
+            name='KoeSubHeader',
+            parent=self.styles['Heading3'],
+            fontSize=11,
+            spaceBefore=8,
+            spaceAfter=4,
+            textColor=colors.HexColor('#333333'),
+        ))
+        self.styles.add(ParagraphStyle(
+            name='KoeBodyText',
+            parent=self.styles['Normal'],
+            fontSize=10,
+            spaceAfter=6,
+        ))
+        self.styles.add(ParagraphStyle(
+            name='KoeSmallText',
+            parent=self.styles['Normal'],
+            fontSize=8,
+            textColor=colors.HexColor('#666666'),
+        ))
+
+    def generate_pdf(
+        self,
+        state: SakState,
+        events: Optional[List[Dict[str, Any]]] = None,
+        output_path: Optional[str] = None
+    ) -> Optional[bytes]:
+        """
+        Generate PDF from case state.
+
+        Args:
+            state: Current SakState
+            events: Optional list of events for history
+            output_path: If provided, save to file. Otherwise return bytes.
+
+        Returns:
+            PDF bytes if output_path is None, else None (saves to file)
+        """
+        try:
+            # Create buffer or file
+            if output_path:
+                doc = SimpleDocTemplate(
+                    output_path,
+                    pagesize=A4,
+                    rightMargin=2*cm,
+                    leftMargin=2*cm,
+                    topMargin=2*cm,
+                    bottomMargin=2*cm
+                )
+            else:
+                buffer = BytesIO()
+                doc = SimpleDocTemplate(
+                    buffer,
+                    pagesize=A4,
+                    rightMargin=2*cm,
+                    leftMargin=2*cm,
+                    topMargin=2*cm,
+                    bottomMargin=2*cm
+                )
+
+            # Build content
+            story = []
+
+            # Header
+            story.append(Paragraph("Krav om Endringsordre (KOE)", self.styles['KoeTitle']))
+            story.append(HRFlowable(width="100%", thickness=2, color=colors.HexColor('#003366')))
+            story.append(Spacer(1, 12))
+
+            # Metadata table
+            story.extend(self._build_metadata_section(state))
+
+            # Three tracks
+            story.extend(self._build_grunnlag_section(state, events))
+            story.extend(self._build_vederlag_section(state, events))
+            story.extend(self._build_frist_section(state, events))
+
+            # Footer
+            story.append(Spacer(1, 24))
+            story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#CCCCCC')))
+            story.append(Paragraph(
+                f"Generert: {datetime.now().strftime('%Y-%m-%d %H:%M')} | Sak-ID: {state.sak_id}",
+                self.styles['KoeSmallText']
+            ))
+
+            # Build PDF
+            doc.build(story)
+
+            if output_path:
+                logger.info(f"PDF saved to {output_path}")
+                return None
+            else:
+                pdf_bytes = buffer.getvalue()
+                buffer.close()
+                logger.info(f"PDF generated: {len(pdf_bytes)} bytes")
+                return pdf_bytes
+
+        except Exception as e:
+            logger.error(f"Failed to generate PDF: {e}", exc_info=True)
+            return None
+
+    def _build_metadata_section(self, state: SakState) -> List:
+        """Build metadata section."""
+        elements = []
+
+        # Metadata table
+        data = [
+            ['Sakstittel:', state.sakstittel or '(ikke satt)'],
+            ['Sak-ID:', state.sak_id],
+            ['Overordnet status:', self._format_status(state.overordnet_status)],
+        ]
+
+        table = Table(data, colWidths=[4*cm, 12*cm])
+        table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#555555')),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ]))
+        elements.append(table)
+        elements.append(Spacer(1, 12))
+
+        return elements
+
+    def _build_grunnlag_section(self, state: SakState, events: Optional[List] = None) -> List:
+        """Build grunnlag (basis) section."""
+        elements = []
+        elements.append(Paragraph("1. Ansvarsgrunnlag", self.styles['KoeSectionHeader']))
+
+        grunnlag = state.grunnlag
+        if grunnlag.status == 'ikke_relevant':
+            elements.append(Paragraph("<i>Ikke relevant for denne saken</i>", self.styles['KoeBodyText']))
+            return elements
+
+        # Current state
+        data = [
+            ['Status:', self._format_status(grunnlag.status)],
+        ]
+        if grunnlag.hovedkategori:
+            data.append(['Hovedkategori:', grunnlag.hovedkategori])
+        if grunnlag.underkategori:
+            data.append(['Underkategori:', grunnlag.underkategori])
+        if grunnlag.beskrivelse:
+            data.append(['Beskrivelse:', grunnlag.beskrivelse[:100] + '...' if len(grunnlag.beskrivelse or '') > 100 else grunnlag.beskrivelse])
+        if grunnlag.bh_resultat:
+            data.append(['BH resultat:', self._format_status(grunnlag.bh_resultat)])
+        if grunnlag.bh_begrunnelse:
+            data.append(['BH begrunnelse:', grunnlag.bh_begrunnelse[:100] + '...' if len(grunnlag.bh_begrunnelse or '') > 100 else grunnlag.bh_begrunnelse])
+
+        table = Table(data, colWidths=[4*cm, 12*cm])
+        table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#555555')),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ]))
+        elements.append(table)
+
+        # Last events
+        elements.extend(self._build_last_events(events, ['grunnlag_opprettet', 'grunnlag_oppdatert'], ['respons_grunnlag']))
+
+        return elements
+
+    def _build_vederlag_section(self, state: SakState, events: Optional[List] = None) -> List:
+        """Build vederlag (compensation) section."""
+        elements = []
+        elements.append(Paragraph("2. Vederlagsjustering", self.styles['KoeSectionHeader']))
+
+        vederlag = state.vederlag
+        if vederlag.status in ['ikke_relevant', 'ikke_startet']:
+            elements.append(Paragraph(f"<i>{self._format_status(vederlag.status)}</i>", self.styles['KoeBodyText']))
+            return elements
+
+        # Current state
+        data = [
+            ['Status:', self._format_status(vederlag.status)],
+        ]
+        if vederlag.metode:
+            data.append(['Metode:', vederlag.metode])
+
+        krevd = vederlag.belop_direkte or vederlag.kostnads_overslag
+        if krevd is not None:
+            data.append(['Krevd beløp:', f"{krevd:,.0f} kr"])
+
+        if vederlag.begrunnelse:
+            data.append(['Begrunnelse:', vederlag.begrunnelse[:100] + '...' if len(vederlag.begrunnelse or '') > 100 else vederlag.begrunnelse])
+
+        if vederlag.bh_resultat:
+            data.append(['BH resultat:', self._format_status(vederlag.bh_resultat)])
+        if vederlag.godkjent_belop is not None:
+            data.append(['Godkjent beløp:', f"{vederlag.godkjent_belop:,.0f} kr"])
+        if vederlag.bh_begrunnelse:
+            data.append(['BH begrunnelse:', vederlag.bh_begrunnelse[:100] + '...' if len(vederlag.bh_begrunnelse or '') > 100 else vederlag.bh_begrunnelse])
+
+        table = Table(data, colWidths=[4*cm, 12*cm])
+        table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#555555')),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ]))
+        elements.append(table)
+
+        # Last events
+        elements.extend(self._build_last_events(events, ['vederlag_krav_sendt', 'vederlag_krav_oppdatert'], ['respons_vederlag']))
+
+        return elements
+
+    def _build_frist_section(self, state: SakState, events: Optional[List] = None) -> List:
+        """Build frist (deadline extension) section."""
+        elements = []
+        elements.append(Paragraph("3. Fristforlengelse", self.styles['KoeSectionHeader']))
+
+        frist = state.frist
+        if frist.status in ['ikke_relevant', 'ikke_startet']:
+            elements.append(Paragraph(f"<i>{self._format_status(frist.status)}</i>", self.styles['KoeBodyText']))
+            return elements
+
+        # Current state
+        data = [
+            ['Status:', self._format_status(frist.status)],
+        ]
+
+        if frist.krevd_dager is not None:
+            data.append(['Krevd dager:', f"{frist.krevd_dager} dager"])
+
+        if frist.begrunnelse:
+            data.append(['Begrunnelse:', frist.begrunnelse[:100] + '...' if len(frist.begrunnelse or '') > 100 else frist.begrunnelse])
+
+        if frist.bh_resultat:
+            data.append(['BH resultat:', self._format_status(frist.bh_resultat)])
+        if frist.godkjent_dager is not None:
+            data.append(['Godkjente dager:', f"{frist.godkjent_dager} dager"])
+        if frist.bh_begrunnelse:
+            data.append(['BH begrunnelse:', frist.bh_begrunnelse[:100] + '...' if len(frist.bh_begrunnelse or '') > 100 else frist.bh_begrunnelse])
+
+        table = Table(data, colWidths=[4*cm, 12*cm])
+        table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#555555')),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ]))
+        elements.append(table)
+
+        # Last events
+        elements.extend(self._build_last_events(events, ['frist_krav_sendt', 'frist_krav_oppdatert'], ['respons_frist']))
+
+        return elements
+
+    def _build_last_events(
+        self,
+        events: Optional[List],
+        te_event_types: List[str],
+        bh_event_types: List[str]
+    ) -> List:
+        """Build last events from TE and BH."""
+        elements = []
+
+        if not events:
+            return elements
+
+        # Find last TE event
+        te_event = None
+        for event in reversed(events):
+            if event.get('event_type') in te_event_types:
+                te_event = event
+                break
+
+        # Find last BH event
+        bh_event = None
+        for event in reversed(events):
+            if event.get('event_type') in bh_event_types:
+                bh_event = event
+                break
+
+        if te_event or bh_event:
+            elements.append(Spacer(1, 8))
+            elements.append(Paragraph("Siste hendelser:", self.styles['KoeSubHeader']))
+
+            if te_event:
+                date = te_event.get('tidsstempel', '')[:10] if te_event.get('tidsstempel') else ''
+                event_type = self._format_event_type(te_event.get('event_type', ''))
+                elements.append(Paragraph(
+                    f"<b>Entreprenør ({date}):</b> {event_type}",
+                    self.styles['KoeBodyText']
+                ))
+
+            if bh_event:
+                date = bh_event.get('tidsstempel', '')[:10] if bh_event.get('tidsstempel') else ''
+                event_type = self._format_event_type(bh_event.get('event_type', ''))
+                resultat = bh_event.get('data', {}).get('resultat', '')
+                if resultat:
+                    resultat_display = self._format_status(resultat)
+                    elements.append(Paragraph(
+                        f"<b>Byggherre ({date}):</b> {event_type} - {resultat_display}",
+                        self.styles['KoeBodyText']
+                    ))
+                else:
+                    elements.append(Paragraph(
+                        f"<b>Byggherre ({date}):</b> {event_type}",
+                        self.styles['KoeBodyText']
+                    ))
+
+        return elements
+
+    def _format_status(self, status: str) -> str:
+        """Format status for display."""
+        return self.STATUS_MAP.get(status, status.replace('_', ' ').title())
+
+    def _format_event_type(self, event_type: str) -> str:
+        """Format event type for display."""
+        event_map = {
+            'grunnlag_opprettet': 'Grunnlag opprettet',
+            'grunnlag_oppdatert': 'Grunnlag oppdatert',
+            'vederlag_krav_sendt': 'Vederlagskrav sendt',
+            'vederlag_krav_oppdatert': 'Vederlagskrav oppdatert',
+            'frist_krav_sendt': 'Fristkrav sendt',
+            'frist_krav_oppdatert': 'Fristkrav oppdatert',
+            'respons_grunnlag': 'Respons på grunnlag',
+            'respons_vederlag': 'Respons på vederlag',
+            'respons_frist': 'Respons på frist',
+        }
+        return event_map.get(event_type, event_type.replace('_', ' ').title())
+
+
+def generate_koe_pdf(state: SakState, events: Optional[List] = None, output_path: Optional[str] = None) -> Optional[bytes]:
+    """
+    Convenience function to generate KOE PDF.
+
+    Args:
+        state: Current SakState
+        events: Optional list of events
+        output_path: If provided, save to file
+
+    Returns:
+        PDF bytes if output_path is None
+    """
+    generator = ReportLabPdfGenerator()
+    return generator.generate_pdf(state, events, output_path)
