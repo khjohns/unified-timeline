@@ -260,6 +260,56 @@ class SetupValidator:
         self.topic_board_id: Optional[str] = None
         self.config: Dict[str, Any] = {}
 
+    def _browse_folders(self, parent_id: Optional[str] = None, path: str = "/") -> Optional[str]:
+        """Naviger i mappestrukturen"""
+        # Hent mapper pa dette nivaet
+        folders = self.client.list_folders(self.project_id, parent_id=parent_id, include_subfolders=False)
+
+        # Sorter alfabetisk
+        if folders:
+            folders.sort(key=lambda f: f.get('name', '').lower())
+
+        print(f"\n  Mappe: {path}")
+        print("  " + "-" * 40)
+
+        if parent_id:
+            print("    0. [Opp ett niva]")
+            print("    R. [Bruk DENNE mappen]")
+
+        if not folders:
+            print("    (ingen undermapper)")
+        else:
+            for i, folder in enumerate(folders, 1):
+                print(f"    {i}. {folder.get('name', 'Uten navn')}")
+
+        print("    Enter: Bruk root (ingen mappe)")
+        print()
+
+        choice = input("  Velg: ").strip().lower()
+
+        if not choice:
+            # Tom input = bruk root
+            return None
+        elif choice == '0' and parent_id:
+            # Ga opp - returner spesialverdi
+            return "__UP__"
+        elif choice == 'r' and parent_id:
+            return parent_id
+        elif choice.isdigit():
+            idx = int(choice) - 1
+            if 0 <= idx < len(folders):
+                selected = folders[idx]
+                new_path = f"{path}{selected.get('name')}/"
+                # Naviger ned i denne mappen
+                result = self._browse_folders(parent_id=selected['id'], path=new_path)
+                if result == "__UP__":
+                    # Brukeren gikk opp, vis denne mappen pa nytt
+                    return self._browse_folders(parent_id=parent_id, path=path)
+                return result
+
+        print_warn("Ugyldig valg")
+        return self._browse_folders(parent_id=parent_id, path=path)
+
     def validate_authentication(self) -> bool:
         """Steg 1.1: Valider autentisering"""
         print_header("STEG 1.1: Autentisering")
@@ -372,22 +422,9 @@ class SetupValidator:
                 print_info(f"Folder ID fra .env: {self.folder_id}")
             else:
                 print_warn("CATENDA_FOLDER_ID ikke satt i .env")
-                # Vis tilgjengelige mapper
+                print_info("Naviger til onskede mappe:")
                 try:
-                    folders = self.client.list_folders(self.project_id)
-                    if folders:
-                        print_info("Tilgjengelige mapper:")
-                        for i, folder in enumerate(folders):
-                            print(f"  {i+1}. {folder.get('name')} ({folder.get('id')})")
-                        choice = input("Velg mappe (eller Enter for root): ").strip()
-                        if choice:
-                            try:
-                                idx = int(choice) - 1
-                                self.folder_id = folders[idx]['id']
-                            except (ValueError, IndexError):
-                                print_warn("Ugyldig valg, bruker root")
-                    else:
-                        print_info("Ingen mapper funnet - bruker root")
+                    self.folder_id = self._browse_folders()
                 except Exception as e:
                     print_warn(f"Kunne ikke hente mapper: {e}")
 
