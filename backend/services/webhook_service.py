@@ -108,34 +108,36 @@ class WebhookService:
                 get_frontend_route
             )
 
-            # Extract topic data from webhook payload
+            # Extract basic data from webhook payload
             temp_topic_data = webhook_payload.get('issue', {}) or webhook_payload.get('topic', {})
             board_id = webhook_payload.get('project_id') or temp_topic_data.get('boardId') or temp_topic_data.get('topic_board_id')
-
-            # Check if topic passes filters
-            filter_data = temp_topic_data.copy()
-            filter_data['board_id'] = board_id
-            filter_data['type'] = temp_topic_data.get('topic_type') or temp_topic_data.get('type')
-
-            should_proc, reason = should_process_topic(filter_data)
-            if not should_proc:
-                logger.info(f"⏭️  Ignoring topic (reason: {reason})")
-                return {'success': True, 'action': 'ignored_due_to_filter', 'reason': reason}
-
-            # Extract topic ID
             topic_id = temp_topic_data.get('id') or temp_topic_data.get('guid') or webhook_payload.get('guid')
 
             if not topic_id or not board_id:
                 logger.error(f"Webhook missing 'topic_id' or 'board_id'. Payload: {webhook_payload}")
                 return {'success': False, 'error': 'Missing topic_id or board_id in webhook'}
 
-            # Fetch full topic details from Catenda API
+            # Fetch full topic details from Catenda API FIRST
+            # (webhook payload often doesn't include topic_type)
             self.catenda.topic_board_id = board_id
             topic_data = self.catenda.get_topic_details(topic_id)
 
             if not topic_data:
                 logger.error(f"Failed to fetch topic details for ID {topic_id} from Catenda API.")
                 return {'success': False, 'error': f'Could not fetch topic details for {topic_id}'}
+
+            # Now check filters with ACTUAL topic data (includes topic_type)
+            filter_data = {
+                'board_id': board_id,
+                'topic_type': topic_data.get('topic_type'),
+                'type': topic_data.get('topic_type'),  # Alias for filtering
+                'title': topic_data.get('title'),
+            }
+
+            should_proc, reason = should_process_topic(filter_data)
+            if not should_proc:
+                logger.info(f"⏭️  Ignoring topic (reason: {reason})")
+                return {'success': True, 'action': 'ignored_due_to_filter', 'reason': reason}
 
             # Extract metadata
             title = topic_data.get('title', 'Untitled')
