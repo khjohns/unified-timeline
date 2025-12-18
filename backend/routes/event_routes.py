@@ -515,6 +515,11 @@ def _post_to_catenda(
         else:
             logger.warning("⚠️ No library ID configured - PDF upload may fail")
 
+        # Get folder ID for document uploads
+        folder_id = config.get('catenda_folder_id')
+        if folder_id:
+            logger.info(f"✅ Folder ID set: {folder_id}")
+
         pdf_path = None
         pdf_source = None
         filename = None
@@ -590,7 +595,7 @@ def _post_to_catenda(
 
         # Upload PDF to Catenda (if we have one)
         if pdf_path:
-            doc_result = catenda_service.upload_document(project_id, pdf_path, filename)
+            doc_result = catenda_service.upload_document(project_id, pdf_path, filename, folder_id)
 
             if doc_result:
                 # CatendaClient returns 'id', not 'library_item_id'
