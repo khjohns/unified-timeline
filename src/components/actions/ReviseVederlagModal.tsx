@@ -291,7 +291,10 @@ export function ReviseVederlagModal({
       data: {
         original_event_id: lastVederlagEvent.event_id,
 
-        // Method change (if any)
+        // Always send final method (required by backend validator)
+        metode: finalMetode,
+
+        // Method change indicator (if any)
         ny_metode: data.endre_metode && data.ny_metode ? data.ny_metode : undefined,
 
         // Amount
