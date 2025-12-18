@@ -445,6 +445,11 @@ const VederlagSection: React.FC<{ state: SakState }> = ({ state }) => {
   const isNotClaimed = vederlag.status === 'ikke_relevant';
   const krevdBelop = vederlag.belop_direkte ?? vederlag.kostnads_overslag;
 
+  // Calculate total krevd including særskilte krav
+  const totalKrevd = (krevdBelop ?? 0) +
+    (vederlag.saerskilt_krav?.rigg_drift?.belop ?? 0) +
+    (vederlag.saerskilt_krav?.produktivitet?.belop ?? 0);
+
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader} wrap={false}>
@@ -466,151 +471,100 @@ const VederlagSection: React.FC<{ state: SakState }> = ({ state }) => {
         <NotClaimedBox message="Det er ikke fremsatt krav om vederlagsjustering for denne saken." />
       ) : (
         <View>
-          {/* Entreprenørens krav */}
+          {/* Entreprenørens krav - Kompakt oversikt */}
           <View style={styles.mainSubSection}>
             <Text style={styles.mainSubSectionTitle}>Entreprenørens krav</Text>
             <View style={styles.table}>
               <TableRow4Col
                 label1="Oppgjørsmetode"
                 value1={formatVederlagsmetode(vederlag.metode)}
-                label2={vederlag.metode === 'REGNINGSARBEID' ? 'Kostnadsoverslag' : 'Krevd beløp'}
-                value2={krevdBelop !== undefined ? formatCurrency(krevdBelop) : '—'}
+                label2="Krav fremmet"
+                value2={formatDate(vederlag.krav_fremmet_dato)}
               />
-              {/* Justerte EP kun relevant for ENHETSPRISER */}
-              {vederlag.metode === 'ENHETSPRISER' && vederlag.krever_justert_ep && (
+
+              {/* Hovedkrav */}
+              <TableRow4Col
+                label1="Hovedkrav"
+                value1={krevdBelop !== undefined ? formatCurrency(krevdBelop) : '—'}
+                label2={vederlag.metode === 'ENHETSPRISER' && vederlag.krever_justert_ep ? 'Justerte EP' : ''}
+                value2={vederlag.metode === 'ENHETSPRISER' && vederlag.krever_justert_ep ? 'Ja (§34.3.3)' : ''}
+                striped
+              />
+
+              {/* Særskilte krav - kompakt visning */}
+              {vederlag.saerskilt_krav?.rigg_drift?.belop !== undefined && (
                 <TableRow4Col
-                  label1="Justerte EP"
-                  value1={formatBoolean(vederlag.krever_justert_ep)}
-                  label2="Krav fremmet"
-                  value2={formatDate(vederlag.krav_fremmet_dato)}
+                  label1="Rigg/drift (§34.1.3)"
+                  value1={formatCurrency(vederlag.saerskilt_krav.rigg_drift.belop)}
+                  label2="Varslet"
+                  value2={formatDate(vederlag.saerskilt_krav.rigg_drift.dato_klar_over)}
+                />
+              )}
+              {vederlag.saerskilt_krav?.produktivitet?.belop !== undefined && (
+                <TableRow4Col
+                  label1="Produktivitetstap (§34.1.3)"
+                  value1={formatCurrency(vederlag.saerskilt_krav.produktivitet.belop)}
+                  label2="Varslet"
+                  value2={formatDate(vederlag.saerskilt_krav.produktivitet.dato_klar_over)}
                   striped
                 />
               )}
-              {/* For andre metoder, vis kun krav fremmet hvis satt */}
-              {vederlag.metode !== 'ENHETSPRISER' && vederlag.krav_fremmet_dato && (
-                <TableRow label="Krav fremmet" value={formatDate(vederlag.krav_fremmet_dato)} striped />
+
+              {/* Total */}
+              {totalKrevd > (krevdBelop ?? 0) && (
+                <TableRow
+                  label="Totalt krevd"
+                  value={formatCurrency(totalKrevd)}
+                />
               )}
             </View>
 
-            {/* Begrunnelse - Viktig for juridisk dokumentasjon */}
-            <TextBlock title="Begrunnelse og kalkyle" content={vederlag.begrunnelse} />
+            {/* Entreprenørens begrunnelse */}
+            <TextBlock title="Entreprenørens begrunnelse" content={vederlag.begrunnelse} />
           </View>
 
-          {/* Varsler - kun vis varsler som er relevante for valgt metode */}
-          {(() => {
-            const hasRiggDrift = vederlag.rigg_drift_varsel?.dato_sendt;
-            const hasJustertEP = vederlag.metode === 'ENHETSPRISER' && vederlag.justert_ep_varsel?.dato_sendt;
-            const hasRegning = vederlag.metode === 'REGNINGSARBEID' && vederlag.regningsarbeid_varsel?.dato_sendt;
-            const hasProdTap = vederlag.produktivitetstap_varsel?.dato_sendt;
-            const hasAnyVarsel = hasRiggDrift || hasJustertEP || hasRegning || hasProdTap;
-
-            if (!hasAnyVarsel) return null;
-
-            return (
-              <View style={styles.subSection}>
-                <Text style={styles.subSectionTitle}>Varsler</Text>
-                <View style={styles.table}>
-                  {hasRiggDrift && (
-                    <TableRow label="Rigg/drift varsel" value={formatDate(vederlag.rigg_drift_varsel?.dato_sendt)} />
-                  )}
-                  {hasJustertEP && (
-                    <TableRow label="Justerte EP varsel" value={formatDate(vederlag.justert_ep_varsel?.dato_sendt)} striped />
-                  )}
-                  {hasRegning && (
-                    <TableRow label="Regningsarbeid varsel" value={formatDate(vederlag.regningsarbeid_varsel?.dato_sendt)} striped />
-                  )}
-                  {hasProdTap && (
-                    <TableRow label="Produktivitetstap varsel" value={formatDate(vederlag.produktivitetstap_varsel?.dato_sendt)} />
-                  )}
-                </View>
-              </View>
-            );
-          })()}
-
-          {/* Særskilte krav (§34.1.3) */}
-          {vederlag.saerskilt_krav && (vederlag.saerskilt_krav.rigg_drift || vederlag.saerskilt_krav.produktivitet) && (
-            <View style={styles.subSection}>
-              <Text style={styles.subSectionTitle}>Særskilte krav (§34.1.3)</Text>
-              <View style={styles.table}>
-                {vederlag.saerskilt_krav.rigg_drift?.belop !== undefined && (
-                  <TableRow4Col
-                    label1="Rigg/drift beløp"
-                    value1={formatCurrency(vederlag.saerskilt_krav.rigg_drift.belop)}
-                    label2="Dato klar over"
-                    value2={formatDate(vederlag.saerskilt_krav.rigg_drift.dato_klar_over)}
-                  />
-                )}
-                {vederlag.saerskilt_krav.produktivitet?.belop !== undefined && (
-                  <TableRow4Col
-                    label1="Produktivitetstap"
-                    value1={formatCurrency(vederlag.saerskilt_krav.produktivitet.belop)}
-                    label2="Dato klar over"
-                    value2={formatDate(vederlag.saerskilt_krav.produktivitet.dato_klar_over)}
-                    striped
-                  />
-                )}
-              </View>
-            </View>
-          )}
-
-          {/* BH Response - Varsling - kun vis relevante felt basert på metode */}
-          {(() => {
-            const hasRiggDriftOk = vederlag.saerskilt_varsel_rigg_drift_ok !== undefined;
-            const hasJustertEpOk = vederlag.metode === 'ENHETSPRISER' && vederlag.varsel_justert_ep_ok !== undefined;
-            const hasStartRegningOk = vederlag.metode === 'REGNINGSARBEID' && vederlag.varsel_start_regning_ok !== undefined;
-            const hasKravITide = vederlag.krav_fremmet_i_tide !== undefined;
-            const hasAnyVarsling = hasRiggDriftOk || hasJustertEpOk || hasStartRegningOk || hasKravITide || vederlag.begrunnelse_varsel;
-
-            if (!hasAnyVarsling) return null;
-
-            return (
-              <View style={styles.mainSubSection}>
-                <Text style={styles.mainSubSectionTitle}>Byggherrens vurdering – Varsling</Text>
-                <View style={styles.table}>
-                  {hasRiggDriftOk && (
-                    <TableRow label="Rigg/drift varsel OK" value={formatBoolean(vederlag.saerskilt_varsel_rigg_drift_ok)} />
-                  )}
-                  {hasJustertEpOk && (
-                    <TableRow label="Justerte EP varsel OK" value={formatBoolean(vederlag.varsel_justert_ep_ok)} striped />
-                  )}
-                  {hasStartRegningOk && (
-                    <TableRow label="Start regning varsel OK" value={formatBoolean(vederlag.varsel_start_regning_ok)} striped />
-                  )}
-                  {hasKravITide && (
-                    <TableRow label="Krav fremmet i tide" value={formatBoolean(vederlag.krav_fremmet_i_tide)} />
-                  )}
-                </View>
-                <TextBlock title="Begrunnelse varselvurdering" content={vederlag.begrunnelse_varsel} />
-              </View>
-            );
-          })()}
-
-          {/* BH Response - Beregning */}
+          {/* Byggherrens vurdering - Narrativ begrunnelse */}
           {vederlag.bh_resultat && (
             <View style={styles.mainSubSection}>
-              <Text style={styles.mainSubSectionTitle}>Byggherrens vurdering – Beregning</Text>
+              <Text style={styles.mainSubSectionTitle}>Byggherrens vurdering</Text>
+
+              {/* Resultat-sammendrag */}
               <View style={styles.table}>
                 <TableRow4Col
                   label1="Resultat"
                   value1={formatVederlagResultat(vederlag.bh_resultat)}
-                  label2="Godkjent metode"
-                  value2={formatVederlagsmetode(vederlag.bh_metode)}
-                />
-                <TableRow4Col
-                  label1="Godkjent beløp"
-                  value1={vederlag.godkjent_belop !== undefined ? formatCurrency(vederlag.godkjent_belop) : '—'}
-                  label2="Differanse"
-                  value2={vederlag.differanse !== undefined ? formatCurrency(vederlag.differanse) : '—'}
-                  striped
+                  label2="Godkjent beløp"
+                  value2={vederlag.godkjent_belop !== undefined ? formatCurrency(vederlag.godkjent_belop) : '—'}
                 />
                 {vederlag.godkjenningsgrad_prosent !== undefined && (
+                  <TableRow4Col
+                    label1="Godkjenningsgrad"
+                    value1={`${vederlag.godkjenningsgrad_prosent.toFixed(1)}%`}
+                    label2="Differanse"
+                    value2={vederlag.differanse !== undefined ? formatCurrency(vederlag.differanse) : '—'}
+                    striped
+                  />
+                )}
+                {vederlag.bh_metode && vederlag.bh_metode !== vederlag.metode && (
                   <TableRow
-                    label="Godkjenningsgrad"
-                    value={`${vederlag.godkjenningsgrad_prosent.toFixed(1)}%`}
+                    label="Endret oppgjørsform"
+                    value={formatVederlagsmetode(vederlag.bh_metode)}
                   />
                 )}
               </View>
-              <TextBlock title="Byggherrens begrunnelse" content={vederlag.bh_begrunnelse} />
+
+              {/* Subsidiært standpunkt */}
+              {vederlag.har_subsidiaert_standpunkt && vederlag.subsidiaer_godkjent_belop !== undefined && (
+                <View style={styles.subsidiaerBox}>
+                  <Text style={styles.subsidiaerTitle}>Subsidiært standpunkt</Text>
+                  <Text style={styles.subsidiaerText}>
+                    Dersom de prekluderte kravene hadde vært varslet i tide: {formatCurrency(vederlag.subsidiaer_godkjent_belop)}
+                  </Text>
+                </View>
+              )}
+
+              {/* Hovedbegrunnelse - Narrativ tekst generert fra valgene */}
+              <TextBlock title="Begrunnelse" content={vederlag.bh_begrunnelse} />
             </View>
           )}
         </View>

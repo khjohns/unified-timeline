@@ -399,6 +399,27 @@ export const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
 
+  // Subsidiært standpunkt box (for PDF narrative section)
+  subsidiaerBox: {
+    marginTop: 8,
+    marginBottom: 8,
+    padding: 8,
+    backgroundColor: '#FFF3E0',
+    borderWidth: 1,
+    borderColor: '#E65100',
+  },
+  subsidiaerTitle: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    color: '#E65100',
+    marginBottom: 4,
+  },
+  subsidiaerText: {
+    fontSize: 9,
+    color: '#E65100',
+    fontStyle: 'italic',
+  },
+
   // "Not claimed" box
   notClaimedBox: {
     backgroundColor: COLORS.neutralBg,
