@@ -156,7 +156,7 @@ class ExtendedCatendaClient(CatendaClient):
             Liste med prosjekter
         """
         url = f"{self.base_url}/v2/projects"
-        headers = self._get_headers()
+        headers = self.get_headers()
 
         try:
             response = requests.get(url, headers=headers, timeout=30)
@@ -181,7 +181,7 @@ class ExtendedCatendaClient(CatendaClient):
             return None
 
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}/extensions"
-        headers = self._get_headers()
+        headers = self.get_headers()
 
         try:
             response = requests.get(url, headers=headers, timeout=30)
@@ -208,7 +208,7 @@ class ExtendedCatendaClient(CatendaClient):
             return []
 
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}/topics/{topic_id}/comments"
-        headers = self._get_headers()
+        headers = self.get_headers()
 
         try:
             response = requests.get(url, headers=headers, timeout=30)
@@ -233,7 +233,7 @@ class ExtendedCatendaClient(CatendaClient):
             return []
 
         url = f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}/topics/{topic_id}/document_references"
-        headers = self._get_headers()
+        headers = self.get_headers()
 
         try:
             response = requests.get(url, headers=headers, timeout=30)
