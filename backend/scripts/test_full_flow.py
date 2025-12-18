@@ -56,7 +56,7 @@ REQUIRED_STATUSES = [
 
 REQUIRED_CUSTOM_FIELDS = [
     "Byggherre",
-    "Leverandor"
+    "Leverandør"
 ]
 
 # Testverdier
