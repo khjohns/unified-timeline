@@ -21,6 +21,14 @@ from reportlab.lib.enums import TA_LEFT, TA_CENTER
 from models.sak_state import SakState
 from utils.logger import get_logger
 
+# Import label helpers
+from constants.grunnlag_categories import (
+    get_hovedkategori_label,
+    get_underkategori_label,
+    get_underkategori,
+)
+from constants.vederlag_methods import VEDERLAG_METODER
+
 logger = get_logger(__name__)
 
 
@@ -53,6 +61,36 @@ class ReportLabPdfGenerator:
         'under_forhandling': 'Under forhandling',
         'trukket': 'Trukket',
         'laast': 'Låst',
+    }
+
+    # BH resultat mappings
+    GRUNNLAG_RESULTAT_MAP = {
+        'godkjent': 'Godkjent',
+        'delvis_godkjent': 'Delvis godkjent',
+        'erkjenn_fm': 'Erkjent Force Majeure',
+        'avslatt': 'Avslått',
+        'frafalt': 'Frafalt pålegg',
+        'krever_avklaring': 'Krever avklaring',
+    }
+
+    VEDERLAG_RESULTAT_MAP = {
+        'godkjent': 'Godkjent',
+        'delvis_godkjent': 'Delvis godkjent',
+        'avslatt': 'Avslått',
+        'hold_tilbake': 'Hold tilbake betaling',
+    }
+
+    FRIST_RESULTAT_MAP = {
+        'godkjent': 'Godkjent',
+        'delvis_godkjent': 'Delvis godkjent',
+        'avslatt': 'Avslått',
+    }
+
+    FRIST_VARSEL_TYPE_MAP = {
+        'noytralt': 'Nøytralt varsel',
+        'spesifisert': 'Spesifisert krav',
+        'begge': 'Begge (nøytralt + spesifisert)',
+        'force_majeure': 'Force majeure',
     }
 
     def __init__(self):
@@ -202,131 +240,211 @@ class ReportLabPdfGenerator:
         return elements
 
     def _build_grunnlag_section(self, state: SakState, events: Optional[List] = None) -> List:
-        """Build grunnlag (basis) section."""
+        """Build grunnlag (basis) section with TE/BH structure."""
         elements = []
-        elements.append(Paragraph("1. Ansvarsgrunnlag", self.styles['KoeSectionHeader']))
+        elements.append(Paragraph(
+            f"1. Ansvarsgrunnlag <font size='9' color='#666666'>[{self._format_status(state.grunnlag.status)}]</font>",
+            self.styles['KoeSectionHeader']
+        ))
 
         grunnlag = state.grunnlag
         if grunnlag.status == 'ikke_relevant':
             elements.append(Paragraph("<i>Ikke relevant for denne saken</i>", self.styles['KoeBodyText']))
             return elements
 
-        # Current state
-        data = [
-            ['Status:', self._format_status(grunnlag.status)],
-        ]
+        # TE section - Entreprenør krever
+        elements.append(Paragraph("<b>ENTREPRENØR KREVER:</b>", self.styles['KoeSubHeader']))
+
+        te_data = []
         if grunnlag.hovedkategori:
-            data.append(['Hovedkategori:', grunnlag.hovedkategori])
-        if grunnlag.underkategori:
-            data.append(['Underkategori:', grunnlag.underkategori])
+            hovedkat_label = get_hovedkategori_label(grunnlag.hovedkategori)
+            te_data.append(['Hovedkategori:', hovedkat_label])
+
+        if grunnlag.underkategori and grunnlag.hovedkategori:
+            underkat_label = get_underkategori_label(grunnlag.hovedkategori, grunnlag.underkategori)
+            te_data.append(['Underkategori:', underkat_label])
+
+            # Get hjemmel reference
+            underkat = get_underkategori(grunnlag.hovedkategori, grunnlag.underkategori)
+            if underkat and underkat.get('hjemmel_basis'):
+                te_data.append(['Hjemmel:', f"§{underkat['hjemmel_basis']}"])
+
         if grunnlag.beskrivelse:
-            data.append(['Beskrivelse:', grunnlag.beskrivelse[:100] + '...' if len(grunnlag.beskrivelse or '') > 100 else grunnlag.beskrivelse])
+            beskr = grunnlag.beskrivelse[:150] + '...' if len(grunnlag.beskrivelse or '') > 150 else grunnlag.beskrivelse
+            te_data.append(['Beskrivelse:', beskr])
+
+        if te_data:
+            table = Table(te_data, colWidths=[3.5*cm, 12.5*cm])
+            table.setStyle(TableStyle([
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 9),
+                ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#555555')),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            elements.append(table)
+
+        # BH section - Byggherre svarer (only if response exists)
         if grunnlag.bh_resultat:
-            data.append(['BH resultat:', self._format_status(grunnlag.bh_resultat)])
-        if grunnlag.bh_begrunnelse:
-            data.append(['BH begrunnelse:', grunnlag.bh_begrunnelse[:100] + '...' if len(grunnlag.bh_begrunnelse or '') > 100 else grunnlag.bh_begrunnelse])
+            elements.append(Spacer(1, 8))
+            elements.append(Paragraph("<b>BYGGHERRE SVARER:</b>", self.styles['KoeSubHeader']))
 
-        table = Table(data, colWidths=[4*cm, 12*cm])
-        table.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
-            ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#555555')),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-        ]))
-        elements.append(table)
+            bh_data = []
+            resultat_label = self.GRUNNLAG_RESULTAT_MAP.get(grunnlag.bh_resultat, grunnlag.bh_resultat)
+            bh_data.append(['Resultat:', resultat_label])
 
-        # Last events
-        elements.extend(self._build_last_events(events, ['grunnlag_opprettet', 'grunnlag_oppdatert'], ['respons_grunnlag']))
+            if grunnlag.bh_begrunnelse:
+                begr = grunnlag.bh_begrunnelse[:150] + '...' if len(grunnlag.bh_begrunnelse or '') > 150 else grunnlag.bh_begrunnelse
+                bh_data.append(['Begrunnelse:', begr])
+
+            table = Table(bh_data, colWidths=[3.5*cm, 12.5*cm])
+            table.setStyle(TableStyle([
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 9),
+                ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#555555')),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            elements.append(table)
 
         return elements
 
     def _build_vederlag_section(self, state: SakState, events: Optional[List] = None) -> List:
-        """Build vederlag (compensation) section."""
+        """Build vederlag (compensation) section with TE/BH structure."""
         elements = []
-        elements.append(Paragraph("2. Vederlagsjustering", self.styles['KoeSectionHeader']))
+        elements.append(Paragraph(
+            f"2. Vederlagsjustering <font size='9' color='#666666'>[{self._format_status(state.vederlag.status)}]</font>",
+            self.styles['KoeSectionHeader']
+        ))
 
         vederlag = state.vederlag
         if vederlag.status in ['ikke_relevant', 'ikke_startet']:
             elements.append(Paragraph(f"<i>{self._format_status(vederlag.status)}</i>", self.styles['KoeBodyText']))
             return elements
 
-        # Current state
-        data = [
-            ['Status:', self._format_status(vederlag.status)],
-        ]
+        # TE section - Entreprenør krever
+        elements.append(Paragraph("<b>ENTREPRENØR KREVER:</b>", self.styles['KoeSubHeader']))
+
+        te_data = []
         if vederlag.metode:
-            data.append(['Metode:', vederlag.metode])
+            metode_info = VEDERLAG_METODER.get(vederlag.metode)
+            if metode_info:
+                metode_label = f"{metode_info['label']} ({metode_info['paragraf']})"
+            else:
+                metode_label = vederlag.metode
+            te_data.append(['Metode:', metode_label])
 
         krevd = vederlag.belop_direkte or vederlag.kostnads_overslag
         if krevd is not None:
-            data.append(['Krevd beløp:', f"{krevd:,.0f} kr"])
+            te_data.append(['Beløp:', f"{krevd:,.0f} kr"])
 
         if vederlag.begrunnelse:
-            data.append(['Begrunnelse:', vederlag.begrunnelse[:100] + '...' if len(vederlag.begrunnelse or '') > 100 else vederlag.begrunnelse])
+            begr = vederlag.begrunnelse[:150] + '...' if len(vederlag.begrunnelse or '') > 150 else vederlag.begrunnelse
+            te_data.append(['Begrunnelse:', begr])
 
+        if te_data:
+            table = Table(te_data, colWidths=[3.5*cm, 12.5*cm])
+            table.setStyle(TableStyle([
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 9),
+                ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#555555')),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            elements.append(table)
+
+        # BH section - Byggherre svarer (only if response exists)
         if vederlag.bh_resultat:
-            data.append(['BH resultat:', self._format_status(vederlag.bh_resultat)])
-        if vederlag.godkjent_belop is not None:
-            data.append(['Godkjent beløp:', f"{vederlag.godkjent_belop:,.0f} kr"])
-        if vederlag.bh_begrunnelse:
-            data.append(['BH begrunnelse:', vederlag.bh_begrunnelse[:100] + '...' if len(vederlag.bh_begrunnelse or '') > 100 else vederlag.bh_begrunnelse])
+            elements.append(Spacer(1, 8))
+            elements.append(Paragraph("<b>BYGGHERRE SVARER:</b>", self.styles['KoeSubHeader']))
 
-        table = Table(data, colWidths=[4*cm, 12*cm])
-        table.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
-            ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#555555')),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-        ]))
-        elements.append(table)
+            bh_data = []
+            resultat_label = self.VEDERLAG_RESULTAT_MAP.get(vederlag.bh_resultat, vederlag.bh_resultat)
+            bh_data.append(['Resultat:', resultat_label])
 
-        # Last events
-        elements.extend(self._build_last_events(events, ['vederlag_krav_sendt', 'vederlag_krav_oppdatert'], ['respons_vederlag']))
+            if vederlag.godkjent_belop is not None:
+                bh_data.append(['Godkjent beløp:', f"{vederlag.godkjent_belop:,.0f} kr"])
+
+            if vederlag.bh_begrunnelse:
+                begr = vederlag.bh_begrunnelse[:150] + '...' if len(vederlag.bh_begrunnelse or '') > 150 else vederlag.bh_begrunnelse
+                bh_data.append(['Begrunnelse:', begr])
+
+            table = Table(bh_data, colWidths=[3.5*cm, 12.5*cm])
+            table.setStyle(TableStyle([
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 9),
+                ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#555555')),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            elements.append(table)
 
         return elements
 
     def _build_frist_section(self, state: SakState, events: Optional[List] = None) -> List:
-        """Build frist (deadline extension) section."""
+        """Build frist (deadline extension) section with TE/BH structure."""
         elements = []
-        elements.append(Paragraph("3. Fristforlengelse", self.styles['KoeSectionHeader']))
+        elements.append(Paragraph(
+            f"3. Fristforlengelse <font size='9' color='#666666'>[{self._format_status(state.frist.status)}]</font>",
+            self.styles['KoeSectionHeader']
+        ))
 
         frist = state.frist
         if frist.status in ['ikke_relevant', 'ikke_startet']:
             elements.append(Paragraph(f"<i>{self._format_status(frist.status)}</i>", self.styles['KoeBodyText']))
             return elements
 
-        # Current state
-        data = [
-            ['Status:', self._format_status(frist.status)],
-        ]
+        # TE section - Entreprenør krever
+        elements.append(Paragraph("<b>ENTREPRENØR KREVER:</b>", self.styles['KoeSubHeader']))
+
+        te_data = []
+        if hasattr(frist, 'varsel_type') and frist.varsel_type:
+            varsel_label = self.FRIST_VARSEL_TYPE_MAP.get(frist.varsel_type, frist.varsel_type)
+            te_data.append(['Varseltype:', varsel_label])
 
         if frist.krevd_dager is not None:
-            data.append(['Krevd dager:', f"{frist.krevd_dager} dager"])
+            te_data.append(['Antall dager:', f"{frist.krevd_dager} dager"])
 
         if frist.begrunnelse:
-            data.append(['Begrunnelse:', frist.begrunnelse[:100] + '...' if len(frist.begrunnelse or '') > 100 else frist.begrunnelse])
+            begr = frist.begrunnelse[:150] + '...' if len(frist.begrunnelse or '') > 150 else frist.begrunnelse
+            te_data.append(['Begrunnelse:', begr])
 
+        if te_data:
+            table = Table(te_data, colWidths=[3.5*cm, 12.5*cm])
+            table.setStyle(TableStyle([
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 9),
+                ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#555555')),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            elements.append(table)
+
+        # BH section - Byggherre svarer (only if response exists)
         if frist.bh_resultat:
-            data.append(['BH resultat:', self._format_status(frist.bh_resultat)])
-        if frist.godkjent_dager is not None:
-            data.append(['Godkjente dager:', f"{frist.godkjent_dager} dager"])
-        if frist.bh_begrunnelse:
-            data.append(['BH begrunnelse:', frist.bh_begrunnelse[:100] + '...' if len(frist.bh_begrunnelse or '') > 100 else frist.bh_begrunnelse])
+            elements.append(Spacer(1, 8))
+            elements.append(Paragraph("<b>BYGGHERRE SVARER:</b>", self.styles['KoeSubHeader']))
 
-        table = Table(data, colWidths=[4*cm, 12*cm])
-        table.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
-            ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#555555')),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-        ]))
-        elements.append(table)
+            bh_data = []
+            resultat_label = self.FRIST_RESULTAT_MAP.get(frist.bh_resultat, frist.bh_resultat)
+            bh_data.append(['Resultat:', resultat_label])
 
-        # Last events
-        elements.extend(self._build_last_events(events, ['frist_krav_sendt', 'frist_krav_oppdatert'], ['respons_frist']))
+            if frist.godkjent_dager is not None:
+                bh_data.append(['Godkjent dager:', f"{frist.godkjent_dager} dager"])
+
+            if frist.bh_begrunnelse:
+                begr = frist.bh_begrunnelse[:150] + '...' if len(frist.bh_begrunnelse or '') > 150 else frist.bh_begrunnelse
+                bh_data.append(['Begrunnelse:', begr])
+
+            table = Table(bh_data, colWidths=[3.5*cm, 12.5*cm])
+            table.setStyle(TableStyle([
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 9),
+                ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#555555')),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            elements.append(table)
 
         return elements
 
