@@ -579,12 +579,16 @@ def _post_to_catenda(
         comment_posted = False
         try:
             from services.catenda_comment_generator import CatendaCommentGenerator
+            from utils.filtering_config import get_frontend_route
             comment_generator = CatendaCommentGenerator()
 
             # Generate magic link for comment
             magic_token = magic_link_manager.generate(sak_id=sak_id)
             base_url = settings.dev_react_app_url or settings.react_app_url
-            magic_link = f"{base_url}?magicToken={magic_token}" if base_url else None
+            # Get sakstype from state, default to 'koe' if not available
+            sakstype = getattr(state, 'sakstype', 'koe') or 'koe'
+            frontend_route = get_frontend_route(sakstype, sak_id)
+            magic_link = f"{base_url}{frontend_route}?magicToken={magic_token}" if base_url else None
 
             comment_text = comment_generator.generate_comment(state, event, magic_link)
             catenda_service.create_comment(topic_id, comment_text)
