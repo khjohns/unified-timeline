@@ -94,6 +94,14 @@ def submit_event():
         event_data = payload.get('event')
         catenda_topic_id = payload.get('catenda_topic_id')
 
+        # Look up catenda_topic_id from metadata if not provided
+        if not catenda_topic_id:
+            metadata_repo = SakMetadataRepository()
+            metadata = metadata_repo.get(sak_id)
+            if metadata and metadata.catenda_topic_id:
+                catenda_topic_id = metadata.catenda_topic_id
+                logger.info(f"📋 Retrieved catenda_topic_id from metadata: {catenda_topic_id}")
+
         # Optional client-generated PDF (PREFERRED)
         client_pdf_base64 = payload.get('pdf_base64')
         client_pdf_filename = payload.get('pdf_filename')
@@ -497,6 +505,14 @@ def _post_to_catenda(
         logger.info(f"✅ IDs OK: project={project_id}, board={board_id}")
 
         catenda_service.set_topic_board_id(board_id)
+
+        # Set library ID for document uploads
+        library_id = config.get('catenda_library_id')
+        if library_id:
+            catenda_service.set_library_id(library_id)
+            logger.info(f"✅ Library ID set: {library_id}")
+        else:
+            logger.warning("⚠️ No library ID configured - PDF upload may fail")
 
         pdf_path = None
         pdf_source = None

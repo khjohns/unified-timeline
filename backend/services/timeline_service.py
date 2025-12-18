@@ -723,7 +723,14 @@ class TimelineService:
             'krever_avklaring': 'Krever avklaring',
         }
 
-        resultat_value = event.data.resultat.value if hasattr(event.data.resultat, 'value') else str(event.data.resultat)
+        # Handle different result field names for different response types
+        if hasattr(event.data, 'resultat'):
+            resultat_value = event.data.resultat.value if hasattr(event.data.resultat, 'value') else str(event.data.resultat)
+        elif hasattr(event.data, 'beregnings_resultat'):
+            resultat_value = event.data.beregnings_resultat.value if hasattr(event.data.beregnings_resultat, 'value') else str(event.data.beregnings_resultat)
+        else:
+            resultat_value = 'ukjent'
+
         resultat_label = resultat_labels.get(resultat_value, resultat_value)
 
         # Legg til beløp/dager hvis tilgjengelig
