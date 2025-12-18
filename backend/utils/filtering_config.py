@@ -27,7 +27,15 @@ Konfigurasjon av filtreringsregler for KOE Automation System
 # ALLOWED_TOPIC_TYPES = ["Request", "Issue"]  # Kun Request og Issue
 # ALLOWED_TOPIC_TYPES = None                  # Alle typer
 
-ALLOWED_TOPIC_TYPES = None  # Alle typer
+# For KOE-systemet bruker vi disse tre typene:
+# - "Krav om endringsordre" -> standard KOE-sak
+# - "Endringsordre" -> EO-sak
+# - "Forsering" -> Forsering-sak
+ALLOWED_TOPIC_TYPES = [
+    "Krav om endringsordre",
+    "Endringsordre",
+    "Forsering"
+]
 
 
 # ----------------------------------------------------------------------------
@@ -241,25 +249,73 @@ def should_process_topic(topic_data: dict) -> tuple[bool, str]:
 
 def get_filter_summary() -> str:
     """Generer tekstoppsummering av aktive filtre"""
-    
+
     filters = []
-    
+
     if ALLOWED_TOPIC_TYPES:
         filters.append(f"Topic types: {', '.join(ALLOWED_TOPIC_TYPES)}")
-    
+
     if ALLOWED_BOARD_IDS:
         filters.append(f"Boards: {', '.join(ALLOWED_BOARD_IDS)}")
-    
+
     if REQUIRED_KEYWORDS:
         filters.append(f"Keywords: {', '.join(REQUIRED_KEYWORDS)}")
-    
+
     if ALLOWED_AUTHORS:
         filters.append(f"Authors: {', '.join(ALLOWED_AUTHORS)}")
-    
+
     if REQUIRED_LABELS:
         filters.append(f"Labels: {', '.join(REQUIRED_LABELS)}")
-    
+
     if not filters:
         return "Ingen filtre aktive (alle topics prosesseres)"
-    
+
     return "Aktive filtre:\n  - " + "\n  - ".join(filters)
+
+
+# ============================================================================
+# TOPIC TYPE -> SAKSTYPE MAPPING
+# ============================================================================
+
+# Mapping fra Catenda topic type til intern sakstype
+TOPIC_TYPE_TO_SAKSTYPE = {
+    "Krav om endringsordre": "standard",
+    "Endringsordre": "endringsordre",
+    "Forsering": "forsering"
+}
+
+# Mapping fra sakstype til frontend-rute
+SAKSTYPE_TO_FRONTEND_ROUTE = {
+    "standard": "/saker/{sak_id}",
+    "endringsordre": "/endringsordre/{sak_id}",
+    "forsering": "/forsering/{sak_id}"
+}
+
+
+def get_sakstype_from_topic_type(topic_type: str) -> str:
+    """
+    Bestem sakstype basert på Catenda topic type.
+
+    Args:
+        topic_type: Topic type fra Catenda (f.eks. "Krav om endringsordre")
+
+    Returns:
+        Sakstype: "standard", "endringsordre", eller "forsering"
+        Returnerer "standard" som default hvis ukjent type.
+    """
+    return TOPIC_TYPE_TO_SAKSTYPE.get(topic_type, "standard")
+
+
+def get_frontend_route(sakstype: str, sak_id: str) -> str:
+    """
+    Generer frontend-rute basert på sakstype.
+
+    Args:
+        sakstype: Intern sakstype ("standard", "endringsordre", "forsering")
+        sak_id: Sak-ID
+
+    Returns:
+        Frontend-rute (f.eks. "/saker/SAK-123" eller "/forsering/SAK-123")
+    """
+    route_template = SAKSTYPE_TO_FRONTEND_ROUTE.get(sakstype, "/saker/{sak_id}")
+    return route_template.format(sak_id=sak_id)

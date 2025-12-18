@@ -102,7 +102,11 @@ class WebhookService:
         """
         try:
             # Import filtering config (local to avoid circular deps)
-            from utils.filtering_config import should_process_topic
+            from utils.filtering_config import (
+                should_process_topic,
+                get_sakstype_from_topic_type,
+                get_frontend_route
+            )
 
             # Extract topic data from webhook payload
             temp_topic_data = webhook_payload.get('issue', {}) or webhook_payload.get('topic', {})
@@ -135,6 +139,11 @@ class WebhookService:
 
             # Extract metadata
             title = topic_data.get('title', 'Untitled')
+            topic_type = topic_data.get('topic_type', '')
+
+            # Determine sakstype from topic_type
+            sakstype = get_sakstype_from_topic_type(topic_type)
+            logger.info(f"📋 Topic type: '{topic_type}' -> Sakstype: '{sakstype}'")
 
             byggherre = 'Not specified'
             leverandor = 'Not specified'
@@ -176,6 +185,7 @@ class WebhookService:
                 aktor_rolle="TE",  # Assume TE created the case
                 prosjekt_id=v2_project_id or "unknown",
                 catenda_topic_id=topic_id,
+                sakstype=sakstype,
             )
 
             # Persist event (version 0 = new case)
@@ -201,23 +211,36 @@ class WebhookService:
                 prosjekt_navn=project_name,
             )
 
-            # Generate magic link
+            # Generate magic link with correct route based on sakstype
             magic_token = None
             if self.magic_link_generator:
                 magic_token = self.magic_link_generator.generate(sak_id=sak_id, email=author_email)
 
             base_url = self.get_react_app_base_url()
-            magic_link = f"{base_url}/saker/{sak_id}?magicToken={magic_token}" if magic_token else f"{base_url}/saker/{sak_id}"
+            frontend_route = get_frontend_route(sakstype, sak_id)
+            magic_link = f"{base_url}{frontend_route}?magicToken={magic_token}" if magic_token else f"{base_url}{frontend_route}"
 
             # Post comment to Catenda (async to avoid blocking)
             dato = datetime.now().strftime('%Y-%m-%d')
+
+            # Generate sakstype-specific comment
+            if sakstype == "endringsordre":
+                case_type_label = "Endringsordre"
+                next_step = "Byggherre utsteder endringsordre"
+            elif sakstype == "forsering":
+                case_type_label = "Forseringssak"
+                next_step = "Entreprenor dokumenterer forsering"
+            else:
+                case_type_label = "Krav om endringsordre"
+                next_step = "Entreprenor sender varsel (grunnlag)"
+
             comment_text = (
-                f"✅ **New KOE case created**\n\n"
-                f"📋 Internal Case ID: `{sak_id}`\n"
-                f"📅 Date: {dato}\n"
-                f"🏗️ Project: {project_name}\n\n"
-                f"**Next step:** Contractor sends notification (grunnlag)\n"
-                f"👉 [Open form]({magic_link})"
+                f"✅ **Ny {case_type_label} opprettet**\n\n"
+                f"📋 Intern saks-ID: `{sak_id}`\n"
+                f"📅 Dato: {dato}\n"
+                f"🏗️ Prosjekt: {project_name}\n\n"
+                f"**Neste steg:** {next_step}\n"
+                f"👉 [Apne skjema]({magic_link})"
             )
 
             def post_comment_async():

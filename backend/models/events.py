@@ -1179,6 +1179,10 @@ class SakOpprettetEvent(SakEvent):
     sakstittel: str = Field(..., description="Sakstittel")
     prosjekt_id: Optional[str] = Field(default=None, description="Prosjekt-ID")
     catenda_topic_id: Optional[str] = Field(default=None, description="Catenda topic GUID")
+    sakstype: str = Field(
+        default="standard",
+        description="Sakstype: 'standard' (KOE), 'endringsordre' (EO), eller 'forsering'"
+    )
 
 
 # ============ ENDRINGSORDRE EVENTS (§31.3) ============
