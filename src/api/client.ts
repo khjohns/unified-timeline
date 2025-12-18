@@ -38,9 +38,15 @@ async function fetchCsrfToken(): Promise<string> {
   return data.csrfToken;
 }
 
-async function getCsrfToken(): Promise<string> {
-  if (csrfToken) {
+async function getCsrfToken(forceRefresh: boolean = false): Promise<string> {
+  if (csrfToken && !forceRefresh) {
     return csrfToken;
+  }
+
+  // Clear old token if forcing refresh
+  if (forceRefresh) {
+    csrfToken = null;
+    csrfTokenPromise = null;
   }
 
   // Prevent multiple simultaneous fetches
@@ -53,6 +59,12 @@ async function getCsrfToken(): Promise<string> {
   }
 
   return csrfTokenPromise;
+}
+
+// Clear CSRF token (used on 403 errors to force refresh)
+export function clearCsrfToken() {
+  csrfToken = null;
+  csrfTokenPromise = null;
 }
 
 export class ApiError extends Error {
@@ -119,6 +131,33 @@ export async function apiFetch<T>(
 
     // Handle error responses
     if (!response.ok) {
+      // If 403 and it's a CSRF error, try once with a fresh token
+      if (response.status === 403 && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+        const responseData = data as Record<string, unknown> | undefined;
+        if (responseData?.error === 'CSRF validation failed') {
+          // Clear cached token and retry once
+          clearCsrfToken();
+          const freshCsrf = await getCsrfToken(true);
+          headers['X-CSRF-Token'] = freshCsrf;
+
+          const retryResponse = await fetch(url, {
+            ...options,
+            headers: {
+              ...headers,
+              ...options?.headers,
+            },
+          });
+
+          if (retryResponse.ok) {
+            const retryContentType = retryResponse.headers.get('content-type');
+            if (retryContentType && retryContentType.includes('application/json')) {
+              return await retryResponse.json() as T;
+            }
+            return await retryResponse.text() as unknown as T;
+          }
+        }
+      }
+
       const errorMessage =
         typeof data === 'object' && data !== null && 'message' in data && typeof (data as Record<string, unknown>).message === 'string'
           ? (data as Record<string, unknown>).message as string
