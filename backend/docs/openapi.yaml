@@ -1,0 +1,644 @@
+openapi: 3.0.3
+info:
+  title: KOE Backend API
+  description: |
+    Event Sourcing API for NS 8407 change order claims (Krav om Endringsordre).
+
+    ## Authentication
+    - **CSRF Token**: Required for all POST/PUT/DELETE requests via `X-CSRF-Token` header
+    - **Magic Link**: Required for case-specific operations via `Authorization: Bearer <token>` header
+  version: 1.0.0
+  contact:
+    name: KOE Development Team
+
+servers:
+  - url: http://localhost:8080
+    description: Local development
+  - url: https://api.example.com
+    description: Production
+
+tags:
+  - name: Events
+    description: Event submission and case state management
+  - name: Utility
+    description: Authentication and utility endpoints
+  - name: Webhooks
+    description: Catenda webhook integration
+
+paths:
+  /api/csrf-token:
+    get:
+      tags: [Utility]
+      summary: Get CSRF token
+      description: Retrieve a CSRF token for state-changing requests
+      operationId: getCsrfToken
+      responses:
+        '200':
+          description: CSRF token generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  csrfToken:
+                    type: string
+                    example: "abc123def456..."
+                  expiresIn:
+                    type: integer
+                    description: Token validity in seconds
+                    example: 3600
+
+  /api/magic-link/verify:
+    get:
+      tags: [Utility]
+      summary: Verify magic link token
+      operationId: verifyMagicLink
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Token is valid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  sakId:
+                    type: string
+                    example: "SAK-20251218-001"
+        '403':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/health:
+    get:
+      tags: [Utility]
+      summary: Health check
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  service:
+                    type: string
+                    example: "koe-backend"
+
+  /api/events:
+    post:
+      tags: [Events]
+      summary: Submit event
+      description: |
+        Submit a single event to a case with optimistic concurrency control.
+
+        **Business Rules:**
+        - Grunnlag must be submitted before vederlag/frist claims
+        - Version must match current state version
+      operationId: submitEvent
+      security:
+        - csrfToken: []
+        - magicLink: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventSubmission'
+            examples:
+              grunnlag:
+                summary: Submit grunnlag
+                value:
+                  sak_id: "SAK-20251218-001"
+                  expected_version: 1
+                  event:
+                    event_type: "grunnlag_opprettet"
+                    aktor: "Ola Nordmann"
+                    aktor_rolle: "TE"
+                    data:
+                      tittel: "Forsinket tegningsunderlag uke 45"
+                      hovedkategori: "ENDRING"
+                      underkategori: "IRREG"
+                      beskrivelse: "Mottok pålegg om endring uten formell endringsordre"
+                      dato_oppdaget: "2025-12-18"
+              vederlag:
+                summary: Submit vederlag claim
+                value:
+                  sak_id: "SAK-20251218-001"
+                  expected_version: 2
+                  event:
+                    event_type: "vederlag_krav_sendt"
+                    aktor: "Ola Nordmann"
+                    aktor_rolle: "TE"
+                    data:
+                      metode: "ENHETSPRISER"
+                      belop_direkte: 150000.0
+                      begrunnelse: "Tillegg for endret utførelse"
+              frist:
+                summary: Submit frist claim
+                value:
+                  sak_id: "SAK-20251218-001"
+                  expected_version: 3
+                  event:
+                    event_type: "frist_krav_sendt"
+                    aktor: "Ola Nordmann"
+                    aktor_rolle: "TE"
+                    data:
+                      varsel_type: "spesifisert"
+                      antall_dager: 14
+                      begrunnelse: "Forsinkelse grunnet endret arbeidsomfang"
+                      spesifisert_varsel:
+                        dato_sendt: "2025-12-18"
+      responses:
+        '201':
+          description: Event submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventSubmissionResponse'
+        '400':
+          description: Validation error or business rule violation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                validation:
+                  summary: Validation error
+                  value:
+                    success: false
+                    error: "VALIDATION_ERROR"
+                    message: "Ugyldig kategori-kombinasjon: ENDRING + INSTRUKS"
+                    valid_options:
+                      hovedkategori: "ENDRING"
+                      valid_underkategorier: ["EO", "IRREG", "SVAR_VARSEL", "LOV_GJENSTAND", "LOV_PROSESS", "GEBYR", "SAMORD"]
+                business_rule:
+                  summary: Business rule violation
+                  value:
+                    success: false
+                    error: "BUSINESS_RULE_VIOLATION"
+                    rule: "GRUNNLAG_REQUIRED"
+                    message: "Grunnlag må være sendt før du kan sende krav"
+        '401':
+          description: Missing or invalid authentication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Version conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VersionConflictError'
+
+  /api/events/batch:
+    post:
+      tags: [Events]
+      summary: Submit batch of events
+      description: Submit multiple events atomically
+      operationId: submitEventBatch
+      security:
+        - csrfToken: []
+        - magicLink: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchEventSubmission'
+      responses:
+        '201':
+          description: All events submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchEventResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          $ref: '#/components/responses/VersionConflict'
+
+  /api/cases/{sak_id}/state:
+    get:
+      tags: [Events]
+      summary: Get case state
+      description: Get computed state for a case
+      operationId: getCaseState
+      security:
+        - magicLink: []
+      parameters:
+        - $ref: '#/components/parameters/sakId'
+      responses:
+        '200':
+          description: Case state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaseStateResponse'
+        '404':
+          description: Case not found
+
+  /api/cases/{sak_id}/timeline:
+    get:
+      tags: [Events]
+      summary: Get case timeline
+      description: Get full event timeline for UI display
+      operationId: getCaseTimeline
+      security:
+        - magicLink: []
+      parameters:
+        - $ref: '#/components/parameters/sakId'
+      responses:
+        '200':
+          description: Event timeline
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: integer
+                  events:
+                    type: array
+                    items:
+                      type: object
+
+  /api/cases/{sak_id}/historikk:
+    get:
+      tags: [Events]
+      summary: Get case history
+      description: Get revision history for vederlag and frist tracks
+      operationId: getCaseHistory
+      security:
+        - magicLink: []
+      parameters:
+        - $ref: '#/components/parameters/sakId'
+      responses:
+        '200':
+          description: Revision history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: integer
+                  vederlag:
+                    type: array
+                    items:
+                      type: object
+                  frist:
+                    type: array
+                    items:
+                      type: object
+
+  /webhook/catenda/{secret_path}:
+    post:
+      tags: [Webhooks]
+      summary: Catenda webhook
+      description: |
+        Receives webhook events from Catenda.
+
+        **Note:** Topics created via API may not trigger webhooks from Catenda.
+      operationId: catendaWebhook
+      parameters:
+        - name: secret_path
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Secret path for webhook authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Webhook processed
+        '401':
+          description: Invalid secret path
+
+components:
+  securitySchemes:
+    csrfToken:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+    magicLink:
+      type: http
+      scheme: bearer
+
+  parameters:
+    sakId:
+      name: sak_id
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^SAK-\d{8}-\d{6}$'
+      example: "SAK-20251218-001"
+
+  schemas:
+    EventSubmission:
+      type: object
+      required:
+        - sak_id
+        - expected_version
+        - event
+      properties:
+        sak_id:
+          type: string
+          example: "SAK-20251218-001"
+        expected_version:
+          type: integer
+          minimum: 0
+          description: Expected current version (for optimistic concurrency)
+        event:
+          $ref: '#/components/schemas/Event'
+        catenda_topic_id:
+          type: string
+          format: uuid
+          description: Optional Catenda topic GUID for PDF upload
+        pdf_base64:
+          type: string
+          format: byte
+          description: Optional client-generated PDF (base64)
+        pdf_filename:
+          type: string
+          description: Optional PDF filename
+
+    Event:
+      type: object
+      required:
+        - event_type
+        - aktor
+        - aktor_rolle
+        - data
+      properties:
+        event_type:
+          $ref: '#/components/schemas/EventType'
+        aktor:
+          type: string
+          description: Name of the person performing the action
+        aktor_rolle:
+          type: string
+          enum: [TE, BH]
+          description: Role (TE=Totalentreprenør, BH=Byggherre)
+        data:
+          oneOf:
+            - $ref: '#/components/schemas/GrunnlagData'
+            - $ref: '#/components/schemas/VederlagData'
+            - $ref: '#/components/schemas/FristData'
+
+    EventType:
+      type: string
+      enum:
+        - grunnlag_opprettet
+        - grunnlag_oppdatert
+        - grunnlag_trukket
+        - vederlag_krav_sendt
+        - vederlag_krav_oppdatert
+        - frist_krav_sendt
+        - frist_krav_oppdatert
+        - respons_grunnlag
+        - respons_vederlag
+        - respons_frist
+
+    GrunnlagData:
+      type: object
+      required:
+        - tittel
+        - hovedkategori
+        - underkategori
+        - beskrivelse
+        - dato_oppdaget
+      properties:
+        tittel:
+          type: string
+          minLength: 1
+          description: Short descriptive title
+          example: "Forsinket tegningsunderlag uke 45"
+        hovedkategori:
+          $ref: '#/components/schemas/Hovedkategori'
+        underkategori:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+          description: Single code or list of codes
+          example: "IRREG"
+        beskrivelse:
+          type: string
+          minLength: 1
+          description: Detailed description
+        dato_oppdaget:
+          type: string
+          format: date
+          example: "2025-12-18"
+        kontraktsreferanse:
+          type: string
+          description: Contract reference
+
+    Hovedkategori:
+      type: string
+      enum: [ENDRING, SVIKT, ANDRE, FORCE_MAJEURE]
+      description: |
+        Main category for grounds:
+        - ENDRING: Changes (§33.1 a)
+        - SVIKT: Delay/failure by client (§33.1 b)
+        - ANDRE: Other circumstances (§33.1 c)
+        - FORCE_MAJEURE: Force majeure (§33.3)
+
+    VederlagData:
+      type: object
+      required:
+        - metode
+        - begrunnelse
+      properties:
+        metode:
+          $ref: '#/components/schemas/VederlagsMetode'
+        belop_direkte:
+          type: number
+          description: Direct amount (required for ENHETSPRISER, FASTPRIS_TILBUD)
+          example: 150000.0
+        kostnads_overslag:
+          type: number
+          description: Cost estimate (optional for REGNINGSARBEID)
+        begrunnelse:
+          type: string
+          minLength: 1
+          description: Justification for the claim
+
+    VederlagsMetode:
+      type: string
+      enum: [ENHETSPRISER, REGNINGSARBEID, FASTPRIS_TILBUD]
+      description: |
+        Compensation method:
+        - ENHETSPRISER: Unit prices (§34.3)
+        - REGNINGSARBEID: Cost-plus with estimate (§30.2/§34.4)
+        - FASTPRIS_TILBUD: Fixed price / Tender (§34.2.1)
+
+    FristData:
+      type: object
+      required:
+        - varsel_type
+        - begrunnelse
+      properties:
+        varsel_type:
+          $ref: '#/components/schemas/FristVarselType'
+        antall_dager:
+          type: integer
+          minimum: 0
+          description: Number of days extension (required for spesifisert/begge)
+        begrunnelse:
+          type: string
+          minLength: 1
+        noytralt_varsel:
+          type: object
+          properties:
+            dato_sendt:
+              type: string
+              format: date
+        spesifisert_varsel:
+          type: object
+          required:
+            - dato_sendt
+          properties:
+            dato_sendt:
+              type: string
+              format: date
+
+    FristVarselType:
+      type: string
+      enum: [noytralt, spesifisert, begge, force_majeure]
+      description: |
+        Warning type:
+        - noytralt: Neutral/preliminary (§33.4)
+        - spesifisert: Specified with days (§33.6.1)
+        - begge: Both neutral and specified
+        - force_majeure: Force majeure extension (§33.3)
+
+    EventSubmissionResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        event_id:
+          type: string
+          format: uuid
+        new_version:
+          type: integer
+        state:
+          type: object
+          description: Computed case state after event
+        pdf_uploaded:
+          type: boolean
+        pdf_source:
+          type: string
+          enum: [client, server]
+
+    BatchEventSubmission:
+      type: object
+      required:
+        - sak_id
+        - expected_version
+        - events
+      properties:
+        sak_id:
+          type: string
+        expected_version:
+          type: integer
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/Event'
+
+    BatchEventResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        event_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        new_version:
+          type: integer
+        state:
+          type: object
+
+    CaseStateResponse:
+      type: object
+      properties:
+        version:
+          type: integer
+          description: Current version for optimistic concurrency
+        state:
+          type: object
+          description: Computed case state
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Human-readable message
+        valid_options:
+          type: object
+          description: Valid options when validation fails
+
+    VersionConflictError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: "VERSION_CONFLICT"
+        expected_version:
+          type: integer
+        current_version:
+          type: integer
+        message:
+          type: string
+
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    VersionConflict:
+      description: Version conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/VersionConflictError'

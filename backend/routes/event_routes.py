@@ -131,11 +131,17 @@ def submit_event():
                 validate_respons_event(data_payload, 'frist')
         except ApiValidationError as e:
             logger.error(f"❌ API validation error: {e}")
-            return jsonify({
+            response = {
                 "success": False,
                 "error": "VALIDATION_ERROR",
-                "message": str(e)
-            }), 400
+                "message": e.message if hasattr(e, 'message') else str(e)
+            }
+            # Include valid_options if available (helps frontend/developers)
+            if hasattr(e, 'valid_options') and e.valid_options:
+                response["valid_options"] = e.valid_options
+            if hasattr(e, 'field') and e.field:
+                response["field"] = e.field
+            return jsonify(response), 400
 
         # 2. Parse event (validates server-controlled fields)
         event_data['sak_id'] = sak_id

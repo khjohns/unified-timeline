@@ -5,7 +5,7 @@ Validates event data against NS 8407 constants before persistence.
 These validators are called BEFORE parse_event_from_request() to ensure
 data integrity at the API boundary.
 """
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from models.events import (
     GrunnlagData,
     VederlagData,
@@ -17,12 +17,39 @@ from constants import (
     validate_kategori_kombinasjon,
     get_vederlag_metode,
     krever_forhåndsvarsel,
+    get_underkategorier_for_hovedkategori,
+    get_alle_hovedkategorier,
 )
 
 
 class ValidationError(Exception):
-    """Custom exception for validation errors."""
-    pass
+    """
+    Custom exception for validation errors with helpful context.
+
+    Attributes:
+        message: Human-readable error message
+        valid_options: Dict of valid options for the failed field
+        field: The field that failed validation
+    """
+    def __init__(
+        self,
+        message: str,
+        valid_options: Optional[Dict[str, Any]] = None,
+        field: Optional[str] = None
+    ):
+        super().__init__(message)
+        self.message = message
+        self.valid_options = valid_options or {}
+        self.field = field
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dict for JSON response."""
+        result = {"message": self.message}
+        if self.valid_options:
+            result["valid_options"] = self.valid_options
+        if self.field:
+            result["field"] = self.field
+        return result
 
 
 def validate_grunnlag_event(data: Dict[str, Any]) -> None:
@@ -33,7 +60,7 @@ def validate_grunnlag_event(data: Dict[str, Any]) -> None:
         data: The 'data' field from a grunnlag event
 
     Raises:
-        ValidationError: If validation fails
+        ValidationError: If validation fails (with valid_options when applicable)
     """
     if not data:
         raise ValidationError("Grunnlag data mangler")
@@ -42,31 +69,63 @@ def validate_grunnlag_event(data: Dict[str, Any]) -> None:
     underkategori = data.get('underkategori')
 
     if not hovedkategori:
-        raise ValidationError("hovedkategori er påkrevd")
+        raise ValidationError(
+            "hovedkategori er påkrevd",
+            valid_options={"hovedkategorier": get_alle_hovedkategorier()},
+            field="hovedkategori"
+        )
+
+    # Check if hovedkategori is valid
+    valid_hovedkategorier = get_alle_hovedkategorier()
+    if hovedkategori not in valid_hovedkategorier:
+        raise ValidationError(
+            f"Ugyldig hovedkategori: {hovedkategori}",
+            valid_options={"hovedkategorier": valid_hovedkategorier},
+            field="hovedkategori"
+        )
 
     if not underkategori:
-        raise ValidationError("underkategori er påkrevd")
+        raise ValidationError(
+            "underkategori er påkrevd",
+            valid_options={
+                "hovedkategori": hovedkategori,
+                "underkategorier": get_underkategorier_for_hovedkategori(hovedkategori)
+            },
+            field="underkategori"
+        )
 
     # Validate category combination
+    valid_underkategorier = get_underkategorier_for_hovedkategori(hovedkategori)
+
     # Handle both single string and list of strings
     if isinstance(underkategori, list):
         for uk in underkategori:
             if not validate_kategori_kombinasjon(hovedkategori, uk):
                 raise ValidationError(
-                    f"Ugyldig kategori-kombinasjon: {hovedkategori} + {uk}"
+                    f"Ugyldig underkategori '{uk}' for hovedkategori '{hovedkategori}'",
+                    valid_options={
+                        "hovedkategori": hovedkategori,
+                        "underkategorier": valid_underkategorier
+                    },
+                    field="underkategori"
                 )
     else:
         if not validate_kategori_kombinasjon(hovedkategori, underkategori):
             raise ValidationError(
-                f"Ugyldig kategori-kombinasjon: {hovedkategori} + {underkategori}"
+                f"Ugyldig underkategori '{underkategori}' for hovedkategori '{hovedkategori}'",
+                valid_options={
+                    "hovedkategori": hovedkategori,
+                    "underkategorier": valid_underkategorier
+                },
+                field="underkategori"
             )
 
     # Validate required fields
     if not data.get('beskrivelse'):
-        raise ValidationError("beskrivelse er påkrevd")
+        raise ValidationError("beskrivelse er påkrevd", field="beskrivelse")
 
     if not data.get('dato_oppdaget'):
-        raise ValidationError("dato_oppdaget er påkrevd")
+        raise ValidationError("dato_oppdaget er påkrevd (format: YYYY-MM-DD)", field="dato_oppdaget")
 
 
 def validate_vederlag_event(data: Dict[str, Any]) -> None:
@@ -77,19 +136,29 @@ def validate_vederlag_event(data: Dict[str, Any]) -> None:
         data: The 'data' field from a vederlag event
 
     Raises:
-        ValidationError: If validation fails
+        ValidationError: If validation fails (with valid_options when applicable)
     """
     if not data:
         raise ValidationError("Vederlag data mangler")
 
+    valid_metoder = [m.value for m in VederlagsMetode]
+
     metode = data.get('metode')
     if not metode:
-        raise ValidationError("metode er påkrevd")
+        raise ValidationError(
+            "metode er påkrevd",
+            valid_options={"metoder": valid_metoder},
+            field="metode"
+        )
 
     # Validate method exists
     metode_info = get_vederlag_metode(metode)
     if not metode_info:
-        raise ValidationError(f"Ukjent vederlagsmetode: {metode}")
+        raise ValidationError(
+            f"Ukjent vederlagsmetode: {metode}",
+            valid_options={"metoder": valid_metoder},
+            field="metode"
+        )
 
     # Validate amount based on method (updated 2025-12-08 to use new field names)
     # - ENHETSPRISER/FASTPRIS_TILBUD: require belop_direkte (can be negative for fradrag)
@@ -167,21 +236,27 @@ def validate_frist_event(data: Dict[str, Any]) -> None:
         data: The 'data' field from a frist event
 
     Raises:
-        ValidationError: If validation fails
+        ValidationError: If validation fails (with valid_options when applicable)
     """
     if not data:
         raise ValidationError("Frist data mangler")
 
+    valid_varsel_types = [vt.value for vt in FristVarselType]
+
     varsel_type = data.get('varsel_type')
     if not varsel_type:
-        raise ValidationError("varsel_type er påkrevd")
+        raise ValidationError(
+            "varsel_type er påkrevd",
+            valid_options={"varsel_typer": valid_varsel_types},
+            field="varsel_type"
+        )
 
     # Validate varsel type
-    valid_varsel_types = [vt.value for vt in FristVarselType]
     if varsel_type not in valid_varsel_types:
         raise ValidationError(
-            f"Ugyldig varsel_type: {varsel_type}. "
-            f"Må være en av: {', '.join(valid_varsel_types)}"
+            f"Ugyldig varsel_type: {varsel_type}",
+            valid_options={"varsel_typer": valid_varsel_types},
+            field="varsel_type"
         )
 
     # Validate begrunnelse
