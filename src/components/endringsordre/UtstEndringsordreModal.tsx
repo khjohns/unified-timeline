@@ -14,7 +14,10 @@
  * UPDATED: Uses react-hook-form + zod, primitive components, and standard patterns.
  */
 
-import { useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { useFormBackup } from '../../hooks/useFormBackup';
+import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
+import { getAuthToken } from '../../api/client';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm, Controller } from 'react-hook-form';
@@ -163,6 +166,8 @@ export function UtstEndringsordreModal({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const topRef = useRef<HTMLDivElement>(null);
+  const [showTokenExpired, setShowTokenExpired] = useState(false);
+  const [showRestorePrompt, setShowRestorePrompt] = useState(false);
 
   // Wizard state
   const [currentStep, setCurrentStep] = useState(1);
@@ -228,6 +233,23 @@ export function UtstEndringsordreModal({
     onClose: () => onOpenChange(false),
   });
 
+  // Form backup (note: selectedKoeIds is managed separately and won't be backed up)
+  const { getBackup, clearBackup, hasBackup } = useFormBackup(sakId, 'endringsordre_opprett', formValues, isDirty);
+
+  useEffect(() => { if (open && hasBackup) setShowRestorePrompt(true); }, [open, hasBackup]);
+  const handleRestoreBackup = () => { const backup = getBackup(); if (backup) reset(backup); setShowRestorePrompt(false); };
+  const handleDiscardBackup = () => { clearBackup(); setShowRestorePrompt(false); };
+
+  // Token validation helper
+  const verifyToken = async (token: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/magic-link/verify?token=${token}`);
+      return response.ok;
+    } catch {
+      return false;
+    }
+  };
+
   // Fetch candidate KOE cases
   const { data: kandidaterData, isLoading: kandidaterLoading } = useQuery({
     queryKey: ['endringsordre', 'kandidater'],
@@ -240,8 +262,20 @@ export function UtstEndringsordreModal({
 
   // Create EO mutation
   const createEOMutation = useMutation({
-    mutationFn: (data: OpprettEORequest) => opprettEndringsordre(data),
+    mutationFn: async (data: OpprettEORequest) => {
+      // Validate token before submission
+      const token = getAuthToken();
+      if (!token) {
+        throw new Error('TOKEN_MISSING');
+      }
+      const isValid = await verifyToken(token);
+      if (!isValid) {
+        throw new Error('TOKEN_EXPIRED');
+      }
+      return opprettEndringsordre(data);
+    },
     onSuccess: (response) => {
+      clearBackup();
       queryClient.invalidateQueries({ queryKey: ['case', sakId] });
       queryClient.invalidateQueries({ queryKey: ['timeline', sakId] });
       reset();
@@ -249,6 +283,11 @@ export function UtstEndringsordreModal({
       setCurrentStep(1);
       onOpenChange(false);
       navigate(`/endringsordre/${response.sak_id}`);
+    },
+    onError: (error) => {
+      if (error instanceof Error && (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING')) {
+        setShowTokenExpired(true);
+      }
     },
   });
 
@@ -922,6 +961,17 @@ export function UtstEndringsordreModal({
           onConfirm={confirmClose}
           variant="warning"
         />
+        <AlertDialog
+          open={showRestorePrompt}
+          onOpenChange={(open) => { if (!open) handleDiscardBackup(); }}
+          title="Gjenopprette lagrede data?"
+          description="Det finnes data fra en tidligere økt som ikke ble sendt inn. Vil du fortsette der du slapp?"
+          confirmLabel="Gjenopprett"
+          cancelLabel="Start på nytt"
+          onConfirm={handleRestoreBackup}
+          variant="info"
+        />
+        <TokenExpiredAlert open={showTokenExpired} onClose={() => setShowTokenExpired(false)} />
       </div>
     </Modal>
   );

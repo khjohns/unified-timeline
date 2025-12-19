@@ -15,7 +15,10 @@
  * - BH rejected grunnlag (implies frist rejection) - uses subsidiary days
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { useFormBackup } from '../../hooks/useFormBackup';
+import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
+import { getAuthToken } from '../../api/client';
 import { useNavigate } from 'react-router-dom';
 import { Modal } from '../primitives/Modal';
 import { Button } from '../primitives/Button';
@@ -105,6 +108,8 @@ export function SendForseringModal({
 }: SendForseringModalProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [showTokenExpired, setShowTokenExpired] = useState(false);
+  const [showRestorePrompt, setShowRestorePrompt] = useState(false);
 
   // Calculate rejected days
   const avslatteDager = fristData.krevde_dager - fristData.godkjent_dager;
@@ -131,16 +136,50 @@ export function SendForseringModal({
     onClose: () => onOpenChange(false),
   });
 
+  const formData = watch();
+  const { getBackup, clearBackup, hasBackup } = useFormBackup(sakId, 'forsering_opprett', formData, isDirty);
+
+  useEffect(() => { if (open && hasBackup) setShowRestorePrompt(true); }, [open, hasBackup]);
+  const handleRestoreBackup = () => { const backup = getBackup(); if (backup) reset(backup); setShowRestorePrompt(false); };
+  const handleDiscardBackup = () => { clearBackup(); setShowRestorePrompt(false); };
+
+  // Token validation helper
+  const verifyToken = async (token: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/magic-link/verify?token=${token}`);
+      return response.ok;
+    } catch {
+      return false;
+    }
+  };
+
   // Mutation to create forsering case and navigate to it
   const mutation = useMutation({
-    mutationFn: (data: OpprettForseringRequest) => opprettForseringssak(data),
+    mutationFn: async (data: OpprettForseringRequest) => {
+      // Validate token before submission
+      const token = getAuthToken();
+      if (!token) {
+        throw new Error('TOKEN_MISSING');
+      }
+      const isValid = await verifyToken(token);
+      if (!isValid) {
+        throw new Error('TOKEN_EXPIRED');
+      }
+      return opprettForseringssak(data);
+    },
     onSuccess: (response) => {
       // Invalidate queries to refetch case data
+      clearBackup();
       queryClient.invalidateQueries({ queryKey: ['case', sakId] });
       reset();
       onOpenChange(false);
       // Navigate to the new forsering case
       navigate(`/forsering/${response.forsering_sak_id}`);
+    },
+    onError: (error) => {
+      if (error instanceof Error && (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING')) {
+        setShowTokenExpired(true);
+      }
     },
   });
 
@@ -394,6 +433,17 @@ export function SendForseringModal({
           onConfirm={confirmClose}
           variant="warning"
         />
+        <AlertDialog
+          open={showRestorePrompt}
+          onOpenChange={(open) => { if (!open) handleDiscardBackup(); }}
+          title="Gjenopprette lagrede data?"
+          description="Det finnes data fra en tidligere økt som ikke ble sendt inn. Vil du fortsette der du slapp?"
+          confirmLabel="Gjenopprett"
+          cancelLabel="Start på nytt"
+          onConfirm={handleRestoreBackup}
+          variant="info"
+        />
+        <TokenExpiredAlert open={showTokenExpired} onClose={() => setShowTokenExpired(false)} />
       </div>
     </Modal>
   );
