@@ -808,6 +808,241 @@ A KOE is a candidate if:
         }
     }
 
+    paths["/api/forsering/{sak_id}/relaterte"] = {
+        "get": {
+            "tags": ["Forsering"],
+            "summary": "Get related cases for forsering",
+            "description": "Get all KOE cases related to a forsering case (rejected frist claims)",
+            "operationId": "getForseringRelaterte",
+            "security": [{"magicLink": []}],
+            "parameters": [
+                {"name": "sak_id", "in": "path", "required": True, "schema": {"type": "string"}}
+            ],
+            "responses": {
+                "200": {
+                    "description": "List of related cases",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "success": {"type": "boolean"},
+                                    "sak_id": {"type": "string"},
+                                    "relaterte_saker": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "relatert_sak_id": {"type": "string"},
+                                                "relatert_sak_tittel": {"type": "string"},
+                                                "bimsync_issue_board_ref": {"type": "string"},
+                                                "bimsync_issue_number": {"type": "integer"}
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    paths["/api/forsering/{sak_id}/relatert"] = {
+        "post": {
+            "tags": ["Forsering"],
+            "summary": "Add related case to forsering",
+            "description": "Add a KOE case as related to the forsering",
+            "operationId": "addForseringRelatert",
+            "security": [{"csrfToken": []}, {"magicLink": []}],
+            "parameters": [
+                {"name": "sak_id", "in": "path", "required": True, "schema": {"type": "string"}}
+            ],
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "required": ["koe_sak_id"],
+                            "properties": {
+                                "koe_sak_id": {"type": "string", "description": "ID of KOE case to add"}
+                            }
+                        }
+                    }
+                }
+            },
+            "responses": {
+                "200": {"description": "KOE added to forsering"}
+            }
+        }
+    }
+
+    paths["/api/forsering/{sak_id}/relatert/{koe_sak_id}"] = {
+        "delete": {
+            "tags": ["Forsering"],
+            "summary": "Remove related case from forsering",
+            "operationId": "removeForseringRelatert",
+            "security": [{"csrfToken": []}, {"magicLink": []}],
+            "parameters": [
+                {"name": "sak_id", "in": "path", "required": True, "schema": {"type": "string"}},
+                {"name": "koe_sak_id", "in": "path", "required": True, "schema": {"type": "string"}}
+            ],
+            "responses": {
+                "200": {"description": "KOE removed from forsering"}
+            }
+        }
+    }
+
+    paths["/api/forsering/{sak_id}/bh-respons"] = {
+        "post": {
+            "tags": ["Forsering"],
+            "summary": "Register BH response to forsering",
+            "description": "BH accepts or rejects the forsering claim",
+            "operationId": "bhResponsForsering",
+            "security": [{"csrfToken": []}, {"magicLink": []}],
+            "parameters": [
+                {"name": "sak_id", "in": "path", "required": True, "schema": {"type": "string"}}
+            ],
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "required": ["aksepterer", "begrunnelse"],
+                            "properties": {
+                                "aksepterer": {"type": "boolean", "description": "Whether BH accepts the forsering"},
+                                "godkjent_kostnad": {"type": "number", "description": "Approved cost (may be lower than estimated)"},
+                                "begrunnelse": {"type": "string", "description": "Justification for decision"}
+                            }
+                        }
+                    }
+                }
+            },
+            "responses": {
+                "200": {"description": "BH response registered"}
+            }
+        }
+    }
+
+    paths["/api/forsering/{sak_id}/stopp"] = {
+        "post": {
+            "tags": ["Forsering"],
+            "summary": "Stop active forsering",
+            "description": "Stop an ongoing forsering and record incurred costs",
+            "operationId": "stoppForsering",
+            "security": [{"csrfToken": []}, {"magicLink": []}],
+            "parameters": [
+                {"name": "sak_id", "in": "path", "required": True, "schema": {"type": "string"}}
+            ],
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "required": ["begrunnelse"],
+                            "properties": {
+                                "begrunnelse": {"type": "string", "description": "Reason for stopping"},
+                                "paalopte_kostnader": {"type": "number", "description": "Incurred costs at time of stop"}
+                            }
+                        }
+                    }
+                }
+            },
+            "responses": {
+                "200": {
+                    "description": "Forsering stopped",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "success": {"type": "boolean"},
+                                    "message": {"type": "string"},
+                                    "dato_stoppet": {"type": "string", "format": "date"}
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    paths["/api/forsering/{sak_id}/kostnader"] = {
+        "put": {
+            "tags": ["Forsering"],
+            "summary": "Update incurred costs",
+            "description": "Update the incurred costs for an active forsering",
+            "operationId": "oppdaterForseringKostnader",
+            "security": [{"csrfToken": []}, {"magicLink": []}],
+            "parameters": [
+                {"name": "sak_id", "in": "path", "required": True, "schema": {"type": "string"}}
+            ],
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "required": ["paalopte_kostnader"],
+                            "properties": {
+                                "paalopte_kostnader": {"type": "number", "description": "Current incurred costs"},
+                                "kommentar": {"type": "string", "description": "Optional comment on update"}
+                            }
+                        }
+                    }
+                }
+            },
+            "responses": {
+                "200": {"description": "Costs updated"}
+            }
+        }
+    }
+
+    paths["/api/forsering/by-relatert/{sak_id}"] = {
+        "get": {
+            "tags": ["Forsering"],
+            "summary": "Find forsering cases referencing a KOE",
+            "description": "Find all forsering cases that reference a given KOE case. Used for back-links.",
+            "operationId": "findForseringerForSak",
+            "security": [{"magicLink": []}],
+            "parameters": [
+                {"name": "sak_id", "in": "path", "required": True, "schema": {"type": "string"}, "description": "KOE case ID to search for"}
+            ],
+            "responses": {
+                "200": {
+                    "description": "List of forsering cases referencing this KOE",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "success": {"type": "boolean"},
+                                    "forseringer": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "forsering_sak_id": {"type": "string"},
+                                                "tittel": {"type": "string"},
+                                                "status": {"type": "string"},
+                                                "estimert_kostnad": {"type": "number"}
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     # =========================================================================
     # ENDRINGSORDRE API (§31.3)
     # =========================================================================
@@ -957,6 +1192,87 @@ Get KOE cases that can be added to an endringsordre.
             ],
             "responses": {
                 "200": {"description": "KOE removed successfully"}
+            }
+        }
+    }
+
+    paths["/api/endringsordre/{sak_id}/relaterte"] = {
+        "get": {
+            "tags": ["Endringsordre"],
+            "summary": "Get related KOE cases for endringsordre",
+            "description": "Get all KOE cases included in an endringsordre",
+            "operationId": "getEORelaterte",
+            "security": [{"magicLink": []}],
+            "parameters": [
+                {"name": "sak_id", "in": "path", "required": True, "schema": {"type": "string"}}
+            ],
+            "responses": {
+                "200": {
+                    "description": "List of related KOE cases",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "success": {"type": "boolean"},
+                                    "sak_id": {"type": "string"},
+                                    "relaterte_saker": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "relatert_sak_id": {"type": "string"},
+                                                "relatert_sak_tittel": {"type": "string"},
+                                                "bimsync_issue_board_ref": {"type": "string"},
+                                                "bimsync_issue_number": {"type": "integer"}
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    paths["/api/endringsordre/by-relatert/{sak_id}"] = {
+        "get": {
+            "tags": ["Endringsordre"],
+            "summary": "Find endringsordre cases referencing a KOE",
+            "description": "Find all endringsordre cases that include a given KOE case. Used for back-links.",
+            "operationId": "findEOerForKOE",
+            "security": [{"magicLink": []}],
+            "parameters": [
+                {"name": "sak_id", "in": "path", "required": True, "schema": {"type": "string"}, "description": "KOE case ID to search for"}
+            ],
+            "responses": {
+                "200": {
+                    "description": "List of endringsordre cases including this KOE",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "success": {"type": "boolean"},
+                                    "endringsordrer": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "eo_sak_id": {"type": "string"},
+                                                "eo_nummer": {"type": "string"},
+                                                "dato_utstedt": {"type": "string", "format": "date"},
+                                                "status": {"type": "string"}
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
