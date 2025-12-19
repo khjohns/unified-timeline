@@ -26,7 +26,9 @@
  * - Principal AND subsidiary results shown in summary
  */
 
-import { useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { useFormBackup } from '../../hooks/useFormBackup';
+import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
 import { Modal } from '../primitives/Modal';
 import { Button } from '../primitives/Button';
 import { FormField } from '../primitives/FormField';
@@ -205,6 +207,8 @@ export function RespondFristModal({
   varselType,
 }: RespondFristModalProps) {
   const [currentPort, setCurrentPort] = useState(1);
+  const [showTokenExpired, setShowTokenExpired] = useState(false);
+  const [showRestorePrompt, setShowRestorePrompt] = useState(false);
   const topRef = useRef<HTMLDivElement>(null);
 
   // Scroll to top of modal content
@@ -247,11 +251,24 @@ export function RespondFristModal({
     onClose: () => onOpenChange(false),
   });
 
+  const formData = watch();
+  const { getBackup, clearBackup, hasBackup } = useFormBackup(sakId, 'respons_frist', formData, isDirty);
+
+  useEffect(() => { if (open && hasBackup) setShowRestorePrompt(true); }, [open, hasBackup]);
+  const handleRestoreBackup = () => { const backup = getBackup(); if (backup) reset(backup); setShowRestorePrompt(false); };
+  const handleDiscardBackup = () => { clearBackup(); setShowRestorePrompt(false); };
+
   const mutation = useSubmitEvent(sakId, {
     onSuccess: () => {
+      clearBackup();
       reset();
       setCurrentPort(1);
       onOpenChange(false);
+    },
+    onError: (error) => {
+      if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') {
+        setShowTokenExpired(true);
+      }
     },
   });
 
@@ -1411,6 +1428,17 @@ export function RespondFristModal({
           onConfirm={confirmClose}
           variant="warning"
         />
+        <AlertDialog
+          open={showRestorePrompt}
+          onOpenChange={(open) => { if (!open) handleDiscardBackup(); }}
+          title="Gjenopprette lagrede data?"
+          description="Det finnes data fra en tidligere økt som ikke ble sendt inn. Vil du fortsette der du slapp?"
+          confirmLabel="Gjenopprett"
+          cancelLabel="Start på nytt"
+          onConfirm={handleRestoreBackup}
+          variant="info"
+        />
+        <TokenExpiredAlert open={showTokenExpired} onClose={() => setShowTokenExpired(false)} />
       </div>
     </Modal>
   );

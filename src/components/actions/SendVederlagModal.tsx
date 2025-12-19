@@ -34,7 +34,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
 import { useConfirmClose } from '../../hooks/useConfirmClose';
-import { useMemo } from 'react';
+import { useFormBackup } from '../../hooks/useFormBackup';
+import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
+import { useMemo, useState, useEffect } from 'react';
 import { sjekkRiggDriftFrist } from '../../utils/preklusjonssjekk';
 import type { VederlagsMetode } from '../../types/timeline';
 
@@ -123,6 +125,9 @@ export function SendVederlagModal({
   grunnlagEventId,
   grunnlagEvent,
 }: SendVederlagModalProps) {
+  const [showTokenExpired, setShowTokenExpired] = useState(false);
+  const [showRestorePrompt, setShowRestorePrompt] = useState(false);
+
   const {
     register,
     handleSubmit,
@@ -147,10 +152,45 @@ export function SendVederlagModal({
     onClose: () => onOpenChange(false),
   });
 
+  // Form backup for token expiry protection
+  const formData = watch();
+  const { getBackup, clearBackup, hasBackup } = useFormBackup(
+    sakId,
+    'vederlag_krav_sendt',
+    formData,
+    isDirty
+  );
+
+  // Check for backup on mount
+  useEffect(() => {
+    if (open && hasBackup) {
+      setShowRestorePrompt(true);
+    }
+  }, [open, hasBackup]);
+
+  const handleRestoreBackup = () => {
+    const backup = getBackup();
+    if (backup) {
+      reset(backup);
+    }
+    setShowRestorePrompt(false);
+  };
+
+  const handleDiscardBackup = () => {
+    clearBackup();
+    setShowRestorePrompt(false);
+  };
+
   const mutation = useSubmitEvent(sakId, {
     onSuccess: () => {
+      clearBackup();
       reset();
       onOpenChange(false);
+    },
+    onError: (error) => {
+      if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') {
+        setShowTokenExpired(true);
+      }
     },
   });
 
@@ -573,6 +613,26 @@ export function SendVederlagModal({
         cancelLabel="Fortsett redigering"
         onConfirm={confirmClose}
         variant="warning"
+      />
+
+      {/* Restore backup dialog */}
+      <AlertDialog
+        open={showRestorePrompt}
+        onOpenChange={(open) => {
+          if (!open) handleDiscardBackup();
+        }}
+        title="Gjenopprette lagrede data?"
+        description="Det finnes data fra en tidligere økt som ikke ble sendt inn. Vil du fortsette der du slapp?"
+        confirmLabel="Gjenopprett"
+        cancelLabel="Start på nytt"
+        onConfirm={handleRestoreBackup}
+        variant="info"
+      />
+
+      {/* Token expired alert */}
+      <TokenExpiredAlert
+        open={showTokenExpired}
+        onClose={() => setShowTokenExpired(false)}
       />
     </Modal>
   );

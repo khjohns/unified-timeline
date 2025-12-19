@@ -27,6 +27,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
 import { useConfirmClose } from '../../hooks/useConfirmClose';
+import { useFormBackup } from '../../hooks/useFormBackup';
+import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
+import { useState, useEffect } from 'react';
 import {
   FRIST_VARSELTYPE_OPTIONS,
   getFristVarseltypeValues,
@@ -100,6 +103,9 @@ export function SendFristModal({
   grunnlagEvent,
   harMottattEtterlysning,
 }: SendFristModalProps) {
+  const [showTokenExpired, setShowTokenExpired] = useState(false);
+  const [showRestorePrompt, setShowRestorePrompt] = useState(false);
+
   const {
     register,
     handleSubmit,
@@ -124,10 +130,42 @@ export function SendFristModal({
     onClose: () => onOpenChange(false),
   });
 
+  // Form backup for token expiry protection
+  const formData = watch();
+  const { getBackup, clearBackup, hasBackup } = useFormBackup(
+    sakId,
+    'frist_krav_sendt',
+    formData,
+    isDirty
+  );
+
+  useEffect(() => {
+    if (open && hasBackup) {
+      setShowRestorePrompt(true);
+    }
+  }, [open, hasBackup]);
+
+  const handleRestoreBackup = () => {
+    const backup = getBackup();
+    if (backup) reset(backup);
+    setShowRestorePrompt(false);
+  };
+
+  const handleDiscardBackup = () => {
+    clearBackup();
+    setShowRestorePrompt(false);
+  };
+
   const mutation = useSubmitEvent(sakId, {
     onSuccess: () => {
+      clearBackup();
       reset();
       onOpenChange(false);
+    },
+    onError: (error) => {
+      if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') {
+        setShowTokenExpired(true);
+      }
     },
   });
 
@@ -520,6 +558,20 @@ export function SendFristModal({
         onConfirm={confirmClose}
         variant="warning"
       />
+
+      {/* Restore backup dialog */}
+      <AlertDialog
+        open={showRestorePrompt}
+        onOpenChange={(open) => { if (!open) handleDiscardBackup(); }}
+        title="Gjenopprette lagrede data?"
+        description="Det finnes data fra en tidligere økt som ikke ble sendt inn. Vil du fortsette der du slapp?"
+        confirmLabel="Gjenopprett"
+        cancelLabel="Start på nytt"
+        onConfirm={handleRestoreBackup}
+        variant="info"
+      />
+
+      <TokenExpiredAlert open={showTokenExpired} onClose={() => setShowTokenExpired(false)} />
     </Modal>
   );
 }

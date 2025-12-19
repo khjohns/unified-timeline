@@ -26,7 +26,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
 import { useConfirmClose } from '../../hooks/useConfirmClose';
-import { useMemo } from 'react';
+import { useFormBackup } from '../../hooks/useFormBackup';
+import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
+import { useMemo, useState, useEffect } from 'react';
 import {
   HOVEDKATEGORI_OPTIONS,
   getUnderkategorier,
@@ -64,6 +66,8 @@ export function SendGrunnlagUpdateModal({
   originalEvent,
 }: SendGrunnlagUpdateModalProps) {
   const { grunnlag } = originalEvent;
+  const [showTokenExpired, setShowTokenExpired] = useState(false);
+  const [showRestorePrompt, setShowRestorePrompt] = useState(false);
 
   const {
     register,
@@ -93,6 +97,16 @@ export function SendGrunnlagUpdateModal({
     onReset: reset,
     onClose: () => onOpenChange(false),
   });
+
+  const formData = watch();
+  const { getBackup, clearBackup, hasBackup } = useFormBackup(sakId, 'grunnlag_oppdatert', formData, isDirty);
+
+  useEffect(() => {
+    if (open && hasBackup) setShowRestorePrompt(true);
+  }, [open, hasBackup]);
+
+  const handleRestoreBackup = () => { const backup = getBackup(); if (backup) reset(backup); setShowRestorePrompt(false); };
+  const handleDiscardBackup = () => { clearBackup(); setShowRestorePrompt(false); };
 
   const nyDatoOppdaget = watch('dato_oppdaget');
   const nyHovedkategori = watch('hovedkategori');
@@ -126,10 +140,8 @@ export function SendGrunnlagUpdateModal({
   }, [nyHovedkategori, grunnlag.hovedkategori]);
 
   const mutation = useSubmitEvent(sakId, {
-    onSuccess: () => {
-      reset();
-      onOpenChange(false);
-    },
+    onSuccess: () => { clearBackup(); reset(); onOpenChange(false); },
+    onError: (error) => { if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') setShowTokenExpired(true); },
   });
 
   const onSubmit = (data: UpdateFormData) => {
@@ -338,6 +350,17 @@ export function SendGrunnlagUpdateModal({
         onConfirm={confirmClose}
         variant="warning"
       />
+      <AlertDialog
+        open={showRestorePrompt}
+        onOpenChange={(open) => { if (!open) handleDiscardBackup(); }}
+        title="Gjenopprette lagrede data?"
+        description="Det finnes data fra en tidligere økt som ikke ble sendt inn. Vil du fortsette der du slapp?"
+        confirmLabel="Gjenopprett"
+        cancelLabel="Start på nytt"
+        onConfirm={handleRestoreBackup}
+        variant="info"
+      />
+      <TokenExpiredAlert open={showTokenExpired} onClose={() => setShowTokenExpired(false)} />
     </Modal>
   );
 }

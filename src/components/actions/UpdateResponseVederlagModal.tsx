@@ -27,7 +27,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
 import { useConfirmClose } from '../../hooks/useConfirmClose';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { useFormBackup } from '../../hooks/useFormBackup';
+import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
 import { VederlagTilstand, VederlagBeregningResultat } from '../../types/timeline';
 
 const updateResponseSchema = z.object({
@@ -110,6 +112,8 @@ export function UpdateResponseVederlagModal({
   lastResponseEvent,
   vederlagTilstand,
 }: UpdateResponseVederlagModalProps) {
+  const [showTokenExpired, setShowTokenExpired] = useState(false);
+  const [showRestorePrompt, setShowRestorePrompt] = useState(false);
   const forrigeResultat = lastResponseEvent.resultat;
   const erTilbakehold = forrigeResultat === 'hold_tilbake';
 
@@ -213,6 +217,13 @@ export function UpdateResponseVederlagModal({
     onClose: () => onOpenChange(false),
   });
 
+  const formData = watch();
+  const { getBackup, clearBackup, hasBackup } = useFormBackup(sakId, 'respons_vederlag_oppdatert', formData, isDirty);
+
+  useEffect(() => { if (open && hasBackup) setShowRestorePrompt(true); }, [open, hasBackup]);
+  const handleRestoreBackup = () => { const backup = getBackup(); if (backup) reset(backup); setShowRestorePrompt(false); };
+  const handleDiscardBackup = () => { clearBackup(); setShowRestorePrompt(false); };
+
   // Watch form values
   const endreRiggPreklusjon = watch('endre_rigg_preklusjon');
   const endreProduktivitetPreklusjon = watch('endre_produktivitet_preklusjon');
@@ -304,8 +315,14 @@ export function UpdateResponseVederlagModal({
 
   const mutation = useSubmitEvent(sakId, {
     onSuccess: () => {
+      clearBackup();
       reset();
       onOpenChange(false);
+    },
+    onError: (error) => {
+      if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') {
+        setShowTokenExpired(true);
+      }
     },
   });
 
@@ -820,6 +837,17 @@ export function UpdateResponseVederlagModal({
         onConfirm={confirmClose}
         variant="warning"
       />
+      <AlertDialog
+        open={showRestorePrompt}
+        onOpenChange={(open) => { if (!open) handleDiscardBackup(); }}
+        title="Gjenopprette lagrede data?"
+        description="Det finnes data fra en tidligere økt som ikke ble sendt inn. Vil du fortsette der du slapp?"
+        confirmLabel="Gjenopprett"
+        cancelLabel="Start på nytt"
+        onConfirm={handleRestoreBackup}
+        variant="info"
+      />
+      <TokenExpiredAlert open={showTokenExpired} onClose={() => setShowTokenExpired(false)} />
     </Modal>
   );
 }

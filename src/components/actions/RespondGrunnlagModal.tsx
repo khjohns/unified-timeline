@@ -24,6 +24,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
 import { useConfirmClose } from '../../hooks/useConfirmClose';
+import { useFormBackup } from '../../hooks/useFormBackup';
+import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
+import { useState, useEffect } from 'react';
 import {
   BH_GRUNNLAGSVAR_OPTIONS,
   getBhGrunnlagssvarValues,
@@ -68,6 +71,9 @@ export function RespondGrunnlagModal({
   grunnlagEventId,
   grunnlagEvent,
 }: RespondGrunnlagModalProps) {
+  const [showTokenExpired, setShowTokenExpired] = useState(false);
+  const [showRestorePrompt, setShowRestorePrompt] = useState(false);
+
   const {
     register,
     handleSubmit,
@@ -88,11 +94,16 @@ export function RespondGrunnlagModal({
     onClose: () => onOpenChange(false),
   });
 
+  const formData = watch();
+  const { getBackup, clearBackup, hasBackup } = useFormBackup(sakId, 'respons_grunnlag', formData, isDirty);
+
+  useEffect(() => { if (open && hasBackup) setShowRestorePrompt(true); }, [open, hasBackup]);
+  const handleRestoreBackup = () => { const backup = getBackup(); if (backup) reset(backup); setShowRestorePrompt(false); };
+  const handleDiscardBackup = () => { clearBackup(); setShowRestorePrompt(false); };
+
   const mutation = useSubmitEvent(sakId, {
-    onSuccess: () => {
-      reset();
-      onOpenChange(false);
-    },
+    onSuccess: () => { clearBackup(); reset(); onOpenChange(false); },
+    onError: (error) => { if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') setShowTokenExpired(true); },
   });
 
   const selectedResultat = watch('resultat');
@@ -375,6 +386,17 @@ export function RespondGrunnlagModal({
         onConfirm={confirmClose}
         variant="warning"
       />
+      <AlertDialog
+        open={showRestorePrompt}
+        onOpenChange={(open) => { if (!open) handleDiscardBackup(); }}
+        title="Gjenopprette lagrede data?"
+        description="Det finnes data fra en tidligere økt som ikke ble sendt inn. Vil du fortsette der du slapp?"
+        confirmLabel="Gjenopprett"
+        cancelLabel="Start på nytt"
+        onConfirm={handleRestoreBackup}
+        variant="info"
+      />
+      <TokenExpiredAlert open={showTokenExpired} onClose={() => setShowTokenExpired(false)} />
     </Modal>
   );
 }
