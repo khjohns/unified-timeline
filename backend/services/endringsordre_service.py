@@ -36,7 +36,8 @@ class EndringsordreService(BaseSakService):
         self,
         catenda_client: Optional[Any] = None,
         event_repository: Optional[Any] = None,
-        timeline_service: Optional[Any] = None
+        timeline_service: Optional[Any] = None,
+        metadata_repository: Optional[Any] = None
     ):
         """
         Initialiser EndringsordreService.
@@ -45,12 +46,14 @@ class EndringsordreService(BaseSakService):
             catenda_client: CatendaClient instance (eller mock)
             event_repository: EventRepository for å hente events fra saker
             timeline_service: TimelineService for å beregne SakState
+            metadata_repository: SakMetadataRepository for å mappe topic GUID til sak_id
         """
         super().__init__(
             catenda_client=catenda_client,
             event_repository=event_repository,
             timeline_service=timeline_service
         )
+        self.metadata_repository = metadata_repository
         self._log_init_warnings("EndringsordreService")
 
     def opprett_endringsordresak(
@@ -338,28 +341,39 @@ class EndringsordreService(BaseSakService):
         kandidater = []
 
         for topic in topics:
-            topic_id = topic.get('guid')
-            if not topic_id:
+            topic_guid = topic.get('guid')
+            if not topic_guid:
+                continue
+
+            # Map Catenda topic GUID to internal sak_id via metadata
+            sak_id = None
+            if self.metadata_repository:
+                metadata = self.metadata_repository.get_by_topic_id(topic_guid)
+                if metadata:
+                    sak_id = metadata.sak_id
+
+            if not sak_id:
+                logger.debug(f"Ingen sak funnet for topic {topic_guid}")
                 continue
 
             # Sjekk om dette er en standard sak med kan_utstede_eo=True
             if self.event_repository and self.timeline_service:
                 try:
-                    events, _version = self.event_repository.get_events(topic_id)
+                    events, _version = self.event_repository.get_events(sak_id)
                     if events:
                         state = self.timeline_service.compute_state(events)
 
                         # Sjekk kriterier
                         if (state.sakstype == 'standard' or state.sakstype is None) and state.kan_utstede_eo:
                             kandidater.append({
-                                "sak_id": topic_id,
+                                "sak_id": sak_id,
                                 "tittel": state.sakstittel or topic.get('title', ''),
                                 "overordnet_status": state.overordnet_status,
                                 "sum_godkjent": state.sum_godkjent,
                                 "godkjent_dager": state.frist.godkjent_dager if state.frist else None,
                             })
                 except Exception as e:
-                    logger.debug(f"Kunne ikke evaluere topic {topic_id}: {e}")
+                    logger.debug(f"Kunne ikke evaluere sak {sak_id}: {e}")
 
         logger.info(f"Fant {len(kandidater)} kandidat-KOE-saker for EO")
         return kandidater

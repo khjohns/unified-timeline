@@ -1777,6 +1777,9 @@ class CatendaClient:
         """
         Oppdater en topic (status, tittel, beskrivelse).
 
+        BCF 3.0 PUT requires 'title' field, so we fetch existing topic first
+        and merge updates.
+
         Args:
             topic_guid: Topic GUID
             topic_status: Ny status (f.eks. 'Under behandling', 'Omforent')
@@ -1790,19 +1793,31 @@ class CatendaClient:
             logger.error("❌ Ingen topic board valgt")
             return None
 
-        url = f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}/topics/{topic_guid}"
-
-        payload = {}
-        if topic_status:
-            payload["topic_status"] = topic_status
-        if title:
-            payload["title"] = title
-        if description:
-            payload["description"] = description
-
-        if not payload:
+        if not any([topic_status, title, description]):
             logger.warning("⚠️ Ingen felter å oppdatere")
             return None
+
+        # BCF 3.0 PUT requires title, so fetch existing topic first
+        existing = self.get_topic(topic_guid)
+        if not existing:
+            logger.error(f"❌ Kunne ikke hente eksisterende topic {topic_guid}")
+            return None
+
+        url = f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}/topics/{topic_guid}"
+
+        # Build payload with existing values as base, then apply updates
+        payload = {
+            "title": title or existing.get("title"),
+        }
+        if topic_status:
+            payload["topic_status"] = topic_status
+        elif existing.get("topic_status"):
+            payload["topic_status"] = existing.get("topic_status")
+
+        if description is not None:
+            payload["description"] = description
+        elif existing.get("description"):
+            payload["description"] = existing.get("description")
 
         logger.info(f"📝 Oppdaterer topic {topic_guid}...")
         if topic_status:
