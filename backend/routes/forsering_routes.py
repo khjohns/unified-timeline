@@ -328,3 +328,68 @@ def finn_forseringer_for_sak(sak_id: str):
             "success": True,
             "forseringer": []
         }), 200
+
+
+@forsering_bp.route('/api/forsering/<sak_id>/relatert', methods=['POST'])
+@require_csrf
+@require_magic_link
+@handle_service_errors
+def legg_til_relatert_sak(sak_id: str):
+    """
+    Legg til en KOE-sak som relatert til forseringen.
+
+    Request:
+    {
+        "koe_sak_id": "koe-guid"
+    }
+
+    Response 200:
+    {
+        "success": true,
+        "message": "KOE lagt til forsering"
+    }
+    """
+    payload = request.json
+
+    koe_sak_id = payload.get('koe_sak_id')
+    if not koe_sak_id:
+        return jsonify({
+            "success": False,
+            "error": "MISSING_FIELD",
+            "message": "koe_sak_id er påkrevd"
+        }), 400
+
+    service = _get_forsering_service()
+    service.legg_til_relatert_sak(sak_id, koe_sak_id)
+
+    logger.info(f"KOE {koe_sak_id} lagt til forsering {sak_id}")
+
+    return jsonify({
+        "success": True,
+        "message": "KOE lagt til forsering"
+    }), 200
+
+
+@forsering_bp.route('/api/forsering/<sak_id>/relatert/<koe_sak_id>', methods=['DELETE'])
+@require_csrf
+@require_magic_link
+@handle_service_errors
+def fjern_relatert_sak(sak_id: str, koe_sak_id: str):
+    """
+    Fjern en KOE-sak fra forseringen.
+
+    Response 200:
+    {
+        "success": true,
+        "message": "KOE fjernet fra forsering"
+    }
+    """
+    service = _get_forsering_service()
+    service.fjern_relatert_sak(sak_id, koe_sak_id)
+
+    logger.info(f"KOE {koe_sak_id} fjernet fra forsering {sak_id}")
+
+    return jsonify({
+        "success": True,
+        "message": "KOE fjernet fra forsering"
+    }), 200

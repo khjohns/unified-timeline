@@ -151,7 +151,7 @@ class TestCatendaService:
         # Assert
         assert result is not None
         assert result['library_item_id'] == 'doc-456'
-        mock_catenda_client.upload_document.assert_called_once_with('proj-123', temp_file, 'custom-name.pdf')
+        mock_catenda_client.upload_document.assert_called_once_with('proj-123', temp_file, 'custom-name.pdf', None)
 
     def test_upload_document_default_filename(self, service, mock_catenda_client, temp_file):
         """Test upload with default filename (file basename)"""

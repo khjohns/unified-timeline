@@ -403,3 +403,81 @@ class ForseringService(BaseSakService):
         logger.info(f"Fant {len(kandidater)} kandidater for forsering")
         return kandidater
 
+    def legg_til_relatert_sak(self, forsering_sak_id: str, koe_sak_id: str) -> bool:
+        """
+        Legger til en KOE-sak som relatert til forseringssaken.
+
+        Oppretter toveis-relasjon i Catenda:
+        - Forsering → KOE
+        - KOE → Forsering
+
+        Args:
+            forsering_sak_id: Forseringssakens ID
+            koe_sak_id: KOE-sak ID som skal legges til
+
+        Returns:
+            True hvis vellykket
+
+        Raises:
+            RuntimeError: Hvis Catenda-operasjon feiler
+        """
+        if not self.client:
+            logger.warning("Ingen Catenda client - kan ikke legge til relasjon")
+            return False
+
+        try:
+            # Toveis-relasjon: Forsering → KOE
+            self.client.create_topic_relations(
+                topic_id=forsering_sak_id,
+                related_topic_guids=[koe_sak_id]
+            )
+            # Toveis-relasjon: KOE → Forsering
+            self.client.create_topic_relations(
+                topic_id=koe_sak_id,
+                related_topic_guids=[forsering_sak_id]
+            )
+            logger.info(f"✅ KOE {koe_sak_id} lagt til forsering {forsering_sak_id} (toveis)")
+            return True
+        except Exception as e:
+            logger.error(f"Feil ved tillegging av KOE til forsering: {e}")
+            raise RuntimeError(f"Kunne ikke legge til KOE: {e}")
+
+    def fjern_relatert_sak(self, forsering_sak_id: str, koe_sak_id: str) -> bool:
+        """
+        Fjerner en KOE-sak fra forseringssaken.
+
+        Fjerner toveis-relasjon i Catenda:
+        - Forsering → KOE
+        - KOE → Forsering
+
+        Args:
+            forsering_sak_id: Forseringssakens ID
+            koe_sak_id: KOE-sak ID som skal fjernes
+
+        Returns:
+            True hvis vellykket
+
+        Raises:
+            RuntimeError: Hvis Catenda-operasjon feiler
+        """
+        if not self.client:
+            logger.warning("Ingen Catenda client - kan ikke fjerne relasjon")
+            return False
+
+        try:
+            # Fjern toveis-relasjon: Forsering → KOE
+            self.client.delete_topic_relation(
+                topic_id=forsering_sak_id,
+                related_topic_id=koe_sak_id
+            )
+            # Fjern toveis-relasjon: KOE → Forsering
+            self.client.delete_topic_relation(
+                topic_id=koe_sak_id,
+                related_topic_id=forsering_sak_id
+            )
+            logger.info(f"✅ KOE {koe_sak_id} fjernet fra forsering {forsering_sak_id} (toveis)")
+            return True
+        except Exception as e:
+            logger.error(f"Feil ved fjerning av KOE fra forsering: {e}")
+            raise RuntimeError(f"Kunne ikke fjerne KOE: {e}")
+

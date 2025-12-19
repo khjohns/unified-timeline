@@ -48,6 +48,7 @@ REQUIRED_TYPES = [
 REQUIRED_STATUSES = [
     ("Under varsling", "open"),
     ("Sendt", "open"),
+    ("Venter på svar", "open"),
     ("Under behandling", "open"),
     ("Under forhandling", "open"),
     ("Omforent", "closed"),

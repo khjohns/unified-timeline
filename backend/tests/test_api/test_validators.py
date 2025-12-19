@@ -362,27 +362,14 @@ class TestValidateFristEvent:
             })
         assert "antall_dager må være >= 0" in str(exc_info.value)
 
-    def test_begge_requires_both_varsler(self):
-        """Raises ValidationError when 'begge' is missing either varsel."""
-        # Missing noytralt_varsel
+    def test_force_majeure_requires_antall_dager(self):
+        """Raises ValidationError when 'force_majeure' is missing antall_dager."""
         with pytest.raises(ValidationError) as exc_info:
             validate_frist_event({
-                "varsel_type": "begge",
-                "begrunnelse": "Test",
-                "spesifisert_varsel": {"dato_sendt": "2025-01-15"},
-                "antall_dager": 10
+                "varsel_type": "force_majeure",
+                "begrunnelse": "Test force majeure hendelse"
             })
-        assert "noytralt_varsel er påkrevd" in str(exc_info.value)
-
-        # Missing spesifisert_varsel
-        with pytest.raises(ValidationError) as exc_info:
-            validate_frist_event({
-                "varsel_type": "begge",
-                "begrunnelse": "Test",
-                "noytralt_varsel": {"dato_sendt": "2025-01-10"},
-                "antall_dager": 10
-            })
-        assert "spesifisert_varsel er påkrevd" in str(exc_info.value)
+        assert "antall_dager er påkrevd" in str(exc_info.value)
 
     def test_valid_frist_noytralt(self):
         """Valid frist event with nøytralt passes."""
@@ -401,13 +388,11 @@ class TestValidateFristEvent:
             "antall_dager": 14
         })
 
-    def test_valid_frist_begge(self):
-        """Valid frist event with begge passes."""
+    def test_valid_frist_force_majeure(self):
+        """Valid frist event with force_majeure passes."""
         validate_frist_event({
-            "varsel_type": "begge",
-            "begrunnelse": "Forsinkelse dokumentert",
-            "noytralt_varsel": {"dato_sendt": "2025-01-10"},
-            "spesifisert_varsel": {"dato_sendt": "2025-01-20"},
+            "varsel_type": "force_majeure",
+            "begrunnelse": "Ekstreme værforhold hindret arbeid",
             "antall_dager": 14
         })
 

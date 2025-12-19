@@ -80,6 +80,10 @@ class EventType(str, Enum):
     EO_BESTRIDT = "eo_bestridt"            # TE bestrider EO
     EO_REVIDERT = "eo_revidert"            # BH reviderer EO
 
+    # Relasjon-events (toveis-synkronisering med Catenda)
+    RELASJON_LAGT_TIL = "relasjon_lagt_til"    # Sak-relasjon opprettet
+    RELASJON_FJERNET = "relasjon_fjernet"      # Sak-relasjon fjernet
+
 
 # ============ VEDERLAG ENUMS ============
 

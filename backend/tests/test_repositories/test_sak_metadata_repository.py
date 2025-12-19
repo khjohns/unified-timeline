@@ -55,7 +55,7 @@ class TestSakMetadataRepository:
             header_line = f.readline().strip()
             expected_headers = [
                 'sak_id', 'prosjekt_id', 'catenda_topic_id',
-                'catenda_project_id', 'created_at', 'created_by',
+                'catenda_board_id', 'catenda_project_id', 'created_at', 'created_by',
                 'cached_title', 'cached_status', 'last_event_at'
             ]
             assert header_line == ','.join(expected_headers)

@@ -1722,6 +1722,59 @@ class CatendaClient:
             logger.error(f"❌ Feil ved sletting av topic: {e}")
             return False
 
+    def update_topic(
+        self,
+        topic_guid: str,
+        topic_status: Optional[str] = None,
+        title: Optional[str] = None,
+        description: Optional[str] = None
+    ) -> Optional[Dict]:
+        """
+        Oppdater en topic (status, tittel, beskrivelse).
+
+        Args:
+            topic_guid: Topic GUID
+            topic_status: Ny status (f.eks. 'Under behandling', 'Omforent')
+            title: Ny tittel (valgfritt)
+            description: Ny beskrivelse (valgfritt)
+
+        Returns:
+            Oppdatert topic data eller None ved feil
+        """
+        if not self.topic_board_id:
+            logger.error("❌ Ingen topic board valgt")
+            return None
+
+        url = f"{self.base_url}/opencde/bcf/3.0/projects/{self.topic_board_id}/topics/{topic_guid}"
+
+        payload = {}
+        if topic_status:
+            payload["topic_status"] = topic_status
+        if title:
+            payload["title"] = title
+        if description:
+            payload["description"] = description
+
+        if not payload:
+            logger.warning("⚠️ Ingen felter å oppdatere")
+            return None
+
+        logger.info(f"📝 Oppdaterer topic {topic_guid}...")
+        if topic_status:
+            logger.info(f"   Status: {topic_status}")
+
+        try:
+            response = requests.put(url, headers=self.get_headers(), json=payload, timeout=30)
+            response.raise_for_status()
+            result = response.json()
+            logger.info(f"✅ Topic oppdatert: {topic_guid}")
+            return result
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Feil ved oppdatering av topic: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"Response: {e.response.text}")
+            return None
+
     # ==========================================
     # DOCUMENT UPLOAD (v2 API - CRITICAL TEST)
     # ==========================================

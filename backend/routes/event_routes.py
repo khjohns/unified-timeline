@@ -170,9 +170,11 @@ def submit_event():
             }), 409
 
         # 5. Compute current state and validate business rules
+        old_status = None  # Track old status for Catenda sync
         if existing_events_data:
             existing_events = [parse_event(e) for e in existing_events_data]
             current_state = timeline_service.compute_state(existing_events)
+            old_status = current_state.overordnet_status
             validation = validator.validate(event, current_state)
 
             if not validation.is_valid:
@@ -211,7 +213,7 @@ def submit_event():
 
         logger.info(f"✅ Event persisted, new version: {new_version}")
 
-        # 9. Catenda Integration (PDF + Comment) - optional
+        # 9. Catenda Integration (PDF + Comment + Status Sync) - optional
         catenda_success = False
         pdf_source = None
 
@@ -222,7 +224,8 @@ def submit_event():
                 event=event,
                 topic_id=catenda_topic_id,
                 client_pdf_base64=client_pdf_base64,
-                client_pdf_filename=client_pdf_filename
+                client_pdf_filename=client_pdf_filename,
+                old_status=old_status
             )
 
         # 10. Return success with new state
@@ -460,14 +463,16 @@ def _post_to_catenda(
     event,
     topic_id: str,
     client_pdf_base64: Optional[str] = None,
-    client_pdf_filename: Optional[str] = None
+    client_pdf_filename: Optional[str] = None,
+    old_status: Optional[str] = None
 ) -> Tuple[bool, Optional[str]]:
     """
-    Post PDF and comment to Catenda (hybrid approach).
+    Post PDF and comment to Catenda (hybrid approach) + sync status.
 
     Priority:
     1. Use client-generated PDF if provided (PREFERRED)
     2. Generate PDF on server as fallback (WeasyPrint)
+    3. Sync topic status if changed
 
     Args:
         sak_id: Case identifier
@@ -476,6 +481,7 @@ def _post_to_catenda(
         topic_id: Catenda topic GUID
         client_pdf_base64: Optional base64 PDF from client
         client_pdf_filename: Optional filename from client
+        old_status: Previous overordnet_status for status sync
 
     Returns:
         (success, pdf_source)  # pdf_source = "client" | "server" | None
@@ -653,6 +659,12 @@ def _post_to_catenda(
             logger.warning("Comment generator not available, skipping comment")
         except Exception as e:
             logger.error(f"❌ Failed to post comment: {e}")
+
+        # Sync topic status if changed
+        new_status = state.overordnet_status
+        if old_status != new_status:
+            logger.info(f"📊 Status changed: {old_status} → {new_status}")
+            catenda_service.update_topic_status(topic_id, new_status)
 
         # Return success if either PDF uploaded or comment posted
         return (pdf_uploaded or comment_posted), pdf_source

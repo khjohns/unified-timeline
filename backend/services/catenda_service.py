@@ -12,6 +12,32 @@ from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+# Status mapping fra intern overordnet_status til Catenda topic_status
+OVERORDNET_TO_CATENDA_STATUS = {
+    "UNDER_VARSLING": "Under varsling",
+    "SENDT": "Sendt",
+    "VENTER_PAA_SVAR": "Venter på svar",
+    "UNDER_BEHANDLING": "Under behandling",
+    "UNDER_FORHANDLING": "Under forhandling",
+    "OMFORENT": "Omforent",
+    "LUKKET": "Lukket",
+    "LUKKET_TRUKKET": "Lukket",
+    "UTKAST": "Under varsling",  # Utkast mappes til Under varsling
+}
+
+
+def map_status_to_catenda(overordnet_status: str) -> str:
+    """
+    Map intern overordnet_status til Catenda topic_status.
+
+    Args:
+        overordnet_status: Intern status fra SakState.overordnet_status
+
+    Returns:
+        Catenda-kompatibel status streng
+    """
+    return OVERORDNET_TO_CATENDA_STATUS.get(overordnet_status, "Under behandling")
+
 
 class CatendaService:
     """
@@ -268,3 +294,39 @@ class CatendaService:
             True if client is available, False otherwise
         """
         return self.client is not None
+
+    def update_topic_status(
+        self,
+        topic_guid: str,
+        overordnet_status: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Update topic status in Catenda based on internal overordnet_status.
+
+        Args:
+            topic_guid: Catenda topic GUID
+            overordnet_status: Internal status from SakState.overordnet_status
+
+        Returns:
+            Updated topic data if successful, None otherwise
+        """
+        if not self.client:
+            logger.warning("No Catenda client configured, skipping status update")
+            return None
+
+        catenda_status = map_status_to_catenda(overordnet_status)
+
+        try:
+            logger.info(f"Updating topic {topic_guid} status to: {catenda_status} (from {overordnet_status})")
+            result = self.client.update_topic(topic_guid, topic_status=catenda_status)
+
+            if result:
+                logger.info(f"✅ Topic status updated to: {catenda_status}")
+                return result
+            else:
+                logger.error(f"❌ Failed to update topic status")
+                return None
+
+        except Exception as e:
+            logger.error(f"❌ Exception updating topic status: {e}")
+            return None
