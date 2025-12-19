@@ -177,13 +177,14 @@ function generateHovedkravSection(input: VederlagResponseInput): string {
     case 'godkjent':
       return `Hovedkravet på ${formatCurrency(hovedkravBelop)} ${getVurderingVerb('godkjent')}.`;
 
-    case 'delvis':
+    case 'delvis': {
       const godkjent = hovedkravGodkjentBelop ?? 0;
       const prosent = hovedkravBelop > 0 ? ((godkjent / hovedkravBelop) * 100).toFixed(0) : 0;
       return (
         `Hovedkravet ${getVurderingVerb('delvis')} med ${formatCurrency(godkjent)} ` +
         `av krevde ${formatCurrency(hovedkravBelop)} (${prosent}%).`
       );
+    }
 
     case 'avslatt':
       return `Hovedkravet på ${formatCurrency(hovedkravBelop)} ${getVurderingVerb('avslatt')}.`;
@@ -287,12 +288,13 @@ function generateKravVurderingText(
     case 'godkjent':
       return `Kravet om dekning av ${kravType} på ${formatCurrency(krevdBelop)} ${getVurderingVerb('godkjent')}.`;
 
-    case 'delvis':
+    case 'delvis': {
       const belop = godkjentBelop ?? 0;
       return (
         `Kravet om dekning av ${kravType} ${getVurderingVerb('delvis')} med ` +
         `${formatCurrency(belop)} av krevde ${formatCurrency(krevdBelop)}.`
       );
+    }
 
     case 'avslatt':
       return `Kravet om dekning av ${kravType} på ${formatCurrency(krevdBelop)} ${getVurderingVerb('avslatt')}.`;

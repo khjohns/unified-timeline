@@ -7,7 +7,15 @@ import jsxA11yPlugin from 'eslint-plugin-jsx-a11y';
 
 export default [
   {
-    ignores: ['dist/**', 'node_modules/**', '*.config.js', '*.config.ts'],
+    ignores: [
+      'dist/**',
+      'node_modules/**',
+      '*.config.js',
+      '*.config.ts',
+      'backend/**',  // Python backend with venv
+      'scripts/**',  // Node.js scripts
+      'e2e/**',      // Playwright e2e tests (has own config)
+    ],
   },
   js.configs.recommended,
   {
@@ -22,11 +30,56 @@ export default [
         },
       },
       globals: {
+        // Browser globals
         window: 'readonly',
         document: 'readonly',
         navigator: 'readonly',
-        console: 'readonly',
+        console: 'writable',
         process: 'readonly',
+        // DOM types
+        HTMLInputElement: 'readonly',
+        HTMLTextAreaElement: 'readonly',
+        HTMLElement: 'readonly',
+        HTMLDivElement: 'readonly',
+        HTMLButtonElement: 'readonly',
+        HTMLFormElement: 'readonly',
+        Element: 'readonly',
+        Node: 'readonly',
+        NodeList: 'readonly',
+        RequestInit: 'readonly',
+        // React
+        React: 'readonly',
+        fetch: 'readonly',
+        Blob: 'readonly',
+        URL: 'readonly',
+        FileReader: 'readonly',
+        localStorage: 'readonly',
+        sessionStorage: 'readonly',
+        Headers: 'readonly',
+        FormData: 'readonly',
+        HTMLCanvasElement: 'readonly',
+        HTMLDataElement: 'readonly',
+        Event: 'readonly',
+        location: 'readonly',
+        alert: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        requestAnimationFrame: 'readonly',
+        cancelAnimationFrame: 'readonly',
+        MutationObserver: 'readonly',
+        ResizeObserver: 'readonly',
+        IntersectionObserver: 'readonly',
+        CustomEvent: 'readonly',
+        AbortController: 'readonly',
+        Request: 'readonly',
+        Response: 'readonly',
+        URLSearchParams: 'readonly',
+        TextEncoder: 'readonly',
+        TextDecoder: 'readonly',
+        atob: 'readonly',
+        btoa: 'readonly',
       },
     },
     plugins: {
@@ -85,6 +138,32 @@ export default [
       react: {
         version: 'detect',
       },
+    },
+  },
+  // Test files configuration
+  {
+    files: ['**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}', '__tests__/**/*.{ts,tsx}', 'src/tests/**/*.{ts,tsx}'],
+    languageOptions: {
+      globals: {
+        // Jest globals
+        jest: 'readonly',
+        describe: 'readonly',
+        it: 'readonly',
+        test: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly',
+        global: 'readonly',
+        // React for JSX
+        React: 'readonly',
+      },
+    },
+    rules: {
+      // Relax rules for test files
+      '@typescript-eslint/no-explicit-any': 'off',
+      'react/display-name': 'off',
     },
   },
 ];

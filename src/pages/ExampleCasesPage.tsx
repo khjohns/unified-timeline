@@ -132,7 +132,7 @@ export function ExampleCasesPage() {
               </p>
               <p>
                 <strong>SAK-2025-013:</strong> Sak med avslått fristforlengelse som kan utløse
-                opprettelse av forseringssak. Tryk på "Opprett forseringssak" for å teste flyten.
+                opprettelse av forseringssak. Tryk på &quot;Opprett forseringssak&quot; for å teste flyten.
               </p>
               <p>
                 <strong>SAK-EO-001:</strong> 📋 <em>Endringsordre</em> - Utstedt endringsordre som
