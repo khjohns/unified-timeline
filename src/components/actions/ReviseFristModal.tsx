@@ -26,7 +26,7 @@ import { useMemo } from 'react';
 import { FristTilstand, FristBeregningResultat } from '../../types/timeline';
 
 const reviseFristSchema = z.object({
-  nytt_antall_dager: z.number().min(0).optional(),
+  nytt_antall_dager: z.number().min(0, 'Antall dager må være minst 0'),
   begrunnelse: z.string().min(10, 'Begrunnelse er påkrevd'),
   iverksett_forsering: z.boolean().optional(),
   forserings_kostnad: z.number().optional(),
@@ -105,6 +105,12 @@ export function ReviseFristModal({
   const bekreft30Prosent = watch('bekreft_30_prosent');
   const nyttAntallDager = watch('nytt_antall_dager');
 
+  // Validering: For normal revisjon må nytt antall dager være forskjellig fra originalt
+  const erUendretDager = useMemo(() => {
+    if (iverksettForsering) return false; // Ikke relevant for forsering
+    return nyttAntallDager === lastFristEvent.antall_dager;
+  }, [iverksettForsering, nyttAntallDager, lastFristEvent.antall_dager]);
+
   const mutation = useSubmitEvent(sakId, {
     onSuccess: () => {
       reset();
@@ -162,7 +168,7 @@ export function ReviseFristModal({
               <p className="text-sm text-pkt-grays-gray-600">Ditt opprinnelige krav:</p>
               <p className="text-2xl font-bold">{lastFristEvent.antall_dager} dager</p>
             </div>
-            {lastResponseEvent && (
+            {lastResponseEvent ? (
               <div className="text-right">
                 <p className="text-sm text-pkt-grays-gray-600">BHs svar:</p>
                 <Badge variant={erAvslag ? 'danger' : 'success'}>
@@ -174,9 +180,22 @@ export function ReviseFristModal({
                   </p>
                 )}
               </div>
+            ) : (
+              <div className="text-right">
+                <p className="text-sm text-pkt-grays-gray-600">BHs svar:</p>
+                <Badge variant="neutral">Avventer svar</Badge>
+              </div>
             )}
           </div>
         </div>
+
+        {/* Info when BH hasn't responded - explain revision option */}
+        {!lastResponseEvent && (
+          <Alert variant="info" title="Revisjon før svar">
+            Du kan oppdatere kravet ditt før byggherren har svart. Det reviderte kravet
+            erstatter det opprinnelige kravet.
+          </Alert>
+        )}
 
         {/* Forsering option - only show if BH rejected/partially approved */}
         {erAvslag && (
@@ -202,33 +221,40 @@ export function ReviseFristModal({
 
         {/* Scenario A: Normal revision */}
         {!iverksettForsering && (
-          <div className="flex gap-4 items-end">
-            <FormField label="Opprinnelig krav (dager)">
-              <Input
-                type="number"
-                value={lastFristEvent.antall_dager}
-                disabled
-                width="xs"
-              />
-            </FormField>
-            <FormField
-              label="Nytt krav (dager)"
-              error={errors.nytt_antall_dager?.message}
-            >
-              <Controller
-                name="nytt_antall_dager"
-                control={control}
-                render={({ field }) => (
-                  <Input
-                    type="number"
-                    value={field.value}
-                    onChange={(e) => field.onChange(Number(e.target.value))}
-                    width="xs"
-                    min={0}
-                  />
-                )}
-              />
-            </FormField>
+          <div className="space-y-3">
+            <div className="flex gap-4 items-end">
+              <FormField label="Opprinnelig krav (dager)">
+                <Input
+                  type="number"
+                  value={lastFristEvent.antall_dager}
+                  disabled
+                  width="xs"
+                />
+              </FormField>
+              <FormField
+                label="Nytt krav (dager)"
+                error={errors.nytt_antall_dager?.message}
+              >
+                <Controller
+                  name="nytt_antall_dager"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      type="number"
+                      value={field.value}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      width="xs"
+                      min={0}
+                    />
+                  )}
+                />
+              </FormField>
+            </div>
+            {erUendretDager && (
+              <p className="text-sm text-pkt-brand-orange-700">
+                Nytt antall dager må være forskjellig fra opprinnelig krav for å sende revisjon.
+              </p>
+            )}
           </div>
         )}
 
@@ -340,7 +366,8 @@ export function ReviseFristModal({
             disabled={
               isSubmitting ||
               !watch('begrunnelse') ||
-              (iverksettForsering && (!forseringsKostnad || !bekreft30Prosent))
+              (iverksettForsering && (!forseringsKostnad || !bekreft30Prosent)) ||
+              (!iverksettForsering && erUendretDager)
             }
             size="lg"
           >
