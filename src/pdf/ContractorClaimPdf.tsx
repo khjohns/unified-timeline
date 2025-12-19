@@ -11,6 +11,7 @@ import type {
 } from '../types/timeline';
 import { styles, COLORS, baseUrl } from './styles';
 import { getOverordnetStatusLabel } from '../constants/statusLabels';
+import { getHovedkategoriLabel, getUnderkategoriLabel } from '../constants/categories';
 
 // ============================================================
 // Helper Components
@@ -160,9 +161,9 @@ function formatGrunnlagResultat(resultat?: GrunnlagResponsResultat): string {
   const map: Record<GrunnlagResponsResultat, string> = {
     'godkjent': 'Godkjent',
     'delvis_godkjent': 'Delvis godkjent',
-    'erkjenn_fm': 'Force majeure erkjent',
+    'erkjenn_fm': 'Force majeure erkjent (§33.3)',
     'avslatt': 'Avslått',
-    'frafalt': 'Frafalt (pålegg trukket)',
+    'frafalt': 'Frafalt (§32.3 c)',
     'krever_avklaring': 'Krever avklaring',
   };
   return map[resultat] || resultat;
@@ -174,7 +175,7 @@ function formatVederlagResultat(resultat?: VederlagBeregningResultat): string {
     'godkjent': 'Godkjent',
     'delvis_godkjent': 'Delvis godkjent',
     'avslatt': 'Avslått',
-    'hold_tilbake': 'Betaling holdes tilbake',
+    'hold_tilbake': 'Betaling holdes tilbake (§30.2)',
   };
   return map[resultat] || resultat;
 }
@@ -193,8 +194,8 @@ function formatVederlagsmetode(metode?: VederlagsMetode): string {
   if (!metode) return '—';
   const metodeMap: Record<VederlagsMetode, string> = {
     'ENHETSPRISER': 'Enhetspriser (§34.3)',
-    'REGNINGSARBEID': 'Regningsarbeid (§30.2/§34.4)',
-    'FASTPRIS_TILBUD': 'Fastpris/Tilbud (§34.2.1)',
+    'REGNINGSARBEID': 'Regningsarbeid med kostnadsoverslag (§30.2, §34.4)',
+    'FASTPRIS_TILBUD': 'Fastpris / Tilbud (§34.2.1)',
   };
   return metodeMap[metode] || metode;
 }
@@ -232,9 +233,9 @@ function formatDate(dateStr?: string): string {
 function formatUnderkategori(underkategori?: string | string[]): string {
   if (!underkategori) return '—';
   if (Array.isArray(underkategori)) {
-    return underkategori.join(', ');
+    return underkategori.map(uk => getUnderkategoriLabel(uk)).join(', ');
   }
-  return underkategori;
+  return getUnderkategoriLabel(underkategori);
 }
 
 function formatVarselMetode(metode?: string[]): string {
@@ -390,7 +391,7 @@ const GrunnlagSection: React.FC<{ state: SakState }> = ({ state }) => {
             {(grunnlag.hovedkategori || grunnlag.underkategori) && (
               <TableRow4Col
                 label1="Hovedkategori"
-                value1={grunnlag.hovedkategori || '—'}
+                value1={grunnlag.hovedkategori ? getHovedkategoriLabel(grunnlag.hovedkategori) : '—'}
                 label2="Underkategori"
                 value2={formatUnderkategori(grunnlag.underkategori)}
               />
