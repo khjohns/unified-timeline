@@ -31,6 +31,7 @@ class TestForseringService:
         """Create mock event repository."""
         repo = Mock()
         repo.get_events = Mock(return_value=([], 0))
+        repo.find_sak_id_by_catenda_topic = Mock(return_value=None)
         return repo
 
     @pytest.fixture

@@ -5,7 +5,7 @@ This service provides shared functionality for fetching state and events
 from related cases, used by both ForseringService and EndringsordreService.
 """
 import pytest
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock, MagicMock, patch
 
 from services.related_cases_service import RelatedCasesService
 from models.sak_state import SakState
@@ -62,11 +62,13 @@ class TestRelatedCasesService:
     # Test: hent_state_fra_saker
     # ========================================================================
 
-    def test_hent_state_fra_saker_success(self, service, mock_event_repository, mock_timeline_service):
+    @patch('services.related_cases_service.parse_event')
+    def test_hent_state_fra_saker_success(self, mock_parse_event, service, mock_event_repository, mock_timeline_service):
         """Test successful state fetching for multiple cases."""
-        # Arrange
-        mock_events = [Mock(), Mock()]
+        # Arrange - return raw dicts from repository, parse_event is mocked
+        mock_events = [{"event_type": "grunnlag_opprettet"}, {"event_type": "vederlag_krav_sendt"}]
         mock_event_repository.get_events.return_value = (mock_events, 1)
+        mock_parse_event.side_effect = lambda e: Mock(event_type=e.get("event_type"))
 
         mock_state = SakState(sak_id="SAK-001", sakstittel="Test")
         mock_timeline_service.compute_state.return_value = mock_state
@@ -85,13 +87,17 @@ class TestRelatedCasesService:
         result = service.hent_state_fra_saker([])
         assert result == {}
 
-    def test_hent_state_fra_saker_handles_errors(self, service, mock_event_repository):
+    @patch('services.related_cases_service.parse_event')
+    def test_hent_state_fra_saker_handles_errors(self, mock_parse_event, service, mock_event_repository, mock_timeline_service):
         """Test that errors for individual cases don't crash the whole operation."""
         # Arrange - first call succeeds, second fails
+        mock_event = {"event_type": "grunnlag_opprettet"}
         mock_event_repository.get_events.side_effect = [
-            ([Mock()], 1),
+            ([mock_event], 1),
             Exception("Database error")
         ]
+        mock_parse_event.side_effect = lambda e: Mock(event_type=e.get("event_type"))
+        mock_timeline_service.compute_state.return_value = SakState(sak_id="SAK-001", sakstittel="Test")
 
         # Act
         result = service.hent_state_fra_saker(["SAK-001", "SAK-002"])
@@ -183,11 +189,13 @@ class TestRelatedCasesService:
     # Test: get_related_cases_context
     # ========================================================================
 
-    def test_get_related_cases_context_returns_both(self, service, mock_event_repository, mock_timeline_service):
+    @patch('services.related_cases_service.parse_event')
+    def test_get_related_cases_context_returns_both(self, mock_parse_event, service, mock_event_repository, mock_timeline_service):
         """Test that context returns both states and events."""
         # Arrange
-        mock_events = [Mock()]
+        mock_events = [{"event_type": "grunnlag_opprettet", "spor": "grunnlag"}]
         mock_event_repository.get_events.return_value = (mock_events, 1)
+        mock_parse_event.side_effect = lambda e: Mock(event_type=e.get("event_type"))
         mock_state = SakState(sak_id="SAK-001", sakstittel="Test")
         mock_timeline_service.compute_state.return_value = mock_state
 
@@ -200,7 +208,7 @@ class TestRelatedCasesService:
 
     def test_get_related_cases_context_with_filter(self, service, mock_event_repository, mock_timeline_service):
         """Test context with spor filter."""
-        # Arrange
+        # Arrange - hendelser method doesn't parse events, just returns them
         event = Mock()
         event.spor = "grunnlag"
         mock_event_repository.get_events.return_value = ([event], 1)

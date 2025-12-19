@@ -25,7 +25,7 @@ from models.events import parse_event_from_request, parse_event, EventType
 from lib.auth.csrf_protection import require_csrf
 from lib.auth.magic_link import require_magic_link, get_magic_link_manager
 from services.catenda_service import CatendaService
-from integrations.catenda import CatendaClient
+from lib.catenda_factory import get_catenda_client
 from core.config import settings
 from utils.logger import get_logger
 from api.validators import (
@@ -665,20 +665,10 @@ def _post_to_catenda(
 def get_catenda_service() -> Optional[CatendaService]:
     """Get configured Catenda service or None if not available."""
     try:
-        config = settings.get_catenda_config()
-        catenda_client = CatendaClient(
-            client_id=config['catenda_client_id'],
-            client_secret=config.get('catenda_client_secret')
-        )
-
-        access_token = config.get('catenda_access_token')
-        if access_token:
-            catenda_client.set_access_token(access_token)
-        elif config.get('catenda_client_secret'):
-            catenda_client.authenticate()
-
-        return CatendaService(catenda_api_client=catenda_client)
-
+        client = get_catenda_client()
+        if not client:
+            return None
+        return CatendaService(catenda_api_client=client)
     except Exception as e:
         logger.warning(f"Catenda service not available: {e}")
         return None

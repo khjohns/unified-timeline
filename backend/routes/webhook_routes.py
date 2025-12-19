@@ -19,7 +19,7 @@ from lib.security.rate_limiter import limit_webhook
 from lib.monitoring.audit import audit
 from services.webhook_service import WebhookService
 from repositories.event_repository import JsonFileEventRepository
-from integrations.catenda import CatendaClient
+from lib.catenda_factory import get_catenda_client
 from core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -58,23 +58,10 @@ def get_webhook_service() -> WebhookService:
     # Create event repository
     event_repository = JsonFileEventRepository()
 
-    # Create and authenticate Catenda client
-    catenda_client = CatendaClient(
-        client_id=config['catenda_client_id'],
-        client_secret=config.get('catenda_client_secret')
-    )
-
-    # Try to authenticate
-    access_token = config.get('catenda_access_token')
-    if access_token:
-        catenda_client.set_access_token(access_token)
-    elif config.get('catenda_client_secret'):
-        catenda_client.authenticate()
-
     # Create and return service
     return WebhookService(
         event_repository=event_repository,
-        catenda_client=catenda_client,
+        catenda_client=get_catenda_client(),
         config=config,
         magic_link_generator=magic_link_mgr
     )

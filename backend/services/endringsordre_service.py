@@ -13,19 +13,18 @@ from datetime import datetime
 from utils.logger import get_logger
 from models.sak_state import (
     SaksType,
-    SakRelasjon,
     EndringsordreData,
     EOStatus,
     EOKonsekvenser,
     SakState,
 )
-from models.events import AnyEvent, parse_event
-from services.related_cases_service import RelatedCasesService
+from models.events import AnyEvent
+from services.base_sak_service import BaseSakService
 
 logger = get_logger(__name__)
 
 
-class EndringsordreService:
+class EndringsordreService(BaseSakService):
     """
     Service for å håndtere endringsordresaker (§31.3).
 
@@ -47,22 +46,12 @@ class EndringsordreService:
             event_repository: EventRepository for å hente events fra saker
             timeline_service: TimelineService for å beregne SakState
         """
-        self.client = catenda_client
-        self.event_repository = event_repository
-        self.timeline_service = timeline_service
-
-        # Gjenbrukbar helper for relaterte saker
-        self.related_cases = RelatedCasesService(
+        super().__init__(
+            catenda_client=catenda_client,
             event_repository=event_repository,
             timeline_service=timeline_service
         )
-
-        if not self.client:
-            logger.warning("EndringsordreService initialized without Catenda client")
-        if not self.event_repository:
-            logger.warning("EndringsordreService initialized without event repository")
-        if not self.timeline_service:
-            logger.warning("EndringsordreService initialized without timeline service")
+        self._log_init_warnings("EndringsordreService")
 
     def opprett_endringsordresak(
         self,
@@ -195,84 +184,6 @@ class EndringsordreService:
             }
         }
 
-    def _resolve_catenda_topic_id(self, sak_id: str) -> Optional[str]:
-        """
-        Slår opp catenda_topic_id fra sakens state.
-
-        Args:
-            sak_id: Lokal sak-ID (f.eks. SAK-20251218-201548)
-
-        Returns:
-            Catenda topic GUID, eller None hvis ikke funnet
-        """
-        if not self.timeline_service or not self.event_repository:
-            logger.warning("Mangler timeline_service eller event_repository")
-            return None
-
-        try:
-            events_data, _version = self.event_repository.get_events(sak_id)
-            if not events_data:
-                return None
-
-            # Parse events from stored data (dicts -> typed Event objects)
-            events = [parse_event(e) for e in events_data]
-            state = self.timeline_service.compute_state(events)
-            return state.catenda_topic_id
-        except Exception as e:
-            logger.warning(f"Kunne ikke slå opp catenda_topic_id for {sak_id}: {e}")
-            return None
-
-    def hent_relaterte_saker(self, sak_id: str) -> List[SakRelasjon]:
-        """
-        Henter alle relaterte saker (KOE-er) for en endringsordresak.
-
-        Args:
-            sak_id: Sak-ID (lokal ID eller Catenda topic GUID)
-
-        Returns:
-            Liste med SakRelasjon objekter
-        """
-        if not self.client:
-            logger.warning("Ingen Catenda client - returnerer tom liste")
-            return []
-
-        # Resolve sak_id to catenda_topic_id if needed
-        catenda_topic_id = self._resolve_catenda_topic_id(sak_id)
-        if not catenda_topic_id:
-            # Fallback: assume sak_id is already a Catenda GUID
-            catenda_topic_id = sak_id
-            logger.debug(f"Bruker sak_id direkte som catenda_topic_id: {sak_id}")
-        else:
-            logger.debug(f"Resolved {sak_id} -> catenda_topic_id: {catenda_topic_id}")
-
-        related = self.client.list_related_topics(catenda_topic_id)
-
-        relasjoner = []
-        for rel in related:
-            relatert_guid = rel.get('related_topic_guid')
-            if not relatert_guid:
-                continue
-
-            topic = self.client.get_topic_details(relatert_guid)
-
-            # Try to resolve Catenda GUID to local sak_id
-            local_sak_id = None
-            if self.event_repository:
-                local_sak_id = self.event_repository.find_sak_id_by_catenda_topic(relatert_guid)
-                if local_sak_id:
-                    logger.debug(f"Resolved Catenda GUID {relatert_guid} -> local sak_id {local_sak_id}")
-
-            relasjoner.append(SakRelasjon(
-                relatert_sak_id=local_sak_id or relatert_guid,  # Prefer local sak_id
-                relatert_sak_tittel=topic.get('title') if topic else None,
-                bimsync_issue_board_ref=rel.get('bimsync_issue_board_ref'),
-                bimsync_issue_number=rel.get('bimsync_issue_number'),
-                catenda_topic_id=relatert_guid,  # Keep original GUID for reference
-            ))
-
-        logger.info(f"Hentet {len(relasjoner)} relaterte KOE-saker for EO {sak_id}")
-        return relasjoner
-
     def legg_til_koe(self, eo_sak_id: str, koe_sak_id: str) -> bool:
         """
         Legger til en KOE-sak som relatert til endringsordren.
@@ -342,27 +253,6 @@ class EndringsordreService:
         except Exception as e:
             logger.error(f"Feil ved fjerning av KOE: {e}")
             raise RuntimeError(f"Kunne ikke fjerne KOE: {e}")
-
-    def hent_hendelser_fra_relaterte_saker(
-        self,
-        sak_ids: List[str],
-        spor_filter: Optional[List[str]] = None
-    ) -> Dict[str, List[AnyEvent]]:
-        """
-        Henter alle hendelser fra en liste med KOE-saker.
-        Delegerer til RelatedCasesService.
-        """
-        return self.related_cases.hent_hendelser_fra_saker(sak_ids, spor_filter)
-
-    def hent_state_fra_relaterte_saker(
-        self,
-        sak_ids: List[str]
-    ) -> Dict[str, SakState]:
-        """
-        Henter SakState for en liste med KOE-saker.
-        Delegerer til RelatedCasesService.
-        """
-        return self.related_cases.hent_state_fra_saker(sak_ids)
 
     def hent_komplett_eo_kontekst(
         self,
@@ -593,11 +483,3 @@ class EndringsordreService:
             logger.error(f"Feil ved søk etter EOer for KOE {koe_sak_id}: {e}")
             return []
 
-    def is_configured(self) -> bool:
-        """
-        Sjekker om servicen er konfigurert med en Catenda client.
-
-        Returns:
-            True hvis client er tilgjengelig
-        """
-        return self.client is not None
