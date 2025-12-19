@@ -488,6 +488,258 @@ paths:
                     type: number
                   prosent_av_maks:
                     type: number
+  /api/forsering/{sak_id}/relaterte:
+    get:
+      tags:
+      - Forsering
+      summary: Get related cases for forsering
+      description: Get all KOE cases related to a forsering case (rejected frist claims)
+      operationId: getForseringRelaterte
+      security:
+      - magicLink: []
+      parameters:
+      - name: sak_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: List of related cases
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  sak_id:
+                    type: string
+                  relaterte_saker:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        relatert_sak_id:
+                          type: string
+                        relatert_sak_tittel:
+                          type: string
+                        bimsync_issue_board_ref:
+                          type: string
+                        bimsync_issue_number:
+                          type: integer
+  /api/forsering/{sak_id}/relatert:
+    post:
+      tags:
+      - Forsering
+      summary: Add related case to forsering
+      description: Add a KOE case as related to the forsering
+      operationId: addForseringRelatert
+      security:
+      - csrfToken: []
+      - magicLink: []
+      parameters:
+      - name: sak_id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - koe_sak_id
+              properties:
+                koe_sak_id:
+                  type: string
+                  description: ID of KOE case to add
+      responses:
+        '200':
+          description: KOE added to forsering
+  /api/forsering/{sak_id}/relatert/{koe_sak_id}:
+    delete:
+      tags:
+      - Forsering
+      summary: Remove related case from forsering
+      operationId: removeForseringRelatert
+      security:
+      - csrfToken: []
+      - magicLink: []
+      parameters:
+      - name: sak_id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: koe_sak_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: KOE removed from forsering
+  /api/forsering/{sak_id}/bh-respons:
+    post:
+      tags:
+      - Forsering
+      summary: Register BH response to forsering
+      description: BH accepts or rejects the forsering claim
+      operationId: bhResponsForsering
+      security:
+      - csrfToken: []
+      - magicLink: []
+      parameters:
+      - name: sak_id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - aksepterer
+              - begrunnelse
+              properties:
+                aksepterer:
+                  type: boolean
+                  description: Whether BH accepts the forsering
+                godkjent_kostnad:
+                  type: number
+                  description: Approved cost (may be lower than estimated)
+                begrunnelse:
+                  type: string
+                  description: Justification for decision
+      responses:
+        '200':
+          description: BH response registered
+  /api/forsering/{sak_id}/stopp:
+    post:
+      tags:
+      - Forsering
+      summary: Stop active forsering
+      description: Stop an ongoing forsering and record incurred costs
+      operationId: stoppForsering
+      security:
+      - csrfToken: []
+      - magicLink: []
+      parameters:
+      - name: sak_id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - begrunnelse
+              properties:
+                begrunnelse:
+                  type: string
+                  description: Reason for stopping
+                paalopte_kostnader:
+                  type: number
+                  description: Incurred costs at time of stop
+      responses:
+        '200':
+          description: Forsering stopped
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  dato_stoppet:
+                    type: string
+                    format: date
+  /api/forsering/{sak_id}/kostnader:
+    put:
+      tags:
+      - Forsering
+      summary: Update incurred costs
+      description: Update the incurred costs for an active forsering
+      operationId: oppdaterForseringKostnader
+      security:
+      - csrfToken: []
+      - magicLink: []
+      parameters:
+      - name: sak_id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - paalopte_kostnader
+              properties:
+                paalopte_kostnader:
+                  type: number
+                  description: Current incurred costs
+                kommentar:
+                  type: string
+                  description: Optional comment on update
+      responses:
+        '200':
+          description: Costs updated
+  /api/forsering/by-relatert/{sak_id}:
+    get:
+      tags:
+      - Forsering
+      summary: Find forsering cases referencing a KOE
+      description: Find all forsering cases that reference a given KOE case. Used
+        for back-links.
+      operationId: findForseringerForSak
+      security:
+      - magicLink: []
+      parameters:
+      - name: sak_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: KOE case ID to search for
+      responses:
+        '200':
+          description: List of forsering cases referencing this KOE
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  forseringer:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        forsering_sak_id:
+                          type: string
+                        tittel:
+                          type: string
+                        status:
+                          type: string
+                        estimert_kostnad:
+                          type: number
   /api/endringsordre/opprett:
     post:
       tags:
@@ -649,6 +901,87 @@ paths:
       responses:
         '200':
           description: KOE removed successfully
+  /api/endringsordre/{sak_id}/relaterte:
+    get:
+      tags:
+      - Endringsordre
+      summary: Get related KOE cases for endringsordre
+      description: Get all KOE cases included in an endringsordre
+      operationId: getEORelaterte
+      security:
+      - magicLink: []
+      parameters:
+      - name: sak_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: List of related KOE cases
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  sak_id:
+                    type: string
+                  relaterte_saker:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        relatert_sak_id:
+                          type: string
+                        relatert_sak_tittel:
+                          type: string
+                        bimsync_issue_board_ref:
+                          type: string
+                        bimsync_issue_number:
+                          type: integer
+  /api/endringsordre/by-relatert/{sak_id}:
+    get:
+      tags:
+      - Endringsordre
+      summary: Find endringsordre cases referencing a KOE
+      description: Find all endringsordre cases that include a given KOE case. Used
+        for back-links.
+      operationId: findEOerForKOE
+      security:
+      - magicLink: []
+      parameters:
+      - name: sak_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: KOE case ID to search for
+      responses:
+        '200':
+          description: List of endringsordre cases including this KOE
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  endringsordrer:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        eo_sak_id:
+                          type: string
+                        eo_nummer:
+                          type: string
+                        dato_utstedt:
+                          type: string
+                          format: date
+                        status:
+                          type: string
 components:
   securitySchemes:
     csrfToken:
@@ -679,6 +1012,8 @@ components:
       - respons_frist_oppdatert
       - forsering_varsel
       - forsering_respons
+      - forsering_stoppet
+      - forsering_kostnader_oppdatert
       - sak_opprettet
       - sak_lukket
       - eo_opprettet
@@ -688,6 +1023,8 @@ components:
       - eo_akseptert
       - eo_bestridt
       - eo_revidert
+      - relasjon_lagt_til
+      - relasjon_fjernet
       description: Type of event in the system
     VederlagsMetode:
       type: string
@@ -707,7 +1044,6 @@ components:
       enum:
       - noytralt
       - spesifisert
-      - begge
       - force_majeure
       description: 'Warning type for deadline extension:
 
@@ -1009,16 +1345,26 @@ components:
 
         Dette er BH''s vurdering av ANSVARET - hvem sin feil er det?
 
-        Hvis BH avviser grunnlaget her, kan Vederlag/Frist fortsatt vurderes subsidiært.'
+        Hvis BH avviser grunnlaget her, kan Vederlag/Frist fortsatt vurderes subsidiært.
+
+
+        Støtter partielle oppdateringer: Hvis original_respons_id er satt,
+
+        er dette en oppdatering og kun feltene som sendes vil oppdateres.'
       properties:
         resultat:
-          $ref: '#/$defs/GrunnlagResponsResultat'
+          anyOf:
+          - $ref: '#/$defs/GrunnlagResponsResultat'
+          - type: 'null'
+          default: null
           description: BHs vurdering av ansvarsgrunnlaget
         begrunnelse:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
           description: BHs begrunnelse for vurderingen
-          minLength: 1
           title: Begrunnelse
-          type: string
         akseptert_kategori:
           anyOf:
           - type: string
@@ -1046,9 +1392,13 @@ components:
           default: null
           description: BHs begrunnelse for varsel-vurdering
           title: Varsel Begrunnelse
-      required:
-      - resultat
-      - begrunnelse
+        original_respons_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          description: Event-ID til original respons som oppdateres (for RESPONS_*_OPPDATERT)
+          title: Original Respons Id
       title: GrunnlagResponsData
       type: object
     VederlagResponsData:
@@ -1057,8 +1407,16 @@ components:
         \ på grunnlag (ansvar) håndteres i Grunnlag-sporet.\n\nDette muliggjør subsidiære\
         \ betraktninger:\n- BH kan avvise Grunnlag (ansvar), MEN samtidig godkjenne\
         \ beregningen\n  som subsidiær vurdering (\"hvis jeg hadde hatt ansvar, er\
-        \ 50k riktig\")."
+        \ 50k riktig\").\n\nStøtter partielle oppdateringer: Hvis original_respons_id\
+        \ er satt,\ner dette en oppdatering og kun feltene som sendes vil oppdateres."
       properties:
+        original_respons_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          description: Event-ID til original respons som oppdateres (for RESPONS_*_OPPDATERT)
+          title: Original Respons Id
         vederlag_krav_id:
           anyOf:
           - type: string
@@ -1210,7 +1568,10 @@ components:
           description: Godkjent beløp for produktivitetstap i NOK
           title: Produktivitet Godkjent Belop
         beregnings_resultat:
-          $ref: '#/$defs/VederlagBeregningResultat'
+          anyOf:
+          - $ref: '#/$defs/VederlagBeregningResultat'
+          - type: 'null'
+          default: null
           description: BHs samlede vurdering av kravets størrelse
         godkjent_belop:
           anyOf:
@@ -1283,8 +1644,6 @@ components:
           default: null
           description: BH's begrunnelse for subsidiær vurdering
           title: Subsidiaer Begrunnelse
-      required:
-      - beregnings_resultat
       title: VederlagResponsData
       type: object
     FristResponsData:
@@ -1296,8 +1655,16 @@ components:
         \ er 14 dager riktig\").\n\nPort-modellen med tre sekvensielle vurderinger:\n\
         1. PORT 1: Er varselet sendt i tide? (Preklusjon)\n2. PORT 2: Har forholdet\
         \ medført faktisk fremdriftshindring? (Vilkår)\n3. PORT 3: Hvor mange dager\
-        \ godkjennes? (Utmåling)"
+        \ godkjennes? (Utmåling)\n\nStøtter partielle oppdateringer: Hvis original_respons_id\
+        \ er satt,\ner dette en oppdatering og kun feltene som sendes vil oppdateres."
       properties:
+        original_respons_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          description: Event-ID til original respons som oppdateres (for RESPONS_*_OPPDATERT)
+          title: Original Respons Id
         noytralt_varsel_ok:
           anyOf:
           - type: boolean
@@ -1338,7 +1705,10 @@ components:
           description: BHs begrunnelse for vurdering av årsakssammenheng
           title: Begrunnelse Vilkar
         beregnings_resultat:
-          $ref: '#/$defs/FristBeregningResultat'
+          anyOf:
+          - $ref: '#/$defs/FristBeregningResultat'
+          - type: 'null'
+          default: null
           description: BHs vurdering av antall dager (ren beregning)
         godkjent_dager:
           anyOf:
@@ -1398,8 +1768,6 @@ components:
           default: null
           description: BH's begrunnelse for subsidiær vurdering
           title: Subsidiaer Begrunnelse
-      required:
-      - beregnings_resultat
       title: FristResponsData
       type: object
     Error:
