@@ -559,8 +559,8 @@ def _post_to_catenda(
                 # Get events for PDF (to show last TE/BH events per track)
                 events_list = []
                 try:
-                    events_data, _ = event_repo.get_events(sak_id)  # Returns (events, version) tuple
-                    events_list = [e.model_dump(mode='json') for e in events_data]
+                    events_data, _ = event_repo.get_events(sak_id)  # Returns (events as dicts, version)
+                    events_list = events_data  # Already dicts from repository
                 except Exception as e:
                     logger.warning(f"Could not get events for PDF: {e}")
 

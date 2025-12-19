@@ -45,9 +45,11 @@ def get_catenda_client(with_auth: bool = True) -> Optional[CatendaClient]:
         client.topic_board_id = settings.catenda_topic_board_id
 
     if with_auth:
+        # Use static access token if available (most common for non-Boost users)
         if settings.catenda_access_token:
             client.set_access_token(settings.catenda_access_token)
         elif settings.catenda_client_secret:
+            # Try client credentials (only works for Catenda Boost customers)
             client.authenticate()
 
     return client

@@ -250,22 +250,26 @@ class CatendaClient:
     
     def ensure_authenticated(self) -> bool:
         """
-        Sjekk om token er gyldig, fornye om nødvendig.
-        
+        Sjekk om token er gyldig.
+
+        Note: Auto-refresh via client credentials is disabled because most users
+        don't have Catenda Boost. If token expires, user must get a new token
+        via Authorization Code Grant and update .env.
+
         Returns:
             True hvis autentisert, False ellers
         """
         if not self.access_token or not self.token_expiry:
-            logger.warning("⚠️ Ingen access token - kan ikke autentisere automatisk")
-            logger.warning("    Bruk get_authorization_url() eller authenticate()")
+            logger.warning("⚠️ Ingen access token konfigurert")
+            logger.warning("    Sett CATENDA_ACCESS_TOKEN i .env")
             return False
-        
+
         if datetime.now() >= self.token_expiry:
-            logger.info("🔄 Token utløpt, må fornyes manuelt")
-            logger.warning("    For Authorization Code Grant: hent nytt token via nettleser")
-            logger.warning("    For Client Credentials: kjør authenticate() på nytt")
+            logger.warning("⚠️ Access token har utløpt!")
+            logger.warning("    Hent nytt token via Authorization Code Grant")
+            logger.warning("    og oppdater CATENDA_ACCESS_TOKEN i .env")
             return False
-        
+
         return True
     
     def get_headers(self) -> Dict[str, str]:

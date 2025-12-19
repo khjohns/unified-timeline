@@ -111,11 +111,7 @@ MOCK_EVENTS_SCENARIO_1 = [
         event_type=EventType.FRIST_KRAV_SENDT,
         versjon=1,
         data=FristData(
-            varsel_type=FristVarselType.BEGGE,
-            noytralt_varsel=VarselInfo(
-                dato_sendt="2025-01-11",
-                metode=["byggemote"]
-            ),
+            varsel_type=FristVarselType.SPESIFISERT,
             spesifisert_varsel=VarselInfo(
                 dato_sendt="2025-01-18",
                 metode=["epost", "brev"]

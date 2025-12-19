@@ -7,6 +7,47 @@
  *
  * The text is NOT editable by the user, but they can supplement it
  * with additional comments.
+ *
+ * ============================================================================
+ * NS 8407:2011 REFERANSER
+ * ============================================================================
+ *
+ * VEDERLAG (Kapittel VI - Vederlag og betaling):
+ * - §30.2 (1): Kostnadsoverslag ved regningsarbeid
+ * - §30.2 (2): BH kan holde tilbake betaling inntil overslag foreligger
+ * - §34.1.2 (2): Varslingskrav - "uten ugrunnet opphold når han blir klar over"
+ * - §34.1.2 (2): Preklusjon - "Krav på vederlagsjustering tapes dersom..."
+ * - §34.1.3 (1): Særskilt justering for rigg, drift, kapitalytelser
+ * - §34.1.3 (2): Særskilt justering for produktivitetstap/forstyrrelser
+ * - §34.1.3 (3): Preklusjon - "må varsle byggherren særskilt uten ugrunnet opphold"
+ * - §34.2.1: Avtalt vederlagsjustering gjennom tilbud (fastpris)
+ * - §34.2.2: Alminnelige regler - §34.3/§34.4 gjelder hvis tilbud ikke akseptert
+ * - §34.3.1: Enhetspriser skal benyttes når de er anvendelige
+ * - §34.3.2 (1): Justerte enhetspriser for likeartet arbeid
+ * - §34.3.2 (2): Justering ved forrykket forutsetninger
+ * - §34.3.3 (1): Varsel om justering - "uten ugrunnet opphold"
+ * - §34.3.3 (2): Svarplikt - innsigelser tapes ved for sen respons
+ * - §34.4 (1): Regningsarbeid som fallback når enhetspriser ikke foreligger
+ *
+ * FRISTFORLENGELSE (Kapittel VII - Endringer):
+ * - §33.1: TE's rett på fristforlengelse pga BH's forhold (endringer, svikt)
+ * - §33.3 (1): Force majeure - ekstraordinære værforhold, påbud, streik etc.
+ * - §33.3 (3): Ingen rett hvis hindring burde vært forutsett ved kontraktsinngåelse
+ * - §33.3 (5): "Partene har IKKE krav på justering av vederlaget" (force majeure)
+ * - §33.4 (1): Varsel - "uten ugrunnet opphold, selv om spesifisert krav ikke kan fremsettes"
+ * - §33.4 (2): Preklusjon - "Krav på fristforlengelse tapes dersom ikke varslet innen fristen"
+ * - §33.5 (1): Beregning - "virkning på fremdriften som forholdet har forårsaket"
+ * - §33.6.1: TE's spesifisering - "angi og begrunne det antall dager han krever"
+ * - §33.6.2 (1): BH's forespørsel (etterlysning) - krav om spesifisert krav
+ * - §33.6.2 (2): TE må svare "uten ugrunnet opphold" med dager+begrunnelse
+ * - §33.6.2 (3): Preklusjon - "Gjør ikke totalentreprenøren noen av delene, tapes kravet"
+ * - §33.7 (1): Svarplikt - "svare uten ugrunnet opphold"
+ * - §33.7 (2): "Innsigelser mot kravet tapes dersom de ikke fremsettes innen fristen"
+ * - §33.8 (1): Forsering - "kan velge å anse avslaget som et pålegg om forsering"
+ * - §33.8 (1): 30%-begrensning - "ikke slik valgrett dersom vederlaget overstiger dagmulkt + 30%"
+ * - §33.8 (2): Varslingskrav før forsering iverksettes
+ *
+ * ============================================================================
  */
 
 import type { VederlagsMetode, FristVarselType } from '../types/timeline';
@@ -530,6 +571,34 @@ function generateFristKonklusjonSection(input: FristResponseInput): string {
 }
 
 /**
+ * Generate §33.3 (5) force majeure vederlag notice if applicable
+ *
+ * NS 8407 §33.3 (5): "Partene har ikke krav på justering av vederlaget
+ * som følge av fristforlengelse etter denne bestemmelsen."
+ *
+ * This is critical information for the contractor to understand that while
+ * force majeure grants time extensions, it does NOT grant compensation.
+ */
+function generateForceMajeureVederlagSection(input: FristResponseInput): string {
+  const { varselType, godkjentDager, prinsipaltResultat } = input;
+
+  // Only show for force majeure claims where days are approved
+  if (varselType !== 'force_majeure') {
+    return '';
+  }
+
+  // Only show if some extension is granted
+  if (godkjentDager === 0 && prinsipaltResultat === 'avslatt') {
+    return '';
+  }
+
+  return (
+    'Byggherren gjør oppmerksom på at fristforlengelse innvilget etter §33.3 (force majeure) ' +
+    'ikke gir grunnlag for vederlagsjustering, jf. §33.3 (5).'
+  );
+}
+
+/**
  * Generate §33.8 forsering warning if applicable
  */
 function generateForseringWarningSection(input: FristResponseInput): string {
@@ -580,7 +649,13 @@ export function generateFristResponseBegrunnelse(input: FristResponseInput): str
   const konklusjonSection = generateFristKonklusjonSection(input);
   sections.push(konklusjonSection);
 
-  // 5. §33.8 Forsering warning (if applicable)
+  // 5. §33.3 Force majeure vederlag notice (if applicable)
+  const forceMajeureSection = generateForceMajeureVederlagSection(input);
+  if (forceMajeureSection) {
+    sections.push(forceMajeureSection);
+  }
+
+  // 6. §33.8 Forsering warning (if applicable)
   const forseringSection = generateForseringWarningSection(input);
   if (forseringSection) {
     sections.push(forseringSection);

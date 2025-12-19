@@ -319,23 +319,14 @@ def test_frist_data_spesifisert():
     assert data.antall_dager == 14
 
 
-def test_frist_data_begge():
-    """Test FristData with both nøytralt and spesifisert varsel"""
+def test_frist_data_force_majeure():
+    """Test FristData with force majeure varsel"""
     data = FristData(
-        varsel_type=FristVarselType.BEGGE,
-        noytralt_varsel=VarselInfo(
-            dato_sendt="2025-01-10",
-            metode=["byggemote"]
-        ),
-        spesifisert_varsel=VarselInfo(
-            dato_sendt="2025-01-20",
-            metode=["epost", "brev"]
-        ),
+        varsel_type=FristVarselType.FORCE_MAJEURE,
         antall_dager=14,
-        begrunnelse="Forsinkelse pga BH-prosjektering"
+        begrunnelse="Forsinkelse pga ekstremvær (§33.3)"
     )
-    assert data.noytralt_varsel.metode == ["byggemote"]
-    assert data.spesifisert_varsel.metode == ["epost", "brev"]
+    assert data.varsel_type == FristVarselType.FORCE_MAJEURE
     assert data.antall_dager == 14
 
 
@@ -379,11 +370,7 @@ def test_frist_event_creation():
         aktor="Ole Olsen",
         aktor_rolle="TE",
         data=FristData(
-            varsel_type=FristVarselType.BEGGE,
-            noytralt_varsel=VarselInfo(
-                dato_sendt="2025-01-10",
-                metode=["byggemote"]
-            ),
+            varsel_type=FristVarselType.SPESIFISERT,
             spesifisert_varsel=VarselInfo(
                 dato_sendt="2025-01-20",
                 metode=["epost"]

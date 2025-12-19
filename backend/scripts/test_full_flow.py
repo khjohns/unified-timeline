@@ -719,6 +719,35 @@ class BaseTester:
         return headers
 
     # =========================================================================
+    # PDF-verifisering
+    # =========================================================================
+
+    def verify_pdf_upload(self, topic_guid: str) -> bool:
+        """Verifiser PDF-generering og opplasting for et topic"""
+        print_header("Verifiser PDF")
+
+        if not self.library_id:
+            print_warn("Inget bibliotek konfigurert - hopper over PDF-sjekk")
+            return True
+
+        print_info("Sjekker dokumentreferanser på topic...")
+
+        # Vent på asynkron PDF-generering
+        time.sleep(3)
+
+        documents = self.client.list_document_references(topic_guid)
+
+        if documents:
+            print_ok(f"Fant {len(documents)} dokument(er) lenket til topic")
+            for doc in documents:
+                print_info(f"  - {doc.get('description', 'Ukjent')} ({doc.get('guid')})")
+        else:
+            print_warn("Ingen dokumenter funnet ennå")
+            print_info("PDF-generering kan ta noen sekunder")
+
+        return True
+
+    # =========================================================================
     # Catenda-integrasjon
     # =========================================================================
 
@@ -1211,31 +1240,6 @@ class KOEFlowTester(BaseTester):
         except requests.exceptions.RequestException as e:
             print_fail(f"Nettverksfeil: {e}")
             return False
-
-    def verify_pdf_upload(self) -> bool:
-        """Steg 2.5: Verifiser PDF-generering og opplasting"""
-        print_header("STEG 2.5: Verifiser PDF")
-
-        if not self.library_id:
-            print_warn("Inget bibliotek konfigurert - hopper over PDF-sjekk")
-            return True
-
-        print_info("Sjekker dokumentreferanser pa topic...")
-
-        # Vent pa asynkron PDF-generering
-        time.sleep(3)
-
-        documents = self.client.list_document_references(self.topic_guid)
-
-        if documents:
-            print_ok(f"Fant {len(documents)} dokument(er) lenket til topic")
-            for doc in documents:
-                print_info(f"  - {doc.get('description', 'Ukjent')} ({doc.get('guid')})")
-        else:
-            print_warn("Ingen dokumenter funnet enna")
-            print_info("PDF-generering kan ta noen sekunder")
-
-        return True
 
     def send_vederlag_and_frist(self) -> bool:
         """Steg 2.7: Send vederlag og frist"""
@@ -1796,6 +1800,10 @@ class ForseringFlowTester(BaseTester):
             print_fail("Kunne ikke sende forsering-respons")
             return False
 
+        # Steg 6: Verifiser PDF
+        if self.forsering_topic_guid:
+            self.verify_pdf_upload(self.forsering_topic_guid)
+
         # Oppsummering
         self.show_summary()
 
@@ -2177,6 +2185,10 @@ class EOFlowTester(BaseTester):
             print_fail("Kunne ikke akseptere EO")
             return False
 
+        # Steg 6: Verifiser PDF
+        if self.eo_topic_guid:
+            self.verify_pdf_upload(self.eo_topic_guid)
+
         # Oppsummering
         self.show_summary()
 
@@ -2523,7 +2535,7 @@ def run_koe_flow(validator: SetupValidator) -> bool:
     if not tester.send_grunnlag():
         print("\n[ADVARSEL] Grunnlag-sending feilet, fortsetter...")
 
-    tester.verify_pdf_upload()
+    tester.verify_pdf_upload(tester.topic_guid)
     tester.send_vederlag_and_frist()
 
     # FASE 3: BH svarer på krav

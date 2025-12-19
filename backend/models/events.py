@@ -615,7 +615,7 @@ class FristData(BaseModel):
         description="Info om spesifisert krav (§33.6) - dato + metode (f.eks. formelt brev/epost)"
     )
 
-    # ============ KRAVET (Kun relevant ved SPESIFISERT eller BEGGE) ============
+    # ============ KRAVET (Kun relevant ved SPESIFISERT eller FORCE_MAJEURE) ============
     antall_dager: Optional[int] = Field(
         default=None,
         ge=0,
@@ -648,8 +648,8 @@ class FristData(BaseModel):
 
     @model_validator(mode='after')
     def validate_antall_dager(self):
-        """Valider at antall_dager er satt hvis varsel_type er SPESIFISERT eller BEGGE"""
-        if self.varsel_type in [FristVarselType.SPESIFISERT, FristVarselType.BEGGE]:
+        """Valider at antall_dager er satt hvis varsel_type er SPESIFISERT eller FORCE_MAJEURE"""
+        if self.varsel_type in [FristVarselType.SPESIFISERT, FristVarselType.FORCE_MAJEURE]:
             if self.antall_dager is None:
                 raise ValueError("antall_dager må være satt for spesifisert krav")
         return self
