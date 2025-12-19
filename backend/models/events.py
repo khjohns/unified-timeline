@@ -184,10 +184,9 @@ class VederlagBeregningResultat(str, Enum):
 
 class FristVarselType(str, Enum):
     """Type varsel for frist (NS 8407 §33)"""
-    NOYTRALT = "noytralt"  # §33.4 - Nøytralt/Foreløpig varsel (§33.4) - når omfang ikke er kjent. Bevarer rett til senere krav
+    NOYTRALT = "noytralt"  # §33.4 - Nøytralt/Foreløpig varsel - når omfang ikke er kjent. Bevarer rett til senere krav
     SPESIFISERT = "spesifisert"  # §33.6.1 - Spesifisert krav (med dager)
-    BEGGE = "begge"  # Først nøytralt, så spesifisert
-    FORCE_MAJEURE = "force_majeure"  # Tilleggsfrist ved force majeure (§33.3) - Frist ved ekstraordinære hendelser utenfor partenes kontroll
+    FORCE_MAJEURE = "force_majeure"  # §33.3 - Tilleggsfrist ved force majeure - ekstraordinære hendelser utenfor partenes kontroll
 
 
 class FristBeregningResultat(str, Enum):

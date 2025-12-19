@@ -9,7 +9,7 @@
  * with additional comments.
  */
 
-import type { VederlagsMetode } from '../types/timeline';
+import type { VederlagsMetode, FristVarselType } from '../types/timeline';
 
 // ============================================================================
 // TYPES
@@ -64,7 +64,7 @@ function getMetodeLabel(metode?: VederlagsMetode): string {
   if (!metode) return 'ukjent oppgjørsform';
   const labels: Record<VederlagsMetode, string> = {
     'ENHETSPRISER': 'enhetspriser (§34.3)',
-    'REGNINGSARBEID': 'regningsarbeid (§34.4)',
+    'REGNINGSARBEID': 'regningsarbeid (§30.2/§34.4)',
     'FASTPRIS_TILBUD': 'fastpris/tilbud (§34.2.1)',
   };
   return labels[metode] || metode;
@@ -107,10 +107,7 @@ function generateMetodeSection(input: VederlagResponseInput): string {
     if (input.epJusteringAkseptert) {
       lines.push('Kravet om justerte enhetspriser (§34.3.3) aksepteres.');
     } else {
-      lines.push(
-        'Kravet om justerte enhetspriser (§34.3.3) avvises. ' +
-        'Varselet anses ikke å være fremsatt «uten ugrunnet opphold».'
-      );
+      lines.push('Kravet om justerte enhetspriser (§34.3.3) avvises.');
     }
   }
 
@@ -210,7 +207,7 @@ function generateProduktivitetSection(input: VederlagResponseInput): string {
     lines.push(
       `Kravet om dekning av produktivitetstap på ${formatCurrency(input.produktivitetBelop)} ` +
       `avvises prinsipalt som prekludert iht. §34.1.3, da varselet ikke ble fremsatt «uten ugrunnet opphold» ` +
-      `etter at entreprenøren ble eller burde blitt klar over forholdet.`
+      `etter at entreprenøren burde ha innsett at forstyrrelsene medførte merkostnader.`
     );
 
     // Subsidiært: faktisk vurdering
@@ -376,11 +373,9 @@ export function combineBegrunnelse(
 // FRIST RESPONSE GENERATOR
 // ============================================================================
 
-type VarselType = 'noytralt' | 'spesifisert' | 'force_majeure';
-
 export interface FristResponseInput {
   // Claim context
-  varselType?: VarselType;
+  varselType?: FristVarselType;
   krevdDager: number;
 
   // Preklusjon (Port 1)
@@ -404,9 +399,9 @@ export interface FristResponseInput {
 /**
  * Get varsel type label for display
  */
-function getVarselTypeLabel(varselType?: VarselType): string {
+function getVarselTypeLabel(varselType?: FristVarselType): string {
   if (!varselType) return 'varsel';
-  const labels: Record<VarselType, string> = {
+  const labels: Record<FristVarselType, string> = {
     'noytralt': 'nøytralt varsel (§33.4)',
     'spesifisert': 'spesifisert krav (§33.6)',
     'force_majeure': 'force majeure-varsel (§33.3)',
@@ -417,7 +412,7 @@ function getVarselTypeLabel(varselType?: VarselType): string {
 /**
  * Get preclusion paragraph reference based on varsel type
  */
-function getPreklusjonParagraf(varselType?: VarselType): string {
+function getPreklusjonParagraf(varselType?: FristVarselType): string {
   switch (varselType) {
     case 'noytralt':
       return '§33.4';
