@@ -481,3 +481,182 @@ class ForseringService(BaseSakService):
             logger.error(f"Feil ved fjerning av KOE fra forsering: {e}")
             raise RuntimeError(f"Kunne ikke fjerne KOE: {e}")
 
+    def registrer_bh_respons(
+        self,
+        sak_id: str,
+        aksepterer: bool,
+        godkjent_kostnad: Optional[float],
+        begrunnelse: str,
+        aktor: str
+    ) -> Dict[str, Any]:
+        """
+        Registrerer BHs respons på forseringsvarselet.
+
+        Args:
+            sak_id: Forseringssakens ID
+            aksepterer: Om BH aksepterer forseringen
+            godkjent_kostnad: BHs godkjente forseringskostnad (kan være lavere enn estimert)
+            begrunnelse: BHs begrunnelse
+            aktor: Navn på den som registrerer responsen
+
+        Returns:
+            Dict med oppdatert state
+
+        Raises:
+            RuntimeError: Hvis lagring feiler
+        """
+        from models.events import ForseringResponsEvent, ForseringResponsData, EventType
+
+        if not self.event_repository:
+            raise RuntimeError("EventRepository er ikke konfigurert")
+
+        # Opprett event
+        event_data = {
+            "sak_id": sak_id,
+            "event_type": EventType.FORSERING_RESPONS.value,
+            "aktor": aktor,
+            "aktor_rolle": "BH",
+            "data": {
+                "aksepterer": aksepterer,
+                "godkjent_kostnad": godkjent_kostnad,
+                "begrunnelse": begrunnelse,
+                "dato_respons": datetime.now().strftime("%Y-%m-%d"),
+            }
+        }
+
+        # Lagre event
+        self.event_repository.save_event(sak_id, event_data)
+
+        logger.info(
+            f"BH respons på forsering {sak_id}: "
+            f"{'Akseptert' if aksepterer else 'Avslått'}"
+        )
+
+        # Returner oppdatert state
+        return self._get_updated_state(sak_id)
+
+    def stopp_forsering(
+        self,
+        sak_id: str,
+        begrunnelse: str,
+        paalopte_kostnader: Optional[float],
+        aktor: str
+    ) -> Dict[str, Any]:
+        """
+        Stopper en pågående forsering.
+
+        Args:
+            sak_id: Forseringssakens ID
+            begrunnelse: Begrunnelse for stopp
+            paalopte_kostnader: Påløpte kostnader ved stopp
+            aktor: Navn på den som stopper forseringen
+
+        Returns:
+            Dict med oppdatert state og dato_stoppet
+
+        Raises:
+            RuntimeError: Hvis lagring feiler
+        """
+        from models.events import EventType
+
+        if not self.event_repository:
+            raise RuntimeError("EventRepository er ikke konfigurert")
+
+        dato_stoppet = datetime.now().strftime("%Y-%m-%d")
+
+        # Opprett event
+        event_data = {
+            "sak_id": sak_id,
+            "event_type": EventType.FORSERING_STOPPET.value,
+            "aktor": aktor,
+            "aktor_rolle": "TE",
+            "data": {
+                "dato_stoppet": dato_stoppet,
+                "paalopte_kostnader": paalopte_kostnader,
+                "begrunnelse": begrunnelse,
+            }
+        }
+
+        # Lagre event
+        self.event_repository.save_event(sak_id, event_data)
+
+        logger.info(f"Forsering {sak_id} stoppet, påløpte kostnader: {paalopte_kostnader}")
+
+        # Returner oppdatert state med dato_stoppet
+        result = self._get_updated_state(sak_id)
+        result["dato_stoppet"] = dato_stoppet
+        return result
+
+    def oppdater_kostnader(
+        self,
+        sak_id: str,
+        paalopte_kostnader: float,
+        kommentar: Optional[str],
+        aktor: str
+    ) -> Dict[str, Any]:
+        """
+        Oppdaterer påløpte kostnader for en pågående forsering.
+
+        Args:
+            sak_id: Forseringssakens ID
+            paalopte_kostnader: Nye påløpte kostnader
+            kommentar: Valgfri kommentar til oppdateringen
+            aktor: Navn på den som oppdaterer
+
+        Returns:
+            Dict med oppdatert state
+
+        Raises:
+            RuntimeError: Hvis lagring feiler
+        """
+        from models.events import EventType
+
+        if not self.event_repository:
+            raise RuntimeError("EventRepository er ikke konfigurert")
+
+        # Opprett event
+        event_data = {
+            "sak_id": sak_id,
+            "event_type": EventType.FORSERING_KOSTNADER_OPPDATERT.value,
+            "aktor": aktor,
+            "aktor_rolle": "TE",
+            "data": {
+                "paalopte_kostnader": paalopte_kostnader,
+                "kommentar": kommentar,
+            }
+        }
+
+        # Lagre event
+        self.event_repository.save_event(sak_id, event_data)
+
+        logger.info(f"Forseringskostnader for {sak_id} oppdatert til {paalopte_kostnader}")
+
+        return self._get_updated_state(sak_id)
+
+    def _get_updated_state(self, sak_id: str) -> Dict[str, Any]:
+        """
+        Henter oppdatert state for en sak etter en event er lagret.
+
+        Args:
+            sak_id: Sakens ID
+
+        Returns:
+            Dict med state-data
+        """
+        if not self.event_repository or not self.timeline_service:
+            return {"success": True, "message": "Event lagret (state ikke beregnet)"}
+
+        try:
+            events_data, _version = self.event_repository.get_events(sak_id)
+            if events_data:
+                events = [parse_event(e) for e in events_data]
+                state = self.timeline_service.compute_state(events)
+                return {
+                    "success": True,
+                    "state": state.model_dump(mode='json') if hasattr(state, 'model_dump') else state
+                }
+        except Exception as e:
+            logger.warning(f"Kunne ikke beregne state for {sak_id}: {e}")
+
+        return {"success": True, "message": "Event lagret"}
+

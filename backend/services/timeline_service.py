@@ -19,6 +19,9 @@ from models.events import (
     FristEvent,
     ResponsEvent,
     ForseringVarselEvent,
+    ForseringResponsEvent,
+    ForseringStoppetEvent,
+    ForseringKostnaderOppdatertEvent,
     SakOpprettetEvent,
     EOUtstedtEvent,
     EOAkseptertEvent,
@@ -128,6 +131,9 @@ class TimelineService:
             EventType.RESPONS_FRIST: self._handle_respons_frist,
             EventType.RESPONS_FRIST_OPPDATERT: self._handle_respons_frist,  # Re-use handler
             EventType.FORSERING_VARSEL: self._handle_forsering_varsel,
+            EventType.FORSERING_RESPONS: self._handle_forsering_respons,
+            EventType.FORSERING_STOPPET: self._handle_forsering_stoppet,
+            EventType.FORSERING_KOSTNADER_OPPDATERT: self._handle_forsering_kostnader_oppdatert,
             EventType.EO_UTSTEDT: self._handle_eo_utstedt,
             EventType.EO_AKSEPTERT: self._handle_eo_akseptert,
         }
@@ -479,6 +485,80 @@ class TimelineService:
         state.frist = frist
         return state
 
+    def _handle_forsering_respons(self, state: SakState, event: ForseringResponsEvent) -> SakState:
+        """
+        Håndterer FORSERING_RESPONS - BH svarer på forsering (§33.8).
+
+        BH aksepterer eller avviser TEs forseringsvarsel.
+        """
+        frist = state.frist
+
+        # Opprett forsering-tilstand hvis den ikke finnes
+        if frist.forsering is None:
+            from models.sak_state import ForseringTilstand
+            frist.forsering = ForseringTilstand()
+
+        # Oppdater BH respons
+        frist.forsering.bh_aksepterer_forsering = event.data.aksepterer
+        frist.forsering.bh_godkjent_kostnad = event.data.godkjent_kostnad
+        frist.forsering.bh_begrunnelse = event.data.begrunnelse
+
+        # Metadata
+        frist.siste_event_id = event.event_id
+        frist.siste_oppdatert = event.tidsstempel
+
+        state.frist = frist
+        return state
+
+    def _handle_forsering_stoppet(self, state: SakState, event: ForseringStoppetEvent) -> SakState:
+        """
+        Håndterer FORSERING_STOPPET - TE stopper forsering (§33.8).
+
+        TE stopper forseringen og rapporterer påløpte kostnader.
+        """
+        frist = state.frist
+
+        # Opprett forsering-tilstand hvis den ikke finnes
+        if frist.forsering is None:
+            from models.sak_state import ForseringTilstand
+            frist.forsering = ForseringTilstand()
+
+        # Oppdater stopp-tilstand
+        frist.forsering.er_stoppet = True
+        frist.forsering.dato_stoppet = event.data.dato_stoppet
+        if event.data.paalopte_kostnader is not None:
+            frist.forsering.paalopte_kostnader = event.data.paalopte_kostnader
+
+        # Metadata
+        frist.siste_event_id = event.event_id
+        frist.siste_oppdatert = event.tidsstempel
+
+        state.frist = frist
+        return state
+
+    def _handle_forsering_kostnader_oppdatert(self, state: SakState, event: ForseringKostnaderOppdatertEvent) -> SakState:
+        """
+        Håndterer FORSERING_KOSTNADER_OPPDATERT - TE oppdaterer påløpte kostnader (§33.8).
+
+        TE kan oppdatere påløpte kostnader underveis i forseringen.
+        """
+        frist = state.frist
+
+        # Opprett forsering-tilstand hvis den ikke finnes
+        if frist.forsering is None:
+            from models.sak_state import ForseringTilstand
+            frist.forsering = ForseringTilstand()
+
+        # Oppdater kostnader
+        frist.forsering.paalopte_kostnader = event.data.paalopte_kostnader
+
+        # Metadata
+        frist.siste_event_id = event.event_id
+        frist.siste_oppdatert = event.tidsstempel
+
+        state.frist = frist
+        return state
+
     def _handle_eo_utstedt(self, state: SakState, event: EOUtstedtEvent) -> SakState:
         """Håndterer EO_UTSTEDT - endringsordre utstedt.
 
@@ -750,6 +830,9 @@ class TimelineService:
             EventType.RESPONS_FRIST: "BH svarte på frist",
             EventType.RESPONS_FRIST_OPPDATERT: "BH oppdaterte svar på frist",
             EventType.FORSERING_VARSEL: "Varsel om forsering (§33.8)",
+            EventType.FORSERING_RESPONS: "BH svarte på forsering (§33.8)",
+            EventType.FORSERING_STOPPET: "Forsering stoppet (§33.8)",
+            EventType.FORSERING_KOSTNADER_OPPDATERT: "Forseringskostnader oppdatert",
             EventType.EO_UTSTEDT: "Endringsordre utstedt",
         }
         return labels.get(event_type, str(event_type))
@@ -762,7 +845,7 @@ class TimelineService:
             return "vederlag"
         elif isinstance(event, FristEvent):
             return "frist"
-        elif isinstance(event, ForseringVarselEvent):
+        elif isinstance(event, (ForseringVarselEvent, ForseringResponsEvent, ForseringStoppetEvent, ForseringKostnaderOppdatertEvent)):
             return "frist"  # Forsering hører til frist-sporet
         elif isinstance(event, ResponsEvent):
             return event.spor.value

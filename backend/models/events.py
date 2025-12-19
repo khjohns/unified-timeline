@@ -66,6 +66,8 @@ class EventType(str, Enum):
     # Forsering-events (§33.8)
     FORSERING_VARSEL = "forsering_varsel"  # TE varsler om forsering
     FORSERING_RESPONS = "forsering_respons"  # BH aksepterer/avslår forsering
+    FORSERING_STOPPET = "forsering_stoppet"  # TE stopper forsering
+    FORSERING_KOSTNADER_OPPDATERT = "forsering_kostnader_oppdatert"  # TE oppdaterer påløpte kostnader
 
     # Saks-events
     SAK_OPPRETTET = "sak_opprettet"
@@ -1283,6 +1285,90 @@ class ForseringResponsEvent(SakEvent):
         return v
 
 
+class ForseringStoppetData(BaseModel):
+    """
+    Data for stopp av forsering (§33.8).
+
+    TE kan stoppe forseringen og rapportere påløpte kostnader.
+    """
+    dato_stoppet: str = Field(
+        ...,
+        description="Dato forsering ble stoppet (YYYY-MM-DD)"
+    )
+    paalopte_kostnader: Optional[float] = Field(
+        default=None,
+        ge=0,
+        description="Påløpte kostnader ved stopp i NOK"
+    )
+    begrunnelse: Optional[str] = Field(
+        default=None,
+        description="Begrunnelse for stopp"
+    )
+
+
+class ForseringStoppetEvent(SakEvent):
+    """
+    Event når forsering stoppes (§33.8).
+
+    TE kan stoppe forseringen og rapportere påløpte kostnader.
+    """
+    event_type: EventType = Field(
+        default=EventType.FORSERING_STOPPET,
+        description="Forsering stoppet"
+    )
+    data: ForseringStoppetData = Field(
+        ...,
+        description="Stoppdata"
+    )
+
+    @field_validator('event_type')
+    @classmethod
+    def validate_event_type(cls, v):
+        if v != EventType.FORSERING_STOPPET:
+            raise ValueError(f"Ugyldig event_type for ForseringStoppetEvent: {v}")
+        return v
+
+
+class ForseringKostnaderOppdatertData(BaseModel):
+    """
+    Data for oppdatering av forseringskostnader (§33.8).
+
+    TE kan oppdatere påløpte kostnader underveis i forseringen.
+    """
+    paalopte_kostnader: float = Field(
+        ...,
+        ge=0,
+        description="Påløpte kostnader i NOK"
+    )
+    kommentar: Optional[str] = Field(
+        default=None,
+        description="Kommentar til kostnadsoppdatering"
+    )
+
+
+class ForseringKostnaderOppdatertEvent(SakEvent):
+    """
+    Event for oppdatering av forseringskostnader (§33.8).
+
+    TE kan oppdatere påløpte kostnader underveis i forseringen.
+    """
+    event_type: EventType = Field(
+        default=EventType.FORSERING_KOSTNADER_OPPDATERT,
+        description="Forsering kostnader oppdatert"
+    )
+    data: ForseringKostnaderOppdatertData = Field(
+        ...,
+        description="Kostnadsdata"
+    )
+
+    @field_validator('event_type')
+    @classmethod
+    def validate_event_type(cls, v):
+        if v != EventType.FORSERING_KOSTNADER_OPPDATERT:
+            raise ValueError(f"Ugyldig event_type for ForseringKostnaderOppdatertEvent: {v}")
+        return v
+
+
 # ============ SAKS-EVENTS ============
 
 class SakOpprettetEvent(SakEvent):
@@ -1588,6 +1674,9 @@ AnyEvent = Union[
     FristEvent,
     ResponsEvent,
     ForseringVarselEvent,
+    ForseringResponsEvent,
+    ForseringStoppetEvent,
+    ForseringKostnaderOppdatertEvent,
     SakOpprettetEvent,
     # Endringsordre events
     EOOpprettetEvent,
@@ -1632,6 +1721,8 @@ def parse_event(data: dict) -> AnyEvent:
         EventType.RESPONS_FRIST_OPPDATERT.value: ResponsEvent,
         EventType.FORSERING_VARSEL.value: ForseringVarselEvent,
         EventType.FORSERING_RESPONS.value: ForseringResponsEvent,
+        EventType.FORSERING_STOPPET.value: ForseringStoppetEvent,
+        EventType.FORSERING_KOSTNADER_OPPDATERT.value: ForseringKostnaderOppdatertEvent,
         # Endringsordre events
         EventType.EO_OPPRETTET.value: EOOpprettetEvent,
         EventType.EO_KOE_LAGT_TIL.value: EOKoeHandlingEvent,

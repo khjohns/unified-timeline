@@ -393,3 +393,159 @@ def fjern_relatert_sak(sak_id: str, koe_sak_id: str):
         "success": True,
         "message": "KOE fjernet fra forsering"
     }), 200
+
+
+@forsering_bp.route('/api/forsering/<sak_id>/bh-respons', methods=['POST'])
+@require_csrf
+@require_magic_link
+@handle_service_errors
+def registrer_bh_respons(sak_id: str):
+    """
+    Registrer BH respons på forseringsvarsel.
+
+    Request:
+    {
+        "aksepterer": true,
+        "godkjent_kostnad": 120000,  // Valgfritt - kan være lavere enn estimert
+        "begrunnelse": "Forseringen aksepteres..."
+    }
+
+    Response 200:
+    {
+        "success": true,
+        "message": "BH respons registrert"
+    }
+    """
+    payload = request.json
+
+    # Valider påkrevde felter
+    required_fields = ['aksepterer', 'begrunnelse']
+    missing = [f for f in required_fields if f not in payload]
+    if missing:
+        return jsonify({
+            "success": False,
+            "error": "MISSING_FIELDS",
+            "message": f"Mangler påkrevde felter: {', '.join(missing)}"
+        }), 400
+
+    # Hent aktor fra magic link context
+    aktor = getattr(request, 'magic_link_name', 'Ukjent BH')
+
+    service = _get_forsering_service()
+    result = service.registrer_bh_respons(
+        sak_id=sak_id,
+        aksepterer=payload['aksepterer'],
+        godkjent_kostnad=payload.get('godkjent_kostnad'),
+        begrunnelse=payload['begrunnelse'],
+        aktor=aktor
+    )
+
+    status = "akseptert" if payload['aksepterer'] else "avslått"
+    logger.info(f"BH respons på forsering {sak_id}: {status}")
+
+    return jsonify({
+        "success": True,
+        "message": f"BH respons registrert ({status})",
+        **result
+    }), 200
+
+
+@forsering_bp.route('/api/forsering/<sak_id>/stopp', methods=['POST'])
+@require_csrf
+@require_magic_link
+@handle_service_errors
+def stopp_forsering(sak_id: str):
+    """
+    Stopp en pågående forsering.
+
+    Request:
+    {
+        "begrunnelse": "Forseringen stoppes fordi...",
+        "paalopte_kostnader": 75000  // Valgfritt - påløpte kostnader ved stopp
+    }
+
+    Response 200:
+    {
+        "success": true,
+        "message": "Forsering stoppet",
+        "dato_stoppet": "2024-01-15"
+    }
+    """
+    payload = request.json
+
+    begrunnelse = payload.get('begrunnelse')
+    if not begrunnelse:
+        return jsonify({
+            "success": False,
+            "error": "MISSING_FIELD",
+            "message": "begrunnelse er påkrevd"
+        }), 400
+
+    # Hent aktor fra magic link context
+    aktor = getattr(request, 'magic_link_name', 'Ukjent TE')
+
+    service = _get_forsering_service()
+    result = service.stopp_forsering(
+        sak_id=sak_id,
+        begrunnelse=begrunnelse,
+        paalopte_kostnader=payload.get('paalopte_kostnader'),
+        aktor=aktor
+    )
+
+    logger.info(f"Forsering {sak_id} stoppet")
+
+    return jsonify({
+        "success": True,
+        "message": "Forsering stoppet",
+        **result
+    }), 200
+
+
+@forsering_bp.route('/api/forsering/<sak_id>/kostnader', methods=['PUT'])
+@require_csrf
+@require_magic_link
+@handle_service_errors
+def oppdater_kostnader(sak_id: str):
+    """
+    Oppdater påløpte kostnader for en pågående forsering.
+
+    Request:
+    {
+        "paalopte_kostnader": 85000,
+        "kommentar": "Oppdatert med nye timer..."  // Valgfritt
+    }
+
+    Response 200:
+    {
+        "success": true,
+        "message": "Kostnader oppdatert"
+    }
+    """
+    payload = request.json
+
+    paalopte_kostnader = payload.get('paalopte_kostnader')
+    if paalopte_kostnader is None:
+        return jsonify({
+            "success": False,
+            "error": "MISSING_FIELD",
+            "message": "paalopte_kostnader er påkrevd"
+        }), 400
+
+    # Hent aktor fra magic link context
+    aktor = getattr(request, 'magic_link_name', 'Ukjent TE')
+
+    service = _get_forsering_service()
+    result = service.oppdater_kostnader(
+        sak_id=sak_id,
+        paalopte_kostnader=float(paalopte_kostnader),
+        kommentar=payload.get('kommentar'),
+        aktor=aktor
+    )
+
+    logger.info(f"Forseringskostnader for {sak_id} oppdatert til {paalopte_kostnader}")
+
+    return jsonify({
+        "success": True,
+        "message": "Kostnader oppdatert",
+        **result
+    }), 200

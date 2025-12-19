@@ -10,6 +10,7 @@ import { useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
+import { getAuthToken } from '../api/client';
 import { useCaseState } from '../hooks/useCaseState';
 import { useUserRole } from '../hooks/useUserRole';
 import { Timeline } from '../components/views/Timeline';
@@ -17,6 +18,7 @@ import { Button } from '../components/primitives/Button';
 import { Badge } from '../components/primitives/Badge';
 import { Alert } from '../components/primitives/Alert';
 import { PageHeader } from '../components/PageHeader';
+import { TokenExpiredAlert } from '../components/alerts/TokenExpiredAlert';
 import {
   ForseringDashboard,
   ForseringKostnadskort,
@@ -44,6 +46,21 @@ import {
   type ForseringKontekstResponse,
   type KandidatSak,
 } from '../api/forsering';
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+async function verifyToken(token: string): Promise<boolean> {
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_API_BASE_URL || ''}/api/magic-link/verify?token=${token}`
+    );
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
 
 // ============================================================================
 // HOOKS
@@ -98,6 +115,7 @@ export function ForseringPage() {
   const [stoppModalOpen, setStoppModalOpen] = useState(false);
   const [bhResponsModalOpen, setBhResponsModalOpen] = useState(false);
   const [kostnaderModalOpen, setKostnaderModalOpen] = useState(false);
+  const [showTokenExpired, setShowTokenExpired] = useState(false);
 
   // Fetch forsering case state (wait for auth)
   const {
@@ -119,78 +137,128 @@ export function ForseringPage() {
 
   // Mutation for adding related cases
   const leggTilMutation = useMutation({
-    mutationFn: (sakIds: string[]) =>
-      leggTilRelaterteSaker({
+    mutationFn: async (sakIds: string[]) => {
+      const currentToken = getAuthToken();
+      if (!currentToken) throw new Error('TOKEN_MISSING');
+      const isValid = await verifyToken(currentToken);
+      if (!isValid) throw new Error('TOKEN_EXPIRED');
+      return leggTilRelaterteSaker({
         forsering_sak_id: sakId || '',
         relatert_sak_ids: sakIds,
-      }),
+      });
+    },
     onSuccess: () => {
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['forsering', sakId, 'kontekst'] });
       queryClient.invalidateQueries({ queryKey: ['case', sakId] });
+    },
+    onError: (error) => {
+      if (error instanceof Error && (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING')) {
+        setShowTokenExpired(true);
+      }
     },
   });
 
   // Mutation for removing related cases
   const fjernMutation = useMutation({
-    mutationFn: (relatertSakId: string) =>
-      fjernRelatertSak({
+    mutationFn: async (relatertSakId: string) => {
+      const currentToken = getAuthToken();
+      if (!currentToken) throw new Error('TOKEN_MISSING');
+      const isValid = await verifyToken(currentToken);
+      if (!isValid) throw new Error('TOKEN_EXPIRED');
+      return fjernRelatertSak({
         forsering_sak_id: sakId || '',
         relatert_sak_id: relatertSakId,
-      }),
+      });
+    },
     onSuccess: () => {
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['forsering', sakId, 'kontekst'] });
       queryClient.invalidateQueries({ queryKey: ['case', sakId] });
     },
+    onError: (error) => {
+      if (error instanceof Error && (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING')) {
+        setShowTokenExpired(true);
+      }
+    },
   });
 
   // Mutation for stopping forsering
   const stoppMutation = useMutation({
-    mutationFn: (data: { begrunnelse: string; paalopte_kostnader?: number }) =>
-      stoppForsering({
+    mutationFn: async (data: { begrunnelse: string; paalopte_kostnader?: number }) => {
+      const currentToken = getAuthToken();
+      if (!currentToken) throw new Error('TOKEN_MISSING');
+      const isValid = await verifyToken(currentToken);
+      if (!isValid) throw new Error('TOKEN_EXPIRED');
+      return stoppForsering({
         forsering_sak_id: sakId || '',
         begrunnelse: data.begrunnelse,
         paalopte_kostnader: data.paalopte_kostnader,
-      }),
+      });
+    },
     onSuccess: () => {
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['forsering', sakId, 'kontekst'] });
       queryClient.invalidateQueries({ queryKey: ['case', sakId] });
       setStoppModalOpen(false);
     },
+    onError: (error) => {
+      if (error instanceof Error && (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING')) {
+        setShowTokenExpired(true);
+      }
+    },
   });
 
   // Mutation for BH responding to forsering
   const bhResponsMutation = useMutation({
-    mutationFn: (data: { aksepterer: boolean; godkjent_kostnad?: number; begrunnelse: string }) =>
-      bhResponsForsering({
+    mutationFn: async (data: { aksepterer: boolean; godkjent_kostnad?: number; begrunnelse: string }) => {
+      const currentToken = getAuthToken();
+      if (!currentToken) throw new Error('TOKEN_MISSING');
+      const isValid = await verifyToken(currentToken);
+      if (!isValid) throw new Error('TOKEN_EXPIRED');
+      return bhResponsForsering({
         forsering_sak_id: sakId || '',
         aksepterer: data.aksepterer,
         godkjent_kostnad: data.godkjent_kostnad,
         begrunnelse: data.begrunnelse,
-      }),
+      });
+    },
     onSuccess: () => {
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['forsering', sakId, 'kontekst'] });
       queryClient.invalidateQueries({ queryKey: ['case', sakId] });
       setBhResponsModalOpen(false);
     },
+    onError: (error) => {
+      if (error instanceof Error && (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING')) {
+        setShowTokenExpired(true);
+      }
+    },
   });
 
   // Mutation for updating incurred costs
   const kostnaderMutation = useMutation({
-    mutationFn: (data: { paalopte_kostnader: number; kommentar?: string }) =>
-      oppdaterKostnader({
+    mutationFn: async (data: { paalopte_kostnader: number; kommentar?: string }) => {
+      const currentToken = getAuthToken();
+      if (!currentToken) throw new Error('TOKEN_MISSING');
+      const isValid = await verifyToken(currentToken);
+      if (!isValid) throw new Error('TOKEN_EXPIRED');
+      return oppdaterKostnader({
         forsering_sak_id: sakId || '',
         paalopte_kostnader: data.paalopte_kostnader,
         kommentar: data.kommentar,
-      }),
+      });
+    },
     onSuccess: () => {
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['forsering', sakId, 'kontekst'] });
       queryClient.invalidateQueries({ queryKey: ['case', sakId] });
       setKostnaderModalOpen(false);
+    },
+    onError: (error) => {
+      if (error instanceof Error && (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING')) {
+        setShowTokenExpired(true);
+      }
     },
   });
 
@@ -445,6 +513,9 @@ export function ForseringPage() {
         onOppdater={(data) => kostnaderMutation.mutate(data)}
         isLoading={kostnaderMutation.isPending}
       />
+
+      {/* Token expired alert */}
+      <TokenExpiredAlert open={showTokenExpired} onClose={() => setShowTokenExpired(false)} />
     </div>
   );
 }
