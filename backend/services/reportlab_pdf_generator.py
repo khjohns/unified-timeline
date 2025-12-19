@@ -155,6 +155,15 @@ class ReportLabPdfGenerator:
             textColor=colors.HexColor(self.COLORS['muted']),
         ))
 
+    def _wrap_text(self, text: str, style_name: str = 'KoeBodyText') -> Paragraph:
+        """Wrap text in a Paragraph for proper line breaking in tables."""
+        if not text:
+            return Paragraph('', self.styles[style_name])
+        # Escape any XML special characters and preserve newlines
+        escaped = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        escaped = escaped.replace('\n', '<br/>')
+        return Paragraph(escaped, self.styles[style_name])
+
     def _format_date_norwegian(self, date_str: str) -> str:
         """Format date string as '5. desember 2024'."""
         if not date_str:
@@ -323,7 +332,7 @@ class ReportLabPdfGenerator:
                 te_data.append(['Hjemmel:', f"§{underkat['hjemmel_basis']}"])
 
         if grunnlag.beskrivelse:
-            te_data.append(['Beskrivelse:', grunnlag.beskrivelse])
+            te_data.append(['Beskrivelse:', self._wrap_text(grunnlag.beskrivelse)])
 
         if te_data:
             table = Table(te_data, colWidths=[3.5*cm, 12.5*cm])
@@ -346,7 +355,7 @@ class ReportLabPdfGenerator:
             bh_data.append(['Resultat:', resultat_label])
 
             if grunnlag.bh_begrunnelse:
-                bh_data.append(['Begrunnelse:', grunnlag.bh_begrunnelse])
+                bh_data.append(['Begrunnelse:', self._wrap_text(grunnlag.bh_begrunnelse)])
 
             table = Table(bh_data, colWidths=[3.5*cm, 12.5*cm])
             table.setStyle(TableStyle([
@@ -390,7 +399,7 @@ class ReportLabPdfGenerator:
             te_data.append(['Beløp:', self._format_currency(krevd)])
 
         if vederlag.begrunnelse:
-            te_data.append(['Begrunnelse:', vederlag.begrunnelse])
+            te_data.append(['Begrunnelse:', self._wrap_text(vederlag.begrunnelse)])
 
         if te_data:
             table = Table(te_data, colWidths=[3.5*cm, 12.5*cm])
@@ -416,7 +425,7 @@ class ReportLabPdfGenerator:
                 bh_data.append(['Godkjent beløp:', self._format_currency(vederlag.godkjent_belop)])
 
             if vederlag.bh_begrunnelse:
-                bh_data.append(['Begrunnelse:', vederlag.bh_begrunnelse])
+                bh_data.append(['Begrunnelse:', self._wrap_text(vederlag.bh_begrunnelse)])
 
             table = Table(bh_data, colWidths=[3.5*cm, 12.5*cm])
             table.setStyle(TableStyle([
@@ -455,7 +464,7 @@ class ReportLabPdfGenerator:
             te_data.append(['Antall dager:', f"{frist.krevd_dager} dager"])
 
         if frist.begrunnelse:
-            te_data.append(['Begrunnelse:', frist.begrunnelse])
+            te_data.append(['Begrunnelse:', self._wrap_text(frist.begrunnelse)])
 
         if te_data:
             table = Table(te_data, colWidths=[3.5*cm, 12.5*cm])
@@ -481,7 +490,7 @@ class ReportLabPdfGenerator:
                 bh_data.append(['Godkjent dager:', f"{frist.godkjent_dager} dager"])
 
             if frist.bh_begrunnelse:
-                bh_data.append(['Begrunnelse:', frist.bh_begrunnelse])
+                bh_data.append(['Begrunnelse:', self._wrap_text(frist.bh_begrunnelse)])
 
             table = Table(bh_data, colWidths=[3.5*cm, 12.5*cm])
             table.setStyle(TableStyle([
@@ -562,7 +571,7 @@ class ReportLabPdfGenerator:
             if fd.bh_godkjent_kostnad is not None:
                 bh_data.append(['Godkjent kostnad:', self._format_currency(fd.bh_godkjent_kostnad)])
             if fd.bh_begrunnelse:
-                bh_data.append(['Begrunnelse:', fd.bh_begrunnelse])
+                bh_data.append(['Begrunnelse:', self._wrap_text(fd.bh_begrunnelse)])
 
             table = Table(bh_data, colWidths=[4*cm, 12*cm])
             table.setStyle(TableStyle([
@@ -598,7 +607,7 @@ class ReportLabPdfGenerator:
             bh_data.append(['Dato utstedt:', self._format_date_norwegian(eo.dato_utstedt)])
 
         if eo.beskrivelse:
-            bh_data.append(['Beskrivelse:', eo.beskrivelse])
+            bh_data.append(['Beskrivelse:', self._wrap_text(eo.beskrivelse)])
 
         # Konsekvenser
         konsekvenser = []
@@ -655,7 +664,7 @@ class ReportLabPdfGenerator:
                 te_data.append(['Dato respons:', self._format_date_norwegian(eo.dato_te_respons)])
 
             if eo.te_kommentar:
-                te_data.append(['Kommentar:', eo.te_kommentar])
+                te_data.append(['Kommentar:', self._wrap_text(eo.te_kommentar)])
 
             table = Table(te_data, colWidths=[4*cm, 12*cm])
             table.setStyle(TableStyle([
