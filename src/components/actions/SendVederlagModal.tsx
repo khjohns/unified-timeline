@@ -36,7 +36,7 @@ import { useSubmitEvent } from '../../hooks/useSubmitEvent';
 import { useConfirmClose } from '../../hooks/useConfirmClose';
 import { useFormBackup } from '../../hooks/useFormBackup';
 import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { sjekkRiggDriftFrist } from '../../utils/preklusjonssjekk';
 import type { VederlagsMetode } from '../../types/timeline';
 
@@ -161,12 +161,17 @@ export function SendVederlagModal({
     isDirty
   );
 
-  // Check for backup on mount
+  // Check for backup on mount (only when modal opens and form is not dirty)
+  const hasCheckedBackup = useRef(false);
   useEffect(() => {
-    if (open && hasBackup) {
+    if (open && hasBackup && !isDirty && !hasCheckedBackup.current) {
+      hasCheckedBackup.current = true;
       setShowRestorePrompt(true);
     }
-  }, [open, hasBackup]);
+    if (!open) {
+      hasCheckedBackup.current = false;
+    }
+  }, [open, hasBackup, isDirty]);
 
   const handleRestoreBackup = () => {
     const backup = getBackup();

@@ -28,7 +28,7 @@ import { useSubmitEvent } from '../../hooks/useSubmitEvent';
 import { useConfirmClose } from '../../hooks/useConfirmClose';
 import { useFormBackup } from '../../hooks/useFormBackup';
 import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import {
   HOVEDKATEGORI_OPTIONS,
   getUnderkategorier,
@@ -101,9 +101,16 @@ export function SendGrunnlagUpdateModal({
   const formData = watch();
   const { getBackup, clearBackup, hasBackup } = useFormBackup(sakId, 'grunnlag_oppdatert', formData, isDirty);
 
+  const hasCheckedBackup = useRef(false);
   useEffect(() => {
-    if (open && hasBackup) setShowRestorePrompt(true);
-  }, [open, hasBackup]);
+    if (open && hasBackup && !isDirty && !hasCheckedBackup.current) {
+      hasCheckedBackup.current = true;
+      setShowRestorePrompt(true);
+    }
+    if (!open) {
+      hasCheckedBackup.current = false;
+    }
+  }, [open, hasBackup, isDirty]);
 
   const handleRestoreBackup = () => { const backup = getBackup(); if (backup) reset(backup); setShowRestorePrompt(false); };
   const handleDiscardBackup = () => { clearBackup(); setShowRestorePrompt(false); };

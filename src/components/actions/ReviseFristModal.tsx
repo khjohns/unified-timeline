@@ -21,7 +21,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
 import { useConfirmClose } from '../../hooks/useConfirmClose';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { useFormBackup } from '../../hooks/useFormBackup';
 import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
 import { FristTilstand, FristBeregningResultat } from '../../types/timeline';
@@ -98,7 +98,16 @@ export function ReviseFristModal({
   const formData = watch();
   const { getBackup, clearBackup, hasBackup } = useFormBackup(sakId, 'frist_krav_oppdatert', formData, isDirty);
 
-  useEffect(() => { if (open && hasBackup) setShowRestorePrompt(true); }, [open, hasBackup]);
+  const hasCheckedBackup = useRef(false);
+  useEffect(() => {
+    if (open && hasBackup && !isDirty && !hasCheckedBackup.current) {
+      hasCheckedBackup.current = true;
+      setShowRestorePrompt(true);
+    }
+    if (!open) {
+      hasCheckedBackup.current = false;
+    }
+  }, [open, hasBackup, isDirty]);
   const handleRestoreBackup = () => { const backup = getBackup(); if (backup) reset(backup); setShowRestorePrompt(false); };
   const handleDiscardBackup = () => { clearBackup(); setShowRestorePrompt(false); };
 

@@ -26,7 +26,7 @@ import { useSubmitEvent } from '../../hooks/useSubmitEvent';
 import { useConfirmClose } from '../../hooks/useConfirmClose';
 import { useFormBackup } from '../../hooks/useFormBackup';
 import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   BH_GRUNNLAGSVAR_OPTIONS,
   getBhGrunnlagssvarValues,
@@ -97,7 +97,16 @@ export function RespondGrunnlagModal({
   const formData = watch();
   const { getBackup, clearBackup, hasBackup } = useFormBackup(sakId, 'respons_grunnlag', formData, isDirty);
 
-  useEffect(() => { if (open && hasBackup) setShowRestorePrompt(true); }, [open, hasBackup]);
+  const hasCheckedBackup = useRef(false);
+  useEffect(() => {
+    if (open && hasBackup && !isDirty && !hasCheckedBackup.current) {
+      hasCheckedBackup.current = true;
+      setShowRestorePrompt(true);
+    }
+    if (!open) {
+      hasCheckedBackup.current = false;
+    }
+  }, [open, hasBackup, isDirty]);
   const handleRestoreBackup = () => { const backup = getBackup(); if (backup) reset(backup); setShowRestorePrompt(false); };
   const handleDiscardBackup = () => { clearBackup(); setShowRestorePrompt(false); };
 

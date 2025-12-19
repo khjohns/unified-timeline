@@ -15,7 +15,7 @@ import { submitEvent, EventSubmitResponse } from '../api/events';
 import { EventType } from '../types/timeline';
 import { generateContractorClaimPdf, blobToBase64 } from '../pdf';
 import { fetchCaseState } from '../api/state';
-import { getAuthToken } from '../api/client';
+import { getAuthToken, ApiError } from '../api/client';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 

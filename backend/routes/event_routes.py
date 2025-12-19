@@ -26,6 +26,7 @@ from lib.auth.csrf_protection import require_csrf
 from lib.auth.magic_link import require_magic_link, get_magic_link_manager
 from services.catenda_service import CatendaService
 from lib.catenda_factory import get_catenda_client
+from integrations.catenda.client import CatendaAuthError
 from core.config import settings
 from utils.logger import get_logger
 from api.validators import (
@@ -187,6 +188,14 @@ def submit_event():
         else:
             existing_events = []
 
+        # 5b. Pre-flight check: Verify Catenda token if Catenda integration is requested
+        if catenda_topic_id:
+            catenda_service = get_catenda_service()
+            if catenda_service and catenda_service.client:
+                if not catenda_service.client.ensure_authenticated():
+                    logger.error("❌ Catenda token expired or invalid - rejecting event submission")
+                    raise CatendaAuthError("Catenda access token expired")
+
         # 6. Persist event (with optimistic lock)
         try:
             new_version = event_repo.append(event, expected_version)
@@ -238,6 +247,13 @@ def submit_event():
             "pdf_source": pdf_source
         }), 201
 
+    except CatendaAuthError as e:
+        logger.error(f"❌ Catenda token expired: {e}")
+        return jsonify({
+            "success": False,
+            "error": "CATENDA_TOKEN_EXPIRED",
+            "message": "Catenda access token er utgått. Vennligst oppdater token."
+        }), 401
     except ValueError as e:
         logger.error(f"❌ Validation error: {e}")
         return jsonify({
@@ -669,6 +685,9 @@ def _post_to_catenda(
         # Return success if either PDF uploaded or comment posted
         return (pdf_uploaded or comment_posted), pdf_source
 
+    except CatendaAuthError:
+        # Re-raise auth errors to trigger proper error handling upstream
+        raise
     except Exception as e:
         logger.error(f"❌ Failed to post to Catenda: {e}", exc_info=True)
         return False, None

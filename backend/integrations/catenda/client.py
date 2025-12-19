@@ -31,6 +31,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+class CatendaAuthError(Exception):
+    """Raised when Catenda authentication fails (e.g., token expired)."""
+    pass
+
+
 class CatendaClient:
     """
     Tester for Catenda API (REST v2 og BCF v3.0)
@@ -234,15 +239,55 @@ class CatendaClient:
     def set_access_token(self, token: str, expires_in: int = 3600):
         """
         Sett access token manuelt (hvis du har hentet det på annen måte).
-        
+
         Args:
             token: Access token
             expires_in: Sekunder til token utløper (default: 3600)
         """
         self.access_token = token
-        self.token_expiry = datetime.now() + timedelta(seconds=expires_in - 300)
-        logger.info("✅ Access token satt manuelt")
+
+        # Try to extract actual expiry from JWT token
+        expiry_from_jwt = self._extract_jwt_expiry(token)
+        if expiry_from_jwt:
+            # Use JWT expiry with 5 min safety margin
+            self.token_expiry = expiry_from_jwt - timedelta(seconds=300)
+            logger.info("✅ Access token satt manuelt (utløpstid fra JWT)")
+        else:
+            # Fall back to assuming token is fresh
+            self.token_expiry = datetime.now() + timedelta(seconds=expires_in - 300)
+            logger.info("✅ Access token satt manuelt (antatt utløpstid)")
         logger.info(f"   Utløper: {self.token_expiry}")
+
+    def _extract_jwt_expiry(self, token: str) -> Optional[datetime]:
+        """
+        Try to extract expiry time from JWT token without verification.
+        Returns None if token is not a valid JWT or doesn't have exp claim.
+        """
+        try:
+            import base64
+            # JWT has 3 parts separated by dots
+            parts = token.split('.')
+            if len(parts) != 3:
+                return None
+
+            # Decode payload (second part) - add padding if needed
+            payload_b64 = parts[1]
+            padding = 4 - len(payload_b64) % 4
+            if padding != 4:
+                payload_b64 += '=' * padding
+
+            payload_bytes = base64.urlsafe_b64decode(payload_b64)
+            payload = json.loads(payload_bytes.decode('utf-8'))
+
+            exp = payload.get('exp')
+            if exp and isinstance(exp, (int, float)):
+                expiry = datetime.fromtimestamp(exp)
+                logger.debug(f"   JWT exp claim: {expiry}")
+                return expiry
+            return None
+        except Exception as e:
+            logger.debug(f"   Could not extract JWT expiry: {e}")
+            return None
     
     # ==========================================
     # TOKEN MANAGEMENT
@@ -1865,6 +1910,9 @@ class CatendaClient:
             logger.error(f"❌ Feil ved opplasting av dokument: {e}")
             if hasattr(e, 'response') and e.response is not None:
                 logger.error(f"Response: {e.response.text}")
+                # Raise specific error for 401 to allow proper handling upstream
+                if e.response.status_code == 401:
+                    raise CatendaAuthError("Catenda access token expired") from e
             return None
 
     # ==========================================

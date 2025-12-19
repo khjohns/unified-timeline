@@ -6,7 +6,7 @@
  *
  * WIZARD STRUCTURE:
  * - Port 1: Særskilte krav - Preklusjon (§34.1.3) - Only for rigg/drift/produktivitet
- * - Port 2: Oppgjørsform & Svarplikt - Method acceptance, EP-justering, tilbakeholdelse
+ * - Port 2: Oppgjørsform - Method acceptance, EP-justering, tilbakeholdelse
  * - Port 3: Beløpsvurdering - Amount evaluation (subsidiært for precluded særskilte krav)
  * - Port 4: Oppsummering - Summary with principal AND subsidiary results
  *
@@ -120,7 +120,7 @@ const respondVederlagSchema = z.object({
   produktivitet_varslet_i_tide: z.boolean().optional(),
   begrunnelse_preklusjon: z.string().optional(),
 
-  // Port 2: Metode & Svarplikt
+  // Port 2: Oppgjørsform
   aksepterer_metode: z.boolean(),
   oensket_metode: z.enum(['ENHETSPRISER', 'REGNINGSARBEID', 'FASTPRIS_TILBUD']).optional(),
   ep_justering_akseptert: z.boolean().optional(),
@@ -294,7 +294,17 @@ export function RespondVederlagModal({
   const formData = watch();
   const { getBackup, clearBackup, hasBackup } = useFormBackup(sakId, 'respons_vederlag', formData, isDirty);
 
-  useEffect(() => { if (open && hasBackup) setShowRestorePrompt(true); }, [open, hasBackup]);
+  // Track if we've already checked for backup this session to avoid re-prompting
+  const hasCheckedBackup = useRef(false);
+  useEffect(() => {
+    if (open && hasBackup && !isDirty && !hasCheckedBackup.current) {
+      hasCheckedBackup.current = true;
+      setShowRestorePrompt(true);
+    }
+    if (!open) {
+      hasCheckedBackup.current = false;
+    }
+  }, [open, hasBackup, isDirty]);
   const handleRestoreBackup = () => { const backup = getBackup(); if (backup) reset(backup); setShowRestorePrompt(false); };
   const handleDiscardBackup = () => { clearBackup(); setShowRestorePrompt(false); };
 
@@ -306,7 +316,14 @@ export function RespondVederlagModal({
       onOpenChange(false);
     },
     onError: (error) => {
+      // Check for magic link token issues
       if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') {
+        setShowTokenExpired(true);
+        return;
+      }
+      // Check for Catenda token expiry (from ApiError.data)
+      const apiError = error as Error & { data?: { error?: string } };
+      if (apiError.data?.error === 'CATENDA_TOKEN_EXPIRED') {
         setShowTokenExpired(true);
       }
     },
@@ -608,7 +625,7 @@ export function RespondVederlagModal({
         produktivitet_varslet_i_tide: data.produktivitet_varslet_i_tide,
         begrunnelse_preklusjon: data.begrunnelse_preklusjon,
 
-        // Port 2: Metode
+        // Port 2: Oppgjørsform
         aksepterer_metode: data.aksepterer_metode,
         oensket_metode: data.oensket_metode,
         ep_justering_akseptert: data.ep_justering_akseptert,
@@ -934,11 +951,11 @@ export function RespondVederlagModal({
           )}
 
           {/* ================================================================
-              OPPGJØRSFORM & SVARPLIKT
+              OPPGJØRSFORM
               ================================================================ */}
           {currentStepType === 'metode' && (
             <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <h3 className="font-bold text-lg">Oppgjørsform & Svarplikt</h3>
+              <h3 className="font-bold text-lg">Oppgjørsform</h3>
 
               {/* Oppgjørsform aksept */}
               <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
