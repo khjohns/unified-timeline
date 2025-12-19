@@ -528,7 +528,7 @@ function ResponsGrunnlagSection({ data }: { data: ResponsGrunnlagEventData }) {
 }
 
 function ResponsGrunnlagOppdatertSection({ data }: { data: ResponsGrunnlagOppdatertEventData }) {
-  const badge = getGrunnlagResultatBadge(data.nytt_resultat);
+  const badge = getGrunnlagResultatBadge(data.resultat);
 
   return (
     <dl>
@@ -825,7 +825,7 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
 }
 
 function ResponsVederlagOppdatertSection({ data }: { data: ResponsVederlagOppdatertEventData }) {
-  const badge = getVederlagResultatBadge(data.nytt_resultat);
+  const badge = getVederlagResultatBadge(data.beregnings_resultat);
 
   return (
     <dl>
@@ -833,10 +833,10 @@ function ResponsVederlagOppdatertSection({ data }: { data: ResponsVederlagOppdat
         label="Nytt resultat"
         value={<Badge variant={badge.variant}>{badge.label}</Badge>}
       />
-      {data.nytt_godkjent_belop !== undefined && (
-        <Field label="Nytt godkjent beløp" value={formatCurrency(data.nytt_godkjent_belop)} />
+      {data.total_godkjent_belop !== undefined && (
+        <Field label="Nytt godkjent beløp" value={formatCurrency(data.total_godkjent_belop)} />
       )}
-      <LongTextField label="Kommentar" value={data.kommentar} defaultOpen={true} />
+      <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
       <Field label="Endret dato" value={formatDate(data.dato_endret)} />
     </dl>
   );
@@ -980,7 +980,7 @@ function ResponsFristSection({ data }: { data: ResponsFristEventData }) {
 }
 
 function ResponsFristOppdatertSection({ data }: { data: ResponsFristOppdatertEventData }) {
-  const badge = getFristResultatBadge(data.nytt_resultat);
+  const badge = getFristResultatBadge(data.beregnings_resultat);
 
   return (
     <dl>
@@ -988,8 +988,8 @@ function ResponsFristOppdatertSection({ data }: { data: ResponsFristOppdatertEve
         label="Nytt resultat"
         value={<Badge variant={badge.variant}>{badge.label}</Badge>}
       />
-      {data.ny_godkjent_dager !== undefined && (
-        <Field label="Nye godkjente dager" value={`${data.ny_godkjent_dager} dager`} />
+      {data.godkjent_dager !== undefined && (
+        <Field label="Nye godkjente dager" value={`${data.godkjent_dager} dager`} />
       )}
       {data.stopper_forsering && (
         <Field label="Stopper forsering" value={<Badge variant="info">Ja - §33.8</Badge>} />

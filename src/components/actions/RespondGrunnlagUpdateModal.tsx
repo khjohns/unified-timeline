@@ -173,7 +173,7 @@ export function RespondGrunnlagUpdateModal({
       eventType: 'respons_grunnlag_oppdatert',
       data: {
         original_respons_id: lastResponseEvent.event_id,
-        nytt_resultat: data.nytt_resultat,
+        resultat: data.nytt_resultat,
         begrunnelse: data.begrunnelse,
         dato_endret: new Date().toISOString().split('T')[0],
       },

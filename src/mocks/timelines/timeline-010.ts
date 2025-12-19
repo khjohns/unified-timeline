@@ -29,8 +29,8 @@ export const mockTimelineEvents10: TimelineEntry[] = [
     sammendrag: 'Bekrefter 5 dager fortsatt godkjent',
     event_data: {
       original_respons_id: 'evt-1006',
-      nytt_resultat: 'godkjent',
-      ny_godkjent_dager: 5,
+      beregnings_resultat: 'godkjent',
+      godkjent_dager: 5,
       kommentar: 'Etter gjennomgang av revidert tidsplan bekreftes at 5 dager fortsatt er korrekt.',
       dato_endret: '2025-02-16',
     },
@@ -47,9 +47,9 @@ export const mockTimelineEvents10: TimelineEntry[] = [
     sammendrag: 'Endret til full godkjenning - 185.000 NOK',
     event_data: {
       original_respons_id: 'evt-1004',
-      nytt_resultat: 'godkjent',
-      nytt_godkjent_belop: 185000,
-      kommentar:
+      beregnings_resultat: 'godkjent',
+      total_godkjent_belop: 185000,
+      begrunnelse:
         'Etter revisjon av kravet godkjennes hele beløpet. Prosjekteringskostnader korrekt fjernet.',
       dato_endret: '2025-02-15',
     },

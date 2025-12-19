@@ -313,30 +313,30 @@ export function UpdateResponseVederlagModal({
     // Bygg event data basert på hva som endres
     const eventData: Record<string, unknown> = {
       original_respons_id: lastResponseEvent.event_id,
-      kommentar: data.kommentar,
+      begrunnelse: data.kommentar,
       dato_endret: new Date().toISOString().split('T')[0],
     };
 
     // Port 2: Preklusjon-endringer
     if (data.endre_rigg_preklusjon && kanEndreRiggPreklusjon) {
-      eventData.ny_rigg_varslet_i_tide = true;
+      eventData.rigg_varslet_i_tide = true;
     }
     if (data.endre_produktivitet_preklusjon && kanEndreProduktivitetPreklusjon) {
-      eventData.ny_produktivitet_varslet_i_tide = true;
+      eventData.produktivitet_varslet_i_tide = true;
     }
 
     // Port 3: Metode-endringer
     if (data.endre_metode_aksept && kanEndreMetodeAksept) {
-      eventData.ny_aksepterer_metode = true;
+      eventData.aksepterer_metode = true;
     }
     if (data.endre_ep_justering && kanEndreEpJustering) {
-      eventData.ny_ep_justering_akseptert = true;
+      eventData.ep_justering_akseptert = true;
     }
 
     // Port 4: Beløp-endringer (granulær)
     if (data.endre_hovedkrav && data.ny_hovedkrav_vurdering) {
-      eventData.ny_hovedkrav_vurdering = data.ny_hovedkrav_vurdering;
-      eventData.nytt_hovedkrav_belop =
+      eventData.hovedkrav_vurdering = data.ny_hovedkrav_vurdering;
+      eventData.hovedkrav_godkjent_belop =
         data.ny_hovedkrav_vurdering === 'godkjent'
           ? krevdBelop
           : data.ny_hovedkrav_vurdering === 'delvis'
@@ -344,8 +344,8 @@ export function UpdateResponseVederlagModal({
             : 0;
     }
     if (data.endre_rigg_belop && data.ny_rigg_vurdering) {
-      eventData.ny_rigg_vurdering = data.ny_rigg_vurdering;
-      eventData.nytt_rigg_belop =
+      eventData.rigg_vurdering = data.ny_rigg_vurdering;
+      eventData.rigg_godkjent_belop =
         data.ny_rigg_vurdering === 'godkjent'
           ? riggBelop
           : data.ny_rigg_vurdering === 'delvis'
@@ -353,8 +353,8 @@ export function UpdateResponseVederlagModal({
             : 0;
     }
     if (data.endre_produktivitet_belop && data.ny_produktivitet_vurdering) {
-      eventData.ny_produktivitet_vurdering = data.ny_produktivitet_vurdering;
-      eventData.nytt_produktivitet_belop =
+      eventData.produktivitet_vurdering = data.ny_produktivitet_vurdering;
+      eventData.produktivitet_godkjent_belop =
         data.ny_produktivitet_vurdering === 'godkjent'
           ? produktivitetBelop
           : data.ny_produktivitet_vurdering === 'delvis'
@@ -364,8 +364,8 @@ export function UpdateResponseVederlagModal({
 
     // Port 4: Samlet resultat (hvis valgt)
     if (data.nytt_resultat) {
-      eventData.nytt_resultat = data.nytt_resultat;
-      eventData.nytt_godkjent_belop =
+      eventData.beregnings_resultat = data.nytt_resultat;
+      eventData.total_godkjent_belop =
         data.nytt_resultat === 'godkjent' ? krevdBelop : data.godkjent_belop;
     }
 

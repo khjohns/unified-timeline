@@ -710,14 +710,16 @@ class GrunnlagResponsData(BaseModel):
 
     Dette er BH's vurdering av ANSVARET - hvem sin feil er det?
     Hvis BH avviser grunnlaget her, kan Vederlag/Frist fortsatt vurderes subsidiært.
+
+    Støtter partielle oppdateringer: Hvis original_respons_id er satt,
+    er dette en oppdatering og kun feltene som sendes vil oppdateres.
     """
-    resultat: GrunnlagResponsResultat = Field(
-        ...,
+    resultat: Optional[GrunnlagResponsResultat] = Field(
+        default=None,
         description="BHs vurdering av ansvarsgrunnlaget"
     )
-    begrunnelse: str = Field(
-        ...,
-        min_length=1,
+    begrunnelse: Optional[str] = Field(
+        default=None,
         description="BHs begrunnelse for vurderingen"
     )
 
@@ -743,6 +745,24 @@ class GrunnlagResponsData(BaseModel):
         description="BHs begrunnelse for varsel-vurdering"
     )
 
+    # ============ PARTIELL OPPDATERING ============
+    original_respons_id: Optional[str] = Field(
+        default=None,
+        description="Event-ID til original respons som oppdateres (for RESPONS_*_OPPDATERT)"
+    )
+
+    @model_validator(mode='after')
+    def validate_full_eller_partiell(self):
+        """
+        Valider at enten:
+        - Dette er en full respons (resultat og begrunnelse satt)
+        - Eller en partiell oppdatering (original_respons_id satt)
+        """
+        if self.original_respons_id is None:
+            if self.resultat is None or self.begrunnelse is None:
+                raise ValueError("resultat og begrunnelse er påkrevd for nye responser")
+        return self
+
 
 class BelopVurdering(str, Enum):
     """
@@ -767,7 +787,16 @@ class VederlagResponsData(BaseModel):
     Dette muliggjør subsidiære betraktninger:
     - BH kan avvise Grunnlag (ansvar), MEN samtidig godkjenne beregningen
       som subsidiær vurdering ("hvis jeg hadde hatt ansvar, er 50k riktig").
+
+    Støtter partielle oppdateringer: Hvis original_respons_id er satt,
+    er dette en oppdatering og kun feltene som sendes vil oppdateres.
     """
+
+    # ============ PARTIELL OPPDATERING ============
+    original_respons_id: Optional[str] = Field(
+        default=None,
+        description="Event-ID til original respons som oppdateres (for RESPONS_*_OPPDATERT)"
+    )
 
     # ============ REFERANSE ============
     vederlag_krav_id: Optional[str] = Field(
@@ -870,8 +899,8 @@ class VederlagResponsData(BaseModel):
     )
 
     # ============ PORT 4: SAMLET RESULTAT ============
-    beregnings_resultat: VederlagBeregningResultat = Field(
-        ...,
+    beregnings_resultat: Optional[VederlagBeregningResultat] = Field(
+        default=None,
         description="BHs samlede vurdering av kravets størrelse"
     )
     godkjent_belop: Optional[float] = Field(
@@ -920,6 +949,18 @@ class VederlagResponsData(BaseModel):
         description="BH's begrunnelse for subsidiær vurdering"
     )
 
+    @model_validator(mode='after')
+    def validate_full_eller_partiell(self):
+        """
+        Valider at enten:
+        - Dette er en full respons (beregnings_resultat satt)
+        - Eller en partiell oppdatering (original_respons_id satt)
+        """
+        if self.original_respons_id is None:
+            if self.beregnings_resultat is None:
+                raise ValueError("beregnings_resultat er påkrevd for nye responser")
+        return self
+
 
 class FristResponsData(BaseModel):
     """
@@ -936,7 +977,16 @@ class FristResponsData(BaseModel):
     1. PORT 1: Er varselet sendt i tide? (Preklusjon)
     2. PORT 2: Har forholdet medført faktisk fremdriftshindring? (Vilkår)
     3. PORT 3: Hvor mange dager godkjennes? (Utmåling)
+
+    Støtter partielle oppdateringer: Hvis original_respons_id er satt,
+    er dette en oppdatering og kun feltene som sendes vil oppdateres.
     """
+
+    # ============ PARTIELL OPPDATERING ============
+    original_respons_id: Optional[str] = Field(
+        default=None,
+        description="Event-ID til original respons som oppdateres (for RESPONS_*_OPPDATERT)"
+    )
 
     # ============ PORT 1: PREKLUSJON (Varslene) ============
     # Sjekker om TE har fulgt spillereglene for tidskrav (NS 8407 §33).
@@ -994,8 +1044,8 @@ class FristResponsData(BaseModel):
     # ============ PORT 3: UTMÅLING (Beregning av dager) ============
     # Den "rene" dagberegningen - vurderes prinsipalt eller subsidiært.
 
-    beregnings_resultat: FristBeregningResultat = Field(
-        ...,
+    beregnings_resultat: Optional[FristBeregningResultat] = Field(
+        default=None,
         description="BHs vurdering av antall dager (ren beregning)"
     )
 
@@ -1057,6 +1107,18 @@ class FristResponsData(BaseModel):
         """
         # Fjernet streng validering - har_bh_etterlyst kan være True i flere scenarier
         return v
+
+    @model_validator(mode='after')
+    def validate_full_eller_partiell(self):
+        """
+        Valider at enten:
+        - Dette er en full respons (beregnings_resultat satt)
+        - Eller en partiell oppdatering (original_respons_id satt)
+        """
+        if self.original_respons_id is None:
+            if self.beregnings_resultat is None:
+                raise ValueError("beregnings_resultat er påkrevd for nye responser")
+        return self
 
 
 class ResponsEvent(SakEvent):

@@ -707,9 +707,9 @@ export interface GrunnlagOppdatertEventData {
 // Grunnlag response update event (BH's "snuoperasjon")
 export interface ResponsGrunnlagOppdatertEventData {
   original_respons_id: string;
-  nytt_resultat: GrunnlagResponsResultat;
-  begrunnelse: string;
-  dato_endret: string;
+  resultat?: GrunnlagResponsResultat;
+  begrunnelse?: string;
+  dato_endret?: string;
 }
 
 // Vederlag update event (TE revises claim amount)
@@ -724,18 +724,18 @@ export interface VederlagOppdatertEventData {
 // Vederlag response update event (BH opphever tilbakeholdelse etc)
 export interface ResponsVederlagOppdatertEventData {
   original_respons_id: string;
-  nytt_resultat: VederlagBeregningResultat;
+  beregnings_resultat?: VederlagBeregningResultat;
 
   // Oppdaterte beløp per kravtype (valgfritt - kun de som endres)
-  nytt_hovedkrav_godkjent_belop?: number;
-  nytt_rigg_godkjent_belop?: number;
-  nytt_produktivitet_godkjent_belop?: number;
+  hovedkrav_godkjent_belop?: number;
+  rigg_godkjent_belop?: number;
+  produktivitet_godkjent_belop?: number;
 
   // Totalt godkjent beløp (beregnet fra individuelle poster)
-  nytt_godkjent_belop?: number;
+  total_godkjent_belop?: number;
 
-  kommentar: string;
-  dato_endret: string;
+  begrunnelse?: string;
+  dato_endret?: string;
 }
 
 // Frist update event (TE revises days claim)
@@ -749,11 +749,18 @@ export interface FristOppdatertEventData {
 // Frist response update event (BH changes mind, stops forsering)
 export interface ResponsFristOppdatertEventData {
   original_respons_id: string;
-  nytt_resultat: FristBeregningResultat;
-  ny_godkjent_dager?: number;
-  kommentar: string;
+  beregnings_resultat?: FristBeregningResultat;
+  godkjent_dager?: number;
+  // Port 2: Preklusjon
+  noytralt_varsel_ok?: boolean;
+  spesifisert_krav_ok?: boolean;
+  // Port 3: Vilkår
+  vilkar_oppfylt?: boolean;
+  begrunnelse_vilkar?: string;
+  // Metadata
+  kommentar?: string;
   stopper_forsering?: boolean;
-  dato_endret: string;
+  dato_endret?: string;
 }
 
 // Forsering varsel event (§33.8 - TE varsler om forsering)

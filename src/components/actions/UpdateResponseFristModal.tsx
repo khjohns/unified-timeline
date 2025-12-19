@@ -32,16 +32,16 @@ import { FristTilstand, FristBeregningResultat } from '../../types/timeline';
 const updateResponseSchema = z.object({
   // Port 2: Preklusjon - kan kun endres til TEs gunst
   endre_preklusjon: z.boolean().optional(),
-  ny_noytralt_varsel_ok: z.boolean().optional(),
-  ny_spesifisert_krav_ok: z.boolean().optional(),
+  noytralt_varsel_ok: z.boolean().optional(),
+  spesifisert_krav_ok: z.boolean().optional(),
 
   // Port 3: Vilkår - kan kun endres til TEs gunst
   endre_vilkar: z.boolean().optional(),
-  ny_vilkar_oppfylt: z.boolean().optional(),
+  vilkar_oppfylt: z.boolean().optional(),
 
   // Port 4: Beregning
-  nytt_resultat: z.string().optional(),
-  ny_godkjent_dager: z.number().optional(),
+  beregnings_resultat: z.string().optional(),
+  godkjent_dager: z.number().optional(),
 
   // Samlet
   kommentar: z.string().min(10, 'Begrunnelse er påkrevd'),
@@ -107,12 +107,12 @@ export function UpdateResponseFristModal({
     resolver: zodResolver(updateResponseSchema),
     defaultValues: {
       endre_preklusjon: false,
-      ny_noytralt_varsel_ok: true,
-      ny_spesifisert_krav_ok: true,
+      noytralt_varsel_ok: true,
+      spesifisert_krav_ok: true,
       endre_vilkar: false,
-      ny_vilkar_oppfylt: true,
-      nytt_resultat: '',
-      ny_godkjent_dager: undefined,
+      vilkar_oppfylt: true,
+      beregnings_resultat: '',
+      godkjent_dager: undefined,
       kommentar: '',
     },
   });
@@ -125,8 +125,8 @@ export function UpdateResponseFristModal({
 
   const endrePreklusjon = watch('endre_preklusjon');
   const endreVilkar = watch('endre_vilkar');
-  const nyttResultat = watch('nytt_resultat') as FristBeregningResultat;
-  const nyGodkjentDager = watch('ny_godkjent_dager');
+  const nyttResultat = watch('beregnings_resultat') as FristBeregningResultat;
+  const nyGodkjentDager = watch('godkjent_dager');
 
   // Asymmetrisk endringsrett for beregning
   const forrigeResultat = lastResponseEvent.resultat;
@@ -207,23 +207,23 @@ export function UpdateResponseFristModal({
     // Port 2: Preklusjon-endringer
     if (data.endre_preklusjon && kanEndrePreklusjonTilGunst) {
       if (varselType === 'noytralt') {
-        eventData.ny_noytralt_varsel_ok = true;
+        eventData.noytralt_varsel_ok = true;
       } else {
-        eventData.ny_spesifisert_krav_ok = true;
+        eventData.spesifisert_krav_ok = true;
       }
     }
 
     // Port 3: Vilkår-endringer
     if (data.endre_vilkar && kanEndreVilkarTilGunst) {
-      eventData.ny_vilkar_oppfylt = true;
+      eventData.vilkar_oppfylt = true;
     }
 
     // Port 4: Beregning-endringer
-    if (data.nytt_resultat) {
-      eventData.nytt_resultat = data.nytt_resultat;
-      eventData.ny_godkjent_dager = data.nytt_resultat === 'godkjent'
+    if (data.beregnings_resultat) {
+      eventData.beregnings_resultat = data.beregnings_resultat;
+      eventData.godkjent_dager = data.beregnings_resultat === 'godkjent'
         ? krevdDager
-        : data.ny_godkjent_dager;
+        : data.godkjent_dager;
     }
 
     mutation.mutate({
@@ -417,10 +417,10 @@ export function UpdateResponseFristModal({
 
             <FormField
               label="Ny avgjørelse"
-              error={errors.nytt_resultat?.message}
+              error={errors.beregnings_resultat?.message}
             >
               <Controller
-                name="nytt_resultat"
+                name="beregnings_resultat"
                 control={control}
                 render={({ field }) => (
                   <RadioGroup
@@ -455,7 +455,7 @@ export function UpdateResponseFristModal({
                   }
                 >
                   <Controller
-                    name="ny_godkjent_dager"
+                    name="godkjent_dager"
                     control={control}
                     render={({ field }) => (
                       <Input

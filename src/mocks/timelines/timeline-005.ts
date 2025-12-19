@@ -24,7 +24,7 @@ export const mockTimelineEvents5: TimelineEntry[] = [
     sammendrag: 'Utdypet begrunnelse for avvisning',
     event_data: {
       original_respons_id: 'evt-502',
-      nytt_resultat: 'avslatt',
+      resultat: 'avslatt',
       begrunnelse: 'BH bestrider at det foreligger en endring. Plasseringen var allerede avtalt i kontrakten. Se protokoll fra byggemøte 2024-12-15 hvor rominndelingen ble bekreftet.',
       dato_endret: '2025-02-07',
     },
