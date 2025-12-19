@@ -217,3 +217,73 @@ class BaseSakService:
             True hvis client er tilgjengelig
         """
         return self.client is not None
+
+    def legg_til_relatert_sak(self, container_sak_id: str, relatert_sak_id: str) -> bool:
+        """
+        Legger til en sak som relatert til containersaken (toveis-relasjon).
+
+        Args:
+            container_sak_id: ID for containersaken (forsering/endringsordre)
+            relatert_sak_id: ID for saken som skal legges til
+
+        Returns:
+            True hvis vellykket
+
+        Raises:
+            RuntimeError: Hvis Catenda-operasjon feiler
+        """
+        if not self.client:
+            logger.warning("Ingen Catenda client - kan ikke legge til relasjon")
+            return False
+
+        try:
+            # Toveis-relasjon: Container → Relatert
+            self.client.create_topic_relations(
+                topic_id=container_sak_id,
+                related_topic_guids=[relatert_sak_id]
+            )
+            # Toveis-relasjon: Relatert → Container
+            self.client.create_topic_relations(
+                topic_id=relatert_sak_id,
+                related_topic_guids=[container_sak_id]
+            )
+            logger.info(f"✅ Sak {relatert_sak_id} lagt til {container_sak_id} (toveis)")
+            return True
+        except Exception as e:
+            logger.error(f"Feil ved tillegging av relatert sak: {e}")
+            raise RuntimeError(f"Kunne ikke legge til relatert sak: {e}")
+
+    def fjern_relatert_sak(self, container_sak_id: str, relatert_sak_id: str) -> bool:
+        """
+        Fjerner en sak fra containersaken (toveis-relasjon).
+
+        Args:
+            container_sak_id: ID for containersaken (forsering/endringsordre)
+            relatert_sak_id: ID for saken som skal fjernes
+
+        Returns:
+            True hvis vellykket
+
+        Raises:
+            RuntimeError: Hvis Catenda-operasjon feiler
+        """
+        if not self.client:
+            logger.warning("Ingen Catenda client - kan ikke fjerne relasjon")
+            return False
+
+        try:
+            # Fjern toveis-relasjon: Container → Relatert
+            self.client.delete_topic_relation(
+                topic_id=container_sak_id,
+                related_topic_id=relatert_sak_id
+            )
+            # Fjern toveis-relasjon: Relatert → Container
+            self.client.delete_topic_relation(
+                topic_id=relatert_sak_id,
+                related_topic_id=container_sak_id
+            )
+            logger.info(f"✅ Sak {relatert_sak_id} fjernet fra {container_sak_id} (toveis)")
+            return True
+        except Exception as e:
+            logger.error(f"Feil ved fjerning av relatert sak: {e}")
+            raise RuntimeError(f"Kunne ikke fjerne relatert sak: {e}")

@@ -1,7 +1,7 @@
 # API Routes Vurdering
 
 > Dato: 2025-12-19
-> Status: Dokumentert
+> Status: **Implementert** ✅
 
 ## Oversikt
 
@@ -191,12 +191,76 @@ const withMockSupport = <T>(
 | Webhooks | 1 | 1 | 0 |
 | **Totalt** | **31** | **20** | **11** |
 
+## Implementert konsolidering
+
+Følgende konsolidering ble implementert 2025-12-19:
+
+### 1. OpenAPI oppdatert ✅
+
+Alle 9 manglende endepunkter lagt til i `generate_openapi.py`:
+- 7 fra Forsering
+- 2 fra Endringsordre
+
+OpenAPI har nå **27 paths** (opp fra 20).
+
+### 2. Backend service-konsolidering ✅
+
+**`backend/services/base_sak_service.py`** utvidet med:
+- `legg_til_relatert_sak()` - Felles metode for toveis-relasjoner
+- `fjern_relatert_sak()` - Felles metode for å fjerne relasjoner
+
+**Resultat:**
+- `ForseringService` arver metodene fra base class
+- `EndringsordreService` bruker aliases (`legg_til_koe`, `fjern_koe`)
+- ~60 linjer duplisert kode fjernet fra services
+
+### 3. Backend route utilities ✅
+
+**Ny fil:** `backend/routes/related_cases_utils.py`
+
+Felles funksjoner:
+- `serialize_sak_relasjon()` / `serialize_relaterte_saker()`
+- `serialize_sak_states()`
+- `build_relaterte_response()`
+- `build_kontekst_response()`
+- `build_kandidater_response()`
+- `build_success_message()`
+- `validate_required_fields()`
+- `safe_find_related()`
+
+**Resultat:**
+- `forsering_routes.py`: 552 → 336 linjer (-39%)
+- `endringsordre_routes.py`: 360 → 185 linjer (-49%)
+
+### 4. Frontend utilities ✅
+
+**Ny fil:** `src/api/utils.ts`
+
+Felles funksjoner:
+- `withMockSupport<T>()` - Wrapper for API-kall med mock-støtte
+- `apiGet<T>()`, `apiPost<T>()`, `apiPut<T>()`, `apiDelete<T>()`
+- Felles respons-typer: `SuccessResponse`, `RelaterteSakerResponse`, `KandidaterResponse`
+
 ## Vedlegg: Fil-referanser
 
+### Backend Routes
 - `backend/routes/event_routes.py` - 687 linjer
-- `backend/routes/forsering_routes.py` - 552 linjer
-- `backend/routes/endringsordre_routes.py` - 360 linjer
+- `backend/routes/forsering_routes.py` - 336 linjer (konsolidert)
+- `backend/routes/endringsordre_routes.py` - 185 linjer (konsolidert)
+- `backend/routes/related_cases_utils.py` - 170 linjer (ny)
 - `backend/routes/utility_routes.py` - 139 linjer
 - `backend/routes/webhook_routes.py` - 148 linjer
-- `backend/scripts/generate_openapi.py` - 1044 linjer
-- `backend/docs/openapi.yaml` - Generert spesifikasjon
+
+### Backend Services
+- `backend/services/base_sak_service.py` - 290 linjer (utvidet)
+- `backend/services/forsering_service.py` - 585 linjer (konsolidert)
+- `backend/services/endringsordre_service.py` - 420 linjer (konsolidert)
+
+### OpenAPI
+- `backend/scripts/generate_openapi.py` - 1240 linjer (oppdatert)
+- `backend/docs/openapi.yaml` - Generert med 27 paths
+
+### Frontend
+- `src/api/utils.ts` - 120 linjer (ny)
+- `src/api/forsering.ts` - 424 linjer
+- `src/api/endringsordre.ts` - 497 linjer

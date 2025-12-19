@@ -10,9 +10,9 @@ Endpoints:
 - POST /api/endringsordre/<sak_id>/koe - Legg til KOE-sak
 - DELETE /api/endringsordre/<sak_id>/koe/<koe_sak_id> - Fjern KOE-sak
 - GET /api/endringsordre/kandidater - Hent kandidat-KOE-saker for ny EO
+- GET /api/endringsordre/by-relatert/<sak_id> - Finn EO-er for en KOE-sak
 """
 from flask import Blueprint, request, jsonify
-from typing import Optional
 
 from services.endringsordre_service import EndringsordreService
 from services.timeline_service import TimelineService
@@ -21,6 +21,14 @@ from lib.catenda_factory import get_catenda_client
 from lib.decorators import handle_service_errors
 from lib.auth.magic_link import require_magic_link
 from lib.auth.csrf_protection import require_csrf
+from routes.related_cases_utils import (
+    build_relaterte_response,
+    build_kontekst_response,
+    build_kandidater_response,
+    build_success_message,
+    validate_required_fields,
+    safe_find_related,
+)
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -55,50 +63,18 @@ def opprett_endringsordresak():
         "eo_nummer": "EO-001",
         "beskrivelse": "Endring av fundamenter...",
         "koe_sak_ids": ["sak-guid-1", "sak-guid-2"],
-        "konsekvenser": {
-            "sha": false,
-            "kvalitet": false,
-            "fremdrift": true,
-            "pris": true,
-            "annet": false
-        },
-        "konsekvens_beskrivelse": "Forsinket leveranse og økte kostnader",
+        "konsekvenser": {...},
         "oppgjorsform": "ENHETSPRISER",
         "kompensasjon_belop": 150000,
-        "fradrag_belop": null,
-        "er_estimat": false,
-        "frist_dager": 10,
-        "ny_sluttdato": "2025-03-15",
-        "utstedt_av": "Ola Nordmann"
-    }
-
-    Response 201:
-    {
-        "success": true,
-        "sak_id": "ny-eo-sak-guid",
-        "sakstype": "endringsordre",
-        "relaterte_saker": [...],
-        "endringsordre_data": {...}
-    }
-
-    Response 400:
-    {
-        "success": false,
-        "error": "VALIDATION_ERROR",
-        "message": "EO-nummer er påkrevd"
+        ...
     }
     """
     payload = request.json
 
     # Valider påkrevde felter
-    required_fields = ['eo_nummer', 'beskrivelse']
-    missing = [f for f in required_fields if not payload.get(f)]
-    if missing:
-        return jsonify({
-            "success": False,
-            "error": "MISSING_FIELDS",
-            "message": f"Mangler påkrevde felter: {', '.join(missing)}"
-        }), 400
+    error = validate_required_fields(payload, ['eo_nummer', 'beskrivelse'])
+    if error:
+        return error
 
     service = _get_endringsordre_service()
 
@@ -129,38 +105,10 @@ def opprett_endringsordresak():
 @require_magic_link
 @handle_service_errors
 def hent_relaterte_koe_saker(sak_id: str):
-    """
-    Hent alle KOE-saker relatert til en endringsordre.
-
-    Response 200:
-    {
-        "success": true,
-        "sak_id": "eo-sak-guid",
-        "relaterte_saker": [
-            {
-                "relatert_sak_id": "koe-sak-guid",
-                "relatert_sak_tittel": "KOE - Fundamentendring",
-                "bimsync_issue_number": 42
-            }
-        ]
-    }
-    """
+    """Hent alle KOE-saker relatert til en endringsordre."""
     service = _get_endringsordre_service()
     relasjoner = service.hent_relaterte_saker(sak_id)
-
-    return jsonify({
-        "success": True,
-        "sak_id": sak_id,
-        "relaterte_saker": [
-            {
-                "relatert_sak_id": r.relatert_sak_id,
-                "relatert_sak_tittel": r.relatert_sak_tittel,
-                "bimsync_issue_board_ref": r.bimsync_issue_board_ref,
-                "bimsync_issue_number": r.bimsync_issue_number
-            }
-            for r in relasjoner
-        ]
-    }), 200
+    return build_relaterte_response(sak_id, relasjoner)
 
 
 @endringsordre_bp.route('/api/endringsordre/<sak_id>/kontekst', methods=['GET'])
@@ -170,60 +118,17 @@ def hent_eo_kontekst(sak_id: str):
     """
     Hent komplett kontekst for en endringsordresak.
 
-    Inkluderer:
-    - Relaterte KOE-saker
-    - State for hver KOE-sak
-    - Hendelser fra KOE-sakene
-    - EO-sakens egne hendelser
-    - Oppsummering (totalt vederlag, frist, etc.)
-
-    Response 200:
-    {
-        "success": true,
-        "sak_id": "eo-sak-guid",
-        "relaterte_saker": [...],
-        "sak_states": {...},
-        "hendelser": {...},
-        "eo_hendelser": [...],
-        "oppsummering": {
-            "antall_koe_saker": 2,
-            "total_krevd_vederlag": 300000,
-            "total_godkjent_vederlag": 250000,
-            "total_krevd_dager": 20,
-            "total_godkjent_dager": 15,
-            "koe_oversikt": [...]
-        }
-    }
+    Inkluderer relaterte KOE-saker, states, hendelser og oppsummering.
     """
     service = _get_endringsordre_service()
     kontekst = service.hent_komplett_eo_kontekst(sak_id)
 
-    # Konverter SakRelasjon objekter til dicts
-    relaterte_dicts = [
-        {
-            "relatert_sak_id": r.relatert_sak_id,
-            "relatert_sak_tittel": r.relatert_sak_tittel,
-            "bimsync_issue_board_ref": r.bimsync_issue_board_ref,
-            "bimsync_issue_number": r.bimsync_issue_number
-        }
-        for r in kontekst.get("relaterte_saker", [])
-    ]
-
-    # Konverter SakState objekter til dicts
-    states_dicts = {
-        sak_id: state.model_dump() if hasattr(state, 'model_dump') else state
-        for sak_id, state in kontekst.get("sak_states", {}).items()
-    }
-
-    return jsonify({
-        "success": True,
-        "sak_id": sak_id,
-        "relaterte_saker": relaterte_dicts,
-        "sak_states": states_dicts,
-        "hendelser": kontekst.get("hendelser", {}),
-        "eo_hendelser": kontekst.get("eo_hendelser", []),
-        "oppsummering": kontekst.get("oppsummering", {})
-    }), 200
+    # EO har ekstra felt: eo_hendelser
+    return build_kontekst_response(
+        sak_id,
+        kontekst,
+        extra_fields={"eo_hendelser": kontekst.get("eo_hendelser", [])}
+    )
 
 
 @endringsordre_bp.route('/api/endringsordre/<sak_id>/koe', methods=['POST'])
@@ -231,39 +136,18 @@ def hent_eo_kontekst(sak_id: str):
 @require_magic_link
 @handle_service_errors
 def legg_til_koe(sak_id: str):
-    """
-    Legg til en KOE-sak til endringsordren.
-
-    Request:
-    {
-        "koe_sak_id": "koe-sak-guid"
-    }
-
-    Response 200:
-    {
-        "success": true,
-        "message": "KOE lagt til endringsordre"
-    }
-    """
+    """Legg til en KOE-sak til endringsordren."""
     payload = request.json
-    koe_sak_id = payload.get('koe_sak_id')
 
-    if not koe_sak_id:
-        return jsonify({
-            "success": False,
-            "error": "MISSING_FIELDS",
-            "message": "koe_sak_id er påkrevd"
-        }), 400
+    error = validate_required_fields(payload, ['koe_sak_id'])
+    if error:
+        return error
 
     service = _get_endringsordre_service()
-    service.legg_til_koe(sak_id, koe_sak_id)
+    service.legg_til_koe(sak_id, payload['koe_sak_id'])
 
-    logger.info(f"KOE {koe_sak_id} lagt til EO {sak_id}")
-
-    return jsonify({
-        "success": True,
-        "message": "KOE lagt til endringsordre"
-    }), 200
+    logger.info(f"KOE {payload['koe_sak_id']} lagt til EO {sak_id}")
+    return build_success_message("KOE lagt til endringsordre")
 
 
 @endringsordre_bp.route('/api/endringsordre/<sak_id>/koe/<koe_sak_id>', methods=['DELETE'])
@@ -271,89 +155,30 @@ def legg_til_koe(sak_id: str):
 @require_magic_link
 @handle_service_errors
 def fjern_koe(sak_id: str, koe_sak_id: str):
-    """
-    Fjern en KOE-sak fra endringsordren.
-
-    Response 200:
-    {
-        "success": true,
-        "message": "KOE fjernet fra endringsordre"
-    }
-    """
+    """Fjern en KOE-sak fra endringsordren."""
     service = _get_endringsordre_service()
     service.fjern_koe(sak_id, koe_sak_id)
 
     logger.info(f"KOE {koe_sak_id} fjernet fra EO {sak_id}")
-
-    return jsonify({
-        "success": True,
-        "message": "KOE fjernet fra endringsordre"
-    }), 200
+    return build_success_message("KOE fjernet fra endringsordre")
 
 
 @endringsordre_bp.route('/api/endringsordre/kandidater', methods=['GET'])
 @handle_service_errors
 def hent_kandidat_koe_saker():
-    """
-    Hent KOE-saker som kan legges til i en endringsordre.
-
-    Response 200:
-    {
-        "success": true,
-        "kandidat_saker": [
-            {
-                "sak_id": "koe-sak-guid",
-                "tittel": "KOE - Fundamentendring",
-                "overordnet_status": "OMFORENT",
-                "sum_godkjent": 150000,
-                "godkjent_dager": 10
-            }
-        ]
-    }
-    """
+    """Hent KOE-saker som kan legges til i en endringsordre."""
     service = _get_endringsordre_service()
     kandidater = service.hent_kandidat_koe_saker()
-
-    return jsonify({
-        "success": True,
-        "kandidat_saker": kandidater
-    }), 200
+    return build_kandidater_response(kandidater)
 
 
 @endringsordre_bp.route('/api/endringsordre/by-relatert/<sak_id>', methods=['GET'])
 @require_magic_link
 def finn_eoer_for_koe(sak_id: str):
-    """
-    Finn endringsordrer som refererer til en gitt KOE-sak.
-
-    Brukes for å vise back-links fra KOE-saker til deres EO.
-
-    Response 200:
-    {
-        "success": true,
-        "endringsordrer": [
-            {
-                "eo_sak_id": "eo-sak-guid",
-                "eo_nummer": "EO-001",
-                "dato_utstedt": "2025-02-15",
-                "status": "utstedt"
-            }
-        ]
-    }
-    """
-    try:
-        service = _get_endringsordre_service()
-        eoer = service.finn_eoer_for_koe(sak_id)
-
-        return jsonify({
-            "success": True,
-            "endringsordrer": eoer
-        }), 200
-
-    except Exception as e:
-        # Return empty list instead of 500 - this is a non-critical feature
-        logger.warning(f"Kunne ikke søke etter EOer for KOE {sak_id}: {e}")
-        return jsonify({
-            "success": True,
-            "endringsordrer": []
-        }), 200
+    """Finn endringsordrer som refererer til en gitt KOE-sak."""
+    service = _get_endringsordre_service()
+    return safe_find_related(
+        service.finn_eoer_for_koe,
+        sak_id,
+        "endringsordrer"
+    )
