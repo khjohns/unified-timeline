@@ -1,7 +1,7 @@
 # Plan: Alignment av Backend PDF med Frontend PDF
 
 > **Dato:** 2024-12-19
-> **Status:** Forslag til godkjenning
+> **Status:** ✅ Implementert (Fase 1 og 2)
 > **Berørte filer:** `backend/services/reportlab_pdf_generator.py`, `src/pdf/*`
 
 ## Bakgrunn
