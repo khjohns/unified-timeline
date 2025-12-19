@@ -29,7 +29,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
 import { useConfirmClose } from '../../hooks/useConfirmClose';
-import { useState, useMemo } from 'react';
+import { useFormBackup } from '../../hooks/useFormBackup';
+import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
+import { useState, useMemo, useEffect } from 'react';
 import {
   HOVEDKATEGORI_OPTIONS,
   getUnderkategorier,
@@ -68,6 +70,8 @@ export function SendGrunnlagModal({
   sakId,
 }: SendGrunnlagModalProps) {
   const [selectedHovedkategori, setSelectedHovedkategori] = useState<string>('');
+  const [showTokenExpired, setShowTokenExpired] = useState(false);
+  const [showRestorePrompt, setShowRestorePrompt] = useState(false);
 
   const {
     register,
@@ -96,6 +100,38 @@ export function SendGrunnlagModal({
     },
     onClose: () => onOpenChange(false),
   });
+
+  // Form backup for token expiry protection
+  const formData = watch();
+  const { getBackup, clearBackup, hasBackup } = useFormBackup(
+    sakId,
+    'grunnlag_opprettet',
+    formData,
+    isDirty
+  );
+
+  // Check for backup on mount
+  useEffect(() => {
+    if (open && hasBackup) {
+      setShowRestorePrompt(true);
+    }
+  }, [open, hasBackup]);
+
+  const handleRestoreBackup = () => {
+    const backup = getBackup();
+    if (backup) {
+      reset(backup);
+      if (backup.hovedkategori) {
+        setSelectedHovedkategori(backup.hovedkategori);
+      }
+    }
+    setShowRestorePrompt(false);
+  };
+
+  const handleDiscardBackup = () => {
+    clearBackup();
+    setShowRestorePrompt(false);
+  };
 
   const hovedkategoriValue = watch('hovedkategori');
   const varselSendesNa = watch('varsel_sendes_na');
@@ -137,9 +173,15 @@ export function SendGrunnlagModal({
 
   const mutation = useSubmitEvent(sakId, {
     onSuccess: () => {
+      clearBackup();
       reset();
       setSelectedHovedkategori('');
       onOpenChange(false);
+    },
+    onError: (error) => {
+      if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') {
+        setShowTokenExpired(true);
+      }
     },
   });
 
@@ -524,6 +566,29 @@ export function SendGrunnlagModal({
         cancelLabel="Fortsett redigering"
         onConfirm={confirmClose}
         variant="warning"
+      />
+
+      {/* Restore backup dialog */}
+      <AlertDialog
+        open={showRestorePrompt}
+        onOpenChange={(open) => {
+          if (!open) {
+            // User clicked "Start på nytt" (cancel) - discard backup
+            handleDiscardBackup();
+          }
+        }}
+        title="Gjenopprette lagrede data?"
+        description="Det finnes data fra en tidligere økt som ikke ble sendt inn. Vil du fortsette der du slapp?"
+        confirmLabel="Gjenopprett"
+        cancelLabel="Start på nytt"
+        onConfirm={handleRestoreBackup}
+        variant="info"
+      />
+
+      {/* Token expired alert */}
+      <TokenExpiredAlert
+        open={showTokenExpired}
+        onClose={() => setShowTokenExpired(false)}
       />
     </Modal>
   );

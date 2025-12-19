@@ -3,6 +3,11 @@
  *
  * React Query mutation hook for submitting events to the backend with PDF generation.
  * Automatically invalidates case state cache on success.
+ *
+ * Features:
+ * - Pre-validates magic link token before submission
+ * - Generates client-side PDF for Catenda upload
+ * - Throws TOKEN_EXPIRED error if token is invalid
  */
 
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
@@ -10,6 +15,21 @@ import { submitEvent, EventSubmitResponse } from '../api/events';
 import { EventType } from '../types/timeline';
 import { generateContractorClaimPdf, blobToBase64 } from '../pdf';
 import { fetchCaseState } from '../api/state';
+import { getAuthToken } from '../api/client';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+
+/**
+ * Verify the magic link token is still valid
+ */
+async function verifyToken(token: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/magic-link/verify?token=${token}`);
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
 
 export interface SubmitEventPayload {
   eventType: EventType;
@@ -79,6 +99,18 @@ export function useSubmitEvent(sakId: string, options: UseSubmitEventOptions = {
 
   return useMutation<EventSubmitResponse, Error, SubmitEventPayload>({
     mutationFn: async ({ eventType, data, catendaTopicId }) => {
+      // 1. Validate token before proceeding
+      const token = getAuthToken();
+      if (!token) {
+        throw new Error('TOKEN_MISSING');
+      }
+
+      const isTokenValid = await verifyToken(token);
+      if (!isTokenValid) {
+        throw new Error('TOKEN_EXPIRED');
+      }
+
+      // 2. Prepare submission
       let pdfBase64: string | undefined;
       let pdfFilename: string | undefined;
       let expectedVersion = stateData?.version ?? 0;
