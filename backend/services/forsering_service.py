@@ -31,7 +31,8 @@ class ForseringService(BaseSakService):
         self,
         catenda_client: Optional[Any] = None,
         event_repository: Optional[Any] = None,
-        timeline_service: Optional[Any] = None
+        timeline_service: Optional[Any] = None,
+        metadata_repository: Optional[Any] = None
     ):
         """
         Initialiser ForseringService.
@@ -40,12 +41,14 @@ class ForseringService(BaseSakService):
             catenda_client: CatendaClient instance (eller mock)
             event_repository: EventRepository for å hente events fra saker
             timeline_service: TimelineService for å beregne SakState
+            metadata_repository: SakMetadataRepository for å mappe topic GUID til sak_id
         """
         super().__init__(
             catenda_client=catenda_client,
             event_repository=event_repository,
             timeline_service=timeline_service
         )
+        self.metadata_repository = metadata_repository
         self._log_init_warnings("ForseringService")
 
     def opprett_forseringssak(
@@ -319,8 +322,9 @@ class ForseringService(BaseSakService):
 
                 if self.event_repository and self.timeline_service:
                     try:
-                        events, _version = self.event_repository.get_events(topic_id)
-                        if events:
+                        events_data, _version = self.event_repository.get_events(topic_id)
+                        if events_data:
+                            events = [parse_event(e) for e in events_data]
                             state = self.timeline_service.compute_state(events)
 
                             if state.sakstype == 'forsering' and state.forsering_data:
@@ -367,21 +371,30 @@ class ForseringService(BaseSakService):
         kandidater = []
 
         for topic in topics:
-            topic_id = topic.get('guid')
-            if not topic_id:
+            topic_guid = topic.get('guid')
+            if not topic_guid:
+                continue
+
+            # Map Catenda topic GUID to internal sak_id via metadata
+            sak_id = None
+            if self.metadata_repository:
+                metadata = self.metadata_repository.get_by_topic_id(topic_guid)
+                if metadata:
+                    sak_id = metadata.sak_id
+
+            if not sak_id:
+                logger.debug(f"Ingen sak funnet for topic {topic_guid}")
                 continue
 
             # Sjekk om dette er en standard sak med avslått fristkrav
             if self.event_repository and self.timeline_service:
                 try:
-                    events_data, _version = self.event_repository.get_events(topic_id)
+                    events_data, _version = self.event_repository.get_events(sak_id)
                     if events_data:
-                        from models.events import parse_event
                         events = [parse_event(e) for e in events_data]
                         state = self.timeline_service.compute_state(events)
 
                         # Sjekk kriterier for forsering
-                        from models.sak_state import SaksType
                         is_standard = state.sakstype == SaksType.STANDARD or state.sakstype is None
                         has_rejected_frist = (
                             state.frist and
@@ -391,14 +404,14 @@ class ForseringService(BaseSakService):
                         if is_standard and has_rejected_frist:
                             avslatte_dager = state.frist.krevd_dager or 0
                             kandidater.append({
-                                "sak_id": topic_id,
+                                "sak_id": sak_id,
                                 "tittel": state.sakstittel or topic.get('title', 'Ukjent'),
                                 "overordnet_status": state.overordnet_status,
                                 "avslatte_dager": avslatte_dager,
                                 "frist_bh_resultat": state.frist.bh_resultat if state.frist else None
                             })
                 except Exception as e:
-                    logger.debug(f"Kunne ikke evaluere topic {topic_id}: {e}")
+                    logger.debug(f"Kunne ikke evaluere sak {sak_id}: {e}")
 
         logger.info(f"Fant {len(kandidater)} kandidater for forsering")
         return kandidater

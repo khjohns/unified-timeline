@@ -21,6 +21,7 @@ from flask import Blueprint, request, jsonify
 from services.forsering_service import ForseringService
 from services.timeline_service import TimelineService
 from repositories.event_repository import JsonFileEventRepository
+from repositories.sak_metadata_repository import SakMetadataRepository
 from lib.catenda_factory import get_catenda_client
 from lib.decorators import handle_service_errors
 from lib.auth.magic_link import require_magic_link
@@ -43,6 +44,7 @@ forsering_bp = Blueprint('forsering', __name__)
 # Dependencies
 event_repo = JsonFileEventRepository()
 timeline_service = TimelineService()
+metadata_repo = SakMetadataRepository()
 
 
 def _get_forsering_service() -> ForseringService:
@@ -50,7 +52,8 @@ def _get_forsering_service() -> ForseringService:
     return ForseringService(
         catenda_client=get_catenda_client(),
         event_repository=event_repo,
-        timeline_service=timeline_service
+        timeline_service=timeline_service,
+        metadata_repository=metadata_repo
     )
 
 

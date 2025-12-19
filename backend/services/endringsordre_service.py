@@ -18,7 +18,7 @@ from models.sak_state import (
     EOKonsekvenser,
     SakState,
 )
-from models.events import AnyEvent
+from models.events import AnyEvent, parse_event
 from services.base_sak_service import BaseSakService
 
 logger = get_logger(__name__)
@@ -359,8 +359,9 @@ class EndringsordreService(BaseSakService):
             # Sjekk om dette er en standard sak med kan_utstede_eo=True
             if self.event_repository and self.timeline_service:
                 try:
-                    events, _version = self.event_repository.get_events(sak_id)
-                    if events:
+                    events_data, _version = self.event_repository.get_events(sak_id)
+                    if events_data:
+                        events = [parse_event(e) for e in events_data]
                         state = self.timeline_service.compute_state(events)
 
                         # Sjekk kriterier
