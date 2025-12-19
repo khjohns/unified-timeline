@@ -275,7 +275,7 @@ def create_vederlag_respons(
         refererer_til_event_id=vederlag_event_id,
         data=VederlagResponsData(
             beregnings_resultat=resultat,
-            godkjent_belop=godkjent_belop if resultat != VederlagBeregningResultat.AVSLATT else 0,
+            total_godkjent_belop=godkjent_belop if resultat != VederlagBeregningResultat.AVSLATT else 0,
             begrunnelse_beregning=begrunnelser.get(resultat, "Vurdering gjennomført."),
         ),
     )

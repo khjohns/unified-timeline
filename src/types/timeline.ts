@@ -641,7 +641,6 @@ export interface ResponsVederlagEventData {
 
   // Port 4: Samlet resultat
   beregnings_resultat: VederlagBeregningResultat;
-  godkjent_belop?: number;  // Deprecated: bruk total_godkjent_belop
   total_godkjent_belop?: number;
   total_krevd_belop?: number;
   begrunnelse?: string;  // Samlet begrunnelse

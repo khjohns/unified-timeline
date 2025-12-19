@@ -365,13 +365,9 @@ class TimelineService:
             vederlag.bh_begrunnelse = event.data.begrunnelse_beregning
         if hasattr(event.data, 'vederlagsmetode'):
             vederlag.bh_metode = event.data.vederlagsmetode.value if hasattr(event.data.vederlagsmetode, 'value') else event.data.vederlagsmetode
-        # total_godkjent_belop er den nye standarden (sum av alle vederlagstyper)
-        # godkjent_belop er deprecated men støttes for bakoverkompatibilitet
+        # total_godkjent_belop er summen av alle vederlagstyper (hovedkrav + særskilte krav)
         if hasattr(event.data, 'total_godkjent_belop') and event.data.total_godkjent_belop is not None:
             vederlag.godkjent_belop = event.data.total_godkjent_belop
-        elif hasattr(event.data, 'godkjent_belop') and event.data.godkjent_belop is not None:
-            # Backward compatibility: bruk godkjent_belop fra eldre events
-            vederlag.godkjent_belop = event.data.godkjent_belop
 
         # Subsidiært standpunkt (NYE linjer)
         if hasattr(event.data, 'subsidiaer_triggers') and event.data.subsidiaer_triggers:
@@ -900,8 +896,8 @@ class TimelineService:
 
         # Legg til beløp/dager hvis tilgjengelig
         if event.spor == SporType.VEDERLAG:
-            if hasattr(event.data, 'godkjent_belop') and event.data.godkjent_belop:
-                return f"{resultat_label}: {event.data.godkjent_belop:,.0f} kr"
+            if hasattr(event.data, 'total_godkjent_belop') and event.data.total_godkjent_belop:
+                return f"{resultat_label}: {event.data.total_godkjent_belop:,.0f} kr"
         elif event.spor == SporType.FRIST:
             if hasattr(event.data, 'godkjent_dager') and event.data.godkjent_dager:
                 return f"{resultat_label}: {event.data.godkjent_dager} dager"
@@ -995,7 +991,7 @@ class TimelineService:
                     event_id=event.event_id,
                     bh_resultat=event.data.beregnings_resultat.value if event.data.beregnings_resultat else None,
                     bh_resultat_label=self._get_vederlag_resultat_label(event.data.beregnings_resultat),
-                    godkjent_belop=event.data.godkjent_belop,
+                    godkjent_belop=event.data.total_godkjent_belop,
                     bh_begrunnelse=event.data.begrunnelse_beregning,
                 )
                 historikk.append(entry.model_dump(mode='json'))
@@ -1009,7 +1005,7 @@ class TimelineService:
                     event_id=event.event_id,
                     bh_resultat=event.data.beregnings_resultat.value if event.data.beregnings_resultat else None,
                     bh_resultat_label=self._get_vederlag_resultat_label(event.data.beregnings_resultat),
-                    godkjent_belop=event.data.godkjent_belop,
+                    godkjent_belop=event.data.total_godkjent_belop,
                     bh_begrunnelse=event.data.begrunnelse_beregning,
                 )
                 historikk.append(entry.model_dump(mode='json'))
@@ -1307,10 +1303,10 @@ class MigrationHelper:
                     aktor_rolle='BH',
                     spor=SporType.VEDERLAG,
                     data=VederlagResponsData(
-                        resultat=self._map_bh_svar_to_resultat(vederlag_svar.get('bh_svar_vederlag', '')),
+                        beregnings_resultat=self._map_bh_svar_to_resultat(vederlag_svar.get('bh_svar_vederlag', '')),
                         begrunnelse=vederlag_svar.get('bh_begrunnelse_vederlag', ''),
-                        godkjent_belop=godkjent_belop,
-                        godkjent_metode=vederlag_svar.get('bh_vederlag_metode'),
+                        total_godkjent_belop=godkjent_belop,
+                        vederlagsmetode=vederlag_svar.get('bh_vederlag_metode'),
                     ),
                 )
                 events.append(respons_event)

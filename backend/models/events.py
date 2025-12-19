@@ -905,10 +905,6 @@ class VederlagResponsData(BaseModel):
         default=None,
         description="BHs samlede vurdering av kravets størrelse"
     )
-    godkjent_belop: Optional[float] = Field(
-        default=None,
-        description="DEPRECATED: Bruk total_godkjent_belop"
-    )
     total_godkjent_belop: Optional[float] = Field(
         default=None,
         description="Totalt godkjent beløp i NOK (hovedkrav + særskilte krav)"

@@ -602,10 +602,10 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
         label="Resultat"
         value={<Badge variant={badge.variant}>{badge.label}</Badge>}
       />
-      {(data.total_godkjent_belop !== undefined || data.godkjent_belop !== undefined) && (
+      {data.total_godkjent_belop !== undefined && (
         <Field
           label="Totalt godkjent beløp"
-          value={formatCurrency(data.total_godkjent_belop ?? data.godkjent_belop ?? 0)}
+          value={formatCurrency(data.total_godkjent_belop)}
         />
       )}
       {data.vederlagsmetode && (

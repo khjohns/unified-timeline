@@ -243,7 +243,7 @@ class TestBusinessRuleValidator:
             data=VederlagResponsData(
                 beregnings_resultat=VederlagBeregningResultat.GODKJENT,
                 begrunnelse="Test",
-                godkjent_belop=100000.0
+                total_godkjent_belop=100000.0
             )
         )
 
@@ -297,7 +297,7 @@ class TestBusinessRuleValidator:
             data=VederlagResponsData(
                 beregnings_resultat=VederlagBeregningResultat.GODKJENT,
                 begrunnelse="Approved",
-                godkjent_belop=100000.0
+                total_godkjent_belop=100000.0
             )
         )
 

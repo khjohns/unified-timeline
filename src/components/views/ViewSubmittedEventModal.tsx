@@ -298,10 +298,10 @@ function ResponsVederlagView({ data }: { data: any }) {
           </Badge>
         }
       />
-      {data.godkjent_belop !== undefined && (
+      {data.total_godkjent_belop !== undefined && (
         <Field
           label="Godkjent beløp"
-          value={`kr ${data.godkjent_belop.toLocaleString('nb-NO')},-`}
+          value={`kr ${data.total_godkjent_belop.toLocaleString('nb-NO')},-`}
         />
       )}
       <Field

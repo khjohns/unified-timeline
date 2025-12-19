@@ -415,12 +415,12 @@ def test_vederlag_respons_data():
         krav_fremmet_i_tide=True,
         varsel_start_regning_ok=True,
         beregnings_resultat=VederlagBeregningResultat.GODKJENT,
-        godkjent_belop=50000,
+        total_godkjent_belop=50000,
         begrunnelse_beregning="Enig om beløp"
     )
     assert data.krav_fremmet_i_tide is True
     assert data.beregnings_resultat == VederlagBeregningResultat.GODKJENT
-    assert data.godkjent_belop == 50000
+    assert data.total_godkjent_belop == 50000
 
 
 def test_vederlag_respons_delvis_godkjent():
@@ -428,11 +428,11 @@ def test_vederlag_respons_delvis_godkjent():
     data = VederlagResponsData(
         krav_fremmet_i_tide=True,
         beregnings_resultat=VederlagBeregningResultat.DELVIS_GODKJENT,
-        godkjent_belop=30000,  # Less than claimed
+        total_godkjent_belop=30000,  # Less than claimed
         begrunnelse_beregning="Godkjenner timer, men ikke påslag"
     )
     assert data.beregnings_resultat == VederlagBeregningResultat.DELVIS_GODKJENT
-    assert data.godkjent_belop == 30000
+    assert data.total_godkjent_belop == 30000
 
 
 def test_frist_respons_data():
@@ -493,7 +493,7 @@ def test_respons_event_creation():
         data=VederlagResponsData(
             krav_fremmet_i_tide=True,
             beregnings_resultat=VederlagBeregningResultat.GODKJENT,
-            godkjent_belop=50000,
+            total_godkjent_belop=50000,
             begrunnelse_beregning="OK"
         )
     )

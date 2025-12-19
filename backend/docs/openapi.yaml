@@ -1573,13 +1573,6 @@ components:
           - type: 'null'
           default: null
           description: BHs samlede vurdering av kravets størrelse
-        godkjent_belop:
-          anyOf:
-          - type: number
-          - type: 'null'
-          default: null
-          description: 'DEPRECATED: Bruk total_godkjent_belop'
-          title: Godkjent Belop
         total_godkjent_belop:
           anyOf:
           - type: number

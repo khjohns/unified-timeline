@@ -90,7 +90,7 @@ TEST_DATA = {
     },
     "bh_vederlag": {
         "beregnings_resultat": "delvis_godkjent",
-        "godkjent_belop": 100000.0,  # 100k av 150k
+        "total_godkjent_belop": 100000.0,  # 100k av 150k
         "aksepterer_metode": True,
         "begrunnelse": "Godkjenner 100.000 kr av krevde 150.000 kr"
     },
@@ -1396,7 +1396,7 @@ class KOEFlowTester(BaseTester):
         # 3.2 Respons på vederlag (delvis godkjent)
         print_subheader("3.2: BH svarer på vederlag")
         print_info(f"  Resultat: {TEST_DATA['bh_vederlag']['beregnings_resultat']}")
-        print_info(f"  Godkjent: {TEST_DATA['bh_vederlag']['godkjent_belop']:,.0f} kr av 150.000 kr")
+        print_info(f"  Godkjent: {TEST_DATA['bh_vederlag']['total_godkjent_belop']:,.0f} kr av 150.000 kr")
 
         vederlag_response = {
             "sak_id": self.sak_id,
@@ -2322,7 +2322,7 @@ class EOFlowTester(BaseTester):
                 event_type="respons_vederlag",
                 event_data={
                     "beregnings_resultat": "godkjent",
-                    "godkjent_belop": koe['belop'],
+                    "total_godkjent_belop": koe['belop'],
                     "begrunnelse": "Vederlag godkjent for EO-aggregering"
                 },
                 aktor="Test Script BH",

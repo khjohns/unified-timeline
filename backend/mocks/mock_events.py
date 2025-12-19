@@ -175,7 +175,7 @@ MOCK_EVENTS_SCENARIO_1 = [
             # Port 2: Beregning
             vederlagsmetode=VederlagsMetode.REGNING,
             beregnings_resultat=VederlagBeregningResultat.GODKJENT,
-            godkjent_belop=75000,
+            total_godkjent_belop=75000,
             begrunnelse_beregning=(
                 "BH er enig om timeforbruk og timepriser. "
                 "Rigg/drift er rimelig for denne type arbeid. "
@@ -303,7 +303,7 @@ MOCK_EVENTS_SCENARIO_2 = [
             varsel_start_regning_ok=True,
             vederlagsmetode=VederlagsMetode.REGNING,
             beregnings_resultat=VederlagBeregningResultat.GODKJENT,
-            godkjent_belop=50000,
+            total_godkjent_belop=50000,
             begrunnelse_beregning=(
                 "SUBSIDIÆRT: BH er enig om at hvis vi hadde hatt ansvar, "
                 "er 50000 NOK et rimelig beløp basert på timeforbruk. "
@@ -388,7 +388,7 @@ MOCK_EVENTS_SCENARIO_3 = [
             krav_fremmet_i_tide=True,
             vederlagsmetode=VederlagsMetode.TILBUD,
             beregnings_resultat=VederlagBeregningResultat.DELVIS_GODKJENT,
-            godkjent_belop=75000,
+            total_godkjent_belop=75000,
             begrunnelse_beregning=(
                 "BH godkjenner grunnkostnad (60000 NOK) + 25% påslag (15000 NOK) = 75000 NOK. "
                 "TEs krav på 40% påslag anses som urimelig."
