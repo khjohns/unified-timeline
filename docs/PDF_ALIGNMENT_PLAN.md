@@ -77,12 +77,14 @@ Disse har ulik layout, styling og terminologi. Denne planen beskriver hvordan ba
 
 | Kode | Backend (nåværende) | Anbefalt | NS 8407 |
 |------|---------------------|----------|---------|
-| `noytralt` | "Nøytralt varsel" | "Nøytralt varsel (§33.4)" | §33.4 - Foreløpig varsel |
-| `spesifisert` | "Spesifisert krav" | "Spesifisert krav (§33.6)" | §33.6.1 - Spesifisering |
-| `force_majeure` | "Force majeure" | "Force majeure (§33.3)" | §33.3 - Tilleggsfrist |
+| `noytralt` | "Nøytralt varsel" | "Nøytralt varsel (§33.4)" | §33.4 - Varsel om fristforlengelse |
+| `spesifisert` | "Spesifisert krav" | "Spesifisert krav (§33.6)" | §33.6 - Spesifisering av krav |
+| `force_majeure` | "Force majeure" | "Force majeure (§33.3)" | §33.3 - Fristforlengelse ved FM |
 | `begge` | "Begge (nøytralt + spesifisert)" | **Fjernes** | Utgått konsept |
 
 **Begrunnelse:** §-referanser gir brukeren direkte henvisning til kontrakten. `begge` er ikke lenger i bruk i frontend.
+
+> **Merk:** "Nøytralt varsel" er en praktisk term. NS 8407 §33.4 beskriver et varsel som kan sendes "selv om [parten] ennå ikke kan fremsette et spesifisert krav".
 
 ### 2.4 Vederlagsmetoder
 
@@ -252,14 +254,17 @@ Backend bruker allerede riktige labels med §-referanser via `VEDERLAG_METODER` 
 
 | § | Tittel | Relevans |
 |---|--------|----------|
-| §30.2 | Varsel og krav ved regningsarbeid | Vederlagsmetode, hold tilbake betaling |
+| §28.3 | Byggherrens tilbakeholdsrett | Hold tilbake betaling ved kontraktsbrudd |
+| §30.2 | Kostnadsoverslag | Regningsarbeid, tilbakehold inntil overslag foreligger |
 | §31.3 | Endringsordre | Sakstype endringsordre |
-| §32 | Krav om endringsordre (KOE) | Grunnlag, ansvarsgrunnlag |
-| §32.3 c | Frafalt pålegg | Grunnlag-resultat |
-| §33.3 | Force majeure | Fristforlengelse ved FM |
-| §33.4 | Foreløpig varsel | Nøytralt varsel |
-| §33.6 | Spesifisert krav | Konkret fristkrav |
-| §33.8 | Forsering | Sakstype forsering |
-| §34.2.1 | Fastpris/Tilbud | Vederlagsmetode |
+| §32 | Irregulær endring | Grunnlag, KOE |
+| §32.3 c | Byggherrens svarplikt (frafall) | Frafall av pålegg mot EO for utført arbeid |
+| §33.3 | Fristforlengelse ved force majeure | FM gir kun fristforlengelse |
+| §33.4 | Varsel om fristforlengelse | Første varsel (praktisk: "nøytralt varsel") |
+| §33.6 | Spesifisering av krav | Konkret fristkrav med antall dager |
+| §33.8 | Forsering ved uberettiget avslag | Sakstype forsering |
+| §34.2.1 | Avtalt vederlagsjustering | Tilbudsbasert oppgjør |
 | §34.3 | Enhetspriser | Vederlagsmetode |
-| §34.4 | Regningsarbeid | Vederlagsmetode |
+| §34.4 | Regningsarbeid | Vederlagsmetode (refererer til §30) |
+
+> **Merk:** Termene "nøytralt varsel" og "spesifisert krav" er praktiske forenklinger. NS 8407 bruker ikke disse begrepene eksplisitt, men skiller mellom et foreløpig varsel (§33.4) og spesifisering når grunnlag foreligger (§33.6).

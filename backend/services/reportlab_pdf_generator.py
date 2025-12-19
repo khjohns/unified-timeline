@@ -42,6 +42,19 @@ class ReportLabPdfGenerator:
     - Last event from TE and BH per track
     """
 
+    # Oslo Kommune design colors
+    COLORS = {
+        'primary': '#2A2859',       # Oslo dark blue
+        'secondary': '#1F42AA',     # Oslo warm blue
+        'text': '#2C2C2C',          # Oslo ink
+        'muted': '#666666',
+        'border': '#E6E6E6',
+        'gray_bg': '#F9F9F9',
+        'success': '#034B45',
+        'error': '#C9302C',
+        'warning': '#F9C66B',
+    }
+
     # Status display mapping
     STATUS_MAP = {
         'UNDER_VARSLING': 'Under varsling',
@@ -53,7 +66,7 @@ class ReportLabPdfGenerator:
         'ikke_relevant': 'Ikke relevant',
         'ikke_startet': 'Ikke startet',
         'utkast': 'Utkast',
-        'sendt': 'Sendt',
+        'sendt': 'Sendt til BH',
         'under_behandling': 'Under behandling',
         'godkjent': 'Godkjent',
         'delvis_godkjent': 'Delvis godkjent',
@@ -63,13 +76,13 @@ class ReportLabPdfGenerator:
         'laast': 'Låst',
     }
 
-    # BH resultat mappings
+    # BH resultat mappings - aligned with NS 8407 terminology
     GRUNNLAG_RESULTAT_MAP = {
         'godkjent': 'Godkjent',
         'delvis_godkjent': 'Delvis godkjent',
-        'erkjenn_fm': 'Erkjent Force Majeure',
+        'erkjenn_fm': 'Force majeure erkjent (§33.3)',
         'avslatt': 'Avslått',
-        'frafalt': 'Frafalt pålegg',
+        'frafalt': 'Frafalt (§32.3 c)',
         'krever_avklaring': 'Krever avklaring',
     }
 
@@ -77,7 +90,7 @@ class ReportLabPdfGenerator:
         'godkjent': 'Godkjent',
         'delvis_godkjent': 'Delvis godkjent',
         'avslatt': 'Avslått',
-        'hold_tilbake': 'Hold tilbake betaling',
+        'hold_tilbake': 'Betaling holdes tilbake (§30.2)',
     }
 
     FRIST_RESULTAT_MAP = {
@@ -86,12 +99,18 @@ class ReportLabPdfGenerator:
         'avslatt': 'Avslått',
     }
 
+    # Frist varseltyper med NS 8407 §-referanser
     FRIST_VARSEL_TYPE_MAP = {
-        'noytralt': 'Nøytralt varsel',
-        'spesifisert': 'Spesifisert krav',
-        'begge': 'Begge (nøytralt + spesifisert)',
-        'force_majeure': 'Force majeure',
+        'noytralt': 'Nøytralt varsel (§33.4)',
+        'spesifisert': 'Spesifisert krav (§33.6)',
+        'force_majeure': 'Force majeure (§33.3)',
     }
+
+    # Norwegian month names for date formatting
+    NORWEGIAN_MONTHS = [
+        'januar', 'februar', 'mars', 'april', 'mai', 'juni',
+        'juli', 'august', 'september', 'oktober', 'november', 'desember'
+    ]
 
     def __init__(self):
         """Initialize PDF generator with styles."""
@@ -99,13 +118,13 @@ class ReportLabPdfGenerator:
         self._setup_custom_styles()
 
     def _setup_custom_styles(self):
-        """Setup custom paragraph styles."""
+        """Setup custom paragraph styles using Oslo Kommune design colors."""
         self.styles.add(ParagraphStyle(
             name='KoeTitle',
             parent=self.styles['Heading1'],
             fontSize=18,
             spaceAfter=12,
-            textColor=colors.HexColor('#003366'),
+            textColor=colors.HexColor(self.COLORS['primary']),
         ))
         self.styles.add(ParagraphStyle(
             name='KoeSectionHeader',
@@ -113,7 +132,7 @@ class ReportLabPdfGenerator:
             fontSize=14,
             spaceBefore=16,
             spaceAfter=8,
-            textColor=colors.HexColor('#005A9C'),
+            textColor=colors.HexColor(self.COLORS['secondary']),
         ))
         self.styles.add(ParagraphStyle(
             name='KoeSubHeader',
@@ -121,7 +140,7 @@ class ReportLabPdfGenerator:
             fontSize=11,
             spaceBefore=8,
             spaceAfter=4,
-            textColor=colors.HexColor('#333333'),
+            textColor=colors.HexColor(self.COLORS['text']),
         ))
         self.styles.add(ParagraphStyle(
             name='KoeBodyText',
@@ -133,8 +152,30 @@ class ReportLabPdfGenerator:
             name='KoeSmallText',
             parent=self.styles['Normal'],
             fontSize=8,
-            textColor=colors.HexColor('#666666'),
+            textColor=colors.HexColor(self.COLORS['muted']),
         ))
+
+    def _format_date_norwegian(self, date_str: str) -> str:
+        """Format date string as '5. desember 2024'."""
+        if not date_str:
+            return ''
+        try:
+            # Handle ISO format (YYYY-MM-DD or with time)
+            date_part = date_str[:10] if len(date_str) >= 10 else date_str
+            parts = date_part.split('-')
+            if len(parts) == 3:
+                year, month, day = int(parts[0]), int(parts[1]), int(parts[2])
+                month_name = self.NORWEGIAN_MONTHS[month - 1]
+                return f"{day}. {month_name} {year}"
+        except (ValueError, IndexError):
+            pass
+        return date_str
+
+    def _format_currency(self, amount: float) -> str:
+        """Format amount as '1 234 567 NOK'."""
+        if amount is None:
+            return ''
+        return f"{amount:,.0f} NOK".replace(',', ' ')
 
     def generate_pdf(
         self,
@@ -186,7 +227,7 @@ class ReportLabPdfGenerator:
                 'endringsordre': 'Endringsordre (§31.3)'
             }
             story.append(Paragraph(title_map.get(sakstype, 'Krav om Endringsordre'), self.styles['KoeTitle']))
-            story.append(HRFlowable(width="100%", thickness=2, color=colors.HexColor('#003366')))
+            story.append(HRFlowable(width="100%", thickness=2, color=colors.HexColor(self.COLORS['primary'])))
             story.append(Spacer(1, 12))
 
             # Metadata table
@@ -255,7 +296,7 @@ class ReportLabPdfGenerator:
         """Build grunnlag (basis) section with TE/BH structure."""
         elements = []
         elements.append(Paragraph(
-            f"1. Ansvarsgrunnlag <font size='9' color='#666666'>[{self._format_status(state.grunnlag.status)}]</font>",
+            f"1. Ansvarsgrunnlag (§32) <font size='9' color='{self.COLORS['muted']}'>[{self._format_status(state.grunnlag.status)}]</font>",
             self.styles['KoeSectionHeader']
         ))
 
@@ -282,8 +323,7 @@ class ReportLabPdfGenerator:
                 te_data.append(['Hjemmel:', f"§{underkat['hjemmel_basis']}"])
 
         if grunnlag.beskrivelse:
-            beskr = grunnlag.beskrivelse[:150] + '...' if len(grunnlag.beskrivelse or '') > 150 else grunnlag.beskrivelse
-            te_data.append(['Beskrivelse:', beskr])
+            te_data.append(['Beskrivelse:', grunnlag.beskrivelse])
 
         if te_data:
             table = Table(te_data, colWidths=[3.5*cm, 12.5*cm])
@@ -306,14 +346,13 @@ class ReportLabPdfGenerator:
             bh_data.append(['Resultat:', resultat_label])
 
             if grunnlag.bh_begrunnelse:
-                begr = grunnlag.bh_begrunnelse[:150] + '...' if len(grunnlag.bh_begrunnelse or '') > 150 else grunnlag.bh_begrunnelse
-                bh_data.append(['Begrunnelse:', begr])
+                bh_data.append(['Begrunnelse:', grunnlag.bh_begrunnelse])
 
             table = Table(bh_data, colWidths=[3.5*cm, 12.5*cm])
             table.setStyle(TableStyle([
                 ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
                 ('FONTSIZE', (0, 0), (-1, -1), 9),
-                ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#555555')),
+                ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor(self.COLORS['muted'])),
                 ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
             ]))
@@ -325,7 +364,7 @@ class ReportLabPdfGenerator:
         """Build vederlag (compensation) section with TE/BH structure."""
         elements = []
         elements.append(Paragraph(
-            f"2. Vederlagsjustering <font size='9' color='#666666'>[{self._format_status(state.vederlag.status)}]</font>",
+            f"2. Vederlagsjustering (§34) <font size='9' color='{self.COLORS['muted']}'>[{self._format_status(state.vederlag.status)}]</font>",
             self.styles['KoeSectionHeader']
         ))
 
@@ -348,11 +387,10 @@ class ReportLabPdfGenerator:
 
         krevd = vederlag.belop_direkte or vederlag.kostnads_overslag
         if krevd is not None:
-            te_data.append(['Beløp:', f"{krevd:,.0f} kr"])
+            te_data.append(['Beløp:', self._format_currency(krevd)])
 
         if vederlag.begrunnelse:
-            begr = vederlag.begrunnelse[:150] + '...' if len(vederlag.begrunnelse or '') > 150 else vederlag.begrunnelse
-            te_data.append(['Begrunnelse:', begr])
+            te_data.append(['Begrunnelse:', vederlag.begrunnelse])
 
         if te_data:
             table = Table(te_data, colWidths=[3.5*cm, 12.5*cm])
@@ -375,17 +413,16 @@ class ReportLabPdfGenerator:
             bh_data.append(['Resultat:', resultat_label])
 
             if vederlag.godkjent_belop is not None:
-                bh_data.append(['Godkjent beløp:', f"{vederlag.godkjent_belop:,.0f} kr"])
+                bh_data.append(['Godkjent beløp:', self._format_currency(vederlag.godkjent_belop)])
 
             if vederlag.bh_begrunnelse:
-                begr = vederlag.bh_begrunnelse[:150] + '...' if len(vederlag.bh_begrunnelse or '') > 150 else vederlag.bh_begrunnelse
-                bh_data.append(['Begrunnelse:', begr])
+                bh_data.append(['Begrunnelse:', vederlag.bh_begrunnelse])
 
             table = Table(bh_data, colWidths=[3.5*cm, 12.5*cm])
             table.setStyle(TableStyle([
                 ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
                 ('FONTSIZE', (0, 0), (-1, -1), 9),
-                ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#555555')),
+                ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor(self.COLORS['muted'])),
                 ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
             ]))
@@ -397,7 +434,7 @@ class ReportLabPdfGenerator:
         """Build frist (deadline extension) section with TE/BH structure."""
         elements = []
         elements.append(Paragraph(
-            f"3. Fristforlengelse <font size='9' color='#666666'>[{self._format_status(state.frist.status)}]</font>",
+            f"3. Fristforlengelse (§33) <font size='9' color='{self.COLORS['muted']}'>[{self._format_status(state.frist.status)}]</font>",
             self.styles['KoeSectionHeader']
         ))
 
@@ -418,8 +455,7 @@ class ReportLabPdfGenerator:
             te_data.append(['Antall dager:', f"{frist.krevd_dager} dager"])
 
         if frist.begrunnelse:
-            begr = frist.begrunnelse[:150] + '...' if len(frist.begrunnelse or '') > 150 else frist.begrunnelse
-            te_data.append(['Begrunnelse:', begr])
+            te_data.append(['Begrunnelse:', frist.begrunnelse])
 
         if te_data:
             table = Table(te_data, colWidths=[3.5*cm, 12.5*cm])
@@ -445,14 +481,13 @@ class ReportLabPdfGenerator:
                 bh_data.append(['Godkjent dager:', f"{frist.godkjent_dager} dager"])
 
             if frist.bh_begrunnelse:
-                begr = frist.bh_begrunnelse[:150] + '...' if len(frist.bh_begrunnelse or '') > 150 else frist.bh_begrunnelse
-                bh_data.append(['Begrunnelse:', begr])
+                bh_data.append(['Begrunnelse:', frist.bh_begrunnelse])
 
             table = Table(bh_data, colWidths=[3.5*cm, 12.5*cm])
             table.setStyle(TableStyle([
                 ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
                 ('FONTSIZE', (0, 0), (-1, -1), 9),
-                ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#555555')),
+                ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor(self.COLORS['muted'])),
                 ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
             ]))
@@ -470,24 +505,26 @@ class ReportLabPdfGenerator:
             return elements
 
         # 1. Beregningsgrunnlag
-        elements.append(Paragraph("1. Beregningsgrunnlag (30%-regelen)", self.styles['KoeSectionHeader']))
+        elements.append(Paragraph("1. Beregningsgrunnlag (30%-regelen, §33.8)", self.styles['KoeSectionHeader']))
 
+        dagmulkt_grunnlag = fd.avslatte_dager * fd.dagmulktsats
+        tillegg_30 = dagmulkt_grunnlag * 0.3
         calc_data = [
             ['Avslåtte dager:', f"{fd.avslatte_dager} dager"],
-            ['Dagmulktsats:', f"{fd.dagmulktsats:,.0f} kr/dag"],
-            ['Dagmulktgrunnlag:', f"{fd.avslatte_dager * fd.dagmulktsats:,.0f} kr"],
-            ['+ 30% tillegg:', f"{fd.avslatte_dager * fd.dagmulktsats * 0.3:,.0f} kr"],
-            ['= Maks forsering:', f"{fd.maks_forseringskostnad:,.0f} kr"],
+            ['Dagmulktsats:', self._format_currency(fd.dagmulktsats) + '/dag'],
+            ['Dagmulktgrunnlag:', self._format_currency(dagmulkt_grunnlag)],
+            ['+ 30% tillegg:', self._format_currency(tillegg_30)],
+            ['= Maks forsering:', self._format_currency(fd.maks_forseringskostnad)],
         ]
 
         table = Table(calc_data, colWidths=[4*cm, 12*cm])
         table.setStyle(TableStyle([
             ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, -1), 9),
-            ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#555555')),
+            ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor(self.COLORS['muted'])),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-            ('LINEBELOW', (-1, -2), (-1, -2), 0.5, colors.HexColor('#CCCCCC')),
+            ('LINEBELOW', (-1, -2), (-1, -2), 0.5, colors.HexColor(self.COLORS['border'])),
         ]))
         elements.append(table)
 
@@ -496,8 +533,8 @@ class ReportLabPdfGenerator:
         elements.append(Paragraph("<b>ENTREPRENØR KREVER:</b>", self.styles['KoeSubHeader']))
 
         te_data = [
-            ['Dato varslet:', fd.dato_varslet],
-            ['Estimert kostnad:', f"{fd.estimert_kostnad:,.0f} kr"],
+            ['Dato varslet:', self._format_date_norwegian(fd.dato_varslet)],
+            ['Estimert kostnad:', self._format_currency(fd.estimert_kostnad)],
             ['Innenfor grense:', 'Ja' if fd.kostnad_innenfor_grense else 'Nei'],
         ]
 
@@ -508,7 +545,7 @@ class ReportLabPdfGenerator:
         table.setStyle(TableStyle([
             ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, -1), 9),
-            ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#555555')),
+            ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor(self.COLORS['muted'])),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
         ]))
@@ -523,16 +560,15 @@ class ReportLabPdfGenerator:
                 ['Aksepterer:', 'Ja' if fd.bh_aksepterer_forsering else 'Nei'],
             ]
             if fd.bh_godkjent_kostnad is not None:
-                bh_data.append(['Godkjent kostnad:', f"{fd.bh_godkjent_kostnad:,.0f} kr"])
+                bh_data.append(['Godkjent kostnad:', self._format_currency(fd.bh_godkjent_kostnad)])
             if fd.bh_begrunnelse:
-                begr = fd.bh_begrunnelse[:150] + '...' if len(fd.bh_begrunnelse) > 150 else fd.bh_begrunnelse
-                bh_data.append(['Begrunnelse:', begr])
+                bh_data.append(['Begrunnelse:', fd.bh_begrunnelse])
 
             table = Table(bh_data, colWidths=[4*cm, 12*cm])
             table.setStyle(TableStyle([
                 ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
                 ('FONTSIZE', (0, 0), (-1, -1), 9),
-                ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#555555')),
+                ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor(self.COLORS['muted'])),
                 ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
             ]))
@@ -550,7 +586,7 @@ class ReportLabPdfGenerator:
             return elements
 
         # 1. EO-identifikasjon
-        elements.append(Paragraph(f"1. Endringsordre {eo.eo_nummer}", self.styles['KoeSectionHeader']))
+        elements.append(Paragraph(f"1. Endringsordre {eo.eo_nummer} (§31.3)", self.styles['KoeSectionHeader']))
         elements.append(Paragraph("<b>BYGGHERRE UTSTEDER:</b>", self.styles['KoeSubHeader']))
 
         bh_data = [
@@ -559,11 +595,10 @@ class ReportLabPdfGenerator:
         ]
 
         if eo.dato_utstedt:
-            bh_data.append(['Dato utstedt:', eo.dato_utstedt])
+            bh_data.append(['Dato utstedt:', self._format_date_norwegian(eo.dato_utstedt)])
 
         if eo.beskrivelse:
-            beskr = eo.beskrivelse[:150] + '...' if len(eo.beskrivelse) > 150 else eo.beskrivelse
-            bh_data.append(['Beskrivelse:', beskr])
+            bh_data.append(['Beskrivelse:', eo.beskrivelse])
 
         # Konsekvenser
         konsekvenser = []
@@ -581,16 +616,16 @@ class ReportLabPdfGenerator:
 
         # Beløp
         if eo.kompensasjon_belop is not None:
-            bh_data.append(['Kompensasjon:', f"{eo.kompensasjon_belop:,.0f} kr"])
+            bh_data.append(['Kompensasjon:', self._format_currency(eo.kompensasjon_belop)])
 
         if eo.frist_dager is not None:
             bh_data.append(['Fristforlengelse:', f"{eo.frist_dager} dager"])
 
         if eo.oppgjorsform:
             oppgjor_labels = {
-                'ENHETSPRISER': 'Enhetspriser',
-                'REGNINGSARBEID': 'Regningsarbeid',
-                'FASTPRIS_TILBUD': 'Fastpris tilbud'
+                'ENHETSPRISER': 'Enhetspriser (§34.3)',
+                'REGNINGSARBEID': 'Regningsarbeid (§34.4)',
+                'FASTPRIS_TILBUD': 'Avtalt vederlagsjustering (§34.2.1)'
             }
             bh_data.append(['Oppgjørsform:', oppgjor_labels.get(eo.oppgjorsform, eo.oppgjorsform)])
 
@@ -601,7 +636,7 @@ class ReportLabPdfGenerator:
         table.setStyle(TableStyle([
             ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, -1), 9),
-            ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#555555')),
+            ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor(self.COLORS['muted'])),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
         ]))
@@ -617,17 +652,16 @@ class ReportLabPdfGenerator:
             ]
 
             if eo.dato_te_respons:
-                te_data.append(['Dato respons:', eo.dato_te_respons])
+                te_data.append(['Dato respons:', self._format_date_norwegian(eo.dato_te_respons)])
 
             if eo.te_kommentar:
-                komm = eo.te_kommentar[:150] + '...' if len(eo.te_kommentar) > 150 else eo.te_kommentar
-                te_data.append(['Kommentar:', komm])
+                te_data.append(['Kommentar:', eo.te_kommentar])
 
             table = Table(te_data, colWidths=[4*cm, 12*cm])
             table.setStyle(TableStyle([
                 ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
                 ('FONTSIZE', (0, 0), (-1, -1), 9),
-                ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#555555')),
+                ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor(self.COLORS['muted'])),
                 ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
             ]))
