@@ -626,6 +626,7 @@ export function CasePage() {
               event_id: `frist-response-${sakId}`,
               resultat: state.frist.bh_resultat,
               godkjent_dager: state.frist.godkjent_dager,
+              begrunnelse: state.frist.bh_begrunnelse,
             } : undefined}
             fristTilstand={state.frist}
           />
