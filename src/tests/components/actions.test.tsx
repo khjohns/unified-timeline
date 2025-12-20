@@ -214,10 +214,10 @@ describe('Action/Modal Components - Functional Tests', () => {
       expect(screen.getByText(/Krav om Vederlagsjustering/i)).toBeInTheDocument();
     });
 
-    it('should have beregningsmetode field', () => {
+    it('should have oppgjørsform field', () => {
       renderWithQueryClient(<SendVederlagModal {...defaultProps} />);
 
-      expect(screen.getByText(/Beregningsmetode/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/Oppgjørsform/i).length).toBeGreaterThan(0);
     });
 
     it('should have begrunnelse field', () => {
@@ -403,7 +403,7 @@ describe('Action/Modal Components - Functional Tests', () => {
       renderWithQueryClient(<ReviseVederlagModal {...defaultProps} />);
 
       expect(screen.getByRole('button', { name: /Avbryt/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Oppdater Krav/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Send Revisjon/i })).toBeInTheDocument();
     });
   });
 
