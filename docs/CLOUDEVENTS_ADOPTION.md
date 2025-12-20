@@ -47,7 +47,7 @@ CloudEvents er en CNCF-standard for å beskrive events i et felles format. Denne
 |------|-------------|---------|-----------|
 | 1 | Kompatibilitetslag | 2-4 timer | Høy |
 | 2 | Serialiseringsstøtte | 4-8 timer | Middels |
-| 3 | Webhook-integrasjon | 8-16 timer | Middels |
+| 3 | ~~Webhook-integrasjon~~ | ~~8-16 timer~~ | ⏸️ Ikke aktuelt |
 | 4 | Full migrering | 16-24 timer | Lav |
 | 5 | Azure Event Grid | 16-24 timer | Avhenger av behov |
 
@@ -559,25 +559,44 @@ Eksempler:
 
 ---
 
-### Fase 3: Webhook-integrasjon (Prioritet: Middels)
+### Fase 3: Webhook-integrasjon (⏸️ IKKE AKTUELT)
 
-**Mål:** Sende og motta webhooks i CloudEvents-format.
+> **Status:** Denne fasen er ikke relevant for Catenda-integrasjonen.
 
-**Oppgaver:**
-- [ ] Oppdatere Catenda webhook-mottak til å støtte CloudEvents
-- [ ] Implementere CloudEvents-format for utgående webhooks
-- [ ] Legge til HTTP binding (CloudEvents over HTTP)
-- [ ] Implementere batch-støtte for flere events
-- [ ] Legge til signaturverifisering for CloudEvents
+**Begrunnelse:**
 
-**Kode-endringer:**
-- `backend/routes/webhook_routes.py` - CloudEvents-mottak
-- `backend/services/webhook_service.py` - CloudEvents-sending
-- `backend/integrations/catenda/client.py` - CloudEvents-støtte
+Catenda webhooks bruker et proprietært format, ikke CloudEvents:
 
-**Estimat:** 8-16 timer
+```json
+{
+  "event": {
+    "id": "evt_12345",
+    "type": "issue.created"
+  },
+  "issue": { ... }
+}
+```
 
-**Risiko:** Middels - krever koordinering med Catenda
+I tillegg:
+- Catenda støtter **ikke** HMAC-signering av webhooks
+- Catenda fjerner query parameters fra webhook URL-er
+- Systemet sender ikke webhooks tilbake til Catenda (bruker REST API)
+
+**Når blir denne fasen aktuell?**
+
+Fase 3 blir relevant hvis/når:
+1. **Azure Event Grid implementeres (Fase 5)** - da kan CloudEvents HTTP binding brukes for publisering
+2. **Egen webhook-tjeneste for tredjeparter** - hvis andre systemer skal motta events fra oss
+3. **Nye integrasjonspartnere** - som faktisk støtter CloudEvents
+
+**Originale oppgaver (for fremtidig referanse):**
+- ~~Oppdatere Catenda webhook-mottak til å støtte CloudEvents~~
+- Implementere CloudEvents-format for utgående webhooks (aktuelt ved Fase 5)
+- Legge til HTTP binding (CloudEvents over HTTP) (aktuelt ved Fase 5)
+- ~~Implementere batch-støtte for flere events~~
+- ~~Legge til signaturverifisering for CloudEvents~~
+
+**Se:** Fase 5 (Azure Event Grid) for relatert arbeid
 
 ---
 
@@ -608,15 +627,19 @@ Eksempler:
 
 **Mål:** Publisere events til Azure Event Grid.
 
+> **Merk:** Denne fasen aktiverer deler av Fase 3 (CloudEvents HTTP binding for utgående events).
+
 **Oppgaver:**
 - [ ] Konfigurere Azure Event Grid topic
-- [ ] Implementere event-publisering
+- [ ] Implementere event-publisering (CloudEvents-format via `to_cloudevent()`)
+- [ ] Legge til CloudEvents HTTP binding for publisering
 - [ ] Sette opp event-subscriptions for Azure Functions
 - [ ] Implementere dead-letter håndtering
 - [ ] Legge til overvåking og alerting
 
 **Kode-endringer:**
 - `backend/services/eventgrid_service.py` - Ny service
+- `backend/lib/cloudevents/http_binding.py` - HTTP binding (fra Fase 3)
 - `backend/config.py` - Azure-konfigurasjon
 - Azure-infrastruktur (Terraform/Bicep)
 
