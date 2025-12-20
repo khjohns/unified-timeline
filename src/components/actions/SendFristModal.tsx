@@ -39,6 +39,7 @@ import {
   FRIST_VARSELTYPE_DESCRIPTIONS,
   VARSEL_METODER_OPTIONS,
   getHovedkategoriLabel,
+  erForceMajeure,
 } from '../../constants';
 import { differenceInDays } from 'date-fns';
 
@@ -203,6 +204,11 @@ export function SendFristModal({
   // Determine if this is a subsidiary claim (grunnlag was rejected)
   const erSubsidiaer = grunnlagEvent?.status === 'avslatt';
 
+  // Check if grunnlag is Force Majeure - only then show force_majeure option
+  const grunnlagErForceMajeure = grunnlagEvent?.hovedkategori
+    ? erForceMajeure(grunnlagEvent.hovedkategori)
+    : false;
+
   const onSubmit = (data: FristFormData) => {
     // Build VarselInfo structures
     // For nøytralt varsel: use today's date and 'system' method if "sendes nå" is checked
@@ -300,14 +306,17 @@ export function SendFristModal({
             control={control}
             render={({ field }) => (
               <RadioGroup value={field.value} onValueChange={field.onChange} data-testid="frist-varsel-type">
-                {FRIST_VARSELTYPE_OPTIONS.filter(opt => opt.value !== '').map((option) => (
-                  <RadioItem
-                    key={option.value}
-                    id={`varsel_type_${option.value}`}
-                    value={option.value}
-                    label={option.label}
-                  />
-                ))}
+                {FRIST_VARSELTYPE_OPTIONS
+                  .filter(opt => opt.value !== '')
+                  .filter(opt => opt.value !== 'force_majeure' || grunnlagErForceMajeure)
+                  .map((option) => (
+                    <RadioItem
+                      key={option.value}
+                      id={`varsel_type_${option.value}`}
+                      value={option.value}
+                      label={option.label}
+                    />
+                  ))}
               </RadioGroup>
             )}
           />

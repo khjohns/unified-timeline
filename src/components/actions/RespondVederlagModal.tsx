@@ -119,19 +119,16 @@ const respondVederlagSchema = z.object({
   // Port 1: Særskilte krav preklusjon (kun §34.1.3)
   rigg_varslet_i_tide: z.boolean().optional(),
   produktivitet_varslet_i_tide: z.boolean().optional(),
-  begrunnelse_preklusjon: z.string().optional(),
 
   // Port 2: Oppgjørsform
   aksepterer_metode: z.boolean(),
   oensket_metode: z.enum(['ENHETSPRISER', 'REGNINGSARBEID', 'FASTPRIS_TILBUD']).optional(),
   ep_justering_akseptert: z.boolean().optional(),
   hold_tilbake: z.boolean().optional(),
-  begrunnelse_metode: z.string().optional(),
 
   // Port 3: Beløpsvurdering - Hovedkrav
   hovedkrav_vurdering: z.enum(['godkjent', 'delvis', 'avslatt']),
   hovedkrav_godkjent_belop: z.number().min(0).optional(),
-  hovedkrav_begrunnelse: z.string().optional(),
 
   // Port 3: Beløpsvurdering - Særskilte (kun hvis ikke prekludert)
   rigg_vurdering: z.enum(['godkjent', 'delvis', 'avslatt']).optional(),
@@ -360,6 +357,20 @@ export function RespondVederlagModal({
     }
   }, [vederlagEvent?.metode]);
 
+  // Help text for the alternative method BH selects when rejecting the proposed one
+  const oensketMetodeHelpText = useMemo(() => {
+    switch (formValues.oensket_metode) {
+      case 'ENHETSPRISER':
+        return 'Oppgjør basert på kontraktens enhetspriser (§34.3). Krever at kontrakten har relevante enhetspriser for arbeidet.';
+      case 'REGNINGSARBEID':
+        return 'Oppgjør basert på dokumenterte kostnader + påslag (§34.4/§30). Du kan kreve kostnadsoverslag og holde tilbake betaling (§30.2).';
+      case 'FASTPRIS_TILBUD':
+        return 'Du ber entreprenør gi et spesifisert tilbud (§34.2.1). Entreprenør må da gi et komplett pristilbud for hele arbeidet.';
+      default:
+        return 'Velg hvilken oppgjørsform du krever for dette vederlagskravet.';
+    }
+  }, [formValues.oensket_metode]);
+
   const hovedkravBelop =
     vederlagEvent?.metode === 'REGNINGSARBEID'
       ? vederlagEvent?.kostnads_overslag
@@ -578,7 +589,6 @@ export function RespondVederlagModal({
       isValid = await trigger([
         'rigg_varslet_i_tide',
         'produktivitet_varslet_i_tide',
-        'begrunnelse_preklusjon',
       ]);
     } else if (currentStepType === 'metode') {
       isValid = await trigger([
@@ -586,7 +596,6 @@ export function RespondVederlagModal({
         'oensket_metode',
         'ep_justering_akseptert',
         'hold_tilbake',
-        'begrunnelse_metode',
       ]);
     } else if (currentStepType === 'belop') {
       isValid = await trigger([
@@ -639,14 +648,12 @@ export function RespondVederlagModal({
         // Port 1: Preklusjon
         rigg_varslet_i_tide: data.rigg_varslet_i_tide,
         produktivitet_varslet_i_tide: data.produktivitet_varslet_i_tide,
-        begrunnelse_preklusjon: data.begrunnelse_preklusjon,
 
         // Port 2: Oppgjørsform
         aksepterer_metode: data.aksepterer_metode,
         oensket_metode: data.oensket_metode,
         ep_justering_akseptert: data.ep_justering_akseptert,
         hold_tilbake: data.hold_tilbake,
-        begrunnelse_metode: data.begrunnelse_metode,
 
         // Port 3: Beløp
         hovedkrav_vurdering: data.hovedkrav_vurdering,
@@ -656,7 +663,6 @@ export function RespondVederlagModal({
             : data.hovedkrav_vurdering === 'delvis'
               ? data.hovedkrav_godkjent_belop
               : 0,
-        hovedkrav_begrunnelse: data.hovedkrav_begrunnelse,
 
         // Rigg/drift: BH's faktiske vurdering (preklusion bestemmes av rigg_varslet_i_tide)
         rigg_vurdering: data.rigg_vurdering,
@@ -950,19 +956,6 @@ export function RespondVederlagModal({
                 </div>
               )}
 
-              {/* Begrunnelse for preklusjon */}
-              {(riggPrekludert || produktivitetPrekludert) && (
-                <FormField
-                  label="Begrunnelse for preklusjon"
-                  helpText="Begrunn hvorfor varselet kom for sent"
-                >
-                  <Textarea
-                    {...register('begrunnelse_preklusjon')}
-                    rows={3}
-                    fullWidth
-                  />
-                </FormField>
-              )}
             </div>
           )}
 
@@ -1007,7 +1000,7 @@ export function RespondVederlagModal({
                 {/* Ønsket metode - show when rejecting */}
                 {!formValues.aksepterer_metode && (
                   <div className="mt-4 ml-6 border-l-2 border-pkt-border-subtle pl-4">
-                    <FormField label="Hvilken oppgjørsform krever du?" required>
+                    <FormField label="Hvilken oppgjørsform krever du?" required helpText={oensketMetodeHelpText}>
                       <Controller
                         name="oensket_metode"
                         control={control}
@@ -1038,18 +1031,6 @@ export function RespondVederlagModal({
                         annet.
                       </Alert>
                     )}
-
-                    <FormField
-                      label="Begrunnelse for endring av oppgjørsform"
-                      className="mt-3"
-                      helpText="Begrunn hvorfor du krever en annen oppgjørsform"
-                    >
-                      <Textarea
-                        {...register('begrunnelse_metode')}
-                        rows={3}
-                        fullWidth
-                      />
-                    </FormField>
                   </div>
                 )}
               </div>
@@ -1177,17 +1158,6 @@ export function RespondVederlagModal({
                   </div>
                 )}
 
-                {/* Begrunnelse - show when not godkjent */}
-                {formValues.hovedkrav_vurdering !== 'godkjent' && (
-                  <FormField label="Begrunnelse" className="mt-4">
-                    <Textarea
-                      {...register('hovedkrav_begrunnelse')}
-                      rows={2}
-                      fullWidth
-                      placeholder="Begrunn din vurdering..."
-                    />
-                  </FormField>
-                )}
               </div>
 
               {/* RIGG/DRIFT - alltid evaluerbar (subsidiært hvis prekludert) */}

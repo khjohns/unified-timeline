@@ -95,7 +95,6 @@ const respondFristSchema = z.object({
   spesifisert_krav_ok: z.boolean().optional(),
   send_etterlysning: z.boolean().optional(),
   frist_for_spesifisering: z.string().optional(),
-  begrunnelse_preklusjon: z.string().optional(),
 
   // Port 2: Vilkår (alltid vurderes, evt. subsidiært)
   vilkar_oppfylt: z.boolean(),
@@ -104,7 +103,6 @@ const respondFristSchema = z.object({
   // Port 3: Beregning (alltid vurderes, evt. subsidiært)
   godkjent_dager: z.number().min(0, 'Antall dager kan ikke være negativt'),
   ny_sluttdato: z.string().optional(),
-  begrunnelse_beregning: z.string().optional(),
 
   // Port 4: Oppsummering
   // Note: auto_begrunnelse is generated, not user-editable
@@ -441,12 +439,11 @@ export function RespondFristModal({
         'noytralt_varsel_ok',
         'spesifisert_krav_ok',
         'send_etterlysning',
-        'begrunnelse_preklusjon',
       ]);
     } else if (currentStepType === 'vilkar') {
-      isValid = await trigger(['vilkar_oppfylt', 'begrunnelse_vilkar']);
+      isValid = await trigger(['vilkar_oppfylt']);
     } else if (currentStepType === 'beregning') {
-      isValid = await trigger(['godkjent_dager', 'begrunnelse_beregning']);
+      isValid = await trigger(['godkjent_dager']);
     }
     // 'oversikt' has no validation - just informational
 
@@ -499,7 +496,6 @@ export function RespondFristModal({
         spesifisert_krav_ok: data.spesifisert_krav_ok,
         send_etterlysning: data.send_etterlysning,
         frist_for_spesifisering: data.frist_for_spesifisering,
-        begrunnelse_preklusjon: data.begrunnelse_preklusjon,
 
         // Port 2: Vilkår
         vilkar_oppfylt: data.vilkar_oppfylt,
@@ -508,7 +504,6 @@ export function RespondFristModal({
         // Port 3: Beregning
         godkjent_dager: godkjentDager,
         ny_sluttdato: data.ny_sluttdato,
-        begrunnelse_beregning: data.begrunnelse_beregning,
 
         // Port 4: Oppsummering - combined auto + user begrunnelse
         begrunnelse: samletBegrunnelse,
@@ -866,20 +861,6 @@ export function RespondFristModal({
                 </div>
               )}
 
-              {/* Begrunnelse for preklusjon */}
-              {erPrekludert && (
-                <FormField
-                  label="Begrunnelse for preklusjon"
-                  helpText="Begrunn hvorfor varselet kom for sent"
-                >
-                  <Textarea
-                    {...register('begrunnelse_preklusjon')}
-                    rows={3}
-                    fullWidth
-                  />
-                </FormField>
-              )}
-
               {/* Preview of consequence */}
               {erPrekludert && !sendEtterlysning && (
                 <Alert variant="info" title="Subsidiær vurdering">
@@ -963,7 +944,7 @@ export function RespondFristModal({
                     </FormField>
                   </div>
 
-                  {/* Begrunnelse vilkår */}
+                  {/* Begrunnelse vilkår - viktig at dette fylles ut */}
                   <FormField
                     label="Begrunnelse"
                     helpText="Beskriv hvorfor forholdet medførte/ikke medførte forsinkelse"
@@ -1078,24 +1059,6 @@ export function RespondFristModal({
                       </FormField>
                     )}
                   </div>
-
-                  {/* Begrunnelse beregning */}
-                  {(formValues.godkjent_dager !== effektivKrevdDager || port3ErSubsidiaer) && (
-                    <FormField
-                      label="Begrunnelse"
-                      helpText={
-                        port3ErSubsidiaer
-                          ? 'Begrunn ditt subsidiære standpunkt'
-                          : 'Begrunn din vurdering av antall dager'
-                      }
-                    >
-                      <Textarea
-                        {...register('begrunnelse_beregning')}
-                        rows={3}
-                        fullWidth
-                      />
-                    </FormField>
-                  )}
 
                   {/* §33.8 Forsering warning */}
                   {visForsering && avslatteDager > 0 && !port3ErSubsidiaer && (
