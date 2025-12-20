@@ -2,7 +2,7 @@
 
 **Dokumentasjon av frontend-arkitektur, komponentstruktur og tekniske beslutninger**
 
-*Sist oppdatert: 2025-12-19*
+*Sist oppdatert: 2025-12-20*
 
 ---
 
@@ -122,7 +122,9 @@ src/
 │   ├── views/             # Side-nivå view-komponenter (8 stk)
 │   ├── PageHeader.tsx     # Page header-komponent
 │   ├── ModeToggle.tsx     # Utviklingsmodus-toggle
-│   └── ThemeToggle.tsx    # Lys/mørk tema-toggle
+│   ├── ThemeToggle.tsx    # Lys/mørk tema-toggle
+│   ├── ErrorBoundary.tsx  # Feilhåndtering (fanger React-feil)
+│   └── PageLoadingFallback.tsx  # Loading-fallback for lazy-loading
 │
 ├── context/               # React Context providers
 │   ├── AuthContext.tsx    # Magic link-autentisering
@@ -165,7 +167,8 @@ src/
 │   ├── categories.ts      # Kategoridefinisjoner
 │   ├── statusLabels.ts    # Status-etiketter
 │   ├── responseOptions.ts # Svaralternativer
-│   └── varselMetoder.ts   # Varslingsmetoder
+│   ├── varselMetoder.ts   # Varslingsmetoder
+│   └── queryConfig.ts     # React Query-konfigurasjon (STALE_TIME)
 │
 ├── utils/                 # Hjelpefunksjoner
 │   ├── preklusjonssjekk.ts      # Fritsberegninger
@@ -512,21 +515,42 @@ export function useSubmitEvent(sakId: string, options?: UseSubmitEventOptions) {
 
 ### React Query-konfigurasjon
 
+Konfigurasjon er sentralisert i `src/constants/queryConfig.ts`:
+
+```tsx
+// src/constants/queryConfig.ts
+export const STALE_TIME = {
+  DEFAULT: 30_000,   // 30 sekunder (standard)
+  EXTENDED: 60_000,  // 60 sekunder (relasjonelle queries)
+  SHORT: 10_000,     // 10 sekunder (hyppig oppdatering)
+} as const;
+
+export const defaultQueryOptions = {
+  staleTime: STALE_TIME.DEFAULT,
+  refetchOnWindowFocus: false,
+  retry: 1,
+} as const;
+```
+
 ```tsx
 // src/main.tsx
+import { STALE_TIME } from './constants/queryConfig';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,                     // Retry mislykkede queries én gang
-      refetchOnWindowFocus: false,  // Ikke refetch ved vindusfokus
-      staleTime: 30_000,            // 30 sekunder før data er stale
+      retry: 1,
+      refetchOnWindowFocus: false,
+      staleTime: STALE_TIME.DEFAULT,
     },
     mutations: {
-      retry: 0,                     // Ikke retry mutations
+      retry: 0,
     },
   },
 });
 ```
+
+Bruk `STALE_TIME.EXTENDED` for relasjonelle queries (forsering/endringsordre) som endres sjeldnere.
 
 ---
 
@@ -534,18 +558,33 @@ const queryClient = new QueryClient({
 
 ### Ruteoversikt
 
+Alle sider er lazy-loadet med `React.lazy()` for bedre initial lastytelse:
+
 ```tsx
 // src/App.tsx
+import React, { Suspense, lazy } from 'react';
+import { PageLoadingFallback } from './components/PageLoadingFallback';
+
+// Lazy-loadede sider (code splitting)
+const AuthLanding = lazy(() => import('./pages/AuthLanding'));
+const CasePage = lazy(() => import('./pages/CasePage'));
+const ForseringPage = lazy(() => import('./pages/ForseringPage'));
+const EndringsordePage = lazy(() => import('./pages/EndringsordePage'));
+const ExampleCasesPage = lazy(() => import('./pages/ExampleCasesPage'));
+const ComponentShowcase = lazy(() => import('./pages/ComponentShowcase'));
+
 const App: React.FC = () => {
   return (
-    <Routes>
-      <Route path="/" element={<AuthLanding />} />
-      <Route path="/demo" element={<ExampleCasesPage />} />
-      <Route path="/saker/:sakId" element={<CasePage />} />
-      <Route path="/forsering/:sakId" element={<ForseringPage />} />
-      <Route path="/endringsordre/:sakId" element={<EndringsordePage />} />
-      <Route path="/showcase" element={<ComponentShowcase />} />
-    </Routes>
+    <Suspense fallback={<PageLoadingFallback />}>
+      <Routes>
+        <Route path="/" element={<AuthLanding />} />
+        <Route path="/demo" element={<ExampleCasesPage />} />
+        <Route path="/saker/:sakId" element={<CasePage />} />
+        <Route path="/forsering/:sakId" element={<ForseringPage />} />
+        <Route path="/endringsordre/:sakId" element={<EndringsordePage />} />
+        <Route path="/showcase" element={<ComponentShowcase />} />
+      </Routes>
+    </Suspense>
   );
 };
 ```
@@ -568,13 +607,17 @@ const App: React.FC = () => {
 <BrowserRouter basename={import.meta.env.BASE_URL}>
   <ThemeProvider>
     <AuthProvider>
-      <QueryClientProvider client={queryClient}>
-        <App />
-      </QueryClientProvider>
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <App />
+        </QueryClientProvider>
+      </ErrorBoundary>
     </AuthProvider>
   </ThemeProvider>
 </BrowserRouter>
 ```
+
+`ErrorBoundary` fanger ubehandlede React-feil og viser en brukervennlig feilside med mulighet for å prøve på nytt.
 
 **Base URL-konfigurasjon:**
 
@@ -869,8 +912,24 @@ export default defineConfig(({ mode }) => {
 | Chunk | Innhold | Størrelse |
 |-------|---------|-----------|
 | `vendor-react` | React, ReactDOM, Router | ~150KB |
-| `vendor-pdf` | PDF-biblioteker | ~500KB |
+| `vendor-pdf` | PDF-biblioteker (lazy-loadet) | ~500KB |
 | `main` | Applikasjonskode | ~200KB |
+| Side-chunks | Lazy-loadede sider | ~10-50KB hver |
+
+**Lazy loading av PDF:**
+
+PDF-biblioteker lastes dynamisk kun når de trengs:
+
+```tsx
+// Dynamisk import i useSubmitEvent.ts og CasePage.tsx
+const { generateContractorClaimPdf, blobToBase64 } = await import('../pdf/generator');
+
+// PDF-download
+const { downloadContractorClaimPdf } = await import('../pdf/generator');
+downloadContractorClaimPdf(state);
+```
+
+Dette reduserer initial bundle fra ~985KB til ~443KB (55% reduksjon).
 
 ### NPM-scripts
 
@@ -1057,6 +1116,9 @@ rules: {
 | **API-klient** | `src/api/client.ts` |
 | **Auth** | `src/context/AuthContext.tsx` |
 | **Tema** | `src/context/ThemeContext.tsx` |
+| **ErrorBoundary** | `src/components/ErrorBoundary.tsx` |
+| **PageLoadingFallback** | `src/components/PageLoadingFallback.tsx` |
+| **Query Config** | `src/constants/queryConfig.ts` |
 | **Primitiver** | `src/components/primitives/` (23 komponenter) |
 | **Views** | `src/components/views/` (8 komponenter) |
 | **Actions** | `src/components/actions/` (12 modaler) |
@@ -1079,6 +1141,7 @@ Frontend-arkitekturen i Unified Timeline er bygget på moderne prinsipper:
 3. **Tilgjengelighet** - WCAG 2.1 AA-kompatibilitet
 4. **Separasjon av ansvar** - Klare lag (API, state, komponenter, sider)
 5. **Utvikleropplevelse** - Rask feedback, god tooling, tydelige mønstre
-6. **Ytelse** - React Query-caching, kode-splitting
-7. **Konsistent styling** - Tailwind v4 + Punkt designtokens
-8. **Testklart** - Vitest + Playwright for enhets- og E2E-tester
+6. **Ytelse** - React Query-caching, lazy loading av sider og PDF (~55% bundle-reduksjon)
+7. **Robusthet** - ErrorBoundary for graceful feilhåndtering
+8. **Konsistent styling** - Tailwind v4 + Punkt designtokens
+9. **Testklart** - Vitest + Playwright for enhets- og E2E-tester
