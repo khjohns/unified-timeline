@@ -347,7 +347,8 @@ export function SendVederlagModal({
                   render={({ field }) => (
                     <Checkbox
                       id="krever_justert_ep"
-                      label="Krever justerte enhetspriser"
+                      label="Krever justerte enhetspriser (§34.3.3)"
+                      description="Gjelder når forutsetningene for enhetsprisene forrykkes, f.eks. pga. endret omfang, tidspunkt eller antall endringsarbeider (§34.3.2)"
                       checked={field.value}
                       onCheckedChange={field.onChange}
                     />
@@ -355,8 +356,8 @@ export function SendVederlagModal({
                 />
                 {kreverJustertEp && (
                   <Alert variant="warning" className="mt-3">
-                    Krav om justert enhetspris må varsles «uten ugrunnet opphold» etter at forholdet oppsto.
-                    Hvis ikke, får du kun det byggherren «måtte forstå» (§34.3.3).
+                    Krav om justerte enhetspriser må varsles «uten ugrunnet opphold» etter at forholdet oppsto.
+                    Uten rettidig varsel har du bare krav på den justering byggherren «måtte forstå» (§34.3.3).
                   </Alert>
                 )}
               </div>

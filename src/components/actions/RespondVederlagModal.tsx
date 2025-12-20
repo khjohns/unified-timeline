@@ -1037,9 +1037,10 @@ export function RespondVederlagModal({
               {/* §34.3.3 EP-justering - SVARPLIKT */}
               {maSvarePaJustering && (
                 <div className="space-y-3">
-                  <Alert variant="danger" title="Svarplikt: EP-justering (§34.3.3)">
-                    Entreprenøren krever justerte enhetspriser. Du må ta stilling til dette nå.
-                    Passivitet medfører at kravet anses akseptert.
+                  <Alert variant="danger" title="Svarplikt: Justerte enhetspriser (§34.3.3)">
+                    Entreprenøren krever justerte enhetspriser fordi forutsetningene for enhetsprisene
+                    har endret seg (§34.3.2). Du må ta stilling til dette «uten ugrunnet opphold».
+                    Passivitet medfører at du mister dine innsigelser mot kravet.
                   </Alert>
                   <FormField label="Aksepterer du justering av enhetspriser?" required>
                     <Controller
@@ -1052,8 +1053,16 @@ export function RespondVederlagModal({
                           }
                           onValueChange={(val: string) => field.onChange(val === 'ja')}
                         >
-                          <RadioItem value="ja" label="Ja - aksepterer justering" />
-                          <RadioItem value="nei" label="Nei - avviser justering" />
+                          <RadioItem
+                            value="ja"
+                            label="Ja - aksepterer justering"
+                            description="Enhetsprisene justeres for fordyrelser/besparelser"
+                          />
+                          <RadioItem
+                            value="nei"
+                            label="Nei - avviser justering"
+                            description="TE får bare den justering du «måtte forstå» at forholdet ville føre til"
+                          />
                         </RadioGroup>
                       )}
                     />

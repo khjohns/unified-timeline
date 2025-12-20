@@ -654,7 +654,7 @@ export function ReviseVederlagModal({
                   <Checkbox
                     id="krever_justert_ep"
                     label="Krever justerte enhetspriser (§34.3.3)"
-                    description="Enhetsprisene må justeres pga. endrede forhold"
+                    description="Gjelder når forutsetningene for enhetsprisene forrykkes, f.eks. pga. endret omfang, tidspunkt eller antall endringsarbeider (§34.3.2)"
                     checked={field.value}
                     onCheckedChange={field.onChange}
                   />
@@ -663,15 +663,15 @@ export function ReviseVederlagModal({
 
               {kreverJustertEp && bhAvvisteEpJustering && (
                 <Alert variant="warning" className="mt-3">
-                  Du opprettholder kravet om justert EP selv om BH avviste det.
+                  Du opprettholder kravet om justerte enhetspriser selv om BH avviste det.
                   Begrunn hvorfor du mener varselet var i tide.
                 </Alert>
               )}
 
               {kreverJustertEp && !bhAvvisteEpJustering && (
                 <Alert variant="info" className="mt-3">
-                  Krav om justert enhetspris må varsles &ldquo;uten ugrunnet opphold&rdquo;
-                  etter at forholdet oppsto (§34.3.3).
+                  Krav om justerte enhetspriser må varsles «uten ugrunnet opphold» etter at forholdet oppsto.
+                  Uten rettidig varsel har du bare krav på den justering BH «måtte forstå» (§34.3.3).
                 </Alert>
               )}
             </div>
