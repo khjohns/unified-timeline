@@ -80,6 +80,7 @@ SERVERS = [
 
 TAGS = [
     {"name": "Events", "description": "Event submission and case state management"},
+    {"name": "CloudEvents", "description": "CloudEvents v1.0 support - schemas and format negotiation"},
     {"name": "Forsering", "description": "Forsering (acceleration) cases per NS 8407 §33.8"},
     {"name": "Endringsordre", "description": "Endringsordre (change order) cases per NS 8407 §31.3"},
     {"name": "Utility", "description": "Authentication and utility endpoints"},
@@ -289,6 +290,87 @@ Main category for grounds (NS 8407 §33.1):
             "state": {
                 "type": "object",
                 "description": "Computed case state"
+            }
+        }
+    }
+
+    # CloudEvents schemas
+    schemas["CloudEvent"] = {
+        "type": "object",
+        "description": "CloudEvents v1.0 structured content format",
+        "required": ["specversion", "id", "source", "type"],
+        "properties": {
+            "specversion": {
+                "type": "string",
+                "example": "1.0",
+                "description": "CloudEvents specification version"
+            },
+            "id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Unique event identifier"
+            },
+            "source": {
+                "type": "string",
+                "example": "/projects/P-2025-001/cases/KOE-2025-042",
+                "description": "Source URI: /projects/{prosjekt_id}/cases/{sak_id}"
+            },
+            "type": {
+                "type": "string",
+                "example": "no.oslo.koe.grunnlag_opprettet",
+                "description": "Event type with namespace"
+            },
+            "time": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Event timestamp in RFC 3339 format"
+            },
+            "subject": {
+                "type": "string",
+                "description": "Subject identifier (sak_id)"
+            },
+            "datacontenttype": {
+                "type": "string",
+                "example": "application/json",
+                "description": "Content type of data attribute"
+            },
+            "dataschema": {
+                "type": "string",
+                "format": "uri",
+                "description": "URI to JSON Schema for data payload"
+            },
+            "actor": {
+                "type": "string",
+                "description": "Extension: Name of person who performed the action"
+            },
+            "actorrole": {
+                "type": "string",
+                "enum": ["TE", "BH"],
+                "description": "Extension: Role (TE=Totalentreprenor, BH=Byggherre)"
+            },
+            "referstoid": {
+                "type": "string",
+                "description": "Extension: Reference to another event ID"
+            },
+            "data": {
+                "type": "object",
+                "description": "Event-specific data payload"
+            }
+        }
+    }
+
+    schemas["CloudEventsTimelineResponse"] = {
+        "type": "object",
+        "description": "Timeline response in CloudEvents format (Accept: application/cloudevents+json)",
+        "properties": {
+            "version": {
+                "type": "integer",
+                "description": "Current version for optimistic concurrency"
+            },
+            "events": {
+                "type": "array",
+                "items": {"$ref": "#/components/schemas/CloudEvent"},
+                "description": "List of events in CloudEvents format"
             }
         }
     }
@@ -1267,6 +1349,167 @@ Get KOE cases that can be added to an endringsordre.
                                                 "status": {"type": "string"}
                                             }
                                         }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    # =========================================================================
+    # CLOUDEVENTS API
+    # =========================================================================
+
+    paths["/api/cloudevents/schemas"] = {
+        "get": {
+            "tags": ["CloudEvents"],
+            "summary": "List all event data schemas",
+            "description": """
+List all available event types with their CloudEvents type names
+and links to their JSON schemas.
+
+This endpoint helps clients discover available event types and
+their data schemas for validation.
+""".strip(),
+            "operationId": "listCloudEventSchemas",
+            "responses": {
+                "200": {
+                    "description": "List of event schemas",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "namespace": {
+                                        "type": "string",
+                                        "example": "no.oslo.koe"
+                                    },
+                                    "specversion": {
+                                        "type": "string",
+                                        "example": "1.0"
+                                    },
+                                    "event_types": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "event_type": {"type": "string"},
+                                                "cloudevents_type": {"type": "string"},
+                                                "schema_url": {"type": "string"},
+                                                "has_data_schema": {"type": "boolean"}
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    paths["/api/cloudevents/schemas/{event_type}"] = {
+        "get": {
+            "tags": ["CloudEvents"],
+            "summary": "Get JSON Schema for event type",
+            "description": """
+Get the JSON Schema that describes the `data` attribute for events
+of the specified type. Use with CloudEvents `dataschema` attribute.
+""".strip(),
+            "operationId": "getEventSchema",
+            "parameters": [
+                {
+                    "name": "event_type",
+                    "in": "path",
+                    "required": True,
+                    "schema": {"type": "string"},
+                    "example": "grunnlag_opprettet"
+                }
+            ],
+            "responses": {
+                "200": {
+                    "description": "JSON Schema for event data",
+                    "content": {
+                        "application/schema+json": {
+                            "schema": {
+                                "type": "object",
+                                "description": "JSON Schema (draft-07)"
+                            }
+                        }
+                    }
+                },
+                "404": {
+                    "description": "Unknown event type or no schema available",
+                    "content": {
+                        "application/json": {
+                            "schema": {"$ref": "#/components/schemas/Error"}
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    paths["/api/cloudevents/envelope-schema"] = {
+        "get": {
+            "tags": ["CloudEvents"],
+            "summary": "Get CloudEvents envelope schema",
+            "description": """
+Get the JSON Schema for the CloudEvents envelope structure,
+including all standard and extension attributes used by this API.
+""".strip(),
+            "operationId": "getCloudEventEnvelopeSchema",
+            "parameters": [
+                {
+                    "name": "format",
+                    "in": "query",
+                    "schema": {
+                        "type": "string",
+                        "enum": ["jsonschema", "openapi"],
+                        "default": "jsonschema"
+                    },
+                    "description": "Output format"
+                }
+            ],
+            "responses": {
+                "200": {
+                    "description": "CloudEvents envelope schema",
+                    "content": {
+                        "application/schema+json": {
+                            "schema": {
+                                "type": "object"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    paths["/api/cloudevents/all-schemas"] = {
+        "get": {
+            "tags": ["CloudEvents"],
+            "summary": "Get all schemas in one response",
+            "description": "Get envelope schema and all data schemas. Useful for caching.",
+            "operationId": "getAllCloudEventSchemas",
+            "responses": {
+                "200": {
+                    "description": "All schemas",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "namespace": {"type": "string"},
+                                    "specversion": {"type": "string"},
+                                    "envelope": {"type": "object"},
+                                    "data_schemas": {
+                                        "type": "object",
+                                        "additionalProperties": {"type": "object"}
                                     }
                                 }
                             }

@@ -463,3 +463,118 @@ Get complete context including related KOE cases, states, and events.
 
 ### Remove KOE from Endringsordre
 `DELETE /api/endringsordre/{sak_id}/koe/{koe_sak_id}`
+
+---
+
+## CloudEvents API
+
+This API supports [CloudEvents v1.0](https://cloudevents.io/) format for event interoperability.
+
+### CloudEvents Format
+
+Events can be retrieved in CloudEvents format by setting the `Accept` header:
+
+```
+Accept: application/cloudevents+json
+```
+
+**Example CloudEvent:**
+```json
+{
+  "specversion": "1.0",
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "source": "/projects/P-2025-001/cases/KOE-2025-042",
+  "type": "no.oslo.koe.grunnlag_opprettet",
+  "time": "2025-12-20T10:30:00Z",
+  "subject": "KOE-2025-042",
+  "datacontenttype": "application/json",
+  "actor": "Ola Nordmann",
+  "actorrole": "TE",
+  "data": {
+    "tittel": "Forsinket tegningsunderlag",
+    "hovedkategori": "forsinkelse_bh",
+    "beskrivelse": "..."
+  }
+}
+```
+
+**Extension Attributes:**
+- `actor`: Name of person who performed the action
+- `actorrole`: Role (TE=Totalentreprenør, BH=Byggherre)
+- `referstoid`: Reference to another event ID (for responses)
+- `comment`: Optional comment
+
+---
+
+### List Event Schemas
+`GET /api/cloudevents/schemas`
+
+List all available event types with their CloudEvents type names.
+
+**Response:**
+```json
+{
+  "namespace": "no.oslo.koe",
+  "specversion": "1.0",
+  "event_types": [
+    {
+      "event_type": "grunnlag_opprettet",
+      "cloudevents_type": "no.oslo.koe.grunnlag_opprettet",
+      "schema_url": "/api/cloudevents/schemas/grunnlag_opprettet",
+      "has_data_schema": true
+    }
+  ]
+}
+```
+
+---
+
+### Get Event Data Schema
+`GET /api/cloudevents/schemas/{event_type}`
+
+Get JSON Schema for a specific event type's data payload.
+
+**Response (Content-Type: application/schema+json):**
+```json
+{
+  "$id": "no.oslo.koe/grunnlag_opprettet/data",
+  "title": "GrunnlagData",
+  "type": "object",
+  "properties": {
+    "tittel": { "type": "string" },
+    "hovedkategori": { "type": "string" }
+  }
+}
+```
+
+---
+
+### Get CloudEvents Envelope Schema
+`GET /api/cloudevents/envelope-schema`
+
+Get JSON Schema for the CloudEvents envelope structure.
+
+Query params:
+- `format=jsonschema` (default) - Full JSON Schema
+- `format=openapi` - OpenAPI 3.0 compatible schema
+
+---
+
+### Get All Schemas
+`GET /api/cloudevents/all-schemas`
+
+Get envelope schema and all data schemas in a single response.
+Useful for caching.
+
+**Response:**
+```json
+{
+  "namespace": "no.oslo.koe",
+  "specversion": "1.0",
+  "envelope": { ... },
+  "data_schemas": {
+    "grunnlag_opprettet": { ... },
+    "vederlag_krav_sendt": { ... }
+  }
+}
+```
