@@ -2,7 +2,7 @@
 
 **Dokumentasjon av frontend-arkitektur, komponentstruktur og tekniske beslutninger**
 
-*Sist oppdatert: 2025-12-20*
+*Sist oppdatert: 2025-12-20 (CloudEvents-format)*
 
 ---
 
@@ -161,7 +161,7 @@ src/
 ├── types/                 # TypeScript-typedefinisjoner
 │   ├── index.ts           # Sentral eksport
 │   ├── api.ts             # API request/response-typer
-│   └── timeline.ts        # State og domenetyper
+│   └── timeline.ts        # State og domenetyper (CloudEvents-format)
 │
 ├── constants/             # Applikasjonskonstanter
 │   ├── categories.ts      # Kategoridefinisjoner
@@ -672,7 +672,7 @@ export async function apiFetch<T>(
 | Modul | Fil | Operasjoner |
 |-------|-----|-------------|
 | **Client** | `api/client.ts` | `apiFetch`, `setAuthToken`, `getAuthToken` |
-| **State** | `api/state.ts` | `fetchCaseState`, `fetchTimeline`, `fetchHistorikk` |
+| **State** | `api/state.ts` | `fetchCaseState`, `fetchTimeline` (CloudEvents-format) |
 | **Events** | `api/events.ts` | `submitEvent` |
 | **Forsering** | `api/forsering.ts` | `findForseringerForSak` |
 | **Endringsordre** | `api/endringsordre.ts` | `findEOerForSak` |
@@ -856,7 +856,7 @@ className={clsx(
 src/types/
 ├── index.ts           # Re-eksporterer alle typer
 ├── api.ts             # API request/response-typer
-└── timeline.ts        # Domenetyper (SakState, Event, etc.)
+└── timeline.ts        # Domenetyper (CloudEvent, SakState, etc.)
 ```
 
 ---
