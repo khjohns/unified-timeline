@@ -1,14 +1,14 @@
 import { describe, it } from 'vitest';
 import { render } from '@testing-library/react';
 import { axe } from 'jest-axe';
-import { expectNoA11yViolations } from '@/__tests__/axeHelper';
+import { expectNoA11yViolations } from '../../../__tests__/axeHelper';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { SendGrunnlagModal } from '@/src/components/actions/SendGrunnlagModal';
-import { SendVederlagModal } from '@/src/components/actions/SendVederlagModal';
-import { SendFristModal } from '@/src/components/actions/SendFristModal';
-import { RespondGrunnlagModal } from '@/src/components/actions/RespondGrunnlagModal';
-import { RespondVederlagModal } from '@/src/components/actions/RespondVederlagModal';
-import { RespondFristModal } from '@/src/components/actions/RespondFristModal';
+import { SendGrunnlagModal } from '@/components/actions/SendGrunnlagModal';
+import { SendVederlagModal } from '@/components/actions/SendVederlagModal';
+import { SendFristModal } from '@/components/actions/SendFristModal';
+import { RespondGrunnlagModal } from '@/components/actions/RespondGrunnlagModal';
+import { RespondVederlagModal } from '@/components/actions/RespondVederlagModal';
+import { RespondFristModal } from '@/components/actions/RespondFristModal';
 
 // Helper to wrap components with QueryClient provider
 const createWrapper = () => {

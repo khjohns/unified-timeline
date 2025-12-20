@@ -489,7 +489,7 @@ export function CasePage() {
             <h3 className="text-sm font-semibold text-pkt-text-body-dark mb-2 sm:mb-3">
               Revisjonshistorikk
             </h3>
-            <RevisionHistory state={state} />
+            <RevisionHistory />
           </div>
         </section>
       </main>
@@ -543,7 +543,6 @@ export function CasePage() {
             onOpenChange={setRespondVederlagOpen}
             sakId={sakId}
             vederlagKravId={`vederlag-${sakId}`}
-            krevdBelop={krevdBelop}
             grunnlagStatus={grunnlagStatus}
             vederlagEvent={{
               metode: state.vederlag.metode,

@@ -119,7 +119,7 @@ function getEventTagInfo(
 
   // BH initial responses show which claim version they're responding to
   if (BH_RESPONSE_TYPES.includes(eventType)) {
-    const claimVersion = getClaimVersionAtTime(event.spor, event.time || '', events);
+    const claimVersion = getClaimVersionAtTime(event.spor ?? null, event.time || '', events);
     // Only show revision tag if responding to a revision (not the original)
     return {
       showRevision: claimVersion > 0,
@@ -130,7 +130,7 @@ function getEventTagInfo(
 
   // BH response updates show BOTH: which claim version + "Oppdatert"
   if (BH_RESPONSE_UPDATE_TYPES.includes(eventType)) {
-    const claimVersion = getClaimVersionAtTime(event.spor, event.time || '', events);
+    const claimVersion = getClaimVersionAtTime(event.spor ?? null, event.time || '', events);
     return {
       showRevision: claimVersion > 0,
       version: claimVersion > 0 ? claimVersion : undefined,

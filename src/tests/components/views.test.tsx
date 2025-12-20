@@ -8,21 +8,21 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { ComprehensiveMetadata } from '@/src/components/views/ComprehensiveMetadata';
-import { RevisionHistory } from '@/src/components/views/RevisionHistory';
-import { StatusCard } from '@/src/components/views/StatusCard';
-import { StatusDashboard } from '@/src/components/views/StatusDashboard';
-import { Timeline } from '@/src/components/views/Timeline';
-import { TimelineItem } from '@/src/components/views/TimelineItem';
-import { mockSakState1, mockSakState2, mockSakState3, getMockHistorikkById } from '@/src/mocks';
-import type { SakState, SporStatus, TimelineEvent } from '@/src/types/timeline';
+import { ComprehensiveMetadata } from '@/components/views/ComprehensiveMetadata';
+import { RevisionHistory } from '@/components/views/RevisionHistory';
+import { StatusCard } from '@/components/views/StatusCard';
+import { StatusDashboard } from '@/components/views/StatusDashboard';
+import { Timeline } from '@/components/views/Timeline';
+import { TimelineItem } from '@/components/views/TimelineItem';
+import { mockSakState1, mockSakState2, mockSakState3, getMockHistorikkById } from '@/mocks';
+import type { SakState, SporStatus, TimelineEvent } from '@/types/timeline';
 
 // Mock the API module
-vi.mock('@/src/api/state', () => ({
+vi.mock('@/api/state', () => ({
   fetchHistorikk: vi.fn(),
 }));
 
-import { fetchHistorikk } from '@/src/api/state';
+import { fetchHistorikk } from '@/api/state';
 
 // Create a minimal mock state for testing
 const createMinimalState = (overrides: Partial<SakState> = {}): SakState => ({

@@ -20,7 +20,7 @@ import {
   erIrregulaerEndring,
   getTypeKrav,
   getHjemmelReferanser,
-} from '@/src/constants/categories';
+} from '@/constants/categories';
 
 describe('KRAV_STRUKTUR_NS8407', () => {
   it('should have all required hovedkategorier', () => {

@@ -5,12 +5,12 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { submitEvent, EventSubmitResponse } from '@/src/api/events';
-import * as clientModule from '@/src/api/client';
+import { submitEvent, EventSubmitResponse } from '@/api/events';
+import * as clientModule from '@/api/client';
 
 // Mock the client module
-vi.mock('@/src/api/client', async () => {
-  const actual = await vi.importActual('@/src/api/client');
+vi.mock('@/api/client', async () => {
+  const actual = await vi.importActual('@/api/client');
   return {
     ...actual,
     apiFetch: vi.fn(),

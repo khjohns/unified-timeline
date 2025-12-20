@@ -43,7 +43,7 @@ const Footer: React.FC<{ pageNumber: number; totalPages: number }> = ({ pageNumb
 );
 
 const TableRow: React.FC<{ label: string; value: string; striped?: boolean }> = ({ label, value, striped }) => (
-  <View style={[styles.tableRow, striped && styles.tableRowStriped]}>
+  <View style={striped ? [styles.tableRow, styles.tableRowStriped] : styles.tableRow}>
     <Text style={styles.tableLabel}>{label}</Text>
     <Text style={styles.tableValue}>{value}</Text>
   </View>
@@ -56,7 +56,7 @@ const TableRow4Col: React.FC<{
   value2: string;
   striped?: boolean;
 }> = ({ label1, value1, label2, value2, striped }) => (
-  <View style={[styles.tableRow4Col, striped && styles.tableRowStriped]}>
+  <View style={striped ? [styles.tableRow4Col, styles.tableRowStriped] : styles.tableRow4Col}>
     <Text style={styles.tableLabel4Col}>{label1}</Text>
     <Text style={styles.tableValue4Col}>{value1}</Text>
     <Text style={styles.tableLabel4Col}>{label2}</Text>

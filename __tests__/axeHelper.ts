@@ -4,7 +4,7 @@
  * Custom assertion helper for jest-axe in vitest environment
  */
 
-import { AxeResults } from 'jest-axe';
+import type { AxeResults } from 'axe-core';
 
 export function expectNoA11yViolations(results: AxeResults) {
   if (results.violations.length > 0) {

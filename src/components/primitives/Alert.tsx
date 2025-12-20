@@ -21,7 +21,7 @@ export interface AlertProps {
   children: ReactNode;
   variant?: AlertVariant;
   size?: AlertSize;
-  title?: string;
+  title?: ReactNode;
   className?: string;
   icon?: ReactNode;
 }

@@ -18,7 +18,8 @@ export const generateContractorClaimPdf = async (
   state: SakState
 ): Promise<{ blob: Blob; filename: string }> => {
   // Create PDF document
-  const doc = React.createElement(ContractorClaimPdf, { state });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const doc = React.createElement(ContractorClaimPdf, { state }) as any;
   const blob = await pdf(doc).toBlob();
 
   // Generate filename
@@ -65,7 +66,7 @@ export const blobToBase64 = (blob: Blob): Promise<string> => {
     reader.onloadend = () => {
       const base64 = reader.result as string;
       // Remove "data:application/pdf;base64," prefix
-      resolve(base64.split(',')[1]);
+      resolve(base64.split(',')[1] ?? '');
     };
     reader.onerror = reject;
     reader.readAsDataURL(blob);

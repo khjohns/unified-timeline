@@ -1,12 +1,12 @@
 import { describe, it } from 'vitest';
 import { render } from '@testing-library/react';
 import { axe } from 'jest-axe';
-import { expectNoA11yViolations } from '@/__tests__/axeHelper';
-import { Button } from '@/src/components/primitives/Button';
-import { Card } from '@/src/components/primitives/Card';
-import { Modal } from '@/src/components/primitives/Modal';
-import { Tooltip } from '@/src/components/primitives/Tooltip';
-import { AlertDialog } from '@/src/components/primitives/AlertDialog';
+import { expectNoA11yViolations } from '../../../__tests__/axeHelper';
+import { Button } from '@/components/primitives/Button';
+import { Card } from '@/components/primitives/Card';
+import { Modal } from '@/components/primitives/Modal';
+import { Tooltip } from '@/components/primitives/Tooltip';
+import { AlertDialog } from '@/components/primitives/AlertDialog';
 
 describe('Primitive Components - Accessibility', () => {
   describe('Button', () => {

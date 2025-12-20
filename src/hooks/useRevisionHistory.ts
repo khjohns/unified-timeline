@@ -109,8 +109,8 @@ export function useRevisionHistory(
     const revisions: RevisionInfo[] = [];
 
     // Add original as version 0
-    if (sortedOriginals.length > 0) {
-      const original = sortedOriginals[0];
+    const original = sortedOriginals[0];
+    if (original) {
       revisions.push({
         versjon: 0,
         event_id: original.id,
@@ -122,12 +122,14 @@ export function useRevisionHistory(
 
     // Add updates as version 1, 2, etc.
     sortedUpdates.forEach((update, index) => {
+      // Type-safe access to optional original_event_id/original_respons_id
+      const data = update.data as Record<string, unknown> | undefined;
       revisions.push({
         versjon: index + 1,
         event_id: update.id,
         original_event_id:
-          update.data?.original_event_id ||
-          update.data?.original_respons_id,
+          (data?.original_event_id as string | undefined) ||
+          (data?.original_respons_id as string | undefined),
         dato: update.time || '',
         sammendrag: update.summary || '',
         erRevisjon: true,

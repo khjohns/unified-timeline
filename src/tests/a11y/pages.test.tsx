@@ -1,15 +1,15 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/react';
 import { axe } from 'jest-axe';
-import { expectNoA11yViolations } from '@/__tests__/axeHelper';
+import { expectNoA11yViolations } from '../../../__tests__/axeHelper';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
-import { CasePage } from '@/src/pages/CasePage';
-import { ComponentShowcase } from '@/src/pages/ComponentShowcase';
-import { ThemeProvider } from '@/src/context/ThemeContext';
+import { CasePage } from '@/pages/CasePage';
+import { ComponentShowcase } from '@/pages/ComponentShowcase';
+import { ThemeProvider } from '@/context/ThemeContext';
 
 // Mock the useCaseState hook
-vi.mock('@/src/hooks/useCaseState', () => ({
+vi.mock('@/hooks/useCaseState', () => ({
   useCaseState: () => ({
     data: {
       state: {

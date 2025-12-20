@@ -12,7 +12,7 @@ export { Modal } from './Modal';
 export { Tooltip } from './Tooltip';
 export { AlertDialog } from './AlertDialog';
 export { Alert } from './Alert';
-export { Badge } from './Badge';
+export { Badge, type BadgeVariant, type BadgeSize } from './Badge';
 export { RevisionTag, RevisionTagGroup, UpdatedTag } from './RevisionTag';
 export { Collapsible } from './Collapsible';
 export { CurrencyInput } from './CurrencyInput';

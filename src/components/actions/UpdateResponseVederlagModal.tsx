@@ -699,7 +699,7 @@ export function UpdateResponseVederlagModal({
                   <div className="ml-6 p-4 bg-pkt-grays-gray-100 rounded">
                     <FormField
                       label="Godkjent beløp"
-                      hint={
+                      helpText={
                         varDelvisGodkjent
                           ? `Må være høyere enn tidligere godkjent (${tidligereGodkjentBelop.toLocaleString('nb-NO')} kr)`
                           : undefined

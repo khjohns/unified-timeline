@@ -81,7 +81,22 @@ const EVENT_TYPE_LABELS: Record<EventType, string> = {
   respons_frist: 'Svar på fristkrav',
   respons_frist_oppdatert: 'Svar på fristkrav oppdatert',
   forsering_varsel: 'Varsel om forsering',
+  // Forsering-specific events
+  forsering_opprettet: 'Forseringssak opprettet',
+  forsering_iverksatt: 'Forsering iverksatt',
+  forsering_stoppet: 'Forsering stoppet',
+  forsering_kostnad_oppdatert: 'Forseringskostnad oppdatert',
+  forsering_bh_respons: 'Svar på forsering',
+  forsering_relatert_lagt_til: 'Relatert sak lagt til',
+  forsering_relatert_fjernet: 'Relatert sak fjernet',
+  // Endringsordre events
+  eo_opprettet: 'Endringsordre opprettet',
+  eo_koe_lagt_til: 'KOE lagt til EO',
+  eo_koe_fjernet: 'KOE fjernet fra EO',
   eo_utstedt: 'Endringsordre utstedt',
+  eo_akseptert: 'Endringsordre akseptert',
+  eo_bestridt: 'Endringsordre bestridt',
+  eo_revidert: 'Endringsordre revidert',
 };
 
 const SPOR_LABELS: Record<string, string> = {
@@ -114,8 +129,8 @@ function formatDateTime(dateStr: string): string {
   }
 }
 
-function getGrunnlagResultatBadge(resultat: GrunnlagResponsResultat | string): { variant: BadgeVariant; label: string } {
-  const label = getBhGrunnlagssvarLabel(resultat);
+function getGrunnlagResultatBadge(resultat: GrunnlagResponsResultat | string | undefined): { variant: BadgeVariant; label: string } {
+  const label = getBhGrunnlagssvarLabel(resultat || '');
   let variant: BadgeVariant = 'neutral';
 
   switch (resultat) {
@@ -136,8 +151,8 @@ function getGrunnlagResultatBadge(resultat: GrunnlagResponsResultat | string): {
   return { variant, label };
 }
 
-function getVederlagResultatBadge(resultat: VederlagBeregningResultat | string): { variant: BadgeVariant; label: string } {
-  const label = getBhVederlagssvarLabel(resultat);
+function getVederlagResultatBadge(resultat: VederlagBeregningResultat | string | undefined): { variant: BadgeVariant; label: string } {
+  const label = getBhVederlagssvarLabel(resultat || '');
   let variant: BadgeVariant = 'neutral';
 
   switch (resultat) {
@@ -156,8 +171,8 @@ function getVederlagResultatBadge(resultat: VederlagBeregningResultat | string):
   return { variant, label };
 }
 
-function getFristResultatBadge(resultat: FristBeregningResultat | string): { variant: BadgeVariant; label: string } {
-  const label = getBhFristsvarLabel(resultat);
+function getFristResultatBadge(resultat: FristBeregningResultat | string | undefined): { variant: BadgeVariant; label: string } {
+  const label = getBhFristsvarLabel(resultat || '');
   let variant: BadgeVariant = 'neutral';
 
   switch (resultat) {
@@ -1145,7 +1160,7 @@ export function EventDetailModal({
         return <ForseringVarselSection data={data as ForseringVarselEventData} />;
 
       default:
-        return <GenericSection data={data as Record<string, unknown>} />;
+        return <GenericSection data={data as unknown as Record<string, unknown>} />;
     }
   };
 

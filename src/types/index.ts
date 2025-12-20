@@ -37,5 +37,3 @@ export type {
   EventSubmitRequest,
   ApiClientConfig,
 } from './api';
-
-export { ApiError } from './api';

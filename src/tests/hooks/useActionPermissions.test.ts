@@ -5,8 +5,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { useActionPermissions, UserRole, AvailableActions } from '@/src/hooks/useActionPermissions';
-import { SakState, SporStatus } from '@/src/types/timeline';
+import { useActionPermissions, UserRole, AvailableActions } from '@/hooks/useActionPermissions';
+import { SakState, SporStatus } from '@/types/timeline';
 
 // Helper to create a minimal valid state for testing
 function createMockState(overrides: Partial<{

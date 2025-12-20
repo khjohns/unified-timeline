@@ -101,6 +101,7 @@ const SPOR_LABELS: Record<SporType, string> = {
   grunnlag: 'Ansvarsgrunnlag',
   vederlag: 'Vederlag',
   frist: 'Frist',
+  forsering: 'Forsering',
 };
 
 /**

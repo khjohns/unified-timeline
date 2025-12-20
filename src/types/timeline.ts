@@ -459,6 +459,11 @@ export interface SakState {
   sak_id: string;
   sakstittel: string;
 
+  // Prosjekt- og partsinfo
+  prosjekt_navn?: string;
+  entreprenor?: string;
+  byggherre?: string;
+
   // Sakstype og relasjoner (ny relasjonell modell for forsering/endringsordre)
   sakstype?: SaksType;  // Default: 'standard'
   relaterte_saker?: SakRelasjon[];  // Kun for sakstype='forsering' eller 'endringsordre'

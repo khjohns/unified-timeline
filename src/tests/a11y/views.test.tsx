@@ -1,12 +1,12 @@
 import { describe, it } from 'vitest';
 import { render } from '@testing-library/react';
 import { axe } from 'jest-axe';
-import { expectNoA11yViolations } from '@/__tests__/axeHelper';
-import { StatusCard } from '@/src/components/views/StatusCard';
-import { StatusDashboard } from '@/src/components/views/StatusDashboard';
-import { Timeline } from '@/src/components/views/Timeline';
-import { TimelineItem } from '@/src/components/views/TimelineItem';
-import type { SakState, SporStatus } from '@/src/types/timeline';
+import { expectNoA11yViolations } from '../../../__tests__/axeHelper';
+import { StatusCard } from '@/components/views/StatusCard';
+import { StatusDashboard } from '@/components/views/StatusDashboard';
+import { Timeline } from '@/components/views/Timeline';
+import { TimelineItem } from '@/components/views/TimelineItem';
+import type { SakState, SporStatus } from '@/types/timeline';
 
 describe('View Components - Accessibility', () => {
   describe('StatusCard', () => {

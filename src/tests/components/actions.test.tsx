@@ -10,18 +10,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { RespondGrunnlagModal } from '@/src/components/actions/RespondGrunnlagModal';
-import { RespondVederlagModal } from '@/src/components/actions/RespondVederlagModal';
-import { RespondFristModal } from '@/src/components/actions/RespondFristModal';
-import { SendGrunnlagModal } from '@/src/components/actions/SendGrunnlagModal';
-import { SendVederlagModal } from '@/src/components/actions/SendVederlagModal';
-import { SendFristModal } from '@/src/components/actions/SendFristModal';
-import { SendGrunnlagUpdateModal } from '@/src/components/actions/SendGrunnlagUpdateModal';
-import { RespondGrunnlagUpdateModal } from '@/src/components/actions/RespondGrunnlagUpdateModal';
-import { ReviseVederlagModal } from '@/src/components/actions/ReviseVederlagModal';
-import { ReviseFristModal } from '@/src/components/actions/ReviseFristModal';
-import { UpdateResponseVederlagModal } from '@/src/components/actions/UpdateResponseVederlagModal';
-import { UpdateResponseFristModal } from '@/src/components/actions/UpdateResponseFristModal';
+import { RespondGrunnlagModal } from '@/components/actions/RespondGrunnlagModal';
+import { RespondVederlagModal } from '@/components/actions/RespondVederlagModal';
+import { RespondFristModal } from '@/components/actions/RespondFristModal';
+import { SendGrunnlagModal } from '@/components/actions/SendGrunnlagModal';
+import { SendVederlagModal } from '@/components/actions/SendVederlagModal';
+import { SendFristModal } from '@/components/actions/SendFristModal';
+import { SendGrunnlagUpdateModal } from '@/components/actions/SendGrunnlagUpdateModal';
+import { RespondGrunnlagUpdateModal } from '@/components/actions/RespondGrunnlagUpdateModal';
+import { ReviseVederlagModal } from '@/components/actions/ReviseVederlagModal';
+import { ReviseFristModal } from '@/components/actions/ReviseFristModal';
+import { UpdateResponseVederlagModal } from '@/components/actions/UpdateResponseVederlagModal';
+import { UpdateResponseFristModal } from '@/components/actions/UpdateResponseFristModal';
 
 // Wrapper with React Query provider
 const createTestQueryClient = () =>

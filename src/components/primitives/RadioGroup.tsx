@@ -8,6 +8,7 @@ export interface RadioGroupProps extends ComponentPropsWithoutRef<typeof RadioGr
 
 export interface RadioItemProps extends ComponentPropsWithoutRef<typeof RadioGroupPrimitive.Item> {
   label?: string;
+  description?: string;
   error?: boolean;
 }
 
@@ -36,7 +37,7 @@ RadioGroup.displayName = 'RadioGroup';
 export const RadioItem = forwardRef<
   React.ElementRef<typeof RadioGroupPrimitive.Item>,
   RadioItemProps
->(({ className, label, error, ...props }, ref) => {
+>(({ className, label, description, error, ...props }, ref) => {
   // Auto-generate id from value if not provided (fixes accessibility for label linkage)
   const radioId = props.id || (props.value ? `radio-${props.value}` : undefined);
 
@@ -94,18 +95,23 @@ export const RadioItem = forwardRef<
 
   if (label) {
     return (
-      <div className="flex items-center gap-3">
-        {radio}
-        <label
-          htmlFor={radioId}
-          className={clsx(
-            'text-base font-normal cursor-pointer',
-            'text-pkt-text-body-default',
-            props.disabled && 'cursor-not-allowed text-pkt-text-action-disabled'
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5">{radio}</div>
+        <div className="flex flex-col">
+          <label
+            htmlFor={radioId}
+            className={clsx(
+              'text-base font-normal cursor-pointer',
+              'text-pkt-text-body-default',
+              props.disabled && 'cursor-not-allowed text-pkt-text-action-disabled'
+            )}
+          >
+            {label}
+          </label>
+          {description && (
+            <span className="text-sm text-pkt-text-body-subtle">{description}</span>
           )}
-        >
-          {label}
-        </label>
+        </div>
       </div>
     );
   }

@@ -6,6 +6,8 @@ import clsx from 'clsx';
 export interface CheckboxProps extends ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root> {
   /** Label text to display next to the checkbox */
   label?: string;
+  /** Description text to display below the label */
+  description?: string;
   /** Error state */
   error?: boolean;
 }
@@ -20,7 +22,7 @@ export interface CheckboxProps extends ComponentPropsWithoutRef<typeof CheckboxP
 export const Checkbox = forwardRef<
   React.ElementRef<typeof CheckboxPrimitive.Root>,
   CheckboxProps
->(({ className, label, error, ...props }, ref) => {
+>(({ className, label, description, error, ...props }, ref) => {
   const checkbox = (
     <CheckboxPrimitive.Root
       ref={ref}
@@ -72,18 +74,23 @@ export const Checkbox = forwardRef<
 
   if (label) {
     return (
-      <div className="flex items-center gap-3">
-        {checkbox}
-        <label
-          htmlFor={props.id}
-          className={clsx(
-            'text-base font-normal cursor-pointer',
-            'text-pkt-text-body-default',
-            props.disabled && 'cursor-not-allowed text-pkt-text-action-disabled'
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5">{checkbox}</div>
+        <div className="flex flex-col">
+          <label
+            htmlFor={props.id}
+            className={clsx(
+              'text-base font-normal cursor-pointer',
+              'text-pkt-text-body-default',
+              props.disabled && 'cursor-not-allowed text-pkt-text-action-disabled'
+            )}
+          >
+            {label}
+          </label>
+          {description && (
+            <span className="text-sm text-pkt-text-body-subtle">{description}</span>
           )}
-        >
-          {label}
-        </label>
+        </div>
       </div>
     );
   }

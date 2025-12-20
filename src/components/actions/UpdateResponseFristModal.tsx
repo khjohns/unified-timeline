@@ -478,7 +478,7 @@ export function UpdateResponseFristModal({
               <div className="ml-6 p-4 bg-pkt-grays-gray-100 rounded animate-in fade-in duration-200">
                 <FormField
                   label="Antall dager du godkjenner"
-                  hint={varDelvisGodkjent
+                  helpText={varDelvisGodkjent
                     ? `Må være høyere enn tidligere godkjent (${tidligereGodkjentDager} dager)`
                     : undefined
                   }

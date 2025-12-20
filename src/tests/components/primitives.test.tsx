@@ -7,22 +7,22 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Input } from '@/src/components/primitives/Input';
-import { Textarea } from '@/src/components/primitives/Textarea';
-import { Checkbox } from '@/src/components/primitives/Checkbox';
-import { FormField } from '@/src/components/primitives/FormField';
-import { RadioGroup, RadioItem } from '@/src/components/primitives/RadioGroup';
-import { DatePicker } from '@/src/components/primitives/DatePicker';
+import { Input } from '@/components/primitives/Input';
+import { Textarea } from '@/components/primitives/Textarea';
+import { Checkbox } from '@/components/primitives/Checkbox';
+import { FormField } from '@/components/primitives/FormField';
+import { RadioGroup, RadioItem } from '@/components/primitives/RadioGroup';
+import { DatePicker } from '@/components/primitives/DatePicker';
 import {
   Select,
   SelectTrigger,
   SelectContent,
   SelectItem,
   SelectValue,
-} from '@/src/components/primitives/Select';
-import { Button } from '@/src/components/primitives/Button';
-import { Card } from '@/src/components/primitives/Card';
-import { Label } from '@/src/components/primitives/Label';
+} from '@/components/primitives/Select';
+import { Button } from '@/components/primitives/Button';
+import { Card } from '@/components/primitives/Card';
+import { Label } from '@/components/primitives/Label';
 
 describe('Primitive Components - Functional Tests', () => {
   describe('Input', () => {

@@ -5,13 +5,13 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { fetchCaseState } from '@/src/api/state';
-import * as clientModule from '@/src/api/client';
-import { mockSakState1, mockSakState2, mockSakState3, mockSakState4 } from '@/src/mocks';
+import { fetchCaseState } from '@/api/state';
+import * as clientModule from '@/api/client';
+import { mockSakState1, mockSakState2, mockSakState3, mockSakState4 } from '@/mocks';
 
 // Mock the client module
-vi.mock('@/src/api/client', async () => {
-  const actual = await vi.importActual('@/src/api/client');
+vi.mock('@/api/client', async () => {
+  const actual = await vi.importActual('@/api/client');
   return {
     ...actual,
     apiFetch: vi.fn(),
