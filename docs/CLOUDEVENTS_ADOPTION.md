@@ -37,7 +37,7 @@ CloudEvents er en CNCF-standard for å beskrive events i et felles format. Denne
 
 | Spørsmål | Svar |
 |----------|------|
-| **Trenger vi Azure Event Grid nå?** | ❌ Nei - nåværende arkitektur dekker behovet |
+| **Trenger vi Azure Event Grid?** | ⚠️ Vurder - gir retry, ingen datatap, fan-out |
 | **Gir CloudEvents verdi uten Event Grid?** | ✅ Ja - standardisering og fremtidssikring |
 | **Kan AsyncAPI/C4 gjøres parallelt?** | ⚠️ Delvis - C4 parallelt, AsyncAPI etter CloudEvents fase 1 |
 
@@ -151,72 +151,96 @@ CloudEvents er en åpen spesifikasjon fra [Cloud Native Computing Foundation (CN
 
 ### Er Event Grid nødvendig?
 
-Basert på nåværende produksjonsarkitektur (Azure Functions + Dataverse + Catenda) er **Azure Event Grid ikke planlagt**. Den nåværende arkitekturen dekker behovet.
+Basert på nåværende produksjonsarkitektur (Azure Functions + Dataverse + Catenda) er **Azure Event Grid ikke implementert ennå**. Spørsmålet er om det gir verdi.
+
+### Nåværende arkitektur (synkron)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│  NÅVÆRENDE ARKITEKTUR (uten Event Grid)                             │
+│  NÅVÆRENDE ARKITEKTUR (synkron Catenda-synk)                        │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                      │
-│   Frontend ──► Azure Functions ──► Dataverse                        │
-│                      │                                               │
-│                      └──► Catenda (direkte API-kall)                │
+│   Frontend ──► Backend ──► Dataverse ──► Catenda API                │
+│                                               │                      │
+│                                         Catenda nede?                │
+│                                               │                      │
+│                                               ▼                      │
+│                                    ❌ Request feiler                 │
+│                                    ❌ Bruker må prøve igjen          │
+│                                    ❌ Risiko for datatap             │
 │                                                                      │
-│   ✓ Fungerer for nåværende behov                                    │
-│   ✓ Enklere arkitektur                                              │
-│   ✓ Færre komponenter å vedlikeholde                                │
+│   ✓ Enkel arkitektur                                                │
+│   ✗ Ingen retry ved feil                                            │
+│   ✗ Bruker blokkeres av treg Catenda-respons                        │
 │                                                                      │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Når blir Event Grid relevant?
-
-Event Grid blir relevant når **andre systemer skal konsumere events**:
-
-| Use case | Beskrivelse | Verdi | Kompleksitet |
-|----------|-------------|-------|--------------|
-| **Catenda-synk** | Publiser events → trigger Function → oppdater Catenda | ⭐⭐⭐ Høy | Middels |
-| **Power BI real-time** | Push events til Power BI for sanntids-dashboards | ⭐⭐ Middels | Lav |
-| **Varsling** | E-post/SMS når viktige events skjer (frist godkjent, etc.) | ⭐⭐ Middels | Lav |
-| **Audit-logging** | Route alle events til Azure Log Analytics | ⭐ Lav | Lav |
-| **Multi-system** | ERP, prosjektstyring, andre systemer abonnerer | ⭐⭐⭐ Høy | Høy |
-
-### Arkitektur med Event Grid (fremtidig)
+### Arkitektur med Event Grid (asynkron)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                      Azure Functions (API)                           │
-│  POST /api/events                                                    │
-│    │                                                                 │
-│    ├── 1. Valider event                                              │
-│    ├── 2. Persist til Dataverse                                      │
-│    └── 3. Publiser til Event Grid  ◄── FREMTIDIG                     │
-└───────────────────────────┬─────────────────────────────────────────┘
-                            │
-                            ▼
-                ┌───────────────────────┐
-                │   Azure Event Grid    │◄── CloudEvents format
-                │   (Topic)             │
-                └───────────┬───────────┘
-                            │
-            ┌───────────────┼───────────────┐
-            │               │               │
-            ▼               ▼               ▼
-    ┌───────────────┐ ┌───────────────┐ ┌───────────────┐
-    │ Azure Function│ │ Power BI      │ │ Webhook       │
-    │ → Catenda     │ │ Streaming     │ │ → Ekstern     │
-    └───────────────┘ └───────────────┘ └───────────────┘
+│  MED EVENT GRID (asynkron + retry + fan-out)                        │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│   Frontend ──► Backend ──► Dataverse ────────► ✅ Lagret (garantert)│
+│                               │                                      │
+│                               └──► Event Grid ──► Catenda           │
+│                                        │              │              │
+│                                        │        Catenda nede?        │
+│                                        │              │              │
+│                                        │              ▼              │
+│                                        │   ✅ Retry automatisk       │
+│                                        │   ✅ Dead-letter ved feil   │
+│                                        │   ✅ Ingen datatap          │
+│                                        │                             │
+│                                        ├──► Power BI (fan-out)       │
+│                                        └──► Varsling (fan-out)       │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
 ```
+
+### Fordeler med Event Grid
+
+| Fordel | Beskrivelse | Verdi |
+|--------|-------------|-------|
+| **Retry** | Automatisk retry ved feil (eksponentiell backoff) | ⭐⭐⭐ Essensielt |
+| **Ingen datatap** | Event lagres i Dataverse FØR Catenda-kall | ⭐⭐⭐ Essensielt |
+| **Fan-out** | Samme event til Catenda + Power BI + varsling | ⭐⭐⭐ Høy |
+| **Asynkront** | Bruker venter ikke på Catenda-respons | ⭐⭐ Middels |
+| **Dead-letter** | Events som feiler permanent fanges opp | ⭐⭐ Middels |
+
+### Brukervennlighet ved asynkron arkitektur
+
+For at asynkron synkronisering skal fungere godt, trengs:
+
+| Krav | Implementering |
+|------|----------------|
+| **Umiddelbar bekreftelse** | "Event lagret ✓" - bruker vet at data er trygt |
+| **Status-indikator** | "Synkroniseres med Catenda..." → "Synkronisert ✓" |
+| **Varsling ved feil** | "Catenda-synk feilet - vi prøver igjen automatisk" |
+| **Synk-status i UI** | Vis siste synk-tidspunkt per sak |
+
+### Use cases
+
+| Use case | Beskrivelse | Verdi | Kompleksitet |
+|----------|-------------|-------|--------------|
+| **Catenda-synk med retry** | Garantert levering til Catenda | ⭐⭐⭐ Høy | Middels |
+| **Power BI real-time** | Push events til sanntids-dashboards | ⭐⭐ Middels | Lav |
+| **Varsling** | E-post/SMS ved viktige events (frist godkjent) | ⭐⭐ Middels | Lav |
+| **Audit-logging** | Route events til Azure Log Analytics | ⭐ Lav | Lav |
+| **Multi-system** | ERP, prosjektstyring abonnerer | ⭐⭐⭐ Høy | Høy |
 
 ### Konklusjon
 
 | Spørsmål | Svar |
 |----------|------|
-| **Trenger prosjektet Event Grid nå?** | ❌ Nei |
-| **Når blir det relevant?** | Når andre systemer skal konsumere events |
-| **Er CloudEvents nyttig uten Event Grid?** | ✅ Ja - standardisering, dokumentasjon, fremtidssikring |
+| **Trenger prosjektet Event Grid nå?** | ⚠️ Vurder for robusthet |
+| **Hovedargument FOR** | Retry + ingen datatap ved Catenda-feil |
+| **Hovedargument MOT** | Ekstra kompleksitet, krever asynkron UX |
+| **Er CloudEvents nyttig uten Event Grid?** | ✅ Ja - standardisering, fremtidssikring |
 
-**CloudEvents gir verdi uavhengig av Event Grid** - det handler om å ha et standardisert format som er klart for fremtidige integrasjoner.
+**Anbefaling:** Event Grid gir betydelig verdi for robusthet (retry, ingen datatap) og fremtidig skalerbarhet (fan-out). Vurder å inkludere i produksjonsarkitekturen, men CloudEvents kan implementeres uavhengig som forberedelse.
 
 ---
 
