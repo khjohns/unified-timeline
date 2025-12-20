@@ -8,7 +8,7 @@
  */
 
 import { useMemo, useState, useEffect, useCallback } from 'react';
-import { TimelineEntry, SporType } from '../types/timeline';
+import { TimelineEvent, SporType, extractEventType } from '../types/timeline';
 import { HistorikkResponse, VederlagHistorikkEntry, FristHistorikkEntry } from '../types/api';
 import { fetchHistorikk } from '../api/state';
 
@@ -53,7 +53,7 @@ const UPDATE_EVENT_TYPES = [
  * Get revision history for a specific track (spor)
  */
 export function useRevisionHistory(
-  events: TimelineEntry[],
+  events: TimelineEvent[],
   spor: SporType,
   rolle?: 'TE' | 'BH'
 ): RevisionSummary {
@@ -62,53 +62,47 @@ export function useRevisionHistory(
     const trackEvents = events.filter((e) => e.spor === spor);
 
     // Separate originals and updates based on rolle
-    let originals: TimelineEntry[];
-    let updates: TimelineEntry[];
+    let originals: TimelineEvent[];
+    let updates: TimelineEvent[];
 
     if (rolle === 'TE') {
       // TE submissions and their updates
-      originals = trackEvents.filter(
-        (e) =>
-          e.rolle === 'TE' &&
-          e.event_type &&
-          ORIGINAL_EVENT_TYPES.includes(e.event_type)
-      );
-      updates = trackEvents.filter(
-        (e) =>
-          e.rolle === 'TE' &&
-          e.event_type &&
-          UPDATE_EVENT_TYPES.includes(e.event_type)
-      );
+      originals = trackEvents.filter((e) => {
+        const eventType = extractEventType(e.type);
+        return e.actorrole === 'TE' && eventType && ORIGINAL_EVENT_TYPES.includes(eventType);
+      });
+      updates = trackEvents.filter((e) => {
+        const eventType = extractEventType(e.type);
+        return e.actorrole === 'TE' && eventType && UPDATE_EVENT_TYPES.includes(eventType);
+      });
     } else if (rolle === 'BH') {
       // BH responses and their updates
-      originals = trackEvents.filter(
-        (e) =>
-          e.rolle === 'BH' &&
-          e.event_type &&
-          ORIGINAL_EVENT_TYPES.includes(e.event_type)
-      );
-      updates = trackEvents.filter(
-        (e) =>
-          e.rolle === 'BH' &&
-          e.event_type &&
-          UPDATE_EVENT_TYPES.includes(e.event_type)
-      );
+      originals = trackEvents.filter((e) => {
+        const eventType = extractEventType(e.type);
+        return e.actorrole === 'BH' && eventType && ORIGINAL_EVENT_TYPES.includes(eventType);
+      });
+      updates = trackEvents.filter((e) => {
+        const eventType = extractEventType(e.type);
+        return e.actorrole === 'BH' && eventType && UPDATE_EVENT_TYPES.includes(eventType);
+      });
     } else {
       // All events for this track
-      originals = trackEvents.filter(
-        (e) => e.event_type && ORIGINAL_EVENT_TYPES.includes(e.event_type)
-      );
-      updates = trackEvents.filter(
-        (e) => e.event_type && UPDATE_EVENT_TYPES.includes(e.event_type)
-      );
+      originals = trackEvents.filter((e) => {
+        const eventType = extractEventType(e.type);
+        return eventType && ORIGINAL_EVENT_TYPES.includes(eventType);
+      });
+      updates = trackEvents.filter((e) => {
+        const eventType = extractEventType(e.type);
+        return eventType && UPDATE_EVENT_TYPES.includes(eventType);
+      });
     }
 
     // Sort by timestamp (oldest first)
     const sortedOriginals = [...originals].sort(
-      (a, b) => new Date(a.tidsstempel).getTime() - new Date(b.tidsstempel).getTime()
+      (a, b) => new Date(a.time || '').getTime() - new Date(b.time || '').getTime()
     );
     const sortedUpdates = [...updates].sort(
-      (a, b) => new Date(a.tidsstempel).getTime() - new Date(b.tidsstempel).getTime()
+      (a, b) => new Date(a.time || '').getTime() - new Date(b.time || '').getTime()
     );
 
     // Build revision list
@@ -119,9 +113,9 @@ export function useRevisionHistory(
       const original = sortedOriginals[0];
       revisions.push({
         versjon: 0,
-        event_id: original.event_id,
-        dato: original.tidsstempel,
-        sammendrag: original.sammendrag,
+        event_id: original.id,
+        dato: original.time || '',
+        sammendrag: original.summary || '',
         erRevisjon: false,
       });
     }
@@ -130,12 +124,12 @@ export function useRevisionHistory(
     sortedUpdates.forEach((update, index) => {
       revisions.push({
         versjon: index + 1,
-        event_id: update.event_id,
+        event_id: update.id,
         original_event_id:
-          update.event_data?.original_event_id ||
-          update.event_data?.original_respons_id,
-        dato: update.tidsstempel,
-        sammendrag: update.sammendrag,
+          update.data?.original_event_id ||
+          update.data?.original_respons_id,
+        dato: update.time || '',
+        sammendrag: update.summary || '',
         erRevisjon: true,
       });
     });
@@ -148,7 +142,7 @@ export function useRevisionHistory(
       totalRevisions: Math.max(0, revisions.length - 1), // Don't count original
       revisions,
       lastRevisionDate: lastRevision?.dato,
-      originalEventId: sortedOriginals[0]?.event_id,
+      originalEventId: sortedOriginals[0]?.id,
     };
   }, [events, spor, rolle]);
 }
@@ -157,32 +151,36 @@ export function useRevisionHistory(
  * Check if a claim has been revised after a response
  */
 export function useIsResponseOutdated(
-  events: TimelineEntry[],
+  events: TimelineEvent[],
   spor: SporType
 ): { isOutdated: boolean; claimVersion: number; responseVersion: number } {
   return useMemo(() => {
     const teHistory = events
-      .filter(
-        (e) =>
+      .filter((e) => {
+        const eventType = extractEventType(e.type);
+        return (
           e.spor === spor &&
-          e.rolle === 'TE' &&
-          e.event_type &&
-          [...ORIGINAL_EVENT_TYPES, ...UPDATE_EVENT_TYPES].includes(e.event_type)
-      )
+          e.actorrole === 'TE' &&
+          eventType &&
+          [...ORIGINAL_EVENT_TYPES, ...UPDATE_EVENT_TYPES].includes(eventType)
+        );
+      })
       .sort(
-        (a, b) => new Date(a.tidsstempel).getTime() - new Date(b.tidsstempel).getTime()
+        (a, b) => new Date(a.time || '').getTime() - new Date(b.time || '').getTime()
       );
 
     const bhHistory = events
-      .filter(
-        (e) =>
+      .filter((e) => {
+        const eventType = extractEventType(e.type);
+        return (
           e.spor === spor &&
-          e.rolle === 'BH' &&
-          e.event_type &&
-          [...ORIGINAL_EVENT_TYPES, ...UPDATE_EVENT_TYPES].includes(e.event_type)
-      )
+          e.actorrole === 'BH' &&
+          eventType &&
+          [...ORIGINAL_EVENT_TYPES, ...UPDATE_EVENT_TYPES].includes(eventType)
+        );
+      })
       .sort(
-        (a, b) => new Date(a.tidsstempel).getTime() - new Date(b.tidsstempel).getTime()
+        (a, b) => new Date(a.time || '').getTime() - new Date(b.time || '').getTime()
       );
 
     const claimVersion = teHistory.length - 1;
@@ -195,7 +193,7 @@ export function useIsResponseOutdated(
     const isOutdated =
       lastTEEvent &&
       lastBHEvent &&
-      new Date(lastTEEvent.tidsstempel) > new Date(lastBHEvent.tidsstempel);
+      new Date(lastTEEvent.time || '') > new Date(lastBHEvent.time || '');
 
     return {
       isOutdated: isOutdated || false,

@@ -15,7 +15,7 @@ import { StatusDashboard } from '@/src/components/views/StatusDashboard';
 import { Timeline } from '@/src/components/views/Timeline';
 import { TimelineItem } from '@/src/components/views/TimelineItem';
 import { mockSakState1, mockSakState2, mockSakState3, getMockHistorikkById } from '@/src/mocks';
-import type { SakState, SporStatus, TimelineEntry } from '@/src/types/timeline';
+import type { SakState, SporStatus, TimelineEvent } from '@/src/types/timeline';
 
 // Mock the API module
 vi.mock('@/src/api/state', () => ({
@@ -174,33 +174,45 @@ describe('View Components - Functional Tests', () => {
   });
 
   describe('Timeline', () => {
-    const mockEvents: TimelineEntry[] = [
+    const mockEvents: TimelineEvent[] = [
       {
-        event_id: '1',
-        tidsstempel: '2025-01-15T10:00:00Z',
-        type: 'Grunnlag opprettet',
-        aktor: 'Per Hansen',
-        rolle: 'TE',
+        specversion: '1.0',
+        id: '1',
+        source: '/projects/test/cases/TEST-001',
+        type: 'no.oslo.koe.grunnlag_opprettet',
+        time: '2025-01-15T10:00:00Z',
+        subject: 'TEST-001',
+        datacontenttype: 'application/json',
+        actor: 'Per Hansen',
+        actorrole: 'TE',
         spor: 'grunnlag',
-        sammendrag: 'Varsel om endrede grunnforhold',
+        summary: 'Varsel om endrede grunnforhold',
       },
       {
-        event_id: '2',
-        tidsstempel: '2025-01-16T11:00:00Z',
-        type: 'Vederlagskrav sendt',
-        aktor: 'Per Hansen',
-        rolle: 'TE',
+        specversion: '1.0',
+        id: '2',
+        source: '/projects/test/cases/TEST-001',
+        type: 'no.oslo.koe.vederlag_krav_sendt',
+        time: '2025-01-16T11:00:00Z',
+        subject: 'TEST-001',
+        datacontenttype: 'application/json',
+        actor: 'Per Hansen',
+        actorrole: 'TE',
         spor: 'vederlag',
-        sammendrag: 'Krav på 500.000 NOK',
+        summary: 'Krav på 500.000 NOK',
       },
       {
-        event_id: '3',
-        tidsstempel: '2025-01-17T14:00:00Z',
-        type: 'Grunnlag godkjent',
-        aktor: 'Kari Nordmann',
-        rolle: 'BH',
+        specversion: '1.0',
+        id: '3',
+        source: '/projects/test/cases/TEST-001',
+        type: 'no.oslo.koe.respons_grunnlag',
+        time: '2025-01-17T14:00:00Z',
+        subject: 'TEST-001',
+        datacontenttype: 'application/json',
+        actor: 'Kari Nordmann',
+        actorrole: 'BH',
         spor: 'grunnlag',
-        sammendrag: 'Grunnlag godkjent',
+        summary: 'Grunnlag godkjent',
       },
     ];
 

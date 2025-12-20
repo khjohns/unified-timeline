@@ -43,12 +43,12 @@ CloudEvents er en CNCF-standard for å beskrive events i et felles format. Denne
 
 ### Estimert innsats per fase
 
-| Fase | Beskrivelse | Innsats | Prioritet |
-|------|-------------|---------|-----------|
-| 1 | Kompatibilitetslag | 2-4 timer | Høy |
-| 2 | Serialiseringsstøtte | 4-8 timer | Middels |
+| Fase | Beskrivelse | Innsats | Status |
+|------|-------------|---------|--------|
+| 1 | Kompatibilitetslag | 2-4 timer | ✅ Fullført |
+| 2 | Serialiseringsstøtte | 4-8 timer | ✅ Fullført |
 | 3 | ~~Webhook-integrasjon~~ | ~~8-16 timer~~ | ⏸️ Ikke aktuelt |
-| 4 | Full migrering | 16-24 timer | Lav |
+| 4 | Full migrering | 16-24 timer | ✅ Fullført |
 | 5 | Azure Event Grid | 16-24 timer | Avhenger av behov |
 
 ### Anbefalt rekkefølge for alle spesifikasjoner
@@ -600,26 +600,35 @@ Fase 3 blir relevant hvis/når:
 
 ---
 
-### Fase 4: Full migrering (Prioritet: Lav)
+### Fase 4: Full migrering (Prioritet: Lav) ✅ FULLFØRT
 
 **Mål:** CloudEvents som primærformat, legacy som fallback.
 
 **Oppgaver:**
-- [ ] Migrere eksisterende events til CloudEvents-format
-- [ ] Oppdatere Event Store til å lagre CloudEvents
-- [ ] Oppdatere frontend til å konsumere CloudEvents
-- [ ] Fjerne legacy-felter (med deprecation-periode)
-- [ ] Oppdatere all dokumentasjon
+- [x] ~~Migrere eksisterende events til CloudEvents-format~~ (Slettet - kun testdata)
+- [x] Oppdatere API til å alltid returnere CloudEvents-format
+- [x] Oppdatere frontend til å konsumere CloudEvents
+- [x] Fjerne legacy-felter (breaking change - ingen deprecation)
+- [x] Oppdatere all dokumentasjon
 
 **Kode-endringer:**
-- `backend/repositories/event_repository.py` - CloudEvents-lagring
-- `src/types/timeline.ts` - CloudEvents TypeScript-typer
-- `src/api/events.ts` - CloudEvents-parsing
-- Migreringsscript for eksisterende data
+- `backend/routes/event_routes.py` - Alltid CloudEvents output
+- `backend/lib/cloudevents/http_binding.py` - Summary og spor extension attributes
+- `src/types/timeline.ts` - CloudEvent interface med extension attributes
+- `src/types/api.ts` - TimelineResponse bruker CloudEvents
+- `src/api/state.ts` - Konverterer mock-data til CloudEvents
+- `src/api/forsering.ts` - TimelineEvent typer
+- `src/api/endringsordre.ts` - TimelineEvent typer
+- `src/components/views/Timeline.tsx` - CloudEvents field mapping
+- `src/components/views/EventDetailModal.tsx` - CloudEvents field mapping
+- `src/pages/CasePage.tsx` - CloudEvents typer
+- `src/pages/ForseringPage.tsx` - CloudEvents typer
+- `src/pages/EndringsordePage.tsx` - CloudEvents typer
 
-**Estimat:** 16-24 timer
+**Testdata slettet:**
+- Alle 901 testfiler i `backend/koe_data/events/` slettet (kun utvikling/testing)
 
-**Risiko:** Høy - breaking changes, krever grundig testing
+**Fullført:** 2025-12-20
 
 ---
 

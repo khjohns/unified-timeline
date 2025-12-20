@@ -7,7 +7,7 @@
 
 import { apiFetch, USE_MOCK_API, mockDelay } from './client';
 import { getMockForseringKontekstById, getMockKandidatSaker } from '../mocks';
-import type { SakState, TimelineEntry, SakRelasjon } from '../types/timeline';
+import type { SakState, TimelineEvent, SakRelasjon } from '../types/timeline';
 
 // ============================================================================
 // TYPES
@@ -18,8 +18,8 @@ export interface ForseringKontekstResponse {
   sak_id: string;
   relaterte_saker: SakRelasjon[];
   sak_states: Record<string, SakState>;
-  hendelser: Record<string, TimelineEntry[]>;
-  forsering_hendelser: TimelineEntry[];  // Forsering case's own events
+  hendelser: Record<string, TimelineEvent[]>;
+  forsering_hendelser: TimelineEvent[];  // Forsering case's own events
   oppsummering: {
     antall_relaterte_saker: number;
     total_krevde_dager: number;

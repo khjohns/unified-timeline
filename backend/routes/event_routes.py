@@ -9,7 +9,7 @@ with full support for:
 - State computation and caching
 - Hybrid PDF generation (client-provided or server fallback)
 - Catenda integration (PDF upload + comment posting)
-- CloudEvents format output (via Accept: application/cloudevents+json)
+- CloudEvents v1.0 format for all event responses
 """
 from flask import Blueprint, request, jsonify
 from typing import Optional, Tuple
@@ -38,7 +38,6 @@ from api.validators import (
     ValidationError as ApiValidationError,
 )
 from lib.cloudevents import (
-    wants_cloudevents_format,
     format_event_response,
     format_timeline_response,
 )
@@ -432,11 +431,7 @@ def get_case_timeline(sak_id: str):
     """
     Get full event timeline for UI display.
 
-    Supports CloudEvents format via Accept header:
-    - Accept: application/json (default) - returns internal format
-    - Accept: application/cloudevents+json - returns CloudEvents format
-
-    CloudEvents Response:
+    Returns CloudEvents v1.0 format:
     {
         "version": 5,
         "events": [
@@ -446,6 +441,10 @@ def get_case_timeline(sak_id: str):
                 "source": "/projects/P-001/cases/SAK-001",
                 "type": "no.oslo.koe.grunnlag_opprettet",
                 "time": "2025-01-15T10:30:00Z",
+                "subject": "SAK-001",
+                "datacontenttype": "application/json",
+                "actor": "Ola Nordmann",
+                "actorrole": "TE",
                 "data": { ... }
             },
             ...
@@ -460,24 +459,14 @@ def get_case_timeline(sak_id: str):
     # Parse events from stored data
     events = [parse_event(e) for e in events_data]
 
-    # Check if client wants CloudEvents format
-    if wants_cloudevents_format():
-        # Return events in CloudEvents format
-        cloudevents_timeline = format_timeline_response(events)
-        response = jsonify({
-            "version": version,
-            "events": cloudevents_timeline
-        })
-        response.headers['Content-Type'] = 'application/cloudevents+json'
-        return response
-
-    # Default: return internal timeline format
-    timeline = timeline_service.get_timeline(events)
-
-    return jsonify({
+    # Always return CloudEvents format
+    cloudevents_timeline = format_timeline_response(events)
+    response = jsonify({
         "version": version,
-        "events": timeline
+        "events": cloudevents_timeline
     })
+    response.headers['Content-Type'] = 'application/cloudevents+json'
+    return response
 
 
 @events_bp.route('/api/cases/<sak_id>/historikk', methods=['GET'])

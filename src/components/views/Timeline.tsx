@@ -13,7 +13,7 @@
 
 import { EventDetailModal } from './EventDetailModal';
 import { RevisionTag, UpdatedTag } from '../primitives';
-import { TimelineEntry, SporType } from '../../types/timeline';
+import { TimelineEvent, SporType, extractEventType } from '../../types/timeline';
 import { useState } from 'react';
 import { FileTextIcon, ClipboardIcon, ChevronDownIcon } from '@radix-ui/react-icons';
 
@@ -53,18 +53,21 @@ interface EventTagInfo {
 function getClaimVersionAtTime(
   spor: SporType | null,
   timestamp: string,
-  events: TimelineEntry[]
+  events: TimelineEvent[]
 ): number {
-  if (!spor) return 0;
+  if (!spor || !timestamp) return 0;
 
-  const priorTeUpdates = events.filter(
-    (e) =>
+  const priorTeUpdates = events.filter((e) => {
+    const eventType = extractEventType(e.type);
+    return (
       e.spor === spor &&
-      e.rolle === 'TE' &&
-      e.event_type &&
-      TE_CLAIM_UPDATE_TYPES.includes(e.event_type) &&
-      new Date(e.tidsstempel) < new Date(timestamp)
-  );
+      e.actorrole === 'TE' &&
+      eventType &&
+      TE_CLAIM_UPDATE_TYPES.includes(eventType) &&
+      e.time &&
+      new Date(e.time) < new Date(timestamp)
+    );
+  });
 
   return priorTeUpdates.length;
 }
@@ -76,31 +79,36 @@ function getClaimVersionAtTime(
  * - BH response updates: Show "Rev. X" + "Oppdatert" (claim version + updated indicator)
  */
 function getEventTagInfo(
-  event: TimelineEntry,
-  events: TimelineEntry[]
+  event: TimelineEvent,
+  events: TimelineEvent[]
 ): EventTagInfo {
-  if (!event.event_type) {
+  const eventType = extractEventType(event.type);
+  if (!eventType) {
     return { showRevision: false, showUpdated: false };
   }
 
   // TE claim updates get numbered revisions
-  if (TE_CLAIM_UPDATE_TYPES.includes(event.event_type)) {
+  if (TE_CLAIM_UPDATE_TYPES.includes(eventType)) {
     // Count how many TE claim updates came before and including this one for this spor
     const priorUpdates = events
-      .filter(
-        (e) =>
+      .filter((e) => {
+        const eType = extractEventType(e.type);
+        return (
           e.spor === event.spor &&
-          e.rolle === 'TE' &&
-          e.event_type &&
-          TE_CLAIM_UPDATE_TYPES.includes(e.event_type) &&
-          new Date(e.tidsstempel) <= new Date(event.tidsstempel)
-      )
+          e.actorrole === 'TE' &&
+          eType &&
+          TE_CLAIM_UPDATE_TYPES.includes(eType) &&
+          e.time &&
+          event.time &&
+          new Date(e.time) <= new Date(event.time)
+        );
+      })
       .sort(
         (a, b) =>
-          new Date(a.tidsstempel).getTime() - new Date(b.tidsstempel).getTime()
+          new Date(a.time || '').getTime() - new Date(b.time || '').getTime()
       );
 
-    const index = priorUpdates.findIndex((e) => e.event_id === event.event_id);
+    const index = priorUpdates.findIndex((e) => e.id === event.id);
     // Revision number: 1-indexed (first update = Rev. 1)
     return {
       showRevision: true,
@@ -110,8 +118,8 @@ function getEventTagInfo(
   }
 
   // BH initial responses show which claim version they're responding to
-  if (BH_RESPONSE_TYPES.includes(event.event_type)) {
-    const claimVersion = getClaimVersionAtTime(event.spor, event.tidsstempel, events);
+  if (BH_RESPONSE_TYPES.includes(eventType)) {
+    const claimVersion = getClaimVersionAtTime(event.spor, event.time || '', events);
     // Only show revision tag if responding to a revision (not the original)
     return {
       showRevision: claimVersion > 0,
@@ -121,8 +129,8 @@ function getEventTagInfo(
   }
 
   // BH response updates show BOTH: which claim version + "Oppdatert"
-  if (BH_RESPONSE_UPDATE_TYPES.includes(event.event_type)) {
-    const claimVersion = getClaimVersionAtTime(event.spor, event.tidsstempel, events);
+  if (BH_RESPONSE_UPDATE_TYPES.includes(eventType)) {
+    const claimVersion = getClaimVersionAtTime(event.spor, event.time || '', events);
     return {
       showRevision: claimVersion > 0,
       version: claimVersion > 0 ? claimVersion : undefined,
@@ -134,7 +142,7 @@ function getEventTagInfo(
 }
 
 interface TimelineProps {
-  events: TimelineEntry[];
+  events: TimelineEvent[];
 }
 
 /**
@@ -157,8 +165,8 @@ function getSporLabel(spor: SporType | null): string {
  * TE = Green, BH = Yellow
  * Text colors use semantic variables that match circles in both light and dark mode
  */
-function getRolleStyles(rolle: 'TE' | 'BH'): { bg: string; text: string; ring: string; pillBg: string; pillText: string } {
-  if (rolle === 'TE') {
+function getRolleStyles(actorrole: 'TE' | 'BH' | undefined): { bg: string; text: string; ring: string; pillBg: string; pillText: string } {
+  if (actorrole === 'TE') {
     return {
       bg: 'bg-pkt-brand-green-1000',
       text: 'text-pkt-brand-green-1000',
@@ -196,7 +204,7 @@ function getSporTagStyles(spor: SporType | null): string {
  */
 export function Timeline({ events }: TimelineProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [selectedEvent, setSelectedEvent] = useState<TimelineEntry | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(null);
 
   /**
    * Format date for minimal display (dd.mm)
@@ -239,14 +247,14 @@ export function Timeline({ events }: TimelineProps) {
       <div className="space-y-0" role="list" aria-label="Tidslinje over hendelser">
         {events.map((event) => {
           const tagInfo = getEventTagInfo(event, events);
-          const rolleStyles = getRolleStyles(event.rolle);
-          const isExpanded = expandedId === event.event_id;
+          const rolleStyles = getRolleStyles(event.actorrole);
+          const isExpanded = expandedId === event.id;
 
           return (
             <div
-              key={event.event_id}
+              key={event.id}
               className="group cursor-pointer hover:bg-pkt-bg-subtle transition-colors"
-              onClick={() => setExpandedId(isExpanded ? null : event.event_id)}
+              onClick={() => setExpandedId(isExpanded ? null : event.id)}
               role="listitem"
             >
               {/* Main content - responsive layout */}
@@ -256,14 +264,14 @@ export function Timeline({ events }: TimelineProps) {
                   {/* Role indicator - colored dot */}
                   <div
                     className={`w-2.5 h-2.5 rounded-full shrink-0 ${rolleStyles.bg}`}
-                    title={event.rolle === 'TE' ? 'Entreprenør' : 'Byggherre'}
+                    title={event.actorrole === 'TE' ? 'Entreprenør' : 'Byggherre'}
                     role="img"
-                    aria-label={event.rolle === 'TE' ? 'Entreprenør' : 'Byggherre'}
+                    aria-label={event.actorrole === 'TE' ? 'Entreprenør' : 'Byggherre'}
                   />
 
                   {/* Date */}
                   <span className="text-sm text-pkt-grays-gray-500 w-12 shrink-0 tabular-nums">
-                    {formatDateMinimal(event.tidsstempel)}
+                    {event.time ? formatDateMinimal(event.time) : ''}
                   </span>
 
                   {/* Spor tag */}
@@ -278,7 +286,7 @@ export function Timeline({ events }: TimelineProps) {
                   {/* Content */}
                   <div className="flex-1 min-w-0 flex items-center gap-2">
                     <span className="text-sm text-pkt-text-body-dark truncate">
-                      {event.sammendrag}
+                      {event.summary}
                     </span>
                     {tagInfo.showRevision && tagInfo.version !== undefined && (
                       <RevisionTag version={tagInfo.version} size="sm" />
@@ -291,7 +299,7 @@ export function Timeline({ events }: TimelineProps) {
                   {/* Role label + expand indicator */}
                   <div className="flex items-center gap-2 shrink-0">
                     <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${rolleStyles.pillBg} ${rolleStyles.pillText}`}>
-                      {event.rolle}
+                      {event.actorrole}
                     </span>
                     <ChevronDownIcon
                       className={`w-4 h-4 text-pkt-grays-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
@@ -306,14 +314,14 @@ export function Timeline({ events }: TimelineProps) {
                     {/* Role indicator - colored dot */}
                     <div
                       className={`w-2 h-2 rounded-full shrink-0 ${rolleStyles.bg}`}
-                      title={event.rolle === 'TE' ? 'Entreprenør' : 'Byggherre'}
+                      title={event.actorrole === 'TE' ? 'Entreprenør' : 'Byggherre'}
                       role="img"
-                      aria-label={event.rolle === 'TE' ? 'Entreprenør' : 'Byggherre'}
+                      aria-label={event.actorrole === 'TE' ? 'Entreprenør' : 'Byggherre'}
                     />
 
                     {/* Date */}
                     <span className="text-xs text-pkt-grays-gray-500 shrink-0 tabular-nums">
-                      {formatDateMinimal(event.tidsstempel)}
+                      {event.time ? formatDateMinimal(event.time) : ''}
                     </span>
 
                     {/* Spor tag */}
@@ -331,7 +339,7 @@ export function Timeline({ events }: TimelineProps) {
                     {/* Role label + expand indicator */}
                     <div className="flex items-center gap-1.5 shrink-0">
                       <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${rolleStyles.pillBg} ${rolleStyles.pillText}`}>
-                        {event.rolle}
+                        {event.actorrole}
                       </span>
                       <ChevronDownIcon
                         className={`w-4 h-4 text-pkt-grays-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
@@ -342,7 +350,7 @@ export function Timeline({ events }: TimelineProps) {
                   {/* Row 2: Summary and tags */}
                   <div className="flex items-center gap-2 pl-4">
                     <span className="text-sm text-pkt-text-body-dark line-clamp-2 flex-1 min-w-0">
-                      {event.sammendrag}
+                      {event.summary}
                     </span>
                     {tagInfo.showRevision && tagInfo.version !== undefined && (
                       <RevisionTag version={tagInfo.version} size="sm" />
@@ -361,21 +369,21 @@ export function Timeline({ events }: TimelineProps) {
                     {/* Full timestamp and actor - stacked on mobile */}
                     <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-0">
                       <span className="text-xs text-pkt-grays-gray-500">
-                        {formatDateFull(event.tidsstempel)}
+                        {event.time ? formatDateFull(event.time) : ''}
                       </span>
                       <span className="text-xs text-pkt-grays-gray-500 hidden sm:inline"> • </span>
                       <span className="text-xs text-pkt-grays-gray-500">
-                        {event.aktor}
+                        {event.actor}
                       </span>
                     </div>
 
                     {/* Event type description */}
                     <p className="text-sm text-pkt-text-body-dark">
-                      {event.type}
+                      {extractEventType(event.type) || event.type}
                     </p>
 
                     {/* View form button */}
-                    {event.event_data && (
+                    {event.data && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

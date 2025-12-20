@@ -6,7 +6,7 @@
  */
 
 import { Badge, Modal } from '../primitives';
-import { TimelineEntry, EventType } from '../../types/timeline';
+import { TimelineEvent, EventType, extractEventType } from '../../types/timeline';
 import { format } from 'date-fns';
 import { nb } from 'date-fns/locale';
 import {
@@ -17,7 +17,7 @@ import {
 interface ViewSubmittedEventModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  event: TimelineEntry;
+  event: TimelineEvent;
 }
 
 // Labels for event types
@@ -469,18 +469,18 @@ export function ViewSubmittedEventModal({
   onOpenChange,
   event,
 }: ViewSubmittedEventModalProps) {
-  const eventTypeLabel = event.event_type
-    ? EVENT_TYPE_LABELS[event.event_type] || event.type
+  const eventType = extractEventType(event.type);
+  const eventTypeLabel = eventType
+    ? EVENT_TYPE_LABELS[eventType] || event.type
     : event.type;
 
-  // Determine which view to render based on event_type
+  // Determine which view to render based on event type
   const renderEventData = () => {
-    if (!event.event_data) {
+    if (!event.data) {
       return <p className="text-field-label italic">Ingen detaljert skjemadata tilgjengelig for denne hendelsen.</p>;
     }
 
-    const data = event.event_data;
-    const eventType = event.event_type;
+    const data = event.data;
 
     switch (eventType) {
       case 'grunnlag_opprettet':
@@ -520,14 +520,14 @@ export function ViewSubmittedEventModal({
       open={open}
       onOpenChange={onOpenChange}
       title={eventTypeLabel}
-      description={`Innsendt av ${event.aktor} (${event.rolle})`}
+      description={`Innsendt av ${event.actor || 'Ukjent'} (${event.actorrole || 'Ukjent'})`}
       size="lg"
     >
       <div className="space-y-4">
         {/* Meta info */}
         <div className="flex items-center justify-between text-sm text-field-label pb-4 border-b">
           <span>
-            {format(new Date(event.tidsstempel), 'PPPp', { locale: nb })}
+            {event.time && format(new Date(event.time), 'PPPp', { locale: nb })}
           </span>
           {event.spor && (
             <Badge variant="neutral">{event.spor}</Badge>
@@ -537,7 +537,7 @@ export function ViewSubmittedEventModal({
         {/* Summary */}
         <div className="bg-pkt-bg-subtle p-4 rounded border border-pkt-border-subtle">
           <p className="text-sm font-medium text-field-value">Sammendrag:</p>
-          <p className="mt-1">{event.sammendrag}</p>
+          <p className="mt-1">{event.summary}</p>
         </div>
 
         {/* Full form data */}
@@ -550,7 +550,7 @@ export function ViewSubmittedEventModal({
 
         {/* Event ID */}
         <p className="text-xs text-field-muted pt-4 border-t">
-          Event ID: {event.event_id}
+          Event ID: {event.id}
         </p>
       </div>
     </Modal>

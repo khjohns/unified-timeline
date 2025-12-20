@@ -9,7 +9,7 @@
 import React from 'react';
 import { Badge, BadgeVariant, Collapsible, Modal } from '../primitives';
 import {
-  TimelineEntry,
+  TimelineEvent,
   EventType,
   GrunnlagEventData,
   VederlagEventData,
@@ -29,6 +29,7 @@ import {
   VederlagBeregningResultat,
   FristBeregningResultat,
   SubsidiaerTrigger,
+  extractEventType,
 } from '../../types/timeline';
 import {
   getHovedkategoriLabel,
@@ -57,7 +58,7 @@ import {
 interface EventDetailModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  event: TimelineEntry;
+  event: TimelineEvent;
 }
 
 // ========== LABELS ==========
@@ -1084,15 +1085,16 @@ export function EventDetailModal({
   onOpenChange,
   event,
 }: EventDetailModalProps) {
-  const eventTypeLabel = event.event_type
-    ? EVENT_TYPE_LABELS[event.event_type] || event.type
+  const eventType = extractEventType(event.type);
+  const eventTypeLabel = eventType
+    ? EVENT_TYPE_LABELS[eventType] || event.type
     : event.type;
 
   const sporLabel = event.spor ? SPOR_LABELS[event.spor] : 'Generelt';
 
   // Render event-specific data section
   const renderEventData = () => {
-    if (!event.event_data) {
+    if (!event.data) {
       return (
         <p className="text-pkt-grays-gray-500 italic py-4">
           Ingen detaljert skjemadata tilgjengelig for denne hendelsen.
@@ -1100,8 +1102,7 @@ export function EventDetailModal({
       );
     }
 
-    const data = event.event_data;
-    const eventType = event.event_type;
+    const data = event.data;
 
     switch (eventType) {
       case 'grunnlag_opprettet':
@@ -1153,7 +1154,7 @@ export function EventDetailModal({
       open={open}
       onOpenChange={onOpenChange}
       title={eventTypeLabel}
-      description={`Innsendt av ${event.aktor} (${event.rolle})`}
+      description={`Innsendt av ${event.actor || 'Ukjent'} (${event.actorrole || 'Ukjent'})`}
       size="lg"
     >
       <div className="space-y-6">
@@ -1161,14 +1162,14 @@ export function EventDetailModal({
         <div className="flex flex-wrap items-center gap-4 text-sm text-pkt-grays-gray-600 pb-4 border-b border-pkt-grays-gray-200">
           <span className="flex items-center gap-1.5">
             <CalendarIcon className="w-4 h-4" />
-            {formatDateTime(event.tidsstempel)}
+            {event.time ? formatDateTime(event.time) : 'Ukjent tid'}
           </span>
           <span className="flex items-center gap-1.5">
             <PersonIcon className="w-4 h-4" />
-            {event.aktor}
+            {event.actor || 'Ukjent'}
           </span>
-          <Badge variant={event.rolle === 'TE' ? 'info' : 'warning'}>
-            {event.rolle}
+          <Badge variant={event.actorrole === 'TE' ? 'info' : 'warning'}>
+            {event.actorrole || 'Ukjent'}
           </Badge>
           {event.spor && (
             <span className="flex items-center gap-1.5">
@@ -1181,7 +1182,7 @@ export function EventDetailModal({
         {/* Summary */}
         <div className="bg-pkt-bg-subtle p-4 border border-pkt-grays-gray-200">
           <p className="text-sm font-medium text-pkt-grays-gray-700 mb-1">Sammendrag</p>
-          <p className="text-pkt-text-body-dark">{event.sammendrag}</p>
+          <p className="text-pkt-text-body-dark">{event.summary || 'Ingen sammendrag'}</p>
         </div>
 
         {/* Full form data */}
@@ -1197,7 +1198,7 @@ export function EventDetailModal({
 
         {/* Event ID footer */}
         <p className="text-xs text-pkt-grays-gray-400 pt-4 border-t border-pkt-grays-gray-200">
-          Event ID: {event.event_id}
+          Event ID: {event.id}
         </p>
       </div>
     </Modal>

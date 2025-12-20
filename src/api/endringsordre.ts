@@ -9,7 +9,7 @@ import { apiFetch, USE_MOCK_API, mockDelay } from './client';
 import { getMockStateById, getMockTimelineById } from '../mocks/helpers';
 import type {
   SakState,
-  TimelineEntry,
+  TimelineEvent,
   SakRelasjon,
   EndringsordreData,
   EOKonsekvenser,
@@ -25,8 +25,8 @@ export interface EOKontekstResponse {
   sak_id: string;
   relaterte_saker: SakRelasjon[];
   sak_states: Record<string, SakState>;
-  hendelser: Record<string, TimelineEntry[]>;
-  eo_hendelser: TimelineEntry[];  // EO case's own events
+  hendelser: Record<string, TimelineEvent[]>;
+  eo_hendelser: TimelineEvent[];  // EO case's own events
   oppsummering: {
     antall_koe_saker: number;
     total_krevd_vederlag: number;

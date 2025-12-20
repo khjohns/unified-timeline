@@ -69,6 +69,10 @@ def format_event_response(
     """
     Format a single event as CloudEvents structured content.
 
+    Includes extension attributes for UI display:
+    - summary: Human-readable summary of the event
+    - spor: Track/category (grunnlag, vederlag, frist, forsering)
+
     Args:
         event: SakEvent instance
         include_dataschema: Whether to include dataschema URI
@@ -91,7 +95,84 @@ def format_event_response(
             event_type = event_type.value
         ce['dataschema'] = get_dataschema_uri(event_type, base_url or '')
 
+    # Add spor (track) extension attribute
+    ce['spor'] = _get_spor_for_event(event)
+
+    # Add summary extension attribute
+    ce['summary'] = _get_event_summary(event)
+
     return ce
+
+
+def _get_spor_for_event(event) -> Optional[str]:
+    """
+    Determine which track (spor) an event belongs to.
+
+    Returns:
+        'grunnlag', 'vederlag', 'frist', 'forsering', or None
+    """
+    event_type = event.event_type
+    if hasattr(event_type, 'value'):
+        event_type = event_type.value
+
+    if 'grunnlag' in event_type:
+        return 'grunnlag'
+    elif 'vederlag' in event_type:
+        return 'vederlag'
+    elif 'frist' in event_type:
+        return 'frist'
+    elif 'forsering' in event_type:
+        return 'forsering'
+    return None
+
+
+def _get_event_summary(event) -> str:
+    """
+    Generate a human-readable summary for the event.
+    """
+    from models.events import (
+        GrunnlagEvent, VederlagEvent, FristEvent,
+        ForseringVarselEvent, ResponsEvent, SakOpprettetEvent, EOUtstedtEvent
+    )
+
+    if isinstance(event, GrunnlagEvent):
+        from constants.grunnlag_categories import get_grunnlag_sammendrag
+        return get_grunnlag_sammendrag(event.data.hovedkategori, event.data.underkategori)
+    elif isinstance(event, VederlagEvent):
+        belop = event.data.belop_direkte or event.data.kostnads_overslag or 0
+        return f"Krav: {belop:,.0f} NOK"
+    elif isinstance(event, FristEvent):
+        return f"Krav: {event.data.antall_dager} dager"
+    elif isinstance(event, ForseringVarselEvent):
+        return f"Forsering: {event.data.estimert_kostnad:,.0f} NOK"
+    elif isinstance(event, ResponsEvent):
+        return _get_respons_summary(event)
+    elif isinstance(event, SakOpprettetEvent):
+        return event.sakstittel
+    elif isinstance(event, EOUtstedtEvent):
+        return f"EO-{event.eo_nummer}: {event.endelig_vederlag:,.0f} NOK"
+    return ""
+
+
+def _get_respons_summary(event) -> str:
+    """Generate readable summary for ResponsEvent."""
+    resultat_labels = {
+        'godkjent': 'Godkjent',
+        'delvis_godkjent': 'Delvis godkjent',
+        'erkjenn_fm': 'Force Majeure erkjent',
+        'avslatt': 'Avslått',
+        'frafalt': 'Pålegg frafalt',
+        'krever_avklaring': 'Krever avklaring',
+    }
+
+    if hasattr(event.data, 'resultat'):
+        resultat_value = event.data.resultat.value if hasattr(event.data.resultat, 'value') else str(event.data.resultat)
+    elif hasattr(event.data, 'beregnings_resultat'):
+        resultat_value = event.data.beregnings_resultat.value if hasattr(event.data.beregnings_resultat, 'value') else str(event.data.beregnings_resultat)
+    else:
+        resultat_value = 'ukjent'
+
+    return resultat_labels.get(resultat_value, resultat_value)
 
 
 def format_timeline_response(

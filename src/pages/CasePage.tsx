@@ -43,7 +43,7 @@ import {
 } from '../components/actions';
 import { findForseringerForSak, type FindForseringerResponse } from '../api/forsering';
 import { findEOerForSak, type FindEOerResponse } from '../api/endringsordre';
-import type { SakState, GrunnlagResponsResultat, TimelineEntry } from '../types/timeline';
+import type { SakState, GrunnlagResponsResultat, TimelineEvent } from '../types/timeline';
 import {
   ReloadIcon,
   ExclamationTriangleIcon,
@@ -150,19 +150,9 @@ export function CasePage() {
   // Compute actions based on state - hooks must be called unconditionally
   const actions = useActionPermissions(state, userRole);
 
-  // Convert API timeline events to TimelineEntry format
-  const timelineEvents: TimelineEntry[] = useMemo(
-    () => timelineData?.events.map(e => ({
-      event_id: e.event_id,
-      tidsstempel: e.tidsstempel,
-      type: e.type,
-      event_type: e.event_type,
-      aktor: e.aktor,
-      rolle: e.rolle,
-      spor: e.spor,
-      sammendrag: e.sammendrag,
-      event_data: e.event_data,
-    })) ?? [],
+  // API now returns CloudEvents format directly
+  const timelineEvents: TimelineEvent[] = useMemo(
+    () => timelineData?.events ?? [],
     [timelineData]
   );
 

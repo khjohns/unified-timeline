@@ -36,32 +36,35 @@ export async function fetchCaseState(sakId: string): Promise<StateResponse> {
  * @param sakId - The case ID
  * @returns The timeline events and version
  *
- * Note: Both mock data and real backend return TimelineEvent[] with:
- * - event_id, tidsstempel, type, event_type, aktor, rolle, spor, sammendrag, event_data
+ * Note: Backend returns CloudEvents v1.0 format.
+ * Mock data uses legacy format and is converted here.
  */
 export async function fetchTimeline(sakId: string): Promise<TimelineResponse> {
   // Use mock data if enabled
   if (USE_MOCK_API) {
     await mockDelay(200);
-    const events = getMockTimelineById(sakId);
-    // Mock data already has correct TimelineEntry structure - map to TimelineEvent
+    const legacyEvents = getMockTimelineById(sakId);
+    // Convert legacy mock data to CloudEvents format
     return {
-      events: events.map(e => ({
-        event_id: e.event_id,
-        tidsstempel: e.tidsstempel,
-        type: e.type,
-        event_type: e.event_type,
-        aktor: e.aktor,
-        rolle: e.rolle,
+      events: legacyEvents.map(e => ({
+        specversion: '1.0' as const,
+        id: e.event_id,
+        source: `/projects/unknown/cases/${sakId}`,
+        type: `no.oslo.koe.${e.event_type || e.type}`,
+        time: e.tidsstempel,
+        subject: sakId,
+        datacontenttype: 'application/json' as const,
+        actor: e.aktor,
+        actorrole: e.rolle,
         spor: e.spor,
-        sammendrag: e.sammendrag,
-        event_data: e.event_data,
+        summary: e.sammendrag,
+        data: e.event_data,
       })),
       version: 1,
     };
   }
 
-  // Real API call - backend returns TimelineResponse with full event data
+  // Real API call - backend returns CloudEvents v1.0 format
   return apiFetch<TimelineResponse>(`/api/cases/${sakId}/timeline`);
 }
 

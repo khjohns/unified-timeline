@@ -793,6 +793,83 @@ export type EventData =
   | ResponsFristOppdatertEventData
   | ForseringVarselEventData;
 
+// ========== CLOUDEVENTS v1.0 ==========
+
+/**
+ * CloudEvents v1.0 envelope.
+ *
+ * This is the primary format for all events in the system.
+ * See: https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/spec.md
+ */
+export interface CloudEvent<T = EventData> {
+  // Required attributes
+  specversion: '1.0';
+  id: string;
+  source: string;  // /projects/{prosjekt_id}/cases/{sak_id}
+  type: string;    // no.oslo.koe.{event_type}
+
+  // Optional attributes
+  time?: string;   // ISO 8601 with Z suffix
+  subject?: string;  // sak_id
+  datacontenttype?: 'application/json';
+  dataschema?: string;
+
+  // Extension attributes (KOE-specific)
+  actor?: string;           // Hvem som utførte handlingen
+  actorrole?: 'TE' | 'BH';  // Rolle
+  comment?: string;         // Valgfri kommentar
+  referstoid?: string;      // Referanse til annen event
+  summary?: string;         // Human-readable summary
+  spor?: SporType | null;   // Track/category (grunnlag, vederlag, frist, forsering)
+
+  // Payload
+  data?: T;
+}
+
+/**
+ * CloudEvents namespace for this project.
+ */
+export const CLOUDEVENTS_NAMESPACE = 'no.oslo.koe';
+
+/**
+ * Extract event type from CloudEvents type string.
+ *
+ * @example
+ * extractEventType('no.oslo.koe.grunnlag_opprettet') // 'grunnlag_opprettet'
+ */
+export function extractEventType(ceType: string): EventType | null {
+  const prefix = `${CLOUDEVENTS_NAMESPACE}.`;
+  if (ceType.startsWith(prefix)) {
+    return ceType.substring(prefix.length) as EventType;
+  }
+  return ceType as EventType;
+}
+
+/**
+ * Extract spor (track) from CloudEvents type string.
+ */
+export function extractSpor(ceType: string): SporType | null {
+  const eventType = extractEventType(ceType);
+  if (!eventType) return null;
+
+  if (eventType.includes('grunnlag')) return 'grunnlag';
+  if (eventType.includes('vederlag')) return 'vederlag';
+  if (eventType.includes('frist')) return 'frist';
+  if (eventType.includes('forsering')) return 'forsering';
+  return null;
+}
+
+/**
+ * Type alias for timeline events (CloudEvents format).
+ */
+export type TimelineEvent = CloudEvent<EventData>;
+
+// ========== LEGACY TIMELINE ENTRY (deprecated) ==========
+
+/**
+ * @deprecated Use CloudEvent<EventData> instead.
+ * This interface is kept for backward compatibility during migration.
+ */
 export interface TimelineEntry {
   event_id: string;
   tidsstempel: string;

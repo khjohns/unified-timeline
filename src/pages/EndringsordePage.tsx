@@ -30,7 +30,7 @@ import {
 import type {
   EndringsordreData,
   EOKonsekvenser,
-  TimelineEntry,
+  TimelineEvent,
 } from '../types/timeline';
 import {
   fetchEOKontekst,
@@ -151,37 +151,37 @@ export function EndringsordePage() {
   const harRelaterteKOE = (kontekstData?.oppsummering?.antall_koe_saker || 0) > 0;
 
   // EO case's own events
-  const eoTimeline = useMemo((): TimelineEntry[] => {
+  const eoTimeline = useMemo((): TimelineEvent[] => {
     if (!kontekstData?.eo_hendelser) return [];
     // Sort by timestamp descending
     return [...kontekstData.eo_hendelser].sort((a, b) =>
-      new Date(b.tidsstempel).getTime() - new Date(a.tidsstempel).getTime()
+      new Date(b.time || '').getTime() - new Date(a.time || '').getTime()
     );
   }, [kontekstData]);
 
   // Combine timeline events from all related KOE cases
-  const relatedCasesTimeline = useMemo((): TimelineEntry[] => {
+  const relatedCasesTimeline = useMemo((): TimelineEvent[] => {
     if (!kontekstData?.hendelser) return [];
 
-    const allEvents: TimelineEntry[] = [];
+    const allEvents: TimelineEvent[] = [];
 
     // Add events from each related case with source info
     Object.entries(kontekstData.hendelser).forEach(([relatedSakId, events]) => {
       const sakState = kontekstData.sak_states[relatedSakId];
       const sakTittel = sakState?.sakstittel || `Sak ${relatedSakId.slice(0, 8)}`;
 
-      events.forEach((event: TimelineEntry) => {
+      events.forEach((event: TimelineEvent) => {
         allEvents.push({
           ...event,
           // Prepend source case info to summary
-          sammendrag: `[${sakTittel}] ${event.sammendrag}`,
+          summary: `[${sakTittel}] ${event.summary || ''}`,
         });
       });
     });
 
     // Sort by timestamp descending
     return allEvents.sort((a, b) =>
-      new Date(b.tidsstempel).getTime() - new Date(a.tidsstempel).getTime()
+      new Date(b.time || '').getTime() - new Date(a.time || '').getTime()
     );
   }, [kontekstData]);
 
