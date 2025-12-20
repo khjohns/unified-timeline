@@ -331,49 +331,31 @@ components:
 
 **Hva:** Hierarkisk arkitekturmodell med 4 nivåer (Context → Container → Component → Code).
 
-**Relevans for prosjektet:**
-- Visualisere kompleks arkitektur (frontend, backend, integrasjoner)
-- Generere diagrammer fra kode (Structurizr DSL)
-- Versjonskontrollert dokumentasjon
+**Status (2025-12-20):** ✅ Context + Container implementert
+
+**Implementert:**
+- Context-diagram: Viser TE, BH, KOE-system og Catenda
+- Container-diagram: Frontend, Backend API, Event Store
+
+**Fil:** [`docs/architecture/workspace.dsl`](./architecture/workspace.dsl)
+
+**Bruk:**
+```bash
+# Online viewer (paste innhold)
+https://structurizr.com/dsl
+
+# CLI eksport til PlantUML
+structurizr-cli export -workspace docs/architecture/workspace.dsl -format plantuml
+
+# VS Code: Installer "Structurizr" extension for preview
+```
+
+**Ikke implementert (vurdert som unødvendig):**
+- Component-diagram: Dekkes av `backend/STRUCTURE.md`
+- Code-diagram: Koden er lesbar, overkill
 
 **Avhengighet til CloudEvents:**
-- **Ingen** - kan implementeres helt uavhengig
-- Kan gjøres parallelt med CloudEvents
-
-**Eksempel (Structurizr DSL):**
-```
-workspace {
-    model {
-        te = person "Totalentreprenør" "Sender krav og dokumentasjon"
-        bh = person "Byggherre" "Vurderer og godkjenner krav"
-
-        koeSystem = softwareSystem "KOE System" "Håndterer endringsordrer" {
-            frontend = container "React Frontend" "Brukergrensesnitt" "React 19, TypeScript"
-            backend = container "Azure Functions" "API og forretningslogikk" "Python, Flask"
-            eventStore = container "Dataverse" "Event Store" "Microsoft Dataverse"
-        }
-
-        catenda = softwareSystem "Catenda" "Prosjekthotell" "Ekstern"
-
-        te -> frontend "Registrerer krav"
-        bh -> frontend "Vurderer krav"
-        frontend -> backend "REST API"
-        backend -> eventStore "Lagrer events"
-        backend -> catenda "Synkroniserer"
-    }
-
-    views {
-        systemContext koeSystem "SystemContext" {
-            include *
-            autoLayout
-        }
-        container koeSystem "Containers" {
-            include *
-            autoLayout
-        }
-    }
-}
-```
+- **Ingen** - helt uavhengig
 
 ### Sammenligning
 

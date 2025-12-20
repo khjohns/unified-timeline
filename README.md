@@ -569,6 +569,7 @@ Backend-arkitekturen er designet for gjenbruk på tvers av skjematyper. Den lagd
 | [DEPLOYMENT.md](docs/DEPLOYMENT.md) | Azure-utrulling |
 | [backend/STRUCTURE.md](backend/STRUCTURE.md) | Backend-mappestruktur (detaljert) |
 | [CLOUDEVENTS_ADOPTION.md](docs/CLOUDEVENTS_ADOPTION.md) | CloudEvents-adopsjon og migrering |
+| [architecture/workspace.dsl](docs/architecture/workspace.dsl) | C4-arkitekturdiagrammer (Structurizr DSL) |
 
 ---
 
