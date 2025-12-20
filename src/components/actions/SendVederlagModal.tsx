@@ -324,7 +324,7 @@ export function SendVederlagModal({
                 label="Sum direkte kostnader"
                 required
                 error={errors.belop_direkte?.message}
-                helpText="Bruk negativt beløp for fradrag. Fradrag gjøres med reduksjon for fortjeneste (§34.4)"
+                helpText="Negativt beløp angir fradrag. Ved fradrag brukes enhetsprisene tilsvarende (§34.3)."
               >
                 <Controller
                   name="belop_direkte"
@@ -366,13 +366,14 @@ export function SendVederlagModal({
           {selectedMetode === 'REGNINGSARBEID' && (
             <>
               <Alert variant="info" className="mb-3">
-                Ved regningsarbeid faktureres kostnadene løpende.
+                Ved regningsarbeid faktureres kostnadene løpende. Ved fradrag reduseres vederlaget
+                med besparelsen, inkludert tilsvarende reduksjon av fortjenesten (§34.4).
               </Alert>
 
               <FormField
                 label="Kostnadsoverslag"
                 error={errors.kostnads_overslag?.message}
-                helpText="Estimert totalkostnad. Byggherren kan holde tilbake betaling inntil overslag mottas (§30.2)"
+                helpText="Estimert totalkostnad. Byggherren kan holde tilbake betaling inntil overslag mottas (§30.2)."
               >
                 <Controller
                   name="kostnads_overslag"
@@ -415,6 +416,7 @@ export function SendVederlagModal({
               label="Tilbudt fastpris (eks. mva)"
               required
               error={errors.belop_direkte?.message}
+              helpText="Spesifisert tilbud (§34.2.1). Ved avslag faller oppgjøret tilbake på regningsarbeid (§34.4)."
             >
               <Controller
                 name="belop_direkte"
@@ -423,7 +425,7 @@ export function SendVederlagModal({
                   <CurrencyInput
                     value={field.value ?? null}
                     onChange={field.onChange}
-                    
+                    allowNegative={false}
                   />
                 )}
               />

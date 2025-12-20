@@ -345,6 +345,21 @@ export function RespondVederlagModal({
   const metodeLabel = vederlagEvent?.metode
     ? getVederlagsmetodeLabel(vederlagEvent.metode)
     : undefined;
+
+  // Method-specific help text for BH when deciding on oppgjørsform
+  const metodeHelpText = useMemo(() => {
+    switch (vederlagEvent?.metode) {
+      case 'ENHETSPRISER':
+        return 'Oppgjør basert på kontraktens enhetspriser (§34.3). Ved avslag faller oppgjøret tilbake på regningsarbeid (§34.4).';
+      case 'REGNINGSARBEID':
+        return 'Oppgjør basert på dokumenterte kostnader + påslag (§34.4/§30). Du kan kreve kostnadsoverslag og holde tilbake betaling (§30.2).';
+      case 'FASTPRIS_TILBUD':
+        return 'Spesifisert tilbud fra entreprenør (§34.2.1). Ved avslag faller oppgjøret tilbake på regningsarbeid (§34.4).';
+      default:
+        return undefined;
+    }
+  }, [vederlagEvent?.metode]);
+
   const hovedkravBelop =
     vederlagEvent?.metode === 'REGNINGSARBEID'
       ? vederlagEvent?.kostnads_overslag
@@ -963,7 +978,7 @@ export function RespondVederlagModal({
                 <FormField
                   label="Aksepterer du den foreslåtte oppgjørsformen?"
                   required
-                  helpText={metodeLabel ? `Foreslått oppgjørsform: ${metodeLabel}` : undefined}
+                  helpText={metodeHelpText}
                 >
                   <Controller
                     name="aksepterer_metode"
