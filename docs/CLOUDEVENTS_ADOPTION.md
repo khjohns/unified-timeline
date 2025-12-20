@@ -11,12 +11,14 @@
 1. [Sammendrag](#1-sammendrag)
 2. [Hva er CloudEvents?](#2-hva-er-cloudevents)
 3. [Hvorfor CloudEvents?](#3-hvorfor-cloudevents)
-4. [Nåværende event-struktur](#4-nåværende-event-struktur)
-5. [Mapping til CloudEvents](#5-mapping-til-cloudevents)
-6. [Implementeringsplan](#6-implementeringsplan)
-7. [Teknisk implementering](#7-teknisk-implementering)
-8. [Migreringsstrategi](#8-migreringsstrategi)
-9. [Referanser](#9-referanser)
+4. [Azure Event Grid](#4-azure-event-grid)
+5. [Relaterte spesifikasjoner](#5-relaterte-spesifikasjoner)
+6. [Nåværende event-struktur](#6-nåværende-event-struktur)
+7. [Mapping til CloudEvents](#7-mapping-til-cloudevents)
+8. [Implementeringsplan](#8-implementeringsplan)
+9. [Teknisk implementering](#9-teknisk-implementering)
+10. [Migreringsstrategi](#10-migreringsstrategi)
+11. [Referanser](#11-referanser)
 
 ---
 
@@ -26,9 +28,18 @@
 
 CloudEvents er en CNCF-standard for å beskrive events i et felles format. Denne planen beskriver hvordan unified-timeline kan adoptere CloudEvents inkrementelt for å oppnå:
 
-- **Azure Event Grid-kompatibilitet** - Direkte integrasjon med planlagt produksjonsmiljø
+- **Standardisering** - Felles format som er selvdokumenterende
 - **Interoperabilitet** - Standardisert format som andre systemer kan konsumere
 - **Fremtidssikring** - Industristandardformat med bred verktøystøtte
+- **Azure Event Grid-klar** - Native kompatibilitet når/hvis Event Grid blir aktuelt
+
+### Viktige avklaringer
+
+| Spørsmål | Svar |
+|----------|------|
+| **Trenger vi Azure Event Grid nå?** | ❌ Nei - nåværende arkitektur dekker behovet |
+| **Gir CloudEvents verdi uten Event Grid?** | ✅ Ja - standardisering og fremtidssikring |
+| **Kan AsyncAPI/C4 gjøres parallelt?** | ⚠️ Delvis - C4 parallelt, AsyncAPI etter CloudEvents fase 1 |
 
 ### Estimert innsats per fase
 
@@ -38,6 +49,21 @@ CloudEvents er en CNCF-standard for å beskrive events i et felles format. Denne
 | 2 | Serialiseringsstøtte | 4-8 timer | Middels |
 | 3 | Webhook-integrasjon | 8-16 timer | Middels |
 | 4 | Full migrering | 16-24 timer | Lav |
+| 5 | Azure Event Grid | 16-24 timer | Avhenger av behov |
+
+### Anbefalt rekkefølge for alle spesifikasjoner
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  Uke 1              │  Uke 2              │  Uke 3                  │
+├─────────────────────┼─────────────────────┼─────────────────────────┤
+│  CloudEvents Fase 1 │  AsyncAPI           │  AsyncAPI ferdig        │
+│  (2-4 timer)        │  (4-8 timer)        │                         │
+│                     │                     │                         │
+│  C4/Structurizr     │  C4 ferdig          │  CloudEvents Fase 2     │
+│  (2-4 timer)        │                     │  (valgfritt)            │
+└─────────────────────┴─────────────────────┴─────────────────────────┘
+```
 
 ---
 
@@ -121,7 +147,236 @@ CloudEvents er en åpen spesifikasjon fra [Cloud Native Computing Foundation (CN
 
 ---
 
-## 4. Nåværende event-struktur
+## 4. Azure Event Grid
+
+### Er Event Grid nødvendig?
+
+Basert på nåværende produksjonsarkitektur (Azure Functions + Dataverse + Catenda) er **Azure Event Grid ikke planlagt**. Den nåværende arkitekturen dekker behovet.
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  NÅVÆRENDE ARKITEKTUR (uten Event Grid)                             │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│   Frontend ──► Azure Functions ──► Dataverse                        │
+│                      │                                               │
+│                      └──► Catenda (direkte API-kall)                │
+│                                                                      │
+│   ✓ Fungerer for nåværende behov                                    │
+│   ✓ Enklere arkitektur                                              │
+│   ✓ Færre komponenter å vedlikeholde                                │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Når blir Event Grid relevant?
+
+Event Grid blir relevant når **andre systemer skal konsumere events**:
+
+| Use case | Beskrivelse | Verdi | Kompleksitet |
+|----------|-------------|-------|--------------|
+| **Catenda-synk** | Publiser events → trigger Function → oppdater Catenda | ⭐⭐⭐ Høy | Middels |
+| **Power BI real-time** | Push events til Power BI for sanntids-dashboards | ⭐⭐ Middels | Lav |
+| **Varsling** | E-post/SMS når viktige events skjer (frist godkjent, etc.) | ⭐⭐ Middels | Lav |
+| **Audit-logging** | Route alle events til Azure Log Analytics | ⭐ Lav | Lav |
+| **Multi-system** | ERP, prosjektstyring, andre systemer abonnerer | ⭐⭐⭐ Høy | Høy |
+
+### Arkitektur med Event Grid (fremtidig)
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                      Azure Functions (API)                           │
+│  POST /api/events                                                    │
+│    │                                                                 │
+│    ├── 1. Valider event                                              │
+│    ├── 2. Persist til Dataverse                                      │
+│    └── 3. Publiser til Event Grid  ◄── FREMTIDIG                     │
+└───────────────────────────┬─────────────────────────────────────────┘
+                            │
+                            ▼
+                ┌───────────────────────┐
+                │   Azure Event Grid    │◄── CloudEvents format
+                │   (Topic)             │
+                └───────────┬───────────┘
+                            │
+            ┌───────────────┼───────────────┐
+            │               │               │
+            ▼               ▼               ▼
+    ┌───────────────┐ ┌───────────────┐ ┌───────────────┐
+    │ Azure Function│ │ Power BI      │ │ Webhook       │
+    │ → Catenda     │ │ Streaming     │ │ → Ekstern     │
+    └───────────────┘ └───────────────┘ └───────────────┘
+```
+
+### Konklusjon
+
+| Spørsmål | Svar |
+|----------|------|
+| **Trenger prosjektet Event Grid nå?** | ❌ Nei |
+| **Når blir det relevant?** | Når andre systemer skal konsumere events |
+| **Er CloudEvents nyttig uten Event Grid?** | ✅ Ja - standardisering, dokumentasjon, fremtidssikring |
+
+**CloudEvents gir verdi uavhengig av Event Grid** - det handler om å ha et standardisert format som er klart for fremtidige integrasjoner.
+
+---
+
+## 5. Relaterte spesifikasjoner
+
+CloudEvents er én av flere spesifikasjoner som kan styrke prosjektets arkitektur. Her er en oversikt over relaterte spesifikasjoner og hvordan de forholder seg til CloudEvents.
+
+### Oversikt
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                     SPESIFIKASJONER                                  │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│   CloudEvents ◄─────────── AsyncAPI                                 │
+│   (Event-format)           (API-dokumentasjon)                      │
+│        │                        │                                    │
+│        │                        │ refererer til CloudEvents-typer    │
+│        │                        │                                    │
+│        └────────────────────────┘                                    │
+│                                                                      │
+│   C4/Structurizr (uavhengig)                                        │
+│   (Arkitekturdiagrammer)                                            │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### AsyncAPI
+
+**Hva:** OpenAPI for event-drevne systemer - dokumenterer meldingsbaserte APIer.
+
+**Relevans for prosjektet:**
+- Dokumentere Catenda webhooks formelt
+- Spesifisere event-strømmer med schema-validering
+- Generere dokumentasjon og klientkode automatisk
+
+**Avhengighet til CloudEvents:**
+- AsyncAPI bør implementeres **etter** CloudEvents fase 1
+- Kan referere til CloudEvents JSON Schema for event-typer
+- Gir mer verdi når event-formatet er standardisert
+
+**Eksempel (AsyncAPI med CloudEvents):**
+```yaml
+asyncapi: 3.0.0
+info:
+  title: KOE Event API
+  version: 1.0.0
+
+channels:
+  koe/events:
+    messages:
+      grunnlagOpprettet:
+        contentType: application/cloudevents+json
+        payload:
+          $ref: '#/components/schemas/CloudEvent'
+
+components:
+  schemas:
+    CloudEvent:
+      type: object
+      properties:
+        specversion:
+          type: string
+          const: "1.0"
+        type:
+          type: string
+          pattern: "^no\\.oslo\\.koe\\."
+        # ... etc
+```
+
+### C4 Model / Structurizr
+
+**Hva:** Hierarkisk arkitekturmodell med 4 nivåer (Context → Container → Component → Code).
+
+**Relevans for prosjektet:**
+- Visualisere kompleks arkitektur (frontend, backend, integrasjoner)
+- Generere diagrammer fra kode (Structurizr DSL)
+- Versjonskontrollert dokumentasjon
+
+**Avhengighet til CloudEvents:**
+- **Ingen** - kan implementeres helt uavhengig
+- Kan gjøres parallelt med CloudEvents
+
+**Eksempel (Structurizr DSL):**
+```
+workspace {
+    model {
+        te = person "Totalentreprenør" "Sender krav og dokumentasjon"
+        bh = person "Byggherre" "Vurderer og godkjenner krav"
+
+        koeSystem = softwareSystem "KOE System" "Håndterer endringsordrer" {
+            frontend = container "React Frontend" "Brukergrensesnitt" "React 19, TypeScript"
+            backend = container "Azure Functions" "API og forretningslogikk" "Python, Flask"
+            eventStore = container "Dataverse" "Event Store" "Microsoft Dataverse"
+        }
+
+        catenda = softwareSystem "Catenda" "Prosjekthotell" "Ekstern"
+
+        te -> frontend "Registrerer krav"
+        bh -> frontend "Vurderer krav"
+        frontend -> backend "REST API"
+        backend -> eventStore "Lagrer events"
+        backend -> catenda "Synkroniserer"
+    }
+
+    views {
+        systemContext koeSystem "SystemContext" {
+            include *
+            autoLayout
+        }
+        container koeSystem "Containers" {
+            include *
+            autoLayout
+        }
+    }
+}
+```
+
+### Sammenligning
+
+| Aspekt | CloudEvents | AsyncAPI | C4/Structurizr |
+|--------|-------------|----------|----------------|
+| **Formål** | Event-dataformat | API-dokumentasjon | Arkitekturdiagrammer |
+| **Påvirker kode?** | Ja (modeller) | Nei (kun docs) | Nei (kun docs) |
+| **Avhengighet** | Ingen | Bør ha CloudEvents først | Ingen |
+| **Innsats** | 2-4 timer (fase 1) | 4-8 timer | 2-4 timer |
+| **Vedlikehold** | Automatisk (Pydantic) | Manuelt/generert | Manuelt |
+
+### Anbefalt rekkefølge
+
+```
+Uke 1                    Uke 2                    Uke 3
+────────────────────────────────────────────────────────────
+CloudEvents Fase 1  ───► AsyncAPI             ───► AsyncAPI
+(2-4 timer)              (4-8 timer)               ferdig
+
+C4/Structurizr      ───► C4 ferdig
+(2-4 timer)
+
+                         CloudEvents Fase 2
+                         (valgfritt)
+```
+
+| Rekkefølge | Spesifikasjon | Begrunnelse |
+|------------|---------------|-------------|
+| **1. Først** | CloudEvents (fase 1) | Definerer event-formatet som AsyncAPI skal dokumentere |
+| **2. Parallelt** | C4/Structurizr | Uavhengig av CloudEvents, kan gjøres når som helst |
+| **3. Etter CE** | AsyncAPI | Bør referere til CloudEvents-typer for konsistens |
+
+### Synergier
+
+| Kombinasjon | Synergi |
+|-------------|---------|
+| AsyncAPI + CloudEvents | AsyncAPI kan referere til CloudEvents JSON Schema |
+| C4 + AsyncAPI | C4 Container-diagram kan vise "events via AsyncAPI" |
+| Alle tre | Komplett dokumentasjon: format + API + arkitektur |
+
+---
+
+## 6. Nåværende event-struktur
 
 ### SakEvent base-klasse
 
@@ -179,7 +434,7 @@ Systemet har 35+ event-typer fordelt på kategorier:
 
 ---
 
-## 5. Mapping til CloudEvents
+## 7. Mapping til CloudEvents
 
 ### Attributt-mapping
 
@@ -227,7 +482,7 @@ Eksempler:
 
 ---
 
-## 6. Implementeringsplan
+## 8. Implementeringsplan
 
 ### Fase 1: Kompatibilitetslag (Prioritet: Høy)
 
@@ -340,7 +595,7 @@ Eksempler:
 
 ---
 
-## 7. Teknisk implementering
+## 9. Teknisk implementering
 
 ### Fase 1: Kompatibilitetslag (detaljert)
 
@@ -567,7 +822,7 @@ Output:
 
 ---
 
-## 8. Migreringsstrategi
+## 10. Migreringsstrategi
 
 ### Bakoverkompatibilitet
 
@@ -620,7 +875,7 @@ def migrate_event(event_dict: dict) -> dict:
 
 ---
 
-## 9. Referanser
+## 11. Referanser
 
 ### Spesifikasjoner
 - [CloudEvents Specification v1.0](https://github.com/cloudevents/spec/blob/v1.0.2/cloudevents/spec.md)
@@ -635,6 +890,12 @@ def migrate_event(event_dict: dict) -> dict:
 - [Azure Event Grid CloudEvents support](https://learn.microsoft.com/en-us/azure/event-grid/cloud-event-schema)
 - [Event Grid Namespaces](https://learn.microsoft.com/en-us/azure/event-grid/namespaces-cloud-events)
 
+### Relaterte spesifikasjoner
+- [AsyncAPI](https://www.asyncapi.com/) - API-dokumentasjon for event-drevne systemer
+- [C4 Model](https://c4model.com/) - Arkitekturdiagrammer
+- [Structurizr DSL](https://docs.structurizr.com/dsl) - DSL for C4-diagrammer
+
 ### Prosjektdokumentasjon
 - [Arkitektur og Datamodell](./ARCHITECTURE_AND_DATAMODEL.md)
 - [Backend Struktur](../backend/STRUCTURE.md)
+- [Deployment Guide](./DEPLOYMENT.md)
