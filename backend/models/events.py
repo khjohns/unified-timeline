@@ -68,6 +68,8 @@ class EventType(str, Enum):
     FORSERING_RESPONS = "forsering_respons"  # BH aksepterer/avslår forsering
     FORSERING_STOPPET = "forsering_stoppet"  # TE stopper forsering
     FORSERING_KOSTNADER_OPPDATERT = "forsering_kostnader_oppdatert"  # TE oppdaterer påløpte kostnader
+    FORSERING_KOE_LAGT_TIL = "forsering_koe_lagt_til"  # KOE lagt til forseringssak
+    FORSERING_KOE_FJERNET = "forsering_koe_fjernet"  # KOE fjernet fra forseringssak
 
     # Saks-events
     SAK_OPPRETTET = "sak_opprettet"
@@ -81,10 +83,6 @@ class EventType(str, Enum):
     EO_AKSEPTERT = "eo_akseptert"          # TE aksepterer EO
     EO_BESTRIDT = "eo_bestridt"            # TE bestrider EO
     EO_REVIDERT = "eo_revidert"            # BH reviderer EO
-
-    # Relasjon-events (toveis-synkronisering med Catenda)
-    RELASJON_LAGT_TIL = "relasjon_lagt_til"    # Sak-relasjon opprettet
-    RELASJON_FJERNET = "relasjon_fjernet"      # Sak-relasjon fjernet
 
 
 # ============ VEDERLAG ENUMS ============
@@ -1365,6 +1363,29 @@ class ForseringKostnaderOppdatertEvent(SakEvent):
         return v
 
 
+class ForseringKoeHandlingData(BaseModel):
+    """Data for å legge til eller fjerne KOE fra forseringssak"""
+    koe_sak_id: str = Field(..., description="SAK-ID til KOE som legges til/fjernes")
+    koe_tittel: Optional[str] = Field(default=None, description="Tittel på KOE for visning")
+
+
+class ForseringKoeHandlingEvent(SakEvent):
+    """Event når KOE legges til eller fjernes fra forseringssak"""
+    event_type: EventType = Field(
+        ...,
+        description="FORSERING_KOE_LAGT_TIL eller FORSERING_KOE_FJERNET"
+    )
+    data: ForseringKoeHandlingData = Field(..., description="KOE-handlingsdata")
+
+    @field_validator('event_type')
+    @classmethod
+    def validate_event_type(cls, v):
+        valid_types = [EventType.FORSERING_KOE_LAGT_TIL, EventType.FORSERING_KOE_FJERNET]
+        if v not in valid_types:
+            raise ValueError(f"Ugyldig event_type for ForseringKoeHandlingEvent: {v}")
+        return v
+
+
 # ============ SAKS-EVENTS ============
 
 class SakOpprettetEvent(SakEvent):
@@ -1719,6 +1740,8 @@ def parse_event(data: dict) -> AnyEvent:
         EventType.FORSERING_RESPONS.value: ForseringResponsEvent,
         EventType.FORSERING_STOPPET.value: ForseringStoppetEvent,
         EventType.FORSERING_KOSTNADER_OPPDATERT.value: ForseringKostnaderOppdatertEvent,
+        EventType.FORSERING_KOE_LAGT_TIL.value: ForseringKoeHandlingEvent,
+        EventType.FORSERING_KOE_FJERNET.value: ForseringKoeHandlingEvent,
         # Endringsordre events
         EventType.EO_OPPRETTET.value: EOOpprettetEvent,
         EventType.EO_KOE_LAGT_TIL.value: EOKoeHandlingEvent,

@@ -135,6 +135,8 @@ class BusinessRuleValidator:
             EventType.FRIST_KRAV_TRUKKET,
             # EO TE-handlinger
             EventType.EO_AKSEPTERT, EventType.EO_BESTRIDT,
+            # Forsering TE-handlinger
+            EventType.FORSERING_KOE_LAGT_TIL, EventType.FORSERING_KOE_FJERNET,
         }
 
         bh_only_events = {
