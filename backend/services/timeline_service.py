@@ -22,9 +22,13 @@ from models.events import (
     ForseringResponsEvent,
     ForseringStoppetEvent,
     ForseringKostnaderOppdatertEvent,
+    ForseringKoeHandlingEvent,
     SakOpprettetEvent,
     EOUtstedtEvent,
     EOAkseptertEvent,
+    EOKoeHandlingEvent,
+    EOBestridtEvent,
+    EORevidertEvent,
     EventType,
     SporType,
     SporStatus,
@@ -44,6 +48,7 @@ from models.sak_state import (
     EndringsordreData,
     EOStatus,
     EOKonsekvenser,
+    ForseringData,
 )
 from utils.logger import get_logger
 
@@ -134,8 +139,14 @@ class TimelineService:
             EventType.FORSERING_RESPONS: self._handle_forsering_respons,
             EventType.FORSERING_STOPPET: self._handle_forsering_stoppet,
             EventType.FORSERING_KOSTNADER_OPPDATERT: self._handle_forsering_kostnader_oppdatert,
+            EventType.FORSERING_KOE_LAGT_TIL: self._handle_forsering_koe_lagt_til,
+            EventType.FORSERING_KOE_FJERNET: self._handle_forsering_koe_fjernet,
             EventType.EO_UTSTEDT: self._handle_eo_utstedt,
             EventType.EO_AKSEPTERT: self._handle_eo_akseptert,
+            EventType.EO_KOE_LAGT_TIL: self._handle_eo_koe_lagt_til,
+            EventType.EO_KOE_FJERNET: self._handle_eo_koe_fjernet,
+            EventType.EO_BESTRIDT: self._handle_eo_bestridt,
+            EventType.EO_REVIDERT: self._handle_eo_revidert,
         }
 
         handler = handlers.get(event.event_type)
@@ -560,6 +571,45 @@ class TimelineService:
         state.frist = frist
         return state
 
+    def _handle_forsering_koe_lagt_til(self, state: SakState, event: ForseringKoeHandlingEvent) -> SakState:
+        """Håndterer FORSERING_KOE_LAGT_TIL - KOE legges til forseringssak.
+
+        Oppdaterer avslatte_fristkrav listen i forsering_data.
+        """
+        if state.forsering_data is None:
+            logger.warning("Mottok FORSERING_KOE_LAGT_TIL uten forsering_data - ignorerer")
+            return state
+
+        koe_sak_id = event.data.koe_sak_id
+
+        # Unngå duplikater
+        if koe_sak_id not in state.forsering_data.avslatte_fristkrav:
+            state.forsering_data.avslatte_fristkrav.append(koe_sak_id)
+            logger.info(f"KOE {koe_sak_id} lagt til forseringssak")
+        else:
+            logger.warning(f"KOE {koe_sak_id} er allerede i forseringssak")
+
+        return state
+
+    def _handle_forsering_koe_fjernet(self, state: SakState, event: ForseringKoeHandlingEvent) -> SakState:
+        """Håndterer FORSERING_KOE_FJERNET - KOE fjernes fra forseringssak.
+
+        Fjerner fra avslatte_fristkrav listen i forsering_data.
+        """
+        if state.forsering_data is None:
+            logger.warning("Mottok FORSERING_KOE_FJERNET uten forsering_data - ignorerer")
+            return state
+
+        koe_sak_id = event.data.koe_sak_id
+
+        if koe_sak_id in state.forsering_data.avslatte_fristkrav:
+            state.forsering_data.avslatte_fristkrav.remove(koe_sak_id)
+            logger.info(f"KOE {koe_sak_id} fjernet fra forseringssak")
+        else:
+            logger.warning(f"KOE {koe_sak_id} var ikke i forseringssak")
+
+        return state
+
     def _handle_eo_utstedt(self, state: SakState, event: EOUtstedtEvent) -> SakState:
         """Håndterer EO_UTSTEDT - endringsordre utstedt.
 
@@ -633,6 +683,104 @@ class TimelineService:
         state.endringsordre_data.status = EOStatus.AKSEPTERT
 
         logger.info(f"EO {state.endringsordre_data.eo_nummer} akseptert av TE")
+
+        return state
+
+    def _handle_eo_koe_lagt_til(self, state: SakState, event: EOKoeHandlingEvent) -> SakState:
+        """Håndterer EO_KOE_LAGT_TIL - KOE legges til endringsordre.
+
+        Oppdaterer relaterte_koe_saker listen i endringsordre_data.
+        """
+        if state.endringsordre_data is None:
+            logger.warning("Mottok EO_KOE_LAGT_TIL uten endringsordre_data - ignorerer")
+            return state
+
+        koe_sak_id = event.data.koe_sak_id
+
+        # Unngå duplikater
+        if koe_sak_id not in state.endringsordre_data.relaterte_koe_saker:
+            state.endringsordre_data.relaterte_koe_saker.append(koe_sak_id)
+            logger.info(f"KOE {koe_sak_id} lagt til EO {state.endringsordre_data.eo_nummer}")
+        else:
+            logger.warning(f"KOE {koe_sak_id} er allerede i EO {state.endringsordre_data.eo_nummer}")
+
+        return state
+
+    def _handle_eo_koe_fjernet(self, state: SakState, event: EOKoeHandlingEvent) -> SakState:
+        """Håndterer EO_KOE_FJERNET - KOE fjernes fra endringsordre.
+
+        Fjerner fra relaterte_koe_saker listen i endringsordre_data.
+        """
+        if state.endringsordre_data is None:
+            logger.warning("Mottok EO_KOE_FJERNET uten endringsordre_data - ignorerer")
+            return state
+
+        koe_sak_id = event.data.koe_sak_id
+
+        if koe_sak_id in state.endringsordre_data.relaterte_koe_saker:
+            state.endringsordre_data.relaterte_koe_saker.remove(koe_sak_id)
+            logger.info(f"KOE {koe_sak_id} fjernet fra EO {state.endringsordre_data.eo_nummer}")
+        else:
+            logger.warning(f"KOE {koe_sak_id} var ikke i EO {state.endringsordre_data.eo_nummer}")
+
+        return state
+
+    def _handle_eo_bestridt(self, state: SakState, event: EOBestridtEvent) -> SakState:
+        """Håndterer EO_BESTRIDT - TE bestrider endringsordre.
+
+        Oppdaterer status til BESTRIDT og lagrer TEs begrunnelse.
+        """
+        if state.endringsordre_data is None:
+            logger.warning("Mottok EO_BESTRIDT uten endringsordre_data - ignorerer")
+            return state
+
+        data = event.data
+
+        # Oppdater status og begrunnelse
+        state.endringsordre_data.status = EOStatus.BESTRIDT
+        state.endringsordre_data.te_akseptert = False
+        state.endringsordre_data.te_kommentar = data.begrunnelse
+        state.endringsordre_data.dato_te_respons = event.tidsstempel.strftime('%Y-%m-%d')
+
+        logger.info(f"EO {state.endringsordre_data.eo_nummer} bestridt av TE")
+
+        return state
+
+    def _handle_eo_revidert(self, state: SakState, event: EORevidertEvent) -> SakState:
+        """Håndterer EO_REVIDERT - BH reviderer endringsordre etter bestridelse.
+
+        Oppdaterer revisjonsnummer og eventuelt andre felt.
+        """
+        if state.endringsordre_data is None:
+            logger.warning("Mottok EO_REVIDERT uten endringsordre_data - ignorerer")
+            return state
+
+        data = event.data
+
+        # Oppdater revisjonsnummer og status
+        state.endringsordre_data.revisjon_nummer = data.ny_revisjon_nummer
+        state.endringsordre_data.status = EOStatus.REVIDERT
+
+        # Nullstill TE-respons (må vurderes på nytt)
+        state.endringsordre_data.te_akseptert = None
+        state.endringsordre_data.te_kommentar = None
+        state.endringsordre_data.dato_te_respons = None
+
+        # Oppdater data hvis ny data er gitt
+        if data.oppdatert_data:
+            oppdatert = data.oppdatert_data
+            if oppdatert.beskrivelse:
+                state.endringsordre_data.beskrivelse = oppdatert.beskrivelse
+            if oppdatert.kompensasjon_belop is not None:
+                state.endringsordre_data.kompensasjon_belop = oppdatert.kompensasjon_belop
+            if oppdatert.fradrag_belop is not None:
+                state.endringsordre_data.fradrag_belop = oppdatert.fradrag_belop
+            if oppdatert.frist_dager is not None:
+                state.endringsordre_data.frist_dager = oppdatert.frist_dager
+            if oppdatert.ny_sluttdato:
+                state.endringsordre_data.ny_sluttdato = oppdatert.ny_sluttdato
+
+        logger.info(f"EO {state.endringsordre_data.eo_nummer} revidert til rev. {data.ny_revisjon_nummer}")
 
         return state
 
