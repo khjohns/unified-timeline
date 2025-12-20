@@ -9,14 +9,13 @@
 import { useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { STALE_TIME } from '../constants/queryConfig';
 import { useAuth } from '../context/AuthContext';
 import { getAuthToken } from '../api/client';
 import { useCaseState } from '../hooks/useCaseState';
 import { useUserRole } from '../hooks/useUserRole';
 import { Timeline } from '../components/views/Timeline';
-import { Button } from '../components/primitives/Button';
-import { Badge } from '../components/primitives/Badge';
-import { Alert } from '../components/primitives/Alert';
+import { Alert, Badge, Button } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
 import { TokenExpiredAlert } from '../components/alerts/TokenExpiredAlert';
 import {
@@ -70,7 +69,7 @@ function useForseringKontekst(sakId: string, enabled: boolean = true) {
   return useQuery<ForseringKontekstResponse, Error>({
     queryKey: ['forsering', sakId, 'kontekst'],
     queryFn: () => fetchForseringKontekst(sakId),
-    staleTime: 30_000,
+    staleTime: STALE_TIME.DEFAULT,
     enabled: !!sakId && enabled,
   });
 }
@@ -79,7 +78,7 @@ function useKandidatSaker() {
   return useQuery<{ success: boolean; kandidat_saker: KandidatSak[] }, Error>({
     queryKey: ['forsering', 'kandidater'],
     queryFn: fetchKandidatSaker,
-    staleTime: 60_000,
+    staleTime: STALE_TIME.EXTENDED,
   });
 }
 
@@ -519,3 +518,5 @@ export function ForseringPage() {
     </div>
   );
 }
+
+export default ForseringPage;

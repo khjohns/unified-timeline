@@ -13,12 +13,12 @@
 import { useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { STALE_TIME } from '../constants/queryConfig';
 import { useAuth } from '../context/AuthContext';
 import { useCaseState } from '../hooks/useCaseState';
 import { useUserRole } from '../hooks/useUserRole';
 import { Timeline } from '../components/views/Timeline';
-import { Button } from '../components/primitives/Button';
-import { Alert } from '../components/primitives/Alert';
+import { Alert, Button } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
 import { EODashboard, RelatertKOEListe, LeggTilKOEModal } from '../components/endringsordre';
 import {
@@ -49,7 +49,7 @@ function useEOKontekst(sakId: string, enabled: boolean = true) {
   return useQuery<EOKontekstResponse, Error>({
     queryKey: ['endringsordre', sakId, 'kontekst'],
     queryFn: () => fetchEOKontekst(sakId),
-    staleTime: 30_000,
+    staleTime: STALE_TIME.DEFAULT,
     enabled: !!sakId && enabled,
   });
 }
@@ -58,7 +58,7 @@ function useKandidatKOESaker() {
   return useQuery<{ success: boolean; kandidat_saker: KandidatKOE[] }, Error>({
     queryKey: ['endringsordre', 'kandidater'],
     queryFn: fetchKandidatKOESaker,
-    staleTime: 60_000,
+    staleTime: STALE_TIME.EXTENDED,
   });
 }
 
@@ -381,3 +381,5 @@ export function EndringsordePage() {
     </div>
   );
 }
+
+export default EndringsordePage;

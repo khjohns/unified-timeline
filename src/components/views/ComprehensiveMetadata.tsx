@@ -7,7 +7,7 @@
  */
 
 import { SakState } from '../../types/timeline';
-import { DataList, DataListItem } from '../primitives/DataList';
+import { DataList, DataListItem } from '../primitives';
 import { getOverordnetStatusLabel } from '../../constants/statusLabels';
 
 interface ComprehensiveMetadataProps {

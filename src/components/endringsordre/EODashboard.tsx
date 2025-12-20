@@ -5,10 +5,7 @@
  * Uses DashboardCard and DataList for consistent styling with ForseringDashboard.
  */
 
-import { DashboardCard } from '../primitives/DashboardCard';
-import { Badge } from '../primitives/Badge';
-import { Button } from '../primitives/Button';
-import { DataList, DataListItem } from '../primitives/DataList';
+import { Badge, Button, DashboardCard, DataList, DataListItem } from '../primitives';
 import {
   CheckCircledIcon,
   CrossCircledIcon,

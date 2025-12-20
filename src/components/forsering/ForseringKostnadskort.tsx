@@ -7,9 +7,7 @@
  */
 
 import { useMemo } from 'react';
-import { DashboardCard } from '../primitives/DashboardCard';
-import { Badge } from '../primitives/Badge';
-import { Alert } from '../primitives/Alert';
+import { Alert, Badge, DashboardCard } from '../primitives';
 import type { ForseringData } from '../../types/timeline';
 
 interface ForseringKostnadskortProps {

@@ -2,10 +2,12 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { STALE_TIME } from './constants/queryConfig';
 import './index.css';
 import App from './App';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Handle GitHub Pages SPA routing redirect
 // When 404.html redirects to /index.html?route=%2Fdemo, we need to
@@ -24,7 +26,7 @@ const queryClient = new QueryClient({
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
-      staleTime: 30_000, // 30 seconds
+      staleTime: STALE_TIME.DEFAULT,
     },
     mutations: {
       retry: 0,
@@ -47,7 +49,9 @@ root.render(
       <BrowserRouter basename={import.meta.env.BASE_URL}>
         <ThemeProvider>
           <AuthProvider>
-            <App />
+            <ErrorBoundary>
+              <App />
+            </ErrorBoundary>
           </AuthProvider>
         </ThemeProvider>
       </BrowserRouter>

@@ -12,10 +12,7 @@
  */
 
 import { useMemo } from 'react';
-import { Card } from '../primitives/Card';
-import { Badge } from '../primitives/Badge';
-import { Alert } from '../primitives/Alert';
-import { DataList, DataListItem } from '../primitives/DataList';
+import { Alert, Badge, Card, DataList, DataListItem } from '../primitives';
 import { InfoCircledIcon, ExclamationTriangleIcon } from '@radix-ui/react-icons';
 import type { SakState, ForseringData, SakRelasjon } from '../../types/timeline';
 

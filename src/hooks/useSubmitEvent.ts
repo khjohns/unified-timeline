@@ -13,7 +13,6 @@
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { submitEvent, EventSubmitResponse } from '../api/events';
 import { EventType } from '../types/timeline';
-import { generateContractorClaimPdf, blobToBase64 } from '../pdf';
 import { fetchCaseState } from '../api/state';
 import { getAuthToken, ApiError } from '../api/client';
 
@@ -115,10 +114,11 @@ export function useSubmitEvent(sakId: string, options: UseSubmitEventOptions = {
       let pdfFilename: string | undefined;
       let expectedVersion = stateData?.version ?? 0;
 
-      // Generate PDF from current state if enabled
+      // Generate PDF from current state if enabled (lazy load PDF module)
       if (generatePdf && stateData?.state) {
         try {
           console.log('📄 Generating PDF from state...');
+          const { generateContractorClaimPdf, blobToBase64 } = await import('../pdf/generator');
           const { blob, filename } = await generateContractorClaimPdf(stateData.state);
           pdfBase64 = await blobToBase64(blob);
           pdfFilename = filename;

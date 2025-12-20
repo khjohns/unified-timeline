@@ -6,8 +6,7 @@
  */
 
 import { Link } from 'react-router-dom';
-import { Alert } from '../primitives/Alert';
-import { Badge } from '../primitives/Badge';
+import { Alert, Badge } from '../primitives';
 import { RocketIcon, ArrowRightIcon } from '@radix-ui/react-icons';
 import type { ForseringSomRefererer } from '../../api/forsering';
 

@@ -227,3 +227,5 @@ export function ComponentShowcase() {
     </div>
   );
 }
+
+export default ComponentShowcase;

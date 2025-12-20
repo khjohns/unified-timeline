@@ -8,9 +8,7 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Card } from '../primitives/Card';
-import { Badge } from '../primitives/Badge';
-import { Button } from '../primitives/Button';
+import { Badge, Button, Card } from '../primitives';
 import { ExternalLinkIcon, TrashIcon, Cross2Icon } from '@radix-ui/react-icons';
 
 export interface KOEOversiktItem {

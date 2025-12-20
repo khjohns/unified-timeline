@@ -1,11 +1,14 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { ExampleCasesPage } from './pages/ExampleCasesPage';
-import { CasePage } from './pages/CasePage';
-import { ForseringPage } from './pages/ForseringPage';
-import { EndringsordePage } from './pages/EndringsordePage';
-import { ComponentShowcase } from './pages/ComponentShowcase';
-import { AuthLanding } from './pages/AuthLanding';
+import { PageLoadingFallback } from './components/PageLoadingFallback';
+
+// Lazy load all pages for code splitting
+const AuthLanding = lazy(() => import('./pages/AuthLanding'));
+const ExampleCasesPage = lazy(() => import('./pages/ExampleCasesPage'));
+const CasePage = lazy(() => import('./pages/CasePage'));
+const ForseringPage = lazy(() => import('./pages/ForseringPage'));
+const EndringsordePage = lazy(() => import('./pages/EndringsordePage'));
+const ComponentShowcase = lazy(() => import('./pages/ComponentShowcase'));
 
 /**
  * Main App for Event Sourcing Architecture
@@ -20,14 +23,16 @@ import { AuthLanding } from './pages/AuthLanding';
  */
 const App: React.FC = () => {
   return (
-    <Routes>
-      <Route path="/" element={<AuthLanding />} />
-      <Route path="/demo" element={<ExampleCasesPage />} />
-      <Route path="/saker/:sakId" element={<CasePage />} />
-      <Route path="/forsering/:sakId" element={<ForseringPage />} />
-      <Route path="/endringsordre/:sakId" element={<EndringsordePage />} />
-      <Route path="/showcase" element={<ComponentShowcase />} />
-    </Routes>
+    <Suspense fallback={<PageLoadingFallback />}>
+      <Routes>
+        <Route path="/" element={<AuthLanding />} />
+        <Route path="/demo" element={<ExampleCasesPage />} />
+        <Route path="/saker/:sakId" element={<CasePage />} />
+        <Route path="/forsering/:sakId" element={<ForseringPage />} />
+        <Route path="/endringsordre/:sakId" element={<EndringsordePage />} />
+        <Route path="/showcase" element={<ComponentShowcase />} />
+      </Routes>
+    </Suspense>
   );
 };
 

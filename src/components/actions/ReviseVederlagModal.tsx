@@ -20,17 +20,20 @@
  * - Added hold_tilbake handling (forces overslag)
  */
 
-import { Modal } from '../primitives/Modal';
-import { Button } from '../primitives/Button';
-import { Textarea } from '../primitives/Textarea';
-import { Checkbox } from '../primitives/Checkbox';
-import { FormField } from '../primitives/FormField';
-import { Alert } from '../primitives/Alert';
-import { AlertDialog } from '../primitives/AlertDialog';
-import { Badge } from '../primitives/Badge';
-import { RevisionTag } from '../primitives/RevisionTag';
-import { RadioGroup, RadioItem } from '../primitives/RadioGroup';
-import { CurrencyInput } from '../primitives/CurrencyInput';
+import {
+  Alert,
+  AlertDialog,
+  Badge,
+  Button,
+  Checkbox,
+  CurrencyInput,
+  FormField,
+  Modal,
+  RadioGroup,
+  RadioItem,
+  RevisionTag,
+  Textarea,
+} from '../primitives';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';

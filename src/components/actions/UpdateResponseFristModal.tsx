@@ -12,15 +12,18 @@
  * Critical: If forsering is in progress, BH can stop it by approving the frist claim.
  */
 
-import { Modal } from '../primitives/Modal';
-import { Button } from '../primitives/Button';
-import { Input } from '../primitives/Input';
-import { Textarea } from '../primitives/Textarea';
-import { FormField } from '../primitives/FormField';
-import { Alert } from '../primitives/Alert';
-import { AlertDialog } from '../primitives/AlertDialog';
-import { Badge } from '../primitives/Badge';
-import { RadioGroup, RadioItem } from '../primitives/RadioGroup';
+import {
+  Alert,
+  AlertDialog,
+  Badge,
+  Button,
+  FormField,
+  Input,
+  Modal,
+  RadioGroup,
+  RadioItem,
+  Textarea,
+} from '../primitives';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';

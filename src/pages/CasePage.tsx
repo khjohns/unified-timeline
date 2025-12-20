@@ -9,6 +9,7 @@
 import { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { STALE_TIME } from '../constants/queryConfig';
 import { useAuth } from '../context/AuthContext';
 import { useCaseState } from '../hooks/useCaseState';
 import { useTimeline } from '../hooks/useTimeline';
@@ -18,7 +19,7 @@ import { StatusDashboard } from '../components/views/StatusDashboard';
 import { Timeline } from '../components/views/Timeline';
 import { ComprehensiveMetadata } from '../components/views/ComprehensiveMetadata';
 import { RevisionHistory } from '../components/views/RevisionHistory';
-import { Button } from '../components/primitives/Button';
+import { Button } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
 import { ForseringRelasjonBanner } from '../components/forsering';
 import { UtstEndringsordreModal, EndringsordreRelasjonBanner } from '../components/endringsordre';
@@ -54,7 +55,6 @@ import {
   RocketIcon,
   FileTextIcon,
 } from '@radix-ui/react-icons';
-import { downloadContractorClaimPdf } from '../pdf';
 
 // Default empty state for when data is not yet loaded
 const EMPTY_STATE: SakState = {
@@ -105,7 +105,7 @@ export function CasePage() {
   const { data: forseringData } = useQuery<FindForseringerResponse>({
     queryKey: ['forsering', 'by-relatert', sakId],
     queryFn: () => findForseringerForSak(sakId || ''),
-    staleTime: 60_000,
+    staleTime: STALE_TIME.EXTENDED,
     enabled: !!sakId && !!token && !isVerifying,
   });
 
@@ -113,7 +113,7 @@ export function CasePage() {
   const { data: endringsordreData } = useQuery<FindEOerResponse>({
     queryKey: ['endringsordre', 'by-relatert', sakId],
     queryFn: () => findEOerForSak(sakId || ''),
-    staleTime: 60_000,
+    staleTime: STALE_TIME.EXTENDED,
     enabled: !!sakId && !!token && !isVerifying,
   });
 
@@ -272,7 +272,10 @@ export function CasePage() {
               </Button>
             )}
             <button
-              onClick={() => downloadContractorClaimPdf(state)}
+              onClick={async () => {
+                const { downloadContractorClaimPdf } = await import('../pdf/generator');
+                downloadContractorClaimPdf(state);
+              }}
               className="flex items-center gap-2 p-2 rounded-lg border border-pkt-grays-gray-200 bg-pkt-bg-subtle text-pkt-grays-gray-500 hover:text-pkt-text-body-dark hover:bg-pkt-bg-card transition-colors"
               title="Last ned PDF"
               aria-label="Last ned PDF"
@@ -696,3 +699,5 @@ export function CasePage() {
     </div>
   );
 }
+
+export default CasePage;

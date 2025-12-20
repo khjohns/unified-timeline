@@ -6,8 +6,7 @@
  */
 
 import { Link } from 'react-router-dom';
-import { Alert } from '../primitives/Alert';
-import { Badge } from '../primitives/Badge';
+import { Alert, Badge } from '../primitives';
 import { FileTextIcon, ArrowRightIcon } from '@radix-ui/react-icons';
 import type { EOSomRefererer } from '../../api/endringsordre';
 

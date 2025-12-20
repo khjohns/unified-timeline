@@ -12,13 +12,16 @@
  * - Added display of grunnlag claim details
  */
 
-import { Modal } from '../primitives/Modal';
-import { Button } from '../primitives/Button';
-import { Textarea } from '../primitives/Textarea';
-import { FormField } from '../primitives/FormField';
-import { Alert } from '../primitives/Alert';
-import { AlertDialog } from '../primitives/AlertDialog';
-import { RadioGroup, RadioItem } from '../primitives/RadioGroup';
+import {
+  Alert,
+  AlertDialog,
+  Button,
+  FormField,
+  Modal,
+  RadioGroup,
+  RadioItem,
+  Textarea,
+} from '../primitives';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';

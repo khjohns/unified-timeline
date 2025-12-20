@@ -20,23 +20,26 @@ import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
 import { getAuthToken } from '../../api/client';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { STALE_TIME } from '../../constants/queryConfig';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
 // Primitives
-import { Modal } from '../primitives/Modal';
-import { Button } from '../primitives/Button';
-import { Alert } from '../primitives/Alert';
-import { AlertDialog } from '../primitives/AlertDialog';
-import { FormField } from '../primitives/FormField';
-import { Input } from '../primitives/Input';
-import { Textarea } from '../primitives/Textarea';
-import { CurrencyInput } from '../primitives/CurrencyInput';
-import { DatePicker } from '../primitives/DatePicker';
-import { Badge } from '../primitives/Badge';
-import { StepIndicator } from '../primitives/StepIndicator';
-import { Checkbox } from '../primitives/Checkbox';
+import {
+  Alert,
+  AlertDialog,
+  Badge,
+  Button,
+  Checkbox,
+  CurrencyInput,
+  DatePicker,
+  FormField,
+  Input,
+  Modal,
+  StepIndicator,
+  Textarea,
+} from '../primitives';
 
 // Icons
 import { CheckIcon } from '@radix-ui/react-icons';
@@ -264,7 +267,7 @@ export function UtstEndringsordreModal({
     queryKey: ['endringsordre', 'kandidater'],
     queryFn: fetchKandidatKOESaker,
     enabled: open,
-    staleTime: 30_000,
+    staleTime: STALE_TIME.DEFAULT,
   });
 
   const kandidatSaker = kandidaterData?.kandidat_saker ?? [];

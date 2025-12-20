@@ -8,11 +8,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchCaseState } from '../api/state';
 import { StateResponse } from '../types/api';
+import { STALE_TIME } from '../constants/queryConfig';
 
 export interface UseCaseStateOptions {
   /**
    * How long to consider data fresh (ms)
-   * @default 30000 (30 seconds)
+   * @default STALE_TIME.DEFAULT (30 seconds)
    */
   staleTime?: number;
 
@@ -48,7 +49,7 @@ export interface UseCaseStateOptions {
  */
 export function useCaseState(sakId: string, options: UseCaseStateOptions = {}) {
   const {
-    staleTime = 30_000, // 30 seconds
+    staleTime = STALE_TIME.DEFAULT,
     refetchOnWindowFocus = true,
     enabled = true,
   } = options;

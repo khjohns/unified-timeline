@@ -12,7 +12,7 @@
  */
 
 import { EventDetailModal } from './EventDetailModal';
-import { RevisionTag, UpdatedTag } from '../primitives/RevisionTag';
+import { RevisionTag, UpdatedTag } from '../primitives';
 import { TimelineEntry, SporType } from '../../types/timeline';
 import { useState } from 'react';
 import { FileTextIcon, ClipboardIcon, ChevronDownIcon } from '@radix-ui/react-icons';

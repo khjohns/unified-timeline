@@ -6,24 +6,25 @@
  * Enhanced with preclusion checks and legal warnings based on NS 8407.
  */
 
-import { Modal } from '../primitives/Modal';
-import { Button } from '../primitives/Button';
-import { Input } from '../primitives/Input';
-import { Textarea } from '../primitives/Textarea';
-import { Checkbox } from '../primitives/Checkbox';
-import { DatePicker } from '../primitives/DatePicker';
-import { FormField } from '../primitives/FormField';
-import { Alert } from '../primitives/Alert';
-import { AlertDialog } from '../primitives/AlertDialog';
-import { Collapsible } from '../primitives/Collapsible';
 import {
+  Alert,
+  AlertDialog,
+  Button,
+  Checkbox,
+  Collapsible,
+  DatePicker,
+  FormField,
+  Input,
+  Modal,
+  RadioGroup,
+  RadioItem,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../primitives/Select';
-import { RadioGroup, RadioItem } from '../primitives/RadioGroup';
+  Textarea,
+} from '../primitives';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';

@@ -6,11 +6,7 @@
  */
 
 import { useState, useMemo } from 'react';
-import { Modal } from '../primitives/Modal';
-import { Button } from '../primitives/Button';
-import { Badge } from '../primitives/Badge';
-import { Checkbox } from '../primitives/Checkbox';
-import { Alert } from '../primitives/Alert';
+import { Alert, Badge, Button, Checkbox, Modal } from '../primitives';
 import { PlusIcon, MagnifyingGlassIcon } from '@radix-ui/react-icons';
 import type { SakRelasjon } from '../../types/timeline';
 import type { KandidatSak } from '../../api/forsering';

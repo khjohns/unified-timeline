@@ -6,10 +6,7 @@
  */
 
 import { useState } from 'react';
-import { Modal } from '../primitives/Modal';
-import { Button } from '../primitives/Button';
-import { Alert } from '../primitives/Alert';
-import { Badge } from '../primitives/Badge';
+import { Alert, Badge, Button, Modal } from '../primitives';
 import { CheckIcon, Cross2Icon, QuestionMarkCircledIcon } from '@radix-ui/react-icons';
 import type { ForseringData } from '../../types/timeline';
 

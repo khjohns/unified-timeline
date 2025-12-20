@@ -6,9 +6,7 @@
  */
 
 import { useState } from 'react';
-import { Modal } from '../primitives/Modal';
-import { Button } from '../primitives/Button';
-import { Alert } from '../primitives/Alert';
+import { Alert, Button, Modal } from '../primitives';
 import { StopIcon } from '@radix-ui/react-icons';
 import type { ForseringData } from '../../types/timeline';
 

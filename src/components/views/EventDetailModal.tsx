@@ -7,9 +7,7 @@
  */
 
 import React from 'react';
-import { Modal } from '../primitives/Modal';
-import { Badge, BadgeVariant } from '../primitives/Badge';
-import { Collapsible } from '../primitives/Collapsible';
+import { Badge, BadgeVariant, Collapsible, Modal } from '../primitives';
 import {
   TimelineEntry,
   EventType,

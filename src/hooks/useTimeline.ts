@@ -7,6 +7,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchTimeline } from '../api/state';
 import { TimelineResponse } from '../types/api';
+import { STALE_TIME } from '../constants/queryConfig';
 
 export interface UseTimelineOptions {
   staleTime?: number;
@@ -23,7 +24,7 @@ export interface UseTimelineOptions {
  */
 export function useTimeline(sakId: string, options: UseTimelineOptions = {}) {
   const {
-    staleTime = 30_000,
+    staleTime = STALE_TIME.DEFAULT,
     refetchOnWindowFocus = true,
     enabled = true,
   } = options;

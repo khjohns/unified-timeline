@@ -19,16 +19,19 @@
  * - Separate amount fields for each særskilt krav type
  */
 
-import { Modal } from '../primitives/Modal';
-import { Button } from '../primitives/Button';
-import { Textarea } from '../primitives/Textarea';
-import { Checkbox } from '../primitives/Checkbox';
-import { FormField } from '../primitives/FormField';
-import { DatePicker } from '../primitives/DatePicker';
-import { Alert } from '../primitives/Alert';
-import { AlertDialog } from '../primitives/AlertDialog';
-import { RadioGroup, RadioItem } from '../primitives/RadioGroup';
-import { CurrencyInput } from '../primitives/CurrencyInput';
+import {
+  Alert,
+  AlertDialog,
+  Button,
+  Checkbox,
+  CurrencyInput,
+  DatePicker,
+  FormField,
+  Modal,
+  RadioGroup,
+  RadioItem,
+  Textarea,
+} from '../primitives';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';

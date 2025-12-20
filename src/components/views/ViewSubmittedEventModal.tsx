@@ -5,8 +5,7 @@
  * Renders different layouts based on event type.
  */
 
-import { Modal } from '../primitives/Modal';
-import { Badge } from '../primitives/Badge';
+import { Badge, Modal } from '../primitives';
 import { TimelineEntry, EventType } from '../../types/timeline';
 import { format } from 'date-fns';
 import { nb } from 'date-fns/locale';

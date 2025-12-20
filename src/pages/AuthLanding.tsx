@@ -68,3 +68,5 @@ export function AuthLanding() {
     </div>
   );
 }
+
+export default AuthLanding;

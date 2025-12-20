@@ -6,9 +6,7 @@
  * instructions for getting a new link.
  */
 
-import { Modal } from '../primitives/Modal';
-import { Alert } from '../primitives/Alert';
-import { Button } from '../primitives/Button';
+import { Alert, Button, Modal } from '../primitives';
 
 interface TokenExpiredAlertProps {
   open: boolean;
