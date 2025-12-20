@@ -7,7 +7,28 @@
 
 import { apiFetch, USE_MOCK_API, mockDelay } from './client';
 import { getMockForseringKontekstById, getMockKandidatSaker } from '../mocks';
-import type { SakState, TimelineEvent, SakRelasjon } from '../types/timeline';
+import type { SakState, TimelineEvent, SakRelasjon, TimelineEntry } from '../types/timeline';
+
+/**
+ * Convert legacy TimelineEntry to CloudEvents format
+ * Used for mock data conversion
+ */
+function convertToCloudEvent(e: TimelineEntry, sakId: string): TimelineEvent {
+  return {
+    specversion: '1.0' as const,
+    id: e.event_id,
+    source: `/projects/unknown/cases/${sakId}`,
+    type: `no.oslo.koe.${e.event_type || e.type}`,
+    time: e.tidsstempel,
+    subject: sakId,
+    datacontenttype: 'application/json' as const,
+    actor: e.aktor,
+    actorrole: e.rolle,
+    spor: e.spor,
+    summary: e.sammendrag,
+    data: e.event_data,
+  };
+}
 
 // ============================================================================
 // TYPES
@@ -127,10 +148,26 @@ export async function fetchForseringKontekst(
   // Use mock data if enabled
   if (USE_MOCK_API) {
     await mockDelay(400);
-    return getMockForseringKontekstById(sakId);
+    const mockData = getMockForseringKontekstById(sakId);
+
+    // Convert legacy mock data to CloudEvents format
+    const convertedHendelser: Record<string, TimelineEvent[]> = {};
+    for (const [relatertSakId, events] of Object.entries(mockData.hendelser)) {
+      convertedHendelser[relatertSakId] = events.map(e =>
+        convertToCloudEvent(e, relatertSakId)
+      );
+    }
+
+    return {
+      ...mockData,
+      hendelser: convertedHendelser,
+      forsering_hendelser: mockData.forsering_hendelser.map(e =>
+        convertToCloudEvent(e, sakId)
+      ),
+    };
   }
 
-  // Real API call
+  // Real API call - backend returns CloudEvents format
   return apiFetch<ForseringKontekstResponse>(`/api/forsering/${sakId}/kontekst`);
 }
 

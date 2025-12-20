@@ -14,7 +14,29 @@ import type {
   EndringsordreData,
   EOKonsekvenser,
   VederlagsMetode,
+  TimelineEntry,
 } from '../types/timeline';
+
+/**
+ * Convert legacy TimelineEntry to CloudEvents format
+ * Used for mock data conversion
+ */
+function convertToCloudEvent(e: TimelineEntry, sakId: string): TimelineEvent {
+  return {
+    specversion: '1.0' as const,
+    id: e.event_id,
+    source: `/projects/unknown/cases/${sakId}`,
+    type: `no.oslo.koe.${e.event_type || e.type}`,
+    time: e.tidsstempel,
+    subject: sakId,
+    datacontenttype: 'application/json' as const,
+    actor: e.aktor,
+    actorrole: e.rolle,
+    spor: e.spor,
+    summary: e.sammendrag,
+    data: e.event_data,
+  };
+}
 
 // ============================================================================
 // TYPES
@@ -261,15 +283,52 @@ function getMockEOKontekst(sakId: string): EOKontekstResponse {
 
     // Fetch states and timelines for related KOE cases
     const sakStates: Record<string, SakState> = {};
-    const hendelser: Record<string, TimelineEntry[]> = {};
+    const hendelser: Record<string, TimelineEvent[]> = {};
 
     for (const relasjon of relaterteSaker) {
       const relatertState = getMockStateById(relasjon.relatert_sak_id);
       const relatertTimeline = getMockTimelineById(relasjon.relatert_sak_id);
 
       sakStates[relasjon.relatert_sak_id] = relatertState;
-      hendelser[relasjon.relatert_sak_id] = relatertTimeline;
+      // Convert legacy mock data to CloudEvents format
+      hendelser[relasjon.relatert_sak_id] = relatertTimeline.map(e =>
+        convertToCloudEvent(e, relasjon.relatert_sak_id)
+      );
     }
+
+    // Define EO's own events in legacy format, then convert
+    const legacyEoHendelser: TimelineEntry[] = [
+      {
+        event_id: 'evt-eo-003',
+        tidsstempel: '2025-02-20T14:00:00Z',
+        type: 'Endringsordre utstedt',
+        event_type: 'eo_utstedt',
+        aktor: 'Kari Byggherre',
+        rolle: 'BH',
+        spor: null,
+        sammendrag: 'Endringsordre EO-001 utstedt for signering',
+      },
+      {
+        event_id: 'evt-eo-002',
+        tidsstempel: '2025-02-20T11:30:00Z',
+        type: 'KOE lagt til',
+        event_type: 'eo_koe_lagt_til',
+        aktor: 'Kari Byggherre',
+        rolle: 'BH',
+        spor: null,
+        sammendrag: 'SAK-2024-089 lagt til endringsordre',
+      },
+      {
+        event_id: 'evt-eo-001',
+        tidsstempel: '2025-02-20T11:00:00Z',
+        type: 'Endringsordre opprettet',
+        event_type: 'eo_opprettet',
+        aktor: 'Kari Byggherre',
+        rolle: 'BH',
+        spor: null,
+        sammendrag: 'Endringsordre EO-001 opprettet med SAK-2025-010',
+      },
+    ];
 
     return {
       success: true,
@@ -277,38 +336,7 @@ function getMockEOKontekst(sakId: string): EOKontekstResponse {
       relaterte_saker: relaterteSaker,
       sak_states: sakStates,
       hendelser: hendelser,
-      eo_hendelser: [
-        {
-          event_id: 'evt-eo-003',
-          tidsstempel: '2025-02-20T14:00:00Z',
-          type: 'Endringsordre utstedt',
-          event_type: 'eo_utstedt',
-          aktor: 'Kari Byggherre',
-          rolle: 'BH',
-          spor: null,
-          sammendrag: 'Endringsordre EO-001 utstedt for signering',
-        },
-        {
-          event_id: 'evt-eo-002',
-          tidsstempel: '2025-02-20T11:30:00Z',
-          type: 'KOE lagt til',
-          event_type: 'eo_koe_lagt_til',
-          aktor: 'Kari Byggherre',
-          rolle: 'BH',
-          spor: null,
-          sammendrag: 'SAK-2024-089 lagt til endringsordre',
-        },
-        {
-          event_id: 'evt-eo-001',
-          tidsstempel: '2025-02-20T11:00:00Z',
-          type: 'Endringsordre opprettet',
-          event_type: 'eo_opprettet',
-          aktor: 'Kari Byggherre',
-          rolle: 'BH',
-          spor: null,
-          sammendrag: 'Endringsordre EO-001 opprettet med SAK-2025-010',
-        },
-      ],
+      eo_hendelser: legacyEoHendelser.map(e => convertToCloudEvent(e, sakId)),
       oppsummering: {
         antall_koe_saker: 2,
         total_krevd_vederlag: 1035000,
