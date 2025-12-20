@@ -53,6 +53,12 @@ const METODE_LABELS: Record<VederlagsMetode, string> = {
   FASTPRIS_TILBUD: 'Fastpris/Tilbud (§34.2.1)',
 };
 
+const METODE_DESCRIPTIONS: Record<VederlagsMetode, string> = {
+  ENHETSPRISER: 'Beregning basert på kontraktens enhetspriser',
+  REGNINGSARBEID: 'Kostnader faktureres løpende etter medgått tid og materialer',
+  FASTPRIS_TILBUD: 'Avtalt fastpris. Ved avslag faller oppgjøret tilbake på enhetspriser (§34.3) eller regningsarbeid (§34.4)',
+};
+
 const RESULTAT_LABELS: Record<VederlagBeregningResultat, string> = {
   godkjent: 'Godkjent',
   delvis_godkjent: 'Delvis godkjent',
@@ -552,8 +558,8 @@ export function ReviseVederlagModal({
                               label={METODE_LABELS[metode]}
                               description={
                                 bhResponse?.oensket_metode === metode
-                                  ? '← Byggherrens ønskede metode'
-                                  : undefined
+                                  ? `${METODE_DESCRIPTIONS[metode]} ← Byggherrens ønskede metode`
+                                  : METODE_DESCRIPTIONS[metode]
                               }
                             />
                           ))}
@@ -679,8 +685,8 @@ export function ReviseVederlagModal({
                 render={({ field }) => (
                   <Checkbox
                     id="varslet_for_oppstart"
-                    label="Byggherren er varslet før arbeidet startet"
-                    description="Forhåndsvarsel gir lettere bevisbyrde for nødvendige kostnader"
+                    label="Byggherren ble varslet før regningsarbeidet startet (§34.4)"
+                    description="Kreves for å ha krav på alle nødvendige kostnader"
                     checked={field.value}
                     onCheckedChange={field.onChange}
                   />
@@ -689,8 +695,8 @@ export function ReviseVederlagModal({
 
               {!varsletForOppstart && (
                 <Alert variant="danger" className="mt-3">
-                  Manglende forhåndsvarsel gir strengere bevisbyrde for at kostnadene var nødvendige
-                  (§34.4).
+                  Uten forhåndsvarsel har du bare krav på det byggherren «måtte forstå» at du har
+                  hatt av utgifter (§30.3.1).
                 </Alert>
               )}
             </div>

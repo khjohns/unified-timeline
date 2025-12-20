@@ -395,7 +395,7 @@ export function SendVederlagModal({
                   render={({ field }) => (
                     <Checkbox
                       id="varslet_for_oppstart"
-                      label="Byggherren er varslet før arbeidet startet"
+                      label="Byggherren ble varslet før regningsarbeidet startet (§34.4)"
                       checked={field.value}
                       onCheckedChange={field.onChange}
                     />
@@ -404,7 +404,8 @@ export function SendVederlagModal({
 
                 {!varsletForOppstart && (
                   <Alert variant="danger" className="mt-2">
-                    Manglende forhåndsvarsel gir strengere bevisbyrde for at kostnadene var nødvendige (§34.4).
+                    Uten forhåndsvarsel har du bare krav på det byggherren «måtte forstå» at du har hatt av utgifter (§30.3.1).
+                    Husk også ukentlig dokumentasjon av påløpte kostnader.
                   </Alert>
                 )}
               </div>
@@ -416,7 +417,7 @@ export function SendVederlagModal({
               label="Tilbudt fastpris (eks. mva)"
               required
               error={errors.belop_direkte?.message}
-              helpText="Spesifisert tilbud (§34.2.1). Ved avslag faller oppgjøret tilbake på regningsarbeid (§34.4)."
+              helpText="Spesifisert tilbud (§34.2.1). Ved avslag faller oppgjøret tilbake på enhetspriser (§34.3) eller regningsarbeid (§34.4)."
             >
               <Controller
                 name="belop_direkte"
@@ -434,11 +435,11 @@ export function SendVederlagModal({
         </div>
 
         {/* 3. Særskilte krav (§34.1.3) - Rigg, Drift, Produktivitet */}
-        <div className="border-2 border-alert-warning-border bg-alert-warning-bg p-4 rounded-none text-alert-warning-text">
+        <div className="bg-pkt-bg-subtle p-4 rounded-none border-2 border-pkt-border-subtle">
           <h4 className="font-bold text-sm mb-2">
             Særskilte krav
           </h4>
-          <p className="text-sm mb-3">
+          <p className="text-sm text-pkt-text-body-subtle mb-3">
             Disse postene krever særskilt varsel. Ved manglende varsel tapes kravet (§34.1.3).
           </p>
 
@@ -458,7 +459,7 @@ export function SendVederlagModal({
             />
 
             {harRiggKrav && (
-              <div className="mt-3 ml-6 space-y-4 border-l-2 border-alert-warning-border pl-4">
+              <div className="mt-3 ml-6 space-y-4 border-l-2 border-pkt-border-subtle pl-4">
                 <FormField
                   label="Estimert beløp"
                   error={errors.belop_rigg?.message}
@@ -522,7 +523,7 @@ export function SendVederlagModal({
             />
 
             {harProduktivitetKrav && (
-              <div className="mt-3 ml-6 space-y-4 border-l-2 border-alert-warning-border pl-4">
+              <div className="mt-3 ml-6 space-y-4 border-l-2 border-pkt-border-subtle pl-4">
                 <FormField
                   label="Estimert beløp"
                   error={errors.belop_produktivitet?.message}

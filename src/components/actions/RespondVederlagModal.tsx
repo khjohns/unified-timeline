@@ -249,9 +249,9 @@ export function RespondVederlagModal({
     topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
 
-  // Determine if särskilda krav exists (affects which ports to show)
-  const harRiggKrav = vederlagEvent?.saerskilt_krav?.rigg_drift !== undefined;
-  const harProduktivitetKrav = vederlagEvent?.saerskilt_krav?.produktivitet !== undefined;
+  // Determine if särskilda krav exists with amount > 0 (affects which ports to show)
+  const harRiggKrav = (vederlagEvent?.saerskilt_krav?.rigg_drift?.belop ?? 0) > 0;
+  const harProduktivitetKrav = (vederlagEvent?.saerskilt_krav?.produktivitet?.belop ?? 0) > 0;
   const harSaerskiltKrav = harRiggKrav || harProduktivitetKrav;
 
   // Calculate total ports (5 with særskilte krav, 4 without)
@@ -347,11 +347,11 @@ export function RespondVederlagModal({
   const metodeHelpText = useMemo(() => {
     switch (vederlagEvent?.metode) {
       case 'ENHETSPRISER':
-        return 'Oppgjør basert på kontraktens enhetspriser (§34.3). Ved avslag faller oppgjøret tilbake på regningsarbeid (§34.4).';
+        return 'Oppgjør basert på kontraktens enhetspriser (§34.3).';
       case 'REGNINGSARBEID':
         return 'Oppgjør basert på dokumenterte kostnader + påslag (§34.4/§30). Du kan kreve kostnadsoverslag og holde tilbake betaling (§30.2).';
       case 'FASTPRIS_TILBUD':
-        return 'Spesifisert tilbud fra entreprenør (§34.2.1). Ved avslag faller oppgjøret tilbake på regningsarbeid (§34.4).';
+        return 'Spesifisert tilbud fra entreprenør (§34.2.1). Ved avslag faller oppgjøret tilbake på enhetspriser (§34.3) eller regningsarbeid (§34.4).';
       default:
         return undefined;
     }
@@ -992,8 +992,8 @@ export function RespondVederlagModal({
                 {vederlagEvent?.metode === 'REGNINGSARBEID' &&
                   vederlagEvent?.varslet_for_oppstart === false && (
                     <Alert variant="info" className="mt-3">
-                      Entreprenøren har ikke varslet før oppstart – strengere bevisbyrde for
-                      nødvendige kostnader (§34.4).
+                      Entreprenøren varslet ikke før regningsarbeidet startet (§34.4).
+                      TE har da bare krav på det du «måtte forstå» at han har hatt av utgifter (§30.3.1).
                     </Alert>
                   )}
 
@@ -1027,8 +1027,7 @@ export function RespondVederlagModal({
                     {erFastprisTilbud && (
                       <Alert variant="info" className="mt-3">
                         Ved å avslå fastpristilbudet (§34.2.1), faller oppgjøret tilbake på{' '}
-                        <strong>regningsarbeid (§34.4)</strong>, med mindre dere blir enige om noe
-                        annet.
+                        <strong>enhetspriser (§34.3)</strong> eller <strong>regningsarbeid (§34.4)</strong>.
                       </Alert>
                     )}
                   </div>

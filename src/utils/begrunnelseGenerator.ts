@@ -137,9 +137,13 @@ function generateMetodeSection(input: VederlagResponseInput): string {
       `og krever i stedet oppgjør etter ${getMetodeLabel(input.oensketMetode)}.`
     );
 
-    // Special case: rejecting fastpris falls back to regningsarbeid
+    // Special case: rejecting fastpris - explain fallback based on chosen method
     if (input.metode === 'FASTPRIS_TILBUD') {
-      lines.push('Ved å avslå fastpristilbudet (§34.2.1), faller oppgjøret tilbake på regningsarbeid (§34.4).');
+      if (input.oensketMetode === 'ENHETSPRISER') {
+        lines.push('Ved å avslå fastpristilbudet (§34.2.1) kreves oppgjør etter kontraktens enhetspriser (§34.3).');
+      } else {
+        lines.push('Ved å avslå fastpristilbudet (§34.2.1), faller oppgjøret tilbake på regningsarbeid (§34.4).');
+      }
     }
   }
 
