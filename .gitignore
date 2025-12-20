@@ -52,3 +52,5 @@ test-results/
 Endringsordre.md
 NS_8407.md
 *-api-openapi.yaml
+/backend/scripts/koe_data
+/koe_data
