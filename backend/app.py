@@ -126,6 +126,7 @@ from routes.event_routes import events_bp
 from routes.webhook_routes import webhook_bp
 from routes.forsering_routes import forsering_bp
 from routes.endringsordre_routes import endringsordre_bp
+from routes.cloudevents_routes import cloudevents_bp
 from routes.error_handlers import register_error_handlers
 
 # Register event-sourced routes
@@ -134,8 +135,9 @@ app.register_blueprint(events_bp)
 app.register_blueprint(webhook_bp)
 app.register_blueprint(forsering_bp)
 app.register_blueprint(endringsordre_bp)
+app.register_blueprint(cloudevents_bp)
 
-logger.info("✅ Event Sourcing Blueprints registered (inkl. Forsering, Endringsordre)")
+logger.info("✅ Event Sourcing Blueprints registered (inkl. Forsering, Endringsordre, CloudEvents)")
 
 # Register error handlers
 register_error_handlers(app)

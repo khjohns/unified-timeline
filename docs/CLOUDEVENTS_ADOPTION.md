@@ -508,47 +508,54 @@ Eksempler:
 
 ## 8. Implementeringsplan
 
-### Fase 1: Kompatibilitetslag (Prioritet: Høy)
+### Fase 1: Kompatibilitetslag (Prioritet: Høy) ✅ FULLFØRT
 
 **Mål:** Legge til CloudEvents-attributter uten breaking changes.
 
 **Oppgaver:**
-- [ ] Utvide `SakEvent` med CloudEvents-felter
-- [ ] Implementere `source` URI-generering
-- [ ] Implementere `type` namespace-prefiks
-- [ ] Legge til `specversion` og `datacontenttype`
-- [ ] Oppdatere enhetstester
+- [x] Utvide `SakEvent` med CloudEvents-felter
+- [x] Implementere `source` URI-generering
+- [x] Implementere `type` namespace-prefiks
+- [x] Legge til `specversion` og `datacontenttype`
+- [x] Oppdatere enhetstester
 
 **Kode-endringer:**
-- `backend/models/events.py` - Utvide SakEvent
-- `backend/models/cloudevents.py` - Ny modul for CloudEvents-støtte
-- `tests/models/test_cloudevents.py` - Nye tester
+- `backend/models/events.py` - SakEvent arver fra CloudEventMixin
+- `backend/models/cloudevents.py` - CloudEventMixin, validering, konstanter
+- `backend/tests/test_models/test_cloudevents.py` - Omfattende tester
 
-**Estimat:** 2-4 timer
-
-**Risiko:** Lav - additive endringer, ingen breaking changes
+**Fullført:** 2025-12-20
 
 ---
 
-### Fase 2: Serialiseringsstøtte (Prioritet: Middels)
+### Fase 2: Serialiseringsstøtte (Prioritet: Middels) ✅ FULLFØRT
 
 **Mål:** Støtte for eksport/import i CloudEvents-format.
 
 **Oppgaver:**
-- [ ] Implementere `to_cloudevent()` metode
-- [ ] Implementere `from_cloudevent()` klassemetode
-- [ ] Legge til JSON Schema-eksport for `dataschema`
-- [ ] Oppdatere API-endepunkter med valgfri CloudEvents-output
-- [ ] Dokumentere API-endringer
+- [x] Implementere `to_cloudevent()` metode
+- [x] Implementere `from_cloudevent()` klassemetode
+- [x] Legge til JSON Schema-eksport for `dataschema`
+- [x] Oppdatere API-endepunkter med valgfri CloudEvents-output
+- [x] Dokumentere API-endringer
 
 **Kode-endringer:**
-- `backend/models/events.py` - Serialiseringsmetoder
+- `backend/lib/cloudevents/` - Schemas og HTTP binding
+- `backend/routes/cloudevents_routes.py` - Schema API-endepunkter
 - `backend/routes/event_routes.py` - Accept-header støtte
-- `backend/lib/cloudevents/` - Ny modul for serialisering
+- `backend/docs/API.md` - CloudEvents dokumentasjon
+- `backend/scripts/generate_openapi.py` - OpenAPI CloudEvents skjemaer
 
-**Estimat:** 4-8 timer
+**Nye API-endepunkter:**
+- `GET /api/cloudevents/schemas` - Liste alle skjemaer
+- `GET /api/cloudevents/schemas/{event_type}` - Hent spesifikt skjema
+- `GET /api/cloudevents/envelope-schema` - Hent envelope-skjema
+- `GET /api/cloudevents/all-schemas` - Hent alle skjemaer
 
-**Risiko:** Lav - valgfri funksjonalitet
+**Accept-header støtte:**
+- `Accept: application/cloudevents+json` på `/api/cases/{sak_id}/timeline`
+
+**Fullført:** 2025-12-20
 
 ---
 

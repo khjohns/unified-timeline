@@ -5,7 +5,17 @@ Event-Sourced Models:
 - events.py: All event types (GrunnlagEvent, VederlagEvent, FristEvent, ResponsEvent)
 - sak_state.py: Aggregated state (SakState)
 - api_responses.py: API response models for frontend
+- cloudevents.py: CloudEvents v1.0 support (mixin, validation, constants)
 """
+
+# CloudEvents support
+from models.cloudevents import (
+    CloudEventMixin,
+    CloudEventDict,
+    validate_cloudevent,
+    CLOUDEVENTS_NAMESPACE,
+    CLOUDEVENTS_SPECVERSION,
+)
 
 # Event-sourced models
 from models.events import (
@@ -68,6 +78,9 @@ from models.api_responses import (
 )
 
 __all__ = [
+    # CloudEvents
+    'CloudEventMixin', 'CloudEventDict', 'validate_cloudevent',
+    'CLOUDEVENTS_NAMESPACE', 'CLOUDEVENTS_SPECVERSION',
     # Enums
     'SporType', 'EventType', 'SporStatus',
     'VederlagsMetode', 'FristVarselType',

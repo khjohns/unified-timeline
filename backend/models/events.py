@@ -16,6 +16,8 @@ from datetime import datetime
 from enum import Enum
 from uuid import uuid4
 
+from models.cloudevents import CloudEventMixin
+
 
 # ============ ENUMS FOR EVENT TYPES ============
 
@@ -238,9 +240,11 @@ class SubsidiaerTrigger(str, Enum):
 
 # ============ BASE EVENT ============
 
-class SakEvent(BaseModel):
+class SakEvent(CloudEventMixin, BaseModel):
     """
     Base-klasse for alle events i systemet.
+
+    Støtter både intern struktur og CloudEvents-format via CloudEventMixin.
 
     Hver event har:
     - Unik ID (for referanser)
@@ -248,6 +252,14 @@ class SakEvent(BaseModel):
     - Tidsstempel (når den skjedde)
     - Aktør (hvem som utførte handlingen)
     - Event-type (hva som skjedde)
+
+    CloudEvents-støtte:
+    - event.specversion -> "1.0"
+    - event.ce_id -> event_id
+    - event.ce_source -> "/projects/{prosjekt_id}/cases/{sak_id}"
+    - event.ce_type -> "no.oslo.koe.{event_type}"
+    - event.ce_time -> tidsstempel i ISO 8601 format
+    - event.to_cloudevent() -> Returnerer CloudEvents dict
     """
     event_id: str = Field(
         default_factory=lambda: str(uuid4()),
