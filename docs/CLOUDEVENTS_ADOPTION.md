@@ -272,15 +272,31 @@ CloudEvents er én av flere spesifikasjoner som kan styrke prosjektets arkitektu
 
 **Hva:** OpenAPI for event-drevne systemer - dokumenterer meldingsbaserte APIer.
 
-**Relevans for prosjektet:**
-- Dokumentere Catenda webhooks formelt
+**Status (2025-12-20):** ⏸️ Ikke prioritert nå - OpenAPI dekker nåværende behov.
+
+**Vurdering:**
+
+| Scenario | Verdi av AsyncAPI |
+|----------|-------------------|
+| Catenda webhooks inn | ⚠️ Begrenset - Catenda bruker proprietært format |
+| Interne events | ❌ Lav - Events konsumeres kun internt via REST |
+| Azure Event Grid (fase 5) | ✅ Høy - Dokumenterer utgående events |
+| Tredjeparts-integrasjon | ✅ Høy - Når andre systemer abonnerer |
+
+**Konklusjon:**
+- OpenAPI (`backend/scripts/generate_openapi.py`) dokumenterer REST-APIet inkludert CloudEvents-skjemaer
+- AsyncAPI gir begrenset merverdi før Azure Event Grid (fase 5)
+- Bør vurderes når utgående event-strømmer implementeres
+
+**Relevans for prosjektet (fremtidig):**
+- Dokumentere utgående events til Azure Event Grid
 - Spesifisere event-strømmer med schema-validering
 - Generere dokumentasjon og klientkode automatisk
 
 **Avhengighet til CloudEvents:**
-- AsyncAPI bør implementeres **etter** CloudEvents fase 1
+- AsyncAPI bør implementeres **med** Azure Event Grid (fase 5)
 - Kan referere til CloudEvents JSON Schema for event-typer
-- Gir mer verdi når event-formatet er standardisert
+- Gir mest verdi for utgående event-strømmer
 
 **Eksempel (AsyncAPI med CloudEvents):**
 ```yaml
