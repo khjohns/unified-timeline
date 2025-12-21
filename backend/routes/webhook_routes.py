@@ -18,7 +18,7 @@ from lib.security.webhook_security import (
 from lib.security.rate_limiter import limit_webhook
 from lib.monitoring.audit import audit
 from services.webhook_service import WebhookService
-from repositories.event_repository import JsonFileEventRepository
+from repositories import create_event_repository
 from lib.catenda_factory import get_catenda_client
 from core.config import settings
 
@@ -55,8 +55,8 @@ def get_webhook_service() -> WebhookService:
     # Get config from settings
     config = settings.get_catenda_config()
 
-    # Create event repository
-    event_repository = JsonFileEventRepository()
+    # Create event repository (uses EVENT_STORE_BACKEND env var)
+    event_repository = create_event_repository()
 
     # Create and return service
     return WebhookService(

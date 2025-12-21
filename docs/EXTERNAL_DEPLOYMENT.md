@@ -1,24 +1,95 @@
 # Ekstern Deployment Guide
 
-**Sist oppdatert:** 2025-12-13
+**Sist oppdatert:** 2025-12-21
 
-Veiledning for utrulling av applikasjonen til ekstern hosting (utenfor virksomhetens Azure-miljø), med Entra ID SSO for autentisering og rollebasert tilgangskontroll.
+Veiledning for utrulling av applikasjonen til ekstern hosting (utenfor virksomhetens Azure-miljø).
+
+**To autentiseringsalternativer:**
+- **Supabase Auth** - Enkel oppsett for testing og demo (anbefalt for rask start)
+- **Entra ID SSO** - Produksjonsklar med rollebasert tilgangskontroll
 
 ---
 
 ## Innhold
 
+- [Hurtigstart](#hurtigstart)
+- [Miljøvariabler](#miljøvariabler)
 - [Oversikt](#oversikt)
 - [Arkitektur](#arkitektur)
-- [Sikkerhetslag](#sikkerhetslag)
-- [Entra ID SSO-oppsett](#entra-id-sso-oppsett)
+- [Supabase Auth (forenklet)](#supabase-auth-forenklet)
+- [Entra ID SSO-oppsett](#entra-id-sso-oppsett) *(produksjon)*
 - [Roller og prosjekttilgang](#roller-og-prosjekttilgang)
-- [Frontend: Vercel/Cloudflare Pages](#frontend)
+- [Frontend: Vercel](#frontend)
 - [Backend: Render](#backend-render)
 - [Database: Supabase](#database-supabase)
 - [Overvåkning](#overvåkning)
 - [Kostnader](#kostnader)
 - [Sjekkliste](#sjekkliste)
+
+---
+
+## Hurtigstart
+
+For rask test-deploy uten Catenda-integrasjon:
+
+### 1. Supabase (5 min)
+1. Opprett prosjekt på [supabase.com](https://supabase.com)
+2. Kjør SQL-migrasjonen (se [Database: Supabase](#database-supabase))
+3. Aktiver Email Auth under Authentication → Providers
+4. Noter: Project URL og Service Role Key (Settings → API)
+
+### 2. Render (5 min)
+1. Koble GitHub-repo
+2. Velg `backend/` som root directory
+3. Build: `pip install -r requirements.txt`
+4. Start: `gunicorn app:app`
+5. Legg til miljøvariabler (se tabell under)
+
+### 3. Vercel (5 min)
+1. Importer repo fra GitHub
+2. Framework: Vite
+3. Legg til miljøvariabler (se tabell under)
+
+---
+
+## Miljøvariabler
+
+### Supabase (Dashboard → Settings → API)
+
+Du trenger disse verdiene fra Supabase:
+
+| Verdi | Hvor | Brukes av |
+|-------|------|-----------|
+| Project URL | Settings → API → Project URL | Backend, Frontend |
+| `anon` public key | Settings → API → anon public | Frontend |
+| `service_role` key | Settings → API → service_role | Backend (hemmelig!) |
+
+### Vercel (Frontend)
+
+| Variabel | Eksempel | Beskrivelse |
+|----------|----------|-------------|
+| `VITE_API_BASE_URL` | `https://my-app.onrender.com` | Backend URL (uten `/api`) |
+| `VITE_SUPABASE_URL` | `https://xxx.supabase.co` | Supabase Project URL |
+| `VITE_SUPABASE_ANON_KEY` | `eyJhbGc...` | Supabase anon key (offentlig) |
+
+### Render (Backend)
+
+| Variabel | Eksempel | Beskrivelse |
+|----------|----------|-------------|
+| `SUPABASE_URL` | `https://xxx.supabase.co` | Supabase Project URL |
+| `SUPABASE_KEY` | `eyJhbGc...` | Service Role Key (**hemmelig**) |
+| `CSRF_SECRET` | *(generer)* | `python3 -c "import secrets; print(secrets.token_urlsafe(32))"` |
+| `FLASK_SECRET_KEY` | *(generer)* | `python3 -c "import secrets; print(secrets.token_hex(32))"` |
+| `ALLOWED_ORIGINS` | `https://my-app.vercel.app` | Frontend URL for CORS |
+| `REACT_APP_URL` | `https://my-app.vercel.app` | Frontend URL for magic links |
+| `FLASK_ENV` | `production` | Miljø |
+| `FLASK_DEBUG` | `False` | Må være False i prod |
+| `EVENT_STORE_BACKEND` | `supabase` | Bruk Supabase for lagring |
+| `SUPABASE_JWT_SECRET` | *(fra dashboard)* | Settings → API → JWT Secret (for auth) |
+
+**Ikke nødvendig for testing (Catenda-integrasjon):**
+- `CATENDA_CLIENT_ID`, `CATENDA_CLIENT_SECRET`, `CATENDA_PROJECT_ID`, etc.
+- `WEBHOOK_SECRET_PATH`
 
 ---
 
@@ -144,7 +215,7 @@ Action: Block for 10 minutes
 
 ### Lag 2-3: Autentisering og autorisasjon
 
-Se [Entra ID SSO-oppsett](#entra-id-sso-oppsett) og [Roller og prosjekttilgang](#roller-og-prosjekttilgang).
+Se [Supabase Auth](#supabase-auth-forenklet) (testing) eller [Entra ID SSO-oppsett](#entra-id-sso-oppsett) (produksjon).
 
 ### Lag 4: Data (Supabase RLS)
 
@@ -156,7 +227,271 @@ Se [Overvåkning](#overvåkning).
 
 ---
 
+## Supabase Auth (forenklet)
+
+For testing og demo uten Entra ID. Supabase Auth gir enkel brukerautentisering med email/passord eller magic links.
+
+### Hvorfor Supabase Auth?
+
+| Fordel | Beskrivelse |
+|--------|-------------|
+| Gratis | Inkludert i Supabase free tier (50K MAU) |
+| Enkel oppsett | Aktiveres i dashboard, minimal kode |
+| Fleksibel | Email/passord, magic links, OAuth (Google, GitHub) |
+| Integrert | Samme prosjekt som database |
+
+### Steg 1: Aktiver Email Auth
+
+1. **Supabase Dashboard** → **Authentication** → **Providers**
+2. Aktiver **Email** provider
+3. Konfigurer:
+   - ✅ Enable Email Signup
+   - ✅ Enable Email Confirmations (valgfritt for testing)
+   - Sett Site URL: `https://din-app.vercel.app`
+
+### Steg 2: Frontend-integrasjon
+
+Installer Supabase client:
+
+```bash
+npm install @supabase/supabase-js
+```
+
+Opprett Supabase client:
+
+```typescript
+// src/lib/supabase.ts
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+```
+
+Enkel login-komponent:
+
+```tsx
+// src/components/Auth.tsx
+import { useState } from 'react'
+import { supabase } from '../lib/supabase'
+
+export function Auth() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState('')
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (error) {
+      setMessage(error.message)
+    } else {
+      setMessage('Innlogget!')
+    }
+    setLoading(false)
+  }
+
+  const handleSignUp = async () => {
+    setLoading(true)
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+    })
+
+    if (error) {
+      setMessage(error.message)
+    } else {
+      setMessage('Sjekk e-post for bekreftelseslenke')
+    }
+    setLoading(false)
+  }
+
+  return (
+    <form onSubmit={handleLogin}>
+      <input
+        type="email"
+        placeholder="E-post"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
+      <input
+        type="password"
+        placeholder="Passord"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
+      <button type="submit" disabled={loading}>
+        Logg inn
+      </button>
+      <button type="button" onClick={handleSignUp} disabled={loading}>
+        Registrer
+      </button>
+      {message && <p>{message}</p>}
+    </form>
+  )
+}
+```
+
+Auth-context for hele appen:
+
+```tsx
+// src/context/SupabaseAuthContext.tsx
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { User, Session } from '@supabase/supabase-js'
+import { supabase } from '../lib/supabase'
+
+interface AuthContextType {
+  user: User | null
+  session: Session | null
+  loading: boolean
+  signOut: () => Promise<void>
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null)
+  const [session, setSession] = useState<Session | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+      setLoading(false)
+    })
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session)
+        setUser(session?.user ?? null)
+      }
+    )
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const signOut = async () => {
+    await supabase.auth.signOut()
+  }
+
+  return (
+    <AuthContext.Provider value={{ user, session, loading, signOut }}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
+
+export function useSupabaseAuth() {
+  const context = useContext(AuthContext)
+  if (!context) {
+    throw new Error('useSupabaseAuth must be used within SupabaseAuthProvider')
+  }
+  return context
+}
+```
+
+### Steg 3: Backend token-validering
+
+Backend må validere Supabase JWT tokens:
+
+```python
+# backend/lib/auth/supabase_validator.py
+import os
+import jwt
+from functools import wraps
+from flask import request, g, jsonify
+
+SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET")
+# Eller bruk SUPABASE_URL for å hente JWKS
+
+def validate_supabase_token(token: str) -> dict | None:
+    """Valider Supabase JWT token."""
+    try:
+        # Supabase bruker HS256 med JWT secret
+        claims = jwt.decode(
+            token,
+            SUPABASE_JWT_SECRET,
+            algorithms=["HS256"],
+            audience="authenticated",
+        )
+        return claims
+    except jwt.InvalidTokenError:
+        return None
+
+def require_auth(f):
+    """Decorator for å kreve autentisering."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth_header = request.headers.get("Authorization", "")
+
+        if not auth_header.startswith("Bearer "):
+            return jsonify({"error": "Missing authorization"}), 401
+
+        token = auth_header.split(" ")[1]
+        claims = validate_supabase_token(token)
+
+        if not claims:
+            return jsonify({"error": "Invalid token"}), 401
+
+        g.current_user = {
+            "id": claims.get("sub"),
+            "email": claims.get("email"),
+            "role": claims.get("role", "authenticated"),
+        }
+
+        return f(*args, **kwargs)
+    return decorated
+```
+
+### Steg 4: Roller (valgfritt)
+
+For enkel rolletildeling, bruk Supabase user metadata:
+
+```sql
+-- Gi en bruker TE-rolle (kjør i Supabase SQL Editor)
+UPDATE auth.users
+SET raw_user_meta_data = jsonb_set(
+  COALESCE(raw_user_meta_data, '{}'),
+  '{role}',
+  '"TE"'
+)
+WHERE email = 'bruker@example.com';
+```
+
+Eller opprett en egen rolle-tabell:
+
+```sql
+CREATE TABLE user_roles (
+    user_id UUID REFERENCES auth.users(id) PRIMARY KEY,
+    role TEXT NOT NULL CHECK (role IN ('TE', 'BH', 'Admin', 'Reader')),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- RLS for user_roles
+ALTER TABLE user_roles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own role"
+ON user_roles FOR SELECT
+USING (auth.uid() = user_id);
+```
+
+---
+
 ## Entra ID SSO-oppsett
+
+> **Merk:** Denne seksjonen er for produksjonsmiljø med full Entra ID-integrasjon.
+> For testing, bruk [Supabase Auth](#supabase-auth-forenklet) over.
 
 ### Steg 1: Opprett App Registration
 
@@ -648,139 +983,207 @@ Konfigurer i Render: Health Check Path = `/health`
 
 ## Database: Supabase
 
-### Event Store-tabeller
+### Tabelloversikt
+
+| Tabell | Formål | Påkrevd |
+|--------|--------|---------|
+| `koe_events` | Event store (append-only log) | ✅ Ja |
+| `sak_metadata` | Sak-liste cache | ✅ Ja |
+| `magic_links` | Token-lagring for deling | ⚪ Valgfritt |
+| `user_roles` | Brukerroller (hvis ikke frontend-only) | ⚪ Valgfritt |
+
+### Roller i frontend vs. database
+
+For **testing** velges rolle (TE/BH) via en knapp i frontend og lagres i `localStorage`:
+
+```typescript
+// src/hooks/useUserRole.ts - bruker localStorage, ikke database
+const STORAGE_KEY = 'unified-timeline-user-role';
+const stored = localStorage.getItem(STORAGE_KEY); // 'TE' eller 'BH'
+```
+
+Dette betyr at **ingen rolle-tabell trengs for testing**. Alle brukere kan bytte mellom TE og BH i UI.
+
+For **produksjon** med faktisk rollekontroll, se [Roller (valgfritt)](#steg-4-roller-valgfritt) under Supabase Auth.
+
+---
+
+### Komplett SQL-oppsett (kjør i Supabase SQL Editor)
 
 ```sql
--- Events tabell (append-only)
-CREATE TABLE events (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+-- ============================================================
+-- KOE Event Store - Supabase Setup
+-- ============================================================
+-- Kopier og kjør hele denne blokken i Supabase SQL Editor
+-- Dashboard → SQL Editor → New query → Paste → Run
+-- ============================================================
+
+-- 1. EVENTS TABELL (kjernen i event sourcing)
+-- Matcher backend/repositories/supabase_event_repository.py
+
+CREATE TABLE IF NOT EXISTS koe_events (
+    id SERIAL PRIMARY KEY,
+    event_id UUID NOT NULL UNIQUE,
     sak_id TEXT NOT NULL,
     event_type TEXT NOT NULL,
     tidsstempel TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     aktor TEXT NOT NULL,
-    aktor_rolle TEXT NOT NULL CHECK (aktor_rolle IN ('TE', 'BH', 'System')),
+    aktor_rolle TEXT NOT NULL CHECK (aktor_rolle IN ('TE', 'BH')),
     data JSONB NOT NULL DEFAULT '{}',
     kommentar TEXT,
-    refererer_til_event_id UUID REFERENCES events(id),
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    referrer_til_event_id UUID,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+
+    -- For optimistisk låsing (concurrency control)
+    versjon INTEGER NOT NULL,
+    CONSTRAINT unique_sak_version UNIQUE (sak_id, versjon)
 );
 
--- Indexes
-CREATE INDEX idx_events_sak_id ON events(sak_id);
-CREATE INDEX idx_events_tidsstempel ON events(sak_id, tidsstempel);
+-- Indexes for vanlige queries
+CREATE INDEX IF NOT EXISTS idx_koe_events_sak_id ON koe_events(sak_id);
+CREATE INDEX IF NOT EXISTS idx_koe_events_tidsstempel ON koe_events(tidsstempel);
+CREATE INDEX IF NOT EXISTS idx_koe_events_event_type ON koe_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_koe_events_versjon ON koe_events(sak_id, versjon);
 
--- Sak metadata (for rask listing)
-CREATE TABLE sak_metadata (
+-- View for current version per sak
+CREATE OR REPLACE VIEW koe_sak_versions AS
+SELECT sak_id, MAX(versjon) as current_version, COUNT(*) as event_count
+FROM koe_events
+GROUP BY sak_id;
+
+-- 2. SAK METADATA TABELL (for sak-liste uten å laste alle events)
+-- Matcher backend/models/sak_metadata.py
+
+CREATE TABLE IF NOT EXISTS sak_metadata (
     sak_id TEXT PRIMARY KEY,
-    project_id TEXT NOT NULL,
-    tittel TEXT,
-    status TEXT,
-    opprettet TIMESTAMPTZ,
-    sist_oppdatert TIMESTAMPTZ,
-    versjon INTEGER DEFAULT 0
+    prosjekt_id TEXT,
+    catenda_topic_id TEXT,
+    catenda_board_id TEXT,
+    catenda_project_id TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_by TEXT NOT NULL,
+
+    -- Cached fields (oppdateres etter hvert event)
+    cached_title TEXT,
+    cached_status TEXT,
+    last_event_at TIMESTAMPTZ
 );
 
-CREATE INDEX idx_sak_project ON sak_metadata(project_id);
+CREATE INDEX IF NOT EXISTS idx_sak_metadata_prosjekt ON sak_metadata(prosjekt_id);
+CREATE INDEX IF NOT EXISTS idx_sak_metadata_catenda_topic ON sak_metadata(catenda_topic_id);
+
+-- 3. MAGIC LINKS TABELL (valgfritt - for deling uten innlogging)
+-- Brukes hvis du vil dele lenker til eksterne uten at de må logge inn
+
+CREATE TABLE IF NOT EXISTS magic_links (
+    token UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    sak_id TEXT NOT NULL REFERENCES sak_metadata(sak_id) ON DELETE CASCADE,
+    email TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMPTZ NOT NULL,
+    used BOOLEAN DEFAULT FALSE,
+    used_at TIMESTAMPTZ,
+    revoked BOOLEAN DEFAULT FALSE,
+    revoked_at TIMESTAMPTZ,
+    last_accessed TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_magic_links_sak ON magic_links(sak_id);
+CREATE INDEX IF NOT EXISTS idx_magic_links_expires ON magic_links(expires_at);
+
+-- 4. RLS (Row Level Security) - Enkel oppsett for testing
+-- Backend bruker service_role key som bypasser RLS
+
+ALTER TABLE koe_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sak_metadata ENABLE ROW LEVEL SECURITY;
+ALTER TABLE magic_links ENABLE ROW LEVEL SECURITY;
+
+-- Service role (backend) har full tilgang
+CREATE POLICY "Service role full access on koe_events"
+ON koe_events FOR ALL
+USING (auth.role() = 'service_role')
+WITH CHECK (auth.role() = 'service_role');
+
+CREATE POLICY "Service role full access on sak_metadata"
+ON sak_metadata FOR ALL
+USING (auth.role() = 'service_role')
+WITH CHECK (auth.role() = 'service_role');
+
+CREATE POLICY "Service role full access on magic_links"
+ON magic_links FOR ALL
+USING (auth.role() = 'service_role')
+WITH CHECK (auth.role() = 'service_role');
+
+-- Authenticated users (via Supabase Auth) kan lese
+CREATE POLICY "Authenticated users can read events"
+ON koe_events FOR SELECT
+USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Authenticated users can read sak_metadata"
+ON sak_metadata FOR SELECT
+USING (auth.role() = 'authenticated');
+
+-- ============================================================
+-- FERDIG! Tabellene er nå klare til bruk.
+-- ============================================================
 ```
 
-### Row-Level Security (RLS)
+### Verifiser oppsettet
+
+Etter å ha kjørt SQL-scriptet, verifiser i Supabase Dashboard:
+
+1. **Table Editor** → Se at `koe_events`, `sak_metadata`, `magic_links` finnes
+2. **Authentication** → **Policies** → Se at RLS-policies er aktive
+3. **SQL Editor** → Kjør:
 
 ```sql
--- Aktiver RLS
-ALTER TABLE events ENABLE ROW LEVEL SECURITY;
-ALTER TABLE sak_metadata ENABLE ROW LEVEL SECURITY;
+-- Sjekk at tabellene eksisterer
+SELECT table_name FROM information_schema.tables
+WHERE table_schema = 'public'
+AND table_name IN ('koe_events', 'sak_metadata', 'magic_links');
 
--- Policy: Brukere ser kun saker de har tilgang til
-CREATE POLICY "Users can view events for accessible projects"
-ON events
-FOR SELECT
+-- Sjekk RLS-policies
+SELECT tablename, policyname, cmd FROM pg_policies
+WHERE schemaname = 'public';
+```
+
+### Row-Level Security (RLS) - Produksjon
+
+For produksjon med strengere tilgangskontroll, legg til disse policies:
+
+```sql
+-- Kun tilgang til egne saker (basert på bruker-ID i metadata)
+CREATE POLICY "Users can view own sak events"
+ON koe_events FOR SELECT
 USING (
     EXISTS (
         SELECT 1 FROM sak_metadata sm
-        JOIN user_project_access upa ON sm.project_id = upa.project_id
-        WHERE sm.sak_id = events.sak_id
-        AND upa.entra_oid = current_setting('app.current_user_oid', true)
+        WHERE sm.sak_id = koe_events.sak_id
+        AND sm.created_by = auth.jwt()->>'email'
     )
 );
-
--- Policy: Kun TE og Admin kan opprette events
-CREATE POLICY "TE and Admin can insert events"
-ON events
-FOR INSERT
-WITH CHECK (
-    EXISTS (
-        SELECT 1 FROM sak_metadata sm
-        JOIN user_project_access upa ON sm.project_id = upa.project_id
-        WHERE sm.sak_id = events.sak_id
-        AND upa.entra_oid = current_setting('app.current_user_oid', true)
-        AND upa.role IN ('TE', 'Admin')
-    )
-);
-
--- Service role bypass (for backend)
-CREATE POLICY "Service role has full access"
-ON events
-FOR ALL
-USING (current_setting('role', true) = 'service_role');
 ```
 
 ### Backend-integrasjon
 
-```python
-# backend/repositories/supabase_event_repository.py
-from supabase import create_client, Client
-import os
+Backend har allerede en ferdig `SupabaseEventRepository` i `backend/repositories/supabase_event_repository.py`.
 
-class SupabaseEventRepository:
-    def __init__(self):
-        self.client: Client = create_client(
-            os.environ["SUPABASE_URL"],
-            os.environ["SUPABASE_SERVICE_ROLE_KEY"]
-        )
+For å aktivere Supabase som event store, sett miljøvariabel:
 
-    def append(self, event: dict, expected_version: int) -> int:
-        """Legg til event med optimistisk låsing."""
-        sak_id = event["sak_id"]
-
-        # Sjekk versjon
-        result = self.client.table("sak_metadata") \
-            .select("versjon") \
-            .eq("sak_id", sak_id) \
-            .single() \
-            .execute()
-
-        current_version = result.data["versjon"] if result.data else 0
-
-        if current_version != expected_version:
-            raise ConcurrencyError(
-                f"Version mismatch: expected {expected_version}, got {current_version}"
-            )
-
-        # Insert event
-        self.client.table("events").insert(event).execute()
-
-        # Oppdater metadata
-        new_version = current_version + 1
-        self.client.table("sak_metadata") \
-            .upsert({
-                "sak_id": sak_id,
-                "versjon": new_version,
-                "sist_oppdatert": datetime.utcnow().isoformat()
-            }) \
-            .execute()
-
-        return new_version
-
-    def get_events(self, sak_id: str) -> tuple[list, int]:
-        """Hent alle events for en sak."""
-        result = self.client.table("events") \
-            .select("*") \
-            .eq("sak_id", sak_id) \
-            .order("tidsstempel") \
-            .execute()
-
-        return result.data, len(result.data)
+```bash
+EVENT_STORE_BACKEND=supabase
 ```
+
+Eller i Python:
+
+```python
+from repositories import create_event_repository
+
+# Automatisk basert på miljøvariabel
+repo = create_event_repository("supabase")
+```
+
+Se [backend/repositories/supabase_event_repository.py](../backend/repositories/supabase_event_repository.py) for full implementasjon.
 
 ---
 

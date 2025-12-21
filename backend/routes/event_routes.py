@@ -20,7 +20,8 @@ from datetime import datetime
 
 from services.timeline_service import TimelineService
 from services.business_rules import BusinessRuleValidator
-from repositories.event_repository import JsonFileEventRepository, ConcurrencyError
+from repositories.event_repository import ConcurrencyError
+from repositories import create_event_repository
 from repositories.sak_metadata_repository import SakMetadataRepository
 from models.events import parse_event_from_request, parse_event, EventType
 from lib.auth.csrf_protection import require_csrf
@@ -47,7 +48,8 @@ logger = get_logger(__name__)
 events_bp = Blueprint('events', __name__)
 
 # Dependencies (consider DI container for production)
-event_repo = JsonFileEventRepository()
+# Uses EVENT_STORE_BACKEND env var: "json" (default) or "supabase"
+event_repo = create_event_repository()
 metadata_repo = SakMetadataRepository()
 timeline_service = TimelineService()
 validator = BusinessRuleValidator()
