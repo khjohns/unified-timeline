@@ -140,8 +140,9 @@ Submit a single event to a case with optimistic concurrency control.
 #### Frist (Deadline Extension)
 - `frist_krav_sendt` - Submit deadline extension claim
 - `frist_krav_oppdatert` - Update claim
+- `frist_krav_spesifisert` - Specify days for neutral notice (§33.6.1/§33.6.2)
 
-**Required data fields:**
+**Required data fields for `frist_krav_sendt`:**
 ```json
 {
   "varsel_type": "noytralt|spesifisert|begge|force_majeure",
@@ -152,6 +153,22 @@ Submit a single event to a case with optimistic concurrency control.
   }
 }
 ```
+
+**Required data fields for `frist_krav_spesifisert`:**
+```json
+{
+  "antall_dager": 14,
+  "begrunnelse": "Justification for the specified days",
+  "er_svar_pa_etterlysning": true,
+  "ny_sluttdato": "2025-03-15",
+  "berorte_aktiviteter": "Critical path activities affected"
+}
+```
+
+**Notes on specification (§33.6):**
+- `antall_dager` must be > 0 (actually specifying days)
+- `er_svar_pa_etterlysning`: true if responding to BH's demand (§33.6.2)
+- If TE fails to respond to etterlysning, the claim is lost
 
 **Varsel types:**
 
