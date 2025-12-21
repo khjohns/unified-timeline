@@ -1,24 +1,95 @@
 # Ekstern Deployment Guide
 
-**Sist oppdatert:** 2025-12-13
+**Sist oppdatert:** 2025-12-21
 
-Veiledning for utrulling av applikasjonen til ekstern hosting (utenfor virksomhetens Azure-miljø), med Entra ID SSO for autentisering og rollebasert tilgangskontroll.
+Veiledning for utrulling av applikasjonen til ekstern hosting (utenfor virksomhetens Azure-miljø).
+
+**To autentiseringsalternativer:**
+- **Supabase Auth** - Enkel oppsett for testing og demo (anbefalt for rask start)
+- **Entra ID SSO** - Produksjonsklar med rollebasert tilgangskontroll
 
 ---
 
 ## Innhold
 
+- [Hurtigstart](#hurtigstart)
+- [Miljøvariabler](#miljøvariabler)
 - [Oversikt](#oversikt)
 - [Arkitektur](#arkitektur)
-- [Sikkerhetslag](#sikkerhetslag)
-- [Entra ID SSO-oppsett](#entra-id-sso-oppsett)
+- [Supabase Auth (forenklet)](#supabase-auth-forenklet)
+- [Entra ID SSO-oppsett](#entra-id-sso-oppsett) *(produksjon)*
 - [Roller og prosjekttilgang](#roller-og-prosjekttilgang)
-- [Frontend: Vercel/Cloudflare Pages](#frontend)
+- [Frontend: Vercel](#frontend)
 - [Backend: Render](#backend-render)
 - [Database: Supabase](#database-supabase)
 - [Overvåkning](#overvåkning)
 - [Kostnader](#kostnader)
 - [Sjekkliste](#sjekkliste)
+
+---
+
+## Hurtigstart
+
+For rask test-deploy uten Catenda-integrasjon:
+
+### 1. Supabase (5 min)
+1. Opprett prosjekt på [supabase.com](https://supabase.com)
+2. Kjør SQL-migrasjonen (se [Database: Supabase](#database-supabase))
+3. Aktiver Email Auth under Authentication → Providers
+4. Noter: Project URL og Service Role Key (Settings → API)
+
+### 2. Render (5 min)
+1. Koble GitHub-repo
+2. Velg `backend/` som root directory
+3. Build: `pip install -r requirements.txt`
+4. Start: `gunicorn app:app`
+5. Legg til miljøvariabler (se tabell under)
+
+### 3. Vercel (5 min)
+1. Importer repo fra GitHub
+2. Framework: Vite
+3. Legg til miljøvariabler (se tabell under)
+
+---
+
+## Miljøvariabler
+
+### Supabase (Dashboard → Settings → API)
+
+Du trenger disse verdiene fra Supabase:
+
+| Verdi | Hvor | Brukes av |
+|-------|------|-----------|
+| Project URL | Settings → API → Project URL | Backend, Frontend |
+| `anon` public key | Settings → API → anon public | Frontend |
+| `service_role` key | Settings → API → service_role | Backend (hemmelig!) |
+
+### Vercel (Frontend)
+
+| Variabel | Eksempel | Beskrivelse |
+|----------|----------|-------------|
+| `VITE_API_BASE_URL` | `https://my-app.onrender.com` | Backend URL (uten `/api`) |
+| `VITE_SUPABASE_URL` | `https://xxx.supabase.co` | Supabase Project URL |
+| `VITE_SUPABASE_ANON_KEY` | `eyJhbGc...` | Supabase anon key (offentlig) |
+
+### Render (Backend)
+
+| Variabel | Eksempel | Beskrivelse |
+|----------|----------|-------------|
+| `SUPABASE_URL` | `https://xxx.supabase.co` | Supabase Project URL |
+| `SUPABASE_KEY` | `eyJhbGc...` | Service Role Key (**hemmelig**) |
+| `CSRF_SECRET` | *(generer)* | `python3 -c "import secrets; print(secrets.token_urlsafe(32))"` |
+| `FLASK_SECRET_KEY` | *(generer)* | `python3 -c "import secrets; print(secrets.token_hex(32))"` |
+| `ALLOWED_ORIGINS` | `https://my-app.vercel.app` | Frontend URL for CORS |
+| `REACT_APP_URL` | `https://my-app.vercel.app` | Frontend URL for magic links |
+| `FLASK_ENV` | `production` | Miljø |
+| `FLASK_DEBUG` | `False` | Må være False i prod |
+| `EVENT_STORE_BACKEND` | `supabase` | Bruk Supabase for lagring |
+| `SUPABASE_JWT_SECRET` | *(fra dashboard)* | Settings → API → JWT Secret (for auth) |
+
+**Ikke nødvendig for testing (Catenda-integrasjon):**
+- `CATENDA_CLIENT_ID`, `CATENDA_CLIENT_SECRET`, `CATENDA_PROJECT_ID`, etc.
+- `WEBHOOK_SECRET_PATH`
 
 ---
 
@@ -144,7 +215,7 @@ Action: Block for 10 minutes
 
 ### Lag 2-3: Autentisering og autorisasjon
 
-Se [Entra ID SSO-oppsett](#entra-id-sso-oppsett) og [Roller og prosjekttilgang](#roller-og-prosjekttilgang).
+Se [Supabase Auth](#supabase-auth-forenklet) (testing) eller [Entra ID SSO-oppsett](#entra-id-sso-oppsett) (produksjon).
 
 ### Lag 4: Data (Supabase RLS)
 
@@ -156,7 +227,271 @@ Se [Overvåkning](#overvåkning).
 
 ---
 
+## Supabase Auth (forenklet)
+
+For testing og demo uten Entra ID. Supabase Auth gir enkel brukerautentisering med email/passord eller magic links.
+
+### Hvorfor Supabase Auth?
+
+| Fordel | Beskrivelse |
+|--------|-------------|
+| Gratis | Inkludert i Supabase free tier (50K MAU) |
+| Enkel oppsett | Aktiveres i dashboard, minimal kode |
+| Fleksibel | Email/passord, magic links, OAuth (Google, GitHub) |
+| Integrert | Samme prosjekt som database |
+
+### Steg 1: Aktiver Email Auth
+
+1. **Supabase Dashboard** → **Authentication** → **Providers**
+2. Aktiver **Email** provider
+3. Konfigurer:
+   - ✅ Enable Email Signup
+   - ✅ Enable Email Confirmations (valgfritt for testing)
+   - Sett Site URL: `https://din-app.vercel.app`
+
+### Steg 2: Frontend-integrasjon
+
+Installer Supabase client:
+
+```bash
+npm install @supabase/supabase-js
+```
+
+Opprett Supabase client:
+
+```typescript
+// src/lib/supabase.ts
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+```
+
+Enkel login-komponent:
+
+```tsx
+// src/components/Auth.tsx
+import { useState } from 'react'
+import { supabase } from '../lib/supabase'
+
+export function Auth() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState('')
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (error) {
+      setMessage(error.message)
+    } else {
+      setMessage('Innlogget!')
+    }
+    setLoading(false)
+  }
+
+  const handleSignUp = async () => {
+    setLoading(true)
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+    })
+
+    if (error) {
+      setMessage(error.message)
+    } else {
+      setMessage('Sjekk e-post for bekreftelseslenke')
+    }
+    setLoading(false)
+  }
+
+  return (
+    <form onSubmit={handleLogin}>
+      <input
+        type="email"
+        placeholder="E-post"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
+      <input
+        type="password"
+        placeholder="Passord"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
+      <button type="submit" disabled={loading}>
+        Logg inn
+      </button>
+      <button type="button" onClick={handleSignUp} disabled={loading}>
+        Registrer
+      </button>
+      {message && <p>{message}</p>}
+    </form>
+  )
+}
+```
+
+Auth-context for hele appen:
+
+```tsx
+// src/context/SupabaseAuthContext.tsx
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { User, Session } from '@supabase/supabase-js'
+import { supabase } from '../lib/supabase'
+
+interface AuthContextType {
+  user: User | null
+  session: Session | null
+  loading: boolean
+  signOut: () => Promise<void>
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null)
+  const [session, setSession] = useState<Session | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+      setLoading(false)
+    })
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session)
+        setUser(session?.user ?? null)
+      }
+    )
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const signOut = async () => {
+    await supabase.auth.signOut()
+  }
+
+  return (
+    <AuthContext.Provider value={{ user, session, loading, signOut }}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
+
+export function useSupabaseAuth() {
+  const context = useContext(AuthContext)
+  if (!context) {
+    throw new Error('useSupabaseAuth must be used within SupabaseAuthProvider')
+  }
+  return context
+}
+```
+
+### Steg 3: Backend token-validering
+
+Backend må validere Supabase JWT tokens:
+
+```python
+# backend/lib/auth/supabase_validator.py
+import os
+import jwt
+from functools import wraps
+from flask import request, g, jsonify
+
+SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET")
+# Eller bruk SUPABASE_URL for å hente JWKS
+
+def validate_supabase_token(token: str) -> dict | None:
+    """Valider Supabase JWT token."""
+    try:
+        # Supabase bruker HS256 med JWT secret
+        claims = jwt.decode(
+            token,
+            SUPABASE_JWT_SECRET,
+            algorithms=["HS256"],
+            audience="authenticated",
+        )
+        return claims
+    except jwt.InvalidTokenError:
+        return None
+
+def require_auth(f):
+    """Decorator for å kreve autentisering."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth_header = request.headers.get("Authorization", "")
+
+        if not auth_header.startswith("Bearer "):
+            return jsonify({"error": "Missing authorization"}), 401
+
+        token = auth_header.split(" ")[1]
+        claims = validate_supabase_token(token)
+
+        if not claims:
+            return jsonify({"error": "Invalid token"}), 401
+
+        g.current_user = {
+            "id": claims.get("sub"),
+            "email": claims.get("email"),
+            "role": claims.get("role", "authenticated"),
+        }
+
+        return f(*args, **kwargs)
+    return decorated
+```
+
+### Steg 4: Roller (valgfritt)
+
+For enkel rolletildeling, bruk Supabase user metadata:
+
+```sql
+-- Gi en bruker TE-rolle (kjør i Supabase SQL Editor)
+UPDATE auth.users
+SET raw_user_meta_data = jsonb_set(
+  COALESCE(raw_user_meta_data, '{}'),
+  '{role}',
+  '"TE"'
+)
+WHERE email = 'bruker@example.com';
+```
+
+Eller opprett en egen rolle-tabell:
+
+```sql
+CREATE TABLE user_roles (
+    user_id UUID REFERENCES auth.users(id) PRIMARY KEY,
+    role TEXT NOT NULL CHECK (role IN ('TE', 'BH', 'Admin', 'Reader')),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- RLS for user_roles
+ALTER TABLE user_roles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own role"
+ON user_roles FOR SELECT
+USING (auth.uid() = user_id);
+```
+
+---
+
 ## Entra ID SSO-oppsett
+
+> **Merk:** Denne seksjonen er for produksjonsmiljø med full Entra ID-integrasjon.
+> For testing, bruk [Supabase Auth](#supabase-auth-forenklet) over.
 
 ### Steg 1: Opprett App Registration
 
