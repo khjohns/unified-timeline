@@ -22,7 +22,7 @@ from services.timeline_service import TimelineService
 from services.business_rules import BusinessRuleValidator
 from repositories.event_repository import ConcurrencyError
 from repositories import create_event_repository
-from repositories.sak_metadata_repository import SakMetadataRepository
+from repositories.supabase_sak_metadata_repository import create_metadata_repository
 from models.events import parse_event_from_request, parse_event, EventType
 from lib.auth.csrf_protection import require_csrf
 from lib.auth.magic_link import require_magic_link, get_magic_link_manager
@@ -50,7 +50,7 @@ events_bp = Blueprint('events', __name__)
 # Dependencies (consider DI container for production)
 # Uses EVENT_STORE_BACKEND env var: "json" (default) or "supabase"
 event_repo = create_event_repository()
-metadata_repo = SakMetadataRepository()
+metadata_repo = create_metadata_repository()
 timeline_service = TimelineService()
 validator = BusinessRuleValidator()
 magic_link_manager = get_magic_link_manager()
@@ -383,13 +383,28 @@ def submit_batch():
         all_events = existing_events + events
         final_state = timeline_service.compute_state(all_events)
 
-        # 7. Update cached metadata
-        metadata_repo.update_cache(
-            sak_id=sak_id,
-            cached_title=final_state.sakstittel,
-            cached_status=final_state.overordnet_status,
-            last_event_at=datetime.now()
-        )
+        # 7. Create or update metadata
+        if expected_version == 0:
+            # New case - create metadata entry
+            from models.sak_metadata import SakMetadata
+            metadata = SakMetadata(
+                sak_id=sak_id,
+                prosjekt_id=data.get('prosjekt_id'),
+                created_at=datetime.now(),
+                created_by=request.magic_link_data.get('email', 'unknown'),
+                cached_title=final_state.sakstittel,
+                cached_status=final_state.overordnet_status,
+                last_event_at=datetime.now()
+            )
+            metadata_repo.upsert(metadata)
+        else:
+            # Existing case - update cache only
+            metadata_repo.update_cache(
+                sak_id=sak_id,
+                cached_title=final_state.sakstittel,
+                cached_status=final_state.overordnet_status,
+                last_event_at=datetime.now()
+            )
 
         return jsonify({
             "success": True,
