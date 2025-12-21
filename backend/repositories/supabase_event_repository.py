@@ -219,7 +219,8 @@ class SupabaseEventRepository(EventRepository):
             )
 
         self.url = url or os.environ.get("SUPABASE_URL")
-        self.key = key or os.environ.get("SUPABASE_KEY")
+        # Support both SUPABASE_SECRET_KEY (new) and SUPABASE_KEY (legacy)
+        self.key = key or os.environ.get("SUPABASE_SECRET_KEY") or os.environ.get("SUPABASE_KEY")
         self.default_table = default_table
 
         if not self.url or not self.key:
