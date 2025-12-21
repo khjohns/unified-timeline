@@ -157,9 +157,16 @@ def require_magic_link(f):
 
     Token is verified in session-based mode (allows multiple requests).
     Use mark_as_used=True manually for one-time critical operations.
+
+    Set DISABLE_AUTH=true to bypass authentication (for testing only).
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # Allow bypassing auth for testing (NOT for production!)
+        if os.environ.get('DISABLE_AUTH', '').lower() == 'true':
+            request.magic_link_data = {"sak_id": None, "email": "test@example.com"}
+            return f(*args, **kwargs)
+
         # Hent token fra Authorization header
         auth_header = request.headers.get('Authorization', '')
         token = auth_header.replace('Bearer ', '').strip()
