@@ -84,7 +84,7 @@ Du trenger disse verdiene fra Supabase:
 | `REACT_APP_URL` | `https://my-app.vercel.app` | Frontend URL for magic links |
 | `FLASK_ENV` | `production` | Miljø |
 | `FLASK_DEBUG` | `False` | Må være False i prod |
-| `EVENT_STORE_BACKEND` | `supabase` | Bruk Supabase for lagring |
+| `EVENT_STORE_BACKEND` | `supabase` | Bruk Supabase for events og metadata |
 | `SUPABASE_JWT_SECRET` | *(fra dashboard)* | Settings → API → JWT Secret (for auth) |
 
 **Ikke nødvendig for testing (Catenda-integrasjon):**
@@ -987,8 +987,10 @@ Konfigurer i Render: Health Check Path = `/health`
 
 | Tabell | Formål | Påkrevd |
 |--------|--------|---------|
-| `koe_events` | Event store (append-only log) | ✅ Ja |
-| `sak_metadata` | Sak-liste cache | ✅ Ja |
+| `koe_events` | Event store for standard/KOE-saker (CloudEvents v1.0) | ✅ Ja |
+| `forsering_events` | Event store for forseringssaker (§33.8) | ✅ Ja |
+| `endringsordre_events` | Event store for endringsordresaker (§31.3) | ✅ Ja |
+| `sak_metadata` | Sak-liste cache og Catenda-mapping | ✅ Ja |
 | `magic_links` | Token-lagring for deling | ⚪ Valgfritt |
 | `user_roles` | Brukerroller (hvis ikke frontend-only) | ⚪ Valgfritt |
 
@@ -1012,47 +1014,128 @@ For **produksjon** med faktisk rollekontroll, se [Roller (valgfritt)](#steg-4-ro
 
 ```sql
 -- ============================================================
--- KOE Event Store - Supabase Setup
+-- Unified Timeline - Supabase Setup
+-- CloudEvents v1.0 format
 -- ============================================================
 -- Kopier og kjør hele denne blokken i Supabase SQL Editor
 -- Dashboard → SQL Editor → New query → Paste → Run
 -- ============================================================
 
--- 1. EVENTS TABELL (kjernen i event sourcing)
+-- ============================================================
+-- 1. EVENT TABELLER (CloudEvents v1.0 format)
+-- Tre tabeller for ulike sakstyper
 -- Matcher backend/repositories/supabase_event_repository.py
+-- ============================================================
 
+-- Standard/KOE Events Table
 CREATE TABLE IF NOT EXISTS koe_events (
     id SERIAL PRIMARY KEY,
-    event_id UUID NOT NULL UNIQUE,
-    sak_id TEXT NOT NULL,
-    event_type TEXT NOT NULL,
-    tidsstempel TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    aktor TEXT NOT NULL,
-    aktor_rolle TEXT NOT NULL CHECK (aktor_rolle IN ('TE', 'BH')),
-    data JSONB NOT NULL DEFAULT '{}',
-    kommentar TEXT,
-    referrer_til_event_id UUID,
+
+    -- CloudEvents Required Attributes (v1.0)
+    specversion TEXT NOT NULL DEFAULT '1.0',
+    event_id UUID NOT NULL UNIQUE,  -- 'id' in CloudEvents
+    source TEXT NOT NULL,           -- /projects/{prosjekt_id}/cases/{sak_id}
+    type TEXT NOT NULL,             -- no.oslo.koe.{event_type}
+
+    -- CloudEvents Optional Attributes
+    time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    subject TEXT NOT NULL,          -- sak_id
+    datacontenttype TEXT DEFAULT 'application/json',
+
+    -- CloudEvents Extension Attributes
+    actor TEXT NOT NULL,            -- aktor
+    actorrole TEXT NOT NULL CHECK (actorrole IN ('TE', 'BH')),
+    comment TEXT,                   -- kommentar
+    referstoid UUID,                -- refererer_til_event_id
+
+    -- CloudEvents Data Payload
+    data JSONB NOT NULL,
+
+    -- Internal: For optimistic locking and queries
+    sak_id TEXT NOT NULL,           -- Denormalized for efficient queries
+    event_type TEXT NOT NULL,       -- Denormalized for filtering
+    versjon INTEGER NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
 
-    -- For optimistisk låsing (concurrency control)
-    versjon INTEGER NOT NULL,
-    CONSTRAINT unique_sak_version UNIQUE (sak_id, versjon)
+    CONSTRAINT unique_koe_sak_version UNIQUE (sak_id, versjon)
 );
 
--- Indexes for vanlige queries
+-- Indexes for koe_events
 CREATE INDEX IF NOT EXISTS idx_koe_events_sak_id ON koe_events(sak_id);
-CREATE INDEX IF NOT EXISTS idx_koe_events_tidsstempel ON koe_events(tidsstempel);
-CREATE INDEX IF NOT EXISTS idx_koe_events_event_type ON koe_events(event_type);
-CREATE INDEX IF NOT EXISTS idx_koe_events_versjon ON koe_events(sak_id, versjon);
+CREATE INDEX IF NOT EXISTS idx_koe_events_time ON koe_events(time);
+CREATE INDEX IF NOT EXISTS idx_koe_events_type ON koe_events(type);
+CREATE INDEX IF NOT EXISTS idx_koe_events_subject ON koe_events(subject);
 
--- View for current version per sak
+-- Forsering Events Table (§33.8)
+CREATE TABLE IF NOT EXISTS forsering_events (
+    id SERIAL PRIMARY KEY,
+    specversion TEXT NOT NULL DEFAULT '1.0',
+    event_id UUID NOT NULL UNIQUE,
+    source TEXT NOT NULL,
+    type TEXT NOT NULL,
+    time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    subject TEXT NOT NULL,
+    datacontenttype TEXT DEFAULT 'application/json',
+    actor TEXT NOT NULL,
+    actorrole TEXT NOT NULL CHECK (actorrole IN ('TE', 'BH')),
+    comment TEXT,
+    referstoid UUID,
+    data JSONB NOT NULL,
+    sak_id TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    versjon INTEGER NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT unique_forsering_sak_version UNIQUE (sak_id, versjon)
+);
+
+CREATE INDEX IF NOT EXISTS idx_forsering_events_sak_id ON forsering_events(sak_id);
+CREATE INDEX IF NOT EXISTS idx_forsering_events_time ON forsering_events(time);
+CREATE INDEX IF NOT EXISTS idx_forsering_events_type ON forsering_events(type);
+
+-- Endringsordre Events Table (§31.3)
+CREATE TABLE IF NOT EXISTS endringsordre_events (
+    id SERIAL PRIMARY KEY,
+    specversion TEXT NOT NULL DEFAULT '1.0',
+    event_id UUID NOT NULL UNIQUE,
+    source TEXT NOT NULL,
+    type TEXT NOT NULL,
+    time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    subject TEXT NOT NULL,
+    datacontenttype TEXT DEFAULT 'application/json',
+    actor TEXT NOT NULL,
+    actorrole TEXT NOT NULL CHECK (actorrole IN ('TE', 'BH')),
+    comment TEXT,
+    referstoid UUID,
+    data JSONB NOT NULL,
+    sak_id TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    versjon INTEGER NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT unique_eo_sak_version UNIQUE (sak_id, versjon)
+);
+
+CREATE INDEX IF NOT EXISTS idx_eo_events_sak_id ON endringsordre_events(sak_id);
+CREATE INDEX IF NOT EXISTS idx_eo_events_time ON endringsordre_events(time);
+CREATE INDEX IF NOT EXISTS idx_eo_events_type ON endringsordre_events(type);
+
+-- Views for current version per sak
 CREATE OR REPLACE VIEW koe_sak_versions AS
 SELECT sak_id, MAX(versjon) as current_version, COUNT(*) as event_count
-FROM koe_events
-GROUP BY sak_id;
+FROM koe_events GROUP BY sak_id;
 
--- 2. SAK METADATA TABELL (for sak-liste uten å laste alle events)
--- Matcher backend/models/sak_metadata.py
+CREATE OR REPLACE VIEW forsering_sak_versions AS
+SELECT sak_id, MAX(versjon) as current_version, COUNT(*) as event_count
+FROM forsering_events GROUP BY sak_id;
+
+CREATE OR REPLACE VIEW endringsordre_sak_versions AS
+SELECT sak_id, MAX(versjon) as current_version, COUNT(*) as event_count
+FROM endringsordre_events GROUP BY sak_id;
+
+-- ============================================================
+-- 2. SAK METADATA TABELL
+-- For sak-liste uten å laste alle events
+-- Matcher backend/repositories/supabase_sak_metadata_repository.py
+-- ============================================================
 
 CREATE TABLE IF NOT EXISTS sak_metadata (
     sak_id TEXT PRIMARY KEY,
@@ -1062,6 +1145,7 @@ CREATE TABLE IF NOT EXISTS sak_metadata (
     catenda_project_id TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     created_by TEXT NOT NULL,
+    sakstype TEXT DEFAULT 'standard',  -- standard, forsering, endringsordre
 
     -- Cached fields (oppdateres etter hvert event)
     cached_title TEXT,
@@ -1071,9 +1155,13 @@ CREATE TABLE IF NOT EXISTS sak_metadata (
 
 CREATE INDEX IF NOT EXISTS idx_sak_metadata_prosjekt ON sak_metadata(prosjekt_id);
 CREATE INDEX IF NOT EXISTS idx_sak_metadata_catenda_topic ON sak_metadata(catenda_topic_id);
+CREATE INDEX IF NOT EXISTS idx_sak_metadata_sakstype ON sak_metadata(sakstype);
+CREATE INDEX IF NOT EXISTS idx_sak_metadata_last_event ON sak_metadata(last_event_at DESC);
 
--- 3. MAGIC LINKS TABELL (valgfritt - for deling uten innlogging)
--- Brukes hvis du vil dele lenker til eksterne uten at de må logge inn
+-- ============================================================
+-- 3. MAGIC LINKS TABELL (valgfritt)
+-- For deling uten innlogging
+-- ============================================================
 
 CREATE TABLE IF NOT EXISTS magic_links (
     token UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1091,16 +1179,30 @@ CREATE TABLE IF NOT EXISTS magic_links (
 CREATE INDEX IF NOT EXISTS idx_magic_links_sak ON magic_links(sak_id);
 CREATE INDEX IF NOT EXISTS idx_magic_links_expires ON magic_links(expires_at);
 
--- 4. RLS (Row Level Security) - Enkel oppsett for testing
+-- ============================================================
+-- 4. RLS (Row Level Security)
 -- Backend bruker service_role key som bypasser RLS
+-- ============================================================
 
 ALTER TABLE koe_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE forsering_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE endringsordre_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sak_metadata ENABLE ROW LEVEL SECURITY;
 ALTER TABLE magic_links ENABLE ROW LEVEL SECURITY;
 
 -- Service role (backend) har full tilgang
 CREATE POLICY "Service role full access on koe_events"
 ON koe_events FOR ALL
+USING (auth.role() = 'service_role')
+WITH CHECK (auth.role() = 'service_role');
+
+CREATE POLICY "Service role full access on forsering_events"
+ON forsering_events FOR ALL
+USING (auth.role() = 'service_role')
+WITH CHECK (auth.role() = 'service_role');
+
+CREATE POLICY "Service role full access on endringsordre_events"
+ON endringsordre_events FOR ALL
 USING (auth.role() = 'service_role')
 WITH CHECK (auth.role() = 'service_role');
 
@@ -1115,8 +1217,16 @@ USING (auth.role() = 'service_role')
 WITH CHECK (auth.role() = 'service_role');
 
 -- Authenticated users (via Supabase Auth) kan lese
-CREATE POLICY "Authenticated users can read events"
+CREATE POLICY "Authenticated users can read koe_events"
 ON koe_events FOR SELECT
+USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Authenticated users can read forsering_events"
+ON forsering_events FOR SELECT
+USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Authenticated users can read endringsordre_events"
+ON endringsordre_events FOR SELECT
 USING (auth.role() = 'authenticated');
 
 CREATE POLICY "Authenticated users can read sak_metadata"
@@ -1132,7 +1242,7 @@ USING (auth.role() = 'authenticated');
 
 Etter å ha kjørt SQL-scriptet, verifiser i Supabase Dashboard:
 
-1. **Table Editor** → Se at `koe_events`, `sak_metadata`, `magic_links` finnes
+1. **Table Editor** → Se at alle tabeller finnes
 2. **Authentication** → **Policies** → Se at RLS-policies er aktive
 3. **SQL Editor** → Kjør:
 
@@ -1140,11 +1250,21 @@ Etter å ha kjørt SQL-scriptet, verifiser i Supabase Dashboard:
 -- Sjekk at tabellene eksisterer
 SELECT table_name FROM information_schema.tables
 WHERE table_schema = 'public'
-AND table_name IN ('koe_events', 'sak_metadata', 'magic_links');
+AND table_name IN (
+    'koe_events',
+    'forsering_events',
+    'endringsordre_events',
+    'sak_metadata',
+    'magic_links'
+);
 
 -- Sjekk RLS-policies
 SELECT tablename, policyname, cmd FROM pg_policies
 WHERE schemaname = 'public';
+
+-- Sjekk views
+SELECT table_name FROM information_schema.views
+WHERE table_schema = 'public';
 ```
 
 ### Row-Level Security (RLS) - Produksjon
