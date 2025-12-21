@@ -53,6 +53,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return;
     }
 
+    // Bypass auth for testing (matches backend DISABLE_AUTH)
+    if (import.meta.env.VITE_DISABLE_AUTH === 'true') {
+      const testToken = 'test-token-auth-disabled';
+      setToken(testToken);
+      setSakId(null);
+      setAuthToken(testToken);
+      setIsVerifying(false);
+      return;
+    }
+
     const urlToken = searchParams.get('magicToken') || searchParams.get('token');
     const storedToken = sessionStorage.getItem(SESSION_TOKEN_KEY);
     const storedSakId = sessionStorage.getItem(SESSION_SAK_KEY);
