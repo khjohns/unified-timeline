@@ -29,14 +29,22 @@ export function ExampleCasesPage() {
                   : 'Mock API er deaktivert - koble til backend for ekte data'}
               </p>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/showcase')}
-              className="ml-4"
-            >
-              Komponentvisning
-            </Button>
+            <div className="flex gap-2 ml-4">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => navigate('/saker/ny')}
+              >
+                Opprett ny sak
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/showcase')}
+              >
+                Komponentvisning
+              </Button>
+            </div>
           </div>
         </div>
       </header>
