@@ -51,8 +51,9 @@ jinja2==3.1.2                     # Template engine for PDF HTML generation
 python-dateutil==2.8.2
 
 # ------------------------------------------------------------------------------
-# Optional: Database (for fremtidig bruk)
+# Database
 # ------------------------------------------------------------------------------
+supabase>=2.0.0                  # Supabase Python client
 # psycopg2-binary==2.9.9          # PostgreSQL adapter
 # SQLAlchemy==2.0.23              # ORM
 # pymongo==4.6.1                  # MongoDB driver
