@@ -21,8 +21,10 @@ function removeCssCorPlugin(): Plugin {
 }
 
 export default defineConfig(({ mode }) => {
+    // Use VITE_BASE_PATH env var, or '/unified-timeline/' for GitHub Pages, or '/' for Vercel/local
+    const basePath = process.env.VITE_BASE_PATH ?? (mode === 'production' ? '/' : '/');
     return {
-      base: mode === 'production' ? '/unified-timeline/' : '/',
+      base: basePath,
       server: {
         port: 3000,
         host: '0.0.0.0',
