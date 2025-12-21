@@ -251,16 +251,24 @@ class SupabaseEventRepository(EventRepository):
 
 
 # Factory function for easy switching
-def create_event_repository(backend: str = "json", **kwargs) -> EventRepository:
+def create_event_repository(backend: str | None = None, **kwargs) -> EventRepository:
     """
     Factory for creating event repository.
 
     Args:
         backend: "json", "supabase", or "dataverse" (future)
+                 If None, reads from EVENT_STORE_BACKEND environment variable
+                 Defaults to "json" if not set
         **kwargs: Backend-specific configuration
 
+    Environment Variables:
+        EVENT_STORE_BACKEND: "json" (default), "supabase", or "dataverse"
+
     Examples:
-        # Local development
+        # Automatic (reads EVENT_STORE_BACKEND env var)
+        repo = create_event_repository()
+
+        # Local development (explicit)
         repo = create_event_repository("json", base_path="koe_data/events")
 
         # Supabase testing
@@ -269,6 +277,9 @@ def create_event_repository(backend: str = "json", **kwargs) -> EventRepository:
         # Production (future)
         repo = create_event_repository("dataverse", environment_url="...")
     """
+    if backend is None:
+        backend = os.environ.get("EVENT_STORE_BACKEND", "json")
+
     if backend == "json":
         from .event_repository import JsonFileEventRepository
         return JsonFileEventRepository(**kwargs)
