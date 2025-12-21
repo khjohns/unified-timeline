@@ -1,5 +1,5 @@
 """
-Event store repositories with pluggable backends.
+Event store and metadata repositories with pluggable backends.
 
 Architecture:
     EventRepository (abstract)
@@ -7,17 +7,24 @@ Architecture:
         ├── SupabaseEventRepository  - PostgreSQL (test/dev)
         └── DataverseEventRepository - Microsoft (production) [planned]
 
+    SakMetadataRepository
+        ├── SakMetadataRepository         - CSV files (prototype)
+        └── SupabaseSakMetadataRepository - PostgreSQL (test/dev)
+
 Usage:
-    from repositories import create_event_repository
+    from repositories import create_event_repository, create_metadata_repository
 
-    # Development
-    repo = create_event_repository("json")
+    # Development (local files)
+    event_repo = create_event_repository("json")
+    metadata_repo = create_metadata_repository("csv")
 
-    # Testing with real database
-    repo = create_event_repository("supabase")
+    # Testing with Supabase
+    event_repo = create_event_repository("supabase")
+    metadata_repo = create_metadata_repository("supabase")
 
-    # Production (future)
-    repo = create_event_repository("dataverse")
+    # Auto-detect from environment (EVENT_STORE_BACKEND / METADATA_STORE_BACKEND)
+    event_repo = create_event_repository()
+    metadata_repo = create_metadata_repository()
 """
 
 from .event_repository import (
@@ -31,10 +38,22 @@ from .supabase_event_repository import (
     create_event_repository,
 )
 
+from .sak_metadata_repository import SakMetadataRepository
+
+from .supabase_sak_metadata_repository import (
+    SupabaseSakMetadataRepository,
+    create_metadata_repository,
+)
+
 __all__ = [
+    # Event repositories
     "EventRepository",
     "JsonFileEventRepository",
     "SupabaseEventRepository",
     "ConcurrencyError",
     "create_event_repository",
+    # Metadata repositories
+    "SakMetadataRepository",
+    "SupabaseSakMetadataRepository",
+    "create_metadata_repository",
 ]

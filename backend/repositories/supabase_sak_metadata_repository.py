@@ -1,0 +1,291 @@
+"""
+Supabase sak metadata repository.
+
+Lagrer sak-metadata i Supabase for effektiv sak-liste og oppslag.
+
+SQL Migration:
+```sql
+-- ============================================================
+-- Sak Metadata Table
+-- For case list cache and Catenda topic mapping
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS sak_metadata (
+    sak_id TEXT PRIMARY KEY,
+    prosjekt_id TEXT,
+    catenda_topic_id TEXT,
+    catenda_board_id TEXT,
+    catenda_project_id TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_by TEXT NOT NULL,
+    sakstype TEXT DEFAULT 'standard',  -- standard, forsering, endringsordre
+
+    -- Cached fields (oppdateres etter hvert event)
+    cached_title TEXT,
+    cached_status TEXT,
+    last_event_at TIMESTAMPTZ
+);
+
+-- Indexes for common queries
+CREATE INDEX IF NOT EXISTS idx_sak_metadata_prosjekt ON sak_metadata(prosjekt_id);
+CREATE INDEX IF NOT EXISTS idx_sak_metadata_catenda_topic ON sak_metadata(catenda_topic_id);
+CREATE INDEX IF NOT EXISTS idx_sak_metadata_sakstype ON sak_metadata(sakstype);
+CREATE INDEX IF NOT EXISTS idx_sak_metadata_last_event ON sak_metadata(last_event_at DESC);
+
+-- Row Level Security
+ALTER TABLE sak_metadata ENABLE ROW LEVEL SECURITY;
+
+-- Service role (backend) has full access
+CREATE POLICY "Service role full access on sak_metadata"
+ON sak_metadata FOR ALL
+USING (auth.role() = 'service_role')
+WITH CHECK (auth.role() = 'service_role');
+
+-- Authenticated users can read
+CREATE POLICY "Authenticated users can read sak_metadata"
+ON sak_metadata FOR SELECT
+USING (auth.role() = 'authenticated');
+```
+"""
+
+from typing import Optional, List
+import os
+from datetime import datetime
+
+# Supabase Python client
+try:
+    from supabase import create_client, Client
+    SUPABASE_AVAILABLE = True
+except ImportError:
+    SUPABASE_AVAILABLE = False
+    Client = None
+
+from models.sak_metadata import SakMetadata
+
+
+class SupabaseSakMetadataRepository:
+    """
+    Supabase/PostgreSQL repository for sak metadata.
+
+    Replaces CSV-based storage for cloud deployments.
+
+    Environment variables:
+    - SUPABASE_URL: Project URL (e.g., https://xxx.supabase.co)
+    - SUPABASE_KEY: Service role key (for backend)
+    """
+
+    TABLE_NAME = "sak_metadata"
+
+    def __init__(
+        self,
+        url: Optional[str] = None,
+        key: Optional[str] = None
+    ):
+        if not SUPABASE_AVAILABLE:
+            raise ImportError(
+                "Supabase client not installed. Run: pip install supabase"
+            )
+
+        self.url = url or os.environ.get("SUPABASE_URL")
+        self.key = key or os.environ.get("SUPABASE_KEY")
+
+        if not self.url or not self.key:
+            raise ValueError(
+                "Supabase credentials required. Set SUPABASE_URL and SUPABASE_KEY "
+                "environment variables or pass them to constructor."
+            )
+
+        self.client: Client = create_client(self.url, self.key)
+
+    def _row_to_metadata(self, row: dict) -> SakMetadata:
+        """Convert database row to SakMetadata model."""
+        return SakMetadata(
+            sak_id=row["sak_id"],
+            prosjekt_id=row.get("prosjekt_id"),
+            catenda_topic_id=row.get("catenda_topic_id"),
+            catenda_board_id=row.get("catenda_board_id"),
+            catenda_project_id=row.get("catenda_project_id"),
+            created_at=datetime.fromisoformat(row["created_at"].replace("Z", "+00:00"))
+                if isinstance(row["created_at"], str) else row["created_at"],
+            created_by=row["created_by"],
+            cached_title=row.get("cached_title"),
+            cached_status=row.get("cached_status"),
+            last_event_at=datetime.fromisoformat(row["last_event_at"].replace("Z", "+00:00"))
+                if row.get("last_event_at") and isinstance(row["last_event_at"], str)
+                else row.get("last_event_at"),
+        )
+
+    def _metadata_to_row(self, metadata: SakMetadata) -> dict:
+        """Convert SakMetadata model to database row."""
+        return {
+            "sak_id": metadata.sak_id,
+            "prosjekt_id": metadata.prosjekt_id,
+            "catenda_topic_id": metadata.catenda_topic_id,
+            "catenda_board_id": metadata.catenda_board_id,
+            "catenda_project_id": metadata.catenda_project_id,
+            "created_at": metadata.created_at.isoformat(),
+            "created_by": metadata.created_by,
+            "cached_title": metadata.cached_title,
+            "cached_status": metadata.cached_status,
+            "last_event_at": metadata.last_event_at.isoformat() if metadata.last_event_at else None,
+        }
+
+    def create(self, metadata: SakMetadata) -> None:
+        """Create new case metadata entry."""
+        row = self._metadata_to_row(metadata)
+        self.client.table(self.TABLE_NAME).insert(row).execute()
+
+    def get(self, sak_id: str) -> Optional[SakMetadata]:
+        """Get case metadata by ID."""
+        result = (
+            self.client
+            .table(self.TABLE_NAME)
+            .select("*")
+            .eq("sak_id", sak_id)
+            .limit(1)
+            .execute()
+        )
+
+        if result.data:
+            return self._row_to_metadata(result.data[0])
+        return None
+
+    def update_cache(
+        self,
+        sak_id: str,
+        cached_title: Optional[str] = None,
+        cached_status: Optional[str] = None,
+        last_event_at: Optional[datetime] = None
+    ) -> None:
+        """
+        Update cached fields for a case.
+
+        Called after every event submission to keep metadata in sync.
+        """
+        updates = {}
+
+        if cached_title is not None:
+            updates["cached_title"] = cached_title
+        if cached_status is not None:
+            updates["cached_status"] = cached_status
+        if last_event_at is not None:
+            updates["last_event_at"] = last_event_at.isoformat()
+
+        if updates:
+            self.client.table(self.TABLE_NAME).update(updates).eq("sak_id", sak_id).execute()
+
+    def get_by_topic_id(self, topic_id: str) -> Optional[SakMetadata]:
+        """Get case metadata by Catenda topic ID."""
+        result = (
+            self.client
+            .table(self.TABLE_NAME)
+            .select("*")
+            .eq("catenda_topic_id", topic_id)
+            .limit(1)
+            .execute()
+        )
+
+        if result.data:
+            return self._row_to_metadata(result.data[0])
+        return None
+
+    def list_all(self) -> List[SakMetadata]:
+        """List all cases (for case list view)."""
+        result = (
+            self.client
+            .table(self.TABLE_NAME)
+            .select("*")
+            .order("last_event_at", desc=True, nullsfirst=False)
+            .execute()
+        )
+
+        return [self._row_to_metadata(row) for row in result.data]
+
+    def list_by_sakstype(self, sakstype: str) -> List[SakMetadata]:
+        """List cases filtered by sakstype."""
+        result = (
+            self.client
+            .table(self.TABLE_NAME)
+            .select("*")
+            .eq("sakstype", sakstype)
+            .order("last_event_at", desc=True, nullsfirst=False)
+            .execute()
+        )
+
+        return [self._row_to_metadata(row) for row in result.data]
+
+    def delete(self, sak_id: str) -> bool:
+        """Delete case metadata by ID."""
+        result = (
+            self.client
+            .table(self.TABLE_NAME)
+            .delete()
+            .eq("sak_id", sak_id)
+            .execute()
+        )
+
+        # Supabase returns the deleted rows
+        return len(result.data) > 0
+
+    def exists(self, sak_id: str) -> bool:
+        """Check if case exists."""
+        result = (
+            self.client
+            .table(self.TABLE_NAME)
+            .select("sak_id")
+            .eq("sak_id", sak_id)
+            .limit(1)
+            .execute()
+        )
+
+        return len(result.data) > 0
+
+    def upsert(self, metadata: SakMetadata) -> None:
+        """
+        Insert or update case metadata.
+
+        Useful when you're not sure if the case exists.
+        """
+        row = self._metadata_to_row(metadata)
+        self.client.table(self.TABLE_NAME).upsert(row).execute()
+
+
+# Factory function for easy switching
+def create_metadata_repository(backend: str | None = None, **kwargs):
+    """
+    Factory for creating metadata repository.
+
+    Args:
+        backend: "csv", "supabase", or None (auto-detect from env)
+        **kwargs: Backend-specific configuration
+
+    Environment Variables:
+        METADATA_STORE_BACKEND: "csv" (default) or "supabase"
+        (Falls back to EVENT_STORE_BACKEND if not set)
+
+    Examples:
+        # Automatic (reads env vars)
+        repo = create_metadata_repository()
+
+        # Local development
+        repo = create_metadata_repository("csv", csv_path="koe_data/saker.csv")
+
+        # Supabase
+        repo = create_metadata_repository("supabase")
+    """
+    if backend is None:
+        # Check METADATA_STORE_BACKEND first, then fall back to EVENT_STORE_BACKEND
+        backend = os.environ.get(
+            "METADATA_STORE_BACKEND",
+            os.environ.get("EVENT_STORE_BACKEND", "csv")
+        )
+
+    if backend == "csv" or backend == "json":
+        from .sak_metadata_repository import SakMetadataRepository
+        return SakMetadataRepository(**kwargs)
+
+    elif backend == "supabase":
+        return SupabaseSakMetadataRepository(**kwargs)
+
+    else:
+        raise ValueError(f"Unknown backend: {backend}")
