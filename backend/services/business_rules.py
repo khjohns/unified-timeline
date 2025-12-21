@@ -67,6 +67,10 @@ class BusinessRuleValidator:
                 ("GRUNNLAG_REQUIRED", self._rule_grunnlag_required),
                 ("ACTIVE_CLAIM_EXISTS", self._rule_active_frist_exists),
             ],
+            EventType.FRIST_KRAV_SPESIFISERT: [
+                ("GRUNNLAG_REQUIRED", self._rule_grunnlag_required),
+                ("ACTIVE_CLAIM_EXISTS", self._rule_active_frist_exists),
+            ],
 
             # BH responses require track to be sent
             EventType.RESPONS_GRUNNLAG: [
@@ -132,7 +136,7 @@ class BusinessRuleValidator:
             EventType.VEDERLAG_KRAV_SENDT, EventType.VEDERLAG_KRAV_OPPDATERT,
             EventType.VEDERLAG_KRAV_TRUKKET,
             EventType.FRIST_KRAV_SENDT, EventType.FRIST_KRAV_OPPDATERT,
-            EventType.FRIST_KRAV_TRUKKET,
+            EventType.FRIST_KRAV_SPESIFISERT, EventType.FRIST_KRAV_TRUKKET,
             # EO TE-handlinger
             EventType.EO_AKSEPTERT, EventType.EO_BESTRIDT,
             # Forsering TE-handlinger

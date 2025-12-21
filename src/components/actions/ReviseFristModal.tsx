@@ -1,9 +1,14 @@
 /**
  * ReviseFristModal Component
  *
- * Modal for TE to revise a frist claim (fristforlengelseskrav).
+ * Modal for TE to revise a frist claim (fristforlengelseskrav) or specify days
+ * for a previously neutral notice.
  *
- * This modal handles revision only - forsering is handled by SendForseringModal.
+ * This modal handles three modes:
+ * 1. REVIDER: Standard revision of already-specified claim
+ * 2. SPESIFISER_FRIVILLIG: TE voluntarily upgrades from neutral to specified (§33.6.1)
+ * 3. SPESIFISER_ETTERLYSNING: TE responds to BH's demand for specification (§33.6.2)
+ *
  * The antall_dager field uses the same name as SendFristModal for consistency
  * with the backend API which expects 'antall_dager' for updates.
  */
@@ -13,6 +18,7 @@ import {
   AlertDialog,
   Badge,
   Button,
+  DatePicker,
   FormField,
   Input,
   Modal,
@@ -26,11 +32,17 @@ import { useConfirmClose } from '../../hooks/useConfirmClose';
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { useFormBackup } from '../../hooks/useFormBackup';
 import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
-import { FristTilstand, FristBeregningResultat } from '../../types/timeline';
+import { FristTilstand, FristBeregningResultat, FristVarselType } from '../../types/timeline';
+
+// Modal operating modes
+type ModalMode = 'revider' | 'spesifiser_frivillig' | 'spesifiser_etterlysning';
 
 const reviseFristSchema = z.object({
   antall_dager: z.number().min(0, 'Antall dager må være minst 0'),
   begrunnelse: z.string().min(10, 'Begrunnelse er påkrevd'),
+  // For specification modes
+  ny_sluttdato: z.string().optional(),
+  berorte_aktiviteter: z.string().optional(),
 });
 
 type ReviseFristFormData = z.infer<typeof reviseFristSchema>;
@@ -51,6 +63,12 @@ interface ReviseFristModalProps {
     begrunnelse?: string;
   };
   fristTilstand: FristTilstand;
+  /** Original varsel type from the claim - determines if specification is needed */
+  originalVarselType?: FristVarselType;
+  /** Whether BH has sent an etterlysning (§33.6.2) */
+  harMottattEtterlysning?: boolean;
+  /** BH's deadline for specification (from etterlysning) */
+  fristForSpesifisering?: string;
 }
 
 const RESULTAT_LABELS: Record<FristBeregningResultat, string> = {
@@ -72,12 +90,56 @@ export function ReviseFristModal({
   lastFristEvent,
   lastResponseEvent,
   fristTilstand,
+  originalVarselType,
+  harMottattEtterlysning,
+  fristForSpesifisering,
 }: ReviseFristModalProps) {
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const [showRestorePrompt, setShowRestorePrompt] = useState(false);
   const harBhSvar = !!lastResponseEvent;
 
+  // Determine modal mode based on claim type and etterlysning status
+  const modalMode: ModalMode = useMemo(() => {
+    // If original claim was only neutral notice without days specified
+    const erKunNoytralt = originalVarselType === 'noytralt' &&
+      (lastFristEvent.antall_dager === 0 || lastFristEvent.antall_dager === undefined);
+
+    if (erKunNoytralt) {
+      if (harMottattEtterlysning) {
+        return 'spesifiser_etterlysning';  // Critical - must respond to BH demand
+      }
+      return 'spesifiser_frivillig';  // Voluntary upgrade
+    }
+
+    return 'revider';  // Standard revision mode
+  }, [originalVarselType, lastFristEvent.antall_dager, harMottattEtterlysning]);
+
+  // Modal configuration based on mode
+  const modalConfig = useMemo(() => {
+    switch (modalMode) {
+      case 'spesifiser_etterlysning':
+        return {
+          title: 'Svar på byggherrens etterlysning (§33.6.2)',
+          submitLabel: 'Send spesifisert krav',
+          submitVariant: 'danger' as const,
+        };
+      case 'spesifiser_frivillig':
+        return {
+          title: 'Spesifiser fristkrav (§33.6.1)',
+          submitLabel: 'Send spesifisert krav',
+          submitVariant: 'primary' as const,
+        };
+      default:
+        return {
+          title: 'Revider fristkrav',
+          submitLabel: 'Oppdater Krav',
+          submitVariant: 'primary' as const,
+        };
+    }
+  }, [modalMode]);
+
   const {
+    register,
     handleSubmit,
     formState: { errors, isSubmitting, isDirty },
     control,
@@ -86,8 +148,10 @@ export function ReviseFristModal({
   } = useForm<ReviseFristFormData>({
     resolver: zodResolver(reviseFristSchema),
     defaultValues: {
-      antall_dager: lastFristEvent.antall_dager,
+      antall_dager: modalMode === 'revider' ? lastFristEvent.antall_dager : 0,
       begrunnelse: '',
+      ny_sluttdato: '',
+      berorte_aktiviteter: '',
     },
   });
 
@@ -98,7 +162,9 @@ export function ReviseFristModal({
   });
 
   const formData = watch();
-  const { getBackup, clearBackup, hasBackup } = useFormBackup(sakId, 'frist_krav_oppdatert', formData, isDirty);
+  // Use different backup keys for different modes
+  const backupEventType = modalMode === 'revider' ? 'frist_krav_oppdatert' : 'frist_krav_spesifisert';
+  const { getBackup, clearBackup, hasBackup } = useFormBackup(sakId, backupEventType, formData, isDirty);
 
   const hasCheckedBackup = useRef(false);
   useEffect(() => {
@@ -115,10 +181,16 @@ export function ReviseFristModal({
 
   const antallDager = watch('antall_dager');
 
-  // Validering: Nytt antall dager må være forskjellig fra originalt
-  const erUendretDager = useMemo(() => {
-    return antallDager === lastFristEvent.antall_dager;
-  }, [antallDager, lastFristEvent.antall_dager]);
+  // Validation: Different rules for different modes
+  const erUgyldigDager = useMemo(() => {
+    if (modalMode === 'revider') {
+      // For revision: days must differ from original
+      return antallDager === lastFristEvent.antall_dager;
+    } else {
+      // For specification: days must be > 0
+      return antallDager === 0 || antallDager === undefined;
+    }
+  }, [antallDager, lastFristEvent.antall_dager, modalMode]);
 
   const mutation = useSubmitEvent(sakId, {
     onSuccess: () => {
@@ -134,50 +206,111 @@ export function ReviseFristModal({
   });
 
   const onSubmit = (data: ReviseFristFormData) => {
-    mutation.mutate({
-      eventType: 'frist_krav_oppdatert',
-      data: {
-        original_event_id: lastFristEvent.event_id,
-        antall_dager: data.antall_dager,
-        begrunnelse: data.begrunnelse,
-        dato_revidert: new Date().toISOString().split('T')[0],
-      },
-    });
+    if (modalMode === 'revider') {
+      // Standard revision event
+      mutation.mutate({
+        eventType: 'frist_krav_oppdatert',
+        data: {
+          original_event_id: lastFristEvent.event_id,
+          antall_dager: data.antall_dager,
+          begrunnelse: data.begrunnelse,
+          dato_revidert: new Date().toISOString().split('T')[0],
+        },
+      });
+    } else {
+      // Specification event (voluntary or in response to etterlysning)
+      mutation.mutate({
+        eventType: 'frist_krav_spesifisert',
+        data: {
+          original_event_id: lastFristEvent.event_id,
+          antall_dager: data.antall_dager,
+          begrunnelse: data.begrunnelse,
+          er_svar_pa_etterlysning: modalMode === 'spesifiser_etterlysning',
+          ny_sluttdato: data.ny_sluttdato || undefined,
+          berorte_aktiviteter: data.berorte_aktiviteter || undefined,
+          dato_spesifisert: new Date().toISOString().split('T')[0],
+        },
+      });
+    }
   };
 
   return (
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title="Revider fristkrav"
+      title={modalConfig.title}
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Status box - show original claim */}
+        {/* Critical warning for etterlysning mode */}
+        {modalMode === 'spesifiser_etterlysning' && (
+          <Alert variant="danger" title="Svarplikt (§33.6.2)">
+            Byggherren har etterlyst dette kravet. Du må svare «uten ugrunnet opphold».
+            Hvis du ikke sender spesifisert krav nå, <strong>tapes hele retten til fristforlengelse</strong> i denne saken.
+            {fristForSpesifisering && (
+              <p className="mt-2">
+                <strong>Frist:</strong> {fristForSpesifisering}
+              </p>
+            )}
+          </Alert>
+        )}
+
+        {/* Info for voluntary specification mode */}
+        {modalMode === 'spesifiser_frivillig' && (
+          <Alert variant="info" title="Frivillig spesifisering (§33.6.1)">
+            Du har tidligere sendt et nøytralt varsel (§33.4).
+            Nå har du grunnlag for å spesifisere antall dager fristforlengelse.
+            <p className="mt-2 text-sm">
+              Du skal sende spesifisert krav «uten ugrunnet opphold» når du har grunnlag for beregning.
+              Sen spesifisering medfører at kravet reduseres til det BH «måtte forstå» (§33.6.1).
+            </p>
+          </Alert>
+        )}
+
+        {/* Status box - adapts to mode */}
         <div className="bg-pkt-bg-subtle p-4 rounded border border-pkt-grays-gray-200">
-          <div className="flex justify-between items-start">
+          {modalMode === 'revider' ? (
+            /* Revision mode: Show original claim with days */
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm text-pkt-grays-gray-600">Ditt opprinnelige krav:</p>
+                <p className="text-2xl font-bold">{lastFristEvent.antall_dager} dager</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-pkt-grays-gray-600">BHs svar:</p>
+                {lastResponseEvent ? (
+                  <>
+                    <Badge variant={RESULTAT_VARIANTS[lastResponseEvent.resultat]}>
+                      {RESULTAT_LABELS[lastResponseEvent.resultat]}
+                    </Badge>
+                    {lastResponseEvent.godkjent_dager !== undefined && (
+                      <p className="text-sm mt-1">
+                        Godkjent: {lastResponseEvent.godkjent_dager} dager
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <Badge variant="neutral">Avventer svar</Badge>
+                )}
+              </div>
+            </div>
+          ) : (
+            /* Specification mode: Show neutral notice status */
             <div>
-              <p className="text-sm text-pkt-grays-gray-600">Ditt opprinnelige krav:</p>
-              <p className="text-2xl font-bold">{lastFristEvent.antall_dager} dager</p>
+              <div className="flex items-center gap-2 mb-2">
+                <Badge variant="warning">Nøytralt varsel</Badge>
+                {fristTilstand.noytralt_varsel?.dato_sendt && (
+                  <span className="text-sm text-pkt-grays-gray-600">
+                    Sendt: {fristTilstand.noytralt_varsel.dato_sendt}
+                  </span>
+                )}
+              </div>
+              <p className="text-sm">
+                Du varslet om behov for fristforlengelse, men har ikke spesifisert antall dager.
+                Angi nå det konkrete kravet.
+              </p>
             </div>
-            <div className="text-right">
-              <p className="text-sm text-pkt-grays-gray-600">BHs svar:</p>
-              {lastResponseEvent ? (
-                <>
-                  <Badge variant={RESULTAT_VARIANTS[lastResponseEvent.resultat]}>
-                    {RESULTAT_LABELS[lastResponseEvent.resultat]}
-                  </Badge>
-                  {lastResponseEvent.godkjent_dager !== undefined && (
-                    <p className="text-sm mt-1">
-                      Godkjent: {lastResponseEvent.godkjent_dager} dager
-                    </p>
-                  )}
-                </>
-              ) : (
-                <Badge variant="neutral">Avventer svar</Badge>
-              )}
-            </div>
-          </div>
+          )}
         </div>
 
         {/* BH begrunnelse - show if available */}
@@ -197,18 +330,19 @@ export function ReviseFristModal({
           </div>
         )}
 
-        {/* Info when BH hasn't responded - explain revision option */}
-        {!lastResponseEvent && (
+        {/* Info when BH hasn't responded - only for revision mode */}
+        {modalMode === 'revider' && !lastResponseEvent && (
           <Alert variant="info" title="Revisjon før svar">
             Du kan oppdatere kravet ditt før byggherren har svart. Det reviderte kravet
             erstatter det opprinnelige kravet.
           </Alert>
         )}
 
-        {/* Revision form */}
+        {/* Form fields */}
         <div className="space-y-3">
           <FormField
             label="Antall dager fristforlengelse"
+            required
             error={errors.antall_dager?.message}
           >
             <Controller
@@ -225,16 +359,60 @@ export function ReviseFristModal({
               )}
             />
           </FormField>
-          {erUendretDager && (
+          {erUgyldigDager && (
             <p className="text-sm text-pkt-brand-orange-700">
-              Nytt antall dager må være forskjellig fra opprinnelig krav for å sende revisjon.
+              {modalMode === 'revider'
+                ? 'Nytt antall dager må være forskjellig fra opprinnelig krav for å sende revisjon.'
+                : 'Du må angi antall dager (mer enn 0) for å sende spesifisert krav.'}
             </p>
           )}
         </div>
 
+        {/* Additional fields for specification modes */}
+        {modalMode !== 'revider' && (
+          <>
+            {/* Ny sluttdato */}
+            <FormField
+              label="Ny forventet sluttdato"
+              helpText="Forventet ny sluttdato etter fristforlengelsen"
+            >
+              <Controller
+                name="ny_sluttdato"
+                control={control}
+                render={({ field }) => (
+                  <DatePicker
+                    id="ny_sluttdato"
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                )}
+              />
+            </FormField>
+
+            {/* Berørte aktiviteter */}
+            <FormField
+              label="Berørte aktiviteter"
+              helpText="Dokumentasjon av påvirkning på kritisk linje er avgjørende for å vinne frem med kravet"
+            >
+              <Controller
+                name="berorte_aktiviteter"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    id="berorte_aktiviteter"
+                    value={field.value || ''}
+                    onChange={field.onChange}
+                    fullWidth
+                  />
+                )}
+              />
+            </FormField>
+          </>
+        )}
+
         {/* Begrunnelse */}
         <FormField
-          label="Begrunnelse for endring"
+          label={modalMode === 'revider' ? 'Begrunnelse for endring' : 'Begrunnelse for kravet'}
           required
           error={errors.begrunnelse?.message}
         >
@@ -249,7 +427,9 @@ export function ReviseFristModal({
                 rows={4}
                 fullWidth
                 error={!!errors.begrunnelse}
-                placeholder="Hvorfor endres antall dager?"
+                placeholder={modalMode === 'revider'
+                  ? 'Hvorfor endres antall dager?'
+                  : 'Begrunn kravet om fristforlengelse (årsakssammenheng, dokumentasjon av hindring)'}
               />
             )}
           />
@@ -275,11 +455,11 @@ export function ReviseFristModal({
           </Button>
           <Button
             type="submit"
-            variant="primary"
-            disabled={isSubmitting || !watch('begrunnelse') || erUendretDager}
+            variant={modalConfig.submitVariant}
+            disabled={isSubmitting || !watch('begrunnelse') || erUgyldigDager}
             size="lg"
           >
-            {isSubmitting ? 'Sender...' : 'Oppdater Krav'}
+            {isSubmitting ? 'Sender...' : modalConfig.submitLabel}
           </Button>
         </div>
       </form>

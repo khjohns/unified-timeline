@@ -621,6 +621,9 @@ export function CasePage() {
               begrunnelse: state.frist.bh_begrunnelse,
             } : undefined}
             fristTilstand={state.frist}
+            originalVarselType={state.frist.varsel_type}
+            harMottattEtterlysning={state.frist.har_bh_etterlyst}
+            fristForSpesifisering={state.frist.frist_for_spesifisering}
           />
 
           {/* Update Response Modals (BH) */}

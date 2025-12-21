@@ -128,6 +128,7 @@ class TimelineService:
             EventType.VEDERLAG_KRAV_TRUKKET: self._handle_vederlag_trukket,
             EventType.FRIST_KRAV_SENDT: self._handle_frist,
             EventType.FRIST_KRAV_OPPDATERT: self._handle_frist,
+            EventType.FRIST_KRAV_SPESIFISERT: self._handle_frist,  # Same handler - updates days
             EventType.FRIST_KRAV_TRUKKET: self._handle_frist_trukket,
             EventType.RESPONS_GRUNNLAG: self._handle_respons_grunnlag,
             EventType.RESPONS_GRUNNLAG_OPPDATERT: self._handle_respons_grunnlag,  # Re-use handler
@@ -971,6 +972,7 @@ class TimelineService:
             EventType.VEDERLAG_KRAV_TRUKKET: "Vederlagskrav trukket",
             EventType.FRIST_KRAV_SENDT: "Fristkrav sendt",
             EventType.FRIST_KRAV_OPPDATERT: "Fristkrav oppdatert",
+            EventType.FRIST_KRAV_SPESIFISERT: "Fristkrav spesifisert",
             EventType.FRIST_KRAV_TRUKKET: "Fristkrav trukket",
             EventType.RESPONS_GRUNNLAG: "BH svarte på grunnlag",
             EventType.RESPONS_GRUNNLAG_OPPDATERT: "BH oppdaterte svar på grunnlag",
@@ -1178,6 +1180,7 @@ class TimelineService:
             if e.event_type in {
                 EventType.FRIST_KRAV_SENDT,
                 EventType.FRIST_KRAV_OPPDATERT,
+                EventType.FRIST_KRAV_SPESIFISERT,
                 EventType.FRIST_KRAV_TRUKKET,
                 EventType.RESPONS_FRIST,
                 EventType.RESPONS_FRIST_OPPDATERT,
@@ -1219,6 +1222,22 @@ class TimelineService:
                     krav_dager=event.data.antall_dager,
                     varsel_type=event.data.varsel_type.value if event.data.varsel_type else None,
                     varsel_type_label=self._get_frist_varseltype_label(event.data.varsel_type),
+                    begrunnelse=event.data.begrunnelse,
+                    ny_sluttdato=event.data.ny_sluttdato,
+                )
+                historikk.append(entry.model_dump(mode='json'))
+
+            elif event.event_type == EventType.FRIST_KRAV_SPESIFISERT:
+                te_versjon += 1
+                entry = FristHistorikkEntry(
+                    versjon=te_versjon,
+                    tidsstempel=event.tidsstempel,
+                    aktor=aktor_info,
+                    endring_type="spesifisert",  # Upgraded from neutral to specified
+                    event_id=event.event_id,
+                    krav_dager=event.data.antall_dager,
+                    varsel_type="spesifisert",  # Now specified
+                    varsel_type_label="Spesifisert krav (§33.6)",
                     begrunnelse=event.data.begrunnelse,
                     ny_sluttdato=event.data.ny_sluttdato,
                 )

@@ -31,6 +31,7 @@ const EVENT_TYPE_LABELS: Record<EventType, string> = {
   vederlag_krav_trukket: 'Vederlagskrav trukket',
   frist_krav_sendt: 'Fristkrav sendt',
   frist_krav_oppdatert: 'Fristkrav oppdatert',
+  frist_krav_spesifisert: 'Fristkrav spesifisert',
   frist_krav_trukket: 'Fristkrav trukket',
   respons_grunnlag: 'Svar på grunnlag',
   respons_grunnlag_oppdatert: 'Svar på grunnlag oppdatert',

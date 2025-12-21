@@ -20,6 +20,7 @@ import {
   GrunnlagOppdatertEventData,
   VederlagOppdatertEventData,
   FristOppdatertEventData,
+  FristSpesifisertEventData,
   ResponsGrunnlagOppdatertEventData,
   ResponsVederlagOppdatertEventData,
   ResponsFristOppdatertEventData,
@@ -73,6 +74,7 @@ const EVENT_TYPE_LABELS: Record<EventType, string> = {
   vederlag_krav_trukket: 'Vederlagskrav trukket',
   frist_krav_sendt: 'Fristkrav sendt',
   frist_krav_oppdatert: 'Fristkrav oppdatert',
+  frist_krav_spesifisert: 'Fristkrav spesifisert',
   frist_krav_trukket: 'Fristkrav trukket',
   respons_grunnlag: 'Svar på grunnlag',
   respons_grunnlag_oppdatert: 'Svar på grunnlag oppdatert',
@@ -513,6 +515,28 @@ function FristOppdatertSection({ data }: { data: FristOppdatertEventData }) {
       )}
       <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
       <Field label="Revidert dato" value={formatDate(data.dato_revidert)} />
+    </dl>
+  );
+}
+
+function FristSpesifisertSection({ data }: { data: FristSpesifisertEventData }) {
+  return (
+    <dl>
+      <Field label="Antall dager" value={`${data.antall_dager} dager`} />
+      <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
+      {data.er_svar_pa_etterlysning && (
+        <Field
+          label="Svar på etterlysning"
+          value={<Badge variant="warning">Ja (§33.6.2)</Badge>}
+        />
+      )}
+      {data.ny_sluttdato && (
+        <Field label="Ny sluttdato" value={formatDate(data.ny_sluttdato)} />
+      )}
+      {data.berorte_aktiviteter && (
+        <Field label="Berørte aktiviteter" value={data.berorte_aktiviteter} />
+      )}
+      <Field label="Spesifisert dato" value={formatDate(data.dato_spesifisert)} />
     </dl>
   );
 }
@@ -1137,6 +1161,9 @@ export function EventDetailModal({
 
       case 'frist_krav_oppdatert':
         return <FristOppdatertSection data={data as FristOppdatertEventData} />;
+
+      case 'frist_krav_spesifisert':
+        return <FristSpesifisertSection data={data as FristSpesifisertEventData} />;
 
       case 'respons_grunnlag':
         return <ResponsGrunnlagSection data={data as ResponsGrunnlagEventData} />;

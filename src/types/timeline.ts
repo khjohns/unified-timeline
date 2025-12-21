@@ -512,6 +512,7 @@ export type EventType =
   | 'vederlag_krav_trukket'
   | 'frist_krav_sendt'
   | 'frist_krav_oppdatert'
+  | 'frist_krav_spesifisert'     // TE specifies days for neutral notice (§33.6.1/§33.6.2)
   | 'frist_krav_trukket'
   | 'respons_grunnlag'
   | 'respons_grunnlag_oppdatert'   // BH's "snuoperasjon" - endrer standpunkt
@@ -750,6 +751,17 @@ export interface FristOppdatertEventData {
   dato_revidert: string;
 }
 
+// Frist specification event (TE specifies days for neutral notice - §33.6.1/§33.6.2)
+export interface FristSpesifisertEventData {
+  original_event_id: string;
+  antall_dager: number;
+  begrunnelse: string;
+  er_svar_pa_etterlysning?: boolean;  // True if responding to BH's demand (§33.6.2)
+  ny_sluttdato?: string;
+  berorte_aktiviteter?: string;
+  dato_spesifisert: string;
+}
+
 // Frist response update event (BH changes mind, stops forsering)
 export interface ResponsFristOppdatertEventData {
   original_respons_id: string;
@@ -790,6 +802,7 @@ export type EventData =
   | VederlagOppdatertEventData
   | FristEventData
   | FristOppdatertEventData
+  | FristSpesifisertEventData
   | ResponsGrunnlagEventData
   | ResponsGrunnlagOppdatertEventData
   | ResponsVederlagEventData

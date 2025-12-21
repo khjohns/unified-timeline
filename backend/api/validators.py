@@ -233,18 +233,25 @@ def validate_vederlag_event(data: Dict[str, Any]) -> None:
             )
 
 
-def validate_frist_event(data: Dict[str, Any], is_update: bool = False) -> None:
+def validate_frist_event(data: Dict[str, Any], is_update: bool = False, is_specification: bool = False) -> None:
     """
     Validate frist-event data against constants.
 
-    Works for both initial claims (frist_krav_sendt) and updates (frist_krav_oppdatert).
+    Works for initial claims (frist_krav_sendt), updates (frist_krav_oppdatert),
+    and specification events (frist_krav_spesifisert).
+
     Update events have different requirements:
     - Don't require varsel_type (inherited from original)
     - Use nytt_antall_dager instead of antall_dager
 
+    Specification events (§33.6.1/§33.6.2):
+    - antall_dager must be > 0 (specifying days for neutral notice)
+    - begrunnelse required
+
     Args:
         data: The 'data' field from a frist event
         is_update: True if this is an update event (frist_krav_oppdatert)
+        is_specification: True if this is a specification event (frist_krav_spesifisert)
 
     Raises:
         ValidationError: If validation fails (with valid_options when applicable)
@@ -253,6 +260,22 @@ def validate_frist_event(data: Dict[str, Any], is_update: bool = False) -> None:
         raise ValidationError("Frist data mangler")
 
     valid_varsel_types = [vt.value for vt in FristVarselType]
+
+    # Specification events: TE specifies days for neutral notice (§33.6.1/§33.6.2)
+    if is_specification:
+        # Must have begrunnelse
+        if not data.get('begrunnelse'):
+            raise ValidationError("begrunnelse er påkrevd")
+
+        # Must have antall_dager > 0 (actually specifying days)
+        antall_dager = data.get('antall_dager')
+        if antall_dager is None:
+            raise ValidationError("antall_dager er påkrevd for spesifisering")
+
+        if antall_dager <= 0:
+            raise ValidationError("antall_dager må være > 0 for spesifisering")
+
+        return  # Skip other validations
 
     # Update events have simplified validation (same field names as initial)
     if is_update:

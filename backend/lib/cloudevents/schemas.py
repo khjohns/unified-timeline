@@ -43,6 +43,7 @@ EVENT_TYPE_TO_DATA_MODEL = {
     EventType.VEDERLAG_KRAV_TRUKKET.value: None,
     EventType.FRIST_KRAV_SENDT.value: FristData,
     EventType.FRIST_KRAV_OPPDATERT.value: FristData,
+    EventType.FRIST_KRAV_SPESIFISERT.value: FristData,
     EventType.FRIST_KRAV_TRUKKET.value: None,
     EventType.RESPONS_GRUNNLAG.value: GrunnlagResponsData,
     EventType.RESPONS_GRUNNLAG_OPPDATERT.value: GrunnlagResponsData,

@@ -55,6 +55,7 @@ class EventType(str, Enum):
     # Frist-events (TE)
     FRIST_KRAV_SENDT = "frist_krav_sendt"
     FRIST_KRAV_OPPDATERT = "frist_krav_oppdatert"
+    FRIST_KRAV_SPESIFISERT = "frist_krav_spesifisert"  # TE specifies days for neutral notice (§33.6.1/§33.6.2)
     FRIST_KRAV_TRUKKET = "frist_krav_trukket"
 
     # Respons-events (BH)
@@ -697,6 +698,7 @@ class FristEvent(SakEvent):
         valid_types = [
             EventType.FRIST_KRAV_SENDT,
             EventType.FRIST_KRAV_OPPDATERT,
+            EventType.FRIST_KRAV_SPESIFISERT,
             EventType.FRIST_KRAV_TRUKKET,
         ]
         if v not in valid_types:
@@ -1741,6 +1743,7 @@ def parse_event(data: dict) -> AnyEvent:
         EventType.VEDERLAG_KRAV_TRUKKET.value: VederlagEvent,
         EventType.FRIST_KRAV_SENDT.value: FristEvent,
         EventType.FRIST_KRAV_OPPDATERT.value: FristEvent,
+        EventType.FRIST_KRAV_SPESIFISERT.value: FristEvent,
         EventType.FRIST_KRAV_TRUKKET.value: FristEvent,
         EventType.RESPONS_GRUNNLAG.value: ResponsEvent,
         EventType.RESPONS_GRUNNLAG_OPPDATERT.value: ResponsEvent,

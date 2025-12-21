@@ -138,6 +138,8 @@ def submit_event():
                 validate_frist_event(data_payload)
             elif event_type == EventType.FRIST_KRAV_OPPDATERT.value:
                 validate_frist_event(data_payload, is_update=True)
+            elif event_type == EventType.FRIST_KRAV_SPESIFISERT.value:
+                validate_frist_event(data_payload, is_specification=True)
             elif event_type == EventType.RESPONS_GRUNNLAG.value:
                 validate_respons_event(data_payload, 'grunnlag')
             elif event_type == EventType.RESPONS_VEDERLAG.value:
