@@ -501,7 +501,13 @@ function generateFristPreklusjonSection(input: FristResponseInput): string {
  * Generate the conditions section for frist response (§33.5)
  */
 function generateFristVilkarSection(input: FristResponseInput): string {
-  const { vilkarOppfylt, erPrekludert } = input;
+  const { vilkarOppfylt, erPrekludert, sendEtterlysning } = input;
+
+  // Skip vilkår section when sending etterlysning
+  if (sendEtterlysning) {
+    return '';
+  }
+
   const prefix = erPrekludert ? 'Subsidiært, hva gjelder vilkårene (§33.5): ' : '';
 
   if (vilkarOppfylt) {
@@ -523,10 +529,10 @@ function generateFristVilkarSection(input: FristResponseInput): string {
  * Generate the calculation section for frist response
  */
 function generateFristBeregningSection(input: FristResponseInput): string {
-  const { krevdDager, godkjentDager, erPrekludert, vilkarOppfylt, varselType } = input;
+  const { krevdDager, godkjentDager, erPrekludert, vilkarOppfylt, varselType, sendEtterlysning } = input;
 
-  // Skip calculation section for neutral notice without specified days
-  if (varselType === 'noytralt' && krevdDager === 0) {
+  // Skip calculation section when sending etterlysning or neutral notice without specified days
+  if (sendEtterlysning || (varselType === 'noytralt' && krevdDager === 0)) {
     return '';
   }
 
@@ -552,16 +558,18 @@ function generateFristBeregningSection(input: FristResponseInput): string {
  * Generate the conclusion section for frist response
  */
 function generateFristKonklusjonSection(input: FristResponseInput): string {
-  const { krevdDager, godkjentDager, prinsipaltResultat, visSubsidiaertResultat, varselType } = input;
+  const { krevdDager, godkjentDager, prinsipaltResultat, visSubsidiaertResultat, varselType, sendEtterlysning } = input;
   const lines: string[] = [];
 
-  // Handle neutral notice without specified days
+  // Handle etterlysning case - no conclusion needed as we're waiting for specification
+  if (sendEtterlysning) {
+    return '';
+  }
+
+  // Handle neutral notice without specified days (and no etterlysning sent)
   if (varselType === 'noytralt' && krevdDager === 0) {
-    if (prinsipaltResultat === 'avslatt') {
-      lines.push('Kravet avvises.');
-    } else {
-      lines.push('Grunnlag og vilkår er vurdert. Antall dager kan først vurderes når entreprenøren spesifiserer kravet.');
-    }
+    // Vilkår section is already generated above, so just add conclusion
+    lines.push('Antall dager kan først vurderes når entreprenøren spesifiserer kravet.');
     return lines.join(' ');
   }
 
