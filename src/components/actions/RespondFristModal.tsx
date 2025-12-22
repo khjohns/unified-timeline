@@ -670,7 +670,7 @@ export function RespondFristModal({
                 {varselType === 'noytralt' && (
                   <div className="mt-4 pt-3 border-t border-pkt-border-subtle text-sm text-pkt-text-body-subtle">
                     <strong>Merk:</strong> Ved nøytralt varsel kan du etterspørre et spesifisert krav
-                    (§33.6.2). Hvis TE ikke svarer i tide, tapes kravet.
+                    (§33.6.2). Hvis entreprenøren ikke svarer i tide, tapes kravet.
                   </div>
                 )}
               </div>
@@ -689,7 +689,7 @@ export function RespondFristModal({
                 preklusjon.
               </p>
 
-              {/* Show what type of varsel TE sent */}
+              {/* Show what type of varsel was sent */}
               {varselType && (
                 <div className="p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle mb-4">
                   <span className="text-sm text-pkt-text-body-subtle">
@@ -883,8 +883,8 @@ export function RespondFristModal({
 
               {sendEtterlysning && (
                 <Alert variant="info" title="Avventer svar">
-                  Du sender etterlysning til TE. Svaret blir{' '}
-                  <strong>&ldquo;Avventer spesifikasjon&rdquo;</strong>. TE må svare med spesifisert
+                  Du sender etterlysning til entreprenøren. Svaret blir{' '}
+                  <strong>&ldquo;Avventer spesifikasjon&rdquo;</strong>. Entreprenøren må svare med spesifisert
                   krav.
                 </Alert>
               )}
@@ -1084,14 +1084,14 @@ export function RespondFristModal({
                   {/* §33.8 Forsering warning */}
                   {visForsering && avslatteDager > 0 && !port3ErSubsidiaer && (
                     <Alert variant="info" title="Forsering-risiko (§33.8)">
-                      Du avslår <strong>{avslatteDager} dager</strong> som TE mener å ha krav på.
+                      Du avslår <strong>{avslatteDager} dager</strong> som entreprenøren mener å ha krav på.
                       <ul className="list-disc pl-5 mt-2 text-sm">
                         <li>
-                          Dersom avslaget er uberettiget, kan TE velge å anse det som et{' '}
+                          Dersom avslaget er uberettiget, kan entreprenøren velge å anse det som et{' '}
                           <strong>pålegg om forsering</strong>.
                         </li>
                         <li>
-                          <strong>Begrensning:</strong> TE har ikke denne valgretten dersom
+                          <strong>Begrensning:</strong> Entreprenøren har ikke denne valgretten dersom
                           forseringskostnaden overstiger <strong>dagmulkten + 30%</strong>.
                         </li>
                       </ul>
@@ -1118,7 +1118,7 @@ export function RespondFristModal({
                     {sendEtterlysning ? (
                       <>
                         <Badge variant="warning">Etterlysning sendt</Badge>
-                        <span className="text-sm">Avventer spesifisert krav fra TE</span>
+                        <span className="text-sm">Avventer spesifisert krav fra entreprenøren</span>
                       </>
                     ) : erPrekludert ? (
                       <>
@@ -1154,7 +1154,7 @@ export function RespondFristModal({
                         <Badge variant="warning">
                           {port2ErSubsidiaer ? 'Subsidiært: ' : ''}Ingen hindring
                         </Badge>
-                        <span className="text-sm">TE hadde slakk / ikke reell forsinkelse</span>
+                        <span className="text-sm">Entreprenøren hadde slakk / ikke reell forsinkelse</span>
                       </>
                     )}
                   </div>
@@ -1320,7 +1320,7 @@ export function RespondFristModal({
                 {visForsering && avslatteDager > 0 && !sendEtterlysning && (
                   <Alert variant="warning" title="§33.8 Forsering-risiko">
                     Du avslår <strong>{avslatteDager} dager</strong>. Hvis avslaget er uberettiget,
-                    kan TE velge å anse det som et pålegg om forsering.
+                    kan entreprenøren velge å anse det som et pålegg om forsering.
                   </Alert>
                 )}
 
