@@ -8,8 +8,9 @@
 import { apiFetch, USE_MOCK_API, mockDelay } from './client';
 import { EventType } from '../types/timeline';
 
-// Storage key for user role (MUST match useUserRole.ts)
+// Storage keys (MUST match their respective sources)
 const USER_ROLE_STORAGE_KEY = 'unified-timeline-user-role';
+const USER_EMAIL_STORAGE_KEY = 'unified-timeline-user-email';
 
 /**
  * Get current user role from localStorage.
@@ -22,13 +23,12 @@ function getCurrentUserRole(): 'TE' | 'BH' {
 }
 
 /**
- * Get current user identifier.
- * In production, this will come from Catenda API (name) after authentication.
+ * Get current user identifier from Supabase Auth.
+ * Falls back to 'Ukjent bruker' if not authenticated.
  */
 function getCurrentAktor(): string {
-  // TODO: I produksjon hentes navn fra Catenda API etter autentisering
-  // (e-post + step-up for TE, Entra ID for BH)
-  return 'Ukjent bruker';
+  const email = localStorage.getItem(USER_EMAIL_STORAGE_KEY);
+  return email || 'Ukjent bruker';
 }
 
 export interface EventSubmitResponse {
