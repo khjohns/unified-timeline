@@ -1,6 +1,7 @@
 import React, { Suspense, lazy } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { PageLoadingFallback } from './components/PageLoadingFallback';
+import { ProtectedRoute } from './components/ProtectedRoute';
 
 // Lazy load all pages for code splitting
 const AuthLanding = lazy(() => import('./pages/AuthLanding'));
@@ -29,14 +30,52 @@ const App: React.FC = () => {
   return (
     <Suspense fallback={<PageLoadingFallback />}>
       <Routes>
+        {/* Public routes */}
         <Route path="/" element={<AuthLanding />} />
         <Route path="/demo" element={<ExampleCasesPage />} />
-        <Route path="/saker" element={<SaksoversiktPage />} />
-        <Route path="/saker/ny" element={<OpprettSakPage />} />
-        <Route path="/saker/:sakId" element={<CasePage />} />
-        <Route path="/forsering/:sakId" element={<ForseringPage />} />
-        <Route path="/endringsordre/:sakId" element={<EndringsordePage />} />
         <Route path="/showcase" element={<ComponentShowcase />} />
+
+        {/* Protected routes - require Supabase Auth */}
+        <Route
+          path="/saker"
+          element={
+            <ProtectedRoute>
+              <SaksoversiktPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/saker/ny"
+          element={
+            <ProtectedRoute>
+              <OpprettSakPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/saker/:sakId"
+          element={
+            <ProtectedRoute>
+              <CasePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/forsering/:sakId"
+          element={
+            <ProtectedRoute>
+              <ForseringPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/endringsordre/:sakId"
+          element={
+            <ProtectedRoute>
+              <EndringsordePage />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </Suspense>
   );
