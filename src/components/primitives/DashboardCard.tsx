@@ -18,6 +18,8 @@ interface DashboardCardProps {
   children: ReactNode;
   /** Optional action button at bottom of card */
   action?: ReactNode;
+  /** Card variant - default, elevated (shadow), or outlined (border) */
+  variant?: 'default' | 'elevated' | 'outlined';
   /** Additional class names for the card (e.g., grid span) */
   className?: string;
 }
@@ -27,10 +29,11 @@ export function DashboardCard({
   headerBadge,
   children,
   action,
+  variant = 'default',
   className,
 }: DashboardCardProps) {
   return (
-    <Card className={clsx('p-0 overflow-hidden', className)}>
+    <Card variant={variant} className={clsx('p-0 overflow-hidden', className)}>
       {/* Header */}
       <div className="px-4 py-3 bg-pkt-surface-subtle border-b-2 border-pkt-border-subtle flex items-center justify-between">
         <h3 className="font-bold text-sm">{title}</h3>

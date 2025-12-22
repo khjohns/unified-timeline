@@ -8,6 +8,7 @@
 import { ReactNode, useMemo } from 'react';
 import { DashboardCard, DataList, DataListItem, Badge } from '../primitives';
 import { SakState, SporStatus } from '../../types/timeline';
+import { getHovedkategoriLabel, getUnderkategoriLabel } from '../../constants/categories';
 
 interface CaseDashboardProps {
   state: SakState;
@@ -103,14 +104,17 @@ export function CaseDashboard({
           title="Ansvarsgrunnlag"
           headerBadge={getStatusBadge(state.grunnlag.status)}
           action={grunnlagActions}
+          variant="elevated"
         >
           <DataList>
             <DataListItem label="Hovedkategori">
-              {state.grunnlag.hovedkategori || '-'}
+              {state.grunnlag.hovedkategori
+                ? getHovedkategoriLabel(state.grunnlag.hovedkategori)
+                : '-'}
             </DataListItem>
             {state.grunnlag.underkategori && (
               <DataListItem label="Underkategori">
-                {state.grunnlag.underkategori}
+                {getUnderkategoriLabel(state.grunnlag.underkategori)}
               </DataListItem>
             )}
             {state.grunnlag.dato_oppdaget && (
@@ -144,6 +148,7 @@ export function CaseDashboard({
           title="Vederlag"
           headerBadge={getStatusBadge(state.vederlag.status, state.er_subsidiaert_vederlag)}
           action={vederlagActions}
+          variant="elevated"
         >
           <DataList>
             {state.vederlag.metode && (
@@ -185,6 +190,7 @@ export function CaseDashboard({
           title="Fristforlengelse"
           headerBadge={getStatusBadge(state.frist.status, state.er_subsidiaert_frist)}
           action={fristActions}
+          variant="elevated"
         >
           <DataList>
             {state.frist.krevd_dager !== undefined && (
