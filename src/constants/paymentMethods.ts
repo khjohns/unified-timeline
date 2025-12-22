@@ -31,9 +31,10 @@ export const VEDERLAGSMETODER_OPTIONS: DropdownOption[] = [
   },
 ];
 
-// Helper function to get vederlagsmetode label from code
+// Helper function to get vederlagsmetode label from code (case-insensitive)
 export function getVederlagsmetodeLabel(code: string): string {
-  const option = VEDERLAGSMETODER_OPTIONS.find(opt => opt.value === code);
+  const upperCode = code.toUpperCase();
+  const option = VEDERLAGSMETODER_OPTIONS.find(opt => opt.value.toUpperCase() === upperCode);
   return option?.label || code;
 }
 

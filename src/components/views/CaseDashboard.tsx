@@ -9,6 +9,7 @@ import { ReactNode, useMemo } from 'react';
 import { DashboardCard, DataList, DataListItem, Badge } from '../primitives';
 import { SakState, SporStatus } from '../../types/timeline';
 import { getHovedkategoriLabel, getUnderkategoriLabel } from '../../constants/categories';
+import { getVederlagsmetodeLabel } from '../../constants/paymentMethods';
 
 interface CaseDashboardProps {
   state: SakState;
@@ -153,10 +154,7 @@ export function CaseDashboard({
           <DataList>
             {state.vederlag.metode && (
               <DataListItem label="Metode">
-                {state.vederlag.metode === 'ENHETSPRISER' ? 'Enhetspriser' :
-                 state.vederlag.metode === 'REGNINGSARBEID' ? 'Regningsarbeid' :
-                 state.vederlag.metode === 'FASTPRIS_TILBUD' ? 'Fastpris/tilbud' :
-                 state.vederlag.metode}
+                {getVederlagsmetodeLabel(state.vederlag.metode)}
               </DataListItem>
             )}
             <DataListItem label="Krevd beløp">
