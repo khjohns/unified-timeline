@@ -104,6 +104,7 @@ export function CaseDashboard({
           title="Ansvarsgrunnlag"
           headerBadge={getStatusBadge(state.grunnlag.status)}
           action={grunnlagActions}
+          variant="elevated"
         >
           <DataList>
             <DataListItem label="Hovedkategori">
@@ -147,6 +148,7 @@ export function CaseDashboard({
           title="Vederlag"
           headerBadge={getStatusBadge(state.vederlag.status, state.er_subsidiaert_vederlag)}
           action={vederlagActions}
+          variant="elevated"
         >
           <DataList>
             {state.vederlag.metode && (
@@ -188,6 +190,7 @@ export function CaseDashboard({
           title="Fristforlengelse"
           headerBadge={getStatusBadge(state.frist.status, state.er_subsidiaert_frist)}
           action={fristActions}
+          variant="elevated"
         >
           <DataList>
             {state.frist.krevd_dager !== undefined && (
