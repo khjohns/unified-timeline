@@ -920,69 +920,67 @@ export function RespondFristModal({
 
               {/* Etterlysning blocks further evaluation */}
               {sendEtterlysning ? (
-                <Alert variant="info" title="Avventer svar">
-                  Du avventer spesifisert krav fra entreprenøren. Vilkårsvurdering gjøres når svaret kommer.
+                <Alert variant="info" title="Etterlysning sendes">
+                  Du etterspør spesifisert krav fra entreprenøren. Du kan likevel ta stilling til vilkårene nedenfor.
                 </Alert>
-              ) : (
-                <>
-                  <Alert variant="info" title="Vilkår for fristforlengelse (§33.1, §33.5)">
-                    For at entreprenøren skal ha krav på fristforlengelse må to kumulative vilkår
-                    være oppfylt: (1) fremdriften må ha vært <strong>hindret</strong>, og (2) hindringen
-                    må <strong>skyldes</strong> det påberopte forholdet (årsakssammenheng).
-                  </Alert>
+              ) : null}
 
-                  <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
-                    <FormField
-                      label={
-                        port2ErSubsidiaer
-                          ? 'Subsidiært: Har forholdet hindret fremdriften?'
-                          : 'Har forholdet hindret fremdriften?'
-                      }
-                      required
-                      helpText="Vurder om det påberopte forholdet faktisk har forårsaket forsinkelse i prosjektet"
-                    >
-                      <Controller
-                        name="vilkar_oppfylt"
-                        control={control}
-                        render={({ field }) => (
-                          <RadioGroup
-                            value={field.value ? 'ja' : 'nei'}
-                            onValueChange={(val: string) => field.onChange(val === 'ja')}
-                          >
-                            <RadioItem
-                              value="ja"
-                              label="Ja - forholdet har forårsaket faktisk forsinkelse"
-                            />
-                            <RadioItem
-                              value="nei"
-                              label="Nei - ingen reell forsinkelse (f.eks. slakk i planen, eller forsinkelsen skyldes andre forhold)"
-                            />
-                          </RadioGroup>
-                        )}
-                      />
-                    </FormField>
-                  </div>
+              <Alert variant="info" title="Vilkår for fristforlengelse (§33.1, §33.5)">
+                For at entreprenøren skal ha krav på fristforlengelse må to kumulative vilkår
+                være oppfylt: (1) fremdriften må ha vært <strong>hindret</strong>, og (2) hindringen
+                må <strong>skyldes</strong> det påberopte forholdet (årsakssammenheng).
+              </Alert>
 
-                  {/* Begrunnelse vilkår - viktig at dette fylles ut */}
-                  <FormField
-                    label="Begrunnelse"
-                    helpText="Beskriv hvorfor forholdet medførte/ikke medførte forsinkelse"
-                  >
-                    <Textarea
-                      {...register('begrunnelse_vilkar')}
-                      rows={3}
-                      fullWidth
-                    />
-                  </FormField>
+              <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
+                <FormField
+                  label={
+                    port2ErSubsidiaer
+                      ? 'Subsidiært: Har forholdet hindret fremdriften?'
+                      : 'Har forholdet hindret fremdriften?'
+                  }
+                  required
+                  helpText="Vurder om det påberopte forholdet faktisk har forårsaket forsinkelse i prosjektet"
+                >
+                  <Controller
+                    name="vilkar_oppfylt"
+                    control={control}
+                    render={({ field }) => (
+                      <RadioGroup
+                        value={field.value ? 'ja' : 'nei'}
+                        onValueChange={(val: string) => field.onChange(val === 'ja')}
+                      >
+                        <RadioItem
+                          value="ja"
+                          label="Ja - forholdet har forårsaket faktisk forsinkelse"
+                        />
+                        <RadioItem
+                          value="nei"
+                          label="Nei - ingen reell forsinkelse (f.eks. slakk i planen, eller forsinkelsen skyldes andre forhold)"
+                        />
+                      </RadioGroup>
+                    )}
+                  />
+                </FormField>
+              </div>
 
-                  {/* Info about subsidiary calculation */}
-                  {!harHindring && !port2ErSubsidiaer && (
-                    <Alert variant="info" title="Subsidiær beregning">
-                      Selv om du mener det ikke var reell hindring, må du{' '}
-                      <strong>subsidiært</strong> ta stilling til antall dager i Port 3.
-                    </Alert>
-                  )}
-                </>
+              {/* Begrunnelse vilkår - viktig at dette fylles ut */}
+              <FormField
+                label="Begrunnelse"
+                helpText="Beskriv hvorfor forholdet medførte/ikke medførte forsinkelse"
+              >
+                <Textarea
+                  {...register('begrunnelse_vilkar')}
+                  rows={3}
+                  fullWidth
+                />
+              </FormField>
+
+              {/* Info about subsidiary calculation */}
+              {!harHindring && !port2ErSubsidiaer && (
+                <Alert variant="info" title="Subsidiær beregning">
+                  Selv om du mener det ikke var reell hindring, må du{' '}
+                  <strong>subsidiært</strong> ta stilling til antall dager i neste steg.
+                </Alert>
               )}
             </div>
           )}
@@ -1148,9 +1146,7 @@ export function RespondFristModal({
                     Vilkår {port2ErSubsidiaer && '(subsidiært)'}
                   </h5>
                   <div className="flex items-center gap-2">
-                    {sendEtterlysning ? (
-                      <span className="text-sm text-pkt-text-body-subtle">(Avventer)</span>
-                    ) : harHindring ? (
+                    {harHindring ? (
                       <>
                         <Badge variant="success">
                           {port2ErSubsidiaer ? 'Subsidiært: ' : ''}Hindring erkjent
