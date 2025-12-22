@@ -343,7 +343,7 @@ class SupabaseEventRepository(EventRepository):
             "aktor_rolle": row.get("actorrole"),
             "data": row.get("data"),
             "kommentar": row.get("comment"),
-            "referrer_til_event_id": row.get("referstoid"),
+            "refererer_til_event_id": row.get("referstoid"),  # Fixed: was "referrer_til_event_id"
             # Include CloudEvents attributes for clients that want them
             "_cloudevents": {
                 "specversion": row.get("specversion"),
