@@ -6,22 +6,21 @@ Centralized CORS (Cross-Origin Resource Sharing) configuration.
 
 import os
 import re
-from typing import List, Union
-from flask import Flask
+from typing import List
+from flask import Flask, request
 from flask_cors import CORS
 
 
-def _get_allowed_origins() -> Union[List[str], str]:
+def _get_allowed_origins() -> List[str]:
     """
     Get list of allowed origins for CORS.
 
     Supports:
     - Explicit origins from ALLOWED_ORIGINS env var
     - ngrok URLs
-    - Vercel preview deployments (pattern-based)
 
     Returns:
-        List of allowed origins, or regex pattern for dynamic matching
+        List of allowed origins
     """
     # Parse allowed origins from environment
     origins = os.getenv(
@@ -40,40 +39,22 @@ def _get_allowed_origins() -> Union[List[str], str]:
     return origins
 
 
-def _origin_allowed(origin: str) -> bool:
+def _is_vercel_origin(origin: str) -> bool:
     """
-    Check if an origin is allowed, including Vercel preview deployments.
+    Check if origin is a Vercel deployment (production or preview).
 
     Args:
         origin: The origin to check
 
     Returns:
-        True if origin is allowed
+        True if origin is a Vercel deployment
     """
     if not origin:
         return False
 
-    allowed_origins = _get_allowed_origins()
-
-    # Check explicit origins
-    if origin in allowed_origins:
-        return True
-
-    # Check Vercel preview deployments pattern
-    # Format: https://{project}-{hash}-{username}.vercel.app
-    # Also matches production: https://{project}.vercel.app
-    # The pattern is more permissive to handle all Vercel subdomain formats
+    # Match all Vercel domains: https://*.vercel.app
     vercel_pattern = r'^https://[a-z0-9][a-z0-9-]*\.vercel\.app$'
-    if re.match(vercel_pattern, origin, re.IGNORECASE):
-        return True
-
-    # Check for Vercel preview URLs with longer subdomains
-    # Format: https://{project}-{git-hash}-{org-slug}.vercel.app
-    vercel_preview_pattern = r'^https://[a-z0-9][a-z0-9-]*-[a-z0-9]+-[a-z0-9-]+\.vercel\.app$'
-    if re.match(vercel_preview_pattern, origin, re.IGNORECASE):
-        return True
-
-    return False
+    return bool(re.match(vercel_pattern, origin, re.IGNORECASE))
 
 
 def setup_cors(app: Flask) -> None:
@@ -85,10 +66,10 @@ def setup_cors(app: Flask) -> None:
     """
     allowed_origins = _get_allowed_origins()
 
-    # Configure CORS with dynamic origin checking
+    # Configure CORS with explicit origins
     CORS(app, resources={
         r"/api/*": {
-            "origins": _origin_allowed,
+            "origins": allowed_origins,
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": ["Content-Type", "X-CSRF-Token", "Authorization"],
             "expose_headers": ["X-RateLimit-Remaining", "X-RateLimit-Reset"],
@@ -96,3 +77,18 @@ def setup_cors(app: Flask) -> None:
             "max_age": 3600
         }
     })
+
+    # Add dynamic Vercel origin support via after_request
+    @app.after_request
+    def add_vercel_cors_headers(response):
+        origin = request.headers.get('Origin', '')
+
+        # If origin is a Vercel deployment and not already allowed, add CORS headers
+        if _is_vercel_origin(origin) and origin not in allowed_origins:
+            response.headers['Access-Control-Allow-Origin'] = origin
+            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, X-CSRF-Token, Authorization'
+            response.headers['Access-Control-Expose-Headers'] = 'X-RateLimit-Remaining, X-RateLimit-Reset'
+            response.headers['Access-Control-Max-Age'] = '3600'
+
+        return response
