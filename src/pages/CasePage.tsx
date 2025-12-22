@@ -15,7 +15,7 @@ import { useCaseState } from '../hooks/useCaseState';
 import { useTimeline } from '../hooks/useTimeline';
 import { useActionPermissions } from '../hooks/useActionPermissions';
 import { useUserRole } from '../hooks/useUserRole';
-import { StatusDashboard } from '../components/views/StatusDashboard';
+import { CaseDashboard } from '../components/views/CaseDashboard';
 import { Timeline } from '../components/views/Timeline';
 import { ComprehensiveMetadata } from '../components/views/ComprehensiveMetadata';
 import { RevisionHistory } from '../components/views/RevisionHistory';
@@ -301,7 +301,7 @@ export function CasePage() {
           >
             Krav og respons
           </h2>
-          <StatusDashboard
+          <CaseDashboard
           state={state}
           grunnlagActions={
             <>
@@ -458,7 +458,7 @@ export function CasePage() {
               )}
             </>
           }
-          />
+        />
         </section>
 
         {/* Timeline Section */}
