@@ -96,6 +96,58 @@ if AZURE_FUNCTIONS_AVAILABLE:
     # Case Management Endpoints
     # =========================================================================
 
+    @app.route(route="cases", methods=["GET"])
+    def list_cases(req: func.HttpRequest) -> func.HttpResponse:
+        """
+        List all cases with metadata.
+
+        Query parameters:
+        - sakstype: Filter by case type (standard, forsering, endringsordre)
+
+        Response 200:
+        {
+            "cases": [
+                {
+                    "sak_id": "SAK-20251201-001",
+                    "sakstype": "standard",
+                    "cached_title": "Grunnforhold - uforutsette forhold",
+                    "cached_status": "Under behandling",
+                    "created_at": "2025-01-15T10:30:00Z",
+                    "created_by": "contractor@example.com",
+                    "last_event_at": "2025-01-20T14:00:00Z"
+                },
+                ...
+            ]
+        }
+        """
+        try:
+            sakstype = req.params.get('sakstype')
+
+            with ServiceContext() as ctx:
+                if sakstype:
+                    cases = ctx.metadata_repository.list_by_sakstype(sakstype)
+                else:
+                    cases = ctx.metadata_repository.list_all()
+
+                return create_response({
+                    "cases": [
+                        {
+                            "sak_id": c.sak_id,
+                            "sakstype": getattr(c, 'sakstype', 'standard'),
+                            "cached_title": c.cached_title,
+                            "cached_status": c.cached_status,
+                            "created_at": c.created_at.isoformat() if c.created_at else None,
+                            "created_by": c.created_by,
+                            "last_event_at": c.last_event_at.isoformat() if c.last_event_at else None,
+                        }
+                        for c in cases
+                    ]
+                })
+
+        except Exception as e:
+            logger.exception(f"Failed to list cases: {e}")
+            return create_error_response(f"Internal error: {str(e)}", 500)
+
     @app.route(route="cases/{sakId}", methods=["GET"])
     def get_case(req: func.HttpRequest) -> func.HttpResponse:
         """Hent sak-data (legacy CSV repository)."""
