@@ -309,6 +309,14 @@ export function RespondFristModal({
     return formValues.spesifisert_krav_ok === false;
   }, [formValues.noytralt_varsel_ok, formValues.spesifisert_krav_ok, varselType]);
 
+  // Reset send_etterlysning when noytralt_varsel_ok changes to false
+  // (etterlysning is only valid when varsel was on time)
+  useEffect(() => {
+    if (formValues.noytralt_varsel_ok === false && formValues.send_etterlysning === true) {
+      setValue('send_etterlysning', false);
+    }
+  }, [formValues.noytralt_varsel_ok, formValues.send_etterlysning, setValue]);
+
   // Check if sending etterlysning (blocks further evaluation)
   const sendEtterlysning = formValues.send_etterlysning === true;
 
