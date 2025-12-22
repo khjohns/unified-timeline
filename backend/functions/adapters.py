@@ -130,6 +130,7 @@ class ServiceContext:
         self._catenda_service = None
         self._event_repository = None
         self._timeline_service = None
+        self._metadata_repository = None
 
     def __enter__(self):
         return self
@@ -176,6 +177,14 @@ class ServiceContext:
             # CatendaService will use environment variables for config
             self._catenda_service = CatendaService()
         return self._catenda_service
+
+    @property
+    def metadata_repository(self):
+        """Lazy-load metadata repository for case list."""
+        if self._metadata_repository is None:
+            from repositories.supabase_sak_metadata_repository import create_metadata_repository
+            self._metadata_repository = create_metadata_repository()
+        return self._metadata_repository
 
 
 def validate_required_fields(

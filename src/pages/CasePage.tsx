@@ -99,7 +99,7 @@ export function CasePage() {
 
   // Wait for auth verification before loading data
   const { data, isLoading, error } = useCaseState(sakId || '', { enabled: !!token && !isVerifying });
-  const { data: timelineData } = useTimeline(sakId || '', { enabled: !!token && !isVerifying });
+  const { data: timelineData, error: timelineError, isLoading: timelineLoading } = useTimeline(sakId || '', { enabled: !!token && !isVerifying });
 
   // Fetch forsering relations (check if this case is part of any forsering)
   const { data: forseringData } = useQuery<FindForseringerResponse>({
@@ -469,7 +469,19 @@ export function CasePage() {
           >
             Hendelser
           </h2>
-          <Timeline events={timelineEvents} />
+          {timelineLoading && (
+            <div className="py-4 text-center text-pkt-grays-gray-500">
+              <p className="text-sm">Laster hendelser...</p>
+            </div>
+          )}
+          {timelineError && (
+            <div className="py-4 text-center text-badge-error-text bg-badge-error-bg rounded-lg">
+              <p className="text-sm">Kunne ikke laste hendelser: {timelineError.message}</p>
+            </div>
+          )}
+          {!timelineLoading && !timelineError && (
+            <Timeline events={timelineEvents} />
+          )}
         </section>
 
         {/* Summary Section - Enhanced with Comprehensive Metadata and Revision History */}
