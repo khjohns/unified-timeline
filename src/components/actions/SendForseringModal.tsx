@@ -17,6 +17,7 @@
 
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { useFormBackup } from '../../hooks/useFormBackup';
+import { useVerifyToken } from '../../hooks/useVerifyToken';
 import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
 import { getAuthToken } from '../../api/client';
 import { useNavigate } from 'react-router-dom';
@@ -154,19 +155,8 @@ export function SendForseringModal({
   const handleRestoreBackup = () => { const backup = getBackup(); if (backup) reset(backup); setShowRestorePrompt(false); };
   const handleDiscardBackup = () => { clearBackup(); setShowRestorePrompt(false); };
 
-  // Token validation helper
-  const verifyToken = async (token: string): Promise<boolean> => {
-    // Bypass verification when auth is disabled
-    if (import.meta.env.VITE_DISABLE_AUTH === 'true') {
-      return true;
-    }
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/magic-link/verify?token=${token}`);
-      return response.ok;
-    } catch {
-      return false;
-    }
-  };
+  // Token validation hook
+  const verifyToken = useVerifyToken();
 
   // Mutation to create forsering case and navigate to it
   const mutation = useMutation({

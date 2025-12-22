@@ -16,7 +16,7 @@ from typing import Optional, Tuple
 import base64
 import tempfile
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 from services.timeline_service import TimelineService
 from services.business_rules import BusinessRuleValidator
@@ -226,7 +226,7 @@ def submit_event():
             sak_id=sak_id,
             cached_title=new_state.sakstittel,
             cached_status=new_state.overordnet_status,
-            last_event_at=datetime.now()
+            last_event_at=datetime.now(timezone.utc)
         )
 
         logger.info(f"✅ Event persisted, new version: {new_version}")
@@ -390,11 +390,11 @@ def submit_batch():
             metadata = SakMetadata(
                 sak_id=sak_id,
                 prosjekt_id=data.get('prosjekt_id'),
-                created_at=datetime.now(),
+                created_at=datetime.now(timezone.utc),
                 created_by=request.magic_link_data.get('email', 'unknown'),
                 cached_title=final_state.sakstittel,
                 cached_status=final_state.overordnet_status,
-                last_event_at=datetime.now()
+                last_event_at=datetime.now(timezone.utc)
             )
             metadata_repo.upsert(metadata)
         else:
@@ -403,7 +403,7 @@ def submit_batch():
                 sak_id=sak_id,
                 cached_title=final_state.sakstittel,
                 cached_status=final_state.overordnet_status,
-                last_event_at=datetime.now()
+                last_event_at=datetime.now(timezone.utc)
             )
 
         return jsonify({

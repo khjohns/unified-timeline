@@ -15,25 +15,7 @@ import { submitEvent, EventSubmitResponse } from '../api/events';
 import { EventType } from '../types/timeline';
 import { fetchCaseState } from '../api/state';
 import { getAuthToken, ApiError } from '../api/client';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-
-/**
- * Verify the magic link token is still valid
- */
-async function verifyToken(token: string): Promise<boolean> {
-  // Bypass verification when auth is disabled
-  if (import.meta.env.VITE_DISABLE_AUTH === 'true') {
-    return true;
-  }
-
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/magic-link/verify?token=${token}`);
-    return response.ok;
-  } catch {
-    return false;
-  }
-}
+import { useVerifyToken } from './useVerifyToken';
 
 export interface SubmitEventPayload {
   eventType: EventType;
@@ -93,6 +75,7 @@ export interface UseSubmitEventOptions {
 export function useSubmitEvent(sakId: string, options: UseSubmitEventOptions = {}) {
   const queryClient = useQueryClient();
   const { onSuccess, onError, generatePdf = true } = options;
+  const verifyToken = useVerifyToken();
 
   // Fetch current state for PDF generation
   const { data: stateData } = useQuery({

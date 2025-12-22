@@ -12,6 +12,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { STALE_TIME } from '../constants/queryConfig';
 import { useAuth } from '../context/AuthContext';
 import { getAuthToken } from '../api/client';
+import { useVerifyToken } from '../hooks/useVerifyToken';
 import { useCaseState } from '../hooks/useCaseState';
 import { useUserRole } from '../hooks/useUserRole';
 import { Timeline } from '../components/views/Timeline';
@@ -45,25 +46,6 @@ import {
   type ForseringKontekstResponse,
   type KandidatSak,
 } from '../api/forsering';
-
-// ============================================================================
-// HELPERS
-// ============================================================================
-
-async function verifyToken(token: string): Promise<boolean> {
-  // Bypass verification when auth is disabled
-  if (import.meta.env.VITE_DISABLE_AUTH === 'true') {
-    return true;
-  }
-  try {
-    const response = await fetch(
-      `${import.meta.env.VITE_API_BASE_URL || ''}/api/magic-link/verify?token=${token}`
-    );
-    return response.ok;
-  } catch {
-    return false;
-  }
-}
 
 // ============================================================================
 // HOOKS
@@ -112,6 +94,7 @@ export function ForseringPage() {
   const { token, isVerifying, error: authError } = useAuth();
   const { userRole, setUserRole } = useUserRole();
   const queryClient = useQueryClient();
+  const verifyToken = useVerifyToken();
 
   // Modal state
   const [leggTilModalOpen, setLeggTilModalOpen] = useState(false);
