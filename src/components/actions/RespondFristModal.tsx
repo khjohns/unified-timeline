@@ -614,15 +614,6 @@ export function RespondFristModal({
                 </div>
               </div>
 
-              {/* Warning when neutral notice without days specified */}
-              {erNoytraltUtenDager && (
-                <Alert variant="warning" title="Foreløpig varsel uten antall dager">
-                  Entreprenøren har sendt et foreløpig/nøytralt varsel (§33.4) uten å spesifisere antall dager.
-                  Du kan i Steg 2 velge å sende en <strong>etterlysning</strong> (§33.6.2) for å kreve at TE
-                  spesifiserer kravet. Hvis TE ikke svarer i tide, tapes kravet.
-                </Alert>
-              )}
-
               {/* Subsidiær behandling info */}
               {erGrunnlagSubsidiaer && (
                 <Alert variant="warning" title="Subsidiær behandling">
@@ -1027,7 +1018,6 @@ export function RespondFristModal({
                     <Alert variant="info" title="Antall dager ikke spesifisert">
                       Entreprenøren har ikke spesifisert antall dager i sitt nøytrale varsel.
                       Du kan ikke ta stilling til antall dager før kravet er spesifisert.
-                      Vurderingen av vilkår (hindring) gjelder prinsipalt eller subsidiært avhengig av preklusjonsvurderingen.
                     </Alert>
                   )}
 
@@ -1179,7 +1169,7 @@ export function RespondFristModal({
                     <span className="text-sm text-pkt-text-body-subtle">(Avventer)</span>
                   ) : erNoytraltUtenDager ? (
                     <div className="text-sm text-pkt-text-body-subtle italic">
-                      Antall dager er ikke spesifisert i kravet. Beregning gjøres når TE sender spesifisert krav.
+                      Antall dager er ikke spesifisert i kravet. Beregning gjøres når entreprenøren sender spesifisert krav.
                     </div>
                   ) : (
                     <>
@@ -1294,7 +1284,7 @@ export function RespondFristModal({
                   )}
                   {!sendEtterlysning && prinsipaltResultat !== 'avslatt' && erNoytraltUtenDager && (
                     <div className="mt-2 text-sm italic opacity-80">
-                      Grunnlag og vilkår er vurdert. Antall dager kan først vurderes når TE spesifiserer kravet.
+                      Grunnlag og vilkår er vurdert. Antall dager kan først vurderes når entreprenøren spesifiserer kravet.
                     </div>
                   )}
                 </div>
@@ -1320,7 +1310,7 @@ export function RespondFristModal({
                       </>
                     ) : (
                       <p className="text-sm mt-2 italic opacity-80">
-                        Subsidiær vurdering av grunnlag og vilkår. Antall dager kan vurderes når TE spesifiserer kravet.
+                        Subsidiær vurdering av grunnlag og vilkår. Antall dager kan vurderes når entreprenøren spesifiserer kravet.
                       </p>
                     )}
                   </div>

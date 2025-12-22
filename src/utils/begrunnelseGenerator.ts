@@ -523,7 +523,13 @@ function generateFristVilkarSection(input: FristResponseInput): string {
  * Generate the calculation section for frist response
  */
 function generateFristBeregningSection(input: FristResponseInput): string {
-  const { krevdDager, godkjentDager, erPrekludert, vilkarOppfylt } = input;
+  const { krevdDager, godkjentDager, erPrekludert, vilkarOppfylt, varselType } = input;
+
+  // Skip calculation section for neutral notice without specified days
+  if (varselType === 'noytralt' && krevdDager === 0) {
+    return '';
+  }
+
   const erSubsidiaer = erPrekludert || !vilkarOppfylt;
   const prefix = erSubsidiaer ? 'Subsidiært, hva gjelder antall dager: ' : 'Hva gjelder antall dager: ';
 
@@ -546,8 +552,18 @@ function generateFristBeregningSection(input: FristResponseInput): string {
  * Generate the conclusion section for frist response
  */
 function generateFristKonklusjonSection(input: FristResponseInput): string {
-  const { krevdDager, godkjentDager, prinsipaltResultat, visSubsidiaertResultat } = input;
+  const { krevdDager, godkjentDager, prinsipaltResultat, visSubsidiaertResultat, varselType } = input;
   const lines: string[] = [];
+
+  // Handle neutral notice without specified days
+  if (varselType === 'noytralt' && krevdDager === 0) {
+    if (prinsipaltResultat === 'avslatt') {
+      lines.push('Kravet avvises.');
+    } else {
+      lines.push('Grunnlag og vilkår er vurdert. Antall dager kan først vurderes når entreprenøren spesifiserer kravet.');
+    }
+    return lines.join(' ');
+  }
 
   // Prinsipalt resultat
   if (prinsipaltResultat === 'avslatt') {
