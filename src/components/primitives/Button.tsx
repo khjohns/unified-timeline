@@ -12,12 +12,13 @@ interface ButtonProps extends ComponentPropsWithoutRef<'button'> {
 }
 
 /**
- * Loading spinner component
+ * Loading spinner component with inline animation for Tailwind v4 compatibility
  */
 function LoadingSpinner({ className }: { className?: string }) {
   return (
     <svg
-      className={clsx('animate-spin', className)}
+      className={className}
+      style={{ animation: 'spin 1s linear infinite' }}
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"
