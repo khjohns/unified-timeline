@@ -663,8 +663,13 @@ def create_event_repository(backend: str | None = None, **kwargs) -> EventReposi
         # Production (future)
         repo = create_event_repository("dataverse", environment_url="...")
     """
+    import logging
+    logger = logging.getLogger(__name__)
+
     if backend is None:
         backend = os.environ.get("EVENT_STORE_BACKEND", "json")
+
+    logger.info(f"🗄️ Creating event repository with backend: {backend}")
 
     if backend == "json":
         from .event_repository import JsonFileEventRepository
