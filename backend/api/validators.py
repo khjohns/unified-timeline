@@ -57,7 +57,7 @@ def validate_grunnlag_event(data: Dict[str, Any]) -> None:
     Validate grunnlag-event data against constants.
 
     Args:
-        data: The 'data' field from a grunnlag event
+        data: The 'data' field from a grunnlag event (modified in place to normalize casing)
 
     Raises:
         ValidationError: If validation fails (with valid_options when applicable)
@@ -65,8 +65,20 @@ def validate_grunnlag_event(data: Dict[str, Any]) -> None:
     if not data:
         raise ValidationError("Grunnlag data mangler")
 
+    # Normalize casing to UPPERCASE (backend standard)
     hovedkategori = data.get('hovedkategori')
+    if hovedkategori and isinstance(hovedkategori, str):
+        hovedkategori = hovedkategori.upper()
+        data['hovedkategori'] = hovedkategori
+
     underkategori = data.get('underkategori')
+    if underkategori:
+        if isinstance(underkategori, str):
+            underkategori = underkategori.upper()
+            data['underkategori'] = underkategori
+        elif isinstance(underkategori, list):
+            underkategori = [uk.upper() if isinstance(uk, str) else uk for uk in underkategori]
+            data['underkategori'] = underkategori
 
     if not hovedkategori:
         raise ValidationError(
@@ -138,7 +150,7 @@ def validate_vederlag_event(data: Dict[str, Any]) -> None:
     - nytt_kostnads_overslag instead of kostnads_overslag
 
     Args:
-        data: The 'data' field from a vederlag event
+        data: The 'data' field from a vederlag event (modified in place to normalize casing)
 
     Raises:
         ValidationError: If validation fails (with valid_options when applicable)
@@ -146,9 +158,13 @@ def validate_vederlag_event(data: Dict[str, Any]) -> None:
     if not data:
         raise ValidationError("Vederlag data mangler")
 
-    valid_metoder = [m.value for m in VederlagsMetode]
-
+    # Normalize metode to UPPERCASE (backend standard)
     metode = data.get('metode')
+    if metode and isinstance(metode, str):
+        metode = metode.upper()
+        data['metode'] = metode
+
+    valid_metoder = [m.value for m in VederlagsMetode]
     if not metode:
         raise ValidationError(
             "metode er påkrevd",
