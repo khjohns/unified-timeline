@@ -22,6 +22,11 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080
  * Verify the magic link token is still valid
  */
 async function verifyToken(token: string): Promise<boolean> {
+  // Bypass verification when auth is disabled
+  if (import.meta.env.VITE_DISABLE_AUTH === 'true') {
+    return true;
+  }
+
   try {
     const response = await fetch(`${API_BASE_URL}/api/magic-link/verify?token=${token}`);
     return response.ok;

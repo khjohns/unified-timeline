@@ -156,6 +156,10 @@ export function SendForseringModal({
 
   // Token validation helper
   const verifyToken = async (token: string): Promise<boolean> => {
+    // Bypass verification when auth is disabled
+    if (import.meta.env.VITE_DISABLE_AUTH === 'true') {
+      return true;
+    }
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/magic-link/verify?token=${token}`);
       return response.ok;
