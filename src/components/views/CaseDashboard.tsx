@@ -115,7 +115,9 @@ export function CaseDashboard({
             </DataListItem>
             {state.grunnlag.underkategori && (
               <DataListItem label="Underkategori">
-                {getUnderkategoriLabel(state.grunnlag.underkategori)}
+                {Array.isArray(state.grunnlag.underkategori)
+                  ? state.grunnlag.underkategori.map(uk => getUnderkategoriLabel(uk)).join(', ')
+                  : getUnderkategoriLabel(state.grunnlag.underkategori)}
               </DataListItem>
             )}
             {state.grunnlag.dato_oppdaget && (
