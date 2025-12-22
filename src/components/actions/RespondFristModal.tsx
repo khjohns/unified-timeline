@@ -222,6 +222,10 @@ export function RespondFristModal({
   // Effective days to compare (from fristEvent or krevdDager prop)
   const effektivKrevdDager = fristEvent?.antall_dager ?? krevdDager ?? 0;
 
+  // Check if this is a neutral notice without specified days
+  // In this case, BH should typically send etterlysning to request specification
+  const erNoytraltUtenDager = varselType === 'noytralt' && effektivKrevdDager === 0;
+
   // Form setup
   const {
     register,
@@ -581,7 +585,11 @@ export function RespondFristModal({
                   {/* Krevd forlengelse */}
                   <div className="flex justify-between items-center py-2 border-b border-pkt-border-subtle">
                     <span className="font-medium">Krevd forlengelse</span>
-                    <span className="font-mono font-medium">{effektivKrevdDager} dager</span>
+                    {erNoytraltUtenDager ? (
+                      <Badge variant="warning">Ikke spesifisert</Badge>
+                    ) : (
+                      <span className="font-mono font-medium">{effektivKrevdDager} dager</span>
+                    )}
                   </div>
 
                   {/* Ny sluttdato */}
@@ -605,6 +613,15 @@ export function RespondFristModal({
                   )}
                 </div>
               </div>
+
+              {/* Warning when neutral notice without days specified */}
+              {erNoytraltUtenDager && (
+                <Alert variant="warning" title="Foreløpig varsel uten antall dager">
+                  Entreprenøren har sendt et foreløpig/nøytralt varsel (§33.4) uten å spesifisere antall dager.
+                  Du kan i Steg 2 velge å sende en <strong>etterlysning</strong> (§33.6.2) for å kreve at TE
+                  spesifiserer kravet. Hvis TE ikke svarer i tide, tapes kravet.
+                </Alert>
+              )}
 
               {/* Subsidiær behandling info */}
               {erGrunnlagSubsidiaer && (
@@ -728,10 +745,21 @@ export function RespondFristModal({
                   {/* Etterlysning option - only if varsel was OK */}
                   {formValues.noytralt_varsel_ok && (
                     <div className="space-y-3">
-                      <Alert variant="warning" title="Etterlysning (§33.6.2)">
-                        Entreprenøren har kun sendt nøytralt varsel uten antall dager. Du kan
-                        etterspørre et spesifisert krav. Hvis entreprenøren ikke svarer «uten ugrunnet
-                        opphold», tapes kravet.
+                      <Alert variant={erNoytraltUtenDager ? 'danger' : 'warning'} title="Etterlysning (§33.6.2)">
+                        {erNoytraltUtenDager ? (
+                          <>
+                            Entreprenøren har kun sendt nøytralt varsel <strong>uten å spesifisere antall dager</strong>.
+                            Du kan ikke ta stilling til antall dager før kravet er spesifisert.
+                            <strong className="block mt-2">Anbefaling:</strong> Send etterlysning for å kreve at TE spesifiserer kravet.
+                            Hvis TE ikke svarer «uten ugrunnet opphold», tapes hele kravet.
+                          </>
+                        ) : (
+                          <>
+                            Entreprenøren har kun sendt nøytralt varsel uten antall dager. Du kan
+                            etterspørre et spesifisert krav. Hvis entreprenøren ikke svarer «uten ugrunnet
+                            opphold», tapes kravet.
+                          </>
+                        )}
                       </Alert>
                       <FormField label="Vil du sende etterlysning?">
                         <Controller
@@ -999,69 +1027,80 @@ export function RespondFristModal({
                     </Alert>
                   )}
 
-                  {!port3ErSubsidiaer && (
+                  {!port3ErSubsidiaer && !erNoytraltUtenDager && (
                     <p className="text-sm text-pkt-text-body-subtle">
                       Beregn antall dager fristforlengelse basert på den faktiske forsinkelsen forholdet har forårsaket.
                     </p>
                   )}
 
-                  {/* Hovedkrav beregning */}
-                  <div className="p-4 bg-pkt-surface-subtle rounded-none border-2 border-pkt-border-default">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
-                      <h4 className="font-bold">
-                        {port3ErSubsidiaer ? 'Subsidiær beregning' : 'Fristkrav'}
-                      </h4>
-                      <div className="text-left sm:text-right">
-                        <span className="text-sm text-pkt-text-body-subtle">Krevd: </span>
-                        <span className="text-lg font-mono font-bold">
-                          {effektivKrevdDager} dager
-                        </span>
+                  {/* Info when neutral notice without days */}
+                  {erNoytraltUtenDager && (
+                    <Alert variant="info" title="Antall dager ikke spesifisert">
+                      Entreprenøren har ikke spesifisert antall dager i sitt nøytrale varsel.
+                      Du kan ikke ta stilling til antall dager før kravet er spesifisert.
+                      Vurderingen av vilkår (hindring) gjelder prinsipalt eller subsidiært avhengig av preklusjonsvurderingen.
+                    </Alert>
+                  )}
+
+                  {/* Hovedkrav beregning - only show input if days are specified */}
+                  {!erNoytraltUtenDager && (
+                    <div className="p-4 bg-pkt-surface-subtle rounded-none border-2 border-pkt-border-default">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+                        <h4 className="font-bold">
+                          {port3ErSubsidiaer ? 'Subsidiær beregning' : 'Fristkrav'}
+                        </h4>
+                        <div className="text-left sm:text-right">
+                          <span className="text-sm text-pkt-text-body-subtle">Krevd: </span>
+                          <span className="text-lg font-mono font-bold">
+                            {effektivKrevdDager} dager
+                          </span>
+                        </div>
                       </div>
-                    </div>
 
-                    <FormField
-                      label={
-                        port3ErSubsidiaer
-                          ? 'Maksimalt antall dager'
-                          : 'Godkjent antall dager'
-                      }
-                      required
-                      error={errors.godkjent_dager?.message}
-                      helpText={
-                        !port3ErSubsidiaer && effektivKrevdDager > 0 && formValues.godkjent_dager !== undefined
-                          ? `Differanse: ${effektivKrevdDager - formValues.godkjent_dager} dager (${((formValues.godkjent_dager / effektivKrevdDager) * 100).toFixed(1)}% godkjent)`
-                          : undefined
-                      }
-                    >
-                      <Input
-                        type="number"
-                        {...register('godkjent_dager', { valueAsNumber: true })}
-                        width="xs"
-                        error={!!errors.godkjent_dager}
-                      />
-                    </FormField>
-
-                    {/* Ny sluttdato */}
-                    {!port3ErSubsidiaer && (
                       <FormField
-                        label="Ny sluttdato"
-                        className="mt-4"
-                        helpText="Beregnet ny sluttdato basert på godkjent forlengelse"
+                        label={
+                          port3ErSubsidiaer
+                            ? 'Maksimalt antall dager'
+                            : 'Godkjent antall dager'
+                        }
+                        required
+                        error={errors.godkjent_dager?.message}
+                        helpText={
+                          !port3ErSubsidiaer && effektivKrevdDager > 0 && formValues.godkjent_dager !== undefined
+                            ? `Differanse: ${effektivKrevdDager - formValues.godkjent_dager} dager (${((formValues.godkjent_dager / effektivKrevdDager) * 100).toFixed(1)}% godkjent)`
+                            : undefined
+                        }
                       >
-                        <Controller
-                          name="ny_sluttdato"
-                          control={control}
-                          render={({ field }) => (
-                            <DatePicker
-                              id="ny_sluttdato"
-                              value={field.value}
-                              onChange={field.onChange}
-                            />
-                          )}
+                        <Input
+                          type="number"
+                          {...register('godkjent_dager', { valueAsNumber: true })}
+                          width="xs"
+                          error={!!errors.godkjent_dager}
                         />
                       </FormField>
-                    )}
-                  </div>
+
+                      {/* Ny sluttdato */}
+                      {!port3ErSubsidiaer && (
+                        <FormField
+                          label="Ny sluttdato"
+                          className="mt-4"
+                          helpText="Beregnet ny sluttdato basert på godkjent forlengelse"
+                        >
+                          <Controller
+                            name="ny_sluttdato"
+                            control={control}
+                            render={({ field }) => (
+                              <DatePicker
+                                id="ny_sluttdato"
+                                value={field.value}
+                                onChange={field.onChange}
+                              />
+                            )}
+                          />
+                        </FormField>
+                      )}
+                    </div>
+                  )}
 
                   {/* §33.8 Forsering warning */}
                   {visForsering && avslatteDager > 0 && !port3ErSubsidiaer && (
@@ -1149,6 +1188,10 @@ export function RespondFristModal({
                   </h5>
                   {sendEtterlysning ? (
                     <span className="text-sm text-pkt-text-body-subtle">(Avventer)</span>
+                  ) : erNoytraltUtenDager ? (
+                    <div className="text-sm text-pkt-text-body-subtle italic">
+                      Antall dager er ikke spesifisert i kravet. Beregning gjøres når TE sender spesifisert krav.
+                    </div>
                   ) : (
                     <>
                       {/* Desktop: tabell */}
@@ -1255,9 +1298,14 @@ export function RespondFristModal({
                 <div className="p-4 bg-pkt-surface-strong-dark-blue text-white rounded-none">
                   <h5 className="font-medium text-sm mb-2 opacity-80">PRINSIPALT RESULTAT</h5>
                   <div className="text-xl font-bold">{getResultatLabel(prinsipaltResultat)}</div>
-                  {!sendEtterlysning && prinsipaltResultat !== 'avslatt' && (
+                  {!sendEtterlysning && prinsipaltResultat !== 'avslatt' && effektivKrevdDager > 0 && (
                     <div className="mt-2 text-lg font-mono">
                       Godkjent: {godkjentDager} av {effektivKrevdDager} dager
+                    </div>
+                  )}
+                  {!sendEtterlysning && prinsipaltResultat !== 'avslatt' && erNoytraltUtenDager && (
+                    <div className="mt-2 text-sm italic opacity-80">
+                      Grunnlag og vilkår er vurdert. Antall dager kan først vurderes når TE spesifiserer kravet.
                     </div>
                   )}
                 </div>
@@ -1269,15 +1317,23 @@ export function RespondFristModal({
                     <div className="text-xl font-bold">
                       {getResultatLabel(subsidiaertResultat)}
                     </div>
-                    <div className="mt-2 text-lg font-mono">
-                      {subsidiaertResultat === 'avslatt'
-                        ? 'Subsidiært: Avslått'
-                        : `Subsidiært: Maks ${godkjentDager} av ${effektivKrevdDager} dager`}
-                    </div>
-                    <p className="text-sm mt-2 italic opacity-80">
-                      «Byggherren er etter dette uenig i kravet, og kan dessuten under ingen
-                      omstendigheter se at mer enn {godkjentDager} dager er berettiget å kreve.»
-                    </p>
+                    {effektivKrevdDager > 0 ? (
+                      <>
+                        <div className="mt-2 text-lg font-mono">
+                          {subsidiaertResultat === 'avslatt'
+                            ? 'Subsidiært: Avslått'
+                            : `Subsidiært: Maks ${godkjentDager} av ${effektivKrevdDager} dager`}
+                        </div>
+                        <p className="text-sm mt-2 italic opacity-80">
+                          «Byggherren er etter dette uenig i kravet, og kan dessuten under ingen
+                          omstendigheter se at mer enn {godkjentDager} dager er berettiget å kreve.»
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-sm mt-2 italic opacity-80">
+                        Subsidiær vurdering av grunnlag og vilkår. Antall dager kan vurderes når TE spesifiserer kravet.
+                      </p>
+                    )}
                   </div>
                 )}
 
