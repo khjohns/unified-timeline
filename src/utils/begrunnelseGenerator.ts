@@ -501,13 +501,9 @@ function generateFristPreklusjonSection(input: FristResponseInput): string {
  * Generate the conditions section for frist response (§33.5)
  */
 function generateFristVilkarSection(input: FristResponseInput): string {
-  const { vilkarOppfylt, erPrekludert, sendEtterlysning } = input;
+  const { vilkarOppfylt, erPrekludert } = input;
 
-  // Skip vilkår section when sending etterlysning
-  if (sendEtterlysning) {
-    return '';
-  }
-
+  // Vilkår is always evaluated, even when sending etterlysning
   const prefix = erPrekludert ? 'Subsidiært, hva gjelder vilkårene (§33.5): ' : '';
 
   if (vilkarOppfylt) {
