@@ -7,5 +7,6 @@
 
 export { StatusCard } from './StatusCard';
 export { StatusDashboard } from './StatusDashboard';
+export { CaseDashboard } from './CaseDashboard';
 export { TimelineItem } from './TimelineItem';
 export { Timeline } from './Timeline';
