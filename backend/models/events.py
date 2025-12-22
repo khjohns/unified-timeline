@@ -1726,6 +1726,8 @@ def parse_event(data: dict) -> AnyEvent:
     Parse a dict into the correct event type.
 
     Uses event_type field to determine which model to instantiate.
+    Auto-derives 'spor' for ResponsEvent if not present (for backwards compatibility
+    with events stored in Supabase without the spor field).
     """
     event_type = data.get("event_type")
 
@@ -1770,6 +1772,28 @@ def parse_event(data: dict) -> AnyEvent:
     event_class = type_map.get(event_type)
     if not event_class:
         raise ValueError(f"Ukjent event_type: {event_type}")
+
+    # For ResponsEvent: Auto-derive 'spor' from event_type if not present
+    # This handles events stored in Supabase without the spor field
+    respons_event_types = [
+        EventType.RESPONS_GRUNNLAG.value,
+        EventType.RESPONS_GRUNNLAG_OPPDATERT.value,
+        EventType.RESPONS_VEDERLAG.value,
+        EventType.RESPONS_VEDERLAG_OPPDATERT.value,
+        EventType.RESPONS_FRIST.value,
+        EventType.RESPONS_FRIST_OPPDATERT.value,
+    ]
+    if event_type in respons_event_types and "spor" not in data:
+        spor_map = {
+            EventType.RESPONS_GRUNNLAG.value: SporType.GRUNNLAG.value,
+            EventType.RESPONS_GRUNNLAG_OPPDATERT.value: SporType.GRUNNLAG.value,
+            EventType.RESPONS_VEDERLAG.value: SporType.VEDERLAG.value,
+            EventType.RESPONS_VEDERLAG_OPPDATERT.value: SporType.VEDERLAG.value,
+            EventType.RESPONS_FRIST.value: SporType.FRIST.value,
+            EventType.RESPONS_FRIST_OPPDATERT.value: SporType.FRIST.value,
+        }
+        data = dict(data)  # Don't mutate original
+        data["spor"] = spor_map.get(event_type)
 
     return event_class.model_validate(data)
 
