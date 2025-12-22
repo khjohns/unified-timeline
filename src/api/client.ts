@@ -123,7 +123,8 @@ export async function apiFetch<T>(
     const contentType = response.headers.get('content-type');
     let data: unknown;
 
-    if (contentType && contentType.includes('application/json')) {
+    // Handle JSON responses (including CloudEvents format: application/cloudevents+json)
+    if (contentType && (contentType.includes('application/json') || contentType.includes('+json'))) {
       data = await response.json();
     } else {
       data = await response.text();
