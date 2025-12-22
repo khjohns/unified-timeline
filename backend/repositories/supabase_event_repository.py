@@ -334,11 +334,24 @@ class SupabaseEventRepository(EventRepository):
 
         Transforms CloudEvents attributes back to internal model structure.
         """
+        # Convert Supabase timestamp format to ISO 8601
+        # Supabase returns: "2025-12-22 11:33:01.352433+00"
+        # Pydantic expects: "2025-12-22T11:33:01.352433+00:00"
+        time_value = row.get("time")
+        if time_value and isinstance(time_value, str):
+            # Replace space with T for ISO 8601 compliance
+            time_value = time_value.replace(" ", "T")
+            # Fix timezone format: +00 -> +00:00
+            if time_value.endswith("+00"):
+                time_value = time_value + ":00"
+            elif time_value.endswith("-00"):
+                time_value = time_value[:-3] + "-00:00"
+
         return {
             "event_id": row.get("event_id"),
             "sak_id": row.get("sak_id") or row.get("subject"),
             "event_type": row.get("event_type") or row.get("type", "").replace(f"{CLOUDEVENTS_NAMESPACE}.", ""),
-            "tidsstempel": row.get("time"),
+            "tidsstempel": time_value,
             "aktor": row.get("actor"),
             "aktor_rolle": row.get("actorrole"),
             "data": row.get("data"),
