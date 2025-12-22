@@ -3,6 +3,7 @@ import { render } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { expectNoA11yViolations } from '../../../__tests__/axeHelper';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ToastProvider } from '@/components/primitives/Toast';
 import { SendGrunnlagModal } from '@/components/actions/SendGrunnlagModal';
 import { SendVederlagModal } from '@/components/actions/SendVederlagModal';
 import { SendFristModal } from '@/components/actions/SendFristModal';
@@ -10,7 +11,7 @@ import { RespondGrunnlagModal } from '@/components/actions/RespondGrunnlagModal'
 import { RespondVederlagModal } from '@/components/actions/RespondVederlagModal';
 import { RespondFristModal } from '@/components/actions/RespondFristModal';
 
-// Helper to wrap components with QueryClient provider
+// Helper to wrap components with QueryClient provider and ToastProvider
 const createWrapper = () => {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -23,7 +24,11 @@ const createWrapper = () => {
     },
   });
   return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <ToastProvider>
+        {children}
+      </ToastProvider>
+    </QueryClientProvider>
   );
 };
 

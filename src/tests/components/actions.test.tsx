@@ -10,6 +10,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ToastProvider } from '@/components/primitives/Toast';
 import { RespondGrunnlagModal } from '@/components/actions/RespondGrunnlagModal';
 import { RespondVederlagModal } from '@/components/actions/RespondVederlagModal';
 import { RespondFristModal } from '@/components/actions/RespondFristModal';
@@ -23,7 +24,7 @@ import { ReviseFristModal } from '@/components/actions/ReviseFristModal';
 import { UpdateResponseVederlagModal } from '@/components/actions/UpdateResponseVederlagModal';
 import { UpdateResponseFristModal } from '@/components/actions/UpdateResponseFristModal';
 
-// Wrapper with React Query provider
+// Wrapper with React Query provider and ToastProvider
 const createTestQueryClient = () =>
   new QueryClient({
     defaultOptions: {
@@ -32,9 +33,15 @@ const createTestQueryClient = () =>
     },
   });
 
-const renderWithQueryClient = (ui: React.ReactElement) => {
+const renderWithProviders = (ui: React.ReactElement) => {
   const queryClient = createTestQueryClient();
-  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <ToastProvider>
+        {ui}
+      </ToastProvider>
+    </QueryClientProvider>
+  );
 };
 
 describe('Action/Modal Components - Functional Tests', () => {
@@ -50,25 +57,25 @@ describe('Action/Modal Components - Functional Tests', () => {
     };
 
     it('should render when open', () => {
-      renderWithQueryClient(<RespondGrunnlagModal {...defaultProps} />);
+      renderWithProviders(<RespondGrunnlagModal {...defaultProps} />);
 
       expect(screen.getByText(/Svar på grunnlag/i)).toBeInTheDocument();
     });
 
     it('should have begrunnelse field', () => {
-      renderWithQueryClient(<RespondGrunnlagModal {...defaultProps} />);
+      renderWithProviders(<RespondGrunnlagModal {...defaultProps} />);
 
       expect(screen.getByText(/Begrunnelse/i)).toBeInTheDocument();
     });
 
     it('should not render when closed', () => {
-      renderWithQueryClient(<RespondGrunnlagModal {...defaultProps} open={false} />);
+      renderWithProviders(<RespondGrunnlagModal {...defaultProps} open={false} />);
 
       expect(screen.queryByText(/Svar på grunnlag/i)).not.toBeInTheDocument();
     });
 
     it('should have submit and cancel buttons', () => {
-      renderWithQueryClient(<RespondGrunnlagModal {...defaultProps} />);
+      renderWithProviders(<RespondGrunnlagModal {...defaultProps} />);
 
       expect(screen.getByText(/Avbryt/i)).toBeInTheDocument();
       expect(screen.getByText(/Send svar/i)).toBeInTheDocument();
@@ -83,26 +90,26 @@ describe('Action/Modal Components - Functional Tests', () => {
     };
 
     it('should render when open', () => {
-      renderWithQueryClient(<RespondVederlagModal {...defaultProps} />);
+      renderWithProviders(<RespondVederlagModal {...defaultProps} />);
 
       expect(screen.getByText(/Svar på vederlagskrav/i)).toBeInTheDocument();
     });
 
     it('should have krav section', () => {
-      renderWithQueryClient(<RespondVederlagModal {...defaultProps} />);
+      renderWithProviders(<RespondVederlagModal {...defaultProps} />);
 
       // Should show the dialog title
       expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
 
     it('should not render when closed', () => {
-      renderWithQueryClient(<RespondVederlagModal {...defaultProps} open={false} />);
+      renderWithProviders(<RespondVederlagModal {...defaultProps} open={false} />);
 
       expect(screen.queryByText(/Svar på vederlagskrav/i)).not.toBeInTheDocument();
     });
 
     it('should have dialog with proper title', () => {
-      renderWithQueryClient(<RespondVederlagModal {...defaultProps} />);
+      renderWithProviders(<RespondVederlagModal {...defaultProps} />);
 
       expect(screen.getByRole('dialog', { name: /Svar på vederlagskrav/i })).toBeInTheDocument();
     });
@@ -116,26 +123,26 @@ describe('Action/Modal Components - Functional Tests', () => {
     };
 
     it('should render when open', () => {
-      renderWithQueryClient(<RespondFristModal {...defaultProps} />);
+      renderWithProviders(<RespondFristModal {...defaultProps} />);
 
       expect(screen.getByText(/Svar på fristkrav/i)).toBeInTheDocument();
     });
 
     it('should have dialog role', () => {
-      renderWithQueryClient(<RespondFristModal {...defaultProps} />);
+      renderWithProviders(<RespondFristModal {...defaultProps} />);
 
       // Should show the dialog
       expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
 
     it('should not render when closed', () => {
-      renderWithQueryClient(<RespondFristModal {...defaultProps} open={false} />);
+      renderWithProviders(<RespondFristModal {...defaultProps} open={false} />);
 
       expect(screen.queryByText(/Svar på fristkrav/i)).not.toBeInTheDocument();
     });
 
     it('should have dialog with proper title', () => {
-      renderWithQueryClient(<RespondFristModal {...defaultProps} />);
+      renderWithProviders(<RespondFristModal {...defaultProps} />);
 
       expect(screen.getByRole('dialog', { name: /Svar på fristkrav/i })).toBeInTheDocument();
     });
@@ -146,7 +153,7 @@ describe('Action/Modal Components - Functional Tests', () => {
       const user = userEvent.setup();
       const handleOpenChange = vi.fn();
 
-      renderWithQueryClient(
+      renderWithProviders(
         <RespondGrunnlagModal open={true} onOpenChange={handleOpenChange} sakId="TEST-001" />
       );
 
@@ -163,37 +170,37 @@ describe('Action/Modal Components - Functional Tests', () => {
     };
 
     it('should render when open', () => {
-      renderWithQueryClient(<SendGrunnlagModal {...defaultProps} />);
+      renderWithProviders(<SendGrunnlagModal {...defaultProps} />);
 
       expect(screen.getByRole('dialog', { name: /Send grunnlag/i })).toBeInTheDocument();
     });
 
     it('should have hovedkategori field', () => {
-      renderWithQueryClient(<SendGrunnlagModal {...defaultProps} />);
+      renderWithProviders(<SendGrunnlagModal {...defaultProps} />);
 
       expect(screen.getByText(/Hovedkategori \(NS 8407\)/i)).toBeInTheDocument();
     });
 
     it('should have tittel field', () => {
-      renderWithQueryClient(<SendGrunnlagModal {...defaultProps} />);
+      renderWithProviders(<SendGrunnlagModal {...defaultProps} />);
 
       expect(screen.getByText(/Tittel på varselet/i)).toBeInTheDocument();
     });
 
     it('should have beskrivelse field', () => {
-      renderWithQueryClient(<SendGrunnlagModal {...defaultProps} />);
+      renderWithProviders(<SendGrunnlagModal {...defaultProps} />);
 
       expect(screen.getByText(/Beskrivelse/i)).toBeInTheDocument();
     });
 
     it('should not render when closed', () => {
-      renderWithQueryClient(<SendGrunnlagModal {...defaultProps} open={false} />);
+      renderWithProviders(<SendGrunnlagModal {...defaultProps} open={false} />);
 
       expect(screen.queryByRole('dialog', { name: /Send grunnlag/i })).not.toBeInTheDocument();
     });
 
     it('should have submit and cancel buttons', () => {
-      renderWithQueryClient(<SendGrunnlagModal {...defaultProps} />);
+      renderWithProviders(<SendGrunnlagModal {...defaultProps} />);
 
       expect(screen.getByRole('button', { name: /Avbryt/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Send grunnlag/i })).toBeInTheDocument();
@@ -209,31 +216,31 @@ describe('Action/Modal Components - Functional Tests', () => {
     };
 
     it('should render when open', () => {
-      renderWithQueryClient(<SendVederlagModal {...defaultProps} />);
+      renderWithProviders(<SendVederlagModal {...defaultProps} />);
 
       expect(screen.getByText(/Krav om Vederlagsjustering/i)).toBeInTheDocument();
     });
 
     it('should have oppgjørsform field', () => {
-      renderWithQueryClient(<SendVederlagModal {...defaultProps} />);
+      renderWithProviders(<SendVederlagModal {...defaultProps} />);
 
       expect(screen.getAllByText(/Oppgjørsform/i).length).toBeGreaterThan(0);
     });
 
     it('should have begrunnelse field', () => {
-      renderWithQueryClient(<SendVederlagModal {...defaultProps} />);
+      renderWithProviders(<SendVederlagModal {...defaultProps} />);
 
       expect(screen.getByText(/Begrunnelse/i)).toBeInTheDocument();
     });
 
     it('should not render when closed', () => {
-      renderWithQueryClient(<SendVederlagModal {...defaultProps} open={false} />);
+      renderWithProviders(<SendVederlagModal {...defaultProps} open={false} />);
 
       expect(screen.queryByText(/Krav om Vederlagsjustering/i)).not.toBeInTheDocument();
     });
 
     it('should have submit and cancel buttons', () => {
-      renderWithQueryClient(<SendVederlagModal {...defaultProps} />);
+      renderWithProviders(<SendVederlagModal {...defaultProps} />);
 
       expect(screen.getByText(/Avbryt/i)).toBeInTheDocument();
       expect(screen.getByText(/Send Krav/i)).toBeInTheDocument();
@@ -249,31 +256,31 @@ describe('Action/Modal Components - Functional Tests', () => {
     };
 
     it('should render when open', () => {
-      renderWithQueryClient(<SendFristModal {...defaultProps} />);
+      renderWithProviders(<SendFristModal {...defaultProps} />);
 
       expect(screen.getByText(/Krav om fristforlengelse/i)).toBeInTheDocument();
     });
 
     it('should have varsel type field', () => {
-      renderWithQueryClient(<SendFristModal {...defaultProps} />);
+      renderWithProviders(<SendFristModal {...defaultProps} />);
 
       expect(screen.getByText(/Type varsel\/krav/i)).toBeInTheDocument();
     });
 
     it('should have begrunnelse field', () => {
-      renderWithQueryClient(<SendFristModal {...defaultProps} />);
+      renderWithProviders(<SendFristModal {...defaultProps} />);
 
       expect(screen.getByText(/Begrunnelse/i)).toBeInTheDocument();
     });
 
     it('should not render when closed', () => {
-      renderWithQueryClient(<SendFristModal {...defaultProps} open={false} />);
+      renderWithProviders(<SendFristModal {...defaultProps} open={false} />);
 
       expect(screen.queryByText(/Krav om fristforlengelse/i)).not.toBeInTheDocument();
     });
 
     it('should have submit and cancel buttons', () => {
-      renderWithQueryClient(<SendFristModal {...defaultProps} />);
+      renderWithProviders(<SendFristModal {...defaultProps} />);
 
       expect(screen.getByRole('button', { name: /Avbryt/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Send fristkrav/i })).toBeInTheDocument();
@@ -298,25 +305,25 @@ describe('Action/Modal Components - Functional Tests', () => {
     };
 
     it('should render when open', () => {
-      renderWithQueryClient(<SendGrunnlagUpdateModal {...defaultProps} />);
+      renderWithProviders(<SendGrunnlagUpdateModal {...defaultProps} />);
 
       expect(screen.getByRole('dialog', { name: /Oppdater grunnlag/i })).toBeInTheDocument();
     });
 
     it('should have endrings_begrunnelse field', () => {
-      renderWithQueryClient(<SendGrunnlagUpdateModal {...defaultProps} />);
+      renderWithProviders(<SendGrunnlagUpdateModal {...defaultProps} />);
 
       expect(screen.getByText(/Begrunnelse for endring/i)).toBeInTheDocument();
     });
 
     it('should not render when closed', () => {
-      renderWithQueryClient(<SendGrunnlagUpdateModal {...defaultProps} open={false} />);
+      renderWithProviders(<SendGrunnlagUpdateModal {...defaultProps} open={false} />);
 
       expect(screen.queryByRole('dialog', { name: /Oppdater grunnlag/i })).not.toBeInTheDocument();
     });
 
     it('should have submit and cancel buttons', () => {
-      renderWithQueryClient(<SendGrunnlagUpdateModal {...defaultProps} />);
+      renderWithProviders(<SendGrunnlagUpdateModal {...defaultProps} />);
 
       expect(screen.getByRole('button', { name: /Avbryt/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Lagre endringer/i })).toBeInTheDocument();
@@ -343,25 +350,25 @@ describe('Action/Modal Components - Functional Tests', () => {
     };
 
     it('should render when open', () => {
-      renderWithQueryClient(<RespondGrunnlagUpdateModal {...defaultProps} />);
+      renderWithProviders(<RespondGrunnlagUpdateModal {...defaultProps} />);
 
       expect(screen.getByRole('dialog', { name: /Endre svar på grunnlag/i })).toBeInTheDocument();
     });
 
     it('should have resultat field', () => {
-      renderWithQueryClient(<RespondGrunnlagUpdateModal {...defaultProps} />);
+      renderWithProviders(<RespondGrunnlagUpdateModal {...defaultProps} />);
 
       expect(screen.getByText(/Ny avgjørelse/i)).toBeInTheDocument();
     });
 
     it('should not render when closed', () => {
-      renderWithQueryClient(<RespondGrunnlagUpdateModal {...defaultProps} open={false} />);
+      renderWithProviders(<RespondGrunnlagUpdateModal {...defaultProps} open={false} />);
 
       expect(screen.queryByRole('dialog', { name: /Endre svar på grunnlag/i })).not.toBeInTheDocument();
     });
 
     it('should have submit and cancel buttons', () => {
-      renderWithQueryClient(<RespondGrunnlagUpdateModal {...defaultProps} />);
+      renderWithProviders(<RespondGrunnlagUpdateModal {...defaultProps} />);
 
       expect(screen.getByRole('button', { name: /Avbryt/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Lagre endring/i })).toBeInTheDocument();
@@ -382,25 +389,25 @@ describe('Action/Modal Components - Functional Tests', () => {
     };
 
     it('should render when open', () => {
-      renderWithQueryClient(<ReviseVederlagModal {...defaultProps} />);
+      renderWithProviders(<ReviseVederlagModal {...defaultProps} />);
 
       expect(screen.getByRole('dialog', { name: /Revider vederlagskrav/i })).toBeInTheDocument();
     });
 
     it('should have begrunnelse field', () => {
-      renderWithQueryClient(<ReviseVederlagModal {...defaultProps} />);
+      renderWithProviders(<ReviseVederlagModal {...defaultProps} />);
 
       expect(screen.getByText(/Begrunnelse/i)).toBeInTheDocument();
     });
 
     it('should not render when closed', () => {
-      renderWithQueryClient(<ReviseVederlagModal {...defaultProps} open={false} />);
+      renderWithProviders(<ReviseVederlagModal {...defaultProps} open={false} />);
 
       expect(screen.queryByRole('dialog', { name: /Revider vederlagskrav/i })).not.toBeInTheDocument();
     });
 
     it('should have submit and cancel buttons', () => {
-      renderWithQueryClient(<ReviseVederlagModal {...defaultProps} />);
+      renderWithProviders(<ReviseVederlagModal {...defaultProps} />);
 
       expect(screen.getByRole('button', { name: /Avbryt/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Send Revisjon/i })).toBeInTheDocument();
@@ -424,25 +431,25 @@ describe('Action/Modal Components - Functional Tests', () => {
     };
 
     it('should render when open', () => {
-      renderWithQueryClient(<ReviseFristModal {...defaultProps} />);
+      renderWithProviders(<ReviseFristModal {...defaultProps} />);
 
       expect(screen.getByRole('dialog', { name: /Revider fristkrav/i })).toBeInTheDocument();
     });
 
     it('should have begrunnelse field', () => {
-      renderWithQueryClient(<ReviseFristModal {...defaultProps} />);
+      renderWithProviders(<ReviseFristModal {...defaultProps} />);
 
       expect(screen.getByText(/Begrunnelse/i)).toBeInTheDocument();
     });
 
     it('should not render when closed', () => {
-      renderWithQueryClient(<ReviseFristModal {...defaultProps} open={false} />);
+      renderWithProviders(<ReviseFristModal {...defaultProps} open={false} />);
 
       expect(screen.queryByRole('dialog', { name: /Revider fristkrav/i})).not.toBeInTheDocument();
     });
 
     it('should have submit and cancel buttons', () => {
-      renderWithQueryClient(<ReviseFristModal {...defaultProps} />);
+      renderWithProviders(<ReviseFristModal {...defaultProps} />);
 
       expect(screen.getByRole('button', { name: /Avbryt/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Oppdater Krav/i })).toBeInTheDocument();
@@ -468,25 +475,25 @@ describe('Action/Modal Components - Functional Tests', () => {
     };
 
     it('should render when open', () => {
-      renderWithQueryClient(<UpdateResponseVederlagModal {...defaultProps} />);
+      renderWithProviders(<UpdateResponseVederlagModal {...defaultProps} />);
 
       expect(screen.getByRole('dialog', { name: /Oppdater svar på vederlagskrav/i })).toBeInTheDocument();
     });
 
     it('should have resultat field', () => {
-      renderWithQueryClient(<UpdateResponseVederlagModal {...defaultProps} />);
+      renderWithProviders(<UpdateResponseVederlagModal {...defaultProps} />);
 
       expect(screen.getByText(/Samlet resultat/i)).toBeInTheDocument();
     });
 
     it('should not render when closed', () => {
-      renderWithQueryClient(<UpdateResponseVederlagModal {...defaultProps} open={false} />);
+      renderWithProviders(<UpdateResponseVederlagModal {...defaultProps} open={false} />);
 
       expect(screen.queryByRole('dialog', { name: /Oppdater svar på vederlagskrav/i })).not.toBeInTheDocument();
     });
 
     it('should have submit and cancel buttons', () => {
-      renderWithQueryClient(<UpdateResponseVederlagModal {...defaultProps} />);
+      renderWithProviders(<UpdateResponseVederlagModal {...defaultProps} />);
 
       expect(screen.getByRole('button', { name: /Avbryt/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Lagre Endringer/i })).toBeInTheDocument();
@@ -510,26 +517,26 @@ describe('Action/Modal Components - Functional Tests', () => {
     };
 
     it('should render when open', () => {
-      renderWithQueryClient(<UpdateResponseFristModal {...defaultProps} />);
+      renderWithProviders(<UpdateResponseFristModal {...defaultProps} />);
 
       expect(screen.getByRole('dialog', { name: /Oppdater svar på fristkrav/i })).toBeInTheDocument();
     });
 
     it('should have resultat field', () => {
       // Note: "Ny avgjørelse" section only shows when resultat is not 'godkjent'
-      renderWithQueryClient(<UpdateResponseFristModal {...defaultProps} />);
+      renderWithProviders(<UpdateResponseFristModal {...defaultProps} />);
 
       expect(screen.getByText(/Ny avgjørelse/i)).toBeInTheDocument();
     });
 
     it('should not render when closed', () => {
-      renderWithQueryClient(<UpdateResponseFristModal {...defaultProps} open={false} />);
+      renderWithProviders(<UpdateResponseFristModal {...defaultProps} open={false} />);
 
       expect(screen.queryByRole('dialog', { name: /Oppdater svar på fristkrav/i })).not.toBeInTheDocument();
     });
 
     it('should have submit and cancel buttons', () => {
-      renderWithQueryClient(<UpdateResponseFristModal {...defaultProps} />);
+      renderWithProviders(<UpdateResponseFristModal {...defaultProps} />);
 
       expect(screen.getByRole('button', { name: /Avbryt/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Lagre Endringer/i })).toBeInTheDocument();

@@ -9,6 +9,7 @@ import { AuthProvider } from './context/AuthContext';
 import { SupabaseAuthProvider } from './context/SupabaseAuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { ToastProvider } from './components/primitives/Toast';
 
 // Handle GitHub Pages SPA routing redirect
 // When 404.html redirects to /index.html?route=%2Fdemo, we need to
@@ -50,11 +51,13 @@ root.render(
       <BrowserRouter basename={import.meta.env.BASE_URL}>
         <SupabaseAuthProvider>
           <ThemeProvider>
-            <AuthProvider>
-              <ErrorBoundary>
-                <App />
-              </ErrorBoundary>
-            </AuthProvider>
+            <ToastProvider>
+              <AuthProvider>
+                <ErrorBoundary>
+                  <App />
+                </ErrorBoundary>
+              </AuthProvider>
+            </ToastProvider>
           </ThemeProvider>
         </SupabaseAuthProvider>
       </BrowserRouter>

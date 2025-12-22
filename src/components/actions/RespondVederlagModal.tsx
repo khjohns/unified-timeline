@@ -50,6 +50,7 @@ import {
   SelectValue,
   StepIndicator,
   Textarea,
+  useToast,
 } from '../primitives';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -243,6 +244,7 @@ export function RespondVederlagModal({
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const [showRestorePrompt, setShowRestorePrompt] = useState(false);
   const topRef = useRef<HTMLDivElement>(null);
+  const toast = useToast();
 
   // Scroll to top of modal content
   const scrollToTop = useCallback(() => {
@@ -312,6 +314,7 @@ export function RespondVederlagModal({
       reset();
       setCurrentPort(startPort);
       onOpenChange(false);
+      toast.success('Svar sendt', 'Ditt svar på vederlagskravet er registrert.');
     },
     onError: (error) => {
       // Check for magic link token issues
@@ -1867,8 +1870,8 @@ export function RespondVederlagModal({
                   Neste →
                 </Button>
               ) : (
-                <Button type="submit" variant="primary" disabled={isSubmitting} size="lg" className="w-full sm:w-auto order-1 sm:order-2">
-                  {isSubmitting ? 'Sender...' : 'Send svar'}
+                <Button type="submit" variant="primary" loading={isSubmitting} size="lg" className="w-full sm:w-auto order-1 sm:order-2">
+                  Send svar
                 </Button>
               )}
             </div>

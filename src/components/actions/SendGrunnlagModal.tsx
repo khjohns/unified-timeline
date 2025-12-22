@@ -24,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
   Textarea,
+  useToast,
 } from '../primitives';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -73,6 +74,7 @@ export function SendGrunnlagModal({
   const [selectedHovedkategori, setSelectedHovedkategori] = useState<string>('');
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const [showRestorePrompt, setShowRestorePrompt] = useState(false);
+  const toast = useToast();
 
   const {
     register,
@@ -183,6 +185,7 @@ export function SendGrunnlagModal({
       reset();
       setSelectedHovedkategori('');
       onOpenChange(false);
+      toast.success('Grunnlag sendt', 'Varselet ditt er registrert og sendt til byggherre.');
     },
     onError: (error) => {
       if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') {
@@ -552,12 +555,12 @@ export function SendGrunnlagModal({
           <Button
             type="submit"
             variant="primary"
-            disabled={isSubmitting}
+            loading={isSubmitting}
             size="lg"
             className="w-full sm:w-auto"
             data-testid="grunnlag-submit"
           >
-            {isSubmitting ? 'Sender...' : 'Send grunnlag'}
+            Send grunnlag
           </Button>
         </div>
       </form>
