@@ -61,8 +61,11 @@ Du trenger disse verdiene fra Supabase:
 | Verdi | Hvor | Brukes av |
 |-------|------|-----------|
 | Project URL | Settings → API → Project URL | Backend, Frontend |
-| `anon` public key | Settings → API → anon public | Frontend |
-| `service_role` key | Settings → API → service_role | Backend (hemmelig!) |
+| Publishable key | Settings → API → `sb_publishable_...` | Frontend (trygt å eksponere) |
+| Secret key | Settings → API → `sb_secret_...` | Backend (hemmelig!) |
+| JWT Secret | Settings → API → JWT Secret | Backend (for token-validering) |
+
+> **Merk:** Legacy `anon` og `service_role` keys fungerer fortsatt, men nye `sb_publishable_` og `sb_secret_` keys anbefales.
 
 ### Vercel (Frontend)
 
@@ -70,7 +73,7 @@ Du trenger disse verdiene fra Supabase:
 |----------|----------|-------------|
 | `VITE_API_BASE_URL` | `https://my-app.onrender.com` | Backend URL (uten `/api`) |
 | `VITE_SUPABASE_URL` | `https://xxx.supabase.co` | Supabase Project URL |
-| `VITE_SUPABASE_ANON_KEY` | `eyJhbGc...` | Supabase anon key (offentlig) |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_...` | Supabase publishable key |
 
 ### Render (Backend)
 
