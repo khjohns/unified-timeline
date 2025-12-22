@@ -745,21 +745,10 @@ export function RespondFristModal({
                   {/* Etterlysning option - only if varsel was OK */}
                   {formValues.noytralt_varsel_ok && (
                     <div className="space-y-3">
-                      <Alert variant={erNoytraltUtenDager ? 'danger' : 'warning'} title="Etterlysning (§33.6.2)">
-                        {erNoytraltUtenDager ? (
-                          <>
-                            Entreprenøren har kun sendt nøytralt varsel <strong>uten å spesifisere antall dager</strong>.
-                            Du kan ikke ta stilling til antall dager før kravet er spesifisert.
-                            <strong className="block mt-2">Anbefaling:</strong> Send etterlysning for å kreve at TE spesifiserer kravet.
-                            Hvis TE ikke svarer «uten ugrunnet opphold», tapes hele kravet.
-                          </>
-                        ) : (
-                          <>
-                            Entreprenøren har kun sendt nøytralt varsel uten antall dager. Du kan
-                            etterspørre et spesifisert krav. Hvis entreprenøren ikke svarer «uten ugrunnet
-                            opphold», tapes kravet.
-                          </>
-                        )}
+                      <Alert variant="warning" title="Etterlysning (§33.6.2)">
+                        Entreprenøren har kun sendt nøytralt varsel uten antall dager. Du kan
+                        etterspørre et spesifisert krav. Hvis entreprenøren ikke svarer «uten ugrunnet
+                        opphold», tapes kravet.
                       </Alert>
                       <FormField label="Vil du sende etterlysning?">
                         <Controller
