@@ -264,6 +264,65 @@
     --z-modal: 1050;
     --z-popover: 1060;
     --z-tooltip: 1070;
+    --z-toast: 1100;
+
+    /* ============================================
+       TOAST COLORS
+       ============================================ */
+    --color-pkt-surface-light-yellow: #ffe7bc;
+    --color-pkt-surface-light-red: #fff2f1;
+    --color-pkt-brand-warm-yellow-600: #d97706;
+    --color-pkt-brand-blue-600: #1f42aa;
+    --color-pkt-brand-green-700: #059669;
+
+    /* ============================================
+       ANIMATIONS
+       ============================================ */
+    --animate-slideIn: slideIn 150ms cubic-bezier(0.16, 1, 0.3, 1);
+    --animate-slideOut: slideOut 100ms ease-in;
+    --animate-swipeOut: swipeOut 100ms ease-out;
+    --animate-spin: spin 1s linear infinite;
+}
+
+/* Toast animations */
+@keyframes slideIn {
+    from {
+        transform: translateX(calc(100% + 1rem));
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(calc(100% + 1rem));
+        opacity: 0;
+    }
+}
+
+@keyframes swipeOut {
+    from {
+        transform: translateX(var(--radix-toast-swipe-end-x));
+    }
+    to {
+        transform: translateX(calc(100% + 1rem));
+    }
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* ============================================

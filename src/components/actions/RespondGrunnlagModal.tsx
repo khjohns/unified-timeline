@@ -21,6 +21,7 @@ import {
   RadioGroup,
   RadioItem,
   Textarea,
+  useToast,
 } from '../primitives';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -76,6 +77,7 @@ export function RespondGrunnlagModal({
 }: RespondGrunnlagModalProps) {
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const [showRestorePrompt, setShowRestorePrompt] = useState(false);
+  const toast = useToast();
 
   const {
     register,
@@ -114,7 +116,7 @@ export function RespondGrunnlagModal({
   const handleDiscardBackup = () => { clearBackup(); setShowRestorePrompt(false); };
 
   const mutation = useSubmitEvent(sakId, {
-    onSuccess: () => { clearBackup(); reset(); onOpenChange(false); },
+    onSuccess: () => { clearBackup(); reset(); onOpenChange(false); toast.success('Svar sendt', 'Ditt svar på grunnlagsvarselet er registrert.'); },
     onError: (error) => { if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') setShowTokenExpired(true); },
   });
 
@@ -377,12 +379,12 @@ export function RespondGrunnlagModal({
           <Button
             type="submit"
             variant={selectedResultat === 'avslatt' ? 'danger' : 'primary'}
-            disabled={isSubmitting}
+            loading={isSubmitting}
             size="lg"
             className="w-full sm:w-auto"
             data-testid="respond-grunnlag-submit"
           >
-            {isSubmitting ? 'Sender...' : 'Send svar'}
+            Send svar
           </Button>
         </div>
       </form>

@@ -24,6 +24,7 @@ import {
   RadioGroup,
   RadioItem,
   Textarea,
+  useToast,
 } from '../primitives';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -109,6 +110,7 @@ export function SendFristModal({
 }: SendFristModalProps) {
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const [showRestorePrompt, setShowRestorePrompt] = useState(false);
+  const toast = useToast();
 
   const {
     register,
@@ -170,6 +172,7 @@ export function SendFristModal({
       clearBackup();
       reset();
       onOpenChange(false);
+      toast.success('Fristkrav sendt', 'Kravet ditt er registrert og sendt til byggherre.');
     },
     onError: (error) => {
       if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') {
@@ -558,8 +561,8 @@ export function SendFristModal({
           >
             Avbryt
           </Button>
-          <Button type="submit" variant="primary" disabled={isSubmitting} size="lg" className="w-full sm:w-auto order-1 sm:order-2" data-testid="frist-submit">
-            {isSubmitting ? 'Sender...' : 'Send fristkrav'}
+          <Button type="submit" variant="primary" loading={isSubmitting} size="lg" className="w-full sm:w-auto order-1 sm:order-2" data-testid="frist-submit">
+            Send fristkrav
           </Button>
         </div>
       </form>

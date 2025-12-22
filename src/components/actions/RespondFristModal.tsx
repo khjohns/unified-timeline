@@ -42,6 +42,7 @@ import {
   RadioItem,
   StepIndicator,
   Textarea,
+  useToast,
 } from '../primitives';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -211,6 +212,7 @@ export function RespondFristModal({
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const [showRestorePrompt, setShowRestorePrompt] = useState(false);
   const topRef = useRef<HTMLDivElement>(null);
+  const toast = useToast();
 
   // Scroll to top of modal content
   const scrollToTop = useCallback(() => {
@@ -274,6 +276,7 @@ export function RespondFristModal({
       reset();
       setCurrentPort(1);
       onOpenChange(false);
+      toast.success('Svar sendt', 'Ditt svar på fristkravet er registrert.');
     },
     onError: (error) => {
       if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') {
@@ -1384,8 +1387,8 @@ export function RespondFristModal({
                   Neste →
                 </Button>
               ) : (
-                <Button type="submit" variant="primary" disabled={isSubmitting} size="lg" className="w-full sm:w-auto order-1 sm:order-2">
-                  {isSubmitting ? 'Sender...' : 'Send svar'}
+                <Button type="submit" variant="primary" loading={isSubmitting} size="lg" className="w-full sm:w-auto order-1 sm:order-2">
+                  Send svar
                 </Button>
               )}
             </div>
