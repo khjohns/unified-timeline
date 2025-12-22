@@ -287,30 +287,34 @@ export function getUnderkategorier(hovedkategori: string): DropdownOption[] {
   return UNDERKATEGORI_MAP[hovedkategori] || [];
 }
 
-// Get hovedkategori label from code
+// Get hovedkategori label from code (case-insensitive)
 export function getHovedkategoriLabel(code: string): string {
-  const kategori = KRAV_STRUKTUR_NS8407.find((k) => k.kode === code);
+  const upperCode = code.toUpperCase();
+  const kategori = KRAV_STRUKTUR_NS8407.find((k) => k.kode.toUpperCase() === upperCode);
   return kategori?.label || code;
 }
 
-// Get underkategori label from code
+// Get underkategori label from code (case-insensitive)
 export function getUnderkategoriLabel(code: string): string {
+  const upperCode = code.toUpperCase();
   for (const hovedkategori of KRAV_STRUKTUR_NS8407) {
-    const underkategori = hovedkategori.underkategorier.find((u) => u.kode === code);
+    const underkategori = hovedkategori.underkategorier.find((u) => u.kode.toUpperCase() === upperCode);
     if (underkategori) return underkategori.label;
   }
   return code;
 }
 
-// Get full hovedkategori object by code
+// Get full hovedkategori object by code (case-insensitive)
 export function getHovedkategori(code: string): Hovedkategori | undefined {
-  return KRAV_STRUKTUR_NS8407.find((k) => k.kode === code);
+  const upperCode = code.toUpperCase();
+  return KRAV_STRUKTUR_NS8407.find((k) => k.kode.toUpperCase() === upperCode);
 }
 
-// Get full underkategori object by code
+// Get full underkategori object by code (case-insensitive)
 export function getUnderkategoriObj(code: string): Underkategori | undefined {
+  const upperCode = code.toUpperCase();
   for (const hovedkategori of KRAV_STRUKTUR_NS8407) {
-    const underkategori = hovedkategori.underkategorier.find((u) => u.kode === code);
+    const underkategori = hovedkategori.underkategorier.find((u) => u.kode.toUpperCase() === upperCode);
     if (underkategori) return underkategori;
   }
   return undefined;
