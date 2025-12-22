@@ -151,7 +151,7 @@ export async function apiFetch<T>(
 
           if (retryResponse.ok) {
             const retryContentType = retryResponse.headers.get('content-type');
-            if (retryContentType && retryContentType.includes('application/json')) {
+            if (retryContentType && (retryContentType.includes('application/json') || retryContentType.includes('+json'))) {
               return await retryResponse.json() as T;
             }
             return await retryResponse.text() as unknown as T;
