@@ -12,7 +12,7 @@ Architecture:
 import os
 import base64
 import tempfile
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 from threading import Thread
 
@@ -177,7 +177,7 @@ class WebhookService:
             author_email = topic_data.get('bimsync_creation_author', {}).get('user', {}).get('email')
 
             # Generate sak_id (timestamp-based)
-            timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
+            timestamp = datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')
             sak_id = f"SAK-{timestamp}"
 
             # Create SakOpprettetEvent (Event Sourcing)
@@ -206,7 +206,7 @@ class WebhookService:
                 catenda_topic_id=topic_id,
                 catenda_board_id=board_id,
                 catenda_project_id=v2_project_id,
-                created_at=datetime.now(),
+                created_at=datetime.now(timezone.utc),
                 created_by=author_name,
                 cached_title=title,
                 cached_status="UNDER_VARSLING",  # Initial status
@@ -223,7 +223,7 @@ class WebhookService:
             magic_link = f"{base_url}{frontend_route}?magicToken={magic_token}" if magic_token else f"{base_url}{frontend_route}"
 
             # Post comment to Catenda (async to avoid blocking)
-            dato = datetime.now().strftime('%Y-%m-%d')
+            dato = datetime.now(timezone.utc).strftime('%Y-%m-%d')
 
             # Generate sakstype-specific comment
             if sakstype == "endringsordre":

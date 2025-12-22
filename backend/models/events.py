@@ -12,7 +12,7 @@ Hver event er immutable og representerer en faktisk hendelse i tid.
 """
 from pydantic import BaseModel, Field, field_validator, model_validator, computed_field
 from typing import Optional, Literal, List, Union
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from uuid import uuid4
 
@@ -273,8 +273,8 @@ class SakEvent(CloudEventMixin, BaseModel):
         description="Type hendelse"
     )
     tidsstempel: datetime = Field(
-        default_factory=datetime.now,
-        description="Når hendelsen skjedde"
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="Når hendelsen skjedde (UTC)"
     )
     aktor: str = Field(
         ...,
@@ -1799,7 +1799,7 @@ def parse_event_from_request(request_data: dict) -> AnyEvent:
 
     # Add server-controlled fields
     request_data["event_id"] = str(uuid4())
-    request_data["tidsstempel"] = datetime.now().isoformat()
+    request_data["tidsstempel"] = datetime.now(timezone.utc).isoformat()
 
     # For ResponsEvent: Auto-derive 'spor' from event_type if not provided
     # This allows frontend to send spor inside 'data' or rely on auto-derivation

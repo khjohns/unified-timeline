@@ -9,7 +9,7 @@ Denne servicen håndterer opprettelse av forseringssaker som egne saker
 med relasjoner til de avslåtte fristforlengelsessakene.
 """
 from typing import Dict, List, Optional, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 from utils.logger import get_logger
 from models.sak_state import SaksType, SakState
@@ -141,7 +141,7 @@ class ForseringService(BaseSakService):
             ],
             "forsering_data": {
                 "avslatte_fristkrav": avslatte_sak_ids,
-                "dato_varslet": datetime.now().isoformat(),
+                "dato_varslet": datetime.now(timezone.utc).isoformat(),
                 "estimert_kostnad": estimert_kostnad,
                 "bekreft_30_prosent_regel": True,
                 "avslatte_dager": avslatte_dager,
@@ -457,7 +457,7 @@ class ForseringService(BaseSakService):
                 "aksepterer": aksepterer,
                 "godkjent_kostnad": godkjent_kostnad,
                 "begrunnelse": begrunnelse,
-                "dato_respons": datetime.now().strftime("%Y-%m-%d"),
+                "dato_respons": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
             }
         }
 
@@ -499,7 +499,7 @@ class ForseringService(BaseSakService):
         if not self.event_repository:
             raise RuntimeError("EventRepository er ikke konfigurert")
 
-        dato_stoppet = datetime.now().strftime("%Y-%m-%d")
+        dato_stoppet = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
         # Opprett event
         event_data = {

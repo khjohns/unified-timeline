@@ -8,7 +8,7 @@ Denne servicen håndterer opprettelse og håndtering av endringsordresaker som e
 med relasjoner til de KOE-sakene som inngår i endringsordren.
 """
 from typing import Dict, List, Optional, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 from utils.logger import get_logger
 from models.sak_state import (
@@ -145,8 +145,8 @@ class EndringsordreService(BaseSakService):
             logger.warning("Ingen Catenda client - returnerer mock-data")
 
         # Bygg sak-ID
-        sak_id = topic['guid'] if topic else f"mock-eo-{datetime.now().timestamp()}"
-        dato_utstedt = datetime.now().strftime('%Y-%m-%d')
+        sak_id = topic['guid'] if topic else f"mock-eo-{datetime.now(timezone.utc).timestamp()}"
+        dato_utstedt = datetime.now(timezone.utc).strftime('%Y-%m-%d')
 
         # Beregn netto beløp
         komp = kompensasjon_belop or 0.0

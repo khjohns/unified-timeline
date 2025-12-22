@@ -5,8 +5,17 @@ Pure Python solution - no native dependencies required.
 Generates PDF showing current state and last events per track.
 """
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from io import BytesIO
+
+
+def _get_norwegian_time() -> str:
+    """Get current time in Norwegian timezone for display."""
+    utc_now = datetime.now(timezone.utc)
+    norwegian_tz = ZoneInfo("Europe/Oslo")
+    local_time = utc_now.astimezone(norwegian_tz)
+    return local_time.strftime('%Y-%m-%d %H:%M')
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -257,7 +266,7 @@ class ReportLabPdfGenerator:
             story.append(Spacer(1, 24))
             story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#CCCCCC')))
             story.append(Paragraph(
-                f"Generert: {datetime.now().strftime('%Y-%m-%d %H:%M')} | Sak-ID: {state.sak_id}",
+                f"Generert: {_get_norwegian_time()} | Sak-ID: {state.sak_id}",
                 self.styles['KoeSmallText']
             ))
 

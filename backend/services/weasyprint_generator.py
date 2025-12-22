@@ -6,9 +6,18 @@ Can reuse CSS styling from frontend.
 """
 from typing import Optional
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from weasyprint import HTML
 from jinja2 import Template
+
+
+def _get_norwegian_time() -> str:
+    """Get current time in Norwegian timezone for display."""
+    utc_now = datetime.now(timezone.utc)
+    norwegian_tz = ZoneInfo("Europe/Oslo")
+    local_time = utc_now.astimezone(norwegian_tz)
+    return local_time.strftime('%Y-%m-%d %H:%M:%S')
 
 from models.sak_state import SakState
 from utils.logger import get_logger
@@ -357,7 +366,7 @@ class WeasyPrintGenerator:
             # Render HTML from template
             html_content = self.template.render(
                 state=state,
-                now=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                now=_get_norwegian_time(),
                 format_status=self._format_status
             )
 

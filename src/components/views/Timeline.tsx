@@ -207,18 +207,19 @@ export function Timeline({ events }: TimelineProps) {
   const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(null);
 
   /**
-   * Format date for minimal display (dd.mm)
+   * Format date for minimal display (dd.mm) in Norwegian timezone
    */
   function formatDateMinimal(dateStr: string): string {
     const date = new Date(dateStr);
     return date.toLocaleDateString('nb-NO', {
       day: '2-digit',
       month: '2-digit',
+      timeZone: 'Europe/Oslo',
     });
   }
 
   /**
-   * Format date for expanded view (full date with year)
+   * Format date for expanded view (full date with year) in Norwegian timezone
    */
   function formatDateFull(dateStr: string): string {
     const date = new Date(dateStr);
@@ -228,6 +229,7 @@ export function Timeline({ events }: TimelineProps) {
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
+      timeZone: 'Europe/Oslo',
     });
   }
 

@@ -33,8 +33,8 @@ const Header: React.FC = () => (
 const Footer: React.FC<{ pageNumber: number; totalPages: number }> = ({ pageNumber, totalPages }) => (
   <View style={styles.footer} fixed>
     <Text style={styles.footerText}>
-      Generert: {new Date().toLocaleDateString('no-NO', { day: 'numeric', month: 'long', year: 'numeric' })} kl.{' '}
-      {new Date().toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' })}
+      Generert: {new Date().toLocaleDateString('nb-NO', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Oslo' })} kl.{' '}
+      {new Date().toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Oslo' })}
     </Text>
     <Text style={styles.footerPageNumber}>
       Side {pageNumber} av {totalPages}
@@ -220,10 +220,11 @@ function formatCurrency(amount?: number): string {
 function formatDate(dateStr?: string): string {
   if (!dateStr) return '—';
   try {
-    return new Date(dateStr).toLocaleDateString('no-NO', {
+    return new Date(dateStr).toLocaleDateString('nb-NO', {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
+      timeZone: 'Europe/Oslo',
     });
   } catch {
     return dateStr;
