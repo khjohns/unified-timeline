@@ -108,6 +108,22 @@ export interface HistorikkResponse {
   frist: FristHistorikkEntry[];
 }
 
+// ========== CASE LIST ==========
+
+export interface CaseListItem {
+  sak_id: string;
+  sakstype: 'standard' | 'forsering' | 'endringsordre';
+  cached_title: string | null;
+  cached_status: string | null;
+  created_at: string | null;
+  created_by: string;
+  last_event_at: string | null;
+}
+
+export interface CaseListResponse {
+  cases: CaseListItem[];
+}
+
 // ========== API REQUESTS ==========
 
 export interface EventSubmitRequest {

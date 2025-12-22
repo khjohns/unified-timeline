@@ -5,6 +5,16 @@ OpenAPI Specification Generator
 Generates openapi.yaml from Pydantic models and route definitions.
 Framework-agnostic - works regardless of Flask, Azure Functions, etc.
 
+NOTE: This is the source of truth for API documentation.
+      The generated docs/openapi.yaml is the machine-readable spec.
+      For human-readable docs, see docs/API.md (manually maintained).
+
+      When adding new endpoints:
+      1. Add the route to routes/*.py
+      2. Add the path definition to generate_paths() in this file
+      3. Run: python scripts/generate_openapi.py
+      4. Consider updating docs/API.md for detailed examples
+
 Usage:
     python scripts/generate_openapi.py
     python scripts/generate_openapi.py --output docs/openapi.yaml
@@ -290,6 +300,59 @@ Main category for grounds (NS 8407 §33.1):
             "state": {
                 "type": "object",
                 "description": "Computed case state"
+            }
+        }
+    }
+
+    schemas["CaseListItem"] = {
+        "type": "object",
+        "properties": {
+            "sak_id": {
+                "type": "string",
+                "example": "SAK-20251218-001",
+                "description": "Case identifier"
+            },
+            "sakstype": {
+                "type": "string",
+                "enum": ["standard", "forsering", "endringsordre"],
+                "description": "Case type"
+            },
+            "cached_title": {
+                "type": "string",
+                "nullable": True,
+                "description": "Cached case title"
+            },
+            "cached_status": {
+                "type": "string",
+                "nullable": True,
+                "description": "Cached overall status"
+            },
+            "created_at": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": True,
+                "description": "Case creation timestamp"
+            },
+            "created_by": {
+                "type": "string",
+                "description": "Email of creator"
+            },
+            "last_event_at": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": True,
+                "description": "Timestamp of most recent event"
+            }
+        }
+    }
+
+    schemas["CaseListResponse"] = {
+        "type": "object",
+        "properties": {
+            "cases": {
+                "type": "array",
+                "items": {"$ref": "#/components/schemas/CaseListItem"},
+                "description": "List of case metadata"
             }
         }
     }
@@ -627,6 +690,44 @@ Submit a single event to a case with optimistic concurrency control.
                 "201": {"description": "All events submitted"},
                 "400": {"description": "Validation error"},
                 "409": {"description": "Version conflict"}
+            }
+        }
+    }
+
+    # Case list endpoint
+    paths["/api/cases"] = {
+        "get": {
+            "tags": ["Events"],
+            "summary": "List all cases",
+            "description": """
+List all cases with metadata from the sak_metadata table.
+
+Supports filtering by case type (sakstype).
+Results are sorted by last_event_at descending (most recent first).
+""".strip(),
+            "operationId": "listCases",
+            "security": [{"magicLink": []}],
+            "parameters": [
+                {
+                    "name": "sakstype",
+                    "in": "query",
+                    "required": False,
+                    "schema": {
+                        "type": "string",
+                        "enum": ["standard", "forsering", "endringsordre"]
+                    },
+                    "description": "Filter by case type"
+                }
+            ],
+            "responses": {
+                "200": {
+                    "description": "List of cases",
+                    "content": {
+                        "application/json": {
+                            "schema": {"$ref": "#/components/schemas/CaseListResponse"}
+                        }
+                    }
+                }
             }
         }
     }
