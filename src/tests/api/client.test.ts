@@ -150,6 +150,23 @@ describe('API Client', () => {
       expect(result).toBe('Plain text response');
     });
 
+    it('should handle CloudEvents JSON response (application/cloudevents+json)', async () => {
+      const cloudEventsData = {
+        events: [{ id: '1', type: 'no.oslo.koe.test' }],
+        version: 1,
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ 'content-type': 'application/cloudevents+json' }),
+        json: () => Promise.resolve(cloudEventsData),
+      });
+
+      const result = await apiFetch('/api/test');
+
+      expect(result).toEqual(cloudEventsData);
+    });
+
     it('should throw ApiError on 400 response with JSON error', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
