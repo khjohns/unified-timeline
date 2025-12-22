@@ -9,13 +9,20 @@
  * - Supports success, error, warning, and info variants
  * - Animated entrance/exit
  * - Accessible with proper ARIA attributes
+ * - Uses same semantic colors as Alert component for dark/light mode support
  */
 
 import * as ToastPrimitive from '@radix-ui/react-toast';
 import { clsx } from 'clsx';
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import {
+  InfoCircledIcon,
+  CheckCircledIcon,
+  ExclamationTriangleIcon,
+  CrossCircledIcon,
+} from '@radix-ui/react-icons';
 
-// Toast variant types
+// Toast variant types - matches Alert variants
 type ToastVariant = 'success' | 'error' | 'warning' | 'info';
 
 interface ToastData {
@@ -47,83 +54,33 @@ export function useToast(): ToastContextValue {
   return context;
 }
 
-// Icon components for each variant
-function SuccessIcon() {
-  return (
-    <svg
-      className="w-5 h-5 text-pkt-brand-green-700"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-    </svg>
-  );
-}
+// Using same semantic alert colors as Alert component for dark/light mode support
+const variantStyles: Record<ToastVariant, { container: string; icon: string }> = {
+  info: {
+    container: 'bg-alert-info-bg border-alert-info-border text-alert-info-text',
+    icon: 'text-alert-info-border',
+  },
+  success: {
+    container: 'bg-alert-success-bg border-alert-success-border text-alert-success-text',
+    icon: 'text-alert-success-border',
+  },
+  warning: {
+    container: 'bg-alert-warning-bg border-alert-warning-border text-alert-warning-text',
+    icon: 'text-alert-warning-border',
+  },
+  error: {
+    container: 'bg-alert-danger-bg border-alert-danger-border text-alert-danger-text',
+    icon: 'text-alert-danger-border',
+  },
+};
 
-function ErrorIcon() {
-  return (
-    <svg
-      className="w-5 h-5 text-pkt-brand-red-600"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-    </svg>
-  );
-}
-
-function WarningIcon() {
-  return (
-    <svg
-      className="w-5 h-5 text-pkt-brand-warm-yellow-600"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-      />
-    </svg>
-  );
-}
-
-function InfoIcon() {
-  return (
-    <svg
-      className="w-5 h-5 text-pkt-brand-blue-600"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-      />
-    </svg>
-  );
-}
-
-function getIcon(variant: ToastVariant) {
-  switch (variant) {
-    case 'success':
-      return <SuccessIcon />;
-    case 'error':
-      return <ErrorIcon />;
-    case 'warning':
-      return <WarningIcon />;
-    case 'info':
-      return <InfoIcon />;
-  }
-}
+// Default icons for each variant using Radix UI icons (same as Alert)
+const variantIcons: Record<ToastVariant, ReactNode> = {
+  info: <InfoCircledIcon className="w-5 h-5" />,
+  success: <CheckCircledIcon className="w-5 h-5" />,
+  warning: <ExclamationTriangleIcon className="w-5 h-5" />,
+  error: <CrossCircledIcon className="w-5 h-5" />,
+};
 
 interface ToastItemProps {
   toast: ToastData;
@@ -131,11 +88,13 @@ interface ToastItemProps {
 }
 
 function ToastItem({ toast, onOpenChange }: ToastItemProps) {
+  const styles = variantStyles[toast.variant];
+
   return (
     <ToastPrimitive.Root
       className={clsx(
         // Base styles
-        'rounded-none border-2 p-4 shadow-lg',
+        'rounded-none border-l-4 p-4 shadow-lg',
         'grid grid-cols-[auto_1fr_auto] gap-3 items-start',
         // Animation
         'data-[state=open]:animate-slideIn',
@@ -143,27 +102,24 @@ function ToastItem({ toast, onOpenChange }: ToastItemProps) {
         'data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)]',
         'data-[swipe=cancel]:translate-x-0 data-[swipe=cancel]:transition-transform',
         'data-[swipe=end]:animate-swipeOut',
-        // Variant styles
-        {
-          'bg-pkt-surface-light-green border-pkt-brand-green-700': toast.variant === 'success',
-          'bg-pkt-surface-light-red border-pkt-brand-red-600': toast.variant === 'error',
-          'bg-pkt-surface-light-yellow border-pkt-brand-warm-yellow-600': toast.variant === 'warning',
-          'bg-pkt-surface-light-blue border-pkt-brand-blue-600': toast.variant === 'info',
-        }
+        // Variant styles from semantic colors
+        styles.container
       )}
       duration={toast.duration ?? 4000}
       onOpenChange={onOpenChange}
     >
       {/* Icon */}
-      <div className="flex-shrink-0 mt-0.5">{getIcon(toast.variant)}</div>
+      <div className={clsx('flex-shrink-0 mt-0.5', styles.icon)}>
+        {variantIcons[toast.variant]}
+      </div>
 
       {/* Content */}
       <div className="flex flex-col gap-1">
-        <ToastPrimitive.Title className="font-semibold text-pkt-text-body-dark">
+        <ToastPrimitive.Title className="font-bold">
           {toast.title}
         </ToastPrimitive.Title>
         {toast.description && (
-          <ToastPrimitive.Description className="text-sm text-pkt-text-body-subtle">
+          <ToastPrimitive.Description className="text-sm opacity-90">
             {toast.description}
           </ToastPrimitive.Description>
         )}
@@ -172,15 +128,12 @@ function ToastItem({ toast, onOpenChange }: ToastItemProps) {
       {/* Close button */}
       <ToastPrimitive.Close
         className={clsx(
-          'flex-shrink-0 p-1 rounded-none',
-          'text-pkt-text-body-subtle hover:text-pkt-text-body-dark',
+          'flex-shrink-0 p-1 rounded-none opacity-70 hover:opacity-100',
           'focus:outline-none focus:ring-2 focus:ring-pkt-border-focus'
         )}
         aria-label="Lukk"
       >
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-        </svg>
+        <CrossCircledIcon className="w-4 h-4" />
       </ToastPrimitive.Close>
     </ToastPrimitive.Root>
   );
