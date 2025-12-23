@@ -10,6 +10,7 @@ export * from './responseOptions';
 export * from './varselMetoder';
 export * from './fristVarselTypes';
 export * from './varslingsregler';
+export * from './eventTypeLabels';
 
 // Re-export types
 export type { DropdownOption, Hovedkategori, Underkategori } from './categories';

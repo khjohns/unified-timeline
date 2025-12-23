@@ -14,6 +14,7 @@
 import { EventDetailModal } from './EventDetailModal';
 import { RevisionTag, UpdatedTag } from '../primitives';
 import { TimelineEvent, SporType, extractEventType } from '../../types/timeline';
+import { getEventTypeLabel } from '../../constants/eventTypeLabels';
 import { useState } from 'react';
 import { FileTextIcon, ClipboardIcon, ChevronDownIcon } from '@radix-ui/react-icons';
 
@@ -381,7 +382,7 @@ export function Timeline({ events }: TimelineProps) {
 
                     {/* Event type description */}
                     <p className="text-sm text-pkt-text-body-dark">
-                      {extractEventType(event.type) || event.type}
+                      {getEventTypeLabel(extractEventType(event.type))}
                     </p>
 
                     {/* View form button */}
