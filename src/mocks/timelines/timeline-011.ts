@@ -53,7 +53,7 @@ export const mockTimelineEvents11: TimelineEntry[] = [
 
       // Port 3: Prinsipal - Avslått pga grunnlag
       beregnings_resultat: 'avslatt',
-      begrunnelse_beregning: 'Kravet avslås prinsipalt da grunnlaget bestrides.',
+      begrunnelse: 'Kravet avslås prinsipalt da grunnlaget bestrides.',
 
       // Port 3: Beregning - Prinsipalt
       godkjent_dager: 0,
@@ -107,7 +107,7 @@ export const mockTimelineEvents11: TimelineEntry[] = [
 
       // Port 4: Samlet resultat - Prinsipal
       beregnings_resultat: 'avslatt',
-      begrunnelse_beregning: 'Kravet avslås prinsipalt da grunnlaget bestrides.',
+      begrunnelse: 'Kravet avslås prinsipalt da grunnlaget bestrides.',
       total_godkjent_belop: 0,
 
       // Subsidiært standpunkt

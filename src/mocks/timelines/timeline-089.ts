@@ -29,7 +29,7 @@ export const mockTimelineEvents3: TimelineEntry[] = [
       begrunnelse_vilkar: 'Fristforlengelse følger direkte av byggherres designendring.',
       beregnings_resultat: 'godkjent',
       godkjent_dager: 14,
-      begrunnelse_beregning: 'Tid er i henhold til leverandørens spesifikasjoner.',
+      begrunnelse: 'Tid er i henhold til leverandørens spesifikasjoner.',
     },
   },
   {
@@ -45,7 +45,7 @@ export const mockTimelineEvents3: TimelineEntry[] = [
       beregnings_resultat: 'godkjent',
       godkjent_belop: 850000,
       vederlagsmetode: 'ENHETSPRISER',
-      begrunnelse_beregning: 'Beløp stemmer med kontraktspriser. Godkjent.',
+      begrunnelse: 'Beløp stemmer med kontraktspriser. Godkjent.',
     },
   },
   {

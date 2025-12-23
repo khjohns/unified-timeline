@@ -28,7 +28,7 @@ export const mockTimelineEvents4: TimelineEntry[] = [
       vilkar_oppfylt: true,
       begrunnelse_vilkar: 'Grunnlag er akseptert, årsakssammenheng dokumentert.',
       beregnings_resultat: 'avslatt',
-      begrunnelse_beregning: 'Fristkravet avslås da det mangler dokumentasjon av arbeidsoperasjoner og påvirkning på framdrift. TE oppfordres til å revidere kravet med detaljert framdriftsplan.',
+      begrunnelse: 'Fristkravet avslås da det mangler dokumentasjon av arbeidsoperasjoner og påvirkning på framdrift. TE oppfordres til å revidere kravet med detaljert framdriftsplan.',
     },
   },
   {
@@ -42,7 +42,7 @@ export const mockTimelineEvents4: TimelineEntry[] = [
     sammendrag: 'Avslått - detaljert kostnadskalkyle kreves',
     event_data: {
       beregnings_resultat: 'avslatt',
-      begrunnelse_beregning: 'Grunnlaget er akseptert, men vederlagskravet avslås da det mangler tilstrekkelig spesifikasjon. TE oppfordres til å revidere kravet med detaljert kostnadskalkyle og dokumentasjon.',
+      begrunnelse: 'Grunnlaget er akseptert, men vederlagskravet avslås da det mangler tilstrekkelig spesifikasjon. TE oppfordres til å revidere kravet med detaljert kostnadskalkyle og dokumentasjon.',
     },
   },
   {

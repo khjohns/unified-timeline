@@ -176,7 +176,7 @@ MOCK_EVENTS_SCENARIO_1 = [
             vederlagsmetode=VederlagsMetode.REGNING,
             beregnings_resultat=VederlagBeregningResultat.GODKJENT,
             total_godkjent_belop=75000,
-            begrunnelse_beregning=(
+            begrunnelse=(
                 "BH er enig om timeforbruk og timepriser. "
                 "Rigg/drift er rimelig for denne type arbeid. "
                 "Godkjenner beløpet fullt ut."
@@ -211,7 +211,7 @@ MOCK_EVENTS_SCENARIO_1 = [
             beregnings_resultat=FristBeregningResultat.GODKJENT,
             godkjent_dager=10,
             ny_sluttdato="2025-03-15",
-            begrunnelse_beregning=(
+            begrunnelse=(
                 "BH er enig i tidsvurderingen. "
                 "10 virkedager er rimelig for dette omfanget."
             )
@@ -304,7 +304,7 @@ MOCK_EVENTS_SCENARIO_2 = [
             vederlagsmetode=VederlagsMetode.REGNING,
             beregnings_resultat=VederlagBeregningResultat.GODKJENT,
             total_godkjent_belop=50000,
-            begrunnelse_beregning=(
+            begrunnelse=(
                 "SUBSIDIÆRT: BH er enig om at hvis vi hadde hatt ansvar, "
                 "er 50000 NOK et rimelig beløp basert på timeforbruk. "
                 "Dette er en ren beregningsvurdering, ikke en anerkjennelse av ansvar."
@@ -389,7 +389,7 @@ MOCK_EVENTS_SCENARIO_3 = [
             vederlagsmetode=VederlagsMetode.TILBUD,
             beregnings_resultat=VederlagBeregningResultat.DELVIS_GODKJENT,
             total_godkjent_belop=75000,
-            begrunnelse_beregning=(
+            begrunnelse=(
                 "BH godkjenner grunnkostnad (60000 NOK) + 25% påslag (15000 NOK) = 75000 NOK. "
                 "TEs krav på 40% påslag anses som urimelig."
             )
@@ -481,7 +481,7 @@ MOCK_EVENTS_SCENARIO_4 = [
             krav_fremmet_i_tide=False,  # For sent!
             begrunnelse_varsel="Varselet kom 4 måneder for sent, kravet er prekludert",
             beregnings_resultat=VederlagBeregningResultat.AVSLATT_TOTALT,
-            begrunnelse_beregning="Kravet avslås totalt på grunn av preklusjon"
+            begrunnelse="Kravet avslås totalt på grunn av preklusjon"
         )
     ),
 ]

@@ -378,11 +378,8 @@ class TimelineService:
         # Port 2: Beregning
         if hasattr(event.data, 'beregnings_resultat'):
             vederlag.bh_resultat = event.data.beregnings_resultat
-        # begrunnelse (nytt felt) har prioritet over begrunnelse_beregning (legacy)
         if hasattr(event.data, 'begrunnelse') and event.data.begrunnelse:
             vederlag.bh_begrunnelse = event.data.begrunnelse
-        elif hasattr(event.data, 'begrunnelse_beregning') and event.data.begrunnelse_beregning:
-            vederlag.bh_begrunnelse = event.data.begrunnelse_beregning
         if hasattr(event.data, 'vederlagsmetode'):
             vederlag.bh_metode = event.data.vederlagsmetode.value if hasattr(event.data.vederlagsmetode, 'value') else event.data.vederlagsmetode
         # total_godkjent_belop er summen av alle vederlagstyper (hovedkrav + særskilte krav)
@@ -440,14 +437,8 @@ class TimelineService:
         # Port 3: Beregning
         if hasattr(event.data, 'beregnings_resultat'):
             frist.bh_resultat = event.data.beregnings_resultat
-        # begrunnelse (nytt felt) har prioritet over begrunnelse_beregning (legacy)
         if hasattr(event.data, 'begrunnelse') and event.data.begrunnelse:
             frist.bh_begrunnelse = event.data.begrunnelse
-        elif hasattr(event.data, 'begrunnelse_beregning') and event.data.begrunnelse_beregning:
-            frist.bh_begrunnelse = event.data.begrunnelse_beregning
-        # Behold også legacy-feltet for backward compatibility
-        if hasattr(event.data, 'begrunnelse_beregning'):
-            frist.begrunnelse_beregning = event.data.begrunnelse_beregning
         if hasattr(event.data, 'godkjent_dager'):
             frist.godkjent_dager = event.data.godkjent_dager
         if hasattr(event.data, 'ny_sluttdato'):
@@ -1152,7 +1143,7 @@ class TimelineService:
                     bh_resultat=event.data.beregnings_resultat.value if event.data.beregnings_resultat else None,
                     bh_resultat_label=self._get_vederlag_resultat_label(event.data.beregnings_resultat),
                     godkjent_belop=event.data.total_godkjent_belop,
-                    bh_begrunnelse=event.data.begrunnelse_beregning,
+                    bh_begrunnelse=getattr(event.data, 'begrunnelse', None),
                 )
                 historikk.append(entry.model_dump(mode='json'))
 
@@ -1166,7 +1157,7 @@ class TimelineService:
                     bh_resultat=event.data.beregnings_resultat.value if event.data.beregnings_resultat else None,
                     bh_resultat_label=self._get_vederlag_resultat_label(event.data.beregnings_resultat),
                     godkjent_belop=event.data.total_godkjent_belop,
-                    bh_begrunnelse=event.data.begrunnelse_beregning,
+                    bh_begrunnelse=getattr(event.data, 'begrunnelse', None),
                 )
                 historikk.append(entry.model_dump(mode='json'))
 

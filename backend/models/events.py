@@ -929,10 +929,6 @@ class VederlagResponsData(BaseModel):
         default=None,
         description="Samlet begrunnelse"
     )
-    begrunnelse_beregning: Optional[str] = Field(
-        default="",
-        description="BHs kommentar til beregningen (legacy)"
-    )
     frist_for_spesifikasjon: Optional[str] = Field(
         default=None,
         description="Frist for TE å levere ytterligere spesifikasjon (YYYY-MM-DD)"
@@ -1069,9 +1065,9 @@ class FristResponsData(BaseModel):
         description="BH-godkjent ny sluttdato (YYYY-MM-DD)"
     )
 
-    begrunnelse_beregning: Optional[str] = Field(
+    begrunnelse: Optional[str] = Field(
         default=None,
-        description="BHs kommentar til dagberegningen"
+        description="Samlet begrunnelse"
     )
 
     frist_for_spesifisering: Optional[str] = Field(

@@ -276,7 +276,7 @@ def create_vederlag_respons(
         data=VederlagResponsData(
             beregnings_resultat=resultat,
             total_godkjent_belop=godkjent_belop if resultat != VederlagBeregningResultat.AVSLATT else 0,
-            begrunnelse_beregning=begrunnelser.get(resultat, "Vurdering gjennomført."),
+            begrunnelse=begrunnelser.get(resultat, "Vurdering gjennomført."),
         ),
     )
 
@@ -307,7 +307,7 @@ def create_frist_respons(
         data=FristResponsData(
             beregnings_resultat=resultat,
             godkjente_dager=godkjente_dager if resultat != FristBeregningResultat.AVSLATT else 0,
-            begrunnelse_beregning=begrunnelser.get(resultat, "Vurdering gjennomført."),
+            begrunnelse=begrunnelser.get(resultat, "Vurdering gjennomført."),
         ),
     )
 

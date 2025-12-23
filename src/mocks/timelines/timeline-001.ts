@@ -31,7 +31,7 @@ export const mockTimelineEvents1: TimelineEntry[] = [
       begrunnelse_vilkar: 'Årsakssammenheng mellom uventet fjell og forsinkelse er dokumentert.',
       beregnings_resultat: 'delvis_godkjent',
       godkjent_dager: 30,
-      begrunnelse_beregning: '30 dager godkjent. Omprosjektering kan gjøres parallelt med andre arbeider. Sprengningsarbeider påvirker kritisk linje.',
+      begrunnelse: '30 dager godkjent. Omprosjektering kan gjøres parallelt med andre arbeider. Sprengningsarbeider påvirker kritisk linje.',
     },
   },
   {

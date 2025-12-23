@@ -50,7 +50,7 @@ export const mockTimelineEvents6: TimelineEntry[] = [
       begrunnelse_vilkar: 'BH mener forsinkelsen kan tas igjen med parallellarbeid.',
       beregnings_resultat: 'avslatt',
       godkjent_dager: 0,
-      begrunnelse_beregning: 'Fristforlengelse avslås. Forsinkelsen kan hentes inn uten fristforlengelse.',
+      begrunnelse: 'Fristforlengelse avslås. Forsinkelsen kan hentes inn uten fristforlengelse.',
     },
   },
   {

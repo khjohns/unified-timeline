@@ -247,7 +247,6 @@ export interface FristTilstand {
   bh_begrunnelse?: string;
   godkjent_dager?: number;
   ny_sluttdato?: string;
-  begrunnelse_beregning?: string;
   frist_for_spesifisering?: string;
 
   // Subsidiært standpunkt (når BH tar prinsipalt avslag men subsidiært godkjenner)
@@ -650,7 +649,6 @@ export interface ResponsVederlagEventData {
   total_godkjent_belop?: number;
   total_krevd_belop?: number;
   begrunnelse?: string;  // Samlet begrunnelse
-  begrunnelse_beregning?: string;  // Legacy
   frist_for_spesifikasjon?: string;
 
   // Subsidiært standpunkt (når BH tar prinsipalt avslag men subsidiært godkjenner)
@@ -676,7 +674,6 @@ export interface ResponsFristEventData {
   beregnings_resultat: FristBeregningResultat;
   godkjent_dager?: number;
   ny_sluttdato?: string;
-  begrunnelse_beregning?: string;
   frist_for_spesifisering?: string;
 
   // Subsidiært standpunkt (når BH tar prinsipalt avslag men subsidiært godkjenner)

@@ -572,7 +572,6 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
 
   // Check if we have calculation details
   const hasBeregningFields =
-    data.begrunnelse_beregning ||
     data.begrunnelse ||
     data.frist_for_spesifikasjon;
 
@@ -781,7 +780,7 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
       {hasBeregningFields && (
         <>
           <SectionDivider title="Begrunnelse" />
-          <LongTextField label="Samlet begrunnelse" value={data.begrunnelse ?? data.begrunnelse_beregning} defaultOpen={true} />
+          <LongTextField label="Samlet begrunnelse" value={data.begrunnelse} defaultOpen={true} />
           {data.frist_for_spesifikasjon && (
             <Field label="Frist for spesifikasjon" value={formatDate(data.frist_for_spesifikasjon)} />
           )}
@@ -861,7 +860,7 @@ function ResponsFristSection({ data }: { data: ResponsFristEventData }) {
 
   // Check if we have calculation details
   const hasBeregningFields =
-    data.begrunnelse_beregning ||
+    data.begrunnelse ||
     data.frist_for_spesifisering;
 
   // Check if we have subsidiary data
@@ -936,7 +935,7 @@ function ResponsFristSection({ data }: { data: ResponsFristEventData }) {
       {hasBeregningFields && (
         <>
           <SectionDivider title="Beregning" />
-          <LongTextField label="Begrunnelse" value={data.begrunnelse_beregning} defaultOpen={true} />
+          <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
           {data.frist_for_spesifisering && (
             <Field label="Frist for spesifisering" value={formatDate(data.frist_for_spesifisering)} />
           )}
