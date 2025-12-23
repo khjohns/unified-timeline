@@ -11,6 +11,8 @@ import { Button, Card } from '../components/primitives';
 import { useCaseList } from '../hooks/useCaseList';
 import { useAuth } from '../context/AuthContext';
 import { CaseListItem } from '../types/api';
+import { getOverordnetStatusLabel } from '../constants/statusLabels';
+import type { OverordnetStatus } from '../types/timeline';
 
 type SakstypeFilter = 'all' | 'standard' | 'forsering' | 'endringsordre';
 
@@ -30,25 +32,40 @@ function formatDate(isoString: string | null): string {
 function getStatusBadgeClass(status: string | null): string {
   if (!status) return 'bg-pkt-grays-gray-100 text-pkt-grays-gray-700';
 
-  const statusLower = status.toLowerCase();
+  // Handle raw status codes (uppercase) from backend
+  const statusUpper = status.toUpperCase();
 
-  if (statusLower.includes('godkjent') || statusLower.includes('klar for eo')) {
+  // Success states
+  if (statusUpper === 'OMFORENT' || statusUpper === 'LUKKET') {
     return 'bg-badge-success-bg text-badge-success-text';
   }
-  if (statusLower.includes('avslått') || statusLower.includes('avvist')) {
+  // Error states
+  if (statusUpper === 'LUKKET_TRUKKET') {
     return 'bg-badge-error-bg text-badge-error-text';
   }
-  if (statusLower.includes('behandling') || statusLower.includes('sendt')) {
+  // Warning/In-progress states
+  if (
+    statusUpper === 'SENDT' ||
+    statusUpper === 'UNDER_BEHANDLING' ||
+    statusUpper === 'VENTER_PAA_SVAR' ||
+    statusUpper === 'UNDER_FORHANDLING'
+  ) {
     return 'bg-badge-warning-bg text-badge-warning-text';
   }
-  if (statusLower.includes('utkast')) {
+  // Draft state
+  if (statusUpper === 'UTKAST') {
     return 'bg-pkt-grays-gray-100 text-pkt-grays-gray-700';
-  }
-  if (statusLower.includes('forsering')) {
-    return 'bg-pkt-brand-yellow-500 text-alert-warning-text border border-pkt-border-yellow';
   }
 
   return 'bg-badge-info-bg text-badge-info-text';
+}
+
+/**
+ * Get readable status label from raw status code
+ */
+function getStatusLabel(status: string | null): string {
+  if (!status) return 'Ukjent';
+  return getOverordnetStatusLabel(status as OverordnetStatus);
 }
 
 function getSakstypeLabel(sakstype: string): string {
@@ -241,7 +258,7 @@ export function SaksoversiktPage() {
                         item.cached_status
                       )}`}
                     >
-                      {item.cached_status || 'Ukjent'}
+                      {getStatusLabel(item.cached_status)}
                     </span>
                   </div>
 
