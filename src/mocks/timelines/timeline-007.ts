@@ -23,7 +23,7 @@ export const mockTimelineEvents7: TimelineEntry[] = [
     sammendrag: 'Holder tilbake betaling - avventer overslag (§30.2)',
     event_data: {
       beregnings_resultat: 'hold_tilbake',
-      begrunnelse_beregning: 'Jf. §30.2: Betaling holdes tilbake inntil TE leverer bindende prisoverslag.',
+      begrunnelse: 'Jf. §30.2: Betaling holdes tilbake inntil TE leverer bindende prisoverslag.',
     },
   },
   {
@@ -43,7 +43,7 @@ export const mockTimelineEvents7: TimelineEntry[] = [
       begrunnelse_vilkar: 'Endring er godkjent.',
       beregnings_resultat: 'godkjent',
       godkjent_dager: 7,
-      begrunnelse_beregning: 'Dagene godkjennes.',
+      begrunnelse: 'Dagene godkjennes.',
     },
   },
   {

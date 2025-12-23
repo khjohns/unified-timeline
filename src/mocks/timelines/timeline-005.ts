@@ -48,7 +48,7 @@ export const mockTimelineEvents5: TimelineEntry[] = [
       begrunnelse_vilkar: 'Grunnlaget bestrides - vilkår ikke oppfylt.',
       // Port 3: Beregning - prinsipalt avslag
       beregnings_resultat: 'avslatt',
-      begrunnelse_beregning: 'Prinsipalt avslått da grunnlaget bestrides.',
+      begrunnelse: 'Prinsipalt avslått da grunnlaget bestrides.',
       // Subsidiært standpunkt
       subsidiaer_triggers: ['grunnlag_avslatt'],
       subsidiaer_resultat: 'godkjent',
@@ -72,7 +72,7 @@ export const mockTimelineEvents5: TimelineEntry[] = [
       // Port 2: Beregning - prinsipalt avslag
       beregnings_resultat: 'avslatt',
       vederlagsmetode: 'REGNINGSARBEID',
-      begrunnelse_beregning: 'Prinsipalt avslått da grunnlaget bestrides.',
+      begrunnelse: 'Prinsipalt avslått da grunnlaget bestrides.',
       // Subsidiært standpunkt
       subsidiaer_triggers: ['grunnlag_avslatt'],
       subsidiaer_resultat: 'delvis_godkjent',

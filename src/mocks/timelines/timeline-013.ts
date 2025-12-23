@@ -28,7 +28,7 @@ export const mockTimelineEvents13: TimelineEntry[] = [
       begrunnelse_vilkar: 'BH mener arbeidet kan utføres parallelt med andre aktiviteter.',
       beregnings_resultat: 'avslatt',
       godkjent_dager: 0,
-      begrunnelse_beregning:
+      begrunnelse:
         'Fristforlengelse avslås. Ventilasjonsarbeidet kan utføres parallelt med andre pågående arbeider.',
     },
   },

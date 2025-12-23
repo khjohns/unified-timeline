@@ -26,7 +26,7 @@ export const mockTimelineEvents8: TimelineEntry[] = [
       begrunnelse_vilkar: 'Ekstraordinær flom bekreftet. Utenfor partenes kontroll.',
       beregnings_resultat: 'godkjent',
       godkjent_dager: 8,
-      begrunnelse_beregning: 'Alle 8 dager godkjennes.',
+      begrunnelse: 'Alle 8 dager godkjennes.',
     },
   },
   {

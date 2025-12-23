@@ -109,7 +109,7 @@ export const mockTimelineEvents10: TimelineEntry[] = [
       // Port 3: Beregning
       beregnings_resultat: 'godkjent',
       godkjent_dager: 5,
-      begrunnelse_beregning: '5 dager godkjent for sprinklerinstallasjon.',
+      begrunnelse: '5 dager godkjent for sprinklerinstallasjon.',
     },
   },
   // Event 5: Grunnlag godkjent
@@ -140,7 +140,7 @@ export const mockTimelineEvents10: TimelineEntry[] = [
     event_data: {
       beregnings_resultat: 'delvis_godkjent',
       godkjent_belop: 185000,
-      begrunnelse_beregning:
+      begrunnelse:
         'Prosjekteringskostnader (35.000 NOK) inngår allerede i enhetsprisene og kan ikke kreves separat.',
     },
   },

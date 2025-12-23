@@ -45,6 +45,7 @@ import {
   getBhFristsvarLabel,
   getSubsidiaerTriggerLabel,
 } from '../../constants/responseOptions';
+import { EVENT_TYPE_LABELS } from '../../constants/eventTypeLabels';
 import { format } from 'date-fns';
 import { nb } from 'date-fns/locale';
 import {
@@ -63,43 +64,6 @@ interface EventDetailModalProps {
 }
 
 // ========== LABELS ==========
-
-const EVENT_TYPE_LABELS: Record<EventType, string> = {
-  sak_opprettet: 'Sak opprettet',
-  grunnlag_opprettet: 'Grunnlag sendt',
-  grunnlag_oppdatert: 'Grunnlag oppdatert',
-  grunnlag_trukket: 'Grunnlag trukket',
-  vederlag_krav_sendt: 'Vederlagskrav sendt',
-  vederlag_krav_oppdatert: 'Vederlagskrav oppdatert',
-  vederlag_krav_trukket: 'Vederlagskrav trukket',
-  frist_krav_sendt: 'Fristkrav sendt',
-  frist_krav_oppdatert: 'Fristkrav oppdatert',
-  frist_krav_spesifisert: 'Fristkrav spesifisert',
-  frist_krav_trukket: 'Fristkrav trukket',
-  respons_grunnlag: 'Svar på grunnlag',
-  respons_grunnlag_oppdatert: 'Svar på grunnlag oppdatert',
-  respons_vederlag: 'Svar på vederlagskrav',
-  respons_vederlag_oppdatert: 'Svar på vederlagskrav oppdatert',
-  respons_frist: 'Svar på fristkrav',
-  respons_frist_oppdatert: 'Svar på fristkrav oppdatert',
-  forsering_varsel: 'Varsel om forsering',
-  // Forsering-specific events
-  forsering_opprettet: 'Forseringssak opprettet',
-  forsering_iverksatt: 'Forsering iverksatt',
-  forsering_stoppet: 'Forsering stoppet',
-  forsering_kostnad_oppdatert: 'Forseringskostnad oppdatert',
-  forsering_bh_respons: 'Svar på forsering',
-  forsering_relatert_lagt_til: 'Relatert sak lagt til',
-  forsering_relatert_fjernet: 'Relatert sak fjernet',
-  // Endringsordre events
-  eo_opprettet: 'Endringsordre opprettet',
-  eo_koe_lagt_til: 'KOE lagt til EO',
-  eo_koe_fjernet: 'KOE fjernet fra EO',
-  eo_utstedt: 'Endringsordre utstedt',
-  eo_akseptert: 'Endringsordre akseptert',
-  eo_bestridt: 'Endringsordre bestridt',
-  eo_revidert: 'Endringsordre revidert',
-};
 
 const SPOR_LABELS: Record<string, string> = {
   grunnlag: 'Ansvarsgrunnlag',
@@ -608,7 +572,6 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
 
   // Check if we have calculation details
   const hasBeregningFields =
-    data.begrunnelse_beregning ||
     data.begrunnelse ||
     data.frist_for_spesifikasjon;
 
@@ -817,7 +780,7 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
       {hasBeregningFields && (
         <>
           <SectionDivider title="Begrunnelse" />
-          <LongTextField label="Samlet begrunnelse" value={data.begrunnelse ?? data.begrunnelse_beregning} defaultOpen={true} />
+          <LongTextField label="Samlet begrunnelse" value={data.begrunnelse} defaultOpen={true} />
           {data.frist_for_spesifikasjon && (
             <Field label="Frist for spesifikasjon" value={formatDate(data.frist_for_spesifikasjon)} />
           )}
@@ -897,7 +860,7 @@ function ResponsFristSection({ data }: { data: ResponsFristEventData }) {
 
   // Check if we have calculation details
   const hasBeregningFields =
-    data.begrunnelse_beregning ||
+    data.begrunnelse ||
     data.frist_for_spesifisering;
 
   // Check if we have subsidiary data
@@ -972,7 +935,7 @@ function ResponsFristSection({ data }: { data: ResponsFristEventData }) {
       {hasBeregningFields && (
         <>
           <SectionDivider title="Beregning" />
-          <LongTextField label="Begrunnelse" value={data.begrunnelse_beregning} defaultOpen={true} />
+          <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
           {data.frist_for_spesifisering && (
             <Field label="Frist for spesifisering" value={formatDate(data.frist_for_spesifisering)} />
           )}

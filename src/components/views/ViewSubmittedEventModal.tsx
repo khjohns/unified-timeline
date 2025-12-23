@@ -323,7 +323,7 @@ function ResponsVederlagView({ data }: { data: any }) {
         label="Oppgjørsform"
         value={METODE_LABELS[data.vederlagsmetode] || data.vederlagsmetode}
       />
-      <Field label="Begrunnelse (beregning)" value={data.begrunnelse_beregning} />
+      <Field label="Begrunnelse" value={data.begrunnelse} />
       <Field label="Begrunnelse (varsel)" value={data.begrunnelse_varsel} />
       <Field label="Frist for spesifikasjon" value={data.frist_for_spesifikasjon} />
 
@@ -376,7 +376,7 @@ function ResponsFristView({ data }: { data: any }) {
         <Field label="Godkjente dager" value={`${data.godkjent_dager} dager`} />
       )}
       <Field label="Ny sluttdato" value={data.ny_sluttdato} />
-      <Field label="Begrunnelse (beregning)" value={data.begrunnelse_beregning} />
+      <Field label="Begrunnelse" value={data.begrunnelse} />
       <Field label="Begrunnelse (vilkår)" value={data.begrunnelse_vilkar} />
       <Field label="Begrunnelse (varsel)" value={data.begrunnelse_varsel} />
 
