@@ -378,7 +378,10 @@ class TimelineService:
         # Port 2: Beregning
         if hasattr(event.data, 'beregnings_resultat'):
             vederlag.bh_resultat = event.data.beregnings_resultat
-        if hasattr(event.data, 'begrunnelse_beregning'):
+        # begrunnelse (nytt felt) har prioritet over begrunnelse_beregning (legacy)
+        if hasattr(event.data, 'begrunnelse') and event.data.begrunnelse:
+            vederlag.bh_begrunnelse = event.data.begrunnelse
+        elif hasattr(event.data, 'begrunnelse_beregning') and event.data.begrunnelse_beregning:
             vederlag.bh_begrunnelse = event.data.begrunnelse_beregning
         if hasattr(event.data, 'vederlagsmetode'):
             vederlag.bh_metode = event.data.vederlagsmetode.value if hasattr(event.data.vederlagsmetode, 'value') else event.data.vederlagsmetode
@@ -437,6 +440,12 @@ class TimelineService:
         # Port 3: Beregning
         if hasattr(event.data, 'beregnings_resultat'):
             frist.bh_resultat = event.data.beregnings_resultat
+        # begrunnelse (nytt felt) har prioritet over begrunnelse_beregning (legacy)
+        if hasattr(event.data, 'begrunnelse') and event.data.begrunnelse:
+            frist.bh_begrunnelse = event.data.begrunnelse
+        elif hasattr(event.data, 'begrunnelse_beregning') and event.data.begrunnelse_beregning:
+            frist.bh_begrunnelse = event.data.begrunnelse_beregning
+        # Behold også legacy-feltet for backward compatibility
         if hasattr(event.data, 'begrunnelse_beregning'):
             frist.begrunnelse_beregning = event.data.begrunnelse_beregning
         if hasattr(event.data, 'godkjent_dager'):
@@ -446,7 +455,7 @@ class TimelineService:
         if hasattr(event.data, 'frist_for_spesifisering'):
             frist.frist_for_spesifisering = event.data.frist_for_spesifisering
 
-        # Subsidiært standpunkt (NYE linjer)
+        # Subsidiært standpunkt
         if hasattr(event.data, 'subsidiaer_triggers') and event.data.subsidiaer_triggers:
             frist.subsidiaer_triggers = [t.value if hasattr(t, 'value') else t for t in event.data.subsidiaer_triggers]
         if hasattr(event.data, 'subsidiaer_resultat') and event.data.subsidiaer_resultat:
@@ -455,10 +464,6 @@ class TimelineService:
             frist.subsidiaer_godkjent_dager = event.data.subsidiaer_godkjent_dager
         if hasattr(event.data, 'subsidiaer_begrunnelse') and event.data.subsidiaer_begrunnelse:
             frist.subsidiaer_begrunnelse = event.data.subsidiaer_begrunnelse
-
-        # Også lagre gammel bh_begrunnelse for backward compatibility
-        if hasattr(event.data, 'begrunnelse'):
-            frist.bh_begrunnelse = event.data.begrunnelse
 
         # Map beregnings_resultat til status
         if hasattr(event.data, 'beregnings_resultat'):
