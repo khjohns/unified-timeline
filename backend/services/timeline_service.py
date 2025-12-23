@@ -191,11 +191,16 @@ class TimelineService:
         grunnlag = state.grunnlag
 
         # Oppdater data
+        grunnlag.tittel = event.data.tittel
         grunnlag.hovedkategori = event.data.hovedkategori
         grunnlag.underkategori = event.data.underkategori
         grunnlag.beskrivelse = event.data.beskrivelse
         grunnlag.dato_oppdaget = event.data.dato_oppdaget
         grunnlag.kontraktsreferanser = event.data.kontraktsreferanser
+
+        # Oppdater sakstittel fra grunnlag.tittel hvis den ikke er satt
+        if not state.sakstittel and grunnlag.tittel:
+            state.sakstittel = grunnlag.tittel
 
         # Oppdater status
         if event.event_type == EventType.GRUNNLAG_OPPRETTET:
