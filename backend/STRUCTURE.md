@@ -1,6 +1,6 @@
 # Backend Structure
 
-**Sist oppdatert:** 2025-12-17
+**Sist oppdatert:** 2025-12-20
 **Backend versjon:** Event Sourcing + CQRS
 
 ## 📁 Directory Organization
@@ -32,7 +32,8 @@ backend/
 │   │                                # - GrunnlagTilstand, VederlagTilstand, FristTilstand
 │   │                                # - ForseringData, EndringsordreData
 │   ├── api_responses.py             # API response DTOs (381 linjer)
-│   └── sak_metadata.py              # Metadata for sakliste (36 linjer)
+│   ├── sak_metadata.py              # Metadata for sakliste (36 linjer)
+│   └── cloudevents.py               # CloudEvents mixin og konvertering
 │
 ├── repositories/                    # Data Access Layer (EVENT STORE)
 │   ├── __init__.py
@@ -60,6 +61,7 @@ backend/
 │   ├── endringsordre_routes.py      # Endringsordre §31.3 API (454 linjer)
 │   ├── utility_routes.py            # CSRF, health, magic-link (114 linjer)
 │   ├── webhook_routes.py            # Catenda webhook handling (160 linjer)
+│   ├── cloudevents_routes.py        # CloudEvents schema API
 │   └── error_handlers.py            # Globale feilhåndterere (67 linjer)
 │
 ├── lib/                             # Gjenbrukbare bibliotekskomponenter
@@ -68,6 +70,10 @@ backend/
 │   │   ├── __init__.py
 │   │   ├── csrf_protection.py       # CSRF token-håndtering (244 linjer)
 │   │   └── magic_link.py            # Magic link tokens (105 linjer)
+│   ├── cloudevents/                 # CloudEvents v1.0 støtte (CNCF)
+│   │   ├── __init__.py
+│   │   ├── schemas.py               # JSON Schema for event-typer
+│   │   └── http_binding.py          # HTTP binding og serialisering
 │   ├── security/                    # Sikkerhetsverktøy
 │   │   ├── __init__.py
 │   │   ├── validation.py            # Input-validering (472 linjer)
@@ -111,7 +117,10 @@ backend/
     │   └── test_session_based_magic_links.py
     ├── test_models/                 # Modelltester
     │   ├── test_events.py           # Event modell-tester
-    │   └── test_event_parsing.py    # Event parsing-tester
+    │   ├── test_event_parsing.py    # Event parsing-tester
+    │   └── test_cloudevents.py      # CloudEvents modell-tester
+    ├── test_api/                    # API-tester
+    │   └── test_cloudevents_api.py  # CloudEvents API-tester
     ├── test_repositories/           # Repository-tester
     │   ├── test_event_repository.py # Event store-tester
     │   └── test_sak_metadata_repository.py
@@ -220,12 +229,14 @@ SakState (Aggregate Root)
 | `endringsordre_routes.py` | **Endringsordre API (§31.3)** | 454 |
 | `utility_routes.py` | CSRF, health, magic-link | 114 |
 | `webhook_routes.py` | Catenda webhooks | 160 |
+| `cloudevents_routes.py` | CloudEvents schema API | - |
 | `error_handlers.py` | Globale feilhåndterere | 67 |
 
 **Ansvar:**
 - Flask Blueprints for modulær ruteorganisering
 - **Write Side:** POST /api/events (event submission)
 - **Read Side:** GET /api/cases/{id}/state, GET /api/cases/{id}/timeline
+- **CloudEvents:** GET /api/cloudevents/schemas, GET /api/cloudevents/schemas/{type}
 - **Forsering:** POST /api/forsering/opprett, GET /api/forsering/{id}/kontekst
 - **Endringsordre:** POST /api/endringsordre/opprett, POST /api/endringsordre/{id}/koe
 - CSRF-beskyttelse, Rate limiting, Optimistisk låsing
@@ -316,6 +327,7 @@ except ConcurrencyError as e:
 | `sak_state.py` | **Read model (projeksjon)** | 1122 |
 | `api_responses.py` | API response DTOs | 381 |
 | `sak_metadata.py` | Metadata for sakliste | 36 |
+| `cloudevents.py` | CloudEvents mixin og konvertering | - |
 
 **Event-modeller (Pydantic v2):**
 ```python
@@ -374,6 +386,12 @@ print(settings.rate_limit_per_hour)
 |-------|--------|--------|
 | `csrf_protection.py` | CSRF tokens med HMAC-signering | 244 |
 | `magic_link.py` | Sikre magic link tokens | 105 |
+
+#### CloudEvents (`lib/cloudevents/`)
+| Modul | Ansvar |
+|-------|--------|
+| `schemas.py` | JSON Schema-generering for alle event-typer |
+| `http_binding.py` | CloudEvents HTTP binding og serialisering |
 
 #### Security (`lib/security/`)
 | Modul | Ansvar | Linjer |

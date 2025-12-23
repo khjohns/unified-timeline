@@ -272,15 +272,31 @@ CloudEvents er én av flere spesifikasjoner som kan styrke prosjektets arkitektu
 
 **Hva:** OpenAPI for event-drevne systemer - dokumenterer meldingsbaserte APIer.
 
-**Relevans for prosjektet:**
-- Dokumentere Catenda webhooks formelt
+**Status (2025-12-20):** ⏸️ Ikke prioritert nå - OpenAPI dekker nåværende behov.
+
+**Vurdering:**
+
+| Scenario | Verdi av AsyncAPI |
+|----------|-------------------|
+| Catenda webhooks inn | ⚠️ Begrenset - Catenda bruker proprietært format |
+| Interne events | ❌ Lav - Events konsumeres kun internt via REST |
+| Azure Event Grid (fase 5) | ✅ Høy - Dokumenterer utgående events |
+| Tredjeparts-integrasjon | ✅ Høy - Når andre systemer abonnerer |
+
+**Konklusjon:**
+- OpenAPI (`backend/scripts/generate_openapi.py`) dokumenterer REST-APIet inkludert CloudEvents-skjemaer
+- AsyncAPI gir begrenset merverdi før Azure Event Grid (fase 5)
+- Bør vurderes når utgående event-strømmer implementeres
+
+**Relevans for prosjektet (fremtidig):**
+- Dokumentere utgående events til Azure Event Grid
 - Spesifisere event-strømmer med schema-validering
 - Generere dokumentasjon og klientkode automatisk
 
 **Avhengighet til CloudEvents:**
-- AsyncAPI bør implementeres **etter** CloudEvents fase 1
+- AsyncAPI bør implementeres **med** Azure Event Grid (fase 5)
 - Kan referere til CloudEvents JSON Schema for event-typer
-- Gir mer verdi når event-formatet er standardisert
+- Gir mest verdi for utgående event-strømmer
 
 **Eksempel (AsyncAPI med CloudEvents):**
 ```yaml
@@ -315,49 +331,31 @@ components:
 
 **Hva:** Hierarkisk arkitekturmodell med 4 nivåer (Context → Container → Component → Code).
 
-**Relevans for prosjektet:**
-- Visualisere kompleks arkitektur (frontend, backend, integrasjoner)
-- Generere diagrammer fra kode (Structurizr DSL)
-- Versjonskontrollert dokumentasjon
+**Status (2025-12-20):** ✅ Context + Container implementert
+
+**Implementert:**
+- Context-diagram: Viser TE, BH, KOE-system og Catenda
+- Container-diagram: Frontend, Backend API, Event Store
+
+**Fil:** [`docs/architecture/workspace.dsl`](./architecture/workspace.dsl)
+
+**Bruk:**
+```bash
+# Online viewer (paste innhold)
+https://structurizr.com/dsl
+
+# CLI eksport til PlantUML
+structurizr-cli export -workspace docs/architecture/workspace.dsl -format plantuml
+
+# VS Code: Installer "Structurizr" extension for preview
+```
+
+**Ikke implementert (vurdert som unødvendig):**
+- Component-diagram: Dekkes av `backend/STRUCTURE.md`
+- Code-diagram: Koden er lesbar, overkill
 
 **Avhengighet til CloudEvents:**
-- **Ingen** - kan implementeres helt uavhengig
-- Kan gjøres parallelt med CloudEvents
-
-**Eksempel (Structurizr DSL):**
-```
-workspace {
-    model {
-        te = person "Totalentreprenør" "Sender krav og dokumentasjon"
-        bh = person "Byggherre" "Vurderer og godkjenner krav"
-
-        koeSystem = softwareSystem "KOE System" "Håndterer endringsordrer" {
-            frontend = container "React Frontend" "Brukergrensesnitt" "React 19, TypeScript"
-            backend = container "Azure Functions" "API og forretningslogikk" "Python, Flask"
-            eventStore = container "Dataverse" "Event Store" "Microsoft Dataverse"
-        }
-
-        catenda = softwareSystem "Catenda" "Prosjekthotell" "Ekstern"
-
-        te -> frontend "Registrerer krav"
-        bh -> frontend "Vurderer krav"
-        frontend -> backend "REST API"
-        backend -> eventStore "Lagrer events"
-        backend -> catenda "Synkroniserer"
-    }
-
-    views {
-        systemContext koeSystem "SystemContext" {
-            include *
-            autoLayout
-        }
-        container koeSystem "Containers" {
-            include *
-            autoLayout
-        }
-    }
-}
-```
+- **Ingen** - helt uavhengig
 
 ### Sammenligning
 

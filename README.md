@@ -4,7 +4,7 @@
 
 Et system for håndtering av endringsordrer (KOE) etter NS 8407:2011, integrert med prosjekthotellet Catenda. Utviklet av Oslobygg KF for å erstatte manuelle PDF/Word-baserte prosesser med strukturerte, sporbare data.
 
-**Sist oppdatert:** 2025-12-17
+**Sist oppdatert:** 2025-12-20
 
 ---
 
@@ -394,6 +394,7 @@ Systemet implementerer NS 8407:2011 totalentreprisekontrakt med følgende hjemme
 | Flask-CORS | 4.0 | CORS-håndtering |
 | Flask-Limiter | 3.5 | Rate limiting |
 | requests | 2.31 | HTTP-klient |
+| CloudEvents | 1.0 | Standardisert event-format (CNCF) |
 
 ---
 
@@ -519,6 +520,7 @@ Skjema_Endringsmeldinger/
 │   │
 │   ├── integrations/catenda/       # Catenda API-klient
 │   ├── lib/                        # Auth, security, monitoring
+│   │   └── cloudevents/            # CloudEvents-støtte (CNCF v1.0)
 │   └── tests/                      # Testsuite
 │
 └── docs/                           # Dokumentasjon
@@ -566,6 +568,8 @@ Backend-arkitekturen er designet for gjenbruk på tvers av skjematyper. Den lagd
 | [FRONTEND_ARCHITECTURE.md](docs/FRONTEND_ARCHITECTURE.md) | Frontend-arkitektur og komponenter |
 | [DEPLOYMENT.md](docs/DEPLOYMENT.md) | Azure-utrulling |
 | [backend/STRUCTURE.md](backend/STRUCTURE.md) | Backend-mappestruktur (detaljert) |
+| [CLOUDEVENTS_ADOPTION.md](docs/CLOUDEVENTS_ADOPTION.md) | CloudEvents-adopsjon og migrering |
+| [architecture/workspace.dsl](docs/architecture/workspace.dsl) | C4-arkitekturdiagrammer (Structurizr DSL) |
 
 ---
 
@@ -663,6 +667,7 @@ E2E-testene dekker komplette brukerflyter med Playwright:
 - ✅ **Optimistisk låsing** med versjonsnummer for samtidighetskontroll
 - ✅ **Event store** med append-only log og komplett historikk
 - ✅ **State-projeksjon** via TimelineService
+- ✅ **CloudEvents v1.0** - Standardisert event-format (CNCF-spesifikasjon)
 - ✅ Catenda-integrasjon (API-klient, webhooks, magic links)
 - ✅ PDF-generering og automatisk opplasting
 - ✅ Sikkerhetstiltak (CSRF, validering, rate limiting, audit logging)
