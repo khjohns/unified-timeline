@@ -10,6 +10,14 @@ import { DashboardCard, DataList, DataListItem, Badge } from '../primitives';
 import { SakState, SporStatus } from '../../types/timeline';
 import { getHovedkategoriLabel, getUnderkategoriLabel } from '../../constants/categories';
 import { getVederlagsmetodeLabel } from '../../constants/paymentMethods';
+import { getSporStatusStyle } from '../../constants/statusStyles';
+import {
+  formatCurrency,
+  formatDays,
+  formatDateMedium,
+  formatBHResultat,
+  formatVarselType,
+} from '../../utils/formatters';
 
 interface CaseDashboardProps {
   state: SakState;
@@ -19,7 +27,7 @@ interface CaseDashboardProps {
 }
 
 /**
- * Map SporStatus to Badge variant
+ * Map SporStatus to Badge component using centralized styles
  */
 function getStatusBadge(status: SporStatus, erSubsidiaert?: boolean): ReactNode {
   // Subsidiary status gets special treatment
@@ -27,47 +35,8 @@ function getStatusBadge(status: SporStatus, erSubsidiaert?: boolean): ReactNode 
     return <Badge variant="warning" size="sm">Godkjent (subsidiært)</Badge>;
   }
 
-  const config: Record<SporStatus, { variant: 'default' | 'info' | 'success' | 'warning' | 'danger'; label: string }> = {
-    ikke_relevant: { variant: 'default', label: 'Ikke relevant' },
-    utkast: { variant: 'default', label: 'Utkast' },
-    sendt: { variant: 'info', label: 'Sendt' },
-    under_behandling: { variant: 'warning', label: 'Under behandling' },
-    godkjent: { variant: 'success', label: 'Godkjent' },
-    delvis_godkjent: { variant: 'warning', label: 'Delvis godkjent' },
-    avslatt: { variant: 'danger', label: 'Avslått' },
-    under_forhandling: { variant: 'warning', label: 'Under forhandling' },
-    trukket: { variant: 'default', label: 'Trukket' },
-    laast: { variant: 'success', label: 'Låst' },
-  };
-
-  const { variant, label } = config[status];
+  const { variant, label } = getSporStatusStyle(status);
   return <Badge variant={variant} size="sm">{label}</Badge>;
-}
-
-/**
- * Format a number for display (Norwegian locale)
- */
-function formatCurrency(value?: number | null): string {
-  if (value === null || value === undefined) return '-';
-  return `${value.toLocaleString('nb-NO')} kr`;
-}
-
-function formatDays(value?: number | null): string {
-  if (value === null || value === undefined) return '-';
-  return `${value} dager`;
-}
-
-function formatDate(dateString?: string): string {
-  if (!dateString) return '-';
-  try {
-    return new Date(dateString).toLocaleDateString('nb-NO', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  } catch {
-    return dateString;
-  }
 }
 
 /**
@@ -122,27 +91,22 @@ export function CaseDashboard({
             )}
             {state.grunnlag.dato_oppdaget && (
               <DataListItem label="Dato oppdaget">
-                {formatDate(state.grunnlag.dato_oppdaget)}
+                {formatDateMedium(state.grunnlag.dato_oppdaget)}
               </DataListItem>
             )}
             {state.grunnlag.grunnlag_varsel?.dato_sendt && (
               <DataListItem label="Varslet">
-                {formatDate(state.grunnlag.grunnlag_varsel.dato_sendt)}
+                {formatDateMedium(state.grunnlag.grunnlag_varsel.dato_sendt)}
               </DataListItem>
             )}
-            {state.grunnlag.bh_resultat && (
-              <DataListItem label="BH resultat">
-                <span className={
-                  state.grunnlag.bh_resultat === 'godkjent' ? 'text-pkt-brand-green-1000 font-medium' :
-                  state.grunnlag.bh_resultat === 'avslatt' ? 'text-pkt-brand-red-1000 font-medium' :
-                  'text-pkt-brand-yellow-1000 font-medium'
-                }>
-                  {state.grunnlag.bh_resultat === 'godkjent' ? 'Godkjent' :
-                   state.grunnlag.bh_resultat === 'avslatt' ? 'Avslått' :
-                   'Delvis godkjent'}
-                </span>
-              </DataListItem>
-            )}
+            {state.grunnlag.bh_resultat && (() => {
+              const { label, colorClass } = formatBHResultat(state.grunnlag.bh_resultat);
+              return (
+                <DataListItem label="BH resultat">
+                  <span className={`${colorClass} font-medium`}>{label}</span>
+                </DataListItem>
+              );
+            })()}
           </DataList>
         </DashboardCard>
 
@@ -169,19 +133,14 @@ export function CaseDashboard({
                 </span>
               </DataListItem>
             )}
-            {state.vederlag.bh_resultat && (
-              <DataListItem label="BH resultat">
-                <span className={
-                  state.vederlag.bh_resultat === 'godkjent' ? 'text-pkt-brand-green-1000 font-medium' :
-                  state.vederlag.bh_resultat === 'avslatt' ? 'text-pkt-brand-red-1000 font-medium' :
-                  'text-pkt-brand-yellow-1000 font-medium'
-                }>
-                  {state.vederlag.bh_resultat === 'godkjent' ? 'Godkjent' :
-                   state.vederlag.bh_resultat === 'avslatt' ? 'Avslått' :
-                   'Delvis godkjent'}
-                </span>
-              </DataListItem>
-            )}
+            {state.vederlag.bh_resultat && (() => {
+              const { label, colorClass } = formatBHResultat(state.vederlag.bh_resultat);
+              return (
+                <DataListItem label="BH resultat">
+                  <span className={`${colorClass} font-medium`}>{label}</span>
+                </DataListItem>
+              );
+            })()}
           </DataList>
         </DashboardCard>
 
@@ -207,24 +166,17 @@ export function CaseDashboard({
             )}
             {state.frist.varsel_type && (
               <DataListItem label="Varseltype">
-                {state.frist.varsel_type === 'NOYTRAL' ? 'Nøytralt varsel' :
-                 state.frist.varsel_type === 'SPESIFISERT' ? 'Spesifisert varsel' :
-                 state.frist.varsel_type}
+                {formatVarselType(state.frist.varsel_type)}
               </DataListItem>
             )}
-            {state.frist.bh_resultat && (
-              <DataListItem label="BH resultat">
-                <span className={
-                  state.frist.bh_resultat === 'godkjent' ? 'text-pkt-brand-green-1000 font-medium' :
-                  state.frist.bh_resultat === 'avslatt' ? 'text-pkt-brand-red-1000 font-medium' :
-                  'text-pkt-brand-yellow-1000 font-medium'
-                }>
-                  {state.frist.bh_resultat === 'godkjent' ? 'Godkjent' :
-                   state.frist.bh_resultat === 'avslatt' ? 'Avslått' :
-                   'Delvis godkjent'}
-                </span>
-              </DataListItem>
-            )}
+            {state.frist.bh_resultat && (() => {
+              const { label, colorClass } = formatBHResultat(state.frist.bh_resultat);
+              return (
+                <DataListItem label="BH resultat">
+                  <span className={`${colorClass} font-medium`}>{label}</span>
+                </DataListItem>
+              );
+            })()}
           </DataList>
         </DashboardCard>
       </div>

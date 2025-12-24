@@ -12,53 +12,15 @@ import { useCaseList } from '../hooks/useCaseList';
 import { useAuth } from '../context/AuthContext';
 import { CaseListItem } from '../types/api';
 import { getOverordnetStatusLabel } from '../constants/statusLabels';
+import {
+  getOverordnetStatusBadgeClass,
+  getSakstypeBadgeClass,
+  getSakstypeLabel,
+} from '../constants/statusStyles';
+import { formatDateShort } from '../utils/formatters';
 import type { OverordnetStatus } from '../types/timeline';
 
 type SakstypeFilter = 'all' | 'standard' | 'forsering' | 'endringsordre';
-
-function formatDate(isoString: string | null): string {
-  if (!isoString) return '-';
-  try {
-    return new Date(isoString).toLocaleDateString('nb-NO', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-  } catch {
-    return '-';
-  }
-}
-
-function getStatusBadgeClass(status: string | null): string {
-  if (!status) return 'bg-pkt-grays-gray-100 text-pkt-grays-gray-700';
-
-  // Handle raw status codes (uppercase) from backend
-  const statusUpper = status.toUpperCase();
-
-  // Success states
-  if (statusUpper === 'OMFORENT' || statusUpper === 'LUKKET') {
-    return 'bg-badge-success-bg text-badge-success-text';
-  }
-  // Error states
-  if (statusUpper === 'LUKKET_TRUKKET') {
-    return 'bg-badge-error-bg text-badge-error-text';
-  }
-  // Warning/In-progress states
-  if (
-    statusUpper === 'SENDT' ||
-    statusUpper === 'UNDER_BEHANDLING' ||
-    statusUpper === 'VENTER_PAA_SVAR' ||
-    statusUpper === 'UNDER_FORHANDLING'
-  ) {
-    return 'bg-badge-warning-bg text-badge-warning-text';
-  }
-  // Draft state
-  if (statusUpper === 'UTKAST') {
-    return 'bg-pkt-grays-gray-100 text-pkt-grays-gray-700';
-  }
-
-  return 'bg-badge-info-bg text-badge-info-text';
-}
 
 /**
  * Get readable status label from raw status code
@@ -66,28 +28,6 @@ function getStatusBadgeClass(status: string | null): string {
 function getStatusLabel(status: string | null): string {
   if (!status) return 'Ukjent';
   return getOverordnetStatusLabel(status as OverordnetStatus);
-}
-
-function getSakstypeLabel(sakstype: string): string {
-  switch (sakstype) {
-    case 'forsering':
-      return 'Forsering';
-    case 'endringsordre':
-      return 'Endringsordre';
-    default:
-      return 'KOE';
-  }
-}
-
-function getSakstypeBadgeClass(sakstype: string): string {
-  switch (sakstype) {
-    case 'forsering':
-      return 'bg-pkt-brand-yellow-500 text-alert-warning-text';
-    case 'endringsordre':
-      return 'bg-badge-info-bg text-badge-info-text';
-    default:
-      return 'bg-oslo-blue text-white';
-  }
 }
 
 function getCaseRoute(item: CaseListItem): string {
@@ -254,7 +194,7 @@ export function SaksoversiktPage() {
                   {/* Status Badge */}
                   <div className="col-span-2 mt-2 md:mt-0">
                     <span
-                      className={`inline-block px-2 py-1 text-xs font-medium rounded ${getStatusBadgeClass(
+                      className={`inline-block px-2 py-1 text-xs font-medium rounded ${getOverordnetStatusBadgeClass(
                         item.cached_status
                       )}`}
                     >
@@ -265,7 +205,7 @@ export function SaksoversiktPage() {
                   {/* Last Updated */}
                   <div className="col-span-2 mt-2 md:mt-0">
                     <span className="text-sm text-pkt-grays-gray-600">
-                      {formatDate(item.last_event_at)}
+                      {formatDateShort(item.last_event_at)}
                     </span>
                   </div>
 
