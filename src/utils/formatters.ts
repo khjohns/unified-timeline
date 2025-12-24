@@ -168,3 +168,19 @@ export function formatBHResultat(resultat?: string | null): {
       return { label: resultat, colorClass: '' };
   }
 }
+
+/**
+ * Get readable label for beregningsresultat
+ *
+ * @example getResultatLabel('godkjent') // 'Godkjent'
+ * @example getResultatLabel('hold_tilbake') // 'Hold tilbake betaling (§30.2)'
+ */
+export function getResultatLabel(resultat: string): string {
+  const labels: Record<string, string> = {
+    godkjent: 'Godkjent',
+    delvis_godkjent: 'Delvis godkjent',
+    avslatt: 'Avslått',
+    hold_tilbake: 'Hold tilbake betaling (§30.2)',
+  };
+  return labels[resultat] || resultat;
+}

@@ -46,8 +46,11 @@ import {
   getSubsidiaerTriggerLabel,
 } from '../../constants/responseOptions';
 import { EVENT_TYPE_LABELS } from '../../constants/eventTypeLabels';
-import { format } from 'date-fns';
-import { nb } from 'date-fns/locale';
+import {
+  formatCurrency,
+  formatDateMedium,
+  formatDateTimeNorwegian,
+} from '../../utils/formatters';
 import {
   FileTextIcon,
   CalendarIcon,
@@ -72,28 +75,6 @@ const SPOR_LABELS: Record<string, string> = {
 };
 
 // ========== HELPER FUNCTIONS ==========
-
-function formatCurrency(amount: number | undefined): string {
-  if (amount === undefined || amount === null) return '—';
-  return `${amount.toLocaleString('nb-NO')} kr`;
-}
-
-function formatDate(dateStr: string | undefined): string {
-  if (!dateStr) return '—';
-  try {
-    return format(new Date(dateStr), 'PPP', { locale: nb });
-  } catch {
-    return dateStr;
-  }
-}
-
-function formatDateTime(dateStr: string): string {
-  try {
-    return format(new Date(dateStr), 'PPPp', { locale: nb });
-  } catch {
-    return dateStr;
-  }
-}
 
 function getGrunnlagResultatBadge(resultat: GrunnlagResponsResultat | string | undefined): { variant: BadgeVariant; label: string } {
   const label = getBhGrunnlagssvarLabel(resultat || '');
@@ -186,7 +167,7 @@ function VarselInfoDisplay({ label, varsel }: VarselInfoDisplayProps) {
       label={label}
       value={
         <span>
-          {formatDate(varsel.dato_sendt)}
+          {formatDateMedium(varsel.dato_sendt)}
           {varsel.metode && varsel.metode.length > 0 && (
             <span className="ml-2 text-pkt-grays-gray-500">
               ({varsel.metode.join(', ')})
@@ -329,7 +310,7 @@ function GrunnlagSection({ data }: { data: GrunnlagEventData }) {
           }
         />
       )}
-      <Field label="Dato oppdaget" value={formatDate(data.dato_oppdaget)} />
+      <Field label="Dato oppdaget" value={formatDateMedium(data.dato_oppdaget)} />
       <VarselInfoDisplay label="Varsel sendt" varsel={data.grunnlag_varsel} />
       <LongTextField label="Beskrivelse" value={data.beskrivelse} defaultOpen={true} />
       {data.kontraktsreferanser && data.kontraktsreferanser.length > 0 && (
@@ -352,7 +333,7 @@ function GrunnlagOppdatertSection({ data }: { data: GrunnlagOppdatertEventData }
       {data.tittel && <Field label="Ny tittel" value={data.tittel} />}
       {data.hovedkategori && <Field label="Ny hovedkategori" value={getHovedkategoriLabel(data.hovedkategori)} />}
       {underkategorier && <Field label="Ny underkategori" value={underkategorier} />}
-      {data.dato_oppdaget && <Field label="Ny dato oppdaget" value={formatDate(data.dato_oppdaget)} />}
+      {data.dato_oppdaget && <Field label="Ny dato oppdaget" value={formatDateMedium(data.dato_oppdaget)} />}
       <LongTextField label="Ny beskrivelse" value={data.beskrivelse} />
       <LongTextField label="Begrunnelse for endring" value={data.endrings_begrunnelse} defaultOpen={true} />
     </dl>
@@ -404,7 +385,7 @@ function VederlagSection({ data }: { data: VederlagEventData }) {
                 </span>
                 {data.saerskilt_krav.rigg_drift.dato_klar_over && (
                   <span className="ml-2 text-sm text-pkt-grays-gray-500">
-                    (klar over: {formatDate(data.saerskilt_krav.rigg_drift.dato_klar_over)})
+                    (klar over: {formatDateMedium(data.saerskilt_krav.rigg_drift.dato_klar_over)})
                   </span>
                 )}
               </div>
@@ -419,7 +400,7 @@ function VederlagSection({ data }: { data: VederlagEventData }) {
                 </span>
                 {data.saerskilt_krav.produktivitet.dato_klar_over && (
                   <span className="ml-2 text-sm text-pkt-grays-gray-500">
-                    (klar over: {formatDate(data.saerskilt_krav.produktivitet.dato_klar_over)})
+                    (klar over: {formatDateMedium(data.saerskilt_krav.produktivitet.dato_klar_over)})
                   </span>
                 )}
               </div>
@@ -449,7 +430,7 @@ function VederlagOppdatertSection({ data }: { data: VederlagOppdatertEventData }
         <Field label="Nytt kostnadsoverslag" value={formatCurrency(data.nytt_kostnads_overslag)} />
       )}
       <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
-      <Field label="Revidert dato" value={formatDate(data.dato_revidert)} />
+      <Field label="Revidert dato" value={formatDateMedium(data.dato_revidert)} />
     </dl>
   );
 }
@@ -464,7 +445,7 @@ function FristSection({ data }: { data: FristEventData }) {
         <Field label="Krevde dager" value={`${data.antall_dager} dager`} />
       )}
       <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
-      {data.ny_sluttdato && <Field label="Ny sluttdato" value={formatDate(data.ny_sluttdato)} />}
+      {data.ny_sluttdato && <Field label="Ny sluttdato" value={formatDateMedium(data.ny_sluttdato)} />}
       <LongTextField label="Fremdriftsdokumentasjon" value={data.fremdriftshindring_dokumentasjon} />
       <VedleggDisplay vedleggIds={data.vedlegg_ids} />
     </dl>
@@ -478,7 +459,7 @@ function FristOppdatertSection({ data }: { data: FristOppdatertEventData }) {
         <Field label="Nytt antall dager" value={`${data.nytt_antall_dager} dager`} />
       )}
       <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
-      <Field label="Revidert dato" value={formatDate(data.dato_revidert)} />
+      <Field label="Revidert dato" value={formatDateMedium(data.dato_revidert)} />
     </dl>
   );
 }
@@ -495,12 +476,12 @@ function FristSpesifisertSection({ data }: { data: FristSpesifisertEventData }) 
         />
       )}
       {data.ny_sluttdato && (
-        <Field label="Ny sluttdato" value={formatDate(data.ny_sluttdato)} />
+        <Field label="Ny sluttdato" value={formatDateMedium(data.ny_sluttdato)} />
       )}
       {data.berorte_aktiviteter && (
         <Field label="Berørte aktiviteter" value={data.berorte_aktiviteter} />
       )}
-      <Field label="Spesifisert dato" value={formatDate(data.dato_spesifisert)} />
+      <Field label="Spesifisert dato" value={formatDateMedium(data.dato_spesifisert)} />
     </dl>
   );
 }
@@ -539,7 +520,7 @@ function ResponsGrunnlagOppdatertSection({ data }: { data: ResponsGrunnlagOppdat
         value={<Badge variant={badge.variant}>{badge.label}</Badge>}
       />
       <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
-      <Field label="Endret dato" value={formatDate(data.dato_endret)} />
+      <Field label="Endret dato" value={formatDateMedium(data.dato_endret)} />
     </dl>
   );
 }
@@ -782,7 +763,7 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
           <SectionDivider title="Begrunnelse" />
           <LongTextField label="Samlet begrunnelse" value={data.begrunnelse} defaultOpen={true} />
           {data.frist_for_spesifikasjon && (
-            <Field label="Frist for spesifikasjon" value={formatDate(data.frist_for_spesifikasjon)} />
+            <Field label="Frist for spesifikasjon" value={formatDateMedium(data.frist_for_spesifikasjon)} />
           )}
         </>
       )}
@@ -838,7 +819,7 @@ function ResponsVederlagOppdatertSection({ data }: { data: ResponsVederlagOppdat
         <Field label="Nytt godkjent beløp" value={formatCurrency(data.total_godkjent_belop)} />
       )}
       <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
-      <Field label="Endret dato" value={formatDate(data.dato_endret)} />
+      <Field label="Endret dato" value={formatDateMedium(data.dato_endret)} />
     </dl>
   );
 }
@@ -880,7 +861,7 @@ function ResponsFristSection({ data }: { data: ResponsFristEventData }) {
       {data.godkjent_dager !== undefined && (
         <Field label="Godkjente dager" value={`${data.godkjent_dager} dager`} />
       )}
-      {data.ny_sluttdato && <Field label="Ny sluttdato" value={formatDate(data.ny_sluttdato)} />}
+      {data.ny_sluttdato && <Field label="Ny sluttdato" value={formatDateMedium(data.ny_sluttdato)} />}
 
       {/* ── Varselvurdering (§33.4/§33.6) ─────────────────────────── */}
       {hasVarselFields && (
@@ -937,7 +918,7 @@ function ResponsFristSection({ data }: { data: ResponsFristEventData }) {
           <SectionDivider title="Beregning" />
           <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
           {data.frist_for_spesifisering && (
-            <Field label="Frist for spesifisering" value={formatDate(data.frist_for_spesifisering)} />
+            <Field label="Frist for spesifisering" value={formatDateMedium(data.frist_for_spesifisering)} />
           )}
         </>
       )}
@@ -996,7 +977,7 @@ function ResponsFristOppdatertSection({ data }: { data: ResponsFristOppdatertEve
         <Field label="Stopper forsering" value={<Badge variant="info">Ja - §33.8</Badge>} />
       )}
       <LongTextField label="Kommentar" value={data.kommentar} defaultOpen={true} />
-      <Field label="Endret dato" value={formatDate(data.dato_endret)} />
+      <Field label="Endret dato" value={formatDateMedium(data.dato_endret)} />
     </dl>
   );
 }
@@ -1017,7 +998,7 @@ function ForseringVarselSection({ data }: { data: ForseringVarselEventData }) {
 
       {/* Sammendrag */}
       <Field label="Estimert forseringskostnad" value={formatCurrency(data.estimert_kostnad)} />
-      <Field label="Dato iverksettelse" value={formatDate(data.dato_iverksettelse)} />
+      <Field label="Dato iverksettelse" value={formatDateMedium(data.dato_iverksettelse)} />
 
       {/* 30%-beregning */}
       <SectionDivider title="30%-beregning" subtitle="§33.8" />
@@ -1167,7 +1148,7 @@ export function EventDetailModal({
         <div className="flex flex-wrap items-center gap-4 text-sm text-pkt-grays-gray-600 pb-4 border-b border-pkt-grays-gray-200">
           <span className="flex items-center gap-1.5">
             <CalendarIcon className="w-4 h-4" />
-            {event.time ? formatDateTime(event.time) : 'Ukjent tid'}
+            {event.time ? formatDateTimeNorwegian(event.time) : 'Ukjent tid'}
           </span>
           <span className="flex items-center gap-1.5">
             <PersonIcon className="w-4 h-4" />

@@ -70,6 +70,7 @@ import {
   combineBegrunnelse,
   type VederlagResponseInput,
 } from '../../utils/begrunnelseGenerator';
+import { getResultatLabel } from '../../utils/formatters';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -215,18 +216,6 @@ function beregnSubsidiaertResultat(
   return 'delvis_godkjent';
 }
 
-/**
- * Get result label for display
- */
-function getResultatLabel(resultat: string): string {
-  const labels: Record<string, string> = {
-    godkjent: 'Godkjent',
-    delvis_godkjent: 'Delvis godkjent',
-    avslatt: 'Avslått',
-    hold_tilbake: 'Hold tilbake betaling (§30.2)',
-  };
-  return labels[resultat] || resultat;
-}
 
 // ============================================================================
 // COMPONENT

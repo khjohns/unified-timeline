@@ -57,6 +57,7 @@ import {
   combineBegrunnelse,
   type FristResponseInput,
 } from '../../utils/begrunnelseGenerator';
+import { getResultatLabel } from '../../utils/formatters';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -182,17 +183,6 @@ function beregnSubsidiaertResultat(data: {
   return 'delvis_godkjent';
 }
 
-/**
- * Get result label for display
- */
-function getResultatLabel(resultat: string): string {
-  const labels: Record<string, string> = {
-    godkjent: 'Godkjent',
-    delvis_godkjent: 'Delvis godkjent',
-    avslatt: 'Avslått',
-  };
-  return labels[resultat] || resultat;
-}
 
 // ============================================================================
 // COMPONENT
