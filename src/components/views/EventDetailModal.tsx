@@ -478,9 +478,6 @@ function FristSpesifisertSection({ data }: { data: FristSpesifisertEventData }) 
       {data.ny_sluttdato && (
         <Field label="Ny sluttdato" value={formatDateMedium(data.ny_sluttdato)} />
       )}
-      {data.berorte_aktiviteter && (
-        <Field label="Berørte aktiviteter" value={data.berorte_aktiviteter} />
-      )}
       <Field label="Spesifisert dato" value={formatDateMedium(data.dato_spesifisert)} />
     </dl>
   );

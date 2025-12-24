@@ -160,8 +160,7 @@ Submit a single event to a case with optimistic concurrency control.
   "antall_dager": 14,
   "begrunnelse": "Justification for the specified days",
   "er_svar_pa_etterlysning": true,
-  "ny_sluttdato": "2025-03-15",
-  "berorte_aktiviteter": "Critical path activities affected"
+  "ny_sluttdato": "2025-03-15"
 }
 ```
 

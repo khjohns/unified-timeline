@@ -9,7 +9,6 @@
  * - Added BH etterlysning warning (§33.6.2) - critical
  * - Added §33.6.1 reduction warning when late
  * - Added grunnlag context display
- * - Added berørte aktiviteter field
  */
 
 import {
@@ -63,7 +62,6 @@ const fristSchema = z.object({
   begrunnelse: z.string().min(10, 'Begrunnelse må være minst 10 tegn'),
   ny_sluttdato: z.string().optional(),
   vedlegg_ids: z.array(z.string()).optional(),
-  berorte_aktiviteter: z.string().optional(),
 }).refine(
   (data) => {
     // antall_dager is required for spesifisert and force_majeure
@@ -257,7 +255,6 @@ export function SendFristModal({
         begrunnelse: data.begrunnelse,
         ny_sluttdato: data.ny_sluttdato,
         vedlegg_ids: data.vedlegg_ids,
-        berorte_aktiviteter: data.berorte_aktiviteter,
         // Metadata for tracking if this was forced by BH etterlysning
         er_svar_pa_etterlysning: harMottattEtterlysning,
       },
@@ -525,20 +522,6 @@ export function SendFristModal({
             fullWidth
             error={!!errors.begrunnelse}
             data-testid="frist-begrunnelse"
-          />
-        </FormField>
-
-        {/* Berørte aktiviteter (Fremdriftsplan) */}
-        <FormField
-          label="Berørte aktiviteter"
-          error={errors.berorte_aktiviteter?.message}
-          helpText="Dokumentasjon av påvirkning på kritisk linje er avgjørende for å vinne frem med kravet"
-        >
-          <Input
-            id="berorte_aktiviteter"
-            {...register('berorte_aktiviteter')}
-            fullWidth
-            error={!!errors.berorte_aktiviteter}
           />
         </FormField>
 
