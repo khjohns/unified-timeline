@@ -42,7 +42,6 @@ const reviseFristSchema = z.object({
   begrunnelse: z.string().min(10, 'Begrunnelse er påkrevd'),
   // For specification modes
   ny_sluttdato: z.string().optional(),
-  berorte_aktiviteter: z.string().optional(),
 });
 
 type ReviseFristFormData = z.infer<typeof reviseFristSchema>;
@@ -151,7 +150,6 @@ export function ReviseFristModal({
       antall_dager: modalMode === 'revider' ? lastFristEvent.antall_dager : 0,
       begrunnelse: '',
       ny_sluttdato: '',
-      berorte_aktiviteter: '',
     },
   });
 
@@ -227,7 +225,6 @@ export function ReviseFristModal({
           begrunnelse: data.begrunnelse,
           er_svar_pa_etterlysning: modalMode === 'spesifiser_etterlysning',
           ny_sluttdato: data.ny_sluttdato || undefined,
-          berorte_aktiviteter: data.berorte_aktiviteter || undefined,
           dato_spesifisert: new Date().toISOString().split('T')[0],
         },
       });
@@ -389,26 +386,15 @@ export function ReviseFristModal({
               />
             </FormField>
 
-            {/* Berørte aktiviteter */}
-            <FormField
-              label="Berørte aktiviteter"
-              helpText="Dokumentasjon av påvirkning på kritisk linje er avgjørende for å vinne frem med kravet"
-            >
-              <Controller
-                name="berorte_aktiviteter"
-                control={control}
-                render={({ field }) => (
-                  <Input
-                    id="berorte_aktiviteter"
-                    value={field.value || ''}
-                    onChange={field.onChange}
-                    fullWidth
-                  />
-                )}
-              />
-            </FormField>
           </>
         )}
+
+        {/* Vilkår-info for begrunnelse */}
+        <Alert variant="info" title="Vilkår for fristforlengelse (§33.1, §33.5)">
+          For å ha krav på fristforlengelse må du vise at: (1) fremdriften har vært hindret, og
+          (2) hindringen skyldes det påberopte forholdet (årsakssammenheng). Begrunn hvordan
+          forholdet konkret har forårsaket forsinkelse i prosjektet.
+        </Alert>
 
         {/* Begrunnelse */}
         <FormField

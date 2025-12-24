@@ -230,7 +230,6 @@ export interface FristTilstand {
   pavirker_kritisk_linje?: boolean;
   milepael_pavirket?: string;
   fremdriftsanalyse_vedlagt?: boolean;
-  berorte_aktiviteter?: string;  // Critical path activities
 
   // BH respons - Port 1 (Varsling)
   noytralt_varsel_ok?: boolean;
@@ -755,7 +754,6 @@ export interface FristSpesifisertEventData {
   begrunnelse: string;
   er_svar_pa_etterlysning?: boolean;  // True if responding to BH's demand (§33.6.2)
   ny_sluttdato?: string;
-  berorte_aktiviteter?: string;
   dato_spesifisert: string;
 }
 
