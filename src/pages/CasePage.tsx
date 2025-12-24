@@ -45,8 +45,6 @@ import { findForseringerForSak, type FindForseringerResponse } from '../api/fors
 import { findEOerForSak, type FindEOerResponse } from '../api/endringsordre';
 import type { SakState, GrunnlagResponsResultat, TimelineEvent } from '../types/timeline';
 import {
-  ReloadIcon,
-  ExclamationTriangleIcon,
   DownloadIcon,
   PaperPlaneIcon,
   Pencil1Icon,
@@ -55,6 +53,12 @@ import {
   RocketIcon,
   FileTextIcon,
 } from '@radix-ui/react-icons';
+import {
+  VerifyingState,
+  AuthErrorState,
+  LoadingState,
+  ErrorState,
+} from '../components/PageStateHelpers';
 
 // Default empty state for when data is not yet loaded
 const EMPTY_STATE: SakState = {
@@ -176,62 +180,27 @@ export function CasePage() {
 
   // Auth verification in progress
   if (isVerifying) {
-    return (
-      <div className="min-h-screen bg-pkt-bg-subtle flex items-center justify-center px-4">
-        <div className="text-center">
-          <ReloadIcon className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 text-pkt-grays-gray-400 animate-spin" />
-          <p className="text-sm sm:text-base text-pkt-grays-gray-500">Verifiserer tilgang...</p>
-        </div>
-      </div>
-    );
+    return <VerifyingState />;
   }
 
   // Auth error - invalid or expired token
   if (authError || !token) {
-    return (
-      <div className="min-h-screen bg-pkt-bg-subtle flex items-center justify-center px-4">
-        <div className="max-w-md w-full p-4 sm:p-8 bg-pkt-bg-card rounded-lg border border-pkt-grays-gray-200" role="alert">
-          <ExclamationTriangleIcon className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 text-pkt-brand-red-1000" />
-          <h2 className="text-lg sm:text-xl font-semibold text-pkt-brand-red-1000 mb-3 sm:mb-4 text-center">
-            Tilgang nektet
-          </h2>
-          <p className="text-sm sm:text-base text-pkt-text-body-default mb-4 text-center">
-            {authError || 'Ugyldig eller utløpt lenke. Vennligst bruk lenken du mottok på nytt.'}
-          </p>
-        </div>
-      </div>
-    );
+    return <AuthErrorState error={authError} />;
   }
 
   // Loading state
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-pkt-bg-subtle flex items-center justify-center px-4">
-        <div className="text-center">
-          <ReloadIcon className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 text-pkt-grays-gray-400 animate-spin" />
-          <p className="text-sm sm:text-base text-pkt-grays-gray-500">Laster sak...</p>
-        </div>
-      </div>
-    );
+    return <LoadingState message="Laster sak..." />;
   }
 
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-pkt-bg-subtle flex items-center justify-center px-4">
-        <div className="max-w-md w-full p-4 sm:p-8 bg-pkt-bg-card rounded-lg border border-pkt-grays-gray-200" role="alert">
-          <ExclamationTriangleIcon className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 text-pkt-brand-red-1000" />
-          <h2 className="text-lg sm:text-xl font-semibold text-pkt-brand-red-1000 mb-3 sm:mb-4 text-center">
-            Feil ved lasting av sak
-          </h2>
-          <p className="text-sm sm:text-base text-pkt-text-body-default mb-4 text-center">{error.message}</p>
-          <div className="text-center">
-            <Button variant="primary" onClick={() => window.location.reload()}>
-              Prøv igjen
-            </Button>
-          </div>
-        </div>
-      </div>
+      <ErrorState
+        title="Feil ved lasting av sak"
+        error={error}
+        onRetry={() => window.location.reload()}
+      />
     );
   }
 

@@ -32,8 +32,13 @@ import {
   ReloadIcon,
   ArrowLeftIcon,
   PlusIcon,
-  ExclamationTriangleIcon,
 } from '@radix-ui/react-icons';
+import {
+  VerifyingState,
+  AuthErrorState,
+  LoadingState,
+  ErrorState,
+} from '../components/PageStateHelpers';
 import type { ForseringData, TimelineEvent, SakRelasjon } from '../types/timeline';
 import {
   fetchForseringKontekst,
@@ -288,64 +293,27 @@ export function ForseringPage() {
 
   // Auth verification in progress
   if (isVerifying) {
-    return (
-      <div className="min-h-screen bg-pkt-bg-subtle flex items-center justify-center px-4">
-        <div className="text-center">
-          <ReloadIcon className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 text-pkt-grays-gray-400 animate-spin" />
-          <p className="text-sm sm:text-base text-pkt-grays-gray-500">Verifiserer tilgang...</p>
-        </div>
-      </div>
-    );
+    return <VerifyingState />;
   }
 
   // Auth error - invalid or expired token
   if (authError || !token) {
-    return (
-      <div className="min-h-screen bg-pkt-bg-subtle flex items-center justify-center px-4">
-        <div className="max-w-md w-full p-4 sm:p-8 bg-pkt-bg-card rounded-lg border border-pkt-grays-gray-200" role="alert">
-          <ExclamationTriangleIcon className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 text-pkt-brand-red-1000" />
-          <h2 className="text-lg sm:text-xl font-semibold text-pkt-brand-red-1000 mb-3 sm:mb-4 text-center">
-            Tilgang nektet
-          </h2>
-          <p className="text-sm sm:text-base text-pkt-text-body-default mb-4 text-center">
-            {authError || 'Ugyldig eller utløpt lenke. Vennligst bruk lenken du mottok på nytt.'}
-          </p>
-        </div>
-      </div>
-    );
+    return <AuthErrorState error={authError} />;
   }
 
   // Loading state
   if (caseLoading) {
-    return (
-      <div className="min-h-screen bg-pkt-bg-subtle flex items-center justify-center">
-        <div className="text-center">
-          <ReloadIcon className="w-8 h-8 animate-spin mx-auto mb-4 text-pkt-text-action-active" />
-          <p className="text-pkt-text-body-subtle">Laster forseringssak...</p>
-        </div>
-      </div>
-    );
+    return <LoadingState message="Laster forseringssak..." />;
   }
 
   // Error state
   if (caseError) {
     return (
-      <div className="min-h-screen bg-pkt-bg-subtle p-8">
-        <div className="max-w-2xl mx-auto">
-          <Alert variant="danger" title="Kunne ikke laste forseringssak">
-            <p>{caseError.message}</p>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => refetchCase()}
-              className="mt-4"
-            >
-              <ReloadIcon className="w-4 h-4 mr-2" />
-              Prøv igjen
-            </Button>
-          </Alert>
-        </div>
-      </div>
+      <ErrorState
+        title="Kunne ikke laste forseringssak"
+        error={caseError}
+        onRetry={() => refetchCase()}
+      />
     );
   }
 
