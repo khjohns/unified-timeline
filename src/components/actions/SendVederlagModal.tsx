@@ -30,6 +30,7 @@ import {
   Modal,
   RadioGroup,
   RadioItem,
+  SectionContainer,
   Textarea,
   useToast,
 } from '../primitives';
@@ -288,39 +289,41 @@ export function SendVederlagModal({
           </Alert>
         )}
 
-        {/* 1. Oppgjørsform - RadioGroup vertical */}
-        <FormField
-          label="Oppgjørsform"
-          helpText="Velg oppgjørsform for vederlaget (NS 8407 §34.2)"
-          required
-          error={errors.metode?.message}
+        {/* 1. Oppgjørsform */}
+        <SectionContainer
+          title="Oppgjørsform"
+          description="Velg oppgjørsform for vederlaget (NS 8407 §34.2)"
         >
-          <Controller
-            name="metode"
-            control={control}
-            render={({ field }) => (
-              <RadioGroup
-                value={field.value}
-                onValueChange={field.onChange}
-                data-testid="vederlag-metode"
-              >
-                {METODE_OPTIONS.map((option) => (
-                  <RadioItem
-                    key={option.value}
-                    value={option.value}
-                    label={option.label}
-                    description={option.description}
-                  />
-                ))}
-              </RadioGroup>
-            )}
-          />
-        </FormField>
+          <FormField
+            label="Metode"
+            required
+            error={errors.metode?.message}
+          >
+            <Controller
+              name="metode"
+              control={control}
+              render={({ field }) => (
+                <RadioGroup
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  data-testid="vederlag-metode"
+                >
+                  {METODE_OPTIONS.map((option) => (
+                    <RadioItem
+                      key={option.value}
+                      value={option.value}
+                      label={option.label}
+                      description={option.description}
+                    />
+                  ))}
+                </RadioGroup>
+              )}
+            />
+          </FormField>
+        </SectionContainer>
 
         {/* 2. Direkte kostnader - Metodespesifikk */}
-        <div className="bg-pkt-bg-subtle p-4 rounded-none border-2 border-pkt-border-subtle">
-          <h4 className="font-bold text-sm mb-3">Direkte kostnader</h4>
-
+        <SectionContainer title="Direkte kostnader">
           {selectedMetode === 'ENHETSPRISER' && (
             <>
               <FormField
@@ -436,16 +439,15 @@ export function SendVederlagModal({
               />
             </FormField>
           )}
-        </div>
+        </SectionContainer>
 
         {/* 3. Særskilte krav (§34.1.3) - Rigg, Drift, Produktivitet */}
-        <div className="bg-pkt-bg-subtle p-4 rounded-none border-2 border-pkt-border-subtle">
-          <h4 className="font-bold text-sm mb-2">
-            Særskilte krav
-          </h4>
-          <p className="text-sm text-pkt-text-body-subtle mb-3">
-            Disse postene krever særskilt varsel. Ved manglende varsel tapes kravet (§34.1.3).
-          </p>
+        <SectionContainer
+          title="Særskilte krav"
+          description="Disse postene krever særskilt varsel. Ved manglende varsel tapes kravet (§34.1.3)."
+          collapsible
+          defaultOpen={false}
+        >
 
           {/* Rigg/Drift section (§34.1.3 første ledd) */}
           <div className="mb-4">
@@ -574,24 +576,26 @@ export function SendVederlagModal({
               </div>
             )}
           </div>
-        </div>
+        </SectionContainer>
 
         {/* 4. Begrunnelse */}
-        <FormField
-          label="Begrunnelse"
-          helpText="Beskriv beregningsgrunnlag og henvis til vedlegg"
-          required
-          error={errors.begrunnelse?.message}
-        >
-          <Textarea
-            id="begrunnelse"
-            {...register('begrunnelse')}
-            rows={3}
-            fullWidth
-            error={!!errors.begrunnelse}
-            data-testid="vederlag-begrunnelse"
-          />
-        </FormField>
+        <SectionContainer title="Begrunnelse">
+          <FormField
+            label="Beregningsgrunnlag"
+            helpText="Beskriv beregningsgrunnlag og henvis til vedlegg"
+            required
+            error={errors.begrunnelse?.message}
+          >
+            <Textarea
+              id="begrunnelse"
+              {...register('begrunnelse')}
+              rows={3}
+              fullWidth
+              error={!!errors.begrunnelse}
+              data-testid="vederlag-begrunnelse"
+            />
+          </FormField>
+        </SectionContainer>
 
         {/* Error Message */}
         {mutation.isError && (
