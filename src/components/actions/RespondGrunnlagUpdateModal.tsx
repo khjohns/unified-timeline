@@ -15,6 +15,7 @@ import {
   Modal,
   RadioGroup,
   RadioItem,
+  SectionContainer,
   Textarea,
 } from '../primitives';
 import { useForm, Controller } from 'react-hook-form';
@@ -218,10 +219,10 @@ export function RespondGrunnlagUpdateModal({
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Current state */}
-        <div className="bg-pkt-bg-subtle p-4 rounded border border-pkt-grays-gray-200">
+        {/* Nåværende svar */}
+        <SectionContainer title="Nåværende svar" variant="subtle">
           <div className="flex items-center gap-3">
-            <span className="text-sm text-pkt-grays-gray-600">Nåværende svar:</span>
+            <span className="text-sm text-pkt-grays-gray-600">Resultat:</span>
             <Badge variant={varAvvist ? 'danger' : 'success'}>
               {RESULTAT_LABELS[forrigeResultat]}
             </Badge>
@@ -236,7 +237,7 @@ export function RespondGrunnlagUpdateModal({
               Det finnes subsidiære svar på vederlag og/eller frist.
             </p>
           )}
-        </div>
+        </SectionContainer>
 
         {/* Snuoperasjon alert - CRITICAL */}
         {erSnuoperasjon && harSubsidiaereSvar && (
@@ -270,61 +271,68 @@ export function RespondGrunnlagUpdateModal({
           </Alert>
         )}
 
-        {/* Response options */}
-        <FormField
-          label="Ny avgjørelse"
-          required
-          error={errors.nytt_resultat?.message}
+        {/* Endring av svar */}
+        <SectionContainer
+          title="Endring av svar"
+          description="Velg nytt resultat. Kun endringer til entreprenørens gunst er tillatt."
         >
-          <Controller
-            name="nytt_resultat"
-            control={control}
-            render={({ field }) => (
-              <RadioGroup
-                value={field.value}
-                onValueChange={field.onChange}
-              >
-                {getOptions().map((option) => (
-                  <RadioItem
-                    key={option.value}
-                    value={option.value}
-                    label={option.label}
-                    description={option.description}
-                  />
-                ))}
-              </RadioGroup>
-            )}
-          />
-        </FormField>
+          <FormField
+            label="Ny avgjørelse"
+            required
+            error={errors.nytt_resultat?.message}
+          >
+            <Controller
+              name="nytt_resultat"
+              control={control}
+              render={({ field }) => (
+                <RadioGroup
+                  value={field.value}
+                  onValueChange={field.onChange}
+                >
+                  {getOptions().map((option) => (
+                    <RadioItem
+                      key={option.value}
+                      value={option.value}
+                      label={option.label}
+                      description={option.description}
+                    />
+                  ))}
+                </RadioGroup>
+              )}
+            />
+          </FormField>
+        </SectionContainer>
 
         {/* Begrunnelse */}
-        <FormField
-          label="Begrunnelse for endring"
-          required
-          error={errors.begrunnelse?.message}
-        >
-          <Controller
-            name="begrunnelse"
-            control={control}
-            render={({ field }) => (
-              <Textarea
-                id="begrunnelse"
-                value={field.value}
-                onChange={field.onChange}
-                rows={4}
-                fullWidth
-                error={!!errors.begrunnelse}
-                placeholder={
-                  erSnuoperasjon
-                    ? 'Begrunn hvorfor du nå aksepterer ansvarsgrunnlaget...'
-                    : trekkeTilbakeGodkjenning
-                      ? 'Begrunn hvorfor godkjenningen trekkes tilbake...'
-                      : 'Begrunn endringen...'
-                }
-              />
-            )}
-          />
-        </FormField>
+        <SectionContainer title="Begrunnelse">
+          <FormField
+            label="Begrunnelse for endring"
+            required
+            error={errors.begrunnelse?.message}
+          >
+            <Controller
+              name="begrunnelse"
+              control={control}
+              render={({ field }) => (
+                <Textarea
+                  id="begrunnelse"
+                  value={field.value}
+                  onChange={field.onChange}
+                  rows={4}
+                  fullWidth
+                  error={!!errors.begrunnelse}
+                  placeholder={
+                    erSnuoperasjon
+                      ? 'Begrunn hvorfor du nå aksepterer ansvarsgrunnlaget...'
+                      : trekkeTilbakeGodkjenning
+                        ? 'Begrunn hvorfor godkjenningen trekkes tilbake...'
+                        : 'Begrunn endringen...'
+                  }
+                />
+              )}
+            />
+          </FormField>
+        </SectionContainer>
 
         {/* Error Message */}
         {mutation.isError && (
