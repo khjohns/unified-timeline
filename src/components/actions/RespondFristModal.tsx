@@ -413,7 +413,7 @@ export function RespondFristModal({
   const steps = [
     { label: 'Oversikt' },
     { label: 'Preklusjon' },
-    { label: 'Vilkår' },
+    { label: 'Årsakssammenheng' },
     { label: 'Beregning' },
     { label: 'Oppsummering' },
   ];
@@ -603,9 +603,9 @@ export function RespondFristModal({
                     <div className="flex justify-between items-center py-2">
                       <span className="font-medium">Type varsel</span>
                       <Badge variant="default">
-                        {varselType === 'noytralt' && 'Nøytralt varsel (§33.4)'}
+                        {varselType === 'noytralt' && 'Foreløpig varsel (§33.4)'}
                         {varselType === 'spesifisert' && 'Spesifisert krav (§33.6)'}
-                        {varselType === 'force_majeure' && 'Force majeure (§33.3)'}
+                        {varselType === 'force_majeure' && 'Force majeure-krav (§33.3)'}
                       </Badge>
                     </div>
                   )}
@@ -638,10 +638,10 @@ export function RespondFristModal({
                   <div className="flex gap-3">
                     <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">Steg 3</span>
                     <div>
-                      <span className="font-medium">Vilkår</span>
+                      <span className="font-medium">Årsakssammenheng</span>
                       <span className="text-pkt-text-body-subtle">
                         {' '}
-                        — Forårsaket forholdet faktisk forsinkelse? (§33.5)
+                        — Forårsaket forholdet faktisk forsinkelse? (§33.1)
                       </span>
                     </div>
                   </div>
@@ -651,7 +651,7 @@ export function RespondFristModal({
                       <span className="font-medium">Beregning</span>
                       <span className="text-pkt-text-body-subtle">
                         {' '}
-                        — Hvor mange dager fristforlengelse?
+                        — Hvor mange kalenderdager? (§33.5)
                       </span>
                     </div>
                   </div>
@@ -664,10 +664,10 @@ export function RespondFristModal({
                   </div>
                 </div>
 
-                {/* Etterlysning-info for nøytralt varsel */}
+                {/* Etterlysning-info for foreløpig varsel */}
                 {varselType === 'noytralt' && (
                   <div className="mt-4 pt-3 border-t border-pkt-border-subtle text-sm text-pkt-text-body-subtle">
-                    <strong>Merk:</strong> Ved nøytralt varsel kan du etterspørre et spesifisert krav
+                    <strong>Merk:</strong> Ved foreløpig varsel kan du etterspørre et spesifisert krav
                     (§33.6.2). Hvis entreprenøren ikke svarer i tide, tapes kravet.
                   </div>
                 )}
@@ -694,19 +694,19 @@ export function RespondFristModal({
                     Entreprenøren har sendt:{' '}
                   </span>
                   <Badge variant="default">
-                    {varselType === 'noytralt' && 'Nøytralt varsel (§33.4)'}
+                    {varselType === 'noytralt' && 'Foreløpig varsel (§33.4)'}
                     {varselType === 'spesifisert' && 'Spesifisert krav (§33.6)'}
-                    {varselType === 'force_majeure' && 'Force majeure (§33.3)'}
+                    {varselType === 'force_majeure' && 'Force majeure-krav (§33.3)'}
                   </Badge>
                 </div>
               )}
 
-              {/* Nøytralt varsel */}
+              {/* Foreløpig varsel */}
               {varselType === 'noytralt' && (
                 <>
                   <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
                     <FormField
-                      label="Nøytralt varsel sendt i tide? (§33.4)"
+                      label="Foreløpig varsel sendt i tide? (§33.4)"
                       required
                       helpText="Entreprenøren skal varsle 'uten ugrunnet opphold' når han blir klar over at det kan oppstå forsinkelse."
                     >
@@ -735,7 +735,7 @@ export function RespondFristModal({
                   {formValues.noytralt_varsel_ok && (
                     <div className="space-y-3">
                       <Alert variant="warning" title="Etterlysning (§33.6.2)">
-                        Entreprenøren har kun sendt nøytralt varsel uten antall dager. Du kan
+                        Entreprenøren har kun sendt foreløpig varsel uten antall dager. Du kan
                         etterspørre et spesifisert krav. Hvis entreprenøren ikke svarer «uten ugrunnet
                         opphold», tapes kravet.
                       </Alert>
@@ -890,12 +890,12 @@ export function RespondFristModal({
           )}
 
           {/* ================================================================
-              STEG 3: VILKÅR (§33.5) - Alltid vurderes, evt. subsidiært
+              STEG 3: ÅRSAKSSAMMENHENG (§33.1) - Alltid vurderes, evt. subsidiært
               ================================================================ */}
           {currentStepType === 'vilkar' && (
             <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
-                <h3 className="font-bold text-lg">Vilkår (§33.5)</h3>
+                <h3 className="font-bold text-lg">Årsakssammenheng (§33.1)</h3>
                 {port2ErSubsidiaer && <Badge variant="warning">Subsidiært</Badge>}
               </div>
 
@@ -955,7 +955,7 @@ export function RespondFristModal({
 
               {/* Begrunnelse vilkår - viktig at dette fylles ut */}
               <FormField
-                label="Begrunnelse"
+                label="Begrunnelse for vurderingen"
                 helpText="Beskriv hvorfor forholdet medførte/ikke medførte forsinkelse"
               >
                 <Textarea
@@ -976,12 +976,12 @@ export function RespondFristModal({
           )}
 
           {/* ================================================================
-              STEG 4: BEREGNING - Alltid vurderes, evt. subsidiært
+              STEG 4: BEREGNING (§33.5) - Alltid vurderes, evt. subsidiært
               ================================================================ */}
           {currentStepType === 'beregning' && (
             <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
-                <h3 className="font-bold text-lg">Beregning</h3>
+                <h3 className="font-bold text-lg">Beregning av fristforlengelse (§33.5)</h3>
                 {port3ErSubsidiaer && <Badge variant="warning">Subsidiært</Badge>}
               </div>
 
@@ -1035,8 +1035,8 @@ export function RespondFristModal({
                       <FormField
                         label={
                           port3ErSubsidiaer
-                            ? 'Maksimalt antall dager'
-                            : 'Godkjent antall dager'
+                            ? 'Maksimalt antall kalenderdager'
+                            : 'Godkjent antall kalenderdager'
                         }
                         required
                         error={errors.godkjent_dager?.message}
@@ -1130,10 +1130,10 @@ export function RespondFristModal({
                   </div>
                 </div>
 
-                {/* Vilkår */}
+                {/* Årsakssammenheng */}
                 <div className="p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
                   <h5 className="font-medium text-sm mb-2">
-                    Vilkår {port2ErSubsidiaer && '(subsidiært)'}
+                    Årsakssammenheng {port2ErSubsidiaer && '(subsidiært)'}
                   </h5>
                   <div className="flex items-center gap-2">
                     {harHindring ? (

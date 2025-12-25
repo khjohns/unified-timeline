@@ -294,16 +294,13 @@ export function SendFristModal({
           </Alert>
         )}
 
-        {/* Varseltype */}
+        {/* Kravtype */}
         <SectionContainer
-          title="Varseltype"
-          description="Velg hvordan du varsler fristkrav iht. NS 8407 §33"
+          title="Kravtype"
+          description={selectedVarselType && FRIST_VARSELTYPE_DESCRIPTIONS[selectedVarselType] ? FRIST_VARSELTYPE_DESCRIPTIONS[selectedVarselType] : undefined}
         >
           <FormField
-            label="Type varsel/krav"
-            required
             error={errors.varsel_type?.message}
-            helpText={selectedVarselType && FRIST_VARSELTYPE_DESCRIPTIONS[selectedVarselType] ? FRIST_VARSELTYPE_DESCRIPTIONS[selectedVarselType] : undefined}
           >
             <Controller
               name="varsel_type"
@@ -327,11 +324,11 @@ export function SendFristModal({
           </FormField>
         </SectionContainer>
 
-        {/* Varseldetaljer for nøytralt varsel */}
+        {/* Varseldetaljer for foreløpig varsel */}
         {selectedVarselType === 'noytralt' && (
           <SectionContainer
-            title="Nøytralt/Foreløpig varsel"
-            description="Sendes når omfang ikke er kjent (§33.4)"
+            title="Foreløpig varsel (§33.4)"
+            description="Dokumenter når og hvordan varselet ble sendt"
           >
             <div className="space-y-4">
               {/* §33.4 Preklusjonsvarsel for nøytralt varsel */}
@@ -406,8 +403,8 @@ export function SendFristModal({
         {/* Varseldetaljer for spesifisert krav */}
         {selectedVarselType === 'spesifisert' && (
           <SectionContainer
-            title="Spesifisert krav"
-            description="Konkret krav med antall dager og begrunnelse (§33.6)"
+            title="Spesifisert krav (§33.6)"
+            description="Dokumenter når og hvordan kravet ble sendt"
           >
             <div className="space-y-4">
               <Controller
@@ -466,12 +463,15 @@ export function SendFristModal({
           </SectionContainer>
         )}
 
-        {/* Krav - antall dager og sluttdato (for spesifisert/FM) */}
+        {/* Beregning av fristforlengelse (for spesifisert/FM) */}
         {(selectedVarselType === 'spesifisert' || selectedVarselType === 'force_majeure') && (
-          <SectionContainer title="Krav">
+          <SectionContainer
+            title="Beregning av fristforlengelse"
+            description="Angi omfanget av kravet basert på virkningen på fremdriften (§33.5)"
+          >
             <div className="space-y-4">
               <FormField
-                label="Antall dager fristforlengelse"
+                label="Antall kalenderdager"
                 required
                 error={errors.antall_dager?.message}
               >
@@ -488,9 +488,9 @@ export function SendFristModal({
               </FormField>
 
               <FormField
-                label="Ny forventet sluttdato"
+                label="Beregnet ny sluttdato"
                 error={errors.ny_sluttdato?.message}
-                helpText="Forventet ny sluttdato etter fristforlengelsen"
+                helpText="Ny sluttdato etter fristforlengelsen"
               >
                 <Controller
                   name="ny_sluttdato"
@@ -509,17 +509,19 @@ export function SendFristModal({
           </SectionContainer>
         )}
 
-        {/* Begrunnelse */}
-        <SectionContainer title="Begrunnelse">
+        {/* Årsakssammenheng */}
+        <SectionContainer
+          title="Årsakssammenheng"
+          description="Beskriv hvordan forholdet har forårsaket forsinkelse (§33.5)"
+        >
           <div className="space-y-4">
             <Alert variant="info" title="Vilkår for fristforlengelse (§33.1, §33.5)">
               For å ha krav på fristforlengelse må du vise at: (1) fremdriften har vært hindret, og
-              (2) hindringen skyldes det påberopte forholdet (årsakssammenheng). Begrunn hvordan
-              forholdet konkret har forårsaket forsinkelse i prosjektet.
+              (2) hindringen skyldes det påberopte forholdet. Forklar konkret hvordan forholdet
+              har påvirket fremdriften i prosjektet.
             </Alert>
 
             <FormField
-              label="Din begrunnelse"
               required
               error={errors.begrunnelse?.message}
             >
