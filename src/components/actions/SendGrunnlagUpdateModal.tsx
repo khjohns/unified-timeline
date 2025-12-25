@@ -14,6 +14,7 @@ import {
   FormField,
   Input,
   Modal,
+  SectionContainer,
   Select,
   SelectContent,
   SelectItem,
@@ -175,15 +176,12 @@ export function SendGrunnlagUpdateModal({
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Info about editing */}
-        <Alert variant="info">
-          Du redigerer nå et eksisterende varsel sendt {grunnlag.grunnlag_varsel?.dato_sendt || 'ukjent dato'}.
-          Endringer her vil bli loggført i historikken.
-        </Alert>
-
-        {/* Current state info */}
-        <div className="bg-pkt-bg-subtle p-4 rounded border border-pkt-grays-gray-200">
-          <h4 className="font-medium text-sm text-pkt-grays-gray-700 mb-2">Nåværende grunnlag</h4>
+        {/* Nåværende grunnlag */}
+        <SectionContainer
+          title="Nåværende grunnlag"
+          description={`Varslet ${grunnlag.grunnlag_varsel?.dato_sendt || 'ukjent dato'}. Endringer loggføres i historikken.`}
+          variant="subtle"
+        >
           <dl className="grid grid-cols-2 gap-2 text-sm">
             <dt className="text-pkt-grays-gray-500">Kategori:</dt>
             <dd className="font-medium">{getHovedkategoriLabel(grunnlag.hovedkategori || '')}</dd>
@@ -192,7 +190,7 @@ export function SendGrunnlagUpdateModal({
             <dt className="text-pkt-grays-gray-500">Varslet:</dt>
             <dd>{grunnlag.grunnlag_varsel?.dato_sendt || 'Ikke varslet'}</dd>
           </dl>
-        </div>
+        </SectionContainer>
 
         {/* Date change warning */}
         {varselErTidligere && dagerMellom && dagerMellom > 0 && (
@@ -217,105 +215,106 @@ export function SendGrunnlagUpdateModal({
           </Alert>
         )}
 
-        {/* Tittel */}
-        <FormField
-          label="Tittel"
-          helpText="Oppdater tittel på varselet"
-        >
-          <Input
-            id="tittel"
-            {...register('tittel')}
-            fullWidth
-          />
-        </FormField>
-
-        {/* Beskrivelse */}
-        <FormField
-          label="Beskrivelse / Tilleggsinfo"
-          helpText="Oppdater beskrivelsen av grunnlaget"
-        >
-          <Textarea
-            id="beskrivelse"
-            {...register('beskrivelse')}
-            rows={4}
-            fullWidth
-          />
-        </FormField>
-
-        {/* Dato oppdaget */}
-        <FormField
-          label="Dato oppdaget"
-          helpText="Endre kun hvis opprinnelig dato var feil"
-        >
-          <Controller
-            name="dato_oppdaget"
-            control={control}
-            render={({ field }) => (
-              <DatePicker
-                id="dato_oppdaget"
-                value={field.value}
-                onChange={field.onChange}
-                
-                placeholder="Velg dato"
+        {/* Redigering */}
+        <SectionContainer title="Redigering">
+          <div className="space-y-5">
+            <FormField
+              label="Tittel"
+              helpText="Oppdater tittel på varselet"
+            >
+              <Input
+                id="tittel"
+                {...register('tittel')}
+                fullWidth
               />
-            )}
-          />
-        </FormField>
+            </FormField>
 
-        {/* Hovedkategori */}
-        <FormField label="Hovedkategori">
-          <Controller
-            name="hovedkategori"
-            control={control}
-            render={({ field }) => (
-              <Select value={field.value} onValueChange={field.onChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Velg hovedkategori" />
-                </SelectTrigger>
-                <SelectContent>
-                  {HOVEDKATEGORI_OPTIONS.filter(opt => opt.value !== '').map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
+            <FormField
+              label="Beskrivelse / Tilleggsinfo"
+              helpText="Oppdater beskrivelsen av grunnlaget"
+            >
+              <Textarea
+                id="beskrivelse"
+                {...register('beskrivelse')}
+                rows={4}
+                fullWidth
+              />
+            </FormField>
+
+            <FormField
+              label="Dato oppdaget"
+              helpText="Endre kun hvis opprinnelig dato var feil"
+            >
+              <Controller
+                name="dato_oppdaget"
+                control={control}
+                render={({ field }) => (
+                  <DatePicker
+                    id="dato_oppdaget"
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="Velg dato"
+                  />
+                )}
+              />
+            </FormField>
+
+            <FormField label="Hovedkategori">
+              <Controller
+                name="hovedkategori"
+                control={control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Velg hovedkategori" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {HOVEDKATEGORI_OPTIONS.filter(opt => opt.value !== '').map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </FormField>
+
+            {nyHovedkategori && getUnderkategorier(nyHovedkategori).length > 0 && (
+              <FormField label="Underkategori">
+                <div className="space-y-3 max-h-48 overflow-y-auto border-2 border-pkt-border-gray rounded-none p-4 bg-pkt-bg-subtle">
+                  {getUnderkategorier(nyHovedkategori).map((option) => (
+                    <Checkbox
+                      key={option.value}
+                      id={`update-underkategori-${option.value}`}
+                      label={option.label}
+                      value={option.value}
+                      {...register('underkategori')}
+                    />
                   ))}
-                </SelectContent>
-              </Select>
+                </div>
+              </FormField>
             )}
-          />
-        </FormField>
-
-        {/* Underkategori */}
-        {nyHovedkategori && getUnderkategorier(nyHovedkategori).length > 0 && (
-          <FormField label="Underkategori">
-            <div className="space-y-3 max-h-48 overflow-y-auto border-2 border-pkt-border-gray rounded-none p-4 bg-pkt-bg-subtle">
-              {getUnderkategorier(nyHovedkategori).map((option) => (
-                <Checkbox
-                  key={option.value}
-                  id={`update-underkategori-${option.value}`}
-                  label={option.label}
-                  value={option.value}
-                  {...register('underkategori')}
-                />
-              ))}
-            </div>
-          </FormField>
-        )}
+          </div>
+        </SectionContainer>
 
         {/* Begrunnelse for endring */}
-        <FormField
-          label="Begrunnelse for endring"
-          required
-          error={errors.endrings_begrunnelse?.message}
-        >
-          <Textarea
-            id="endrings_begrunnelse"
-            {...register('endrings_begrunnelse')}
-            rows={3}
-            fullWidth
-            error={!!errors.endrings_begrunnelse}
-            placeholder="Hvorfor endres grunnlaget? (F.eks. ny informasjon, korrigering av feil, etc.)"
-          />
-        </FormField>
+        <SectionContainer title="Begrunnelse for endring">
+          <FormField
+            label="Hvorfor endres grunnlaget?"
+            required
+            error={errors.endrings_begrunnelse?.message}
+          >
+            <Textarea
+              id="endrings_begrunnelse"
+              {...register('endrings_begrunnelse')}
+              rows={3}
+              fullWidth
+              error={!!errors.endrings_begrunnelse}
+              placeholder="F.eks. ny informasjon, korrigering av feil, etc."
+            />
+          </FormField>
+        </SectionContainer>
 
         {/* Error Message */}
         {mutation.isError && (
