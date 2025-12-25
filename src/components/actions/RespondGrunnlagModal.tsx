@@ -20,6 +20,7 @@ import {
   Modal,
   RadioGroup,
   RadioItem,
+  SectionContainer,
   Textarea,
   useToast,
 } from '../primitives';
@@ -169,12 +170,9 @@ export function RespondGrunnlagModal({
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Grunnlag summary - show if event data is available */}
+        {/* Kontekst: Entreprenørens påstand */}
         {grunnlagEvent && (hovedkategoriLabel || grunnlagEvent.beskrivelse) && (
-          <div className="p-4 bg-pkt-surface-subtle-light-blue border-2 border-pkt-border-focus rounded-none">
-            <h4 className="font-bold text-sm text-pkt-text-body-dark mb-2">
-              Entreprenørens påstand:
-            </h4>
+          <SectionContainer title="Entreprenørens påstand" variant="subtle">
             {hovedkategoriLabel && (
               <p className="text-sm">
                 <span className="font-medium">{hovedkategoriLabel}</span>
@@ -203,7 +201,7 @@ export function RespondGrunnlagModal({
                 )}
               </p>
             )}
-          </div>
+          </SectionContainer>
         )}
 
         {/* Force Majeure info */}
@@ -230,132 +228,141 @@ export function RespondGrunnlagModal({
           </Alert>
         )}
 
-        {/* Resultat */}
-        <FormField
-          label="Resultat (ansvarsgrunnlag)"
-          required
-          error={errors.resultat?.message}
-          labelTooltip="Vurder BARE ansvaret. Hvis avvist, kan vederlag/frist fortsatt vurderes subsidiært."
+        {/* Vurdering */}
+        <SectionContainer
+          title="Vurdering"
+          description="Vurder kun ansvarsgrunnlaget. Vederlag og frist behandles separat."
         >
-          <Controller
-            name="resultat"
-            control={control}
-            render={({ field }) => (
-              <RadioGroup
-                value={field.value}
-                onValueChange={field.onChange}
-                data-testid="respond-grunnlag-resultat"
-              >
-                {BH_GRUNNLAGSVAR_OPTIONS.filter((opt) => {
-                  // Filter out empty placeholder
-                  if (opt.value === '') return false;
+          <div className="space-y-4">
+            <FormField
+              label="Resultat (ansvarsgrunnlag)"
+              required
+              error={errors.resultat?.message}
+              labelTooltip="Vurder BARE ansvaret. Hvis avvist, kan vederlag/frist fortsatt vurderes subsidiært."
+            >
+              <Controller
+                name="resultat"
+                control={control}
+                render={({ field }) => (
+                  <RadioGroup
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    data-testid="respond-grunnlag-resultat"
+                  >
+                    {BH_GRUNNLAGSVAR_OPTIONS.filter((opt) => {
+                      // Filter out empty placeholder
+                      if (opt.value === '') return false;
 
-                  // Force Majeure: ONLY show "erkjenn_fm" option (§33.3)
-                  // FM is a special category - you can only recognize it or not
-                  if (erForceMajeure) {
-                    return opt.value === 'erkjenn_fm';
-                  }
+                      // Force Majeure: ONLY show "erkjenn_fm" option (§33.3)
+                      // FM is a special category - you can only recognize it or not
+                      if (erForceMajeure) {
+                        return opt.value === 'erkjenn_fm';
+                      }
 
-                  // Non-FM cases: filter out FM option and conditional options
-                  if (opt.value === 'erkjenn_fm') return false;
-                  // Filter out "frafalt" if NOT irregular change (§32.3 c)
-                  if (opt.value === 'frafalt' && !erIrregulaer) return false;
-                  return true;
-                }).map((option) => (
-                  <RadioItem
-                    key={option.value}
-                    value={option.value}
-                    label={option.label}
-                    error={!!errors.resultat}
-                  />
-                ))}
-              </RadioGroup>
+                      // Non-FM cases: filter out FM option and conditional options
+                      if (opt.value === 'erkjenn_fm') return false;
+                      // Filter out "frafalt" if NOT irregular change (§32.3 c)
+                      if (opt.value === 'frafalt' && !erIrregulaer) return false;
+                      return true;
+                    }).map((option) => (
+                      <RadioItem
+                        key={option.value}
+                        value={option.value}
+                        label={option.label}
+                        error={!!errors.resultat}
+                      />
+                    ))}
+                  </RadioGroup>
+                )}
+              />
+            </FormField>
+
+            {/* Show description of selected resultat */}
+            {selectedResultat &&
+              BH_GRUNNLAGSVAR_DESCRIPTIONS[selectedResultat] && (
+                <div className="p-3 bg-pkt-surface-subtle rounded-none border-l-4 border-pkt-border-focus">
+                  <p className="text-sm text-pkt-text-body-subtle">
+                    {BH_GRUNNLAGSVAR_DESCRIPTIONS[selectedResultat]}
+                  </p>
+                </div>
+              )}
+
+            {/* Frafall info (§32.3 c) */}
+            {selectedResultat === 'frafalt' && (
+              <Alert variant="info" title="Frafall av pålegget (§32.3 c)">
+                Ved å frafalle pålegget bekrefter du at arbeidet <strong>ikke skal
+                utføres</strong>. Dette er en endelig beslutning for irregulære
+                endringer (§32.2). Entreprenøren trenger ikke å utføre det pålagte
+                arbeidet, og saken avsluttes.
+              </Alert>
             )}
-          />
-        </FormField>
 
-        {/* Show description of selected resultat */}
-        {selectedResultat &&
-          BH_GRUNNLAGSVAR_DESCRIPTIONS[selectedResultat] && (
-            <div className="p-4 bg-pkt-surface-subtle rounded-none border-l-4 border-pkt-border-focus">
-              <p className="text-sm text-pkt-text-body-subtle">
-                {BH_GRUNNLAGSVAR_DESCRIPTIONS[selectedResultat]}
-              </p>
-            </div>
-          )}
+            {/* Force Majeure recognition info (§33.3) */}
+            {selectedResultat === 'erkjenn_fm' && (
+              <Alert variant="info" title="Force Majeure erkjennelse (§33.3)">
+                <p>
+                  Ved å erkjenne Force Majeure bekrefter du at forholdet er utenfor
+                  begge parters kontroll. Entreprenøren får kun rett til{' '}
+                  <strong>fristforlengelse</strong>, ikke vederlagsjustering. Dette
+                  gjelder ekstraordinære hendelser som krig, naturkatastrofer, streik
+                  etc.
+                </p>
+                <p className="mt-2">
+                  Dokumentasjonskravet er høyt: Hendelsen må være ekstraordinær og
+                  uforutsigbar, og ligge utenfor begge parters kontroll og innflytelse.
+                </p>
+              </Alert>
+            )}
 
-        {/* Frafall info (§32.3 c) */}
-        {selectedResultat === 'frafalt' && (
-          <Alert variant="info" title="Frafall av pålegget (§32.3 c)">
-            Ved å frafalle pålegget bekrefter du at arbeidet <strong>ikke skal
-            utføres</strong>. Dette er en endelig beslutning for irregulære
-            endringer (§32.2). Entreprenøren trenger ikke å utføre det pålagte
-            arbeidet, og saken avsluttes.
-          </Alert>
-        )}
+            {/* Subsidiary treatment warning when rejecting */}
+            {selectedResultat === 'avslatt' && (
+              <Alert variant="warning" title="Konsekvens av avslag">
+                <p>
+                  Saken markeres som <em>omtvistet</em>. Entreprenøren vil likevel
+                  kunne sende inn krav om Vederlag og Frist. Du må da behandle disse
+                  kravene <strong>subsidiært</strong> (dvs. &ldquo;hva kravet hadde
+                  vært verdt <em>hvis</em> du tok feil om ansvaret&rdquo;).
+                </p>
+                <p className="mt-2">
+                  Dette sikrer at dere får avklart uenighet om beregning (utmåling)
+                  tidlig, selv om dere er uenige om ansvaret.
+                </p>
+              </Alert>
+            )}
 
-        {/* Force Majeure recognition info (§33.3) */}
-        {selectedResultat === 'erkjenn_fm' && (
-          <Alert variant="info" title="Force Majeure erkjennelse (§33.3)">
-            <p>
-              Ved å erkjenne Force Majeure bekrefter du at forholdet er utenfor
-              begge parters kontroll. Entreprenøren får kun rett til{' '}
-              <strong>fristforlengelse</strong>, ikke vederlagsjustering. Dette
-              gjelder ekstraordinære hendelser som krig, naturkatastrofer, streik
-              etc.
-            </p>
-            <p className="mt-2">
-              Dokumentasjonskravet er høyt: Hendelsen må være ekstraordinær og
-              uforutsigbar, og ligge utenfor begge parters kontroll og innflytelse.
-            </p>
-          </Alert>
-        )}
-
-        {/* Subsidiary treatment warning when rejecting */}
-        {selectedResultat === 'avslatt' && (
-          <Alert variant="warning" title="Konsekvens av avslag">
-            <p>
-              Saken markeres som <em>omtvistet</em>. Entreprenøren vil likevel
-              kunne sende inn krav om Vederlag og Frist. Du må da behandle disse
-              kravene <strong>subsidiært</strong> (dvs. &ldquo;hva kravet hadde
-              vært verdt <em>hvis</em> du tok feil om ansvaret&rdquo;).
-            </p>
-            <p className="mt-2">
-              Dette sikrer at dere får avklart uenighet om beregning (utmåling)
-              tidlig, selv om dere er uenige om ansvaret.
-            </p>
-          </Alert>
-        )}
-
-        {/* EO generation info when approving */}
-        {selectedResultat === 'godkjent' && !erForceMajeure && (
-          <Alert variant="success" title="Systemhandling">
-            Når du sender svaret, vil systemet automatisk registrere at
-            grunnlaget er godkjent. Endringsordre (EO) kan utstedes når
-            vederlag og frist også er avklart.
-          </Alert>
-        )}
+            {/* EO generation info when approving */}
+            {selectedResultat === 'godkjent' && !erForceMajeure && (
+              <Alert variant="success" title="Systemhandling">
+                Når du sender svaret, vil systemet automatisk registrere at
+                grunnlaget er godkjent. Endringsordre (EO) kan utstedes når
+                vederlag og frist også er avklart.
+              </Alert>
+            )}
+          </div>
+        </SectionContainer>
 
         {/* Begrunnelse */}
-        <FormField
-          label="Begrunnelse"
-          required
-          error={errors.begrunnelse?.message}
-          helpText={
-            selectedResultat === 'avslatt'
-              ? 'Forklar hvorfor du mener forholdet er en del av kontrakten eller entreprenørens risiko'
-              : 'Begrunn din vurdering av grunnlaget'
-          }
-        >
-          <Textarea
-            id="begrunnelse"
-            {...register('begrunnelse')}
-            rows={5}
-            fullWidth
-            error={!!errors.begrunnelse}
-            data-testid="respond-grunnlag-begrunnelse"
-          />
-        </FormField>
+        <SectionContainer title="Begrunnelse">
+          <FormField
+            label="Din begrunnelse"
+            required
+            error={errors.begrunnelse?.message}
+            helpText={
+              selectedResultat === 'avslatt'
+                ? 'Forklar hvorfor du mener forholdet er en del av kontrakten eller entreprenørens risiko'
+                : 'Begrunn din vurdering av grunnlaget'
+            }
+          >
+            <Textarea
+              id="begrunnelse"
+              {...register('begrunnelse')}
+              rows={5}
+              fullWidth
+              error={!!errors.begrunnelse}
+              data-testid="respond-grunnlag-begrunnelse"
+            />
+          </FormField>
+        </SectionContainer>
 
         {/* Error Message */}
         {mutation.isError && (
