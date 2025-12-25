@@ -15,6 +15,7 @@ export { Alert } from './Alert';
 export { Badge, type BadgeVariant, type BadgeSize } from './Badge';
 export { RevisionTag, RevisionTagGroup, UpdatedTag } from './RevisionTag';
 export { Collapsible } from './Collapsible';
+export { SectionContainer, type SectionContainerProps } from './SectionContainer';
 export { CurrencyInput } from './CurrencyInput';
 
 // Form Components
