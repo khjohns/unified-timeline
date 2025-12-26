@@ -175,7 +175,7 @@ function VederlagEventView({ data }: { data: any }) {
             : undefined
         }
       />
-      <Field label="Oppgjørsform" value={METODE_LABELS[data.metode] || data.metode} />
+      <Field label="Beregningsmetode" value={METODE_LABELS[data.metode] || data.metode} />
       <Field label="Begrunnelse" value={data.begrunnelse} className="col-span-2" />
 
       {/* Rigg/drift */}
@@ -320,7 +320,7 @@ function ResponsVederlagView({ data }: { data: any }) {
         />
       )}
       <Field
-        label="Oppgjørsform"
+        label="Beregningsmetode"
         value={METODE_LABELS[data.vederlagsmetode] || data.vederlagsmetode}
       />
       <Field label="Begrunnelse" value={data.begrunnelse} />

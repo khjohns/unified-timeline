@@ -49,7 +49,7 @@ const vederlagSchema = z.object({
   // Direkte kostnader - tillater negative for fradrag (§34.4)
   belop_direkte: z.number().optional(),
   metode: z.enum(['ENHETSPRISER', 'REGNINGSARBEID', 'FASTPRIS_TILBUD'], {
-    errorMap: () => ({ message: 'Oppgjørsform er påkrevd' }),
+    errorMap: () => ({ message: 'Beregningsmetode er påkrevd' }),
   }),
   begrunnelse: z.string().min(10, 'Begrunnelse må være minst 10 tegn'),
 
@@ -289,14 +289,12 @@ export function SendVederlagModal({
           </Alert>
         )}
 
-        {/* 1. Oppgjørsform */}
+        {/* 1. Beregningsmetode */}
         <SectionContainer
-          title="Oppgjørsform"
-          description="Velg oppgjørsform for vederlaget (NS 8407 §34.2)"
+          title="Beregningsmetode"
+          description="Velg hvordan vederlaget skal beregnes (§34.2–§34.4)"
         >
           <FormField
-            label="Metode"
-            required
             error={errors.metode?.message}
           >
             <Controller
@@ -322,8 +320,8 @@ export function SendVederlagModal({
           </FormField>
         </SectionContainer>
 
-        {/* 2. Direkte kostnader - Metodespesifikk */}
-        <SectionContainer title="Direkte kostnader">
+        {/* 2. Kravets omfang - Metodespesifikk */}
+        <SectionContainer title="Kravets omfang">
           {selectedMetode === 'ENHETSPRISER' && (
             <>
               <FormField
@@ -443,8 +441,8 @@ export function SendVederlagModal({
 
         {/* 3. Særskilte krav (§34.1.3) - Rigg, Drift, Produktivitet */}
         <SectionContainer
-          title="Særskilte krav"
-          description="Disse postene krever særskilt varsel. Ved manglende varsel tapes kravet (§34.1.3)."
+          title="Særskilte krav (§34.1.3)"
+          description="Krav om økte rigg-/driftskostnader og produktivitetstap krever særskilt varsel"
           collapsible
           defaultOpen={false}
         >
@@ -467,7 +465,7 @@ export function SendVederlagModal({
             {harRiggKrav && (
               <div className="mt-3 ml-6 space-y-4 border-l-2 border-pkt-border-subtle pl-4">
                 <FormField
-                  label="Estimert beløp"
+                  label="Estimert beløp for rigg/drift"
                   error={errors.belop_rigg?.message}
                 >
                   <Controller
@@ -484,7 +482,7 @@ export function SendVederlagModal({
                 </FormField>
 
                 <FormField
-                  label="Dato du ble klar over utgiftene"
+                  label="Dato utgiftene ble erkjent"
                   helpText="Varslingsfristen løper fra dette tidspunktet"
                 >
                   <Controller
@@ -531,7 +529,7 @@ export function SendVederlagModal({
             {harProduktivitetKrav && (
               <div className="mt-3 ml-6 space-y-4 border-l-2 border-pkt-border-subtle pl-4">
                 <FormField
-                  label="Estimert beløp"
+                  label="Estimert beløp for produktivitetstap"
                   error={errors.belop_produktivitet?.message}
                 >
                   <Controller
@@ -548,7 +546,7 @@ export function SendVederlagModal({
                 </FormField>
 
                 <FormField
-                  label="Dato du ble klar over produktivitetstapet"
+                  label="Dato produktivitetstapet ble erkjent"
                   helpText="Varslingsfristen løper fra dette tidspunktet"
                 >
                   <Controller
@@ -578,11 +576,12 @@ export function SendVederlagModal({
           </div>
         </SectionContainer>
 
-        {/* 4. Begrunnelse */}
-        <SectionContainer title="Begrunnelse">
+        {/* 4. Beregningsgrunnlag */}
+        <SectionContainer
+          title="Beregningsgrunnlag"
+          description="Beskriv grunnlaget for beregningen og henvis til vedlegg"
+        >
           <FormField
-            label="Beregningsgrunnlag"
-            helpText="Beskriv beregningsgrunnlag og henvis til vedlegg"
             required
             error={errors.begrunnelse?.message}
           >

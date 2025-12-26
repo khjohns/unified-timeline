@@ -588,7 +588,7 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
         />
       )}
       {data.vederlagsmetode && (
-        <Field label="Oppgjørsform" value={getVederlagsmetodeLabel(data.vederlagsmetode)} />
+        <Field label="Beregningsmetode" value={getVederlagsmetodeLabel(data.vederlagsmetode)} />
       )}
 
       {/* ── Port 1: Preklusjonsvurdering (§34.1.3) ─────────────────── */}

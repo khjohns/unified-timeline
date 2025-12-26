@@ -221,10 +221,10 @@ describe('Action/Modal Components - Functional Tests', () => {
       expect(screen.getByText(/Krav om Vederlagsjustering/i)).toBeInTheDocument();
     });
 
-    it('should have oppgjørsform field', () => {
+    it('should have beregningsmetode field', () => {
       renderWithProviders(<SendVederlagModal {...defaultProps} />);
 
-      expect(screen.getAllByText(/Oppgjørsform/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/Beregningsmetode/i).length).toBeGreaterThan(0);
     });
 
     it('should have begrunnelse field', () => {

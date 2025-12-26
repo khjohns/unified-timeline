@@ -102,7 +102,7 @@ function formatCurrency(amount: number): string {
 }
 
 function getMetodeLabel(metode?: VederlagsMetode): string {
-  if (!metode) return 'ukjent oppgjørsform';
+  if (!metode) return 'ukjent beregningsmetode';
   const labels: Record<VederlagsMetode, string> = {
     'ENHETSPRISER': 'enhetspriser (§34.3)',
     'REGNINGSARBEID': 'regningsarbeid (§30.2/§34.4)',
@@ -130,11 +130,11 @@ function generateMetodeSection(input: VederlagResponseInput): string {
   const lines: string[] = [];
 
   if (input.akseptererMetode) {
-    lines.push(`Byggherren godtar den foreslåtte oppgjørsformen ${getMetodeLabel(input.metode)}.`);
+    lines.push(`Byggherren godtar den foreslåtte beregningsmetoden ${getMetodeLabel(input.metode)}.`);
   } else {
     lines.push(
-      `Byggherren godtar ikke den foreslåtte oppgjørsformen ${getMetodeLabel(input.metode)}, ` +
-      `og krever i stedet oppgjør etter ${getMetodeLabel(input.oensketMetode)}.`
+      `Byggherren godtar ikke den foreslåtte beregningsmetoden ${getMetodeLabel(input.metode)}, ` +
+      `og krever i stedet beregning etter ${getMetodeLabel(input.oensketMetode)}.`
     );
 
     // Special case: rejecting fastpris - explain fallback based on chosen method

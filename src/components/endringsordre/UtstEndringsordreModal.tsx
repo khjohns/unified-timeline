@@ -648,9 +648,9 @@ export function UtstEndringsordreModal({
                   <h4 className="font-medium text-sm">Vederlagsjustering</h4>
 
                   <FormField
-                    label="Oppgjørsform"
+                    label="Beregningsmetode"
                     required
-                    error={!formValues.oppgjorsform ? 'Velg oppgjørsform' : undefined}
+                    error={!formValues.oppgjorsform ? 'Velg beregningsmetode' : undefined}
                   >
                     <div className="space-y-2">
                       {OPPGJORSFORM_OPTIONS.map((opt) => (
@@ -852,7 +852,7 @@ export function UtstEndringsordreModal({
                       {formValues.konsekvenser_pris && (
                         <>
                           <div className="flex justify-between">
-                            <dt className="text-pkt-text-body-subtle">Oppgjørsform:</dt>
+                            <dt className="text-pkt-text-body-subtle">Beregningsmetode:</dt>
                             <dd className="font-medium">
                               {OPPGJORSFORM_OPTIONS.find((o) => o.value === formValues.oppgjorsform)?.label ||
                                 '-'}

@@ -5,7 +5,7 @@
  * Provides visual separation and optional collapsibility for organizing complex forms.
  *
  * USAGE:
- * - Use for grouping related fields in modals (e.g., "Oppgjørsform", "Særskilte krav")
+ * - Use for grouping related fields in modals (e.g., "Beregningsmetode", "Særskilte krav")
  * - Use collapsible variant for optional/advanced content
  * - Use "subtle" variant for context/read-only sections
  * - Use "default" variant for editable form sections

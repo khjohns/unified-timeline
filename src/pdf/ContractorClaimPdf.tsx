@@ -549,7 +549,7 @@ const VederlagSection: React.FC<{ state: SakState }> = ({ state }) => {
                 )}
                 {vederlag.bh_metode && vederlag.bh_metode !== vederlag.metode && (
                   <TableRow
-                    label="Endret oppgjørsform"
+                    label="Endret beregningsmetode"
                     value={formatVederlagsmetode(vederlag.bh_metode)}
                   />
                 )}

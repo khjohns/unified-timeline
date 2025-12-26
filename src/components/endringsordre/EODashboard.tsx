@@ -156,7 +156,7 @@ export function EODashboard({
           <DataList>
             {harPriskonsekvens && (
               <>
-                <DataListItem label="Oppgjørsform">
+                <DataListItem label="Beregningsmetode">
                   {getOppgjorsformLabel(eoData.oppgjorsform)}
                 </DataListItem>
                 {eoData.kompensasjon_belop !== undefined && eoData.kompensasjon_belop > 0 && (
