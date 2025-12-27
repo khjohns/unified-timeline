@@ -67,10 +67,13 @@ export function useActionPermissions(
   const isInitialStatus = (status: string | undefined) =>
     status === 'utkast' || status === 'ikke_relevant';
 
+  // Force Majeure (§33.3) gir kun rett til fristforlengelse, ikke vederlagsjustering
+  const erForceMajeure = state.grunnlag.hovedkategori === 'FORCE_MAJEURE';
+
   return {
     // TE Actions: Send initial claims (only from draft, not from ikke_relevant)
     canSendGrunnlag: isTE && isDraftStatus(state.grunnlag.status),
-    canSendVederlag: isTE && isDraftStatus(state.vederlag.status),
+    canSendVederlag: isTE && isDraftStatus(state.vederlag.status) && !erForceMajeure,
     canSendFrist: isTE && isDraftStatus(state.frist.status),
 
     // TE Actions: Update existing claims (including after partial approval)

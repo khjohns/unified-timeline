@@ -19,7 +19,7 @@ import { CaseDashboard } from '../components/views/CaseDashboard';
 import { Timeline } from '../components/views/Timeline';
 import { ComprehensiveMetadata } from '../components/views/ComprehensiveMetadata';
 import { RevisionHistory } from '../components/views/RevisionHistory';
-import { Button } from '../components/primitives';
+import { Alert, Button } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
 import { ForseringRelasjonBanner } from '../components/forsering';
 import { UtstEndringsordreModal, EndringsordreRelasjonBanner } from '../components/endringsordre';
@@ -323,6 +323,12 @@ export function CasePage() {
           }
           vederlagActions={
             <>
+              {/* Force Majeure info - vederlag ikke aktuelt */}
+              {state.grunnlag.hovedkategori === 'FORCE_MAJEURE' && (
+                <Alert variant="info" size="sm">
+                  Force majeure (§33.3) gir kun rett til fristforlengelse, ikke vederlagsjustering.
+                </Alert>
+              )}
               {/* TE Actions: "Send" and "Oppdater" are mutually exclusive */}
               {userRole === 'TE' && actions.canSendVederlag && (
                 <Button
