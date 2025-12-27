@@ -208,8 +208,8 @@ export function RespondGrunnlagModal({
         {erForceMajeure && (
           <Alert variant="warning" title="Force Majeure (§33.3)">
             Force Majeure gir kun rett til <strong>fristforlengelse</strong>,
-            ikke vederlagsjustering. Vurder om hendelsen ligger utenfor begge
-            parters kontroll.
+            ikke vederlagsjustering. Vurder om hendelsen ligger utenfor
+            entreprenørens kontroll.
           </Alert>
         )}
 
@@ -302,7 +302,7 @@ export function RespondGrunnlagModal({
               <Alert variant="success" title="Konsekvens av å erkjenne Force Majeure">
                 <p>
                   Ved å erkjenne Force Majeure godtar du at forholdet ligger utenfor
-                  begge parters kontroll. Entreprenøren får kun rett til{' '}
+                  entreprenørens kontroll. Entreprenøren får kun rett til{' '}
                   <strong>fristforlengelse</strong> – ikke vederlagsjustering.
                 </p>
                 <p className="mt-2">
