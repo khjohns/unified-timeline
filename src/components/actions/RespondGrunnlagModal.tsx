@@ -253,10 +253,10 @@ export function RespondGrunnlagModal({
                       // Filter out empty placeholder
                       if (opt.value === '') return false;
 
-                      // Force Majeure: ONLY show "erkjenn_fm" option (§33.3)
-                      // FM is a special category - you can only recognize it or not
+                      // Force Majeure: Can recognize, reject, or request clarification
+                      // FM is binary - either it qualifies as FM or it doesn't
                       if (erForceMajeure) {
-                        return opt.value === 'erkjenn_fm';
+                        return ['erkjenn_fm', 'avslatt', 'krever_avklaring'].includes(opt.value);
                       }
 
                       // Non-FM cases: filter out FM option and conditional options
@@ -299,23 +299,21 @@ export function RespondGrunnlagModal({
 
             {/* Force Majeure recognition info (§33.3) */}
             {selectedResultat === 'erkjenn_fm' && (
-              <Alert variant="info" title="Force Majeure erkjennelse (§33.3)">
+              <Alert variant="success" title="Konsekvens av å erkjenne Force Majeure">
                 <p>
-                  Ved å erkjenne Force Majeure bekrefter du at forholdet er utenfor
+                  Ved å erkjenne Force Majeure godtar du at forholdet ligger utenfor
                   begge parters kontroll. Entreprenøren får kun rett til{' '}
-                  <strong>fristforlengelse</strong>, ikke vederlagsjustering. Dette
-                  gjelder ekstraordinære hendelser som krig, naturkatastrofer, streik
-                  etc.
+                  <strong>fristforlengelse</strong> – ikke vederlagsjustering.
                 </p>
                 <p className="mt-2">
-                  Dokumentasjonskravet er høyt: Hendelsen må være ekstraordinær og
-                  uforutsigbar, og ligge utenfor begge parters kontroll og innflytelse.
+                  Du vil deretter kunne ta stilling til fristforlengelseskravet
+                  (antall kalenderdager).
                 </p>
               </Alert>
             )}
 
             {/* Subsidiary treatment warning when rejecting */}
-            {selectedResultat === 'avslatt' && (
+            {selectedResultat === 'avslatt' && !erForceMajeure && (
               <Alert variant="warning" title="Konsekvens av avslag">
                 <p>
                   Saken markeres som <em>omtvistet</em>. Entreprenøren vil likevel
@@ -326,6 +324,21 @@ export function RespondGrunnlagModal({
                 <p className="mt-2">
                   Dette sikrer at dere får avklart uenighet om beregning (utmåling)
                   tidlig, selv om dere er uenige om ansvaret.
+                </p>
+              </Alert>
+            )}
+
+            {/* FM rejection info */}
+            {selectedResultat === 'avslatt' && erForceMajeure && (
+              <Alert variant="warning" title="Konsekvens av avslag">
+                <p>
+                  Du mener at forholdet <strong>ikke</strong> kvalifiserer som Force Majeure
+                  (§33.3). Dette kan være fordi hendelsen var forutsigbar, kunne vært
+                  unngått, eller ikke er tilstrekkelig ekstraordinær.
+                </p>
+                <p className="mt-2">
+                  Entreprenøren vil likevel kunne sende inn krav om fristforlengelse.
+                  Du må da behandle kravet <strong>subsidiært</strong>.
                 </p>
               </Alert>
             )}
