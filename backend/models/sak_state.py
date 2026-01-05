@@ -1078,9 +1078,9 @@ class SakState(BaseModel):
     catenda_project_id: Optional[str] = Field(default=None)
 
     # Parter
-    te_navn: Optional[str] = Field(default=None)
-    bh_navn: Optional[str] = Field(default=None)
-    prosjekt_navn: Optional[str] = Field(default=None)
+    entreprenor: Optional[str] = Field(default=None, description="Totalentreprenør (TE)")
+    byggherre: Optional[str] = Field(default=None, description="Byggherre (BH)")
+    prosjekt_navn: Optional[str] = Field(default=None, description="Prosjektnavn fra Catenda")
 
 
 # ============ HELPERS FOR API ============
@@ -1123,5 +1123,5 @@ class SakOversikt(BaseModel):
     siste_aktivitet: Optional[datetime] = None
     neste_handling_rolle: Optional[str] = None
 
-    te_navn: Optional[str] = None
+    entreprenor: Optional[str] = None
     prosjekt_navn: Optional[str] = None

@@ -85,8 +85,8 @@ class OversiktResponse(BaseModel):
     siste_aktivitet: datetime
 
     # Parter
-    te_navn: Optional[str] = None
-    bh_navn: Optional[str] = None
+    entreprenor: Optional[str] = None
+    byggherre: Optional[str] = None
     prosjekt_navn: Optional[str] = None
 
 

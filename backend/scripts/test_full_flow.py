@@ -797,7 +797,38 @@ class BaseTester:
         print_info(f"Genererer sak: {sak_id} (type: {sakstype})")
 
         try:
-            # Opprett SakOpprettetEvent
+            # Hent prosjektnavn fra Catenda
+            prosjekt_navn = None
+            project_details = self.client.get_project_details(self.project_id)
+            if project_details:
+                prosjekt_navn = project_details.get('name')
+                print_ok(f"Prosjektnavn: {prosjekt_navn}")
+
+            # Hent custom fields (Byggherre, Leverandør) fra topic
+            byggherre = None
+            leverandor = None
+            topic_details = self.client.get_topic_details(topic_guid)
+            if topic_details:
+                custom_fields = topic_details.get('bimsync_custom_fields', [])
+                for field in custom_fields:
+                    field_name = field.get('customFieldName')
+                    field_value = field.get('value')
+                    if field_name == 'Byggherre' and field_value:
+                        byggherre = field_value
+                        print_ok(f"Byggherre: {byggherre}")
+                    elif field_name == 'Leverandør' and field_value:
+                        leverandor = field_value
+                        print_ok(f"Leverandør: {leverandor}")
+
+            # Fallback til TEST_DATA hvis custom fields ikke er satt
+            if not byggherre:
+                byggherre = TEST_DATA.get('byggherre')
+                print_warn(f"Byggherre custom field ikke satt, bruker fallback: {byggherre}")
+            if not leverandor:
+                leverandor = TEST_DATA.get('leverandor')
+                print_warn(f"Leverandør custom field ikke satt, bruker fallback: {leverandor}")
+
+            # Opprett SakOpprettetEvent med prosjekt- og partsinformasjon
             event = SakOpprettetEvent(
                 sak_id=sak_id,
                 sakstittel=topic_title,
@@ -806,6 +837,10 @@ class BaseTester:
                 prosjekt_id=self.project_id,
                 catenda_topic_id=topic_guid,
                 sakstype=sakstype,
+                # Prosjekt- og partsinformasjon fra Catenda
+                prosjekt_navn=prosjekt_navn,
+                byggherre=byggherre,
+                leverandor=leverandor,
             )
 
             # Persist event (respekterer EVENT_STORE_BACKEND env var)

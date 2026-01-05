@@ -54,7 +54,7 @@ class CSVRepository(BaseRepository):
 
     SAKER_FIELDNAMES = [
         'sak_id', 'catenda_topic_id', 'catenda_project_id', 'catenda_board_id',
-        'sakstittel', 'opprettet_dato', 'opprettet_av', 'status', 'te_navn', 'modus',
+        'sakstittel', 'opprettet_dato', 'opprettet_av', 'status', 'modus',
         'byggherre', 'entreprenor', 'prosjekt_navn'
     ]
 
@@ -171,7 +171,7 @@ class CSVRepository(BaseRepository):
 
             # Set defaults
             case_data.setdefault('opprettet_dato', datetime.now().isoformat())
-            case_data.setdefault('opprettet_av', case_data.get('te_navn', 'System'))
+            case_data.setdefault('opprettet_av', case_data.get('entreprenor', 'System'))
             case_data.setdefault('status', SAK_STATUS['UNDER_VARSLING'])
             case_data.setdefault('modus', 'varsel')
 

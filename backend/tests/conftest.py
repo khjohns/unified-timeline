@@ -153,9 +153,8 @@ def test_sak_data():
         'catenda_project_id': 'project-123',
         'catenda_board_id': 'board-123',
         'sakstittel': 'Test KOE Case',
-        'te_navn': 'Test Entreprenør',
         'status': SAK_STATUS['UNDER_VARSLING'],
-        'byggherre': 'Test Byggherre',
+        'byggherre': 'Test Byggherre AS',
         'entreprenor': 'Test Entreprenør AS',
         'prosjekt_navn': 'Test Prosjekt',
     }
