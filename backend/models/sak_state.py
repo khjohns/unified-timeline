@@ -297,6 +297,20 @@ class ForseringTilstand(BaseModel):
         description="Costs incurred before stop"
     )
 
+    # BH respons
+    bh_aksepterer_forsering: Optional[bool] = Field(
+        default=None,
+        description="Om BH aksepterer forseringskravet"
+    )
+    bh_godkjent_kostnad: Optional[float] = Field(
+        default=None,
+        description="Kostnad godkjent av BH"
+    )
+    bh_begrunnelse: Optional[str] = Field(
+        default=None,
+        description="BH's begrunnelse"
+    )
+
 
 class ForseringData(BaseModel):
     """
