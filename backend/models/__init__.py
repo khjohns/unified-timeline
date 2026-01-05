@@ -60,7 +60,6 @@ from models.sak_state import (
     GrunnlagTilstand,
     VederlagTilstand,
     FristTilstand,
-    ForseringTilstand,
     ForseringData,
     # Oversikter
     SakOversikt,
@@ -97,7 +96,7 @@ __all__ = [
     # State & Sakstype
     'SaksType', 'SakRelasjon',
     'SakState', 'GrunnlagTilstand', 'VederlagTilstand', 'FristTilstand',
-    'ForseringTilstand', 'ForseringData',
+    'ForseringData',
     'SakOversikt', 'SporOversikt',
     # API
     'OversiktResponse', 'GrunnlagResponse', 'VederlagResponse',

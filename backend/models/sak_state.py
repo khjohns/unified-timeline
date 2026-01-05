@@ -270,58 +270,12 @@ class VederlagTilstand(BaseModel):
     antall_versjoner: int = Field(default=0)
 
 
-class ForseringTilstand(BaseModel):
-    """
-    Tilstand for forsering (§33.8).
-
-    Når BH avslår fristkrav, kan TE varsle om at de vil iverksette forsering.
-    Forseringskostnader kan da kreves dekket (innenfor 30%-grensen).
-    """
-    er_varslet: bool = Field(default=False)
-    dato_varslet: Optional[str] = Field(default=None)
-    estimert_kostnad: Optional[float] = Field(default=None)
-    begrunnelse: Optional[str] = Field(default=None)
-    bekreft_30_prosent_regel: Optional[bool] = Field(
-        default=None,
-        description="TE bekrefter at kostnad < dagmulkt + 30%"
-    )
-    er_iverksatt: bool = Field(default=False)
-    dato_iverksatt: Optional[str] = Field(default=None)
-    er_stoppet: bool = Field(
-        default=False,
-        description="True hvis BH godkjenner frist etter varsling"
-    )
-    dato_stoppet: Optional[str] = Field(default=None)
-    paalopte_kostnader: Optional[float] = Field(
-        default=None,
-        description="Costs incurred before stop"
-    )
-
-    # BH respons
-    bh_aksepterer_forsering: Optional[bool] = Field(
-        default=None,
-        description="Om BH aksepterer forseringskravet"
-    )
-    bh_godkjent_kostnad: Optional[float] = Field(
-        default=None,
-        description="Kostnad godkjent av BH"
-    )
-    bh_begrunnelse: Optional[str] = Field(
-        default=None,
-        description="BH's begrunnelse"
-    )
-
-
 class ForseringData(BaseModel):
     """
-    Data spesifikk for forseringssaker (§ 33.8) som egen sak.
+    Data for forseringssaker (§33.8).
 
-    Denne modellen brukes når forsering er modellert som en egen sak
-    med relasjoner til avslåtte fristforlengelsessaker (relasjonell modell).
-
-    Forskjell fra ForseringTilstand:
-    - ForseringTilstand: Embedded i FristTilstand (gammel modell)
-    - ForseringData: For forseringssak som egen sak (ny modell)
+    Forsering er alltid en selvstendig sak med SaksType.FORSERING,
+    med relasjoner til avslåtte fristforlengelsessaker.
     """
     # Referanser til opprinnelige saker
     avslatte_fristkrav: List[str] = Field(
@@ -341,6 +295,10 @@ class ForseringData(BaseModel):
     bekreft_30_prosent_regel: bool = Field(
         default=False,
         description="TE bekrefter kostnad < dagmulkt + 30%"
+    )
+    begrunnelse: Optional[str] = Field(
+        default=None,
+        description="TE's begrunnelse for forsering"
     )
 
     # Kalkulasjonsgrunnlag
@@ -690,12 +648,6 @@ class FristTilstand(BaseModel):
                 return "avslatt_subsidiaert_godkjent"
 
         return self.bh_resultat.value
-
-    # Forsering (§33.8)
-    forsering: Optional[ForseringTilstand] = Field(
-        default=None,
-        description="Forseringstilstand hvis TE har varslet om forsering"
-    )
 
     # Metadata
     siste_event_id: Optional[str] = Field(default=None)

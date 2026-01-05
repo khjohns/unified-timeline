@@ -483,28 +483,20 @@ class TimelineService:
         Håndterer FORSERING_VARSEL - TE varsler om forsering (§33.8).
 
         Når BH avslår fristkrav, kan TE varsle om at de vil iverksette forsering.
+        Denne event sendes på saker med SaksType.FORSERING.
         """
-        frist = state.frist
+        if state.forsering_data is None:
+            logger.warning("Mottok FORSERING_VARSEL uten forsering_data - ignorerer")
+            return state
 
-        # Opprett forsering-tilstand hvis den ikke finnes
-        if frist.forsering is None:
-            from models.sak_state import ForseringTilstand
-            frist.forsering = ForseringTilstand()
+        # Oppdater forsering-data
+        state.forsering_data.dato_varslet = event.data.dato_iverksettelse
+        state.forsering_data.estimert_kostnad = event.data.estimert_kostnad
+        state.forsering_data.begrunnelse = event.data.begrunnelse
+        state.forsering_data.bekreft_30_prosent_regel = event.data.bekreft_30_prosent
+        state.forsering_data.er_iverksatt = True
+        state.forsering_data.dato_iverksatt = event.data.dato_iverksettelse
 
-        # Oppdater forsering-tilstand
-        frist.forsering.er_varslet = True
-        frist.forsering.dato_varslet = event.data.dato_iverksettelse
-        frist.forsering.estimert_kostnad = event.data.estimert_kostnad
-        frist.forsering.begrunnelse = event.data.begrunnelse
-        frist.forsering.bekreft_30_prosent_regel = event.data.bekreft_30_prosent
-        frist.forsering.er_iverksatt = True
-        frist.forsering.dato_iverksatt = event.data.dato_iverksettelse
-
-        # Metadata
-        frist.siste_event_id = event.event_id
-        frist.siste_oppdatert = event.tidsstempel
-
-        state.frist = frist
         return state
 
     def _handle_forsering_respons(self, state: SakState, event: ForseringResponsEvent) -> SakState:
@@ -512,24 +504,17 @@ class TimelineService:
         Håndterer FORSERING_RESPONS - BH svarer på forsering (§33.8).
 
         BH aksepterer eller avviser TEs forseringsvarsel.
+        Denne event sendes på saker med SaksType.FORSERING.
         """
-        frist = state.frist
-
-        # Opprett forsering-tilstand hvis den ikke finnes
-        if frist.forsering is None:
-            from models.sak_state import ForseringTilstand
-            frist.forsering = ForseringTilstand()
+        if state.forsering_data is None:
+            logger.warning("Mottok FORSERING_RESPONS uten forsering_data - ignorerer")
+            return state
 
         # Oppdater BH respons
-        frist.forsering.bh_aksepterer_forsering = event.data.aksepterer
-        frist.forsering.bh_godkjent_kostnad = event.data.godkjent_kostnad
-        frist.forsering.bh_begrunnelse = event.data.begrunnelse
+        state.forsering_data.bh_aksepterer_forsering = event.data.aksepterer
+        state.forsering_data.bh_godkjent_kostnad = event.data.godkjent_kostnad
+        state.forsering_data.bh_begrunnelse = event.data.begrunnelse
 
-        # Metadata
-        frist.siste_event_id = event.event_id
-        frist.siste_oppdatert = event.tidsstempel
-
-        state.frist = frist
         return state
 
     def _handle_forsering_stoppet(self, state: SakState, event: ForseringStoppetEvent) -> SakState:
@@ -537,25 +522,18 @@ class TimelineService:
         Håndterer FORSERING_STOPPET - TE stopper forsering (§33.8).
 
         TE stopper forseringen og rapporterer påløpte kostnader.
+        Denne event sendes på saker med SaksType.FORSERING.
         """
-        frist = state.frist
-
-        # Opprett forsering-tilstand hvis den ikke finnes
-        if frist.forsering is None:
-            from models.sak_state import ForseringTilstand
-            frist.forsering = ForseringTilstand()
+        if state.forsering_data is None:
+            logger.warning("Mottok FORSERING_STOPPET uten forsering_data - ignorerer")
+            return state
 
         # Oppdater stopp-tilstand
-        frist.forsering.er_stoppet = True
-        frist.forsering.dato_stoppet = event.data.dato_stoppet
+        state.forsering_data.er_stoppet = True
+        state.forsering_data.dato_stoppet = event.data.dato_stoppet
         if event.data.paalopte_kostnader is not None:
-            frist.forsering.paalopte_kostnader = event.data.paalopte_kostnader
+            state.forsering_data.paalopte_kostnader = event.data.paalopte_kostnader
 
-        # Metadata
-        frist.siste_event_id = event.event_id
-        frist.siste_oppdatert = event.tidsstempel
-
-        state.frist = frist
         return state
 
     def _handle_forsering_kostnader_oppdatert(self, state: SakState, event: ForseringKostnaderOppdatertEvent) -> SakState:
@@ -563,22 +541,15 @@ class TimelineService:
         Håndterer FORSERING_KOSTNADER_OPPDATERT - TE oppdaterer påløpte kostnader (§33.8).
 
         TE kan oppdatere påløpte kostnader underveis i forseringen.
+        Denne event sendes på saker med SaksType.FORSERING.
         """
-        frist = state.frist
-
-        # Opprett forsering-tilstand hvis den ikke finnes
-        if frist.forsering is None:
-            from models.sak_state import ForseringTilstand
-            frist.forsering = ForseringTilstand()
+        if state.forsering_data is None:
+            logger.warning("Mottok FORSERING_KOSTNADER_OPPDATERT uten forsering_data - ignorerer")
+            return state
 
         # Oppdater kostnader
-        frist.forsering.paalopte_kostnader = event.data.paalopte_kostnader
+        state.forsering_data.paalopte_kostnader = event.data.paalopte_kostnader
 
-        # Metadata
-        frist.siste_event_id = event.event_id
-        frist.siste_oppdatert = event.tidsstempel
-
-        state.frist = frist
         return state
 
     def _handle_forsering_koe_lagt_til(self, state: SakState, event: ForseringKoeHandlingEvent) -> SakState:
