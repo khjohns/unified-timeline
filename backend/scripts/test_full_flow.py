@@ -864,6 +864,13 @@ class BaseTester:
             self.client.create_comment(topic_guid, comment_text)
             print_ok("Initial kommentar postet til Catenda")
 
+            # Oppdater topic status til "Under varsling" (matcher UTKAST)
+            initial_catenda_status = "Under varsling"
+            if self.client.update_topic(topic_guid, topic_status=initial_catenda_status):
+                print_ok(f"Topic status satt til: {initial_catenda_status}")
+            else:
+                print_warn(f"Kunne ikke sette topic status til: {initial_catenda_status}")
+
             # Hent CSRF token
             if self._fetch_csrf_token():
                 print_ok("CSRF-token hentet")
@@ -927,6 +934,35 @@ class BaseTester:
         else:
             print_warn(f"Forventet {expected_count} dokumenter, fant {new_count}")
             return False, new_count
+
+    def _verify_catenda_status(self, topic_guid: str, expected_status: str,
+                               wait_seconds: int = 2) -> bool:
+        """
+        Verifiser at Catenda topic har forventet status.
+
+        Args:
+            topic_guid: Topic GUID
+            expected_status: Forventet Catenda status (f.eks. "Under varsling", "Venter på svar")
+            wait_seconds: Sekunder å vente før sjekk
+
+        Returns:
+            True hvis status matcher, False ellers
+        """
+        if wait_seconds > 0:
+            time.sleep(wait_seconds)
+
+        topic = self.client.get_topic(topic_guid)
+        if not topic:
+            print_fail(f"Kunne ikke hente topic {topic_guid}")
+            return False
+
+        actual_status = topic.get('topic_status')
+        if actual_status == expected_status:
+            print_ok(f"Catenda status: {actual_status}")
+            return True
+        else:
+            print_fail(f"Catenda status: {actual_status} (forventet: {expected_status})")
+            return False
 
     # =========================================================================
     # State-håndtering
@@ -1232,6 +1268,10 @@ class KOEFlowTester(BaseTester):
                 self._verify_new_comment_local()
                 self._verify_new_document_local()
 
+                # Verifiser at Catenda-status er oppdatert
+                # Etter grunnlag_opprettet: UTKAST → VENTER_PAA_SVAR → "Venter på svar"
+                self._verify_catenda_status(self.topic_guid, "Venter på svar")
+
                 return True
             else:
                 print_fail(f"Feil ved sending: {response.status_code}")
@@ -1466,6 +1506,11 @@ class KOEFlowTester(BaseTester):
             return False
 
         print_ok("Alle BH-responser sendt!")
+
+        # Verifiser at Catenda-status er oppdatert
+        # Etter BH delvis godkjenning → UNDER_FORHANDLING → "Under forhandling"
+        self._verify_catenda_status(self.topic_guid, "Under forhandling")
+
         return True
 
     # =========================================================================
@@ -1664,6 +1709,12 @@ class KOEFlowTester(BaseTester):
         final_documents = self._get_document_count_local()
         print(f"  Kommentarer i topic: {final_comments}")
         print(f"  Dokumenter linket:   {final_documents}")
+
+        # Vis Catenda topic status
+        topic = self.client.get_topic(self.topic_guid)
+        if topic:
+            catenda_status = topic.get('topic_status', 'ukjent')
+            print(f"  Topic status:        {catenda_status}")
 
         # List dokumenter
         documents = self.client.list_document_references(self.topic_guid)

@@ -26,7 +26,7 @@ from repositories.supabase_sak_metadata_repository import create_metadata_reposi
 from models.events import parse_event_from_request, parse_event, EventType
 from lib.auth.csrf_protection import require_csrf
 from lib.auth.magic_link import require_magic_link, get_magic_link_manager
-from services.catenda_service import CatendaService
+from services.catenda_service import CatendaService, map_status_to_catenda
 from lib.catenda_factory import get_catenda_client
 from integrations.catenda.client import CatendaAuthError
 from core.config import settings
@@ -815,9 +815,17 @@ def _post_to_catenda(
 
         # Sync topic status if changed
         new_status = state.overordnet_status
+        logger.info(f"📊 Status check: old={old_status}, new={new_status}")
         if old_status != new_status:
-            logger.info(f"📊 Status changed: {old_status} → {new_status}")
-            catenda_service.update_topic_status(topic_id, new_status)
+            catenda_status = map_status_to_catenda(new_status)
+            logger.info(f"📊 Status changed: {old_status} → {new_status} (Catenda: {catenda_status})")
+            result = catenda_service.update_topic_status(topic_id, new_status)
+            if result:
+                logger.info(f"✅ Topic status updated to: {catenda_status}")
+            else:
+                logger.warning(f"⚠️ Topic status update failed or returned None")
+        else:
+            logger.debug(f"📊 Status unchanged ({new_status}), skipping Catenda update")
 
         # Return success if either PDF uploaded or comment posted
         return (pdf_uploaded or comment_posted), pdf_source
