@@ -14,30 +14,12 @@ import type { SubsidiaerTrigger } from '../types/timeline';
 
 export const BH_GRUNNLAGSVAR_OPTIONS: DropdownOption[] = [
   { value: "", label: "— Velg —" },
-  {
-    value: "godkjent",
-    label: "Godkjent - BH aksepterer ansvarsgrunnlaget"
-  },
-  {
-    value: "delvis_godkjent",
-    label: "Delvis godkjent - BH aksepterer deler av grunnlaget"
-  },
-  {
-    value: "erkjenn_fm",
-    label: "Erkjenn Force Majeure (§33.3)"
-  },
-  {
-    value: "avslatt",
-    label: "Avslått - BH avslår ansvarsgrunnlaget"
-  },
-  {
-    value: "frafalt",
-    label: "Frafall pålegget (§32.3 c) - BH frafaller kravet ved irregulær endring"
-  },
-  {
-    value: "krever_avklaring",
-    label: "Krever avklaring - BH trenger mer dokumentasjon"
-  },
+  { value: "godkjent", label: "Godkjent" },
+  { value: "delvis_godkjent", label: "Delvis godkjent" },
+  { value: "erkjenn_fm", label: "Erkjenn Force Majeure" },
+  { value: "avslatt", label: "Avslått" },
+  { value: "frafalt", label: "Frafall pålegget" },
+  { value: "krever_avklaring", label: "Krever avklaring" },
 ];
 
 // ========== VEDERLAG RESPONSE OPTIONS ==========
