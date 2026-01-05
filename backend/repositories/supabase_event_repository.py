@@ -648,6 +648,51 @@ class SupabaseEventRepository(EventRepository):
 
         return []
 
+    def find_sak_id_by_catenda_topic(self, catenda_topic_id: str) -> Optional[str]:
+        """
+        Find local sak_id given a Catenda topic GUID.
+
+        Searches all event tables for SAK_OPPRETTET events with matching
+        catenda_topic_id in their data field.
+
+        Args:
+            catenda_topic_id: Catenda topic GUID to look up
+
+        Returns:
+            Local sak_id if found, None otherwise
+        """
+        if not catenda_topic_id:
+            return None
+
+        # Search all event tables
+        for table in ["koe_events", "forsering_events", "endringsordre_events"]:
+            try:
+                # Look for SAK_OPPRETTET events where data contains the topic_id
+                result = (
+                    self.client
+                    .table(table)
+                    .select("sak_id, data")
+                    .eq("event_type", "sak_opprettet")
+                    .execute()
+                )
+
+                for row in result.data:
+                    data = row.get("data", {})
+                    if isinstance(data, str):
+                        import json
+                        try:
+                            data = json.loads(data)
+                        except json.JSONDecodeError:
+                            continue
+
+                    if data.get("catenda_topic_id") == catenda_topic_id:
+                        return row.get("sak_id")
+
+            except Exception:
+                continue
+
+        return None
+
 
 # Factory function for easy switching
 def create_event_repository(backend: str | None = None, **kwargs) -> EventRepository:

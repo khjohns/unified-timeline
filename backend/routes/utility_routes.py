@@ -74,9 +74,9 @@ def get_metadata_by_topic(topic_id: str):
 
     Brukes av test-scripts for å verifisere at webhook ble mottatt.
     """
-    from repositories.sak_metadata_repository import SakMetadataRepository
+    from repositories import create_metadata_repository
 
-    repo = SakMetadataRepository()
+    repo = create_metadata_repository()
     metadata = repo.get_by_topic_id(topic_id)
 
     if not metadata:

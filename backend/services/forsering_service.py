@@ -424,7 +424,8 @@ class ForseringService(BaseSakService):
         aksepterer: bool,
         godkjent_kostnad: Optional[float],
         begrunnelse: str,
-        aktor: str
+        aktor: str,
+        expected_version: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Registrerer BHs respons på forseringsvarselet.
@@ -435,49 +436,57 @@ class ForseringService(BaseSakService):
             godkjent_kostnad: BHs godkjente forseringskostnad (kan være lavere enn estimert)
             begrunnelse: BHs begrunnelse
             aktor: Navn på den som registrerer responsen
+            expected_version: Forventet versjon for optimistisk låsing
 
         Returns:
-            Dict med oppdatert state
+            Dict med oppdatert state og ny versjon
 
         Raises:
             RuntimeError: Hvis lagring feiler
+            ConcurrencyError: Hvis versjonskonflikt
         """
-        from models.events import ForseringResponsEvent, ForseringResponsData, EventType
+        from models.events import ForseringResponsEvent, ForseringResponsData
 
         if not self.event_repository:
             raise RuntimeError("EventRepository er ikke konfigurert")
 
-        # Opprett event
-        event_data = {
-            "sak_id": sak_id,
-            "event_type": EventType.FORSERING_RESPONS.value,
-            "aktor": aktor,
-            "aktor_rolle": "BH",
-            "data": {
-                "aksepterer": aksepterer,
-                "godkjent_kostnad": godkjent_kostnad,
-                "begrunnelse": begrunnelse,
-                "dato_respons": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-            }
-        }
+        # Hent versjon hvis ikke oppgitt (bakoverkompatibilitet)
+        if expected_version is None:
+            _, expected_version = self.event_repository.get_events(sak_id)
 
-        # Lagre event
-        self.event_repository.save_event(sak_id, event_data)
+        # Opprett typed event
+        event = ForseringResponsEvent(
+            sak_id=sak_id,
+            aktor=aktor,
+            aktor_rolle="BH",
+            data=ForseringResponsData(
+                aksepterer=aksepterer,
+                godkjent_kostnad=godkjent_kostnad,
+                begrunnelse=begrunnelse,
+                dato_respons=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            )
+        )
+
+        # Lagre med eksplisitt versjonskontroll
+        new_version = self.event_repository.append(event, expected_version)
 
         logger.info(
             f"BH respons på forsering {sak_id}: "
             f"{'Akseptert' if aksepterer else 'Avslått'}"
         )
 
-        # Returner oppdatert state
-        return self._get_updated_state(sak_id)
+        # Returner oppdatert state med versjonsnummer
+        result = self._get_updated_state(sak_id)
+        result["version"] = new_version
+        return result
 
     def stopp_forsering(
         self,
         sak_id: str,
         begrunnelse: str,
         paalopte_kostnader: Optional[float],
-        aktor: str
+        aktor: str,
+        expected_version: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Stopper en pågående forsering.
@@ -487,41 +496,47 @@ class ForseringService(BaseSakService):
             begrunnelse: Begrunnelse for stopp
             paalopte_kostnader: Påløpte kostnader ved stopp
             aktor: Navn på den som stopper forseringen
+            expected_version: Forventet versjon for optimistisk låsing
 
         Returns:
-            Dict med oppdatert state og dato_stoppet
+            Dict med oppdatert state, dato_stoppet og ny versjon
 
         Raises:
             RuntimeError: Hvis lagring feiler
+            ConcurrencyError: Hvis versjonskonflikt
         """
-        from models.events import EventType
+        from models.events import ForseringStoppetEvent, ForseringStoppetData
 
         if not self.event_repository:
             raise RuntimeError("EventRepository er ikke konfigurert")
 
+        # Hent versjon hvis ikke oppgitt (bakoverkompatibilitet)
+        if expected_version is None:
+            _, expected_version = self.event_repository.get_events(sak_id)
+
         dato_stoppet = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
-        # Opprett event
-        event_data = {
-            "sak_id": sak_id,
-            "event_type": EventType.FORSERING_STOPPET.value,
-            "aktor": aktor,
-            "aktor_rolle": "TE",
-            "data": {
-                "dato_stoppet": dato_stoppet,
-                "paalopte_kostnader": paalopte_kostnader,
-                "begrunnelse": begrunnelse,
-            }
-        }
+        # Opprett typed event
+        event = ForseringStoppetEvent(
+            sak_id=sak_id,
+            aktor=aktor,
+            aktor_rolle="TE",
+            data=ForseringStoppetData(
+                dato_stoppet=dato_stoppet,
+                paalopte_kostnader=paalopte_kostnader,
+                begrunnelse=begrunnelse,
+            )
+        )
 
-        # Lagre event
-        self.event_repository.save_event(sak_id, event_data)
+        # Lagre med eksplisitt versjonskontroll
+        new_version = self.event_repository.append(event, expected_version)
 
         logger.info(f"Forsering {sak_id} stoppet, påløpte kostnader: {paalopte_kostnader}")
 
-        # Returner oppdatert state med dato_stoppet
+        # Returner oppdatert state med dato_stoppet og versjon
         result = self._get_updated_state(sak_id)
         result["dato_stoppet"] = dato_stoppet
+        result["version"] = new_version
         return result
 
     def oppdater_kostnader(
@@ -529,7 +544,8 @@ class ForseringService(BaseSakService):
         sak_id: str,
         paalopte_kostnader: float,
         kommentar: Optional[str],
-        aktor: str
+        aktor: str,
+        expected_version: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Oppdaterer påløpte kostnader for en pågående forsering.
@@ -539,36 +555,44 @@ class ForseringService(BaseSakService):
             paalopte_kostnader: Nye påløpte kostnader
             kommentar: Valgfri kommentar til oppdateringen
             aktor: Navn på den som oppdaterer
+            expected_version: Forventet versjon for optimistisk låsing
 
         Returns:
-            Dict med oppdatert state
+            Dict med oppdatert state og ny versjon
 
         Raises:
             RuntimeError: Hvis lagring feiler
+            ConcurrencyError: Hvis versjonskonflikt
         """
-        from models.events import EventType
+        from models.events import ForseringKostnaderOppdatertEvent, ForseringKostnaderOppdatertData
 
         if not self.event_repository:
             raise RuntimeError("EventRepository er ikke konfigurert")
 
-        # Opprett event
-        event_data = {
-            "sak_id": sak_id,
-            "event_type": EventType.FORSERING_KOSTNADER_OPPDATERT.value,
-            "aktor": aktor,
-            "aktor_rolle": "TE",
-            "data": {
-                "paalopte_kostnader": paalopte_kostnader,
-                "kommentar": kommentar,
-            }
-        }
+        # Hent versjon hvis ikke oppgitt (bakoverkompatibilitet)
+        if expected_version is None:
+            _, expected_version = self.event_repository.get_events(sak_id)
 
-        # Lagre event
-        self.event_repository.save_event(sak_id, event_data)
+        # Opprett typed event
+        event = ForseringKostnaderOppdatertEvent(
+            sak_id=sak_id,
+            aktor=aktor,
+            aktor_rolle="TE",
+            data=ForseringKostnaderOppdatertData(
+                paalopte_kostnader=paalopte_kostnader,
+                kommentar=kommentar,
+            )
+        )
+
+        # Lagre med eksplisitt versjonskontroll
+        new_version = self.event_repository.append(event, expected_version)
 
         logger.info(f"Forseringskostnader for {sak_id} oppdatert til {paalopte_kostnader}")
 
-        return self._get_updated_state(sak_id)
+        # Returner oppdatert state med versjon
+        result = self._get_updated_state(sak_id)
+        result["version"] = new_version
+        return result
 
     def _get_updated_state(self, sak_id: str) -> Dict[str, Any]:
         """

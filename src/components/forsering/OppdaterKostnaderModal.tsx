@@ -34,7 +34,7 @@ export function OppdaterKostnaderModal({
 
   // Pre-fill with current value when opening
   useEffect(() => {
-    if (open && forseringData.paalopte_kostnader !== undefined) {
+    if (open && forseringData.paalopte_kostnader != null) {
       setPaalopteKostnader(forseringData.paalopte_kostnader.toString());
     }
   }, [open, forseringData.paalopte_kostnader]);
@@ -57,8 +57,8 @@ export function OppdaterKostnaderModal({
   };
 
   const nyKostnad = parseInt(paalopteKostnader, 10) || 0;
-  const overstigerMaks = nyKostnad > forseringData.maks_forseringskostnad;
-  const overstigerEstimert = nyKostnad > forseringData.estimert_kostnad;
+  const overstigerMaks = forseringData.maks_forseringskostnad != null && nyKostnad > forseringData.maks_forseringskostnad;
+  const overstigerEstimert = forseringData.estimert_kostnad != null && nyKostnad > forseringData.estimert_kostnad;
 
   return (
     <Modal

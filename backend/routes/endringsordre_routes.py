@@ -16,8 +16,7 @@ from flask import Blueprint, request, jsonify
 
 from services.endringsordre_service import EndringsordreService
 from services.timeline_service import TimelineService
-from repositories.event_repository import JsonFileEventRepository
-from repositories.sak_metadata_repository import SakMetadataRepository
+from repositories import create_event_repository, create_metadata_repository
 from lib.catenda_factory import get_catenda_client
 from lib.decorators import handle_service_errors
 from lib.auth.magic_link import require_magic_link
@@ -37,10 +36,10 @@ logger = get_logger(__name__)
 # Create Blueprint
 endringsordre_bp = Blueprint('endringsordre', __name__)
 
-# Dependencies
-event_repo = JsonFileEventRepository()
+# Dependencies - use factory functions to respect EVENT_STORE_BACKEND/METADATA_STORE_BACKEND
+event_repo = create_event_repository()
 timeline_service = TimelineService()
-metadata_repo = SakMetadataRepository()
+metadata_repo = create_metadata_repository()
 
 
 def _get_endringsordre_service() -> EndringsordreService:

@@ -109,6 +109,7 @@ class SupabaseSakMetadataRepository:
             created_at=datetime.fromisoformat(row["created_at"].replace("Z", "+00:00"))
                 if isinstance(row["created_at"], str) else row["created_at"],
             created_by=row["created_by"],
+            sakstype=row.get("sakstype", "standard"),
             cached_title=row.get("cached_title"),
             cached_status=row.get("cached_status"),
             last_event_at=datetime.fromisoformat(row["last_event_at"].replace("Z", "+00:00"))
@@ -126,6 +127,7 @@ class SupabaseSakMetadataRepository:
             "catenda_project_id": metadata.catenda_project_id,
             "created_at": metadata.created_at.isoformat(),
             "created_by": metadata.created_by,
+            "sakstype": metadata.sakstype,
             "cached_title": metadata.cached_title,
             "cached_status": metadata.cached_status,
             "last_event_at": metadata.last_event_at.isoformat() if metadata.last_event_at else None,

@@ -31,6 +31,9 @@ class SakMetadata(BaseModel):
     created_at: datetime = Field(..., description="When the case was created")
     created_by: str = Field(..., description="Who created the case (TE name)")
 
+    # Case type
+    sakstype: str = Field(default="standard", description="Case type: standard, forsering, endringsordre")
+
     # Cached fields (updated after events)
     cached_title: Optional[str] = Field(default=None, description="Cached case title")
     cached_status: Optional[str] = Field(default=None, description="Cached overall status")

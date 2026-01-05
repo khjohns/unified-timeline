@@ -283,13 +283,13 @@ class ForseringData(BaseModel):
         description="SAK-IDs til avslåtte fristforlengelser"
     )
 
-    # Varsling
-    dato_varslet: str = Field(
-        ...,
+    # Varsling (settes av FORSERING_VARSEL event, ikke ved sak-opprettelse)
+    dato_varslet: Optional[str] = Field(
+        default=None,
         description="Dato forsering ble varslet (ISO format)"
     )
-    estimert_kostnad: float = Field(
-        ...,
+    estimert_kostnad: Optional[float] = Field(
+        default=None,
         description="TE's estimerte forseringskostnad"
     )
     bekreft_30_prosent_regel: bool = Field(
@@ -357,6 +357,8 @@ class ForseringData(BaseModel):
     def kostnad_innenfor_grense(self) -> bool:
         """Sjekker om estimert kostnad er innenfor 30%-grensen"""
         if self.maks_forseringskostnad <= 0:
+            return False
+        if self.estimert_kostnad is None:
             return False
         return self.estimert_kostnad <= self.maks_forseringskostnad
 

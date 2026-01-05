@@ -20,8 +20,8 @@ from flask import Blueprint, request, jsonify
 
 from services.forsering_service import ForseringService
 from services.timeline_service import TimelineService
-from repositories.event_repository import JsonFileEventRepository
-from repositories.sak_metadata_repository import SakMetadataRepository
+from repositories import create_event_repository, create_metadata_repository
+from repositories.event_repository import ConcurrencyError
 from lib.catenda_factory import get_catenda_client
 from lib.decorators import handle_service_errors
 from lib.auth.magic_link import require_magic_link
@@ -41,10 +41,10 @@ logger = get_logger(__name__)
 # Create Blueprint
 forsering_bp = Blueprint('forsering', __name__)
 
-# Dependencies
-event_repo = JsonFileEventRepository()
+# Dependencies - use factory functions to respect EVENT_STORE_BACKEND/METADATA_STORE_BACKEND
+event_repo = create_event_repository()
 timeline_service = TimelineService()
-metadata_repo = SakMetadataRepository()
+metadata_repo = create_metadata_repository()
 
 
 def _get_forsering_service() -> ForseringService:
@@ -239,7 +239,7 @@ def registrer_bh_respons(sak_id: str):
     """
     Registrer BH respons på forseringsvarsel.
 
-    Request: { "aksepterer", "godkjent_kostnad"?, "begrunnelse" }
+    Request: { "aksepterer", "godkjent_kostnad"?, "begrunnelse", "expected_version"? }
     """
     payload = request.json
 
@@ -248,15 +248,26 @@ def registrer_bh_respons(sak_id: str):
         return error
 
     aktor = getattr(request, 'magic_link_name', 'Ukjent BH')
+    expected_version = payload.get('expected_version')
 
     service = _get_forsering_service()
-    result = service.registrer_bh_respons(
-        sak_id=sak_id,
-        aksepterer=payload['aksepterer'],
-        godkjent_kostnad=payload.get('godkjent_kostnad'),
-        begrunnelse=payload['begrunnelse'],
-        aktor=aktor
-    )
+    try:
+        result = service.registrer_bh_respons(
+            sak_id=sak_id,
+            aksepterer=payload['aksepterer'],
+            godkjent_kostnad=payload.get('godkjent_kostnad'),
+            begrunnelse=payload['begrunnelse'],
+            aktor=aktor,
+            expected_version=expected_version
+        )
+    except ConcurrencyError as e:
+        return jsonify({
+            "success": False,
+            "error": "CONCURRENCY_CONFLICT",
+            "message": f"Versjonskonflikt: forventet {e.expected}, fikk {e.actual}",
+            "expected_version": e.expected,
+            "actual_version": e.actual
+        }), 409
 
     status = "akseptert" if payload['aksepterer'] else "avslått"
     logger.info(f"BH respons på forsering {sak_id}: {status}")
@@ -276,7 +287,7 @@ def stopp_forsering(sak_id: str):
     """
     Stopp en pågående forsering.
 
-    Request: { "begrunnelse", "paalopte_kostnader"? }
+    Request: { "begrunnelse", "paalopte_kostnader"?, "expected_version"? }
     """
     payload = request.json
 
@@ -285,14 +296,25 @@ def stopp_forsering(sak_id: str):
         return error
 
     aktor = getattr(request, 'magic_link_name', 'Ukjent TE')
+    expected_version = payload.get('expected_version')
 
     service = _get_forsering_service()
-    result = service.stopp_forsering(
-        sak_id=sak_id,
-        begrunnelse=payload['begrunnelse'],
-        paalopte_kostnader=payload.get('paalopte_kostnader'),
-        aktor=aktor
-    )
+    try:
+        result = service.stopp_forsering(
+            sak_id=sak_id,
+            begrunnelse=payload['begrunnelse'],
+            paalopte_kostnader=payload.get('paalopte_kostnader'),
+            aktor=aktor,
+            expected_version=expected_version
+        )
+    except ConcurrencyError as e:
+        return jsonify({
+            "success": False,
+            "error": "CONCURRENCY_CONFLICT",
+            "message": f"Versjonskonflikt: forventet {e.expected}, fikk {e.actual}",
+            "expected_version": e.expected,
+            "actual_version": e.actual
+        }), 409
 
     logger.info(f"Forsering {sak_id} stoppet")
 
@@ -311,7 +333,7 @@ def oppdater_kostnader(sak_id: str):
     """
     Oppdater påløpte kostnader for en pågående forsering.
 
-    Request: { "paalopte_kostnader", "kommentar"? }
+    Request: { "paalopte_kostnader", "kommentar"?, "expected_version"? }
     """
     payload = request.json
 
@@ -320,14 +342,25 @@ def oppdater_kostnader(sak_id: str):
         return error
 
     aktor = getattr(request, 'magic_link_name', 'Ukjent TE')
+    expected_version = payload.get('expected_version')
 
     service = _get_forsering_service()
-    result = service.oppdater_kostnader(
-        sak_id=sak_id,
-        paalopte_kostnader=float(payload['paalopte_kostnader']),
-        kommentar=payload.get('kommentar'),
-        aktor=aktor
-    )
+    try:
+        result = service.oppdater_kostnader(
+            sak_id=sak_id,
+            paalopte_kostnader=float(payload['paalopte_kostnader']),
+            kommentar=payload.get('kommentar'),
+            aktor=aktor,
+            expected_version=expected_version
+        )
+    except ConcurrencyError as e:
+        return jsonify({
+            "success": False,
+            "error": "CONCURRENCY_CONFLICT",
+            "message": f"Versjonskonflikt: forventet {e.expected}, fikk {e.actual}",
+            "expected_version": e.expected,
+            "actual_version": e.actual
+        }), 409
 
     logger.info(f"Forseringskostnader for {sak_id} oppdatert til {payload['paalopte_kostnader']}")
 

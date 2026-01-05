@@ -190,6 +190,26 @@ class TimelineService:
         if state.sakstype == SaksType.STANDARD:
             state.grunnlag.status = SporStatus.UTKAST
 
+        # Initialize forsering_data for FORSERING saker
+        if state.sakstype == SaksType.FORSERING:
+            fd = event.forsering_data or {}
+            state.forsering_data = ForseringData(
+                avslatte_fristkrav=fd.get('avslatte_fristkrav', []),
+                dato_varslet=fd.get('dato_varslet'),
+                estimert_kostnad=fd.get('estimert_kostnad'),
+                begrunnelse=fd.get('begrunnelse'),
+                bekreft_30_prosent_regel=fd.get('bekreft_30_prosent_regel', False),
+                er_iverksatt=fd.get('er_iverksatt', False),
+                dato_iverksatt=fd.get('dato_iverksatt'),
+                paalopte_kostnader=fd.get('paalopte_kostnader'),
+                er_stoppet=fd.get('er_stoppet', False),
+                dato_stoppet=fd.get('dato_stoppet'),
+                bh_aksepterer_forsering=fd.get('bh_aksepterer_forsering'),
+                bh_godkjent_kostnad=fd.get('bh_godkjent_kostnad'),
+                bh_begrunnelse=fd.get('bh_begrunnelse'),
+            )
+            logger.debug(f"Initialized forsering_data with {len(state.forsering_data.avslatte_fristkrav)} avslatte fristkrav")
+
         return state
 
     # ============ GRUNNLAG HANDLERS ============
@@ -496,6 +516,14 @@ class TimelineService:
         state.forsering_data.bekreft_30_prosent_regel = event.data.bekreft_30_prosent
         state.forsering_data.er_iverksatt = True
         state.forsering_data.dato_iverksatt = event.data.dato_iverksettelse
+
+        # Kalkulasjonsgrunnlag
+        state.forsering_data.avslatte_dager = event.data.avslatte_dager
+        state.forsering_data.dagmulktsats = event.data.dagmulktsats
+        # Beregn maks forseringskostnad (dagmulkt + 30%)
+        state.forsering_data.maks_forseringskostnad = (
+            event.data.avslatte_dager * event.data.dagmulktsats * 1.3
+        )
 
         return state
 

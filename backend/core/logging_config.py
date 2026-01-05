@@ -25,4 +25,9 @@ def setup_logging(log_file: str = 'koe_automation.log') -> logging.Logger:
             logging.StreamHandler()
         ]
     )
+
+    # Silence noisy HTTP libraries (httpx, httpcore, hpack used by Supabase)
+    for noisy_logger in ['httpx', 'httpcore', 'hpack', 'h2', 'h11']:
+        logging.getLogger(noisy_logger).setLevel(logging.WARNING)
+
     return logging.getLogger(__name__)

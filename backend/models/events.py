@@ -1416,6 +1416,12 @@ class SakOpprettetEvent(SakEvent):
     byggherre: Optional[str] = Field(default=None, description="Byggherre (BH) - fra topic custom field")
     leverandor: Optional[str] = Field(default=None, description="Leverandør/Entreprenør (TE) - fra topic custom field")
 
+    # Forsering-spesifikk data (kun for sakstype='forsering')
+    forsering_data: Optional[dict] = Field(
+        default=None,
+        description="Forsering-data inkl. avslatte_fristkrav, dato_varslet, estimert_kostnad (kun for forsering-saker)"
+    )
+
 
 # ============ ENDRINGSORDRE EVENTS (§31.3) ============
 
@@ -1803,7 +1809,8 @@ def parse_event(data: dict) -> AnyEvent:
             # Fields that should be at top level for SakOpprettetEvent
             sak_opprettet_fields = [
                 'sakstittel', 'catenda_topic_id', 'sakstype', 'prosjekt_id',
-                'prosjekt_navn', 'byggherre', 'leverandor'  # Prosjekt- og partsinformasjon
+                'prosjekt_navn', 'byggherre', 'leverandor',  # Prosjekt- og partsinformasjon
+                'forsering_data'  # Forsering-spesifikk data (avslatte_fristkrav, estimert_kostnad, etc.)
             ]
             data = dict(data)  # Don't mutate original
             for field in sak_opprettet_fields:

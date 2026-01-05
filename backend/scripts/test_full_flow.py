@@ -777,7 +777,8 @@ class BaseTester:
         return None
 
     def _create_case_directly(self, topic_guid: str, topic_title: str,
-                              sakstype: str = "koe") -> Tuple[Optional[str], Optional[str]]:
+                              sakstype: str = "koe",
+                              forsering_data: Optional[dict] = None) -> Tuple[Optional[str], Optional[str]]:
         """
         Opprett sak direkte via backend.
 
@@ -841,6 +842,8 @@ class BaseTester:
                 prosjekt_navn=prosjekt_navn,
                 byggherre=byggherre,
                 leverandor=leverandor,
+                # Forsering-spesifikk data (kun for forsering-saker)
+                forsering_data=forsering_data,
             )
 
             # Persist event (respekterer EVENT_STORE_BACKEND env var)
@@ -857,6 +860,7 @@ class BaseTester:
                 catenda_project_id=self.project_id,
                 created_at=datetime.now(),
                 created_by="Test Script",
+                sakstype=sakstype,  # standard, forsering, or endringsordre
                 cached_title=topic_title,
                 cached_status="UNDER_VARSLING",
             )
@@ -2095,11 +2099,18 @@ class ForseringFlowTester(BaseTester):
             )
         print_ok(f"Opprettet relasjoner: {len(koe_topic_guids)} KOE-saker → Forsering")
 
-        # Opprett forsering-sak med riktig sakstype
+        # Opprett forsering-sak med riktig sakstype og relaterte KOE-saker
+        # avslatte_fristkrav inneholder SAK-IDene til KOE-sakene som utløste forseringen
+        koe_sak_ids = [k['sak_id'] for k in self.koe_saker]
         sak_id, magic_token = self._create_case_directly(
             topic_guid=self.forsering_topic_guid,
             topic_title=f"FORSERING - {datetime.now().strftime('%Y%m%d')}",
-            sakstype="forsering"
+            sakstype="forsering",
+            forsering_data={
+                "avslatte_fristkrav": koe_sak_ids,
+                "estimert_kostnad": FORSERING_TEST_DATA['forsering']['estimert_kostnad'],
+                "begrunnelse": FORSERING_TEST_DATA['forsering']['begrunnelse'],
+            }
         )
 
         if not sak_id:
