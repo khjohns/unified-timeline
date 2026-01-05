@@ -951,7 +951,7 @@ class BaseTester:
         if wait_seconds > 0:
             time.sleep(wait_seconds)
 
-        topic = self.client.get_topic(topic_guid)
+        topic = self.client.get_topic_details(topic_guid)
         if not topic:
             print_fail(f"Kunne ikke hente topic {topic_guid}")
             return False
@@ -1711,7 +1711,7 @@ class KOEFlowTester(BaseTester):
         print(f"  Dokumenter linket:   {final_documents}")
 
         # Vis Catenda topic status
-        topic = self.client.get_topic(self.topic_guid)
+        topic = self.client.get_topic_details(self.topic_guid)
         if topic:
             catenda_status = topic.get('topic_status', 'ukjent')
             print(f"  Topic status:        {catenda_status}")

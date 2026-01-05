@@ -1798,7 +1798,7 @@ class CatendaClient:
             return None
 
         # BCF 3.0 PUT requires title, so fetch existing topic first
-        existing = self.get_topic(topic_guid)
+        existing = self.get_topic_details(topic_guid)
         if not existing:
             logger.error(f"❌ Kunne ikke hente eksisterende topic {topic_guid}")
             return None
