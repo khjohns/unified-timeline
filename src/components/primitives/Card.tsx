@@ -28,7 +28,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
             'bg-pkt-bg-card shadow-lg': variant === 'elevated',
 
             // Outlined: white background with border-default
-            'bg-pkt-bg-card border-2 border-pkt-border-default': variant === 'outlined',
+            'bg-pkt-bg-card border-2 border-pkt-border-subtle': variant === 'outlined',
           },
           {
             // Padding options - default is 'none' for flexible layouts

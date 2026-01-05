@@ -74,9 +74,9 @@ export function CaseDashboard({
           title="Ansvarsgrunnlag"
           headerBadge={getStatusBadge(state.grunnlag.status)}
           action={grunnlagActions}
-          variant="elevated"
+          variant="outlined"
         >
-          <DataList>
+          <DataList variant="grid">
             <DataListItem label="Hovedkategori">
               {state.grunnlag.hovedkategori
                 ? getHovedkategoriLabel(state.grunnlag.hovedkategori)
@@ -112,9 +112,9 @@ export function CaseDashboard({
           title="Vederlag"
           headerBadge={getStatusBadge(state.vederlag.status, state.er_subsidiaert_vederlag)}
           action={vederlagActions}
-          variant="elevated"
+          variant="outlined"
         >
-          <DataList>
+          <DataList variant="grid">
             {state.vederlag.metode && (
               <DataListItem label="Metode">
                 {getVederlagsmetodeLabel(state.vederlag.metode)}
@@ -141,9 +141,9 @@ export function CaseDashboard({
           title="Fristforlengelse"
           headerBadge={getStatusBadge(state.frist.status, state.er_subsidiaert_frist)}
           action={fristActions}
-          variant="elevated"
+          variant="outlined"
         >
-          <DataList>
+          <DataList variant="grid">
             {state.frist.krevd_dager !== undefined && (
               <DataListItem label="Krevd">
                 {formatDays(state.frist.krevd_dager)}

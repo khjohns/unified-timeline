@@ -35,7 +35,7 @@ export function DashboardCard({
   return (
     <Card variant={variant} className={clsx('p-0 overflow-hidden', className)}>
       {/* Header */}
-      <div className="px-4 py-3 bg-pkt-surface-subtle border-b-2 border-pkt-border-subtle flex items-center justify-between">
+      <div className="mx-4 mt-4 pb-3 border-b border-pkt-border-subtle flex items-center justify-between">
         <h3 className="font-bold text-sm">{title}</h3>
         {headerBadge}
       </div>
@@ -46,7 +46,7 @@ export function DashboardCard({
 
         {/* Action */}
         {action && (
-          <div className="mt-4 pt-4 border-t border-pkt-border-subtle">
+          <div className="mt-4 pt-3 border-t border-pkt-border-subtle flex flex-wrap gap-2">
             {action}
           </div>
         )}
