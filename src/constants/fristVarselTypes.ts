@@ -17,10 +17,6 @@ export const FRIST_VARSELTYPE_OPTIONS: DropdownOption[] = [
     value: "spesifisert",
     label: "Spesifisert krav (§33.6)"
   },
-  {
-    value: "force_majeure",
-    label: "Force majeure-krav (§33.3)"
-  },
 ];
 
 // ========== HELPER FUNCTIONS ==========
@@ -47,5 +43,4 @@ export function getFristVarseltypeValues(): [string, ...string[]] {
 export const FRIST_VARSELTYPE_DESCRIPTIONS: Record<string, string> = {
   noytralt: "Foreløpig varsel sendes når omfanget ikke er kjent. Bevarer retten til å fremme spesifisert krav senere.",
   spesifisert: "Krav med konkret antall kalenderdager når du har grunnlag for å beregne omfanget.",
-  force_majeure: "Krav om tilleggsfrist ved ekstraordinære hendelser utenfor partenes kontroll."
 };

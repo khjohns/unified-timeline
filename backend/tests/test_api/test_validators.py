@@ -362,15 +362,6 @@ class TestValidateFristEvent:
             })
         assert "antall_dager må være >= 0" in str(exc_info.value)
 
-    def test_force_majeure_requires_antall_dager(self):
-        """Raises ValidationError when 'force_majeure' is missing antall_dager."""
-        with pytest.raises(ValidationError) as exc_info:
-            validate_frist_event({
-                "varsel_type": "force_majeure",
-                "begrunnelse": "Test force majeure hendelse"
-            })
-        assert "antall_dager er påkrevd" in str(exc_info.value)
-
     def test_valid_frist_noytralt(self):
         """Valid frist event with nøytralt passes."""
         validate_frist_event({
@@ -385,14 +376,6 @@ class TestValidateFristEvent:
             "varsel_type": "spesifisert",
             "begrunnelse": "Forsinkelse på grunn av materiallevering",
             "spesifisert_varsel": {"dato_sendt": "2025-01-20"},
-            "antall_dager": 14
-        })
-
-    def test_valid_frist_force_majeure(self):
-        """Valid frist event with force_majeure passes."""
-        validate_frist_event({
-            "varsel_type": "force_majeure",
-            "begrunnelse": "Ekstreme værforhold hindret arbeid",
             "antall_dager": 14
         })
 

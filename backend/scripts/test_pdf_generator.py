@@ -104,8 +104,8 @@ def test_koe_with_bh_response():
             antall_versjoner=1,
         ),
 
-        te_navn="Byggmester AS",
-        bh_navn="Oslo Kommune",
+        entreprenor="Byggmester AS",
+        byggherre="Oslo Kommune",
         prosjekt_navn="Nye Jordal Amfi",
         opprettet=datetime(2024, 10, 28, 8, 0),
         siste_aktivitet=datetime(2024, 11, 20, 14, 45),
@@ -154,7 +154,7 @@ def test_force_majeure_claim():
 
         frist=FristTilstand(
             status=SporStatus.GODKJENT,
-            varsel_type="force_majeure",
+            varsel_type="spesifisert",
             krevd_dager=6,
             begrunnelse="6 arbeidsdager tapt grunnet værforhold som gjorde arbeid uforsvarlig. "
                        "Alle utendørs aktiviteter måtte stanses.",
@@ -174,8 +174,8 @@ def test_force_majeure_claim():
             antall_versjoner=1,
         ),
 
-        te_navn="NCC Norge AS",
-        bh_navn="Statsbygg",
+        entreprenor="NCC Norge AS",
+        byggherre="Statsbygg",
         prosjekt_navn="Nytt regjeringskvartal",
         opprettet=datetime(2024, 12, 5, 7, 30),
         siste_aktivitet=datetime(2024, 12, 10, 11, 30),
@@ -222,8 +222,8 @@ def test_forsering_sak():
         vederlag=VederlagTilstand(status=SporStatus.IKKE_RELEVANT),
         frist=FristTilstand(status=SporStatus.IKKE_RELEVANT),
 
-        te_navn="Veidekke Entreprenør AS",
-        bh_navn="Bane NOR",
+        entreprenor="Veidekke Entreprenør AS",
+        byggherre="Bane NOR",
         prosjekt_navn="Follobanen - Ski stasjon",
         opprettet=datetime(2024, 11, 25, 9, 0),
         siste_aktivitet=datetime(2024, 12, 2, 14, 20),
@@ -280,8 +280,8 @@ def test_endringsordre():
         vederlag=VederlagTilstand(status=SporStatus.IKKE_RELEVANT),
         frist=FristTilstand(status=SporStatus.IKKE_RELEVANT),
 
-        te_navn="Skanska Norge AS",
-        bh_navn="Omsorgsbygg Oslo KF",
+        entreprenor="Skanska Norge AS",
+        byggherre="Omsorgsbygg Oslo KF",
         prosjekt_navn="Nye Ullevål sykehjem",
         opprettet=datetime(2024, 11, 10, 8, 30),
         siste_aktivitet=datetime(2024, 11, 12, 16, 0),
@@ -341,8 +341,8 @@ def test_pending_claim():
             antall_versjoner=1,
         ),
 
-        te_navn="GK Norge AS",
-        bh_navn="Oslo Kommune Utdanningsetaten",
+        entreprenor="GK Norge AS",
+        byggherre="Oslo Kommune Utdanningsetaten",
         prosjekt_navn="Ny ungdomsskole Groruddalen",
         opprettet=datetime(2024, 12, 10, 9, 0),
         siste_aktivitet=datetime(2024, 12, 12, 14, 30),

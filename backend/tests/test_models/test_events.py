@@ -319,17 +319,6 @@ def test_frist_data_spesifisert():
     assert data.antall_dager == 14
 
 
-def test_frist_data_force_majeure():
-    """Test FristData with force majeure varsel"""
-    data = FristData(
-        varsel_type=FristVarselType.FORCE_MAJEURE,
-        antall_dager=14,
-        begrunnelse="Forsinkelse pga ekstremvær (§33.3)"
-    )
-    assert data.varsel_type == FristVarselType.FORCE_MAJEURE
-    assert data.antall_dager == 14
-
-
 def test_frist_data_spesifisert_requires_antall_dager():
     """Test that spesifisert requires antall_dager"""
     with pytest.raises(ValueError, match="antall_dager må være satt"):

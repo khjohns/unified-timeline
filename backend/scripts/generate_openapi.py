@@ -162,10 +162,9 @@ Compensation method (NS 8407):
         "enum": [t.value for t in FristVarselType],
         "description": """
 Warning type for deadline extension:
-- noytralt: Neutral/preliminary (§33.4)
-- spesifisert: Specified with days (§33.6.1)
-- begge: Both neutral and specified
-- force_majeure: Force majeure extension (§33.3)
+- noytralt: Preliminary warning (§33.4)
+- spesifisert: Specified claim with days (§33.6.1)
+- begge: Both preliminary and specified
 """.strip()
     }
 

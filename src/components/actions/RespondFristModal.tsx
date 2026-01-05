@@ -84,7 +84,7 @@ interface RespondFristModalProps {
   /** Status of the grunnlag response (for subsidiary treatment) */
   grunnlagStatus?: 'godkjent' | 'avslatt' | 'delvis_godkjent';
   /** Type of varsel TE sent (nøytralt or spesifisert) - determines which checks to show */
-  varselType?: 'noytralt' | 'spesifisert' | 'force_majeure';
+  varselType?: 'noytralt' | 'spesifisert';
 }
 
 // ============================================================================
@@ -478,7 +478,7 @@ export function RespondFristModal({
       if (varselType === 'noytralt') {
         triggers.push('preklusjon_noytralt');
       } else {
-        // spesifisert eller force_majeure
+        // spesifisert
         triggers.push('preklusjon_spesifisert');
       }
     }
@@ -605,7 +605,6 @@ export function RespondFristModal({
                       <Badge variant="default">
                         {varselType === 'noytralt' && 'Foreløpig varsel (§33.4)'}
                         {varselType === 'spesifisert' && 'Spesifisert krav (§33.6)'}
-                        {varselType === 'force_majeure' && 'Force majeure-krav (§33.3)'}
                       </Badge>
                     </div>
                   )}
@@ -696,7 +695,6 @@ export function RespondFristModal({
                   <Badge variant="default">
                     {varselType === 'noytralt' && 'Foreløpig varsel (§33.4)'}
                     {varselType === 'spesifisert' && 'Spesifisert krav (§33.6)'}
-                    {varselType === 'force_majeure' && 'Force majeure-krav (§33.3)'}
                   </Badge>
                 </div>
               )}
@@ -802,36 +800,6 @@ export function RespondFristModal({
                           <RadioItem
                             value="nei"
                             label="Nei - kravet kom for sent (prinsipalt prekludert)"
-                          />
-                        </RadioGroup>
-                      )}
-                    />
-                  </FormField>
-                </div>
-              )}
-
-              {/* Force majeure */}
-              {varselType === 'force_majeure' && (
-                <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
-                  <FormField
-                    label="Force majeure varslet i tide? (§33.3)"
-                    required
-                    helpText="Force majeure skal varsles 'uten ugrunnet opphold' etter at forholdet inntrådte."
-                  >
-                    <Controller
-                      name="spesifisert_krav_ok"
-                      control={control}
-                      render={({ field }) => (
-                        <RadioGroup
-                          value={
-                            field.value === undefined ? undefined : field.value ? 'ja' : 'nei'
-                          }
-                          onValueChange={(val: string) => field.onChange(val === 'ja')}
-                        >
-                          <RadioItem value="ja" label="Ja - varslet i tide" />
-                          <RadioItem
-                            value="nei"
-                            label="Nei - varslet for sent (prinsipalt prekludert)"
                           />
                         </RadioGroup>
                       )}

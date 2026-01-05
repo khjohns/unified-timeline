@@ -168,6 +168,14 @@ class TimelineService:
         state.sakstittel = event.sakstittel
         state.catenda_topic_id = event.catenda_topic_id
 
+        # Sett prosjekt- og partsinformasjon fra Catenda
+        if event.prosjekt_navn:
+            state.prosjekt_navn = event.prosjekt_navn
+        if event.leverandor:
+            state.entreprenor = event.leverandor  # Leverandør = TE (Totalentreprenør)
+        if event.byggherre:
+            state.byggherre = event.byggherre  # Byggherre = BH
+
         # Map string sakstype to SaksType enum
         sakstype_map = {
             "standard": SaksType.STANDARD,
@@ -879,7 +887,7 @@ class TimelineService:
             opprettet=state.opprettet,
             siste_aktivitet=state.siste_aktivitet,
             neste_handling_rolle=state.neste_handling.get("rolle"),
-            te_navn=state.te_navn,
+            entreprenor=state.entreprenor,
             prosjekt_navn=state.prosjekt_navn,
         )
 
@@ -1316,10 +1324,9 @@ class TimelineService:
         if not varsel_type:
             return None
         labels = {
-            'noytralt': 'Nøytralt varsel (§33.4)',
+            'noytralt': 'Foreløpig varsel (§33.4)',
             'spesifisert': 'Spesifisert krav (§33.6)',
-            'begge': 'Nøytralt + Spesifisert',
-            'force_majeure': 'Force Majeure (§33.3)',
+            'begge': 'Foreløpig + Spesifisert',
         }
         return labels.get(varsel_type.value if hasattr(varsel_type, 'value') else varsel_type, str(varsel_type))
 

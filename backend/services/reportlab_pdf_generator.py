@@ -110,9 +110,8 @@ class ReportLabPdfGenerator:
 
     # Frist varseltyper med NS 8407 §-referanser
     FRIST_VARSEL_TYPE_MAP = {
-        'noytralt': 'Nøytralt varsel (§33.4)',
+        'noytralt': 'Foreløpig varsel (§33.4)',
         'spesifisert': 'Spesifisert krav (§33.6)',
-        'force_majeure': 'Force majeure (§33.3)',
     }
 
     # Norwegian month names for date formatting

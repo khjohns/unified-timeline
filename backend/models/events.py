@@ -191,9 +191,8 @@ class VederlagBeregningResultat(str, Enum):
 
 class FristVarselType(str, Enum):
     """Type varsel for frist (NS 8407 §33)"""
-    NOYTRALT = "noytralt"  # §33.4 - Nøytralt/Foreløpig varsel - når omfang ikke er kjent. Bevarer rett til senere krav
+    NOYTRALT = "noytralt"  # §33.4 - Foreløpig varsel - når omfang ikke er kjent. Bevarer rett til senere krav
     SPESIFISERT = "spesifisert"  # §33.6.1 - Spesifisert krav (med dager)
-    FORCE_MAJEURE = "force_majeure"  # §33.3 - Tilleggsfrist ved force majeure - ekstraordinære hendelser utenfor partenes kontroll
 
 
 class FristBeregningResultat(str, Enum):
@@ -1412,6 +1411,11 @@ class SakOpprettetEvent(SakEvent):
         description="Sakstype: 'standard' (KOE), 'endringsordre' (EO), eller 'forsering'"
     )
 
+    # Prosjekt- og partsinformasjon (hentes fra Catenda)
+    prosjekt_navn: Optional[str] = Field(default=None, description="Prosjektnavn fra Catenda")
+    byggherre: Optional[str] = Field(default=None, description="Byggherre (BH) - fra topic custom field")
+    leverandor: Optional[str] = Field(default=None, description="Leverandør/Entreprenør (TE) - fra topic custom field")
+
 
 # ============ ENDRINGSORDRE EVENTS (§31.3) ============
 
@@ -1797,7 +1801,10 @@ def parse_event(data: dict) -> AnyEvent:
         event_data = data.get("data", {})
         if event_data and isinstance(event_data, dict):
             # Fields that should be at top level for SakOpprettetEvent
-            sak_opprettet_fields = ['sakstittel', 'catenda_topic_id', 'sakstype', 'prosjekt_id']
+            sak_opprettet_fields = [
+                'sakstittel', 'catenda_topic_id', 'sakstype', 'prosjekt_id',
+                'prosjekt_navn', 'byggherre', 'leverandor'  # Prosjekt- og partsinformasjon
+            ]
             data = dict(data)  # Don't mutate original
             for field in sak_opprettet_fields:
                 if field in event_data and field not in data:

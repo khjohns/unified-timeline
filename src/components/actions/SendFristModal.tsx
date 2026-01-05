@@ -40,7 +40,6 @@ import {
   FRIST_VARSELTYPE_DESCRIPTIONS,
   VARSEL_METODER_OPTIONS,
   getHovedkategoriLabel,
-  erForceMajeure,
 } from '../../constants';
 import { differenceInDays } from 'date-fns';
 
@@ -65,8 +64,8 @@ const fristSchema = z.object({
   vedlegg_ids: z.array(z.string()).optional(),
 }).refine(
   (data) => {
-    // antall_dager is required for spesifisert and force_majeure
-    if (['spesifisert', 'force_majeure'].includes(data.varsel_type)) {
+    // antall_dager is required for spesifisert krav
+    if (data.varsel_type === 'spesifisert') {
       return data.antall_dager !== undefined && data.antall_dager >= 0;
     }
     return true;
@@ -206,10 +205,6 @@ export function SendFristModal({
   // Determine if this is a subsidiary claim (grunnlag was rejected)
   const erSubsidiaer = grunnlagEvent?.status === 'avslatt';
 
-  // Check if grunnlag is Force Majeure - only then show force_majeure option
-  const grunnlagErForceMajeure = grunnlagEvent?.hovedkategori
-    ? erForceMajeure(grunnlagEvent.hovedkategori)
-    : false;
 
   const onSubmit = (data: FristFormData) => {
     // Build VarselInfo structures
@@ -309,7 +304,6 @@ export function SendFristModal({
                 <RadioGroup value={field.value} onValueChange={field.onChange} data-testid="frist-varsel-type">
                   {FRIST_VARSELTYPE_OPTIONS
                     .filter(opt => opt.value !== '')
-                    .filter(opt => opt.value !== 'force_majeure' || grunnlagErForceMajeure)
                     .map((option) => (
                       <RadioItem
                         key={option.value}
@@ -464,7 +458,7 @@ export function SendFristModal({
         )}
 
         {/* Beregning av fristforlengelse (for spesifisert/FM) */}
-        {(selectedVarselType === 'spesifisert' || selectedVarselType === 'force_majeure') && (
+        {selectedVarselType === 'spesifisert' && (
           <SectionContainer
             title="Beregning av fristforlengelse"
             description="Angi omfanget av kravet basert på virkningen på fremdriften (§33.5)"

@@ -131,16 +131,18 @@ export function formatVederlagsmetode(metode?: string | null): string {
 /**
  * Format varsel type to readable label
  *
- * @example formatVarselType('NOYTRAL') // 'Nøytralt varsel'
- * @example formatVarselType('SPESIFISERT') // 'Spesifisert varsel'
+ * @example formatVarselType('noytralt') // 'Foreløpig varsel'
+ * @example formatVarselType('spesifisert') // 'Spesifisert krav'
  */
 export function formatVarselType(type?: string | null): string {
   if (!type) return '-';
-  switch (type) {
-    case 'NOYTRAL':
-      return 'Nøytralt varsel';
-    case 'SPESIFISERT':
-      return 'Spesifisert varsel';
+  const normalized = type.toLowerCase();
+  switch (normalized) {
+    case 'noytralt':
+    case 'noytral':
+      return 'Foreløpig varsel';
+    case 'spesifisert':
+      return 'Spesifisert krav';
     default:
       return type;
   }
