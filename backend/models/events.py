@@ -1791,6 +1791,18 @@ def parse_event(data: dict) -> AnyEvent:
         data = dict(data)  # Don't mutate original
         data["spor"] = spor_map.get(event_type)
 
+    # For SakOpprettetEvent: Extract fields from 'data' dict to top level
+    # This handles events stored in Supabase where event-specific fields are in 'data'
+    if event_type == EventType.SAK_OPPRETTET.value:
+        event_data = data.get("data", {})
+        if event_data and isinstance(event_data, dict):
+            # Fields that should be at top level for SakOpprettetEvent
+            sak_opprettet_fields = ['sakstittel', 'catenda_topic_id', 'sakstype', 'prosjekt_id']
+            data = dict(data)  # Don't mutate original
+            for field in sak_opprettet_fields:
+                if field in event_data and field not in data:
+                    data[field] = event_data[field]
+
     return event_class.model_validate(data)
 
 

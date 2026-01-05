@@ -785,8 +785,8 @@ class BaseTester:
             Tuple[sak_id, magic_token] eller (None, None) ved feil
         """
         from datetime import datetime
-        from repositories.event_repository import JsonFileEventRepository
-        from repositories.sak_metadata_repository import SakMetadataRepository, SakMetadata
+        from repositories import create_event_repository, create_metadata_repository
+        from repositories.sak_metadata_repository import SakMetadata
         from models.events import SakOpprettetEvent
         from lib.auth.magic_link import get_magic_link_manager
 
@@ -808,12 +808,12 @@ class BaseTester:
                 sakstype=sakstype,
             )
 
-            # Persist event
-            event_repo = JsonFileEventRepository()
+            # Persist event (respekterer EVENT_STORE_BACKEND env var)
+            event_repo = create_event_repository()
             new_version = event_repo.append(event, expected_version=0)
             print_ok(f"SakOpprettetEvent lagret (versjon: {new_version})")
 
-            # Opprett metadata
+            # Opprett metadata (respekterer METADATA_STORE_BACKEND env var)
             metadata = SakMetadata(
                 sak_id=sak_id,
                 prosjekt_id=self.project_id,
@@ -825,7 +825,7 @@ class BaseTester:
                 cached_title=topic_title,
                 cached_status="UNDER_VARSLING",
             )
-            metadata_repo = SakMetadataRepository()
+            metadata_repo = create_metadata_repository()
             metadata_repo.create(metadata)
             print_ok("Metadata opprettet")
 
@@ -1707,28 +1707,34 @@ class KOEFlowTester(BaseTester):
         if self.client.delete_topic(self.topic_guid):
             print_ok("Topic slettet fra Catenda!")
 
-            # Slett også lokal sak-data
-            print_info("Sletter lokal sak-data...")
+            # Slett også sak-data
+            print_info("Sletter sak-data...")
             try:
-                from repositories.event_repository import JsonFileEventRepository
-                from repositories.sak_metadata_repository import SakMetadataRepository
+                from repositories import create_event_repository, create_metadata_repository
 
-                event_repo = JsonFileEventRepository()
-                metadata_repo = SakMetadataRepository()
+                event_repo = create_event_repository()
+                metadata_repo = create_metadata_repository()
 
-                # Slett events-fil
-                import os
-                events_file = event_repo._get_file_path(self.sak_id)
-                if os.path.exists(events_file):
-                    os.remove(events_file)
-                    print_ok(f"Slettet events-fil: {events_file}")
+                # For JSON-backend: slett events-fil
+                if hasattr(event_repo, '_get_file_path'):
+                    import os
+                    events_file = event_repo._get_file_path(self.sak_id)
+                    if os.path.exists(events_file):
+                        os.remove(events_file)
+                        print_ok(f"Slettet events-fil: {events_file}")
+                # For Supabase-backend: slett events via API
+                elif hasattr(event_repo, 'delete_events'):
+                    event_repo.delete_events(self.sak_id)
+                    print_ok("Slettet events fra Supabase")
+                else:
+                    print_warn("Events ikke slettet - manuell opprydding i database kan være nødvendig")
 
-                # Slett metadata
+                # Slett metadata (fungerer for både CSV og Supabase)
                 metadata_repo.delete(self.sak_id)
                 print_ok("Slettet metadata")
 
             except Exception as e:
-                print_warn(f"Kunne ikke slette lokal data: {e}")
+                print_warn(f"Kunne ikke slette data: {e}")
 
             return True
         else:

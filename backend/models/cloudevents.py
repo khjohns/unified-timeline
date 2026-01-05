@@ -181,6 +181,23 @@ class CloudEventMixin(BaseModel):
                 ce["data"] = data
             else:
                 ce["data"] = data
+        else:
+            # For events without a 'data' field (like SakOpprettetEvent),
+            # extract event-specific fields and put them in data
+            # Standard fields that should NOT be in data payload
+            standard_fields = {
+                'event_id', 'sak_id', 'event_type', 'tidsstempel',
+                'aktor', 'aktor_rolle', 'kommentar', 'refererer_til_event_id',
+                # Computed fields from CloudEventMixin
+                'specversion', 'ce_id', 'ce_source', 'ce_type', 'ce_time',
+                'ce_subject', 'ce_datacontenttype',
+            }
+            event_data = {}
+            for field_name, field_value in self.model_dump(mode='json').items():
+                if field_name not in standard_fields and field_value is not None:
+                    event_data[field_name] = field_value
+            if event_data:
+                ce["data"] = event_data
 
         # Fjern None-verdier fra ce dict (unntatt data som kan være tom dict)
         ce = {k: v for k, v in ce.items() if v is not None or k == 'data'}
