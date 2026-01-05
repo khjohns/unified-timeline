@@ -353,16 +353,6 @@ def validate_frist_event(data: Dict[str, Any], is_update: bool = False, is_speci
         if data.get('antall_dager', 0) < 0:
             raise ValidationError("antall_dager må være >= 0")
 
-    elif varsel_type == FristVarselType.FORCE_MAJEURE.value:
-        # Force majeure requires antall_dager
-        if data.get('antall_dager') is None:
-            raise ValidationError(
-                "antall_dager er påkrevd for force majeure fristkrav"
-            )
-
-        if data.get('antall_dager', 0) < 0:
-            raise ValidationError("antall_dager må være >= 0")
-
 
 def validate_respons_event(data: Dict[str, Any], spor_type: str) -> None:
     """
