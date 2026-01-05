@@ -83,8 +83,7 @@ export type GrunnlagResponsResultat =
   | 'delvis_godkjent'
   | 'erkjenn_fm'       // §33.3 - BH erkjenner Force Majeure (kun frist, ikke vederlag)
   | 'avslatt'          // BH avslår ansvarsgrunnlaget
-  | 'frafalt'          // §32.3 c - BH frafaller pålegget (kun irregulær endring)
-  | 'krever_avklaring';
+  | 'frafalt';         // §32.3 c - BH frafaller pålegget (kun irregulær endring)
 
 // Årsaker til at subsidiær vurdering er relevant (NS 8407)
 export type SubsidiaerTrigger =

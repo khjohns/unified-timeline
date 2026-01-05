@@ -253,10 +253,10 @@ export function RespondGrunnlagModal({
                       // Filter out empty placeholder
                       if (opt.value === '') return false;
 
-                      // Force Majeure: Can recognize, reject, or request clarification
+                      // Force Majeure: Can recognize or reject
                       // FM is binary - either it qualifies as FM or it doesn't
                       if (erForceMajeure) {
-                        return ['erkjenn_fm', 'avslatt', 'krever_avklaring'].includes(opt.value);
+                        return ['erkjenn_fm', 'avslatt'].includes(opt.value);
                       }
 
                       // Non-FM cases: filter out FM option and conditional options

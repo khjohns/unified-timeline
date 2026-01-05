@@ -19,7 +19,6 @@ export const BH_GRUNNLAGSVAR_OPTIONS: DropdownOption[] = [
   { value: "erkjenn_fm", label: "Erkjenn Force Majeure" },
   { value: "avslatt", label: "Avslått" },
   { value: "frafalt", label: "Frafall pålegget" },
-  { value: "krever_avklaring", label: "Krever avklaring" },
 ];
 
 // ========== VEDERLAG RESPONSE OPTIONS ==========
@@ -130,7 +129,6 @@ export const BH_GRUNNLAGSVAR_DESCRIPTIONS: Record<string, string> = {
   erkjenn_fm: "§33.3: Byggherren erkjenner at forholdet er Force Majeure. Entreprenøren får kun fristforlengelse, ikke vederlag.",
   avslatt: "Byggherren avslår ansvarsgrunnlaget. Vederlag og frist vurderes subsidiært (hvis ansvar hadde foreligget).",
   frafalt: "Byggherren frafaller pålegget (§32.3 c). Kun for irregulære endringer. Arbeidet trenger ikke utføres.",
-  krever_avklaring: "Byggherren trenger mer dokumentasjon før beslutning. Angir hvilke dokumenter som mangler."
 };
 
 export const BH_VEDERLAGSSVAR_DESCRIPTIONS: Record<string, string> = {

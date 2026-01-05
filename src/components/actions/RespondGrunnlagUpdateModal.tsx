@@ -51,7 +51,6 @@ const RESULTAT_LABELS: Record<GrunnlagResponsResultat | 'frafalt', string> = {
   delvis_godkjent: 'Delvis godkjent',
   avslatt: 'Avslått',
   erkjenn_fm: 'Force Majeure (§33.3)',
-  krever_avklaring: 'Krever avklaring',
   frafalt: 'Frafalt (§32.3 c)',
 };
 
@@ -172,15 +171,6 @@ export function RespondGrunnlagUpdateModal({
       });
     }
     // Fra godkjent: Ingen alternativer - standpunktet er bindende
-
-    // Krever avklaring er alltid tilgjengelig (nøytral handling)
-    if (!varGodkjent) {
-      options.push({
-        value: 'krever_avklaring',
-        label: 'Krever avklaring',
-        description: 'Du trenger mer informasjon før du kan ta stilling.',
-      });
-    }
 
     return options;
   };
