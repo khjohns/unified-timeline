@@ -246,6 +246,38 @@ paths:
           description: Validation error
         '409':
           description: Version conflict
+  /api/cases:
+    get:
+      tags:
+      - Events
+      summary: List all cases
+      description: 'List all cases with metadata from the sak_metadata table.
+
+
+        Supports filtering by case type (sakstype).
+
+        Results are sorted by last_event_at descending (most recent first).'
+      operationId: listCases
+      security:
+      - magicLink: []
+      parameters:
+      - name: sakstype
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - standard
+          - forsering
+          - endringsordre
+        description: Filter by case type
+      responses:
+        '200':
+          description: List of cases
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaseListResponse'
   /api/cases/{sak_id}/state:
     get:
       tags:
@@ -619,9 +651,18 @@ paths:
                 begrunnelse:
                   type: string
                   description: Justification for decision
+                expected_version:
+                  type: integer
+                  description: Expected version for optimistic concurrency
       responses:
         '200':
           description: BH response registered
+        '409':
+          description: Concurrency conflict - version mismatch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConcurrencyConflictError'
   /api/forsering/{sak_id}/stopp:
     post:
       tags:
@@ -653,6 +694,9 @@ paths:
                 paalopte_kostnader:
                   type: number
                   description: Incurred costs at time of stop
+                expected_version:
+                  type: integer
+                  description: Expected version for optimistic concurrency
       responses:
         '200':
           description: Forsering stopped
@@ -668,6 +712,12 @@ paths:
                   dato_stoppet:
                     type: string
                     format: date
+        '409':
+          description: Concurrency conflict - version mismatch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConcurrencyConflictError'
   /api/forsering/{sak_id}/kostnader:
     put:
       tags:
@@ -699,9 +749,18 @@ paths:
                 kommentar:
                   type: string
                   description: Optional comment on update
+                expected_version:
+                  type: integer
+                  description: Expected version for optimistic concurrency
       responses:
         '200':
           description: Costs updated
+        '409':
+          description: Concurrency conflict - version mismatch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConcurrencyConflictError'
   /api/forsering/by-relatert/{sak_id}:
     get:
       tags:
@@ -1169,16 +1228,13 @@ components:
       enum:
       - noytralt
       - spesifisert
-      - force_majeure
       description: 'Warning type for deadline extension:
 
-        - noytralt: Neutral/preliminary (§33.4)
+        - noytralt: Preliminary warning (§33.4)
 
-        - spesifisert: Specified with days (§33.6.1)
+        - spesifisert: Specified claim with days (§33.6.1)
 
-        - begge: Both neutral and specified
-
-        - force_majeure: Force majeure extension (§33.3)'
+        - begge: Both preliminary and specified'
     Hovedkategori:
       type: string
       enum:
@@ -1719,13 +1775,6 @@ components:
           default: null
           description: Samlet begrunnelse
           title: Begrunnelse
-        begrunnelse_beregning:
-          anyOf:
-          - type: string
-          - type: 'null'
-          default: ''
-          description: BHs kommentar til beregningen (legacy)
-          title: Begrunnelse Beregning
         frist_for_spesifikasjon:
           anyOf:
           - type: string
@@ -1842,13 +1891,13 @@ components:
           default: null
           description: BH-godkjent ny sluttdato (YYYY-MM-DD)
           title: Ny Sluttdato
-        begrunnelse_beregning:
+        begrunnelse:
           anyOf:
           - type: string
           - type: 'null'
           default: null
-          description: BHs kommentar til dagberegningen
-          title: Begrunnelse Beregning
+          description: Samlet begrunnelse
+          title: Begrunnelse
         frist_for_spesifisering:
           anyOf:
           - type: string
@@ -1925,6 +1974,23 @@ components:
           type: integer
         message:
           type: string
+    ConcurrencyConflictError:
+      type: object
+      description: Returned when optimistic concurrency check fails (409)
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: CONCURRENCY_CONFLICT
+        message:
+          type: string
+          example: 'Versjonskonflikt: forventet 3, fikk 4'
+        expected_version:
+          type: integer
+        actual_version:
+          type: integer
     EventSubmission:
       type: object
       required:
@@ -2006,6 +2072,49 @@ components:
         state:
           type: object
           description: Computed case state
+    CaseListItem:
+      type: object
+      properties:
+        sak_id:
+          type: string
+          example: SAK-20251218-001
+          description: Case identifier
+        sakstype:
+          type: string
+          enum:
+          - standard
+          - forsering
+          - endringsordre
+          description: Case type
+        cached_title:
+          type: string
+          nullable: true
+          description: Cached case title
+        cached_status:
+          type: string
+          nullable: true
+          description: Cached overall status
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Case creation timestamp
+        created_by:
+          type: string
+          description: Email of creator
+        last_event_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Timestamp of most recent event
+    CaseListResponse:
+      type: object
+      properties:
+        cases:
+          type: array
+          items:
+            $ref: '#/components/schemas/CaseListItem'
+          description: List of case metadata
     CloudEvent:
       type: object
       description: CloudEvents v1.0 structured content format

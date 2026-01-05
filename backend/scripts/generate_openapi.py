@@ -216,6 +216,18 @@ Main category for grounds (NS 8407 §33.1):
         }
     }
 
+    schemas["ConcurrencyConflictError"] = {
+        "type": "object",
+        "description": "Returned when optimistic concurrency check fails (409)",
+        "properties": {
+            "success": {"type": "boolean", "example": False},
+            "error": {"type": "string", "example": "CONCURRENCY_CONFLICT"},
+            "message": {"type": "string", "example": "Versjonskonflikt: forventet 3, fikk 4"},
+            "expected_version": {"type": "integer"},
+            "actual_version": {"type": "integer"}
+        }
+    }
+
     # Request/Response schemas
     schemas["EventSubmission"] = {
         "type": "object",
@@ -1097,14 +1109,23 @@ A KOE is a candidate if:
                             "properties": {
                                 "aksepterer": {"type": "boolean", "description": "Whether BH accepts the forsering"},
                                 "godkjent_kostnad": {"type": "number", "description": "Approved cost (may be lower than estimated)"},
-                                "begrunnelse": {"type": "string", "description": "Justification for decision"}
+                                "begrunnelse": {"type": "string", "description": "Justification for decision"},
+                                "expected_version": {"type": "integer", "description": "Expected version for optimistic concurrency"}
                             }
                         }
                     }
                 }
             },
             "responses": {
-                "200": {"description": "BH response registered"}
+                "200": {"description": "BH response registered"},
+                "409": {
+                    "description": "Concurrency conflict - version mismatch",
+                    "content": {
+                        "application/json": {
+                            "schema": {"$ref": "#/components/schemas/ConcurrencyConflictError"}
+                        }
+                    }
+                }
             }
         }
     }
@@ -1128,7 +1149,8 @@ A KOE is a candidate if:
                             "required": ["begrunnelse"],
                             "properties": {
                                 "begrunnelse": {"type": "string", "description": "Reason for stopping"},
-                                "paalopte_kostnader": {"type": "number", "description": "Incurred costs at time of stop"}
+                                "paalopte_kostnader": {"type": "number", "description": "Incurred costs at time of stop"},
+                                "expected_version": {"type": "integer", "description": "Expected version for optimistic concurrency"}
                             }
                         }
                     }
@@ -1147,6 +1169,14 @@ A KOE is a candidate if:
                                     "dato_stoppet": {"type": "string", "format": "date"}
                                 }
                             }
+                        }
+                    }
+                },
+                "409": {
+                    "description": "Concurrency conflict - version mismatch",
+                    "content": {
+                        "application/json": {
+                            "schema": {"$ref": "#/components/schemas/ConcurrencyConflictError"}
                         }
                     }
                 }
@@ -1173,14 +1203,23 @@ A KOE is a candidate if:
                             "required": ["paalopte_kostnader"],
                             "properties": {
                                 "paalopte_kostnader": {"type": "number", "description": "Current incurred costs"},
-                                "kommentar": {"type": "string", "description": "Optional comment on update"}
+                                "kommentar": {"type": "string", "description": "Optional comment on update"},
+                                "expected_version": {"type": "integer", "description": "Expected version for optimistic concurrency"}
                             }
                         }
                     }
                 }
             },
             "responses": {
-                "200": {"description": "Costs updated"}
+                "200": {"description": "Costs updated"},
+                "409": {
+                    "description": "Concurrency conflict - version mismatch",
+                    "content": {
+                        "application/json": {
+                            "schema": {"$ref": "#/components/schemas/ConcurrencyConflictError"}
+                        }
+                    }
+                }
             }
         }
     }
