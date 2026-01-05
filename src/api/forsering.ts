@@ -103,6 +103,7 @@ export interface StoppForseringRequest {
   forsering_sak_id: string;
   begrunnelse: string;
   paalopte_kostnader?: number;
+  expected_version?: number;
 }
 
 export interface StoppForseringResponse {
@@ -116,6 +117,7 @@ export interface BHResponsForseringRequest {
   aksepterer: boolean;
   godkjent_kostnad?: number;
   begrunnelse: string;
+  expected_version?: number;
 }
 
 export interface BHResponsForseringResponse {
@@ -127,6 +129,7 @@ export interface OppdaterKostnaderRequest {
   forsering_sak_id: string;
   paalopte_kostnader: number;
   kommentar?: string;
+  expected_version?: number;
 }
 
 export interface OppdaterKostnaderResponse {
@@ -324,6 +327,7 @@ export async function stoppForsering(
       body: JSON.stringify({
         begrunnelse: data.begrunnelse,
         paalopte_kostnader: data.paalopte_kostnader,
+        expected_version: data.expected_version,
       }),
     }
   );
@@ -355,6 +359,7 @@ export async function bhResponsForsering(
         aksepterer: data.aksepterer,
         godkjent_kostnad: data.godkjent_kostnad,
         begrunnelse: data.begrunnelse,
+        expected_version: data.expected_version,
       }),
     }
   );
@@ -383,6 +388,7 @@ export async function oppdaterKostnader(
       body: JSON.stringify({
         paalopte_kostnader: data.paalopte_kostnader,
         kommentar: data.kommentar,
+        expected_version: data.expected_version,
       }),
     }
   );

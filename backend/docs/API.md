@@ -316,7 +316,8 @@ All errors follow this format:
 **Common error codes:**
 - `MISSING_PARAMETERS` - Required fields missing
 - `VALIDATION_ERROR` - Data validation failed
-- `VERSION_CONFLICT` - Optimistic concurrency conflict
+- `VERSION_CONFLICT` - Optimistic concurrency conflict (events API)
+- `CONCURRENCY_CONFLICT` - Optimistic concurrency conflict (forsering API)
 - `BUSINESS_RULE_VIOLATION` - Business rule check failed
 - `UNAUTHORIZED` - Authentication required
 
@@ -401,6 +402,99 @@ Check if estimated cost is within the 30% limit.
 `GET /api/forsering/{sak_id}/kontekst`
 
 Get complete context including related cases, states, and events.
+
+---
+
+### BH Respond to Forsering
+`POST /api/forsering/{sak_id}/bh-respons`
+
+BH accepts or rejects the forsering claim.
+
+**Request:**
+```json
+{
+  "aksepterer": true,
+  "godkjent_kostnad": 1100000,
+  "begrunnelse": "Aksepterer forsering innenfor godkjent ramme",
+  "expected_version": 3
+}
+```
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "message": "BH respons registrert (akseptert)",
+  "version": 4,
+  "state": { /* updated SakState */ }
+}
+```
+
+**Response 409 (Version Conflict):**
+```json
+{
+  "success": false,
+  "error": "CONCURRENCY_CONFLICT",
+  "message": "Versjonskonflikt: forventet 3, fikk 4",
+  "expected_version": 3,
+  "actual_version": 4
+}
+```
+
+---
+
+### Stop Forsering
+`POST /api/forsering/{sak_id}/stopp`
+
+TE stops an active forsering and reports incurred costs.
+
+**Request:**
+```json
+{
+  "begrunnelse": "Forsering fullført før planlagt",
+  "paalopte_kostnader": 850000,
+  "expected_version": 4
+}
+```
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "message": "Forsering stoppet",
+  "dato_stoppet": "2025-01-05",
+  "version": 5,
+  "state": { /* updated SakState */ }
+}
+```
+
+---
+
+### Update Incurred Costs
+`PUT /api/forsering/{sak_id}/kostnader`
+
+TE updates incurred costs during an active forsering.
+
+**Request:**
+```json
+{
+  "paalopte_kostnader": 450000,
+  "kommentar": "Kostnader t.o.m. uke 2",
+  "expected_version": 4
+}
+```
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "message": "Kostnader oppdatert",
+  "version": 5,
+  "state": { /* updated SakState */ }
+}
+```
+
+**Note:** All state-changing forsering endpoints support optimistic concurrency control via `expected_version`. If omitted, the server fetches the current version automatically (backward compatible but not recommended for production use due to potential race conditions).
 
 ---
 

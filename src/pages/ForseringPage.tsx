@@ -11,7 +11,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { STALE_TIME } from '../constants/queryConfig';
 import { useAuth } from '../context/AuthContext';
-import { getAuthToken } from '../api/client';
+import { getAuthToken, ApiError } from '../api/client';
 import { useVerifyToken } from '../hooks/useVerifyToken';
 import { useCaseState } from '../hooks/useCaseState';
 import { useUserRole } from '../hooks/useUserRole';
@@ -107,6 +107,7 @@ export function ForseringPage() {
   const [bhResponsModalOpen, setBhResponsModalOpen] = useState(false);
   const [kostnaderModalOpen, setKostnaderModalOpen] = useState(false);
   const [showTokenExpired, setShowTokenExpired] = useState(false);
+  const [showConflict, setShowConflict] = useState(false);
 
   // Fetch forsering case state (wait for auth)
   const {
@@ -185,6 +186,7 @@ export function ForseringPage() {
         forsering_sak_id: sakId || '',
         begrunnelse: data.begrunnelse,
         paalopte_kostnader: data.paalopte_kostnader,
+        expected_version: caseData?.version,
       });
     },
     onSuccess: () => {
@@ -196,6 +198,9 @@ export function ForseringPage() {
     onError: (error) => {
       if (error instanceof Error && (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING')) {
         setShowTokenExpired(true);
+      } else if (error instanceof ApiError && error.status === 409) {
+        setShowConflict(true);
+        queryClient.invalidateQueries({ queryKey: ['case', sakId] });
       }
     },
   });
@@ -212,6 +217,7 @@ export function ForseringPage() {
         aksepterer: data.aksepterer,
         godkjent_kostnad: data.godkjent_kostnad,
         begrunnelse: data.begrunnelse,
+        expected_version: caseData?.version,
       });
     },
     onSuccess: () => {
@@ -223,6 +229,9 @@ export function ForseringPage() {
     onError: (error) => {
       if (error instanceof Error && (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING')) {
         setShowTokenExpired(true);
+      } else if (error instanceof ApiError && error.status === 409) {
+        setShowConflict(true);
+        queryClient.invalidateQueries({ queryKey: ['case', sakId] });
       }
     },
   });
@@ -238,6 +247,7 @@ export function ForseringPage() {
         forsering_sak_id: sakId || '',
         paalopte_kostnader: data.paalopte_kostnader,
         kommentar: data.kommentar,
+        expected_version: caseData?.version,
       });
     },
     onSuccess: () => {
@@ -249,6 +259,9 @@ export function ForseringPage() {
     onError: (error) => {
       if (error instanceof Error && (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING')) {
         setShowTokenExpired(true);
+      } else if (error instanceof ApiError && error.status === 409) {
+        setShowConflict(true);
+        queryClient.invalidateQueries({ queryKey: ['case', sakId] });
       }
     },
   });
@@ -470,6 +483,23 @@ export function ForseringPage() {
 
       {/* Token expired alert */}
       <TokenExpiredAlert open={showTokenExpired} onClose={() => setShowTokenExpired(false)} />
+
+      {/* Concurrency conflict alert */}
+      {showConflict && (
+        <div className="fixed bottom-4 right-4 max-w-md z-50">
+          <Alert variant="warning" title="Versjonskonflikt">
+            Saken ble endret av en annen bruker. Siden er oppdatert med siste versjon.
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mt-2"
+              onClick={() => setShowConflict(false)}
+            >
+              Lukk
+            </Button>
+          </Alert>
+        </div>
+      )}
     </div>
   );
 }
