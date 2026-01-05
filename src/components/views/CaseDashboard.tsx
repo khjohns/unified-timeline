@@ -99,14 +99,11 @@ export function CaseDashboard({
                 {formatDateMedium(state.grunnlag.grunnlag_varsel.dato_sendt)}
               </DataListItem>
             )}
-            {state.grunnlag.bh_resultat && (() => {
-              const { label, colorClass } = formatBHResultat(state.grunnlag.bh_resultat);
-              return (
-                <DataListItem label="BH resultat">
-                  <span className={`${colorClass} font-medium`}>{label}</span>
-                </DataListItem>
-              );
-            })()}
+            {state.grunnlag.bh_resultat && (
+              <DataListItem label="BH resultat">
+                {formatBHResultat(state.grunnlag.bh_resultat).label}
+              </DataListItem>
+            )}
           </DataList>
         </DashboardCard>
 
@@ -124,23 +121,18 @@ export function CaseDashboard({
               </DataListItem>
             )}
             <DataListItem label="Krevd beløp">
-              <span className="font-medium">{formatCurrency(krevdBelop)}</span>
+              {formatCurrency(krevdBelop)}
             </DataListItem>
             {state.vederlag.godkjent_belop !== undefined && (
               <DataListItem label="Godkjent beløp">
-                <span className="font-medium text-pkt-brand-green-1000">
-                  {formatCurrency(state.vederlag.godkjent_belop)}
-                </span>
+                {formatCurrency(state.vederlag.godkjent_belop)}
               </DataListItem>
             )}
-            {state.vederlag.bh_resultat && (() => {
-              const { label, colorClass } = formatBHResultat(state.vederlag.bh_resultat);
-              return (
-                <DataListItem label="BH resultat">
-                  <span className={`${colorClass} font-medium`}>{label}</span>
-                </DataListItem>
-              );
-            })()}
+            {state.vederlag.bh_resultat && (
+              <DataListItem label="BH resultat">
+                {formatBHResultat(state.vederlag.bh_resultat).label}
+              </DataListItem>
+            )}
           </DataList>
         </DashboardCard>
 
@@ -154,14 +146,12 @@ export function CaseDashboard({
           <DataList>
             {state.frist.krevd_dager !== undefined && (
               <DataListItem label="Krevd">
-                <span className="font-medium">{formatDays(state.frist.krevd_dager)}</span>
+                {formatDays(state.frist.krevd_dager)}
               </DataListItem>
             )}
             {state.frist.godkjent_dager !== undefined && (
               <DataListItem label="Godkjent">
-                <span className="font-medium text-pkt-brand-green-1000">
-                  {formatDays(state.frist.godkjent_dager)}
-                </span>
+                {formatDays(state.frist.godkjent_dager)}
               </DataListItem>
             )}
             {state.frist.varsel_type && (
@@ -169,14 +159,11 @@ export function CaseDashboard({
                 {formatVarselType(state.frist.varsel_type)}
               </DataListItem>
             )}
-            {state.frist.bh_resultat && (() => {
-              const { label, colorClass } = formatBHResultat(state.frist.bh_resultat);
-              return (
-                <DataListItem label="BH resultat">
-                  <span className={`${colorClass} font-medium`}>{label}</span>
-                </DataListItem>
-              );
-            })()}
+            {state.frist.bh_resultat && (
+              <DataListItem label="BH resultat">
+                {formatBHResultat(state.frist.bh_resultat).label}
+              </DataListItem>
+            )}
           </DataList>
         </DashboardCard>
       </div>
