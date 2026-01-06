@@ -177,7 +177,11 @@ class CatendaCommentGenerator:
         lines = []
         lines.append("**Status:**")
 
-        # Overordnet status
+        # Check if this is a forsering case
+        if state.forsering_data and state.forsering_data.dato_varslet:
+            return self._build_forsering_status_summary(state)
+
+        # Overordnet status (for standard KOE)
         overordnet_display = self._format_overordnet_status(state.overordnet_status)
         lines.append(f"- Overordnet: {overordnet_display}")
 
@@ -205,6 +209,50 @@ class CatendaCommentGenerator:
                     lines.append(f"  - Krevd: {track.krevd_dager} dager")
                     if track.godkjent_dager is not None:
                         lines.append(f"  - Godkjent: {track.godkjent_dager} dager")
+
+        return "\n".join(lines)
+
+    def _build_forsering_status_summary(self, state: SakState) -> str:
+        """Build status summary for forsering cases."""
+        lines = []
+        lines.append("**Status:**")
+
+        fd = state.forsering_data
+
+        # Forseringsstatus
+        if fd.er_stoppet:
+            lines.append("- Forsering: Stoppet")
+            if fd.dato_stoppet:
+                lines.append(f"  - Stoppet: {fd.dato_stoppet}")
+        elif fd.er_iverksatt:
+            lines.append("- Forsering: Iverksatt")
+            if fd.dato_iverksatt:
+                lines.append(f"  - Iverksatt: {fd.dato_iverksatt}")
+        else:
+            lines.append("- Forsering: Varslet")
+            if fd.dato_varslet:
+                lines.append(f"  - Varslet: {fd.dato_varslet}")
+
+        # BH respons
+        if fd.bh_aksepterer_forsering is not None:
+            if fd.bh_aksepterer_forsering:
+                lines.append("- BH respons: Akseptert")
+                if fd.bh_godkjent_kostnad is not None:
+                    lines.append(f"  - Godkjent kostnad: {fd.bh_godkjent_kostnad:,.0f} kr")
+            else:
+                lines.append("- BH respons: Avvist")
+        else:
+            lines.append("- BH respons: Venter")
+
+        # Kostnader
+        if fd.estimert_kostnad is not None:
+            lines.append(f"- Estimert kostnad: {fd.estimert_kostnad:,.0f} kr")
+        if fd.paalopte_kostnader is not None:
+            lines.append(f"- Påløpte kostnader: {fd.paalopte_kostnader:,.0f} kr")
+
+        # 30% grense
+        if fd.maks_forseringskostnad > 0:
+            lines.append(f"- Maks kostnad (30%-regel): {fd.maks_forseringskostnad:,.0f} kr")
 
         return "\n".join(lines)
 
