@@ -89,7 +89,7 @@ export function SendGrunnlagModal({
     defaultValues: {
       hovedkategori: '',
       underkategori: [],
-      varsel_sendes_na: false,
+      varsel_sendes_na: true,  // Forhåndsvalgt: varsel sendes nå
       varsel_metode: [],
       er_etter_tilbud: false,
     },

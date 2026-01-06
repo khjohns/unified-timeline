@@ -68,9 +68,9 @@ TEST_DATA = {
     # FASE 2: TE Initial Claims
     "grunnlag": {
         "hovedkategori": "ENDRING",
-        "underkategori": "IRREG",
+        "underkategori": ["IRREG"],  # Array, ikke string
         "beskrivelse": "Automatisk testcase - grunnlag for endringskrav (irregulær endring)",
-        "kontraktsreferanse": "32.1"
+        "kontraktsreferanser": ["32.1"]  # Array med flertallsnavn
     },
     "vederlag": {
         "metode": "ENHETSPRISER",
@@ -89,9 +89,11 @@ TEST_DATA = {
         "begrunnelse": "Grunnlaget aksepteres"
     },
     "bh_vederlag": {
-        "beregnings_resultat": "delvis_godkjent",
-        "total_godkjent_belop": 100000.0,  # 100k av 150k
         "aksepterer_metode": True,
+        "hovedkrav_vurdering": "delvis",  # Input: godkjent/delvis/avslatt
+        "hovedkrav_godkjent_belop": 100000.0,  # Godkjent beløp ved delvis
+        "beregnings_resultat": "delvis_godkjent",  # Auto-beregnet output
+        "total_godkjent_belop": 100000.0,  # 100k av 150k
         "begrunnelse": "Godkjenner 100.000 kr av krevde 150.000 kr"
     },
     "bh_frist": {
@@ -122,9 +124,9 @@ FORSERING_TEST_DATA = {
             "tittel": "Forsering-test KOE-1",
             "grunnlag": {
                 "hovedkategori": "ENDRING",
-                "underkategori": "EO",
+                "underkategori": ["EO"],  # Array
                 "beskrivelse": "KOE-1 for forseringstest - formell endringsordre",
-                "kontraktsreferanse": "31.3"
+                "kontraktsreferanser": ["31.3"]  # Array med flertallsnavn
             },
             "frist": {
                 "varsel_type": "spesifisert",
@@ -136,9 +138,9 @@ FORSERING_TEST_DATA = {
             "tittel": "Forsering-test KOE-2",
             "grunnlag": {
                 "hovedkategori": "ENDRING",
-                "underkategori": "IRREG",
+                "underkategori": ["IRREG"],  # Array
                 "beskrivelse": "KOE-2 for forseringstest - irregulær endring",
-                "kontraktsreferanse": "32.1"
+                "kontraktsreferanser": ["32.1"]  # Array med flertallsnavn
             },
             "frist": {
                 "varsel_type": "spesifisert",
@@ -179,9 +181,9 @@ EO_TEST_DATA = {
             "tittel": "EO-test KOE-1",
             "grunnlag": {
                 "hovedkategori": "ENDRING",
-                "underkategori": "EO",
+                "underkategori": ["EO"],  # Array
                 "beskrivelse": "KOE-1 for EO-test - formell endringsordre",
-                "kontraktsreferanse": "31.3"
+                "kontraktsreferanser": ["31.3"]  # Array med flertallsnavn
             },
             "vederlag": {
                 "metode": "ENHETSPRISER",
@@ -193,9 +195,9 @@ EO_TEST_DATA = {
             "tittel": "EO-test KOE-2",
             "grunnlag": {
                 "hovedkategori": "ENDRING",
-                "underkategori": "IRREG",
+                "underkategori": ["IRREG"],  # Array
                 "beskrivelse": "KOE-2 for EO-test",
-                "kontraktsreferanse": "32.1"
+                "kontraktsreferanser": ["32.1"]  # Array med flertallsnavn
             },
             "vederlag": {
                 "metode": "ENHETSPRISER",
@@ -1093,6 +1095,11 @@ class KOEFlowTester(BaseTester):
         self.topic_title: Optional[str] = None
         self.magic_token: Optional[str] = None
 
+        # Event IDs for linking events
+        self.grunnlag_event_id: Optional[str] = None
+        self.vederlag_event_id: Optional[str] = None
+        self.frist_event_id: Optional[str] = None
+
         # Tracking for verification
         self.initial_comment_count: int = 0
         self.initial_document_count: int = 0
@@ -1280,8 +1287,12 @@ class KOEFlowTester(BaseTester):
                     "hovedkategori": TEST_DATA['grunnlag']['hovedkategori'],
                     "underkategori": TEST_DATA['grunnlag']['underkategori'],
                     "beskrivelse": TEST_DATA['grunnlag']['beskrivelse'],
-                    "kontraktsreferanse": TEST_DATA['grunnlag']['kontraktsreferanse'],
-                    "dato_oppdaget": datetime.now().strftime('%Y-%m-%d')
+                    "kontraktsreferanser": TEST_DATA['grunnlag']['kontraktsreferanser'],
+                    "dato_oppdaget": datetime.now().strftime('%Y-%m-%d'),
+                    "grunnlag_varsel": {
+                        "dato_sendt": datetime.now().strftime('%Y-%m-%d'),
+                        "metode": ["system"]
+                    }
                 }
             }
         }
@@ -1296,8 +1307,9 @@ class KOEFlowTester(BaseTester):
 
             if response.status_code in [200, 201]:
                 result = response.json()
+                self.grunnlag_event_id = result.get('event_id')  # Lagre for senere bruk
                 print_ok("Grunnlag registrert!")
-                print_info(f"  Event ID: {result.get('event_id')}")
+                print_info(f"  Event ID: {self.grunnlag_event_id}")
                 print_info(f"  Versjon: {result.get('new_version')}")
                 if result.get('pdf_uploaded'):
                     print_ok(f"  PDF lastet opp til Catenda (kilde: {result.get('pdf_source')})")
@@ -1344,6 +1356,7 @@ class KOEFlowTester(BaseTester):
                 "aktor": "Test Script",
                 "aktor_rolle": "TE",
                 "data": {
+                    "grunnlag_event_id": self.grunnlag_event_id,
                     "metode": TEST_DATA['vederlag']['metode'],
                     "belop_direkte": TEST_DATA['vederlag']['belop_direkte'],
                     "begrunnelse": TEST_DATA['vederlag']['begrunnelse']
@@ -1361,7 +1374,9 @@ class KOEFlowTester(BaseTester):
 
             if response.status_code in [200, 201]:
                 result = response.json()
+                self.vederlag_event_id = result.get('event_id')  # Lagre for senere bruk
                 print_ok("Vederlagskrav sendt!")
+                print_info(f"  Event ID: {self.vederlag_event_id}")
                 current_version = result.get('new_version', current_version + 1)
                 if result.get('pdf_uploaded'):
                     print_ok(f"  PDF lastet opp (kilde: {result.get('pdf_source')})")
@@ -1389,6 +1404,7 @@ class KOEFlowTester(BaseTester):
                 "aktor": "Test Script",
                 "aktor_rolle": "TE",
                 "data": {
+                    "grunnlag_event_id": self.grunnlag_event_id,
                     "varsel_type": TEST_DATA['frist']['varsel_type'],
                     "antall_dager": TEST_DATA['frist']['antall_dager'],
                     "begrunnelse": TEST_DATA['frist']['begrunnelse'],
@@ -1409,7 +1425,9 @@ class KOEFlowTester(BaseTester):
 
             if response.status_code in [200, 201]:
                 result = response.json()
+                self.frist_event_id = result.get('event_id')  # Lagre for senere bruk
                 print_ok("Fristkrav sendt!")
+                print_info(f"  Event ID: {self.frist_event_id}")
                 if result.get('pdf_uploaded'):
                     print_ok(f"  PDF lastet opp (kilde: {result.get('pdf_source')})")
 
@@ -1451,7 +1469,10 @@ class KOEFlowTester(BaseTester):
                 "event_type": "respons_grunnlag",
                 "aktor": "Test Script BH",
                 "aktor_rolle": "BH",
-                "data": TEST_DATA['bh_grunnlag']
+                "data": {
+                    "grunnlag_event_id": self.grunnlag_event_id,
+                    **TEST_DATA['bh_grunnlag']
+                }
             }
         }
 
@@ -1487,7 +1508,10 @@ class KOEFlowTester(BaseTester):
                 "event_type": "respons_vederlag",
                 "aktor": "Test Script BH",
                 "aktor_rolle": "BH",
-                "data": TEST_DATA['bh_vederlag']
+                "data": {
+                    "vederlag_krav_id": self.vederlag_event_id,
+                    **TEST_DATA['bh_vederlag']
+                }
             }
         }
 
@@ -1523,7 +1547,10 @@ class KOEFlowTester(BaseTester):
                 "event_type": "respons_frist",
                 "aktor": "Test Script BH",
                 "aktor_rolle": "BH",
-                "data": TEST_DATA['bh_frist']
+                "data": {
+                    "frist_krav_id": self.frist_event_id,
+                    **TEST_DATA['bh_frist']
+                }
             }
         }
 
@@ -1952,7 +1979,11 @@ class ForseringFlowTester(BaseTester):
                 event_data={
                     "tittel": koe_config['tittel'],
                     **koe_config['grunnlag'],
-                    "dato_oppdaget": datetime.now().strftime('%Y-%m-%d')
+                    "dato_oppdaget": datetime.now().strftime('%Y-%m-%d'),
+                    "grunnlag_varsel": {
+                        "dato_sendt": datetime.now().strftime('%Y-%m-%d'),
+                        "metode": ["system"]
+                    }
                 },
                 aktor="Test Script",
                 aktor_rolle="TE",
@@ -1971,6 +2002,7 @@ class ForseringFlowTester(BaseTester):
                 magic_token=magic_token,
                 event_type="frist_krav_sendt",
                 event_data={
+                    "grunnlag_event_id": grunnlag_event_id,
                     **koe_config['frist'],
                     "spesifisert_varsel": {
                         "dato_sendt": datetime.now().strftime('%Y-%m-%d')
@@ -2016,7 +2048,10 @@ class ForseringFlowTester(BaseTester):
                 topic_guid=koe['topic_guid'],
                 magic_token=koe['magic_token'],
                 event_type="respons_frist",
-                event_data=FORSERING_TEST_DATA['bh_frist_avslag'],
+                event_data={
+                    "frist_krav_id": koe['frist_krav_id'],
+                    **FORSERING_TEST_DATA['bh_frist_avslag']
+                },
                 aktor="Test Script BH",
                 aktor_rolle="BH",
                 expected_version=version
@@ -2336,7 +2371,7 @@ class EOFlowTester(BaseTester):
 
             # Send grunnlag
             _, version = self._get_state_and_version(sak_id, magic_token)
-            success, version, _ = self._send_event(
+            success, version, grunnlag_event_id = self._send_event(
                 sak_id=sak_id,
                 topic_guid=topic_guid,
                 magic_token=magic_token,
@@ -2344,7 +2379,11 @@ class EOFlowTester(BaseTester):
                 event_data={
                     "tittel": koe_config['tittel'],
                     **koe_config['grunnlag'],
-                    "dato_oppdaget": datetime.now().strftime('%Y-%m-%d')
+                    "dato_oppdaget": datetime.now().strftime('%Y-%m-%d'),
+                    "grunnlag_varsel": {
+                        "dato_sendt": datetime.now().strftime('%Y-%m-%d'),
+                        "metode": ["system"]
+                    }
                 },
                 aktor="Test Script",
                 aktor_rolle="TE",
@@ -2357,12 +2396,15 @@ class EOFlowTester(BaseTester):
                 return False
 
             # Send vederlagskrav
-            success, version, _ = self._send_event(
+            success, version, vederlag_event_id = self._send_event(
                 sak_id=sak_id,
                 topic_guid=topic_guid,
                 magic_token=magic_token,
                 event_type="vederlag_krav_sendt",
-                event_data=koe_config['vederlag'],
+                event_data={
+                    "grunnlag_event_id": grunnlag_event_id,
+                    **koe_config['vederlag']
+                },
                 aktor="Test Script",
                 aktor_rolle="TE",
                 expected_version=version
@@ -2378,6 +2420,8 @@ class EOFlowTester(BaseTester):
                 "sak_id": sak_id,
                 "topic_guid": topic_guid,
                 "magic_token": magic_token,
+                "grunnlag_event_id": grunnlag_event_id,
+                "vederlag_event_id": vederlag_event_id,
                 "belop": koe_config['vederlag']['belop_direkte'],
                 "version": version
             })
@@ -2406,6 +2450,7 @@ class EOFlowTester(BaseTester):
                 magic_token=magic_token,
                 event_type="respons_grunnlag",
                 event_data={
+                    "grunnlag_event_id": koe['grunnlag_event_id'],
                     "resultat": "godkjent",
                     "begrunnelse": "Grunnlag godkjent for EO-aggregering"
                 },
@@ -2426,6 +2471,9 @@ class EOFlowTester(BaseTester):
                 magic_token=magic_token,
                 event_type="respons_vederlag",
                 event_data={
+                    "vederlag_krav_id": koe['vederlag_event_id'],
+                    "aksepterer_metode": True,
+                    "hovedkrav_vurdering": "godkjent",
                     "beregnings_resultat": "godkjent",
                     "total_godkjent_belop": koe['belop'],
                     "begrunnelse": "Vederlag godkjent for EO-aggregering"
