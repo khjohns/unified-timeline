@@ -157,8 +157,8 @@ class ServiceContext:
     def event_repository(self):
         """Lazy-load Event Sourcing repository."""
         if self._event_repository is None:
-            from repositories.event_repository import JsonFileEventRepository
-            self._event_repository = JsonFileEventRepository()
+            from repositories import create_event_repository
+            self._event_repository = create_event_repository()
         return self._event_repository
 
     @property

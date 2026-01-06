@@ -64,7 +64,7 @@ from models.events import (
     EOKonsekvenser,
     VederlagKompensasjon,
 )
-from repositories.event_repository import JsonFileEventRepository
+from repositories import create_event_repository
 from lib.auth.magic_link import MagicLinkManager
 
 
@@ -609,7 +609,7 @@ def create_test_sak(preset: Preset = Preset.KOMPLETT, sak_id: str = None) -> tup
     Returns:
         tuple: (sak_id, magic_token, metadata)
     """
-    repo = JsonFileEventRepository()
+    repo = create_event_repository()
     metadata = {"preset": preset.value, "relaterte_saker": []}
 
     # Generer sak-ID basert på sakstype
