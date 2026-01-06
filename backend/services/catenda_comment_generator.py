@@ -181,6 +181,10 @@ class CatendaCommentGenerator:
         if state.forsering_data and state.forsering_data.dato_varslet:
             return self._build_forsering_status_summary(state)
 
+        # Check if this is an endringsordre case
+        if state.eo_data and state.eo_data.eo_nummer:
+            return self._build_endringsordre_status_summary(state)
+
         # Overordnet status (for standard KOE)
         overordnet_display = self._format_overordnet_status(state.overordnet_status)
         lines.append(f"- Overordnet: {overordnet_display}")
@@ -253,6 +257,63 @@ class CatendaCommentGenerator:
         # 30% grense
         if fd.maks_forseringskostnad > 0:
             lines.append(f"- Maks kostnad (30%-regel): {fd.maks_forseringskostnad:,.0f} kr")
+
+        return "\n".join(lines)
+
+    def _build_endringsordre_status_summary(self, state: SakState) -> str:
+        """Build status summary for endringsordre cases."""
+        lines = []
+        lines.append("**Status:**")
+
+        eo = state.eo_data
+
+        # EO identifikasjon
+        lines.append(f"- Endringsordre: {eo.eo_nummer}")
+        if eo.revisjon_nummer > 0:
+            lines.append(f"  - Revisjon: {eo.revisjon_nummer}")
+
+        # EO status
+        status_map = {
+            'utkast': 'Utkast',
+            'utstedt': 'Utstedt',
+            'akseptert': 'Akseptert',
+            'bestridt': 'Bestridt',
+            'revidert': 'Revidert',
+        }
+        status_display = status_map.get(eo.status.value if hasattr(eo.status, 'value') else eo.status, eo.status)
+        lines.append(f"- Status: {status_display}")
+
+        if eo.dato_utstedt:
+            lines.append(f"  - Utstedt: {eo.dato_utstedt}")
+
+        # TE respons
+        if eo.te_akseptert is not None:
+            if eo.te_akseptert:
+                lines.append("- TE respons: Akseptert")
+            else:
+                lines.append("- TE respons: Bestridt")
+            if eo.dato_te_respons:
+                lines.append(f"  - Dato: {eo.dato_te_respons}")
+
+        # Beløp
+        if eo.kompensasjon_belop is not None:
+            belop_str = f"{eo.kompensasjon_belop:,.0f} kr"
+            if eo.er_estimat:
+                belop_str += " (estimat)"
+            lines.append(f"- Kompensasjon: {belop_str}")
+
+        if eo.fradrag_belop is not None and eo.fradrag_belop > 0:
+            lines.append(f"- Fradrag: {eo.fradrag_belop:,.0f} kr")
+
+        # Fristkonsekvens
+        if eo.frist_dager is not None:
+            lines.append(f"- Fristforlengelse: {eo.frist_dager} dager")
+            if eo.ny_sluttdato:
+                lines.append(f"  - Ny sluttdato: {eo.ny_sluttdato}")
+
+        # Antall relaterte KOE-er
+        if eo.relaterte_koe_saker:
+            lines.append(f"- Relaterte KOE-er: {len(eo.relaterte_koe_saker)}")
 
         return "\n".join(lines)
 
