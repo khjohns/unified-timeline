@@ -33,6 +33,11 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Load .env file to get correct EVENT_STORE_BACKEND
+from dotenv import load_dotenv
+backend_dir = Path(__file__).parent.parent
+load_dotenv(backend_dir / ".env")
+
 from models.events import (
     EventType,
     SporType,
@@ -64,7 +69,8 @@ from models.events import (
     EOKonsekvenser,
     VederlagKompensasjon,
 )
-from repositories import create_event_repository
+from repositories import create_event_repository, EventRepository, create_metadata_repository
+from models.sak_metadata import SakMetadata
 from lib.auth.magic_link import MagicLinkManager
 
 
@@ -423,7 +429,7 @@ godkjente krav i de relaterte sakene.""",
     )
 
 
-def create_standard_sak(preset: Preset, sak_id: str, repo: JsonFileEventRepository) -> tuple[str, list]:
+def create_standard_sak(preset: Preset, sak_id: str, repo: EventRepository) -> tuple[str, list]:
     """Oppretter en standard KOE-sak basert på preset."""
     now = datetime.now()
     oppdaget_dato = (now - timedelta(days=7)).strftime("%Y-%m-%d")
@@ -506,7 +512,7 @@ def create_standard_sak(preset: Preset, sak_id: str, repo: JsonFileEventReposito
     return sak_id, events
 
 
-def create_forsering_sak(sak_id: str, repo: JsonFileEventRepository) -> tuple[str, list, str]:
+def create_forsering_sak(sak_id: str, repo: EventRepository) -> tuple[str, list, str]:
     """
     Oppretter en forseringssak med tilhørende avslått fristkrav-sak.
 
@@ -518,6 +524,10 @@ def create_forsering_sak(sak_id: str, repo: JsonFileEventRepository) -> tuple[st
     # Først oppretter vi en sak med avslått frist som forseringen refererer til
     relatert_sak_id = generate_sak_id("KOE")
     print(f"\n  Oppretter relatert KOE-sak: {relatert_sak_id}")
+
+    # Opprett metadata for relatert sak først
+    ensure_sak_metadata(relatert_sak_id, "standard", f"KOE med avslått frist - {relatert_sak_id}")
+
     _, relatert_events = create_standard_sak(Preset.AVSLATT_FRIST, relatert_sak_id, repo)
 
     # Finn event-IDer fra den relaterte saken
@@ -555,7 +565,7 @@ def create_forsering_sak(sak_id: str, repo: JsonFileEventRepository) -> tuple[st
     return sak_id, events, relatert_sak_id
 
 
-def create_endringsordre_sak(sak_id: str, repo: JsonFileEventRepository) -> tuple[str, list, list[str]]:
+def create_endringsordre_sak(sak_id: str, repo: EventRepository) -> tuple[str, list, list[str]]:
     """
     Oppretter en endringsordre-sak med tilhørende omforente KOE-saker.
 
@@ -570,6 +580,10 @@ def create_endringsordre_sak(sak_id: str, repo: JsonFileEventRepository) -> tupl
     for i in range(2):
         koe_sak_id = generate_sak_id(f"KOE-{i+1}")
         print(f"\n  Oppretter KOE-sak {i+1}: {koe_sak_id}")
+
+        # Opprett metadata for KOE-sak først
+        ensure_sak_metadata(koe_sak_id, "standard", f"Omforent KOE-sak {i+1}")
+
         _, koe_events = create_standard_sak(Preset.OMFORENT, koe_sak_id, repo)
         repo.append_batch(koe_events, expected_version=0)
         relaterte_koe_ids.append(koe_sak_id)
@@ -598,6 +612,26 @@ def create_endringsordre_sak(sak_id: str, repo: JsonFileEventRepository) -> tupl
     return sak_id, events, relaterte_koe_ids
 
 
+def ensure_sak_metadata(sak_id: str, sakstype: str, tittel: str = None):
+    """Opprett metadata-oppføring for saken (kreves av Supabase foreign key)."""
+    metadata_repo = create_metadata_repository()
+    now = datetime.now()
+
+    sak_metadata = SakMetadata(
+        sak_id=sak_id,
+        created_at=now,
+        created_by="Test Bruker (TE)",
+        sakstype=sakstype,
+        cached_title=tittel or f"Test-sak {sak_id}",
+        cached_status="opprettet",
+        last_event_at=now,
+    )
+
+    # Bruk upsert for å unngå duplikat-feil
+    metadata_repo.upsert(sak_metadata)
+    print(f"  + metadata opprettet for {sak_id}")
+
+
 def create_test_sak(preset: Preset = Preset.KOMPLETT, sak_id: str = None) -> tuple[str, str, dict]:
     """
     Oppretter en test-sak basert på valgt preset.
@@ -620,6 +654,17 @@ def create_test_sak(preset: Preset = Preset.KOMPLETT, sak_id: str = None) -> tup
             sak_id = generate_sak_id("EO")
         else:
             sak_id = generate_sak_id("TEST")
+
+    # Bestem sakstype
+    if preset == Preset.FORSERING:
+        sakstype = "forsering"
+    elif preset == Preset.ENDRINGSORDRE:
+        sakstype = "endringsordre"
+    else:
+        sakstype = "standard"
+
+    # Opprett metadata først (kreves av Supabase foreign key)
+    ensure_sak_metadata(sak_id, sakstype)
 
     # Opprett sak basert på preset
     if preset == Preset.FORSERING:

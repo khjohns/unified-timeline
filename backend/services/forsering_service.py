@@ -307,44 +307,59 @@ class ForseringService(BaseSakService):
         Returns:
             Liste med forseringssaker som refererer til KOE-saken
         """
-        if not self.client:
-            logger.warning("Ingen Catenda client - kan ikke finne forseringer")
+        forseringer = []
+
+        # Hent liste over sak-IDer å søke gjennom
+        sak_ids_to_search = []
+
+        # Prøv Catenda først hvis tilgjengelig
+        if self.client:
+            try:
+                topics = self.client.list_topics()
+                sak_ids_to_search = [t.get('guid') for t in topics if t.get('guid')]
+            except Exception as e:
+                logger.warning(f"Kunne ikke hente topics fra Catenda: {e}")
+
+        # Fallback til event repository hvis ingen saker fra Catenda
+        if not sak_ids_to_search and self.event_repository:
+            try:
+                # Prøv list_all_sak_ids (JsonFileEventRepository)
+                if hasattr(self.event_repository, 'list_all_sak_ids'):
+                    sak_ids_to_search = self.event_repository.list_all_sak_ids()
+                # Eller get_all_sak_ids (SupabaseEventRepository)
+                elif hasattr(self.event_repository, 'get_all_sak_ids'):
+                    sak_ids_to_search = self.event_repository.get_all_sak_ids()
+                logger.info(f"Bruker event repository fallback, fant {len(sak_ids_to_search)} saker")
+            except Exception as e:
+                logger.warning(f"Kunne ikke liste saker fra event repository: {e}")
+
+        if not sak_ids_to_search:
+            logger.warning("Ingen saker å søke gjennom for forseringer")
             return []
 
-        try:
-            topics = self.client.list_topics()
-            forseringer = []
+        # Søk gjennom sakene
+        for candidate_sak_id in sak_ids_to_search:
+            if self.event_repository and self.timeline_service:
+                try:
+                    events_data, _version = self.event_repository.get_events(candidate_sak_id)
+                    if events_data:
+                        events = [parse_event(e) for e in events_data]
+                        state = self.timeline_service.compute_state(events)
 
-            for topic in topics:
-                topic_id = topic.get('guid')
-                if not topic_id:
-                    continue
+                        if state.sakstype == 'forsering' and state.forsering_data:
+                            relaterte = state.forsering_data.avslatte_fristkrav or []
+                            if sak_id in relaterte:
+                                forseringer.append({
+                                    "forsering_sak_id": candidate_sak_id,
+                                    "tittel": state.sakstittel,
+                                    "er_iverksatt": state.forsering_data.er_iverksatt,
+                                    "estimert_kostnad": state.forsering_data.estimert_kostnad,
+                                })
+                except Exception as e:
+                    logger.debug(f"Kunne ikke evaluere sak {candidate_sak_id}: {e}")
 
-                if self.event_repository and self.timeline_service:
-                    try:
-                        events_data, _version = self.event_repository.get_events(topic_id)
-                        if events_data:
-                            events = [parse_event(e) for e in events_data]
-                            state = self.timeline_service.compute_state(events)
-
-                            if state.sakstype == 'forsering' and state.forsering_data:
-                                relaterte = state.forsering_data.avslatte_fristkrav or []
-                                if sak_id in relaterte:
-                                    forseringer.append({
-                                        "forsering_sak_id": topic_id,
-                                        "tittel": state.sakstittel,
-                                        "er_iverksatt": state.forsering_data.er_iverksatt,
-                                        "estimert_kostnad": state.forsering_data.estimert_kostnad,
-                                    })
-                    except Exception as e:
-                        logger.debug(f"Kunne ikke evaluere topic {topic_id}: {e}")
-
-            logger.info(f"Fant {len(forseringer)} forseringer som refererer til {sak_id}")
-            return forseringer
-
-        except Exception as e:
-            logger.error(f"Feil ved søk etter forseringer for {sak_id}: {e}")
-            return []
+        logger.info(f"Fant {len(forseringer)} forseringer som refererer til {sak_id}")
+        return forseringer
 
     def hent_kandidat_koe_saker(self) -> List[Dict[str, Any]]:
         """

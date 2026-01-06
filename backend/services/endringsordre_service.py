@@ -402,48 +402,58 @@ class EndringsordreService(BaseSakService):
         Returns:
             Liste med EO-er som refererer til KOE-saken
         """
-        if not self.client:
-            logger.warning("Ingen Catenda client - kan ikke finne EOer")
+        eoer = []
+
+        # Hent liste over sak-IDer å søke gjennom
+        sak_ids_to_search = []
+
+        # Prøv Catenda først hvis tilgjengelig
+        if self.client:
+            try:
+                topics = self.client.list_topics()
+                sak_ids_to_search = [t.get('guid') for t in topics if t.get('guid')]
+            except Exception as e:
+                logger.warning(f"Kunne ikke hente topics fra Catenda: {e}")
+
+        # Fallback til event repository hvis ingen saker fra Catenda
+        if not sak_ids_to_search and self.event_repository:
+            try:
+                # Prøv list_all_sak_ids (JsonFileEventRepository)
+                if hasattr(self.event_repository, 'list_all_sak_ids'):
+                    sak_ids_to_search = self.event_repository.list_all_sak_ids()
+                # Eller get_all_sak_ids (SupabaseEventRepository)
+                elif hasattr(self.event_repository, 'get_all_sak_ids'):
+                    sak_ids_to_search = self.event_repository.get_all_sak_ids()
+                logger.info(f"Bruker event repository fallback, fant {len(sak_ids_to_search)} saker")
+            except Exception as e:
+                logger.warning(f"Kunne ikke liste saker fra event repository: {e}")
+
+        if not sak_ids_to_search:
+            logger.warning("Ingen saker å søke gjennom for EOer")
             return []
 
-        try:
-            # Hent topics som har relasjon til denne saken
-            # Vi må søke gjennom alle EO-topics og sjekke deres relasjoner
-            # NB: Dette kan bli ineffektivt - bør optimaliseres med indeks
+        # Søk gjennom sakene
+        for candidate_sak_id in sak_ids_to_search:
+            if self.event_repository and self.timeline_service:
+                try:
+                    events, _version = self.event_repository.get_events(candidate_sak_id)
+                    if events:
+                        state = self.timeline_service.compute_state(events)
 
-            topics = self.client.list_topics()
-            eoer = []
+                        # Sjekk om det er en endringsordresak
+                        if state.sakstype == 'endringsordre' and state.endringsordre_data:
+                            # Sjekk om denne EO refererer til vår KOE
+                            relaterte = state.endringsordre_data.relaterte_koe_saker or []
+                            if koe_sak_id in relaterte:
+                                eoer.append({
+                                    "eo_sak_id": candidate_sak_id,
+                                    "eo_nummer": state.endringsordre_data.eo_nummer,
+                                    "dato_utstedt": state.endringsordre_data.dato_utstedt,
+                                    "status": state.endringsordre_data.status,
+                                })
+                except Exception as e:
+                    logger.debug(f"Kunne ikke evaluere sak {candidate_sak_id}: {e}")
 
-            for topic in topics:
-                topic_id = topic.get('guid')
-                if not topic_id:
-                    continue
-
-                # Sjekk om dette er en EO-sak
-                if self.event_repository and self.timeline_service:
-                    try:
-                        events, _version = self.event_repository.get_events(topic_id)
-                        if events:
-                            state = self.timeline_service.compute_state(events)
-
-                            # Sjekk om det er en endringsordresak
-                            if state.sakstype == 'endringsordre' and state.endringsordre_data:
-                                # Sjekk om denne EO refererer til vår KOE
-                                relaterte = state.endringsordre_data.relaterte_koe_saker or []
-                                if koe_sak_id in relaterte:
-                                    eoer.append({
-                                        "eo_sak_id": topic_id,
-                                        "eo_nummer": state.endringsordre_data.eo_nummer,
-                                        "dato_utstedt": state.endringsordre_data.dato_utstedt,
-                                        "status": state.endringsordre_data.status,
-                                    })
-                    except Exception as e:
-                        logger.debug(f"Kunne ikke evaluere topic {topic_id}: {e}")
-
-            logger.info(f"Fant {len(eoer)} EOer som refererer til KOE {koe_sak_id}")
-            return eoer
-
-        except Exception as e:
-            logger.error(f"Feil ved søk etter EOer for KOE {koe_sak_id}: {e}")
-            return []
+        logger.info(f"Fant {len(eoer)} EOer som refererer til KOE {koe_sak_id}")
+        return eoer
 
