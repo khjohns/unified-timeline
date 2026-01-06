@@ -17,6 +17,7 @@ from models.sak_state import (
     EOStatus,
     EOKonsekvenser,
     SakState,
+    SporStatus,
 )
 from models.events import AnyEvent, parse_event
 from services.base_sak_service import BaseSakService
@@ -300,10 +301,19 @@ class EndringsordreService(BaseSakService):
             if state.frist:
                 if state.frist.krevd_dager:
                     total_krevd_dager += state.frist.krevd_dager
-                if state.frist.godkjent_dager:
-                    total_godkjent_dager += state.frist.godkjent_dager
                 koe_info["krevd_dager"] = state.frist.krevd_dager
-                koe_info["godkjent_dager"] = state.frist.godkjent_dager
+
+                # Bruk godkjent_dager hvis satt, ellers fallback til krevd_dager
+                # når status er godkjent/låst (BH har godkjent hele kravet)
+                godkjent = state.frist.godkjent_dager
+                if godkjent is None and state.frist.status in (
+                    SporStatus.GODKJENT, SporStatus.LAAST
+                ):
+                    godkjent = state.frist.krevd_dager
+
+                if godkjent:
+                    total_godkjent_dager += godkjent
+                koe_info["godkjent_dager"] = godkjent
 
             koe_oversikt.append(koe_info)
 
