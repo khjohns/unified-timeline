@@ -8,355 +8,444 @@ Byggherrens prosjektleder svarer på entreprenørens krav, men må få godkjenni
 
 ---
 
-## Del 1: Brukerautentisering med Entra ID
+## Designprinsipp: Dokumentet i hånden
 
-### 1.1 Funksjoner
-
-| Funksjon | Beskrivelse |
-|----------|-------------|
-| **Single Sign-On (SSO)** | Brukere logger inn med eksisterende Microsoft-konto |
-| **Rolle-mapping** | Azure AD-grupper mappes til systemroller (PL, SL, AL, DU, AD) |
-| **Hierarki-oppslag** | Hente brukerens leder fra Microsoft Graph API |
-| **Token-validering** | Validere JWT-tokens fra Entra ID |
-| **Sesjonshåndtering** | Opprettholde brukerøkt med refresh tokens |
-
-### 1.2 Hensyn
-
-- **Tenant-konfigurasjon**: Må konfigureres i kundens Azure AD
-- **Samtykke (consent)**: Admin-samtykke kreves for Graph API-tilgang
-- **Fallback**: Beholde magic link som alternativ for eksterne brukere (TE)
-- **MFA**: Støtte for multifaktor-autentisering via Entra ID
-- **Personvern**: Kun hente nødvendige brukerdata (navn, e-post, rolle)
-
-### 1.3 Azure AD-grupper (forslag)
+Løsningen skal være **så enkel som mulig** - som om godkjenneren får et fysisk dokument:
 
 ```
-KOE-Prosjektledere        → GodkjenningsNivaa.PROSJEKTLEDER
-KOE-Seksjonsledere        → GodkjenningsNivaa.SEKSJONSLEDER
-KOE-Avdelingsledere       → GodkjenningsNivaa.AVDELINGSLEDER
-KOE-DirektorUtbygging     → GodkjenningsNivaa.DIREKTOR_UTBYGGING
-KOE-AdminDirector         → GodkjenningsNivaa.ADMINISTRERENDE_DIREKTOR
+┌─────────────────────────────────────────────────────────────────┐
+│  GODKJENNINGSDOKUMENT                                           │
+│  Sak: KOE-20260106-001 – Forsinket tegningsunderlag             │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  KRAV FRA ENTREPRENØR                                           │
+│  Krevd beløp: 2.450.000 NOK                                     │
+│  Krevd fristforlengelse: 14 dager                               │
+│                                                                 │
+│  PROSJEKTLEDERS VURDERING                                       │
+│  Anbefalt godkjenning: 1.800.000 NOK + 10 dager                 │
+│  Begrunnelse: [Prosjektleders tekst]                            │
+│                                                                 │
+├─────────────────────────────────────────────────────────────────┤
+│  GODKJENNINGER                                                  │
+│                                                                 │
+│  ✓ Prosjektleder     Ola Nordmann      2026-01-06 09:15         │
+│  ✓ Seksjonsleder     Kari Hansen       2026-01-06 11:30         │
+│  ◯ Avdelingsleder    [Venter]                                   │
+│  ◯ Direktør utb.     [Venter]                                   │
+│  ◯ Adm. direktør     [Venter]                                   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
----
-
-## Del 2: Godkjenningskjede-logikk
-
-### 2.1 Funksjoner
-
-| Funksjon | Beskrivelse |
-|----------|-------------|
-| **Automatisk kjede-beregning** | Bestem påkrevd kjede basert på beløp, type eller risiko |
-| **Sekvensiell flyt** | Kun én godkjenner aktiv om gangen |
-| **Stopp ved avvisning** | Hele kjeden stopper hvis noen avviser |
-| **Retur til initiator** | Ved avvisning returneres saken til prosjektleder |
-| **Re-innsending** | Prosjektleder kan revidere og starte ny kjede |
-| **Parallell godkjenning** | Valgfritt: flere på samme nivå (f.eks. to avdelingsledere) |
-
-### 2.2 Beløpsgrenser (eksempel)
-
-| Beløp (NOK) | Påkrevd godkjenningskjede |
-|-------------|---------------------------|
-| 0 – 500.000 | Prosjektleder |
-| 500.001 – 2.000.000 | Prosjektleder → Seksjonsleder |
-| 2.000.001 – 5.000.000 | Prosjektleder → Seksjonsleder → Avdelingsleder |
-| 5.000.001 – 10.000.000 | PL → SL → AL → Direktør utbygging |
-| > 10.000.000 | PL → SL → AL → DU → Administrerende direktør |
-
-### 2.3 Andre triggere for utvidet kjede
-
-- **Preklusjonssaker**: Alltid til avdelingsleder+
-- **Prinsipiell betydning**: Manuell eskalering til direktør
-- **Forsering**: Alltid til direktør utbygging+
-- **Første gang (presedens)**: Ny type krav → høyere nivå
-
-### 2.4 Hensyn
-
-- **Konfigurerbarhet**: Beløpsgrenser må kunne justeres per prosjekt
-- **Unntak**: Enkelte sakstyper kan ha egne regler
-- **Habilitet**: Sjekk at godkjenner ikke er inhabil (f.eks. selv initiator)
-- **Versjonering**: Kjede-regler må versjoneres for etterprøvbarhet
+Godkjenner ser:
+- **Hvem som har godkjent under** (med navn og tidspunkt)
+- **Hvem som skal godkjenne over** (neste steg)
+- **Dokumentet** med all relevant informasjon
+- **To valg**: Godkjenn eller Avvis (med begrunnelse)
 
 ---
 
-## Del 3: Dokumenthåndtering
+## Del 1: Autentisering med Entra ID
 
-### 3.1 Funksjoner
+### Funksjoner
 
 | Funksjon | Beskrivelse |
 |----------|-------------|
-| **Automatisk dokumentgenerering** | Generer PDF med kravdetaljer og foreslått svar |
-| **Dokumentlåsing** | Dokumentet låses når kjeden starter |
-| **Hash-validering** | SHA-256 hash sikrer at dokumentet ikke endres |
-| **Vedlegg** | Støtte for vedlegg fra original krav |
-| **Revisjonshistorikk** | Ved re-innsending: nytt dokument med endringsmarkering |
+| **Single Sign-On** | Brukere logger inn med Microsoft-konto |
+| **Rolle fra grupper** | Azure AD-grupper bestemmer godkjenningsnivå |
+| **Hierarki fra Graph** | Hente leder-kjede automatisk via Microsoft Graph |
 
-### 3.2 Dokumentinnhold
+### Entra ID gir oss automatisk
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│  GODKJENNINGSDOKUMENT                                   │
-│  Sak: KOE-20260106-001                                  │
-├─────────────────────────────────────────────────────────┤
-│  SAMMENDRAG                                             │
-│  • Kravtype: Vederlagskrav                              │
-│  • Entreprenør: [Navn]                                  │
-│  • Krevd beløp: 2.450.000 NOK                           │
-│  • Foreslått godkjenning: 1.800.000 NOK                 │
-│                                                         │
-│  VURDERING                                              │
-│  • Grunnlag: [Prosjektleders vurdering]                 │
-│  • Dokumentasjon: [Vedlagt/mangler]                     │
-│  • Risiko: [Lav/Middels/Høy]                            │
-│                                                         │
-│  PÅKREVD GODKJENNING                                    │
-│  ☐ Prosjektleder                                        │
-│  ☐ Seksjonsleder                                        │
-│  ☐ Avdelingsleder                                       │
-│                                                         │
-│  VEDLEGG                                                │
-│  • Entreprenørens krav (PDF)                            │
-│  • Fremdriftsplan                                       │
-│  • Kostnadsberegning                                    │
-└─────────────────────────────────────────────────────────┘
+Microsoft Graph API: GET /users/{id}/manager
+
+Bruker: ole.nordmann@byggherre.no
+  └─ Manager: kari.hansen@byggherre.no (Seksjonsleder)
+       └─ Manager: per.olsen@byggherre.no (Avdelingsleder)
+            └─ Manager: anna.berg@byggherre.no (Direktør utbygging)
+                 └─ Manager: erik.gran@byggherre.no (Adm. direktør)
 ```
 
-### 3.3 Hensyn
+### Hensyn
 
-- **Arkivering**: Dokumenter må arkiveres iht. arkivloven
-- **Tilgjengelighet**: PDF/A-format for langtidslagring
-- **Størrelse**: Begrense vedleggsstørrelse (f.eks. maks 50 MB totalt)
-- **Konfidensialitet**: Dokumenter må ikke lekke utenfor organisasjonen
+- **Tenant-oppsett**: Kunden må konfigurere App Registration i Azure
+- **Graph-tilgang**: Krever `User.Read` og `User.Read.All` (for hierarki)
+- **Fallback**: Magic link beholdes for eksterne (entreprenører)
 
 ---
 
-## Del 4: Varsling og påminnelser
+## Del 2: Prosjektleder starter godkjenning
 
-### 4.1 Funksjoner
+### Funksjoner
 
 | Funksjon | Beskrivelse |
 |----------|-------------|
-| **E-postvarsling** | Varsel når sak venter på godkjenning |
-| **Teams-integrasjon** | Valgfritt: varsel i Microsoft Teams |
-| **Påminnelser** | Automatisk påminnelse etter X dager |
-| **Eskalering** | Varsle overordnet hvis frist nærmer seg |
-| **Mobilvarsel** | Push-notifikasjoner til app |
-| **Daglig oppsummering** | Samleoversikt over ventende saker |
+| **Anbefalt kjede** | System foreslår kjede basert på beløp |
+| **Justere kjede** | PL kan legge til/fjerne nivåer |
+| **Velge personer** | PL kan velge spesifikk person på hvert nivå |
+| **Starte kjede** | PL sender til første godkjenner (ofte seg selv) |
 
-### 4.2 Varslingsflyt
+### Brukerflyt for prosjektleder
 
 ```
-Dag 0:  Sak sendt til godkjenning → E-post + Teams-melding
-Dag 3:  Ingen respons → Påminnelse
-Dag 5:  Ingen respons → Påminnelse + kopi til overordnet
-Dag 7:  Frist utløper → Eskalering til neste nivå
+┌─────────────────────────────────────────────────────────────────┐
+│  START GODKJENNING                                              │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Beløp: 2.450.000 NOK                                           │
+│                                                                 │
+│  ANBEFALT GODKJENNINGSKJEDE:                                    │
+│                                                                 │
+│  ☑ Prosjektleder      [Meg selv            ▼]                   │
+│  ☑ Seksjonsleder      [Kari Hansen         ▼]  ← min leder      │
+│  ☑ Avdelingsleder     [Per Olsen           ▼]                   │
+│  ☐ Direktør utb.      [Anna Berg           ▼]  ← ikke påkrevd   │
+│  ☐ Adm. direktør      [Erik Gran           ▼]  ← ikke påkrevd   │
+│                                                                 │
+│  [+ Legg til nivå]                                              │
+│                                                                 │
+│  ─────────────────────────────────────────────────────────────  │
+│  ⚠ Beløp over 2 MNOK krever minimum avdelingsleder              │
+│  ─────────────────────────────────────────────────────────────  │
+│                                                                 │
+│              [Avbryt]              [Start godkjenning]          │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-### 4.3 Hensyn
+### Regler for kjede-justering
 
-- **Varslingstretthet**: Ikke for mange varsler
-- **Arbeidstid**: Varsler kun i arbeidstiden (08-16)
-- **Ferie/fravær**: Respektere Outlook-kalender for fravær
-- **Språk**: Varsler på norsk
-- **Avmelding**: Mulighet for å endre varslingsfrekvens
+| Regel | Beskrivelse |
+|-------|-------------|
+| **Minimumskrav** | PL kan ikke fjerne nivåer under beløpsgrensen |
+| **Legge til** | PL kan alltid legge til flere nivåer |
+| **Velge person** | Dropdown viser alle med riktig rolle |
+| **Standard** | Systemet foreslår basert på leder-hierarki |
 
----
+### Beløpsgrenser (konfigurerbare)
 
-## Del 5: Stedfortreder og delegering
-
-### 5.1 Funksjoner
-
-| Funksjon | Beskrivelse |
-|----------|-------------|
-| **Stedfortreder-registrering** | Angi hvem som kan godkjenne på dine vegne |
-| **Automatisk delegering** | Ved fravær (fra Outlook) → automatisk til stedfortreder |
-| **Tidsbegrenset delegering** | Delegering med start- og sluttdato |
-| **Delegerings-audit** | Logg over hvem som godkjente på vegne av hvem |
-| **Godkjenning fra overordnet** | Overordnet kan alltid godkjenne "nedover" |
-
-### 5.2 Hensyn
-
-- **Kjede av stedfortredere**: Maks 2 ledd (unngå kompleksitet)
-- **Samme nivå**: Stedfortreder må ha samme eller høyere rolle
-- **Varsling**: Original godkjenner varsles når stedfortreder handler
-- **Tilbakekalling**: Kunne trekke tilbake delegering umiddelbart
+| Beløp | Minimum påkrevd |
+|-------|-----------------|
+| < 500.000 | Prosjektleder |
+| 500.000 – 2.000.000 | + Seksjonsleder |
+| 2.000.000 – 5.000.000 | + Avdelingsleder |
+| 5.000.000 – 10.000.000 | + Direktør utbygging |
+| > 10.000.000 | + Administrerende direktør |
 
 ---
 
-## Del 6: Brukergrensesnitt
+## Del 3: Automatisk stedfortreder
 
-### 6.1 Visninger
+### Prinsipp
 
-| Visning | Beskrivelse |
-|---------|-------------|
-| **Mine godkjenninger** | Liste over saker som venter på min godkjenning |
-| **Godkjenningshistorikk** | Oversikt over saker jeg har behandlet |
-| **Kjede-status** | Visuell fremstilling av hvor i kjeden saken er |
-| **Sak-detaljer** | Full visning av krav, dokumenter og vurdering |
-| **Dashboard** | Aggregert oversikt (antall ventende, gjennomsnittlig tid, etc.) |
+Stedfortreder håndteres **automatisk** uten manuell konfigurasjon:
 
-### 6.2 Handlinger
+```
+1. Godkjenner er fraværende (Outlook-kalender)
+   → System finner stedfortreder automatisk
 
-| Handling | Beskrivelse |
-|----------|-------------|
-| **Godkjenn** | Godkjenn og send til neste i kjeden |
-| **Godkjenn med kommentar** | Godkjenn med merknad |
-| **Avvis** | Avvis med begrunnelse (returnerer til PL) |
-| **Be om mer info** | Sett på hold, be PL om tilleggsinformasjon |
-| **Eskaler** | Manuelt sende til høyere nivå |
-| **Deleger** | Sende til stedfortreder |
+2. Godkjenner svarer ikke innen X dager
+   → Påminnelse sendes
+   → Etter Y dager: eskaler til overordnet
 
-### 6.3 Hensyn
+3. Godkjenner har sluttet (ikke i AD)
+   → System velger annen på samme nivå
+```
 
-- **Mobilvennlig**: Må fungere på telefon (godkjenning på farten)
-- **Tastaturnavigasjon**: Effektiv behandling med hurtigtaster
-- **Tilgjengelighet**: WCAG 2.1 AA
-- **Offline**: Vise saker offline, synkronisere når online
+### Kilder for stedfortreder (prioritert rekkefølge)
 
----
+| Kilde | Beskrivelse |
+|-------|-------------|
+| **1. Outlook-delegat** | Hvis bruker har satt delegat i Outlook |
+| **2. Leder** | Overordnet kan alltid godkjenne "nedover" |
+| **3. Samme rolle** | Annen person med samme AD-gruppe |
 
-## Del 7: Rapportering og analyse
+### Fraværsdeteksjon
 
-### 7.1 Funksjoner
+```
+Microsoft Graph API: GET /users/{id}/mailboxSettings
 
-| Funksjon | Beskrivelse |
-|----------|-------------|
-| **Behandlingstid** | Gjennomsnittlig tid per nivå og totalt |
-| **Flaskehalser** | Identifisere hvor saker stopper opp |
-| **Godkjenningsrate** | Andel godkjent vs. avvist |
-| **Beløpsstatistikk** | Totalt godkjent beløp per periode |
-| **Brukerstatistikk** | Antall saker behandlet per person |
-| **Trend-analyse** | Utvikling over tid |
+{
+  "automaticRepliesSetting": {
+    "status": "scheduled",
+    "scheduledStartDateTime": "2026-01-10T00:00:00Z",
+    "scheduledEndDateTime": "2026-01-20T00:00:00Z"
+  }
+}
+```
 
-### 7.2 Hensyn
+Hvis godkjenner har aktivert "automatisk svar" i Outlook:
+- Varsle stedfortreder i stedet
+- Logg at stedfortreder ble brukt
+- Original godkjenner informeres når tilbake
 
-- **Personvern**: Aggregerte data, ikke individovervåking
-- **Eksport**: Mulighet for eksport til Excel/Power BI
-- **Tilgangsstyring**: Kun ledere ser rapporter for sin enhet
+### Hensyn
 
----
-
-## Del 8: Integrasjoner
-
-### 8.1 Eksisterende integrasjoner (beholdes)
-
-| System | Integrasjon |
-|--------|-------------|
-| **Catenda** | Synkronisering av krav og kommentarer |
-| **PDF-generering** | Dokumentgenerering |
-| **Magic Link** | Autentisering for eksterne (TE) |
-
-### 8.2 Nye integrasjoner
-
-| System | Integrasjon |
-|--------|-------------|
-| **Microsoft Entra ID** | SSO, roller, hierarki |
-| **Microsoft Graph** | Kalender (fravær), e-post, Teams |
-| **SharePoint/OneDrive** | Dokumentlagring og arkivering |
-| **Power Automate** | Valgfritt: egendefinerte workflows |
-| **ERP-system** | Valgfritt: automatisk bokføring av godkjente beløp |
-
-### 8.3 Hensyn
-
-- **API-grenser**: Microsoft Graph har rate limits
-- **Feilhåndtering**: Graceful degradation hvis integrasjon er nede
-- **Synkronisering**: Håndtere konflikter mellom systemer
+- **Ingen manuell konfigurasjon**: Alt hentes fra Entra ID/Graph
+- **Transparent**: Alle ser hvem som godkjente på vegne av hvem
+- **Audit trail**: Logges med "Godkjent av X på vegne av Y"
 
 ---
 
-## Del 9: Sikkerhet og compliance
+## Del 4: Godkjennerens visning
 
-### 9.1 Funksjoner
+### Enkel visning
 
-| Funksjon | Beskrivelse |
-|----------|-------------|
-| **Audit log** | Komplett logg over alle handlinger |
-| **Uavviselighet** | Kan ikke benekte at man har godkjent |
-| **Tidsstempel** | Kryptografisk sikre tidsstempler |
-| **Tilgangskontroll** | Kun se saker man har tilgang til |
-| **Dataminimering** | Kun lagre nødvendige data |
+Godkjenner får e-post med lenke. Klikker og ser:
 
-### 9.2 Hensyn
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  VENTER PÅ DIN GODKJENNING                                      │
+│  Sak: KOE-20260106-001                                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  📄 [Last ned dokument (PDF)]                                   │
+│                                                                 │
+│  ─────────────────────────────────────────────────────────────  │
+│                                                                 │
+│  TIDLIGERE GODKJENNINGER:                                       │
+│  ✓ Prosjektleder    Ola Nordmann     06.01.2026 kl 09:15        │
+│  ✓ Seksjonsleder    Kari Hansen      06.01.2026 kl 11:30        │
+│                                                                 │
+│  ➤ DIN GODKJENNING (Avdelingsleder)                             │
+│                                                                 │
+│  GJENSTÅENDE:                                                   │
+│  ◯ Direktør utb.    Anna Berg                                   │
+│  ◯ Adm. direktør    Erik Gran                                   │
+│                                                                 │
+│  ─────────────────────────────────────────────────────────────  │
+│                                                                 │
+│  Kommentar (valgfritt):                                         │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │                                                         │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                 │
+│       [Avvis med begrunnelse]           [Godkjenn]              │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-- **GDPR**: Personopplysninger må håndteres korrekt
-- **Arkivloven**: Dokumenter må arkiveres i påkrevd tid
-- **Internkontroll**: Støtte revisjonsrapporter
-- **Logging**: Alle godkjenninger logges med hvem, når, hva
-- **Backup**: Regelmessig backup av alle data
+### To handlinger
+
+| Handling | Resultat |
+|----------|----------|
+| **Godkjenn** | Sendes til neste i kjeden (eller fullført) |
+| **Avvis** | Returneres til prosjektleder med begrunnelse |
+
+### Hensyn
+
+- **Ingen app nødvendig**: Fungerer i nettleser
+- **Mobilvennlig**: Enkel layout som fungerer på telefon
+- **Rask handling**: Minimum klikk for å godkjenne
+
+---
+
+## Del 5: Varsling via e-post
+
+### E-postmaler
+
+**Ny sak venter på godkjenning:**
+```
+Emne: Godkjenning påkrevd: KOE-20260106-001 – Forsinket tegningsunderlag
+
+Hei [Navn],
+
+En sak venter på din godkjenning:
+
+Sak: KOE-20260106-001
+Type: Vederlagskrav + fristforlengelse
+Beløp: 1.800.000 NOK
+Dager: 10
+
+Tidligere godkjent av:
+• Ola Nordmann (Prosjektleder) – 06.01.2026
+
+[Gå til godkjenning]
+
+Med vennlig hilsen
+KOE-systemet
+```
+
+**Påminnelse (etter 3 dager):**
+```
+Emne: Påminnelse: Godkjenning venter – KOE-20260106-001
+
+Hei [Navn],
+
+Saken under venter fortsatt på din godkjenning.
+Den ble sendt til deg for 3 dager siden.
+
+[Gå til godkjenning]
+```
+
+**Sak avvist:**
+```
+Emne: Sak avvist: KOE-20260106-001
+
+Hei [Prosjektleder],
+
+Saken ble avvist av [Navn] (Avdelingsleder).
+
+Begrunnelse:
+"Mangler dokumentasjon på faktiske merkostnader."
+
+Du kan revidere og sende på ny godkjenning.
+
+[Gå til saken]
+```
+
+### Hensyn
+
+- **Kun e-post**: Ingen Teams, push, etc.
+- **Klare lenker**: Ett klikk til handling
+- **Ikke for mange**: Maks én påminnelse
+
+---
+
+## Del 6: Dokumentgenerering
+
+### Innhold i godkjenningsdokument (PDF)
+
+| Seksjon | Innhold |
+|---------|---------|
+| **Header** | Saksnummer, dato, prosjekt |
+| **Krav fra TE** | Beskrivelse, beløp, dager, vedlegg |
+| **PLs vurdering** | Anbefaling, begrunnelse, risikovurdering |
+| **Godkjenningsstatus** | Hvem har godkjent, hvem gjenstår |
+| **Vedlegg** | Lenker til originalvedlegg |
+
+### Hensyn
+
+- **Låst dokument**: Innholdet endres ikke etter oppstart
+- **Oppdatert status**: Signaturseksjonen oppdateres ved hver godkjenning
+- **PDF/A**: Arkivbestandig format
+
+---
+
+## Del 7: Flyt ved avvisning
+
+### Når noen avviser
+
+```
+Godkjenner avviser
+       │
+       ▼
+┌──────────────────┐
+│ Hele kjeden      │
+│ stopper          │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│ Prosjektleder    │
+│ varsles          │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────────────────────────────────────┐
+│ PL kan:                                          │
+│ • Revidere vurdering og starte ny kjede          │
+│ • Endre anbefalt beløp/dager                     │
+│ • Legge til mer dokumentasjon                    │
+│ • Avbryte saken                                  │
+└──────────────────────────────────────────────────┘
+```
+
+### Hensyn
+
+- **Historikk bevares**: Tidligere forsøk er synlige
+- **Ny kjede**: Starter fra bunn igjen
+- **Læringseffekt**: Avvisningsgrunner hjelper PL neste gang
+
+---
+
+## Del 8: Etter fullført godkjenning
+
+### Når siste person godkjenner
+
+```
+Siste godkjenner trykker "Godkjenn"
+       │
+       ▼
+┌──────────────────┐
+│ Godkjenning      │
+│ fullført         │
+└────────┬─────────┘
+         │
+         ├──► E-post til prosjektleder: "Sak godkjent"
+         │
+         ├──► Saken markeres som "klar for formelt svar"
+         │
+         └──► Prosjektleder kan nå sende formelt svar til TE
+```
+
+### Hensyn
+
+- **Ikke automatisk svar til TE**: PL må aktivt sende svaret
+- **Sporbarhet**: Godkjenningskjede lagres permanent
+- **Arkivering**: Ferdig dokument med alle signaturer arkiveres
+
+---
+
+## Del 9: Integrasjon med eksisterende system
+
+### Event-basert arkitektur (beholdes)
+
+Godkjenning legges til som nye event-typer:
+
+| Event | Beskrivelse |
+|-------|-------------|
+| `GODKJENNING_STARTET` | PL starter kjede |
+| `GODKJENNING_GITT` | Ett nivå godkjenner |
+| `GODKJENNING_AVVIST` | Ett nivå avviser |
+| `GODKJENNING_FULLFORT` | Alle har godkjent |
+
+### Kobling til ResponsEvent
+
+```
+Eksisterende flyt:
+  TE sender krav → PL lager ResponsEvent (utkast)
+
+Ny flyt:
+  TE sender krav → PL lager ResponsEvent (utkast)
+                 → PL starter godkjenningskjede
+                 → Kjede fullføres
+                 → ResponsEvent aktiveres og sendes til TE
+```
 
 ---
 
 ## Del 10: Implementasjonsrekkefølge
 
-### Fase 1: Grunnleggende godkjenningsflyt (MVP)
-1. Entra ID-innlogging (SSO)
-2. Rolle-mapping fra Azure AD-grupper
-3. Enkel sekvensiell godkjenningskjede (hardkodet nivåer)
-4. E-postvarsling ved ny sak
-5. Grunnleggende UI for godkjenning
+### Fase 1: Kjernefunksjonalitet
+1. Entra ID-innlogging
+2. Hente leder-hierarki fra Graph
+3. PL starter kjede med anbefalt flyt
+4. Godkjenner-visning med godkjenn/avvis
+5. E-postvarsling
 
-### Fase 2: Dokumenthåndtering
-1. Automatisk PDF-generering
-2. Dokumentlåsing og hash-validering
-3. Vedleggshåndtering
-4. Arkivering
+### Fase 2: Automatikk
+1. Automatisk stedfortreder ved fravær
+2. Påminnelse etter X dager
+3. Dokumentgenerering (PDF)
 
-### Fase 3: Avansert flyt
+### Fase 3: Polering
 1. Konfigurerbare beløpsgrenser
-2. Stedfortreder og delegering
-3. Påminnelser og eskalering
-4. Teams-integrasjon
-
-### Fase 4: Rapportering og optimalisering
-1. Dashboard og statistikk
-2. Behandlingstidsrapporter
-3. Flaskehals-analyse
-4. Mobil-optimalisering
-
----
-
-## Del 11: Tekniske avhengigheter
-
-### Backend
-- **msal** - Microsoft Authentication Library for Python
-- **httpx** - For Microsoft Graph API-kall
-- **weasyprint** eller **reportlab** - PDF-generering
-- **apscheduler** - Planlagte oppgaver (påminnelser)
-
-### Frontend
-- **@azure/msal-react** - Entra ID i React
-- **react-pdf** - PDF-visning
-
-### Infrastruktur
-- **Azure App Registration** - Konfigurert i kundens tenant
-- **Microsoft Graph API-tilgang** - User.Read, Mail.Send, Calendars.Read
-- **SMTP/SendGrid** - E-postutsending (alternativ til Graph)
-
----
-
-## Del 12: Åpne spørsmål
-
-| # | Spørsmål | Påvirker |
-|---|----------|----------|
-| 1 | Skal beløpsgrenser være per prosjekt eller globalt? | Konfigurasjon |
-| 2 | Hva skjer hvis en godkjenner slutter? | Stedfortreder-logikk |
-| 3 | Skal TE se godkjenningsstatus underveis? | UI, tilgangskontroll |
-| 4 | Kreves elektronisk signatur (kvalifisert)? | Integrasjon, compliance |
-| 5 | Skal godkjenning kunne gjøres i Teams direkte? | Teams-bot |
-| 6 | Hvordan håndtere hastesaker (bypass)? | Spesialflyt |
-| 7 | Integrasjon mot eksisterende ERP? | Fase 4+ |
+2. Historikk og sporbarhet
+3. Arkivering
 
 ---
 
 ## Oppsummering
 
-Løsningen bygger på eksisterende event sourcing-arkitektur og legger til:
-
-1. **Entra ID** for sikker autentisering og rollebasert tilgang
-2. **Sekvensiell godkjenningskjede** som respekterer organisasjonshierarkiet
-3. **Automatisk dokumentgenerering** med integritetssikring
-4. **Varsling og påminnelser** for effektiv saksbehandling
-5. **Stedfortreder-funksjonalitet** for å unngå flaskehalser
-6. **Full audit trail** for compliance og etterprøvbarhet
-
-Løsningen er **skalerbar** (flere nivåer kan legges til), **konfigurerbar** (beløpsgrenser, tidsfrister) og **integrerbar** med eksisterende Microsoft 365-infrastruktur.
+| Aspekt | Løsning |
+|--------|---------|
+| **Autentisering** | Entra ID (SSO) |
+| **Hierarki** | Automatisk fra Microsoft Graph |
+| **Stedfortreder** | Automatisk fra Outlook-fravær + leder |
+| **PL-kontroll** | Kan justere anbefalt kjede |
+| **Godkjenner** | Ser dokument + signaturer + to knapper |
+| **Varsling** | Kun e-post |
+| **Kompleksitet** | Minimal – som et dokument i hånden |
