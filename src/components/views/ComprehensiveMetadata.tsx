@@ -9,6 +9,7 @@
 import { SakState } from '../../types/timeline';
 import { DataList, DataListItem } from '../primitives';
 import { getOverordnetStatusLabel } from '../../constants/statusLabels';
+import { formatDateTimeNorwegian } from '../../utils/formatters';
 
 interface ComprehensiveMetadataProps {
   state: SakState;
@@ -26,7 +27,7 @@ export function ComprehensiveMetadata({
       <DataListItem label="Sakstittel">{state.sakstittel}</DataListItem>
       <DataListItem label="Entreprenør (TE)">{state.entreprenor || '—'}</DataListItem>
       <DataListItem label="Byggherre (BH)">{state.byggherre || '—'}</DataListItem>
-      <DataListItem label="Opprettet">{state.grunnlag.siste_oppdatert || '—'}</DataListItem>
+      <DataListItem label="Opprettet">{formatDateTimeNorwegian(state.grunnlag.siste_oppdatert)}</DataListItem>
       <DataListItem label="Status">
         <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium bg-badge-info-bg text-badge-info-text">
           {getOverordnetStatusLabel(state.overordnet_status)}
