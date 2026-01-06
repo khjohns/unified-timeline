@@ -108,6 +108,7 @@ export function ForseringPage() {
   const [kostnaderModalOpen, setKostnaderModalOpen] = useState(false);
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const [showConflict, setShowConflict] = useState(false);
+  const [showCatendaWarning, setShowCatendaWarning] = useState(false);
 
   // Fetch forsering case state (wait for auth)
   const {
@@ -189,11 +190,15 @@ export function ForseringPage() {
         expected_version: caseData?.version,
       });
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['forsering', sakId, 'kontekst'] });
       queryClient.invalidateQueries({ queryKey: ['case', sakId] });
       setStoppModalOpen(false);
+      // Show warning if Catenda sync failed
+      if (!result.catenda_synced) {
+        setShowCatendaWarning(true);
+      }
     },
     onError: (error) => {
       if (error instanceof Error && (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING')) {
@@ -220,11 +225,15 @@ export function ForseringPage() {
         expected_version: caseData?.version,
       });
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['forsering', sakId, 'kontekst'] });
       queryClient.invalidateQueries({ queryKey: ['case', sakId] });
       setBhResponsModalOpen(false);
+      // Show warning if Catenda sync failed
+      if (!result.catenda_synced) {
+        setShowCatendaWarning(true);
+      }
     },
     onError: (error) => {
       if (error instanceof Error && (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING')) {
@@ -250,11 +259,15 @@ export function ForseringPage() {
         expected_version: caseData?.version,
       });
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['forsering', sakId, 'kontekst'] });
       queryClient.invalidateQueries({ queryKey: ['case', sakId] });
       setKostnaderModalOpen(false);
+      // Show warning if Catenda sync failed
+      if (!result.catenda_synced) {
+        setShowCatendaWarning(true);
+      }
     },
     onError: (error) => {
       if (error instanceof Error && (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING')) {
@@ -494,6 +507,24 @@ export function ForseringPage() {
               size="sm"
               className="mt-2"
               onClick={() => setShowConflict(false)}
+            >
+              Lukk
+            </Button>
+          </Alert>
+        </div>
+      )}
+
+      {/* Catenda sync warning */}
+      {showCatendaWarning && (
+        <div className="fixed bottom-4 right-4 max-w-md z-50">
+          <Alert variant="info" title="Ikke synkronisert til Catenda">
+            Endringen er lagret lokalt, men ble ikke synkronisert til Catenda.
+            Saken mangler muligens Catenda-kobling.
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mt-2"
+              onClick={() => setShowCatendaWarning(false)}
             >
               Lukk
             </Button>

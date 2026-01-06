@@ -99,6 +99,17 @@ export interface FjernRelatertSakResponse {
   message?: string;
 }
 
+/**
+ * Catenda sync status included in mutation responses
+ */
+export interface CatendaSyncStatus {
+  catenda_synced: boolean;
+  catenda_comment_posted?: boolean;
+  catenda_status_updated?: boolean;
+  catenda_skipped_reason?: 'no_topic_id' | 'not_authenticated' | 'no_client' | 'sync_not_attempted' | 'error';
+  catenda_error?: string;
+}
+
 export interface StoppForseringRequest {
   forsering_sak_id: string;
   begrunnelse: string;
@@ -106,7 +117,7 @@ export interface StoppForseringRequest {
   expected_version?: number;
 }
 
-export interface StoppForseringResponse {
+export interface StoppForseringResponse extends CatendaSyncStatus {
   success: boolean;
   message?: string;
   dato_stoppet: string;
@@ -120,7 +131,7 @@ export interface BHResponsForseringRequest {
   expected_version?: number;
 }
 
-export interface BHResponsForseringResponse {
+export interface BHResponsForseringResponse extends CatendaSyncStatus {
   success: boolean;
   message?: string;
 }
@@ -132,7 +143,7 @@ export interface OppdaterKostnaderRequest {
   expected_version?: number;
 }
 
-export interface OppdaterKostnaderResponse {
+export interface OppdaterKostnaderResponse extends CatendaSyncStatus {
   success: boolean;
   message?: string;
 }
@@ -316,6 +327,8 @@ export async function stoppForsering(
       success: true,
       message: 'Forsering stoppet',
       dato_stoppet: new Date().toISOString(),
+      catenda_synced: false,
+      catenda_skipped_reason: 'sync_not_attempted',
     };
   }
 
@@ -347,6 +360,8 @@ export async function bhResponsForsering(
       message: data.aksepterer
         ? 'Forsering akseptert'
         : 'Forsering avslått',
+      catenda_synced: false,
+      catenda_skipped_reason: 'sync_not_attempted',
     };
   }
 
@@ -377,6 +392,8 @@ export async function oppdaterKostnader(
     return {
       success: true,
       message: 'Kostnader oppdatert',
+      catenda_synced: false,
+      catenda_skipped_reason: 'sync_not_attempted',
     };
   }
 

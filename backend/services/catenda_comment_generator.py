@@ -37,7 +37,8 @@ class CatendaCommentGenerator:
             Formatted comment text with markdown
         """
         try:
-            event_type_display = self._format_event_type(event.event_type.value)
+            event_type_value = event.event_type.value
+            event_type_display = self._format_event_type(event_type_value)
 
             # Build comment parts
             parts = []
@@ -45,6 +46,13 @@ class CatendaCommentGenerator:
             # Header
             parts.append(f"**{event_type_display}**")
             parts.append("")
+
+            # Forsering-specific content
+            if event_type_value.startswith('forsering_'):
+                forsering_content = self._build_forsering_content(event)
+                if forsering_content:
+                    parts.append(forsering_content)
+                    parts.append("")
 
             # Status summary
             parts.append(self._build_status_summary(state))
@@ -70,6 +78,73 @@ class CatendaCommentGenerator:
             logger.error(f"Failed to generate comment: {e}")
             return f"Sak oppdatert: {state.sak_id}"
 
+    def _build_forsering_content(self, event: AnyEvent) -> Optional[str]:
+        """Build forsering-specific content based on event type."""
+        event_type = event.event_type.value
+
+        if not hasattr(event, 'data'):
+            return None
+
+        data = event.data
+        lines = []
+
+        if event_type == 'forsering_respons':
+            # BH-respons på forsering
+            aksepterer = getattr(data, 'aksepterer', None)
+            if aksepterer is not None:
+                beslutning = "Akseptert" if aksepterer else "Avvist"
+                lines.append(f"**Beslutning:** {beslutning}")
+
+            godkjent_kostnad = getattr(data, 'godkjent_kostnad', None)
+            if godkjent_kostnad is not None:
+                lines.append(f"**Godkjent kostnad:** {godkjent_kostnad:,.0f} kr")
+
+            begrunnelse = getattr(data, 'begrunnelse', None)
+            if begrunnelse:
+                lines.append(f"**Begrunnelse:** {begrunnelse}")
+
+        elif event_type == 'forsering_stoppet':
+            # Forsering stoppet
+            begrunnelse = getattr(data, 'begrunnelse', None)
+            if begrunnelse:
+                lines.append(f"**Begrunnelse:** {begrunnelse}")
+
+            paalopte_kostnader = getattr(data, 'paalopte_kostnader', None)
+            if paalopte_kostnader is not None:
+                lines.append(f"**Påløpte kostnader:** {paalopte_kostnader:,.0f} kr")
+
+            dato_stoppet = getattr(data, 'dato_stoppet', None)
+            if dato_stoppet:
+                lines.append(f"**Dato stoppet:** {dato_stoppet}")
+
+        elif event_type == 'forsering_kostnader_oppdatert':
+            # Kostnader oppdatert
+            paalopte_kostnader = getattr(data, 'paalopte_kostnader', None)
+            if paalopte_kostnader is not None:
+                lines.append(f"**Påløpte kostnader:** {paalopte_kostnader:,.0f} kr")
+
+            kommentar = getattr(data, 'kommentar', None)
+            if kommentar:
+                lines.append(f"**Kommentar:** {kommentar}")
+
+        elif event_type == 'forsering_koe_lagt_til':
+            # KOE lagt til
+            koe_sak_id = getattr(data, 'koe_sak_id', None)
+            koe_tittel = getattr(data, 'koe_tittel', None)
+            if koe_sak_id:
+                display = koe_tittel if koe_tittel else koe_sak_id
+                lines.append(f"**KOE:** {display}")
+
+        elif event_type == 'forsering_koe_fjernet':
+            # KOE fjernet
+            koe_sak_id = getattr(data, 'koe_sak_id', None)
+            koe_tittel = getattr(data, 'koe_tittel', None)
+            if koe_sak_id:
+                display = koe_tittel if koe_tittel else koe_sak_id
+                lines.append(f"**KOE fjernet:** {display}")
+
+        return "\n".join(lines) if lines else None
+
     def _format_event_type(self, event_type: str) -> str:
         """Format event type for display."""
         event_type_map = {
@@ -87,6 +162,13 @@ class CatendaCommentGenerator:
             'respons_vederlag': 'Respons på vederlag',
             'respons_frist': 'Respons på frist',
             'eo_utstedt': 'Endringsordre utstedt',
+            # Forsering events (§33.8)
+            'forsering_varsel': 'Forseringsvarsel',
+            'forsering_respons': 'BH-respons på forsering',
+            'forsering_stoppet': 'Forsering stoppet',
+            'forsering_kostnader_oppdatert': 'Forseringskostnader oppdatert',
+            'forsering_koe_lagt_til': 'KOE lagt til forseringssak',
+            'forsering_koe_fjernet': 'KOE fjernet fra forseringssak',
         }
         return event_type_map.get(event_type, event_type.replace('_', ' ').title())
 

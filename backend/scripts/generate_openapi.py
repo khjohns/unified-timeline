@@ -228,6 +228,36 @@ Main category for grounds (NS 8407 §33.1):
         }
     }
 
+    schemas["CatendaSyncStatus"] = {
+        "type": "object",
+        "description": "Status for Catenda synchronization (comment + status update)",
+        "properties": {
+            "catenda_synced": {
+                "type": "boolean",
+                "description": "Whether the event was successfully synced to Catenda"
+            },
+            "catenda_comment_posted": {
+                "type": "boolean",
+                "description": "Whether a comment was posted to the Catenda topic"
+            },
+            "catenda_status_updated": {
+                "type": "boolean",
+                "description": "Whether the topic status was updated in Catenda"
+            },
+            "catenda_skipped_reason": {
+                "type": "string",
+                "enum": ["no_topic_id", "not_authenticated", "no_client", "sync_not_attempted", "error"],
+                "nullable": True,
+                "description": "Reason why sync was skipped (if catenda_synced=false)"
+            },
+            "catenda_error": {
+                "type": "string",
+                "nullable": True,
+                "description": "Error message if sync failed"
+            }
+        }
+    }
+
     # Request/Response schemas
     schemas["EventSubmission"] = {
         "type": "object",
@@ -1117,7 +1147,27 @@ A KOE is a candidate if:
                 }
             },
             "responses": {
-                "200": {"description": "BH response registered"},
+                "200": {
+                    "description": "BH response registered",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "allOf": [
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "success": {"type": "boolean"},
+                                            "message": {"type": "string"},
+                                            "state": {"type": "object"},
+                                            "version": {"type": "integer"}
+                                        }
+                                    },
+                                    {"$ref": "#/components/schemas/CatendaSyncStatus"}
+                                ]
+                            }
+                        }
+                    }
+                },
                 "409": {
                     "description": "Concurrency conflict - version mismatch",
                     "content": {
@@ -1162,12 +1212,19 @@ A KOE is a candidate if:
                     "content": {
                         "application/json": {
                             "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "success": {"type": "boolean"},
-                                    "message": {"type": "string"},
-                                    "dato_stoppet": {"type": "string", "format": "date"}
-                                }
+                                "allOf": [
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "success": {"type": "boolean"},
+                                            "message": {"type": "string"},
+                                            "dato_stoppet": {"type": "string", "format": "date"},
+                                            "state": {"type": "object"},
+                                            "version": {"type": "integer"}
+                                        }
+                                    },
+                                    {"$ref": "#/components/schemas/CatendaSyncStatus"}
+                                ]
                             }
                         }
                     }
@@ -1211,7 +1268,27 @@ A KOE is a candidate if:
                 }
             },
             "responses": {
-                "200": {"description": "Costs updated"},
+                "200": {
+                    "description": "Costs updated",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "allOf": [
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "success": {"type": "boolean"},
+                                            "message": {"type": "string"},
+                                            "state": {"type": "object"},
+                                            "version": {"type": "integer"}
+                                        }
+                                    },
+                                    {"$ref": "#/components/schemas/CatendaSyncStatus"}
+                                ]
+                            }
+                        }
+                    }
+                },
                 "409": {
                     "description": "Concurrency conflict - version mismatch",
                     "content": {

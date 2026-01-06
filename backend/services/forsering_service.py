@@ -439,7 +439,7 @@ class ForseringService(BaseSakService):
             expected_version: Forventet versjon for optimistisk låsing
 
         Returns:
-            Dict med oppdatert state og ny versjon
+            Dict med oppdatert state, event, old_status og ny versjon
 
         Raises:
             RuntimeError: Hvis lagring feiler
@@ -453,6 +453,9 @@ class ForseringService(BaseSakService):
         # Hent versjon hvis ikke oppgitt (bakoverkompatibilitet)
         if expected_version is None:
             _, expected_version = self.event_repository.get_events(sak_id)
+
+        # Hent gammel status før event for Catenda-synkronisering
+        old_status = self._get_current_status(sak_id)
 
         # Opprett typed event
         event = ForseringResponsEvent(
@@ -475,9 +478,11 @@ class ForseringService(BaseSakService):
             f"{'Akseptert' if aksepterer else 'Avslått'}"
         )
 
-        # Returner oppdatert state med versjonsnummer
+        # Returner oppdatert state med event for Catenda-synkronisering
         result = self._get_updated_state(sak_id)
         result["version"] = new_version
+        result["event"] = event
+        result["old_status"] = old_status
         return result
 
     def stopp_forsering(
@@ -499,7 +504,7 @@ class ForseringService(BaseSakService):
             expected_version: Forventet versjon for optimistisk låsing
 
         Returns:
-            Dict med oppdatert state, dato_stoppet og ny versjon
+            Dict med oppdatert state, event, old_status, dato_stoppet og ny versjon
 
         Raises:
             RuntimeError: Hvis lagring feiler
@@ -513,6 +518,9 @@ class ForseringService(BaseSakService):
         # Hent versjon hvis ikke oppgitt (bakoverkompatibilitet)
         if expected_version is None:
             _, expected_version = self.event_repository.get_events(sak_id)
+
+        # Hent gammel status før event for Catenda-synkronisering
+        old_status = self._get_current_status(sak_id)
 
         dato_stoppet = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
@@ -533,10 +541,12 @@ class ForseringService(BaseSakService):
 
         logger.info(f"Forsering {sak_id} stoppet, påløpte kostnader: {paalopte_kostnader}")
 
-        # Returner oppdatert state med dato_stoppet og versjon
+        # Returner oppdatert state med event for Catenda-synkronisering
         result = self._get_updated_state(sak_id)
         result["dato_stoppet"] = dato_stoppet
         result["version"] = new_version
+        result["event"] = event
+        result["old_status"] = old_status
         return result
 
     def oppdater_kostnader(
@@ -558,7 +568,7 @@ class ForseringService(BaseSakService):
             expected_version: Forventet versjon for optimistisk låsing
 
         Returns:
-            Dict med oppdatert state og ny versjon
+            Dict med oppdatert state, event, old_status og ny versjon
 
         Raises:
             RuntimeError: Hvis lagring feiler
@@ -572,6 +582,9 @@ class ForseringService(BaseSakService):
         # Hent versjon hvis ikke oppgitt (bakoverkompatibilitet)
         if expected_version is None:
             _, expected_version = self.event_repository.get_events(sak_id)
+
+        # Hent gammel status før event for Catenda-synkronisering
+        old_status = self._get_current_status(sak_id)
 
         # Opprett typed event
         event = ForseringKostnaderOppdatertEvent(
@@ -589,9 +602,11 @@ class ForseringService(BaseSakService):
 
         logger.info(f"Forseringskostnader for {sak_id} oppdatert til {paalopte_kostnader}")
 
-        # Returner oppdatert state med versjon
+        # Returner oppdatert state med event for Catenda-synkronisering
         result = self._get_updated_state(sak_id)
         result["version"] = new_version
+        result["event"] = event
+        result["old_status"] = old_status
         return result
 
     def _get_updated_state(self, sak_id: str) -> Dict[str, Any]:
@@ -620,4 +635,30 @@ class ForseringService(BaseSakService):
             logger.warning(f"Kunne ikke beregne state for {sak_id}: {e}")
 
         return {"success": True, "message": "Event lagret"}
+
+    def _get_current_status(self, sak_id: str) -> Optional[str]:
+        """
+        Henter nåværende overordnet_status for en sak (før ny event legges til).
+
+        Brukes for å detektere statusendringer for Catenda-synkronisering.
+
+        Args:
+            sak_id: Sakens ID
+
+        Returns:
+            Overordnet status som streng, eller None hvis ikke tilgjengelig
+        """
+        if not self.event_repository or not self.timeline_service:
+            return None
+
+        try:
+            events_data, _version = self.event_repository.get_events(sak_id)
+            if events_data:
+                events = [parse_event(e) for e in events_data]
+                state = self.timeline_service.compute_state(events)
+                return state.overordnet_status
+        except Exception as e:
+            logger.warning(f"Kunne ikke hente status for {sak_id}: {e}")
+
+        return None
 

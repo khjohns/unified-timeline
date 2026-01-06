@@ -16,10 +16,12 @@ Endpoints:
 - POST /api/forsering/<sak_id>/stopp - Stopp forsering
 - PUT /api/forsering/<sak_id>/kostnader - Oppdater kostnader
 """
+from typing import Optional, Dict, Any
 from flask import Blueprint, request, jsonify
 
 from services.forsering_service import ForseringService
 from services.timeline_service import TimelineService
+from services.catenda_sync_service import CatendaSyncService, CatendaSyncResult
 from repositories import create_event_repository, create_metadata_repository
 from repositories.event_repository import ConcurrencyError
 from lib.catenda_factory import get_catenda_client
@@ -35,6 +37,7 @@ from routes.related_cases_utils import (
     safe_find_related,
 )
 from utils.logger import get_logger
+from models.sak_state import SakState
 
 logger = get_logger(__name__)
 
@@ -55,6 +58,82 @@ def _get_forsering_service() -> ForseringService:
         timeline_service=timeline_service,
         metadata_repository=metadata_repo
     )
+
+
+def _sync_forsering_to_catenda(
+    sak_id: str,
+    service_result: Dict[str, Any]
+) -> Optional[CatendaSyncResult]:
+    """
+    Synkroniser forsering-event til Catenda hvis mulig.
+
+    Args:
+        sak_id: Forseringssakens ID
+        service_result: Resultat fra ForseringService (inneholder event, state, old_status)
+
+    Returns:
+        CatendaSyncResult hvis synkronisering ble forsøkt, None hvis hoppet over
+    """
+    # Sjekk at vi har metadata med topic_id
+    metadata = metadata_repo.get_by_sak_id(sak_id)
+    if not metadata or not metadata.catenda_topic_id:
+        logger.debug(f"Ingen Catenda topic_id for {sak_id}, hopper over synkronisering")
+        return CatendaSyncResult(
+            success=False,
+            comment_posted=False,
+            status_updated=False,
+            skipped_reason='no_topic_id'
+        )
+
+    # Hent event og state fra resultat
+    event = service_result.get('event')
+    state_data = service_result.get('state')
+    old_status = service_result.get('old_status')
+
+    if not event or not state_data:
+        logger.warning(f"Mangler event eller state for Catenda-synk av {sak_id}")
+        return None
+
+    # Konverter state_data dict til SakState
+    try:
+        state = SakState(**state_data)
+    except Exception as e:
+        logger.error(f"Kunne ikke konvertere state for {sak_id}: {e}")
+        return None
+
+    # Synkroniser til Catenda
+    sync_service = CatendaSyncService()
+    result = sync_service.sync_event_to_catenda(
+        sak_id=sak_id,
+        state=state,
+        event=event,
+        topic_id=metadata.catenda_topic_id,
+        old_status=old_status
+    )
+
+    if result.success:
+        logger.info(f"Catenda-synk vellykket for forsering {sak_id}")
+    else:
+        logger.warning(f"Catenda-synk feilet for forsering {sak_id}: {result.error or result.skipped_reason}")
+
+    return result
+
+
+def _build_catenda_response(catenda_result: Optional[CatendaSyncResult]) -> Dict[str, Any]:
+    """Bygg Catenda-del av API-respons."""
+    if catenda_result is None:
+        return {
+            "catenda_synced": False,
+            "catenda_skipped_reason": "sync_not_attempted"
+        }
+
+    return {
+        "catenda_synced": catenda_result.success,
+        "catenda_comment_posted": catenda_result.comment_posted,
+        "catenda_status_updated": catenda_result.status_updated,
+        "catenda_skipped_reason": catenda_result.skipped_reason,
+        "catenda_error": catenda_result.error
+    }
 
 
 # =============================================================================
@@ -272,10 +351,18 @@ def registrer_bh_respons(sak_id: str):
     status = "akseptert" if payload['aksepterer'] else "avslått"
     logger.info(f"BH respons på forsering {sak_id}: {status}")
 
+    # Catenda-synkronisering
+    catenda_result = _sync_forsering_to_catenda(sak_id, result)
+
+    # Fjern interne felter fra respons
+    result.pop('event', None)
+    result.pop('old_status', None)
+
     return jsonify({
         "success": True,
         "message": f"BH respons registrert ({status})",
-        **result
+        **result,
+        **_build_catenda_response(catenda_result)
     }), 200
 
 
@@ -318,10 +405,18 @@ def stopp_forsering(sak_id: str):
 
     logger.info(f"Forsering {sak_id} stoppet")
 
+    # Catenda-synkronisering
+    catenda_result = _sync_forsering_to_catenda(sak_id, result)
+
+    # Fjern interne felter fra respons
+    result.pop('event', None)
+    result.pop('old_status', None)
+
     return jsonify({
         "success": True,
         "message": "Forsering stoppet",
-        **result
+        **result,
+        **_build_catenda_response(catenda_result)
     }), 200
 
 
@@ -364,8 +459,16 @@ def oppdater_kostnader(sak_id: str):
 
     logger.info(f"Forseringskostnader for {sak_id} oppdatert til {payload['paalopte_kostnader']}")
 
+    # Catenda-synkronisering
+    catenda_result = _sync_forsering_to_catenda(sak_id, result)
+
+    # Fjern interne felter fra respons
+    result.pop('event', None)
+    result.pop('old_status', None)
+
     return jsonify({
         "success": True,
         "message": "Kostnader oppdatert",
-        **result
+        **result,
+        **_build_catenda_response(catenda_result)
     }), 200
