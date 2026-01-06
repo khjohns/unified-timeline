@@ -367,10 +367,32 @@ def submit_batch():
                 # First event in batch, create initial state
                 state = timeline_service.compute_state(validated_events)
 
-        # 5. Persist ALL events atomically
+        # 5a. Create metadata FIRST if new case (FK constraint requires this)
+        if expected_version == 0:
+            from models.sak_metadata import SakMetadata
+            # Compute initial state for cached values
+            initial_state = timeline_service.compute_state(events)
+            metadata = SakMetadata(
+                sak_id=sak_id,
+                prosjekt_id=data.get('prosjekt_id'),
+                created_at=datetime.now(timezone.utc),
+                created_by=request.magic_link_data.get('email', 'unknown'),
+                cached_title=initial_state.sakstittel,
+                cached_status=initial_state.overordnet_status,
+                last_event_at=datetime.now(timezone.utc)
+            )
+            metadata_repo.upsert(metadata)
+
+        # 5b. Persist ALL events atomically
         try:
             new_version = event_repo.append_batch(events, expected_version)
         except ConcurrencyError as e:
+            # Rollback metadata if events fail (for new cases)
+            if expected_version == 0:
+                try:
+                    metadata_repo.delete(sak_id)
+                except Exception:
+                    pass
             return jsonify({
                 "success": False,
                 "error": "VERSION_CONFLICT",
@@ -379,32 +401,17 @@ def submit_batch():
                 "message": "Samtidig endring oppdaget. Vennligst last inn på nytt."
             }), 409
 
-        # 6. Compute final state
+        # 6. Compute final state and update metadata cache
         all_events = existing_events + events
         final_state = timeline_service.compute_state(all_events)
 
-        # 7. Create or update metadata
-        if expected_version == 0:
-            # New case - create metadata entry
-            from models.sak_metadata import SakMetadata
-            metadata = SakMetadata(
-                sak_id=sak_id,
-                prosjekt_id=data.get('prosjekt_id'),
-                created_at=datetime.now(timezone.utc),
-                created_by=request.magic_link_data.get('email', 'unknown'),
-                cached_title=final_state.sakstittel,
-                cached_status=final_state.overordnet_status,
-                last_event_at=datetime.now(timezone.utc)
-            )
-            metadata_repo.upsert(metadata)
-        else:
-            # Existing case - update cache only
-            metadata_repo.update_cache(
-                sak_id=sak_id,
-                cached_title=final_state.sakstittel,
-                cached_status=final_state.overordnet_status,
-                last_event_at=datetime.now(timezone.utc)
-            )
+        # 7. Update metadata cache (both new and existing cases)
+        metadata_repo.update_cache(
+            sak_id=sak_id,
+            cached_title=final_state.sakstittel,
+            cached_status=final_state.overordnet_status,
+            last_event_at=datetime.now(timezone.utc)
+        )
 
         return jsonify({
             "success": True,
