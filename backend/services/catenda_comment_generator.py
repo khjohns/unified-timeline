@@ -78,6 +78,66 @@ class CatendaCommentGenerator:
             logger.error(f"Failed to generate comment: {e}")
             return f"Sak oppdatert: {state.sak_id}"
 
+    def generate_creation_comment(
+        self,
+        sak_id: str,
+        sakstype: str,
+        project_name: str,
+        magic_link: Optional[str] = None
+    ) -> str:
+        """
+        Generate comment for newly created case (from webhook).
+
+        Args:
+            sak_id: Internal case ID
+            sakstype: Case type (koe, forsering, endringsordre)
+            project_name: Project name from Catenda
+            magic_link: Optional magic link URL for quick access
+
+        Returns:
+            Formatted comment text with markdown
+        """
+        parts = []
+
+        # Header
+        case_type_display = self._format_sakstype(sakstype)
+        parts.append(f"**Ny {case_type_display} opprettet**")
+        parts.append("")
+
+        # Basic info
+        parts.append(f"**Sak-ID:** {sak_id}")
+        parts.append(f"**Prosjekt:** {project_name}")
+        parts.append("")
+
+        # Next step
+        next_step = self._get_initial_next_step(sakstype)
+        parts.append(f"**Neste steg:** {next_step}")
+        parts.append("")
+
+        # Magic link
+        if magic_link:
+            parts.append(f"[Åpne sak i KOE-systemet]({magic_link})")
+
+        return "\n".join(parts)
+
+    def _format_sakstype(self, sakstype: str) -> str:
+        """Format case type for display."""
+        sakstype_map = {
+            'koe': 'Krav om endringsordre',
+            'forsering': 'Forseringssak',
+            'endringsordre': 'Endringsordre',
+        }
+        return sakstype_map.get(sakstype, 'Sak')
+
+    def _get_initial_next_step(self, sakstype: str) -> str:
+        """Get initial next step based on case type."""
+        next_step_map = {
+            'koe': 'Entreprenør sender varsel (grunnlag)',
+            'forsering': 'Entreprenør dokumenterer forsering',
+            'endringsordre': 'Byggherre utsteder endringsordre',
+        }
+        return next_step_map.get(sakstype, 'Se sak for detaljer')
+
     def _build_forsering_content(self, event: AnyEvent) -> Optional[str]:
         """Build forsering-specific content based on event type."""
         event_type = event.event_type.value

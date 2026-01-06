@@ -22,6 +22,7 @@ from models.events import SakOpprettetEvent
 from models.sak_state import SakState
 from models.sak_metadata import SakMetadata
 from services.timeline_service import TimelineService
+from services.catenda_comment_generator import CatendaCommentGenerator
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -223,26 +224,12 @@ class WebhookService:
             magic_link = f"{base_url}{frontend_route}?magicToken={magic_token}" if magic_token else f"{base_url}{frontend_route}"
 
             # Post comment to Catenda (async to avoid blocking)
-            dato = datetime.now(timezone.utc).strftime('%Y-%m-%d')
-
-            # Generate sakstype-specific comment
-            if sakstype == "endringsordre":
-                case_type_label = "Endringsordre"
-                next_step = "Byggherre utsteder endringsordre"
-            elif sakstype == "forsering":
-                case_type_label = "Forseringssak"
-                next_step = "Entreprenor dokumenterer forsering"
-            else:
-                case_type_label = "Krav om endringsordre"
-                next_step = "Entreprenor sender varsel (grunnlag)"
-
-            comment_text = (
-                f"✅ **Ny {case_type_label} opprettet**\n\n"
-                f"📋 Intern saks-ID: `{sak_id}`\n"
-                f"📅 Dato: {dato}\n"
-                f"🏗️ Prosjekt: {project_name}\n\n"
-                f"**Neste steg:** {next_step}\n"
-                f"👉 [Apne skjema]({magic_link})"
+            comment_generator = CatendaCommentGenerator()
+            comment_text = comment_generator.generate_creation_comment(
+                sak_id=sak_id,
+                sakstype=sakstype,
+                project_name=project_name,
+                magic_link=magic_link
             )
 
             def post_comment_async():
