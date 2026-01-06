@@ -8,6 +8,7 @@ from typing import Any, Callable, Dict, List, Optional
 from flask import jsonify
 
 from models.sak_state import SakRelasjon, SakState
+from lib.cloudevents import format_timeline_response
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -60,6 +61,22 @@ def serialize_sak_states(states: Dict[str, SakState]) -> Dict[str, Any]:
     }
 
 
+def serialize_hendelser(hendelser: Dict[str, List]) -> Dict[str, List[Dict]]:
+    """
+    Konverterer dict med hendelser til CloudEvents-format.
+
+    Args:
+        hendelser: Dict[sak_id, List[AnyEvent]]
+
+    Returns:
+        Dict[sak_id, List[CloudEvent dict]] egnet for JSON serialisering
+    """
+    result = {}
+    for sak_id, events in hendelser.items():
+        result[sak_id] = format_timeline_response(events)
+    return result
+
+
 def build_relaterte_response(
     sak_id: str,
     relasjoner: List[SakRelasjon]
@@ -93,9 +110,14 @@ def build_kontekst_response(
         sak_id: ID for containersaken
         kontekst: Dict med kontekst-data fra service
         extra_fields: Eventuelle ekstra felter for spesifikk sakstype
+                      (f.eks. eo_hendelser for endringsordre)
 
     Returns:
         Tuple (jsonify response, status_code)
+
+    Note:
+        Hendelser formateres som CloudEvents v1.0 for konsistens
+        med /api/cases/<sak_id>/timeline endepunktet.
     """
     response = {
         "success": True,
@@ -106,13 +128,21 @@ def build_kontekst_response(
         "sak_states": serialize_sak_states(
             kontekst.get("sak_states", {})
         ),
-        "hendelser": kontekst.get("hendelser", {}),
+        "hendelser": serialize_hendelser(
+            kontekst.get("hendelser", {})
+        ),
         "oppsummering": kontekst.get("oppsummering", {})
     }
 
     # Legg til ekstra felter hvis de finnes
+    # Formater hendelser i extra_fields som CloudEvents
     if extra_fields:
-        response.update(extra_fields)
+        for key, value in extra_fields.items():
+            if key.endswith("_hendelser") and isinstance(value, list):
+                # Formater som CloudEvents (f.eks. eo_hendelser, forsering_hendelser)
+                response[key] = format_timeline_response(value)
+            else:
+                response[key] = value
 
     return jsonify(response), 200
 

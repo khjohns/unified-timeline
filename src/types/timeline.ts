@@ -850,6 +850,7 @@ export const CLOUDEVENTS_NAMESPACE = 'no.oslo.koe';
  * extractEventType('no.oslo.koe.grunnlag_opprettet') // 'grunnlag_opprettet'
  */
 export function extractEventType(ceType: string): EventType | null {
+  if (!ceType) return null;  // Defensive check for undefined/null
   const prefix = `${CLOUDEVENTS_NAMESPACE}.`;
   if (ceType.startsWith(prefix)) {
     return ceType.substring(prefix.length) as EventType;

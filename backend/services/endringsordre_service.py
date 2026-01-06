@@ -223,11 +223,12 @@ class EndringsordreService(BaseSakService):
         relaterte_ids = [r.relatert_sak_id for r in relaterte]
 
         # Hent EO-sakens egne hendelser
-        eo_hendelser = []
+        eo_hendelser: List[AnyEvent] = []
         if self.event_repository:
             try:
-                events, _version = self.event_repository.get_events(eo_sak_id)
-                eo_hendelser = events
+                events_data, _version = self.event_repository.get_events(eo_sak_id)
+                # Parse events from stored data (dicts -> typed Event objects)
+                eo_hendelser = [parse_event(e) for e in events_data] if events_data else []
             except Exception as e:
                 logger.error(f"Feil ved henting av EO-hendelser: {e}")
 

@@ -81,7 +81,7 @@ class RelatedCasesService:
             spor_filter: Valgfritt filter for spor (f.eks. ['grunnlag', 'frist'])
 
         Returns:
-            Dict med sak_id -> liste av events
+            Dict med sak_id -> liste av parsed events (AnyEvent objekter)
         """
         if not self.event_repository:
             logger.warning("Ingen event repository - kan ikke hente hendelser")
@@ -91,15 +91,14 @@ class RelatedCasesService:
 
         for sak_id in sak_ids:
             try:
-                events, _version = self.event_repository.get_events(sak_id)
+                events_data, _version = self.event_repository.get_events(sak_id)
+
+                # Parse events from stored data (dicts -> typed Event objects)
+                events = [parse_event(e) for e in events_data] if events_data else []
 
                 # Filtrer på spor hvis angitt
                 if spor_filter:
-                    events = [
-                        e for e in events
-                        if getattr(e, 'spor', None) in spor_filter
-                        or (isinstance(e, dict) and e.get('spor') in spor_filter)
-                    ]
+                    events = [e for e in events if getattr(e, 'spor', None) in spor_filter]
 
                 result[sak_id] = events
                 logger.debug(f"Hentet {len(events)} hendelser fra sak {sak_id}")
@@ -155,15 +154,18 @@ class RelatedCasesService:
             sak_id: Sak-ID
 
         Returns:
-            Liste med events
+            Liste med parsed events (AnyEvent objekter)
         """
         if not self.event_repository:
             logger.warning("Ingen event repository")
             return []
 
         try:
-            events, _version = self.event_repository.get_events(sak_id)
-            return events
+            events_data, _version = self.event_repository.get_events(sak_id)
+            if events_data:
+                # Parse events from stored data (dicts -> typed Event objects)
+                return [parse_event(e) for e in events_data]
+            return []
         except Exception as e:
             logger.error(f"Feil ved henting av hendelser for sak {sak_id}: {e}")
             return []
