@@ -219,17 +219,6 @@ export function CasePage() {
         onToggleRole={setUserRole}
         actions={
           <div className="flex items-center gap-2">
-            {/* Utsted EO - only for BH when kan_utstede_eo is true */}
-            {userRole === 'BH' && actions.canIssueEO && (
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => setUtstEOOpen(true)}
-              >
-                <FileTextIcon className="w-4 h-4 mr-2" />
-                Utsted EO
-              </Button>
-            )}
             <button
               onClick={async () => {
                 const { downloadContractorClaimPdf } = await import('../pdf/generator');
@@ -317,6 +306,17 @@ export function CasePage() {
                 >
                   <Pencil2Icon className="w-4 h-4 mr-2" />
                   Endre svar
+                </Button>
+              )}
+              {/* BH Actions: Issue endringsordre when grunnlag is approved */}
+              {userRole === 'BH' && actions.canIssueEO && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setUtstEOOpen(true)}
+                >
+                  <FileTextIcon className="w-4 h-4 mr-2" />
+                  Utsted endringsordre
                 </Button>
               )}
             </>
