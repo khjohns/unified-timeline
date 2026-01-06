@@ -182,7 +182,7 @@ class CatendaCommentGenerator:
             return self._build_forsering_status_summary(state)
 
         # Check if this is an endringsordre case
-        if state.eo_data and state.eo_data.eo_nummer:
+        if state.endringsordre_data and state.endringsordre_data.eo_nummer:
             return self._build_endringsordre_status_summary(state)
 
         # Overordnet status (for standard KOE)
@@ -265,7 +265,7 @@ class CatendaCommentGenerator:
         lines = []
         lines.append("**Status:**")
 
-        eo = state.eo_data
+        eo = state.endringsordre_data
 
         # EO identifikasjon
         lines.append(f"- Endringsordre: {eo.eo_nummer}")
