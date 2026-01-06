@@ -127,8 +127,8 @@ def create_grunnlag_event(sak_id: str, now: datetime, oppdaget_dato: str, varsle
     """Opprett grunnlag_opprettet event."""
     grunnlag_data = GrunnlagData(
         tittel="Forsinket tegningsunderlag uke 45",
-        hovedkategori="ENDRING",
-        underkategori="PROJ",
+        hovedkategori="SVIKT",
+        underkategori="MEDVIRK",
         beskrivelse="""BH leverte reviderte tegninger 3 uker etter avtalt dato.
 
 Dette medførte:

@@ -847,8 +847,8 @@ event = GrunnlagEvent(
     aktor_rolle="TE",
     data=GrunnlagData(
         tittel="Forsinket tegningsunderlag",
-        hovedkategori="FORSINKELSE_BH",
-        underkategori="PROJ",
+        hovedkategori="SVIKT",
+        underkategori="MEDVIRK",
         beskrivelse="Tegninger ble levert 3 uker forsinket",
         dato_oppdaget="2025-12-15"
     )
@@ -873,8 +873,8 @@ Output:
   "actorrole": "TE",
   "data": {
     "tittel": "Forsinket tegningsunderlag",
-    "hovedkategori": "FORSINKELSE_BH",
-    "underkategori": "PROJ",
+    "hovedkategori": "SVIKT",
+    "underkategori": "MEDVIRK",
     "beskrivelse": "Tegninger ble levert 3 uker forsinket",
     "dato_oppdaget": "2025-12-15"
   }

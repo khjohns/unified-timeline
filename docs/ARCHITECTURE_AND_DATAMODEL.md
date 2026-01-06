@@ -595,7 +595,7 @@ class GrunnlagData(BaseModel):
     """Data for ansvarsgrunnlag (Hvorfor/Hvem)"""
 
     tittel: str                     # Kort beskrivende tittel
-    hovedkategori: str              # F.eks. "ENDRING", "FORSINKELSE_BH"
+    hovedkategori: str              # F.eks. "ENDRING", "SVIKT"
     underkategori: Union[str, List[str]]  # Underkategori-kode(r)
     beskrivelse: str                # Detaljert beskrivelse
     dato_oppdaget: str              # YYYY-MM-DD

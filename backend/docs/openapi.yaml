@@ -108,6 +108,124 @@ paths:
                   service:
                     type: string
                     example: koe-backend
+  /api/metadata/by-topic/{topic_id}:
+    get:
+      tags:
+      - Utility
+      summary: Get case metadata by Catenda topic ID
+      description: Retrieve case metadata based on Catenda topic ID. Used by test
+        scripts to verify webhook processing.
+      operationId: getMetadataByTopic
+      parameters:
+      - name: topic_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Catenda topic GUID
+      responses:
+        '200':
+          description: Case metadata found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sak_id:
+                    type: string
+                    example: SAK-20251218-001
+                  catenda_topic_id:
+                    type: string
+                    format: uuid
+                  cached_title:
+                    type: string
+                    nullable: true
+                  cached_status:
+                    type: string
+                    nullable: true
+                  created_at:
+                    type: string
+                    format: date-time
+                    nullable: true
+        '404':
+          description: No case found for topic
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: No case found for topic
+                  topic_id:
+                    type: string
+  /api/validate-user:
+    post:
+      tags:
+      - Utility
+      summary: Validate user in Catenda project
+      description: Validates if an email belongs to a user in the Catenda project.
+        Used to verify users before allowing them to sign forms.
+      operationId: validateUser
+      security:
+      - csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - email
+              - sakId
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: User email to validate
+                sakId:
+                  type: string
+                  description: Case ID to check project membership against
+      responses:
+        '200':
+          description: User found in project
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  name:
+                    type: string
+                    description: User's full name
+                  email:
+                    type: string
+                    format: email
+                  company:
+                    type: string
+                    description: User's company
+        '400':
+          description: Missing required parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found in project or case not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: Brukeren er ikke medlem i dette Catenda-prosjektet.
   /api/events:
     post:
       tags:
@@ -1302,7 +1420,7 @@ components:
           title: Tittel
           type: string
         hovedkategori:
-          description: Hovedkategori for ansvarsgrunnlag (f.eks. 'ENDRING', 'FORSINKELSE_BH')
+          description: Hovedkategori for ansvarsgrunnlag (f.eks. 'ENDRING', 'SVIKT')
           title: Hovedkategori
           type: string
         underkategori:
@@ -1312,7 +1430,7 @@ components:
               type: string
             type: array
           description: Underkategori(er) - enkelt kode eller liste av koder (f.eks.
-            'PROJ', 'ARBEIDSGRUNNLAG')
+            'MEDVIRK', 'PROSJ_RISIKO')
           title: Underkategori
         beskrivelse:
           description: Detaljert beskrivelse av forholdet som utløste kravet

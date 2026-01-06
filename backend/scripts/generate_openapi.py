@@ -580,6 +580,122 @@ def generate_paths() -> Dict[str, Any]:
         }
     }
 
+    paths["/api/metadata/by-topic/{topic_id}"] = {
+        "get": {
+            "tags": ["Utility"],
+            "summary": "Get case metadata by Catenda topic ID",
+            "description": "Retrieve case metadata based on Catenda topic ID. Used by test scripts to verify webhook processing.",
+            "operationId": "getMetadataByTopic",
+            "parameters": [
+                {
+                    "name": "topic_id",
+                    "in": "path",
+                    "required": True,
+                    "schema": {"type": "string", "format": "uuid"},
+                    "description": "Catenda topic GUID"
+                }
+            ],
+            "responses": {
+                "200": {
+                    "description": "Case metadata found",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "sak_id": {"type": "string", "example": "SAK-20251218-001"},
+                                    "catenda_topic_id": {"type": "string", "format": "uuid"},
+                                    "cached_title": {"type": "string", "nullable": True},
+                                    "cached_status": {"type": "string", "nullable": True},
+                                    "created_at": {"type": "string", "format": "date-time", "nullable": True}
+                                }
+                            }
+                        }
+                    }
+                },
+                "404": {
+                    "description": "No case found for topic",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "error": {"type": "string", "example": "No case found for topic"},
+                                    "topic_id": {"type": "string"}
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    paths["/api/validate-user"] = {
+        "post": {
+            "tags": ["Utility"],
+            "summary": "Validate user in Catenda project",
+            "description": "Validates if an email belongs to a user in the Catenda project. Used to verify users before allowing them to sign forms.",
+            "operationId": "validateUser",
+            "security": [{"csrfToken": []}],
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "required": ["email", "sakId"],
+                            "properties": {
+                                "email": {"type": "string", "format": "email", "description": "User email to validate"},
+                                "sakId": {"type": "string", "description": "Case ID to check project membership against"}
+                            }
+                        }
+                    }
+                }
+            },
+            "responses": {
+                "200": {
+                    "description": "User found in project",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "success": {"type": "boolean", "example": True},
+                                    "name": {"type": "string", "description": "User's full name"},
+                                    "email": {"type": "string", "format": "email"},
+                                    "company": {"type": "string", "description": "User's company"}
+                                }
+                            }
+                        }
+                    }
+                },
+                "400": {
+                    "description": "Missing required parameters",
+                    "content": {
+                        "application/json": {
+                            "schema": {"$ref": "#/components/schemas/Error"}
+                        }
+                    }
+                },
+                "404": {
+                    "description": "User not found in project or case not found",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "success": {"type": "boolean", "example": False},
+                                    "error": {"type": "string", "example": "Brukeren er ikke medlem i dette Catenda-prosjektet."}
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     # Events API
     paths["/api/events"] = {
         "post": {

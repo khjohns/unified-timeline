@@ -417,11 +417,11 @@ class GrunnlagData(BaseModel):
     )
     hovedkategori: str = Field(
         ...,
-        description="Hovedkategori for ansvarsgrunnlag (f.eks. 'ENDRING', 'FORSINKELSE_BH')"
+        description="Hovedkategori for ansvarsgrunnlag (f.eks. 'ENDRING', 'SVIKT')"
     )
     underkategori: Union[str, List[str]] = Field(
         ...,
-        description="Underkategori(er) - enkelt kode eller liste av koder (f.eks. 'PROJ', 'ARBEIDSGRUNNLAG')"
+        description="Underkategori(er) - enkelt kode eller liste av koder (f.eks. 'MEDVIRK', 'PROSJ_RISIKO')"
     )
     beskrivelse: str = Field(
         ...,
