@@ -12,6 +12,7 @@ const CasePage = lazy(() => import('./pages/CasePage'));
 const ForseringPage = lazy(() => import('./pages/ForseringPage'));
 const EndringsordePage = lazy(() => import('./pages/EndringsordePage'));
 const ComponentShowcase = lazy(() => import('./pages/ComponentShowcase'));
+const AnalyticsDashboard = lazy(() => import('./pages/AnalyticsDashboard'));
 
 /**
  * Main App for Event Sourcing Architecture
@@ -24,6 +25,7 @@ const ComponentShowcase = lazy(() => import('./pages/ComponentShowcase'));
  * - /saker/:sakId : Case detail view (timeline + dashboard + actions)
  * - /forsering/:sakId : Forsering case view (§33.8)
  * - /endringsordre/:sakId : Endringsordre case view (§31.3)
+ * - /analyse : Analytics dashboard (project/portfolio insights)
  * - /showcase : Component showcase for testing primitives
  */
 const App: React.FC = () => {
@@ -73,6 +75,14 @@ const App: React.FC = () => {
           element={
             <ProtectedRoute>
               <EndringsordePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/analyse"
+          element={
+            <ProtectedRoute>
+              <AnalyticsDashboard />
             </ProtectedRoute>
           }
         />

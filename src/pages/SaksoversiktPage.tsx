@@ -69,6 +69,13 @@ export function SaksoversiktPage() {
             </div>
             <div className="flex gap-2 ml-4">
               <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => navigate('/analyse')}
+              >
+                Analysedashboard
+              </Button>
+              <Button
                 variant="primary"
                 size="sm"
                 onClick={() => navigate('/saker/ny')}
