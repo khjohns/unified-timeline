@@ -152,12 +152,10 @@ def _get_event_summary(event) -> str:
     elif isinstance(event, EOUtstedtEvent):
         # Hent EO-nummer (prøv event først, så data)
         eo_num = event.eo_nummer or (event.data.eo_nummer if event.data else None) or "ukjent"
-        # Hent vederlag (prøv event.endelig_vederlag, så data.kompensasjon_belop/vederlag)
+        # Hent vederlag fra event.endelig_vederlag eller data.vederlag.netto_belop
         vederlag = event.endelig_vederlag
-        if vederlag is None and event.data:
-            vederlag = event.data.kompensasjon_belop
-            if vederlag is None and event.data.vederlag:
-                vederlag = event.data.vederlag.netto_belop
+        if vederlag is None and event.data and event.data.vederlag:
+            vederlag = event.data.vederlag.netto_belop
         if vederlag is not None:
             return f"EO-{eo_num}: {vederlag:,.0f} NOK"
         return f"EO-{eo_num} utstedt"

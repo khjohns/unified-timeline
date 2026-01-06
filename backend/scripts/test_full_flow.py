@@ -216,9 +216,11 @@ EO_TEST_DATA = {
             "pris": True,
             "annet": False
         },
-        "kompensasjon_belop": 175000.0,  # Sum av KOE-saker
-        "frist_dager": 7,
-        "oppgjorsform": "ENHETSPRISER"
+        "vederlag": {
+            "metode": "ENHETSPRISER",
+            "belop_direkte": 175000.0  # Sum av KOE-saker
+        },
+        "frist_dager": 7
     },
 
     # TE aksept
@@ -2526,9 +2528,8 @@ class EOFlowTester(BaseTester):
                 "eo_nummer": eo_config['eo_nummer'],
                 "beskrivelse": eo_config['beskrivelse'],
                 "konsekvenser": eo_config['konsekvenser'],
-                "kompensasjon_belop": eo_config['kompensasjon_belop'],
+                "vederlag": eo_config['vederlag'],
                 "frist_dager": eo_config['frist_dager'],
-                "oppgjorsform": eo_config['oppgjorsform'],
                 "relaterte_sak_ids": [k['sak_id'] for k in self.koe_saker],
                 "dato_utstedt": datetime.now().strftime('%Y-%m-%d')
             },
@@ -2539,7 +2540,7 @@ class EOFlowTester(BaseTester):
 
         if success:
             print_ok(f"Endringsordre {eo_config['eo_nummer']} utstedt")
-            print_info(f"  Kompensasjon: {eo_config['kompensasjon_belop']:,.0f} kr")
+            print_info(f"  Kompensasjon: {eo_config['vederlag']['belop_direkte']:,.0f} kr")
             print_info(f"  Frist: {eo_config['frist_dager']} dager")
             return True
         else:
