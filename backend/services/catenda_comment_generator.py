@@ -5,7 +5,7 @@ Generates context-aware comments for Catenda based on case state and events.
 """
 from typing import Optional
 from models.sak_state import SakState
-from models.events import AnyEvent
+from models.events import AnyEvent, SporStatus
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -197,8 +197,8 @@ class CatendaCommentGenerator:
         ]
 
         for track_name, status, track in tracks:
-            if status != 'ikke_relevant':
-                status_display = self._format_status(status)
+            if status != SporStatus.IKKE_RELEVANT:
+                status_display = self._format_status(status.value)
                 lines.append(f"- {track_name}: {status_display}")
 
                 # Add details if available
