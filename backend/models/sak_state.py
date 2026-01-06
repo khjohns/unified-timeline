@@ -922,10 +922,15 @@ class SakState(BaseModel):
         if not aktive_statuser:
             return "INGEN_AKTIVE_SPOR"
 
-        # Sjekk om alle er GODKJENT eller LAAST
+        # Sjekk om alle er GODKJENT, LAAST, eller UTKAST (aldri startet)
+        # En sak er OMFORENT hvis alle påbegynte spor er ferdige,
+        # selv om noen spor aldri ble startet (f.eks. frist ikke krevd)
         godkjent_statuser = {SporStatus.GODKJENT, SporStatus.LAAST}
-        if all(s in godkjent_statuser for s in aktive_statuser):
-            return "OMFORENT"
+        godkjent_eller_utkast = godkjent_statuser | {SporStatus.UTKAST}
+        if all(s in godkjent_eller_utkast for s in aktive_statuser):
+            # Minst ett spor må være ferdig (ikke bare utkast)
+            if any(s in godkjent_statuser for s in aktive_statuser):
+                return "OMFORENT"
 
         # Sjekk om noen er TRUKKET
         if any(s == SporStatus.TRUKKET for s in aktive_statuser):
