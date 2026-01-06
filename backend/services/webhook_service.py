@@ -28,6 +28,33 @@ from utils.logger import get_logger
 logger = get_logger(__name__)
 
 
+def format_guid_with_dashes(guid: str) -> str:
+    """
+    Format a compact GUID (32 chars) to UUID format with dashes (36 chars).
+
+    BCF API expects GUIDs in format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+    Catenda webhooks sometimes send compact format: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+    Args:
+        guid: GUID string (compact or already formatted)
+
+    Returns:
+        GUID in UUID format with dashes
+    """
+    # Remove any existing dashes and lowercase
+    clean_guid = guid.replace('-', '').lower()
+
+    # If it's 32 chars (compact), add dashes
+    if len(clean_guid) == 32:
+        return (
+            f"{clean_guid[:8]}-{clean_guid[8:12]}-"
+            f"{clean_guid[12:16]}-{clean_guid[16:20]}-{clean_guid[20:]}"
+        )
+
+    # Otherwise return as-is (might already be formatted or invalid)
+    return guid
+
+
 class WebhookService:
     """
     Service for handling Catenda webhook events (Event Sourcing Architecture).
@@ -112,12 +139,17 @@ class WebhookService:
 
             # Extract basic data from webhook payload
             temp_topic_data = webhook_payload.get('issue', {}) or webhook_payload.get('topic', {})
-            board_id = webhook_payload.get('project_id') or temp_topic_data.get('boardId') or temp_topic_data.get('topic_board_id')
-            topic_id = temp_topic_data.get('id') or temp_topic_data.get('guid') or webhook_payload.get('guid')
+            raw_board_id = webhook_payload.get('project_id') or temp_topic_data.get('boardId') or temp_topic_data.get('topic_board_id')
+            raw_topic_id = temp_topic_data.get('id') or temp_topic_data.get('guid') or webhook_payload.get('guid')
 
-            if not topic_id or not board_id:
+            if not raw_topic_id or not raw_board_id:
                 logger.error(f"Webhook missing 'topic_id' or 'board_id'. Payload: {webhook_payload}")
                 return {'success': False, 'error': 'Missing topic_id or board_id in webhook'}
+
+            # Format GUIDs to UUID format with dashes (BCF API requirement)
+            topic_id = format_guid_with_dashes(raw_topic_id)
+            board_id = format_guid_with_dashes(raw_board_id)
+            logger.info(f"📋 Formatted GUIDs - topic: {topic_id}, board: {board_id}")
 
             # Fetch full topic details from Catenda API FIRST
             # (webhook payload often doesn't include topic_type)
@@ -275,7 +307,10 @@ class WebhookService:
         try:
             # Extract topic data
             topic_data = webhook_payload.get('issue', {}) or webhook_payload.get('topic', {})
-            topic_id = topic_data.get('id') or topic_data.get('guid')
+            raw_topic_id = topic_data.get('id') or topic_data.get('guid')
+
+            # Format topic_id to UUID format (BCF API requirement)
+            topic_id = format_guid_with_dashes(raw_topic_id) if raw_topic_id else None
 
             # Find existing case by topic_id
             metadata = self.metadata_repo.get_by_topic_id(topic_id)
