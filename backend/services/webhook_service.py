@@ -17,7 +17,7 @@ from typing import Dict, Any, Optional
 from threading import Thread
 
 from repositories.event_repository import JsonFileEventRepository
-from repositories.sak_metadata_repository import SakMetadataRepository
+from repositories import create_metadata_repository
 from models.events import SakOpprettetEvent
 from models.sak_state import SakState
 from models.sak_metadata import SakMetadata
@@ -53,7 +53,7 @@ class WebhookService:
             magic_link_generator: Optional magic link generator for URLs
         """
         self.event_repo = event_repository
-        self.metadata_repo = SakMetadataRepository()
+        self.metadata_repo = create_metadata_repository()
         self.timeline_service = TimelineService()
         self.catenda = catenda_client
         self.config = config or {}
