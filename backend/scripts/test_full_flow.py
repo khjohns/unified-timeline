@@ -2599,7 +2599,7 @@ class EOFlowTester(BaseTester):
             print(f"  Endringsordre: {self.eo_sak['sak_id']}")
             print(f"  EO-nummer: {eo_config['eo_nummer']}")
             print(f"  Sum KOE-krav: {total_belop:,.0f} kr")
-            print(f"  BH kompensasjon: {eo_config['kompensasjon_belop']:,.0f} kr")
+            print(f"  BH kompensasjon: {eo_config['vederlag']['belop_direkte']:,.0f} kr")
             print(f"  Status: Akseptert av TE")
 
         print()
