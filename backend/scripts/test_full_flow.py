@@ -848,12 +848,7 @@ class BaseTester:
                 forsering_data=forsering_data,
             )
 
-            # Persist event (respekterer EVENT_STORE_BACKEND env var)
-            event_repo = create_event_repository()
-            new_version = event_repo.append(event, expected_version=0)
-            print_ok(f"SakOpprettetEvent lagret (versjon: {new_version})")
-
-            # Opprett metadata (respekterer METADATA_STORE_BACKEND env var)
+            # Opprett metadata FØRST (FK constraint krever dette)
             metadata = SakMetadata(
                 sak_id=sak_id,
                 prosjekt_id=self.project_id,
@@ -869,6 +864,11 @@ class BaseTester:
             metadata_repo = create_metadata_repository()
             metadata_repo.create(metadata)
             print_ok("Metadata opprettet")
+
+            # Persist event (respekterer EVENT_STORE_BACKEND env var)
+            event_repo = create_event_repository()
+            new_version = event_repo.append(event, expected_version=0)
+            print_ok(f"SakOpprettetEvent lagret (versjon: {new_version})")
 
             # Generer magic link og post kommentar til Catenda
             magic_link_manager = get_magic_link_manager()

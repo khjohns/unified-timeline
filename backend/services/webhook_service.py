@@ -192,15 +192,7 @@ class WebhookService:
                 sakstype=sakstype,
             )
 
-            # Persist event (version 0 = new case)
-            try:
-                new_version = self.event_repo.append(event, expected_version=0)
-                logger.info(f"✅ SakOpprettetEvent persisted for {sak_id}, version: {new_version}")
-            except Exception as e:
-                logger.error(f"❌ Failed to persist SakOpprettetEvent: {e}")
-                return {'success': False, 'error': f'Failed to persist event: {e}'}
-
-            # Create metadata cache entry
+            # Create metadata FIRST (FK constraint requires this)
             metadata = SakMetadata(
                 sak_id=sak_id,
                 prosjekt_id=v2_project_id,
@@ -213,6 +205,20 @@ class WebhookService:
                 cached_status="UNDER_VARSLING",  # Initial status
             )
             self.metadata_repo.create(metadata)
+            logger.info(f"✅ Metadata created for {sak_id}")
+
+            # Persist event (version 0 = new case)
+            try:
+                new_version = self.event_repo.append(event, expected_version=0)
+                logger.info(f"✅ SakOpprettetEvent persisted for {sak_id}, version: {new_version}")
+            except Exception as e:
+                logger.error(f"❌ Failed to persist SakOpprettetEvent: {e}")
+                # Rollback metadata if event fails
+                try:
+                    self.metadata_repo.delete(sak_id)
+                except Exception:
+                    pass
+                return {'success': False, 'error': f'Failed to persist event: {e}'}
 
             # Generate magic link with correct route based on sakstype
             magic_token = None
