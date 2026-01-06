@@ -641,6 +641,12 @@ class TimelineService:
             # Handle both relaterte_sak_ids and relaterte_koe_saker
             relaterte = data.relaterte_sak_ids or data.relaterte_koe_saker or []
 
+            # Hent oppgjørsdata fra vederlag-struktur
+            oppgjorsform = data.vederlag.metode.value if data.vederlag and data.vederlag.metode else None
+            kompensasjon_belop = data.vederlag.belop_direkte if data.vederlag else None
+            fradrag_belop = data.vederlag.fradrag_belop if data.vederlag else None
+            er_estimat = data.vederlag.er_estimat if data.vederlag else False
+
             state.endringsordre_data = EndringsordreData(
                 eo_nummer=data.eo_nummer,
                 revisjon_nummer=data.revisjon_nummer,
@@ -648,8 +654,10 @@ class TimelineService:
                 vedlegg_ids=data.vedlegg_ids or [],
                 konsekvenser=konsekvenser,
                 konsekvens_beskrivelse=data.konsekvens_beskrivelse,
-                oppgjorsform=data.oppgjorsform,
-                kompensasjon_belop=data.kompensasjon_belop,
+                oppgjorsform=oppgjorsform,
+                kompensasjon_belop=kompensasjon_belop,
+                fradrag_belop=fradrag_belop,
+                er_estimat=er_estimat,
                 frist_dager=data.frist_dager,
                 status=EOStatus.UTSTEDT,
                 dato_utstedt=data.dato_utstedt or event.tidsstempel.strftime('%Y-%m-%d'),
@@ -665,7 +673,9 @@ class TimelineService:
 
             if state.vederlag.status not in {SporStatus.IKKE_RELEVANT, SporStatus.TRUKKET}:
                 state.vederlag.status = SporStatus.GODKJENT
-                state.vederlag.godkjent_belop = data.kompensasjon_belop or event.endelig_vederlag
+                # Bruk vederlag.netto_belop fra event, fallback til endelig_vederlag
+                godkjent_belop = data.vederlag.netto_belop if data.vederlag else None
+                state.vederlag.godkjent_belop = godkjent_belop or event.endelig_vederlag
 
             if state.frist.status not in {SporStatus.IKKE_RELEVANT, SporStatus.TRUKKET}:
                 state.frist.status = SporStatus.GODKJENT
