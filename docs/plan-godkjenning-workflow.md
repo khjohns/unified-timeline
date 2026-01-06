@@ -296,11 +296,47 @@ Du kan revidere og sende på ny godkjenning.
 [Gå til saken]
 ```
 
+### Teknisk: Microsoft Graph API
+
+E-post sendes via samme Graph API som brukes for autentisering og hierarki:
+
+```
+POST https://graph.microsoft.com/v1.0/users/{sender-id}/sendMail
+
+{
+  "message": {
+    "subject": "Godkjenning påkrevd: KOE-20260106-001",
+    "body": {
+      "contentType": "HTML",
+      "content": "<p>Hei Kari,</p><p>En sak venter på din godkjenning...</p>"
+    },
+    "toRecipients": [
+      { "emailAddress": { "address": "kari.hansen@byggherre.no" } }
+    ]
+  }
+}
+```
+
+**Fordeler med Graph API:**
+- Samme autentisering som resten av løsningen
+- Ingen ekstra tjenester eller kostnader
+- E-post sendes fra organisasjonens domene
+- Støtter HTML-formatering og vedlegg
+
+**Påkrevd tillatelse:**
+- `Mail.Send` (applikasjonstillatelse)
+- Krever admin-samtykke i Azure AD
+
+**Avsender:**
+- Dedikert postboks: `koe-system@byggherre.no`
+- Eller: `noreply@byggherre.no`
+
 ### Hensyn
 
 - **Kun e-post**: Ingen Teams, push, etc.
 - **Klare lenker**: Ett klikk til handling
 - **Ikke for mange**: Maks én påminnelse
+- **Rate limits**: Graph API har grenser (10.000/dag per postboks)
 
 ---
 
@@ -435,6 +471,49 @@ Ny flyt:
 1. Konfigurerbare beløpsgrenser
 2. Historikk og sporbarhet
 3. Arkivering
+
+---
+
+## Del 11: Microsoft Graph API - Samlet oversikt
+
+### Endepunkter som brukes
+
+| Funksjon | Graph API-endepunkt | Beskrivelse |
+|----------|---------------------|-------------|
+| **Autentisering** | OAuth 2.0 / OIDC | SSO via Entra ID |
+| **Brukerinfo** | `GET /me` | Hente innlogget brukers profil |
+| **Leder-hierarki** | `GET /users/{id}/manager` | Hente brukerens leder (rekursivt) |
+| **Rolle/grupper** | `GET /me/memberOf` | Hente AD-grupper for rolle-mapping |
+| **Fravær** | `GET /users/{id}/mailboxSettings` | Sjekke automatisk svar (ferie) |
+| **Send e-post** | `POST /users/{id}/sendMail` | Sende varsler og påminnelser |
+
+### Påkrevde tillatelser (App Registration)
+
+| Tillatelse | Type | Brukes til |
+|------------|------|------------|
+| `User.Read` | Delegert | Lese egen profil |
+| `User.Read.All` | Applikasjon | Lese alle brukere (hierarki) |
+| `Mail.Send` | Applikasjon | Sende e-post |
+| `MailboxSettings.Read` | Applikasjon | Lese fraværsstatus |
+| `GroupMember.Read.All` | Applikasjon | Lese gruppemedlemskap |
+
+### Azure AD-konfigurasjon
+
+```
+App Registration:
+├── Navn: KOE-Godkjenningssystem
+├── Redirect URI: https://koe.byggherre.no/auth/callback
+├── Client ID: [genereres]
+├── Client Secret: [genereres, lagres sikkert]
+└── API Permissions:
+    ├── Microsoft Graph
+    │   ├── User.Read (Delegated)
+    │   ├── User.Read.All (Application) ← Krever admin-samtykke
+    │   ├── Mail.Send (Application) ← Krever admin-samtykke
+    │   ├── MailboxSettings.Read (Application)
+    │   └── GroupMember.Read.All (Application)
+    └── Admin consent: Required
+```
 
 ---
 
