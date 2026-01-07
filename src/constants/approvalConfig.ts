@@ -111,12 +111,79 @@ export function isRejected(steps: ApprovalStep[]): boolean {
 }
 
 /**
- * Mock approver names for demo purposes
+ * Mock approver names for demo purposes (legacy, kept for backwards compatibility)
  */
 export const MOCK_APPROVERS: Record<ApprovalRole, string[]> = {
-  PL: ['Ola Nordmann', 'Kari Hansen'],
+  PL: ['Kari Nordmann'],
   SL: ['Per Olsen', 'Anne Johansen'],
   AL: ['Erik Larsen', 'Ingrid Berg'],
-  DU: ['Bjørn Haugen', 'Liv Andersen'],
+  DU: ['Bjørn Haugen'],
   AD: ['Magnus Pedersen'],
 };
+
+/**
+ * Mock person in the organization
+ * Simulates data that would come from Entra ID / Microsoft Graph API
+ */
+export interface MockPerson {
+  id: string;
+  navn: string;
+  rolle: ApprovalRole;
+  enhet: string;
+  lederId?: string; // Reference to manager's id
+}
+
+/**
+ * Mock organization structure
+ * Simulates the organization hierarchy that would come from Entra ID
+ */
+export const MOCK_ORGANISASJON: MockPerson[] = [
+  // Prosjektledere (saksbehandlere)
+  { id: 'pl-1', navn: 'Kari Nordmann', rolle: 'PL', enhet: 'Prosjekt A', lederId: 'sl-1' },
+
+  // Seksjonsledere
+  { id: 'sl-1', navn: 'Per Olsen', rolle: 'SL', enhet: 'Seksjon 1', lederId: 'al-1' },
+  { id: 'sl-2', navn: 'Anne Johansen', rolle: 'SL', enhet: 'Seksjon 2', lederId: 'al-1' },
+
+  // Avdelingsledere
+  { id: 'al-1', navn: 'Erik Larsen', rolle: 'AL', enhet: 'Avdeling A', lederId: 'du-1' },
+  { id: 'al-2', navn: 'Ingrid Berg', rolle: 'AL', enhet: 'Avdeling B', lederId: 'du-1' },
+
+  // Direktører
+  { id: 'du-1', navn: 'Bjørn Haugen', rolle: 'DU', enhet: 'Utbygging', lederId: 'ad-1' },
+  { id: 'ad-1', navn: 'Magnus Pedersen', rolle: 'AD', enhet: 'Organisasjonen' },
+];
+
+/**
+ * Get a person by their ID
+ */
+export function getPersonById(id: string): MockPerson | undefined {
+  return MOCK_ORGANISASJON.find((p) => p.id === id);
+}
+
+/**
+ * Get a person's manager
+ */
+export function getManager(person: MockPerson): MockPerson | undefined {
+  if (!person.lederId) return undefined;
+  return getPersonById(person.lederId);
+}
+
+/**
+ * Get all persons with a specific role
+ */
+export function getPersonsAtRole(rolle: ApprovalRole): MockPerson[] {
+  return MOCK_ORGANISASJON.filter((p) => p.rolle === rolle);
+}
+
+/**
+ * Get the default "logged in" user based on the BH approval role selector
+ * BH (saksbehandler) = Kari Nordmann (PL)
+ * Other roles = first person at that role level
+ */
+export function getCurrentMockUser(bhApprovalRole: 'BH' | ApprovalRole): MockPerson {
+  if (bhApprovalRole === 'BH') {
+    return MOCK_ORGANISASJON.find((p) => p.id === 'pl-1')!;
+  }
+  return MOCK_ORGANISASJON.find((p) => p.rolle === bhApprovalRole) ?? MOCK_ORGANISASJON[0]!;
+}

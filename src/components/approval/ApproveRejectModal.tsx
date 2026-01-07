@@ -189,16 +189,18 @@ export function ApproveRejectModal({
             )}
 
             {/* Actions */}
-            <div className="flex justify-end gap-3 pt-4 border-t border-pkt-border-subtle">
-              <Button variant="secondary" onClick={handleCancel}>
-                Lukk
-              </Button>
+            <div className="flex justify-between gap-3 pt-4 border-t border-pkt-border-subtle">
               <Button variant="danger" onClick={() => setMode('reject')}>
                 Avvis
               </Button>
-              <Button variant="primary" onClick={handleApprove}>
-                Godkjenn
-              </Button>
+              <div className="flex gap-3">
+                <Button variant="secondary" onClick={handleCancel}>
+                  Lukk
+                </Button>
+                <Button variant="primary" onClick={handleApprove}>
+                  Godkjenn
+                </Button>
+              </div>
             </div>
           </>
         )}
@@ -226,9 +228,9 @@ export function ApproveRejectModal({
             </section>
 
             {/* Actions */}
-            <div className="flex justify-end gap-3 pt-4 border-t border-pkt-border-subtle">
-              <Button variant="secondary" onClick={handleBack}>
-                Tilbake
+            <div className="flex justify-between gap-3 pt-4 border-t border-pkt-border-subtle">
+              <Button variant="ghost" onClick={handleBack}>
+                ← Tilbake
               </Button>
               <Button
                 variant="danger"

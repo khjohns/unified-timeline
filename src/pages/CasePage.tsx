@@ -23,13 +23,16 @@ import { ComprehensiveMetadata } from '../components/views/ComprehensiveMetadata
 import { RevisionHistory } from '../components/views/RevisionHistory';
 import { Alert, Button } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
+import { formatCurrency } from '../utils/formatters';
 import { ForseringRelasjonBanner } from '../components/forsering';
 import { UtstEndringsordreModal, EndringsordreRelasjonBanner } from '../components/endringsordre';
 import { ApprovalRoleSelector } from '../components/ApprovalRoleSelector';
 import {
   SendToApprovalModal,
   ApproveRejectModal,
+  ApprovePakkeModal,
   PendingApprovalBanner,
+  SendResponsPakkeModal,
 } from '../components/approval';
 import { Checkbox } from '../components/primitives/Checkbox';
 import {
@@ -170,7 +173,7 @@ function CasePageContent() {
   const [showCatendaWarning, setShowCatendaWarning] = useState(false);
 
   // User role management for testing different modes
-  const { userRole, setUserRole, bhApprovalRole } = useUserRole();
+  const { userRole, setUserRole, bhApprovalRole, currentMockUser, currentMockManager } = useUserRole();
 
   // Approval workflow (mock) - must be called unconditionally
   const approvalWorkflow = useApprovalWorkflow(sakId || '');
@@ -180,6 +183,8 @@ function CasePageContent() {
   const [sendToApprovalFristOpen, setSendToApprovalFristOpen] = useState(false);
   const [approveRejectVederlagOpen, setApproveRejectVederlagOpen] = useState(false);
   const [approveRejectFristOpen, setApproveRejectFristOpen] = useState(false);
+  const [sendResponsPakkeOpen, setSendResponsPakkeOpen] = useState(false);
+  const [approvePakkeOpen, setApprovePakkeOpen] = useState(false);
 
   // Use state from data or empty state - hooks must be called unconditionally
   const state = data?.state ?? EMPTY_STATE;
@@ -319,6 +324,66 @@ function CasePageContent() {
               canApprove={approvalWorkflow.canApproveFrist}
               onViewDetails={() => setApproveRejectFristOpen(true)}
             />
+          </section>
+        )}
+
+        {/* Combined Package Banner - show when approval enabled and drafts exist */}
+        {approvalWorkflow.approvalEnabled && approvalWorkflow.hasAnyDraft && userRole === 'BH' && (
+          <section className="mb-6">
+            <Alert
+              variant="warning"
+              title="Utkast klare for godkjenning"
+              action={
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setSendResponsPakkeOpen(true)}
+                >
+                  <PaperPlaneIcon className="w-4 h-4 mr-2" />
+                  Send samlet respons til godkjenning
+                </Button>
+              }
+            >
+              Du har {[
+                approvalWorkflow.grunnlagDraft && 'grunnlag',
+                approvalWorkflow.vederlagDraft && 'vederlag',
+                approvalWorkflow.fristDraft && 'frist'
+              ].filter(Boolean).join(', ')} utkast klare for samlet godkjenning.
+            </Alert>
+          </section>
+        )}
+
+        {/* Pending Package Approval Banner */}
+        {approvalWorkflow.approvalEnabled && approvalWorkflow.isPendingPakkeApproval && approvalWorkflow.bhResponsPakke && (
+          <section className="mb-6">
+            <Alert
+              variant={approvalWorkflow.canApprovePakke ? 'info' : 'warning'}
+            >
+              <div className="flex items-start gap-2">
+                <div className="flex-1">
+                  <div>
+                    <strong>BH-responspakke</strong> venter på godkjenning
+                    <span className="text-sm text-pkt-text-body-muted ml-2">
+                      ({formatCurrency(approvalWorkflow.bhResponsPakke.samletBelop)})
+                    </span>
+                  </div>
+                  <div className="text-sm mt-1">
+                    {approvalWorkflow.canApprovePakke ? (
+                      <span className="font-medium">Din godkjenning trengs som {approvalWorkflow.nextPakkeApprover}</span>
+                    ) : (
+                      <span>Neste godkjenner: {approvalWorkflow.nextPakkeApprover}</span>
+                    )}
+                  </div>
+                  <div className="text-xs text-pkt-text-body-muted mt-2">
+                    {approvalWorkflow.bhResponsPakke.steps.filter((s) => s.status === 'approved').length} av{' '}
+                    {approvalWorkflow.bhResponsPakke.steps.length} godkjenninger fullført
+                  </div>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setApprovePakkeOpen(true)}>
+                  Se detaljer
+                </Button>
+              </div>
+            </Alert>
           </section>
         )}
 
@@ -645,6 +710,15 @@ function CasePageContent() {
               dato_varslet: state.grunnlag.grunnlag_varsel?.dato_sendt,
             }}
             onCatendaWarning={() => setShowCatendaWarning(true)}
+            approvalEnabled={approvalWorkflow.approvalEnabled}
+            onSaveDraft={(draftData) => {
+              approvalWorkflow.saveDraft({
+                sporType: 'grunnlag',
+                resultat: draftData.resultat as 'godkjent' | 'avslatt' | 'frafalt' | 'erkjenn_fm',
+                begrunnelse: draftData.begrunnelse,
+                formData: draftData.formData,
+              });
+            }}
           />
           <RespondVederlagModal
             open={respondVederlagOpen}
@@ -686,6 +760,16 @@ function CasePageContent() {
               dato_krav_mottatt: state.frist.spesifisert_varsel?.dato_sendt,
             }}
             onCatendaWarning={() => setShowCatendaWarning(true)}
+            approvalEnabled={approvalWorkflow.approvalEnabled}
+            onSaveDraft={(draftData) => {
+              approvalWorkflow.saveDraft({
+                sporType: 'frist',
+                dager: draftData.dager,
+                resultat: draftData.resultat,
+                begrunnelse: draftData.begrunnelse,
+                formData: draftData.formData,
+              });
+            }}
           />
 
           {/* Update Modals (TE) */}
@@ -859,6 +943,32 @@ function CasePageContent() {
               request={approvalWorkflow.fristApproval}
               onApprove={(comment) => approvalWorkflow.approveStep('frist', comment)}
               onReject={(reason) => approvalWorkflow.rejectStep('frist', reason)}
+            />
+          )}
+
+          {/* Combined Package Modal */}
+          <SendResponsPakkeModal
+            open={sendResponsPakkeOpen}
+            onOpenChange={setSendResponsPakkeOpen}
+            grunnlagDraft={approvalWorkflow.grunnlagDraft}
+            vederlagDraft={approvalWorkflow.vederlagDraft}
+            fristDraft={approvalWorkflow.fristDraft}
+            onSubmit={(dagmulktsats, comment) => {
+              approvalWorkflow.submitPakkeForApproval(dagmulktsats);
+            }}
+            currentMockUser={currentMockUser}
+            currentMockManager={currentMockManager}
+          />
+
+          {/* Approve Package Modal */}
+          {approvalWorkflow.bhResponsPakke && (
+            <ApprovePakkeModal
+              open={approvePakkeOpen}
+              onOpenChange={setApprovePakkeOpen}
+              pakke={approvalWorkflow.bhResponsPakke}
+              currentMockUser={currentMockUser}
+              onApprove={(comment) => approvalWorkflow.approvePakkeStep(comment)}
+              onReject={(reason) => approvalWorkflow.rejectPakkeStep(reason)}
             />
           )}
         </>

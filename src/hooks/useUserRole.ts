@@ -8,8 +8,13 @@
  * approval role (PL, SL, AL, DU, AD) to test the sequential approval chain.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { ApprovalRole } from '../types/approval';
+import {
+  getCurrentMockUser,
+  getManager,
+  type MockPerson,
+} from '../constants/approvalConfig';
 
 export type UserRole = 'TE' | 'BH';
 
@@ -54,6 +59,19 @@ export function useUserRole() {
     localStorage.setItem(STORAGE_KEY_BH_APPROVAL, bhApprovalRole);
   }, [bhApprovalRole]);
 
+  // Mock person info based on selected BH approval role
+  // Simulates data that would come from Entra ID / Microsoft Graph API
+  const currentMockUser: MockPerson = useMemo(
+    () => getCurrentMockUser(bhApprovalRole),
+    [bhApprovalRole]
+  );
+
+  // Current user's manager (for approval workflow)
+  const currentMockManager: MockPerson | undefined = useMemo(
+    () => getManager(currentMockUser),
+    [currentMockUser]
+  );
+
   return {
     userRole,
     setUserRole,
@@ -64,5 +82,8 @@ export function useUserRole() {
     setBhApprovalRole,
     // Helper: is the user in an approval role (not just standard BH)
     isApprover: userRole === 'BH' && bhApprovalRole !== 'BH',
+    // Mock person info (simulates Entra ID data)
+    currentMockUser,
+    currentMockManager,
   };
 }

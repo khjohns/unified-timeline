@@ -38,14 +38,32 @@ export interface ApprovalStep {
 }
 
 /**
- * Track type for approval (vederlag or frist)
+ * Track type for approval (grunnlag, vederlag, or frist)
  */
-export type ApprovalSporType = 'vederlag' | 'frist';
+export type ApprovalSporType = 'grunnlag' | 'vederlag' | 'frist';
 
 /**
  * Overall status of the approval request
  */
 export type ApprovalRequestStatus = 'draft' | 'pending' | 'approved' | 'rejected';
+
+/**
+ * Result type for grunnlag responses
+ * Matches GrunnlagResponsResultat from timeline types
+ */
+export type GrunnlagDraftResultat =
+  | 'godkjent'
+  | 'avslatt'
+  | 'frafalt'
+  | 'erkjenn_fm';
+
+/**
+ * Result type for vederlag/frist responses
+ */
+export type VederlagFristDraftResultat =
+  | 'godkjent'
+  | 'delvis_godkjent'
+  | 'avslatt';
 
 /**
  * Draft response data before sending to approval
@@ -54,7 +72,7 @@ export interface DraftResponseData {
   sporType: ApprovalSporType;
   belop?: number; // For vederlag
   dager?: number; // For frist
-  resultat: 'godkjent' | 'delvis_godkjent' | 'avslatt';
+  resultat: GrunnlagDraftResultat | VederlagFristDraftResultat;
   begrunnelse?: string;
   // Add other fields as needed from the response forms
   [key: string]: unknown;
@@ -92,8 +110,42 @@ export interface ApprovalThreshold {
 export interface ApprovalState {
   // Map of sakId -> ApprovalRequest for pending approvals
   approvalRequests: Map<string, ApprovalRequest>;
-  // Map of sakId -> DraftResponseData for drafts not yet submitted
+  // Map of sakId:sporType -> DraftResponseData for drafts not yet submitted
   drafts: Map<string, DraftResponseData>;
+  // Map of sakId -> BhResponsPakke for combined approval packages
+  bhResponsPakker: Map<string, BhResponsPakke>;
   // Feature toggle
   approvalEnabled: boolean;
+}
+
+/**
+ * Combined BH response package for approval
+ * Groups grunnlag, vederlag, and frist responses together
+ * for sequential approval as a single unit
+ */
+export interface BhResponsPakke {
+  id: string;
+  sakId: string;
+
+  // Included tracks (at least one must be set)
+  grunnlagRespons?: DraftResponseData;
+  vederlagRespons?: DraftResponseData;
+  fristRespons?: DraftResponseData;
+
+  // Amount calculation
+  vederlagBelop: number; // Approved amount from vederlag
+  fristDager: number; // Approved days from frist
+  dagmulktsats: number; // Daily penalty rate (NOK/day)
+  fristBelop: number; // fristDager × dagmulktsats
+  samletBelop: number; // vederlagBelop + fristBelop
+
+  // Approval chain
+  requiredApprovers: ApprovalRole[];
+  steps: ApprovalStep[];
+  status: ApprovalRequestStatus;
+
+  // Metadata
+  submittedAt?: string; // ISO date when submitted for approval
+  submittedBy?: string; // User who submitted (mock)
+  completedAt?: string; // ISO date when fully approved/rejected
 }
