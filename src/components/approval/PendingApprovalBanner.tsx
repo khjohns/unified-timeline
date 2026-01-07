@@ -5,7 +5,7 @@
  * Indicates the status and next approver in the chain.
  */
 
-import { InfoCircledIcon, CheckCircledIcon, CrossCircledIcon } from '@radix-ui/react-icons';
+import { CheckCircledIcon, CrossCircledIcon } from '@radix-ui/react-icons';
 import { Alert } from '../primitives/Alert';
 import { Button } from '../primitives/Button';
 import type { ApprovalRequest } from '../../types/approval';
@@ -65,42 +65,43 @@ export function PendingApprovalBanner({
   }
 
   // Pending status
+  const title = (
+    <>
+      <strong>{sporLabel}</strong> venter på godkjenning
+      {request.belop > 0 && (
+        <span className="text-sm text-pkt-text-body-muted ml-2">
+          ({formatCurrency(request.belop)})
+        </span>
+      )}
+    </>
+  );
+
   return (
     <Alert
       variant={canApprove ? 'info' : 'warning'}
       className={className}
-    >
-      <div className="flex items-start gap-2">
-        <InfoCircledIcon className="h-5 w-5 shrink-0 mt-0.5" />
-        <div className="flex-1">
-          <div>
-            <strong>{sporLabel}</strong> venter på godkjenning
-            {request.belop > 0 && (
-              <span className="text-sm text-pkt-text-body-muted ml-2">
-                ({formatCurrency(request.belop)})
-              </span>
-            )}
-          </div>
-          {nextApprover && (
-            <div className="text-sm mt-1">
-              {canApprove ? (
-                <span className="font-medium">Din godkjenning trengs som {nextApprover.roleName}</span>
-              ) : (
-                <span>Neste godkjenner: {nextApprover.roleName}</span>
-              )}
-            </div>
-          )}
-          {/* Progress indicator */}
-          <div className="text-xs text-pkt-text-body-muted mt-2">
-            {request.steps.filter((s) => s.status === 'approved').length} av{' '}
-            {request.steps.length} godkjenninger fullført
-          </div>
-        </div>
-        {onViewDetails && (
+      title={title}
+      action={
+        onViewDetails && (
           <Button variant="ghost" size="sm" onClick={onViewDetails}>
             Se detaljer
           </Button>
-        )}
+        )
+      }
+    >
+      {nextApprover && (
+        <div className="text-sm">
+          {canApprove ? (
+            <span className="font-medium">Din godkjenning trengs som {nextApprover.roleName}</span>
+          ) : (
+            <span>Neste godkjenner: {nextApprover.roleName}</span>
+          )}
+        </div>
+      )}
+      {/* Progress indicator */}
+      <div className="text-xs text-pkt-text-body-muted mt-1">
+        {request.steps.filter((s) => s.status === 'approved').length} av{' '}
+        {request.steps.length} godkjenninger fullført
       </div>
     </Alert>
   );

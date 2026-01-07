@@ -42,8 +42,17 @@ export function ForseringRelasjonBanner({ forseringer }: ForseringRelasjonBanner
               Denne saken inngår i en forseringssak
             </span>
           }
+          action={
+            <Link
+              to={`/forsering/${forsering.forsering_sak_id}`}
+              className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-badge-info-text bg-badge-info-bg hover:opacity-90 rounded transition-colors"
+            >
+              <span>Gå til forseringssak</span>
+              <ArrowRightIcon className="w-4 h-4" />
+            </Link>
+          }
         >
-          <div className="mt-2 space-y-3">
+          <div className="mt-1 space-y-2">
             {/* Forsering info */}
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <span className="font-medium">{forsering.forsering_sak_tittel}</span>
@@ -62,15 +71,6 @@ export function ForseringRelasjonBanner({ forseringer }: ForseringRelasjonBanner
               <span>Varslet:</span>
               <Badge variant="default" size="sm">{formatDate(forsering.dato_varslet)}</Badge>
             </div>
-
-            {/* Link to forsering */}
-            <Link
-              to={`/forsering/${forsering.forsering_sak_id}`}
-              className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-badge-info-text bg-badge-info-bg hover:opacity-90 rounded transition-colors"
-            >
-              <span>Gå til forseringssak</span>
-              <ArrowRightIcon className="w-4 h-4" />
-            </Link>
           </div>
         </Alert>
       ))}

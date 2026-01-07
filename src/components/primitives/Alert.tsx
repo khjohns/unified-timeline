@@ -24,6 +24,8 @@ export interface AlertProps {
   title?: ReactNode;
   className?: string;
   icon?: ReactNode;
+  /** Optional action (button/link) displayed on the right side */
+  action?: ReactNode;
 }
 
 // Using semantic alert colors for consistent dark/light mode support
@@ -71,6 +73,7 @@ export function Alert({
   title,
   className,
   icon,
+  action,
 }: AlertProps) {
   const styles = variantStyles[variant];
   const displayIcon = icon ?? defaultIcons[variant];
@@ -85,18 +88,25 @@ export function Alert({
         className
       )}
     >
-      <div className="flex gap-3">
-        {displayIcon && (
-          <div className={clsx('flex-shrink-0', styles.icon)}>
-            {displayIcon}
+      <div className={clsx('flex gap-3', action && 'flex-col sm:flex-row sm:items-center sm:justify-between')}>
+        <div className="flex gap-3 flex-1">
+          {displayIcon && (
+            <div className={clsx('flex-shrink-0', styles.icon)}>
+              {displayIcon}
+            </div>
+          )}
+          <div className="flex-1">
+            {title && (
+              <p className={clsx('font-bold mb-1', styles.title)}>{title}</p>
+            )}
+            <div className="text-sm">{children}</div>
+          </div>
+        </div>
+        {action && (
+          <div className="flex-shrink-0 ml-8 sm:ml-0">
+            {action}
           </div>
         )}
-        <div className="flex-1">
-          {title && (
-            <p className={clsx('font-bold mb-1', styles.title)}>{title}</p>
-          )}
-          <div className="text-sm">{children}</div>
-        </div>
       </div>
     </div>
   );
