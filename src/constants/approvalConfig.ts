@@ -90,6 +90,45 @@ export function createApprovalSteps(amount: number): ApprovalStep[] {
 }
 
 /**
+ * Role hierarchy from lowest to highest authority
+ */
+const ROLE_HIERARCHY: ApprovalRole[] = ['PL', 'SL', 'AL', 'DU', 'AD'];
+
+/**
+ * Create approval steps excluding the submitter's role level and below.
+ * This ensures that a submitter cannot approve their own submission.
+ *
+ * For example, if a PL submits and the threshold requires [PL, SL, AL],
+ * the returned steps will be [SL, AL] with SL as 'in_progress'.
+ */
+export function createApprovalStepsExcludingSubmitter(
+  amount: number,
+  submitterRole: ApprovalRole
+): ApprovalStep[] {
+  const allRoles = getRequiredApprovers(amount);
+  const submitterIndex = ROLE_HIERARCHY.indexOf(submitterRole);
+
+  // Filter to only include roles higher than the submitter
+  const filteredRoles = allRoles.filter((role) => {
+    const roleIndex = ROLE_HIERARCHY.indexOf(role);
+    return roleIndex > submitterIndex;
+  });
+
+  // If no roles remain (submitter is at or above all required levels),
+  // we still need at least the next level up from the submitter
+  if (filteredRoles.length === 0 && submitterIndex < ROLE_HIERARCHY.length - 1) {
+    const nextRole = ROLE_HIERARCHY[submitterIndex + 1]!;
+    filteredRoles.push(nextRole);
+  }
+
+  return filteredRoles.map((role, index) => ({
+    role,
+    roleName: APPROVAL_ROLE_LABELS[role],
+    status: index === 0 ? 'in_progress' : 'pending',
+  }));
+}
+
+/**
  * Get the next approver in the chain
  */
 export function getNextApprover(steps: ApprovalStep[]): ApprovalStep | undefined {

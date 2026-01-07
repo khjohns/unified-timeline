@@ -24,6 +24,7 @@ import type {
 } from '../types/approval';
 import {
   createApprovalSteps,
+  createApprovalStepsExcludingSubmitter,
   getNextApprover,
   isFullyApproved,
   isRejected,
@@ -62,7 +63,8 @@ interface ApprovalContextType {
   getBhResponsPakke: (sakId: string) => BhResponsPakke | undefined;
   submitPakkeForApproval: (
     sakId: string,
-    dagmulktsats: number
+    dagmulktsats: number,
+    submitterRole: ApprovalRole
   ) => BhResponsPakke | undefined;
   approvePakkeStep: (sakId: string, comment?: string) => void;
   rejectPakkeStep: (sakId: string, reason: string) => void;
@@ -387,7 +389,7 @@ export function ApprovalProvider({ children }: ApprovalProviderProps) {
   );
 
   const submitPakkeForApproval = useCallback(
-    (sakId: string, dagmulktsats: number): BhResponsPakke | undefined => {
+    (sakId: string, dagmulktsats: number, submitterRole: ApprovalRole): BhResponsPakke | undefined => {
       // Collect all drafts for this case
       const grunnlagDraft = drafts.get(makeKey(sakId, 'grunnlag'));
       const vederlagDraft = drafts.get(makeKey(sakId, 'vederlag'));
@@ -404,8 +406,9 @@ export function ApprovalProvider({ children }: ApprovalProviderProps) {
       const fristBelop = fristDager * dagmulktsats;
       const samletBelop = vederlagBelop + fristBelop;
 
-      // Create approval steps based on combined amount
-      const steps = createApprovalSteps(samletBelop);
+      // Create approval steps based on combined amount, excluding submitter's role
+      // This ensures the submitter cannot approve their own submission
+      const steps = createApprovalStepsExcludingSubmitter(samletBelop, submitterRole);
 
       const pakke: BhResponsPakke = {
         id: `pakke-${Date.now()}`,
@@ -422,7 +425,7 @@ export function ApprovalProvider({ children }: ApprovalProviderProps) {
         steps,
         status: 'pending',
         submittedAt: new Date().toISOString(),
-        submittedBy: 'Prosjektleder (mock)',
+        submittedBy: `${APPROVAL_ROLE_LABELS[submitterRole]} (mock)`,
       };
 
       // Save the package

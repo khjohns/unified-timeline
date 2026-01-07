@@ -78,7 +78,7 @@ interface UseApprovalWorkflowResult {
 
 export function useApprovalWorkflow(sakId: string): UseApprovalWorkflowResult {
   const context = useApprovalContext();
-  const { bhApprovalRole } = useUserRole();
+  const { bhApprovalRole, currentMockUser } = useUserRole();
 
   // Get drafts for this case
   const grunnlagDraft = useMemo(
@@ -163,11 +163,12 @@ export function useApprovalWorkflow(sakId: string): UseApprovalWorkflowResult {
   );
 
   // Submit package for approval wrapper
+  // Uses the current mock user's role to ensure the submitter can't approve their own submission
   const submitPakkeForApproval = useCallback(
     (dagmulktsats: number): BhResponsPakke | undefined => {
-      return context.submitPakkeForApproval(sakId, dagmulktsats);
+      return context.submitPakkeForApproval(sakId, dagmulktsats, currentMockUser.rolle);
     },
-    [context, sakId]
+    [context, sakId, currentMockUser.rolle]
   );
 
   // Can approve checks (per-track)
