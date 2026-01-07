@@ -26,6 +26,8 @@ import {
   useResponseTimesAnalytics,
   useActorAnalytics,
 } from '../hooks/useAnalytics';
+import { getHovedkategoriLabel } from '../constants/categories';
+import { getVederlagsmetodeLabel } from '../constants/paymentMethods';
 
 // ============================================================
 // Helper Components
@@ -253,7 +255,7 @@ export function AnalyticsDashboard() {
                     <tbody>
                       {categories?.categories.map((cat) => (
                         <tr key={cat.kategori} className="border-b border-pkt-border-default last:border-0">
-                          <td className="py-3 px-2 font-medium">{cat.kategori}</td>
+                          <td className="py-3 px-2 font-medium">{getHovedkategoriLabel(cat.kategori)}</td>
                           <td className="py-3 px-2 text-right">{cat.antall}</td>
                           <td className="py-3 px-2 text-right text-badge-success-text">{cat.godkjent}</td>
                           <td className="py-3 px-2 text-right text-badge-warning-text">{cat.delvis_godkjent}</td>
@@ -325,7 +327,7 @@ export function AnalyticsDashboard() {
                     {vederlag?.by_metode.map((m) => (
                       <div key={m.metode} className="space-y-1">
                         <div className="flex justify-between text-sm">
-                          <span className="font-medium">{m.metode}</span>
+                          <span className="font-medium">{getVederlagsmetodeLabel(m.metode)}</span>
                           <span className="text-pkt-grays-gray-600">{m.antall} krav</span>
                         </div>
                         <div className="flex gap-2 text-xs text-pkt-grays-gray-600">

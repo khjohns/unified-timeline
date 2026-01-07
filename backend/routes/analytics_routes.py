@@ -139,24 +139,24 @@ def get_summary():
         last_activity = None
 
         for sak_id, state in states.items():
-            # Sakstype
-            sakstype = getattr(state, 'sakstype', 'standard') or 'standard'
+            # Sakstype - bruk enum value for riktig JSON-serialisering
+            sakstype_enum = getattr(state, 'sakstype', None)
+            sakstype = sakstype_enum.value if sakstype_enum else 'standard'
             by_sakstype[sakstype] += 1
 
             # Status
             status = str(state.overordnet_status) if state.overordnet_status else 'ukjent'
             by_status[status] += 1
 
-            # Vederlag
-            if state.vederlag and state.vederlag.gjeldende_krav:
-                krav = state.vederlag.gjeldende_krav
-                if hasattr(krav, 'netto_belop') and krav.netto_belop:
-                    total_vederlag_krevd += krav.netto_belop
+            # Vederlag - bruk flate felter fra VederlagTilstand
+            if state.vederlag:
+                krevd = state.vederlag.krevd_belop
+                if krevd:
+                    total_vederlag_krevd += krevd
 
-            if state.vederlag and state.vederlag.gjeldende_respons:
-                respons = state.vederlag.gjeldende_respons
-                if hasattr(respons, 'total_godkjent_belop') and respons.total_godkjent_belop:
-                    total_vederlag_godkjent += respons.total_godkjent_belop
+                godkjent = state.vederlag.godkjent_belop
+                if godkjent:
+                    total_vederlag_godkjent += godkjent
 
         # Finn siste aktivitet
         for evt in all_events:
@@ -221,12 +221,12 @@ def get_by_category():
         })
 
         for sak_id, state in states.items():
-            if state.grunnlag and state.grunnlag.gjeldende_data:
-                kategori = state.grunnlag.gjeldende_data.hovedkategori or 'UKJENT'
+            if state.grunnlag and state.grunnlag.hovedkategori:
+                kategori = state.grunnlag.hovedkategori or 'UKJENT'
                 by_category[kategori]['antall'] += 1
 
-                # Status for grunnlag
-                grunnlag_status = str(state.grunnlag.status) if state.grunnlag.status else ''
+                # Status for grunnlag - bruk status enum direkte
+                grunnlag_status = str(state.grunnlag.status.value) if state.grunnlag.status else ''
                 if 'godkjent' in grunnlag_status.lower() and 'delvis' not in grunnlag_status.lower():
                     by_category[kategori]['godkjent'] += 1
                 elif 'delvis' in grunnlag_status.lower():
@@ -393,29 +393,22 @@ def get_vederlag_analytics():
             if not state.vederlag:
                 continue
 
-            krav = state.vederlag.gjeldende_krav
-            if krav:
-                metode = krav.metode.value if hasattr(krav.metode, 'value') else str(krav.metode)
-                belop = getattr(krav, 'netto_belop', None) or 0
+            # Bruk flate felter fra VederlagTilstand
+            metode = state.vederlag.metode or 'UKJENT'
+            belop = state.vederlag.krevd_belop or 0
 
-                if belop > 0:
-                    krav_count += 1
-                    total_krevd += belop
-                    by_metode[metode]['antall'] += 1
-                    by_metode[metode]['total_krevd'] += belop
-                    krav_amounts.append(belop)
+            if belop > 0:
+                krav_count += 1
+                total_krevd += belop
+                by_metode[metode]['antall'] += 1
+                by_metode[metode]['total_krevd'] += belop
+                krav_amounts.append(belop)
 
-            respons = state.vederlag.gjeldende_respons
-            if respons:
-                godkjent = getattr(respons, 'total_godkjent_belop', None) or 0
-                if godkjent > 0:
-                    godkjent_count += 1
-                    total_godkjent += godkjent
-
-                    # Tilordne til metode
-                    if krav:
-                        metode = krav.metode.value if hasattr(krav.metode, 'value') else str(krav.metode)
-                        by_metode[metode]['total_godkjent'] += godkjent
+            godkjent = state.vederlag.godkjent_belop or 0
+            if godkjent > 0:
+                godkjent_count += 1
+                total_godkjent += godkjent
+                by_metode[metode]['total_godkjent'] += godkjent
 
         # Krav-distribusjon
         distribution = [
