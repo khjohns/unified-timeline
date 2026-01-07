@@ -33,6 +33,7 @@ import {
   ApprovePakkeModal,
   PendingApprovalBanner,
   SendResponsPakkeModal,
+  ApprovalHistory,
 } from '../components/approval';
 import { Checkbox } from '../components/primitives/Checkbox';
 import {
@@ -641,6 +642,25 @@ function CasePageContent() {
           )}
         </section>
 
+        {/* Approval History Section - Only shown when approval workflow is enabled and has a package */}
+        {approvalWorkflow.approvalEnabled && approvalWorkflow.bhResponsPakke && (
+          <section className="mt-6 sm:mt-8" aria-labelledby="approval-history-heading">
+            <h2
+              id="approval-history-heading"
+              className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4"
+            >
+              Godkjenningshistorikk
+            </h2>
+            <div className="bg-pkt-surface-light-beige p-4 border border-pkt-border-subtle rounded-sm">
+              <ApprovalHistory
+                steps={approvalWorkflow.bhResponsPakke.steps}
+                submittedAt={approvalWorkflow.bhResponsPakke.submittedAt}
+                submittedBy={approvalWorkflow.bhResponsPakke.submittedBy}
+              />
+            </div>
+          </section>
+        )}
+
         {/* Summary Section - Enhanced with Comprehensive Metadata and Revision History */}
         <section className="mt-6 sm:mt-8" aria-labelledby="summary-heading">
           <h2
@@ -969,6 +989,7 @@ function CasePageContent() {
               currentMockUser={currentMockUser}
               onApprove={(comment) => approvalWorkflow.approvePakkeStep(comment)}
               onReject={(reason) => approvalWorkflow.rejectPakkeStep(reason)}
+              onCancel={approvalWorkflow.cancelPakke}
             />
           )}
         </>

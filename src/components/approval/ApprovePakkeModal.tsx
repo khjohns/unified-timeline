@@ -88,7 +88,7 @@ export function ApprovePakkeModal({
 
   // Check if current user is the submitter (can cancel the package)
   const submitterRoleLabel = APPROVAL_ROLE_LABELS[currentUserRole];
-  const isSubmitter = pakke.submittedBy.includes(submitterRoleLabel);
+  const isSubmitter = pakke.submittedBy?.includes(submitterRoleLabel) ?? false;
 
   const handleApprove = () => {
     onApprove(comment || undefined);
@@ -244,15 +244,20 @@ export function ApprovePakkeModal({
 
             {/* Actions */}
             <div className="flex justify-between gap-3 pt-4 border-t border-pkt-border-subtle">
-              <div>
+              <div className="flex gap-2">
                 {isCurrentApprover && (
                   <Button variant="danger" onClick={() => setMode('reject')}>
                     Avvis
                   </Button>
                 )}
+                {isSubmitter && onCancel && (
+                  <Button variant="ghost" onClick={() => setMode('cancel')}>
+                    Trekk tilbake
+                  </Button>
+                )}
               </div>
               <div className="flex gap-3">
-                <Button variant="secondary" onClick={handleCancel}>
+                <Button variant="secondary" onClick={handleClose}>
                   Lukk
                 </Button>
                 {isCurrentApprover && (
@@ -261,6 +266,26 @@ export function ApprovePakkeModal({
                   </Button>
                 )}
               </div>
+            </div>
+          </>
+        )}
+
+        {mode === 'cancel' && (
+          <>
+            {/* Cancel Warning */}
+            <Alert variant="warning" title="Trekk tilbake forespørsel">
+              Er du sikker på at du vil trekke tilbake denne forespørselen?
+              Alle godkjenninger vil bli slettet.
+            </Alert>
+
+            {/* Actions */}
+            <div className="flex justify-between gap-3 pt-4 border-t border-pkt-border-subtle">
+              <Button variant="ghost" onClick={handleBack}>
+                ← Tilbake
+              </Button>
+              <Button variant="danger" onClick={handleCancelPackage}>
+                Bekreft tilbaketrekking
+              </Button>
             </div>
           </>
         )}
