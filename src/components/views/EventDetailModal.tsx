@@ -1172,7 +1172,7 @@ export function EventDetailModal({
         <div>
           <div className="flex items-center gap-2 mb-4">
             <FileTextIcon className="w-5 h-5 text-pkt-grays-gray-500" />
-            <h4 className="text-base font-semibold text-pkt-text-body-dark">Skjemadata</h4>
+            <h4 className="text-sm font-semibold text-pkt-text-body-dark">Skjemadata</h4>
           </div>
           <div className="bg-pkt-bg-card border border-pkt-grays-gray-200 p-4">
             {renderEventData()}
