@@ -335,7 +335,7 @@ function CasePageContent() {
               title="Utkast klare for godkjenning"
               action={
                 <Button
-                  variant="primary"
+                  variant="secondary"
                   size="sm"
                   onClick={() => setSendResponsPakkeOpen(true)}
                 >

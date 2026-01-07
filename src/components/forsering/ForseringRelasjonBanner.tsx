@@ -45,7 +45,7 @@ export function ForseringRelasjonBanner({ forseringer }: ForseringRelasjonBanner
           action={
             <Link
               to={`/forsering/${forsering.forsering_sak_id}`}
-              className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-badge-info-text bg-badge-info-bg hover:opacity-90 rounded transition-colors"
+              className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-badge-info-text bg-badge-info-bg border border-badge-info-text/30 hover:opacity-90 rounded transition-colors"
             >
               <span>Gå til forseringssak</span>
               <ArrowRightIcon className="w-4 h-4" />

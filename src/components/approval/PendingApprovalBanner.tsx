@@ -83,7 +83,7 @@ export function PendingApprovalBanner({
       title={title}
       action={
         onViewDetails && (
-          <Button variant="ghost" size="sm" onClick={onViewDetails}>
+          <Button variant="secondary" size="sm" onClick={onViewDetails}>
             Se detaljer
           </Button>
         )
