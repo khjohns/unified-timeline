@@ -12,6 +12,7 @@ import { DataList, DataListItem } from '../primitives/DataList';
 import { Textarea } from '../primitives/Textarea';
 import { Label } from '../primitives/Label';
 import { Badge } from '../primitives/Badge';
+import { useToast } from '../primitives/Toast';
 import type { ApprovalRequest } from '../../types/approval';
 import { ApprovalChainStatus } from './ApprovalChainStatus';
 import { formatCurrency, formatDateMedium } from '../../utils/formatters';
@@ -60,12 +61,14 @@ export function ApproveRejectModal({
 }: ApproveRejectModalProps) {
   const [comment, setComment] = useState('');
   const [mode, setMode] = useState<'view' | 'reject'>('view');
+  const toast = useToast();
 
   const nextApprover = getNextApprover(request.steps);
   const draft = request.responseData;
 
   const handleApprove = () => {
     onApprove(comment || undefined);
+    toast.success('Godkjent', 'Ditt godkjenningssteg er registrert.');
     setComment('');
     setMode('view');
     onOpenChange(false);
@@ -76,6 +79,7 @@ export function ApproveRejectModal({
       return; // Require reason for rejection
     }
     onReject(comment);
+    toast.info('Avvist', 'Svaret er sendt tilbake for revisjon.');
     setComment('');
     setMode('view');
     onOpenChange(false);
@@ -108,7 +112,7 @@ export function ApproveRejectModal({
           <>
             {/* Request Info */}
             <section>
-              <h3 className="text-lg font-semibold mb-3">Forespørsel</h3>
+              <h3 className="text-base font-semibold mb-3">Forespørsel</h3>
               <div className="bg-pkt-surface-light-beige p-4 border border-pkt-border-subtle">
                 <DataList variant="grid">
                   <DataListItem label="Sak">
@@ -129,7 +133,7 @@ export function ApproveRejectModal({
 
             {/* Response Summary */}
             <section>
-              <h3 className="text-lg font-semibold mb-3">Foreslått svar</h3>
+              <h3 className="text-base font-semibold mb-3">Foreslått svar</h3>
               <div className="bg-pkt-surface-light-beige p-4 border border-pkt-border-subtle">
                 <DataList variant="grid">
                   <DataListItem label={draft.sporType === 'vederlag' ? 'Godkjent beløp' : 'Godkjente dager'}>
@@ -154,7 +158,7 @@ export function ApproveRejectModal({
 
             {/* Approval Chain Status */}
             <section>
-              <h3 className="text-lg font-semibold mb-3">Godkjenningsstatus</h3>
+              <h3 className="text-base font-semibold mb-3">Godkjenningsstatus</h3>
               <ApprovalChainStatus
                 steps={request.steps}
                 collapsible={false}
@@ -165,7 +169,7 @@ export function ApproveRejectModal({
             {/* Your Action */}
             {nextApprover && (
               <section>
-                <h3 className="text-lg font-semibold mb-3">Din handling</h3>
+                <h3 className="text-base font-semibold mb-3">Din handling</h3>
                 <div className="bg-pkt-surface-light-yellow p-4 border border-pkt-border-warning">
                   <p className="text-sm mb-3">
                     Du godkjenner som <strong>{nextApprover.roleName}</strong>.

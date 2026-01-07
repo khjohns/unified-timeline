@@ -14,6 +14,7 @@ import {
   Textarea,
   SectionContainer,
   Alert,
+  useToast,
 } from '../primitives';
 import type { BhResponsPakke } from '../../types/approval';
 import {
@@ -77,6 +78,7 @@ export function ApprovePakkeModal({
 }: ApprovePakkeModalProps) {
   const [comment, setComment] = useState('');
   const [mode, setMode] = useState<'view' | 'reject'>('view');
+  const toast = useToast();
 
   const nextApprover = getNextApprover(pakke.steps);
   const currentUserRole = currentMockUser.rolle;
@@ -84,6 +86,7 @@ export function ApprovePakkeModal({
 
   const handleApprove = () => {
     onApprove(comment || undefined);
+    toast.success('Godkjent', 'Ditt godkjenningssteg er registrert.');
     setComment('');
     setMode('view');
     onOpenChange(false);
@@ -94,6 +97,7 @@ export function ApprovePakkeModal({
       return; // Require reason for rejection
     }
     onReject(comment);
+    toast.info('Avvist', 'Pakken er sendt tilbake for revisjon.');
     setComment('');
     setMode('view');
     onOpenChange(false);
