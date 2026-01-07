@@ -348,6 +348,286 @@ Dag 7:  Frist utløper → Eskalering til neste nivå
 
 ---
 
+---
+
+## Del 13: BH-respons som samlet godkjenningsenhet
+
+> **Oppdatert 2026-01-07**: Basert på gjennomgang av mock-implementasjon og juridiske hensyn.
+
+### 13.1 Bakgrunn
+
+Den eksisterende mock-implementasjonen (`src/context/ApprovalContext.tsx`) behandler hvert spor (vederlag, frist) separat. I praksis henger BH's standpunkt sammen:
+
+- **Grunnlag-vurdering** er forutsetning for vederlag og frist
+- **Subsidiære standpunkt** på vederlag/frist avhenger av grunnlag-konklusjon
+- **PDF-dokumentet** som sendes til motpart inneholder alle standpunkt samlet
+
+### 13.2 Ny modell: Samlet BH-respons
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    BH RESPONSFLYT (REVIDERT)                        │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  SPORTYPE        UTKAST-FASE           GODKJENNING      SENDING     │
+│  ─────────────────────────────────────────────────────────────────  │
+│                                                                     │
+│  Grunnlag  ──→  [Svar] ──→ Utkast ─┐                                │
+│                                    │                                │
+│  Vederlag  ──→  [Svar] ──→ Utkast ─┼──→ [Samlet PDF] ──→ Kjede ──→ Send
+│                                    │                                │
+│  Frist     ──→  [Svar] ──→ Utkast ─┘                                │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### 13.3 Fleksible kombinasjoner
+
+Ikke alle saker har både vederlag og frist. Systemet må støtte:
+
+| Scenario | Spor som godkjennes | Eksempel |
+|----------|---------------------|----------|
+| **A+B** | Grunnlag + Vederlag + Frist | Komplett krav |
+| **Kun A** | Grunnlag + Vederlag | Krav uten fristforlengelse |
+| **Kun B** | Grunnlag + Frist | Force majeure (§33.3) – kun frist |
+| **Kun G** | Grunnlag alene | BH responderer før krav er mottatt |
+
+**Regel:** Grunnlag-respons er alltid inkludert når vederlag eller frist godkjennes.
+
+### 13.4 Beløpsberegning for godkjenningskjede
+
+Godkjenningskjeden bestemmes av **sum av alle beløp**:
+
+```
+Totalbeløp = Vederlagsbeløp + (Fristdager × Dagmulktsats)
+```
+
+**Eksempel:**
+- Vederlag: 3.000.000 kr
+- Frist: 50 dager × 50.000 kr/dag = 2.500.000 kr
+- **Sum: 5.500.000 kr** → Kjede: PL → SL → AL → DU
+
+**Dagmulktsats:**
+- Hentes fra kontraktsdata (som i forsering-flyten)
+- Default: 50.000 kr/dag (konfigurerbar)
+- Se eksisterende implementasjon: `src/components/actions/SendForseringModal.tsx:66`
+
+### 13.5 PDF som formelt godkjenningsobjekt
+
+**Eksisterende PDF-template:**
+- `src/pdf/ContractorClaimPdf.tsx` viser allerede både entreprenørens krav OG byggherrens vurdering
+- Inkluderer "Byggherrens vurdering" med resultat og begrunnelse for alle tre spor
+- **Gjenbrukes som godkjenningsdokument** – ingen ny template nødvendig
+
+**Ny funksjonalitet:**
+
+| Funksjon | Beskrivelse |
+|----------|-------------|
+| **PDF-forhåndsvisning** | Modal som viser PDF før godkjenning sendes |
+| **Hash-låsing** | SHA-256 hash beregnes når PDF genereres |
+| **Godkjennings-signatur** | Hver godkjenner signerer på PDF-hash, ikke UI-felter |
+| **Godkjenningsstatus-seksjon** | Utvide eksisterende PDF med godkjenningskjede-visning |
+
+**Utvidelse av eksisterende PDF:**
+
+Legg til ny seksjon nederst i `ContractorClaimPdf.tsx`:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  GODKJENNINGSSTATUS (ny seksjon)                                │
+├─────────────────────────────────────────────────────────────────┤
+│     ☑ Prosjektleder: [navn] – [dato]                            │
+│     ☑ Seksjonsleder: [navn] – [dato]                            │
+│     ☐ Avdelingsleder: Venter                                    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 13.6 Revidert datamodell
+
+**Ny type: BhResponsPakke**
+
+```typescript
+interface BhResponsPakke {
+  id: string;
+  sakId: string;
+
+  // Inkluderte spor (minst ett må være satt)
+  grunnlagRespons?: DraftResponseData;
+  vederlagRespons?: DraftResponseData;
+  fristRespons?: DraftResponseData;
+
+  // Beløpsberegning
+  vederlagBelop: number;
+  fristDager: number;
+  dagmulktsats: number;
+  fristBelop: number;           // fristDager × dagmulktsats
+  samletBelop: number;          // vederlagBelop + fristBelop
+
+  // PDF
+  pdfHash?: string;             // SHA-256 av generert PDF
+  pdfGenerertDato?: string;
+
+  // Godkjenningskjede
+  requiredApprovers: ApprovalRole[];
+  steps: ApprovalStep[];
+  status: 'draft' | 'pending' | 'approved' | 'rejected';
+
+  // Metadata
+  opprettetAv: string;
+  opprettetDato: string;
+  sendtTilGodkjenningDato?: string;
+  ferdigGodkjentDato?: string;
+}
+```
+
+### 13.7 Brukerflyt (revidert)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  STEG 1: SVAR PÅ SPOR (eksisterende modaler)                    │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  BH åpner sak og svarer på hvert spor:                          │
+│                                                                 │
+│  [Grunnlag: Svar] ──→ Fyller ut wizard ──→ "Lagre utkast"       │
+│  [Vederlag: Svar] ──→ Fyller ut wizard ──→ "Lagre utkast"       │
+│  [Frist: Svar]    ──→ Fyller ut wizard ──→ "Lagre utkast"       │
+│                                                                 │
+│  Status-badges viser:                                           │
+│    ┌─────────┐ ┌─────────┐ ┌─────────┐                          │
+│    │ Utkast  │ │ Utkast  │ │ Utkast  │                          │
+│    └─────────┘ └─────────┘ └─────────┘                          │
+│     Grunnlag    Vederlag     Frist                              │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  STEG 2: SAMLE OG FORHÅNDSVISE                                  │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  [Send samlet respons til godkjenning] ──→ Åpner modal:         │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │  Forhåndsvisning av BH-respons                          │    │
+│  │  ───────────────────────────────────────────────────────│    │
+│  │                                                         │    │
+│  │  ┌─────────────────────────────────────────────────┐    │    │
+│  │  │           [PDF-FORHÅNDSVISNING]                 │    │    │
+│  │  │                                                 │    │    │
+│  │  │   (Scrollbar PDF-viewer)                        │    │    │
+│  │  │                                                 │    │    │
+│  │  └─────────────────────────────────────────────────┘    │    │
+│  │                                                         │    │
+│  │  Inkluderte spor:                                       │    │
+│  │    ☑ Grunnlag (godkjent)                                │    │
+│  │    ☑ Vederlag: 3.000.000 kr godkjent                    │    │
+│  │    ☑ Frist: 30 dager godkjent                           │    │
+│  │                                                         │    │
+│  │  Samlet eksponering: 4.500.000 kr                       │    │
+│  │  Påkrevd kjede: PL → SL → AL                            │    │
+│  │                                                         │    │
+│  │  [Last ned PDF]        [Avbryt]  [Send til godkjenning] │    │
+│  │                                                         │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  STEG 3: GODKJENNINGSKJEDE                                      │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  For hver godkjenner i kjeden:                                  │
+│                                                                 │
+│  1. Mottar varsel (e-post/Teams)                                │
+│  2. Åpner sak i systemet                                        │
+│  3. Ser PDF-forhåndsvisning                                     │
+│  4. [Godkjenn] eller [Avvis med begrunnelse]                    │
+│                                                                 │
+│  Ved avvisning: Hele pakken returneres til saksbehandler        │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  STEG 4: FERDIG GODKJENT                                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Alle i kjeden har godkjent:                                    │
+│                                                                 │
+│  ☑ PDF arkiveres med godkjenningssignaturer                     │
+│  ☑ Events publiseres til tidslinje (respons_grunnlag, etc.)     │
+│  ☑ Catenda synkroniseres                                        │
+│  ☑ Saksbehandler varsles                                        │
+│  ☑ [Valgfritt: Automatisk sending til motpart]                  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 13.8 Endringer i eksisterende mock
+
+Følgende endringer kreves for å oppgradere mock til full implementasjon:
+
+| Komponent | Nåværende | Endring |
+|-----------|-----------|---------|
+| `ApprovalContext` | Separate drafts per spor | Samlet `BhResponsPakke` |
+| `RespondVederlagModal` | "Lagre utkast" lagrer lokalt | Lagrer til pakke |
+| `RespondFristModal` | Mangler approvalEnabled | Legge til som vederlag |
+| `RespondGrunnlagModal` | Ikke del av mock | Inkludere i pakke |
+| Ny: `SendResponsPakkeModal` | - | PDF-visning + send til godkjenning |
+| `ContractorClaimPdf` | Viser krav + respons | Legge til godkjenningsstatus-seksjon |
+| `useApprovalWorkflow` | Spor-spesifikk | Pakke-basert |
+
+### 13.9 Beløpsgrenser (oppdatert med frist-beregning)
+
+| Samlet beløp (vederlag + frist×dagmulkt) | Påkrevd kjede |
+|------------------------------------------|---------------|
+| 0 – 500.000 kr | PL |
+| 500.001 – 2.000.000 kr | PL → SL |
+| 2.000.001 – 5.000.000 kr | PL → SL → AL |
+| 5.000.001 – 10.000.000 kr | PL → SL → AL → DU |
+| > 10.000.000 kr | PL → SL → AL → DU → AD |
+
+**Eksempelberegninger:**
+
+```
+Eksempel 1: Kun vederlag
+  Vederlag: 1.500.000 kr
+  Frist: 0 dager
+  Sum: 1.500.000 kr → PL → SL
+
+Eksempel 2: Kun frist
+  Vederlag: 0 kr
+  Frist: 60 dager × 50.000 = 3.000.000 kr
+  Sum: 3.000.000 kr → PL → SL → AL
+
+Eksempel 3: Begge
+  Vederlag: 4.000.000 kr
+  Frist: 40 dager × 75.000 = 3.000.000 kr
+  Sum: 7.000.000 kr → PL → SL → AL → DU
+```
+
+### 13.10 Implementasjonsrekkefølge (tillegg til eksisterende faser)
+
+**Fase 1b: Revidert mock (frontend)**
+1. Oppdater `ApprovalContext` til å bruke `BhResponsPakke`
+2. Legg til `approvalEnabled` i `RespondGrunnlagModal` og `RespondFristModal`
+3. Implementer beløpsberegning med dagmulkt
+4. Lag `SendResponsPakkeModal` med PDF-forhåndsvisning
+
+**Fase 2b: PDF-utvidelse**
+1. Utvid `ContractorClaimPdf.tsx` med godkjenningsstatus-seksjon
+2. Legg til optional `approvalSteps` prop for å vise kjede-status
+3. Integrer PDF-viewer i godkjenningsmodal (react-pdf eller iframe)
+
+**Fase 3b: Backend-integrasjon**
+1. Nytt endpoint: `POST /api/saker/{id}/respons-pakke`
+2. Lagre pakke med status og godkjenningskjede
+3. Event-publisering ved ferdig godkjenning
+
+---
+
 ## Oppsummering
 
 Løsningen bygger på eksisterende event sourcing-arkitektur og legger til:
