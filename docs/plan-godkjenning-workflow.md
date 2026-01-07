@@ -414,59 +414,31 @@ Totalbeløp = Vederlagsbeløp + (Fristdager × Dagmulktsats)
 
 ### 13.5 PDF som formelt godkjenningsobjekt
 
-**Nåværende tilstand:**
-- `src/pdf/generator.ts` genererer PDF for entreprenørkrav (TE-perspektiv)
-- Bruker `@react-pdf/renderer` (ContractorClaimPdf.tsx)
+**Eksisterende PDF-template:**
+- `src/pdf/ContractorClaimPdf.tsx` viser allerede både entreprenørens krav OG byggherrens vurdering
+- Inkluderer "Byggherrens vurdering" med resultat og begrunnelse for alle tre spor
+- **Gjenbrukes som godkjenningsdokument** – ingen ny template nødvendig
 
 **Ny funksjonalitet:**
 
 | Funksjon | Beskrivelse |
 |----------|-------------|
-| **BH-respons-PDF** | Ny PDF-template for byggherrens samlede svar |
 | **PDF-forhåndsvisning** | Modal som viser PDF før godkjenning sendes |
 | **Hash-låsing** | SHA-256 hash beregnes når PDF genereres |
 | **Godkjennings-signatur** | Hver godkjenner signerer på PDF-hash, ikke UI-felter |
+| **Godkjenningsstatus-seksjon** | Utvide eksisterende PDF med godkjenningskjede-visning |
 
-**PDF-innhold (BH-respons):**
+**Utvidelse av eksisterende PDF:**
+
+Legg til ny seksjon nederst i `ContractorClaimPdf.tsx`:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  BYGGHERRENS SVAR PÅ KRAV                                       │
-│  Sak: [sakId] – [sakstittel]                                    │
-│  Dato: [genereringsdato]                                        │
+│  GODKJENNINGSSTATUS (ny seksjon)                                │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  1. ANSVARSGRUNNLAG                                             │
-│     Resultat: [Godkjent / Delvis godkjent / Avslått]            │
-│     Begrunnelse: [auto-generert + tillegg]                      │
-│                                                                 │
-│  2. VEDERLAG (hvis aktuelt)                                     │
-│     Krevd:     kr [beløp]                                       │
-│     Godkjent:  kr [beløp]                                       │
-│     Resultat:  [Godkjent / Delvis godkjent / Avslått]           │
-│     Begrunnelse: [auto-generert + tillegg]                      │
-│     [Subsidiært standpunkt hvis relevant]                       │
-│                                                                 │
-│  3. FRISTFORLENGELSE (hvis aktuelt)                             │
-│     Krevd:     [antall] dager                                   │
-│     Godkjent:  [antall] dager                                   │
-│     Resultat:  [Godkjent / Delvis godkjent / Avslått]           │
-│     Begrunnelse: [auto-generert + tillegg]                      │
-│     [Subsidiært standpunkt hvis relevant]                       │
-│                                                                 │
-│  ─────────────────────────────────────────────────────────────  │
-│  SAMMENDRAG                                                     │
-│     Samlet godkjent vederlag:    kr [beløp]                     │
-│     Samlet godkjent frist:       [antall] dager                 │
-│     Eksponering dagmulkt:        kr [fristdager × sats]         │
-│     Samlet eksponering:          kr [sum]                       │
-│                                                                 │
-│  ─────────────────────────────────────────────────────────────  │
-│  GODKJENNINGSSTATUS                                             │
 │     ☑ Prosjektleder: [navn] – [dato]                            │
 │     ☑ Seksjonsleder: [navn] – [dato]                            │
 │     ☐ Avdelingsleder: Venter                                    │
-│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -604,7 +576,7 @@ Følgende endringer kreves for å oppgradere mock til full implementasjon:
 | `RespondFristModal` | Mangler approvalEnabled | Legge til som vederlag |
 | `RespondGrunnlagModal` | Ikke del av mock | Inkludere i pakke |
 | Ny: `SendResponsPakkeModal` | - | PDF-visning + send til godkjenning |
-| Ny: `BhResponsPdf` | - | PDF-template for BH-svar |
+| `ContractorClaimPdf` | Viser krav + respons | Legge til godkjenningsstatus-seksjon |
 | `useApprovalWorkflow` | Spor-spesifikk | Pakke-basert |
 
 ### 13.9 Beløpsgrenser (oppdatert med frist-beregning)
@@ -644,10 +616,10 @@ Eksempel 3: Begge
 3. Implementer beløpsberegning med dagmulkt
 4. Lag `SendResponsPakkeModal` med PDF-forhåndsvisning
 
-**Fase 2b: BH-respons PDF**
-1. Lag `BhResponsPdf.tsx` (react-pdf template)
-2. Oppdater `generator.ts` med `generateBhResponsPdf`
-3. Integrer PDF-viewer i godkjenningsmodal
+**Fase 2b: PDF-utvidelse**
+1. Utvid `ContractorClaimPdf.tsx` med godkjenningsstatus-seksjon
+2. Legg til optional `approvalSteps` prop for å vise kjede-status
+3. Integrer PDF-viewer i godkjenningsmodal (react-pdf eller iframe)
 
 **Fase 3b: Backend-integrasjon**
 1. Nytt endpoint: `POST /api/saker/{id}/respons-pakke`
