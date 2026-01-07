@@ -105,6 +105,9 @@ export function EndringsordePage() {
   const [reviderModalOpen, setReviderModalOpen] = useState(false);
   const [leggTilKOEModalOpen, setLeggTilKOEModalOpen] = useState(false);
 
+  // Catenda sync warning state
+  const [showCatendaWarning, setShowCatendaWarning] = useState(false);
+
   // Fetch EO case state (wait for auth)
   const {
     data: caseData,
@@ -130,9 +133,13 @@ export function EndringsordePage() {
         eo_sak_id: sakId || '',
         koe_sak_id: koeSakId,
       }),
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['endringsordre', sakId, 'kontekst'] });
       queryClient.invalidateQueries({ queryKey: ['case', sakId] });
+      // Show warning if Catenda sync failed
+      if ('catenda_synced' in result && !result.catenda_synced) {
+        setShowCatendaWarning(true);
+      }
     },
   });
 
@@ -143,9 +150,13 @@ export function EndringsordePage() {
         eo_sak_id: sakId || '',
         koe_sak_id: koeSakId,
       }),
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['endringsordre', sakId, 'kontekst'] });
       queryClient.invalidateQueries({ queryKey: ['case', sakId] });
+      // Show warning if Catenda sync failed
+      if ('catenda_synced' in result && !result.catenda_synced) {
+        setShowCatendaWarning(true);
+      }
     },
   });
 
@@ -346,6 +357,24 @@ export function EndringsordePage() {
       />
 
       {/* TODO: Implement modals for aksepter, bestrid, revider */}
+
+      {/* Catenda sync warning */}
+      {showCatendaWarning && (
+        <div className="fixed bottom-4 right-4 max-w-md z-50">
+          <Alert variant="info" title="Ikke synkronisert til Catenda">
+            Endringen er lagret lokalt, men ble ikke synkronisert til Catenda.
+            Saken mangler muligens Catenda-kobling.
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mt-2"
+              onClick={() => setShowCatendaWarning(false)}
+            >
+              Lukk
+            </Button>
+          </Alert>
+        </div>
+      )}
     </div>
   );
 }

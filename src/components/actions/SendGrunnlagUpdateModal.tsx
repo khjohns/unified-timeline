@@ -58,6 +58,8 @@ interface SendGrunnlagUpdateModalProps {
     event_id: string;
     grunnlag: GrunnlagTilstand;
   };
+  /** Callback when Catenda sync was skipped or failed */
+  onCatendaWarning?: () => void;
 }
 
 export function SendGrunnlagUpdateModal({
@@ -65,6 +67,7 @@ export function SendGrunnlagUpdateModal({
   onOpenChange,
   sakId,
   originalEvent,
+  onCatendaWarning,
 }: SendGrunnlagUpdateModalProps) {
   const { grunnlag } = originalEvent;
   const [showTokenExpired, setShowTokenExpired] = useState(false);
@@ -148,7 +151,7 @@ export function SendGrunnlagUpdateModal({
   }, [nyHovedkategori, grunnlag.hovedkategori]);
 
   const mutation = useSubmitEvent(sakId, {
-    onSuccess: () => { clearBackup(); reset(); onOpenChange(false); },
+    onSuccess: (result) => { clearBackup(); reset(); onOpenChange(false); if (!result.catenda_synced) { onCatendaWarning?.(); } },
     onError: (error) => { if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') setShowTokenExpired(true); },
   });
 

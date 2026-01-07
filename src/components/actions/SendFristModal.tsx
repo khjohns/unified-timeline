@@ -96,6 +96,8 @@ interface SendFristModalProps {
   grunnlagEvent?: GrunnlagEventInfo;
   /** Whether BH has sent an etterlysning (§33.6.2) - triggers critical warning */
   harMottattEtterlysning?: boolean;
+  /** Callback when Catenda sync was skipped or failed */
+  onCatendaWarning?: () => void;
 }
 
 export function SendFristModal({
@@ -105,6 +107,7 @@ export function SendFristModal({
   grunnlagEventId,
   grunnlagEvent,
   harMottattEtterlysning,
+  onCatendaWarning,
 }: SendFristModalProps) {
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const [showRestorePrompt, setShowRestorePrompt] = useState(false);
@@ -166,11 +169,14 @@ export function SendFristModal({
   };
 
   const mutation = useSubmitEvent(sakId, {
-    onSuccess: () => {
+    onSuccess: (result) => {
       clearBackup();
       reset();
       onOpenChange(false);
       toast.success('Fristkrav sendt', 'Kravet ditt er registrert og sendt til byggherre.');
+      if (!result.catenda_synced) {
+        onCatendaWarning?.();
+      }
     },
     onError: (error) => {
       if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') {

@@ -234,6 +234,7 @@ def submit_event():
         # 9. Catenda Integration (PDF + Comment + Status Sync) - optional
         catenda_success = False
         pdf_source = None
+        catenda_skipped_reason = None
 
         if catenda_topic_id:
             catenda_success, pdf_source = _post_to_catenda(
@@ -245,6 +246,10 @@ def submit_event():
                 client_pdf_filename=client_pdf_filename,
                 old_status=old_status
             )
+            if not catenda_success:
+                catenda_skipped_reason = 'error'
+        else:
+            catenda_skipped_reason = 'no_topic_id'
 
         # 10. Return success with new state
         return jsonify({
@@ -253,7 +258,9 @@ def submit_event():
             "new_version": new_version,
             "state": new_state.model_dump(mode='json'),
             "pdf_uploaded": catenda_success,
-            "pdf_source": pdf_source
+            "pdf_source": pdf_source,
+            "catenda_synced": catenda_success,
+            "catenda_skipped_reason": catenda_skipped_reason
         }), 201
 
     except CatendaAuthError as e:

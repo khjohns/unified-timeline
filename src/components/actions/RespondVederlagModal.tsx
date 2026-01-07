@@ -111,6 +111,8 @@ interface RespondVederlagModalProps {
   vederlagEvent?: VederlagEventInfo;
   /** Status of the grunnlag response (for subsidiary treatment) */
   grunnlagStatus?: 'godkjent' | 'avslatt' | 'delvis_godkjent';
+  /** Callback when Catenda sync was skipped or failed */
+  onCatendaWarning?: () => void;
 }
 
 // ============================================================================
@@ -228,6 +230,7 @@ export function RespondVederlagModal({
   vederlagKravId,
   vederlagEvent,
   grunnlagStatus,
+  onCatendaWarning,
 }: RespondVederlagModalProps) {
   const [currentPort, setCurrentPort] = useState(1);
   const [showTokenExpired, setShowTokenExpired] = useState(false);
@@ -298,12 +301,15 @@ export function RespondVederlagModal({
   const handleDiscardBackup = () => { clearBackup(); setShowRestorePrompt(false); };
 
   const mutation = useSubmitEvent(sakId, {
-    onSuccess: () => {
+    onSuccess: (result) => {
       clearBackup();
       reset();
       setCurrentPort(startPort);
       onOpenChange(false);
       toast.success('Svar sendt', 'Ditt svar på vederlagskravet er registrert.');
+      if (!result.catenda_synced) {
+        onCatendaWarning?.();
+      }
     },
     onError: (error) => {
       // Check for magic link token issues

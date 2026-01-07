@@ -39,6 +39,10 @@ export interface EventSubmitResponse {
   pdf_uploaded?: boolean;
   pdf_source?: 'client' | 'server';
   new_version?: number;
+  /** Whether the event was synced to Catenda (prosjekthotellet) */
+  catenda_synced?: boolean;
+  /** Reason why Catenda sync was skipped or failed */
+  catenda_skipped_reason?: 'no_topic_id' | 'not_authenticated' | 'error';
 }
 
 export interface EventPayload {
@@ -74,7 +78,7 @@ export async function submitEvent(
   if (USE_MOCK_API) {
     await mockDelay(800); // Simulate network delay for submission
 
-    // Return mock success response
+    // Return mock success response - simulate no Catenda sync in mock mode
     return {
       event_id: `evt-mock-${Date.now()}`,
       tidsstempel: new Date().toISOString(),
@@ -83,6 +87,8 @@ export async function submitEvent(
       pdf_uploaded: !!options?.pdfBase64,
       pdf_source: options?.pdfBase64 ? 'client' : undefined,
       new_version: (options?.expectedVersion ?? 0) + 1,
+      catenda_synced: false,
+      catenda_skipped_reason: 'no_topic_id',
     };
   }
 

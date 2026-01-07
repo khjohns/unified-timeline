@@ -145,6 +145,9 @@ export function CasePage() {
   // Modal state management - Special actions (BH)
   const [utstEOOpen, setUtstEOOpen] = useState(false);
 
+  // Catenda sync warning state
+  const [showCatendaWarning, setShowCatendaWarning] = useState(false);
+
   // User role management for testing different modes
   const { userRole, setUserRole } = useUserRole();
 
@@ -488,6 +491,7 @@ export function CasePage() {
             open={sendGrunnlagOpen}
             onOpenChange={setSendGrunnlagOpen}
             sakId={sakId}
+            onCatendaWarning={() => setShowCatendaWarning(true)}
           />
           <SendVederlagModal
             open={sendVederlagOpen}
@@ -499,6 +503,7 @@ export function CasePage() {
               status: grunnlagStatus,
               dato_oppdaget: state.grunnlag.dato_oppdaget,
             }}
+            onCatendaWarning={() => setShowCatendaWarning(true)}
           />
           <SendFristModal
             open={sendFristOpen}
@@ -511,6 +516,7 @@ export function CasePage() {
               dato_varslet: state.grunnlag.grunnlag_varsel?.dato_sendt,
             }}
             harMottattEtterlysning={state.frist.har_bh_etterlyst}
+            onCatendaWarning={() => setShowCatendaWarning(true)}
           />
           <RespondGrunnlagModal
             open={respondGrunnlagOpen}
@@ -524,6 +530,7 @@ export function CasePage() {
               dato_oppdaget: state.grunnlag.dato_oppdaget,
               dato_varslet: state.grunnlag.grunnlag_varsel?.dato_sendt,
             }}
+            onCatendaWarning={() => setShowCatendaWarning(true)}
           />
           <RespondVederlagModal
             open={respondVederlagOpen}
@@ -539,6 +546,7 @@ export function CasePage() {
               krever_justert_ep: state.vederlag.krever_justert_ep,
               saerskilt_krav: state.vederlag.saerskilt_krav,
             }}
+            onCatendaWarning={() => setShowCatendaWarning(true)}
           />
           <RespondFristModal
             open={respondFristOpen}
@@ -553,6 +561,7 @@ export function CasePage() {
               begrunnelse: state.frist.begrunnelse,
               dato_krav_mottatt: state.frist.spesifisert_varsel?.dato_sendt,
             }}
+            onCatendaWarning={() => setShowCatendaWarning(true)}
           />
 
           {/* Update Modals (TE) */}
@@ -564,6 +573,7 @@ export function CasePage() {
               event_id: `grunnlag-${sakId}`,
               grunnlag: state.grunnlag,
             }}
+            onCatendaWarning={() => setShowCatendaWarning(true)}
           />
           <ReviseVederlagModal
             open={reviseVederlagOpen}
@@ -591,6 +601,7 @@ export function CasePage() {
                   }
                 : undefined
             }
+            onCatendaWarning={() => setShowCatendaWarning(true)}
           />
           <ReviseFristModal
             open={reviseFristOpen}
@@ -611,6 +622,7 @@ export function CasePage() {
             originalVarselType={state.frist.varsel_type}
             harMottattEtterlysning={state.frist.har_bh_etterlyst}
             fristForSpesifisering={state.frist.frist_for_spesifisering}
+            onCatendaWarning={() => setShowCatendaWarning(true)}
           />
 
           {/* Update Response Modals (BH) */}
@@ -623,6 +635,7 @@ export function CasePage() {
               resultat: state.grunnlag.bh_resultat || 'godkjent',
             }}
             sakState={state}
+            onCatendaWarning={() => setShowCatendaWarning(true)}
           />
           <UpdateResponseVederlagModal
             open={updateVederlagResponseOpen}
@@ -635,6 +648,7 @@ export function CasePage() {
               respondedToVersion: state.vederlag.bh_respondert_versjon,
             }}
             vederlagTilstand={state.vederlag}
+            onCatendaWarning={() => setShowCatendaWarning(true)}
           />
           <UpdateResponseFristModal
             open={updateFristResponseOpen}
@@ -646,6 +660,7 @@ export function CasePage() {
               godkjent_dager: state.frist.godkjent_dager,
             }}
             fristTilstand={state.frist}
+            onCatendaWarning={() => setShowCatendaWarning(true)}
           />
 
           {/* Special Action Modals (TE) */}
@@ -664,6 +679,7 @@ export function CasePage() {
             }}
             dagmulktsats={50000}  // TODO: Get from contract config
             grunnlagAvslagTrigger={state.grunnlag.bh_resultat === 'avslatt'}
+            onCatendaWarning={() => setShowCatendaWarning(true)}
           />
 
           {/* BH Special Action Modals */}
@@ -674,6 +690,24 @@ export function CasePage() {
             preselectedKoeIds={[sakId]}  // Pre-select current case if it's a valid KOE
           />
         </>
+      )}
+
+      {/* Catenda sync warning */}
+      {showCatendaWarning && (
+        <div className="fixed bottom-4 right-4 max-w-md z-50">
+          <Alert variant="info" title="Ikke synkronisert til Catenda">
+            Endringen er lagret lokalt, men ble ikke synkronisert til Catenda.
+            Saken mangler muligens Catenda-kobling.
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mt-2"
+              onClick={() => setShowCatendaWarning(false)}
+            >
+              Lukk
+            </Button>
+          </Alert>
+        </div>
       )}
     </div>
   );

@@ -68,6 +68,8 @@ interface ReviseFristModalProps {
   harMottattEtterlysning?: boolean;
   /** BH's deadline for specification (from etterlysning) */
   fristForSpesifisering?: string;
+  /** Callback when Catenda sync was skipped or failed */
+  onCatendaWarning?: () => void;
 }
 
 const RESULTAT_LABELS: Record<FristBeregningResultat, string> = {
@@ -92,6 +94,7 @@ export function ReviseFristModal({
   originalVarselType,
   harMottattEtterlysning,
   fristForSpesifisering,
+  onCatendaWarning,
 }: ReviseFristModalProps) {
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const [showRestorePrompt, setShowRestorePrompt] = useState(false);
@@ -191,10 +194,13 @@ export function ReviseFristModal({
   }, [antallDager, lastFristEvent.antall_dager, modalMode]);
 
   const mutation = useSubmitEvent(sakId, {
-    onSuccess: () => {
+    onSuccess: (result) => {
       clearBackup();
       reset();
       onOpenChange(false);
+      if (!result.catenda_synced) {
+        onCatendaWarning?.();
+      }
     },
     onError: (error) => {
       if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') {

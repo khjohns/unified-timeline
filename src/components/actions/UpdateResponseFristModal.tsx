@@ -64,6 +64,8 @@ interface UpdateResponseFristModalProps {
     godkjent_dager?: number;
   };
   fristTilstand: FristTilstand;
+  /** Callback when Catenda sync was skipped or failed */
+  onCatendaWarning?: () => void;
 }
 
 const RESULTAT_LABELS: Record<FristBeregningResultat, string> = {
@@ -78,6 +80,7 @@ export function UpdateResponseFristModal({
   sakId,
   lastResponseEvent,
   fristTilstand,
+  onCatendaWarning,
 }: UpdateResponseFristModalProps) {
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const [showRestorePrompt, setShowRestorePrompt] = useState(false);
@@ -212,10 +215,13 @@ export function UpdateResponseFristModal({
   };
 
   const mutation = useSubmitEvent(sakId, {
-    onSuccess: () => {
+    onSuccess: (result) => {
       clearBackup();
       reset();
       onOpenChange(false);
+      if (!result.catenda_synced) {
+        onCatendaWarning?.();
+      }
     },
     onError: (error) => {
       if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') {
