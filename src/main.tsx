@@ -6,6 +6,7 @@ import { STALE_TIME } from './constants/queryConfig';
 import './index.css';
 import App from './App';
 import { AuthProvider } from './context/AuthContext';
+import { UserRoleProvider } from './context/UserRoleContext';
 import { SupabaseAuthProvider } from './context/SupabaseAuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -53,9 +54,11 @@ root.render(
           <ThemeProvider>
             <ToastProvider>
               <AuthProvider>
-                <ErrorBoundary>
-                  <App />
-                </ErrorBoundary>
+                <UserRoleProvider>
+                  <ErrorBoundary>
+                    <App />
+                  </ErrorBoundary>
+                </UserRoleProvider>
               </AuthProvider>
             </ToastProvider>
           </ThemeProvider>
