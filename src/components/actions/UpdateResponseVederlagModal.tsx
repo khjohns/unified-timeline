@@ -93,6 +93,8 @@ interface UpdateResponseVederlagModalProps {
     produktivitet_godkjent_belop?: number;
   };
   vederlagTilstand: VederlagTilstand;
+  /** Callback when Catenda sync was skipped or failed */
+  onCatendaWarning?: () => void;
 }
 
 const RESULTAT_LABELS: Record<VederlagBeregningResultat, string> = {
@@ -114,6 +116,7 @@ export function UpdateResponseVederlagModal({
   sakId,
   lastResponseEvent,
   vederlagTilstand,
+  onCatendaWarning,
 }: UpdateResponseVederlagModalProps) {
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const [showRestorePrompt, setShowRestorePrompt] = useState(false);
@@ -326,10 +329,13 @@ export function UpdateResponseVederlagModal({
   ]);
 
   const mutation = useSubmitEvent(sakId, {
-    onSuccess: () => {
+    onSuccess: (result) => {
       clearBackup();
       reset();
       onOpenChange(false);
+      if (!result.catenda_synced) {
+        onCatendaWarning?.();
+      }
     },
     onError: (error) => {
       if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') {

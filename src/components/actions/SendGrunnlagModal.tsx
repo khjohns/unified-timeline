@@ -64,12 +64,15 @@ interface SendGrunnlagModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sakId: string;
+  /** Callback when Catenda sync was skipped or failed */
+  onCatendaWarning?: () => void;
 }
 
 export function SendGrunnlagModal({
   open,
   onOpenChange,
   sakId,
+  onCatendaWarning,
 }: SendGrunnlagModalProps) {
   const [selectedHovedkategori, setSelectedHovedkategori] = useState<string>('');
   const [showTokenExpired, setShowTokenExpired] = useState(false);
@@ -180,12 +183,16 @@ export function SendGrunnlagModal({
   }, [datoOppdaget, datoVarselSendt, varselSendesNa]);
 
   const mutation = useSubmitEvent(sakId, {
-    onSuccess: () => {
+    onSuccess: (result) => {
       clearBackup();
       reset();
       setSelectedHovedkategori('');
       onOpenChange(false);
       toast.success('Grunnlag sendt', 'Varselet ditt er registrert og sendt til byggherre.');
+      // Show warning if Catenda sync failed
+      if (!result.catenda_synced) {
+        onCatendaWarning?.();
+      }
     },
     onError: (error) => {
       if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') {

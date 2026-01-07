@@ -44,6 +44,8 @@ interface RespondGrunnlagUpdateModalProps {
     resultat: GrunnlagResponsResultat;
   };
   sakState: SakState;
+  /** Callback when Catenda sync was skipped or failed */
+  onCatendaWarning?: () => void;
 }
 
 const RESULTAT_LABELS: Record<GrunnlagResponsResultat | 'frafalt', string> = {
@@ -60,6 +62,7 @@ export function RespondGrunnlagUpdateModal({
   sakId,
   lastResponseEvent,
   sakState,
+  onCatendaWarning,
 }: RespondGrunnlagUpdateModalProps) {
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const [showRestorePrompt, setShowRestorePrompt] = useState(false);
@@ -176,10 +179,13 @@ export function RespondGrunnlagUpdateModal({
   };
 
   const mutation = useSubmitEvent(sakId, {
-    onSuccess: () => {
+    onSuccess: (result) => {
       clearBackup();
       reset();
       onOpenChange(false);
+      if (!result.catenda_synced) {
+        onCatendaWarning?.();
+      }
     },
     onError: (error) => {
       if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') {

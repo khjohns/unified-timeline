@@ -85,6 +85,8 @@ interface RespondFristModalProps {
   grunnlagStatus?: 'godkjent' | 'avslatt' | 'delvis_godkjent';
   /** Type of varsel TE sent (nøytralt or spesifisert) - determines which checks to show */
   varselType?: 'noytralt' | 'spesifisert';
+  /** Callback when Catenda sync was skipped or failed */
+  onCatendaWarning?: () => void;
 }
 
 // ============================================================================
@@ -197,6 +199,7 @@ export function RespondFristModal({
   fristEvent,
   grunnlagStatus,
   varselType,
+  onCatendaWarning,
 }: RespondFristModalProps) {
   const [currentPort, setCurrentPort] = useState(1);
   const [showTokenExpired, setShowTokenExpired] = useState(false);
@@ -265,12 +268,15 @@ export function RespondFristModal({
   const handleDiscardBackup = () => { clearBackup(); setShowRestorePrompt(false); };
 
   const mutation = useSubmitEvent(sakId, {
-    onSuccess: () => {
+    onSuccess: (result) => {
       clearBackup();
       reset();
       setCurrentPort(1);
       onOpenChange(false);
       toast.success('Svar sendt', 'Ditt svar på fristkravet er registrert.');
+      if (!result.catenda_synced) {
+        onCatendaWarning?.();
+      }
     },
     onError: (error) => {
       if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') {

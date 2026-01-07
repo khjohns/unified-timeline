@@ -66,6 +66,8 @@ interface SendForseringModalProps {
   dagmulktsats: number;
   /** True if triggered by grunnlag rejection (not direct frist rejection) */
   grunnlagAvslagTrigger?: boolean;
+  /** Callback when Catenda sync was skipped or failed */
+  onCatendaWarning?: () => void;
 }
 
 // ============================================================================
@@ -108,6 +110,7 @@ export function SendForseringModal({
   fristData,
   dagmulktsats,
   grunnlagAvslagTrigger = false,
+  onCatendaWarning,
 }: SendForseringModalProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -178,6 +181,10 @@ export function SendForseringModal({
       queryClient.invalidateQueries({ queryKey: ['case', sakId] });
       reset();
       onOpenChange(false);
+      // Show warning if Catenda sync failed
+      if ('catenda_synced' in response && !response.catenda_synced) {
+        onCatendaWarning?.();
+      }
       // Navigate to the new forsering case
       navigate(`/forsering/${response.forsering_sak_id}`);
     },

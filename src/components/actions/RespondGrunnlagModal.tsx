@@ -67,6 +67,8 @@ interface RespondGrunnlagModalProps {
   grunnlagEventId: string;
   /** Optional grunnlag event data for context display and logic */
   grunnlagEvent?: GrunnlagEventInfo;
+  /** Callback when Catenda sync was skipped or failed */
+  onCatendaWarning?: () => void;
 }
 
 export function RespondGrunnlagModal({
@@ -75,6 +77,7 @@ export function RespondGrunnlagModal({
   sakId,
   grunnlagEventId,
   grunnlagEvent,
+  onCatendaWarning,
 }: RespondGrunnlagModalProps) {
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const [showRestorePrompt, setShowRestorePrompt] = useState(false);
@@ -117,7 +120,7 @@ export function RespondGrunnlagModal({
   const handleDiscardBackup = () => { clearBackup(); setShowRestorePrompt(false); };
 
   const mutation = useSubmitEvent(sakId, {
-    onSuccess: () => { clearBackup(); reset(); onOpenChange(false); toast.success('Svar sendt', 'Ditt svar på grunnlagsvarselet er registrert.'); },
+    onSuccess: (result) => { clearBackup(); reset(); onOpenChange(false); toast.success('Svar sendt', 'Ditt svar på grunnlagsvarselet er registrert.'); if (!result.catenda_synced) { onCatendaWarning?.(); } },
     onError: (error) => { if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') setShowTokenExpired(true); },
   });
 

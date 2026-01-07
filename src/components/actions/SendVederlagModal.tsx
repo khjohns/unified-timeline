@@ -102,6 +102,8 @@ interface SendVederlagModalProps {
   grunnlagEventId: string;
   /** Optional grunnlag event data for context display and subsidiary logic */
   grunnlagEvent?: GrunnlagEventInfo;
+  /** Callback when Catenda sync was skipped or failed */
+  onCatendaWarning?: () => void;
 }
 
 // Method options for RadioGroup
@@ -129,6 +131,7 @@ export function SendVederlagModal({
   sakId,
   grunnlagEventId,
   grunnlagEvent,
+  onCatendaWarning,
 }: SendVederlagModalProps) {
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const [showRestorePrompt, setShowRestorePrompt] = useState(false);
@@ -193,11 +196,14 @@ export function SendVederlagModal({
   };
 
   const mutation = useSubmitEvent(sakId, {
-    onSuccess: () => {
+    onSuccess: (result) => {
       clearBackup();
       reset();
       onOpenChange(false);
       toast.success('Vederlagskrav sendt', 'Kravet ditt er registrert og sendt til byggherre.');
+      if (!result.catenda_synced) {
+        onCatendaWarning?.();
+      }
     },
     onError: (error) => {
       if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') {

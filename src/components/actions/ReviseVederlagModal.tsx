@@ -107,6 +107,8 @@ interface ReviseVederlagModalProps {
   currentVersion?: number;
   /** BH's response to the claim (if any) */
   bhResponse?: BhResponseInfo;
+  /** Callback when Catenda sync was skipped or failed */
+  onCatendaWarning?: () => void;
 }
 
 // ============================================================================
@@ -143,6 +145,7 @@ export function ReviseVederlagModal({
   lastVederlagEvent,
   currentVersion = 0,
   bhResponse,
+  onCatendaWarning,
 }: ReviseVederlagModalProps) {
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const [showRestorePrompt, setShowRestorePrompt] = useState(false);
@@ -304,10 +307,13 @@ export function ReviseVederlagModal({
   }, [erHoldTilbake, nyErRegningsarbeid, nyttKostnadsOverslag]);
 
   const mutation = useSubmitEvent(sakId, {
-    onSuccess: () => {
+    onSuccess: (result) => {
       clearBackup();
       reset();
       onOpenChange(false);
+      if (!result.catenda_synced) {
+        onCatendaWarning?.();
+      }
     },
     onError: (error) => {
       if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') {
