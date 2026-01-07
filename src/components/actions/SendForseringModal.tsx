@@ -297,7 +297,7 @@ export function SendForseringModal({
           </Alert>
 
           <div className="p-4 bg-pkt-surface-yellow border-2 border-pkt-border-yellow rounded-none text-alert-warning-text">
-            <h4 className="font-bold mb-3">Beregning av kostnadsgrense</h4>
+            <h4 className="font-bold text-sm mb-3">Beregning av kostnadsgrense</h4>
             <div className="space-y-2 text-sm">
               <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
                 <span>Avslåtte dager:</span>

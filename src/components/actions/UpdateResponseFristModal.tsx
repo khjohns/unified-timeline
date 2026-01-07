@@ -307,7 +307,7 @@ export function UpdateResponseFristModal({
 
         {/* Nåværende status */}
         <div className="bg-pkt-bg-subtle p-4 rounded border border-pkt-grays-gray-200">
-          <h4 className="font-medium mb-3">Nåværende vurdering</h4>
+          <h4 className="font-medium text-sm mb-3">Nåværende vurdering</h4>
           <div className="space-y-2 text-sm">
             {/* Preklusjon */}
             <div className="flex justify-between items-center">
@@ -356,7 +356,7 @@ export function UpdateResponseFristModal({
         {kanEndrePreklusjonTilGunst && (
           <div className="p-4 border-2 border-pkt-border-subtle rounded-none space-y-4">
             <div className="flex items-center gap-2">
-              <h4 className="font-bold">Preklusjon ({varselType === 'noytralt' ? '§33.4' : '§33.6'})</h4>
+              <h4 className="font-bold text-sm">Preklusjon ({varselType === 'noytralt' ? '§33.4' : '§33.6'})</h4>
               <Badge variant="warning">Kan endres</Badge>
             </div>
 
@@ -399,7 +399,7 @@ export function UpdateResponseFristModal({
         {kanEndreVilkarTilGunst && (
           <div className="p-4 border-2 border-pkt-border-subtle rounded-none space-y-4">
             <div className="flex items-center gap-2">
-              <h4 className="font-bold">Vilkår (§33.5)</h4>
+              <h4 className="font-bold text-sm">Vilkår (§33.5)</h4>
               <Badge variant="warning">Kan endres</Badge>
             </div>
 
@@ -439,7 +439,7 @@ export function UpdateResponseFristModal({
         {!varGodkjent && (
           <div className="p-4 border-2 border-pkt-border-subtle rounded-none space-y-4">
             <div className="flex items-center gap-2">
-              <h4 className="font-bold">Beregning</h4>
+              <h4 className="font-bold text-sm">Beregning</h4>
               <Badge variant="warning">Kan endres</Badge>
             </div>
 

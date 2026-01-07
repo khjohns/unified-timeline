@@ -430,7 +430,7 @@ export function UtstEndringsordreModal({
               ================================================================ */}
           {currentStep === 1 && (
             <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <h3 className="font-bold text-lg">Grunnleggende informasjon</h3>
+              <h3 className="font-bold text-base">Grunnleggende informasjon</h3>
 
               <FormField
                 label="EO-nummer"
@@ -465,7 +465,7 @@ export function UtstEndringsordreModal({
               ================================================================ */}
           {currentStep === 2 && (
             <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <h3 className="font-bold text-lg">Velg KOE-saker</h3>
+              <h3 className="font-bold text-base">Velg KOE-saker</h3>
 
               <p className="text-sm text-pkt-text-body-subtle">
                 Velg KOE-saker som skal inkluderes, eller fortsett uten for proaktiv EO.
@@ -539,7 +539,7 @@ export function UtstEndringsordreModal({
               ================================================================ */}
           {currentStep === 3 && (
             <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <h3 className="font-bold text-lg">Konsekvenser</h3>
+              <h3 className="font-bold text-base">Konsekvenser</h3>
 
               <p className="text-sm text-pkt-text-body-subtle">
                 Kryss av for konsekvenser endringen medfører.
@@ -640,7 +640,7 @@ export function UtstEndringsordreModal({
               ================================================================ */}
           {currentStep === 4 && (
             <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <h3 className="font-bold text-lg">Oppgjør</h3>
+              <h3 className="font-bold text-base">Oppgjør</h3>
 
               {/* Priskonsekvens */}
               {formValues.konsekvenser_pris && (
@@ -722,7 +722,7 @@ export function UtstEndringsordreModal({
                   <div className="p-3 bg-pkt-surface-subtle border-2 border-pkt-border-subtle rounded-none">
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium">Netto beløp:</span>
-                      <span className={`font-bold text-lg ${nettoBelop < 0 ? 'text-alert-danger-text' : ''}`}>
+                      <span className={`font-bold text-base ${nettoBelop < 0 ? 'text-alert-danger-text' : ''}`}>
                         {formatCurrency(nettoBelop)}
                       </span>
                     </div>
@@ -795,7 +795,7 @@ export function UtstEndringsordreModal({
               ================================================================ */}
           {currentStep === 5 && (
             <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <h3 className="font-bold text-lg">Oppsummering</h3>
+              <h3 className="font-bold text-base">Oppsummering</h3>
 
               <p className="text-sm text-pkt-text-body-subtle">
                 Kontroller informasjonen før du utsteder endringsordren.

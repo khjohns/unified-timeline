@@ -101,7 +101,7 @@ export const RadioItem = forwardRef<
           <label
             htmlFor={radioId}
             className={clsx(
-              'text-base font-normal cursor-pointer',
+              'text-sm font-normal cursor-pointer',
               'text-pkt-text-body-default',
               props.disabled && 'cursor-not-allowed text-pkt-text-action-disabled'
             )}

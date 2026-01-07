@@ -527,7 +527,7 @@ export function ReviseVederlagModal({
         )}
 
         <div className="border-t-2 border-pkt-border-subtle pt-6">
-          <h4 className="font-bold mb-4">Revider kravet</h4>
+          <h4 className="font-bold text-sm mb-4">Revider kravet</h4>
 
           {/* ============================================
               METODE-ENDRING

@@ -626,7 +626,7 @@ export function RespondFristModal({
             <div className="space-y-6">
               {/* Kravsammendrag */}
               <div className="p-4 border-2 border-pkt-border-subtle rounded-none">
-                <h3 className="font-bold text-lg mb-4">Fristkrav fra entreprenør</h3>
+                <h3 className="font-bold text-base mb-4">Fristkrav fra entreprenør</h3>
 
                 <div className="space-y-3">
                   {/* Krevd forlengelse */}
@@ -671,7 +671,7 @@ export function RespondFristModal({
 
               {/* Veiviser */}
               <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
-                <h4 className="font-medium mb-3">Hva du skal vurdere</h4>
+                <h4 className="font-medium text-sm mb-3">Hva du skal vurdere</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex gap-3">
                     <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">Steg 2</span>
@@ -728,7 +728,7 @@ export function RespondFristModal({
               ================================================================ */}
           {currentStepType === 'preklusjon' && (
             <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <h3 className="font-bold text-lg">Preklusjon (§33.4, §33.6)</h3>
+              <h3 className="font-bold text-base">Preklusjon (§33.4, §33.6)</h3>
 
               <p className="text-sm text-pkt-text-body-subtle mb-4">
                 Vurder om entreprenøren har varslet i tide. Hvis ikke, kan kravet avvises pga
@@ -912,7 +912,7 @@ export function RespondFristModal({
           {currentStepType === 'vilkar' && (
             <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
-                <h3 className="font-bold text-lg">Årsakssammenheng (§33.1)</h3>
+                <h3 className="font-bold text-base">Årsakssammenheng (§33.1)</h3>
                 {port2ErSubsidiaer && <Badge variant="warning">Subsidiært</Badge>}
               </div>
 
@@ -998,7 +998,7 @@ export function RespondFristModal({
           {currentStepType === 'beregning' && (
             <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
-                <h3 className="font-bold text-lg">Beregning av fristforlengelse (§33.5)</h3>
+                <h3 className="font-bold text-base">Beregning av fristforlengelse (§33.5)</h3>
                 {port3ErSubsidiaer && <Badge variant="warning">Subsidiært</Badge>}
               </div>
 
@@ -1038,7 +1038,7 @@ export function RespondFristModal({
                   {!erNoytraltUtenDager && (
                     <div className="p-4 bg-pkt-surface-subtle rounded-none border-2 border-pkt-border-default">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
-                        <h4 className="font-bold">
+                        <h4 className="font-bold text-sm">
                           {port3ErSubsidiaer ? 'Subsidiær beregning' : 'Fristkrav'}
                         </h4>
                         <div className="text-left sm:text-right">
@@ -1120,7 +1120,7 @@ export function RespondFristModal({
               ================================================================ */}
           {currentStepType === 'oppsummering' && (
             <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <h3 className="font-bold text-lg">Oppsummering</h3>
+              <h3 className="font-bold text-base">Oppsummering</h3>
 
               {/* Sammendrag av valg */}
               <div className="space-y-4">

@@ -358,30 +358,30 @@ function CasePageContent() {
           <section className="mb-6">
             <Alert
               variant={approvalWorkflow.canApprovePakke ? 'info' : 'warning'}
-            >
-              <div className="flex items-start gap-2">
-                <div className="flex-1">
-                  <div>
-                    <strong>BH-responspakke</strong> venter på godkjenning
-                    <span className="text-sm text-pkt-text-body-muted ml-2">
-                      ({formatCurrency(approvalWorkflow.bhResponsPakke.samletBelop)})
-                    </span>
-                  </div>
-                  <div className="text-sm mt-1">
-                    {approvalWorkflow.canApprovePakke ? (
-                      <span className="font-medium">Din godkjenning trengs som {approvalWorkflow.nextPakkeApprover}</span>
-                    ) : (
-                      <span>Neste godkjenner: {approvalWorkflow.nextPakkeApprover}</span>
-                    )}
-                  </div>
-                  <div className="text-xs text-pkt-text-body-muted mt-2">
-                    {approvalWorkflow.bhResponsPakke.steps.filter((s) => s.status === 'approved').length} av{' '}
-                    {approvalWorkflow.bhResponsPakke.steps.length} godkjenninger fullført
-                  </div>
-                </div>
-                <Button variant="ghost" size="sm" onClick={() => setApprovePakkeOpen(true)}>
+              title={
+                <>
+                  BH-responspakke venter på godkjenning
+                  <span className="font-normal text-sm text-pkt-text-body-muted ml-2">
+                    ({formatCurrency(approvalWorkflow.bhResponsPakke.samletBelop)})
+                  </span>
+                </>
+              }
+              action={
+                <Button variant="secondary" size="sm" onClick={() => setApprovePakkeOpen(true)}>
                   Se detaljer
                 </Button>
+              }
+            >
+              <div className="text-sm">
+                {approvalWorkflow.canApprovePakke ? (
+                  <span className="font-medium">Din godkjenning trengs som {approvalWorkflow.nextPakkeApprover}</span>
+                ) : (
+                  <span>Neste godkjenner: {approvalWorkflow.nextPakkeApprover}</span>
+                )}
+              </div>
+              <div className="text-xs text-pkt-text-body-muted mt-1">
+                {approvalWorkflow.bhResponsPakke.steps.filter((s) => s.status === 'approved').length} av{' '}
+                {approvalWorkflow.bhResponsPakke.steps.length} godkjenninger fullført
               </div>
             </Alert>
           </section>

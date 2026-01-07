@@ -94,7 +94,7 @@ export function Modal({
           </div>
 
           {/* Body */}
-          <div className="text-base">{children}</div>
+          <div className="text-sm">{children}</div>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

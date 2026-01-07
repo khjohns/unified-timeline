@@ -438,7 +438,7 @@ export function UpdateResponseVederlagModal({
 
         {/* Nåværende status */}
         <div className="bg-pkt-bg-subtle p-4 rounded border border-pkt-grays-gray-200">
-          <h4 className="font-medium mb-3">Nåværende vurdering</h4>
+          <h4 className="font-medium text-sm mb-3">Nåværende vurdering</h4>
           <div className="space-y-2 text-sm">
             {/* Samlet resultat */}
             <div className="flex justify-between items-center">
@@ -541,7 +541,7 @@ export function UpdateResponseVederlagModal({
         {kanEndrePreklusjon && (
           <div className="p-4 border-2 border-pkt-border-subtle rounded-none space-y-4">
             <div className="flex items-center gap-2">
-              <h4 className="font-bold">Preklusjon (§34.1.3)</h4>
+              <h4 className="font-bold text-sm">Preklusjon (§34.1.3)</h4>
               <Badge variant="warning">Kan endres</Badge>
             </div>
 
@@ -602,7 +602,7 @@ export function UpdateResponseVederlagModal({
         {kanEndreMetode && (
           <div className="p-4 border-2 border-pkt-border-subtle rounded-none space-y-4">
             <div className="flex items-center gap-2">
-              <h4 className="font-bold">Beregningsmetode</h4>
+              <h4 className="font-bold text-sm">Beregningsmetode</h4>
               <Badge variant="warning">Kan endres</Badge>
             </div>
 
@@ -668,7 +668,7 @@ export function UpdateResponseVederlagModal({
         {(kanEndreSamletResultat || kanEndreGranularBelop) && (
           <div className="p-4 border-2 border-pkt-border-subtle rounded-none space-y-4">
             <div className="flex items-center gap-2">
-              <h4 className="font-bold">Beløp</h4>
+              <h4 className="font-bold text-sm">Beløp</h4>
               <Badge variant="warning">Kan endres</Badge>
             </div>
 

@@ -793,7 +793,7 @@ export function RespondVederlagModal({
             <div className="space-y-6">
               {/* Kravsammendrag */}
               <div className="p-4 border-2 border-pkt-border-subtle rounded-none">
-                <h3 className="font-bold text-lg mb-4">Krav fra entreprenør</h3>
+                <h3 className="font-bold text-base mb-4">Krav fra entreprenør</h3>
 
                 <div className="space-y-3">
                   {/* Hovedkrav */}
@@ -861,7 +861,7 @@ export function RespondVederlagModal({
 
               {/* Veiviser */}
               <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
-                <h4 className="font-medium mb-3">Hva du skal vurdere</h4>
+                <h4 className="font-medium text-sm mb-3">Hva du skal vurdere</h4>
                 <div className="space-y-2 text-sm">
                   {harSaerskiltKrav && (
                     <div className="flex gap-3">
@@ -915,7 +915,7 @@ export function RespondVederlagModal({
               ================================================================ */}
           {currentStepType === 'preklusjon' && (
             <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <h3 className="font-bold text-lg">Preklusjon av særskilte krav (§34.1.3)</h3>
+              <h3 className="font-bold text-base">Preklusjon av særskilte krav (§34.1.3)</h3>
 
               <Alert variant="warning">
                 Disse postene krever særskilt varsel. Ved manglende varsel tapes kravet (§34.1.3).
@@ -1005,7 +1005,7 @@ export function RespondVederlagModal({
               ================================================================ */}
           {currentStepType === 'metode' && (
             <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <h3 className="font-bold text-lg">Beregningsmetode</h3>
+              <h3 className="font-bold text-base">Beregningsmetode</h3>
 
               {/* Beregningsmetode aksept */}
               <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
@@ -1145,7 +1145,7 @@ export function RespondVederlagModal({
               ================================================================ */}
           {currentStepType === 'belop' && (
             <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <h3 className="font-bold text-lg">Beløpsvurdering</h3>
+              <h3 className="font-bold text-base">Beløpsvurdering</h3>
 
               <p className="text-sm text-pkt-text-body-subtle mb-4">
                 Vurder beløpet for hvert krav. Dette er ren utmåling - ansvarsvurdering håndteres i
@@ -1155,7 +1155,7 @@ export function RespondVederlagModal({
               {/* HOVEDKRAV */}
               <div className="p-4 bg-pkt-surface-subtle rounded-none border-2 border-pkt-border-default">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
-                  <h4 className="font-bold">Hovedkrav</h4>
+                  <h4 className="font-bold text-sm">Hovedkrav</h4>
                   <div className="text-left sm:text-right">
                     <span className="text-sm text-pkt-text-body-subtle">Krevd: </span>
                     <span className="text-lg font-mono font-bold">
@@ -1214,7 +1214,7 @@ export function RespondVederlagModal({
                 <div className="p-4 rounded-none border-2 bg-pkt-surface-subtle border-pkt-border-default">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h4 className="font-bold">Særskilt: Rigg/Drift</h4>
+                      <h4 className="font-bold text-sm">Særskilt: Rigg/Drift</h4>
                       {riggPrekludert && (
                         <>
                           <Badge variant="danger">PREKLUDERT</Badge>
@@ -1289,7 +1289,7 @@ export function RespondVederlagModal({
                 <div className="p-4 rounded-none border-2 bg-pkt-surface-subtle border-pkt-border-default">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h4 className="font-bold">Særskilt: Produktivitetstap</h4>
+                      <h4 className="font-bold text-sm">Særskilt: Produktivitetstap</h4>
                       {produktivitetPrekludert && (
                         <>
                           <Badge variant="danger">PREKLUDERT</Badge>
@@ -1368,7 +1368,7 @@ export function RespondVederlagModal({
               ================================================================ */}
           {currentStepType === 'oppsummering' && (
             <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <h3 className="font-bold text-lg">Oppsummering</h3>
+              <h3 className="font-bold text-base">Oppsummering</h3>
 
               {/* Sammendrag av valg */}
               <div className="space-y-4">

@@ -57,7 +57,7 @@ export function InfoLabel({
       id={labelId}
       htmlFor={htmlFor}
       className={clsx(
-        'block text-base font-medium text-pkt-text-body-default mb-2',
+        'block text-sm font-medium text-pkt-text-body-default mb-2',
         className
       )}
     >

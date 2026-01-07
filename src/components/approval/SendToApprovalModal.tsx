@@ -106,7 +106,7 @@ export function SendToApprovalModal({
       <div className="space-y-6">
         {/* Response Summary */}
         <section>
-          <h3 className="text-lg font-semibold mb-3">Oppsummering av svar</h3>
+          <h3 className="text-base font-semibold mb-3">Oppsummering av svar</h3>
           <div className="bg-pkt-surface-light-beige p-4 border border-pkt-border-subtle">
             <DataList variant="grid">
               <DataListItem label={draft.sporType === 'vederlag' ? 'Godkjent beløp' : 'Godkjente dager'}>
@@ -131,7 +131,7 @@ export function SendToApprovalModal({
 
         {/* Amount Thresholds */}
         <section>
-          <h3 className="text-lg font-semibold mb-3">Beløpsgrenser</h3>
+          <h3 className="text-base font-semibold mb-3">Beløpsgrenser</h3>
           <div className="border border-pkt-border-subtle overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-pkt-surface-gray">
@@ -172,7 +172,7 @@ export function SendToApprovalModal({
 
         {/* Required Approval Chain */}
         <section>
-          <h3 className="text-lg font-semibold mb-3">Godkjenningskjede</h3>
+          <h3 className="text-base font-semibold mb-3">Godkjenningskjede</h3>
           <div className="bg-pkt-surface-light-beige p-4 border border-pkt-border-subtle">
             <p className="text-sm mb-3">
               Beløpet <strong>{formatCurrency(belop)}</strong> krever godkjenning fra:

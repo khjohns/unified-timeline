@@ -32,6 +32,7 @@ interface ApprovePakkeModalProps {
   currentMockUser: MockPerson;
   onApprove: (comment?: string) => void;
   onReject: (reason: string) => void;
+  onCancel?: () => void;
 }
 
 function getResultatLabel(resultat: string): string {
@@ -75,14 +76,19 @@ export function ApprovePakkeModal({
   currentMockUser,
   onApprove,
   onReject,
+  onCancel,
 }: ApprovePakkeModalProps) {
   const [comment, setComment] = useState('');
-  const [mode, setMode] = useState<'view' | 'reject'>('view');
+  const [mode, setMode] = useState<'view' | 'reject' | 'cancel'>('view');
   const toast = useToast();
 
   const nextApprover = getNextApprover(pakke.steps);
   const currentUserRole = currentMockUser.rolle;
   const isCurrentApprover = nextApprover?.role === currentUserRole;
+
+  // Check if current user is the submitter (can cancel the package)
+  const submitterRoleLabel = APPROVAL_ROLE_LABELS[currentUserRole];
+  const isSubmitter = pakke.submittedBy.includes(submitterRoleLabel);
 
   const handleApprove = () => {
     onApprove(comment || undefined);
@@ -103,7 +109,7 @@ export function ApprovePakkeModal({
     onOpenChange(false);
   };
 
-  const handleCancel = () => {
+  const handleClose = () => {
     setComment('');
     setMode('view');
     onOpenChange(false);
@@ -112,6 +118,16 @@ export function ApprovePakkeModal({
   const handleBack = () => {
     setMode('view');
     setComment('');
+  };
+
+  const handleCancelPackage = () => {
+    if (onCancel) {
+      onCancel();
+      toast.info('Trukket tilbake', 'Forespørselen er trukket tilbake.');
+      setComment('');
+      setMode('view');
+      onOpenChange(false);
+    }
   };
 
   // Build list of included responses

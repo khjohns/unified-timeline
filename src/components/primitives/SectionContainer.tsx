@@ -71,7 +71,7 @@ export function SectionContainer({
     <div className="flex-1">
       <div className="flex items-center gap-2">
         {icon && <span className="text-oslo-blue">{icon}</span>}
-        <h4 className="font-bold text-sm text-pkt-text-body-dark">{title}</h4>
+        <h3 className="font-bold text-base text-pkt-text-body-dark">{title}</h3>
       </div>
       {description && (
         <p className="text-sm text-pkt-text-body-subtle mt-1">{description}</p>

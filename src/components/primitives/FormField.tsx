@@ -66,7 +66,7 @@ export function FormField({
       ) : label ? (
         <label
           htmlFor={fieldId}
-          className="block text-base font-medium text-pkt-text-body-default mb-2"
+          className="block text-sm font-medium text-pkt-text-body-default mb-2"
         >
           {label}
           {required && (
