@@ -922,14 +922,13 @@ class SakState(BaseModel):
         if not aktive_statuser:
             return "INGEN_AKTIVE_SPOR"
 
-        # Sjekk om alle er GODKJENT, LAAST, eller UTKAST (aldri startet)
-        # En sak er OMFORENT hvis alle påbegynte spor er ferdige,
-        # selv om noen spor aldri ble startet (f.eks. frist ikke krevd)
-        godkjent_statuser = {SporStatus.GODKJENT, SporStatus.LAAST}
-        godkjent_eller_utkast = godkjent_statuser | {SporStatus.UTKAST}
-        if all(s in godkjent_eller_utkast for s in aktive_statuser):
-            # Minst ett spor må være ferdig (ikke bare utkast)
-            if any(s in godkjent_statuser for s in aktive_statuser):
+        # En sak er OMFORENT kun hvis alle aktive spor er eksplisitt avsluttet
+        # (GODKJENT, LAAST, eller TRUKKET) - UTKAST betyr "kan fortsatt sendes"
+        # og skal derfor hindre OMFORENT-status
+        ferdig_statuser = {SporStatus.GODKJENT, SporStatus.LAAST, SporStatus.TRUKKET}
+        if all(s in ferdig_statuser for s in aktive_statuser):
+            # Minst ett spor må være godkjent (ikke bare trukket)
+            if any(s in {SporStatus.GODKJENT, SporStatus.LAAST} for s in aktive_statuser):
                 return "OMFORENT"
 
         # Sjekk om noen er TRUKKET
@@ -950,9 +949,12 @@ class SakState(BaseModel):
         if any(s == SporStatus.SENDT for s in aktive_statuser):
             return "VENTER_PAA_SVAR"
 
-        # Sjekk om alle er utkast
-        if all(s == SporStatus.UTKAST for s in aktive_statuser):
-            return "UTKAST"
+        # Sjekk om noen spor er utkast (og resten er ferdige)
+        # Dette dekker tilfellet der f.eks. grunnlag er godkjent men vederlag ikke er sendt
+        if any(s == SporStatus.UTKAST for s in aktive_statuser):
+            ferdig_eller_utkast = ferdig_statuser | {SporStatus.UTKAST}
+            if all(s in ferdig_eller_utkast for s in aktive_statuser):
+                return "UTKAST"
 
         return "UKJENT"
 

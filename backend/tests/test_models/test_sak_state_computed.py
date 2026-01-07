@@ -585,6 +585,19 @@ class TestOverordnetStatus:
         )
         assert sak.overordnet_status == "OMFORENT"
 
+    def test_not_omforent_with_utkast_tracks(self):
+        """UTKAST tracks should prevent OMFORENT status."""
+        sak = SakState(
+            sak_id="TEST",
+            sakstype=SaksType.STANDARD,
+            grunnlag=GrunnlagTilstand(status=SporStatus.GODKJENT),
+            vederlag=VederlagTilstand(status=SporStatus.UTKAST),
+            frist=FristTilstand(status=SporStatus.UTKAST),
+        )
+        # Saken er IKKE omforent fordi vederlag/frist fortsatt kan sendes
+        assert sak.overordnet_status != "OMFORENT"
+        assert sak.overordnet_status == "UTKAST"
+
 
 # ============================================================================
 # SakState.er_subsidiaert tests

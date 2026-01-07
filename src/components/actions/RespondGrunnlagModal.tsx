@@ -69,6 +69,14 @@ interface RespondGrunnlagModalProps {
   grunnlagEvent?: GrunnlagEventInfo;
   /** Callback when Catenda sync was skipped or failed */
   onCatendaWarning?: () => void;
+  /** When true, show "Lagre utkast" instead of "Send svar" for approval workflow */
+  approvalEnabled?: boolean;
+  /** Callback when saving as draft (for approval workflow) */
+  onSaveDraft?: (draftData: {
+    resultat: string;
+    begrunnelse: string;
+    formData: RespondGrunnlagFormData;
+  }) => void;
 }
 
 export function RespondGrunnlagModal({
@@ -78,6 +86,8 @@ export function RespondGrunnlagModal({
   grunnlagEventId,
   grunnlagEvent,
   onCatendaWarning,
+  approvalEnabled = false,
+  onSaveDraft,
 }: RespondGrunnlagModalProps) {
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const [showRestorePrompt, setShowRestorePrompt] = useState(false);
@@ -151,6 +161,23 @@ export function RespondGrunnlagModal({
       ? grunnlagEvent.underkategori.map(getUnderkategoriLabel).join(', ')
       : getUnderkategoriLabel(grunnlagEvent.underkategori)
     : undefined;
+
+  // Handler for saving as draft (approval workflow)
+  const handleSaveDraft = (data: RespondGrunnlagFormData) => {
+    if (!onSaveDraft) return;
+
+    onSaveDraft({
+      resultat: data.resultat,
+      begrunnelse: data.begrunnelse,
+      formData: data,
+    });
+
+    // Clear backup and close modal
+    clearBackup();
+    reset();
+    onOpenChange(false);
+    toast.success('Utkast lagret', 'Grunnlagssvaret er lagret som utkast. Du kan nå sende det til godkjenning.');
+  };
 
   const onSubmit = (data: RespondGrunnlagFormData) => {
     mutation.mutate({
@@ -399,16 +426,30 @@ export function RespondGrunnlagModal({
           >
             Avbryt
           </Button>
-          <Button
-            type="submit"
-            variant={selectedResultat === 'avslatt' ? 'danger' : 'primary'}
-            loading={isSubmitting}
-            size="lg"
-            className="w-full sm:w-auto"
-            data-testid="respond-grunnlag-submit"
-          >
-            Send svar
-          </Button>
+          {approvalEnabled ? (
+            <Button
+              type="button"
+              variant="primary"
+              loading={isSubmitting}
+              size="lg"
+              className="w-full sm:w-auto"
+              onClick={handleSubmit(handleSaveDraft)}
+              data-testid="respond-grunnlag-submit"
+            >
+              Lagre utkast
+            </Button>
+          ) : (
+            <Button
+              type="submit"
+              variant={selectedResultat === 'avslatt' ? 'danger' : 'primary'}
+              loading={isSubmitting}
+              size="lg"
+              className="w-full sm:w-auto"
+              data-testid="respond-grunnlag-submit"
+            >
+              Send svar
+            </Button>
+          )}
         </div>
       </form>
 
