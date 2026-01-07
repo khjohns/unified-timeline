@@ -37,3 +37,16 @@ export type {
   EventSubmitRequest,
   ApiClientConfig,
 } from './api';
+
+// Approval workflow types (mock)
+export type {
+  ApprovalRole,
+  ApprovalStepStatus,
+  ApprovalStep,
+  ApprovalSporType,
+  ApprovalRequestStatus,
+  DraftResponseData,
+  ApprovalRequest,
+  ApprovalThreshold,
+  ApprovalState,
+} from './approval';

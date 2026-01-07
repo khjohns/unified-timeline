@@ -11,10 +11,12 @@ import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { STALE_TIME } from '../constants/queryConfig';
 import { useAuth } from '../context/AuthContext';
+import { ApprovalProvider, useApprovalContext } from '../context/ApprovalContext';
 import { useCaseState } from '../hooks/useCaseState';
 import { useTimeline } from '../hooks/useTimeline';
 import { useActionPermissions } from '../hooks/useActionPermissions';
 import { useUserRole } from '../hooks/useUserRole';
+import { useApprovalWorkflow } from '../hooks/useApprovalWorkflow';
 import { CaseDashboard } from '../components/views/CaseDashboard';
 import { Timeline } from '../components/views/Timeline';
 import { ComprehensiveMetadata } from '../components/views/ComprehensiveMetadata';
@@ -23,6 +25,13 @@ import { Alert, Button } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
 import { ForseringRelasjonBanner } from '../components/forsering';
 import { UtstEndringsordreModal, EndringsordreRelasjonBanner } from '../components/endringsordre';
+import { ApprovalRoleSelector } from '../components/ApprovalRoleSelector';
+import {
+  SendToApprovalModal,
+  ApproveRejectModal,
+  PendingApprovalBanner,
+} from '../components/approval';
+import { Checkbox } from '../components/primitives/Checkbox';
 import {
   SendGrunnlagModal,
   SendVederlagModal,
@@ -96,8 +105,20 @@ const EMPTY_STATE: SakState = {
 
 /**
  * CasePage renders the complete case view with dashboard and timeline
+ * Wrapped with ApprovalProvider for approval workflow mock
  */
 export function CasePage() {
+  return (
+    <ApprovalProvider>
+      <CasePageContent />
+    </ApprovalProvider>
+  );
+}
+
+/**
+ * Inner component that uses the approval context
+ */
+function CasePageContent() {
   const { sakId } = useParams<{ sakId: string }>();
   const { token, isVerifying, error: authError } = useAuth();
 
@@ -149,7 +170,16 @@ export function CasePage() {
   const [showCatendaWarning, setShowCatendaWarning] = useState(false);
 
   // User role management for testing different modes
-  const { userRole, setUserRole } = useUserRole();
+  const { userRole, setUserRole, bhApprovalRole } = useUserRole();
+
+  // Approval workflow (mock) - must be called unconditionally
+  const approvalWorkflow = useApprovalWorkflow(sakId || '');
+
+  // Approval modal states
+  const [sendToApprovalVederlagOpen, setSendToApprovalVederlagOpen] = useState(false);
+  const [sendToApprovalFristOpen, setSendToApprovalFristOpen] = useState(false);
+  const [approveRejectVederlagOpen, setApproveRejectVederlagOpen] = useState(false);
+  const [approveRejectFristOpen, setApproveRejectFristOpen] = useState(false);
 
   // Use state from data or empty state - hooks must be called unconditionally
   const state = data?.state ?? EMPTY_STATE;
@@ -221,7 +251,25 @@ export function CasePage() {
         userRole={userRole}
         onToggleRole={setUserRole}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Approval workflow toggle and role selector (only in BH mode) */}
+            {userRole === 'BH' && (
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-1.5 text-xs text-pkt-text-body-muted cursor-pointer">
+                  <Checkbox
+                    checked={approvalWorkflow.approvalEnabled}
+                    onCheckedChange={(checked) =>
+                      approvalWorkflow.setApprovalEnabled(checked === true)
+                    }
+                    aria-label="Aktiver godkjenningsflyt"
+                  />
+                  <span className="hidden sm:inline">Godkjenning</span>
+                </label>
+                {approvalWorkflow.approvalEnabled && (
+                  <ApprovalRoleSelector visible={true} />
+                )}
+              </div>
+            )}
             <button
               onClick={async () => {
                 const { downloadContractorClaimPdf } = await import('../pdf/generator');
@@ -254,6 +302,26 @@ export function CasePage() {
           </section>
         )}
 
+        {/* Pending Approval Banners */}
+        {approvalWorkflow.approvalEnabled && approvalWorkflow.isPendingVederlagApproval && approvalWorkflow.vederlagApproval && (
+          <section className="mb-6">
+            <PendingApprovalBanner
+              request={approvalWorkflow.vederlagApproval}
+              canApprove={approvalWorkflow.canApproveVederlag}
+              onViewDetails={() => setApproveRejectVederlagOpen(true)}
+            />
+          </section>
+        )}
+        {approvalWorkflow.approvalEnabled && approvalWorkflow.isPendingFristApproval && approvalWorkflow.fristApproval && (
+          <section className="mb-6">
+            <PendingApprovalBanner
+              request={approvalWorkflow.fristApproval}
+              canApprove={approvalWorkflow.canApproveFrist}
+              onViewDetails={() => setApproveRejectFristOpen(true)}
+            />
+          </section>
+        )}
+
         {/* Status Dashboard with Contextual Actions */}
         <section aria-labelledby="krav-respons-heading">
           <h2
@@ -264,6 +332,8 @@ export function CasePage() {
           </h2>
           <CaseDashboard
           state={state}
+          vederlagApproval={approvalWorkflow.approvalEnabled ? approvalWorkflow.vederlagApproval : undefined}
+          fristApproval={approvalWorkflow.approvalEnabled ? approvalWorkflow.fristApproval : undefined}
           grunnlagActions={
             <>
               {/* TE Actions: "Send" and "Oppdater" are mutually exclusive */}
@@ -375,6 +445,28 @@ export function CasePage() {
                   Endre svar
                 </Button>
               )}
+              {/* BH Actions: Send draft to approval (when approval workflow enabled and draft exists) */}
+              {userRole === 'BH' && approvalWorkflow.approvalEnabled && approvalWorkflow.vederlagDraft && !approvalWorkflow.isPendingVederlagApproval && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setSendToApprovalVederlagOpen(true)}
+                >
+                  <PaperPlaneIcon className="w-4 h-4 mr-2" />
+                  Send til godkjenning
+                </Button>
+              )}
+              {/* BH Actions: Approve/Reject (when user is the next approver) */}
+              {userRole === 'BH' && approvalWorkflow.approvalEnabled && approvalWorkflow.canApproveVederlag && approvalWorkflow.vederlagApproval && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setApproveRejectVederlagOpen(true)}
+                >
+                  <ChatBubbleIcon className="w-4 h-4 mr-2" />
+                  Godkjenn / Avvis
+                </Button>
+              )}
             </>
           }
           fristActions={
@@ -432,6 +524,28 @@ export function CasePage() {
                 >
                   <Pencil2Icon className="w-4 h-4 mr-2" />
                   Endre svar
+                </Button>
+              )}
+              {/* BH Actions: Send draft to approval (when approval workflow enabled and draft exists) */}
+              {userRole === 'BH' && approvalWorkflow.approvalEnabled && approvalWorkflow.fristDraft && !approvalWorkflow.isPendingFristApproval && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setSendToApprovalFristOpen(true)}
+                >
+                  <PaperPlaneIcon className="w-4 h-4 mr-2" />
+                  Send til godkjenning
+                </Button>
+              )}
+              {/* BH Actions: Approve/Reject (when user is the next approver) */}
+              {userRole === 'BH' && approvalWorkflow.approvalEnabled && approvalWorkflow.canApproveFrist && approvalWorkflow.fristApproval && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setApproveRejectFristOpen(true)}
+                >
+                  <ChatBubbleIcon className="w-4 h-4 mr-2" />
+                  Godkjenn / Avvis
                 </Button>
               )}
             </>
@@ -547,6 +661,16 @@ export function CasePage() {
               saerskilt_krav: state.vederlag.saerskilt_krav,
             }}
             onCatendaWarning={() => setShowCatendaWarning(true)}
+            approvalEnabled={approvalWorkflow.approvalEnabled}
+            onSaveDraft={(draftData) => {
+              approvalWorkflow.saveDraft({
+                sporType: 'vederlag',
+                belop: draftData.belop,
+                resultat: draftData.resultat,
+                begrunnelse: draftData.begrunnelse,
+                formData: draftData.formData,
+              });
+            }}
           />
           <RespondFristModal
             open={respondFristOpen}
@@ -689,6 +813,54 @@ export function CasePage() {
             sakId={sakId}
             preselectedKoeIds={[sakId]}  // Pre-select current case if it's a valid KOE
           />
+
+          {/* Approval Workflow Modals */}
+          {approvalWorkflow.vederlagDraft && (
+            <SendToApprovalModal
+              open={sendToApprovalVederlagOpen}
+              onOpenChange={setSendToApprovalVederlagOpen}
+              draft={approvalWorkflow.vederlagDraft}
+              belop={approvalWorkflow.vederlagDraft.belop || krevdBelop || 0}
+              onSubmit={(comment) => {
+                approvalWorkflow.submitForApproval(
+                  approvalWorkflow.vederlagDraft!,
+                  approvalWorkflow.vederlagDraft!.belop || krevdBelop || 0
+                );
+              }}
+            />
+          )}
+          {approvalWorkflow.fristDraft && (
+            <SendToApprovalModal
+              open={sendToApprovalFristOpen}
+              onOpenChange={setSendToApprovalFristOpen}
+              draft={approvalWorkflow.fristDraft}
+              belop={0} // Frist doesn't have amount-based thresholds in this simplified mock
+              onSubmit={(comment) => {
+                approvalWorkflow.submitForApproval(
+                  approvalWorkflow.fristDraft!,
+                  0
+                );
+              }}
+            />
+          )}
+          {approvalWorkflow.vederlagApproval && (
+            <ApproveRejectModal
+              open={approveRejectVederlagOpen}
+              onOpenChange={setApproveRejectVederlagOpen}
+              request={approvalWorkflow.vederlagApproval}
+              onApprove={(comment) => approvalWorkflow.approveStep('vederlag', comment)}
+              onReject={(reason) => approvalWorkflow.rejectStep('vederlag', reason)}
+            />
+          )}
+          {approvalWorkflow.fristApproval && (
+            <ApproveRejectModal
+              open={approveRejectFristOpen}
+              onOpenChange={setApproveRejectFristOpen}
+              request={approvalWorkflow.fristApproval}
+              onApprove={(comment) => approvalWorkflow.approveStep('frist', comment)}
+              onReject={(reason) => approvalWorkflow.rejectStep('frist', reason)}
+            />
+          )}
         </>
       )}
 

@@ -113,6 +113,15 @@ interface RespondVederlagModalProps {
   grunnlagStatus?: 'godkjent' | 'avslatt' | 'delvis_godkjent';
   /** Callback when Catenda sync was skipped or failed */
   onCatendaWarning?: () => void;
+  /** When true, show "Lagre utkast" instead of "Send svar" for approval workflow */
+  approvalEnabled?: boolean;
+  /** Callback when saving as draft (for approval workflow). Receives the form data. */
+  onSaveDraft?: (draftData: {
+    belop: number;
+    resultat: 'godkjent' | 'delvis_godkjent' | 'avslatt';
+    begrunnelse?: string;
+    formData: RespondVederlagFormData;
+  }) => void;
 }
 
 // ============================================================================
@@ -231,6 +240,8 @@ export function RespondVederlagModal({
   vederlagEvent,
   grunnlagStatus,
   onCatendaWarning,
+  approvalEnabled = false,
+  onSaveDraft,
 }: RespondVederlagModalProps) {
   const [currentPort, setCurrentPort] = useState(1);
   const [showTokenExpired, setShowTokenExpired] = useState(false);
@@ -701,6 +712,38 @@ export function RespondVederlagModal({
           : undefined,
       },
     });
+  };
+
+  // Handler for saving as draft (approval workflow)
+  const handleSaveDraft = (data: RespondVederlagFormData) => {
+    if (!onSaveDraft) return;
+
+    // Determine resultat based on principal result
+    let resultat: 'godkjent' | 'delvis_godkjent' | 'avslatt';
+    if (prinsipaltResultat === 'godkjent') {
+      resultat = 'godkjent';
+    } else if (prinsipaltResultat === 'avslatt') {
+      resultat = 'avslatt';
+    } else {
+      resultat = 'delvis_godkjent';
+    }
+
+    // Combine auto-generated begrunnelse with user's additional comments
+    const samletBegrunnelse = combineBegrunnelse(autoBegrunnelse, data.tilleggs_begrunnelse);
+
+    onSaveDraft({
+      belop: computed.totalGodkjent,
+      resultat,
+      begrunnelse: samletBegrunnelse,
+      formData: data,
+    });
+
+    // Clear backup and close modal
+    clearBackup();
+    reset();
+    setCurrentPort(startPort);
+    onOpenChange(false);
+    toast.success('Utkast lagret', 'Vederlagssvaret er lagret som utkast. Du kan nå sende det til godkjenning.');
   };
 
   // Reset to start port when opening
@@ -1863,6 +1906,17 @@ export function RespondVederlagModal({
                   className="w-full sm:w-auto order-1 sm:order-2"
                 >
                   Neste →
+                </Button>
+              ) : approvalEnabled ? (
+                <Button
+                  type="button"
+                  variant="primary"
+                  loading={isSubmitting}
+                  size="lg"
+                  className="w-full sm:w-auto order-1 sm:order-2"
+                  onClick={handleSubmit(handleSaveDraft)}
+                >
+                  Lagre utkast
                 </Button>
               ) : (
                 <Button type="submit" variant="primary" loading={isSubmitting} size="lg" className="w-full sm:w-auto order-1 sm:order-2">
