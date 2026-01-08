@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Alert, Button, Modal } from '../primitives';
+import { Alert, Button, CurrencyInput, Modal } from '../primitives';
 import { UpdateIcon } from '@radix-ui/react-icons';
 import type { ForseringData } from '../../types/timeline';
 
@@ -29,34 +29,33 @@ export function OppdaterKostnaderModal({
   onOppdater,
   isLoading = false,
 }: OppdaterKostnaderModalProps) {
-  const [paalopteKostnader, setPaalopteKostnader] = useState<string>('');
+  const [paalopteKostnader, setPaalopteKostnader] = useState<number | null>(null);
   const [kommentar, setKommentar] = useState('');
 
   // Pre-fill with current value when opening
   useEffect(() => {
     if (open && forseringData.paalopte_kostnader != null) {
-      setPaalopteKostnader(forseringData.paalopte_kostnader.toString());
+      setPaalopteKostnader(forseringData.paalopte_kostnader);
     }
   }, [open, forseringData.paalopte_kostnader]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const kostnad = parseInt(paalopteKostnader, 10);
-    if (isNaN(kostnad) || kostnad < 0) return;
+    if (paalopteKostnader === null || paalopteKostnader < 0) return;
 
     onOppdater({
-      paalopte_kostnader: kostnad,
+      paalopte_kostnader: paalopteKostnader,
       kommentar: kommentar || undefined,
     });
   };
 
   const handleClose = () => {
-    setPaalopteKostnader('');
+    setPaalopteKostnader(null);
     setKommentar('');
     onOpenChange(false);
   };
 
-  const nyKostnad = parseInt(paalopteKostnader, 10) || 0;
+  const nyKostnad = paalopteKostnader ?? 0;
   const overstigerMaks = forseringData.maks_forseringskostnad != null && nyKostnad > forseringData.maks_forseringskostnad;
   const overstigerEstimert = forseringData.estimert_kostnad != null && nyKostnad > forseringData.estimert_kostnad;
 
@@ -90,20 +89,14 @@ export function OppdaterKostnaderModal({
         </div>
 
         {/* Påløpte kostnader input */}
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Nye påløpte kostnader <span className="text-alert-danger-text">*</span>
-          </label>
-          <input
-            type="number"
-            value={paalopteKostnader}
-            onChange={(e) => setPaalopteKostnader(e.target.value)}
-            placeholder="F.eks. 350000"
-            required
-            min="0"
-            className="w-full px-3 py-2 bg-pkt-bg-card border-2 border-pkt-border-default rounded-none text-sm focus:outline-none focus:border-pkt-border-focus"
-          />
-        </div>
+        <CurrencyInput
+          label="Nye påløpte kostnader *"
+          value={paalopteKostnader}
+          onChange={setPaalopteKostnader}
+          placeholder="F.eks. 350 000"
+          width="full"
+          allowNegative={false}
+        />
 
         {/* Warnings */}
         {overstigerMaks && (
@@ -142,7 +135,7 @@ export function OppdaterKostnaderModal({
           <Button
             variant="primary"
             type="submit"
-            disabled={!paalopteKostnader || nyKostnad < 0 || isLoading}
+            disabled={paalopteKostnader === null || nyKostnad < 0 || isLoading}
           >
             <UpdateIcon className="w-4 h-4 mr-2" />
             {isLoading ? 'Oppdaterer...' : 'Oppdater kostnader'}

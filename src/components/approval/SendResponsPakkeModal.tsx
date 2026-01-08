@@ -10,7 +10,7 @@ import { useState, useMemo, useCallback } from 'react';
 import {
   Modal,
   Button,
-  Input,
+  CurrencyInput,
   Label,
   Badge,
   Textarea,
@@ -233,15 +233,15 @@ export function SendResponsPakkeModal({
 
             <div className="pt-2">
               <Label htmlFor="dagmulktsats" className="text-xs text-pkt-text-body-muted">
-                Dagmulktsats (kr/dag)
+                Dagmulktsats (per dag)
               </Label>
-              <Input
+              <CurrencyInput
                 id="dagmulktsats"
-                type="number"
                 value={dagmulktsats}
-                onChange={(e) => setDagmulktsats(Number(e.target.value) || 0)}
+                onChange={(value) => setDagmulktsats(value ?? 0)}
                 width="sm"
                 className="mt-1"
+                allowNegative={false}
               />
             </div>
           </div>

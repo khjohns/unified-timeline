@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react';
-import { Alert, Badge, Button, Modal } from '../primitives';
+import { Alert, Badge, Button, CurrencyInput, Modal } from '../primitives';
 import { CheckIcon, Cross2Icon, QuestionMarkCircledIcon } from '@radix-ui/react-icons';
 import type { ForseringData } from '../../types/timeline';
 
@@ -50,7 +50,7 @@ export function BHResponsForseringModal({
   isLoading = false,
 }: BHResponsForseringModalProps) {
   const [responsType, setResponsType] = useState<BHResponsType | null>(null);
-  const [godkjentKostnad, setGodkjentKostnad] = useState<string>('');
+  const [godkjentKostnad, setGodkjentKostnad] = useState<number | null>(null);
   const [begrunnelse, setBegrunnelse] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -59,14 +59,14 @@ export function BHResponsForseringModal({
 
     onRespons({
       aksepterer: responsType === 'aksepterer',
-      godkjent_kostnad: godkjentKostnad ? parseInt(godkjentKostnad, 10) : undefined,
+      godkjent_kostnad: godkjentKostnad ?? undefined,
       begrunnelse,
     });
   };
 
   const handleClose = () => {
     setResponsType(null);
-    setGodkjentKostnad('');
+    setGodkjentKostnad(null);
     setBegrunnelse('');
     onOpenChange(false);
   };
@@ -180,19 +180,15 @@ export function BHResponsForseringModal({
         {/* Godkjent kostnad (only when accepting) */}
         {responsType === 'aksepterer' && (
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Godkjent kostnad (valgfritt)
-            </label>
-            <input
-              type="number"
+            <CurrencyInput
+              label="Godkjent kostnad (valgfritt)"
               value={godkjentKostnad}
-              onChange={(e) => setGodkjentKostnad(e.target.value)}
+              onChange={setGodkjentKostnad}
               placeholder={`Maks ${formatCurrency(forseringData.maks_forseringskostnad)}`}
-              className="w-full px-3 py-2 bg-pkt-bg-card border-2 border-pkt-border-default rounded-none text-sm focus:outline-none focus:border-pkt-border-focus"
+              width="full"
+              allowNegative={false}
+              helperText="Angi beløp du godkjenner. Hvis ikke angitt, godkjennes estimert kostnad opptil maks."
             />
-            <p className="text-xs text-pkt-text-body-subtle mt-1">
-              Angi beløp du godkjenner. Hvis ikke angitt, godkjennes estimert kostnad opptil maks.
-            </p>
           </div>
         )}
 

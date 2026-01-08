@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react';
-import { Alert, Button, Modal } from '../primitives';
+import { Alert, Button, CurrencyInput, Modal } from '../primitives';
 import { StopIcon } from '@radix-ui/react-icons';
 import type { ForseringData } from '../../types/timeline';
 
@@ -44,19 +44,19 @@ export function StoppForseringModal({
   isLoading = false,
 }: StoppForseringModalProps) {
   const [begrunnelse, setBegrunnelse] = useState('');
-  const [paalopteKostnader, setPaalopteKostnader] = useState<string>('');
+  const [paalopteKostnader, setPaalopteKostnader] = useState<number | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onStopp({
       begrunnelse,
-      paalopte_kostnader: paalopteKostnader ? parseInt(paalopteKostnader, 10) : undefined,
+      paalopte_kostnader: paalopteKostnader ?? undefined,
     });
   };
 
   const handleClose = () => {
     setBegrunnelse('');
-    setPaalopteKostnader('');
+    setPaalopteKostnader(null);
     onOpenChange(false);
   };
 
@@ -105,21 +105,15 @@ export function StoppForseringModal({
         </div>
 
         {/* Påløpte kostnader input */}
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Påløpte kostnader ved stopp (valgfritt)
-          </label>
-          <input
-            type="number"
-            value={paalopteKostnader}
-            onChange={(e) => setPaalopteKostnader(e.target.value)}
-            placeholder="F.eks. 250000"
-            className="w-full px-3 py-2 bg-pkt-bg-card border-2 border-pkt-border-default rounded-none text-sm focus:outline-none focus:border-pkt-border-focus"
-          />
-          <p className="text-xs text-pkt-text-body-subtle mt-1">
-            Angi faktiske påløpte forseringskostnader frem til nå
-          </p>
-        </div>
+        <CurrencyInput
+          label="Påløpte kostnader ved stopp (valgfritt)"
+          value={paalopteKostnader}
+          onChange={setPaalopteKostnader}
+          placeholder="F.eks. 250 000"
+          width="full"
+          allowNegative={false}
+          helperText="Angi faktiske påløpte forseringskostnader frem til nå"
+        />
 
         {/* Begrunnelse */}
         <div>
