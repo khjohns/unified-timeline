@@ -2,7 +2,7 @@
 
 **Dokumentasjon av frontend-arkitektur, komponentstruktur og tekniske beslutninger**
 
-*Sist oppdatert: 2025-12-20 (CloudEvents-format)*
+*Sist oppdatert: 2026-01-08 (Mocks flyttet til __mocks__/)*
 
 ---
 
@@ -105,6 +105,12 @@ For generell systemarkitektur og datamodeller, se [ARCHITECTURE_AND_DATAMODEL.md
 ### Overordnet Struktur
 
 ```
+__mocks__/                  # Mock-data for utvikling og testing
+├── cases/                  # Mock-saker (importeres via @mocks)
+├── timelines/              # Mock-tidslinjer
+├── helpers.ts              # Mock-hjelpefunksjoner
+└── index.ts                # Sentral eksport av mock-data
+
 src/
 ├── api/                    # API-klient og datahenting (8 stk)
 │   ├── client.ts          # Sentralisert HTTP-klient med auth & CSRF
@@ -168,10 +174,6 @@ src/
 │   ├── OpprettSakPage.tsx       # Opprett ny sak
 │   └── AnalyticsDashboard.tsx   # Analyse-dashboard
 │
-├── mocks/                 # Mock-data for utvikling
-│   ├── cases/             # Mock-saker
-│   └── timelines/         # Mock-tidslinjer
-│
 ├── pdf/                   # PDF-generering (klientside)
 │   ├── ContractorClaimPdf.tsx   # PDF-maler
 │   ├── generator.ts       # PDF-genereringslogikk
@@ -224,6 +226,7 @@ src/
 
 | Katalog | Ansvar | Retningslinjer |
 |---------|--------|----------------|
+| `__mocks__/` | Mock-data | Testdata og mock-objekter, importeres via `@mocks` |
 | `api/` | HTTP-kommunikasjon | All API-logikk samlet, ingen direkte fetch i komponenter |
 | `components/` | UI-rendering | Ren presentasjon, minimal logikk |
 | `context/` | Global tilstand | Kun for app-vid tilstand (auth, tema) |

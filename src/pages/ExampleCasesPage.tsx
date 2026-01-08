@@ -7,7 +7,7 @@
 
 import { useNavigate } from 'react-router-dom';
 import { Button, Card } from '../components/primitives';
-import { mockCaseList } from '../mocks';
+import { mockCaseList } from '@mocks';
 import { USE_MOCK_API } from '../api/client';
 
 export function ExampleCasesPage() {

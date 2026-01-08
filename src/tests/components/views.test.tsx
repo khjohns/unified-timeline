@@ -12,7 +12,7 @@ import { ComprehensiveMetadata } from '@/components/views/ComprehensiveMetadata'
 import { RevisionHistory } from '@/components/views/RevisionHistory';
 import { Timeline } from '@/components/views/Timeline';
 import { TimelineItem } from '@/components/views/TimelineItem';
-import { mockSakState1, mockSakState2, mockSakState3, getMockHistorikkById } from '@/mocks';
+import { mockSakState1, mockSakState2, mockSakState3, getMockHistorikkById } from '@mocks';
 import type { SakState, SporStatus, TimelineEvent } from '@/types/timeline';
 
 // Mock the API module

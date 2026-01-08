@@ -67,6 +67,7 @@ export default defineConfig(({ mode }) => {
       resolve: {
         alias: {
           '@': path.resolve(__dirname, './src'),
+          '@mocks': path.resolve(__dirname, './__mocks__'),
         }
       },
       build: {
