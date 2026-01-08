@@ -211,9 +211,9 @@ src/
 │        Rute-håndtering, datahenting, sidekomposisjon           │
 │   CasePage, ForseringPage, EndringsordePage, ExampleCases...   │
 ├─────────────────────────────────────────────────────────────────┤
-│                         VIEWS (8 stk)                           │
+│                         VIEWS (6 stk)                           │
 │          Side-nivå komponenter, business-logikk                │
-│   Timeline, StatusDashboard, ComprehensiveMetadata...          │
+│   Timeline, CaseDashboard, ComprehensiveMetadata...            │
 ├─────────────────────────────────────────────────────────────────┤
 │                        ACTIONS (12 stk)                         │
 │        Modale skjemaer for event-submission                    │
@@ -327,12 +327,9 @@ Plassering: `src/components/views/`
 |-----------|--------|
 | `Timeline` | Viser hendelsestidslinje |
 | `TimelineItem` | Enkelt tidslinjeelement |
-| `StatusDashboard` | Statusoversikt med kort |
-| `StatusCard` | Enkelt statuskort |
 | `ComprehensiveMetadata` | Detaljert metadata-visning |
 | `RevisionHistory` | Revisjonshistorikk for vederlag/frist |
 | `EventDetailModal` | Detaljer for enkelt event |
-| `ViewSubmittedEventModal` | Vis innsendt event |
 
 ### Action-modaler
 

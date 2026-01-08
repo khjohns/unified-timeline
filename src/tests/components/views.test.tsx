@@ -10,8 +10,6 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ComprehensiveMetadata } from '@/components/views/ComprehensiveMetadata';
 import { RevisionHistory } from '@/components/views/RevisionHistory';
-import { StatusCard } from '@/components/views/StatusCard';
-import { StatusDashboard } from '@/components/views/StatusDashboard';
 import { Timeline } from '@/components/views/Timeline';
 import { TimelineItem } from '@/components/views/TimelineItem';
 import { mockSakState1, mockSakState2, mockSakState3, getMockHistorikkById } from '@/mocks';
@@ -63,116 +61,6 @@ const createMinimalState = (overrides: Partial<SakState> = {}): SakState => ({
 });
 
 describe('View Components - Functional Tests', () => {
-  describe('StatusCard', () => {
-    it('should render with all required props', () => {
-      render(
-        <StatusCard
-          spor="grunnlag"
-          status="sendt"
-          title="Grunnlag"
-          lastUpdated="2025-01-15T10:00:00Z"
-        />
-      );
-
-      // StatusCard shows the spor label (Ansvarsgrunnlag for grunnlag)
-      expect(screen.getByText('Ansvarsgrunnlag')).toBeInTheDocument();
-    });
-
-    it('should display the correct status text', () => {
-      render(
-        <StatusCard
-          spor="vederlag"
-          status="godkjent"
-          title="Vederlag"
-          lastUpdated="2025-01-15T10:00:00Z"
-        />
-      );
-
-      // The component shows status label - visible on both mobile and desktop
-      // On mobile it's in a separate row, on desktop it's inline
-      expect(screen.getAllByText('Godkjent').length).toBeGreaterThan(0);
-    });
-
-    it('should render for all spor types', () => {
-      const sporTypes: ('grunnlag' | 'vederlag' | 'frist')[] = ['grunnlag', 'vederlag', 'frist'];
-
-      sporTypes.forEach((spor) => {
-        const { unmount } = render(
-          <StatusCard
-            spor={spor}
-            status="sendt"
-            title={spor.charAt(0).toUpperCase() + spor.slice(1)}
-            lastUpdated="2025-01-15T10:00:00Z"
-          />
-        );
-        unmount();
-      });
-    });
-
-    it('should handle all status types', () => {
-      const statuses: SporStatus[] = [
-        'ikke_relevant',
-        'utkast',
-        'sendt',
-        'under_behandling',
-        'godkjent',
-        'delvis_godkjent',
-        'avslatt',
-        'under_forhandling',
-        'trukket',
-        'laast',
-      ];
-
-      statuses.forEach((status) => {
-        const { unmount } = render(
-          <StatusCard
-            spor="grunnlag"
-            status={status}
-            title="Test"
-            lastUpdated="2025-01-15T10:00:00Z"
-          />
-        );
-        unmount();
-      });
-    });
-  });
-
-  describe('StatusDashboard', () => {
-    it('should render all three track status cards', () => {
-      render(<StatusDashboard state={mockSakState1} />);
-
-      // Should have status sections for all three tracks
-      expect(screen.getByText('Ansvarsgrunnlag')).toBeInTheDocument();
-      expect(screen.getByText('Vederlag')).toBeInTheDocument();
-      expect(screen.getByText('Frist')).toBeInTheDocument();
-    });
-
-    it('should display overall status in sr-only element', () => {
-      render(<StatusDashboard state={mockSakState1} />);
-
-      // The overordnet_status is now shown as readable label in screen-reader-only element
-      // Note: Multiple status elements exist (one for dashboard + one per StatusCard)
-      const statusElements = screen.getAllByRole('status');
-      const dashboardStatus = statusElements.find(el => el.textContent?.includes('Under behandling'));
-      expect(dashboardStatus).toBeTruthy();
-    });
-
-    it('should show EO button when kan_utstede_eo is true', () => {
-      render(<StatusDashboard state={mockSakState3} />);
-
-      // mockSakState3 has kan_utstede_eo: true
-      expect(mockSakState3.kan_utstede_eo).toBe(true);
-    });
-
-    it('should render section with heading', () => {
-      render(<StatusDashboard state={mockSakState1} />);
-
-      // Should have a section with sr-only heading
-      const section = screen.getByRole('region', { name: /status dashboard/i });
-      expect(section).toBeInTheDocument();
-    });
-  });
-
   describe('Timeline', () => {
     const mockEvents: TimelineEvent[] = [
       {

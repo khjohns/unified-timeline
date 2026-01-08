@@ -2,105 +2,10 @@ import { describe, it } from 'vitest';
 import { render } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { expectNoA11yViolations } from '../../../__tests__/axeHelper';
-import { StatusCard } from '@/components/views/StatusCard';
-import { StatusDashboard } from '@/components/views/StatusDashboard';
 import { Timeline } from '@/components/views/Timeline';
 import { TimelineItem } from '@/components/views/TimelineItem';
-import type { SakState, SporStatus } from '@/types/timeline';
 
 describe('View Components - Accessibility', () => {
-  describe('StatusCard', () => {
-    it('should have no accessibility violations', async () => {
-      const { container } = render(
-        <StatusCard
-          spor="grunnlag"
-          status="godkjent" as SporStatus
-          title="Grunnlag"
-          lastUpdated="2025-12-01T10:00:00Z"
-        />
-      );
-      const results = await axe(container);
-      expectNoA11yViolations(results);
-    });
-
-    it('should announce status changes to screen readers', async () => {
-      const { container } = render(
-        <StatusCard
-          spor="vederlag"
-          status="under_behandling" as SporStatus
-          title="Vederlag"
-          lastUpdated="2025-12-01T10:00:00Z"
-        />
-      );
-      const results = await axe(container);
-      expectNoA11yViolations(results);
-    });
-
-    it('should handle all status types accessibly', async () => {
-      const statuses: SporStatus[] = [
-        'ikke_relevant',
-        'utkast',
-        'sendt',
-        'under_behandling',
-        'godkjent',
-        'delvis_godkjent',
-        'avslatt',
-        'under_forhandling',
-        'trukket',
-        'laast',
-      ];
-
-      for (const status of statuses) {
-        const { container } = render(
-          <StatusCard
-            spor="frist"
-            status={status}
-            title="Frist"
-            lastUpdated="2025-12-01T10:00:00Z"
-          />
-        );
-        const results = await axe(container);
-        expectNoA11yViolations(results);
-      }
-    });
-  });
-
-  describe('StatusDashboard', () => {
-    const mockState: SakState = {
-      sakstittel: 'Test Sak',
-      overordnet_status: 'AKTIV',
-      grunnlag: {
-        status: 'godkjent' as SporStatus,
-        siste_oppdatert: '2025-12-01T10:00:00Z',
-      },
-      vederlag: {
-        status: 'under_behandling' as SporStatus,
-        siste_oppdatert: '2025-12-01T11:00:00Z',
-      },
-      frist: {
-        status: 'sendt' as SporStatus,
-        siste_oppdatert: '2025-12-01T12:00:00Z',
-      },
-      kan_utstede_eo: false,
-    };
-
-    it('should have no accessibility violations', async () => {
-      const { container } = render(<StatusDashboard state={mockState} />);
-      const results = await axe(container);
-      expectNoA11yViolations(results);
-    });
-
-    it('should have proper semantic structure', async () => {
-      const { container } = render(<StatusDashboard state={mockState} />);
-      const results = await axe(container, {
-        rules: {
-          region: { enabled: true },
-        },
-      });
-      expectNoA11yViolations(results);
-    });
-  });
-
   describe('TimelineItem', () => {
     it('should have no accessibility violations', async () => {
       const { container } = render(

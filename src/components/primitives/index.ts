@@ -42,7 +42,6 @@ export { FormField } from './FormField';
 
 // Data Display
 export { DataList, DataListItem } from './DataList';
-export { MetadataGrid, GridItem, GridDivider } from './MetadataGrid';
 export { InfoLabel, type InfoLabelProps } from './InfoLabel';
 export { StepIndicator, type Step } from './StepIndicator';
 
