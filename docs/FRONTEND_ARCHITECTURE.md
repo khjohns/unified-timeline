@@ -342,10 +342,9 @@ Plassering: `src/components/actions/`
 
 | Modal | Event-type |
 |-------|------------|
-| `SendGrunnlagModal` | `grunnlag_submit` |
+| `SendGrunnlagModal` | `grunnlag_opprettet` (create mode) / `grunnlag_oppdatert` (update mode via `originalEvent` prop) |
 | `SendVederlagModal` | `vederlag_submit` |
 | `SendFristModal` | `frist_submit` |
-| `SendGrunnlagUpdateModal` | `grunnlag_update` |
 | `ReviseVederlagModal` | `vederlag_revision` |
 | `ReviseFristModal` | `frist_revision` |
 
@@ -353,10 +352,9 @@ Plassering: `src/components/actions/`
 
 | Modal | Event-type |
 |-------|------------|
-| `RespondGrunnlagModal` | `grunnlag_response` |
+| `RespondGrunnlagModal` | `respons_grunnlag` (respond mode) / `respons_grunnlag_oppdatert` (update mode via `lastResponseEvent` prop) |
 | `RespondVederlagModal` | `vederlag_response` (respond mode) / `respons_vederlag_oppdatert` (update mode via `lastResponseEvent` prop) |
 | `RespondFristModal` | `frist_response` (respond mode) / `respons_frist_oppdatert` (update mode via `lastResponseEvent` prop) |
-| `RespondGrunnlagUpdateModal` | `grunnlag_update_response` |
 
 ---
 

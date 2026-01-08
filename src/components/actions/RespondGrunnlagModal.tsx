@@ -1,8 +1,13 @@
 /**
  * RespondGrunnlagModal Component
  *
- * Action modal for BH (client) to respond to a grunnlag claim.
+ * Action modal for BH (client) to respond to a grunnlag claim,
+ * or update an existing response (when lastResponseEvent is provided).
  * Uses React Hook Form + Zod for validation.
+ *
+ * MODES:
+ * - Create mode (default): Submit new response with event type 'respons_grunnlag'
+ * - Update mode (when lastResponseEvent provided): Update existing response with 'respons_grunnlag_oppdatert'
  *
  * UPDATED (2025-12-05):
  * - Added BH passivity warning (§32.3) for irregular changes
@@ -10,11 +15,16 @@
  * - Added Frafall option (§32.3 c)
  * - Added subsidiary treatment info when rejecting
  * - Added display of grunnlag claim details
+ *
+ * UPDATED (2025-01-08):
+ * - Merged RespondGrunnlagUpdateModal into this component via lastResponseEvent prop
+ * - Added snuoperasjon logic for subsidiary responses
  */
 
 import {
   Alert,
   AlertDialog,
+  Badge,
   Button,
   FormField,
   Modal,
@@ -31,7 +41,8 @@ import { useSubmitEvent } from '../../hooks/useSubmitEvent';
 import { useConfirmClose } from '../../hooks/useConfirmClose';
 import { useFormBackup } from '../../hooks/useFormBackup';
 import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import type { GrunnlagResponsResultat, SakState } from '../../types/timeline';
 import {
   BH_GRUNNLAGSVAR_OPTIONS,
   getBhGrunnlagssvarValues,
@@ -59,6 +70,16 @@ interface GrunnlagEventInfo {
   dato_varslet?: string;
 }
 
+/** Labels for resultat display */
+const RESULTAT_LABELS: Record<GrunnlagResponsResultat, string> = {
+  godkjent: 'Godkjent',
+  delvis_godkjent: 'Delvis godkjent',
+  avslatt: 'Avslått',
+  erkjenn_fm: 'Force Majeure (§33.3)',
+  frafalt: 'Frafalt (§32.3 c)',
+  krever_avklaring: 'Krever avklaring',
+};
+
 interface RespondGrunnlagModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -77,6 +98,13 @@ interface RespondGrunnlagModalProps {
     begrunnelse: string;
     formData: RespondGrunnlagFormData;
   }) => void;
+  /** UPDATE MODE: Previous response event to update. If provided, modal operates in update mode. */
+  lastResponseEvent?: {
+    event_id: string;
+    resultat: GrunnlagResponsResultat;
+  };
+  /** Required in update mode for snuoperasjon logic */
+  sakState?: SakState;
 }
 
 export function RespondGrunnlagModal({
@@ -88,10 +116,31 @@ export function RespondGrunnlagModal({
   onCatendaWarning,
   approvalEnabled = false,
   onSaveDraft,
+  lastResponseEvent,
+  sakState,
 }: RespondGrunnlagModalProps) {
+  // UPDATE MODE detection
+  const isUpdateMode = !!lastResponseEvent;
+
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const [showRestorePrompt, setShowRestorePrompt] = useState(false);
   const toast = useToast();
+
+  // Compute default values based on mode
+  const computedDefaultValues = useMemo((): Partial<RespondGrunnlagFormData> => {
+    if (isUpdateMode && lastResponseEvent) {
+      // UPDATE MODE: Pre-fill with previous response (user will change it)
+      return {
+        resultat: lastResponseEvent.resultat,
+        begrunnelse: '',
+      };
+    }
+    // CREATE MODE: Empty defaults
+    return {
+      resultat: undefined,
+      begrunnelse: '',
+    };
+  }, [isUpdateMode, lastResponseEvent]);
 
   const {
     register,
@@ -102,10 +151,15 @@ export function RespondGrunnlagModal({
     control,
   } = useForm<RespondGrunnlagFormData>({
     resolver: zodResolver(respondGrunnlagSchema),
-    defaultValues: {
-      resultat: undefined,
-    },
+    defaultValues: computedDefaultValues,
   });
+
+  // Reset form when opening in update mode with new lastResponseEvent
+  useEffect(() => {
+    if (open && isUpdateMode && lastResponseEvent) {
+      reset(computedDefaultValues);
+    }
+  }, [open, isUpdateMode, lastResponseEvent, reset, computedDefaultValues]);
 
   const { showConfirmDialog, setShowConfirmDialog, handleClose, confirmClose } = useConfirmClose({
     isDirty,
@@ -114,7 +168,12 @@ export function RespondGrunnlagModal({
   });
 
   const formData = watch();
-  const { getBackup, clearBackup, hasBackup } = useFormBackup(sakId, 'respons_grunnlag', formData, isDirty);
+  const { getBackup, clearBackup, hasBackup } = useFormBackup(
+    sakId,
+    isUpdateMode ? 'respons_grunnlag_oppdatert' : 'respons_grunnlag',
+    formData,
+    isDirty
+  );
 
   const hasCheckedBackup = useRef(false);
   useEffect(() => {
@@ -130,8 +189,25 @@ export function RespondGrunnlagModal({
   const handleDiscardBackup = () => { clearBackup(); setShowRestorePrompt(false); };
 
   const mutation = useSubmitEvent(sakId, {
-    onSuccess: (result) => { clearBackup(); reset(); onOpenChange(false); toast.success('Svar sendt', 'Ditt svar på grunnlagsvarselet er registrert.'); if (!result.catenda_synced) { onCatendaWarning?.(); } },
-    onError: (error) => { if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') setShowTokenExpired(true); },
+    onSuccess: (result) => {
+      clearBackup();
+      reset();
+      onOpenChange(false);
+      toast.success(
+        isUpdateMode ? 'Svar oppdatert' : 'Svar sendt',
+        isUpdateMode
+          ? 'Din endring av grunnlagssvaret er registrert.'
+          : 'Ditt svar på grunnlagsvarselet er registrert.'
+      );
+      if (!result.catenda_synced) {
+        onCatendaWarning?.();
+      }
+    },
+    onError: (error) => {
+      if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') {
+        setShowTokenExpired(true);
+      }
+    },
   });
 
   const selectedResultat = watch('resultat');
@@ -162,6 +238,20 @@ export function RespondGrunnlagModal({
       : getUnderkategoriLabel(grunnlagEvent.underkategori)
     : undefined;
 
+  // UPDATE MODE: Snuoperasjon detection
+  const forrigeResultat = lastResponseEvent?.resultat;
+  const varAvvist = forrigeResultat === 'avslatt';
+  const harSubsidiaereSvar = sakState?.er_subsidiaert_vederlag || sakState?.er_subsidiaert_frist;
+
+  // Check if changing from rejected to approved (snuoperasjon)
+  const erSnuoperasjon = useMemo(() => {
+    if (!isUpdateMode || !varAvvist) return false;
+    return selectedResultat === 'godkjent' || selectedResultat === 'delvis_godkjent';
+  }, [isUpdateMode, varAvvist, selectedResultat]);
+
+  // Get previous begrunnelse from sakState (for update mode display)
+  const forrigeBegrunnelse = sakState?.grunnlag?.bh_begrunnelse;
+
   // Handler for saving as draft (approval workflow)
   const handleSaveDraft = (data: RespondGrunnlagFormData) => {
     if (!onSaveDraft) return;
@@ -180,6 +270,21 @@ export function RespondGrunnlagModal({
   };
 
   const onSubmit = (data: RespondGrunnlagFormData) => {
+    // ========== UPDATE MODE SUBMIT ==========
+    if (isUpdateMode && lastResponseEvent) {
+      mutation.mutate({
+        eventType: 'respons_grunnlag_oppdatert',
+        data: {
+          original_respons_id: lastResponseEvent.event_id,
+          resultat: data.resultat,
+          begrunnelse: data.begrunnelse,
+          dato_endret: new Date().toISOString().split('T')[0],
+        },
+      });
+      return;
+    }
+
+    // ========== CREATE MODE SUBMIT ==========
     mutation.mutate({
       eventType: 'respons_grunnlag',
       data: {
@@ -196,10 +301,55 @@ export function RespondGrunnlagModal({
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title="Svar på grunnlag"
+      title={isUpdateMode ? "Endre svar på grunnlag" : "Svar på grunnlag"}
+      description={isUpdateMode ? "Endre din vurdering av ansvarsgrunnlaget." : undefined}
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* UPDATE MODE: Nåværende svar */}
+        {isUpdateMode && lastResponseEvent && (
+          <SectionContainer title="Nåværende svar" variant="subtle">
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-pkt-grays-gray-600">Resultat:</span>
+              <Badge variant={varAvvist ? 'danger' : 'success'}>
+                {forrigeResultat ? RESULTAT_LABELS[forrigeResultat] : 'Ukjent'}
+              </Badge>
+            </div>
+            {forrigeBegrunnelse && (
+              <p className="text-sm text-pkt-grays-gray-700 mt-2 italic">
+                &ldquo;{forrigeBegrunnelse}&rdquo;
+              </p>
+            )}
+            {harSubsidiaereSvar && varAvvist && (
+              <p className="text-xs text-pkt-grays-gray-500 mt-2">
+                Det finnes subsidiære svar på vederlag og/eller frist.
+              </p>
+            )}
+          </SectionContainer>
+        )}
+
+        {/* UPDATE MODE: Snuoperasjon alert - CRITICAL */}
+        {isUpdateMode && erSnuoperasjon && harSubsidiaereSvar && (
+          <Alert variant="success" title="Snuoperasjon: Subsidiære svar blir prinsipale">
+            <p>
+              Ved å godkjenne grunnlaget nå, vil alle subsidiære svar på vederlag og frist
+              automatisk konverteres til <strong>prinsipale</strong> svar.
+            </p>
+            <ul className="list-disc pl-5 mt-2 text-sm">
+              {sakState?.er_subsidiaert_vederlag && (
+                <li>
+                  Vederlag: &ldquo;{sakState.visningsstatus_vederlag}&rdquo; blir gjeldende uten forbehold
+                </li>
+              )}
+              {sakState?.er_subsidiaert_frist && (
+                <li>
+                  Frist: &ldquo;{sakState.visningsstatus_frist}&rdquo; blir gjeldende uten forbehold
+                </li>
+              )}
+            </ul>
+          </Alert>
+        )}
+
         {/* Kontekst: Entreprenørens påstand */}
         {grunnlagEvent && (hovedkategoriLabel || grunnlagEvent.beskrivelse) && (
           <SectionContainer title="Entreprenørens påstand" variant="subtle">
@@ -444,7 +594,9 @@ export function RespondGrunnlagModal({
               className="w-full sm:w-auto"
               data-testid="respond-grunnlag-submit"
             >
-              Send svar
+              {isUpdateMode
+                ? (erSnuoperasjon ? 'Godkjenn grunnlag' : 'Lagre endring')
+                : 'Send svar'}
             </Button>
           )}
         </div>

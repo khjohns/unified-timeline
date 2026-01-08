@@ -17,8 +17,8 @@ import { RespondFristModal } from '@/components/actions/RespondFristModal';
 import { SendGrunnlagModal } from '@/components/actions/SendGrunnlagModal';
 import { SendVederlagModal } from '@/components/actions/SendVederlagModal';
 import { SendFristModal } from '@/components/actions/SendFristModal';
-import { SendGrunnlagUpdateModal } from '@/components/actions/SendGrunnlagUpdateModal';
-import { RespondGrunnlagUpdateModal } from '@/components/actions/RespondGrunnlagUpdateModal';
+// Note: SendGrunnlagUpdateModal removed - SendGrunnlagModal handles updates via originalEvent prop
+// Note: RespondGrunnlagUpdateModal removed - RespondGrunnlagModal handles updates via lastResponseEvent prop
 import { ReviseVederlagModal } from '@/components/actions/ReviseVederlagModal';
 import { ReviseFristModal } from '@/components/actions/ReviseFristModal';
 // Note: UpdateResponseVederlagModal removed - RespondVederlagModal handles updates via lastResponseEvent prop
@@ -288,7 +288,7 @@ describe('Action/Modal Components - Functional Tests', () => {
     });
   });
 
-  describe('SendGrunnlagUpdateModal', () => {
+  describe('SendGrunnlagModal (Update Mode)', () => {
     const defaultProps = {
       open: true,
       onOpenChange: vi.fn(),
@@ -296,54 +296,63 @@ describe('Action/Modal Components - Functional Tests', () => {
       originalEvent: {
         event_id: 'event-1',
         grunnlag: {
+          status: 'sendt' as const,
           tittel: 'Original tittel',
           beskrivelse: 'Original beskrivelse',
           dato_oppdaget: '2025-01-10',
           hovedkategori: 'ENDRING',
           underkategori: ['EO'],
+          kontraktsreferanser: [],
+          laast: false,
+          antall_versjoner: 1,
         },
       },
     };
 
     it('should render when open', () => {
-      renderWithProviders(<SendGrunnlagUpdateModal {...defaultProps} />);
+      renderWithProviders(<SendGrunnlagModal {...defaultProps} />);
 
       expect(screen.getByRole('dialog', { name: /Oppdater grunnlag/i })).toBeInTheDocument();
     });
 
     it('should have endrings_begrunnelse field', () => {
-      renderWithProviders(<SendGrunnlagUpdateModal {...defaultProps} />);
+      renderWithProviders(<SendGrunnlagModal {...defaultProps} />);
 
       expect(screen.getByText(/Begrunnelse for endring/i)).toBeInTheDocument();
     });
 
     it('should not render when closed', () => {
-      renderWithProviders(<SendGrunnlagUpdateModal {...defaultProps} open={false} />);
+      renderWithProviders(<SendGrunnlagModal {...defaultProps} open={false} />);
 
       expect(screen.queryByRole('dialog', { name: /Oppdater grunnlag/i })).not.toBeInTheDocument();
     });
 
     it('should have submit and cancel buttons', () => {
-      renderWithProviders(<SendGrunnlagUpdateModal {...defaultProps} />);
+      renderWithProviders(<SendGrunnlagModal {...defaultProps} />);
 
       expect(screen.getByRole('button', { name: /Avbryt/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Lagre endringer/i })).toBeInTheDocument();
     });
   });
 
-  describe('RespondGrunnlagUpdateModal', () => {
+  describe('RespondGrunnlagModal (Update Mode)', () => {
     const defaultProps = {
       open: true,
       onOpenChange: vi.fn(),
       sakId: 'TEST-001',
+      grunnlagEventId: 'grunnlag-TEST-001',
       lastResponseEvent: {
         event_id: 'response-1',
         resultat: 'godkjent' as const,
       },
       sakState: {
         grunnlag: {
+          status: 'godkjent' as const,
           hovedkategori: 'ENDRING',
           underkategori: ['EO'],
+          kontraktsreferanser: [],
+          laast: false,
+          antall_versjoner: 1,
         },
         er_subsidiaert_vederlag: false,
         er_subsidiaert_frist: false,
@@ -351,25 +360,25 @@ describe('Action/Modal Components - Functional Tests', () => {
     };
 
     it('should render when open', () => {
-      renderWithProviders(<RespondGrunnlagUpdateModal {...defaultProps} />);
+      renderWithProviders(<RespondGrunnlagModal {...defaultProps} />);
 
       expect(screen.getByRole('dialog', { name: /Endre svar på grunnlag/i })).toBeInTheDocument();
     });
 
     it('should have resultat field', () => {
-      renderWithProviders(<RespondGrunnlagUpdateModal {...defaultProps} />);
+      renderWithProviders(<RespondGrunnlagModal {...defaultProps} />);
 
-      expect(screen.getByText(/Ny avgjørelse/i)).toBeInTheDocument();
+      expect(screen.getByText(/Resultat.*ansvarsgrunnlag/i)).toBeInTheDocument();
     });
 
     it('should not render when closed', () => {
-      renderWithProviders(<RespondGrunnlagUpdateModal {...defaultProps} open={false} />);
+      renderWithProviders(<RespondGrunnlagModal {...defaultProps} open={false} />);
 
       expect(screen.queryByRole('dialog', { name: /Endre svar på grunnlag/i })).not.toBeInTheDocument();
     });
 
     it('should have submit and cancel buttons', () => {
-      renderWithProviders(<RespondGrunnlagUpdateModal {...defaultProps} />);
+      renderWithProviders(<RespondGrunnlagModal {...defaultProps} />);
 
       expect(screen.getByRole('button', { name: /Avbryt/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Lagre endring/i })).toBeInTheDocument();

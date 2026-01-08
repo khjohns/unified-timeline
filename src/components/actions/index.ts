@@ -16,12 +16,12 @@ export { RespondVederlagModal } from './RespondVederlagModal';
 export { RespondFristModal } from './RespondFristModal';
 
 // Update modals (TE) - for revising previously sent claims
-export { SendGrunnlagUpdateModal } from './SendGrunnlagUpdateModal';
+// Note: SendGrunnlagUpdateModal removed - SendGrunnlagModal handles updates via originalEvent prop
 export { ReviseVederlagModal } from './ReviseVederlagModal';
 export { ReviseFristModal } from './ReviseFristModal';
 
 // Update response modals (BH) - for changing previous responses
-export { RespondGrunnlagUpdateModal } from './RespondGrunnlagUpdateModal';
+// Note: RespondGrunnlagUpdateModal removed - RespondGrunnlagModal handles updates via lastResponseEvent prop
 // Note: UpdateResponseVederlagModal removed - RespondVederlagModal handles updates via lastResponseEvent prop
 // Note: UpdateResponseFristModal removed - RespondFristModal handles updates via lastResponseEvent prop
 

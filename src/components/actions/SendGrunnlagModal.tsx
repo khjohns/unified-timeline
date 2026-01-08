@@ -1,9 +1,14 @@
 /**
  * SendGrunnlagModal Component
  *
- * Action modal for submitting a new grunnlag (basis/foundation) claim.
+ * Action modal for submitting a new grunnlag (basis/foundation) claim,
+ * or updating an existing one (when originalEvent is provided).
  * Uses React Hook Form + Zod for validation.
  * Enhanced with preclusion checks and legal warnings based on NS 8407.
+ *
+ * MODES:
+ * - Create mode (default): Submit new grunnlag with event type 'grunnlag_opprettet'
+ * - Update mode (when originalEvent provided): Update existing grunnlag with 'grunnlag_oppdatert'
  */
 
 import {
@@ -23,6 +28,7 @@ import {
   useToast,
 } from '../primitives';
 import type { AttachmentFile } from '../../types';
+import type { GrunnlagTilstand } from '../../types/timeline';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -36,13 +42,15 @@ import {
   getUnderkategorier,
   VARSEL_METODER_OPTIONS,
   getHovedkategori,
+  getHovedkategoriLabel,
   getUnderkategoriObj,
   erLovendring,
   getGrupperteUnderkategorier,
 } from '../../constants';
 import { getPreklusjonsvarsel, getPreklusjonsvarselMellomDatoer, beregnDagerSiden } from '../../utils/preklusjonssjekk';
 
-const grunnlagSchema = z.object({
+// Schema for create mode - all fields required
+const createGrunnlagSchema = z.object({
   hovedkategori: z.string().min(1, 'Hovedkategori er påkrevd'),
   underkategori: z.array(z.string()).min(1, 'Minst én underkategori må velges'),
   tittel: z.string().min(3, 'Tittel må være minst 3 tegn').max(100, 'Tittel kan ikke være lengre enn 100 tegn'),
@@ -53,9 +61,25 @@ const grunnlagSchema = z.object({
   varsel_metode: z.array(z.string()).optional(),
   attachments: z.array(z.custom<AttachmentFile>()).optional().default([]),
   er_etter_tilbud: z.boolean().optional(), // For law changes (§14.4)
+  endrings_begrunnelse: z.string().optional(), // Only used in update mode
 });
 
-type GrunnlagFormData = z.infer<typeof grunnlagSchema>;
+// Schema for update mode - fields optional except endrings_begrunnelse
+const updateGrunnlagSchema = z.object({
+  hovedkategori: z.string().optional(),
+  underkategori: z.array(z.string()).optional(),
+  tittel: z.string().optional(),
+  beskrivelse: z.string().optional(),
+  dato_oppdaget: z.string().optional(),
+  varsel_sendes_na: z.boolean().optional(),
+  dato_varsel_sendt: z.string().optional(),
+  varsel_metode: z.array(z.string()).optional(),
+  attachments: z.array(z.custom<AttachmentFile>()).optional().default([]),
+  er_etter_tilbud: z.boolean().optional(),
+  endrings_begrunnelse: z.string().min(10, 'Begrunnelse for endring er påkrevd (minst 10 tegn)'),
+});
+
+type GrunnlagFormData = z.infer<typeof createGrunnlagSchema>;
 
 interface SendGrunnlagModalProps {
   open: boolean;
@@ -63,6 +87,11 @@ interface SendGrunnlagModalProps {
   sakId: string;
   /** Callback when Catenda sync was skipped or failed */
   onCatendaWarning?: () => void;
+  /** UPDATE MODE: When provided, modal operates in update mode */
+  originalEvent?: {
+    event_id: string;
+    grunnlag: GrunnlagTilstand;
+  };
 }
 
 export function SendGrunnlagModal({
@@ -70,11 +99,53 @@ export function SendGrunnlagModal({
   onOpenChange,
   sakId,
   onCatendaWarning,
+  originalEvent,
 }: SendGrunnlagModalProps) {
+  // UPDATE MODE detection
+  const isUpdateMode = !!originalEvent;
+  const grunnlag = originalEvent?.grunnlag;
+
   const [selectedHovedkategori, setSelectedHovedkategori] = useState<string>('');
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const [showRestorePrompt, setShowRestorePrompt] = useState(false);
   const toast = useToast();
+
+  // Compute default values based on mode
+  const computedDefaultValues = useMemo((): Partial<GrunnlagFormData> => {
+    if (isUpdateMode && grunnlag) {
+      // UPDATE MODE: Pre-fill from existing grunnlag
+      return {
+        hovedkategori: grunnlag.hovedkategori || '',
+        underkategori: Array.isArray(grunnlag.underkategori)
+          ? grunnlag.underkategori
+          : grunnlag.underkategori
+            ? [grunnlag.underkategori]
+            : [],
+        tittel: grunnlag.tittel || '',
+        beskrivelse: grunnlag.beskrivelse || '',
+        dato_oppdaget: grunnlag.dato_oppdaget || '',
+        varsel_sendes_na: false, // In update mode, varsel was already sent
+        dato_varsel_sendt: grunnlag.grunnlag_varsel?.dato_sendt || '',
+        varsel_metode: grunnlag.grunnlag_varsel?.metode || [],
+        attachments: [],
+        er_etter_tilbud: false,
+        endrings_begrunnelse: '',
+      };
+    }
+    // CREATE MODE: Default values
+    return {
+      hovedkategori: '',
+      underkategori: [],
+      tittel: '',
+      beskrivelse: '',
+      dato_oppdaget: '',
+      varsel_sendes_na: true,  // Forhåndsvalgt: varsel sendes nå
+      varsel_metode: [],
+      attachments: [],
+      er_etter_tilbud: false,
+      endrings_begrunnelse: '',
+    };
+  }, [isUpdateMode, grunnlag]);
 
   const {
     register,
@@ -85,16 +156,19 @@ export function SendGrunnlagModal({
     control,
     watch,
   } = useForm<GrunnlagFormData>({
-    resolver: zodResolver(grunnlagSchema),
-    defaultValues: {
-      hovedkategori: '',
-      underkategori: [],
-      varsel_sendes_na: true,  // Forhåndsvalgt: varsel sendes nå
-      varsel_metode: [],
-      attachments: [],
-      er_etter_tilbud: false,
-    },
+    resolver: zodResolver(isUpdateMode ? updateGrunnlagSchema : createGrunnlagSchema),
+    defaultValues: computedDefaultValues,
   });
+
+  // Reset form when opening in update mode with new originalEvent
+  useEffect(() => {
+    if (open && isUpdateMode && originalEvent) {
+      reset(computedDefaultValues);
+      if (computedDefaultValues.hovedkategori) {
+        setSelectedHovedkategori(computedDefaultValues.hovedkategori);
+      }
+    }
+  }, [open, isUpdateMode, originalEvent, reset, computedDefaultValues]);
 
   const { showConfirmDialog, setShowConfirmDialog, handleClose, confirmClose } = useConfirmClose({
     isDirty,
@@ -109,7 +183,7 @@ export function SendGrunnlagModal({
   const formData = watch();
   const { getBackup, clearBackup, hasBackup } = useFormBackup(
     sakId,
-    'grunnlag_opprettet',
+    isUpdateMode ? 'grunnlag_oppdatert' : 'grunnlag_opprettet',
     formData,
     isDirty
   );
@@ -186,7 +260,12 @@ export function SendGrunnlagModal({
       reset();
       setSelectedHovedkategori('');
       onOpenChange(false);
-      toast.success('Varsel sendt', 'Endringsforholdet er registrert og varslet til byggherre.');
+      toast.success(
+        isUpdateMode ? 'Grunnlag oppdatert' : 'Varsel sendt',
+        isUpdateMode
+          ? 'Endringene i grunnlaget er registrert.'
+          : 'Endringsforholdet er registrert og varslet til byggherre.'
+      );
       // Show warning if Catenda sync failed
       if (!result.catenda_synced) {
         onCatendaWarning?.();
@@ -208,6 +287,38 @@ export function SendGrunnlagModal({
   };
 
   const onSubmit = (data: GrunnlagFormData) => {
+    // ========== UPDATE MODE SUBMIT ==========
+    if (isUpdateMode && originalEvent) {
+      // Only send changed fields
+      const eventData: Record<string, unknown> = {
+        original_event_id: originalEvent.event_id,
+        endrings_begrunnelse: data.endrings_begrunnelse,
+      };
+
+      // Check each field for changes
+      if (data.tittel !== grunnlag?.tittel) {
+        eventData.tittel = data.tittel;
+      }
+      if (data.beskrivelse !== grunnlag?.beskrivelse) {
+        eventData.beskrivelse = data.beskrivelse;
+      }
+      if (data.dato_oppdaget !== grunnlag?.dato_oppdaget) {
+        eventData.dato_oppdaget = data.dato_oppdaget;
+      }
+      if (data.hovedkategori !== grunnlag?.hovedkategori) {
+        eventData.hovedkategori = data.hovedkategori;
+      }
+      // Always include underkategori if it might have changed
+      eventData.underkategori = data.underkategori;
+
+      mutation.mutate({
+        eventType: 'grunnlag_oppdatert',
+        data: eventData,
+      });
+      return;
+    }
+
+    // ========== CREATE MODE SUBMIT ==========
     // Build VarselInfo structure
     const varselDato = data.varsel_sendes_na
       ? new Date().toISOString().split('T')[0]
@@ -238,14 +349,89 @@ export function SendGrunnlagModal({
     });
   };
 
+  // Calculate warnings for update mode
+  const nyDatoOppdaget = watch('dato_oppdaget');
+  const nyHovedkategori = watch('hovedkategori');
+
+  // Check if new date makes notice too late (for update mode)
+  const varselErTidligere = useMemo(() => {
+    if (!isUpdateMode || !nyDatoOppdaget || !grunnlag?.grunnlag_varsel?.dato_sendt) return false;
+    const oppdagetDato = new Date(nyDatoOppdaget);
+    const varselDato = new Date(grunnlag.grunnlag_varsel.dato_sendt);
+    return oppdagetDato < varselDato;
+  }, [isUpdateMode, nyDatoOppdaget, grunnlag?.grunnlag_varsel?.dato_sendt]);
+
+  // Calculate days between new discovery date and existing notice (for update mode)
+  const dagerMellomOppdagetOgVarsel = useMemo(() => {
+    if (!isUpdateMode || !nyDatoOppdaget || !grunnlag?.grunnlag_varsel?.dato_sendt) return null;
+    const oppdagetDato = new Date(nyDatoOppdaget);
+    const varselDato = new Date(grunnlag.grunnlag_varsel.dato_sendt);
+    const diffTime = varselDato.getTime() - oppdagetDato.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }, [isUpdateMode, nyDatoOppdaget, grunnlag?.grunnlag_varsel?.dato_sendt]);
+
+  // Check preclusion risk for date change (update mode)
+  const preklusjonsRisikoVedEndring = useMemo(() => {
+    if (!dagerMellomOppdagetOgVarsel || dagerMellomOppdagetOgVarsel <= 0) return null;
+    return getPreklusjonsvarsel(dagerMellomOppdagetOgVarsel);
+  }, [dagerMellomOppdagetOgVarsel]);
+
+  // Check if category is changing (update mode)
+  const kategoriEndres = useMemo(() => {
+    if (!isUpdateMode) return false;
+    return nyHovedkategori && nyHovedkategori !== grunnlag?.hovedkategori;
+  }, [isUpdateMode, nyHovedkategori, grunnlag?.hovedkategori]);
+
   return (
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title="Varsle endringsforhold"
+      title={isUpdateMode ? "Oppdater grunnlag" : "Varsle endringsforhold"}
+      description={isUpdateMode ? "Endre informasjon i det innsendte grunnlaget." : undefined}
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* UPDATE MODE: Current grunnlag summary */}
+        {isUpdateMode && grunnlag && (
+          <SectionContainer
+            title="Nåværende grunnlag"
+            description={`Varslet ${grunnlag.grunnlag_varsel?.dato_sendt || 'ukjent dato'}. Endringer loggføres i historikken.`}
+            variant="subtle"
+          >
+            <dl className="grid grid-cols-2 gap-2 text-sm">
+              <dt className="text-pkt-grays-gray-500">Kategori:</dt>
+              <dd className="font-medium">{getHovedkategoriLabel(grunnlag.hovedkategori || '')}</dd>
+              <dt className="text-pkt-grays-gray-500">Oppdaget:</dt>
+              <dd>{grunnlag.dato_oppdaget}</dd>
+              <dt className="text-pkt-grays-gray-500">Varslet:</dt>
+              <dd>{grunnlag.grunnlag_varsel?.dato_sendt || 'Ikke varslet'}</dd>
+            </dl>
+          </SectionContainer>
+        )}
+
+        {/* UPDATE MODE: Date change warning */}
+        {isUpdateMode && varselErTidligere && dagerMellomOppdagetOgVarsel && dagerMellomOppdagetOgVarsel > 0 && (
+          <Alert
+            variant={preklusjonsRisikoVedEndring?.status === 'kritisk' ? 'danger' : 'warning'}
+            title="Advarsel: Dato kan påvirke preklusjon"
+          >
+            Hvis du setter oppdaget-dato til <strong>{nyDatoOppdaget}</strong>, betyr det at
+            varselet ble sendt {dagerMellomOppdagetOgVarsel} dager etter oppdagelse.
+            {preklusjonsRisikoVedEndring?.alert && (
+              <p className="mt-2 text-sm">{preklusjonsRisikoVedEndring.alert.message}</p>
+            )}
+          </Alert>
+        )}
+
+        {/* UPDATE MODE: Category change warning */}
+        {isUpdateMode && kategoriEndres && (
+          <Alert variant="warning" title="Kategoriendring">
+            Du endrer kategorien fra &ldquo;{getHovedkategoriLabel(grunnlag?.hovedkategori || '')}&rdquo;
+            til &ldquo;{getHovedkategoriLabel(nyHovedkategori || '')}&rdquo;.
+            Dette kan påvirke hvilke hjemler og varslingskrav som gjelder.
+          </Alert>
+        )}
+
         {/* Seksjon 1: Juridisk grunnlag */}
         <SectionContainer
           title="Juridisk grunnlag"
@@ -463,83 +649,108 @@ export function SendGrunnlagModal({
               </Alert>
             )}
 
-            <FormField
-              label="Når ble byggherren varslet?"
-              labelTooltip="Dokumenter når byggherren ble varslet. Varselfrist er kritisk for om kravet kan tapes ved preklusjon."
-            >
-              <Controller
-                name="varsel_sendes_na"
-                control={control}
-                render={({ field }) => (
-                  <RadioGroup
-                    value={field.value ? 'na' : 'tidligere'}
-                    onValueChange={(v) => field.onChange(v === 'na')}
-                    data-testid="grunnlag-varsel-valg"
-                  >
-                    <RadioItem
-                      value="na"
-                      label="Varsel sendes nå (sammen med dette skjemaet)"
-                    />
-                    <RadioItem
-                      value="tidligere"
-                      label="Varsel ble sendt tidligere"
-                    />
-                  </RadioGroup>
-                )}
-              />
-            </FormField>
-
-            {/* Tidligere varsel-detaljer - kun synlig når "tidligere" er valgt */}
-            {!varselSendesNa && (
-              <div className="border-l-2 border-pkt-border-subtle pl-4 space-y-4">
+            {/* Varsel options - only in create mode (varsel already sent in update mode) */}
+            {!isUpdateMode && (
+              <>
                 <FormField
-                  label="Dato varsel sendt"
-                  helpText="Kan være forskjellig fra oppdaget-dato. Både formelle og uformelle varsler (f.eks. byggemøte) teller."
+                  label="Når ble byggherren varslet?"
+                  labelTooltip="Dokumenter når byggherren ble varslet. Varselfrist er kritisk for om kravet kan tapes ved preklusjon."
                 >
                   <Controller
-                    name="dato_varsel_sendt"
+                    name="varsel_sendes_na"
                     control={control}
                     render={({ field }) => (
-                      <DatePicker
-                        id="dato_varsel_sendt"
-                        value={field.value}
-                        onChange={field.onChange}
-                      />
+                      <RadioGroup
+                        value={field.value ? 'na' : 'tidligere'}
+                        onValueChange={(v) => field.onChange(v === 'na')}
+                        data-testid="grunnlag-varsel-valg"
+                      >
+                        <RadioItem
+                          value="na"
+                          label="Varsel sendes nå (sammen med dette skjemaet)"
+                        />
+                        <RadioItem
+                          value="tidligere"
+                          label="Varsel ble sendt tidligere"
+                        />
+                      </RadioGroup>
                     )}
                   />
-                  {/* Preclusion warning for time between discovery and notification */}
-                  {preklusjonsResultatVarsel?.alert && (
-                    <div className="mt-3">
-                      <Alert
-                        variant={preklusjonsResultatVarsel.alert.variant}
-                        title={preklusjonsResultatVarsel.alert.title}
-                      >
-                        {preklusjonsResultatVarsel.alert.message}
-                      </Alert>
-                    </div>
-                  )}
                 </FormField>
 
-                <FormField
-                  label="Varselmetode"
-                  helpText="Hvordan ble byggherren varslet? (Kan velge flere)"
-                >
-                  <div className="space-y-3">
-                    {VARSEL_METODER_OPTIONS.map((option) => (
-                      <Checkbox
-                        key={option.value}
-                        id={`varsel-${option.value}`}
-                        label={option.label}
-                        value={option.value}
-                        {...register('varsel_metode')}
+                {/* Tidligere varsel-detaljer - kun synlig når "tidligere" er valgt */}
+                {!varselSendesNa && (
+                  <div className="border-l-2 border-pkt-border-subtle pl-4 space-y-4">
+                    <FormField
+                      label="Dato varsel sendt"
+                      helpText="Kan være forskjellig fra oppdaget-dato. Både formelle og uformelle varsler (f.eks. byggemøte) teller."
+                    >
+                      <Controller
+                        name="dato_varsel_sendt"
+                        control={control}
+                        render={({ field }) => (
+                          <DatePicker
+                            id="dato_varsel_sendt"
+                            value={field.value}
+                            onChange={field.onChange}
+                          />
+                        )}
                       />
-                    ))}
+                      {/* Preclusion warning for time between discovery and notification */}
+                      {preklusjonsResultatVarsel?.alert && (
+                        <div className="mt-3">
+                          <Alert
+                            variant={preklusjonsResultatVarsel.alert.variant}
+                            title={preklusjonsResultatVarsel.alert.title}
+                          >
+                            {preklusjonsResultatVarsel.alert.message}
+                          </Alert>
+                        </div>
+                      )}
+                    </FormField>
+
+                    <FormField
+                      label="Varselmetode"
+                      helpText="Hvordan ble byggherren varslet? (Kan velge flere)"
+                    >
+                      <div className="space-y-3">
+                        {VARSEL_METODER_OPTIONS.map((option) => (
+                          <Checkbox
+                            key={option.value}
+                            id={`varsel-${option.value}`}
+                            label={option.label}
+                            value={option.value}
+                            {...register('varsel_metode')}
+                          />
+                        ))}
+                      </div>
+                    </FormField>
                   </div>
-                </FormField>
-              </div>
+                )}
+              </>
             )}
           </div>
         </SectionContainer>
+
+        {/* UPDATE MODE: Begrunnelse for endring */}
+        {isUpdateMode && (
+          <SectionContainer title="Begrunnelse for endring">
+            <FormField
+              label="Hvorfor endres grunnlaget?"
+              required
+              error={errors.endrings_begrunnelse?.message}
+            >
+              <Textarea
+                id="endrings_begrunnelse"
+                {...register('endrings_begrunnelse')}
+                rows={3}
+                fullWidth
+                error={!!errors.endrings_begrunnelse}
+                placeholder="F.eks. ny informasjon, korrigering av feil, etc."
+              />
+            </FormField>
+          </SectionContainer>
+        )}
 
         {/* Seksjon 4: Vedlegg */}
         <SectionContainer
@@ -560,11 +771,13 @@ export function SendGrunnlagModal({
           />
         </SectionContainer>
 
-        {/* Guidance text */}
-        <p className="text-xs text-pkt-text-body-subtle">
-          Dette er et nøytralt varsel om grunnlaget. Spesifiserte krav om penger (Vederlag)
-          og tid (Frist) legger du til i egne steg etterpå.
-        </p>
+        {/* Guidance text - only in create mode */}
+        {!isUpdateMode && (
+          <p className="text-xs text-pkt-text-body-subtle">
+            Dette er et nøytralt varsel om grunnlaget. Spesifiserte krav om penger (Vederlag)
+            og tid (Frist) legger du til i egne steg etterpå.
+          </p>
+        )}
 
         {/* Error Message */}
         {mutation.isError && (
@@ -591,7 +804,7 @@ export function SendGrunnlagModal({
             className="w-full sm:w-auto"
             data-testid="grunnlag-submit"
           >
-            Send varsel
+            {isUpdateMode ? 'Lagre endringer' : 'Send varsel'}
           </Button>
         </div>
       </form>

@@ -41,11 +41,11 @@ import {
   RespondVederlagModal,
   RespondFristModal,
   // Update modals (TE)
-  SendGrunnlagUpdateModal,
+  // Note: SendGrunnlagUpdateModal is now handled by SendGrunnlagModal with originalEvent prop
   ReviseVederlagModal,
   ReviseFristModal,
   // Update response modals (BH)
-  RespondGrunnlagUpdateModal,
+  // Note: RespondGrunnlagUpdateModal is now handled by RespondGrunnlagModal with lastResponseEvent prop
   // Note: UpdateResponseVederlagModal is now handled by RespondVederlagModal with lastResponseEvent prop
   // Note: UpdateResponseFristModal is now handled by RespondFristModal with lastResponseEvent prop
   // Special action modals (TE)
@@ -681,7 +681,7 @@ function CasePageContent() {
           />
 
           {/* Update Modals (TE) */}
-          <SendGrunnlagUpdateModal
+          <SendGrunnlagModal
             open={updateGrunnlagOpen}
             onOpenChange={setUpdateGrunnlagOpen}
             sakId={sakId}
@@ -743,10 +743,11 @@ function CasePageContent() {
           />
 
           {/* Update Response Modals (BH) */}
-          <RespondGrunnlagUpdateModal
+          <RespondGrunnlagModal
             open={updateGrunnlagResponseOpen}
             onOpenChange={setUpdateGrunnlagResponseOpen}
             sakId={sakId}
+            grunnlagEventId={`grunnlag-${sakId}`}
             lastResponseEvent={{
               event_id: `grunnlag-response-${sakId}`,
               resultat: state.grunnlag.bh_resultat || 'godkjent',
