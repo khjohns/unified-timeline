@@ -49,7 +49,7 @@ function createMockState(overrides: Partial<{
     kan_utstede_eo: kanUtstedeEo,
     neste_handling: {
       rolle: 'TE',
-      handling: 'Send grunnlag',
+      handling: 'Varsle endringsforhold',
       spor: 'grunnlag',
     },
     sum_krevd: 0,

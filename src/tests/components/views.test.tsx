@@ -53,7 +53,7 @@ const createMinimalState = (overrides: Partial<SakState> = {}): SakState => ({
   kan_utstede_eo: false,
   neste_handling: {
     rolle: 'TE',
-    handling: 'Send grunnlag',
+    handling: 'Varsle endringsforhold',
     spor: 'grunnlag',
   },
   sum_krevd: 0,

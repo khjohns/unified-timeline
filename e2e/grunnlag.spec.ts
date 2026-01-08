@@ -35,24 +35,24 @@ test.describe('Grunnlag Flow', () => {
     await expect(page.getByText(new RegExp(testCase.sakId)).first()).toBeVisible();
   });
 
-  test('should show "Send grunnlag" button for TE role', async ({ page }) => {
+  test('should show "Varsle endringsforhold" button for TE role', async ({ page }) => {
     await page.goto(testCase.url);
     await expect(page).toHaveURL(/\/saker\//);
 
-    // TE role should be default, should see Send grunnlag button
-    await expect(page.getByRole('button', { name: /send grunnlag/i })).toBeVisible();
+    // TE role should be default, should see Varsle endringsforhold button
+    await expect(page.getByRole('button', { name: /varsle endringsforhold/i })).toBeVisible();
   });
 
   test('should open grunnlag modal and show form fields', async ({ page }) => {
     await page.goto(testCase.url);
     await expect(page).toHaveURL(/\/saker\//);
 
-    // Click "Send grunnlag" button
-    await page.getByRole('button', { name: /send grunnlag/i }).click();
+    // Click "Varsle endringsforhold" button
+    await page.getByRole('button', { name: /varsle endringsforhold/i }).click();
 
     // Modal should open
     await expect(page.getByRole('dialog')).toBeVisible();
-    await expect(page.getByRole('heading', { name: /send grunnlag/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /varsle endringsforhold/i })).toBeVisible();
 
     // Form fields should be visible using data-testid
     await expect(page.getByTestId('grunnlag-hovedkategori')).toBeVisible();
@@ -70,8 +70,8 @@ test.describe('Grunnlag Flow', () => {
     await page.goto(testCase.url);
     await expect(page).toHaveURL(/\/saker\//);
 
-    // Click "Send grunnlag" button
-    await page.getByRole('button', { name: /send grunnlag/i }).click();
+    // Click "Varsle endringsforhold" button
+    await page.getByRole('button', { name: /varsle endringsforhold/i }).click();
     await expect(page.getByRole('dialog')).toBeVisible();
 
     // Fill out the form using data-testid selectors

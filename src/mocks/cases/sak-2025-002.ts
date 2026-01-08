@@ -41,7 +41,7 @@ export const mockSakState2: SakState = {
   kan_utstede_eo: false,
   neste_handling: {
     rolle: 'TE',
-    handling: 'Send grunnlag',
+    handling: 'Varsle endringsforhold',
     spor: 'grunnlag',
   },
 

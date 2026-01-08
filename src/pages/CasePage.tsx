@@ -363,7 +363,7 @@ function CasePageContent() {
                   onClick={() => setSendGrunnlagOpen(true)}
                 >
                   <PaperPlaneIcon className="w-4 h-4 mr-2" />
-                  Send grunnlag
+                  Varsle endringsforhold
                 </Button>
               )}
               {userRole === 'TE' && actions.canUpdateGrunnlag && (

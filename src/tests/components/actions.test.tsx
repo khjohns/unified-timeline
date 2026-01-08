@@ -172,7 +172,7 @@ describe('Action/Modal Components - Functional Tests', () => {
     it('should render when open', () => {
       renderWithProviders(<SendGrunnlagModal {...defaultProps} />);
 
-      expect(screen.getByRole('dialog', { name: /Send grunnlag/i })).toBeInTheDocument();
+      expect(screen.getByRole('dialog', { name: /Varsle endringsforhold/i })).toBeInTheDocument();
     });
 
     it('should have hovedkategori field', () => {
@@ -196,14 +196,14 @@ describe('Action/Modal Components - Functional Tests', () => {
     it('should not render when closed', () => {
       renderWithProviders(<SendGrunnlagModal {...defaultProps} open={false} />);
 
-      expect(screen.queryByRole('dialog', { name: /Send grunnlag/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog', { name: /Varsle endringsforhold/i })).not.toBeInTheDocument();
     });
 
     it('should have submit and cancel buttons', () => {
       renderWithProviders(<SendGrunnlagModal {...defaultProps} />);
 
       expect(screen.getByRole('button', { name: /Avbryt/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Send grunnlag/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Send varsel/i })).toBeInTheDocument();
     });
   });
 
