@@ -18,10 +18,12 @@ import {
   AlertDialog,
   Badge,
   Button,
+  Collapsible,
   DatePicker,
   FormField,
   Input,
   Modal,
+  SectionContainer,
   Textarea,
 } from '../primitives';
 import { useForm, Controller } from 'react-hook-form';
@@ -32,7 +34,7 @@ import { useConfirmClose } from '../../hooks/useConfirmClose';
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { useFormBackup } from '../../hooks/useFormBackup';
 import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
-import { FristTilstand, FristBeregningResultat, FristVarselType } from '../../types/timeline';
+import { FristTilstand, FristBeregningResultat, FristVarselType, SubsidiaerTrigger } from '../../types/timeline';
 
 // Modal operating modes
 type ModalMode = 'revider' | 'spesifiser_frivillig' | 'spesifiser_etterlysning';
@@ -70,6 +72,8 @@ interface ReviseFristModalProps {
   fristForSpesifisering?: string;
   /** Callback when Catenda sync was skipped or failed */
   onCatendaWarning?: () => void;
+  /** Subsidiary triggers for displaying "Subs. godkjent" label */
+  subsidiaerTriggers?: SubsidiaerTrigger[];
 }
 
 const RESULTAT_LABELS: Record<FristBeregningResultat, string> = {
@@ -95,8 +99,10 @@ export function ReviseFristModal({
   harMottattEtterlysning,
   fristForSpesifisering,
   onCatendaWarning,
+  subsidiaerTriggers,
 }: ReviseFristModalProps) {
   const [showTokenExpired, setShowTokenExpired] = useState(false);
+  const erSubsidiaer = subsidiaerTriggers && subsidiaerTriggers.length > 0;
   const [showRestorePrompt, setShowRestorePrompt] = useState(false);
   const harBhSvar = !!lastResponseEvent;
 
@@ -182,16 +188,15 @@ export function ReviseFristModal({
 
   const antallDager = watch('antall_dager');
 
-  // Validation: Different rules for different modes
+  // Validation: Only for specification modes (revider allows same days with updated begrunnelse)
   const erUgyldigDager = useMemo(() => {
     if (modalMode === 'revider') {
-      // For revision: days must differ from original
-      return antallDager === lastFristEvent.antall_dager;
+      return false;  // Allow same days - user may only update begrunnelse/documentation
     } else {
       // For specification: days must be > 0
       return antallDager === 0 || antallDager === undefined;
     }
-  }, [antallDager, lastFristEvent.antall_dager, modalMode]);
+  }, [antallDager, modalMode]);
 
   const mutation = useSubmitEvent(sakId, {
     onSuccess: (result) => {
@@ -270,162 +275,169 @@ export function ReviseFristModal({
           </Alert>
         )}
 
-        {/* Status box - adapts to mode */}
-        <div className="bg-pkt-bg-subtle p-4 rounded border border-pkt-grays-gray-200">
-          {modalMode === 'revider' ? (
-            /* Revision mode: Show original claim with days */
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm text-pkt-grays-gray-600">Ditt opprinnelige krav:</p>
-                <p className="text-2xl font-bold">{lastFristEvent.antall_dager} dager</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-pkt-grays-gray-600">BHs svar:</p>
+        {/* Seksjon 1: Nåværende status */}
+        <SectionContainer title="Nåværende status" variant="subtle">
+          <div className="space-y-4">
+            {/* Status display - adapts to mode */}
+            {modalMode === 'revider' ? (
+              /* Revision mode: Inline status display */
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                <span>
+                  <span className="text-pkt-text-body-subtle">Krevd:</span>{' '}
+                  <span className="font-mono font-bold">{lastFristEvent.antall_dager}</span> dager
+                </span>
+                <span className="text-pkt-border-subtle">|</span>
                 {lastResponseEvent ? (
                   <>
+                    <span>
+                      <span className="text-pkt-text-body-subtle">
+                        {erSubsidiaer ? 'Subs. godkjent:' : 'Godkjent:'}
+                      </span>{' '}
+                      <span className="font-mono font-bold">{lastResponseEvent.godkjent_dager ?? 0}</span>
+                    </span>
+                    <span className="text-pkt-border-subtle">|</span>
                     <Badge variant={RESULTAT_VARIANTS[lastResponseEvent.resultat]}>
                       {RESULTAT_LABELS[lastResponseEvent.resultat]}
                     </Badge>
-                    {lastResponseEvent.godkjent_dager !== undefined && (
-                      <p className="text-sm mt-1">
-                        Godkjent: {lastResponseEvent.godkjent_dager} dager
-                      </p>
-                    )}
                   </>
                 ) : (
                   <Badge variant="neutral">Avventer svar</Badge>
                 )}
               </div>
-            </div>
-          ) : (
-            /* Specification mode: Show neutral notice status */
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Badge variant="warning">Nøytralt varsel</Badge>
-                {fristTilstand.noytralt_varsel?.dato_sendt && (
-                  <span className="text-sm text-pkt-grays-gray-600">
-                    Sendt: {fristTilstand.noytralt_varsel.dato_sendt}
-                  </span>
-                )}
+            ) : (
+              /* Specification mode: Show neutral notice status */
+              <div className="bg-pkt-bg-subtle p-4 rounded border border-pkt-grays-gray-200">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge variant="warning">Nøytralt varsel</Badge>
+                  {fristTilstand.noytralt_varsel?.dato_sendt && (
+                    <span className="text-sm text-pkt-grays-gray-600">
+                      Sendt: {fristTilstand.noytralt_varsel.dato_sendt}
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm">
+                  Du varslet om behov for fristforlengelse, men har ikke spesifisert antall dager.
+                  Angi nå det konkrete kravet.
+                </p>
               </div>
-              <p className="text-sm">
-                Du varslet om behov for fristforlengelse, men har ikke spesifisert antall dager.
-                Angi nå det konkrete kravet.
-              </p>
-            </div>
-          )}
-        </div>
+            )}
 
-        {/* BH begrunnelse - show if available */}
-        {harBhSvar && lastResponseEvent?.begrunnelse && (
-          <div className="p-4 rounded-none border-2 border-pkt-border-default bg-pkt-surface-subtle">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="font-bold text-sm">Byggherrens begrunnelse</h4>
-              <Badge variant={RESULTAT_VARIANTS[lastResponseEvent.resultat]}>
-                {RESULTAT_LABELS[lastResponseEvent.resultat]}
-              </Badge>
-            </div>
-            <div className="pt-2 border-t border-pkt-border-subtle">
-              <p className="italic text-pkt-text-body text-sm">
-                &ldquo;{lastResponseEvent.begrunnelse}&rdquo;
-              </p>
-            </div>
+            {/* BH begrunnelse - collapsible */}
+            {harBhSvar && lastResponseEvent?.begrunnelse && (
+              <Collapsible
+                title="Byggherrens begrunnelse"
+                defaultOpen={false}
+              >
+                <p className="italic text-pkt-text-body text-sm whitespace-pre-line">
+                  &ldquo;{lastResponseEvent.begrunnelse}&rdquo;
+                </p>
+              </Collapsible>
+            )}
+
+            {/* Info when BH hasn't responded - only for revision mode */}
+            {modalMode === 'revider' && !lastResponseEvent && (
+              <Alert variant="info" title="Revisjon før svar">
+                Du kan oppdatere kravet ditt før byggherren har svart. Det reviderte kravet
+                erstatter det opprinnelige kravet.
+              </Alert>
+            )}
           </div>
-        )}
+        </SectionContainer>
 
-        {/* Info when BH hasn't responded - only for revision mode */}
-        {modalMode === 'revider' && !lastResponseEvent && (
-          <Alert variant="info" title="Revisjon før svar">
-            Du kan oppdatere kravet ditt før byggherren har svart. Det reviderte kravet
-            erstatter det opprinnelige kravet.
-          </Alert>
-        )}
-
-        {/* Form fields */}
-        <div className="space-y-3">
-          <FormField
-            label="Antall dager fristforlengelse"
-            required
-            error={errors.antall_dager?.message}
-          >
-            <Controller
-              name="antall_dager"
-              control={control}
-              render={({ field }) => (
-                <Input
-                  type="number"
-                  value={field.value}
-                  onChange={(e) => field.onChange(Number(e.target.value))}
-                  width="xs"
-                  min={0}
-                />
-              )}
-            />
-          </FormField>
-          {erUgyldigDager && (
-            <p className="text-sm text-pkt-brand-orange-700">
-              {modalMode === 'revider'
-                ? 'Nytt antall dager må være forskjellig fra opprinnelig krav for å sende revisjon.'
-                : 'Du må angi antall dager (mer enn 0) for å sende spesifisert krav.'}
-            </p>
-          )}
-        </div>
-
-        {/* Additional fields for specification modes */}
-        {modalMode !== 'revider' && (
-          <>
-            {/* Ny sluttdato */}
+        {/* Seksjon 2: Nytt krav */}
+        <SectionContainer
+          title={modalMode === 'revider' ? 'Revidert krav' : 'Spesifisert krav'}
+          description={modalMode === 'revider'
+            ? 'Angi nytt antall dager for fristforlengelse'
+            : 'Spesifiser antall dager fristforlengelse'}
+        >
+          <div className="space-y-4">
             <FormField
-              label="Ny forventet sluttdato"
-              helpText="Forventet ny sluttdato etter fristforlengelsen"
+              label="Antall dager fristforlengelse"
+              required
+              error={errors.antall_dager?.message}
             >
               <Controller
-                name="ny_sluttdato"
+                name="antall_dager"
                 control={control}
                 render={({ field }) => (
-                  <DatePicker
-                    id="ny_sluttdato"
+                  <Input
+                    type="number"
                     value={field.value}
-                    onChange={field.onChange}
+                    onChange={(e) => field.onChange(Number(e.target.value))}
+                    width="xs"
+                    min={0}
                   />
                 )}
               />
             </FormField>
-
-          </>
-        )}
-
-        {/* Vilkår-info for begrunnelse */}
-        <Alert variant="info" title="Vilkår for fristforlengelse (§33.1, §33.5)">
-          For å ha krav på fristforlengelse må du vise at: (1) fremdriften har vært hindret, og
-          (2) hindringen skyldes det påberopte forholdet (årsakssammenheng). Begrunn hvordan
-          forholdet konkret har forårsaket forsinkelse i prosjektet.
-        </Alert>
-
-        {/* Begrunnelse */}
-        <FormField
-          label={modalMode === 'revider' ? 'Begrunnelse for endring' : 'Begrunnelse for kravet'}
-          required
-          error={errors.begrunnelse?.message}
-        >
-          <Controller
-            name="begrunnelse"
-            control={control}
-            render={({ field }) => (
-              <Textarea
-                id="begrunnelse"
-                value={field.value}
-                onChange={field.onChange}
-                rows={4}
-                fullWidth
-                error={!!errors.begrunnelse}
-                placeholder={modalMode === 'revider'
-                  ? 'Hvorfor endres antall dager?'
-                  : 'Begrunn kravet om fristforlengelse (årsakssammenheng, dokumentasjon av hindring)'}
-              />
+            {erUgyldigDager && modalMode !== 'revider' && (
+              <p className="text-sm text-pkt-brand-orange-700">
+                Du må angi antall dager (mer enn 0) for å sende spesifisert krav.
+              </p>
             )}
-          />
-        </FormField>
+
+            {/* Ny sluttdato - only for specification modes */}
+            {modalMode !== 'revider' && (
+              <FormField
+                label="Ny forventet sluttdato"
+                helpText="Forventet ny sluttdato etter fristforlengelsen"
+              >
+                <Controller
+                  name="ny_sluttdato"
+                  control={control}
+                  render={({ field }) => (
+                    <DatePicker
+                      id="ny_sluttdato"
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
+                  )}
+                />
+              </FormField>
+            )}
+          </div>
+        </SectionContainer>
+
+        {/* Seksjon 3: Begrunnelse */}
+        <SectionContainer
+          title="Begrunnelse"
+          description={modalMode === 'revider'
+            ? 'Forklar hvorfor du endrer kravet'
+            : 'Begrunn kravet med henvisning til årsakssammenheng'}
+        >
+          <div className="space-y-4">
+            <Alert variant="info" title="Vilkår for fristforlengelse (§33.1, §33.5)">
+              For å ha krav på fristforlengelse må du vise at: (1) fremdriften har vært hindret, og
+              (2) hindringen skyldes det påberopte forholdet (årsakssammenheng). Begrunn hvordan
+              forholdet konkret har forårsaket forsinkelse i prosjektet.
+            </Alert>
+
+            <FormField
+              label={modalMode === 'revider' ? 'Begrunnelse for endring' : 'Begrunnelse for kravet'}
+              required
+              error={errors.begrunnelse?.message}
+            >
+              <Controller
+                name="begrunnelse"
+                control={control}
+                render={({ field }) => (
+                  <Textarea
+                    id="begrunnelse"
+                    value={field.value}
+                    onChange={field.onChange}
+                    rows={4}
+                    fullWidth
+                    error={!!errors.begrunnelse}
+                    placeholder={modalMode !== 'revider'
+                      ? 'Begrunn kravet om fristforlengelse (årsakssammenheng, dokumentasjon av hindring)'
+                      : undefined}
+                  />
+                )}
+              />
+            </FormField>
+          </div>
+        </SectionContainer>
 
         {/* Error Message */}
         {mutation.isError && (

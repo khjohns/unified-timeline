@@ -739,6 +739,7 @@ function CasePageContent() {
             harMottattEtterlysning={state.frist.har_bh_etterlyst}
             fristForSpesifisering={state.frist.frist_for_spesifisering}
             onCatendaWarning={() => setShowCatendaWarning(true)}
+            subsidiaerTriggers={state.frist.subsidiaer_triggers}
           />
 
           {/* Update Response Modals (BH) */}
