@@ -18,6 +18,7 @@ import {
   Modal,
   RadioGroup,
   RadioItem,
+  SectionContainer,
   Select,
   SelectContent,
   SelectItem,
@@ -254,282 +255,300 @@ export function SendGrunnlagModal({
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Hovedkategori */}
-        <FormField
-          label="Hovedkategori (NS 8407)"
-          required
-          error={errors.hovedkategori?.message}
-          labelTooltip="Velg juridisk grunnlag iht. NS 8407. Dette bestemmer hvilke kontraktsbestemmelser som gjelder og hvilke krav som kan fremmes."
+        {/* Seksjon 1: Juridisk grunnlag */}
+        <SectionContainer
+          title="Juridisk grunnlag"
+          description="Velg kategori og underkategori iht. NS 8407"
         >
-          <Controller
-            name="hovedkategori"
-            control={control}
-            render={({ field }) => (
-              <RadioGroup
-                value={field.value}
-                onValueChange={(value) => {
-                  field.onChange(value);
-                  handleHovedkategoriChange(value);
-                }}
-                data-testid="grunnlag-hovedkategori"
-              >
-                {HOVEDKATEGORI_OPTIONS.filter(opt => opt.value !== '').map((option) => (
-                  <RadioItem
-                    key={option.value}
-                    value={option.value}
-                    label={option.label}
-                    error={!!errors.hovedkategori}
-                  />
-                ))}
-              </RadioGroup>
+          <div className="space-y-4">
+            {/* Hovedkategori */}
+            <FormField
+              label="Hovedkategori"
+              required
+              error={errors.hovedkategori?.message}
+              labelTooltip="Velg juridisk grunnlag iht. NS 8407. Dette bestemmer hvilke kontraktsbestemmelser som gjelder og hvilke krav som kan fremmes."
+            >
+              <Controller
+                name="hovedkategori"
+                control={control}
+                render={({ field }) => (
+                  <RadioGroup
+                    value={field.value}
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      handleHovedkategoriChange(value);
+                    }}
+                    data-testid="grunnlag-hovedkategori"
+                  >
+                    {HOVEDKATEGORI_OPTIONS.filter(opt => opt.value !== '').map((option) => (
+                      <RadioItem
+                        key={option.value}
+                        value={option.value}
+                        label={option.label}
+                        error={!!errors.hovedkategori}
+                      />
+                    ))}
+                  </RadioGroup>
+                )}
+              />
+            </FormField>
+
+            {/* Category info box */}
+            {valgtHovedkategori && (
+              <Alert variant="info" title={`Hjemmel: NS 8407 §${valgtHovedkategori.hjemmel_frist}`}>
+                {valgtHovedkategori.beskrivelse}
+                <div className="mt-2 text-xs">
+                  <strong>Type krav:</strong> {valgtHovedkategori.type_krav}
+                  {valgtHovedkategori.hjemmel_vederlag && (
+                    <> | <strong>Vederlag:</strong> §{valgtHovedkategori.hjemmel_vederlag}</>
+                  )}
+                </div>
+              </Alert>
             )}
-          />
-        </FormField>
 
-        {/* Category info box */}
-        {valgtHovedkategori && (
-          <Alert variant="info" title={`Hjemmel: NS 8407 §${valgtHovedkategori.hjemmel_frist}`}>
-            {valgtHovedkategori.beskrivelse}
-            <div className="mt-2 text-xs">
-              <strong>Type krav:</strong> {valgtHovedkategori.type_krav}
-              {valgtHovedkategori.hjemmel_vederlag && (
-                <> | <strong>Vederlag:</strong> §{valgtHovedkategori.hjemmel_vederlag}</>
-              )}
-            </div>
-          </Alert>
-        )}
-
-        {/* Underkategori - Dynamic based on hovedkategori, grouped */}
-        {selectedHovedkategori && valgtHovedkategori && valgtHovedkategori.underkategorier.length > 0 && (
-          <Controller
-            name="underkategori"
-            control={control}
-            render={({ field }) => {
-              const grupperteUnderkategorier = getGrupperteUnderkategorier(valgtHovedkategori.underkategorier);
-              return (
-                <FormField
-                  label="Underkategori"
-                  required
-                  error={errors.underkategori?.message}
-                >
-                  <div className="space-y-4 max-h-80 overflow-y-auto border-2 border-pkt-border-gray rounded-none p-4 bg-pkt-bg-subtle" data-testid="grunnlag-underkategori-list">
-                    {Array.from(grupperteUnderkategorier.entries()).map(([gruppeNavn, underkategorier]) => (
-                      <div key={gruppeNavn ?? 'ungrouped'}>
-                        {gruppeNavn && (
-                          <p className="text-sm font-semibold text-pkt-text-body mb-2">{gruppeNavn}</p>
-                        )}
-                        <div className="space-y-2 pl-0">
-                          {underkategorier.map((uk) => (
-                            <Checkbox
-                              key={uk.kode}
-                              id={`underkategori-${uk.kode}`}
-                              label={`${uk.label} (§${uk.hjemmel_basis})`}
-                              checked={field.value?.includes(uk.kode) ?? false}
-                              onCheckedChange={(checked) => {
-                                const current = field.value ?? [];
-                                if (checked) {
-                                  field.onChange([...current, uk.kode]);
-                                } else {
-                                  field.onChange(current.filter((v: string) => v !== uk.kode));
-                                }
-                              }}
-                            />
-                          ))}
-                        </div>
+            {/* Underkategori - Dynamic based on hovedkategori, grouped */}
+            {selectedHovedkategori && valgtHovedkategori && valgtHovedkategori.underkategorier.length > 0 && (
+              <Controller
+                name="underkategori"
+                control={control}
+                render={({ field }) => {
+                  const grupperteUnderkategorier = getGrupperteUnderkategorier(valgtHovedkategori.underkategorier);
+                  return (
+                    <FormField
+                      label="Underkategori"
+                      required
+                      error={errors.underkategori?.message}
+                    >
+                      <div className="space-y-4" data-testid="grunnlag-underkategori-list">
+                        {Array.from(grupperteUnderkategorier.entries()).map(([gruppeNavn, underkategorier]) => (
+                          <div key={gruppeNavn ?? 'ungrouped'}>
+                            {gruppeNavn && (
+                              <p className="text-sm font-semibold text-pkt-text-body mb-2">{gruppeNavn}</p>
+                            )}
+                            <div className="space-y-2 pl-0">
+                              {underkategorier.map((uk) => (
+                                <Checkbox
+                                  key={uk.kode}
+                                  id={`underkategori-${uk.kode}`}
+                                  label={`${uk.label} (§${uk.hjemmel_basis})`}
+                                  checked={field.value?.includes(uk.kode) ?? false}
+                                  onCheckedChange={(checked) => {
+                                    const current = field.value ?? [];
+                                    if (checked) {
+                                      field.onChange([...current, uk.kode]);
+                                    } else {
+                                      field.onChange(current.filter((v: string) => v !== uk.kode));
+                                    }
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        ))}
                       </div>
+                    </FormField>
+                  );
+                }}
+              />
+            )}
+
+            {/* Underkategori info - show all selected */}
+            {valgteUnderkategorier.length > 0 && (
+              <div className="space-y-3">
+                {valgteUnderkategorier.map((underkat) => (
+                  <Alert key={underkat.kode} variant="info" title={underkat.label}>
+                    {underkat.beskrivelse}
+                    <p className="text-xs mt-2">
+                      <strong>Hjemmel:</strong> §{underkat.hjemmel_basis} | <strong>Varslingskrav:</strong> §{underkat.varselkrav_ref}
+                    </p>
+                  </Alert>
+                ))}
+              </div>
+            )}
+          </div>
+        </SectionContainer>
+
+        {/* Seksjon 2: Beskrivelse */}
+        <SectionContainer
+          title="Beskrivelse"
+          description="Beskriv forholdet som varsles"
+        >
+          <div className="space-y-4">
+            <FormField
+              label="Tittel på varselet"
+              required
+              error={errors.tittel?.message}
+              helpText="Kort beskrivende tittel for enkel identifikasjon av saken"
+            >
+              <Input
+                id="tittel"
+                data-testid="grunnlag-tittel"
+                {...register('tittel')}
+                fullWidth
+              />
+            </FormField>
+
+            {/* Law change check (§14.4) */}
+            {harLovendring && (
+              <Alert variant="warning" title="Lovendring (§14.4)">
+                <Controller
+                  name="er_etter_tilbud"
+                  control={control}
+                  render={({ field }) => (
+                    <Checkbox
+                      id="er_etter_tilbud"
+                      label="Bekreft at endringen inntraff ETTER tilbudsfristens utløp"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  )}
+                />
+                {!erEtterTilbud && (
+                  <p className="text-xs text-pkt-text-danger mt-2">
+                    Hvis lovendringen var kjent ved tilbudsfrist, ligger risikoen normalt hos deg.
+                  </p>
+                )}
+              </Alert>
+            )}
+
+            <FormField
+              label="Beskrivelse"
+              required
+              error={errors.beskrivelse?.message}
+              helpText="Beskriv grunnlaget for endringsmeldingen"
+            >
+              <Textarea
+                id="beskrivelse"
+                data-testid="grunnlag-beskrivelse"
+                {...register('beskrivelse')}
+                rows={5}
+                fullWidth
+                error={!!errors.beskrivelse}
+              />
+            </FormField>
+          </div>
+        </SectionContainer>
+
+        {/* Seksjon 3: Tidspunkt og varsling */}
+        <SectionContainer
+          title="Tidspunkt og varsling"
+          description="Dokumenter når forholdet ble oppdaget og varslet"
+        >
+          <div className="space-y-4">
+            <FormField
+              label="Dato forhold oppdaget"
+              required
+              error={errors.dato_oppdaget?.message}
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <Controller
+                  name="dato_oppdaget"
+                  control={control}
+                  render={({ field }) => (
+                    <DatePicker
+                      id="dato_oppdaget"
+                      data-testid="grunnlag-dato-oppdaget"
+                      value={field.value}
+                      onChange={field.onChange}
+                      error={!!errors.dato_oppdaget}
+                    />
+                  )}
+                />
+                {datoOppdaget && (
+                  <span className="text-sm text-pkt-text-body-subtle whitespace-nowrap">
+                    {beregnDagerSiden(datoOppdaget)} dager siden
+                  </span>
+                )}
+              </div>
+            </FormField>
+
+            {/* Preclusion warnings */}
+            {preklusjonsResultat?.alert && (
+              <Alert
+                variant={preklusjonsResultat.alert.variant}
+                title={preklusjonsResultat.alert.title}
+              >
+                {preklusjonsResultat.alert.message}
+              </Alert>
+            )}
+
+            <FormField
+              label="Når ble byggherren varslet?"
+              labelTooltip="Dokumenter når byggherren ble varslet. Varselfrist er kritisk for om kravet kan tapes ved preklusjon."
+            >
+              <Controller
+                name="varsel_sendes_na"
+                control={control}
+                render={({ field }) => (
+                  <RadioGroup
+                    value={field.value ? 'na' : 'tidligere'}
+                    onValueChange={(v) => field.onChange(v === 'na')}
+                    data-testid="grunnlag-varsel-valg"
+                  >
+                    <RadioItem
+                      value="na"
+                      label="Varsel sendes nå (sammen med dette skjemaet)"
+                    />
+                    <RadioItem
+                      value="tidligere"
+                      label="Varsel ble sendt tidligere"
+                    />
+                  </RadioGroup>
+                )}
+              />
+            </FormField>
+
+            {/* Tidligere varsel-detaljer - kun synlig når "tidligere" er valgt */}
+            {!varselSendesNa && (
+              <div className="border-l-2 border-pkt-border-subtle pl-4 space-y-4">
+                <FormField
+                  label="Dato varsel sendt"
+                  helpText="Kan være forskjellig fra oppdaget-dato. Både formelle og uformelle varsler (f.eks. byggemøte) teller."
+                >
+                  <Controller
+                    name="dato_varsel_sendt"
+                    control={control}
+                    render={({ field }) => (
+                      <DatePicker
+                        id="dato_varsel_sendt"
+                        value={field.value}
+                        onChange={field.onChange}
+                      />
+                    )}
+                  />
+                  {/* Preclusion warning for time between discovery and notification */}
+                  {preklusjonsResultatVarsel?.alert && (
+                    <div className="mt-3">
+                      <Alert
+                        variant={preklusjonsResultatVarsel.alert.variant}
+                        title={preklusjonsResultatVarsel.alert.title}
+                      >
+                        {preklusjonsResultatVarsel.alert.message}
+                      </Alert>
+                    </div>
+                  )}
+                </FormField>
+
+                <FormField
+                  label="Varselmetode"
+                  helpText="Hvordan ble byggherren varslet? (Kan velge flere)"
+                >
+                  <div className="space-y-3">
+                    {VARSEL_METODER_OPTIONS.map((option) => (
+                      <Checkbox
+                        key={option.value}
+                        id={`varsel-${option.value}`}
+                        label={option.label}
+                        value={option.value}
+                        {...register('varsel_metode')}
+                      />
                     ))}
                   </div>
                 </FormField>
-              );
-            }}
-          />
-        )}
-
-        {/* Underkategori info - show all selected */}
-        {valgteUnderkategorier.length > 0 && (
-          <div className="space-y-3">
-            {valgteUnderkategorier.map((underkat) => (
-              <Alert key={underkat.kode} variant="info" title={underkat.label}>
-                {underkat.beskrivelse}
-                <p className="text-xs mt-2">
-                  <strong>Hjemmel:</strong> §{underkat.hjemmel_basis} | <strong>Varslingskrav:</strong> §{underkat.varselkrav_ref}
-                </p>
-              </Alert>
-            ))}
-          </div>
-        )}
-
-        {/* Tittel */}
-        <FormField
-          label="Tittel på varselet"
-          required
-          error={errors.tittel?.message}
-          helpText="Kort beskrivende tittel for enkel identifikasjon av saken"
-        >
-          <Input
-            id="tittel"
-            data-testid="grunnlag-tittel"
-            {...register('tittel')}
-            fullWidth
-          />
-        </FormField>
-
-        {/* Law change check (§14.4) */}
-        {harLovendring && (
-          <Alert variant="warning" title="Lovendring (§14.4)">
-            <Controller
-              name="er_etter_tilbud"
-              control={control}
-              render={({ field }) => (
-                <Checkbox
-                  id="er_etter_tilbud"
-                  label="Bekreft at endringen inntraff ETTER tilbudsfristens utløp"
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              )}
-            />
-            {!erEtterTilbud && (
-              <p className="text-xs text-pkt-text-danger mt-2">
-                Hvis lovendringen var kjent ved tilbudsfrist, ligger risikoen normalt hos deg.
-              </p>
-            )}
-          </Alert>
-        )}
-
-        {/* Beskrivelse */}
-        <FormField
-          label="Beskrivelse"
-          required
-          error={errors.beskrivelse?.message}
-          helpText="Beskriv grunnlaget for endringsmeldingen"
-        >
-          <Textarea
-            id="beskrivelse"
-            data-testid="grunnlag-beskrivelse"
-            {...register('beskrivelse')}
-            rows={5}
-            fullWidth
-            error={!!errors.beskrivelse}
-          />
-        </FormField>
-
-        {/* Dato forhold oppdaget */}
-        <div className="bg-pkt-surface-subtle p-4 rounded-none border-2 border-pkt-border-default space-y-4">
-          <FormField
-            label="Dato forhold oppdaget"
-            required
-            error={errors.dato_oppdaget?.message}
-          >
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-              <Controller
-                name="dato_oppdaget"
-                control={control}
-                render={({ field }) => (
-                  <DatePicker
-                    id="dato_oppdaget"
-                    data-testid="grunnlag-dato-oppdaget"
-                    value={field.value}
-                    onChange={field.onChange}
-                    error={!!errors.dato_oppdaget}
-                  />
-                )}
-              />
-              {datoOppdaget && (
-                <span className="text-sm text-pkt-text-body-subtle whitespace-nowrap">
-                  {beregnDagerSiden(datoOppdaget)} dager siden
-                </span>
-              )}
-            </div>
-          </FormField>
-
-          {/* Preclusion warnings */}
-          {preklusjonsResultat?.alert && (
-            <Alert
-              variant={preklusjonsResultat.alert.variant}
-              title={preklusjonsResultat.alert.title}
-            >
-              {preklusjonsResultat.alert.message}
-            </Alert>
-          )}
-        </div>
-
-        {/* Varsel-seksjon */}
-        <FormField
-          label="Når ble byggherren varslet?"
-          labelTooltip="Dokumenter når byggherren ble varslet. Varselfrist er kritisk for om kravet kan tapes ved preklusjon."
-        >
-          <Controller
-            name="varsel_sendes_na"
-            control={control}
-            render={({ field }) => (
-              <RadioGroup
-                value={field.value ? 'na' : 'tidligere'}
-                onValueChange={(v) => field.onChange(v === 'na')}
-                data-testid="grunnlag-varsel-valg"
-              >
-                <RadioItem
-                  value="na"
-                  label="Varsel sendes nå (sammen med dette skjemaet)"
-                />
-                <RadioItem
-                  value="tidligere"
-                  label="Varsel ble sendt tidligere"
-                />
-              </RadioGroup>
-            )}
-          />
-        </FormField>
-
-        {/* Tidligere varsel-detaljer - kun synlig når "tidligere" er valgt */}
-        {!varselSendesNa && (
-          <div className="bg-pkt-surface-subtle p-4 rounded-none border-2 border-pkt-border-default space-y-4 ml-6">
-            <FormField
-              label="Dato varsel sendt"
-              helpText="Kan være forskjellig fra oppdaget-dato. Både formelle og uformelle varsler (f.eks. byggemøte) teller."
-            >
-              <Controller
-                name="dato_varsel_sendt"
-                control={control}
-                render={({ field }) => (
-                  <DatePicker
-                    id="dato_varsel_sendt"
-                    value={field.value}
-                    onChange={field.onChange}
-                  />
-                )}
-              />
-              {/* Preclusion warning for time between discovery and notification */}
-              {preklusjonsResultatVarsel?.alert && (
-                <div className="mt-3">
-                  <Alert
-                    variant={preklusjonsResultatVarsel.alert.variant}
-                    title={preklusjonsResultatVarsel.alert.title}
-                  >
-                    {preklusjonsResultatVarsel.alert.message}
-                  </Alert>
-                </div>
-              )}
-            </FormField>
-
-            <FormField
-              label="Varselmetode"
-              helpText="Hvordan ble byggherren varslet? (Kan velge flere)"
-            >
-              <div className="space-y-3">
-                {VARSEL_METODER_OPTIONS.map((option) => (
-                  <Checkbox
-                    key={option.value}
-                    id={`varsel-${option.value}`}
-                    label={option.label}
-                    value={option.value}
-                    {...register('varsel_metode')}
-                  />
-                ))}
               </div>
-            </FormField>
+            )}
           </div>
-        )}
+        </SectionContainer>
 
         {/* Kontraktsreferanser */}
         <Collapsible title="Kontraktsreferanser (Valgfritt)">
