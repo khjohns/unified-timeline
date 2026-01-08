@@ -26,7 +26,7 @@ import { PageHeader } from '../components/PageHeader';
 import { formatCurrency } from '../utils/formatters';
 import { ForseringRelasjonBanner } from '../components/forsering';
 import { UtstEndringsordreModal, EndringsordreRelasjonBanner } from '../components/endringsordre';
-import { ApprovalRoleSelector } from '../components/ApprovalRoleSelector';
+import { MockToolbar } from '../components/MockToolbar';
 import {
   SendToApprovalModal,
   ApproveRejectModal,
@@ -35,7 +35,6 @@ import {
   SendResponsPakkeModal,
   ApprovalHistory,
 } from '../components/approval';
-import { Checkbox } from '../components/primitives/Checkbox';
 import {
   SendGrunnlagModal,
   SendVederlagModal,
@@ -257,40 +256,28 @@ function CasePageContent() {
         userRole={userRole}
         onToggleRole={setUserRole}
         actions={
-          <div className="flex items-center gap-2 sm:gap-4">
-            {/* Approval workflow toggle and role selector (only in BH mode) */}
-            {userRole === 'BH' && (
-              <div className="flex items-center gap-2">
-                <label className="flex items-center gap-1.5 text-xs text-pkt-text-body-muted cursor-pointer">
-                  <Checkbox
-                    checked={approvalWorkflow.approvalEnabled}
-                    onCheckedChange={(checked) =>
-                      approvalWorkflow.setApprovalEnabled(checked === true)
-                    }
-                    aria-label="Aktiver godkjenningsflyt"
-                  />
-                  <span className="hidden sm:inline">Godkjenning</span>
-                </label>
-                {approvalWorkflow.approvalEnabled && (
-                  <ApprovalRoleSelector visible={true} />
-                )}
-              </div>
-            )}
-            <button
-              onClick={async () => {
-                const { downloadContractorClaimPdf } = await import('../pdf/generator');
-                downloadContractorClaimPdf(state);
-              }}
-              className="flex items-center gap-2 p-2 rounded-lg border border-pkt-grays-gray-200 bg-pkt-bg-subtle text-pkt-grays-gray-500 hover:text-pkt-text-body-dark hover:bg-pkt-bg-card transition-colors"
-              title="Last ned PDF"
-              aria-label="Last ned PDF"
-            >
-              <DownloadIcon className="w-4 h-4" />
-              <span className="text-xs font-medium sm:hidden">PDF</span>
-            </button>
-          </div>
+          <button
+            onClick={async () => {
+              const { downloadContractorClaimPdf } = await import('../pdf/generator');
+              downloadContractorClaimPdf(state);
+            }}
+            className="flex items-center gap-2 p-2 rounded-lg border border-pkt-grays-gray-200 bg-pkt-bg-subtle text-pkt-grays-gray-500 hover:text-pkt-text-body-dark hover:bg-pkt-bg-card transition-colors"
+            title="Last ned PDF"
+            aria-label="Last ned PDF"
+          >
+            <DownloadIcon className="w-4 h-4" />
+            <span className="text-xs font-medium sm:hidden">PDF</span>
+          </button>
         }
       />
+
+      {/* Mock Toolbar - only visible in BH mode */}
+      {userRole === 'BH' && (
+        <MockToolbar
+          approvalEnabled={approvalWorkflow.approvalEnabled}
+          onApprovalEnabledChange={approvalWorkflow.setApprovalEnabled}
+        />
+      )}
 
       {/* Main Content */}
       <main className="max-w-3xl mx-auto px-4 py-6 sm:px-8 sm:py-8 bg-pkt-bg-card min-h-[calc(100vh-88px)]">
