@@ -475,88 +475,137 @@ export function ReviseVederlagModal({
           </Alert>
         )}
 
-        <div className="border-t-2 border-pkt-border-subtle pt-6">
-          <h4 className="font-bold text-sm mb-4">Revider kravet</h4>
-
-          {/* ============================================
-              METODE-ENDRING
-              ============================================ */}
-          <div className="space-y-4 mb-6">
-            <Controller
-              name="endre_metode"
-              control={control}
-              render={({ field }) => (
-                <Checkbox
-                  id="endre_metode"
-                  label="Endre beregningsmetode"
-                  description={`Nåværende: ${METODE_LABELS[forrigeMetode]}`}
-                  checked={field.value}
-                  onCheckedChange={handleMetodeChange}
+        {/* Seksjon 2: Beregningsmetode */}
+        <SectionContainer
+          title="Beregningsmetode"
+          description="Velg hvordan vederlaget skal beregnes (§34.2–§34.4)"
+        >
+          <Controller
+            name="metode"
+            control={control}
+            render={({ field }) => (
+              <RadioGroup value={field.value} onValueChange={handleMetodeChange}>
+                {/* ENHETSPRISER */}
+                <RadioItem
+                  value="ENHETSPRISER"
+                  label={METODE_LABELS.ENHETSPRISER}
+                  description={
+                    bhResponse?.oensket_metode === 'ENHETSPRISER'
+                      ? `${METODE_DESCRIPTIONS.ENHETSPRISER} ← Byggherrens ønskede metode`
+                      : METODE_DESCRIPTIONS.ENHETSPRISER
+                  }
                 />
-              )}
-            />
+                {selectedMetode === 'ENHETSPRISER' && (
+                  <div className="ml-6 pl-4 border-l-2 border-pkt-border-subtle">
+                    <Controller
+                      name="krever_justert_ep"
+                      control={control}
+                      render={({ field: epField }) => (
+                        <Checkbox
+                          id="krever_justert_ep"
+                          label="Krever justerte enhetspriser (§34.3.3)"
+                          description="Når forutsetningene for enhetsprisene forrykkes"
+                          checked={epField.value}
+                          onCheckedChange={epField.onChange}
+                        />
+                      )}
+                    />
+                    {kreverJustertEp && bhAvvisteEpJustering && (
+                      <Alert variant="warning" className="mt-2">
+                        Du opprettholder kravet selv om BH avviste det.
+                      </Alert>
+                    )}
+                    {kreverJustertEp && !bhAvvisteEpJustering && (
+                      <Alert variant="info" className="mt-2">
+                        Krav må varsles «uten ugrunnet opphold» etter forholdet oppsto.
+                      </Alert>
+                    )}
+                  </div>
+                )}
 
-            {endreMetode && (
-              <div className="ml-6 p-4 border-l-2 border-pkt-border-subtle bg-pkt-bg-subtle">
-                <FormField label="Velg ny metode" required>
+                {/* REGNINGSARBEID */}
+                <RadioItem
+                  value="REGNINGSARBEID"
+                  label={METODE_LABELS.REGNINGSARBEID}
+                  description={
+                    bhResponse?.oensket_metode === 'REGNINGSARBEID'
+                      ? `${METODE_DESCRIPTIONS.REGNINGSARBEID} ← Byggherrens ønskede metode`
+                      : METODE_DESCRIPTIONS.REGNINGSARBEID
+                  }
+                />
+                {selectedMetode === 'REGNINGSARBEID' && (
+                  <div className="ml-6 pl-4 border-l-2 border-pkt-border-subtle">
+                    <Controller
+                      name="varslet_for_oppstart"
+                      control={control}
+                      render={({ field: varsletField }) => (
+                        <Checkbox
+                          id="varslet_for_oppstart"
+                          label="Byggherren ble varslet før arbeidet startet (§34.4)"
+                          checked={varsletField.value}
+                          onCheckedChange={varsletField.onChange}
+                        />
+                      )}
+                    />
+                    {!varsletForOppstart && (
+                      <Alert variant="danger" className="mt-2">
+                        Uten forhåndsvarsel begrenses kravet til det BH «måtte forstå».
+                      </Alert>
+                    )}
+                  </div>
+                )}
+
+                {/* FASTPRIS_TILBUD */}
+                <RadioItem
+                  value="FASTPRIS_TILBUD"
+                  label={METODE_LABELS.FASTPRIS_TILBUD}
+                  description={
+                    bhResponse?.oensket_metode === 'FASTPRIS_TILBUD'
+                      ? `${METODE_DESCRIPTIONS.FASTPRIS_TILBUD} ← Byggherrens ønskede metode`
+                      : METODE_DESCRIPTIONS.FASTPRIS_TILBUD
+                  }
+                />
+              </RadioGroup>
+            )}
+          />
+        </SectionContainer>
+
+        {/* Seksjon 3: Kravets omfang */}
+        <SectionContainer title="Kravets omfang">
+          <div className="space-y-4">
+            {/* REGNINGSARBEID */}
+            {nyErRegningsarbeid && (
+              <>
+                <Alert variant="info" className="mb-3">
+                  Ved regningsarbeid faktureres kostnadene løpende. Ved fradrag reduseres vederlaget
+                  med besparelsen, inkludert tilsvarende reduksjon av fortjenesten (§34.4).
+                </Alert>
+                <FormField
+                  label="Kostnadsoverslag"
+                  required={erHoldTilbake}
+                  helpText="Estimert totalkostnad. Byggherren kan holde tilbake betaling inntil overslag mottas (§30.2)."
+                  error={manglerPaakrevdOverslag ? 'Kostnadsoverslag er påkrevd for å oppheve tilbakeholdelse' : undefined}
+                >
                   <Controller
-                    name="ny_metode"
+                    name="nytt_kostnads_overslag"
                     control={control}
                     render={({ field }) => (
-                      <RadioGroup value={field.value ?? ''} onValueChange={handleNyMetodeChange}>
-                        {(['ENHETSPRISER', 'REGNINGSARBEID', 'FASTPRIS_TILBUD'] as const)
-                          .filter((m) => m !== forrigeMetode)
-                          .map((metode) => (
-                            <RadioItem
-                              key={metode}
-                              value={metode}
-                              label={METODE_LABELS[metode]}
-                              description={
-                                bhResponse?.oensket_metode === metode
-                                  ? `${METODE_DESCRIPTIONS[metode]} ← Byggherrens ønskede metode`
-                                  : METODE_DESCRIPTIONS[metode]
-                              }
-                            />
-                          ))}
-                      </RadioGroup>
+                      <CurrencyInput
+                        value={field.value ?? null}
+                        onChange={field.onChange}
+                        error={manglerPaakrevdOverslag}
+                      />
                     )}
                   />
                 </FormField>
-              </div>
+              </>
             )}
-          </div>
 
-          {/* ============================================
-              BELØP / KOSTNADSOVERSLAG
-              ============================================ */}
-          <div className="space-y-4 mb-6">
-            {nyErRegningsarbeid ? (
+            {/* ENHETSPRISER */}
+            {nyErEnhetspriser && (
               <FormField
-                label="Kostnadsoverslag"
-                required={erHoldTilbake}
-                helpText="Estimert totalkostnad for regningsarbeidet"
-                error={manglerPaakrevdOverslag ? 'Kostnadsoverslag er påkrevd for å oppheve tilbakeholdelse' : undefined}
-              >
-                <Controller
-                  name="nytt_kostnads_overslag"
-                  control={control}
-                  render={({ field }) => (
-                    <CurrencyInput
-                      value={field.value ?? null}
-                      onChange={field.onChange}
-                      error={manglerPaakrevdOverslag}
-                    />
-                  )}
-                />
-              </FormField>
-            ) : (
-              <FormField
-                label={effektivMetode === 'FASTPRIS_TILBUD' ? 'Tilbudt fastpris' : 'Beløp'}
-                helpText={
-                  effektivMetode === 'ENHETSPRISER'
-                    ? 'Bruk negativt beløp for fradrag (§34.4)'
-                    : undefined
-                }
+                label="Sum direkte kostnader"
+                helpText="Negativt beløp angir fradrag. Ved fradrag brukes enhetsprisene tilsvarende (§34.3)."
               >
                 <Controller
                   name="nytt_belop_direkte"
@@ -565,7 +614,26 @@ export function ReviseVederlagModal({
                     <CurrencyInput
                       value={field.value ?? null}
                       onChange={field.onChange}
-                      allowNegative={effektivMetode === 'ENHETSPRISER'}
+                      allowNegative
+                    />
+                  )}
+                />
+              </FormField>
+            )}
+
+            {/* FASTPRIS_TILBUD */}
+            {selectedMetode === 'FASTPRIS_TILBUD' && (
+              <FormField
+                label="Tilbudt fastpris"
+                helpText="Spesifisert tilbud (§34.2.1). Ved avslag faller oppgjøret tilbake på enhetspriser (§34.3) eller regningsarbeid (§34.4)."
+              >
+                <Controller
+                  name="nytt_belop_direkte"
+                  control={control}
+                  render={({ field }) => (
+                    <CurrencyInput
+                      value={field.value ?? null}
+                      onChange={field.onChange}
                     />
                   )}
                 />
@@ -595,86 +663,26 @@ export function ReviseVederlagModal({
                 </p>
               </div>
             )}
+
+            {/* Overslag increase warning (§30.2) */}
+            {overslagsokningVarselpliktig && (
+              <Alert variant="danger" title="Varslingsplikt (§30.2 andre ledd)">
+                <p>
+                  Du øker kostnadsoverslaget. I henhold til §30.2 andre ledd <strong>må</strong> du
+                  varsle BH &ldquo;uten ugrunnet opphold&rdquo; når det er grunn til å anta at
+                  overslaget vil bli overskredet.
+                </p>
+                <p className="mt-2 text-sm">
+                  Ved å sende denne revisjonen dokumenterer du varselet. Begrunn hvorfor kostnadene
+                  øker.
+                </p>
+              </Alert>
+            )}
           </div>
+        </SectionContainer>
 
-          {/* ============================================
-              METODE-RELATERTE FELT
-              ============================================ */}
-          {nyErEnhetspriser && (
-            <div className="mb-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <Controller
-                name="krever_justert_ep"
-                control={control}
-                render={({ field }) => (
-                  <Checkbox
-                    id="krever_justert_ep"
-                    label="Krever justerte enhetspriser (§34.3.3)"
-                    description="Gjelder når forutsetningene for enhetsprisene forrykkes, f.eks. pga. endret omfang, tidspunkt eller antall endringsarbeider (§34.3.2)"
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                )}
-              />
-
-              {kreverJustertEp && bhAvvisteEpJustering && (
-                <Alert variant="warning" className="mt-3">
-                  Du opprettholder kravet om justerte enhetspriser selv om BH avviste det.
-                  Begrunn hvorfor du mener varselet var i tide.
-                </Alert>
-              )}
-
-              {kreverJustertEp && !bhAvvisteEpJustering && (
-                <Alert variant="info" className="mt-3">
-                  Krav om justerte enhetspriser må varsles «uten ugrunnet opphold» etter at forholdet oppsto.
-                  Uten rettidig varsel har du bare krav på den justering BH «måtte forstå» (§34.3.3).
-                </Alert>
-              )}
-            </div>
-          )}
-
-          {nyErRegningsarbeid && (
-            <div className="mb-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <Controller
-                name="varslet_for_oppstart"
-                control={control}
-                render={({ field }) => (
-                  <Checkbox
-                    id="varslet_for_oppstart"
-                    label="Byggherren ble varslet før regningsarbeidet startet (§34.4)"
-                    description="Kreves for å ha krav på alle nødvendige kostnader"
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                )}
-              />
-
-              {!varsletForOppstart && (
-                <Alert variant="danger" className="mt-3">
-                  Uten forhåndsvarsel har du bare krav på det byggherren «måtte forstå» at du har
-                  hatt av utgifter (§30.3.1).
-                </Alert>
-              )}
-            </div>
-          )}
-
-          {/* Overslag increase warning (§30.2) */}
-          {overslagsokningVarselpliktig && (
-            <Alert variant="danger" title="Varslingsplikt (§30.2 andre ledd)">
-              <p>
-                Du øker kostnadsoverslaget. I henhold til §30.2 andre ledd <strong>må</strong> du
-                varsle BH &ldquo;uten ugrunnet opphold&rdquo; når det er grunn til å anta at
-                overslaget vil bli overskredet.
-              </p>
-              <p className="mt-2 text-sm">
-                Ved å sende denne revisjonen dokumenterer du varselet. Begrunn hvorfor kostnadene
-                øker.
-              </p>
-            </Alert>
-          )}
-
-          {/* ============================================
-              BEGRUNNELSE
-              ============================================ */}
+        {/* Seksjon 4: Begrunnelse */}
+        <SectionContainer title="Begrunnelse">
           <FormField label="Begrunnelse for revisjon" required error={errors.begrunnelse?.message}>
             <Controller
               name="begrunnelse"
@@ -690,15 +698,13 @@ export function ReviseVederlagModal({
                   placeholder={
                     overslagsokningVarselpliktig
                       ? 'Begrunn hvorfor kostnadene øker utover opprinnelig overslag...'
-                      : harBhSvar
-                        ? 'Begrunn hvorfor du reviderer kravet basert på byggherrens svar...'
-                        : 'Begrunn endringen...'
+                      : undefined
                   }
                 />
               )}
             />
           </FormField>
-        </div>
+        </SectionContainer>
 
         {/* Vedlegg */}
         <SectionContainer
@@ -718,14 +724,6 @@ export function ReviseVederlagModal({
             )}
           />
         </SectionContainer>
-
-        {/* Validation warning */}
-        {!harEndringer && isDirty && (
-          <Alert variant="warning">
-            Du har ikke gjort noen endringer i kravet. Endre beløp, metode eller andre felt for å
-            kunne sende revisjonen.
-          </Alert>
-        )}
 
         {/* Error Message */}
         {mutation.isError && (
@@ -748,7 +746,7 @@ export function ReviseVederlagModal({
           <Button
             type="submit"
             variant={overslagsokningVarselpliktig ? 'danger' : 'primary'}
-            disabled={isSubmitting || !harEndringer || manglerPaakrevdOverslag}
+            disabled={isSubmitting || manglerPaakrevdOverslag}
             className="w-full sm:w-auto order-1 sm:order-2"
           >
             {isSubmitting
