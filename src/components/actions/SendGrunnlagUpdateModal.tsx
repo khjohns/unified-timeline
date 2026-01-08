@@ -8,6 +8,7 @@
 import {
   Alert,
   AlertDialog,
+  AttachmentUpload,
   Button,
   Checkbox,
   DatePicker,
@@ -22,6 +23,7 @@ import {
   SelectValue,
   Textarea,
 } from '../primitives';
+import type { AttachmentFile } from '../../types';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -46,6 +48,7 @@ const updateSchema = z.object({
   hovedkategori: z.string().optional(),
   underkategori: z.array(z.string()).optional(),
   endrings_begrunnelse: z.string().min(10, 'Begrunnelse for endring er påkrevd'),
+  attachments: z.array(z.custom<AttachmentFile>()).optional().default([]),
 });
 
 type UpdateFormData = z.infer<typeof updateSchema>;
@@ -93,6 +96,7 @@ export function SendGrunnlagUpdateModal({
           ? [grunnlag.underkategori]
           : [],
       endrings_begrunnelse: '',
+      attachments: [],
     },
   });
 
@@ -317,6 +321,25 @@ export function SendGrunnlagUpdateModal({
               placeholder="F.eks. ny informasjon, korrigering av feil, etc."
             />
           </FormField>
+        </SectionContainer>
+
+        {/* Vedlegg */}
+        <SectionContainer
+          title="Vedlegg"
+          description="Last opp dokumentasjon (valgfritt)"
+        >
+          <Controller
+            name="attachments"
+            control={control}
+            render={({ field }) => (
+              <AttachmentUpload
+                value={field.value ?? []}
+                onChange={field.onChange}
+                multiple
+                acceptedFormatsText="PDF, Word, Excel, bilder (maks 10 MB)"
+              />
+            )}
+          />
         </SectionContainer>
 
         {/* Error Message */}

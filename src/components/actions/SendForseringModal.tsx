@@ -24,6 +24,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Alert,
   AlertDialog,
+  AttachmentUpload,
   Button,
   CurrencyInput,
   DatePicker,
@@ -32,6 +33,7 @@ import {
   SectionContainer,
   Textarea,
 } from '../primitives';
+import type { AttachmentFile } from '../../types';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -83,6 +85,7 @@ const sendForseringSchema = z.object({
     .min(1, 'Du må angi dato for iverksettelse'),
   begrunnelse: z.string()
     .min(10, 'Begrunnelse må være minst 10 tegn'),
+  attachments: z.array(z.custom<AttachmentFile>()).optional().default([]),
 });
 
 type SendForseringFormData = z.infer<typeof sendForseringSchema>;
@@ -134,6 +137,7 @@ export function SendForseringModal({
     resolver: zodResolver(sendForseringSchema),
     defaultValues: {
       dagmulktsats: dagmulktsats,
+      attachments: [],
     },
   });
 
@@ -396,6 +400,25 @@ export function SendForseringModal({
               </FormField>
 
             </div>
+          </SectionContainer>
+
+          {/* Seksjon 4: Vedlegg */}
+          <SectionContainer
+            title="Vedlegg"
+            description="Last opp dokumentasjon (valgfritt)"
+          >
+            <Controller
+              name="attachments"
+              control={control}
+              render={({ field }) => (
+                <AttachmentUpload
+                  value={field.value ?? []}
+                  onChange={field.onChange}
+                  multiple
+                  acceptedFormatsText="PDF, Word, Excel, bilder (maks 10 MB)"
+                />
+              )}
+            />
           </SectionContainer>
 
           {/* Error Message */}

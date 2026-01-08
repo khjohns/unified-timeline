@@ -22,6 +22,7 @@
 import {
   Alert,
   AlertDialog,
+  AttachmentUpload,
   Button,
   Checkbox,
   CurrencyInput,
@@ -34,6 +35,7 @@ import {
   Textarea,
   useToast,
 } from '../primitives';
+import type { AttachmentFile } from '../../types';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -70,6 +72,7 @@ const vederlagSchema = z.object({
   belop_produktivitet: z.number().optional(),
   dato_klar_over_rigg: z.string().optional(),
   dato_klar_over_produktivitet: z.string().optional(),
+  attachments: z.array(z.custom<AttachmentFile>()).optional().default([]),
 }).refine(
   (data) => {
     // belop_direkte is required for ENHETSPRISER and FASTPRIS_TILBUD
@@ -152,6 +155,7 @@ export function SendVederlagModal({
       varslet_for_oppstart: true,
       har_rigg_krav: false,
       har_produktivitet_krav: false,
+      attachments: [],
     },
   });
 
@@ -600,6 +604,25 @@ export function SendVederlagModal({
               data-testid="vederlag-begrunnelse"
             />
           </FormField>
+        </SectionContainer>
+
+        {/* 5. Vedlegg */}
+        <SectionContainer
+          title="Vedlegg"
+          description="Last opp dokumentasjon (valgfritt)"
+        >
+          <Controller
+            name="attachments"
+            control={control}
+            render={({ field }) => (
+              <AttachmentUpload
+                value={field.value ?? []}
+                onChange={field.onChange}
+                multiple
+                acceptedFormatsText="PDF, Word, Excel, bilder (maks 10 MB)"
+              />
+            )}
+          />
         </SectionContainer>
 
         {/* Error Message */}

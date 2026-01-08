@@ -23,6 +23,7 @@
 import {
   Alert,
   AlertDialog,
+  AttachmentUpload,
   Badge,
   Button,
   Checkbox,
@@ -36,6 +37,7 @@ import {
   SectionContainer,
   Textarea,
 } from '../primitives';
+import type { AttachmentFile } from '../../types';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -132,6 +134,7 @@ const reviseVederlagSchema = z.object({
 
   // Required
   begrunnelse: z.string().min(10, 'Begrunnelse må være minst 10 tegn'),
+  attachments: z.array(z.custom<AttachmentFile>()).optional().default([]),
 });
 
 type ReviseVederlagFormData = z.infer<typeof reviseVederlagSchema>;
@@ -188,6 +191,7 @@ export function ReviseVederlagModal({
       krever_justert_ep: lastVederlagEvent.krever_justert_ep ?? false,
       varslet_for_oppstart: lastVederlagEvent.varslet_for_oppstart ?? true,
       begrunnelse: '',
+      attachments: [],
     },
   });
 
@@ -715,6 +719,25 @@ export function ReviseVederlagModal({
               )}
             />
           </FormField>
+        </SectionContainer>
+
+        {/* Vedlegg */}
+        <SectionContainer
+          title="Vedlegg"
+          description="Last opp dokumentasjon (valgfritt)"
+        >
+          <Controller
+            name="attachments"
+            control={control}
+            render={({ field }) => (
+              <AttachmentUpload
+                value={field.value ?? []}
+                onChange={field.onChange}
+                multiple
+                acceptedFormatsText="PDF, Word, Excel, bilder (maks 10 MB)"
+              />
+            )}
+          />
         </SectionContainer>
 
         {/* Error Message */}

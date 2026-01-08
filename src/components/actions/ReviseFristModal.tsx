@@ -16,6 +16,7 @@
 import {
   Alert,
   AlertDialog,
+  AttachmentUpload,
   Badge,
   Button,
   Collapsible,
@@ -26,6 +27,7 @@ import {
   SectionContainer,
   Textarea,
 } from '../primitives';
+import type { AttachmentFile } from '../../types';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -44,6 +46,7 @@ const reviseFristSchema = z.object({
   begrunnelse: z.string().min(10, 'Begrunnelse er påkrevd'),
   // For specification modes
   ny_sluttdato: z.string().optional(),
+  attachments: z.array(z.custom<AttachmentFile>()).optional().default([]),
 });
 
 type ReviseFristFormData = z.infer<typeof reviseFristSchema>;
@@ -159,6 +162,7 @@ export function ReviseFristModal({
       antall_dager: modalMode === 'revider' ? lastFristEvent.antall_dager : 0,
       begrunnelse: '',
       ny_sluttdato: '',
+      attachments: [],
     },
   });
 
@@ -437,6 +441,25 @@ export function ReviseFristModal({
               />
             </FormField>
           </div>
+        </SectionContainer>
+
+        {/* Seksjon 4: Vedlegg */}
+        <SectionContainer
+          title="Vedlegg"
+          description="Last opp dokumentasjon (valgfritt)"
+        >
+          <Controller
+            name="attachments"
+            control={control}
+            render={({ field }) => (
+              <AttachmentUpload
+                value={field.value ?? []}
+                onChange={field.onChange}
+                multiple
+                acceptedFormatsText="PDF, Word, Excel, bilder (maks 10 MB)"
+              />
+            )}
+          />
         </SectionContainer>
 
         {/* Error Message */}

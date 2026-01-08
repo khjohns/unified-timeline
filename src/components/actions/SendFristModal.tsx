@@ -14,6 +14,7 @@
 import {
   Alert,
   AlertDialog,
+  AttachmentUpload,
   Button,
   Checkbox,
   DatePicker,
@@ -26,6 +27,7 @@ import {
   Textarea,
   useToast,
 } from '../primitives';
+import type { AttachmentFile } from '../../types';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -61,7 +63,7 @@ const fristSchema = z.object({
   antall_dager: z.number().min(0, 'Antall dager kan ikke være negativt').optional(),
   begrunnelse: z.string().min(10, 'Begrunnelse må være minst 10 tegn'),
   ny_sluttdato: z.string().optional(),
-  vedlegg_ids: z.array(z.string()).optional(),
+  attachments: z.array(z.custom<AttachmentFile>()).optional().default([]),
 }).refine(
   (data) => {
     // antall_dager is required for spesifisert krav
@@ -127,7 +129,7 @@ export function SendFristModal({
       noytralt_varsel_metoder: [],
       spesifisert_varsel_sendes_na: false,
       spesifisert_varsel_metoder: [],
-      vedlegg_ids: [],
+      attachments: [],
     },
   });
 
@@ -256,7 +258,6 @@ export function SendFristModal({
         antall_dager: data.antall_dager,
         begrunnelse: data.begrunnelse,
         ny_sluttdato: data.ny_sluttdato,
-        vedlegg_ids: data.vedlegg_ids,
         // Metadata for tracking if this was forced by BH etterlysning
         er_svar_pa_etterlysning: harMottattEtterlysning,
       },
@@ -535,6 +536,25 @@ export function SendFristModal({
               />
             </FormField>
           </div>
+        </SectionContainer>
+
+        {/* Vedlegg */}
+        <SectionContainer
+          title="Vedlegg"
+          description="Last opp dokumentasjon (valgfritt)"
+        >
+          <Controller
+            name="attachments"
+            control={control}
+            render={({ field }) => (
+              <AttachmentUpload
+                value={field.value ?? []}
+                onChange={field.onChange}
+                multiple
+                acceptedFormatsText="PDF, Word, Excel, bilder (maks 10 MB)"
+              />
+            )}
+          />
         </SectionContainer>
 
         {/* Error Message */}
