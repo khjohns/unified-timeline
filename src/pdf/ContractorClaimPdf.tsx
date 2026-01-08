@@ -130,6 +130,38 @@ const NotClaimedBox: React.FC<{ message: string }> = ({ message }) => (
   </View>
 );
 
+// ============================================================
+// Signature Section (for approved documents)
+// ============================================================
+
+export interface SignatureInfo {
+  navn: string;
+  rolle: string;
+  dato: string;
+}
+
+interface SignatureSectionProps {
+  saksbehandler: SignatureInfo;
+  godkjenner: SignatureInfo;
+}
+
+const SignatureSection: React.FC<SignatureSectionProps> = ({ saksbehandler, godkjenner }) => (
+  <View style={styles.signatureContainer}>
+    <View style={styles.signatureBox}>
+      <Text style={styles.signatureLabel}>Saksbehandler</Text>
+      <Text style={styles.signatureName}>{saksbehandler.navn}</Text>
+      <Text style={styles.signatureRole}>{saksbehandler.rolle}</Text>
+      <Text style={styles.signatureDate}>{saksbehandler.dato}</Text>
+    </View>
+    <View style={styles.signatureBox}>
+      <Text style={styles.signatureLabel}>Godkjenner</Text>
+      <Text style={styles.signatureName}>{godkjenner.navn}</Text>
+      <Text style={styles.signatureRole}>{godkjenner.rolle}</Text>
+      <Text style={styles.signatureDate}>{godkjenner.dato}</Text>
+    </View>
+  </View>
+);
+
 const SubsidiaerBadge: React.FC = () => (
   <View style={[styles.statusBadge, styles.statusSubsidiaer]}>
     <Text style={[styles.statusBadgeText, styles.statusSubsidiaerText]}>Subsidiært</Text>
@@ -725,13 +757,28 @@ const FristSection: React.FC<{ state: SakState }> = ({ state }) => {
 
 export interface ContractorClaimPdfProps {
   state: SakState;
+  /** Signature data - only shown when both are provided (after full approval) */
+  saksbehandler?: SignatureInfo;
+  godkjenner?: SignatureInfo;
 }
 
-export const ContractorClaimPdf: React.FC<ContractorClaimPdfProps> = ({ state }) => {
+export const ContractorClaimPdf: React.FC<ContractorClaimPdfProps> = ({
+  state,
+  saksbehandler,
+  godkjenner,
+}) => {
+  // Signatur vises kun når begge er satt (etter full godkjenning)
+  const showSignatures = saksbehandler && godkjenner;
+
   // Bestem hvilke seksjoner som skal inkluderes
   const harGrunnlag = state.grunnlag.status !== 'ikke_relevant' && state.grunnlag.status !== 'utkast';
   const harVederlag = state.vederlag.status !== 'ikke_relevant';
   const harFrist = state.frist.status !== 'ikke_relevant';
+
+  // Finn siste side for signaturplassering
+  const isLastPageFrist = harFrist;
+  const isLastPageVederlag = !harFrist && harVederlag;
+  const isLastPageGrunnlag = !harFrist && !harVederlag && harGrunnlag;
 
   // Dynamisk beregning av totale sider
   // Side 1 = Tittelside (alltid) + 1 per relevant seksjon
@@ -761,6 +808,9 @@ export const ContractorClaimPdf: React.FC<ContractorClaimPdfProps> = ({ state })
         <Page size="A4" style={styles.page}>
           <Header />
           <GrunnlagSection state={state} />
+          {showSignatures && isLastPageGrunnlag && (
+            <SignatureSection saksbehandler={saksbehandler} godkjenner={godkjenner} />
+          )}
           <Footer pageNumber={grunnlagPage} totalPages={totalPages} />
         </Page>
       )}
@@ -770,6 +820,9 @@ export const ContractorClaimPdf: React.FC<ContractorClaimPdfProps> = ({ state })
         <Page size="A4" style={styles.page}>
           <Header />
           <VederlagSection state={state} />
+          {showSignatures && isLastPageVederlag && (
+            <SignatureSection saksbehandler={saksbehandler} godkjenner={godkjenner} />
+          )}
           <Footer pageNumber={vederlagPage} totalPages={totalPages} />
         </Page>
       )}
@@ -779,6 +832,9 @@ export const ContractorClaimPdf: React.FC<ContractorClaimPdfProps> = ({ state })
         <Page size="A4" style={styles.page}>
           <Header />
           <FristSection state={state} />
+          {showSignatures && isLastPageFrist && (
+            <SignatureSection saksbehandler={saksbehandler} godkjenner={godkjenner} />
+          )}
           <Footer pageNumber={fristPage} totalPages={totalPages} />
         </Page>
       )}

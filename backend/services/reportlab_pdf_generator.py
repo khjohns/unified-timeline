@@ -4,7 +4,7 @@ ReportLab PDF Generator for KOE case documents.
 Pure Python solution - no native dependencies required.
 Generates PDF showing current state and last events per track.
 """
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, TypedDict
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from io import BytesIO
@@ -29,6 +29,13 @@ from reportlab.lib.enums import TA_LEFT, TA_CENTER
 
 from models.sak_state import SakState
 from utils.logger import get_logger
+
+
+class SignatureInfo(TypedDict):
+    """Signature information for approved documents."""
+    navn: str
+    rolle: str
+    dato: str
 
 # Import label helpers
 from constants.grunnlag_categories import (
@@ -198,7 +205,9 @@ class ReportLabPdfGenerator:
         self,
         state: SakState,
         events: Optional[List[Dict[str, Any]]] = None,
-        output_path: Optional[str] = None
+        output_path: Optional[str] = None,
+        saksbehandler: Optional[SignatureInfo] = None,
+        godkjenner: Optional[SignatureInfo] = None,
     ) -> Optional[bytes]:
         """
         Generate PDF from case state.
@@ -207,6 +216,8 @@ class ReportLabPdfGenerator:
             state: Current SakState
             events: Optional list of events for history
             output_path: If provided, save to file. Otherwise return bytes.
+            saksbehandler: Optional signature info for saksbehandler (only shown when both provided)
+            godkjenner: Optional signature info for godkjenner (only shown when both provided)
 
         Returns:
             PDF bytes if output_path is None, else None (saves to file)
@@ -260,6 +271,10 @@ class ReportLabPdfGenerator:
                 story.extend(self._build_grunnlag_section(state, events))
                 story.extend(self._build_vederlag_section(state, events))
                 story.extend(self._build_frist_section(state, events))
+
+            # Signature section (only when both signatures provided)
+            if saksbehandler and godkjenner:
+                story.extend(self._build_signature_section(saksbehandler, godkjenner))
 
             # Footer
             story.append(Spacer(1, 24))
@@ -750,6 +765,54 @@ class ReportLabPdfGenerator:
 
         return elements
 
+    def _build_signature_section(
+        self,
+        saksbehandler: SignatureInfo,
+        godkjenner: SignatureInfo
+    ) -> List:
+        """Build signature section for approved documents."""
+        elements = []
+        elements.append(Spacer(1, 30))
+        elements.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor(self.COLORS['border'])))
+        elements.append(Spacer(1, 20))
+
+        # Create two-column signature table
+        # Each column contains label, name, role, date
+        sig_data = [
+            [
+                Paragraph("<b>SAKSBEHANDLER</b>", self.styles['KoeSmallText']),
+                Paragraph("<b>GODKJENNER</b>", self.styles['KoeSmallText']),
+            ],
+            [
+                Paragraph(f"<b>{saksbehandler['navn']}</b>", self.styles['KoeBodyText']),
+                Paragraph(f"<b>{godkjenner['navn']}</b>", self.styles['KoeBodyText']),
+            ],
+            [
+                Paragraph(saksbehandler['rolle'], self.styles['KoeSmallText']),
+                Paragraph(godkjenner['rolle'], self.styles['KoeSmallText']),
+            ],
+            [
+                Paragraph(saksbehandler['dato'], self.styles['KoeSmallText']),
+                Paragraph(godkjenner['dato'], self.styles['KoeSmallText']),
+            ],
+        ]
+
+        sig_table = Table(sig_data, colWidths=[8*cm, 8*cm])
+        sig_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 12),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 12),
+            ('TOPPADDING', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, -1), (-1, -1), 12),
+            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor(self.COLORS['gray_bg'])),
+            ('BACKGROUND', (1, 0), (1, -1), colors.HexColor(self.COLORS['gray_bg'])),
+            ('BOX', (0, 0), (0, -1), 1, colors.HexColor(self.COLORS['border'])),
+            ('BOX', (1, 0), (1, -1), 1, colors.HexColor(self.COLORS['border'])),
+        ]))
+        elements.append(sig_table)
+
+        return elements
+
     def _format_status(self, status: str) -> str:
         """Format status for display."""
         return self.STATUS_MAP.get(status, status.replace('_', ' ').title())
@@ -770,7 +833,13 @@ class ReportLabPdfGenerator:
         return event_map.get(event_type, event_type.replace('_', ' ').title())
 
 
-def generate_koe_pdf(state: SakState, events: Optional[List] = None, output_path: Optional[str] = None) -> Optional[bytes]:
+def generate_koe_pdf(
+    state: SakState,
+    events: Optional[List] = None,
+    output_path: Optional[str] = None,
+    saksbehandler: Optional[SignatureInfo] = None,
+    godkjenner: Optional[SignatureInfo] = None,
+) -> Optional[bytes]:
     """
     Convenience function to generate KOE PDF.
 
@@ -778,9 +847,11 @@ def generate_koe_pdf(state: SakState, events: Optional[List] = None, output_path
         state: Current SakState
         events: Optional list of events
         output_path: If provided, save to file
+        saksbehandler: Optional signature info for saksbehandler
+        godkjenner: Optional signature info for godkjenner
 
     Returns:
         PDF bytes if output_path is None
     """
     generator = ReportLabPdfGenerator()
-    return generator.generate_pdf(state, events, output_path)
+    return generator.generate_pdf(state, events, output_path, saksbehandler, godkjenner)

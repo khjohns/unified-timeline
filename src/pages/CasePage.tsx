@@ -24,6 +24,7 @@ import { RevisionHistory } from '../components/views/RevisionHistory';
 import { Alert, Button } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
 import { formatCurrency } from '../utils/formatters';
+import { downloadApprovedPdf } from '../pdf/generator';
 import { ForseringRelasjonBanner } from '../components/forsering';
 import { UtstEndringsordreModal, EndringsordreRelasjonBanner } from '../components/endringsordre';
 import { MockToolbar } from '../components/MockToolbar';
@@ -357,6 +358,37 @@ function CasePageContent() {
               <div className="text-xs text-pkt-text-body-muted mt-1">
                 {approvalWorkflow.bhResponsPakke.steps.filter((s) => s.status === 'approved').length} av{' '}
                 {approvalWorkflow.bhResponsPakke.steps.length} godkjenninger fullført
+              </div>
+            </Alert>
+          </section>
+        )}
+
+        {/* Approved Package Banner - with download option */}
+        {approvalWorkflow.approvalEnabled && approvalWorkflow.isPakkeApproved && approvalWorkflow.bhResponsPakke && (
+          <section className="mb-6">
+            <Alert
+              variant="success"
+              title={
+                <>
+                  BH-responspakke er godkjent
+                  <span className="font-normal text-sm text-pkt-text-body-muted ml-2">
+                    ({formatCurrency(approvalWorkflow.bhResponsPakke.samletBelop)})
+                  </span>
+                </>
+              }
+              action={
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => downloadApprovedPdf(state, approvalWorkflow.bhResponsPakke!)}
+                >
+                  Last ned godkjent PDF
+                </Button>
+              }
+            >
+              <div className="text-sm">
+                Alle {approvalWorkflow.bhResponsPakke.steps.length} godkjenninger er fullført.
+                Last ned PDF med signaturfelt for arkivering.
               </div>
             </Alert>
           </section>

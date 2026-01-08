@@ -538,4 +538,43 @@ export const styles = StyleSheet.create({
     fontSize: 9,
     color: COLORS.ink,
   },
+
+  // Signature section
+  signatureContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 40,
+    marginBottom: 20,
+    gap: 24,
+  },
+  signatureBox: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 16,
+    backgroundColor: COLORS.grayBg,
+  },
+  signatureLabel: {
+    fontSize: 8,
+    fontWeight: 'bold',
+    color: COLORS.inkDim,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 12,
+  },
+  signatureName: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: COLORS.ink,
+    marginBottom: 4,
+  },
+  signatureRole: {
+    fontSize: 9,
+    color: COLORS.inkDim,
+    marginBottom: 4,
+  },
+  signatureDate: {
+    fontSize: 8,
+    color: COLORS.muted,
+  },
 });
