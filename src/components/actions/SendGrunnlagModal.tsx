@@ -186,7 +186,7 @@ export function SendGrunnlagModal({
       reset();
       setSelectedHovedkategori('');
       onOpenChange(false);
-      toast.success('Grunnlag sendt', 'Varselet ditt er registrert og sendt til byggherre.');
+      toast.success('Varsel sendt', 'Endringsforholdet er registrert og varslet til byggherre.');
       // Show warning if Catenda sync failed
       if (!result.catenda_synced) {
         onCatendaWarning?.();
@@ -242,7 +242,7 @@ export function SendGrunnlagModal({
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title="Send grunnlag"
+      title="Varsle endringsforhold"
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -591,7 +591,7 @@ export function SendGrunnlagModal({
             className="w-full sm:w-auto"
             data-testid="grunnlag-submit"
           >
-            Send grunnlag
+            Send varsel
           </Button>
         </div>
       </form>

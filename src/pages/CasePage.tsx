@@ -794,7 +794,7 @@ function CasePageContent() {
               bh_resultat: state.frist.bh_resultat || 'godkjent',
             }}
             dagmulktsats={50000}  // TODO: Get from contract config
-            grunnlagAvslagTrigger={state.grunnlag.bh_resultat === 'avslatt'}
+            subsidiaerTriggers={state.frist.subsidiaer_triggers}
             onCatendaWarning={() => setShowCatendaWarning(true)}
           />
 

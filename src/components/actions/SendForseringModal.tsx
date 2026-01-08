@@ -25,11 +25,11 @@ import {
   Alert,
   AlertDialog,
   Button,
-  Checkbox,
+  CurrencyInput,
   DatePicker,
   FormField,
-  Input,
   Modal,
+  SectionContainer,
   Textarea,
 } from '../primitives';
 import { useForm, Controller } from 'react-hook-form';
@@ -42,7 +42,7 @@ import {
   type OpprettForseringRequest,
   type OpprettForseringResponse,
 } from '../../api/forsering';
-import type { FristBeregningResultat } from '../../types/timeline';
+import type { FristBeregningResultat, SubsidiaerTrigger } from '../../types/timeline';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -64,8 +64,8 @@ interface SendForseringModalProps {
   };
   /** Daily liquidated damages rate in NOK */
   dagmulktsats: number;
-  /** True if triggered by grunnlag rejection (not direct frist rejection) */
-  grunnlagAvslagTrigger?: boolean;
+  /** Subsidiary triggers from frist response (preklusion, grunnlag avslag, etc.) */
+  subsidiaerTriggers?: SubsidiaerTrigger[];
   /** Callback when Catenda sync was skipped or failed */
   onCatendaWarning?: () => void;
 }
@@ -83,8 +83,6 @@ const sendForseringSchema = z.object({
     .min(1, 'Du må angi dato for iverksettelse'),
   begrunnelse: z.string()
     .min(10, 'Begrunnelse må være minst 10 tegn'),
-  bekreft_30_prosent: z.boolean()
-    .refine(val => val === true, 'Du må bekrefte at kostnad er innenfor 30%-grensen'),
 });
 
 type SendForseringFormData = z.infer<typeof sendForseringSchema>;
@@ -109,13 +107,17 @@ export function SendForseringModal({
   responsFristId,
   fristData,
   dagmulktsats,
-  grunnlagAvslagTrigger = false,
+  subsidiaerTriggers,
   onCatendaWarning,
 }: SendForseringModalProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const [showRestorePrompt, setShowRestorePrompt] = useState(false);
+
+  // Derived subsidiary state
+  const erSubsidiaer = subsidiaerTriggers && subsidiaerTriggers.length > 0;
+  const erGrunnlagAvslatt = subsidiaerTriggers?.includes('grunnlag_avslatt') ?? false;
 
   // Calculate rejected days
   const avslatteDager = fristData.krevde_dager - fristData.godkjent_dager;
@@ -132,7 +134,6 @@ export function SendForseringModal({
     resolver: zodResolver(sendForseringSchema),
     defaultValues: {
       dagmulktsats: dagmulktsats,
-      bekreft_30_prosent: false,
     },
   });
 
@@ -226,182 +227,176 @@ export function SendForseringModal({
       size="lg"
     >
       <div className="space-y-6">
-        {/* Info banner about §33.8 */}
-        <Alert variant="info" title="Forsering ved uberettiget avslag (§33.8)">
-          Når byggherren avslår et berettiget fristkrav, kan du velge å behandle avslaget som
-          et pålegg om forsering gitt ved endringsordre (jf. §31.2). Byggherren må da betale
-          forseringskostnadene. Du må varsle byggherren før forsering iverksettes.
-        </Alert>
-
-        {/* Risk warning */}
-        <Alert variant="warning" title="Risiko ved forsering">
-          Ved å velge forsering tar du risiko for at fristkravet var berettiget. Hvis det
-          senere viser seg at byggherren hadde rett til å avslå fristforlengelsen, må du
-          dekke forseringskostnadene selv.
+        {/* Combined info and risk warning */}
+        <Alert variant="warning" title="Om forsering ved avslag (§33.8)">
+          Ved avslag på fristkrav kan du velge å behandle dette som et forseringspålegg
+          (jf. §31.2). Byggherren må da betale forseringskostnadene. Merk at du tar
+          risiko for at fristkravet var berettiget — hvis ikke, må du dekke kostnadene selv.
         </Alert>
 
         {/* Grunnlag rejection trigger info */}
-        {grunnlagAvslagTrigger && (
+        {erGrunnlagAvslatt && (
           <Alert variant="info" title="Utløst av grunnlagsavslag">
             Byggherren har avslått ansvarsgrunnlaget. Forseringsvarselet baseres på byggherrens{' '}
             <strong>subsidiære</strong> standpunkt til fristforlengelse.
           </Alert>
         )}
 
-        {/* Context: Rejected days */}
-        <div className="p-4 bg-pkt-surface-subtle border-2 border-pkt-border-default rounded-none">
-          <h4 className="font-bold text-sm mb-3">Fristkrav - oversikt</h4>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-            <div className="p-3 bg-pkt-bg-subtle rounded-none">
-              <span className="text-xs text-pkt-text-body-subtle uppercase font-bold block">
-                Krevde dager
-              </span>
-              <span className="text-2xl font-bold">{fristData.krevde_dager}</span>
-            </div>
-            <div className="p-3 bg-pkt-bg-subtle rounded-none">
-              <span className="text-xs text-pkt-text-body-subtle uppercase font-bold block">
-                {grunnlagAvslagTrigger ? 'Subsidiært godkjent' : 'Godkjent'}
-              </span>
-              <span className="text-2xl font-bold">{fristData.godkjent_dager}</span>
-            </div>
-            <div className="p-3 bg-alert-danger-bg rounded-none text-alert-danger-text">
-              <span className="text-xs uppercase font-bold block">
-                Avslåtte dager
-              </span>
-              <span className="text-2xl font-bold">{avslatteDager}</span>
-            </div>
-          </div>
-        </div>
-
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {/* Dagmulktsats input */}
-          <FormField
-            label="Dagmulktsats (NOK)"
-            required
-            error={errors.dagmulktsats?.message}
-            helpText="Dagmulkt per dag forsinkelse iht. kontrakten"
+          {/* Seksjon 2: Kostnadsberegning */}
+          <SectionContainer
+            title="Kostnadsberegning"
+            description="Du har valgrett hvis estimert kostnad er innenfor dagmulkt + 30% (§33.8)"
           >
-            <Input
-              type="number"
-              {...register('dagmulktsats', { valueAsNumber: true })}
-              width="sm"
-              error={!!errors.dagmulktsats}
-            />
-          </FormField>
+            <div className="space-y-4">
+              {/* Inline dag-oversikt */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm pb-2 border-b border-pkt-border-subtle">
+                <span>
+                  <span className="text-pkt-text-body-subtle">Krevd:</span>{' '}
+                  <span className="font-mono font-bold">{fristData.krevde_dager}</span> dager
+                </span>
+                <span className="text-pkt-border-subtle">|</span>
+                {fristData.godkjent_dager === 0 ? (
+                  <span className="text-alert-danger-text">
+                    <span>{erSubsidiaer ? 'Subs. avslått' : 'Avslått'}:</span>{' '}
+                    <span className="font-mono font-bold">{avslatteDager}</span> dager
+                  </span>
+                ) : (
+                  <>
+                    <span>
+                      <span className="text-pkt-text-body-subtle">{erSubsidiaer ? 'Subs. godkjent:' : 'Godkjent:'}</span>{' '}
+                      <span className="font-mono font-bold">{fristData.godkjent_dager}</span>
+                    </span>
+                    <span className="text-pkt-border-subtle">|</span>
+                    <span className="text-alert-danger-text">
+                      <span>Avslått:</span>{' '}
+                      <span className="font-mono font-bold">{avslatteDager}</span>
+                    </span>
+                  </>
+                )}
+              </div>
 
-          {/* 30% calculation display */}
-          <Alert variant="info" title="30%-grensen (§33.8)">
-            Du har kun valgrett til forsering hvis forseringskostnaden er lavere enn
-            dagmulkten du ville fått + 30%. Dette sikrer at forsering er økonomisk
-            fornuftig sammenlignet med å ta dagmulkt.
-          </Alert>
+              <FormField
+                label="Dagmulktsats (NOK)"
+                required
+                error={errors.dagmulktsats?.message}
+                helpText="Dagmulkt per dag forsinkelse iht. kontrakten"
+              >
+                <Controller
+                  name="dagmulktsats"
+                  control={control}
+                  render={({ field }) => (
+                    <CurrencyInput
+                      value={field.value ?? null}
+                      onChange={field.onChange}
+                      allowNegative={false}
+                      error={!!errors.dagmulktsats}
+                    />
+                  )}
+                />
+              </FormField>
 
-          <div className="p-4 bg-pkt-surface-yellow border-2 border-pkt-border-yellow rounded-none text-alert-warning-text">
-            <h4 className="font-bold text-sm mb-3">Beregning av kostnadsgrense</h4>
-            <div className="space-y-2 text-sm">
-              <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                <span>Avslåtte dager:</span>
-                <span className="font-mono font-bold">{avslatteDager} dager</span>
+              <div className="p-4 bg-pkt-surface-yellow border-2 border-pkt-border-yellow rounded-none text-alert-warning-text">
+                <h4 className="font-bold text-sm mb-3">Beregning av kostnadsgrense</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                    <span>Avslåtte dager:</span>
+                    <span className="font-mono font-bold">{avslatteDager} dager</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                    <span>Dagmulktsats:</span>
+                    <span className="font-mono">{formatCurrency(inputDagmulktsats)}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
+                    <span>Dagmulkt totalt ({avslatteDager} × {formatCurrency(inputDagmulktsats)}):</span>
+                    <span className="font-mono">{formatCurrency(avslatteDager * inputDagmulktsats)}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1 border-t border-pkt-border-yellow pt-2 font-bold">
+                    <span>Maks forseringskostnad (+ 30%):</span>
+                    <span className="font-mono text-lg">{formatCurrency(maksKostnad)}</span>
+                  </div>
+                </div>
               </div>
-              <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                <span>Dagmulktsats:</span>
-                <span className="font-mono">{formatCurrency(inputDagmulktsats)}</span>
-              </div>
-              <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                <span>Dagmulkt totalt ({avslatteDager} × {formatCurrency(inputDagmulktsats)}):</span>
-                <span className="font-mono">{formatCurrency(avslatteDager * inputDagmulktsats)}</span>
-              </div>
-              <div className="flex flex-col sm:flex-row sm:justify-between gap-1 border-t border-pkt-border-yellow pt-2 font-bold">
-                <span>Maks forseringskostnad (+ 30%):</span>
-                <span className="font-mono text-lg">{formatCurrency(maksKostnad)}</span>
-              </div>
+
+              <FormField
+                label="Estimert forseringskostnad (NOK)"
+                required
+                error={errors.estimert_kostnad?.message}
+                helpText="Angi hva forseringen antas å ville koste"
+              >
+                <Controller
+                  name="estimert_kostnad"
+                  control={control}
+                  render={({ field }) => (
+                    <CurrencyInput
+                      value={field.value ?? null}
+                      onChange={field.onChange}
+                      allowNegative={false}
+                      error={!!errors.estimert_kostnad}
+                    />
+                  )}
+                />
+              </FormField>
+
+              {/* Cost validation feedback */}
+              {estimertKostnad > 0 && (
+                erInnenforGrense ? (
+                  <Alert variant="success" title="Innenfor kostnadsgrensen">
+                    Estimert kostnad utgjør {prosentAvGrense.toFixed(0)}% av maksgrensen.
+                    Du har valgrett til å behandle avslaget som et forseringspålegg.
+                  </Alert>
+                ) : (
+                  <Alert variant="danger" title="Overstiger kostnadsgrensen">
+                    Estimert kostnad overstiger grensen med {formatCurrency(estimertKostnad - maksKostnad)}.
+                    Hvis forseringskostnaden overstiger dagmulkt + 30%, har du ikke valgrett
+                    til å anse avslaget som et forseringspålegg (§33.8).
+                  </Alert>
+                )
+              )}
             </div>
-          </div>
+          </SectionContainer>
 
-          {/* Estimated cost input */}
-          <FormField
-            label="Estimert forseringskostnad (NOK)"
-            required
-            error={errors.estimert_kostnad?.message}
-            helpText="Angi hva forseringen antas å ville koste"
+          {/* Seksjon 3: Forseringsdetaljer */}
+          <SectionContainer
+            title="Forseringsdetaljer"
+            description="Angi tidspunkt og begrunnelse for forsering"
           >
-            <Input
-              type="number"
-              {...register('estimert_kostnad', { valueAsNumber: true })}
-              width="md"
-              error={!!errors.estimert_kostnad}
-            />
-          </FormField>
-
-          {/* Cost validation feedback */}
-          {estimertKostnad > 0 && (
-            erInnenforGrense ? (
-              <Alert variant="success" title="Innenfor kostnadsgrensen">
-                Estimert kostnad utgjør {prosentAvGrense.toFixed(0)}% av maksgrensen.
-                Du har valgrett til å behandle avslaget som et forseringspålegg.
-              </Alert>
-            ) : (
-              <Alert variant="danger" title="Overstiger kostnadsgrensen">
-                Estimert kostnad overstiger grensen med {formatCurrency(estimertKostnad - maksKostnad)}.
-                Hvis forseringskostnaden overstiger dagmulkt + 30%, har du ikke valgrett
-                til å anse avslaget som et forseringspålegg (§33.8).
-              </Alert>
-            )
-          )}
-
-          {/* Date for acceleration start */}
-          <FormField
-            label="Dato for iverksettelse"
-            required
-            error={errors.dato_iverksettelse?.message}
-            helpText="Når forsering vil iverksettes"
-          >
-            <Controller
-              name="dato_iverksettelse"
-              control={control}
-              render={({ field }) => (
-                <DatePicker
-                  id="dato_iverksettelse"
-                  value={field.value}
-                  onChange={field.onChange}
+            <div className="space-y-4">
+              <FormField
+                label="Dato for iverksettelse"
+                required
+                error={errors.dato_iverksettelse?.message}
+                helpText="Når forsering vil iverksettes"
+              >
+                <Controller
+                  name="dato_iverksettelse"
+                  control={control}
+                  render={({ field }) => (
+                    <DatePicker
+                      id="dato_iverksettelse"
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
+                  )}
                 />
-              )}
-            />
-          </FormField>
+              </FormField>
 
-          {/* Begrunnelse */}
-          <FormField
-            label="Begrunnelse"
-            required
-            error={errors.begrunnelse?.message}
-            helpText="Begrunn hvorfor du mener fristkravet er berettiget og velger forsering"
-          >
-            <Textarea
-              {...register('begrunnelse')}
-              rows={4}
-              fullWidth
-              error={!!errors.begrunnelse}
-            />
-          </FormField>
-
-          {/* Confirmation checkbox */}
-          <div className="p-4 bg-pkt-surface-subtle border-2 border-pkt-border-default rounded-none">
-            <Controller
-              name="bekreft_30_prosent"
-              control={control}
-              render={({ field }) => (
-                <Checkbox
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                  label="Jeg bekrefter at estimert forseringskostnad er innenfor dagmulkt + 30%"
-                  error={!!errors.bekreft_30_prosent}
+              <FormField
+                label="Begrunnelse"
+                required
+                error={errors.begrunnelse?.message}
+                helpText="Begrunn hvorfor du mener fristkravet er berettiget og velger forsering"
+              >
+                <Textarea
+                  {...register('begrunnelse')}
+                  rows={4}
+                  fullWidth
+                  error={!!errors.begrunnelse}
                 />
-              )}
-            />
-            {errors.bekreft_30_prosent && (
-              <p className="text-sm text-pkt-text-danger mt-1">{errors.bekreft_30_prosent.message}</p>
-            )}
-          </div>
+              </FormField>
+
+            </div>
+          </SectionContainer>
 
           {/* Error Message */}
           {mutation.isError && (
