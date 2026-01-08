@@ -228,7 +228,7 @@ export function ApprovePakkeModal({
       {sakState && (
         <Tabs
           tabs={[
-            { id: 'form', label: 'Detaljer' },
+            { id: 'form', label: 'Godkjenning' },
             { id: 'preview', label: 'Forhåndsvis PDF' },
           ]}
           activeTab={activeTab}
