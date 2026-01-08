@@ -36,8 +36,6 @@ import {
   type MockPerson,
 } from '../../constants/approvalConfig';
 import { formatCurrency } from '../../utils/formatters';
-import { downloadPdfWithDrafts } from '../../pdf/generator';
-import { DownloadIcon } from '@radix-ui/react-icons';
 import { Tabs } from '../primitives';
 import { PdfPreview } from '../pdf/PdfPreview';
 import { generateContractorClaimPdf } from '../../pdf/generator';
@@ -183,12 +181,6 @@ export function SendResponsPakkeModal({
     if (parts.length === 1) return parts[0]!;
     if (parts.length === 2) return `${parts[0]} og ${parts[1]}`;
     return `${parts.slice(0, -1).join(', ')} og ${parts[parts.length - 1]}`;
-  };
-
-  const handleDownloadPdf = () => {
-    if (sakState) {
-      downloadPdfWithDrafts(sakState, drafts);
-    }
   };
 
   return (
@@ -391,26 +383,13 @@ export function SendResponsPakkeModal({
         </SectionContainer>
 
         {/* Actions */}
-        <div className="flex justify-between gap-3 pt-4 border-t border-pkt-border-subtle">
-          {/* PDF Actions */}
-          <div className="flex gap-2">
-            {sakState && (
-              <Button variant="ghost" size="sm" onClick={handleDownloadPdf}>
-                <DownloadIcon className="w-4 h-4 mr-2" />
-                Last ned PDF
-              </Button>
-            )}
-          </div>
-
-          {/* Submit Actions */}
-          <div className="flex gap-3">
-            <Button variant="secondary" onClick={handleCancel}>
-              Avbryt
-            </Button>
-            <Button variant="primary" onClick={handleSubmit}>
-              Send til godkjenning
-            </Button>
-          </div>
+        <div className="flex justify-end gap-3 pt-4 border-t border-pkt-border-subtle">
+          <Button variant="secondary" onClick={handleCancel}>
+            Avbryt
+          </Button>
+          <Button variant="primary" onClick={handleSubmit}>
+            Send til godkjenning
+          </Button>
         </div>
       </div>
       ) : (

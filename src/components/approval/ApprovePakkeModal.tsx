@@ -26,8 +26,7 @@ import {
 } from '../../constants/approvalConfig';
 import { ApprovalChainStatus } from './ApprovalChainStatus';
 import { formatCurrency, formatDateMedium } from '../../utils/formatters';
-import { downloadPdfWithDrafts, generateContractorClaimPdf } from '../../pdf/generator';
-import { DownloadIcon } from '@radix-ui/react-icons';
+import { generateContractorClaimPdf } from '../../pdf/generator';
 import { PdfPreview } from '../pdf/PdfPreview';
 import { mergeDraftsIntoState } from '../../utils/mergeDraftsIntoState';
 
@@ -136,12 +135,6 @@ export function ApprovePakkeModal({
       handlePreviewTab();
     } else {
       setActiveTab('form');
-    }
-  };
-
-  const handleDownloadPdf = () => {
-    if (sakState) {
-      downloadPdfWithDrafts(sakState, drafts);
     }
   };
 
@@ -322,7 +315,7 @@ export function ApprovePakkeModal({
 
             {/* Actions */}
             <div className="flex justify-between gap-3 pt-4 border-t border-pkt-border-subtle">
-              {/* Left side - danger actions and PDF buttons */}
+              {/* Left side - danger actions */}
               <div className="flex gap-2">
                 {isCurrentApprover && (
                   <Button variant="danger" onClick={() => setMode('reject')}>
@@ -332,12 +325,6 @@ export function ApprovePakkeModal({
                 {isSubmitter && onCancel && (
                   <Button variant="ghost" onClick={() => setMode('cancel')}>
                     Trekk tilbake
-                  </Button>
-                )}
-                {sakState && (
-                  <Button variant="ghost" size="sm" onClick={handleDownloadPdf}>
-                    <DownloadIcon className="w-4 h-4 mr-2" />
-                    Last ned PDF
                   </Button>
                 )}
               </div>
