@@ -451,7 +451,6 @@ function getVarselTypeLabel(varselType?: FristVarselType): string {
   const labels: Record<FristVarselType, string> = {
     'noytralt': 'nøytralt varsel (§33.4)',
     'spesifisert': 'spesifisert krav (§33.6)',
-    'force_majeure': 'force majeure-varsel (§33.3)',
   };
   return labels[varselType] || varselType;
 }
@@ -463,8 +462,6 @@ function getPreklusjonParagraf(varselType?: FristVarselType): string {
   switch (varselType) {
     case 'noytralt':
       return '§33.4';
-    case 'force_majeure':
-      return '§33.3';
     default:
       return '§33.6';
   }
@@ -597,31 +594,14 @@ function generateFristKonklusjonSection(input: FristResponseInput): string {
 }
 
 /**
- * Generate §33.3 (5) force majeure vederlag notice if applicable
+ * Generate force majeure vederlag warning section
  *
- * NS 8407 §33.3 (5): "Partene har ikke krav på justering av vederlaget
- * som følge av fristforlengelse etter denne bestemmelsen."
- *
- * This is critical information for the contractor to understand that while
- * force majeure grants time extensions, it does NOT grant compensation.
+ * Note: Force majeure is handled at grunnlag level, not frist varsel level.
+ * This function is kept for backwards compatibility but always returns empty.
  */
-function generateForceMajeureVederlagSection(input: FristResponseInput): string {
-  const { varselType, godkjentDager, prinsipaltResultat } = input;
-
-  // Only show for force majeure claims where days are approved
-  if (varselType !== 'force_majeure') {
-    return '';
-  }
-
-  // Only show if some extension is granted
-  if (godkjentDager === 0 && prinsipaltResultat === 'avslatt') {
-    return '';
-  }
-
-  return (
-    'Byggherren gjør oppmerksom på at fristforlengelse innvilget etter §33.3 (force majeure) ' +
-    'ikke gir grunnlag for vederlagsjustering, jf. §33.3 (5).'
-  );
+function generateForceMajeureVederlagSection(_input: FristResponseInput): string {
+  // Force majeure is handled at grunnlag (ansvarsgrunnlag) level, not frist varsel level
+  return '';
 }
 
 /**

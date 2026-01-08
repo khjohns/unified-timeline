@@ -181,7 +181,7 @@ export function getSporStatusStyle(status: SporStatus): StatusStyle {
  * Get style for sakstype
  */
 export function getSakstypeStyle(sakstype: string): StatusStyle {
-  return SAKSTYPE_STYLES[sakstype] || SAKSTYPE_STYLES.standard;
+  return SAKSTYPE_STYLES[sakstype] ?? SAKSTYPE_STYLES.standard!;
 }
 
 /**

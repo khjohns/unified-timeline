@@ -48,12 +48,13 @@ interface RespondGrunnlagUpdateModalProps {
   onCatendaWarning?: () => void;
 }
 
-const RESULTAT_LABELS: Record<GrunnlagResponsResultat | 'frafalt', string> = {
+const RESULTAT_LABELS: Record<GrunnlagResponsResultat, string> = {
   godkjent: 'Godkjent',
   delvis_godkjent: 'Delvis godkjent',
   avslatt: 'Avslått',
   erkjenn_fm: 'Force Majeure (§33.3)',
   frafalt: 'Frafalt (§32.3 c)',
+  krever_avklaring: 'Krever avklaring',
 };
 
 export function RespondGrunnlagUpdateModal({

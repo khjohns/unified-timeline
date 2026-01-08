@@ -65,8 +65,7 @@ export type VederlagBeregningResultat =
 
 export type FristVarselType =
   | 'noytralt'        // §33.4 - Nøytralt varsel (uten dager)
-  | 'spesifisert'     // §33.6 - Spesifisert krav (med dager)
-  | 'force_majeure';  // §33.3 - Force majeure
+  | 'spesifisert';    // §33.6 - Spesifisert krav (med dager)
 
 // Frist beregning results - forenklet til tre hovedkategorier
 // Årsaken til avslag fanges av `subsidiaer_triggers`
@@ -83,7 +82,8 @@ export type GrunnlagResponsResultat =
   | 'delvis_godkjent'
   | 'erkjenn_fm'       // §33.3 - BH erkjenner Force Majeure (kun frist, ikke vederlag)
   | 'avslatt'          // BH avslår ansvarsgrunnlaget
-  | 'frafalt';         // §32.3 c - BH frafaller pålegget (kun irregulær endring)
+  | 'frafalt'          // §32.3 c - BH frafaller pålegget (kun irregulær endring)
+  | 'krever_avklaring'; // Krever ytterligere avklaring før endelig beslutning
 
 // Årsaker til at subsidiær vurdering er relevant (NS 8407)
 export type SubsidiaerTrigger =
@@ -679,6 +679,9 @@ export interface ResponsFristEventData {
   subsidiaer_resultat?: FristBeregningResultat;
   subsidiaer_godkjent_dager?: number;
   subsidiaer_begrunnelse?: string;
+
+  // Port 4: Samlet begrunnelse (Oppsummering)
+  begrunnelse?: string;
 }
 
 // Grunnlag response event
