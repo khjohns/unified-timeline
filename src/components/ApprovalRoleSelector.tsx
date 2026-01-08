@@ -24,13 +24,13 @@ interface ApprovalRoleSelectorProps {
   className?: string;
 }
 
-const ROLE_OPTIONS: { value: BHApprovalRole; label: string; description?: string }[] = [
-  { value: 'BH', label: 'BH (standard)', description: 'Prosjektleder uten godkjenningsrolle' },
-  { value: 'PL', label: `PL - ${APPROVAL_ROLE_LABELS.PL}` },
-  { value: 'SL', label: `SL - ${APPROVAL_ROLE_LABELS.SL}` },
-  { value: 'AL', label: `AL - ${APPROVAL_ROLE_LABELS.AL}` },
-  { value: 'DU', label: `DU - ${APPROVAL_ROLE_LABELS.DU}` },
-  { value: 'AD', label: `AD - ${APPROVAL_ROLE_LABELS.AD}` },
+const ROLE_OPTIONS: { value: BHApprovalRole; label: string }[] = [
+  { value: 'BH', label: 'Standard' },
+  { value: 'PL', label: APPROVAL_ROLE_LABELS.PL },
+  { value: 'SL', label: APPROVAL_ROLE_LABELS.SL },
+  { value: 'AL', label: APPROVAL_ROLE_LABELS.AL },
+  { value: 'DU', label: APPROVAL_ROLE_LABELS.DU },
+  { value: 'AD', label: APPROVAL_ROLE_LABELS.AD },
 ];
 
 export function ApprovalRoleSelector({ visible = true, className }: ApprovalRoleSelectorProps) {
@@ -53,7 +53,7 @@ export function ApprovalRoleSelector({ visible = true, className }: ApprovalRole
         </SelectTrigger>
         <SelectContent>
           {/* Standard BH option */}
-          <SelectItem value="BH">BH (standard)</SelectItem>
+          <SelectItem value="BH">Standard</SelectItem>
           <SelectSeparator />
           {/* Approval roles */}
           {ROLE_OPTIONS.filter((opt) => opt.value !== 'BH').map((option) => (
