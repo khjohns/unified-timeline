@@ -5,7 +5,7 @@
  * Used by approvers to take action on pending packages in the approval chain.
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Modal,
   Button,
@@ -17,6 +17,7 @@ import {
   useToast,
 } from '../primitives';
 import type { BhResponsPakke } from '../../types/approval';
+import type { SakState } from '../../types/timeline';
 import {
   APPROVAL_ROLE_LABELS,
   getNextApprover,
@@ -24,6 +25,9 @@ import {
 } from '../../constants/approvalConfig';
 import { ApprovalChainStatus } from './ApprovalChainStatus';
 import { formatCurrency, formatDateMedium } from '../../utils/formatters';
+import { downloadPdfWithDrafts } from '../../pdf/generator';
+import { DownloadIcon, EyeOpenIcon } from '@radix-ui/react-icons';
+import { PdfPreviewModal } from '../pdf';
 
 interface ApprovePakkeModalProps {
   open: boolean;
@@ -33,6 +37,8 @@ interface ApprovePakkeModalProps {
   onApprove: (comment?: string) => void;
   onReject: (reason: string) => void;
   onCancel?: () => void;
+  /** SakState for PDF generation */
+  sakState?: SakState;
 }
 
 function getResultatLabel(resultat: string): string {
@@ -77,9 +83,11 @@ export function ApprovePakkeModal({
   onApprove,
   onReject,
   onCancel,
+  sakState,
 }: ApprovePakkeModalProps) {
   const [comment, setComment] = useState('');
   const [mode, setMode] = useState<'view' | 'reject' | 'cancel'>('view');
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const toast = useToast();
 
   const nextApprover = getNextApprover(pakke.steps);
@@ -89,6 +97,19 @@ export function ApprovePakkeModal({
   // Check if current user is the submitter (can cancel the package)
   const submitterRoleLabel = APPROVAL_ROLE_LABELS[currentUserRole];
   const isSubmitter = pakke.submittedBy?.includes(submitterRoleLabel) ?? false;
+
+  // Memoize drafts object to prevent infinite re-renders in PdfPreviewModal
+  const drafts = useMemo(() => ({
+    grunnlagDraft: pakke.grunnlagRespons,
+    vederlagDraft: pakke.vederlagRespons,
+    fristDraft: pakke.fristRespons,
+  }), [pakke.grunnlagRespons, pakke.vederlagRespons, pakke.fristRespons]);
+
+  const handleDownloadPdf = () => {
+    if (sakState) {
+      downloadPdfWithDrafts(sakState, drafts);
+    }
+  };
 
   const handleApprove = () => {
     onApprove(comment || undefined);
@@ -244,6 +265,7 @@ export function ApprovePakkeModal({
 
             {/* Actions */}
             <div className="flex justify-between gap-3 pt-4 border-t border-pkt-border-subtle">
+              {/* Left side - danger actions and PDF buttons */}
               <div className="flex gap-2">
                 {isCurrentApprover && (
                   <Button variant="danger" onClick={() => setMode('reject')}>
@@ -255,7 +277,20 @@ export function ApprovePakkeModal({
                     Trekk tilbake
                   </Button>
                 )}
+                {sakState && (
+                  <>
+                    <Button variant="ghost" size="sm" onClick={() => setPreviewModalOpen(true)}>
+                      <EyeOpenIcon className="w-4 h-4 mr-2" />
+                      Forhåndsvis PDF
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={handleDownloadPdf}>
+                      <DownloadIcon className="w-4 h-4 mr-2" />
+                      Last ned PDF
+                    </Button>
+                  </>
+                )}
               </div>
+              {/* Right side - primary actions */}
               <div className="flex gap-3">
                 <Button variant="secondary" onClick={handleClose}>
                   Lukk
@@ -332,6 +367,17 @@ export function ApprovePakkeModal({
           </>
         )}
       </div>
+
+      {/* PDF Preview Modal */}
+      {sakState && (
+        <PdfPreviewModal
+          open={previewModalOpen}
+          onOpenChange={setPreviewModalOpen}
+          sakState={sakState}
+          drafts={drafts}
+          title="Forhåndsvisning av BH-respons"
+        />
+      )}
     </Modal>
   );
 }

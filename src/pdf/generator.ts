@@ -1,7 +1,15 @@
 import React from 'react';
 import { pdf } from '@react-pdf/renderer';
 import type { SakState } from '../types/timeline';
+import type { DraftResponseData } from '../types/approval';
 import { ContractorClaimPdf } from './ContractorClaimPdf';
+import { mergeDraftsIntoState } from '../utils/mergeDraftsIntoState';
+
+interface DraftSet {
+  grunnlagDraft?: DraftResponseData;
+  vederlagDraft?: DraftResponseData;
+  fristDraft?: DraftResponseData;
+}
 
 /**
  * Generate PDF blob from SakState
@@ -71,4 +79,21 @@ export const blobToBase64 = (blob: Blob): Promise<string> => {
     reader.onerror = reject;
     reader.readAsDataURL(blob);
   });
+};
+
+/**
+ * Generate PDF with draft responses merged into state and trigger download
+ *
+ * Used in approval modals to preview PDF with pending BH responses
+ * that haven't been formally sent yet.
+ *
+ * @param state - Current SakState
+ * @param drafts - Draft responses to merge (grunnlag, vederlag, frist)
+ */
+export const downloadPdfWithDrafts = async (
+  state: SakState,
+  drafts: DraftSet
+): Promise<void> => {
+  const mergedState = mergeDraftsIntoState(state, drafts);
+  await downloadContractorClaimPdf(mergedState);
 };

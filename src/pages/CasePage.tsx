@@ -28,10 +28,7 @@ import { ForseringRelasjonBanner } from '../components/forsering';
 import { UtstEndringsordreModal, EndringsordreRelasjonBanner } from '../components/endringsordre';
 import { MockToolbar } from '../components/MockToolbar';
 import {
-  SendToApprovalModal,
-  ApproveRejectModal,
   ApprovePakkeModal,
-  PendingApprovalBanner,
   SendResponsPakkeModal,
   ApprovalHistory,
 } from '../components/approval';
@@ -58,6 +55,7 @@ import { findEOerForSak, type FindEOerResponse } from '../api/endringsordre';
 import type { SakState, GrunnlagResponsResultat, TimelineEvent } from '../types/timeline';
 import {
   DownloadIcon,
+  EyeOpenIcon,
   PaperPlaneIcon,
   Pencil1Icon,
   ChatBubbleIcon,
@@ -65,6 +63,7 @@ import {
   RocketIcon,
   FileTextIcon,
 } from '@radix-ui/react-icons';
+import { PdfPreviewModal } from '../components/pdf';
 import {
   VerifyingState,
   AuthErrorState,
@@ -178,13 +177,12 @@ function CasePageContent() {
   // Approval workflow (mock) - must be called unconditionally
   const approvalWorkflow = useApprovalWorkflow(sakId || '');
 
-  // Approval modal states
-  const [sendToApprovalVederlagOpen, setSendToApprovalVederlagOpen] = useState(false);
-  const [sendToApprovalFristOpen, setSendToApprovalFristOpen] = useState(false);
-  const [approveRejectVederlagOpen, setApproveRejectVederlagOpen] = useState(false);
-  const [approveRejectFristOpen, setApproveRejectFristOpen] = useState(false);
+  // Approval modal states (combined package only)
   const [sendResponsPakkeOpen, setSendResponsPakkeOpen] = useState(false);
   const [approvePakkeOpen, setApprovePakkeOpen] = useState(false);
+
+  // PDF preview modal state (for testing - opened from header)
+  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
 
   // Use state from data or empty state - hooks must be called unconditionally
   const state = data?.state ?? EMPTY_STATE;
@@ -256,18 +254,27 @@ function CasePageContent() {
         userRole={userRole}
         onToggleRole={setUserRole}
         actions={
-          <button
-            onClick={async () => {
-              const { downloadContractorClaimPdf } = await import('../pdf/generator');
-              downloadContractorClaimPdf(state);
-            }}
-            className="flex items-center gap-2 p-2 rounded-lg border border-pkt-grays-gray-200 bg-pkt-bg-subtle text-pkt-grays-gray-500 hover:text-pkt-text-body-dark hover:bg-pkt-bg-card transition-colors"
-            title="Last ned PDF"
-            aria-label="Last ned PDF"
-          >
-            <DownloadIcon className="w-4 h-4" />
-            <span className="text-xs font-medium sm:hidden">PDF</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPdfPreviewOpen(true)}
+              className="flex items-center gap-2 p-2 rounded-lg border border-pkt-grays-gray-200 bg-pkt-bg-subtle text-pkt-grays-gray-500 hover:text-pkt-text-body-dark hover:bg-pkt-bg-card transition-colors"
+              title="Forhåndsvis PDF"
+              aria-label="Forhåndsvis PDF"
+            >
+              <EyeOpenIcon className="w-4 h-4" />
+            </button>
+            <button
+              onClick={async () => {
+                const { downloadContractorClaimPdf } = await import('../pdf/generator');
+                downloadContractorClaimPdf(state);
+              }}
+              className="flex items-center gap-2 p-2 rounded-lg border border-pkt-grays-gray-200 bg-pkt-bg-subtle text-pkt-grays-gray-500 hover:text-pkt-text-body-dark hover:bg-pkt-bg-card transition-colors"
+              title="Last ned PDF"
+              aria-label="Last ned PDF"
+            >
+              <DownloadIcon className="w-4 h-4" />
+            </button>
+          </div>
         }
       />
 
@@ -292,26 +299,6 @@ function CasePageContent() {
         {endringsordreData?.endringsordrer && endringsordreData.endringsordrer.length > 0 && (
           <section className="mb-6">
             <EndringsordreRelasjonBanner endringsordrer={endringsordreData.endringsordrer} />
-          </section>
-        )}
-
-        {/* Pending Approval Banners */}
-        {approvalWorkflow.approvalEnabled && approvalWorkflow.isPendingVederlagApproval && approvalWorkflow.vederlagApproval && (
-          <section className="mb-6">
-            <PendingApprovalBanner
-              request={approvalWorkflow.vederlagApproval}
-              canApprove={approvalWorkflow.canApproveVederlag}
-              onViewDetails={() => setApproveRejectVederlagOpen(true)}
-            />
-          </section>
-        )}
-        {approvalWorkflow.approvalEnabled && approvalWorkflow.isPendingFristApproval && approvalWorkflow.fristApproval && (
-          <section className="mb-6">
-            <PendingApprovalBanner
-              request={approvalWorkflow.fristApproval}
-              canApprove={approvalWorkflow.canApproveFrist}
-              onViewDetails={() => setApproveRejectFristOpen(true)}
-            />
           </section>
         )}
 
@@ -385,8 +372,6 @@ function CasePageContent() {
           </h2>
           <CaseDashboard
           state={state}
-          vederlagApproval={approvalWorkflow.approvalEnabled ? approvalWorkflow.vederlagApproval : undefined}
-          fristApproval={approvalWorkflow.approvalEnabled ? approvalWorkflow.fristApproval : undefined}
           grunnlagActions={
             <>
               {/* TE Actions: "Send" and "Oppdater" are mutually exclusive */}
@@ -498,28 +483,6 @@ function CasePageContent() {
                   Endre svar
                 </Button>
               )}
-              {/* BH Actions: Send draft to approval (when approval workflow enabled and draft exists) */}
-              {userRole === 'BH' && approvalWorkflow.approvalEnabled && approvalWorkflow.vederlagDraft && !approvalWorkflow.isPendingVederlagApproval && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => setSendToApprovalVederlagOpen(true)}
-                >
-                  <PaperPlaneIcon className="w-4 h-4 mr-2" />
-                  Send til godkjenning
-                </Button>
-              )}
-              {/* BH Actions: Approve/Reject (when user is the next approver) */}
-              {userRole === 'BH' && approvalWorkflow.approvalEnabled && approvalWorkflow.canApproveVederlag && approvalWorkflow.vederlagApproval && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => setApproveRejectVederlagOpen(true)}
-                >
-                  <ChatBubbleIcon className="w-4 h-4 mr-2" />
-                  Godkjenn / Avvis
-                </Button>
-              )}
             </>
           }
           fristActions={
@@ -577,28 +540,6 @@ function CasePageContent() {
                 >
                   <Pencil2Icon className="w-4 h-4 mr-2" />
                   Endre svar
-                </Button>
-              )}
-              {/* BH Actions: Send draft to approval (when approval workflow enabled and draft exists) */}
-              {userRole === 'BH' && approvalWorkflow.approvalEnabled && approvalWorkflow.fristDraft && !approvalWorkflow.isPendingFristApproval && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => setSendToApprovalFristOpen(true)}
-                >
-                  <PaperPlaneIcon className="w-4 h-4 mr-2" />
-                  Send til godkjenning
-                </Button>
-              )}
-              {/* BH Actions: Approve/Reject (when user is the next approver) */}
-              {userRole === 'BH' && approvalWorkflow.approvalEnabled && approvalWorkflow.canApproveFrist && approvalWorkflow.fristApproval && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => setApproveRejectFristOpen(true)}
-                >
-                  <ChatBubbleIcon className="w-4 h-4 mr-2" />
-                  Godkjenn / Avvis
                 </Button>
               )}
             </>
@@ -905,54 +846,6 @@ function CasePageContent() {
             preselectedKoeIds={[sakId]}  // Pre-select current case if it's a valid KOE
           />
 
-          {/* Approval Workflow Modals */}
-          {approvalWorkflow.vederlagDraft && (
-            <SendToApprovalModal
-              open={sendToApprovalVederlagOpen}
-              onOpenChange={setSendToApprovalVederlagOpen}
-              draft={approvalWorkflow.vederlagDraft}
-              belop={approvalWorkflow.vederlagDraft.belop || krevdBelop || 0}
-              onSubmit={(comment) => {
-                approvalWorkflow.submitForApproval(
-                  approvalWorkflow.vederlagDraft!,
-                  approvalWorkflow.vederlagDraft!.belop || krevdBelop || 0
-                );
-              }}
-            />
-          )}
-          {approvalWorkflow.fristDraft && (
-            <SendToApprovalModal
-              open={sendToApprovalFristOpen}
-              onOpenChange={setSendToApprovalFristOpen}
-              draft={approvalWorkflow.fristDraft}
-              belop={0} // Frist doesn't have amount-based thresholds in this simplified mock
-              onSubmit={(comment) => {
-                approvalWorkflow.submitForApproval(
-                  approvalWorkflow.fristDraft!,
-                  0
-                );
-              }}
-            />
-          )}
-          {approvalWorkflow.vederlagApproval && (
-            <ApproveRejectModal
-              open={approveRejectVederlagOpen}
-              onOpenChange={setApproveRejectVederlagOpen}
-              request={approvalWorkflow.vederlagApproval}
-              onApprove={(comment) => approvalWorkflow.approveStep('vederlag', comment)}
-              onReject={(reason) => approvalWorkflow.rejectStep('vederlag', reason)}
-            />
-          )}
-          {approvalWorkflow.fristApproval && (
-            <ApproveRejectModal
-              open={approveRejectFristOpen}
-              onOpenChange={setApproveRejectFristOpen}
-              request={approvalWorkflow.fristApproval}
-              onApprove={(comment) => approvalWorkflow.approveStep('frist', comment)}
-              onReject={(reason) => approvalWorkflow.rejectStep('frist', reason)}
-            />
-          )}
-
           {/* Combined Package Modal */}
           <SendResponsPakkeModal
             open={sendResponsPakkeOpen}
@@ -965,6 +858,7 @@ function CasePageContent() {
             }}
             currentMockUser={currentMockUser}
             currentMockManager={currentMockManager}
+            sakState={state}
           />
 
           {/* Approve Package Modal */}
@@ -977,8 +871,16 @@ function CasePageContent() {
               onApprove={(comment) => approvalWorkflow.approvePakkeStep(comment)}
               onReject={(reason) => approvalWorkflow.rejectPakkeStep(reason)}
               onCancel={approvalWorkflow.cancelPakke}
+              sakState={state}
             />
           )}
+
+          {/* PDF Preview Modal (standalone - for testing outside modal-in-modal) */}
+          <PdfPreviewModal
+            open={pdfPreviewOpen}
+            onOpenChange={setPdfPreviewOpen}
+            sakState={state}
+          />
         </>
       )}
 

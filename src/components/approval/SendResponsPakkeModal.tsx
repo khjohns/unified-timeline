@@ -6,7 +6,7 @@
  * Calculates combined amount for threshold determination.
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   Modal,
   Button,
@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from '../primitives/Select';
 import type { DraftResponseData, ApprovalRole } from '../../types/approval';
+import type { SakState } from '../../types/timeline';
 import {
   APPROVAL_THRESHOLDS,
   getRequiredApprovers,
@@ -35,6 +36,9 @@ import {
   type MockPerson,
 } from '../../constants/approvalConfig';
 import { formatCurrency } from '../../utils/formatters';
+import { downloadPdfWithDrafts } from '../../pdf/generator';
+import { DownloadIcon, EyeOpenIcon } from '@radix-ui/react-icons';
+import { PdfPreviewModal } from '../pdf';
 
 interface SendResponsPakkeModalProps {
   open: boolean;
@@ -46,6 +50,8 @@ interface SendResponsPakkeModalProps {
   defaultDagmulktsats?: number;
   currentMockUser: MockPerson;
   currentMockManager?: MockPerson;
+  /** SakState for PDF generation */
+  sakState?: SakState;
 }
 
 export function SendResponsPakkeModal({
@@ -58,11 +64,13 @@ export function SendResponsPakkeModal({
   defaultDagmulktsats = 50_000,
   currentMockUser,
   currentMockManager,
+  sakState,
 }: SendResponsPakkeModalProps) {
   const [dagmulktsats, setDagmulktsats] = useState(defaultDagmulktsats);
   const [comment, setComment] = useState('');
   const [approverSelection, setApproverSelection] = useState<'manager' | 'other'>('manager');
   const [selectedOtherApprover, setSelectedOtherApprover] = useState<string>('');
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
 
   // Calculate amounts
   const vederlagBelop = vederlagDraft?.belop ?? 0;
@@ -129,6 +137,19 @@ export function SendResponsPakkeModal({
     if (parts.length === 1) return parts[0]!;
     if (parts.length === 2) return `${parts[0]} og ${parts[1]}`;
     return `${parts.slice(0, -1).join(', ')} og ${parts[parts.length - 1]}`;
+  };
+
+  // Memoize drafts object to prevent infinite re-renders in PdfPreviewModal
+  const drafts = useMemo(() => ({
+    grunnlagDraft,
+    vederlagDraft,
+    fristDraft,
+  }), [grunnlagDraft, vederlagDraft, fristDraft]);
+
+  const handleDownloadPdf = () => {
+    if (sakState) {
+      downloadPdfWithDrafts(sakState, drafts);
+    }
   };
 
   return (
@@ -316,15 +337,45 @@ export function SendResponsPakkeModal({
         </SectionContainer>
 
         {/* Actions */}
-        <div className="flex justify-end gap-3 pt-4 border-t border-pkt-border-subtle">
-          <Button variant="secondary" onClick={handleCancel}>
-            Avbryt
-          </Button>
-          <Button variant="primary" onClick={handleSubmit}>
-            Send til godkjenning
-          </Button>
+        <div className="flex justify-between gap-3 pt-4 border-t border-pkt-border-subtle">
+          {/* PDF Actions */}
+          <div className="flex gap-2">
+            {sakState && (
+              <>
+                <Button variant="ghost" size="sm" onClick={() => setPreviewModalOpen(true)}>
+                  <EyeOpenIcon className="w-4 h-4 mr-2" />
+                  Forhåndsvis PDF
+                </Button>
+                <Button variant="ghost" size="sm" onClick={handleDownloadPdf}>
+                  <DownloadIcon className="w-4 h-4 mr-2" />
+                  Last ned PDF
+                </Button>
+              </>
+            )}
+          </div>
+
+          {/* Submit Actions */}
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={handleCancel}>
+              Avbryt
+            </Button>
+            <Button variant="primary" onClick={handleSubmit}>
+              Send til godkjenning
+            </Button>
+          </div>
         </div>
       </div>
+
+      {/* PDF Preview Modal */}
+      {sakState && (
+        <PdfPreviewModal
+          open={previewModalOpen}
+          onOpenChange={setPreviewModalOpen}
+          sakState={sakState}
+          drafts={drafts}
+          title="Forhåndsvisning av BH-respons"
+        />
+      )}
     </Modal>
   );
 }

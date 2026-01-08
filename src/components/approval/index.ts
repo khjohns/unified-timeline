@@ -6,8 +6,6 @@
 
 export { ApprovalChainStatus } from './ApprovalChainStatus';
 export { ApprovalHistory } from './ApprovalHistory';
-export { SendToApprovalModal } from './SendToApprovalModal';
 export { SendResponsPakkeModal } from './SendResponsPakkeModal';
-export { ApproveRejectModal } from './ApproveRejectModal';
 export { ApprovePakkeModal } from './ApprovePakkeModal';
 export { PendingApprovalBanner } from './PendingApprovalBanner';

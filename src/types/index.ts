@@ -46,7 +46,7 @@ export type {
   ApprovalSporType,
   ApprovalRequestStatus,
   DraftResponseData,
-  ApprovalRequest,
   ApprovalThreshold,
   ApprovalState,
+  BhResponsPakke,
 } from './approval';

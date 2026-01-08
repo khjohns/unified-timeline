@@ -79,23 +79,6 @@ export interface DraftResponseData {
 }
 
 /**
- * Complete approval request including chain status
- */
-export interface ApprovalRequest {
-  id: string;
-  sakId: string;
-  sporType: ApprovalSporType;
-  belop: number; // Amount (for threshold calculation)
-  requiredApprovers: ApprovalRole[];
-  steps: ApprovalStep[];
-  status: ApprovalRequestStatus;
-  submittedAt?: string; // ISO date when submitted for approval
-  submittedBy?: string; // User who submitted (mock)
-  completedAt?: string; // ISO date when fully approved/rejected
-  responseData: DraftResponseData;
-}
-
-/**
  * Threshold configuration for determining required approvers
  */
 export interface ApprovalThreshold {
@@ -108,8 +91,6 @@ export interface ApprovalThreshold {
  * State stored in ApprovalContext
  */
 export interface ApprovalState {
-  // Map of sakId -> ApprovalRequest for pending approvals
-  approvalRequests: Map<string, ApprovalRequest>;
   // Map of sakId:sporType -> DraftResponseData for drafts not yet submitted
   drafts: Map<string, DraftResponseData>;
   // Map of sakId -> BhResponsPakke for combined approval packages

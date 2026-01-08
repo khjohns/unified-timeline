@@ -3,13 +3,11 @@
  *
  * Alternative dashboard layout using DashboardCard (same as ForseringPage).
  * Displays status for all three tracks with badges instead of colored borders.
- * Supports approval workflow integration with optional approval status display.
  */
 
 import { ReactNode, useMemo } from 'react';
 import { DashboardCard, DataList, DataListItem, Badge } from '../primitives';
 import { SakState, SporStatus } from '../../types/timeline';
-import type { ApprovalRequest } from '../../types/approval';
 import { getHovedkategoriLabel, getUnderkategoriLabel } from '../../constants/categories';
 import { getVederlagsmetodeLabel } from '../../constants/paymentMethods';
 import { getSporStatusStyle } from '../../constants/statusStyles';
@@ -20,17 +18,12 @@ import {
   formatBHResultat,
   formatVarselType,
 } from '../../utils/formatters';
-import { ApprovalChainStatus } from '../approval/ApprovalChainStatus';
 
 interface CaseDashboardProps {
   state: SakState;
   grunnlagActions?: ReactNode;
   vederlagActions?: ReactNode;
   fristActions?: ReactNode;
-  /** Pending vederlag approval request (for approval workflow) */
-  vederlagApproval?: ApprovalRequest;
-  /** Pending frist approval request (for approval workflow) */
-  fristApproval?: ApprovalRequest;
 }
 
 /**
@@ -58,26 +51,6 @@ function getKrevdBelop(state: SakState): number | undefined {
 }
 
 /**
- * Get status badge for approval workflow
- */
-function getApprovalStatusBadge(approval: ApprovalRequest | undefined): ReactNode {
-  if (!approval) return null;
-
-  switch (approval.status) {
-    case 'pending':
-      return <Badge variant="warning" size="sm">Venter på godkjenning</Badge>;
-    case 'approved':
-      return <Badge variant="success" size="sm">Godkjent</Badge>;
-    case 'rejected':
-      return <Badge variant="danger" size="sm">Avvist</Badge>;
-    case 'draft':
-      return <Badge variant="info" size="sm">Utkast</Badge>;
-    default:
-      return null;
-  }
-}
-
-/**
  * CaseDashboard renders three-track status using DashboardCard components
  * Same visual style as ForseringDashboard for consistency
  */
@@ -86,19 +59,8 @@ export function CaseDashboard({
   grunnlagActions,
   vederlagActions,
   fristActions,
-  vederlagApproval,
-  fristApproval,
 }: CaseDashboardProps) {
   const krevdBelop = useMemo(() => getKrevdBelop(state), [state]);
-
-  // Determine if we should show approval badge instead of regular status
-  const vederlagBadge = vederlagApproval?.status === 'pending'
-    ? getApprovalStatusBadge(vederlagApproval)
-    : getStatusBadge(state.vederlag.status, state.er_subsidiaert_vederlag);
-
-  const fristBadge = fristApproval?.status === 'pending'
-    ? getApprovalStatusBadge(fristApproval)
-    : getStatusBadge(state.frist.status, state.er_subsidiaert_frist);
 
   return (
     <section aria-labelledby="dashboard-heading">
@@ -148,7 +110,7 @@ export function CaseDashboard({
         {/* Vederlag Card */}
         <DashboardCard
           title="Vederlag"
-          headerBadge={vederlagBadge}
+          headerBadge={getStatusBadge(state.vederlag.status, state.er_subsidiaert_vederlag)}
           action={vederlagActions}
           variant="outlined"
         >
@@ -172,23 +134,12 @@ export function CaseDashboard({
               </DataListItem>
             )}
           </DataList>
-          {/* Approval Chain Status (when pending approval) */}
-          {vederlagApproval?.status === 'pending' && (
-            <div className="mt-4 pt-4 border-t border-pkt-border-subtle">
-              <ApprovalChainStatus
-                steps={vederlagApproval.steps}
-                compact={false}
-                collapsible={true}
-                defaultCollapsed={true}
-              />
-            </div>
-          )}
         </DashboardCard>
 
         {/* Frist Card */}
         <DashboardCard
           title="Fristforlengelse"
-          headerBadge={fristBadge}
+          headerBadge={getStatusBadge(state.frist.status, state.er_subsidiaert_frist)}
           action={fristActions}
           variant="outlined"
         >
@@ -214,17 +165,6 @@ export function CaseDashboard({
               </DataListItem>
             )}
           </DataList>
-          {/* Approval Chain Status (when pending approval) */}
-          {fristApproval?.status === 'pending' && (
-            <div className="mt-4 pt-4 border-t border-pkt-border-subtle">
-              <ApprovalChainStatus
-                steps={fristApproval.steps}
-                compact={false}
-                collapsible={true}
-                defaultCollapsed={true}
-              />
-            </div>
-          )}
         </DashboardCard>
       </div>
     </section>

@@ -45,6 +45,11 @@ export default defineConfig(({ mode }) => {
             {
               src: 'node_modules/@oslokommune/punkt-assets/dist/fonts/*.woff',
               dest: 'fonts'
+            },
+            {
+              // Use worker from react-pdf's bundled pdfjs-dist to match versions
+              src: 'node_modules/react-pdf/node_modules/pdfjs-dist/legacy/build/pdf.worker.min.mjs',
+              dest: ''
             }
           ]
         }),
@@ -72,7 +77,7 @@ export default defineConfig(({ mode }) => {
               'vendor-react': ['react', 'react-dom', 'react-router-dom'],
 
               // PDF-relaterte biblioteker
-              'vendor-pdf': ['react-pdf', 'pdfjs-dist', '@react-pdf/renderer'],
+              'vendor-pdf': ['react-pdf', '@react-pdf/renderer'],
             },
           },
         },
@@ -81,7 +86,7 @@ export default defineConfig(({ mode }) => {
         sourcemap: false, // Deaktiver i produksjon for mindre filer
       },
       optimizeDeps: {
-        include: ['react-pdf', 'pdfjs-dist', '@react-pdf/renderer'],
+        include: ['react-pdf', '@react-pdf/renderer'],
       },
     };
 });

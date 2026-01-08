@@ -45,5 +45,8 @@ export { MetadataGrid, GridItem, GridDivider } from './MetadataGrid';
 export { InfoLabel, type InfoLabelProps } from './InfoLabel';
 export { StepIndicator, type Step } from './StepIndicator';
 
+// Navigation
+export { Tabs } from './Tabs';
+
 // Feedback
 export { ToastProvider, useToast } from './Toast';
