@@ -537,7 +537,7 @@ const VederlagSection: React.FC<{ state: SakState }> = ({ state }) => {
                   label2="Godkjent beløp"
                   value2={vederlag.godkjent_belop !== undefined ? formatCurrency(vederlag.godkjent_belop) : '—'}
                 />
-                {vederlag.godkjenningsgrad_prosent !== undefined && (
+                {vederlag.godkjenningsgrad_prosent != null && (
                   <TableRow4Col
                     label1="Godkjenningsgrad"
                     value1={`${vederlag.godkjenningsgrad_prosent.toFixed(1)}%`}

@@ -37,8 +37,11 @@ import {
 } from '../../constants/approvalConfig';
 import { formatCurrency } from '../../utils/formatters';
 import { downloadPdfWithDrafts } from '../../pdf/generator';
-import { DownloadIcon, EyeOpenIcon } from '@radix-ui/react-icons';
-import { PdfPreviewModal } from '../pdf';
+import { DownloadIcon } from '@radix-ui/react-icons';
+import { Tabs } from '../primitives';
+import { PdfPreview } from '../pdf/PdfPreview';
+import { generateContractorClaimPdf } from '../../pdf/generator';
+import { mergeDraftsIntoState } from '../../utils/mergeDraftsIntoState';
 
 interface SendResponsPakkeModalProps {
   open: boolean;
@@ -70,7 +73,10 @@ export function SendResponsPakkeModal({
   const [comment, setComment] = useState('');
   const [approverSelection, setApproverSelection] = useState<'manager' | 'other'>('manager');
   const [selectedOtherApprover, setSelectedOtherApprover] = useState<string>('');
-  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'form' | 'preview'>('form');
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
 
   // Calculate amounts
   const vederlagBelop = vederlagDraft?.belop ?? 0;
@@ -104,6 +110,42 @@ export function SendResponsPakkeModal({
     [samletBelop]
   );
 
+  // Memoize drafts object to prevent infinite re-renders
+  const drafts = useMemo(() => ({
+    grunnlagDraft,
+    vederlagDraft,
+    fristDraft,
+  }), [grunnlagDraft, vederlagDraft, fristDraft]);
+
+  // Handle switching to preview tab and generating PDF
+  const handlePreviewTab = useCallback(() => {
+    if (activeTab === 'preview') return;
+
+    // Set loading state BEFORE switching tabs to avoid flash of "no PDF"
+    if (sakState && !pdfBlob) {
+      setIsGeneratingPdf(true);
+      setPdfError(null);
+    }
+
+    setActiveTab('preview');
+
+    if (!sakState || pdfBlob) return;
+
+    const stateToRender = mergeDraftsIntoState(sakState, drafts);
+    generateContractorClaimPdf(stateToRender)
+      .then(({ blob }) => setPdfBlob(blob))
+      .catch((err) => setPdfError(err instanceof Error ? err.message : 'Ukjent feil'))
+      .finally(() => setIsGeneratingPdf(false));
+  }, [activeTab, sakState, pdfBlob, drafts]);
+
+  const handleTabChange = (tabId: string) => {
+    if (tabId === 'preview') {
+      handlePreviewTab();
+    } else {
+      setActiveTab('form');
+    }
+  };
+
   // Count included tracks
   const includedTracks = [grunnlagDraft, vederlagDraft, fristDraft].filter(Boolean).length;
 
@@ -112,6 +154,8 @@ export function SendResponsPakkeModal({
     setComment('');
     setApproverSelection('manager');
     setSelectedOtherApprover('');
+    setActiveTab('form');
+    setPdfBlob(null);
     onOpenChange(false);
   };
 
@@ -119,6 +163,8 @@ export function SendResponsPakkeModal({
     setComment('');
     setApproverSelection('manager');
     setSelectedOtherApprover('');
+    setActiveTab('form');
+    setPdfBlob(null);
     onOpenChange(false);
   };
 
@@ -139,13 +185,6 @@ export function SendResponsPakkeModal({
     return `${parts.slice(0, -1).join(', ')} og ${parts[parts.length - 1]}`;
   };
 
-  // Memoize drafts object to prevent infinite re-renders in PdfPreviewModal
-  const drafts = useMemo(() => ({
-    grunnlagDraft,
-    vederlagDraft,
-    fristDraft,
-  }), [grunnlagDraft, vederlagDraft, fristDraft]);
-
   const handleDownloadPdf = () => {
     if (sakState) {
       downloadPdfWithDrafts(sakState, drafts);
@@ -159,9 +198,24 @@ export function SendResponsPakkeModal({
       title="Send til godkjenning"
       size="lg"
     >
-      <div className="space-y-4">
-        {/* Intro with guidance */}
-        <Alert variant="info" title="Intern godkjenning kreves">
+      {/* Tabs header - only show if we have sakState for PDF preview */}
+      {sakState && (
+        <Tabs
+          tabs={[
+            { id: 'form', label: 'Detaljer' },
+            { id: 'preview', label: 'Forhåndsvis PDF' },
+          ]}
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          className="mb-4"
+        />
+      )}
+
+      {/* Tab content */}
+      {activeTab === 'form' ? (
+        <div className="space-y-4">
+          {/* Intro with guidance */}
+          <Alert variant="info" title="Intern godkjenning kreves">
           Du sender svar på {formatSummaryList(summaryParts)} til godkjenning.
           Svaret må godkjennes internt før det sendes til entreprenør.
           Godkjenningsnivå avhenger av samlet økonomisk eksponering.
@@ -341,16 +395,10 @@ export function SendResponsPakkeModal({
           {/* PDF Actions */}
           <div className="flex gap-2">
             {sakState && (
-              <>
-                <Button variant="ghost" size="sm" onClick={() => setPreviewModalOpen(true)}>
-                  <EyeOpenIcon className="w-4 h-4 mr-2" />
-                  Forhåndsvis PDF
-                </Button>
-                <Button variant="ghost" size="sm" onClick={handleDownloadPdf}>
-                  <DownloadIcon className="w-4 h-4 mr-2" />
-                  Last ned PDF
-                </Button>
-              </>
+              <Button variant="ghost" size="sm" onClick={handleDownloadPdf}>
+                <DownloadIcon className="w-4 h-4 mr-2" />
+                Last ned PDF
+              </Button>
             )}
           </div>
 
@@ -365,15 +413,14 @@ export function SendResponsPakkeModal({
           </div>
         </div>
       </div>
-
-      {/* PDF Preview Modal */}
-      {sakState && (
-        <PdfPreviewModal
-          open={previewModalOpen}
-          onOpenChange={setPreviewModalOpen}
-          sakState={sakState}
-          drafts={drafts}
-          title="Forhåndsvisning av BH-respons"
+      ) : (
+        <PdfPreview
+          blob={pdfBlob}
+          isLoading={isGeneratingPdf}
+          error={pdfError ?? undefined}
+          height="calc(85dvh - 240px)"
+          filename={`BH-respons_${sakState?.sak_id ?? 'dokument'}.pdf`}
+          onClose={() => setActiveTab('form')}
         />
       )}
     </Modal>
