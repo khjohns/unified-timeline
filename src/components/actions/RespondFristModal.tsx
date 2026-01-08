@@ -1394,7 +1394,6 @@ export function RespondFristModal({
                     e.stopPropagation();
                     goToPrevPort();
                   }}
-                  size="lg"
                   className="w-full sm:w-auto"
                 >
                   ← Forrige
@@ -1408,7 +1407,6 @@ export function RespondFristModal({
                 variant="ghost"
                 onClick={handleClose}
                 disabled={isSubmitting}
-                size="lg"
                 className="w-full sm:w-auto order-2 sm:order-1"
               >
                 Avbryt
@@ -1423,7 +1421,6 @@ export function RespondFristModal({
                     e.stopPropagation();
                     goToNextPort();
                   }}
-                  size="lg"
                   className="w-full sm:w-auto order-1 sm:order-2"
                 >
                   Neste →
@@ -1433,14 +1430,13 @@ export function RespondFristModal({
                   type="button"
                   variant="primary"
                   loading={isSubmitting}
-                  size="lg"
                   className="w-full sm:w-auto order-1 sm:order-2"
                   onClick={handleSubmit(handleSaveDraft)}
                 >
                   Lagre utkast
                 </Button>
               ) : (
-                <Button type="submit" variant="primary" loading={isSubmitting} size="lg" className="w-full sm:w-auto order-1 sm:order-2">
+                <Button type="submit" variant="primary" loading={isSubmitting} className="w-full sm:w-auto order-1 sm:order-2">
                   Send svar
                 </Button>
               )}

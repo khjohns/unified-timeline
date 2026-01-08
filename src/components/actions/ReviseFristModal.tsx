@@ -441,7 +441,6 @@ export function ReviseFristModal({
             variant="ghost"
             onClick={handleClose}
             disabled={isSubmitting}
-            size="lg"
           >
             Avbryt
           </Button>
@@ -449,7 +448,6 @@ export function ReviseFristModal({
             type="submit"
             variant={modalConfig.submitVariant}
             disabled={isSubmitting || !watch('begrunnelse') || erUgyldigDager}
-            size="lg"
           >
             {isSubmitting ? 'Sender...' : modalConfig.submitLabel}
           </Button>

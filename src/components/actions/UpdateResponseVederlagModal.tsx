@@ -820,7 +820,6 @@ export function UpdateResponseVederlagModal({
             variant="ghost"
             onClick={handleClose}
             disabled={isSubmitting}
-            size="lg"
           >
             Avbryt
           </Button>
@@ -837,7 +836,6 @@ export function UpdateResponseVederlagModal({
                 (godkjentBelop ?? 0) <= tidligereGodkjentBelop) ||
               !watch('kommentar')
             }
-            size="lg"
           >
             {isSubmitting ? 'Lagrer...' : 'Lagre Endringer'}
           </Button>

@@ -908,7 +908,6 @@ export function UtstEndringsordreModal({
                     e.preventDefault();
                     goToPrevStep();
                   }}
-                  size="lg"
                   className="w-full sm:w-auto"
                 >
                   ← Forrige
@@ -922,7 +921,6 @@ export function UtstEndringsordreModal({
                 variant="ghost"
                 onClick={handleClose}
                 disabled={createEOMutation.isPending}
-                size="lg"
                 className="w-full sm:w-auto order-2 sm:order-1"
               >
                 Avbryt
@@ -936,7 +934,6 @@ export function UtstEndringsordreModal({
                     e.preventDefault();
                     goToNextStep();
                   }}
-                  size="lg"
                   className="w-full sm:w-auto order-1 sm:order-2"
                 >
                   Neste →
@@ -946,7 +943,6 @@ export function UtstEndringsordreModal({
                   type="submit"
                   variant="primary"
                   disabled={createEOMutation.isPending}
-                  size="lg"
                   className="w-full sm:w-auto order-1 sm:order-2"
                 >
                   {createEOMutation.isPending ? 'Oppretter...' : 'Utsted endringsordre'}

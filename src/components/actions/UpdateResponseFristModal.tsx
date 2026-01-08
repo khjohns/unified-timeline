@@ -561,7 +561,6 @@ export function UpdateResponseFristModal({
             variant="ghost"
             onClick={handleClose}
             disabled={isSubmitting}
-            size="lg"
           >
             Avbryt
           </Button>
@@ -576,7 +575,6 @@ export function UpdateResponseFristModal({
               (nyttResultat === 'delvis_godkjent' && varDelvisGodkjent && (nyGodkjentDager ?? 0) <= tidligereGodkjentDager) ||
               !watch('kommentar')
             }
-            size="lg"
           >
             {isSubmitting
               ? 'Lagrer...'

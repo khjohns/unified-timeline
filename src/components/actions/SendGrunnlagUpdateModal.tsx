@@ -333,7 +333,6 @@ export function SendGrunnlagUpdateModal({
             variant="ghost"
             onClick={handleClose}
             disabled={isSubmitting}
-            size="lg"
           >
             Avbryt
           </Button>
@@ -341,7 +340,6 @@ export function SendGrunnlagUpdateModal({
             type="submit"
             variant="primary"
             disabled={isSubmitting}
-            size="lg"
           >
             {isSubmitting ? 'Lagrer...' : 'Lagre endringer'}
           </Button>

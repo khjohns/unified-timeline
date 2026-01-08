@@ -773,7 +773,6 @@ export function ReviseVederlagModal({
             variant="ghost"
             onClick={handleClose}
             disabled={isSubmitting}
-            size="lg"
             className="w-full sm:w-auto order-2 sm:order-1"
           >
             Avbryt
@@ -782,7 +781,6 @@ export function ReviseVederlagModal({
             type="submit"
             variant={overslagsokningVarselpliktig ? 'danger' : 'primary'}
             disabled={isSubmitting || !harEndringer || manglerPaakrevdOverslag}
-            size="lg"
             className="w-full sm:w-auto order-1 sm:order-2"
           >
             {isSubmitting

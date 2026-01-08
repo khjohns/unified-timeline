@@ -344,7 +344,6 @@ export function RespondGrunnlagUpdateModal({
             variant="ghost"
             onClick={handleClose}
             disabled={isSubmitting}
-            size="lg"
           >
             Avbryt
           </Button>
@@ -352,7 +351,6 @@ export function RespondGrunnlagUpdateModal({
             type="submit"
             variant="primary"
             disabled={isSubmitting || !nyttResultat || varGodkjent}
-            size="lg"
           >
             {isSubmitting ? 'Lagrer...' : erSnuoperasjon ? 'Godkjenn grunnlag' : 'Lagre endring'}
           </Button>

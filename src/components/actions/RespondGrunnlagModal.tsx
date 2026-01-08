@@ -421,7 +421,6 @@ export function RespondGrunnlagModal({
             variant="ghost"
             onClick={handleClose}
             disabled={isSubmitting}
-            size="lg"
             className="w-full sm:w-auto"
           >
             Avbryt
@@ -431,7 +430,6 @@ export function RespondGrunnlagModal({
               type="button"
               variant="primary"
               loading={isSubmitting}
-              size="lg"
               className="w-full sm:w-auto"
               onClick={handleSubmit(handleSaveDraft)}
               data-testid="respond-grunnlag-submit"
@@ -443,7 +441,6 @@ export function RespondGrunnlagModal({
               type="submit"
               variant={selectedResultat === 'avslatt' ? 'danger' : 'primary'}
               loading={isSubmitting}
-              size="lg"
               className="w-full sm:w-auto"
               data-testid="respond-grunnlag-submit"
             >

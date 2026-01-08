@@ -551,12 +551,11 @@ export function SendFristModal({
             variant="ghost"
             onClick={handleClose}
             disabled={isSubmitting}
-            size="lg"
             className="w-full sm:w-auto order-2 sm:order-1"
           >
             Avbryt
           </Button>
-          <Button type="submit" variant="primary" loading={isSubmitting} size="lg" className="w-full sm:w-auto order-1 sm:order-2" data-testid="frist-submit">
+          <Button type="submit" variant="primary" loading={isSubmitting} className="w-full sm:w-auto order-1 sm:order-2" data-testid="frist-submit">
             Send fristkrav
           </Button>
         </div>

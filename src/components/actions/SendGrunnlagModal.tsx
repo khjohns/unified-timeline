@@ -583,7 +583,6 @@ export function SendGrunnlagModal({
             variant="ghost"
             onClick={handleClose}
             disabled={isSubmitting}
-            size="lg"
             className="w-full sm:w-auto"
           >
             Avbryt
@@ -592,7 +591,6 @@ export function SendGrunnlagModal({
             type="submit"
             variant="primary"
             loading={isSubmitting}
-            size="lg"
             className="w-full sm:w-auto"
             data-testid="grunnlag-submit"
           >

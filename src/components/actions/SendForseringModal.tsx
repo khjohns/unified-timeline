@@ -417,7 +417,6 @@ export function SendForseringModal({
               variant="ghost"
               onClick={handleClose}
               disabled={mutation.isPending}
-              size="lg"
               className="w-full sm:w-auto"
             >
               Avbryt
@@ -426,7 +425,6 @@ export function SendForseringModal({
               type="submit"
               variant="primary"
               disabled={mutation.isPending || !erInnenforGrense}
-              size="lg"
               className="w-full sm:w-auto"
             >
               {mutation.isPending ? 'Oppretter forseringssak...' : 'Opprett forseringssak'}
