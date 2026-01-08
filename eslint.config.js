@@ -53,6 +53,7 @@ export default [
         Blob: 'readonly',
         URL: 'readonly',
         FileReader: 'readonly',
+        File: 'readonly',
         localStorage: 'readonly',
         sessionStorage: 'readonly',
         Headers: 'readonly',

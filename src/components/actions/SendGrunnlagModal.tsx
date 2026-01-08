@@ -9,9 +9,9 @@
 import {
   Alert,
   AlertDialog,
+  AttachmentUpload,
   Button,
   Checkbox,
-  Collapsible,
   DatePicker,
   FormField,
   Input,
@@ -19,14 +19,10 @@ import {
   RadioGroup,
   RadioItem,
   SectionContainer,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   Textarea,
   useToast,
 } from '../primitives';
+import type { AttachmentFile } from '../../types';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -55,7 +51,7 @@ const grunnlagSchema = z.object({
   varsel_sendes_na: z.boolean().optional(),
   dato_varsel_sendt: z.string().optional(),
   varsel_metode: z.array(z.string()).optional(),
-  kontraktsreferanser: z.string().optional(),
+  attachments: z.array(z.custom<AttachmentFile>()).optional().default([]),
   er_etter_tilbud: z.boolean().optional(), // For law changes (§14.4)
 });
 
@@ -95,6 +91,7 @@ export function SendGrunnlagModal({
       underkategori: [],
       varsel_sendes_na: true,  // Forhåndsvalgt: varsel sendes nå
       varsel_metode: [],
+      attachments: [],
       er_etter_tilbud: false,
     },
   });
@@ -211,11 +208,6 @@ export function SendGrunnlagModal({
   };
 
   const onSubmit = (data: GrunnlagFormData) => {
-    // Convert comma-separated string to array
-    const kontraktsreferanser = data.kontraktsreferanser
-      ? data.kontraktsreferanser.split(',').map((ref) => ref.trim())
-      : [];
-
     // Build VarselInfo structure
     const varselDato = data.varsel_sendes_na
       ? new Date().toISOString().split('T')[0]
@@ -241,7 +233,6 @@ export function SendGrunnlagModal({
         beskrivelse: data.beskrivelse,
         dato_oppdaget: data.dato_oppdaget,
         grunnlag_varsel: grunnlagVarsel,
-        kontraktsreferanser,
         meta: harLovendring ? { er_etter_tilbud: data.er_etter_tilbud } : undefined,
       },
     });
@@ -550,18 +541,24 @@ export function SendGrunnlagModal({
           </div>
         </SectionContainer>
 
-        {/* Kontraktsreferanser */}
-        <Collapsible title="Kontraktsreferanser (Valgfritt)">
-          <Input
-            id="kontraktsreferanser"
-            type="text"
-            {...register('kontraktsreferanser')}
-            fullWidth
+        {/* Seksjon 4: Vedlegg */}
+        <SectionContainer
+          title="Vedlegg"
+          description="Last opp dokumentasjon (valgfritt)"
+        >
+          <Controller
+            name="attachments"
+            control={control}
+            render={({ field }) => (
+              <AttachmentUpload
+                value={field.value ?? []}
+                onChange={field.onChange}
+                multiple
+                acceptedFormatsText="PDF, Word, Excel, bilder (maks 10 MB)"
+              />
+            )}
           />
-          <p className="text-xs text-pkt-text-body-subtle mt-2">
-            Separer flere referanser med komma
-          </p>
-        </Collapsible>
+        </SectionContainer>
 
         {/* Guidance text */}
         <p className="text-xs text-pkt-text-body-subtle">
