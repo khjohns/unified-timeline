@@ -1786,7 +1786,7 @@ export function RespondVederlagModal({
                 {/* Automatisk beregnet resultat - Prinsipalt */}
                 <div className="p-4 bg-pkt-surface-strong-dark-blue text-white rounded-none">
                   <h5 className="font-medium text-sm mb-2 opacity-80">
-                    {visSubsidiaertResultat ? 'PRINSIPALT RESULTAT' : 'AUTOMATISK BEREGNET RESULTAT'}
+                    {visSubsidiaertResultat ? 'PRINSIPALT RESULTAT' : 'BEREGNET RESULTAT'}
                   </h5>
                   <div className="text-xl font-bold">{getResultatLabel(prinsipaltResultat)}</div>
                   <div className="mt-2 text-lg font-mono">
@@ -1821,10 +1821,7 @@ export function RespondVederlagModal({
 
                 {/* Auto-generert begrunnelse (ikke redigerbar) */}
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <h5 className="font-medium text-sm">Automatisk generert begrunnelse</h5>
-                    <Badge variant="info">Generert fra dine valg</Badge>
-                  </div>
+                  <h5 className="font-medium text-sm">Generert begrunnelse</h5>
                   <div className="p-4 bg-pkt-surface-subtle border-2 border-pkt-border-subtle rounded-none">
                     <p className="text-sm whitespace-pre-wrap leading-relaxed">
                       {autoBegrunnelse || 'Fyll ut valgene ovenfor for å generere begrunnelse.'}
@@ -1840,15 +1837,14 @@ export function RespondVederlagModal({
                 <FormField
                   label="Tilleggskommentar (valgfritt)"
                   error={errors.tilleggs_begrunnelse?.message}
-                  helpText="Legg til egne kommentarer eller utdypninger som ikke dekkes av den automatiske begrunnelsen"
+                  helpText="Legg til egne kommentarer, f.eks. detaljer om beregning eller referanser til dokumenter"
                 >
                   <Textarea
                     {...register('tilleggs_begrunnelse')}
                     rows={3}
                     fullWidth
                     error={!!errors.tilleggs_begrunnelse}
-                    placeholder="F.eks. ytterligere detaljer om beregning, referanse til spesifikke dokumenter..."
-                  />
+                                      />
                 </FormField>
               </div>
             </div>

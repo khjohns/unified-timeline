@@ -1346,10 +1346,7 @@ export function RespondFristModal({
 
                 {/* Auto-generert begrunnelse (ikke redigerbar) */}
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <h5 className="font-medium text-sm">Automatisk generert begrunnelse</h5>
-                    <Badge variant="info">Generert fra dine valg</Badge>
-                  </div>
+                  <h5 className="font-medium text-sm">Generert begrunnelse</h5>
                   <div className="p-4 bg-pkt-surface-subtle border-2 border-pkt-border-subtle rounded-none">
                     <p className="text-sm whitespace-pre-wrap leading-relaxed">
                       {autoBegrunnelse || 'Fyll ut valgene ovenfor for å generere begrunnelse.'}
@@ -1365,15 +1362,14 @@ export function RespondFristModal({
                 <FormField
                   label="Tilleggskommentar (valgfritt)"
                   error={errors.tilleggs_begrunnelse?.message}
-                  helpText="Legg til egne kommentarer eller utdypninger som ikke dekkes av den automatiske begrunnelsen"
+                  helpText="Legg til egne kommentarer, f.eks. detaljer om beregning eller referanser til dokumenter"
                 >
                   <Textarea
                     {...register('tilleggs_begrunnelse')}
                     rows={3}
                     fullWidth
                     error={!!errors.tilleggs_begrunnelse}
-                    placeholder="F.eks. ytterligere detaljer om beregning, referanse til spesifikke dokumenter..."
-                  />
+                                      />
                 </FormField>
               </div>
             </div>
