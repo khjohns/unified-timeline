@@ -127,6 +127,7 @@ export interface BhResponsPakke {
 
   // Metadata
   submittedAt?: string; // ISO date when submitted for approval
-  submittedBy?: string; // User who submitted (mock)
+  submittedBy?: string; // User name who submitted (mock)
+  submittedByRole?: ApprovalRole; // Role of the submitter
   completedAt?: string; // ISO date when fully approved/rejected
 }

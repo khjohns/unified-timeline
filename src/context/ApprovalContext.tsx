@@ -49,7 +49,8 @@ interface ApprovalContextType {
   submitPakkeForApproval: (
     sakId: string,
     dagmulktsats: number,
-    submitterRole: ApprovalRole
+    submitterRole: ApprovalRole,
+    submitterName?: string
   ) => BhResponsPakke | undefined;
   approvePakkeStep: (sakId: string, comment?: string) => void;
   rejectPakkeStep: (sakId: string, reason: string) => void;
@@ -177,7 +178,7 @@ export function ApprovalProvider({ children }: ApprovalProviderProps) {
   );
 
   const submitPakkeForApproval = useCallback(
-    (sakId: string, dagmulktsats: number, submitterRole: ApprovalRole): BhResponsPakke | undefined => {
+    (sakId: string, dagmulktsats: number, submitterRole: ApprovalRole, submitterName?: string): BhResponsPakke | undefined => {
       // Collect all drafts for this case
       const grunnlagDraft = drafts.get(makeKey(sakId, 'grunnlag'));
       const vederlagDraft = drafts.get(makeKey(sakId, 'vederlag'));
@@ -213,7 +214,8 @@ export function ApprovalProvider({ children }: ApprovalProviderProps) {
         steps,
         status: 'pending',
         submittedAt: new Date().toISOString(),
-        submittedBy: `${APPROVAL_ROLE_LABELS[submitterRole]} (mock)`,
+        submittedBy: submitterName || APPROVAL_ROLE_LABELS[submitterRole],
+        submittedByRole: submitterRole,
       };
 
       // Save the package

@@ -112,9 +112,9 @@ export function useApprovalWorkflow(sakId: string): UseApprovalWorkflowResult {
   // Uses the current mock user's role to ensure the submitter can't approve their own submission
   const submitPakkeForApproval = useCallback(
     (dagmulktsats: number): BhResponsPakke | undefined => {
-      return context.submitPakkeForApproval(sakId, dagmulktsats, currentMockUser.rolle);
+      return context.submitPakkeForApproval(sakId, dagmulktsats, currentMockUser.rolle, currentMockUser.navn);
     },
-    [context, sakId, currentMockUser.rolle]
+    [context, sakId, currentMockUser.rolle, currentMockUser.navn]
   );
 
   // Can approve package check

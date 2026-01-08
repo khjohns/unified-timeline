@@ -31,7 +31,7 @@ import { MockToolbar } from '../components/MockToolbar';
 import {
   ApprovePakkeModal,
   SendResponsPakkeModal,
-  ApprovalHistory,
+  ApprovalDashboardCard,
 } from '../components/approval';
 import {
   SendGrunnlagModal,
@@ -329,68 +329,15 @@ function CasePageContent() {
           </section>
         )}
 
-        {/* Pending Package Approval Banner */}
-        {approvalWorkflow.approvalEnabled && approvalWorkflow.isPendingPakkeApproval && approvalWorkflow.bhResponsPakke && (
+        {/* BH Response Package Dashboard Card */}
+        {approvalWorkflow.approvalEnabled && approvalWorkflow.bhResponsPakke && (
           <section className="mb-6">
-            <Alert
-              variant={approvalWorkflow.canApprovePakke ? 'info' : 'warning'}
-              title={
-                <>
-                  BH-responspakke venter på godkjenning
-                  <span className="font-normal text-sm text-pkt-text-body-muted ml-2">
-                    ({formatCurrency(approvalWorkflow.bhResponsPakke.samletBelop)})
-                  </span>
-                </>
-              }
-              action={
-                <Button variant="secondary" size="sm" onClick={() => setApprovePakkeOpen(true)}>
-                  Se detaljer
-                </Button>
-              }
-            >
-              <div className="text-sm">
-                {approvalWorkflow.canApprovePakke ? (
-                  <span className="font-medium">Din godkjenning trengs som {approvalWorkflow.nextPakkeApprover}</span>
-                ) : (
-                  <span>Neste godkjenner: {approvalWorkflow.nextPakkeApprover}</span>
-                )}
-              </div>
-              <div className="text-xs text-pkt-text-body-muted mt-1">
-                {approvalWorkflow.bhResponsPakke.steps.filter((s) => s.status === 'approved').length} av{' '}
-                {approvalWorkflow.bhResponsPakke.steps.length} godkjenninger fullført
-              </div>
-            </Alert>
-          </section>
-        )}
-
-        {/* Approved Package Banner - with download option */}
-        {approvalWorkflow.approvalEnabled && approvalWorkflow.isPakkeApproved && approvalWorkflow.bhResponsPakke && (
-          <section className="mb-6">
-            <Alert
-              variant="success"
-              title={
-                <>
-                  BH-responspakke er godkjent
-                  <span className="font-normal text-sm text-pkt-text-body-muted ml-2">
-                    ({formatCurrency(approvalWorkflow.bhResponsPakke.samletBelop)})
-                  </span>
-                </>
-              }
-              action={
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => downloadApprovedPdf(state, approvalWorkflow.bhResponsPakke!)}
-                >
-                  Last ned godkjent PDF
-                </Button>
-              }
-            >
-              <div className="text-sm">
-                Alle {approvalWorkflow.bhResponsPakke.steps.length} godkjenninger er fullført.
-                Last ned PDF med signaturfelt for arkivering.
-              </div>
-            </Alert>
+            <ApprovalDashboardCard
+              pakke={approvalWorkflow.bhResponsPakke}
+              canApprove={approvalWorkflow.canApprovePakke}
+              onOpenDetails={() => setApprovePakkeOpen(true)}
+              onDownloadPdf={() => downloadApprovedPdf(state, approvalWorkflow.bhResponsPakke!)}
+            />
           </section>
         )}
 
@@ -601,25 +548,6 @@ function CasePageContent() {
             <Timeline events={timelineEvents} />
           )}
         </section>
-
-        {/* Approval History Section - Only shown when approval workflow is enabled and has a package */}
-        {approvalWorkflow.approvalEnabled && approvalWorkflow.bhResponsPakke && (
-          <section className="mt-6 sm:mt-8" aria-labelledby="approval-history-heading">
-            <h2
-              id="approval-history-heading"
-              className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4"
-            >
-              Godkjenningshistorikk
-            </h2>
-            <div className="bg-pkt-surface-light-beige p-4 border border-pkt-border-subtle rounded-sm">
-              <ApprovalHistory
-                steps={approvalWorkflow.bhResponsPakke.steps}
-                submittedAt={approvalWorkflow.bhResponsPakke.submittedAt}
-                submittedBy={approvalWorkflow.bhResponsPakke.submittedBy}
-              />
-            </div>
-          </section>
-        )}
 
         {/* Summary Section - Enhanced with Comprehensive Metadata and Revision History */}
         <section className="mt-6 sm:mt-8" aria-labelledby="summary-heading">
