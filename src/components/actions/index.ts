@@ -22,7 +22,7 @@ export { ReviseFristModal } from './ReviseFristModal';
 
 // Update response modals (BH) - for changing previous responses
 export { RespondGrunnlagUpdateModal } from './RespondGrunnlagUpdateModal';
-export { UpdateResponseVederlagModal } from './UpdateResponseVederlagModal';
+// Note: UpdateResponseVederlagModal removed - RespondVederlagModal handles updates via lastResponseEvent prop
 export { UpdateResponseFristModal } from './UpdateResponseFristModal';
 
 // Special action modals (TE)

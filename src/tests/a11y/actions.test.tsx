@@ -156,6 +156,7 @@ describe('Action Components (Modals) - Accessibility', () => {
           open={true}
           onOpenChange={() => {}}
           sakId="test-sak-123"
+          vederlagKravId="vederlag-test-123"
         />,
         { wrapper: createWrapper() }
       );
@@ -169,6 +170,7 @@ describe('Action Components (Modals) - Accessibility', () => {
           open={true}
           onOpenChange={() => {}}
           sakId="test-sak-123"
+          vederlagKravId="vederlag-test-123"
         />,
         { wrapper: createWrapper() }
       );

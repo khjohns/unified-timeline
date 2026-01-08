@@ -87,6 +87,7 @@ describe('Action/Modal Components - Functional Tests', () => {
       open: true,
       onOpenChange: vi.fn(),
       sakId: 'TEST-001',
+      vederlagKravId: 'vederlag-TEST-001',
     };
 
     it('should render when open', () => {

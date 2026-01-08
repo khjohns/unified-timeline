@@ -46,7 +46,7 @@ import {
   ReviseFristModal,
   // Update response modals (BH)
   RespondGrunnlagUpdateModal,
-  UpdateResponseVederlagModal,
+  // Note: UpdateResponseVederlagModal is now handled by RespondVederlagModal with lastResponseEvent prop
   UpdateResponseFristModal,
   // Special action modals (TE)
   SendForseringModal,
@@ -754,15 +754,30 @@ function CasePageContent() {
             sakState={state}
             onCatendaWarning={() => setShowCatendaWarning(true)}
           />
-          <UpdateResponseVederlagModal
+          {/* Update mode: RespondVederlagModal with lastResponseEvent */}
+          <RespondVederlagModal
             open={updateVederlagResponseOpen}
             onOpenChange={setUpdateVederlagResponseOpen}
             sakId={sakId}
+            vederlagKravId={`vederlag-${sakId}`}
+            grunnlagStatus={grunnlagStatus}
+            vederlagEvent={{
+              metode: state.vederlag.metode,
+              belop_direkte: state.vederlag.belop_direkte,
+              kostnads_overslag: state.vederlag.kostnads_overslag,
+              begrunnelse: state.vederlag.begrunnelse,
+              krever_justert_ep: state.vederlag.krever_justert_ep,
+              saerskilt_krav: state.vederlag.saerskilt_krav,
+            }}
             lastResponseEvent={{
               event_id: `vederlag-response-${sakId}`,
               resultat: state.vederlag.bh_resultat || 'godkjent',
               godkjent_belop: state.vederlag.godkjent_belop,
               respondedToVersion: state.vederlag.bh_respondert_versjon,
+              // Note: Detailed evaluation fields (hovedkrav_vurdering, rigg_varslet_i_tide, etc.)
+              // are not stored in VederlagTilstand - would need to come from event data.
+              // Modal will use default values for missing fields.
+              aksepterer_metode: state.vederlag.bh_metode === state.vederlag.metode,
             }}
             vederlagTilstand={state.vederlag}
             onCatendaWarning={() => setShowCatendaWarning(true)}

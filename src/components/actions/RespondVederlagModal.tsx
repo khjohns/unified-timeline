@@ -101,6 +101,27 @@ interface VederlagEventInfo {
   dato_krav_mottatt?: string;
 }
 
+/** Previous response data for update mode */
+interface LastResponseEvent {
+  event_id: string;
+  resultat: string;
+  godkjent_belop?: number;
+  respondedToVersion?: number;
+  // Previous evaluations for pre-filling
+  rigg_varslet_i_tide?: boolean;
+  produktivitet_varslet_i_tide?: boolean;
+  aksepterer_metode?: boolean;
+  oensket_metode?: VederlagsMetode;
+  ep_justering_akseptert?: boolean;
+  hold_tilbake?: boolean;
+  hovedkrav_vurdering?: BelopVurdering;
+  hovedkrav_godkjent_belop?: number;
+  rigg_vurdering?: BelopVurdering;
+  rigg_godkjent_belop?: number;
+  produktivitet_vurdering?: BelopVurdering;
+  produktivitet_godkjent_belop?: number;
+}
+
 interface RespondVederlagModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -122,6 +143,10 @@ interface RespondVederlagModalProps {
     begrunnelse?: string;
     formData: RespondVederlagFormData;
   }) => void;
+  /** UPDATE MODE: Previous response event to update. If provided, modal operates in update mode. */
+  lastResponseEvent?: LastResponseEvent;
+  /** UPDATE MODE: Current vederlag state (required when lastResponseEvent is provided) */
+  vederlagTilstand?: import('../../types/timeline').VederlagTilstand;
 }
 
 // ============================================================================
@@ -152,6 +177,9 @@ const respondVederlagSchema = z.object({
   // Port 4: Oppsummering
   // Note: auto_begrunnelse is generated, not user-editable
   tilleggs_begrunnelse: z.string().optional(),
+
+  // UPDATE MODE: Required when updating a previous response
+  endringsbegrunnelse: z.string().optional(),
 });
 
 type RespondVederlagFormData = z.infer<typeof respondVederlagSchema>;
@@ -242,7 +270,12 @@ export function RespondVederlagModal({
   onCatendaWarning,
   approvalEnabled = false,
   onSaveDraft,
+  lastResponseEvent,
+  vederlagTilstand,
 }: RespondVederlagModalProps) {
+  // UPDATE MODE: Detect if we're updating an existing response
+  const isUpdateMode = !!lastResponseEvent;
+
   const [currentPort, setCurrentPort] = useState(1);
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const [showRestorePrompt, setShowRestorePrompt] = useState(false);
@@ -263,6 +296,36 @@ export function RespondVederlagModal({
   const startPort = 1;
   const totalPorts = harSaerskiltKrav ? 5 : 4;
 
+  // Compute defaultValues based on mode
+  const computedDefaultValues = useMemo((): Partial<RespondVederlagFormData> => {
+    if (isUpdateMode && lastResponseEvent) {
+      // UPDATE MODE: Pre-fill from previous response
+      return {
+        aksepterer_metode: lastResponseEvent.aksepterer_metode ?? true,
+        oensket_metode: lastResponseEvent.oensket_metode,
+        hovedkrav_vurdering: lastResponseEvent.hovedkrav_vurdering ?? 'godkjent',
+        hovedkrav_godkjent_belop: lastResponseEvent.hovedkrav_godkjent_belop,
+        rigg_varslet_i_tide: lastResponseEvent.rigg_varslet_i_tide ?? true,
+        produktivitet_varslet_i_tide: lastResponseEvent.produktivitet_varslet_i_tide ?? true,
+        rigg_vurdering: lastResponseEvent.rigg_vurdering,
+        rigg_godkjent_belop: lastResponseEvent.rigg_godkjent_belop,
+        produktivitet_vurdering: lastResponseEvent.produktivitet_vurdering,
+        produktivitet_godkjent_belop: lastResponseEvent.produktivitet_godkjent_belop,
+        ep_justering_akseptert: lastResponseEvent.ep_justering_akseptert,
+        hold_tilbake: lastResponseEvent.hold_tilbake,
+        tilleggs_begrunnelse: '',
+        endringsbegrunnelse: '',
+      };
+    }
+    // NEW RESPONSE MODE: Default values
+    return {
+      aksepterer_metode: true,
+      hovedkrav_vurdering: 'godkjent',
+      rigg_varslet_i_tide: true,
+      produktivitet_varslet_i_tide: true,
+    };
+  }, [isUpdateMode, lastResponseEvent]);
+
   // Form setup
   const {
     register,
@@ -274,16 +337,19 @@ export function RespondVederlagModal({
     trigger,
     setValue,
     clearErrors,
+    setError,
   } = useForm<RespondVederlagFormData>({
     resolver: zodResolver(respondVederlagSchema),
     mode: 'onTouched', // Only show errors after field is touched
-    defaultValues: {
-      aksepterer_metode: true,
-      hovedkrav_vurdering: 'godkjent',
-      rigg_varslet_i_tide: true,
-      produktivitet_varslet_i_tide: true,
-    },
+    defaultValues: computedDefaultValues,
   });
+
+  // Reset form when opening in update mode with new lastResponseEvent
+  useEffect(() => {
+    if (open && isUpdateMode && lastResponseEvent) {
+      reset(computedDefaultValues);
+    }
+  }, [open, isUpdateMode, lastResponseEvent, reset, computedDefaultValues]);
 
   const { showConfirmDialog, setShowConfirmDialog, handleClose, confirmClose } = useConfirmClose({
     isDirty,
@@ -317,7 +383,10 @@ export function RespondVederlagModal({
       reset();
       setCurrentPort(startPort);
       onOpenChange(false);
-      toast.success('Svar sendt', 'Ditt svar på vederlagskravet er registrert.');
+      toast.success(
+        isUpdateMode ? 'Svar oppdatert' : 'Svar sendt',
+        isUpdateMode ? 'Ditt oppdaterte svar på vederlagskravet er registrert.' : 'Ditt svar på vederlagskravet er registrert.'
+      );
       if (!result.catenda_synced) {
         onCatendaWarning?.();
       }
@@ -500,6 +569,55 @@ export function RespondVederlagModal({
   // Show subsidiary result when there are precluded særskilte krav
   const visSubsidiaertResultat = computed.harPrekludertKrav;
 
+  // UPDATE MODE: Detect changes that are to TE's disadvantage
+  const erEndringTilUgunst = useMemo(() => {
+    if (!isUpdateMode || !lastResponseEvent) return false;
+
+    // Preklusjon endret til "for sent" = til ugunst
+    if (formValues.rigg_varslet_i_tide === false && lastResponseEvent.rigg_varslet_i_tide === true) return true;
+    if (formValues.produktivitet_varslet_i_tide === false && lastResponseEvent.produktivitet_varslet_i_tide === true) return true;
+
+    // Metode avvist når tidligere akseptert = til ugunst
+    if (formValues.aksepterer_metode === false && lastResponseEvent.aksepterer_metode === true) return true;
+
+    // EP-justering avvist når tidligere akseptert = til ugunst
+    if (formValues.ep_justering_akseptert === false && lastResponseEvent.ep_justering_akseptert === true) return true;
+
+    // Beløp redusert = til ugunst
+    const tidligereGodkjent = lastResponseEvent.godkjent_belop ?? 0;
+    if (computed.totalGodkjent < tidligereGodkjent) return true;
+
+    return false;
+  }, [isUpdateMode, lastResponseEvent, formValues, computed.totalGodkjent]);
+
+  // UPDATE MODE: Detect if any changes were made from previous response
+  const harEndringer = useMemo(() => {
+    if (!isUpdateMode || !lastResponseEvent) return false;
+
+    // Check each field for changes
+    if (formValues.aksepterer_metode !== lastResponseEvent.aksepterer_metode) return true;
+    if (formValues.rigg_varslet_i_tide !== lastResponseEvent.rigg_varslet_i_tide) return true;
+    if (formValues.produktivitet_varslet_i_tide !== lastResponseEvent.produktivitet_varslet_i_tide) return true;
+    if (formValues.ep_justering_akseptert !== lastResponseEvent.ep_justering_akseptert) return true;
+    if (formValues.hold_tilbake !== lastResponseEvent.hold_tilbake) return true;
+    if (formValues.hovedkrav_vurdering !== lastResponseEvent.hovedkrav_vurdering) return true;
+    if (formValues.hovedkrav_godkjent_belop !== lastResponseEvent.hovedkrav_godkjent_belop) return true;
+    if (formValues.rigg_vurdering !== lastResponseEvent.rigg_vurdering) return true;
+    if (formValues.rigg_godkjent_belop !== lastResponseEvent.rigg_godkjent_belop) return true;
+    if (formValues.produktivitet_vurdering !== lastResponseEvent.produktivitet_vurdering) return true;
+    if (formValues.produktivitet_godkjent_belop !== lastResponseEvent.produktivitet_godkjent_belop) return true;
+
+    return false;
+  }, [isUpdateMode, lastResponseEvent, formValues]);
+
+  // UPDATE MODE: Detect if claim was revised after previous response
+  const kravRevidertEtterSvar = useMemo(() => {
+    if (!isUpdateMode || !lastResponseEvent || !vederlagTilstand) return false;
+    const currentVersion = vederlagTilstand.antall_versjoner ?? 1;
+    const respondedVersion = lastResponseEvent.respondedToVersion ?? 1;
+    return currentVersion > respondedVersion;
+  }, [isUpdateMode, lastResponseEvent, vederlagTilstand]);
+
   // Generate auto-begrunnelse based on all form selections
   const autoBegrunnelse = useMemo(() => {
     const input: VederlagResponseInput = {
@@ -636,6 +754,17 @@ export function RespondVederlagModal({
 
   // Submit handler
   const onSubmit = (data: RespondVederlagFormData) => {
+    // UPDATE MODE: Validate endringsbegrunnelse
+    if (isUpdateMode) {
+      if (!data.endringsbegrunnelse || data.endringsbegrunnelse.trim().length < 10) {
+        setError('endringsbegrunnelse', {
+          type: 'manual',
+          message: 'Begrunnelse for endring må være minst 10 tegn',
+        });
+        return;
+      }
+    }
+
     // Beregn subsidiære triggere basert på Port 1 og 2 valg
     const triggers: SubsidiaerTrigger[] = [];
     if (riggPrekludert) triggers.push('preklusjon_rigg');
@@ -649,69 +778,126 @@ export function RespondVederlagModal({
     // Combine auto-generated begrunnelse with user's additional comments
     const samletBegrunnelse = combineBegrunnelse(autoBegrunnelse, data.tilleggs_begrunnelse);
 
-    mutation.mutate({
-      eventType: 'respons_vederlag',
-      data: {
-        vederlag_krav_id: vederlagKravId,
+    // Calculate beløp values
+    const hovedkravGodkjentBelop =
+      data.hovedkrav_vurdering === 'godkjent'
+        ? hovedkravBelop
+        : data.hovedkrav_vurdering === 'delvis'
+          ? data.hovedkrav_godkjent_belop
+          : 0;
 
-        // Port 1: Preklusjon
-        rigg_varslet_i_tide: data.rigg_varslet_i_tide,
-        produktivitet_varslet_i_tide: data.produktivitet_varslet_i_tide,
+    const riggGodkjentBelop =
+      data.rigg_vurdering === 'godkjent'
+        ? riggBelop
+        : data.rigg_vurdering === 'delvis'
+          ? data.rigg_godkjent_belop
+          : 0;
 
-        // Port 2: Beregningsmetode
-        aksepterer_metode: data.aksepterer_metode,
-        oensket_metode: data.oensket_metode,
-        ep_justering_akseptert: data.ep_justering_akseptert,
-        hold_tilbake: data.hold_tilbake,
+    const produktivitetGodkjentBelop =
+      data.produktivitet_vurdering === 'godkjent'
+        ? produktivitetBelop
+        : data.produktivitet_vurdering === 'delvis'
+          ? data.produktivitet_godkjent_belop
+          : 0;
 
-        // Port 3: Beløp
-        hovedkrav_vurdering: data.hovedkrav_vurdering,
-        hovedkrav_godkjent_belop:
-          data.hovedkrav_vurdering === 'godkjent'
-            ? hovedkravBelop
-            : data.hovedkrav_vurdering === 'delvis'
-              ? data.hovedkrav_godkjent_belop
-              : 0,
+    if (isUpdateMode && lastResponseEvent) {
+      // UPDATE MODE: Send respons_vederlag_oppdatert
+      mutation.mutate({
+        eventType: 'respons_vederlag_oppdatert',
+        data: {
+          // Link to original response
+          original_respons_id: lastResponseEvent.event_id,
+          dato_endret: new Date().toISOString().split('T')[0],
 
-        // Rigg/drift: BH's faktiske vurdering (preklusion bestemmes av rigg_varslet_i_tide)
-        rigg_vurdering: data.rigg_vurdering,
-        rigg_godkjent_belop:
-          data.rigg_vurdering === 'godkjent'
-            ? riggBelop
-            : data.rigg_vurdering === 'delvis'
-              ? data.rigg_godkjent_belop
-              : 0,
+          // Endringsbegrunnelse (required for updates)
+          begrunnelse: data.endringsbegrunnelse,
 
-        // Produktivitet: BH's faktiske vurdering (preklusion bestemmes av produktivitet_varslet_i_tide)
-        produktivitet_vurdering: data.produktivitet_vurdering,
-        produktivitet_godkjent_belop:
-          data.produktivitet_vurdering === 'godkjent'
-            ? produktivitetBelop
-            : data.produktivitet_vurdering === 'delvis'
-              ? data.produktivitet_godkjent_belop
-              : 0,
+          // Port 1: Preklusjon
+          rigg_varslet_i_tide: data.rigg_varslet_i_tide,
+          produktivitet_varslet_i_tide: data.produktivitet_varslet_i_tide,
 
-        // Port 4: Oppsummering - combined auto + user begrunnelse
-        begrunnelse: samletBegrunnelse,
-        auto_begrunnelse: autoBegrunnelse,
-        tilleggs_begrunnelse: data.tilleggs_begrunnelse,
+          // Port 2: Beregningsmetode
+          aksepterer_metode: data.aksepterer_metode,
+          oensket_metode: data.oensket_metode,
+          ep_justering_akseptert: data.ep_justering_akseptert,
+          hold_tilbake: data.hold_tilbake,
 
-        // Automatisk beregnet (prinsipalt)
-        beregnings_resultat: prinsipaltResultat,
-        total_godkjent_belop: computed.totalGodkjent,
-        total_krevd_belop: computed.totalKrevd,
+          // Port 3: Beløp
+          hovedkrav_vurdering: data.hovedkrav_vurdering,
+          hovedkrav_godkjent_belop: hovedkravGodkjentBelop,
+          rigg_vurdering: data.rigg_vurdering,
+          rigg_godkjent_belop: riggGodkjentBelop,
+          produktivitet_vurdering: data.produktivitet_vurdering,
+          produktivitet_godkjent_belop: produktivitetGodkjentBelop,
 
-        // Subsidiært standpunkt (kun når relevant)
-        subsidiaer_triggers: triggers.length > 0 ? triggers : undefined,
-        subsidiaer_resultat: visSubsidiaertResultat ? subsidiaertResultat : undefined,
-        subsidiaer_godkjent_belop: visSubsidiaertResultat
-          ? computed.totalGodkjentInklPrekludert
-          : undefined,
-        subsidiaer_begrunnelse: visSubsidiaertResultat
-          ? samletBegrunnelse
-          : undefined,
-      },
-    });
+          // Auto-generert begrunnelse (separat fra endringsbegrunnelse)
+          auto_begrunnelse: autoBegrunnelse,
+          tilleggs_begrunnelse: data.tilleggs_begrunnelse,
+          vurdering_begrunnelse: samletBegrunnelse,
+
+          // Automatisk beregnet (prinsipalt)
+          beregnings_resultat: prinsipaltResultat,
+          total_godkjent_belop: computed.totalGodkjent,
+          total_krevd_belop: computed.totalKrevd,
+
+          // Subsidiært standpunkt (kun når relevant)
+          subsidiaer_triggers: triggers.length > 0 ? triggers : undefined,
+          subsidiaer_resultat: visSubsidiaertResultat ? subsidiaertResultat : undefined,
+          subsidiaer_godkjent_belop: visSubsidiaertResultat
+            ? computed.totalGodkjentInklPrekludert
+            : undefined,
+          subsidiaer_begrunnelse: visSubsidiaertResultat
+            ? samletBegrunnelse
+            : undefined,
+        },
+      });
+    } else {
+      // NEW RESPONSE MODE: Send respons_vederlag
+      mutation.mutate({
+        eventType: 'respons_vederlag',
+        data: {
+          vederlag_krav_id: vederlagKravId,
+
+          // Port 1: Preklusjon
+          rigg_varslet_i_tide: data.rigg_varslet_i_tide,
+          produktivitet_varslet_i_tide: data.produktivitet_varslet_i_tide,
+
+          // Port 2: Beregningsmetode
+          aksepterer_metode: data.aksepterer_metode,
+          oensket_metode: data.oensket_metode,
+          ep_justering_akseptert: data.ep_justering_akseptert,
+          hold_tilbake: data.hold_tilbake,
+
+          // Port 3: Beløp
+          hovedkrav_vurdering: data.hovedkrav_vurdering,
+          hovedkrav_godkjent_belop: hovedkravGodkjentBelop,
+          rigg_vurdering: data.rigg_vurdering,
+          rigg_godkjent_belop: riggGodkjentBelop,
+          produktivitet_vurdering: data.produktivitet_vurdering,
+          produktivitet_godkjent_belop: produktivitetGodkjentBelop,
+
+          // Port 4: Oppsummering - combined auto + user begrunnelse
+          begrunnelse: samletBegrunnelse,
+          auto_begrunnelse: autoBegrunnelse,
+          tilleggs_begrunnelse: data.tilleggs_begrunnelse,
+
+          // Automatisk beregnet (prinsipalt)
+          beregnings_resultat: prinsipaltResultat,
+          total_godkjent_belop: computed.totalGodkjent,
+          total_krevd_belop: computed.totalKrevd,
+
+          // Subsidiært standpunkt (kun når relevant)
+          subsidiaer_triggers: triggers.length > 0 ? triggers : undefined,
+          subsidiaer_resultat: visSubsidiaertResultat ? subsidiaertResultat : undefined,
+          subsidiaer_godkjent_belop: visSubsidiaertResultat
+            ? computed.totalGodkjentInklPrekludert
+            : undefined,
+          subsidiaer_begrunnelse: visSubsidiaertResultat
+            ? samletBegrunnelse
+            : undefined,
+        },
+      });
+    }
   };
 
   // Handler for saving as draft (approval workflow)
@@ -758,7 +944,7 @@ export function RespondVederlagModal({
     <Modal
       open={open}
       onOpenChange={handleOpenChange}
-      title="Svar på vederlagskrav"
+      title={isUpdateMode ? "Oppdater svar på vederlagskrav" : "Svar på vederlagskrav"}
       size="lg"
     >
       <div className="space-y-6">
@@ -1846,6 +2032,89 @@ export function RespondVederlagModal({
                     error={!!errors.tilleggs_begrunnelse}
                                       />
                 </FormField>
+
+                {/* UPDATE MODE: Warnings and change summary */}
+                {isUpdateMode && (
+                  <>
+                    {/* Warning: Claim revised after previous response */}
+                    {kravRevidertEtterSvar && (
+                      <Alert variant="warning" title="Kravet er revidert">
+                        Entreprenøren har revidert vederlagskravet etter ditt forrige svar.
+                        Gjeldende krav er nå Rev. {vederlagTilstand?.antall_versjoner ?? 1}.
+                      </Alert>
+                    )}
+
+                    {/* Warning: Changes to TE's disadvantage */}
+                    {erEndringTilUgunst && (
+                      <Alert variant="warning" title="Endring til entreprenørens ugunst">
+                        Du er i ferd med å endre standpunkt til entreprenørens ugunst.
+                        Sørg for at du har dokumentasjon som støtter endringen.
+                      </Alert>
+                    )}
+
+                    {/* Change summary */}
+                    {harEndringer && (
+                      <div className="p-4 bg-alert-info-bg border border-alert-info-border rounded-none">
+                        <h5 className="font-medium text-sm mb-2">Endringer fra forrige svar</h5>
+                        <div className="space-y-1 text-sm">
+                          {formValues.aksepterer_metode !== lastResponseEvent?.aksepterer_metode && (
+                            <div className="flex gap-2">
+                              <Badge variant="warning" size="sm">Endret</Badge>
+                              <span>Metodeaksept: {lastResponseEvent?.aksepterer_metode ? 'Akseptert' : 'Avvist'} → {formValues.aksepterer_metode ? 'Akseptert' : 'Avvist'}</span>
+                            </div>
+                          )}
+                          {formValues.rigg_varslet_i_tide !== lastResponseEvent?.rigg_varslet_i_tide && (
+                            <div className="flex gap-2">
+                              <Badge variant="warning" size="sm">Endret</Badge>
+                              <span>Rigg varsling: {lastResponseEvent?.rigg_varslet_i_tide ? 'I tide' : 'For sent'} → {formValues.rigg_varslet_i_tide ? 'I tide' : 'For sent'}</span>
+                            </div>
+                          )}
+                          {formValues.produktivitet_varslet_i_tide !== lastResponseEvent?.produktivitet_varslet_i_tide && (
+                            <div className="flex gap-2">
+                              <Badge variant="warning" size="sm">Endret</Badge>
+                              <span>Produktivitet varsling: {lastResponseEvent?.produktivitet_varslet_i_tide ? 'I tide' : 'For sent'} → {formValues.produktivitet_varslet_i_tide ? 'I tide' : 'For sent'}</span>
+                            </div>
+                          )}
+                          {computed.totalGodkjent !== (lastResponseEvent?.godkjent_belop ?? 0) && (
+                            <div className="flex gap-2">
+                              <Badge variant="warning" size="sm">Endret</Badge>
+                              <span>
+                                Godkjent beløp: kr {(lastResponseEvent?.godkjent_belop ?? 0).toLocaleString('nb-NO')},- → kr {computed.totalGodkjent.toLocaleString('nb-NO')},-
+                                {computed.totalGodkjent > (lastResponseEvent?.godkjent_belop ?? 0) ? (
+                                  <span className="text-alert-success-text ml-2">
+                                    (↑ +{(computed.totalGodkjent - (lastResponseEvent?.godkjent_belop ?? 0)).toLocaleString('nb-NO')})
+                                  </span>
+                                ) : (
+                                  <span className="text-alert-danger-text ml-2">
+                                    (↓ -{((lastResponseEvent?.godkjent_belop ?? 0) - computed.totalGodkjent).toLocaleString('nb-NO')})
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Required: Endringsbegrunnelse */}
+                    <Alert variant="info" title="Du endrer et tidligere svar">
+                      Du har gjort endringer i vurderingen. Begrunn hvorfor du endrer standpunkt.
+                    </Alert>
+                    <FormField
+                      label="Begrunnelse for endring"
+                      required
+                      error={errors.endringsbegrunnelse?.message}
+                      helpText="Forklar hvorfor du endrer vurderingen (minimum 10 tegn)"
+                    >
+                      <Textarea
+                        {...register('endringsbegrunnelse')}
+                        rows={4}
+                        fullWidth
+                        error={!!errors.endringsbegrunnelse}
+                      />
+                    </FormField>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -1912,7 +2181,7 @@ export function RespondVederlagModal({
                 </Button>
               ) : (
                 <Button type="submit" variant="primary" loading={isSubmitting} className="w-full sm:w-auto order-1 sm:order-2">
-                  Send svar
+                  {isUpdateMode ? 'Lagre endringer' : 'Send svar'}
                 </Button>
               )}
             </div>
