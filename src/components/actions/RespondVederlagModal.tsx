@@ -573,9 +573,9 @@ export function RespondVederlagModal({
   const erEndringTilUgunst = useMemo(() => {
     if (!isUpdateMode || !lastResponseEvent) return false;
 
-    // Preklusjon endret til "for sent" = til ugunst
-    if (formValues.rigg_varslet_i_tide === false && lastResponseEvent.rigg_varslet_i_tide === true) return true;
-    if (formValues.produktivitet_varslet_i_tide === false && lastResponseEvent.produktivitet_varslet_i_tide === true) return true;
+    // Preklusjon endret til "for sent" = til ugunst (kun hvis kravet har disse)
+    if (harRiggKrav && formValues.rigg_varslet_i_tide === false && lastResponseEvent.rigg_varslet_i_tide === true) return true;
+    if (harProduktivitetKrav && formValues.produktivitet_varslet_i_tide === false && lastResponseEvent.produktivitet_varslet_i_tide === true) return true;
 
     // Metode avvist når tidligere akseptert = til ugunst
     if (formValues.aksepterer_metode === false && lastResponseEvent.aksepterer_metode === true) return true;
@@ -588,27 +588,27 @@ export function RespondVederlagModal({
     if (computed.totalGodkjent < tidligereGodkjent) return true;
 
     return false;
-  }, [isUpdateMode, lastResponseEvent, formValues, computed.totalGodkjent]);
+  }, [isUpdateMode, lastResponseEvent, formValues, computed.totalGodkjent, harRiggKrav, harProduktivitetKrav]);
 
   // UPDATE MODE: Detect if any changes were made from previous response
   const harEndringer = useMemo(() => {
     if (!isUpdateMode || !lastResponseEvent) return false;
 
-    // Check each field for changes
+    // Check each field for changes (only check særskilte krav fields if they exist)
     if (formValues.aksepterer_metode !== lastResponseEvent.aksepterer_metode) return true;
-    if (formValues.rigg_varslet_i_tide !== lastResponseEvent.rigg_varslet_i_tide) return true;
-    if (formValues.produktivitet_varslet_i_tide !== lastResponseEvent.produktivitet_varslet_i_tide) return true;
+    if (harRiggKrav && formValues.rigg_varslet_i_tide !== lastResponseEvent.rigg_varslet_i_tide) return true;
+    if (harProduktivitetKrav && formValues.produktivitet_varslet_i_tide !== lastResponseEvent.produktivitet_varslet_i_tide) return true;
     if (formValues.ep_justering_akseptert !== lastResponseEvent.ep_justering_akseptert) return true;
     if (formValues.hold_tilbake !== lastResponseEvent.hold_tilbake) return true;
     if (formValues.hovedkrav_vurdering !== lastResponseEvent.hovedkrav_vurdering) return true;
     if (formValues.hovedkrav_godkjent_belop !== lastResponseEvent.hovedkrav_godkjent_belop) return true;
-    if (formValues.rigg_vurdering !== lastResponseEvent.rigg_vurdering) return true;
-    if (formValues.rigg_godkjent_belop !== lastResponseEvent.rigg_godkjent_belop) return true;
-    if (formValues.produktivitet_vurdering !== lastResponseEvent.produktivitet_vurdering) return true;
-    if (formValues.produktivitet_godkjent_belop !== lastResponseEvent.produktivitet_godkjent_belop) return true;
+    if (harRiggKrav && formValues.rigg_vurdering !== lastResponseEvent.rigg_vurdering) return true;
+    if (harRiggKrav && formValues.rigg_godkjent_belop !== lastResponseEvent.rigg_godkjent_belop) return true;
+    if (harProduktivitetKrav && formValues.produktivitet_vurdering !== lastResponseEvent.produktivitet_vurdering) return true;
+    if (harProduktivitetKrav && formValues.produktivitet_godkjent_belop !== lastResponseEvent.produktivitet_godkjent_belop) return true;
 
     return false;
-  }, [isUpdateMode, lastResponseEvent, formValues]);
+  }, [isUpdateMode, lastResponseEvent, formValues, harRiggKrav, harProduktivitetKrav]);
 
   // UPDATE MODE: Detect if claim was revised after previous response
   const kravRevidertEtterSvar = useMemo(() => {
@@ -2063,13 +2063,13 @@ export function RespondVederlagModal({
                               <span>Metodeaksept: {lastResponseEvent?.aksepterer_metode ? 'Akseptert' : 'Avvist'} → {formValues.aksepterer_metode ? 'Akseptert' : 'Avvist'}</span>
                             </div>
                           )}
-                          {formValues.rigg_varslet_i_tide !== lastResponseEvent?.rigg_varslet_i_tide && (
+                          {harRiggKrav && formValues.rigg_varslet_i_tide !== lastResponseEvent?.rigg_varslet_i_tide && (
                             <div className="flex gap-2">
                               <Badge variant="warning" size="sm">Endret</Badge>
                               <span>Rigg varsling: {lastResponseEvent?.rigg_varslet_i_tide ? 'I tide' : 'For sent'} → {formValues.rigg_varslet_i_tide ? 'I tide' : 'For sent'}</span>
                             </div>
                           )}
-                          {formValues.produktivitet_varslet_i_tide !== lastResponseEvent?.produktivitet_varslet_i_tide && (
+                          {harProduktivitetKrav && formValues.produktivitet_varslet_i_tide !== lastResponseEvent?.produktivitet_varslet_i_tide && (
                             <div className="flex gap-2">
                               <Badge variant="warning" size="sm">Endret</Badge>
                               <span>Produktivitet varsling: {lastResponseEvent?.produktivitet_varslet_i_tide ? 'I tide' : 'For sent'} → {formValues.produktivitet_varslet_i_tide ? 'I tide' : 'For sent'}</span>
