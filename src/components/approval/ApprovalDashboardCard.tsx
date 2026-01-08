@@ -10,6 +10,7 @@ import { DataList, DataListItem } from '../primitives/DataList';
 import { Badge } from '../primitives/Badge';
 import { Button } from '../primitives/Button';
 import { ApprovalHistory } from './ApprovalHistory';
+import { EyeOpenIcon } from '@radix-ui/react-icons';
 import type { BhResponsPakke, ApprovalStep } from '../../types/approval';
 import { APPROVAL_ROLE_LABELS, getNextApprover, getPersonsAtRole } from '../../constants/approvalConfig';
 
@@ -70,7 +71,12 @@ export function ApprovalDashboardCard({
       variant="outlined"
       action={
         <>
-          <Button variant="secondary" size="sm" onClick={onOpenDetails}>
+          <Button
+            variant={canApprove ? 'primary' : 'secondary'}
+            size="sm"
+            onClick={onOpenDetails}
+          >
+            <EyeOpenIcon className="w-4 h-4 mr-2" />
             Se detaljer
           </Button>
           {isFullyApproved && onDownloadPdf && (
