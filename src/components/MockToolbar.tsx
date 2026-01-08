@@ -22,17 +22,17 @@ export function MockToolbar({
   onApprovalEnabledChange,
 }: MockToolbarProps) {
   return (
-    <div className="bg-amber-50 border-b border-amber-200">
-      <div className="max-w-3xl mx-auto px-4 py-2 sm:px-8">
-        <div className="flex items-center gap-4">
+    <div className="max-w-3xl mx-auto px-4 sm:px-8 pt-2">
+      <div className="bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-sm">
+        <div className="flex items-center gap-3">
           {/* Label */}
           <div className="flex items-center gap-1.5 text-amber-700">
-            <MixerHorizontalIcon className="w-3.5 h-3.5" />
-            <span className="text-xs font-medium">Test-modus</span>
+            <MixerHorizontalIcon className="w-3 h-3" />
+            <span className="text-xs font-medium">Test</span>
           </div>
 
           {/* Divider */}
-          <div className="h-4 w-px bg-amber-300" />
+          <div className="h-3 w-px bg-amber-300" />
 
           {/* Controls */}
           <div className="flex items-center gap-3">
@@ -42,7 +42,7 @@ export function MockToolbar({
                 onCheckedChange={(checked) => onApprovalEnabledChange(checked === true)}
                 aria-label="Aktiver godkjenningsflyt"
               />
-              <span>Godkjenningsflyt</span>
+              <span>Godkjenning</span>
             </label>
 
             {approvalEnabled && (

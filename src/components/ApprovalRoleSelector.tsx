@@ -44,7 +44,11 @@ export function ApprovalRoleSelector({ visible = true, className }: ApprovalRole
   return (
     <div className={className}>
       <Select value={bhApprovalRole} onValueChange={(value) => setBhApprovalRole(value as BHApprovalRole)}>
-        <SelectTrigger width="sm" aria-label="Velg godkjenningsrolle">
+        <SelectTrigger
+          width="sm"
+          aria-label="Velg godkjenningsrolle"
+          className="text-xs py-1.5 px-2 min-h-0 h-7"
+        >
           <SelectValue placeholder="Velg rolle" />
         </SelectTrigger>
         <SelectContent>
