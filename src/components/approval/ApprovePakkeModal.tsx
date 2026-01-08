@@ -5,7 +5,7 @@
  * Used by approvers to take action on pending packages in the approval chain.
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   Modal,
   Button,
@@ -15,6 +15,7 @@ import {
   SectionContainer,
   Alert,
   useToast,
+  Tabs,
 } from '../primitives';
 import type { BhResponsPakke } from '../../types/approval';
 import type { SakState } from '../../types/timeline';
@@ -25,9 +26,10 @@ import {
 } from '../../constants/approvalConfig';
 import { ApprovalChainStatus } from './ApprovalChainStatus';
 import { formatCurrency, formatDateMedium } from '../../utils/formatters';
-import { downloadPdfWithDrafts } from '../../pdf/generator';
-import { DownloadIcon, EyeOpenIcon } from '@radix-ui/react-icons';
-import { PdfPreviewModal } from '../pdf';
+import { downloadPdfWithDrafts, generateContractorClaimPdf } from '../../pdf/generator';
+import { DownloadIcon } from '@radix-ui/react-icons';
+import { PdfPreview } from '../pdf/PdfPreview';
+import { mergeDraftsIntoState } from '../../utils/mergeDraftsIntoState';
 
 interface ApprovePakkeModalProps {
   open: boolean;
@@ -87,7 +89,10 @@ export function ApprovePakkeModal({
 }: ApprovePakkeModalProps) {
   const [comment, setComment] = useState('');
   const [mode, setMode] = useState<'view' | 'reject' | 'cancel'>('view');
-  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'form' | 'preview'>('form');
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   const toast = useToast();
 
   const nextApprover = getNextApprover(pakke.steps);
@@ -98,12 +103,41 @@ export function ApprovePakkeModal({
   const submitterRoleLabel = APPROVAL_ROLE_LABELS[currentUserRole];
   const isSubmitter = pakke.submittedBy?.includes(submitterRoleLabel) ?? false;
 
-  // Memoize drafts object to prevent infinite re-renders in PdfPreviewModal
+  // Memoize drafts object to prevent infinite re-renders
   const drafts = useMemo(() => ({
     grunnlagDraft: pakke.grunnlagRespons,
     vederlagDraft: pakke.vederlagRespons,
     fristDraft: pakke.fristRespons,
   }), [pakke.grunnlagRespons, pakke.vederlagRespons, pakke.fristRespons]);
+
+  // Handle switching to preview tab and generating PDF
+  const handlePreviewTab = useCallback(() => {
+    if (activeTab === 'preview') return;
+
+    // Set loading state BEFORE switching tabs
+    if (sakState && !pdfBlob) {
+      setIsGeneratingPdf(true);
+      setPdfError(null);
+    }
+
+    setActiveTab('preview');
+
+    if (!sakState || pdfBlob) return;
+
+    const stateToRender = mergeDraftsIntoState(sakState, drafts);
+    generateContractorClaimPdf(stateToRender)
+      .then(({ blob }) => setPdfBlob(blob))
+      .catch((err) => setPdfError(err instanceof Error ? err.message : 'Ukjent feil'))
+      .finally(() => setIsGeneratingPdf(false));
+  }, [activeTab, sakState, pdfBlob, drafts]);
+
+  const handleTabChange = (tabId: string) => {
+    if (tabId === 'preview') {
+      handlePreviewTab();
+    } else {
+      setActiveTab('form');
+    }
+  };
 
   const handleDownloadPdf = () => {
     if (sakState) {
@@ -116,6 +150,8 @@ export function ApprovePakkeModal({
     toast.success('Godkjent', 'Ditt godkjenningssteg er registrert.');
     setComment('');
     setMode('view');
+    setActiveTab('form');
+    setPdfBlob(null);
     onOpenChange(false);
   };
 
@@ -127,12 +163,16 @@ export function ApprovePakkeModal({
     toast.info('Avvist', 'Pakken er sendt tilbake for revisjon.');
     setComment('');
     setMode('view');
+    setActiveTab('form');
+    setPdfBlob(null);
     onOpenChange(false);
   };
 
   const handleClose = () => {
     setComment('');
     setMode('view');
+    setActiveTab('form');
+    setPdfBlob(null);
     onOpenChange(false);
   };
 
@@ -147,6 +187,8 @@ export function ApprovePakkeModal({
       toast.info('Trukket tilbake', 'Forespørselen er trukket tilbake.');
       setComment('');
       setMode('view');
+      setActiveTab('form');
+      setPdfBlob(null);
       onOpenChange(false);
     }
   };
@@ -182,8 +224,23 @@ export function ApprovePakkeModal({
       title="Godkjenn BH-respons"
       size="lg"
     >
-      <div className="space-y-4">
-        {mode === 'view' && (
+      {/* Tabs header - only show if we have sakState for PDF preview */}
+      {sakState && (
+        <Tabs
+          tabs={[
+            { id: 'form', label: 'Detaljer' },
+            { id: 'preview', label: 'Forhåndsvis PDF' },
+          ]}
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          className="mb-4"
+        />
+      )}
+
+      {/* Tab content */}
+      {activeTab === 'form' ? (
+        <div className="space-y-4">
+          {mode === 'view' && (
           <>
             {/* Intro Alert */}
             <Alert
@@ -278,16 +335,10 @@ export function ApprovePakkeModal({
                   </Button>
                 )}
                 {sakState && (
-                  <>
-                    <Button variant="ghost" size="sm" onClick={() => setPreviewModalOpen(true)}>
-                      <EyeOpenIcon className="w-4 h-4 mr-2" />
-                      Forhåndsvis PDF
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={handleDownloadPdf}>
-                      <DownloadIcon className="w-4 h-4 mr-2" />
-                      Last ned PDF
-                    </Button>
-                  </>
+                  <Button variant="ghost" size="sm" onClick={handleDownloadPdf}>
+                    <DownloadIcon className="w-4 h-4 mr-2" />
+                    Last ned PDF
+                  </Button>
                 )}
               </div>
               {/* Right side - primary actions */}
@@ -366,16 +417,15 @@ export function ApprovePakkeModal({
             </div>
           </>
         )}
-      </div>
-
-      {/* PDF Preview Modal */}
-      {sakState && (
-        <PdfPreviewModal
-          open={previewModalOpen}
-          onOpenChange={setPreviewModalOpen}
-          sakState={sakState}
-          drafts={drafts}
-          title="Forhåndsvisning av BH-respons"
+        </div>
+      ) : (
+        <PdfPreview
+          blob={pdfBlob}
+          isLoading={isGeneratingPdf}
+          error={pdfError ?? undefined}
+          height="calc(85dvh - 240px)"
+          filename={`BH-respons_${sakState?.sak_id ?? 'dokument'}.pdf`}
+          onClose={() => setActiveTab('form')}
         />
       )}
     </Modal>
