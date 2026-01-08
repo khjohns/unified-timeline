@@ -36,7 +36,7 @@ export function PendingApprovalBanner({
         <div className="flex items-center gap-2">
           <CheckCircledIcon className="h-5 w-5 shrink-0" />
           <div className="flex-1">
-            <strong>BH-responspakke</strong> er godkjent og klar for utsending.
+            <strong>Responspakke</strong> er godkjent og klar for utsending.
           </div>
         </div>
       </Alert>
@@ -50,7 +50,7 @@ export function PendingApprovalBanner({
         <div className="flex items-center gap-2">
           <CrossCircledIcon className="h-5 w-5 shrink-0" />
           <div className="flex-1">
-            <strong>BH-responspakke</strong> ble avvist
+            <strong>Responspakke</strong> ble avvist
             {rejectedStep && ` av ${rejectedStep.roleName}`}.
             {rejectedStep?.comment && (
               <span className="block mt-1 text-sm italic">
@@ -66,7 +66,7 @@ export function PendingApprovalBanner({
   // Pending status
   const title = (
     <>
-      <strong>BH-responspakke</strong> venter på godkjenning
+      <strong>Responspakke</strong> venter på godkjenning
       {pakke.samletBelop > 0 && (
         <span className="text-sm text-pkt-text-body-muted ml-2">
           ({formatCurrency(pakke.samletBelop)})

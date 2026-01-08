@@ -100,7 +100,7 @@ export function CaseDashboard({
               </DataListItem>
             )}
             {state.grunnlag.bh_resultat && (
-              <DataListItem label="BH resultat">
+              <DataListItem label="Resultat">
                 {formatBHResultat(state.grunnlag.bh_resultat).label}
               </DataListItem>
             )}
@@ -129,7 +129,7 @@ export function CaseDashboard({
               </DataListItem>
             )}
             {state.vederlag.bh_resultat && (
-              <DataListItem label="BH resultat">
+              <DataListItem label="Resultat">
                 {formatBHResultat(state.vederlag.bh_resultat).label}
               </DataListItem>
             )}
@@ -160,7 +160,7 @@ export function CaseDashboard({
               </DataListItem>
             )}
             {state.frist.bh_resultat && (
-              <DataListItem label="BH resultat">
+              <DataListItem label="Resultat">
                 {formatBHResultat(state.frist.bh_resultat).label}
               </DataListItem>
             )}

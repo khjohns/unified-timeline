@@ -221,7 +221,7 @@ export function ApprovePakkeModal({
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title="Godkjenn BH-respons"
+      title="Godkjenn svar til entreprenør"
       size="lg"
     >
       {/* Tabs header - only show if we have sakState for PDF preview */}
