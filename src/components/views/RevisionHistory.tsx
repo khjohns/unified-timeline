@@ -113,12 +113,12 @@ function VederlagHistorikkTable({ entries }: VederlagHistorikkTableProps) {
   }
 
   return (
-    <div className="overflow-x-auto border border-pkt-grays-gray-300 bg-pkt-bg-card">
+    <div className="overflow-x-auto border-2 border-pkt-border-subtle bg-pkt-bg-card">
       <table className="w-full border-collapse text-sm">
         {/* Header */}
         <thead>
-          <tr className="bg-pkt-bg-subtle border-b-2 border-pkt-grays-gray-300">
-            <th className="sticky left-0 z-10 bg-pkt-bg-subtle text-left py-3 px-4 font-medium text-pkt-grays-gray-600 w-[160px] border-r-2 border-pkt-grays-gray-300">
+          <tr className="bg-pkt-bg-subtle border-b border-pkt-border-subtle">
+            <th className="sticky left-0 z-10 bg-pkt-bg-subtle text-left py-3 px-4 font-medium text-pkt-grays-gray-600 w-[160px] border-r border-pkt-border-subtle">
               Felt
             </th>
             {versions.map((v) => {
@@ -212,12 +212,12 @@ function FristHistorikkTable({ entries }: FristHistorikkTableProps) {
   }
 
   return (
-    <div className="overflow-x-auto border border-pkt-grays-gray-300 bg-pkt-bg-card">
+    <div className="overflow-x-auto border-2 border-pkt-border-subtle bg-pkt-bg-card">
       <table className="w-full border-collapse text-sm">
         {/* Header */}
         <thead>
-          <tr className="bg-pkt-bg-subtle border-b-2 border-pkt-grays-gray-300">
-            <th className="sticky left-0 z-10 bg-pkt-bg-subtle text-left py-3 px-4 font-medium text-pkt-grays-gray-600 w-[160px] border-r-2 border-pkt-grays-gray-300">
+          <tr className="bg-pkt-bg-subtle border-b border-pkt-border-subtle">
+            <th className="sticky left-0 z-10 bg-pkt-bg-subtle text-left py-3 px-4 font-medium text-pkt-grays-gray-600 w-[160px] border-r border-pkt-border-subtle">
               Felt
             </th>
             {versions.map((v) => {
@@ -295,13 +295,13 @@ function GroupHeader({ label, colSpan, color }: GroupHeaderProps) {
   return (
     <tr>
       <td
-        className={`sticky left-0 z-10 py-2 px-4 text-xs font-semibold uppercase tracking-wide border-y border-pkt-grays-gray-200 border-r-2 border-r-pkt-grays-gray-300 ${colorClasses[color]}`}
+        className={`sticky left-0 z-10 py-2 px-4 text-xs font-semibold uppercase tracking-wide border-y border-pkt-border-subtle border-r border-r-pkt-border-subtle ${colorClasses[color]}`}
       >
         {label}
       </td>
       <td
         colSpan={colSpan - 1}
-        className={`py-2 px-4 border-y border-pkt-grays-gray-200 ${bgClass}`}
+        className={`py-2 px-4 border-y border-pkt-border-subtle ${bgClass}`}
       />
     </tr>
   );
@@ -318,8 +318,8 @@ function DataRow({ label, versions, getValue, highlight = false }: DataRowProps)
   let prevValue: string | null = null;
 
   return (
-    <tr className="border-b border-pkt-grays-gray-100 last:border-b-0">
-      <td className="sticky left-0 z-10 bg-pkt-bg-card py-2.5 px-4 text-pkt-grays-gray-600 border-r-2 border-pkt-grays-gray-300">
+    <tr className="border-b border-pkt-border-subtle/50 last:border-b-0">
+      <td className="sticky left-0 z-10 bg-pkt-bg-card py-2.5 px-4 text-pkt-grays-gray-600 border-r border-pkt-border-subtle">
         {label}
       </td>
       {versions.map((v) => {
@@ -330,7 +330,7 @@ function DataRow({ label, versions, getValue, highlight = false }: DataRowProps)
         return (
           <td
             key={v}
-            className={`py-2.5 px-4 text-center border-r border-pkt-grays-gray-100 last:border-r-0 ${
+            className={`py-2.5 px-4 text-center border-r border-pkt-border-subtle/30 last:border-r-0 ${
               highlight ? 'font-medium' : ''
             } ${isChanged ? 'text-pkt-brand-warm-blue-1000 font-semibold' : 'text-pkt-text-body-default'}`}
           >
