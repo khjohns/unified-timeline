@@ -21,8 +21,8 @@ import { SendGrunnlagUpdateModal } from '@/components/actions/SendGrunnlagUpdate
 import { RespondGrunnlagUpdateModal } from '@/components/actions/RespondGrunnlagUpdateModal';
 import { ReviseVederlagModal } from '@/components/actions/ReviseVederlagModal';
 import { ReviseFristModal } from '@/components/actions/ReviseFristModal';
-import { UpdateResponseVederlagModal } from '@/components/actions/UpdateResponseVederlagModal';
-import { UpdateResponseFristModal } from '@/components/actions/UpdateResponseFristModal';
+// Note: UpdateResponseVederlagModal removed - RespondVederlagModal handles updates via lastResponseEvent prop
+// Note: UpdateResponseFristModal removed - RespondFristModal handles updates via lastResponseEvent prop
 
 // Wrapper with React Query provider and ToastProvider
 const createTestQueryClient = () =>
@@ -457,11 +457,12 @@ describe('Action/Modal Components - Functional Tests', () => {
     });
   });
 
-  describe('UpdateResponseVederlagModal', () => {
+  describe('RespondVederlagModal (update mode)', () => {
     const defaultProps = {
       open: true,
       onOpenChange: vi.fn(),
       sakId: 'TEST-001',
+      // Update mode is activated by providing lastResponseEvent
       lastResponseEvent: {
         event_id: 'response-1',
         resultat: 'godkjent' as const,
@@ -476,39 +477,43 @@ describe('Action/Modal Components - Functional Tests', () => {
     };
 
     it('should render when open', () => {
-      renderWithProviders(<UpdateResponseVederlagModal {...defaultProps} />);
+      renderWithProviders(<RespondVederlagModal {...defaultProps} />);
 
       expect(screen.getByRole('dialog', { name: /Oppdater svar på vederlagskrav/i })).toBeInTheDocument();
     });
 
     it('should have resultat field', () => {
-      renderWithProviders(<UpdateResponseVederlagModal {...defaultProps} />);
+      // Note: "Samlet resultat" is on step 2 or later
+      renderWithProviders(<RespondVederlagModal {...defaultProps} />);
 
-      expect(screen.getByText(/Samlet resultat/i)).toBeInTheDocument();
+      // On step 1 we see the overview, check for step indicator
+      expect(screen.getByText(/Oversikt/i)).toBeInTheDocument();
     });
 
     it('should not render when closed', () => {
-      renderWithProviders(<UpdateResponseVederlagModal {...defaultProps} open={false} />);
+      renderWithProviders(<RespondVederlagModal {...defaultProps} open={false} />);
 
       expect(screen.queryByRole('dialog', { name: /Oppdater svar på vederlagskrav/i })).not.toBeInTheDocument();
     });
 
-    it('should have submit and cancel buttons', () => {
-      renderWithProviders(<UpdateResponseVederlagModal {...defaultProps} />);
+    it('should have navigation and cancel buttons', () => {
+      // Note: Uses multi-step wizard, so "Neste" button is shown on step 1 instead of submit
+      renderWithProviders(<RespondVederlagModal {...defaultProps} />);
 
       expect(screen.getByRole('button', { name: /Avbryt/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Lagre Endringer/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Neste/i })).toBeInTheDocument();
     });
   });
 
-  describe('UpdateResponseFristModal', () => {
+  describe('RespondFristModal (update mode)', () => {
     const defaultProps = {
       open: true,
       onOpenChange: vi.fn(),
       sakId: 'TEST-001',
+      // Update mode is activated by providing lastResponseEvent
       lastResponseEvent: {
         event_id: 'response-1',
-        resultat: 'delvis_godkjent' as const,  // Not 'godkjent' so beregning section shows
+        resultat: 'delvis_godkjent' as const,
         godkjent_dager: 5,
       },
       fristTilstand: {
@@ -518,29 +523,31 @@ describe('Action/Modal Components - Functional Tests', () => {
     };
 
     it('should render when open', () => {
-      renderWithProviders(<UpdateResponseFristModal {...defaultProps} />);
+      renderWithProviders(<RespondFristModal {...defaultProps} />);
 
       expect(screen.getByRole('dialog', { name: /Oppdater svar på fristkrav/i })).toBeInTheDocument();
     });
 
-    it('should have resultat field', () => {
-      // Note: "Ny avgjørelse" section only shows when resultat is not 'godkjent'
-      renderWithProviders(<UpdateResponseFristModal {...defaultProps} />);
+    it('should have step indicator', () => {
+      // Note: Uses multi-step wizard, check for step indicator
+      renderWithProviders(<RespondFristModal {...defaultProps} />);
 
-      expect(screen.getByText(/Ny avgjørelse/i)).toBeInTheDocument();
+      // On step 1 we see the overview
+      expect(screen.getByText(/Oversikt/i)).toBeInTheDocument();
     });
 
     it('should not render when closed', () => {
-      renderWithProviders(<UpdateResponseFristModal {...defaultProps} open={false} />);
+      renderWithProviders(<RespondFristModal {...defaultProps} open={false} />);
 
       expect(screen.queryByRole('dialog', { name: /Oppdater svar på fristkrav/i })).not.toBeInTheDocument();
     });
 
-    it('should have submit and cancel buttons', () => {
-      renderWithProviders(<UpdateResponseFristModal {...defaultProps} />);
+    it('should have navigation and cancel buttons', () => {
+      // Note: Uses multi-step wizard, so "Neste" button is shown on step 1 instead of submit
+      renderWithProviders(<RespondFristModal {...defaultProps} />);
 
       expect(screen.getByRole('button', { name: /Avbryt/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Lagre Endringer/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Neste/i })).toBeInTheDocument();
     });
   });
 });

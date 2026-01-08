@@ -43,11 +43,6 @@ import {
   Modal,
   RadioGroup,
   RadioItem,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   StepIndicator,
   Textarea,
   useToast,
@@ -434,20 +429,6 @@ export function RespondVederlagModal({
         return undefined;
     }
   }, [vederlagEvent?.metode]);
-
-  // Help text for the alternative method BH selects when rejecting the proposed one
-  const oensketMetodeHelpText = useMemo(() => {
-    switch (formValues.oensket_metode) {
-      case 'ENHETSPRISER':
-        return 'Oppgjør basert på kontraktens enhetspriser (§34.3). Krever at kontrakten har relevante enhetspriser for arbeidet.';
-      case 'REGNINGSARBEID':
-        return 'Oppgjør basert på dokumenterte kostnader + påslag (§34.4/§30). Du kan kreve kostnadsoverslag og holde tilbake betaling (§30.2).';
-      case 'FASTPRIS_TILBUD':
-        return 'Du ber entreprenør gi et spesifisert tilbud (§34.2.1). Entreprenør må da gi et komplett pristilbud for hele arbeidet.';
-      default:
-        return 'Velg hvilken beregningsmetode du krever for dette vederlagskravet.';
-    }
-  }, [formValues.oensket_metode]);
 
   const hovedkravBelop =
     vederlagEvent?.metode === 'REGNINGSARBEID'
@@ -1227,25 +1208,23 @@ export function RespondVederlagModal({
                 {/* Ønsket metode - show when rejecting */}
                 {!formValues.aksepterer_metode && (
                   <div className="mt-4 ml-6 border-l-2 border-pkt-border-subtle pl-4">
-                    <FormField label="Hvilken beregningsmetode krever du?" required helpText={oensketMetodeHelpText}>
+                    <FormField label="Hvilken beregningsmetode krever du?" required>
                       <Controller
                         name="oensket_metode"
                         control={control}
                         render={({ field }) => (
-                          <Select value={field.value} onValueChange={field.onChange}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Velg beregningsmetode" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {VEDERLAGSMETODER_OPTIONS.filter(
-                                (opt) => opt.value !== '' && opt.value !== vederlagEvent?.metode
-                              ).map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
-                                  {option.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <RadioGroup value={field.value} onValueChange={field.onChange}>
+                            {VEDERLAGSMETODER_OPTIONS.filter(
+                              (opt) => opt.value !== '' && opt.value !== vederlagEvent?.metode
+                            ).map((option) => (
+                              <RadioItem
+                                key={option.value}
+                                value={option.value}
+                                label={option.label}
+                                description={VEDERLAGSMETODE_DESCRIPTIONS[option.value as VederlagsMetode]}
+                              />
+                            ))}
+                          </RadioGroup>
                         )}
                       />
                     </FormField>
@@ -2181,7 +2160,7 @@ export function RespondVederlagModal({
                 </Button>
               ) : (
                 <Button type="submit" variant="primary" loading={isSubmitting} className="w-full sm:w-auto order-1 sm:order-2">
-                  {isUpdateMode ? 'Lagre endringer' : 'Send svar'}
+                  {isUpdateMode ? 'Lagre Endringer' : 'Send svar'}
                 </Button>
               )}
             </div>

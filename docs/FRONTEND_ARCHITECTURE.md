@@ -354,11 +354,9 @@ Plassering: `src/components/actions/`
 | Modal | Event-type |
 |-------|------------|
 | `RespondGrunnlagModal` | `grunnlag_response` |
-| `RespondVederlagModal` | `vederlag_response` |
-| `RespondFristModal` | `frist_response` |
+| `RespondVederlagModal` | `vederlag_response` (respond mode) / `respons_vederlag_oppdatert` (update mode via `lastResponseEvent` prop) |
+| `RespondFristModal` | `frist_response` (respond mode) / `respons_frist_oppdatert` (update mode via `lastResponseEvent` prop) |
 | `RespondGrunnlagUpdateModal` | `grunnlag_update_response` |
-| `UpdateResponseVederlagModal` | `vederlag_response_update` |
-| `UpdateResponseFristModal` | `frist_response_update` |
 
 ---
 

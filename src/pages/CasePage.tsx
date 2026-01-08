@@ -47,7 +47,7 @@ import {
   // Update response modals (BH)
   RespondGrunnlagUpdateModal,
   // Note: UpdateResponseVederlagModal is now handled by RespondVederlagModal with lastResponseEvent prop
-  UpdateResponseFristModal,
+  // Note: UpdateResponseFristModal is now handled by RespondFristModal with lastResponseEvent prop
   // Special action modals (TE)
   SendForseringModal,
 } from '../components/actions';
@@ -782,7 +782,7 @@ function CasePageContent() {
             vederlagTilstand={state.vederlag}
             onCatendaWarning={() => setShowCatendaWarning(true)}
           />
-          <UpdateResponseFristModal
+          <RespondFristModal
             open={updateFristResponseOpen}
             onOpenChange={setUpdateFristResponseOpen}
             sakId={sakId}

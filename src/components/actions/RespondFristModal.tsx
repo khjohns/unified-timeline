@@ -51,7 +51,7 @@ import { useSubmitEvent } from '../../hooks/useSubmitEvent';
 import { useConfirmClose } from '../../hooks/useConfirmClose';
 import { BH_FRISTSVAR_DESCRIPTIONS } from '../../constants';
 import { differenceInDays } from 'date-fns';
-import type { SubsidiaerTrigger } from '../../types/timeline';
+import type { SubsidiaerTrigger, FristTilstand, FristBeregningResultat } from '../../types/timeline';
 import {
   generateFristResponseBegrunnelse,
   combineBegrunnelse,
@@ -72,12 +72,20 @@ interface FristEventInfo {
   dato_krav_mottatt?: string;
 }
 
+// Last response event info for update mode
+interface LastFristResponseEvent {
+  event_id: string;
+  resultat: FristBeregningResultat;
+  godkjent_dager?: number;
+  begrunnelse?: string;
+}
+
 interface RespondFristModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sakId: string;
-  /** ID of the frist claim event being responded to */
-  fristKravId: string;
+  /** ID of the frist claim event being responded to (required for respond mode, not needed for update mode) */
+  fristKravId?: string;
   krevdDager?: number;
   /** Optional frist event data for context display */
   fristEvent?: FristEventInfo;
@@ -96,6 +104,12 @@ interface RespondFristModalProps {
     begrunnelse?: string;
     formData: RespondFristFormData;
   }) => void;
+
+  // ========== UPDATE MODE ==========
+  /** When provided, modal switches to update mode (asymmetric changes only) */
+  lastResponseEvent?: LastFristResponseEvent;
+  /** Full frist state - required for update mode */
+  fristTilstand?: FristTilstand;
 }
 
 // ============================================================================
@@ -120,6 +134,19 @@ const respondFristSchema = z.object({
   // Port 4: Oppsummering
   // Note: auto_begrunnelse is generated, not user-editable
   tilleggs_begrunnelse: z.string().optional(),
+
+  // ========== UPDATE MODE FIELDS ==========
+  // Port 2: Preklusjon - kan kun endres til TEs gunst
+  endre_preklusjon: z.boolean().optional(),
+
+  // Port 3: Vilkår - kan kun endres til TEs gunst
+  endre_vilkar: z.boolean().optional(),
+
+  // Port 4: Beregning
+  beregnings_resultat: z.string().optional(),
+
+  // Update mode begrunnelse
+  kommentar: z.string().optional(),
 });
 
 type RespondFristFormData = z.infer<typeof respondFristSchema>;
@@ -211,7 +238,12 @@ export function RespondFristModal({
   onCatendaWarning,
   approvalEnabled = false,
   onSaveDraft,
+  // Update mode props
+  lastResponseEvent,
+  fristTilstand,
 }: RespondFristModalProps) {
+  // ========== UPDATE MODE DETECTION ==========
+  const isUpdateMode = !!lastResponseEvent;
   const [currentPort, setCurrentPort] = useState(1);
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const [showRestorePrompt, setShowRestorePrompt] = useState(false);
@@ -223,12 +255,34 @@ export function RespondFristModal({
     topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
 
-  // Effective days to compare (from fristEvent or krevdDager prop)
-  const effektivKrevdDager = fristEvent?.antall_dager ?? krevdDager ?? 0;
+  // Effective days to compare (from fristEvent, krevdDager prop, or fristTilstand for update mode)
+  const effektivKrevdDager = fristEvent?.antall_dager ?? krevdDager ?? fristTilstand?.krevd_dager ?? 0;
 
   // Check if this is a neutral notice without specified days
   // In this case, BH should typically send etterlysning to request specification
   const erNoytraltUtenDager = varselType === 'noytralt' && effektivKrevdDager === 0;
+
+  // ========== UPDATE MODE: Compute default values ==========
+  const computedDefaultValues = useMemo((): Partial<RespondFristFormData> => {
+    if (isUpdateMode && lastResponseEvent && fristTilstand) {
+      // UPDATE MODE: Pre-fill from previous response
+      return {
+        noytralt_varsel_ok: fristTilstand.noytralt_varsel_ok ?? true,
+        spesifisert_krav_ok: fristTilstand.spesifisert_krav_ok ?? true,
+        vilkar_oppfylt: fristTilstand.vilkar_oppfylt ?? true,
+        send_etterlysning: false,
+        godkjent_dager: lastResponseEvent.godkjent_dager ?? effektivKrevdDager,
+      };
+    }
+    // RESPOND MODE: Default values
+    return {
+      noytralt_varsel_ok: true,
+      spesifisert_krav_ok: true,
+      vilkar_oppfylt: true,
+      send_etterlysning: false,
+      godkjent_dager: effektivKrevdDager,
+    };
+  }, [isUpdateMode, lastResponseEvent, fristTilstand, effektivKrevdDager]);
 
   // Form setup
   const {
@@ -278,13 +332,23 @@ export function RespondFristModal({
   const handleRestoreBackup = () => { const backup = getBackup(); if (backup) reset(backup); setShowRestorePrompt(false); };
   const handleDiscardBackup = () => { clearBackup(); setShowRestorePrompt(false); };
 
+  // Reset form when opening in update mode with new lastResponseEvent
+  useEffect(() => {
+    if (open && isUpdateMode && lastResponseEvent) {
+      reset(computedDefaultValues);
+    }
+  }, [open, isUpdateMode, lastResponseEvent, reset, computedDefaultValues]);
+
   const mutation = useSubmitEvent(sakId, {
     onSuccess: (result) => {
       clearBackup();
       reset();
       setCurrentPort(1);
       onOpenChange(false);
-      toast.success('Svar sendt', 'Ditt svar på fristkravet er registrert.');
+      toast.success(
+        isUpdateMode ? 'Svar oppdatert' : 'Svar sendt',
+        isUpdateMode ? 'Ditt oppdaterte svar på fristkravet er registrert.' : 'Ditt svar på fristkravet er registrert.'
+      );
       if (!result.catenda_synced) {
         onCatendaWarning?.();
       }
@@ -519,6 +583,45 @@ export function RespondFristModal({
 
   // Submit handler
   const onSubmit = (data: RespondFristFormData) => {
+    // ========== UPDATE MODE SUBMIT ==========
+    if (isUpdateMode && lastResponseEvent) {
+      // Build event data based on what's being changed
+      const eventData: Record<string, unknown> = {
+        original_respons_id: lastResponseEvent.event_id,
+        kommentar: data.kommentar,
+        dato_endret: new Date().toISOString().split('T')[0],
+      };
+
+      // Port 2: Preklusjon-endringer (kun til TEs gunst)
+      if (data.endre_preklusjon) {
+        if (varselType === 'noytralt') {
+          eventData.noytralt_varsel_ok = true;
+        } else {
+          eventData.spesifisert_krav_ok = true;
+        }
+      }
+
+      // Port 3: Vilkår-endringer (kun til TEs gunst)
+      if (data.endre_vilkar) {
+        eventData.vilkar_oppfylt = true;
+      }
+
+      // Port 4: Beregning-endringer
+      if (data.beregnings_resultat) {
+        eventData.beregnings_resultat = data.beregnings_resultat;
+        eventData.godkjent_dager = data.beregnings_resultat === 'godkjent'
+          ? effektivKrevdDager
+          : data.godkjent_dager;
+      }
+
+      mutation.mutate({
+        eventType: 'respons_frist_oppdatert',
+        data: eventData,
+      });
+      return;
+    }
+
+    // ========== RESPOND MODE SUBMIT (original) ==========
     // Beregn subsidiære triggere basert på Port 1 og Port 2 beslutninger
     const triggers: SubsidiaerTrigger[] = [];
 
@@ -586,11 +689,44 @@ export function RespondFristModal({
     onOpenChange(newOpen);
   };
 
+  // ========== UPDATE MODE: Change detection ==========
+  // Detect if any changes were made from previous response
+  const harEndringer = useMemo(() => {
+    if (!isUpdateMode || !lastResponseEvent || !fristTilstand) return false;
+
+    // Compare current form values with previous state
+    return (
+      formValues.noytralt_varsel_ok !== fristTilstand.noytralt_varsel_ok ||
+      formValues.spesifisert_krav_ok !== fristTilstand.spesifisert_krav_ok ||
+      formValues.vilkar_oppfylt !== fristTilstand.vilkar_oppfylt ||
+      formValues.godkjent_dager !== lastResponseEvent.godkjent_dager
+    );
+  }, [isUpdateMode, lastResponseEvent, fristTilstand, formValues]);
+
+  // Detect if changes are to TE's disadvantage
+  const erEndringTilUgunst = useMemo(() => {
+    if (!isUpdateMode || !lastResponseEvent || !fristTilstand) return false;
+
+    // Preklusjon changed from OK to not OK = to disadvantage
+    if (fristTilstand.noytralt_varsel_ok === true && formValues.noytralt_varsel_ok === false) return true;
+    if (fristTilstand.spesifisert_krav_ok === true && formValues.spesifisert_krav_ok === false) return true;
+
+    // Vilkår changed from OK to not OK = to disadvantage
+    if (fristTilstand.vilkar_oppfylt === true && formValues.vilkar_oppfylt === false) return true;
+
+    // Godkjent dager reduced = to disadvantage
+    if (lastResponseEvent.godkjent_dager !== undefined &&
+        formValues.godkjent_dager !== undefined &&
+        formValues.godkjent_dager < lastResponseEvent.godkjent_dager) return true;
+
+    return false;
+  }, [isUpdateMode, lastResponseEvent, fristTilstand, formValues]);
+
   return (
     <Modal
       open={open}
       onOpenChange={handleOpenChange}
-      title="Svar på fristkrav"
+      title={isUpdateMode ? "Oppdater svar på fristkrav" : "Svar på fristkrav"}
       size="lg"
     >
       <div className="space-y-6">
@@ -1335,6 +1471,40 @@ export function RespondFristModal({
                   </Alert>
                 )}
 
+                {/* UPDATE MODE: Warnings and change summary */}
+                {isUpdateMode && (
+                  <>
+                    {/* Warning: Changes to TE's disadvantage */}
+                    {erEndringTilUgunst && (
+                      <Alert variant="warning" title="Endring til entreprenørens ugunst">
+                        Du er i ferd med å endre standpunkt til entreprenørens ugunst.
+                        Sørg for at du har dokumentasjon som støtter endringen.
+                      </Alert>
+                    )}
+
+                    {/* Change summary */}
+                    {harEndringer && (
+                      <div className="p-4 bg-alert-info-bg border border-alert-info-border rounded-none">
+                        <h5 className="font-medium text-sm mb-2">Endringer fra forrige svar</h5>
+                        <div className="space-y-1 text-sm">
+                          {formValues.noytralt_varsel_ok !== fristTilstand?.noytralt_varsel_ok && (
+                            <div>• Nøytralt varsel: {formValues.noytralt_varsel_ok ? 'I tide' : 'For sent'} (var: {fristTilstand?.noytralt_varsel_ok ? 'I tide' : 'For sent'})</div>
+                          )}
+                          {formValues.spesifisert_krav_ok !== fristTilstand?.spesifisert_krav_ok && (
+                            <div>• Spesifisert krav: {formValues.spesifisert_krav_ok ? 'I tide' : 'For sent'} (var: {fristTilstand?.spesifisert_krav_ok ? 'I tide' : 'For sent'})</div>
+                          )}
+                          {formValues.vilkar_oppfylt !== fristTilstand?.vilkar_oppfylt && (
+                            <div>• Vilkår: {formValues.vilkar_oppfylt ? 'Oppfylt' : 'Ikke oppfylt'} (var: {fristTilstand?.vilkar_oppfylt ? 'Oppfylt' : 'Ikke oppfylt'})</div>
+                          )}
+                          {formValues.godkjent_dager !== lastResponseEvent?.godkjent_dager && (
+                            <div>• Godkjente dager: {formValues.godkjent_dager} (var: {lastResponseEvent?.godkjent_dager})</div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+
                 {/* Show description of principal result */}
                 {prinsipaltResultat && BH_FRISTSVAR_DESCRIPTIONS[prinsipaltResultat] && (
                   <div className="p-4 bg-pkt-surface-subtle rounded-none border-l-4 border-pkt-border-focus">
@@ -1437,7 +1607,7 @@ export function RespondFristModal({
                 </Button>
               ) : (
                 <Button type="submit" variant="primary" loading={isSubmitting} className="w-full sm:w-auto order-1 sm:order-2">
-                  Send svar
+                  {isUpdateMode ? 'Lagre Endringer' : 'Send svar'}
                 </Button>
               )}
             </div>
