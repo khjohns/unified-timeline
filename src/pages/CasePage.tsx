@@ -316,7 +316,7 @@ function CasePageContent() {
                   onClick={() => setSendResponsPakkeOpen(true)}
                 >
                   <PaperPlaneIcon className="w-4 h-4 mr-2" />
-                  Send samlet respons til godkjenning
+                  Send til godkjenning
                 </Button>
               }
             >
