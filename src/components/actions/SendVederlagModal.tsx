@@ -29,8 +29,6 @@ import {
   DatePicker,
   FormField,
   Modal,
-  RadioGroup,
-  RadioItem,
   SectionContainer,
   Textarea,
   useToast,
@@ -45,7 +43,7 @@ import { useFormBackup } from '../../hooks/useFormBackup';
 import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { sjekkRiggDriftFrist } from '../../utils/preklusjonssjekk';
-import type { VederlagsMetode } from '../../types/timeline';
+import { VederlagMethodSelector, type VederlagsMetode } from './shared';
 
 const vederlagSchema = z.object({
   // Direkte kostnader - tillater negative for fradrag (§34.4)
@@ -108,25 +106,6 @@ interface SendVederlagModalProps {
   /** Callback when Catenda sync was skipped or failed */
   onCatendaWarning?: () => void;
 }
-
-// Method options for RadioGroup
-const METODE_OPTIONS = [
-  {
-    value: 'ENHETSPRISER',
-    label: 'Enhetspriser (§34.3)',
-    description: 'Beregning basert på kontraktens enhetspriser',
-  },
-  {
-    value: 'REGNINGSARBEID',
-    label: 'Regningsarbeid (§34.4)',
-    description: 'Kostnader faktureres løpende etter medgått tid og materialer',
-  },
-  {
-    value: 'FASTPRIS_TILBUD',
-    label: 'Fastpris/Tilbud (§34.2.1)',
-    description: 'Avtalt fastpris for endringsarbeidet',
-  },
-] as const;
 
 export function SendVederlagModal({
   open,
@@ -304,86 +283,34 @@ export function SendVederlagModal({
           title="Beregningsmetode"
           description="Velg hvordan vederlaget skal beregnes (§34.2–§34.4)"
         >
-          <FormField
-            error={errors.metode?.message}
-          >
-            <Controller
-              name="metode"
-              control={control}
-              render={({ field }) => (
-                <RadioGroup
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  data-testid="vederlag-metode"
-                >
-                  {/* ENHETSPRISER med nestet checkbox */}
-                  <RadioItem
-                    value="ENHETSPRISER"
-                    label="Enhetspriser (§34.3)"
-                    description="Beregning basert på kontraktens enhetspriser"
-                  />
-                  {selectedMetode === 'ENHETSPRISER' && (
-                    <div className="ml-6 pl-4 border-l-2 border-pkt-border-subtle">
-                      <Controller
-                        name="krever_justert_ep"
-                        control={control}
-                        render={({ field: epField }) => (
-                          <Checkbox
-                            id="krever_justert_ep"
-                            label="Krever justerte enhetspriser (§34.3.3)"
-                            description="Når forutsetningene for enhetsprisene forrykkes"
-                            checked={epField.value}
-                            onCheckedChange={epField.onChange}
-                          />
-                        )}
+          <Controller
+            name="metode"
+            control={control}
+            render={({ field }) => (
+              <Controller
+                name="krever_justert_ep"
+                control={control}
+                render={({ field: epField }) => (
+                  <Controller
+                    name="varslet_for_oppstart"
+                    control={control}
+                    render={({ field: varsletField }) => (
+                      <VederlagMethodSelector
+                        value={field.value}
+                        onChange={field.onChange}
+                        error={errors.metode?.message}
+                        kreverJustertEp={epField.value}
+                        onKreverJustertEpChange={epField.onChange}
+                        varsletForOppstart={varsletField.value}
+                        onVarsletForOppstartChange={varsletField.onChange}
+                        testId="vederlag-metode"
                       />
-                      {kreverJustertEp && (
-                        <Alert variant="warning" className="mt-2">
-                          Krav om justerte enhetspriser må varsles «uten ugrunnet opphold» etter at forholdet oppsto.
-                          Uten rettidig varsel har du bare krav på den justering byggherren «måtte forstå» (§34.3.3).
-                        </Alert>
-                      )}
-                    </div>
-                  )}
-
-                  {/* REGNINGSARBEID med nestet checkbox */}
-                  <RadioItem
-                    value="REGNINGSARBEID"
-                    label="Regningsarbeid (§34.4)"
-                    description="Kostnader faktureres løpende etter medgått tid og materialer"
+                    )}
                   />
-                  {selectedMetode === 'REGNINGSARBEID' && (
-                    <div className="ml-6 pl-4 border-l-2 border-pkt-border-subtle">
-                      <Controller
-                        name="varslet_for_oppstart"
-                        control={control}
-                        render={({ field: varsletField }) => (
-                          <Checkbox
-                            id="varslet_for_oppstart"
-                            label="Byggherren ble varslet før regningsarbeidet startet (§34.4)"
-                            checked={varsletField.value}
-                            onCheckedChange={varsletField.onChange}
-                          />
-                        )}
-                      />
-                      {!varsletForOppstart && (
-                        <Alert variant="danger" className="mt-2">
-                          Uten forhåndsvarsel har du bare krav på det byggherren «måtte forstå» at du har hatt av utgifter (§30.3.1).
-                        </Alert>
-                      )}
-                    </div>
-                  )}
-
-                  {/* FASTPRIS_TILBUD (ingen nestet innhold) */}
-                  <RadioItem
-                    value="FASTPRIS_TILBUD"
-                    label="Fastpris/Tilbud (§34.2.1)"
-                    description="Avtalt fastpris for endringsarbeidet"
-                  />
-                </RadioGroup>
-              )}
-            />
-          </FormField>
+                )}
+              />
+            )}
+          />
         </SectionContainer>
 
         {/* 2. Kravets omfang - Metodespesifikk */}

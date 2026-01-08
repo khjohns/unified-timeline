@@ -29,10 +29,9 @@ import {
   Checkbox,
   Collapsible,
   CurrencyInput,
+  DatePicker,
   FormField,
   Modal,
-  RadioGroup,
-  RadioItem,
   RevisionTag,
   SectionContainer,
   Textarea,
@@ -46,40 +45,25 @@ import { useConfirmClose } from '../../hooks/useConfirmClose';
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { useFormBackup } from '../../hooks/useFormBackup';
 import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
+import { sjekkRiggDriftFrist } from '../../utils/preklusjonssjekk';
 import type { VederlagBeregningResultat } from '../../types/timeline';
-
-// Metode type synced with SendVederlagModal
-type VederlagsMetode = 'ENHETSPRISER' | 'REGNINGSARBEID' | 'FASTPRIS_TILBUD';
-
-const METODE_LABELS: Record<VederlagsMetode, string> = {
-  ENHETSPRISER: 'Enhetspriser (§34.3)',
-  REGNINGSARBEID: 'Regningsarbeid (§34.4)',
-  FASTPRIS_TILBUD: 'Fastpris/Tilbud (§34.2.1)',
-};
-
-const METODE_DESCRIPTIONS: Record<VederlagsMetode, string> = {
-  ENHETSPRISER: 'Beregning basert på kontraktens enhetspriser',
-  REGNINGSARBEID: 'Kostnader faktureres løpende etter medgått tid og materialer',
-  FASTPRIS_TILBUD: 'Avtalt fastpris. Ved avslag faller oppgjøret tilbake på enhetspriser (§34.3) eller regningsarbeid (§34.4)',
-};
-
-const RESULTAT_LABELS: Record<VederlagBeregningResultat, string> = {
-  godkjent: 'Godkjent',
-  delvis_godkjent: 'Delvis godkjent',
-  avslatt: 'Avslått',
-  hold_tilbake: 'Holder tilbake (§30.2)',
-};
-
-const RESULTAT_VARIANTS: Record<VederlagBeregningResultat, 'success' | 'warning' | 'danger'> = {
-  godkjent: 'success',
-  delvis_godkjent: 'warning',
-  avslatt: 'danger',
-  hold_tilbake: 'warning',
-};
+import {
+  VederlagMethodSelector,
+  METODE_LABELS,
+  RESULTAT_LABELS,
+  RESULTAT_VARIANTS,
+  type VederlagsMetode,
+} from './shared';
 
 // ============================================================================
 // TYPES & INTERFACES
 // ============================================================================
+
+// Særskilt krav item (§34.1.3)
+interface SaerskiltKravItem {
+  belop?: number;
+  dato_klar_over?: string;
+}
 
 // Last vederlag event info - what TE previously submitted
 interface LastVederlagEventInfo {
@@ -90,6 +74,11 @@ interface LastVederlagEventInfo {
   begrunnelse?: string;
   krever_justert_ep?: boolean;
   varslet_for_oppstart?: boolean;
+  // Særskilte krav (§34.1.3)
+  saerskilt_krav?: {
+    rigg_drift?: SaerskiltKravItem;
+    produktivitet?: SaerskiltKravItem;
+  } | null;
 }
 
 // BH response context - what BH answered (if any)
@@ -130,6 +119,14 @@ const reviseVederlagSchema = z.object({
   // Method-related fields
   krever_justert_ep: z.boolean().optional(),
   varslet_for_oppstart: z.boolean().optional(),
+
+  // Særskilte krav (§34.1.3) - Rigg/Drift og Produktivitet
+  har_rigg_krav: z.boolean().optional(),
+  har_produktivitet_krav: z.boolean().optional(),
+  belop_rigg: z.number().optional(),
+  belop_produktivitet: z.number().optional(),
+  dato_klar_over_rigg: z.string().optional(),
+  dato_klar_over_produktivitet: z.string().optional(),
 
   // Required
   begrunnelse: z.string().min(10, 'Begrunnelse må være minst 10 tegn'),
@@ -188,6 +185,13 @@ export function ReviseVederlagModal({
       nytt_kostnads_overslag: erRegningsarbeid ? lastVederlagEvent.kostnads_overslag : undefined,
       krever_justert_ep: lastVederlagEvent.krever_justert_ep ?? false,
       varslet_for_oppstart: lastVederlagEvent.varslet_for_oppstart ?? true,
+      // Pre-fill særskilte krav from previous claim
+      har_rigg_krav: !!lastVederlagEvent.saerskilt_krav?.rigg_drift,
+      belop_rigg: lastVederlagEvent.saerskilt_krav?.rigg_drift?.belop,
+      dato_klar_over_rigg: lastVederlagEvent.saerskilt_krav?.rigg_drift?.dato_klar_over,
+      har_produktivitet_krav: !!lastVederlagEvent.saerskilt_krav?.produktivitet,
+      belop_produktivitet: lastVederlagEvent.saerskilt_krav?.produktivitet?.belop,
+      dato_klar_over_produktivitet: lastVederlagEvent.saerskilt_krav?.produktivitet?.dato_klar_over,
       begrunnelse: '',
       attachments: [],
     },
@@ -221,10 +225,26 @@ export function ReviseVederlagModal({
   const nyttKostnadsOverslag = watch('nytt_kostnads_overslag');
   const kreverJustertEp = watch('krever_justert_ep');
   const varsletForOppstart = watch('varslet_for_oppstart');
+  const harRiggKrav = watch('har_rigg_krav');
+  const harProduktivitetKrav = watch('har_produktivitet_krav');
+  const datoKlarOverRigg = watch('dato_klar_over_rigg');
+  const datoKlarOverProduktivitet = watch('dato_klar_over_produktivitet');
 
   // Selected metode determines field display
   const nyErRegningsarbeid = selectedMetode === 'REGNINGSARBEID';
   const nyErEnhetspriser = selectedMetode === 'ENHETSPRISER';
+
+  // Check preclusion for rigg/drift (§34.1.3 første ledd) - 7 days threshold
+  const riggPreklusjon = useMemo(() => {
+    if (!harRiggKrav || !datoKlarOverRigg) return null;
+    return sjekkRiggDriftFrist(datoKlarOverRigg);
+  }, [harRiggKrav, datoKlarOverRigg]);
+
+  // Check preclusion for produktivitet (§34.1.3 annet ledd) - 7 days threshold
+  const produktivitetPreklusjon = useMemo(() => {
+    if (!harProduktivitetKrav || !datoKlarOverProduktivitet) return null;
+    return sjekkRiggDriftFrist(datoKlarOverProduktivitet);
+  }, [harProduktivitetKrav, datoKlarOverProduktivitet]);
 
   // Get the relevant amount based on effective metode
   const nyttBelop = nyErRegningsarbeid ? nyttKostnadsOverslag : nyttBelopDirekte;
@@ -291,6 +311,25 @@ export function ReviseVederlagModal({
     const erRegning = data.metode === 'REGNINGSARBEID';
     const erEP = data.metode === 'ENHETSPRISER';
 
+    // Build særskilt krav structure with separate dates per §34.1.3
+    const saerskiltKrav =
+      data.har_rigg_krav || data.har_produktivitet_krav
+        ? {
+            rigg_drift: data.har_rigg_krav
+              ? {
+                  belop: data.belop_rigg,
+                  dato_klar_over: data.dato_klar_over_rigg,
+                }
+              : undefined,
+            produktivitet: data.har_produktivitet_krav
+              ? {
+                  belop: data.belop_produktivitet,
+                  dato_klar_over: data.dato_klar_over_produktivitet,
+                }
+              : undefined,
+          }
+        : null;
+
     mutation.mutate({
       eventType: 'vederlag_krav_oppdatert',
       data: {
@@ -304,6 +343,9 @@ export function ReviseVederlagModal({
         // Method-related fields
         krever_justert_ep: erEP ? data.krever_justert_ep : undefined,
         varslet_for_oppstart: erRegning ? data.varslet_for_oppstart : undefined,
+
+        // Særskilte krav (§34.1.3)
+        saerskilt_krav: saerskiltKrav,
 
         begrunnelse: data.begrunnelse,
         dato_revidert: new Date().toISOString().split('T')[0],
@@ -484,88 +526,29 @@ export function ReviseVederlagModal({
             name="metode"
             control={control}
             render={({ field }) => (
-              <RadioGroup value={field.value} onValueChange={handleMetodeChange}>
-                {/* ENHETSPRISER */}
-                <RadioItem
-                  value="ENHETSPRISER"
-                  label={METODE_LABELS.ENHETSPRISER}
-                  description={
-                    bhResponse?.oensket_metode === 'ENHETSPRISER'
-                      ? `${METODE_DESCRIPTIONS.ENHETSPRISER} ← Byggherrens ønskede metode`
-                      : METODE_DESCRIPTIONS.ENHETSPRISER
-                  }
-                />
-                {selectedMetode === 'ENHETSPRISER' && (
-                  <div className="ml-6 pl-4 border-l-2 border-pkt-border-subtle">
-                    <Controller
-                      name="krever_justert_ep"
-                      control={control}
-                      render={({ field: epField }) => (
-                        <Checkbox
-                          id="krever_justert_ep"
-                          label="Krever justerte enhetspriser (§34.3.3)"
-                          description="Når forutsetningene for enhetsprisene forrykkes"
-                          checked={epField.value}
-                          onCheckedChange={epField.onChange}
-                        />
-                      )}
-                    />
-                    {kreverJustertEp && bhAvvisteEpJustering && (
-                      <Alert variant="warning" className="mt-2">
-                        Du opprettholder kravet selv om BH avviste det.
-                      </Alert>
+              <Controller
+                name="krever_justert_ep"
+                control={control}
+                render={({ field: epField }) => (
+                  <Controller
+                    name="varslet_for_oppstart"
+                    control={control}
+                    render={({ field: varsletField }) => (
+                      <VederlagMethodSelector
+                        value={field.value}
+                        onChange={(metode) => handleMetodeChange(metode)}
+                        error={errors.metode?.message}
+                        kreverJustertEp={epField.value}
+                        onKreverJustertEpChange={epField.onChange}
+                        varsletForOppstart={varsletField.value}
+                        onVarsletForOppstartChange={varsletField.onChange}
+                        bhDesiredMethod={bhResponse?.oensket_metode}
+                        bhAvvisteEpJustering={bhAvvisteEpJustering || false}
+                      />
                     )}
-                    {kreverJustertEp && !bhAvvisteEpJustering && (
-                      <Alert variant="info" className="mt-2">
-                        Krav må varsles «uten ugrunnet opphold» etter forholdet oppsto.
-                      </Alert>
-                    )}
-                  </div>
+                  />
                 )}
-
-                {/* REGNINGSARBEID */}
-                <RadioItem
-                  value="REGNINGSARBEID"
-                  label={METODE_LABELS.REGNINGSARBEID}
-                  description={
-                    bhResponse?.oensket_metode === 'REGNINGSARBEID'
-                      ? `${METODE_DESCRIPTIONS.REGNINGSARBEID} ← Byggherrens ønskede metode`
-                      : METODE_DESCRIPTIONS.REGNINGSARBEID
-                  }
-                />
-                {selectedMetode === 'REGNINGSARBEID' && (
-                  <div className="ml-6 pl-4 border-l-2 border-pkt-border-subtle">
-                    <Controller
-                      name="varslet_for_oppstart"
-                      control={control}
-                      render={({ field: varsletField }) => (
-                        <Checkbox
-                          id="varslet_for_oppstart"
-                          label="Byggherren ble varslet før arbeidet startet (§34.4)"
-                          checked={varsletField.value}
-                          onCheckedChange={varsletField.onChange}
-                        />
-                      )}
-                    />
-                    {!varsletForOppstart && (
-                      <Alert variant="danger" className="mt-2">
-                        Uten forhåndsvarsel begrenses kravet til det BH «måtte forstå».
-                      </Alert>
-                    )}
-                  </div>
-                )}
-
-                {/* FASTPRIS_TILBUD */}
-                <RadioItem
-                  value="FASTPRIS_TILBUD"
-                  label={METODE_LABELS.FASTPRIS_TILBUD}
-                  description={
-                    bhResponse?.oensket_metode === 'FASTPRIS_TILBUD'
-                      ? `${METODE_DESCRIPTIONS.FASTPRIS_TILBUD} ← Byggherrens ønskede metode`
-                      : METODE_DESCRIPTIONS.FASTPRIS_TILBUD
-                  }
-                />
-              </RadioGroup>
+              />
             )}
           />
         </SectionContainer>
@@ -681,7 +664,142 @@ export function ReviseVederlagModal({
           </div>
         </SectionContainer>
 
-        {/* Seksjon 4: Begrunnelse */}
+        {/* Seksjon 4: Særskilte krav (§34.1.3) - Rigg, Drift, Produktivitet */}
+        <SectionContainer
+          title="Særskilte krav (§34.1.3)"
+          description="Krav om økte rigg-/driftskostnader og produktivitetstap krever særskilt varsel"
+          collapsible
+          defaultOpen={!!lastVederlagEvent.saerskilt_krav}
+        >
+
+          {/* Rigg/Drift section (§34.1.3 første ledd) */}
+          <div className="mb-4">
+            <Controller
+              name="har_rigg_krav"
+              control={control}
+              render={({ field }) => (
+                <Checkbox
+                  id="har_rigg_krav"
+                  label="Økte rigg- og driftsutgifter"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              )}
+            />
+
+            {harRiggKrav && (
+              <div className="mt-3 ml-6 space-y-4 border-l-2 border-pkt-border-subtle pl-4">
+                <FormField
+                  label="Estimert beløp for rigg/drift"
+                  error={errors.belop_rigg?.message}
+                >
+                  <Controller
+                    name="belop_rigg"
+                    control={control}
+                    render={({ field }) => (
+                      <CurrencyInput
+                        value={field.value ?? null}
+                        onChange={field.onChange}
+                      />
+                    )}
+                  />
+                </FormField>
+
+                <FormField
+                  label="Dato utgiftene ble erkjent"
+                  helpText="Varslingsfristen løper fra dette tidspunktet"
+                >
+                  <Controller
+                    name="dato_klar_over_rigg"
+                    control={control}
+                    render={({ field }) => (
+                      <DatePicker
+                        id="dato_klar_over_rigg"
+                        value={field.value}
+                        onChange={field.onChange}
+                      />
+                    )}
+                  />
+                </FormField>
+
+                {/* 7-day preclusion warning for rigg/drift */}
+                {riggPreklusjon?.alert && (
+                  <Alert
+                    variant={riggPreklusjon.alert.variant}
+                    title={riggPreklusjon.alert.title}
+                  >
+                    {riggPreklusjon.alert.message}
+                  </Alert>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Produktivitet section (§34.1.3 annet ledd) */}
+          <div>
+            <Controller
+              name="har_produktivitet_krav"
+              control={control}
+              render={({ field }) => (
+                <Checkbox
+                  id="har_produktivitet_krav"
+                  label="Nedsatt produktivitet"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              )}
+            />
+
+            {harProduktivitetKrav && (
+              <div className="mt-3 ml-6 space-y-4 border-l-2 border-pkt-border-subtle pl-4">
+                <FormField
+                  label="Estimert beløp for produktivitetstap"
+                  error={errors.belop_produktivitet?.message}
+                >
+                  <Controller
+                    name="belop_produktivitet"
+                    control={control}
+                    render={({ field }) => (
+                      <CurrencyInput
+                        value={field.value ?? null}
+                        onChange={field.onChange}
+                      />
+                    )}
+                  />
+                </FormField>
+
+                <FormField
+                  label="Dato produktivitetstapet ble erkjent"
+                  helpText="Varslingsfristen løper fra dette tidspunktet"
+                >
+                  <Controller
+                    name="dato_klar_over_produktivitet"
+                    control={control}
+                    render={({ field }) => (
+                      <DatePicker
+                        id="dato_klar_over_produktivitet"
+                        value={field.value}
+                        onChange={field.onChange}
+                      />
+                    )}
+                  />
+                </FormField>
+
+                {/* 7-day preclusion warning for produktivitet */}
+                {produktivitetPreklusjon?.alert && (
+                  <Alert
+                    variant={produktivitetPreklusjon.alert.variant}
+                    title={produktivitetPreklusjon.alert.title}
+                  >
+                    {produktivitetPreklusjon.alert.message}
+                  </Alert>
+                )}
+              </div>
+            )}
+          </div>
+        </SectionContainer>
+
+        {/* Seksjon 5: Begrunnelse */}
         <SectionContainer title="Begrunnelse">
           <FormField label="Begrunnelse for revisjon" required error={errors.begrunnelse?.message}>
             <Controller
