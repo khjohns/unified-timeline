@@ -69,7 +69,7 @@ export function Modal({
           {/* Header */}
           <div className="flex items-start justify-between mb-6">
             <div>
-              <Dialog.Title className="text-2xl font-bold text-pkt-text-body-dark">
+              <Dialog.Title className="text-xl font-bold text-pkt-text-body-dark">
                 {title}
               </Dialog.Title>
               {description && (
