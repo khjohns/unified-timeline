@@ -106,31 +106,44 @@ For generell systemarkitektur og datamodeller, se [ARCHITECTURE_AND_DATAMODEL.md
 
 ```
 src/
-├── api/                    # API-klient og datahenting
+├── api/                    # API-klient og datahenting (8 stk)
 │   ├── client.ts          # Sentralisert HTTP-klient med auth & CSRF
 │   ├── state.ts           # Leseoperasjoner (case state, timeline)
 │   ├── events.ts          # Skriveoperasjoner (event submission)
 │   ├── endringsordre.ts   # Endringsordre-spesifikke API-kall
-│   └── forsering.ts       # Forsering-spesifikke API-kall
+│   ├── forsering.ts       # Forsering-spesifikke API-kall
+│   ├── analytics.ts       # Analyse-API
+│   ├── cases.ts           # Sakshåndtering-API
+│   └── utils.ts           # API-hjelpefunksjoner
 │
 ├── components/            # React-komponenter (view layer)
-│   ├── actions/           # Modale skjemaer for event-submission (12 stk)
+│   ├── actions/           # Modale skjemaer for event-submission (9 stk)
 │   ├── alerts/            # Alert-komponenter (TokenExpiredAlert)
+│   ├── approval/          # Godkjenningsflyt-komponenter (6 stk)
 │   ├── endringsordre/     # Endringsordre-spesifikke komponenter
 │   ├── forsering/         # Forsering-spesifikke komponenter
-│   ├── primitives/        # Gjenbrukbare UI-byggeklosser (23 stk)
-│   ├── views/             # Side-nivå view-komponenter (8 stk)
+│   ├── pdf/               # PDF-visning (2 stk)
+│   ├── primitives/        # Gjenbrukbare UI-byggeklosser (26 stk)
+│   ├── views/             # Side-nivå view-komponenter (6 stk)
 │   ├── PageHeader.tsx     # Page header-komponent
 │   ├── ModeToggle.tsx     # Utviklingsmodus-toggle
 │   ├── ThemeToggle.tsx    # Lys/mørk tema-toggle
 │   ├── ErrorBoundary.tsx  # Feilhåndtering (fanger React-feil)
-│   └── PageLoadingFallback.tsx  # Loading-fallback for lazy-loading
+│   ├── PageLoadingFallback.tsx  # Loading-fallback for lazy-loading
+│   ├── ApprovalRoleSelector.tsx # Rollevalg for godkjenning
+│   ├── LoginForm.tsx      # Innloggingsskjema
+│   ├── MockToolbar.tsx    # Utviklerverktøy
+│   ├── PageStateHelpers.tsx     # Side-state hjelpere
+│   └── ProtectedRoute.tsx # Beskyttet rute-wrapper
 │
-├── context/               # React Context providers
+├── context/               # React Context providers (5 stk)
 │   ├── AuthContext.tsx    # Magic link-autentisering
-│   └── ThemeContext.tsx   # Lys/mørk tema-håndtering
+│   ├── ThemeContext.tsx   # Lys/mørk tema-håndtering
+│   ├── ApprovalContext.tsx     # Godkjenningsflyt state (mock)
+│   ├── UserRoleContext.tsx     # Brukerrolle-håndtering
+│   └── SupabaseAuthContext.tsx # Supabase auth-integrasjon
 │
-├── hooks/                 # Egendefinerte React hooks (8 stk)
+├── hooks/                 # Egendefinerte React hooks (12 stk)
 │   ├── useCaseState.ts    # React Query hook for case state
 │   ├── useTimeline.ts     # React Query hook for timeline events
 │   ├── useSubmitEvent.ts  # React Query mutation for event submission
@@ -138,15 +151,22 @@ src/
 │   ├── useUserRole.ts     # Hent brukerrolle (TE/BH)
 │   ├── useFormBackup.ts   # Auto-backup skjemadata ved token-utløp
 │   ├── useRevisionHistory.ts    # Revisjonshistorikk for vederlag/frist
-│   └── useConfirmClose.ts # Forhindre datatap ved lukking av modaler
+│   ├── useConfirmClose.ts # Forhindre datatap ved lukking av modaler
+│   ├── useApprovalWorkflow.ts  # Godkjenningsflyt-hook
+│   ├── useAnalytics.ts    # Analysehook
+│   ├── useCaseList.ts     # Saksliste-hook
+│   └── useVerifyToken.ts  # Token-verifisering
 │
-├── pages/                 # Sidekomponenter (6 stk)
+├── pages/                 # Sidekomponenter (9 stk)
 │   ├── AuthLanding.tsx    # Auth/innloggingsside
 │   ├── ExampleCasesPage.tsx     # Demo-saker for testing
 │   ├── CasePage.tsx       # Hovedsakvisning
 │   ├── ForseringPage.tsx  # Forsering-sakvisning
 │   ├── EndringsordePage.tsx     # Endringsordre-sakvisning
-│   └── ComponentShowcase.tsx    # Designsystem-dokumentasjon
+│   ├── ComponentShowcase.tsx    # Designsystem-dokumentasjon
+│   ├── SaksoversiktPage.tsx     # Saksliste/oversikt
+│   ├── OpprettSakPage.tsx       # Opprett ny sak
+│   └── AnalyticsDashboard.tsx   # Analyse-dashboard
 │
 ├── mocks/                 # Mock-data for utvikling
 │   ├── cases/             # Mock-saker
@@ -161,18 +181,32 @@ src/
 ├── types/                 # TypeScript-typedefinisjoner
 │   ├── index.ts           # Sentral eksport
 │   ├── api.ts             # API request/response-typer
-│   └── timeline.ts        # State og domenetyper (CloudEvents-format)
+│   ├── timeline.ts        # State og domenetyper (CloudEvents-format)
+│   └── approval.ts        # Godkjenningsflyt-typer
 │
-├── constants/             # Applikasjonskonstanter
+├── constants/             # Applikasjonskonstanter (12 stk)
 │   ├── categories.ts      # Kategoridefinisjoner
 │   ├── statusLabels.ts    # Status-etiketter
 │   ├── responseOptions.ts # Svaralternativer
 │   ├── varselMetoder.ts   # Varslingsmetoder
-│   └── queryConfig.ts     # React Query-konfigurasjon (STALE_TIME)
+│   ├── queryConfig.ts     # React Query-konfigurasjon (STALE_TIME)
+│   ├── approvalConfig.ts  # Godkjenningsflyt-konfig (beløpsgrenser, roller)
+│   ├── eventTypeLabels.ts # Event-type etiketter
+│   ├── fristVarselTypes.ts    # Fristvarsel-typer
+│   ├── paymentMethods.ts  # Betalingsmetoder
+│   ├── statusStyles.ts    # Status-styling
+│   └── varslingsregler.ts # Varslingsregler
 │
-├── utils/                 # Hjelpefunksjoner
+├── utils/                 # Hjelpefunksjoner (6 stk)
 │   ├── preklusjonssjekk.ts      # Fritsberegninger
-│   └── begrunnelseGenerator.ts  # Generer begrunnelser
+│   ├── begrunnelseGenerator.ts  # Generer begrunnelser
+│   ├── formatters.ts      # Generell formatering
+│   ├── dateFormatters.ts  # Datoformatering
+│   ├── fileUtils.ts       # Filhåndtering
+│   └── mergeDraftsIntoState.ts  # Flette utkast inn i state
+│
+├── lib/                   # Tredjepartsintegrasjoner
+│   └── supabase.ts        # Supabase-klient
 │
 ├── tests/                 # Testfiler (speiler src-struktur)
 │   ├── a11y/              # Tilgjengelighetstester
@@ -207,19 +241,23 @@ src/
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                          PAGES (6 stk)                          │
+│                          PAGES (9 stk)                          │
 │        Rute-håndtering, datahenting, sidekomposisjon           │
-│   CasePage, ForseringPage, EndringsordePage, ExampleCases...   │
+│   CasePage, ForseringPage, SaksoversiktPage, AnalyticsDash...  │
 ├─────────────────────────────────────────────────────────────────┤
 │                         VIEWS (6 stk)                           │
 │          Side-nivå komponenter, business-logikk                │
 │   Timeline, CaseDashboard, ComprehensiveMetadata...            │
 ├─────────────────────────────────────────────────────────────────┤
-│                        ACTIONS (12 stk)                         │
+│                        ACTIONS (9 stk)                          │
 │        Modale skjemaer for event-submission                    │
 │   SendGrunnlagModal, RespondVederlagModal, ReviseFristModal... │
 ├─────────────────────────────────────────────────────────────────┤
-│                      PRIMITIVES (23 stk)                        │
+│                       APPROVAL (6 stk)                          │
+│        Godkjenningsflyt for BH-responser                       │
+│   ApprovePakkeModal, SendResponsPakkeModal, ApprovalChain...   │
+├─────────────────────────────────────────────────────────────────┤
+│                      PRIMITIVES (26 stk)                        │
 │          Gjenbrukbare UI-byggeklosser, type-sikre              │
 │   Button, Input, Modal, Select, DatePicker, Card, Badge...    │
 └─────────────────────────────────────────────────────────────────┘
@@ -250,10 +288,13 @@ Plassering: `src/components/primitives/`
 | `StepIndicator` | Stegindikator | `steps`, `currentStep` |
 | `DataList` | Definisjonsliste | `items`, `columns` |
 | `CurrencyInput` | Beløpinput med formatering | `value`, `onChange`, `currency` |
-| `MetadataGrid` | Metadata-visning | `items`, `columns` |
 | `RevisionTag` | Revisjonsmerke | `revision`, `isLatest` |
 | `InfoLabel` | Informasjonsetikett | `icon`, `text`, `variant` |
 | `DashboardCard` | Dashboard-kort | `title`, `value`, `trend` |
+| `Tabs` | Fanenavigasjon | `tabs`, `activeTab`, `onChange` |
+| `Toast` | Varslingstoast | `message`, `type`, `duration` |
+| `AttachmentUpload` | Filopplasting | `onUpload`, `accept`, `multiple` |
+| `SectionContainer` | Seksjonswrapper | `title`, `children`, `collapsible` |
 
 ### Komponentmønster
 
@@ -352,6 +393,35 @@ Plassering: `src/components/actions/`
 | `RespondGrunnlagModal` | `respons_grunnlag` (respond mode) / `respons_grunnlag_oppdatert` (update mode via `lastResponseEvent` prop) |
 | `RespondVederlagModal` | `vederlag_response` (respond mode) / `respons_vederlag_oppdatert` (update mode via `lastResponseEvent` prop) |
 | `RespondFristModal` | `frist_response` (respond mode) / `respons_frist_oppdatert` (update mode via `lastResponseEvent` prop) |
+
+### Approval-komponenter (Godkjenningsflyt)
+
+Plassering: `src/components/approval/`
+
+**Merk:** Per nå kun mock-implementasjon med localStorage.
+
+| Komponent | Formål |
+|-----------|--------|
+| `ApprovalChainStatus` | Visuell visning av godkjenningskjede |
+| `ApprovalHistory` | Tidslinjevisning av godkjenningshandlinger |
+| `ApprovalDashboardCard` | Dashboard-kort for pakke-status |
+| `ApprovePakkeModal` | Modal for godkjenning/avvisning |
+| `SendResponsPakkeModal` | Modal for å sende pakke til godkjenning |
+| `PendingApprovalBanner` | Banner for ventende godkjenninger |
+
+**Flyt:** BH samler responser (grunnlag/vederlag/frist) → sender pakke til godkjenning →
+hierarkisk godkjenning basert på beløpsgrenser (PL→SL→AL→DU→AD) → godkjent eller avvist.
+
+Se `src/constants/approvalConfig.ts` for beløpsgrenser og `src/context/ApprovalContext.tsx` for state management.
+
+### PDF-komponenter
+
+Plassering: `src/components/pdf/`
+
+| Komponent | Formål |
+|-----------|--------|
+| `PdfPreview` | Forhåndsvisning av PDF-dokument |
+| `PdfPreviewModal` | Modal wrapper for PDF-visning |
 
 ---
 
@@ -572,9 +642,12 @@ const App: React.FC = () => {
       <Routes>
         <Route path="/" element={<AuthLanding />} />
         <Route path="/demo" element={<ExampleCasesPage />} />
+        <Route path="/saker" element={<SaksoversiktPage />} />
+        <Route path="/saker/ny" element={<OpprettSakPage />} />
         <Route path="/saker/:sakId" element={<CasePage />} />
         <Route path="/forsering/:sakId" element={<ForseringPage />} />
         <Route path="/endringsordre/:sakId" element={<EndringsordePage />} />
+        <Route path="/analyse" element={<AnalyticsDashboard />} />
         <Route path="/showcase" element={<ComponentShowcase />} />
       </Routes>
     </Suspense>
@@ -588,9 +661,12 @@ const App: React.FC = () => {
 |------|-----------|--------|
 | `/` | `AuthLanding` | Magic link-verifisering og redirect |
 | `/demo` | `ExampleCasesPage` | Demo-saker for testing/utvikling |
+| `/saker` | `SaksoversiktPage` | Saksliste/oversikt |
+| `/saker/ny` | `OpprettSakPage` | Opprett ny sak |
 | `/saker/:sakId` | `CasePage` | Hovedsakvisning med tidslinje |
 | `/forsering/:sakId` | `ForseringPage` | Forsering-sakvisning (§33.8) |
 | `/endringsordre/:sakId` | `EndringsordePage` | Endringsordre-visning (§31.3) |
+| `/analyse` | `AnalyticsDashboard` | Analyse-dashboard |
 | `/showcase` | `ComponentShowcase` | Designsystem-dokumentasjon |
 
 ### Router-oppsett
