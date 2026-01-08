@@ -316,14 +316,70 @@ export function SendVederlagModal({
                   onValueChange={field.onChange}
                   data-testid="vederlag-metode"
                 >
-                  {METODE_OPTIONS.map((option) => (
-                    <RadioItem
-                      key={option.value}
-                      value={option.value}
-                      label={option.label}
-                      description={option.description}
-                    />
-                  ))}
+                  {/* ENHETSPRISER med nestet checkbox */}
+                  <RadioItem
+                    value="ENHETSPRISER"
+                    label="Enhetspriser (§34.3)"
+                    description="Beregning basert på kontraktens enhetspriser"
+                  />
+                  {selectedMetode === 'ENHETSPRISER' && (
+                    <div className="ml-6 pl-4 border-l-2 border-pkt-border-subtle">
+                      <Controller
+                        name="krever_justert_ep"
+                        control={control}
+                        render={({ field: epField }) => (
+                          <Checkbox
+                            id="krever_justert_ep"
+                            label="Krever justerte enhetspriser (§34.3.3)"
+                            description="Når forutsetningene for enhetsprisene forrykkes"
+                            checked={epField.value}
+                            onCheckedChange={epField.onChange}
+                          />
+                        )}
+                      />
+                      {kreverJustertEp && (
+                        <Alert variant="warning" className="mt-2">
+                          Krav om justerte enhetspriser må varsles «uten ugrunnet opphold» etter at forholdet oppsto.
+                          Uten rettidig varsel har du bare krav på den justering byggherren «måtte forstå» (§34.3.3).
+                        </Alert>
+                      )}
+                    </div>
+                  )}
+
+                  {/* REGNINGSARBEID med nestet checkbox */}
+                  <RadioItem
+                    value="REGNINGSARBEID"
+                    label="Regningsarbeid (§34.4)"
+                    description="Kostnader faktureres løpende etter medgått tid og materialer"
+                  />
+                  {selectedMetode === 'REGNINGSARBEID' && (
+                    <div className="ml-6 pl-4 border-l-2 border-pkt-border-subtle">
+                      <Controller
+                        name="varslet_for_oppstart"
+                        control={control}
+                        render={({ field: varsletField }) => (
+                          <Checkbox
+                            id="varslet_for_oppstart"
+                            label="Byggherren ble varslet før regningsarbeidet startet (§34.4)"
+                            checked={varsletField.value}
+                            onCheckedChange={varsletField.onChange}
+                          />
+                        )}
+                      />
+                      {!varsletForOppstart && (
+                        <Alert variant="danger" className="mt-2">
+                          Uten forhåndsvarsel har du bare krav på det byggherren «måtte forstå» at du har hatt av utgifter (§30.3.1).
+                        </Alert>
+                      )}
+                    </div>
+                  )}
+
+                  {/* FASTPRIS_TILBUD (ingen nestet innhold) */}
+                  <RadioItem
+                    value="FASTPRIS_TILBUD"
+                    label="Fastpris/Tilbud (§34.2.1)"
+                    description="Avtalt fastpris for endringsarbeidet"
+                  />
                 </RadioGroup>
               )}
             />
@@ -333,49 +389,24 @@ export function SendVederlagModal({
         {/* 2. Kravets omfang - Metodespesifikk */}
         <SectionContainer title="Kravets omfang">
           {selectedMetode === 'ENHETSPRISER' && (
-            <>
-              <FormField
-                label="Sum direkte kostnader"
-                required
-                error={errors.belop_direkte?.message}
-                helpText="Negativt beløp angir fradrag. Ved fradrag brukes enhetsprisene tilsvarende (§34.3)."
-              >
-                <Controller
-                  name="belop_direkte"
-                  control={control}
-                  render={({ field }) => (
-                    <CurrencyInput
-                      value={field.value ?? null}
-                      onChange={field.onChange}
-                      
-                      allowNegative
-                    />
-                  )}
-                />
-              </FormField>
-
-              <div className="mt-4">
-                <Controller
-                  name="krever_justert_ep"
-                  control={control}
-                  render={({ field }) => (
-                    <Checkbox
-                      id="krever_justert_ep"
-                      label="Krever justerte enhetspriser (§34.3.3)"
-                      description="Gjelder når forutsetningene for enhetsprisene forrykkes, f.eks. pga. endret omfang, tidspunkt eller antall endringsarbeider (§34.3.2)"
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  )}
-                />
-                {kreverJustertEp && (
-                  <Alert variant="warning" className="mt-3">
-                    Krav om justerte enhetspriser må varsles «uten ugrunnet opphold» etter at forholdet oppsto.
-                    Uten rettidig varsel har du bare krav på den justering byggherren «måtte forstå» (§34.3.3).
-                  </Alert>
+            <FormField
+              label="Sum direkte kostnader"
+              required
+              error={errors.belop_direkte?.message}
+              helpText="Negativt beløp angir fradrag. Ved fradrag brukes enhetsprisene tilsvarende (§34.3)."
+            >
+              <Controller
+                name="belop_direkte"
+                control={control}
+                render={({ field }) => (
+                  <CurrencyInput
+                    value={field.value ?? null}
+                    onChange={field.onChange}
+                    allowNegative
+                  />
                 )}
-              </div>
-            </>
+              />
+            </FormField>
           )}
 
           {selectedMetode === 'REGNINGSARBEID' && (
@@ -397,33 +428,10 @@ export function SendVederlagModal({
                     <CurrencyInput
                       value={field.value ?? null}
                       onChange={field.onChange}
-                      
                     />
                   )}
                 />
               </FormField>
-
-              <div className="mt-4">
-                <Controller
-                  name="varslet_for_oppstart"
-                  control={control}
-                  render={({ field }) => (
-                    <Checkbox
-                      id="varslet_for_oppstart"
-                      label="Byggherren ble varslet før regningsarbeidet startet (§34.4)"
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  )}
-                />
-
-                {!varsletForOppstart && (
-                  <Alert variant="danger" className="mt-2">
-                    Uten forhåndsvarsel har du bare krav på det byggherren «måtte forstå» at du har hatt av utgifter (§30.3.1).
-                    Husk også ukentlig dokumentasjon av påløpte kostnader.
-                  </Alert>
-                )}
-              </div>
             </>
           )}
 

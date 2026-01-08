@@ -120,9 +120,8 @@ interface ReviseVederlagModalProps {
 // ============================================================================
 
 const reviseVederlagSchema = z.object({
-  // Method change
-  endre_metode: z.boolean(),
-  ny_metode: z.enum(['ENHETSPRISER', 'REGNINGSARBEID', 'FASTPRIS_TILBUD']).optional(),
+  // Method - all options shown, original pre-selected
+  metode: z.enum(['ENHETSPRISER', 'REGNINGSARBEID', 'FASTPRIS_TILBUD']),
 
   // Amount fields
   nytt_belop_direkte: z.number().optional(),
@@ -184,8 +183,7 @@ export function ReviseVederlagModal({
   } = useForm<ReviseVederlagFormData>({
     resolver: zodResolver(reviseVederlagSchema),
     defaultValues: {
-      endre_metode: false,
-      ny_metode: undefined,
+      metode: lastVederlagEvent.metode,
       nytt_belop_direkte: erRegningsarbeid ? undefined : lastVederlagEvent.belop_direkte,
       nytt_kostnads_overslag: erRegningsarbeid ? lastVederlagEvent.kostnads_overslag : undefined,
       krever_justert_ep: lastVederlagEvent.krever_justert_ep ?? false,
@@ -218,17 +216,15 @@ export function ReviseVederlagModal({
   const handleDiscardBackup = () => { clearBackup(); setShowRestorePrompt(false); };
 
   // Watch form values
-  const endreMetode = watch('endre_metode');
-  const nyMetode = watch('ny_metode');
+  const selectedMetode = watch('metode');
   const nyttBelopDirekte = watch('nytt_belop_direkte');
   const nyttKostnadsOverslag = watch('nytt_kostnads_overslag');
   const kreverJustertEp = watch('krever_justert_ep');
   const varsletForOppstart = watch('varslet_for_oppstart');
 
-  // Effective metode (after potential change)
-  const effektivMetode = endreMetode && nyMetode ? nyMetode : forrigeMetode;
-  const nyErRegningsarbeid = effektivMetode === 'REGNINGSARBEID';
-  const nyErEnhetspriser = effektivMetode === 'ENHETSPRISER';
+  // Selected metode determines field display
+  const nyErRegningsarbeid = selectedMetode === 'REGNINGSARBEID';
+  const nyErEnhetspriser = selectedMetode === 'ENHETSPRISER';
 
   // Get the relevant amount based on effective metode
   const nyttBelop = nyErRegningsarbeid ? nyttKostnadsOverslag : nyttBelopDirekte;
@@ -239,7 +235,7 @@ export function ReviseVederlagModal({
     if (!nyttKostnadsOverslag) return false;
 
     // If changing TO regningsarbeid, any overslag is new
-    if (endreMetode && nyMetode === 'REGNINGSARBEID' && forrigeMetode !== 'REGNINGSARBEID') {
+    if (selectedMetode === 'REGNINGSARBEID' && forrigeMetode !== 'REGNINGSARBEID') {
       return true;
     }
 
@@ -249,8 +245,7 @@ export function ReviseVederlagModal({
   }, [
     nyErRegningsarbeid,
     nyttKostnadsOverslag,
-    endreMetode,
-    nyMetode,
+    selectedMetode,
     forrigeMetode,
     lastVederlagEvent.kostnads_overslag,
   ]);
@@ -259,48 +254,12 @@ export function ReviseVederlagModal({
   const belopEndring = useMemo(() => {
     if (!nyttBelop || !forrigeBelop) return null;
     // Only show change if same metode type
-    if (endreMetode && nyMetode && nyMetode !== forrigeMetode) return null;
+    if (selectedMetode !== forrigeMetode) return null;
     return nyttBelop - forrigeBelop;
-  }, [nyttBelop, forrigeBelop, endreMetode, nyMetode, forrigeMetode]);
+  }, [nyttBelop, forrigeBelop, selectedMetode, forrigeMetode]);
 
-  // Validate that something has changed
-  const harEndringer = useMemo(() => {
-    // Method changed
-    if (endreMetode && nyMetode && nyMetode !== forrigeMetode) return true;
-
-    // Amount changed
-    if (nyErRegningsarbeid) {
-      if (nyttKostnadsOverslag !== lastVederlagEvent.kostnads_overslag) return true;
-    } else {
-      if (nyttBelopDirekte !== lastVederlagEvent.belop_direkte) return true;
-    }
-
-    // krever_justert_ep changed (only for ENHETSPRISER)
-    if (nyErEnhetspriser && kreverJustertEp !== (lastVederlagEvent.krever_justert_ep ?? false)) {
-      return true;
-    }
-
-    // varslet_for_oppstart changed (only for REGNINGSARBEID)
-    if (
-      nyErRegningsarbeid &&
-      varsletForOppstart !== (lastVederlagEvent.varslet_for_oppstart ?? true)
-    ) {
-      return true;
-    }
-
-    return false;
-  }, [
-    endreMetode,
-    nyMetode,
-    forrigeMetode,
-    nyErRegningsarbeid,
-    nyErEnhetspriser,
-    nyttKostnadsOverslag,
-    nyttBelopDirekte,
-    kreverJustertEp,
-    varsletForOppstart,
-    lastVederlagEvent,
-  ]);
+  // Allow revision with only begrunnelse update (no field changes required)
+  const harEndringer = true;
 
   // Hold tilbake: Must provide overslag
   const manglerPaakrevdOverslag = useMemo(() => {
@@ -329,9 +288,8 @@ export function ReviseVederlagModal({
   });
 
   const onSubmit = (data: ReviseVederlagFormData) => {
-    const finalMetode = data.endre_metode && data.ny_metode ? data.ny_metode : forrigeMetode;
-    const finalErRegningsarbeid = finalMetode === 'REGNINGSARBEID';
-    const finalErEnhetspriser = finalMetode === 'ENHETSPRISER';
+    const erRegning = data.metode === 'REGNINGSARBEID';
+    const erEP = data.metode === 'ENHETSPRISER';
 
     mutation.mutate({
       eventType: 'vederlag_krav_oppdatert',
@@ -339,13 +297,13 @@ export function ReviseVederlagModal({
         original_event_id: lastVederlagEvent.event_id,
 
         // Use same field names as initial claim for consistency
-        metode: finalMetode,
-        belop_direkte: finalErRegningsarbeid ? undefined : data.nytt_belop_direkte,
-        kostnads_overslag: finalErRegningsarbeid ? data.nytt_kostnads_overslag : undefined,
+        metode: data.metode,
+        belop_direkte: erRegning ? undefined : data.nytt_belop_direkte,
+        kostnads_overslag: erRegning ? data.nytt_kostnads_overslag : undefined,
 
         // Method-related fields
-        krever_justert_ep: finalErEnhetspriser ? data.krever_justert_ep : undefined,
-        varslet_for_oppstart: finalErRegningsarbeid ? data.varslet_for_oppstart : undefined,
+        krever_justert_ep: erEP ? data.krever_justert_ep : undefined,
+        varslet_for_oppstart: erRegning ? data.varslet_for_oppstart : undefined,
 
         begrunnelse: data.begrunnelse,
         dato_revidert: new Date().toISOString().split('T')[0],
@@ -354,32 +312,11 @@ export function ReviseVederlagModal({
   };
 
   // Reset amount fields when method changes
-  const handleMetodeChange = (checked: boolean) => {
-    setValue('endre_metode', checked);
-    if (!checked) {
-      setValue('ny_metode', undefined);
-      // Reset to original values
-      setValue(
-        'nytt_belop_direkte',
-        erRegningsarbeid ? undefined : lastVederlagEvent.belop_direkte
-      );
-      setValue(
-        'nytt_kostnads_overslag',
-        erRegningsarbeid ? lastVederlagEvent.kostnads_overslag : undefined
-      );
-    }
-  };
-
-  const handleNyMetodeChange = (metode: string) => {
-    setValue('ny_metode', metode as VederlagsMetode);
+  const handleMetodeChange = (newMetode: string) => {
+    setValue('metode', newMetode as VederlagsMetode);
     // Clear amount fields when switching metode type
-    if (metode === 'REGNINGSARBEID') {
-      setValue('nytt_belop_direkte', undefined);
-      setValue('nytt_kostnads_overslag', undefined);
-    } else {
-      setValue('nytt_belop_direkte', undefined);
-      setValue('nytt_kostnads_overslag', undefined);
-    }
+    setValue('nytt_belop_direkte', undefined);
+    setValue('nytt_kostnads_overslag', undefined);
   };
 
   return (
@@ -406,100 +343,106 @@ export function ReviseVederlagModal({
           </div>
         </div>
 
-        {/* ============================================
-            KONTEKST: DITT FORRIGE KRAV
-            ============================================ */}
-        <div className="bg-pkt-bg-subtle p-4 rounded-none border-2 border-pkt-border-subtle">
-          <h4 className="font-bold text-sm mb-3">Ditt forrige krav</h4>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="text-pkt-text-body-subtle">Metode:</span>
-              <div className="font-medium">{METODE_LABELS[forrigeMetode]}</div>
-            </div>
-            <div className="text-right">
-              <span className="text-pkt-text-body-subtle">
-                {erRegningsarbeid ? 'Kostnadsoverslag:' : 'Beløp:'}
+        {/* Seksjon 1: Nåværende status */}
+        <SectionContainer title="Nåværende status" variant="subtle">
+          <div className="space-y-4">
+            {/* Ditt forrige krav - inline */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+              <span>
+                <span className="text-pkt-text-body-subtle">Metode:</span>{' '}
+                <span className="font-medium">{METODE_LABELS[forrigeMetode]}</span>
               </span>
-              <div className="text-xl font-bold font-mono">
-                kr {forrigeBelop?.toLocaleString('nb-NO') ?? 0},-
-              </div>
-            </div>
-            {erEnhetspriser && lastVederlagEvent.krever_justert_ep && (
-              <div className="col-span-2">
-                <Badge variant="info">Krever justert EP (§34.3.3)</Badge>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ============================================
-            KONTEKST: BYGGHERRENS SVAR (hvis finnes)
-            ============================================ */}
-        {harBhSvar && bhResponse && (
-          <div className="p-4 rounded-none border-2 border-pkt-border-default bg-pkt-surface-subtle">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="font-bold text-sm">Byggherrens svar</h4>
-              <Badge variant={RESULTAT_VARIANTS[bhResponse.resultat]}>
-                {RESULTAT_LABELS[bhResponse.resultat]}
-              </Badge>
-            </div>
-
-            <div className="space-y-3 text-sm">
-              {/* Godkjent beløp */}
-              {bhResponse.godkjent_belop != null && (
-                <div className="flex justify-between">
-                  <span className="text-pkt-text-body-subtle">Godkjent beløp:</span>
-                  <span className="font-mono font-medium">
-                    kr {bhResponse.godkjent_belop.toLocaleString('nb-NO')},-
-                    {forrigeBelop && forrigeBelop > 0 && (
-                      <span className="text-pkt-text-body-subtle ml-2">
-                        ({((bhResponse.godkjent_belop / forrigeBelop) * 100).toFixed(0)}%)
-                      </span>
-                    )}
-                  </span>
-                </div>
+              <span className="text-pkt-border-subtle">|</span>
+              <span>
+                <span className="text-pkt-text-body-subtle">
+                  {erRegningsarbeid ? 'Overslag:' : 'Beløp:'}
+                </span>{' '}
+                <span className="font-mono font-bold">
+                  kr {forrigeBelop?.toLocaleString('nb-NO') ?? 0},-
+                </span>
+              </span>
+              {erEnhetspriser && lastVederlagEvent.krever_justert_ep && (
+                <>
+                  <span className="text-pkt-border-subtle">|</span>
+                  <Badge variant="info">Justert EP</Badge>
+                </>
               )}
+            </div>
 
-              {/* Metode-vurdering */}
-              {bhResponse.aksepterer_metode !== undefined && (
-                <div className="flex justify-between items-center">
-                  <span className="text-pkt-text-body-subtle">Metode:</span>
-                  {bhResponse.aksepterer_metode ? (
-                    <Badge variant="success">Akseptert</Badge>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <Badge variant="danger">Avvist</Badge>
-                      {bhResponse.oensket_metode && (
-                        <span className="text-xs">
-                          → Ønsker {METODE_LABELS[bhResponse.oensket_metode]}
-                        </span>
+            {/* Byggherrens svar - collapsible */}
+            {harBhSvar && bhResponse && (
+              <Collapsible
+                title="Byggherrens svar"
+                defaultOpen={false}
+              >
+                <div className="space-y-3 text-sm">
+                  {/* Resultat badge */}
+                  <div className="flex justify-between items-center">
+                    <span className="text-pkt-text-body-subtle">Resultat:</span>
+                    <Badge variant={RESULTAT_VARIANTS[bhResponse.resultat]}>
+                      {RESULTAT_LABELS[bhResponse.resultat]}
+                    </Badge>
+                  </div>
+
+                  {/* Godkjent beløp */}
+                  {bhResponse.godkjent_belop != null && (
+                    <div className="flex justify-between">
+                      <span className="text-pkt-text-body-subtle">Godkjent beløp:</span>
+                      <span className="font-mono font-medium">
+                        kr {bhResponse.godkjent_belop.toLocaleString('nb-NO')},-
+                        {forrigeBelop && forrigeBelop > 0 && (
+                          <span className="text-pkt-text-body-subtle ml-2">
+                            ({((bhResponse.godkjent_belop / forrigeBelop) * 100).toFixed(0)}%)
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Metode-vurdering */}
+                  {bhResponse.aksepterer_metode !== undefined && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-pkt-text-body-subtle">Metode:</span>
+                      {bhResponse.aksepterer_metode ? (
+                        <Badge variant="success">Akseptert</Badge>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <Badge variant="danger">Avvist</Badge>
+                          {bhResponse.oensket_metode && (
+                            <span className="text-xs">
+                              → Ønsker {METODE_LABELS[bhResponse.oensket_metode]}
+                            </span>
+                          )}
+                        </div>
                       )}
                     </div>
                   )}
-                </div>
-              )}
 
-              {/* EP-justering */}
-              {lastVederlagEvent.krever_justert_ep &&
-                bhResponse.ep_justering_akseptert !== undefined && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-pkt-text-body-subtle">EP-justering (§34.3.3):</span>
-                    <Badge variant={bhResponse.ep_justering_akseptert ? 'success' : 'danger'}>
-                      {bhResponse.ep_justering_akseptert ? 'Akseptert' : 'Avvist'}
-                    </Badge>
-                  </div>
-                )}
+                  {/* EP-justering */}
+                  {lastVederlagEvent.krever_justert_ep &&
+                    bhResponse.ep_justering_akseptert !== undefined && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-pkt-text-body-subtle">EP-justering (§34.3.3):</span>
+                        <Badge variant={bhResponse.ep_justering_akseptert ? 'success' : 'danger'}>
+                          {bhResponse.ep_justering_akseptert ? 'Akseptert' : 'Avvist'}
+                        </Badge>
+                      </div>
+                    )}
 
-              {/* Begrunnelse */}
-              {bhResponse.begrunnelse && (
-                <div className="pt-2 border-t border-pkt-border-subtle">
-                  <span className="text-pkt-text-body-subtle block mb-1">Begrunnelse:</span>
-                  <p className="italic text-pkt-text-body">&ldquo;{bhResponse.begrunnelse}&rdquo;</p>
+                  {/* Begrunnelse */}
+                  {bhResponse.begrunnelse && (
+                    <div className="pt-2 border-t border-pkt-border-subtle">
+                      <span className="text-pkt-text-body-subtle block mb-1">Begrunnelse:</span>
+                      <p className="italic text-pkt-text-body whitespace-pre-line">
+                        &ldquo;{bhResponse.begrunnelse}&rdquo;
+                      </p>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </Collapsible>
+            )}
           </div>
-        )}
+        </SectionContainer>
 
         {/* Hold tilbake alert */}
         {erHoldTilbake && (
