@@ -1055,16 +1055,17 @@ export function BHResponsForseringModal({
                         </div>
                       );
                     })}
-                    <div className="pt-2 text-sm">
-                      <strong>Konklusjon:</strong>{' '}
+                    <div className="pt-2 text-sm flex items-center gap-2 flex-wrap">
+                      <strong>Konklusjon:</strong>
                       {computed.harForseringsrett ? (
-                        <span className="text-green-700">
-                          TE har forseringsrett ({computed.dagerUberettiget} av {computed.totalAvslatteDager} dager med uberettiget avslag)
-                        </span>
+                        <>
+                          <Badge variant="success">Har forseringsrett</Badge>
+                          <span className="text-pkt-text-body-subtle">
+                            ({computed.dagerUberettiget} av {computed.totalAvslatteDager} dager med uberettiget avslag)
+                          </span>
+                        </>
                       ) : (
-                        <span className="text-red-700">
-                          TE har ikke forseringsrett (alle avslag var berettiget)
-                        </span>
+                        <Badge variant="danger">Ingen forseringsrett</Badge>
                       )}
                     </div>
                   </div>

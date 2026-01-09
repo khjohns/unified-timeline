@@ -392,10 +392,10 @@ export function ForseringDashboard({
             </DataListItem>
             {forseringData.paalopte_kostnader !== undefined && (
               <DataListItem label="Påløpt">
-                <span className={`font-bold ${
-                  getCostStatus(forseringData).status === 'danger' ? 'text-pkt-brand-red-1000' :
-                  getCostStatus(forseringData).status === 'warning' ? 'text-pkt-brand-yellow-1000' :
-                  'text-pkt-brand-dark-green-1000'
+                <span className={`font-bold font-mono ${
+                  getCostStatus(forseringData).status === 'danger' ? 'text-alert-danger-text' :
+                  getCostStatus(forseringData).status === 'warning' ? 'text-alert-warning-text' :
+                  'text-alert-success-text'
                 }`}>
                   {formatCurrency(forseringData.paalopte_kostnader)}
                 </span>
