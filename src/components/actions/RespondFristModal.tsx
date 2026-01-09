@@ -49,7 +49,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
 import { useConfirmClose } from '../../hooks/useConfirmClose';
-import { BH_FRISTSVAR_DESCRIPTIONS } from '../../constants';
 import { differenceInDays } from 'date-fns';
 import type { SubsidiaerTrigger, FristTilstand, FristBeregningResultat } from '../../types/timeline';
 import {
@@ -1469,15 +1468,6 @@ export function RespondFristModal({
                       </div>
                     )}
                   </>
-                )}
-
-                {/* Show description of principal result */}
-                {prinsipaltResultat && BH_FRISTSVAR_DESCRIPTIONS[prinsipaltResultat] && (
-                  <div className="p-4 bg-pkt-surface-subtle rounded-none border-l-4 border-pkt-border-focus">
-                    <p className="text-sm text-pkt-text-body-subtle">
-                      {BH_FRISTSVAR_DESCRIPTIONS[prinsipaltResultat]}
-                    </p>
-                  </div>
                 )}
 
                 {/* Auto-generert begrunnelse (ikke redigerbar) */}
