@@ -1,14 +1,14 @@
 /**
  * RelatertKOEListe Component
  *
- * Displays a list of related KOE cases for an endringsordre.
+ * Displays a table of related KOE cases for an endringsordre.
  * Shows vederlag and frist amounts for each KOE case.
- * Follows the same pattern as RelaterteSakerListe for consistency.
+ * Follows the same table pattern as RelaterteSakerListe for consistency.
  */
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Badge, Button, Card } from '../primitives';
+import { Button, Card } from '../primitives';
 import { ExternalLinkIcon, TrashIcon, Cross2Icon } from '@radix-ui/react-icons';
 
 export interface KOEOversiktItem {
@@ -31,7 +31,7 @@ interface RelatertKOEListeProps {
   onRemove?: (sakId: string) => void;
   /** Loading state during removal */
   isRemoving?: boolean;
-  /** Action button for header (e.g., "Legg til KOE") */
+  /** Action button for footer (e.g., "Legg til KOE") */
   headerAction?: React.ReactNode;
 }
 
@@ -70,16 +70,11 @@ export function RelatertKOEListe({
 
   if (koeOversikt.length === 0) {
     return (
-      <Card className="p-0 overflow-hidden">
-        <div className="px-4 py-3 bg-pkt-surface-subtle border-b-2 border-pkt-border-subtle flex items-center justify-between">
-          <Badge variant="default" size="sm">0 KOE-saker</Badge>
-          {headerAction}
-        </div>
-        <div className="p-4">
-          <p className="text-pkt-text-body-subtle text-sm">
-            Ingen relaterte KOE-saker. Dette er en standalone endringsordre.
-          </p>
-        </div>
+      <Card className="p-4">
+        <p className="text-pkt-text-body-subtle text-sm mb-3">
+          Ingen relaterte KOE-saker. Dette er en standalone endringsordre.
+        </p>
+        {headerAction}
       </Card>
     );
   }
@@ -89,110 +84,108 @@ export function RelatertKOEListe({
   const totalDager = koeOversikt.reduce((sum, koe) => sum + (koe.godkjent_dager || 0), 0);
 
   return (
-    <Card className="p-0 overflow-hidden">
-      <div className="px-4 py-3 bg-pkt-surface-subtle border-b-2 border-pkt-border-subtle flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Badge variant="default" size="sm">
-            {koeOversikt.length} {koeOversikt.length === 1 ? 'KOE-sak' : 'KOE-saker'}
-          </Badge>
-          {totalVederlag > 0 && (
-            <span className="text-xs text-pkt-text-body-subtle">
-              Totalt: <span className="font-medium">{formatCurrency(totalVederlag)}</span>
-              {totalDager > 0 && <>, <span className="font-medium">{totalDager} dager</span></>}
-            </span>
-          )}
-        </div>
-        {headerAction}
-      </div>
+    <Card className="p-3">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-pkt-border-subtle">
+            <th className="text-left py-1.5 font-medium">Sak</th>
+            <th className="text-right py-1.5 font-medium w-28">Vederlag</th>
+            <th className="text-right py-1.5 font-medium w-16">Dager</th>
+            <th className="w-12"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {koeOversikt.map((koe) => {
+            const isConfirming = confirmingRemoval === koe.sak_id;
 
-      <ul className="divide-y-2 divide-pkt-border-subtle">
-        {koeOversikt.map((koe) => {
-          const isConfirming = confirmingRemoval === koe.sak_id;
-
-          return (
-            <li key={koe.sak_id} className="relative">
-              {/* Confirmation overlay */}
-              {isConfirming && (
-                <div className="absolute inset-0 bg-alert-danger-bg/95 z-10 flex items-center justify-center p-4">
-                  <div className="text-center">
-                    <p className="text-sm font-medium text-alert-danger-text mb-3">
-                      Fjern denne KOE-saken fra endringsordren?
-                    </p>
-                    <div className="flex gap-2 justify-center">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleCancelRemoval}
-                        disabled={isRemoving}
-                      >
-                        <Cross2Icon className="w-4 h-4 mr-1" />
-                        Avbryt
-                      </Button>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={(e) => handleConfirmRemoval(koe.sak_id, e)}
-                        disabled={isRemoving}
-                      >
-                        <TrashIcon className="w-4 h-4 mr-1" />
-                        {isRemoving ? 'Fjerner...' : 'Fjern'}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <Link
-                to={`/saker/${koe.sak_id}`}
-                className="block p-4 hover:bg-pkt-surface-subtle transition-colors group"
+            return (
+              <tr
+                key={koe.sak_id}
+                className="border-b border-pkt-border-subtle last:border-b-0 hover:bg-pkt-surface-subtle transition-colors relative"
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    {/* Title */}
-                    <span className="font-medium truncate block">
-                      {koe.tittel}
-                    </span>
-
-                    {/* Vederlag and frist info */}
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm">
-                      {koe.godkjent_vederlag !== undefined && (
-                        <span className="text-pkt-text-body-subtle">
-                          Vederlag:{' '}
-                          <span className="font-medium text-pkt-brand-dark-green-1000">
-                            {formatCurrency(koe.godkjent_vederlag)}
-                          </span>
+                {/* Confirmation overlay */}
+                {isConfirming && (
+                  <td colSpan={4} className="p-0">
+                    <div className="absolute inset-0 bg-alert-danger-bg/95 z-10 flex items-center justify-center">
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium text-alert-danger-text">
+                          Fjern saken?
                         </span>
-                      )}
-                      {koe.godkjent_dager !== undefined && (
-                        <span className="text-pkt-text-body-subtle">
-                          Frist:{' '}
-                          <span className="font-medium text-pkt-text-body-default">
-                            {koe.godkjent_dager} dager
-                          </span>
-                        </span>
-                      )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleCancelRemoval}
+                          disabled={isRemoving}
+                        >
+                          <Cross2Icon className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={(e) => handleConfirmRemoval(koe.sak_id, e)}
+                          disabled={isRemoving}
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
+                  </td>
+                )}
 
-                  {/* Actions */}
-                  <div className="flex items-center gap-2 flex-shrink-0 mt-1">
-                    {canRemove && onRemove && (
-                      <button
-                        onClick={(e) => handleRemoveClick(koe.sak_id, e)}
-                        className="p-1.5 text-pkt-text-body-subtle hover:text-alert-danger-text hover:bg-alert-danger-bg rounded transition-colors"
-                        title="Fjern fra endringsordre"
+                {!isConfirming && (
+                  <>
+                    <td className="py-2">
+                      <Link
+                        to={`/saker/${koe.sak_id}`}
+                        className="hover:text-pkt-text-action-active transition-colors"
                       >
-                        <TrashIcon className="w-4 h-4" />
-                      </button>
-                    )}
-                    <ExternalLinkIcon className="w-4 h-4 text-pkt-text-body-subtle group-hover:text-pkt-text-action-active transition-colors" />
-                  </div>
-                </div>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{koe.tittel}</span>
+                          <ExternalLinkIcon className="w-3 h-3 text-pkt-text-body-subtle" />
+                        </div>
+                      </Link>
+                    </td>
+                    <td className="text-right py-2 font-mono text-pkt-brand-dark-green-1000">
+                      {koe.godkjent_vederlag !== undefined ? formatCurrency(koe.godkjent_vederlag) : '-'}
+                    </td>
+                    <td className="text-right py-2 font-mono">
+                      {koe.godkjent_dager ?? '-'}
+                    </td>
+                    <td className="text-right py-2">
+                      {canRemove && onRemove && (
+                        <button
+                          onClick={(e) => handleRemoveClick(koe.sak_id, e)}
+                          className="p-1 text-pkt-text-body-subtle hover:text-alert-danger-text hover:bg-alert-danger-bg rounded transition-colors"
+                          title="Fjern fra endringsordre"
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                        </button>
+                      )}
+                    </td>
+                  </>
+                )}
+              </tr>
+            );
+          })}
+        </tbody>
+        {koeOversikt.length > 1 && (
+          <tfoot>
+            <tr className="border-t-2 border-pkt-border-default">
+              <td className="py-2 font-bold">Totalt</td>
+              <td className="text-right py-2 font-mono font-bold text-pkt-brand-dark-green-1000">
+                {formatCurrency(totalVederlag)}
+              </td>
+              <td className="text-right py-2 font-mono font-bold">{totalDager}</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        )}
+      </table>
+      {headerAction && (
+        <div className="mt-3 pt-3 border-t border-pkt-border-subtle">
+          {headerAction}
+        </div>
+      )}
     </Card>
   );
 }
