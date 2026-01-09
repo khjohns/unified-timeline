@@ -17,6 +17,8 @@ import {
   AttachmentUpload,
   Button,
   Checkbox,
+  DataList,
+  DataListItem,
   DatePicker,
   FormField,
   Input,
@@ -398,14 +400,17 @@ export function SendGrunnlagModal({
             description={`Varslet ${grunnlag.grunnlag_varsel?.dato_sendt || 'ukjent dato'}. Endringer loggføres i historikken.`}
             variant="subtle"
           >
-            <dl className="grid grid-cols-2 gap-2 text-sm">
-              <dt className="text-pkt-grays-gray-500">Kategori:</dt>
-              <dd className="font-medium">{getHovedkategoriLabel(grunnlag.hovedkategori || '')}</dd>
-              <dt className="text-pkt-grays-gray-500">Oppdaget:</dt>
-              <dd>{grunnlag.dato_oppdaget}</dd>
-              <dt className="text-pkt-grays-gray-500">Varslet:</dt>
-              <dd>{grunnlag.grunnlag_varsel?.dato_sendt || 'Ikke varslet'}</dd>
-            </dl>
+            <DataList variant="grid">
+              <DataListItem label="Kategori">
+                <span className="font-medium">{getHovedkategoriLabel(grunnlag.hovedkategori || '')}</span>
+              </DataListItem>
+              <DataListItem label="Oppdaget">
+                {grunnlag.dato_oppdaget}
+              </DataListItem>
+              <DataListItem label="Varslet">
+                {grunnlag.grunnlag_varsel?.dato_sendt || 'Ikke varslet'}
+              </DataListItem>
+            </DataList>
           </SectionContainer>
         )}
 

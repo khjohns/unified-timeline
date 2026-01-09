@@ -14,7 +14,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Alert, AlertDialog, Button, CurrencyInput, FormField, Modal, SectionContainer, Textarea } from '../primitives';
+import { Alert, AlertDialog, Button, CurrencyInput, DataList, DataListItem, FormField, Modal, SectionContainer, Textarea } from '../primitives';
 import { UpdateIcon } from '@radix-ui/react-icons';
 import { useConfirmClose } from '../../hooks/useConfirmClose';
 import { useFormBackup } from '../../hooks/useFormBackup';
@@ -136,22 +136,17 @@ export function OppdaterKostnaderModal({
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Current status */}
         <SectionContainer title="Kostnadsramme" variant="subtle">
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <div className="text-pkt-text-body-subtle">Estimert kostnad</div>
-              <div>{formatCurrency(forseringData.estimert_kostnad)}</div>
-            </div>
-            <div>
-              <div className="text-pkt-text-body-subtle">Maks (30%-regel)</div>
-              <div>{formatCurrency(forseringData.maks_forseringskostnad)}</div>
-            </div>
-            <div>
-              <div className="text-pkt-text-body-subtle">Nåværende påløpt</div>
-              <div className="font-medium">
-                {formatCurrency(forseringData.paalopte_kostnader)}
-              </div>
-            </div>
-          </div>
+          <DataList variant="grid">
+            <DataListItem label="Estimert kostnad">
+              {formatCurrency(forseringData.estimert_kostnad)}
+            </DataListItem>
+            <DataListItem label="Maks (30%-regel)">
+              {formatCurrency(forseringData.maks_forseringskostnad)}
+            </DataListItem>
+            <DataListItem label="Nåværende påløpt">
+              <span className="font-medium">{formatCurrency(forseringData.paalopte_kostnader)}</span>
+            </DataListItem>
+          </DataList>
         </SectionContainer>
 
         {/* Påløpte kostnader input */}

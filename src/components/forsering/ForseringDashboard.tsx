@@ -184,8 +184,6 @@ export function ForseringDashboard({
   // Computed values from bh_respons (with legacy fallback)
   const bhAksepterer = bhRespons?.aksepterer ?? forseringData.bh_aksepterer_forsering ?? false;
   const hovedkravGodkjentRaw = bhRespons?.godkjent_belop ?? forseringData.bh_godkjent_kostnad ?? 0;
-  const erSubsidiaert = bhRespons?.subsidiaer_triggers && bhRespons.subsidiaer_triggers.length > 0;
-  const subsidiaerBelop = bhRespons?.subsidiaer_godkjent_belop;
 
   // Subsidiær trigger: BH mener TE ikke har forseringsrett (alle avslag var berettiget)
   const harForseringsrettAvslag = bhRespons?.subsidiaer_triggers?.includes('forseringsrett_avslatt') ?? false;
@@ -544,55 +542,6 @@ export function ForseringDashboard({
               </table>
             </div>
 
-            {/* Prinsipalt og subsidiært standpunkt */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1 p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
-                <div className="text-sm text-pkt-text-body-subtle mb-1">Prinsipalt godkjent</div>
-                <div className="text-lg font-bold">{formatCurrency(godkjentBelop)}</div>
-              </div>
-              {erSubsidiaert && subsidiaerBelop !== undefined && !harForseringsrettAvslag && (
-                <div className="flex-1 p-3 bg-alert-warning-bg rounded-none border border-alert-warning-border">
-                  <div className="text-sm text-alert-warning-text mb-1">Subsidiært godkjent</div>
-                  <div className="text-lg font-bold text-alert-warning-text">{formatCurrency(subsidiaerBelop)}</div>
-                </div>
-              )}
-            </div>
-
-            {/* Utvidet subsidiært standpunkt når forseringsrett avslått */}
-            {harForseringsrettAvslag && subsidiaerBelop !== undefined && (
-              <div className="p-4 bg-alert-warning-bg rounded-none border-2 border-alert-warning-border space-y-3">
-                <h5 className="font-bold text-sm text-alert-warning-text">Subsidiært standpunkt</h5>
-                <p className="text-sm text-alert-warning-text">
-                  Dersom entreprenøren hadde hatt forseringsrett:
-                </p>
-                <div className="text-xs text-pkt-text-body-subtle space-y-1">
-                  <div className="flex justify-between">
-                    <span>Hovedkrav:</span>
-                    <span>{formatCurrency(hovedkravGodkjent)}</span>
-                  </div>
-                  {harRiggKrav && (
-                    <div className="flex justify-between">
-                      <span>Rigg/drift{riggPrekludert && ' (prekludert)'}:</span>
-                      <span>{formatCurrency(bhRespons?.godkjent_rigg_drift ?? 0)}</span>
-                    </div>
-                  )}
-                  {harProduktivitetKrav && (
-                    <div className="flex justify-between">
-                      <span>Produktivitet{produktivitetPrekludert && ' (prekludert)'}:</span>
-                      <span>{formatCurrency(bhRespons?.godkjent_produktivitet ?? 0)}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="flex justify-between text-sm font-bold pt-2 border-t border-alert-warning-border">
-                  <span>Subsidiært godkjent:</span>
-                  <span className="text-alert-warning-text">{formatCurrency(subsidiaerBelop)}</span>
-                </div>
-                <p className="text-sm italic text-alert-warning-text pt-2">
-                  «Byggherren er etter dette uenig i kravet, og kan dessuten under ingen
-                  omstendigheter se at {formatCurrency(subsidiaerBelop)} er berettiget å kreve.»
-                </p>
-              </div>
-            )}
           </div>
         ) : (
           <p className="text-sm text-pkt-text-body-subtle">

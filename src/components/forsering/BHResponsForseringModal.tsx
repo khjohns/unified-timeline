@@ -26,10 +26,13 @@ import {
   Button,
   Collapsible,
   CurrencyInput,
+  DataList,
+  DataListItem,
   FormField,
   Modal,
   RadioGroup,
   RadioItem,
+  SectionContainer,
   StepIndicator,
   Textarea,
   useToast,
@@ -646,23 +649,19 @@ export function BHResponsForseringModal({
               </p>
 
               {/* Info about the forsering */}
-              <div className="p-3 bg-pkt-surface-subtle border-2 border-pkt-border-default rounded-none">
-                <h4 className="font-bold text-sm mb-2">Forseringskrav fra entreprenør</h4>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <span className="text-pkt-text-body-subtle">Varslet:</span>
-                    <span className="ml-2">{formatDate(forseringData.dato_varslet)}</span>
-                  </div>
-                  <div>
-                    <span className="text-pkt-text-body-subtle">Totalt avslåtte dager:</span>
-                    <span className="ml-2">{computed.totalAvslatteDager} dager</span>
-                  </div>
-                  <div>
-                    <span className="text-pkt-text-body-subtle">Antall avslåtte saker:</span>
-                    <span className="ml-2">{avslatteSaker?.length ?? forseringData.avslatte_fristkrav?.length ?? 0}</span>
-                  </div>
-                </div>
-              </div>
+              <SectionContainer title="Forseringskrav fra entreprenør" variant="subtle">
+                <DataList variant="grid">
+                  <DataListItem label="Varslet">
+                    {formatDate(forseringData.dato_varslet)}
+                  </DataListItem>
+                  <DataListItem label="Totalt avslåtte dager">
+                    {computed.totalAvslatteDager} dager
+                  </DataListItem>
+                  <DataListItem label="Antall avslåtte saker">
+                    {avslatteSaker?.length ?? forseringData.avslatte_fristkrav?.length ?? 0}
+                  </DataListItem>
+                </DataList>
+              </SectionContainer>
 
               {/* Grunnlag validation warning (informational only, not blocking) */}
               {!isLoadingGrunnlag && grunnlagValidering && !grunnlagValidering.er_gyldig && (
