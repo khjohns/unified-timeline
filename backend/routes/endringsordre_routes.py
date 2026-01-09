@@ -95,7 +95,7 @@ def opprett_endringsordresak():
         utstedt_av=payload.get('utstedt_av'),
     )
 
-    logger.info(f"Endringsordresak opprettet: {result['sak_id']}")
+    logger.info(f"Endringsordresak opprettet: {result['sak_id']} (catenda_synced={result.get('catenda_synced')})")
 
     return jsonify({
         "success": True,
@@ -146,10 +146,14 @@ def legg_til_koe(sak_id: str):
         return error
 
     service = _get_endringsordre_service()
-    service.legg_til_koe(sak_id, payload['koe_sak_id'])
+    result = service.legg_til_koe(sak_id, payload['koe_sak_id'])
 
-    logger.info(f"KOE {payload['koe_sak_id']} lagt til EO {sak_id}")
-    return build_success_message("KOE lagt til endringsordre")
+    logger.info(f"KOE {payload['koe_sak_id']} lagt til EO {sak_id} (catenda_synced={result.get('catenda_synced')})")
+    return jsonify({
+        "success": True,
+        "message": "KOE lagt til endringsordre",
+        "catenda_synced": result.get("catenda_synced", False),
+    })
 
 
 @endringsordre_bp.route('/api/endringsordre/<sak_id>/koe/<koe_sak_id>', methods=['DELETE'])
@@ -159,10 +163,14 @@ def legg_til_koe(sak_id: str):
 def fjern_koe(sak_id: str, koe_sak_id: str):
     """Fjern en KOE-sak fra endringsordren."""
     service = _get_endringsordre_service()
-    service.fjern_koe(sak_id, koe_sak_id)
+    result = service.fjern_koe(sak_id, koe_sak_id)
 
-    logger.info(f"KOE {koe_sak_id} fjernet fra EO {sak_id}")
-    return build_success_message("KOE fjernet fra endringsordre")
+    logger.info(f"KOE {koe_sak_id} fjernet fra EO {sak_id} (catenda_synced={result.get('catenda_synced')})")
+    return jsonify({
+        "success": True,
+        "message": "KOE fjernet fra endringsordre",
+        "catenda_synced": result.get("catenda_synced", False),
+    })
 
 
 @endringsordre_bp.route('/api/endringsordre/kandidater', methods=['GET'])

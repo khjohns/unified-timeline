@@ -14,6 +14,8 @@ type InlineDataListVariant = 'default' | 'danger' | 'warning' | 'success';
 interface InlineDataListProps {
   children: ReactNode;
   className?: string;
+  /** Optional title/header for the list */
+  title?: string;
   /** Show bottom border (default: false) */
   bordered?: boolean;
 }
@@ -41,23 +43,28 @@ const variantStyles: Record<InlineDataListVariant, string> = {
 /**
  * Container for inline data items
  */
-export function InlineDataList({ children, className = '', bordered = false }: InlineDataListProps) {
+export function InlineDataList({ children, className = '', title, bordered = false }: InlineDataListProps) {
   const items = Children.toArray(children).filter(isValidElement);
 
   return (
-    <div
-      className={`flex flex-wrap items-center gap-x-4 gap-y-1 text-sm ${
-        bordered ? 'pb-2 border-b border-pkt-border-subtle' : ''
-      } ${className}`}
-    >
-      {items.map((child, index) => (
-        <span key={index} className="contents">
-          {child}
-          {index < items.length - 1 && (
-            <span className="text-pkt-border-subtle">|</span>
-          )}
-        </span>
-      ))}
+    <div className={className}>
+      {title && (
+        <div className="text-sm font-semibold mb-1">{title}</div>
+      )}
+      <div
+        className={`flex flex-wrap items-center gap-x-4 gap-y-1 text-sm ${
+          bordered ? 'pb-2 border-b border-pkt-border-subtle' : ''
+        }`}
+      >
+        {items.map((child, index) => (
+          <span key={index} className="contents">
+            {child}
+            {index < items.length - 1 && (
+              <span className="text-pkt-text-body-subtle font-medium">|</span>
+            )}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -81,9 +88,13 @@ export function InlineDataListItem({
 
   return (
     <span className={variantClass}>
-      <span className={variant === 'default' ? 'text-pkt-text-body-subtle' : ''}>
-        {label}:
-      </span>{' '}
+      {label && (
+        <>
+          <span className={variant === 'default' ? 'text-pkt-text-body-subtle' : ''}>
+            {label}:
+          </span>{' '}
+        </>
+      )}
       <span className={valueClasses}>{children}</span>
     </span>
   );

@@ -740,14 +740,14 @@ export function BHResponsForseringModal({
                   })}
 
                   {/* Summary of per-sak evaluation */}
-                  <InlineDataList>
+                  <InlineDataList title="Oppsummering">
                     <InlineDataListItem label="Totalt avslått" mono bold>
                       {computed.totalAvslatteDager} dager
                     </InlineDataListItem>
                     <InlineDataListItem label="Uberettiget" mono bold>
                       {computed.dagerUberettiget} dager
                     </InlineDataListItem>
-                    <InlineDataListItem label="Konklusjon">
+                    <InlineDataListItem label="">
                       <Badge variant={computed.harForseringsrett ? 'warning' : 'info'}>
                         {computed.harForseringsrett
                           ? `Forseringsrett for ${computed.dagerUberettiget} dager`
@@ -786,27 +786,28 @@ export function BHResponsForseringModal({
               </SectionContainer>
 
               {/* Comparison */}
-              <div className="p-3 border-2 rounded-none space-y-2"
+              <div
+                className="p-3 border-2 rounded-none"
                 style={{
                   borderColor: forseringData.kostnad_innenfor_grense ? 'var(--badge-success-bg)' : 'var(--alert-danger-bg)',
                   backgroundColor: forseringData.kostnad_innenfor_grense ? 'var(--badge-success-bg)' : 'var(--alert-danger-bg)',
                 }}
               >
-                <div className="flex justify-between text-sm">
-                  <span>Entreprenørens estimat:</span>
-                  <strong>{formatCurrency(forseringData.estimert_kostnad)}</strong>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Maks kostnad (30%):</span>
-                  <strong>{formatCurrency(forseringData.maks_forseringskostnad)}</strong>
-                </div>
-                <div className="pt-2 border-t border-current/20">
-                  {forseringData.kostnad_innenfor_grense ? (
-                    <Badge variant="success">Innenfor grensen</Badge>
-                  ) : (
-                    <Badge variant="danger">Overstiger grensen med {formatCurrency((forseringData.estimert_kostnad ?? 0) - (forseringData.maks_forseringskostnad ?? 0))}</Badge>
-                  )}
-                </div>
+                <InlineDataList>
+                  <InlineDataListItem label="Entreprenørens estimat" mono bold>
+                    {formatCurrency(forseringData.estimert_kostnad)}
+                  </InlineDataListItem>
+                  <InlineDataListItem label="Maks kostnad (30%)" mono bold>
+                    {formatCurrency(forseringData.maks_forseringskostnad)}
+                  </InlineDataListItem>
+                  <InlineDataListItem label="">
+                    {forseringData.kostnad_innenfor_grense ? (
+                      <Badge variant="success">Innenfor grensen</Badge>
+                    ) : (
+                      <Badge variant="danger">Overstiger med {formatCurrency((forseringData.estimert_kostnad ?? 0) - (forseringData.maks_forseringskostnad ?? 0))}</Badge>
+                    )}
+                  </InlineDataListItem>
+                </InlineDataList>
               </div>
 
               {/* Konklusjon basert på automatisk beregning */}

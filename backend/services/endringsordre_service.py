@@ -18,8 +18,24 @@ from models.sak_state import (
     EOKonsekvenser,
     SakState,
     SporStatus,
+    SakRelasjon,
 )
-from models.events import AnyEvent, parse_event
+from models.events import (
+    AnyEvent,
+    parse_event,
+    EventType,
+    EOKoeHandlingEvent,
+    EOKoeHandlingData,
+    SakOpprettetEvent,
+    EOOpprettetEvent,
+    EOOpprettetData,
+    EOUtstedtEvent,
+    EOUtstedtData,
+    VederlagKompensasjon,
+    VederlagsMetode,
+)
+from models.sak_metadata import SakMetadata
+from uuid import uuid4
 from services.base_sak_service import BaseSakService
 
 logger = get_logger(__name__)
@@ -75,6 +91,8 @@ class EndringsordreService(BaseSakService):
         """
         Oppretter en ny endringsordresak med relasjoner til KOE-saker.
 
+        Local-first: Lagrer events lokalt først, synker til Catenda etterpå.
+
         Args:
             eo_nummer: Endringsordre-nummer (prosjektets nummerering)
             beskrivelse: Beskrivelse av hva endringen går ut på (§31.3)
@@ -90,18 +108,29 @@ class EndringsordreService(BaseSakService):
             utstedt_av: Navn på person som utsteder EO (BH-representant)
 
         Returns:
-            Dict med den opprettede endringsordresaken
+            Dict med den opprettede endringsordresaken inkludert catenda_synced status
 
         Raises:
             ValueError: Hvis påkrevde felt mangler
-            RuntimeError: Hvis opprettelse i Catenda feiler
+            RuntimeError: Hvis lagring av events feiler
         """
         if not eo_nummer:
             raise ValueError("EO-nummer er påkrevd")
         if not beskrivelse:
             raise ValueError("Beskrivelse er påkrevd")
 
-        # Bygg konsekvenser
+        now = datetime.now(timezone.utc)
+        dato_utstedt = now.strftime('%Y-%m-%d')
+
+        # 1. Generer lokal sak-ID
+        sak_id = f"EO-{now.strftime('%Y%m%d%H%M%S')}"
+
+        logger.info(
+            f"Oppretter endringsordresak {sak_id} (EO-{eo_nummer}) "
+            f"med {len(koe_sak_ids)} relaterte KOE-er"
+        )
+
+        # 2. Bygg konsekvenser
         eo_konsekvenser = EOKonsekvenser(
             sha=konsekvenser.get('sha', False) if konsekvenser else False,
             kvalitet=konsekvenser.get('kvalitet', False) if konsekvenser else False,
@@ -110,53 +139,140 @@ class EndringsordreService(BaseSakService):
             annet=konsekvenser.get('annet', False) if konsekvenser else False,
         )
 
-        logger.info(
-            f"Oppretter endringsordresak EO-{eo_nummer} "
-            f"med {len(koe_sak_ids)} relaterte KOE-er"
-        )
-
-        # Opprett topic i Catenda
-        topic = None
-        if self.client:
-            topic = self.client.create_topic(
-                title=f"Endringsordre {eo_nummer}",
-                description=beskrivelse,
-                topic_type="Endringsordre",
-                topic_status="Open"
-            )
-
-            if not topic:
-                raise RuntimeError("Kunne ikke opprette topic i Catenda")
-
-            # Opprett toveis-relasjoner til KOE-saker
-            if koe_sak_ids:
-                # EO → KOE (endringsordren peker på KOE-sakene)
-                self.client.create_topic_relations(
-                    topic_id=topic['guid'],
-                    related_topic_guids=koe_sak_ids
-                )
-                # KOE → EO (hver KOE-sak peker tilbake på endringsordren)
-                for koe_id in koe_sak_ids:
-                    self.client.create_topic_relations(
-                        topic_id=koe_id,
-                        related_topic_guids=[topic['guid']]
-                    )
-            logger.info(f"✅ Endringsordresak opprettet: {topic['guid']}")
-        else:
-            logger.warning("Ingen Catenda client - returnerer mock-data")
-
-        # Bygg sak-ID
-        sak_id = topic['guid'] if topic else f"mock-eo-{datetime.now(timezone.utc).timestamp()}"
-        dato_utstedt = datetime.now(timezone.utc).strftime('%Y-%m-%d')
-
         # Beregn netto beløp
         komp = kompensasjon_belop or 0.0
         frad = fradrag_belop or 0.0
         netto = komp - frad
 
+        # 3. Opprett metadata FØRST (kreves for foreign key)
+        if self.metadata_repository:
+            metadata = SakMetadata(
+                sak_id=sak_id,
+                created_at=now,
+                created_by=utstedt_av or "BH",
+                sakstype="endringsordre",
+                cached_title=f"Endringsordre {eo_nummer}",
+                cached_status="utstedt",
+                last_event_at=now,
+            )
+            self.metadata_repository.upsert(metadata)
+            logger.info(f"✅ Metadata opprettet for {sak_id}")
+
+        # 4. Opprett events lokalt
+        events = []
+
+        # SAK_OPPRETTET
+        sak_event = SakOpprettetEvent(
+            event_id=str(uuid4()),
+            sak_id=sak_id,
+            event_type=EventType.SAK_OPPRETTET,
+            tidsstempel=now,
+            aktor=utstedt_av or "BH",
+            aktor_rolle="BH",
+            sakstittel=f"Endringsordre {eo_nummer}",
+            sakstype="endringsordre",
+        )
+        events.append(sak_event)
+
+        # EO_OPPRETTET
+        eo_opprettet = EOOpprettetEvent(
+            event_id=str(uuid4()),
+            sak_id=sak_id,
+            event_type=EventType.EO_OPPRETTET,
+            tidsstempel=now,
+            aktor=utstedt_av or "BH",
+            aktor_rolle="BH",
+            data=EOOpprettetData(
+                eo_nummer=eo_nummer,
+                beskrivelse=beskrivelse,
+                relaterte_koe_saker=koe_sak_ids,
+                sakstittel=f"Endringsordre {eo_nummer}",
+            ),
+        )
+        events.append(eo_opprettet)
+
+        # EO_UTSTEDT (hvis utstedt_av er satt, eller alltid for nå)
+        vederlag = None
+        if oppgjorsform and kompensasjon_belop:
+            metode_map = {
+                "ENHETSPRISER": VederlagsMetode.ENHETSPRISER,
+                "REGNINGSARBEID": VederlagsMetode.REGNINGSARBEID,
+                "FASTPRIS_TILBUD": VederlagsMetode.FASTPRIS_TILBUD,
+            }
+            vederlag = VederlagKompensasjon(
+                metode=metode_map.get(oppgjorsform, VederlagsMetode.REGNINGSARBEID),
+                kostnads_overslag=kompensasjon_belop,
+            )
+
+        eo_utstedt = EOUtstedtEvent(
+            event_id=str(uuid4()),
+            sak_id=sak_id,
+            event_type=EventType.EO_UTSTEDT,
+            tidsstempel=now,
+            aktor=utstedt_av or "BH",
+            aktor_rolle="BH",
+            data=EOUtstedtData(
+                eo_nummer=eo_nummer,
+                revisjon_nummer=0,
+                beskrivelse=beskrivelse,
+                konsekvenser=eo_konsekvenser,
+                konsekvens_beskrivelse=konsekvens_beskrivelse,
+                vederlag=vederlag,
+                frist_dager=frist_dager,
+                ny_sluttdato=ny_sluttdato,
+                relaterte_koe_saker=koe_sak_ids,
+            ),
+        )
+        events.append(eo_utstedt)
+
+        # 5. Lagre events til repository
+        if self.event_repository:
+            try:
+                self.event_repository.append_batch(events, expected_version=0)
+                logger.info(f"✅ {len(events)} events lagret lokalt for {sak_id}")
+            except Exception as e:
+                logger.error(f"Feil ved lagring av events: {e}")
+                raise RuntimeError(f"Kunne ikke lagre events: {e}")
+
+        # 6. Prøv å synke til Catenda (valgfritt)
+        catenda_synced = False
+        catenda_topic_id = None
+        if self.client:
+            try:
+                topic = self.client.create_topic(
+                    title=f"Endringsordre {eo_nummer}",
+                    description=beskrivelse,
+                    topic_type="Endringsordre",
+                    topic_status="Open"
+                )
+                if topic:
+                    catenda_topic_id = topic.get('guid')
+
+                    # Opprett relasjoner i Catenda
+                    if koe_sak_ids and catenda_topic_id:
+                        self.client.create_topic_relations(
+                            topic_id=catenda_topic_id,
+                            related_topic_guids=koe_sak_ids
+                        )
+                        for koe_id in koe_sak_ids:
+                            try:
+                                self.client.create_topic_relations(
+                                    topic_id=koe_id,
+                                    related_topic_guids=[catenda_topic_id]
+                                )
+                            except Exception:
+                                pass  # KOE finnes kanskje ikke i Catenda
+
+                    catenda_synced = True
+                    logger.info(f"✅ Catenda topic opprettet: {catenda_topic_id}")
+            except Exception as e:
+                logger.warning(f"Catenda-synk feilet (fortsetter uten): {e}")
+
         return {
             "sak_id": sak_id,
             "sakstype": SaksType.ENDRINGSORDRE.value,
+            "catenda_synced": catenda_synced,
+            "catenda_topic_id": catenda_topic_id,
             "relaterte_saker": [
                 {"relatert_sak_id": id}
                 for id in koe_sak_ids
@@ -181,20 +297,128 @@ class EndringsordreService(BaseSakService):
                 "te_akseptert": None,
                 "te_kommentar": None,
                 "dato_te_respons": None,
-                # Computed
                 "netto_belop": netto,
                 "har_priskonsekvens": eo_konsekvenser.pris or netto != 0,
                 "har_fristkonsekvens": eo_konsekvenser.fremdrift or (frist_dager is not None and frist_dager > 0),
             }
         }
 
-    def legg_til_koe(self, eo_sak_id: str, koe_sak_id: str) -> bool:
-        """Alias for legg_til_relatert_sak (arvet fra BaseSakService)."""
-        return self.legg_til_relatert_sak(eo_sak_id, koe_sak_id)
+    def legg_til_koe(self, eo_sak_id: str, koe_sak_id: str, aktor: str = "BH") -> Dict[str, Any]:
+        """
+        Legger til en KOE-sak til endringsordren.
 
-    def fjern_koe(self, eo_sak_id: str, koe_sak_id: str) -> bool:
-        """Alias for fjern_relatert_sak (arvet fra BaseSakService)."""
-        return self.fjern_relatert_sak(eo_sak_id, koe_sak_id)
+        Local-first: Lagrer event lokalt først, synker til Catenda etterpå.
+
+        Args:
+            eo_sak_id: Endringsordresakens ID
+            koe_sak_id: KOE-sakens ID som skal legges til
+            aktor: Hvem som utfører handlingen
+
+        Returns:
+            Dict med success og catenda_synced status
+        """
+        # 1. Opprett og lagre event lokalt FØRST
+        event = EOKoeHandlingEvent(
+            event_id=str(uuid4()),
+            sak_id=eo_sak_id,
+            event_type=EventType.EO_KOE_LAGT_TIL,
+            tidsstempel=datetime.now(timezone.utc),
+            aktor=aktor,
+            aktor_rolle="BH",
+            data=EOKoeHandlingData(
+                koe_sak_id=koe_sak_id,
+            ),
+        )
+
+        if self.event_repository:
+            try:
+                # Hent nåværende versjon
+                _, current_version = self.event_repository.get_events(eo_sak_id)
+                self.event_repository.append(event, expected_version=current_version)
+                logger.info(f"✅ Event EO_KOE_LAGT_TIL lagret lokalt for {eo_sak_id}")
+            except Exception as e:
+                logger.error(f"Feil ved lagring av event: {e}")
+                raise RuntimeError(f"Kunne ikke lagre event: {e}")
+
+        # 2. Prøv å synke til Catenda (valgfritt)
+        catenda_synced = False
+        if self.client:
+            try:
+                self.client.create_topic_relations(
+                    topic_id=eo_sak_id,
+                    related_topic_guids=[koe_sak_id]
+                )
+                self.client.create_topic_relations(
+                    topic_id=koe_sak_id,
+                    related_topic_guids=[eo_sak_id]
+                )
+                catenda_synced = True
+                logger.info(f"✅ Catenda-relasjon opprettet: {eo_sak_id} <-> {koe_sak_id}")
+            except Exception as e:
+                logger.warning(f"Catenda-synk feilet (fortsetter uten): {e}")
+
+        return {
+            "success": True,
+            "catenda_synced": catenda_synced,
+        }
+
+    def fjern_koe(self, eo_sak_id: str, koe_sak_id: str, aktor: str = "BH") -> Dict[str, Any]:
+        """
+        Fjerner en KOE-sak fra endringsordren.
+
+        Local-first: Lagrer event lokalt først, synker til Catenda etterpå.
+
+        Args:
+            eo_sak_id: Endringsordresakens ID
+            koe_sak_id: KOE-sakens ID som skal fjernes
+            aktor: Hvem som utfører handlingen
+
+        Returns:
+            Dict med success og catenda_synced status
+        """
+        # 1. Opprett og lagre event lokalt FØRST
+        event = EOKoeHandlingEvent(
+            event_id=str(uuid4()),
+            sak_id=eo_sak_id,
+            event_type=EventType.EO_KOE_FJERNET,
+            tidsstempel=datetime.now(timezone.utc),
+            aktor=aktor,
+            aktor_rolle="BH",
+            data=EOKoeHandlingData(
+                koe_sak_id=koe_sak_id,
+            ),
+        )
+
+        if self.event_repository:
+            try:
+                _, current_version = self.event_repository.get_events(eo_sak_id)
+                self.event_repository.append(event, expected_version=current_version)
+                logger.info(f"✅ Event EO_KOE_FJERNET lagret lokalt for {eo_sak_id}")
+            except Exception as e:
+                logger.error(f"Feil ved lagring av event: {e}")
+                raise RuntimeError(f"Kunne ikke lagre event: {e}")
+
+        # 2. Prøv å synke til Catenda (valgfritt)
+        catenda_synced = False
+        if self.client:
+            try:
+                self.client.delete_topic_relation(
+                    topic_id=eo_sak_id,
+                    related_topic_id=koe_sak_id
+                )
+                self.client.delete_topic_relation(
+                    topic_id=koe_sak_id,
+                    related_topic_id=eo_sak_id
+                )
+                catenda_synced = True
+                logger.info(f"✅ Catenda-relasjon fjernet: {eo_sak_id} <-> {koe_sak_id}")
+            except Exception as e:
+                logger.warning(f"Catenda-synk feilet (fortsetter uten): {e}")
+
+        return {
+            "success": True,
+            "catenda_synced": catenda_synced,
+        }
 
     def hent_komplett_eo_kontekst(
         self,
@@ -219,19 +443,40 @@ class EndringsordreService(BaseSakService):
             - eo_hendelser: List[Event] (EO-sakens egne hendelser)
             - oppsummering: Aggregert info
         """
-        # Hent relaterte KOE-saker
-        relaterte = self.hent_relaterte_saker(eo_sak_id)
-        relaterte_ids = [r.relatert_sak_id for r in relaterte]
-
-        # Hent EO-sakens egne hendelser
+        # Hent EO-sakens egne hendelser først (for fallback)
         eo_hendelser: List[AnyEvent] = []
+        lokale_relaterte_ids: List[str] = []
         if self.event_repository:
             try:
                 events_data, _version = self.event_repository.get_events(eo_sak_id)
                 # Parse events from stored data (dicts -> typed Event objects)
                 eo_hendelser = [parse_event(e) for e in events_data] if events_data else []
+
+                # Ekstraher relaterte_koe_saker fra EO-hendelser for fallback
+                for event in eo_hendelser:
+                    if hasattr(event, 'data') and hasattr(event.data, 'relaterte_koe_saker'):
+                        lokale_relaterte_ids = event.data.relaterte_koe_saker or []
+                        if lokale_relaterte_ids:
+                            break  # Bruk første event med relaterte saker
             except Exception as e:
                 logger.error(f"Feil ved henting av EO-hendelser: {e}")
+
+        # Prøv Catenda først, fall tilbake til lokale data
+        relaterte = []
+        try:
+            relaterte = self.hent_relaterte_saker(eo_sak_id)
+        except (RuntimeError, Exception) as e:
+            logger.warning(f"Catenda utilgjengelig for {eo_sak_id}, bruker lokale data: {e}")
+
+        # Fallback: Bruk relaterte_koe_saker fra EO-hendelser
+        if not relaterte and lokale_relaterte_ids:
+            logger.info(f"Bruker lokale relaterte saker fra EO-data: {lokale_relaterte_ids}")
+            relaterte = [
+                SakRelasjon(relatert_sak_id=sak_id)
+                for sak_id in lokale_relaterte_ids
+            ]
+
+        relaterte_ids = [r.relatert_sak_id for r in relaterte]
 
         if not relaterte_ids:
             logger.info(f"Ingen relaterte KOE-saker for EO {eo_sak_id}")
