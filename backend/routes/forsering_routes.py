@@ -316,9 +316,33 @@ def valider_forseringskostnad():
 @handle_service_errors
 def registrer_bh_respons(sak_id: str):
     """
-    Registrer BH respons på forseringsvarsel.
+    Registrer BH respons på forseringsvarsel (tre-port modell).
 
-    Request: { "aksepterer", "godkjent_kostnad"?, "begrunnelse", "expected_version"? }
+    Request: {
+        "aksepterer": bool,
+        "godkjent_kostnad"?: number,
+        "begrunnelse": string,
+        "expected_version"?: number,
+
+        // Port 1: Grunnlag
+        "grunnlag_fortsatt_gyldig"?: bool,
+        "grunnlag_begrunnelse"?: string,
+
+        // Port 2: 30%-regel
+        "trettiprosent_overholdt"?: bool,
+        "trettiprosent_begrunnelse"?: string,
+
+        // Særskilte krav (§34.1.3)
+        "rigg_varslet_i_tide"?: bool,
+        "produktivitet_varslet_i_tide"?: bool,
+        "godkjent_rigg_drift"?: number,
+        "godkjent_produktivitet"?: number,
+
+        // Subsidiært
+        "subsidiaer_triggers"?: string[],
+        "subsidiaer_godkjent_belop"?: number,
+        "subsidiaer_begrunnelse"?: string
+    }
     """
     payload = request.json
 
@@ -337,7 +361,21 @@ def registrer_bh_respons(sak_id: str):
             godkjent_kostnad=payload.get('godkjent_kostnad'),
             begrunnelse=payload['begrunnelse'],
             aktor=aktor,
-            expected_version=expected_version
+            expected_version=expected_version,
+            # Tre-port felter
+            grunnlag_fortsatt_gyldig=payload.get('grunnlag_fortsatt_gyldig'),
+            grunnlag_begrunnelse=payload.get('grunnlag_begrunnelse'),
+            trettiprosent_overholdt=payload.get('trettiprosent_overholdt'),
+            trettiprosent_begrunnelse=payload.get('trettiprosent_begrunnelse'),
+            # Særskilte krav (§34.1.3)
+            rigg_varslet_i_tide=payload.get('rigg_varslet_i_tide'),
+            produktivitet_varslet_i_tide=payload.get('produktivitet_varslet_i_tide'),
+            godkjent_rigg_drift=payload.get('godkjent_rigg_drift'),
+            godkjent_produktivitet=payload.get('godkjent_produktivitet'),
+            # Subsidiært
+            subsidiaer_triggers=payload.get('subsidiaer_triggers'),
+            subsidiaer_godkjent_belop=payload.get('subsidiaer_godkjent_belop'),
+            subsidiaer_begrunnelse=payload.get('subsidiaer_begrunnelse'),
         )
     except ConcurrencyError as e:
         return jsonify({
@@ -363,6 +401,33 @@ def registrer_bh_respons(sak_id: str):
         "message": f"BH respons registrert ({status})",
         **result,
         **_build_catenda_response(catenda_result)
+    }), 200
+
+
+@forsering_bp.route('/api/forsering/<sak_id>/valider-grunnlag', methods=['GET'])
+@require_magic_link
+@handle_service_errors
+def valider_forseringsgrunnlag(sak_id: str):
+    """
+    Validerer om grunnlaget for forsering fortsatt er gyldig.
+
+    Brukes av BH for å sjekke Port 1 før de gir respons.
+    Grunnlaget er ugyldig hvis BH har snudd på fristforlengelsen.
+
+    Response: {
+        "success": true,
+        "er_gyldig": bool,
+        "grunn"?: string,
+        "pavirket_sak_id"?: string,
+        "ny_status"?: string
+    }
+    """
+    service = _get_forsering_service()
+    result = service.valider_grunnlag_fortsatt_gyldig(sak_id)
+
+    return jsonify({
+        "success": True,
+        **result
     }), 200
 
 

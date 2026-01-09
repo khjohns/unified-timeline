@@ -440,10 +440,24 @@ class ForseringService(BaseSakService):
         godkjent_kostnad: Optional[float],
         begrunnelse: str,
         aktor: str,
-        expected_version: Optional[int] = None
+        expected_version: Optional[int] = None,
+        # Tre-port felter
+        grunnlag_fortsatt_gyldig: Optional[bool] = None,
+        grunnlag_begrunnelse: Optional[str] = None,
+        trettiprosent_overholdt: Optional[bool] = None,
+        trettiprosent_begrunnelse: Optional[str] = None,
+        # Særskilte krav (§34.1.3)
+        rigg_varslet_i_tide: Optional[bool] = None,
+        produktivitet_varslet_i_tide: Optional[bool] = None,
+        godkjent_rigg_drift: Optional[float] = None,
+        godkjent_produktivitet: Optional[float] = None,
+        # Subsidiært standpunkt
+        subsidiaer_triggers: Optional[List[str]] = None,
+        subsidiaer_godkjent_belop: Optional[float] = None,
+        subsidiaer_begrunnelse: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
-        Registrerer BHs respons på forseringsvarselet.
+        Registrerer BHs respons på forseringsvarselet (tre-port modell).
 
         Args:
             sak_id: Forseringssakens ID
@@ -452,6 +466,20 @@ class ForseringService(BaseSakService):
             begrunnelse: BHs begrunnelse
             aktor: Navn på den som registrerer responsen
             expected_version: Forventet versjon for optimistisk låsing
+            # Tre-port felter
+            grunnlag_fortsatt_gyldig: Port 1 - bekrefter at frist-avslaget fortsatt gjelder
+            grunnlag_begrunnelse: BHs begrunnelse hvis grunnlaget bestrides
+            trettiprosent_overholdt: Port 2 - bekrefter at estimert kostnad er innenfor 30%-grensen
+            trettiprosent_begrunnelse: BHs begrunnelse ved avvik fra 30%-regelen
+            # Særskilte krav (§34.1.3)
+            rigg_varslet_i_tide: Om rigg/drift-varslet var rettidig
+            produktivitet_varslet_i_tide: Om produktivitets-varslet var rettidig
+            godkjent_rigg_drift: Godkjent rigg/drift-beløp
+            godkjent_produktivitet: Godkjent produktivitetsbeløp
+            # Subsidiært standpunkt
+            subsidiaer_triggers: Triggere for subsidiær vurdering
+            subsidiaer_godkjent_belop: Subsidiært godkjent beløp
+            subsidiaer_begrunnelse: Begrunnelse for subsidiært standpunkt
 
         Returns:
             Dict med oppdatert state, event, old_status og ny versjon
@@ -472,16 +500,32 @@ class ForseringService(BaseSakService):
         # Hent gammel status før event for Catenda-synkronisering
         old_status = self._get_current_status(sak_id)
 
-        # Opprett typed event
+        # Opprett typed event med tre-port data
         event = ForseringResponsEvent(
             sak_id=sak_id,
             aktor=aktor,
             aktor_rolle="BH",
             data=ForseringResponsData(
+                # Port 1: Grunnlagsvalidering
+                grunnlag_fortsatt_gyldig=grunnlag_fortsatt_gyldig,
+                grunnlag_begrunnelse=grunnlag_begrunnelse,
+                # Port 2: 30%-regel
+                trettiprosent_overholdt=trettiprosent_overholdt,
+                trettiprosent_begrunnelse=trettiprosent_begrunnelse,
+                # Port 3: Beløpsvurdering
                 aksepterer=aksepterer,
                 godkjent_kostnad=godkjent_kostnad,
                 begrunnelse=begrunnelse,
                 dato_respons=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                # Særskilte krav (§34.1.3)
+                rigg_varslet_i_tide=rigg_varslet_i_tide,
+                produktivitet_varslet_i_tide=produktivitet_varslet_i_tide,
+                godkjent_rigg_drift=godkjent_rigg_drift,
+                godkjent_produktivitet=godkjent_produktivitet,
+                # Subsidiært
+                subsidiaer_triggers=subsidiaer_triggers,
+                subsidiaer_godkjent_belop=subsidiaer_godkjent_belop,
+                subsidiaer_begrunnelse=subsidiaer_begrunnelse,
             )
         )
 
@@ -623,6 +667,91 @@ class ForseringService(BaseSakService):
         result["event"] = event
         result["old_status"] = old_status
         return result
+
+    def valider_grunnlag_fortsatt_gyldig(
+        self,
+        forsering_sak_id: str
+    ) -> Dict[str, Any]:
+        """
+        Sjekker om grunnlaget for forsering fortsatt er gyldig.
+
+        Grunnlaget er UGYLDIG hvis:
+        1. BH har snudd og godkjent fristforlengelsen (endret bh_resultat)
+        2. TE har trukket fristkravet
+        3. Saken er lukket/omforent på annen måte
+
+        Args:
+            forsering_sak_id: ID til forseringssaken
+
+        Returns:
+            Dict med:
+                - er_gyldig: bool
+                - grunn: str (hvis ugyldig)
+                - pavirket_sak_id: str (hvis ugyldig)
+                - ny_status: str (hvis BH har endret standpunkt)
+        """
+        if not self.event_repository or not self.timeline_service:
+            return {
+                "er_gyldig": False,
+                "grunn": "Kan ikke validere grunnlag (mangler repository/service)"
+            }
+
+        # Hent forseringssakens state
+        forsering_state = self._hent_sak_state(forsering_sak_id)
+        if not forsering_state:
+            return {
+                "er_gyldig": False,
+                "grunn": f"Fant ikke forseringssak {forsering_sak_id}"
+            }
+
+        if not forsering_state.forsering_data:
+            return {
+                "er_gyldig": False,
+                "grunn": "Saken mangler forsering_data"
+            }
+
+        # Sjekk hver avslått fristsak
+        for avslatt_sak_id in forsering_state.forsering_data.avslatte_fristkrav:
+            koe_state = self._hent_sak_state(avslatt_sak_id)
+            if not koe_state:
+                logger.warning(f"Kunne ikke hente state for {avslatt_sak_id}")
+                continue
+
+            # Sjekk om frist-sporet fortsatt er avslått
+            if koe_state.frist and koe_state.frist.bh_resultat:
+                # Sjekk om BH har snudd (ikke lenger avslått)
+                if koe_state.frist.bh_resultat.value not in ['avslatt', 'hold_tilbake']:
+                    return {
+                        "er_gyldig": False,
+                        "grunn": f"BH har endret standpunkt på fristforlengelse for {avslatt_sak_id}",
+                        "pavirket_sak_id": avslatt_sak_id,
+                        "ny_status": koe_state.frist.bh_resultat.value
+                    }
+
+        return {"er_gyldig": True}
+
+    def _hent_sak_state(self, sak_id: str) -> Optional[SakState]:
+        """
+        Hjelpemetode for å hente SakState for en sak.
+
+        Args:
+            sak_id: Sakens ID
+
+        Returns:
+            SakState eller None hvis ikke funnet
+        """
+        if not self.event_repository or not self.timeline_service:
+            return None
+
+        try:
+            events_data, _ = self.event_repository.get_events(sak_id)
+            if events_data:
+                events = [parse_event(e) for e in events_data]
+                return self.timeline_service.compute_state(events)
+        except Exception as e:
+            logger.warning(f"Kunne ikke hente state for {sak_id}: {e}")
+
+        return None
 
     def _get_updated_state(self, sak_id: str) -> Dict[str, Any]:
         """

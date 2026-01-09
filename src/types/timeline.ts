@@ -281,6 +281,66 @@ export interface ForseringTilstand {
 }
 
 /**
+ * Vederlagsstruktur for forsering (§33.8 + §34.1.3).
+ *
+ * Forsering er et pengekrav som følger vederlagsreglene i §34.
+ * Per §34.4 brukes typisk regningsarbeid når ingen enhetspriser finnes.
+ */
+export interface ForseringVederlag {
+  // Metode (§34.4 - typisk regningsarbeid for forsering)
+  metode: string;  // Default "REGNINGSARBEID"
+
+  // Særskilte krav (§34.1.3)
+  saerskilt_krav?: {
+    rigg_drift?: { belop: number; dato_klar_over?: string };
+    produktivitet?: { belop: number; dato_klar_over?: string };
+  };
+
+  // Varselinfo for særskilte krav
+  rigg_drift_varsel?: VarselInfo;
+  produktivitet_varsel?: VarselInfo;
+}
+
+/**
+ * BHs strukturerte respons på forseringskrav (tre-port modell).
+ *
+ * - Port 1: Er grunnlaget (avslaget) fortsatt gyldig?
+ * - Port 2: Er 30%-regelen overholdt?
+ * - Port 3: Beløpsvurdering (hovedkrav + særskilte krav)
+ */
+export interface ForseringBHRespons {
+  // Port 1: Grunnlagsvalidering
+  grunnlag_fortsatt_gyldig?: boolean;
+  grunnlag_begrunnelse?: string;
+
+  // Port 2: 30%-regel validering
+  trettiprosent_overholdt?: boolean;
+  trettiprosent_begrunnelse?: string;
+
+  // Port 3: Beløpsvurdering
+  aksepterer: boolean;
+  godkjent_belop?: number;
+  begrunnelse: string;
+
+  // Port 3b: Særskilte krav vurdering (§34.1.3)
+  rigg_varslet_i_tide?: boolean;
+  produktivitet_varslet_i_tide?: boolean;
+  godkjent_rigg_drift?: number;
+  godkjent_produktivitet?: number;
+
+  // Subsidiært standpunkt
+  subsidiaer_triggers?: SubsidiaerTrigger[];
+  subsidiaer_godkjent_belop?: number;
+  subsidiaer_begrunnelse?: string;
+
+  // Metadata
+  dato_respons?: string;
+
+  // Computed (fra backend)
+  total_godkjent?: number;
+}
+
+/**
  * Data spesifikk for forseringssaker (§ 33.8) som egen sak.
  *
  * Denne interfacen brukes når forsering er modellert som en egen sak
@@ -298,6 +358,7 @@ export interface ForseringData {
   dato_varslet: string;
   estimert_kostnad: number;
   bekreft_30_prosent_regel: boolean;
+  begrunnelse?: string;
 
   // Kalkulasjonsgrunnlag
   avslatte_dager: number;           // Sum av avslåtte dager
@@ -311,10 +372,16 @@ export interface ForseringData {
   dato_stoppet?: string;
   paalopte_kostnader?: number;
 
-  // BH respons
+  // BH respons (legacy - beholdes for bakoverkompatibilitet)
   bh_aksepterer_forsering?: boolean;
   bh_godkjent_kostnad?: number;
   bh_begrunnelse?: string;
+
+  // Ny vederlagsstruktur (§34)
+  vederlag?: ForseringVederlag;
+
+  // Ny strukturert BH-respons (tre-port modell)
+  bh_respons?: ForseringBHRespons;
 
   // Computed (fra backend)
   kostnad_innenfor_grense: boolean;

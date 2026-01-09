@@ -270,6 +270,134 @@ class VederlagTilstand(BaseModel):
     antall_versjoner: int = Field(default=0)
 
 
+# ============ FORSERING VEDERLAG (§33.8 + §34.1.3) ============
+
+class ForseringVederlag(BaseModel):
+    """
+    Vederlagsstruktur for forsering (§33.8).
+
+    Forsering er et pengekrav som følger vederlagsreglene i §34.
+    Per §34.4 brukes typisk regningsarbeid når ingen enhetspriser finnes.
+    Per §34.1.3 kan særskilte krav (rigg/drift, produktivitet) også gjelde.
+    """
+    # Metode (§34.4 - typisk regningsarbeid for forsering)
+    metode: str = Field(
+        default="REGNINGSARBEID",
+        description="Vederlagsmetode (typisk REGNINGSARBEID for forsering per §34.4)"
+    )
+
+    # Særskilte krav (§34.1.3) - kan også gjelde forsering
+    saerskilt_krav: Optional[dict] = Field(
+        default=None,
+        description="Nested struktur: {rigg_drift: {belop, dato_klar_over}, produktivitet: {belop, dato_klar_over}}"
+    )
+
+    # Varselinfo for særskilte krav
+    rigg_drift_varsel: Optional[dict] = Field(
+        default=None,
+        description="VarselInfo for rigg/drift ved forsering"
+    )
+    produktivitet_varsel: Optional[dict] = Field(
+        default=None,
+        description="VarselInfo for produktivitetstap ved forsering"
+    )
+
+
+class ForseringBHRespons(BaseModel):
+    """
+    BHs strukturerte respons på forseringskrav (tre-port modell).
+
+    Port 1: Er grunnlaget (avslaget) fortsatt gyldig?
+    Port 2: Er 30%-regelen overholdt?
+    Port 3: Beløpsvurdering (hovedkrav + særskilte krav)
+    """
+    # Port 1: Grunnlagsvalidering
+    grunnlag_fortsatt_gyldig: Optional[bool] = Field(
+        default=None,
+        description="BH bekrefter at frist-avslaget fortsatt står ved lag"
+    )
+    grunnlag_begrunnelse: Optional[str] = Field(
+        default=None,
+        description="BHs begrunnelse hvis grunnlaget bestrides"
+    )
+
+    # Port 2: 30%-regel validering (§33.8)
+    trettiprosent_overholdt: Optional[bool] = Field(
+        default=None,
+        description="BH vurderer om estimert kostnad er innenfor 30%-grensen"
+    )
+    trettiprosent_begrunnelse: Optional[str] = Field(
+        default=None,
+        description="BHs begrunnelse ved avvik fra 30%-regelen"
+    )
+
+    # Port 3: Beløpsvurdering
+    aksepterer: bool = Field(
+        ...,
+        description="Om BH aksepterer forseringskravet"
+    )
+    godkjent_belop: Optional[float] = Field(
+        default=None,
+        description="Godkjent forseringskostnad (hovedkrav)"
+    )
+    begrunnelse: str = Field(
+        ...,
+        description="BHs begrunnelse for responsen"
+    )
+
+    # Port 3b: Særskilte krav vurdering (§34.1.3)
+    rigg_varslet_i_tide: Optional[bool] = Field(
+        default=None,
+        description="Om rigg/drift-varslet var rettidig"
+    )
+    produktivitet_varslet_i_tide: Optional[bool] = Field(
+        default=None,
+        description="Om produktivitets-varslet var rettidig"
+    )
+    godkjent_rigg_drift: Optional[float] = Field(
+        default=None,
+        description="Godkjent rigg/drift-beløp"
+    )
+    godkjent_produktivitet: Optional[float] = Field(
+        default=None,
+        description="Godkjent produktivitetsbeløp"
+    )
+
+    # Subsidiært standpunkt
+    subsidiaer_triggers: Optional[List[str]] = Field(
+        default=None,
+        description="Triggere for subsidiær vurdering (f.eks. 'grunnlag_bestridt')"
+    )
+    subsidiaer_godkjent_belop: Optional[float] = Field(
+        default=None,
+        description="Subsidiært godkjent beløp"
+    )
+    subsidiaer_begrunnelse: Optional[str] = Field(
+        default=None,
+        description="Begrunnelse for subsidiært standpunkt"
+    )
+
+    # Metadata
+    dato_respons: Optional[str] = Field(
+        default=None,
+        description="Dato for BH respons (ISO format)"
+    )
+
+    # Computed: Total godkjent
+    @computed_field
+    @property
+    def total_godkjent(self) -> Optional[float]:
+        """Beregner totalt godkjent beløp (hovedkrav + særskilte)"""
+        if self.godkjent_belop is None:
+            return None
+        total = self.godkjent_belop
+        if self.godkjent_rigg_drift:
+            total += self.godkjent_rigg_drift
+        if self.godkjent_produktivitet:
+            total += self.godkjent_produktivitet
+        return total
+
+
 class ForseringData(BaseModel):
     """
     Data for forseringssaker (§33.8).
@@ -337,18 +465,30 @@ class ForseringData(BaseModel):
         description="Påløpte kostnader ved stopp"
     )
 
-    # BH respons
+    # BH respons (legacy - beholdes for bakoverkompatibilitet)
     bh_aksepterer_forsering: Optional[bool] = Field(
         default=None,
-        description="Om BH aksepterer forseringskravet"
+        description="[Legacy] Om BH aksepterer forseringskravet"
     )
     bh_godkjent_kostnad: Optional[float] = Field(
         default=None,
-        description="Kostnad godkjent av BH"
+        description="[Legacy] Kostnad godkjent av BH"
     )
     bh_begrunnelse: Optional[str] = Field(
         default=None,
-        description="BH's begrunnelse"
+        description="[Legacy] BH's begrunnelse"
+    )
+
+    # Ny vederlagsstruktur (§34)
+    vederlag: Optional[ForseringVederlag] = Field(
+        default=None,
+        description="Vederlagsdetaljer inkl. metode og særskilte krav"
+    )
+
+    # Ny strukturert BH-respons (tre-port modell)
+    bh_respons: Optional[ForseringBHRespons] = Field(
+        default=None,
+        description="BHs strukturerte respons med tre-port vurdering"
     )
 
     # Computed field for visning

@@ -129,11 +129,42 @@ export interface BHResponsForseringRequest {
   godkjent_kostnad?: number;
   begrunnelse: string;
   expected_version?: number;
+
+  // Port 1: Grunnlagsvalidering
+  grunnlag_fortsatt_gyldig?: boolean;
+  grunnlag_begrunnelse?: string;
+
+  // Port 2: 30%-regel
+  trettiprosent_overholdt?: boolean;
+  trettiprosent_begrunnelse?: string;
+
+  // Særskilte krav (§34.1.3)
+  rigg_varslet_i_tide?: boolean;
+  produktivitet_varslet_i_tide?: boolean;
+  godkjent_rigg_drift?: number;
+  godkjent_produktivitet?: number;
+
+  // Subsidiært
+  subsidiaer_triggers?: string[];
+  subsidiaer_godkjent_belop?: number;
+  subsidiaer_begrunnelse?: string;
 }
 
 export interface BHResponsForseringResponse extends CatendaSyncStatus {
   success: boolean;
   message?: string;
+}
+
+/**
+ * Response fra valider-grunnlag endpoint.
+ * Sjekker om forseringsgrunnlaget fortsatt er gyldig.
+ */
+export interface ValiderGrunnlagResponse {
+  success: boolean;
+  er_gyldig: boolean;
+  grunn?: string;
+  pavirket_sak_id?: string;
+  ny_status?: string;
 }
 
 export interface OppdaterKostnaderRequest {
@@ -347,7 +378,7 @@ export async function stoppForsering(
 }
 
 /**
- * BH responds to a forsering claim (accept or reject)
+ * BH responds to a forsering claim (accept or reject) - tre-port modell
  */
 export async function bhResponsForsering(
   data: BHResponsForseringRequest
@@ -365,7 +396,7 @@ export async function bhResponsForsering(
     };
   }
 
-  // Real API call
+  // Real API call - inkluderer tre-port felter
   return apiFetch<BHResponsForseringResponse>(
     `/api/forsering/${data.forsering_sak_id}/bh-respons`,
     {
@@ -375,8 +406,46 @@ export async function bhResponsForsering(
         godkjent_kostnad: data.godkjent_kostnad,
         begrunnelse: data.begrunnelse,
         expected_version: data.expected_version,
+        // Port 1: Grunnlagsvalidering
+        grunnlag_fortsatt_gyldig: data.grunnlag_fortsatt_gyldig,
+        grunnlag_begrunnelse: data.grunnlag_begrunnelse,
+        // Port 2: 30%-regel
+        trettiprosent_overholdt: data.trettiprosent_overholdt,
+        trettiprosent_begrunnelse: data.trettiprosent_begrunnelse,
+        // Særskilte krav (§34.1.3)
+        rigg_varslet_i_tide: data.rigg_varslet_i_tide,
+        produktivitet_varslet_i_tide: data.produktivitet_varslet_i_tide,
+        godkjent_rigg_drift: data.godkjent_rigg_drift,
+        godkjent_produktivitet: data.godkjent_produktivitet,
+        // Subsidiært
+        subsidiaer_triggers: data.subsidiaer_triggers,
+        subsidiaer_godkjent_belop: data.subsidiaer_godkjent_belop,
+        subsidiaer_begrunnelse: data.subsidiaer_begrunnelse,
       }),
     }
+  );
+}
+
+/**
+ * Valider om forseringsgrunnlaget fortsatt er gyldig.
+ * Brukes av BH for å sjekke Port 1 før de gir respons.
+ * Grunnlaget er ugyldig hvis BH har snudd på fristforlengelsen.
+ */
+export async function validerForseringsgrunnlag(
+  sakId: string
+): Promise<ValiderGrunnlagResponse> {
+  // Use mock data if enabled
+  if (USE_MOCK_API) {
+    await mockDelay(200);
+    return {
+      success: true,
+      er_gyldig: true,
+    };
+  }
+
+  // Real API call
+  return apiFetch<ValiderGrunnlagResponse>(
+    `/api/forsering/${sakId}/valider-grunnlag`
   );
 }
 

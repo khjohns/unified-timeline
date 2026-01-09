@@ -1243,8 +1243,32 @@ class ForseringResponsData(BaseModel):
     """
     Data for BH's respons på forsering (§33.8).
 
-    BH kan akseptere eller avvise TE's forseringsvarsel.
+    Utvidet med tre-port struktur:
+    - Port 1: Grunnlagsvalidering (er avslaget fortsatt gyldig?)
+    - Port 2: 30%-regel (er kostnaden innenfor grensen?)
+    - Port 3: Beløpsvurdering (hovedkrav + særskilte krav)
     """
+    # === Port 1: Grunnlagsvalidering ===
+    grunnlag_fortsatt_gyldig: Optional[bool] = Field(
+        default=None,
+        description="BH bekrefter at frist-avslaget fortsatt står ved lag"
+    )
+    grunnlag_begrunnelse: Optional[str] = Field(
+        default=None,
+        description="BHs begrunnelse hvis grunnlaget bestrides"
+    )
+
+    # === Port 2: 30%-regel validering ===
+    trettiprosent_overholdt: Optional[bool] = Field(
+        default=None,
+        description="BH vurderer om estimert kostnad er innenfor 30%-grensen"
+    )
+    trettiprosent_begrunnelse: Optional[str] = Field(
+        default=None,
+        description="BHs begrunnelse ved avvik fra 30%-regelen"
+    )
+
+    # === Port 3: Beløpsvurdering ===
     aksepterer: bool = Field(
         ...,
         description="BH aksepterer forsering"
@@ -1262,6 +1286,41 @@ class ForseringResponsData(BaseModel):
     dato_respons: str = Field(
         ...,
         description="Dato for BH's respons (YYYY-MM-DD)"
+    )
+
+    # === Port 3b: Særskilte krav vurdering (§34.1.3) ===
+    rigg_varslet_i_tide: Optional[bool] = Field(
+        default=None,
+        description="Om rigg/drift-varslet var rettidig"
+    )
+    produktivitet_varslet_i_tide: Optional[bool] = Field(
+        default=None,
+        description="Om produktivitets-varslet var rettidig"
+    )
+    godkjent_rigg_drift: Optional[float] = Field(
+        default=None,
+        ge=0,
+        description="Godkjent rigg/drift-beløp"
+    )
+    godkjent_produktivitet: Optional[float] = Field(
+        default=None,
+        ge=0,
+        description="Godkjent produktivitetsbeløp"
+    )
+
+    # === Subsidiært standpunkt ===
+    subsidiaer_triggers: Optional[List[str]] = Field(
+        default=None,
+        description="Triggere for subsidiær vurdering (f.eks. 'grunnlag_bestridt')"
+    )
+    subsidiaer_godkjent_belop: Optional[float] = Field(
+        default=None,
+        ge=0,
+        description="Subsidiært godkjent beløp"
+    )
+    subsidiaer_begrunnelse: Optional[str] = Field(
+        default=None,
+        description="Begrunnelse for subsidiært standpunkt"
     )
 
 
