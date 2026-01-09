@@ -1118,13 +1118,6 @@ export function RespondFristModal({
                 />
               </FormField>
 
-              {/* Info about subsidiary calculation */}
-              {!harHindring && !port2ErSubsidiaer && (
-                <Alert variant="info" title="Subsidiær beregning">
-                  Selv om du mener det ikke var reell hindring, må du{' '}
-                  <strong>subsidiært</strong> ta stilling til antall dager i neste steg.
-                </Alert>
-              )}
             </div>
           )}
 
