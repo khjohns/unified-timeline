@@ -24,10 +24,7 @@ import {
   AlertDialog,
   Badge,
   Button,
-  Collapsible,
   CurrencyInput,
-  DataList,
-  DataListItem,
   FormField,
   InlineDataList,
   InlineDataListItem,
@@ -1028,45 +1025,52 @@ export function BHResponsForseringModal({
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Oppsummering</h3>
 
-              {/* Per-sak forseringsrett oppsummering */}
+              {/* Per-sak forseringsrett oppsummering - tabell-layout */}
               {avslatteSaker && avslatteSaker.length > 0 && (
-                <Collapsible
-                  title={`Forseringsrett-vurdering (${avslatteSaker.length} ${avslatteSaker.length === 1 ? 'sak' : 'saker'})`}
-                  defaultOpen={false}
-                >
-                  <div className="space-y-2">
-                    {avslatteSaker.map((sak) => {
-                      const vurdering = formData.vurdering_per_sak?.find(v => v.sak_id === sak.sak_id);
-                      const erUberettiget = vurdering?.avslag_berettiget === false;
-                      return (
-                        <div key={sak.sak_id} className="flex justify-between items-center py-2 border-b border-pkt-border-subtle last:border-b-0">
-                          <div className="flex-1">
-                            <span className="font-medium text-sm">{sak.sak_id}</span>
-                            <span className="text-sm text-pkt-text-body-subtle ml-2">
-                              {sak.tittel} ({sak.avslatte_dager} dager)
-                            </span>
-                          </div>
-                          <Badge variant={erUberettiget ? 'success' : 'danger'}>
-                            {erUberettiget ? 'Uberettiget avslag' : 'Berettiget avslag'}
+                <div className="p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
+                  <h5 className="font-medium text-sm mb-3">Forseringsrett-vurdering</h5>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-pkt-border-subtle">
+                        <th className="text-left py-1.5 font-medium">Sak</th>
+                        <th className="text-right py-1.5 font-medium w-16">Dager</th>
+                        <th className="text-right py-1.5 font-medium w-32">Avslaget</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {avslatteSaker.map((sak) => {
+                        const vurdering = formData.vurdering_per_sak?.find(v => v.sak_id === sak.sak_id);
+                        const erUberettiget = vurdering?.avslag_berettiget === false;
+                        return (
+                          <tr key={sak.sak_id} className="border-b border-pkt-border-subtle last:border-b-0">
+                            <td className="py-2">
+                              <span className="font-medium">{sak.tittel}</span>
+                            </td>
+                            <td className="text-right py-2 font-mono">{sak.avslatte_dager}</td>
+                            <td className="text-right py-2">
+                              <Badge variant={erUberettiget ? 'success' : 'danger'} size="sm">
+                                {erUberettiget ? 'Uberettiget' : 'Berettiget'}
+                              </Badge>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 border-pkt-border-default">
+                        <td className="py-2 font-bold">Konklusjon</td>
+                        <td className="text-right py-2 font-mono font-bold">
+                          {computed.dagerUberettiget}/{computed.totalAvslatteDager}
+                        </td>
+                        <td className="text-right py-2">
+                          <Badge variant={computed.harForseringsrett ? 'success' : 'danger'} size="sm">
+                            {computed.harForseringsrett ? 'Har rett' : 'Ingen rett'}
                           </Badge>
-                        </div>
-                      );
-                    })}
-                    <div className="pt-2 text-sm flex items-center gap-2 flex-wrap">
-                      <strong>Konklusjon:</strong>
-                      {computed.harForseringsrett ? (
-                        <>
-                          <Badge variant="success">Har forseringsrett</Badge>
-                          <span className="text-pkt-text-body-subtle">
-                            ({computed.dagerUberettiget} av {computed.totalAvslatteDager} dager med uberettiget avslag)
-                          </span>
-                        </>
-                      ) : (
-                        <Badge variant="danger">Ingen forseringsrett</Badge>
-                      )}
-                    </div>
-                  </div>
-                </Collapsible>
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
               )}
 
               {/* Beløpsoversikt tabell */}
