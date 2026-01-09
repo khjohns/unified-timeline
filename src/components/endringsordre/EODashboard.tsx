@@ -49,7 +49,7 @@ function getStatusBadge(status: EOStatus) {
   };
 
   const { variant, label } = variants[status] || variants.utkast;
-  return <Badge variant={variant} size="sm">{label}</Badge>;
+  return <Badge variant={variant}>{label}</Badge>;
 }
 
 function getOppgjorsformLabel(metode?: VederlagsMetode): string {
@@ -76,7 +76,7 @@ function KonsekvensChips({ konsekvenser }: { konsekvenser: EOKonsekvenser }) {
   return (
     <div className="flex flex-wrap gap-1">
       {aktive.map((k) => (
-        <Badge key={k} variant="default" size="sm">{k}</Badge>
+        <Badge key={k} variant="default">{k}</Badge>
       ))}
     </div>
   );
@@ -147,8 +147,7 @@ export function EODashboard({
           headerBadge={harPriskonsekvens && eoData.netto_belop !== undefined && (
             <Badge
               variant={eoData.netto_belop >= 0 ? 'success' : 'danger'}
-              size="sm"
-            >
+                         >
               {eoData.netto_belop >= 0 ? '+' : ''}{formatCurrency(eoData.netto_belop)}
             </Badge>
           )}
@@ -220,7 +219,7 @@ export function EODashboard({
         <DashboardCard
           title="Totalentreprenørens respons"
           headerBadge={
-            <Badge variant={eoData.te_akseptert ? 'success' : 'danger'} size="sm">
+            <Badge variant={eoData.te_akseptert ? 'success' : 'danger'}>
               {eoData.te_akseptert ? 'Akseptert' : 'Bestridt'}
             </Badge>
           }

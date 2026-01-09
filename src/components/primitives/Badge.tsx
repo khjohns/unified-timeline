@@ -36,7 +36,7 @@ const sizeStyles: Record<BadgeSize, string> = {
 export function Badge({
   children,
   variant = 'default',
-  size = 'md',
+  size = 'sm',
   className,
 }: BadgeProps) {
   return (

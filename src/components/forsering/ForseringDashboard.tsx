@@ -113,12 +113,12 @@ function getCostStatus(forseringData: ForseringData): {
 
 function getStatusBadge(forseringData: ForseringData) {
   if (forseringData.er_stoppet) {
-    return <Badge variant="warning" size="sm">Stoppet</Badge>;
+    return <Badge variant="warning">Stoppet</Badge>;
   }
   if (forseringData.er_iverksatt) {
-    return <Badge variant="success" size="sm">Iverksatt</Badge>;
+    return <Badge variant="success">Iverksatt</Badge>;
   }
-  return <Badge variant="default" size="sm">Varslet</Badge>;
+  return <Badge variant="default">Varslet</Badge>;
 }
 
 /**
@@ -139,30 +139,30 @@ function getBHResponseBadge(forseringData: ForseringData) {
       if (erSubsidiaert) {
         return (
           <div className="flex gap-1">
-            <Badge variant={isPartial ? 'warning' : 'success'} size="sm">
+            <Badge variant={isPartial ? 'warning' : 'success'}>
               {isPartial ? 'Delvis godkjent' : 'Godkjent'}
             </Badge>
-            <Badge variant="warning" size="sm">Subsidiært</Badge>
+            <Badge variant="warning">Subsidiært</Badge>
           </div>
         );
       }
       return (
-        <Badge variant={isPartial ? 'warning' : 'success'} size="sm">
+        <Badge variant={isPartial ? 'warning' : 'success'}>
           {isPartial ? 'Delvis godkjent' : 'Godkjent'}
         </Badge>
       );
     }
-    return <Badge variant="danger" size="sm">Avslått</Badge>;
+    return <Badge variant="danger">Avslått</Badge>;
   }
 
   // Legacy fallback
   if (forseringData.bh_aksepterer_forsering === undefined) {
-    return <Badge variant="default" size="sm">Venter på BH</Badge>;
+    return <Badge variant="default">Venter på BH</Badge>;
   }
   if (forseringData.bh_aksepterer_forsering) {
-    return <Badge variant="success" size="sm">Godkjent</Badge>;
+    return <Badge variant="success">Godkjent</Badge>;
   }
-  return <Badge variant="danger" size="sm">Avslått</Badge>;
+  return <Badge variant="danger">Avslått</Badge>;
 }
 
 /**
@@ -231,7 +231,7 @@ function ForseringsrettVurderingTable({
                 </td>
                 <td className="text-right py-2 font-mono">{sak.avslatte_dager}</td>
                 <td className="text-right py-2">
-                  <Badge variant={status.variant} size="sm">{status.label}</Badge>
+                  <Badge variant={status.variant}>{status.label}</Badge>
                 </td>
               </tr>
             );
@@ -246,9 +246,9 @@ function ForseringsrettVurderingTable({
               </td>
               <td className="text-right py-2">
                 {dagerMedForseringsrett > 0 ? (
-                  <Badge variant="success" size="sm">Har rett</Badge>
+                  <Badge variant="success">Har rett</Badge>
                 ) : (
-                  <Badge variant="danger" size="sm">Ingen rett</Badge>
+                  <Badge variant="danger">Ingen rett</Badge>
                 )}
               </td>
             </tr>
@@ -325,7 +325,7 @@ export function ForseringDashboard({
           title="Forseringsstatus"
           headerBadge={getStatusBadge(forseringData)}
           action={canStoppForsering && onStoppForsering && (
-            <Button variant="danger" size="sm" onClick={onStoppForsering}>
+            <Button variant="danger" onClick={onStoppForsering}>
               <StopIcon className="w-4 h-4 mr-2" />
               Stopp forsering
             </Button>
@@ -368,8 +368,7 @@ export function ForseringDashboard({
                 getCostStatus(forseringData).status === 'warning' ? 'warning' :
                 'success'
               }
-              size="sm"
-            >
+                         >
               <span className="flex items-center gap-1">
                 {getCostStatus(forseringData).icon}
                 {getCostStatus(forseringData).label}
@@ -412,8 +411,7 @@ export function ForseringDashboard({
         action={canGiStandpunkt && onGiStandpunkt && (
           <Button
             variant={hasGittStandpunkt ? 'secondary' : 'primary'}
-            size="sm"
-            onClick={onGiStandpunkt}
+                       onClick={onGiStandpunkt}
           >
             <ChatBubbleIcon className="w-4 h-4 mr-2" />
             {hasGittStandpunkt ? 'Endre standpunkt' : 'Gi standpunkt'}
@@ -458,15 +456,15 @@ export function ForseringDashboard({
                     <td className="text-right font-mono">{formatCurrency(hovedkravGodkjent)}</td>
                     <td className="text-right">
                       {harForseringsrettAvslag ? (
-                        <Badge variant="danger" size="sm">Ingen rett</Badge>
+                        <Badge variant="danger">Ingen rett</Badge>
                       ) : bhAksepterer ? (
                         hovedkravGodkjent >= (forseringData.estimert_kostnad ?? 0) ? (
-                          <Badge variant="success" size="sm">Godkjent</Badge>
+                          <Badge variant="success">Godkjent</Badge>
                         ) : (
-                          <Badge variant="warning" size="sm">Delvis</Badge>
+                          <Badge variant="warning">Delvis</Badge>
                         )
                       ) : (
-                        <Badge variant="danger" size="sm">Avvist</Badge>
+                        <Badge variant="danger">Avvist</Badge>
                       )}
                     </td>
                   </tr>
@@ -482,11 +480,11 @@ export function ForseringDashboard({
                       </td>
                       <td className="text-right">
                         {hovedkravGodkjentRaw >= (forseringData.estimert_kostnad ?? 0) ? (
-                          <Badge variant="success" size="sm">Godkjent</Badge>
+                          <Badge variant="success">Godkjent</Badge>
                         ) : hovedkravGodkjentRaw > 0 ? (
-                          <Badge variant="warning" size="sm">Delvis</Badge>
+                          <Badge variant="warning">Delvis</Badge>
                         ) : (
-                          <Badge variant="danger" size="sm">Avvist</Badge>
+                          <Badge variant="danger">Avvist</Badge>
                         )}
                       </td>
                     </tr>
@@ -508,13 +506,13 @@ export function ForseringDashboard({
                         </td>
                         <td className="text-right">
                           {riggPrekludert ? (
-                            <Badge variant="danger" size="sm">Prekludert</Badge>
+                            <Badge variant="danger">Prekludert</Badge>
                           ) : bhRespons?.godkjent_rigg_drift === forseringData.vederlag?.saerskilt_krav?.rigg_drift?.belop ? (
-                            <Badge variant="success" size="sm">Godkjent</Badge>
+                            <Badge variant="success">Godkjent</Badge>
                           ) : (bhRespons?.godkjent_rigg_drift ?? 0) > 0 ? (
-                            <Badge variant="warning" size="sm">Delvis</Badge>
+                            <Badge variant="warning">Delvis</Badge>
                           ) : (
-                            <Badge variant="danger" size="sm">Avvist</Badge>
+                            <Badge variant="danger">Avvist</Badge>
                           )}
                         </td>
                       </tr>
@@ -530,11 +528,11 @@ export function ForseringDashboard({
                           </td>
                           <td className="text-right">
                             {bhRespons?.godkjent_rigg_drift === forseringData.vederlag?.saerskilt_krav?.rigg_drift?.belop ? (
-                              <Badge variant="success" size="sm">Godkjent</Badge>
+                              <Badge variant="success">Godkjent</Badge>
                             ) : (bhRespons?.godkjent_rigg_drift ?? 0) > 0 ? (
-                              <Badge variant="warning" size="sm">Delvis</Badge>
+                              <Badge variant="warning">Delvis</Badge>
                             ) : (
-                              <Badge variant="danger" size="sm">Avvist</Badge>
+                              <Badge variant="danger">Avvist</Badge>
                             )}
                           </td>
                         </tr>
@@ -558,13 +556,13 @@ export function ForseringDashboard({
                         </td>
                         <td className="text-right">
                           {produktivitetPrekludert ? (
-                            <Badge variant="danger" size="sm">Prekludert</Badge>
+                            <Badge variant="danger">Prekludert</Badge>
                           ) : bhRespons?.godkjent_produktivitet === forseringData.vederlag?.saerskilt_krav?.produktivitet?.belop ? (
-                            <Badge variant="success" size="sm">Godkjent</Badge>
+                            <Badge variant="success">Godkjent</Badge>
                           ) : (bhRespons?.godkjent_produktivitet ?? 0) > 0 ? (
-                            <Badge variant="warning" size="sm">Delvis</Badge>
+                            <Badge variant="warning">Delvis</Badge>
                           ) : (
-                            <Badge variant="danger" size="sm">Avvist</Badge>
+                            <Badge variant="danger">Avvist</Badge>
                           )}
                         </td>
                       </tr>
@@ -580,11 +578,11 @@ export function ForseringDashboard({
                           </td>
                           <td className="text-right">
                             {bhRespons?.godkjent_produktivitet === forseringData.vederlag?.saerskilt_krav?.produktivitet?.belop ? (
-                              <Badge variant="success" size="sm">Godkjent</Badge>
+                              <Badge variant="success">Godkjent</Badge>
                             ) : (bhRespons?.godkjent_produktivitet ?? 0) > 0 ? (
-                              <Badge variant="warning" size="sm">Delvis</Badge>
+                              <Badge variant="warning">Delvis</Badge>
                             ) : (
-                              <Badge variant="danger" size="sm">Avvist</Badge>
+                              <Badge variant="danger">Avvist</Badge>
                             )}
                           </td>
                         </tr>

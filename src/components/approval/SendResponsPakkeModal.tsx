@@ -252,7 +252,7 @@ export function SendResponsPakkeModal({
           <div className="flex flex-wrap items-center gap-2">
             {requiredApprovers.map((role, index) => (
               <div key={role} className="flex items-center gap-2">
-                <Badge variant={index === 0 ? 'warning' : 'default'} size="sm">
+                <Badge variant={index === 0 ? 'warning' : 'default'}>
                   {APPROVAL_ROLE_LABELS[role]}
                 </Badge>
                 {index < requiredApprovers.length - 1 && (

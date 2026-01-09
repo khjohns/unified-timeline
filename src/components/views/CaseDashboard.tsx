@@ -32,11 +32,11 @@ interface CaseDashboardProps {
 function getStatusBadge(status: SporStatus, erSubsidiaert?: boolean): ReactNode {
   // Subsidiary status gets special treatment
   if (erSubsidiaert) {
-    return <Badge variant="warning" size="sm">Godkjent (subsidiært)</Badge>;
+    return <Badge variant="warning">Godkjent (subsidiært)</Badge>;
   }
 
   const { variant, label } = getSporStatusStyle(status);
-  return <Badge variant={variant} size="sm">{label}</Badge>;
+  return <Badge variant={variant}>{label}</Badge>;
 }
 
 /**

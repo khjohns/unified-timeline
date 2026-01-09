@@ -72,10 +72,10 @@ export function ForseringKostnadskort({ forseringData }: ForseringKostnadskortPr
           <h4 className="font-bold text-sm flex items-center gap-2">
             Påløpte kostnader
             {overstigerMaks && (
-              <Badge variant="danger" size="sm">Over maksgrense</Badge>
+              <Badge variant="danger">Over maksgrense</Badge>
             )}
             {!overstigerMaks && overstigerEstimert && (
-              <Badge variant="warning" size="sm">Over estimat</Badge>
+              <Badge variant="warning">Over estimat</Badge>
             )}
           </h4>
 

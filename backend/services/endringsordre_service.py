@@ -582,36 +582,45 @@ class EndringsordreService(BaseSakService):
         Returns:
             Liste med kandidat-saker (sak_id, tittel, status)
         """
-        if not self.client:
-            logger.warning("Ingen Catenda client - kan ikke hente kandidater")
-            return []
+        # Hent liste over sak-IDer å søke gjennom
+        sak_ids_to_search = []
 
-        # Hent alle topics
-        # NB: Dette kan bli ineffektivt med mange saker - bør optimaliseres med filtrering
-        try:
-            topics = self.client.list_topics()
-        except Exception as e:
-            logger.error(f"Feil ved henting av topics: {e}")
+        # Prøv Catenda først hvis tilgjengelig
+        if self.client:
+            try:
+                topics = self.client.list_topics()
+                # Map Catenda topic GUIDs til sak_ids via metadata
+                for topic in topics:
+                    topic_guid = topic.get('guid')
+                    if not topic_guid:
+                        continue
+                    if self.metadata_repository:
+                        metadata = self.metadata_repository.get_by_topic_id(topic_guid)
+                        if metadata:
+                            sak_ids_to_search.append(metadata.sak_id)
+            except Exception as e:
+                logger.warning(f"Kunne ikke hente topics fra Catenda: {e}")
+
+        # Fallback til event repository hvis ingen saker fra Catenda
+        if not sak_ids_to_search and self.event_repository:
+            try:
+                # Prøv list_all_sak_ids (JsonFileEventRepository)
+                if hasattr(self.event_repository, 'list_all_sak_ids'):
+                    sak_ids_to_search = self.event_repository.list_all_sak_ids()
+                # Eller get_all_sak_ids (SupabaseEventRepository)
+                elif hasattr(self.event_repository, 'get_all_sak_ids'):
+                    sak_ids_to_search = self.event_repository.get_all_sak_ids()
+                logger.info(f"Bruker event repository fallback for kandidater, fant {len(sak_ids_to_search)} saker")
+            except Exception as e:
+                logger.warning(f"Kunne ikke liste saker fra event repository: {e}")
+
+        if not sak_ids_to_search:
+            logger.warning("Ingen saker å søke gjennom for kandidat-KOE-saker")
             return []
 
         kandidater = []
 
-        for topic in topics:
-            topic_guid = topic.get('guid')
-            if not topic_guid:
-                continue
-
-            # Map Catenda topic GUID to internal sak_id via metadata
-            sak_id = None
-            if self.metadata_repository:
-                metadata = self.metadata_repository.get_by_topic_id(topic_guid)
-                if metadata:
-                    sak_id = metadata.sak_id
-
-            if not sak_id:
-                logger.debug(f"Ingen sak funnet for topic {topic_guid}")
-                continue
-
+        for sak_id in sak_ids_to_search:
             # Sjekk om dette er en standard sak med kan_utstede_eo=True
             if self.event_repository and self.timeline_service:
                 try:
@@ -620,11 +629,11 @@ class EndringsordreService(BaseSakService):
                         events = [parse_event(e) for e in events_data]
                         state = self.timeline_service.compute_state(events)
 
-                        # Sjekk kriterier
+                        # Sjekk kriterier: må være standard sak (ikke forsering/endringsordre) med kan_utstede_eo
                         if (state.sakstype == 'standard' or state.sakstype is None) and state.kan_utstede_eo:
                             kandidater.append({
                                 "sak_id": sak_id,
-                                "tittel": state.sakstittel or topic.get('title', ''),
+                                "tittel": state.sakstittel or "",
                                 "overordnet_status": state.overordnet_status,
                                 "sum_godkjent": state.sum_godkjent,
                                 "godkjent_dager": state.frist.godkjent_dager if state.frist else None,

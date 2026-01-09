@@ -42,10 +42,10 @@ export function ForseringRelasjonBanner({ forseringer }: ForseringRelasjonBanner
               <span className="truncate">{forsering.forsering_sak_tittel}</span>
               <span className="ml-auto shrink-0">
                 {forsering.er_iverksatt && !forsering.er_stoppet && (
-                  <Badge variant="success" size="sm">Iverksatt</Badge>
+                  <Badge variant="success">Iverksatt</Badge>
                 )}
                 {forsering.er_stoppet && (
-                  <Badge variant="warning" size="sm">Stoppet</Badge>
+                  <Badge variant="warning">Stoppet</Badge>
                 )}
               </span>
             </span>

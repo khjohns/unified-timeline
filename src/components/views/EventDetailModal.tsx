@@ -679,7 +679,7 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
                 <span className="text-sm font-medium">Hovedkrav</span>
                 <div className="flex items-center gap-2">
                   {data.hovedkrav_vurdering && (
-                    <Badge variant={getBelopVurderingBadge(data.hovedkrav_vurdering).variant} size="sm">
+                    <Badge variant={getBelopVurderingBadge(data.hovedkrav_vurdering).variant}>
                       {getBelopVurderingBadge(data.hovedkrav_vurdering).label}
                     </Badge>
                   )}
@@ -704,7 +704,7 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
                 </span>
                 <div className="flex items-center gap-2">
                   {data.rigg_vurdering && (
-                    <Badge variant={getBelopVurderingBadge(data.rigg_vurdering).variant} size="sm">
+                    <Badge variant={getBelopVurderingBadge(data.rigg_vurdering).variant}>
                       {getBelopVurderingBadge(data.rigg_vurdering).label}
                     </Badge>
                   )}
@@ -733,7 +733,7 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
                 </span>
                 <div className="flex items-center gap-2">
                   {data.produktivitet_vurdering && (
-                    <Badge variant={getBelopVurderingBadge(data.produktivitet_vurdering).variant} size="sm">
+                    <Badge variant={getBelopVurderingBadge(data.produktivitet_vurdering).variant}>
                       {getBelopVurderingBadge(data.produktivitet_vurdering).label}
                     </Badge>
                   )}
@@ -775,7 +775,7 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
               value={
                 <div className="flex flex-wrap gap-1">
                   {data.subsidiaer_triggers.map((trigger) => (
-                    <Badge key={trigger} variant="warning" size="sm">
+                    <Badge key={trigger} variant="warning">
                       {getSubsidiaerTriggerLabel(trigger as SubsidiaerTrigger)}
                     </Badge>
                   ))}
@@ -930,7 +930,7 @@ function ResponsFristSection({ data }: { data: ResponsFristEventData }) {
               value={
                 <div className="flex flex-wrap gap-1">
                   {data.subsidiaer_triggers.map((trigger) => (
-                    <Badge key={trigger} variant="warning" size="sm">
+                    <Badge key={trigger} variant="warning">
                       {getSubsidiaerTriggerLabel(trigger as SubsidiaerTrigger)}
                     </Badge>
                   ))}

@@ -25,6 +25,8 @@ import {
   Badge,
   Button,
   CurrencyInput,
+  DataList,
+  DataListItem,
   FormField,
   InlineDataList,
   InlineDataListItem,
@@ -790,21 +792,21 @@ export function BHResponsForseringModal({
                   backgroundColor: forseringData.kostnad_innenfor_grense ? 'var(--badge-success-bg)' : 'var(--alert-danger-bg)',
                 }}
               >
-                <InlineDataList>
-                  <InlineDataListItem label="Entreprenørens estimat" mono bold>
+                <DataList variant="grid">
+                  <DataListItem label="Entreprenørens estimat" mono>
                     {formatCurrency(forseringData.estimert_kostnad)}
-                  </InlineDataListItem>
-                  <InlineDataListItem label="Maks kostnad (30%)" mono bold>
+                  </DataListItem>
+                  <DataListItem label="Maks kostnad (30%)" mono>
                     {formatCurrency(forseringData.maks_forseringskostnad)}
-                  </InlineDataListItem>
-                  <InlineDataListItem label="">
+                  </DataListItem>
+                  <DataListItem label="Status">
                     {forseringData.kostnad_innenfor_grense ? (
                       <Badge variant="success">Innenfor grensen</Badge>
                     ) : (
                       <Badge variant="danger">Overstiger med {formatCurrency((forseringData.estimert_kostnad ?? 0) - (forseringData.maks_forseringskostnad ?? 0))}</Badge>
                     )}
-                  </InlineDataListItem>
-                </InlineDataList>
+                  </DataListItem>
+                </DataList>
               </div>
 
               {/* Konklusjon basert på automatisk beregning */}
@@ -906,7 +908,7 @@ export function BHResponsForseringModal({
                   />
 
                   {formData.rigg_varslet_i_tide === false && (
-                    <Alert variant="warning" size="sm" title="Prekludert">
+                    <Alert variant="warning" title="Prekludert">
                       Kravet prekluderes fordi det ikke ble varslet i tide.
                       Byggherren tar likevel subsidiært standpunkt til beløpet.
                     </Alert>
@@ -977,7 +979,7 @@ export function BHResponsForseringModal({
                   />
 
                   {formData.produktivitet_varslet_i_tide === false && (
-                    <Alert variant="warning" size="sm" title="Prekludert">
+                    <Alert variant="warning" title="Prekludert">
                       Kravet prekluderes fordi det ikke ble varslet i tide.
                       Byggherren tar likevel subsidiært standpunkt til beløpet.
                     </Alert>
@@ -1048,7 +1050,7 @@ export function BHResponsForseringModal({
                             </td>
                             <td className="text-right py-2 font-mono">{sak.avslatte_dager}</td>
                             <td className="text-right py-2">
-                              <Badge variant={erUberettiget ? 'success' : 'danger'} size="sm">
+                              <Badge variant={erUberettiget ? 'success' : 'danger'}>
                                 {erUberettiget ? 'Uberettiget' : 'Berettiget'}
                               </Badge>
                             </td>
@@ -1063,7 +1065,7 @@ export function BHResponsForseringModal({
                           {computed.dagerUberettiget}/{computed.totalAvslatteDager}
                         </td>
                         <td className="text-right py-2">
-                          <Badge variant={computed.harForseringsrett ? 'success' : 'danger'} size="sm">
+                          <Badge variant={computed.harForseringsrett ? 'success' : 'danger'}>
                             {computed.harForseringsrett ? 'Har rett' : 'Ingen rett'}
                           </Badge>
                         </td>

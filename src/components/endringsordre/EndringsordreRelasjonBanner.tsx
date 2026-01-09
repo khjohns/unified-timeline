@@ -30,15 +30,15 @@ function formatDate(dateString?: string): string {
 function getStatusBadge(status: string) {
   switch (status) {
     case 'akseptert':
-      return <Badge variant="success" size="sm">Akseptert</Badge>;
+      return <Badge variant="success">Akseptert</Badge>;
     case 'utstedt':
-      return <Badge variant="info" size="sm">Utstedt</Badge>;
+      return <Badge variant="info">Utstedt</Badge>;
     case 'bestridt':
-      return <Badge variant="warning" size="sm">Bestridt</Badge>;
+      return <Badge variant="warning">Bestridt</Badge>;
     case 'revidert':
-      return <Badge variant="default" size="sm">Revidert</Badge>;
+      return <Badge variant="default">Revidert</Badge>;
     default:
-      return <Badge variant="default" size="sm">{status}</Badge>;
+      return <Badge variant="default">{status}</Badge>;
   }
 }
 

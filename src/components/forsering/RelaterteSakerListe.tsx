@@ -143,16 +143,14 @@ export function RelaterteSakerListe({
                           </span>
                           <Button
                             variant="ghost"
-                            size="sm"
-                            onClick={handleCancelRemoval}
+                                                       onClick={handleCancelRemoval}
                             disabled={isRemoving}
                           >
                             <Cross2Icon className="w-4 h-4" />
                           </Button>
                           <Button
                             variant="danger"
-                            size="sm"
-                            onClick={(e) => handleConfirmRemoval(sak.relatert_sak_id, e)}
+                                                       onClick={(e) => handleConfirmRemoval(sak.relatert_sak_id, e)}
                             disabled={isRemoving}
                           >
                             <TrashIcon className="w-4 h-4" />
@@ -184,14 +182,14 @@ export function RelaterteSakerListe({
                       </td>
                       <td className="text-center py-2">
                         {grunnlagStatus ? (
-                          <Badge variant={grunnlagStatus.variant} size="sm">{grunnlagStatus.label}</Badge>
+                          <Badge variant={grunnlagStatus.variant}>{grunnlagStatus.label}</Badge>
                         ) : (
                           <span className="text-pkt-text-body-subtle">-</span>
                         )}
                       </td>
                       <td className="text-center py-2">
                         {fristStatus ? (
-                          <Badge variant={fristStatus.variant} size="sm">{fristStatus.label}</Badge>
+                          <Badge variant={fristStatus.variant}>{fristStatus.label}</Badge>
                         ) : (
                           <span className="text-pkt-text-body-subtle">-</span>
                         )}

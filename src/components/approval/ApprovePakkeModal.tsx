@@ -259,7 +259,7 @@ export function ApprovePakkeModal({
                       <span className="text-pkt-text-success">✓</span>
                       {response.label}
                     </span>
-                    <Badge variant={getResultatVariant(response.resultat)} size="sm">
+                    <Badge variant={getResultatVariant(response.resultat)}>
                       {response.value}
                     </Badge>
                   </div>

@@ -2062,25 +2062,25 @@ export function RespondVederlagModal({
                         <div className="space-y-1 text-sm">
                           {formValues.aksepterer_metode !== lastResponseEvent?.aksepterer_metode && (
                             <div className="flex gap-2">
-                              <Badge variant="warning" size="sm">Endret</Badge>
+                              <Badge variant="warning">Endret</Badge>
                               <span>Metodeaksept: {lastResponseEvent?.aksepterer_metode ? 'Akseptert' : 'Avvist'} → {formValues.aksepterer_metode ? 'Akseptert' : 'Avvist'}</span>
                             </div>
                           )}
                           {harRiggKrav && formValues.rigg_varslet_i_tide !== lastResponseEvent?.rigg_varslet_i_tide && (
                             <div className="flex gap-2">
-                              <Badge variant="warning" size="sm">Endret</Badge>
+                              <Badge variant="warning">Endret</Badge>
                               <span>Rigg varsling: {lastResponseEvent?.rigg_varslet_i_tide ? 'I tide' : 'For sent'} → {formValues.rigg_varslet_i_tide ? 'I tide' : 'For sent'}</span>
                             </div>
                           )}
                           {harProduktivitetKrav && formValues.produktivitet_varslet_i_tide !== lastResponseEvent?.produktivitet_varslet_i_tide && (
                             <div className="flex gap-2">
-                              <Badge variant="warning" size="sm">Endret</Badge>
+                              <Badge variant="warning">Endret</Badge>
                               <span>Produktivitet varsling: {lastResponseEvent?.produktivitet_varslet_i_tide ? 'I tide' : 'For sent'} → {formValues.produktivitet_varslet_i_tide ? 'I tide' : 'For sent'}</span>
                             </div>
                           )}
                           {computed.totalGodkjent !== (lastResponseEvent?.godkjent_belop ?? 0) && (
                             <div className="flex gap-2">
-                              <Badge variant="warning" size="sm">Endret</Badge>
+                              <Badge variant="warning">Endret</Badge>
                               <span>
                                 Godkjent beløp: kr {(lastResponseEvent?.godkjent_belop ?? 0).toLocaleString('nb-NO')},- → kr {computed.totalGodkjent.toLocaleString('nb-NO')},-
                                 {computed.totalGodkjent > (lastResponseEvent?.godkjent_belop ?? 0) ? (

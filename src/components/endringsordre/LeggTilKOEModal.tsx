@@ -153,7 +153,7 @@ export function LeggTilKOEModal({
                           </span>
                           {(() => {
                             const status = getStatusBadge(sak.overordnet_status);
-                            return <Badge variant={status.variant} size="sm">{status.label}</Badge>;
+                            return <Badge variant={status.variant}>{status.label}</Badge>;
                           })()}
                         </div>
                         <p className="text-sm font-medium truncate mt-1">
