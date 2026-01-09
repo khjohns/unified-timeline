@@ -95,9 +95,8 @@ const bhResponsForseringSchema = z.object({
   // Port 1: Per-sak vurdering av forseringsrett (§33.8)
   vurdering_per_sak: z.array(forseringsrettVurderingSchema).default([]),
 
-  // Port 2: 30%-regel
-  trettiprosent_overholdt: z.boolean(),
-  trettiprosent_begrunnelse: z.string().optional(),
+  // Port 2: 30%-regel (auto-beregnet, ikke brukerstyrt)
+  trettiprosent_overholdt: z.boolean().optional(),
 
   // Port 3: Beløpsvurdering
   hovedkrav_vurdering: z.enum(['godkjent', 'delvis', 'avslatt']),
@@ -253,8 +252,8 @@ export function BHResponsForseringModal({
 
       return {
         vurdering_per_sak: vurderingPerSak,
-        trettiprosent_overholdt: lastResponse.trettiprosent_overholdt ?? true,
-        trettiprosent_begrunnelse: lastResponse.trettiprosent_begrunnelse ?? '',
+        // Auto-settes fra forseringData, ikke fra skjema
+        trettiprosent_overholdt: forseringData.kostnad_innenfor_grense ?? true,
         hovedkrav_vurdering: lastResponse.aksepterer ? 'godkjent' : 'avslatt',
         godkjent_belop: lastResponse.godkjent_belop,
         rigg_varslet_i_tide: lastResponse.rigg_varslet_i_tide ?? true,
@@ -267,12 +266,13 @@ export function BHResponsForseringModal({
     return {
       // Default: empty array - user must choose for each sak
       vurdering_per_sak: [],
-      trettiprosent_overholdt: true,
+      // Auto-settes fra forseringData
+      trettiprosent_overholdt: forseringData.kostnad_innenfor_grense ?? true,
       hovedkrav_vurdering: 'godkjent',
       rigg_varslet_i_tide: true,
       produktivitet_varslet_i_tide: true,
     };
-  }, [isUpdateMode, lastResponse, avslatteSaker]);
+  }, [isUpdateMode, lastResponse, avslatteSaker, forseringData.kostnad_innenfor_grense]);
 
   // Form setup
   const {
@@ -422,7 +422,8 @@ export function BHResponsForseringModal({
       totalAvslatteDager,
       dagerUberettiget,
       harForseringsrett,
-      trettiprosentOk: formData.trettiprosent_overholdt ?? true,
+      // Bruker automatisk beregning direkte, ikke skjemafelt
+      trettiprosentOk: forseringData.kostnad_innenfor_grense ?? true,
     };
   }, [formData, forseringData, harRiggKrav, harProduktivitetKrav, avslatteSaker]);
 
@@ -447,8 +448,8 @@ export function BHResponsForseringModal({
       vurderingPerSak: vurderingPerSakMedDetaljer,
       dagerMedForseringsrett: computed.dagerUberettiget,
       teHarForseringsrett: computed.harForseringsrett,
-      trettiprosentOverholdt: formData.trettiprosent_overholdt ?? true,
-      trettiprosentBegrunnelse: formData.trettiprosent_begrunnelse,
+      // Bruker automatisk beregning
+      trettiprosentOverholdt: forseringData.kostnad_innenfor_grense ?? true,
       hovedkravVurdering: formData.hovedkrav_vurdering ?? 'godkjent',
       hovedkravBelop: forseringData.estimert_kostnad,
       godkjentBelop: formData.hovedkrav_vurdering === 'godkjent'
@@ -492,8 +493,8 @@ export function BHResponsForseringModal({
         // Backward compatibility: old field (inverted semantics)
         // grunnlag_fortsatt_gyldig=true means "rejection was justified" (TE has NO right)
         grunnlag_fortsatt_gyldig: !computed.harForseringsrett,
-        trettiprosent_overholdt: data.trettiprosent_overholdt,
-        trettiprosent_begrunnelse: data.trettiprosent_begrunnelse,
+        // Bruker automatisk beregning
+        trettiprosent_overholdt: forseringData.kostnad_innenfor_grense ?? true,
         rigg_varslet_i_tide: data.rigg_varslet_i_tide,
         produktivitet_varslet_i_tide: data.produktivitet_varslet_i_tide,
         godkjent_rigg_drift: data.godkjent_rigg_drift,
@@ -544,7 +545,8 @@ export function BHResponsForseringModal({
         );
         return alleVurdert;
       case 2:
-        return formData.trettiprosent_overholdt !== undefined;
+        // Port 2 er kun informativ - 30%-regelen beregnes automatisk
+        return true;
       case 3:
         return formData.hovedkrav_vurdering !== undefined;
       default:
@@ -769,46 +771,16 @@ export function BHResponsForseringModal({
                 </div>
               </div>
 
-              {/* RadioGroup for 30% rule */}
-              <Controller
-                name="trettiprosent_overholdt"
-                control={control}
-                render={({ field }) => (
-                  <FormField label="Er 30%-regelen oppfylt?" required error={errors.trettiprosent_overholdt?.message}>
-                    <RadioGroup
-                      value={field.value === true ? 'ja' : field.value === false ? 'nei' : undefined}
-                      onValueChange={(v) => field.onChange(v === 'ja')}
-                    >
-                      <RadioItem
-                        value="ja"
-                        label="Ja, innenfor grensen"
-                        description="Entreprenøren hadde valgrett til å forsere"
-                      />
-                      <RadioItem
-                        value="nei"
-                        label="Nei, overstiger grensen"
-                        description="Entreprenøren hadde ikke valgrett til forsering"
-                      />
-                    </RadioGroup>
-                  </FormField>
-                )}
-              />
-
-              {/* Begrunnelse if 30% rule fails */}
-              {formData.trettiprosent_overholdt === false && (
-                <Controller
-                  name="trettiprosent_begrunnelse"
-                  control={control}
-                  render={({ field }) => (
-                    <FormField label="Tilleggsbegrunnelse (valgfritt)">
-                      <Textarea
-                        {...field}
-                        placeholder="Evt. ytterligere kommentar til 30%-regelen..."
-                        rows={2}
-                      />
-                    </FormField>
-                  )}
-                />
+              {/* Konklusjon basert på automatisk beregning */}
+              {forseringData.kostnad_innenfor_grense ? (
+                <Alert variant="info" title="Valgrett bekreftet">
+                  Entreprenøren hadde valgrett til å forsere fordi estimert kostnad er innenfor 30%-grensen.
+                </Alert>
+              ) : (
+                <Alert variant="warning" title="Ingen valgrett">
+                  Entreprenøren hadde ikke valgrett til forsering fordi estimert kostnad overstiger 30%-grensen.
+                  Kravet avslås på dette grunnlaget.
+                </Alert>
               )}
             </div>
           )}
