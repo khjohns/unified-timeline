@@ -1517,6 +1517,9 @@ class EOOpprettetData(BaseModel):
         default_factory=list,
         description="SAK-IDs til KOE-er som inngår"
     )
+    sakstittel: Optional[str] = Field(default=None, description="Sakstittel for EO-saken")
+    prosjekt_id: Optional[str] = Field(default=None, description="Prosjekt-ID")
+    catenda_topic_id: Optional[str] = Field(default=None, description="Catenda topic GUID")
 
 
 class EOOpprettetEvent(SakEvent):
@@ -1526,9 +1529,6 @@ class EOOpprettetEvent(SakEvent):
         description="EO opprettet"
     )
     data: EOOpprettetData = Field(..., description="Opprettelsesdata")
-    sakstittel: str = Field(..., description="Sakstittel for EO-saken")
-    prosjekt_id: Optional[str] = Field(default=None, description="Prosjekt-ID")
-    catenda_topic_id: Optional[str] = Field(default=None, description="Catenda topic GUID")
 
     @field_validator('event_type')
     @classmethod

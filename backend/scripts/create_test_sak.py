@@ -398,11 +398,11 @@ def create_eo_opprettet(
         tidsstempel=now,
         aktor="BH Saksbehandler",
         aktor_rolle="BH",
-        sakstittel=tittel or f"Endringsordre {eo_nummer}",
         data=EOOpprettetData(
             eo_nummer=eo_nummer,
             beskrivelse=f"Endringsordre som samler {len(relaterte_koe_saker)} KOE-sak(er).",
             relaterte_koe_saker=relaterte_koe_saker,
+            sakstittel=tittel or f"Endringsordre {eo_nummer}",
         ),
     )
 
