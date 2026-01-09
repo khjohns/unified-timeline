@@ -183,10 +183,16 @@ export function ForseringDashboard({
 
   // Computed values from bh_respons (with legacy fallback)
   const bhAksepterer = bhRespons?.aksepterer ?? forseringData.bh_aksepterer_forsering ?? false;
-  const hovedkravGodkjent = bhRespons?.godkjent_belop ?? forseringData.bh_godkjent_kostnad ?? 0;
-  const godkjentBelop = bhRespons?.total_godkjent ?? hovedkravGodkjent;
+  const hovedkravGodkjentRaw = bhRespons?.godkjent_belop ?? forseringData.bh_godkjent_kostnad ?? 0;
   const erSubsidiaert = bhRespons?.subsidiaer_triggers && bhRespons.subsidiaer_triggers.length > 0;
   const subsidiaerBelop = bhRespons?.subsidiaer_godkjent_belop;
+
+  // Subsidiær trigger: BH mener TE ikke har forseringsrett (alle avslag var berettiget)
+  const harForseringsrettAvslag = bhRespons?.subsidiaer_triggers?.includes('forseringsrett_avslatt') ?? false;
+
+  // Når forseringsrett er avslått, er prinsipalt godkjent = 0
+  const hovedkravGodkjent = harForseringsrettAvslag ? 0 : hovedkravGodkjentRaw;
+  const godkjentBelop = harForseringsrettAvslag ? 0 : (bhRespons?.total_godkjent ?? hovedkravGodkjent);
 
   // Per-sak vurdering data
   const vurderingPerSak = bhRespons?.vurdering_per_sak;
@@ -198,9 +204,6 @@ export function ForseringDashboard({
   const harProduktivitetKrav = (forseringData.vederlag?.saerskilt_krav?.produktivitet?.belop ?? 0) > 0;
   const riggPrekludert = bhRespons?.rigg_varslet_i_tide === false;
   const produktivitetPrekludert = bhRespons?.produktivitet_varslet_i_tide === false;
-
-  // Subsidiær trigger: BH mener TE ikke har forseringsrett (alle avslag var berettiget)
-  const harForseringsrettAvslag = bhRespons?.subsidiaer_triggers?.includes('forseringsrett_avslatt') ?? false;
 
   return (
     <div className="space-y-4">
@@ -318,7 +321,12 @@ export function ForseringDashboard({
                   {avslatteSaker!.map((sak) => {
                     const vurdering = vurderingPerSak?.find(v => v.sak_id === sak.sak_id);
                     const harVurdering = vurdering !== undefined;
-                    const erUberettiget = vurdering?.avslag_berettiget === false;
+                    // Infer from harForseringsrettAvslag if no explicit vurdering
+                    const erUberettiget = harVurdering
+                      ? vurdering?.avslag_berettiget === false
+                      : !harForseringsrettAvslag && dagerMedForseringsrett > 0;
+                    // Show status based on explicit vurdering or inferred from trigger
+                    const kanInferere = !harVurdering && (harForseringsrettAvslag || dagerMedForseringsrett > 0);
                     return (
                       <div key={sak.sak_id} className="flex justify-between items-center py-2 border-b border-pkt-border-subtle last:border-b-0">
                         <div className="flex-1">
@@ -331,13 +339,18 @@ export function ForseringDashboard({
                           <Badge variant={erUberettiget ? 'success' : 'danger'} size="sm">
                             {erUberettiget ? 'Uberettiget avslag' : 'Berettiget avslag'}
                           </Badge>
+                        ) : kanInferere ? (
+                          <Badge variant={harForseringsrettAvslag ? 'danger' : 'success'} size="sm">
+                            {harForseringsrettAvslag ? 'Berettiget avslag' : 'Uberettiget avslag'}
+                          </Badge>
                         ) : (
                           <Badge variant="default" size="sm">Ikke vurdert</Badge>
                         )}
                       </div>
                     );
                   })}
-                  {vurderingPerSak && vurderingPerSak.length > 0 && (
+                  {/* Show conclusion if we have per-sak data OR can infer from trigger */}
+                  {(vurderingPerSak && vurderingPerSak.length > 0) || harForseringsrettAvslag || dagerMedForseringsrett > 0 ? (
                     <div className="pt-2 text-sm">
                       <strong>Konklusjon:</strong>{' '}
                       {dagerMedForseringsrett > 0 ? (
@@ -350,7 +363,7 @@ export function ForseringDashboard({
                         </span>
                       )}
                     </div>
-                  )}
+                  ) : null}
                 </div>
               </Collapsible>
             )}
@@ -370,11 +383,18 @@ export function ForseringDashboard({
                 <tbody>
                   {/* Forseringskostnader (hovedkrav) */}
                   <tr className="border-b border-pkt-border-subtle">
-                    <td className="py-2">Forseringskostnader</td>
-                    <td className="text-right font-mono">{formatCurrency(forseringData.estimert_kostnad)}</td>
+                    <td className="py-2">
+                      Forseringskostnader
+                      {harForseringsrettAvslag && <span className="text-xs text-pkt-grays-gray-500 ml-1">(prinsipalt)</span>}
+                    </td>
+                    <td className={`text-right font-mono ${harForseringsrettAvslag ? 'line-through text-pkt-grays-gray-400' : ''}`}>
+                      {formatCurrency(forseringData.estimert_kostnad)}
+                    </td>
                     <td className="text-right font-mono">{formatCurrency(hovedkravGodkjent)}</td>
                     <td className="text-right">
-                      {bhAksepterer ? (
+                      {harForseringsrettAvslag ? (
+                        <Badge variant="danger" size="sm">Ingen rett</Badge>
+                      ) : bhAksepterer ? (
                         hovedkravGodkjent >= (forseringData.estimert_kostnad ?? 0) ? (
                           <Badge variant="success" size="sm">Godkjent</Badge>
                         ) : (
@@ -385,6 +405,27 @@ export function ForseringDashboard({
                       )}
                     </td>
                   </tr>
+                  {/* Subsidiær rad for forseringsrett avslag */}
+                  {harForseringsrettAvslag && (
+                    <tr className="border-b border-pkt-border-subtle bg-alert-warning-bg text-alert-warning-text">
+                      <td className="py-2 italic">↳ Subsidiært</td>
+                      <td className="text-right font-mono">
+                        ({formatCurrency(forseringData.estimert_kostnad)})
+                      </td>
+                      <td className="text-right font-mono">
+                        {formatCurrency(hovedkravGodkjentRaw)}
+                      </td>
+                      <td className="text-right">
+                        {hovedkravGodkjentRaw >= (forseringData.estimert_kostnad ?? 0) ? (
+                          <Badge variant="success" size="sm">Godkjent</Badge>
+                        ) : hovedkravGodkjentRaw > 0 ? (
+                          <Badge variant="warning" size="sm">Delvis</Badge>
+                        ) : (
+                          <Badge variant="danger" size="sm">Avvist</Badge>
+                        )}
+                      </td>
+                    </tr>
+                  )}
 
                   {/* Rigg/Drift */}
                   {harRiggKrav && (
