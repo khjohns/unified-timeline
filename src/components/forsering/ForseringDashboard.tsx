@@ -181,8 +181,10 @@ export function ForseringDashboard({
   const bhRespons = forseringData.bh_respons;
   const hasGittStandpunkt = bhRespons !== undefined || forseringData.bh_aksepterer_forsering !== undefined;
 
-  // Computed values from bh_respons
-  const godkjentBelop = bhRespons?.total_godkjent ?? bhRespons?.godkjent_belop ?? forseringData.bh_godkjent_kostnad;
+  // Computed values from bh_respons (with legacy fallback)
+  const bhAksepterer = bhRespons?.aksepterer ?? forseringData.bh_aksepterer_forsering ?? false;
+  const hovedkravGodkjent = bhRespons?.godkjent_belop ?? forseringData.bh_godkjent_kostnad ?? 0;
+  const godkjentBelop = bhRespons?.total_godkjent ?? hovedkravGodkjent;
   const erSubsidiaert = bhRespons?.subsidiaer_triggers && bhRespons.subsidiaer_triggers.length > 0;
   const subsidiaerBelop = bhRespons?.subsidiaer_godkjent_belop;
 
@@ -367,10 +369,10 @@ export function ForseringDashboard({
                   <tr className="border-b border-pkt-border-subtle">
                     <td className="py-2">Forseringskostnader</td>
                     <td className="text-right font-mono">{formatCurrency(forseringData.estimert_kostnad)}</td>
-                    <td className="text-right font-mono">{formatCurrency(bhRespons?.godkjent_belop ?? 0)}</td>
+                    <td className="text-right font-mono">{formatCurrency(hovedkravGodkjent)}</td>
                     <td className="text-right">
-                      {bhRespons?.aksepterer ? (
-                        bhRespons?.godkjent_belop === forseringData.estimert_kostnad ? (
+                      {bhAksepterer ? (
+                        hovedkravGodkjent >= (forseringData.estimert_kostnad ?? 0) ? (
                           <Badge variant="success" size="sm">Godkjent</Badge>
                         ) : (
                           <Badge variant="warning" size="sm">Delvis</Badge>
