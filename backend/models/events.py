@@ -221,6 +221,7 @@ class SubsidiaerTrigger(str, Enum):
     """
     # Nivå 0: Grunnlag
     GRUNNLAG_AVSLATT = "grunnlag_avslatt"  # BH avslo ansvarsgrunnlaget
+    FORSERINGSRETT_AVSLATT = "forseringsrett_avslatt"  # TE har ikke forseringsrett (§33.8)
 
     # Nivå 1: Preklusjon (Vederlag)
     PREKLUSJON_RIGG = "preklusjon_rigg"  # Rigg/drift varslet for sent (§34.1.3)

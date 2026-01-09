@@ -1023,8 +1023,12 @@ export function generateForseringResponseBegrunnelse(input: ForseringResponseInp
   const grunnlagSection = generateForseringGrunnlagSection(input);
   sections.push(grunnlagSection);
 
-  // Hvis TE ikke har forseringsrett, stopp her - kravet avslås
+  // Hvis TE ikke har forseringsrett, generer subsidiært standpunkt
   if (!input.teHarForseringsrett) {
+    const subsidiaerSection = generateForseringSubsidiaerSection(input);
+    if (subsidiaerSection) {
+      sections.push(subsidiaerSection);
+    }
     return sections.join('\n\n');
   }
 
@@ -1061,4 +1065,133 @@ export function generateForseringResponseBegrunnelse(input: ForseringResponseInp
   sections.push(konklusjonSection);
 
   return sections.join('\n\n');
+}
+
+/**
+ * Generate subsidiary section when BH denies forseringsrett but still evaluates amounts
+ */
+function generateForseringSubsidiaerSection(input: ForseringResponseInput): string {
+  const { hovedkravVurdering, hovedkravBelop, godkjentBelop, totalKrevd, subsidiaerGodkjentBelop } = input;
+  const lines: string[] = [];
+
+  lines.push('Subsidiært, dersom entreprenøren hadde hatt forseringsrett:');
+
+  // Hovedkrav vurdering
+  switch (hovedkravVurdering) {
+    case 'godkjent':
+      lines.push(
+        `Forseringskostnadene på ${formatCurrency(hovedkravBelop ?? 0)} ville blitt godkjent i sin helhet.`
+      );
+      break;
+    case 'delvis': {
+      const prosent = hovedkravBelop && hovedkravBelop > 0
+        ? (((godkjentBelop ?? 0) / hovedkravBelop) * 100).toFixed(0)
+        : 0;
+      lines.push(
+        `Forseringskostnadene ville blitt godkjent delvis med ${formatCurrency(godkjentBelop ?? 0)} ` +
+        `av krevde ${formatCurrency(hovedkravBelop ?? 0)} (${prosent}%).`
+      );
+      break;
+    }
+    case 'avslatt':
+      lines.push(
+        `Forseringskostnadene på ${formatCurrency(hovedkravBelop ?? 0)} ville uansett blitt avvist.`
+      );
+      break;
+  }
+
+  // Særskilte krav (rigg/produktivitet) - reuse existing functions but in subsidiary context
+  const riggSection = generateForseringRiggSectionSubsidiaer(input);
+  if (riggSection) {
+    lines.push(riggSection);
+  }
+
+  const produktivitetSection = generateForseringProduktivitetSectionSubsidiaer(input);
+  if (produktivitetSection) {
+    lines.push(produktivitetSection);
+  }
+
+  // Konklusjon
+  if (subsidiaerGodkjentBelop !== undefined && subsidiaerGodkjentBelop > 0) {
+    lines.push(
+      `Samlet subsidiært godkjent beløp ville utgjort ${formatCurrency(subsidiaerGodkjentBelop)} ` +
+      `av totalt krevde ${formatCurrency(totalKrevd)}.`
+    );
+  } else if (subsidiaerGodkjentBelop === 0) {
+    lines.push('Kravet ville uansett blitt avvist i sin helhet.');
+  }
+
+  return lines.join(' ');
+}
+
+/**
+ * Generate rigg/drift text for subsidiary section
+ */
+function generateForseringRiggSectionSubsidiaer(input: ForseringResponseInput): string {
+  if (!input.harRiggKrav || !input.riggBelop) {
+    return '';
+  }
+
+  const isPrekludert = input.riggVarsletITide === false;
+
+  if (isPrekludert) {
+    // Double-subsidiary: no forseringsrett AND precluded
+    switch (input.riggVurdering) {
+      case 'godkjent':
+        return `Rigg/driftskravet på ${formatCurrency(input.riggBelop)} er prekludert, men ville ellers blitt godkjent.`;
+      case 'delvis':
+        return `Rigg/driftskravet er prekludert, men ville ellers blitt delvis godkjent med ${formatCurrency(input.godkjentRiggDrift ?? 0)}.`;
+      case 'avslatt':
+        return `Rigg/driftskravet er prekludert og ville uansett blitt avvist.`;
+      default:
+        return '';
+    }
+  } else {
+    switch (input.riggVurdering) {
+      case 'godkjent':
+        return `Rigg/driftskravet på ${formatCurrency(input.riggBelop)} ville blitt godkjent.`;
+      case 'delvis':
+        return `Rigg/driftskravet ville blitt delvis godkjent med ${formatCurrency(input.godkjentRiggDrift ?? 0)} av krevde ${formatCurrency(input.riggBelop)}.`;
+      case 'avslatt':
+        return `Rigg/driftskravet på ${formatCurrency(input.riggBelop)} ville blitt avvist.`;
+      default:
+        return '';
+    }
+  }
+}
+
+/**
+ * Generate produktivitet text for subsidiary section
+ */
+function generateForseringProduktivitetSectionSubsidiaer(input: ForseringResponseInput): string {
+  if (!input.harProduktivitetKrav || !input.produktivitetBelop) {
+    return '';
+  }
+
+  const isPrekludert = input.produktivitetVarsletITide === false;
+
+  if (isPrekludert) {
+    // Double-subsidiary: no forseringsrett AND precluded
+    switch (input.produktivitetVurdering) {
+      case 'godkjent':
+        return `Produktivitetskravet på ${formatCurrency(input.produktivitetBelop)} er prekludert, men ville ellers blitt godkjent.`;
+      case 'delvis':
+        return `Produktivitetskravet er prekludert, men ville ellers blitt delvis godkjent med ${formatCurrency(input.godkjentProduktivitet ?? 0)}.`;
+      case 'avslatt':
+        return `Produktivitetskravet er prekludert og ville uansett blitt avvist.`;
+      default:
+        return '';
+    }
+  } else {
+    switch (input.produktivitetVurdering) {
+      case 'godkjent':
+        return `Produktivitetskravet på ${formatCurrency(input.produktivitetBelop)} ville blitt godkjent.`;
+      case 'delvis':
+        return `Produktivitetskravet ville blitt delvis godkjent med ${formatCurrency(input.godkjentProduktivitet ?? 0)} av krevde ${formatCurrency(input.produktivitetBelop)}.`;
+      case 'avslatt':
+        return `Produktivitetskravet på ${formatCurrency(input.produktivitetBelop)} ville blitt avvist.`;
+      default:
+        return '';
+    }
+  }
 }
