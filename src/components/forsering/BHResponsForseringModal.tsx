@@ -827,8 +827,6 @@ export function BHResponsForseringModal({
                         label="Godkjent beløp"
                         value={field.value ?? null}
                         onChange={(v) => field.onChange(v ?? undefined)}
-                        placeholder="Angi godkjent beløp"
-                        width="full"
                         helperText={`Maks: ${formatCurrency(forseringData.estimert_kostnad)}`}
                       />
                     )}
@@ -901,8 +899,6 @@ export function BHResponsForseringModal({
                           label="Godkjent beløp"
                           value={field.value ?? null}
                           onChange={(v) => field.onChange(v ?? undefined)}
-                          placeholder="Angi godkjent beløp"
-                          width="full"
                         />
                       )}
                     />
@@ -974,8 +970,6 @@ export function BHResponsForseringModal({
                           label="Godkjent beløp"
                           value={field.value ?? null}
                           onChange={(v) => field.onChange(v ?? undefined)}
-                          placeholder="Angi godkjent beløp"
-                          width="full"
                         />
                       )}
                     />

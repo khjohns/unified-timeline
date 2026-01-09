@@ -93,8 +93,6 @@ export function OppdaterKostnaderModal({
           label="Nye påløpte kostnader *"
           value={paalopteKostnader}
           onChange={setPaalopteKostnader}
-          placeholder="F.eks. 350 000"
-          width="full"
           allowNegative={false}
         />
 

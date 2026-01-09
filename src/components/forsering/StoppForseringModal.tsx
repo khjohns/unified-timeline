@@ -109,8 +109,6 @@ export function StoppForseringModal({
           label="Påløpte kostnader ved stopp (valgfritt)"
           value={paalopteKostnader}
           onChange={setPaalopteKostnader}
-          placeholder="F.eks. 250 000"
-          width="full"
           allowNegative={false}
           helperText="Angi faktiske påløpte forseringskostnader frem til nå"
         />
