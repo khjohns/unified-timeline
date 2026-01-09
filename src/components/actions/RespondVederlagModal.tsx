@@ -43,6 +43,7 @@ import {
   Modal,
   RadioGroup,
   RadioItem,
+  SectionContainer,
   StepIndicator,
   Textarea,
   useToast,
@@ -1984,18 +1985,15 @@ export function RespondVederlagModal({
                 </div>
 
                 {/* Auto-generert begrunnelse (ikke redigerbar) */}
-                <div className="space-y-2">
-                  <h5 className="font-medium text-sm">Generert begrunnelse</h5>
-                  <div className="p-4 bg-pkt-surface-subtle border-2 border-pkt-border-subtle rounded-none">
-                    <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                      {autoBegrunnelse || 'Fyll ut valgene ovenfor for å generere begrunnelse.'}
-                    </p>
-                  </div>
-                  <p className="text-xs text-pkt-text-body-subtle">
-                    Denne teksten er automatisk generert basert på valgene du har gjort i skjemaet.
-                    Den kan ikke redigeres direkte, men du kan legge til en tilleggskommentar nedenfor.
+                <SectionContainer
+                  title="Generert begrunnelse"
+                  variant="subtle"
+                  description="Automatisk generert basert på valgene dine. Kan ikke redigeres direkte."
+                >
+                  <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                    {autoBegrunnelse || 'Fyll ut valgene ovenfor for å generere begrunnelse.'}
                   </p>
-                </div>
+                </SectionContainer>
 
                 {/* Tilleggsbegrunnelse (valgfri) */}
                 <FormField
@@ -2032,8 +2030,7 @@ export function RespondVederlagModal({
 
                     {/* Change summary */}
                     {harEndringer && (
-                      <div className="p-4 bg-alert-info-bg border border-alert-info-border rounded-none">
-                        <h5 className="font-medium text-sm mb-2">Endringer fra forrige svar</h5>
+                      <SectionContainer title="Endringer fra forrige svar" variant="subtle">
                         <div className="space-y-1 text-sm">
                           {formValues.aksepterer_metode !== lastResponseEvent?.aksepterer_metode && (
                             <div className="flex gap-2">
@@ -2071,7 +2068,7 @@ export function RespondVederlagModal({
                             </div>
                           )}
                         </div>
-                      </div>
+                      </SectionContainer>
                     )}
 
                     {/* Required: Endringsbegrunnelse */}
