@@ -740,21 +740,21 @@ export function BHResponsForseringModal({
                   })}
 
                   {/* Summary of per-sak evaluation */}
-                  <SectionContainer title="Oppsummering" variant="subtle">
-                    <div className="space-y-1 text-sm">
-                      <div>Totalt avslått: {computed.totalAvslatteDager} dager</div>
-                      <div>Uberettiget avslått: {computed.dagerUberettiget} dager</div>
-                    </div>
-                    <div className="mt-3">
-                      {computed.harForseringsrett ? (
-                        <Badge variant="warning">
-                          Forseringsrett for {computed.dagerUberettiget} dager
-                        </Badge>
-                      ) : (
-                        <Badge variant="info">Ingen forseringsrett</Badge>
-                      )}
-                    </div>
-                  </SectionContainer>
+                  <InlineDataList>
+                    <InlineDataListItem label="Totalt avslått" mono bold>
+                      {computed.totalAvslatteDager} dager
+                    </InlineDataListItem>
+                    <InlineDataListItem label="Uberettiget" mono bold>
+                      {computed.dagerUberettiget} dager
+                    </InlineDataListItem>
+                    <InlineDataListItem label="Konklusjon">
+                      <Badge variant={computed.harForseringsrett ? 'warning' : 'info'}>
+                        {computed.harForseringsrett
+                          ? `Forseringsrett for ${computed.dagerUberettiget} dager`
+                          : 'Ingen forseringsrett'}
+                      </Badge>
+                    </InlineDataListItem>
+                  </InlineDataList>
                 </>
               ) : (
                 /* Fallback when avslatteSaker not available */
@@ -775,8 +775,7 @@ export function BHResponsForseringModal({
               </p>
 
               {/* Calculation display */}
-              <div className="p-3 bg-pkt-surface-subtle border-2 border-pkt-border-default rounded-none">
-                <h4 className="font-bold text-sm mb-2">Beregning av 30%-grensen</h4>
+              <SectionContainer title="Beregning av 30%-grensen" variant="subtle">
                 <div className="space-y-1 text-sm font-mono">
                   <div>Avslåtte dager: {forseringData.avslatte_dager}</div>
                   <div>Dagmulktsats: {formatCurrency(forseringData.dagmulktsats)}</div>
@@ -784,7 +783,7 @@ export function BHResponsForseringModal({
                     Maks kostnad: {forseringData.avslatte_dager} × {formatCurrency(forseringData.dagmulktsats)} × 1,3 = <strong>{formatCurrency(forseringData.maks_forseringskostnad)}</strong>
                   </div>
                 </div>
-              </div>
+              </SectionContainer>
 
               {/* Comparison */}
               <div className="p-3 border-2 rounded-none space-y-2"
@@ -842,9 +841,8 @@ export function BHResponsForseringModal({
               )}
 
               {/* Hovedkrav */}
-              <div className="p-4 border-2 border-pkt-border-default rounded-none space-y-4">
-                <h4 className="font-bold text-sm">Forseringskostnader (hovedkrav)</h4>
-                <div className="text-sm">
+              <SectionContainer title="Forseringskostnader (hovedkrav)">
+                <div className="text-sm mb-4">
                   Krevd beløp: <strong>{formatCurrency(forseringData.estimert_kostnad)}</strong>
                 </div>
 
@@ -879,13 +877,12 @@ export function BHResponsForseringModal({
                     )}
                   />
                 )}
-              </div>
+              </SectionContainer>
 
               {/* Særskilte krav - Rigg/drift */}
               {harRiggKrav && (
-                <div className="p-4 border-2 border-pkt-border-default rounded-none space-y-4">
-                  <h4 className="font-bold text-sm">Økte rigg- og driftskostnader (§34.1.3)</h4>
-                  <div className="text-sm">
+                <SectionContainer title="Økte rigg- og driftskostnader (§34.1.3)">
+                  <div className="text-sm mb-4">
                     Krevd beløp: <strong>{formatCurrency(forseringData.vederlag?.saerskilt_krav?.rigg_drift?.belop)}</strong>
                   </div>
 
@@ -950,14 +947,13 @@ export function BHResponsForseringModal({
                       )}
                     />
                   )}
-                </div>
+                </SectionContainer>
               )}
 
               {/* Særskilte krav - Produktivitet */}
               {harProduktivitetKrav && (
-                <div className="p-4 border-2 border-pkt-border-default rounded-none space-y-4">
-                  <h4 className="font-bold text-sm">Produktivitetstap (§34.1.3)</h4>
-                  <div className="text-sm">
+                <SectionContainer title="Produktivitetstap (§34.1.3)">
+                  <div className="text-sm mb-4">
                     Krevd beløp: <strong>{formatCurrency(forseringData.vederlag?.saerskilt_krav?.produktivitet?.belop)}</strong>
                   </div>
 
@@ -1021,7 +1017,7 @@ export function BHResponsForseringModal({
                       )}
                     />
                   )}
-                </div>
+                </SectionContainer>
               )}
             </div>
           )}
@@ -1331,46 +1327,46 @@ export function BHResponsForseringModal({
               </div>
 
               {/* Resultat */}
-              <div className="p-4 border-2 border-pkt-border-default rounded-none space-y-3">
-                <h4 className="font-bold text-sm">Prinsipalt standpunkt</h4>
-
-                <div className="flex justify-between items-center">
-                  <span>Resultat:</span>
-                  <Badge
-                    variant={
-                      prinsipaltResultat === 'godkjent' ? 'success' :
-                      prinsipaltResultat === 'delvis_godkjent' ? 'warning' : 'danger'
-                    }
-                  >
-                    {prinsipaltResultat === 'godkjent' ? 'Godkjent' :
-                     prinsipaltResultat === 'delvis_godkjent' ? 'Delvis godkjent' : 'Avslått'}
-                  </Badge>
-                </div>
-
-                <div className="flex justify-between text-sm">
-                  <span>Krevd totalt:</span>
-                  <strong>{formatCurrency(computed.totalKrevd)}</strong>
-                </div>
-
-                <div className="flex justify-between text-sm">
-                  <span>Godkjent totalt:</span>
-                  <strong>{formatCurrency(computed.totalGodkjent)}</strong>
-                </div>
-
-                {/* Subsidiary for preclusion only (not forseringsrett) */}
-                {computed.harPrekludertKrav && !computed.harForseringsrettAvslag && (
-                  <div className="border-t border-pkt-border-subtle pt-2 mt-2">
-                    <h4 className="font-bold text-sm text-pkt-text-body-subtle">Subsidiært standpunkt</h4>
-                    <p className="text-xs text-pkt-text-body-subtle mb-2">
-                      Dersom prekluderte krav hadde vært varslet i tide
-                    </p>
-                    <div className="flex justify-between text-sm">
-                      <span>Subsidiært godkjent:</span>
-                      <strong>{formatCurrency(computed.subsidiaerGodkjent)}</strong>
-                    </div>
+              <SectionContainer title="Prinsipalt standpunkt">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span>Resultat:</span>
+                    <Badge
+                      variant={
+                        prinsipaltResultat === 'godkjent' ? 'success' :
+                        prinsipaltResultat === 'delvis_godkjent' ? 'warning' : 'danger'
+                      }
+                    >
+                      {prinsipaltResultat === 'godkjent' ? 'Godkjent' :
+                       prinsipaltResultat === 'delvis_godkjent' ? 'Delvis godkjent' : 'Avslått'}
+                    </Badge>
                   </div>
-                )}
-              </div>
+
+                  <div className="flex justify-between text-sm">
+                    <span>Krevd totalt:</span>
+                    <strong>{formatCurrency(computed.totalKrevd)}</strong>
+                  </div>
+
+                  <div className="flex justify-between text-sm">
+                    <span>Godkjent totalt:</span>
+                    <strong>{formatCurrency(computed.totalGodkjent)}</strong>
+                  </div>
+
+                  {/* Subsidiary for preclusion only (not forseringsrett) */}
+                  {computed.harPrekludertKrav && !computed.harForseringsrettAvslag && (
+                    <div className="border-t border-pkt-border-subtle pt-2 mt-2">
+                      <h4 className="font-bold text-sm text-pkt-text-body-subtle">Subsidiært standpunkt</h4>
+                      <p className="text-xs text-pkt-text-body-subtle mb-2">
+                        Dersom prekluderte krav hadde vært varslet i tide
+                      </p>
+                      <div className="flex justify-between text-sm">
+                        <span>Subsidiært godkjent:</span>
+                        <strong>{formatCurrency(computed.subsidiaerGodkjent)}</strong>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </SectionContainer>
 
               {/* Subsidiary result when TE has no forseringsrett */}
               {computed.harForseringsrettAvslag && (
@@ -1428,12 +1424,11 @@ export function BHResponsForseringModal({
               )}
 
               {/* Auto-generated begrunnelse */}
-              <div className="p-4 border-2 border-pkt-border-default rounded-none space-y-2">
-                <h4 className="font-bold text-sm">Generert begrunnelse</h4>
-                <div className="text-sm whitespace-pre-wrap bg-pkt-surface-subtle p-3 rounded-none max-h-48 overflow-y-auto">
+              <SectionContainer title="Generert begrunnelse" variant="subtle">
+                <div className="text-sm whitespace-pre-wrap max-h-48 overflow-y-auto">
                   {autoBegrunnelse}
                 </div>
-              </div>
+              </SectionContainer>
 
               {/* Additional comments */}
               <Controller
