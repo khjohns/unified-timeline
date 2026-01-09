@@ -42,6 +42,7 @@ import {
   Modal,
   RadioGroup,
   RadioItem,
+  SectionContainer,
   StepIndicator,
   Textarea,
   useToast,
@@ -1451,8 +1452,7 @@ export function RespondFristModal({
 
                     {/* Change summary */}
                     {harEndringer && (
-                      <div className="p-4 bg-alert-info-bg border border-alert-info-border rounded-none">
-                        <h5 className="font-medium text-sm mb-3">Endringer fra forrige svar</h5>
+                      <SectionContainer title="Endringer fra forrige svar" variant="subtle">
                         <DataList variant="grid">
                           {formValues.noytralt_varsel_ok !== fristTilstand?.noytralt_varsel_ok && (
                             <DataListItem label="Nøytralt varsel">
@@ -1479,7 +1479,7 @@ export function RespondFristModal({
                             </DataListItem>
                           )}
                         </DataList>
-                      </div>
+                      </SectionContainer>
                     )}
                   </>
                 )}
