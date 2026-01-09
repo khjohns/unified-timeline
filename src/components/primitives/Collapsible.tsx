@@ -26,6 +26,7 @@ export function Collapsible({
   return (
     <div className="border border-pkt-grays-gray-300 rounded-lg overflow-hidden bg-pkt-bg-card shadow-sm">
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="w-full px-4 py-3 bg-pkt-bg-subtle hover:bg-pkt-grays-gray-100 transition-colors flex items-center justify-between text-left"
         aria-expanded={isOpen}

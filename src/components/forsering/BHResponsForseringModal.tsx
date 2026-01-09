@@ -44,6 +44,7 @@ import {
   validerForseringsgrunnlag,
   type BHResponsForseringRequest,
 } from '../../api/forsering';
+import { ApiError } from '../../api/client';
 import type { ForseringData, SubsidiaerTrigger } from '../../types/timeline';
 import {
   generateForseringResponseBegrunnelse,
@@ -79,6 +80,8 @@ interface BHResponsForseringModalProps {
   /** Previous response data for update mode */
   lastResponse?: ForseringData['bh_respons'];
   onSuccess?: () => void;
+  /** Called on 409 conflict to let parent refresh data */
+  onConflict?: () => void;
   /** Per-sak data for avslåtte fristkrav (fra ForseringKontekst) */
   avslatteSaker?: RelatertSakMedAvslag[];
 }
@@ -198,6 +201,7 @@ export function BHResponsForseringModal({
   currentVersion = 0,
   lastResponse,
   onSuccess,
+  onConflict,
   avslatteSaker,
 }: BHResponsForseringModalProps) {
   const isUpdateMode = !!lastResponse;
@@ -401,11 +405,24 @@ export function BHResponsForseringModal({
 
     const subsidiaerGodkjent = hovedkravGodkjent + subsidiaerRigg + subsidiaerProduktivitet;
 
+    // Preklusion triggers for særskilte krav
     const harPrekludertKrav =
       (harRiggKrav && formData.rigg_varslet_i_tide === false) ||
       (harProduktivitetKrav && formData.produktivitet_varslet_i_tide === false);
 
+    // Flag for when BH believes TE has no forseringsrett (all rejections were justified)
+    // Only triggered when user has made per-sak evaluations
+    const harForseringsrettAvslag = !harForseringsrett &&
+      (formData.vurdering_per_sak?.length ?? 0) > 0;
+
+    // Any reason for subsidiary evaluation
+    const harSubsidiaerGrunn = harForseringsrettAvslag || harPrekludertKrav;
+
+    // Collect all subsidiary triggers
     const subsidiaerTriggers: SubsidiaerTrigger[] = [];
+    if (harForseringsrettAvslag) {
+      subsidiaerTriggers.push('forseringsrett_avslatt');
+    }
     if (harRiggKrav && formData.rigg_varslet_i_tide === false) {
       subsidiaerTriggers.push('preklusjon_rigg');
     }
@@ -417,7 +434,11 @@ export function BHResponsForseringModal({
       totalKrevd,
       totalGodkjent,
       subsidiaerGodkjent,
+      subsidiaerRigg,
+      subsidiaerProduktivitet,
       harPrekludertKrav,
+      harForseringsrettAvslag,
+      harSubsidiaerGrunn,
       subsidiaerTriggers,
       // Per-sak vurdering computed values
       totalAvslatteDager,
@@ -476,6 +497,11 @@ export function BHResponsForseringModal({
 
   // Submit handler
   const onSubmit = async (data: BHResponsForseringFormData) => {
+    // Guard: Ikke tillat submit før vi er på siste steg (oppsummering)
+    if (currentPort !== totalPorts) {
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -500,8 +526,8 @@ export function BHResponsForseringModal({
         produktivitet_varslet_i_tide: data.produktivitet_varslet_i_tide,
         godkjent_rigg_drift: data.godkjent_rigg_drift,
         godkjent_produktivitet: data.godkjent_produktivitet,
-        subsidiaer_triggers: computed.subsidiaerTriggers,
-        subsidiaer_godkjent_belop: computed.harPrekludertKrav ? computed.subsidiaerGodkjent : undefined,
+        subsidiaer_triggers: computed.subsidiaerTriggers.length > 0 ? computed.subsidiaerTriggers : undefined,
+        subsidiaer_godkjent_belop: computed.harSubsidiaerGrunn ? computed.subsidiaerGodkjent : undefined,
       };
 
       const response = await bhResponsForsering(request);
@@ -518,10 +544,14 @@ export function BHResponsForseringModal({
         onSuccess?.();
       }
     } catch (error) {
-      const err = error as Error;
-      if (err.message === 'TOKEN_EXPIRED' || err.message === 'TOKEN_MISSING') {
+      if (error instanceof Error && (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING')) {
         setShowTokenExpired(true);
+      } else if (error instanceof ApiError && error.status === 409) {
+        toast.error('Versjonskonflikt', 'Saken ble endret av en annen bruker. Prøv igjen.');
+        onConflict?.();
+        onOpenChange(false);
       } else {
+        const err = error as Error;
         toast.error('Feil ved lagring', err.message);
       }
     } finally {
@@ -588,7 +618,16 @@ export function BHResponsForseringModal({
         title="Byggherrens standpunkt til forsering"
         size="lg"
       >
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          onKeyDown={(e) => {
+            // Prevent Enter from submitting form while navigating through wizard steps
+            if (e.key === 'Enter' && currentPort < totalPorts) {
+              e.preventDefault();
+            }
+          }}
+          className="space-y-6"
+        >
           <div ref={topRef} />
 
           {/* Step Indicator */}
@@ -793,6 +832,15 @@ export function BHResponsForseringModal({
               <p className="text-sm text-pkt-text-body-subtle">
                 Vurder forseringskostnadene. Forsering dekkes etter regningsarbeid (§34.4).
               </p>
+
+              {/* Info when evaluating subsidiarily (TE has no forseringsrett) */}
+              {computed.harForseringsrettAvslag && (
+                <Alert variant="warning" title="Subsidiær vurdering">
+                  Du har vurdert at entreprenøren ikke har forseringsrett. Dine beløpsvurderinger
+                  nedenfor gjelder derfor <strong>subsidiært</strong> - det vil si for det tilfellet
+                  at du ikke får medhold i avvisningen.
+                </Alert>
+              )}
 
               {/* Hovedkrav */}
               <div className="p-4 border-2 border-pkt-border-default rounded-none space-y-4">
@@ -1309,21 +1357,75 @@ export function BHResponsForseringModal({
                   <strong>{formatCurrency(computed.totalGodkjent)}</strong>
                 </div>
 
-                {computed.harPrekludertKrav && (
-                  <>
-                    <div className="border-t border-pkt-border-subtle pt-2 mt-2">
-                      <h4 className="font-bold text-sm text-pkt-text-body-subtle">Subsidiært standpunkt</h4>
-                      <p className="text-xs text-pkt-text-body-subtle mb-2">
-                        Dersom prekluderte krav hadde vært varslet i tide
-                      </p>
-                      <div className="flex justify-between text-sm">
-                        <span>Subsidiært godkjent:</span>
-                        <strong>{formatCurrency(computed.subsidiaerGodkjent)}</strong>
-                      </div>
+                {/* Subsidiary for preclusion only (not forseringsrett) */}
+                {computed.harPrekludertKrav && !computed.harForseringsrettAvslag && (
+                  <div className="border-t border-pkt-border-subtle pt-2 mt-2">
+                    <h4 className="font-bold text-sm text-pkt-text-body-subtle">Subsidiært standpunkt</h4>
+                    <p className="text-xs text-pkt-text-body-subtle mb-2">
+                      Dersom prekluderte krav hadde vært varslet i tide
+                    </p>
+                    <div className="flex justify-between text-sm">
+                      <span>Subsidiært godkjent:</span>
+                      <strong>{formatCurrency(computed.subsidiaerGodkjent)}</strong>
                     </div>
-                  </>
+                  </div>
                 )}
               </div>
+
+              {/* Subsidiary result when TE has no forseringsrett */}
+              {computed.harForseringsrettAvslag && (
+                <div className="p-4 bg-alert-warning-bg border-2 border-alert-warning-border rounded-none space-y-3">
+                  <h4 className="font-bold text-sm text-alert-warning-text">
+                    Subsidiært standpunkt
+                  </h4>
+                  <p className="text-sm text-alert-warning-text">
+                    Dersom entreprenøren hadde hatt forseringsrett:
+                  </p>
+
+                  <div className="flex justify-between text-sm">
+                    <span>Subsidiært godkjent:</span>
+                    <strong>{formatCurrency(computed.subsidiaerGodkjent)}</strong>
+                  </div>
+
+                  {/* Breakdown */}
+                  <div className="text-xs text-pkt-text-body-subtle space-y-1">
+                    <div className="flex justify-between">
+                      <span>Hovedkrav:</span>
+                      <span>{formatCurrency(
+                        formData.hovedkrav_vurdering === 'godkjent'
+                          ? forseringData.estimert_kostnad ?? 0
+                          : formData.hovedkrav_vurdering === 'delvis'
+                            ? formData.godkjent_belop ?? 0
+                            : 0
+                      )}</span>
+                    </div>
+                    {harRiggKrav && (
+                      <div className="flex justify-between">
+                        <span>
+                          Rigg/drift
+                          {formData.rigg_varslet_i_tide === false && ' (prekludert)'}:
+                        </span>
+                        <span>{formatCurrency(computed.subsidiaerRigg)}</span>
+                      </div>
+                    )}
+                    {harProduktivitetKrav && (
+                      <div className="flex justify-between">
+                        <span>
+                          Produktivitet
+                          {formData.produktivitet_varslet_i_tide === false && ' (prekludert)'}:
+                        </span>
+                        <span>{formatCurrency(computed.subsidiaerProduktivitet)}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <p className="text-sm mt-3 italic text-alert-warning-text">
+                    «Byggherren er etter dette uenig i kravet, og kan dessuten under ingen
+                    omstendigheter se at kr {computed.subsidiaerGodkjent.toLocaleString('nb-NO')},- er
+                    berettiget å kreve.»
+                  </p>
+                </div>
+              )}
 
               {/* Auto-generated begrunnelse */}
               <div className="p-4 border-2 border-pkt-border-default rounded-none space-y-2">
@@ -1368,7 +1470,11 @@ export function BHResponsForseringModal({
                 <Button
                   variant="secondary"
                   type="button"
-                  onClick={handleNext}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleNext();
+                  }}
                   disabled={!canProceed}
                 >
                   Neste

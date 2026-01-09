@@ -75,7 +75,7 @@ def _sync_forsering_to_catenda(
         CatendaSyncResult hvis synkronisering ble forsøkt, None hvis hoppet over
     """
     # Sjekk at vi har metadata med topic_id
-    metadata = metadata_repo.get_by_sak_id(sak_id)
+    metadata = metadata_repo.get(sak_id)
     if not metadata or not metadata.catenda_topic_id:
         logger.debug(f"Ingen Catenda topic_id for {sak_id}, hopper over synkronisering")
         return CatendaSyncResult(

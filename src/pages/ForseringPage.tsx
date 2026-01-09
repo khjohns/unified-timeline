@@ -508,6 +508,10 @@ export function ForseringPage() {
           queryClient.invalidateQueries({ queryKey: ['forsering', sakId, 'kontekst'] });
           queryClient.invalidateQueries({ queryKey: ['case', sakId] });
         }}
+        onConflict={() => {
+          setShowConflict(true);
+          queryClient.invalidateQueries({ queryKey: ['case', sakId] });
+        }}
       />
 
       {/* Update costs modal */}
