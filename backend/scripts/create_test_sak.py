@@ -19,9 +19,14 @@ Presets (Standard KOE-saker):
     avslatt_frist - Sak der BH avslår fristkrav (kan utløse forsering)
     omforent      - Ferdigbehandlet sak (kan inngå i endringsordre)
 
-Presets (Spesielle sakstyper):
-    forsering     - Forseringssak (§33.8) med relatert avslått fristkrav
-    endringsordre - Endringsordre (§31.3) med relaterte KOE-saker
+Presets (Forsering §33.8):
+    forsering           - Forseringssak med relatert avslått fristkrav
+    forsering_iverksatt - Forsering som er iverksatt (pågående)
+    forsering_bh_snudd  - Forsering der BH snur (godkjenner frist etterpå)
+                          Tester useStandpunktEndringer-hooken for kompensasjon
+
+Presets (Endringsordre §31.3):
+    endringsordre - Endringsordre med relaterte KOE-saker
 """
 import sys
 import os
@@ -85,6 +90,8 @@ class Preset(str, Enum):
     OMFORENT = "omforent"
     # Spesielle sakstyper
     FORSERING = "forsering"
+    FORSERING_IVERKSATT = "forsering_iverksatt"
+    FORSERING_BH_SNUDD = "forsering_bh_snudd"
     ENDRINGSORDRE = "endringsordre"
 
 
@@ -99,6 +106,8 @@ PRESET_DESCRIPTIONS = {
     Preset.OMFORENT: "Ferdigbehandlet sak (kan inngå i endringsordre)",
     # Spesielle sakstyper
     Preset.FORSERING: "Forseringssak (§33.8) med relatert avslått fristkrav",
+    Preset.FORSERING_IVERKSATT: "Forsering iverksatt - pågående forsering",
+    Preset.FORSERING_BH_SNUDD: "Forsering der BH snur - godkjenner frist etterpå (test standpunktendring)",
     Preset.ENDRINGSORDRE: "Endringsordre (§31.3) med relaterte KOE-saker",
 }
 
@@ -109,7 +118,13 @@ def generate_sak_id(prefix: str = "TEST") -> str:
     return f"{prefix}-{timestamp}"
 
 
-def create_sak_opprettet(sak_id: str, now: datetime, tittel: str = None) -> SakOpprettetEvent:
+def create_sak_opprettet(
+    sak_id: str,
+    now: datetime,
+    tittel: str = None,
+    sakstype: str = "standard",
+    forsering_data: dict = None
+) -> SakOpprettetEvent:
     """Opprett sak_opprettet event."""
     return SakOpprettetEvent(
         event_id=str(uuid4()),
@@ -120,6 +135,8 @@ def create_sak_opprettet(sak_id: str, now: datetime, tittel: str = None) -> SakO
         aktor_rolle="TE",
         sakstittel=tittel or "Test-sak for frontend/backend integrasjonstesting",
         kommentar="Denne saken ble opprettet for å teste integrasjon mellom frontend og backend.",
+        sakstype=sakstype,
+        forsering_data=forsering_data,
     )
 
 
@@ -324,11 +341,16 @@ def create_forsering_varsel(
     frist_krav_id: str,
     respons_frist_id: str,
     avslatte_dager: int = 15,
-    dagmulktsats: float = 50000.0
+    dagmulktsats: float = 50000.0,
+    dato_iverksettelse: str = None,
 ) -> ForseringVarselEvent:
     """Opprett forsering_varsel event (§33.8)."""
     maks_kostnad = avslatte_dager * dagmulktsats * 1.3
     estimert_kostnad = maks_kostnad * 0.8  # 80% av maks
+
+    # Default til 3 dager i fremtiden, men kan overstyres
+    if dato_iverksettelse is None:
+        dato_iverksettelse = (now + timedelta(days=3)).strftime("%Y-%m-%d")
 
     return ForseringVarselEvent(
         event_id=str(uuid4()),
@@ -353,7 +375,7 @@ Beregning av maks forseringskostnad:
 
 Estimert forseringskostnad: kr {estimert_kostnad:,.0f}""",
             bekreft_30_prosent=True,
-            dato_iverksettelse=(now + timedelta(days=3)).strftime("%Y-%m-%d"),
+            dato_iverksettelse=dato_iverksettelse,
             avslatte_dager=avslatte_dager,
             dagmulktsats=dagmulktsats,
             grunnlag_avslag_trigger=False,
@@ -546,13 +568,17 @@ def create_forsering_sak(sak_id: str, repo: EventRepository) -> tuple[str, list,
     print(f"\n  Oppretter forseringssak: {sak_id}")
     events = []
 
-    # Sak opprettet for forsering
+    # Sak opprettet for forsering - VIKTIG: sett sakstype="forsering"
     sak_event = create_sak_opprettet(
         sak_id, now,
-        tittel=f"Forsering (§33.8) - ref. {relatert_sak_id}"
+        tittel=f"Forsering (§33.8) - ref. {relatert_sak_id}",
+        sakstype="forsering",
+        forsering_data={
+            "avslatte_fristkrav": [relatert_sak_id],
+        }
     )
     events.append(sak_event)
-    print(f"  + sak_opprettet ({sak_event.event_id[:8]}...)")
+    print(f"  + sak_opprettet [sakstype=forsering] ({sak_event.event_id[:8]}...)")
 
     # Forsering varsel
     forsering_event = create_forsering_varsel(
@@ -563,6 +589,213 @@ def create_forsering_sak(sak_id: str, repo: EventRepository) -> tuple[str, list,
     print(f"  + forsering_varsel ({forsering_event.event_id[:8]}...)")
 
     return sak_id, events, relatert_sak_id
+
+
+def create_forsering_sak_iverksatt(sak_id: str, repo: EventRepository) -> tuple[str, list, str]:
+    """
+    Oppretter en forseringssak som er iverksatt (dato_iverksettelse i fortiden).
+
+    Brukes for å teste pågående forsering med påløpte kostnader.
+
+    Returns:
+        tuple: (forsering_sak_id, events, relatert_sak_id)
+    """
+    now = datetime.now()
+    # Sett tidspunkt til 10 dager siden for at forseringen skal være "iverksatt"
+    start_tid = now - timedelta(days=10)
+
+    # Først oppretter vi en sak med avslått frist som forseringen refererer til
+    relatert_sak_id = generate_sak_id("KOE")
+    print(f"\n  Oppretter relatert KOE-sak: {relatert_sak_id}")
+
+    ensure_sak_metadata(relatert_sak_id, "standard", f"KOE med avslått frist - {relatert_sak_id}")
+
+    _, relatert_events = create_standard_sak(Preset.AVSLATT_FRIST, relatert_sak_id, repo)
+
+    # Finn event-IDer
+    frist_krav_id = None
+    frist_respons_id = None
+    for event in relatert_events:
+        if event.event_type == EventType.FRIST_KRAV_SENDT:
+            frist_krav_id = event.event_id
+        elif event.event_type == EventType.RESPONS_FRIST:
+            frist_respons_id = event.event_id
+
+    repo.append_batch(relatert_events, expected_version=0)
+
+    # Opprett forseringssaken
+    print(f"\n  Oppretter forseringssak (iverksatt): {sak_id}")
+    events = []
+
+    sak_event = create_sak_opprettet(
+        sak_id, start_tid,
+        tittel=f"Forsering (§33.8) - iverksatt - ref. {relatert_sak_id}",
+        sakstype="forsering",
+        forsering_data={
+            "avslatte_fristkrav": [relatert_sak_id],
+            "er_iverksatt": True,
+            "dato_iverksatt": (start_tid + timedelta(days=3)).strftime("%Y-%m-%d"),
+        }
+    )
+    events.append(sak_event)
+    print(f"  + sak_opprettet [sakstype=forsering] ({sak_event.event_id[:8]}...)")
+
+    # Forsering varsel med iverksettelsesdato i fortiden
+    forsering_event = create_forsering_varsel(
+        sak_id, start_tid, frist_krav_id, frist_respons_id,
+        avslatte_dager=15, dagmulktsats=50000.0,
+        dato_iverksettelse=(start_tid + timedelta(days=3)).strftime("%Y-%m-%d"),  # 7 dager siden
+    )
+    events.append(forsering_event)
+    print(f"  + forsering_varsel [iverksatt {(start_tid + timedelta(days=3)).strftime('%Y-%m-%d')}] ({forsering_event.event_id[:8]}...)")
+
+    return sak_id, events, relatert_sak_id
+
+
+def create_forsering_sak_bh_snudd(sak_id: str, repo: EventRepository) -> tuple[str, list, str]:
+    """
+    Oppretter en forseringssak der BH har snudd - godkjenner fristkravet etter forsering.
+
+    Dette tester useStandpunktEndringer-hooken:
+    1. KOE-sak opprettes med avslått frist (14 dager siden)
+    2. Forsering varsles og iverksettes (10 dager siden)
+    3. BH snur og godkjenner fristkravet (2 dager siden)
+
+    TE kan da kreve kompensasjon for påløpte forseringskostnader.
+
+    Returns:
+        tuple: (forsering_sak_id, events, relatert_sak_id)
+    """
+    now = datetime.now()
+
+    # Tidslinje:
+    # - 14 dager siden: KOE opprettet, frist avslått
+    # - 10 dager siden: Forsering varslet
+    # - 7 dager siden: Forsering iverksatt
+    # - 2 dager siden: BH snur, godkjenner frist
+    koe_tid = now - timedelta(days=14)
+    forsering_tid = now - timedelta(days=10)
+    bh_snudd_tid = now - timedelta(days=2)
+
+    # 1. Opprett KOE-sak med avslått frist
+    relatert_sak_id = generate_sak_id("KOE")
+    print(f"\n  Oppretter relatert KOE-sak: {relatert_sak_id}")
+    ensure_sak_metadata(relatert_sak_id, "standard", f"KOE med BH-snudd - {relatert_sak_id}")
+
+    # Manuelt opprett events for KOE med riktige tidsstempler
+    oppdaget_dato = (koe_tid - timedelta(days=7)).strftime("%Y-%m-%d")
+    varslet_dato = (koe_tid - timedelta(days=5)).strftime("%Y-%m-%d")
+
+    koe_events = []
+
+    # Sak opprettet
+    koe_sak_event = create_sak_opprettet(relatert_sak_id, koe_tid, tittel="KOE med frist som BH snur på")
+    koe_events.append(koe_sak_event)
+
+    # Grunnlag
+    grunnlag_event = create_grunnlag_event(relatert_sak_id, koe_tid, oppdaget_dato, varslet_dato)
+    grunnlag_event.tidsstempel = koe_tid + timedelta(seconds=1)
+    koe_events.append(grunnlag_event)
+
+    # Vederlag
+    vederlag_event = create_vederlag_event(relatert_sak_id, koe_tid, varslet_dato)
+    vederlag_event.tidsstempel = koe_tid + timedelta(seconds=2)
+    koe_events.append(vederlag_event)
+
+    # Frist - 15 dager krevd
+    frist_event = create_frist_event(relatert_sak_id, koe_tid, varslet_dato, dager=15)
+    frist_event.tidsstempel = koe_tid + timedelta(seconds=3)
+    koe_events.append(frist_event)
+
+    # Grunnlag respons - godkjent
+    grunnlag_respons = create_grunnlag_respons(
+        relatert_sak_id, koe_tid, grunnlag_event.event_id,
+        GrunnlagResponsResultat.GODKJENT
+    )
+    grunnlag_respons.tidsstempel = koe_tid + timedelta(seconds=4)
+    koe_events.append(grunnlag_respons)
+
+    # Vederlag respons - delvis godkjent
+    vederlag_respons = create_vederlag_respons(
+        relatert_sak_id, koe_tid, vederlag_event.event_id,
+        VederlagBeregningResultat.DELVIS_GODKJENT, 100000.0
+    )
+    vederlag_respons.tidsstempel = koe_tid + timedelta(seconds=5)
+    koe_events.append(vederlag_respons)
+
+    # Frist respons - AVSLÅTT (trigger for forsering)
+    frist_respons_avslatt = create_frist_respons(
+        relatert_sak_id, koe_tid, frist_event.event_id,
+        FristBeregningResultat.AVSLATT, 0
+    )
+    frist_respons_avslatt.tidsstempel = koe_tid + timedelta(seconds=6)
+    koe_events.append(frist_respons_avslatt)
+
+    # Lagre KOE-sak først
+    repo.append_batch(koe_events, expected_version=0)
+    print(f"  + KOE opprettet med avslått frist ({len(koe_events)} events)")
+
+    # 2. Opprett forseringssak
+    print(f"\n  Oppretter forseringssak (iverksatt): {sak_id}")
+    forsering_events = []
+
+    forsering_sak_event = create_sak_opprettet(
+        sak_id, forsering_tid,
+        tittel=f"Forsering (§33.8) - BH snudde - ref. {relatert_sak_id}",
+        sakstype="forsering",
+        forsering_data={
+            "avslatte_fristkrav": [relatert_sak_id],
+            "er_iverksatt": True,
+            "dato_iverksatt": (forsering_tid + timedelta(days=3)).strftime("%Y-%m-%d"),
+        }
+    )
+    forsering_events.append(forsering_sak_event)
+    print(f"  + sak_opprettet [sakstype=forsering] ({forsering_sak_event.event_id[:8]}...)")
+
+    # Forsering varsel
+    forsering_varsel = create_forsering_varsel(
+        sak_id, forsering_tid, frist_event.event_id, frist_respons_avslatt.event_id,
+        avslatte_dager=15, dagmulktsats=50000.0,
+        dato_iverksettelse=(forsering_tid + timedelta(days=3)).strftime("%Y-%m-%d"),
+    )
+    forsering_events.append(forsering_varsel)
+    print(f"  + forsering_varsel [iverksatt] ({forsering_varsel.event_id[:8]}...)")
+
+    # Lagre forsering
+    repo.append_batch(forsering_events, expected_version=0)
+
+    # 3. BH snur - godkjenner fristkravet på KOE-saken
+    print(f"\n  BH snur og godkjenner frist på KOE-sak...")
+
+    # Versjonen er antall events vi la til (7 events i koe_events)
+    koe_version = len(koe_events)
+
+    # Opprett ny frist-respons der BH godkjenner
+    frist_respons_godkjent = ResponsEvent(
+        event_id=str(uuid4()),
+        event_type=EventType.RESPONS_FRIST_OPPDATERT,
+        sak_id=relatert_sak_id,
+        tidsstempel=bh_snudd_tid,
+        aktor="BH Saksbehandler",
+        aktor_rolle="BH",
+        spor=SporType.FRIST,
+        refererer_til_event_id=frist_event.event_id,
+        data=FristResponsData(
+            beregnings_resultat=FristBeregningResultat.GODKJENT,
+            godkjente_dager=15,
+            begrunnelse="""BH har revurdert fristkravet og godkjenner nå 15 dagers fristforlengelse.
+
+Etter nærmere gjennomgang av dokumentasjonen erkjenner BH at TE har krav på
+fristforlengelse som følge av forsinket tegningsunderlag.
+
+Merk: TE kan ha krav på kompensasjon for påløpte forseringskostnader
+som følge av fristforlengelse etter denne bestemmelsen.""",
+        ),
+    )
+    repo.append_batch([frist_respons_godkjent], expected_version=koe_version)
+    print(f"  + respons_frist_oppdatert [GODKJENT 15 dager] ({frist_respons_godkjent.event_id[:8]}...)")
+
+    return sak_id, forsering_events, relatert_sak_id
 
 
 def create_endringsordre_sak(sak_id: str, repo: EventRepository) -> tuple[str, list, list[str]]:
@@ -592,6 +825,15 @@ def create_endringsordre_sak(sak_id: str, repo: EventRepository) -> tuple[str, l
     eo_nummer = f"EO-{datetime.now().strftime('%Y%m%d')}"
     print(f"\n  Oppretter endringsordre: {sak_id} ({eo_nummer})")
     events = []
+
+    # Først SAK_OPPRETTET med sakstype="endringsordre"
+    sak_event = create_sak_opprettet(
+        sak_id, now,
+        tittel=f"Endringsordre {eo_nummer}",
+        sakstype="endringsordre"
+    )
+    events.append(sak_event)
+    print(f"  + sak_opprettet [sakstype=endringsordre] ({sak_event.event_id[:8]}...)")
 
     # EO opprettet
     eo_opprettet = create_eo_opprettet(
@@ -646,9 +888,12 @@ def create_test_sak(preset: Preset = Preset.KOMPLETT, sak_id: str = None) -> tup
     repo = create_event_repository()
     metadata = {"preset": preset.value, "relaterte_saker": []}
 
+    # Forsering-presets
+    forsering_presets = {Preset.FORSERING, Preset.FORSERING_IVERKSATT, Preset.FORSERING_BH_SNUDD}
+
     # Generer sak-ID basert på sakstype
     if not sak_id:
-        if preset == Preset.FORSERING:
+        if preset in forsering_presets:
             sak_id = generate_sak_id("FORS")
         elif preset == Preset.ENDRINGSORDRE:
             sak_id = generate_sak_id("EO")
@@ -656,7 +901,7 @@ def create_test_sak(preset: Preset = Preset.KOMPLETT, sak_id: str = None) -> tup
             sak_id = generate_sak_id("TEST")
 
     # Bestem sakstype
-    if preset == Preset.FORSERING:
+    if preset in forsering_presets:
         sakstype = "forsering"
     elif preset == Preset.ENDRINGSORDRE:
         sakstype = "endringsordre"
@@ -671,6 +916,16 @@ def create_test_sak(preset: Preset = Preset.KOMPLETT, sak_id: str = None) -> tup
         sak_id, events, relatert_sak_id = create_forsering_sak(sak_id, repo)
         metadata["relaterte_saker"] = [relatert_sak_id]
         metadata["sakstype"] = "forsering"
+    elif preset == Preset.FORSERING_IVERKSATT:
+        sak_id, events, relatert_sak_id = create_forsering_sak_iverksatt(sak_id, repo)
+        metadata["relaterte_saker"] = [relatert_sak_id]
+        metadata["sakstype"] = "forsering"
+    elif preset == Preset.FORSERING_BH_SNUDD:
+        # Denne funksjonen lagrer events selv (kompleks flyt med flere saker)
+        sak_id, events, relatert_sak_id = create_forsering_sak_bh_snudd(sak_id, repo)
+        metadata["relaterte_saker"] = [relatert_sak_id]
+        metadata["sakstype"] = "forsering"
+        events = []  # Tøm events - allerede lagret
     elif preset == Preset.ENDRINGSORDRE:
         sak_id, events, relaterte_koe_ids = create_endringsordre_sak(sak_id, repo)
         metadata["relaterte_saker"] = relaterte_koe_ids
@@ -679,8 +934,9 @@ def create_test_sak(preset: Preset = Preset.KOMPLETT, sak_id: str = None) -> tup
         sak_id, events = create_standard_sak(preset, sak_id, repo)
         metadata["sakstype"] = "standard"
 
-    # Lagre events
-    repo.append_batch(events, expected_version=0)
+    # Lagre events (noen presets lagrer selv, da er events tom)
+    if events:
+        repo.append_batch(events, expected_version=0)
 
     # Generer magic link for enkel tilgang
     backend_dir = Path(__file__).parent.parent
@@ -699,18 +955,24 @@ def interactive_mode():
     print()
 
     # Grupper presets
-    standard_presets = [p for p in Preset if p not in [Preset.FORSERING, Preset.ENDRINGSORDRE]]
-    special_presets = [Preset.FORSERING, Preset.ENDRINGSORDRE]
+    forsering_presets = [Preset.FORSERING, Preset.FORSERING_IVERKSATT, Preset.FORSERING_BH_SNUDD]
+    standard_presets = [p for p in Preset if p not in forsering_presets and p != Preset.ENDRINGSORDRE]
+    special_presets = forsering_presets + [Preset.ENDRINGSORDRE]
 
     print("  Standard KOE-saker:")
     for i, preset in enumerate(standard_presets, 1):
-        print(f"    [{i}] {preset.value:14} - {PRESET_DESCRIPTIONS[preset]}")
+        print(f"    [{i}] {preset.value:20} - {PRESET_DESCRIPTIONS[preset]}")
 
     print()
-    print("  Spesielle sakstyper:")
+    print("  Forsering (§33.8):")
     offset = len(standard_presets)
-    for i, preset in enumerate(special_presets, 1):
-        print(f"    [{offset + i}] {preset.value:14} - {PRESET_DESCRIPTIONS[preset]}")
+    for i, preset in enumerate(forsering_presets, 1):
+        print(f"    [{offset + i}] {preset.value:20} - {PRESET_DESCRIPTIONS[preset]}")
+
+    print()
+    print("  Endringsordre (§31.3):")
+    offset2 = offset + len(forsering_presets)
+    print(f"    [{offset2 + 1}] {Preset.ENDRINGSORDRE.value:20} - {PRESET_DESCRIPTIONS[Preset.ENDRINGSORDRE]}")
 
     print()
 
@@ -773,17 +1035,23 @@ def interactive_mode():
 
 def list_presets():
     """Vis tilgjengelige presets."""
+    forsering_presets = [Preset.FORSERING, Preset.FORSERING_IVERKSATT, Preset.FORSERING_BH_SNUDD]
+
     print("\nTilgjengelige presets:")
     print()
     print("  Standard KOE-saker:")
     for preset in Preset:
-        if preset not in [Preset.FORSERING, Preset.ENDRINGSORDRE]:
-            print(f"    {preset.value:14} - {PRESET_DESCRIPTIONS[preset]}")
+        if preset not in forsering_presets and preset != Preset.ENDRINGSORDRE:
+            print(f"    {preset.value:20} - {PRESET_DESCRIPTIONS[preset]}")
 
     print()
-    print("  Spesielle sakstyper:")
-    for preset in [Preset.FORSERING, Preset.ENDRINGSORDRE]:
-        print(f"    {preset.value:14} - {PRESET_DESCRIPTIONS[preset]}")
+    print("  Forsering (§33.8):")
+    for preset in forsering_presets:
+        print(f"    {preset.value:20} - {PRESET_DESCRIPTIONS[preset]}")
+
+    print()
+    print("  Endringsordre (§31.3):")
+    print(f"    {Preset.ENDRINGSORDRE.value:20} - {PRESET_DESCRIPTIONS[Preset.ENDRINGSORDRE]}")
     print()
 
 

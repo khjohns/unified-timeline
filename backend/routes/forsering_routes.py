@@ -218,7 +218,13 @@ def hent_forseringskontekst(sak_id: str):
     """
     service = _get_forsering_service()
     kontekst = service.hent_komplett_forseringskontekst(sak_id)
-    return build_kontekst_response(sak_id, kontekst)
+
+    # Ekstraher forsering_hendelser til extra_fields for riktig formatering
+    extra_fields = {}
+    if "forsering_hendelser" in kontekst:
+        extra_fields["forsering_hendelser"] = kontekst.pop("forsering_hendelser")
+
+    return build_kontekst_response(sak_id, kontekst, extra_fields=extra_fields)
 
 
 @forsering_bp.route('/api/forsering/kandidater', methods=['GET'])
