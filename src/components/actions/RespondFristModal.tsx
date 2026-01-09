@@ -34,6 +34,8 @@ import {
   AlertDialog,
   Badge,
   Button,
+  DataList,
+  DataListItem,
   DatePicker,
   FormField,
   Input,
@@ -1450,21 +1452,33 @@ export function RespondFristModal({
                     {/* Change summary */}
                     {harEndringer && (
                       <div className="p-4 bg-alert-info-bg border border-alert-info-border rounded-none">
-                        <h5 className="font-medium text-sm mb-2">Endringer fra forrige svar</h5>
-                        <div className="space-y-1 text-sm">
+                        <h5 className="font-medium text-sm mb-3">Endringer fra forrige svar</h5>
+                        <DataList variant="grid">
                           {formValues.noytralt_varsel_ok !== fristTilstand?.noytralt_varsel_ok && (
-                            <div>• Nøytralt varsel: {formValues.noytralt_varsel_ok ? 'I tide' : 'For sent'} (var: {fristTilstand?.noytralt_varsel_ok ? 'I tide' : 'For sent'})</div>
+                            <DataListItem label="Nøytralt varsel">
+                              {formValues.noytralt_varsel_ok ? 'I tide' : 'For sent'}
+                              <span className="text-pkt-text-body-subtle"> ← {fristTilstand?.noytralt_varsel_ok ? 'I tide' : 'For sent'}</span>
+                            </DataListItem>
                           )}
                           {formValues.spesifisert_krav_ok !== fristTilstand?.spesifisert_krav_ok && (
-                            <div>• Spesifisert krav: {formValues.spesifisert_krav_ok ? 'I tide' : 'For sent'} (var: {fristTilstand?.spesifisert_krav_ok ? 'I tide' : 'For sent'})</div>
+                            <DataListItem label="Spesifisert krav">
+                              {formValues.spesifisert_krav_ok ? 'I tide' : 'For sent'}
+                              <span className="text-pkt-text-body-subtle"> ← {fristTilstand?.spesifisert_krav_ok ? 'I tide' : 'For sent'}</span>
+                            </DataListItem>
                           )}
                           {formValues.vilkar_oppfylt !== fristTilstand?.vilkar_oppfylt && (
-                            <div>• Vilkår: {formValues.vilkar_oppfylt ? 'Oppfylt' : 'Ikke oppfylt'} (var: {fristTilstand?.vilkar_oppfylt ? 'Oppfylt' : 'Ikke oppfylt'})</div>
+                            <DataListItem label="Vilkår">
+                              {formValues.vilkar_oppfylt ? 'Oppfylt' : 'Ikke oppfylt'}
+                              <span className="text-pkt-text-body-subtle"> ← {fristTilstand?.vilkar_oppfylt ? 'Oppfylt' : 'Ikke oppfylt'}</span>
+                            </DataListItem>
                           )}
                           {formValues.godkjent_dager !== lastResponseEvent?.godkjent_dager && (
-                            <div>• Godkjente dager: {formValues.godkjent_dager} (var: {lastResponseEvent?.godkjent_dager})</div>
+                            <DataListItem label="Godkjente dager" mono>
+                              {formValues.godkjent_dager}
+                              <span className="text-pkt-text-body-subtle"> ← {lastResponseEvent?.godkjent_dager}</span>
+                            </DataListItem>
                           )}
-                        </div>
+                        </DataList>
                       </div>
                     )}
                   </>
