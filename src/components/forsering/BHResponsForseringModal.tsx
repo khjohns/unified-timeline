@@ -697,12 +697,11 @@ export function BHResponsForseringModal({
                     const currentVurdering = formData.vurdering_per_sak?.find(v => v.sak_id === sak.sak_id);
 
                     return (
-                      <div key={sak.sak_id} className="p-4 border-2 border-pkt-border-default rounded-none">
-                        <h4 className="font-bold text-sm mb-1">{sak.sak_id}</h4>
-                        <p className="text-sm text-pkt-text-body-subtle mb-3">
-                          {sak.tittel} ({sak.avslatte_dager} avslåtte dager)
-                        </p>
-
+                      <SectionContainer
+                        key={sak.sak_id}
+                        title={sak.sak_id}
+                        description={`${sak.tittel} (${sak.avslatte_dager} avslåtte dager)`}
+                      >
                         <Controller
                           name="vurdering_per_sak"
                           control={control}
@@ -736,13 +735,12 @@ export function BHResponsForseringModal({
                             </RadioGroup>
                           )}
                         />
-                      </div>
+                      </SectionContainer>
                     );
                   })}
 
                   {/* Summary of per-sak evaluation */}
-                  <div className="p-3 bg-pkt-surface-subtle border-2 border-pkt-border-default rounded-none">
-                    <h4 className="font-bold text-sm mb-2">Oppsummering</h4>
+                  <SectionContainer title="Oppsummering" variant="subtle">
                     <div className="space-y-1 text-sm">
                       <div>Totalt avslått: {computed.totalAvslatteDager} dager</div>
                       <div>Uberettiget avslått: {computed.dagerUberettiget} dager</div>
@@ -756,7 +754,7 @@ export function BHResponsForseringModal({
                         <Badge variant="info">Ingen forseringsrett</Badge>
                       )}
                     </div>
-                  </div>
+                  </SectionContainer>
                 </>
               ) : (
                 /* Fallback when avslatteSaker not available */
