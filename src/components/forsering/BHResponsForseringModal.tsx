@@ -773,7 +773,7 @@ export function BHResponsForseringModal({
                 overstiger dagmulkten med tillegg av 30%.
               </p>
 
-              {/* Calculation display */}
+              {/* Calculation and comparison */}
               <SectionContainer title="Beregning av 30%-grensen" variant="subtle">
                 <div className="space-y-1 text-sm font-mono">
                   <div>Avslåtte dager: {forseringData.avslatte_dager}</div>
@@ -782,32 +782,17 @@ export function BHResponsForseringModal({
                     Maks kostnad: {forseringData.avslatte_dager} × {formatCurrency(forseringData.dagmulktsats)} × 1,3 = <strong>{formatCurrency(forseringData.maks_forseringskostnad)}</strong>
                   </div>
                 </div>
+                <div className="border-t border-pkt-border-subtle pt-3 mt-3">
+                  <InlineDataList>
+                    <InlineDataListItem label="Entreprenørens estimat" mono bold>
+                      {formatCurrency(forseringData.estimert_kostnad)}
+                    </InlineDataListItem>
+                    <InlineDataListItem label="Maks (30%)" mono bold>
+                      {formatCurrency(forseringData.maks_forseringskostnad)}
+                    </InlineDataListItem>
+                  </InlineDataList>
+                </div>
               </SectionContainer>
-
-              {/* Comparison */}
-              <div
-                className="p-3 border-2 rounded-none"
-                style={{
-                  borderColor: forseringData.kostnad_innenfor_grense ? 'var(--badge-success-bg)' : 'var(--alert-danger-bg)',
-                  backgroundColor: forseringData.kostnad_innenfor_grense ? 'var(--badge-success-bg)' : 'var(--alert-danger-bg)',
-                }}
-              >
-                <DataList variant="grid">
-                  <DataListItem label="Entreprenørens estimat" mono>
-                    {formatCurrency(forseringData.estimert_kostnad)}
-                  </DataListItem>
-                  <DataListItem label="Maks kostnad (30%)" mono>
-                    {formatCurrency(forseringData.maks_forseringskostnad)}
-                  </DataListItem>
-                  <DataListItem label="Status">
-                    {forseringData.kostnad_innenfor_grense ? (
-                      <Badge variant="success">Innenfor grensen</Badge>
-                    ) : (
-                      <Badge variant="danger">Overstiger med {formatCurrency((forseringData.estimert_kostnad ?? 0) - (forseringData.maks_forseringskostnad ?? 0))}</Badge>
-                    )}
-                  </DataListItem>
-                </DataList>
-              </div>
 
               {/* Konklusjon basert på automatisk beregning */}
               {forseringData.kostnad_innenfor_grense ? (
