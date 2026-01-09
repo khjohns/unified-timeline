@@ -173,9 +173,6 @@ const respondVederlagSchema = z.object({
   // Port 4: Oppsummering
   // Note: auto_begrunnelse is generated, not user-editable
   tilleggs_begrunnelse: z.string().optional(),
-
-  // UPDATE MODE: Required when updating a previous response
-  endringsbegrunnelse: z.string().optional(),
 });
 
 type RespondVederlagFormData = z.infer<typeof respondVederlagSchema>;
@@ -310,7 +307,6 @@ export function RespondVederlagModal({
         ep_justering_akseptert: lastResponseEvent.ep_justering_akseptert,
         hold_tilbake: lastResponseEvent.hold_tilbake,
         tilleggs_begrunnelse: '',
-        endringsbegrunnelse: '',
       };
     }
     // NEW RESPONSE MODE: Default values
@@ -736,17 +732,6 @@ export function RespondVederlagModal({
 
   // Submit handler
   const onSubmit = (data: RespondVederlagFormData) => {
-    // UPDATE MODE: Validate endringsbegrunnelse
-    if (isUpdateMode) {
-      if (!data.endringsbegrunnelse || data.endringsbegrunnelse.trim().length < 10) {
-        setError('endringsbegrunnelse', {
-          type: 'manual',
-          message: 'Begrunnelse for endring må være minst 10 tegn',
-        });
-        return;
-      }
-    }
-
     // Beregn subsidiære triggere basert på Port 1 og 2 valg
     const triggers: SubsidiaerTrigger[] = [];
     if (riggPrekludert) triggers.push('preklusjon_rigg');
@@ -791,8 +776,8 @@ export function RespondVederlagModal({
           original_respons_id: lastResponseEvent.event_id,
           dato_endret: new Date().toISOString().split('T')[0],
 
-          // Endringsbegrunnelse (required for updates)
-          begrunnelse: data.endringsbegrunnelse,
+          // Begrunnelse (same as new response)
+          begrunnelse: samletBegrunnelse,
 
           // Port 1: Preklusjon
           rigg_varslet_i_tide: data.rigg_varslet_i_tide,
@@ -812,7 +797,7 @@ export function RespondVederlagModal({
           produktivitet_vurdering: data.produktivitet_vurdering,
           produktivitet_godkjent_belop: produktivitetGodkjentBelop,
 
-          // Auto-generert begrunnelse (separat fra endringsbegrunnelse)
+          // Begrunnelse-detaljer
           auto_begrunnelse: autoBegrunnelse,
           tilleggs_begrunnelse: data.tilleggs_begrunnelse,
           vurdering_begrunnelse: samletBegrunnelse,
@@ -1984,31 +1969,6 @@ export function RespondVederlagModal({
                   </div>
                 </div>
 
-                {/* Auto-generert begrunnelse (ikke redigerbar) */}
-                <SectionContainer
-                  title="Generert begrunnelse"
-                  variant="subtle"
-                  description="Automatisk generert basert på valgene dine. Kan ikke redigeres direkte."
-                >
-                  <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                    {autoBegrunnelse || 'Fyll ut valgene ovenfor for å generere begrunnelse.'}
-                  </p>
-                </SectionContainer>
-
-                {/* Tilleggsbegrunnelse (valgfri) */}
-                <FormField
-                  label="Tilleggskommentar (valgfritt)"
-                  error={errors.tilleggs_begrunnelse?.message}
-                  helpText="Legg til egne kommentarer, f.eks. detaljer om beregning eller referanser til dokumenter"
-                >
-                  <Textarea
-                    {...register('tilleggs_begrunnelse')}
-                    rows={3}
-                    fullWidth
-                    error={!!errors.tilleggs_begrunnelse}
-                                      />
-                </FormField>
-
                 {/* UPDATE MODE: Warnings and change summary */}
                 {isUpdateMode && (
                   <>
@@ -2070,26 +2030,33 @@ export function RespondVederlagModal({
                         </div>
                       </SectionContainer>
                     )}
-
-                    {/* Required: Endringsbegrunnelse */}
-                    <Alert variant="info" title="Du endrer et tidligere svar">
-                      Du har gjort endringer i vurderingen. Begrunn hvorfor du endrer standpunkt.
-                    </Alert>
-                    <FormField
-                      label="Begrunnelse for endring"
-                      required
-                      error={errors.endringsbegrunnelse?.message}
-                      helpText="Forklar hvorfor du endrer vurderingen (minimum 10 tegn)"
-                    >
-                      <Textarea
-                        {...register('endringsbegrunnelse')}
-                        rows={4}
-                        fullWidth
-                        error={!!errors.endringsbegrunnelse}
-                      />
-                    </FormField>
                   </>
                 )}
+
+                {/* Auto-generert begrunnelse (ikke redigerbar) */}
+                <SectionContainer
+                  title="Generert begrunnelse"
+                  variant="subtle"
+                  description="Automatisk generert basert på valgene dine. Kan ikke redigeres direkte."
+                >
+                  <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                    {autoBegrunnelse || 'Fyll ut valgene ovenfor for å generere begrunnelse.'}
+                  </p>
+                </SectionContainer>
+
+                {/* Tilleggsbegrunnelse (valgfri) */}
+                <FormField
+                  label="Tilleggskommentar (valgfritt)"
+                  error={errors.tilleggs_begrunnelse?.message}
+                  helpText="Legg til egne kommentarer, f.eks. detaljer om beregning eller referanser til dokumenter"
+                >
+                  <Textarea
+                    {...register('tilleggs_begrunnelse')}
+                    rows={3}
+                    fullWidth
+                    error={!!errors.tilleggs_begrunnelse}
+                                      />
+                </FormField>
               </div>
             </div>
           )}
