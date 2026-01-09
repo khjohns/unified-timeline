@@ -46,7 +46,6 @@ import {
   leggTilRelaterteSaker,
   fjernRelatertSak,
   stoppForsering,
-  bhResponsForsering,
   oppdaterKostnader,
   type ForseringKontekstResponse,
   type KandidatSak,
@@ -195,41 +194,6 @@ export function ForseringPage() {
       queryClient.invalidateQueries({ queryKey: ['forsering', sakId, 'kontekst'] });
       queryClient.invalidateQueries({ queryKey: ['case', sakId] });
       setStoppModalOpen(false);
-      // Show warning if Catenda sync failed
-      if (!result.catenda_synced) {
-        setShowCatendaWarning(true);
-      }
-    },
-    onError: (error) => {
-      if (error instanceof Error && (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING')) {
-        setShowTokenExpired(true);
-      } else if (error instanceof ApiError && error.status === 409) {
-        setShowConflict(true);
-        queryClient.invalidateQueries({ queryKey: ['case', sakId] });
-      }
-    },
-  });
-
-  // Mutation for BH responding to forsering
-  const bhResponsMutation = useMutation({
-    mutationFn: async (data: { aksepterer: boolean; godkjent_kostnad?: number; begrunnelse: string }) => {
-      const currentToken = getAuthToken();
-      if (!currentToken) throw new Error('TOKEN_MISSING');
-      const isValid = await verifyToken(currentToken);
-      if (!isValid) throw new Error('TOKEN_EXPIRED');
-      return bhResponsForsering({
-        forsering_sak_id: sakId || '',
-        aksepterer: data.aksepterer,
-        godkjent_kostnad: data.godkjent_kostnad,
-        begrunnelse: data.begrunnelse,
-        expected_version: caseData?.version,
-      });
-    },
-    onSuccess: (result) => {
-      // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ['forsering', sakId, 'kontekst'] });
-      queryClient.invalidateQueries({ queryKey: ['case', sakId] });
-      setBhResponsModalOpen(false);
       // Show warning if Catenda sync failed
       if (!result.catenda_synced) {
         setShowCatendaWarning(true);
@@ -480,9 +444,14 @@ export function ForseringPage() {
       <BHResponsForseringModal
         open={bhResponsModalOpen}
         onOpenChange={setBhResponsModalOpen}
+        sakId={sakId || ''}
         forseringData={forseringData}
-        onRespons={(data) => bhResponsMutation.mutate(data)}
-        isLoading={bhResponsMutation.isPending}
+        currentVersion={caseData?.version}
+        lastResponse={forseringData.bh_respons}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['forsering', sakId, 'kontekst'] });
+          queryClient.invalidateQueries({ queryKey: ['case', sakId] });
+        }}
       />
 
       {/* Update costs modal */}

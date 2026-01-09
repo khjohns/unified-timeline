@@ -1,32 +1,110 @@
 /**
  * BHResponsForseringModal Component
  *
- * Modal for BH to respond to a forsering claim.
- * Allows accepting, partially accepting, or rejecting the forsering.
+ * Modal for BH to respond to a forsering (§33.8) claim.
+ * Uses a 4-port wizard model based on NS 8407 requirements.
+ *
+ * WIZARD STRUCTURE:
+ * - Port 1: Grunnlagsvalidering - Is the rejection still valid?
+ * - Port 2: 30%-regel - Is cost within 30% limit?
+ * - Port 3: Beløpsvurdering - Amount evaluation (hovedkrav + særskilte krav)
+ * - Port 4: Oppsummering - Summary with principal AND subsidiary results
+ *
+ * KEY RULES (§33.8):
+ * - TE has right to accelerate if BH rejected deadline extension unjustly
+ * - Max acceleration cost = rejected_days × daily_penalty × 1.3
+ * - §34.1.3: Særskilte krav (rigg/drift/produktivitet) requires separate notice
  */
 
-import { useState } from 'react';
-import { Alert, Badge, Button, CurrencyInput, Modal } from '../primitives';
-import { CheckIcon, Cross2Icon, QuestionMarkCircledIcon } from '@radix-ui/react-icons';
-import type { ForseringData } from '../../types/timeline';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { useFormBackup } from '../../hooks/useFormBackup';
+import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
+import {
+  Alert,
+  AlertDialog,
+  Badge,
+  Button,
+  CurrencyInput,
+  FormField,
+  Modal,
+  RadioGroup,
+  RadioItem,
+  StepIndicator,
+  Textarea,
+  useToast,
+} from '../primitives';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useQuery } from '@tanstack/react-query';
+import { useConfirmClose } from '../../hooks/useConfirmClose';
+import {
+  bhResponsForsering,
+  validerForseringsgrunnlag,
+  type BHResponsForseringRequest,
+} from '../../api/forsering';
+import type { ForseringData, SubsidiaerTrigger } from '../../types/timeline';
+import {
+  generateForseringResponseBegrunnelse,
+  combineBegrunnelse,
+  type ForseringResponseInput,
+} from '../../utils/begrunnelseGenerator';
 
-type BHResponsType = 'aksepterer' | 'avslaar';
+// ============================================================================
+// TYPES & INTERFACES
+// ============================================================================
+
+type BelopVurdering = 'godkjent' | 'delvis' | 'avslatt';
 
 interface BHResponsForseringModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  sakId: string;
   forseringData: ForseringData;
-  onRespons: (data: {
-    aksepterer: boolean;
-    godkjent_kostnad?: number;
-    begrunnelse: string;
-  }) => void;
-  isLoading?: boolean;
+  currentVersion?: number;
+  /** Previous response data for update mode */
+  lastResponse?: ForseringData['bh_respons'];
+  onSuccess?: () => void;
 }
+
+// ============================================================================
+// ZOD SCHEMA
+// ============================================================================
+
+const bhResponsForseringSchema = z.object({
+  // Port 1: Grunnlagsvalidering
+  grunnlag_fortsatt_gyldig: z.boolean(),
+  grunnlag_begrunnelse: z.string().optional(),
+
+  // Port 2: 30%-regel
+  trettiprosent_overholdt: z.boolean(),
+  trettiprosent_begrunnelse: z.string().optional(),
+
+  // Port 3: Beløpsvurdering
+  hovedkrav_vurdering: z.enum(['godkjent', 'delvis', 'avslatt']),
+  godkjent_belop: z.number().min(0).optional(),
+
+  // Port 3b: Særskilte krav (hvis TE har varslet)
+  rigg_varslet_i_tide: z.boolean().optional(),
+  godkjent_rigg_drift: z.number().min(0).optional(),
+  rigg_vurdering: z.enum(['godkjent', 'delvis', 'avslatt']).optional(),
+  produktivitet_varslet_i_tide: z.boolean().optional(),
+  godkjent_produktivitet: z.number().min(0).optional(),
+  produktivitet_vurdering: z.enum(['godkjent', 'delvis', 'avslatt']).optional(),
+
+  // Port 4: Oppsummering
+  tilleggs_begrunnelse: z.string().optional(),
+});
+
+type BHResponsForseringFormData = z.infer<typeof bhResponsForseringSchema>;
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
 
 function formatCurrency(amount?: number): string {
   if (amount === undefined || amount === null) return '-';
-  return `${amount.toLocaleString('nb-NO')} kr`;
+  return `kr ${amount.toLocaleString('nb-NO')},-`;
 }
 
 function formatDate(dateString?: string): string {
@@ -42,192 +120,880 @@ function formatDate(dateString?: string): string {
   }
 }
 
+/**
+ * Calculate total krevd amount from forsering data
+ */
+function beregnTotalKrevd(forseringData: ForseringData): number {
+  let total = forseringData.estimert_kostnad ?? 0;
+
+  // Add særskilte krav if present
+  if (forseringData.vederlag?.saerskilt_krav) {
+    total += forseringData.vederlag.saerskilt_krav.rigg_drift?.belop ?? 0;
+    total += forseringData.vederlag.saerskilt_krav.produktivitet?.belop ?? 0;
+  }
+
+  return total;
+}
+
+/**
+ * Calculate principal result based on wizard inputs
+ */
+function beregnPrinsipaltResultat(
+  data: Partial<BHResponsForseringFormData>,
+  computed: {
+    grunnlagOk: boolean;
+    trettiprosentOk: boolean;
+    totalGodkjent: number;
+    totalKrevd: number;
+  }
+): 'godkjent' | 'delvis_godkjent' | 'avslatt' {
+  // If grunnlag or 30% rule fails, reject
+  if (!computed.grunnlagOk || !computed.trettiprosentOk) {
+    return 'avslatt';
+  }
+
+  // Calculate approval percentage
+  const godkjentProsent =
+    computed.totalKrevd > 0 ? computed.totalGodkjent / computed.totalKrevd : 0;
+
+  if (data.hovedkrav_vurdering === 'avslatt' && godkjentProsent === 0) {
+    return 'avslatt';
+  }
+
+  if (godkjentProsent >= 0.99) {
+    return 'godkjent';
+  }
+
+  return 'delvis_godkjent';
+}
+
+// ============================================================================
+// COMPONENT
+// ============================================================================
+
 export function BHResponsForseringModal({
   open,
   onOpenChange,
+  sakId,
   forseringData,
-  onRespons,
-  isLoading = false,
+  currentVersion = 0,
+  lastResponse,
+  onSuccess,
 }: BHResponsForseringModalProps) {
-  const [responsType, setResponsType] = useState<BHResponsType | null>(null);
-  const [godkjentKostnad, setGodkjentKostnad] = useState<number | null>(null);
-  const [begrunnelse, setBegrunnelse] = useState('');
+  const isUpdateMode = !!lastResponse;
+  const [currentPort, setCurrentPort] = useState(1);
+  const [showTokenExpired, setShowTokenExpired] = useState(false);
+  const [showRestorePrompt, setShowRestorePrompt] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const topRef = useRef<HTMLDivElement>(null);
+  const toast = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!responsType) return;
+  // Scroll to top of modal content
+  const scrollToTop = useCallback(() => {
+    topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
 
-    onRespons({
-      aksepterer: responsType === 'aksepterer',
-      godkjent_kostnad: godkjentKostnad ?? undefined,
-      begrunnelse,
-    });
+  // Check if særskilte krav exists
+  const harRiggKrav = (forseringData.vederlag?.saerskilt_krav?.rigg_drift?.belop ?? 0) > 0;
+  const harProduktivitetKrav = (forseringData.vederlag?.saerskilt_krav?.produktivitet?.belop ?? 0) > 0;
+  const harSaerskiltKrav = harRiggKrav || harProduktivitetKrav;
+
+  // Calculate total ports (4 with or without særskilte - handled in port 3)
+  const totalPorts = 4;
+
+  // Fetch grunnlag validation status when modal opens
+  const { data: grunnlagValidering, isLoading: isLoadingGrunnlag } = useQuery({
+    queryKey: ['forsering', sakId, 'valider-grunnlag'],
+    queryFn: () => validerForseringsgrunnlag(sakId),
+    enabled: open,
+    staleTime: 30000,
+  });
+
+  // Compute defaultValues based on mode
+  const computedDefaultValues = useMemo((): Partial<BHResponsForseringFormData> => {
+    if (isUpdateMode && lastResponse) {
+      return {
+        grunnlag_fortsatt_gyldig: lastResponse.grunnlag_fortsatt_gyldig ?? true,
+        grunnlag_begrunnelse: lastResponse.grunnlag_begrunnelse ?? '',
+        trettiprosent_overholdt: lastResponse.trettiprosent_overholdt ?? true,
+        trettiprosent_begrunnelse: lastResponse.trettiprosent_begrunnelse ?? '',
+        hovedkrav_vurdering: lastResponse.aksepterer ? 'godkjent' : 'avslatt',
+        godkjent_belop: lastResponse.godkjent_belop,
+        rigg_varslet_i_tide: lastResponse.rigg_varslet_i_tide ?? true,
+        godkjent_rigg_drift: lastResponse.godkjent_rigg_drift,
+        produktivitet_varslet_i_tide: lastResponse.produktivitet_varslet_i_tide ?? true,
+        godkjent_produktivitet: lastResponse.godkjent_produktivitet,
+        tilleggs_begrunnelse: '',
+      };
+    }
+    return {
+      grunnlag_fortsatt_gyldig: true,
+      trettiprosent_overholdt: true,
+      hovedkrav_vurdering: 'godkjent',
+      rigg_varslet_i_tide: true,
+      produktivitet_varslet_i_tide: true,
+    };
+  }, [isUpdateMode, lastResponse]);
+
+  // Form setup
+  const {
+    handleSubmit,
+    formState: { errors, isDirty },
+    reset,
+    watch,
+    control,
+    setValue,
+  } = useForm<BHResponsForseringFormData>({
+    resolver: zodResolver(bhResponsForseringSchema),
+    mode: 'onTouched',
+    defaultValues: computedDefaultValues,
+  });
+
+  // Reset form when opening in update mode
+  useEffect(() => {
+    if (open && isUpdateMode && lastResponse) {
+      reset(computedDefaultValues);
+    }
+  }, [open, isUpdateMode, lastResponse, reset, computedDefaultValues]);
+
+  const { showConfirmDialog, setShowConfirmDialog, handleClose, confirmClose } = useConfirmClose({
+    isDirty,
+    onReset: () => {
+      reset();
+      setCurrentPort(1);
+    },
+    onClose: () => onOpenChange(false),
+  });
+
+  const formData = watch();
+  const { getBackup, clearBackup, hasBackup } = useFormBackup(sakId, 'bh_respons_forsering', formData, isDirty);
+
+  // Backup restoration
+  const hasCheckedBackup = useRef(false);
+  useEffect(() => {
+    if (open && hasBackup && !isDirty && !hasCheckedBackup.current) {
+      hasCheckedBackup.current = true;
+      setShowRestorePrompt(true);
+    }
+    if (!open) {
+      hasCheckedBackup.current = false;
+    }
+  }, [open, hasBackup, isDirty]);
+  const handleRestoreBackup = () => {
+    const backup = getBackup();
+    if (backup) reset(backup);
+    setShowRestorePrompt(false);
+  };
+  const handleDiscardBackup = () => {
+    clearBackup();
+    setShowRestorePrompt(false);
   };
 
-  const handleClose = () => {
-    setResponsType(null);
-    setGodkjentKostnad(null);
-    setBegrunnelse('');
-    onOpenChange(false);
+  // Compute derived values
+  const computed = useMemo(() => {
+    const totalKrevd = beregnTotalKrevd(forseringData);
+
+    // Calculate godkjent based on vurdering
+    let hovedkravGodkjent = 0;
+    if (formData.hovedkrav_vurdering === 'godkjent') {
+      hovedkravGodkjent = forseringData.estimert_kostnad ?? 0;
+    } else if (formData.hovedkrav_vurdering === 'delvis') {
+      hovedkravGodkjent = formData.godkjent_belop ?? 0;
+    }
+
+    // Særskilte krav - only count if not precluded
+    let riggGodkjent = 0;
+    let produktivitetGodkjent = 0;
+
+    if (harRiggKrav && formData.rigg_varslet_i_tide !== false) {
+      if (formData.rigg_vurdering === 'godkjent') {
+        riggGodkjent = forseringData.vederlag?.saerskilt_krav?.rigg_drift?.belop ?? 0;
+      } else if (formData.rigg_vurdering === 'delvis') {
+        riggGodkjent = formData.godkjent_rigg_drift ?? 0;
+      }
+    }
+
+    if (harProduktivitetKrav && formData.produktivitet_varslet_i_tide !== false) {
+      if (formData.produktivitet_vurdering === 'godkjent') {
+        produktivitetGodkjent = forseringData.vederlag?.saerskilt_krav?.produktivitet?.belop ?? 0;
+      } else if (formData.produktivitet_vurdering === 'delvis') {
+        produktivitetGodkjent = formData.godkjent_produktivitet ?? 0;
+      }
+    }
+
+    const totalGodkjent = hovedkravGodkjent + riggGodkjent + produktivitetGodkjent;
+
+    // Subsidiær calculation (ignores preclusion)
+    let subsidiaerRigg = 0;
+    let subsidiaerProduktivitet = 0;
+
+    if (harRiggKrav) {
+      if (formData.rigg_vurdering === 'godkjent') {
+        subsidiaerRigg = forseringData.vederlag?.saerskilt_krav?.rigg_drift?.belop ?? 0;
+      } else if (formData.rigg_vurdering === 'delvis') {
+        subsidiaerRigg = formData.godkjent_rigg_drift ?? 0;
+      }
+    }
+
+    if (harProduktivitetKrav) {
+      if (formData.produktivitet_vurdering === 'godkjent') {
+        subsidiaerProduktivitet = forseringData.vederlag?.saerskilt_krav?.produktivitet?.belop ?? 0;
+      } else if (formData.produktivitet_vurdering === 'delvis') {
+        subsidiaerProduktivitet = formData.godkjent_produktivitet ?? 0;
+      }
+    }
+
+    const subsidiaerGodkjent = hovedkravGodkjent + subsidiaerRigg + subsidiaerProduktivitet;
+
+    const harPrekludertKrav =
+      (harRiggKrav && formData.rigg_varslet_i_tide === false) ||
+      (harProduktivitetKrav && formData.produktivitet_varslet_i_tide === false);
+
+    const subsidiaerTriggers: SubsidiaerTrigger[] = [];
+    if (!formData.grunnlag_fortsatt_gyldig) {
+      subsidiaerTriggers.push('grunnlag_avslatt');
+    }
+    if (harRiggKrav && formData.rigg_varslet_i_tide === false) {
+      subsidiaerTriggers.push('preklusjon_rigg');
+    }
+    if (harProduktivitetKrav && formData.produktivitet_varslet_i_tide === false) {
+      subsidiaerTriggers.push('preklusjon_produktivitet');
+    }
+
+    return {
+      totalKrevd,
+      totalGodkjent,
+      subsidiaerGodkjent,
+      harPrekludertKrav,
+      subsidiaerTriggers,
+      grunnlagOk: formData.grunnlag_fortsatt_gyldig ?? true,
+      trettiprosentOk: formData.trettiprosent_overholdt ?? true,
+    };
+  }, [formData, forseringData, harRiggKrav, harProduktivitetKrav]);
+
+  // Generate auto-begrunnelse
+  const autoBegrunnelse = useMemo(() => {
+    const input: ForseringResponseInput = {
+      avslatteDager: forseringData.avslatte_dager,
+      dagmulktsats: forseringData.dagmulktsats,
+      maksForseringskostnad: forseringData.maks_forseringskostnad,
+      estimertKostnad: forseringData.estimert_kostnad,
+      grunnlagFortsattGyldig: formData.grunnlag_fortsatt_gyldig ?? true,
+      grunnlagBegrunnelse: formData.grunnlag_begrunnelse,
+      trettiprosentOverholdt: formData.trettiprosent_overholdt ?? true,
+      trettiprosentBegrunnelse: formData.trettiprosent_begrunnelse,
+      hovedkravVurdering: formData.hovedkrav_vurdering ?? 'godkjent',
+      hovedkravBelop: forseringData.estimert_kostnad,
+      godkjentBelop: formData.hovedkrav_vurdering === 'godkjent'
+        ? forseringData.estimert_kostnad
+        : formData.godkjent_belop,
+      harRiggKrav,
+      riggBelop: forseringData.vederlag?.saerskilt_krav?.rigg_drift?.belop,
+      riggVarsletITide: formData.rigg_varslet_i_tide,
+      riggVurdering: formData.rigg_vurdering,
+      godkjentRiggDrift: formData.godkjent_rigg_drift,
+      harProduktivitetKrav,
+      produktivitetBelop: forseringData.vederlag?.saerskilt_krav?.produktivitet?.belop,
+      produktivitetVarsletITide: formData.produktivitet_varslet_i_tide,
+      produktivitetVurdering: formData.produktivitet_vurdering,
+      godkjentProduktivitet: formData.godkjent_produktivitet,
+      totalKrevd: computed.totalKrevd,
+      totalGodkjent: computed.totalGodkjent,
+      harPrekludertKrav: computed.harPrekludertKrav,
+      subsidiaerGodkjentBelop: computed.subsidiaerGodkjent,
+    };
+    return generateForseringResponseBegrunnelse(input);
+  }, [formData, forseringData, harRiggKrav, harProduktivitetKrav, computed]);
+
+  // Submit handler
+  const onSubmit = async (data: BHResponsForseringFormData) => {
+    setIsSubmitting(true);
+
+    try {
+      const finalBegrunnelse = combineBegrunnelse(autoBegrunnelse, data.tilleggs_begrunnelse);
+      const prinsipaltResultat = beregnPrinsipaltResultat(data, computed);
+
+      const request: BHResponsForseringRequest = {
+        forsering_sak_id: sakId,
+        aksepterer: prinsipaltResultat !== 'avslatt',
+        godkjent_kostnad: computed.totalGodkjent,
+        begrunnelse: finalBegrunnelse,
+        expected_version: currentVersion,
+        grunnlag_fortsatt_gyldig: data.grunnlag_fortsatt_gyldig,
+        grunnlag_begrunnelse: data.grunnlag_begrunnelse,
+        trettiprosent_overholdt: data.trettiprosent_overholdt,
+        trettiprosent_begrunnelse: data.trettiprosent_begrunnelse,
+        rigg_varslet_i_tide: data.rigg_varslet_i_tide,
+        produktivitet_varslet_i_tide: data.produktivitet_varslet_i_tide,
+        godkjent_rigg_drift: data.godkjent_rigg_drift,
+        godkjent_produktivitet: data.godkjent_produktivitet,
+        subsidiaer_triggers: computed.subsidiaerTriggers,
+        subsidiaer_godkjent_belop: computed.harPrekludertKrav ? computed.subsidiaerGodkjent : undefined,
+      };
+
+      const response = await bhResponsForsering(request);
+
+      if (response.success) {
+        clearBackup();
+        reset();
+        setCurrentPort(1);
+        onOpenChange(false);
+        toast.success(
+          isUpdateMode ? 'Standpunkt oppdatert' : 'Standpunkt registrert',
+          'Ditt standpunkt til forseringskravet er lagret.'
+        );
+        onSuccess?.();
+      }
+    } catch (error) {
+      const err = error as Error;
+      if (err.message === 'TOKEN_EXPIRED' || err.message === 'TOKEN_MISSING') {
+        setShowTokenExpired(true);
+      } else {
+        toast.error('Feil ved lagring', err.message);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  // Check if BH has already responded
-  const hasResponded = forseringData.bh_aksepterer_forsering !== undefined;
+  // Port navigation
+  const canProceed = useMemo(() => {
+    switch (currentPort) {
+      case 1:
+        return formData.grunnlag_fortsatt_gyldig !== undefined;
+      case 2:
+        return formData.trettiprosent_overholdt !== undefined;
+      case 3:
+        return formData.hovedkrav_vurdering !== undefined;
+      default:
+        return true;
+    }
+  }, [currentPort, formData]);
+
+  const handleNext = () => {
+    if (canProceed && currentPort < totalPorts) {
+      setCurrentPort(currentPort + 1);
+      scrollToTop();
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentPort > 1) {
+      setCurrentPort(currentPort - 1);
+      scrollToTop();
+    }
+  };
+
+  // Step configuration
+  const steps = [
+    { label: 'Grunnlag' },
+    { label: '30%-regel' },
+    { label: 'Beløp' },
+    { label: 'Oppsummering' },
+  ];
+
+  // Calculate prinsipalt resultat for display
+  const prinsipaltResultat = beregnPrinsipaltResultat(formData, computed);
 
   return (
-    <Modal
-      open={open}
-      onOpenChange={onOpenChange}
-      title="Byggherrens standpunkt til forsering"
-      size="md"
-    >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Info about the forsering */}
-        <div className="p-3 bg-pkt-surface-subtle border-2 border-pkt-border-default rounded-none">
-          <h4 className="font-bold text-sm mb-2">Forseringskrav fra entreprenør</h4>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div>
-              <span className="text-pkt-text-body-subtle">Varslet:</span>
-              <span className="ml-2">{formatDate(forseringData.dato_varslet)}</span>
-            </div>
-            <div>
-              <span className="text-pkt-text-body-subtle">Estimert kostnad:</span>
-              <span className="ml-2 font-medium">{formatCurrency(forseringData.estimert_kostnad)}</span>
-            </div>
-            <div>
-              <span className="text-pkt-text-body-subtle">Avslåtte dager:</span>
-              <span className="ml-2">{forseringData.avslatte_dager} dager</span>
-            </div>
-            <div>
-              <span className="text-pkt-text-body-subtle">Maks kostnad (30%):</span>
-              <span className="ml-2">{formatCurrency(forseringData.maks_forseringskostnad)}</span>
-            </div>
-            {forseringData.er_iverksatt && (
-              <div>
-                <span className="text-pkt-text-body-subtle">Iverksatt:</span>
-                <span className="ml-2">{formatDate(forseringData.dato_iverksatt)}</span>
-              </div>
-            )}
-            {forseringData.paalopte_kostnader !== undefined && (
-              <div>
-                <span className="text-pkt-text-body-subtle">Påløpte kostnader:</span>
-                <span className="ml-2">{formatCurrency(forseringData.paalopte_kostnader)}</span>
-              </div>
-            )}
-          </div>
-        </div>
+    <>
+      <Modal
+        open={open}
+        onOpenChange={onOpenChange}
+        title="Byggherrens standpunkt til forsering"
+        size="lg"
+      >
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <div ref={topRef} />
 
-        {/* Already responded warning */}
-        {hasResponded && (
-          <Alert
-            variant="info"
-            title="Du har allerede gitt et standpunkt"
-          >
-            <p>
-              Du {forseringData.bh_aksepterer_forsering ? 'aksepterte' : 'avslo'} forseringen.
-              {forseringData.bh_godkjent_kostnad !== undefined && (
-                <> Godkjent kostnad: {formatCurrency(forseringData.bh_godkjent_kostnad)}.</>
+          {/* Step Indicator */}
+          <StepIndicator currentStep={currentPort} steps={steps} />
+
+          {/* Token Expired Alert */}
+          <TokenExpiredAlert open={showTokenExpired} onClose={() => setShowTokenExpired(false)} />
+
+          {/* PORT 1: Grunnlagsvalidering */}
+          {currentPort === 1 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Port 1: Grunnlagsvalidering</h3>
+              <p className="text-sm text-pkt-text-body-subtle">
+                Er avslaget på fristforlengelse fortsatt gyldig? Entreprenøren har kun rett til å forsere
+                dersom byggherren har avslått fristforlengelse uten berettiget grunn.
+              </p>
+
+              {/* Info about the forsering */}
+              <div className="p-3 bg-pkt-surface-subtle border-2 border-pkt-border-default rounded-none">
+                <h4 className="font-bold text-sm mb-2">Forseringskrav fra entreprenør</h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-pkt-text-body-subtle">Varslet:</span>
+                    <span className="ml-2">{formatDate(forseringData.dato_varslet)}</span>
+                  </div>
+                  <div>
+                    <span className="text-pkt-text-body-subtle">Avslåtte dager:</span>
+                    <span className="ml-2">{forseringData.avslatte_dager} dager</span>
+                  </div>
+                  <div>
+                    <span className="text-pkt-text-body-subtle">Antall avslåtte saker:</span>
+                    <span className="ml-2">{forseringData.avslatte_fristkrav?.length ?? 0}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Grunnlag validation result from API */}
+              {isLoadingGrunnlag ? (
+                <Alert variant="info" title="Validerer grunnlag...">
+                  Sjekker om avslaget fortsatt er gyldig...
+                </Alert>
+              ) : grunnlagValidering && !grunnlagValidering.er_gyldig ? (
+                <Alert variant="warning" title="Grunnlag kan være ugyldig">
+                  {grunnlagValidering.grunn || 'Byggherren har endret standpunkt på en av fristsakene.'}
+                </Alert>
+              ) : null}
+
+              {/* RadioGroup for grunnlag */}
+              <Controller
+                name="grunnlag_fortsatt_gyldig"
+                control={control}
+                render={({ field }) => (
+                  <FormField label="Står avslaget ved lag?" required error={errors.grunnlag_fortsatt_gyldig?.message}>
+                    <RadioGroup
+                      value={field.value === true ? 'ja' : field.value === false ? 'nei' : undefined}
+                      onValueChange={(v) => field.onChange(v === 'ja')}
+                    >
+                      <RadioItem
+                        value="ja"
+                        label="Ja, avslaget står ved lag"
+                        description="Entreprenøren hadde rett til å iverksette forsering"
+                      />
+                      <RadioItem
+                        value="nei"
+                        label="Nei, jeg endrer standpunkt"
+                        description="Fristforlengelsen godkjennes (forsering bortfaller)"
+                      />
+                    </RadioGroup>
+                  </FormField>
+                )}
+              />
+
+              {/* Begrunnelse if grunnlag not valid */}
+              {formData.grunnlag_fortsatt_gyldig === false && (
+                <Controller
+                  name="grunnlag_begrunnelse"
+                  control={control}
+                  render={({ field }) => (
+                    <FormField label="Begrunnelse for endring" required>
+                      <Textarea
+                        {...field}
+                        placeholder="Forklar hvorfor du endrer standpunkt på fristforlengelsen..."
+                        rows={3}
+                      />
+                    </FormField>
+                  )}
+                />
               )}
-              Du kan oppdatere ditt standpunkt nedenfor.
-            </p>
-          </Alert>
-        )}
+            </div>
+          )}
 
-        {/* Response type selection */}
-        <div>
-          <label className="block text-sm font-medium mb-2">
-            Ditt standpunkt <span className="text-alert-danger-text">*</span>
-          </label>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => setResponsType('aksepterer')}
-              className={`p-4 border-2 rounded-none text-left transition-colors ${
-                responsType === 'aksepterer'
-                  ? 'border-badge-success-text bg-badge-success-bg text-badge-success-text'
-                  : 'border-pkt-border-default hover:border-pkt-border-focus'
-              }`}
-            >
-              <div className="flex items-center gap-2 mb-1">
-                <CheckIcon className={`w-5 h-5 ${responsType === 'aksepterer' ? 'text-badge-success-text' : 'text-pkt-text-body-default'}`} />
-                <span className="font-medium">Aksepterer</span>
-              </div>
-              <p className={`text-xs ${responsType === 'aksepterer' ? 'text-badge-success-text/80' : 'text-pkt-text-body-subtle'}`}>
-                Entreprenøren hadde rett til å forsere. Forseringskostnadene dekkes.
+          {/* PORT 2: 30%-regel */}
+          {currentPort === 2 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Port 2: 30%-regelen (§33.8)</h3>
+              <p className="text-sm text-pkt-text-body-subtle">
+                Entreprenøren har ikke valgrett til forsering dersom forseringskostnadene
+                overstiger dagmulkten med tillegg av 30%.
               </p>
-            </button>
 
-            <button
-              type="button"
-              onClick={() => setResponsType('avslaar')}
-              className={`p-4 border-2 rounded-none text-left transition-colors ${
-                responsType === 'avslaar'
-                  ? 'border-alert-danger-text bg-alert-danger-bg text-alert-danger-text'
-                  : 'border-pkt-border-default hover:border-pkt-border-focus'
-              }`}
-            >
-              <div className="flex items-center gap-2 mb-1">
-                <Cross2Icon className={`w-5 h-5 ${responsType === 'avslaar' ? 'text-alert-danger-text' : 'text-pkt-text-body-default'}`} />
-                <span className="font-medium">Avslår</span>
+              {/* Calculation display */}
+              <div className="p-3 bg-pkt-surface-subtle border-2 border-pkt-border-default rounded-none">
+                <h4 className="font-bold text-sm mb-2">Beregning av 30%-grensen</h4>
+                <div className="space-y-1 text-sm font-mono">
+                  <div>Avslåtte dager: {forseringData.avslatte_dager}</div>
+                  <div>Dagmulktsats: {formatCurrency(forseringData.dagmulktsats)}</div>
+                  <div className="border-t border-pkt-border-subtle pt-1 mt-1">
+                    Maks kostnad: {forseringData.avslatte_dager} × {formatCurrency(forseringData.dagmulktsats)} × 1,3 = <strong>{formatCurrency(forseringData.maks_forseringskostnad)}</strong>
+                  </div>
+                </div>
               </div>
-              <p className={`text-xs ${responsType === 'avslaar' ? 'text-alert-danger-text/80' : 'text-pkt-text-body-subtle'}`}>
-                Entreprenøren hadde ikke rett til å forsere. Forseringskostnadene dekkes ikke.
+
+              {/* Comparison */}
+              <div className="p-3 border-2 rounded-none space-y-2"
+                style={{
+                  borderColor: forseringData.kostnad_innenfor_grense ? 'var(--badge-success-bg)' : 'var(--alert-danger-bg)',
+                  backgroundColor: forseringData.kostnad_innenfor_grense ? 'var(--badge-success-bg)' : 'var(--alert-danger-bg)',
+                }}
+              >
+                <div className="flex justify-between text-sm">
+                  <span>Entreprenørens estimat:</span>
+                  <strong>{formatCurrency(forseringData.estimert_kostnad)}</strong>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Maks kostnad (30%):</span>
+                  <strong>{formatCurrency(forseringData.maks_forseringskostnad)}</strong>
+                </div>
+                <div className="pt-2 border-t border-current/20">
+                  {forseringData.kostnad_innenfor_grense ? (
+                    <Badge variant="success">Innenfor grensen</Badge>
+                  ) : (
+                    <Badge variant="danger">Overstiger grensen med {formatCurrency((forseringData.estimert_kostnad ?? 0) - (forseringData.maks_forseringskostnad ?? 0))}</Badge>
+                  )}
+                </div>
+              </div>
+
+              {/* RadioGroup for 30% rule */}
+              <Controller
+                name="trettiprosent_overholdt"
+                control={control}
+                render={({ field }) => (
+                  <FormField label="Er 30%-regelen oppfylt?" required error={errors.trettiprosent_overholdt?.message}>
+                    <RadioGroup
+                      value={field.value === true ? 'ja' : field.value === false ? 'nei' : undefined}
+                      onValueChange={(v) => field.onChange(v === 'ja')}
+                    >
+                      <RadioItem
+                        value="ja"
+                        label="Ja, innenfor grensen"
+                        description="Entreprenøren hadde valgrett til å forsere"
+                      />
+                      <RadioItem
+                        value="nei"
+                        label="Nei, overstiger grensen"
+                        description="Entreprenøren hadde ikke valgrett til forsering"
+                      />
+                    </RadioGroup>
+                  </FormField>
+                )}
+              />
+
+              {/* Begrunnelse if 30% rule fails */}
+              {formData.trettiprosent_overholdt === false && (
+                <Controller
+                  name="trettiprosent_begrunnelse"
+                  control={control}
+                  render={({ field }) => (
+                    <FormField label="Tilleggsbegrunnelse (valgfritt)">
+                      <Textarea
+                        {...field}
+                        placeholder="Evt. ytterligere kommentar til 30%-regelen..."
+                        rows={2}
+                      />
+                    </FormField>
+                  )}
+                />
+              )}
+            </div>
+          )}
+
+          {/* PORT 3: Beløpsvurdering */}
+          {currentPort === 3 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Port 3: Beløpsvurdering</h3>
+              <p className="text-sm text-pkt-text-body-subtle">
+                Vurder forseringskostnadene. Forsering dekkes etter regningsarbeid (§34.4).
               </p>
-            </button>
+
+              {/* Hovedkrav */}
+              <div className="p-4 border-2 border-pkt-border-default rounded-none space-y-4">
+                <h4 className="font-bold text-sm">Forseringskostnader (hovedkrav)</h4>
+                <div className="text-sm">
+                  Krevd beløp: <strong>{formatCurrency(forseringData.estimert_kostnad)}</strong>
+                </div>
+
+                <Controller
+                  name="hovedkrav_vurdering"
+                  control={control}
+                  render={({ field }) => (
+                    <FormField label="Din vurdering" required>
+                      <RadioGroup
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
+                        <RadioItem value="godkjent" label="Godkjenner" description="Full dekning" />
+                        <RadioItem value="delvis" label="Delvis godkjenning" description="Redusert beløp" />
+                        <RadioItem value="avslatt" label="Avslår" description="Ingen dekning" />
+                      </RadioGroup>
+                    </FormField>
+                  )}
+                />
+
+                {formData.hovedkrav_vurdering === 'delvis' && (
+                  <Controller
+                    name="godkjent_belop"
+                    control={control}
+                    render={({ field }) => (
+                      <CurrencyInput
+                        label="Godkjent beløp"
+                        value={field.value ?? null}
+                        onChange={(v) => field.onChange(v ?? undefined)}
+                        placeholder="Angi godkjent beløp"
+                        width="full"
+                        helperText={`Maks: ${formatCurrency(forseringData.estimert_kostnad)}`}
+                      />
+                    )}
+                  />
+                )}
+              </div>
+
+              {/* Særskilte krav - Rigg/drift */}
+              {harRiggKrav && (
+                <div className="p-4 border-2 border-pkt-border-default rounded-none space-y-4">
+                  <h4 className="font-bold text-sm">Økte rigg- og driftskostnader (§34.1.3)</h4>
+                  <div className="text-sm">
+                    Krevd beløp: <strong>{formatCurrency(forseringData.vederlag?.saerskilt_krav?.rigg_drift?.belop)}</strong>
+                  </div>
+
+                  <Controller
+                    name="rigg_varslet_i_tide"
+                    control={control}
+                    render={({ field }) => (
+                      <FormField label="Varslet i tide?" required>
+                        <RadioGroup
+                          value={field.value === true ? 'ja' : field.value === false ? 'nei' : undefined}
+                          onValueChange={(v) => field.onChange(v === 'ja')}
+                        >
+                          <RadioItem value="ja" label="Ja" description="Varslet «uten ugrunnet opphold»" />
+                          <RadioItem value="nei" label="Nei" description="Prekludert (varslet for sent)" />
+                        </RadioGroup>
+                      </FormField>
+                    )}
+                  />
+
+                  {/* Show vurdering even if precluded (for subsidiary) */}
+                  <Controller
+                    name="rigg_vurdering"
+                    control={control}
+                    render={({ field }) => (
+                      <FormField
+                        label={formData.rigg_varslet_i_tide === false ? 'Subsidiær vurdering' : 'Din vurdering'}
+                      >
+                        <RadioGroup
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <RadioItem value="godkjent" label="Godkjenner" />
+                          <RadioItem value="delvis" label="Delvis" />
+                          <RadioItem value="avslatt" label="Avslår" />
+                        </RadioGroup>
+                      </FormField>
+                    )}
+                  />
+
+                  {formData.rigg_vurdering === 'delvis' && (
+                    <Controller
+                      name="godkjent_rigg_drift"
+                      control={control}
+                      render={({ field }) => (
+                        <CurrencyInput
+                          label="Godkjent beløp"
+                          value={field.value ?? null}
+                          onChange={(v) => field.onChange(v ?? undefined)}
+                          placeholder="Angi godkjent beløp"
+                          width="full"
+                        />
+                      )}
+                    />
+                  )}
+                </div>
+              )}
+
+              {/* Særskilte krav - Produktivitet */}
+              {harProduktivitetKrav && (
+                <div className="p-4 border-2 border-pkt-border-default rounded-none space-y-4">
+                  <h4 className="font-bold text-sm">Produktivitetstap (§34.1.3)</h4>
+                  <div className="text-sm">
+                    Krevd beløp: <strong>{formatCurrency(forseringData.vederlag?.saerskilt_krav?.produktivitet?.belop)}</strong>
+                  </div>
+
+                  <Controller
+                    name="produktivitet_varslet_i_tide"
+                    control={control}
+                    render={({ field }) => (
+                      <FormField label="Varslet i tide?" required>
+                        <RadioGroup
+                          value={field.value === true ? 'ja' : field.value === false ? 'nei' : undefined}
+                          onValueChange={(v) => field.onChange(v === 'ja')}
+                        >
+                          <RadioItem value="ja" label="Ja" description="Varslet «uten ugrunnet opphold»" />
+                          <RadioItem value="nei" label="Nei" description="Prekludert (varslet for sent)" />
+                        </RadioGroup>
+                      </FormField>
+                    )}
+                  />
+
+                  <Controller
+                    name="produktivitet_vurdering"
+                    control={control}
+                    render={({ field }) => (
+                      <FormField
+                        label={formData.produktivitet_varslet_i_tide === false ? 'Subsidiær vurdering' : 'Din vurdering'}
+                      >
+                        <RadioGroup
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <RadioItem value="godkjent" label="Godkjenner" />
+                          <RadioItem value="delvis" label="Delvis" />
+                          <RadioItem value="avslatt" label="Avslår" />
+                        </RadioGroup>
+                      </FormField>
+                    )}
+                  />
+
+                  {formData.produktivitet_vurdering === 'delvis' && (
+                    <Controller
+                      name="godkjent_produktivitet"
+                      control={control}
+                      render={({ field }) => (
+                        <CurrencyInput
+                          label="Godkjent beløp"
+                          value={field.value ?? null}
+                          onChange={(v) => field.onChange(v ?? undefined)}
+                          placeholder="Angi godkjent beløp"
+                          width="full"
+                        />
+                      )}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* PORT 4: Oppsummering */}
+          {currentPort === 4 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Port 4: Oppsummering</h3>
+
+              {/* Resultat */}
+              <div className="p-4 border-2 border-pkt-border-default rounded-none space-y-3">
+                <h4 className="font-bold text-sm">Prinsipalt standpunkt</h4>
+
+                <div className="flex justify-between items-center">
+                  <span>Resultat:</span>
+                  <Badge
+                    variant={
+                      prinsipaltResultat === 'godkjent' ? 'success' :
+                      prinsipaltResultat === 'delvis_godkjent' ? 'warning' : 'danger'
+                    }
+                  >
+                    {prinsipaltResultat === 'godkjent' ? 'Godkjent' :
+                     prinsipaltResultat === 'delvis_godkjent' ? 'Delvis godkjent' : 'Avslått'}
+                  </Badge>
+                </div>
+
+                <div className="flex justify-between text-sm">
+                  <span>Krevd totalt:</span>
+                  <strong>{formatCurrency(computed.totalKrevd)}</strong>
+                </div>
+
+                <div className="flex justify-between text-sm">
+                  <span>Godkjent totalt:</span>
+                  <strong>{formatCurrency(computed.totalGodkjent)}</strong>
+                </div>
+
+                {computed.harPrekludertKrav && (
+                  <>
+                    <div className="border-t border-pkt-border-subtle pt-2 mt-2">
+                      <h4 className="font-bold text-sm text-pkt-text-body-subtle">Subsidiært standpunkt</h4>
+                      <p className="text-xs text-pkt-text-body-subtle mb-2">
+                        Dersom prekluderte krav hadde vært varslet i tide
+                      </p>
+                      <div className="flex justify-between text-sm">
+                        <span>Subsidiært godkjent:</span>
+                        <strong>{formatCurrency(computed.subsidiaerGodkjent)}</strong>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Auto-generated begrunnelse */}
+              <div className="p-4 border-2 border-pkt-border-default rounded-none space-y-2">
+                <h4 className="font-bold text-sm">Generert begrunnelse</h4>
+                <div className="text-sm whitespace-pre-wrap bg-pkt-surface-subtle p-3 rounded-none max-h-48 overflow-y-auto">
+                  {autoBegrunnelse}
+                </div>
+              </div>
+
+              {/* Additional comments */}
+              <Controller
+                name="tilleggs_begrunnelse"
+                control={control}
+                render={({ field }) => (
+                  <FormField label="Tilleggskommentar (valgfritt)">
+                    <Textarea
+                      {...field}
+                      placeholder="Legg til ytterligere kommentarer hvis ønskelig..."
+                      rows={3}
+                    />
+                  </FormField>
+                )}
+              />
+            </div>
+          )}
+
+          {/* Navigation buttons */}
+          <div className="flex justify-between pt-4 border-t-2 border-pkt-border-subtle">
+            <div>
+              {currentPort > 1 && (
+                <Button variant="ghost" type="button" onClick={handlePrevious}>
+                  Forrige
+                </Button>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <Button variant="ghost" type="button" onClick={handleClose}>
+                Avbryt
+              </Button>
+              {currentPort < totalPorts ? (
+                <Button
+                  variant="secondary"
+                  type="button"
+                  onClick={handleNext}
+                  disabled={!canProceed}
+                >
+                  Neste
+                </Button>
+              ) : (
+                <Button
+                  variant={prinsipaltResultat === 'avslatt' ? 'danger' : 'primary'}
+                  type="submit"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? 'Sender...' : isUpdateMode ? 'Oppdater standpunkt' : 'Send standpunkt'}
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
+        </form>
+      </Modal>
 
-        {/* Godkjent kostnad (only when accepting) */}
-        {responsType === 'aksepterer' && (
-          <div>
-            <CurrencyInput
-              label="Godkjent kostnad (valgfritt)"
-              value={godkjentKostnad}
-              onChange={setGodkjentKostnad}
-              placeholder={`Maks ${formatCurrency(forseringData.maks_forseringskostnad)}`}
-              width="full"
-              allowNegative={false}
-              helperText="Angi beløp du godkjenner. Hvis ikke angitt, godkjennes estimert kostnad opptil maks."
-            />
-          </div>
-        )}
+      {/* Confirm close dialog */}
+      <AlertDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        title="Forkast endringer?"
+        description="Du har ulagrede endringer som vil gå tapt."
+        confirmLabel="Forkast"
+        cancelLabel="Fortsett redigering"
+        onConfirm={confirmClose}
+        variant="warning"
+      />
 
-        {/* Begrunnelse */}
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Begrunnelse <span className="text-alert-danger-text">*</span>
-          </label>
-          <textarea
-            value={begrunnelse}
-            onChange={(e) => setBegrunnelse(e.target.value)}
-            placeholder={
-              responsType === 'aksepterer'
-                ? 'Begrunn hvorfor forseringen aksepteres...'
-                : responsType === 'avslaar'
-                ? 'Begrunn hvorfor forseringen avslås...'
-                : 'Velg først ditt standpunkt...'
-            }
-            rows={3}
-            required
-            disabled={!responsType}
-            className="w-full px-3 py-2 bg-pkt-bg-card border-2 border-pkt-border-default rounded-none text-sm focus:outline-none focus:border-pkt-border-focus resize-none disabled:bg-pkt-surface-subtle disabled:text-pkt-text-body-subtle"
-          />
-        </div>
-
-        {/* Actions */}
-        <div className="flex justify-end gap-3 pt-4 border-t-2 border-pkt-border-subtle">
-          <Button variant="ghost" type="button" onClick={handleClose}>
-            Avbryt
-          </Button>
-          <Button
-            variant={responsType === 'aksepterer' ? 'primary' : responsType === 'avslaar' ? 'danger' : 'secondary'}
-            type="submit"
-            disabled={!responsType || !begrunnelse.trim() || isLoading}
-          >
-            {isLoading ? 'Sender...' : 'Send standpunkt'}
-          </Button>
-        </div>
-      </form>
-    </Modal>
+      {/* Restore backup prompt */}
+      <AlertDialog
+        open={showRestorePrompt}
+        onOpenChange={(open) => {
+          if (!open) handleDiscardBackup();
+          setShowRestorePrompt(open);
+        }}
+        title="Gjenopprette lagrede data?"
+        description="Det finnes lagrede data fra en tidligere økt. Vil du gjenopprette disse?"
+        confirmLabel="Gjenopprett"
+        cancelLabel="Forkast"
+        onConfirm={handleRestoreBackup}
+        variant="info"
+      />
+    </>
   );
 }

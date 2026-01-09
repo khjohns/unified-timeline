@@ -669,3 +669,319 @@ export function generateFristResponseBegrunnelse(input: FristResponseInput): str
 
   return sections.join('\n\n');
 }
+
+// ============================================================================
+// FORSERING RESPONSE GENERATOR (§33.8)
+// ============================================================================
+
+type BelopVurderingForsering = 'godkjent' | 'delvis' | 'avslatt';
+
+export interface ForseringResponseInput {
+  // Kalkulasjonsgrunnlag
+  avslatteDager: number;
+  dagmulktsats: number;
+  maksForseringskostnad: number;
+  estimertKostnad: number;
+
+  // Port 1: Grunnlagsvalidering
+  grunnlagFortsattGyldig: boolean;
+  grunnlagBegrunnelse?: string;
+
+  // Port 2: 30%-regel
+  trettiprosentOverholdt: boolean;
+  trettiprosentBegrunnelse?: string;
+
+  // Port 3: Beløpsvurdering
+  hovedkravVurdering: BelopVurderingForsering;
+  hovedkravBelop?: number;
+  godkjentBelop?: number;
+
+  // Port 3b: Særskilte krav
+  harRiggKrav: boolean;
+  riggBelop?: number;
+  riggVarsletITide?: boolean;
+  riggVurdering?: BelopVurderingForsering;
+  godkjentRiggDrift?: number;
+
+  harProduktivitetKrav: boolean;
+  produktivitetBelop?: number;
+  produktivitetVarsletITide?: boolean;
+  produktivitetVurdering?: BelopVurderingForsering;
+  godkjentProduktivitet?: number;
+
+  // Computed
+  totalKrevd: number;
+  totalGodkjent: number;
+  harPrekludertKrav: boolean;
+  subsidiaerGodkjentBelop?: number;
+}
+
+/**
+ * Generate section for Port 1: Grunnlagsvalidering
+ */
+function generateForseringGrunnlagSection(input: ForseringResponseInput): string {
+  if (input.grunnlagFortsattGyldig) {
+    return (
+      'Byggherren fastholder at avslaget på fristforlengelse var berettiget. ' +
+      'Grunnlaget for forseringskravet iht. §33.8 er dermed til stede.'
+    );
+  }
+
+  const begrunnelse = input.grunnlagBegrunnelse
+    ? ` Begrunnelse: ${input.grunnlagBegrunnelse}`
+    : '';
+  return (
+    'Byggherren erkjenner at det opprinnelige avslaget på fristforlengelse ikke kan opprettholdes. ' +
+    'Entreprenøren hadde dermed ikke rett til å iverksette forsering etter §33.8, og ' +
+    'forseringskostnadene kan ikke kreves dekket på dette grunnlag.' +
+    begrunnelse
+  );
+}
+
+/**
+ * Generate section for Port 2: 30%-regel
+ */
+function generateForsering30ProsentSection(input: ForseringResponseInput): string {
+  const { avslatteDager, dagmulktsats, maksForseringskostnad, estimertKostnad, trettiprosentOverholdt, trettiprosentBegrunnelse } = input;
+  const lines: string[] = [];
+
+  lines.push(
+    `Beregning av 30%-grensen (§33.8 første ledd): ${avslatteDager} avslåtte dager × ` +
+    `${formatCurrency(dagmulktsats)} dagmulkt × 1,3 = ${formatCurrency(maksForseringskostnad)}.`
+  );
+
+  if (trettiprosentOverholdt) {
+    lines.push(
+      `Entreprenørens estimerte forseringskostnad på ${formatCurrency(estimertKostnad)} ` +
+      `er innenfor grensen. Vilkåret i §33.8 er oppfylt.`
+    );
+  } else {
+    const overskridelse = estimertKostnad - maksForseringskostnad;
+    lines.push(
+      `Entreprenørens estimerte forseringskostnad på ${formatCurrency(estimertKostnad)} ` +
+      `overstiger grensen med ${formatCurrency(overskridelse)}. ` +
+      `Entreprenøren hadde dermed ikke valgrett til forsering etter §33.8.`
+    );
+    if (trettiprosentBegrunnelse) {
+      lines.push(trettiprosentBegrunnelse);
+    }
+  }
+
+  return lines.join(' ');
+}
+
+/**
+ * Generate section for Port 3: Beløpsvurdering
+ */
+function generateForseringBelopSection(input: ForseringResponseInput): string {
+  const { hovedkravVurdering, hovedkravBelop, godkjentBelop } = input;
+  const lines: string[] = [];
+
+  // Hovedkrav vurdering
+  switch (hovedkravVurdering) {
+    case 'godkjent':
+      lines.push(`Forseringskostnadene på ${formatCurrency(hovedkravBelop ?? 0)} godkjennes i sin helhet.`);
+      break;
+    case 'delvis': {
+      const prosent = hovedkravBelop && hovedkravBelop > 0
+        ? (((godkjentBelop ?? 0) / hovedkravBelop) * 100).toFixed(0)
+        : 0;
+      lines.push(
+        `Forseringskostnadene godkjennes delvis med ${formatCurrency(godkjentBelop ?? 0)} ` +
+        `av krevde ${formatCurrency(hovedkravBelop ?? 0)} (${prosent}%).`
+      );
+      break;
+    }
+    case 'avslatt':
+      lines.push(`Kravet om dekning av forseringskostnader på ${formatCurrency(hovedkravBelop ?? 0)} avvises.`);
+      break;
+  }
+
+  return lines.join(' ');
+}
+
+/**
+ * Generate section for særskilte krav (rigg/drift) for forsering
+ */
+function generateForseringRiggSection(input: ForseringResponseInput): string {
+  if (!input.harRiggKrav || !input.riggBelop) {
+    return '';
+  }
+
+  const lines: string[] = [];
+  const isPrekludert = input.riggVarsletITide === false;
+
+  if (isPrekludert) {
+    lines.push(
+      `Kravet om dekning av økte rigg- og driftskostnader på ${formatCurrency(input.riggBelop)} ` +
+      `avvises prinsipalt som prekludert iht. §34.1.3, da varselet ikke ble fremsatt «uten ugrunnet opphold».`
+    );
+
+    // Subsidiært
+    if (input.riggVurdering) {
+      switch (input.riggVurdering) {
+        case 'godkjent':
+          lines.push(`Subsidiært aksepteres ${formatCurrency(input.riggBelop)}.`);
+          break;
+        case 'delvis':
+          lines.push(
+            `Subsidiært aksepteres ${formatCurrency(input.godkjentRiggDrift ?? 0)} ` +
+            `av krevde ${formatCurrency(input.riggBelop)}.`
+          );
+          break;
+        case 'avslatt':
+          lines.push('Subsidiært ville kravet uansett blitt avvist.');
+          break;
+      }
+    }
+  } else {
+    // Ikke prekludert
+    switch (input.riggVurdering) {
+      case 'godkjent':
+        lines.push(`Kravet om rigg- og driftskostnader på ${formatCurrency(input.riggBelop)} godkjennes.`);
+        break;
+      case 'delvis':
+        lines.push(
+          `Kravet om rigg- og driftskostnader godkjennes delvis med ${formatCurrency(input.godkjentRiggDrift ?? 0)} ` +
+          `av krevde ${formatCurrency(input.riggBelop)}.`
+        );
+        break;
+      case 'avslatt':
+        lines.push(`Kravet om rigg- og driftskostnader på ${formatCurrency(input.riggBelop)} avvises.`);
+        break;
+    }
+  }
+
+  return lines.join(' ');
+}
+
+/**
+ * Generate section for særskilte krav (produktivitetstap) for forsering
+ */
+function generateForseringProduktivitetSection(input: ForseringResponseInput): string {
+  if (!input.harProduktivitetKrav || !input.produktivitetBelop) {
+    return '';
+  }
+
+  const lines: string[] = [];
+  const isPrekludert = input.produktivitetVarsletITide === false;
+
+  if (isPrekludert) {
+    lines.push(
+      `Kravet om dekning av produktivitetstap på ${formatCurrency(input.produktivitetBelop)} ` +
+      `avvises prinsipalt som prekludert iht. §34.1.3, da varselet ikke ble fremsatt «uten ugrunnet opphold».`
+    );
+
+    // Subsidiært
+    if (input.produktivitetVurdering) {
+      switch (input.produktivitetVurdering) {
+        case 'godkjent':
+          lines.push(`Subsidiært aksepteres ${formatCurrency(input.produktivitetBelop)}.`);
+          break;
+        case 'delvis':
+          lines.push(
+            `Subsidiært aksepteres ${formatCurrency(input.godkjentProduktivitet ?? 0)} ` +
+            `av krevde ${formatCurrency(input.produktivitetBelop)}.`
+          );
+          break;
+        case 'avslatt':
+          lines.push('Subsidiært ville kravet uansett blitt avvist.');
+          break;
+      }
+    }
+  } else {
+    // Ikke prekludert
+    switch (input.produktivitetVurdering) {
+      case 'godkjent':
+        lines.push(`Kravet om produktivitetstap på ${formatCurrency(input.produktivitetBelop)} godkjennes.`);
+        break;
+      case 'delvis':
+        lines.push(
+          `Kravet om produktivitetstap godkjennes delvis med ${formatCurrency(input.godkjentProduktivitet ?? 0)} ` +
+          `av krevde ${formatCurrency(input.produktivitetBelop)}.`
+        );
+        break;
+      case 'avslatt':
+        lines.push(`Kravet om produktivitetstap på ${formatCurrency(input.produktivitetBelop)} avvises.`);
+        break;
+    }
+  }
+
+  return lines.join(' ');
+}
+
+/**
+ * Generate conclusion section for forsering response
+ */
+function generateForseringKonklusjonSection(input: ForseringResponseInput): string {
+  const lines: string[] = [];
+
+  // Prinsipalt resultat
+  lines.push(
+    `Samlet godkjent beløp utgjør ${formatCurrency(input.totalGodkjent)} ` +
+    `av totalt krevde ${formatCurrency(input.totalKrevd)}.`
+  );
+
+  // Subsidiært (hvis prekluderte krav)
+  if (input.harPrekludertKrav && input.subsidiaerGodkjentBelop !== undefined) {
+    const diff = input.subsidiaerGodkjentBelop - input.totalGodkjent;
+    if (diff > 0) {
+      lines.push(
+        `Dersom de prekluderte særskilte kravene hadde vært varslet i tide, ville samlet godkjent beløp ` +
+        `utgjort ${formatCurrency(input.subsidiaerGodkjentBelop)} (subsidiært standpunkt).`
+      );
+    }
+  }
+
+  return lines.join(' ');
+}
+
+/**
+ * Generate complete auto-begrunnelse for BH's response to forseringskrav (§33.8)
+ */
+export function generateForseringResponseBegrunnelse(input: ForseringResponseInput): string {
+  const sections: string[] = [];
+
+  // Port 1: Grunnlagsvalidering
+  const grunnlagSection = generateForseringGrunnlagSection(input);
+  sections.push(grunnlagSection);
+
+  // Hvis grunnlag ikke gyldig, stopp her
+  if (!input.grunnlagFortsattGyldig) {
+    return sections.join('\n\n');
+  }
+
+  // Port 2: 30%-regel
+  const trettiprosentSection = generateForsering30ProsentSection(input);
+  sections.push(trettiprosentSection);
+
+  // Hvis 30%-regel ikke overholdt, stopp her (men kan ha subsidiært standpunkt)
+  if (!input.trettiprosentOverholdt) {
+    return sections.join('\n\n');
+  }
+
+  // Port 3: Beløpsvurdering
+  sections.push('Hva gjelder beløpet:');
+
+  const belopSection = generateForseringBelopSection(input);
+  if (belopSection) {
+    sections.push(belopSection);
+  }
+
+  // Særskilte krav
+  const riggSection = generateForseringRiggSection(input);
+  if (riggSection) {
+    sections.push(riggSection);
+  }
+
+  const produktivitetSection = generateForseringProduktivitetSection(input);
+  if (produktivitetSection) {
+    sections.push(produktivitetSection);
+  }
+
+  // Konklusjon
+  const konklusjonSection = generateForseringKonklusjonSection(input);
+  sections.push(konklusjonSection);
+
+  return sections.join('\n\n');
+}
