@@ -188,7 +188,7 @@ export function ForseringDashboard({
 
   // Per-sak vurdering data
   const vurderingPerSak = bhRespons?.vurdering_per_sak;
-  const harVurderingPerSak = vurderingPerSak && vurderingPerSak.length > 0 && avslatteSaker && avslatteSaker.length > 0;
+  const harAvslatteSaker = avslatteSaker && avslatteSaker.length > 0;
   const dagerMedForseringsrett = bhRespons?.dager_med_forseringsrett ?? 0;
 
   // Særskilte krav data
@@ -304,14 +304,15 @@ export function ForseringDashboard({
         {hasGittStandpunkt ? (
           <div className="space-y-4">
             {/* Per-sak forseringsrett vurdering */}
-            {harVurderingPerSak && (
+            {harAvslatteSaker && (
               <Collapsible
                 title={`Forseringsrett-vurdering (${avslatteSaker!.length} ${avslatteSaker!.length === 1 ? 'sak' : 'saker'})`}
                 defaultOpen={false}
               >
                 <div className="space-y-2">
                   {avslatteSaker!.map((sak) => {
-                    const vurdering = vurderingPerSak!.find(v => v.sak_id === sak.sak_id);
+                    const vurdering = vurderingPerSak?.find(v => v.sak_id === sak.sak_id);
+                    const harVurdering = vurdering !== undefined;
                     const erUberettiget = vurdering?.avslag_berettiget === false;
                     return (
                       <div key={sak.sak_id} className="flex justify-between items-center py-2 border-b border-pkt-border-subtle last:border-b-0">
@@ -321,24 +322,30 @@ export function ForseringDashboard({
                             {sak.tittel} ({sak.avslatte_dager} dager)
                           </span>
                         </div>
-                        <Badge variant={erUberettiget ? 'success' : 'danger'} size="sm">
-                          {erUberettiget ? 'Uberettiget avslag' : 'Berettiget avslag'}
-                        </Badge>
+                        {harVurdering ? (
+                          <Badge variant={erUberettiget ? 'success' : 'danger'} size="sm">
+                            {erUberettiget ? 'Uberettiget avslag' : 'Berettiget avslag'}
+                          </Badge>
+                        ) : (
+                          <Badge variant="default" size="sm">Ikke vurdert</Badge>
+                        )}
                       </div>
                     );
                   })}
-                  <div className="pt-2 text-sm">
-                    <strong>Konklusjon:</strong>{' '}
-                    {dagerMedForseringsrett > 0 ? (
-                      <span className="text-green-700">
-                        TE har forseringsrett ({dagerMedForseringsrett} av {forseringData.avslatte_dager} dager)
-                      </span>
-                    ) : (
-                      <span className="text-red-700">
-                        TE har ikke forseringsrett (alle avslag var berettiget)
-                      </span>
-                    )}
-                  </div>
+                  {vurderingPerSak && vurderingPerSak.length > 0 && (
+                    <div className="pt-2 text-sm">
+                      <strong>Konklusjon:</strong>{' '}
+                      {dagerMedForseringsrett > 0 ? (
+                        <span className="text-green-700">
+                          TE har forseringsrett ({dagerMedForseringsrett} av {forseringData.avslatte_dager} dager)
+                        </span>
+                      ) : (
+                        <span className="text-red-700">
+                          TE har ikke forseringsrett (alle avslag var berettiget)
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </Collapsible>
             )}
