@@ -402,6 +402,7 @@ export function ForseringPage() {
               <ForseringDashboard
                 forseringData={forseringData}
                 userRole={userRole}
+                avslatteSaker={avslatteSaker}
                 onStoppForsering={() => setStoppModalOpen(true)}
                 onOppdaterKostnader={() => setKostnaderModalOpen(true)}
                 onGiStandpunkt={() => setBhResponsModalOpen(true)}

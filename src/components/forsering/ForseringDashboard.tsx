@@ -8,7 +8,7 @@
  */
 
 import type { ReactNode } from 'react';
-import { Badge, Button, DashboardCard, DataList, DataListItem, Tooltip } from '../primitives';
+import { Badge, Button, Collapsible, DashboardCard, DataList, DataListItem, Tooltip } from '../primitives';
 import {
   ExclamationTriangleIcon,
   CheckCircledIcon,
@@ -20,9 +20,18 @@ import {
 } from '@radix-ui/react-icons';
 import type { ForseringData } from '../../types/timeline';
 
+/** Per-sak data for avslåtte fristkrav */
+interface RelatertSakMedAvslag {
+  sak_id: string;
+  tittel: string;
+  avslatte_dager: number;
+}
+
 interface ForseringDashboardProps {
   forseringData: ForseringData;
   userRole: 'TE' | 'BH';
+  /** Per-sak data for avslåtte fristkrav (for BH standpunkt visning) */
+  avslatteSaker?: RelatertSakMedAvslag[];
   onStoppForsering?: () => void;
   onOppdaterKostnader?: () => void;
   onGiStandpunkt?: () => void;
@@ -159,6 +168,7 @@ function getBHResponseBadge(forseringData: ForseringData) {
 export function ForseringDashboard({
   forseringData,
   userRole,
+  avslatteSaker,
   onStoppForsering,
   onOppdaterKostnader,
   onGiStandpunkt,
@@ -175,6 +185,17 @@ export function ForseringDashboard({
   const godkjentBelop = bhRespons?.total_godkjent ?? bhRespons?.godkjent_belop ?? forseringData.bh_godkjent_kostnad;
   const erSubsidiaert = bhRespons?.subsidiaer_triggers && bhRespons.subsidiaer_triggers.length > 0;
   const subsidiaerBelop = bhRespons?.subsidiaer_godkjent_belop;
+
+  // Per-sak vurdering data
+  const vurderingPerSak = bhRespons?.vurdering_per_sak;
+  const harVurderingPerSak = vurderingPerSak && vurderingPerSak.length > 0 && avslatteSaker && avslatteSaker.length > 0;
+  const dagerMedForseringsrett = bhRespons?.dager_med_forseringsrett ?? 0;
+
+  // Særskilte krav data
+  const harRiggKrav = (forseringData.vederlag?.saerskilt_krav?.rigg_drift?.belop ?? 0) > 0;
+  const harProduktivitetKrav = (forseringData.vederlag?.saerskilt_krav?.produktivitet?.belop ?? 0) > 0;
+  const riggPrekludert = bhRespons?.rigg_varslet_i_tide === false;
+  const produktivitetPrekludert = bhRespons?.produktivitet_varslet_i_tide === false;
 
   return (
     <div className="space-y-4">
@@ -281,18 +302,209 @@ export function ForseringDashboard({
         )}
       >
         {hasGittStandpunkt ? (
-          <DataList>
-            <DataListItem label={erSubsidiaert ? 'Godkjent (prinsipal)' : 'Godkjent'}>
-              <span className="font-bold">{formatCurrency(godkjentBelop)}</span>
-            </DataListItem>
-            {erSubsidiaert && subsidiaerBelop !== undefined && (
-              <DataListItem label="Subsidiært godkjent">
-                <span className="text-pkt-text-body-subtle">
-                  {formatCurrency(subsidiaerBelop)}
-                </span>
-              </DataListItem>
+          <div className="space-y-4">
+            {/* Per-sak forseringsrett vurdering */}
+            {harVurderingPerSak && (
+              <Collapsible
+                title={`Forseringsrett-vurdering (${avslatteSaker!.length} ${avslatteSaker!.length === 1 ? 'sak' : 'saker'})`}
+                defaultOpen={false}
+              >
+                <div className="space-y-2">
+                  {avslatteSaker!.map((sak) => {
+                    const vurdering = vurderingPerSak!.find(v => v.sak_id === sak.sak_id);
+                    const erUberettiget = vurdering?.avslag_berettiget === false;
+                    return (
+                      <div key={sak.sak_id} className="flex justify-between items-center py-2 border-b border-pkt-border-subtle last:border-b-0">
+                        <div className="flex-1">
+                          <span className="font-medium text-sm">{sak.sak_id}</span>
+                          <span className="text-sm text-pkt-text-body-subtle ml-2">
+                            {sak.tittel} ({sak.avslatte_dager} dager)
+                          </span>
+                        </div>
+                        <Badge variant={erUberettiget ? 'success' : 'danger'} size="sm">
+                          {erUberettiget ? 'Uberettiget avslag' : 'Berettiget avslag'}
+                        </Badge>
+                      </div>
+                    );
+                  })}
+                  <div className="pt-2 text-sm">
+                    <strong>Konklusjon:</strong>{' '}
+                    {dagerMedForseringsrett > 0 ? (
+                      <span className="text-green-700">
+                        TE har forseringsrett ({dagerMedForseringsrett} av {forseringData.avslatte_dager} dager)
+                      </span>
+                    ) : (
+                      <span className="text-red-700">
+                        TE har ikke forseringsrett (alle avslag var berettiget)
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </Collapsible>
             )}
-          </DataList>
+
+            {/* Beløpsoversikt tabell */}
+            <div className="p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
+              <h5 className="font-medium text-sm mb-3">Beløpsvurdering</h5>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-pkt-border-subtle">
+                    <th className="text-left py-1">Krav</th>
+                    <th className="text-right py-1">Krevd</th>
+                    <th className="text-right py-1">Godkjent</th>
+                    <th className="text-right py-1">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {/* Forseringskostnader (hovedkrav) */}
+                  <tr className="border-b border-pkt-border-subtle">
+                    <td className="py-2">Forseringskostnader</td>
+                    <td className="text-right font-mono">{formatCurrency(forseringData.estimert_kostnad)}</td>
+                    <td className="text-right font-mono">{formatCurrency(bhRespons?.godkjent_belop ?? 0)}</td>
+                    <td className="text-right">
+                      {bhRespons?.aksepterer ? (
+                        bhRespons?.godkjent_belop === forseringData.estimert_kostnad ? (
+                          <Badge variant="success" size="sm">Godkjent</Badge>
+                        ) : (
+                          <Badge variant="warning" size="sm">Delvis</Badge>
+                        )
+                      ) : (
+                        <Badge variant="danger" size="sm">Avvist</Badge>
+                      )}
+                    </td>
+                  </tr>
+
+                  {/* Rigg/Drift */}
+                  {harRiggKrav && (
+                    <>
+                      <tr className="border-b border-pkt-border-subtle">
+                        <td className="py-2">
+                          Rigg/Drift
+                          {riggPrekludert && <span className="text-xs text-pkt-grays-gray-500 ml-1">(prinsipalt)</span>}
+                        </td>
+                        <td className={`text-right font-mono ${riggPrekludert ? 'line-through text-pkt-grays-gray-400' : ''}`}>
+                          {formatCurrency(forseringData.vederlag?.saerskilt_krav?.rigg_drift?.belop)}
+                        </td>
+                        <td className="text-right font-mono">
+                          {riggPrekludert ? formatCurrency(0) : formatCurrency(bhRespons?.godkjent_rigg_drift ?? 0)}
+                        </td>
+                        <td className="text-right">
+                          {riggPrekludert ? (
+                            <Badge variant="danger" size="sm">Prekludert</Badge>
+                          ) : bhRespons?.godkjent_rigg_drift === forseringData.vederlag?.saerskilt_krav?.rigg_drift?.belop ? (
+                            <Badge variant="success" size="sm">Godkjent</Badge>
+                          ) : (bhRespons?.godkjent_rigg_drift ?? 0) > 0 ? (
+                            <Badge variant="warning" size="sm">Delvis</Badge>
+                          ) : (
+                            <Badge variant="danger" size="sm">Avvist</Badge>
+                          )}
+                        </td>
+                      </tr>
+                      {/* Subsidiær rad for prekludert rigg */}
+                      {riggPrekludert && (
+                        <tr className="border-b border-pkt-border-subtle bg-alert-warning-bg text-alert-warning-text">
+                          <td className="py-2 italic">↳ Subsidiært</td>
+                          <td className="text-right font-mono">
+                            ({formatCurrency(forseringData.vederlag?.saerskilt_krav?.rigg_drift?.belop)})
+                          </td>
+                          <td className="text-right font-mono">
+                            {formatCurrency(bhRespons?.godkjent_rigg_drift ?? 0)}
+                          </td>
+                          <td className="text-right">
+                            {bhRespons?.godkjent_rigg_drift === forseringData.vederlag?.saerskilt_krav?.rigg_drift?.belop ? (
+                              <Badge variant="success" size="sm">Godkjent</Badge>
+                            ) : (bhRespons?.godkjent_rigg_drift ?? 0) > 0 ? (
+                              <Badge variant="warning" size="sm">Delvis</Badge>
+                            ) : (
+                              <Badge variant="danger" size="sm">Avvist</Badge>
+                            )}
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  )}
+
+                  {/* Produktivitet */}
+                  {harProduktivitetKrav && (
+                    <>
+                      <tr className="border-b border-pkt-border-subtle">
+                        <td className="py-2">
+                          Produktivitet
+                          {produktivitetPrekludert && <span className="text-xs text-pkt-grays-gray-500 ml-1">(prinsipalt)</span>}
+                        </td>
+                        <td className={`text-right font-mono ${produktivitetPrekludert ? 'line-through text-pkt-grays-gray-400' : ''}`}>
+                          {formatCurrency(forseringData.vederlag?.saerskilt_krav?.produktivitet?.belop)}
+                        </td>
+                        <td className="text-right font-mono">
+                          {produktivitetPrekludert ? formatCurrency(0) : formatCurrency(bhRespons?.godkjent_produktivitet ?? 0)}
+                        </td>
+                        <td className="text-right">
+                          {produktivitetPrekludert ? (
+                            <Badge variant="danger" size="sm">Prekludert</Badge>
+                          ) : bhRespons?.godkjent_produktivitet === forseringData.vederlag?.saerskilt_krav?.produktivitet?.belop ? (
+                            <Badge variant="success" size="sm">Godkjent</Badge>
+                          ) : (bhRespons?.godkjent_produktivitet ?? 0) > 0 ? (
+                            <Badge variant="warning" size="sm">Delvis</Badge>
+                          ) : (
+                            <Badge variant="danger" size="sm">Avvist</Badge>
+                          )}
+                        </td>
+                      </tr>
+                      {/* Subsidiær rad for prekludert produktivitet */}
+                      {produktivitetPrekludert && (
+                        <tr className="border-b border-pkt-border-subtle bg-alert-warning-bg text-alert-warning-text">
+                          <td className="py-2 italic">↳ Subsidiært</td>
+                          <td className="text-right font-mono">
+                            ({formatCurrency(forseringData.vederlag?.saerskilt_krav?.produktivitet?.belop)})
+                          </td>
+                          <td className="text-right font-mono">
+                            {formatCurrency(bhRespons?.godkjent_produktivitet ?? 0)}
+                          </td>
+                          <td className="text-right">
+                            {bhRespons?.godkjent_produktivitet === forseringData.vederlag?.saerskilt_krav?.produktivitet?.belop ? (
+                              <Badge variant="success" size="sm">Godkjent</Badge>
+                            ) : (bhRespons?.godkjent_produktivitet ?? 0) > 0 ? (
+                              <Badge variant="warning" size="sm">Delvis</Badge>
+                            ) : (
+                              <Badge variant="danger" size="sm">Avvist</Badge>
+                            )}
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  )}
+
+                  {/* Totalt */}
+                  <tr className="font-bold">
+                    <td className="py-2">TOTALT</td>
+                    <td className="text-right font-mono">
+                      {formatCurrency(
+                        (forseringData.estimert_kostnad ?? 0) +
+                        (forseringData.vederlag?.saerskilt_krav?.rigg_drift?.belop ?? 0) +
+                        (forseringData.vederlag?.saerskilt_krav?.produktivitet?.belop ?? 0)
+                      )}
+                    </td>
+                    <td className="text-right font-mono">{formatCurrency(godkjentBelop)}</td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Prinsipalt og subsidiært standpunkt */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1 p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
+                <div className="text-sm text-pkt-text-body-subtle mb-1">Prinsipalt godkjent</div>
+                <div className="text-lg font-bold">{formatCurrency(godkjentBelop)}</div>
+              </div>
+              {erSubsidiaert && subsidiaerBelop !== undefined && (
+                <div className="flex-1 p-3 bg-alert-warning-bg rounded-none border border-alert-warning-border">
+                  <div className="text-sm text-alert-warning-text mb-1">Subsidiært godkjent</div>
+                  <div className="text-lg font-bold text-alert-warning-text">{formatCurrency(subsidiaerBelop)}</div>
+                </div>
+              )}
+            </div>
+          </div>
         ) : (
           <p className="text-sm text-pkt-text-body-subtle">
             Byggherre har ikke gitt standpunkt til forseringen ennå.
