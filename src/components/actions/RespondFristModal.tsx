@@ -1436,33 +1436,6 @@ export function RespondFristModal({
                   )}
                 </div>
 
-                {/* Subsidiært resultat - shown when principal is avslatt */}
-                {visSubsidiaertResultat && !sendEtterlysning && (
-                  <div className="p-4 bg-alert-warning-bg border-2 border-alert-warning-border rounded-none text-alert-warning-text">
-                    <h5 className="font-medium text-sm mb-2">SUBSIDIÆRT RESULTAT</h5>
-                    <div className="text-xl font-bold">
-                      {getResultatLabel(subsidiaertResultat)}
-                    </div>
-                    {effektivKrevdDager > 0 ? (
-                      <>
-                        <div className="mt-2 text-lg font-mono">
-                          {subsidiaertResultat === 'avslatt'
-                            ? 'Subsidiært: Avslått'
-                            : `Subsidiært: Maks ${godkjentDager} av ${effektivKrevdDager} dager`}
-                        </div>
-                        <p className="text-sm mt-2 italic opacity-80">
-                          «Byggherren er etter dette uenig i kravet, og kan dessuten under ingen
-                          omstendigheter se at mer enn {godkjentDager} dager er berettiget å kreve.»
-                        </p>
-                      </>
-                    ) : (
-                      <p className="text-sm mt-2 italic opacity-80">
-                        Subsidiær vurdering av grunnlag og vilkår. Antall dager kan vurderes når entreprenøren spesifiserer kravet.
-                      </p>
-                    )}
-                  </div>
-                )}
-
                 {/* §33.8 Forsering warning in summary */}
                 {visForsering && avslatteDager > 0 && !sendEtterlysning && (
                   <Alert variant="warning" title="§33.8 Forsering-risiko">

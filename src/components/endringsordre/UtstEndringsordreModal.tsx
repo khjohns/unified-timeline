@@ -204,6 +204,7 @@ export function UtstEndringsordreModal({
     control,
     trigger,
     clearErrors,
+    setValue,
   } = useForm<UtstEndringsordreFormData>({
     resolver: zodResolver(utstEndringsordreSchema),
     mode: 'onTouched',
@@ -315,6 +316,16 @@ export function UtstEndringsordreModal({
       .filter((k) => selectedKoeIds.includes(k.sak_id))
       .reduce((sum, k) => sum + (k.godkjent_dager || 0), 0);
   }, [kandidatSaker, selectedKoeIds]);
+
+  // Auto-sett konsekvenser basert på KOE-valg
+  useEffect(() => {
+    if (totalFromKOE > 0 && !formValues.konsekvenser_pris) {
+      setValue('konsekvenser_pris', true);
+    }
+    if (totalDagerFromKOE > 0 && !formValues.konsekvenser_fremdrift) {
+      setValue('konsekvenser_fremdrift', true);
+    }
+  }, [totalFromKOE, totalDagerFromKOE, formValues.konsekvenser_pris, formValues.konsekvenser_fremdrift, setValue]);
 
   const harKonsekvens =
     formValues.konsekvenser_sha ||
@@ -478,57 +489,75 @@ export function UtstEndringsordreModal({
                   Ingen KOE-saker er klare for endringsordre.
                 </p>
               ) : (
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {kandidatSaker.map((koe) => (
-                    <button
-                      key={koe.sak_id}
-                      type="button"
-                      onClick={() => toggleKoeSelection(koe.sak_id)}
-                      className={`w-full p-3 border-2 rounded-none text-left transition-colors ${
-                        selectedKoeIds.includes(koe.sak_id)
-                          ? 'border-pkt-brand-purple-1000 bg-pkt-surface-light-beige'
-                          : 'border-pkt-border-default hover:border-pkt-border-focus'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">{koe.tittel}</p>
-                          <p className="text-xs text-pkt-text-body-subtle mt-1">
-                            Status: {koe.overordnet_status}
-                          </p>
-                          <div className="flex flex-wrap gap-4 text-xs text-pkt-text-body-subtle mt-1">
-                            {koe.sum_godkjent !== undefined && (
-                              <span>Godkjent: {formatCurrency(koe.sum_godkjent)}</span>
-                            )}
-                            {koe.godkjent_dager !== undefined && (
-                              <span>Dager: {koe.godkjent_dager}</span>
-                            )}
-                          </div>
-                        </div>
-                        <div
-                          className={`w-5 h-5 border-2 flex items-center justify-center shrink-0 ${
-                            selectedKoeIds.includes(koe.sak_id)
-                              ? 'bg-pkt-brand-purple-1000 border-pkt-brand-purple-1000'
-                              : 'border-pkt-border-default'
-                          }`}
-                        >
-                          {selectedKoeIds.includes(koe.sak_id) && (
-                            <CheckIcon className="w-3 h-3 text-white" />
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {selectedKoeIds.length > 0 && (
-                <div className="p-3 bg-pkt-surface-subtle border-2 border-pkt-border-subtle rounded-none">
-                  <p className="text-sm font-medium">{selectedKoeIds.length} sak(er) valgt</p>
-                  <div className="flex flex-wrap gap-4 text-xs text-pkt-text-body-subtle mt-1">
-                    <span>Totalt godkjent beløp: {formatCurrency(totalFromKOE)}</span>
-                    <span>Totalt godkjente dager: {totalDagerFromKOE}</span>
-                  </div>
+                <div className="max-h-64 overflow-y-auto border border-pkt-border-subtle">
+                  <table className="w-full text-sm">
+                    <thead className="bg-pkt-surface-subtle sticky top-0">
+                      <tr className="border-b border-pkt-border-subtle">
+                        <th className="w-10 py-2 px-2"></th>
+                        <th className="text-left py-2 px-2 font-medium">Sak</th>
+                        <th className="text-right py-2 px-2 font-medium w-28">Vederlag</th>
+                        <th className="text-right py-2 px-2 font-medium w-20">Dager</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {kandidatSaker.map((koe) => {
+                        const isSelected = selectedKoeIds.includes(koe.sak_id);
+                        return (
+                          <tr
+                            key={koe.sak_id}
+                            onClick={() => toggleKoeSelection(koe.sak_id)}
+                            className={`border-b border-pkt-border-subtle cursor-pointer transition-colors ${
+                              isSelected
+                                ? 'bg-pkt-surface-light-beige'
+                                : 'hover:bg-pkt-surface-subtle'
+                            }`}
+                          >
+                            <td className="py-2 px-2">
+                              <div
+                                className={`w-5 h-5 border-2 flex items-center justify-center ${
+                                  isSelected
+                                    ? 'bg-pkt-brand-purple-1000 border-pkt-brand-purple-1000'
+                                    : 'border-pkt-border-default'
+                                }`}
+                              >
+                                {isSelected && <CheckIcon className="w-3 h-3 text-white" />}
+                              </div>
+                            </td>
+                            <td className="py-2 px-2">
+                              <p className="font-medium">{koe.tittel}</p>
+                              <p className="text-xs text-pkt-text-body-subtle">
+                                {koe.overordnet_status}
+                              </p>
+                            </td>
+                            <td className="text-right py-2 px-2 font-mono text-pkt-brand-dark-green-1000">
+                              {koe.sum_godkjent !== undefined
+                                ? formatCurrency(koe.sum_godkjent)
+                                : '-'}
+                            </td>
+                            <td className="text-right py-2 px-2 font-mono">
+                              {koe.godkjent_dager ?? '-'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    {selectedKoeIds.length > 0 && (
+                      <tfoot className="border-t-2 border-pkt-border-default bg-pkt-surface-subtle">
+                        <tr>
+                          <td className="py-2 px-2"></td>
+                          <td className="py-2 px-2 font-bold">
+                            Totalt ({selectedKoeIds.length} valgt)
+                          </td>
+                          <td className="text-right py-2 px-2 font-mono font-bold text-pkt-brand-dark-green-1000">
+                            {formatCurrency(totalFromKOE)}
+                          </td>
+                          <td className="text-right py-2 px-2 font-mono font-bold">
+                            {totalDagerFromKOE}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    )}
+                  </table>
                 </div>
               )}
             </div>

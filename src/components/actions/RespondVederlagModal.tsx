@@ -1983,31 +1983,6 @@ export function RespondVederlagModal({
                   </div>
                 </div>
 
-                {/* Subsidiært resultat - kun når særskilte krav er prekludert */}
-                {visSubsidiaertResultat && (
-                  <div className="p-4 bg-alert-warning-bg border-2 border-alert-warning-border rounded-none text-alert-warning-text">
-                    <h5 className="font-medium text-sm mb-2">
-                      SUBSIDIÆRT RESULTAT
-                    </h5>
-                    <p className="text-sm mb-3">
-                      Dersom de prekluderte særskilte kravene hadde vært varslet i tide:
-                    </p>
-                    <div className="text-xl font-bold">
-                      {getResultatLabel(subsidiaertResultat)}
-                    </div>
-                    <div className="mt-2 text-lg font-mono">
-                      Samlet godkjent (inkludert subsidiært):{' '}
-                      kr {computed.totalGodkjentInklPrekludert.toLocaleString('nb-NO')},-
-                    </div>
-                    <p className="text-sm mt-3 italic">
-                      «Byggherren er etter dette uenig i kravet, og kan dessuten under ingen
-                      omstendigheter se at kr{' '}
-                      {computed.totalGodkjentInklPrekludert.toLocaleString('nb-NO')},- er berettiget
-                      å kreve.»
-                    </p>
-                  </div>
-                )}
-
                 {/* Auto-generert begrunnelse (ikke redigerbar) */}
                 <div className="space-y-2">
                   <h5 className="font-medium text-sm">Generert begrunnelse</h5>

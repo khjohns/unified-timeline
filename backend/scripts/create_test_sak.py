@@ -329,7 +329,7 @@ def create_frist_respons(
         refererer_til_event_id=frist_event_id,
         data=FristResponsData(
             beregnings_resultat=resultat,
-            godkjente_dager=godkjente_dager if resultat != FristBeregningResultat.AVSLATT else 0,
+            godkjent_dager=godkjente_dager if resultat != FristBeregningResultat.AVSLATT else 0,
             begrunnelse=begrunnelser.get(resultat, "Vurdering gjennomført."),
         ),
     )

@@ -1343,77 +1343,8 @@ export function BHResponsForseringModal({
                     <span>Godkjent totalt:</span>
                     <strong>{formatCurrency(computed.totalGodkjent)}</strong>
                   </div>
-
-                  {/* Subsidiary for preclusion only (not forseringsrett) */}
-                  {computed.harPrekludertKrav && !computed.harForseringsrettAvslag && (
-                    <div className="border-t border-pkt-border-subtle pt-2 mt-2">
-                      <h4 className="font-bold text-sm text-pkt-text-body-subtle">Subsidiært standpunkt</h4>
-                      <p className="text-xs text-pkt-text-body-subtle mb-2">
-                        Dersom prekluderte krav hadde vært varslet i tide
-                      </p>
-                      <div className="flex justify-between text-sm">
-                        <span>Subsidiært godkjent:</span>
-                        <strong>{formatCurrency(computed.subsidiaerGodkjent)}</strong>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </SectionContainer>
-
-              {/* Subsidiary result when TE has no forseringsrett */}
-              {computed.harForseringsrettAvslag && (
-                <div className="p-4 bg-alert-warning-bg border-2 border-alert-warning-border rounded-none space-y-3">
-                  <h4 className="font-bold text-sm text-alert-warning-text">
-                    Subsidiært standpunkt
-                  </h4>
-                  <p className="text-sm text-alert-warning-text">
-                    Dersom entreprenøren hadde hatt forseringsrett:
-                  </p>
-
-                  <div className="flex justify-between text-sm">
-                    <span>Subsidiært godkjent:</span>
-                    <strong>{formatCurrency(computed.subsidiaerGodkjent)}</strong>
-                  </div>
-
-                  {/* Breakdown */}
-                  <div className="text-xs text-pkt-text-body-subtle space-y-1">
-                    <div className="flex justify-between">
-                      <span>Hovedkrav:</span>
-                      <span>{formatCurrency(
-                        formData.hovedkrav_vurdering === 'godkjent'
-                          ? forseringData.estimert_kostnad ?? 0
-                          : formData.hovedkrav_vurdering === 'delvis'
-                            ? formData.godkjent_belop ?? 0
-                            : 0
-                      )}</span>
-                    </div>
-                    {harRiggKrav && (
-                      <div className="flex justify-between">
-                        <span>
-                          Rigg/drift
-                          {formData.rigg_varslet_i_tide === false && ' (prekludert)'}:
-                        </span>
-                        <span>{formatCurrency(computed.subsidiaerRigg)}</span>
-                      </div>
-                    )}
-                    {harProduktivitetKrav && (
-                      <div className="flex justify-between">
-                        <span>
-                          Produktivitet
-                          {formData.produktivitet_varslet_i_tide === false && ' (prekludert)'}:
-                        </span>
-                        <span>{formatCurrency(computed.subsidiaerProduktivitet)}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <p className="text-sm mt-3 italic text-alert-warning-text">
-                    «Byggherren er etter dette uenig i kravet, og kan dessuten under ingen
-                    omstendigheter se at kr {computed.subsidiaerGodkjent.toLocaleString('nb-NO')},- er
-                    berettiget å kreve.»
-                  </p>
-                </div>
-              )}
 
               {/* Auto-generated begrunnelse */}
               <SectionContainer title="Generert begrunnelse" variant="subtle">
