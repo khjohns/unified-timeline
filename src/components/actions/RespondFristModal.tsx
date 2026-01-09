@@ -43,6 +43,7 @@ import {
   RadioGroup,
   RadioItem,
   SectionContainer,
+  StatusSummary,
   StepIndicator,
   Textarea,
   useToast,
@@ -763,40 +764,32 @@ export function RespondFristModal({
           {currentStepType === 'oversikt' && (
             <div className="space-y-6">
               {/* Kravsammendrag */}
-              <div className="p-4 border-2 border-pkt-border-subtle rounded-none">
-                <h3 className="font-bold text-base mb-4">Fristkrav fra entreprenør</h3>
-
-                <div className="space-y-3">
-                  {/* Krevd forlengelse */}
-                  <div className="flex justify-between items-center py-2 border-b border-pkt-border-subtle">
-                    <span className="font-medium">Krevd forlengelse</span>
+              <SectionContainer title="Fristkrav fra entreprenør">
+                <DataList align="right">
+                  <DataListItem label="Krevd forlengelse" mono>
                     {erNoytraltUtenDager ? (
                       <Badge variant="warning">Ikke spesifisert</Badge>
                     ) : (
-                      <span className="font-mono font-medium">{effektivKrevdDager} dager</span>
+                      <>{effektivKrevdDager} dager</>
                     )}
-                  </div>
+                  </DataListItem>
 
-                  {/* Ny sluttdato */}
                   {fristEvent?.ny_sluttfrist && (
-                    <div className="flex justify-between items-center py-2 border-b border-pkt-border-subtle">
-                      <span className="font-medium">Ønsket ny sluttdato</span>
-                      <span className="font-mono font-medium">{fristEvent.ny_sluttfrist}</span>
-                    </div>
+                    <DataListItem label="Ønsket ny sluttdato" mono>
+                      {fristEvent.ny_sluttfrist}
+                    </DataListItem>
                   )}
 
-                  {/* Type varsel */}
                   {varselType && (
-                    <div className="flex justify-between items-center py-2">
-                      <span className="font-medium">Type varsel</span>
+                    <DataListItem label="Type varsel">
                       <Badge variant="default">
                         {varselType === 'noytralt' && 'Foreløpig varsel (§33.4)'}
                         {varselType === 'spesifisert' && 'Spesifisert krav (§33.6)'}
                       </Badge>
-                    </div>
+                    </DataListItem>
                   )}
-                </div>
-              </div>
+                </DataList>
+              </SectionContainer>
 
               {/* Subsidiær behandling info */}
               {erGrunnlagSubsidiaer && (
@@ -865,13 +858,10 @@ export function RespondFristModal({
               STEG 2: PREKLUSJON (§33.4, §33.6)
               ================================================================ */}
           {currentStepType === 'preklusjon' && (
-            <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <h3 className="font-bold text-base">Preklusjon (§33.4, §33.6)</h3>
-
-              <p className="text-sm text-pkt-text-body-subtle mb-4">
-                Vurder om entreprenøren har varslet i tide. Hvis ikke, kan kravet avvises pga
-                preklusjon.
-              </p>
+            <SectionContainer
+              title="Preklusjon (§33.4, §33.6)"
+              description="Vurder om entreprenøren har varslet i tide. Hvis ikke, kan kravet avvises pga preklusjon."
+            >
 
               {/* Show what type of varsel was sent */}
               {varselType && (
@@ -1041,22 +1031,20 @@ export function RespondFristModal({
                   krav.
                 </Alert>
               )}
-            </div>
+            </SectionContainer>
           )}
 
           {/* ================================================================
               STEG 3: ÅRSAKSSAMMENHENG (§33.1) - Alltid vurderes, evt. subsidiært
               ================================================================ */}
           {currentStepType === 'vilkar' && (
-            <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
-                <h3 className="font-bold text-base">Årsakssammenheng (§33.1)</h3>
-                {port2ErSubsidiaer && <Badge variant="warning">Subsidiært</Badge>}
-              </div>
-
+            <SectionContainer
+              title="Årsakssammenheng (§33.1)"
+              description="Vurder om forholdet faktisk forårsaket forsinkelse i fremdriften."
+            >
               {/* Subsidiary banner */}
               {port2ErSubsidiaer && (
-                <Alert variant="warning" title="Subsidiær vurdering">
+                <Alert variant="warning" title="Subsidiær vurdering" className="mb-4">
                   Du har prinsipalt avvist kravet pga. preklusjon. Ta nå{' '}
                   <strong>subsidiært</strong> stilling til om forholdet medførte
                   fremdriftshindring.
@@ -1064,13 +1052,13 @@ export function RespondFristModal({
               )}
 
               {/* Etterlysning blocks further evaluation */}
-              {sendEtterlysning ? (
-                <Alert variant="info" title="Etterlysning sendes">
+              {sendEtterlysning && (
+                <Alert variant="info" title="Etterlysning sendes" className="mb-4">
                   Du etterspør spesifisert krav fra entreprenøren. Du kan likevel ta stilling til vilkårene nedenfor.
                 </Alert>
-              ) : null}
+              )}
 
-              <Alert variant="info" title="Vilkår for fristforlengelse (§33.1, §33.5)">
+              <Alert variant="info" title="Vilkår for fristforlengelse (§33.1, §33.5)" className="mb-4">
                 For at entreprenøren skal ha krav på fristforlengelse må to kumulative vilkår
                 være oppfylt: (1) fremdriften må ha vært <strong>hindret</strong>, og (2) hindringen
                 må <strong>skyldes</strong> det påberopte forholdet (årsakssammenheng).
@@ -1119,20 +1107,17 @@ export function RespondFristModal({
                   fullWidth
                 />
               </FormField>
-
-            </div>
+            </SectionContainer>
           )}
 
           {/* ================================================================
               STEG 4: BEREGNING (§33.5) - Alltid vurderes, evt. subsidiært
               ================================================================ */}
           {currentStepType === 'beregning' && (
-            <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
-                <h3 className="font-bold text-base">Beregning av fristforlengelse (§33.5)</h3>
-                {port3ErSubsidiaer && <Badge variant="warning">Subsidiært</Badge>}
-              </div>
-
+            <SectionContainer
+              title="Beregning av fristforlengelse (§33.5)"
+              description="Beregn antall dager fristforlengelse basert på den faktiske forsinkelsen forholdet har forårsaket."
+            >
               {/* Etterlysning blocks evaluation */}
               {sendEtterlysning ? (
                 <Alert variant="info" title="Avventer svar">
@@ -1142,19 +1127,13 @@ export function RespondFristModal({
                 <>
                   {/* Subsidiary banner */}
                   {port3ErSubsidiaer && (
-                    <Alert variant="warning" title="Subsidiær beregning">
+                    <Alert variant="warning" title="Subsidiær beregning" className="mb-4">
                       {erPrekludert && !harHindring
                         ? 'Du har prinsipalt avvist kravet pga. preklusjon og mener det ikke var hindring. Ta nå subsidiært stilling til hvor mange dager entreprenøren maksimalt kan ha krav på – selv om du skulle ta feil i din prinsipale vurdering.'
                         : erPrekludert
                           ? 'Du har prinsipalt avvist kravet pga. preklusjon. Ta nå subsidiært stilling til hvor mange dager entreprenøren maksimalt kan ha krav på – selv om du skulle ta feil i din prinsipale vurdering.'
                           : 'Du mener det ikke var reell hindring. Ta nå subsidiært stilling til hvor mange dager entreprenøren maksimalt kan ha krav på – selv om du skulle ta feil i din prinsipale vurdering.'}
                     </Alert>
-                  )}
-
-                  {!port3ErSubsidiaer && !erNoytraltUtenDager && (
-                    <p className="text-sm text-pkt-text-body-subtle">
-                      Beregn antall dager fristforlengelse basert på den faktiske forsinkelsen forholdet har forårsaket.
-                    </p>
                   )}
 
                   {/* Info when neutral notice without days */}
@@ -1167,17 +1146,12 @@ export function RespondFristModal({
 
                   {/* Hovedkrav beregning - only show input if days are specified */}
                   {!erNoytraltUtenDager && (
-                    <div className="p-4 bg-pkt-surface-subtle rounded-none border-2 border-pkt-border-default">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
-                        <h4 className="font-bold text-sm">
-                          {port3ErSubsidiaer ? 'Subsidiær beregning' : 'Fristkrav'}
-                        </h4>
-                        <div className="text-left sm:text-right">
-                          <span className="text-sm text-pkt-text-body-subtle">Krevd: </span>
-                          <span className="text-lg font-mono font-bold">
-                            {effektivKrevdDager} dager
-                          </span>
-                        </div>
+                    <>
+                      <div className="p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle mb-4">
+                        <span className="text-sm text-pkt-text-body-subtle">
+                          Entreprenøren har krevd:{' '}
+                        </span>
+                        <span className="font-mono font-bold">{effektivKrevdDager} dager</span>
                       </div>
 
                       <FormField
@@ -1222,7 +1196,7 @@ export function RespondFristModal({
                           />
                         </FormField>
                       )}
-                    </div>
+                    </>
                   )}
 
                   {/* §33.8 Forsering warning */}
@@ -1243,64 +1217,54 @@ export function RespondFristModal({
                   )}
                 </>
               )}
-            </div>
+            </SectionContainer>
           )}
 
           {/* ================================================================
               STEG 5: OPPSUMMERING
               ================================================================ */}
           {currentStepType === 'oppsummering' && (
-            <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <h3 className="font-bold text-base">Oppsummering</h3>
-
+            <SectionContainer title="Oppsummering">
               {/* Sammendrag av valg */}
               <div className="space-y-4">
                 {/* Preklusjon */}
-                <div className="p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
-                  <h5 className="font-medium text-sm mb-2">Preklusjon</h5>
-                  <div className="flex items-center gap-2">
-                    {sendEtterlysning ? (
-                      <>
-                        <Badge variant="warning">Etterlysning sendt</Badge>
-                        <span className="text-sm">Avventer spesifisert krav fra entreprenøren</span>
-                      </>
-                    ) : erPrekludert ? (
-                      <>
-                        <Badge variant="danger">Prinsipalt prekludert</Badge>
-                        <span className="text-sm">Varslet for sent</span>
-                      </>
-                    ) : (
-                      <>
-                        <Badge variant="success">OK</Badge>
-                        <span className="text-sm">Varslet i tide</span>
-                      </>
-                    )}
-                  </div>
-                </div>
+                <StatusSummary title="Preklusjon">
+                  {sendEtterlysning ? (
+                    <>
+                      <Badge variant="warning">Etterlysning sendt</Badge>
+                      <span className="text-sm">Avventer spesifisert krav fra entreprenøren</span>
+                    </>
+                  ) : erPrekludert ? (
+                    <>
+                      <Badge variant="danger">Prinsipalt prekludert</Badge>
+                      <span className="text-sm">Varslet for sent</span>
+                    </>
+                  ) : (
+                    <>
+                      <Badge variant="success">OK</Badge>
+                      <span className="text-sm">Varslet i tide</span>
+                    </>
+                  )}
+                </StatusSummary>
 
                 {/* Årsakssammenheng */}
-                <div className="p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
-                  <h5 className="font-medium text-sm mb-2">
-                    Årsakssammenheng {port2ErSubsidiaer && '(subsidiært)'}
-                  </h5>
-                  <div className="flex items-center gap-2">
-                    {harHindring ? (
-                      <>
-                        <Badge variant="success">
-                          {port2ErSubsidiaer ? 'Subsidiært: ' : ''}Hindring erkjent
-                        </Badge>
-                        <span className="text-sm">Forholdet forårsaket forsinkelse</span>
-                      </>
-                    ) : (
-                      <>
-                        <Badge variant="warning">
-                          {port2ErSubsidiaer ? 'Subsidiært: ' : ''}Ingen hindring
-                        </Badge>
-                        <span className="text-sm">Entreprenøren hadde slakk / ikke reell forsinkelse</span>
-                      </>
-                    )}
-                  </div>
-                </div>
+                <StatusSummary title={`Årsakssammenheng${port2ErSubsidiaer ? ' (subsidiært)' : ''}`}>
+                  {harHindring ? (
+                    <>
+                      <Badge variant="success">
+                        {port2ErSubsidiaer ? 'Subsidiært: ' : ''}Hindring erkjent
+                      </Badge>
+                      <span className="text-sm">Forholdet forårsaket forsinkelse</span>
+                    </>
+                  ) : (
+                    <>
+                      <Badge variant="warning">
+                        {port2ErSubsidiaer ? 'Subsidiært: ' : ''}Ingen hindring
+                      </Badge>
+                      <span className="text-sm">Entreprenøren hadde slakk / ikke reell forsinkelse</span>
+                    </>
+                  )}
+                </StatusSummary>
 
                 {/* Beregning */}
                 <div className="p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
@@ -1509,7 +1473,7 @@ export function RespondFristModal({
                                       />
                 </FormField>
               </div>
-            </div>
+            </SectionContainer>
           )}
 
           {/* Error Message */}

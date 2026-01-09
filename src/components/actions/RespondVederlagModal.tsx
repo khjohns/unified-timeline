@@ -44,6 +44,7 @@ import {
   RadioGroup,
   RadioItem,
   SectionContainer,
+  StatusSummary,
   StepIndicator,
   Textarea,
   useToast,
@@ -1067,11 +1068,13 @@ export function RespondVederlagModal({
               STEG 2 (med særskilte krav): PREKLUSJON (§34.1.3)
               ================================================================ */}
           {currentStepType === 'preklusjon' && (
-            <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <h3 className="font-bold text-base">Preklusjon av særskilte krav (§34.1.3)</h3>
-
-              <Alert variant="warning">
-                Disse postene krever særskilt varsel. Ved manglende varsel tapes kravet (§34.1.3).
+            <SectionContainer
+              title="Preklusjon av særskilte krav (§34.1.3)"
+              description="Disse postene krever særskilt varsel. Ved manglende varsel tapes kravet."
+            >
+              <Alert variant="warning" className="mb-4">
+                Entreprenøren må ha varslet «uten ugrunnet opphold» etter at han ble klar over at
+                forholdet ville medføre økte rigg/drift-kostnader eller produktivitetstap.
               </Alert>
 
               {/* Rigg/Drift */}
@@ -1173,17 +1176,17 @@ export function RespondVederlagModal({
                   )}
                 </div>
               )}
-
-            </div>
+            </SectionContainer>
           )}
 
           {/* ================================================================
               OPPGJØRSFORM
               ================================================================ */}
           {currentStepType === 'metode' && (
-            <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <h3 className="font-bold text-base">Beregningsmetode</h3>
-
+            <SectionContainer
+              title="Beregningsmetode"
+              description="Vurder om du aksepterer entreprenørens foreslåtte beregningsmetode."
+            >
               {/* Beregningsmetode aksept */}
               <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
                 <FormField
@@ -1312,20 +1315,17 @@ export function RespondVederlagModal({
                   </FormField>
                 </div>
               )}
-            </div>
+            </SectionContainer>
           )}
 
           {/* ================================================================
               BELØPSVURDERING
               ================================================================ */}
           {currentStepType === 'belop' && (
-            <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <h3 className="font-bold text-base">Beløpsvurdering</h3>
-
-              <p className="text-sm text-pkt-text-body-subtle mb-4">
-                Vurder beløpet for hvert krav. Dette er ren utmåling - ansvarsvurdering håndteres i
-                Grunnlag-sporet.
-              </p>
+            <SectionContainer
+              title="Beløpsvurdering"
+              description="Vurder beløpet for hvert krav. Dette er ren utmåling - ansvarsvurdering håndteres i Grunnlag-sporet."
+            >
 
               {/* HOVEDKRAV */}
               <div className="p-4 bg-pkt-surface-subtle rounded-none border-2 border-pkt-border-default">
@@ -1535,15 +1535,14 @@ export function RespondVederlagModal({
                   )}
                 </div>
               )}
-            </div>
+            </SectionContainer>
           )}
 
           {/* ================================================================
               OPPSUMMERING
               ================================================================ */}
           {currentStepType === 'oppsummering' && (
-            <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <h3 className="font-bold text-base">Oppsummering</h3>
+            <SectionContainer title="Oppsummering">
 
               {/* Sammendrag av valg */}
               <div className="space-y-4">
@@ -2058,7 +2057,7 @@ export function RespondVederlagModal({
                                       />
                 </FormField>
               </div>
-            </div>
+            </SectionContainer>
           )}
 
           {/* Error Message */}

@@ -38,12 +38,10 @@ import {
   FormField,
   Input,
   Modal,
+  SectionContainer,
   StepIndicator,
   Textarea,
 } from '../primitives';
-
-// Icons
-import { CheckIcon } from '@radix-ui/react-icons';
 
 // Hooks
 import { useConfirmClose } from '../../hooks/useConfirmClose';
@@ -440,9 +438,7 @@ export function UtstEndringsordreModal({
               STEP 1: BASIC INFO
               ================================================================ */}
           {currentStep === 1 && (
-            <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <h3 className="font-bold text-base">Grunnleggende informasjon</h3>
-
+            <SectionContainer title="Grunnleggende informasjon">
               <FormField
                 label="EO-nummer"
                 required
@@ -468,20 +464,17 @@ export function UtstEndringsordreModal({
                   error={!!errors.beskrivelse}
                 />
               </FormField>
-            </div>
+            </SectionContainer>
           )}
 
           {/* ================================================================
               STEP 2: SELECT KOE CASES
               ================================================================ */}
           {currentStep === 2 && (
-            <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <h3 className="font-bold text-base">Velg KOE-saker</h3>
-
-              <p className="text-sm text-pkt-text-body-subtle">
-                Velg KOE-saker som skal inkluderes, eller fortsett uten for proaktiv EO.
-              </p>
-
+            <SectionContainer
+              title="Velg KOE-saker"
+              description="Velg KOE-saker som skal inkluderes, eller fortsett uten for proaktiv EO."
+            >
               {kandidaterLoading ? (
                 <p className="text-pkt-text-body-subtle text-sm">Laster kandidatsaker...</p>
               ) : kandidatSaker.length === 0 ? (
@@ -512,16 +505,11 @@ export function UtstEndringsordreModal({
                                 : 'hover:bg-pkt-surface-subtle'
                             }`}
                           >
-                            <td className="py-2 px-2">
-                              <div
-                                className={`w-5 h-5 border-2 flex items-center justify-center ${
-                                  isSelected
-                                    ? 'bg-pkt-brand-purple-1000 border-pkt-brand-purple-1000'
-                                    : 'border-pkt-border-default'
-                                }`}
-                              >
-                                {isSelected && <CheckIcon className="w-3 h-3 text-white" />}
-                              </div>
+                            <td className="py-2 px-2" onClick={(e) => e.stopPropagation()}>
+                              <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={() => toggleKoeSelection(koe.sak_id)}
+                              />
                             </td>
                             <td className="py-2 px-2">
                               <p className="font-medium">{koe.tittel}</p>
@@ -560,20 +548,17 @@ export function UtstEndringsordreModal({
                   </table>
                 </div>
               )}
-            </div>
+            </SectionContainer>
           )}
 
           {/* ================================================================
               STEP 3: CONSEQUENCES
               ================================================================ */}
           {currentStep === 3 && (
-            <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <h3 className="font-bold text-base">Konsekvenser</h3>
-
-              <p className="text-sm text-pkt-text-body-subtle">
-                Kryss av for konsekvenser endringen medfører.
-              </p>
-
+            <SectionContainer
+              title="Konsekvenser"
+              description="Kryss av for konsekvenser endringen medfører."
+            >
               <div className="space-y-3">
                 <Controller
                   name="konsekvenser_sha"
@@ -661,16 +646,14 @@ export function UtstEndringsordreModal({
                   Er du sikker på at endringen ikke har konsekvenser?
                 </Alert>
               )}
-            </div>
+            </SectionContainer>
           )}
 
           {/* ================================================================
               STEP 4: SETTLEMENT
               ================================================================ */}
           {currentStep === 4 && (
-            <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <h3 className="font-bold text-base">Oppgjør</h3>
-
+            <SectionContainer title="Oppgjør">
               {/* Priskonsekvens */}
               {formValues.konsekvenser_pris && (
                 <div className="space-y-4">
@@ -816,20 +799,17 @@ export function UtstEndringsordreModal({
                   Endringsordren har ingen pris- eller fremdriftskonsekvens.
                 </Alert>
               )}
-            </div>
+            </SectionContainer>
           )}
 
           {/* ================================================================
               STEP 5: REVIEW
               ================================================================ */}
           {currentStep === 5 && (
-            <div className="space-y-6 p-4 border-2 border-pkt-border-subtle rounded-none">
-              <h3 className="font-bold text-base">Oppsummering</h3>
-
-              <p className="text-sm text-pkt-text-body-subtle">
-                Kontroller informasjonen før du utsteder endringsordren.
-              </p>
-
+            <SectionContainer
+              title="Oppsummering"
+              description="Kontroller informasjonen før du utsteder endringsordren."
+            >
               {/* Summary cards */}
               <div className="space-y-4">
                 {/* Basic info */}
@@ -914,7 +894,7 @@ export function UtstEndringsordreModal({
                   </div>
                 )}
               </div>
-            </div>
+            </SectionContainer>
           )}
 
           {/* Error Message */}
