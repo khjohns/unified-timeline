@@ -3,16 +3,36 @@
  *
  * Modal for stopping an active forsering.
  * Requires TE to provide a reason and confirm.
+ * Uses React Hook Form + Zod for validation.
+ *
+ * UPDATED (2025-01-09):
+ * - Refactored to use React Hook Form + Zod
+ * - Added useFormBackup for localStorage persistence
+ * - Added useConfirmClose for unsaved changes dialog
  */
 
-import { useState } from 'react';
-import { Alert, Button, CurrencyInput, Modal } from '../primitives';
+import { useState, useEffect, useRef } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Alert, AlertDialog, Button, CurrencyInput, FormField, Modal, SectionContainer, Textarea } from '../primitives';
 import { StopIcon } from '@radix-ui/react-icons';
+import { useConfirmClose } from '../../hooks/useConfirmClose';
+import { useFormBackup } from '../../hooks/useFormBackup';
 import type { ForseringData } from '../../types/timeline';
+
+// Schema
+const stoppForseringSchema = z.object({
+  begrunnelse: z.string().min(1, 'Begrunnelse er påkrevd'),
+  paalopte_kostnader: z.number().optional(),
+});
+
+type StoppForseringFormData = z.infer<typeof stoppForseringSchema>;
 
 interface StoppForseringModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  sakId: string;
   forseringData: ForseringData;
   onStopp: (data: { begrunnelse: string; paalopte_kostnader?: number }) => void;
   isLoading?: boolean;
@@ -39,25 +59,81 @@ function formatDate(dateString?: string): string {
 export function StoppForseringModal({
   open,
   onOpenChange,
+  sakId,
   forseringData,
   onStopp,
   isLoading = false,
 }: StoppForseringModalProps) {
-  const [begrunnelse, setBegrunnelse] = useState('');
-  const [paalopteKostnader, setPaalopteKostnader] = useState<number | null>(null);
+  const [showRestorePrompt, setShowRestorePrompt] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onStopp({
-      begrunnelse,
-      paalopte_kostnader: paalopteKostnader ?? undefined,
-    });
+  const {
+    control,
+    handleSubmit,
+    formState: { errors, isDirty },
+    reset,
+    watch,
+  } = useForm<StoppForseringFormData>({
+    resolver: zodResolver(stoppForseringSchema),
+    defaultValues: {
+      begrunnelse: '',
+      paalopte_kostnader: undefined,
+    },
+  });
+
+  // Reset form when modal opens
+  useEffect(() => {
+    if (open) {
+      reset({
+        begrunnelse: '',
+        paalopte_kostnader: undefined,
+      });
+    }
+  }, [open, reset]);
+
+  const { showConfirmDialog, setShowConfirmDialog, handleClose, confirmClose } = useConfirmClose({
+    isDirty,
+    onReset: reset,
+    onClose: () => onOpenChange(false),
+  });
+
+  // Form backup for protection against accidental close
+  const formData = watch();
+  const { getBackup, clearBackup, hasBackup } = useFormBackup(
+    sakId,
+    'forsering_stoppet',
+    formData,
+    isDirty
+  );
+
+  // Check for backup on mount
+  const hasCheckedBackup = useRef(false);
+  useEffect(() => {
+    if (open && hasBackup && !isDirty && !hasCheckedBackup.current) {
+      hasCheckedBackup.current = true;
+      setShowRestorePrompt(true);
+    }
+    if (!open) {
+      hasCheckedBackup.current = false;
+    }
+  }, [open, hasBackup, isDirty]);
+
+  const handleRestoreBackup = () => {
+    const backup = getBackup();
+    if (backup) reset(backup);
+    setShowRestorePrompt(false);
   };
 
-  const handleClose = () => {
-    setBegrunnelse('');
-    setPaalopteKostnader(null);
-    onOpenChange(false);
+  const handleDiscardBackup = () => {
+    clearBackup();
+    setShowRestorePrompt(false);
+  };
+
+  const onSubmit = (data: StoppForseringFormData) => {
+    onStopp({
+      begrunnelse: data.begrunnelse,
+      paalopte_kostnader: data.paalopte_kostnader,
+    });
+    clearBackup();
   };
 
   // Can only stop if forsering is active (iverksatt but not stopped)
@@ -70,7 +146,7 @@ export function StoppForseringModal({
       title="Stopp forsering"
       size="md"
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Warning */}
         <Alert variant="warning" title="Du er i ferd med å stoppe forseringen">
           <p>
@@ -80,8 +156,7 @@ export function StoppForseringModal({
         </Alert>
 
         {/* Current status */}
-        <div className="p-3 bg-pkt-surface-subtle border-2 border-pkt-border-default rounded-none">
-          <h4 className="font-bold text-sm mb-2">Nåværende status</h4>
+        <SectionContainer title="Nåværende status" variant="subtle">
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div>
               <span className="text-pkt-text-body-subtle">Iverksatt:</span>
@@ -102,31 +177,49 @@ export function StoppForseringModal({
               </div>
             )}
           </div>
-        </div>
+        </SectionContainer>
 
         {/* Påløpte kostnader input */}
-        <CurrencyInput
-          label="Påløpte kostnader ved stopp (valgfritt)"
-          value={paalopteKostnader}
-          onChange={setPaalopteKostnader}
-          allowNegative={false}
-          helperText="Angi faktiske påløpte forseringskostnader frem til nå"
-        />
+        <SectionContainer
+          title="Påløpte kostnader"
+          description="Angi faktiske påløpte forseringskostnader frem til nå (valgfritt)"
+        >
+          <FormField label="Beløp">
+            <Controller
+              name="paalopte_kostnader"
+              control={control}
+              render={({ field }) => (
+                <CurrencyInput
+                  value={field.value ?? null}
+                  onChange={field.onChange}
+                  allowNegative={false}
+                />
+              )}
+            />
+          </FormField>
+        </SectionContainer>
 
         {/* Begrunnelse */}
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Begrunnelse for stopp <span className="text-alert-danger-text">*</span>
-          </label>
-          <textarea
-            value={begrunnelse}
-            onChange={(e) => setBegrunnelse(e.target.value)}
-            placeholder="Forklar hvorfor forseringen stoppes..."
-            rows={3}
+        <SectionContainer title="Begrunnelse">
+          <FormField
+            label="Begrunnelse for stopp"
             required
-            className="w-full px-3 py-2 bg-pkt-bg-card border-2 border-pkt-border-default rounded-none text-sm focus:outline-none focus:border-pkt-border-focus resize-none"
-          />
-        </div>
+            error={errors.begrunnelse?.message}
+          >
+            <Controller
+              name="begrunnelse"
+              control={control}
+              render={({ field }) => (
+                <Textarea
+                  {...field}
+                  rows={3}
+                  fullWidth
+                  error={!!errors.begrunnelse}
+                />
+              )}
+            />
+          </FormField>
+        </SectionContainer>
 
         {/* Actions */}
         <div className="flex justify-end gap-3 pt-4 border-t-2 border-pkt-border-subtle">
@@ -136,13 +229,37 @@ export function StoppForseringModal({
           <Button
             variant="danger"
             type="submit"
-            disabled={!begrunnelse.trim() || !canStop || isLoading}
+            disabled={!canStop || isLoading}
           >
             <StopIcon className="w-4 h-4 mr-2" />
             {isLoading ? 'Stopper...' : 'Stopp forsering'}
           </Button>
         </div>
       </form>
+
+      {/* Confirm close dialog */}
+      <AlertDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        title="Forkast endringer?"
+        description="Du har ulagrede endringer som vil gå tapt hvis du lukker skjemaet."
+        confirmLabel="Forkast"
+        cancelLabel="Fortsett redigering"
+        onConfirm={confirmClose}
+        variant="warning"
+      />
+
+      {/* Restore backup dialog */}
+      <AlertDialog
+        open={showRestorePrompt}
+        onOpenChange={(openState) => { if (!openState) handleDiscardBackup(); }}
+        title="Gjenopprette lagrede data?"
+        description="Det finnes data fra en tidligere økt som ikke ble sendt inn. Vil du fortsette der du slapp?"
+        confirmLabel="Gjenopprett"
+        cancelLabel="Start på nytt"
+        onConfirm={handleRestoreBackup}
+        variant="info"
+      />
     </Modal>
   );
 }

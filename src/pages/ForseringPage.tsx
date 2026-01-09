@@ -490,6 +490,7 @@ export function ForseringPage() {
       <StoppForseringModal
         open={stoppModalOpen}
         onOpenChange={setStoppModalOpen}
+        sakId={sakId || ''}
         forseringData={forseringData}
         onStopp={(data) => stoppMutation.mutate(data)}
         isLoading={stoppMutation.isPending}
@@ -518,6 +519,7 @@ export function ForseringPage() {
       <OppdaterKostnaderModal
         open={kostnaderModalOpen}
         onOpenChange={setKostnaderModalOpen}
+        sakId={sakId || ''}
         forseringData={forseringData}
         onOppdater={(data) => kostnaderMutation.mutate(data)}
         isLoading={kostnaderMutation.isPending}

@@ -2,16 +2,36 @@
  * OppdaterKostnaderModal Component
  *
  * Modal for TE to update incurred costs during an active forsering.
+ * Uses React Hook Form + Zod for validation.
+ *
+ * UPDATED (2025-01-09):
+ * - Refactored to use React Hook Form + Zod
+ * - Added useFormBackup for localStorage persistence
+ * - Added useConfirmClose for unsaved changes dialog
  */
 
-import { useState, useEffect } from 'react';
-import { Alert, Button, CurrencyInput, Modal } from '../primitives';
+import { useState, useEffect, useRef } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Alert, AlertDialog, Button, CurrencyInput, FormField, Modal, SectionContainer, Textarea } from '../primitives';
 import { UpdateIcon } from '@radix-ui/react-icons';
+import { useConfirmClose } from '../../hooks/useConfirmClose';
+import { useFormBackup } from '../../hooks/useFormBackup';
 import type { ForseringData } from '../../types/timeline';
+
+// Schema
+const oppdaterKostnaderSchema = z.object({
+  paalopte_kostnader: z.number().min(0, 'Kostnader kan ikke være negative'),
+  kommentar: z.string().optional(),
+});
+
+type OppdaterKostnaderFormData = z.infer<typeof oppdaterKostnaderSchema>;
 
 interface OppdaterKostnaderModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  sakId: string;
   forseringData: ForseringData;
   onOppdater: (data: { paalopte_kostnader: number; kommentar?: string }) => void;
   isLoading?: boolean;
@@ -25,37 +45,84 @@ function formatCurrency(amount?: number): string {
 export function OppdaterKostnaderModal({
   open,
   onOpenChange,
+  sakId,
   forseringData,
   onOppdater,
   isLoading = false,
 }: OppdaterKostnaderModalProps) {
-  const [paalopteKostnader, setPaalopteKostnader] = useState<number | null>(null);
-  const [kommentar, setKommentar] = useState('');
+  const [showRestorePrompt, setShowRestorePrompt] = useState(false);
 
-  // Pre-fill with current value when opening
+  const {
+    control,
+    handleSubmit,
+    formState: { errors, isDirty },
+    reset,
+    watch,
+  } = useForm<OppdaterKostnaderFormData>({
+    resolver: zodResolver(oppdaterKostnaderSchema),
+    defaultValues: {
+      paalopte_kostnader: forseringData.paalopte_kostnader ?? 0,
+      kommentar: '',
+    },
+  });
+
+  // Reset form with fresh data when modal opens
   useEffect(() => {
-    if (open && forseringData.paalopte_kostnader != null) {
-      setPaalopteKostnader(forseringData.paalopte_kostnader);
+    if (open) {
+      reset({
+        paalopte_kostnader: forseringData.paalopte_kostnader ?? 0,
+        kommentar: '',
+      });
     }
-  }, [open, forseringData.paalopte_kostnader]);
+  }, [open, forseringData.paalopte_kostnader, reset]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (paalopteKostnader === null || paalopteKostnader < 0) return;
+  const { showConfirmDialog, setShowConfirmDialog, handleClose, confirmClose } = useConfirmClose({
+    isDirty,
+    onReset: reset,
+    onClose: () => onOpenChange(false),
+  });
 
+  // Form backup for protection against accidental close
+  const formData = watch();
+  const { getBackup, clearBackup, hasBackup } = useFormBackup(
+    sakId,
+    'forsering_kostnader_oppdatert',
+    formData,
+    isDirty
+  );
+
+  // Check for backup on mount
+  const hasCheckedBackup = useRef(false);
+  useEffect(() => {
+    if (open && hasBackup && !isDirty && !hasCheckedBackup.current) {
+      hasCheckedBackup.current = true;
+      setShowRestorePrompt(true);
+    }
+    if (!open) {
+      hasCheckedBackup.current = false;
+    }
+  }, [open, hasBackup, isDirty]);
+
+  const handleRestoreBackup = () => {
+    const backup = getBackup();
+    if (backup) reset(backup);
+    setShowRestorePrompt(false);
+  };
+
+  const handleDiscardBackup = () => {
+    clearBackup();
+    setShowRestorePrompt(false);
+  };
+
+  const onSubmit = (data: OppdaterKostnaderFormData) => {
     onOppdater({
-      paalopte_kostnader: paalopteKostnader,
-      kommentar: kommentar || undefined,
+      paalopte_kostnader: data.paalopte_kostnader,
+      kommentar: data.kommentar || undefined,
     });
+    clearBackup();
   };
 
-  const handleClose = () => {
-    setPaalopteKostnader(null);
-    setKommentar('');
-    onOpenChange(false);
-  };
-
-  const nyKostnad = paalopteKostnader ?? 0;
+  const nyKostnad = formData.paalopte_kostnader ?? 0;
   const overstigerMaks = forseringData.maks_forseringskostnad != null && nyKostnad > forseringData.maks_forseringskostnad;
   const overstigerEstimert = forseringData.estimert_kostnad != null && nyKostnad > forseringData.estimert_kostnad;
 
@@ -66,10 +133,9 @@ export function OppdaterKostnaderModal({
       title="Oppdater påløpte kostnader"
       size="md"
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Current status */}
-        <div className="p-3 bg-pkt-surface-subtle border-2 border-pkt-border-default rounded-none">
-          <h4 className="font-bold text-sm mb-2">Kostnadsramme</h4>
+        <SectionContainer title="Kostnadsramme" variant="subtle">
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div>
               <span className="text-pkt-text-body-subtle">Estimert kostnad:</span>
@@ -86,44 +152,65 @@ export function OppdaterKostnaderModal({
               </span>
             </div>
           </div>
-        </div>
+        </SectionContainer>
 
         {/* Påløpte kostnader input */}
-        <CurrencyInput
-          label="Nye påløpte kostnader *"
-          value={paalopteKostnader}
-          onChange={setPaalopteKostnader}
-          allowNegative={false}
-        />
+        <SectionContainer
+          title="Nye påløpte kostnader"
+          description="Angi totale påløpte forseringskostnader frem til nå"
+        >
+          <FormField
+            label="Beløp"
+            required
+            error={errors.paalopte_kostnader?.message}
+          >
+            <Controller
+              name="paalopte_kostnader"
+              control={control}
+              render={({ field }) => (
+                <CurrencyInput
+                  value={field.value}
+                  onChange={field.onChange}
+                  allowNegative={false}
+                  error={!!errors.paalopte_kostnader}
+                />
+              )}
+            />
+          </FormField>
 
-        {/* Warnings */}
-        {overstigerMaks && (
-          <Alert variant="danger" title="Overstiger maksgrense">
-            Påløpte kostnader overstiger 30%-regelen ({formatCurrency(forseringData.maks_forseringskostnad)}).
-            Kostnader utover dette kan være vanskelig å få dekket.
-          </Alert>
-        )}
+          {/* Warnings */}
+          {overstigerMaks && (
+            <Alert variant="danger" title="Overstiger maksgrense">
+              Påløpte kostnader overstiger 30%-regelen ({formatCurrency(forseringData.maks_forseringskostnad)}).
+              Kostnader utover dette kan være vanskelig å få dekket.
+            </Alert>
+          )}
 
-        {!overstigerMaks && overstigerEstimert && (
-          <Alert variant="warning" title="Overstiger estimat">
-            Påløpte kostnader overstiger opprinnelig estimat ({formatCurrency(forseringData.estimert_kostnad)}).
-            Sørg for god dokumentasjon av merkostnadene.
-          </Alert>
-        )}
+          {!overstigerMaks && overstigerEstimert && (
+            <Alert variant="warning" title="Overstiger estimat">
+              Påløpte kostnader overstiger opprinnelig estimat ({formatCurrency(forseringData.estimert_kostnad)}).
+              Sørg for god dokumentasjon av merkostnadene.
+            </Alert>
+          )}
+        </SectionContainer>
 
         {/* Kommentar */}
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Kommentar (valgfritt)
-          </label>
-          <textarea
-            value={kommentar}
-            onChange={(e) => setKommentar(e.target.value)}
-            placeholder="Beskriv kostnadsutvikling, f.eks. 'Ekstra skift uke 8-9 pga værforhold'"
-            rows={2}
-            className="w-full px-3 py-2 bg-pkt-bg-card border-2 border-pkt-border-default rounded-none text-sm focus:outline-none focus:border-pkt-border-focus resize-none"
-          />
-        </div>
+        <SectionContainer title="Kommentar">
+          <FormField label="Kommentar (valgfritt)">
+            <Controller
+              name="kommentar"
+              control={control}
+              render={({ field }) => (
+                <Textarea
+                  {...field}
+                  value={field.value ?? ''}
+                  rows={2}
+                  fullWidth
+                />
+              )}
+            />
+          </FormField>
+        </SectionContainer>
 
         {/* Actions */}
         <div className="flex justify-end gap-3 pt-4 border-t-2 border-pkt-border-subtle">
@@ -133,13 +220,37 @@ export function OppdaterKostnaderModal({
           <Button
             variant="primary"
             type="submit"
-            disabled={paalopteKostnader === null || nyKostnad < 0 || isLoading}
+            disabled={isLoading}
           >
             <UpdateIcon className="w-4 h-4 mr-2" />
             {isLoading ? 'Oppdaterer...' : 'Oppdater kostnader'}
           </Button>
         </div>
       </form>
+
+      {/* Confirm close dialog */}
+      <AlertDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        title="Forkast endringer?"
+        description="Du har ulagrede endringer som vil gå tapt hvis du lukker skjemaet."
+        confirmLabel="Forkast"
+        cancelLabel="Fortsett redigering"
+        onConfirm={confirmClose}
+        variant="warning"
+      />
+
+      {/* Restore backup dialog */}
+      <AlertDialog
+        open={showRestorePrompt}
+        onOpenChange={(openState) => { if (!openState) handleDiscardBackup(); }}
+        title="Gjenopprette lagrede data?"
+        description="Det finnes data fra en tidligere økt som ikke ble sendt inn. Vil du fortsette der du slapp?"
+        confirmLabel="Gjenopprett"
+        cancelLabel="Start på nytt"
+        onConfirm={handleRestoreBackup}
+        variant="info"
+      />
     </Modal>
   );
 }
