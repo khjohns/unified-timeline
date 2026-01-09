@@ -26,6 +26,8 @@ import {
   AlertDialog,
   Badge,
   Button,
+  DataList,
+  DataListItem,
   FormField,
   Modal,
   RadioGroup,
@@ -309,17 +311,18 @@ export function RespondGrunnlagModal({
         {/* UPDATE MODE: Nåværende svar */}
         {isUpdateMode && lastResponseEvent && (
           <SectionContainer title="Nåværende svar" variant="subtle">
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-pkt-grays-gray-600">Resultat:</span>
-              <Badge variant={varAvvist ? 'danger' : 'success'}>
-                {forrigeResultat ? RESULTAT_LABELS[forrigeResultat] : 'Ukjent'}
-              </Badge>
-            </div>
-            {forrigeBegrunnelse && (
-              <p className="text-sm text-pkt-grays-gray-700 mt-2 italic">
-                &ldquo;{forrigeBegrunnelse}&rdquo;
-              </p>
-            )}
+            <DataList variant="grid">
+              <DataListItem label="Resultat">
+                <Badge variant={varAvvist ? 'danger' : 'success'}>
+                  {forrigeResultat ? RESULTAT_LABELS[forrigeResultat] : 'Ukjent'}
+                </Badge>
+              </DataListItem>
+              {forrigeBegrunnelse && (
+                <DataListItem label="Begrunnelse">
+                  <span className="italic">&ldquo;{forrigeBegrunnelse}&rdquo;</span>
+                </DataListItem>
+              )}
+            </DataList>
             {harSubsidiaereSvar && varAvvist && (
               <p className="text-xs text-pkt-grays-gray-500 mt-2">
                 Det finnes subsidiære svar på vederlag og/eller frist.

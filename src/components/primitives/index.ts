@@ -42,6 +42,7 @@ export { FormField } from './FormField';
 
 // Data Display
 export { DataList, DataListItem } from './DataList';
+export { InlineDataList, InlineDataListItem } from './InlineDataList';
 export { InfoLabel, type InfoLabelProps } from './InfoLabel';
 export { StepIndicator, type Step } from './StepIndicator';
 
