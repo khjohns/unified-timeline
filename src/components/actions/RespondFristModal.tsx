@@ -1485,18 +1485,15 @@ export function RespondFristModal({
                 )}
 
                 {/* Auto-generert begrunnelse (ikke redigerbar) */}
-                <div className="space-y-2">
-                  <h5 className="font-medium text-sm">Generert begrunnelse</h5>
-                  <div className="p-4 bg-pkt-surface-subtle border-2 border-pkt-border-subtle rounded-none">
-                    <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                      {autoBegrunnelse || 'Fyll ut valgene ovenfor for å generere begrunnelse.'}
-                    </p>
-                  </div>
-                  <p className="text-xs text-pkt-text-body-subtle">
-                    Denne teksten er automatisk generert basert på valgene du har gjort i skjemaet.
-                    Den kan ikke redigeres direkte, men du kan legge til en tilleggskommentar nedenfor.
+                <SectionContainer
+                  title="Generert begrunnelse"
+                  variant="subtle"
+                  description="Automatisk generert basert på valgene dine. Kan ikke redigeres direkte."
+                >
+                  <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                    {autoBegrunnelse || 'Fyll ut valgene ovenfor for å generere begrunnelse.'}
                   </p>
-                </div>
+                </SectionContainer>
 
                 {/* Tilleggsbegrunnelse (valgfri) */}
                 <FormField
