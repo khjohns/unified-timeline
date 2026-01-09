@@ -51,35 +51,27 @@ export function EndringsordreRelasjonBanner({ endringsordrer }: EndringsordreRel
         <Alert
           key={eo.eo_sak_id}
           variant="info"
+          icon={<FileTextIcon className="w-5 h-5" />}
           title={
-            <span className="flex items-center gap-2">
-              <FileTextIcon className="w-4 h-4" />
-              Denne saken er del av en endringsordre
+            <span className="flex items-center gap-2 w-full">
+              <span className="truncate">{eo.eo_nummer}</span>
+              <span className="ml-auto shrink-0">
+                {getStatusBadge(eo.status)}
+              </span>
             </span>
           }
-          action={
+        >
+          <div className="mt-2 flex items-center justify-between">
+            <span className="text-sm text-alert-info-text/80">
+              {eo.dato_utstedt ? `Utstedt ${formatDate(eo.dato_utstedt)}` : 'Ikke utstedt'}
+            </span>
             <Link
               to={`/endringsordre/${eo.eo_sak_id}`}
-              className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-badge-info-text bg-badge-info-bg border border-badge-info-text/30 hover:opacity-90 rounded transition-colors"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-badge-info-text hover:underline"
             >
-              <span>Gå til endringsordre</span>
-              <ArrowRightIcon className="w-4 h-4" />
+              Gå til endringsordre
+              <ArrowRightIcon className="w-3.5 h-3.5" />
             </Link>
-          }
-        >
-          <div className="mt-1 space-y-2">
-            {/* EO info */}
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              <span className="font-medium">{eo.eo_nummer}</span>
-              {getStatusBadge(eo.status)}
-            </div>
-
-            {eo.dato_utstedt && (
-              <div className="flex items-center gap-2 text-sm">
-                <span>Utstedt:</span>
-                <Badge variant="default" size="sm">{formatDate(eo.dato_utstedt)}</Badge>
-              </div>
-            )}
           </div>
         </Alert>
       ))}
