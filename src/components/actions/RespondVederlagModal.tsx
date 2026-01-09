@@ -1105,6 +1105,11 @@ export function RespondVederlagModal({
                     )}
                   </div>
 
+                  <p className="text-sm text-pkt-text-body-subtle mb-3">
+                    Etter NS 8407 §34.1.3 må krav på særskilt justering for rigg/drift varsles
+                    «uten ugrunnet opphold» etter at entreprenøren ble klar over at utgifter ville påløpe.
+                  </p>
+
                   <FormField label="Ble rigg/drift-kravet varslet i tide?" required>
                     <Controller
                       name="rigg_varslet_i_tide"
@@ -1123,6 +1128,13 @@ export function RespondVederlagModal({
                       )}
                     />
                   </FormField>
+
+                  {formValues.rigg_varslet_i_tide === false && (
+                    <Alert variant="warning" size="sm" title="Prekludert" className="mt-3">
+                      Kravet prekluderes fordi det ikke ble varslet i tide.
+                      Byggherren tar likevel subsidiært standpunkt til beløpet.
+                    </Alert>
+                  )}
                 </div>
               )}
 
@@ -1143,6 +1155,11 @@ export function RespondVederlagModal({
                     )}
                   </div>
 
+                  <p className="text-sm text-pkt-text-body-subtle mb-3">
+                    Etter NS 8407 §34.1.3 annet ledd må krav på produktivitetstap varsles
+                    «uten ugrunnet opphold».
+                  </p>
+
                   <FormField label="Ble produktivitetskravet varslet i tide?" required>
                     <Controller
                       name="produktivitet_varslet_i_tide"
@@ -1161,6 +1178,13 @@ export function RespondVederlagModal({
                       )}
                     />
                   </FormField>
+
+                  {formValues.produktivitet_varslet_i_tide === false && (
+                    <Alert variant="warning" size="sm" title="Prekludert" className="mt-3">
+                      Kravet prekluderes fordi det ikke ble varslet i tide.
+                      Byggherren tar likevel subsidiært standpunkt til beløpet.
+                    </Alert>
+                  )}
                 </div>
               )}
 

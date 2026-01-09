@@ -8,14 +8,15 @@
  */
 
 import type { ReactNode } from 'react';
-import { Badge, Button, DashboardCard, DataList, DataListItem } from '../primitives';
+import { Badge, Button, DashboardCard, DataList, DataListItem, Tooltip } from '../primitives';
 import {
   ExclamationTriangleIcon,
   CheckCircledIcon,
   CrossCircledIcon,
   StopIcon,
   Pencil1Icon,
-  ChatBubbleIcon
+  ChatBubbleIcon,
+  InfoCircledIcon
 } from '@radix-ui/react-icons';
 import type { ForseringData } from '../../types/timeline';
 
@@ -191,8 +192,15 @@ export function ForseringDashboard({
           )}
         >
           <DataList>
-            <DataListItem label="Varslet">
-              {formatDate(forseringData.dato_varslet)}
+            <DataListItem label="Varslet byggherren">
+              <span className="flex items-center gap-1">
+                {formatDate(forseringData.dato_varslet)}
+                <Tooltip content="Dato da entreprenøren varslet byggherren om forsering med antatt kostnad (NS 8407 §33.8)">
+                  <button type="button" className="text-pkt-text-body-subtle hover:text-pkt-text-body-default">
+                    <InfoCircledIcon className="w-3.5 h-3.5" />
+                  </button>
+                </Tooltip>
+              </span>
             </DataListItem>
             {forseringData.er_iverksatt && (
               <DataListItem label="Iverksatt">

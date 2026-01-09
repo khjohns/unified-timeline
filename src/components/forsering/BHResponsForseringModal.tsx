@@ -637,6 +637,19 @@ export function BHResponsForseringModal({
                     Vurder om avslaget på fristforlengelse var berettiget for hver sak:
                   </p>
 
+                  {/* Hjelpetekst for berettiget/uberettiget */}
+                  <div className="p-3 bg-pkt-surface-subtle border-l-4 border-pkt-border-default text-sm space-y-2">
+                    <p>
+                      <strong>Berettiget avslag:</strong> Entreprenøren hadde ikke krav på
+                      fristforlengelse etter NS 8407 §33.1-33.3 (f.eks. forholdet var ikke en
+                      hindring, entreprenøren burde ha tatt høyde for det, eller varslet for sent).
+                    </p>
+                    <p>
+                      <strong>Uberettiget avslag:</strong> Entreprenøren hadde krav på fristforlengelse,
+                      men byggherren avslo feilaktig. Dette gir forseringsrett.
+                    </p>
+                  </div>
+
                   {avslatteSaker.map((sak, index) => {
                     const currentVurdering = formData.vurdering_per_sak?.find(v => v.sak_id === sak.sak_id);
 
@@ -670,12 +683,12 @@ export function BHResponsForseringModal({
                               <RadioItem
                                 value="berettiget"
                                 label="Avslaget var berettiget"
-                                description="TE hadde ikke krav på fristforlengelse"
+                                description="Entreprenøren hadde ikke krav på fristforlengelse"
                               />
                               <RadioItem
                                 value="uberettiget"
                                 label="Avslaget var uberettiget"
-                                description="TE hadde krav på fristforlengelse"
+                                description="Entreprenøren hadde krav på fristforlengelse"
                               />
                             </RadioGroup>
                           )}
@@ -858,6 +871,11 @@ export function BHResponsForseringModal({
                     Krevd beløp: <strong>{formatCurrency(forseringData.vederlag?.saerskilt_krav?.rigg_drift?.belop)}</strong>
                   </div>
 
+                  <p className="text-sm text-pkt-text-body-subtle">
+                    Etter NS 8407 §34.1.3 må krav på særskilt justering for rigg/drift varsles
+                    «uten ugrunnet opphold» etter at entreprenøren ble klar over at utgifter ville påløpe.
+                  </p>
+
                   <Controller
                     name="rigg_varslet_i_tide"
                     control={control}
@@ -873,6 +891,13 @@ export function BHResponsForseringModal({
                       </FormField>
                     )}
                   />
+
+                  {formData.rigg_varslet_i_tide === false && (
+                    <Alert variant="warning" size="sm" title="Prekludert">
+                      Kravet prekluderes fordi det ikke ble varslet i tide.
+                      Byggherren tar likevel subsidiært standpunkt til beløpet.
+                    </Alert>
+                  )}
 
                   {/* Show vurdering even if precluded (for subsidiary) */}
                   <Controller
@@ -920,6 +945,11 @@ export function BHResponsForseringModal({
                     Krevd beløp: <strong>{formatCurrency(forseringData.vederlag?.saerskilt_krav?.produktivitet?.belop)}</strong>
                   </div>
 
+                  <p className="text-sm text-pkt-text-body-subtle">
+                    Etter NS 8407 §34.1.3 annet ledd må krav på produktivitetstap varsles
+                    «uten ugrunnet opphold».
+                  </p>
+
                   <Controller
                     name="produktivitet_varslet_i_tide"
                     control={control}
@@ -935,6 +965,13 @@ export function BHResponsForseringModal({
                       </FormField>
                     )}
                   />
+
+                  {formData.produktivitet_varslet_i_tide === false && (
+                    <Alert variant="warning" size="sm" title="Prekludert">
+                      Kravet prekluderes fordi det ikke ble varslet i tide.
+                      Byggherren tar likevel subsidiært standpunkt til beløpet.
+                    </Alert>
+                  )}
 
                   <Controller
                     name="produktivitet_vurdering"
