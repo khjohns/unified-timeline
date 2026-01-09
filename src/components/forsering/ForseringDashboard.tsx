@@ -111,14 +111,48 @@ function getStatusBadge(forseringData: ForseringData) {
   return <Badge variant="default" size="sm">Varslet</Badge>;
 }
 
+/**
+ * Get BH response badge based on new bh_respons structure
+ */
 function getBHResponseBadge(forseringData: ForseringData) {
+  const bhRespons = forseringData.bh_respons;
+
+  // Check new bh_respons first, then fall back to legacy fields
+  if (bhRespons) {
+    const erSubsidiaert = bhRespons.subsidiaer_triggers && bhRespons.subsidiaer_triggers.length > 0;
+
+    if (bhRespons.aksepterer) {
+      // Check if it's partial (godkjent_belop < estimert_kostnad)
+      const isPartial = bhRespons.total_godkjent !== undefined &&
+        bhRespons.total_godkjent < forseringData.estimert_kostnad;
+
+      if (erSubsidiaert) {
+        return (
+          <div className="flex gap-1">
+            <Badge variant={isPartial ? 'warning' : 'success'} size="sm">
+              {isPartial ? 'Delvis godkjent' : 'Godkjent'}
+            </Badge>
+            <Badge variant="warning" size="sm">Subsidiært</Badge>
+          </div>
+        );
+      }
+      return (
+        <Badge variant={isPartial ? 'warning' : 'success'} size="sm">
+          {isPartial ? 'Delvis godkjent' : 'Godkjent'}
+        </Badge>
+      );
+    }
+    return <Badge variant="danger" size="sm">Avslått</Badge>;
+  }
+
+  // Legacy fallback
   if (forseringData.bh_aksepterer_forsering === undefined) {
     return <Badge variant="default" size="sm">Venter på BH</Badge>;
   }
   if (forseringData.bh_aksepterer_forsering) {
-    return <Badge variant="success" size="sm">BH aksepterer</Badge>;
+    return <Badge variant="success" size="sm">Godkjent</Badge>;
   }
-  return <Badge variant="danger" size="sm">BH avslår</Badge>;
+  return <Badge variant="danger" size="sm">Avslått</Badge>;
 }
 
 export function ForseringDashboard({
@@ -131,7 +165,15 @@ export function ForseringDashboard({
   const canStoppForsering = userRole === 'TE' && forseringData.er_iverksatt && !forseringData.er_stoppet;
   const canOppdaterKostnader = userRole === 'TE' && forseringData.er_iverksatt && !forseringData.er_stoppet;
   const canGiStandpunkt = userRole === 'BH' && forseringData.dato_varslet;
-  const hasGittStandpunkt = forseringData.bh_aksepterer_forsering !== undefined;
+
+  // Check for BH response - prefer new structure, fallback to legacy
+  const bhRespons = forseringData.bh_respons;
+  const hasGittStandpunkt = bhRespons !== undefined || forseringData.bh_aksepterer_forsering !== undefined;
+
+  // Computed values from bh_respons
+  const godkjentBelop = bhRespons?.total_godkjent ?? bhRespons?.godkjent_belop ?? forseringData.bh_godkjent_kostnad;
+  const erSubsidiaert = bhRespons?.subsidiaer_triggers && bhRespons.subsidiaer_triggers.length > 0;
+  const subsidiaerBelop = bhRespons?.subsidiaer_godkjent_belop;
 
   return (
     <div className="space-y-4">
@@ -232,14 +274,14 @@ export function ForseringDashboard({
       >
         {hasGittStandpunkt ? (
           <DataList>
-            {forseringData.bh_godkjent_kostnad !== undefined && (
-              <DataListItem label="Godkjent kostnad">
-                {formatCurrency(forseringData.bh_godkjent_kostnad)}
-              </DataListItem>
-            )}
-            {forseringData.bh_begrunnelse && (
-              <DataListItem label="Begrunnelse">
-                {forseringData.bh_begrunnelse}
+            <DataListItem label={erSubsidiaert ? 'Godkjent (prinsipal)' : 'Godkjent'}>
+              <span className="font-bold">{formatCurrency(godkjentBelop)}</span>
+            </DataListItem>
+            {erSubsidiaert && subsidiaerBelop !== undefined && (
+              <DataListItem label="Subsidiært godkjent">
+                <span className="text-pkt-text-body-subtle">
+                  {formatCurrency(subsidiaerBelop)}
+                </span>
               </DataListItem>
             )}
           </DataList>

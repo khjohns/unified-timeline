@@ -15,6 +15,7 @@ import { getAuthToken, ApiError } from '../api/client';
 import { useVerifyToken } from '../hooks/useVerifyToken';
 import { useCaseState } from '../hooks/useCaseState';
 import { useUserRole } from '../hooks/useUserRole';
+import { useStandpunktEndringer } from '../hooks/useStandpunktEndringer';
 import { Timeline } from '../components/views/Timeline';
 import { Alert, Badge, Button } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
@@ -246,6 +247,13 @@ export function ForseringPage() {
   const state = caseData?.state;
   const forseringData = state?.forsering_data || EMPTY_FORSERING_DATA;
 
+  // Check for BH position changes on related cases
+  const { harEndringer: harStandpunktEndringer, endringer: standpunktEndringer } = useStandpunktEndringer(
+    forseringData,
+    kontekstData?.relaterte_saker || [],
+    kontekstData?.sak_states || {}
+  );
+
   // Forsering case's own events
   const forseringTimeline = useMemo((): TimelineEvent[] => {
     if (!kontekstData?.forsering_hendelser) return [];
@@ -339,6 +347,32 @@ export function ForseringPage() {
       {/* Main content */}
       <main className="max-w-3xl mx-auto px-4 py-6 sm:px-8 sm:py-8 bg-pkt-bg-card min-h-[calc(100vh-88px)]">
         <div className="space-y-6">
+          {/* Alert for BH position changes */}
+          {harStandpunktEndringer && (
+            <Alert variant="warning" title="Byggherre har endret standpunkt">
+              <p className="mb-2">
+                Byggherren har endret sitt standpunkt på {standpunktEndringer.length}{' '}
+                {standpunktEndringer.length === 1 ? 'relatert sak' : 'relaterte saker'}
+                {' '}etter at forseringen ble varslet.
+              </p>
+              <ul className="list-disc pl-5 text-sm space-y-1">
+                {standpunktEndringer.map(endring => (
+                  <li key={endring.sakId}>
+                    <strong>{endring.sakTittel}</strong>:{' '}
+                    {endring.endringType === 'frist_godkjent' && 'Frist godkjent'}
+                    {endring.endringType === 'frist_delvis' && `Frist delvis godkjent (${endring.naaGodkjenteDager} av ${endring.opprinneligAvslatteDager} dager)`}
+                    {endring.endringType === 'grunnlag_godkjent' && 'Grunnlag godkjent'}
+                    {endring.endringType === 'grunnlag_delvis' && 'Grunnlag delvis godkjent'}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-sm text-pkt-text-body-subtle">
+                Per NS 8407 §33.8 kan entreprenøren ha krav på kompensasjon for
+                forseringskostnader påløpt før standpunktendringen.
+              </p>
+            </Alert>
+          )}
+
           {/* Status and costs section */}
           <section>
             <h2 className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4">

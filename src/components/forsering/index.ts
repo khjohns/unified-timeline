@@ -8,7 +8,6 @@ export { ForseringDashboard } from './ForseringDashboard';
 export { ForseringKostnadskort } from './ForseringKostnadskort';
 export { RelaterteSakerListe } from './RelaterteSakerListe';
 export { LeggTilRelatertSakModal } from './LeggTilRelatertSakModal';
-export { BHStandpunktEndring } from './BHStandpunktEndring';
 export { StoppForseringModal } from './StoppForseringModal';
 export { BHResponsForseringModal } from './BHResponsForseringModal';
 export { OppdaterKostnaderModal } from './OppdaterKostnaderModal';
