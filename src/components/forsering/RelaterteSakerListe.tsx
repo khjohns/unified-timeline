@@ -1,8 +1,8 @@
 /**
  * RelaterteSakerListe Component
  *
- * Displays a list of related cases for a forsering case.
- * Each case is clickable and shows key status info.
+ * Displays a table of related cases for a forsering case.
+ * Each row is clickable and shows key status info.
  * Supports removal of cases when canRemove is enabled.
  */
 
@@ -29,48 +29,29 @@ interface RelaterteSakerListeProps {
   headerAction?: React.ReactNode;
 }
 
-function getGrunnlagBadge(state?: SakState) {
+function getGrunnlagStatus(state?: SakState): { variant: 'success' | 'danger' | 'warning' | 'default'; label: string } | null {
   if (!state?.grunnlag?.bh_resultat) return null;
 
-  const variants: Record<string, 'success' | 'danger' | 'warning' | 'default'> = {
-    godkjent: 'success',
-    delvis_godkjent: 'warning',
-    avslatt: 'danger',
-    erkjenn_fm: 'success',
+  const config: Record<string, { variant: 'success' | 'danger' | 'warning' | 'default'; label: string }> = {
+    godkjent: { variant: 'success', label: 'Godkjent' },
+    delvis_godkjent: { variant: 'warning', label: 'Delvis' },
+    avslatt: { variant: 'danger', label: 'Avslått' },
+    erkjenn_fm: { variant: 'success', label: 'FM' },
   };
 
-  const labels: Record<string, string> = {
-    godkjent: 'Grunnlag godkjent',
-    delvis_godkjent: 'Grunnlag delvis',
-    avslatt: 'Grunnlag avslått',
-    erkjenn_fm: 'Force Majeure',
-  };
-
-  const variant = variants[state.grunnlag.bh_resultat] || 'default';
-  const label = labels[state.grunnlag.bh_resultat] || state.grunnlag.bh_resultat;
-
-  return <Badge variant={variant} size="sm">{label}</Badge>;
+  return config[state.grunnlag.bh_resultat] || { variant: 'default', label: state.grunnlag.bh_resultat };
 }
 
-function getFristBadge(state?: SakState) {
+function getFristStatus(state?: SakState): { variant: 'success' | 'danger' | 'warning' | 'default'; label: string } | null {
   if (!state?.frist?.bh_resultat) return null;
 
-  const variants: Record<string, 'success' | 'danger' | 'warning' | 'default'> = {
-    godkjent: 'success',
-    delvis_godkjent: 'warning',
-    avslatt: 'danger',
+  const config: Record<string, { variant: 'success' | 'danger' | 'warning' | 'default'; label: string }> = {
+    godkjent: { variant: 'success', label: 'Godkjent' },
+    delvis_godkjent: { variant: 'warning', label: 'Delvis' },
+    avslatt: { variant: 'danger', label: 'Avslått' },
   };
 
-  const labels: Record<string, string> = {
-    godkjent: 'Frist godkjent',
-    delvis_godkjent: 'Frist delvis',
-    avslatt: 'Frist avslått',
-  };
-
-  const variant = variants[state.frist.bh_resultat] || 'default';
-  const label = labels[state.frist.bh_resultat] || state.frist.bh_resultat;
-
-  return <Badge variant={variant} size="sm">{label}</Badge>;
+  return config[state.frist.bh_resultat] || { variant: 'default', label: state.frist.bh_resultat };
 }
 
 export function RelaterteSakerListe({
@@ -81,7 +62,6 @@ export function RelaterteSakerListe({
   isRemoving = false,
   headerAction,
 }: RelaterteSakerListeProps) {
-  // Track which case is pending removal confirmation
   const [confirmingRemoval, setConfirmingRemoval] = useState<string | null>(null);
 
   const handleRemoveClick = (sakId: string, e: React.MouseEvent) => {
@@ -102,6 +82,21 @@ export function RelaterteSakerListe({
     e.stopPropagation();
     setConfirmingRemoval(null);
   };
+
+  // Calculate totals
+  const totalDager = relaterteSaker.reduce((sum, sak) => {
+    const state = sakStates[sak.relatert_sak_id] || sak.state;
+    return sum + (state?.frist?.krevd_dager || 0);
+  }, 0);
+
+  const avslatteDager = relaterteSaker.reduce((sum, sak) => {
+    const state = sakStates[sak.relatert_sak_id] || sak.state;
+    const fristStatus = getFristStatus(state);
+    if (fristStatus?.variant === 'danger') {
+      return sum + (state?.frist?.krevd_dager || 0);
+    }
+    return sum;
+  }, 0);
 
   if (relaterteSaker.length === 0) {
     return (
@@ -126,93 +121,132 @@ export function RelaterteSakerListe({
         {headerAction}
       </div>
 
-      <ul className="divide-y-2 divide-pkt-border-subtle">
-        {relaterteSaker.map((sak) => {
-          const state = sakStates[sak.relatert_sak_id] || sak.state;
-          const isConfirming = confirmingRemoval === sak.relatert_sak_id;
+      <div className="p-3">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-pkt-border-subtle">
+              <th className="text-left py-1.5 font-medium">Sak</th>
+              <th className="text-center py-1.5 font-medium w-20">Grunnlag</th>
+              <th className="text-center py-1.5 font-medium w-20">Frist</th>
+              <th className="text-right py-1.5 font-medium w-16">Dager</th>
+              <th className="w-16"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {relaterteSaker.map((sak) => {
+              const state = sakStates[sak.relatert_sak_id] || sak.state;
+              const isConfirming = confirmingRemoval === sak.relatert_sak_id;
+              const grunnlagStatus = getGrunnlagStatus(state);
+              const fristStatus = getFristStatus(state);
 
-          return (
-            <li key={sak.relatert_sak_id} className="relative">
-              {/* Confirmation overlay */}
-              {isConfirming && (
-                <div className="absolute inset-0 bg-alert-danger-bg/95 z-10 flex items-center justify-center p-4">
-                  <div className="text-center">
-                    <p className="text-sm font-medium text-alert-danger-text mb-3">
-                      Fjern denne saken fra forseringen?
-                    </p>
-                    <div className="flex gap-2 justify-center">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleCancelRemoval}
-                        disabled={isRemoving}
-                      >
-                        <Cross2Icon className="w-4 h-4 mr-1" />
-                        Avbryt
-                      </Button>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={(e) => handleConfirmRemoval(sak.relatert_sak_id, e)}
-                        disabled={isRemoving}
-                      >
-                        <TrashIcon className="w-4 h-4 mr-1" />
-                        {isRemoving ? 'Fjerner...' : 'Fjern'}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
+              return (
+                <tr
+                  key={sak.relatert_sak_id}
+                  className="border-b border-pkt-border-subtle last:border-b-0 hover:bg-pkt-surface-subtle transition-colors relative"
+                >
+                  {/* Confirmation overlay */}
+                  {isConfirming && (
+                    <td colSpan={5} className="p-0">
+                      <div className="absolute inset-0 bg-alert-danger-bg/95 z-10 flex items-center justify-center">
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-medium text-alert-danger-text">
+                            Fjern saken?
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleCancelRemoval}
+                            disabled={isRemoving}
+                          >
+                            <Cross2Icon className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            onClick={(e) => handleConfirmRemoval(sak.relatert_sak_id, e)}
+                            disabled={isRemoving}
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </td>
+                  )}
+
+                  {!isConfirming && (
+                    <>
+                      <td className="py-2">
+                        <Link
+                          to={`/saker/${sak.relatert_sak_id}`}
+                          className="hover:text-pkt-text-action-active transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            {sak.bimsync_issue_number && (
+                              <span className="text-xs font-mono text-pkt-text-body-subtle">
+                                #{sak.bimsync_issue_number}
+                              </span>
+                            )}
+                            <span className="font-medium">
+                              {sak.relatert_sak_tittel || state?.sakstittel || 'Ukjent sak'}
+                            </span>
+                            <ExternalLinkIcon className="w-3 h-3 text-pkt-text-body-subtle" />
+                          </div>
+                        </Link>
+                      </td>
+                      <td className="text-center py-2">
+                        {grunnlagStatus ? (
+                          <Badge variant={grunnlagStatus.variant} size="sm">{grunnlagStatus.label}</Badge>
+                        ) : (
+                          <span className="text-pkt-text-body-subtle">-</span>
+                        )}
+                      </td>
+                      <td className="text-center py-2">
+                        {fristStatus ? (
+                          <Badge variant={fristStatus.variant} size="sm">{fristStatus.label}</Badge>
+                        ) : (
+                          <span className="text-pkt-text-body-subtle">-</span>
+                        )}
+                      </td>
+                      <td className="text-right py-2 font-mono">
+                        {state?.frist?.krevd_dager ?? '-'}
+                      </td>
+                      <td className="text-right py-2">
+                        {canRemove && onRemove && (
+                          <button
+                            onClick={(e) => handleRemoveClick(sak.relatert_sak_id, e)}
+                            className="p-1 text-pkt-text-body-subtle hover:text-alert-danger-text hover:bg-alert-danger-bg rounded transition-colors"
+                            title="Fjern fra forsering"
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </button>
+                        )}
+                      </td>
+                    </>
+                  )}
+                </tr>
+              );
+            })}
+          </tbody>
+          {relaterteSaker.length > 1 && (
+            <tfoot>
+              <tr className="border-t-2 border-pkt-border-default">
+                <td className="py-2 font-bold" colSpan={3}>Totalt</td>
+                <td className="text-right py-2 font-mono font-bold">{totalDager}</td>
+                <td></td>
+              </tr>
+              {avslatteDager > 0 && (
+                <tr>
+                  <td className="py-1 text-pkt-text-body-subtle" colSpan={3}>
+                    <span className="italic">herav avslått</span>
+                  </td>
+                  <td className="text-right py-1 font-mono text-alert-danger-text">{avslatteDager}</td>
+                  <td></td>
+                </tr>
               )}
-
-              <Link
-                to={`/saker/${sak.relatert_sak_id}`}
-                className="block p-4 hover:bg-pkt-surface-subtle transition-colors group"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    {/* Title and number */}
-                    <div className="flex items-center gap-2">
-                      {sak.bimsync_issue_number && (
-                        <span className="text-xs font-mono text-pkt-text-body-subtle">
-                          #{sak.bimsync_issue_number}
-                        </span>
-                      )}
-                      <span className="font-medium truncate">
-                        {sak.relatert_sak_tittel || state?.sakstittel || 'Ukjent sak'}
-                      </span>
-                    </div>
-
-                    {/* Status badges */}
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {getGrunnlagBadge(state)}
-                      {getFristBadge(state)}
-                      {state?.frist?.krevd_dager && (
-                        <Badge variant="default" size="sm">
-                          {state.frist.krevd_dager} dager krevd
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-2 flex-shrink-0 mt-1">
-                    {canRemove && onRemove && (
-                      <button
-                        onClick={(e) => handleRemoveClick(sak.relatert_sak_id, e)}
-                        className="p-1.5 text-pkt-text-body-subtle hover:text-alert-danger-text hover:bg-alert-danger-bg rounded transition-colors"
-                        title="Fjern fra forsering"
-                      >
-                        <TrashIcon className="w-4 h-4" />
-                      </button>
-                    )}
-                    <ExternalLinkIcon className="w-4 h-4 text-pkt-text-body-subtle group-hover:text-pkt-text-action-active transition-colors" />
-                  </div>
-                </div>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+            </tfoot>
+          )}
+        </table>
+      </div>
     </Card>
   );
 }
