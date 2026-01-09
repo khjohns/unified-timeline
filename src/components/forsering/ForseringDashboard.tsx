@@ -165,6 +165,119 @@ function getBHResponseBadge(forseringData: ForseringData) {
   return <Badge variant="danger" size="sm">Avslått</Badge>;
 }
 
+/**
+ * Table component for per-sak forseringsrett vurdering
+ */
+interface ForseringsrettVurderingTableProps {
+  avslatteSaker: RelatertSakMedAvslag[];
+  vurderingPerSak?: Array<{ sak_id: string; avslag_berettiget?: boolean }>;
+  harForseringsrettAvslag: boolean;
+  dagerMedForseringsrett: number;
+  totalAvslatteDager: number;
+}
+
+function ForseringsrettVurderingTable({
+  avslatteSaker,
+  vurderingPerSak,
+  harForseringsrettAvslag,
+  dagerMedForseringsrett,
+  totalAvslatteDager,
+}: ForseringsrettVurderingTableProps) {
+  const harKonklusjon = (vurderingPerSak && vurderingPerSak.length > 0) || harForseringsrettAvslag || dagerMedForseringsrett > 0;
+
+  // Helper to get status for a sak
+  const getStatus = (sak: RelatertSakMedAvslag) => {
+    const vurdering = vurderingPerSak?.find(v => v.sak_id === sak.sak_id);
+    const harVurdering = vurdering !== undefined;
+
+    if (harVurdering) {
+      const erUberettiget = vurdering?.avslag_berettiget === false;
+      return {
+        variant: erUberettiget ? 'success' : 'danger' as const,
+        label: erUberettiget ? 'Uberettiget' : 'Berettiget',
+      };
+    }
+
+    // Infer from triggers
+    const kanInferere = harForseringsrettAvslag || dagerMedForseringsrett > 0;
+    if (kanInferere) {
+      return {
+        variant: harForseringsrettAvslag ? 'danger' : 'success' as const,
+        label: harForseringsrettAvslag ? 'Berettiget' : 'Uberettiget',
+      };
+    }
+
+    return { variant: 'default' as const, label: 'Ikke vurdert' };
+  };
+
+  const tableContent = (
+    <div className="p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-pkt-border-subtle">
+            <th className="text-left py-1.5 font-medium">Sak</th>
+            <th className="text-right py-1.5 font-medium w-20">Dager</th>
+            <th className="text-right py-1.5 font-medium w-28">Avslaget</th>
+          </tr>
+        </thead>
+        <tbody>
+          {avslatteSaker.map((sak) => {
+            const status = getStatus(sak);
+            return (
+              <tr key={sak.sak_id} className="border-b border-pkt-border-subtle last:border-b-0">
+                <td className="py-2">
+                  <span className="font-medium">{sak.sak_id}</span>
+                  <span className="text-pkt-text-body-subtle ml-2">{sak.tittel}</span>
+                </td>
+                <td className="text-right py-2 font-mono">{sak.avslatte_dager}</td>
+                <td className="text-right py-2">
+                  <Badge variant={status.variant} size="sm">{status.label}</Badge>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+        {harKonklusjon && (
+          <tfoot>
+            <tr className="border-t-2 border-pkt-border-default">
+              <td className="py-2 font-bold">Konklusjon</td>
+              <td className="text-right py-2 font-mono font-bold">
+                {dagerMedForseringsrett} / {totalAvslatteDager}
+              </td>
+              <td className="text-right py-2">
+                {dagerMedForseringsrett > 0 ? (
+                  <Badge variant="success" size="sm">Har rett</Badge>
+                ) : (
+                  <Badge variant="danger" size="sm">Ingen rett</Badge>
+                )}
+              </td>
+            </tr>
+          </tfoot>
+        )}
+      </table>
+    </div>
+  );
+
+  // For 1-2 saker: vis direkte, for flere: bruk collapsible
+  if (avslatteSaker.length <= 2) {
+    return (
+      <div>
+        <h5 className="font-medium text-sm mb-2">Forseringsrett-vurdering</h5>
+        {tableContent}
+      </div>
+    );
+  }
+
+  return (
+    <Collapsible
+      title={`Forseringsrett-vurdering (${avslatteSaker.length} saker)`}
+      defaultOpen={avslatteSaker.length <= 4}
+    >
+      {tableContent}
+    </Collapsible>
+  );
+}
+
 export function ForseringDashboard({
   forseringData,
   userRole,
@@ -311,59 +424,13 @@ export function ForseringDashboard({
           <div className="space-y-4">
             {/* Per-sak forseringsrett vurdering */}
             {harAvslatteSaker && (
-              <Collapsible
-                title={`Forseringsrett-vurdering (${avslatteSaker!.length} ${avslatteSaker!.length === 1 ? 'sak' : 'saker'})`}
-                defaultOpen={false}
-              >
-                <div className="space-y-2">
-                  {avslatteSaker!.map((sak) => {
-                    const vurdering = vurderingPerSak?.find(v => v.sak_id === sak.sak_id);
-                    const harVurdering = vurdering !== undefined;
-                    // Infer from harForseringsrettAvslag if no explicit vurdering
-                    const erUberettiget = harVurdering
-                      ? vurdering?.avslag_berettiget === false
-                      : !harForseringsrettAvslag && dagerMedForseringsrett > 0;
-                    // Show status based on explicit vurdering or inferred from trigger
-                    const kanInferere = !harVurdering && (harForseringsrettAvslag || dagerMedForseringsrett > 0);
-                    return (
-                      <div key={sak.sak_id} className="flex justify-between items-center py-2 border-b border-pkt-border-subtle last:border-b-0">
-                        <div className="flex-1">
-                          <span className="font-medium text-sm">{sak.sak_id}</span>
-                          <span className="text-sm text-pkt-text-body-subtle ml-2">
-                            {sak.tittel} ({sak.avslatte_dager} dager)
-                          </span>
-                        </div>
-                        {harVurdering ? (
-                          <Badge variant={erUberettiget ? 'success' : 'danger'} size="sm">
-                            {erUberettiget ? 'Uberettiget avslag' : 'Berettiget avslag'}
-                          </Badge>
-                        ) : kanInferere ? (
-                          <Badge variant={harForseringsrettAvslag ? 'danger' : 'success'} size="sm">
-                            {harForseringsrettAvslag ? 'Berettiget avslag' : 'Uberettiget avslag'}
-                          </Badge>
-                        ) : (
-                          <Badge variant="default" size="sm">Ikke vurdert</Badge>
-                        )}
-                      </div>
-                    );
-                  })}
-                  {/* Show conclusion if we have per-sak data OR can infer from trigger */}
-                  {(vurderingPerSak && vurderingPerSak.length > 0) || harForseringsrettAvslag || dagerMedForseringsrett > 0 ? (
-                    <div className="pt-2 text-sm">
-                      <strong>Konklusjon:</strong>{' '}
-                      {dagerMedForseringsrett > 0 ? (
-                        <span className="text-green-700">
-                          TE har forseringsrett ({dagerMedForseringsrett} av {forseringData.avslatte_dager} dager)
-                        </span>
-                      ) : (
-                        <span className="text-red-700">
-                          TE har ikke forseringsrett (alle avslag var berettiget)
-                        </span>
-                      )}
-                    </div>
-                  ) : null}
-                </div>
-              </Collapsible>
+              <ForseringsrettVurderingTable
+                avslatteSaker={avslatteSaker!}
+                vurderingPerSak={vurderingPerSak}
+                harForseringsrettAvslag={harForseringsrettAvslag}
+                dagerMedForseringsrett={dagerMedForseringsrett}
+                totalAvslatteDager={forseringData.avslatte_dager}
+              />
             )}
 
             {/* Beløpsoversikt tabell */}
