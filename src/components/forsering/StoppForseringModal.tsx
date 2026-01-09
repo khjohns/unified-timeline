@@ -157,23 +157,23 @@ export function StoppForseringModal({
 
         {/* Current status */}
         <SectionContainer title="Nåværende status" variant="subtle">
-          <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="text-pkt-text-body-subtle">Iverksatt:</span>
-              <span className="ml-2">{formatDate(forseringData.dato_iverksatt)}</span>
+              <div className="text-pkt-text-body-subtle">Iverksatt</div>
+              <div>{formatDate(forseringData.dato_iverksatt)}</div>
             </div>
             <div>
-              <span className="text-pkt-text-body-subtle">Estimert kostnad:</span>
-              <span className="ml-2">{formatCurrency(forseringData.estimert_kostnad)}</span>
+              <div className="text-pkt-text-body-subtle">Estimert kostnad</div>
+              <div>{formatCurrency(forseringData.estimert_kostnad)}</div>
             </div>
             <div>
-              <span className="text-pkt-text-body-subtle">Avslåtte dager:</span>
-              <span className="ml-2">{forseringData.avslatte_dager} dager</span>
+              <div className="text-pkt-text-body-subtle">Avslåtte dager</div>
+              <div>{forseringData.avslatte_dager} dager</div>
             </div>
             {forseringData.paalopte_kostnader !== undefined && (
               <div>
-                <span className="text-pkt-text-body-subtle">Påløpt hittil:</span>
-                <span className="ml-2">{formatCurrency(forseringData.paalopte_kostnader)}</span>
+                <div className="text-pkt-text-body-subtle">Påløpt hittil</div>
+                <div>{formatCurrency(forseringData.paalopte_kostnader)}</div>
               </div>
             )}
           </div>

@@ -49,6 +49,7 @@ from models.sak_state import (
     EOStatus,
     EOKonsekvenser,
     ForseringData,
+    ForseringBHRespons,
 )
 from utils.logger import get_logger
 
@@ -538,10 +539,37 @@ class TimelineService:
             logger.warning("Mottok FORSERING_RESPONS uten forsering_data - ignorerer")
             return state
 
-        # Oppdater BH respons
+        # Legacy fields (bakoverkompatibilitet)
         state.forsering_data.bh_aksepterer_forsering = event.data.aksepterer
         state.forsering_data.bh_godkjent_kostnad = event.data.godkjent_kostnad
         state.forsering_data.bh_begrunnelse = event.data.begrunnelse
+
+        # Populer bh_respons med alle felter fra event
+        state.forsering_data.bh_respons = ForseringBHRespons(
+            # Port 1: Per-sak vurdering
+            vurdering_per_sak=event.data.vurdering_per_sak,
+            dager_med_forseringsrett=event.data.dager_med_forseringsrett,
+            grunnlag_fortsatt_gyldig=event.data.grunnlag_fortsatt_gyldig,
+            grunnlag_begrunnelse=event.data.grunnlag_begrunnelse,
+            # Port 2: 30%-regel
+            trettiprosent_overholdt=event.data.trettiprosent_overholdt,
+            trettiprosent_begrunnelse=event.data.trettiprosent_begrunnelse,
+            # Port 3: Beløpsvurdering
+            aksepterer=event.data.aksepterer,
+            godkjent_belop=event.data.godkjent_kostnad,
+            begrunnelse=event.data.begrunnelse,
+            # Port 3b: Særskilte krav
+            rigg_varslet_i_tide=event.data.rigg_varslet_i_tide,
+            produktivitet_varslet_i_tide=event.data.produktivitet_varslet_i_tide,
+            godkjent_rigg_drift=event.data.godkjent_rigg_drift,
+            godkjent_produktivitet=event.data.godkjent_produktivitet,
+            # Subsidiært standpunkt
+            subsidiaer_triggers=event.data.subsidiaer_triggers,
+            subsidiaer_godkjent_belop=event.data.subsidiaer_godkjent_belop,
+            subsidiaer_begrunnelse=event.data.subsidiaer_begrunnelse,
+            # Metadata
+            dato_respons=event.data.dato_respons,
+        )
 
         return state
 

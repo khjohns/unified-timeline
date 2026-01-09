@@ -136,20 +136,20 @@ export function OppdaterKostnaderModal({
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Current status */}
         <SectionContainer title="Kostnadsramme" variant="subtle">
-          <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="text-pkt-text-body-subtle">Estimert kostnad:</span>
-              <span className="ml-2">{formatCurrency(forseringData.estimert_kostnad)}</span>
+              <div className="text-pkt-text-body-subtle">Estimert kostnad</div>
+              <div>{formatCurrency(forseringData.estimert_kostnad)}</div>
             </div>
             <div>
-              <span className="text-pkt-text-body-subtle">Maks (30%-regel):</span>
-              <span className="ml-2">{formatCurrency(forseringData.maks_forseringskostnad)}</span>
+              <div className="text-pkt-text-body-subtle">Maks (30%-regel)</div>
+              <div>{formatCurrency(forseringData.maks_forseringskostnad)}</div>
             </div>
             <div>
-              <span className="text-pkt-text-body-subtle">Nåværende påløpt:</span>
-              <span className="ml-2 font-medium">
+              <div className="text-pkt-text-body-subtle">Nåværende påløpt</div>
+              <div className="font-medium">
                 {formatCurrency(forseringData.paalopte_kostnader)}
-              </span>
+              </div>
             </div>
           </div>
         </SectionContainer>

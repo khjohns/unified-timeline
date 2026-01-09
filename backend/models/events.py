@@ -1249,7 +1249,17 @@ class ForseringResponsData(BaseModel):
     - Port 2: 30%-regel (er kostnaden innenfor grensen?)
     - Port 3: Beløpsvurdering (hovedkrav + særskilte krav)
     """
-    # === Port 1: Grunnlagsvalidering ===
+    # === Port 1: Per-sak vurdering av forseringsrett (§33.8) ===
+    vurdering_per_sak: Optional[List[dict]] = Field(
+        default=None,
+        description="BHs vurdering av forseringsrett per sak"
+    )
+    dager_med_forseringsrett: Optional[int] = Field(
+        default=None,
+        ge=0,
+        description="Antall dager BH mener TE har forseringsrett for"
+    )
+    # Legacy fields for backward compatibility
     grunnlag_fortsatt_gyldig: Optional[bool] = Field(
         default=None,
         description="BH bekrefter at frist-avslaget fortsatt står ved lag"
