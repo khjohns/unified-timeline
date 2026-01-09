@@ -29,6 +29,8 @@ import {
   CurrencyInput,
   DatePicker,
   FormField,
+  InlineDataList,
+  InlineDataListItem,
   Modal,
   SectionContainer,
   Textarea,
@@ -254,31 +256,34 @@ export function SendForseringModal({
           >
             <div className="space-y-4">
               {/* Inline dag-oversikt */}
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm pb-2 border-b border-pkt-border-subtle">
-                <span>
-                  <span className="text-pkt-text-body-subtle">Krevd:</span>{' '}
-                  <span className="font-mono font-bold">{fristData.krevde_dager}</span> dager
-                </span>
-                <span className="text-pkt-border-subtle">|</span>
+              <InlineDataList bordered>
+                <InlineDataListItem label="Krevd" mono bold>
+                  {fristData.krevde_dager} dager
+                </InlineDataListItem>
                 {fristData.godkjent_dager === 0 ? (
-                  <span className="text-alert-danger-text">
-                    <span>{erSubsidiaer ? 'Subs. avslått' : 'Avslått'}:</span>{' '}
-                    <span className="font-mono font-bold">{avslatteDager}</span> dager
-                  </span>
+                  <InlineDataListItem
+                    label={erSubsidiaer ? 'Subs. avslått' : 'Avslått'}
+                    variant="danger"
+                    mono
+                    bold
+                  >
+                    {avslatteDager} dager
+                  </InlineDataListItem>
                 ) : (
                   <>
-                    <span>
-                      <span className="text-pkt-text-body-subtle">{erSubsidiaer ? 'Subs. godkjent:' : 'Godkjent:'}</span>{' '}
-                      <span className="font-mono font-bold">{fristData.godkjent_dager}</span>
-                    </span>
-                    <span className="text-pkt-border-subtle">|</span>
-                    <span className="text-alert-danger-text">
-                      <span>Avslått:</span>{' '}
-                      <span className="font-mono font-bold">{avslatteDager}</span>
-                    </span>
+                    <InlineDataListItem
+                      label={erSubsidiaer ? 'Subs. godkjent' : 'Godkjent'}
+                      mono
+                      bold
+                    >
+                      {fristData.godkjent_dager}
+                    </InlineDataListItem>
+                    <InlineDataListItem label="Avslått" variant="danger" mono bold>
+                      {avslatteDager}
+                    </InlineDataListItem>
                   </>
                 )}
-              </div>
+              </InlineDataList>
 
               <FormField
                 label="Dagmulktsats (NOK)"

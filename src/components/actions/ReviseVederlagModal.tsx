@@ -29,8 +29,12 @@ import {
   Checkbox,
   Collapsible,
   CurrencyInput,
+  DataList,
+  DataListItem,
   DatePicker,
   FormField,
+  InlineDataList,
+  InlineDataListItem,
   Modal,
   RevisionTag,
   SectionContainer,
@@ -389,27 +393,21 @@ export function ReviseVederlagModal({
         <SectionContainer title="Nåværende status" variant="subtle">
           <div className="space-y-4">
             {/* Ditt forrige krav - inline */}
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-              <span>
-                <span className="text-pkt-text-body-subtle">Metode:</span>{' '}
-                <span className="font-medium">{METODE_LABELS[forrigeMetode]}</span>
-              </span>
-              <span className="text-pkt-border-subtle">|</span>
-              <span>
-                <span className="text-pkt-text-body-subtle">
-                  {erRegningsarbeid ? 'Overslag:' : 'Beløp:'}
-                </span>{' '}
-                <span className="font-mono font-bold">
-                  kr {forrigeBelop?.toLocaleString('nb-NO') ?? 0},-
-                </span>
-              </span>
+            <InlineDataList>
+              <InlineDataListItem label="Metode">
+                {METODE_LABELS[forrigeMetode]}
+              </InlineDataListItem>
+              <InlineDataListItem
+                label={erRegningsarbeid ? 'Overslag' : 'Beløp'}
+                mono
+                bold
+              >
+                kr {forrigeBelop?.toLocaleString('nb-NO') ?? 0},-
+              </InlineDataListItem>
               {erEnhetspriser && lastVederlagEvent.krever_justert_ep && (
-                <>
-                  <span className="text-pkt-border-subtle">|</span>
-                  <Badge variant="info">Justert EP</Badge>
-                </>
+                <Badge variant="info">Justert EP</Badge>
               )}
-            </div>
+            </InlineDataList>
 
             {/* Byggherrens svar - collapsible */}
             {harBhSvar && bhResponse && (
@@ -417,69 +415,59 @@ export function ReviseVederlagModal({
                 title="Byggherrens svar"
                 defaultOpen={false}
               >
-                <div className="space-y-3 text-sm">
-                  {/* Resultat badge */}
-                  <div className="flex justify-between items-center">
-                    <span className="text-pkt-text-body-subtle">Resultat:</span>
-                    <Badge variant={RESULTAT_VARIANTS[bhResponse.resultat]}>
-                      {RESULTAT_LABELS[bhResponse.resultat]}
-                    </Badge>
-                  </div>
+                <div className="space-y-3">
+                  <DataList variant="grid">
+                    <DataListItem label="Resultat">
+                      <Badge variant={RESULTAT_VARIANTS[bhResponse.resultat]}>
+                        {RESULTAT_LABELS[bhResponse.resultat]}
+                      </Badge>
+                    </DataListItem>
 
-                  {/* Godkjent beløp */}
-                  {bhResponse.godkjent_belop != null && (
-                    <div className="flex justify-between">
-                      <span className="text-pkt-text-body-subtle">Godkjent beløp:</span>
-                      <span className="font-mono font-medium">
-                        kr {bhResponse.godkjent_belop.toLocaleString('nb-NO')},-
-                        {forrigeBelop && forrigeBelop > 0 && (
-                          <span className="text-pkt-text-body-subtle ml-2">
-                            ({((bhResponse.godkjent_belop / forrigeBelop) * 100).toFixed(0)}%)
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Metode-vurdering */}
-                  {bhResponse.aksepterer_metode !== undefined && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-pkt-text-body-subtle">Metode:</span>
-                      {bhResponse.aksepterer_metode ? (
-                        <Badge variant="success">Akseptert</Badge>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <Badge variant="danger">Avvist</Badge>
-                          {bhResponse.oensket_metode && (
-                            <span className="text-xs">
-                              → Ønsker {METODE_LABELS[bhResponse.oensket_metode]}
+                    {bhResponse.godkjent_belop != null && (
+                      <DataListItem label="Godkjent beløp">
+                        <span className="font-mono">
+                          kr {bhResponse.godkjent_belop.toLocaleString('nb-NO')},-
+                          {forrigeBelop && forrigeBelop > 0 && (
+                            <span className="text-pkt-text-body-subtle ml-2">
+                              ({((bhResponse.godkjent_belop / forrigeBelop) * 100).toFixed(0)}%)
                             </span>
                           )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* EP-justering */}
-                  {lastVederlagEvent.krever_justert_ep &&
-                    bhResponse.ep_justering_akseptert !== undefined && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-pkt-text-body-subtle">EP-justering (§34.3.3):</span>
-                        <Badge variant={bhResponse.ep_justering_akseptert ? 'success' : 'danger'}>
-                          {bhResponse.ep_justering_akseptert ? 'Akseptert' : 'Avvist'}
-                        </Badge>
-                      </div>
+                        </span>
+                      </DataListItem>
                     )}
 
-                  {/* Begrunnelse */}
-                  {bhResponse.begrunnelse && (
-                    <div className="pt-2 border-t border-pkt-border-subtle">
-                      <span className="text-pkt-text-body-subtle block mb-1">Begrunnelse:</span>
-                      <p className="italic text-pkt-text-body whitespace-pre-line">
-                        &ldquo;{bhResponse.begrunnelse}&rdquo;
-                      </p>
-                    </div>
-                  )}
+                    {bhResponse.aksepterer_metode !== undefined && (
+                      <DataListItem label="Metode">
+                        {bhResponse.aksepterer_metode ? (
+                          <Badge variant="success">Akseptert</Badge>
+                        ) : (
+                          <span className="flex items-center gap-2">
+                            <Badge variant="danger">Avvist</Badge>
+                            {bhResponse.oensket_metode && (
+                              <span className="text-xs">
+                                → Ønsker {METODE_LABELS[bhResponse.oensket_metode]}
+                              </span>
+                            )}
+                          </span>
+                        )}
+                      </DataListItem>
+                    )}
+
+                    {lastVederlagEvent.krever_justert_ep &&
+                      bhResponse.ep_justering_akseptert !== undefined && (
+                        <DataListItem label="EP-justering (§34.3.3)">
+                          <Badge variant={bhResponse.ep_justering_akseptert ? 'success' : 'danger'}>
+                            {bhResponse.ep_justering_akseptert ? 'Akseptert' : 'Avvist'}
+                          </Badge>
+                        </DataListItem>
+                      )}
+
+                    {bhResponse.begrunnelse && (
+                      <DataListItem label="Begrunnelse">
+                        <span className="italic">&ldquo;{bhResponse.begrunnelse}&rdquo;</span>
+                      </DataListItem>
+                    )}
+                  </DataList>
                 </div>
               </Collapsible>
             )}

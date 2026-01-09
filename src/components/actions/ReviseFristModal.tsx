@@ -22,6 +22,8 @@ import {
   Collapsible,
   DatePicker,
   FormField,
+  InlineDataList,
+  InlineDataListItem,
   Input,
   Modal,
   SectionContainer,
@@ -285,21 +287,19 @@ export function ReviseFristModal({
             {/* Status display - adapts to mode */}
             {modalMode === 'revider' ? (
               /* Revision mode: Inline status display */
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-                <span>
-                  <span className="text-pkt-text-body-subtle">Krevd:</span>{' '}
-                  <span className="font-mono font-bold">{lastFristEvent.antall_dager}</span> dager
-                </span>
-                <span className="text-pkt-border-subtle">|</span>
+              <InlineDataList>
+                <InlineDataListItem label="Krevd" mono bold>
+                  {lastFristEvent.antall_dager} dager
+                </InlineDataListItem>
                 {lastResponseEvent ? (
                   <>
-                    <span>
-                      <span className="text-pkt-text-body-subtle">
-                        {erSubsidiaer ? 'Subs. godkjent:' : 'Godkjent:'}
-                      </span>{' '}
-                      <span className="font-mono font-bold">{lastResponseEvent.godkjent_dager ?? 0}</span>
-                    </span>
-                    <span className="text-pkt-border-subtle">|</span>
+                    <InlineDataListItem
+                      label={erSubsidiaer ? 'Subs. godkjent' : 'Godkjent'}
+                      mono
+                      bold
+                    >
+                      {lastResponseEvent.godkjent_dager ?? 0}
+                    </InlineDataListItem>
                     <Badge variant={RESULTAT_VARIANTS[lastResponseEvent.resultat]}>
                       {RESULTAT_LABELS[lastResponseEvent.resultat]}
                     </Badge>
@@ -307,7 +307,7 @@ export function ReviseFristModal({
                 ) : (
                   <Badge variant="neutral">Avventer svar</Badge>
                 )}
-              </div>
+              </InlineDataList>
             ) : (
               /* Specification mode: Show neutral notice status */
               <div className="bg-pkt-bg-subtle p-4 rounded border border-pkt-grays-gray-200">
