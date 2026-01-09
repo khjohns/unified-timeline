@@ -24,6 +24,7 @@ import {
   AlertDialog,
   Badge,
   Button,
+  Collapsible,
   CurrencyInput,
   FormField,
   Modal,
@@ -599,7 +600,7 @@ export function BHResponsForseringModal({
           {/* PORT 1: Forseringsrett (§33.8) - Per-sak vurdering */}
           {currentPort === 1 && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Port 1: Forseringsrett (§33.8)</h3>
+              <h3 className="text-lg font-semibold">Forseringsrett (§33.8)</h3>
               <p className="text-sm text-pkt-text-body-subtle">
                 Etter NS 8407 §33.8 har entreprenøren rett til forseringsvederlag dersom byggherren
                 har avslått fristforlengelse uten berettiget grunn.
@@ -729,7 +730,7 @@ export function BHResponsForseringModal({
           {/* PORT 2: 30%-regel */}
           {currentPort === 2 && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Port 2: 30%-regelen (§33.8)</h3>
+              <h3 className="text-lg font-semibold">30%-regelen (§33.8)</h3>
               <p className="text-sm text-pkt-text-body-subtle">
                 Entreprenøren har ikke valgrett til forsering dersom forseringskostnadene
                 overstiger dagmulkten med tillegg av 30%.
@@ -788,7 +789,7 @@ export function BHResponsForseringModal({
           {/* PORT 3: Beløpsvurdering */}
           {currentPort === 3 && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Port 3: Beløpsvurdering</h3>
+              <h3 className="text-lg font-semibold">Beløpsvurdering</h3>
               <p className="text-sm text-pkt-text-body-subtle">
                 Vurder forseringskostnadene. Forsering dekkes etter regningsarbeid (§34.4).
               </p>
@@ -987,7 +988,305 @@ export function BHResponsForseringModal({
           {/* PORT 4: Oppsummering */}
           {currentPort === 4 && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Port 4: Oppsummering</h3>
+              <h3 className="text-lg font-semibold">Oppsummering</h3>
+
+              {/* Per-sak forseringsrett oppsummering */}
+              {avslatteSaker && avslatteSaker.length > 0 && (
+                <Collapsible
+                  title={`Forseringsrett-vurdering (${avslatteSaker.length} ${avslatteSaker.length === 1 ? 'sak' : 'saker'})`}
+                  defaultOpen={false}
+                >
+                  <div className="space-y-2">
+                    {avslatteSaker.map((sak) => {
+                      const vurdering = formData.vurdering_per_sak?.find(v => v.sak_id === sak.sak_id);
+                      const erUberettiget = vurdering?.avslag_berettiget === false;
+                      return (
+                        <div key={sak.sak_id} className="flex justify-between items-center py-2 border-b border-pkt-border-subtle last:border-b-0">
+                          <div className="flex-1">
+                            <span className="font-medium text-sm">{sak.sak_id}</span>
+                            <span className="text-sm text-pkt-text-body-subtle ml-2">
+                              {sak.tittel} ({sak.avslatte_dager} dager)
+                            </span>
+                          </div>
+                          <Badge variant={erUberettiget ? 'success' : 'danger'}>
+                            {erUberettiget ? 'Uberettiget avslag' : 'Berettiget avslag'}
+                          </Badge>
+                        </div>
+                      );
+                    })}
+                    <div className="pt-2 text-sm">
+                      <strong>Konklusjon:</strong>{' '}
+                      {computed.harForseringsrett ? (
+                        <span className="text-green-700">
+                          TE har forseringsrett ({computed.dagerUberettiget} av {computed.totalAvslatteDager} dager med uberettiget avslag)
+                        </span>
+                      ) : (
+                        <span className="text-red-700">
+                          TE har ikke forseringsrett (alle avslag var berettiget)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </Collapsible>
+              )}
+
+              {/* Beløpsoversikt tabell */}
+              <div className="p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
+                <h5 className="font-medium text-sm mb-3">Beløpsvurdering</h5>
+
+                {/* Desktop: tabell */}
+                <table className="hidden sm:table w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-pkt-border-subtle">
+                      <th className="text-left py-1">Krav</th>
+                      <th className="text-right py-1">Krevd</th>
+                      <th className="text-right py-1">Godkjent</th>
+                      <th className="text-right py-1">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {/* Hovedkrav */}
+                    <tr className="border-b border-pkt-border-subtle">
+                      <td className="py-2">Forseringskostnader</td>
+                      <td className="text-right font-mono">
+                        {formatCurrency(forseringData.estimert_kostnad)}
+                      </td>
+                      <td className="text-right font-mono">
+                        {formData.hovedkrav_vurdering === 'godkjent'
+                          ? formatCurrency(forseringData.estimert_kostnad)
+                          : formData.hovedkrav_vurdering === 'delvis'
+                            ? formatCurrency(formData.godkjent_belop)
+                            : formatCurrency(0)}
+                      </td>
+                      <td className="text-right">
+                        {formData.hovedkrav_vurdering === 'godkjent' && <Badge variant="success">Godkjent</Badge>}
+                        {formData.hovedkrav_vurdering === 'delvis' && <Badge variant="warning">Delvis</Badge>}
+                        {formData.hovedkrav_vurdering === 'avslatt' && <Badge variant="danger">Avvist</Badge>}
+                      </td>
+                    </tr>
+
+                    {/* Rigg/Drift */}
+                    {harRiggKrav && (
+                      <>
+                        <tr className="border-b border-pkt-border-subtle">
+                          <td className="py-2">
+                            Rigg/Drift
+                            {formData.rigg_varslet_i_tide === false && (
+                              <span className="text-xs text-pkt-grays-gray-500 ml-1">(prinsipalt)</span>
+                            )}
+                          </td>
+                          <td className={`text-right font-mono ${formData.rigg_varslet_i_tide === false ? 'line-through text-pkt-grays-gray-400' : ''}`}>
+                            {formatCurrency(forseringData.vederlag?.saerskilt_krav?.rigg_drift?.belop)}
+                          </td>
+                          <td className="text-right font-mono">
+                            {formData.rigg_varslet_i_tide === false
+                              ? formatCurrency(0)
+                              : formData.rigg_vurdering === 'godkjent'
+                                ? formatCurrency(forseringData.vederlag?.saerskilt_krav?.rigg_drift?.belop)
+                                : formData.rigg_vurdering === 'delvis'
+                                  ? formatCurrency(formData.godkjent_rigg_drift)
+                                  : formatCurrency(0)}
+                          </td>
+                          <td className="text-right">
+                            {formData.rigg_varslet_i_tide === false ? (
+                              <Badge variant="danger">Prekludert</Badge>
+                            ) : formData.rigg_vurdering === 'godkjent' ? (
+                              <Badge variant="success">Godkjent</Badge>
+                            ) : formData.rigg_vurdering === 'delvis' ? (
+                              <Badge variant="warning">Delvis</Badge>
+                            ) : (
+                              <Badge variant="danger">Avvist</Badge>
+                            )}
+                          </td>
+                        </tr>
+                        {/* Subsidiær rad for prekludert rigg */}
+                        {formData.rigg_varslet_i_tide === false && (
+                          <tr className="border-b border-pkt-border-subtle bg-alert-warning-bg text-alert-warning-text">
+                            <td className="py-2 italic">↳ Subsidiært</td>
+                            <td className="text-right font-mono">
+                              ({formatCurrency(forseringData.vederlag?.saerskilt_krav?.rigg_drift?.belop)})
+                            </td>
+                            <td className="text-right font-mono">
+                              {formData.rigg_vurdering === 'godkjent'
+                                ? formatCurrency(forseringData.vederlag?.saerskilt_krav?.rigg_drift?.belop)
+                                : formData.rigg_vurdering === 'delvis'
+                                  ? formatCurrency(formData.godkjent_rigg_drift)
+                                  : formatCurrency(0)}
+                            </td>
+                            <td className="text-right">
+                              {formData.rigg_vurdering === 'godkjent' ? (
+                                <Badge variant="success">Godkjent</Badge>
+                              ) : formData.rigg_vurdering === 'delvis' ? (
+                                <Badge variant="warning">Delvis</Badge>
+                              ) : (
+                                <Badge variant="danger">Avvist</Badge>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </>
+                    )}
+
+                    {/* Produktivitet */}
+                    {harProduktivitetKrav && (
+                      <>
+                        <tr className="border-b border-pkt-border-subtle">
+                          <td className="py-2">
+                            Produktivitet
+                            {formData.produktivitet_varslet_i_tide === false && (
+                              <span className="text-xs text-pkt-grays-gray-500 ml-1">(prinsipalt)</span>
+                            )}
+                          </td>
+                          <td className={`text-right font-mono ${formData.produktivitet_varslet_i_tide === false ? 'line-through text-pkt-grays-gray-400' : ''}`}>
+                            {formatCurrency(forseringData.vederlag?.saerskilt_krav?.produktivitet?.belop)}
+                          </td>
+                          <td className="text-right font-mono">
+                            {formData.produktivitet_varslet_i_tide === false
+                              ? formatCurrency(0)
+                              : formData.produktivitet_vurdering === 'godkjent'
+                                ? formatCurrency(forseringData.vederlag?.saerskilt_krav?.produktivitet?.belop)
+                                : formData.produktivitet_vurdering === 'delvis'
+                                  ? formatCurrency(formData.godkjent_produktivitet)
+                                  : formatCurrency(0)}
+                          </td>
+                          <td className="text-right">
+                            {formData.produktivitet_varslet_i_tide === false ? (
+                              <Badge variant="danger">Prekludert</Badge>
+                            ) : formData.produktivitet_vurdering === 'godkjent' ? (
+                              <Badge variant="success">Godkjent</Badge>
+                            ) : formData.produktivitet_vurdering === 'delvis' ? (
+                              <Badge variant="warning">Delvis</Badge>
+                            ) : (
+                              <Badge variant="danger">Avvist</Badge>
+                            )}
+                          </td>
+                        </tr>
+                        {/* Subsidiær rad for prekludert produktivitet */}
+                        {formData.produktivitet_varslet_i_tide === false && (
+                          <tr className="border-b border-pkt-border-subtle bg-alert-warning-bg text-alert-warning-text">
+                            <td className="py-2 italic">↳ Subsidiært</td>
+                            <td className="text-right font-mono">
+                              ({formatCurrency(forseringData.vederlag?.saerskilt_krav?.produktivitet?.belop)})
+                            </td>
+                            <td className="text-right font-mono">
+                              {formData.produktivitet_vurdering === 'godkjent'
+                                ? formatCurrency(forseringData.vederlag?.saerskilt_krav?.produktivitet?.belop)
+                                : formData.produktivitet_vurdering === 'delvis'
+                                  ? formatCurrency(formData.godkjent_produktivitet)
+                                  : formatCurrency(0)}
+                            </td>
+                            <td className="text-right">
+                              {formData.produktivitet_vurdering === 'godkjent' ? (
+                                <Badge variant="success">Godkjent</Badge>
+                              ) : formData.produktivitet_vurdering === 'delvis' ? (
+                                <Badge variant="warning">Delvis</Badge>
+                              ) : (
+                                <Badge variant="danger">Avvist</Badge>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </>
+                    )}
+
+                    {/* Totalt */}
+                    <tr className="font-bold">
+                      <td className="py-2">TOTALT</td>
+                      <td className="text-right font-mono">{formatCurrency(computed.totalKrevd)}</td>
+                      <td className="text-right font-mono">{formatCurrency(computed.totalGodkjent)}</td>
+                      <td></td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                {/* Mobile: kort-layout */}
+                <div className="sm:hidden space-y-3">
+                  {/* Hovedkrav */}
+                  <div className="p-2 border border-pkt-border-subtle rounded-none">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="font-medium">Forseringskostnader</span>
+                      {formData.hovedkrav_vurdering === 'godkjent' && <Badge variant="success">Godkjent</Badge>}
+                      {formData.hovedkrav_vurdering === 'delvis' && <Badge variant="warning">Delvis</Badge>}
+                      {formData.hovedkrav_vurdering === 'avslatt' && <Badge variant="danger">Avvist</Badge>}
+                    </div>
+                    <div className="text-sm text-pkt-text-body-subtle">
+                      Krevd: {formatCurrency(forseringData.estimert_kostnad)} →{' '}
+                      Godkjent: {formData.hovedkrav_vurdering === 'godkjent'
+                        ? formatCurrency(forseringData.estimert_kostnad)
+                        : formData.hovedkrav_vurdering === 'delvis'
+                          ? formatCurrency(formData.godkjent_belop)
+                          : formatCurrency(0)}
+                    </div>
+                  </div>
+
+                  {/* Rigg/Drift */}
+                  {harRiggKrav && (
+                    <div className="p-2 border border-pkt-border-subtle rounded-none">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="font-medium">Rigg/Drift</span>
+                        {formData.rigg_varslet_i_tide === false ? (
+                          <Badge variant="danger">Prekludert</Badge>
+                        ) : formData.rigg_vurdering === 'godkjent' ? (
+                          <Badge variant="success">Godkjent</Badge>
+                        ) : formData.rigg_vurdering === 'delvis' ? (
+                          <Badge variant="warning">Delvis</Badge>
+                        ) : (
+                          <Badge variant="danger">Avvist</Badge>
+                        )}
+                      </div>
+                      <div className="text-sm text-pkt-text-body-subtle">
+                        Krevd: {formatCurrency(forseringData.vederlag?.saerskilt_krav?.rigg_drift?.belop)} →{' '}
+                        Godkjent: {formData.rigg_varslet_i_tide === false
+                          ? formatCurrency(0)
+                          : formData.rigg_vurdering === 'godkjent'
+                            ? formatCurrency(forseringData.vederlag?.saerskilt_krav?.rigg_drift?.belop)
+                            : formData.rigg_vurdering === 'delvis'
+                              ? formatCurrency(formData.godkjent_rigg_drift)
+                              : formatCurrency(0)}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Produktivitet */}
+                  {harProduktivitetKrav && (
+                    <div className="p-2 border border-pkt-border-subtle rounded-none">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="font-medium">Produktivitet</span>
+                        {formData.produktivitet_varslet_i_tide === false ? (
+                          <Badge variant="danger">Prekludert</Badge>
+                        ) : formData.produktivitet_vurdering === 'godkjent' ? (
+                          <Badge variant="success">Godkjent</Badge>
+                        ) : formData.produktivitet_vurdering === 'delvis' ? (
+                          <Badge variant="warning">Delvis</Badge>
+                        ) : (
+                          <Badge variant="danger">Avvist</Badge>
+                        )}
+                      </div>
+                      <div className="text-sm text-pkt-text-body-subtle">
+                        Krevd: {formatCurrency(forseringData.vederlag?.saerskilt_krav?.produktivitet?.belop)} →{' '}
+                        Godkjent: {formData.produktivitet_varslet_i_tide === false
+                          ? formatCurrency(0)
+                          : formData.produktivitet_vurdering === 'godkjent'
+                            ? formatCurrency(forseringData.vederlag?.saerskilt_krav?.produktivitet?.belop)
+                            : formData.produktivitet_vurdering === 'delvis'
+                              ? formatCurrency(formData.godkjent_produktivitet)
+                              : formatCurrency(0)}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Totalt */}
+                  <div className="p-2 bg-pkt-surface-gray border border-pkt-border-subtle rounded-none">
+                    <div className="flex justify-between font-bold">
+                      <span>TOTALT</span>
+                      <span>{formatCurrency(computed.totalGodkjent)}</span>
+                    </div>
+                    <div className="text-sm text-pkt-text-body-subtle">
+                      av {formatCurrency(computed.totalKrevd)} krevd
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               {/* Resultat */}
               <div className="p-4 border-2 border-pkt-border-default rounded-none space-y-3">
@@ -1050,6 +1349,7 @@ export function BHResponsForseringModal({
                       {...field}
                       placeholder="Legg til ytterligere kommentarer hvis ønskelig..."
                       rows={3}
+                      fullWidth
                     />
                   </FormField>
                 )}
