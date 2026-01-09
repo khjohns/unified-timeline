@@ -29,6 +29,8 @@ import {
   DataList,
   DataListItem,
   FormField,
+  InlineDataList,
+  InlineDataListItem,
   Modal,
   RadioGroup,
   RadioItem,
@@ -650,17 +652,17 @@ export function BHResponsForseringModal({
 
               {/* Info about the forsering */}
               <SectionContainer title="Forseringskrav fra entreprenør" variant="subtle">
-                <DataList variant="grid">
-                  <DataListItem label="Varslet">
+                <InlineDataList>
+                  <InlineDataListItem label="Varslet">
                     {formatDate(forseringData.dato_varslet)}
-                  </DataListItem>
-                  <DataListItem label="Totalt avslåtte dager">
-                    {computed.totalAvslatteDager} dager
-                  </DataListItem>
-                  <DataListItem label="Antall avslåtte saker">
+                  </InlineDataListItem>
+                  <InlineDataListItem label="Avslåtte saker" mono bold>
                     {avslatteSaker?.length ?? forseringData.avslatte_fristkrav?.length ?? 0}
-                  </DataListItem>
-                </DataList>
+                  </InlineDataListItem>
+                  <InlineDataListItem label="Avslåtte dager (sum)" mono bold>
+                    {computed.totalAvslatteDager}
+                  </InlineDataListItem>
+                </InlineDataList>
               </SectionContainer>
 
               {/* Grunnlag validation warning (informational only, not blocking) */}
