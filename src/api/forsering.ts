@@ -6,7 +6,7 @@
  */
 
 import { apiFetch, USE_MOCK_API, mockDelay } from './client';
-import { getMockForseringKontekstById, getMockKandidatSaker } from '../mocks';
+import { getMockForseringKontekstById, getMockKandidatSaker } from '@mocks';
 import type { SakState, TimelineEvent, SakRelasjon, TimelineEntry } from '../types/timeline';
 
 /**

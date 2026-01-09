@@ -6,7 +6,7 @@
 
 import { apiFetch, USE_MOCK_API, mockDelay } from './client';
 import { CaseListResponse, CaseListItem } from '../types/api';
-import { mockCaseList } from '../mocks';
+import { mockCaseList } from '@mocks';
 
 /**
  * Fetch all cases

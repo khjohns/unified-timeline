@@ -6,7 +6,7 @@
  */
 
 import { apiFetch, USE_MOCK_API, mockDelay } from './client';
-import { getMockStateById, getMockTimelineById } from '../mocks/helpers';
+import { getMockStateById, getMockTimelineById } from '@mocks/helpers';
 import type {
   SakState,
   TimelineEvent,
