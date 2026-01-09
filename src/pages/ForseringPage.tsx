@@ -289,6 +289,26 @@ export function ForseringPage() {
     );
   }, [kontekstData]);
 
+  // Calculate avslatteSaker data for BHResponsForseringModal
+  const avslatteSaker = useMemo(() => {
+    if (!kontekstData || !forseringData.avslatte_fristkrav) return [];
+
+    return forseringData.avslatte_fristkrav.map(sakId => {
+      const sakState = kontekstData.sak_states[sakId];
+      const grunnlagInfo = kontekstData.oppsummering?.grunnlag_oversikt?.find(
+        g => g.sak_id === sakId
+      );
+      const krevd = sakState?.frist?.krevd_dager ?? 0;
+      const godkjent = sakState?.frist?.godkjent_dager ?? 0;
+
+      return {
+        sak_id: sakId,
+        tittel: grunnlagInfo?.tittel ?? sakState?.sakstittel ?? sakId,
+        avslatte_dager: krevd - godkjent,
+      };
+    });
+  }, [kontekstData, forseringData.avslatte_fristkrav]);
+
   // Auth verification in progress
   if (isVerifying) {
     return <VerifyingState />;
@@ -482,6 +502,7 @@ export function ForseringPage() {
         forseringData={forseringData}
         currentVersion={caseData?.version}
         lastResponse={forseringData.bh_respons}
+        avslatteSaker={avslatteSaker}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['forsering', sakId, 'kontekst'] });
           queryClient.invalidateQueries({ queryKey: ['case', sakId] });

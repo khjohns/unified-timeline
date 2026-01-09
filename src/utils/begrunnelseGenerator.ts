@@ -676,6 +676,14 @@ export function generateFristResponseBegrunnelse(input: FristResponseInput): str
 
 type BelopVurderingForsering = 'godkjent' | 'delvis' | 'avslatt';
 
+/** Per-sak vurdering med detaljer for begrunnelse-generering */
+interface PerSakVurderingMedDetaljer {
+  sak_id: string;
+  avslag_berettiget: boolean;
+  sakTittel?: string;
+  avslatteDager?: number;
+}
+
 export interface ForseringResponseInput {
   // Kalkulasjonsgrunnlag
   avslatteDager: number;
@@ -683,9 +691,11 @@ export interface ForseringResponseInput {
   maksForseringskostnad: number;
   estimertKostnad: number;
 
-  // Port 1: Grunnlagsvalidering
-  grunnlagFortsattGyldig: boolean;
-  grunnlagBegrunnelse?: string;
+  // Port 1: Per-sak vurdering av forseringsrett (§33.8)
+  vurderingPerSak?: PerSakVurderingMedDetaljer[];
+  dagerMedForseringsrett?: number;
+  // Computed from vurderingPerSak - true if any rejection was unjust
+  teHarForseringsrett: boolean;
 
   // Port 2: 30%-regel
   trettiprosentOverholdt: boolean;
@@ -717,24 +727,91 @@ export interface ForseringResponseInput {
 }
 
 /**
- * Generate section for Port 1: Grunnlagsvalidering
+ * Generate section for Port 1: Forseringsrett (§33.8) with per-sak vurdering
  */
 function generateForseringGrunnlagSection(input: ForseringResponseInput): string {
-  if (input.grunnlagFortsattGyldig) {
+  const { vurderingPerSak, dagerMedForseringsrett, teHarForseringsrett, avslatteDager } = input;
+  const lines: string[] = [];
+
+  // If we have per-sak vurdering, generate detailed text
+  if (vurderingPerSak && vurderingPerSak.length > 0) {
+    const uberettigedeSaker = vurderingPerSak.filter(v => !v.avslag_berettiget);
+    const berettigedeSaker = vurderingPerSak.filter(v => v.avslag_berettiget);
+
+    if (uberettigedeSaker.length > 0 && berettigedeSaker.length > 0) {
+      // Mixed case - some rejections were justified, some were not
+      lines.push(
+        'Byggherren har vurdert hver av de avslåtte fristsakene som ligger til grunn for forseringskravet:'
+      );
+
+      // List uberettigede
+      const uberettigedeText = uberettigedeSaker.map(v => {
+        const dager = v.avslatteDager ? ` (${v.avslatteDager} dager)` : '';
+        return `${v.sak_id}${v.sakTittel ? ': ' + v.sakTittel : ''}${dager}`;
+      }).join(', ');
+      lines.push(
+        `For følgende saker erkjennes det at avslaget var uberettiget: ${uberettigedeText}.`
+      );
+
+      // List berettigede
+      const berettigedeText = berettigedeSaker.map(v => {
+        const dager = v.avslatteDager ? ` (${v.avslatteDager} dager)` : '';
+        return `${v.sak_id}${v.sakTittel ? ': ' + v.sakTittel : ''}${dager}`;
+      }).join(', ');
+      lines.push(
+        `For følgende saker fastholdes det at avslaget var berettiget: ${berettigedeText}.`
+      );
+
+      // Summary
+      const totalUberettigetDager = dagerMedForseringsrett ?? uberettigedeSaker.reduce(
+        (sum, v) => sum + (v.avslatteDager ?? 0), 0
+      );
+      lines.push(
+        `Entreprenøren har dermed rett til forseringsvederlag for ${totalUberettigetDager} av totalt ${avslatteDager} avslåtte dager iht. §33.8.`
+      );
+    } else if (uberettigedeSaker.length > 0) {
+      // All rejections were unjust
+      if (vurderingPerSak.length > 1) {
+        lines.push(
+          `Byggherren erkjenner at avslagene på fristforlengelse i alle ${vurderingPerSak.length} saker var uberettiget. ` +
+          `Entreprenøren har dermed rett til forseringsvederlag for samtlige ${avslatteDager} dager iht. §33.8.`
+        );
+      } else {
+        lines.push(
+          'Byggherren erkjenner at avslaget på fristforlengelse var uberettiget. ' +
+          'Entreprenøren har dermed rett til forseringsvederlag iht. §33.8.'
+        );
+      }
+    } else {
+      // All rejections were just (berettigedeSaker.length > 0)
+      if (vurderingPerSak.length > 1) {
+        lines.push(
+          `Byggherren fastholder at avslagene på fristforlengelse i alle ${vurderingPerSak.length} saker var berettiget. ` +
+          'Entreprenøren hadde ikke krav på fristforlengelse og har derfor ikke rett til forseringsvederlag etter §33.8.'
+        );
+      } else {
+        lines.push(
+          'Byggherren fastholder at avslaget på fristforlengelse var berettiget. ' +
+          'Entreprenøren hadde ikke krav på fristforlengelse og har derfor ikke rett til forseringsvederlag etter §33.8.'
+        );
+      }
+    }
+
+    return lines.join(' ');
+  }
+
+  // Fallback: No per-sak vurdering available, use simple binary logic
+  if (teHarForseringsrett) {
     return (
-      'Byggherren fastholder at avslaget på fristforlengelse var berettiget. ' +
-      'Grunnlaget for forseringskravet iht. §33.8 er dermed til stede.'
+      'Byggherren erkjenner at avslaget på fristforlengelse var uberettiget. ' +
+      'Entreprenøren har dermed rett til forseringsvederlag iht. §33.8.'
     );
   }
 
-  const begrunnelse = input.grunnlagBegrunnelse
-    ? ` Begrunnelse: ${input.grunnlagBegrunnelse}`
-    : '';
   return (
-    'Byggherren erkjenner at det opprinnelige avslaget på fristforlengelse ikke kan opprettholdes. ' +
-    'Entreprenøren hadde dermed ikke rett til å iverksette forsering etter §33.8, og ' +
-    'forseringskostnadene kan ikke kreves dekket på dette grunnlag.' +
-    begrunnelse
+    'Byggherren fastholder at avslaget på fristforlengelse var berettiget. ' +
+    'Entreprenøren hadde ikke krav på fristforlengelse og har derfor ikke rett til ' +
+    'forseringsvederlag etter §33.8.'
   );
 }
 
@@ -942,12 +1019,12 @@ function generateForseringKonklusjonSection(input: ForseringResponseInput): stri
 export function generateForseringResponseBegrunnelse(input: ForseringResponseInput): string {
   const sections: string[] = [];
 
-  // Port 1: Grunnlagsvalidering
+  // Port 1: Forseringsrett (§33.8)
   const grunnlagSection = generateForseringGrunnlagSection(input);
   sections.push(grunnlagSection);
 
-  // Hvis grunnlag ikke gyldig, stopp her
-  if (!input.grunnlagFortsattGyldig) {
+  // Hvis TE ikke har forseringsrett, stopp her - kravet avslås
+  if (!input.teHarForseringsrett) {
     return sections.join('\n\n');
   }
 

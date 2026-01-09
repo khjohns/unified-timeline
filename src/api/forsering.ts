@@ -123,6 +123,12 @@ export interface StoppForseringResponse extends CatendaSyncStatus {
   dato_stoppet: string;
 }
 
+/** Per-sak vurdering av om avslaget var berettiget */
+export interface ForseringsrettVurdering {
+  sak_id: string;
+  avslag_berettiget: boolean;
+}
+
 export interface BHResponsForseringRequest {
   forsering_sak_id: string;
   aksepterer: boolean;
@@ -130,9 +136,12 @@ export interface BHResponsForseringRequest {
   begrunnelse: string;
   expected_version?: number;
 
-  // Port 1: Grunnlagsvalidering
+  // Port 1: Per-sak vurdering av forseringsrett (§33.8)
+  vurdering_per_sak?: ForseringsrettVurdering[];
+  dager_med_forseringsrett?: number;
+  // Backward compatibility: old field with inverted semantics
+  // grunnlag_fortsatt_gyldig=true means "rejection was justified" (TE has NO right)
   grunnlag_fortsatt_gyldig?: boolean;
-  grunnlag_begrunnelse?: string;
 
   // Port 2: 30%-regel
   trettiprosent_overholdt?: boolean;
@@ -406,9 +415,10 @@ export async function bhResponsForsering(
         godkjent_kostnad: data.godkjent_kostnad,
         begrunnelse: data.begrunnelse,
         expected_version: data.expected_version,
-        // Port 1: Grunnlagsvalidering
+        // Port 1: Per-sak vurdering av forseringsrett (§33.8)
+        vurdering_per_sak: data.vurdering_per_sak,
+        dager_med_forseringsrett: data.dager_med_forseringsrett,
         grunnlag_fortsatt_gyldig: data.grunnlag_fortsatt_gyldig,
-        grunnlag_begrunnelse: data.grunnlag_begrunnelse,
         // Port 2: 30%-regel
         trettiprosent_overholdt: data.trettiprosent_overholdt,
         trettiprosent_begrunnelse: data.trettiprosent_begrunnelse,

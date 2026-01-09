@@ -5,7 +5,7 @@
  * Uses a 4-port wizard model based on NS 8407 requirements.
  *
  * WIZARD STRUCTURE:
- * - Port 1: Grunnlagsvalidering - Is the rejection still valid?
+ * - Port 1: Forseringsrett - Does TE have right to acceleration compensation?
  * - Port 2: 30%-regel - Is cost within 30% limit?
  * - Port 3: Beløpsvurdering - Amount evaluation (hovedkrav + særskilte krav)
  * - Port 4: Oppsummering - Summary with principal AND subsidiary results
@@ -56,6 +56,19 @@ import {
 
 type BelopVurdering = 'godkjent' | 'delvis' | 'avslatt';
 
+/** Per-sak data for avslåtte fristkrav */
+interface RelatertSakMedAvslag {
+  sak_id: string;
+  tittel: string;
+  avslatte_dager: number;
+}
+
+/** Per-sak vurdering av om avslaget var berettiget */
+interface ForseringsrettVurdering {
+  sak_id: string;
+  avslag_berettiget: boolean;
+}
+
 interface BHResponsForseringModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -65,16 +78,22 @@ interface BHResponsForseringModalProps {
   /** Previous response data for update mode */
   lastResponse?: ForseringData['bh_respons'];
   onSuccess?: () => void;
+  /** Per-sak data for avslåtte fristkrav (fra ForseringKontekst) */
+  avslatteSaker?: RelatertSakMedAvslag[];
 }
 
 // ============================================================================
 // ZOD SCHEMA
 // ============================================================================
 
+const forseringsrettVurderingSchema = z.object({
+  sak_id: z.string(),
+  avslag_berettiget: z.boolean(),
+});
+
 const bhResponsForseringSchema = z.object({
-  // Port 1: Grunnlagsvalidering
-  grunnlag_fortsatt_gyldig: z.boolean(),
-  grunnlag_begrunnelse: z.string().optional(),
+  // Port 1: Per-sak vurdering av forseringsrett (§33.8)
+  vurdering_per_sak: z.array(forseringsrettVurderingSchema).default([]),
 
   // Port 2: 30%-regel
   trettiprosent_overholdt: z.boolean(),
@@ -141,14 +160,14 @@ function beregnTotalKrevd(forseringData: ForseringData): number {
 function beregnPrinsipaltResultat(
   data: Partial<BHResponsForseringFormData>,
   computed: {
-    grunnlagOk: boolean;
+    harForseringsrett: boolean;
     trettiprosentOk: boolean;
     totalGodkjent: number;
     totalKrevd: number;
   }
 ): 'godkjent' | 'delvis_godkjent' | 'avslatt' {
-  // If grunnlag or 30% rule fails, reject
-  if (!computed.grunnlagOk || !computed.trettiprosentOk) {
+  // If TE doesn't have acceleration right or 30% rule fails, reject
+  if (!computed.harForseringsrett || !computed.trettiprosentOk) {
     return 'avslatt';
   }
 
@@ -179,6 +198,7 @@ export function BHResponsForseringModal({
   currentVersion = 0,
   lastResponse,
   onSuccess,
+  avslatteSaker,
 }: BHResponsForseringModalProps) {
   const isUpdateMode = !!lastResponse;
   const [currentPort, setCurrentPort] = useState(1);
@@ -212,9 +232,27 @@ export function BHResponsForseringModal({
   // Compute defaultValues based on mode
   const computedDefaultValues = useMemo((): Partial<BHResponsForseringFormData> => {
     if (isUpdateMode && lastResponse) {
+      // Restore per-sak vurdering from lastResponse
+      // If lastResponse has vurdering_per_sak, use it directly
+      // Otherwise, convert from old grunnlag_fortsatt_gyldig field
+      let vurderingPerSak: ForseringsrettVurdering[] = [];
+
+      if (lastResponse.vurdering_per_sak && lastResponse.vurdering_per_sak.length > 0) {
+        // Use existing per-sak vurdering
+        vurderingPerSak = lastResponse.vurdering_per_sak;
+      } else if (avslatteSaker && avslatteSaker.length > 0) {
+        // Convert from old binary field - all saker get same vurdering
+        // grunnlag_fortsatt_gyldig=true meant "rejection was justified" (TE has NO right)
+        // grunnlag_fortsatt_gyldig=false meant "rejection was unjustified" (TE HAS right)
+        const avslagBerettiget = lastResponse.grunnlag_fortsatt_gyldig ?? true;
+        vurderingPerSak = avslatteSaker.map(sak => ({
+          sak_id: sak.sak_id,
+          avslag_berettiget: avslagBerettiget,
+        }));
+      }
+
       return {
-        grunnlag_fortsatt_gyldig: lastResponse.grunnlag_fortsatt_gyldig ?? true,
-        grunnlag_begrunnelse: lastResponse.grunnlag_begrunnelse ?? '',
+        vurdering_per_sak: vurderingPerSak,
         trettiprosent_overholdt: lastResponse.trettiprosent_overholdt ?? true,
         trettiprosent_begrunnelse: lastResponse.trettiprosent_begrunnelse ?? '',
         hovedkrav_vurdering: lastResponse.aksepterer ? 'godkjent' : 'avslatt',
@@ -227,13 +265,14 @@ export function BHResponsForseringModal({
       };
     }
     return {
-      grunnlag_fortsatt_gyldig: true,
+      // Default: empty array - user must choose for each sak
+      vurdering_per_sak: [],
       trettiprosent_overholdt: true,
       hovedkrav_vurdering: 'godkjent',
       rigg_varslet_i_tide: true,
       produktivitet_varslet_i_tide: true,
     };
-  }, [isUpdateMode, lastResponse]);
+  }, [isUpdateMode, lastResponse, avslatteSaker]);
 
   // Form setup
   const {
@@ -293,6 +332,22 @@ export function BHResponsForseringModal({
   const computed = useMemo(() => {
     const totalKrevd = beregnTotalKrevd(forseringData);
 
+    // Calculate total avslåtte dager (from avslatteSaker or fallback to forseringData)
+    const totalAvslatteDager = avslatteSaker?.reduce(
+      (sum, sak) => sum + sak.avslatte_dager, 0
+    ) ?? forseringData.avslatte_dager;
+
+    // Calculate dager med uberettiget avslag (from per-sak vurdering)
+    const dagerUberettiget = (formData.vurdering_per_sak ?? [])
+      .filter(v => v.avslag_berettiget === false)
+      .reduce((sum, v) => {
+        const sak = avslatteSaker?.find(s => s.sak_id === v.sak_id);
+        return sum + (sak?.avslatte_dager ?? 0);
+      }, 0);
+
+    // TE has forseringsrett if any rejection was unjustified
+    const harForseringsrett = dagerUberettiget > 0;
+
     // Calculate godkjent based on vurdering
     let hovedkravGodkjent = 0;
     if (formData.hovedkrav_vurdering === 'godkjent') {
@@ -350,9 +405,6 @@ export function BHResponsForseringModal({
       (harProduktivitetKrav && formData.produktivitet_varslet_i_tide === false);
 
     const subsidiaerTriggers: SubsidiaerTrigger[] = [];
-    if (!formData.grunnlag_fortsatt_gyldig) {
-      subsidiaerTriggers.push('grunnlag_avslatt');
-    }
     if (harRiggKrav && formData.rigg_varslet_i_tide === false) {
       subsidiaerTriggers.push('preklusjon_rigg');
     }
@@ -366,20 +418,35 @@ export function BHResponsForseringModal({
       subsidiaerGodkjent,
       harPrekludertKrav,
       subsidiaerTriggers,
-      grunnlagOk: formData.grunnlag_fortsatt_gyldig ?? true,
+      // Per-sak vurdering computed values
+      totalAvslatteDager,
+      dagerUberettiget,
+      harForseringsrett,
       trettiprosentOk: formData.trettiprosent_overholdt ?? true,
     };
-  }, [formData, forseringData, harRiggKrav, harProduktivitetKrav]);
+  }, [formData, forseringData, harRiggKrav, harProduktivitetKrav, avslatteSaker]);
 
   // Generate auto-begrunnelse
   const autoBegrunnelse = useMemo(() => {
+    // Build per-sak vurdering with titles and dager for begrunnelse
+    const vurderingPerSakMedDetaljer = (formData.vurdering_per_sak ?? []).map(v => {
+      const sak = avslatteSaker?.find(s => s.sak_id === v.sak_id);
+      return {
+        ...v,
+        sakTittel: sak?.tittel,
+        avslatteDager: sak?.avslatte_dager,
+      };
+    });
+
     const input: ForseringResponseInput = {
       avslatteDager: forseringData.avslatte_dager,
       dagmulktsats: forseringData.dagmulktsats,
       maksForseringskostnad: forseringData.maks_forseringskostnad,
       estimertKostnad: forseringData.estimert_kostnad,
-      grunnlagFortsattGyldig: formData.grunnlag_fortsatt_gyldig ?? true,
-      grunnlagBegrunnelse: formData.grunnlag_begrunnelse,
+      // New per-sak vurdering fields
+      vurderingPerSak: vurderingPerSakMedDetaljer,
+      dagerMedForseringsrett: computed.dagerUberettiget,
+      teHarForseringsrett: computed.harForseringsrett,
       trettiprosentOverholdt: formData.trettiprosent_overholdt ?? true,
       trettiprosentBegrunnelse: formData.trettiprosent_begrunnelse,
       hovedkravVurdering: formData.hovedkrav_vurdering ?? 'godkjent',
@@ -403,7 +470,7 @@ export function BHResponsForseringModal({
       subsidiaerGodkjentBelop: computed.subsidiaerGodkjent,
     };
     return generateForseringResponseBegrunnelse(input);
-  }, [formData, forseringData, harRiggKrav, harProduktivitetKrav, computed]);
+  }, [formData, forseringData, harRiggKrav, harProduktivitetKrav, computed, avslatteSaker]);
 
   // Submit handler
   const onSubmit = async (data: BHResponsForseringFormData) => {
@@ -419,8 +486,12 @@ export function BHResponsForseringModal({
         godkjent_kostnad: computed.totalGodkjent,
         begrunnelse: finalBegrunnelse,
         expected_version: currentVersion,
-        grunnlag_fortsatt_gyldig: data.grunnlag_fortsatt_gyldig,
-        grunnlag_begrunnelse: data.grunnlag_begrunnelse,
+        // New: Per-sak vurdering
+        vurdering_per_sak: data.vurdering_per_sak,
+        dager_med_forseringsrett: computed.dagerUberettiget,
+        // Backward compatibility: old field (inverted semantics)
+        // grunnlag_fortsatt_gyldig=true means "rejection was justified" (TE has NO right)
+        grunnlag_fortsatt_gyldig: !computed.harForseringsrett,
         trettiprosent_overholdt: data.trettiprosent_overholdt,
         trettiprosent_begrunnelse: data.trettiprosent_begrunnelse,
         rigg_varslet_i_tide: data.rigg_varslet_i_tide,
@@ -460,7 +531,18 @@ export function BHResponsForseringModal({
   const canProceed = useMemo(() => {
     switch (currentPort) {
       case 1:
-        return formData.grunnlag_fortsatt_gyldig !== undefined;
+        // All saker must be evaluated
+        if (!avslatteSaker || avslatteSaker.length === 0) {
+          // Fallback: if no avslatteSaker data, allow proceeding (will use forseringData.avslatte_dager)
+          return true;
+        }
+        // Check that every sak has been evaluated
+        const alleVurdert = avslatteSaker.every(
+          sak => formData.vurdering_per_sak?.some(
+            v => v.sak_id === sak.sak_id && v.avslag_berettiget !== undefined
+          )
+        );
+        return alleVurdert;
       case 2:
         return formData.trettiprosent_overholdt !== undefined;
       case 3:
@@ -468,7 +550,7 @@ export function BHResponsForseringModal({
       default:
         return true;
     }
-  }, [currentPort, formData]);
+  }, [currentPort, formData, avslatteSaker]);
 
   const handleNext = () => {
     if (canProceed && currentPort < totalPorts) {
@@ -486,7 +568,7 @@ export function BHResponsForseringModal({
 
   // Step configuration
   const steps = [
-    { label: 'Grunnlag' },
+    { label: 'Forseringsrett' },
     { label: '30%-regel' },
     { label: 'Beløp' },
     { label: 'Oppsummering' },
@@ -512,13 +594,13 @@ export function BHResponsForseringModal({
           {/* Token Expired Alert */}
           <TokenExpiredAlert open={showTokenExpired} onClose={() => setShowTokenExpired(false)} />
 
-          {/* PORT 1: Grunnlagsvalidering */}
+          {/* PORT 1: Forseringsrett (§33.8) - Per-sak vurdering */}
           {currentPort === 1 && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Port 1: Grunnlagsvalidering</h3>
+              <h3 className="text-lg font-semibold">Port 1: Forseringsrett (§33.8)</h3>
               <p className="text-sm text-pkt-text-body-subtle">
-                Er avslaget på fristforlengelse fortsatt gyldig? Entreprenøren har kun rett til å forsere
-                dersom byggherren har avslått fristforlengelse uten berettiget grunn.
+                Etter NS 8407 §33.8 har entreprenøren rett til forseringsvederlag dersom byggherren
+                har avslått fristforlengelse uten berettiget grunn.
               </p>
 
               {/* Info about the forsering */}
@@ -530,67 +612,101 @@ export function BHResponsForseringModal({
                     <span className="ml-2">{formatDate(forseringData.dato_varslet)}</span>
                   </div>
                   <div>
-                    <span className="text-pkt-text-body-subtle">Avslåtte dager:</span>
-                    <span className="ml-2">{forseringData.avslatte_dager} dager</span>
+                    <span className="text-pkt-text-body-subtle">Totalt avslåtte dager:</span>
+                    <span className="ml-2">{computed.totalAvslatteDager} dager</span>
                   </div>
                   <div>
                     <span className="text-pkt-text-body-subtle">Antall avslåtte saker:</span>
-                    <span className="ml-2">{forseringData.avslatte_fristkrav?.length ?? 0}</span>
+                    <span className="ml-2">{avslatteSaker?.length ?? forseringData.avslatte_fristkrav?.length ?? 0}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Grunnlag validation result from API */}
-              {isLoadingGrunnlag ? (
-                <Alert variant="info" title="Validerer grunnlag...">
-                  Sjekker om avslaget fortsatt er gyldig...
+              {/* Grunnlag validation warning (informational only, not blocking) */}
+              {!isLoadingGrunnlag && grunnlagValidering && !grunnlagValidering.er_gyldig && (
+                <Alert variant="warning" title="Merknad">
+                  BH har tidligere endret standpunkt på en av de underliggende sakene.
+                  Dette påvirker ikke din vurdering her - forseringsvurderingen registreres som en separat hendelse.
                 </Alert>
-              ) : grunnlagValidering && !grunnlagValidering.er_gyldig ? (
-                <Alert variant="warning" title="Grunnlag kan være ugyldig">
-                  {grunnlagValidering.grunn || 'Byggherren har endret standpunkt på en av fristsakene.'}
+              )}
+
+              {/* Per-sak vurdering */}
+              {avslatteSaker && avslatteSaker.length > 0 ? (
+                <>
+                  <p className="text-sm font-medium">
+                    Vurder om avslaget på fristforlengelse var berettiget for hver sak:
+                  </p>
+
+                  {avslatteSaker.map((sak, index) => {
+                    const currentVurdering = formData.vurdering_per_sak?.find(v => v.sak_id === sak.sak_id);
+
+                    return (
+                      <div key={sak.sak_id} className="p-4 border-2 border-pkt-border-default rounded-none">
+                        <h4 className="font-bold text-sm mb-1">{sak.sak_id}</h4>
+                        <p className="text-sm text-pkt-text-body-subtle mb-3">
+                          {sak.tittel} ({sak.avslatte_dager} avslåtte dager)
+                        </p>
+
+                        <Controller
+                          name="vurdering_per_sak"
+                          control={control}
+                          render={({ field }) => (
+                            <RadioGroup
+                              value={
+                                currentVurdering?.avslag_berettiget === true ? 'berettiget' :
+                                currentVurdering?.avslag_berettiget === false ? 'uberettiget' : undefined
+                              }
+                              onValueChange={(v) => {
+                                const newVurdering: ForseringsrettVurdering = {
+                                  sak_id: sak.sak_id,
+                                  avslag_berettiget: v === 'berettiget',
+                                };
+                                // Update or add vurdering for this sak
+                                const existingVurderinger = field.value ?? [];
+                                const filtered = existingVurderinger.filter(vur => vur.sak_id !== sak.sak_id);
+                                field.onChange([...filtered, newVurdering]);
+                              }}
+                            >
+                              <RadioItem
+                                value="berettiget"
+                                label="Avslaget var berettiget"
+                                description="TE hadde ikke krav på fristforlengelse"
+                              />
+                              <RadioItem
+                                value="uberettiget"
+                                label="Avslaget var uberettiget"
+                                description="TE hadde krav på fristforlengelse"
+                              />
+                            </RadioGroup>
+                          )}
+                        />
+                      </div>
+                    );
+                  })}
+
+                  {/* Summary of per-sak evaluation */}
+                  <div className="p-3 bg-pkt-surface-subtle border-2 border-pkt-border-default rounded-none">
+                    <h4 className="font-bold text-sm mb-2">Oppsummering</h4>
+                    <div className="space-y-1 text-sm">
+                      <div>Totalt avslått: {computed.totalAvslatteDager} dager</div>
+                      <div>Uberettiget avslått: {computed.dagerUberettiget} dager</div>
+                    </div>
+                    <div className="mt-3">
+                      {computed.harForseringsrett ? (
+                        <Badge variant="warning">
+                          Forseringsrett for {computed.dagerUberettiget} dager
+                        </Badge>
+                      ) : (
+                        <Badge variant="info">Ingen forseringsrett</Badge>
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                /* Fallback when avslatteSaker not available */
+                <Alert variant="info" title="Laster saksinformasjon...">
+                  Henter data om underliggende saker...
                 </Alert>
-              ) : null}
-
-              {/* RadioGroup for grunnlag */}
-              <Controller
-                name="grunnlag_fortsatt_gyldig"
-                control={control}
-                render={({ field }) => (
-                  <FormField label="Står avslaget ved lag?" required error={errors.grunnlag_fortsatt_gyldig?.message}>
-                    <RadioGroup
-                      value={field.value === true ? 'ja' : field.value === false ? 'nei' : undefined}
-                      onValueChange={(v) => field.onChange(v === 'ja')}
-                    >
-                      <RadioItem
-                        value="ja"
-                        label="Ja, avslaget står ved lag"
-                        description="Entreprenøren hadde rett til å iverksette forsering"
-                      />
-                      <RadioItem
-                        value="nei"
-                        label="Nei, jeg endrer standpunkt"
-                        description="Fristforlengelsen godkjennes (forsering bortfaller)"
-                      />
-                    </RadioGroup>
-                  </FormField>
-                )}
-              />
-
-              {/* Begrunnelse if grunnlag not valid */}
-              {formData.grunnlag_fortsatt_gyldig === false && (
-                <Controller
-                  name="grunnlag_begrunnelse"
-                  control={control}
-                  render={({ field }) => (
-                    <FormField label="Begrunnelse for endring" required>
-                      <Textarea
-                        {...field}
-                        placeholder="Forklar hvorfor du endrer standpunkt på fristforlengelsen..."
-                        rows={3}
-                      />
-                    </FormField>
-                  )}
-                />
               )}
             </div>
           )}

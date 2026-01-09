@@ -301,15 +301,24 @@ export interface ForseringVederlag {
   produktivitet_varsel?: VarselInfo;
 }
 
+/** Per-sak vurdering av om avslaget var berettiget */
+export interface ForseringsrettVurdering {
+  sak_id: string;
+  avslag_berettiget: boolean;
+}
+
 /**
  * BHs strukturerte respons på forseringskrav (tre-port modell).
  *
- * - Port 1: Er grunnlaget (avslaget) fortsatt gyldig?
+ * - Port 1: Per-sak vurdering av om avslagene var berettiget
  * - Port 2: Er 30%-regelen overholdt?
  * - Port 3: Beløpsvurdering (hovedkrav + særskilte krav)
  */
 export interface ForseringBHRespons {
-  // Port 1: Grunnlagsvalidering
+  // Port 1: Per-sak vurdering av forseringsrett (§33.8)
+  vurdering_per_sak?: ForseringsrettVurdering[];
+  dager_med_forseringsrett?: number;
+  // Legacy field for backward compatibility
   grunnlag_fortsatt_gyldig?: boolean;
   grunnlag_begrunnelse?: string;
 
