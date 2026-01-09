@@ -8,7 +8,7 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Badge, Button, Card } from '../primitives';
+import { Button, Card, Badge } from '../primitives';
 import { ExternalLinkIcon, TrashIcon, Cross2Icon } from '@radix-ui/react-icons';
 import type { SakRelasjon, SakState } from '../../types/timeline';
 
@@ -100,28 +100,17 @@ export function RelaterteSakerListe({
 
   if (relaterteSaker.length === 0) {
     return (
-      <Card className="p-0 overflow-hidden">
-        <div className="px-4 py-3 bg-pkt-surface-subtle border-b-2 border-pkt-border-subtle flex items-center justify-between">
-          <Badge variant="default" size="sm">0 saker</Badge>
-          {headerAction}
-        </div>
-        <div className="p-4">
-          <p className="text-pkt-text-body-subtle text-sm">
-            Ingen relaterte saker lagt til ennå.
-          </p>
-        </div>
+      <Card className="p-4">
+        <p className="text-pkt-text-body-subtle text-sm mb-3">
+          Ingen relaterte saker lagt til ennå.
+        </p>
+        {headerAction}
       </Card>
     );
   }
 
   return (
-    <Card className="p-0 overflow-hidden">
-      <div className="px-4 py-3 bg-pkt-surface-subtle border-b-2 border-pkt-border-subtle flex items-center justify-between">
-        <Badge variant="default" size="sm">{relaterteSaker.length} {relaterteSaker.length === 1 ? 'sak' : 'saker'}</Badge>
-        {headerAction}
-      </div>
-
-      <div className="p-3">
+    <Card className="p-3">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-pkt-border-subtle">
@@ -246,7 +235,11 @@ export function RelaterteSakerListe({
             </tfoot>
           )}
         </table>
-      </div>
+        {headerAction && (
+          <div className="mt-3 pt-3 border-t border-pkt-border-subtle">
+            {headerAction}
+          </div>
+        )}
     </Card>
   );
 }
