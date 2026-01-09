@@ -12,7 +12,7 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime, timezone
 
 from utils.logger import get_logger
-from models.sak_state import SaksType, SakState
+from models.sak_state import SaksType, SakState, SakRelasjon
 from models.events import parse_event
 from services.base_sak_service import BaseSakService
 
@@ -172,9 +172,27 @@ class ForseringService(BaseSakService):
             - sak_states: Dict[sak_id, SakState]
             - hendelser: Dict[sak_id, List[Event]]
             - oppsummering: Aggregert info (avslåtte dager, grunnlag, etc.)
+            - forsering_hendelser: Hendelser fra forseringssaken selv
         """
-        # Hent relaterte saker
-        relaterte = self.hent_relaterte_saker(forsering_sak_id)
+        # Hent forseringssakens egen state først (for fallback)
+        forsering_state = self._hent_sak_state(forsering_sak_id)
+
+        # Prøv Catenda først, fall tilbake til lokale data
+        relaterte = []
+        try:
+            relaterte = self.hent_relaterte_saker(forsering_sak_id)
+        except (RuntimeError, Exception) as e:
+            logger.warning(f"Catenda utilgjengelig for {forsering_sak_id}, bruker lokale data: {e}")
+
+        # Fallback: Bruk avslatte_fristkrav fra forsering_data
+        if not relaterte and forsering_state and forsering_state.forsering_data:
+            relaterte_ids_from_state = forsering_state.forsering_data.avslatte_fristkrav or []
+            logger.info(f"Bruker lokale relaterte saker fra forsering_data: {relaterte_ids_from_state}")
+            relaterte = [
+                SakRelasjon(relatert_sak_id=sak_id)
+                for sak_id in relaterte_ids_from_state
+            ]
+
         relaterte_ids = [r.relatert_sak_id for r in relaterte]
 
         if not relaterte_ids:
@@ -220,16 +238,28 @@ class ForseringService(BaseSakService):
             "grunnlag_oversikt": grunnlag_info
         }
 
+        # Hent hendelser fra forseringssaken selv
+        forsering_hendelser = []
+        if self.event_repository:
+            try:
+                events_data, _ = self.event_repository.get_events(forsering_sak_id)
+                if events_data:
+                    forsering_hendelser = [parse_event(e) for e in events_data]
+            except Exception as e:
+                logger.warning(f"Kunne ikke hente hendelser for {forsering_sak_id}: {e}")
+
         logger.info(
             f"Hentet komplett kontekst for {forsering_sak_id}: "
-            f"{len(relaterte_ids)} saker, {total_avslatte_dager} avslåtte dager"
+            f"{len(relaterte_ids)} saker, {total_avslatte_dager} avslåtte dager, "
+            f"{len(forsering_hendelser)} forseringshendelser"
         )
 
         return {
             "relaterte_saker": relaterte,
             "sak_states": states,
             "hendelser": hendelser,
-            "oppsummering": oppsummering
+            "oppsummering": oppsummering,
+            "forsering_hendelser": forsering_hendelser
         }
 
     def valider_30_prosent_regel(
@@ -351,9 +381,10 @@ class ForseringService(BaseSakService):
                             if sak_id in relaterte:
                                 forseringer.append({
                                     "forsering_sak_id": candidate_sak_id,
-                                    "tittel": state.sakstittel,
-                                    "er_iverksatt": state.forsering_data.er_iverksatt,
-                                    "estimert_kostnad": state.forsering_data.estimert_kostnad,
+                                    "forsering_sak_tittel": state.sakstittel,
+                                    "dato_varslet": state.forsering_data.dato_varslet,
+                                    "er_iverksatt": state.forsering_data.er_iverksatt or False,
+                                    "er_stoppet": state.forsering_data.er_stoppet or False,
                                 })
                 except Exception as e:
                     logger.debug(f"Kunne ikke evaluere sak {candidate_sak_id}: {e}")

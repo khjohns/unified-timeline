@@ -36,41 +36,32 @@ export function ForseringRelasjonBanner({ forseringer }: ForseringRelasjonBanner
         <Alert
           key={forsering.forsering_sak_id}
           variant="info"
+          icon={<RocketIcon className="w-5 h-5" />}
           title={
-            <span className="flex items-center gap-2">
-              <RocketIcon className="w-4 h-4" />
-              Denne saken inngår i en forseringssak
+            <span className="flex items-center gap-2 w-full">
+              <span className="truncate">{forsering.forsering_sak_tittel}</span>
+              <span className="ml-auto shrink-0">
+                {forsering.er_iverksatt && !forsering.er_stoppet && (
+                  <Badge variant="success" size="sm">Iverksatt</Badge>
+                )}
+                {forsering.er_stoppet && (
+                  <Badge variant="warning" size="sm">Stoppet</Badge>
+                )}
+              </span>
             </span>
           }
-          action={
+        >
+          <div className="mt-2 flex items-center justify-between">
+            <span className="text-sm text-alert-info-text/80">
+              Varslet {formatDate(forsering.dato_varslet)}
+            </span>
             <Link
               to={`/forsering/${forsering.forsering_sak_id}`}
-              className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-badge-info-text bg-badge-info-bg border border-badge-info-text/30 hover:opacity-90 rounded transition-colors"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-badge-info-text hover:underline"
             >
-              <span>Gå til forseringssak</span>
-              <ArrowRightIcon className="w-4 h-4" />
+              Gå til forseringssak
+              <ArrowRightIcon className="w-3.5 h-3.5" />
             </Link>
-          }
-        >
-          <div className="mt-1 space-y-2">
-            {/* Forsering info */}
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              <span className="font-medium">{forsering.forsering_sak_tittel}</span>
-              {forsering.er_iverksatt && !forsering.er_stoppet && (
-                <Badge variant="success" size="sm">Iverksatt</Badge>
-              )}
-              {forsering.er_stoppet && (
-                <Badge variant="warning" size="sm">Stoppet</Badge>
-              )}
-              {!forsering.er_iverksatt && !forsering.er_stoppet && (
-                <Badge variant="default" size="sm">Varslet</Badge>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2 text-sm">
-              <span>Varslet:</span>
-              <Badge variant="default" size="sm">{formatDate(forsering.dato_varslet)}</Badge>
-            </div>
           </div>
         </Alert>
       ))}
