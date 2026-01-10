@@ -18,7 +18,7 @@ export type AlertVariant = 'info' | 'success' | 'warning' | 'danger';
 export type AlertSize = 'sm' | 'md' | 'lg';
 
 export interface AlertProps {
-  children: ReactNode;
+  children?: ReactNode;
   variant?: AlertVariant;
   size?: AlertSize;
   title?: ReactNode;
@@ -26,6 +26,8 @@ export interface AlertProps {
   icon?: ReactNode;
   /** Optional action (button/link) displayed on the right side */
   action?: ReactNode;
+  /** Optional footer with responsive layout (stacks vertically on mobile, horizontal on desktop) */
+  footer?: ReactNode;
 }
 
 // Using semantic alert colors for consistent dark/light mode support
@@ -74,6 +76,7 @@ export function Alert({
   className,
   icon,
   action,
+  footer,
 }: AlertProps) {
   const styles = variantStyles[variant];
   const displayIcon = icon ?? defaultIcons[variant];
@@ -99,7 +102,12 @@ export function Alert({
             {title && (
               <p className={clsx('font-bold mb-1', styles.title)}>{title}</p>
             )}
-            <div className="text-sm">{children}</div>
+            {children && <div className="text-sm">{children}</div>}
+            {footer && (
+              <div className="mt-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between text-sm">
+                {footer}
+              </div>
+            )}
           </div>
         </div>
         {action && (
