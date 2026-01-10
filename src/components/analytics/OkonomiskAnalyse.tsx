@@ -1,61 +1,108 @@
 /**
  * Økonomisk analyse Component
  *
- * Analysemetode: Økonomisk analyse av vederlag og frist/dagmulkt
+ * Analysemetode: Økonomisk analyse av vederlag og fristforlengelse
  * Bruksområde: Økonomioppfølging, budsjettanalyse, kontraktsoppgjør
+ *
+ * Beregningsmodell (jf. SendResponsPakkeModal):
+ * - Vederlag: Kroner krevd/godkjent
+ * - Frist: Dager × dagmulktsats = fristbeløp
+ * - Samlet eksponering: Vederlag + Fristbeløp
  */
 
 import { Card } from '../primitives';
 import { SimpleBarChart, ProgressBar, formatCurrency, AnalyticsSection, KPICard } from './AnalyticsHelpers';
 import { getVederlagsmetodeLabel } from '../../constants/paymentMethods';
-import type { VederlagAnalytics, ResponseTimesAnalytics } from '../../api/analytics';
+import type { VederlagAnalytics, FristAnalytics } from '../../api/analytics';
 
 interface OkonomiskAnalyseProps {
   vederlag: VederlagAnalytics | undefined;
-  responseTimes: ResponseTimesAnalytics | undefined;
+  frist: FristAnalytics | undefined;
 }
 
-export function OkonomiskAnalyse({ vederlag, responseTimes }: OkonomiskAnalyseProps) {
-  // Calculate frist/dagmulkt economics
-  const fristData = responseTimes?.frist;
+export function OkonomiskAnalyse({ vederlag, frist }: OkonomiskAnalyseProps) {
+  // Calculate combined economic exposure
+  const vederlagKrevd = vederlag?.summary.total_krevd ?? 0;
+  const vederlagGodkjent = vederlag?.summary.total_godkjent ?? 0;
+  const fristKrevd = frist?.eksponering_krevd ?? 0;
+  const fristGodkjent = frist?.eksponering_godkjent ?? 0;
+
+  const samletKrevd = vederlagKrevd + fristKrevd;
+  const samletGodkjent = vederlagGodkjent + fristGodkjent;
+  const samletGodkjenningsgrad = samletKrevd > 0 ? (samletGodkjent / samletKrevd) * 100 : 0;
 
   return (
     <AnalyticsSection
       title="Økonomisk analyse"
-      description="Analyse av vederlagskrav, godkjenningsgrader per metode, og fristforlengelser. Brukes til økonomioppfølging og kontraktsoppgjør."
+      description="Analyse av samlet økonomisk eksponering: vederlagskrav og fristforlengelser (dager × dagmulktsats). Brukes til økonomioppfølging og kontraktsoppgjør."
     >
-      {/* Summary KPIs */}
+      {/* Combined Economic Exposure - Key insight */}
       <section>
-        <h3 className="text-body-lg font-semibold text-pkt-text-body-dark mb-4">Økonomisk oversikt</h3>
+        <h3 className="text-body-lg font-semibold text-pkt-text-body-dark mb-4">Samlet økonomisk eksponering</h3>
+        <Card variant="outlined" padding="md" className="bg-pkt-surface-subtle-pale-blue">
+          <div className="space-y-4">
+            {/* Calculation breakdown */}
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-pkt-text-body-subtle">Vederlag krevd</span>
+                <span className="font-mono">{formatCurrency(vederlagKrevd)} kr</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-pkt-text-body-subtle">
+                  Frist ({frist?.summary.total_dager_krevd ?? 0} dager × {formatCurrency(frist?.dagmulktsats ?? 0)}/dag)
+                </span>
+                <span className="font-mono">{formatCurrency(fristKrevd)} kr</span>
+              </div>
+              <div className="flex justify-between pt-2 border-t border-pkt-border-default font-bold text-base">
+                <span>Samlet eksponering krevd</span>
+                <span className="font-mono text-oslo-blue">{formatCurrency(samletKrevd)} kr</span>
+              </div>
+            </div>
+
+            {/* Approval status */}
+            <div className="pt-2 border-t border-pkt-border-subtle">
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-pkt-text-body-subtle">Godkjent av krevd</span>
+                <span className="font-semibold text-badge-success-text">{formatCurrency(samletGodkjent)} kr ({samletGodkjenningsgrad.toFixed(1)}%)</span>
+              </div>
+              <ProgressBar value={samletGodkjenningsgrad} color="bg-badge-success-bg" />
+            </div>
+          </div>
+        </Card>
+      </section>
+
+      {/* KPI Summary */}
+      <section>
+        <h3 className="text-body-lg font-semibold text-pkt-text-body-dark mb-4">Oversikt per type</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <KPICard
             label="Vederlag krevd"
-            value={`${formatCurrency(vederlag?.summary.total_krevd ?? 0)} kr`}
-            subtext={`${vederlag?.summary.antall_krav ?? 0} krav totalt`}
+            value={`${formatCurrency(vederlagKrevd)} kr`}
+            subtext={`${vederlag?.summary.antall_krav ?? 0} krav`}
             color="yellow"
           />
           <KPICard
             label="Vederlag godkjent"
-            value={`${formatCurrency(vederlag?.summary.total_godkjent ?? 0)} kr`}
-            subtext={`${vederlag?.summary.godkjenningsgrad?.toFixed(1) ?? 0}% av krevd`}
+            value={`${formatCurrency(vederlagGodkjent)} kr`}
+            subtext={`${vederlag?.summary.godkjenningsgrad?.toFixed(1) ?? 0}%`}
             color="green"
           />
           <KPICard
-            label="Gj.snitt per krav"
-            value={`${formatCurrency(vederlag?.summary.avg_krav ?? 0)} kr`}
-            subtext="Krevd beløp"
-            color="blue"
+            label="Frist krevd"
+            value={`${frist?.summary.total_dager_krevd ?? 0} dager`}
+            subtext={`= ${formatCurrency(fristKrevd)} kr`}
+            color="yellow"
           />
           <KPICard
-            label="Fristsaker behandlet"
-            value={fristData?.sample_size ?? 0}
-            subtext={`${fristData?.avg_days?.toFixed(1) ?? '-'} dager gj.snitt`}
-            color="blue"
+            label="Frist godkjent"
+            value={`${frist?.summary.total_dager_godkjent ?? 0} dager`}
+            subtext={`= ${formatCurrency(fristGodkjent)} kr`}
+            color="green"
           />
         </div>
       </section>
 
-      {/* Vederlag by method and distribution */}
+      {/* Vederlag details */}
       <section>
         <h3 className="text-body-lg font-semibold text-pkt-text-body-dark mb-4">Vederlagsanalyse</h3>
         <div className="grid md:grid-cols-2 gap-6">
@@ -67,9 +114,9 @@ export function OkonomiskAnalyse({ vederlag, responseTimes }: OkonomiskAnalysePr
                 <div key={m.metode} className="space-y-1">
                   <div className="flex justify-between text-sm">
                     <span className="font-medium">{getVederlagsmetodeLabel(m.metode)}</span>
-                    <span className="text-pkt-grays-gray-600">{m.antall} krav</span>
+                    <span className="text-pkt-text-body-subtle">{m.antall} krav</span>
                   </div>
-                  <div className="flex gap-2 text-xs text-pkt-grays-gray-600">
+                  <div className="flex gap-2 text-xs text-pkt-text-body-subtle">
                     <span>Krevd: {formatCurrency(m.total_krevd)} kr</span>
                     <span>|</span>
                     <span>Godkjent: {formatCurrency(m.total_godkjent)} kr</span>
@@ -92,11 +139,11 @@ export function OkonomiskAnalyse({ vederlag, responseTimes }: OkonomiskAnalysePr
             />
             <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-pkt-grays-gray-600">Gj.snitt krav:</span>
+                <span className="text-pkt-text-body-subtle">Gj.snitt krav:</span>
                 <span className="ml-2 font-semibold">{formatCurrency(vederlag?.summary.avg_krav ?? 0)} kr</span>
               </div>
               <div>
-                <span className="text-pkt-grays-gray-600">Gj.snitt godkjent:</span>
+                <span className="text-pkt-text-body-subtle">Gj.snitt godkjent:</span>
                 <span className="ml-2 font-semibold">{formatCurrency(vederlag?.summary.avg_godkjent ?? 0)} kr</span>
               </div>
             </div>
@@ -104,7 +151,7 @@ export function OkonomiskAnalyse({ vederlag, responseTimes }: OkonomiskAnalysePr
         </div>
       </section>
 
-      {/* Frist/Dagmulkt analysis */}
+      {/* Frist/Dagmulkt details */}
       <section>
         <h3 className="text-body-lg font-semibold text-pkt-text-body-dark mb-4">Fristforlengelse og dagmulkt</h3>
         <Card variant="outlined" padding="md">
@@ -112,63 +159,51 @@ export function OkonomiskAnalyse({ vederlag, responseTimes }: OkonomiskAnalysePr
             {/* Frist statistics */}
             <div>
               <h4 className="text-body-md font-semibold mb-4">Fristforlengelser</h4>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between py-2 border-b border-pkt-border-default">
-                  <div>
-                    <div className="font-medium">Gjennomsnittlig behandlingstid</div>
-                    <div className="text-xs text-pkt-grays-gray-500">Fra krav til vedtak</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-lg font-semibold">{fristData?.avg_days?.toFixed(1) ?? '-'} dager</div>
-                  </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between py-2 border-b border-pkt-border-subtle">
+                  <span className="text-pkt-text-body-subtle">Antall krav</span>
+                  <span className="font-semibold">{frist?.summary.antall_krav ?? 0}</span>
                 </div>
-                <div className="flex items-center justify-between py-2 border-b border-pkt-border-default">
-                  <div>
-                    <div className="font-medium">Median behandlingstid</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-lg font-semibold">{fristData?.median_days ?? '-'} dager</div>
-                  </div>
+                <div className="flex items-center justify-between py-2 border-b border-pkt-border-subtle">
+                  <span className="text-pkt-text-body-subtle">Dager krevd</span>
+                  <span className="font-semibold">{frist?.summary.total_dager_krevd ?? 0}</span>
+                </div>
+                <div className="flex items-center justify-between py-2 border-b border-pkt-border-subtle">
+                  <span className="text-pkt-text-body-subtle">Dager godkjent</span>
+                  <span className="font-semibold text-badge-success-text">{frist?.summary.total_dager_godkjent ?? 0}</span>
                 </div>
                 <div className="flex items-center justify-between py-2">
-                  <div>
-                    <div className="font-medium">Spredning</div>
-                    <div className="text-xs text-pkt-grays-gray-500">Min - Maks</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-lg font-semibold">{fristData?.min_days ?? '-'} - {fristData?.max_days ?? '-'} dager</div>
-                  </div>
+                  <span className="text-pkt-text-body-subtle">Godkjenningsgrad</span>
+                  <span className="font-semibold">{frist?.summary.godkjenningsgrad?.toFixed(1) ?? 0}%</span>
                 </div>
               </div>
             </div>
 
-            {/* Dagmulkt impact info */}
+            {/* Economic impact */}
             <div>
-              <h4 className="text-body-md font-semibold mb-4">Dagmulkt-eksponering</h4>
+              <h4 className="text-body-md font-semibold mb-4">Økonomisk effekt</h4>
               <div className="p-4 bg-pkt-surface-yellow rounded-lg">
                 <p className="text-sm text-pkt-text-body-default mb-3">
-                  Fristforlengelser påvirker dagmulkteksponering direkte. For hver dag frist ikke godkjennes,
-                  akkumuleres potensiell dagmulkt.
+                  Fristforlengelser påvirker økonomisk eksponering direkte.
+                  Hver dag fristforlengelse representerer potensiell dagmulkt.
                 </p>
                 <div className="text-sm space-y-2">
                   <div className="flex justify-between">
-                    <span>Fristsaker i analyse:</span>
-                    <span className="font-semibold">{fristData?.sample_size ?? 0}</span>
+                    <span>Dagmulktsats:</span>
+                    <span className="font-mono font-semibold">{formatCurrency(frist?.dagmulktsats ?? 0)} kr/dag</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Potensielle dagmulktdager:</span>
-                    <span className="font-semibold text-badge-warning-text">
-                      {fristData?.sample_size && fristData?.avg_days
-                        ? Math.round(fristData.sample_size * fristData.avg_days)
-                        : '-'
-                      }
-                    </span>
+                    <span>Eksponering krevd:</span>
+                    <span className="font-mono font-semibold">{formatCurrency(fristKrevd)} kr</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Eksponering godkjent:</span>
+                    <span className="font-mono font-semibold text-badge-success-text">{formatCurrency(fristGodkjent)} kr</span>
                   </div>
                 </div>
               </div>
-              <p className="mt-3 text-xs text-pkt-grays-gray-500">
-                Beregning: Antall saker × gjennomsnittlig behandlingstid.
-                Faktisk dagmulkt avhenger av kontraktens dagmulktsats.
+              <p className="mt-3 text-xs text-pkt-text-body-subtle">
+                Beregning: Antall dager × dagmulktsats = økonomisk eksponering
               </p>
             </div>
           </div>
@@ -180,14 +215,17 @@ export function OkonomiskAnalyse({ vederlag, responseTimes }: OkonomiskAnalysePr
         <h4 className="text-body-md font-semibold text-badge-success-text mb-2">Økonomisk innsikt</h4>
         <div className="text-sm text-pkt-text-body-default space-y-2">
           <p>
-            <strong>Godkjenningsgrad:</strong> {vederlag?.summary.godkjenningsgrad?.toFixed(1) ?? 0}% av krevd vederlag er godkjent.
-            {vederlag?.summary.godkjenningsgrad && vederlag.summary.godkjenningsgrad >= 70
-              ? ' Dette er en god rate som indikerer kvalitet i kravene.'
-              : ' Vurder kvaliteten på kravsdokumentasjon for å øke godkjenningsgraden.'}
+            <strong>Samlet godkjenningsgrad:</strong> {samletGodkjenningsgrad.toFixed(1)}% av samlet eksponering er godkjent.
+          </p>
+          <p>
+            <strong>Vederlag vs. frist:</strong>{' '}
+            {vederlagKrevd > fristKrevd
+              ? `Vederlagskrav utgjør hoveddelen (${((vederlagKrevd / samletKrevd) * 100).toFixed(0)}%) av eksponeringen.`
+              : `Fristforlengelser utgjør hoveddelen (${((fristKrevd / samletKrevd) * 100).toFixed(0)}%) av eksponeringen.`}
           </p>
           {vederlag?.by_metode && vederlag.by_metode.length > 0 && (
             <p>
-              <strong>Beste metode:</strong> {(() => {
+              <strong>Beste vederlagsmetode:</strong> {(() => {
                 const best = [...vederlag.by_metode].sort((a, b) => b.godkjenningsgrad - a.godkjenningsgrad)[0];
                 if (!best) return 'Ingen data';
                 return `${getVederlagsmetodeLabel(best.metode)} har høyest godkjenningsgrad (${best.godkjenningsgrad.toFixed(1)}%)`;

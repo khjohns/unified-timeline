@@ -25,6 +25,7 @@ import {
   useCategoryAnalytics,
   useTimelineAnalytics,
   useVederlagAnalytics,
+  useFristAnalytics,
   useResponseTimesAnalytics,
   useActorAnalytics,
 } from '../hooks/useAnalytics';
@@ -70,10 +71,11 @@ export function AnalyticsDashboard() {
   const { data: categories, isLoading: categoriesLoading } = useCategoryAnalytics({ enabled: !isVerifying });
   const { data: timeline, isLoading: timelineLoading } = useTimelineAnalytics(timelinePeriod, 90, { enabled: !isVerifying });
   const { data: vederlag, isLoading: vederlagLoading } = useVederlagAnalytics({ enabled: !isVerifying });
+  const { data: frist, isLoading: fristLoading } = useFristAnalytics({ enabled: !isVerifying });
   const { data: responseTimes, isLoading: responseTimesLoading } = useResponseTimesAnalytics({ enabled: !isVerifying });
   const { data: actors, isLoading: actorsLoading } = useActorAnalytics({ enabled: !isVerifying });
 
-  const isLoading = summaryLoading || categoriesLoading || timelineLoading || vederlagLoading || responseTimesLoading || actorsLoading || isVerifying;
+  const isLoading = summaryLoading || categoriesLoading || timelineLoading || vederlagLoading || fristLoading || responseTimesLoading || actorsLoading || isVerifying;
 
   // Render active analysis method
   const renderAnalysisContent = () => {
@@ -91,7 +93,7 @@ export function AnalyticsDashboard() {
           />
         );
       case 'okonomi':
-        return <OkonomiskAnalyse vederlag={vederlag} responseTimes={responseTimes} />;
+        return <OkonomiskAnalyse vederlag={vederlag} frist={frist} />;
       case 'ytelse':
         return <YtelsesAnalyse responseTimes={responseTimes} />;
       case 'ressurs':

@@ -14,7 +14,7 @@ interface YtelsesAnalyseProps {
 }
 
 export function YtelsesAnalyse({ responseTimes }: YtelsesAnalyseProps) {
-  const tracks = ['grunnlag', 'vederlag'] as const;
+  const tracks = ['grunnlag', 'vederlag', 'frist'] as const;
 
   // Calculate overall average
   const overallAvg = tracks.reduce((sum, track) => {
@@ -81,9 +81,10 @@ export function YtelsesAnalyse({ responseTimes }: YtelsesAnalyseProps) {
                   <div className="flex items-center justify-between mb-3">
                     <div>
                       <h4 className="font-semibold text-pkt-text-body-dark capitalize">{track}</h4>
-                      <p className="text-sm text-pkt-grays-gray-600">
+                      <p className="text-sm text-pkt-text-body-subtle">
                         {track === 'grunnlag' && 'Tid fra varsling til grunnlagsvedtak'}
                         {track === 'vederlag' && 'Tid fra krav til vederlagsvedtak'}
+                        {track === 'frist' && 'Tid fra krav til fristvedtak'}
                       </p>
                     </div>
                     <div className="text-right">
