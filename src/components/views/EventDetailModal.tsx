@@ -61,12 +61,7 @@ import {
   formatDateTimeNorwegian,
   formatVarselMetode,
 } from '../../utils/formatters';
-import {
-  FileTextIcon,
-  CalendarIcon,
-  PersonIcon,
-  TargetIcon,
-} from '@radix-ui/react-icons';
+import { FileTextIcon } from '@radix-ui/react-icons';
 
 // ========== TYPES ==========
 
@@ -75,14 +70,6 @@ interface EventDetailModalProps {
   onOpenChange: (open: boolean) => void;
   event: TimelineEvent;
 }
-
-// ========== LABELS ==========
-
-const SPOR_LABELS: Record<string, string> = {
-  grunnlag: 'Ansvarsgrunnlag',
-  vederlag: 'Vederlag',
-  frist: 'Frist',
-};
 
 // ========== HELPER FUNCTIONS ==========
 
@@ -927,8 +914,6 @@ export function EventDetailModal({
     ? EVENT_TYPE_LABELS[eventType] || event.type
     : event.type;
 
-  const sporLabel = event.spor ? SPOR_LABELS[event.spor] : 'Generelt';
-
   // Render event-specific data section
   const renderEventData = () => {
     if (!event.data) {
@@ -997,31 +982,13 @@ export function EventDetailModal({
       size="lg"
     >
       <div className="space-y-6">
-        {/* Metadata header */}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-pkt-grays-gray-600 pb-4 border-b border-pkt-border-subtle">
-          <span className="flex items-center gap-1.5">
-            <CalendarIcon className="w-4 h-4" />
-            {event.time ? formatDateTimeNorwegian(event.time) : 'Ukjent tid'}
-          </span>
-          <span className="text-pkt-grays-gray-300">|</span>
-          <span className="flex items-center gap-1.5">
-            <PersonIcon className="w-4 h-4" />
-            {event.actor || 'Ukjent'}
-          </span>
-          <span className="text-pkt-grays-gray-300">|</span>
-          <Badge variant={event.actorrole === 'TE' ? 'info' : 'warning'}>
-            {event.actorrole || 'Ukjent'}
-          </Badge>
-          {event.spor && (
-            <>
-              <span className="text-pkt-grays-gray-300">|</span>
-              <span className="flex items-center gap-1.5">
-                <TargetIcon className="w-4 h-4" />
-                <Badge variant="neutral">{sporLabel}</Badge>
-              </span>
-            </>
-          )}
-        </div>
+        {/* Metadata */}
+        <p className="text-sm text-pkt-text-body-subtle pb-4 border-b border-pkt-border-subtle">
+          {event.time ? formatDateTimeNorwegian(event.time) : 'Ukjent tid'}
+          {' · '}
+          {event.actor || 'Ukjent'}
+          {event.actorrole && ` (${event.actorrole === 'TE' ? 'Entreprenør' : 'Byggherre'})`}
+        </p>
 
         {/* Event data */}
         {renderEventData()}
