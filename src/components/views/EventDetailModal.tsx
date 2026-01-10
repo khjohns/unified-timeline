@@ -1110,7 +1110,6 @@ export function EventDetailModal({
       open={open}
       onOpenChange={onOpenChange}
       title={eventTypeLabel}
-      description={`Innsendt av ${event.actor || 'Ukjent'} (${event.actorrole || 'Ukjent'})`}
       size="lg"
     >
       <div className="space-y-6">
@@ -1139,11 +1138,6 @@ export function EventDetailModal({
             </>
           )}
         </div>
-
-        {/* Summary */}
-        <SectionContainer title="Sammendrag" variant="subtle" spacing="none">
-          <p className="text-pkt-text-body-dark">{event.summary || 'Ingen sammendrag'}</p>
-        </SectionContainer>
 
         {/* Full form data */}
         <div>
