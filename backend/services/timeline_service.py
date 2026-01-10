@@ -322,12 +322,11 @@ class TimelineService:
         # Oppdater data
         frist.varsel_type = event.data.varsel_type.value if hasattr(event.data.varsel_type, 'value') else event.data.varsel_type
 
-        # Extract dates from VarselInfo objects (new model structure)
-        # VarselInfo has `dato_sendt` field, not `dato`
+        # Copy VarselInfo objects directly (includes dato_sendt and metode)
         if event.data.noytralt_varsel:
-            frist.noytralt_varsel_dato = event.data.noytralt_varsel.dato_sendt
+            frist.noytralt_varsel = event.data.noytralt_varsel
         if event.data.spesifisert_varsel:
-            frist.spesifisert_krav_dato = event.data.spesifisert_varsel.dato_sendt
+            frist.spesifisert_varsel = event.data.spesifisert_varsel
 
         frist.krevd_dager = event.data.antall_dager
         frist.begrunnelse = event.data.begrunnelse

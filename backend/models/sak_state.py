@@ -17,6 +17,7 @@ from models.events import (
     GrunnlagResponsResultat,
     VederlagBeregningResultat,
     FristBeregningResultat,
+    VarselInfo,
     AnyEvent,
 )
 
@@ -706,8 +707,8 @@ class FristTilstand(BaseModel):
         default=None,
         description="Type varsel: noytralt, spesifisert, eller begge"
     )
-    noytralt_varsel_dato: Optional[str] = Field(default=None)
-    spesifisert_krav_dato: Optional[str] = Field(default=None)
+    noytralt_varsel: Optional[VarselInfo] = Field(default=None)
+    spesifisert_varsel: Optional[VarselInfo] = Field(default=None)
     krevd_dager: Optional[int] = Field(default=None)
     begrunnelse: Optional[str] = Field(default=None)
     milepael_pavirket: Optional[str] = Field(default=None)

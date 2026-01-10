@@ -55,7 +55,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
 import { useConfirmClose } from '../../hooks/useConfirmClose';
-import { differenceInDays } from 'date-fns';
+import { differenceInDays, format, parseISO } from 'date-fns';
+import { nb } from 'date-fns/locale';
 import type { SubsidiaerTrigger, FristTilstand, FristBeregningResultat } from '../../types/timeline';
 import {
   generateFristResponseBegrunnelse,
@@ -68,6 +69,12 @@ import { getResultatLabel } from '../../utils/formatters';
 // TYPES & INTERFACES
 // ============================================================================
 
+// Varsel info structure
+interface VarselInfoData {
+  dato_sendt?: string;
+  metode?: string[];
+}
+
 // Frist event info for context display
 interface FristEventInfo {
   antall_dager?: number;
@@ -75,6 +82,10 @@ interface FristEventInfo {
   begrunnelse?: string;
   /** Date when the specified claim was received (for §33.7 preclusion calculation) */
   dato_krav_mottatt?: string;
+  /** Foreløpig varsel info (§33.4) */
+  noytralt_varsel?: VarselInfoData;
+  /** Spesifisert krav info (§33.6) */
+  spesifisert_varsel?: VarselInfoData;
 }
 
 // Last response event info for update mode
@@ -865,18 +876,32 @@ export function RespondFristModal({
               description="Vurder om entreprenøren har varslet i tide. Hvis ikke, kan kravet avvises pga preklusjon."
             >
 
-              {/* Show what type of varsel was sent */}
-              {varselType && (
-                <div className="p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle mb-4">
-                  <span className="text-sm text-pkt-text-body-subtle">
-                    Entreprenøren har sendt:{' '}
-                  </span>
-                  <Badge variant="default">
-                    {varselType === 'noytralt' && 'Foreløpig varsel (§33.4)'}
-                    {varselType === 'spesifisert' && 'Spesifisert krav (§33.6)'}
-                  </Badge>
-                </div>
-              )}
+              {/* Show varsel info */}
+              {varselType && (() => {
+                const varselInfo = varselType === 'noytralt'
+                  ? (fristEvent?.noytralt_varsel || fristTilstand?.noytralt_varsel)
+                  : (fristEvent?.spesifisert_varsel || fristTilstand?.spesifisert_varsel);
+                const varselDato = varselInfo?.dato_sendt;
+                const varselMetode = varselInfo?.metode;
+
+                return (
+                  <InlineDataList className="mb-4">
+                    <InlineDataListItem label="Varseltype">
+                      {varselType === 'noytralt' ? 'Foreløpig varsel (§33.4)' : 'Spesifisert krav (§33.6)'}
+                    </InlineDataListItem>
+                    {varselDato && (
+                      <InlineDataListItem label="Dato sendt" mono>
+                        {format(parseISO(varselDato), 'd. MMM yyyy', { locale: nb })}
+                      </InlineDataListItem>
+                    )}
+                    {varselMetode && varselMetode.length > 0 && (
+                      <InlineDataListItem label="Metode">
+                        {varselMetode.join(', ')}
+                      </InlineDataListItem>
+                    )}
+                  </InlineDataList>
+                );
+              })()}
 
               {/* Foreløpig varsel */}
               {varselType === 'noytralt' && (

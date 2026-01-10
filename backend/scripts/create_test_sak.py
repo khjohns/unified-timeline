@@ -156,9 +156,8 @@ Dette medførte:
 Referanse: E-post fra BH datert 2025-11-15.""",
         dato_oppdaget=oppdaget_dato,
         grunnlag_varsel=VarselInfo(
-            varslet_dato=varslet_dato,
-            varslet_via="e-post",
-            referanse="KOE-Varsel-001",
+            dato_sendt=varslet_dato,
+            metode=["epost"],
         ),
         kontraktsreferanser=["NS8407 §25.2", "Kontraktskap. 3.2"],
         vedlegg_ids=[],
@@ -194,9 +193,8 @@ Totalt kostnadsoverslag: {belop:,.0f} kr""",
         vedlegg_ids=[],
         krever_justert_ep=False,
         regningsarbeid_varsel=VarselInfo(
-            varslet_dato=varslet_dato,
-            varslet_via="e-post",
-            referanse="KOE-Vederlag-001",
+            dato_sendt=varslet_dato,
+            metode=["epost"],
         ),
     )
 
@@ -227,9 +225,8 @@ Kritisk sti-aktiviteter paavirket:
 
 Ny planlagt sluttdato blir dermed forskjoevet tilsvarende.""",
         spesifisert_varsel=VarselInfo(
-            varslet_dato=varslet_dato,
-            varslet_via="e-post",
-            referanse="KOE-Frist-001",
+            dato_sendt=varslet_dato,
+            metode=["epost"],
         ),
     )
 
