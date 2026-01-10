@@ -87,75 +87,54 @@ const SPOR_LABELS: Record<string, string> = {
 
 // ========== HELPER FUNCTIONS ==========
 
-function getGrunnlagResultatBadge(resultat: GrunnlagResponsResultat | string | undefined): { variant: BadgeVariant; label: string } {
-  const label = getBhGrunnlagssvarLabel(resultat || '');
-  let variant: BadgeVariant = 'neutral';
+/**
+ * Variant mappings for different result types
+ */
+const RESULTAT_VARIANTS: Record<string, BadgeVariant> = {
+  // Success
+  godkjent: 'success',
+  // Warning
+  delvis_godkjent: 'warning',
+  delvis: 'warning',
+  erkjenn_fm: 'warning',
+  krever_avklaring: 'warning',
+  hold_tilbake: 'warning',
+  // Danger
+  avslatt: 'danger',
+  frafalt: 'danger',
+};
 
-  switch (resultat) {
-    case 'godkjent':
-      variant = 'success';
-      break;
-    case 'delvis_godkjent':
-    case 'erkjenn_fm':
-    case 'krever_avklaring':
-      variant = 'warning';
-      break;
-    case 'avslatt':
-    case 'frafalt':
-      variant = 'danger';
-      break;
-  }
-
+/**
+ * Generic badge helper - maps result code to variant and label
+ */
+function getResultatBadge(
+  resultat: string | undefined,
+  labelFn: (r: string) => string
+): { variant: BadgeVariant; label: string } {
+  const label = labelFn(resultat || '');
+  const variant = RESULTAT_VARIANTS[resultat || ''] || 'neutral';
   return { variant, label };
 }
 
-function getVederlagResultatBadge(resultat: VederlagBeregningResultat | string | undefined): { variant: BadgeVariant; label: string } {
-  const label = getBhVederlagssvarLabel(resultat || '');
-  let variant: BadgeVariant = 'neutral';
+// Specific badge helpers using the generic function
+const getGrunnlagResultatBadge = (r: GrunnlagResponsResultat | string | undefined) =>
+  getResultatBadge(r, getBhGrunnlagssvarLabel);
 
-  switch (resultat) {
-    case 'godkjent':
-      variant = 'success';
-      break;
-    case 'delvis_godkjent':
-    case 'hold_tilbake':
-      variant = 'warning';
-      break;
-    case 'avslatt':
-      variant = 'danger';
-      break;
-  }
+const getVederlagResultatBadge = (r: VederlagBeregningResultat | string | undefined) =>
+  getResultatBadge(r, getBhVederlagssvarLabel);
 
-  return { variant, label };
-}
+const getFristResultatBadge = (r: FristBeregningResultat | string | undefined) =>
+  getResultatBadge(r, getBhFristsvarLabel);
 
-function getFristResultatBadge(resultat: FristBeregningResultat | string | undefined): { variant: BadgeVariant; label: string } {
-  const label = getBhFristsvarLabel(resultat || '');
-  let variant: BadgeVariant = 'neutral';
+// Beløpsvurdering uses inline labels
+const BELOP_LABELS: Record<string, string> = {
+  godkjent: 'Godkjent',
+  delvis: 'Delvis godkjent',
+  avslatt: 'Avslått',
+};
 
-  switch (resultat) {
-    case 'godkjent':
-      variant = 'success';
-      break;
-    case 'delvis_godkjent':
-      variant = 'warning';
-      break;
-    case 'avslatt':
-      variant = 'danger';
-      break;
-  }
-
-  return { variant, label };
-}
-
-// Helper to get beløpsvurdering badge
 function getBelopVurderingBadge(vurdering: string | undefined) {
-  switch (vurdering) {
-    case 'godkjent': return { variant: 'success' as const, label: 'Godkjent' };
-    case 'delvis': return { variant: 'warning' as const, label: 'Delvis godkjent' };
-    case 'avslatt': return { variant: 'danger' as const, label: 'Avslått' };
-    default: return { variant: 'neutral' as const, label: '-' };
-  }
+  return getResultatBadge(vurdering, (r) => BELOP_LABELS[r] || '-');
 }
 
 // ========== HELPER COMPONENTS ==========
