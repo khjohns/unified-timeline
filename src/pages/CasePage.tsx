@@ -679,6 +679,7 @@ function CasePageContent() {
               antall_dager: state.frist.krevd_dager,
               begrunnelse: state.frist.begrunnelse,
               dato_krav_mottatt: state.frist.spesifisert_varsel?.dato_sendt,
+              dato_oppdaget: state.grunnlag.dato_oppdaget,
               noytralt_varsel: state.frist.noytralt_varsel,
               spesifisert_varsel: state.frist.spesifisert_varsel,
             }}

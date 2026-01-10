@@ -82,6 +82,8 @@ interface FristEventInfo {
   begrunnelse?: string;
   /** Date when the specified claim was received (for §33.7 preclusion calculation) */
   dato_krav_mottatt?: string;
+  /** Date when TE discovered the issue (from grunnlag) */
+  dato_oppdaget?: string;
   /** Foreløpig varsel info (§33.4) */
   noytralt_varsel?: VarselInfoData;
   /** Spesifisert krav info (§33.6) */
@@ -883,23 +885,39 @@ export function RespondFristModal({
                   : (fristEvent?.spesifisert_varsel || fristTilstand?.spesifisert_varsel);
                 const varselDato = varselInfo?.dato_sendt;
                 const varselMetode = varselInfo?.metode;
+                const datoOppdaget = fristEvent?.dato_oppdaget;
+                const dagerMellom = datoOppdaget && varselDato
+                  ? differenceInDays(parseISO(varselDato), parseISO(datoOppdaget))
+                  : null;
 
                 return (
-                  <InlineDataList className="mb-4">
-                    <InlineDataListItem label="Varseltype">
-                      {varselType === 'noytralt' ? 'Foreløpig varsel (§33.4)' : 'Spesifisert krav (§33.6)'}
-                    </InlineDataListItem>
+                  <DataList variant="grid" className="mb-4">
+                    {datoOppdaget && (
+                      <DataListItem label="Dato oppdaget">
+                        {format(parseISO(datoOppdaget), 'd. MMM yyyy', { locale: nb })}
+                      </DataListItem>
+                    )}
                     {varselDato && (
-                      <InlineDataListItem label="Dato sendt" mono>
+                      <DataListItem label="Dato varslet">
                         {format(parseISO(varselDato), 'd. MMM yyyy', { locale: nb })}
-                      </InlineDataListItem>
+                      </DataListItem>
                     )}
+                    {dagerMellom !== null && (
+                      <DataListItem label="Dager">
+                        {dagerMellom} {dagerMellom === 1 ? 'dag' : 'dager'}
+                      </DataListItem>
+                    )}
+                    <DataListItem label="Varseltype">
+                      <Badge variant="default">
+                        {varselType === 'noytralt' ? 'Foreløpig varsel (§33.4)' : 'Spesifisert krav (§33.6)'}
+                      </Badge>
+                    </DataListItem>
                     {varselMetode && varselMetode.length > 0 && (
-                      <InlineDataListItem label="Metode">
+                      <DataListItem label="Metode">
                         {varselMetode.join(', ')}
-                      </InlineDataListItem>
+                      </DataListItem>
                     )}
-                  </InlineDataList>
+                  </DataList>
                 );
               })()}
 
