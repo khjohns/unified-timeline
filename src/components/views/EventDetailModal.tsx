@@ -17,6 +17,7 @@ import {
   DataListItem,
   InlineDataList,
   InlineDataListItem,
+  HighlightCard,
 } from '../primitives';
 import {
   TimelineEvent,
@@ -387,7 +388,7 @@ function VederlagSection({ data }: { data: VederlagEventData }) {
   return (
     <div className="space-y-4">
       {/* Sammendrag - kompakt oversikt øverst */}
-      <div className="bg-pkt-bg-subtle p-3 border-l-4 border-pkt-brand-dark-blue-1000">
+      <HighlightCard variant="info">
         <div className="flex items-baseline justify-between">
           <span className="text-lg font-semibold text-pkt-text-body-dark">
             {formatCurrency(totalBelop)}
@@ -407,7 +408,7 @@ function VederlagSection({ data }: { data: VederlagEventData }) {
             )}
           </InlineDataList>
         )}
-      </div>
+      </HighlightCard>
 
       <DataList>
         <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
@@ -956,12 +957,12 @@ function ForseringVarselSection({ data }: { data: ForseringVarselEventData }) {
 
   return (
     <div className="space-y-4">
-      <div className="py-3 bg-pkt-surface-faded-red px-4 border-b border-pkt-brand-red-1000">
+      <HighlightCard variant="danger">
         <Badge variant="danger" size="lg">Forseringsvarsel (§33.8)</Badge>
         {data.grunnlag_avslag_trigger && (
           <span className="ml-2 text-sm text-pkt-brand-red-1000">(utløst av grunnlagsavslag)</span>
         )}
-      </div>
+      </HighlightCard>
 
       {/* Sammendrag */}
       <DataList>
