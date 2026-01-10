@@ -199,6 +199,11 @@ export function ApprovalProvider({ children }: ApprovalProviderProps) {
       // This ensures the submitter cannot approve their own submission
       const steps = createApprovalStepsExcludingSubmitter(samletBelop, submitterRole);
 
+      // If no approval steps are required, the submitter has sufficient authority
+      // and the package is automatically approved
+      const noApprovalRequired = steps.length === 0;
+      const now = new Date().toISOString();
+
       const pakke: BhResponsPakke = {
         id: `pakke-${Date.now()}`,
         sakId,
@@ -212,10 +217,11 @@ export function ApprovalProvider({ children }: ApprovalProviderProps) {
         samletBelop,
         requiredApprovers: steps.map((s) => s.role),
         steps,
-        status: 'pending',
-        submittedAt: new Date().toISOString(),
+        status: noApprovalRequired ? 'approved' : 'pending',
+        submittedAt: now,
         submittedBy: submitterName || APPROVAL_ROLE_LABELS[submitterRole],
         submittedByRole: submitterRole,
+        completedAt: noApprovalRequired ? now : undefined,
       };
 
       // Save the package

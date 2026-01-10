@@ -114,12 +114,8 @@ export function createApprovalStepsExcludingSubmitter(
     return roleIndex > submitterIndex;
   });
 
-  // If no roles remain (submitter is at or above all required levels),
-  // we still need at least the next level up from the submitter
-  if (filteredRoles.length === 0 && submitterIndex < ROLE_HIERARCHY.length - 1) {
-    const nextRole = ROLE_HIERARCHY[submitterIndex + 1]!;
-    filteredRoles.push(nextRole);
-  }
+  // If no roles remain, the submitter has sufficient authority for this amount.
+  // Return empty array - no approval steps required.
 
   return filteredRoles.map((role, index) => ({
     role,
