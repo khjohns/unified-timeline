@@ -21,7 +21,7 @@ export function PortefoljeAnalyse({ summary }: PortefoljeAnalyseProps) {
     >
       {/* KPI Summary Row */}
       <section>
-        <h3 className="text-body-lg font-semibold text-pkt-grays-gray-800 mb-4">Nøkkeltall</h3>
+        <h3 className="text-body-lg font-semibold text-pkt-text-body-dark mb-4">Nøkkeltall</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <KPICard
             label="Totalt antall saker"
@@ -50,7 +50,7 @@ export function PortefoljeAnalyse({ summary }: PortefoljeAnalyseProps) {
 
       {/* Status Distribution */}
       <section>
-        <h3 className="text-body-lg font-semibold text-pkt-grays-gray-800 mb-4">Statusfordeling</h3>
+        <h3 className="text-body-lg font-semibold text-pkt-text-body-dark mb-4">Statusfordeling</h3>
         <div className="grid md:grid-cols-2 gap-6">
           {/* By Status */}
           <Card variant="outlined" padding="md">

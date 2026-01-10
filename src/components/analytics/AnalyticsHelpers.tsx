@@ -28,9 +28,9 @@ export function KPICard({ label, value, subtext, color = 'blue' }: KPICardProps)
 
   return (
     <Card variant="default" padding="md" className={`border-l-4 ${colorClasses[color]}`}>
-      <div className="text-sm text-pkt-grays-gray-600 mb-1">{label}</div>
-      <div className="text-2xl font-bold text-pkt-grays-gray-800">{value}</div>
-      {subtext && <div className="text-xs text-pkt-grays-gray-500 mt-1">{subtext}</div>}
+      <div className="text-sm text-pkt-text-body-subtle mb-1">{label}</div>
+      <div className="text-2xl font-bold text-pkt-text-body-dark">{value}</div>
+      {subtext && <div className="text-xs text-pkt-text-body-subtle mt-1">{subtext}</div>}
     </Card>
   );
 }
@@ -57,7 +57,7 @@ export function ProgressBar({ value, max = 100, color = 'bg-oslo-blue', showLabe
           style={{ width: `${percentage}%` }}
         />
       </div>
-      {showLabel && <span className="text-sm text-pkt-grays-gray-600 w-12 text-right">{value.toFixed(1)}%</span>}
+      {showLabel && <span className="text-sm text-pkt-text-body-subtle w-12 text-right">{value.toFixed(1)}%</span>}
     </div>
   );
 }
@@ -78,7 +78,7 @@ export function SimpleBarChart({ data, maxValue }: SimpleBarChartProps) {
     <div className="space-y-3">
       {data.map((item, i) => (
         <div key={i} className="flex items-center gap-3">
-          <div className="w-24 text-sm text-pkt-grays-gray-600 truncate">{item.label}</div>
+          <div className="w-24 text-sm text-pkt-text-body-subtle truncate">{item.label}</div>
           <div className="flex-1 bg-pkt-grays-gray-200 rounded h-6">
             <div
               className={`h-6 rounded ${item.color || 'bg-oslo-blue'} flex items-center justify-end pr-2`}
@@ -121,12 +121,12 @@ interface AnalyticsSectionProps {
 export function AnalyticsSection({ title, description, icon, children }: AnalyticsSectionProps) {
   return (
     <div className="space-y-6">
-      <div className="border-b border-pkt-border-default pb-4">
-        <h2 className="text-heading-md font-semibold text-pkt-grays-gray-800 flex items-center gap-2">
+      <div className="border-b border-pkt-border-subtle pb-4">
+        <h2 className="text-heading-md font-semibold text-pkt-text-body-dark flex items-center gap-2">
           {icon && <span>{icon}</span>}
           {title}
         </h2>
-        <p className="mt-1 text-body-sm text-pkt-grays-gray-600">{description}</p>
+        <p className="mt-1 text-body-sm text-pkt-text-body-subtle">{description}</p>
       </div>
       {children}
     </div>

@@ -26,7 +26,7 @@ export function OkonomiskAnalyse({ vederlag, responseTimes }: OkonomiskAnalysePr
     >
       {/* Summary KPIs */}
       <section>
-        <h3 className="text-body-lg font-semibold text-pkt-grays-gray-800 mb-4">Økonomisk oversikt</h3>
+        <h3 className="text-body-lg font-semibold text-pkt-text-body-dark mb-4">Økonomisk oversikt</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <KPICard
             label="Vederlag krevd"
@@ -57,7 +57,7 @@ export function OkonomiskAnalyse({ vederlag, responseTimes }: OkonomiskAnalysePr
 
       {/* Vederlag by method and distribution */}
       <section>
-        <h3 className="text-body-lg font-semibold text-pkt-grays-gray-800 mb-4">Vederlagsanalyse</h3>
+        <h3 className="text-body-lg font-semibold text-pkt-text-body-dark mb-4">Vederlagsanalyse</h3>
         <div className="grid md:grid-cols-2 gap-6">
           {/* By Method */}
           <Card variant="outlined" padding="md">
@@ -106,7 +106,7 @@ export function OkonomiskAnalyse({ vederlag, responseTimes }: OkonomiskAnalysePr
 
       {/* Frist/Dagmulkt analysis */}
       <section>
-        <h3 className="text-body-lg font-semibold text-pkt-grays-gray-800 mb-4">Fristforlengelse og dagmulkt</h3>
+        <h3 className="text-body-lg font-semibold text-pkt-text-body-dark mb-4">Fristforlengelse og dagmulkt</h3>
         <Card variant="outlined" padding="md">
           <div className="grid md:grid-cols-2 gap-6">
             {/* Frist statistics */}
@@ -145,8 +145,8 @@ export function OkonomiskAnalyse({ vederlag, responseTimes }: OkonomiskAnalysePr
             {/* Dagmulkt impact info */}
             <div>
               <h4 className="text-body-md font-semibold mb-4">Dagmulkt-eksponering</h4>
-              <div className="p-4 bg-badge-warning-bg/20 rounded-lg">
-                <p className="text-sm text-pkt-grays-gray-700 mb-3">
+              <div className="p-4 bg-pkt-surface-yellow rounded-lg">
+                <p className="text-sm text-pkt-text-body-default mb-3">
                   Fristforlengelser påvirker dagmulkteksponering direkte. For hver dag frist ikke godkjennes,
                   akkumuleres potensiell dagmulkt.
                 </p>
@@ -176,9 +176,9 @@ export function OkonomiskAnalyse({ vederlag, responseTimes }: OkonomiskAnalysePr
       </section>
 
       {/* Economic insights */}
-      <Card variant="outlined" padding="md" className="bg-green-50">
+      <Card variant="outlined" padding="md" className="bg-pkt-surface-faded-green">
         <h4 className="text-body-md font-semibold text-badge-success-text mb-2">Økonomisk innsikt</h4>
-        <div className="text-sm text-pkt-grays-gray-700 space-y-2">
+        <div className="text-sm text-pkt-text-body-default space-y-2">
           <p>
             <strong>Godkjenningsgrad:</strong> {vederlag?.summary.godkjenningsgrad?.toFixed(1) ?? 0}% av krevd vederlag er godkjent.
             {vederlag?.summary.godkjenningsgrad && vederlag.summary.godkjenningsgrad >= 70

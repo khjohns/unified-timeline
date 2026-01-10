@@ -17,7 +17,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Button, Tabs } from '../components/primitives';
+import { PageHeader } from '../components/PageHeader';
 import { useAuth } from '../context/AuthContext';
+import { useUserRole } from '../hooks/useUserRole';
 import {
   useAnalyticsSummary,
   useCategoryAnalytics,
@@ -59,6 +61,7 @@ type AnalysisTab = typeof ANALYSIS_TABS[number]['id'];
 export function AnalyticsDashboard() {
   const navigate = useNavigate();
   const { isVerifying } = useAuth();
+  const { userRole, setUserRole } = useUserRole();
   const [activeTab, setActiveTab] = useState<AnalysisTab>('portefolje');
   const [timelinePeriod, setTimelinePeriod] = useState<'day' | 'week' | 'month'>('week');
 
@@ -99,29 +102,23 @@ export function AnalyticsDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-pkt-bg-default">
-      {/* Header */}
-      <header className="bg-pkt-bg-card shadow-sm border-b-2 border-oslo-blue">
-        <div className="max-w-7xl mx-auto px-6 py-5">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <h1 className="text-heading-lg font-bold text-oslo-blue">Analysedashboard</h1>
-              <p className="mt-2 text-body-md text-pkt-grays-gray-600">
-                Prosjekt- og porteføljeoversikt basert på hendelsesdata
-              </p>
-            </div>
-            <div className="flex gap-2 ml-4">
-              <Button variant="secondary" size="sm" onClick={() => navigate('/saker')}>
-                Saksoversikt
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-pkt-bg-subtle">
+      {/* Header - uses shared PageHeader component */}
+      <PageHeader
+        title="Analysedashboard"
+        subtitle="Prosjekt- og porteføljeoversikt basert på hendelsesdata"
+        userRole={userRole}
+        onToggleRole={setUserRole}
+        actions={
+          <Button variant="secondary" size="sm" onClick={() => navigate('/saker')}>
+            Saksoversikt
+          </Button>
+        }
+      />
 
       {/* Analysis Method Navigation */}
-      <div className="bg-pkt-bg-card border-b border-pkt-border-default">
-        <div className="max-w-7xl mx-auto px-6">
+      <div className="bg-pkt-bg-card border-b border-pkt-border-subtle">
+        <div className="max-w-3xl mx-auto px-4 sm:px-8">
           <Tabs
             tabs={ANALYSIS_TABS.map(tab => ({ id: tab.id, label: tab.label }))}
             activeTab={activeTab}
@@ -131,7 +128,7 @@ export function AnalyticsDashboard() {
       </div>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="max-w-3xl mx-auto px-4 py-6 sm:px-8 sm:py-8 bg-pkt-bg-card min-h-[calc(100vh-88px)]">
         {isLoading ? (
           <Card variant="default" padding="lg">
             <div className="flex items-center justify-center py-12">
@@ -140,30 +137,30 @@ export function AnalyticsDashboard() {
             </div>
           </Card>
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-6">
             {/* Active Analysis Method */}
             {renderAnalysisContent()}
 
             {/* Info Box */}
             <section>
-              <Card variant="default" padding="md" className="bg-blue-50 border border-blue-200">
+              <Card variant="default" padding="md" className="bg-pkt-surface-subtle-pale-blue border border-pkt-border-blue">
                 <h3 className="text-body-lg font-semibold text-oslo-blue mb-2">Om analysemetodene</h3>
-                <p className="text-sm text-pkt-grays-gray-700 mb-3">
+                <p className="text-sm text-pkt-text-body-default mb-3">
                   Dette dashboardet demonstrerer hvordan data lagret i Supabase via event sourcing kan
                   aggregeres og visualiseres for prosjekt- og porteføljeanalyse. Tilsvarende funksjonalitet
                   kan bygges med Power BI mot Dataverse i en produksjonsløsning.
                 </p>
                 <div className="grid md:grid-cols-2 gap-4 text-sm">
                   <div>
-                    <strong className="text-pkt-grays-gray-800">Analysemetoder:</strong>
-                    <ul className="list-disc list-inside mt-1 space-y-1 text-pkt-grays-gray-600">
+                    <strong className="text-pkt-text-body-dark">Analysemetoder:</strong>
+                    <ul className="list-disc list-inside mt-1 space-y-1 text-pkt-text-body-subtle">
                       <li><strong>Portefølje:</strong> Overordnet KPI-er og statusfordeling</li>
                       <li><strong>Kategorier:</strong> Analyse per grunnlagskategori</li>
                       <li><strong>Trender:</strong> Aktivitet og mønstre over tid</li>
                     </ul>
                   </div>
                   <div>
-                    <ul className="list-disc list-inside mt-1 space-y-1 text-pkt-grays-gray-600">
+                    <ul className="list-disc list-inside mt-1 space-y-1 text-pkt-text-body-subtle">
                       <li><strong>Økonomi:</strong> Vederlag og frist/dagmulkt</li>
                       <li><strong>Ytelse:</strong> Behandlingstider og effektivitet</li>
                       <li><strong>Ressurser:</strong> Aktører og arbeidsbelastning</li>

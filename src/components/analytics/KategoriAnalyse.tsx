@@ -27,15 +27,15 @@ export function KategoriAnalyse({ categories }: KategoriAnalyseProps) {
       <div className="grid grid-cols-3 gap-4 mb-6">
         <Card variant="outlined" padding="md" className="text-center">
           <div className="text-2xl font-bold text-oslo-blue">{categories?.categories.length ?? 0}</div>
-          <div className="text-sm text-pkt-grays-gray-600">Kategorier i bruk</div>
+          <div className="text-sm text-pkt-text-body-subtle">Kategorier i bruk</div>
         </Card>
         <Card variant="outlined" padding="md" className="text-center">
           <div className="text-2xl font-bold text-oslo-blue">{totalCases}</div>
-          <div className="text-sm text-pkt-grays-gray-600">Saker totalt</div>
+          <div className="text-sm text-pkt-text-body-subtle">Saker totalt</div>
         </Card>
         <Card variant="outlined" padding="md" className="text-center">
           <div className="text-2xl font-bold text-badge-success-text">{avgApprovalRate?.toFixed(1) ?? 0}%</div>
-          <div className="text-sm text-pkt-grays-gray-600">Gj.snitt godkjenning</div>
+          <div className="text-sm text-pkt-text-body-subtle">Gj.snitt godkjenning</div>
         </Card>
       </div>
 
@@ -46,12 +46,12 @@ export function KategoriAnalyse({ categories }: KategoriAnalyseProps) {
           <table className="w-full">
             <thead>
               <tr className="border-b border-pkt-border-default">
-                <th className="text-left py-2 px-2 text-sm font-semibold text-pkt-grays-gray-600">Kategori</th>
-                <th className="text-right py-2 px-2 text-sm font-semibold text-pkt-grays-gray-600">Antall</th>
-                <th className="text-right py-2 px-2 text-sm font-semibold text-pkt-grays-gray-600">Godkjent</th>
-                <th className="text-right py-2 px-2 text-sm font-semibold text-pkt-grays-gray-600">Delvis</th>
-                <th className="text-right py-2 px-2 text-sm font-semibold text-pkt-grays-gray-600">Avslått</th>
-                <th className="py-2 px-2 text-sm font-semibold text-pkt-grays-gray-600 w-40">Godkjenningsrate</th>
+                <th className="text-left py-2 px-2 text-sm font-semibold text-pkt-text-body-subtle">Kategori</th>
+                <th className="text-right py-2 px-2 text-sm font-semibold text-pkt-text-body-subtle">Antall</th>
+                <th className="text-right py-2 px-2 text-sm font-semibold text-pkt-text-body-subtle">Godkjent</th>
+                <th className="text-right py-2 px-2 text-sm font-semibold text-pkt-text-body-subtle">Delvis</th>
+                <th className="text-right py-2 px-2 text-sm font-semibold text-pkt-text-body-subtle">Avslått</th>
+                <th className="py-2 px-2 text-sm font-semibold text-pkt-text-body-subtle w-40">Godkjenningsrate</th>
               </tr>
             </thead>
             <tbody>
@@ -76,9 +76,9 @@ export function KategoriAnalyse({ categories }: KategoriAnalyseProps) {
 
         {/* Insights */}
         {categories && categories.categories.length > 0 && (
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+          <div className="mt-6 p-4 bg-pkt-surface-subtle-pale-blue rounded-lg">
             <h4 className="text-sm font-semibold text-oslo-blue mb-2">Innsikt</h4>
-            <ul className="text-sm text-pkt-grays-gray-700 space-y-1">
+            <ul className="text-sm text-pkt-text-body-default space-y-1">
               {(() => {
                 const sorted = [...categories.categories].sort((a, b) => b.godkjenningsrate - a.godkjenningsrate);
                 const best = sorted[0];

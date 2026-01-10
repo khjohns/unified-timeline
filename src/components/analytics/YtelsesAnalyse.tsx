@@ -36,7 +36,7 @@ export function YtelsesAnalyse({ responseTimes }: YtelsesAnalyseProps) {
     >
       {/* Summary KPIs */}
       <section>
-        <h3 className="text-body-lg font-semibold text-pkt-grays-gray-800 mb-4">Behandlingstider - oversikt</h3>
+        <h3 className="text-body-lg font-semibold text-pkt-text-body-dark mb-4">Behandlingstider - oversikt</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <KPICard
             label="Gj.snitt behandlingstid"
@@ -67,7 +67,7 @@ export function YtelsesAnalyse({ responseTimes }: YtelsesAnalyseProps) {
 
       {/* Detailed breakdown */}
       <section>
-        <h3 className="text-body-lg font-semibold text-pkt-grays-gray-800 mb-4">Detaljert analyse</h3>
+        <h3 className="text-body-lg font-semibold text-pkt-text-body-dark mb-4">Detaljert analyse</h3>
         <Card variant="outlined" padding="md">
           <div className="space-y-6">
             {tracks.map((track) => {
@@ -80,7 +80,7 @@ export function YtelsesAnalyse({ responseTimes }: YtelsesAnalyseProps) {
                 <div key={track} className="pb-6 border-b border-pkt-border-default last:border-0 last:pb-0">
                   <div className="flex items-center justify-between mb-3">
                     <div>
-                      <h4 className="font-semibold text-pkt-grays-gray-800 capitalize">{track}</h4>
+                      <h4 className="font-semibold text-pkt-text-body-dark capitalize">{track}</h4>
                       <p className="text-sm text-pkt-grays-gray-600">
                         {track === 'grunnlag' && 'Tid fra varsling til grunnlagsvedtak'}
                         {track === 'vederlag' && 'Tid fra krav til vederlagsvedtak'}
@@ -142,9 +142,9 @@ export function YtelsesAnalyse({ responseTimes }: YtelsesAnalyseProps) {
       </section>
 
       {/* Performance insights */}
-      <Card variant="outlined" padding="md" className="bg-blue-50">
+      <Card variant="outlined" padding="md" className="bg-pkt-surface-subtle-pale-blue">
         <h4 className="text-body-md font-semibold text-oslo-blue mb-2">Ytelsesinnsikt</h4>
-        <div className="text-sm text-pkt-grays-gray-700 space-y-2">
+        <div className="text-sm text-pkt-text-body-default space-y-2">
           <p>
             <strong>Målsetning:</strong> Ideelt bør behandlingstid være under 7 dager for rask saksflyt.
             Saker over 14 dager indikerer potensielle flaskehalser.

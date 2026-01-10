@@ -25,7 +25,7 @@ export function RessursAnalyse({ actors }: RessursAnalyseProps) {
     >
       {/* Summary KPIs */}
       <section>
-        <h3 className="text-body-lg font-semibold text-pkt-grays-gray-800 mb-4">Ressursoversikt</h3>
+        <h3 className="text-body-lg font-semibold text-pkt-text-body-dark mb-4">Ressursoversikt</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <KPICard
             label="Totalt aktører"
@@ -56,7 +56,7 @@ export function RessursAnalyse({ actors }: RessursAnalyseProps) {
 
       {/* Role breakdown */}
       <section>
-        <h3 className="text-body-lg font-semibold text-pkt-grays-gray-800 mb-4">Fordeling per rolle</h3>
+        <h3 className="text-body-lg font-semibold text-pkt-text-body-dark mb-4">Fordeling per rolle</h3>
         <div className="grid md:grid-cols-2 gap-6">
           <Card variant="outlined" padding="md">
             <h4 className="text-body-md font-semibold mb-4">Rolleaktivitet</h4>
@@ -64,18 +64,18 @@ export function RessursAnalyse({ actors }: RessursAnalyseProps) {
               {Object.entries(actors?.by_role ?? {}).map(([role, data]) => {
                 const percentage = totalEvents > 0 ? (data.events / totalEvents) * 100 : 0;
                 return (
-                  <div key={role} className="text-center p-4 bg-pkt-bg-default rounded-lg">
+                  <div key={role} className="text-center p-4 bg-pkt-bg-subtle rounded-lg">
                     <div className="text-3xl font-bold text-oslo-blue">{data.events}</div>
-                    <div className="text-sm text-pkt-grays-gray-600 mt-1">
+                    <div className="text-sm text-pkt-text-body-subtle mt-1">
                       {role === 'TE' ? 'Totalentreprenør' : role === 'BH' ? 'Byggherre' : role}
                     </div>
-                    <div className="text-xs text-pkt-grays-gray-500 mt-1">
+                    <div className="text-xs text-pkt-text-body-subtle mt-1">
                       {data.unique_actors} aktører ({percentage.toFixed(0)}%)
                     </div>
                     {/* Mini progress bar */}
                     <div className="mt-2 h-1 bg-pkt-grays-gray-200 rounded-full">
                       <div
-                        className={`h-1 rounded-full ${role === 'TE' ? 'bg-blue-500' : 'bg-purple-500'}`}
+                        className={`h-1 rounded-full ${role === 'TE' ? 'bg-role-te-pill-bg' : 'bg-role-bh-pill-bg'}`}
                         style={{ width: `${percentage}%` }}
                       />
                     </div>
@@ -92,18 +92,18 @@ export function RessursAnalyse({ actors }: RessursAnalyseProps) {
               {Object.entries(actors?.by_role ?? {}).map(([role, data]) => {
                 const avgPerActor = data.unique_actors > 0 ? data.events / data.unique_actors : 0;
                 return (
-                  <div key={role} className="pb-4 border-b border-pkt-border-default last:border-0 last:pb-0">
+                  <div key={role} className="pb-4 border-b border-pkt-border-subtle last:border-0 last:pb-0">
                     <div className="flex justify-between items-center mb-2">
                       <span className="font-medium">
                         {role === 'TE' ? 'Totalentreprenør' : role === 'BH' ? 'Byggherre' : role}
                       </span>
-                      <span className="text-sm text-pkt-grays-gray-600">
+                      <span className="text-sm text-pkt-text-body-subtle">
                         {avgPerActor.toFixed(1)} hendelser/aktør
                       </span>
                     </div>
                     <div className="h-2 bg-pkt-grays-gray-200 rounded-full">
                       <div
-                        className={`h-2 rounded-full ${role === 'TE' ? 'bg-blue-500' : 'bg-purple-500'}`}
+                        className={`h-2 rounded-full ${role === 'TE' ? 'bg-role-te-pill-bg' : 'bg-role-bh-pill-bg'}`}
                         style={{ width: `${Math.min((avgPerActor / 20) * 100, 100)}%` }}
                       />
                     </div>
@@ -117,7 +117,7 @@ export function RessursAnalyse({ actors }: RessursAnalyseProps) {
 
       {/* Top actors */}
       <section>
-        <h3 className="text-body-lg font-semibold text-pkt-grays-gray-800 mb-4">Mest aktive</h3>
+        <h3 className="text-body-lg font-semibold text-pkt-text-body-dark mb-4">Mest aktive</h3>
         <Card variant="outlined" padding="md">
           <div className="grid md:grid-cols-2 gap-6">
             {/* Top list */}
@@ -129,13 +129,13 @@ export function RessursAnalyse({ actors }: RessursAnalyseProps) {
                   const width = (actor.events / maxEvents) * 100;
                   return (
                     <div key={i} className="flex items-center gap-3">
-                      <div className="w-6 text-sm text-pkt-grays-gray-500 text-right">{i + 1}.</div>
+                      <div className="w-6 text-sm text-pkt-text-body-subtle text-right">{i + 1}.</div>
                       <div className="flex-1">
                         <div className="flex justify-between items-center text-sm mb-1">
                           <span>
                             {actor.name}
                             <span className={`ml-2 px-1.5 py-0.5 text-xs rounded ${
-                              actor.role === 'TE' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
+                              actor.role === 'TE' ? 'bg-role-te-pill-bg text-role-te-text' : 'bg-role-bh-pill-bg text-role-bh-text'
                             }`}>
                               {actor.role}
                             </span>
@@ -144,7 +144,7 @@ export function RessursAnalyse({ actors }: RessursAnalyseProps) {
                         </div>
                         <div className="h-1.5 bg-pkt-grays-gray-200 rounded-full">
                           <div
-                            className={`h-1.5 rounded-full ${actor.role === 'TE' ? 'bg-blue-500' : 'bg-purple-500'}`}
+                            className={`h-1.5 rounded-full ${actor.role === 'TE' ? 'bg-role-te-pill-bg' : 'bg-role-bh-pill-bg'}`}
                             style={{ width: `${width}%` }}
                           />
                         </div>
@@ -168,16 +168,16 @@ export function RessursAnalyse({ actors }: RessursAnalyseProps) {
 
                   return (
                     <>
-                      <div className="p-4 bg-pkt-bg-default rounded-lg">
-                        <div className="text-sm text-pkt-grays-gray-600 mb-1">Topp 3 aktører står for</div>
+                      <div className="p-4 bg-pkt-bg-subtle rounded-lg">
+                        <div className="text-sm text-pkt-text-body-subtle mb-1">Topp 3 aktører står for</div>
                         <div className="text-2xl font-bold text-oslo-blue">{top3Percentage.toFixed(0)}%</div>
-                        <div className="text-xs text-pkt-grays-gray-500">av alle hendelser</div>
+                        <div className="text-xs text-pkt-text-body-subtle">av alle hendelser</div>
                       </div>
 
-                      <div className="p-4 bg-pkt-bg-default rounded-lg">
-                        <div className="text-sm text-pkt-grays-gray-600 mb-1">Mest aktive</div>
+                      <div className="p-4 bg-pkt-bg-subtle rounded-lg">
+                        <div className="text-sm text-pkt-text-body-subtle mb-1">Mest aktive</div>
                         <div className="text-lg font-semibold">{actors.top_actors[0]?.name ?? '-'}</div>
-                        <div className="text-xs text-pkt-grays-gray-500">
+                        <div className="text-xs text-pkt-text-body-subtle">
                           {actors.top_actors[0]?.events ?? 0} hendelser ({actors.top_actors[0]?.role})
                         </div>
                       </div>
@@ -191,9 +191,9 @@ export function RessursAnalyse({ actors }: RessursAnalyseProps) {
       </section>
 
       {/* Resource insights */}
-      <Card variant="outlined" padding="md" className="bg-purple-50">
-        <h4 className="text-body-md font-semibold text-purple-800 mb-2">Ressursinnsikt</h4>
-        <div className="text-sm text-pkt-grays-gray-700 space-y-2">
+      <Card variant="outlined" padding="md" className="bg-pkt-surface-light-beige">
+        <h4 className="text-body-md font-semibold text-pkt-text-body-dark mb-2">Ressursinnsikt</h4>
+        <div className="text-sm text-pkt-text-body-default space-y-2">
           {actors && (
             <>
               <p>
