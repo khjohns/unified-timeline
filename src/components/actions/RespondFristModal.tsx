@@ -63,7 +63,7 @@ import {
   combineBegrunnelse,
   type FristResponseInput,
 } from '../../utils/begrunnelseGenerator';
-import { getResultatLabel } from '../../utils/formatters';
+import { getResultatLabel, formatVarselMetode } from '../../utils/formatters';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -903,18 +903,13 @@ export function RespondFristModal({
                       </DataListItem>
                     )}
                     {dagerMellom !== null && (
-                      <DataListItem label="Dager">
+                      <DataListItem label="Tid til varsling">
                         {dagerMellom} {dagerMellom === 1 ? 'dag' : 'dager'}
                       </DataListItem>
                     )}
-                    <DataListItem label="Varseltype">
-                      <Badge variant="default">
-                        {varselType === 'noytralt' ? 'Foreløpig varsel (§33.4)' : 'Spesifisert krav (§33.6)'}
-                      </Badge>
-                    </DataListItem>
                     {varselMetode && varselMetode.length > 0 && (
-                      <DataListItem label="Metode">
-                        {varselMetode.join(', ')}
+                      <DataListItem label="Varslingsmetode">
+                        {formatVarselMetode(varselMetode)}
                       </DataListItem>
                     )}
                   </DataList>
