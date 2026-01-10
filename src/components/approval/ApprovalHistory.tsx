@@ -14,6 +14,7 @@ interface ApprovalHistoryProps {
   steps: ApprovalStep[];
   submittedAt?: string;
   submittedBy?: string;
+  submitterComment?: string;
   className?: string;
 }
 
@@ -60,6 +61,7 @@ export function ApprovalHistory({
   steps,
   submittedAt,
   submittedBy,
+  submitterComment,
   className,
 }: ApprovalHistoryProps) {
   // Get steps that have been acted upon (approved or rejected)
@@ -94,6 +96,11 @@ export function ApprovalHistory({
               {submittedBy && <span>{submittedBy} - </span>}
               {formatDateMedium(submittedAt)}
             </div>
+            {submitterComment && (
+              <div className="mt-1 text-sm text-pkt-text-body-default italic">
+                "{submitterComment}"
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -19,6 +19,10 @@ interface ApprovalDashboardCardProps {
   canApprove: boolean;
   onOpenDetails: () => void;
   onDownloadPdf?: () => void;
+  /** Callback when "Rediger og send på nytt" is clicked (for rejected packages) */
+  onRestoreAndEdit?: () => void;
+  /** Callback when "Forkast" is clicked (for rejected packages) */
+  onDiscard?: () => void;
 }
 
 export function ApprovalDashboardCard({
@@ -26,10 +30,14 @@ export function ApprovalDashboardCard({
   canApprove,
   onOpenDetails,
   onDownloadPdf,
+  onRestoreAndEdit,
+  onDiscard,
 }: ApprovalDashboardCardProps) {
   const approvedCount = pakke.steps.filter((s: ApprovalStep) => s.status === 'approved').length;
   const totalSteps = pakke.steps.length;
-  const isFullyApproved = approvedCount === totalSteps;
+  const isFullyApproved = pakke.status === 'approved';
+  const isRejected = pakke.status === 'rejected';
+  const rejectedStep = isRejected ? pakke.steps.find((s) => s.status === 'rejected') : undefined;
 
   // Get next approver info
   const nextApproverStep = getNextApprover(pakke.steps);
@@ -56,7 +64,9 @@ export function ApprovalDashboardCard({
       : nextApproverStep.roleName
     : undefined;
 
-  const statusBadge = isFullyApproved ? (
+  const statusBadge = isRejected ? (
+    <Badge variant="danger">Avvist</Badge>
+  ) : isFullyApproved ? (
     <Badge variant="success">Godkjent</Badge>
   ) : canApprove ? (
     <Badge variant="info">Din godkjenning trengs</Badge>
@@ -71,22 +81,51 @@ export function ApprovalDashboardCard({
       variant="outlined"
       action={
         <>
-          <Button
-            variant={canApprove ? 'primary' : 'secondary'}
-            size="sm"
-            onClick={onOpenDetails}
-          >
-            <EyeOpenIcon className="w-4 h-4 mr-2" />
-            Se detaljer
-          </Button>
-          {isFullyApproved && onDownloadPdf && (
-            <Button variant="secondary" size="sm" onClick={onDownloadPdf}>
-              Last ned PDF
-            </Button>
+          {isRejected ? (
+            <>
+              {onDiscard && (
+                <Button variant="secondary" size="sm" onClick={onDiscard}>
+                  Forkast
+                </Button>
+              )}
+              {onRestoreAndEdit && (
+                <Button variant="primary" size="sm" onClick={onRestoreAndEdit}>
+                  Rediger og send på nytt
+                </Button>
+              )}
+            </>
+          ) : (
+            <>
+              <Button
+                variant={canApprove ? 'primary' : 'secondary'}
+                size="sm"
+                onClick={onOpenDetails}
+              >
+                <EyeOpenIcon className="w-4 h-4 mr-2" />
+                Se detaljer
+              </Button>
+              {isFullyApproved && onDownloadPdf && (
+                <Button variant="secondary" size="sm" onClick={onDownloadPdf}>
+                  Last ned PDF
+                </Button>
+              )}
+            </>
           )}
         </>
       }
     >
+      {/* Rejection reason banner */}
+      {isRejected && rejectedStep?.comment && (
+        <div className="mb-4 p-3 bg-pkt-bg-error rounded-md border border-pkt-border-error">
+          <div className="text-sm font-medium text-pkt-text-error">
+            Avvist av {rejectedStep.roleName}
+          </div>
+          <div className="mt-1 text-sm italic text-pkt-text-body-default">
+            "{rejectedStep.comment}"
+          </div>
+        </div>
+      )}
+
       {/* Metadata - grid layout on desktop */}
       <DataList variant="grid">
         {saksbehandlerDisplay && (
@@ -94,7 +133,7 @@ export function ApprovalDashboardCard({
             {saksbehandlerDisplay}
           </DataListItem>
         )}
-        {!isFullyApproved && nesteGodkjennerDisplay && (
+        {!isFullyApproved && !isRejected && nesteGodkjennerDisplay && (
           <DataListItem label="Neste godkjenner">
             <span className={canApprove ? 'font-medium text-pkt-text-link' : ''}>
               {nesteGodkjennerDisplay}
@@ -112,6 +151,7 @@ export function ApprovalDashboardCard({
           steps={pakke.steps}
           submittedAt={pakke.submittedAt}
           submittedBy={pakke.submittedBy}
+          submitterComment={pakke.submitterComment}
         />
       </div>
     </DashboardCard>

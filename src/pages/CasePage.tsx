@@ -337,6 +337,12 @@ function CasePageContent() {
               canApprove={approvalWorkflow.canApprovePakke}
               onOpenDetails={() => setApprovePakkeOpen(true)}
               onDownloadPdf={() => downloadApprovedPdf(state, approvalWorkflow.bhResponsPakke!)}
+              onRestoreAndEdit={() => {
+                approvalWorkflow.restoreDraftsFromPakke();
+              }}
+              onDiscard={() => {
+                approvalWorkflow.cancelPakke();
+              }}
             />
           </section>
         )}
@@ -831,7 +837,7 @@ function CasePageContent() {
             vederlagDraft={approvalWorkflow.vederlagDraft}
             fristDraft={approvalWorkflow.fristDraft}
             onSubmit={(dagmulktsats, comment) => {
-              approvalWorkflow.submitPakkeForApproval(dagmulktsats);
+              approvalWorkflow.submitPakkeForApproval(dagmulktsats, comment);
             }}
             currentMockUser={currentMockUser}
             currentMockManager={currentMockManager}

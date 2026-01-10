@@ -186,3 +186,55 @@ export function getResultatLabel(resultat: string): string {
   };
   return labels[resultat] || resultat;
 }
+
+/**
+ * SLA severity levels for approval waiting time
+ */
+export type ApprovalAgeSeverity = 'ok' | 'warning' | 'overdue';
+
+/**
+ * Get the age of an approval request with SLA severity
+ *
+ * SLA thresholds:
+ * - ok: 0-2 days (green)
+ * - warning: 3-5 days (yellow)
+ * - overdue: 6+ days (red)
+ *
+ * @example getApprovalAge('2025-01-08T10:00:00Z') // { days: 2, label: '2 dager siden', severity: 'ok' }
+ */
+export function getApprovalAge(submittedAt: string | undefined): {
+  days: number;
+  label: string;
+  severity: ApprovalAgeSeverity;
+} | null {
+  if (!submittedAt) return null;
+
+  try {
+    const submitted = new Date(submittedAt);
+    const now = new Date();
+    const diffMs = now.getTime() - submitted.getTime();
+    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    let label: string;
+    if (days === 0) {
+      label = 'I dag';
+    } else if (days === 1) {
+      label = '1 dag siden';
+    } else {
+      label = `${days} dager siden`;
+    }
+
+    let severity: ApprovalAgeSeverity;
+    if (days <= 2) {
+      severity = 'ok';
+    } else if (days <= 5) {
+      severity = 'warning';
+    } else {
+      severity = 'overdue';
+    }
+
+    return { days, label, severity };
+  } catch {
+    return null;
+  }
+}
