@@ -3,11 +3,21 @@
  *
  * Modal for viewing detailed event data from the timeline.
  * Supports all event types with type-specific rendering.
- * Uses accordion (Collapsible) for long text fields.
+ * Uses SectionContainer, DataList, and InlineDataList for consistent UX.
  */
 
 import React from 'react';
-import { Badge, BadgeVariant, Collapsible, Modal } from '../primitives';
+import {
+  Badge,
+  BadgeVariant,
+  Collapsible,
+  Modal,
+  SectionContainer,
+  DataList,
+  DataListItem,
+  InlineDataList,
+  InlineDataListItem,
+} from '../primitives';
 import {
   TimelineEvent,
   EventType,
@@ -138,23 +148,17 @@ function getFristResultatBadge(resultat: FristBeregningResultat | string | undef
   return { variant, label };
 }
 
-// ========== FIELD COMPONENTS ==========
-
-interface FieldProps {
-  label: string;
-  value: React.ReactNode;
-  className?: string;
+// Helper to get beløpsvurdering badge
+function getBelopVurderingBadge(vurdering: string | undefined) {
+  switch (vurdering) {
+    case 'godkjent': return { variant: 'success' as const, label: 'Godkjent' };
+    case 'delvis': return { variant: 'warning' as const, label: 'Delvis godkjent' };
+    case 'avslatt': return { variant: 'danger' as const, label: 'Avslått' };
+    default: return { variant: 'neutral' as const, label: '-' };
+  }
 }
 
-function Field({ label, value, className = '' }: FieldProps) {
-  if (value === undefined || value === null || value === '' || value === '—') return null;
-  return (
-    <div className={`py-3 border-b border-pkt-grays-gray-200 last:border-b-0 ${className}`}>
-      <dt className="text-sm font-medium text-pkt-grays-gray-500">{label}</dt>
-      <dd className="mt-1 text-sm text-pkt-text-body-dark">{value}</dd>
-    </div>
-  );
-}
+// ========== HELPER COMPONENTS ==========
 
 interface VarselInfoDisplayProps {
   label: string;
@@ -164,19 +168,14 @@ interface VarselInfoDisplayProps {
 function VarselInfoDisplay({ label, varsel }: VarselInfoDisplayProps) {
   if (!varsel?.dato_sendt) return null;
   return (
-    <Field
-      label={label}
-      value={
-        <span>
-          {formatDateMedium(varsel.dato_sendt)}
-          {varsel.metode && varsel.metode.length > 0 && (
-            <span className="ml-2 text-pkt-grays-gray-500">
-              ({formatVarselMetode(varsel.metode)})
-            </span>
-          )}
+    <DataListItem label={label}>
+      {formatDateMedium(varsel.dato_sendt)}
+      {varsel.metode && varsel.metode.length > 0 && (
+        <span className="ml-2 text-pkt-grays-gray-500">
+          ({formatVarselMetode(varsel.metode)})
         </span>
-      }
-    />
+      )}
+    </DataListItem>
   );
 }
 
@@ -191,12 +190,12 @@ function LongTextField({ label, value, defaultOpen = false }: LongTextFieldProps
 
   // For short texts (less than 150 chars), display inline
   if (value.length < 150) {
-    return <Field label={label} value={value} />;
+    return <DataListItem label={label}>{value}</DataListItem>;
   }
 
   // For longer texts, use collapsible
   return (
-    <div className="py-3 border-b border-pkt-grays-gray-100 last:border-b-0">
+    <div className="py-2.5">
       <Collapsible title={label} defaultOpen={defaultOpen}>
         <p className="text-sm text-pkt-text-body-dark whitespace-pre-wrap">
           {value}
@@ -217,48 +216,18 @@ function VedleggDisplay({ vedleggIds }: VedleggDisplayProps) {
   if (!vedleggIds || vedleggIds.length === 0) return null;
 
   return (
-    <Field
-      label="Vedlegg"
-      value={
-        <ul className="space-y-1">
-          {vedleggIds.map((id) => (
-            <li key={id} className="flex items-center gap-2">
-              <FileTextIcon className="w-4 h-4 text-pkt-grays-gray-400" />
-              <span className="text-sm text-pkt-brand-dark-blue-1000 hover:underline cursor-pointer">
-                {id}
-              </span>
-            </li>
-          ))}
-        </ul>
-      }
-    />
-  );
-}
-
-/**
- * SectionDivider - Visual separator for grouping fields
- *
- * Used to organize BH response data into logical sections without
- * hiding any content. All data remains visible at all times.
- */
-interface SectionDividerProps {
-  title: string;
-  subtitle?: string;
-}
-
-function SectionDivider({ title, subtitle }: SectionDividerProps) {
-  return (
-    <div className="flex items-center gap-3 py-2 mt-4 first:mt-0">
-      <span className="text-xs font-medium text-pkt-grays-gray-500 uppercase tracking-wide whitespace-nowrap">
-        {title}
-      </span>
-      <div className="flex-1 border-t border-pkt-grays-gray-200" />
-      {subtitle && (
-        <span className="text-xs text-pkt-grays-gray-400 whitespace-nowrap">
-          {subtitle}
-        </span>
-      )}
-    </div>
+    <DataListItem label="Vedlegg">
+      <ul className="space-y-1">
+        {vedleggIds.map((id) => (
+          <li key={id} className="flex items-center gap-2">
+            <FileTextIcon className="w-4 h-4 text-pkt-grays-gray-400" />
+            <span className="text-sm text-pkt-brand-dark-blue-1000 hover:underline cursor-pointer">
+              {id}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </DataListItem>
   );
 }
 
@@ -285,40 +254,38 @@ function GrunnlagSection({ data }: { data: GrunnlagEventData }) {
   const varselkravRefs = [...new Set(underkategoriObjekter.map((obj) => obj.varselkrav_ref))];
 
   return (
-    <dl>
-      <Field label="Tittel" value={data.tittel} />
-      <Field label="Hovedkategori" value={getHovedkategoriLabel(data.hovedkategori)} />
-      <Field
-        label="Underkategori"
-        value={
-          <span>
-            {underkategoriLabels}
-            {hjemmelRefs.length > 0 && (
-              <span className="ml-2 text-pkt-grays-gray-500 text-xs">
-                ({hjemmelRefs.join(', ')})
-              </span>
-            )}
-          </span>
-        }
-      />
-      {varselkravRefs.length > 0 && (
-        <Field
-          label="Varselkrav"
-          value={
-            <span className="text-pkt-grays-gray-600">
-              NS 8407 §{varselkravRefs.join(' / §')}
-            </span>
-          }
-        />
+    <DataList>
+      {data.tittel && <DataListItem label="Tittel">{data.tittel}</DataListItem>}
+      {data.hovedkategori && (
+        <DataListItem label="Hovedkategori">{getHovedkategoriLabel(data.hovedkategori)}</DataListItem>
       )}
-      <Field label="Dato oppdaget" value={formatDateMedium(data.dato_oppdaget)} />
+      {underkategoriLabels && (
+        <DataListItem label="Underkategori">
+          {underkategoriLabels}
+          {hjemmelRefs.length > 0 && (
+            <span className="ml-2 text-pkt-grays-gray-500 text-xs">
+              ({hjemmelRefs.join(', ')})
+            </span>
+          )}
+        </DataListItem>
+      )}
+      {varselkravRefs.length > 0 && (
+        <DataListItem label="Varselkrav">
+          <span className="text-pkt-grays-gray-600">
+            NS 8407 §{varselkravRefs.join(' / §')}
+          </span>
+        </DataListItem>
+      )}
+      {data.dato_oppdaget && (
+        <DataListItem label="Dato oppdaget">{formatDateMedium(data.dato_oppdaget)}</DataListItem>
+      )}
       <VarselInfoDisplay label="Varsel sendt" varsel={data.grunnlag_varsel} />
       <LongTextField label="Beskrivelse" value={data.beskrivelse} defaultOpen={true} />
       {data.kontraktsreferanser && data.kontraktsreferanser.length > 0 && (
-        <Field label="Kontraktsreferanser" value={data.kontraktsreferanser.join(', ')} />
+        <DataListItem label="Kontraktsreferanser">{data.kontraktsreferanser.join(', ')}</DataListItem>
       )}
       <VedleggDisplay vedleggIds={data.vedlegg_ids} />
-    </dl>
+    </DataList>
   );
 }
 
@@ -330,14 +297,18 @@ function GrunnlagOppdatertSection({ data }: { data: GrunnlagOppdatertEventData }
     : undefined;
 
   return (
-    <dl>
-      {data.tittel && <Field label="Ny tittel" value={data.tittel} />}
-      {data.hovedkategori && <Field label="Ny hovedkategori" value={getHovedkategoriLabel(data.hovedkategori)} />}
-      {underkategorier && <Field label="Ny underkategori" value={underkategorier} />}
-      {data.dato_oppdaget && <Field label="Ny dato oppdaget" value={formatDateMedium(data.dato_oppdaget)} />}
+    <DataList>
+      {data.tittel && <DataListItem label="Ny tittel">{data.tittel}</DataListItem>}
+      {data.hovedkategori && (
+        <DataListItem label="Ny hovedkategori">{getHovedkategoriLabel(data.hovedkategori)}</DataListItem>
+      )}
+      {underkategorier && <DataListItem label="Ny underkategori">{underkategorier}</DataListItem>}
+      {data.dato_oppdaget && (
+        <DataListItem label="Ny dato oppdaget">{formatDateMedium(data.dato_oppdaget)}</DataListItem>
+      )}
       <LongTextField label="Ny beskrivelse" value={data.beskrivelse} />
       <LongTextField label="Begrunnelse for endring" value={data.endrings_begrunnelse} defaultOpen={true} />
-    </dl>
+    </DataList>
   );
 }
 
@@ -351,9 +322,9 @@ function VederlagSection({ data }: { data: VederlagEventData }) {
   const totalBelop = hovedbelop + riggBelop + produktivitetBelop;
 
   return (
-    <dl>
+    <div className="space-y-4">
       {/* Sammendrag - kompakt oversikt øverst */}
-      <div className="bg-pkt-bg-subtle p-3 mb-4 border-l-4 border-pkt-brand-dark-blue-1000">
+      <div className="bg-pkt-bg-subtle p-3 border-l-4 border-pkt-brand-dark-blue-1000">
         <div className="flex items-baseline justify-between">
           <span className="text-lg font-semibold text-pkt-text-body-dark">
             {formatCurrency(totalBelop)}
@@ -361,126 +332,148 @@ function VederlagSection({ data }: { data: VederlagEventData }) {
           <Badge variant="info">{getVederlagsmetodeLabel(data.metode)}</Badge>
         </div>
         {harSaerskiltKrav && (
-          <div className="text-sm text-pkt-grays-gray-600 mt-1">
-            {hovedbelop > 0 && <span>Hovedkrav {formatCurrency(hovedbelop)}</span>}
-            {riggBelop > 0 && <span> + Rigg {formatCurrency(riggBelop)}</span>}
-            {produktivitetBelop > 0 && <span> + Produktivitet {formatCurrency(produktivitetBelop)}</span>}
-          </div>
+          <InlineDataList className="mt-2">
+            {hovedbelop > 0 && (
+              <InlineDataListItem label="Hovedkrav" mono>{formatCurrency(hovedbelop)}</InlineDataListItem>
+            )}
+            {riggBelop > 0 && (
+              <InlineDataListItem label="Rigg" mono>{formatCurrency(riggBelop)}</InlineDataListItem>
+            )}
+            {produktivitetBelop > 0 && (
+              <InlineDataListItem label="Produktivitet" mono>{formatCurrency(produktivitetBelop)}</InlineDataListItem>
+            )}
+          </InlineDataList>
         )}
       </div>
 
-      <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
+      <DataList>
+        <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
+      </DataList>
 
       {/* Særskilte krav - detaljer */}
       {harSaerskiltKrav && (
-        <div className="py-3 border-b border-pkt-grays-gray-100">
-          <dt className="text-sm font-medium text-pkt-grays-gray-500 mb-2">Særskilte krav (§34.1.3)</dt>
-          <dd className="space-y-2">
+        <SectionContainer title="Særskilte krav" description="§34.1.3" variant="subtle" spacing="compact">
+          <DataList>
             {data.saerskilt_krav?.rigg_drift && (
-              <div className="pl-3 border-l-2 border-pkt-brand-dark-blue-1000">
-                <span className="text-sm font-medium">Rigg/drift:</span>
-                <span className="ml-2 text-sm">
-                  {data.saerskilt_krav.rigg_drift.belop !== undefined
-                    ? formatCurrency(data.saerskilt_krav.rigg_drift.belop)
-                    : 'Ja'}
-                </span>
-                {data.saerskilt_krav.rigg_drift.dato_klar_over && (
-                  <span className="ml-2 text-sm text-pkt-grays-gray-500">
-                    (klar over: {formatDateMedium(data.saerskilt_krav.rigg_drift.dato_klar_over)})
+              <DataListItem label="Rigg/drift">
+                <div className="flex items-center gap-2">
+                  <span>
+                    {data.saerskilt_krav.rigg_drift.belop !== undefined
+                      ? formatCurrency(data.saerskilt_krav.rigg_drift.belop)
+                      : 'Ja'}
                   </span>
-                )}
-              </div>
+                  {data.saerskilt_krav.rigg_drift.dato_klar_over && (
+                    <span className="text-pkt-grays-gray-500 text-sm">
+                      (klar over: {formatDateMedium(data.saerskilt_krav.rigg_drift.dato_klar_over)})
+                    </span>
+                  )}
+                </div>
+              </DataListItem>
             )}
             {data.saerskilt_krav?.produktivitet && (
-              <div className="pl-3 border-l-2 border-pkt-brand-yellow-1000">
-                <span className="text-sm font-medium">Produktivitetstap:</span>
-                <span className="ml-2 text-sm">
-                  {data.saerskilt_krav.produktivitet.belop !== undefined
-                    ? formatCurrency(data.saerskilt_krav.produktivitet.belop)
-                    : 'Ja'}
-                </span>
-                {data.saerskilt_krav.produktivitet.dato_klar_over && (
-                  <span className="ml-2 text-sm text-pkt-grays-gray-500">
-                    (klar over: {formatDateMedium(data.saerskilt_krav.produktivitet.dato_klar_over)})
+              <DataListItem label="Produktivitetstap">
+                <div className="flex items-center gap-2">
+                  <span>
+                    {data.saerskilt_krav.produktivitet.belop !== undefined
+                      ? formatCurrency(data.saerskilt_krav.produktivitet.belop)
+                      : 'Ja'}
                   </span>
-                )}
-              </div>
+                  {data.saerskilt_krav.produktivitet.dato_klar_over && (
+                    <span className="text-pkt-grays-gray-500 text-sm">
+                      (klar over: {formatDateMedium(data.saerskilt_krav.produktivitet.dato_klar_over)})
+                    </span>
+                  )}
+                </div>
+              </DataListItem>
             )}
-          </dd>
-        </div>
+          </DataList>
+        </SectionContainer>
       )}
 
-      {data.krever_justert_ep && (
-        <Field label="Krever justerte EP" value={<Badge variant="warning">Ja - §34.3.3</Badge>} />
-      )}
-
-      {/* Forhåndsvarsel for regningsarbeid (§34.4) - kun denne har separat varslingskrav */}
-      <VarselInfoDisplay label="Forhåndsvarsel regningsarbeid" varsel={data.regningsarbeid_varsel} />
-      <VedleggDisplay vedleggIds={data.vedlegg_ids} />
-    </dl>
+      <DataList>
+        {data.krever_justert_ep && (
+          <DataListItem label="Krever justerte EP">
+            <Badge variant="warning">Ja - §34.3.3</Badge>
+          </DataListItem>
+        )}
+        <VarselInfoDisplay label="Forhåndsvarsel regningsarbeid" varsel={data.regningsarbeid_varsel} />
+        <VedleggDisplay vedleggIds={data.vedlegg_ids} />
+      </DataList>
+    </div>
   );
 }
 
 function VederlagOppdatertSection({ data }: { data: VederlagOppdatertEventData }) {
   return (
-    <dl>
+    <DataList>
       {data.nytt_belop_direkte !== undefined && (
-        <Field label="Nytt beløp" value={formatCurrency(data.nytt_belop_direkte)} />
+        <DataListItem label="Nytt beløp" mono>{formatCurrency(data.nytt_belop_direkte)}</DataListItem>
       )}
       {data.nytt_kostnads_overslag !== undefined && (
-        <Field label="Nytt kostnadsoverslag" value={formatCurrency(data.nytt_kostnads_overslag)} />
+        <DataListItem label="Nytt kostnadsoverslag" mono>{formatCurrency(data.nytt_kostnads_overslag)}</DataListItem>
       )}
       <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
-      <Field label="Revidert dato" value={formatDateMedium(data.dato_revidert)} />
-    </dl>
+      {data.dato_revidert && (
+        <DataListItem label="Revidert dato">{formatDateMedium(data.dato_revidert)}</DataListItem>
+      )}
+    </DataList>
   );
 }
 
 function FristSection({ data }: { data: FristEventData }) {
   return (
-    <dl>
-      <Field label="Varseltype" value={getFristVarseltypeLabel(data.varsel_type)} />
+    <DataList>
+      {data.varsel_type && (
+        <DataListItem label="Varseltype">{getFristVarseltypeLabel(data.varsel_type)}</DataListItem>
+      )}
       <VarselInfoDisplay label="Nøytralt varsel (§33.4)" varsel={data.noytralt_varsel} />
       <VarselInfoDisplay label="Spesifisert varsel (§33.6)" varsel={data.spesifisert_varsel} />
       {data.antall_dager !== undefined && (
-        <Field label="Krevde dager" value={`${data.antall_dager} dager`} />
+        <DataListItem label="Krevde dager">{data.antall_dager} dager</DataListItem>
       )}
       <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
-      {data.ny_sluttdato && <Field label="Ny sluttdato" value={formatDateMedium(data.ny_sluttdato)} />}
+      {data.ny_sluttdato && (
+        <DataListItem label="Ny sluttdato">{formatDateMedium(data.ny_sluttdato)}</DataListItem>
+      )}
       <LongTextField label="Fremdriftsdokumentasjon" value={data.fremdriftshindring_dokumentasjon} />
       <VedleggDisplay vedleggIds={data.vedlegg_ids} />
-    </dl>
+    </DataList>
   );
 }
 
 function FristOppdatertSection({ data }: { data: FristOppdatertEventData }) {
   return (
-    <dl>
+    <DataList>
       {data.nytt_antall_dager !== undefined && (
-        <Field label="Nytt antall dager" value={`${data.nytt_antall_dager} dager`} />
+        <DataListItem label="Nytt antall dager">{data.nytt_antall_dager} dager</DataListItem>
       )}
       <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
-      <Field label="Revidert dato" value={formatDateMedium(data.dato_revidert)} />
-    </dl>
+      {data.dato_revidert && (
+        <DataListItem label="Revidert dato">{formatDateMedium(data.dato_revidert)}</DataListItem>
+      )}
+    </DataList>
   );
 }
 
 function FristSpesifisertSection({ data }: { data: FristSpesifisertEventData }) {
   return (
-    <dl>
-      <Field label="Antall dager" value={`${data.antall_dager} dager`} />
+    <DataList>
+      {data.antall_dager !== undefined && (
+        <DataListItem label="Antall dager">{data.antall_dager} dager</DataListItem>
+      )}
       <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
       {data.er_svar_pa_etterlysning && (
-        <Field
-          label="Svar på etterlysning"
-          value={<Badge variant="warning">Ja (§33.6.2)</Badge>}
-        />
+        <DataListItem label="Svar på etterlysning">
+          <Badge variant="warning">Ja (§33.6.2)</Badge>
+        </DataListItem>
       )}
       {data.ny_sluttdato && (
-        <Field label="Ny sluttdato" value={formatDateMedium(data.ny_sluttdato)} />
+        <DataListItem label="Ny sluttdato">{formatDateMedium(data.ny_sluttdato)}</DataListItem>
       )}
-      <Field label="Spesifisert dato" value={formatDateMedium(data.dato_spesifisert)} />
-    </dl>
+      {data.dato_spesifisert && (
+        <DataListItem label="Spesifisert dato">{formatDateMedium(data.dato_spesifisert)}</DataListItem>
+      )}
+    </DataList>
   );
 }
 
@@ -488,23 +481,24 @@ function ResponsGrunnlagSection({ data }: { data: ResponsGrunnlagEventData }) {
   const badge = getGrunnlagResultatBadge(data.resultat);
 
   return (
-    <dl>
-      <Field
-        label="Resultat"
-        value={<Badge variant={badge.variant}>{badge.label}</Badge>}
-      />
+    <DataList>
+      <DataListItem label="Resultat">
+        <Badge variant={badge.variant}>{badge.label}</Badge>
+      </DataListItem>
       <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
       {data.akseptert_kategori && (
-        <Field label="Akseptert kategori" value={data.akseptert_kategori} />
+        <DataListItem label="Akseptert kategori">{data.akseptert_kategori}</DataListItem>
       )}
       {data.varsel_for_sent && (
-        <Field label="Varsel for sent" value={<Badge variant="danger">Ja - preklusjonsrisiko</Badge>} />
+        <DataListItem label="Varsel for sent">
+          <Badge variant="danger">Ja - preklusjonsrisiko</Badge>
+        </DataListItem>
       )}
       <LongTextField label="Varselbegrunnelse" value={data.varsel_begrunnelse} />
       {data.krever_dokumentasjon && data.krever_dokumentasjon.length > 0 && (
-        <Field label="Krever dokumentasjon" value={data.krever_dokumentasjon.join(', ')} />
+        <DataListItem label="Krever dokumentasjon">{data.krever_dokumentasjon.join(', ')}</DataListItem>
       )}
-    </dl>
+    </DataList>
   );
 }
 
@@ -512,14 +506,15 @@ function ResponsGrunnlagOppdatertSection({ data }: { data: ResponsGrunnlagOppdat
   const badge = getGrunnlagResultatBadge(data.resultat);
 
   return (
-    <dl>
-      <Field
-        label="Nytt resultat"
-        value={<Badge variant={badge.variant}>{badge.label}</Badge>}
-      />
+    <DataList>
+      <DataListItem label="Nytt resultat">
+        <Badge variant={badge.variant}>{badge.label}</Badge>
+      </DataListItem>
       <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
-      <Field label="Endret dato" value={formatDateMedium(data.dato_endret)} />
-    </dl>
+      {data.dato_endret && (
+        <DataListItem label="Endret dato">{formatDateMedium(data.dato_endret)}</DataListItem>
+      )}
+    </DataList>
   );
 }
 
@@ -561,219 +556,204 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
     data.subsidiaer_godkjent_belop !== undefined ||
     data.subsidiaer_begrunnelse;
 
-  // Helper to get beløpsvurdering badge
-  const getBelopVurderingBadge = (vurdering: string | undefined) => {
-    switch (vurdering) {
-      case 'godkjent': return { variant: 'success' as const, label: 'Godkjent' };
-      case 'delvis': return { variant: 'warning' as const, label: 'Delvis godkjent' };
-      case 'avslatt': return { variant: 'danger' as const, label: 'Avslått' };
-      default: return { variant: 'neutral' as const, label: '-' };
-    }
-  };
-
   // Check if rigg/produktivitet is precluded
   const riggPrekludert = data.rigg_varslet_i_tide === false;
   const produktivitetPrekludert = data.produktivitet_varslet_i_tide === false;
 
   return (
-    <dl>
+    <div className="space-y-4">
       {/* ── Sammendrag ─────────────────────────────────────────────── */}
-      <Field
-        label="Resultat"
-        value={<Badge variant={badge.variant}>{badge.label}</Badge>}
-      />
-      {data.total_godkjent_belop !== undefined && (
-        <Field
-          label="Totalt godkjent beløp"
-          value={formatCurrency(data.total_godkjent_belop)}
-        />
-      )}
-      {data.vederlagsmetode && (
-        <Field label="Beregningsmetode" value={getVederlagsmetodeLabel(data.vederlagsmetode)} />
-      )}
+      <DataList>
+        <DataListItem label="Resultat">
+          <Badge variant={badge.variant}>{badge.label}</Badge>
+        </DataListItem>
+        {data.total_godkjent_belop !== undefined && (
+          <DataListItem label="Totalt godkjent beløp" mono>
+            {formatCurrency(data.total_godkjent_belop)}
+          </DataListItem>
+        )}
+        {data.vederlagsmetode && (
+          <DataListItem label="Beregningsmetode">{getVederlagsmetodeLabel(data.vederlagsmetode)}</DataListItem>
+        )}
+      </DataList>
 
       {/* ── Port 1: Preklusjonsvurdering (§34.1.3) ─────────────────── */}
       {hasPreklusjonsFields && (
-        <>
-          <SectionDivider title="Preklusjonsvurdering" subtitle="§34.1.3" />
-          {data.rigg_varslet_i_tide !== undefined && (
-            <Field
-              label="Rigg/drift varslet i tide"
-              value={
+        <SectionContainer title="Preklusjonsvurdering" description="§34.1.3" variant="subtle" spacing="compact">
+          <DataList>
+            {data.rigg_varslet_i_tide !== undefined && (
+              <DataListItem label="Rigg/drift varslet i tide">
                 <Badge variant={data.rigg_varslet_i_tide ? 'success' : 'danger'}>
                   {data.rigg_varslet_i_tide ? 'Ja' : 'Nei (prekludert)'}
                 </Badge>
-              }
-            />
-          )}
-          {data.produktivitet_varslet_i_tide !== undefined && (
-            <Field
-              label="Produktivitet varslet i tide"
-              value={
+              </DataListItem>
+            )}
+            {data.produktivitet_varslet_i_tide !== undefined && (
+              <DataListItem label="Produktivitet varslet i tide">
                 <Badge variant={data.produktivitet_varslet_i_tide ? 'success' : 'danger'}>
                   {data.produktivitet_varslet_i_tide ? 'Ja' : 'Nei (prekludert)'}
                 </Badge>
-              }
-            />
-          )}
-          <LongTextField label="Begrunnelse" value={data.begrunnelse_preklusjon} />
-        </>
+              </DataListItem>
+            )}
+            <LongTextField label="Begrunnelse" value={data.begrunnelse_preklusjon} />
+          </DataList>
+        </SectionContainer>
       )}
 
       {/* ── Legacy varselvurdering ──────────────────────────────────── */}
       {hasLegacyVarselFields && !hasPreklusjonsFields && (
-        <>
-          <SectionDivider title="Varselvurdering" subtitle="§34.1.3" />
-          {data.saerskilt_varsel_rigg_drift_ok !== undefined && (
-            <Field
-              label="Rigg/drift varsel OK"
-              value={
+        <SectionContainer title="Varselvurdering" description="§34.1.3" variant="subtle" spacing="compact">
+          <DataList>
+            {data.saerskilt_varsel_rigg_drift_ok !== undefined && (
+              <DataListItem label="Rigg/drift varsel OK">
                 <Badge variant={data.saerskilt_varsel_rigg_drift_ok ? 'success' : 'danger'}>
                   {data.saerskilt_varsel_rigg_drift_ok ? 'Ja' : 'Nei'}
                 </Badge>
-              }
-            />
-          )}
-          {data.varsel_justert_ep_ok !== undefined && (
-            <Field
-              label="Justert EP varsel OK"
-              value={
+              </DataListItem>
+            )}
+            {data.varsel_justert_ep_ok !== undefined && (
+              <DataListItem label="Justert EP varsel OK">
                 <Badge variant={data.varsel_justert_ep_ok ? 'success' : 'danger'}>
                   {data.varsel_justert_ep_ok ? 'Ja' : 'Nei'}
                 </Badge>
-              }
-            />
-          )}
-          {data.varsel_start_regning_ok !== undefined && (
-            <Field
-              label="Regningsarbeid varsel OK"
-              value={
+              </DataListItem>
+            )}
+            {data.varsel_start_regning_ok !== undefined && (
+              <DataListItem label="Regningsarbeid varsel OK">
                 <Badge variant={data.varsel_start_regning_ok ? 'success' : 'danger'}>
                   {data.varsel_start_regning_ok ? 'Ja' : 'Nei'}
                 </Badge>
-              }
-            />
-          )}
-          {data.krav_fremmet_i_tide !== undefined && (
-            <Field
-              label="Krav fremmet i tide"
-              value={
+              </DataListItem>
+            )}
+            {data.krav_fremmet_i_tide !== undefined && (
+              <DataListItem label="Krav fremmet i tide">
                 <Badge variant={data.krav_fremmet_i_tide ? 'success' : 'warning'}>
                   {data.krav_fremmet_i_tide ? 'Ja' : 'Nei'}
                 </Badge>
-              }
-            />
-          )}
-          <LongTextField label="Begrunnelse" value={data.begrunnelse_varsel} />
-        </>
+              </DataListItem>
+            )}
+            <LongTextField label="Begrunnelse" value={data.begrunnelse_varsel} />
+          </DataList>
+        </SectionContainer>
       )}
 
       {/* ── Port 3: Beløpsvurdering per kravtype ───────────────────── */}
       {hasBelopBreakdown && (
-        <>
-          <SectionDivider title="Beløpsvurdering" />
-
-          {/* Hovedkrav */}
-          {(data.hovedkrav_vurdering || data.hovedkrav_godkjent_belop !== undefined) && (
-            <div className="py-2 border-b border-pkt-border-subtle">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Hovedkrav</span>
-                <div className="flex items-center gap-2">
-                  {data.hovedkrav_vurdering && (
-                    <Badge variant={getBelopVurderingBadge(data.hovedkrav_vurdering).variant}>
-                      {getBelopVurderingBadge(data.hovedkrav_vurdering).label}
-                    </Badge>
-                  )}
-                  {data.hovedkrav_godkjent_belop !== undefined && (
-                    <span className="font-mono">{formatCurrency(data.hovedkrav_godkjent_belop)}</span>
-                  )}
+        <SectionContainer title="Beløpsvurdering" variant="subtle" spacing="compact">
+          <div className="space-y-2">
+            {/* Hovedkrav */}
+            {(data.hovedkrav_vurdering || data.hovedkrav_godkjent_belop !== undefined) && (
+              <div className="py-2 border-b border-pkt-border-subtle last:border-b-0">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">Hovedkrav</span>
+                  <InlineDataList>
+                    {data.hovedkrav_vurdering && (
+                      <InlineDataListItem label="">
+                        <Badge variant={getBelopVurderingBadge(data.hovedkrav_vurdering).variant}>
+                          {getBelopVurderingBadge(data.hovedkrav_vurdering).label}
+                        </Badge>
+                      </InlineDataListItem>
+                    )}
+                    {data.hovedkrav_godkjent_belop !== undefined && (
+                      <InlineDataListItem label="" mono bold>
+                        {formatCurrency(data.hovedkrav_godkjent_belop)}
+                      </InlineDataListItem>
+                    )}
+                  </InlineDataList>
                 </div>
+                {data.hovedkrav_begrunnelse && (
+                  <p className="text-sm text-pkt-grays-gray-600 mt-1">{data.hovedkrav_begrunnelse}</p>
+                )}
               </div>
-              {data.hovedkrav_begrunnelse && (
-                <p className="text-sm text-pkt-grays-gray-600 mt-1">{data.hovedkrav_begrunnelse}</p>
-              )}
-            </div>
-          )}
+            )}
 
-          {/* Rigg/drift */}
-          {(data.rigg_vurdering || data.rigg_godkjent_belop !== undefined) && (
-            <div className={`py-2 border-b border-pkt-border-subtle ${riggPrekludert ? 'bg-pkt-surface-yellow' : ''}`}>
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">
-                  Rigg/drift
-                  {riggPrekludert && <span className="text-xs text-pkt-grays-gray-500 ml-1">(prekludert)</span>}
-                </span>
-                <div className="flex items-center gap-2">
-                  {data.rigg_vurdering && (
-                    <Badge variant={getBelopVurderingBadge(data.rigg_vurdering).variant}>
-                      {getBelopVurderingBadge(data.rigg_vurdering).label}
-                    </Badge>
-                  )}
-                  {data.rigg_godkjent_belop !== undefined && (
-                    <span className={`font-mono ${riggPrekludert ? 'line-through text-pkt-grays-gray-400' : ''}`}>
-                      {formatCurrency(data.rigg_godkjent_belop)}
-                    </span>
-                  )}
+            {/* Rigg/drift */}
+            {(data.rigg_vurdering || data.rigg_godkjent_belop !== undefined) && (
+              <div className={`py-2 border-b border-pkt-border-subtle last:border-b-0 ${riggPrekludert ? 'bg-pkt-surface-yellow -mx-4 px-4' : ''}`}>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">
+                    Rigg/drift
+                    {riggPrekludert && <span className="text-xs text-pkt-grays-gray-500 ml-1">(prekludert)</span>}
+                  </span>
+                  <InlineDataList>
+                    {data.rigg_vurdering && (
+                      <InlineDataListItem label="">
+                        <Badge variant={getBelopVurderingBadge(data.rigg_vurdering).variant}>
+                          {getBelopVurderingBadge(data.rigg_vurdering).label}
+                        </Badge>
+                      </InlineDataListItem>
+                    )}
+                    {data.rigg_godkjent_belop !== undefined && (
+                      <InlineDataListItem label="" mono bold>
+                        <span className={riggPrekludert ? 'line-through text-pkt-grays-gray-400' : ''}>
+                          {formatCurrency(data.rigg_godkjent_belop)}
+                        </span>
+                      </InlineDataListItem>
+                    )}
+                  </InlineDataList>
                 </div>
+                {riggPrekludert && data.rigg_godkjent_belop !== undefined && data.rigg_godkjent_belop > 0 && (
+                  <p className="text-xs text-pkt-text-warning mt-1">
+                    Subsidiært godkjent: {formatCurrency(data.rigg_godkjent_belop)}
+                  </p>
+                )}
               </div>
-              {riggPrekludert && data.rigg_godkjent_belop !== undefined && data.rigg_godkjent_belop > 0 && (
-                <p className="text-xs text-pkt-text-warning mt-1">
-                  Subsidiært godkjent: {formatCurrency(data.rigg_godkjent_belop)}
-                </p>
-              )}
-            </div>
-          )}
+            )}
 
-          {/* Produktivitet */}
-          {(data.produktivitet_vurdering || data.produktivitet_godkjent_belop !== undefined) && (
-            <div className={`py-2 border-b border-pkt-border-subtle ${produktivitetPrekludert ? 'bg-pkt-surface-yellow' : ''}`}>
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">
-                  Produktivitetstap
-                  {produktivitetPrekludert && <span className="text-xs text-pkt-grays-gray-500 ml-1">(prekludert)</span>}
-                </span>
-                <div className="flex items-center gap-2">
-                  {data.produktivitet_vurdering && (
-                    <Badge variant={getBelopVurderingBadge(data.produktivitet_vurdering).variant}>
-                      {getBelopVurderingBadge(data.produktivitet_vurdering).label}
-                    </Badge>
-                  )}
-                  {data.produktivitet_godkjent_belop !== undefined && (
-                    <span className={`font-mono ${produktivitetPrekludert ? 'line-through text-pkt-grays-gray-400' : ''}`}>
-                      {formatCurrency(data.produktivitet_godkjent_belop)}
-                    </span>
-                  )}
+            {/* Produktivitet */}
+            {(data.produktivitet_vurdering || data.produktivitet_godkjent_belop !== undefined) && (
+              <div className={`py-2 border-b border-pkt-border-subtle last:border-b-0 ${produktivitetPrekludert ? 'bg-pkt-surface-yellow -mx-4 px-4' : ''}`}>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">
+                    Produktivitetstap
+                    {produktivitetPrekludert && <span className="text-xs text-pkt-grays-gray-500 ml-1">(prekludert)</span>}
+                  </span>
+                  <InlineDataList>
+                    {data.produktivitet_vurdering && (
+                      <InlineDataListItem label="">
+                        <Badge variant={getBelopVurderingBadge(data.produktivitet_vurdering).variant}>
+                          {getBelopVurderingBadge(data.produktivitet_vurdering).label}
+                        </Badge>
+                      </InlineDataListItem>
+                    )}
+                    {data.produktivitet_godkjent_belop !== undefined && (
+                      <InlineDataListItem label="" mono bold>
+                        <span className={produktivitetPrekludert ? 'line-through text-pkt-grays-gray-400' : ''}>
+                          {formatCurrency(data.produktivitet_godkjent_belop)}
+                        </span>
+                      </InlineDataListItem>
+                    )}
+                  </InlineDataList>
                 </div>
+                {produktivitetPrekludert && data.produktivitet_godkjent_belop !== undefined && data.produktivitet_godkjent_belop > 0 && (
+                  <p className="text-xs text-pkt-text-warning mt-1">
+                    Subsidiært godkjent: {formatCurrency(data.produktivitet_godkjent_belop)}
+                  </p>
+                )}
               </div>
-              {produktivitetPrekludert && data.produktivitet_godkjent_belop !== undefined && data.produktivitet_godkjent_belop > 0 && (
-                <p className="text-xs text-pkt-text-warning mt-1">
-                  Subsidiært godkjent: {formatCurrency(data.produktivitet_godkjent_belop)}
-                </p>
-              )}
-            </div>
-          )}
-        </>
+            )}
+          </div>
+        </SectionContainer>
       )}
 
       {/* ── Begrunnelse ────────────────────────────────────────────── */}
       {hasBeregningFields && (
-        <>
-          <SectionDivider title="Begrunnelse" />
-          <LongTextField label="Samlet begrunnelse" value={data.begrunnelse} defaultOpen={true} />
-          {data.frist_for_spesifikasjon && (
-            <Field label="Frist for spesifikasjon" value={formatDateMedium(data.frist_for_spesifikasjon)} />
-          )}
-        </>
+        <SectionContainer title="Begrunnelse" variant="subtle" spacing="compact">
+          <DataList>
+            <LongTextField label="Samlet begrunnelse" value={data.begrunnelse} defaultOpen={true} />
+            {data.frist_for_spesifikasjon && (
+              <DataListItem label="Frist for spesifikasjon">{formatDateMedium(data.frist_for_spesifikasjon)}</DataListItem>
+            )}
+          </DataList>
+        </SectionContainer>
       )}
 
       {/* ── Subsidiært standpunkt ──────────────────────────────────── */}
       {hasSubsidiaerFields && (
-        <>
-          <SectionDivider title="Subsidiært standpunkt" />
-          {data.subsidiaer_triggers && data.subsidiaer_triggers.length > 0 && (
-            <Field
-              label="Årsak til subsidiær vurdering"
-              value={
+        <SectionContainer title="Subsidiært standpunkt" variant="subtle" spacing="compact">
+          <DataList>
+            {data.subsidiaer_triggers && data.subsidiaer_triggers.length > 0 && (
+              <DataListItem label="Årsak til subsidiær vurdering">
                 <div className="flex flex-wrap gap-1">
                   {data.subsidiaer_triggers.map((trigger) => (
                     <Badge key={trigger} variant="warning">
@@ -781,26 +761,25 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
                     </Badge>
                   ))}
                 </div>
-              }
-            />
-          )}
-          {data.subsidiaer_resultat && (
-            <Field
-              label="Subsidiært resultat"
-              value={
+              </DataListItem>
+            )}
+            {data.subsidiaer_resultat && (
+              <DataListItem label="Subsidiært resultat">
                 <Badge variant={getVederlagResultatBadge(data.subsidiaer_resultat).variant}>
                   {getVederlagResultatBadge(data.subsidiaer_resultat).label}
                 </Badge>
-              }
-            />
-          )}
-          {data.subsidiaer_godkjent_belop !== undefined && (
-            <Field label="Subsidiært godkjent beløp" value={formatCurrency(data.subsidiaer_godkjent_belop)} />
-          )}
-          <LongTextField label="Subsidiær begrunnelse" value={data.subsidiaer_begrunnelse} />
-        </>
+              </DataListItem>
+            )}
+            {data.subsidiaer_godkjent_belop !== undefined && (
+              <DataListItem label="Subsidiært godkjent beløp" mono>
+                {formatCurrency(data.subsidiaer_godkjent_belop)}
+              </DataListItem>
+            )}
+            <LongTextField label="Subsidiær begrunnelse" value={data.subsidiaer_begrunnelse} />
+          </DataList>
+        </SectionContainer>
       )}
-    </dl>
+    </div>
   );
 }
 
@@ -808,17 +787,18 @@ function ResponsVederlagOppdatertSection({ data }: { data: ResponsVederlagOppdat
   const badge = getVederlagResultatBadge(data.beregnings_resultat);
 
   return (
-    <dl>
-      <Field
-        label="Nytt resultat"
-        value={<Badge variant={badge.variant}>{badge.label}</Badge>}
-      />
+    <DataList>
+      <DataListItem label="Nytt resultat">
+        <Badge variant={badge.variant}>{badge.label}</Badge>
+      </DataListItem>
       {data.total_godkjent_belop !== undefined && (
-        <Field label="Nytt godkjent beløp" value={formatCurrency(data.total_godkjent_belop)} />
+        <DataListItem label="Nytt godkjent beløp" mono>{formatCurrency(data.total_godkjent_belop)}</DataListItem>
       )}
       <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
-      <Field label="Endret dato" value={formatDateMedium(data.dato_endret)} />
-    </dl>
+      {data.dato_endret && (
+        <DataListItem label="Endret dato">{formatDateMedium(data.dato_endret)}</DataListItem>
+      )}
+    </DataList>
   );
 }
 
@@ -850,85 +830,82 @@ function ResponsFristSection({ data }: { data: ResponsFristEventData }) {
     data.subsidiaer_begrunnelse;
 
   return (
-    <dl>
+    <div className="space-y-4">
       {/* ── Sammendrag ─────────────────────────────────────────────── */}
-      <Field
-        label="Resultat"
-        value={<Badge variant={badge.variant}>{badge.label}</Badge>}
-      />
-      {data.godkjent_dager !== undefined && (
-        <Field label="Godkjente dager" value={`${data.godkjent_dager} dager`} />
-      )}
-      {data.ny_sluttdato && <Field label="Ny sluttdato" value={formatDateMedium(data.ny_sluttdato)} />}
+      <DataList>
+        <DataListItem label="Resultat">
+          <Badge variant={badge.variant}>{badge.label}</Badge>
+        </DataListItem>
+        {data.godkjent_dager !== undefined && (
+          <DataListItem label="Godkjente dager">{data.godkjent_dager} dager</DataListItem>
+        )}
+        {data.ny_sluttdato && (
+          <DataListItem label="Ny sluttdato">{formatDateMedium(data.ny_sluttdato)}</DataListItem>
+        )}
+      </DataList>
 
       {/* ── Varselvurdering (§33.4/§33.6) ─────────────────────────── */}
       {hasVarselFields && (
-        <>
-          <SectionDivider title="Varselvurdering" subtitle="§33.4 / §33.6" />
-          {data.noytralt_varsel_ok !== undefined && (
-            <Field
-              label="Nøytralt varsel OK"
-              value={
+        <SectionContainer title="Varselvurdering" description="§33.4 / §33.6" variant="subtle" spacing="compact">
+          <DataList>
+            {data.noytralt_varsel_ok !== undefined && (
+              <DataListItem label="Nøytralt varsel OK">
                 <Badge variant={data.noytralt_varsel_ok ? 'success' : 'danger'}>
                   {data.noytralt_varsel_ok ? 'Ja' : 'Nei'}
                 </Badge>
-              }
-            />
-          )}
-          {data.spesifisert_krav_ok !== undefined && (
-            <Field
-              label="Spesifisert krav OK"
-              value={
+              </DataListItem>
+            )}
+            {data.spesifisert_krav_ok !== undefined && (
+              <DataListItem label="Spesifisert krav OK">
                 <Badge variant={data.spesifisert_krav_ok ? 'success' : 'danger'}>
                   {data.spesifisert_krav_ok ? 'Ja' : 'Nei'}
                 </Badge>
-              }
-            />
-          )}
-          {data.har_bh_etterlyst && (
-            <Field label="BH har etterlyst" value={<Badge variant="warning">Ja</Badge>} />
-          )}
-          <LongTextField label="Begrunnelse" value={data.begrunnelse_varsel} />
-        </>
+              </DataListItem>
+            )}
+            {data.har_bh_etterlyst && (
+              <DataListItem label="BH har etterlyst">
+                <Badge variant="warning">Ja</Badge>
+              </DataListItem>
+            )}
+            <LongTextField label="Begrunnelse" value={data.begrunnelse_varsel} />
+          </DataList>
+        </SectionContainer>
       )}
 
       {/* ── Vilkårsvurdering (§33.5) ──────────────────────────────── */}
       {hasVilkarFields && (
-        <>
-          <SectionDivider title="Vilkårsvurdering" subtitle="§33.5" />
-          {data.vilkar_oppfylt !== undefined && (
-            <Field
-              label="Vilkår oppfylt"
-              value={
+        <SectionContainer title="Vilkårsvurdering" description="§33.5" variant="subtle" spacing="compact">
+          <DataList>
+            {data.vilkar_oppfylt !== undefined && (
+              <DataListItem label="Vilkår oppfylt">
                 <Badge variant={data.vilkar_oppfylt ? 'success' : 'danger'}>
                   {data.vilkar_oppfylt ? 'Ja' : 'Nei'}
                 </Badge>
-              }
-            />
-          )}
-          <LongTextField label="Begrunnelse" value={data.begrunnelse_vilkar} />
-        </>
+              </DataListItem>
+            )}
+            <LongTextField label="Begrunnelse" value={data.begrunnelse_vilkar} />
+          </DataList>
+        </SectionContainer>
       )}
 
       {/* ── Beregning ─────────────────────────────────────────────── */}
       {hasBeregningFields && (
-        <>
-          <SectionDivider title="Beregning" />
-          <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
-          {data.frist_for_spesifisering && (
-            <Field label="Frist for spesifisering" value={formatDateMedium(data.frist_for_spesifisering)} />
-          )}
-        </>
+        <SectionContainer title="Beregning" variant="subtle" spacing="compact">
+          <DataList>
+            <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
+            {data.frist_for_spesifisering && (
+              <DataListItem label="Frist for spesifisering">{formatDateMedium(data.frist_for_spesifisering)}</DataListItem>
+            )}
+          </DataList>
+        </SectionContainer>
       )}
 
       {/* ── Subsidiært standpunkt ──────────────────────────────────── */}
       {hasSubsidiaerFields && (
-        <>
-          <SectionDivider title="Subsidiært standpunkt" />
-          {data.subsidiaer_triggers && data.subsidiaer_triggers.length > 0 && (
-            <Field
-              label="Årsak til subsidiær vurdering"
-              value={
+        <SectionContainer title="Subsidiært standpunkt" variant="subtle" spacing="compact">
+          <DataList>
+            {data.subsidiaer_triggers && data.subsidiaer_triggers.length > 0 && (
+              <DataListItem label="Årsak til subsidiær vurdering">
                 <div className="flex flex-wrap gap-1">
                   {data.subsidiaer_triggers.map((trigger) => (
                     <Badge key={trigger} variant="warning">
@@ -936,26 +913,23 @@ function ResponsFristSection({ data }: { data: ResponsFristEventData }) {
                     </Badge>
                   ))}
                 </div>
-              }
-            />
-          )}
-          {data.subsidiaer_resultat && (
-            <Field
-              label="Subsidiært resultat"
-              value={
+              </DataListItem>
+            )}
+            {data.subsidiaer_resultat && (
+              <DataListItem label="Subsidiært resultat">
                 <Badge variant={getFristResultatBadge(data.subsidiaer_resultat).variant}>
                   {getFristResultatBadge(data.subsidiaer_resultat).label}
                 </Badge>
-              }
-            />
-          )}
-          {data.subsidiaer_godkjent_dager !== undefined && (
-            <Field label="Subsidiært godkjent dager" value={`${data.subsidiaer_godkjent_dager} dager`} />
-          )}
-          <LongTextField label="Subsidiær begrunnelse" value={data.subsidiaer_begrunnelse} />
-        </>
+              </DataListItem>
+            )}
+            {data.subsidiaer_godkjent_dager !== undefined && (
+              <DataListItem label="Subsidiært godkjent dager">{data.subsidiaer_godkjent_dager} dager</DataListItem>
+            )}
+            <LongTextField label="Subsidiær begrunnelse" value={data.subsidiaer_begrunnelse} />
+          </DataList>
+        </SectionContainer>
       )}
-    </dl>
+    </div>
   );
 }
 
@@ -963,20 +937,23 @@ function ResponsFristOppdatertSection({ data }: { data: ResponsFristOppdatertEve
   const badge = getFristResultatBadge(data.beregnings_resultat);
 
   return (
-    <dl>
-      <Field
-        label="Nytt resultat"
-        value={<Badge variant={badge.variant}>{badge.label}</Badge>}
-      />
+    <DataList>
+      <DataListItem label="Nytt resultat">
+        <Badge variant={badge.variant}>{badge.label}</Badge>
+      </DataListItem>
       {data.godkjent_dager !== undefined && (
-        <Field label="Nye godkjente dager" value={`${data.godkjent_dager} dager`} />
+        <DataListItem label="Nye godkjente dager">{data.godkjent_dager} dager</DataListItem>
       )}
       {data.stopper_forsering && (
-        <Field label="Stopper forsering" value={<Badge variant="info">Ja - §33.8</Badge>} />
+        <DataListItem label="Stopper forsering">
+          <Badge variant="info">Ja - §33.8</Badge>
+        </DataListItem>
       )}
       <LongTextField label="Kommentar" value={data.kommentar} defaultOpen={true} />
-      <Field label="Endret dato" value={formatDateMedium(data.dato_endret)} />
-    </dl>
+      {data.dato_endret && (
+        <DataListItem label="Endret dato">{formatDateMedium(data.dato_endret)}</DataListItem>
+      )}
+    </DataList>
   );
 }
 
@@ -986,8 +963,8 @@ function ForseringVarselSection({ data }: { data: ForseringVarselEventData }) {
   const erInnenforGrense = data.estimert_kostnad <= maksKostnad;
 
   return (
-    <dl>
-      <div className="py-3 bg-pkt-surface-faded-red -mx-4 px-4 mb-2 border-b border-pkt-brand-red-1000">
+    <div className="space-y-4">
+      <div className="py-3 bg-pkt-surface-faded-red px-4 border-b border-pkt-brand-red-1000">
         <Badge variant="danger" size="lg">Forseringsvarsel (§33.8)</Badge>
         {data.grunnlag_avslag_trigger && (
           <span className="ml-2 text-sm text-pkt-brand-red-1000">(utløst av grunnlagsavslag)</span>
@@ -995,34 +972,42 @@ function ForseringVarselSection({ data }: { data: ForseringVarselEventData }) {
       </div>
 
       {/* Sammendrag */}
-      <Field label="Estimert forseringskostnad" value={formatCurrency(data.estimert_kostnad)} />
-      <Field label="Dato iverksettelse" value={formatDateMedium(data.dato_iverksettelse)} />
+      <DataList>
+        <DataListItem label="Estimert forseringskostnad" mono>
+          {formatCurrency(data.estimert_kostnad)}
+        </DataListItem>
+        <DataListItem label="Dato iverksettelse">{formatDateMedium(data.dato_iverksettelse)}</DataListItem>
+      </DataList>
 
       {/* 30%-beregning */}
-      <SectionDivider title="30%-beregning" subtitle="§33.8" />
-      <Field label="Avslåtte dager" value={`${data.avslatte_dager} dager`} />
-      <Field label="Dagmulktsats" value={formatCurrency(data.dagmulktsats)} />
-      <Field label="Maks forseringskostnad" value={formatCurrency(maksKostnad)} />
-      <Field
-        label="Innenfor 30%-grense"
-        value={
-          erInnenforGrense ? (
-            <Badge variant="success">Ja ({((data.estimert_kostnad / maksKostnad) * 100).toFixed(0)}% av grensen)</Badge>
-          ) : (
-            <Badge variant="danger">Nei - overstiger grensen</Badge>
-          )
-        }
-      />
+      <SectionContainer title="30%-beregning" description="§33.8" variant="subtle" spacing="compact">
+        <DataList>
+          <DataListItem label="Avslåtte dager">{data.avslatte_dager} dager</DataListItem>
+          <DataListItem label="Dagmulktsats" mono>{formatCurrency(data.dagmulktsats)}</DataListItem>
+          <DataListItem label="Maks forseringskostnad" mono>{formatCurrency(maksKostnad)}</DataListItem>
+          <DataListItem label="Innenfor 30%-grense">
+            {erInnenforGrense ? (
+              <Badge variant="success">Ja ({((data.estimert_kostnad / maksKostnad) * 100).toFixed(0)}% av grensen)</Badge>
+            ) : (
+              <Badge variant="danger">Nei - overstiger grensen</Badge>
+            )}
+          </DataListItem>
+        </DataList>
+      </SectionContainer>
 
       {/* Begrunnelse */}
-      <SectionDivider title="Begrunnelse" />
-      <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
+      <SectionContainer title="Begrunnelse" variant="subtle" spacing="compact">
+        <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
+      </SectionContainer>
 
       {/* Referanser */}
-      <SectionDivider title="Referanser" />
-      <Field label="Fristkrav-ID" value={data.frist_krav_id} />
-      <Field label="Fristrespons-ID" value={data.respons_frist_id} />
-    </dl>
+      <SectionContainer title="Referanser" variant="subtle" spacing="compact">
+        <DataList>
+          <DataListItem label="Fristkrav-ID">{data.frist_krav_id}</DataListItem>
+          <DataListItem label="Fristrespons-ID">{data.respons_frist_id}</DataListItem>
+        </DataList>
+      </SectionContainer>
+    </div>
   );
 }
 
@@ -1032,30 +1017,24 @@ function GenericSection({ data }: { data: Record<string, unknown> }) {
   }
 
   return (
-    <dl>
+    <DataList>
       {Object.entries(data).map(([key, value]) => {
         if (typeof value === 'object' && value !== null) {
           return (
-            <Field
-              key={key}
-              label={key}
-              value={
-                <pre className="text-xs bg-pkt-bg-subtle p-2 rounded overflow-x-auto">
-                  {JSON.stringify(value, null, 2)}
-                </pre>
-              }
-            />
+            <DataListItem key={key} label={key}>
+              <pre className="text-xs bg-pkt-bg-subtle p-2 rounded overflow-x-auto">
+                {JSON.stringify(value, null, 2)}
+              </pre>
+            </DataListItem>
           );
         }
         return (
-          <Field
-            key={key}
-            label={key}
-            value={String(value)}
-          />
+          <DataListItem key={key} label={key}>
+            {String(value)}
+          </DataListItem>
         );
       })}
-    </dl>
+    </DataList>
   );
 }
 
@@ -1143,31 +1122,38 @@ export function EventDetailModal({
     >
       <div className="space-y-6">
         {/* Metadata header */}
-        <div className="flex flex-wrap items-center gap-4 text-sm text-pkt-grays-gray-600 pb-4 border-b border-pkt-grays-gray-200">
-          <span className="flex items-center gap-1.5">
-            <CalendarIcon className="w-4 h-4" />
-            {event.time ? formatDateTimeNorwegian(event.time) : 'Ukjent tid'}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <PersonIcon className="w-4 h-4" />
-            {event.actor || 'Ukjent'}
-          </span>
-          <Badge variant={event.actorrole === 'TE' ? 'info' : 'warning'}>
-            {event.actorrole || 'Ukjent'}
-          </Badge>
-          {event.spor && (
+        <InlineDataList bordered>
+          <InlineDataListItem label="">
             <span className="flex items-center gap-1.5">
-              <TargetIcon className="w-4 h-4" />
-              <Badge variant="neutral">{sporLabel}</Badge>
+              <CalendarIcon className="w-4 h-4" />
+              {event.time ? formatDateTimeNorwegian(event.time) : 'Ukjent tid'}
             </span>
+          </InlineDataListItem>
+          <InlineDataListItem label="">
+            <span className="flex items-center gap-1.5">
+              <PersonIcon className="w-4 h-4" />
+              {event.actor || 'Ukjent'}
+            </span>
+          </InlineDataListItem>
+          <InlineDataListItem label="">
+            <Badge variant={event.actorrole === 'TE' ? 'info' : 'warning'}>
+              {event.actorrole || 'Ukjent'}
+            </Badge>
+          </InlineDataListItem>
+          {event.spor && (
+            <InlineDataListItem label="">
+              <span className="flex items-center gap-1.5">
+                <TargetIcon className="w-4 h-4" />
+                <Badge variant="neutral">{sporLabel}</Badge>
+              </span>
+            </InlineDataListItem>
           )}
-        </div>
+        </InlineDataList>
 
         {/* Summary */}
-        <div className="bg-pkt-bg-subtle p-4 border border-pkt-grays-gray-200">
-          <p className="text-sm font-medium text-pkt-grays-gray-700 mb-1">Sammendrag</p>
+        <SectionContainer title="Sammendrag" variant="subtle" spacing="none">
           <p className="text-pkt-text-body-dark">{event.summary || 'Ingen sammendrag'}</p>
-        </div>
+        </SectionContainer>
 
         {/* Full form data */}
         <div>
