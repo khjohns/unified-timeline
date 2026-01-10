@@ -60,20 +60,21 @@ export function EndringsordreRelasjonBanner({ endringsordrer }: EndringsordreRel
               </span>
             </span>
           }
-        >
-          <div className="mt-2 flex items-center justify-between">
-            <span className="text-sm text-alert-info-text/80">
-              {eo.dato_utstedt ? `Utstedt ${formatDate(eo.dato_utstedt)}` : 'Ikke utstedt'}
-            </span>
-            <Link
-              to={`/endringsordre/${eo.eo_sak_id}`}
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-badge-info-text hover:underline"
-            >
-              Gå til endringsordre
-              <ArrowRightIcon className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-        </Alert>
+          footer={
+            <>
+              <span className="text-alert-info-text/80">
+                {eo.dato_utstedt ? `Utstedt ${formatDate(eo.dato_utstedt)}` : 'Ikke utstedt'}
+              </span>
+              <Link
+                to={`/endringsordre/${eo.eo_sak_id}`}
+                className="inline-flex items-center gap-1.5 font-medium text-badge-info-text hover:underline"
+              >
+                Gå til endringsordre
+                <ArrowRightIcon className="w-3.5 h-3.5" />
+              </Link>
+            </>
+          }
+        />
       ))}
     </div>
   );

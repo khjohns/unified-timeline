@@ -50,20 +50,21 @@ export function ForseringRelasjonBanner({ forseringer }: ForseringRelasjonBanner
               </span>
             </span>
           }
-        >
-          <div className="mt-2 flex items-center justify-between">
-            <span className="text-sm text-alert-info-text/80">
-              Varslet {formatDate(forsering.dato_varslet)}
-            </span>
-            <Link
-              to={`/forsering/${forsering.forsering_sak_id}`}
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-badge-info-text hover:underline"
-            >
-              Gå til forseringssak
-              <ArrowRightIcon className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-        </Alert>
+          footer={
+            <>
+              <span className="text-alert-info-text/80">
+                Varslet {formatDate(forsering.dato_varslet)}
+              </span>
+              <Link
+                to={`/forsering/${forsering.forsering_sak_id}`}
+                className="inline-flex items-center gap-1.5 font-medium text-badge-info-text hover:underline"
+              >
+                Gå til forseringssak
+                <ArrowRightIcon className="w-3.5 h-3.5" />
+              </Link>
+            </>
+          }
+        />
       ))}
     </div>
   );
