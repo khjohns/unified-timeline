@@ -3,14 +3,14 @@
  *
  * Modal for viewing detailed event data from the timeline.
  * Supports all event types with type-specific rendering.
- * Uses SectionContainer, DataList, and InlineDataList for consistent UX.
+ * Uses SectionContainer, DataList, and InlineDataList primitives for consistent UX.
+ * LongTextField handles expandable text within DataList structure.
  */
 
 import React from 'react';
 import {
   Badge,
   BadgeVariant,
-  Collapsible,
   Modal,
   SectionContainer,
   DataList,
@@ -186,22 +186,28 @@ interface LongTextFieldProps {
 }
 
 function LongTextField({ label, value, defaultOpen = false }: LongTextFieldProps) {
+  const [isExpanded, setIsExpanded] = React.useState(defaultOpen);
+
   if (!value) return null;
 
-  // For short texts (less than 150 chars), display inline
-  if (value.length < 150) {
-    return <DataListItem label={label}>{value}</DataListItem>;
-  }
+  const isLong = value.length >= 150;
+  const displayText = isLong && !isExpanded ? value.slice(0, 150) + '...' : value;
 
-  // For longer texts, use collapsible
   return (
-    <div className="py-2.5">
-      <Collapsible title={label} defaultOpen={defaultOpen}>
-        <p className="text-sm text-pkt-text-body-dark whitespace-pre-wrap">
-          {value}
-        </p>
-      </Collapsible>
-    </div>
+    <DataListItem label={label}>
+      <div>
+        <p className="whitespace-pre-wrap">{displayText}</p>
+        {isLong && (
+          <button
+            type="button"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-pkt-brand-dark-blue-1000 hover:underline text-sm mt-1"
+          >
+            {isExpanded ? 'Vis mindre' : 'Vis mer'}
+          </button>
+        )}
+      </div>
+    </DataListItem>
   );
 }
 
@@ -1122,33 +1128,30 @@ export function EventDetailModal({
     >
       <div className="space-y-6">
         {/* Metadata header */}
-        <InlineDataList bordered>
-          <InlineDataListItem label="">
-            <span className="flex items-center gap-1.5">
-              <CalendarIcon className="w-4 h-4" />
-              {event.time ? formatDateTimeNorwegian(event.time) : 'Ukjent tid'}
-            </span>
-          </InlineDataListItem>
-          <InlineDataListItem label="">
-            <span className="flex items-center gap-1.5">
-              <PersonIcon className="w-4 h-4" />
-              {event.actor || 'Ukjent'}
-            </span>
-          </InlineDataListItem>
-          <InlineDataListItem label="">
-            <Badge variant={event.actorrole === 'TE' ? 'info' : 'warning'}>
-              {event.actorrole || 'Ukjent'}
-            </Badge>
-          </InlineDataListItem>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-pkt-grays-gray-600 pb-4 border-b border-pkt-border-subtle">
+          <span className="flex items-center gap-1.5">
+            <CalendarIcon className="w-4 h-4" />
+            {event.time ? formatDateTimeNorwegian(event.time) : 'Ukjent tid'}
+          </span>
+          <span className="text-pkt-grays-gray-300">|</span>
+          <span className="flex items-center gap-1.5">
+            <PersonIcon className="w-4 h-4" />
+            {event.actor || 'Ukjent'}
+          </span>
+          <span className="text-pkt-grays-gray-300">|</span>
+          <Badge variant={event.actorrole === 'TE' ? 'info' : 'warning'}>
+            {event.actorrole || 'Ukjent'}
+          </Badge>
           {event.spor && (
-            <InlineDataListItem label="">
+            <>
+              <span className="text-pkt-grays-gray-300">|</span>
               <span className="flex items-center gap-1.5">
                 <TargetIcon className="w-4 h-4" />
                 <Badge variant="neutral">{sporLabel}</Badge>
               </span>
-            </InlineDataListItem>
+            </>
           )}
-        </InlineDataList>
+        </div>
 
         {/* Summary */}
         <SectionContainer title="Sammendrag" variant="subtle" spacing="none">
