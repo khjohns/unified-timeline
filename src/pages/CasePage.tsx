@@ -21,7 +21,7 @@ import { CaseDashboard } from '../components/views/CaseDashboard';
 import { Timeline } from '../components/views/Timeline';
 import { ComprehensiveMetadata } from '../components/views/ComprehensiveMetadata';
 import { RevisionHistory } from '../components/views/RevisionHistory';
-import { Alert, Button } from '../components/primitives';
+import { Alert, Button, AlertDialog } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
 import { formatCurrency } from '../utils/formatters';
 import { downloadApprovedPdf } from '../pdf/generator';
@@ -181,6 +181,7 @@ function CasePageContent() {
   // Approval modal states (combined package only)
   const [sendResponsPakkeOpen, setSendResponsPakkeOpen] = useState(false);
   const [approvePakkeOpen, setApprovePakkeOpen] = useState(false);
+  const [discardPakkeConfirmOpen, setDiscardPakkeConfirmOpen] = useState(false);
 
   // PDF preview modal state (for testing - opened from header)
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
@@ -347,7 +348,7 @@ function CasePageContent() {
                 approvalWorkflow.restoreDraftsFromPakke();
               }}
               onDiscard={() => {
-                approvalWorkflow.cancelPakke();
+                setDiscardPakkeConfirmOpen(true);
               }}
             />
           </section>
@@ -863,6 +864,20 @@ function CasePageContent() {
               sakState={state}
             />
           )}
+
+          {/* Discard Package Confirmation Dialog */}
+          <AlertDialog
+            open={discardPakkeConfirmOpen}
+            onOpenChange={setDiscardPakkeConfirmOpen}
+            title="Forkast avvist svar?"
+            description="Dette vil slette det avviste svaret permanent. Du må starte på nytt hvis du vil sende et nytt svar."
+            confirmLabel="Forkast svar"
+            cancelLabel="Avbryt"
+            variant="danger"
+            onConfirm={() => {
+              approvalWorkflow.cancelPakke();
+            }}
+          />
 
           {/* PDF Preview Modal (standalone - for testing outside modal-in-modal) */}
           <PdfPreviewModal
