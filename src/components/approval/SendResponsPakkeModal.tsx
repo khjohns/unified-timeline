@@ -31,6 +31,7 @@ import type { SakState } from '../../types/timeline';
 import {
   APPROVAL_THRESHOLDS,
   getRequiredApprovers,
+  createApprovalStepsExcludingSubmitter,
   APPROVAL_ROLE_LABELS,
   getPersonsAtRole,
   type MockPerson,
@@ -84,6 +85,13 @@ export function SendResponsPakkeModal({
 
   // Get required approvers (based on amount threshold)
   const requiredApprovers = useMemo(() => getRequiredApprovers(samletBelop), [samletBelop]);
+
+  // Check if approval is actually required based on submitter's role
+  const approvalSteps = useMemo(
+    () => createApprovalStepsExcludingSubmitter(samletBelop, currentMockUser.rolle),
+    [samletBelop, currentMockUser.rolle]
+  );
+  const noApprovalRequired = approvalSteps.length === 0;
 
   // The first approver is always the manager (simulating real Entra ID workflow)
   // The manager's role determines who can be selected as alternative approvers
@@ -183,11 +191,14 @@ export function SendResponsPakkeModal({
     return `${parts.slice(0, -1).join(', ')} og ${parts[parts.length - 1]}`;
   };
 
+  // Dynamic modal title based on whether approval is required
+  const modalTitle = noApprovalRequired ? 'Godkjenn og send respons' : 'Send til godkjenning';
+
   return (
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title="Send til godkjenning"
+      title={modalTitle}
       size="lg"
     >
       {/* Tabs header - only show if we have sakState for PDF preview */}
@@ -207,11 +218,19 @@ export function SendResponsPakkeModal({
       {activeTab === 'form' ? (
         <div className="space-y-4">
           {/* Intro with guidance */}
-          <Alert variant="info" title="Intern godkjenning kreves">
-          Du sender svar på {formatSummaryList(summaryParts)} til godkjenning.
-          Svaret må godkjennes internt før det sendes til entreprenør.
-          Godkjenningsnivå avhenger av samlet økonomisk eksponering.
-        </Alert>
+          {noApprovalRequired ? (
+            <Alert variant="success" title="Du har fullmakt">
+              Som {APPROVAL_ROLE_LABELS[currentMockUser.rolle]} har du fullmakt til å godkjenne
+              beløp opp til denne størrelsen. Svaret på {formatSummaryList(summaryParts)} vil
+              bli godkjent direkte og sendt til entreprenør.
+            </Alert>
+          ) : (
+            <Alert variant="info" title="Intern godkjenning kreves">
+              Du sender svar på {formatSummaryList(summaryParts)} til godkjenning.
+              Svaret må godkjennes internt før det sendes til entreprenør.
+              Godkjenningsnivå avhenger av samlet økonomisk eksponering.
+            </Alert>
+          )}
 
         {/* Amount Calculation */}
         <SectionContainer title="Beløpsberegning">
@@ -249,21 +268,37 @@ export function SendResponsPakkeModal({
 
         {/* Required Approval Chain */}
         <SectionContainer title="Godkjenningskjede">
-          <div className="flex flex-wrap items-center gap-2">
-            {requiredApprovers.map((role, index) => (
-              <div key={role} className="flex items-center gap-2">
-                <Badge variant={index === 0 ? 'warning' : 'default'}>
-                  {APPROVAL_ROLE_LABELS[role]}
+          {noApprovalRequired ? (
+            <div>
+              <div className="flex items-center gap-2">
+                <Badge variant="success">
+                  {APPROVAL_ROLE_LABELS[currentMockUser.rolle]} (deg)
                 </Badge>
-                {index < requiredApprovers.length - 1 && (
-                  <span className="text-pkt-text-body-muted">→</span>
-                )}
+                <span className="text-sm text-pkt-text-success">✓ Har fullmakt</span>
               </div>
-            ))}
-          </div>
-          <p className="text-xs text-pkt-text-body-muted mt-2">
-            Basert på samlet eksponering {formatCurrency(samletBelop)}
-          </p>
+              <p className="text-xs text-pkt-text-body-muted mt-2">
+                Du har fullmakt for beløp opp til dette nivået. Ingen ytterligere godkjenning kreves.
+              </p>
+            </div>
+          ) : (
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                {approvalSteps.map((step, index) => (
+                  <div key={step.role} className="flex items-center gap-2">
+                    <Badge variant={index === 0 ? 'warning' : 'default'}>
+                      {step.roleName}
+                    </Badge>
+                    {index < approvalSteps.length - 1 && (
+                      <span className="text-pkt-text-body-muted">→</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-pkt-text-body-muted mt-2">
+                Basert på samlet eksponering {formatCurrency(samletBelop)}
+              </p>
+            </div>
+          )}
         </SectionContainer>
 
         {/* Amount Thresholds - Collapsible */}
@@ -301,86 +336,88 @@ export function SendResponsPakkeModal({
           </table>
         </SectionContainer>
 
-        {/* Approver Selection */}
-        <SectionContainer title="Godkjenner">
-          <div className="space-y-4">
-            {/* Current user info */}
-            <div className="text-sm text-pkt-text-body-muted">
-              Du er innlogget som:{' '}
-              <span className="font-medium text-pkt-text-body-default">
-                {currentMockUser.navn}
-              </span>
-              {' '}({APPROVAL_ROLE_LABELS[currentMockUser.rolle]})
-            </div>
-
-            {/* Required role info */}
-            <div className="text-sm">
-              <span className="text-pkt-text-body-muted">Første godkjenner:</span>{' '}
-              <span className="font-medium">{firstApproverLabel}</span>
-            </div>
-
-            {/* Approver selection */}
-            <RadioGroup
-              value={approverSelection}
-              onValueChange={(value) => setApproverSelection(value as 'manager' | 'other')}
-            >
-              <RadioItem
-                value="manager"
-                label="Min nærmeste leder"
-                description={
-                  currentMockManager
-                    ? `${currentMockManager.navn} (${APPROVAL_ROLE_LABELS[currentMockManager.rolle]}, ${currentMockManager.enhet})`
-                    : 'Ingen leder registrert'
-                }
-                disabled={!currentMockManager}
-              />
-              <RadioItem
-                value="other"
-                label="Velg annen godkjenner"
-                description={`Velg fra alle ${firstApproverLabel.toLowerCase()}e i organisasjonen`}
-              />
-            </RadioGroup>
-
-            {/* Other approver dropdown (shown when "other" is selected) */}
-            {approverSelection === 'other' && (
-              <div className="ml-9">
-                <Select value={selectedOtherApprover} onValueChange={setSelectedOtherApprover}>
-                  <SelectTrigger width="full">
-                    <SelectValue placeholder={`Velg ${firstApproverLabel.toLowerCase()}`} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {otherApprovers.map((person) => (
-                      <SelectItem key={person.id} value={person.id}>
-                        {person.navn} ({person.enhet})
-                      </SelectItem>
-                    ))}
-                    {/* Include manager in dropdown if they exist */}
-                    {currentMockManager && (
-                      <SelectItem value={currentMockManager.id}>
-                        {currentMockManager.navn} ({currentMockManager.enhet})
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
+        {/* Approver Selection - only show when approval is required */}
+        {!noApprovalRequired && (
+          <SectionContainer title="Godkjenner">
+            <div className="space-y-4">
+              {/* Current user info */}
+              <div className="text-sm text-pkt-text-body-muted">
+                Du er innlogget som:{' '}
+                <span className="font-medium text-pkt-text-body-default">
+                  {currentMockUser.navn}
+                </span>
+                {' '}({APPROVAL_ROLE_LABELS[currentMockUser.rolle]})
               </div>
-            )}
 
-            {/* Comment field */}
-            <div className="pt-2">
-              <Label htmlFor="pakke-comment" className="text-sm mb-1 block">
-                Kommentar (valgfritt)
-              </Label>
-              <Textarea
-                id="pakke-comment"
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                placeholder="Legg til en kommentar til godkjenneren..."
-                rows={3}
-                fullWidth
-              />
+              {/* Required role info */}
+              <div className="text-sm">
+                <span className="text-pkt-text-body-muted">Første godkjenner:</span>{' '}
+                <span className="font-medium">{firstApproverLabel}</span>
+              </div>
+
+              {/* Approver selection */}
+              <RadioGroup
+                value={approverSelection}
+                onValueChange={(value) => setApproverSelection(value as 'manager' | 'other')}
+              >
+                <RadioItem
+                  value="manager"
+                  label="Min nærmeste leder"
+                  description={
+                    currentMockManager
+                      ? `${currentMockManager.navn} (${APPROVAL_ROLE_LABELS[currentMockManager.rolle]}, ${currentMockManager.enhet})`
+                      : 'Ingen leder registrert'
+                  }
+                  disabled={!currentMockManager}
+                />
+                <RadioItem
+                  value="other"
+                  label="Velg annen godkjenner"
+                  description={`Velg fra alle ${firstApproverLabel.toLowerCase()}e i organisasjonen`}
+                />
+              </RadioGroup>
+
+              {/* Other approver dropdown (shown when "other" is selected) */}
+              {approverSelection === 'other' && (
+                <div className="ml-9">
+                  <Select value={selectedOtherApprover} onValueChange={setSelectedOtherApprover}>
+                    <SelectTrigger width="full">
+                      <SelectValue placeholder={`Velg ${firstApproverLabel.toLowerCase()}`} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {otherApprovers.map((person) => (
+                        <SelectItem key={person.id} value={person.id}>
+                          {person.navn} ({person.enhet})
+                        </SelectItem>
+                      ))}
+                      {/* Include manager in dropdown if they exist */}
+                      {currentMockManager && (
+                        <SelectItem value={currentMockManager.id}>
+                          {currentMockManager.navn} ({currentMockManager.enhet})
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Comment field */}
+              <div className="pt-2">
+                <Label htmlFor="pakke-comment" className="text-sm mb-1 block">
+                  Kommentar (valgfritt)
+                </Label>
+                <Textarea
+                  id="pakke-comment"
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Legg til en kommentar til godkjenneren..."
+                  rows={3}
+                  fullWidth
+                />
+              </div>
             </div>
-          </div>
-        </SectionContainer>
+          </SectionContainer>
+        )}
 
         {/* Actions */}
         <div className="flex justify-end gap-3 pt-4 border-t border-pkt-border-subtle">
@@ -388,7 +425,7 @@ export function SendResponsPakkeModal({
             Avbryt
           </Button>
           <Button variant="primary" onClick={handleSubmit}>
-            Send til godkjenning
+            {noApprovalRequired ? 'Godkjenn og send' : 'Send til godkjenning'}
           </Button>
         </div>
       </div>

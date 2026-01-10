@@ -50,12 +50,15 @@ interface ApprovalContextType {
     sakId: string,
     dagmulktsats: number,
     submitterRole: ApprovalRole,
-    submitterName?: string
+    submitterName?: string,
+    comment?: string
   ) => BhResponsPakke | undefined;
   approvePakkeStep: (sakId: string, comment?: string) => void;
   rejectPakkeStep: (sakId: string, reason: string) => void;
   cancelPakke: (sakId: string) => void;
   canApprovePakke: (sakId: string, role: ApprovalRole) => boolean;
+  /** Restore drafts from a rejected package for re-submission */
+  restoreDraftsFromPakke: (sakId: string) => boolean;
 }
 
 const ApprovalContext = createContext<ApprovalContextType | null>(null);
@@ -178,7 +181,7 @@ export function ApprovalProvider({ children }: ApprovalProviderProps) {
   );
 
   const submitPakkeForApproval = useCallback(
-    (sakId: string, dagmulktsats: number, submitterRole: ApprovalRole, submitterName?: string): BhResponsPakke | undefined => {
+    (sakId: string, dagmulktsats: number, submitterRole: ApprovalRole, submitterName?: string, comment?: string): BhResponsPakke | undefined => {
       // Collect all drafts for this case
       const grunnlagDraft = drafts.get(makeKey(sakId, 'grunnlag'));
       const vederlagDraft = drafts.get(makeKey(sakId, 'vederlag'));
@@ -199,6 +202,11 @@ export function ApprovalProvider({ children }: ApprovalProviderProps) {
       // This ensures the submitter cannot approve their own submission
       const steps = createApprovalStepsExcludingSubmitter(samletBelop, submitterRole);
 
+      // If no approval steps are required, the submitter has sufficient authority
+      // and the package is automatically approved
+      const noApprovalRequired = steps.length === 0;
+      const now = new Date().toISOString();
+
       const pakke: BhResponsPakke = {
         id: `pakke-${Date.now()}`,
         sakId,
@@ -212,10 +220,12 @@ export function ApprovalProvider({ children }: ApprovalProviderProps) {
         samletBelop,
         requiredApprovers: steps.map((s) => s.role),
         steps,
-        status: 'pending',
-        submittedAt: new Date().toISOString(),
+        status: noApprovalRequired ? 'approved' : 'pending',
+        submittedAt: now,
         submittedBy: submitterName || APPROVAL_ROLE_LABELS[submitterRole],
         submittedByRole: submitterRole,
+        submitterComment: comment,
+        completedAt: noApprovalRequired ? now : undefined,
       };
 
       // Save the package
@@ -330,6 +340,39 @@ export function ApprovalProvider({ children }: ApprovalProviderProps) {
     });
   }, []);
 
+  // Restore drafts from a rejected package for re-submission
+  const restoreDraftsFromPakke = useCallback(
+    (sakId: string): boolean => {
+      const pakke = bhResponsPakker.get(sakId);
+      if (!pakke || pakke.status !== 'rejected') return false;
+
+      // Restore each draft that was part of the package
+      setDrafts((prev) => {
+        const next = new Map(prev);
+        if (pakke.grunnlagRespons) {
+          next.set(makeKey(sakId, 'grunnlag'), pakke.grunnlagRespons);
+        }
+        if (pakke.vederlagRespons) {
+          next.set(makeKey(sakId, 'vederlag'), pakke.vederlagRespons);
+        }
+        if (pakke.fristRespons) {
+          next.set(makeKey(sakId, 'frist'), pakke.fristRespons);
+        }
+        return next;
+      });
+
+      // Remove the rejected package
+      setBhResponsPakker((prev) => {
+        const next = new Map(prev);
+        next.delete(sakId);
+        return next;
+      });
+
+      return true;
+    },
+    [bhResponsPakker]
+  );
+
   const canApprovePakke = useCallback(
     (sakId: string, role: ApprovalRole): boolean => {
       const pakke = bhResponsPakker.get(sakId);
@@ -354,6 +397,7 @@ export function ApprovalProvider({ children }: ApprovalProviderProps) {
     rejectPakkeStep,
     cancelPakke,
     canApprovePakke,
+    restoreDraftsFromPakke,
   };
 
   return (

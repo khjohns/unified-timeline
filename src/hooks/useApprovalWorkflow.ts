@@ -33,7 +33,7 @@ interface UseApprovalWorkflowResult {
   // Combined package (BhResponsPakke) management
   bhResponsPakke: BhResponsPakke | undefined;
   canSubmitPakke: boolean;
-  submitPakkeForApproval: (dagmulktsats: number) => BhResponsPakke | undefined;
+  submitPakkeForApproval: (dagmulktsats: number, comment?: string) => BhResponsPakke | undefined;
   approvePakkeStep: (comment?: string) => void;
   rejectPakkeStep: (reason: string) => void;
   cancelPakke: () => void;
@@ -44,6 +44,9 @@ interface UseApprovalWorkflowResult {
   isPakkeApproved: boolean;
   isPakkeRejected: boolean;
   nextPakkeApprover: string | undefined;
+
+  // Re-submission after rejection
+  restoreDraftsFromPakke: () => boolean;
 }
 
 export function useApprovalWorkflow(sakId: string): UseApprovalWorkflowResult {
@@ -111,8 +114,8 @@ export function useApprovalWorkflow(sakId: string): UseApprovalWorkflowResult {
   // Submit package for approval wrapper
   // Uses the current mock user's role to ensure the submitter can't approve their own submission
   const submitPakkeForApproval = useCallback(
-    (dagmulktsats: number): BhResponsPakke | undefined => {
-      return context.submitPakkeForApproval(sakId, dagmulktsats, currentMockUser.rolle, currentMockUser.navn);
+    (dagmulktsats: number, comment?: string): BhResponsPakke | undefined => {
+      return context.submitPakkeForApproval(sakId, dagmulktsats, currentMockUser.rolle, currentMockUser.navn, comment);
     },
     [context, sakId, currentMockUser.rolle, currentMockUser.navn]
   );
@@ -140,6 +143,11 @@ export function useApprovalWorkflow(sakId: string): UseApprovalWorkflowResult {
 
   const cancelPakke = useCallback(() => {
     context.cancelPakke(sakId);
+  }, [context, sakId]);
+
+  // Restore drafts from rejected package for re-submission
+  const restoreDraftsFromPakke = useCallback(() => {
+    return context.restoreDraftsFromPakke(sakId);
   }, [context, sakId]);
 
   // Package status helpers
@@ -180,5 +188,6 @@ export function useApprovalWorkflow(sakId: string): UseApprovalWorkflowResult {
     isPakkeApproved,
     isPakkeRejected,
     nextPakkeApprover,
+    restoreDraftsFromPakke,
   };
 }

@@ -5,12 +5,13 @@
  * Indicates the status and next approver in the chain.
  */
 
+import clsx from 'clsx';
 import { CheckCircledIcon, CrossCircledIcon } from '@radix-ui/react-icons';
 import { Alert } from '../primitives/Alert';
 import { Button } from '../primitives/Button';
 import type { BhResponsPakke } from '../../types/approval';
 import { getNextApprover } from '../../constants/approvalConfig';
-import { formatCurrency } from '../../utils/formatters';
+import { formatCurrency, getApprovalAge } from '../../utils/formatters';
 
 interface PendingApprovalBannerProps {
   pakke: BhResponsPakke;
@@ -18,6 +19,10 @@ interface PendingApprovalBannerProps {
   canApprove?: boolean;
   /** Callback when "Se detaljer" is clicked */
   onViewDetails?: () => void;
+  /** Callback when "Rediger og send på nytt" is clicked (for rejected packages) */
+  onRestoreAndEdit?: () => void;
+  /** Callback when "Forkast" is clicked (for rejected packages) */
+  onDiscard?: () => void;
   className?: string;
 }
 
@@ -25,6 +30,8 @@ export function PendingApprovalBanner({
   pakke,
   canApprove = false,
   onViewDetails,
+  onRestoreAndEdit,
+  onDiscard,
   className,
 }: PendingApprovalBannerProps) {
   const nextApprover = getNextApprover(pakke.steps);
@@ -46,7 +53,26 @@ export function PendingApprovalBanner({
   if (pakke.status === 'rejected') {
     const rejectedStep = pakke.steps.find((s) => s.status === 'rejected');
     return (
-      <Alert variant="danger" className={className}>
+      <Alert
+        variant="danger"
+        className={className}
+        action={
+          (onRestoreAndEdit || onDiscard) && (
+            <div className="flex gap-2">
+              {onDiscard && (
+                <Button variant="secondary" size="sm" onClick={onDiscard}>
+                  Forkast
+                </Button>
+              )}
+              {onRestoreAndEdit && (
+                <Button variant="secondary" size="sm" onClick={onRestoreAndEdit}>
+                  Rediger og send på nytt
+                </Button>
+              )}
+            </div>
+          )
+        }
+      >
         <div className="flex items-center gap-2">
           <CrossCircledIcon className="h-5 w-5 shrink-0" />
           <div className="flex-1">
@@ -75,6 +101,9 @@ export function PendingApprovalBanner({
     </>
   );
 
+  // Calculate age and SLA status
+  const age = getApprovalAge(pakke.submittedAt);
+
   return (
     <Alert
       variant={canApprove ? 'info' : 'warning'}
@@ -97,10 +126,26 @@ export function PendingApprovalBanner({
           )}
         </div>
       )}
-      {/* Progress indicator */}
-      <div className="text-xs text-pkt-text-body-muted mt-1">
-        {pakke.steps.filter((s) => s.status === 'approved').length} av{' '}
-        {pakke.steps.length} godkjenninger fullført
+      {/* Progress indicator and age */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-pkt-text-body-muted mt-1">
+        <span>
+          {pakke.steps.filter((s) => s.status === 'approved').length} av{' '}
+          {pakke.steps.length} godkjenninger fullført
+        </span>
+        {age && (
+          <span
+            className={clsx(
+              'inline-flex items-center',
+              age.severity === 'ok' && 'text-pkt-text-body-muted',
+              age.severity === 'warning' && 'text-pkt-text-warning font-medium',
+              age.severity === 'overdue' && 'text-pkt-text-error font-medium'
+            )}
+          >
+            {age.severity === 'warning' && '⚠ '}
+            {age.severity === 'overdue' && '⏰ '}
+            Sendt {age.label}
+          </span>
+        )}
       </div>
     </Alert>
   );

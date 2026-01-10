@@ -320,11 +320,17 @@ function CasePageContent() {
                 </Button>
               }
             >
-              Du har {[
-                approvalWorkflow.grunnlagDraft && 'grunnlag',
-                approvalWorkflow.vederlagDraft && 'vederlag',
-                approvalWorkflow.fristDraft && 'frist'
-              ].filter(Boolean).join(', ')} utkast klare for samlet godkjenning.
+              <ul className="text-sm space-y-1 mt-1">
+                {approvalWorkflow.grunnlagDraft && (
+                  <li>• Grunnlag: {approvalWorkflow.grunnlagDraft.resultat === 'godkjent' ? 'Godkjent' : approvalWorkflow.grunnlagDraft.resultat === 'avslatt' ? 'Avslått' : approvalWorkflow.grunnlagDraft.resultat === 'delvis_godkjent' ? 'Delvis godkjent' : approvalWorkflow.grunnlagDraft.resultat}</li>
+                )}
+                {approvalWorkflow.vederlagDraft && (
+                  <li>• Vederlag: {formatCurrency(approvalWorkflow.vederlagDraft.belop)} ({approvalWorkflow.vederlagDraft.resultat === 'godkjent' ? 'godkjent' : approvalWorkflow.vederlagDraft.resultat === 'avslatt' ? 'avslått' : 'delvis godkjent'})</li>
+                )}
+                {approvalWorkflow.fristDraft && (
+                  <li>• Frist: {approvalWorkflow.fristDraft.dager} dager ({approvalWorkflow.fristDraft.resultat === 'godkjent' ? 'godkjent' : approvalWorkflow.fristDraft.resultat === 'avslatt' ? 'avslått' : 'delvis godkjent'})</li>
+                )}
+              </ul>
             </Alert>
           </section>
         )}
@@ -337,6 +343,12 @@ function CasePageContent() {
               canApprove={approvalWorkflow.canApprovePakke}
               onOpenDetails={() => setApprovePakkeOpen(true)}
               onDownloadPdf={() => downloadApprovedPdf(state, approvalWorkflow.bhResponsPakke!)}
+              onRestoreAndEdit={() => {
+                approvalWorkflow.restoreDraftsFromPakke();
+              }}
+              onDiscard={() => {
+                approvalWorkflow.cancelPakke();
+              }}
             />
           </section>
         )}
@@ -831,7 +843,7 @@ function CasePageContent() {
             vederlagDraft={approvalWorkflow.vederlagDraft}
             fristDraft={approvalWorkflow.fristDraft}
             onSubmit={(dagmulktsats, comment) => {
-              approvalWorkflow.submitPakkeForApproval(dagmulktsats);
+              approvalWorkflow.submitPakkeForApproval(dagmulktsats, comment);
             }}
             currentMockUser={currentMockUser}
             currentMockManager={currentMockManager}
