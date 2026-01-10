@@ -3,7 +3,7 @@
  *
  * Modal for viewing detailed event data from the timeline.
  * Supports all event types with type-specific rendering.
- * Uses SectionContainer, DataList, and InlineDataList primitives for consistent UX.
+ * Uses DataList (with grid variant) as primary layout primitive.
  * LongTextField handles expandable text within DataList structure.
  */
 
@@ -15,8 +15,6 @@ import {
   SectionContainer,
   DataList,
   DataListItem,
-  InlineDataList,
-  InlineDataListItem,
   HighlightCard,
 } from '../primitives';
 import {
@@ -377,89 +375,46 @@ function GrunnlagOppdatertSection({ data }: { data: GrunnlagOppdatertEventData }
 }
 
 function VederlagSection({ data }: { data: VederlagEventData }) {
-  const harSaerskiltKrav = data.saerskilt_krav?.rigg_drift || data.saerskilt_krav?.produktivitet;
-
-  // Beregn total krevd beløp
   const hovedbelop = data.belop_direkte ?? data.kostnads_overslag ?? 0;
-  const riggBelop = data.saerskilt_krav?.rigg_drift?.belop ?? 0;
-  const produktivitetBelop = data.saerskilt_krav?.produktivitet?.belop ?? 0;
-  const totalBelop = hovedbelop + riggBelop + produktivitetBelop;
+  const riggBelop = data.saerskilt_krav?.rigg_drift?.belop;
+  const produktivitetBelop = data.saerskilt_krav?.produktivitet?.belop;
 
   return (
     <div className="space-y-4">
-      {/* Sammendrag - kompakt oversikt øverst */}
-      <HighlightCard variant="info">
-        <div className="flex items-baseline justify-between">
-          <span className="text-lg font-semibold text-pkt-text-body-dark">
-            {formatCurrency(totalBelop)}
-          </span>
+      {/* Hoveddata i grid */}
+      <DataList variant="grid">
+        <DataListItem label="Metode">
           <Badge variant="info">{getVederlagsmetodeLabel(data.metode)}</Badge>
-        </div>
-        {harSaerskiltKrav && (
-          <InlineDataList className="mt-2">
-            {hovedbelop > 0 && (
-              <InlineDataListItem label="Hovedkrav" mono>{formatCurrency(hovedbelop)}</InlineDataListItem>
-            )}
-            {riggBelop > 0 && (
-              <InlineDataListItem label="Rigg" mono>{formatCurrency(riggBelop)}</InlineDataListItem>
-            )}
-            {produktivitetBelop > 0 && (
-              <InlineDataListItem label="Produktivitet" mono>{formatCurrency(produktivitetBelop)}</InlineDataListItem>
-            )}
-          </InlineDataList>
+        </DataListItem>
+        <DataListItem label="Hovedkrav" mono>{formatCurrency(hovedbelop)}</DataListItem>
+        {riggBelop !== undefined && (
+          <DataListItem label="Rigg/drift" mono>{formatCurrency(riggBelop)}</DataListItem>
         )}
-      </HighlightCard>
-
-      <DataList>
-        <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
-      </DataList>
-
-      {/* Særskilte krav - detaljer */}
-      {harSaerskiltKrav && (
-        <SectionContainer title="Særskilte krav" description="§34.1.3" variant="subtle" spacing="compact">
-          <DataList>
-            {data.saerskilt_krav?.rigg_drift && (
-              <DataListItem label="Rigg/drift">
-                <div className="flex items-center gap-2">
-                  <span>
-                    {data.saerskilt_krav.rigg_drift.belop !== undefined
-                      ? formatCurrency(data.saerskilt_krav.rigg_drift.belop)
-                      : 'Ja'}
-                  </span>
-                  {data.saerskilt_krav.rigg_drift.dato_klar_over && (
-                    <span className="text-pkt-grays-gray-500 text-sm">
-                      (klar over: {formatDateMedium(data.saerskilt_krav.rigg_drift.dato_klar_over)})
-                    </span>
-                  )}
-                </div>
-              </DataListItem>
-            )}
-            {data.saerskilt_krav?.produktivitet && (
-              <DataListItem label="Produktivitetstap">
-                <div className="flex items-center gap-2">
-                  <span>
-                    {data.saerskilt_krav.produktivitet.belop !== undefined
-                      ? formatCurrency(data.saerskilt_krav.produktivitet.belop)
-                      : 'Ja'}
-                  </span>
-                  {data.saerskilt_krav.produktivitet.dato_klar_over && (
-                    <span className="text-pkt-grays-gray-500 text-sm">
-                      (klar over: {formatDateMedium(data.saerskilt_krav.produktivitet.dato_klar_over)})
-                    </span>
-                  )}
-                </div>
-              </DataListItem>
-            )}
-          </DataList>
-        </SectionContainer>
-      )}
-
-      <DataList>
+        {produktivitetBelop !== undefined && (
+          <DataListItem label="Produktivitet" mono>{formatCurrency(produktivitetBelop)}</DataListItem>
+        )}
         {data.krever_justert_ep && (
-          <DataListItem label="Krever justerte EP">
-            <Badge variant="warning">Ja - §34.3.3</Badge>
+          <DataListItem label="Justerte EP">
+            <Badge variant="warning">Ja</Badge>
           </DataListItem>
         )}
+      </DataList>
+
+      {/* Særskilte krav datoer */}
+      {(data.saerskilt_krav?.rigg_drift?.dato_klar_over || data.saerskilt_krav?.produktivitet?.dato_klar_over) && (
+        <DataList variant="grid">
+          {data.saerskilt_krav?.rigg_drift?.dato_klar_over && (
+            <DataListItem label="Rigg klar over">{formatDateMedium(data.saerskilt_krav.rigg_drift.dato_klar_over)}</DataListItem>
+          )}
+          {data.saerskilt_krav?.produktivitet?.dato_klar_over && (
+            <DataListItem label="Produktivitet klar over">{formatDateMedium(data.saerskilt_krav.produktivitet.dato_klar_over)}</DataListItem>
+          )}
+        </DataList>
+      )}
+
+      {/* Begrunnelse og vedlegg */}
+      <DataList>
+        <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
         <VarselInfoDisplay label="Forhåndsvarsel regningsarbeid" varsel={data.regningsarbeid_varsel} />
         <VedleggDisplay vedleggIds={data.vedlegg_ids} />
       </DataList>
@@ -585,19 +540,9 @@ function ResponsGrunnlagOppdatertSection({ data }: { data: ResponsGrunnlagOppdat
 function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
   const badge = getVederlagResultatBadge(data.beregnings_resultat);
 
-  // Check if we have Port 1 preclusion fields
-  const hasPreklusjonsFields =
-    data.rigg_varslet_i_tide !== undefined ||
-    data.produktivitet_varslet_i_tide !== undefined ||
-    data.begrunnelse_preklusjon;
-
-  // Check if we have legacy varsel fields
-  const hasLegacyVarselFields =
-    data.saerskilt_varsel_rigg_drift_ok !== undefined ||
-    data.varsel_justert_ep_ok !== undefined ||
-    data.varsel_start_regning_ok !== undefined ||
-    data.krav_fremmet_i_tide !== undefined ||
-    data.begrunnelse_varsel;
+  // Check if rigg/produktivitet is precluded
+  const riggPrekludert = data.rigg_varslet_i_tide === false;
+  const produktivitetPrekludert = data.produktivitet_varslet_i_tide === false;
 
   // Check if we have detailed breakdown
   const hasBelopBreakdown =
@@ -608,170 +553,147 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
     data.produktivitet_vurdering ||
     data.produktivitet_godkjent_belop !== undefined;
 
-  // Check if we have calculation details
-  const hasBeregningFields =
-    data.begrunnelse ||
-    data.frist_for_spesifikasjon;
-
-  // Check if we have subsidiary data
-  const hasSubsidiaerFields =
-    (data.subsidiaer_triggers && data.subsidiaer_triggers.length > 0) ||
-    data.subsidiaer_resultat ||
-    data.subsidiaer_godkjent_belop !== undefined ||
-    data.subsidiaer_begrunnelse;
-
-  // Check if rigg/produktivitet is precluded
-  const riggPrekludert = data.rigg_varslet_i_tide === false;
-  const produktivitetPrekludert = data.produktivitet_varslet_i_tide === false;
-
   return (
     <div className="space-y-4">
-      {/* ── Sammendrag ─────────────────────────────────────────────── */}
-      <DataList>
+      {/* Hoveddata i grid */}
+      <DataList variant="grid">
         <DataListItem label="Resultat">
           <Badge variant={badge.variant}>{badge.label}</Badge>
         </DataListItem>
         {data.total_godkjent_belop !== undefined && (
-          <DataListItem label="Totalt godkjent beløp" mono>
+          <DataListItem label="Totalt godkjent" mono>
             {formatCurrency(data.total_godkjent_belop)}
           </DataListItem>
         )}
         {data.vederlagsmetode && (
-          <DataListItem label="Beregningsmetode">{getVederlagsmetodeLabel(data.vederlagsmetode)}</DataListItem>
+          <DataListItem label="Metode">{getVederlagsmetodeLabel(data.vederlagsmetode)}</DataListItem>
+        )}
+        {data.frist_for_spesifikasjon && (
+          <DataListItem label="Frist spesifikasjon">{formatDateMedium(data.frist_for_spesifikasjon)}</DataListItem>
         )}
       </DataList>
 
-      {/* ── Port 1: Preklusjonsvurdering (§34.1.3) ─────────────────── */}
-      {hasPreklusjonsFields && (
-        <SectionContainer title="Preklusjonsvurdering" description="§34.1.3" variant="subtle" spacing="compact">
-          <DataList>
-            {data.rigg_varslet_i_tide !== undefined && (
-              <DataListItem label="Rigg/drift varslet i tide">
-                <Badge variant={data.rigg_varslet_i_tide ? 'success' : 'danger'}>
-                  {data.rigg_varslet_i_tide ? 'Ja' : 'Nei (prekludert)'}
-                </Badge>
-              </DataListItem>
-            )}
-            {data.produktivitet_varslet_i_tide !== undefined && (
-              <DataListItem label="Produktivitet varslet i tide">
-                <Badge variant={data.produktivitet_varslet_i_tide ? 'success' : 'danger'}>
-                  {data.produktivitet_varslet_i_tide ? 'Ja' : 'Nei (prekludert)'}
-                </Badge>
-              </DataListItem>
-            )}
-            <LongTextField label="Begrunnelse" value={data.begrunnelse_preklusjon} />
-          </DataList>
-        </SectionContainer>
+      {/* Preklusjonsvurdering - kun hvis relevant */}
+      {(data.rigg_varslet_i_tide !== undefined || data.produktivitet_varslet_i_tide !== undefined) && (
+        <DataList variant="grid">
+          {data.rigg_varslet_i_tide !== undefined && (
+            <DataListItem label="Rigg varslet i tide">
+              <Badge variant={data.rigg_varslet_i_tide ? 'success' : 'danger'}>
+                {data.rigg_varslet_i_tide ? 'Ja' : 'Nei'}
+              </Badge>
+            </DataListItem>
+          )}
+          {data.produktivitet_varslet_i_tide !== undefined && (
+            <DataListItem label="Produktivitet varslet i tide">
+              <Badge variant={data.produktivitet_varslet_i_tide ? 'success' : 'danger'}>
+                {data.produktivitet_varslet_i_tide ? 'Ja' : 'Nei'}
+              </Badge>
+            </DataListItem>
+          )}
+        </DataList>
       )}
 
-      {/* ── Legacy varselvurdering ──────────────────────────────────── */}
-      {hasLegacyVarselFields && !hasPreklusjonsFields && (
-        <SectionContainer title="Varselvurdering" description="§34.1.3" variant="subtle" spacing="compact">
-          <DataList>
-            {data.saerskilt_varsel_rigg_drift_ok !== undefined && (
-              <DataListItem label="Rigg/drift varsel OK">
-                <Badge variant={data.saerskilt_varsel_rigg_drift_ok ? 'success' : 'danger'}>
-                  {data.saerskilt_varsel_rigg_drift_ok ? 'Ja' : 'Nei'}
-                </Badge>
-              </DataListItem>
-            )}
-            {data.varsel_justert_ep_ok !== undefined && (
-              <DataListItem label="Justert EP varsel OK">
-                <Badge variant={data.varsel_justert_ep_ok ? 'success' : 'danger'}>
-                  {data.varsel_justert_ep_ok ? 'Ja' : 'Nei'}
-                </Badge>
-              </DataListItem>
-            )}
-            {data.varsel_start_regning_ok !== undefined && (
-              <DataListItem label="Regningsarbeid varsel OK">
-                <Badge variant={data.varsel_start_regning_ok ? 'success' : 'danger'}>
-                  {data.varsel_start_regning_ok ? 'Ja' : 'Nei'}
-                </Badge>
-              </DataListItem>
-            )}
-            {data.krav_fremmet_i_tide !== undefined && (
-              <DataListItem label="Krav fremmet i tide">
-                <Badge variant={data.krav_fremmet_i_tide ? 'success' : 'warning'}>
-                  {data.krav_fremmet_i_tide ? 'Ja' : 'Nei'}
-                </Badge>
-              </DataListItem>
-            )}
-            <LongTextField label="Begrunnelse" value={data.begrunnelse_varsel} />
-          </DataList>
-        </SectionContainer>
+      {/* Legacy varselvurdering */}
+      {(data.saerskilt_varsel_rigg_drift_ok !== undefined ||
+        data.varsel_justert_ep_ok !== undefined ||
+        data.varsel_start_regning_ok !== undefined ||
+        data.krav_fremmet_i_tide !== undefined) && (
+        <DataList variant="grid">
+          {data.saerskilt_varsel_rigg_drift_ok !== undefined && (
+            <DataListItem label="Rigg/drift varsel OK">
+              <Badge variant={data.saerskilt_varsel_rigg_drift_ok ? 'success' : 'danger'}>
+                {data.saerskilt_varsel_rigg_drift_ok ? 'Ja' : 'Nei'}
+              </Badge>
+            </DataListItem>
+          )}
+          {data.varsel_justert_ep_ok !== undefined && (
+            <DataListItem label="Justert EP varsel OK">
+              <Badge variant={data.varsel_justert_ep_ok ? 'success' : 'danger'}>
+                {data.varsel_justert_ep_ok ? 'Ja' : 'Nei'}
+              </Badge>
+            </DataListItem>
+          )}
+          {data.varsel_start_regning_ok !== undefined && (
+            <DataListItem label="Regningsarbeid varsel OK">
+              <Badge variant={data.varsel_start_regning_ok ? 'success' : 'danger'}>
+                {data.varsel_start_regning_ok ? 'Ja' : 'Nei'}
+              </Badge>
+            </DataListItem>
+          )}
+          {data.krav_fremmet_i_tide !== undefined && (
+            <DataListItem label="Krav fremmet i tide">
+              <Badge variant={data.krav_fremmet_i_tide ? 'success' : 'warning'}>
+                {data.krav_fremmet_i_tide ? 'Ja' : 'Nei'}
+              </Badge>
+            </DataListItem>
+          )}
+        </DataList>
       )}
 
-      {/* ── Port 3: Beløpsvurdering per kravtype ───────────────────── */}
+      {/* Beløpsvurdering - beholder spesiell layout */}
       {hasBelopBreakdown && (
-        <SectionContainer title="Beløpsvurdering" variant="subtle" spacing="compact">
-          <div className="space-y-2">
-            <BelopVurderingItem
-              label="Hovedkrav"
-              vurdering={data.hovedkrav_vurdering}
-              belop={data.hovedkrav_godkjent_belop}
-              begrunnelse={data.hovedkrav_begrunnelse}
-            />
-            <BelopVurderingItem
-              label="Rigg/drift"
-              vurdering={data.rigg_vurdering}
-              belop={data.rigg_godkjent_belop}
-              isPrekludert={riggPrekludert}
-              subsidiaertBelop={riggPrekludert ? data.rigg_godkjent_belop : undefined}
-            />
-            <BelopVurderingItem
-              label="Produktivitetstap"
-              vurdering={data.produktivitet_vurdering}
-              belop={data.produktivitet_godkjent_belop}
-              isPrekludert={produktivitetPrekludert}
-              subsidiaertBelop={produktivitetPrekludert ? data.produktivitet_godkjent_belop : undefined}
-            />
-          </div>
-        </SectionContainer>
+        <div className="space-y-1">
+          <BelopVurderingItem
+            label="Hovedkrav"
+            vurdering={data.hovedkrav_vurdering}
+            belop={data.hovedkrav_godkjent_belop}
+            begrunnelse={data.hovedkrav_begrunnelse}
+          />
+          <BelopVurderingItem
+            label="Rigg/drift"
+            vurdering={data.rigg_vurdering}
+            belop={data.rigg_godkjent_belop}
+            isPrekludert={riggPrekludert}
+            subsidiaertBelop={riggPrekludert ? data.rigg_godkjent_belop : undefined}
+          />
+          <BelopVurderingItem
+            label="Produktivitetstap"
+            vurdering={data.produktivitet_vurdering}
+            belop={data.produktivitet_godkjent_belop}
+            isPrekludert={produktivitetPrekludert}
+            subsidiaertBelop={produktivitetPrekludert ? data.produktivitet_godkjent_belop : undefined}
+          />
+        </div>
       )}
 
-      {/* ── Begrunnelse ────────────────────────────────────────────── */}
-      {hasBeregningFields && (
-        <SectionContainer title="Begrunnelse" variant="subtle" spacing="compact">
-          <DataList>
-            <LongTextField label="Samlet begrunnelse" value={data.begrunnelse} defaultOpen={true} />
-            {data.frist_for_spesifikasjon && (
-              <DataListItem label="Frist for spesifikasjon">{formatDateMedium(data.frist_for_spesifikasjon)}</DataListItem>
-            )}
-          </DataList>
-        </SectionContainer>
-      )}
+      {/* Begrunnelser */}
+      <DataList>
+        <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
+        <LongTextField label="Begrunnelse preklusjon" value={data.begrunnelse_preklusjon} />
+        <LongTextField label="Begrunnelse varsel" value={data.begrunnelse_varsel} />
+      </DataList>
 
-      {/* ── Subsidiært standpunkt ──────────────────────────────────── */}
-      {hasSubsidiaerFields && (
-        <SectionContainer title="Subsidiært standpunkt" variant="subtle" spacing="compact">
-          <DataList>
-            {data.subsidiaer_triggers && data.subsidiaer_triggers.length > 0 && (
-              <DataListItem label="Årsak til subsidiær vurdering">
-                <div className="flex flex-wrap gap-1">
-                  {data.subsidiaer_triggers.map((trigger) => (
-                    <Badge key={trigger} variant="warning">
-                      {getSubsidiaerTriggerLabel(trigger as SubsidiaerTrigger)}
-                    </Badge>
-                  ))}
-                </div>
-              </DataListItem>
-            )}
-            {data.subsidiaer_resultat && (
-              <DataListItem label="Subsidiært resultat">
-                <Badge variant={getVederlagResultatBadge(data.subsidiaer_resultat).variant}>
-                  {getVederlagResultatBadge(data.subsidiaer_resultat).label}
-                </Badge>
-              </DataListItem>
-            )}
-            {data.subsidiaer_godkjent_belop !== undefined && (
-              <DataListItem label="Subsidiært godkjent beløp" mono>
-                {formatCurrency(data.subsidiaer_godkjent_belop)}
-              </DataListItem>
-            )}
-            <LongTextField label="Subsidiær begrunnelse" value={data.subsidiaer_begrunnelse} />
-          </DataList>
-        </SectionContainer>
+      {/* Subsidiært - kun hvis relevant */}
+      {(data.subsidiaer_triggers?.length || data.subsidiaer_resultat || data.subsidiaer_godkjent_belop !== undefined) && (
+        <DataList variant="grid">
+          {data.subsidiaer_triggers && data.subsidiaer_triggers.length > 0 && (
+            <DataListItem label="Subsidiær årsak">
+              <div className="flex flex-wrap gap-1">
+                {data.subsidiaer_triggers.map((trigger) => (
+                  <Badge key={trigger} variant="warning">
+                    {getSubsidiaerTriggerLabel(trigger as SubsidiaerTrigger)}
+                  </Badge>
+                ))}
+              </div>
+            </DataListItem>
+          )}
+          {data.subsidiaer_resultat && (
+            <DataListItem label="Subsidiært resultat">
+              <Badge variant={getVederlagResultatBadge(data.subsidiaer_resultat).variant}>
+                {getVederlagResultatBadge(data.subsidiaer_resultat).label}
+              </Badge>
+            </DataListItem>
+          )}
+          {data.subsidiaer_godkjent_belop !== undefined && (
+            <DataListItem label="Subsidiært beløp" mono>
+              {formatCurrency(data.subsidiaer_godkjent_belop)}
+            </DataListItem>
+          )}
+        </DataList>
       )}
+      <DataList>
+        <LongTextField label="Subsidiær begrunnelse" value={data.subsidiaer_begrunnelse} />
+      </DataList>
     </div>
   );
 }
@@ -798,34 +720,10 @@ function ResponsVederlagOppdatertSection({ data }: { data: ResponsVederlagOppdat
 function ResponsFristSection({ data }: { data: ResponsFristEventData }) {
   const badge = getFristResultatBadge(data.beregnings_resultat);
 
-  // Check if we have any varsel fields to show
-  const hasVarselFields =
-    data.noytralt_varsel_ok !== undefined ||
-    data.spesifisert_krav_ok !== undefined ||
-    data.har_bh_etterlyst ||
-    data.begrunnelse_varsel;
-
-  // Check if we have vilkår fields
-  const hasVilkarFields =
-    data.vilkar_oppfylt !== undefined ||
-    data.begrunnelse_vilkar;
-
-  // Check if we have calculation details
-  const hasBeregningFields =
-    data.begrunnelse ||
-    data.frist_for_spesifisering;
-
-  // Check if we have subsidiary data
-  const hasSubsidiaerFields =
-    (data.subsidiaer_triggers && data.subsidiaer_triggers.length > 0) ||
-    data.subsidiaer_resultat ||
-    data.subsidiaer_godkjent_dager !== undefined ||
-    data.subsidiaer_begrunnelse;
-
   return (
     <div className="space-y-4">
-      {/* ── Sammendrag ─────────────────────────────────────────────── */}
-      <DataList>
+      {/* Hoveddata i grid */}
+      <DataList variant="grid">
         <DataListItem label="Resultat">
           <Badge variant={badge.variant}>{badge.label}</Badge>
         </DataListItem>
@@ -835,93 +733,79 @@ function ResponsFristSection({ data }: { data: ResponsFristEventData }) {
         {data.ny_sluttdato && (
           <DataListItem label="Ny sluttdato">{formatDateMedium(data.ny_sluttdato)}</DataListItem>
         )}
+        {data.frist_for_spesifisering && (
+          <DataListItem label="Frist spesifisering">{formatDateMedium(data.frist_for_spesifisering)}</DataListItem>
+        )}
       </DataList>
 
-      {/* ── Varselvurdering (§33.4/§33.6) ─────────────────────────── */}
-      {hasVarselFields && (
-        <SectionContainer title="Varselvurdering" description="§33.4 / §33.6" variant="subtle" spacing="compact">
-          <DataList>
-            {data.noytralt_varsel_ok !== undefined && (
-              <DataListItem label="Nøytralt varsel OK">
-                <Badge variant={data.noytralt_varsel_ok ? 'success' : 'danger'}>
-                  {data.noytralt_varsel_ok ? 'Ja' : 'Nei'}
-                </Badge>
-              </DataListItem>
-            )}
-            {data.spesifisert_krav_ok !== undefined && (
-              <DataListItem label="Spesifisert krav OK">
-                <Badge variant={data.spesifisert_krav_ok ? 'success' : 'danger'}>
-                  {data.spesifisert_krav_ok ? 'Ja' : 'Nei'}
-                </Badge>
-              </DataListItem>
-            )}
-            {data.har_bh_etterlyst && (
-              <DataListItem label="BH har etterlyst">
-                <Badge variant="warning">Ja</Badge>
-              </DataListItem>
-            )}
-            <LongTextField label="Begrunnelse" value={data.begrunnelse_varsel} />
-          </DataList>
-        </SectionContainer>
+      {/* Varselvurdering */}
+      {(data.noytralt_varsel_ok !== undefined || data.spesifisert_krav_ok !== undefined || data.har_bh_etterlyst) && (
+        <DataList variant="grid">
+          {data.noytralt_varsel_ok !== undefined && (
+            <DataListItem label="Nøytralt varsel OK">
+              <Badge variant={data.noytralt_varsel_ok ? 'success' : 'danger'}>
+                {data.noytralt_varsel_ok ? 'Ja' : 'Nei'}
+              </Badge>
+            </DataListItem>
+          )}
+          {data.spesifisert_krav_ok !== undefined && (
+            <DataListItem label="Spesifisert krav OK">
+              <Badge variant={data.spesifisert_krav_ok ? 'success' : 'danger'}>
+                {data.spesifisert_krav_ok ? 'Ja' : 'Nei'}
+              </Badge>
+            </DataListItem>
+          )}
+          {data.har_bh_etterlyst && (
+            <DataListItem label="BH har etterlyst">
+              <Badge variant="warning">Ja</Badge>
+            </DataListItem>
+          )}
+          {data.vilkar_oppfylt !== undefined && (
+            <DataListItem label="Vilkår oppfylt">
+              <Badge variant={data.vilkar_oppfylt ? 'success' : 'danger'}>
+                {data.vilkar_oppfylt ? 'Ja' : 'Nei'}
+              </Badge>
+            </DataListItem>
+          )}
+        </DataList>
       )}
 
-      {/* ── Vilkårsvurdering (§33.5) ──────────────────────────────── */}
-      {hasVilkarFields && (
-        <SectionContainer title="Vilkårsvurdering" description="§33.5" variant="subtle" spacing="compact">
-          <DataList>
-            {data.vilkar_oppfylt !== undefined && (
-              <DataListItem label="Vilkår oppfylt">
-                <Badge variant={data.vilkar_oppfylt ? 'success' : 'danger'}>
-                  {data.vilkar_oppfylt ? 'Ja' : 'Nei'}
-                </Badge>
-              </DataListItem>
-            )}
-            <LongTextField label="Begrunnelse" value={data.begrunnelse_vilkar} />
-          </DataList>
-        </SectionContainer>
-      )}
+      {/* Begrunnelser */}
+      <DataList>
+        <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
+        <LongTextField label="Begrunnelse varsel" value={data.begrunnelse_varsel} />
+        <LongTextField label="Begrunnelse vilkår" value={data.begrunnelse_vilkar} />
+      </DataList>
 
-      {/* ── Beregning ─────────────────────────────────────────────── */}
-      {hasBeregningFields && (
-        <SectionContainer title="Beregning" variant="subtle" spacing="compact">
-          <DataList>
-            <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
-            {data.frist_for_spesifisering && (
-              <DataListItem label="Frist for spesifisering">{formatDateMedium(data.frist_for_spesifisering)}</DataListItem>
-            )}
-          </DataList>
-        </SectionContainer>
+      {/* Subsidiært - kun hvis relevant */}
+      {(data.subsidiaer_triggers?.length || data.subsidiaer_resultat || data.subsidiaer_godkjent_dager !== undefined) && (
+        <DataList variant="grid">
+          {data.subsidiaer_triggers && data.subsidiaer_triggers.length > 0 && (
+            <DataListItem label="Subsidiær årsak">
+              <div className="flex flex-wrap gap-1">
+                {data.subsidiaer_triggers.map((trigger) => (
+                  <Badge key={trigger} variant="warning">
+                    {getSubsidiaerTriggerLabel(trigger as SubsidiaerTrigger)}
+                  </Badge>
+                ))}
+              </div>
+            </DataListItem>
+          )}
+          {data.subsidiaer_resultat && (
+            <DataListItem label="Subsidiært resultat">
+              <Badge variant={getFristResultatBadge(data.subsidiaer_resultat).variant}>
+                {getFristResultatBadge(data.subsidiaer_resultat).label}
+              </Badge>
+            </DataListItem>
+          )}
+          {data.subsidiaer_godkjent_dager !== undefined && (
+            <DataListItem label="Subsidiært dager">{data.subsidiaer_godkjent_dager} dager</DataListItem>
+          )}
+        </DataList>
       )}
-
-      {/* ── Subsidiært standpunkt ──────────────────────────────────── */}
-      {hasSubsidiaerFields && (
-        <SectionContainer title="Subsidiært standpunkt" variant="subtle" spacing="compact">
-          <DataList>
-            {data.subsidiaer_triggers && data.subsidiaer_triggers.length > 0 && (
-              <DataListItem label="Årsak til subsidiær vurdering">
-                <div className="flex flex-wrap gap-1">
-                  {data.subsidiaer_triggers.map((trigger) => (
-                    <Badge key={trigger} variant="warning">
-                      {getSubsidiaerTriggerLabel(trigger as SubsidiaerTrigger)}
-                    </Badge>
-                  ))}
-                </div>
-              </DataListItem>
-            )}
-            {data.subsidiaer_resultat && (
-              <DataListItem label="Subsidiært resultat">
-                <Badge variant={getFristResultatBadge(data.subsidiaer_resultat).variant}>
-                  {getFristResultatBadge(data.subsidiaer_resultat).label}
-                </Badge>
-              </DataListItem>
-            )}
-            {data.subsidiaer_godkjent_dager !== undefined && (
-              <DataListItem label="Subsidiært godkjent dager">{data.subsidiaer_godkjent_dager} dager</DataListItem>
-            )}
-            <LongTextField label="Subsidiær begrunnelse" value={data.subsidiaer_begrunnelse} />
-          </DataList>
-        </SectionContainer>
-      )}
+      <DataList>
+        <LongTextField label="Subsidiær begrunnelse" value={data.subsidiaer_begrunnelse} />
+      </DataList>
     </div>
   );
 }
@@ -1139,16 +1023,8 @@ export function EventDetailModal({
           )}
         </div>
 
-        {/* Full form data */}
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <FileTextIcon className="w-5 h-5 text-pkt-grays-gray-500" />
-            <h4 className="text-sm font-semibold text-pkt-text-body-dark">Skjemadata</h4>
-          </div>
-          <div className="bg-pkt-bg-card border border-pkt-grays-gray-200 p-4">
-            {renderEventData()}
-          </div>
-        </div>
+        {/* Event data */}
+        {renderEventData()}
 
         {/* Event ID footer */}
         <p className="text-xs text-pkt-grays-gray-400 pt-4 border-t border-pkt-grays-gray-200">
