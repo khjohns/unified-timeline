@@ -38,6 +38,8 @@ import {
   DataListItem,
   DatePicker,
   FormField,
+  InlineDataList,
+  InlineDataListItem,
   Input,
   Modal,
   RadioGroup,
@@ -1015,15 +1017,6 @@ export function RespondFristModal({
                 </div>
               )}
 
-              {/* Preview of consequence */}
-              {erPrekludert && !sendEtterlysning && (
-                <Alert variant="info" title="Subsidiær vurdering">
-                  Selv om kravet prinsipalt avvises pga. preklusjon, må du{' '}
-                  <strong>subsidiært</strong> ta stilling til om fremdriften ble hindret og antall
-                  dager.
-                </Alert>
-              )}
-
               {sendEtterlysning && (
                 <Alert variant="info" title="Avventer svar">
                   Du sender etterlysning til entreprenøren. Svaret blir{' '}
@@ -1147,12 +1140,11 @@ export function RespondFristModal({
                   {/* Hovedkrav beregning - only show input if days are specified */}
                   {!erNoytraltUtenDager && (
                     <>
-                      <div className="p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle mb-4">
-                        <span className="text-sm text-pkt-text-body-subtle">
-                          Entreprenøren har krevd:{' '}
-                        </span>
-                        <span className="font-mono font-bold">{effektivKrevdDager} dager</span>
-                      </div>
+                      <InlineDataList className="mb-4">
+                        <InlineDataListItem label="Krevd" mono bold>
+                          {effektivKrevdDager} dager
+                        </InlineDataListItem>
+                      </InlineDataList>
 
                       <FormField
                         label={

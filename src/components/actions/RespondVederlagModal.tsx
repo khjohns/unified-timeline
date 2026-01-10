@@ -40,6 +40,8 @@ import {
   Button,
   CurrencyInput,
   FormField,
+  InlineDataList,
+  InlineDataListItem,
   Modal,
   RadioGroup,
   RadioItem,
@@ -1328,16 +1330,13 @@ export function RespondVederlagModal({
             >
 
               {/* HOVEDKRAV */}
-              <div className="p-4 bg-pkt-surface-subtle rounded-none border-2 border-pkt-border-default">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
-                  <h4 className="font-bold text-sm">Hovedkrav</h4>
-                  <div className="text-left sm:text-right">
-                    <span className="text-sm text-pkt-text-body-subtle">Krevd: </span>
-                    <span className="text-lg font-mono font-bold">
-                      kr {hovedkravBelop?.toLocaleString('nb-NO') || 0},-
-                    </span>
-                  </div>
-                </div>
+              <div>
+                <h4 className="font-bold text-sm mb-3">Hovedkrav</h4>
+                <InlineDataList className="mb-4">
+                  <InlineDataListItem label="Krevd" mono bold>
+                    kr {hovedkravBelop?.toLocaleString('nb-NO') || 0},-
+                  </InlineDataListItem>
+                </InlineDataList>
 
                 <FormField label="Din vurdering av beløpet" required>
                   <Controller
@@ -1386,26 +1385,22 @@ export function RespondVederlagModal({
 
               {/* RIGG/DRIFT - alltid evaluerbar (subsidiært hvis prekludert) */}
               {harRiggKrav && (
-                <div className="p-4 rounded-none border-2 bg-pkt-surface-subtle border-pkt-border-default">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h4 className="font-bold text-sm">Særskilt: Rigg/Drift</h4>
-                      {riggPrekludert && (
-                        <>
-                          <Badge variant="danger">PREKLUDERT</Badge>
-                          <Badge variant="warning">Subsidiært</Badge>
-                        </>
-                      )}
-                    </div>
-                    <div className="text-left sm:text-right">
-                      <span className="text-sm text-pkt-text-body-subtle">Krevd: </span>
-                      <span
-                        className={`text-lg font-mono font-bold ${riggPrekludert ? 'line-through text-pkt-grays-gray-400' : ''}`}
-                      >
-                        kr {riggBelop?.toLocaleString('nb-NO') || 0},-
-                      </span>
-                    </div>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2 mb-3">
+                    <h4 className="font-bold text-sm">Særskilt: Rigg/Drift</h4>
+                    {riggPrekludert && (
+                      <>
+                        <Badge variant="danger">PREKLUDERT</Badge>
+                        <Badge variant="warning">Subsidiært</Badge>
+                      </>
+                    )}
                   </div>
+
+                  <InlineDataList className="mb-4">
+                    <InlineDataListItem label="Krevd" mono bold>
+                      kr {riggBelop?.toLocaleString('nb-NO') || 0},-
+                    </InlineDataListItem>
+                  </InlineDataList>
 
                   {riggPrekludert && (
                     <Alert variant="warning" className="mb-4">
@@ -1461,26 +1456,22 @@ export function RespondVederlagModal({
 
               {/* PRODUKTIVITET - alltid evaluerbar (subsidiært hvis prekludert) */}
               {harProduktivitetKrav && (
-                <div className="p-4 rounded-none border-2 bg-pkt-surface-subtle border-pkt-border-default">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h4 className="font-bold text-sm">Særskilt: Produktivitetstap</h4>
-                      {produktivitetPrekludert && (
-                        <>
-                          <Badge variant="danger">PREKLUDERT</Badge>
-                          <Badge variant="warning">Subsidiært</Badge>
-                        </>
-                      )}
-                    </div>
-                    <div className="text-left sm:text-right">
-                      <span className="text-sm text-pkt-text-body-subtle">Krevd: </span>
-                      <span
-                        className={`text-lg font-mono font-bold ${produktivitetPrekludert ? 'line-through text-pkt-grays-gray-400' : ''}`}
-                      >
-                        kr {produktivitetBelop?.toLocaleString('nb-NO') || 0},-
-                      </span>
-                    </div>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2 mb-3">
+                    <h4 className="font-bold text-sm">Særskilt: Produktivitetstap</h4>
+                    {produktivitetPrekludert && (
+                      <>
+                        <Badge variant="danger">PREKLUDERT</Badge>
+                        <Badge variant="warning">Subsidiært</Badge>
+                      </>
+                    )}
                   </div>
+
+                  <InlineDataList className="mb-4">
+                    <InlineDataListItem label="Krevd" mono bold>
+                      kr {produktivitetBelop?.toLocaleString('nb-NO') || 0},-
+                    </InlineDataListItem>
+                  </InlineDataList>
 
                   {produktivitetPrekludert && (
                     <Alert variant="warning" className="mb-4">
