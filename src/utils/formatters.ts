@@ -150,40 +150,23 @@ export function formatVarselType(type?: string | null): string {
 
 /**
  * Format varslingsmetode til lesbar tekst
+ * Bruker VARSEL_METODER_OPTIONS som kilde for labels.
  *
  * @example formatVarselMetode('epost') // 'E-post'
  * @example formatVarselMetode(['epost', 'byggemote']) // 'E-post, Byggemøte'
  */
+export { getVarselMetodeLabel, getVarselMetoderLabels } from '../constants/varselMetoder';
+
+import { getVarselMetodeLabel } from '../constants/varselMetoder';
+
 export function formatVarselMetode(metode?: string | string[] | null): string {
   if (!metode) return '-';
 
-  const formatSingle = (m: string): string => {
-    const normalized = m.toLowerCase().trim();
-    switch (normalized) {
-      case 'epost':
-      case 'e-post':
-        return 'E-post';
-      case 'byggemote':
-      case 'byggemøte':
-        return 'Byggemøte';
-      case 'telefon':
-        return 'Telefon';
-      case 'brev':
-        return 'Brev';
-      case 'system':
-        return 'System';
-      case 'muntlig':
-        return 'Muntlig';
-      default:
-        // Capitalize first letter
-        return m.charAt(0).toUpperCase() + m.slice(1);
-    }
-  };
-
   if (Array.isArray(metode)) {
-    return metode.map(formatSingle).join(', ');
+    if (metode.length === 0) return '-';
+    return metode.map(getVarselMetodeLabel).join(', ');
   }
-  return formatSingle(metode);
+  return getVarselMetodeLabel(metode);
 }
 
 /**

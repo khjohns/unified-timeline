@@ -50,6 +50,7 @@ import {
   formatCurrency,
   formatDateMedium,
   formatDateTimeNorwegian,
+  formatVarselMetode,
 } from '../../utils/formatters';
 import {
   FileTextIcon,
@@ -170,7 +171,7 @@ function VarselInfoDisplay({ label, varsel }: VarselInfoDisplayProps) {
           {formatDateMedium(varsel.dato_sendt)}
           {varsel.metode && varsel.metode.length > 0 && (
             <span className="ml-2 text-pkt-grays-gray-500">
-              ({varsel.metode.join(', ')})
+              ({formatVarselMetode(varsel.metode)})
             </span>
           )}
         </span>

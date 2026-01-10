@@ -12,6 +12,7 @@ import type {
 import { styles, COLORS, baseUrl } from './styles';
 import { getOverordnetStatusLabel } from '../constants/statusLabels';
 import { getHovedkategoriLabel, getUnderkategoriLabel } from '../constants/categories';
+import { getVarselMetoderLabels } from '../constants/varselMetoder';
 
 // ============================================================
 // Helper Components
@@ -272,7 +273,7 @@ function formatUnderkategori(underkategori?: string | string[]): string {
 
 function formatVarselMetode(metode?: string[]): string {
   if (!metode || metode.length === 0) return '—';
-  return metode.join(', ');
+  return getVarselMetoderLabels(metode);
 }
 
 function formatBoolean(value?: boolean): string {
