@@ -234,35 +234,33 @@ export function SendResponsPakkeModal({
 
         {/* Amount Calculation */}
         <SectionContainer title="Beløpsberegning">
-          <div className="space-y-3">
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span>Vederlag</span>
-                <span className="font-mono">{formatCurrency(vederlagBelop)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Frist ({fristDager} dager × {formatCurrency(dagmulktsats)}/dag)</span>
-                <span className="font-mono">{formatCurrency(fristBelop)}</span>
-              </div>
-              <div className="flex justify-between pt-2 border-t border-pkt-border-default font-bold">
-                <span>Samlet eksponering</span>
-                <span className="font-mono">{formatCurrency(samletBelop)}</span>
-              </div>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span>Vederlag</span>
+              <span className="font-mono">{formatCurrency(vederlagBelop)}</span>
             </div>
+            <div className="flex justify-between">
+              <span>Frist ({fristDager} dager × {formatCurrency(dagmulktsats)}/dag)</span>
+              <span className="font-mono">{formatCurrency(fristBelop)}</span>
+            </div>
+            <div className="flex justify-between pt-2 border-t border-pkt-border-default font-bold">
+              <span>Samlet eksponering</span>
+              <span className="font-mono">{formatCurrency(samletBelop)}</span>
+            </div>
+          </div>
 
-            <div className="pt-2">
-              <Label htmlFor="dagmulktsats" className="text-xs text-pkt-text-body-muted">
-                Dagmulktsats (per dag)
-              </Label>
-              <CurrencyInput
-                id="dagmulktsats"
-                value={dagmulktsats}
-                onChange={(value) => setDagmulktsats(value ?? 0)}
-                width="sm"
-                className="mt-1"
-                allowNegative={false}
-              />
-            </div>
+          <div className="pt-2">
+            <Label htmlFor="dagmulktsats" className="text-xs text-pkt-text-body-muted">
+              Dagmulktsats (per dag)
+            </Label>
+            <CurrencyInput
+              id="dagmulktsats"
+              value={dagmulktsats}
+              onChange={(value) => setDagmulktsats(value ?? 0)}
+              width="sm"
+              className="mt-1"
+              allowNegative={false}
+            />
           </div>
         </SectionContainer>
 
@@ -339,82 +337,80 @@ export function SendResponsPakkeModal({
         {/* Approver Selection - only show when approval is required */}
         {!noApprovalRequired && (
           <SectionContainer title="Godkjenner">
-            <div className="space-y-4">
-              {/* Current user info */}
-              <div className="text-sm text-pkt-text-body-muted">
-                Du er innlogget som:{' '}
-                <span className="font-medium text-pkt-text-body-default">
-                  {currentMockUser.navn}
-                </span>
-                {' '}({APPROVAL_ROLE_LABELS[currentMockUser.rolle]})
+            {/* Current user info */}
+            <div className="text-sm text-pkt-text-body-muted">
+              Du er innlogget som:{' '}
+              <span className="font-medium text-pkt-text-body-default">
+                {currentMockUser.navn}
+              </span>
+              {' '}({APPROVAL_ROLE_LABELS[currentMockUser.rolle]})
+            </div>
+
+            {/* Required role info */}
+            <div className="text-sm">
+              <span className="text-pkt-text-body-muted">Første godkjenner:</span>{' '}
+              <span className="font-medium">{firstApproverLabel}</span>
+            </div>
+
+            {/* Approver selection */}
+            <RadioGroup
+              value={approverSelection}
+              onValueChange={(value) => setApproverSelection(value as 'manager' | 'other')}
+            >
+              <RadioItem
+                value="manager"
+                label="Min nærmeste leder"
+                description={
+                  currentMockManager
+                    ? `${currentMockManager.navn} (${APPROVAL_ROLE_LABELS[currentMockManager.rolle]}, ${currentMockManager.enhet})`
+                    : 'Ingen leder registrert'
+                }
+                disabled={!currentMockManager}
+              />
+              <RadioItem
+                value="other"
+                label="Velg annen godkjenner"
+                description={`Velg fra alle ${firstApproverLabel.toLowerCase()}e i organisasjonen`}
+              />
+            </RadioGroup>
+
+            {/* Other approver dropdown (shown when "other" is selected) */}
+            {approverSelection === 'other' && (
+              <div className="ml-9">
+                <Select value={selectedOtherApprover} onValueChange={setSelectedOtherApprover}>
+                  <SelectTrigger width="full">
+                    <SelectValue placeholder={`Velg ${firstApproverLabel.toLowerCase()}`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {otherApprovers.map((person) => (
+                      <SelectItem key={person.id} value={person.id}>
+                        {person.navn} ({person.enhet})
+                      </SelectItem>
+                    ))}
+                    {/* Include manager in dropdown if they exist */}
+                    {currentMockManager && (
+                      <SelectItem value={currentMockManager.id}>
+                        {currentMockManager.navn} ({currentMockManager.enhet})
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
+            )}
 
-              {/* Required role info */}
-              <div className="text-sm">
-                <span className="text-pkt-text-body-muted">Første godkjenner:</span>{' '}
-                <span className="font-medium">{firstApproverLabel}</span>
-              </div>
-
-              {/* Approver selection */}
-              <RadioGroup
-                value={approverSelection}
-                onValueChange={(value) => setApproverSelection(value as 'manager' | 'other')}
-              >
-                <RadioItem
-                  value="manager"
-                  label="Min nærmeste leder"
-                  description={
-                    currentMockManager
-                      ? `${currentMockManager.navn} (${APPROVAL_ROLE_LABELS[currentMockManager.rolle]}, ${currentMockManager.enhet})`
-                      : 'Ingen leder registrert'
-                  }
-                  disabled={!currentMockManager}
-                />
-                <RadioItem
-                  value="other"
-                  label="Velg annen godkjenner"
-                  description={`Velg fra alle ${firstApproverLabel.toLowerCase()}e i organisasjonen`}
-                />
-              </RadioGroup>
-
-              {/* Other approver dropdown (shown when "other" is selected) */}
-              {approverSelection === 'other' && (
-                <div className="ml-9">
-                  <Select value={selectedOtherApprover} onValueChange={setSelectedOtherApprover}>
-                    <SelectTrigger width="full">
-                      <SelectValue placeholder={`Velg ${firstApproverLabel.toLowerCase()}`} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {otherApprovers.map((person) => (
-                        <SelectItem key={person.id} value={person.id}>
-                          {person.navn} ({person.enhet})
-                        </SelectItem>
-                      ))}
-                      {/* Include manager in dropdown if they exist */}
-                      {currentMockManager && (
-                        <SelectItem value={currentMockManager.id}>
-                          {currentMockManager.navn} ({currentMockManager.enhet})
-                        </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {/* Comment field */}
-              <div className="pt-2">
-                <Label htmlFor="pakke-comment" className="text-sm mb-1 block">
-                  Kommentar (valgfritt)
-                </Label>
-                <Textarea
-                  id="pakke-comment"
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  placeholder="Legg til en kommentar til godkjenneren..."
-                  rows={3}
-                  fullWidth
-                />
-              </div>
+            {/* Comment field */}
+            <div className="pt-2">
+              <Label htmlFor="pakke-comment" className="text-sm mb-1 block">
+                Kommentar (valgfritt)
+              </Label>
+              <Textarea
+                id="pakke-comment"
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="Legg til en kommentar til godkjenneren..."
+                rows={3}
+                fullWidth
+              />
             </div>
           </SectionContainer>
         )}

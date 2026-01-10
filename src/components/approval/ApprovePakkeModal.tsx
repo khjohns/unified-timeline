@@ -251,20 +251,18 @@ export function ApprovePakkeModal({
             </Alert>
 
             {/* Included Responses */}
-            <SectionContainer title="Inkluderte svar">
-              <div className="space-y-2">
-                {includedResponses.map((response) => (
-                  <div key={response.label} className="flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-2">
-                      <span className="text-pkt-text-success">✓</span>
-                      {response.label}
-                    </span>
-                    <Badge variant={getResultatVariant(response.resultat)}>
-                      {response.value}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
+            <SectionContainer title="Inkluderte svar" spacing="compact">
+              {includedResponses.map((response) => (
+                <div key={response.label} className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-2">
+                    <span className="text-pkt-text-success">✓</span>
+                    {response.label}
+                  </span>
+                  <Badge variant={getResultatVariant(response.resultat)}>
+                    {response.value}
+                  </Badge>
+                </div>
+              ))}
             </SectionContainer>
 
             {/* Amount Calculation */}

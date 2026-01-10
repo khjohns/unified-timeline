@@ -1220,7 +1220,7 @@ export function RespondVederlagModal({
 
                 {/* Ønsket metode - show when rejecting */}
                 {!formValues.aksepterer_metode && (
-                  <div className="mt-4 ml-6 border-l-2 border-pkt-border-subtle pl-4">
+                  <div className="mt-4 space-y-3">
                     <FormField label="Hvilken beregningsmetode krever du?" required>
                       <Controller
                         name="oensket_metode"
@@ -1244,7 +1244,7 @@ export function RespondVederlagModal({
 
                     {/* Konsekvensvarsel for fastpristilbud */}
                     {erFastprisTilbud && (
-                      <Alert variant="info" className="mt-3">
+                      <Alert variant="info">
                         Ved å avslå fastpristilbudet (§34.2.1), faller oppgjøret tilbake på{' '}
                         <strong>enhetspriser (§34.3)</strong> eller <strong>regningsarbeid (§34.4)</strong>.
                       </Alert>

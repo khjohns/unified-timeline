@@ -1320,29 +1320,27 @@ export function BHResponsForseringModal({
 
               {/* Resultat */}
               <SectionContainer title="Prinsipalt standpunkt">
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span>Resultat:</span>
-                    <Badge
-                      variant={
-                        prinsipaltResultat === 'godkjent' ? 'success' :
-                        prinsipaltResultat === 'delvis_godkjent' ? 'warning' : 'danger'
-                      }
-                    >
-                      {prinsipaltResultat === 'godkjent' ? 'Godkjent' :
-                       prinsipaltResultat === 'delvis_godkjent' ? 'Delvis godkjent' : 'Avslått'}
-                    </Badge>
-                  </div>
+                <div className="flex justify-between items-center">
+                  <span>Resultat:</span>
+                  <Badge
+                    variant={
+                      prinsipaltResultat === 'godkjent' ? 'success' :
+                      prinsipaltResultat === 'delvis_godkjent' ? 'warning' : 'danger'
+                    }
+                  >
+                    {prinsipaltResultat === 'godkjent' ? 'Godkjent' :
+                     prinsipaltResultat === 'delvis_godkjent' ? 'Delvis godkjent' : 'Avslått'}
+                  </Badge>
+                </div>
 
-                  <div className="flex justify-between text-sm">
-                    <span>Krevd totalt:</span>
-                    <strong>{formatCurrency(computed.totalKrevd)}</strong>
-                  </div>
+                <div className="flex justify-between text-sm">
+                  <span>Krevd totalt:</span>
+                  <strong>{formatCurrency(computed.totalKrevd)}</strong>
+                </div>
 
-                  <div className="flex justify-between text-sm">
-                    <span>Godkjent totalt:</span>
-                    <strong>{formatCurrency(computed.totalGodkjent)}</strong>
-                  </div>
+                <div className="flex justify-between text-sm">
+                  <span>Godkjent totalt:</span>
+                  <strong>{formatCurrency(computed.totalGodkjent)}</strong>
                 </div>
               </SectionContainer>
 

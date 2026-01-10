@@ -39,6 +39,7 @@ import {
   Input,
   Modal,
   SectionContainer,
+  StatusSummary,
   StepIndicator,
   Textarea,
 } from '../primitives';
@@ -839,19 +840,16 @@ export function UtstEndringsordreModal({
                 )}
 
                 {/* Consequences */}
-                <div className="p-3 bg-pkt-surface-subtle border border-pkt-border-subtle rounded-none">
-                  <h4 className="font-medium text-sm mb-2">Konsekvenser</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {!formValues.konsekvenser_sha && <Badge variant="success">Ingen SHA</Badge>}
-                    {formValues.konsekvenser_sha && <Badge variant="warning">SHA</Badge>}
-                    {!formValues.konsekvenser_kvalitet && <Badge variant="success">Ingen kvalitet</Badge>}
-                    {formValues.konsekvenser_kvalitet && <Badge variant="warning">Kvalitet</Badge>}
-                    {!formValues.konsekvenser_fremdrift && <Badge variant="success">Ingen fremdrift</Badge>}
-                    {formValues.konsekvenser_fremdrift && <Badge variant="warning">Fremdrift</Badge>}
-                    {!formValues.konsekvenser_pris && <Badge variant="success">Ingen pris</Badge>}
-                    {formValues.konsekvenser_pris && <Badge variant="warning">Pris</Badge>}
-                  </div>
-                </div>
+                <StatusSummary title="Konsekvenser">
+                  {!formValues.konsekvenser_sha && <Badge variant="success">Ingen SHA</Badge>}
+                  {formValues.konsekvenser_sha && <Badge variant="warning">SHA</Badge>}
+                  {!formValues.konsekvenser_kvalitet && <Badge variant="success">Ingen kvalitet</Badge>}
+                  {formValues.konsekvenser_kvalitet && <Badge variant="warning">Kvalitet</Badge>}
+                  {!formValues.konsekvenser_fremdrift && <Badge variant="success">Ingen fremdrift</Badge>}
+                  {formValues.konsekvenser_fremdrift && <Badge variant="warning">Fremdrift</Badge>}
+                  {!formValues.konsekvenser_pris && <Badge variant="success">Ingen pris</Badge>}
+                  {formValues.konsekvenser_pris && <Badge variant="warning">Pris</Badge>}
+                </StatusSummary>
 
                 {/* Settlement */}
                 {(formValues.konsekvenser_pris || formValues.konsekvenser_fremdrift) && (

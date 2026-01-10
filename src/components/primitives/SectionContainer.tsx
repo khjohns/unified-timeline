@@ -15,6 +15,8 @@ import { useState, ReactNode } from 'react';
 import { ChevronDownIcon } from '@radix-ui/react-icons';
 import clsx from 'clsx';
 
+type SectionSpacing = 'default' | 'compact' | 'none';
+
 export interface SectionContainerProps {
   /** Section title */
   title: string;
@@ -24,6 +26,8 @@ export interface SectionContainerProps {
   children: ReactNode;
   /** Visual variant */
   variant?: 'default' | 'subtle';
+  /** Content spacing between children: 'default' (space-y-6), 'compact' (space-y-2), 'none' */
+  spacing?: SectionSpacing;
   /** Make section collapsible */
   collapsible?: boolean;
   /** Initial open state (only for collapsible) */
@@ -34,17 +38,25 @@ export interface SectionContainerProps {
   className?: string;
 }
 
+const SPACING_CLASSES: Record<SectionSpacing, string> = {
+  default: 'space-y-6',
+  compact: 'space-y-2',
+  none: '',
+};
+
 export function SectionContainer({
   title,
   description,
   children,
   variant = 'default',
+  spacing = 'default',
   collapsible = false,
   defaultOpen = true,
   icon,
   className,
 }: SectionContainerProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
+  const spacingClass = SPACING_CLASSES[spacing];
 
   const containerClasses = clsx(
     'rounded-none',
@@ -96,7 +108,7 @@ export function SectionContainer({
             )}
           />
         </button>
-        {isOpen && <div className="p-4">{children}</div>}
+        {isOpen && <div className={clsx('p-4', spacingClass)}>{children}</div>}
       </div>
     );
   }
@@ -104,7 +116,7 @@ export function SectionContainer({
   return (
     <div className={containerClasses}>
       <div className={headerClasses}>{titleElement}</div>
-      <div className="p-4">{children}</div>
+      <div className={clsx('p-4', spacingClass)}>{children}</div>
     </div>
   );
 }

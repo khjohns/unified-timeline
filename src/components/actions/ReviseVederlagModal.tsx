@@ -391,9 +391,8 @@ export function ReviseVederlagModal({
 
         {/* Seksjon 1: Nåværende status */}
         <SectionContainer title="Nåværende status" variant="subtle">
-          <div className="space-y-4">
-            {/* Ditt forrige krav - inline */}
-            <InlineDataList>
+          {/* Ditt forrige krav - inline */}
+          <InlineDataList>
               <InlineDataListItem label="Metode">
                 {METODE_LABELS[forrigeMetode]}
               </InlineDataListItem>
@@ -471,7 +470,6 @@ export function ReviseVederlagModal({
                 </div>
               </Collapsible>
             )}
-          </div>
         </SectionContainer>
 
         {/* Hold tilbake alert */}
@@ -543,8 +541,7 @@ export function ReviseVederlagModal({
 
         {/* Seksjon 3: Kravets omfang */}
         <SectionContainer title="Kravets omfang">
-          <div className="space-y-4">
-            {/* REGNINGSARBEID */}
+          {/* REGNINGSARBEID */}
             {nyErRegningsarbeid && (
               <>
                 <Alert variant="info" className="mb-3">
@@ -649,7 +646,6 @@ export function ReviseVederlagModal({
                 </p>
               </Alert>
             )}
-          </div>
         </SectionContainer>
 
         {/* Seksjon 4: Særskilte krav (§34.1.3) - Rigg, Drift, Produktivitet */}
