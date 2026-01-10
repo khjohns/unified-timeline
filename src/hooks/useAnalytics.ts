@@ -10,12 +10,14 @@ import {
   fetchCategoryAnalytics,
   fetchTimelineAnalytics,
   fetchVederlagAnalytics,
+  fetchFristAnalytics,
   fetchResponseTimesAnalytics,
   fetchActorAnalytics,
   AnalyticsSummary,
   CategoryAnalytics,
   TimelineAnalytics,
   VederlagAnalytics,
+  FristAnalytics,
   ResponseTimesAnalytics,
   ActorAnalytics,
 } from '../api/analytics';
@@ -95,6 +97,20 @@ export function useResponseTimesAnalytics(options: UseAnalyticsOptions = {}) {
   return useQuery<ResponseTimesAnalytics, Error>({
     queryKey: ['analytics', 'response-times'],
     queryFn: fetchResponseTimesAnalytics,
+    staleTime,
+    enabled,
+  });
+}
+
+/**
+ * Fetch frist (deadline extension) analytics
+ */
+export function useFristAnalytics(options: UseAnalyticsOptions = {}) {
+  const { staleTime = STALE_TIME.DEFAULT, enabled = true } = options;
+
+  return useQuery<FristAnalytics, Error>({
+    queryKey: ['analytics', 'frist'],
+    queryFn: fetchFristAnalytics,
     staleTime,
     enabled,
   });

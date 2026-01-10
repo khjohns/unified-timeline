@@ -76,6 +76,20 @@ export interface VederlagAnalytics {
   krav_distribution: VederlagDistribution[];
 }
 
+export interface FristAnalytics {
+  summary: {
+    total_dager_krevd: number;
+    total_dager_godkjent: number;
+    godkjenningsgrad: number;
+    antall_krav: number;
+  };
+  /** Standard dagmulktsats brukt i beregninger */
+  dagmulktsats: number;
+  /** Økonomisk eksponering: dager × dagmulktsats */
+  eksponering_krevd: number;
+  eksponering_godkjent: number;
+}
+
 export interface ResponseTimeData {
   avg_days: number | null;
   median_days: number | null;
@@ -186,6 +200,18 @@ const MOCK_RESPONSE_TIMES: ResponseTimesAnalytics = {
   frist: { avg_days: 5.5, median_days: 4, min_days: 1, max_days: 18, sample_size: 20 },
 };
 
+const MOCK_FRIST: FristAnalytics = {
+  summary: {
+    total_dager_krevd: 145,
+    total_dager_godkjent: 98,
+    godkjenningsgrad: 67.6,
+    antall_krav: 18,
+  },
+  dagmulktsats: 50000,
+  eksponering_krevd: 7250000, // 145 × 50000
+  eksponering_godkjent: 4900000, // 98 × 50000
+};
+
 const MOCK_ACTORS: ActorAnalytics = {
   by_role: {
     TE: { events: 185, unique_actors: 6 },
@@ -253,4 +279,12 @@ export async function fetchActorAnalytics(): Promise<ActorAnalytics> {
     return MOCK_ACTORS;
   }
   return apiFetch<ActorAnalytics>('/api/analytics/actors');
+}
+
+export async function fetchFristAnalytics(): Promise<FristAnalytics> {
+  if (USE_MOCK_API) {
+    await mockDelay(300);
+    return MOCK_FRIST;
+  }
+  return apiFetch<FristAnalytics>('/api/analytics/frist');
 }
