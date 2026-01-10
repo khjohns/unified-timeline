@@ -237,6 +237,60 @@ function VedleggDisplay({ vedleggIds }: VedleggDisplayProps) {
   );
 }
 
+/**
+ * BelopVurderingItem - Display row for amount assessment (godkjent/avslått beløp)
+ */
+interface BelopVurderingItemProps {
+  label: string;
+  vurdering?: string;
+  belop?: number;
+  begrunnelse?: string;
+  isPrekludert?: boolean;
+  subsidiaertBelop?: number;
+}
+
+function BelopVurderingItem({
+  label,
+  vurdering,
+  belop,
+  begrunnelse,
+  isPrekludert = false,
+  subsidiaertBelop,
+}: BelopVurderingItemProps) {
+  if (!vurdering && belop === undefined) return null;
+
+  const badge = getBelopVurderingBadge(vurdering);
+
+  return (
+    <div className={`py-2 border-b border-pkt-border-subtle last:border-b-0 ${isPrekludert ? 'bg-pkt-surface-yellow -mx-4 px-4' : ''}`}>
+      <div className="flex justify-between items-center">
+        <span className="text-sm font-medium">
+          {label}
+          {isPrekludert && <span className="text-xs text-pkt-grays-gray-500 ml-1">(prekludert)</span>}
+        </span>
+        <div className="flex items-center gap-2">
+          {vurdering && (
+            <Badge variant={badge.variant}>{badge.label}</Badge>
+          )}
+          {belop !== undefined && (
+            <span className={`font-mono font-medium ${isPrekludert ? 'line-through text-pkt-grays-gray-400' : ''}`}>
+              {formatCurrency(belop)}
+            </span>
+          )}
+        </div>
+      </div>
+      {begrunnelse && (
+        <p className="text-sm text-pkt-grays-gray-600 mt-1">{begrunnelse}</p>
+      )}
+      {isPrekludert && subsidiaertBelop !== undefined && subsidiaertBelop > 0 && (
+        <p className="text-xs text-pkt-text-warning mt-1">
+          Subsidiært godkjent: {formatCurrency(subsidiaertBelop)}
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ========== SECTION COMPONENTS ==========
 
 function GrunnlagSection({ data }: { data: GrunnlagEventData }) {
@@ -260,38 +314,54 @@ function GrunnlagSection({ data }: { data: GrunnlagEventData }) {
   const varselkravRefs = [...new Set(underkategoriObjekter.map((obj) => obj.varselkrav_ref))];
 
   return (
-    <DataList>
-      {data.tittel && <DataListItem label="Tittel">{data.tittel}</DataListItem>}
-      {data.hovedkategori && (
-        <DataListItem label="Hovedkategori">{getHovedkategoriLabel(data.hovedkategori)}</DataListItem>
-      )}
-      {underkategoriLabels && (
-        <DataListItem label="Underkategori">
-          {underkategoriLabels}
-          {hjemmelRefs.length > 0 && (
-            <span className="ml-2 text-pkt-grays-gray-500 text-xs">
-              ({hjemmelRefs.join(', ')})
+    <div className="space-y-4">
+      {/* Metadata i grid-layout for bedre plassbruk */}
+      <DataList variant="grid">
+        {data.tittel && <DataListItem label="Tittel">{data.tittel}</DataListItem>}
+        {data.hovedkategori && (
+          <DataListItem label="Hovedkategori">{getHovedkategoriLabel(data.hovedkategori)}</DataListItem>
+        )}
+        {underkategoriLabels && (
+          <DataListItem label="Underkategori">
+            {underkategoriLabels}
+            {hjemmelRefs.length > 0 && (
+              <span className="ml-1 text-pkt-grays-gray-500 text-xs">
+                ({hjemmelRefs.join(', ')})
+              </span>
+            )}
+          </DataListItem>
+        )}
+        {varselkravRefs.length > 0 && (
+          <DataListItem label="Varselkrav">
+            <span className="text-pkt-grays-gray-600">
+              NS 8407 §{varselkravRefs.join(' / §')}
             </span>
-          )}
-        </DataListItem>
-      )}
-      {varselkravRefs.length > 0 && (
-        <DataListItem label="Varselkrav">
-          <span className="text-pkt-grays-gray-600">
-            NS 8407 §{varselkravRefs.join(' / §')}
-          </span>
-        </DataListItem>
-      )}
-      {data.dato_oppdaget && (
-        <DataListItem label="Dato oppdaget">{formatDateMedium(data.dato_oppdaget)}</DataListItem>
-      )}
-      <VarselInfoDisplay label="Varsel sendt" varsel={data.grunnlag_varsel} />
-      <LongTextField label="Beskrivelse" value={data.beskrivelse} defaultOpen={true} />
-      {data.kontraktsreferanser && data.kontraktsreferanser.length > 0 && (
-        <DataListItem label="Kontraktsreferanser">{data.kontraktsreferanser.join(', ')}</DataListItem>
-      )}
-      <VedleggDisplay vedleggIds={data.vedlegg_ids} />
-    </DataList>
+          </DataListItem>
+        )}
+        {data.dato_oppdaget && (
+          <DataListItem label="Dato oppdaget">{formatDateMedium(data.dato_oppdaget)}</DataListItem>
+        )}
+        {data.grunnlag_varsel?.dato_sendt && (
+          <DataListItem label="Varsel sendt">
+            {formatDateMedium(data.grunnlag_varsel.dato_sendt)}
+            {data.grunnlag_varsel.metode && data.grunnlag_varsel.metode.length > 0 && (
+              <span className="ml-1 text-pkt-grays-gray-500">
+                ({formatVarselMetode(data.grunnlag_varsel.metode)})
+              </span>
+            )}
+          </DataListItem>
+        )}
+      </DataList>
+
+      {/* Lange felt i liste-layout */}
+      <DataList>
+        <LongTextField label="Beskrivelse" value={data.beskrivelse} defaultOpen={true} />
+        {data.kontraktsreferanser && data.kontraktsreferanser.length > 0 && (
+          <DataListItem label="Kontraktsreferanser">{data.kontraktsreferanser.join(', ')}</DataListItem>
+        )}
+        <VedleggDisplay vedleggIds={data.vedlegg_ids} />
+      </DataList>
+    </div>
   );
 }
 
@@ -302,19 +372,27 @@ function GrunnlagOppdatertSection({ data }: { data: GrunnlagOppdatertEventData }
       : getUnderkategoriLabel(data.underkategori))
     : undefined;
 
+  const hasMetadata = data.tittel || data.hovedkategori || underkategorier || data.dato_oppdaget;
+
   return (
-    <DataList>
-      {data.tittel && <DataListItem label="Ny tittel">{data.tittel}</DataListItem>}
-      {data.hovedkategori && (
-        <DataListItem label="Ny hovedkategori">{getHovedkategoriLabel(data.hovedkategori)}</DataListItem>
+    <div className="space-y-4">
+      {hasMetadata && (
+        <DataList variant="grid">
+          {data.tittel && <DataListItem label="Ny tittel">{data.tittel}</DataListItem>}
+          {data.hovedkategori && (
+            <DataListItem label="Ny hovedkategori">{getHovedkategoriLabel(data.hovedkategori)}</DataListItem>
+          )}
+          {underkategorier && <DataListItem label="Ny underkategori">{underkategorier}</DataListItem>}
+          {data.dato_oppdaget && (
+            <DataListItem label="Ny dato oppdaget">{formatDateMedium(data.dato_oppdaget)}</DataListItem>
+          )}
+        </DataList>
       )}
-      {underkategorier && <DataListItem label="Ny underkategori">{underkategorier}</DataListItem>}
-      {data.dato_oppdaget && (
-        <DataListItem label="Ny dato oppdaget">{formatDateMedium(data.dato_oppdaget)}</DataListItem>
-      )}
-      <LongTextField label="Ny beskrivelse" value={data.beskrivelse} />
-      <LongTextField label="Begrunnelse for endring" value={data.endrings_begrunnelse} defaultOpen={true} />
-    </DataList>
+      <DataList>
+        <LongTextField label="Ny beskrivelse" value={data.beskrivelse} />
+        <LongTextField label="Begrunnelse for endring" value={data.endrings_begrunnelse} defaultOpen={true} />
+      </DataList>
+    </div>
   );
 }
 
@@ -647,97 +725,26 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
       {hasBelopBreakdown && (
         <SectionContainer title="Beløpsvurdering" variant="subtle" spacing="compact">
           <div className="space-y-2">
-            {/* Hovedkrav */}
-            {(data.hovedkrav_vurdering || data.hovedkrav_godkjent_belop !== undefined) && (
-              <div className="py-2 border-b border-pkt-border-subtle last:border-b-0">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Hovedkrav</span>
-                  <InlineDataList>
-                    {data.hovedkrav_vurdering && (
-                      <InlineDataListItem label="">
-                        <Badge variant={getBelopVurderingBadge(data.hovedkrav_vurdering).variant}>
-                          {getBelopVurderingBadge(data.hovedkrav_vurdering).label}
-                        </Badge>
-                      </InlineDataListItem>
-                    )}
-                    {data.hovedkrav_godkjent_belop !== undefined && (
-                      <InlineDataListItem label="" mono bold>
-                        {formatCurrency(data.hovedkrav_godkjent_belop)}
-                      </InlineDataListItem>
-                    )}
-                  </InlineDataList>
-                </div>
-                {data.hovedkrav_begrunnelse && (
-                  <p className="text-sm text-pkt-grays-gray-600 mt-1">{data.hovedkrav_begrunnelse}</p>
-                )}
-              </div>
-            )}
-
-            {/* Rigg/drift */}
-            {(data.rigg_vurdering || data.rigg_godkjent_belop !== undefined) && (
-              <div className={`py-2 border-b border-pkt-border-subtle last:border-b-0 ${riggPrekludert ? 'bg-pkt-surface-yellow -mx-4 px-4' : ''}`}>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">
-                    Rigg/drift
-                    {riggPrekludert && <span className="text-xs text-pkt-grays-gray-500 ml-1">(prekludert)</span>}
-                  </span>
-                  <InlineDataList>
-                    {data.rigg_vurdering && (
-                      <InlineDataListItem label="">
-                        <Badge variant={getBelopVurderingBadge(data.rigg_vurdering).variant}>
-                          {getBelopVurderingBadge(data.rigg_vurdering).label}
-                        </Badge>
-                      </InlineDataListItem>
-                    )}
-                    {data.rigg_godkjent_belop !== undefined && (
-                      <InlineDataListItem label="" mono bold>
-                        <span className={riggPrekludert ? 'line-through text-pkt-grays-gray-400' : ''}>
-                          {formatCurrency(data.rigg_godkjent_belop)}
-                        </span>
-                      </InlineDataListItem>
-                    )}
-                  </InlineDataList>
-                </div>
-                {riggPrekludert && data.rigg_godkjent_belop !== undefined && data.rigg_godkjent_belop > 0 && (
-                  <p className="text-xs text-pkt-text-warning mt-1">
-                    Subsidiært godkjent: {formatCurrency(data.rigg_godkjent_belop)}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Produktivitet */}
-            {(data.produktivitet_vurdering || data.produktivitet_godkjent_belop !== undefined) && (
-              <div className={`py-2 border-b border-pkt-border-subtle last:border-b-0 ${produktivitetPrekludert ? 'bg-pkt-surface-yellow -mx-4 px-4' : ''}`}>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">
-                    Produktivitetstap
-                    {produktivitetPrekludert && <span className="text-xs text-pkt-grays-gray-500 ml-1">(prekludert)</span>}
-                  </span>
-                  <InlineDataList>
-                    {data.produktivitet_vurdering && (
-                      <InlineDataListItem label="">
-                        <Badge variant={getBelopVurderingBadge(data.produktivitet_vurdering).variant}>
-                          {getBelopVurderingBadge(data.produktivitet_vurdering).label}
-                        </Badge>
-                      </InlineDataListItem>
-                    )}
-                    {data.produktivitet_godkjent_belop !== undefined && (
-                      <InlineDataListItem label="" mono bold>
-                        <span className={produktivitetPrekludert ? 'line-through text-pkt-grays-gray-400' : ''}>
-                          {formatCurrency(data.produktivitet_godkjent_belop)}
-                        </span>
-                      </InlineDataListItem>
-                    )}
-                  </InlineDataList>
-                </div>
-                {produktivitetPrekludert && data.produktivitet_godkjent_belop !== undefined && data.produktivitet_godkjent_belop > 0 && (
-                  <p className="text-xs text-pkt-text-warning mt-1">
-                    Subsidiært godkjent: {formatCurrency(data.produktivitet_godkjent_belop)}
-                  </p>
-                )}
-              </div>
-            )}
+            <BelopVurderingItem
+              label="Hovedkrav"
+              vurdering={data.hovedkrav_vurdering}
+              belop={data.hovedkrav_godkjent_belop}
+              begrunnelse={data.hovedkrav_begrunnelse}
+            />
+            <BelopVurderingItem
+              label="Rigg/drift"
+              vurdering={data.rigg_vurdering}
+              belop={data.rigg_godkjent_belop}
+              isPrekludert={riggPrekludert}
+              subsidiaertBelop={riggPrekludert ? data.rigg_godkjent_belop : undefined}
+            />
+            <BelopVurderingItem
+              label="Produktivitetstap"
+              vurdering={data.produktivitet_vurdering}
+              belop={data.produktivitet_godkjent_belop}
+              isPrekludert={produktivitetPrekludert}
+              subsidiaertBelop={produktivitetPrekludert ? data.produktivitet_godkjent_belop : undefined}
+            />
           </div>
         </SectionContainer>
       )}
