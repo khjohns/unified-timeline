@@ -85,7 +85,7 @@ export function ApprovalDashboardCard({
             <>
               {onDiscard && (
                 <Button variant="secondary" size="sm" onClick={onDiscard}>
-                  Forkast
+                  Forkast svar
                 </Button>
               )}
               {onRestoreAndEdit && (

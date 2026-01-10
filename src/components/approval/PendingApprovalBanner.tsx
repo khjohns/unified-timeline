@@ -61,7 +61,7 @@ export function PendingApprovalBanner({
             <div className="flex gap-2">
               {onDiscard && (
                 <Button variant="secondary" size="sm" onClick={onDiscard}>
-                  Forkast
+                  Forkast svar
                 </Button>
               )}
               {onRestoreAndEdit && (
