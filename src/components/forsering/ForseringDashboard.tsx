@@ -8,7 +8,7 @@
  */
 
 import type { ReactNode } from 'react';
-import { Badge, Button, Collapsible, DashboardCard, DataList, DataListItem, Tooltip } from '../primitives';
+import { AccordionItem, Badge, Button, DashboardCard, DataList, DataListItem, Tooltip } from '../primitives';
 import {
   ExclamationTriangleIcon,
   CheckCircledIcon,
@@ -269,12 +269,14 @@ function ForseringsrettVurderingTable({
   }
 
   return (
-    <Collapsible
-      title={`Forseringsrett-vurdering (${avslatteSaker.length} saker)`}
+    <AccordionItem
+      title="Forseringsrett-vurdering"
+      badge={<Badge variant="neutral">{avslatteSaker.length} saker</Badge>}
       defaultOpen={avslatteSaker.length <= 4}
+      size="md"
     >
       {tableContent}
-    </Collapsible>
+    </AccordionItem>
   );
 }
 
