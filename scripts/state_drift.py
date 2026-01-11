@@ -341,11 +341,23 @@ def compare_models(
                 field_name=field_name
             ))
 
-        # Sjekk optional-mismatch for felles felt
+        # Sjekk type og optional-mismatch for felles felt
         for field_name in ts_field_names & py_field_names:
             ts_field = ts_model.fields[field_name]
             py_field = py_model.fields[field_name]
 
+            # Sjekk type-mismatch
+            ts_type_norm = normalize_type(ts_field.type_str)
+            py_type_norm = normalize_type(py_field.type_str)
+            if ts_type_norm != py_type_norm:
+                comparison.findings.append(DriftFinding(
+                    model_name=ts_name,
+                    severity=Severity.WARNING,
+                    message=f"Felt '{field_name}' type-mismatch: TS={ts_field.type_str}, Py={py_field.type_str}",
+                    field_name=field_name
+                ))
+
+            # Sjekk optional-mismatch
             if ts_field.optional != py_field.optional:
                 comparison.findings.append(DriftFinding(
                     model_name=ts_name,

@@ -266,7 +266,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python scripts/contract-drift.py --ci
+      - run: python scripts/contract_drift.py --ci
         # Blokkerer PR ved kritiske funn
 ```
 

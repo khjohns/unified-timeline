@@ -8,7 +8,6 @@ Bruk:
     python scripts/check_drift.py              # Standard output
     python scripts/check_drift.py --format json    # JSON output
     python scripts/check_drift.py --ci             # CI mode (exit 1 on any drift)
-    python scripts/check_drift.py --fix            # Vis forslag til fikser
 """
 
 import subprocess
