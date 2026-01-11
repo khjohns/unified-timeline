@@ -90,6 +90,71 @@ STATE MODEL DRIFT (Interfaces/Models)
 ============================================================
 ```
 
+### Hardcoded Constants Detector
+
+**Status:** Implementert
+
+**Plassering:** `scripts/constant_drift.py`
+
+**Bruk:**
+```bash
+# Standard output
+python scripts/constant_drift.py
+
+# JSON output (for CI/pipelines)
+python scripts/constant_drift.py --format json
+
+# Markdown output (for rapporter)
+python scripts/constant_drift.py --format markdown
+
+# CI-modus (exit 1 ved kritiske funn)
+python scripts/constant_drift.py --ci
+
+# Minimum antall duplikater for å rapportere (default: 3)
+python scripts/constant_drift.py --min 5
+```
+
+**Hva den sjekker:**
+- Tall som gjentas 3+ ganger på tvers av filer
+- URL-strenger (localhost, API endpoints)
+- Magic strings (UPPERCASE konstanter)
+
+**Eksempel på funn:**
+- `50000` (dagmulktsats) - 40 steder, foreslår `DAGMULKTSATS_DEFAULT`
+- `1.3` (forseringsmultiplier) - 16 steder, foreslår `FORSERING_MULTIPLIER`
+- `http://localhost:8080` - 8 steder, foreslår `API_BASE_URL_DEV`
+
+### Label Coverage Checker
+
+**Status:** Implementert
+
+**Plassering:** `scripts/label_coverage.py`
+
+**Bruk:**
+```bash
+# Standard output
+python scripts/label_coverage.py
+
+# JSON output (for CI/pipelines)
+python scripts/label_coverage.py --format json
+
+# Markdown output (for rapporter)
+python scripts/label_coverage.py --format markdown
+
+# CI-modus (exit 1 ved manglende labels)
+python scripts/label_coverage.py --ci
+```
+
+**Hva den sjekker:**
+- `EVENT_TYPE_LABELS` dekker alle `EventType`-verdier
+- `SUBSIDIAER_TRIGGER_LABELS` dekker alle `SubsidiaerTrigger`-verdier
+- `BH_GRUNNLAGSVAR_OPTIONS` dekker alle `GrunnlagResponsResultat`-verdier
+- `BH_VEDERLAGSSVAR_OPTIONS` dekker alle `VederlagBeregningResultat`-verdier
+- `BH_FRISTSVAR_OPTIONS` dekker alle `FristBeregningResultat`-verdier
+
+**Første kjøring fant:**
+- `krever_avklaring` mangler i `BH_GRUNNLAGSVAR_OPTIONS`
+
 ---
 
 ## Bakgrunn
@@ -249,7 +314,7 @@ Istedenfor å detektere drift, kan man eliminere det ved å generere typer:
 
 ## CI-Integrasjon
 
-Når verktøy er implementert, anbefalt CI-konfigurasjon:
+Anbefalt CI-konfigurasjon for alle implementerte verktøy:
 
 ```yaml
 # .github/workflows/static-analysis.yml
@@ -258,15 +323,23 @@ name: Static Analysis
 on: [push, pull_request]
 
 jobs:
-  contract-drift:
+  static-analysis:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python scripts/contract_drift.py --ci
-        # Blokkerer PR ved kritiske funn
+
+      - name: Contract & State Drift Check
+        run: python scripts/check_drift.py --ci
+
+      - name: Label Coverage Check
+        run: python scripts/label_coverage.py --ci
+
+      - name: Hardcoded Constants Check
+        run: python scripts/constant_drift.py --ci --min 5
+        # Advarsel: --min 3 vil gi mange funn, bruk --min 5 for CI
 ```
 
 ## Konklusjon
