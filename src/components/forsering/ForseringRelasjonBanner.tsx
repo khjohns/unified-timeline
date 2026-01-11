@@ -38,9 +38,9 @@ export function ForseringRelasjonBanner({ forseringer }: ForseringRelasjonBanner
           variant="info"
           icon={<RocketIcon className="w-5 h-5" />}
           title={
-            <span className="flex items-center gap-2 w-full">
+            <span className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2 w-full min-w-0">
               <span className="truncate">{forsering.forsering_sak_tittel}</span>
-              <span className="ml-auto shrink-0">
+              <span className="shrink-0 sm:ml-auto">
                 {forsering.er_iverksatt && !forsering.er_stoppet && (
                   <Badge variant="success">Iverksatt</Badge>
                 )}
