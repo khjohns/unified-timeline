@@ -15,6 +15,8 @@ export { Alert } from './Alert';
 export { Badge, type BadgeVariant, type BadgeSize } from './Badge';
 export { RevisionTag, RevisionTagGroup, UpdatedTag } from './RevisionTag';
 export { Collapsible } from './Collapsible';
+export { AccordionItem } from './AccordionItem';
+export { AccordionGroup } from './AccordionGroup';
 export { SectionContainer, type SectionContainerProps } from './SectionContainer';
 export { CurrencyInput } from './CurrencyInput';
 

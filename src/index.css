@@ -282,6 +282,8 @@
     --animate-slideOut: slideOut 100ms ease-in;
     --animate-swipeOut: swipeOut 100ms ease-out;
     --animate-spin: spin 1s linear infinite;
+    --animate-accordion-down: accordion-down 200ms ease-out;
+    --animate-accordion-up: accordion-up 200ms ease-out;
 }
 
 /* Toast animations */
@@ -322,6 +324,29 @@
     }
     to {
         transform: rotate(360deg);
+    }
+}
+
+/* Accordion animations for Radix Accordion */
+@keyframes accordion-down {
+    from {
+        height: 0;
+        opacity: 0;
+    }
+    to {
+        height: var(--radix-accordion-content-height);
+        opacity: 1;
+    }
+}
+
+@keyframes accordion-up {
+    from {
+        height: var(--radix-accordion-content-height);
+        opacity: 1;
+    }
+    to {
+        height: 0;
+        opacity: 0;
     }
 }
 
