@@ -90,6 +90,144 @@ STATE MODEL DRIFT (Interfaces/Models)
 ============================================================
 ```
 
+### Hardcoded Constants Detector
+
+**Status:** Implementert
+
+**Plassering:** `scripts/constant_drift.py`
+
+**Bruk:**
+```bash
+# Standard output
+python scripts/constant_drift.py
+
+# JSON output (for CI/pipelines)
+python scripts/constant_drift.py --format json
+
+# Markdown output (for rapporter)
+python scripts/constant_drift.py --format markdown
+
+# CI-modus (exit 1 ved kritiske funn)
+python scripts/constant_drift.py --ci
+
+# Minimum antall duplikater for å rapportere (default: 3)
+python scripts/constant_drift.py --min 5
+```
+
+**Hva den sjekker:**
+- Tall som gjentas 3+ ganger på tvers av filer
+- URL-strenger (localhost, API endpoints)
+- Magic strings (UPPERCASE konstanter)
+
+**Eksempel på funn:**
+- `50000` (dagmulktsats) - 40 steder, foreslår `DAGMULKTSATS_DEFAULT`
+- `1.3` (forseringsmultiplier) - 16 steder, foreslår `FORSERING_MULTIPLIER`
+- `http://localhost:8080` - 8 steder, foreslår `API_BASE_URL_DEV`
+
+### Label Coverage Checker
+
+**Status:** Implementert
+
+**Plassering:** `scripts/label_coverage.py`
+
+**Bruk:**
+```bash
+# Standard output
+python scripts/label_coverage.py
+
+# JSON output (for CI/pipelines)
+python scripts/label_coverage.py --format json
+
+# Markdown output (for rapporter)
+python scripts/label_coverage.py --format markdown
+
+# CI-modus (exit 1 ved manglende labels)
+python scripts/label_coverage.py --ci
+```
+
+**Hva den sjekker:**
+- `EVENT_TYPE_LABELS` dekker alle `EventType`-verdier
+- `SUBSIDIAER_TRIGGER_LABELS` dekker alle `SubsidiaerTrigger`-verdier
+- `BH_GRUNNLAGSVAR_OPTIONS` dekker alle `GrunnlagResponsResultat`-verdier
+- `BH_VEDERLAGSSVAR_OPTIONS` dekker alle `VederlagBeregningResultat`-verdier
+- `BH_FRISTSVAR_OPTIONS` dekker alle `FristBeregningResultat`-verdier
+
+**Første kjøring fant:**
+- `krever_avklaring` mangler i `BH_GRUNNLAGSVAR_OPTIONS`
+
+### TODO Tracker
+
+**Status:** Implementert
+
+**Plassering:** `scripts/todo_tracker.py`
+
+**Bruk:**
+```bash
+# Standard output
+python scripts/todo_tracker.py
+
+# JSON output (for CI/pipelines)
+python scripts/todo_tracker.py --format json
+
+# Markdown output (for rapporter)
+python scripts/todo_tracker.py --format markdown
+
+# CI-modus (exit 1 ved kritiske funn)
+python scripts/todo_tracker.py --ci
+
+# Filtrer etter severity
+python scripts/todo_tracker.py --severity critical
+```
+
+**Hva den sjekker:**
+- Finner alle TODO/FIXME/HACK/XXX/BUG/NOTE/WARNING kommentarer
+- Kategoriserer etter alvorlighetsgrad basert på nøkkelord
+- CRITICAL: FIXME, HACK, security-relatert, production, Azure
+- HIGH: XXX, important, urgent, blocking
+- MEDIUM: refactor, cleanup, optimize
+- LOW: Vanlige TODO-kommentarer
+
+**Første kjøring fant:**
+- 16 kritiske (Azure Service Bus TODO, auth TODO, security notes)
+- 4 høy-prioritet
+
+### Security Pattern Scanner
+
+**Status:** Implementert
+
+**Plassering:** `scripts/security_scan.py`
+
+**Bruk:**
+```bash
+# Standard output
+python scripts/security_scan.py
+
+# JSON output (for CI/pipelines)
+python scripts/security_scan.py --format json
+
+# Markdown output (for rapporter)
+python scripts/security_scan.py --format markdown
+
+# CI-modus (exit 1 ved kritiske funn)
+python scripts/security_scan.py --ci
+
+# Inkluder low-severity funn
+python scripts/security_scan.py --include-low
+```
+
+**Hva den sjekker:**
+- `Math.random()` brukt for ID-generering
+- Sensitiv data i localStorage/sessionStorage
+- Hardkodede secrets/tokens
+- Usikre patterns (eval, innerHTML, dangerouslySetInnerHTML)
+- SQL injection patterns
+- subprocess med shell=True
+- CORS med wildcard
+
+**Første kjøring fant:**
+- 4 Math.random() brukt for SAK-ID generering
+- 1 false positive (SQL-lignende streng som ikke er SQL)
+
 ---
 
 ## Bakgrunn
@@ -249,7 +387,7 @@ Istedenfor å detektere drift, kan man eliminere det ved å generere typer:
 
 ## CI-Integrasjon
 
-Når verktøy er implementert, anbefalt CI-konfigurasjon:
+Anbefalt CI-konfigurasjon for alle implementerte verktøy:
 
 ```yaml
 # .github/workflows/static-analysis.yml
@@ -258,15 +396,31 @@ name: Static Analysis
 on: [push, pull_request]
 
 jobs:
-  contract-drift:
+  static-analysis:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python scripts/contract_drift.py --ci
-        # Blokkerer PR ved kritiske funn
+
+      - name: Contract & State Drift Check
+        run: python scripts/check_drift.py --ci
+
+      - name: Label Coverage Check
+        run: python scripts/label_coverage.py --ci
+
+      - name: Hardcoded Constants Check
+        run: python scripts/constant_drift.py --ci --min 5
+        # Advarsel: --min 3 vil gi mange funn, bruk --min 5 for CI
+
+      - name: TODO Tracker
+        run: python scripts/todo_tracker.py --severity critical --ci
+        # Blokkerer ved kritiske TODOs (FIXME, HACK, security)
+
+      - name: Security Scan
+        run: python scripts/security_scan.py --ci
+        # Blokkerer ved kritiske sikkerhetsfunn
 ```
 
 ## Konklusjon
