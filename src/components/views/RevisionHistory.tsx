@@ -7,6 +7,7 @@
 
 import { useParams } from 'react-router-dom';
 import { StackIcon, ClockIcon, ReloadIcon } from '@radix-ui/react-icons';
+import { Card } from '../primitives';
 import {
   useHistorikk,
   getTeEntries,
@@ -113,19 +114,19 @@ function VederlagHistorikkTable({ entries }: VederlagHistorikkTableProps) {
   }
 
   return (
-    <div className="overflow-x-auto border-2 border-pkt-border-subtle bg-pkt-bg-card">
-      <table className="w-full border-collapse text-sm">
+    <Card className="p-3 overflow-x-auto">
+      <table className="w-full text-sm">
         {/* Header */}
         <thead>
-          <tr className="bg-pkt-bg-subtle border-b border-pkt-border-subtle">
-            <th className="sticky left-0 z-10 bg-pkt-bg-subtle text-left py-3 px-4 font-medium text-pkt-grays-gray-600 w-[160px] border-r border-pkt-border-subtle">
+          <tr className="border-b border-pkt-border-subtle">
+            <th className="sticky left-0 z-10 bg-pkt-bg-card text-left py-1.5 px-3 font-medium w-[160px]">
               Felt
             </th>
             {versions.map((v) => {
               const te = teByVersion.get(v);
               return (
-                <th key={v} className="text-center py-3 px-4 min-w-[140px] border-r border-pkt-grays-gray-200 last:border-r-0">
-                  <div className="font-semibold text-pkt-text-body-default">
+                <th key={v} className="text-center py-1.5 px-3 min-w-[140px]">
+                  <div className="font-medium text-pkt-text-body-default">
                     {formatVersionLabel(v)}
                   </div>
                   <div className="text-xs text-pkt-grays-gray-500 font-normal mt-0.5">
@@ -183,7 +184,7 @@ function VederlagHistorikkTable({ entries }: VederlagHistorikkTableProps) {
           />
         </tbody>
       </table>
-    </div>
+    </Card>
   );
 }
 
@@ -212,19 +213,19 @@ function FristHistorikkTable({ entries }: FristHistorikkTableProps) {
   }
 
   return (
-    <div className="overflow-x-auto border-2 border-pkt-border-subtle bg-pkt-bg-card">
-      <table className="w-full border-collapse text-sm">
+    <Card className="p-3 overflow-x-auto">
+      <table className="w-full text-sm">
         {/* Header */}
         <thead>
-          <tr className="bg-pkt-bg-subtle border-b border-pkt-border-subtle">
-            <th className="sticky left-0 z-10 bg-pkt-bg-subtle text-left py-3 px-4 font-medium text-pkt-grays-gray-600 w-[160px] border-r border-pkt-border-subtle">
+          <tr className="border-b border-pkt-border-subtle">
+            <th className="sticky left-0 z-10 bg-pkt-bg-card text-left py-1.5 px-3 font-medium w-[160px]">
               Felt
             </th>
             {versions.map((v) => {
               const te = teByVersion.get(v);
               return (
-                <th key={v} className="text-center py-3 px-4 min-w-[140px] border-r border-pkt-grays-gray-200 last:border-r-0">
-                  <div className="font-semibold text-pkt-text-body-default">
+                <th key={v} className="text-center py-1.5 px-3 min-w-[140px]">
+                  <div className="font-medium text-pkt-text-body-default">
                     {formatVersionLabel(v)}
                   </div>
                   <div className="text-xs text-pkt-grays-gray-500 font-normal mt-0.5">
@@ -271,7 +272,7 @@ function FristHistorikkTable({ entries }: FristHistorikkTableProps) {
           />
         </tbody>
       </table>
-    </div>
+    </Card>
   );
 }
 
@@ -295,13 +296,13 @@ function GroupHeader({ label, colSpan, color }: GroupHeaderProps) {
   return (
     <tr>
       <td
-        className={`sticky left-0 z-10 py-2 px-4 text-xs font-semibold uppercase tracking-wide border-y border-pkt-border-subtle border-r border-r-pkt-border-subtle ${colorClasses[color]}`}
+        className={`sticky left-0 z-10 py-1.5 px-3 text-xs font-semibold uppercase tracking-wide border-y border-pkt-border-subtle ${colorClasses[color]}`}
       >
         {label}
       </td>
       <td
         colSpan={colSpan - 1}
-        className={`py-2 px-4 border-y border-pkt-border-subtle ${bgClass}`}
+        className={`py-1.5 px-3 border-y border-pkt-border-subtle ${bgClass}`}
       />
     </tr>
   );
@@ -318,8 +319,8 @@ function DataRow({ label, versions, getValue, highlight = false }: DataRowProps)
   let prevValue: string | null = null;
 
   return (
-    <tr className="border-b border-pkt-border-subtle/50 last:border-b-0">
-      <td className="sticky left-0 z-10 bg-pkt-bg-card py-2.5 px-4 text-pkt-grays-gray-600 border-r border-pkt-border-subtle">
+    <tr className="border-b border-pkt-border-subtle last:border-b-0 hover:bg-pkt-surface-subtle transition-colors">
+      <td className="sticky left-0 z-10 bg-pkt-bg-card py-2 px-3 text-pkt-grays-gray-600">
         {label}
       </td>
       {versions.map((v) => {
@@ -330,7 +331,7 @@ function DataRow({ label, versions, getValue, highlight = false }: DataRowProps)
         return (
           <td
             key={v}
-            className={`py-2.5 px-4 text-center border-r border-pkt-border-subtle/30 last:border-r-0 ${
+            className={`py-2 px-3 text-center ${
               highlight ? 'font-medium' : ''
             } ${isChanged ? 'text-pkt-brand-warm-blue-1000 font-semibold' : 'text-pkt-text-body-default'}`}
           >
