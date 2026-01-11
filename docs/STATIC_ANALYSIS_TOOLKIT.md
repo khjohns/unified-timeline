@@ -2,6 +2,35 @@
 
 > Analyse av relevante statisk analyse-verktøy for unified-timeline basert på prosjektets arkitektur og teknologivalg.
 
+## Implementert Verktøy
+
+### Contract Drift Detector
+
+**Status:** Implementert
+
+**Plassering:** `scripts/contract_drift.py`
+
+**Bruk:**
+```bash
+# Standard output
+python scripts/contract_drift.py
+
+# JSON output (for CI/pipelines)
+python scripts/contract_drift.py --format json
+
+# Markdown output (for rapporter)
+python scripts/contract_drift.py --format markdown
+
+# CI-modus (exit 1 ved kritiske funn)
+python scripts/contract_drift.py --ci
+```
+
+**Første kjøring fant:**
+- `SporType`: 'forsering' finnes i TypeScript men mangler i Python
+- `EventType`: 11 event-typer er ute av synk mellom frontend/backend
+
+---
+
 ## Bakgrunn
 
 Ved AI-assistert utvikling med verktøy som Claude Code genereres kode raskere enn manuell verifisering tillater. Over tid kan små inkonsistenser oppstå - såkalt "drift" - hvor ulike deler av kodebasen divergerer fra hverandre.
