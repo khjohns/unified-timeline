@@ -61,6 +61,36 @@ python scripts/state_drift.py --ci
 - 14 optional-mismatch advarsler
 - Eksempel: `SakState.catenda_topic_id` mangler i TypeScript
 
+### Unified Drift Checker (Wrapper)
+
+**Plassering:** `scripts/check_drift.py`
+
+**Bruk:**
+```bash
+# Kjør alle drift-sjekker
+python scripts/check_drift.py
+
+# CI-modus
+python scripts/check_drift.py --ci
+```
+
+**Output:**
+```
+============================================================
+  DRIFT CHECK REPORT
+============================================================
+
+CONTRACT DRIFT (Enums/Unions)
+  DRIFT FUNNET: 2 typer
+
+STATE MODEL DRIFT (Interfaces/Models)
+  DRIFT FUNNET: 7 modeller
+
+============================================================
+  TOTALT: 34 kritiske, 14 advarsler
+============================================================
+```
+
 ---
 
 ## Bakgrunn
