@@ -76,7 +76,6 @@ class EventType(str, Enum):
 
     # Saks-events
     SAK_OPPRETTET = "sak_opprettet"
-    SAK_LUKKET = "sak_lukket"
 
     # Endringsordre-events (§31.3)
     EO_OPPRETTET = "eo_opprettet"          # EO-sak opprettet (av BH)

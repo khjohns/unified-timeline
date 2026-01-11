@@ -559,14 +559,12 @@ class EventType(str, Enum):
     # ══════════════════════════════════════════════════════════════
     # FORSERING-EVENTS (§33.8) - For forsering som egen sakstype
     # ══════════════════════════════════════════════════════════════
-    FORSERING_VARSEL = "forsering_varsel"           # TE varsler om forsering (legacy)
-    FORSERING_OPPRETTET = "forsering_opprettet"     # Ny forseringssak opprettet
-    FORSERING_IVERKSATT = "forsering_iverksatt"     # Forsering iverksatt
+    FORSERING_VARSEL = "forsering_varsel"           # TE varsler om forsering (med er_iverksatt flag)
     FORSERING_STOPPET = "forsering_stoppet"         # Forsering stoppet
-    FORSERING_KOSTNAD_OPPDATERT = "forsering_kostnad_oppdatert"  # Påløpte kostnader oppdatert
-    FORSERING_BH_RESPONS = "forsering_bh_respons"   # BH's svar på forsering
-    FORSERING_RELATERT_LAGT_TIL = "forsering_relatert_lagt_til"  # Relatert sak lagt til
-    FORSERING_RELATERT_FJERNET = "forsering_relatert_fjernet"    # Relatert sak fjernet
+    FORSERING_RESPONS = "forsering_respons"         # BH's svar på forsering
+    FORSERING_KOSTNADER_OPPDATERT = "forsering_kostnader_oppdatert"  # Påløpte kostnader oppdatert
+    FORSERING_KOE_LAGT_TIL = "forsering_koe_lagt_til"  # KOE lagt til forseringssak
+    FORSERING_KOE_FJERNET = "forsering_koe_fjernet"    # KOE fjernet fra forseringssak
 
     # ══════════════════════════════════════════════════════════════
     # ENDRINGSORDRE-EVENTS (§31.3) - For EO som egen sakstype

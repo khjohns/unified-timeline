@@ -4,21 +4,20 @@ import type { TimelineEntry } from '@/types/timeline';
  * Timeline for SAK-2025-012: Forseringssak - Samlet forsering
  *
  * Key event types for forsering cases:
- * - forsering_opprettet: Forsering case created with relations
- * - forsering_iverksatt: Acceleration started
+ * - forsering_varsel: TE varsler om forsering (med iverksettelse)
  * - vederlag_krav_sendt: Cost claim sent
- * - forsering_kostnad_oppdatert: Accrued costs updated
- * - forsering_bh_respons: BH accepts/rejects forsering
+ * - forsering_kostnader_oppdatert: Accrued costs updated
+ * - forsering_respons: BH accepts/rejects forsering
  * - forsering_stoppet: TE stops active forsering
- * - forsering_relatert_lagt_til: Related case added
- * - forsering_relatert_fjernet: Related case removed
+ * - forsering_koe_lagt_til: KOE added to forsering
+ * - forsering_koe_fjernet: KOE removed from forsering
  */
 export const mockTimelineEvents12: TimelineEntry[] = [
   {
     event_id: 'evt-1205',
     tidsstempel: '2025-02-18T10:00:00Z',
-    type: 'Relatert sak lagt til',
-    event_type: 'forsering_relatert_lagt_til',
+    type: 'KOE lagt til forsering',
+    event_type: 'forsering_koe_lagt_til',
     aktor: 'Per Hansen',
     rolle: 'TE',
     spor: 'forsering',
@@ -33,8 +32,8 @@ export const mockTimelineEvents12: TimelineEntry[] = [
   {
     event_id: 'evt-1204',
     tidsstempel: '2025-02-15T14:00:00Z',
-    type: 'Forseringskostnad oppdatert',
-    event_type: 'forsering_kostnad_oppdatert',
+    type: 'Forseringskostnader oppdatert',
+    event_type: 'forsering_kostnader_oppdatert',
     aktor: 'Per Hansen',
     rolle: 'TE',
     spor: 'forsering',
@@ -51,13 +50,14 @@ export const mockTimelineEvents12: TimelineEntry[] = [
   {
     event_id: 'evt-1203',
     tidsstempel: '2025-02-12T08:00:00Z',
-    type: 'Forsering iverksatt',
-    event_type: 'forsering_iverksatt',
+    type: 'Varsel om forsering',
+    event_type: 'forsering_varsel',
     aktor: 'Per Hansen',
     rolle: 'TE',
     spor: 'forsering',
     sammendrag: 'Forsering iverksatt - ekstra skift og overtid starter',
     event_data: {
+      er_iverksatt: true,
       dato_iverksatt: '2025-02-12',
       estimert_kostnad: 1250000,
       avslatte_dager: 45,
@@ -94,8 +94,8 @@ export const mockTimelineEvents12: TimelineEntry[] = [
   {
     event_id: 'evt-1201',
     tidsstempel: '2025-02-10T10:00:00Z',
-    type: 'Forseringssak opprettet',
-    event_type: 'forsering_opprettet',
+    type: 'Sak opprettet',
+    event_type: 'sak_opprettet',
     aktor: 'Per Hansen',
     rolle: 'TE',
     spor: 'forsering',

@@ -595,14 +595,11 @@ export type EventType =
   | 'respons_frist'
   | 'respons_frist_oppdatert'      // BH endrer standpunkt, evt stopper forsering
   | 'forsering_varsel'             // §33.8 - TE varsler om iverksettelse av forsering
-  // Forsering-specific events (for forseringssak as separate case)
-  | 'forsering_opprettet'          // Forseringssak opprettet med relasjoner
-  | 'forsering_iverksatt'          // TE iverksetter forsering
   | 'forsering_stoppet'            // TE stopper forsering (eller BH godkjenner frist)
-  | 'forsering_kostnad_oppdatert'  // TE oppdaterer påløpte kostnader
-  | 'forsering_bh_respons'         // BH aksepterer/avslår forseringen
-  | 'forsering_relatert_lagt_til'  // Relatert sak lagt til forsering
-  | 'forsering_relatert_fjernet'   // Relatert sak fjernet fra forsering
+  | 'forsering_respons'            // BH aksepterer/avslår forseringen
+  | 'forsering_kostnader_oppdatert' // TE oppdaterer påløpte kostnader
+  | 'forsering_koe_lagt_til'       // KOE lagt til forseringssak
+  | 'forsering_koe_fjernet'        // KOE fjernet fra forseringssak
   // Endringsordre-events (§31.3)
   | 'eo_opprettet'                 // EO-sak opprettet (av BH)
   | 'eo_koe_lagt_til'              // KOE lagt til EO

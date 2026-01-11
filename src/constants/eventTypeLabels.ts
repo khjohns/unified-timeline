@@ -24,14 +24,11 @@ export const EVENT_TYPE_LABELS: Record<EventType, string> = {
   respons_frist: 'Svar på fristkrav',
   respons_frist_oppdatert: 'Svar på fristkrav oppdatert',
   forsering_varsel: 'Varsel om forsering',
-  // Forsering-specific events
-  forsering_opprettet: 'Forseringssak opprettet',
-  forsering_iverksatt: 'Forsering iverksatt',
   forsering_stoppet: 'Forsering stoppet',
-  forsering_kostnad_oppdatert: 'Forseringskostnad oppdatert',
-  forsering_bh_respons: 'Svar på forsering',
-  forsering_relatert_lagt_til: 'Relatert sak lagt til',
-  forsering_relatert_fjernet: 'Relatert sak fjernet',
+  forsering_respons: 'Svar på forsering',
+  forsering_kostnader_oppdatert: 'Forseringskostnader oppdatert',
+  forsering_koe_lagt_til: 'KOE lagt til forsering',
+  forsering_koe_fjernet: 'KOE fjernet fra forsering',
   // Endringsordre events
   eo_opprettet: 'Endringsordre opprettet',
   eo_koe_lagt_til: 'KOE lagt til EO',

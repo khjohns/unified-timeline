@@ -21,7 +21,7 @@ Presets (Standard KOE-saker):
 
 Presets (Forsering §33.8):
     forsering           - Forseringssak med relatert avslått fristkrav
-    forsering_iverksatt - Forsering som er iverksatt (pågående)
+    forsering_iverksatt - Forsering som er iverksatt (pågående, bruker forsering_varsel med er_iverksatt=true)
     forsering_bh_snudd  - Forsering der BH snur (godkjenner frist etterpå)
                           Tester useStandpunktEndringer-hooken for kompensasjon
 

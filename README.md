@@ -233,13 +233,12 @@ Hvis BH avslår fristkrav som TE mener er berettiget, kan TE varsle om forsering
 
 | Event | Aktør | Beskrivelse |
 |-------|-------|-------------|
-| `forsering_opprettet` | TE | Ny forseringssak opprettet |
-| `forsering_iverksatt` | TE | Forsering iverksatt |
+| `forsering_varsel` | TE | TE varsler om forsering (med er_iverksatt flag) |
 | `forsering_stoppet` | TE | Forsering stoppet (BH godkjente frist) |
-| `forsering_kostnad_oppdatert` | TE | Påløpte kostnader oppdatert |
-| `forsering_bh_respons` | BH | BH's svar på forseringskostnader |
-| `forsering_relatert_lagt_til` | TE | Relatert fristkrav lagt til |
-| `forsering_relatert_fjernet` | TE | Relatert fristkrav fjernet |
+| `forsering_respons` | BH | BH's svar på forseringskostnader |
+| `forsering_kostnader_oppdatert` | TE | Påløpte kostnader oppdatert |
+| `forsering_koe_lagt_til` | TE | KOE lagt til forseringssak |
+| `forsering_koe_fjernet` | TE | KOE fjernet fra forseringssak |
 
 #### Endringsordre (§31.3)
 

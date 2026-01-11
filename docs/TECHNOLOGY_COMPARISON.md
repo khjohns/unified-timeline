@@ -271,8 +271,8 @@ Custom-løsningen har implementert forsering-grunnstrukturen:
 | ForseringService + API | ✅ 416 linjer, 5 endepunkter | ❌ Må bygges |
 
 **Implementeringsstatus forsering:**
-- ✅ **Implementert:** ForseringData-modell, ForseringService, API-endepunkter, 30%-regelvalidering, `forsering_varsel` event
-- ⚠️ **Planlagt:** Livssyklus-events (`forsering_iverksatt`, `forsering_stoppet`, `forsering_kostnad_oppdatert`, `forsering_bh_respons`)
+- ✅ **Implementert:** ForseringData-modell, ForseringService, API-endepunkter, 30%-regelvalidering
+- ✅ **Events:** `forsering_varsel`, `forsering_stoppet`, `forsering_respons`, `forsering_kostnader_oppdatert`, `forsering_koe_lagt_til`, `forsering_koe_fjernet`
 
 **Vurdering:** Forsering krever koordinering mellom flere saker og dynamiske beregninger. Grunnstrukturen er på plass i custom-løsningen. Power Platform kan modellere dette, men mangler den naturlige støtten for sak-relasjoner og event-basert livssyklus.
 
@@ -731,12 +731,11 @@ Endelig valg bør baseres på:
 |----------------|---------|----------|-----------|
 | **KOE (standard)** | ✅ Komplett | ✅ Komplett | 18 event-typer, tre-spor modell |
 | **Endringsordre** | ✅ Komplett | ✅ Komplett | 7 event-typer, N:M relasjoner |
-| **Forsering** | ⚠️ Grunnstruktur | ⚠️ Grunnstruktur | 1 av 8 event-typer impl. |
+| **Forsering** | ✅ Komplett | ✅ Komplett | 6 event-typer, KOE-relasjoner |
 
-**Forsering-gap og estimert ferdigstillelse:**
-- Manglende events: `forsering_opprettet`, `forsering_iverksatt`, `forsering_stoppet`, `forsering_kostnad_oppdatert`, `forsering_bh_respons`, `forsering_relatert_lagt_til`, `forsering_relatert_fjernet`
-- ForseringData-modellen støtter allerede alle felter - det gjenstår å implementere event-handlers
-- Estimert: 1-2 sprinter for full forsering-støtte
+**Forsering events implementert:**
+- `forsering_varsel`, `forsering_stoppet`, `forsering_respons`, `forsering_kostnader_oppdatert`, `forsering_koe_lagt_til`, `forsering_koe_fjernet`
+- ForseringData-modellen og alle event-handlers er implementert
 
 **Implikasjon for teknologivalg:**
 - Custom-løsningen har et klart forsprang - grunnstrukturen for alle tre sakstyper er på plass
