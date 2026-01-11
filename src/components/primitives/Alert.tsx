@@ -98,7 +98,7 @@ export function Alert({
               {displayIcon}
             </div>
           )}
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             {title && (
               <p className={clsx('font-bold mb-1', styles.title)}>{title}</p>
             )}
