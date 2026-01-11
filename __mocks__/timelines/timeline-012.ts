@@ -20,7 +20,7 @@ export const mockTimelineEvents12: TimelineEntry[] = [
     event_type: 'forsering_koe_lagt_til',
     aktor: 'Per Hansen',
     rolle: 'TE',
-    spor: 'forsering',
+    spor: 'frist',
     sammendrag: 'SAK-2025-013 lagt til som grunnlag for forsering',
     event_data: {
       relatert_sak_id: 'SAK-2025-013',
@@ -36,7 +36,7 @@ export const mockTimelineEvents12: TimelineEntry[] = [
     event_type: 'forsering_kostnader_oppdatert',
     aktor: 'Per Hansen',
     rolle: 'TE',
-    spor: 'forsering',
+    spor: 'frist',
     sammendrag: 'Påløpte kostnader oppdatert til kr 520 000,-',
     event_data: {
       paalopte_kostnader: 520000,
@@ -54,7 +54,7 @@ export const mockTimelineEvents12: TimelineEntry[] = [
     event_type: 'forsering_varsel',
     aktor: 'Per Hansen',
     rolle: 'TE',
-    spor: 'forsering',
+    spor: 'frist',
     sammendrag: 'Forsering iverksatt - ekstra skift og overtid starter',
     event_data: {
       er_iverksatt: true,
@@ -98,7 +98,7 @@ export const mockTimelineEvents12: TimelineEntry[] = [
     event_type: 'sak_opprettet',
     aktor: 'Per Hansen',
     rolle: 'TE',
-    spor: 'forsering',
+    spor: 'frist',
     sammendrag: 'Forseringssak opprettet basert på 3 avslåtte fristforlengelser',
     event_data: {
       relaterte_saker: ['SAK-2025-003', 'SAK-2025-006', 'SAK-2025-013'],

@@ -26,8 +26,7 @@ python scripts/contract_drift.py --ci
 ```
 
 **Første kjøring fant:**
-- `SporType`: 'forsering' finnes i TypeScript men mangler i Python
-- `EventType`: 11 event-typer er ute av synk mellom frontend/backend
+- `EventType`: event-typer var ute av synk mellom frontend/backend (nå fikset)
 
 ### State Model Drift Detector
 

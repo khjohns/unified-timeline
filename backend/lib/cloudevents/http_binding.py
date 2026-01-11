@@ -71,7 +71,7 @@ def format_event_response(
 
     Includes extension attributes for UI display:
     - summary: Human-readable summary of the event
-    - spor: Track/category (grunnlag, vederlag, frist, forsering)
+    - spor: Track/category (grunnlag, vederlag, frist)
 
     Args:
         event: SakEvent instance

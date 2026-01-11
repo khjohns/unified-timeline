@@ -36,7 +36,7 @@ For generell prosjektoversikt, teknologistack og oppsett, se [README.md](../READ
 |--------|------------|
 | **Event Sourcing** | Arkitekturmønster der alle endringer lagres som uforanderlige hendelser |
 | **CQRS** | Command Query Responsibility Segregation - separasjon av lese- og skriveoperasjoner |
-| **Spor** | Uavhengig behandlingslinje: Grunnlag, Vederlag, Frist eller Forsering |
+| **Spor** | Uavhengig behandlingslinje: Grunnlag, Vederlag, Frist |
 | **Port-modell** | NS 8407-basert vurderingsstruktur med sekvensielle "porter" |
 | **Subsidiært standpunkt** | BH tar prinsipal stilling men angir også hva resultatet ville vært hvis prinsipalt ikke får medhold |
 | **Projeksjon** | Beregning av nåværende tilstand fra event-loggen |

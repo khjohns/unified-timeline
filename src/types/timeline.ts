@@ -7,7 +7,7 @@
 
 // ========== ENUMS ==========
 
-export type SporType = 'grunnlag' | 'vederlag' | 'frist' | 'forsering';
+export type SporType = 'grunnlag' | 'vederlag' | 'frist';
 
 export type SporStatus =
   | 'ikke_relevant'
@@ -909,7 +909,7 @@ export interface CloudEvent<T = EventData> {
   comment?: string;         // Valgfri kommentar
   referstoid?: string;      // Referanse til annen event
   summary?: string;         // Human-readable summary
-  spor?: SporType | null;   // Track/category (grunnlag, vederlag, frist, forsering)
+  spor?: SporType | null;   // Track/category (grunnlag, vederlag, frist)
 
   // Payload
   data?: T;
