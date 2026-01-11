@@ -5,9 +5,9 @@
  * Used in multi-port modals for NS 8407 workflows.
  *
  * Features:
- * - Shows step numbers with single-line descriptions
+ * - Shows numbered step circles (no labels - step title is shown in content)
  * - Visual feedback for completed, active, and pending steps
- * - Even spacing between steps regardless of text length
+ * - Compact design that works well on mobile
  */
 
 import clsx from 'clsx';
@@ -24,16 +24,14 @@ interface StepIndicatorProps {
 }
 
 export function StepIndicator({ currentStep, steps, className }: StepIndicatorProps) {
-  const activeStep = steps[currentStep - 1];
-
   return (
     <div className={clsx('w-full', className)}>
-      {/* Grid layout ensures equal spacing regardless of text length */}
+      {/* Grid layout ensures equal spacing between step circles */}
       <div
         className="grid items-start"
         style={{ gridTemplateColumns: `repeat(${steps.length}, 1fr)` }}
       >
-        {steps.map((step, index) => {
+        {steps.map((_, index) => {
           const stepNumber = index + 1;
           const isActive = stepNumber === currentStep;
           const isCompleted = stepNumber < currentStep;
@@ -67,29 +65,10 @@ export function StepIndicator({ currentStep, steps, className }: StepIndicatorPr
                 {isCompleted ? '✓' : stepNumber}
               </div>
 
-              {/* Step label - hidden on mobile, shown on desktop */}
-              <span
-                className={clsx(
-                  'hidden sm:block text-xs mt-2 text-center px-1',
-                  isActive && 'font-medium text-pkt-text-body-dark',
-                  !isActive && 'text-pkt-text-body-subtle'
-                )}
-              >
-                {step.label}
-              </span>
             </div>
           );
         })}
       </div>
-
-      {/* Mobile: Show only active step label centered below */}
-      {activeStep && (
-        <div className="sm:hidden text-center mt-2">
-          <span className="text-sm font-medium text-pkt-text-body-dark">
-            {currentStep}. {activeStep.label}
-          </span>
-        </div>
-      )}
     </div>
   );
 }
