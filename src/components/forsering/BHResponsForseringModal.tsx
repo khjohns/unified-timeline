@@ -226,8 +226,8 @@ export function BHResponsForseringModal({
   const harProduktivitetKrav = (forseringData.vederlag?.saerskilt_krav?.produktivitet?.belop ?? 0) > 0;
   const harSaerskiltKrav = harRiggKrav || harProduktivitetKrav;
 
-  // Calculate total ports (4 with or without særskilte - handled in port 3)
-  const totalPorts = 4;
+  // Calculate total ports (5 with Oversikt step for consistency)
+  const totalPorts = 5;
 
   // Fetch grunnlag validation status when modal opens
   const { data: grunnlagValidering, isLoading: isLoadingGrunnlag } = useQuery({
@@ -567,7 +567,10 @@ export function BHResponsForseringModal({
   const canProceed = useMemo(() => {
     switch (currentPort) {
       case 1:
-        // All saker must be evaluated
+        // Oversikt - always OK
+        return true;
+      case 2:
+        // Forseringsrett - All saker must be evaluated
         if (!avslatteSaker || avslatteSaker.length === 0) {
           // Fallback: if no avslatteSaker data, allow proceeding (will use forseringData.avslatte_dager)
           return true;
@@ -579,10 +582,11 @@ export function BHResponsForseringModal({
           )
         );
         return alleVurdert;
-      case 2:
-        // Port 2 er kun informativ - 30%-regelen beregnes automatisk
-        return true;
       case 3:
+        // 30%-regel er kun informativ - beregnes automatisk
+        return true;
+      case 4:
+        // Beløp - hovedkrav må vurderes
         return formData.hovedkrav_vurdering !== undefined;
       default:
         return true;
@@ -605,6 +609,7 @@ export function BHResponsForseringModal({
 
   // Step configuration
   const steps = [
+    { label: 'Oversikt' },
     { label: 'Forseringsrett' },
     { label: '30%-regel' },
     { label: 'Beløp' },
@@ -640,17 +645,13 @@ export function BHResponsForseringModal({
           {/* Token Expired Alert */}
           <TokenExpiredAlert open={showTokenExpired} onClose={() => setShowTokenExpired(false)} />
 
-          {/* PORT 1: Forseringsrett (§33.8) - Per-sak vurdering */}
+          {/* PORT 1: OVERSIKT */}
           {currentPort === 1 && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Forseringsrett (§33.8)</h3>
-              <p className="text-sm text-pkt-text-body-subtle">
-                Etter NS 8407 §33.8 har entreprenøren rett til forseringsvederlag dersom byggherren
-                har avslått fristforlengelse uten berettiget grunn.
-              </p>
+            <div className="space-y-6">
+              <h3 className="text-lg font-semibold">Oversikt</h3>
 
-              {/* Info about the forsering */}
-              <SectionContainer title="Forseringskrav fra entreprenør" variant="subtle">
+              {/* Kravsammendrag */}
+              <SectionContainer title="Forseringskrav fra entreprenør">
                 <InlineDataList>
                   <InlineDataListItem label="Varslet">
                     {formatDate(forseringData.dato_varslet)}
@@ -659,6 +660,78 @@ export function BHResponsForseringModal({
                     {avslatteSaker?.length ?? forseringData.avslatte_fristkrav?.length ?? 0}
                   </InlineDataListItem>
                   <InlineDataListItem label="Avslåtte dager (sum)" mono bold>
+                    {computed.totalAvslatteDager}
+                  </InlineDataListItem>
+                  <InlineDataListItem label="Estimert kostnad" mono bold>
+                    {formatCurrency(forseringData.estimert_kostnad)}
+                  </InlineDataListItem>
+                  <InlineDataListItem label="Maks (30%-grense)" mono>
+                    {formatCurrency(forseringData.maks_forseringskostnad)}
+                  </InlineDataListItem>
+                </InlineDataList>
+              </SectionContainer>
+
+              {/* Veiviser */}
+              <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
+                <h4 className="font-medium text-sm mb-3">Hva du skal vurdere</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex gap-3">
+                    <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">Steg 2</span>
+                    <div>
+                      <span className="font-medium">Forseringsrett</span>
+                      <span className="text-pkt-text-body-subtle">
+                        {' '}— Var avslagene på fristforlengelse berettiget? (§33.8)
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">Steg 3</span>
+                    <div>
+                      <span className="font-medium">30%-regel</span>
+                      <span className="text-pkt-text-body-subtle">
+                        {' '}— Er kostnadene innenfor dagmulkt + 30%?
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">Steg 4</span>
+                    <div>
+                      <span className="font-medium">Beløpsvurdering</span>
+                      <span className="text-pkt-text-body-subtle">
+                        {' '}— Vurder forseringskostnadene
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">Steg 5</span>
+                    <div>
+                      <span className="font-medium">Oppsummering</span>
+                      <span className="text-pkt-text-body-subtle">
+                        {' '}— Se resultat og send standpunkt
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* PORT 2: Forseringsrett (§33.8) - Per-sak vurdering */}
+          {currentPort === 2 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Forseringsrett (§33.8)</h3>
+              <p className="text-sm text-pkt-text-body-subtle">
+                Etter NS 8407 §33.8 har entreprenøren rett til forseringsvederlag dersom byggherren
+                har avslått fristforlengelse uten berettiget grunn.
+              </p>
+
+              {/* Info about the forsering */}
+              <SectionContainer title="Avslåtte fristkrav" variant="subtle">
+                <InlineDataList>
+                  <InlineDataListItem label="Antall saker" mono bold>
+                    {avslatteSaker?.length ?? forseringData.avslatte_fristkrav?.length ?? 0}
+                  </InlineDataListItem>
+                  <InlineDataListItem label="Sum avslåtte dager" mono bold>
                     {computed.totalAvslatteDager}
                   </InlineDataListItem>
                 </InlineDataList>
@@ -764,8 +837,8 @@ export function BHResponsForseringModal({
             </div>
           )}
 
-          {/* PORT 2: 30%-regel */}
-          {currentPort === 2 && (
+          {/* PORT 3: 30%-regel */}
+          {currentPort === 3 && (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">30%-regelen (§33.8)</h3>
               <p className="text-sm text-pkt-text-body-subtle">
@@ -808,8 +881,8 @@ export function BHResponsForseringModal({
             </div>
           )}
 
-          {/* PORT 3: Beløpsvurdering */}
-          {currentPort === 3 && (
+          {/* PORT 4: Beløpsvurdering */}
+          {currentPort === 4 && (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Beløpsvurdering</h3>
               <p className="text-sm text-pkt-text-body-subtle">
@@ -1007,8 +1080,8 @@ export function BHResponsForseringModal({
             </div>
           )}
 
-          {/* PORT 4: Oppsummering */}
-          {currentPort === 4 && (
+          {/* PORT 5: Oppsummering */}
+          {currentPort === 5 && (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Oppsummering</h3>
 

@@ -778,6 +778,8 @@ export function RespondFristModal({
               ================================================================ */}
           {currentStepType === 'oversikt' && (
             <div className="space-y-6">
+              <h3 className="text-lg font-semibold">Oversikt</h3>
+
               {/* Kravsammendrag */}
               <SectionContainer title="Fristkrav fra entreprenør">
                 <DataList align="right">

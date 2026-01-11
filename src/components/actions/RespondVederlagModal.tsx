@@ -947,9 +947,11 @@ export function RespondVederlagModal({
               ================================================================ */}
           {currentStepType === 'oversikt' && (
             <div className="space-y-6">
+              <h3 className="text-lg font-semibold">Oversikt</h3>
+
               {/* Kravsammendrag */}
               <div className="p-4 border-2 border-pkt-border-subtle rounded-none">
-                <h3 className="font-bold text-base mb-4">Krav fra entreprenør</h3>
+                <h4 className="font-bold text-base mb-4">Krav fra entreprenør</h4>
 
                 <div className="space-y-3">
                   {/* Hovedkrav */}

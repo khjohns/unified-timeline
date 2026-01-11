@@ -21,7 +21,7 @@ export function ComprehensiveMetadata({
   sakId,
 }: ComprehensiveMetadataProps) {
   return (
-    <DataList>
+    <DataList variant="grid">
       <DataListItem label="Sak-ID">{sakId}</DataListItem>
       <DataListItem label="Prosjekt">{state.prosjekt_navn || '—'}</DataListItem>
       <DataListItem label="Sakstittel">{state.sakstittel}</DataListItem>
