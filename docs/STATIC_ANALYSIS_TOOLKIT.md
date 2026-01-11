@@ -29,6 +29,38 @@ python scripts/contract_drift.py --ci
 - `SporType`: 'forsering' finnes i TypeScript men mangler i Python
 - `EventType`: 11 event-typer er ute av synk mellom frontend/backend
 
+### State Model Drift Detector
+
+**Status:** Implementert
+
+**Plassering:** `scripts/state_drift.py`
+
+**Bruk:**
+```bash
+# Standard output
+python scripts/state_drift.py
+
+# JSON output (for CI/pipelines)
+python scripts/state_drift.py --format json
+
+# Markdown output (for rapporter)
+python scripts/state_drift.py --format markdown
+
+# CI-modus (exit 1 ved kritiske funn)
+python scripts/state_drift.py --ci
+```
+
+**Hva den sjekker:**
+- Sammenligner TypeScript interfaces med Pydantic BaseModel-klasser
+- Finner felt som mangler på en av sidene
+- Detekterer optional/required mismatches
+- Håndterer @computed_field properties i Pydantic
+
+**Første kjøring fant:**
+- 22 kritiske felt-mismatches
+- 14 optional-mismatch advarsler
+- Eksempel: `SakState.catenda_topic_id` mangler i TypeScript
+
 ---
 
 ## Bakgrunn
