@@ -562,13 +562,13 @@ function CasePageContent() {
           )}
         </section>
 
-        {/* Summary Section - Enhanced with Comprehensive Metadata and Revision History */}
-        <section className="mt-6 sm:mt-8" aria-labelledby="summary-heading">
+        {/* Metadata Section - Case info and Revision History */}
+        <section className="mt-6 sm:mt-8" aria-labelledby="metadata-heading">
           <h2
-            id="summary-heading"
+            id="metadata-heading"
             className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4"
           >
-            Sammendrag
+            Metadata
           </h2>
 
           {/* Comprehensive Metadata */}
