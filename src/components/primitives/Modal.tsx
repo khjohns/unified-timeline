@@ -45,9 +45,9 @@ export function Modal({
         <Dialog.Content
           className={clsx(
             'fixed left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%]',
-            // Sharp corners and border
-            'bg-pkt-bg-card rounded-none shadow-xl',
-            'border-2 border-pkt-border-default',
+            // Sharp corners and subtle elevation
+            'bg-pkt-bg-card rounded-none shadow-lg',
+            'border border-pkt-border-default',
             // Responsive padding - smaller on mobile for more content space
             'p-4 sm:p-6 md:p-8',
             'z-modal',

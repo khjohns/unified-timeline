@@ -1,7 +1,7 @@
 # Claude Code Skills - Oppdatert Vurdering og Anbefaling (v2)
 
 > Dokument opprettet: 2025-01-11
-> Oppdatert med: Multi-file structure, script-referanser, subagent-integrasjon
+> Oppdatert: 2026-01-12 - Konklusjon om multi-file struktur
 > Referanse: https://code.claude.com/docs/en/skills
 
 ---
@@ -12,20 +12,62 @@
 |-----------|--------|------------|
 | `event-sourcing` skill | Implementert | `.claude/skills/event-sourcing/SKILL.md` |
 | `static-analysis` skill | Implementert | `.claude/skills/static-analysis/SKILL.md` |
-| Multi-file skills (progressive disclosure) | Ikke implementert | Vurderes senere |
-| Custom subagents | Ikke implementert | Se `CLAUDE_CODE_SUBAGENTS_ANBEFALING.md` |
+| `accessibility` skill | Implementert | `.claude/skills/accessibility/SKILL.md` |
+| `ns8407` skill | Implementert | `.claude/skills/ns8407/SKILL.md` |
+| Custom subagents | Implementert | `.claude/agents/` |
+| Multi-file skills (progressive disclosure) | **Ikke nødvendig** | Se vurdering nedenfor |
 | Hooks | Ikke implementert | Se `CLAUDE_CODE_HOOKS_ANBEFALING.md` |
 
 **Nåværende struktur:**
 ```
 .claude/
 ├── settings.local.json          # Permissions
-└── skills/
-    ├── event-sourcing/
-    │   └── SKILL.md             # Implementert
-    └── static-analysis/
-        └── SKILL.md             # Implementert
+├── skills/
+│   ├── event-sourcing/
+│   │   └── SKILL.md             # 195 linjer
+│   ├── static-analysis/
+│   │   └── SKILL.md             # 208 linjer
+│   ├── accessibility/
+│   │   └── SKILL.md             # 108 linjer
+│   └── ns8407/
+│       └── SKILL.md             # 202 linjer
+└── agents/
+    ├── event-expert.md          # Implementert
+    └── drift-checker.md         # Implementert
 ```
+
+---
+
+## Vurdering: Multi-file struktur
+
+### Konklusjon: Ikke nødvendig nå
+
+Etter gjennomgang av [Claude Code dokumentasjonen](https://code.claude.com/docs/en/skills#add-supporting-files-with-progressive-disclosure) og analyse av våre skills, er konklusjonen at **multi-file struktur ikke er hensiktsmessig for dette prosjektet**.
+
+### Begrunnelse
+
+| Skill | Linjer | Grense | Status |
+|-------|--------|--------|--------|
+| accessibility | 108 | 500 | Godt under |
+| event-sourcing | 195 | 500 | Godt under |
+| ns8407 | 202 | 500 | Godt under |
+| static-analysis | 208 | 500 | Godt under |
+
+**Argumenter mot multi-file:**
+
+1. **Alle filer er godt under 500-linjers grensen** - Progressive disclosure gir mest verdi når SKILL.md nærmer seg grensen
+2. **Ekstra kompleksitet** - Flere filer å vedlikeholde uten reell gevinst
+3. **Risiko for dype referanser** - Dokumentasjonen advarer mot fil A → fil B → fil C
+4. **Scripts ligger allerede i `/scripts`** - Riktig struktur; skills refererer til scripts som kjøres
+
+### Når revurdere
+
+Vurder multi-file struktur hvis:
+- En skill nærmer seg 400+ linjer
+- Det legges til omfattende eksempler eller tutorials
+- `event-sourcing` skal inneholde komplett event-liste med alle felter
+
+**YAGNI-prinsippet gjelder** - ikke overingeniør før behovet oppstår.
 
 ---
 
@@ -57,23 +99,36 @@ scripts/
 
 ---
 
-## Oppdatert Skill-Struktur
+## Skill-Struktur
 
-### Anbefalt: Multi-file struktur med progressive disclosure
+### Valgt: Enkelt-fil struktur
+
+Basert på vurderingen ovenfor bruker vi enkelt-fil struktur:
 
 ```
 .claude/skills/
 ├── event-sourcing/
-│   ├── SKILL.md           # Oversikt (alltid lastet)
-│   ├── events-reference.md # Detaljert event-liste (lastes ved behov)
-│   └── examples.md         # Eksempler (lastes ved behov)
+│   └── SKILL.md           # Komplett guide (195 linjer)
 │
 ├── static-analysis/
-│   ├── SKILL.md           # Oversikt + script-referanser
-│   └── interpreting-output.md  # Hvordan tolke output
+│   └── SKILL.md           # Script-referanser (208 linjer)
 │
-└── testing/
-    └── SKILL.md           # Enkelt-fil skill
+├── accessibility/
+│   └── SKILL.md           # WCAG-guide (108 linjer)
+│
+└── ns8407/
+    └── SKILL.md           # Kontraktsreferanse (202 linjer)
+```
+
+### Fremtidig multi-file (kun ved behov)
+
+Hvis en skill vokser over 400 linjer, kan den splittes:
+
+```
+event-sourcing/
+├── SKILL.md               # Oversikt (alltid lastet)
+├── events-reference.md    # Detaljert event-liste (lazy load)
+└── examples.md            # Eksempler (lazy load)
 ```
 
 ---
@@ -289,31 +344,28 @@ Bruk skill-dokumentasjonen for å:
 
 ---
 
-## Komplett Anbefalt Mappestruktur
+## Implementert Mappestruktur
 
 ```
 .claude/
-├── settings.json              # Hooks-konfigurasjon
+├── settings.local.json        # Permissions
 │
 ├── skills/
 │   ├── event-sourcing/
-│   │   ├── SKILL.md          # Oversikt (alltid lastet)
-│   │   ├── events-reference.md   # Detaljer (lazy load)
-│   │   └── examples.md       # Eksempler (lazy load)
-│   │
-│   └── static-analysis/
-│       ├── SKILL.md          # Script-referanser
-│       └── interpreting-output.md  # Output-guide
+│   │   └── SKILL.md          # Komplett guide
+│   ├── static-analysis/
+│   │   └── SKILL.md          # Script-referanser
+│   ├── accessibility/
+│   │   └── SKILL.md          # WCAG-guide
+│   └── ns8407/
+│       └── SKILL.md          # Kontraktsreferanse
 │
 └── agents/
-    ├── drift-checker.md      # skills: static-analysis
-    ├── event-expert.md       # skills: event-sourcing
-    ├── test-runner.md
-    ├── security-scanner.md   # skills: static-analysis
-    └── code-reviewer.md      # skills: event-sourcing, static-analysis
+    ├── event-expert.md       # Event Sourcing + NS 8407
+    └── drift-checker.md      # Synkroniseringssjekk
 
-scripts/                       # Eksisterende - IKKE endre
-├── check_drift.py            # Refereres fra skills
+scripts/                       # Eksisterende - refereres fra skills
+├── check_drift.py            # Samlet drift-sjekk
 ├── contract_drift.py
 ├── state_drift.py
 ├── security_scan.py
@@ -338,20 +390,13 @@ python scripts/check_drift.py
 Les scriptet for å forstå hvordan det fungerer...
 ```
 
-### 2. Progressive disclosure
+### 2. Hold skills kompakte
 
-- **SKILL.md** inneholder essensielt (alltid lastet)
-- **Andre filer** lastes kun ved behov (sparer kontekst)
+- **Under 500 linjer** per SKILL.md
+- **Kun essensielt innhold** - ikke dupliser det som finnes i kode/scripts
+- **Vurder multi-file** først når en skill nærmer seg 400+ linjer
 
-### 3. Subagents må liste skills eksplisitt
-
-```yaml
----
-skills: static-analysis, event-sourcing  # Må listes!
----
-```
-
-### 4. allowed-tools begrenser verktøy
+### 3. allowed-tools begrenser verktøy
 
 ```yaml
 ---
@@ -361,22 +406,25 @@ allowed-tools: Bash, Read  # Kun disse tilgjengelig
 
 ---
 
-## Migrering fra v1
+## Status og Historikk
 
-### Endringer fra forrige versjon
+### Implementert (v2)
+
+| Komponent | Status |
+|-----------|--------|
+| 4 skills (event-sourcing, static-analysis, accessibility, ns8407) | ✓ Implementert |
+| 2 agenter (event-expert, drift-checker) | ✓ Implementert |
+| Script-referanser i skills | ✓ Implementert |
+| Multi-file progressive disclosure | ✗ Ikke nødvendig |
+
+### Endringer fra v1
 
 | Før (v1) | Etter (v2) |
 |----------|------------|
-| Enkelt-fil skills | Multi-file med SKILL.md |
+| 2 skills | 4 skills |
+| Ingen agenter | 2 agenter implementert |
+| Planla multi-file | Vurdert og forkastet (YAGNI) |
 | Forklarte script-innhold | Refererer til scripts for kjøring |
-| Subagents uten skills | Subagents med `skills:` felt |
-
-### Migreringsplan
-
-1. Opprett mappestruktur `.claude/skills/<skill-name>/`
-2. Flytt eksisterende `.md` til `SKILL.md`
-3. Trekk ut detaljer til separate filer
-4. Oppdater subagents med `skills:` referanser
 
 ---
 

@@ -1392,7 +1392,7 @@ export function RespondFristModal({
                         </div>
 
                         {/* Differanse card */}
-                        <div className="p-3 border-2 border-pkt-border-default rounded-none bg-pkt-surface-subtle">
+                        <div className="p-3 border border-pkt-border-default rounded-none bg-pkt-surface-subtle">
                           <div className="flex justify-between items-center mb-2">
                             <span className="font-bold">DIFFERANSE</span>
                             {effektivKrevdDager > 0 && (

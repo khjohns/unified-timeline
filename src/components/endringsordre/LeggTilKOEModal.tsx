@@ -125,8 +125,8 @@ export function LeggTilKOEModal({
             )}
           </div>
         ) : (
-          <div className="border-2 border-pkt-border-default rounded-none max-h-80 overflow-y-auto">
-            <ul className="divide-y-2 divide-pkt-border-subtle">
+          <div className="border border-pkt-border-default rounded-none max-h-80 overflow-y-auto">
+            <ul className="divide-y divide-pkt-border-subtle">
               {filtrerteKandidater.map((sak) => {
                 const erValgt = valgtSak === sak.sak_id;
 

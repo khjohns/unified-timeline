@@ -259,8 +259,8 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
             <Dialog.Content
               className={clsx(
                 'fixed inset-x-0 bottom-0',
-                'bg-pkt-bg-card rounded-none shadow-xl',
-                'border-t-2 border-pkt-border-default',
+                'bg-pkt-bg-card rounded-none shadow-lg',
+                'border-t border-pkt-border-default',
                 'p-6 pb-8',
                 'z-modal',
                 'focus:outline-none',
@@ -331,8 +331,8 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
             className={clsx(
               'z-popover',
               'bg-pkt-bg-card',
-              'border-2 border-pkt-border-default rounded-none',
-              'shadow-xl',
+              'border border-pkt-border-default rounded-none',
+              'shadow-lg',
               'p-4',
               // Animations
               'data-[state=open]:animate-in data-[state=closed]:animate-out',

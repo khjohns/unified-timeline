@@ -950,7 +950,7 @@ export function RespondVederlagModal({
               <h3 className="text-lg font-semibold">Oversikt</h3>
 
               {/* Kravsammendrag */}
-              <div className="p-4 border-2 border-pkt-border-subtle rounded-none">
+              <div className="p-4 border border-pkt-border-subtle rounded-none">
                 <h4 className="font-bold text-base mb-4">Krav fra entreprenør</h4>
 
                 <div className="space-y-3">
@@ -1929,7 +1929,7 @@ export function RespondVederlagModal({
                     )}
 
                     {/* Totalt card */}
-                    <div className="p-3 border-2 border-pkt-border-default rounded-none bg-pkt-surface-subtle">
+                    <div className="p-3 border border-pkt-border-default rounded-none bg-pkt-surface-subtle">
                       <div className="flex justify-between items-center mb-2">
                         <span className="font-bold">TOTALT</span>
                         {computed.totalKrevd > 0 && (

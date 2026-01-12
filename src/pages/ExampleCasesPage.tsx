@@ -75,9 +75,9 @@ export function ExampleCasesPage() {
                   <span
                     className={`inline-block px-3 py-2 rounded-none text-sm font-medium ${
                       mockCase.sakstype === 'forsering'
-                        ? 'bg-pkt-brand-yellow-500 text-alert-warning-text border-2 border-pkt-border-yellow'
+                        ? 'bg-pkt-brand-yellow-500 text-alert-warning-text border border-pkt-border-yellow'
                         : mockCase.sakstype === 'endringsordre'
-                        ? 'bg-badge-info-bg text-badge-info-text border-2 border-pkt-border-info'
+                        ? 'bg-badge-info-bg text-badge-info-text border border-pkt-border-info'
                         : mockCase.status === 'Klar for EO'
                         ? 'bg-badge-success-bg text-badge-success-text'
                         : mockCase.status === 'Under behandling'

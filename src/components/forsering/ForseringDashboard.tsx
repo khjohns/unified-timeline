@@ -526,7 +526,7 @@ function BelopsvurderingSection({
           </div>
         ))}
         {/* Total card */}
-        <div className="p-2 rounded border-2 border-pkt-border-default bg-white">
+        <div className="p-2 rounded-none border border-pkt-border-default bg-white">
           <div className="flex items-center justify-between">
             <span className="font-bold text-sm">TOTALT</span>
           </div>

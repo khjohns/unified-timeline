@@ -156,8 +156,8 @@ export function LeggTilRelatertSakModal({
             )}
           </div>
         ) : (
-          <div className="border-2 border-pkt-border-default rounded-none max-h-80 overflow-y-auto">
-            <ul className="divide-y-2 divide-pkt-border-subtle">
+          <div className="border border-pkt-border-default rounded-none max-h-80 overflow-y-auto">
+            <ul className="divide-y divide-pkt-border-subtle">
               {filtrerteKandidater.map((sak) => {
                 const avslatteDager = getAvslatteDager(sak);
                 const erValgt = valgteSaker.has(sak.sak_id);
@@ -210,7 +210,7 @@ export function LeggTilRelatertSakModal({
 
         {/* Summary */}
         {valgteSaker.size > 0 && (
-          <div className="p-3 bg-pkt-surface-subtle border-2 border-pkt-border-default rounded-none">
+          <div className="p-3 bg-pkt-surface-subtle border border-pkt-border-default rounded-none">
             <div className="flex justify-between items-center">
               <span className="text-sm">
                 <strong>{valgteSaker.size}</strong> sak(er) valgt

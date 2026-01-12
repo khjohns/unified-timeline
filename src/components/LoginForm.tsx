@@ -44,7 +44,7 @@ export function LoginForm() {
 
   return (
     <div className="min-h-screen bg-pkt-bg-default flex items-center justify-center px-4">
-      <div className="max-w-md w-full p-6 sm:p-8 bg-white rounded-none shadow-lg border-2 border-pkt-border-default">
+      <div className="max-w-md w-full p-6 sm:p-8 bg-pkt-bg-card rounded-none shadow-md border border-pkt-border-default">
         <h1 className="text-xl sm:text-2xl font-bold text-pkt-text-body-dark mb-2 text-center">
           Skjema Endringsmeldinger
         </h1>
@@ -66,9 +66,9 @@ export function LoginForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-3 py-2 border-2 border-pkt-border-default bg-white text-pkt-text-body-default
-                         focus:outline-none focus:border-pkt-brand-blue-700 focus:ring-0
-                         placeholder:text-pkt-text-body-subtle"
+              className="w-full px-3 py-2 border-2 border-pkt-border-default bg-pkt-bg-card text-pkt-text-body-default
+                         focus:outline-none focus:border-pkt-brand-warm-blue-1000 focus:ring-0
+                         placeholder:text-pkt-text-placeholder"
               placeholder="din@epost.no"
             />
           </div>
@@ -87,19 +87,19 @@ export function LoginForm() {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
-              className="w-full px-3 py-2 border-2 border-pkt-border-default bg-white text-pkt-text-body-default
-                         focus:outline-none focus:border-pkt-brand-blue-700 focus:ring-0
-                         placeholder:text-pkt-text-body-subtle"
+              className="w-full px-3 py-2 border-2 border-pkt-border-default bg-pkt-bg-card text-pkt-text-body-default
+                         focus:outline-none focus:border-pkt-brand-warm-blue-1000 focus:ring-0
+                         placeholder:text-pkt-text-placeholder"
               placeholder={mode === 'register' ? 'Minst 6 tegn' : '********'}
             />
           </div>
 
           {message && (
             <div
-              className={`p-3 text-sm ${
+              className={`p-3 text-sm rounded-none ${
                 message.type === 'error'
-                  ? 'bg-red-50 text-pkt-brand-red-1000 border border-pkt-brand-red-1000'
-                  : 'bg-green-50 text-green-800 border border-green-800'
+                  ? 'bg-alert-danger-bg text-alert-danger-text border border-alert-danger-border'
+                  : 'bg-alert-success-bg text-alert-success-text border border-alert-success-border'
               }`}
               role={message.type === 'error' ? 'alert' : 'status'}
             >
@@ -110,9 +110,10 @@ export function LoginForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 px-4 bg-pkt-brand-blue-700 text-white font-medium
-                       hover:bg-pkt-brand-blue-800 focus:outline-none focus:ring-2
-                       focus:ring-pkt-brand-blue-700 focus:ring-offset-2
+            className="w-full py-2.5 px-4 bg-pkt-surface-strong-dark-blue text-pkt-text-body-light font-medium
+                       rounded-none border-2 border-pkt-border-default
+                       hover:bg-pkt-brand-warm-blue-1000 hover:border-pkt-border-hover
+                       focus:outline-none focus:ring-4 focus:ring-pkt-brand-purple-1000/30
                        disabled:opacity-50 disabled:cursor-not-allowed
                        flex items-center justify-center gap-2"
           >
@@ -128,7 +129,7 @@ export function LoginForm() {
               setMode(mode === 'login' ? 'register' : 'login');
               setMessage(null);
             }}
-            className="text-sm text-pkt-brand-blue-700 hover:underline focus:outline-none"
+            className="text-sm text-pkt-text-action-active hover:underline focus:outline-none"
           >
             {mode === 'login' ? 'Har du ikke konto? Registrer deg' : 'Har du allerede konto? Logg inn'}
           </button>

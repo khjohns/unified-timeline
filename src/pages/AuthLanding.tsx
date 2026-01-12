@@ -37,7 +37,7 @@ export function AuthLanding() {
   if (error) {
     return (
       <div className="min-h-screen bg-pkt-bg-default flex items-center justify-center px-4">
-        <div className="max-w-md w-full p-6 sm:p-8 bg-white rounded-none shadow-lg border-2 border-pkt-border-default" role="alert">
+        <div className="max-w-md w-full p-6 sm:p-8 bg-pkt-bg-card rounded-none shadow-md border border-pkt-border-default" role="alert">
           <ExclamationTriangleIcon className="w-12 h-12 mx-auto mb-4 text-pkt-brand-red-1000" />
           <h2 className="text-xl sm:text-2xl font-bold text-pkt-brand-red-1000 mb-4 text-center">
             Kunne ikke verifisere lenke
@@ -54,7 +54,7 @@ export function AuthLanding() {
   // No token state - show instructions
   return (
     <div className="min-h-screen bg-pkt-bg-default flex items-center justify-center px-4">
-      <div className="max-w-md w-full p-6 sm:p-8 bg-white rounded-none shadow-lg border-2 border-pkt-border-default">
+      <div className="max-w-md w-full p-6 sm:p-8 bg-pkt-bg-card rounded-none shadow-md border border-pkt-border-default">
         <h1 className="text-xl sm:text-2xl font-bold text-pkt-text-body-dark mb-4 text-center">
           Skjema Endringsmeldinger
         </h1>

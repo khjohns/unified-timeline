@@ -435,7 +435,7 @@ function ResultatKort({ variant, resultatBadge, verdi, beskrivelse }: ResultatKo
   const isPrinsipalt = variant === 'prinsipalt';
 
   return (
-    <div className={`p-4 rounded-none ${isPrinsipalt ? 'bg-pkt-surface-strong-dark-blue text-white' : 'bg-amber-50 border-2 border-amber-200'}`}>
+    <div className={`p-4 rounded-none ${isPrinsipalt ? 'bg-pkt-surface-strong-dark-blue text-white' : 'bg-amber-50 border border-amber-200'}`}>
       <h5 className={`font-medium text-xs mb-2 ${isPrinsipalt ? 'opacity-70' : 'text-amber-700'}`}>
         {isPrinsipalt ? 'PRINSIPALT STANDPUNKT' : 'SUBSIDIÆRT STANDPUNKT'}
       </h5>

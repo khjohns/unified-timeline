@@ -62,9 +62,9 @@ export function SectionContainer({
     'rounded-none',
     {
       // Default: Clean border for form sections
-      'border-2 border-pkt-border-subtle': variant === 'default',
+      'border border-pkt-border-subtle': variant === 'default',
       // Subtle: Background fill for context/read-only sections
-      'border-2 border-pkt-border-subtle bg-pkt-bg-subtle': variant === 'subtle',
+      'border border-pkt-border-subtle bg-pkt-bg-subtle': variant === 'subtle',
     },
     className
   );
@@ -73,7 +73,7 @@ export function SectionContainer({
     'px-4 py-3 flex items-center gap-3',
     {
       // Collapsible header styling
-      'cursor-pointer hover:bg-pkt-grays-gray-50 transition-colors': collapsible,
+      'cursor-pointer hover:bg-pkt-grays-gray-100 transition-colors': collapsible,
       // Border bottom when content is visible
       'border-b border-pkt-border-subtle': !collapsible || isOpen,
     }

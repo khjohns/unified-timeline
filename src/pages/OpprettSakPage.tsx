@@ -334,7 +334,7 @@ export function OpprettSakPage() {
                       required
                       error={errors.underkategori?.message}
                     >
-                      <div className="space-y-4 max-h-80 overflow-y-auto border-2 border-pkt-border-gray rounded-none p-4 bg-pkt-bg-subtle" data-testid="sak-underkategori-list">
+                      <div className="space-y-4 max-h-80 overflow-y-auto border border-pkt-border-gray rounded-none p-4 bg-pkt-bg-subtle" data-testid="sak-underkategori-list">
                         {Array.from(grupperteUnderkategorier.entries()).map(([gruppeNavn, underkategorier]) => (
                           <div key={gruppeNavn ?? 'ungrouped'}>
                             {gruppeNavn && (
@@ -423,7 +423,7 @@ export function OpprettSakPage() {
             </FormField>
 
             {/* Dato og varsel-seksjon */}
-            <div className="bg-pkt-surface-subtle p-4 rounded-none border-2 border-pkt-border-default space-y-4">
+            <div className="bg-pkt-surface-subtle p-4 rounded-none border border-pkt-border-default space-y-4">
               <FormField
                 label="Dato forhold oppdaget"
                 required
@@ -486,7 +486,7 @@ export function OpprettSakPage() {
                 label="Varselmetode"
                 helpText="Hvordan ble byggherren varslet? (Kan velge flere)"
               >
-                <div className="space-y-3 border-2 border-pkt-border-gray rounded-none p-4 bg-pkt-bg-subtle">
+                <div className="space-y-3 border border-pkt-border-gray rounded-none p-4 bg-pkt-bg-subtle">
                   {VARSEL_METODER_OPTIONS.map((option) => (
                     <Checkbox
                       key={option.value}

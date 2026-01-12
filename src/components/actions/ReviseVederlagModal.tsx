@@ -611,7 +611,7 @@ export function ReviseVederlagModal({
             {/* Change display */}
             {belopEndring !== null && belopEndring !== 0 && forrigeBelop && (
               <div
-                className={`p-3 rounded-none border-2 ${
+                className={`p-3 rounded-none border ${
                   belopEndring > 0
                     ? 'bg-pkt-surface-faded-red border-pkt-border-red'
                     : 'bg-pkt-surface-faded-green border-pkt-border-green'

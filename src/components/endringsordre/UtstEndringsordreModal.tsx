@@ -675,7 +675,7 @@ export function UtstEndringsordreModal({
                             <button
                               type="button"
                               onClick={() => field.onChange(opt.value)}
-                              className={`w-full p-3 border-2 rounded-none text-left transition-colors ${
+                              className={`w-full p-3 border rounded-none text-left transition-colors ${
                                 field.value === opt.value
                                   ? 'border-pkt-brand-purple-1000 bg-pkt-surface-light-beige'
                                   : 'border-pkt-border-default hover:border-pkt-border-focus'
@@ -732,7 +732,7 @@ export function UtstEndringsordreModal({
                   </div>
 
                   {/* Netto */}
-                  <div className="p-3 bg-pkt-surface-subtle border-2 border-pkt-border-subtle rounded-none">
+                  <div className="p-3 bg-pkt-surface-subtle border border-pkt-border-subtle rounded-none">
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium">Netto beløp:</span>
                       <span className={`font-bold text-base ${nettoBelop < 0 ? 'text-alert-danger-text' : ''}`}>

@@ -35,7 +35,7 @@ export function DashboardCard({
   return (
     <Card variant={variant} className={clsx('p-0 overflow-hidden', className)}>
       {/* Header */}
-      <div className="mx-4 mt-4 pb-3 border-b border-pkt-border-subtle flex items-center justify-between">
+      <div className="mx-4 py-3 border-b border-pkt-border-subtle flex items-center justify-between">
         <h3 className="font-bold text-sm">{title}</h3>
         {headerBadge}
       </div>

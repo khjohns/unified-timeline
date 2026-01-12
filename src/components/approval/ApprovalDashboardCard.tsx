@@ -116,7 +116,7 @@ export function ApprovalDashboardCard({
     >
       {/* Rejection reason banner */}
       {isRejected && rejectedStep?.comment && (
-        <div className="mb-4 p-3 bg-pkt-bg-error rounded-md border border-pkt-border-error">
+        <div className="mb-4 p-3 bg-pkt-bg-error border border-pkt-border-error">
           <div className="text-sm font-medium text-pkt-text-error">
             Avvist av {rejectedStep.roleName}
           </div>
