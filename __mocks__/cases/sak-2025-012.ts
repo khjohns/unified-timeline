@@ -54,6 +54,8 @@ export const mockSakState12: SakState = {
   // Grunnlag er ikke relevant for forseringssaker (arves fra relaterte saker)
   grunnlag: {
     status: 'ikke_relevant',
+    kontraktsreferanser: [],
+    laast: false,
     siste_oppdatert: '2025-02-10',
     antall_versjoner: 0,
   },

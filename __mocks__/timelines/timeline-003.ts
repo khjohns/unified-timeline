@@ -59,20 +59,7 @@ export const mockTimelineEvents4: TimelineEntry[] = [
       begrunnelse: 'Grunnlag godkjent. Dokumentert med foto og nye målinger.',
     },
   },
-  {
-    event_id: 'evt-304',
-    tidsstempel: '2025-01-29T11:30:00Z',
-    type: 'Nøytralt varsel sendt',
-    event_type: 'frist_varsel_noytralt',
-    aktor: 'Per Hansen',
-    rolle: 'TE',
-    spor: 'frist',
-    sammendrag: 'Nøytralt varsel om mulig fristforlengelse',
-    event_data: {
-      noytralt_varsel: { dato_sendt: '2025-01-28', metode: ['epost', 'telefon'] },
-      begrunnelse: 'Fristforlengelse kan bli nødvendig pga. omlegging av rørføring. Spesifisert krav med framdriftsplan følger.',
-    },
-  },
+  // Nøytralt varsel er nå inkludert i frist_krav_sendt event
   {
     event_id: 'evt-305',
     tidsstempel: '2025-01-29T11:00:00Z',
@@ -87,8 +74,8 @@ export const mockTimelineEvents4: TimelineEntry[] = [
       begrunnelse: 'Foreløpig krav basert på estimat. Endelig spesifikasjon med detaljert kostnadskalkyle følger innen fastsatt frist.',
       kostnads_overslag: 450000,
       saerskilt_krav: {
-        produktivitet: true,
-        rigg_drift: true,
+        produktivitet: { belop: 50000 },
+        rigg_drift: { belop: 50000 },
       },
       regningsarbeid_varsel: { dato_sendt: '2025-01-28', metode: ['epost'] },
     },

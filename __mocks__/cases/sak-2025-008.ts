@@ -43,7 +43,7 @@ export const mockSakState8: SakState = {
 
   frist: {
     status: 'godkjent',
-    varsel_type: 'force_majeure',
+    varsel_type: 'spesifisert',
     noytralt_varsel: {
       dato_sendt: '2025-03-15',
       metode: ['epost', 'telefon'],

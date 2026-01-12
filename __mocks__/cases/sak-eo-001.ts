@@ -62,6 +62,8 @@ export const mockSakStateEO001: SakState = {
   // Grunnlag er ikke relevant for endringsordresaker (arves fra relaterte KOE-saker)
   grunnlag: {
     status: 'ikke_relevant',
+    kontraktsreferanser: [],
+    laast: false,
     siste_oppdatert: '2025-02-20',
     antall_versjoner: 0,
   },

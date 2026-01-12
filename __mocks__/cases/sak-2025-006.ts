@@ -82,19 +82,7 @@ export const mockSakState6: SakState = {
     godkjent_dager: 14,
     differanse_dager: -7,
 
-    // FORSERING WAS ACTIVE - but position changed
-    forsering: {
-      er_varslet: true,
-      dato_varslet: '2025-02-01',
-      estimert_kostnad: 380000,
-      begrunnelse: 'Overtid og ekstra skift for elektrikere i 3 uker.',
-      bekreft_30_prosent_regel: true,
-      er_iverksatt: true,
-      dato_iverksatt: '2025-02-02',
-      er_stoppet: false,
-    },
-
-    // BH changed position on 2025-02-15 (after forsering started)
+    // Note: Forsering håndteres nå separat via ForseringSak
     siste_oppdatert: '2025-02-15',
     antall_versjoner: 3,
   },

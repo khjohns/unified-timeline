@@ -2,7 +2,7 @@
  * Helper functions for mock data
  */
 
-import { SakState, TimelineEntry } from '../types/timeline';
+import { SakState, TimelineEntry } from '@/types/timeline';
 import {
   mockSakState1,
   mockSakState2,
@@ -211,8 +211,8 @@ export function getMockHistorikkById(sakId: string): {
         : state.vederlag.metode === 'REGNINGSARBEID' ? 'Regningsarbeid (§30.2/§34.4)'
         : 'Fastpris/Tilbud (§34.2.1)',
       begrunnelse: state.vederlag.begrunnelse || 'Se dokumentasjon',
-      inkluderer_rigg_drift: state.vederlag.saerskilt_krav?.rigg_drift ?? false,
-      inkluderer_produktivitet: state.vederlag.saerskilt_krav?.produktivitet ?? false,
+      inkluderer_rigg_drift: !!state.vederlag.saerskilt_krav?.rigg_drift,
+      inkluderer_produktivitet: !!state.vederlag.saerskilt_krav?.produktivitet,
     });
 
     // Add more revisions if state indicates updates
@@ -229,8 +229,8 @@ export function getMockHistorikkById(sakId: string): {
           : state.vederlag.metode === 'REGNINGSARBEID' ? 'Regningsarbeid (§30.2/§34.4)'
           : 'Fastpris/Tilbud (§34.2.1)',
         begrunnelse: 'Oppdatert beløp basert på ytterligere dokumentasjon',
-        inkluderer_rigg_drift: state.vederlag.saerskilt_krav?.rigg_drift ?? false,
-        inkluderer_produktivitet: state.vederlag.saerskilt_krav?.produktivitet ?? false,
+        inkluderer_rigg_drift: !!state.vederlag.saerskilt_krav?.rigg_drift,
+        inkluderer_produktivitet: !!state.vederlag.saerskilt_krav?.produktivitet,
       });
     }
 

@@ -62,8 +62,7 @@ export const mockTimelineEvents1: TimelineEntry[] = [
       begrunnelse: 'Kravet inkluderer:\n- Ekstra borekostnader: 1.200.000 NOK\n- Endret fundamentløsning: 800.000 NOK\n- Prosjektering og rådgivning: 300.000 NOK\n- Rigg og drift: 200.000 NOK',
       kostnads_overslag: 2500000,
       saerskilt_krav: {
-        rigg_drift: true,
-        belop: 200000,
+        rigg_drift: { belop: 200000 },
       },
       rigg_drift_varsel: { dato_sendt: '2025-01-15', metode: ['epost'] },
       regningsarbeid_varsel: { dato_sendt: '2025-01-15', metode: ['epost'] },
@@ -86,20 +85,7 @@ export const mockTimelineEvents1: TimelineEntry[] = [
       begrunnelse: 'Fristforlengelse nødvendig pga. omprosjektering av fundament (20 dager) og ekstra boring/sprengning (25 dager). Påvirker kritisk linje.',
     },
   },
-  {
-    event_id: 'evt-004b',
-    tidsstempel: '2025-01-15T13:30:00Z',
-    type: 'Nøytralt varsel sendt',
-    event_type: 'frist_varsel_noytralt',
-    aktor: 'Per Hansen',
-    rolle: 'TE',
-    spor: 'frist',
-    sammendrag: 'Nøytralt varsel om mulig fristforlengelse',
-    event_data: {
-      noytralt_varsel: { dato_sendt: '2025-01-15', metode: ['epost', 'byggemote'] },
-      begrunnelse: 'Fristforlengelse kan bli nødvendig pga. uventet fjell. Spesifisert krav følger.',
-    },
-  },
+  // Nøytralt varsel er nå inkludert i frist_krav_sendt event
   {
     event_id: 'evt-005',
     tidsstempel: '2025-01-17T16:20:00Z',
