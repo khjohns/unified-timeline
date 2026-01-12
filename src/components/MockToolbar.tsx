@@ -23,20 +23,20 @@ export function MockToolbar({
 }: MockToolbarProps) {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-8 pt-2">
-      <div className="bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-sm">
+      <div className="bg-alert-warning-bg border border-alert-warning-border px-3 py-1.5 rounded-sm">
         <div className="flex items-center gap-3">
           {/* Label */}
-          <div className="flex items-center gap-1.5 text-amber-700">
+          <div className="flex items-center gap-1.5 text-alert-warning-text">
             <MixerHorizontalIcon className="w-3 h-3" />
             <span className="text-xs font-medium">Test</span>
           </div>
 
           {/* Divider */}
-          <div className="h-3 w-px bg-amber-300" />
+          <div className="h-3 w-px bg-alert-warning-border opacity-50" />
 
           {/* Controls */}
           <div className="flex items-center gap-3">
-            <label className="flex items-center gap-1.5 text-xs text-amber-800 cursor-pointer">
+            <label className="flex items-center gap-1.5 text-xs text-alert-warning-text cursor-pointer">
               <Checkbox
                 checked={approvalEnabled}
                 onCheckedChange={(checked) => onApprovalEnabledChange(checked === true)}

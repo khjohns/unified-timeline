@@ -135,7 +135,7 @@ function VarselInfoDisplay({ label, varsel }: VarselInfoDisplayProps) {
     <DataListItem label={label}>
       {formatDateMedium(varsel.dato_sendt)}
       {varsel.metode && varsel.metode.length > 0 && (
-        <span className="ml-2 text-pkt-grays-gray-500">
+        <span className="ml-2 text-pkt-text-body-subtle">
           ({formatVarselMetode(varsel.metode)})
         </span>
       )}
@@ -190,7 +190,7 @@ function VedleggDisplay({ vedleggIds }: VedleggDisplayProps) {
       <ul className="space-y-1">
         {vedleggIds.map((id) => (
           <li key={id} className="flex items-center gap-2">
-            <FileTextIcon className="w-4 h-4 text-pkt-grays-gray-400" />
+            <FileTextIcon className="w-4 h-4 text-pkt-text-body-subtle" />
             <span className="text-sm text-pkt-brand-dark-blue-1000 hover:underline cursor-pointer">
               {id}
             </span>
@@ -231,21 +231,21 @@ function BelopVurderingItem({
       <div className="flex justify-between items-center">
         <span className="text-sm font-medium">
           {label}
-          {isPrekludert && <span className="text-xs text-pkt-grays-gray-500 ml-1">(prekludert)</span>}
+          {isPrekludert && <span className="text-xs text-pkt-text-body-subtle ml-1">(prekludert)</span>}
         </span>
         <div className="flex items-center gap-2">
           {vurdering && (
             <Badge variant={badge.variant}>{badge.label}</Badge>
           )}
           {belop !== undefined && (
-            <span className={`font-mono font-medium ${isPrekludert ? 'line-through text-pkt-grays-gray-400' : ''}`}>
+            <span className={`font-mono font-medium ${isPrekludert ? 'line-through text-pkt-text-body-subtle' : ''}`}>
               {formatCurrency(belop)}
             </span>
           )}
         </div>
       </div>
       {begrunnelse && (
-        <p className="text-sm text-pkt-grays-gray-600 mt-1">{begrunnelse}</p>
+        <p className="text-sm text-pkt-text-body-subtle mt-1">{begrunnelse}</p>
       )}
       {isPrekludert && subsidiaertBelop !== undefined && subsidiaertBelop > 0 && (
         <p className="text-xs text-pkt-text-warning mt-1">
@@ -293,7 +293,7 @@ function BelopVurderingRow({
       </td>
       <td className="py-2 text-right font-mono text-sm">
         {isPrekludert ? (
-          <span className="text-pkt-grays-gray-400">Prekludert</span>
+          <span className="text-pkt-text-body-subtle">Prekludert</span>
         ) : godkjent !== undefined ? (
           formatCurrency(godkjent)
         ) : '-'}
@@ -348,14 +348,14 @@ function BelopVurderingTable({ rows, totalKrevd, totalGodkjent, showTotal = true
             <td className="text-right font-mono">{formatCurrency(computedTotalGodkjent)}</td>
             <td className="text-right text-sm font-normal">
               {computedTotalKrevd > 0 && (
-                <span className="text-pkt-grays-gray-600">
+                <span className="text-pkt-text-body-subtle">
                   {((computedTotalGodkjent / computedTotalKrevd) * 100).toFixed(0)}%
                 </span>
               )}
             </td>
           </tr>
           {differanse > 0 && (
-            <tr className="text-pkt-grays-gray-600">
+            <tr className="text-pkt-text-body-subtle">
               <td className="py-1 italic">Differanse</td>
               <td></td>
               <td className="text-right font-mono">{formatCurrency(differanse)}</td>
@@ -412,7 +412,7 @@ function DagerVurderingTable({ krevdDager, godkjentDager, label = 'Fristforlenge
           <td className="py-2">DIFFERANSE</td>
           <td></td>
           <td className="text-right font-mono">{differanse} dager</td>
-          <td className="text-right text-sm font-normal text-pkt-grays-gray-600">
+          <td className="text-right text-sm font-normal text-pkt-text-body-subtle">
             {prosent.toFixed(0)}%
           </td>
         </tr>
@@ -435,7 +435,7 @@ function ResultatKort({ variant, resultatBadge, verdi, beskrivelse }: ResultatKo
   const isPrinsipalt = variant === 'prinsipalt';
 
   return (
-    <div className={`p-4 rounded-none ${isPrinsipalt ? 'bg-pkt-surface-strong-dark-blue text-white' : 'bg-amber-50 border border-amber-200'}`}>
+    <div className={`p-4 rounded ${isPrinsipalt ? 'bg-pkt-surface-strong-dark-blue text-white' : 'bg-amber-50 border border-amber-200'}`}>
       <h5 className={`font-medium text-xs mb-2 ${isPrinsipalt ? 'opacity-70' : 'text-amber-700'}`}>
         {isPrinsipalt ? 'PRINSIPALT STANDPUNKT' : 'SUBSIDIÆRT STANDPUNKT'}
       </h5>
@@ -462,9 +462,9 @@ function ResultatKort({ variant, resultatBadge, verdi, beskrivelse }: ResultatKo
 function KaskadePil({ trigger }: { trigger?: string }) {
   return (
     <div className="flex items-center justify-center py-2">
-      <div className="flex flex-col items-center text-pkt-grays-gray-400">
+      <div className="flex flex-col items-center text-pkt-text-body-subtle">
         <span className="text-xs mb-1">{trigger || 'fordi avvist'}</span>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-pkt-grays-gray-400">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-pkt-text-body-subtle">
           <path d="M12 4v16m0 0l-6-6m6 6l6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       </div>
@@ -490,10 +490,10 @@ function PreklusjonStatus({ riggVarsletITide, produktivitetVarsletITide, harRigg
 
   return (
     <div className="space-y-2">
-      <h5 className="font-medium text-sm text-pkt-grays-gray-600">Preklusjon (§34.1.3)</h5>
+      <h5 className="font-medium text-sm text-pkt-text-body-subtle">Preklusjon (§34.1.3)</h5>
       <div className="flex flex-col gap-2">
         {showRigg && (
-          <div className="flex items-center justify-between py-1.5 px-3 bg-pkt-surface-subtle rounded-none">
+          <div className="flex items-center justify-between py-1.5 px-3 bg-pkt-surface-subtle rounded">
             <span className="text-sm">Rigg/drift</span>
             <Badge variant={riggVarsletITide ? 'success' : 'danger'}>
               {riggVarsletITide ? '✓ I tide' : '✗ For sent'}
@@ -501,7 +501,7 @@ function PreklusjonStatus({ riggVarsletITide, produktivitetVarsletITide, harRigg
           </div>
         )}
         {showProduktivitet && (
-          <div className="flex items-center justify-between py-1.5 px-3 bg-pkt-surface-subtle rounded-none">
+          <div className="flex items-center justify-between py-1.5 px-3 bg-pkt-surface-subtle rounded">
             <span className="text-sm">Produktivitet</span>
             <Badge variant={produktivitetVarsletITide ? 'success' : 'danger'}>
               {produktivitetVarsletITide ? '✓ I tide' : '✗ For sent'}
@@ -532,10 +532,10 @@ function VilkarStatus({ noytraltVarselOk, spesifisertKravOk, vilkarOppfylt }: Vi
     <div className="space-y-3">
       {harPreklusjon && (
         <div className="space-y-2">
-          <h5 className="font-medium text-sm text-pkt-grays-gray-600">Preklusjon (§33.4/§33.6)</h5>
+          <h5 className="font-medium text-sm text-pkt-text-body-subtle">Preklusjon (§33.4/§33.6)</h5>
           <div className="flex flex-col gap-2">
             {noytraltVarselOk !== undefined && (
-              <div className="flex items-center justify-between py-1.5 px-3 bg-pkt-surface-subtle rounded-none">
+              <div className="flex items-center justify-between py-1.5 px-3 bg-pkt-surface-subtle rounded">
                 <span className="text-sm">Nøytralt varsel (§33.4)</span>
                 <Badge variant={noytraltVarselOk ? 'success' : 'danger'}>
                   {noytraltVarselOk ? '✓ I tide' : '✗ For sent'}
@@ -543,7 +543,7 @@ function VilkarStatus({ noytraltVarselOk, spesifisertKravOk, vilkarOppfylt }: Vi
               </div>
             )}
             {spesifisertKravOk !== undefined && (
-              <div className="flex items-center justify-between py-1.5 px-3 bg-pkt-surface-subtle rounded-none">
+              <div className="flex items-center justify-between py-1.5 px-3 bg-pkt-surface-subtle rounded">
                 <span className="text-sm">Spesifisert krav (§33.6)</span>
                 <Badge variant={spesifisertKravOk ? 'success' : 'danger'}>
                   {spesifisertKravOk ? '✓ I tide' : '✗ For sent'}
@@ -555,8 +555,8 @@ function VilkarStatus({ noytraltVarselOk, spesifisertKravOk, vilkarOppfylt }: Vi
       )}
       {harVilkar && (
         <div className="space-y-2">
-          <h5 className="font-medium text-sm text-pkt-grays-gray-600">Årsakssammenheng (§33.1)</h5>
-          <div className="flex items-center justify-between py-1.5 px-3 bg-pkt-surface-subtle rounded-none">
+          <h5 className="font-medium text-sm text-pkt-text-body-subtle">Årsakssammenheng (§33.1)</h5>
+          <div className="flex items-center justify-between py-1.5 px-3 bg-pkt-surface-subtle rounded">
             <span className="text-sm">Hindring erkjent</span>
             <Badge variant={vilkarOppfylt ? 'success' : 'warning'}>
               {vilkarOppfylt ? '✓ Ja' : '✗ Nei'}
@@ -602,7 +602,7 @@ function GrunnlagSection({ data }: { data: GrunnlagEventData }) {
           <DataListItem label="Underkategori">
             {underkategoriLabels}
             {hjemmelRefs.length > 0 && (
-              <span className="ml-1 text-pkt-grays-gray-500 text-xs">
+              <span className="ml-1 text-pkt-text-body-subtle text-xs">
                 ({hjemmelRefs.join(', ')})
               </span>
             )}
@@ -610,7 +610,7 @@ function GrunnlagSection({ data }: { data: GrunnlagEventData }) {
         )}
         {varselkravRefs.length > 0 && (
           <DataListItem label="Varselkrav">
-            <span className="text-pkt-grays-gray-600">
+            <span className="text-pkt-text-body-subtle">
               NS 8407 §{varselkravRefs.join(' / §')}
             </span>
           </DataListItem>
@@ -622,7 +622,7 @@ function GrunnlagSection({ data }: { data: GrunnlagEventData }) {
           <DataListItem label="Varsel sendt">
             {formatDateMedium(data.grunnlag_varsel.dato_sendt)}
             {data.grunnlag_varsel.metode && data.grunnlag_varsel.metode.length > 0 && (
-              <span className="ml-1 text-pkt-grays-gray-500">
+              <span className="ml-1 text-pkt-text-body-subtle">
                 ({formatVarselMetode(data.grunnlag_varsel.metode)})
               </span>
             )}
@@ -877,7 +877,7 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
         {/* Beløpsvurdering tabell */}
         {hasBelopBreakdown && (
           <div className="mt-4">
-            <h5 className="font-medium text-sm text-pkt-grays-gray-600 mb-2">Beløpsvurdering</h5>
+            <h5 className="font-medium text-sm text-pkt-text-body-subtle mb-2">Beløpsvurdering</h5>
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b-2 border-pkt-border-subtle">
@@ -992,7 +992,7 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
                   <td className="text-right font-mono">{formatCurrency(data.total_godkjent_belop ?? 0)}</td>
                   <td className="text-right text-sm font-normal">
                     {totalKrevd > 0 && data.total_godkjent_belop !== undefined && (
-                      <span className="text-pkt-grays-gray-600">
+                      <span className="text-pkt-text-body-subtle">
                         {((data.total_godkjent_belop / totalKrevd) * 100).toFixed(0)}%
                       </span>
                     )}
@@ -1019,7 +1019,7 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
           <SectionContainer title="Subsidiært standpunkt" variant="subtle" spacing="compact">
             {data.subsidiaer_triggers && data.subsidiaer_triggers.length > 0 && (
               <div className="mb-3">
-                <span className="text-sm text-pkt-grays-gray-600">Trigger: </span>
+                <span className="text-sm text-pkt-text-body-subtle">Trigger: </span>
                 {data.subsidiaer_triggers.map((trigger) => (
                   <Badge key={trigger} variant="warning" className="ml-1">
                     {getSubsidiaerTriggerLabel(trigger as SubsidiaerTrigger)}
@@ -1114,7 +1114,7 @@ function ResponsFristSection({ data }: { data: ResponsFristEventData }) {
 
         {/* Etterlysning */}
         {data.har_bh_etterlyst && (
-          <div className="mt-3 p-2 bg-amber-50 border border-amber-200 rounded-none">
+          <div className="mt-3 p-2 bg-amber-50 border border-amber-200 rounded">
             <Badge variant="warning">BH har etterlyst (§33.6.2)</Badge>
             {data.frist_for_spesifisering && (
               <span className="text-sm text-amber-700 ml-2">
@@ -1127,7 +1127,7 @@ function ResponsFristSection({ data }: { data: ResponsFristEventData }) {
         {/* Dagerberegning */}
         {godkjentDager !== undefined && (
           <div className="mt-4">
-            <h5 className="font-medium text-sm text-pkt-grays-gray-600 mb-2">Beregning</h5>
+            <h5 className="font-medium text-sm text-pkt-text-body-subtle mb-2">Beregning</h5>
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b-2 border-pkt-border-subtle">
@@ -1200,7 +1200,7 @@ function ResponsFristSection({ data }: { data: ResponsFristEventData }) {
           <SectionContainer title="Subsidiært standpunkt" variant="subtle" spacing="compact">
             {data.subsidiaer_triggers && data.subsidiaer_triggers.length > 0 && (
               <div className="mb-3">
-                <span className="text-sm text-pkt-grays-gray-600">Trigger: </span>
+                <span className="text-sm text-pkt-text-body-subtle">Trigger: </span>
                 {data.subsidiaer_triggers.map((trigger) => (
                   <Badge key={trigger} variant="warning" className="ml-1">
                     {getSubsidiaerTriggerLabel(trigger as SubsidiaerTrigger)}
@@ -1328,7 +1328,7 @@ function ForseringVarselSection({ data }: { data: ForseringVarselEventData }) {
 
 function GenericSection({ data }: { data: Record<string, unknown> }) {
   if (!data || typeof data !== 'object') {
-    return <p className="text-pkt-grays-gray-500 italic">Ingen skjemadata tilgjengelig.</p>;
+    return <p className="text-pkt-text-body-subtle italic">Ingen skjemadata tilgjengelig.</p>;
   }
 
   return (
@@ -1369,7 +1369,7 @@ export function EventDetailModal({
   const renderEventData = () => {
     if (!event.data) {
       return (
-        <p className="text-pkt-grays-gray-500 italic py-4">
+        <p className="text-pkt-text-body-subtle italic py-4">
           Ingen detaljert skjemadata tilgjengelig for denne hendelsen.
         </p>
       );
@@ -1445,7 +1445,7 @@ export function EventDetailModal({
         {renderEventData()}
 
         {/* Event ID footer */}
-        <p className="text-xs text-pkt-grays-gray-400 pt-4 border-t border-pkt-grays-gray-200">
+        <p className="text-xs text-pkt-text-body-subtle pt-4 border-t border-pkt-border-subtle">
           Event ID: {event.id}
         </p>
       </div>
