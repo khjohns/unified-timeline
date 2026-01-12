@@ -103,14 +103,14 @@ function VederlagHistorikkTable({ entries }: VederlagHistorikkTableProps) {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-pkt-border-subtle">
-            <th className="sticky left-0 z-10 bg-pkt-bg-card text-left py-1.5 px-3 font-medium w-[160px]">
+            <th className="sticky left-0 z-10 bg-pkt-bg-card text-left py-1.5 px-2 font-medium w-[160px]">
               Felt
             </th>
             {versions.map((v) => {
               const te = teByVersion.get(v);
               return (
-                <th key={v} className="text-center py-1.5 px-3 min-w-[140px]">
-                  <div className="font-medium text-pkt-text-body-default">
+                <th key={v} className="text-center py-1.5 px-2 min-w-[140px]">
+                  <div className="font-semibold text-pkt-text-body-default">
                     {formatVersionLabel(v)}
                   </div>
                   <div className="text-xs text-pkt-grays-gray-500 font-normal mt-0.5">
@@ -129,6 +129,7 @@ function VederlagHistorikkTable({ entries }: VederlagHistorikkTableProps) {
             label="Beløp"
             versions={versions}
             getValue={(v) => formatHistorikkBelop(teByVersion.get(v)?.krav_belop)}
+            isNumeric
           />
           <DataRow
             label="Beregningsmetode"
@@ -165,6 +166,8 @@ function VederlagHistorikkTable({ entries }: VederlagHistorikkTableProps) {
             versions={versions}
             getValue={(v) => formatHistorikkBelop(bhByVersion.get(v)?.godkjent_belop)}
             highlight
+            isNumeric
+            isApproved
           />
         </tbody>
       </table>
@@ -205,14 +208,14 @@ function FristHistorikkTable({ entries }: FristHistorikkTableProps) {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-pkt-border-subtle">
-            <th className="sticky left-0 z-10 bg-pkt-bg-card text-left py-1.5 px-3 font-medium w-[160px]">
+            <th className="sticky left-0 z-10 bg-pkt-bg-card text-left py-1.5 px-2 font-medium w-[160px]">
               Felt
             </th>
             {versions.map((v) => {
               const te = teByVersion.get(v);
               return (
-                <th key={v} className="text-center py-1.5 px-3 min-w-[140px]">
-                  <div className="font-medium text-pkt-text-body-default">
+                <th key={v} className="text-center py-1.5 px-2 min-w-[140px]">
+                  <div className="font-semibold text-pkt-text-body-default">
                     {formatVersionLabel(v)}
                   </div>
                   <div className="text-xs text-pkt-grays-gray-500 font-normal mt-0.5">
@@ -231,6 +234,7 @@ function FristHistorikkTable({ entries }: FristHistorikkTableProps) {
             label="Antall dager"
             versions={versions}
             getValue={(v) => formatHistorikkDager(teByVersion.get(v)?.krav_dager)}
+            isNumeric
           />
           <DataRow
             label="Varseltype"
@@ -256,6 +260,8 @@ function FristHistorikkTable({ entries }: FristHistorikkTableProps) {
             versions={versions}
             getValue={(v) => formatHistorikkDager(bhByVersion.get(v)?.godkjent_dager)}
             highlight
+            isNumeric
+            isApproved
           />
         </tbody>
       </table>
@@ -272,24 +278,19 @@ interface GroupHeaderProps {
 }
 
 function GroupHeader({ label, colSpan, color }: GroupHeaderProps) {
-  // Use semantic TE/BH row colors with subtle background + left border accent
-  const colorClasses = {
-    green: 'bg-row-te-bg text-row-te-text border-l-4 border-l-row-te-border',
-    yellow: 'bg-row-bh-bg text-row-bh-text border-l-4 border-l-row-bh-border',
-  };
-
-  const bgClass = color === 'yellow' ? 'bg-row-bh-bg' : 'bg-row-te-bg';
+  // Simplified design: left border accent only, no background
+  const borderColor = color === 'green' ? 'border-l-row-te-border' : 'border-l-row-bh-border';
 
   return (
     <tr>
       <td
-        className={`sticky left-0 z-10 py-1.5 px-3 text-xs font-semibold uppercase tracking-wide border-y border-pkt-border-subtle ${colorClasses[color]}`}
+        className={`sticky left-0 z-10 bg-pkt-bg-card py-1.5 px-2 text-xs font-semibold uppercase tracking-wide border-y border-pkt-border-subtle border-l-4 ${borderColor}`}
       >
         {label}
       </td>
       <td
         colSpan={colSpan - 1}
-        className={`py-1.5 px-3 border-y border-pkt-border-subtle ${bgClass}`}
+        className="py-1.5 px-2 border-y border-pkt-border-subtle"
       />
     </tr>
   );
@@ -300,14 +301,18 @@ interface DataRowProps {
   versions: number[];
   getValue: (version: number) => string;
   highlight?: boolean;
+  /** Use monospace font for numeric values */
+  isNumeric?: boolean;
+  /** Use green color for positive/approved values */
+  isApproved?: boolean;
 }
 
-function DataRow({ label, versions, getValue, highlight = false }: DataRowProps) {
+function DataRow({ label, versions, getValue, highlight = false, isNumeric = false, isApproved = false }: DataRowProps) {
   let prevValue: string | null = null;
 
   return (
     <tr className="border-b border-pkt-border-subtle last:border-b-0 hover:bg-pkt-surface-subtle transition-colors">
-      <td className="sticky left-0 z-10 bg-pkt-bg-card py-2 px-3 text-pkt-grays-gray-600">
+      <td className="sticky left-0 z-10 bg-pkt-bg-card py-2 px-2 text-pkt-grays-gray-600">
         {label}
       </td>
       {versions.map((v) => {
@@ -315,12 +320,20 @@ function DataRow({ label, versions, getValue, highlight = false }: DataRowProps)
         const isChanged = prevValue !== null && value !== prevValue && value !== '—';
         prevValue = value;
 
+        // Build class string
+        const baseClasses = 'py-2 px-2 text-center';
+        const fontClasses = isNumeric ? 'font-mono' : '';
+        const weightClasses = highlight ? 'font-semibold' : '';
+        const colorClasses = isChanged
+          ? 'text-pkt-brand-warm-blue-1000 font-bold'
+          : isApproved && value !== '—'
+          ? 'text-pkt-brand-dark-green-1000'
+          : 'text-pkt-text-body-default';
+
         return (
           <td
             key={v}
-            className={`py-2 px-3 text-center ${
-              highlight ? 'font-medium' : ''
-            } ${isChanged ? 'text-pkt-brand-warm-blue-1000 font-semibold' : 'text-pkt-text-body-default'}`}
+            className={`${baseClasses} ${fontClasses} ${weightClasses} ${colorClasses}`}
           >
             {value}
           </td>
