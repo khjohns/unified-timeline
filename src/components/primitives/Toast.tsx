@@ -109,7 +109,7 @@ function ToastItem({ toast, onOpenChange }: ToastItemProps) {
       onOpenChange={onOpenChange}
     >
       {/* Icon */}
-      <div className={clsx('flex-shrink-0 mt-0.5', styles.icon)}>
+      <div className={clsx('flex-shrink-0 mt-px', styles.icon)}>
         {variantIcons[toast.variant]}
       </div>
 

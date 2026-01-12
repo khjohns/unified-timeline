@@ -79,7 +79,7 @@ export function AccordionItem({
           'hover:bg-pkt-bg-subtle',
           'focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pkt-brand-purple-1000/30',
           size === 'sm' ? 'py-2 px-2' : 'py-3 px-3',
-          bordered && 'border-b border-pkt-grays-gray-100'
+          bordered && 'border-b border-pkt-border-subtle'
         )}
         aria-expanded={isOpen}
       >
@@ -93,13 +93,13 @@ export function AccordionItem({
             {badge}
           </div>
           {subtitle && (
-            <span className="text-xs text-pkt-grays-gray-500">{subtitle}</span>
+            <span className="text-xs text-pkt-text-body-subtle">{subtitle}</span>
           )}
         </div>
 
         <ChevronDownIcon
           className={clsx(
-            'w-4 h-4 text-pkt-grays-gray-400 transition-transform shrink-0',
+            'w-4 h-4 text-pkt-text-body-muted transition-transform shrink-0',
             isOpen && 'rotate-180'
           )}
         />
@@ -109,7 +109,7 @@ export function AccordionItem({
         <div
           className={clsx(
             'bg-pkt-bg-subtle',
-            bordered && 'border-b border-pkt-grays-gray-100',
+            bordered && 'border-b border-pkt-border-subtle',
             size === 'sm' ? 'px-2 py-2' : 'px-3 py-3'
           )}
         >

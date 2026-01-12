@@ -73,7 +73,7 @@ export function SectionContainer({
     'px-4 py-3 flex items-center gap-3',
     {
       // Collapsible header styling
-      'cursor-pointer hover:bg-pkt-grays-gray-100 transition-colors': collapsible,
+      'cursor-pointer hover:bg-pkt-surface-subtle transition-colors': collapsible,
       // Border bottom when content is visible
       'border-b border-pkt-border-subtle': !collapsible || isOpen,
     }
@@ -103,7 +103,7 @@ export function SectionContainer({
           {titleElement}
           <ChevronDownIcon
             className={clsx(
-              'w-5 h-5 text-pkt-grays-gray-500 transition-transform flex-shrink-0',
+              'w-5 h-5 text-pkt-text-body-subtle transition-transform flex-shrink-0',
               { 'rotate-180': isOpen }
             )}
           />

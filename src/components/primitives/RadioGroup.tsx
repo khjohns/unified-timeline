@@ -96,7 +96,7 @@ export const RadioItem = forwardRef<
   if (label) {
     return (
       <div className="flex items-start gap-3">
-        <div className="mt-0.5">{radio}</div>
+        <div className="mt-px">{radio}</div>
         <div className="flex flex-col">
           <label
             htmlFor={radioId}

@@ -34,13 +34,13 @@ export function RevisionTag({
   return (
     <span
       className={clsx(
-        'inline-flex items-center gap-1.5 font-medium border rounded-none',
+        'inline-flex items-center gap-2 font-medium border rounded-none',
         // Original is neutral, revisions are highlighted (uses semantic colors)
         isOriginal
           ? 'bg-tag-neutral-bg text-tag-neutral-text border-tag-neutral-border'
           : 'bg-tag-info-bg text-tag-info-text border-tag-info-border',
         // Size variants
-        size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-sm',
+        size === 'sm' ? 'px-2 py-1 text-xs' : 'px-3 py-1 text-sm',
         className
       )}
     >
@@ -77,7 +77,7 @@ export function UpdatedTag({ size = 'sm', className }: UpdatedTagProps) {
         'inline-flex items-center gap-1 font-medium border rounded-none',
         // Uses semantic warning colors (amber in light, golden in dark)
         'bg-tag-warning-bg text-tag-warning-text border-tag-warning-border',
-        size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-sm',
+        size === 'sm' ? 'px-2 py-1 text-xs' : 'px-3 py-1 text-sm',
         className
       )}
     >

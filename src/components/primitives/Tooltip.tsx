@@ -49,7 +49,7 @@ export function Tooltip({ content, children, side = 'top', delayDuration = 200 }
               'data-[side=right]:slide-in-from-left-2',
               'data-[side=top]:slide-in-from-bottom-2'
             )}
-            sideOffset={5}
+            sideOffset={4}
             // Collision handling for mobile safety
             collisionPadding={12}
             avoidCollisions

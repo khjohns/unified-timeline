@@ -24,13 +24,13 @@ const variantStyles: Record<BadgeVariant, string> = {
   success: 'bg-badge-success-bg text-badge-success-text border-badge-success-border',
   warning: 'bg-badge-warning-bg text-badge-warning-text border-badge-warning-border',
   danger: 'bg-badge-danger-bg text-badge-danger-text border-badge-danger-border',
-  neutral: 'bg-pkt-grays-gray-100 text-pkt-grays-gray-700 border-pkt-grays-gray-300',
+  neutral: 'bg-pkt-surface-gray text-pkt-text-body-default border-pkt-border-gray',
 };
 
 const sizeStyles: Record<BadgeSize, string> = {
-  sm: 'px-2 py-0.5 text-xs',
-  md: 'px-2.5 py-1 text-sm',
-  lg: 'px-3 py-1.5 text-base',
+  sm: 'px-2 py-1 text-xs',
+  md: 'px-3 py-1 text-sm',
+  lg: 'px-3 py-2 text-base',
 };
 
 export function Badge({

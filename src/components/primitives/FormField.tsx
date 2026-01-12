@@ -58,7 +58,7 @@ export function FormField({
     .join(' ') || undefined;
 
   return (
-    <div className={clsx('mb-5', className)}>
+    <div className={clsx('mb-4', className)}>
       {label && labelTooltip ? (
         <InfoLabel tooltip={labelTooltip} required={required} htmlFor={fieldId}>
           {label}

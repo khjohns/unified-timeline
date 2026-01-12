@@ -73,7 +73,7 @@ export function Modal({
                 {title}
               </Dialog.Title>
               {description && (
-                <Dialog.Description className="mt-3 text-lg text-pkt-grays-gray-600">
+                <Dialog.Description className="mt-3 text-lg text-pkt-text-body-subtle">
                   {description}
                 </Dialog.Description>
               )}
@@ -83,7 +83,7 @@ export function Modal({
             <Dialog.Close
               className={clsx(
                 'rounded p-2',
-                'text-pkt-grays-gray-500 hover:text-pkt-grays-gray-700',
+                'text-pkt-text-body-subtle hover:text-pkt-text-body-default',
                 'hover:bg-pkt-surface-light-beige',
                 'focus:outline-none focus:ring-4 focus:ring-pkt-brand-purple-1000/30'
               )}

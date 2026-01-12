@@ -33,7 +33,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
           {
             // Padding options - default is 'none' for flexible layouts
             'p-0': padding === 'none',
-            'p-5': padding === 'sm',
+            'p-4': padding === 'sm',
             'p-6': padding === 'md',
             'p-10': padding === 'lg',
           },

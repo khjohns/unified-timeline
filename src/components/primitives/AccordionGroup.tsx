@@ -82,7 +82,7 @@ export function AccordionGroup({
     'hover:bg-pkt-bg-subtle',
     'focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pkt-brand-purple-1000/30',
     size === 'sm' ? 'py-2 px-2' : 'py-3 px-3',
-    'border-b border-pkt-grays-gray-100'
+    'border-b border-pkt-border-subtle'
   );
 
   const contentClasses = clsx(
@@ -108,7 +108,7 @@ export function AccordionGroup({
                 {item.badge}
               </div>
               {item.subtitle && (
-                <span className="text-xs text-pkt-grays-gray-500">
+                <span className="text-xs text-pkt-text-body-subtle">
                   {item.subtitle}
                 </span>
               )}
@@ -116,7 +116,7 @@ export function AccordionGroup({
 
             <ChevronDownIcon
               className={clsx(
-                'w-4 h-4 text-pkt-grays-gray-400 shrink-0',
+                'w-4 h-4 text-pkt-text-body-muted shrink-0',
                 'transition-transform duration-200',
                 'group-data-[state=open]:rotate-180'
               )}

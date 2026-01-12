@@ -64,12 +64,12 @@ export function AlertDialog({
           </AlertDialogPrimitive.Title>
 
           {/* Description */}
-          <AlertDialogPrimitive.Description className="text-body-md text-pkt-grays-gray-700 mb-5">
+          <AlertDialogPrimitive.Description className="text-body-md text-pkt-text-body-default mb-4">
             {description}
           </AlertDialogPrimitive.Description>
 
           {/* Optional custom content */}
-          {children && <div className="mb-5">{children}</div>}
+          {children && <div className="mb-4">{children}</div>}
 
           {/* Actions */}
           <div className="flex gap-3 justify-end">
