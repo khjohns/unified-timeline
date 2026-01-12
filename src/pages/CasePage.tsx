@@ -21,7 +21,7 @@ import { useApprovalWorkflow } from '../hooks/useApprovalWorkflow';
 import { CaseDashboard } from '../components/views/CaseDashboard';
 import { Timeline } from '../components/views/Timeline';
 import { ComprehensiveMetadata } from '../components/views/ComprehensiveMetadata';
-import { RevisionHistory } from '../components/views/RevisionHistory';
+import { CaseAnalytics } from '../components/views/CaseAnalytics';
 import { Alert, Button, AlertDialog, Card } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
 import { formatCurrency } from '../utils/formatters';
@@ -72,6 +72,7 @@ import {
   LoadingState,
   ErrorState,
 } from '../components/PageStateHelpers';
+import { downloadRevisionHistoryCsv } from '../utils/csvExport';
 
 // Default empty state for when data is not yet loaded
 const EMPTY_STATE: SakState = {
@@ -582,19 +583,32 @@ function CasePageContent() {
               Metadata
             </h2>
             <ComprehensiveMetadata state={state} sakId={sakId || ''} />
+
+            {/* CSV Export */}
+            {(vederlagHistorikk.length > 0 || fristHistorikk.length > 0) && (
+              <div className="mt-4 pt-3 border-t border-pkt-border-subtle">
+                <button
+                  onClick={() => downloadRevisionHistoryCsv(sakId || '', vederlagHistorikk, fristHistorikk)}
+                  className="flex items-center gap-2 text-sm text-pkt-text-action-normal hover:text-pkt-text-action-hover transition-colors"
+                >
+                  <DownloadIcon className="w-4 h-4" />
+                  Last ned revisjonshistorikk (CSV)
+                </button>
+              </div>
+            )}
           </Card>
         </section>
 
-        {/* Revision History Section */}
-        <section aria-labelledby="revision-heading">
+        {/* Analytics Section */}
+        <section aria-labelledby="analytics-heading">
           <Card variant="outlined" padding="md">
             <h2
-              id="revision-heading"
+              id="analytics-heading"
               className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4"
             >
-              Revisjonshistorikk
+              Analyse
             </h2>
-            <RevisionHistory />
+            <CaseAnalytics state={state} />
           </Card>
         </section>
       </main>
