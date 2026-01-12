@@ -76,7 +76,6 @@ export const mockSakState1: SakState = {
     krevd_dager: 45,
     begrunnelse:
       'Fristforlengelse nødvendig pga. omprosjektering av fundament (20 dager) og ekstra boring/sprengning (25 dager). Påvirker kritisk linje.',
-    pavirker_kritisk_linje: true,
     noytralt_varsel_ok: true,
     vilkar_oppfylt: true,
     bh_resultat: 'delvis_godkjent',

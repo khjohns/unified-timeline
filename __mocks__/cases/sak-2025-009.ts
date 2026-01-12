@@ -63,7 +63,6 @@ export const mockSakState9: SakState = {
     },
     krevd_dager: 10,
     begrunnelse: 'Omlegging av ventilasjonsanlegg krever 10 arbeidsdager.',
-    pavirker_kritisk_linje: false,
     siste_oppdatert: '2025-02-22',
     antall_versjoner: 1,
   },

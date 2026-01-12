@@ -642,22 +642,18 @@ const FristSection: React.FC<{ state: SakState }> = ({ state }) => {
                 label2="Krevd dager"
                 value2={frist.krevd_dager !== undefined ? `${frist.krevd_dager} dager` : '—'}
               />
-              {/* Varseldato - kompakt visning */}
+              {/* Varseldato */}
               {frist.varsel_type === 'noytralt' && frist.noytralt_varsel?.dato_sendt && (
-                <TableRow4Col
-                  label1="Nøytralt varsel"
-                  value1={formatDate(frist.noytralt_varsel?.dato_sendt)}
-                  label2="Kritisk linje"
-                  value2={formatBoolean(frist.pavirker_kritisk_linje)}
+                <TableRow
+                  label="Nøytralt varsel"
+                  value={formatDate(frist.noytralt_varsel?.dato_sendt)}
                   striped
                 />
               )}
               {frist.varsel_type === 'spesifisert' && frist.spesifisert_varsel?.dato_sendt && (
-                <TableRow4Col
-                  label1="Spesifisert krav"
-                  value1={formatDate(frist.spesifisert_varsel?.dato_sendt)}
-                  label2="Kritisk linje"
-                  value2={formatBoolean(frist.pavirker_kritisk_linje)}
+                <TableRow
+                  label="Spesifisert krav"
+                  value={formatDate(frist.spesifisert_varsel?.dato_sendt)}
                   striped
                 />
               )}
@@ -712,37 +708,37 @@ const FristSection: React.FC<{ state: SakState }> = ({ state }) => {
             </View>
           )}
 
-          {/* Forsering (§33.8) */}
-          {frist.forsering?.er_varslet && (
+          {/* Forsering (§33.8) - vises når saken har forsering_data */}
+          {state.forsering_data && (
             <View style={styles.subSection}>
               <Text style={styles.subSectionTitle}>Forsering (§33.8)</Text>
               <View style={styles.table}>
                 <TableRow4Col
                   label1="Varslet dato"
-                  value1={formatDate(frist.forsering.dato_varslet)}
+                  value1={formatDate(state.forsering_data.dato_varslet)}
                   label2="Estimert kostnad"
-                  value2={frist.forsering.estimert_kostnad !== undefined ? formatCurrency(frist.forsering.estimert_kostnad) : '—'}
+                  value2={state.forsering_data.estimert_kostnad !== undefined ? formatCurrency(state.forsering_data.estimert_kostnad) : '—'}
                 />
                 <TableRow4Col
                   label1="30%-regel"
-                  value1={formatBoolean(frist.forsering.bekreft_30_prosent_regel)}
+                  value1={formatBoolean(state.forsering_data.bekreft_30_prosent_regel)}
                   label2="Iverksatt"
-                  value2={formatBoolean(frist.forsering.er_iverksatt)}
+                  value2={formatBoolean(state.forsering_data.er_iverksatt)}
                   striped
                 />
-                {(frist.forsering.dato_iverksatt || frist.forsering.er_stoppet) && (
+                {(state.forsering_data.dato_iverksatt || state.forsering_data.er_stoppet) && (
                   <TableRow4Col
                     label1="Dato iverksatt"
-                    value1={formatDate(frist.forsering.dato_iverksatt)}
+                    value1={formatDate(state.forsering_data.dato_iverksatt)}
                     label2="Stoppet"
-                    value2={frist.forsering.er_stoppet ? `Ja (${formatDate(frist.forsering.dato_stoppet)})` : 'Nei'}
+                    value2={state.forsering_data.er_stoppet ? `Ja (${formatDate(state.forsering_data.dato_stoppet)})` : 'Nei'}
                   />
                 )}
-                {frist.forsering.paalopte_kostnader !== undefined && (
-                  <TableRow label="Påløpte kostnader" value={formatCurrency(frist.forsering.paalopte_kostnader)} striped />
+                {state.forsering_data.paalopte_kostnader !== undefined && (
+                  <TableRow label="Påløpte kostnader" value={formatCurrency(state.forsering_data.paalopte_kostnader)} striped />
                 )}
               </View>
-              <TextBlock title="Begrunnelse for forsering" content={frist.forsering.begrunnelse} />
+              <TextBlock title="Begrunnelse for forsering" content={state.forsering_data.begrunnelse} />
             </View>
           )}
         </View>

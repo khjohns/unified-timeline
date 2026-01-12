@@ -76,7 +76,6 @@ export const mockSakState5: SakState = {
     },
     krevd_dager: 14,
     begrunnelse: 'Omlegging av rør krever 14 ekstra dager.',
-    pavirker_kritisk_linje: true,
     noytralt_varsel_ok: true,
     spesifisert_krav_ok: true,
     vilkar_oppfylt: false,

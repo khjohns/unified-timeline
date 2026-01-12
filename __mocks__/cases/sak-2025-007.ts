@@ -62,7 +62,6 @@ export const mockSakState7: SakState = {
     },
     krevd_dager: 7,
     begrunnelse: 'Enkelt snekkerarbeid.',
-    pavirker_kritisk_linje: false,
     noytralt_varsel_ok: true,
     spesifisert_krav_ok: true,
     vilkar_oppfylt: true,

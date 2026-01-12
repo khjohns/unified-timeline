@@ -226,9 +226,6 @@ export interface FristTilstand {
   spesifisert_varsel?: VarselInfo;  // NEW: Structured info
   krevd_dager?: number;
   begrunnelse?: string;
-  pavirker_kritisk_linje?: boolean;
-  milepael_pavirket?: string;
-  fremdriftsanalyse_vedlagt?: boolean;
 
   // BH respons - Port 1 (Varsling)
   noytralt_varsel_ok?: boolean;
@@ -253,9 +250,6 @@ export interface FristTilstand {
   subsidiaer_godkjent_dager?: number;
   subsidiaer_begrunnelse?: string;
 
-  // Forsering (§33.8)
-  forsering?: ForseringTilstand;
-
   // Computed
   differanse_dager?: number;
   har_subsidiaert_standpunkt?: boolean;
@@ -264,20 +258,6 @@ export interface FristTilstand {
   // Metadata
   siste_oppdatert?: string;
   antall_versjoner: number;
-}
-
-// Forsering state (§33.8) - Embedded i FristTilstand (gammel modell)
-export interface ForseringTilstand {
-  er_varslet: boolean;
-  dato_varslet?: string;
-  estimert_kostnad?: number;
-  begrunnelse?: string;
-  bekreft_30_prosent_regel?: boolean;  // TE bekrefter at kostnad < dagmulkt + 30%
-  er_iverksatt: boolean;
-  dato_iverksatt?: string;
-  er_stoppet: boolean;               // True if BH godkjenner frist etter varsling
-  dato_stoppet?: string;
-  paalopte_kostnader?: number;       // Costs incurred before stop
 }
 
 /**

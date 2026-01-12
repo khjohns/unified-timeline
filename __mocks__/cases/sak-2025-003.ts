@@ -76,7 +76,6 @@ export const mockSakState4: SakState = {
     // krevd_dager kommer først med spesifisert krav
     begrunnelse:
       'Nøytralt varsel sendt. Spesifisert krav med framdriftsplan følger.',
-    pavirker_kritisk_linje: true,
     noytralt_varsel_ok: true,
     vilkar_oppfylt: true,
     bh_resultat: 'avslatt',

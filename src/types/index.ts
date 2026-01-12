@@ -25,7 +25,6 @@ export type {
   FristBeregningResultat,
   VederlagsMetode,
   FristVarselType,
-  ForseringTilstand,
   TimelineEntry,
 } from './timeline';
 

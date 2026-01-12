@@ -70,7 +70,6 @@ export const mockSakState6: SakState = {
     },
     krevd_dager: 21,
     begrunnelse: 'Stopp i elektroarbeid i 3 uker.',
-    pavirker_kritisk_linje: true,
     noytralt_varsel_ok: true,
     spesifisert_krav_ok: true,
     vilkar_oppfylt: true,

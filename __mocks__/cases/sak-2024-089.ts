@@ -66,7 +66,6 @@ Samlet godkjent beløp utgjør etter dette kr 850 000,- av totalt krevde kr 850 
     },
     krevd_dager: 14,
     begrunnelse: 'Tid for levering og montering av glassfasade.',
-    pavirker_kritisk_linje: false,
     noytralt_varsel_ok: true,
     spesifisert_krav_ok: true,
     vilkar_oppfylt: true,

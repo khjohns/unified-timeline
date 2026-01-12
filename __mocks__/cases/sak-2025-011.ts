@@ -124,7 +124,6 @@ Samlet godkjent beløp utgjør etter dette kr 535 000,- av totalt krevde kr 830 
     krevd_dager: 15,
     begrunnelse:
       'Forsinkelsen medførte 15 dagers hindring av kritisk linje. Dokumentert med oppdatert fremdriftsplan.',
-    pavirker_kritisk_linje: true,
     noytralt_varsel_ok: true,
     spesifisert_krav_ok: true,
     vilkar_oppfylt: true,

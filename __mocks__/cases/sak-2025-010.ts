@@ -61,7 +61,6 @@ export const mockSakState10: SakState = {
     },
     krevd_dager: 5,
     begrunnelse: '5 dager for installasjon av sprinkleranlegg.',
-    pavirker_kritisk_linje: false,
     spesifisert_krav_ok: true,
     vilkar_oppfylt: true,
     bh_resultat: 'godkjent',

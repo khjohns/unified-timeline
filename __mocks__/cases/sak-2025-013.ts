@@ -71,7 +71,6 @@ export const mockSakState13: SakState = {
     },
     krevd_dager: 10,
     begrunnelse: 'Stopp i ventilasjonsarbeid i 10 dager grunnet manglende tilgang.',
-    pavirker_kritisk_linje: true,
     noytralt_varsel_ok: true,
     spesifisert_krav_ok: true,
     vilkar_oppfylt: false,

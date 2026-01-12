@@ -55,7 +55,6 @@ export const mockSakState8: SakState = {
     krevd_dager: 8,
     begrunnelse:
       'Byggeplass utilgjengelig i 8 kalenderdager. Kunne ikke utføre noe arbeid. Dokumentert med daglige rapporter.',
-    pavirker_kritisk_linje: true,
     noytralt_varsel_ok: true,
     spesifisert_krav_ok: true,
     vilkar_oppfylt: true,
