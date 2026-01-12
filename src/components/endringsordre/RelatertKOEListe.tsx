@@ -8,7 +8,7 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Button, Card } from '../primitives';
+import { Button } from '../primitives';
 import { ExternalLinkIcon, TrashIcon, Cross2Icon } from '@radix-ui/react-icons';
 
 export interface KOEOversiktItem {
@@ -70,12 +70,12 @@ export function RelatertKOEListe({
 
   if (koeOversikt.length === 0) {
     return (
-      <Card className="p-4">
+      <div>
         <p className="text-pkt-text-body-subtle text-sm mb-3">
           Ingen relaterte KOE-saker. Dette er en standalone endringsordre.
         </p>
         {headerAction}
-      </Card>
+      </div>
     );
   }
 
@@ -84,7 +84,7 @@ export function RelatertKOEListe({
   const totalDager = koeOversikt.reduce((sum, koe) => sum + (koe.godkjent_dager || 0), 0);
 
   return (
-    <Card className="p-3">
+    <div>
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-pkt-border-subtle">
@@ -186,6 +186,6 @@ export function RelatertKOEListe({
           {headerAction}
         </div>
       )}
-    </Card>
+    </div>
   );
 }

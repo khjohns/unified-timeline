@@ -18,7 +18,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCaseState } from '../hooks/useCaseState';
 import { useUserRole } from '../hooks/useUserRole';
 import { Timeline } from '../components/views/Timeline';
-import { Alert, Button } from '../components/primitives';
+import { Alert, Button, Card } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
 import { EODashboard, RelatertKOEListe, LeggTilKOEModal } from '../components/endringsordre';
 import {
@@ -257,11 +257,11 @@ export function EndringsordePage() {
       />
 
       {/* Main content */}
-      <main className="max-w-3xl mx-auto px-4 py-6 sm:px-8 sm:py-8 bg-pkt-bg-card min-h-[calc(100vh-88px)]">
-        <div className="space-y-6">
-          {/* Status and details section */}
-          <section>
-            <h2 className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4">
+      <main className="max-w-3xl mx-auto px-2 py-4 sm:px-4 sm:py-6 bg-pkt-bg-subtle min-h-[calc(100vh-88px)] space-y-4">
+        {/* Status and details section */}
+        <section aria-labelledby="status-heading">
+          <Card variant="outlined" padding="md">
+            <h2 id="status-heading" className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4">
               Status og detaljer
             </h2>
             <EODashboard
@@ -271,12 +271,14 @@ export function EndringsordePage() {
               onBestrid={() => setBestridModalOpen(true)}
               onRevider={() => setReviderModalOpen(true)}
             />
-          </section>
+          </Card>
+        </section>
 
-          {/* Related KOE cases section (only show if Type 2 or if BH can add) */}
-          {(harRelaterteKOE || userRole === 'BH') && (
-            <section>
-              <h2 className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4">
+        {/* Related KOE cases section (only show if Type 2 or if BH can add) */}
+        {(harRelaterteKOE || userRole === 'BH') && (
+          <section aria-labelledby="koe-heading">
+            <Card variant="outlined" padding="md">
+              <h2 id="koe-heading" className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4">
                 Relaterte KOE-saker
                 {kontekstLoading && (
                   <ReloadIcon className="w-4 h-4 animate-spin inline ml-2" />
@@ -300,12 +302,14 @@ export function EndringsordePage() {
                   )
                 }
               />
-            </section>
-          )}
+            </Card>
+          </section>
+        )}
 
-          {/* EO case's own timeline */}
-          <section className="mt-6 sm:mt-8">
-            <h2 className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4">
+        {/* EO case's own timeline */}
+        <section aria-labelledby="eo-timeline-heading">
+          <Card variant="outlined" padding="md">
+            <h2 id="eo-timeline-heading" className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4">
               Hendelser for endringsordren
               {kontekstLoading && (
                 <ReloadIcon className="w-4 h-4 animate-spin inline ml-2" />
@@ -325,12 +329,14 @@ export function EndringsordePage() {
                 Ingen hendelser ennå.
               </p>
             )}
-          </section>
+          </Card>
+        </section>
 
-          {/* Timeline from related KOE cases (only show if Type 2) */}
-          {harRelaterteKOE && (
-            <section className="mt-6 sm:mt-8">
-              <h2 className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4">
+        {/* Timeline from related KOE cases (only show if Type 2) */}
+        {harRelaterteKOE && (
+          <section aria-labelledby="koe-timeline-heading">
+            <Card variant="outlined" padding="md">
+              <h2 id="koe-timeline-heading" className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4">
                 Hendelser fra relaterte KOE-saker
               </h2>
 
@@ -341,9 +347,9 @@ export function EndringsordePage() {
                   Ingen hendelser fra relaterte saker.
                 </p>
               )}
-            </section>
-          )}
-        </div>
+            </Card>
+          </section>
+        )}
       </main>
 
       {/* Add KOE modal */}

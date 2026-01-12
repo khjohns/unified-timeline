@@ -8,7 +8,7 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Button, Card, Badge } from '../primitives';
+import { Button, Badge } from '../primitives';
 import { ExternalLinkIcon, TrashIcon, Cross2Icon } from '@radix-ui/react-icons';
 import type { SakRelasjon, SakState } from '../../types/timeline';
 
@@ -99,18 +99,18 @@ export function RelaterteSakerListe({
 
   if (relaterteSaker.length === 0) {
     return (
-      <Card className="p-4">
+      <div>
         <p className="text-pkt-text-body-subtle text-sm mb-3">
           Ingen relaterte saker lagt til ennå.
         </p>
         {headerAction}
-      </Card>
+      </div>
     );
   }
 
   return (
-    <Card className="p-3">
-        <table className="w-full text-sm">
+    <div>
+      <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-pkt-border-subtle">
               <th className="text-left py-1.5 font-medium">Sak</th>
@@ -232,11 +232,11 @@ export function RelaterteSakerListe({
             </tfoot>
           )}
         </table>
-        {headerAction && (
-          <div className="mt-3 pt-3 border-t border-pkt-border-subtle">
-            {headerAction}
-          </div>
-        )}
-    </Card>
+      {headerAction && (
+        <div className="mt-3 pt-3 border-t border-pkt-border-subtle">
+          {headerAction}
+        </div>
+      )}
+    </div>
   );
 }

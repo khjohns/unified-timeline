@@ -14,6 +14,7 @@ import { useAuth } from '../context/AuthContext';
 import { ApprovalProvider, useApprovalContext } from '../context/ApprovalContext';
 import { useCaseState } from '../hooks/useCaseState';
 import { useTimeline } from '../hooks/useTimeline';
+import { useHistorikk } from '../hooks/useRevisionHistory';
 import { useActionPermissions } from '../hooks/useActionPermissions';
 import { useUserRole } from '../hooks/useUserRole';
 import { useApprovalWorkflow } from '../hooks/useApprovalWorkflow';
@@ -128,6 +129,7 @@ function CasePageContent() {
   // Wait for auth verification before loading data
   const { data, isLoading, error } = useCaseState(sakId || '', { enabled: !!token && !isVerifying });
   const { data: timelineData, error: timelineError, isLoading: timelineLoading } = useTimeline(sakId || '', { enabled: !!token && !isVerifying });
+  const { vederlag: vederlagHistorikk, frist: fristHistorikk } = useHistorikk(sakId || '');
 
   // Fetch forsering relations (check if this case is part of any forsering)
   const { data: forseringData } = useQuery<FindForseringerResponse>({
@@ -365,6 +367,9 @@ function CasePageContent() {
             </h2>
             <CaseDashboard
           state={state}
+          events={timelineEvents}
+          vederlagHistorikk={vederlagHistorikk}
+          fristHistorikk={fristHistorikk}
           grunnlagActions={
             <>
               {/* TE Actions: "Send" and "Oppdater" are mutually exclusive */}

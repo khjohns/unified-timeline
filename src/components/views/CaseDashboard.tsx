@@ -7,7 +7,8 @@
 
 import { ReactNode, useMemo } from 'react';
 import { DashboardCard, DataList, DataListItem, Badge } from '../primitives';
-import { SakState, SporStatus } from '../../types/timeline';
+import { SakState, SporStatus, TimelineEvent } from '../../types/timeline';
+import { VederlagHistorikkEntry, FristHistorikkEntry } from '../../types/api';
 import { getHovedkategoriLabel, getUnderkategoriLabel } from '../../constants/categories';
 import { getVederlagsmetodeLabel } from '../../constants/paymentMethods';
 import { getSporStatusStyle } from '../../constants/statusStyles';
@@ -18,12 +19,24 @@ import {
   formatBHResultat,
   formatVarselType,
 } from '../../utils/formatters';
+import {
+  SporHistory,
+  transformVederlagHistorikk,
+  transformFristHistorikk,
+  transformGrunnlagEvents,
+} from './SporHistory';
 
 interface CaseDashboardProps {
   state: SakState;
   grunnlagActions?: ReactNode;
   vederlagActions?: ReactNode;
   fristActions?: ReactNode;
+  /** Timeline events for grunnlag history */
+  events?: TimelineEvent[];
+  /** Vederlag history entries from backend */
+  vederlagHistorikk?: VederlagHistorikkEntry[];
+  /** Frist history entries from backend */
+  fristHistorikk?: FristHistorikkEntry[];
 }
 
 /**
@@ -59,8 +72,16 @@ export function CaseDashboard({
   grunnlagActions,
   vederlagActions,
   fristActions,
+  events = [],
+  vederlagHistorikk = [],
+  fristHistorikk = [],
 }: CaseDashboardProps) {
   const krevdBelop = useMemo(() => getKrevdBelop(state), [state]);
+
+  // Transform historikk data for SporHistory
+  const grunnlagEntries = useMemo(() => transformGrunnlagEvents(events), [events]);
+  const vederlagEntries = useMemo(() => transformVederlagHistorikk(vederlagHistorikk), [vederlagHistorikk]);
+  const fristEntries = useMemo(() => transformFristHistorikk(fristHistorikk), [fristHistorikk]);
 
   return (
     <section aria-labelledby="dashboard-heading">
@@ -105,6 +126,7 @@ export function CaseDashboard({
               </DataListItem>
             )}
           </DataList>
+          <SporHistory spor="grunnlag" entries={grunnlagEntries} events={events} />
         </DashboardCard>
 
         {/* Vederlag Card */}
@@ -134,6 +156,7 @@ export function CaseDashboard({
               </DataListItem>
             )}
           </DataList>
+          <SporHistory spor="vederlag" entries={vederlagEntries} events={events} />
         </DashboardCard>
 
         {/* Frist Card */}
@@ -165,6 +188,7 @@ export function CaseDashboard({
               </DataListItem>
             )}
           </DataList>
+          <SporHistory spor="frist" entries={fristEntries} events={events} />
         </DashboardCard>
       </div>
     </section>
