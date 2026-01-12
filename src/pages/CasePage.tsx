@@ -21,7 +21,7 @@ import { CaseDashboard } from '../components/views/CaseDashboard';
 import { Timeline } from '../components/views/Timeline';
 import { ComprehensiveMetadata } from '../components/views/ComprehensiveMetadata';
 import { RevisionHistory } from '../components/views/RevisionHistory';
-import { Alert, Button, AlertDialog } from '../components/primitives';
+import { Alert, Button, AlertDialog, Card } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
 import { formatCurrency } from '../utils/formatters';
 import { downloadApprovedPdf } from '../pdf/generator';
@@ -289,24 +289,24 @@ function CasePageContent() {
       )}
 
       {/* Main Content */}
-      <main className="max-w-3xl mx-auto px-4 py-6 sm:px-8 sm:py-8 bg-pkt-bg-card min-h-[calc(100vh-88px)]">
+      <main className="max-w-3xl mx-auto px-2 py-4 sm:px-4 sm:py-6 bg-pkt-bg-subtle min-h-[calc(100vh-88px)] space-y-4">
         {/* Forsering relation banner (if this case is part of a forsering) */}
         {forseringData?.forseringer && forseringData.forseringer.length > 0 && (
-          <section className="mb-6">
+          <section>
             <ForseringRelasjonBanner forseringer={forseringData.forseringer} />
           </section>
         )}
 
         {/* Endringsordre relation banner (if this case is part of an endringsordre) */}
         {endringsordreData?.endringsordrer && endringsordreData.endringsordrer.length > 0 && (
-          <section className="mb-6">
+          <section>
             <EndringsordreRelasjonBanner endringsordrer={endringsordreData.endringsordrer} />
           </section>
         )}
 
         {/* Combined Package Banner - show when approval enabled and drafts exist */}
         {approvalWorkflow.approvalEnabled && approvalWorkflow.hasAnyDraft && userRole === 'BH' && (
-          <section className="mb-6">
+          <section>
             <Alert
               variant="warning"
               title="Utkast klare for godkjenning"
@@ -338,7 +338,7 @@ function CasePageContent() {
 
         {/* BH Response Package Dashboard Card */}
         {approvalWorkflow.approvalEnabled && approvalWorkflow.bhResponsPakke && (
-          <section className="mb-6">
+          <section>
             <ApprovalDashboardCard
               pakke={approvalWorkflow.bhResponsPakke}
               canApprove={approvalWorkflow.canApprovePakke}
@@ -356,13 +356,14 @@ function CasePageContent() {
 
         {/* Status Dashboard with Contextual Actions */}
         <section aria-labelledby="krav-respons-heading">
-          <h2
-            id="krav-respons-heading"
-            className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4"
-          >
-            Krav og respons
-          </h2>
-          <CaseDashboard
+          <Card variant="outlined" padding="md">
+            <h2
+              id="krav-respons-heading"
+              className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4"
+            >
+              Krav og respons
+            </h2>
+            <CaseDashboard
           state={state}
           grunnlagActions={
             <>
@@ -537,50 +538,58 @@ function CasePageContent() {
             </>
           }
         />
+          </Card>
         </section>
 
         {/* Timeline Section */}
-        <section className="mt-6 sm:mt-8" aria-labelledby="timeline-heading">
-          <h2
-            id="timeline-heading"
-            className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4"
-          >
-            Hendelser
-          </h2>
-          {timelineLoading && (
-            <div className="py-4 text-center text-pkt-grays-gray-500">
-              <p className="text-sm">Laster hendelser...</p>
-            </div>
-          )}
-          {timelineError && (
-            <div className="py-4 text-center text-badge-error-text bg-badge-error-bg rounded">
-              <p className="text-sm">Kunne ikke laste hendelser: {timelineError.message}</p>
-            </div>
-          )}
-          {!timelineLoading && !timelineError && (
-            <Timeline events={timelineEvents} />
-          )}
+        <section aria-labelledby="timeline-heading">
+          <Card variant="outlined" padding="md">
+            <h2
+              id="timeline-heading"
+              className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4"
+            >
+              Hendelser
+            </h2>
+            {timelineLoading && (
+              <div className="py-4 text-center text-pkt-grays-gray-500">
+                <p className="text-sm">Laster hendelser...</p>
+              </div>
+            )}
+            {timelineError && (
+              <div className="py-4 text-center text-badge-error-text bg-badge-error-bg rounded">
+                <p className="text-sm">Kunne ikke laste hendelser: {timelineError.message}</p>
+              </div>
+            )}
+            {!timelineLoading && !timelineError && (
+              <Timeline events={timelineEvents} />
+            )}
+          </Card>
         </section>
 
-        {/* Metadata Section - Case info and Revision History */}
-        <section className="mt-6 sm:mt-8" aria-labelledby="metadata-heading">
-          <h2
-            id="metadata-heading"
-            className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4"
-          >
-            Metadata
-          </h2>
+        {/* Metadata Section */}
+        <section aria-labelledby="metadata-heading">
+          <Card variant="outlined" padding="md">
+            <h2
+              id="metadata-heading"
+              className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4"
+            >
+              Metadata
+            </h2>
+            <ComprehensiveMetadata state={state} sakId={sakId || ''} />
+          </Card>
+        </section>
 
-          {/* Comprehensive Metadata */}
-          <ComprehensiveMetadata state={state} sakId={sakId || ''} />
-
-          {/* Revision History */}
-          <div className="mt-4 sm:mt-6">
-            <h3 className="text-sm font-semibold text-pkt-text-body-dark mb-2 sm:mb-3">
+        {/* Revision History Section */}
+        <section aria-labelledby="revision-heading">
+          <Card variant="outlined" padding="md">
+            <h2
+              id="revision-heading"
+              className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4"
+            >
               Revisjonshistorikk
-            </h3>
+            </h2>
             <RevisionHistory />
-          </div>
+          </Card>
         </section>
       </main>
 
