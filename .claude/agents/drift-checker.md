@@ -24,3 +24,12 @@ Rapporter alltid:
 - Antall kritiske avvik
 - Antall advarsler
 - Konkrete filer som må endres
+
+## Store filer - VIKTIG
+
+Følgende filer er for store til å leses helt. Bruk Grep for målrettede søk:
+- `backend/models/events.py` (1948 linjer)
+- `backend/models/sak_state.py` (1252 linjer)
+- `src/types/timeline.ts` (973 linjer)
+
+Eksempel: `grep -n "class.*Event" backend/models/events.py` i stedet for å lese hele filen.
