@@ -69,14 +69,14 @@ describe('useActionPermissions', () => {
         expect(actions.canSendGrunnlag).toBe(true);
       });
 
-      it('should not allow sending grunnlag when status is not utkast', () => {
-        const statuses: SporStatus[] = ['sendt', 'under_behandling', 'godkjent', 'avslatt'];
-        for (const status of statuses) {
+      it.each<SporStatus>(['sendt', 'under_behandling', 'godkjent', 'avslatt'])(
+        'should not allow sending grunnlag when status is %s',
+        (status) => {
           const state = createMockState({ grunnlagStatus: status });
           const actions = useActionPermissions(state, role);
           expect(actions.canSendGrunnlag).toBe(false);
         }
-      });
+      );
 
       it('should allow sending vederlag when status is utkast', () => {
         const state = createMockState({ vederlagStatus: 'utkast' });
