@@ -8,7 +8,7 @@ interface CardProps extends ComponentPropsWithoutRef<'div'> {
 
 /**
  * Card component with Punkt design system styling
- * - Sharp corners (radius: 0)
+ * - Subtle rounding (4px)
  * - border-pkt-border-default (#2a2859) for outlined variant
  * - Larger padding for better content spacing
  */
@@ -18,8 +18,8 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
       <div
         ref={ref}
         className={clsx(
-          // Sharp corners
-          'rounded-none',
+          // Subtle rounding (4px)
+          'rounded',
           {
             // Default: white background
             'bg-pkt-bg-card': variant === 'default',

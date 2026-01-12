@@ -85,7 +85,7 @@ export function Alert({
     <div
       role="alert"
       className={clsx(
-        'border-l-4 rounded-none',
+        'border-l-4 rounded',
         styles.container,
         sizeStyles[size],
         className

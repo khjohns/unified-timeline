@@ -30,7 +30,7 @@ const WIDTH_CLASSES: Record<InputWidth, string> = {
 
 /**
  * Input component with Punkt design system styling
- * - Sharp corners (radius: 0)
+ * - Subtle rounding (4px)
  * - border-pkt-border-default (#2a2859)
  * - Larger text and padding for better readability
  * - Focus state with pkt-border-focus (#e0adff)
@@ -51,8 +51,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           'bg-pkt-bg-default',
           'transition-colors duration-200',
 
-          // Border - 2px width, sharp corners
-          'border-2 rounded-none',
+          // Border - 2px width, subtle rounding
+          'border-2 rounded',
 
           // Default border color
           !error && !disabled && 'border-pkt-border-default',

@@ -43,7 +43,7 @@ export function Badge({
     <span
       className={clsx(
         'inline-flex items-center font-medium',
-        'border rounded-none',
+        'border rounded-sm',
         variantStyles[variant],
         sizeStyles[size],
         className

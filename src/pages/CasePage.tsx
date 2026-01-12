@@ -259,7 +259,7 @@ function CasePageContent() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setPdfPreviewOpen(true)}
-              className="flex items-center gap-2 p-2 rounded-lg border border-pkt-grays-gray-200 bg-pkt-bg-subtle text-pkt-grays-gray-500 hover:text-pkt-text-body-dark hover:bg-pkt-bg-card transition-colors"
+              className="flex items-center gap-2 p-2 rounded border border-pkt-grays-gray-200 bg-pkt-bg-subtle text-pkt-grays-gray-500 hover:text-pkt-text-body-dark hover:bg-pkt-bg-card transition-colors"
               title="Forhåndsvis PDF"
               aria-label="Forhåndsvis PDF"
             >
@@ -270,7 +270,7 @@ function CasePageContent() {
                 const { downloadContractorClaimPdf } = await import('../pdf/generator');
                 downloadContractorClaimPdf(state);
               }}
-              className="flex items-center gap-2 p-2 rounded-lg border border-pkt-grays-gray-200 bg-pkt-bg-subtle text-pkt-grays-gray-500 hover:text-pkt-text-body-dark hover:bg-pkt-bg-card transition-colors"
+              className="flex items-center gap-2 p-2 rounded border border-pkt-grays-gray-200 bg-pkt-bg-subtle text-pkt-grays-gray-500 hover:text-pkt-text-body-dark hover:bg-pkt-bg-card transition-colors"
               title="Last ned PDF"
               aria-label="Last ned PDF"
             >
@@ -553,7 +553,7 @@ function CasePageContent() {
             </div>
           )}
           {timelineError && (
-            <div className="py-4 text-center text-badge-error-text bg-badge-error-bg rounded-lg">
+            <div className="py-4 text-center text-badge-error-text bg-badge-error-bg rounded">
               <p className="text-sm">Kunne ikke laste hendelser: {timelineError.message}</p>
             </div>
           )}

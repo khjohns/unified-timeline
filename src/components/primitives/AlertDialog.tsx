@@ -48,7 +48,7 @@ export function AlertDialog({
         <AlertDialogPrimitive.Content
           className={clsx(
             'fixed left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%]',
-            'bg-pkt-bg-card rounded-none shadow-lg',
+            'bg-pkt-bg-card rounded shadow-lg',
             'p-6',
             'z-modal',
             'w-[90vw] max-w-md',

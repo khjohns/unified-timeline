@@ -280,7 +280,7 @@ export function Timeline({ events }: TimelineProps) {
                   {/* Spor tag */}
                   {event.spor && (
                     <span
-                      className={`text-xs font-medium px-2 py-0.5 rounded shrink-0 ${getSporTagStyles(event.spor)}`}
+                      className={`text-xs font-medium px-2 py-0.5 rounded-sm shrink-0 ${getSporTagStyles(event.spor)}`}
                     >
                       {getSporLabel(event.spor)}
                     </span>
@@ -301,7 +301,7 @@ export function Timeline({ events }: TimelineProps) {
 
                   {/* Role label + expand indicator */}
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${rolleStyles.pillBg} ${rolleStyles.pillText}`}>
+                    <span className={`text-xs font-medium px-1.5 py-0.5 rounded-sm ${rolleStyles.pillBg} ${rolleStyles.pillText}`}>
                       {event.actorrole}
                     </span>
                     <ChevronDownIcon
@@ -330,7 +330,7 @@ export function Timeline({ events }: TimelineProps) {
                     {/* Spor tag */}
                     {event.spor && (
                       <span
-                        className={`text-xs font-medium px-1.5 py-0.5 rounded shrink-0 ${getSporTagStyles(event.spor)}`}
+                        className={`text-xs font-medium px-1.5 py-0.5 rounded-sm shrink-0 ${getSporTagStyles(event.spor)}`}
                       >
                         {getSporLabel(event.spor)}
                       </span>
@@ -341,7 +341,7 @@ export function Timeline({ events }: TimelineProps) {
 
                     {/* Role label + expand indicator */}
                     <div className="flex items-center gap-1.5 shrink-0">
-                      <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${rolleStyles.pillBg} ${rolleStyles.pillText}`}>
+                      <span className={`text-xs font-medium px-1.5 py-0.5 rounded-sm ${rolleStyles.pillBg} ${rolleStyles.pillText}`}>
                         {event.actorrole}
                       </span>
                       <ChevronDownIcon
@@ -392,7 +392,7 @@ export function Timeline({ events }: TimelineProps) {
                           e.stopPropagation();
                           setSelectedEvent(event);
                         }}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-badge-info-text bg-badge-info-bg hover:opacity-90 rounded-lg transition-colors mt-2 w-full sm:w-auto justify-center sm:justify-start"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-badge-info-text bg-badge-info-bg hover:opacity-90 rounded transition-colors mt-2 w-full sm:w-auto justify-center sm:justify-start"
                       >
                         <FileTextIcon className="h-4 w-4" />
                         Vis innsendt skjema

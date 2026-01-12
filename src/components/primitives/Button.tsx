@@ -42,7 +42,7 @@ function LoadingSpinner({ className }: { className?: string }) {
 
 /**
  * Button component with Punkt design system styling
- * - Sharp corners (radius: 0)
+ * - Subtle rounding (4px)
  * - border-pkt-border-default (#2a2859) with 2px width
  * - Larger sizes for better clickability
  * - Focus state with pkt-border-focus (#e0adff)
@@ -56,8 +56,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={isDisabled}
         className={clsx(
-          // Base styles - SKARPE KANTER
-          'inline-flex items-center justify-center rounded-none gap-2',
+          // Base styles - subtle rounding (4px)
+          'inline-flex items-center justify-center rounded gap-2',
           'font-medium transition-colors duration-200',
           'border-2',
 

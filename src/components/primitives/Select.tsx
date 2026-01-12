@@ -21,7 +21,7 @@ const WIDTH_CLASSES: Record<SelectWidth, string> = {
 
 /**
  * Select component based on Radix UI Select
- * - Sharp corners (radius: 0)
+ * - Subtle rounding (4px)
  * - border-pkt-border-default (#2a2859)
  * - Larger text and padding for better readability
  * - Focus state with pkt-border-focus (#e0adff)
@@ -61,8 +61,8 @@ export const SelectTrigger = forwardRef<
       // Width
       WIDTH_CLASSES[width],
 
-      // Border - 2px width, sharp corners
-      'border-2 rounded-none',
+      // Border - 2px width, subtle rounding
+      'border-2 rounded',
 
       // Default border color
       !error && 'border-pkt-border-default',
@@ -153,7 +153,7 @@ export const SelectContent = forwardRef<
         // Prevent overflow on mobile screens
         'max-w-[calc(100vw-2rem)]',
         'bg-pkt-bg-default',
-        'border-2 border-pkt-border-default rounded-none',
+        'border-2 border-pkt-border-default rounded',
         'shadow-lg',
         // Animations
         'data-[state=open]:animate-in data-[state=closed]:animate-out',

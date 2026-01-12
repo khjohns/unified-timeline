@@ -15,7 +15,7 @@ interface ModalProps {
 
 /**
  * Modal component with Punkt design system styling
- * - Sharp corners (radius: 0)
+ * - Subtle rounding (4px)
  * - border-pkt-border-default (#2a2859)
  * - Larger padding and text for better readability
  */
@@ -45,8 +45,8 @@ export function Modal({
         <Dialog.Content
           className={clsx(
             'fixed left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%]',
-            // Sharp corners and subtle elevation
-            'bg-pkt-bg-card rounded-none shadow-lg',
+            // Subtle rounding (4px) and elevation
+            'bg-pkt-bg-card rounded shadow-lg',
             'border border-pkt-border-default',
             // Responsive padding - smaller on mobile for more content space
             'p-4 sm:p-6 md:p-8',
@@ -79,10 +79,10 @@ export function Modal({
               )}
             </div>
 
-            {/* Close button - sharp corners */}
+            {/* Close button */}
             <Dialog.Close
               className={clsx(
-                'rounded-none p-2',
+                'rounded p-2',
                 'text-pkt-grays-gray-500 hover:text-pkt-grays-gray-700',
                 'hover:bg-pkt-surface-light-beige',
                 'focus:outline-none focus:ring-4 focus:ring-pkt-brand-purple-1000/30'
