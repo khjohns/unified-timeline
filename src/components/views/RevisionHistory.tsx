@@ -59,27 +59,8 @@ export function RevisionHistory() {
 
   return (
     <div className="space-y-8">
-      {/* Vederlag Revision History */}
-      {hasVederlag && (
-        <section>
-          <h4 className="flex items-center gap-2 text-sm font-semibold text-pkt-text-body-default mb-3">
-            <StackIcon className="w-4 h-4" />
-            Vederlag
-          </h4>
-          <VederlagHistorikkTable entries={vederlag} />
-        </section>
-      )}
-
-      {/* Frist Revision History */}
-      {hasFrist && (
-        <section>
-          <h4 className="flex items-center gap-2 text-sm font-semibold text-pkt-text-body-default mb-3">
-            <ClockIcon className="w-4 h-4" />
-            Frist
-          </h4>
-          <FristHistorikkTable entries={frist} />
-        </section>
-      )}
+      {hasVederlag && <VederlagHistorikkTable entries={vederlag} />}
+      {hasFrist && <FristHistorikkTable entries={frist} />}
     </div>
   );
 }
@@ -115,8 +96,11 @@ function VederlagHistorikkTable({ entries }: VederlagHistorikkTableProps) {
 
   return (
     <Card className="p-3 overflow-x-auto">
+      <h4 className="flex items-center gap-2 text-sm font-semibold text-pkt-text-body-default mb-3">
+        <StackIcon className="w-4 h-4" />
+        Vederlag
+      </h4>
       <table className="w-full text-sm">
-        {/* Header */}
         <thead>
           <tr className="border-b border-pkt-border-subtle">
             <th className="sticky left-0 z-10 bg-pkt-bg-card text-left py-1.5 px-3 font-medium w-[160px]">
@@ -214,8 +198,11 @@ function FristHistorikkTable({ entries }: FristHistorikkTableProps) {
 
   return (
     <Card className="p-3 overflow-x-auto">
+      <h4 className="flex items-center gap-2 text-sm font-semibold text-pkt-text-body-default mb-3">
+        <ClockIcon className="w-4 h-4" />
+        Frist
+      </h4>
       <table className="w-full text-sm">
-        {/* Header */}
         <thead>
           <tr className="border-b border-pkt-border-subtle">
             <th className="sticky left-0 z-10 bg-pkt-bg-card text-left py-1.5 px-3 font-medium w-[160px]">
