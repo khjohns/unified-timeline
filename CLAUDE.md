@@ -95,5 +95,5 @@ python scripts/security_scan.py     # Sikkerhetsscan
 
 Mer detaljerte guider finnes i `.claude/skills/`:
 
-- `event-sourcing.md` - Event Sourcing arkitektur
-- `static-analysis.md` - Statisk analyse verktøy
+- `event-sourcing/SKILL.md` - Event Sourcing arkitektur
+- `static-analysis/SKILL.md` - Statisk analyse verktøy

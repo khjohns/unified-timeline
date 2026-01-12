@@ -4,6 +4,31 @@
 > Oppdatert med: Multi-file structure, script-referanser, subagent-integrasjon
 > Referanse: https://code.claude.com/docs/en/skills
 
+---
+
+## Implementeringsstatus
+
+| Komponent | Status | Plassering |
+|-----------|--------|------------|
+| `event-sourcing` skill | Implementert | `.claude/skills/event-sourcing/SKILL.md` |
+| `static-analysis` skill | Implementert | `.claude/skills/static-analysis/SKILL.md` |
+| Multi-file skills (progressive disclosure) | Ikke implementert | Vurderes senere |
+| Custom subagents | Ikke implementert | Se `CLAUDE_CODE_SUBAGENTS_ANBEFALING.md` |
+| Hooks | Ikke implementert | Se `CLAUDE_CODE_HOOKS_ANBEFALING.md` |
+
+**Nåværende struktur:**
+```
+.claude/
+├── settings.local.json          # Permissions
+└── skills/
+    ├── event-sourcing/
+    │   └── SKILL.md             # Implementert
+    └── static-analysis/
+        └── SKILL.md             # Implementert
+```
+
+---
+
 ## Ny innsikt: Scripts som kjøres uten å leses
 
 En viktig funksjon i Claude Code skills er at **scripts kan refereres og kjøres uten å laste innholdet i kontekstvinduet**. Dette er ideelt for prosjektet vårt som allerede har scripts i `/scripts`.

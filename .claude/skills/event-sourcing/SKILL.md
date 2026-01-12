@@ -1,3 +1,8 @@
+---
+name: event-sourcing
+description: Guide til Event Sourcing arkitekturen. Bruk ved arbeid med events, state-projeksjoner, eller forretningsregler.
+---
+
 # Event Sourcing & Datamodell
 
 ## Oversikt
@@ -70,15 +75,27 @@ Events (immutable) → Projeksjon → SakState (computed view)
 | `eo_bestridt` | TE | TE bestrider EO |
 | `eo_revidert` | BH | BH reviderer EO |
 
+### System-Events
+
+| Event | Aktør | Beskrivelse |
+|-------|-------|-------------|
+| `sak_opprettet` | System | Oppretter ny sak i systemet |
+
 ## Spor-Status
 
 Hvert spor har en status som endres basert på events:
 
 ```
 IKKE_RELEVANT → UTKAST → SENDT → UNDER_BEHANDLING → GODKJENT/AVSLÅTT/DELVIS_GODKJENT
-                                                  ↓
-                                            TRUKKET
+                                       ↓                    ↓
+                                UNDER_FORHANDLING      TRUKKET
+                                       ↓
+                                    LAAST
 ```
+
+**Statuser:**
+- `UNDER_FORHANDLING` - BH har avslått/delvis godkjent, forhandling pågår
+- `LAAST` - Grunnlag låst etter godkjenning
 
 ## Data-Strukturer
 
@@ -101,11 +118,16 @@ class SakEvent:
 ```python
 class SakState:
     sak_id: str
-    sakstype: SaksType      # standard/forsering/endringsordre
+    sakstittel: str
+    sakstype: SaksType                           # standard/forsering/endringsordre
     grunnlag: GrunnlagTilstand
     vederlag: VederlagTilstand
     frist: FristTilstand
-    events: List[SakEvent]  # Alle events i saken
+    relaterte_saker: List[SakRelasjon]
+    forsering_data: Optional[ForseringData]      # Kun for sakstype=forsering
+    endringsordre_data: Optional[EndringsordreData]  # Kun for sakstype=endringsordre
+    opprettet: Optional[datetime]
+    siste_aktivitet: Optional[datetime]
 ```
 
 ## Frontend/Backend Synkronisering

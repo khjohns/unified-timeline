@@ -1,3 +1,8 @@
+---
+name: static-analysis
+description: Statiske analyseverktøy for drift-sjekk, sikkerhetsscan og kodekvalitet. Bruk før commit eller for å finne synkroniseringsproblemer.
+---
+
 # Statisk Analyse
 
 ## Oversikt
@@ -15,6 +20,15 @@ Prosjektet har flere statiske analyse-verktøy i `/scripts` som hjelper med å o
 | `label_coverage.py` | Label-dekning | Etter nye enum-verdier |
 | `todo_tracker.py` | TODO/FIXME-sporing | Jevnlig, før release |
 | `security_scan.py` | Sikkerhetssårbarheter | Før commit, før release |
+
+### Avanserte flagg
+
+| Script | Flagg | Beskrivelse |
+|--------|-------|-------------|
+| `security_scan.py` | `--include-low` | Inkluder low-severity funn (ekskludert som default) |
+| `contract_drift.py` | `--verbose`, `-v` | Vis hvilke unions/enums som ble funnet |
+| `state_drift.py` | `--verbose`, `-v` | Vis hvilke interfaces/models som ble funnet |
+| `constant_drift.py` | `--min N` | Minimum forekomster for å rapportere (default: 3) |
 
 ## Bruksmønster
 
@@ -89,11 +103,11 @@ python scripts/todo_tracker.py       # Spor teknisk gjeld
 
 CONTRACT DRIFT (Enums/Unions)
 ----------------------------------------
-  OK - Ingen drift                    ← Alt synkronisert
+  OK - Ingen drift                    <- Alt synkronisert
 
 STATE MODEL DRIFT (Interfaces/Models)
 ----------------------------------------
-  DRIFT FUNNET: 2 modeller            ← Må fikses!
+  DRIFT FUNNET: 2 modeller            <- Må fikses!
     - SakState: 3 kritiske, 1 advarsler
     - VederlagTilstand: 1 kritiske, 0 advarsler
 ```
