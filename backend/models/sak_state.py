@@ -107,6 +107,10 @@ class GrunnlagTilstand(BaseModel):
         default=False,
         description="Om grunnlaget er låst (godkjent og kan ikke endres)"
     )
+    bh_respondert_versjon: Optional[int] = Field(
+        default=None,
+        description="Hvilken versjon av kravet BH sist responderte på (0-indeksert)"
+    )
 
     # Metadata
     siste_event_id: Optional[str] = Field(default=None)
@@ -802,6 +806,12 @@ class FristTilstand(BaseModel):
                 return "avslatt_subsidiaert_godkjent"
 
         return self.bh_resultat.value
+
+    # BH respons-versjon tracking
+    bh_respondert_versjon: Optional[int] = Field(
+        default=None,
+        description="Hvilken versjon av kravet BH sist responderte på (0-indeksert)"
+    )
 
     # Metadata
     siste_event_id: Optional[str] = Field(default=None)

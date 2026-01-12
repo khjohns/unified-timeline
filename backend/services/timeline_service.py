@@ -376,6 +376,9 @@ class TimelineService:
             grunnlag.laast = True
             grunnlag.status = SporStatus.LAAST
 
+        # Spor hvilken versjon BH responderte på
+        grunnlag.bh_respondert_versjon = max(0, grunnlag.antall_versjoner - 1)
+
         # Metadata
         grunnlag.siste_event_id = event.event_id
         grunnlag.siste_oppdatert = event.tidsstempel
@@ -430,6 +433,9 @@ class TimelineService:
         # Fallback for backward compatibility
         elif hasattr(event.data, 'resultat'):
             vederlag.status = self._respons_til_status(event.data.resultat)
+
+        # Spor hvilken versjon BH responderte på
+        vederlag.bh_respondert_versjon = max(0, vederlag.antall_versjoner - 1)
 
         # Metadata
         vederlag.siste_event_id = event.event_id
@@ -490,6 +496,9 @@ class TimelineService:
         # Fallback for backward compatibility
         elif hasattr(event.data, 'resultat'):
             frist.status = self._respons_til_status(event.data.resultat)
+
+        # Spor hvilken versjon BH responderte på
+        frist.bh_respondert_versjon = max(0, frist.antall_versjoner - 1)
 
         # Metadata
         frist.siste_event_id = event.event_id

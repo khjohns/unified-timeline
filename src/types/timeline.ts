@@ -151,6 +151,8 @@ export interface GrunnlagTilstand {
   bh_resultat?: GrunnlagResponsResultat;
   bh_begrunnelse?: string;
   laast: boolean;
+  /** Which version of the claim BH last responded to (0-indexed: 0 = original, 1 = rev 1, etc.) */
+  bh_respondert_versjon?: number;
   siste_oppdatert?: string;
   antall_versjoner: number;
 }
@@ -254,6 +256,9 @@ export interface FristTilstand {
   differanse_dager?: number;
   har_subsidiaert_standpunkt?: boolean;
   visningsstatus?: string;
+
+  /** Which version of the claim BH last responded to (0-indexed: 0 = original, 1 = rev 1, etc.) */
+  bh_respondert_versjon?: number;
 
   // Metadata
   siste_oppdatert?: string;

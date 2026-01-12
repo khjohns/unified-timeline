@@ -67,6 +67,20 @@ export function useActionPermissions(
   const isInitialStatus = (status: string | undefined) =>
     status === 'utkast' || status === 'ikke_relevant';
 
+  // Helper: Check if BH has responded to the current version of a claim
+  // Returns true if BH's response is to the latest version
+  const harSvartPaaGjeldendeVersjon = (
+    bhResultat: unknown,
+    bhRespondertVersjon: number | undefined,
+    antallVersjoner: number
+  ): boolean => {
+    if (bhResultat == null) return false;
+    if (bhRespondertVersjon === undefined) return false;
+    // Version 0 = original, so current version = antall_versjoner - 1
+    const gjeldendeVersjon = Math.max(0, antallVersjoner - 1);
+    return bhRespondertVersjon === gjeldendeVersjon;
+  };
+
   // Force Majeure (§33.3) gir kun rett til fristforlengelse, ikke vederlagsjustering
   const erForceMajeure = state.grunnlag.hovedkategori === 'FORCE_MAJEURE';
 
@@ -111,29 +125,61 @@ export function useActionPermissions(
       (state.frist.status === 'sendt' || state.frist.status === 'under_behandling'),
 
     // BH Actions: Respond to claims
+    // Show "Svar" when: status is sendt/under_behandling AND BH has NOT responded to current version
     canRespondToGrunnlag:
       isBH &&
-      (state.grunnlag.status === 'sendt' || state.grunnlag.status === 'under_behandling'),
+      (state.grunnlag.status === 'sendt' || state.grunnlag.status === 'under_behandling') &&
+      !harSvartPaaGjeldendeVersjon(
+        state.grunnlag.bh_resultat,
+        state.grunnlag.bh_respondert_versjon,
+        state.grunnlag.antall_versjoner
+      ),
     canRespondToVederlag:
       isBH &&
-      (state.vederlag.status === 'sendt' || state.vederlag.status === 'under_behandling'),
+      (state.vederlag.status === 'sendt' || state.vederlag.status === 'under_behandling') &&
+      !harSvartPaaGjeldendeVersjon(
+        state.vederlag.bh_resultat,
+        state.vederlag.bh_respondert_versjon,
+        state.vederlag.antall_versjoner
+      ),
     canRespondToFrist:
-      isBH && (state.frist.status === 'sendt' || state.frist.status === 'under_behandling'),
+      isBH &&
+      (state.frist.status === 'sendt' || state.frist.status === 'under_behandling') &&
+      !harSvartPaaGjeldendeVersjon(
+        state.frist.bh_resultat,
+        state.frist.bh_respondert_versjon,
+        state.frist.antall_versjoner
+      ),
 
     // BH Actions: Update existing responses (snuoperasjon, endre avgjørelse)
-    // Must have actually responded (bh_resultat is set, not null/undefined)
+    // Show "Endre svar" ONLY when: BH has responded to the current version (not an older revision)
     canUpdateGrunnlagResponse:
       isBH &&
       state.grunnlag.bh_resultat != null &&
-      !isInitialStatus(state.grunnlag.status),
+      !isInitialStatus(state.grunnlag.status) &&
+      harSvartPaaGjeldendeVersjon(
+        state.grunnlag.bh_resultat,
+        state.grunnlag.bh_respondert_versjon,
+        state.grunnlag.antall_versjoner
+      ),
     canUpdateVederlagResponse:
       isBH &&
       state.vederlag.bh_resultat != null &&
-      !isInitialStatus(state.vederlag.status),
+      !isInitialStatus(state.vederlag.status) &&
+      harSvartPaaGjeldendeVersjon(
+        state.vederlag.bh_resultat,
+        state.vederlag.bh_respondert_versjon,
+        state.vederlag.antall_versjoner
+      ),
     canUpdateFristResponse:
       isBH &&
       state.frist.bh_resultat != null &&
-      !isInitialStatus(state.frist.status),
+      !isInitialStatus(state.frist.status) &&
+      harSvartPaaGjeldendeVersjon(
+        state.frist.bh_resultat,
+        state.frist.bh_respondert_versjon,
+        state.frist.antall_versjoner
+      ),
 
     // TE Actions: Forsering (§33.8)
     // Available when BH has rejected frist (wholly or partially) OR rejected grunnlag
