@@ -14,7 +14,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from datetime import datetime
 from models.sak_state import (
     SakState, GrunnlagTilstand, VederlagTilstand, FristTilstand,
-    ForseringData, EndringsordreData, EOKonsekvenser, EOStatus, SaksType
+    ForseringData, EndringsordreData, EOKonsekvenser, EOStatus, SaksType,
+    VarselInfo
 )
 from models.events import SporStatus, GrunnlagResponsResultat, VederlagBeregningResultat, FristBeregningResultat
 from services.reportlab_pdf_generator import generate_koe_pdf
@@ -45,7 +46,7 @@ def test_koe_with_bh_response():
                        "Entreprenøren hadde disponert mannskap og utstyr som måtte omdirigeres. "
                        "Varslet skriftlig til byggherre 2. november 2024.",
             dato_oppdaget="2024-10-28",
-            dato_varsel_sendt="2024-11-02",
+            grunnlag_varsel=VarselInfo(dato_sendt="2024-11-02", metode=["epost"]),
             bh_resultat=GrunnlagResponsResultat.GODKJENT,
             bh_begrunnelse="Byggherren erkjenner forsinkelsen og godkjenner ansvarsgrunnlaget. "
                           "Materialene var forsinket grunnet leverandørproblemer som lå utenfor "
@@ -139,7 +140,7 @@ def test_force_majeure_claim():
                        "fasade måtte innstilles av HMS-hensyn. Forholdet var ikke mulig å forutse "
                        "ved kontraktsinngåelse.",
             dato_oppdaget="2024-12-05",
-            dato_varsel_sendt="2024-12-05",
+            grunnlag_varsel=VarselInfo(dato_sendt="2024-12-05", metode=["epost", "byggemote"]),
             bh_resultat=GrunnlagResponsResultat.GODKJENT,
             bh_begrunnelse="Byggherren godkjenner at værforholdene utgjør force majeure iht. §33.3. "
                           "Ekstremværet var av ekstraordinær karakter og lå utenfor det entreprenøren "
@@ -314,7 +315,7 @@ def test_pending_claim():
                        "mangelfull koordinering mellom RIB og RIV i prosjekteringsfasen. "
                        "Omprosjektering og endret trasé er nødvendig.",
             dato_oppdaget="2024-12-10",
-            dato_varsel_sendt="2024-12-11",
+            grunnlag_varsel=VarselInfo(dato_sendt="2024-12-11"),
             siste_oppdatert=datetime(2024, 12, 11, 10, 0),
             antall_versjoner=1,
         ),

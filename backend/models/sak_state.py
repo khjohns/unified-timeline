@@ -91,13 +91,9 @@ class GrunnlagTilstand(BaseModel):
     )
     beskrivelse: Optional[str] = Field(default=None)
     dato_oppdaget: Optional[str] = Field(default=None)
-    dato_varsel_sendt: Optional[str] = Field(
+    grunnlag_varsel: Optional[VarselInfo] = Field(
         default=None,
-        description="When warning was actually sent to BH"
-    )
-    varsel_metode: Optional[List[str]] = Field(
-        default=None,
-        description="Methods used to notify BH (e.g., ['epost', 'byggemote'])"
+        description="Info om når og hvordan BH ble varslet om forholdet"
     )
     kontraktsreferanser: List[str] = Field(default_factory=list)
 
