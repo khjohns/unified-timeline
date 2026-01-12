@@ -118,6 +118,20 @@ export function getMockTimelineById(sakId: string): TimelineEntry[] {
  */
 export function getMockHistorikkById(sakId: string): {
   version: number;
+  grunnlag: Array<{
+    versjon: number;
+    tidsstempel: string;
+    aktor: { navn: string; rolle: 'TE' | 'BH'; tidsstempel: string };
+    endring_type: 'opprettet' | 'oppdatert' | 'trukket' | 'respons' | 'respons_oppdatert';
+    event_id: string;
+    hovedkategori?: string | null;
+    underkategori?: string | string[] | null;
+    beskrivelse?: string | null;
+    kontraktsreferanser?: string[] | null;
+    bh_resultat?: string | null;
+    bh_resultat_label?: string | null;
+    bh_begrunnelse?: string | null;
+  }>;
   vederlag: Array<{
     versjon: number;
     tidsstempel: string;
@@ -155,6 +169,21 @@ export function getMockHistorikkById(sakId: string): {
   const state = getMockStateById(sakId);
 
   // Generate mock historikk based on state
+  const grunnlag: Array<{
+    versjon: number;
+    tidsstempel: string;
+    aktor: { navn: string; rolle: 'TE' | 'BH'; tidsstempel: string };
+    endring_type: 'opprettet' | 'oppdatert' | 'trukket' | 'respons' | 'respons_oppdatert';
+    event_id: string;
+    hovedkategori?: string | null;
+    underkategori?: string | string[] | null;
+    beskrivelse?: string | null;
+    kontraktsreferanser?: string[] | null;
+    bh_resultat?: string | null;
+    bh_resultat_label?: string | null;
+    bh_begrunnelse?: string | null;
+  }> = [];
+
   const vederlag: Array<{
     versjon: number;
     tidsstempel: string;
@@ -189,6 +218,43 @@ export function getMockHistorikkById(sakId: string): {
     godkjent_dager?: number | null;
     bh_begrunnelse?: string | null;
   }> = [];
+
+  // If grunnlag is active, generate grunnlag historikk
+  if (state.grunnlag.status !== 'utkast') {
+    const teNavn = state.entreprenor || 'Entreprenør AS';
+    const bhNavn = state.byggherre || 'Byggherre Kommune';
+
+    // Version 1: Initial submission
+    grunnlag.push({
+      versjon: 1,
+      tidsstempel: state.grunnlag.siste_oppdatert || '2025-01-15T09:00:00Z',
+      aktor: { navn: teNavn, rolle: 'TE', tidsstempel: state.grunnlag.siste_oppdatert || '2025-01-15T09:00:00Z' },
+      endring_type: 'opprettet',
+      event_id: `${sakId}-grunnlag-1`,
+      hovedkategori: state.grunnlag.hovedkategori,
+      underkategori: state.grunnlag.underkategori,
+      beskrivelse: state.grunnlag.beskrivelse || 'Se dokumentasjon',
+      kontraktsreferanser: state.grunnlag.kontraktsreferanser || [],
+    });
+
+    // Add BH response if they have responded
+    if (state.grunnlag.bh_resultat) {
+      grunnlag.push({
+        versjon: 1,
+        tidsstempel: '2025-01-20T09:00:00Z',
+        aktor: { navn: bhNavn, rolle: 'BH', tidsstempel: '2025-01-20T09:00:00Z' },
+        endring_type: 'respons',
+        event_id: `${sakId}-grunnlag-bh-1`,
+        bh_resultat: state.grunnlag.bh_resultat,
+        bh_resultat_label: state.grunnlag.bh_resultat === 'godkjent' ? 'Godkjent'
+          : state.grunnlag.bh_resultat === 'delvis_godkjent' ? 'Delvis godkjent'
+          : state.grunnlag.bh_resultat === 'avslatt' ? 'Avslått'
+          : state.grunnlag.bh_resultat === 'frafalt' ? 'Frafalt'
+          : 'Krever avklaring',
+        bh_begrunnelse: state.grunnlag.bh_begrunnelse || 'Se vurdering',
+      });
+    }
+  }
 
   // If vederlag is active, generate vederlag historikk
   if (state.vederlag.status !== 'ikke_relevant') {
@@ -315,6 +381,7 @@ export function getMockHistorikkById(sakId: string): {
 
   return {
     version: 1,
+    grunnlag,
     vederlag,
     frist,
   };

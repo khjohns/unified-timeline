@@ -129,7 +129,7 @@ function CasePageContent() {
   // Wait for auth verification before loading data
   const { data, isLoading, error } = useCaseState(sakId || '', { enabled: !!token && !isVerifying });
   const { data: timelineData, error: timelineError, isLoading: timelineLoading } = useTimeline(sakId || '', { enabled: !!token && !isVerifying });
-  const { vederlag: vederlagHistorikk, frist: fristHistorikk } = useHistorikk(sakId || '');
+  const { grunnlag: grunnlagHistorikk, vederlag: vederlagHistorikk, frist: fristHistorikk } = useHistorikk(sakId || '');
 
   // Fetch forsering relations (check if this case is part of any forsering)
   const { data: forseringData } = useQuery<FindForseringerResponse>({
@@ -368,6 +368,7 @@ function CasePageContent() {
             <CaseDashboard
           state={state}
           events={timelineEvents}
+          grunnlagHistorikk={grunnlagHistorikk}
           vederlagHistorikk={vederlagHistorikk}
           fristHistorikk={fristHistorikk}
           grunnlagActions={

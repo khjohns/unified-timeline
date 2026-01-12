@@ -579,7 +579,7 @@ def get_case_timeline(sak_id: str):
 @require_magic_link
 def get_case_historikk(sak_id: str):
     """
-    Get revision history for vederlag and frist tracks.
+    Get revision history for all three tracks (grunnlag, vederlag, frist).
 
     Returns a chronological list of all claim versions and BH responses,
     with version numbers to enable side-by-side comparison in the UI.
@@ -609,12 +609,14 @@ def get_case_historikk(sak_id: str):
         logger.error(f"❌ All events failed to parse for sak_id: {sak_id}")
         return jsonify({"error": "Kunne ikke lese hendelser"}), 500
 
-    # Build historikk for both tracks
+    # Build historikk for all three tracks
+    grunnlag_historikk = timeline_service.get_grunnlag_historikk(events)
     vederlag_historikk = timeline_service.get_vederlag_historikk(events)
     frist_historikk = timeline_service.get_frist_historikk(events)
 
     return jsonify({
         "version": version,
+        "grunnlag": grunnlag_historikk,
         "vederlag": vederlag_historikk,
         "frist": frist_historikk
     })

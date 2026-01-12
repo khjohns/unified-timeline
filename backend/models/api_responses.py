@@ -14,7 +14,7 @@ Frontend-fanene:
 Hver fane har sin egen respons-type optimert for det visningen trenger.
 """
 from pydantic import BaseModel, Field, computed_field
-from typing import Optional, List, Literal
+from typing import Optional, List, Literal, Union
 from datetime import datetime
 
 from models.events import SporStatus, SporType, GrunnlagResponsResultat, VederlagBeregningResultat, FristBeregningResultat
@@ -93,17 +93,23 @@ class OversiktResponse(BaseModel):
 # ============ TAB: GRUNNLAG ============
 
 class GrunnlagHistorikkEntry(BaseModel):
-    """Én versjon av grunnlaget i historikken"""
+    """Én versjon av grunnlaget eller BH-respons i historikken"""
     versjon: int
     tidsstempel: datetime
     aktor: AktorInfo
-    endring_type: Literal["opprettet", "oppdatert", "trukket"]
+    endring_type: Literal["opprettet", "oppdatert", "trukket", "respons", "respons_oppdatert"]
+    event_id: str
 
-    # Data på dette tidspunktet
-    hovedkategori: str
-    underkategori: str
-    beskrivelse: str
-    kontraktsreferanser: List[str]
+    # TE-krav felter (for opprettet/oppdatert/trukket)
+    hovedkategori: Optional[str] = None
+    underkategori: Optional[Union[str, List[str]]] = None
+    beskrivelse: Optional[str] = None
+    kontraktsreferanser: Optional[List[str]] = None
+
+    # BH-respons felter (for respons/respons_oppdatert)
+    bh_resultat: Optional[str] = None
+    bh_resultat_label: Optional[str] = None
+    bh_begrunnelse: Optional[str] = None
 
 
 class GrunnlagResponse(BaseModel):

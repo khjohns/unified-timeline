@@ -1326,6 +1326,106 @@ class TimelineService:
 
         return historikk
 
+    def get_grunnlag_historikk(self, events: List[AnyEvent]) -> List[Dict[str, Any]]:
+        """
+        Bygger revisjonshistorikk for grunnlag fra events.
+
+        Returnerer en kronologisk liste med alle versjoner av grunnlaget
+        og BH-responser, med versjonsnummer for hver TE-revisjon.
+        """
+        from models.api_responses import GrunnlagHistorikkEntry, AktorInfo
+
+        historikk = []
+        te_versjon = 0  # Teller for TE-revisjoner
+
+        # Filtrer og sorter grunnlag-relaterte events
+        grunnlag_events = [
+            e for e in events
+            if e.event_type in {
+                EventType.GRUNNLAG_OPPRETTET,
+                EventType.GRUNNLAG_OPPDATERT,
+                EventType.GRUNNLAG_TRUKKET,
+                EventType.RESPONS_GRUNNLAG,
+                EventType.RESPONS_GRUNNLAG_OPPDATERT,
+            }
+        ]
+        grunnlag_events.sort(key=lambda e: e.tidsstempel)
+
+        for event in grunnlag_events:
+            aktor_info = AktorInfo(
+                navn=event.aktor,
+                rolle=event.aktor_rolle,
+                tidsstempel=event.tidsstempel,
+            )
+
+            if event.event_type == EventType.GRUNNLAG_OPPRETTET:
+                te_versjon = 1
+                entry = GrunnlagHistorikkEntry(
+                    versjon=te_versjon,
+                    tidsstempel=event.tidsstempel,
+                    aktor=aktor_info,
+                    endring_type="opprettet",
+                    event_id=event.event_id,
+                    hovedkategori=event.data.hovedkategori,
+                    underkategori=event.data.underkategori,
+                    beskrivelse=event.data.beskrivelse,
+                    kontraktsreferanser=event.data.kontraktsreferanser or [],
+                )
+                historikk.append(entry.model_dump(mode='json'))
+
+            elif event.event_type == EventType.GRUNNLAG_OPPDATERT:
+                te_versjon += 1
+                entry = GrunnlagHistorikkEntry(
+                    versjon=te_versjon,
+                    tidsstempel=event.tidsstempel,
+                    aktor=aktor_info,
+                    endring_type="oppdatert",
+                    event_id=event.event_id,
+                    hovedkategori=event.data.hovedkategori,
+                    underkategori=event.data.underkategori,
+                    beskrivelse=event.data.beskrivelse,
+                    kontraktsreferanser=event.data.kontraktsreferanser or [],
+                )
+                historikk.append(entry.model_dump(mode='json'))
+
+            elif event.event_type == EventType.GRUNNLAG_TRUKKET:
+                entry = GrunnlagHistorikkEntry(
+                    versjon=te_versjon,
+                    tidsstempel=event.tidsstempel,
+                    aktor=aktor_info,
+                    endring_type="trukket",
+                    event_id=event.event_id,
+                )
+                historikk.append(entry.model_dump(mode='json'))
+
+            elif event.event_type == EventType.RESPONS_GRUNNLAG:
+                entry = GrunnlagHistorikkEntry(
+                    versjon=te_versjon,  # Refererer til hvilken TE-versjon den svarer på
+                    tidsstempel=event.tidsstempel,
+                    aktor=aktor_info,
+                    endring_type="respons",
+                    event_id=event.event_id,
+                    bh_resultat=event.data.resultat.value if event.data.resultat else None,
+                    bh_resultat_label=self._get_grunnlag_resultat_label(event.data.resultat),
+                    bh_begrunnelse=event.data.begrunnelse,
+                )
+                historikk.append(entry.model_dump(mode='json'))
+
+            elif event.event_type == EventType.RESPONS_GRUNNLAG_OPPDATERT:
+                entry = GrunnlagHistorikkEntry(
+                    versjon=te_versjon,
+                    tidsstempel=event.tidsstempel,
+                    aktor=aktor_info,
+                    endring_type="respons_oppdatert",
+                    event_id=event.event_id,
+                    bh_resultat=event.data.resultat.value if event.data.resultat else None,
+                    bh_resultat_label=self._get_grunnlag_resultat_label(event.data.resultat),
+                    bh_begrunnelse=event.data.begrunnelse,
+                )
+                historikk.append(entry.model_dump(mode='json'))
+
+        return historikk
+
     def _get_vederlag_belop(self, event: VederlagEvent) -> Optional[float]:
         """Hent krevd beløp basert på metode."""
         if event.data.metode and event.data.metode.value == 'REGNINGSARBEID':
@@ -1372,6 +1472,19 @@ class TimelineService:
             'godkjent': 'Godkjent',
             'delvis_godkjent': 'Delvis godkjent',
             'avslatt': 'Avslått',
+        }
+        return labels.get(resultat.value if hasattr(resultat, 'value') else resultat, str(resultat))
+
+    def _get_grunnlag_resultat_label(self, resultat) -> Optional[str]:
+        """Konverter grunnlag-resultat til lesbar label."""
+        if not resultat:
+            return None
+        labels = {
+            'godkjent': 'Godkjent',
+            'delvis_godkjent': 'Delvis godkjent',
+            'avslatt': 'Avslått',
+            'frafalt': 'Frafalt (§32.3 c)',
+            'krever_avklaring': 'Krever avklaring',
         }
         return labels.get(resultat.value if hasattr(resultat, 'value') else resultat, str(resultat))
 

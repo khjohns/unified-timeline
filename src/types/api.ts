@@ -56,8 +56,28 @@ export interface AktorInfo {
   tidsstempel: string;
 }
 
+export type GrunnlagEndringType = 'opprettet' | 'oppdatert' | 'trukket' | 'respons' | 'respons_oppdatert';
 export type VederlagEndringType = 'sendt' | 'oppdatert' | 'trukket' | 'respons' | 'respons_oppdatert';
 export type FristEndringType = 'sendt' | 'oppdatert' | 'trukket' | 'respons' | 'respons_oppdatert';
+
+export interface GrunnlagHistorikkEntry {
+  versjon: number;
+  tidsstempel: string;
+  aktor: AktorInfo;
+  endring_type: GrunnlagEndringType;
+  event_id: string;
+
+  // TE-krav felter (for opprettet/oppdatert/trukket)
+  hovedkategori?: string | null;
+  underkategori?: string | string[] | null;
+  beskrivelse?: string | null;
+  kontraktsreferanser?: string[] | null;
+
+  // BH-respons felter (for respons/respons_oppdatert)
+  bh_resultat?: string | null;
+  bh_resultat_label?: string | null;
+  bh_begrunnelse?: string | null;
+}
 
 export interface VederlagHistorikkEntry {
   versjon: number;
@@ -104,6 +124,7 @@ export interface FristHistorikkEntry {
 
 export interface HistorikkResponse {
   version: number;
+  grunnlag: GrunnlagHistorikkEntry[];
   vederlag: VederlagHistorikkEntry[];
   frist: FristHistorikkEntry[];
 }

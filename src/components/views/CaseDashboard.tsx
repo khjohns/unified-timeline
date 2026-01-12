@@ -8,7 +8,7 @@
 import { ReactNode, useMemo } from 'react';
 import { DashboardCard, DataList, DataListItem, Badge } from '../primitives';
 import { SakState, SporStatus, TimelineEvent } from '../../types/timeline';
-import { VederlagHistorikkEntry, FristHistorikkEntry } from '../../types/api';
+import { GrunnlagHistorikkEntry, VederlagHistorikkEntry, FristHistorikkEntry } from '../../types/api';
 import { getHovedkategoriLabel, getUnderkategoriLabel } from '../../constants/categories';
 import { getVederlagsmetodeLabel } from '../../constants/paymentMethods';
 import { getSporStatusStyle } from '../../constants/statusStyles';
@@ -21,9 +21,9 @@ import {
 } from '../../utils/formatters';
 import {
   SporHistory,
+  transformGrunnlagHistorikk,
   transformVederlagHistorikk,
   transformFristHistorikk,
-  transformGrunnlagEvents,
 } from './SporHistory';
 
 interface CaseDashboardProps {
@@ -31,8 +31,10 @@ interface CaseDashboardProps {
   grunnlagActions?: ReactNode;
   vederlagActions?: ReactNode;
   fristActions?: ReactNode;
-  /** Timeline events for grunnlag history */
+  /** Timeline events for EventDetailModal lookup */
   events?: TimelineEvent[];
+  /** Grunnlag history entries from backend */
+  grunnlagHistorikk?: GrunnlagHistorikkEntry[];
   /** Vederlag history entries from backend */
   vederlagHistorikk?: VederlagHistorikkEntry[];
   /** Frist history entries from backend */
@@ -73,13 +75,14 @@ export function CaseDashboard({
   vederlagActions,
   fristActions,
   events = [],
+  grunnlagHistorikk = [],
   vederlagHistorikk = [],
   fristHistorikk = [],
 }: CaseDashboardProps) {
   const krevdBelop = useMemo(() => getKrevdBelop(state), [state]);
 
   // Transform historikk data for SporHistory
-  const grunnlagEntries = useMemo(() => transformGrunnlagEvents(events), [events]);
+  const grunnlagEntries = useMemo(() => transformGrunnlagHistorikk(grunnlagHistorikk), [grunnlagHistorikk]);
   const vederlagEntries = useMemo(() => transformVederlagHistorikk(vederlagHistorikk), [vederlagHistorikk]);
   const fristEntries = useMemo(() => transformFristHistorikk(fristHistorikk), [fristHistorikk]);
 

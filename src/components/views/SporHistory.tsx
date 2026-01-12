@@ -16,7 +16,7 @@ import {
   FileTextIcon,
 } from '@radix-ui/react-icons';
 import { SporType, TimelineEvent, extractEventType } from '../../types/timeline';
-import { VederlagHistorikkEntry, FristHistorikkEntry } from '../../types/api';
+import { GrunnlagHistorikkEntry, VederlagHistorikkEntry, FristHistorikkEntry } from '../../types/api';
 import { formatDateMedium, formatCurrency, formatDays } from '../../utils/formatters';
 import { EventDetailModal } from './EventDetailModal';
 
@@ -110,6 +110,47 @@ function getEntryType(endringType: string, rolle: 'TE' | 'BH'): SporHistoryEntry
   return endringType === 'respons' ? 'bh_respons' : 'bh_oppdatering';
 }
 
+function getGrunnlagEntryType(endringType: string, rolle: 'TE' | 'BH'): SporHistoryEntryType {
+  if (rolle === 'TE') {
+    return endringType === 'opprettet' ? 'te_krav' : 'te_oppdatering';
+  }
+  return endringType === 'respons' ? 'bh_respons' : 'bh_oppdatering';
+}
+
+function getGrunnlagSammendrag(entry: GrunnlagHistorikkEntry): string {
+  if (entry.endring_type === 'opprettet') {
+    return 'Grunnlag opprettet';
+  }
+  if (entry.endring_type === 'oppdatert') {
+    return 'Grunnlag oppdatert';
+  }
+  if (entry.endring_type === 'trukket') {
+    return 'Grunnlag trukket';
+  }
+  if (entry.endring_type === 'respons') {
+    if (entry.bh_resultat === 'godkjent') {
+      return 'Godkjent';
+    }
+    if (entry.bh_resultat === 'delvis_godkjent') {
+      return 'Delvis godkjent';
+    }
+    if (entry.bh_resultat === 'avslatt') {
+      return 'Avslått';
+    }
+    if (entry.bh_resultat === 'frafalt') {
+      return 'Frafalt';
+    }
+    if (entry.bh_resultat === 'krever_avklaring') {
+      return 'Krever avklaring';
+    }
+    return entry.bh_resultat_label || 'Svar mottatt';
+  }
+  if (entry.endring_type === 'respons_oppdatert') {
+    return 'Standpunkt oppdatert';
+  }
+  return '';
+}
+
 export function transformVederlagHistorikk(entries: VederlagHistorikkEntry[]): SporHistoryEntry[] {
   return entries.map((entry) => ({
     id: entry.event_id,
@@ -140,6 +181,21 @@ export function transformFristHistorikk(entries: FristHistorikkEntry[]): SporHis
   }));
 }
 
+export function transformGrunnlagHistorikk(entries: GrunnlagHistorikkEntry[]): SporHistoryEntry[] {
+  return entries.map((entry) => ({
+    id: entry.event_id,
+    type: getGrunnlagEntryType(entry.endring_type, entry.aktor.rolle),
+    versjon: entry.versjon,
+    tidsstempel: entry.tidsstempel,
+    aktorNavn: entry.aktor.navn,
+    aktorRolle: entry.aktor.rolle,
+    sammendrag: getGrunnlagSammendrag(entry),
+    resultat: entry.bh_resultat,
+    begrunnelse: entry.beskrivelse ?? entry.bh_begrunnelse,
+  }));
+}
+
+/** @deprecated Use transformGrunnlagHistorikk with backend historikk data instead */
 const GRUNNLAG_EVENT_TYPES = [
   'grunnlag_opprettet',
   'grunnlag_oppdatert',

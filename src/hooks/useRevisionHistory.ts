@@ -9,7 +9,7 @@
 
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { TimelineEvent, SporType, extractEventType } from '../types/timeline';
-import { HistorikkResponse, VederlagHistorikkEntry, FristHistorikkEntry } from '../types/api';
+import { HistorikkResponse, GrunnlagHistorikkEntry, VederlagHistorikkEntry, FristHistorikkEntry } from '../types/api';
 import { fetchHistorikk } from '../api/state';
 
 export interface RevisionInfo {
@@ -228,6 +228,7 @@ export function formatRevisionDate(isoDate: string): string {
 // ============ NEW: Backend-based Historikk Hook ============
 
 export interface UseHistorikkResult {
+  grunnlag: GrunnlagHistorikkEntry[];
   vederlag: VederlagHistorikkEntry[];
   frist: FristHistorikkEntry[];
   isLoading: boolean;
@@ -238,8 +239,9 @@ export interface UseHistorikkResult {
 /**
  * Hook for fetching revision history from backend API.
  *
- * This hook fetches the full revision history for vederlag and frist tracks,
- * including all TE submissions and BH responses with version numbers.
+ * This hook fetches the full revision history for all three tracks
+ * (grunnlag, vederlag, frist), including all TE submissions and BH
+ * responses with version numbers.
  */
 export function useHistorikk(sakId: string): UseHistorikkResult {
   const [data, setData] = useState<HistorikkResponse | null>(null);
@@ -267,6 +269,7 @@ export function useHistorikk(sakId: string): UseHistorikkResult {
   }, [fetchData]);
 
   return {
+    grunnlag: data?.grunnlag ?? [],
     vederlag: data?.vederlag ?? [],
     frist: data?.frist ?? [],
     isLoading,
