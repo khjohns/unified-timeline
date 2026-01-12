@@ -26,6 +26,7 @@ import {
   RadioItem,
   Textarea,
 } from '../components/primitives';
+import { PageHeader } from '../components/PageHeader';
 import {
   HOVEDKATEGORI_OPTIONS,
   getHovedkategori,
@@ -208,33 +209,25 @@ export function OpprettSakPage() {
   };
 
   return (
-    <div className="min-h-screen bg-pkt-bg-default">
+    <div className="min-h-screen bg-pkt-bg-subtle">
       {/* Header */}
-      <header className="bg-pkt-bg-card shadow-sm border-b-2 border-oslo-blue">
-        <div className="max-w-3xl mx-auto px-6 py-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-heading-lg font-bold text-oslo-blue">
-                Opprett ny sak
-              </h1>
-              <p className="mt-1 text-body-md text-pkt-grays-gray-600">
-                Registrer en ny endringsmelding (KOE)
-              </p>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/demo')}
-            >
-              Tilbake
-            </Button>
-          </div>
-        </div>
-      </header>
+      <PageHeader
+        title="Opprett ny sak"
+        subtitle="Registrer en ny endringsmelding (KOE)"
+        actions={
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/demo')}
+          >
+            Tilbake
+          </Button>
+        }
+      />
 
       {/* Main Content */}
-      <main className="max-w-3xl mx-auto px-6 py-8">
-        <Card variant="elevated" padding="lg">
+      <main className="max-w-3xl mx-auto px-2 py-4 sm:px-4 sm:py-6">
+        <Card variant="outlined" padding="lg">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Sak-ID */}
             <FormField
@@ -334,7 +327,7 @@ export function OpprettSakPage() {
                       required
                       error={errors.underkategori?.message}
                     >
-                      <div className="space-y-4 max-h-80 overflow-y-auto border border-pkt-border-gray rounded-none p-4 bg-pkt-bg-subtle" data-testid="sak-underkategori-list">
+                      <div className="space-y-4 max-h-80 overflow-y-auto border border-pkt-border-default rounded p-4 bg-pkt-bg-subtle" data-testid="sak-underkategori-list">
                         {Array.from(grupperteUnderkategorier.entries()).map(([gruppeNavn, underkategorier]) => (
                           <div key={gruppeNavn ?? 'ungrouped'}>
                             {gruppeNavn && (
@@ -423,7 +416,7 @@ export function OpprettSakPage() {
             </FormField>
 
             {/* Dato og varsel-seksjon */}
-            <div className="bg-pkt-surface-subtle p-4 rounded-none border border-pkt-border-default space-y-4">
+            <div className="bg-pkt-surface-subtle p-4 rounded border border-pkt-border-default space-y-4">
               <FormField
                 label="Dato forhold oppdaget"
                 required
@@ -486,7 +479,7 @@ export function OpprettSakPage() {
                 label="Varselmetode"
                 helpText="Hvordan ble byggherren varslet? (Kan velge flere)"
               >
-                <div className="space-y-3 border border-pkt-border-gray rounded-none p-4 bg-pkt-bg-subtle">
+                <div className="space-y-3 border border-pkt-border-default rounded p-4 bg-pkt-bg-subtle">
                   {VARSEL_METODER_OPTIONS.map((option) => (
                     <Checkbox
                       key={option.value}

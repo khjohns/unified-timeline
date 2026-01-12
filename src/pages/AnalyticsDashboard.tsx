@@ -130,12 +130,12 @@ export function AnalyticsDashboard() {
       </div>
 
       {/* Main Content */}
-      <main className="max-w-3xl mx-auto px-4 py-6 sm:px-8 sm:py-8 bg-pkt-bg-card min-h-[calc(100vh-88px)]">
+      <main className="max-w-3xl mx-auto px-2 py-4 sm:px-4 sm:py-6 min-h-[calc(100vh-88px)] space-y-4">
         {isLoading ? (
-          <Card variant="default" padding="lg">
+          <Card variant="outlined" padding="lg">
             <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-oslo-blue" />
-              <span className="ml-3 text-pkt-grays-gray-600">Laster analysedata...</span>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pkt-border-focus" />
+              <span className="ml-3 text-pkt-text-body-subtle">Laster analysedata...</span>
             </div>
           </Card>
         ) : (
@@ -144,9 +144,9 @@ export function AnalyticsDashboard() {
             {renderAnalysisContent()}
 
             {/* Info Box */}
-            <section>
-              <Card variant="default" padding="md" className="bg-pkt-surface-subtle-pale-blue border border-pkt-border-blue">
-                <h3 className="text-body-lg font-semibold text-oslo-blue mb-2">Om analysemetodene</h3>
+            <section aria-labelledby="info-heading">
+              <Card variant="outlined" padding="md">
+                <h3 id="info-heading" className="text-base font-semibold text-pkt-text-body-dark mb-2">Om analysemetodene</h3>
                 <p className="text-sm text-pkt-text-body-default mb-3">
                   Dette dashboardet demonstrerer hvordan data lagret i Supabase via event sourcing kan
                   aggregeres og visualiseres for prosjekt- og porteføljeanalyse. Tilsvarende funksjonalitet
