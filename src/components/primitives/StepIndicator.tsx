@@ -1,13 +1,13 @@
 /**
  * StepIndicator Component
  *
- * A minimal wizard-style step indicator that shows progress through multiple steps.
+ * A wizard-style step indicator that shows progress through multiple steps.
  * Used in multi-port modals for NS 8407 workflows.
  *
  * Features:
- * - Shows numbered step circles (no labels - step title is shown in content)
+ * - Shows numbered step circles with labels on desktop
+ * - Labels hidden on mobile for compact view
  * - Visual feedback for completed, active, and pending steps
- * - Compact design that works well on mobile
  */
 
 import clsx from 'clsx';
@@ -28,10 +28,10 @@ export function StepIndicator({ currentStep, steps, className }: StepIndicatorPr
     <div className={clsx('w-full', className)}>
       {/* Grid layout ensures equal spacing between step circles */}
       <div
-        className="grid items-start"
+        className="grid"
         style={{ gridTemplateColumns: `repeat(${steps.length}, 1fr)` }}
       >
-        {steps.map((_, index) => {
+        {steps.map((step, index) => {
           const stepNumber = index + 1;
           const isActive = stepNumber === currentStep;
           const isCompleted = stepNumber < currentStep;
@@ -65,6 +65,17 @@ export function StepIndicator({ currentStep, steps, className }: StepIndicatorPr
                 {isCompleted ? '✓' : stepNumber}
               </div>
 
+              {/* Label - hidden on mobile, shown on desktop */}
+              <span
+                className={clsx(
+                  'hidden sm:block mt-2 text-xs text-center max-w-full px-1',
+                  isActive && 'font-medium text-pkt-text-body-dark',
+                  isCompleted && 'text-pkt-text-body-subtle',
+                  !isActive && !isCompleted && 'text-pkt-text-body-muted'
+                )}
+              >
+                {step.label}
+              </span>
             </div>
           );
         })}
