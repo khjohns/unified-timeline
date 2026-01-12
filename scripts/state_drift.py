@@ -241,26 +241,52 @@ def parse_typescript_interfaces(file_path: Path) -> dict[str, ModelInfo]:
 
 
 def normalize_type(type_str: str) -> str:
-    """Normaliser type for sammenligning"""
+    """Normaliser type-syntaks for sammenligning (beholder nullable-info)"""
     # Fjern whitespace
     type_str = re.sub(r'\s+', '', type_str)
 
-    # Map Python -> TypeScript typer
+    # Normaliser liste-syntaks: List[X] → X[], Array<X> → X[]
+    type_str = re.sub(r'List\[([^\]]+)\]', r'\1[]', type_str)
+    type_str = re.sub(r'Array<([^>]+)>', r'\1[]', type_str)
+
+    # Map Python → TypeScript primitive typer
     type_map = {
         'str': 'string',
         'int': 'number',
         'float': 'number',
         'bool': 'boolean',
-        'List': 'Array',
-        'Dict': 'Record',
         'datetime': 'string',
-        'Optional': '',
+        'Dict': 'Record',
+        'dict': 'record',
     }
 
     for py_type, ts_type in type_map.items():
-        type_str = type_str.replace(py_type, ts_type)
+        type_str = re.sub(rf'\b{py_type}\b', ts_type, type_str)
 
     return type_str.lower()
+
+
+def extract_base_type(type_str: str) -> tuple:
+    """
+    Ekstraher base-type og nullable-status.
+
+    Returns:
+        tuple: (normalized_base_type, is_nullable)
+    """
+    is_nullable = False
+
+    # Sjekk Optional[X]
+    match = re.match(r'Optional\[(.+)\]', type_str)
+    if match:
+        type_str = match.group(1)
+        is_nullable = True
+
+    # Sjekk X | None eller X | null
+    if '|None' in type_str or '|null' in type_str:
+        type_str = re.sub(r'\|None|\|null', '', type_str)
+        is_nullable = True
+
+    return normalize_type(type_str), is_nullable
 
 
 def compare_models(
@@ -341,15 +367,17 @@ def compare_models(
                 field_name=field_name
             ))
 
-        # Sjekk type og optional-mismatch for felles felt
+        # Sjekk type og nullable-mismatch for felles felt
         for field_name in ts_field_names & py_field_names:
             ts_field = ts_model.fields[field_name]
             py_field = py_model.fields[field_name]
 
-            # Sjekk type-mismatch
-            ts_type_norm = normalize_type(ts_field.type_str)
-            py_type_norm = normalize_type(py_field.type_str)
-            if ts_type_norm != py_type_norm:
+            # Ekstraher base-type og nullable-status
+            ts_base, ts_nullable = extract_base_type(ts_field.type_str)
+            py_base, py_nullable = extract_base_type(py_field.type_str)
+
+            # Sjekk base-type mismatch (WARNING - reelt problem)
+            if ts_base != py_base:
                 comparison.findings.append(DriftFinding(
                     model_name=ts_name,
                     severity=Severity.WARNING,
@@ -357,12 +385,15 @@ def compare_models(
                     field_name=field_name
                 ))
 
-            # Sjekk optional-mismatch
-            if ts_field.optional != py_field.optional:
+            # Sjekk nullable-mismatch (INFO - lavere prioritet)
+            # Kombiner optional-flag og nullable fra type-parsing
+            ts_is_nullable = ts_field.optional or ts_nullable
+            py_is_nullable = py_field.optional or py_nullable
+            if ts_is_nullable != py_is_nullable:
                 comparison.findings.append(DriftFinding(
                     model_name=ts_name,
-                    severity=Severity.WARNING,
-                    message=f"Felt '{field_name}' optional-mismatch: TS={ts_field.optional}, Py={py_field.optional}",
+                    severity=Severity.INFO,
+                    message=f"Felt '{field_name}' nullable-mismatch: TS={ts_is_nullable}, Py={py_is_nullable}",
                     field_name=field_name
                 ))
 
@@ -392,15 +423,21 @@ def format_text(results: list[ModelComparison]) -> str:
 
         lines.append(f"  {result.name}:")
         for finding in result.findings:
-            icon = "!" if finding.severity == Severity.CRITICAL else "?"
+            if finding.severity == Severity.CRITICAL:
+                icon = "!"
+            elif finding.severity == Severity.WARNING:
+                icon = "?"
+            else:  # INFO
+                icon = "i"
             lines.append(f"    [{icon}] {finding.message}")
         lines.append("")
 
     # Oppsummering
     critical = sum(1 for r in results for f in r.findings if f.severity == Severity.CRITICAL)
     warning = sum(1 for r in results for f in r.findings if f.severity == Severity.WARNING)
+    info = sum(1 for r in results for f in r.findings if f.severity == Severity.INFO)
 
-    lines.append(f"Totalt: {critical} kritiske, {warning} advarsler")
+    lines.append(f"Totalt: {critical} kritiske, {warning} advarsler, {info} info")
 
     return "\n".join(lines)
 

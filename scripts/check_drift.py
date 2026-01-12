@@ -102,8 +102,12 @@ def format_text_report(contract_result: dict, state_result: dict) -> str:
             sum(1 for d in f['details'] if d['severity'] == 'warning')
             for f in state_result.get("findings", [])
         )
+        state_info = sum(
+            sum(1 for d in f['details'] if d['severity'] == 'info')
+            for f in state_result.get("findings", [])
+        )
 
-        lines.append(f"  TOTALT: {contract_issues + state_critical} kritiske, {state_warning} advarsler")
+        lines.append(f"  TOTALT: {contract_issues + state_critical} kritiske, {state_warning} advarsler, {state_info} info")
         lines.append("")
         lines.append("  Kjør individuelt for detaljer:")
         lines.append("    python scripts/contract_drift.py")
