@@ -652,23 +652,23 @@ export function BHResponsForseringModal({
 
               {/* Kravsammendrag */}
               <SectionContainer title="Forseringskrav fra entreprenør">
-                <InlineDataList>
-                  <InlineDataListItem label="Varslet">
+                <DataList variant="grid">
+                  <DataListItem label="Varslet">
                     {formatDate(forseringData.dato_varslet)}
-                  </InlineDataListItem>
-                  <InlineDataListItem label="Avslåtte saker" mono bold>
+                  </DataListItem>
+                  <DataListItem label="Avslåtte saker" mono>
                     {avslatteSaker?.length ?? forseringData.avslatte_fristkrav?.length ?? 0}
-                  </InlineDataListItem>
-                  <InlineDataListItem label="Avslåtte dager (sum)" mono bold>
+                  </DataListItem>
+                  <DataListItem label="Avslåtte dager (sum)" mono>
                     {computed.totalAvslatteDager}
-                  </InlineDataListItem>
-                  <InlineDataListItem label="Estimert kostnad" mono bold>
+                  </DataListItem>
+                  <DataListItem label="Estimert kostnad" mono>
                     {formatCurrency(forseringData.estimert_kostnad)}
-                  </InlineDataListItem>
-                  <InlineDataListItem label="Maks (30%-grense)" mono>
+                  </DataListItem>
+                  <DataListItem label="Maks (30%-grense)" mono>
                     {formatCurrency(forseringData.maks_forseringskostnad)}
-                  </InlineDataListItem>
-                </InlineDataList>
+                  </DataListItem>
+                </DataList>
               </SectionContainer>
 
               {/* Veiviser */}
