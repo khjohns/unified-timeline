@@ -97,3 +97,4 @@ Mer detaljerte guider finnes i `.claude/skills/`:
 
 - `event-sourcing/SKILL.md` - Event Sourcing arkitektur
 - `static-analysis/SKILL.md` - Statisk analyse verktøy
+- `accessibility/SKILL.md` - WCAG tilgjengelighet og kontrastsjekk
