@@ -82,7 +82,6 @@ const RESULTAT_VARIANTS: Record<string, BadgeVariant> = {
   // Warning
   delvis_godkjent: 'warning',
   delvis: 'warning',
-  erkjenn_fm: 'warning',
   krever_avklaring: 'warning',
   hold_tilbake: 'warning',
   // Danger

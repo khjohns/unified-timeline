@@ -838,7 +838,6 @@ class TimelineService:
             GrunnlagResponsResultat.GODKJENT: SporStatus.GODKJENT,
             GrunnlagResponsResultat.DELVIS_GODKJENT: SporStatus.DELVIS_GODKJENT,
             GrunnlagResponsResultat.AVSLATT: SporStatus.AVSLATT,
-            GrunnlagResponsResultat.ERKJENN_FM: SporStatus.GODKJENT,  # Force Majeure erkjent
             GrunnlagResponsResultat.FRAFALT: SporStatus.TRUKKET,  # Pålegg frafalt
             GrunnlagResponsResultat.KREVER_AVKLARING: SporStatus.UNDER_FORHANDLING,
         }
@@ -1073,7 +1072,6 @@ class TimelineService:
         resultat_labels = {
             'godkjent': 'Godkjent',
             'delvis_godkjent': 'Delvis godkjent',
-            'erkjenn_fm': 'Force Majeure erkjent',
             'avslatt': 'Avslått',
             'frafalt': 'Pålegg frafalt',
             'krever_avklaring': 'Krever avklaring',

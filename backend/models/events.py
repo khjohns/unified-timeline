@@ -711,7 +711,6 @@ class GrunnlagResponsResultat(str, Enum):
     """Resultat av byggherrens vurdering av grunnlag (ansvar)"""
     GODKJENT = "godkjent"  # Byggherren aksepterer ansvarsgrunnlaget fullt ut
     DELVIS_GODKJENT = "delvis_godkjent"  # Byggherren aksepterer deler av grunnlaget
-    ERKJENN_FM = "erkjenn_fm"  # §33.3 - Byggherren erkjenner Force Majeure (kun frist, ikke vederlag)
     AVSLATT = "avslatt"  # Byggherren avslår ansvarsgrunnlaget
     FRAFALT = "frafalt"  # §32.3 c - Byggherren frafaller pålegget (kun irregulær endring)
     KREVER_AVKLARING = "krever_avklaring"  # Byggherren trenger mer dokumentasjon før beslutning

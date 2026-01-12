@@ -880,20 +880,6 @@ class SakState(BaseModel):
 
     @computed_field
     @property
-    def er_force_majeure(self) -> bool:
-        """
-        Sjekker om saken er erkjent som Force Majeure (§33.3).
-
-        Force Majeure betyr:
-        - TE får fristforlengelse (ingen dagmulkt)
-        - TE får IKKE vederlag (§33.3 - partene bærer egne kostnader)
-
-        FRONTEND: Vis dette tydelig - TE kan ikke kreve vederlag.
-        """
-        return self.grunnlag.bh_resultat == GrunnlagResponsResultat.ERKJENN_FM
-
-    @computed_field
-    @property
     def er_frafalt(self) -> bool:
         """
         Sjekker om BH har frafalt pålegget (§32.3 c).
@@ -917,8 +903,7 @@ class SakState(BaseModel):
         - Grunnlag er AVSLATT av BH, MEN
         - Vederlag-beregningen er godkjent (fullt/delvis/annen metode)
 
-        NB: Gjelder IKKE ved Force Majeure (da er vederlag alltid avslått)
-        eller frafall (da lukkes saken).
+        NB: Gjelder IKKE ved frafall (da lukkes saken).
 
         Dette betyr: "BH mener TE har ansvar, men erkjenner at
         beløpet ville vært riktig hvis BH hadde hatt ansvar."
@@ -926,8 +911,8 @@ class SakState(BaseModel):
         FRONTEND: Bruk dette for å vise subsidiær status.
         Ikke implementer denne logikken selv i frontend.
         """
-        # Force Majeure og frafall håndteres separat
-        if self.er_force_majeure or self.er_frafalt:
+        # Frafall håndteres separat
+        if self.er_frafalt:
             return False
 
         grunnlag_avslatt = self.grunnlag.status == SporStatus.AVSLATT
@@ -970,14 +955,9 @@ class SakState(BaseModel):
         - "Avslått (Subsidiært enighet om 50 000 kr)"
         - "Godkjent - 120 000 kr"
         - "Under behandling"
-        - "Ikke aktuelt (Force Majeure)"
         """
         if self.vederlag.status == SporStatus.IKKE_RELEVANT:
             return "Ikke aktuelt"
-
-        # Force Majeure: Vederlag er alltid avslått per §33.3
-        if self.er_force_majeure:
-            return "Ikke aktuelt (Force Majeure - §33.3)"
 
         # Frafall: Saken er lukket, men TE kan kreve påløpte kostnader
         if self.er_frafalt:

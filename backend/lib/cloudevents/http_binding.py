@@ -167,7 +167,6 @@ def _get_respons_summary(event) -> str:
     resultat_labels = {
         'godkjent': 'Godkjent',
         'delvis_godkjent': 'Delvis godkjent',
-        'erkjenn_fm': 'Force Majeure erkjent',
         'avslatt': 'Avslått',
         'frafalt': 'Pålegg frafalt',
         'krever_avklaring': 'Krever avklaring',

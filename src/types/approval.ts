@@ -54,8 +54,7 @@ export type ApprovalRequestStatus = 'draft' | 'pending' | 'approved' | 'rejected
 export type GrunnlagDraftResultat =
   | 'godkjent'
   | 'avslatt'
-  | 'frafalt'
-  | 'erkjenn_fm';
+  | 'frafalt';
 
 /**
  * Result type for vederlag/frist responses

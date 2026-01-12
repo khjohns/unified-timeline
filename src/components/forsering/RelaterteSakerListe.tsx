@@ -36,7 +36,6 @@ function getGrunnlagStatus(state?: SakState): { variant: 'success' | 'danger' | 
     godkjent: { variant: 'success', label: 'Godkjent' },
     delvis_godkjent: { variant: 'warning', label: 'Delvis' },
     avslatt: { variant: 'danger', label: 'Avslått' },
-    erkjenn_fm: { variant: 'success', label: 'FM' },
   };
 
   return config[state.grunnlag.bh_resultat] || { variant: 'default', label: state.grunnlag.bh_resultat };

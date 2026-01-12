@@ -77,7 +77,6 @@ const RESULTAT_LABELS: Record<GrunnlagResponsResultat, string> = {
   godkjent: 'Godkjent',
   delvis_godkjent: 'Delvis godkjent',
   avslatt: 'Avslått',
-  erkjenn_fm: 'Force Majeure (§33.3)',
   frafalt: 'Frafalt (§32.3 c)',
   krever_avklaring: 'Krever avklaring',
 };
@@ -221,6 +220,7 @@ export function RespondGrunnlagModal({
       ? grunnlagEvent.underkategori.includes('IRREG')
       : grunnlagEvent?.underkategori === 'IRREG');
 
+  // Check if this is a Force Majeure case (affects available compensation)
   const erForceMajeure = grunnlagEvent?.hovedkategori === 'FORCE_MAJEURE';
 
   // Calculate BH passivity (§32.3) - only for irregular changes
@@ -436,14 +436,6 @@ export function RespondGrunnlagModal({
                       // Filter out empty placeholder
                       if (opt.value === '') return false;
 
-                      // Force Majeure: Can recognize or reject
-                      // FM is binary - either it qualifies as FM or it doesn't
-                      if (erForceMajeure) {
-                        return ['erkjenn_fm', 'avslatt'].includes(opt.value);
-                      }
-
-                      // Non-FM cases: filter out FM option and conditional options
-                      if (opt.value === 'erkjenn_fm') return false;
                       // Filter out "frafalt" if NOT irregular change (§32.3 c)
                       if (opt.value === 'frafalt' && !erIrregulaer) return false;
                       return true;
@@ -480,33 +472,17 @@ export function RespondGrunnlagModal({
               </Alert>
             )}
 
-            {/* Force Majeure recognition info (§33.3) */}
-            {selectedResultat === 'erkjenn_fm' && (
-              <Alert variant="success" title="Konsekvens av å erkjenne Force Majeure">
+            {/* Force Majeure approval info (§33.3) */}
+            {selectedResultat === 'godkjent' && erForceMajeure && (
+              <Alert variant="success" title="Force Majeure - kun fristforlengelse (§33.3)">
                 <p>
-                  Ved å erkjenne Force Majeure godtar du at forholdet ligger utenfor
+                  Ved å godkjenne ansvarsgrunnlaget bekrefter du at forholdet ligger utenfor
                   entreprenørens kontroll. Entreprenøren får kun rett til{' '}
                   <strong>fristforlengelse</strong> – ikke vederlagsjustering.
                 </p>
                 <p className="mt-2">
                   Du vil deretter kunne ta stilling til fristforlengelseskravet
                   (antall kalenderdager).
-                </p>
-              </Alert>
-            )}
-
-            {/* Subsidiary treatment warning when rejecting */}
-            {selectedResultat === 'avslatt' && !erForceMajeure && (
-              <Alert variant="warning" title="Konsekvens av avslag">
-                <p>
-                  Saken markeres som <em>omtvistet</em>. Entreprenøren vil likevel
-                  kunne sende inn krav om Vederlag og Frist. Du må da behandle disse
-                  kravene <strong>subsidiært</strong> (dvs. &ldquo;hva kravet hadde
-                  vært verdt <em>hvis</em> du tok feil om ansvaret&rdquo;).
-                </p>
-                <p className="mt-2">
-                  Dette sikrer at dere får avklart uenighet om beregning (utmåling)
-                  tidlig, selv om dere er uenige om ansvaret.
                 </p>
               </Alert>
             )}
@@ -526,7 +502,23 @@ export function RespondGrunnlagModal({
               </Alert>
             )}
 
-            {/* EO generation info when approving */}
+            {/* Subsidiary treatment warning when rejecting (non-FM) */}
+            {selectedResultat === 'avslatt' && !erForceMajeure && (
+              <Alert variant="warning" title="Konsekvens av avslag">
+                <p>
+                  Saken markeres som <em>omtvistet</em>. Entreprenøren vil likevel
+                  kunne sende inn krav om Vederlag og Frist. Du må da behandle disse
+                  kravene <strong>subsidiært</strong> (dvs. &ldquo;hva kravet hadde
+                  vært verdt <em>hvis</em> du tok feil om ansvaret&rdquo;).
+                </p>
+                <p className="mt-2">
+                  Dette sikrer at dere får avklart uenighet om beregning (utmåling)
+                  tidlig, selv om dere er uenige om ansvaret.
+                </p>
+              </Alert>
+            )}
+
+            {/* EO generation info when approving (non-FM) */}
             {selectedResultat === 'godkjent' && !erForceMajeure && (
               <Alert variant="success" title="Systemhandling">
                 Når du sender svaret, vil systemet automatisk registrere at

@@ -140,8 +140,8 @@ def test_force_majeure_claim():
                        "ved kontraktsinngåelse.",
             dato_oppdaget="2024-12-05",
             dato_varsel_sendt="2024-12-05",
-            bh_resultat=GrunnlagResponsResultat.ERKJENN_FM,
-            bh_begrunnelse="Byggherren erkjenner at værforholdene utgjør force majeure iht. §33.3. "
+            bh_resultat=GrunnlagResponsResultat.GODKJENT,
+            bh_begrunnelse="Byggherren godkjenner at værforholdene utgjør force majeure iht. §33.3. "
                           "Ekstremværet var av ekstraordinær karakter og lå utenfor det entreprenøren "
                           "med rimelighet kunne forutse eller overvinne.",
             siste_oppdatert=datetime(2024, 12, 10, 11, 0),

@@ -389,7 +389,6 @@ class WeasyPrintGenerator:
             'GODKJENT': 'Godkjent',
             'DELVIS_GODKJENT': 'Delvis godkjent',
             'AVSLATT': 'Avslått',
-            'ERKJENN_FM': 'Force Majeure erkjent',
             'FRAFALT': 'Pålegg frafalt',
             'KREVER_AVKLARING': 'Krever avklaring',
             'LAAST': 'Låst',
@@ -404,7 +403,6 @@ class WeasyPrintGenerator:
             'trukket': 'Trukket',
             'laast': 'Låst',
             'krever_avklaring': 'Krever avklaring',
-            'erkjenn_fm': 'Force Majeure erkjent',
             'frafalt': 'Pålegget frafalt',
         }
         return status_map.get(status, status)

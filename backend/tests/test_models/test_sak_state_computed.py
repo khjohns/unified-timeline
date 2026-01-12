@@ -326,21 +326,6 @@ class TestVisningsstatusVederlag:
         )
         assert sak.visningsstatus_vederlag == "Under behandling"
 
-    def test_force_majeure(self):
-        """visningsstatus_vederlag handles Force Majeure correctly."""
-        sak = SakState(
-            sak_id="TEST",
-            sakstype=SaksType.STANDARD,
-            grunnlag=GrunnlagTilstand(
-                status=SporStatus.GODKJENT,
-                bh_resultat=GrunnlagResponsResultat.ERKJENN_FM,  # Force Majeure
-            ),
-            vederlag=VederlagTilstand(
-                status=SporStatus.SENDT,
-            ),
-        )
-        assert "Force Majeure" in sak.visningsstatus_vederlag
-
     def test_subsidiaert_with_belop(self):
         """visningsstatus_vederlag shows subsidiary info when applicable."""
         sak = SakState(
@@ -625,21 +610,6 @@ class TestErSubsidiaert:
             sak_id="TEST",
             sakstype=SaksType.STANDARD,
             grunnlag=GrunnlagTilstand(status=SporStatus.GODKJENT),
-            vederlag=VederlagTilstand(
-                bh_resultat=VederlagBeregningResultat.GODKJENT,
-            ),
-        )
-        assert sak.er_subsidiaert_vederlag is False
-
-    def test_er_subsidiaert_vederlag_false_force_majeure(self):
-        """er_subsidiaert_vederlag is False for Force Majeure."""
-        sak = SakState(
-            sak_id="TEST",
-            sakstype=SaksType.STANDARD,
-            grunnlag=GrunnlagTilstand(
-                status=SporStatus.GODKJENT,
-                bh_resultat=GrunnlagResponsResultat.ERKJENN_FM,  # Force Majeure
-            ),
             vederlag=VederlagTilstand(
                 bh_resultat=VederlagBeregningResultat.GODKJENT,
             ),

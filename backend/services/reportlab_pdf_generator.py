@@ -96,7 +96,6 @@ class ReportLabPdfGenerator:
     GRUNNLAG_RESULTAT_MAP = {
         'godkjent': 'Godkjent',
         'delvis_godkjent': 'Delvis godkjent',
-        'erkjenn_fm': 'Force majeure erkjent (§33.3)',
         'avslatt': 'Avslått',
         'frafalt': 'Frafalt (§32.3 c)',
         'krever_avklaring': 'Krever avklaring',

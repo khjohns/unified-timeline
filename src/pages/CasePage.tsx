@@ -635,7 +635,7 @@ function CasePageContent() {
             onSaveDraft={(draftData) => {
               approvalWorkflow.saveDraft({
                 sporType: 'grunnlag',
-                resultat: draftData.resultat as 'godkjent' | 'avslatt' | 'frafalt' | 'erkjenn_fm',
+                resultat: draftData.resultat as 'godkjent' | 'avslatt' | 'frafalt',
                 begrunnelse: draftData.begrunnelse,
                 formData: draftData.formData,
               });

@@ -80,7 +80,6 @@ export type FristBeregningResultat =
 export type GrunnlagResponsResultat =
   | 'godkjent'
   | 'delvis_godkjent'
-  | 'erkjenn_fm'       // §33.3 - BH erkjenner Force Majeure (kun frist, ikke vederlag)
   | 'avslatt'          // BH avslår ansvarsgrunnlaget
   | 'frafalt'          // §32.3 c - BH frafaller pålegget (kun irregulær endring)
   | 'krever_avklaring'; // Krever ytterligere avklaring før endelig beslutning

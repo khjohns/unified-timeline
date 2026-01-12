@@ -52,8 +52,6 @@ function getResultatLabel(resultat: string): string {
       return 'Avslått';
     case 'frafalt':
       return 'Frafalt';
-    case 'erkjenn_fm':
-      return 'Force majeure erkjent';
     default:
       return resultat;
   }
@@ -69,8 +67,6 @@ function getResultatVariant(resultat: string): 'success' | 'warning' | 'danger' 
       return 'danger';
     case 'frafalt':
       return 'default';
-    case 'erkjenn_fm':
-      return 'success';
     default:
       return 'default';
   }

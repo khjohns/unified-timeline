@@ -16,7 +16,6 @@ export const BH_GRUNNLAGSVAR_OPTIONS: DropdownOption[] = [
   { value: "", label: "— Velg —" },
   { value: "godkjent", label: "Godkjent" },
   { value: "delvis_godkjent", label: "Delvis godkjent" },
-  { value: "erkjenn_fm", label: "Erkjenn Force Majeure" },
   { value: "avslatt", label: "Avslått" },
   { value: "frafalt", label: "Frafall pålegget" },
 ];
@@ -126,7 +125,6 @@ export function getBhFristsvarValues(): [string, ...string[]] {
 export const BH_GRUNNLAGSVAR_DESCRIPTIONS: Record<string, string> = {
   godkjent: "Byggherren aksepterer ansvarsgrunnlaget fullt ut. Vederlag og frist vurderes prinsipalt.",
   delvis_godkjent: "Byggherren aksepterer deler av grunnlaget. Kan påvirke vederlag/frist-vurdering.",
-  erkjenn_fm: "§33.3: Byggherren erkjenner at forholdet er Force Majeure. Entreprenøren får kun fristforlengelse, ikke vederlag.",
   avslatt: "Byggherren avslår ansvarsgrunnlaget. Vederlag og frist vurderes subsidiært (hvis ansvar hadde foreligget).",
   frafalt: "Byggherren frafaller pålegget (§32.3 c). Kun for irregulære endringer. Arbeidet trenger ikke utføres.",
 };
