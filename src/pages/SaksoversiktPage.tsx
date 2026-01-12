@@ -8,6 +8,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Card } from '../components/primitives';
+import { PageHeader } from '../components/PageHeader';
 import { useCaseList } from '../hooks/useCaseList';
 import { useAuth } from '../context/AuthContext';
 import { CaseListItem } from '../types/api';
@@ -54,43 +55,36 @@ export function SaksoversiktPage() {
   const cases = data?.cases ?? [];
 
   return (
-    <div className="min-h-screen bg-pkt-bg-default">
+    <div className="min-h-screen bg-pkt-bg-subtle">
       {/* Header */}
-      <header className="bg-pkt-bg-card shadow-sm border-b-2 border-oslo-blue">
-        <div className="max-w-7xl mx-auto px-6 py-5">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <h1 className="text-heading-lg font-bold text-oslo-blue">
-                Sakoversikt
-              </h1>
-              <p className="mt-2 text-body-md text-pkt-grays-gray-600">
-                Oversikt over alle registrerte saker
-              </p>
-            </div>
-            <div className="flex gap-2 ml-4">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => navigate('/analyse')}
-              >
-                Analysedashboard
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => navigate('/saker/ny')}
-              >
-                Opprett ny sak
-              </Button>
-            </div>
+      <PageHeader
+        title="Saksoversikt"
+        subtitle="Oversikt over alle registrerte saker"
+        maxWidth="wide"
+        actions={
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => navigate('/analyse')}
+            >
+              Analysedashboard
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => navigate('/saker/ny')}
+            >
+              Opprett ny sak
+            </Button>
           </div>
-        </div>
-      </header>
+        }
+      />
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="max-w-7xl mx-auto px-4 py-6 sm:px-6 sm:py-8 space-y-4">
         {/* Filter Tabs */}
-        <div className="mb-6 flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap">
           {(['all', 'standard', 'forsering', 'endringsordre'] as SakstypeFilter[]).map(
             (filterOption) => (
               <Button
@@ -113,19 +107,19 @@ export function SaksoversiktPage() {
 
         {/* Loading State */}
         {(isLoading || isVerifying) && (
-          <Card variant="default" padding="lg">
+          <Card variant="outlined" padding="lg">
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-oslo-blue" />
-              <span className="ml-3 text-pkt-grays-gray-600">Laster saker...</span>
+              <span className="ml-3 text-pkt-text-body-subtle">Laster saker...</span>
             </div>
           </Card>
         )}
 
         {/* Error State */}
         {error && !isLoading && (
-          <Card variant="default" padding="lg">
+          <Card variant="outlined" padding="lg">
             <div className="text-center py-12">
-              <p className="text-badge-error-text mb-4">
+              <p className="text-alert-danger-text mb-4">
                 Kunne ikke laste saker: {error.message}
               </p>
               <Button variant="secondary" onClick={() => window.location.reload()}>
@@ -137,9 +131,9 @@ export function SaksoversiktPage() {
 
         {/* Empty State */}
         {!isLoading && !error && cases.length === 0 && (
-          <Card variant="default" padding="lg">
+          <Card variant="outlined" padding="lg">
             <div className="text-center py-12">
-              <p className="text-pkt-grays-gray-600 mb-4">
+              <p className="text-pkt-text-body-subtle mb-4">
                 Ingen saker funnet
                 {filter !== 'all' && ` med type "${getSakstypeLabel(filter)}"`}
               </p>
@@ -152,95 +146,99 @@ export function SaksoversiktPage() {
 
         {/* Case List */}
         {!isLoading && !error && cases.length > 0 && (
-          <div className="space-y-4">
-            {/* Table Header (desktop) */}
-            <div className="hidden md:grid md:grid-cols-12 gap-4 px-4 py-2 text-sm font-semibold text-pkt-grays-gray-600 border-b border-pkt-border-default">
-              <div className="col-span-2">Sak-ID</div>
-              <div className="col-span-1">Type</div>
-              <div className="col-span-4">Tittel</div>
-              <div className="col-span-2">Status</div>
-              <div className="col-span-2">Sist oppdatert</div>
-              <div className="col-span-1"></div>
-            </div>
+          <section aria-labelledby="case-list-heading">
+            <Card variant="outlined" padding="md">
+              <div className="flex items-center justify-between mb-4">
+                <h2 id="case-list-heading" className="text-base font-semibold text-pkt-text-body-dark">
+                  Saker
+                </h2>
+                <span className="text-sm text-pkt-text-body-subtle">
+                  {cases.length} sak{cases.length !== 1 ? 'er' : ''}
+                  {filter !== 'all' && ` av type "${getSakstypeLabel(filter)}"`}
+                </span>
+              </div>
 
-            {/* Case Rows */}
-            {cases.map((item) => (
-              <Card
-                key={item.sak_id}
-                variant="outlined"
-                padding="md"
-                className="hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => navigate(getCaseRoute(item))}
-              >
-                <div className="md:grid md:grid-cols-12 md:gap-4 md:items-center">
-                  {/* Sak-ID */}
-                  <div className="col-span-2">
-                    <span className="font-mono text-sm font-semibold text-oslo-blue">
-                      {item.sak_id}
-                    </span>
+              {/* Table Header (desktop) */}
+              <div className="hidden md:grid md:grid-cols-12 gap-4 px-4 py-2 text-sm font-semibold text-pkt-text-body-subtle border-b border-pkt-border-subtle">
+                <div className="col-span-2">Sak-ID</div>
+                <div className="col-span-1">Type</div>
+                <div className="col-span-4">Tittel</div>
+                <div className="col-span-2">Status</div>
+                <div className="col-span-2">Sist oppdatert</div>
+                <div className="col-span-1"></div>
+              </div>
+
+              {/* Case Rows */}
+              <div className="divide-y divide-pkt-border-subtle">
+                {cases.map((item) => (
+                  <div
+                    key={item.sak_id}
+                    className="px-4 py-3 hover:bg-pkt-surface-subtle transition-colors cursor-pointer"
+                    onClick={() => navigate(getCaseRoute(item))}
+                  >
+                    <div className="md:grid md:grid-cols-12 md:gap-4 md:items-center">
+                      {/* Sak-ID */}
+                      <div className="col-span-2">
+                        <span className="font-mono text-sm font-semibold text-pkt-text-action-active">
+                          {item.sak_id}
+                        </span>
+                      </div>
+
+                      {/* Type Badge */}
+                      <div className="col-span-1 mt-2 md:mt-0">
+                        <span
+                          className={`inline-block px-2 py-1 text-xs font-medium rounded-sm ${getSakstypeBadgeClass(
+                            item.sakstype
+                          )}`}
+                        >
+                          {getSakstypeLabel(item.sakstype)}
+                        </span>
+                      </div>
+
+                      {/* Title */}
+                      <div className="col-span-4 mt-2 md:mt-0">
+                        <p className="text-sm text-pkt-text-body-default line-clamp-1">
+                          {item.cached_title || 'Uten tittel'}
+                        </p>
+                      </div>
+
+                      {/* Status Badge */}
+                      <div className="col-span-2 mt-2 md:mt-0">
+                        <span
+                          className={`inline-block px-2 py-1 text-xs font-medium rounded-sm ${getOverordnetStatusBadgeClass(
+                            item.cached_status
+                          )}`}
+                        >
+                          {getStatusLabel(item.cached_status)}
+                        </span>
+                      </div>
+
+                      {/* Last Updated */}
+                      <div className="col-span-2 mt-2 md:mt-0">
+                        <span className="text-sm text-pkt-text-body-subtle">
+                          {formatDateShort(item.last_event_at)}
+                        </span>
+                      </div>
+
+                      {/* Action */}
+                      <div className="col-span-1 mt-3 md:mt-0 text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(getCaseRoute(item));
+                          }}
+                        >
+                          Vis
+                        </Button>
+                      </div>
+                    </div>
                   </div>
-
-                  {/* Type Badge */}
-                  <div className="col-span-1 mt-2 md:mt-0">
-                    <span
-                      className={`inline-block px-2 py-1 text-xs font-medium rounded ${getSakstypeBadgeClass(
-                        item.sakstype
-                      )}`}
-                    >
-                      {getSakstypeLabel(item.sakstype)}
-                    </span>
-                  </div>
-
-                  {/* Title */}
-                  <div className="col-span-4 mt-2 md:mt-0">
-                    <p className="text-body-md text-pkt-grays-gray-800 line-clamp-1">
-                      {item.cached_title || 'Uten tittel'}
-                    </p>
-                  </div>
-
-                  {/* Status Badge */}
-                  <div className="col-span-2 mt-2 md:mt-0">
-                    <span
-                      className={`inline-block px-2 py-1 text-xs font-medium rounded ${getOverordnetStatusBadgeClass(
-                        item.cached_status
-                      )}`}
-                    >
-                      {getStatusLabel(item.cached_status)}
-                    </span>
-                  </div>
-
-                  {/* Last Updated */}
-                  <div className="col-span-2 mt-2 md:mt-0">
-                    <span className="text-sm text-pkt-grays-gray-600">
-                      {formatDateShort(item.last_event_at)}
-                    </span>
-                  </div>
-
-                  {/* Action */}
-                  <div className="col-span-1 mt-3 md:mt-0 text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(getCaseRoute(item));
-                      }}
-                    >
-                      Vis
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        )}
-
-        {/* Stats */}
-        {!isLoading && !error && cases.length > 0 && (
-          <div className="mt-6 text-sm text-pkt-grays-gray-600">
-            Viser {cases.length} sak{cases.length !== 1 ? 'er' : ''}
-            {filter !== 'all' && ` av type "${getSakstypeLabel(filter)}"`}
-          </div>
+                ))}
+              </div>
+            </Card>
+          </section>
         )}
       </main>
     </div>

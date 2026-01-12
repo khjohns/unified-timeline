@@ -12,8 +12,10 @@ import { ModeToggle } from './ModeToggle';
 interface PageHeaderProps {
   title: string;
   subtitle: string;
-  userRole: 'TE' | 'BH';
-  onToggleRole: (role: 'TE' | 'BH') => void;
+  /** User role for mode toggle (optional for overview pages) */
+  userRole?: 'TE' | 'BH';
+  /** Callback for role toggle (optional for overview pages) */
+  onToggleRole?: (role: 'TE' | 'BH') => void;
   /** Additional actions (e.g., PDF download button) */
   actions?: ReactNode;
   /** Max width variant: 'narrow' (3xl) for CasePage, 'wide' (7xl) for ForseringPage */
@@ -47,7 +49,9 @@ export function PageHeader({
             {/* Toggle group */}
             <div className="flex items-center gap-2">
               <ThemeToggle />
-              <ModeToggle userRole={userRole} onToggle={onToggleRole} />
+              {userRole && onToggleRole && (
+                <ModeToggle userRole={userRole} onToggle={onToggleRole} />
+              )}
             </div>
 
             {/* Additional actions with separator */}
