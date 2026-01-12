@@ -72,7 +72,7 @@ export function DataListItem({ label, children, mono }: DataListItemProps) {
   if (variant === 'grid') {
     return (
       <div className="flex flex-col">
-        <dt className="text-sm text-pkt-text-body-subtle mb-0.5">
+        <dt className="text-sm text-pkt-text-body-subtle mb-1">
           {label}
         </dt>
         <dd className={valueClasses}>
@@ -98,7 +98,7 @@ export function DataListItem({ label, children, mono }: DataListItemProps) {
 
   // Default left-aligned variant
   return (
-    <div className="py-2.5 flex flex-col sm:flex-row sm:gap-4">
+    <div className="py-3 flex flex-col sm:flex-row sm:gap-4">
       <dt className="text-sm text-pkt-text-body-subtle sm:w-40 sm:flex-shrink-0">
         {label}
       </dt>
