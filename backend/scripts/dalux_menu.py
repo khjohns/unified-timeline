@@ -373,6 +373,101 @@ class DaluxInteractiveMenu:
 
         self.pause()
 
+    def view_files(self):
+        """Vis filer i prosjektets filområder"""
+        self.print_header("Filer")
+        self.print_status()
+
+        if not self.current_project_id:
+            print("Velg et prosjekt først (meny 2)")
+            self.pause()
+            return
+
+        print(f"Henter filområder for {self.current_project_name}...\n")
+
+        try:
+            # Hent filområder via API direkte (ikke i DaluxClient ennå)
+            import requests
+            headers = {"X-API-KEY": self.client.api_key}
+            base_url = self.client.base_url
+
+            areas_url = f"{base_url}5.1/projects/{self.current_project_id}/file_areas"
+            areas_resp = requests.get(areas_url, headers=headers, timeout=30)
+            areas_resp.raise_for_status()
+            areas = areas_resp.json().get("items", [])
+
+            if not areas:
+                print("Ingen filområder funnet.")
+                self.pause()
+                return
+
+            # Vis filområder
+            print(f"Fant {len(areas)} filområde(r):\n")
+            for i, area in enumerate(areas, 1):
+                data = area.get("data", {})
+                area_id = data.get("fileAreaId", "?")
+                area_name = data.get("fileAreaName", "?")
+                print(f"  {i}. {area_name} (ID: {area_id})")
+
+            # Velg filområde
+            print()
+            choice = input("Velg filområde (Enter for første): ").strip()
+            if not choice:
+                choice = "1"
+
+            try:
+                idx = int(choice) - 1
+                if idx < 0 or idx >= len(areas):
+                    print("Ugyldig valg")
+                    self.pause()
+                    return
+            except ValueError:
+                print("Ugyldig input")
+                self.pause()
+                return
+
+            selected_area = areas[idx].get("data", {})
+            area_id = selected_area.get("fileAreaId")
+            area_name = selected_area.get("fileAreaName", "?")
+
+            print(f"\nHenter filer fra '{area_name}'...\n")
+
+            # Hent filer
+            files_url = f"{base_url}6.0/projects/{self.current_project_id}/file_areas/{area_id}/files?pageSize=50"
+            files_resp = requests.get(files_url, headers=headers, timeout=30)
+            files_resp.raise_for_status()
+            files_data = files_resp.json()
+            files = files_data.get("items", [])
+            total = files_data.get("metadata", {}).get("totalItems", len(files))
+
+            if not files:
+                print("Ingen filer funnet.")
+                self.pause()
+                return
+
+            print(f"Fant {total} fil(er) totalt (viser {len(files)}):\n")
+            print(f"{'Filnavn':<45} {'Type':<12} {'Størrelse':<12} {'Oppdatert':<12}")
+            print("-" * 85)
+
+            for f in files[:30]:
+                data = f.get("data", {})
+                filename = data.get("fileName", "?")[:44]
+                file_type = data.get("fileType", "?")[:11]
+                size = data.get("fileSize", 0)
+                size_str = f"{size // 1024} KB" if size else "?"
+                modified = data.get("lastModified", "?")[:11]
+                print(f"{filename:<45} {file_type:<12} {size_str:<12} {modified:<12}")
+
+            if len(files) > 30:
+                print(f"\n... og {total - 30} flere")
+
+        except requests.RequestException as e:
+            print(f"Feil ved henting av filer: {e}")
+        except Exception as e:
+            print(f"Uventet feil: {e}")
+
+        self.pause()
+
     def run_sync(self):
         """Kjør synkronisering til Catenda"""
         self.print_header("Synkroniser til Catenda")
@@ -465,7 +560,8 @@ class DaluxInteractiveMenu:
         print("  4. Vis task-detaljer")
         print("  5. Vis task-endringer")
         print("  6. Vis vedlegg")
-        print("  7. Synkroniser til Catenda")
+        print("  7. Vis filer")
+        print("  8. Synkroniser til Catenda")
         print()
         print("  0. Avslutt")
         print()
@@ -508,6 +604,8 @@ class DaluxInteractiveMenu:
             elif choice == "6":
                 self.view_attachments()
             elif choice == "7":
+                self.view_files()
+            elif choice == "8":
                 self.run_sync()
             else:
                 print("Ugyldig valg")
