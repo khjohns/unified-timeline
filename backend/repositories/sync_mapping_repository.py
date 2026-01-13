@@ -80,7 +80,6 @@ class SyncMappingRepository:
         data = {
             "project_id": mapping.project_id,
             "dalux_project_id": mapping.dalux_project_id,
-            "dalux_api_key": mapping.dalux_api_key,
             "dalux_base_url": mapping.dalux_base_url,
             "catenda_project_id": mapping.catenda_project_id,
             "catenda_board_id": mapping.catenda_board_id,
@@ -270,7 +269,6 @@ class SyncMappingRepository:
             id=row["id"],
             project_id=row["project_id"],
             dalux_project_id=row["dalux_project_id"],
-            dalux_api_key=row["dalux_api_key"],
             dalux_base_url=row["dalux_base_url"],
             catenda_project_id=row["catenda_project_id"],
             catenda_board_id=row["catenda_board_id"],

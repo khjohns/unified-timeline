@@ -345,15 +345,15 @@ Implementert januar 2026. For detaljert analyse, se [ADR-001-dalux-sync.md](ADR-
 | Synk-mekanisme | Polling (15 min) | Dalux støtter ikke webhooks |
 | Trigger | Manuell CLI | Fase 1 MVP, scheduler i Fase 2 |
 | Database | Supabase | Konsistent med eksisterende arkitektur |
-| API-nøkler | Plaintext | **Må krypteres før produksjon** |
+| API-nøkler | Miljøvariabel (.env) | Sikker, følger 12-factor app |
 | Event Sourcing | Nei | Infrastruktur-data, ikke forretningsdomene |
 | Klient-mønster | Speiler CatendaClient | Konsistens og gjenkjennelighet |
 
 ### Kjente begrensninger
 
-- [ ] API-nøkler er ikke kryptert (sikkerhetsrisiko)
 - [ ] Ingen automatisk scheduler
 - [ ] Attachment-synk ikke implementert (Fase 2)
+- [ ] Kun single-tenant (én API-nøkkel per instans)
 
 ---
 

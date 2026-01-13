@@ -185,48 +185,58 @@ Dalux API krever per-prosjekt API-nøkler som må lagres sikkert.
 
 ### Alternativer vurdert
 
-| Alternativ | Sikkerhet | Kompleksitet |
-|------------|-----------|--------------|
-| A: Plaintext i database | Lav | Ingen |
-| B: Symmetrisk kryptering (AES) | Middels | Lav |
-| C: Azure Key Vault | Høy | Middels |
-| D: HashiCorp Vault | Høy | Høy |
+| Alternativ | Sikkerhet | Kompleksitet | Multi-tenant |
+|------------|-----------|--------------|--------------|
+| A: Plaintext i database | Lav | Ingen | Ja |
+| B: Lokal .env fil | God | Ingen | Nei |
+| C: Symmetrisk kryptering (AES) | Middels | Lav | Ja |
+| D: Azure Key Vault | Høy | Middels | Ja |
 
 ### Beslutning
 
-**Valgt: A - Plaintext (midlertidig for Fase 1)**
+**Valgt: B - Lokal .env fil**
+
+*Oppdatert 2026-01-13: Endret fra database-lagring til miljøvariabel.*
 
 ### Begrunnelse
 
-- Raskere utvikling for MVP
-- Supabase RLS gir noe beskyttelse
-- Ingen eksisterende Key Vault-infrastruktur
+- **Sikrere**: API-nøkkel aldri i database, ingen lekkasje-risiko
+- **Enklere**: Ingen database-migrasjon for nøkkelendringer
+- **Single-tenant**: Prosjektet er single-tenant, trenger ikke per-prosjekt nøkler
+- **Standard praksis**: Følger 12-factor app prinsippet for secrets
 
 ### Konsekvenser
 
 | Type | Konsekvens |
 |------|------------|
-| Positiv | Enkel implementasjon |
-| **NEGATIV** | **Sikkerhetsrisiko ved database-lekkasje** |
-| **GJELD** | **MÅ krypteres før produksjon** |
+| Positiv | Sikker - nøkkel aldri i database |
+| Positiv | Enkel rotasjon - bare endre .env |
+| Positiv | Ingen database-migrasjon ved nøkkelbytte |
+| Negativ | Kun én API-nøkkel per instans |
+| Negativ | Må settes på hver server/miljø |
 
-### Migrasjonsvei
+### Konfigurasjon
 
-```python
-# Fase 1 (nåværende)
-dalux_api_key: str  # Plaintext
-
-# Fase 2 (før produksjon)
-dalux_api_key_encrypted: bytes  # AES-256-GCM
-encryption_key: str  # Fra miljøvariabel eller Key Vault
+```bash
+# .env
+DALUX_API_KEY=din_api_nokkel_her
+DALUX_BASE_URL=https://node1.field.dalux.com/service/api/
 ```
 
-### Akseptkriterier for produksjon
+### Kode
 
-- [ ] API-nøkler kryptert med AES-256-GCM
-- [ ] Krypteringsnøkkel i miljøvariabel eller Key Vault
-- [ ] Nøkkelrotasjon dokumentert
-- [ ] Audit logging ved nøkkeltilgang
+```python
+# lib/dalux_factory.py
+def get_dalux_api_key() -> Optional[str]:
+    return os.environ.get("DALUX_API_KEY")
+```
+
+### Fremtidig multi-tenant støtte
+
+Hvis multi-tenant trengs senere:
+1. Legg til `dalux_api_key_encrypted` kolonne i database
+2. Bruk Azure Key Vault for krypteringsnøkkel
+3. Fallback til env var hvis ikke satt i database
 
 ---
 
@@ -326,7 +336,7 @@ backend/integrations/dalux/
 | 2 | Synk-mekanisme | Polling (15 min) | Middels |
 | 3 | Trigger | Manuell CLI | Middels |
 | 4 | Database | Supabase | Lav |
-| 5 | API-nøkler | **Plaintext** | **Høy** |
+| 5 | API-nøkler | Miljøvariabel (.env) | Lav |
 | 6 | Event Sourcing | Nei (direkte CRUD) | Lav |
 | 7 | Klient-struktur | Speiler CatendaClient | Lav |
 
@@ -346,3 +356,4 @@ backend/integrations/dalux/
 | Dato | Versjon | Endring |
 |------|---------|---------|
 | 2026-01-13 | 1.0 | Initial versjon - Fase 1 implementasjon |
+| 2026-01-13 | 1.1 | ADR-001.5: Endret API-nøkkel fra database til .env |

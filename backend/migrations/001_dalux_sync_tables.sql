@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS dalux_catenda_sync_mappings (
     catenda_board_id TEXT NOT NULL,              -- Catenda BCF board ID
 
     -- Dalux API configuration
-    dalux_api_key TEXT NOT NULL,                 -- API key (plaintext for now)
+    -- NOTE: API key is read from DALUX_API_KEY environment variable, NOT stored in database
     dalux_base_url TEXT NOT NULL,                -- e.g., https://node1.field.dalux.com/service/api/
 
     -- Sync settings

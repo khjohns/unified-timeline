@@ -2,6 +2,10 @@
 """
 Dalux Sync CLI - Manual trigger for Dalux → Catenda synchronization.
 
+Requires environment variables:
+    DALUX_API_KEY: Dalux API key
+    DALUX_BASE_URL: Dalux API base URL (e.g., https://node1.field.dalux.com/service/api/)
+
 Usage:
     # Sync a specific mapping
     python scripts/dalux_sync.py sync --mapping-id <uuid>
@@ -15,15 +19,13 @@ Usage:
     # Show sync status
     python scripts/dalux_sync.py status --mapping-id <uuid>
 
-    # Test Dalux connection
-    python scripts/dalux_sync.py test --api-key <key> --base-url <url>
+    # Test Dalux connection (uses env vars)
+    python scripts/dalux_sync.py test
 
     # Create new sync mapping
     python scripts/dalux_sync.py create \\
         --project-id <internal_id> \\
         --dalux-project-id <dalux_id> \\
-        --dalux-api-key <key> \\
-        --dalux-base-url <url> \\
         --catenda-project-id <catenda_id> \\
         --catenda-board-id <board_id>
 """
@@ -41,10 +43,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from integrations.dalux import DaluxClient, DaluxAuthError, DaluxAPIError
-from services.dalux_sync_service import DaluxSyncService, create_dalux_sync_service
+from services.dalux_sync_service import DaluxSyncService
 from repositories.sync_mapping_repository import create_sync_mapping_repository
 from models.sync_models import DaluxCatendaSyncMapping
 from lib.catenda_factory import get_catenda_client
+from lib.dalux_factory import get_dalux_client, get_dalux_client_for_mapping
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -70,11 +73,12 @@ def cmd_sync(args):
         print(f"Sync mode: {'full' if full_sync else 'incremental'}")
         print()
 
-        # Create clients
-        dalux_client = DaluxClient(
-            api_key=mapping.dalux_api_key,
-            base_url=mapping.dalux_base_url
-        )
+        # Create clients (API key from environment)
+        try:
+            dalux_client = get_dalux_client_for_mapping(mapping)
+        except ValueError as e:
+            print(f"Error: {e}")
+            return 1
 
         catenda_client = get_catenda_client()
         if not catenda_client:
@@ -160,7 +164,7 @@ def cmd_status(args):
         print("Dalux Configuration:")
         print(f"  Project ID: {mapping.dalux_project_id}")
         print(f"  Base URL: {mapping.dalux_base_url}")
-        print(f"  API Key: {mapping.dalux_api_key[:10]}...")
+        print(f"  API Key: (from DALUX_API_KEY env var)")
         print()
         print("Catenda Configuration:")
         print(f"  Project ID: {mapping.catenda_project_id}")
@@ -193,15 +197,18 @@ def cmd_status(args):
 
 
 def cmd_test(args):
-    """Test Dalux connection."""
-    api_key = args.api_key
-    base_url = args.base_url
+    """Test Dalux connection using environment variables."""
+    client = get_dalux_client()
 
+    if not client:
+        print("Error: Dalux not configured.")
+        print("Set DALUX_API_KEY and DALUX_BASE_URL in .env")
+        return 1
+
+    base_url = os.environ.get("DALUX_BASE_URL") or os.environ.get("DALUX_DEFAULT_BASE_URL")
     print(f"Testing connection to {base_url}...")
 
     try:
-        client = DaluxClient(api_key, base_url)
-
         if client.health_check():
             print("Connection successful!")
             print()
@@ -214,7 +221,7 @@ def cmd_test(args):
 
             return 0
         else:
-            print("Connection failed. Check API key and base URL.")
+            print("Connection failed. Check DALUX_API_KEY and DALUX_BASE_URL.")
             return 1
 
     except DaluxAuthError as e:
@@ -233,9 +240,13 @@ def cmd_create(args):
     try:
         sync_repo = create_sync_mapping_repository()
 
-        # Validate Dalux connection first
+        # Validate Dalux connection first (using env vars)
         print("Validating Dalux connection...")
-        dalux_client = DaluxClient(args.dalux_api_key, args.dalux_base_url)
+        dalux_client = get_dalux_client()
+        if not dalux_client:
+            print("Error: Dalux not configured. Set DALUX_API_KEY and DALUX_BASE_URL in .env")
+            return 1
+
         if not dalux_client.health_check():
             print("Error: Dalux API key is invalid or expired")
             return 1
@@ -246,12 +257,14 @@ def cmd_create(args):
         if args.dalux_project_id not in project_ids:
             print(f"Warning: Dalux project {args.dalux_project_id} not in accessible projects: {project_ids}")
 
-        # Create mapping
+        # Get base URL from env
+        base_url = os.environ.get("DALUX_BASE_URL") or os.environ.get("DALUX_DEFAULT_BASE_URL")
+
+        # Create mapping (API key NOT stored, only base_url)
         mapping = DaluxCatendaSyncMapping(
             project_id=args.project_id,
             dalux_project_id=args.dalux_project_id,
-            dalux_api_key=args.dalux_api_key,
-            dalux_base_url=args.dalux_base_url,
+            dalux_base_url=base_url,
             catenda_project_id=args.catenda_project_id,
             catenda_board_id=args.catenda_board_id,
             sync_enabled=True,
@@ -259,6 +272,7 @@ def cmd_create(args):
 
         mapping_id = sync_repo.create_sync_mapping(mapping)
         print(f"Created sync mapping: {mapping_id}")
+        print(f"Note: API key read from DALUX_API_KEY environment variable")
         return 0
 
     except Exception as e:
@@ -287,17 +301,13 @@ def main():
     status_parser = subparsers.add_parser("status", help="Show status for a mapping")
     status_parser.add_argument("--mapping-id", "-m", required=True, help="Sync mapping UUID")
 
-    # test command
-    test_parser = subparsers.add_parser("test", help="Test Dalux connection")
-    test_parser.add_argument("--api-key", "-k", required=True, help="Dalux API key")
-    test_parser.add_argument("--base-url", "-u", required=True, help="Dalux API base URL")
+    # test command (uses DALUX_API_KEY and DALUX_BASE_URL from env)
+    subparsers.add_parser("test", help="Test Dalux connection (uses env vars)")
 
-    # create command
+    # create command (uses DALUX_API_KEY and DALUX_BASE_URL from env)
     create_parser = subparsers.add_parser("create", help="Create a new sync mapping")
     create_parser.add_argument("--project-id", required=True, help="Internal project ID")
     create_parser.add_argument("--dalux-project-id", required=True, help="Dalux project ID")
-    create_parser.add_argument("--dalux-api-key", required=True, help="Dalux API key")
-    create_parser.add_argument("--dalux-base-url", required=True, help="Dalux API base URL")
     create_parser.add_argument("--catenda-project-id", required=True, help="Catenda project ID")
     create_parser.add_argument("--catenda-board-id", required=True, help="Catenda board ID")
 

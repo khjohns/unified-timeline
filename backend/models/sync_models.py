@@ -25,8 +25,8 @@ class DaluxCatendaSyncMapping(BaseModel):
 
     # Dalux configuration
     dalux_project_id: str = Field(..., description="Dalux project ID")
-    dalux_api_key: str = Field(..., description="Dalux API key (plaintext)")
     dalux_base_url: str = Field(..., description="Dalux API base URL (e.g., https://node1.field.dalux.com/service/api/)")
+    # Note: API key is read from DALUX_API_KEY environment variable, not stored in database
 
     # Catenda configuration
     catenda_project_id: str = Field(..., description="Catenda project ID")

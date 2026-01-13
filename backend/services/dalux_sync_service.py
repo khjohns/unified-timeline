@@ -443,16 +443,17 @@ class DaluxSyncService:
         Returns:
             Tuple of (is_valid, error_messages)
         """
+        from lib.dalux_factory import get_dalux_client_for_mapping
+
         errors = []
 
         # Validate Dalux connection
         try:
-            dalux_client = DaluxClient(
-                api_key=mapping.dalux_api_key,
-                base_url=mapping.dalux_base_url
-            )
+            dalux_client = get_dalux_client_for_mapping(mapping)
             if not dalux_client.health_check():
                 errors.append("Dalux API key is invalid or expired")
+        except ValueError as e:
+            errors.append(str(e))
         except Exception as e:
             errors.append(f"Dalux connection failed: {e}")
 
@@ -469,27 +470,33 @@ class DaluxSyncService:
 
 
 def create_dalux_sync_service(
-    dalux_api_key: str,
-    dalux_base_url: str,
     catenda_client: Optional[CatendaClient] = None,
     sync_repo: Optional[SyncMappingRepository] = None,
 ) -> DaluxSyncService:
     """
     Factory function to create DaluxSyncService.
 
+    Dalux API key and base URL are read from environment variables:
+    - DALUX_API_KEY: API key for Dalux
+    - DALUX_BASE_URL: Base URL for Dalux API
+
     Args:
-        dalux_api_key: Dalux API key
-        dalux_base_url: Dalux API base URL
         catenda_client: Optional Catenda client (created from factory if not provided)
         sync_repo: Optional sync repository (created if not provided)
 
     Returns:
         Configured DaluxSyncService
+
+    Raises:
+        ValueError: If DALUX_API_KEY or DALUX_BASE_URL not set
     """
     from lib.catenda_factory import get_catenda_client
+    from lib.dalux_factory import get_dalux_client
     from repositories.sync_mapping_repository import create_sync_mapping_repository
 
-    dalux_client = DaluxClient(dalux_api_key, dalux_base_url)
+    dalux_client = get_dalux_client()
+    if dalux_client is None:
+        raise ValueError("Dalux not configured. Set DALUX_API_KEY and DALUX_BASE_URL.")
 
     if catenda_client is None:
         catenda_client = get_catenda_client()
