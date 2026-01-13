@@ -54,3 +54,6 @@ NS_8407.md
 *-api-openapi.yaml
 /backend/scripts/koe_data
 /koe_data
+
+# Test output PDFs
+backend/test_output_*.pdf

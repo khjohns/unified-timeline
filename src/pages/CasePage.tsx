@@ -73,6 +73,7 @@ import {
   ErrorState,
 } from '../components/PageStateHelpers';
 import { downloadRevisionHistoryCsv } from '../utils/csvExport';
+import { downloadCaseExcel } from '../utils/excelExport';
 
 // Default empty state for when data is not yet loaded
 const EMPTY_STATE: SakState = {
@@ -584,16 +585,32 @@ function CasePageContent() {
             </h2>
             <ComprehensiveMetadata state={state} sakId={sakId || ''} />
 
-            {/* CSV Export */}
-            {(vederlagHistorikk.length > 0 || fristHistorikk.length > 0) && (
+            {/* Export Options */}
+            {(grunnlagHistorikk.length > 0 || vederlagHistorikk.length > 0 || fristHistorikk.length > 0) && (
               <div className="mt-4 pt-3 border-t border-pkt-border-subtle">
-                <button
-                  onClick={() => downloadRevisionHistoryCsv(sakId || '', vederlagHistorikk, fristHistorikk)}
-                  className="flex items-center gap-2 text-sm text-pkt-text-action-normal hover:text-pkt-text-action-hover transition-colors"
-                >
-                  <DownloadIcon className="w-4 h-4" />
-                  Last ned revisjonshistorikk (CSV)
-                </button>
+                <p className="text-xs font-medium text-pkt-text-body-muted mb-2">Eksporter data</p>
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    onClick={() => downloadCaseExcel({
+                      sakId: sakId || '',
+                      state,
+                      grunnlag: grunnlagHistorikk,
+                      vederlag: vederlagHistorikk,
+                      frist: fristHistorikk,
+                    })}
+                    className="flex items-center gap-2 text-sm text-pkt-text-action-normal hover:text-pkt-text-action-hover transition-colors"
+                  >
+                    <DownloadIcon className="w-4 h-4" />
+                    Excel (.xlsx)
+                  </button>
+                  <button
+                    onClick={() => downloadRevisionHistoryCsv(sakId || '', vederlagHistorikk, fristHistorikk)}
+                    className="flex items-center gap-2 text-sm text-pkt-text-action-normal hover:text-pkt-text-action-hover transition-colors"
+                  >
+                    <DownloadIcon className="w-4 h-4" />
+                    CSV
+                  </button>
+                </div>
               </div>
             )}
           </Card>
