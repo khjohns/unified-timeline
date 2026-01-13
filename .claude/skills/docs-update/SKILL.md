@@ -19,6 +19,8 @@ Denne skillen hjelper med å holde prosjektdokumentasjonen synkronisert med kode
 | `docs/FRONTEND_ARCHITECTURE.md` | Frontend stack, komponenter | UI-arkitektur endringer |
 | `docs/SECURITY_ARCHITECTURE.md` | Sikkerhetsarkitektur | Sikkerhetsrelaterte endringer |
 | `backend/STRUCTURE.md` | Backend mappestruktur | Backend-refaktorering |
+| `backend/docs/API.md` | API-dokumentasjon (manuell) | Nye endpoints, eksempler |
+| `backend/docs/openapi.yaml` | OpenAPI spec (generert) | Kjør generate_openapi.py |
 | `QUICKSTART.md` | Kom i gang guide | API-endringer, setup-endringer |
 | `THIRD-PARTY-NOTICES.md` | Tredjepartsavhengigheter | Nye/oppdaterte avhengigheter |
 
@@ -82,7 +84,7 @@ EVENT TYPES
 | Ny npm-pakke | README (Teknologier), THIRD-PARTY-NOTICES |
 | Ny pip-pakke | README (Teknologier), THIRD-PARTY-NOTICES |
 | Ny event-type | ARCHITECTURE_AND_DATAMODEL, README (Event-oversikt) |
-| Ny API-endpoint | QUICKSTART, README |
+| Ny API-endpoint | openapi.yaml (via generator), API.md, QUICKSTART |
 | Ny mappe | README (Prosjektstruktur), CLAUDE.md |
 | Ny skill | CLAUDE.md (Skills-seksjonen) |
 | Sikkerhetsendring | SECURITY_ARCHITECTURE |
@@ -109,6 +111,13 @@ EVENT TYPES
 5. **Verifiser arkitekturdokumentasjon:**
    - Reflekterer diagrammer faktisk arkitektur?
    - Er alle event-typer dokumentert?
+
+6. **Regenerer API-dokumentasjon:**
+   ```bash
+   cd backend && python scripts/generate_openapi.py
+   ```
+   - Sjekk at openapi.yaml er oppdatert
+   - Verifiser at API.md har eksempler for nye endpoints
 
 ## Beste praksis
 
@@ -174,3 +183,57 @@ npm run lint                       # Kode-kvalitet
 1. Opprett mappen
 2. Oppdater README.md prosjektstruktur-diagram
 3. Oppdater CLAUDE.md hvis relevant for Claude Code kontekst
+
+## API-dokumentasjon
+
+Backend API-dokumentasjon følger et to-lags system:
+
+| Fil | Type | Formål |
+|-----|------|--------|
+| `backend/docs/openapi.yaml` | Generert | Maskinlesbar OpenAPI 3.0 spec |
+| `backend/docs/API.md` | Manuell | Menneskevennlig med eksempler |
+
+### OpenAPI-generatoren
+
+`backend/scripts/generate_openapi.py` genererer `openapi.yaml` fra Pydantic-modeller.
+
+```bash
+# Generer OpenAPI spec
+cd backend && python scripts/generate_openapi.py
+
+# Eller med eksplisitt output
+python scripts/generate_openapi.py --output docs/openapi.yaml
+```
+
+### Workflow for nye API-endpoints
+
+1. **Implementer endpoint** i `backend/routes/*.py`
+2. **Oppdater generatoren** - Legg til path i `generate_paths()` i `generate_openapi.py`
+3. **Regenerer spec:**
+   ```bash
+   cd backend && python scripts/generate_openapi.py
+   ```
+4. **Oppdater API.md** - Legg til menneskevennlig dokumentasjon med eksempler
+5. **Oppdater QUICKSTART.md** hvis endpointet er viktig for oppstart
+
+### Hva generatoren håndterer
+
+- **Schemas** fra Pydantic-modeller (automatisk)
+- **Paths** må legges til manuelt i `generate_paths()`
+- **Security schemes** (CSRF, Magic Link)
+- **Request/Response eksempler**
+
+### Synkronisering
+
+OpenAPI-generatoren er **source of truth** for API-struktur:
+
+```
+Pydantic models → generate_openapi.py → openapi.yaml
+                                              ↓
+                                    API.md (manuell sync)
+```
+
+Ved drift mellom openapi.yaml og faktiske routes:
+1. Sjekk at `generate_paths()` inkluderer alle routes
+2. Kjør generatoren på nytt
+3. Oppdater API.md hvis nødvendig
