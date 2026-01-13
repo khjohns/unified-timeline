@@ -312,18 +312,18 @@ class DaluxInteractiveMenu:
                 self.pause()
                 return
 
-            print(f"Fant {len(changes)} endret task(s):\n")
-            print(f"{'Nummer':<10} {'Type':<15} {'Kategori':<12} {'Tittel':<35}")
-            print("-" * 72)
+            print(f"Fant {len(changes)} endring(er):\n")
+            print(f"{'Task ID':<20} {'Handling':<12} {'Tittel':<30} {'Tidspunkt':<20}")
+            print("-" * 82)
 
             for t in changes[:30]:
-                data = t.get("data", {})
-                number = data.get("number", "?")[:9]
-                type_obj = data.get("type", {})
-                type_name = type_obj.get("name", "?") if isinstance(type_obj, dict) else str(type_obj)[:14]
-                usage = data.get("usage", "?")[:11]
-                subject = data.get("subject", "Untitled")[:34]
-                print(f"{number:<10} {type_name:<15} {usage:<12} {subject:<35}")
+                # Changes har annen struktur enn tasks
+                task_id = t.get("taskId", "?")[:19]
+                action = t.get("action", "?")[:11]
+                fields = t.get("fields", {})
+                title = fields.get("title", t.get("description", "?"))[:29]
+                timestamp = t.get("timestamp", "?")[:19]
+                print(f"{task_id:<20} {action:<12} {title:<30} {timestamp:<20}")
 
             if len(changes) > 30:
                 print(f"\n... og {len(changes) - 30} flere")
@@ -354,17 +354,16 @@ class DaluxInteractiveMenu:
                 return
 
             print(f"Fant {len(attachments)} vedlegg:\n")
-            print(f"{'Task ID':<12} {'Filnavn':<40} {'Størrelse':<12}")
-            print("-" * 65)
+            print(f"{'Task ID':<22} {'Filnavn':<45} {'Opprettet':<20}")
+            print("-" * 90)
 
             for a in attachments[:30]:
-                data = a.get("data", {})
-                task_id = data.get("taskId", "?")[:11]
-                media_file = data.get("mediaFile", {})
-                filename = media_file.get("fileName", "?")[:39]
-                size = media_file.get("fileSize", 0)
-                size_str = f"{size // 1024} KB" if size else "?"
-                print(f"{task_id:<12} {filename:<40} {size_str:<12}")
+                # Attachments har taskId og mediaFile på toppnivå (ingen data-wrapper)
+                task_id = a.get("taskId", "?")[:21]
+                media_file = a.get("mediaFile", {})
+                filename = media_file.get("name", "?")[:44]
+                created = a.get("created", "?")[:19]
+                print(f"{task_id:<22} {filename:<45} {created:<20}")
 
             if len(attachments) > 30:
                 print(f"\n... og {len(attachments) - 30} flere")
