@@ -1,7 +1,7 @@
 # Claude Code Skills - Oppdatert Vurdering og Anbefaling (v2)
 
 > Dokument opprettet: 2025-01-11
-> Oppdatert: 2026-01-13 - Lagt til docs-update skill
+> Oppdatert: 2026-01-13 - Lagt til docs-checker agent
 > Referanse: https://code.claude.com/docs/en/skills
 
 ---
@@ -35,8 +35,9 @@
 │   └── docs-update/
 │       └── SKILL.md             # 239 linjer
 └── agents/
-    ├── event-expert.md          # Implementert
-    └── drift-checker.md         # Implementert
+    ├── event-expert.md          # Event Sourcing + NS 8407
+    ├── drift-checker.md         # Synkroniseringssjekk
+    └── docs-checker.md          # Dokumentasjonsvalidering (NY)
 ```
 
 ---
@@ -371,7 +372,8 @@ Bruk skill-dokumentasjonen for å:
 │
 └── agents/
     ├── event-expert.md       # Event Sourcing + NS 8407
-    └── drift-checker.md      # Synkroniseringssjekk
+    ├── drift-checker.md      # Synkroniseringssjekk
+    └── docs-checker.md       # Dokumentasjonsvalidering
 
 scripts/                       # Eksisterende - refereres fra skills
 ├── check_drift.py            # Samlet drift-sjekk
@@ -423,7 +425,7 @@ allowed-tools: Bash, Read  # Kun disse tilgjengelig
 | Komponent | Status |
 |-----------|--------|
 | 5 skills (event-sourcing, static-analysis, accessibility, ns8407, docs-update) | ✓ Implementert |
-| 2 agenter (event-expert, drift-checker) | ✓ Implementert |
+| 3 agenter (event-expert, drift-checker, docs-checker) | ✓ Implementert |
 | Script-referanser i skills | ✓ Implementert |
 | Multi-file progressive disclosure | ✗ Ikke nødvendig |
 
@@ -432,7 +434,7 @@ allowed-tools: Bash, Read  # Kun disse tilgjengelig
 | Før (v1) | Etter (v2) |
 |----------|------------|
 | 2 skills | 5 skills |
-| Ingen agenter | 2 agenter implementert |
+| Ingen agenter | 3 agenter implementert |
 | Planla multi-file | Vurdert og forkastet (YAGNI) |
 | Forklarte script-innhold | Refererer til scripts for kjøring |
 

@@ -15,6 +15,7 @@ Sjekker:
     2. Mappestruktur (dokumentert vs faktisk)
     3. Event-typer (ARCHITECTURE_AND_DATAMODEL vs events.py)
     4. Kommandoer (CLAUDE.md vs package.json scripts)
+    5. Enum-verdier (ARCHITECTURE_AND_DATAMODEL vs events.py/sak_state.py)
 """
 
 import argparse
@@ -417,6 +418,131 @@ def check_last_updated_dates(root: Path, verbose: bool = False) -> dict:
     }
 
 
+def check_enum_values(root: Path, verbose: bool = False) -> dict:
+    """
+    Sjekk at dokumenterte enum-verdier matcher koden.
+
+    Sammenligner enum-definisjoner i ARCHITECTURE_AND_DATAMODEL.md
+    med faktiske verdier i backend/models/events.py og sak_state.py.
+    """
+    findings = []
+
+    # Filer å sjekke
+    events_py = root / "backend" / "models" / "events.py"
+    sak_state_py = root / "backend" / "models" / "sak_state.py"
+    arch_doc = root / "docs" / "ARCHITECTURE_AND_DATAMODEL.md"
+
+    if not arch_doc.exists():
+        return {"check": "enum_values", "drift_detected": False, "findings": []}
+
+    doc_content = read_file(arch_doc)
+
+    # Enums å sjekke: (enum_navn, kildefil, er_kritisk)
+    enums_to_check = [
+        ("GrunnlagResponsResultat", events_py, True),
+        ("VederlagBeregningResultat", events_py, True),
+        ("FristBeregningResultat", events_py, True),
+        ("FristVarselType", events_py, True),
+        ("SporStatus", events_py, True),
+        ("SubsidiaerTrigger", events_py, True),
+        ("SakType", events_py, False),
+    ]
+
+    for enum_name, source_file, is_critical in enums_to_check:
+        if not source_file.exists():
+            continue
+
+        source_content = read_file(source_file)
+
+        # Finn enum-verdier i koden
+        # Matcher: class EnumName(str, Enum): ... VERDI = "verdi"
+        enum_pattern = rf'class {enum_name}\s*\([^)]+\):\s*(?:"""[^"]*"""\s*)?((?:\s*#[^\n]*\n|\s*\w+\s*=\s*"[^"]+"\s*(?:#[^\n]*)?\n)+)'
+        enum_match = re.search(enum_pattern, source_content, re.DOTALL)
+
+        code_values = set()
+        if enum_match:
+            enum_body = enum_match.group(1)
+            # Ekstraher verdier: VERDI = "verdi"
+            code_values = set(re.findall(r'(\w+)\s*=\s*"([^"]+)"', enum_body))
+            code_values = {name for name, _ in code_values}
+
+        # Finn enum-verdier i dokumentasjonen
+        # Søk etter class EnumName...VERDI = "verdi" blokker
+        doc_enum_pattern = rf'class {enum_name}\s*\([^)]+\):\s*(?:"""[^"]*"""\s*)?((?:\s*#[^\n]*\n|\s*\w+\s*=\s*"[^"]+"\s*(?:#[^\n]*)?\n)+)'
+        doc_enum_match = re.search(doc_enum_pattern, doc_content, re.DOTALL)
+
+        doc_values = set()
+        if doc_enum_match:
+            doc_enum_body = doc_enum_match.group(1)
+            doc_values = set(re.findall(r'(\w+)\s*=\s*"([^"]+)"', doc_enum_body))
+            doc_values = {name for name, _ in doc_values}
+
+        if not doc_values:
+            # Enum ikke dokumentert - hopp over
+            continue
+
+        # Sammenlign
+        missing_in_doc = code_values - doc_values
+        extra_in_doc = doc_values - code_values
+
+        severity = "critical" if is_critical else "warning"
+
+        for value in sorted(missing_in_doc):
+            findings.append({
+                "type": "enum_missing_in_doc",
+                "severity": "info",  # Manglende dok er info
+                "enum": enum_name,
+                "value": value,
+                "message": f"{enum_name}.{value} finnes i kode men ikke i dokumentasjon",
+            })
+
+        for value in sorted(extra_in_doc):
+            findings.append({
+                "type": "enum_extra_in_doc",
+                "severity": severity,
+                "enum": enum_name,
+                "value": value,
+                "message": f"{enum_name}.{value} dokumentert men finnes ikke i kode",
+            })
+
+    # Sjekk også for vanlige feilstavinger i dokumentasjonen
+    known_mistakes = [
+        ("AVVIST", "AVSLATT", "SporStatus/resultat"),
+        ("AVVIST_UENIG", "AVSLATT", "GrunnlagResponsResultat"),
+        ("ERKJENN_FM", None, "GrunnlagResponsResultat (fjernet)"),
+        ("AVVENTER", None, "BeregningResultat (fjernet)"),
+        ("EO_TE_AKSEPTERT", "EO_AKSEPTERT", "EventType"),
+        ("EO_TE_BESTRIDT", "EO_BESTRIDT", "EventType"),
+        ("GRUNNLAG_AVVIST", "GRUNNLAG_AVSLATT", "SubsidiaerTrigger"),
+        ("METODE_AVVIST", "METODE_AVSLATT", "SubsidiaerTrigger"),
+    ]
+
+    for wrong, correct, context in known_mistakes:
+        # Sjekk om feilstavingen finnes i dokumentasjonen som enum-verdi
+        pattern = rf'\b{wrong}\s*='
+        if re.search(pattern, doc_content):
+            msg = f"Feilstaving i dokumentasjon: {wrong}"
+            if correct:
+                msg += f" (skal være {correct})"
+            msg += f" [{context}]"
+            findings.append({
+                "type": "enum_typo",
+                "severity": "critical",
+                "wrong": wrong,
+                "correct": correct,
+                "context": context,
+                "message": msg,
+            })
+
+    has_critical = any(f.get("severity") == "critical" for f in findings)
+
+    return {
+        "check": "enum_values",
+        "drift_detected": has_critical,
+        "findings": findings,
+    }
+
+
 # ==============================================================================
 # Rapportering
 # ==============================================================================
@@ -539,6 +665,7 @@ def main():
         check_npm_scripts(root, args.verbose),
         check_api_endpoints(root, args.verbose),
         check_last_updated_dates(root, args.verbose),
+        check_enum_values(root, args.verbose),
     ]
 
     # Formater output

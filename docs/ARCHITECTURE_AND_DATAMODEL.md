@@ -2,7 +2,7 @@
 
 **Dokumentasjon av systemarkitektur, event sourcing og datastrukturer**
 
-*Sist oppdatert: 2025-12-17*
+*Sist oppdatert: 2026-01-13*
 
 ---
 
@@ -454,8 +454,7 @@ GRUNNLAG - Port 1 (Ansvar)
   └─► BH vurderer: Er TE's ansvarsgrunnlag gyldig?
       ├── godkjent
       ├── delvis_godkjent
-      ├── erkjenn_fm (Force Majeure)
-      ├── avvist_uenig
+      ├── avslatt
       ├── frafalt (§32.3 c)
       └── krever_avklaring
 
@@ -572,8 +571,8 @@ class EventType(str, Enum):
     EO_OPPRETTET = "eo_opprettet"                   # Ny EO-sak opprettet
     EO_UTSTEDT = "eo_utstedt"                       # EO formelt utstedt til TE
     EO_REVIDERT = "eo_revidert"                     # EO revidert av BH
-    EO_TE_AKSEPTERT = "eo_te_akseptert"             # TE aksepterer EO
-    EO_TE_BESTRIDT = "eo_te_bestridt"               # TE bestrider EO
+    EO_AKSEPTERT = "eo_akseptert"                   # TE aksepterer EO
+    EO_BESTRIDT = "eo_bestridt"                     # TE bestrider EO
     EO_KOE_LAGT_TIL = "eo_koe_lagt_til"             # KOE-sak lagt til i EO
     EO_KOE_FJERNET = "eo_koe_fjernet"               # KOE-sak fjernet fra EO
 
@@ -581,7 +580,6 @@ class EventType(str, Enum):
     # SAKS-EVENTS
     # ══════════════════════════════════════════════════════════════
     SAK_OPPRETTET = "sak_opprettet"          # Ny sak
-    SAK_LUKKET = "sak_lukket"                # Sak lukkes
 ```
 
 ### 4.5 Data-payloads per event
@@ -686,11 +684,9 @@ class GrunnlagResponsResultat(str, Enum):
     """Resultat av BH's vurdering av grunnlag"""
     GODKJENT = "godkjent"
     DELVIS_GODKJENT = "delvis_godkjent"
-    ERKJENN_FM = "erkjenn_fm"        # Force Majeure (§33.3)
-    AVVIST_UENIG = "avvist_uenig"
+    AVSLATT = "avslatt"              # BH avslår ansvarsgrunnlaget
     FRAFALT = "frafalt"              # §32.3 c - BH frafaller pålegg
     KREVER_AVKLARING = "krever_avklaring"
-    # Preklusjon håndteres via subsidiaer_triggers på vederlag/frist
 
 class GrunnlagResponsData(BaseModel):
     """BH's respons på grunnlag"""
@@ -713,7 +709,6 @@ class VederlagBeregningResultat(str, Enum):
     GODKJENT = "godkjent"
     DELVIS_GODKJENT = "delvis_godkjent"
     AVSLATT = "avslatt"
-    AVVENTER = "avventer"
     HOLD_TILBAKE = "hold_tilbake"              # §30.2
 
 class VederlagResponsData(BaseModel):
@@ -751,7 +746,6 @@ class FristBeregningResultat(str, Enum):
     GODKJENT = "godkjent"
     DELVIS_GODKJENT = "delvis_godkjent"
     AVSLATT = "avslatt"
-    AVVENTER = "avventer"
 
 class FristResponsData(BaseModel):
     """BH's respons på frist (Port 1 + Port 2 + Port 3)"""
@@ -792,7 +786,7 @@ class SubsidiaerTrigger(str, Enum):
     """
 
     # Nivå 0: Grunnlag
-    GRUNNLAG_AVVIST = "grunnlag_avvist"
+    GRUNNLAG_AVSLATT = "grunnlag_avslatt"
 
     # Nivå 1: Preklusjon (Vederlag)
     PREKLUSJON_RIGG = "preklusjon_rigg"              # §34.1.3
@@ -805,7 +799,7 @@ class SubsidiaerTrigger(str, Enum):
 
     # Nivå 2: Vilkår
     INGEN_HINDRING = "ingen_hindring"               # §33.5
-    METODE_AVVIST = "metode_avvist"
+    METODE_AVSLATT = "metode_avslatt"
 ```
 
 **Eksempel på subsidiær vurdering:**
@@ -819,7 +813,7 @@ Scenario: BH avviser ansvarsgrunnlaget, men erkjenner beløpet
 │                                                                  │
 │  PRINSIPALT STANDPUNKT:                                         │
 │  ────────────────────────                                       │
-│  Grunnlag: AVVIST (BH mener TE har ansvaret)                    │
+│  Grunnlag: AVSLATT (BH mener TE har ansvaret)                   │
 │  Vederlag: Ikke aktuelt (følger av grunnlagsavslag)             │
 │                                                                  │
 │  SUBSIDIÆRT STANDPUNKT:                                         │
@@ -828,7 +822,7 @@ Scenario: BH avviser ansvarsgrunnlaget, men erkjenner beløpet
 │   erkjennes det at vederlagskravet på 150 000 kr er             │
 │   korrekt beregnet."                                            │
 │                                                                  │
-│  subsidiaer_triggers: [GRUNNLAG_AVVIST]                         │
+│  subsidiaer_triggers: [GRUNNLAG_AVSLATT]                        │
 │  subsidiaer_resultat: GODKJENT                                  │
 │  subsidiaer_godkjent_belop: 150000                              │
 │                                                                  │
@@ -983,7 +977,7 @@ class SporStatus(str, Enum):
     UNDER_BEHANDLING = "under_behandling"  # BH behandler
     GODKJENT = "godkjent"               # BH godkjent fullt
     DELVIS_GODKJENT = "delvis_godkjent" # BH godkjent delvis
-    AVVIST = "avvist"                   # BH avviste
+    AVSLATT = "avslatt"                 # BH avviste
     UNDER_FORHANDLING = "under_forhandling"  # Pågående dialog
     TRUKKET = "trukket"                 # TE trakk kravet
     LAAST = "laast"                     # Grunnlag låst etter godkjenning
@@ -1001,14 +995,14 @@ stateDiagram-v2
     SENDT --> UNDER_BEHANDLING: BH starter
     SENDT --> GODKJENT: BH godkjenner
     SENDT --> DELVIS_GODKJENT: BH delvis
-    SENDT --> AVVIST: BH avviser
+    SENDT --> AVSLATT: BH avslår
 
     UNDER_BEHANDLING --> GODKJENT: BH godkjenner
     UNDER_BEHANDLING --> DELVIS_GODKJENT: BH delvis
-    UNDER_BEHANDLING --> AVVIST: BH avviser
+    UNDER_BEHANDLING --> AVSLATT: BH avslår
 
     DELVIS_GODKJENT --> UNDER_FORHANDLING: TE oppdaterer
-    AVVIST --> UNDER_FORHANDLING: TE oppdaterer
+    AVSLATT --> UNDER_FORHANDLING: TE oppdaterer
 
     UNDER_FORHANDLING --> SENDT: TE sender revidert
     UNDER_FORHANDLING --> TRUKKET: TE trekker
@@ -1040,7 +1034,7 @@ Beregnes basert på de tre sporenes statuser:
 │  1. INGEN_AKTIVE_SPOR   → Alle spor er IKKE_RELEVANT                    │
 │  2. OMFORENT            → Alle aktive spor er GODKJENT eller LAAST      │
 │  3. LUKKET_TRUKKET      → Alle aktive spor er TRUKKET                   │
-│  4. UNDER_FORHANDLING   → Minst ett spor er AVVIST/DELVIS/FORHANDLING   │
+│  4. UNDER_FORHANDLING   → Minst ett spor er AVSLATT/DELVIS/FORHANDLING  │
 │  5. UNDER_BEHANDLING    → Minst ett spor er UNDER_BEHANDLING            │
 │  6. VENTER_PAA_SVAR     → Minst ett spor er SENDT                       │
 │  7. UTKAST              → Alle aktive spor er UTKAST                    │
@@ -1063,7 +1057,7 @@ Når BH avslår ansvarsgrunnlaget men godkjenner beløp/dager subsidiært:
 │  Scenario: BH mener TE ikke har rett, men erkjenner beregningen         │
 │                                                                          │
 │  PRINSIPALT:                                                             │
-│    grunnlag.status = AVVIST                                              │
+│    grunnlag.status = AVSLATT                                             │
 │    → "BH mener TE har ansvaret selv"                                    │
 │                                                                          │
 │  SUBSIDIÆRT:                                                             │
@@ -1074,14 +1068,14 @@ Når BH avslår ansvarsgrunnlaget men godkjenner beløp/dager subsidiært:
 │  COMPUTED FIELDS:                                                        │
 │  ───────────────────────────────────────────────────────────────────    │
 │  er_subsidiaert_vederlag = True                                          │
-│    (grunnlag.status == AVVIST) AND                                       │
+│    (grunnlag.status == AVSLATT) AND                                      │
 │    (vederlag.bh_resultat ∈ {GODKJENT, DELVIS_GODKJENT})                  │
 │                                                                          │
 │  visningsstatus_vederlag = "Avslått pga. ansvar                         │
 │                             (Subsidiært enighet om 150 000 kr)"         │
 │                                                                          │
 │  overordnet_status = UNDER_FORHANDLING                                   │
-│    (fordi grunnlag er AVVIST - partene er uenige)                       │
+│    (fordi grunnlag er AVSLATT - partene er uenige)                      │
 │                                                                          │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -1098,7 +1092,6 @@ Subsidiær godkjenning er en **forhandlingsposisjon**, ikke en endelig løsning:
 
 | Field | Beskrivelse | Logikk |
 |-------|-------------|--------|
-| `er_force_majeure` | §33.3 erkjent | `grunnlag.bh_resultat == ERKJENN_FM` |
 | `er_frafalt` | §32.3 c pålegg frafalt | `grunnlag.bh_resultat == FRAFALT` |
 | `er_subsidiaert_vederlag` | Grunnlag avvist + vederlag godkjent | Se over |
 | `er_subsidiaert_frist` | Grunnlag avvist + frist godkjent | Tilsvarende |
@@ -1114,25 +1107,17 @@ Subsidiær godkjenning er en **forhandlingsposisjon**, ikke en endelig løsning:
 # Grunnlag respons → SporStatus
 GODKJENT         → GODKJENT
 DELVIS_GODKJENT  → DELVIS_GODKJENT
-AVVIST_UENIG     → AVVIST
-ERKJENN_FM       → GODKJENT    # Force Majeure gir fristforlengelse
+AVSLATT          → AVSLATT
 FRAFALT          → TRUKKET     # Pålegg frafalt, sak lukkes
 KREVER_AVKLARING → UNDER_FORHANDLING
 
 # Vederlag/Frist beregning → SporStatus
 godkjent         → GODKJENT
 delvis_godkjent  → DELVIS_GODKJENT
-avventer         → UNDER_FORHANDLING
-avslatt          → AVVIST
+avslatt          → AVSLATT
 ```
 
 #### Spesialtilfeller
-
-**Force Majeure (§33.3):**
-- Grunnlag godkjennes (ERKJENN_FM → GODKJENT)
-- Frist kan godkjennes
-- Vederlag er **alltid avslått** (§33.3: "har ikke krav på vederlagsjustering")
-- `visningsstatus_vederlag = "Ikke aktuelt (Force Majeure - §33.3)"`
 
 **Frafall (§32.3 c):**
 - BH frafaller pålegget som utløste kravet
@@ -1157,12 +1142,11 @@ class VederlagsMetode(str, Enum):
 class VederlagBeregningResultat(str, Enum):
     """
     Resultat av beregning (Port 2).
-    Forenklet til 5 hovedkategorier - årsak til avslag fanges av subsidiaer_triggers.
+    Forenklet - årsak til avslag fanges av subsidiaer_triggers.
     """
     GODKJENT = "godkjent"
     DELVIS_GODKJENT = "delvis_godkjent"
     AVSLATT = "avslatt"
-    AVVENTER = "avventer"           # Trenger mer dokumentasjon
     HOLD_TILBAKE = "hold_tilbake"   # §30.2
 
 
@@ -1174,19 +1158,16 @@ class FristVarselType(str, Enum):
     """Type varsel for frist (NS 8407 §33)"""
     NOYTRALT = "noytralt"           # §33.4 - bevarer rett
     SPESIFISERT = "spesifisert"     # §33.6.1 - med dager
-    BEGGE = "begge"                 # Først nøytralt, så spesifisert
-    FORCE_MAJEURE = "force_majeure" # §33.3
 
 
 class FristBeregningResultat(str, Enum):
     """
     Resultat av fristberegning (Port 3).
-    Forenklet til 4 hovedkategorier - årsak til avslag fanges av subsidiaer_triggers.
+    Forenklet - årsak til avslag fanges av subsidiaer_triggers.
     """
     GODKJENT = "godkjent"
     DELVIS_GODKJENT = "delvis_godkjent"
     AVSLATT = "avslatt"
-    AVVENTER = "avventer"           # Trenger mer dokumentasjon
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -1197,12 +1178,9 @@ class GrunnlagResponsResultat(str, Enum):
     """Resultat av BH's vurdering av grunnlag"""
     GODKJENT = "godkjent"
     DELVIS_GODKJENT = "delvis_godkjent"
-    ERKJENN_FM = "erkjenn_fm"          # Force Majeure
-    AVVIST_UENIG = "avvist_uenig"
+    AVSLATT = "avslatt"
     FRAFALT = "frafalt"                # §32.3 c
     KREVER_AVKLARING = "krever_avklaring"
-    # NB: AVVIST_FOR_SENT er fjernet - preklusjon håndteres via
-    # subsidiaer_triggers på vederlag/frist-nivå
 ```
 
 ---
