@@ -20,11 +20,11 @@ All endpoints now use English with plural form `/api/cases/`:
 | `/api/cases/<id>/state` | GET | Get computed case state |
 | `/api/cases/<id>/timeline` | GET | Get event timeline |
 | `/api/health` | GET | Health check |
-| `/api/csrf` | GET | Get CSRF token |
-| `/api/magic-link` | GET | Generate magic link |
+| `/api/csrf-token` | GET | Get CSRF token |
+| `/api/magic-link/verify` | GET | Verify magic link |
 
 ### ✅ Frontend (`src/api/state.ts`)
-- Updated to use `/api/cases/` endpoint (was `/api/saker/`)
+- Uses `/api/cases/` endpoint
 
 ---
 
