@@ -1,7 +1,7 @@
 # Claude Code Skills - Oppdatert Vurdering og Anbefaling (v2)
 
 > Dokument opprettet: 2025-01-11
-> Oppdatert: 2026-01-12 - Konklusjon om multi-file struktur
+> Oppdatert: 2026-01-13 - Lagt til docs-update skill
 > Referanse: https://code.claude.com/docs/en/skills
 
 ---
@@ -14,6 +14,7 @@
 | `static-analysis` skill | Implementert | `.claude/skills/static-analysis/SKILL.md` |
 | `accessibility` skill | Implementert | `.claude/skills/accessibility/SKILL.md` |
 | `ns8407` skill | Implementert | `.claude/skills/ns8407/SKILL.md` |
+| `docs-update` skill | Implementert | `.claude/skills/docs-update/SKILL.md` |
 | Custom subagents | Implementert | `.claude/agents/` |
 | Multi-file skills (progressive disclosure) | **Ikke nødvendig** | Se vurdering nedenfor |
 | Hooks | Ikke implementert | Se `CLAUDE_CODE_HOOKS_ANBEFALING.md` |
@@ -26,11 +27,13 @@
 │   ├── event-sourcing/
 │   │   └── SKILL.md             # 195 linjer
 │   ├── static-analysis/
-│   │   └── SKILL.md             # 208 linjer
+│   │   └── SKILL.md             # 211 linjer
 │   ├── accessibility/
 │   │   └── SKILL.md             # 108 linjer
-│   └── ns8407/
-│       └── SKILL.md             # 202 linjer
+│   ├── ns8407/
+│   │   └── SKILL.md             # 202 linjer
+│   └── docs-update/
+│       └── SKILL.md             # 239 linjer
 └── agents/
     ├── event-expert.md          # Implementert
     └── drift-checker.md         # Implementert
@@ -51,7 +54,8 @@ Etter gjennomgang av [Claude Code dokumentasjonen](https://code.claude.com/docs/
 | accessibility | 108 | 500 | Godt under |
 | event-sourcing | 195 | 500 | Godt under |
 | ns8407 | 202 | 500 | Godt under |
-| static-analysis | 208 | 500 | Godt under |
+| static-analysis | 211 | 500 | Godt under |
+| docs-update | 239 | 500 | Godt under |
 
 **Argumenter mot multi-file:**
 
@@ -111,13 +115,16 @@ Basert på vurderingen ovenfor bruker vi enkelt-fil struktur:
 │   └── SKILL.md           # Komplett guide (195 linjer)
 │
 ├── static-analysis/
-│   └── SKILL.md           # Script-referanser (208 linjer)
+│   └── SKILL.md           # Script-referanser (211 linjer)
 │
 ├── accessibility/
 │   └── SKILL.md           # WCAG-guide (108 linjer)
 │
-└── ns8407/
-    └── SKILL.md           # Kontraktsreferanse (202 linjer)
+├── ns8407/
+│   └── SKILL.md           # Kontraktsreferanse (202 linjer)
+│
+└── docs-update/
+    └── SKILL.md           # Dokumentasjonsvedlikehold (239 linjer)
 ```
 
 ### Fremtidig multi-file (kun ved behov)
@@ -357,8 +364,10 @@ Bruk skill-dokumentasjonen for å:
 │   │   └── SKILL.md          # Script-referanser
 │   ├── accessibility/
 │   │   └── SKILL.md          # WCAG-guide
-│   └── ns8407/
-│       └── SKILL.md          # Kontraktsreferanse
+│   ├── ns8407/
+│   │   └── SKILL.md          # Kontraktsreferanse
+│   └── docs-update/
+│       └── SKILL.md          # Dokumentasjonsvedlikehold
 │
 └── agents/
     ├── event-expert.md       # Event Sourcing + NS 8407
@@ -368,6 +377,7 @@ scripts/                       # Eksisterende - refereres fra skills
 ├── check_drift.py            # Samlet drift-sjekk
 ├── contract_drift.py
 ├── state_drift.py
+├── docs_drift.py             # Dokumentasjon vs kode
 ├── security_scan.py
 ├── todo_tracker.py
 └── ...
@@ -412,7 +422,7 @@ allowed-tools: Bash, Read  # Kun disse tilgjengelig
 
 | Komponent | Status |
 |-----------|--------|
-| 4 skills (event-sourcing, static-analysis, accessibility, ns8407) | ✓ Implementert |
+| 5 skills (event-sourcing, static-analysis, accessibility, ns8407, docs-update) | ✓ Implementert |
 | 2 agenter (event-expert, drift-checker) | ✓ Implementert |
 | Script-referanser i skills | ✓ Implementert |
 | Multi-file progressive disclosure | ✗ Ikke nødvendig |
@@ -421,7 +431,7 @@ allowed-tools: Bash, Read  # Kun disse tilgjengelig
 
 | Før (v1) | Etter (v2) |
 |----------|------------|
-| 2 skills | 4 skills |
+| 2 skills | 5 skills |
 | Ingen agenter | 2 agenter implementert |
 | Planla multi-file | Vurdert og forkastet (YAGNI) |
 | Forklarte script-innhold | Refererer til scripts for kjøring |
