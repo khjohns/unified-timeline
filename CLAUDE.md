@@ -70,6 +70,7 @@ cd backend && make run     # Flask server
 
 # Statisk analyse
 python scripts/check_drift.py       # Synk-sjekk
+python scripts/docs_drift.py        # Dokumentasjon-sjekk
 python scripts/todo_tracker.py      # TODO-sporing
 python scripts/security_scan.py     # Sikkerhetsscan
 ```
@@ -99,3 +100,4 @@ Mer detaljerte guider finnes i `.claude/skills/`:
 - `static-analysis/SKILL.md` - Statisk analyse verktøy
 - `accessibility/SKILL.md` - WCAG tilgjengelighet og kontrastsjekk
 - `ns8407/SKILL.md` - NS 8407:2011 kontraktsreferanse og kategorimapping
+- `docs-update/SKILL.md` - Dokumentasjonsvedlikehold og synkroniseringssjekk
