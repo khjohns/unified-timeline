@@ -43,7 +43,7 @@ def read_file(path: Path) -> str:
     """Les fil med UTF-8 encoding"""
     try:
         return path.read_text(encoding="utf-8")
-    except Exception:
+    except (FileNotFoundError, PermissionError, OSError):
         return ""
 
 
@@ -110,7 +110,12 @@ def check_dependency_versions(root: Path, verbose: bool = False) -> dict:
     try:
         package_json = json.loads(read_file(package_json_path))
     except json.JSONDecodeError:
-        return {"error": "Kunne ikke parse package.json", "findings": []}
+        return {
+            "check": "dependency_versions",
+            "error": "Kunne ikke parse package.json",
+            "drift_detected": False,
+            "findings": [],
+        }
 
     # Dokumenter å sjekke
     docs_to_check = [
