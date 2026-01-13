@@ -96,8 +96,20 @@ python scripts/security_scan.py     # Sikkerhetsscan
 
 | API | Dokumentasjon | Kode |
 |-----|---------------|------|
-| **Catenda** | [developers.catenda.com](https://developers.catenda.com) | `backend/services/catenda_service.py` |
+| **Catenda** | Se under | `backend/services/catenda_service.py` |
 | **Dalux** | `docs/Dalux-DaluxBuild-api-4.13-resolved.json` | – |
+
+### Catenda API-dokumentasjon
+
+Rot-URL `developers.catenda.com` gir ofte 404. Bruk spesifikke undersider:
+
+| Ressurs | URL |
+|---------|-----|
+| Document API | [developers.catenda.com/document-api](https://developers.catenda.com/document-api) |
+| BCF/OpenCDE | [developers.catenda.com/bcf](https://developers.catenda.com/bcf) |
+| Model API | [developers.catenda.com/model-api](https://developers.catenda.com/model-api) |
+
+**Tips:** Bruk WebSearch først for å finne riktige URL-er, deretter WebFetch på spesifikke sider.
 
 Se også: `docs/dalux-catenda-integrasjonsplan.md` for integrasjonsplan og mapping.
 
