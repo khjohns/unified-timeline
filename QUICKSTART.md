@@ -145,7 +145,7 @@ npm run dev
 - [ ] Frontend connects to backend (check Network tab)
 - [ ] GET `/api/cases/<id>/state` returns state
 - [ ] Can submit event via POST `/api/events`
-- [ ] Event is persisted (check `backend/data/events_*.json`)
+- [ ] Event is persisted (check `backend/koe_data/events/<sak_id>.json`)
 - [ ] State updates after submission
 - [ ] Timeline shows new event
 
@@ -319,7 +319,7 @@ Each case has its own event log file with:
 ### Debugging
 - Check browser console (F12) for frontend errors
 - Check backend terminal for API logs
-- Event files in `backend/data/` show what's persisted
+- Event files in `backend/koe_data/events/` show what's persisted
 
 ### Testing Events
 Use the mock scenarios in `backend/mocks/mock_events.py`:

@@ -212,7 +212,6 @@ Hvis BH avslår fristkrav som TE mener er berettiget, kan TE varsle om forsering
 | Event | Aktør | Beskrivelse |
 |-------|-------|-------------|
 | `sak_opprettet` | System | Sak opprettes fra Catenda webhook |
-| `sak_lukket` | System | Sak lukkes |
 | `grunnlag_opprettet` | TE | Første innsending av ansvarsgrunnlag |
 | `grunnlag_oppdatert` | TE | Revidert grunnlag |
 | `grunnlag_trukket` | TE | TE trekker grunnlaget |
@@ -247,8 +246,8 @@ Hvis BH avslår fristkrav som TE mener er berettiget, kan TE varsle om forsering
 | `eo_opprettet` | BH | Ny EO-sak opprettet |
 | `eo_utstedt` | BH | EO formelt utstedt til TE |
 | `eo_revidert` | BH | EO revidert etter bestridelse |
-| `eo_te_akseptert` | TE | TE aksepterer EO |
-| `eo_te_bestridt` | TE | TE bestrider EO |
+| `eo_akseptert` | TE | TE aksepterer EO |
+| `eo_bestridt` | TE | TE bestrider EO |
 | `eo_koe_lagt_til` | BH | KOE-sak lagt til i EO |
 | `eo_koe_fjernet` | BH | KOE-sak fjernet fra EO |
 

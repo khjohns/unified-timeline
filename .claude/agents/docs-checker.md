@@ -18,6 +18,8 @@ Valider at dokumentasjon er synkronisert med kodebasen. Du sjekker semantisk kor
 | ARCHITECTURE_AND_DATAMODEL.md | Se [architecture-check](#architecture-check) |
 | docs/FRONTEND_ARCHITECTURE.md | Se [frontend-check](#frontend-check) |
 | backend/docs/API.md | Se [api-check](#api-check) |
+| QUICKSTART.md | Se [quickstart-check](#quickstart-check) |
+| README.md | Se [readme-check](#readme-check) |
 | backend/docs/openapi.yaml | Kjør `python scripts/check_openapi_freshness.py` |
 
 ---
@@ -267,6 +269,156 @@ grep -n "def\|@.*route" backend/routes/endringsordre_routes.py
 ```bash
 grep -A 5 "FristVarselType" backend/models/events.py
 ```
+
+---
+
+## quickstart-check
+
+**Dokument:** `QUICKSTART.md`
+
+### 1. API-endepunkter
+
+**Dokumenterte endepunkter (tabellen):**
+- POST /api/events
+- POST /api/events/batch
+- GET /api/cases/<id>/state
+- GET /api/cases/<id>/timeline
+- GET /api/health
+- GET /api/csrf-token
+- GET /api/magic-link/verify
+
+**Sjekk:**
+```bash
+# Finn faktiske routes i backend
+grep -r "@.*\.route" backend/routes/*.py | grep -oP '"/[^"]+"'
+```
+
+### 2. npm-kommandoer
+
+**Dokumenterte kommandoer:**
+- npm install
+- npm run dev
+
+**Sjekk:**
+```bash
+grep -E "npm (run |install)" QUICKSTART.md
+npm run --list 2>/dev/null | head -10
+```
+
+### 3. Filstier
+
+**Dokumenterte stier:**
+- `backend/koe_data/events/<sak_id>.json` (event store)
+
+**Sjekk:**
+```bash
+ls -d backend/koe_data/events 2>/dev/null || echo "Mappe eksisterer ikke"
+```
+
+**Kjent feil å sjekke:**
+- `backend/data/` (gammel sti, skal være `backend/koe_data/`)
+
+### 4. Porter
+
+**Dokumenterte porter:**
+- Backend: 8080
+- Frontend: 3000
+
+**Sjekk at koden matcher:**
+```bash
+grep -n "port.*8080\|8080" backend/app.py
+grep -n "3000" vite.config.ts
+```
+
+---
+
+## readme-check
+
+**Dokument:** `README.md`
+
+### 1. Teknologiversjoner
+
+**Dokumenterte versjoner (§Teknologier):**
+| Teknologi | Dokumentert |
+|-----------|-------------|
+| React | 19.2 |
+| TypeScript | 5.8 |
+| Vite | 6.2 |
+| Vitest | 4.0 |
+| Tailwind CSS | 4.1 |
+| Python | 3.10+ |
+| Flask | 3.0 |
+| Pydantic | 2.0+ |
+
+**Sjekk:**
+```bash
+grep -E '"react"|"typescript"|"vite"|"vitest"|"tailwindcss"' package.json
+grep -E "Flask|pydantic" backend/requirements.txt
+```
+
+### 2. Testantall og coverage
+
+**Dokumenterte verdier:**
+- Backend: 427 tester, 63% coverage
+- Frontend: 334 tester, 41% coverage
+- E2E: 39 tester
+
+**Sjekk (kjør testene for faktiske tall):**
+```bash
+cd backend && python -m pytest tests/ --collect-only 2>/dev/null | grep "test session starts" -A 1
+npm test -- --run 2>/dev/null | grep -E "Tests.*passed"
+```
+
+**Merk:** Testantall endres ofte - vurder om dokumenterte tall er rimelige.
+
+### 3. Event-typer (Event-oversikt)
+
+**Dokumenterte events:**
+- Sjekk at event-tabellene matcher koden
+- Spesielt: `sak_lukket` er listet men kan være fjernet
+- `eo_te_akseptert` / `eo_te_bestridt` - sjekk navngivning
+
+**Sjekk:**
+```bash
+grep -oP '`\w+_\w+`' README.md | sort -u | head -20
+```
+
+**Kjente feil å sjekke:**
+- `sak_lukket` (muligens fjernet)
+- `eo_te_akseptert` vs `eo_akseptert`
+- `eo_te_bestridt` vs `eo_bestridt`
+
+### 4. Mappestruktur
+
+**Valider dokumentert struktur:**
+```bash
+# Sjekk at dokumenterte mapper eksisterer
+ls -d src/types src/api src/pages src/components src/hooks src/utils 2>/dev/null
+ls -d backend/models backend/repositories backend/services backend/routes 2>/dev/null
+```
+
+### 5. npm-scripts
+
+**Dokumenterte scripts (§Scripts):**
+- npm run dev
+- npm run build
+- npm run preview
+- npm test
+- npm run test:e2e
+
+**Sjekk:**
+```bash
+npm run --list 2>/dev/null | grep -E "dev|build|preview|test"
+```
+
+### 6. Sist oppdatert-dato
+
+**Sjekk:**
+```bash
+grep -i "sist oppdatert" README.md
+```
+
+**Vurder:** Er datoen nylig nok gitt siste endringer?
 
 ---
 
