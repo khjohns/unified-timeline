@@ -65,8 +65,66 @@ Gamle Dalux API-nøkler utløper **28. februar 2026** - alle må over på API-id
 
 ```http
 Header: X-API-KEY: {api_nøkkel}
-Base URL: {fås fra Dalux support}
 ```
+
+### Base URL
+
+Base URL er **kundespesifikk** og må fås fra Dalux support. URL-strukturen følger mønsteret:
+
+```
+https://{node}.field.dalux.com/service/api/{versjon}/{endepunkt}
+```
+
+| Komponent | Beskrivelse | Eksempel |
+|-----------|-------------|----------|
+| `{node}` | Kundespesifikk server (node1, node2, etc.) | `node1` |
+| `{versjon}` | API-versjon (varierer per endepunkt) | `5.1` |
+| `{endepunkt}` | Ressursen som hentes | `projects` |
+
+**For dette prosjektet (Stovner skole):**
+```
+Base URL: https://node1.field.dalux.com/service/api/
+```
+
+> **Viktig:** Kontakt support@dalux.com for å få riktig base URL for din organisasjon.
+
+### Verifisert eksempel: Hent prosjekter
+
+**Request:**
+```http
+GET https://node1.field.dalux.com/service/api/5.1/projects HTTP/1.1
+Host: node1.field.dalux.com
+X-API-KEY: {din_api_nøkkel}
+User-Agent: SwaggerHub-Explore/2.2.0
+Connection: keep-alive
+```
+
+**Response (200 OK):**
+```json
+{
+  "items": [
+    {
+      "data": {
+        "projectId": "6070718657",
+        "projectName": "Stovner skole"
+      }
+    }
+  ],
+  "metadata": {
+    "totalItems": 1,
+    "totalRemainingItems": 1
+  },
+  "links": [
+    {
+      "rel": "self",
+      "href": "https://node1.field.dalux.com/service/api/5.1/projects",
+      "method": "GET"
+    }
+  ]
+}
+```
+
+> **Merk:** Dette er fra Dalux Field API. Responsen følger HATEOAS-mønster med `links` for navigasjon.
 
 ### Tasks og saker
 
