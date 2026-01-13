@@ -92,6 +92,15 @@ python scripts/security_scan.py     # Sikkerhetsscan
 | `src/constants/categories.ts` | Grunnlag-kategorier |
 | `docs/ARCHITECTURE_AND_DATAMODEL.md` | Detaljert arkitektur |
 
+## Eksterne API-integrasjoner
+
+| API | Dokumentasjon | Kode |
+|-----|---------------|------|
+| **Catenda** | [developers.catenda.com](https://developers.catenda.com) | `backend/services/catenda_service.py` |
+| **Dalux** | `docs/Dalux-DaluxBuild-api-4.13-resolved.json` | – |
+
+Se også: `docs/dalux-catenda-integrasjonsplan.md` for integrasjonsplan og mapping.
+
 ## Skills
 
 Mer detaljerte guider finnes i `.claude/skills/`:
