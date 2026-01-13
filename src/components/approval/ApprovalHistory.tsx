@@ -34,11 +34,11 @@ function getStepIcon(status: ApprovalStepStatus) {
 function getStatusColor(status: ApprovalStepStatus): string {
   switch (status) {
     case 'approved':
-      return 'text-pkt-text-success bg-pkt-bg-success';
+      return 'text-badge-success-text bg-badge-success-bg';
     case 'rejected':
-      return 'text-pkt-text-error bg-pkt-bg-error';
+      return 'text-badge-danger-text bg-badge-danger-bg';
     case 'in_progress':
-      return 'text-pkt-text-warning bg-pkt-bg-warning';
+      return 'text-badge-warning-text bg-badge-warning-bg';
     default:
       return 'text-pkt-text-body-muted bg-pkt-surface-gray';
   }

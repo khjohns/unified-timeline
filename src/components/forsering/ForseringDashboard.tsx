@@ -7,18 +7,35 @@
  * Integrates action buttons for TE and BH.
  */
 
-import type { ReactNode } from 'react';
-import { AccordionItem, Badge, Button, DashboardCard, DataList, DataListItem, Tooltip } from '../primitives';
+import { useMemo, type ReactNode } from 'react';
+import {
+  AccordionItem,
+  ActivityHistory,
+  Badge,
+  Button,
+  DashboardCard,
+  DataList,
+  DataListItem,
+  Tooltip,
+  type ActivityHistoryEntry,
+  type ActivityHistoryVariant,
+} from '../primitives';
 import {
   ExclamationTriangleIcon,
   CheckCircledIcon,
   CrossCircledIcon,
+  Cross2Icon,
   StopIcon,
   Pencil1Icon,
   ChatBubbleIcon,
-  InfoCircledIcon
+  InfoCircledIcon,
+  ArrowRightIcon,
+  ReloadIcon,
+  PlusIcon,
+  MinusIcon,
+  CheckIcon,
 } from '@radix-ui/react-icons';
-import type { ForseringData } from '../../types/timeline';
+import type { ForseringData, TimelineEvent } from '../../types/timeline';
 
 /** Per-sak data for avslåtte fristkrav */
 interface RelatertSakMedAvslag {
@@ -32,9 +49,119 @@ interface ForseringDashboardProps {
   userRole: 'TE' | 'BH';
   /** Per-sak data for avslåtte fristkrav (for BH standpunkt visning) */
   avslatteSaker?: RelatertSakMedAvslag[];
+  /** Forsering timeline events for ActivityHistory */
+  forseringHendelser?: TimelineEvent[];
   onStoppForsering?: () => void;
   onOppdaterKostnader?: () => void;
   onGiStandpunkt?: () => void;
+}
+
+// ============ ACTIVITY HISTORY HELPERS ============
+
+/** Event types that belong in "Forseringsstatus" card */
+const STATUS_EVENT_TYPES = [
+  'forsering_varsel',
+  'forsering_stoppet',
+  'forsering_respons',
+  'forsering_koe_lagt_til',
+  'forsering_koe_fjernet',
+];
+
+/** Event types that belong in "Kostnader" card */
+const KOSTNADER_EVENT_TYPES = ['forsering_kostnader_oppdatert'];
+
+function getEventType(event: TimelineEvent): string {
+  // Extract event type from CloudEvents format (e.g., "no.catenda.koe.forsering_varsel.v1")
+  const parts = event.type?.split('.') || [];
+  // Find the part that matches our known event types
+  for (const part of parts) {
+    if ([...STATUS_EVENT_TYPES, ...KOSTNADER_EVENT_TYPES].includes(part)) {
+      return part;
+    }
+  }
+  return parts[parts.length - 2] || event.type || '';
+}
+
+function transformForseringEvent(event: TimelineEvent): ActivityHistoryEntry | null {
+  const eventType = getEventType(event);
+  const eventData = event.data as Record<string, unknown> | undefined;
+
+  let icon: ReactNode;
+  let variant: ActivityHistoryVariant;
+  let label: string;
+
+  switch (eventType) {
+    case 'forsering_varsel':
+      icon = <ArrowRightIcon className="h-4 w-4" />;
+      variant = 'info';
+      label = 'Forsering varslet';
+      break;
+    case 'forsering_stoppet':
+      icon = <StopIcon className="h-4 w-4" />;
+      variant = 'danger';
+      label = 'Forsering stoppet';
+      break;
+    case 'forsering_respons': {
+      const aksepterer = eventData?.aksepterer as boolean | undefined;
+      if (aksepterer) {
+        icon = <CheckIcon className="h-4 w-4" />;
+        variant = 'success';
+        label = 'BH godkjent';
+      } else {
+        icon = <Cross2Icon className="h-4 w-4" />;
+        variant = 'danger';
+        label = 'BH avslått';
+      }
+      break;
+    }
+    case 'forsering_koe_lagt_til':
+      icon = <PlusIcon className="h-4 w-4" />;
+      variant = 'info';
+      label = 'KOE lagt til';
+      break;
+    case 'forsering_koe_fjernet':
+      icon = <MinusIcon className="h-4 w-4" />;
+      variant = 'warning';
+      label = 'KOE fjernet';
+      break;
+    case 'forsering_kostnader_oppdatert':
+      icon = <ReloadIcon className="h-4 w-4" />;
+      variant = 'info';
+      label = 'Kostnader oppdatert';
+      break;
+    default:
+      return null;
+  }
+
+  const meta = [
+    event.actorrole,
+    event.actor,
+    event.time ? formatDate(event.time) : null,
+  ].filter(Boolean).join(' · ');
+
+  return {
+    id: event.id,
+    icon,
+    variant,
+    label: event.summary || label,
+    meta: meta || undefined,
+  };
+}
+
+function transformForseringHendelser(
+  events: TimelineEvent[],
+  filter: 'status' | 'kostnader'
+): ActivityHistoryEntry[] {
+  const allowedTypes = filter === 'status' ? STATUS_EVENT_TYPES : KOSTNADER_EVENT_TYPES;
+
+  return events
+    .filter((event) => {
+      const eventType = getEventType(event);
+      return allowedTypes.includes(eventType);
+    })
+    .sort((a, b) => new Date(a.time || '').getTime() - new Date(b.time || '').getTime())
+    .map(transformForseringEvent)
+    .filter((entry): entry is ActivityHistoryEntry => entry !== null);
 }
 
 function formatDate(dateString?: string): string {
@@ -548,6 +675,7 @@ export function ForseringDashboard({
   forseringData,
   userRole,
   avslatteSaker,
+  forseringHendelser = [],
   onStoppForsering,
   onOppdaterKostnader,
   onGiStandpunkt,
@@ -555,6 +683,16 @@ export function ForseringDashboard({
   const canStoppForsering = userRole === 'TE' && forseringData.er_iverksatt && !forseringData.er_stoppet;
   const canOppdaterKostnader = userRole === 'TE' && forseringData.er_iverksatt && !forseringData.er_stoppet;
   const canGiStandpunkt = userRole === 'BH' && forseringData.dato_varslet;
+
+  // Transform events for ActivityHistory
+  const statusHistoryEntries = useMemo(
+    () => transformForseringHendelser(forseringHendelser, 'status'),
+    [forseringHendelser]
+  );
+  const kostnaderHistoryEntries = useMemo(
+    () => transformForseringHendelser(forseringHendelser, 'kostnader'),
+    [forseringHendelser]
+  );
 
   // Check for BH response - prefer new structure, fallback to legacy
   const bhRespons = forseringData.bh_respons;
@@ -622,6 +760,7 @@ export function ForseringDashboard({
               <span className="font-bold">{forseringData.avslatte_dager} dager</span>
             </DataListItem>
           </DataList>
+          <ActivityHistory entries={statusHistoryEntries} />
         </DashboardCard>
 
         {/* Cost card */}
@@ -667,6 +806,7 @@ export function ForseringDashboard({
               </DataListItem>
             )}
           </DataList>
+          <ActivityHistory entries={kostnaderHistoryEntries} />
         </DashboardCard>
       </div>
 

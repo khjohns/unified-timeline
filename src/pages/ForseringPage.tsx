@@ -254,15 +254,6 @@ export function ForseringPage() {
     kontekstData?.sak_states || {}
   );
 
-  // Forsering case's own events
-  const forseringTimeline = useMemo((): TimelineEvent[] => {
-    if (!kontekstData?.forsering_hendelser) return [];
-    // Sort by timestamp descending
-    return [...kontekstData.forsering_hendelser].sort((a, b) =>
-      new Date(b.time || '').getTime() - new Date(a.time || '').getTime()
-    );
-  }, [kontekstData]);
-
   // Combine timeline events from all related cases
   const relatedCasesTimeline = useMemo((): TimelineEvent[] => {
     if (!kontekstData?.hendelser) return [];
@@ -403,6 +394,7 @@ export function ForseringPage() {
                 forseringData={forseringData}
                 userRole={userRole}
                 avslatteSaker={avslatteSaker}
+                forseringHendelser={kontekstData?.forsering_hendelser || []}
                 onStoppForsering={() => setStoppModalOpen(true)}
                 onOppdaterKostnader={() => setKostnaderModalOpen(true)}
                 onGiStandpunkt={() => setBhResponsModalOpen(true)}
@@ -435,32 +427,6 @@ export function ForseringPage() {
                 </Button>
               )}
             />
-          </Card>
-        </section>
-
-        {/* Forsering case's own timeline */}
-        <section aria-labelledby="forsering-timeline-heading">
-          <Card variant="outlined" padding="md">
-            <h2 id="forsering-timeline-heading" className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4">
-              Hendelser for denne forseringen
-              {kontekstLoading && (
-                <ReloadIcon className="w-4 h-4 animate-spin inline ml-2" />
-              )}
-            </h2>
-
-            {kontekstError && (
-              <Alert variant="warning" title="Kunne ikke laste hendelser">
-                {kontekstError.message}
-              </Alert>
-            )}
-
-            {forseringTimeline.length > 0 ? (
-              <Timeline events={forseringTimeline} />
-            ) : (
-              <p className="text-pkt-text-body-subtle text-sm">
-                Ingen forseringshendelser ennå.
-              </p>
-            )}
           </Card>
         </section>
 

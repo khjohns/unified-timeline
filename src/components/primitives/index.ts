@@ -49,6 +49,12 @@ export { HighlightCard } from './HighlightCard';
 export { InfoLabel, type InfoLabelProps } from './InfoLabel';
 export { StepIndicator, type Step } from './StepIndicator';
 export { StatusSummary, type StatusSummaryProps } from './StatusSummary';
+export {
+  ActivityHistory,
+  type ActivityHistoryEntry,
+  type ActivityHistoryVariant,
+  type ActivityHistoryProps,
+} from './ActivityHistory';
 
 // Navigation
 export { Tabs } from './Tabs';

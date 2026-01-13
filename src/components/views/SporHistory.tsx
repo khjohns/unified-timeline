@@ -1,14 +1,12 @@
 /**
  * SporHistory Component
  *
- * Displays event history for a single track (spor) using a vertical timeline design.
- * Similar to ApprovalHistory but for TE claims and BH responses.
+ * Displays event history for a single track (spor) using ActivityHistory primitive.
+ * Handles transformation of spor-specific data to generic activity entries.
  */
 
 import { useMemo, useState } from 'react';
-import clsx from 'clsx';
 import {
-  ChevronDownIcon,
   ArrowRightIcon,
   ReloadIcon,
   ChatBubbleIcon,
@@ -18,6 +16,7 @@ import {
 import { SporType, TimelineEvent, extractEventType } from '../../types/timeline';
 import { GrunnlagHistorikkEntry, VederlagHistorikkEntry, FristHistorikkEntry } from '../../types/api';
 import { formatDateMedium, formatCurrency, formatDays } from '../../utils/formatters';
+import { ActivityHistory, ActivityHistoryEntry, ActivityHistoryVariant } from '../primitives/ActivityHistory';
 import { EventDetailModal } from './EventDetailModal';
 
 // ============ TYPES ============
@@ -267,21 +266,21 @@ function getEntryIcon(type: SporHistoryEntryType) {
   }
 }
 
-function getEntryStyle(type: SporHistoryEntryType, resultat?: string | null): { color: string; hasBackground: boolean } {
-  // TE actions: no background, just icon color
+function getEntryVariant(type: SporHistoryEntryType, resultat?: string | null): ActivityHistoryVariant {
+  // TE actions: info variant (neutral cyan)
   if (type === 'te_krav' || type === 'te_oppdatering') {
-    return { color: 'text-pkt-text-body-muted', hasBackground: false };
+    return 'info';
   }
 
-  // BH actions: colored background based on result
+  // BH actions: variant based on result
   if (resultat === 'godkjent') {
-    return { color: 'text-pkt-text-success bg-pkt-bg-success', hasBackground: true };
+    return 'success';
   }
   if (resultat === 'avslatt') {
-    return { color: 'text-pkt-text-error bg-pkt-bg-error', hasBackground: true };
+    return 'danger';
   }
   // delvis_godkjent or unknown
-  return { color: 'text-pkt-text-warning bg-pkt-bg-warning', hasBackground: true };
+  return 'warning';
 }
 
 function getEntryLabel(entry: SporHistoryEntry): string {
@@ -299,69 +298,10 @@ function getEntryLabel(entry: SporHistoryEntry): string {
   }
 }
 
-// ============ COMPONENTS ============
-
-interface SporHistoryItemProps {
-  entry: SporHistoryEntry;
-  isLast: boolean;
-  onShowDetails?: () => void;
-}
-
-function SporHistoryItem({ entry, isLast, onShowDetails }: SporHistoryItemProps) {
-  const style = getEntryStyle(entry.type, entry.resultat);
-
-  return (
-    <div className="flex gap-3 pb-3">
-      {/* Icon column */}
-      <div className="flex flex-col items-center">
-        <div
-          className={clsx(
-            'flex h-6 w-6 items-center justify-center flex-shrink-0',
-            style.hasBackground && 'rounded-full',
-            style.color
-          )}
-        >
-          {getEntryIcon(entry.type)}
-        </div>
-        {!isLast && <div className="flex-1 w-0.5 bg-pkt-border-subtle mt-1" />}
-      </div>
-
-      {/* Content column */}
-      <div className="flex-1 min-w-0 pb-1">
-        <div className="flex items-center justify-between gap-2">
-          <div className="text-sm font-medium">{getEntryLabel(entry)}</div>
-          {onShowDetails && (
-            <button
-              onClick={onShowDetails}
-              className="text-xs text-pkt-text-body-muted hover:text-pkt-text-action-active transition-colors flex items-center gap-1"
-              title="Vis detaljer"
-            >
-              <FileTextIcon className="h-3 w-3" />
-            </button>
-          )}
-        </div>
-        <div className="text-xs text-pkt-text-body-muted">
-          {entry.aktorRolle} · {entry.aktorNavn} · {formatDateMedium(entry.tidsstempel)}
-        </div>
-        {entry.begrunnelse && (
-          <div className="mt-1 text-sm text-pkt-text-body-default italic truncate">
-            "{entry.begrunnelse}"
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+// ============ COMPONENT ============
 
 export function SporHistory({ entries, events = [], defaultOpen = false, className }: SporHistoryProps) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
   const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(null);
-
-  // Sort by timestamp ascending
-  const sortedEntries = useMemo(
-    () => [...entries].sort((a, b) => new Date(a.tidsstempel).getTime() - new Date(b.tidsstempel).getTime()),
-    [entries]
-  );
 
   // Create a map from entry ID to event for quick lookup
   const eventMap = useMemo(() => {
@@ -372,41 +312,40 @@ export function SporHistory({ entries, events = [], defaultOpen = false, classNa
     return map;
   }, [events]);
 
-  if (sortedEntries.length === 0) {
+  // Sort by timestamp ascending and transform to ActivityHistoryEntry
+  const activityEntries = useMemo((): ActivityHistoryEntry[] => {
+    const sorted = [...entries].sort(
+      (a, b) => new Date(a.tidsstempel).getTime() - new Date(b.tidsstempel).getTime()
+    );
+
+    return sorted.map((entry): ActivityHistoryEntry => {
+      const event = eventMap.get(entry.id);
+      return {
+        id: entry.id,
+        icon: getEntryIcon(entry.type),
+        variant: getEntryVariant(entry.type, entry.resultat),
+        label: getEntryLabel(entry),
+        meta: `${entry.aktorRolle} · ${entry.aktorNavn} · ${formatDateMedium(entry.tidsstempel)}`,
+        description: entry.begrunnelse || undefined,
+        onClick: event ? () => setSelectedEvent(event) : undefined,
+        clickIndicator: event ? (
+          <FileTextIcon className="h-4 w-4 text-pkt-text-body-muted" aria-hidden="true" />
+        ) : undefined,
+      };
+    });
+  }, [entries, eventMap]);
+
+  if (activityEntries.length === 0) {
     return null;
   }
 
   return (
-    <div className={clsx('mt-4 pt-3 border-t border-pkt-border-subtle', className)}>
-      {/* Toggle header */}
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center gap-2 text-sm text-pkt-text-body-muted hover:text-pkt-text-body-default transition-colors"
-        aria-expanded={isOpen}
-      >
-        <ChevronDownIcon
-          className={clsx('w-4 h-4 transition-transform', isOpen && 'rotate-180')}
-        />
-        <span>Historikk ({sortedEntries.length})</span>
-      </button>
-
-      {/* Content */}
-      {isOpen && (
-        <div className="mt-3">
-          {sortedEntries.map((entry, index) => {
-            const event = eventMap.get(entry.id);
-            return (
-              <SporHistoryItem
-                key={entry.id}
-                entry={entry}
-                isLast={index === sortedEntries.length - 1}
-                onShowDetails={event ? () => setSelectedEvent(event) : undefined}
-              />
-            );
-          })}
-        </div>
-      )}
+    <>
+      <ActivityHistory
+        entries={activityEntries}
+        defaultOpen={defaultOpen}
+        className={className}
+      />
 
       {/* Event Detail Modal */}
       {selectedEvent && (
@@ -416,6 +355,6 @@ export function SporHistory({ entries, events = [], defaultOpen = false, classNa
           event={selectedEvent}
         />
       )}
-    </div>
+    </>
   );
 }
