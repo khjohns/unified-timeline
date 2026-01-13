@@ -335,6 +335,28 @@ Erstatte polling med push-basert synk for lavere latens og redusert API-belastni
 
 ---
 
+## Arkitekturbeslutninger (Fase 1)
+
+Implementert januar 2026. For detaljert analyse, se [ADR-001-dalux-sync.md](ADR-001-dalux-sync.md).
+
+| Beslutning | Valg | Begrunnelse |
+|------------|------|-------------|
+| Synk-retning | Enveis (Dalux → Catenda) | Dalux API har kun lesetilgang |
+| Synk-mekanisme | Polling (15 min) | Dalux støtter ikke webhooks |
+| Trigger | Manuell CLI | Fase 1 MVP, scheduler i Fase 2 |
+| Database | Supabase | Konsistent med eksisterende arkitektur |
+| API-nøkler | Plaintext | **Må krypteres før produksjon** |
+| Event Sourcing | Nei | Infrastruktur-data, ikke forretningsdomene |
+| Klient-mønster | Speiler CatendaClient | Konsistens og gjenkjennelighet |
+
+### Kjente begrensninger
+
+- [ ] API-nøkler er ikke kryptert (sikkerhetsrisiko)
+- [ ] Ingen automatisk scheduler
+- [ ] Attachment-synk ikke implementert (Fase 2)
+
+---
+
 ## Referanser
 
 - [Dalux Build API v4.13 (SwaggerHub)](https://app.swaggerhub.com/apis-docs/Dalux/DaluxBuild-api/4.13)
