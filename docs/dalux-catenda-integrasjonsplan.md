@@ -65,8 +65,28 @@ Gamle Dalux API-nøkler utløper **28. februar 2026** - alle må over på API-id
 
 ```http
 Header: X-API-KEY: {api_nøkkel}
+```
+
+### Base URL
+
+Base URL er **kundespesifikk** og må fås fra Dalux support. URL-strukturen følger mønsteret:
+
+```
+https://{node}.field.dalux.com/service/api/{versjon}/{endepunkt}
+```
+
+| Komponent | Beskrivelse | Eksempel |
+|-----------|-------------|----------|
+| `{node}` | Kundespesifikk server (node1, node2, etc.) | `node1` |
+| `{versjon}` | API-versjon (varierer per endepunkt) | `5.1` |
+| `{endepunkt}` | Ressursen som hentes | `projects` |
+
+**For dette prosjektet (Stovner skole):**
+```
 Base URL: https://node1.field.dalux.com/service/api/
 ```
+
+> **Viktig:** Kontakt support@dalux.com for å få riktig base URL for din organisasjon.
 
 ### Verifisert eksempel: Hent prosjekter
 
