@@ -65,8 +65,46 @@ Gamle Dalux API-nøkler utløper **28. februar 2026** - alle må over på API-id
 
 ```http
 Header: X-API-KEY: {api_nøkkel}
-Base URL: {fås fra Dalux support}
+Base URL: https://node1.field.dalux.com/service/api/
 ```
+
+### Verifisert eksempel: Hent prosjekter
+
+**Request:**
+```http
+GET https://node1.field.dalux.com/service/api/5.1/projects HTTP/1.1
+Host: node1.field.dalux.com
+X-API-KEY: {din_api_nøkkel}
+User-Agent: SwaggerHub-Explore/2.2.0
+Connection: keep-alive
+```
+
+**Response (200 OK):**
+```json
+{
+  "items": [
+    {
+      "data": {
+        "projectId": "6070718657",
+        "projectName": "Stovner skole"
+      }
+    }
+  ],
+  "metadata": {
+    "totalItems": 1,
+    "totalRemainingItems": 1
+  },
+  "links": [
+    {
+      "rel": "self",
+      "href": "https://node1.field.dalux.com/service/api/5.1/projects",
+      "method": "GET"
+    }
+  ]
+}
+```
+
+> **Merk:** Dette er fra Dalux Field API. Responsen følger HATEOAS-mønster med `links` for navigasjon.
 
 ### Tasks og saker
 
