@@ -18,6 +18,7 @@ Denne skillen hjelper med å holde prosjektdokumentasjonen synkronisert med kode
 | `docs/ARCHITECTURE_AND_DATAMODEL.md` | Event sourcing, datamodeller | Event-type endringer |
 | `docs/FRONTEND_ARCHITECTURE.md` | Frontend stack, komponenter | UI-arkitektur endringer |
 | `docs/SECURITY_ARCHITECTURE.md` | Sikkerhetsarkitektur | Sikkerhetsrelaterte endringer |
+| `backend/STRUCTURE.md` | Backend mappestruktur | Backend-refaktorering |
 | `QUICKSTART.md` | Kom i gang guide | API-endringer, setup-endringer |
 | `THIRD-PARTY-NOTICES.md` | Tredjepartsavhengigheter | Nye/oppdaterte avhengigheter |
 
@@ -79,12 +80,14 @@ EVENT TYPES
 | Endring | Dokumenter å oppdatere |
 |---------|------------------------|
 | Ny npm-pakke | README (Teknologier), THIRD-PARTY-NOTICES |
-| Ny event-type | ARCHITECTURE_AND_DATAMODEL |
+| Ny pip-pakke | README (Teknologier), THIRD-PARTY-NOTICES |
+| Ny event-type | ARCHITECTURE_AND_DATAMODEL, README (Event-oversikt) |
 | Ny API-endpoint | QUICKSTART, README |
 | Ny mappe | README (Prosjektstruktur), CLAUDE.md |
 | Ny skill | CLAUDE.md (Skills-seksjonen) |
 | Sikkerhetsendring | SECURITY_ARCHITECTURE |
 | Frontend-refaktorering | FRONTEND_ARCHITECTURE |
+| Backend-refaktorering | backend/STRUCTURE.md |
 
 ### Sjekkliste før release
 

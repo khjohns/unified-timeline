@@ -22,7 +22,6 @@ import json
 import re
 import sys
 from pathlib import Path
-from typing import Any
 
 
 def find_project_root() -> Path:
@@ -197,7 +196,6 @@ def check_folder_structure(root: Path, verbose: bool = False) -> dict:
 
         # Finn kun toppnivå mappereferanser (linjer som starter med ├── eller └──)
         # og ikke er nestet (ingen │ før)
-        top_level_pattern = r"^[│\s]*[├└]── (\w+)/$"
         for line in readme_content.split("\n"):
             # Kun sjekk mapper på "toppnivå" i strukturdiagrammet
             # (dvs. src/, backend/, docs/ etc.)
@@ -228,41 +226,52 @@ def check_event_types(root: Path, verbose: bool = False) -> dict:
 
     events_py_path = root / "backend" / "models" / "events.py"
     arch_doc_path = root / "docs" / "ARCHITECTURE_AND_DATAMODEL.md"
+    readme_path = root / "README.md"
 
     if not events_py_path.exists():
         return {"check": "event_types", "drift_detected": False, "findings": []}
 
     events_content = read_file(events_py_path)
 
-    # Finn event-typer fra events.py (Literal["..."] eller class ...Event)
-    event_pattern = r'["\'](\w+_\w+)["\']'  # f.eks. "sak_opprettet"
-    code_events = set(re.findall(event_pattern, events_content))
+    # Finn event-typer fra EventType Literal i events.py
+    # Matcher: EventType = Literal["sak_opprettet", "grunnlag_opprettet", ...]
+    event_type_match = re.search(
+        r'EventType\s*=\s*Literal\[([^\]]+)\]',
+        events_content,
+        re.DOTALL
+    )
 
-    # Filtrer ut kun event-typer (de som har underscore og er lowercase)
-    code_events = {e for e in code_events if "_" in e and e.islower()}
+    code_events = set()
+    if event_type_match:
+        # Ekstraher alle strenger fra Literal-definisjonen
+        literal_content = event_type_match.group(1)
+        code_events = set(re.findall(r'"(\w+)"', literal_content))
 
-    if arch_doc_path.exists():
-        arch_content = read_file(arch_doc_path)
+    # Samle dokumenterte events fra både README og ARCHITECTURE_AND_DATAMODEL
+    doc_events = set()
 
-        # Finn event-typer dokumentert (f.eks. `sak_opprettet` eller | sak_opprettet |)
-        doc_event_pattern = r"`(\w+_\w+)`"
-        doc_events = set(re.findall(doc_event_pattern, arch_content))
+    for doc_path in [arch_doc_path, readme_path]:
+        if doc_path.exists():
+            doc_content = read_file(doc_path)
+            # Finn event-typer i backticks eller tabellceller
+            doc_events.update(re.findall(r"`(\w+_\w+)`", doc_content))
+            # Finn også i tabeller: | event_name |
+            doc_events.update(re.findall(r"\|\s*(\w+_\w+)\s*\|", doc_content))
 
-        # Events i kode men ikke i dokumentasjon
-        undocumented = code_events - doc_events
-        for event in sorted(undocumented):
-            # Ignorer interne events
-            if not event.startswith("_"):
-                findings.append({
-                    "type": "undocumented_event",
-                    "severity": "info",
-                    "event": event,
-                    "message": f"Event-type i kode men ikke dokumentert: {event}",
-                })
+    # Events i kode men ikke i dokumentasjon
+    undocumented = code_events - doc_events
+    for event in sorted(undocumented):
+        if verbose:
+            findings.append({
+                "type": "undocumented_event",
+                "severity": "info",
+                "event": event,
+                "message": f"Event-type i kode men ikke dokumentert: {event}",
+            })
 
     return {
         "check": "event_types",
-        "drift_detected": any(f["severity"] in ["critical", "warning"] for f in findings),
+        "drift_detected": False,  # Kun info-nivå, aldri kritisk
         "findings": findings,
     }
 
@@ -316,37 +325,51 @@ def check_api_endpoints(root: Path, verbose: bool = False) -> dict:
 
     quickstart_content = read_file(quickstart_path)
 
-    # Finn dokumenterte endpoints
-    doc_endpoints = re.findall(r"`(/api/\S+)`", quickstart_content)
+    # Finn dokumenterte endpoints (f.eks. `/api/events` eller `POST /api/events`)
+    doc_endpoints = set()
+    for match in re.finditer(r"`(?:GET|POST|PUT|DELETE|PATCH)?\s*(/api/[^\s`]+)`", quickstart_content):
+        endpoint = match.group(1)
+        # Normaliser: fjern trailing slash, parametre til <id>
+        endpoint = endpoint.rstrip("/")
+        endpoint = re.sub(r"<[^>]+>", "<id>", endpoint)
+        doc_endpoints.add(endpoint)
 
     # Finn faktiske endpoints fra routes
     actual_endpoints = set()
     for route_file in routes_dir.glob("*.py"):
         route_content = read_file(route_file)
-        # Finn @bp.route("/...") eller @blueprint.route("/...")
+
+        # Finn blueprint prefix (f.eks. url_prefix="/api/cases")
+        prefix_match = re.search(r'url_prefix\s*=\s*["\']([^"\']+)["\']', route_content)
+        prefix = prefix_match.group(1) if prefix_match else ""
+
+        # Finn @bp.route("/...") eller lignende
         routes = re.findall(r'@\w+\.route\(["\']([^"\']+)["\']', route_content)
         for route in routes:
-            # Normaliser route (fjern <param> til <id>)
-            normalized = re.sub(r"<\w+:\w+>", "<id>", route)
-            normalized = re.sub(r"<\w+>", "<id>", normalized)
-            actual_endpoints.add(normalized)
+            full_route = prefix + route
+            # Normaliser
+            full_route = full_route.rstrip("/")
+            full_route = re.sub(r"<\w+:\w+>", "<id>", full_route)
+            full_route = re.sub(r"<\w+>", "<id>", full_route)
+            actual_endpoints.add(full_route)
 
-    # Sjekk at dokumenterte endpoints eksisterer
-    for endpoint in doc_endpoints:
-        # Normaliser for sammenligning
-        normalized = re.sub(r"<\w+>", "<id>", endpoint)
-        # Fjern /api prefix for matching
-        route_part = normalized.replace("/api", "")
-
-        # Enkel matching - sjekk om route_part finnes i noen faktisk endpoint
-        found = any(route_part in actual for actual in actual_endpoints)
-        if not found and "<id>" not in normalized:
-            # Kun rapporter hvis det ikke er en dynamisk route
-            pass  # Hopp over for nå - for komplekst å matche presist
+    # Sjekk at dokumenterte endpoints eksisterer i kode
+    for endpoint in sorted(doc_endpoints):
+        # Enkel matching - sjekk eksakt eller med /api prefix
+        if endpoint not in actual_endpoints:
+            # Prøv uten /api prefix
+            without_api = endpoint.replace("/api", "", 1)
+            if without_api not in actual_endpoints and verbose:
+                findings.append({
+                    "type": "undocumented_endpoint",
+                    "severity": "info",
+                    "endpoint": endpoint,
+                    "message": f"Dokumentert endpoint ikke funnet i routes: {endpoint}",
+                })
 
     return {
         "check": "api_endpoints",
-        "drift_detected": len(findings) > 0,
+        "drift_detected": False,  # Kun info-nivå pga kompleksitet
         "findings": findings,
     }
 
