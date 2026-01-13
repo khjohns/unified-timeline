@@ -362,12 +362,26 @@ class DaluxSyncService:
             description_parts.append(dalux_task["description"])
 
         # Add user-defined fields if present
+        # Structure: {"items": [{"name": "...", "values": [{"text": "..."} or {"reference": {"value": "..."}}]}]}
         user_fields = dalux_task.get("userDefinedFields", {})
-        if user_fields:
+        items = user_fields.get("items", []) if isinstance(user_fields, dict) else []
+        if items:
             description_parts.append("\n\n---\n**Dalux metadata:**")
-            for key, value in user_fields.items():
-                if value:
-                    description_parts.append(f"- {key}: {value}")
+            for item in items:
+                field_name = item.get("name", "Ukjent felt")
+                values = item.get("values", [])
+                if values:
+                    # Extract value from text or reference format
+                    val = values[0]
+                    if "text" in val:
+                        field_value = val["text"]
+                    elif "reference" in val:
+                        field_value = val["reference"].get("value", "?")
+                    else:
+                        field_value = str(val)
+                    # Clean up any weird unicode spacing
+                    field_value = field_value.strip()
+                    description_parts.append(f"- **{field_name}:** {field_value}")
 
         # Add assigned to info
         assigned_to = dalux_task.get("assignedTo", {})
