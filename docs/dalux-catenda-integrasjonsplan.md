@@ -152,25 +152,30 @@ Connection: keep-alive
 | Dalux (ApiTaskGet) | Catenda (BCF Topic) | Kommentar |
 |--------------------|---------------------|-----------|
 | `taskId` | `guid` | Lagres som ekstern referanse |
-| `title` | `title` | Direkte mapping |
+| `subject` | `title` | **NB:** Dalux bruker `subject`, ikke `title` |
 | `description` | `description` | Direkte mapping |
-| `type` | `topic_type` | Mapping-tabell (se under) |
+| `type.name` | `topic_type` | **NB:** `type` er et objekt med `name`-felt |
 | `status` | `topic_status` | Mapping-tabell (se under) |
 | `assignedTo.email` | `assigned_to` | E-post som identifikator |
 | `createdBy.email` | `creation_author` | E-post som identifikator |
 | `created` | `creation_date` | ISO 8601 datoformat |
 | `deadline` | `due_date` | ISO 8601 datoformat |
-| `userDefinedFields` | `labels` / `description` | Tilpasset per prosjekt |
+| `userDefinedFields.items` | `description` | Formateres som markdown-liste |
 
-### Type-mapping
+### Type-mapping (implementert)
+
+Catenda har begrenset sett med gyldige topic_type. Mapping:
 
 | Dalux type | Catenda topic_type |
 |------------|-------------------|
-| `task` | `Task` |
-| `approval` | `Approval` |
-| `safetyissue` | `Safety Issue` |
-| `safetyobservation` | `Safety Observation` |
-| `goodpractice` | `Good Practice` |
+| `RUH` | `Warning` |
+| `task` | `Info` |
+| `Oppgave produksjon` | `Info` |
+| `safetyissue` | `Error` |
+| `safetyobservation` | `Warning` |
+| `goodpractice` | `Info` |
+| `approval` | `Info` |
+| *(ukjent)* | `Info` (default) |
 
 ### Status-mapping (eksempel - tilpasses per prosjekt)
 
@@ -243,7 +248,7 @@ class DaluxCatendaSyncMapping:
     dalux_project_id: str        # Dalux prosjekt-ID
     catenda_project_id: str      # Catenda prosjekt-ID
     catenda_board_id: str        # Catenda BCF board-ID
-    dalux_api_key: str           # Kryptert API-nøkkel
+    # NB: API-nøkkel lagres i .env (DALUX_API_KEY), ikke i database
     dalux_base_url: str          # Dalux API base URL
     sync_enabled: bool           # Synk aktivert
     sync_interval_minutes: int   # Polling-intervall
@@ -273,30 +278,32 @@ class TaskSyncRecord:
 
 ## Implementeringsplan
 
-### Fase 1: Grunnleggende infrastruktur
+### Fase 1: Grunnleggende infrastruktur ✅
 
-- [ ] Opprett `DaluxClient` etter mønster fra `CatendaClient`
-- [ ] Implementer autentisering med API-nøkkel
-- [ ] Implementer endepunkter for projects, tasks, files
-- [ ] Opprett database-modeller for synk-metadata
+- [x] Opprett `DaluxClient` etter mønster fra `CatendaClient`
+- [x] Implementer autentisering med API-nøkkel
+- [x] Implementer endepunkter for projects, tasks, files, attachments
+- [x] Opprett database-modeller for synk-metadata (Supabase)
+- [x] Opprett interaktiv meny (`dalux_menu.py`) for testing
 
-### Fase 2: Synk-logikk
+### Fase 2: Synk-logikk ✅
 
-- [ ] Implementer task → topic mapping
+- [x] Implementer task → topic mapping
+- [x] Implementer `DaluxSyncService` med full synk
 - [ ] Implementer attachment → document synk
 - [ ] Opprett polling-scheduler (Azure Functions Timer Trigger eller lignende)
-- [ ] Implementer inkrementell synk med `/tasks/changes`
+- [ ] Implementer inkrementell synk med `/tasks/changes` (delvis - strukturforskjeller)
 
 ### Fase 3: Administrasjon
 
 - [ ] UI for å konfigurere Dalux-integrasjon per prosjekt
-- [ ] Lagring av API-nøkkel (kryptert)
-- [ ] Manuell trigger av synk
-- [ ] Synk-logg og feilrapportering
+- [x] Lagring av API-nøkkel i `.env` (sikker, enkel)
+- [x] Manuell trigger av synk via CLI og meny
+- [x] Synk-logg og feilrapportering (via logger)
 
 ### Fase 4: Produksjonssetting
 
-- [ ] Feilhåndtering og retry-logikk
+- [x] Feilhåndtering og retry-logikk (per task)
 - [ ] Varsling ved synk-feil
 - [ ] Monitoring og logging
 - [ ] Dokumentasjon for entreprenører
@@ -351,9 +358,17 @@ Implementert januar 2026. For detaljert analyse, se [ADR-001-dalux-sync.md](ADR-
 
 ### Kjente begrensninger
 
-- [ ] Ingen automatisk scheduler
+- [ ] Ingen automatisk scheduler (manuell trigger via CLI/meny)
 - [ ] Attachment-synk ikke implementert (Fase 2)
 - [ ] Kun single-tenant (én API-nøkkel per instans)
+- [ ] Inkrementell synk har strukturforskjeller som må håndteres
+
+### Testet og verifisert (januar 2026)
+
+- ✅ Full synk av RUH-tasks fra Dalux → Catenda BCF topics
+- ✅ Metadata formateres som lesbar markdown i description
+- ✅ Type-mapping til gyldige Catenda topic types
+- ✅ Synk-status lagres i Supabase for sporing
 
 ---
 
