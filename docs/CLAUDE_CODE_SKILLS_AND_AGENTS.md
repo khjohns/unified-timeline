@@ -111,7 +111,70 @@ python scripts/check_openapi_freshness.py --fix  # Regenerer OpenAPI
 
 ## Beste praksis
 
-### 1. Scripts kjøres, ikke leses
+### Skills
+
+#### 1. Skriv gode beskrivelser
+
+Beskrivelsen er kritisk - Claude bruker den til å velge når skill skal aktiveres.
+
+```yaml
+# DÅRLIG
+description: Hjelper med dokumenter
+
+# BRA
+description: Validerer WCAG-kontrast og tilgjengelighet. Bruk ved arbeid med farger, UI-komponenter eller tilgjengelighetssjekk.
+```
+
+**Inkluder:** Spesifikke evner, trigger-ord brukere ville sagt, når skill skal brukes.
+
+#### 2. Hold skills kompakte
+
+- Under 500 linjer per SKILL.md
+- Referer til separate filer for detaljer (progressive disclosure)
+- Scripts konsumerer ikke kontekst - kun output gjør det
+
+#### 3. Begrens verktøy ved behov
+
+```yaml
+allowed-tools: Read, Grep, Glob  # Read-only skill
+```
+
+### Agents
+
+#### 4. Bruk agents for isolerte oppgaver
+
+| Bruk agent når | Bruk hovedsamtale når |
+|----------------|----------------------|
+| Verbose output du ikke trenger | Hyppig frem-og-tilbake |
+| Selvstendige oppgaver | Flere faser deler kontekst |
+| Parallelle undersøkelser | Raske, målrettede endringer |
+
+#### 5. Design fokuserte agents
+
+Hver agent skal være ekspert på én ting. Skriv detaljerte beskrivelser:
+
+```yaml
+# DÅRLIG
+description: Kodegjennomgang
+
+# BRA
+description: Sjekker synkronisering mellom frontend og backend. Bruk proaktivt etter endringer i events, typer eller state-modeller.
+```
+
+#### 6. Agents arver ikke skills automatisk
+
+Må eksplisitt listes i frontmatter:
+
+```yaml
+---
+name: drift-checker
+skills: static-analysis, event-sourcing
+---
+```
+
+### Generelt
+
+#### 7. Scripts kjøres, ikke leses
 
 ```markdown
 # RIKTIG
@@ -121,19 +184,32 @@ Kjør: python scripts/check_drift.py
 Les scriptet for å forstå hvordan det fungerer...
 ```
 
-### 2. Hold skills kompakte
+#### 8. Velg riktig modell
 
-- Under 500 linjer per SKILL.md
-- Referer til scripts for detaljer
-- YAGNI - ikke legg til før behovet oppstår
+| Oppgave | Modell | Begrunnelse |
+|---------|--------|-------------|
+| Rask søk, kjøre scripts | haiku | Lav latens, billig |
+| Kodegjennomgang | sonnet | Balansert |
+| Kompleks analyse, arkitektur | opus | Mest kapabel |
 
-### 3. Bruk riktig modell
+#### 9. Begrensninger å vite om
 
-| Oppgave | Modell |
-|---------|--------|
-| Rask søk/kjøring | haiku |
-| Kompleks analyse | sonnet |
-| Arkitektur-spørsmål | sonnet |
+- Agents kan ikke starte andre agents (ingen nesting)
+- Background agents kan ikke bruke MCP-verktøy
+- Skills må eksplisitt lastes for agents
+
+---
+
+## Når bruke hva?
+
+| Behov | Verktøy |
+|-------|---------|
+| Domenekunnskap som lastes automatisk | **Skill** |
+| Gjenbrukbare prompts brukeren kaller | Slash-kommando |
+| Prosjekt-brede instruksjoner | CLAUDE.md |
+| Isolerte oppgaver med egen kontekst | **Agent** |
+| Kjøre scripts ved events | Hooks |
+| Koble til eksterne verktøy/data | MCP-servere |
 
 ---
 
