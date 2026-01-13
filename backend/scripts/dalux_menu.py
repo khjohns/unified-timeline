@@ -166,17 +166,17 @@ class DaluxInteractiveMenu:
                 return
 
             print(f"Fant {len(tasks)} task(s):\n")
-            print(f"{'Nummer':<10} {'Type':<15} {'Kategori':<12} {'Tittel':<40}")
-            print("-" * 77)
+            print(f"{'Nummer':<10} {'Task ID':<22} {'Type':<12} {'Tittel':<35}")
+            print("-" * 82)
 
             for t in tasks[:30]:  # Vis maks 30
                 data = t.get("data", {})
                 number = data.get("number", "?")[:9]
+                task_id = data.get("taskId", "?")[:21]
                 type_obj = data.get("type", {})
-                type_name = type_obj.get("name", "?") if isinstance(type_obj, dict) else str(type_obj)[:14]
-                usage = data.get("usage", "?")[:11]
-                subject = data.get("subject", "Untitled")[:39]
-                print(f"{number:<10} {type_name:<15} {usage:<12} {subject:<40}")
+                type_name = type_obj.get("name", "?") if isinstance(type_obj, dict) else str(type_obj)[:11]
+                subject = data.get("subject", "Untitled")[:34]
+                print(f"{number:<10} {task_id:<22} {type_name:<12} {subject:<35}")
 
             if len(tasks) > 30:
                 print(f"\n... og {len(tasks) - 30} flere")
