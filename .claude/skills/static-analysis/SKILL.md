@@ -20,6 +20,7 @@ Prosjektet har flere statiske analyse-verktøy i `/scripts` som hjelper med å o
 | `label_coverage.py` | Label-dekning | Etter nye enum-verdier |
 | `todo_tracker.py` | TODO/FIXME-sporing | Jevnlig, før release |
 | `security_scan.py` | Sikkerhetssårbarheter | Før commit, før release |
+| `docs_drift.py` | Dokumentasjon vs kode | Før release, etter refaktorering |
 
 ### Avanserte flagg
 
@@ -29,6 +30,7 @@ Prosjektet har flere statiske analyse-verktøy i `/scripts` som hjelper med å o
 | `contract_drift.py` | `--verbose`, `-v` | Vis hvilke unions/enums som ble funnet |
 | `state_drift.py` | `--verbose`, `-v` | Vis hvilke interfaces/models som ble funnet |
 | `constant_drift.py` | `--min N` | Minimum forekomster for å rapportere (default: 3) |
+| `docs_drift.py` | `--verbose`, `-v` | Vis alle funn inkludert info-nivå |
 
 ## Bruksmønster
 
@@ -81,6 +83,7 @@ python scripts/state_drift.py
 
 ```bash
 python scripts/check_drift.py
+python scripts/docs_drift.py
 python scripts/todo_tracker.py
 python scripts/security_scan.py
 ```
