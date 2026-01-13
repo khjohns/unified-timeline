@@ -186,12 +186,20 @@ class StatusMapping(BaseModel):
 # DEFAULT MAPPINGS
 # ==========================================
 
+# Catenda valid topic types: Error, Warning, Info, Unknown,
+# Krav om endringsordre, Endringsordre, Forsering
 DEFAULT_TYPE_MAPPINGS: list[TypeMapping] = [
-    TypeMapping(dalux_type="task", catenda_topic_type="Task"),
-    TypeMapping(dalux_type="approval", catenda_topic_type="Approval"),
-    TypeMapping(dalux_type="safetyissue", catenda_topic_type="Safety Issue"),
-    TypeMapping(dalux_type="safetyobservation", catenda_topic_type="Safety Observation"),
-    TypeMapping(dalux_type="goodpractice", catenda_topic_type="Good Practice"),
+    # RUH (Risikobefaring Uønsket Hendelse) -> Warning
+    TypeMapping(dalux_type="RUH", catenda_topic_type="Warning"),
+    # Standard task types
+    TypeMapping(dalux_type="task", catenda_topic_type="Info"),
+    TypeMapping(dalux_type="Oppgave produksjon", catenda_topic_type="Info"),
+    # Safety types -> Warning/Error
+    TypeMapping(dalux_type="safetyissue", catenda_topic_type="Error"),
+    TypeMapping(dalux_type="safetyobservation", catenda_topic_type="Warning"),
+    TypeMapping(dalux_type="goodpractice", catenda_topic_type="Info"),
+    # Approval -> Info
+    TypeMapping(dalux_type="approval", catenda_topic_type="Info"),
 ]
 
 DEFAULT_STATUS_MAPPINGS: list[StatusMapping] = [
@@ -202,21 +210,25 @@ DEFAULT_STATUS_MAPPINGS: list[StatusMapping] = [
 ]
 
 
-def map_dalux_type_to_catenda(dalux_type: str) -> str:
+def map_dalux_type_to_catenda(dalux_type) -> str:
     """
     Map Dalux task type to Catenda topic_type.
 
     Args:
-        dalux_type: Dalux task type (case-insensitive)
+        dalux_type: Dalux task type - can be string or dict with 'name' key
 
     Returns:
         Catenda topic_type (defaults to 'Task' if not found)
     """
-    dalux_type_lower = dalux_type.lower()
+    # Handle dict format: {"typeId": "...", "name": "RUH"}
+    if isinstance(dalux_type, dict):
+        dalux_type = dalux_type.get("name", "Task")
+
+    dalux_type_lower = str(dalux_type).lower()
     for mapping in DEFAULT_TYPE_MAPPINGS:
         if mapping.dalux_type.lower() == dalux_type_lower:
             return mapping.catenda_topic_type
-    return "Task"  # Default
+    return "Info"  # Default - must be valid Catenda type
 
 
 def map_dalux_status_to_catenda(dalux_status: str) -> str:

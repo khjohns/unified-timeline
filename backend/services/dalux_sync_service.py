@@ -345,7 +345,10 @@ class DaluxSyncService:
             Dict with BCF topic fields
         """
         # Map type and status
+        # Note: Dalux 'type' is a dict: {"typeId": "...", "name": "RUH"}
         dalux_type = dalux_task.get("type", "task")
+        # Note: Dalux doesn't have a direct status field - uses workflow/userDefinedFields
+        # For now, default to "Open" - can be enhanced to parse userDefinedFields
         dalux_status = dalux_task.get("status", "Open")
 
         catenda_type = map_dalux_type_to_catenda(dalux_type)
@@ -354,6 +357,7 @@ class DaluxSyncService:
         # Build description with Dalux metadata
         description_parts = []
 
+        # Dalux uses 'description' but may also have workflow info
         if dalux_task.get("description"):
             description_parts.append(dalux_task["description"])
 
@@ -375,8 +379,11 @@ class DaluxSyncService:
 
         description = "\n".join(description_parts) if description_parts else None
 
+        # Note: Dalux uses 'subject' for title, not 'title'
+        title = dalux_task.get("subject") or dalux_task.get("title", "Untitled")
+
         return {
-            "title": dalux_task.get("title", "Untitled"),
+            "title": title,
             "description": description,
             "topic_type": catenda_type,
             "topic_status": catenda_status,
