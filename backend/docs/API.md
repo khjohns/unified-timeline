@@ -145,7 +145,7 @@ Submit a single event to a case with optimistic concurrency control.
 **Required data fields for `frist_krav_sendt`:**
 ```json
 {
-  "varsel_type": "noytralt|spesifisert|begge|force_majeure",
+  "varsel_type": "noytralt|spesifisert",
   "begrunnelse": "Justification",
   "antall_dager": 14,
   "spesifisert_varsel": {
@@ -175,8 +175,6 @@ Submit a single event to a case with optimistic concurrency control.
 |-------------|-------------|-----------------|
 | noytralt | Neutral/preliminary warning (§33.4) | noytralt_varsel |
 | spesifisert | Specified claim with days | spesifisert_varsel, antall_dager |
-| begge | Both neutral and specified | Both + antall_dager |
-| force_majeure | Force majeure extension (§33.3) | - |
 
 ---
 

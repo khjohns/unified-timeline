@@ -16,8 +16,9 @@ Valider at dokumentasjon er synkronisert med kodebasen. Du sjekker semantisk kor
 | Dokument | Kommando |
 |----------|----------|
 | ARCHITECTURE_AND_DATAMODEL.md | Se [architecture-check](#architecture-check) |
-| FRONTEND_ARCHITECTURE.md | (kommer) |
-| API.md | (kommer) |
+| docs/FRONTEND_ARCHITECTURE.md | Se [frontend-check](#frontend-check) |
+| backend/docs/API.md | Se [api-check](#api-check) |
+| backend/docs/openapi.yaml | Kjør `python scripts/check_openapi_freshness.py` |
 
 ---
 
@@ -104,6 +105,167 @@ grep -n "port_\|PortStatus" backend/models/sak_state.py
 
 ```bash
 grep -A 5 "SakType" backend/models/events.py
+```
+
+---
+
+## frontend-check
+
+**Dokument:** `docs/FRONTEND_ARCHITECTURE.md`
+
+### 1. Teknologiversjoner
+
+**Kilde:** `package.json`
+
+**Sjekk:**
+```bash
+grep -E '"react"|"typescript"|"vite"|"vitest"|"@tanstack/react-query"' package.json
+```
+
+**Valider:**
+- React-versjon i §2 matcher package.json
+- TypeScript-versjon matcher
+- Vite-versjon matcher
+- React Query-versjon matcher
+
+### 2. Komponent-antall
+
+**Dokumenterte antall (§4):**
+- PAGES: 9 stk
+- VIEWS: 6 stk
+- ACTIONS: 9 stk
+- APPROVAL: 6 stk
+- PRIMITIVES: 26 stk
+
+**Sjekk:**
+```bash
+# Tell faktisk antall
+ls -1 src/pages/*.tsx 2>/dev/null | wc -l
+ls -1 src/components/views/*.tsx 2>/dev/null | wc -l
+ls -1 src/components/actions/*.tsx 2>/dev/null | wc -l
+ls -1 src/components/approval/*.tsx 2>/dev/null | wc -l
+ls -1 src/components/primitives/*.tsx 2>/dev/null | wc -l
+```
+
+### 3. Mappestruktur (§3)
+
+**Valider at dokumenterte mapper eksisterer:**
+```bash
+ls -d src/api src/components src/context src/hooks src/pages src/types src/constants src/utils 2>/dev/null
+```
+
+### 4. API-filer (§3)
+
+**Dokumenterte filer i `src/api/`:**
+- client.ts, state.ts, events.ts, endringsordre.ts, forsering.ts, analytics.ts, cases.ts, utils.ts
+
+**Sjekk:**
+```bash
+ls -1 src/api/*.ts
+```
+
+### 5. Hooks (§3)
+
+**Dokumenterte hooks i `src/hooks/`:**
+- useCaseState.ts, useTimeline.ts, useSubmitEvent.ts, useActionPermissions.ts, etc.
+
+**Sjekk:**
+```bash
+ls -1 src/hooks/*.ts
+```
+
+### 6. Context providers (§5)
+
+**Dokumenterte contexts:**
+- AuthContext, ThemeContext, ApprovalContext, UserRoleContext, SupabaseAuthContext
+
+**Sjekk:**
+```bash
+ls -1 src/context/*.tsx
+```
+
+---
+
+## api-check
+
+**Dokument:** `backend/docs/API.md`
+
+### 1. Event-typer
+
+**Kilde:** `backend/models/events.py` → `EventType`
+
+**Dokumenterte event-typer:**
+- Grunnlag: grunnlag_opprettet, grunnlag_oppdatert, grunnlag_trukket
+- Vederlag: vederlag_krav_sendt, vederlag_krav_oppdatert
+- Frist: frist_krav_sendt, frist_krav_oppdatert, frist_krav_spesifisert
+
+**Sjekk:**
+```bash
+grep -oP '(?<=Literal\[)[^]]+' backend/models/events.py | head -1 | tr ',' '\n' | tr -d '" '
+```
+
+**Valider:**
+- Alle event-typer i API-dokumentasjonen finnes i koden
+- Ingen nye event-typer mangler i dokumentasjonen
+
+### 2. Hovedkategorier
+
+**Kilde:** `backend/constants/grunnlag_categories.py`
+
+**Dokumenterte kombinasjoner (API.md):**
+| hovedkategori | underkategorier |
+|---------------|-----------------|
+| ENDRING | EO, IRREG, SVAR_VARSEL, LOV_GJENSTAND, LOV_PROSESS, GEBYR, SAMORD |
+| SVIKT | MEDVIRK, ADKOMST, GRUNN, KULTURMINNER, PROSJ_RISIKO, BH_FASTHOLDER |
+| ANDRE | NEKT_MH, NEKT_TILTRANSPORT, SKADE_BH, BRUKSTAKELSE, STANS_BET, STANS_UENIGHET |
+| FORCE_MAJEURE | FM_EGEN, FM_MH |
+
+**Sjekk:**
+```bash
+grep -A 30 "Hovedkategori\|CATEGORY_MAPPING" backend/constants/grunnlag_categories.py
+```
+
+### 3. Vederlagsmetoder
+
+**Kilde:** `backend/models/events.py` → `VederlagMetode`
+
+**Dokumenterte metoder:**
+- ENHETSPRISER, REGNINGSARBEID, FASTPRIS_TILBUD
+
+**Sjekk:**
+```bash
+grep -A 5 "VederlagMetode" backend/models/events.py
+```
+
+### 4. API-endepunkter
+
+**Sjekk at dokumenterte endepunkter finnes i routes:**
+
+```bash
+# Events API
+grep -n "def.*events\|@.*route.*events" backend/routes/event_routes.py
+
+# Forsering API
+grep -n "def\|@.*route" backend/routes/forsering_routes.py
+
+# Endringsordre API
+grep -n "def\|@.*route" backend/routes/endringsordre_routes.py
+```
+
+### 5. Varsel-typer (Frist)
+
+**Kilde:** `backend/models/events.py` → `FristVarselType`
+
+**Gyldige typer:**
+- noytralt, spesifisert
+
+**Kjente feil å sjekke for:**
+- "begge" (fjernet)
+- "force_majeure" (fjernet)
+
+**Sjekk:**
+```bash
+grep -A 5 "FristVarselType" backend/models/events.py
 ```
 
 ---

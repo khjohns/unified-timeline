@@ -16,6 +16,7 @@ Sjekker:
     3. Event-typer (ARCHITECTURE_AND_DATAMODEL vs events.py)
     4. Kommandoer (CLAUDE.md vs package.json scripts)
     5. Enum-verdier (ARCHITECTURE_AND_DATAMODEL vs events.py/sak_state.py)
+    6. OpenAPI freshness (backend/docs/openapi.yaml vs kildefiler)
 """
 
 import argparse
@@ -543,6 +544,69 @@ def check_enum_values(root: Path, verbose: bool = False) -> dict:
     }
 
 
+def check_openapi_freshness(root: Path, verbose: bool = False) -> dict:
+    """
+    Sjekk at openapi.yaml er oppdatert med kildefilene.
+
+    Sammenligner modifikasjonstider mellom openapi.yaml og kildefiler
+    som påvirker OpenAPI-spesifikasjonen.
+    """
+    findings = []
+
+    # Kildefiler som påvirker openapi.yaml
+    source_files = [
+        "backend/models/events.py",
+        "backend/models/sak_state.py",
+        "backend/constants/__init__.py",
+        "backend/constants/grunnlag_categories.py",
+        "backend/scripts/generate_openapi.py",
+    ]
+
+    openapi_path = root / "backend" / "docs" / "openapi.yaml"
+
+    if not openapi_path.exists():
+        findings.append({
+            "type": "openapi_missing",
+            "severity": "critical",
+            "message": "openapi.yaml eksisterer ikke - kjør: python backend/scripts/generate_openapi.py",
+        })
+        return {
+            "check": "openapi_freshness",
+            "drift_detected": True,
+            "findings": findings,
+        }
+
+    openapi_mtime = openapi_path.stat().st_mtime
+
+    outdated_sources = []
+    for rel_path in source_files:
+        source_path = root / rel_path
+        if source_path.exists():
+            source_mtime = source_path.stat().st_mtime
+            if source_mtime > openapi_mtime:
+                outdated_sources.append(rel_path)
+
+    if outdated_sources:
+        findings.append({
+            "type": "openapi_outdated",
+            "severity": "warning",
+            "sources": outdated_sources,
+            "message": f"openapi.yaml er utdatert - endrede filer: {', '.join(outdated_sources)}",
+        })
+        if verbose:
+            findings.append({
+                "type": "openapi_fix",
+                "severity": "info",
+                "message": "Løsning: python backend/scripts/generate_openapi.py",
+            })
+
+    return {
+        "check": "openapi_freshness",
+        "drift_detected": len(outdated_sources) > 0,
+        "findings": findings,
+    }
+
+
 # ==============================================================================
 # Rapportering
 # ==============================================================================
@@ -666,6 +730,7 @@ def main():
         check_api_endpoints(root, args.verbose),
         check_last_updated_dates(root, args.verbose),
         check_enum_values(root, args.verbose),
+        check_openapi_freshness(root, args.verbose),
     ]
 
     # Formater output

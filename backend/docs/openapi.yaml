@@ -1355,7 +1355,6 @@ components:
       - forsering_koe_lagt_til
       - forsering_koe_fjernet
       - sak_opprettet
-      - sak_lukket
       - eo_opprettet
       - eo_koe_lagt_til
       - eo_koe_fjernet
