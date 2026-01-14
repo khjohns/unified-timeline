@@ -137,7 +137,17 @@ export function IntegrasjonerPage() {
         }
       />
 
-      <main className="max-w-5xl mx-auto px-4 py-6 sm:px-6 sm:py-8 space-y-6">
+      <main className="max-w-5xl mx-auto px-2 py-4 sm:px-4 sm:py-6 space-y-6">
+        {/* Section Header */}
+        <div className="border-b border-pkt-border-subtle pb-4">
+          <h2 className="text-lg font-semibold text-pkt-text-body-dark">
+            Synkroniseringer
+          </h2>
+          <p className="mt-1 text-sm text-pkt-text-body-subtle">
+            Aktive integrasjoner mellom Dalux og Catenda. Overfør oppgaver automatisk eller manuelt.
+          </p>
+        </div>
+
         {/* Loading State */}
         {isLoading && (
           <Card variant="outlined" padding="lg">

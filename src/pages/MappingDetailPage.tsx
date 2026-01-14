@@ -29,6 +29,25 @@ const TABS = [
   { id: 'forms', label: 'Forms' },
 ];
 
+const TAB_INFO: Record<string, { title: string; description: string }> = {
+  oversikt: {
+    title: 'Oversikt',
+    description: 'Konfigurasjon og status for synkroniseringen. Start manuell synk eller test tilkobling.',
+  },
+  historikk: {
+    title: 'Synkhistorikk',
+    description: 'Logg over tidligere synkroniseringer med detaljer per oppgave.',
+  },
+  tasks: {
+    title: 'Dalux-oppgaver',
+    description: 'Forhåndsvis oppgaver fra Dalux før synkronisering.',
+  },
+  forms: {
+    title: 'Skjemaer',
+    description: 'Skjemaer fra Dalux (SJA, Vernemøter, etc.)',
+  },
+};
+
 export function MappingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -125,14 +144,27 @@ export function MappingDetailPage() {
         }
       />
 
-      <main className="max-w-5xl mx-auto px-4 py-6 sm:px-6 sm:py-8">
-        {/* Tabs */}
-        <Tabs
-          tabs={TABS}
-          activeTab={activeTab}
-          onTabChange={handleTabChange}
-          className="mb-6"
-        />
+      {/* Tabs Navigation Bar */}
+      <div className="bg-pkt-bg-card border-b border-pkt-border-subtle">
+        <div className="max-w-5xl mx-auto px-4 sm:px-8">
+          <Tabs
+            tabs={TABS}
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
+          />
+        </div>
+      </div>
+
+      <main className="max-w-5xl mx-auto px-2 py-4 sm:px-4 sm:py-6 space-y-6">
+        {/* Section Header */}
+        <div className="border-b border-pkt-border-subtle pb-4">
+          <h2 className="text-lg font-semibold text-pkt-text-body-dark">
+            {TAB_INFO[activeTab]?.title}
+          </h2>
+          <p className="mt-1 text-sm text-pkt-text-body-subtle">
+            {TAB_INFO[activeTab]?.description}
+          </p>
+        </div>
 
         {/* Tab Content */}
         {activeTab === 'oversikt' && (
