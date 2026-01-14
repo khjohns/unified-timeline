@@ -305,9 +305,7 @@ Systemet implementerer NS 8407:2011 totalentreprisekontrakt:
 | Forsering | §33.8 |
 | Endringsordre | §31.3 |
 
-**Se også:**
-- [ARCHITECTURE_AND_DATAMODEL.md](docs/ARCHITECTURE_AND_DATAMODEL.md) - Port-modell, subsidiær logikk
-- [NS8407_KONTROLLPLAN.md](docs/NS8407_KONTROLLPLAN.md) - Verifisering mot kontrakt
+**Se også:** [ARCHITECTURE_AND_DATAMODEL.md](docs/ARCHITECTURE_AND_DATAMODEL.md) for port-modell og subsidiær logikk.
 
 ### Produksjon (planlagt)
 
@@ -395,10 +393,6 @@ source venv/bin/activate  # På Windows: venv\Scripts\activate
 # Installer avhengigheter
 pip install -r requirements.txt
 
-# Kopier og konfigurer miljøvariabler
-cp .env.example .env
-# Rediger .env med dine verdier
-
 # Start backend
 python app.py
 ```
@@ -411,7 +405,7 @@ Backend kjører på `http://localhost:8080`
 # I rot-mappen
 npm install
 
-# Kopier og konfigurer miljøvariabler
+# Kopier miljøvariabler (valgfritt - standardverdier fungerer for lokal utvikling)
 cp .env.example .env.local
 
 # Start utviklingsserver
@@ -424,7 +418,7 @@ Frontend kjører på `http://localhost:3000`
 
 Gå til `http://localhost:3000/Skjema_Endringsmeldinger/` i nettleseren.
 
-Se [GETTING_STARTED.md](docs/GETTING_STARTED.md) for detaljert oppsettguide inkludert Catenda-konfigurasjon.
+Se [WEBHOOK_PREFILL_GUIDE.md](docs/WEBHOOK_PREFILL_GUIDE.md) for Catenda webhook-konfigurasjon.
 
 ---
 
@@ -522,7 +516,7 @@ Backend-arkitekturen er designet for gjenbruk på tvers av skjematyper. Den lagd
 | Dokument | Beskrivelse |
 |----------|-------------|
 | [ARCHITECTURE_AND_DATAMODEL.md](docs/ARCHITECTURE_AND_DATAMODEL.md) | Event sourcing, datamodeller, status-beregning |
-| [GETTING_STARTED.md](docs/GETTING_STARTED.md) | Detaljert oppsettguide |
+| [WEBHOOK_PREFILL_GUIDE.md](docs/WEBHOOK_PREFILL_GUIDE.md) | Catenda webhook-konfigurasjon |
 | [FRONTEND_ARCHITECTURE.md](docs/FRONTEND_ARCHITECTURE.md) | Frontend-arkitektur og komponenter |
 | [DEPLOYMENT.md](docs/DEPLOYMENT.md) | Azure-utrulling |
 | [backend/STRUCTURE.md](backend/STRUCTURE.md) | Backend-mappestruktur (detaljert) |
@@ -533,7 +527,7 @@ Backend-arkitekturen er designet for gjenbruk på tvers av skjematyper. Den lagd
 
 ## Testing
 
-### Backend (427 tester, 63% coverage)
+### Backend (~600 tester)
 
 ```bash
 cd backend
@@ -545,20 +539,7 @@ python -m pytest tests/ -v
 python -m pytest --cov=services --cov=models --cov=repositories --cov=core --cov=constants --cov=api --cov-report=term-missing
 ```
 
-**Testdekning (63% kjernelogikk, ekskl. routes/):**
-
-| Modul | Coverage |
-|-------|----------|
-| repositories/event_repository.py | 99% |
-| models/api_responses.py | 95% |
-| models/events.py | 93% |
-| services/endringsordre_service.py | 88% |
-| services/catenda_service.py | 87% |
-| services/forsering_service.py | 83% |
-| services/business_rules.py | 80% |
-| models/sak_state.py | 70% |
-
-### Frontend (334 tester, 41% coverage)
+### Frontend (~200 tester)
 
 ```bash
 # Kjør alle tester
