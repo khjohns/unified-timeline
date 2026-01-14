@@ -2,7 +2,8 @@
 name: drift-checker
 description: Sjekker synkronisering mellom frontend og backend. Bruk proaktivt etter endringer i events, typer eller state-modeller.
 tools: Bash, Read, Grep, Glob
-model: haiku
+skills: static-analysis
+model: sonnet
 ---
 
 Du er en synkroniseringsekspert for unified-timeline prosjektet.

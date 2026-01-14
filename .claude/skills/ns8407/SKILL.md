@@ -1,6 +1,7 @@
 ---
 name: ns8407
 description: NS 8407:2011 totalentreprisekontrakt. Bruk ved arbeid med KOE, endringsordrer, vederlag eller fristforlengelse.
+allowed-tools: Read, Grep, Glob
 ---
 
 # NS 8407:2011 - Totalentreprisekontrakt

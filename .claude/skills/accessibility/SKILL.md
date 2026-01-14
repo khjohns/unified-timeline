@@ -1,6 +1,7 @@
 ---
 name: accessibility
 description: Tilgjengelighetsverktøy for WCAG-validering. Bruk ved arbeid med farger, kontrast eller UI-komponenter.
+allowed-tools: Bash
 ---
 
 # Tilgjengelighet (Accessibility)

@@ -1,6 +1,7 @@
 ---
 name: docs-update
 description: Dokumentasjonsvedlikehold og synkroniseringssjekk. Bruk etter større endringer, før release, eller når du mistenker utdatert dokumentasjon.
+allowed-tools: Bash, Read, Grep
 ---
 
 # Dokumentasjonsoppdatering

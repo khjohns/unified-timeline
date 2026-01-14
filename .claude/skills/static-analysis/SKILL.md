@@ -1,6 +1,7 @@
 ---
 name: static-analysis
 description: Statiske analyseverktøy for drift-sjekk, sikkerhetsscan og kodekvalitet. Bruk før commit eller for å finne synkroniseringsproblemer.
+allowed-tools: Bash, Read, Grep
 ---
 
 # Statisk Analyse

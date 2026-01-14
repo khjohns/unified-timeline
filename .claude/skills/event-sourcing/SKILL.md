@@ -1,6 +1,7 @@
 ---
 name: event-sourcing
 description: Guide til Event Sourcing arkitekturen. Bruk ved arbeid med events, state-projeksjoner, eller forretningsregler.
+allowed-tools: Read, Grep, Glob
 ---
 
 # Event Sourcing & Datamodell

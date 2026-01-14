@@ -2,6 +2,7 @@
 name: docs-checker
 description: Sjekker dokumentasjon mot kodebasen. Bruk ved mistanke om utdatert dokumentasjon eller før release.
 tools: Read, Grep, Glob, Bash
+skills: docs-update
 model: sonnet
 ---
 

@@ -1,6 +1,6 @@
 # Claude Code Skills og Agents
 
-> Sist oppdatert: 2026-01-13
+> Sist oppdatert: 2026-01-14
 
 Oversikt over implementerte Claude Code skills og agents for unified-timeline prosjektet.
 
@@ -31,13 +31,13 @@ Oversikt over implementerte Claude Code skills og agents for unified-timeline pr
 
 Skills er domenekunnskap som lastes automatisk basert på kontekst.
 
-| Skill | Formål | Når brukes |
-|-------|--------|------------|
-| `event-sourcing` | Event Sourcing arkitektur, tre-spor-modell | Endringer i events, state |
-| `static-analysis` | Drift-sjekk, sikkerhet, kodekvalitet | Før commit, ved endringer |
-| `accessibility` | WCAG-validering, kontrastsjekk | UI-arbeid, farger |
-| `ns8407` | NS 8407:2011 kontraktsreferanse | Forretningsregler, kategorier |
-| `docs-update` | Dokumentasjonsvedlikehold | Etter store endringer |
+| Skill | Formål | allowed-tools |
+|-------|--------|---------------|
+| `event-sourcing` | Event Sourcing arkitektur, tre-spor-modell | Read, Grep, Glob |
+| `static-analysis` | Drift-sjekk, sikkerhet, kodekvalitet | Bash, Read, Grep |
+| `accessibility` | WCAG-validering, kontrastsjekk | Bash |
+| `ns8407` | NS 8407:2011 kontraktsreferanse | Read, Grep, Glob |
+| `docs-update` | Dokumentasjonsvedlikehold | Bash, Read, Grep |
 
 ### Bruk
 
@@ -55,11 +55,11 @@ Skills aktiveres automatisk når Claude oppdager relevant kontekst, eller via `/
 
 Agents er spesialiserte subagents som kjører i isolert kontekst.
 
-| Agent | Modell | Formål |
-|-------|--------|--------|
-| `event-expert` | sonnet | Ekspert på Event Sourcing og NS 8407 |
-| `drift-checker` | sonnet | Sjekker frontend/backend synkronisering |
-| `docs-checker` | sonnet | Validerer dokumentasjon mot kode |
+| Agent | Modell | Formål | Skills |
+|-------|--------|--------|--------|
+| `event-expert` | sonnet | Ekspert på Event Sourcing og NS 8407 | event-sourcing, ns8407 |
+| `drift-checker` | sonnet | Sjekker frontend/backend synkronisering | static-analysis |
+| `docs-checker` | sonnet | Validerer dokumentasjon mot kode | docs-update |
 
 ### Bruk
 
