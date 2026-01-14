@@ -1,6 +1,6 @@
 # Dalux-Catenda Integrasjon
 
-> **Sist oppdatert:** 2026-01-14 (brukeroppslag, historikk-mapping)
+> **Sist oppdatert:** 2026-01-14 (RUH7 gap-analyse, API-kartlegging)
 > **Status:** Fase 2 implementert med berikede beskrivelser, avventer avklaringer fra OBF
 
 ---
@@ -23,10 +23,15 @@ Enveis-integrasjon fra Dalux Build til Catenda for synkronisering av tasks og do
 
 ### API-dekning (Dalux → Catenda)
 
-| Saksalder | Dekning | Kommentar |
-|-----------|---------|-----------|
-| Eldre saker (RUH1-55) | ~85% | Full historikk via Changes API |
-| Nyere saker (RUH58+) | ~60% | Historikk mangler pga API-begrensning |
+| Saksalder | Nåværende | Potensial | Kommentar |
+|-----------|-----------|-----------|-----------|
+| Eldre saker (RUH1-55) | ~85% | **~95%** | Med firma- og entrepriseoppslag |
+| Nyere saker (RUH58+) | ~60% | ~65% | Historikk mangler pga API-begrensning |
+
+**Nye endepunkter identifisert:**
+- `/3.1/projects/{id}/companies` - Firmanavn fra companyId
+- `/1.0/projects/{id}/workpackages` - Entreprisenavn fra workpackageId
+- `/5.1/projects` - Prosjektnavn
 
 ---
 
@@ -298,11 +303,13 @@ https://{node}.field.dalux.com/service/api/{versjon}/{endepunkt}
 | `GET /3.4/projects/{id}/tasks/{taskId}` | Enkelt task | Ved behov |
 | `GET /1.1/projects/{id}/tasks/attachments` | Vedlegg på tasks | Vedleggsliste |
 
-**Brukere:**
+**Brukere og firmaer:**
 
 | Endepunkt | Beskrivelse | Bruk |
 |-----------|-------------|------|
-| `GET /1.2/projects/{id}/users` | Prosjektbrukere | Oppslag userId → navn |
+| `GET /1.2/projects/{id}/users` | Prosjektbrukere | Oppslag userId → navn, companyId |
+| `GET /3.1/projects/{id}/companies` | Firmaer på prosjekt | Oppslag companyId → firmanavn |
+| `GET /1.0/projects/{id}/workpackages` | Entrepriser/arbeidspakker | Oppslag workpackageId → entreprisenavn |
 
 **Filer og dokumenter:**
 
@@ -318,12 +325,16 @@ https://{node}.field.dalux.com/service/api/{versjon}/{endepunkt}
 |----------|--------|-----------|
 | Task grunndata | ✅ | Alle felt tilgjengelig |
 | Egendefinerte felt | ✅ | Alle verdier inkl. referanser |
-| Project users | ✅ | Brukeroppslag (userId → navn) fungerer |
+| Project users | ✅ | Brukeroppslag (userId → navn, companyId) fungerer |
+| **Companies** | ✅ | Firmaoppslag (companyId → firmanavn) fungerer |
+| **Workpackages** | ✅ | Entrepriseoppslag (workpackageId → navn) fungerer |
 | Task changes (historikk) | ⚠️ | Kun 100 eldste, paginering ignoreres |
 | File Areas | ✅ | Liste og nedlasting fungerer |
 | Task attachments | ⚠️ | Liste OK, nedlasting krever utvidede rettigheter |
 | Lokasjonsbilder | ⚠️ | Liste OK, nedlasting krever utvidede rettigheter |
 | Kommentarer | ❌ | Finnes ikke i Dalux API |
+| **Stedfortreder** | ❌ | Ikke i API (deputy/substitute) |
+| **Prosjektnummer** | ❌ | Kun projectName, ikke nummer |
 
 ---
 
@@ -497,7 +508,7 @@ since-parameter:          Ignoreres
 Paginering:               Ikke støttet
 ```
 
-### Feltsammenligning (RUH145)
+### Feltsammenligning (RUH145 - nyere sak)
 
 | Felt | PDF | API | Status |
 |------|-----|-----|--------|
@@ -516,6 +527,127 @@ Paginering:               Ikke støttet
 | **Ansvarlig** | (Godkjent, lukket) | – | ❌ |
 | **Beskrivelse** | "Denne lå oppe på rampe..." | – | ❌ |
 | **Historikk** | 3 hendelser | – | ❌ |
+
+### Feltsammenligning (RUH7 - eldre sak, juli 2025)
+
+RUH7 er innenfor Changes API-grensen og gir **~80% dekning**.
+
+#### Metadata
+
+| Felt | PDF | API | Status |
+|------|-----|-----|--------|
+| Nummer | RUH7 | `number` | ✅ |
+| Tittel | Manglende sikring av kant | `subject` | ✅ |
+| Type | RUH | `type.name` | ✅ |
+| Prosjekt | Stovner skole | – | ⚠️ Ikke i task, separat kall |
+| Prosjekt nr. | 12200037 | – | ❌ |
+| Bygning | Tilbygg | `location.building.name` | ✅ |
+| Etasje | Plan U1 | `location.level.name` | ✅ |
+| Tegning | Orienterende plantegning 1. Underetasje (Versjon 3) | `location.drawing.name` | ✅ |
+| Koordinater | 108.81, 86.62, 194.10 | `location.coordinate.xyz` | ✅ |
+| **Entreprise** | 303 Graving og sprenging | `workpackageId` (kun ID) | ⚠️ |
+| Arbeidsforløp | 3.1 RUH til UE | `workflow.name` | ✅ |
+| Opprettelsesdato | 2. jul. 2025, 12:45 | `created` | ✅ |
+| Tidsfrist | 3. jul 2025 | `changes[0].fields.deadline` | ✅ |
+| Opprettet av | Erik Henriksen, Advansia AS | `createdBy.userId` → user lookup | ✅ (kun navn) |
+| **Ansvarlig** | (Godkjent, lukket) | – | ❌ |
+
+#### Egendefinerte felt
+
+| Felt | PDF | API | Status |
+|------|-----|-----|--------|
+| Tiltak | Her må det settes opp en sperring... | `userDefinedFields.items[]` | ✅ |
+| Klassifisering | Farlig forhold (Ingenting har skjedd) | ✅ | ✅ |
+| Status tiltak | Tiltak er tilfredsstillende | ✅ | ✅ |
+| Risikoområde | Grønn | `"Green"` | ✅ |
+| Fokusområde | 82 Grøfter og skråninger | ✅ | ✅ |
+
+#### Historikk (4 hendelser)
+
+| Hendelse | PDF | API | Status |
+|----------|-----|-----|--------|
+| 1. 2025-07-02 12:45 - Opprettet | ✅ | `changes[0]` | ✅ |
+| Oppdatert av | Erik Henriksen, Advansia AS | `modifiedBy.userId` → navn | ✅ (uten firma) |
+| Tildelt | Eirik Strøm-Storaker, Betonmast Oslo AS | `currentResponsible.userId` → navn | ✅ (uten firma) |
+| Tildelt til (rolle) | Betonmast Oslo AS | `assignedTo.roleName` | ⚠️ Kun rollenavn |
+| Beskrivelse | "Det er her langt ned til bunne..." | `changes[].description` | ✅ |
+| 2. 2025-07-02 17:53 - Videresendt | ✅ | `changes[1]` | ✅ |
+| **Stedfortreder for** | Eirik Strøm-Storaker | – | ❌ |
+| Entreprise: før → etter | 00 Byggherre → 303 Graving | `workpackageId` endret | ⚠️ Kun ID |
+| Arbeidsforløp: før → etter | 3. RUH fra BH → 3.1 RUH til UE | – | ❌ Kun nåværende |
+| 3. 2025-07-04 13:29 - Oppdatert | ✅ | `changes[2]` | ✅ |
+| Risikoområde: Gul → Grønn | ✅ | Kun ny verdi | ⚠️ |
+| 4. 2025-07-09 15:02 - Godkjent | ✅ | `changes[3]` | ✅ |
+| **Stedfortreder for** | Eirik Strøm-Storaker | – | ❌ |
+| action: approve | ✅ | ✅ | ✅ |
+
+#### Vedlegg (3 stk)
+
+| Felt | PDF | API | Status |
+|------|-----|-----|--------|
+| Bilde 1.1 | 2025-07-02, 11.34 | `attachments[0]` | ✅ |
+| Bilde 1.2 | 2025-07-02, 11.34 | `attachments[1]` | ✅ |
+| Bilde 4.1 | – | `attachments[2]` | ✅ |
+| **Annotasjon** | "Sikres iht. faktaark" | – | ❌ |
+| **Sekvensnummer** | 1.1, 1.2, 4.1 | – | ❌ |
+| **Kobling til hendelse** | – | – | ❌ |
+
+### Kritiske mangler identifisert og løst
+
+| Manglende data | PDF viser | API-løsning | Status |
+|----------------|-----------|-------------|--------|
+| **Prosjektnavn** | "Stovner skole" | `GET /5.1/projects` → `projectName` | ✅ Tilgjengelig |
+| **Prosjektnummer** | "12200037" | Ikke i API | ❌ Mangler |
+| **Firmanavn** | "Betonmast Oslo AS" | `GET /3.1/projects/{id}/companies` + `users[].companyId` | ✅ Tilgjengelig |
+| **Entreprise-navn** | "303 Graving og sprenging" | `GET /1.0/projects/{id}/workpackages` → `name` | ✅ Tilgjengelig |
+| **Stedfortreder** | "Stedfortreder for: X" | Ikke i API (bekreftet i OpenAPI spec) | ❌ Mangler |
+| **Workflow-endringer** | "før → etter" | Kun nåværende verdi | ❌ Mangler |
+| **Bilde-annotasjoner** | Tekst-overlay | Ikke i API | ❌ Mangler |
+
+### API-kartlegging (verifisert 2026-01-14)
+
+#### Nye endepunkter som kan brukes
+
+| Endepunkt | Versjon | Data | Eksempel |
+|-----------|---------|------|----------|
+| `/projects` | 5.1 | Prosjektnavn | `"Stovner skole"` |
+| `/projects/{id}/companies` | 3.1 | Firmanavn fra companyId | `80114481806` → `"Betonmast Oslo AS"` |
+| `/projects/{id}/workpackages` | 1.0 | Entreprise-navn fra workpackageId | `68588227614` → `"303 Graving og sprenging"` |
+
+#### Workpackages (26 stk på Stovner skole)
+
+```
+64634399787: 00 Byggherre
+67735523287: 01 Totalentreprenør
+68588227614: 303 Graving og sprenging
+68486333915: 305 Betongarbeider
+67888420660: 306 Prefabrikkerte elementer
+65597732346: 307 Stålkonstruksjoner
+65764491748: 312 Tømrerarbeid
+66697872173: 317 Tekkearbeider
+67746005842: 321 Malerarbeid
+68582401129: 328 Riving
+...
+```
+
+#### Companies (26 stk på Stovner skole)
+
+```
+80114481806: Betonmast Oslo AS
+S326259798427303936: Advansia AS
+S326260404982382592: Oslobygg KF
+S306296086551592960: Sigurd Furulund Maskin AS
+...
+```
+
+#### Felt som forblir utilgjengelige
+
+| Felt | Beskrivelse | Konsekvens |
+|------|-------------|------------|
+| Prosjektnummer | Internt nummeringssystem | Kan ikke vises |
+| Stedfortreder | "Stedfortreder for: X" ved delegering | Tap av kontekst |
+| Workflow før/etter | Kun nåværende verdi, ikke endringshistorikk | Tap av endringsdetaljer |
+| Bilde-annotasjoner | Tekst tegnet på bilder i Dalux | Tap av visuell informasjon |
 
 ---
 
@@ -661,20 +793,44 @@ Erstatte polling med push-basert synk for lavere latens og redusert API-belastni
 
 ### Anbefalte tiltak
 
-1. **Kontakt Dalux support** - Spør om paginering/offset for changes API
-2. ~~**Implementer changes-mapping**~~ ✅ Implementert:
+#### Implementert ✅
+
+1. ~~**Implementer changes-mapping**~~ ✅
    - `changes[].description` → historikk i description
    - `changes[].fields.currentResponsible` → brukeroppslag til navn
    - `changes[].fields.assignedTo.roleName` → rolle i historikk
-3. ~~**Utvid task-mapping**~~ ✅ Implementert:
-   - `location` → ✅ i BCF description
-   - `workflow.name` → ✅ i Saksinfo
-4. ~~**Legg til manglende felt**~~ ✅ Implementert:
-   - `workflow.name` → ✅ arbeidsforløp
-   - `createdBy` → ✅ opprettet av (med brukeroppslag)
-   - `created` → ✅ opprettet dato
-   - `deadline` (fra changes) → ✅ frist
-5. **Lokal event-logg** - Lagre endringer vi gjør selv i Unified Timeline
+2. ~~**Utvid task-mapping**~~ ✅
+   - `location` → i BCF description
+   - `workflow.name` → i Saksinfo
+3. ~~**Legg til manglende felt**~~ ✅
+   - `workflow.name` → arbeidsforløp
+   - `createdBy` → opprettet av (med brukeroppslag)
+   - `created` → opprettet dato
+   - `deadline` (fra changes) → frist
+
+#### Kan implementeres (nye funn)
+
+4. **Implementer firmaoppslag** - Bruk `/3.1/projects/{id}/companies`:
+   - Hent companyId fra bruker via `/1.2/projects/{id}/users`
+   - Slå opp firmanavn fra `/3.1/projects/{id}/companies`
+   - Vis "Erik Henriksen, Advansia AS" i stedet for bare "Erik Henriksen"
+
+5. **Implementer entreprise-navn** - Bruk `/1.0/projects/{id}/workpackages`:
+   - Slå opp workpackageId fra changes-data
+   - Vis "303 Graving og sprenging" i stedet for workpackageId
+
+6. **Implementer prosjektnavn** - Bruk `/5.1/projects`:
+   - Cache prosjektnavn ved oppstart av synk
+   - Inkluder i metadata/saksinfo
+
+#### Krever ekstern avklaring
+
+7. **Kontakt Dalux support** - Spør om:
+   - Paginering/offset for changes API (returnerer kun 100 eldste)
+   - Prosjektnummer-felt (ikke tilgjengelig per nå)
+   - Stedfortreder-informasjon (ikke i API)
+
+8. **Lokal event-logg** - Lagre endringer vi gjør selv i Unified Timeline
 
 ---
 
