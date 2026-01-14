@@ -1978,10 +1978,10 @@ class CatendaClient:
 
             items = response.json()
 
-            # Filtrer ut mapper - sjekk document.type=folder (Catenda-struktur)
+            # Filtrer ut mapper - sjekk både item.type og document.type
             folders = [
                 item for item in items
-                if item.get('document', {}).get('type') == 'folder'
+                if item.get('type') == 'folder' or item.get('document', {}).get('type') == 'folder'
             ]
 
             logger.info(f"📁 Totalt {len(items)} items, fant {len(folders)} mappe(r)")
@@ -2047,9 +2047,10 @@ class CatendaClient:
 
         url = f"{self.base_url}/v2/projects/{project_id}/libraries/{self.library_id}/items"
 
+        # NB: Catenda API krever document.type, ikke bare type på toppnivå
         payload = {
             "name": folder_name,
-            "type": "folder"
+            "document": {"type": "folder"}
         }
 
         if parent_id:

@@ -194,11 +194,12 @@ class CatendaInteractiveMenu:
             print("  7. 🔄 Full KOE-flyt demonstrasjon")
             print("  8. 🏗️  Inspiser BIM-objekt direkte")
             print("  9. 🎛️  Administrer Topic Board (statuser, typer)")
+            print(" 10. 📁 Håndter mapper (liste, opprett, naviger)")
             print("  0. 🚪 Avslutt")
             print()
 
-            choice = input("Velg (0-9): ").strip()
-            
+            choice = input("Velg (0-10): ").strip()
+
             if choice == "1":
                 self.menu_topics()
             elif choice == "2":
@@ -217,6 +218,8 @@ class CatendaInteractiveMenu:
                 self.action_inspect_bim_object()
             elif choice == "9":
                 self.menu_topic_boards()
+            elif choice == "10":
+                self.menu_folders()
             elif choice == "0":
                 print("\n👋 Ha det!")
                 sys.exit(0)
@@ -2223,20 +2226,95 @@ class CatendaInteractiveMenu:
         print("❌ Ugyldig valg")
         return None
 
-    def _create_folder_interactive(self) -> Optional[str]:
+    def _create_folder_interactive(self, parent_id: Optional[str] = None) -> Optional[str]:
         """Opprett mappe interaktivt"""
         folder_name = input("Mappenavn: ").strip()
         if not folder_name:
             print("❌ Mappenavn er påkrevd")
             return None
 
-        result = self.tester.create_folder(self.project_id, folder_name)
+        result = self.tester.create_folder(self.project_id, folder_name, parent_id=parent_id)
         if result:
             print(f"✅ Mappe opprettet: {result['id']}")
             return result['id']
 
         print("❌ Kunne ikke opprette mappe")
         return None
+
+    def menu_folders(self):
+        """Meny for mappe-håndtering"""
+        # Bruk CATENDA_FOLDER_ID fra config som default parent
+        default_parent = getattr(settings, 'catenda_folder_id', None)
+        current_parent_id = default_parent
+        current_path = "/"
+
+        while True:
+            self.print_header("📁 Mappe-håndtering")
+
+            if not self.library_id:
+                print("⚠️ Library ID er ikke satt. Velger standard 'Documents' bibliotek...")
+                if not self.tester.select_library(self.project_id, "Documents"):
+                    print("❌ Kunne ikke finne/velge 'Documents' bibliotek.")
+                    self.library_id = input("Library ID: ").strip()
+                    if not self.library_id:
+                        print("❌ Library ID er påkrevd")
+                        self.pause()
+                        return
+                self.library_id = self.tester.library_id
+            self.tester.library_id = self.library_id
+
+            # Hent mapper på dette nivået
+            folders = self.tester.list_folders(self.project_id, parent_id=current_parent_id, include_subfolders=False)
+            folders = folders or []
+            folders.sort(key=lambda f: f.get('name', '').lower())
+
+            print(f"📍 Nåværende mappe: {current_path}")
+            if current_parent_id:
+                print(f"   (ID: {current_parent_id})")
+            print()
+            print("MAPPER:")
+            if not folders:
+                print("  (ingen undermapper)")
+            else:
+                for i, folder in enumerate(folders, 1):
+                    print(f"  {i}. 📁 {folder.get('name', 'Uten navn')}")
+            print()
+            print("VALG:")
+            if current_parent_id and current_parent_id != default_parent:
+                print("  0. ⬆️  Opp ett nivå")
+            print("  N. ➕ Opprett ny mappe her")
+            print("  R. 🏠 Gå til rot (config folder)")
+            print("  Q. 🚪 Tilbake til hovedmeny")
+            print()
+
+            choice = input("Velg (nummer for å navigere, N/R/Q): ").strip().lower()
+
+            if choice == 'q':
+                return
+            elif choice == 'r':
+                current_parent_id = default_parent
+                current_path = "/"
+            elif choice == '0' and current_parent_id and current_parent_id != default_parent:
+                # Gå opp - for enkelhets skyld går vi til root
+                current_parent_id = default_parent
+                current_path = "/"
+            elif choice == 'n':
+                new_folder = self._create_folder_interactive(parent_id=current_parent_id)
+                if new_folder:
+                    print(f"\n✅ Ny mappe opprettet med ID: {new_folder}")
+                    self.pause()
+            elif choice.isdigit():
+                idx = int(choice) - 1
+                if 0 <= idx < len(folders):
+                    selected = folders[idx]
+                    current_parent_id = selected.get('id')
+                    current_path = f"{current_path}{selected.get('name')}/"
+                else:
+                    print("❌ Ugyldig valg")
+                    self.pause()
+            else:
+                print("❌ Ugyldig valg")
+                self.pause()
 
     def action_upload_document(self):
         """Last opp dokument til library"""
