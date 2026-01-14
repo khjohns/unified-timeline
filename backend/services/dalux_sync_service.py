@@ -407,6 +407,34 @@ class DaluxSyncService:
         if dalux_task.get("description"):
             description_parts.append(dalux_task["description"])
 
+        # Add metadata section (workflow, createdBy, deadline)
+        metadata_parts = []
+
+        # Workflow/arbeidsforløp
+        workflow = dalux_task.get("workflow", {})
+        if workflow.get("name"):
+            metadata_parts.append(f"- **Arbeidsforløp:** {workflow['name']}")
+
+        # Created by (with user lookup)
+        created_by = dalux_task.get("createdBy", {})
+        if created_by.get("userId"):
+            user_id = created_by["userId"]
+            user_name = (user_lookup or {}).get(user_id, user_id)
+            metadata_parts.append(f"- **Opprettet av:** {user_name}")
+
+        # Created date
+        if dalux_task.get("created"):
+            created_date = dalux_task["created"][:16].replace("T", " ")
+            metadata_parts.append(f"- **Opprettet:** {created_date}")
+
+        # Deadline (extract from changes if available)
+        deadline = self._extract_deadline_from_changes(task_changes or [])
+        if deadline:
+            metadata_parts.append(f"- **Frist:** {deadline}")
+
+        if metadata_parts:
+            description_parts.append("\n---\n**Saksinfo:**\n" + "\n".join(metadata_parts))
+
         # Add user-defined fields if present
         # Structure: {"items": [{"name": "...", "values": [{"text": "..."} or {"reference": {"value": "..."}}]}]}
         user_fields = dalux_task.get("userDefinedFields", {})
@@ -490,6 +518,29 @@ class DaluxSyncService:
 
         if parts:
             return "\n---\n**Lokasjon:**\n" + "\n".join(parts)
+        return None
+
+    def _extract_deadline_from_changes(
+        self,
+        changes: List[Dict[str, Any]]
+    ) -> Optional[str]:
+        """
+        Extract deadline from changes data.
+
+        The deadline is stored in changes[].fields.deadline.value
+
+        Args:
+            changes: List of change dicts
+
+        Returns:
+            Formatted deadline string (YYYY-MM-DD) or None
+        """
+        for change in changes:
+            fields = change.get("fields", {})
+            deadline = fields.get("deadline", {})
+            if deadline.get("value"):
+                # Format: "2025-06-25T07:31:21.0670000+00:00" -> "2025-06-25"
+                return deadline["value"][:10]
         return None
 
     def _format_attachments_for_description(
