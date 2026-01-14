@@ -1,7 +1,7 @@
 # Dalux-Catenda Integrasjon
 
-> **Sist oppdatert:** 2026-01-14 (RUH7 gap-analyse, API-kartlegging)
-> **Status:** Fase 2 implementert med berikede beskrivelser, avventer avklaringer fra OBF
+> **Sist oppdatert:** 2026-01-14 (firma- og entrepriseoppslag implementert)
+> **Status:** Fase 2 komplett med firma/entreprise-berikning, avventer avklaringer fra OBF
 
 ---
 
@@ -23,15 +23,15 @@ Enveis-integrasjon fra Dalux Build til Catenda for synkronisering av tasks og do
 
 ### API-dekning (Dalux → Catenda)
 
-| Saksalder | Nåværende | Potensial | Kommentar |
-|-----------|-----------|-----------|-----------|
-| Eldre saker (RUH1-55) | ~85% | **~95%** | Med firma- og entrepriseoppslag |
-| Nyere saker (RUH58+) | ~60% | ~65% | Historikk mangler pga API-begrensning |
+| Saksalder | Dekning | Kommentar |
+|-----------|---------|-----------|
+| Eldre saker (RUH1-55) | **~95%** | Full berikning med firma/entreprise ✅ |
+| Nyere saker (RUH58+) | ~65% | Historikk mangler pga API-begrensning |
 
-**Nye endepunkter identifisert:**
-- `/3.1/projects/{id}/companies` - Firmanavn fra companyId
-- `/1.0/projects/{id}/workpackages` - Entreprisenavn fra workpackageId
-- `/5.1/projects` - Prosjektnavn
+**Implementerte endepunkter:**
+- `/3.1/projects/{id}/companies` - Firmanavn fra companyId ✅
+- `/1.0/projects/{id}/workpackages` - Entreprisenavn fra workpackageId ✅
+- `/5.1/projects` - Prosjektnavn ✅
 
 ---
 
@@ -693,20 +693,27 @@ S306296086551592960: Sigurd Furulund Maskin AS
 | `number` + `subject` | `title` | ✅ "RUH1 Tittel..." |
 | `type.name` | `topic_type` | ✅ Implementert |
 | `workflow.name` | `description` (Saksinfo) | ✅ Arbeidsforløp |
-| `createdBy.userId` | `description` (Saksinfo) | ✅ Med brukeroppslag |
+| `createdBy.userId` | `description` (Saksinfo) | ✅ Med bruker+firma-oppslag |
 | `created` | `description` (Saksinfo) | ✅ Opprettet dato |
 | `deadline` (fra changes) | `description` (Saksinfo) | ✅ Frist |
 | `userDefinedFields` | `description` (markdown) | ✅ Egendefinerte felt |
 | `location` | `description` (markdown) | ✅ Lokasjon |
 | `attachments` | `description` (liste) | ✅ Vedlegg |
 | `changes[].description` | `description` (historikk) | ✅ Beskrivelser |
+| `changes[].fields.modifiedBy` | `description` (historikk) | ✅ Oppdatert av (med firma) |
 | `changes[].fields.assignedTo.roleName` | `description` (historikk) | ✅ Tildeling |
-| `changes[].fields.currentResponsible` | `description` (historikk) | ✅ Med brukeroppslag |
+| `changes[].fields.currentResponsible` | `description` (historikk) | ✅ Med bruker+firma-oppslag |
+| `changes[].fields.workpackageId` | `description` (historikk) | ✅ Entreprise-navn |
 | `status` | `topic_status` | ⚠️ Default "Open" |
 
-**Brukeroppslag:**
-- Project Users API (`/1.2/projects/{id}/users`) brukes til å slå opp navn fra userId
-- Kryptiske IDer som `82349_7E9jqjiOrx1SHAz9` erstattes med navn som "Eirik Strøm-Storaker"
+**Bruker- og firmaoppslag:**
+- Project Users API (`/1.2/projects/{id}/users`) - userId → navn + companyId
+- Project Companies API (`/3.1/projects/{id}/companies`) - companyId → firmanavn
+- Resultat: "Eirik Strøm-Storaker, Betonmast Oslo AS"
+
+**Entrepriseoppslag:**
+- Project Workpackages API (`/1.0/projects/{id}/workpackages`) - workpackageId → navn
+- Resultat: "303 Graving og sprenging" i stedet for ID
 
 ### Testet og verifisert
 
@@ -717,6 +724,10 @@ S306296086551592960: Sigurd Furulund Maskin AS
 - ✅ Vedleggsliste i description (filnavn og dato)
 - ✅ Historikk fra Changes API med full beskrivelse (ingen trunkering)
 - ✅ Brukeroppslag: userId → navn via Project Users API
+- ✅ **Firmaoppslag:** companyId → firmanavn via Project Companies API
+- ✅ **Entrepriseoppslag:** workpackageId → navn via Project Workpackages API
+- ✅ **Beriket historikk:** "Oppdatert av: Ivar Andresen, Betonmast Oslo AS"
+- ✅ **Entreprise i historikk:** "Entreprise: 303 Graving og sprenging"
 - ✅ Type-mapping til gyldige Catenda topic types
 - ✅ Synk-status lagres i Supabase for sporing
 - ✅ File Areas → Catenda bibliotek (nedlasting og opplasting)
@@ -808,16 +819,19 @@ Erstatte polling med push-basert synk for lavere latens og redusert API-belastni
    - `created` → opprettet dato
    - `deadline` (fra changes) → frist
 
-#### Kan implementeres (nye funn)
+#### Nylig implementert ✅
 
-4. **Implementer firmaoppslag** - Bruk `/3.1/projects/{id}/companies`:
-   - Hent companyId fra bruker via `/1.2/projects/{id}/users`
-   - Slå opp firmanavn fra `/3.1/projects/{id}/companies`
-   - Vis "Erik Henriksen, Advansia AS" i stedet for bare "Erik Henriksen"
+4. ~~**Implementer firmaoppslag**~~ ✅ Implementert:
+   - Henter companyId fra bruker via `/1.2/projects/{id}/users`
+   - Slår opp firmanavn fra `/3.1/projects/{id}/companies`
+   - Viser "Erik Henriksen, Advansia AS" i stedet for bare "Erik Henriksen"
 
-5. **Implementer entreprise-navn** - Bruk `/1.0/projects/{id}/workpackages`:
-   - Slå opp workpackageId fra changes-data
-   - Vis "303 Graving og sprenging" i stedet for workpackageId
+5. ~~**Implementer entreprise-navn**~~ ✅ Implementert:
+   - Slår opp workpackageId fra changes-data via `/1.0/projects/{id}/workpackages`
+   - Viser "303 Graving og sprenging" i stedet for workpackageId
+   - Legger til "Oppdatert av:" i historikk med firmanavn
+
+#### Kan implementeres
 
 6. **Implementer prosjektnavn** - Bruk `/5.1/projects`:
    - Cache prosjektnavn ved oppstart av synk
