@@ -690,12 +690,10 @@ class GrunnlagResponsResultat(str, Enum):
 
 class GrunnlagResponsData(BaseModel):
     """BH's respons på grunnlag"""
-    resultat: GrunnlagResponsResultat
-    begrunnelse: str
+    resultat: Optional[GrunnlagResponsResultat]  # Kan være None ved partial update
+    begrunnelse: Optional[str]
     akseptert_kategori: Optional[str]     # Annen kategorisering
-    krever_dokumentasjon: List[str]       # Hva BH trenger
-    varsel_for_sent: bool
-    varsel_begrunnelse: Optional[str]
+    # Støtter partiell oppdatering via original_respons_id
 ```
 
 #### VederlagResponsData
