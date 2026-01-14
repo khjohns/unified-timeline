@@ -215,17 +215,34 @@ def main():
             print(f"   Topic GUID: {topic_guid}")
 
             try:
+                # Prøv først med kompakt GUID
                 doc_ref = catenda.create_document_reference(
                     topic_id=topic_guid,
                     document_guid=document_id,
                     description=f"Fra Dalux: {file_name}"
                 )
 
+                # Hvis kompakt feilet, prøv med formatert UUID
+                if not doc_ref and len(document_id) == 32:
+                    formatted_uuid = (
+                        f"{document_id[0:8]}-"
+                        f"{document_id[8:12]}-"
+                        f"{document_id[12:16]}-"
+                        f"{document_id[16:20]}-"
+                        f"{document_id[20:32]}"
+                    )
+                    print(f"   Prøver formatert UUID: {formatted_uuid}")
+                    doc_ref = catenda.create_document_reference(
+                        topic_id=topic_guid,
+                        document_guid=formatted_uuid,
+                        description=f"Fra Dalux: {file_name}"
+                    )
+
                 if doc_ref:
                     print(f"✅ Document reference opprettet!")
                     print(f"   Reference GUID: {doc_ref.get('guid')}")
                 else:
-                    print("⚠️ Document reference feilet")
+                    print("⚠️ Document reference feilet (begge UUID-format)")
             except Exception as e:
                 print(f"⚠️ Document reference feilet: {e}")
 
