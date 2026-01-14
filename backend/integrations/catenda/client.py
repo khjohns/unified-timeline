@@ -54,7 +54,7 @@ class CatendaClient:
         self.client_secret = client_secret
         self.base_url = "https://api.catenda.com"
         self.access_token: Optional[str] = access_token
-        self.token_expiry: Optional[datetime] = None
+        self.token_expiry: Optional[datetime] = None  # Ikke relevant for manuelt satt token
         self.refresh_token: Optional[str] = None
         
         # Disse fylles inn under testing

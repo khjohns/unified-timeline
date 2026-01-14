@@ -45,16 +45,20 @@ OBF har levert en behovsbeskrivelse for synkronisering mellom Dalux og Catenda. 
 
 | Krav | Status | Kommentar |
 |------|--------|-----------|
-| Vedleggssynk | 🔴 Ikke implementert | Planlagt fase 2 |
+| Vedleggssynk | ✅ Verifisert | File Areas API fungerer, task attachments gir 403 |
 | Filtyper | ✅ Uproblematisk | Catenda støtter alle nevnte formater |
 | Mappekonfigurasjon | 🔴 Ikke implementert | Må utvikles |
-| Automatisk mappeopprettelse | ⚠️ Delvis | Mapper kan opprettes, bibliotek må eksistere |
+| Automatisk mappeopprettelse | ✅ Verifisert | Mapper kan opprettes via API, bibliotek må eksistere |
 
 ### Tekniske begrensninger
 
 **Catenda API:**
 - **Bibliotek (library):** Kan IKKE opprettes via API for dokumenter (kun classification). Må opprettes manuelt i Catenda UI først.
-- **Mapper (folders):** KAN opprettes via API med `POST /v2/projects/{id}/libraries/{libId}/items`
+- **Mapper (folders):** ✅ Verifisert 2026-01-14. Opprettes via API med `POST /v2/projects/{id}/libraries/{libId}/items` med payload `{"name": "...", "document": {"type": "folder"}, "parentId": "..."}`
+
+**Dalux API:**
+- **Task attachments:** Nedlastingslenker returnerer 403 (mangler tilgang med API-nøkkel)
+- **File Areas:** ✅ Verifisert 2026-01-14. Filer kan listes og lastes ned via File Areas API
 
 ### Anbefaling
 
@@ -234,7 +238,7 @@ Varsling kan implementeres via:
 | Område | Implementert | Gap | Prioritet |
 |--------|--------------|-----|-----------|
 | Forutsetninger | 90% | RUH-avklaring | Lav |
-| Dokumenter | 10% | Vedlegg, mappekonfig | **Høy** |
+| Dokumenter | 50% | Mappekonfig, task attachments 403 | **Høy** |
 | Saker/oppgaver | 60% | Scheduler, ID-avklaring | **Høy** |
 | Brukere/GDPR | 50% | GDPR-vurdering | Medium |
 | Modeller | 20% | Kun metadata, ikke kobling | Lav |
