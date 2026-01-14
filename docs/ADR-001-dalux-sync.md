@@ -86,7 +86,7 @@ Systemet må oppdage endringer i Dalux for å synkronisere til Catenda.
 
 ### Fremtidig revisjon
 
-Se `docs/dalux-catenda-integrasjonsplan.md` seksjon "Webhook-støtte" for migrasjonsstrategi.
+Se `docs/dalux-catenda-integrasjon.md` seksjon "Fremtidige utvidelser" for migrasjonsstrategi.
 
 ---
 
@@ -344,7 +344,7 @@ backend/integrations/dalux/
 
 ## Relaterte dokumenter
 
-- [dalux-catenda-integrasjonsplan.md](dalux-catenda-integrasjonsplan.md) - Overordnet integrasjonsplan
+- [dalux-catenda-integrasjon.md](dalux-catenda-integrasjon.md) - Integrasjonsplan og kravvurdering
 - [ARCHITECTURE_AND_DATAMODEL.md](ARCHITECTURE_AND_DATAMODEL.md) - System-arkitektur
 - [SECURITY_ARCHITECTURE.md](SECURITY_ARCHITECTURE.md) - Sikkerhetsarkitektur
 - `backend/migrations/001_dalux_sync_tables.sql` - Database-skjema

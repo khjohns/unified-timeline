@@ -1,0 +1,634 @@
+# Dalux-Catenda Integrasjon
+
+> **Sist oppdatert:** 2026-01-14
+> **Status:** Fase 2 implementert, avventer avklaringer fra OBF
+
+---
+
+## 1. Sammendrag
+
+Enveis-integrasjon fra Dalux Build til Catenda for synkronisering av tasks og dokumenter fra entreprenørens Dalux-prosjekt til byggherrens Catenda-prosjekt.
+
+### Dekningsgrad
+
+| Område | Implementert | Gap | Prioritet |
+|--------|--------------|-----|-----------|
+| Forutsetninger | 90% | RUH-avklaring | Lav |
+| Dokumenter | 50% | Mappekonfig, task attachments krever utvidede API-rettigheter | **Høy** |
+| Saker/oppgaver | 60% | Scheduler, ID-avklaring | **Høy** |
+| Brukere/GDPR | 50% | GDPR-vurdering | Medium |
+| Modeller | 20% | Kun metadata, ikke BIM-kobling | Lav |
+| Synkfrekvens | 40% | Scheduler | **Høy** |
+| Feilhåndtering | 60% | Varsling | Medium |
+
+### API-dekning (Dalux → Catenda)
+
+| Saksalder | Dekning | Kommentar |
+|-----------|---------|-----------|
+| Eldre saker (RUH1-55) | ~85% | Full historikk via Changes API |
+| Nyere saker (RUH58+) | ~60% | Historikk mangler pga API-begrensning |
+
+---
+
+## 2. Bakgrunn og formål
+
+| Aspekt | Beskrivelse |
+|--------|-------------|
+| **Hvem** | Byggherre tilbyr integrasjonstjeneste, entreprenør er Dalux-kunde |
+| **Hvorfor** | Sømløs opplevelse for entreprenør - unngå dobbeltregistrering |
+| **Ansvar** | Entreprenør er kontraktuelt ansvarlig for at data finnes i Catenda |
+| **Fallback** | Ved synk-feil må entreprenør manuelt legge inn i Catenda |
+
+### Forutsetninger
+
+| Krav | Status | Kommentar |
+|------|--------|-----------|
+| Én-veis synk | ✅ Støttet | Dalux API har kun lesetilgang |
+| Catenda som master | ✅ Støttet | Arkitekturen er designet for dette |
+| RUH-unntak | ⚠️ Må avklares | Nåværende impl. synkroniserer RUH som `Warning` |
+
+---
+
+## 3. Kravvurdering
+
+### 3.1 Dokumenter
+
+**OBF-behov:**
+- TE ansvarlig for opplasting i Catenda
+- Automatisk overføring av filer fra TE sin UE
+- Filtyper: Office, punktsky, dwg, dxf, Revit, IFC, smc
+- Mappestruktur: Konfigurerbar mapping (mappe X → mappe Y)
+
+**Vurdering:**
+
+| Krav | Status | Kommentar |
+|------|--------|-----------|
+| Vedleggssynk | ✅ Verifisert | File Areas API fungerer, task attachments gir 403 |
+| Filtyper | ✅ Uproblematisk | Catenda støtter alle nevnte formater |
+| Mappekonfigurasjon | 🔴 Ikke implementert | Må utvikles |
+| Automatisk mappeopprettelse | ✅ Verifisert | Mapper kan opprettes via API |
+
+**Tekniske begrensninger - Dalux (to separate lagringssystemer):**
+
+| Lagring | Beskrivelse | Liste | Nedlasting |
+|---------|-------------|-------|------------|
+| **Task attachments** | Bilder/filer direkte på saker | ✅ OK | ❌ 403 |
+| **Lokasjonsbilder** | Plantegninger med markering | ✅ OK | ❌ 403 |
+| **File Areas** | Prosjektdokumenter (PDF, tegninger) | ✅ OK | ✅ OK |
+
+**NB:** Årsak til 403 er begrensning i API-nøkkelens rettigheter, styres av prosjekteier (entreprenør) i Dalux Admin.
+
+**Tekniske begrensninger - Catenda:**
+- **Bibliotek:** Kan IKKE opprettes via API, må opprettes manuelt i Catenda UI først
+- **Mapper:** ✅ Kan opprettes via API med `POST /v2/projects/{id}/libraries/{libId}/items`
+
+### 3.2 Saker og oppgaver
+
+**OBF-behov:**
+- Utveksling hvert 5. minutt
+- ID-nummer identisk i begge systemer
+- Oppgavelister → forhåndsdefinerte sakslister
+- Felt som ikke finnes skal opprettes automatisk
+
+**Vurdering:**
+
+| Krav | Status | Kommentar |
+|------|--------|-----------|
+| Synk hvert 5 min | ⚠️ Avvik | Implementert med 15 min, ingen scheduler |
+| Identiske ID | ❌ **Ikke mulig** | Dalux: numerisk, Catenda: UUID |
+| Oppgaveliste-mapping | 🔴 Ikke implementert | Krever konfigurasjon |
+| Auto-opprett felt | ❌ **Ikke praktisk** | Krever manuell sakstype-oppsett |
+
+**ID-problemet:**
+- Dalux bruker numerisk ID: `6070718657`
+- Catenda genererer UUID: `a1b2c3d4-e5f6-7890-...`
+- Disse kan IKKE være identiske
+- **Løsning:** Begge ID-er lagres i synk-mapping og kan vises i brukergrensesnittet
+
+**Egendefinerte felt:**
+- Catenda krever at sakstyper/sakslister opprettes manuelt
+- Felt må defineres på forhånd i Catenda UI
+- **Løsning:** Ukjente felt fra Dalux legges i description-feltet som strukturert markdown
+
+### 3.3 Brukere og persondata
+
+**OBF-behov:**
+- Automatisk kobling basert på e-postadresse
+- GDPR må vurderes
+
+**Vurdering:**
+
+| Krav | Status | Kommentar |
+|------|--------|-----------|
+| E-post-kobling | ✅ Implementert | `assignedTo.email` → `assigned_to` |
+| GDPR-vurdering | 🔴 Ikke adressert | Krever juridisk vurdering |
+
+**GDPR-anbefalinger:**
+- Behandlingsgrunnlag for persondata-overføring
+- Databehandleravtale mellom partene
+- Rutiner for sletting ved prosjektslutt
+
+### 3.4 Modeller og BIM
+
+**OBF-behov:**
+- Catenda som master for modeller
+- Modellokasjonsinfo (koordinater) fra Dalux kobles til modell
+- Saker koblet til modell skal få identisk kobling
+
+**Vurdering:**
+
+| Krav | Status | Kommentar |
+|------|--------|-----------|
+| Catenda som modell-master | ✅ OK | Ingen konflikt |
+| Koordinat-kobling | ⚠️ Delvis mulig | Dalux eksponerer XYZ, transformasjon usikker |
+| Sak → modell-kobling | 🔴 Vanskelig | Dalux gir kun objektnavn, ikke IFC GUID |
+
+**Dalux API eksponerer:**
+```
+location:
+  coordinate.xyz: { x, y, z }
+  bimObject: { categoryName, name }
+  building, level, room (referanser)
+```
+
+**Mangler for fullstendig kobling:**
+- Ingen IFC GUID (kun objektnavn)
+- Koordinatsystem er modellspesifikt
+- Ingen viewpoint-data
+
+**Anbefalt løsning:** Synkroniser lokasjonsmeta som strukturert tekst i BCF topic description:
+
+```markdown
+## Lokasjon (fra Dalux)
+- Bygning: Stovner skole - Bygg A
+- Etasje: 2. etasje
+- Rom: 2.034 Klasserom
+- Koordinater: X=12.5, Y=34.2, Z=8.0
+- BIM-objekt: Wall - Innervegg type 1
+```
+
+### 3.5 Synkroniseringsfrekvens
+
+**OBF-behov:**
+- Kontinuerlig synkronisering
+- Helst hvert 5. minutt
+- Minimum én gang daglig
+
+**Vurdering:**
+
+| Krav | Status | Kommentar |
+|------|--------|-----------|
+| Scheduler | 🔴 Ikke implementert | Kun manuell trigger |
+| 5 min intervall | ⚠️ Aggressivt | Mulig API rate limits |
+| Daglig minimum | ✅ Enkelt | Kan settes opp med cron/scheduler |
+
+**Anbefaling:**
+
+| Datatype | Anbefalt intervall | Begrunnelse |
+|----------|-------------------|-------------|
+| Saker/oppgaver | 15 min | Balanse mellom aktualitet og API-belastning |
+| Dokumenter | 30-60 min | Større filer, mindre tidskritisk |
+
+### 3.6 Vedlikehold og feilhåndtering
+
+**OBF-behov:**
+- Fleksibel ved API-endringer
+- Varsling ved synkroniseringsfeil
+- Detaljert feilinfo (hva, hvorfor, hva som ikke ble synket)
+- Info om retry-forsøk
+
+**Vurdering:**
+
+| Krav | Status | Kommentar |
+|------|--------|-----------|
+| Fleksibel arkitektur | ✅ OK | Modulær klient-design |
+| Varsling | 🔴 Ikke implementert | Må utvikles |
+| Feillogging | ✅ Implementert | Logger med detaljer |
+| Retry-logikk | ✅ Implementert | Per task med backoff |
+
+**Varsling kan implementeres via:**
+- E-post ved kritiske feil
+- Dashboard for synk-status
+- Slack/Teams-integrasjon (valgfritt)
+
+---
+
+## 4. Teknisk arkitektur
+
+### Overordnet flyt
+
+```
+┌─────────────────┐         ┌──────────────────────┐         ┌─────────────────┐
+│   Dalux Build   │  poll   │   Unified Timeline   │  push   │    Catenda      │
+│                 │ ──────▶ │    (synk-tjeneste)   │ ──────▶ │                 │
+│  - Tasks        │         │                      │         │  - BCF Topics   │
+│  - Attachments  │         │  - Polling-scheduler │         │  - Documents    │
+│  - Files        │         │  - Mapping-logikk    │         │  - Comments     │
+└─────────────────┘         │  - Konflikt-håndtering│        └─────────────────┘
+                            └──────────────────────┘
+```
+
+### Retningsbegrensninger
+
+| Retning | Status | Kommentar |
+|---------|--------|-----------|
+| Dalux → Catenda | ✅ Mulig | Dalux API har full lesetilgang |
+| Catenda → Dalux | ❌ Ikke mulig | Dalux API har ingen skrivetilgang på tasks |
+
+### Arkitekturbeslutninger
+
+| Beslutning | Valg | Begrunnelse |
+|------------|------|-------------|
+| Synk-retning | Enveis (Dalux → Catenda) | Dalux API har kun lesetilgang |
+| Synk-mekanisme | Polling (15 min) | Dalux støtter ikke webhooks |
+| Trigger | Manuell CLI | Fase 1 MVP, scheduler i Fase 2 |
+| Database | Supabase | Konsistent med eksisterende arkitektur |
+| API-nøkler | Miljøvariabel (.env) | Sikker, følger 12-factor app |
+| Klient-mønster | Speiler CatendaClient | Konsistens og gjenkjennelighet |
+
+---
+
+## 5. Dalux API
+
+### Autentisering
+
+```http
+Header: X-API-KEY: {api_nøkkel}
+```
+
+**API-nøkkel oppsett:**
+```
+Entreprenør (Dalux-kunde):
+1. Firmaadministrator oppretter API-identitet
+2. Gir prosjektnivå-tilgang med passende brukergruppe
+3. Genererer API-nøkkel med utløpsdato
+4. Deler nøkkel sikkert med byggherre
+
+Byggherre:
+1. Lagrer nøkkel i prosjektkonfigurasjon
+2. Aktiverer synk for prosjektet
+```
+
+**Viktig:** Gamle Dalux API-nøkler utløper **28. februar 2026** - alle må over på API-identiteter.
+
+### Base URL
+
+Base URL er **kundespesifikk** og må fås fra Dalux support:
+
+```
+https://{node}.field.dalux.com/service/api/{versjon}/{endepunkt}
+```
+
+| Komponent | Beskrivelse | Eksempel |
+|-----------|-------------|----------|
+| `{node}` | Kundespesifikk server | `node1` |
+| `{versjon}` | API-versjon | `5.1` |
+| `{endepunkt}` | Ressursen | `projects` |
+
+**Stovner skole:** `https://node1.field.dalux.com/service/api/`
+
+### Endepunkter
+
+**Tasks og saker:**
+
+| Endepunkt | Beskrivelse | Bruk |
+|-----------|-------------|------|
+| `GET /5.2/projects/{id}/tasks` | Alle tasks | Initial synk |
+| `GET /2.3/projects/{id}/tasks/changes` | Endringer siden sist | Inkrementell synk |
+| `GET /3.4/projects/{id}/tasks/{taskId}` | Enkelt task | Ved behov |
+| `GET /1.1/projects/{id}/tasks/attachments` | Vedlegg på tasks | Dokumentsynk |
+
+**Filer og dokumenter:**
+
+| Endepunkt | Beskrivelse |
+|-----------|-------------|
+| `GET /5.1/projects/{id}/file_areas` | Liste filområder |
+| `GET /6.0/projects/{id}/file_areas/{areaId}/files` | Liste filer |
+| `GET /2.0/.../files/{id}/revisions/{rev}/content` | Last ned fil |
+
+### API-begrensninger (verifisert januar 2026)
+
+| Funksjon | Status | Kommentar |
+|----------|--------|-----------|
+| Task grunndata | ✅ | Alle felt tilgjengelig |
+| Egendefinerte felt | ✅ | Alle verdier inkl. referanser |
+| Task changes (historikk) | ⚠️ | Kun 100 eldste, paginering ignoreres |
+| File Areas | ✅ | Liste og nedlasting fungerer |
+| Task attachments | ⚠️ | Liste OK, nedlasting krever utvidede rettigheter |
+| Lokasjonsbilder | ⚠️ | Liste OK, nedlasting krever utvidede rettigheter |
+| Kommentarer | ❌ | Finnes ikke i Dalux API |
+
+---
+
+## 6. Datamodell og mapping
+
+### Dalux Task → Catenda BCF Topic
+
+| Dalux (ApiTaskGet) | Catenda (BCF Topic) | Kommentar |
+|--------------------|---------------------|-----------|
+| `taskId` | `guid` | Lagres som ekstern referanse |
+| `subject` | `title` | NB: Dalux bruker `subject`, ikke `title` |
+| `description` | `description` | Direkte mapping |
+| `type.name` | `topic_type` | NB: `type` er objekt med `name`-felt |
+| `status` | `topic_status` | Mapping-tabell |
+| `assignedTo.email` | `assigned_to` | E-post som identifikator |
+| `createdBy.email` | `creation_author` | E-post som identifikator |
+| `created` | `creation_date` | ISO 8601 |
+| `deadline` | `due_date` | ISO 8601 |
+| `userDefinedFields.items` | `description` | Formateres som markdown |
+
+### Type-mapping
+
+| Dalux type | Catenda topic_type |
+|------------|-------------------|
+| `RUH` | `Warning` |
+| `task` | `Info` |
+| `Oppgave produksjon` | `Info` |
+| `safetyissue` | `Error` |
+| `safetyobservation` | `Warning` |
+| `goodpractice` | `Info` |
+| `approval` | `Info` |
+| *(ukjent)* | `Info` (default) |
+
+### Status-mapping
+
+| Dalux status | Catenda topic_status |
+|--------------|---------------------|
+| `Open` | `Open` |
+| `In Progress` | `In Progress` |
+| `Resolved` | `Closed` |
+| `Closed` | `Closed` |
+
+### Synk-metadata (database)
+
+```python
+class DaluxCatendaSyncMapping:
+    id: str                      # Intern ID
+    project_id: str              # Prosjekt-ID (vår)
+    dalux_project_id: str        # Dalux prosjekt-ID
+    catenda_project_id: str      # Catenda prosjekt-ID
+    catenda_board_id: str        # Catenda BCF board-ID
+    dalux_base_url: str          # Dalux API base URL
+    sync_enabled: bool           # Synk aktivert
+    sync_interval_minutes: int   # Polling-intervall
+    last_sync_at: datetime       # Siste synk-tidspunkt
+    last_sync_status: str        # success/failed/partial
+
+class TaskSyncRecord:
+    id: str
+    sync_mapping_id: str         # Referanse til SyncMapping
+    dalux_task_id: str           # Dalux task-ID
+    catenda_topic_guid: str      # Catenda topic GUID
+    sync_status: str             # synced/pending/failed
+    last_error: str              # Feilmelding ved feil
+```
+
+### Synk-flyt per task
+
+```
+1. Hent task fra Dalux
+2. Sjekk om task allerede er synket (via ekstern referanse)
+   ├── Nei: Opprett ny BCF Topic i Catenda
+   └── Ja: Sammenlign og oppdater hvis endret
+3. Hent attachments for task
+4. For hver attachment:
+   ├── Sjekk om allerede synket
+   ├── Last ned fra Dalux
+   ├── Last opp til Catenda Library
+   └── Opprett document_reference på topic
+5. Logg synk-resultat
+6. Oppdater last_sync_timestamp
+```
+
+### Konflikt-håndtering
+
+| Scenario | Håndtering |
+|----------|------------|
+| Task oppdatert i begge systemer | Dalux vinner (enveis-synk) |
+| Task slettet i Dalux | Marker som "Synk deaktivert" i Catenda, ikke slett |
+| Attachment slettet i Dalux | Behold i Catenda (dokumentasjon) |
+| API-feil | Retry med eksponentiell backoff, varsle ved vedvarende feil |
+
+---
+
+## 7. Gap-analyse: API vs PDF-eksport
+
+> Verifisert 2026-01-14 mot RUH1 (eldre) og RUH145 (nyere)
+
+### Eldre saker (RUH1-55): ~85% dekning
+
+For saker opprettet før oktober 2025:
+
+| Kategori | Status | API-felt |
+|----------|--------|----------|
+| Grunndata | ✅ | `number`, `subject`, `type.name`, `workflow.name` |
+| Lokasjon | ✅ | `location.building`, `level`, `coordinate`, `drawing` |
+| Egendefinerte felt | ✅ | `userDefinedFields.items[]` |
+| **Beskrivelser/kommentarer** | ✅ | `changes[].description` |
+| **Ansvarlig** | ✅ | `changes[].fields.currentResponsible` |
+| **Tildeling** | ✅ | `changes[].fields.assignedTo.roleName` |
+| **Endringslogg** | ✅ | `changes[].action`, `timestamp` |
+| Vedlegg | ⚠️ | Liste OK, nedlasting 403 |
+
+**Eksempel RUH1:**
+```
+Changes: 5 stk
+  [2025-06-24] assign → "Fylles" (HMS-leder)
+  [2025-06-24] update
+  [2025-06-24] assign → (HMS-ansvarlig UE)
+  [2025-07-01] complete → "Hullet er tettet og lukket. Utbedret."
+  [2025-07-02] approve
+```
+
+### Nyere saker (RUH58+): ~60% dekning
+
+For saker opprettet etter oktober 2025:
+
+| Kategori | Status | Kommentar |
+|----------|--------|-----------|
+| Grunndata | ✅ | Fungerer |
+| Lokasjon | ✅ | Fungerer |
+| Egendefinerte felt | ✅ | Fungerer |
+| Historikk | ❌ | Changes API returnerer 0 |
+| Beskrivelser | ❌ | Kun via changes |
+| Ansvarlig | ❌ | Kun via changes |
+
+### Rotårsak: Changes API-begrensning
+
+```
+Total changes i systemet: 592
+Returnert fra API:        100 (alltid de eldste)
+Tidsspenn returnert:      2025-06-24 → 2025-10-01
+since-parameter:          Ignoreres
+Paginering:               Ikke støttet
+```
+
+### Feltsammenligning (RUH145)
+
+| Felt | PDF | API | Status |
+|------|-----|-----|--------|
+| Nummer | RUH145 | `number` | ✅ |
+| Tittel | Tilkomst/rømning | `subject` | ✅ |
+| Type | RUH | `type.name` | ✅ |
+| Bygning | Tilbygg | `location.building.name` | ✅ |
+| Etasje | Plan 1 | `location.level.name` | ✅ |
+| Tegning | Riggplan (Versjon 4) | `location.drawing.name` | ✅ |
+| Koordinater | 86.05, 92.00, 199.50 | `location.coordinate.xyz` | ✅ |
+| Soner | Mellombygg Sør | `location.zones[].zone.name` | ✅ |
+| Arbeidsforløp | 3. RUH fra BH | `workflow.name` | ✅ |
+| Egendefinerte felt | 6 stk | `userDefinedFields` | ✅ |
+| **Entreprise** | 00 Byggherre | – | ❌ |
+| **Tidsfrist** | 4. des 2025 | – | ❌ |
+| **Ansvarlig** | (Godkjent, lukket) | – | ❌ |
+| **Beskrivelse** | "Denne lå oppe på rampe..." | – | ❌ |
+| **Historikk** | 3 hendelser | – | ❌ |
+
+---
+
+## 8. Implementeringsstatus
+
+### Fase 1: Grunnleggende infrastruktur ✅
+
+- [x] Opprett `DaluxClient` etter mønster fra `CatendaClient`
+- [x] Implementer autentisering med API-nøkkel
+- [x] Implementer endepunkter for projects, tasks, files, attachments
+- [x] Opprett database-modeller for synk-metadata (Supabase)
+- [x] Opprett interaktiv meny (`dalux_menu.py`) for testing
+
+### Fase 2: Synk-logikk ✅
+
+- [x] Implementer task → topic mapping
+- [x] Implementer `DaluxSyncService` med full synk
+- [x] Verifiser attachment → document synk (File Areas fungerer)
+- [x] Verifiser mappe-opprettelse i Catenda
+- [ ] Opprett polling-scheduler (Azure Functions Timer Trigger)
+- [ ] Implementer inkrementell synk med `/tasks/changes`
+
+### Fase 3: Administrasjon
+
+- [ ] UI for å konfigurere Dalux-integrasjon per prosjekt
+- [x] Lagring av API-nøkkel i `.env`
+- [x] Manuell trigger av synk via CLI og meny
+- [x] Synk-logg og feilrapportering (via logger)
+
+### Fase 4: Produksjonssetting
+
+- [x] Feilhåndtering og retry-logikk (per task)
+- [ ] Varsling ved synk-feil
+- [ ] Monitoring og logging
+- [ ] Dokumentasjon for entreprenører
+
+### Mapping-implementering (kodebasen)
+
+**Fil:** `backend/services/dalux_sync_service.py`
+
+| Dalux-felt | Vår mapping | Status |
+|------------|-------------|--------|
+| `subject` | `title` | ✅ Implementert |
+| `type.name` | `topic_type` | ✅ Implementert |
+| `userDefinedFields` | `description` (appended) | ✅ Implementert |
+| `status` | `topic_status` | ⚠️ Default "Open" |
+| `changes[].description` | – | ⚠️ Tilgjengelig, ikke mappet |
+| `changes[].fields.currentResponsible` | – | ⚠️ Tilgjengelig, ikke mappet |
+| `changes[].fields.assignedTo` | – | ⚠️ Tilgjengelig, ikke mappet |
+| `deadline` | `due_date` | ❌ TODO |
+| `location` | – | ❌ Ikke mappet |
+
+### Testet og verifisert
+
+- ✅ Full synk av RUH-tasks fra Dalux → Catenda BCF topics
+- ✅ Metadata formateres som lesbar markdown i description
+- ✅ Type-mapping til gyldige Catenda topic types
+- ✅ Synk-status lagres i Supabase for sporing
+- ✅ File Areas → Catenda bibliotek (nedlasting og opplasting)
+- ✅ Mappe-opprettelse i Catenda via API
+- ✅ Document reference med formatert UUID
+- ✅ Task changes API gir endringshistorikk for eldre saker
+
+---
+
+## 9. Avklaringer påkrevd fra OBF
+
+| # | Tema | Spørsmål | Alternativ |
+|---|------|----------|------------|
+| 1 | RUH-saker | Hvordan håndtere RUH? | a) Ekskludere, b) Markere spesielt, c) Synkronisere som vanlig |
+| 2 | ID-problemet | Aksepteres at Dalux-ID og Catenda-ID ikke er identiske? | Begge lagres og vises |
+| 3 | Manglende brukere | Hva skjer hvis Dalux-bruker ikke finnes i Catenda? | a) Sak uten tildeling, b) Synk feiler, c) Bruker opprettes |
+| 4 | Synkfrekvens | Er 15 min akseptabelt? | OBF ønsker 5 min, mulig rate limit-problemer |
+| 5 | Egendefinerte felt | Aksepteres at ukjente felt legges i description? | Alternativ: Manuell oppsett per prosjekt |
+| 6 | Modellkobling | Aksepteres metadata-løsning uten direkte viewpoint-kobling? | IFC GUID ikke tilgjengelig fra Dalux |
+| 7 | API-rettigheter | Kan API-nøkkelen få utvidede rettigheter for task attachments? | Styres av entreprenør i Dalux Admin |
+
+---
+
+## 10. Forutsetninger for produksjon
+
+### Manuelt i Catenda
+
+- [ ] Bibliotek opprettet
+- [ ] Sakstyper/sakslister definert med ønskede felt
+- [ ] Topic board konfigurert
+
+### Konfigurasjon
+
+- [ ] Mappemapping (Dalux → Catenda)
+- [ ] Oppgaveliste-mapping
+- [ ] API-nøkler for begge systemer
+
+### Juridisk
+
+- [ ] GDPR-vurdering godkjent
+- [ ] Databehandleravtale på plass
+
+---
+
+## 11. Sikkerhet
+
+| Hensyn | Tiltak |
+|--------|--------|
+| API-nøkkel lagring | Miljøvariabel (.env), aldri i klartekst eller database |
+| Nøkkelrotasjon | Varsle før utløp, støtte enkel oppdatering |
+| Tilgangskontroll | Kun prosjektadmin kan konfigurere integrasjon |
+| Logging | Logg alle synk-operasjoner, men ikke sensitive data |
+| Transport | HTTPS for all kommunikasjon |
+
+---
+
+## 12. Fremtidige utvidelser
+
+### Toveis-synk (hvis Dalux utvider API)
+
+Dersom Dalux legger til skrivetilgang på tasks:
+- Catenda topic-endringer → Dalux task-oppdatering
+- Krever konflikt-håndtering med "sist endret vinner" eller manuell løsning
+
+### Flere datatyper
+
+- Checklists fra Dalux
+- Inspection plans
+- Quality registrations
+
+### Webhook-støtte (hvis Dalux legger til)
+
+Erstatte polling med push-basert synk for lavere latens og redusert API-belastning.
+
+### Anbefalte tiltak
+
+1. **Kontakt Dalux support** - Spør om paginering/offset for changes API
+2. **Implementer changes-mapping** - For eldre saker er data tilgjengelig:
+   - `changes[].description` → BCF comment
+   - `changes[].fields.currentResponsible` → assigned_to
+   - `changes[].fields.assignedTo.roleName` → rolle i description
+3. **Utvid task-mapping** - Legg til `location`, `workflow` i BCF description
+4. **Lokal event-logg** - Lagre endringer vi gjør selv i Unified Timeline
+
+---
+
+## 13. Referanser
+
+- [Dalux Build API v4.13 (SwaggerHub)](https://app.swaggerhub.com/apis-docs/Dalux/DaluxBuild-api/4.13)
+- [API-identiteter i Dalux Build](https://support.dalux.com/hc/en-us/articles/20892369915292-API-identities-in-Dalux-Build-API)
+- [Catenda BCF 3.0 API](https://api.catenda.com/developers/reference/bcf/3.0)
+- [Catenda Document API](https://developers.catenda.com/document-api)
+- Lokal OpenAPI-spec: `docs/Dalux-DaluxBuild-api-4.13-resolved.json`
+- Eksisterende Catenda-integrasjon: `backend/integrations/catenda/`

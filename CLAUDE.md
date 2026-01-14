@@ -111,7 +111,7 @@ Rot-URL `developers.catenda.com` gir ofte 404. Bruk spesifikke undersider:
 
 **Tips:** Bruk WebSearch først for å finne riktige URL-er, deretter WebFetch på spesifikke sider.
 
-Se også: `docs/dalux-catenda-integrasjonsplan.md` for integrasjonsplan og mapping.
+Se også: `docs/dalux-catenda-integrasjon.md` for integrasjonsplan, kravvurdering og mapping.
 
 ## Skills
 
