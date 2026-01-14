@@ -4,7 +4,7 @@ Sync Models - Data models for Dalux → Catenda synchronization.
 These models define the structure for sync configuration and tracking.
 """
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional, Literal
+from typing import Optional, Literal, Dict, Any
 from datetime import datetime
 
 
@@ -35,6 +35,12 @@ class DaluxCatendaSyncMapping(BaseModel):
     # Sync settings
     sync_enabled: bool = Field(default=True, description="Whether sync is enabled")
     sync_interval_minutes: int = Field(default=15, description="Polling interval in minutes")
+
+    # Task filters
+    task_filters: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Task type filter configuration (e.g., {'exclude_types': ['RUH']})"
+    )
 
     # Sync status
     last_sync_at: Optional[datetime] = Field(default=None, description="Last sync timestamp")

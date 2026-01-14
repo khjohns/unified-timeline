@@ -274,6 +274,7 @@ class SyncMappingRepository:
             catenda_board_id=row["catenda_board_id"],
             sync_enabled=row["sync_enabled"],
             sync_interval_minutes=row["sync_interval_minutes"],
+            task_filters=row.get("task_filters"),
             last_sync_at=row.get("last_sync_at"),
             last_sync_status=row.get("last_sync_status"),
             last_sync_error=row.get("last_sync_error"),

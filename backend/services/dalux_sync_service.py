@@ -127,6 +127,10 @@ class DaluxSyncService:
                 tasks = tasks[:limit]
                 logger.info(f"Limited to {len(tasks)} tasks")
 
+            # Apply task type filters
+            tasks = self._apply_task_filters(tasks, mapping)
+            logger.info(f"After filtering: {len(tasks)} tasks")
+
             # Fetch all changes, attachments, users, companies, workpackages, and project name once (for enrichment)
             logger.info("Fetching enrichment data (changes, attachments, users, companies, workpackages, project)...")
             all_changes = self._fetch_all_changes(mapping.dalux_project_id)
@@ -225,6 +229,49 @@ class DaluxSyncService:
         logger.info(f"  Duration: {result.duration_seconds:.2f}s")
 
         return result
+
+    def _apply_task_filters(
+        self,
+        tasks: List[Dict[str, Any]],
+        mapping: DaluxCatendaSyncMapping
+    ) -> List[Dict[str, Any]]:
+        """
+        Filter tasks based on configured filters.
+
+        Args:
+            tasks: List of task dicts from Dalux API
+            mapping: Sync mapping with filter configuration
+
+        Returns:
+            Filtered list of tasks
+        """
+        if not mapping.task_filters:
+            return tasks
+
+        exclude_types = mapping.task_filters.get("exclude_types", [])
+        if not exclude_types:
+            return tasks
+
+        exclude_lower = [t.lower() for t in exclude_types]
+        filtered = []
+
+        for task_item in tasks:
+            task_data = task_item.get("data", {})
+            task_type = task_data.get("type", {})
+
+            # Handle dict format: {"typeId": "...", "name": "RUH"}
+            if isinstance(task_type, dict):
+                type_name = task_type.get("name", "")
+            else:
+                type_name = str(task_type)
+
+            if type_name.lower() not in exclude_lower:
+                filtered.append(task_item)
+            else:
+                logger.debug(f"Filtered out task {task_data.get('taskId')} (type: {type_name})")
+
+        logger.info(f"Filtered {len(tasks) - len(filtered)} tasks by type (excluded: {exclude_types})")
+        return filtered
 
     def _sync_task(
         self,

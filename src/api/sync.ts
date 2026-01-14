@@ -14,6 +14,8 @@ import type {
   SyncHistoryResponse,
   SyncValidationResponse,
   TriggerSyncResponse,
+  TaskFilterConfig,
+  FilterOptionsResponse,
 } from '../types/integration';
 
 // ============================================================
@@ -119,6 +121,39 @@ export async function fetchSyncHistory(
 
   return apiFetch<SyncHistoryResponse>(
     `/api/sync/mappings/${id}/history?${params.toString()}`
+  );
+}
+
+// ============================================================
+// Task Filters
+// ============================================================
+
+/**
+ * Update task filters for a mapping.
+ *
+ * @param id - Mapping ID
+ * @param taskFilters - Filter configuration (or null to remove)
+ */
+export async function updateTaskFilters(
+  id: string,
+  taskFilters: TaskFilterConfig | null
+): Promise<SyncMapping> {
+  return apiFetch<SyncMapping>(`/api/sync/mappings/${id}/filters`, {
+    method: 'PATCH',
+    body: JSON.stringify({ task_filters: taskFilters }),
+  });
+}
+
+/**
+ * Get available task types from Dalux for filter configuration.
+ *
+ * @param id - Mapping ID
+ */
+export async function fetchFilterOptions(
+  id: string
+): Promise<FilterOptionsResponse> {
+  return apiFetch<FilterOptionsResponse>(
+    `/api/sync/mappings/${id}/filter-options`
   );
 }
 

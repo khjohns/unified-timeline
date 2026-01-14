@@ -34,7 +34,7 @@ export function MappingDetailPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const { data: mapping, isLoading, error } = useSyncMapping(id || '');
+  const { data: mapping, isLoading, error, refetch } = useSyncMapping(id || '');
 
   const [showEditModal, setShowEditModal] = useState(false);
   const [showSyncProgressModal, setShowSyncProgressModal] = useState(false);
@@ -140,6 +140,7 @@ export function MappingDetailPage() {
             mapping={mapping}
             onEdit={() => setShowEditModal(true)}
             onTriggerSync={handleTriggerSync}
+            onFiltersUpdated={() => refetch()}
           />
         )}
 

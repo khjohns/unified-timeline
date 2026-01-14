@@ -6,6 +6,14 @@
  */
 
 /**
+ * Task filter configuration for sync mapping.
+ * Used to exclude specific task types from synchronization.
+ */
+export interface TaskFilterConfig {
+  exclude_types?: string[];
+}
+
+/**
  * Dalux-Catenda sync mapping configuration.
  * Links a Dalux project to a Catenda BCF board.
  */
@@ -18,6 +26,7 @@ export interface SyncMapping {
   catenda_board_id: string;
   sync_enabled: boolean;
   sync_interval_minutes: number;
+  task_filters?: TaskFilterConfig;
   last_sync_at?: string;
   last_sync_status?: 'success' | 'failed' | 'partial';
   last_sync_error?: string;
@@ -152,4 +161,13 @@ export interface SyncProgressEvent {
   duration_seconds?: number;
   error?: string;
   message?: string;
+}
+
+/**
+ * Response from filter-options endpoint.
+ * Lists available task types from Dalux.
+ */
+export interface FilterOptionsResponse {
+  types: string[];
+  total_tasks: number;
 }

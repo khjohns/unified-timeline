@@ -15,6 +15,8 @@ import {
   triggerSync,
   fetchSyncHistory,
   testConnection,
+  updateTaskFilters,
+  fetchFilterOptions,
 } from '../api/sync';
 import type {
   SyncMapping,
@@ -22,6 +24,8 @@ import type {
   UpdateSyncMappingRequest,
   SyncMappingsResponse,
   SyncHistoryResponse,
+  TaskFilterConfig,
+  FilterOptionsResponse,
 } from '../types/integration';
 import { STALE_TIME } from '../constants/queryConfig';
 
@@ -173,5 +177,36 @@ export function useToggleSyncEnabled() {
 export function useTestConnection() {
   return useMutation({
     mutationFn: (id: string) => testConnection(id),
+  });
+}
+
+// ============================================================
+// Task Filters
+// ============================================================
+
+/**
+ * Fetch available task types from Dalux for filter configuration.
+ */
+export function useFilterOptions(mappingId: string) {
+  return useQuery<FilterOptionsResponse, Error>({
+    queryKey: [...syncQueryKeys.mapping(mappingId), 'filter-options'],
+    queryFn: () => fetchFilterOptions(mappingId),
+    enabled: !!mappingId,
+    staleTime: STALE_TIME.EXTENDED,
+  });
+}
+
+/**
+ * Update task filters for a mapping.
+ */
+export function useUpdateTaskFilters() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, taskFilters }: { id: string; taskFilters: TaskFilterConfig | null }) =>
+      updateTaskFilters(id, taskFilters),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: syncQueryKeys.mapping(variables.id) });
+    },
   });
 }

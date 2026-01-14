@@ -487,6 +487,100 @@ def sync_history(mapping_id: str):
 
 
 # ============================================================
+# TASK FILTERS
+# ============================================================
+
+@sync_bp.route('/api/sync/mappings/<mapping_id>/filters', methods=['PATCH'])
+@require_csrf
+@require_magic_link
+def update_task_filters(mapping_id: str):
+    """
+    Update task filters for a mapping.
+
+    Request:
+    {
+        "task_filters": {
+            "exclude_types": ["RUH", "safetyissue"]
+        }
+    }
+    or null to remove all filters:
+    {
+        "task_filters": null
+    }
+
+    Response: Updated SyncMapping
+    """
+    try:
+        data = request.json or {}
+        sync_repo = get_sync_repo()
+
+        mapping = sync_repo.get_sync_mapping(mapping_id)
+        if not mapping:
+            return jsonify({'error': 'Mapping not found'}), 404
+
+        task_filters = data.get('task_filters')
+
+        success = sync_repo.update_sync_mapping(mapping_id, {'task_filters': task_filters})
+        if not success:
+            return jsonify({'error': 'Update failed'}), 500
+
+        updated = sync_repo.get_sync_mapping(mapping_id)
+        logger.info(f"Updated task filters for mapping {mapping_id}: {task_filters}")
+        return jsonify(updated.model_dump(mode='json'))
+
+    except Exception as e:
+        logger.error(f"Failed to update filters for {mapping_id}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@sync_bp.route('/api/sync/mappings/<mapping_id>/filter-options', methods=['GET'])
+@require_magic_link
+def get_filter_options(mapping_id: str):
+    """
+    Get available task types from Dalux for filter configuration.
+
+    Fetches tasks from Dalux and extracts unique type names.
+
+    Response:
+    {
+        "types": ["RUH", "Oppgave produksjon", "safetyissue", ...],
+        "total_tasks": 150
+    }
+    """
+    try:
+        sync_repo = get_sync_repo()
+        mapping = sync_repo.get_sync_mapping(mapping_id)
+
+        if not mapping:
+            return jsonify({'error': 'Mapping not found'}), 404
+
+        dalux_client = get_dalux_client(base_url=mapping.dalux_base_url)
+        if not dalux_client:
+            return jsonify({'error': 'Dalux not configured'}), 500
+
+        # Fetch tasks to extract unique types
+        tasks = dalux_client.get_tasks(mapping.dalux_project_id, limit=500)
+
+        types_set = set()
+        for task_item in tasks:
+            task_data = task_item.get("data", {})
+            task_type = task_data.get("type", {})
+            if isinstance(task_type, dict):
+                type_name = task_type.get("name")
+                if type_name:
+                    types_set.add(type_name)
+
+        return jsonify({
+            'types': sorted(list(types_set)),
+            'total_tasks': len(tasks)
+        })
+
+    except Exception as e:
+        logger.error(f"Failed to get filter options for {mapping_id}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+# ============================================================
 # DALUX DATA ACCESS
 # ============================================================
 

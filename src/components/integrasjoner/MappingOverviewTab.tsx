@@ -15,6 +15,7 @@ import {
 } from '../primitives';
 import { useTriggerSync, useTestConnection } from '../../hooks/useSyncMappings';
 import { formatDateTimeCompact } from '../../utils/dateFormatters';
+import { TaskFilterCard } from './TaskFilterCard';
 import type { SyncMapping } from '../../types/integration';
 import { useState } from 'react';
 
@@ -22,6 +23,7 @@ interface MappingOverviewTabProps {
   mapping: SyncMapping;
   onEdit: () => void;
   onTriggerSync: () => void;
+  onFiltersUpdated?: () => void;
 }
 
 function getStatusVariant(status?: string): 'success' | 'danger' | 'warning' | 'neutral' {
@@ -37,7 +39,7 @@ function getStatusVariant(status?: string): 'success' | 'danger' | 'warning' | '
   }
 }
 
-export function MappingOverviewTab({ mapping, onEdit, onTriggerSync }: MappingOverviewTabProps) {
+export function MappingOverviewTab({ mapping, onEdit, onTriggerSync, onFiltersUpdated }: MappingOverviewTabProps) {
   const triggerSyncMutation = useTriggerSync();
   const testConnectionMutation = useTestConnection();
   const [testResult, setTestResult] = useState<{
@@ -164,6 +166,13 @@ export function MappingOverviewTab({ mapping, onEdit, onTriggerSync }: MappingOv
           </Alert>
         )}
       </Card>
+
+      {/* Task Filters */}
+      <TaskFilterCard
+        mappingId={mapping.id!}
+        currentFilters={mapping.task_filters}
+        onFiltersUpdated={onFiltersUpdated ?? (() => {})}
+      />
 
       {/* Metadata */}
       <Card variant="outlined" padding="md">
