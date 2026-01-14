@@ -261,6 +261,309 @@ class DaluxInteractiveMenu:
 
         self.pause()
 
+    def view_full_task_info(self):
+        """Vis ALL tilgjengelig informasjon for en sak"""
+        self.print_header("Komplett saksvisning")
+        self.print_status()
+
+        if not self.current_project_id:
+            print("Velg et prosjekt først (meny 2)")
+            self.pause()
+            return
+
+        # Hent tasks og la bruker velge
+        print("Henter saker...\n")
+        try:
+            tasks = self.client.get_tasks(self.current_project_id, limit=200)
+        except DaluxAPIError as e:
+            print(f"Feil ved henting av tasks: {e}")
+            self.pause()
+            return
+
+        if not tasks:
+            print("Ingen tasks funnet.")
+            self.pause()
+            return
+
+        # Sorter RUH-saker etter nummer
+        ruh_tasks = []
+        other_tasks = []
+        for t in tasks:
+            data = t.get("data", {})
+            number = data.get("number", "")
+            if number.startswith("RUH"):
+                try:
+                    num = int(number.replace("RUH", ""))
+                    ruh_tasks.append((num, t))
+                except ValueError:
+                    other_tasks.append(t)
+            else:
+                other_tasks.append(t)
+
+        ruh_tasks.sort(key=lambda x: x[0])
+        sorted_tasks = [t for _, t in ruh_tasks] + other_tasks
+
+        # Vis de første sakene
+        print(f"Tilgjengelige saker (eldste RUH først):\n")
+        print(f"{'#':<4} {'Nummer':<10} {'Type':<12} {'Tittel':<40}")
+        print("-" * 70)
+
+        display_tasks = sorted_tasks[:20]
+        for i, t in enumerate(display_tasks, 1):
+            data = t.get("data", {})
+            number = data.get("number", "?")[:9]
+            type_obj = data.get("type", {})
+            type_name = type_obj.get("name", "?") if isinstance(type_obj, dict) else "?"
+            subject = data.get("subject", "Untitled")[:39]
+            print(f"{i:<4} {number:<10} {type_name:<12} {subject:<40}")
+
+        if len(sorted_tasks) > 20:
+            print(f"\n... og {len(sorted_tasks) - 20} flere saker")
+
+        print("\nVelg sak (nummer) eller skriv RUH-nummer direkte (f.eks. 'RUH1'):")
+        choice = input("> ").strip()
+
+        if not choice:
+            return
+
+        # Finn valgt task
+        selected_task = None
+        if choice.upper().startswith("RUH"):
+            # Søk etter RUH-nummer
+            for t in tasks:
+                if t.get("data", {}).get("number", "").upper() == choice.upper():
+                    selected_task = t
+                    break
+        else:
+            try:
+                idx = int(choice) - 1
+                if 0 <= idx < len(display_tasks):
+                    selected_task = display_tasks[idx]
+            except ValueError:
+                pass
+
+        if not selected_task:
+            print(f"Fant ikke sak: {choice}")
+            self.pause()
+            return
+
+        task_data = selected_task.get("data", {})
+        task_id = task_data.get("taskId")
+        task_number = task_data.get("number", "?")
+
+        # Hent fullstendige detaljer
+        print(f"\nHenter all data for {task_number}...")
+
+        try:
+            # 1. Task-detaljer
+            task = self.client.get_task(self.current_project_id, task_id)
+            data = task.get("data", {}) if task else task_data
+
+            # 2. Hent ALLE changes og filtrer
+            all_changes = self.client.get_task_changes(
+                self.current_project_id, datetime(2024, 1, 1)
+            )
+            task_changes = [c for c in all_changes if c.get("taskId") == task_id]
+
+            # 3. Hent alle attachments og filtrer
+            all_attachments = self.client.get_task_attachments(self.current_project_id)
+            task_attachments = [a for a in all_attachments if a.get("taskId") == task_id]
+
+        except DaluxAPIError as e:
+            print(f"Feil ved henting av data: {e}")
+            self.pause()
+            return
+
+        # === DISPLAY ===
+        self.clear_screen()
+        print("=" * 80)
+        print(f"  {task_number}: {data.get('subject', 'Ingen tittel')}")
+        print("=" * 80)
+
+        # --- GRUNNDATA ---
+        print("\n┌─ GRUNNDATA " + "─" * 66 + "┐")
+        print(f"│  Task ID:      {task_id}")
+        print(f"│  Nummer:       {data.get('number', 'N/A')}")
+        print(f"│  Tittel:       {data.get('subject', 'N/A')}")
+
+        type_obj = data.get("type", {})
+        type_name = type_obj.get("name") if isinstance(type_obj, dict) else type_obj
+        print(f"│  Type:         {type_name}")
+
+        workflow = data.get("workflow", {})
+        if workflow:
+            print(f"│  Arbeidsflyt:  {workflow.get('name', 'N/A')}")
+
+        print(f"│  Opprettet:    {data.get('created', 'N/A')[:19]}")
+
+        created_by = data.get("createdBy", {})
+        if created_by:
+            print(f"│  Opprettet av: {created_by.get('userId', 'N/A')}")
+
+        if data.get("deadline"):
+            print(f"│  Frist:        {data.get('deadline')[:10]}")
+
+        assigned = data.get("assignedTo", {})
+        if assigned:
+            email = assigned.get("email", assigned.get("userId", "N/A"))
+            print(f"│  Tilordnet:    {email}")
+
+        print("└" + "─" * 78 + "┘")
+
+        # --- LOKASJON ---
+        location = data.get("location", {})
+        if location:
+            print("\n┌─ LOKASJON " + "─" * 67 + "┐")
+
+            building = location.get("building", {})
+            if building:
+                print(f"│  Bygning:      {building.get('name', 'N/A')}")
+
+            level = location.get("level", {})
+            if level:
+                print(f"│  Etasje:       {level.get('name', 'N/A')}")
+
+            room = location.get("room", {})
+            if room:
+                print(f"│  Rom:          {room.get('name', 'N/A')}")
+
+            drawing = location.get("drawing", {})
+            if drawing:
+                print(f"│  Tegning:      {drawing.get('name', 'N/A')}")
+
+            coord = location.get("coordinate", {}).get("xyz", {})
+            if coord:
+                x, y, z = coord.get("x", 0), coord.get("y", 0), coord.get("z", 0)
+                print(f"│  Koordinater:  X={x:.2f}, Y={y:.2f}, Z={z:.2f}")
+
+            zones = location.get("zones", [])
+            if zones:
+                zone_names = [z.get("zone", {}).get("name", "?") for z in zones]
+                print(f"│  Soner:        {', '.join(zone_names)}")
+
+            loc_images = location.get("locationImages", [])
+            if loc_images:
+                print(f"│  Lok.bilder:   {len(loc_images)} stk")
+
+            print("└" + "─" * 78 + "┘")
+
+        # --- EGENDEFINERTE FELT ---
+        udf = data.get("userDefinedFields", {}).get("items", [])
+        if udf:
+            print("\n┌─ EGENDEFINERTE FELT " + "─" * 57 + "┐")
+            for field in udf:
+                name = field.get("name", "Ukjent")
+                values = field.get("values", [])
+                value_strs = []
+                for v in values:
+                    if v.get("text"):
+                        value_strs.append(v["text"])
+                    elif v.get("reference"):
+                        value_strs.append(v["reference"].get("value", "?"))
+                    elif v.get("date"):
+                        value_strs.append(v["date"][:10])
+                value_str = ", ".join(value_strs) if value_strs else "(tom)"
+                # Truncate for display
+                if len(value_str) > 50:
+                    value_str = value_str[:47] + "..."
+                print(f"│  {name[:25]:<25} = {value_str}")
+            print("└" + "─" * 78 + "┘")
+
+        # --- HISTORIKK/CHANGES ---
+        print("\n┌─ HISTORIKK " + "─" * 66 + "┐")
+        if task_changes:
+            print(f"│  {len(task_changes)} endring(er) registrert:")
+            print("│")
+            for c in task_changes:
+                timestamp = c.get("timestamp", "")[:19]
+                action = c.get("action", "?")
+                description = c.get("description", "")
+                fields = c.get("fields", {})
+
+                # Format action
+                action_icons = {
+                    "create": "📝",
+                    "assign": "👤",
+                    "update": "✏️",
+                    "complete": "✅",
+                    "approve": "✓",
+                    "reject": "✗",
+                    "reopen": "🔄",
+                }
+                icon = action_icons.get(action, "•")
+
+                print(f"│  {icon} [{timestamp}] {action.upper()}")
+
+                if description:
+                    # Wrap long descriptions
+                    desc_lines = [description[i:i+60] for i in range(0, len(description), 60)]
+                    for line in desc_lines[:3]:
+                        print(f"│       \"{line}\"")
+                    if len(desc_lines) > 3:
+                        print(f"│       ...")
+
+                # Show who made the change
+                modified_by = fields.get("modifiedBy", {})
+                if modified_by:
+                    print(f"│       Av: {modified_by.get('userId', 'N/A')}")
+
+                # Show assignment info
+                assigned_to = fields.get("assignedTo", {})
+                if assigned_to:
+                    role = assigned_to.get("roleName", assigned_to.get("roleId", ""))
+                    if role:
+                        print(f"│       Tildelt rolle: {role}")
+
+                current_resp = fields.get("currentResponsible", {})
+                if current_resp:
+                    print(f"│       Ansvarlig: {current_resp.get('userId', 'N/A')}")
+
+                print("│")
+        else:
+            print("│  ⚠️  Ingen historikk tilgjengelig (API returnerer kun 100 eldste)")
+            print("│      Denne saken er trolig for ny til å være i API-responsen.")
+        print("└" + "─" * 78 + "┘")
+
+        # --- VEDLEGG ---
+        print("\n┌─ VEDLEGG " + "─" * 68 + "┐")
+        if task_attachments:
+            print(f"│  {len(task_attachments)} vedlegg:")
+            for att in task_attachments:
+                media = att.get("mediaFile", {})
+                name = media.get("name", "Ukjent")
+                created = att.get("created", "")[:19]
+                print(f"│    📎 {name}")
+                print(f"│       Opprettet: {created}")
+        else:
+            print("│  Ingen vedlegg på denne saken")
+        print("└" + "─" * 78 + "┘")
+
+        # --- LOKASJONSBILDER ---
+        loc_images = data.get("location", {}).get("locationImages", [])
+        if loc_images:
+            print("\n┌─ LOKASJONSBILDER " + "─" * 60 + "┐")
+            for img in loc_images:
+                print(f"│  🖼️  {img.get('name', 'N/A')}")
+            print("│  (Nedlasting krever utvidede API-rettigheter)")
+            print("└" + "─" * 78 + "┘")
+
+        # --- OPPSUMMERING ---
+        print("\n" + "=" * 80)
+        has_changes = len(task_changes) > 0
+        has_attachments = len(task_attachments) > 0
+        has_location = bool(location)
+        has_udf = len(udf) > 0
+
+        print("DATATILGJENGELIGHET:")
+        print(f"  Grunndata:        ✅")
+        print(f"  Lokasjon:         {'✅' if has_location else '❌'}")
+        print(f"  Egendefinerte:    {'✅ ' + str(len(udf)) + ' felt' if has_udf else '❌'}")
+        print(f"  Historikk:        {'✅ ' + str(len(task_changes)) + ' endringer' if has_changes else '⚠️  Ikke i API-respons'}")
+        print(f"  Vedlegg:          {'✅ ' + str(len(task_attachments)) + ' stk' if has_attachments else '❌'}")
+        print("=" * 80)
+
+        self.pause()
+
     def view_task_changes(self):
         """Vis endringer siden en dato"""
         self.print_header("Task-endringer")
@@ -557,11 +860,12 @@ class DaluxInteractiveMenu:
         print("\n  1. Test tilkobling")
         print("  2. Velg prosjekt")
         print("  3. Vis tasks")
-        print("  4. Vis task-detaljer")
-        print("  5. Vis task-endringer")
-        print("  6. Vis vedlegg")
-        print("  7. Vis filer")
-        print("  8. Synkroniser til Catenda")
+        print("  4. Vis task-detaljer (enkel)")
+        print("  5. ⭐ Komplett saksvisning (all data)")
+        print("  6. Vis task-endringer")
+        print("  7. Vis vedlegg")
+        print("  8. Vis filer")
+        print("  9. Synkroniser til Catenda")
         print()
         print("  0. Avslutt")
         print()
@@ -600,12 +904,14 @@ class DaluxInteractiveMenu:
             elif choice == "4":
                 self.view_task_details()
             elif choice == "5":
-                self.view_task_changes()
+                self.view_full_task_info()
             elif choice == "6":
-                self.view_attachments()
+                self.view_task_changes()
             elif choice == "7":
-                self.view_files()
+                self.view_attachments()
             elif choice == "8":
+                self.view_files()
+            elif choice == "9":
                 self.run_sync()
             else:
                 print("Ugyldig valg")
