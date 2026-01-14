@@ -6,33 +6,9 @@ This project uses third-party libraries or other resources that may be distribut
 
 ### Oslo Kommune Punkt Design System
 
-This project uses the Oslo Kommune Punkt design system:
-
-- **@oslokommune/punkt-assets** (v13.11.0)
-- **@oslokommune/punkt-css** (v13.13.2)
-- **@oslokommune/punkt-react** (v13.15.2)
-
+**Package:** @oslokommune/punkt-assets
 **License:** MIT License
-
-Copyright (c) Oslo Kommune
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+**Website:** https://punkt.oslo.kommune.no/
 
 ---
 
@@ -45,7 +21,7 @@ SOFTWARE.
 
 ### React Router
 
-**Package:** react-router-dom (v7.9.5)
+**Package:** react-router-dom
 **License:** MIT License
 **Website:** https://reactrouter.com/
 
@@ -53,23 +29,57 @@ SOFTWARE.
 
 ### React PDF
 
-**Packages:**
-- @react-pdf/renderer (v4.3.1)
-- react-pdf (v10.2.0)
-
+**Packages:** @react-pdf/renderer, react-pdf
 **License:** MIT License
 **Website:** https://react-pdf.org/
 
 ---
 
-### jsPDF
+### TanStack React Query
 
-**Packages:**
-- jspdf (v3.0.3)
-- jspdf-autotable (v5.0.2)
-
+**Package:** @tanstack/react-query
 **License:** MIT License
-**Website:** https://github.com/parallax/jsPDF
+**Website:** https://tanstack.com/query
+
+---
+
+### Radix UI
+
+**Packages:** @radix-ui/react-* (dialog, checkbox, accordion, etc.)
+**License:** MIT License
+**Website:** https://www.radix-ui.com/
+
+---
+
+### React Hook Form
+
+**Package:** react-hook-form
+**License:** MIT License
+**Website:** https://react-hook-form.com/
+
+---
+
+### Zod
+
+**Package:** zod
+**License:** MIT License
+**Website:** https://zod.dev/
+
+---
+
+### date-fns
+
+**Package:** date-fns
+**License:** MIT License
+**Website:** https://date-fns.org/
+
+---
+
+### clsx
+
+**Package:** clsx
+**License:** MIT License
+**Website:** https://github.com/lukeed/clsx
 
 ---
 
