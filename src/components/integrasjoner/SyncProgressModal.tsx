@@ -72,31 +72,31 @@ export function SyncProgressModal({ mappingId, onClose }: SyncProgressModalProps
           <div className="bg-pkt-bg-subtle rounded p-4">
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 text-center">
               <div>
-                <div className="text-2xl font-bold text-pkt-text-heading">
+                <div className="text-xl font-bold text-pkt-text-heading">
                   {progress.tasks_processed}
                 </div>
                 <div className="text-xs text-pkt-text-body-subtle">Prosessert</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-alert-success-text">
+                <div className="text-xl font-bold text-alert-success-text">
                   {progress.tasks_created}
                 </div>
                 <div className="text-xs text-pkt-text-body-subtle">Opprettet</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-oslo-blue">
+                <div className="text-xl font-bold text-oslo-blue">
                   {progress.tasks_updated}
                 </div>
                 <div className="text-xs text-pkt-text-body-subtle">Oppdatert</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-pkt-text-body-subtle">
+                <div className="text-xl font-bold text-pkt-text-body-subtle">
                   {progress.tasks_skipped}
                 </div>
                 <div className="text-xs text-pkt-text-body-subtle">Hoppet over</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-alert-danger-text">
+                <div className="text-xl font-bold text-alert-danger-text">
                   {progress.tasks_failed}
                 </div>
                 <div className="text-xs text-pkt-text-body-subtle">Feilet</div>

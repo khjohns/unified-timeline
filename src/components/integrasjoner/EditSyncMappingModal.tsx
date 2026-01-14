@@ -73,7 +73,7 @@ export function EditSyncMappingModal({ mapping, onClose }: EditSyncMappingModalP
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Read-only info */}
         <div className="bg-pkt-bg-subtle rounded p-3">
-          <h4 className="text-xs font-semibold text-pkt-text-body-subtle mb-2 uppercase">
+          <h4 className="text-xs font-semibold text-pkt-text-body-subtle mb-2">
             Konfigurasjon (skrivebeskyttet)
           </h4>
           <DataList variant="list">
@@ -81,10 +81,10 @@ export function EditSyncMappingModal({ mapping, onClose }: EditSyncMappingModalP
               {mapping.dalux_project_id}
             </DataListItem>
             <DataListItem label="Dalux URL">
-              <span className="font-mono text-xs break-all">{mapping.dalux_base_url}</span>
+              <span className="text-xs break-all">{mapping.dalux_base_url}</span>
             </DataListItem>
             <DataListItem label="Catenda prosjekt">
-              {mapping.catenda_project_id}
+              <span className="text-xs break-all">{mapping.catenda_project_id}</span>
             </DataListItem>
           </DataList>
         </div>
@@ -98,7 +98,6 @@ export function EditSyncMappingModal({ mapping, onClose }: EditSyncMappingModalP
           >
             <Input
               {...register('catenda_board_id')}
-              className="font-mono text-sm"
             />
           </FormField>
 

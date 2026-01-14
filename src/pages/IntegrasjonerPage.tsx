@@ -15,6 +15,11 @@ import {
   DataListItem,
   DashboardCard,
   Alert,
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
 } from '../components/primitives';
 import {
   useSyncMappings,
@@ -26,6 +31,8 @@ import {
 import { CreateSyncMappingModal } from '../components/integrasjoner/CreateSyncMappingModal';
 import { EditSyncMappingModal } from '../components/integrasjoner/EditSyncMappingModal';
 import { SyncProgressModal } from '../components/integrasjoner/SyncProgressModal';
+import { fetchSyncHistory } from '../api/sync';
+import { downloadSyncHistoryExcel } from '../utils/syncExcelExport';
 import type { SyncMapping } from '../types/integration';
 
 /**
@@ -97,6 +104,24 @@ export function IntegrasjonerPage() {
     setTestResult({ id: mapping.id!, result });
   };
 
+  const handleExportExcel = async (mapping: SyncMapping) => {
+    try {
+      const historyData = await fetchSyncHistory(mapping.id!, 10000);
+      if (historyData.records.length === 0) {
+        alert('Ingen synkroniseringshistorikk å eksportere.');
+        return;
+      }
+      downloadSyncHistoryExcel({
+        mapping,
+        records: historyData.records,
+        summary: historyData.summary,
+      });
+    } catch (error) {
+      console.error('Eksport feilet:', error);
+      alert('Kunne ikke eksportere synkroniseringshistorikk.');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-pkt-bg-subtle">
       <PageHeader
@@ -159,7 +184,7 @@ export function IntegrasjonerPage() {
                 }
                 variant="outlined"
                 action={
-                  <div className="flex gap-2 flex-wrap">
+                  <div className="flex gap-2 items-center justify-between w-full">
                     <Button
                       variant="primary"
                       size="sm"
@@ -168,21 +193,47 @@ export function IntegrasjonerPage() {
                     >
                       Synkroniser
                     </Button>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => setEditingMapping(mapping)}
-                    >
-                      Rediger
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleToggleEnabled(mapping)}
-                      disabled={toggleEnabledMutation.isPending}
-                    >
-                      {mapping.sync_enabled ? 'Deaktiver' : 'Aktiver'}
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="secondary" size="sm" aria-label="Flere handlinger">
+                          ⋮
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem onClick={() => setEditingMapping(mapping)}>
+                          Rediger
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleTestConnection(mapping)}
+                          disabled={testConnectionMutation.isPending}
+                        >
+                          Test tilkobling
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleTriggerSync(mapping, true)}
+                          disabled={!mapping.sync_enabled}
+                        >
+                          Full synkronisering
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleExportExcel(mapping)}>
+                          Eksporter til Excel
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => handleToggleEnabled(mapping)}
+                          disabled={toggleEnabledMutation.isPending}
+                        >
+                          {mapping.sync_enabled ? 'Deaktiver' : 'Aktiver'}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          variant="danger"
+                          onClick={() => handleDelete(mapping)}
+                          disabled={deleteMutation.isPending}
+                        >
+                          Slett
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 }
               >
@@ -191,7 +242,9 @@ export function IntegrasjonerPage() {
                     {mapping.dalux_project_id}
                   </DataListItem>
                   <DataListItem label="Catenda board">
-                    <span className="font-mono text-xs">{mapping.catenda_board_id.substring(0, 12)}...</span>
+                    <span className="text-xs truncate max-w-[180px] inline-block" title={mapping.catenda_board_id}>
+                      {mapping.catenda_board_id}
+                    </span>
                   </DataListItem>
                   <DataListItem label="Intervall">
                     {mapping.sync_interval_minutes} min
@@ -217,52 +270,23 @@ export function IntegrasjonerPage() {
 
                 {/* Test result */}
                 {testResult && testResult.id === mapping.id && (
-                  <div className={`mt-3 p-2 rounded text-sm ${
-                    testResult.result.dalux_ok && testResult.result.catenda_ok
-                      ? 'bg-alert-success-bg border border-alert-success-border'
-                      : 'bg-alert-danger-bg border border-alert-danger-border'
-                  }`}>
+                  <Alert
+                    variant={testResult.result.dalux_ok && testResult.result.catenda_ok ? 'success' : 'danger'}
+                    className="mt-3"
+                  >
                     <div className="flex gap-4">
                       <span>Dalux: {testResult.result.dalux_ok ? 'OK' : 'Feilet'}</span>
                       <span>Catenda: {testResult.result.catenda_ok ? 'OK' : 'Feilet'}</span>
                     </div>
                     {testResult.result.errors.length > 0 && (
-                      <ul className="mt-1 text-xs">
+                      <ul className="mt-1 text-xs list-disc list-inside">
                         {testResult.result.errors.map((err, i) => (
                           <li key={i}>{err}</li>
                         ))}
                       </ul>
                     )}
-                  </div>
+                  </Alert>
                 )}
-
-                {/* Secondary actions */}
-                <div className="mt-3 flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleTestConnection(mapping)}
-                    disabled={testConnectionMutation.isPending}
-                  >
-                    Test tilkobling
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleTriggerSync(mapping, true)}
-                    disabled={!mapping.sync_enabled}
-                  >
-                    Full synk
-                  </Button>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={() => handleDelete(mapping)}
-                    disabled={deleteMutation.isPending}
-                  >
-                    Slett
-                  </Button>
-                </div>
               </DashboardCard>
             ))}
           </div>

@@ -58,6 +58,14 @@ export {
 
 // Navigation
 export { Tabs } from './Tabs';
+export {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from './DropdownMenu';
 
 // Feedback
 export { ToastProvider, useToast } from './Toast';
