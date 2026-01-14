@@ -56,9 +56,19 @@ OBF har levert en behovsbeskrivelse for synkronisering mellom Dalux og Catenda. 
 - **Bibliotek (library):** Kan IKKE opprettes via API for dokumenter (kun classification). Må opprettes manuelt i Catenda UI først.
 - **Mapper (folders):** ✅ Verifisert 2026-01-14. Opprettes via API med `POST /v2/projects/{id}/libraries/{libId}/items` med payload `{"name": "...", "document": {"type": "folder"}, "parentId": "..."}`
 
-**Dalux API:**
-- **Task attachments:** Nedlastingslenker returnerer 403 (mangler tilgang med API-nøkkel)
-- **File Areas:** ✅ Verifisert 2026-01-14. Filer kan listes og lastes ned via File Areas API
+**Dalux API - to separate lagringssystemer:**
+
+| Lagring | Beskrivelse | Liste | Nedlasting |
+|---------|-------------|-------|------------|
+| **Task attachments** | Bilder/filer direkte på saker | ✅ OK | ❌ 403 |
+| **Lokasjonsbilder** | Plantegninger med markering | ✅ OK | ❌ 403 |
+| **File Areas** | Prosjektdokumenter (PDF, tegninger) | ✅ OK | ✅ OK |
+
+**NB:** Task attachments og File Areas er **separate systemer** i Dalux. Saksvedlegg finnes IKKE i File Areas.
+
+**Årsak til 403:** Dette er sannsynligvis en **begrensning i API-nøkkelens rettigheter**, ikke i selve API-et. Dalux API-nøkler kan ha ulike tilgangsnivåer. For å laste ned task attachments må API-nøkkelen ha utvidede rettigheter.
+
+**Anbefaling:** Avklar med Dalux support om API-nøkkelen kan oppgraderes til å inkludere nedlasting av task attachments og lokasjonsbilder.
 
 ### Anbefaling
 
@@ -238,7 +248,7 @@ Varsling kan implementeres via:
 | Område | Implementert | Gap | Prioritet |
 |--------|--------------|-----|-----------|
 | Forutsetninger | 90% | RUH-avklaring | Lav |
-| Dokumenter | 50% | Mappekonfig, task attachments 403 | **Høy** |
+| Dokumenter | 50% | Mappekonfig, task attachments krever utvidede API-rettigheter | **Høy** |
 | Saker/oppgaver | 60% | Scheduler, ID-avklaring | **Høy** |
 | Brukere/GDPR | 50% | GDPR-vurdering | Medium |
 | Modeller | 20% | Kun metadata, ikke kobling | Lav |
@@ -253,6 +263,7 @@ Varsling kan implementeres via:
 4. **Synkfrekvens:** Er 15 min akseptabelt, eller er 5 min absolutt krav?
 5. **Egendefinerte felt:** Aksepteres at ukjente felt legges i description?
 6. **Modellkobling:** Aksepteres metadata-løsning uten direkte viewpoint-kobling?
+7. **Dalux API-rettigheter:** Kan API-nøkkelen oppgraderes til å inkludere nedlasting av task attachments og lokasjonsbilder? (Krever avklaring med Dalux support)
 
 ### Forutsetninger for produksjon
 
