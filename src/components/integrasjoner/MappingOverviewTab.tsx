@@ -59,7 +59,7 @@ export function MappingOverviewTab({ mapping, onEdit, onTriggerSync, onFiltersUp
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {/* Venstre kolonne */}
       <div className="space-y-6">
         {/* Konfigurasjon */}
@@ -90,6 +90,18 @@ export function MappingOverviewTab({ mapping, onEdit, onTriggerSync, onFiltersUp
               </Badge>
             </DataListItem>
           </DataList>
+
+          {/* Metadata */}
+          <div className="mt-4 pt-4 border-t border-pkt-border-default">
+            <DataList variant="list">
+              <DataListItem label="Opprettet">
+                {formatDateTimeCompact(mapping.created_at)}
+              </DataListItem>
+              <DataListItem label="Oppdatert">
+                {formatDateTimeCompact(mapping.updated_at)}
+              </DataListItem>
+            </DataList>
+          </div>
         </Card>
 
         {/* Task Filters */}
@@ -102,11 +114,13 @@ export function MappingOverviewTab({ mapping, onEdit, onTriggerSync, onFiltersUp
 
       {/* Høyre kolonne */}
       <div className="space-y-6">
-        {/* Synk Status */}
+        {/* Synkronisering (status + handlinger) */}
         <Card variant="outlined" padding="md">
-          <h3 className="text-lg font-semibold text-pkt-text-heading mb-4">Siste synkronisering</h3>
+          <h3 className="text-lg font-semibold text-pkt-text-heading mb-4">Synkronisering</h3>
+
+          {/* Status */}
           <DataList variant="list">
-            <DataListItem label="Tidspunkt">
+            <DataListItem label="Siste synk">
               {formatDateTimeCompact(mapping.last_sync_at, 'Aldri')}
             </DataListItem>
             {mapping.last_sync_status && (
@@ -123,39 +137,38 @@ export function MappingOverviewTab({ mapping, onEdit, onTriggerSync, onFiltersUp
               {mapping.last_sync_error}
             </Alert>
           )}
-        </Card>
 
-        {/* Handlinger */}
-        <Card variant="outlined" padding="md">
-          <h3 className="text-lg font-semibold text-pkt-text-heading mb-4">Handlinger</h3>
-          <div className="flex flex-wrap gap-3">
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => handleTriggerSync(false)}
-              disabled={!mapping.sync_enabled || triggerSyncMutation.isPending}
-            >
-              Synkroniser nå
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => handleTriggerSync(true)}
-              disabled={!mapping.sync_enabled || triggerSyncMutation.isPending}
-            >
-              Full synkronisering
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleTestConnection}
-              disabled={testConnectionMutation.isPending}
-            >
-              Test tilkobling
-            </Button>
-            <Button variant="secondary" size="sm" onClick={onEdit}>
-              Rediger
-            </Button>
+          {/* Handlinger */}
+          <div className="mt-4 pt-4 border-t border-pkt-border-default">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => handleTriggerSync(false)}
+                disabled={!mapping.sync_enabled || triggerSyncMutation.isPending}
+              >
+                Synkroniser
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => handleTriggerSync(true)}
+                disabled={!mapping.sync_enabled || triggerSyncMutation.isPending}
+              >
+                Full synk
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleTestConnection}
+                disabled={testConnectionMutation.isPending}
+              >
+                Test
+              </Button>
+              <Button variant="secondary" size="sm" onClick={onEdit}>
+                Rediger
+              </Button>
+            </div>
           </div>
 
           {/* Test Result */}
@@ -177,19 +190,6 @@ export function MappingOverviewTab({ mapping, onEdit, onTriggerSync, onFiltersUp
               )}
             </Alert>
           )}
-        </Card>
-
-        {/* Metadata */}
-        <Card variant="outlined" padding="md">
-          <h3 className="text-lg font-semibold text-pkt-text-heading mb-4">Metadata</h3>
-          <DataList variant="list">
-            <DataListItem label="Opprettet">
-              {formatDateTimeCompact(mapping.created_at)}
-            </DataListItem>
-            <DataListItem label="Oppdatert">
-              {formatDateTimeCompact(mapping.updated_at)}
-            </DataListItem>
-          </DataList>
         </Card>
       </div>
     </div>
