@@ -1,7 +1,7 @@
 # Dalux-Catenda Integrasjon
 
-> **Sist oppdatert:** 2026-01-14
-> **Status:** Fase 2 implementert, avventer avklaringer fra OBF
+> **Sist oppdatert:** 2026-01-14 (brukeroppslag, historikk-mapping)
+> **Status:** Fase 2 implementert med berikede beskrivelser, avventer avklaringer fra OBF
 
 ---
 
@@ -294,9 +294,15 @@ https://{node}.field.dalux.com/service/api/{versjon}/{endepunkt}
 | Endepunkt | Beskrivelse | Bruk |
 |-----------|-------------|------|
 | `GET /5.2/projects/{id}/tasks` | Alle tasks | Initial synk |
-| `GET /2.3/projects/{id}/tasks/changes` | Endringer siden sist | Inkrementell synk |
+| `GET /2.3/projects/{id}/tasks/changes` | Endringer siden sist | Inkrementell synk, historikk |
 | `GET /3.4/projects/{id}/tasks/{taskId}` | Enkelt task | Ved behov |
-| `GET /1.1/projects/{id}/tasks/attachments` | Vedlegg på tasks | Dokumentsynk |
+| `GET /1.1/projects/{id}/tasks/attachments` | Vedlegg på tasks | Vedleggsliste |
+
+**Brukere:**
+
+| Endepunkt | Beskrivelse | Bruk |
+|-----------|-------------|------|
+| `GET /1.2/projects/{id}/users` | Prosjektbrukere | Oppslag userId → navn |
 
 **Filer og dokumenter:**
 
@@ -312,6 +318,7 @@ https://{node}.field.dalux.com/service/api/{versjon}/{endepunkt}
 |----------|--------|-----------|
 | Task grunndata | ✅ | Alle felt tilgjengelig |
 | Egendefinerte felt | ✅ | Alle verdier inkl. referanser |
+| Project users | ✅ | Brukeroppslag (userId → navn) fungerer |
 | Task changes (historikk) | ⚠️ | Kun 100 eldste, paginering ignoreres |
 | File Areas | ✅ | Liste og nedlasting fungerer |
 | Task attachments | ⚠️ | Liste OK, nedlasting krever utvidede rettigheter |
@@ -419,25 +426,29 @@ class TaskSyncRecord:
 
 For saker opprettet før oktober 2025:
 
-| Kategori | Status | API-felt |
-|----------|--------|----------|
-| Grunndata | ✅ | `number`, `subject`, `type.name`, `workflow.name` |
-| Lokasjon | ✅ | `location.building`, `level`, `coordinate`, `drawing` |
-| Egendefinerte felt | ✅ | `userDefinedFields.items[]` |
-| **Beskrivelser/kommentarer** | ✅ | `changes[].description` |
-| **Ansvarlig** | ✅ | `changes[].fields.currentResponsible` |
-| **Tildeling** | ✅ | `changes[].fields.assignedTo.roleName` |
-| **Endringslogg** | ✅ | `changes[].action`, `timestamp` |
-| Vedlegg | ⚠️ | Liste OK, nedlasting 403 |
+| Kategori | Status | API-felt | Implementert |
+|----------|--------|----------|--------------|
+| Grunndata | ✅ | `number`, `subject`, `type.name` | ✅ I tittel/type |
+| Lokasjon | ✅ | `location.building`, `level`, `coordinate`, `drawing` | ✅ I description |
+| Egendefinerte felt | ✅ | `userDefinedFields.items[]` | ✅ I description |
+| **Beskrivelser** | ✅ | `changes[].description` | ✅ I historikk |
+| **Ansvarlig** | ✅ | `changes[].fields.currentResponsible` | ✅ Med brukeroppslag |
+| **Tildeling** | ✅ | `changes[].fields.assignedTo.roleName` | ✅ I historikk |
+| **Endringslogg** | ✅ | `changes[].action`, `timestamp` | ✅ I historikk |
+| Vedlegg | ⚠️ | Liste OK, nedlasting 403 | ✅ Liste i description |
+| Arbeidsforløp | ✅ | `workflow.name` | ❌ Ikke mappet |
+| Opprettet av | ✅ | `createdBy.userId` | ❌ Ikke mappet |
 
-**Eksempel RUH1:**
-```
-Changes: 5 stk
-  [2025-06-24] assign → "Fylles" (HMS-leder)
-  [2025-06-24] update
-  [2025-06-24] assign → (HMS-ansvarlig UE)
-  [2025-07-01] complete → "Hullet er tettet og lukket. Utbedret."
-  [2025-07-02] approve
+**Eksempel resultat i Catenda (RUH2):**
+```markdown
+**Historikk (3 hendelser):**
+- 👤 [2025-06-25 05:34] **ASSIGN**: "Åpen graveskråning"
+  - Tildelt: HMS-leder
+  - Ansvarlig: Eirik Strøm-Storaker
+- ✅ [2025-06-25 07:48] **COMPLETE**
+  - Tildelt: Betonmast funksjonærer
+  - Ansvarlig: Ivar Andresen
+- ✓ [2025-06-25 07:50] **APPROVE**
 ```
 
 ### Nyere saker (RUH58+): ~60% dekning
@@ -524,26 +535,38 @@ Paginering:               Ikke støttet
 
 | Dalux-felt | Vår mapping | Status |
 |------------|-------------|--------|
-| `subject` | `title` | ✅ Implementert |
+| `number` + `subject` | `title` | ✅ "RUH1 Tittel..." |
 | `type.name` | `topic_type` | ✅ Implementert |
-| `userDefinedFields` | `description` (appended) | ✅ Implementert |
+| `userDefinedFields` | `description` (markdown) | ✅ Implementert |
+| `location` | `description` (markdown) | ✅ Implementert |
+| `attachments` | `description` (liste) | ✅ Implementert |
+| `changes[].description` | `description` (historikk) | ✅ Implementert |
+| `changes[].fields.assignedTo.roleName` | `description` (historikk) | ✅ Implementert |
+| `changes[].fields.currentResponsible` | `description` (historikk) | ✅ Med brukeroppslag |
 | `status` | `topic_status` | ⚠️ Default "Open" |
-| `changes[].description` | – | ⚠️ Tilgjengelig, ikke mappet |
-| `changes[].fields.currentResponsible` | – | ⚠️ Tilgjengelig, ikke mappet |
-| `changes[].fields.assignedTo` | – | ⚠️ Tilgjengelig, ikke mappet |
-| `deadline` | `due_date` | ❌ TODO |
-| `location` | – | ❌ Ikke mappet |
+| `workflow.name` | – | ⚠️ Tilgjengelig, ikke mappet |
+| `createdBy` | – | ⚠️ Tilgjengelig, ikke mappet |
+| `deadline` (fra changes) | `due_date` | ❌ TODO |
+
+**Brukeroppslag:**
+- Project Users API (`/1.2/projects/{id}/users`) brukes til å slå opp navn fra userId
+- Kryptiske IDer som `82349_7E9jqjiOrx1SHAz9` erstattes med navn som "Eirik Strøm-Storaker"
 
 ### Testet og verifisert
 
 - ✅ Full synk av RUH-tasks fra Dalux → Catenda BCF topics
+- ✅ Saksnummer inkludert i tittel (f.eks. "RUH1 Sikre graveskråning")
 - ✅ Metadata formateres som lesbar markdown i description
+- ✅ Lokasjon (bygning, etasje, tegning, koordinater) i description
+- ✅ Vedleggsliste i description (filnavn og dato)
+- ✅ Historikk fra Changes API med full beskrivelse (ingen trunkering)
+- ✅ Brukeroppslag: userId → navn via Project Users API
 - ✅ Type-mapping til gyldige Catenda topic types
 - ✅ Synk-status lagres i Supabase for sporing
 - ✅ File Areas → Catenda bibliotek (nedlasting og opplasting)
 - ✅ Mappe-opprettelse i Catenda via API
 - ✅ Document reference med formatert UUID
-- ✅ Task changes API gir endringshistorikk for eldre saker
+- ✅ `--limit` opsjon for testing av synk
 
 ---
 
@@ -615,12 +638,18 @@ Erstatte polling med push-basert synk for lavere latens og redusert API-belastni
 ### Anbefalte tiltak
 
 1. **Kontakt Dalux support** - Spør om paginering/offset for changes API
-2. **Implementer changes-mapping** - For eldre saker er data tilgjengelig:
-   - `changes[].description` → BCF comment
-   - `changes[].fields.currentResponsible` → assigned_to
-   - `changes[].fields.assignedTo.roleName` → rolle i description
-3. **Utvid task-mapping** - Legg til `location`, `workflow` i BCF description
-4. **Lokal event-logg** - Lagre endringer vi gjør selv i Unified Timeline
+2. ~~**Implementer changes-mapping**~~ ✅ Implementert:
+   - `changes[].description` → historikk i description
+   - `changes[].fields.currentResponsible` → brukeroppslag til navn
+   - `changes[].fields.assignedTo.roleName` → rolle i historikk
+3. ~~**Utvid task-mapping**~~ ✅ Delvis implementert:
+   - `location` → ✅ i BCF description
+   - `workflow.name` → ❌ ikke mappet ennå
+4. **Legg til manglende felt:**
+   - `workflow.name` - arbeidsforløp
+   - `createdBy` - opprettet av (med brukeroppslag)
+   - `deadline` (fra changes) - frist
+5. **Lokal event-logg** - Lagre endringer vi gjør selv i Unified Timeline
 
 ---
 
