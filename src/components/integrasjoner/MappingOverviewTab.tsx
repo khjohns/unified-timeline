@@ -6,7 +6,7 @@
  */
 
 import {
-  Card,
+  DashboardCard,
   DataList,
   DataListItem,
   Badge,
@@ -63,8 +63,15 @@ export function MappingOverviewTab({ mapping, onEdit, onTriggerSync, onFiltersUp
       {/* Venstre kolonne */}
       <div className="space-y-6">
         {/* Konfigurasjon */}
-        <Card variant="outlined" padding="md">
-          <h3 className="text-lg font-semibold text-pkt-text-heading mb-4">Konfigurasjon</h3>
+        <DashboardCard
+          title="Konfigurasjon"
+          variant="outlined"
+          headerBadge={
+            <Badge variant={mapping.sync_enabled ? 'success' : 'neutral'} size="sm">
+              {mapping.sync_enabled ? 'Aktiv' : 'Deaktivert'}
+            </Badge>
+          }
+        >
           <DataList variant="list">
             <DataListItem label="Prosjekt ID">
               {mapping.project_id}
@@ -84,25 +91,14 @@ export function MappingOverviewTab({ mapping, onEdit, onTriggerSync, onFiltersUp
             <DataListItem label="Synk intervall">
               {mapping.sync_interval_minutes} minutter
             </DataListItem>
-            <DataListItem label="Status">
-              <Badge variant={mapping.sync_enabled ? 'success' : 'neutral'} size="sm">
-                {mapping.sync_enabled ? 'Aktiv' : 'Deaktivert'}
-              </Badge>
+            <DataListItem label="Opprettet">
+              {formatDateTimeCompact(mapping.created_at)}
+            </DataListItem>
+            <DataListItem label="Oppdatert">
+              {formatDateTimeCompact(mapping.updated_at)}
             </DataListItem>
           </DataList>
-
-          {/* Metadata */}
-          <div className="mt-4 pt-4 border-t border-pkt-border-default">
-            <DataList variant="list">
-              <DataListItem label="Opprettet">
-                {formatDateTimeCompact(mapping.created_at)}
-              </DataListItem>
-              <DataListItem label="Oppdatert">
-                {formatDateTimeCompact(mapping.updated_at)}
-              </DataListItem>
-            </DataList>
-          </div>
-        </Card>
+        </DashboardCard>
 
         {/* Task Filters */}
         <TaskFilterCard
@@ -115,32 +111,18 @@ export function MappingOverviewTab({ mapping, onEdit, onTriggerSync, onFiltersUp
       {/* Høyre kolonne */}
       <div className="space-y-6">
         {/* Synkronisering (status + handlinger) */}
-        <Card variant="outlined" padding="md">
-          <h3 className="text-lg font-semibold text-pkt-text-heading mb-4">Synkronisering</h3>
-
-          {/* Status */}
-          <DataList variant="list">
-            <DataListItem label="Siste synk">
-              {formatDateTimeCompact(mapping.last_sync_at, 'Aldri')}
-            </DataListItem>
-            {mapping.last_sync_status && (
-              <DataListItem label="Status">
-                <Badge variant={getStatusVariant(mapping.last_sync_status)} size="sm">
-                  {mapping.last_sync_status}
-                </Badge>
-              </DataListItem>
-            )}
-          </DataList>
-
-          {mapping.last_sync_error && (
-            <Alert variant="danger" className="mt-4">
-              {mapping.last_sync_error}
-            </Alert>
-          )}
-
-          {/* Handlinger */}
-          <div className="mt-4 pt-4 border-t border-pkt-border-default">
-            <div className="flex flex-wrap gap-2">
+        <DashboardCard
+          title="Synkronisering"
+          variant="outlined"
+          headerBadge={
+            mapping.last_sync_status && (
+              <Badge variant={getStatusVariant(mapping.last_sync_status)} size="sm">
+                {mapping.last_sync_status}
+              </Badge>
+            )
+          }
+          action={
+            <>
               <Button
                 variant="primary"
                 size="sm"
@@ -168,8 +150,20 @@ export function MappingOverviewTab({ mapping, onEdit, onTriggerSync, onFiltersUp
               <Button variant="secondary" size="sm" onClick={onEdit}>
                 Rediger
               </Button>
-            </div>
-          </div>
+            </>
+          }
+        >
+          <DataList variant="list">
+            <DataListItem label="Siste synk">
+              {formatDateTimeCompact(mapping.last_sync_at, 'Aldri')}
+            </DataListItem>
+          </DataList>
+
+          {mapping.last_sync_error && (
+            <Alert variant="danger" className="mt-4">
+              {mapping.last_sync_error}
+            </Alert>
+          )}
 
           {/* Test Result */}
           {testResult && (
@@ -190,7 +184,7 @@ export function MappingOverviewTab({ mapping, onEdit, onTriggerSync, onFiltersUp
               )}
             </Alert>
           )}
-        </Card>
+        </DashboardCard>
       </div>
     </div>
   );

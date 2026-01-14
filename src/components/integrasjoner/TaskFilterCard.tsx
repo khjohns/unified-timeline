@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Card, Badge, Button, Alert, Checkbox } from '../primitives';
+import { DashboardCard, Badge, Button, Alert, Checkbox } from '../primitives';
 import { useFilterOptions, useUpdateTaskFilters } from '../../hooks/useSyncMappings';
 import type { TaskFilterConfig } from '../../types/integration';
 
@@ -71,16 +71,17 @@ export function TaskFilterCard({ mappingId, currentFilters, onFiltersUpdated }: 
   const excludedCount = excludedTypes.size;
 
   return (
-    <Card variant="outlined" padding="md">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-pkt-text-heading">Oppgavefilter</h3>
-        {excludedCount > 0 && (
+    <DashboardCard
+      title="Oppgavefilter"
+      variant="outlined"
+      headerBadge={
+        excludedCount > 0 ? (
           <Badge variant="warning" size="sm">
             {excludedCount} ekskludert
           </Badge>
-        )}
-      </div>
-
+        ) : undefined
+      }
+    >
       <p className="text-sm text-pkt-text-body-subtle mb-4">
         Velg hvilke oppgavetyper som skal ekskluderes fra synkronisering.
       </p>
@@ -158,6 +159,6 @@ export function TaskFilterCard({ mappingId, currentFilters, onFiltersUpdated }: 
           Filteret er lagret.
         </Alert>
       )}
-    </Card>
+    </DashboardCard>
   );
 }
