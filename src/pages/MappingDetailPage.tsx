@@ -72,7 +72,7 @@ export function MappingDetailPage() {
             </Button>
           }
         />
-        <main className="max-w-7xl mx-auto px-4 py-6 sm:px-6 sm:py-8">
+        <main className="max-w-5xl mx-auto px-4 py-6 sm:px-6 sm:py-8">
           <Card variant="outlined" padding="lg">
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-oslo-blue" />
@@ -98,7 +98,7 @@ export function MappingDetailPage() {
             </Button>
           }
         />
-        <main className="max-w-7xl mx-auto px-4 py-6 sm:px-6 sm:py-8">
+        <main className="max-w-5xl mx-auto px-4 py-6 sm:px-6 sm:py-8">
           <Alert variant="danger">
             {error ? `Kunne ikke laste mapping: ${error.message}` : 'Mapping ikke funnet'}
           </Alert>

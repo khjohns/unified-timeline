@@ -59,133 +59,139 @@ export function MappingOverviewTab({ mapping, onEdit, onTriggerSync, onFiltersUp
   };
 
   return (
-    <div className="space-y-6">
-      {/* Konfigurasjon */}
-      <Card variant="outlined" padding="md">
-        <h3 className="text-lg font-semibold text-pkt-text-heading mb-4">Konfigurasjon</h3>
-        <DataList variant="list">
-          <DataListItem label="Prosjekt ID">
-            {mapping.project_id}
-          </DataListItem>
-          <DataListItem label="Dalux prosjekt">
-            {mapping.dalux_project_id}
-          </DataListItem>
-          <DataListItem label="Dalux base URL">
-            <span className="text-xs font-mono break-all">{mapping.dalux_base_url}</span>
-          </DataListItem>
-          <DataListItem label="Catenda prosjekt">
-            <span className="text-xs font-mono">{mapping.catenda_project_id}</span>
-          </DataListItem>
-          <DataListItem label="Catenda board">
-            <span className="text-xs font-mono break-all">{mapping.catenda_board_id}</span>
-          </DataListItem>
-          <DataListItem label="Synk intervall">
-            {mapping.sync_interval_minutes} minutter
-          </DataListItem>
-          <DataListItem label="Status">
-            <Badge variant={mapping.sync_enabled ? 'success' : 'neutral'} size="sm">
-              {mapping.sync_enabled ? 'Aktiv' : 'Deaktivert'}
-            </Badge>
-          </DataListItem>
-        </DataList>
-      </Card>
-
-      {/* Synk Status */}
-      <Card variant="outlined" padding="md">
-        <h3 className="text-lg font-semibold text-pkt-text-heading mb-4">Siste synkronisering</h3>
-        <DataList variant="list">
-          <DataListItem label="Tidspunkt">
-            {formatDateTimeCompact(mapping.last_sync_at, 'Aldri')}
-          </DataListItem>
-          {mapping.last_sync_status && (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Venstre kolonne */}
+      <div className="space-y-6">
+        {/* Konfigurasjon */}
+        <Card variant="outlined" padding="md">
+          <h3 className="text-lg font-semibold text-pkt-text-heading mb-4">Konfigurasjon</h3>
+          <DataList variant="list">
+            <DataListItem label="Prosjekt ID">
+              {mapping.project_id}
+            </DataListItem>
+            <DataListItem label="Dalux prosjekt">
+              {mapping.dalux_project_id}
+            </DataListItem>
+            <DataListItem label="Dalux base URL">
+              <span className="text-xs font-mono break-all">{mapping.dalux_base_url}</span>
+            </DataListItem>
+            <DataListItem label="Catenda prosjekt">
+              <span className="text-xs font-mono">{mapping.catenda_project_id}</span>
+            </DataListItem>
+            <DataListItem label="Catenda board">
+              <span className="text-xs font-mono break-all">{mapping.catenda_board_id}</span>
+            </DataListItem>
+            <DataListItem label="Synk intervall">
+              {mapping.sync_interval_minutes} minutter
+            </DataListItem>
             <DataListItem label="Status">
-              <Badge variant={getStatusVariant(mapping.last_sync_status)} size="sm">
-                {mapping.last_sync_status}
+              <Badge variant={mapping.sync_enabled ? 'success' : 'neutral'} size="sm">
+                {mapping.sync_enabled ? 'Aktiv' : 'Deaktivert'}
               </Badge>
             </DataListItem>
-          )}
-        </DataList>
+          </DataList>
+        </Card>
 
-        {mapping.last_sync_error && (
-          <Alert variant="danger" className="mt-4">
-            {mapping.last_sync_error}
-          </Alert>
-        )}
-      </Card>
+        {/* Task Filters */}
+        <TaskFilterCard
+          mappingId={mapping.id!}
+          currentFilters={mapping.task_filters}
+          onFiltersUpdated={onFiltersUpdated ?? (() => {})}
+        />
+      </div>
 
-      {/* Handlinger */}
-      <Card variant="outlined" padding="md">
-        <h3 className="text-lg font-semibold text-pkt-text-heading mb-4">Handlinger</h3>
-        <div className="flex flex-wrap gap-3">
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => handleTriggerSync(false)}
-            disabled={!mapping.sync_enabled || triggerSyncMutation.isPending}
-          >
-            Synkroniser nå
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => handleTriggerSync(true)}
-            disabled={!mapping.sync_enabled || triggerSyncMutation.isPending}
-          >
-            Full synkronisering
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleTestConnection}
-            disabled={testConnectionMutation.isPending}
-          >
-            Test tilkobling
-          </Button>
-          <Button variant="secondary" size="sm" onClick={onEdit}>
-            Rediger
-          </Button>
-        </div>
-
-        {/* Test Result */}
-        {testResult && (
-          <Alert
-            variant={testResult.dalux_ok && testResult.catenda_ok ? 'success' : 'danger'}
-            className="mt-4"
-          >
-            <div className="flex gap-4">
-              <span>Dalux: {testResult.dalux_ok ? 'OK' : 'Feilet'}</span>
-              <span>Catenda: {testResult.catenda_ok ? 'OK' : 'Feilet'}</span>
-            </div>
-            {testResult.errors.length > 0 && (
-              <ul className="mt-2 text-xs list-disc list-inside">
-                {testResult.errors.map((err, i) => (
-                  <li key={i}>{err}</li>
-                ))}
-              </ul>
+      {/* Høyre kolonne */}
+      <div className="space-y-6">
+        {/* Synk Status */}
+        <Card variant="outlined" padding="md">
+          <h3 className="text-lg font-semibold text-pkt-text-heading mb-4">Siste synkronisering</h3>
+          <DataList variant="list">
+            <DataListItem label="Tidspunkt">
+              {formatDateTimeCompact(mapping.last_sync_at, 'Aldri')}
+            </DataListItem>
+            {mapping.last_sync_status && (
+              <DataListItem label="Status">
+                <Badge variant={getStatusVariant(mapping.last_sync_status)} size="sm">
+                  {mapping.last_sync_status}
+                </Badge>
+              </DataListItem>
             )}
-          </Alert>
-        )}
-      </Card>
+          </DataList>
 
-      {/* Task Filters */}
-      <TaskFilterCard
-        mappingId={mapping.id!}
-        currentFilters={mapping.task_filters}
-        onFiltersUpdated={onFiltersUpdated ?? (() => {})}
-      />
+          {mapping.last_sync_error && (
+            <Alert variant="danger" className="mt-4">
+              {mapping.last_sync_error}
+            </Alert>
+          )}
+        </Card>
 
-      {/* Metadata */}
-      <Card variant="outlined" padding="md">
-        <h3 className="text-lg font-semibold text-pkt-text-heading mb-4">Metadata</h3>
-        <DataList variant="list">
-          <DataListItem label="Opprettet">
-            {formatDateTimeCompact(mapping.created_at)}
-          </DataListItem>
-          <DataListItem label="Oppdatert">
-            {formatDateTimeCompact(mapping.updated_at)}
-          </DataListItem>
-        </DataList>
-      </Card>
+        {/* Handlinger */}
+        <Card variant="outlined" padding="md">
+          <h3 className="text-lg font-semibold text-pkt-text-heading mb-4">Handlinger</h3>
+          <div className="flex flex-wrap gap-3">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => handleTriggerSync(false)}
+              disabled={!mapping.sync_enabled || triggerSyncMutation.isPending}
+            >
+              Synkroniser nå
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => handleTriggerSync(true)}
+              disabled={!mapping.sync_enabled || triggerSyncMutation.isPending}
+            >
+              Full synkronisering
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleTestConnection}
+              disabled={testConnectionMutation.isPending}
+            >
+              Test tilkobling
+            </Button>
+            <Button variant="secondary" size="sm" onClick={onEdit}>
+              Rediger
+            </Button>
+          </div>
+
+          {/* Test Result */}
+          {testResult && (
+            <Alert
+              variant={testResult.dalux_ok && testResult.catenda_ok ? 'success' : 'danger'}
+              className="mt-4"
+            >
+              <div className="flex gap-4">
+                <span>Dalux: {testResult.dalux_ok ? 'OK' : 'Feilet'}</span>
+                <span>Catenda: {testResult.catenda_ok ? 'OK' : 'Feilet'}</span>
+              </div>
+              {testResult.errors.length > 0 && (
+                <ul className="mt-2 text-xs list-disc list-inside">
+                  {testResult.errors.map((err, i) => (
+                    <li key={i}>{err}</li>
+                  ))}
+                </ul>
+              )}
+            </Alert>
+          )}
+        </Card>
+
+        {/* Metadata */}
+        <Card variant="outlined" padding="md">
+          <h3 className="text-lg font-semibold text-pkt-text-heading mb-4">Metadata</h3>
+          <DataList variant="list">
+            <DataListItem label="Opprettet">
+              {formatDateTimeCompact(mapping.created_at)}
+            </DataListItem>
+            <DataListItem label="Oppdatert">
+              {formatDateTimeCompact(mapping.updated_at)}
+            </DataListItem>
+          </DataList>
+        </Card>
+      </div>
     </div>
   );
 }
