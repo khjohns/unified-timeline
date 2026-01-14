@@ -14,6 +14,7 @@ import {
   Alert,
 } from '../primitives';
 import { useTriggerSync, useTestConnection } from '../../hooks/useSyncMappings';
+import { formatDateTimeCompact } from '../../utils/dateFormatters';
 import type { SyncMapping } from '../../types/integration';
 import { useState } from 'react';
 
@@ -21,18 +22,6 @@ interface MappingOverviewTabProps {
   mapping: SyncMapping;
   onEdit: () => void;
   onTriggerSync: () => void;
-}
-
-function formatDate(dateString?: string): string {
-  if (!dateString) return 'Aldri';
-  const date = new Date(dateString);
-  return date.toLocaleString('nb-NO', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 }
 
 function getStatusVariant(status?: string): 'success' | 'danger' | 'warning' | 'neutral' {
@@ -104,7 +93,7 @@ export function MappingOverviewTab({ mapping, onEdit, onTriggerSync }: MappingOv
         <h3 className="text-lg font-semibold text-pkt-text-heading mb-4">Siste synkronisering</h3>
         <DataList variant="list">
           <DataListItem label="Tidspunkt">
-            {formatDate(mapping.last_sync_at)}
+            {formatDateTimeCompact(mapping.last_sync_at, 'Aldri')}
           </DataListItem>
           {mapping.last_sync_status && (
             <DataListItem label="Status">
@@ -181,10 +170,10 @@ export function MappingOverviewTab({ mapping, onEdit, onTriggerSync }: MappingOv
         <h3 className="text-lg font-semibold text-pkt-text-heading mb-4">Metadata</h3>
         <DataList variant="list">
           <DataListItem label="Opprettet">
-            {formatDate(mapping.created_at)}
+            {formatDateTimeCompact(mapping.created_at)}
           </DataListItem>
           <DataListItem label="Oppdatert">
-            {formatDate(mapping.updated_at)}
+            {formatDateTimeCompact(mapping.updated_at)}
           </DataListItem>
         </DataList>
       </Card>

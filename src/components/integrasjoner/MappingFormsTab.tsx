@@ -7,22 +7,11 @@
 
 import { Card, Badge, Alert, Table, type Column } from '../primitives';
 import { useDaluxForms } from '../../hooks/useDaluxData';
+import { formatDateTimeCompact } from '../../utils/dateFormatters';
 import type { DaluxForm } from '../../types/dalux';
 
 interface MappingFormsTabProps {
   mappingId: string;
-}
-
-function formatDate(dateString?: string): string {
-  if (!dateString) return '-';
-  const date = new Date(dateString);
-  return date.toLocaleString('nb-NO', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 }
 
 function getStatusVariant(status?: string): 'success' | 'danger' | 'warning' | 'neutral' {
@@ -94,13 +83,13 @@ export function MappingFormsTab({ mappingId }: MappingFormsTabProps) {
       key: 'created',
       label: 'Opprettet',
       width: '140px',
-      render: (form) => formatDate(form.data.created),
+      render: (form) => formatDateTimeCompact(form.data.created),
     },
     {
       key: 'modified',
       label: 'Endret',
       width: '140px',
-      render: (form) => formatDate(form.data.modified),
+      render: (form) => formatDateTimeCompact(form.data.modified),
     },
   ];
 

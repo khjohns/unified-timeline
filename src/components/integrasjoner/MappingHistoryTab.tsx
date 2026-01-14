@@ -8,6 +8,7 @@
 import { useState } from 'react';
 import { Card, Badge, Button, Alert, Table, type Column } from '../primitives';
 import { useSyncHistory } from '../../hooks/useSyncMappings';
+import { formatDateTimeCompact } from '../../utils/dateFormatters';
 import type { TaskSyncRecord } from '../../types/integration';
 
 interface MappingHistoryTabProps {
@@ -15,18 +16,6 @@ interface MappingHistoryTabProps {
 }
 
 type StatusFilter = 'all' | 'synced' | 'pending' | 'failed';
-
-function formatDate(dateString?: string): string {
-  if (!dateString) return '-';
-  const date = new Date(dateString);
-  return date.toLocaleString('nb-NO', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 function getStatusVariant(status: string): 'success' | 'danger' | 'warning' | 'neutral' {
   switch (status) {
@@ -86,7 +75,7 @@ export function MappingHistoryTab({ mappingId }: MappingHistoryTabProps) {
       key: 'updated_at',
       label: 'Oppdatert',
       width: '140px',
-      render: (record) => formatDate(record.updated_at),
+      render: (record) => formatDateTimeCompact(record.updated_at),
     },
     {
       key: 'last_error',

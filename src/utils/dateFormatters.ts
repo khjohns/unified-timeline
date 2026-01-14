@@ -83,3 +83,30 @@ export function getNowNorwegian(): string {
     timeZone: NORWEGIAN_TIMEZONE,
   });
 }
+
+/**
+ * Format date and time to compact Norwegian format for tables.
+ * Returns DD.MM.YYYY, HH:MM format.
+ *
+ * @param dateStr - ISO date string or undefined
+ * @param fallback - Fallback string if date is undefined (default: '-')
+ * @example formatDateTimeCompact('2025-12-22T14:30:00Z') // '22.12.2025, 15:30'
+ */
+export function formatDateTimeCompact(
+  dateStr: string | undefined,
+  fallback: string = '-'
+): string {
+  if (!dateStr) return fallback;
+  try {
+    return new Date(dateStr).toLocaleString(NORWEGIAN_LOCALE, {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: NORWEGIAN_TIMEZONE,
+    });
+  } catch {
+    return dateStr;
+  }
+}
