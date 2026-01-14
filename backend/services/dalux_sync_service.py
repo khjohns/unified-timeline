@@ -451,7 +451,10 @@ class DaluxSyncService:
         description = "\n".join(description_parts) if description_parts else None
 
         # Note: Dalux uses 'subject' for title, not 'title'
-        title = dalux_task.get("subject") or dalux_task.get("title", "Untitled")
+        # Include task number (e.g., "RUH1") in title for easier identification
+        subject = dalux_task.get("subject") or dalux_task.get("title", "Untitled")
+        number = dalux_task.get("number", "")
+        title = f"{number} {subject}".strip() if number else subject
 
         return {
             "title": title,
@@ -566,9 +569,7 @@ class DaluxSyncService:
 
             # Add description if present
             if description:
-                # Truncate long descriptions
-                desc = description[:100] + "..." if len(description) > 100 else description
-                line += f': "{desc}"'
+                line += f': "{description}"'
 
             parts.append(line)
 
