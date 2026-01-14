@@ -2,7 +2,7 @@
 
 **Dokumentasjon av frontend-arkitektur, komponentstruktur og tekniske beslutninger**
 
-*Sist oppdatert: 2026-01-08 (Mocks flyttet til __mocks__/)*
+*Sist oppdatert: 2026-01-14*
 
 ---
 
@@ -112,25 +112,28 @@ __mocks__/                  # Mock-data for utvikling og testing
 └── index.ts                # Sentral eksport av mock-data
 
 src/
-├── api/                    # API-klient og datahenting (8 stk)
+├── api/                    # API-klient og datahenting
 │   ├── client.ts          # Sentralisert HTTP-klient med auth & CSRF
 │   ├── state.ts           # Leseoperasjoner (case state, timeline)
 │   ├── events.ts          # Skriveoperasjoner (event submission)
 │   ├── endringsordre.ts   # Endringsordre-spesifikke API-kall
 │   ├── forsering.ts       # Forsering-spesifikke API-kall
+│   ├── dalux.ts           # Dalux FM API-kall
+│   ├── sync.ts            # Synkroniserings-API
 │   ├── analytics.ts       # Analyse-API
 │   ├── cases.ts           # Sakshåndtering-API
 │   └── utils.ts           # API-hjelpefunksjoner
 │
 ├── components/            # React-komponenter (view layer)
-│   ├── actions/           # Modale skjemaer for event-submission (9 stk)
+│   ├── actions/           # Modale skjemaer for event-submission
 │   ├── alerts/            # Alert-komponenter (TokenExpiredAlert)
-│   ├── approval/          # Godkjenningsflyt-komponenter (6 stk)
+│   ├── approval/          # Godkjenningsflyt-komponenter
 │   ├── endringsordre/     # Endringsordre-spesifikke komponenter
 │   ├── forsering/         # Forsering-spesifikke komponenter
-│   ├── pdf/               # PDF-visning (2 stk)
-│   ├── primitives/        # Gjenbrukbare UI-byggeklosser (26 stk)
-│   ├── views/             # Side-nivå view-komponenter (6 stk)
+│   ├── integrasjoner/     # Dalux/Catenda integrasjonskomponenter
+│   ├── pdf/               # PDF-visning
+│   ├── primitives/        # Gjenbrukbare UI-byggeklosser (~35 stk)
+│   ├── views/             # Side-nivå view-komponenter
 │   ├── PageHeader.tsx     # Page header-komponent
 │   ├── ModeToggle.tsx     # Utviklingsmodus-toggle
 │   ├── ThemeToggle.tsx    # Lys/mørk tema-toggle
@@ -142,14 +145,14 @@ src/
 │   ├── PageStateHelpers.tsx     # Side-state hjelpere
 │   └── ProtectedRoute.tsx # Beskyttet rute-wrapper
 │
-├── context/               # React Context providers (5 stk)
+├── context/               # React Context providers
 │   ├── AuthContext.tsx    # Magic link-autentisering
 │   ├── ThemeContext.tsx   # Lys/mørk tema-håndtering
 │   ├── ApprovalContext.tsx     # Godkjenningsflyt state (mock)
 │   ├── UserRoleContext.tsx     # Brukerrolle-håndtering
 │   └── SupabaseAuthContext.tsx # Supabase auth-integrasjon
 │
-├── hooks/                 # Egendefinerte React hooks (12 stk)
+├── hooks/                 # Egendefinerte React hooks
 │   ├── useCaseState.ts    # React Query hook for case state
 │   ├── useTimeline.ts     # React Query hook for timeline events
 │   ├── useSubmitEvent.ts  # React Query mutation for event submission
@@ -161,9 +164,13 @@ src/
 │   ├── useApprovalWorkflow.ts  # Godkjenningsflyt-hook
 │   ├── useAnalytics.ts    # Analysehook
 │   ├── useCaseList.ts     # Saksliste-hook
-│   └── useVerifyToken.ts  # Token-verifisering
+│   ├── useVerifyToken.ts  # Token-verifisering
+│   ├── useDaluxData.ts    # Dalux FM data-hook
+│   ├── useSyncMappings.ts # Synkroniseringsmappinger
+│   ├── useSyncProgress.ts # Synkroniseringsprogresjon
+│   └── useStandpunktEndringer.ts # Standpunktendringer-hook
 │
-├── pages/                 # Sidekomponenter (9 stk)
+├── pages/                 # Sidekomponenter
 │   ├── AuthLanding.tsx    # Auth/innloggingsside
 │   ├── ExampleCasesPage.tsx     # Demo-saker for testing
 │   ├── CasePage.tsx       # Hovedsakvisning
@@ -172,7 +179,9 @@ src/
 │   ├── ComponentShowcase.tsx    # Designsystem-dokumentasjon
 │   ├── SaksoversiktPage.tsx     # Saksliste/oversikt
 │   ├── OpprettSakPage.tsx       # Opprett ny sak
-│   └── AnalyticsDashboard.tsx   # Analyse-dashboard
+│   ├── AnalyticsDashboard.tsx   # Analyse-dashboard
+│   ├── IntegrasjonerPage.tsx    # Dalux/Catenda integrasjoner
+│   └── MappingDetailPage.tsx    # Mappingdetaljer
 │
 ├── pdf/                   # PDF-generering (klientside)
 │   ├── ContractorClaimPdf.tsx   # PDF-maler
@@ -244,23 +253,23 @@ src/
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                          PAGES (9 stk)                          │
+│                            PAGES                                 │
 │        Rute-håndtering, datahenting, sidekomposisjon           │
-│   CasePage, ForseringPage, SaksoversiktPage, AnalyticsDash...  │
+│   CasePage, ForseringPage, SaksoversiktPage, Integrasjoner...  │
 ├─────────────────────────────────────────────────────────────────┤
-│                         VIEWS (6 stk)                           │
+│                            VIEWS                                 │
 │          Side-nivå komponenter, business-logikk                │
 │   Timeline, CaseDashboard, ComprehensiveMetadata...            │
 ├─────────────────────────────────────────────────────────────────┤
-│                        ACTIONS (9 stk)                          │
+│                           ACTIONS                                │
 │        Modale skjemaer for event-submission                    │
 │   SendGrunnlagModal, RespondVederlagModal, ReviseFristModal... │
 ├─────────────────────────────────────────────────────────────────┤
-│                       APPROVAL (6 stk)                          │
+│                          APPROVAL                                │
 │        Godkjenningsflyt for BH-responser                       │
 │   ApprovePakkeModal, SendResponsPakkeModal, ApprovalChain...   │
 ├─────────────────────────────────────────────────────────────────┤
-│                      PRIMITIVES (26 stk)                        │
+│                         PRIMITIVES                               │
 │          Gjenbrukbare UI-byggeklosser, type-sikre              │
 │   Button, Input, Modal, Select, DatePicker, Card, Badge...    │
 └─────────────────────────────────────────────────────────────────┘
@@ -670,6 +679,8 @@ const App: React.FC = () => {
 | `/forsering/:sakId` | `ForseringPage` | Forsering-sakvisning (§33.8) |
 | `/endringsordre/:sakId` | `EndringsordePage` | Endringsordre-visning (§31.3) |
 | `/analyse` | `AnalyticsDashboard` | Analyse-dashboard |
+| `/integrasjoner` | `IntegrasjonerPage` | Dalux/Catenda integrasjoner |
+| `/integrasjoner/:mappingId` | `MappingDetailPage` | Mappingdetaljer |
 | `/showcase` | `ComponentShowcase` | Designsystem-dokumentasjon |
 
 ### Router-oppsett
@@ -748,6 +759,8 @@ export async function apiFetch<T>(
 | **Events** | `api/events.ts` | `submitEvent` |
 | **Forsering** | `api/forsering.ts` | `findForseringerForSak` |
 | **Endringsordre** | `api/endringsordre.ts` | `findEOerForSak` |
+| **Dalux** | `api/dalux.ts` | Dalux FM API-operasjoner |
+| **Sync** | `api/sync.ts` | Synkroniseringsoperasjoner |
 
 ### API-flyt
 
@@ -1191,10 +1204,10 @@ rules: {
 | **ErrorBoundary** | `src/components/ErrorBoundary.tsx` |
 | **PageLoadingFallback** | `src/components/PageLoadingFallback.tsx` |
 | **Query Config** | `src/constants/queryConfig.ts` |
-| **Primitiver** | `src/components/primitives/` (23 komponenter) |
-| **Views** | `src/components/views/` (8 komponenter) |
-| **Actions** | `src/components/actions/` (12 modaler) |
-| **Hooks** | `src/hooks/` (8 egendefinerte hooks) |
+| **Primitiver** | `src/components/primitives/` |
+| **Views** | `src/components/views/` |
+| **Actions** | `src/components/actions/` |
+| **Hooks** | `src/hooks/` |
 | **Typer** | `src/types/` |
 | **Styling** | `src/index.css` |
 | **Vite-konfig** | `vite.config.ts` |
