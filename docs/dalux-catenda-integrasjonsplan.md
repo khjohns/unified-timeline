@@ -398,6 +398,111 @@ Implementert januar 2026. For detaljert analyse, se [ADR-001-dalux-sync.md](ADR-
 
 ---
 
+## Gap-analyse: Dalux API vs PDF-eksport
+
+> Verifisert 2026-01-14 mot RUH145 ("Tilkomst/rømning")
+
+### Sammendrag
+
+**API-dekning:** ~60% av PDF-innhold tilgjengelig via API
+
+| Kategori | Status | Kommentar |
+|----------|--------|-----------|
+| Grunndata | ✅ | Nummer, tittel, type, workflow |
+| Lokasjon | ✅ | Bygning, etasje, koordinater, tegning, soner |
+| Egendefinerte felt | ✅ | Alle verdier inkl. referanser |
+| Vedlegg | ⚠️ | Liste OK, nedlasting 403 |
+| Historikk | ❌ | API-bug, se under |
+| Beskrivelser | ❌ | Ikke i task endpoint |
+| Ansvarlig | ❌ | Ikke i API-respons |
+
+### Kritisk: Changes API-begrensning
+
+**Verifisert oppførsel:**
+
+```
+Total changes i systemet: 592
+Returnert fra API:        100 (alltid de eldste)
+Nyeste tilgjengelig:      2025-10-01
+since-parameter:          Ignoreres
+Paginering:               Ikke støttet
+```
+
+**Konsekvens:**
+- Endringer etter oktober 2025 utilgjengelige
+- Nyere saker (RUH58+) har 0 changes i API
+- Audit log/historikk kan ikke hentes for nyere saker
+
+### Detaljert feltsammenligning (RUH145)
+
+| Felt | PDF | API | Status |
+|------|-----|-----|--------|
+| Nummer | RUH145 | `number` | ✅ |
+| Tittel | Tilkomst/rømning | `subject` | ✅ |
+| Type | RUH | `type.name` | ✅ |
+| Bygning | Tilbygg | `location.building.name` | ✅ |
+| Etasje | Plan 1 | `location.level.name` | ✅ |
+| Tegning | Riggplan (Versjon 4) | `location.drawing.name` | ✅ |
+| Koordinater | 86.05, 92.00, 199.50 | `location.coordinate.xyz` | ✅ |
+| Soner | Mellombygg Sør | `location.zones[].zone.name` | ✅ |
+| Arbeidsforløp | 3. RUH fra BH | `workflow.name` | ✅ |
+| Opprettelsesdato | 3. des. 2025 | `created` | ✅ |
+| Opprettet av | Erik Henriksen | `createdBy.userId` (kun ID) | ⚠️ |
+| **Entreprise** | 00 Byggherre | – | ❌ |
+| **Tidsfrist** | 4. des 2025 | – | ❌ |
+| **Ansvarlig** | (Godkjent, lukket) | – | ❌ |
+| **Beskrivelse** | "Denne lå oppe på rampe..." | – | ❌ |
+
+### Egendefinerte felt (alle tilgjengelige)
+
+| Felt | Verdi | API-path |
+|------|-------|----------|
+| Tiltak | Legges under gangbru/rampe | `userDefinedFields.items[].values[].text` |
+| Klassifisering | Farlig forhold | ✅ |
+| Status tiltak | Tiltak er tilfredsstillende | ✅ |
+| Risikoområde | Grønn | ✅ (som "Green") |
+| Fokusområde | 3 + 27 | ✅ (multi-value) |
+| OBF kategori | Fare for fall | ✅ |
+
+### Historikk fra PDF (ikke i API)
+
+| Tidspunkt | Hendelse | API |
+|-----------|----------|-----|
+| 3. des 09:00 | Opprettet, Tildelt | ❌ |
+| 3. des 13:07 | Utbedret | ❌ |
+| 7. jan 13:54 | Godkjent | ❌ |
+
+### Implementeringsstatus i kodebasen
+
+**Fil:** `backend/services/dalux_sync_service.py`
+
+| Dalux-felt | Vår mapping | Status |
+|------------|-------------|--------|
+| `subject` | `title` | ✅ Implementert |
+| `type.name` | `topic_type` | ✅ Implementert |
+| `userDefinedFields` | `description` (appended) | ✅ Implementert |
+| `status` | `topic_status` | ⚠️ Default "Open" |
+| `description` | – | ❌ Ikke tilgjengelig |
+| `assignedTo` | – | ❌ Ikke i API |
+| `deadline` | `due_date` | ❌ TODO i kode |
+| `location` | – | ❌ Ikke mappet |
+| `changes` | – | ❌ API-begrensning |
+
+**TODOs i koden (linje 404, 426):**
+```python
+# TODO: Add due_date, assigned_to when BCF API supports it
+# TODO: Implement attachment sync in phase 2
+```
+
+### Anbefalte tiltak
+
+1. **Kontakt Dalux support** - Spør om historikk/audit API eller rettelse av changes-bug
+2. **Bruk PDF-eksport** - Som supplement for full historikk der det trengs
+3. **Lokal event-logg** - Lagre endringer vi gjør selv i Unified Timeline
+4. **Utvid mapping** - Legg til `location`, `workflow` i BCF description
+
+---
+
 ## Referanser
 
 - [Dalux Build API v4.13 (SwaggerHub)](https://app.swaggerhub.com/apis-docs/Dalux/DaluxBuild-api/4.13)
