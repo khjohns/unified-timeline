@@ -6,6 +6,7 @@
  */
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 import {
   Card,
@@ -67,6 +68,7 @@ function getStatusVariant(status?: string): 'success' | 'danger' | 'warning' | '
 }
 
 export function IntegrasjonerPage() {
+  const navigate = useNavigate();
   const { data, isLoading, error } = useSyncMappings();
   const deleteMutation = useDeleteSyncMapping();
   const triggerSyncMutation = useTriggerSync();
@@ -200,6 +202,9 @@ export function IntegrasjonerPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent>
+                        <DropdownMenuItem onClick={() => navigate(`/integrasjoner/${mapping.id}`)}>
+                          Se detaljer
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setEditingMapping(mapping)}>
                           Rediger
                         </DropdownMenuItem>

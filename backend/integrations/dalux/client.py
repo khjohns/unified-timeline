@@ -600,6 +600,51 @@ class DaluxClient:
             raise DaluxAPIError(f"Failed to download file: {e}")
 
     # ==========================================
+    # FORMS
+    # ==========================================
+
+    FORMS_VERSION = "2.1"
+
+    def get_forms(
+        self,
+        project_id: str,
+        limit: Optional[int] = None,
+        offset: int = 0
+    ) -> List[Dict[str, Any]]:
+        """
+        Get all forms for a project.
+
+        Args:
+            project_id: Dalux project ID
+            limit: Maximum number of forms to return (None = all)
+            offset: Number of forms to skip (for pagination)
+
+        Returns:
+            List of form objects.
+        """
+        logger.info(f"Fetching forms for project {project_id}...")
+        url = f"{self.base_url}/{self.FORMS_VERSION}/projects/{project_id}/forms"
+
+        params = {"offset": offset}
+        if limit:
+            params["pageSize"] = limit
+
+        try:
+            response = self._make_request("GET", url, params=params)
+            data = response.json()
+
+            items = data.get("items", [])
+            logger.info(f"Found {len(items)} forms")
+
+            return items
+
+        except (DaluxAuthError, DaluxAPIError):
+            raise
+        except Exception as e:
+            logger.error(f"Failed to fetch forms: {e}")
+            raise DaluxAPIError(f"Failed to fetch forms: {e}")
+
+    # ==========================================
     # HEALTH CHECK
     # ==========================================
 

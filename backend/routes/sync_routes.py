@@ -487,6 +487,96 @@ def sync_history(mapping_id: str):
 
 
 # ============================================================
+# DALUX DATA ACCESS
+# ============================================================
+
+@sync_bp.route('/api/sync/mappings/<mapping_id>/tasks', methods=['GET'])
+@require_magic_link
+def get_mapping_tasks(mapping_id: str):
+    """
+    Get Dalux tasks for a mapping (preview).
+
+    Query params:
+    - limit: Max tasks to return (default 100)
+
+    Response:
+    {
+        "tasks": [DaluxTask, ...],
+        "total": number
+    }
+    """
+    try:
+        sync_repo = get_sync_repo()
+        mapping = sync_repo.get_sync_mapping(mapping_id)
+
+        if not mapping:
+            return jsonify({'error': 'Mapping not found'}), 404
+
+        dalux_client = get_dalux_client(base_url=mapping.dalux_base_url)
+        if not dalux_client:
+            return jsonify({'error': 'Dalux not configured'}), 500
+
+        limit = int(request.args.get('limit', 100))
+
+        tasks = dalux_client.get_tasks(
+            project_id=mapping.dalux_project_id,
+            limit=limit
+        )
+
+        return jsonify({
+            'tasks': tasks,
+            'total': len(tasks)
+        })
+
+    except Exception as e:
+        logger.error(f"Failed to fetch Dalux tasks for {mapping_id}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@sync_bp.route('/api/sync/mappings/<mapping_id>/forms', methods=['GET'])
+@require_magic_link
+def get_mapping_forms(mapping_id: str):
+    """
+    Get Dalux forms for a mapping.
+
+    Query params:
+    - limit: Max forms to return (default 100)
+
+    Response:
+    {
+        "forms": [DaluxForm, ...],
+        "total": number
+    }
+    """
+    try:
+        sync_repo = get_sync_repo()
+        mapping = sync_repo.get_sync_mapping(mapping_id)
+
+        if not mapping:
+            return jsonify({'error': 'Mapping not found'}), 404
+
+        dalux_client = get_dalux_client(base_url=mapping.dalux_base_url)
+        if not dalux_client:
+            return jsonify({'error': 'Dalux not configured'}), 500
+
+        limit = int(request.args.get('limit', 100))
+
+        forms = dalux_client.get_forms(
+            project_id=mapping.dalux_project_id,
+            limit=limit
+        )
+
+        return jsonify({
+            'forms': forms,
+            'total': len(forms)
+        })
+
+    except Exception as e:
+        logger.error(f"Failed to fetch Dalux forms for {mapping_id}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+# ============================================================
 # VALIDATION
 # ============================================================
 

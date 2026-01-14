@@ -14,6 +14,7 @@ const EndringsordePage = lazy(() => import('./pages/EndringsordePage'));
 const ComponentShowcase = lazy(() => import('./pages/ComponentShowcase'));
 const AnalyticsDashboard = lazy(() => import('./pages/AnalyticsDashboard'));
 const IntegrasjonerPage = lazy(() => import('./pages/IntegrasjonerPage'));
+const MappingDetailPage = lazy(() => import('./pages/MappingDetailPage'));
 
 /**
  * Main App for Event Sourcing Architecture
@@ -93,6 +94,14 @@ const App: React.FC = () => {
           element={
             <ProtectedRoute>
               <IntegrasjonerPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/integrasjoner/:id"
+          element={
+            <ProtectedRoute>
+              <MappingDetailPage />
             </ProtectedRoute>
           }
         />
