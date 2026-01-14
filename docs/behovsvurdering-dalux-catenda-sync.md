@@ -66,9 +66,13 @@ OBF har levert en behovsbeskrivelse for synkronisering mellom Dalux og Catenda. 
 
 **NB:** Task attachments og File Areas er **separate systemer** i Dalux. Saksvedlegg finnes IKKE i File Areas.
 
-**Årsak til 403:** Dette er sannsynligvis en **begrensning i API-nøkkelens rettigheter**, ikke i selve API-et. Dalux API-nøkler kan ha ulike tilgangsnivåer. For å laste ned task attachments må API-nøkkelen ha utvidede rettigheter.
+**Årsak til 403:** Dette er en **begrensning i API-nøkkelens rettigheter**, ikke i selve API-et. API-rettigheter styres av prosjekteier (entreprenøren) i Dalux Admin.
 
-**Anbefaling:** Avklar med Dalux support om API-nøkkelen kan oppgraderes til å inkludere nedlasting av task attachments og lokasjonsbilder.
+**Anbefaling:** Avklar med prosjekteier (entreprenør) om API-nøkkelen kan få utvidede rettigheter for nedlasting av task attachments og lokasjonsbilder.
+
+**Kommentarer og historikk:**
+- **Kommentarer:** Finnes IKKE som eget endepunkt i Dalux API. Eventuelle notater må legges i egendefinerte felt.
+- **Historikk:** Tilgjengelig via `tasks/changes` API som returnerer alle endringer (action: assign/update) med timestamp, modifiedBy og hvilke felt som ble endret.
 
 ### Anbefaling
 
@@ -263,7 +267,7 @@ Varsling kan implementeres via:
 4. **Synkfrekvens:** Er 15 min akseptabelt, eller er 5 min absolutt krav?
 5. **Egendefinerte felt:** Aksepteres at ukjente felt legges i description?
 6. **Modellkobling:** Aksepteres metadata-løsning uten direkte viewpoint-kobling?
-7. **Dalux API-rettigheter:** Kan API-nøkkelen oppgraderes til å inkludere nedlasting av task attachments og lokasjonsbilder? (Krever avklaring med Dalux support)
+7. **Dalux API-rettigheter:** Kan API-nøkkelen få utvidede rettigheter for nedlasting av task attachments og lokasjonsbilder? (Styres av prosjekteier/entreprenør i Dalux Admin)
 
 ### Forutsetninger for produksjon
 
