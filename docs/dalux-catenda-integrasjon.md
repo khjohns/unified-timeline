@@ -429,6 +429,10 @@ For saker opprettet før oktober 2025:
 | Kategori | Status | API-felt | Implementert |
 |----------|--------|----------|--------------|
 | Grunndata | ✅ | `number`, `subject`, `type.name` | ✅ I tittel/type |
+| Arbeidsforløp | ✅ | `workflow.name` | ✅ I Saksinfo |
+| Opprettet av | ✅ | `createdBy.userId` | ✅ Med brukeroppslag |
+| Opprettet dato | ✅ | `created` | ✅ I Saksinfo |
+| Frist | ✅ | `changes[].fields.deadline` | ✅ I Saksinfo |
 | Lokasjon | ✅ | `location.building`, `level`, `coordinate`, `drawing` | ✅ I description |
 | Egendefinerte felt | ✅ | `userDefinedFields.items[]` | ✅ I description |
 | **Beskrivelser** | ✅ | `changes[].description` | ✅ I historikk |
@@ -436,11 +440,30 @@ For saker opprettet før oktober 2025:
 | **Tildeling** | ✅ | `changes[].fields.assignedTo.roleName` | ✅ I historikk |
 | **Endringslogg** | ✅ | `changes[].action`, `timestamp` | ✅ I historikk |
 | Vedlegg | ⚠️ | Liste OK, nedlasting 403 | ✅ Liste i description |
-| Arbeidsforløp | ✅ | `workflow.name` | ❌ Ikke mappet |
-| Opprettet av | ✅ | `createdBy.userId` | ❌ Ikke mappet |
 
-**Eksempel resultat i Catenda (RUH2):**
+**Eksempel resultat i Catenda (RUH2 Sikre graveskråning):**
 ```markdown
+**Saksinfo:**
+- **Arbeidsforløp:** Innmelding RUH
+- **Opprettet av:** Ivar Andresen
+- **Opprettet:** 2025-06-25 05:34
+- **Frist:** 2025-06-25
+
+**Egendefinerte felt:**
+- **Tiltak:** Sperre med festivalgjerder eller kjetting
+- **Klassifisering:** Farlig forhold (Ingenting har skjedd)
+- **Status tiltak:** Tiltak er tilfredsstillende
+...
+
+**Lokasjon:**
+- Bygning: Tilbygg
+- Etasje: Plan 1
+- Koordinater: X=81.1, Y=91.7, Z=199.5
+
+**Vedlegg (2 stk):**
+- 📎 b3711304-19b5-4cc3-9d76-0a1a21121b76.jpg (2025-06-25)
+...
+
 **Historikk (3 hendelser):**
 - 👤 [2025-06-25 05:34] **ASSIGN**: "Åpen graveskråning"
   - Tildelt: HMS-leder
@@ -537,16 +560,17 @@ Paginering:               Ikke støttet
 |------------|-------------|--------|
 | `number` + `subject` | `title` | ✅ "RUH1 Tittel..." |
 | `type.name` | `topic_type` | ✅ Implementert |
-| `userDefinedFields` | `description` (markdown) | ✅ Implementert |
-| `location` | `description` (markdown) | ✅ Implementert |
-| `attachments` | `description` (liste) | ✅ Implementert |
-| `changes[].description` | `description` (historikk) | ✅ Implementert |
-| `changes[].fields.assignedTo.roleName` | `description` (historikk) | ✅ Implementert |
+| `workflow.name` | `description` (Saksinfo) | ✅ Arbeidsforløp |
+| `createdBy.userId` | `description` (Saksinfo) | ✅ Med brukeroppslag |
+| `created` | `description` (Saksinfo) | ✅ Opprettet dato |
+| `deadline` (fra changes) | `description` (Saksinfo) | ✅ Frist |
+| `userDefinedFields` | `description` (markdown) | ✅ Egendefinerte felt |
+| `location` | `description` (markdown) | ✅ Lokasjon |
+| `attachments` | `description` (liste) | ✅ Vedlegg |
+| `changes[].description` | `description` (historikk) | ✅ Beskrivelser |
+| `changes[].fields.assignedTo.roleName` | `description` (historikk) | ✅ Tildeling |
 | `changes[].fields.currentResponsible` | `description` (historikk) | ✅ Med brukeroppslag |
 | `status` | `topic_status` | ⚠️ Default "Open" |
-| `workflow.name` | – | ⚠️ Tilgjengelig, ikke mappet |
-| `createdBy` | – | ⚠️ Tilgjengelig, ikke mappet |
-| `deadline` (fra changes) | `due_date` | ❌ TODO |
 
 **Brukeroppslag:**
 - Project Users API (`/1.2/projects/{id}/users`) brukes til å slå opp navn fra userId
@@ -642,13 +666,14 @@ Erstatte polling med push-basert synk for lavere latens og redusert API-belastni
    - `changes[].description` → historikk i description
    - `changes[].fields.currentResponsible` → brukeroppslag til navn
    - `changes[].fields.assignedTo.roleName` → rolle i historikk
-3. ~~**Utvid task-mapping**~~ ✅ Delvis implementert:
+3. ~~**Utvid task-mapping**~~ ✅ Implementert:
    - `location` → ✅ i BCF description
-   - `workflow.name` → ❌ ikke mappet ennå
-4. **Legg til manglende felt:**
-   - `workflow.name` - arbeidsforløp
-   - `createdBy` - opprettet av (med brukeroppslag)
-   - `deadline` (fra changes) - frist
+   - `workflow.name` → ✅ i Saksinfo
+4. ~~**Legg til manglende felt**~~ ✅ Implementert:
+   - `workflow.name` → ✅ arbeidsforløp
+   - `createdBy` → ✅ opprettet av (med brukeroppslag)
+   - `created` → ✅ opprettet dato
+   - `deadline` (fra changes) → ✅ frist
 5. **Lokal event-logg** - Lagre endringer vi gjør selv i Unified Timeline
 
 ---
