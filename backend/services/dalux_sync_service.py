@@ -127,19 +127,21 @@ class DaluxSyncService:
                 tasks = tasks[:limit]
                 logger.info(f"Limited to {len(tasks)} tasks")
 
-            # Fetch all changes, attachments, users, companies, and workpackages once (for enrichment)
-            logger.info("Fetching enrichment data (changes, attachments, users, companies, workpackages)...")
+            # Fetch all changes, attachments, users, companies, workpackages, and project name once (for enrichment)
+            logger.info("Fetching enrichment data (changes, attachments, users, companies, workpackages, project)...")
             all_changes = self._fetch_all_changes(mapping.dalux_project_id)
             all_attachments = self._fetch_all_attachments(mapping.dalux_project_id)
             user_lookup = self._fetch_user_lookup(mapping.dalux_project_id)
             company_lookup = self._fetch_company_lookup(mapping.dalux_project_id)
             workpackage_lookup = self._fetch_workpackage_lookup(mapping.dalux_project_id)
+            project_name = self._fetch_project_name(mapping.dalux_project_id)
 
             # Enrich user lookup with company names
             user_lookup = self._enrich_user_lookup_with_company(user_lookup, company_lookup, mapping.dalux_project_id)
 
             logger.info(f"  Changes: {len(all_changes)}, Attachments: {len(all_attachments)}")
             logger.info(f"  Users: {len(user_lookup)}, Companies: {len(company_lookup)}, Workpackages: {len(workpackage_lookup)}")
+            logger.info(f"  Project: {project_name or 'unknown'}")
 
             # Index by task ID for fast lookup
             changes_by_task = self._group_by_task_id(all_changes)
@@ -155,7 +157,7 @@ class DaluxSyncService:
                 task_attachments = attachments_by_task.get(task_id, [])
 
                 task_result = self._sync_task(
-                    task_data, mapping, task_changes, task_attachments, user_lookup, workpackage_lookup
+                    task_data, mapping, task_changes, task_attachments, user_lookup, workpackage_lookup, project_name
                 )
 
                 result.tasks_processed += 1
@@ -232,6 +234,7 @@ class DaluxSyncService:
         task_attachments: Optional[List[Dict[str, Any]]] = None,
         user_lookup: Optional[Dict[str, str]] = None,
         workpackage_lookup: Optional[Dict[str, str]] = None,
+        project_name: Optional[str] = None,
     ) -> TaskSyncResult:
         """
         Sync a single task from Dalux to Catenda.
@@ -243,6 +246,7 @@ class DaluxSyncService:
             task_attachments: List of attachments for this task
             user_lookup: Dict mapping userId to full name (with company)
             workpackage_lookup: Dict mapping workpackageId to entreprise name
+            project_name: Project name from Dalux projects API
 
         Returns:
             TaskSyncResult with action taken
@@ -267,7 +271,8 @@ class DaluxSyncService:
                 task_changes or [],
                 task_attachments or [],
                 user_lookup or {},
-                workpackage_lookup or {}
+                workpackage_lookup or {},
+                project_name
             )
 
             if existing_record:
@@ -388,6 +393,7 @@ class DaluxSyncService:
         task_attachments: Optional[List[Dict[str, Any]]] = None,
         user_lookup: Optional[Dict[str, str]] = None,
         workpackage_lookup: Optional[Dict[str, str]] = None,
+        project_name: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Map Dalux task to Catenda BCF topic structure.
@@ -398,6 +404,7 @@ class DaluxSyncService:
             task_attachments: List of attachments for this task
             user_lookup: Dict mapping userId to full name (with company)
             workpackage_lookup: Dict mapping workpackageId to entreprise name
+            project_name: Project name from Dalux projects API
 
         Returns:
             Dict with BCF topic fields
@@ -421,6 +428,10 @@ class DaluxSyncService:
 
         # Add metadata section (workflow, createdBy, deadline)
         metadata_parts = []
+
+        # Project name
+        if project_name:
+            metadata_parts.append(f"- **Prosjekt:** {project_name}")
 
         # Workflow/arbeidsforløp
         workflow = dalux_task.get("workflow", {})
@@ -541,6 +552,7 @@ class DaluxSyncService:
         room = location.get("room", {})
         drawing = location.get("drawing", {})
         coord = location.get("coordinate", {}).get("xyz", {})
+        location_images = location.get("locationImages", [])
 
         if building.get("name"):
             parts.append(f"- Bygning: {building['name']}")
@@ -553,6 +565,15 @@ class DaluxSyncService:
         if coord:
             x, y, z = coord.get("x", 0), coord.get("y", 0), coord.get("z", 0)
             parts.append(f"- Koordinater: X={x:.1f}, Y={y:.1f}, Z={z:.1f}")
+
+        # Add location images (plan drawings with marker)
+        if location_images:
+            parts.append(f"- Lokasjonsbilder:")
+            for img in location_images:
+                name = img.get("name", "ukjent")
+                url = img.get("fileDownload", "")
+                if url:
+                    parts.append(f"  - [{name}]({url})")
 
         if parts:
             return "\n---\n**Lokasjon:**\n" + "\n".join(parts)
@@ -901,6 +922,27 @@ class DaluxSyncService:
         except Exception as e:
             logger.warning(f"Could not fetch workpackages: {e}")
             return {}
+
+    def _fetch_project_name(self, project_id: str) -> Optional[str]:
+        """
+        Fetch project name from Dalux projects API.
+
+        Args:
+            project_id: Dalux project ID
+
+        Returns:
+            Project name or None if not found
+        """
+        try:
+            projects = self.dalux.get_projects()
+            for project in projects:
+                data = project.get("data", {})
+                if str(data.get("projectId")) == str(project_id):
+                    return data.get("projectName")
+            return None
+        except Exception as e:
+            logger.warning(f"Could not fetch project name: {e}")
+            return None
 
     def _enrich_user_lookup_with_company(
         self,
