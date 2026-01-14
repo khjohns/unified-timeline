@@ -4,7 +4,7 @@
 
 Et system for håndtering av endringsordrer (KOE) etter NS 8407:2011, integrert med prosjekthotellet Catenda. Utviklet av Oslobygg KF for å erstatte manuelle PDF/Word-baserte prosesser med strukturerte, sporbare data.
 
-**Sist oppdatert:** 2025-12-20
+**Sist oppdatert:** 2026-01-14
 
 ---
 
@@ -205,53 +205,20 @@ Hvis BH avslår fristkrav som TE mener er berettiget, kan TE varsle om forsering
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Event-oversikt (35+ event-typer)
+### Event-typer
 
-#### Standard sak (KOE)
+Systemet har **35+ event-typer** fordelt på kategoriene:
 
-| Event | Aktør | Beskrivelse |
-|-------|-------|-------------|
-| `sak_opprettet` | System | Sak opprettes fra Catenda webhook |
-| `grunnlag_opprettet` | TE | Første innsending av ansvarsgrunnlag |
-| `grunnlag_oppdatert` | TE | Revidert grunnlag |
-| `grunnlag_trukket` | TE | TE trekker grunnlaget |
-| `vederlag_krav_sendt` | TE | Vederlagskrav sendes |
-| `vederlag_krav_oppdatert` | TE | Revidert vederlagskrav |
-| `vederlag_krav_trukket` | TE | TE trekker vederlagskravet |
-| `frist_krav_sendt` | TE | Fristkrav sendes |
-| `frist_krav_oppdatert` | TE | Revidert fristkrav |
-| `frist_krav_trukket` | TE | TE trekker fristkravet |
-| `respons_grunnlag` | BH | Svar på grunnlag (Port 1) |
-| `respons_grunnlag_oppdatert` | BH | BH endrer standpunkt |
-| `respons_vederlag` | BH | Svar på vederlag (Port 1+2) |
-| `respons_vederlag_oppdatert` | BH | BH endrer standpunkt |
-| `respons_frist` | BH | Svar på frist (Port 1+2+3) |
-| `respons_frist_oppdatert` | BH | BH endrer standpunkt |
+| Kategori | Eksempler | Aktør |
+|----------|-----------|-------|
+| Grunnlag | `grunnlag_opprettet`, `grunnlag_oppdatert` | TE |
+| Vederlag | `vederlag_krav_sendt`, `vederlag_krav_oppdatert` | TE |
+| Frist | `frist_krav_sendt`, `frist_krav_oppdatert` | TE |
+| Respons | `respons_grunnlag`, `respons_vederlag`, `respons_frist` | BH |
+| Forsering | `forsering_varsel`, `forsering_respons` | TE/BH |
+| Endringsordre | `eo_opprettet`, `eo_utstedt`, `eo_akseptert` | BH/TE |
 
-#### Forsering (§33.8)
-
-| Event | Aktør | Beskrivelse |
-|-------|-------|-------------|
-| `forsering_varsel` | TE | TE varsler om forsering (med er_iverksatt flag) |
-| `forsering_stoppet` | TE | Forsering stoppet (BH godkjente frist) |
-| `forsering_respons` | BH | BH's svar på forseringskostnader |
-| `forsering_kostnader_oppdatert` | TE | Påløpte kostnader oppdatert |
-| `forsering_koe_lagt_til` | TE | KOE lagt til forseringssak |
-| `forsering_koe_fjernet` | TE | KOE fjernet fra forseringssak |
-
-#### Endringsordre (§31.3)
-
-| Event | Aktør | Beskrivelse |
-|-------|-------|-------------|
-| `eo_opprettet` | BH | Ny EO-sak opprettet |
-| `eo_utstedt` | BH | EO formelt utstedt til TE |
-| `eo_revidert` | BH | EO revidert etter bestridelse |
-| `eo_akseptert` | TE | TE aksepterer EO |
-| `eo_bestridt` | TE | TE bestrider EO |
-| `eo_koe_lagt_til` | BH | KOE-sak lagt til i EO |
-| `eo_koe_fjernet` | BH | KOE-sak fjernet fra EO |
-
-**Merk:** Databaselagring til Dataverse er planlagt for produksjon.
+**Se [ARCHITECTURE_AND_DATAMODEL.md](docs/ARCHITECTURE_AND_DATAMODEL.md)** for komplett event-oversikt og datamodeller.
 
 ---
 
@@ -328,26 +295,19 @@ SAK (Endringsmelding)
 
 ### NS 8407-implementasjon
 
-Systemet implementerer NS 8407:2011 totalentreprisekontrakt med følgende hjemmelstruktur:
+Systemet implementerer NS 8407:2011 totalentreprisekontrakt:
 
-| Spor/Sakstype | Hjemmel | Beskrivelse |
-|---------------|---------|-------------|
-| **Grunnlag** | §33.1 a-c, §33.3 | Ansvarsgrunnlag for krav |
-| **Vederlag** | §34.1-34.4 | Vederlagsjustering |
-| **Frist** | §33.4-33.7 | Fristforlengelse |
-| **Forsering** | §33.8 | Akselerasjon ved avslått fristkrav |
-| **Endringsordre** | §31.3 | Formell instruks fra BH |
+| Spor/Sakstype | Hjemmel |
+|---------------|---------|
+| Grunnlag | §33.1 a-c, §33.3 |
+| Vederlag | §34.1-34.4 |
+| Frist | §33.4-33.7 |
+| Forsering | §33.8 |
+| Endringsordre | §31.3 |
 
-**Kategorier (4 hovedkategorier, 22 underkategorier):**
-
-| Hovedkategori | Frist-hjemmel | Vederlag-hjemmel | Type krav |
-|---------------|---------------|------------------|-----------|
-| ENDRING | §33.1 a) | §34.1.1 | Tid og Penger |
-| SVIKT | §33.1 b) | §34.1.2 | Tid og Penger |
-| ANDRE | §33.1 c) | §34.1.2 | Tid og Penger |
-| FORCE_MAJEURE | §33.3 | - | Kun Tid |
-
-**Verifisert mot NS 8407:** Se [docs/NS8407_KONTROLLPLAN.md](docs/NS8407_KONTROLLPLAN.md) for komplett kontrollrapport.
+**Se også:**
+- [ARCHITECTURE_AND_DATAMODEL.md](docs/ARCHITECTURE_AND_DATAMODEL.md) - Port-modell, subsidiær logikk
+- [NS8407_KONTROLLPLAN.md](docs/NS8407_KONTROLLPLAN.md) - Verifisering mot kontrakt
 
 ### Produksjon (planlagt)
 
