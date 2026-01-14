@@ -366,6 +366,40 @@ class DaluxClient:
             logger.error(f"Failed to fetch attachments: {e}")
             raise DaluxAPIError(f"Failed to fetch attachments: {e}")
 
+    # ==========================================
+    # USERS
+    # ==========================================
+
+    USERS_VERSION = "1.2"
+
+    def get_project_users(self, project_id: str) -> List[Dict[str, Any]]:
+        """
+        Get all users on a project.
+
+        Args:
+            project_id: Dalux project ID
+
+        Returns:
+            List of user objects with userId, firstName, lastName, email.
+        """
+        logger.info(f"Fetching users for project {project_id}...")
+        url = f"{self.base_url}/{self.USERS_VERSION}/projects/{project_id}/users"
+
+        try:
+            response = self._make_request("GET", url)
+            data = response.json()
+
+            items = data.get("items", [])
+            logger.info(f"Found {len(items)} project users")
+
+            return items
+
+        except (DaluxAuthError, DaluxAPIError):
+            raise
+        except Exception as e:
+            logger.error(f"Failed to fetch users: {e}")
+            raise DaluxAPIError(f"Failed to fetch users: {e}")
+
     def download_attachment(
         self,
         download_url: str,

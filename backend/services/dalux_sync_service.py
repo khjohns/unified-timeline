@@ -55,7 +55,8 @@ class DaluxSyncService:
     def sync_project(
         self,
         sync_mapping_id: str,
-        full_sync: bool = False
+        full_sync: bool = False,
+        limit: Optional[int] = None
     ) -> SyncResult:
         """
         Sync all tasks from Dalux to Catenda for a project.
@@ -63,6 +64,7 @@ class DaluxSyncService:
         Args:
             sync_mapping_id: Sync mapping UUID
             full_sync: If True, sync all tasks; if False, only sync changes since last sync
+            limit: Optional limit on number of tasks to sync (for testing)
 
         Returns:
             SyncResult with counts and status
@@ -120,11 +122,17 @@ class DaluxSyncService:
 
             logger.info(f"Found {len(tasks)} tasks to process")
 
-            # Fetch all changes and attachments once (for enrichment)
-            logger.info("Fetching changes and attachments for enrichment...")
+            # Apply limit if specified (for testing)
+            if limit and limit > 0:
+                tasks = tasks[:limit]
+                logger.info(f"Limited to {len(tasks)} tasks")
+
+            # Fetch all changes, attachments, and users once (for enrichment)
+            logger.info("Fetching changes, attachments, and users for enrichment...")
             all_changes = self._fetch_all_changes(mapping.dalux_project_id)
             all_attachments = self._fetch_all_attachments(mapping.dalux_project_id)
-            logger.info(f"  Changes: {len(all_changes)}, Attachments: {len(all_attachments)}")
+            user_lookup = self._fetch_user_lookup(mapping.dalux_project_id)
+            logger.info(f"  Changes: {len(all_changes)}, Attachments: {len(all_attachments)}, Users: {len(user_lookup)}")
 
             # Index by task ID for fast lookup
             changes_by_task = self._group_by_task_id(all_changes)
@@ -140,7 +148,7 @@ class DaluxSyncService:
                 task_attachments = attachments_by_task.get(task_id, [])
 
                 task_result = self._sync_task(
-                    task_data, mapping, task_changes, task_attachments
+                    task_data, mapping, task_changes, task_attachments, user_lookup
                 )
 
                 result.tasks_processed += 1
@@ -215,6 +223,7 @@ class DaluxSyncService:
         mapping: DaluxCatendaSyncMapping,
         task_changes: Optional[List[Dict[str, Any]]] = None,
         task_attachments: Optional[List[Dict[str, Any]]] = None,
+        user_lookup: Optional[Dict[str, str]] = None,
     ) -> TaskSyncResult:
         """
         Sync a single task from Dalux to Catenda.
@@ -224,6 +233,7 @@ class DaluxSyncService:
             mapping: Sync mapping configuration
             task_changes: List of changes for this task (from changes API)
             task_attachments: List of attachments for this task
+            user_lookup: Dict mapping userId to full name
 
         Returns:
             TaskSyncResult with action taken
@@ -246,7 +256,8 @@ class DaluxSyncService:
             topic_data = self._map_task_to_topic(
                 dalux_task,
                 task_changes or [],
-                task_attachments or []
+                task_attachments or [],
+                user_lookup or {}
             )
 
             if existing_record:
@@ -365,6 +376,7 @@ class DaluxSyncService:
         dalux_task: Dict[str, Any],
         task_changes: Optional[List[Dict[str, Any]]] = None,
         task_attachments: Optional[List[Dict[str, Any]]] = None,
+        user_lookup: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
         """
         Map Dalux task to Catenda BCF topic structure.
@@ -373,6 +385,7 @@ class DaluxSyncService:
             dalux_task: Dalux task data
             task_changes: List of changes for this task (for history)
             task_attachments: List of attachments for this task
+            user_lookup: Dict mapping userId to full name
 
         Returns:
             Dict with BCF topic fields
@@ -431,7 +444,7 @@ class DaluxSyncService:
 
         # Add history/changes if present
         if task_changes:
-            changes_str = self._format_changes_for_description(task_changes)
+            changes_str = self._format_changes_for_description(task_changes, user_lookup or {})
             if changes_str:
                 description_parts.append(changes_str)
 
@@ -506,17 +519,20 @@ class DaluxSyncService:
 
     def _format_changes_for_description(
         self,
-        changes: List[Dict[str, Any]]
+        changes: List[Dict[str, Any]],
+        user_lookup: Optional[Dict[str, str]] = None
     ) -> Optional[str]:
         """
         Format changes/history for inclusion in description.
 
         Args:
             changes: List of change dicts from Dalux changes API
+            user_lookup: Dict mapping userId to full name
 
         Returns:
             Formatted markdown string or None
         """
+        user_lookup = user_lookup or {}
         if not changes:
             return None
 
@@ -561,10 +577,12 @@ class DaluxSyncService:
             if assigned_to.get("roleName"):
                 parts.append(f"  - Tildelt: {assigned_to['roleName']}")
 
-            # Add responsible info
+            # Add responsible info (look up user name)
             current_resp = fields.get("currentResponsible", {})
             if current_resp.get("userId"):
-                parts.append(f"  - Ansvarlig: {current_resp['userId']}")
+                user_id = current_resp["userId"]
+                user_name = user_lookup.get(user_id, user_id)
+                parts.append(f"  - Ansvarlig: {user_name}")
 
         return "\n".join(parts)
 
@@ -650,6 +668,31 @@ class DaluxSyncService:
         except Exception as e:
             logger.warning(f"Could not fetch attachments: {e}")
             return []
+
+    def _fetch_user_lookup(self, project_id: str) -> Dict[str, str]:
+        """
+        Fetch project users and build a lookup table.
+
+        Args:
+            project_id: Dalux project ID
+
+        Returns:
+            Dict mapping userId to full name (firstName + lastName)
+        """
+        try:
+            users = self.dalux.get_project_users(project_id)
+            lookup = {}
+            for user in users:
+                user_id = user.get("userId")
+                first_name = user.get("firstName", "")
+                last_name = user.get("lastName", "")
+                if user_id:
+                    full_name = f"{first_name} {last_name}".strip()
+                    lookup[user_id] = full_name if full_name else user_id
+            return lookup
+        except Exception as e:
+            logger.warning(f"Could not fetch users: {e}")
+            return {}
 
     def _group_by_task_id(
         self,

@@ -13,6 +13,9 @@ Usage:
     # Full sync (all tasks, not just changes)
     python scripts/dalux_sync.py sync --mapping-id <uuid> --full
 
+    # Sync only first N tasks (for testing)
+    python scripts/dalux_sync.py sync --mapping-id <uuid> --full --limit 2
+
     # List all sync mappings
     python scripts/dalux_sync.py list
 
@@ -57,8 +60,11 @@ def cmd_sync(args):
     """Run sync for a mapping."""
     mapping_id = args.mapping_id
     full_sync = args.full
+    limit = args.limit
 
     print(f"Loading sync mapping {mapping_id}...")
+    if limit:
+        print(f"Limiting to {limit} task(s)")
 
     try:
         sync_repo = create_sync_mapping_repository()
@@ -87,7 +93,7 @@ def cmd_sync(args):
 
         # Create sync service and run
         sync_service = DaluxSyncService(dalux_client, catenda_client, sync_repo)
-        result = sync_service.sync_project(mapping_id, full_sync=full_sync)
+        result = sync_service.sync_project(mapping_id, full_sync=full_sync, limit=limit)
 
         # Print results
         print(f"\nSync completed: {result.status}")
@@ -293,6 +299,7 @@ def main():
     sync_parser = subparsers.add_parser("sync", help="Run sync for a mapping")
     sync_parser.add_argument("--mapping-id", "-m", required=True, help="Sync mapping UUID")
     sync_parser.add_argument("--full", "-f", action="store_true", help="Full sync (not incremental)")
+    sync_parser.add_argument("--limit", "-l", type=int, help="Limit number of tasks to sync (for testing)")
 
     # list command
     subparsers.add_parser("list", help="List all sync mappings")
