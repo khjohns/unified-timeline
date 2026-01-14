@@ -1,7 +1,7 @@
 # Dalux-Catenda Integrasjon
 
-> **Sist oppdatert:** 2026-01-14 (firma- og entrepriseoppslag implementert)
-> **Status:** Fase 2 komplett med firma/entreprise-berikning, avventer avklaringer fra OBF
+> **Sist oppdatert:** 2026-01-14 (prosjektnavn og lokasjonsbilder implementert)
+> **Status:** Fase 2 komplett med ~95% API-dekning, avventer avklaringer fra OBF
 
 ---
 
@@ -25,13 +25,14 @@ Enveis-integrasjon fra Dalux Build til Catenda for synkronisering av tasks og do
 
 | Saksalder | Dekning | Kommentar |
 |-----------|---------|-----------|
-| Eldre saker (RUH1-55) | **~95%** | Full berikning med firma/entreprise ✅ |
+| Eldre saker (RUH1-55) | **~95%** | Full berikning inkl. prosjektnavn og lokasjonsbilder ✅ |
 | Nyere saker (RUH58+) | ~65% | Historikk mangler pga API-begrensning |
 
 **Implementerte endepunkter:**
+- `/5.1/projects` - Prosjektnavn ✅
 - `/3.1/projects/{id}/companies` - Firmanavn fra companyId ✅
 - `/1.0/projects/{id}/workpackages` - Entreprisenavn fra workpackageId ✅
-- `/5.1/projects` - Prosjektnavn ✅
+- `location.locationImages[]` - Lokasjonsbilder (plantegning med markør) ✅
 
 ---
 
@@ -539,7 +540,7 @@ RUH7 er innenfor Changes API-grensen og gir **~80% dekning**.
 | Nummer | RUH7 | `number` | ✅ |
 | Tittel | Manglende sikring av kant | `subject` | ✅ |
 | Type | RUH | `type.name` | ✅ |
-| Prosjekt | Stovner skole | – | ⚠️ Ikke i task, separat kall |
+| Prosjekt | Stovner skole | `projectName` via projects API | ✅ Implementert |
 | Prosjekt nr. | 12200037 | – | ❌ |
 | Bygning | Tilbygg | `location.building.name` | ✅ |
 | Etasje | Plan U1 | `location.level.name` | ✅ |
@@ -596,10 +597,11 @@ RUH7 er innenfor Changes API-grensen og gir **~80% dekning**.
 
 | Manglende data | PDF viser | API-løsning | Status |
 |----------------|-----------|-------------|--------|
-| **Prosjektnavn** | "Stovner skole" | `GET /5.1/projects` → `projectName` | ✅ Tilgjengelig |
+| **Prosjektnavn** | "Stovner skole" | `GET /5.1/projects` → `projectName` | ✅ Implementert |
 | **Prosjektnummer** | "12200037" | Ikke i API | ❌ Mangler |
-| **Firmanavn** | "Betonmast Oslo AS" | `GET /3.1/projects/{id}/companies` + `users[].companyId` | ✅ Tilgjengelig |
-| **Entreprise-navn** | "303 Graving og sprenging" | `GET /1.0/projects/{id}/workpackages` → `name` | ✅ Tilgjengelig |
+| **Firmanavn** | "Betonmast Oslo AS" | `GET /3.1/projects/{id}/companies` + `users[].companyId` | ✅ Implementert |
+| **Entreprise-navn** | "303 Graving og sprenging" | `GET /1.0/projects/{id}/workpackages` → `name` | ✅ Implementert |
+| **Lokasjonsbilder** | Plantegning med markør | `location.locationImages[]` | ✅ Implementert |
 | **Stedfortreder** | "Stedfortreder for: X" | Ikke i API (bekreftet i OpenAPI spec) | ❌ Mangler |
 | **Workflow-endringer** | "før → etter" | Kun nåværende verdi | ❌ Mangler |
 | **Bilde-annotasjoner** | Tekst-overlay | Ikke i API | ❌ Mangler |
@@ -704,6 +706,8 @@ S306296086551592960: Sigurd Furulund Maskin AS
 | `changes[].fields.assignedTo.roleName` | `description` (historikk) | ✅ Tildeling |
 | `changes[].fields.currentResponsible` | `description` (historikk) | ✅ Med bruker+firma-oppslag |
 | `changes[].fields.workpackageId` | `description` (historikk) | ✅ Entreprise-navn |
+| `projectName` (fra projects API) | `description` (Saksinfo) | ✅ Prosjektnavn |
+| `location.locationImages[]` | `description` (Lokasjon) | ✅ Lokasjonsbilder |
 | `status` | `topic_status` | ⚠️ Default "Open" |
 
 **Bruker- og firmaoppslag:**
@@ -728,6 +732,8 @@ S306296086551592960: Sigurd Furulund Maskin AS
 - ✅ **Entrepriseoppslag:** workpackageId → navn via Project Workpackages API
 - ✅ **Beriket historikk:** "Oppdatert av: Ivar Andresen, Betonmast Oslo AS"
 - ✅ **Entreprise i historikk:** "Entreprise: 303 Graving og sprenging"
+- ✅ **Prosjektnavn:** "Prosjekt: Stovner skole" fra projects API
+- ✅ **Lokasjonsbilder:** Plantegning med markør (URL-er til closeup og overview)
 - ✅ Type-mapping til gyldige Catenda topic types
 - ✅ Synk-status lagres i Supabase for sporing
 - ✅ File Areas → Catenda bibliotek (nedlasting og opplasting)
@@ -831,20 +837,23 @@ Erstatte polling med push-basert synk for lavere latens og redusert API-belastni
    - Viser "303 Graving og sprenging" i stedet for workpackageId
    - Legger til "Oppdatert av:" i historikk med firmanavn
 
-#### Kan implementeres
+6. ~~**Implementer prosjektnavn**~~ ✅ Implementert:
+   - Henter prosjektnavn fra `/5.1/projects`
+   - Viser "Prosjekt: Stovner skole" i Saksinfo
 
-6. **Implementer prosjektnavn** - Bruk `/5.1/projects`:
-   - Cache prosjektnavn ved oppstart av synk
-   - Inkluder i metadata/saksinfo
+7. ~~**Implementer lokasjonsbilder**~~ ✅ Implementert:
+   - Henter `location.locationImages[]` fra task data
+   - Inkluderer URL-er til plantegning med markør (closeup og overview)
+   - Vises under Lokasjon-seksjonen i description
 
 #### Krever ekstern avklaring
 
-7. **Kontakt Dalux support** - Spør om:
+8. **Kontakt Dalux support** - Spør om:
    - Paginering/offset for changes API (returnerer kun 100 eldste)
    - Prosjektnummer-felt (ikke tilgjengelig per nå)
    - Stedfortreder-informasjon (ikke i API)
 
-8. **Lokal event-logg** - Lagre endringer vi gjør selv i Unified Timeline
+9. **Lokal event-logg** - Lagre endringer vi gjør selv i Unified Timeline
 
 ---
 
