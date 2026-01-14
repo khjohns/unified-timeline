@@ -120,10 +120,28 @@ class DaluxSyncService:
 
             logger.info(f"Found {len(tasks)} tasks to process")
 
+            # Fetch all changes and attachments once (for enrichment)
+            logger.info("Fetching changes and attachments for enrichment...")
+            all_changes = self._fetch_all_changes(mapping.dalux_project_id)
+            all_attachments = self._fetch_all_attachments(mapping.dalux_project_id)
+            logger.info(f"  Changes: {len(all_changes)}, Attachments: {len(all_attachments)}")
+
+            # Index by task ID for fast lookup
+            changes_by_task = self._group_by_task_id(all_changes)
+            attachments_by_task = self._group_attachments_by_task_id(all_attachments)
+
             # Process each task
             for task_item in tasks:
                 task_data = task_item.get("data", {})
-                task_result = self._sync_task(task_data, mapping)
+                task_id = task_data.get("taskId", "")
+
+                # Get changes and attachments for this task
+                task_changes = changes_by_task.get(task_id, [])
+                task_attachments = attachments_by_task.get(task_id, [])
+
+                task_result = self._sync_task(
+                    task_data, mapping, task_changes, task_attachments
+                )
 
                 result.tasks_processed += 1
                 result.task_results.append(task_result)
@@ -194,7 +212,9 @@ class DaluxSyncService:
     def _sync_task(
         self,
         dalux_task: Dict[str, Any],
-        mapping: DaluxCatendaSyncMapping
+        mapping: DaluxCatendaSyncMapping,
+        task_changes: Optional[List[Dict[str, Any]]] = None,
+        task_attachments: Optional[List[Dict[str, Any]]] = None,
     ) -> TaskSyncResult:
         """
         Sync a single task from Dalux to Catenda.
@@ -202,6 +222,8 @@ class DaluxSyncService:
         Args:
             dalux_task: Dalux task data (from 'data' field)
             mapping: Sync mapping configuration
+            task_changes: List of changes for this task (from changes API)
+            task_attachments: List of attachments for this task
 
         Returns:
             TaskSyncResult with action taken
@@ -220,8 +242,12 @@ class DaluxSyncService:
             dalux_updated_str = dalux_task.get("modified") or dalux_task.get("created")
             dalux_updated_at = self._parse_datetime(dalux_updated_str)
 
-            # Map task to BCF topic
-            topic_data = self._map_task_to_topic(dalux_task)
+            # Map task to BCF topic (with enrichment from changes and attachments)
+            topic_data = self._map_task_to_topic(
+                dalux_task,
+                task_changes or [],
+                task_attachments or []
+            )
 
             if existing_record:
                 # Check if update needed (use > not >= to handle same-second updates)
@@ -334,12 +360,19 @@ class DaluxSyncService:
                 error=str(e),
             )
 
-    def _map_task_to_topic(self, dalux_task: Dict[str, Any]) -> Dict[str, Any]:
+    def _map_task_to_topic(
+        self,
+        dalux_task: Dict[str, Any],
+        task_changes: Optional[List[Dict[str, Any]]] = None,
+        task_attachments: Optional[List[Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]:
         """
         Map Dalux task to Catenda BCF topic structure.
 
         Args:
             dalux_task: Dalux task data
+            task_changes: List of changes for this task (for history)
+            task_attachments: List of attachments for this task
 
         Returns:
             Dict with BCF topic fields
@@ -366,30 +399,41 @@ class DaluxSyncService:
         user_fields = dalux_task.get("userDefinedFields", {})
         items = user_fields.get("items", []) if isinstance(user_fields, dict) else []
         if items:
-            description_parts.append("\n\n---\n**Dalux metadata:**")
+            description_parts.append("\n---\n**Egendefinerte felt:**")
             for item in items:
                 field_name = item.get("name", "Ukjent felt")
                 values = item.get("values", [])
                 if values:
-                    # Extract value from text or reference format
-                    val = values[0]
-                    if "text" in val:
-                        field_value = val["text"]
-                    elif "reference" in val:
-                        field_value = val["reference"].get("value", "?")
-                    else:
-                        field_value = str(val)
-                    # Clean up any weird unicode spacing
-                    field_value = field_value.strip()
+                    # Extract value(s) from text or reference format
+                    value_strs = []
+                    for val in values:
+                        if "text" in val:
+                            value_strs.append(val["text"].strip())
+                        elif "reference" in val:
+                            value_strs.append(val["reference"].get("value", "?"))
+                        elif "date" in val:
+                            value_strs.append(val["date"][:10])
+                    field_value = ", ".join(value_strs) if value_strs else "(tom)"
                     description_parts.append(f"- **{field_name}:** {field_value}")
 
-        # Add assigned to info
-        assigned_to = dalux_task.get("assignedTo", {})
-        if assigned_to:
-            email = assigned_to.get("email")
-            name = assigned_to.get("name")
-            if email or name:
-                description_parts.append(f"\n**Assigned to:** {name or email}")
+        # Add location info if present
+        location = dalux_task.get("location", {})
+        if location:
+            location_str = self._format_location_for_description(location)
+            if location_str:
+                description_parts.append(location_str)
+
+        # Add attachments list if present
+        if task_attachments:
+            attachments_str = self._format_attachments_for_description(task_attachments)
+            if attachments_str:
+                description_parts.append(attachments_str)
+
+        # Add history/changes if present
+        if task_changes:
+            changes_str = self._format_changes_for_description(task_changes)
+            if changes_str:
+                description_parts.append(changes_str)
 
         description = "\n".join(description_parts) if description_parts else None
 
@@ -401,8 +445,128 @@ class DaluxSyncService:
             "description": description,
             "topic_type": catenda_type,
             "topic_status": catenda_status,
-            # TODO: Add due_date, assigned_to when BCF API supports it
         }
+
+    def _format_location_for_description(
+        self,
+        location: Dict[str, Any]
+    ) -> Optional[str]:
+        """Format location data for inclusion in description."""
+        parts = []
+
+        building = location.get("building", {})
+        level = location.get("level", {})
+        room = location.get("room", {})
+        drawing = location.get("drawing", {})
+        coord = location.get("coordinate", {}).get("xyz", {})
+
+        if building.get("name"):
+            parts.append(f"- Bygning: {building['name']}")
+        if level.get("name"):
+            parts.append(f"- Etasje: {level['name']}")
+        if room.get("name"):
+            parts.append(f"- Rom: {room['name']}")
+        if drawing.get("name"):
+            parts.append(f"- Tegning: {drawing['name']}")
+        if coord:
+            x, y, z = coord.get("x", 0), coord.get("y", 0), coord.get("z", 0)
+            parts.append(f"- Koordinater: X={x:.1f}, Y={y:.1f}, Z={z:.1f}")
+
+        if parts:
+            return "\n---\n**Lokasjon:**\n" + "\n".join(parts)
+        return None
+
+    def _format_attachments_for_description(
+        self,
+        attachments: List[Dict[str, Any]]
+    ) -> Optional[str]:
+        """
+        Format attachments list for inclusion in description.
+
+        Args:
+            attachments: List of attachment dicts from Dalux API
+
+        Returns:
+            Formatted markdown string or None
+        """
+        if not attachments:
+            return None
+
+        parts = [f"\n---\n**Vedlegg ({len(attachments)} stk):**"]
+
+        for att in attachments:
+            media = att.get("mediaFile", {})
+            name = media.get("name", "Ukjent fil")
+            created = att.get("created", "")[:10]
+            parts.append(f"- 📎 {name} ({created})")
+
+        parts.append("*(Nedlasting krever utvidede API-rettigheter)*")
+
+        return "\n".join(parts)
+
+    def _format_changes_for_description(
+        self,
+        changes: List[Dict[str, Any]]
+    ) -> Optional[str]:
+        """
+        Format changes/history for inclusion in description.
+
+        Args:
+            changes: List of change dicts from Dalux changes API
+
+        Returns:
+            Formatted markdown string or None
+        """
+        if not changes:
+            return None
+
+        # Sort by timestamp
+        sorted_changes = sorted(
+            changes,
+            key=lambda c: c.get("timestamp", ""),
+        )
+
+        parts = [f"\n---\n**Historikk ({len(changes)} hendelser):**"]
+
+        # Action icons
+        icons = {
+            "create": "📝",
+            "assign": "👤",
+            "update": "✏️",
+            "complete": "✅",
+            "approve": "✓",
+            "reject": "✗",
+            "reopen": "🔄",
+        }
+
+        for change in sorted_changes:
+            timestamp = change.get("timestamp", "")[:16].replace("T", " ")
+            action = change.get("action", "unknown")
+            description = change.get("description", "")
+            fields = change.get("fields", {})
+
+            icon = icons.get(action, "•")
+            line = f"- {icon} [{timestamp}] **{action.upper()}**"
+
+            # Add description if present
+            if description:
+                # Truncate long descriptions
+                desc = description[:100] + "..." if len(description) > 100 else description
+                line += f': "{desc}"'
+
+            parts.append(line)
+
+            # Add role assignment info
+            assigned_to = fields.get("assignedTo", {})
+            if assigned_to.get("roleName"):
+                parts.append(f"  - Tildelt: {assigned_to['roleName']}")
+
+            # Add responsible info
+            current_resp = fields.get("currentResponsible", {})
+            if current_resp.get("userId"):
+                parts.append(f"  - Ansvarlig: {current_resp['userId']}")
+
+        return "\n".join(parts)
 
     def _sync_attachments(
         self,
@@ -450,6 +614,86 @@ class DaluxSyncService:
         except ValueError:
             logger.warning(f"Could not parse datetime: {dt_str}")
             return datetime.utcnow()
+
+    def _fetch_all_changes(self, project_id: str) -> List[Dict[str, Any]]:
+        """
+        Fetch all available changes from Dalux.
+
+        Note: Due to API limitations, only the 100 oldest changes are returned.
+
+        Args:
+            project_id: Dalux project ID
+
+        Returns:
+            List of change dicts
+        """
+        try:
+            # Use a very old date to get as many changes as possible
+            since = datetime(2020, 1, 1)
+            return self.dalux.get_task_changes(project_id, since)
+        except Exception as e:
+            logger.warning(f"Could not fetch changes: {e}")
+            return []
+
+    def _fetch_all_attachments(self, project_id: str) -> List[Dict[str, Any]]:
+        """
+        Fetch all task attachments from Dalux.
+
+        Args:
+            project_id: Dalux project ID
+
+        Returns:
+            List of attachment dicts
+        """
+        try:
+            return self.dalux.get_task_attachments(project_id)
+        except Exception as e:
+            logger.warning(f"Could not fetch attachments: {e}")
+            return []
+
+    def _group_by_task_id(
+        self,
+        changes: List[Dict[str, Any]]
+    ) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Group changes by task ID.
+
+        Args:
+            changes: List of change dicts
+
+        Returns:
+            Dict mapping task ID to list of changes
+        """
+        result: Dict[str, List[Dict[str, Any]]] = {}
+        for change in changes:
+            task_id = change.get("taskId")
+            if task_id:
+                if task_id not in result:
+                    result[task_id] = []
+                result[task_id].append(change)
+        return result
+
+    def _group_attachments_by_task_id(
+        self,
+        attachments: List[Dict[str, Any]]
+    ) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Group attachments by task ID.
+
+        Args:
+            attachments: List of attachment dicts
+
+        Returns:
+            Dict mapping task ID to list of attachments
+        """
+        result: Dict[str, List[Dict[str, Any]]] = {}
+        for att in attachments:
+            task_id = att.get("taskId")
+            if task_id:
+                if task_id not in result:
+                    result[task_id] = []
+                result[task_id].append(att)
+        return result
 
     def validate_sync_config(
         self,
