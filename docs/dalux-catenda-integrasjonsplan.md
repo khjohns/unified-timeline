@@ -194,6 +194,12 @@ Catenda har begrenset sett med gyldige topic_type. Mapping:
 | `mediaFile.mediaFileId` | Lagres som ekstern referanse |
 | Opplastet dokument-ID | `document_reference.document_guid` |
 
+**⚠️ Viktig (verifisert 2026-01-14):**
+- Task attachments og File Areas er **separate lagringssystemer** i Dalux
+- Task attachments: Liste OK, men nedlasting krever utvidede API-rettigheter (403)
+- File Areas: Full tilgang til liste og nedlasting
+- Document reference krever **formatert UUID** (med bindestreker), ikke kompakt
+
 ---
 
 ## Synkroniseringslogikk
@@ -290,7 +296,8 @@ class TaskSyncRecord:
 
 - [x] Implementer task → topic mapping
 - [x] Implementer `DaluxSyncService` med full synk
-- [ ] Implementer attachment → document synk
+- [x] Verifiser attachment → document synk (File Areas fungerer, task attachments krever utvidede rettigheter)
+- [x] Verifiser mappe-opprettelse i Catenda (fungerer med riktig payload)
 - [ ] Opprett polling-scheduler (Azure Functions Timer Trigger eller lignende)
 - [ ] Implementer inkrementell synk med `/tasks/changes` (delvis - strukturforskjeller)
 
@@ -359,9 +366,10 @@ Implementert januar 2026. For detaljert analyse, se [ADR-001-dalux-sync.md](ADR-
 ### Kjente begrensninger
 
 - [ ] Ingen automatisk scheduler (manuell trigger via CLI/meny)
-- [ ] Attachment-synk ikke implementert (Fase 2)
+- [x] ~~Attachment-synk ikke implementert~~ → File Areas fungerer, task attachments krever utvidede rettigheter
 - [ ] Kun single-tenant (én API-nøkkel per instans)
 - [ ] Inkrementell synk har strukturforskjeller som må håndteres
+- [ ] Kommentarer ikke tilgjengelig (finnes ikke i Dalux API)
 
 ### Testet og verifisert (januar 2026)
 
@@ -369,6 +377,24 @@ Implementert januar 2026. For detaljert analyse, se [ADR-001-dalux-sync.md](ADR-
 - ✅ Metadata formateres som lesbar markdown i description
 - ✅ Type-mapping til gyldige Catenda topic types
 - ✅ Synk-status lagres i Supabase for sporing
+- ✅ File Areas → Catenda bibliotek (nedlasting og opplasting fungerer)
+- ✅ Mappe-opprettelse i Catenda via API
+- ✅ Document reference med formatert UUID
+- ✅ Task changes API gir endringshistorikk (action, timestamp, felt)
+
+### API-begrensninger (verifisert januar 2026)
+
+| Funksjon | Status | Kommentar |
+|----------|--------|-----------|
+| Task grunndata | ✅ | Alle felt tilgjengelig |
+| Egendefinerte felt | ✅ | Alle verdier inkl. referanser |
+| Task changes (historikk) | ✅ | action, timestamp, modifiedBy, felt |
+| File Areas (filer) | ✅ | Liste og nedlasting fungerer |
+| Task attachments | ⚠️ | Liste OK, nedlasting krever utvidede API-rettigheter |
+| Lokasjonsbilder | ⚠️ | Liste OK, nedlasting krever utvidede API-rettigheter |
+| Kommentarer | ❌ | Finnes ikke i Dalux API |
+
+**NB:** API-rettigheter styres av prosjekteier (entreprenør) i Dalux Admin.
 
 ---
 
