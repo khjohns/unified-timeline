@@ -67,6 +67,43 @@ class ModelComparison:
         return len(self.findings) > 0
 
 
+# ============================================================================
+# EXCLUSIONS - Felt som med vilje ikke er synkronisert
+# ============================================================================
+# Disse feltene eksisterer kun i backend (interne felt) eller kun i frontend
+# (legacy/redundant), og skal ikke rapporteres som drift.
+
+EXCLUDED_FIELDS = {
+    # Backend-only felt (interne/metadata)
+    "SakState": {
+        "er_frafalt",           # Backend computed field for §32.3 c
+        "catenda_topic_id",     # Kun brukt ved event-submit, ikke i UI
+        "catenda_project_id",   # Kun i SyncMapping (integrasjon), ikke i SakState UI
+        # Frontend-only felt (flatet fra neste_handling dict)
+        "spor",                 # TS helper: neste_handling.spor
+        "handling",             # TS helper: neste_handling.handling
+    },
+    "GrunnlagTilstand": {
+        "siste_event_id",       # Intern backend metadata
+        "metode",               # TS: del av grunnlag_varsel, ikke eget felt i Python
+    },
+    "VederlagTilstand": {
+        "siste_event_id",       # Intern backend metadata
+        # Computed fields i Python som ikke trengs i TS interface
+        "netto_belop",          # Python computed_field, TS får fra API
+        "fradrag_belop",        # Python felt, TS bruker ikke direkte
+        "er_estimat",           # Python felt, TS bruker ikke direkte
+        "produktivitet",        # TS alias for produktivitetstap_varsel
+    },
+    "FristTilstand": {
+        "siste_event_id",       # Intern backend metadata
+    },
+    "SakRelasjon": {
+        "catenda_topic_id",     # Lagres i backend men vises ikke i UI
+    },
+}
+
+
 def find_project_root() -> Path:
     """Finn prosjektroten ved å lete etter package.json"""
     current = Path(__file__).resolve().parent
@@ -346,10 +383,15 @@ def compare_models(
         ts_field_names = set(ts_model.fields.keys())
         py_field_names = set(py_model.fields.keys())
 
+        # Hent ekskluderte felt for denne modellen
+        excluded = EXCLUDED_FIELDS.get(ts_name, set())
+
         # Felt som mangler i TypeScript
         for field_name in py_field_names - ts_field_names:
-            # Ignorer private felt
+            # Ignorer private felt og ekskluderte felt
             if field_name.startswith('_'):
+                continue
+            if field_name in excluded:
                 continue
             comparison.findings.append(DriftFinding(
                 model_name=ts_name,
@@ -360,6 +402,9 @@ def compare_models(
 
         # Felt som mangler i Python
         for field_name in ts_field_names - py_field_names:
+            # Ignorer ekskluderte felt
+            if field_name in excluded:
+                continue
             comparison.findings.append(DriftFinding(
                 model_name=ts_name,
                 severity=Severity.CRITICAL,
