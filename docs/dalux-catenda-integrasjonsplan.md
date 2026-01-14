@@ -400,40 +400,73 @@ Implementert januar 2026. For detaljert analyse, se [ADR-001-dalux-sync.md](ADR-
 
 ## Gap-analyse: Dalux API vs PDF-eksport
 
-> Verifisert 2026-01-14 mot RUH145 ("Tilkomst/rømning")
+> Verifisert 2026-01-14
 
 ### Sammendrag
 
-**API-dekning:** ~60% av PDF-innhold tilgjengelig via API
+**API-dekning varierer med sakens alder:**
+
+| Saksalder | Dekning | Årsak |
+|-----------|---------|-------|
+| Eldre saker (RUH1-55) | ~85% | Full historikk tilgjengelig |
+| Nyere saker (RUH58+) | ~60% | Changes API returnerer ikke data |
+
+### Eldre saker: Full dekning via Changes API
+
+For saker opprettet før oktober 2025 (ca. RUH1-55) får vi:
+
+| Kategori | Status | API-felt |
+|----------|--------|----------|
+| Grunndata | ✅ | `number`, `subject`, `type.name`, `workflow.name` |
+| Lokasjon | ✅ | `location.building`, `level`, `coordinate`, `drawing` |
+| Egendefinerte felt | ✅ | `userDefinedFields.items[]` |
+| **Beskrivelser/kommentarer** | ✅ | `changes[].description` |
+| **Ansvarlig** | ✅ | `changes[].fields.currentResponsible` |
+| **Tildeling** | ✅ | `changes[].fields.assignedTo.roleName` |
+| **Endringslogg** | ✅ | `changes[].action`, `timestamp` |
+| Vedlegg | ⚠️ | Liste OK, nedlasting 403 |
+
+**Eksempel RUH1:**
+```
+Changes: 5 stk
+  [2025-06-24] assign → "Fylles" (HMS-leder)
+  [2025-06-24] update
+  [2025-06-24] assign → (HMS-ansvarlig UE)
+  [2025-07-01] complete → "Hullet er tettet og lukket. Utbedret."
+  [2025-07-02] approve
+```
+
+### Nyere saker: Begrenset av API-paginering
+
+For saker opprettet etter oktober 2025 (RUH58+) mangler historikk:
 
 | Kategori | Status | Kommentar |
 |----------|--------|-----------|
-| Grunndata | ✅ | Nummer, tittel, type, workflow |
-| Lokasjon | ✅ | Bygning, etasje, koordinater, tegning, soner |
-| Egendefinerte felt | ✅ | Alle verdier inkl. referanser |
-| Vedlegg | ⚠️ | Liste OK, nedlasting 403 |
-| Historikk | ❌ | API-bug, se under |
-| Beskrivelser | ❌ | Ikke i task endpoint |
-| Ansvarlig | ❌ | Ikke i API-respons |
+| Grunndata | ✅ | Fungerer |
+| Lokasjon | ✅ | Fungerer |
+| Egendefinerte felt | ✅ | Fungerer |
+| Historikk | ❌ | Changes API returnerer 0 |
+| Beskrivelser | ❌ | Kun via changes |
+| Ansvarlig | ❌ | Kun via changes |
 
-### Kritisk: Changes API-begrensning
+### Rotårsak: Changes API-begrensning
 
 **Verifisert oppførsel:**
 
 ```
 Total changes i systemet: 592
 Returnert fra API:        100 (alltid de eldste)
-Nyeste tilgjengelig:      2025-10-01
+Tidsspenn returnert:      2025-06-24 → 2025-10-01
 since-parameter:          Ignoreres
 Paginering:               Ikke støttet
 ```
 
 **Konsekvens:**
+- Kun de 100 eldste endringene tilgjengelig
 - Endringer etter oktober 2025 utilgjengelige
-- Nyere saker (RUH58+) har 0 changes i API
-- Audit log/historikk kan ikke hentes for nyere saker
+- Nyere saker har 0 changes uansett parametre
 
-### Detaljert feltsammenligning (RUH145)
+### Detaljert feltsammenligning (RUH145 - nyere sak)
 
 | Felt | PDF | API | Status |
 |------|-----|-----|--------|
@@ -482,11 +515,11 @@ Paginering:               Ikke støttet
 | `type.name` | `topic_type` | ✅ Implementert |
 | `userDefinedFields` | `description` (appended) | ✅ Implementert |
 | `status` | `topic_status` | ⚠️ Default "Open" |
-| `description` | – | ❌ Ikke tilgjengelig |
-| `assignedTo` | – | ❌ Ikke i API |
+| `changes[].description` | – | ⚠️ Tilgjengelig for eldre saker, ikke mappet |
+| `changes[].fields.currentResponsible` | – | ⚠️ Tilgjengelig for eldre saker, ikke mappet |
+| `changes[].fields.assignedTo` | – | ⚠️ Tilgjengelig for eldre saker, ikke mappet |
 | `deadline` | `due_date` | ❌ TODO i kode |
 | `location` | – | ❌ Ikke mappet |
-| `changes` | – | ❌ API-begrensning |
 
 **TODOs i koden (linje 404, 426):**
 ```python
@@ -496,10 +529,13 @@ Paginering:               Ikke støttet
 
 ### Anbefalte tiltak
 
-1. **Kontakt Dalux support** - Spør om historikk/audit API eller rettelse av changes-bug
-2. **Bruk PDF-eksport** - Som supplement for full historikk der det trengs
-3. **Lokal event-logg** - Lagre endringer vi gjør selv i Unified Timeline
-4. **Utvid mapping** - Legg til `location`, `workflow` i BCF description
+1. **Kontakt Dalux support** - Spør om paginering/offset for changes API (kritisk for nyere saker)
+2. **Implementer changes-mapping** - For eldre saker (~85% av prosjektet) er data tilgjengelig:
+   - `changes[].description` → BCF comment
+   - `changes[].fields.currentResponsible` → assigned_to
+   - `changes[].fields.assignedTo.roleName` → description (rolle)
+3. **Utvid task-mapping** - Legg til `location`, `workflow` i BCF description
+4. **Lokal event-logg** - Lagre endringer vi gjør selv i Unified Timeline
 
 ---
 
