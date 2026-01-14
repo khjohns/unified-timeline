@@ -444,8 +444,32 @@ class DaluxSyncService:
         if deadline:
             metadata_parts.append(f"- **Frist:** {deadline}")
 
+        # Extract current values from changes (these are not in task data)
+        current_values = self._extract_current_values_from_changes(task_changes or [])
+
+        # Entreprise (current workpackage)
+        if current_values.get("workpackageId"):
+            wp_id = current_values["workpackageId"]
+            entreprise_name = (workpackage_lookup or {}).get(wp_id, wp_id)
+            metadata_parts.append(f"- **Entreprise:** {entreprise_name}")
+
+        # Current responsible (ansvarlig)
+        if current_values.get("currentResponsible"):
+            user_id = current_values["currentResponsible"]
+            user_name = (user_lookup or {}).get(user_id, user_id)
+            metadata_parts.append(f"- **Ansvarlig:** {user_name}")
+
+        # Assigned to (tildelt rolle)
+        if current_values.get("assignedToRole"):
+            metadata_parts.append(f"- **Tildelt:** {current_values['assignedToRole']}")
+
         if metadata_parts:
             description_parts.append("\n---\n**Saksinfo:**\n" + "\n".join(metadata_parts))
+
+        # Add initial description from first change (if available)
+        initial_description = current_values.get("initialDescription")
+        if initial_description:
+            description_parts.append(f"\n---\n**Beskrivelse:**\n{initial_description}")
 
         # Add user-defined fields if present
         # Structure: {"items": [{"name": "...", "values": [{"text": "..."} or {"reference": {"value": "..."}}]}]}
@@ -556,6 +580,62 @@ class DaluxSyncService:
                 # Format: "2025-06-25T07:31:21.0670000+00:00" -> "2025-06-25"
                 return deadline["value"][:10]
         return None
+
+    def _extract_current_values_from_changes(
+        self,
+        changes: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """
+        Extract current/latest values from changes data.
+
+        These fields are not available in the task endpoint but exist in changes:
+        - workpackageId (entreprise)
+        - currentResponsible (ansvarlig)
+        - assignedTo.roleName (tildelt rolle)
+        - description (initial beskrivelse from create action)
+
+        Args:
+            changes: List of change dicts
+
+        Returns:
+            Dict with extracted values (keys: workpackageId, currentResponsible,
+            assignedToRole, initialDescription)
+        """
+        result: Dict[str, Any] = {}
+
+        # Sort by timestamp to process in order and get latest values
+        sorted_changes = sorted(
+            changes,
+            key=lambda c: c.get("timestamp", ""),
+        )
+
+        for i, change in enumerate(sorted_changes):
+            action = change.get("action", "")
+            fields = change.get("fields", {})
+
+            # Extract initial description from first event (regardless of action type)
+            # In Dalux, the initial description may come from "create" or first "assign"
+            if i == 0 and not result.get("initialDescription"):
+                description = change.get("description", "")
+                if description:
+                    result["initialDescription"] = description
+
+            # Update workpackageId (entreprise) - always take latest
+            workpackage_id = fields.get("workpackageId")
+            if workpackage_id:
+                result["workpackageId"] = workpackage_id
+
+            # Update currentResponsible (ansvarlig) - always take latest
+            current_resp = fields.get("currentResponsible", {})
+            if current_resp.get("userId"):
+                result["currentResponsible"] = current_resp["userId"]
+
+            # Update assignedTo role - always take latest
+            assigned_to = fields.get("assignedTo", {})
+            if assigned_to.get("roleName"):
+                result["assignedToRole"] = assigned_to["roleName"]
+
+        return result
 
     def _format_attachments_for_description(
         self,
