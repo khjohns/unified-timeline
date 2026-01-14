@@ -19,7 +19,7 @@ interface PageHeaderProps {
   /** Additional actions (e.g., PDF download button) */
   actions?: ReactNode;
   /** Max width variant: 'narrow' (3xl) for CasePage, 'wide' (7xl) for ForseringPage */
-  maxWidth?: 'narrow' | 'wide';
+  maxWidth?: 'narrow' | 'medium' | 'wide';
 }
 
 export function PageHeader({
@@ -30,7 +30,11 @@ export function PageHeader({
   actions,
   maxWidth = 'narrow',
 }: PageHeaderProps) {
-  const maxWidthClass = maxWidth === 'narrow' ? 'max-w-3xl' : 'max-w-7xl';
+  const maxWidthClass = {
+    narrow: 'max-w-3xl',
+    medium: 'max-w-5xl',
+    wide: 'max-w-7xl',
+  }[maxWidth];
 
   return (
     <header className="bg-pkt-bg-card border-b border-pkt-grays-gray-200">

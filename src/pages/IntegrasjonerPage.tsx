@@ -129,7 +129,7 @@ export function IntegrasjonerPage() {
       <PageHeader
         title="Integrasjoner"
         subtitle="Administrer Dalux → Catenda synkronisering"
-        maxWidth="wide"
+        maxWidth="medium"
         actions={
           <Button variant="primary" size="sm" onClick={() => setShowCreateModal(true)}>
             Ny synkronisering
@@ -137,7 +137,7 @@ export function IntegrasjonerPage() {
         }
       />
 
-      <main className="max-w-7xl mx-auto px-4 py-6 sm:px-6 sm:py-8 space-y-6">
+      <main className="max-w-5xl mx-auto px-4 py-6 sm:px-6 sm:py-8 space-y-6">
         {/* Loading State */}
         {isLoading && (
           <Card variant="outlined" padding="lg">
@@ -174,7 +174,7 @@ export function IntegrasjonerPage() {
 
         {/* Mappings Grid */}
         {!isLoading && mappings.length > 0 && (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2">
             {mappings.map((mapping) => (
               <DashboardCard
                 key={mapping.id}
