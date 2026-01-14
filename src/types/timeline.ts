@@ -433,10 +433,7 @@ export interface EOUtstedtData {
   konsekvenser?: EOKonsekvenser;
   konsekvens_beskrivelse?: string;
 
-  // Vederlag/oppgjør - bruker VederlagKompensasjon for konsistens
-  vederlag?: VederlagKompensasjon;
-
-  // Legacy-felter for bakoverkompatibilitet
+  // Vederlag/oppgjør
   oppgjorsform?: VederlagsMetode;
   kompensasjon_belop?: number;
   fradrag_belop?: number;
@@ -482,10 +479,7 @@ export interface EndringsordreData {
   konsekvenser: EOKonsekvenser;
   konsekvens_beskrivelse?: string;
 
-  // Vederlag/oppgjør - ny struktur med VederlagKompensasjon
-  vederlag?: VederlagKompensasjon;
-
-  // Legacy oppgjørsfelter (bakoverkompatibilitet)
+  // Vederlag/oppgjør
   oppgjorsform?: VederlagsMetode;
   kompensasjon_belop?: number;   // Tillegg
   fradrag_belop?: number;        // Fratrekk

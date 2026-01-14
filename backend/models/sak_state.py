@@ -717,8 +717,6 @@ class FristTilstand(BaseModel):
     spesifisert_varsel: Optional[VarselInfo] = Field(default=None)
     krevd_dager: Optional[int] = Field(default=None)
     begrunnelse: Optional[str] = Field(default=None)
-    milepael_pavirket: Optional[str] = Field(default=None)
-    fremdriftsanalyse_vedlagt: bool = Field(default=False)
 
     # BH respons - Port 1 (Varsling)
     noytralt_varsel_ok: Optional[bool] = Field(default=None)

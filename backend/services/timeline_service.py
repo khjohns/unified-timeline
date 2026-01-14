@@ -331,10 +331,6 @@ class TimelineService:
         frist.krevd_dager = event.data.antall_dager
         frist.begrunnelse = event.data.begrunnelse
 
-        # Optional fields - use getattr for backwards compatibility
-        frist.milepael_pavirket = getattr(event.data, 'fremdriftshindring_dokumentasjon', None)
-        frist.fremdriftsanalyse_vedlagt = getattr(event.data, 'fremdriftsanalyse_vedlagt', None)
-
         # Oppdater status
         if event.event_type == EventType.FRIST_KRAV_SENDT:
             frist.status = SporStatus.SENDT

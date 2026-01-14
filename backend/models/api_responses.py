@@ -275,7 +275,6 @@ class FristResponse(BaseModel):
     # TE sitt krav
     krav_dager: int
     krav_begrunnelse: str
-    milepael_pavirket: Optional[str] = None
     foreslatt_ny_sluttdato: Optional[str] = None
 
     # BH respons

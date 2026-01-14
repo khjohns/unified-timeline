@@ -353,7 +353,7 @@ class TestFromCloudEvent:
         assert event.aktor_rolle == "TE"
         assert event.event_type == "grunnlag_opprettet"
         assert event.prosjekt_id == "P-2025-001"
-        assert event.data["tittel"] == "Forsinket tegningsunderlag"
+        assert event.data.tittel == "Forsinket tegningsunderlag"
 
     def test_from_cloudevent_extracts_prosjekt_id(self):
         """Test that prosjekt_id is extracted from source URI."""

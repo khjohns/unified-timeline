@@ -89,8 +89,6 @@ def test_koe_with_bh_response():
             begrunnelse="Forsinkelsen medførte 15 arbeidsdagers stans i montasjearbeidet. "
                        "Dette påvirker kritisk linje og medfører tilsvarende forskyvning av "
                        "overlevering. Se vedlagt fremdriftsanalyse.",
-            milepael_pavirket="M3 - Ferdig bærekonstruksjon",
-            fremdriftsanalyse_vedlagt=True,
             noytralt_varsel_ok=True,
             spesifisert_krav_ok=True,
             vilkar_oppfylt=True,
