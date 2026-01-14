@@ -747,9 +747,6 @@ export interface ResponsGrunnlagEventData {
   resultat: GrunnlagResponsResultat;
   begrunnelse: string;
   akseptert_kategori?: string;
-  krever_dokumentasjon?: string[];
-  varsel_for_sent?: boolean;
-  varsel_begrunnelse?: string;
 }
 
 // ========== UPDATE EVENT PAYLOADS (for revisions/updates) ==========

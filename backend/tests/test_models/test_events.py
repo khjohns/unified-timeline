@@ -385,7 +385,6 @@ def test_grunnlag_respons_data():
     )
     assert data.resultat == GrunnlagResponsResultat.GODKJENT
     assert data.begrunnelse == "BH aksepterer ansvarsgrunnlaget"
-    assert data.varsel_for_sent is False  # Default
 
 
 def test_grunnlag_respons_with_avslatt():

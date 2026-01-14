@@ -149,7 +149,6 @@ MOCK_EVENTS_SCENARIO_1 = [
                 "Varselet ble sendt i tide (1 dag etter oppdagelse). "
                 "BH har ansvar for dette forholdet iht. NS8407 §24.1."
             ),
-            varsel_for_sent=False
         )
     ),
 

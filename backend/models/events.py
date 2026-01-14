@@ -741,22 +741,6 @@ class GrunnlagResponsData(BaseModel):
         description="BH kan akseptere men kategorisere annerledes (f.eks. fra 'prosjektering' til 'arbeidsgrunnlag')"
     )
 
-    # Hvis BH krever mer dokumentasjon
-    krever_dokumentasjon: List[str] = Field(
-        default_factory=list,
-        description="Liste over dokumentasjon BH krever for å ta stilling (f.eks. ['fremdriftsplan', 'kostnadsoverslag'])"
-    )
-
-    # Varsel-vurdering
-    varsel_for_sent: bool = Field(
-        default=False,
-        description="Om BH mener varselet kom for sent (preklusjon)"
-    )
-    varsel_begrunnelse: Optional[str] = Field(
-        default=None,
-        description="BHs begrunnelse for varsel-vurdering"
-    )
-
     # ============ PARTIELL OPPDATERING ============
     original_respons_id: Optional[str] = Field(
         default=None,
@@ -1162,6 +1146,22 @@ class ResponsEvent(SakEvent):
         if v not in valid_types:
             raise ValueError(f"Ugyldig event_type for ResponsEvent: {v}")
         return v
+
+    @model_validator(mode='after')
+    def validate_data_matches_spor(self):
+        """Valider at data-typen matcher spor."""
+        expected_types = {
+            SporType.GRUNNLAG: GrunnlagResponsData,
+            SporType.VEDERLAG: VederlagResponsData,
+            SporType.FRIST: FristResponsData,
+        }
+        expected_type = expected_types.get(self.spor)
+        if expected_type and not isinstance(self.data, expected_type):
+            raise ValueError(
+                f"Data-type {type(self.data).__name__} matcher ikke spor {self.spor.value}. "
+                f"Forventet {expected_type.__name__}."
+            )
+        return self
 
 
 # ============ FORSERING EVENTS (§33.8) ============

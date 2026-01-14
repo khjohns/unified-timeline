@@ -1707,25 +1707,6 @@ components:
           description: BH kan akseptere men kategorisere annerledes (f.eks. fra 'prosjektering'
             til 'arbeidsgrunnlag')
           title: Akseptert Kategori
-        krever_dokumentasjon:
-          description: Liste over dokumentasjon BH krever for å ta stilling (f.eks.
-            ['fremdriftsplan', 'kostnadsoverslag'])
-          items:
-            type: string
-          title: Krever Dokumentasjon
-          type: array
-        varsel_for_sent:
-          default: false
-          description: Om BH mener varselet kom for sent (preklusjon)
-          title: Varsel For Sent
-          type: boolean
-        varsel_begrunnelse:
-          anyOf:
-          - type: string
-          - type: 'null'
-          default: null
-          description: BHs begrunnelse for varsel-vurdering
-          title: Varsel Begrunnelse
         original_respons_id:
           anyOf:
           - type: string

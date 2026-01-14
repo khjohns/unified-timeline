@@ -807,15 +807,6 @@ function ResponsGrunnlagSection({ data }: { data: ResponsGrunnlagEventData }) {
       {data.akseptert_kategori && (
         <DataListItem label="Akseptert kategori">{data.akseptert_kategori}</DataListItem>
       )}
-      {data.varsel_for_sent && (
-        <DataListItem label="Varsel for sent">
-          <Badge variant="danger">Ja - preklusjonsrisiko</Badge>
-        </DataListItem>
-      )}
-      <LongTextField label="Varselbegrunnelse" value={data.varsel_begrunnelse} />
-      {data.krever_dokumentasjon && data.krever_dokumentasjon.length > 0 && (
-        <DataListItem label="Krever dokumentasjon">{data.krever_dokumentasjon.join(', ')}</DataListItem>
-      )}
     </DataList>
   );
 }
