@@ -1,6 +1,6 @@
 # Dalux-Catenda Integrasjon
 
-> **Sist oppdatert:** 2026-01-14 (prosjektnavn og lokasjonsbilder implementert)
+> **Sist oppdatert:** 2026-01-14 (Forms, Inspection Plans og Test Plans kartlagt)
 > **Status:** Fase 2 komplett med ~95% API-dekning, avventer avklaringer fra OBF
 
 ---
@@ -20,6 +20,8 @@ Enveis-integrasjon fra Dalux Build til Catenda for synkronisering av tasks og do
 | Modeller | 20% | Kun metadata, ikke BIM-kobling | Lav |
 | Synkfrekvens | 40% | Scheduler | **Høy** |
 | Feilhåndtering | 60% | Varsling | Medium |
+| **Forms/Skjemaer** | Kartlagt | Ikke implementert, avklar relevans | Medium |
+| **Inspection/Test Plans** | Kartlagt | Ikke i bruk på Stovner | Lav |
 
 ### API-dekning (Dalux → Catenda)
 
@@ -33,6 +35,11 @@ Enveis-integrasjon fra Dalux Build til Catenda for synkronisering av tasks og do
 - `/3.1/projects/{id}/companies` - Firmanavn fra companyId ✅
 - `/1.0/projects/{id}/workpackages` - Entreprisenavn fra workpackageId ✅
 - `location.locationImages[]` - Lokasjonsbilder (plantegning med markør) ✅
+
+**Kartlagte endepunkter (ikke implementert):**
+- `/2.1/projects/{id}/forms` - 38 skjemaer funnet (SJA, Vernemøter) 📋
+- `/1.2/projects/{id}/inspectionPlans` - 0 på Stovner ⚠️
+- `/1.2/projects/{id}/testPlans` - 0 på Stovner ⚠️
 
 ---
 
@@ -320,6 +327,25 @@ https://{node}.field.dalux.com/service/api/{versjon}/{endepunkt}
 | `GET /6.0/projects/{id}/file_areas/{areaId}/files` | Liste filer |
 | `GET /2.0/.../files/{id}/revisions/{rev}/content` | Last ned fil |
 
+**Forms (Skjemaer):**
+
+| Endepunkt | Beskrivelse | Status |
+|-----------|-------------|--------|
+| `GET /2.1/projects/{id}/forms` | Liste alle skjemaer | ✅ Verifisert |
+| `GET /1.2/projects/{id}/forms/{formId}` | Hent enkelt skjema | ✅ Tilgjengelig |
+| `GET /2.1/projects/{id}/forms/attachments` | Skjemavedlegg | ⚠️ Ikke testet |
+
+**Inspection Plans og Test Plans:**
+
+| Endepunkt | Beskrivelse | Status |
+|-----------|-------------|--------|
+| `GET /1.2/projects/{id}/inspectionPlans` | Kontrollplaner | ✅ Verifisert (0 på Stovner) |
+| `GET /1.1/projects/{id}/inspectionPlanItems` | Kontrollpunkter | ✅ Verifisert |
+| `GET /2.1/projects/{id}/inspectionPlanRegistrations` | Utførte kontroller | ✅ Verifisert |
+| `GET /1.2/projects/{id}/testPlans` | Testplaner/sjekklister | ✅ Verifisert (0 på Stovner) |
+| `GET /1.1/projects/{id}/testPlanItems` | Testpunkter | ✅ Verifisert |
+| `GET /1.1/projects/{id}/testPlanRegistrations` | Utførte tester | ✅ Verifisert |
+
 ### API-begrensninger (verifisert januar 2026)
 
 | Funksjon | Status | Kommentar |
@@ -336,6 +362,9 @@ https://{node}.field.dalux.com/service/api/{versjon}/{endepunkt}
 | Kommentarer | ❌ | Finnes ikke i Dalux API |
 | **Stedfortreder** | ❌ | Ikke i API (deputy/substitute) |
 | **Prosjektnummer** | ❌ | Kun projectName, ikke nummer |
+| **Forms** | ✅ | 38 skjemaer på Stovner (SJA, Vernemøter, etc.) |
+| **Inspection Plans** | ⚠️ | API fungerer, men 0 planer på Stovner skole |
+| **Test Plans** | ⚠️ | API fungerer, men 0 planer på Stovner skole |
 
 ---
 
@@ -800,9 +829,58 @@ Dersom Dalux legger til skrivetilgang på tasks:
 
 ### Flere datatyper
 
-- Checklists fra Dalux
-- Inspection plans
-- Quality registrations
+#### Forms (Skjemaer) - Kartlagt januar 2026
+
+> **Status:** API verifisert, 38 skjemaer funnet på Stovner skole
+
+| Skjematype | Antall | Innhold | Relevans |
+|------------|--------|---------|----------|
+| **Vernemøtereferat** | 27 | HMS-møtereferater, deltakere, fokusområder | Medium |
+| **Sikker jobbanalyse (SJA)** | 9 | Risikovurdering, tiltak, farer, ansvarlige | **Høy** |
+| **Varme Arbeider** | 1 | Tillatelse for sveising/brenning | Lav |
+| **Vernerundeprotokoll** | 1 | Vernerunde med sjekkliste | Medium |
+
+**Felteksempler fra SJA:**
+- Dato for aktiviteten
+- Kort beskrivelse av aktiviteten
+- Ansvarlig for aktiviteten (relation → companyId)
+- Hva kan gå galt?
+- Tiltak
+- Har vi kontroll på farene? (Grønn/Gul/Rød)
+- Deltakere med firma
+
+**Datastruktur:**
+```json
+{
+  "formId": "S306295590013108224",
+  "type": "regular",
+  "number": "SJA.1",
+  "template": { "name": "Sikker jobbanalyse" },
+  "status": "closed",
+  "created": "2025-04-25T05:09:19",
+  "userDefinedFields": {
+    "items": [
+      { "name": "Tiltak", "values": [{ "text": "..." }] },
+      { "name": "Ansvarlig", "values": [{ "relation": { "companyId": "..." } }] }
+    ]
+  }
+}
+```
+
+**Anbefaling:** SJA-skjemaer kan være relevante for KOE-saker som dokumentasjon av risikovurderinger. Avklar med OBF om dette er ønsket.
+
+#### Inspection Plans og Test Plans - Kartlagt januar 2026
+
+> **Status:** API verifisert, men **ikke i bruk** på Stovner skole (0 planer funnet)
+
+Disse API-ene er tilgjengelige og fungerer, men entreprenøren bruker ikke denne funksjonaliteten på Stovner skole-prosjektet. Andre prosjekter kan ha data her.
+
+| API | Endepunkter | Stovner skole |
+|-----|-------------|---------------|
+| Inspection Plans | 4 endepunkter | 0 planer |
+| Test Plans | 4 endepunkter | 0 planer |
+
+**Anbefaling:** Sjekk om andre prosjekter bruker disse før implementering
 
 ### Webhook-støtte (hvis Dalux legger til)
 
