@@ -127,12 +127,19 @@ class DaluxSyncService:
                 tasks = tasks[:limit]
                 logger.info(f"Limited to {len(tasks)} tasks")
 
-            # Fetch all changes, attachments, and users once (for enrichment)
-            logger.info("Fetching changes, attachments, and users for enrichment...")
+            # Fetch all changes, attachments, users, companies, and workpackages once (for enrichment)
+            logger.info("Fetching enrichment data (changes, attachments, users, companies, workpackages)...")
             all_changes = self._fetch_all_changes(mapping.dalux_project_id)
             all_attachments = self._fetch_all_attachments(mapping.dalux_project_id)
             user_lookup = self._fetch_user_lookup(mapping.dalux_project_id)
-            logger.info(f"  Changes: {len(all_changes)}, Attachments: {len(all_attachments)}, Users: {len(user_lookup)}")
+            company_lookup = self._fetch_company_lookup(mapping.dalux_project_id)
+            workpackage_lookup = self._fetch_workpackage_lookup(mapping.dalux_project_id)
+
+            # Enrich user lookup with company names
+            user_lookup = self._enrich_user_lookup_with_company(user_lookup, company_lookup, mapping.dalux_project_id)
+
+            logger.info(f"  Changes: {len(all_changes)}, Attachments: {len(all_attachments)}")
+            logger.info(f"  Users: {len(user_lookup)}, Companies: {len(company_lookup)}, Workpackages: {len(workpackage_lookup)}")
 
             # Index by task ID for fast lookup
             changes_by_task = self._group_by_task_id(all_changes)
@@ -148,7 +155,7 @@ class DaluxSyncService:
                 task_attachments = attachments_by_task.get(task_id, [])
 
                 task_result = self._sync_task(
-                    task_data, mapping, task_changes, task_attachments, user_lookup
+                    task_data, mapping, task_changes, task_attachments, user_lookup, workpackage_lookup
                 )
 
                 result.tasks_processed += 1
@@ -224,6 +231,7 @@ class DaluxSyncService:
         task_changes: Optional[List[Dict[str, Any]]] = None,
         task_attachments: Optional[List[Dict[str, Any]]] = None,
         user_lookup: Optional[Dict[str, str]] = None,
+        workpackage_lookup: Optional[Dict[str, str]] = None,
     ) -> TaskSyncResult:
         """
         Sync a single task from Dalux to Catenda.
@@ -233,7 +241,8 @@ class DaluxSyncService:
             mapping: Sync mapping configuration
             task_changes: List of changes for this task (from changes API)
             task_attachments: List of attachments for this task
-            user_lookup: Dict mapping userId to full name
+            user_lookup: Dict mapping userId to full name (with company)
+            workpackage_lookup: Dict mapping workpackageId to entreprise name
 
         Returns:
             TaskSyncResult with action taken
@@ -257,7 +266,8 @@ class DaluxSyncService:
                 dalux_task,
                 task_changes or [],
                 task_attachments or [],
-                user_lookup or {}
+                user_lookup or {},
+                workpackage_lookup or {}
             )
 
             if existing_record:
@@ -377,6 +387,7 @@ class DaluxSyncService:
         task_changes: Optional[List[Dict[str, Any]]] = None,
         task_attachments: Optional[List[Dict[str, Any]]] = None,
         user_lookup: Optional[Dict[str, str]] = None,
+        workpackage_lookup: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
         """
         Map Dalux task to Catenda BCF topic structure.
@@ -385,7 +396,8 @@ class DaluxSyncService:
             dalux_task: Dalux task data
             task_changes: List of changes for this task (for history)
             task_attachments: List of attachments for this task
-            user_lookup: Dict mapping userId to full name
+            user_lookup: Dict mapping userId to full name (with company)
+            workpackage_lookup: Dict mapping workpackageId to entreprise name
 
         Returns:
             Dict with BCF topic fields
@@ -472,7 +484,9 @@ class DaluxSyncService:
 
         # Add history/changes if present
         if task_changes:
-            changes_str = self._format_changes_for_description(task_changes, user_lookup or {})
+            changes_str = self._format_changes_for_description(
+                task_changes, user_lookup or {}, workpackage_lookup or {}
+            )
             if changes_str:
                 description_parts.append(changes_str)
 
@@ -574,19 +588,22 @@ class DaluxSyncService:
     def _format_changes_for_description(
         self,
         changes: List[Dict[str, Any]],
-        user_lookup: Optional[Dict[str, str]] = None
+        user_lookup: Optional[Dict[str, str]] = None,
+        workpackage_lookup: Optional[Dict[str, str]] = None
     ) -> Optional[str]:
         """
         Format changes/history for inclusion in description.
 
         Args:
             changes: List of change dicts from Dalux changes API
-            user_lookup: Dict mapping userId to full name
+            user_lookup: Dict mapping userId to full name (with company)
+            workpackage_lookup: Dict mapping workpackageId to entreprise name
 
         Returns:
             Formatted markdown string or None
         """
         user_lookup = user_lookup or {}
+        workpackage_lookup = workpackage_lookup or {}
         if not changes:
             return None
 
@@ -624,17 +641,30 @@ class DaluxSyncService:
 
             parts.append(line)
 
+            # Add modified by info (with company name from user lookup)
+            modified_by = fields.get("modifiedBy", {})
+            if modified_by.get("userId"):
+                user_id = modified_by["userId"]
+                user_name = user_lookup.get(user_id, user_id)
+                parts.append(f"  - Oppdatert av: {user_name}")
+
             # Add role assignment info
             assigned_to = fields.get("assignedTo", {})
             if assigned_to.get("roleName"):
                 parts.append(f"  - Tildelt: {assigned_to['roleName']}")
 
-            # Add responsible info (look up user name)
+            # Add responsible info (look up user name with company)
             current_resp = fields.get("currentResponsible", {})
             if current_resp.get("userId"):
                 user_id = current_resp["userId"]
                 user_name = user_lookup.get(user_id, user_id)
                 parts.append(f"  - Ansvarlig: {user_name}")
+
+            # Add entreprise/workpackage info
+            workpackage_id = fields.get("workpackageId")
+            if workpackage_id:
+                entreprise_name = workpackage_lookup.get(workpackage_id, workpackage_id)
+                parts.append(f"  - Entreprise: {entreprise_name}")
 
         return "\n".join(parts)
 
@@ -745,6 +775,97 @@ class DaluxSyncService:
         except Exception as e:
             logger.warning(f"Could not fetch users: {e}")
             return {}
+
+    def _fetch_company_lookup(self, project_id: str) -> Dict[str, str]:
+        """
+        Fetch project companies and build a lookup table.
+
+        Args:
+            project_id: Dalux project ID
+
+        Returns:
+            Dict mapping companyId to company name
+        """
+        try:
+            companies = self.dalux.get_project_companies(project_id)
+            lookup = {}
+            for company in companies:
+                company_id = company.get("companyId")
+                company_name = company.get("name", "")
+                if company_id and company_name:
+                    lookup[company_id] = company_name
+            return lookup
+        except Exception as e:
+            logger.warning(f"Could not fetch companies: {e}")
+            return {}
+
+    def _fetch_workpackage_lookup(self, project_id: str) -> Dict[str, str]:
+        """
+        Fetch project workpackages (entreprises) and build a lookup table.
+
+        Args:
+            project_id: Dalux project ID
+
+        Returns:
+            Dict mapping workpackageId to workpackage/entreprise name
+        """
+        try:
+            workpackages = self.dalux.get_project_workpackages(project_id)
+            lookup = {}
+            for wp in workpackages:
+                wp_id = wp.get("workpackageId")
+                wp_name = wp.get("name", "")
+                if wp_id and wp_name:
+                    lookup[wp_id] = wp_name
+            return lookup
+        except Exception as e:
+            logger.warning(f"Could not fetch workpackages: {e}")
+            return {}
+
+    def _enrich_user_lookup_with_company(
+        self,
+        user_lookup: Dict[str, str],
+        company_lookup: Dict[str, str],
+        project_id: str
+    ) -> Dict[str, str]:
+        """
+        Enrich user lookup with company names.
+
+        Transforms "Erik Henriksen" to "Erik Henriksen, Advansia AS"
+
+        Args:
+            user_lookup: Dict mapping userId to full name
+            company_lookup: Dict mapping companyId to company name
+            project_id: Dalux project ID (to refetch users with companyId)
+
+        Returns:
+            Enriched user lookup with company names
+        """
+        try:
+            # Refetch users to get companyId
+            users = self.dalux.get_project_users(project_id)
+
+            enriched = {}
+            for user in users:
+                user_id = user.get("userId")
+                if not user_id:
+                    continue
+
+                # Get name from existing lookup
+                name = user_lookup.get(user_id, user_id)
+
+                # Add company name if available
+                company_id = user.get("companyId")
+                if company_id and company_id in company_lookup:
+                    company_name = company_lookup[company_id]
+                    enriched[user_id] = f"{name}, {company_name}"
+                else:
+                    enriched[user_id] = name
+
+            return enriched
+        except Exception as e:
+            logger.warning(f"Could not enrich user lookup: {e}")
+            return user_lookup
 
     def _group_by_task_id(
         self,

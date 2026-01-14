@@ -367,10 +367,12 @@ class DaluxClient:
             raise DaluxAPIError(f"Failed to fetch attachments: {e}")
 
     # ==========================================
-    # USERS
+    # USERS, COMPANIES & WORKPACKAGES
     # ==========================================
 
     USERS_VERSION = "1.2"
+    COMPANIES_VERSION = "3.1"
+    WORKPACKAGES_VERSION = "1.0"
 
     def get_project_users(self, project_id: str) -> List[Dict[str, Any]]:
         """
@@ -399,6 +401,62 @@ class DaluxClient:
         except Exception as e:
             logger.error(f"Failed to fetch users: {e}")
             raise DaluxAPIError(f"Failed to fetch users: {e}")
+
+    def get_project_companies(self, project_id: str) -> List[Dict[str, Any]]:
+        """
+        Get all companies on a project.
+
+        Args:
+            project_id: Dalux project ID
+
+        Returns:
+            List of company objects with companyId and name.
+        """
+        logger.info(f"Fetching companies for project {project_id}...")
+        url = f"{self.base_url}/{self.COMPANIES_VERSION}/projects/{project_id}/companies"
+
+        try:
+            response = self._make_request("GET", url)
+            data = response.json()
+
+            items = data.get("items", [])
+            logger.info(f"Found {len(items)} project companies")
+
+            return items
+
+        except (DaluxAuthError, DaluxAPIError):
+            raise
+        except Exception as e:
+            logger.error(f"Failed to fetch companies: {e}")
+            raise DaluxAPIError(f"Failed to fetch companies: {e}")
+
+    def get_project_workpackages(self, project_id: str) -> List[Dict[str, Any]]:
+        """
+        Get all workpackages (entreprises) on a project.
+
+        Args:
+            project_id: Dalux project ID
+
+        Returns:
+            List of workpackage objects with workpackageId and name.
+        """
+        logger.info(f"Fetching workpackages for project {project_id}...")
+        url = f"{self.base_url}/{self.WORKPACKAGES_VERSION}/projects/{project_id}/workpackages"
+
+        try:
+            response = self._make_request("GET", url)
+            data = response.json()
+
+            items = data.get("items", [])
+            logger.info(f"Found {len(items)} project workpackages")
+
+            return items
+
+        except (DaluxAuthError, DaluxAPIError):
+            raise
+        except Exception as e:
+            logger.error(f"Failed to fetch workpackages: {e}")
+            raise DaluxAPIError(f"Failed to fetch workpackages: {e}")
 
     def download_attachment(
         self,
