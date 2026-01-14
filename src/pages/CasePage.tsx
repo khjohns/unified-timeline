@@ -2,7 +2,7 @@
  * CasePage Component
  *
  * Main page for viewing a case in the unified timeline architecture.
- * Displays status dashboard, available actions, and event timeline.
+ * Displays status dashboard with integrated history for each track.
  * Shows a banner if the case is part of a forsering case or an endringsordre.
  */
 
@@ -11,7 +11,7 @@ import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { STALE_TIME } from '../constants/queryConfig';
 import { useAuth } from '../context/AuthContext';
-import { ApprovalProvider, useApprovalContext } from '../context/ApprovalContext';
+import { ApprovalProvider } from '../context/ApprovalContext';
 import { useCaseState } from '../hooks/useCaseState';
 import { useTimeline } from '../hooks/useTimeline';
 import { useHistorikk } from '../hooks/useRevisionHistory';
@@ -19,9 +19,7 @@ import { useActionPermissions } from '../hooks/useActionPermissions';
 import { useUserRole } from '../hooks/useUserRole';
 import { useApprovalWorkflow } from '../hooks/useApprovalWorkflow';
 import { CaseDashboard } from '../components/views/CaseDashboard';
-import { Timeline } from '../components/views/Timeline';
 import { ComprehensiveMetadata } from '../components/views/ComprehensiveMetadata';
-import { CaseAnalytics } from '../components/views/CaseAnalytics';
 import { Alert, Button, AlertDialog, Card } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
 import { formatCurrency } from '../utils/formatters';
@@ -54,7 +52,7 @@ import {
 } from '../components/actions';
 import { findForseringerForSak, type FindForseringerResponse } from '../api/forsering';
 import { findEOerForSak, type FindEOerResponse } from '../api/endringsordre';
-import type { SakState, GrunnlagResponsResultat, TimelineEvent } from '../types/timeline';
+import type { SakState, TimelineEvent } from '../types/timeline';
 import {
   DownloadIcon,
   EyeOpenIcon,
@@ -130,7 +128,7 @@ function CasePageContent() {
 
   // Wait for auth verification before loading data
   const { data, isLoading, error } = useCaseState(sakId || '', { enabled: !!token && !isVerifying });
-  const { data: timelineData, error: timelineError, isLoading: timelineLoading } = useTimeline(sakId || '', { enabled: !!token && !isVerifying });
+  const { data: timelineData } = useTimeline(sakId || '', { enabled: !!token && !isVerifying });
   const { grunnlag: grunnlagHistorikk, vederlag: vederlagHistorikk, frist: fristHistorikk } = useHistorikk(sakId || '');
 
   // Fetch forsering relations (check if this case is part of any forsering)
@@ -549,31 +547,6 @@ function CasePageContent() {
           </Card>
         </section>
 
-        {/* Timeline Section */}
-        <section aria-labelledby="timeline-heading">
-          <Card variant="outlined" padding="md">
-            <h2
-              id="timeline-heading"
-              className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4"
-            >
-              Hendelser
-            </h2>
-            {timelineLoading && (
-              <div className="py-4 text-center text-pkt-grays-gray-500">
-                <p className="text-sm">Laster hendelser...</p>
-              </div>
-            )}
-            {timelineError && (
-              <div className="py-4 text-center text-badge-error-text bg-badge-error-bg rounded">
-                <p className="text-sm">Kunne ikke laste hendelser: {timelineError.message}</p>
-              </div>
-            )}
-            {!timelineLoading && !timelineError && (
-              <Timeline events={timelineEvents} />
-            )}
-          </Card>
-        </section>
-
         {/* Metadata Section */}
         <section aria-labelledby="metadata-heading">
           <Card variant="outlined" padding="md">
@@ -613,19 +586,6 @@ function CasePageContent() {
                 </div>
               </div>
             )}
-          </Card>
-        </section>
-
-        {/* Analytics Section */}
-        <section aria-labelledby="analytics-heading">
-          <Card variant="outlined" padding="md">
-            <h2
-              id="analytics-heading"
-              className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4"
-            >
-              Analyse
-            </h2>
-            <CaseAnalytics state={state} />
           </Card>
         </section>
       </main>

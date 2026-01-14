@@ -44,12 +44,7 @@ interface CaseDashboardProps {
 /**
  * Map SporStatus to Badge component using centralized styles
  */
-function getStatusBadge(status: SporStatus, erSubsidiaert?: boolean): ReactNode {
-  // Subsidiary status gets special treatment
-  if (erSubsidiaert) {
-    return <Badge variant="warning">Godkjent (subsidiært)</Badge>;
-  }
-
+function getStatusBadge(status: SporStatus): ReactNode {
   const { variant, label } = getSporStatusStyle(status);
   return <Badge variant={variant}>{label}</Badge>;
 }
@@ -135,7 +130,7 @@ export function CaseDashboard({
         {/* Vederlag Card */}
         <DashboardCard
           title="Vederlag"
-          headerBadge={getStatusBadge(state.vederlag.status, state.er_subsidiaert_vederlag)}
+          headerBadge={getStatusBadge(state.vederlag.status)}
           action={vederlagActions}
           variant="default"
         >
@@ -148,9 +143,15 @@ export function CaseDashboard({
             <DataListItem label="Krevd beløp">
               {formatCurrency(krevdBelop)}
             </DataListItem>
-            {state.vederlag.godkjent_belop !== undefined && (
+            {/* Godkjent beløp: Vis prinsipal eller subsidiær verdi med riktig label */}
+            {state.vederlag.bh_resultat !== 'avslatt' && state.vederlag.godkjent_belop !== undefined && (
               <DataListItem label="Godkjent beløp">
                 {formatCurrency(state.vederlag.godkjent_belop)}
+              </DataListItem>
+            )}
+            {state.vederlag.bh_resultat === 'avslatt' && state.vederlag.subsidiaer_godkjent_belop != null && (
+              <DataListItem label="Subs. godkjent">
+                {formatCurrency(state.vederlag.subsidiaer_godkjent_belop)}
               </DataListItem>
             )}
             {state.vederlag.bh_resultat && (
@@ -165,7 +166,7 @@ export function CaseDashboard({
         {/* Frist Card */}
         <DashboardCard
           title="Fristforlengelse"
-          headerBadge={getStatusBadge(state.frist.status, state.er_subsidiaert_frist)}
+          headerBadge={getStatusBadge(state.frist.status)}
           action={fristActions}
           variant="default"
         >
@@ -175,9 +176,15 @@ export function CaseDashboard({
                 {formatDays(state.frist.krevd_dager)}
               </DataListItem>
             )}
-            {state.frist.godkjent_dager !== undefined && (
+            {/* Godkjent dager: Vis prinsipal eller subsidiær verdi med riktig label */}
+            {state.frist.bh_resultat !== 'avslatt' && state.frist.godkjent_dager !== undefined && (
               <DataListItem label="Godkjent">
                 {formatDays(state.frist.godkjent_dager)}
+              </DataListItem>
+            )}
+            {state.frist.bh_resultat === 'avslatt' && state.frist.subsidiaer_godkjent_dager != null && (
+              <DataListItem label="Subs. godkjent">
+                {formatDays(state.frist.subsidiaer_godkjent_dager)}
               </DataListItem>
             )}
             {state.frist.varsel_type && (
