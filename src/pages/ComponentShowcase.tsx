@@ -1,224 +1,715 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Card, Modal, Tooltip, AlertDialog } from '../components/primitives';
+import {
+  // Core
+  Button,
+  Card,
+  Modal,
+  Tooltip,
+  AlertDialog,
+  Alert,
+  Badge,
+  // Forms
+  Input,
+  Textarea,
+  Label,
+  Checkbox,
+  RadioGroup,
+  RadioItem,
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  DatePicker,
+  DateRangePicker,
+  CurrencyInput,
+  FormField,
+  // Data Display
+  DataList,
+  DataListItem,
+  InlineDataList,
+  InlineDataListItem,
+  Table,
+  DashboardCard,
+  HighlightCard,
+  InfoLabel,
+  RevisionTag,
+  StepIndicator,
+  StatusSummary,
+  ActivityHistory,
+  // Layout
+  Tabs,
+  Collapsible,
+  AccordionGroup,
+  SectionContainer,
+  // Navigation
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  // Feedback
+  useToast,
+} from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
+import type { DateRangeValue, ActivityHistoryEntry } from '../components/primitives';
+import { CheckCircledIcon, PaperPlaneIcon, PlusCircledIcon } from '@radix-ui/react-icons';
 
 /**
  * Component Showcase Page
  *
- * This page demonstrates all primitive components and their variants.
- * Used for testing and verification during Phase 2 implementation.
+ * Comprehensive showcase of all primitive components organized by category.
+ * Used for testing, verification, and documentation.
  */
 export function ComponentShowcase() {
   const navigate = useNavigate();
+  const { toast } = useToast();
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState('buttons');
+
+  // Modal states
   const [modalOpen, setModalOpen] = useState(false);
   const [alertOpen, setAlertOpen] = useState(false);
+
+  // Form states
+  const [inputValue, setInputValue] = useState('');
+  const [textareaValue, setTextareaValue] = useState('');
+  const [selectValue, setSelectValue] = useState('');
+  const [checkboxChecked, setCheckboxChecked] = useState(false);
+  const [radioValue, setRadioValue] = useState('option1');
+  const [dateValue, setDateValue] = useState<string | undefined>(undefined);
+  const [dateRange, setDateRange] = useState<DateRangeValue>({ from: undefined, to: undefined });
+  const [currencyValue, setCurrencyValue] = useState<number | null>(null);
+  const [loadingButton, setLoadingButton] = useState(false);
+
+  const handleLoadingDemo = () => {
+    setLoadingButton(true);
+    setTimeout(() => setLoadingButton(false), 2000);
+  };
 
   return (
     <div className="min-h-screen bg-pkt-bg-subtle">
       <PageHeader
         title="Primitive Components Showcase"
-        subtitle="Testing all primitive components from Phase 2 implementation"
+        subtitle="Alle 34 primitive komponenter"
         maxWidth="wide"
         actions={
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => navigate('/')}
-          >
-            ← Tilbake til forsiden
+          <Button variant="secondary" size="sm" onClick={() => navigate('/')}>
+            ← Tilbake
           </Button>
         }
       />
 
-      <main className="max-w-6xl mx-auto p-4 sm:p-8 space-y-8">
-        {/* Buttons Section */}
-        <Card variant="elevated" padding="lg">
-          <h2 className="text-2xl font-bold text-pkt-text-body-dark mb-4">Buttons</h2>
+      <main className="max-w-6xl mx-auto p-4 sm:p-8">
+        <Tabs
+          tabs={[
+            { id: 'buttons', label: 'Buttons & Actions' },
+            { id: 'forms', label: 'Forms' },
+            { id: 'data', label: 'Data Display' },
+            { id: 'feedback', label: 'Feedback & Overlays' },
+            { id: 'layout', label: 'Layout' },
+          ]}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
 
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-sm font-semibold text-pkt-text-body-subtle mb-2">Variants</h3>
-              <div className="flex flex-wrap gap-3">
-                <Button variant="primary">Primary Button</Button>
-                <Button variant="secondary">Secondary Button</Button>
-                <Button variant="ghost">Ghost Button</Button>
-                <Button variant="danger">Danger Button</Button>
-                <Button variant="primary" disabled>
-                  Disabled Button
+        <div className="mt-6 space-y-6">
+          {/* ============================================
+              TAB 1: BUTTONS & ACTIONS
+              ============================================ */}
+          {activeTab === 'buttons' && (
+            <>
+              {/* Button */}
+              <Card variant="outlined" padding="lg">
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">Button</h2>
+
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-pkt-text-body-subtle mb-2">Variants</h3>
+                    <div className="flex flex-wrap gap-3">
+                      <Button variant="primary">Primary</Button>
+                      <Button variant="secondary">Secondary</Button>
+                      <Button variant="ghost">Ghost</Button>
+                      <Button variant="danger">Danger</Button>
+                      <Button variant="primary" disabled>Disabled</Button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-semibold text-pkt-text-body-subtle mb-2">Sizes</h3>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <Button size="sm">Small</Button>
+                      <Button size="md">Medium</Button>
+                      <Button size="lg">Large</Button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-semibold text-pkt-text-body-subtle mb-2">Loading</h3>
+                    <Button loading={loadingButton} onClick={handleLoadingDemo}>
+                      {loadingButton ? 'Laster...' : 'Klikk for loading'}
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+
+              {/* DropdownMenu */}
+              <Card variant="outlined" padding="lg">
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">DropdownMenu</h2>
+                <div className="flex gap-4">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="secondary">Åpne meny</Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onSelect={() => toast({ title: 'Rediger valgt', variant: 'info' })}>
+                        Rediger
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => toast({ title: 'Dupliser valgt', variant: 'info' })}>
+                        Dupliser
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem variant="danger" onSelect={() => toast({ title: 'Slett valgt', variant: 'error' })}>
+                        Slett
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </Card>
+            </>
+          )}
+
+          {/* ============================================
+              TAB 2: FORMS
+              ============================================ */}
+          {activeTab === 'forms' && (
+            <>
+              {/* Input & Textarea */}
+              <Card variant="outlined" padding="lg">
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">Input & Textarea</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <Label htmlFor="demo-input">Input</Label>
+                    <Input
+                      id="demo-input"
+                      placeholder="Skriv noe..."
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                    />
+                    <Input placeholder="Med error" error />
+                    <Input placeholder="Disabled" disabled />
+                  </div>
+                  <div className="space-y-3">
+                    <Label htmlFor="demo-textarea">Textarea</Label>
+                    <Textarea
+                      id="demo-textarea"
+                      placeholder="Skriv lengre tekst..."
+                      value={textareaValue}
+                      onChange={(e) => setTextareaValue(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </Card>
+
+              {/* FormField */}
+              <Card variant="outlined" padding="lg">
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">FormField</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField label="Standard felt" helpText="Hjelpetekst vises her">
+                    <Input placeholder="Verdi" />
+                  </FormField>
+                  <FormField label="Påkrevd felt" required>
+                    <Input placeholder="Må fylles ut" />
+                  </FormField>
+                  <FormField label="Felt med feil" error="Dette feltet har en feil">
+                    <Input placeholder="Ugyldig verdi" error />
+                  </FormField>
+                  <FormField label="Med tooltip" labelTooltip="Ekstra info om feltet">
+                    <Input placeholder="Hover over label" />
+                  </FormField>
+                </div>
+              </Card>
+
+              {/* Select */}
+              <Card variant="outlined" padding="lg">
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">Select</h2>
+                <div className="flex flex-wrap gap-4">
+                  <Select value={selectValue} onValueChange={setSelectValue}>
+                    <SelectTrigger className="w-[200px]">
+                      {selectValue || 'Velg alternativ...'}
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="option1">Alternativ 1</SelectItem>
+                      <SelectItem value="option2">Alternativ 2</SelectItem>
+                      <SelectItem value="option3">Alternativ 3</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </Card>
+
+              {/* Checkbox & RadioGroup */}
+              <Card variant="outlined" padding="lg">
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">Checkbox & RadioGroup</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-semibold text-pkt-text-body-subtle">Checkbox</h3>
+                    <Checkbox
+                      label="Standard checkbox"
+                      checked={checkboxChecked}
+                      onCheckedChange={(checked) => setCheckboxChecked(checked === true)}
+                    />
+                    <Checkbox
+                      label="Med beskrivelse"
+                      description="Ekstra informasjon om valget"
+                    />
+                    <Checkbox label="Disabled" disabled />
+                  </div>
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-semibold text-pkt-text-body-subtle">RadioGroup</h3>
+                    <RadioGroup value={radioValue} onValueChange={setRadioValue}>
+                      <RadioItem value="option1" label="Alternativ 1" />
+                      <RadioItem value="option2" label="Alternativ 2" />
+                      <RadioItem value="option3" label="Alternativ 3" description="Med beskrivelse" />
+                    </RadioGroup>
+                  </div>
+                </div>
+              </Card>
+
+              {/* DatePicker & DateRangePicker */}
+              <Card variant="outlined" padding="lg">
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">DatePicker & DateRangePicker</h2>
+                <div className="flex flex-wrap gap-4">
+                  <div>
+                    <Label className="mb-2 block">Enkelt dato</Label>
+                    <DatePicker
+                      value={dateValue}
+                      onChange={(date) => setDateValue(date)}
+                      placeholder="Velg dato"
+                    />
+                  </div>
+                  <div>
+                    <Label className="mb-2 block">Datoperiode</Label>
+                    <DateRangePicker
+                      value={dateRange}
+                      onChange={setDateRange}
+                      placeholder="Velg periode"
+                    />
+                  </div>
+                </div>
+              </Card>
+
+              {/* CurrencyInput */}
+              <Card variant="outlined" padding="lg">
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">CurrencyInput</h2>
+                <div className="max-w-xs">
+                  <FormField label="Beløp (NOK)">
+                    <CurrencyInput
+                      value={currencyValue}
+                      onChange={setCurrencyValue}
+                      placeholder="0"
+                    />
+                  </FormField>
+                  <p className="text-sm text-pkt-text-body-subtle mt-2">
+                    Verdi: {currencyValue !== null ? `${currencyValue.toLocaleString('nb-NO')} kr` : 'Ikke satt'}
+                  </p>
+                </div>
+              </Card>
+
+              {/* AttachmentUpload */}
+              <Card variant="outlined" padding="lg">
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">AttachmentUpload</h2>
+                <p className="text-pkt-text-body-subtle mb-4">
+                  Drag-and-drop fil-opplasting med preview. Brukes i modaler for vedlegg.
+                </p>
+                <div className="border-2 border-dashed border-pkt-border-gray rounded p-8 text-center text-pkt-text-body-subtle">
+                  Dra filer hit eller klikk for å velge
+                </div>
+              </Card>
+            </>
+          )}
+
+          {/* ============================================
+              TAB 3: DATA DISPLAY
+              ============================================ */}
+          {activeTab === 'data' && (
+            <>
+              {/* Badge */}
+              <Card variant="outlined" padding="lg">
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">Badge</h2>
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-pkt-text-body-subtle mb-2">Variants</h3>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge>Default</Badge>
+                      <Badge variant="info">Info</Badge>
+                      <Badge variant="success">Success</Badge>
+                      <Badge variant="warning">Warning</Badge>
+                      <Badge variant="danger">Danger</Badge>
+                      <Badge variant="neutral">Neutral</Badge>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-pkt-text-body-subtle mb-2">Sizes</h3>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge size="sm">Small</Badge>
+                      <Badge size="md">Medium</Badge>
+                      <Badge size="lg">Large</Badge>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Cards */}
+              <Card variant="outlined" padding="lg">
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">Card Variants</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Card variant="default" padding="md">
+                    <h3 className="font-semibold text-pkt-text-body-dark">Default</h3>
+                    <p className="text-sm text-pkt-text-body-subtle">Standard kort</p>
+                  </Card>
+                  <Card variant="elevated" padding="md">
+                    <h3 className="font-semibold text-pkt-text-body-dark">Elevated</h3>
+                    <p className="text-sm text-pkt-text-body-subtle">Med skygge</p>
+                  </Card>
+                  <Card variant="outlined" padding="md">
+                    <h3 className="font-semibold text-pkt-text-body-dark">Outlined</h3>
+                    <p className="text-sm text-pkt-text-body-subtle">Med kantlinje</p>
+                  </Card>
+                </div>
+              </Card>
+
+              {/* DashboardCard & HighlightCard */}
+              <Card variant="outlined" padding="lg">
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">DashboardCard & HighlightCard</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <DashboardCard
+                    title="Dashboard Card"
+                    headerBadge={<Badge variant="info" size="sm">Ny</Badge>}
+                    action={<Button size="sm" variant="ghost">Handling</Button>}
+                  >
+                    <p className="text-pkt-text-body-subtle">Innhold i dashboard-kort</p>
+                  </DashboardCard>
+                  <HighlightCard variant="info">
+                    <p className="font-semibold">Highlight Card (Info)</p>
+                    <p className="text-sm">Fremhevet informasjon</p>
+                  </HighlightCard>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                  <HighlightCard variant="success">Success variant</HighlightCard>
+                  <HighlightCard variant="warning">Warning variant</HighlightCard>
+                  <HighlightCard variant="danger">Danger variant</HighlightCard>
+                </div>
+              </Card>
+
+              {/* DataList & InlineDataList */}
+              <Card variant="outlined" padding="lg">
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">DataList & InlineDataList</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="text-sm font-semibold text-pkt-text-body-subtle mb-2">DataList (grid)</h3>
+                    <DataList variant="grid">
+                      <DataListItem label="Prosjekt">Byggeprosjekt A</DataListItem>
+                      <DataListItem label="Status">Aktiv</DataListItem>
+                      <DataListItem label="Beløp" mono>125 000 kr</DataListItem>
+                      <DataListItem label="Dato">15.01.2026</DataListItem>
+                    </DataList>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-pkt-text-body-subtle mb-2">InlineDataList</h3>
+                    <InlineDataList title="Sammendrag">
+                      <InlineDataListItem label="Versjon">3</InlineDataListItem>
+                      <InlineDataListItem label="Sist endret">I dag</InlineDataListItem>
+                      <InlineDataListItem label="Status" variant="success">Godkjent</InlineDataListItem>
+                    </InlineDataList>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Table */}
+              <Card variant="outlined" padding="lg">
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">Table</h2>
+                <Table
+                  columns={[
+                    { key: 'id', label: 'ID', width: '80px', render: (row) => row.id },
+                    { key: 'name', label: 'Navn', render: (row) => row.name },
+                    { key: 'status', label: 'Status', render: (row) => (
+                      <Badge variant={row.status === 'Aktiv' ? 'success' : 'neutral'} size="sm">
+                        {row.status}
+                      </Badge>
+                    )},
+                    { key: 'amount', label: 'Beløp', render: (row) => row.amount },
+                  ]}
+                  data={[
+                    { id: '001', name: 'Prosjekt Alpha', status: 'Aktiv', amount: '50 000 kr' },
+                    { id: '002', name: 'Prosjekt Beta', status: 'Inaktiv', amount: '125 000 kr' },
+                    { id: '003', name: 'Prosjekt Gamma', status: 'Aktiv', amount: '75 000 kr' },
+                  ]}
+                  keyExtractor={(row) => row.id}
+                />
+              </Card>
+
+              {/* InfoLabel & RevisionTag */}
+              <Card variant="outlined" padding="lg">
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">InfoLabel & RevisionTag</h2>
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-pkt-text-body-subtle mb-2">InfoLabel</h3>
+                    <div className="flex flex-wrap gap-4">
+                      <InfoLabel>Standard label</InfoLabel>
+                      <InfoLabel tooltip="Ekstra informasjon">Med tooltip</InfoLabel>
+                      <InfoLabel required>Påkrevd</InfoLabel>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-pkt-text-body-subtle mb-2">RevisionTag</h3>
+                    <div className="flex flex-wrap gap-2">
+                      <RevisionTag version={1} />
+                      <RevisionTag version={2} showDate date="2026-01-10" />
+                      <RevisionTag version={3} size="sm" />
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              {/* StepIndicator */}
+              <Card variant="outlined" padding="lg">
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">StepIndicator</h2>
+                <StepIndicator
+                  currentStep={2}
+                  steps={[
+                    { label: 'Opprett' },
+                    { label: 'Fyll ut' },
+                    { label: 'Send inn' },
+                    { label: 'Ferdig' },
+                  ]}
+                />
+              </Card>
+
+              {/* StatusSummary & ActivityHistory */}
+              <Card variant="outlined" padding="lg">
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">StatusSummary & ActivityHistory</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <StatusSummary title="Status sammendrag">
+                    <DataList variant="list">
+                      <DataListItem label="Status">Godkjent</DataListItem>
+                      <DataListItem label="Behandlet av">Ola Nordmann</DataListItem>
+                      <DataListItem label="Dato">15.01.2026</DataListItem>
+                    </DataList>
+                  </StatusSummary>
+                  <ActivityHistory
+                    label="Aktivitet"
+                    showCount
+                    entries={[
+                      { id: '1', icon: <PlusCircledIcon />, label: 'Opprettet', meta: '10. jan 2026', variant: 'neutral' },
+                      { id: '2', icon: <PaperPlaneIcon />, label: 'Sendt til godkjenning', meta: '12. jan 2026', variant: 'info' },
+                      { id: '3', icon: <CheckCircledIcon />, label: 'Godkjent', meta: '15. jan 2026', variant: 'success' },
+                    ]}
+                  />
+                </div>
+              </Card>
+            </>
+          )}
+
+          {/* ============================================
+              TAB 4: FEEDBACK & OVERLAYS
+              ============================================ */}
+          {activeTab === 'feedback' && (
+            <>
+              {/* Alert */}
+              <Card variant="outlined" padding="lg">
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">Alert (Inline)</h2>
+                <div className="space-y-3">
+                  <Alert variant="info" title="Informasjon">
+                    Dette er en informasjonsmelding.
+                  </Alert>
+                  <Alert variant="success" title="Suksess">
+                    Handlingen ble fullført.
+                  </Alert>
+                  <Alert variant="warning" title="Advarsel">
+                    Vær oppmerksom på dette.
+                  </Alert>
+                  <Alert variant="danger" title="Feil">
+                    Noe gikk galt.
+                  </Alert>
+                </div>
+              </Card>
+
+              {/* Modal */}
+              <Card variant="outlined" padding="lg">
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">Modal</h2>
+                <Button onClick={() => setModalOpen(true)}>Åpne modal</Button>
+
+                <Modal
+                  open={modalOpen}
+                  onOpenChange={setModalOpen}
+                  title="Eksempel Modal"
+                  description="En modal dialog med Punkt-styling."
+                  size="md"
+                >
+                  <div className="space-y-4">
+                    <p className="text-pkt-text-body-default">
+                      Modalen demonstrerer focus trap, keyboard navigation og tilgjengelighet.
+                    </p>
+                    <div className="flex gap-3">
+                      <Button variant="primary" onClick={() => setModalOpen(false)}>
+                        Bekreft
+                      </Button>
+                      <Button variant="secondary" onClick={() => setModalOpen(false)}>
+                        Avbryt
+                      </Button>
+                    </div>
+                  </div>
+                </Modal>
+              </Card>
+
+              {/* AlertDialog */}
+              <Card variant="outlined" padding="lg">
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">AlertDialog</h2>
+                <Button variant="danger" onClick={() => setAlertOpen(true)}>
+                  Slett element
                 </Button>
-              </div>
-            </div>
 
-            <div>
-              <h3 className="text-sm font-semibold text-pkt-text-body-subtle mb-2">Sizes</h3>
-              <div className="flex flex-wrap items-center gap-3">
-                <Button size="sm">Small</Button>
-                <Button size="md">Medium</Button>
-                <Button size="lg">Large</Button>
-              </div>
-            </div>
-          </div>
-        </Card>
+                <AlertDialog
+                  open={alertOpen}
+                  onOpenChange={setAlertOpen}
+                  title="Er du sikker?"
+                  description="Denne handlingen kan ikke angres."
+                  confirmLabel="Slett"
+                  cancelLabel="Avbryt"
+                  variant="danger"
+                  onConfirm={() => toast({ title: 'Slettet', variant: 'success' })}
+                />
+              </Card>
 
-        {/* Cards Section */}
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold text-pkt-text-body-dark">Cards</h2>
+              {/* Tooltip */}
+              <Card variant="outlined" padding="lg">
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">Tooltip</h2>
+                <div className="flex flex-wrap gap-4">
+                  <Tooltip content="Tooltip på toppen" side="top">
+                    <Button variant="secondary">Topp</Button>
+                  </Tooltip>
+                  <Tooltip content="Tooltip til høyre" side="right">
+                    <Button variant="secondary">Høyre</Button>
+                  </Tooltip>
+                  <Tooltip content="Tooltip på bunnen" side="bottom">
+                    <Button variant="secondary">Bunn</Button>
+                  </Tooltip>
+                  <Tooltip content="Tooltip til venstre" side="left">
+                    <Button variant="secondary">Venstre</Button>
+                  </Tooltip>
+                </div>
+              </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card variant="default" padding="md">
-              <h3 className="font-bold text-pkt-text-body-dark mb-2">Default Card</h3>
-              <p className="text-pkt-text-body-subtle">
-                This is a default card with medium padding.
-              </p>
-            </Card>
+              {/* Toast */}
+              <Card variant="outlined" padding="lg">
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">Toast</h2>
+                <div className="flex flex-wrap gap-3">
+                  <Button onClick={() => toast({ title: 'Standard toast', variant: 'info' })}>
+                    Standard
+                  </Button>
+                  <Button onClick={() => toast({ title: 'Suksess!', variant: 'success' })}>
+                    Success
+                  </Button>
+                  <Button onClick={() => toast({ title: 'Advarsel', variant: 'warning' })}>
+                    Warning
+                  </Button>
+                  <Button onClick={() => toast({ title: 'Feil oppstod', variant: 'error' })}>
+                    Error
+                  </Button>
+                  <Button onClick={() => toast({ title: 'Info', description: 'Med beskrivelse', variant: 'info' })}>
+                    Info m/beskrivelse
+                  </Button>
+                </div>
+              </Card>
+            </>
+          )}
 
-            <Card variant="elevated" padding="md">
-              <h3 className="font-bold text-pkt-text-body-dark mb-2">Elevated Card</h3>
-              <p className="text-pkt-text-body-subtle">
-                This card has a shadow for elevation effect.
-              </p>
-            </Card>
+          {/* ============================================
+              TAB 5: LAYOUT
+              ============================================ */}
+          {activeTab === 'layout' && (
+            <>
+              {/* Tabs (meta) */}
+              <Card variant="outlined" padding="lg">
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">Tabs</h2>
+                <p className="text-pkt-text-body-subtle mb-4">
+                  Denne siden bruker Tabs-komponenten for navigasjon mellom kategoriene!
+                </p>
+                <Alert variant="info">
+                  Se toppmenyen for eksempel på Tabs i bruk.
+                </Alert>
+              </Card>
 
-            <Card variant="outlined" padding="md">
-              <h3 className="font-bold text-pkt-text-body-dark mb-2">Outlined Card</h3>
-              <p className="text-pkt-text-body-subtle">
-                This card has a border outline.
-              </p>
-            </Card>
-          </div>
+              {/* Collapsible */}
+              <Card variant="outlined" padding="lg">
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">Collapsible</h2>
+                <div className="space-y-2">
+                  <Collapsible title="Klikk for å utvide">
+                    <p className="text-pkt-text-body-subtle">
+                      Dette innholdet er skjult som standard og vises når brukeren klikker.
+                    </p>
+                  </Collapsible>
+                  <Collapsible title="Åpen som standard" defaultOpen>
+                    <p className="text-pkt-text-body-subtle">
+                      Denne seksjonen er åpen fra start.
+                    </p>
+                  </Collapsible>
+                </div>
+              </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card variant="elevated" padding="sm">
-              <h3 className="font-bold text-pkt-text-body-dark mb-2">Small Padding</h3>
-              <p className="text-pkt-text-body-subtle">Compact spacing</p>
-            </Card>
+              {/* AccordionGroup */}
+              <Card variant="outlined" padding="lg">
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">AccordionGroup</h2>
+                <AccordionGroup
+                  items={[
+                    {
+                      id: 'item-1',
+                      title: 'Første seksjon',
+                      content: <p className="text-pkt-text-body-subtle">Innhold i første seksjon.</p>,
+                    },
+                    {
+                      id: 'item-2',
+                      title: 'Andre seksjon',
+                      subtitle: 'Med undertittel',
+                      content: <p className="text-pkt-text-body-subtle">Innhold i andre seksjon.</p>,
+                    },
+                    {
+                      id: 'item-3',
+                      title: 'Tredje seksjon',
+                      badge: <Badge size="sm" variant="info">Ny</Badge>,
+                      content: <p className="text-pkt-text-body-subtle">Innhold i tredje seksjon.</p>,
+                    },
+                  ]}
+                />
+              </Card>
 
-            <Card variant="elevated" padding="md">
-              <h3 className="font-bold text-pkt-text-body-dark mb-2">Medium Padding</h3>
-              <p className="text-pkt-text-body-subtle">Default spacing</p>
-            </Card>
-
-            <Card variant="elevated" padding="lg">
-              <h3 className="font-bold text-pkt-text-body-dark mb-2">Large Padding</h3>
-              <p className="text-pkt-text-body-subtle">Generous spacing</p>
-            </Card>
-          </div>
+              {/* SectionContainer */}
+              <Card variant="outlined" padding="lg">
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">SectionContainer</h2>
+                <div className="space-y-4">
+                  <SectionContainer title="Standard seksjon">
+                    <p className="text-pkt-text-body-subtle">Innhold i seksjonen.</p>
+                  </SectionContainer>
+                  <SectionContainer
+                    title="Med beskrivelse"
+                    description="En kort forklaring av seksjonen"
+                    variant="subtle"
+                  >
+                    <p className="text-pkt-text-body-subtle">Innhold med ramme.</p>
+                  </SectionContainer>
+                  <SectionContainer
+                    title="Sammenleggbar"
+                    collapsible
+                    defaultOpen={false}
+                  >
+                    <p className="text-pkt-text-body-subtle">Skjult innhold.</p>
+                  </SectionContainer>
+                </div>
+              </Card>
+            </>
+          )}
         </div>
-
-        {/* Modal Section */}
-        <Card variant="elevated" padding="lg">
-          <h2 className="text-2xl font-bold text-pkt-text-body-dark mb-4">Modal</h2>
-          <p className="text-pkt-text-body-subtle mb-4">
-            Test focus trap, keyboard navigation (Tab, Escape), and accessibility.
-          </p>
-          <Button onClick={() => setModalOpen(true)}>Open Modal</Button>
-
-          <Modal
-            open={modalOpen}
-            onOpenChange={setModalOpen}
-            title="Example Modal"
-            description="This is a modal dialog demonstrating Radix Dialog wrapper with Oslo design."
-            size="md"
-          >
-            <div className="space-y-4">
-              <p className="text-pkt-text-body-default">
-                This modal demonstrates:
-              </p>
-              <ul className="list-disc list-inside space-y-2 text-pkt-text-body-subtle">
-                <li>Focus trap (try pressing Tab)</li>
-                <li>Keyboard navigation (Escape to close)</li>
-                <li>Backdrop click to close</li>
-                <li>Smooth animations</li>
-                <li>Proper z-index layering</li>
-              </ul>
-
-              <div className="flex gap-3 pt-4">
-                <Button variant="primary">Confirm</Button>
-                <Button variant="secondary" onClick={() => setModalOpen(false)}>
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          </Modal>
-        </Card>
-
-        {/* Tooltip Section */}
-        <Card variant="elevated" padding="lg">
-          <h2 className="text-2xl font-bold text-pkt-text-body-dark mb-4">Tooltips</h2>
-          <p className="text-pkt-text-body-subtle mb-4">
-            Hover over buttons to see tooltips in different positions.
-          </p>
-
-          <div className="flex flex-wrap gap-4">
-            <Tooltip content="This tooltip appears on top" side="top">
-              <Button variant="secondary">Hover (Top)</Button>
-            </Tooltip>
-
-            <Tooltip content="This tooltip appears on the right" side="right">
-              <Button variant="secondary">Hover (Right)</Button>
-            </Tooltip>
-
-            <Tooltip content="This tooltip appears on bottom" side="bottom">
-              <Button variant="secondary">Hover (Bottom)</Button>
-            </Tooltip>
-
-            <Tooltip content="This tooltip appears on the left" side="left">
-              <Button variant="secondary">Hover (Left)</Button>
-            </Tooltip>
-          </div>
-        </Card>
-
-        {/* AlertDialog Section */}
-        <Card variant="elevated" padding="lg">
-          <h2 className="text-2xl font-bold text-pkt-text-body-dark mb-4">Alert Dialog</h2>
-          <p className="text-pkt-text-body-subtle mb-4">
-            Confirmation dialogs for critical actions.
-          </p>
-          <Button variant="danger" onClick={() => setAlertOpen(true)}>
-            Delete Item
-          </Button>
-
-          <AlertDialog
-            open={alertOpen}
-            onOpenChange={setAlertOpen}
-            title="Are you sure?"
-            description="This action cannot be undone. This will permanently delete the item."
-            confirmLabel="Delete"
-            cancelLabel="Cancel"
-            variant="danger"
-            onConfirm={() => {}}
-          />
-        </Card>
-
-        {/* Accessibility Checklist */}
-        <Card variant="outlined" padding="lg">
-          <h2 className="text-2xl font-bold text-pkt-text-body-dark mb-4">
-            Accessibility Checklist
-          </h2>
-          <ul className="space-y-2">
-            <li className="flex items-start gap-2">
-              <span className="text-alert-success-text">✓</span>
-              <span className="text-pkt-text-body-default">Modal traps focus and returns focus on close</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-alert-success-text">✓</span>
-              <span className="text-pkt-text-body-default">All buttons have visible focus indicators</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-alert-success-text">✓</span>
-              <span className="text-pkt-text-body-default">Escape key closes modals and dialogs</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-alert-success-text">✓</span>
-              <span className="text-pkt-text-body-default">All interactive elements are keyboard accessible</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-alert-success-text">✓</span>
-              <span className="text-pkt-text-body-default">Color contrast meets WCAG AA standards</span>
-            </li>
-          </ul>
-        </Card>
       </main>
     </div>
   );
