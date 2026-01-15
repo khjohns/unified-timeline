@@ -143,10 +143,16 @@ const calendarStyles = `
     width: 40px;
     height: 40px;
     border-radius: 50% !important;
+    color: var(--color-pkt-text-body-dark);
   }
 
   .rdp-nav button:hover {
     background-color: var(--color-pkt-surface-light-blue);
+    color: var(--color-pkt-text-body-dark);
+  }
+
+  .rdp-nav button svg {
+    color: inherit;
   }
 
   /* ===== DARK MODE ===== */
@@ -183,8 +189,13 @@ const calendarStyles = `
     border-radius: 50% !important;
   }
 
+  .dark .rdp-nav button {
+    color: var(--color-pkt-text-body-default);
+  }
+
   .dark .rdp-nav button:hover {
     background-color: var(--color-pkt-grays-gray-200);
+    color: var(--color-pkt-text-body-default);
   }
 `;
 
