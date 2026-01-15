@@ -1,25 +1,34 @@
 /**
  * FravikDashboard Component
  *
- * Three-track dashboard for fravik-søknad following CaseDashboard patterns.
- * Displays:
- * - Spor 1: Søknadsinformasjon (application details)
- * - Spor 2: Maskiner (machines)
- * - Spor 3: Avbøtende tiltak og konsekvenser (mitigating measures)
+ * Dashboard for fravik-søknad with role-based views:
+ * - TE: Edit søknad, maskiner, avbøtende tiltak
+ * - BH: Read-only søknad + "Din oppgave" section for vurdering
+ *
+ * Design principle: "Les først, vurder nederst"
+ * - Søknadsdata vises read-only for BH
+ * - Én tydelig "Din oppgave"-seksjon med kontekstuell CTA
  */
 
 import { useMemo } from 'react';
-import { Pencil1Icon, PlusIcon } from '@radix-ui/react-icons';
-import { DashboardCard, DataList, DataListItem, Badge, Button } from '../primitives';
-import type { FravikState, MaskinTilstand } from '../../types/fravik';
+import { Pencil1Icon, PlusIcon, CheckCircledIcon, CrossCircledIcon, ClockIcon } from '@radix-ui/react-icons';
+import { DashboardCard, DataList, DataListItem, Badge, Button, Alert } from '../primitives';
+import type { FravikState, MaskinTilstand, FravikBeslutning } from '../../types/fravik';
 import { MASKIN_TYPE_LABELS } from '../../types/fravik';
 import { formatDateShort } from '../../utils/formatters';
 
 interface FravikDashboardProps {
   state: FravikState;
+  userRole: 'TE' | 'BH';
+  // TE actions
   onRedigerSoknad?: () => void;
   onLeggTilMaskin?: () => void;
   onRedigerAvbotende?: () => void;
+  // BH actions
+  onBOIVurdering?: () => void;
+  onPLVurdering?: () => void;
+  onArbeidsgruppeVurdering?: () => void;
+  onEierBeslutning?: () => void;
 }
 
 // ============================================================================
@@ -77,10 +86,28 @@ function getMaskinStatusBadge(status: string): { variant: 'success' | 'danger' |
 // ============================================================================
 
 /**
- * Compact maskin card
+ * Get beslutning icon
+ */
+function getBeslutningIcon(beslutning?: FravikBeslutning) {
+  switch (beslutning) {
+    case 'godkjent':
+      return <CheckCircledIcon className="w-3.5 h-3.5 text-alert-success-text" />;
+    case 'avslatt':
+      return <CrossCircledIcon className="w-3.5 h-3.5 text-alert-danger-text" />;
+    case 'delvis_godkjent':
+    case 'krever_avklaring':
+      return <ClockIcon className="w-3.5 h-3.5 text-alert-warning-text" />;
+    default:
+      return null;
+  }
+}
+
+/**
+ * Compact maskin card with BOI status
  */
 function MaskinKort({ maskin }: { maskin: MaskinTilstand }) {
   const { variant, label } = getMaskinStatusBadge(maskin.samlet_status);
+  const hasBOI = maskin.boi_vurdering?.beslutning;
 
   return (
     <div className="p-3 rounded-lg border border-pkt-border-default bg-pkt-bg-card">
@@ -100,6 +127,14 @@ function MaskinKort({ maskin }: { maskin: MaskinTilstand }) {
           {maskin.erstatningsdrivstoff && ` (${maskin.erstatningsdrivstoff})`}
         </p>
       )}
+
+      {/* BOI vurderingsstatus */}
+      {hasBOI && (
+        <div className="flex items-center gap-1 mt-2 text-xs text-pkt-text-body-muted">
+          {getBeslutningIcon(maskin.boi_vurdering?.beslutning)}
+          <span>BOI</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -110,25 +145,54 @@ function MaskinKort({ maskin }: { maskin: MaskinTilstand }) {
 
 export function FravikDashboard({
   state,
+  userRole,
   onRedigerSoknad,
   onLeggTilMaskin,
   onRedigerAvbotende,
+  onBOIVurdering,
+  onPLVurdering,
+  onArbeidsgruppeVurdering,
+  onEierBeslutning,
 }: FravikDashboardProps) {
   const maskiner = useMemo(() => Object.values(state.maskiner), [state.maskiner]);
   const canEdit = state.status === 'utkast';
+  const gjeldende = state.godkjenningskjede.gjeldende_steg;
+  const isBH = userRole === 'BH';
+  const isTE = userRole === 'TE';
 
   const soknadBadge = getSoknadBadge(state);
   const maskinBadge = getMaskinBadge(state);
   const avbotendeBadge = getAvbotendeBadge(state);
 
+  // Show "Din oppgave" for BH when søknad is submitted and not finished
+  const showDinOppgave = isBH && state.status !== 'utkast' && gjeldende !== 'ferdig';
+
   return (
     <div className="space-y-4">
+      {/* Din oppgave - øverst for BH når søknad er sendt inn */}
+      {showDinOppgave && (
+        <>
+          <DinOppgaveAlert
+            state={state}
+            gjeldende={gjeldende}
+            onBOIVurdering={onBOIVurdering}
+            onPLVurdering={onPLVurdering}
+            onArbeidsgruppeVurdering={onArbeidsgruppeVurdering}
+            onEierBeslutning={onEierBeslutning}
+          />
+          {/* Tidligere vurderinger - detaljert visning for AG og Eier */}
+          {(gjeldende === 'arbeidsgruppe' || gjeldende === 'eier') && (
+            <TidligereVurderingerKort state={state} gjeldende={gjeldende} />
+          )}
+        </>
+      )}
+
       {/* Spor 1: Søknadsinformasjon */}
       <DashboardCard
         title="Søknadsinformasjon"
         headerBadge={<Badge variant={soknadBadge.variant}>{soknadBadge.label}</Badge>}
         action={
-          canEdit && onRedigerSoknad && (
+          isTE && canEdit && onRedigerSoknad && (
             <Button variant="secondary" size="sm" onClick={onRedigerSoknad}>
               <Pencil1Icon className="w-4 h-4 mr-1" />
               Rediger
@@ -177,7 +241,7 @@ export function FravikDashboard({
           title="Maskiner"
           headerBadge={<Badge variant={maskinBadge.variant}>{maskinBadge.label}</Badge>}
           action={
-            canEdit && onLeggTilMaskin && (
+            isTE && canEdit && onLeggTilMaskin && (
               <Button variant="secondary" size="sm" onClick={onLeggTilMaskin}>
                 <PlusIcon className="w-4 h-4 mr-1" />
                 Legg til
@@ -206,7 +270,7 @@ export function FravikDashboard({
         title="Avbøtende tiltak og konsekvenser"
         headerBadge={<Badge variant={avbotendeBadge.variant}>{avbotendeBadge.label}</Badge>}
         action={
-          canEdit && onRedigerAvbotende && (
+          isTE && canEdit && onRedigerAvbotende && (
             <Button variant="secondary" size="sm" onClick={onRedigerAvbotende}>
               <Pencil1Icon className="w-4 h-4 mr-1" />
               Rediger
@@ -232,6 +296,288 @@ export function FravikDashboard({
           </DataListItem>
         </DataList>
       </DashboardCard>
+
     </div>
+  );
+}
+
+// ============================================================================
+// DIN OPPGAVE COMPONENT
+// ============================================================================
+
+// ============================================================================
+// TIDLIGERE VURDERINGER COMPONENT
+// ============================================================================
+
+interface TidligereVurderingerKortProps {
+  state: FravikState;
+  gjeldende: 'boi' | 'pl' | 'arbeidsgruppe' | 'eier' | 'ferdig';
+}
+
+function VurderingDetalj({
+  rolle,
+  vurdering,
+}: {
+  rolle: string;
+  vurdering: {
+    fullfort: boolean;
+    beslutning?: FravikBeslutning;
+    kommentar?: string;
+    vurdert_av?: string;
+    vurdert_tidspunkt?: string;
+  };
+}) {
+  if (!vurdering.fullfort) {
+    return (
+      <div className="flex items-center justify-between">
+        <span className="font-medium text-sm">{rolle}</span>
+        <span className="text-sm text-pkt-text-body-muted">Venter</span>
+      </div>
+    );
+  }
+
+  const beslutningLabel = vurdering.beslutning === 'godkjent'
+    ? 'Anbefalt'
+    : vurdering.beslutning === 'delvis_godkjent'
+    ? 'Delvis anbefalt'
+    : 'Ikke anbefalt';
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <span className="font-medium text-sm">{rolle}</span>
+        <span className="flex items-center gap-1 text-sm">
+          {getBeslutningIcon(vurdering.beslutning)}
+          {beslutningLabel}
+        </span>
+      </div>
+      {vurdering.kommentar && (
+        <p className="text-sm text-pkt-text-body-muted whitespace-pre-wrap">
+          {vurdering.kommentar}
+        </p>
+      )}
+      {vurdering.vurdert_av && (
+        <p className="text-xs text-pkt-text-body-muted mt-1">
+          {vurdering.vurdert_av}
+          {vurdering.vurdert_tidspunkt && ` • ${formatDateShort(vurdering.vurdert_tidspunkt)}`}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function MaskinVurderingListe({
+  maskiner,
+  vurderingType,
+}: {
+  maskiner: MaskinTilstand[];
+  vurderingType: 'boi' | 'arbeidsgruppe';
+}) {
+  const vurderteMaskiner = maskiner.filter(m =>
+    vurderingType === 'boi' ? m.boi_vurdering : m.arbeidsgruppe_vurdering
+  );
+
+  if (vurderteMaskiner.length === 0) return null;
+
+  return (
+    <div className="mt-3 space-y-2">
+      {vurderteMaskiner.map((maskin) => {
+        const vurdering = vurderingType === 'boi'
+          ? maskin.boi_vurdering
+          : maskin.arbeidsgruppe_vurdering;
+        if (!vurdering) return null;
+
+        const maskinNavn = MASKIN_TYPE_LABELS[maskin.maskin_type] || maskin.maskin_type;
+        const beslutningLabel = vurdering.beslutning === 'godkjent'
+          ? 'Godkjent'
+          : vurdering.beslutning === 'delvis_godkjent'
+          ? 'Delvis'
+          : 'Avslått';
+
+        return (
+          <div key={maskin.maskin_id} className="p-3 rounded bg-pkt-bg-subtle">
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-sm">{maskinNavn}</span>
+              <span className="flex items-center gap-1 text-sm">
+                {getBeslutningIcon(vurdering.beslutning)}
+                {beslutningLabel}
+              </span>
+            </div>
+            {vurdering.kommentar && (
+              <p className="text-sm text-pkt-text-body-muted mt-1">{vurdering.kommentar}</p>
+            )}
+            {vurdering.vilkar && vurdering.vilkar.length > 0 && (
+              <div className="mt-2 pt-2 border-t border-pkt-border-subtle">
+                <p className="text-xs font-medium text-pkt-text-body-muted">
+                  Vilkår: {vurdering.vilkar.join(', ')}
+                </p>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function TidligereVurderingerKort({ state, gjeldende }: TidligereVurderingerKortProps) {
+  const { godkjenningskjede } = state;
+  const maskiner = Object.values(state.maskiner);
+
+  return (
+    <DashboardCard
+      title="Tidligere vurderinger"
+      variant="outlined"
+    >
+      <div className="space-y-4">
+        {/* BOI-vurdering */}
+        <div>
+          <VurderingDetalj
+            rolle="BOI-rådgiver"
+            vurdering={godkjenningskjede.boi_vurdering}
+          />
+          {/* Per-maskin BOI-vurderinger */}
+          {godkjenningskjede.boi_vurdering.fullfort && (
+            <MaskinVurderingListe maskiner={maskiner} vurderingType="boi" />
+          )}
+        </div>
+
+        {/* PL-vurdering */}
+        <div className="pt-4 border-t border-pkt-border-subtle">
+          <VurderingDetalj
+            rolle="Prosjektleder"
+            vurdering={godkjenningskjede.pl_vurdering}
+          />
+        </div>
+
+        {/* Arbeidsgruppe (kun for Eier) */}
+        {gjeldende === 'eier' && (
+          <div className="pt-4 border-t border-pkt-border-subtle">
+            <VurderingDetalj
+              rolle="Arbeidsgruppe"
+              vurdering={godkjenningskjede.arbeidsgruppe_vurdering}
+            />
+            {/* Per-maskin Arbeidsgruppe-vurderinger */}
+            {godkjenningskjede.arbeidsgruppe_vurdering.fullfort && (
+              <MaskinVurderingListe maskiner={maskiner} vurderingType="arbeidsgruppe" />
+            )}
+          </div>
+        )}
+      </div>
+    </DashboardCard>
+  );
+}
+
+// ============================================================================
+// DIN OPPGAVE ALERT COMPONENT
+// ============================================================================
+
+interface DinOppgaveAlertProps {
+  state: FravikState;
+  gjeldende: 'boi' | 'pl' | 'arbeidsgruppe' | 'eier' | 'ferdig';
+  onBOIVurdering?: () => void;
+  onPLVurdering?: () => void;
+  onArbeidsgruppeVurdering?: () => void;
+  onEierBeslutning?: () => void;
+}
+
+/**
+ * Get oppgave config based on current step
+ */
+function getOppgaveConfig(gjeldende: string) {
+  switch (gjeldende) {
+    case 'boi':
+      return {
+        stegNummer: 1,
+        tittel: 'BOI-vurdering',
+        beskrivelse: 'Vurder om søknaden oppfyller miljøkravene.',
+        knappTekst: 'Gi BOI-vurdering',
+      };
+    case 'pl':
+      return {
+        stegNummer: 2,
+        tittel: 'Prosjektleder-anbefaling',
+        beskrivelse: 'Gi din anbefaling basert på prosjektets behov.',
+        knappTekst: 'Gi PL-anbefaling',
+      };
+    case 'arbeidsgruppe':
+      return {
+        stegNummer: 3,
+        tittel: 'Arbeidsgruppens innstilling',
+        beskrivelse: 'Vurder søknaden samlet og gi innstilling til prosjekteier.',
+        knappTekst: 'Gi innstilling',
+      };
+    case 'eier':
+      return {
+        stegNummer: 4,
+        tittel: 'Prosjekteiers beslutning',
+        beskrivelse: 'Fatt endelig beslutning.',
+        knappTekst: 'Fatt beslutning',
+      };
+    default:
+      return null;
+  }
+}
+
+function DinOppgaveAlert({
+  state,
+  gjeldende,
+  onBOIVurdering,
+  onPLVurdering,
+  onArbeidsgruppeVurdering,
+  onEierBeslutning,
+}: DinOppgaveAlertProps) {
+  const config = getOppgaveConfig(gjeldende);
+  if (!config) return null;
+
+  const handleClick = () => {
+    switch (gjeldende) {
+      case 'boi': onBOIVurdering?.(); break;
+      case 'pl': onPLVurdering?.(); break;
+      case 'arbeidsgruppe': onArbeidsgruppeVurdering?.(); break;
+      case 'eier': onEierBeslutning?.(); break;
+    }
+  };
+
+  const { godkjenningskjede } = state;
+
+  // Build footer with previous evaluations
+  const tidligereVurderinger: string[] = [];
+  if (gjeldende !== 'boi' && godkjenningskjede.boi_vurdering.fullfort) {
+    const status = godkjenningskjede.boi_vurdering.beslutning === 'godkjent' ? '✓' : '✗';
+    tidligereVurderinger.push(`BOI: ${status}`);
+  }
+  if ((gjeldende === 'arbeidsgruppe' || gjeldende === 'eier') && godkjenningskjede.pl_vurdering.fullfort) {
+    const status = godkjenningskjede.pl_vurdering.beslutning === 'godkjent' ? '✓' : '✗';
+    tidligereVurderinger.push(`PL: ${status}`);
+  }
+  if (gjeldende === 'eier' && godkjenningskjede.arbeidsgruppe_vurdering.fullfort) {
+    const beslutning = godkjenningskjede.arbeidsgruppe_vurdering.beslutning;
+    const status = beslutning === 'godkjent' ? '✓' : beslutning === 'delvis_godkjent' ? '~' : '✗';
+    tidligereVurderinger.push(`AG: ${status}`);
+  }
+
+  return (
+    <Alert
+      variant="info"
+      title={
+        <span className="flex items-center gap-2">
+          Din oppgave: {config.tittel}
+          <Badge variant="info" size="sm">Steg {config.stegNummer}/4</Badge>
+        </span>
+      }
+      action={
+        <Button variant="primary" size="sm" onClick={handleClick}>
+          {config.knappTekst}
+        </Button>
+      }
+      footer={tidligereVurderinger.length > 0 ? (
+        <span className="text-xs text-pkt-text-body-muted">
+          Tidligere: {tidligereVurderinger.join(' • ')}
+        </span>
+      ) : undefined}
+    >
+      {config.beskrivelse}
+    </Alert>
   );
 }

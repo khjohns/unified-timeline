@@ -25,13 +25,12 @@ import {
   LeggTilMaskinModal,
   OpprettFravikModal,
   SendInnModal,
-  GodkjenningskjedeCard,
   BOIVurderingModal,
   PLVurderingModal,
   ArbeidsgruppeModal,
   EierBeslutningModal,
 } from '../components/fravik';
-import type { FravikState, FravikEvent, FravikRolle } from '../types/fravik';
+import type { FravikState, FravikEvent } from '../types/fravik';
 import {
   FRAVIK_STATUS_LABELS,
   getFravikStatusColor,
@@ -239,10 +238,16 @@ export function FravikPage() {
             </h2>
             <FravikDashboard
               state={state}
-              // Only show edit actions for TE (entreprenør/søker) role
-              onRedigerSoknad={userRole === 'TE' ? () => setShowRedigerSoknad(true) : undefined}
-              onLeggTilMaskin={userRole === 'TE' ? () => setShowLeggTilMaskin(true) : undefined}
-              onRedigerAvbotende={userRole === 'TE' ? () => setShowAvbotendeTiltak(true) : undefined}
+              userRole={userRole}
+              // TE actions
+              onRedigerSoknad={() => setShowRedigerSoknad(true)}
+              onLeggTilMaskin={() => setShowLeggTilMaskin(true)}
+              onRedigerAvbotende={() => setShowAvbotendeTiltak(true)}
+              // BH actions
+              onBOIVurdering={() => setShowBOIVurdering(true)}
+              onPLVurdering={() => setShowPLVurdering(true)}
+              onArbeidsgruppeVurdering={() => setShowArbeidsgruppeVurdering(true)}
+              onEierBeslutning={() => setShowEierBeslutning(true)}
             />
           </Card>
         </section>
@@ -263,19 +268,6 @@ export function FravikPage() {
               </p>
             )}
           </div>
-        )}
-
-        {/* Godkjenningskjede (kun for BH, ikke i utkast) */}
-        {userRole === 'BH' && state.status !== 'utkast' && (
-          <section aria-labelledby="godkjenningskjede-heading">
-            <GodkjenningskjedeCard
-              state={state}
-              onBOIVurdering={() => setShowBOIVurdering(true)}
-              onPLVurdering={() => setShowPLVurdering(true)}
-              onArbeidsgruppeVurdering={() => setShowArbeidsgruppeVurdering(true)}
-              onEierBeslutning={() => setShowEierBeslutning(true)}
-            />
-          </section>
         )}
 
         {/* Metadata */}
