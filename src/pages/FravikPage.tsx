@@ -233,13 +233,13 @@ export function FravikPage() {
             variant={kanSendesInn ? 'info' : 'warning'}
             title={kanSendesInn ? 'Klar til innsending' : 'Søknaden er ikke komplett'}
           >
-            <div className="flex items-center justify-between gap-4">
-              <p className="text-sm">
-                {kanSendesInn
-                  ? 'Alle påkrevde felter er fylt ut. Du kan nå sende inn søknaden til behandling.'
-                  : 'Fyll ut alle påkrevde felter før du kan sende inn søknaden.'}
-              </p>
-              {kanSendesInn && (
+            <p className="text-sm">
+              {kanSendesInn
+                ? 'Alle påkrevde felter er fylt ut. Du kan nå sende inn søknaden til behandling.'
+                : 'Fyll ut alle påkrevde felter før du kan sende inn søknaden.'}
+            </p>
+            {kanSendesInn && (
+              <div className="mt-3">
                 <Button
                   variant="primary"
                   size="sm"
@@ -247,8 +247,8 @@ export function FravikPage() {
                 >
                   Send inn søknad
                 </Button>
-              )}
-            </div>
+              </div>
+            )}
           </Alert>
         )}
 
