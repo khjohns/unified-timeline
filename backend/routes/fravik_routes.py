@@ -814,7 +814,6 @@ def liste_fravik_soknader():
 
     Query parameters:
     - status: Filter på status (optional)
-    - limit: Maks antall (default 50)
 
     Response 200:
     {
@@ -823,20 +822,31 @@ def liste_fravik_soknader():
         "total": 42
     }
     """
-    # For nå: enkel implementasjon som scanner alle filer
-    # I produksjon: bruk metadata-tabell eller indeks
     try:
-        # Hent alle søknader fra event store
-        # Dette er en forenklet implementasjon
-        soknader = []
+        # 1. Hent alle unike sak_ids fra fravik_events
+        sak_ids = event_repo.get_all_sak_ids(sakstype="fravik")
 
-        # Hent fra repository (må implementeres i event_repo)
-        # For nå returnerer vi tom liste
+        # 2. Bygg state og konverter til liste-items
+        soknader = []
+        for sak_id in sak_ids:
+            try:
+                events_data, _ = event_repo.get_events(sak_id, sakstype="fravik")
+                if events_data:
+                    events = [parse_fravik_event(e) for e in events_data]
+                    state = fravik_service.compute_state(events)
+                    liste_item = fravik_service.state_to_liste_item(state)
+                    soknader.append(liste_item.model_dump())
+            except Exception as e:
+                logger.warning(f"Kunne ikke laste sak {sak_id}: {e}")
+                continue
+
+        # 3. Sorter etter siste aktivitet (nyeste først)
+        soknader.sort(key=lambda x: x.get('siste_oppdatert') or '', reverse=True)
+
         return jsonify({
             "success": True,
             "soknader": soknader,
-            "total": len(soknader),
-            "message": "Liste-funksjonalitet under utvikling"
+            "total": len(soknader)
         })
 
     except Exception as e:
