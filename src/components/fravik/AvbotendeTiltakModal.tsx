@@ -40,6 +40,7 @@ interface AvbotendeTiltakModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sakId: string;
+  currentVersion?: number;
   initialData?: {
     avbotende_tiltak?: string;
     konsekvenser_ved_avslag?: string;
@@ -51,6 +52,7 @@ export function AvbotendeTiltakModal({
   open,
   onOpenChange,
   sakId,
+  currentVersion,
   initialData,
   onSuccess,
 }: AvbotendeTiltakModalProps) {
@@ -150,6 +152,7 @@ export function AvbotendeTiltakModal({
         konsekvenser_ved_avslag: data.konsekvenser_ved_avslag,
       },
       aktor: 'bruker', // TODO: Get from auth context
+      expectedVersion: currentVersion,
     });
   };
 

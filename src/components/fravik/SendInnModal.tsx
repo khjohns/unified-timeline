@@ -93,7 +93,8 @@ export function SendInnModal({
           avbotende_tiltak: data.avbotende_tiltak,
           konsekvenser_ved_avslag: data.konsekvenser_ved_avslag,
         },
-        aktor
+        aktor,
+        state.antall_events // expectedVersion for concurrency control
       );
 
       // Then submit the søknad

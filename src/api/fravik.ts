@@ -112,17 +112,18 @@ export async function opprettFravikSoknad(
 export async function oppdaterFravikSoknad(
   sakId: string,
   data: SoknadOppdatertData,
-  aktor: string
+  aktor: string,
+  expectedVersion?: number
 ): Promise<void> {
   if (USE_MOCK_API) {
     await mockDelay();
     return;
   }
 
-  // Backend expects flat payload
+  // Backend expects flat payload with expected_version for concurrency control
   await apiFetch(`/api/fravik/${sakId}/oppdater`, {
     method: 'POST',
-    body: JSON.stringify({ ...data, aktor }),
+    body: JSON.stringify({ ...data, aktor, expected_version: expectedVersion ?? 0 }),
   });
 }
 

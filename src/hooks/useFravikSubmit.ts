@@ -31,6 +31,7 @@ interface OppdaterAction {
   sakId: string;
   data: SoknadOppdatertData;
   aktor: string;
+  expectedVersion?: number;
 }
 
 interface LeggTilMaskinAction {
@@ -108,7 +109,7 @@ export function useFravikSubmit(options?: UseFravikSubmitOptions) {
           return { type: 'opprett', sakId };
         }
         case 'oppdater': {
-          await oppdaterFravikSoknad(action.sakId, action.data, action.aktor);
+          await oppdaterFravikSoknad(action.sakId, action.data, action.aktor, action.expectedVersion);
           return { type: 'oppdater' };
         }
         case 'legg_til_maskin': {

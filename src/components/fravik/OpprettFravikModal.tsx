@@ -41,6 +41,8 @@ interface OpprettFravikModalProps {
   editMode?: boolean;
   /** Required when editMode is true */
   sakId?: string;
+  /** Current version for optimistic concurrency (edit mode) */
+  currentVersion?: number;
   /** Initial form data for edit mode */
   initialData?: Partial<OpprettSoknadFormData>;
   /** Callback when update is successful (edit mode only) */
@@ -52,6 +54,7 @@ export function OpprettFravikModal({
   onOpenChange,
   editMode = false,
   sakId,
+  currentVersion,
   initialData,
   onSuccess,
 }: OpprettFravikModalProps) {
@@ -197,6 +200,7 @@ export function OpprettFravikModal({
           frist_for_svar: cleanData.frist_for_svar,
         },
         aktor: 'bruker', // TODO: Get from auth context
+        expectedVersion: currentVersion,
       });
     } else {
       // Create new søknad

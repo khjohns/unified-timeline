@@ -313,6 +313,7 @@ export function FravikPage() {
             onOpenChange={setShowRedigerSoknad}
             editMode
             sakId={sakId}
+            currentVersion={state.antall_events}
             initialData={{
               prosjekt_id: state.prosjekt_id,
               prosjekt_navn: state.prosjekt_navn,
@@ -339,6 +340,7 @@ export function FravikPage() {
             open={showAvbotendeTiltak}
             onOpenChange={setShowAvbotendeTiltak}
             sakId={sakId}
+            currentVersion={state.antall_events}
             initialData={{
               avbotende_tiltak: state.avbotende_tiltak,
               konsekvenser_ved_avslag: state.konsekvenser_ved_avslag,
