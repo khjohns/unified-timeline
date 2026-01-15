@@ -180,15 +180,20 @@ export async function sendInnSoknad(
   aktor: string,
   expectedVersion?: number
 ): Promise<void> {
+  console.log('[sendInnSoknad] Called', { sakId, aktor, expectedVersion, USE_MOCK_API });
+
   if (USE_MOCK_API) {
+    console.log('[sendInnSoknad] Using MOCK API - no real submission!');
     await mockDelay();
     return;
   }
 
+  console.log('[sendInnSoknad] Calling real API');
   await apiFetch(`/api/fravik/${sakId}/send-inn`, {
     method: 'POST',
     body: JSON.stringify({ aktor, expected_version: expectedVersion ?? 0 }),
   });
+  console.log('[sendInnSoknad] API call succeeded');
 }
 
 // ========== VURDERINGER ==========

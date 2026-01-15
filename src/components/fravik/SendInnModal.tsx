@@ -86,6 +86,8 @@ export function SendInnModal({
     const aktor = 'bruker'; // TODO: Get from auth context
     let currentVersion = state.antall_events;
 
+    console.log('[SendInnModal] Starting submit', { sakId, currentVersion, state });
+
     try {
       // Check if we need to update avbotende_tiltak (only if changed from state)
       const needsUpdate =
@@ -93,6 +95,7 @@ export function SendInnModal({
         data.konsekvenser_ved_avslag !== state.konsekvenser_ved_avslag;
 
       if (needsUpdate) {
+        console.log('[SendInnModal] Calling oppdater with version', currentVersion);
         // Update søknad with additional info first
         await oppdaterFravikSoknad(
           sakId,
@@ -105,8 +108,10 @@ export function SendInnModal({
         );
         // Version incremented after oppdater
         currentVersion += 1;
+        console.log('[SendInnModal] Oppdater succeeded, new version', currentVersion);
       }
 
+      console.log('[SendInnModal] Calling send_inn with version', currentVersion);
       // Submit the søknad with correct version
       mutation.mutate({
         type: 'send_inn',
@@ -115,6 +120,7 @@ export function SendInnModal({
         expectedVersion: currentVersion,
       });
     } catch (error) {
+      console.error('[SendInnModal] Error in submit', error);
       toast.error('Feil ved oppdatering', error instanceof Error ? error.message : 'Ukjent feil');
     }
   };

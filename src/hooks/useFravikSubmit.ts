@@ -123,7 +123,9 @@ export function useFravikSubmit(options?: UseFravikSubmitOptions) {
           return { type: 'legg_til_maskin', maskinId };
         }
         case 'send_inn': {
+          console.log('[useFravikSubmit] send_inn called', { sakId: action.sakId, expectedVersion: action.expectedVersion });
           await sendInnSoknad(action.sakId, action.aktor, action.expectedVersion);
+          console.log('[useFravikSubmit] send_inn succeeded');
           return { type: 'send_inn' };
         }
       }
