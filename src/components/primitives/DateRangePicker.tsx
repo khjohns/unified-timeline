@@ -96,7 +96,7 @@ const calendarStyles = `
     font-size: 16px;
     width: 40px;
     height: 40px;
-    border-radius: 4px !important;
+    border-radius: 0 !important;
     background: transparent !important;
   }
 
@@ -104,7 +104,7 @@ const calendarStyles = `
     width: 40px;
     height: 40px;
     border: none !important;
-    border-radius: 4px !important;
+    border-radius: 0 !important;
   }
 
   .rdp-day_button:hover:not([disabled]) {
@@ -121,7 +121,7 @@ const calendarStyles = `
     background-color: transparent !important;
   }
 
-  /* Selected / Range start / Range end */
+  /* Selected / Range start / Range end - full circle */
   .rdp-selected .rdp-day_button,
   .rdp-range_start .rdp-day_button,
   .rdp-range_end .rdp-day_button {
@@ -129,7 +129,7 @@ const calendarStyles = `
     color: var(--color-pkt-text-body-light) !important;
     font-weight: 600;
     border: none !important;
-    border-radius: 4px !important;
+    border-radius: 50% !important;
   }
 
   .rdp-day_today {
@@ -140,7 +140,7 @@ const calendarStyles = `
   .rdp-nav button {
     width: 40px;
     height: 40px;
-    border-radius: 4px !important;
+    border-radius: 50% !important;
   }
 
   .rdp-nav button:hover {
@@ -169,14 +169,14 @@ const calendarStyles = `
     background-color: transparent !important;
   }
 
-  /* Dark: Selected / Range start / Range end */
+  /* Dark: Selected / Range start / Range end - full circle */
   .dark .rdp-selected .rdp-day_button,
   .dark .rdp-range_start .rdp-day_button,
   .dark .rdp-range_end .rdp-day_button {
     background-color: var(--color-pkt-brand-warm-blue-1000) !important;
     color: var(--color-pkt-bg-default) !important;
     border: none !important;
-    border-radius: 4px !important;
+    border-radius: 50% !important;
   }
 
   .dark .rdp-nav button:hover {
