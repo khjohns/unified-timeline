@@ -111,14 +111,14 @@ const calendarStyles = `
     background-color: var(--color-pkt-surface-light-blue) !important;
   }
 
-  /* Range middle - sharp corners for continuous band */
+  /* Range middle - same color as endpoints for continuous band */
   .rdp-range_middle {
-    background-color: var(--color-pkt-surface-light-blue) !important;
+    background-color: var(--color-pkt-surface-strong-dark-blue) !important;
     border-radius: 0 !important;
   }
 
   .rdp-range_middle .rdp-day_button {
-    color: var(--color-pkt-text-body-dark) !important;
+    color: var(--color-pkt-text-body-light) !important;
     background-color: transparent !important;
     border-radius: 0 !important;
   }
@@ -161,14 +161,14 @@ const calendarStyles = `
     background-color: var(--color-pkt-grays-gray-200) !important;
   }
 
-  /* Dark: Range middle - sharp corners */
+  /* Dark: Range middle - same color as endpoints */
   .dark .rdp-range_middle {
-    background-color: var(--color-pkt-grays-gray-200) !important;
+    background-color: var(--color-pkt-brand-warm-blue-1000) !important;
     border-radius: 0 !important;
   }
 
   .dark .rdp-range_middle .rdp-day_button {
-    color: var(--color-pkt-text-body-default) !important;
+    color: var(--color-pkt-bg-default) !important;
     background-color: transparent !important;
     border-radius: 0 !important;
   }
