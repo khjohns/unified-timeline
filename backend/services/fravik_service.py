@@ -108,14 +108,14 @@ class FravikService:
         state.opprettet = sorted_events[0].tidsstempel
         state.siste_oppdatert = sorted_events[-1].tidsstempel
 
-        logger.debug(f"Computed FravikState for {state.soknad_id}: {state.status}")
+        logger.debug(f"Computed FravikState for {state.sak_id}: {state.status}")
         return state
 
     def _init_state_from_opprettet(self, event: SoknadOpprettetEvent) -> FravikState:
         """Initialiser FravikState fra SOKNAD_OPPRETTET event."""
         data = event.data
         return FravikState(
-            soknad_id=event.soknad_id,
+            sak_id=event.sak_id,
             prosjekt_id=data.prosjekt_id,
             prosjekt_navn=data.prosjekt_navn,
             prosjekt_nummer=data.prosjekt_nummer,
@@ -507,7 +507,7 @@ class FravikService:
     def state_to_liste_item(self, state: FravikState) -> FravikListeItem:
         """Konverterer FravikState til FravikListeItem for listevisning."""
         return FravikListeItem(
-            soknad_id=state.soknad_id,
+            sak_id=state.sak_id,
             prosjekt_navn=state.prosjekt_navn,
             prosjekt_nummer=state.prosjekt_nummer,
             soker_navn=state.soker_navn,

@@ -13,6 +13,8 @@ from models.fravik_events import (
     FravikBeslutning,
     FravikRolle,
     MaskinType,
+    FravikGrunn,
+    Drivstoff,
     MaskinData,
     SoknadOpprettetData,
     SoknadOppdatertData,
@@ -70,16 +72,23 @@ class TestMaskinData:
     """Tests for MaskinData model."""
 
     def test_maskin_data_basic(self):
-        """Test basic MaskinData creation."""
+        """Test basic MaskinData creation with all required fields."""
         data = MaskinData(
             maskin_type=MaskinType.GRAVEMASKIN,
             start_dato="2025-01-15",
             slutt_dato="2025-03-15",
+            grunner=[FravikGrunn.MARKEDSMANGEL],
             begrunnelse="Ingen tilgjengelige elektriske gravemaskiner",
+            alternativer_vurdert="Undersøkt flere leverandører uten resultat",
+            erstatningsmaskin="CAT 320",
+            erstatningsdrivstoff=Drivstoff.HVO100,
+            arbeidsbeskrivelse="Gravearbeid for fundament",
         )
         assert data.maskin_type == MaskinType.GRAVEMASKIN
         assert data.start_dato == "2025-01-15"
         assert data.maskin_id is not None  # Auto-generated
+        assert FravikGrunn.MARKEDSMANGEL in data.grunner
+        assert data.erstatningsdrivstoff == Drivstoff.HVO100
 
     def test_maskin_data_with_optional_fields(self):
         """Test MaskinData with all optional fields."""
@@ -89,16 +98,19 @@ class TestMaskinData:
             registreringsnummer="AB12345",
             start_dato="2025-01-15",
             slutt_dato="2025-03-15",
+            grunner=[FravikGrunn.TEKNISKE_BEGRENSNINGER, FravikGrunn.HMS_KRAV],
             begrunnelse="Spesialutstyr",
             alternativer_vurdert="Ingen alternativer funnet",
             markedsundersokelse=True,
             undersøkte_leverandorer="Firma A, Firma B",
             erstatningsmaskin="Diesel-maskin",
-            erstatningsdrivstoff="HVO100",
+            erstatningsdrivstoff=Drivstoff.DIESEL_EURO6,
             arbeidsbeskrivelse="Komprimering av grunn",
         )
         assert data.annet_type == "Trommel"
         assert data.markedsundersokelse is True
+        assert len(data.grunner) == 2
+        assert data.erstatningsdrivstoff == Drivstoff.DIESEL_EURO6
 
     def test_maskin_data_begrunnelse_required(self):
         """Test that begrunnelse is required."""
@@ -107,7 +119,27 @@ class TestMaskinData:
                 maskin_type=MaskinType.GRAVEMASKIN,
                 start_dato="2025-01-15",
                 slutt_dato="2025-03-15",
+                grunner=[FravikGrunn.MARKEDSMANGEL],
                 begrunnelse="",  # Empty string should fail
+                alternativer_vurdert="Undersøkt alternativer",
+                erstatningsmaskin="CAT 320",
+                erstatningsdrivstoff=Drivstoff.HVO100,
+                arbeidsbeskrivelse="Gravearbeid",
+            )
+
+    def test_maskin_data_grunner_required(self):
+        """Test that at least one grunn is required."""
+        with pytest.raises(ValueError):
+            MaskinData(
+                maskin_type=MaskinType.GRAVEMASKIN,
+                start_dato="2025-01-15",
+                slutt_dato="2025-03-15",
+                grunner=[],  # Empty list should fail
+                begrunnelse="Test begrunnelse med nok tegn",
+                alternativer_vurdert="Undersøkt alternativer",
+                erstatningsmaskin="CAT 320",
+                erstatningsdrivstoff=Drivstoff.HVO100,
+                arbeidsbeskrivelse="Gravearbeid",
             )
 
 
@@ -178,7 +210,7 @@ class TestSoknadOpprettetEvent:
     def test_event_creation(self):
         """Test creating SoknadOpprettetEvent."""
         event = SoknadOpprettetEvent(
-            soknad_id="FRAVIK-001",
+            sak_id="FRAVIK-001",
             aktor="Ola Nordmann",
             aktor_rolle=FravikRolle.SOKER,
             data=SoknadOpprettetData(
@@ -189,14 +221,14 @@ class TestSoknadOpprettetEvent:
             ),
         )
         assert event.event_type == FravikEventType.SOKNAD_OPPRETTET
-        assert event.soknad_id == "FRAVIK-001"
+        assert event.sak_id == "FRAVIK-001"
         assert event.event_id is not None
         assert event.tidsstempel is not None
 
     def test_event_cloudevents_compatibility(self):
         """Test CloudEvents mixin compatibility."""
         event = SoknadOpprettetEvent(
-            soknad_id="FRAVIK-001",
+            sak_id="FRAVIK-001",
             aktor="Ola Nordmann",
             aktor_rolle=FravikRolle.SOKER,
             data=SoknadOpprettetData(
@@ -206,7 +238,6 @@ class TestSoknadOpprettetEvent:
                 soknad_type="machine",
             ),
         )
-        # sak_id property should map to soknad_id
         assert event.sak_id == "FRAVIK-001"
 
 
@@ -219,16 +250,22 @@ class TestMaskinLagtTilEvent:
             maskin_type=MaskinType.HJULLASTER,
             start_dato="2025-02-01",
             slutt_dato="2025-04-01",
-            begrunnelse="Ingen elektrisk alternativ",
+            grunner=[FravikGrunn.LEVERINGSTID],
+            begrunnelse="Ingen elektrisk alternativ tilgjengelig",
+            alternativer_vurdert="Sjekket med flere leverandører",
+            erstatningsmaskin="Volvo L90",
+            erstatningsdrivstoff=Drivstoff.ANNET_BIODRIVSTOFF,
+            arbeidsbeskrivelse="Lasting og transport av materialer",
         )
         event = MaskinLagtTilEvent(
-            soknad_id="FRAVIK-001",
+            sak_id="FRAVIK-001",
             aktor="Ola Nordmann",
             aktor_rolle=FravikRolle.SOKER,
             data=maskin_data,
         )
         assert event.event_type == FravikEventType.MASKIN_LAGT_TIL
         assert event.data.maskin_type == MaskinType.HJULLASTER
+        assert event.data.erstatningsdrivstoff == Drivstoff.ANNET_BIODRIVSTOFF
 
 
 class TestBOIVurderingEvent:
@@ -237,7 +274,7 @@ class TestBOIVurderingEvent:
     def test_boi_vurdering_godkjent(self):
         """Test BOI vurdering with godkjenning."""
         event = BOIVurderingEvent(
-            soknad_id="FRAVIK-001",
+            sak_id="FRAVIK-001",
             aktor="BOI Rådgiver",
             aktor_rolle=FravikRolle.BOI,
             data=BOIVurderingData(
@@ -262,7 +299,7 @@ class TestArbeidsgruppeVurderingEvent:
     def test_arbeidsgruppe_vurdering(self):
         """Test arbeidsgruppe vurdering."""
         event = ArbeidsgruppeVurderingEvent(
-            soknad_id="FRAVIK-001",
+            sak_id="FRAVIK-001",
             aktor="Arbeidsgruppe",
             aktor_rolle=FravikRolle.ARBEIDSGRUPPE,
             data=ArbeidsgruppeVurderingData(
@@ -287,7 +324,7 @@ class TestEierEvents:
     def test_eier_godkjent(self):
         """Test EierGodkjentEvent."""
         event = EierGodkjentEvent(
-            soknad_id="FRAVIK-001",
+            sak_id="FRAVIK-001",
             aktor="Prosjekteier",
             aktor_rolle=FravikRolle.EIER,
             data=EierBeslutningData(
@@ -300,7 +337,7 @@ class TestEierEvents:
     def test_eier_avslatt(self):
         """Test EierAvslattEvent."""
         event = EierAvslattEvent(
-            soknad_id="FRAVIK-001",
+            sak_id="FRAVIK-001",
             aktor="Prosjekteier",
             aktor_rolle=FravikRolle.EIER,
             data=EierBeslutningData(
@@ -314,7 +351,7 @@ class TestEierEvents:
     def test_eier_delvis_godkjent(self):
         """Test EierDelvisGodkjentEvent."""
         event = EierDelvisGodkjentEvent(
-            soknad_id="FRAVIK-001",
+            sak_id="FRAVIK-001",
             aktor="Prosjekteier",
             aktor_rolle=FravikRolle.EIER,
             data=EierBeslutningData(
@@ -345,7 +382,7 @@ class TestParseFravikEvent:
         """Test parsing SOKNAD_OPPRETTET event."""
         data = {
             "event_type": "fravik_soknad_opprettet",
-            "soknad_id": "FRAVIK-001",
+            "sak_id": "FRAVIK-001",
             "aktor": "Test",
             "aktor_rolle": "SOKER",
             "data": {
@@ -357,13 +394,13 @@ class TestParseFravikEvent:
         }
         event = parse_fravik_event(data)
         assert isinstance(event, SoknadOpprettetEvent)
-        assert event.soknad_id == "FRAVIK-001"
+        assert event.sak_id == "FRAVIK-001"
 
     def test_parse_boi_vurdering(self):
         """Test parsing BOI_VURDERING event."""
         data = {
             "event_type": "fravik_boi_vurdering",
-            "soknad_id": "FRAVIK-001",
+            "sak_id": "FRAVIK-001",
             "aktor": "BOI",
             "aktor_rolle": "BOI",
             "data": {
@@ -379,7 +416,7 @@ class TestParseFravikEvent:
         """Test parsing unknown event type raises error."""
         data = {
             "event_type": "unknown_event",
-            "soknad_id": "FRAVIK-001",
+            "sak_id": "FRAVIK-001",
             "aktor": "Test",
             "aktor_rolle": "SOKER",
         }
@@ -395,7 +432,7 @@ class TestEventSerialization:
     def test_event_to_json(self):
         """Test event serialization to JSON."""
         event = SoknadOpprettetEvent(
-            soknad_id="FRAVIK-001",
+            sak_id="FRAVIK-001",
             aktor="Test",
             aktor_rolle=FravikRolle.SOKER,
             data=SoknadOpprettetData(
@@ -407,7 +444,7 @@ class TestEventSerialization:
         )
         json_data = event.model_dump(mode="json")
 
-        assert json_data["soknad_id"] == "FRAVIK-001"
+        assert json_data["sak_id"] == "FRAVIK-001"
         assert json_data["event_type"] == "fravik_soknad_opprettet"
         assert "event_id" in json_data
         assert "tidsstempel" in json_data
@@ -415,18 +452,24 @@ class TestEventSerialization:
     def test_roundtrip_serialization(self):
         """Test event roundtrip (serialize + parse)."""
         original = MaskinLagtTilEvent(
-            soknad_id="FRAVIK-001",
+            sak_id="FRAVIK-001",
             aktor="Test",
             aktor_rolle=FravikRolle.SOKER,
             data=MaskinData(
                 maskin_type=MaskinType.LIFT,
                 start_dato="2025-01-01",
                 slutt_dato="2025-02-01",
-                begrunnelse="Test",
+                grunner=[FravikGrunn.ANNET],
+                begrunnelse="Test begrunnelse for fravik",
+                alternativer_vurdert="Ingen tilgjengelige alternativer",
+                erstatningsmaskin="JLG 450",
+                erstatningsdrivstoff=Drivstoff.HVO100,
+                arbeidsbeskrivelse="Arbeid i høyden",
             ),
         )
         json_data = original.model_dump(mode="json")
         parsed = parse_fravik_event(json_data)
 
-        assert parsed.soknad_id == original.soknad_id
+        assert parsed.sak_id == original.sak_id
         assert parsed.data.maskin_type == original.data.maskin_type
+        assert parsed.data.erstatningsdrivstoff == original.data.erstatningsdrivstoff

@@ -7,7 +7,23 @@
 
 import { z } from 'zod';
 import type { AttachmentFile } from '../../types';
-import type { MaskinType, SoknadType } from '../../types/fravik';
+import type { MaskinType, SoknadType, FravikGrunn, Drivstoff } from '../../types/fravik';
+
+// ========== KONSTANTER ==========
+
+export const FRAVIK_GRUNNER: { value: FravikGrunn; label: string }[] = [
+  { value: 'markedsmangel', label: 'Markedsmangel' },
+  { value: 'leveringstid', label: 'Leveringstid' },
+  { value: 'tekniske_begrensninger', label: 'Tekniske begrensninger' },
+  { value: 'hms_krav', label: 'HMS-krav' },
+  { value: 'annet', label: 'Annet' },
+];
+
+export const DRIVSTOFF_OPTIONS: { value: Drivstoff; label: string }[] = [
+  { value: 'HVO100', label: 'HVO100' },
+  { value: 'annet_biodrivstoff', label: 'Annet biodrivstoff' },
+  { value: 'diesel_euro6', label: 'Diesel (Euro 6)' },
+];
 
 // ========== MASKIN SCHEMA ==========
 
@@ -22,13 +38,19 @@ export const maskinSchema = z.object({
   registreringsnummer: z.string().optional(),
   start_dato: z.string().min(1, 'Startdato er påkrevd'),
   slutt_dato: z.string().min(1, 'Sluttdato er påkrevd'),
-  begrunnelse: z.string().min(20, 'Begrunnelse må være minst 20 tegn'),
-  alternativer_vurdert: z.string().optional(),
+  // Grunner for fravik - påkrevd, minst én
+  grunner: z.array(z.enum(['markedsmangel', 'leveringstid', 'tekniske_begrensninger', 'hms_krav', 'annet'] as const))
+    .min(1, 'Velg minst én grunn for fravik'),
+  begrunnelse: z.string().min(20, 'Detaljert begrunnelse må være minst 20 tegn'),
+  alternativer_vurdert: z.string().min(10, 'Beskriv alternative løsninger (minst 10 tegn)'),
   markedsundersokelse: z.boolean(),
   undersøkte_leverandorer: z.string().optional(),
-  erstatningsmaskin: z.string().optional(),
-  erstatningsdrivstoff: z.string().optional(),
-  arbeidsbeskrivelse: z.string().optional(),
+  // Erstatningsmaskin - påkrevde felt
+  erstatningsmaskin: z.string().min(1, 'Oppgi erstatningsmaskin'),
+  erstatningsdrivstoff: z.enum(['HVO100', 'annet_biodrivstoff', 'diesel_euro6'] as const, {
+    errorMap: () => ({ message: 'Velg drivstoff for erstatningsmaskin' }),
+  }),
+  arbeidsbeskrivelse: z.string().min(10, 'Beskriv arbeidsoppgaver (minst 10 tegn)'),
   attachments: z.array(z.custom<AttachmentFile>()).optional().default([]),
 }).refine(
   (data) => data.maskin_type !== 'Annet' || (data.annet_type && data.annet_type.length >= 3),
@@ -85,8 +107,8 @@ export type OpprettSoknadFormData = z.infer<typeof opprettSoknadSchema>;
  * Schema for submitting søknad for review (SendInnModal)
  */
 export const sendInnSchema = z.object({
-  avbotende_tiltak: z.string().optional(),
-  konsekvenser_ved_avslag: z.string().optional(),
+  avbotende_tiltak: z.string().min(10, 'Beskriv avbøtende tiltak (minst 10 tegn)'),
+  konsekvenser_ved_avslag: z.string().min(10, 'Beskriv konsekvenser ved avslag (minst 10 tegn)'),
   bekreft_korrekt: z.boolean().refine((val) => val === true, {
     message: 'Du må bekrefte at informasjonen er korrekt',
   }),

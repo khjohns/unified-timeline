@@ -57,7 +57,7 @@ class TestFravikServiceBasics:
     def soknad_opprettet_event(self, base_time):
         """Create a basic SoknadOpprettetEvent."""
         return SoknadOpprettetEvent(
-            soknad_id="FRAVIK-001",
+            sak_id="FRAVIK-001",
             aktor="Søker Person",
             aktor_rolle=FravikRolle.SOKER,
             tidsstempel=base_time,
@@ -78,7 +78,7 @@ class TestFravikServiceBasics:
     def test_compute_state_wrong_first_event(self, service, base_time):
         """Test that wrong first event raises error."""
         event = SoknadSendtInnEvent(
-            soknad_id="FRAVIK-001",
+            sak_id="FRAVIK-001",
             aktor="Test",
             aktor_rolle=FravikRolle.SOKER,
             tidsstempel=base_time,
@@ -90,7 +90,7 @@ class TestFravikServiceBasics:
         """Test basic state computation from single event."""
         state = service.compute_state([soknad_opprettet_event])
 
-        assert state.soknad_id == "FRAVIK-001"
+        assert state.sak_id == "FRAVIK-001"
         assert state.prosjekt_id == "PROJ-001"
         assert state.prosjekt_navn == "Test Prosjekt"
         assert state.soker_navn == "Søker Person"
@@ -114,7 +114,7 @@ class TestFravikServiceMaskiner:
         """Events for a søknad with one maskin."""
         return [
             SoknadOpprettetEvent(
-                soknad_id="FRAVIK-001",
+                sak_id="FRAVIK-001",
                 aktor="Søker",
                 aktor_rolle=FravikRolle.SOKER,
                 tidsstempel=base_time,
@@ -126,7 +126,7 @@ class TestFravikServiceMaskiner:
                 ),
             ),
             MaskinLagtTilEvent(
-                soknad_id="FRAVIK-001",
+                sak_id="FRAVIK-001",
                 aktor="Søker",
                 aktor_rolle=FravikRolle.SOKER,
                 tidsstempel=base_time + timedelta(minutes=1),
@@ -155,7 +155,7 @@ class TestFravikServiceMaskiner:
         """Test that maskin is removed from state."""
         events = events_with_maskin + [
             MaskinFjernetEvent(
-                soknad_id="FRAVIK-001",
+                sak_id="FRAVIK-001",
                 aktor="Søker",
                 aktor_rolle=FravikRolle.SOKER,
                 tidsstempel=base_time + timedelta(minutes=2),
@@ -171,7 +171,7 @@ class TestFravikServiceMaskiner:
         """Test multiple maskiner in søknad."""
         events = events_with_maskin + [
             MaskinLagtTilEvent(
-                soknad_id="FRAVIK-001",
+                sak_id="FRAVIK-001",
                 aktor="Søker",
                 aktor_rolle=FravikRolle.SOKER,
                 tidsstempel=base_time + timedelta(minutes=2),
@@ -207,7 +207,7 @@ class TestFravikServiceGodkjenningsflyt:
         """Events up to SENDT_INN status."""
         return [
             SoknadOpprettetEvent(
-                soknad_id="FRAVIK-001",
+                sak_id="FRAVIK-001",
                 aktor="Søker",
                 aktor_rolle=FravikRolle.SOKER,
                 tidsstempel=base_time,
@@ -219,7 +219,7 @@ class TestFravikServiceGodkjenningsflyt:
                 ),
             ),
             MaskinLagtTilEvent(
-                soknad_id="FRAVIK-001",
+                sak_id="FRAVIK-001",
                 aktor="Søker",
                 aktor_rolle=FravikRolle.SOKER,
                 tidsstempel=base_time + timedelta(minutes=1),
@@ -232,7 +232,7 @@ class TestFravikServiceGodkjenningsflyt:
                 ),
             ),
             SoknadSendtInnEvent(
-                soknad_id="FRAVIK-001",
+                sak_id="FRAVIK-001",
                 aktor="Søker",
                 aktor_rolle=FravikRolle.SOKER,
                 tidsstempel=base_time + timedelta(minutes=2),
@@ -250,7 +250,7 @@ class TestFravikServiceGodkjenningsflyt:
         """Test BOI vurdering updates status."""
         events = sendt_inn_events + [
             BOIVurderingEvent(
-                soknad_id="FRAVIK-001",
+                sak_id="FRAVIK-001",
                 aktor="BOI Rådgiver",
                 aktor_rolle=FravikRolle.BOI,
                 tidsstempel=base_time + timedelta(minutes=3),
@@ -278,7 +278,7 @@ class TestFravikServiceGodkjenningsflyt:
         """Test BOI return for missing documentation."""
         events = sendt_inn_events + [
             BOIReturnertevent(
-                soknad_id="FRAVIK-001",
+                sak_id="FRAVIK-001",
                 aktor="BOI Rådgiver",
                 aktor_rolle=FravikRolle.BOI,
                 tidsstempel=base_time + timedelta(minutes=3),
@@ -296,7 +296,7 @@ class TestFravikServiceGodkjenningsflyt:
         events = sendt_inn_events + [
             # BOI vurdering
             BOIVurderingEvent(
-                soknad_id="FRAVIK-001",
+                sak_id="FRAVIK-001",
                 aktor="BOI Rådgiver",
                 aktor_rolle=FravikRolle.BOI,
                 tidsstempel=base_time + timedelta(minutes=3),
@@ -313,7 +313,7 @@ class TestFravikServiceGodkjenningsflyt:
             ),
             # PL vurdering
             PLVurderingEvent(
-                soknad_id="FRAVIK-001",
+                sak_id="FRAVIK-001",
                 aktor="Prosjektleder",
                 aktor_rolle=FravikRolle.PL,
                 tidsstempel=base_time + timedelta(minutes=4),
@@ -325,7 +325,7 @@ class TestFravikServiceGodkjenningsflyt:
             ),
             # Arbeidsgruppe vurdering
             ArbeidsgruppeVurderingEvent(
-                soknad_id="FRAVIK-001",
+                sak_id="FRAVIK-001",
                 aktor="Arbeidsgruppe",
                 aktor_rolle=FravikRolle.ARBEIDSGRUPPE,
                 tidsstempel=base_time + timedelta(minutes=5),
@@ -342,7 +342,7 @@ class TestFravikServiceGodkjenningsflyt:
             ),
             # Eier godkjenner
             EierGodkjentEvent(
-                soknad_id="FRAVIK-001",
+                sak_id="FRAVIK-001",
                 aktor="Prosjekteier",
                 aktor_rolle=FravikRolle.EIER,
                 tidsstempel=base_time + timedelta(minutes=6),
@@ -364,7 +364,7 @@ class TestFravikServiceGodkjenningsflyt:
         """Test full chain ending in rejection."""
         events = sendt_inn_events + [
             BOIVurderingEvent(
-                soknad_id="FRAVIK-001",
+                sak_id="FRAVIK-001",
                 aktor="BOI",
                 aktor_rolle=FravikRolle.BOI,
                 tidsstempel=base_time + timedelta(minutes=3),
@@ -380,7 +380,7 @@ class TestFravikServiceGodkjenningsflyt:
                 ),
             ),
             PLVurderingEvent(
-                soknad_id="FRAVIK-001",
+                sak_id="FRAVIK-001",
                 aktor="PL",
                 aktor_rolle=FravikRolle.PL,
                 tidsstempel=base_time + timedelta(minutes=4),
@@ -390,7 +390,7 @@ class TestFravikServiceGodkjenningsflyt:
                 ),
             ),
             ArbeidsgruppeVurderingEvent(
-                soknad_id="FRAVIK-001",
+                sak_id="FRAVIK-001",
                 aktor="AG",
                 aktor_rolle=FravikRolle.ARBEIDSGRUPPE,
                 tidsstempel=base_time + timedelta(minutes=5),
@@ -405,7 +405,7 @@ class TestFravikServiceGodkjenningsflyt:
                 ),
             ),
             EierAvslattEvent(
-                soknad_id="FRAVIK-001",
+                sak_id="FRAVIK-001",
                 aktor="Eier",
                 aktor_rolle=FravikRolle.EIER,
                 tidsstempel=base_time + timedelta(minutes=6),
@@ -425,7 +425,7 @@ class TestFravikServiceGodkjenningsflyt:
         """Test partial approval with multiple machines."""
         events = [
             SoknadOpprettetEvent(
-                soknad_id="FRAVIK-001",
+                sak_id="FRAVIK-001",
                 aktor="Søker",
                 aktor_rolle=FravikRolle.SOKER,
                 tidsstempel=base_time,
@@ -437,7 +437,7 @@ class TestFravikServiceGodkjenningsflyt:
                 ),
             ),
             MaskinLagtTilEvent(
-                soknad_id="FRAVIK-001",
+                sak_id="FRAVIK-001",
                 aktor="Søker",
                 aktor_rolle=FravikRolle.SOKER,
                 tidsstempel=base_time + timedelta(minutes=1),
@@ -450,7 +450,7 @@ class TestFravikServiceGodkjenningsflyt:
                 ),
             ),
             MaskinLagtTilEvent(
-                soknad_id="FRAVIK-001",
+                sak_id="FRAVIK-001",
                 aktor="Søker",
                 aktor_rolle=FravikRolle.SOKER,
                 tidsstempel=base_time + timedelta(minutes=2),
@@ -463,13 +463,13 @@ class TestFravikServiceGodkjenningsflyt:
                 ),
             ),
             SoknadSendtInnEvent(
-                soknad_id="FRAVIK-001",
+                sak_id="FRAVIK-001",
                 aktor="Søker",
                 aktor_rolle=FravikRolle.SOKER,
                 tidsstempel=base_time + timedelta(minutes=3),
             ),
             BOIVurderingEvent(
-                soknad_id="FRAVIK-001",
+                sak_id="FRAVIK-001",
                 aktor="BOI",
                 aktor_rolle=FravikRolle.BOI,
                 tidsstempel=base_time + timedelta(minutes=4),
@@ -483,7 +483,7 @@ class TestFravikServiceGodkjenningsflyt:
                 ),
             ),
             PLVurderingEvent(
-                soknad_id="FRAVIK-001",
+                sak_id="FRAVIK-001",
                 aktor="PL",
                 aktor_rolle=FravikRolle.PL,
                 tidsstempel=base_time + timedelta(minutes=5),
@@ -493,7 +493,7 @@ class TestFravikServiceGodkjenningsflyt:
                 ),
             ),
             ArbeidsgruppeVurderingEvent(
-                soknad_id="FRAVIK-001",
+                sak_id="FRAVIK-001",
                 aktor="AG",
                 aktor_rolle=FravikRolle.ARBEIDSGRUPPE,
                 tidsstempel=base_time + timedelta(minutes=6),
@@ -506,7 +506,7 @@ class TestFravikServiceGodkjenningsflyt:
                 ),
             ),
             EierDelvisGodkjentEvent(
-                soknad_id="FRAVIK-001",
+                sak_id="FRAVIK-001",
                 aktor="Eier",
                 aktor_rolle=FravikRolle.EIER,
                 tidsstempel=base_time + timedelta(minutes=7),
@@ -545,7 +545,7 @@ class TestFravikServiceComputedFields:
         """Test kan_sendes_inn is False without maskiner."""
         events = [
             SoknadOpprettetEvent(
-                soknad_id="FRAVIK-001",
+                sak_id="FRAVIK-001",
                 aktor="Søker",
                 aktor_rolle=FravikRolle.SOKER,
                 tidsstempel=base_time,
@@ -565,7 +565,7 @@ class TestFravikServiceComputedFields:
         """Test kan_sendes_inn is True with maskiner."""
         events = [
             SoknadOpprettetEvent(
-                soknad_id="FRAVIK-001",
+                sak_id="FRAVIK-001",
                 aktor="Søker",
                 aktor_rolle=FravikRolle.SOKER,
                 tidsstempel=base_time,
@@ -577,7 +577,7 @@ class TestFravikServiceComputedFields:
                 ),
             ),
             MaskinLagtTilEvent(
-                soknad_id="FRAVIK-001",
+                sak_id="FRAVIK-001",
                 aktor="Søker",
                 aktor_rolle=FravikRolle.SOKER,
                 tidsstempel=base_time + timedelta(minutes=1),
@@ -598,7 +598,7 @@ class TestFravikServiceComputedFields:
         """Test neste_handling for UTKAST status."""
         events = [
             SoknadOpprettetEvent(
-                soknad_id="FRAVIK-001",
+                sak_id="FRAVIK-001",
                 aktor="Søker",
                 aktor_rolle=FravikRolle.SOKER,
                 tidsstempel=base_time,
@@ -619,7 +619,7 @@ class TestFravikServiceComputedFields:
         """Test visningsstatus computed field."""
         events = [
             SoknadOpprettetEvent(
-                soknad_id="FRAVIK-001",
+                sak_id="FRAVIK-001",
                 aktor="Søker",
                 aktor_rolle=FravikRolle.SOKER,
                 tidsstempel=base_time,
@@ -646,7 +646,7 @@ class TestFravikServiceStateToListeItem:
 
         events = [
             SoknadOpprettetEvent(
-                soknad_id="FRAVIK-001",
+                sak_id="FRAVIK-001",
                 aktor="Søker",
                 aktor_rolle=FravikRolle.SOKER,
                 tidsstempel=base_time,
@@ -662,7 +662,7 @@ class TestFravikServiceStateToListeItem:
         state = service.compute_state(events)
         liste_item = service.state_to_liste_item(state)
 
-        assert liste_item.soknad_id == "FRAVIK-001"
+        assert liste_item.sak_id == "FRAVIK-001"
         assert liste_item.prosjekt_navn == "Test Prosjekt"
         assert liste_item.prosjekt_nummer == "P-123"
         assert liste_item.soker_navn == "Søker Person"

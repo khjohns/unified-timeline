@@ -48,7 +48,7 @@ const renderWithProviders = (ui: React.ReactElement) => {
 
 // Mock FravikState for SendInnModal
 const mockFravikState: FravikState = {
-  soknad_id: 'FRAVIK-TEST-001',
+  sak_id: 'FRAVIK-TEST-001',
   sakstype: 'fravik',
   prosjekt_id: 'PROJ-001',
   prosjekt_navn: 'Test Prosjekt',
@@ -225,7 +225,7 @@ describe('Fravik Modal Components - Functional Tests', () => {
     const defaultProps = {
       open: true,
       onOpenChange: vi.fn(),
-      soknadId: 'FRAVIK-TEST-001',
+      sakId: 'FRAVIK-TEST-001',
     };
 
     it('should render when open', () => {
@@ -284,9 +284,11 @@ describe('Fravik Modal Components - Functional Tests', () => {
       const user = userEvent.setup();
       renderWithProviders(<LeggTilMaskinModal {...defaultProps} />);
 
-      // Find and click the "Annet" radio option
-      const annetRadio = screen.getByLabelText(/Annet/i);
-      await user.click(annetRadio);
+      // Find the maskintype section and click the "Annet" radio option
+      // Use getAllByRole since "Annet" appears in both maskintype and grunner
+      const annetRadios = screen.getAllByRole('radio', { name: /Annet/i });
+      expect(annetRadios.length).toBeGreaterThan(0);
+      await user.click(annetRadios[0]!); // First one is in maskintype section
 
       // Should now show the specify field
       await waitFor(() => {
@@ -339,7 +341,7 @@ describe('Fravik Modal Components - Functional Tests', () => {
     const defaultProps = {
       open: true,
       onOpenChange: vi.fn(),
-      soknadId: 'FRAVIK-TEST-001',
+      sakId: 'FRAVIK-TEST-001',
       state: mockFravikState,
     };
 
@@ -458,7 +460,7 @@ describe('Fravik Modal Components - Functional Tests', () => {
         <LeggTilMaskinModal
           open={true}
           onOpenChange={handleOpenChange}
-          soknadId="TEST-001"
+          sakId="TEST-001"
         />
       );
 
@@ -476,7 +478,7 @@ describe('Fravik Modal Components - Functional Tests', () => {
         <SendInnModal
           open={true}
           onOpenChange={handleOpenChange}
-          soknadId="TEST-001"
+          sakId="TEST-001"
           state={mockFravikState}
         />
       );

@@ -32,19 +32,23 @@ import {
   maskinSchema,
   type MaskinFormData,
   MASKIN_TYPE_OPTIONS,
+  FRAVIK_GRUNNER,
+  DRIVSTOFF_OPTIONS,
 } from './schemas';
 
 interface LeggTilMaskinModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  soknadId: string;
+  sakId: string;
+  currentVersion?: number;
   onSuccess?: () => void;
 }
 
 export function LeggTilMaskinModal({
   open,
   onOpenChange,
-  soknadId,
+  sakId,
+  currentVersion,
   onSuccess,
 }: LeggTilMaskinModalProps) {
   const toast = useToast();
@@ -66,12 +70,13 @@ export function LeggTilMaskinModal({
       registreringsnummer: '',
       start_dato: '',
       slutt_dato: '',
+      grunner: [],
       begrunnelse: '',
       alternativer_vurdert: '',
       markedsundersokelse: false,
       undersøkte_leverandorer: '',
       erstatningsmaskin: '',
-      erstatningsdrivstoff: '',
+      erstatningsdrivstoff: undefined,
       arbeidsbeskrivelse: '',
       attachments: [],
     },
@@ -86,7 +91,7 @@ export function LeggTilMaskinModal({
   // Form backup for token expiry protection
   const formData = watch();
   const { getBackup, clearBackup, hasBackup } = useFormBackup(
-    soknadId,
+    sakId,
     'legg_til_maskin',
     formData,
     isDirty
@@ -149,21 +154,23 @@ export function LeggTilMaskinModal({
       registreringsnummer: data.registreringsnummer || undefined,
       start_dato: data.start_dato,
       slutt_dato: data.slutt_dato,
+      grunner: data.grunner,
       begrunnelse: data.begrunnelse,
-      alternativer_vurdert: data.alternativer_vurdert || undefined,
+      alternativer_vurdert: data.alternativer_vurdert,
       markedsundersokelse: data.markedsundersokelse,
       undersøkte_leverandorer: data.markedsundersokelse ? data.undersøkte_leverandorer : undefined,
-      erstatningsmaskin: data.erstatningsmaskin || undefined,
-      erstatningsdrivstoff: data.erstatningsdrivstoff || undefined,
-      arbeidsbeskrivelse: data.arbeidsbeskrivelse || undefined,
+      erstatningsmaskin: data.erstatningsmaskin,
+      erstatningsdrivstoff: data.erstatningsdrivstoff,
+      arbeidsbeskrivelse: data.arbeidsbeskrivelse,
       // Note: attachments not yet supported by backend - data.attachments are ignored for now
     };
 
     mutation.mutate({
       type: 'legg_til_maskin',
-      soknadId,
+      sakId,
       data: cleanData,
       aktor: 'bruker', // TODO: Get from auth context
+      expectedVersion: currentVersion,
     });
   };
 
@@ -274,13 +281,48 @@ export function LeggTilMaskinModal({
           </div>
         </SectionContainer>
 
+        {/* Grunner for fravik */}
+        <SectionContainer
+          title="Grunner for fravik"
+          description="Velg hvilke grunner som gjelder for dette fraviket"
+        >
+          <FormField
+            error={errors.grunner?.message}
+          >
+            <div className="space-y-2">
+              {FRAVIK_GRUNNER.map((grunn) => (
+                <Controller
+                  key={grunn.value}
+                  name="grunner"
+                  control={control}
+                  render={({ field }) => (
+                    <Checkbox
+                      id={`grunn_${grunn.value}`}
+                      label={grunn.label}
+                      checked={field.value?.includes(grunn.value) ?? false}
+                      onCheckedChange={(checked) => {
+                        const currentValues = field.value ?? [];
+                        if (checked) {
+                          field.onChange([...currentValues, grunn.value]);
+                        } else {
+                          field.onChange(currentValues.filter((v: string) => v !== grunn.value));
+                        }
+                      }}
+                    />
+                  )}
+                />
+              ))}
+            </div>
+          </FormField>
+        </SectionContainer>
+
         {/* Begrunnelse */}
         <SectionContainer
           title="Begrunnelse"
           description="Forklar hvorfor du trenger fravik for denne maskinen"
         >
           <FormField
-            label="Begrunnelse for fravik"
+            label="Detaljert begrunnelse"
             required
             error={errors.begrunnelse?.message}
             helpText="Beskriv hvorfor utslippsfri maskin ikke kan brukes"
@@ -296,6 +338,7 @@ export function LeggTilMaskinModal({
 
           <FormField
             label="Hvilke alternativer er vurdert?"
+            required
             error={errors.alternativer_vurdert?.message}
             helpText="Beskriv andre løsninger du har vurdert"
           >
@@ -352,13 +395,12 @@ export function LeggTilMaskinModal({
         {/* Erstatningsmaskin */}
         <SectionContainer
           title="Erstatningsmaskin"
-          description="Oppgi hvilken maskin som vil brukes"
-          collapsible
-          defaultOpen={false}
+          description="Oppgi hvilken maskin som vil brukes i stedet"
         >
-          <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-4">
             <FormField
               label="Maskin/modell"
+              required
               error={errors.erstatningsmaskin?.message}
             >
               <Input
@@ -371,30 +413,41 @@ export function LeggTilMaskinModal({
 
             <FormField
               label="Drivstoff"
+              required
               error={errors.erstatningsdrivstoff?.message}
             >
-              <Input
-                id="erstatningsdrivstoff"
-                {...register('erstatningsdrivstoff')}
-                placeholder="F.eks. HVO100, diesel"
-                error={!!errors.erstatningsdrivstoff}
+              <Controller
+                name="erstatningsdrivstoff"
+                control={control}
+                render={({ field }) => (
+                  <RadioGroup
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    error={!!errors.erstatningsdrivstoff}
+                  >
+                    {DRIVSTOFF_OPTIONS.map((option) => (
+                      <RadioItem key={option.value} value={option.value} label={option.label} />
+                    ))}
+                  </RadioGroup>
+                )}
+              />
+            </FormField>
+
+            <FormField
+              label="Arbeidsbeskrivelse"
+              required
+              error={errors.arbeidsbeskrivelse?.message}
+              helpText="Beskriv hva maskinen skal brukes til"
+            >
+              <Textarea
+                id="arbeidsbeskrivelse"
+                {...register('arbeidsbeskrivelse')}
+                rows={3}
+                fullWidth
+                error={!!errors.arbeidsbeskrivelse}
               />
             </FormField>
           </div>
-
-          <FormField
-            label="Arbeidsbeskrivelse"
-            error={errors.arbeidsbeskrivelse?.message}
-            helpText="Beskriv hva maskinen skal brukes til"
-          >
-            <Textarea
-              id="arbeidsbeskrivelse"
-              {...register('arbeidsbeskrivelse')}
-              rows={2}
-              fullWidth
-              error={!!errors.arbeidsbeskrivelse}
-            />
-          </FormField>
         </SectionContainer>
 
         {/* Vedlegg */}

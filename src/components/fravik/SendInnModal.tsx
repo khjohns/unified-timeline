@@ -30,7 +30,7 @@ import { formatDateShort } from '../../utils/formatters';
 interface SendInnModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  soknadId: string;
+  sakId: string;
   state: FravikState;
   onSuccess?: () => void;
 }
@@ -38,7 +38,7 @@ interface SendInnModalProps {
 export function SendInnModal({
   open,
   onOpenChange,
-  soknadId,
+  sakId,
   state,
   onSuccess,
 }: SendInnModalProps) {
@@ -86,22 +86,20 @@ export function SendInnModal({
     const aktor = 'bruker'; // TODO: Get from auth context
 
     try {
-      // First, update søknad with additional info if provided
-      if (data.avbotende_tiltak || data.konsekvenser_ved_avslag) {
-        await oppdaterFravikSoknad(
-          soknadId,
-          {
-            avbotende_tiltak: data.avbotende_tiltak || undefined,
-            konsekvenser_ved_avslag: data.konsekvenser_ved_avslag || undefined,
-          },
-          aktor
-        );
-      }
+      // First, update søknad with required additional info
+      await oppdaterFravikSoknad(
+        sakId,
+        {
+          avbotende_tiltak: data.avbotende_tiltak,
+          konsekvenser_ved_avslag: data.konsekvenser_ved_avslag,
+        },
+        aktor
+      );
 
       // Then submit the søknad
       mutation.mutate({
         type: 'send_inn',
-        soknadId,
+        sakId,
         aktor,
       });
     } catch (error) {
@@ -147,18 +145,17 @@ export function SendInnModal({
           </DataList>
         </SectionContainer>
 
-        {/* Additional info */}
+        {/* Tilleggsinformasjon */}
         <SectionContainer
           title="Tilleggsinformasjon"
-          description="Valgfri informasjon til saksbehandler"
-          collapsible
-          defaultOpen={false}
+          description="Påkrevd informasjon til saksbehandler"
         >
           <div className="space-y-4">
             <FormField
               label="Avbøtende tiltak"
+              required
               error={errors.avbotende_tiltak?.message}
-              helpText="Tiltak for å minimere miljøbelastning"
+              helpText="Beskriv tiltak for å minimere miljøbelastning"
             >
               <Textarea
                 id="avbotende_tiltak"
@@ -171,6 +168,7 @@ export function SendInnModal({
 
             <FormField
               label="Konsekvenser ved avslag"
+              required
               error={errors.konsekvenser_ved_avslag?.message}
               helpText="Beskriv konsekvensene hvis søknaden avslås"
             >

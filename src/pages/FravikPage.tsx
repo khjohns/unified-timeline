@@ -27,21 +27,21 @@ import { formatDateShort } from '../utils/formatters';
 // HOOKS
 // ============================================================================
 
-function useFravikState(soknadId: string, enabled: boolean = true) {
+function useFravikState(sakId: string, enabled: boolean = true) {
   return useQuery<FravikState, Error>({
-    queryKey: ['fravik', soknadId, 'state'],
-    queryFn: () => fetchFravikState(soknadId),
+    queryKey: ['fravik', sakId, 'state'],
+    queryFn: () => fetchFravikState(sakId),
     staleTime: STALE_TIME.DEFAULT,
-    enabled: !!soknadId && enabled,
+    enabled: !!sakId && enabled,
   });
 }
 
-function useFravikEvents(soknadId: string, enabled: boolean = true) {
+function useFravikEvents(sakId: string, enabled: boolean = true) {
   return useQuery<FravikEvent[], Error>({
-    queryKey: ['fravik', soknadId, 'events'],
-    queryFn: () => fetchFravikEvents(soknadId),
+    queryKey: ['fravik', sakId, 'events'],
+    queryFn: () => fetchFravikEvents(sakId),
     staleTime: STALE_TIME.DEFAULT,
-    enabled: !!soknadId && enabled,
+    enabled: !!sakId && enabled,
   });
 }
 
@@ -274,7 +274,7 @@ function NesteHandlingKort({ state }: { state: FravikState }) {
 // ============================================================================
 
 export function FravikPage() {
-  const { soknadId } = useParams<{ soknadId: string }>();
+  const { sakId } = useParams<{ sakId: string }>();
   const queryClient = useQueryClient();
 
   // Modal state
@@ -286,9 +286,9 @@ export function FravikPage() {
     isLoading,
     error,
     refetch,
-  } = useFravikState(soknadId || '');
+  } = useFravikState(sakId || '');
 
-  const { data: events = [] } = useFravikEvents(soknadId || '');
+  const { data: events = [] } = useFravikEvents(sakId || '');
 
   const maskiner = useMemo(() => {
     if (!state) return [];
@@ -351,7 +351,7 @@ export function FravikPage() {
     <div className="min-h-screen bg-pkt-bg-subtle">
       <PageHeader
         title={state.prosjekt_navn}
-        subtitle={`Fravik-søknad • ${state.soknad_id}`}
+        subtitle={`Fravik-søknad • ${state.sak_id}`}
         maxWidth="wide"
         actions={
           <div className="flex items-center gap-2">
@@ -530,18 +530,19 @@ export function FravikPage() {
       </main>
 
       {/* Modals */}
-      {soknadId && (
+      {sakId && (
         <>
           <LeggTilMaskinModal
             open={showLeggTilMaskin}
             onOpenChange={setShowLeggTilMaskin}
-            soknadId={soknadId}
+            sakId={sakId}
+            currentVersion={state.antall_events}
             onSuccess={handleMaskinAdded}
           />
           <SendInnModal
             open={showSendInn}
             onOpenChange={setShowSendInn}
-            soknadId={soknadId}
+            sakId={sakId}
             state={state}
             onSuccess={handleSendtInn}
           />

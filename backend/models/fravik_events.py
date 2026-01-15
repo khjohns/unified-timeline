@@ -93,6 +93,22 @@ class FravikRolle(str, Enum):
     EIER = "EIER"  # Prosjekteier
 
 
+class FravikGrunn(str, Enum):
+    """Grunner for fravik fra utslippsfrie krav"""
+    MARKEDSMANGEL = "markedsmangel"
+    LEVERINGSTID = "leveringstid"
+    TEKNISKE_BEGRENSNINGER = "tekniske_begrensninger"
+    HMS_KRAV = "hms_krav"
+    ANNET = "annet"
+
+
+class Drivstoff(str, Enum):
+    """Drivstoff for erstatningsmaskin"""
+    HVO100 = "HVO100"
+    ANNET_BIODRIVSTOFF = "annet_biodrivstoff"
+    DIESEL_EURO6 = "diesel_euro6"
+
+
 # ============ DATA MODELLER ============
 
 class MaskinData(BaseModel):
@@ -121,14 +137,21 @@ class MaskinData(BaseModel):
         ...,
         description="Når maskinen skal brukes til (YYYY-MM-DD)"
     )
+    # Grunner for fravik - påkrevd, minst én
+    grunner: List[FravikGrunn] = Field(
+        ...,
+        min_length=1,
+        description="Grunner for fravik (markedsmangel, leveringstid, etc.)"
+    )
     begrunnelse: str = Field(
         ...,
         min_length=1,
-        description="Begrunnelse for hvorfor fravik trengs"
+        description="Detaljert begrunnelse for hvorfor fravik trengs"
     )
-    alternativer_vurdert: Optional[str] = Field(
-        default=None,
-        description="Hvilke alternativer som er vurdert"
+    alternativer_vurdert: str = Field(
+        ...,
+        min_length=1,
+        description="Hvilke alternative løsninger som er vurdert"
     )
     markedsundersokelse: bool = Field(
         default=False,
@@ -138,16 +161,19 @@ class MaskinData(BaseModel):
         default=None,
         description="Hvilke leverandører som er undersøkt"
     )
-    erstatningsmaskin: Optional[str] = Field(
-        default=None,
-        description="Foreslått erstatningsmaskin"
+    # Erstatningsmaskin - påkrevde felt
+    erstatningsmaskin: str = Field(
+        ...,
+        min_length=1,
+        description="Foreslått erstatningsmaskin (merke, modell, Euro-klasse)"
     )
-    erstatningsdrivstoff: Optional[str] = Field(
-        default=None,
-        description="Drivstoff for erstatningsmaskin (HVO100, biodrivstoff, etc.)"
+    erstatningsdrivstoff: Drivstoff = Field(
+        ...,
+        description="Drivstoff for erstatningsmaskin"
     )
-    arbeidsbeskrivelse: Optional[str] = Field(
-        default=None,
+    arbeidsbeskrivelse: str = Field(
+        ...,
+        min_length=1,
         description="Beskrivelse av arbeidet maskinen skal utføre"
     )
 
@@ -340,9 +366,9 @@ class FravikEvent(CloudEventMixin, BaseModel):
         default_factory=lambda: str(uuid4()),
         description="Unik event-identifikator"
     )
-    soknad_id: str = Field(
+    sak_id: str = Field(
         ...,
-        description="Hvilken fravik-søknad denne eventen tilhører"
+        description="Hvilken fravik-søknad (sak) denne eventen tilhører"
     )
     event_type: FravikEventType = Field(
         ...,
@@ -368,12 +394,6 @@ class FravikEvent(CloudEventMixin, BaseModel):
         default=None,
         description="Event-ID som denne eventen svarer på"
     )
-
-    # For CloudEvents compatibility - map soknad_id til sak_id
-    @property
-    def sak_id(self) -> str:
-        """CloudEvents mixin bruker sak_id, vi mapper til soknad_id"""
-        return self.soknad_id
 
     model_config = {"extra": "allow"}
 

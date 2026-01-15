@@ -5,17 +5,17 @@ REST API for fravik-søknader (fravik fra utslippsfrie krav på byggeplasser).
 
 Endpoints:
 - POST /api/fravik/opprett - Opprett ny søknad
-- GET /api/fravik/<soknad_id>/state - Hent tilstand
-- GET /api/fravik/<soknad_id>/events - Hent event-logg
-- POST /api/fravik/<soknad_id>/events - Send event
+- GET /api/fravik/<sak_id>/state - Hent tilstand
+- GET /api/fravik/<sak_id>/events - Hent event-logg
+- POST /api/fravik/<sak_id>/events - Send event
 - GET /api/fravik/liste - Liste over søknader
-- POST /api/fravik/<soknad_id>/maskin - Legg til maskin
-- DELETE /api/fravik/<soknad_id>/maskin/<maskin_id> - Fjern maskin
-- POST /api/fravik/<soknad_id>/send-inn - Send inn søknad
-- POST /api/fravik/<soknad_id>/boi-vurdering - BOI-rådgiver vurdering
-- POST /api/fravik/<soknad_id>/pl-vurdering - Prosjektleder vurdering
-- POST /api/fravik/<soknad_id>/arbeidsgruppe-vurdering - Arbeidsgruppe vurdering
-- POST /api/fravik/<soknad_id>/eier-beslutning - Eier beslutning
+- POST /api/fravik/<sak_id>/maskin - Legg til maskin
+- DELETE /api/fravik/<sak_id>/maskin/<maskin_id> - Fjern maskin
+- POST /api/fravik/<sak_id>/send-inn - Send inn søknad
+- POST /api/fravik/<sak_id>/boi-vurdering - BOI-rådgiver vurdering
+- POST /api/fravik/<sak_id>/pl-vurdering - Prosjektleder vurdering
+- POST /api/fravik/<sak_id>/arbeidsgruppe-vurdering - Arbeidsgruppe vurdering
+- POST /api/fravik/<sak_id>/eier-beslutning - Eier beslutning
 """
 from typing import Optional, Dict, Any, List
 from flask import Blueprint, request, jsonify
@@ -67,24 +67,25 @@ fravik_bp = Blueprint('fravik', __name__)
 event_repo = create_event_repository()
 
 
-def _generate_soknad_id() -> str:
-    """Genererer unik søknad-ID."""
+def _generate_sak_id() -> str:
+    """Genererer unik sak-ID for fravik-søknad."""
     timestamp = datetime.now().strftime("%Y%m%d")
     unique = str(uuid4())[:8].upper()
     return f"FRAVIK-{timestamp}-{unique}"
 
 
-def _get_events_for_soknad(soknad_id: str) -> tuple[List, int]:
+def _get_events_for_sak(sak_id: str) -> tuple[List, int]:
     """Henter events for en søknad."""
     try:
-        events_data, version = event_repo.get_events(soknad_id)
+        # Specify sakstype for direct table lookup (more efficient)
+        events_data, version = event_repo.get_events(sak_id, sakstype="fravik")
         events = [parse_fravik_event(e) for e in events_data]
         return events, version
     except FileNotFoundError:
         return [], 0
 
 
-def _append_event(soknad_id: str, event: Any, expected_version: int) -> int:
+def _append_event(sak_id: str, event: Any, expected_version: int) -> int:
     """Legger til en event i event-loggen."""
     # Pass event object directly - repository handles serialization
     # sakstype auto-detects from event_type prefix 'fravik_'
@@ -118,7 +119,7 @@ def opprett_fravik_soknad():
     Response 201:
     {
         "success": true,
-        "soknad_id": "FRAVIK-20250115-ABC123",
+        "sak_id": "FRAVIK-20250115-ABC123",
         "version": 1,
         "state": { ... FravikState ... }
     }
@@ -136,11 +137,11 @@ def opprett_fravik_soknad():
         }), 400
 
     # Generer søknad-ID
-    soknad_id = _generate_soknad_id()
+    sak_id = _generate_sak_id()
 
     # Opprett event
     event = SoknadOpprettetEvent(
-        soknad_id=soknad_id,
+        sak_id=sak_id,
         event_type=FravikEventType.SOKNAD_OPPRETTET,
         aktor=payload['aktor'],
         aktor_rolle=FravikRolle.SOKER,
@@ -160,17 +161,17 @@ def opprett_fravik_soknad():
     )
 
     # Lagre event
-    new_version = _append_event(soknad_id, event, expected_version=0)
+    new_version = _append_event(sak_id, event, expected_version=0)
 
     # Beregn state
-    events, _ = _get_events_for_soknad(soknad_id)
+    events, _ = _get_events_for_sak(sak_id)
     state = fravik_service.compute_state(events)
 
-    logger.info(f"✅ Opprettet fravik-søknad: {soknad_id}")
+    logger.info(f"✅ Opprettet fravik-søknad: {sak_id}")
 
     return jsonify({
         "success": True,
-        "soknad_id": soknad_id,
+        "sak_id": sak_id,
         "version": new_version,
         "state": state.model_dump(mode='json')
     }), 201
@@ -180,34 +181,34 @@ def opprett_fravik_soknad():
 # HENT STATE
 # =============================================================================
 
-@fravik_bp.route('/api/fravik/<soknad_id>/state', methods=['GET'])
+@fravik_bp.route('/api/fravik/<sak_id>/state', methods=['GET'])
 @require_magic_link
-def get_fravik_state(soknad_id: str):
+def get_fravik_state(sak_id: str):
     """
     Hent tilstand for en fravik-søknad.
 
     Response 200:
     {
         "success": true,
-        "soknad_id": "FRAVIK-20250115-ABC123",
+        "sak_id": "FRAVIK-20250115-ABC123",
         "version": 5,
         "state": { ... FravikState ... }
     }
     """
-    events, version = _get_events_for_soknad(soknad_id)
+    events, version = _get_events_for_sak(sak_id)
 
     if not events:
         return jsonify({
             "success": False,
             "error": "NOT_FOUND",
-            "message": f"Søknad {soknad_id} ikke funnet"
+            "message": f"Søknad {sak_id} ikke funnet"
         }), 404
 
     state = fravik_service.compute_state(events)
 
     return jsonify({
         "success": True,
-        "soknad_id": soknad_id,
+        "sak_id": sak_id,
         "version": version,
         "state": state.model_dump(mode='json')
     })
@@ -217,34 +218,34 @@ def get_fravik_state(soknad_id: str):
 # HENT EVENTS
 # =============================================================================
 
-@fravik_bp.route('/api/fravik/<soknad_id>/events', methods=['GET'])
+@fravik_bp.route('/api/fravik/<sak_id>/events', methods=['GET'])
 @require_magic_link
-def get_fravik_events(soknad_id: str):
+def get_fravik_events(sak_id: str):
     """
     Hent event-logg for en fravik-søknad.
 
     Response 200:
     {
         "success": true,
-        "soknad_id": "FRAVIK-20250115-ABC123",
+        "sak_id": "FRAVIK-20250115-ABC123",
         "version": 5,
         "events": [ ... events ... ]
     }
     """
-    events, version = _get_events_for_soknad(soknad_id)
+    events, version = _get_events_for_sak(sak_id)
 
     if not events:
         return jsonify({
             "success": False,
             "error": "NOT_FOUND",
-            "message": f"Søknad {soknad_id} ikke funnet"
+            "message": f"Søknad {sak_id} ikke funnet"
         }), 404
 
     events_json = [e.model_dump(mode='json') for e in events]
 
     return jsonify({
         "success": True,
-        "soknad_id": soknad_id,
+        "sak_id": sak_id,
         "version": version,
         "events": events_json
     })
@@ -254,11 +255,11 @@ def get_fravik_events(soknad_id: str):
 # LEGG TIL MASKIN
 # =============================================================================
 
-@fravik_bp.route('/api/fravik/<soknad_id>/maskin', methods=['POST'])
+@fravik_bp.route('/api/fravik/<sak_id>/maskin', methods=['POST'])
 @require_csrf
 @require_magic_link
 @handle_service_errors
-def legg_til_maskin(soknad_id: str):
+def legg_til_maskin(sak_id: str):
     """
     Legg til maskin i søknaden.
 
@@ -276,12 +277,12 @@ def legg_til_maskin(soknad_id: str):
     expected_version = payload.get('expected_version', 0)
 
     # Valider at søknaden finnes
-    events, current_version = _get_events_for_soknad(soknad_id)
+    events, current_version = _get_events_for_sak(sak_id)
     if not events:
         return jsonify({
             "success": False,
             "error": "NOT_FOUND",
-            "message": f"Søknad {soknad_id} ikke funnet"
+            "message": f"Søknad {sak_id} ikke funnet"
         }), 404
 
     # Versjonskontroll
@@ -297,7 +298,7 @@ def legg_til_maskin(soknad_id: str):
     # Opprett event
     maskin_id = str(uuid4())
     event = MaskinLagtTilEvent(
-        soknad_id=soknad_id,
+        sak_id=sak_id,
         event_type=FravikEventType.MASKIN_LAGT_TIL,
         aktor=payload.get('aktor', 'Ukjent'),
         aktor_rolle=FravikRolle.SOKER,
@@ -308,18 +309,19 @@ def legg_til_maskin(soknad_id: str):
             registreringsnummer=payload.get('registreringsnummer'),
             start_dato=payload['start_dato'],
             slutt_dato=payload['slutt_dato'],
+            grunner=payload['grunner'],
             begrunnelse=payload['begrunnelse'],
-            alternativer_vurdert=payload.get('alternativer_vurdert'),
+            alternativer_vurdert=payload['alternativer_vurdert'],
             markedsundersokelse=payload.get('markedsundersokelse', False),
             undersøkte_leverandorer=payload.get('undersøkte_leverandorer'),
-            erstatningsmaskin=payload.get('erstatningsmaskin'),
-            erstatningsdrivstoff=payload.get('erstatningsdrivstoff'),
-            arbeidsbeskrivelse=payload.get('arbeidsbeskrivelse'),
+            erstatningsmaskin=payload['erstatningsmaskin'],
+            erstatningsdrivstoff=payload['erstatningsdrivstoff'],
+            arbeidsbeskrivelse=payload['arbeidsbeskrivelse'],
         )
     )
 
     try:
-        new_version = _append_event(soknad_id, event, expected_version)
+        new_version = _append_event(sak_id, event, expected_version)
     except ConcurrencyError:
         return jsonify({
             "success": False,
@@ -328,7 +330,7 @@ def legg_til_maskin(soknad_id: str):
         }), 409
 
     # Beregn ny state
-    events, _ = _get_events_for_soknad(soknad_id)
+    events, _ = _get_events_for_sak(sak_id)
     state = fravik_service.compute_state(events)
 
     return jsonify({
@@ -343,11 +345,11 @@ def legg_til_maskin(soknad_id: str):
 # SEND INN SØKNAD
 # =============================================================================
 
-@fravik_bp.route('/api/fravik/<soknad_id>/send-inn', methods=['POST'])
+@fravik_bp.route('/api/fravik/<sak_id>/send-inn', methods=['POST'])
 @require_csrf
 @require_magic_link
 @handle_service_errors
-def send_inn_soknad(soknad_id: str):
+def send_inn_soknad(sak_id: str):
     """
     Send inn søknaden til vurdering.
 
@@ -360,12 +362,12 @@ def send_inn_soknad(soknad_id: str):
     payload = request.json
     expected_version = payload.get('expected_version', 0)
 
-    events, current_version = _get_events_for_soknad(soknad_id)
+    events, current_version = _get_events_for_sak(sak_id)
     if not events:
         return jsonify({
             "success": False,
             "error": "NOT_FOUND",
-            "message": f"Søknad {soknad_id} ikke funnet"
+            "message": f"Søknad {sak_id} ikke funnet"
         }), 404
 
     # Sjekk at søknaden kan sendes inn
@@ -378,14 +380,14 @@ def send_inn_soknad(soknad_id: str):
         }), 400
 
     event = SoknadSendtInnEvent(
-        soknad_id=soknad_id,
+        sak_id=sak_id,
         event_type=FravikEventType.SOKNAD_SENDT_INN,
         aktor=payload.get('aktor', 'Ukjent'),
         aktor_rolle=FravikRolle.SOKER,
     )
 
     try:
-        new_version = _append_event(soknad_id, event, expected_version)
+        new_version = _append_event(sak_id, event, expected_version)
     except ConcurrencyError:
         return jsonify({
             "success": False,
@@ -393,10 +395,10 @@ def send_inn_soknad(soknad_id: str):
             "message": "Tilstanden har endret seg. Vennligst last inn på nytt."
         }), 409
 
-    events, _ = _get_events_for_soknad(soknad_id)
+    events, _ = _get_events_for_sak(sak_id)
     state = fravik_service.compute_state(events)
 
-    logger.info(f"✅ Søknad sendt inn: {soknad_id}")
+    logger.info(f"✅ Søknad sendt inn: {sak_id}")
 
     return jsonify({
         "success": True,
@@ -409,11 +411,11 @@ def send_inn_soknad(soknad_id: str):
 # BOI VURDERING
 # =============================================================================
 
-@fravik_bp.route('/api/fravik/<soknad_id>/boi-vurdering', methods=['POST'])
+@fravik_bp.route('/api/fravik/<sak_id>/boi-vurdering', methods=['POST'])
 @require_csrf
 @require_magic_link
 @handle_service_errors
-def boi_vurdering(soknad_id: str):
+def boi_vurdering(sak_id: str):
     """
     BOI-rådgiver sender vurdering.
 
@@ -436,12 +438,12 @@ def boi_vurdering(soknad_id: str):
     payload = request.json
     expected_version = payload.get('expected_version', 0)
 
-    events, current_version = _get_events_for_soknad(soknad_id)
+    events, current_version = _get_events_for_sak(sak_id)
     if not events:
         return jsonify({
             "success": False,
             "error": "NOT_FOUND",
-            "message": f"Søknad {soknad_id} ikke funnet"
+            "message": f"Søknad {sak_id} ikke funnet"
         }), 404
 
     # Parse maskin-vurderinger
@@ -450,7 +452,7 @@ def boi_vurdering(soknad_id: str):
     ]
 
     event = BOIVurderingEvent(
-        soknad_id=soknad_id,
+        sak_id=sak_id,
         event_type=FravikEventType.BOI_VURDERING,
         aktor=payload.get('aktor', 'BOI-rådgiver'),
         aktor_rolle=FravikRolle.BOI,
@@ -464,7 +466,7 @@ def boi_vurdering(soknad_id: str):
     )
 
     try:
-        new_version = _append_event(soknad_id, event, expected_version)
+        new_version = _append_event(sak_id, event, expected_version)
     except ConcurrencyError:
         return jsonify({
             "success": False,
@@ -472,10 +474,10 @@ def boi_vurdering(soknad_id: str):
             "message": "Tilstanden har endret seg. Vennligst last inn på nytt."
         }), 409
 
-    events, _ = _get_events_for_soknad(soknad_id)
+    events, _ = _get_events_for_sak(sak_id)
     state = fravik_service.compute_state(events)
 
-    logger.info(f"✅ BOI-vurdering registrert for: {soknad_id}")
+    logger.info(f"✅ BOI-vurdering registrert for: {sak_id}")
 
     return jsonify({
         "success": True,
@@ -488,11 +490,11 @@ def boi_vurdering(soknad_id: str):
 # PL VURDERING
 # =============================================================================
 
-@fravik_bp.route('/api/fravik/<soknad_id>/pl-vurdering', methods=['POST'])
+@fravik_bp.route('/api/fravik/<sak_id>/pl-vurdering', methods=['POST'])
 @require_csrf
 @require_magic_link
 @handle_service_errors
-def pl_vurdering(soknad_id: str):
+def pl_vurdering(sak_id: str):
     """
     Prosjektleder sender vurdering.
 
@@ -508,7 +510,7 @@ def pl_vurdering(soknad_id: str):
     payload = request.json
     expected_version = payload.get('expected_version', 0)
 
-    events, current_version = _get_events_for_soknad(soknad_id)
+    events, current_version = _get_events_for_sak(sak_id)
     if not events:
         return jsonify({
             "success": False,
@@ -516,7 +518,7 @@ def pl_vurdering(soknad_id: str):
         }), 404
 
     event = PLVurderingEvent(
-        soknad_id=soknad_id,
+        sak_id=sak_id,
         event_type=FravikEventType.PL_VURDERING,
         aktor=payload.get('aktor', 'Prosjektleder'),
         aktor_rolle=FravikRolle.PL,
@@ -529,14 +531,14 @@ def pl_vurdering(soknad_id: str):
     )
 
     try:
-        new_version = _append_event(soknad_id, event, expected_version)
+        new_version = _append_event(sak_id, event, expected_version)
     except ConcurrencyError:
         return jsonify({
             "success": False,
             "error": "VERSION_CONFLICT"
         }), 409
 
-    events, _ = _get_events_for_soknad(soknad_id)
+    events, _ = _get_events_for_sak(sak_id)
     state = fravik_service.compute_state(events)
 
     return jsonify({
@@ -550,11 +552,11 @@ def pl_vurdering(soknad_id: str):
 # ARBEIDSGRUPPE VURDERING
 # =============================================================================
 
-@fravik_bp.route('/api/fravik/<soknad_id>/arbeidsgruppe-vurdering', methods=['POST'])
+@fravik_bp.route('/api/fravik/<sak_id>/arbeidsgruppe-vurdering', methods=['POST'])
 @require_csrf
 @require_magic_link
 @handle_service_errors
-def arbeidsgruppe_vurdering(soknad_id: str):
+def arbeidsgruppe_vurdering(sak_id: str):
     """
     Arbeidsgruppen sender vurdering.
 
@@ -571,7 +573,7 @@ def arbeidsgruppe_vurdering(soknad_id: str):
     payload = request.json
     expected_version = payload.get('expected_version', 0)
 
-    events, current_version = _get_events_for_soknad(soknad_id)
+    events, current_version = _get_events_for_sak(sak_id)
     if not events:
         return jsonify({
             "success": False,
@@ -583,7 +585,7 @@ def arbeidsgruppe_vurdering(soknad_id: str):
     ]
 
     event = ArbeidsgruppeVurderingEvent(
-        soknad_id=soknad_id,
+        sak_id=sak_id,
         event_type=FravikEventType.ARBEIDSGRUPPE_VURDERING,
         aktor=payload.get('aktor', 'Arbeidsgruppen'),
         aktor_rolle=FravikRolle.ARBEIDSGRUPPE,
@@ -596,14 +598,14 @@ def arbeidsgruppe_vurdering(soknad_id: str):
     )
 
     try:
-        new_version = _append_event(soknad_id, event, expected_version)
+        new_version = _append_event(sak_id, event, expected_version)
     except ConcurrencyError:
         return jsonify({
             "success": False,
             "error": "VERSION_CONFLICT"
         }), 409
 
-    events, _ = _get_events_for_soknad(soknad_id)
+    events, _ = _get_events_for_sak(sak_id)
     state = fravik_service.compute_state(events)
 
     return jsonify({
@@ -617,11 +619,11 @@ def arbeidsgruppe_vurdering(soknad_id: str):
 # EIER BESLUTNING
 # =============================================================================
 
-@fravik_bp.route('/api/fravik/<soknad_id>/eier-beslutning', methods=['POST'])
+@fravik_bp.route('/api/fravik/<sak_id>/eier-beslutning', methods=['POST'])
 @require_csrf
 @require_magic_link
 @handle_service_errors
-def eier_beslutning(soknad_id: str):
+def eier_beslutning(sak_id: str):
     """
     Eier fatter endelig beslutning.
 
@@ -638,7 +640,7 @@ def eier_beslutning(soknad_id: str):
     payload = request.json
     expected_version = payload.get('expected_version', 0)
 
-    events, current_version = _get_events_for_soknad(soknad_id)
+    events, current_version = _get_events_for_sak(sak_id)
     if not events:
         return jsonify({
             "success": False,
@@ -662,7 +664,7 @@ def eier_beslutning(soknad_id: str):
     # Velg riktig event-type basert på beslutning
     if beslutning == 'godkjent':
         event = EierGodkjentEvent(
-            soknad_id=soknad_id,
+            sak_id=sak_id,
             event_type=FravikEventType.EIER_GODKJENT,
             aktor=payload.get('aktor', 'Prosjekteier'),
             aktor_rolle=FravikRolle.EIER,
@@ -670,7 +672,7 @@ def eier_beslutning(soknad_id: str):
         )
     elif beslutning == 'avslatt':
         event = EierAvslattEvent(
-            soknad_id=soknad_id,
+            sak_id=sak_id,
             event_type=FravikEventType.EIER_AVSLATT,
             aktor=payload.get('aktor', 'Prosjekteier'),
             aktor_rolle=FravikRolle.EIER,
@@ -678,7 +680,7 @@ def eier_beslutning(soknad_id: str):
         )
     else:
         event = EierDelvisGodkjentEvent(
-            soknad_id=soknad_id,
+            sak_id=sak_id,
             event_type=FravikEventType.EIER_DELVIS_GODKJENT,
             aktor=payload.get('aktor', 'Prosjekteier'),
             aktor_rolle=FravikRolle.EIER,
@@ -686,17 +688,17 @@ def eier_beslutning(soknad_id: str):
         )
 
     try:
-        new_version = _append_event(soknad_id, event, expected_version)
+        new_version = _append_event(sak_id, event, expected_version)
     except ConcurrencyError:
         return jsonify({
             "success": False,
             "error": "VERSION_CONFLICT"
         }), 409
 
-    events, _ = _get_events_for_soknad(soknad_id)
+    events, _ = _get_events_for_sak(sak_id)
     state = fravik_service.compute_state(events)
 
-    logger.info(f"✅ Eier-beslutning ({beslutning}) for: {soknad_id}")
+    logger.info(f"✅ Eier-beslutning ({beslutning}) for: {sak_id}")
 
     return jsonify({
         "success": True,

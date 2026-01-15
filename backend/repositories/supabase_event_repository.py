@@ -463,7 +463,7 @@ class SupabaseEventRepository(EventRepository):
             return self._get_events_from_table(sak_id, table_name)
 
         # Try all tables (for backwards compatibility)
-        for table in ["koe_events", "forsering_events", "endringsordre_events"]:
+        for table in ["koe_events", "forsering_events", "endringsordre_events", "fravik_events"]:
             try:
                 events, version = self._get_events_from_table(sak_id, table)
                 if events:
@@ -539,7 +539,7 @@ class SupabaseEventRepository(EventRepository):
 
         # Get from all tables
         all_ids = set()
-        for table in ["koe_events", "forsering_events", "endringsordre_events"]:
+        for table in ["koe_events", "forsering_events", "endringsordre_events", "fravik_events"]:
             try:
                 ids = self._get_sak_ids_from_table(table)
                 all_ids.update(ids)

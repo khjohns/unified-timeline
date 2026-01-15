@@ -313,9 +313,9 @@ class FravikState(BaseModel):
     og beregnes alltid fra event-loggen.
     """
     # Identifikasjon
-    soknad_id: str = Field(
+    sak_id: str = Field(
         ...,
-        description="Unik ID for søknaden"
+        description="Unik ID for søknaden (sak)"
     )
     sakstype: str = Field(
         default="fravik",
@@ -627,7 +627,7 @@ class FravikListeItem(BaseModel):
 
     Inneholder bare det som trengs for tabelloversikter.
     """
-    soknad_id: str
+    sak_id: str
     prosjekt_navn: str
     prosjekt_nummer: Optional[str] = None
     soker_navn: str

@@ -116,7 +116,7 @@ export function OpprettFravikModal({ open, onOpenChange }: OpprettFravikModalPro
       onOpenChange(false);
       if (result.type === 'opprett') {
         toast.success('Søknad opprettet', 'Du kan nå legge til maskiner og sende inn søknaden.');
-        navigate(`/fravik/${result.soknadId}`);
+        navigate(`/fravik/${result.sakId}`);
       }
     },
     onError: (error) => {

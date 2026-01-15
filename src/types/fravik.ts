@@ -57,6 +57,18 @@ export type FravikRolle =
   | 'ARBEIDSGRUPPE'
   | 'EIER';
 
+export type FravikGrunn =
+  | 'markedsmangel'
+  | 'leveringstid'
+  | 'tekniske_begrensninger'
+  | 'hms_krav'
+  | 'annet';
+
+export type Drivstoff =
+  | 'HVO100'
+  | 'annet_biodrivstoff'
+  | 'diesel_euro6';
+
 export type MaskinVurderingStatus =
   | 'ikke_vurdert'
   | 'godkjent'
@@ -74,13 +86,16 @@ export interface MaskinData {
   registreringsnummer?: string;
   start_dato: string;
   slutt_dato: string;
+  // Grunner for fravik - påkrevd, minst én
+  grunner: FravikGrunn[];
   begrunnelse: string;
-  alternativer_vurdert?: string;
+  alternativer_vurdert: string;  // Påkrevd
   markedsundersokelse: boolean;
   undersøkte_leverandorer?: string;
-  erstatningsmaskin?: string;
-  erstatningsdrivstoff?: string;
-  arbeidsbeskrivelse?: string;
+  // Erstatningsmaskin - påkrevde felt
+  erstatningsmaskin: string;
+  erstatningsdrivstoff: Drivstoff;
+  arbeidsbeskrivelse: string;
 }
 
 export interface MaskinVurderingData {
@@ -176,7 +191,7 @@ export interface InfrastrukturTilstand {
 
 export interface FravikState {
   // Identifikasjon
-  soknad_id: string;
+  sak_id: string;
   sakstype: 'fravik';
 
   // Prosjektinfo
@@ -246,7 +261,7 @@ export interface FravikState {
 // ========== LISTE ITEM ==========
 
 export interface FravikListeItem {
-  soknad_id: string;
+  sak_id: string;
   prosjekt_navn: string;
   prosjekt_nummer?: string;
   soker_navn: string;
@@ -322,7 +337,7 @@ export interface EierBeslutningData {
 
 export interface FravikEvent<T = unknown> {
   event_id: string;
-  soknad_id: string;
+  sak_id: string;
   event_type: FravikEventType;
   tidsstempel: string;
   aktor: string;
@@ -335,7 +350,7 @@ export interface FravikEvent<T = unknown> {
 // ========== API RESPONSE TYPES ==========
 
 export interface FravikStateResponse {
-  soknad_id: string;
+  sak_id: string;
   state: FravikState;
   events: FravikEvent[];
 }
@@ -346,7 +361,7 @@ export interface FravikListeResponse {
 }
 
 export interface OpprettFravikResponse {
-  soknad_id: string;
+  sak_id: string;
   message: string;
 }
 

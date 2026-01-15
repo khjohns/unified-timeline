@@ -162,9 +162,9 @@ export function FravikOversiktPage() {
                 <tbody>
                   {filteredSoknader.map((soknad) => (
                     <tr
-                      key={soknad.soknad_id}
+                      key={soknad.sak_id}
                       className="border-b border-pkt-border-default hover:bg-pkt-bg-muted cursor-pointer transition-colors"
-                      onClick={() => navigate(`/fravik/${soknad.soknad_id}`)}
+                      onClick={() => navigate(`/fravik/${soknad.sak_id}`)}
                     >
                       <td className="py-3 px-4">
                         <div className="font-medium text-pkt-text-heading">

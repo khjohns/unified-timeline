@@ -28,21 +28,22 @@ interface OpprettAction {
 
 interface OppdaterAction {
   type: 'oppdater';
-  soknadId: string;
+  sakId: string;
   data: SoknadOppdatertData;
   aktor: string;
 }
 
 interface LeggTilMaskinAction {
   type: 'legg_til_maskin';
-  soknadId: string;
+  sakId: string;
   data: MaskinData;
   aktor: string;
+  expectedVersion?: number;
 }
 
 interface SendInnAction {
   type: 'send_inn';
-  soknadId: string;
+  sakId: string;
   aktor: string;
 }
 
@@ -50,7 +51,7 @@ type FravikAction = OpprettAction | OppdaterAction | LeggTilMaskinAction | SendI
 
 interface OpprettResult {
   type: 'opprett';
-  soknadId: string;
+  sakId: string;
 }
 
 interface OppdaterResult {
@@ -83,7 +84,7 @@ interface UseFravikSubmitOptions {
  * const mutation = useFravikSubmit({
  *   onSuccess: (result) => {
  *     if (result.type === 'opprett') {
- *       navigate(`/fravik/${result.soknadId}`);
+ *       navigate(`/fravik/${result.sakId}`);
  *     }
  *   },
  * });
@@ -103,19 +104,24 @@ export function useFravikSubmit(options?: UseFravikSubmitOptions) {
     mutationFn: async (action): Promise<FravikResult> => {
       switch (action.type) {
         case 'opprett': {
-          const soknadId = await opprettFravikSoknad(action.data, action.aktor);
-          return { type: 'opprett', soknadId };
+          const sakId = await opprettFravikSoknad(action.data, action.aktor);
+          return { type: 'opprett', sakId };
         }
         case 'oppdater': {
-          await oppdaterFravikSoknad(action.soknadId, action.data, action.aktor);
+          await oppdaterFravikSoknad(action.sakId, action.data, action.aktor);
           return { type: 'oppdater' };
         }
         case 'legg_til_maskin': {
-          const maskinId = await leggTilMaskin(action.soknadId, action.data, action.aktor);
+          const maskinId = await leggTilMaskin(
+            action.sakId,
+            action.data,
+            action.aktor,
+            action.expectedVersion
+          );
           return { type: 'legg_til_maskin', maskinId };
         }
         case 'send_inn': {
-          await sendInnSoknad(action.soknadId, action.aktor);
+          await sendInnSoknad(action.sakId, action.aktor);
           return { type: 'send_inn' };
         }
       }
@@ -126,10 +132,10 @@ export function useFravikSubmit(options?: UseFravikSubmitOptions) {
 
       // Invalidate specific søknad state if applicable
       if (variables.type !== 'opprett') {
-        const soknadId = 'soknadId' in variables ? variables.soknadId : undefined;
-        if (soknadId) {
-          queryClient.invalidateQueries({ queryKey: ['fravik', soknadId, 'state'] });
-          queryClient.invalidateQueries({ queryKey: ['fravik', soknadId, 'events'] });
+        const sakId = 'sakId' in variables ? variables.sakId : undefined;
+        if (sakId) {
+          queryClient.invalidateQueries({ queryKey: ['fravik', sakId, 'state'] });
+          queryClient.invalidateQueries({ queryKey: ['fravik', sakId, 'events'] });
         }
       }
 

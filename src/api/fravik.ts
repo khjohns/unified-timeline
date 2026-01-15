@@ -23,12 +23,12 @@ import type {
 // ========== STATE & EVENTS ==========
 
 interface FravikStateResponse {
-  soknad_id: string;
+  sak_id: string;
   state: FravikState;
 }
 
 interface FravikEventsResponse {
-  soknad_id: string;
+  sak_id: string;
   events: FravikEvent[];
   total: number;
 }
@@ -36,26 +36,26 @@ interface FravikEventsResponse {
 /**
  * Fetch current state for a fravik-søknad.
  */
-export async function fetchFravikState(soknadId: string): Promise<FravikState> {
+export async function fetchFravikState(sakId: string): Promise<FravikState> {
   if (USE_MOCK_API) {
     await mockDelay();
-    return getMockFravikState(soknadId);
+    return getMockFravikState(sakId);
   }
 
-  const response = await apiFetch<FravikStateResponse>(`/api/fravik/${soknadId}/state`);
+  const response = await apiFetch<FravikStateResponse>(`/api/fravik/${sakId}/state`);
   return response.state;
 }
 
 /**
  * Fetch events for a fravik-søknad.
  */
-export async function fetchFravikEvents(soknadId: string): Promise<FravikEvent[]> {
+export async function fetchFravikEvents(sakId: string): Promise<FravikEvent[]> {
   if (USE_MOCK_API) {
     await mockDelay();
     return [];
   }
 
-  const response = await apiFetch<FravikEventsResponse>(`/api/fravik/${soknadId}/events`);
+  const response = await apiFetch<FravikEventsResponse>(`/api/fravik/${sakId}/events`);
   return response.events;
 }
 
@@ -82,7 +82,7 @@ export async function fetchFravikListe(): Promise<FravikListeItem[]> {
 // ========== CREATE / UPDATE ==========
 
 interface OpprettResponse {
-  soknad_id: string;
+  sak_id: string;
   message: string;
 }
 
@@ -103,14 +103,14 @@ export async function opprettFravikSoknad(
     method: 'POST',
     body: JSON.stringify({ ...data, aktor }),
   });
-  return response.soknad_id;
+  return response.sak_id;
 }
 
 /**
  * Update a fravik-søknad.
  */
 export async function oppdaterFravikSoknad(
-  soknadId: string,
+  sakId: string,
   data: SoknadOppdatertData,
   aktor: string
 ): Promise<void> {
@@ -120,7 +120,7 @@ export async function oppdaterFravikSoknad(
   }
 
   // Backend expects flat payload
-  await apiFetch(`/api/fravik/${soknadId}/oppdater`, {
+  await apiFetch(`/api/fravik/${sakId}/oppdater`, {
     method: 'POST',
     body: JSON.stringify({ ...data, aktor }),
   });
@@ -132,9 +132,10 @@ export async function oppdaterFravikSoknad(
  * Add a maskin to søknad.
  */
 export async function leggTilMaskin(
-  soknadId: string,
+  sakId: string,
   maskinData: MaskinData,
-  aktor: string
+  aktor: string,
+  expectedVersion?: number
 ): Promise<string> {
   if (USE_MOCK_API) {
     await mockDelay();
@@ -142,9 +143,9 @@ export async function leggTilMaskin(
   }
 
   // Backend expects flat payload - maskin_id is generated server-side
-  const response = await apiFetch<{ maskin_id: string }>(`/api/fravik/${soknadId}/maskin`, {
+  const response = await apiFetch<{ maskin_id: string }>(`/api/fravik/${sakId}/maskin`, {
     method: 'POST',
-    body: JSON.stringify({ ...maskinData, aktor }),
+    body: JSON.stringify({ ...maskinData, aktor, expected_version: expectedVersion ?? 0 }),
   });
   return response.maskin_id;
 }
@@ -153,7 +154,7 @@ export async function leggTilMaskin(
  * Remove a maskin from søknad.
  */
 export async function fjernMaskin(
-  soknadId: string,
+  sakId: string,
   maskinId: string,
   aktor: string
 ): Promise<void> {
@@ -162,7 +163,7 @@ export async function fjernMaskin(
     return;
   }
 
-  await apiFetch(`/api/fravik/${soknadId}/maskin/${maskinId}`, {
+  await apiFetch(`/api/fravik/${sakId}/maskin/${maskinId}`, {
     method: 'DELETE',
     body: JSON.stringify({ aktor }),
   });
@@ -173,13 +174,13 @@ export async function fjernMaskin(
 /**
  * Send inn søknad for vurdering.
  */
-export async function sendInnSoknad(soknadId: string, aktor: string): Promise<void> {
+export async function sendInnSoknad(sakId: string, aktor: string): Promise<void> {
   if (USE_MOCK_API) {
     await mockDelay();
     return;
   }
 
-  await apiFetch(`/api/fravik/${soknadId}/send-inn`, {
+  await apiFetch(`/api/fravik/${sakId}/send-inn`, {
     method: 'POST',
     body: JSON.stringify({ aktor }),
   });
@@ -191,7 +192,7 @@ export async function sendInnSoknad(soknadId: string, aktor: string): Promise<vo
  * Submit BOI-rådgiver vurdering.
  */
 export async function submitBOIVurdering(
-  soknadId: string,
+  sakId: string,
   data: BOIVurderingData,
   aktor: string
 ): Promise<void> {
@@ -201,7 +202,7 @@ export async function submitBOIVurdering(
   }
 
   // Backend expects flat payload
-  await apiFetch(`/api/fravik/${soknadId}/boi-vurdering`, {
+  await apiFetch(`/api/fravik/${sakId}/boi-vurdering`, {
     method: 'POST',
     body: JSON.stringify({ ...data, aktor }),
   });
@@ -211,7 +212,7 @@ export async function submitBOIVurdering(
  * Return søknad from BOI (missing documentation).
  */
 export async function boiReturnerSoknad(
-  soknadId: string,
+  sakId: string,
   manglendeInfo: string,
   aktor: string
 ): Promise<void> {
@@ -220,7 +221,7 @@ export async function boiReturnerSoknad(
     return;
   }
 
-  await apiFetch(`/api/fravik/${soknadId}/boi-returnert`, {
+  await apiFetch(`/api/fravik/${sakId}/boi-returnert`, {
     method: 'POST',
     body: JSON.stringify({ manglende_dokumentasjon: manglendeInfo, aktor }),
   });
@@ -230,7 +231,7 @@ export async function boiReturnerSoknad(
  * Submit prosjektleder vurdering.
  */
 export async function submitPLVurdering(
-  soknadId: string,
+  sakId: string,
   data: PLVurderingData,
   aktor: string
 ): Promise<void> {
@@ -240,7 +241,7 @@ export async function submitPLVurdering(
   }
 
   // Backend expects flat payload
-  await apiFetch(`/api/fravik/${soknadId}/pl-vurdering`, {
+  await apiFetch(`/api/fravik/${sakId}/pl-vurdering`, {
     method: 'POST',
     body: JSON.stringify({ ...data, aktor }),
   });
@@ -250,7 +251,7 @@ export async function submitPLVurdering(
  * Submit arbeidsgruppe vurdering.
  */
 export async function submitArbeidsgruppeVurdering(
-  soknadId: string,
+  sakId: string,
   data: ArbeidsgruppeVurderingData,
   aktor: string
 ): Promise<void> {
@@ -260,7 +261,7 @@ export async function submitArbeidsgruppeVurdering(
   }
 
   // Backend expects flat payload
-  await apiFetch(`/api/fravik/${soknadId}/arbeidsgruppe-vurdering`, {
+  await apiFetch(`/api/fravik/${sakId}/arbeidsgruppe-vurdering`, {
     method: 'POST',
     body: JSON.stringify({ ...data, aktor }),
   });
@@ -270,7 +271,7 @@ export async function submitArbeidsgruppeVurdering(
  * Submit eier beslutning.
  */
 export async function submitEierBeslutning(
-  soknadId: string,
+  sakId: string,
   data: EierBeslutningData,
   aktor: string
 ): Promise<void> {
@@ -280,7 +281,7 @@ export async function submitEierBeslutning(
   }
 
   // Backend expects flat payload - data already contains 'beslutning' field
-  await apiFetch(`/api/fravik/${soknadId}/eier-beslutning`, {
+  await apiFetch(`/api/fravik/${sakId}/eier-beslutning`, {
     method: 'POST',
     body: JSON.stringify({ ...data, aktor }),
   });
@@ -288,9 +289,9 @@ export async function submitEierBeslutning(
 
 // ========== MOCK DATA ==========
 
-function getMockFravikState(soknadId: string): FravikState {
+function getMockFravikState(sakId: string): FravikState {
   return {
-    soknad_id: soknadId,
+    sak_id: sakId,
     sakstype: 'fravik',
     prosjekt_id: 'PROJ-001',
     prosjekt_navn: 'Utslippsfri byggeplass - Testprosjekt',
@@ -347,7 +348,7 @@ function getMockFravikState(soknadId: string): FravikState {
 function getMockFravikListe(): FravikListeItem[] {
   return [
     {
-      soknad_id: 'FRAVIK-001',
+      sak_id: 'FRAVIK-001',
       prosjekt_navn: 'Utslippsfri byggeplass - Testprosjekt',
       prosjekt_nummer: 'P-2025-001',
       soker_navn: 'Ola Nordmann',
@@ -359,7 +360,7 @@ function getMockFravikListe(): FravikListeItem[] {
       visningsstatus: 'Sendt inn',
     },
     {
-      soknad_id: 'FRAVIK-002',
+      sak_id: 'FRAVIK-002',
       prosjekt_navn: 'Miljøprosjekt Oslo',
       prosjekt_nummer: 'P-2025-002',
       soker_navn: 'Kari Hansen',
@@ -371,7 +372,7 @@ function getMockFravikListe(): FravikListeItem[] {
       visningsstatus: 'Hos BOI',
     },
     {
-      soknad_id: 'FRAVIK-003',
+      sak_id: 'FRAVIK-003',
       prosjekt_navn: 'Grønn konstruksjon',
       prosjekt_nummer: 'P-2024-015',
       soker_navn: 'Per Olsen',
