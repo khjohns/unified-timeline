@@ -227,6 +227,31 @@ export function FravikPage() {
           </Alert>
         )}
 
+        {/* Send inn-alert (kun for TE i utkast) */}
+        {userRole === 'TE' && state.status === 'utkast' && (
+          <Alert
+            variant={kanSendesInn ? 'info' : 'warning'}
+            title={kanSendesInn ? 'Klar til innsending' : 'Søknaden er ikke komplett'}
+          >
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-sm">
+                {kanSendesInn
+                  ? 'Alle påkrevde felter er fylt ut. Du kan nå sende inn søknaden til behandling.'
+                  : 'Fyll ut alle påkrevde felter før du kan sende inn søknaden.'}
+              </p>
+              {kanSendesInn && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setShowSendInn(true)}
+                >
+                  Send inn søknad
+                </Button>
+              )}
+            </div>
+          </Alert>
+        )}
+
         {/* Hovedkort: Fravik Dashboard */}
         <section aria-labelledby="fravik-dashboard-heading">
           <Card variant="outlined" padding="md">
@@ -251,24 +276,6 @@ export function FravikPage() {
             />
           </Card>
         </section>
-
-        {/* Send inn-knapp (kun for TE i utkast) */}
-        {userRole === 'TE' && state.status === 'utkast' && (
-          <div className="flex flex-col items-end gap-1">
-            <Button
-              variant="primary"
-              onClick={() => setShowSendInn(true)}
-              disabled={!kanSendesInn}
-            >
-              Send inn søknad
-            </Button>
-            {!kanSendesInn && (
-              <p className="text-xs text-pkt-text-body-muted">
-                Fyll ut alle spor før du kan sende inn.
-              </p>
-            )}
-          </div>
-        )}
 
         {/* Metadata */}
         <section aria-labelledby="metadata-heading">
