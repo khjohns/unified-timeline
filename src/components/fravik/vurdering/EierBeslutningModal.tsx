@@ -268,7 +268,7 @@ export function EierBeslutningModal({
         {/* Oppsummering av vurderinger */}
         <SectionContainer title="Oppsummering av anbefalinger" variant="subtle">
           <DataList variant="grid">
-            <DataListItem label="BOI-rådgiver">
+            <DataListItem label="Miljørådgiver">
               {boiVurdering.fullfort && boiVurdering.beslutning ? (
                 <Badge variant={getBeslutningBadge(boiVurdering.beslutning).variant}>
                   {getBeslutningBadge(boiVurdering.beslutning).label}

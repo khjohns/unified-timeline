@@ -2,7 +2,7 @@
  * Fravik Vurdering Components
  *
  * Modal components for the 4-step approval workflow:
- * 1. BOI-rådgiver vurdering
+ * 1. Miljørådgiver vurdering
  * 2. Prosjektleder vurdering
  * 3. Arbeidsgruppe innstilling
  * 4. Prosjekteier beslutning

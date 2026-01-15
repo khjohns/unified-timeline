@@ -194,7 +194,7 @@ export async function sendInnSoknad(
 // ========== VURDERINGER ==========
 
 /**
- * Submit BOI-rådgiver vurdering.
+ * Submit miljørådgiver vurdering.
  */
 export async function submitBOIVurdering(
   sakId: string,
@@ -214,7 +214,7 @@ export async function submitBOIVurdering(
 }
 
 /**
- * Return søknad from BOI (missing documentation).
+ * Returner søknad fra miljørådgiver (manglende dokumentasjon).
  */
 export async function boiReturnerSoknad(
   sakId: string,
@@ -375,7 +375,7 @@ function getMockFravikListe(): FravikListeItem[] {
       antall_maskiner: 1,
       opprettet: '2025-01-08T09:00:00Z',
       sendt_inn_tidspunkt: '2025-01-08T11:00:00Z',
-      visningsstatus: 'Hos BOI',
+      visningsstatus: 'Hos miljørådgiver',
     },
     {
       sak_id: 'FRAVIK-003',

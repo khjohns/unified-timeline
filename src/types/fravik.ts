@@ -370,8 +370,8 @@ export interface OpprettFravikResponse {
 export const FRAVIK_STATUS_LABELS: Record<FravikStatus, string> = {
   utkast: 'Utkast',
   sendt_inn: 'Sendt inn',
-  under_boi_vurdering: 'Til vurdering hos BOI-rådgiver',
-  returnert_fra_boi: 'Returnert - mangler dokumentasjon',
+  under_boi_vurdering: 'Til vurdering hos miljørådgiver',
+  returnert_fra_boi: 'Returnert fra miljørådgiver',
   under_pl_vurdering: 'Til godkjenning hos prosjektleder',
   returnert_fra_pl: 'Returnert fra prosjektleder',
   under_arbeidsgruppe: 'Til behandling i arbeidsgruppen',
@@ -384,7 +384,7 @@ export const FRAVIK_STATUS_LABELS: Record<FravikStatus, string> = {
 
 export const FRAVIK_ROLLE_LABELS: Record<FravikRolle, string> = {
   SOKER: 'Søker',
-  BOI: 'BOI-rådgiver',
+  BOI: 'Miljørådgiver',
   PL: 'Prosjektleder',
   ARBEIDSGRUPPE: 'Arbeidsgruppe',
   EIER: 'Prosjekteier',

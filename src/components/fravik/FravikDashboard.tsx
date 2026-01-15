@@ -111,11 +111,11 @@ function MaskinKort({ maskin }: { maskin: MaskinTilstand }) {
         </p>
       )}
 
-      {/* BOI vurderingsstatus */}
+      {/* Miljørådgiver vurderingsstatus */}
       {hasBOI && maskin.boi_vurdering && (
         <p className="text-xs mt-2 font-medium text-pkt-text-body-muted">
-          BOI: {maskin.boi_vurdering.beslutning === 'godkjent' ? 'Godkjent' :
-                maskin.boi_vurdering.beslutning === 'delvis_godkjent' ? 'Delvis' : 'Avslått'}
+          Miljø: {maskin.boi_vurdering.beslutning === 'godkjent' ? 'Godkjent' :
+                  maskin.boi_vurdering.beslutning === 'delvis_godkjent' ? 'Delvis' : 'Avslått'}
         </p>
       )}
     </div>
@@ -419,13 +419,13 @@ function TidligereVurderingerKort({ state, gjeldende }: TidligereVurderingerKort
       variant="outlined"
     >
       <div className="space-y-4">
-        {/* BOI-vurdering */}
+        {/* Miljørådgiver-vurdering */}
         <div>
           <VurderingDetalj
-            rolle="BOI-rådgiver"
+            rolle="Miljørådgiver"
             vurdering={godkjenningskjede.boi_vurdering}
           />
-          {/* Per-maskin BOI-vurderinger */}
+          {/* Per-maskin miljøvurderinger */}
           {godkjenningskjede.boi_vurdering.fullfort && (
             <MaskinVurderingListe maskiner={maskiner} vurderingType="boi" />
           )}
@@ -477,9 +477,9 @@ function getOppgaveConfig(gjeldende: string) {
     case 'boi':
       return {
         stegNummer: 1,
-        tittel: 'BOI-vurdering',
+        tittel: 'Miljøvurdering',
         beskrivelse: 'Vurder om søknaden oppfyller miljøkravene.',
-        knappTekst: 'Gi BOI-vurdering',
+        knappTekst: 'Gi miljøvurdering',
       };
     case 'pl':
       return {

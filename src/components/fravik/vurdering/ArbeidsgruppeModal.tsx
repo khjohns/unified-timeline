@@ -267,7 +267,7 @@ export function ArbeidsgruppeModal({
         {/* Tidligere vurderinger kontekst */}
         <SectionContainer title="Tidligere anbefalinger" variant="subtle">
           <DataList variant="grid">
-            <DataListItem label="BOI-rådgiver">
+            <DataListItem label="Miljørådgiver">
               {boiVurdering.fullfort && boiVurdering.beslutning ? (
                 <Badge variant={getBeslutningBadge(boiVurdering.beslutning).variant}>
                   {getBeslutningBadge(boiVurdering.beslutning).label}
@@ -347,10 +347,10 @@ export function ArbeidsgruppeModal({
                     )}
                   </div>
 
-                  {/* BOI anbefaling for denne maskinen */}
+                  {/* Miljøanbefaling for denne maskinen */}
                   {boiMaskinVurdering && (
                     <div className="mb-3 p-2 bg-pkt-surface-subtle rounded text-xs">
-                      <span className="text-pkt-text-body-muted">BOI-anbefaling: </span>
+                      <span className="text-pkt-text-body-muted">Miljøanbefaling: </span>
                       <Badge
                         variant={getBeslutningBadge(boiMaskinVurdering.beslutning).variant}
                         size="sm"

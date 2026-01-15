@@ -228,9 +228,9 @@ export function PLVurderingModal({
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* BOI-vurdering kontekst */}
+        {/* Miljørådgiver-vurdering kontekst */}
         {boiVurdering.fullfort && (
-          <SectionContainer title="BOI-rådgivers vurdering" variant="subtle">
+          <SectionContainer title="Miljørådgivers vurdering" variant="subtle">
             <DataList variant="list">
               <DataListItem label="Anbefaling">
                 {boiVurdering.beslutning ? (

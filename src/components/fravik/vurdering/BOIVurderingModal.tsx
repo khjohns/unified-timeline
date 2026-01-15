@@ -1,7 +1,7 @@
 /**
- * BOIVurderingModal Component
+ * BOIVurderingModal Component (Miljørådgiver)
  *
- * Modal for BOI-rådgiver to submit their vurdering of a fravik-søknad.
+ * Modal for miljørådgiver to submit their vurdering of a fravik-søknad.
  * Two modes:
  * 1. Dokumentasjon ikke tilstrekkelig → Return to søker with mangler
  * 2. Dokumentasjon OK → Per-maskin vurdering + samlet anbefaling
@@ -275,7 +275,7 @@ export function BOIVurderingModal({
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title="BOI-rådgiver vurdering"
+      title="Miljørådgiver vurdering"
       description="Vurder fravik-søknaden og gi din anbefaling."
       size="lg"
     >

@@ -65,7 +65,7 @@ export function SendInnModal({
       reset();
       onOpenChange(false);
       if (result.type === 'send_inn') {
-        toast.success('Søknad sendt inn', 'Søknaden er nå til vurdering hos BOI-rådgiver.');
+        toast.success('Søknad sendt inn', 'Søknaden er nå til vurdering hos miljørådgiver.');
         onSuccess?.();
       }
     },
