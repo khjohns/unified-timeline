@@ -27,6 +27,7 @@ export { Textarea } from './Textarea';
 export { Checkbox } from './Checkbox';
 export { RadioGroup, RadioItem } from './RadioGroup';
 export { DatePicker } from './DatePicker';
+export { DateRangePicker, type DateRangeValue } from './DateRangePicker';
 export { AttachmentUpload, type AttachmentUploadProps } from './AttachmentUpload';
 export {
   Select,

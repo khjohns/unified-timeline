@@ -14,7 +14,7 @@ import {
   AttachmentUpload,
   Button,
   Checkbox,
-  DatePicker,
+  DateRangePicker,
   FormField,
   Input,
   Modal,
@@ -62,6 +62,7 @@ export function LeggTilMaskinModal({
     reset,
     control,
     watch,
+    setValue,
   } = useForm<MaskinFormData>({
     resolver: zodResolver(maskinSchema),
     defaultValues: {
@@ -242,43 +243,24 @@ export function LeggTilMaskinModal({
           title="Bruksperiode"
           description="Når skal maskinen brukes på byggeplassen?"
         >
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              label="Fra dato"
-              required
-              error={errors.start_dato?.message}
-            >
-              <Controller
-                name="start_dato"
-                control={control}
-                render={({ field }) => (
-                  <DatePicker
-                    id="start_dato"
-                    value={field.value}
-                    onChange={field.onChange}
-                  />
-                )}
-              />
-            </FormField>
-
-            <FormField
-              label="Til dato"
-              required
-              error={errors.slutt_dato?.message}
-            >
-              <Controller
-                name="slutt_dato"
-                control={control}
-                render={({ field }) => (
-                  <DatePicker
-                    id="slutt_dato"
-                    value={field.value}
-                    onChange={field.onChange}
-                  />
-                )}
-              />
-            </FormField>
-          </div>
+          <FormField
+            label="Periode"
+            required
+            error={errors.start_dato?.message || errors.slutt_dato?.message}
+          >
+            <DateRangePicker
+              id="periode"
+              value={{
+                from: watch('start_dato'),
+                to: watch('slutt_dato'),
+              }}
+              onChange={(range) => {
+                setValue('start_dato', range.from || '', { shouldValidate: true });
+                setValue('slutt_dato', range.to || '', { shouldValidate: true });
+              }}
+              error={!!errors.start_dato || !!errors.slutt_dato}
+            />
+          </FormField>
         </SectionContainer>
 
         {/* Grunner for fravik */}
