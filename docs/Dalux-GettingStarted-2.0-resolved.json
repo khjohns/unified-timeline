@@ -1,0 +1,640 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Getting started with Dalux API",
+    "description": "# Common object model\nDalux expose a number of API's. They share an overarching object architecture which is described in this document.\n\nGenerally API consumers should take into consideration that our documentation describe what field values type are *when* they are present. If some object fx has a gps parameter, but there is no gps coordinate associated with that instance of the object, the gps parameter is not serialized (ie.&nbsp;null&nbsp;value&nbsp;handling&nbsp;=&nbsp;*ignore*).\n\n\nEndpoint versions follow semantic versioning ([https://semver.org/](https://semver.org/)). However, APIs may return more fields or take more url query parameters than described in the endpoint documentation. Fields and parameters *not explicitly documented* in an API reference are to be seen as *volatile and can change or be removed without notice*. A few examples is the form of list links to the next page, or additional fields being visible on an object in one version of the endpoints, but only the most recent documentation describe its presense on the endpoint.\n\nDocument version and endpoint versions are not correlated. Any correlation between document version number and endpoint version number is coincidental. The document version number is on the top of the page, just below the page title.\n\n# Response metadata\n\nThe API exposes a simple object hierarchy. All successful responses contain links containing different types of references. If present, links are found in the `link` field.\n\n# Single object response\n\nObject instance responses extend the response metadata with a `data` field.\n\n# List object response\nList responses extend the response metadata with an `items` field.\n\nLists are paginated. When you receive a list object, you only get the first page of that list. To get subsequent pages, use the Links to find the link for the next page.\n\nThe link for the next page is optional and may not be returned, meaning this is the last page of the list.\n\nSome lists allow for incremental update. The current last page on a list allowing incremental update, is identified by the `nextPage` and `self` being the same value. In incremental update lists, an item in the `items` may appear on multiple pages, where the latter is the newest object.\n\nDeletion from a list is also considered an incremental event. Deletion is regarded as a status being changed, e.g. `deleted=true/false` as is the case for files in folders. When list entities can be deleted, the list does not return items deleted prior to the initial `GET` request. If items are deleted from the list, subsequent the initial list query, the items will be returned again, this time with the deletion status being changed. If a  new intial `GET` request is being issued, the newly deleted item will never be part of that list.\n\n# Links\nLinks contain full hyperlink in the `href`.\n\nWe do not recommend interpreting the contents of a link, and instead use the links 'as provided'.\n\n# Undocumented behaviour\nParameters and properties not explicitly documented in this reference are to be seen as volatile and can change or be removed without notice.\n\n\n# Error codes\nError responses contain an error code to more precisely indicate what went wrong with the request.\n\n| Error code | Error code message                |\n| ---------- | --------------------------------- |\n| E40001     | BodyValidationFailed              |\n| E40002     | QueryParamsValidationFailed       |\n| E40003     | UserDefinedFieldsValidationFailed |\n| E40004     | HeaderValidationFailed            |\n| E40005     | ObjectBeingProcessedOrUploaded    |\n| E40101     | ApiKeyValidationFailed            |\n| E40301     | FeatureNotAvailable               |\n| E40401     | ObjectNotFound                    |\n| E40402     | ItemsNotAvailable                 |\n| E50001     | InternalServerError               |",
+    "version": "2.0"
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "paths": {
+    "/1.0/errorCodes": {
+      "get": {
+        "tags": [
+          "Error code examples"
+        ],
+        "summary": "Examples of different kinds of errors thrown",
+        "description": "Examples of responses for each error code\n",
+        "responses": {
+          "400": {
+            "description": "Examples of errors with status code 400",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/400Errors"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Example of error with status code 401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyValidationFailed"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Example of error with status code 403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeatureNotAvailable"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Examples of errors with status code 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/404Errors"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Example of error with status code 500",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/1.0/examples": {
+      "get": {
+        "tags": [
+          "Examples"
+        ],
+        "summary": "Example list object response endpoint",
+        "description": "Retrieves a list of the available examples\n",
+        "operationId": "listObjectExample",
+        "responses": {
+          "200": {
+            "description": "A list of the available examples",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/inline_response_200"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/1.0/examples/{exampleId}": {
+      "get": {
+        "tags": [
+          "Examples"
+        ],
+        "summary": "Example single object response endpoint",
+        "description": "Finds the example with the corresponding id\n",
+        "operationId": "singleObjectExample",
+        "parameters": [
+          {
+            "name": "exampleId",
+            "in": "path",
+            "description": "The id of the example",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The example with the corresponding id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/inline_response_200_1"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ErrorBadInputParameter"
+          },
+          "404": {
+            "$ref": "#/components/responses/ErrorNotFound"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Example": {
+        "properties": {
+          "exampleId": {
+            "type": "string",
+            "example": "0123456789"
+          },
+          "exampleName": {
+            "type": "string",
+            "example": "Some Example"
+          }
+        }
+      },
+      "BodyValidationError": {
+        "type": "object",
+        "properties": {
+          "httpStatusCode": {
+            "type": "integer",
+            "example": 400
+          },
+          "errorCode": {
+            "type": "string",
+            "example": "E40001"
+          },
+          "errorCodeMessage": {
+            "type": "string",
+            "example": "BodyValidationFailed"
+          },
+          "message": {
+            "type": "string",
+            "example": "Unknown user: Invalid email address: test@test.com"
+          },
+          "logTime": {
+            "type": "string",
+            "example": "2023-04-28T08:01:13.86925Z"
+          }
+        }
+      },
+      "QueryParamsValidationFailed": {
+        "type": "object",
+        "properties": {
+          "httpStatusCode": {
+            "type": "integer",
+            "example": 400
+          },
+          "errorCode": {
+            "type": "string",
+            "example": "E40002"
+          },
+          "errorCodeMessage": {
+            "type": "string",
+            "example": "QueryParamsValidationFailed"
+          },
+          "logTime": {
+            "type": "string",
+            "example": "2023-04-28T08:01:13.86925Z"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BookmarkError"
+            }
+          }
+        }
+      },
+      "UserDefinedFieldsValidationFailed": {
+        "type": "object",
+        "properties": {
+          "httpStatusCode": {
+            "type": "integer",
+            "example": 400
+          },
+          "errorCode": {
+            "type": "string",
+            "example": "E40003"
+          },
+          "errorCodeMessage": {
+            "type": "string",
+            "example": "UserDefinedFieldsValidationFailed"
+          },
+          "message": {
+            "type": "string",
+            "example": "Request does not have a valid Bookmark and Anchor"
+          },
+          "logTime": {
+            "type": "string",
+            "example": "2023-04-28T08:01:13.86925Z"
+          }
+        }
+      },
+      "HeaderValidationFailed": {
+        "type": "object",
+        "properties": {
+          "httpStatusCode": {
+            "type": "integer",
+            "example": 400
+          },
+          "errorCode": {
+            "type": "string",
+            "example": "E40004"
+          },
+          "errorCodeMessage": {
+            "type": "string",
+            "example": "HeaderValidationFailed"
+          },
+          "message": {
+            "type": "string",
+            "example": "Missing or invalid Content-Range Header (remember to include length)"
+          },
+          "logTime": {
+            "type": "string",
+            "example": "2023-04-28T08:01:13.86925Z"
+          }
+        }
+      },
+      "ObjectBeingProcessedOrUploaded": {
+        "type": "object",
+        "properties": {
+          "httpStatusCode": {
+            "type": "integer",
+            "example": 400
+          },
+          "errorCode": {
+            "type": "string",
+            "example": "E40005"
+          },
+          "errorCodeMessage": {
+            "type": "string",
+            "example": "ObjectBeingProcessedOrUploaded"
+          },
+          "message": {
+            "type": "string",
+            "example": "Not all parts of the file have been uploaded"
+          },
+          "logTime": {
+            "type": "string",
+            "example": "2023-04-28T08:01:13.86925Z"
+          }
+        }
+      },
+      "BookmarkError": {
+        "type": "object",
+        "properties": {
+          "propertyName": {
+            "type": "string",
+            "example": "bookmark"
+          },
+          "errorMessage": {
+            "type": "string",
+            "example": "Malformed parameter 'bookmark'"
+          }
+        }
+      },
+      "400Errors": {
+        "type": "object",
+        "properties": {
+          "Examples": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/BodyValidationError"
+                },
+                {
+                  "$ref": "#/components/schemas/QueryParamsValidationFailed"
+                },
+                {
+                  "$ref": "#/components/schemas/UserDefinedFieldsValidationFailed"
+                },
+                {
+                  "$ref": "#/components/schemas/HeaderValidationFailed"
+                },
+                {
+                  "$ref": "#/components/schemas/ObjectBeingProcessedOrUploaded"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "ApiKeyValidationFailed": {
+        "type": "object",
+        "properties": {
+          "httpStatusCode": {
+            "type": "integer",
+            "example": 401
+          },
+          "errorCode": {
+            "type": "string",
+            "example": "E40101"
+          },
+          "errorCodeMessage": {
+            "type": "string",
+            "example": "ApiKeyValidationFailed"
+          },
+          "message": {
+            "type": "string",
+            "example": "Unrecognized api key"
+          },
+          "logTime": {
+            "type": "string",
+            "example": "2023-04-28T08:01:13.86925Z"
+          }
+        }
+      },
+      "FeatureNotAvailable": {
+        "type": "object",
+        "properties": {
+          "httpStatusCode": {
+            "type": "integer",
+            "example": 403
+          },
+          "errorCode": {
+            "type": "string",
+            "example": "E40301"
+          },
+          "errorCodeMessage": {
+            "type": "string",
+            "example": "FeatureNotAvailable"
+          },
+          "message": {
+            "type": "string",
+            "example": "This call requires the project to have Field Pro enabled"
+          },
+          "logTime": {
+            "type": "string",
+            "example": "2023-04-28T08:01:13.86925Z"
+          }
+        }
+      },
+      "ObjectNotFound": {
+        "type": "object",
+        "properties": {
+          "httpStatusCode": {
+            "type": "integer",
+            "example": 404
+          },
+          "errorCode": {
+            "type": "string",
+            "example": "E40401"
+          },
+          "errorCodeMessage": {
+            "type": "string",
+            "example": "ObjectNotFound"
+          },
+          "message": {
+            "type": "string",
+            "example": "Invalid projectId"
+          },
+          "logTime": {
+            "type": "string",
+            "example": "2023-04-28T08:01:13.86925Z"
+          }
+        }
+      },
+      "ItemsNotAvailable": {
+        "type": "object",
+        "properties": {
+          "httpStatusCode": {
+            "type": "integer",
+            "example": 404
+          },
+          "errorCode": {
+            "type": "string",
+            "example": "E40402"
+          },
+          "errorCodeMessage": {
+            "type": "string",
+            "example": "ItemsNotAvailable"
+          },
+          "message": {
+            "type": "string",
+            "example": "No available tasks on project"
+          },
+          "logTime": {
+            "type": "string",
+            "example": "2023-04-28T08:01:13.86925Z"
+          }
+        }
+      },
+      "404Errors": {
+        "type": "object",
+        "properties": {
+          "Examples": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/ObjectNotFound"
+                },
+                {
+                  "$ref": "#/components/schemas/ItemsNotAvailable"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "InternalServerError": {
+        "type": "object",
+        "properties": {
+          "httpStatusCode": {
+            "type": "integer",
+            "example": 500
+          },
+          "errorCode": {
+            "type": "string",
+            "example": "E50001"
+          },
+          "errorCodeMessage": {
+            "type": "string",
+            "example": "InternalServerError"
+          },
+          "logTime": {
+            "type": "string",
+            "example": "2023-04-28T08:01:13.86925Z"
+          }
+        }
+      },
+      "ListResponse": {
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Response"
+          }
+        ]
+      },
+      "Response": {
+        "type": "object",
+        "properties": {
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Link"
+            }
+          }
+        }
+      },
+      "Link": {
+        "type": "object",
+        "properties": {
+          "rel": {
+            "type": "string",
+            "description": "The list of enums is not final and may contain further values at later point",
+            "enum": [
+              "self",
+              "parent",
+              "nextPage",
+              "deepLink",
+              "metadata",
+              "values"
+            ]
+          },
+          "method": {
+            "type": "string",
+            "description": "The list of enums is not final and may contain further values at later point",
+            "enum": [
+              "GET",
+              "POST",
+              "PATCH",
+              "DELETE"
+            ]
+          },
+          "href": {
+            "type": "string",
+            "description": "Full hyperlink reference",
+            "example": "https://.../full/depth/url/42"
+          }
+        }
+      },
+      "ObjectResponse": {
+        "properties": {
+          "data": {
+            "type": "object"
+          }
+        },
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Response"
+          }
+        ]
+      },
+      "ErrorModel": {
+        "type": "object",
+        "properties": {
+          "httpStatusCode": {
+            "type": "integer"
+          },
+          "message": {
+            "type": "string"
+          },
+          "developerHint": {
+            "type": "string"
+          },
+          "logTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "errorCode": {
+            "type": "string",
+            "description": "Extended, more specific, error codes (see error code table)"
+          },
+          "errorCodeMessage": {
+            "type": "string",
+            "description": "Extended, more specific, error codes (enum)."
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ErrorField"
+            }
+          }
+        }
+      },
+      "ErrorField": {
+        "type": "object",
+        "properties": {
+          "propertyName": {
+            "type": "string"
+          },
+          "inputValue": {
+            "type": "string",
+            "nullable": true
+          },
+          "errorMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "developerHint": {
+            "type": "string",
+            "nullable": true
+          },
+          "arrayIndex": {
+            "type": "integer",
+            "nullable": true
+          }
+        }
+      },
+      "inline_response_200": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ListResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Example"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "inline_response_200_1": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ObjectResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/Example"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "responses": {
+      "ErrorBadInputParameter": {
+        "description": "Bad input parameter",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorModel"
+            }
+          }
+        }
+      },
+      "ErrorNotFound": {
+        "description": "Not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorModel"
+            }
+          }
+        }
+      }
+    }
+  }
+}
