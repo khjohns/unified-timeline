@@ -325,15 +325,8 @@ def oppdater_soknad(sak_id: str):
     )
 
     # Lagre event
-    repo = create_event_repository()
     try:
-        new_version = repo.append_event(
-            aggregate_id=sak_id,
-            aggregate_type="fravik",
-            event_type=event.event_type.value,
-            event_data=event.model_dump(mode='json'),
-            expected_version=expected_version
-        )
+        new_version = _append_event(sak_id, event, expected_version)
     except ConcurrencyError as e:
         return jsonify({
             "success": False,
