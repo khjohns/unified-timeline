@@ -436,8 +436,6 @@ export function LeggTilMaskinModal({
         <SectionContainer
           title="Vedlegg"
           description="Last opp dokumentasjon (valgfritt)"
-          collapsible
-          defaultOpen={false}
         >
           <Controller
             name="attachments"
@@ -461,7 +459,7 @@ export function LeggTilMaskinModal({
         )}
 
         {/* Actions */}
-        <div className="flex flex-col sm:flex-row sm:justify-end gap-2 sm:gap-4 pt-6 border-t-2 border-pkt-border-subtle">
+        <div className="flex flex-col sm:flex-row sm:justify-end gap-2 sm:gap-4 pt-6 border-t border-pkt-border-subtle">
           <Button
             type="button"
             variant="ghost"
