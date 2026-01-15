@@ -232,6 +232,7 @@ export function FravikPage() {
           <Alert
             variant={kanSendesInn ? 'info' : 'warning'}
             title={kanSendesInn ? 'Klar til innsending' : 'Søknaden er ikke komplett'}
+            className="max-w-lg"
           >
             <p className="text-sm">
               {kanSendesInn
