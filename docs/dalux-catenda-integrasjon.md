@@ -1,7 +1,7 @@
 # Dalux-Catenda Integrasjon
 
-> **Sist oppdatert:** 2026-01-14 (Forms, Inspection Plans og Test Plans kartlagt)
-> **Status:** Fase 2 komplett med ~95% API-dekning, avventer avklaringer fra OBF
+> **Sist oppdatert:** 2026-01-15 (Task attachment 403-bug dokumentert)
+> **Status:** Fase 2 komplett med ~95% API-dekning, avventer bug-fix fra Dalux for task attachments
 
 ---
 
@@ -14,7 +14,7 @@ Enveis-integrasjon fra Dalux Build til Catenda for synkronisering av tasks og do
 | Område | Implementert | Gap | Prioritet |
 |--------|--------------|-----|-----------|
 | Forutsetninger | 90% | RUH-avklaring | Lav |
-| Dokumenter | 50% | Mappekonfig, task attachments krever utvidede API-rettigheter | **Høy** |
+| Dokumenter | 50% | Mappekonfig, task attachments 403-bug (Dalux undersøker) | **Høy** |
 | Saker/oppgaver | 60% | Scheduler, ID-avklaring | **Høy** |
 | Brukere/GDPR | 50% | GDPR-vurdering | Medium |
 | Modeller | 20% | Kun metadata, ikke BIM-kobling | Lav |
@@ -89,7 +89,19 @@ Enveis-integrasjon fra Dalux Build til Catenda for synkronisering av tasks og do
 | **Lokasjonsbilder** | Plantegninger med markering | ✅ OK | ❌ 403 |
 | **File Areas** | Prosjektdokumenter (PDF, tegninger) | ✅ OK | ✅ OK |
 
-**NB:** Årsak til 403 er begrensning i API-nøkkelens rettigheter, styres av prosjekteier (entreprenør) i Dalux Admin.
+**⚠️ Kjent problem (januar 2026):**
+
+| Aspekt | Detaljer |
+|--------|----------|
+| **Problem** | Nye API-identiteter får 403 på FieldBinaryStore (task attachments) |
+| **Symptom** | Liste vedlegg ✅, nedlasting via `fileDownload`-URL ❌ |
+| **Årsak** | Bug i nye API-identiteter - fungerte med gamle API-nøkler |
+| **URL-mønster** | `fileDownload` peker til `/service/FieldBinaryStore/` (ikke `/service/api/`) |
+| **Feilmelding** | "Access denied - You must log in to Dalux to access this file" |
+| **Workaround** | Bruk File Areas API for fil-synkronisering |
+| **Status** | Dalux undersøker saken |
+
+Gamle API-nøkler utløper **28. februar 2026** - alle må over på nye API-identiteter innen da.
 
 **Tekniske begrensninger - Catenda:**
 - **Bibliotek:** Kan IKKE opprettes via API, må opprettes manuelt i Catenda UI først
@@ -357,8 +369,8 @@ https://{node}.field.dalux.com/service/api/{versjon}/{endepunkt}
 | **Workpackages** | ✅ | Entrepriseoppslag (workpackageId → navn) fungerer |
 | Task changes (historikk) | ⚠️ | Kun 100 eldste, paginering ignoreres |
 | File Areas | ✅ | Liste og nedlasting fungerer |
-| Task attachments | ⚠️ | Liste OK, nedlasting krever utvidede rettigheter |
-| Lokasjonsbilder | ⚠️ | Liste OK, nedlasting krever utvidede rettigheter |
+| Task attachments | ⚠️ | Liste OK, nedlasting 403 - bug i nye API-identiteter (Dalux undersøker) |
+| Lokasjonsbilder | ⚠️ | Liste OK, nedlasting 403 - bug i nye API-identiteter (Dalux undersøker) |
 | Kommentarer | ❌ | Finnes ikke i Dalux API |
 | **Stedfortreder** | ❌ | Ikke i API (deputy/substitute) |
 | **Prosjektnummer** | ❌ | Kun projectName, ikke nummer |
