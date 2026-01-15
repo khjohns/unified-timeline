@@ -113,13 +113,16 @@ function MaskinKort({ maskin }: { maskin: MaskinTilstand }) {
 
       {/* BOI vurderingsstatus */}
       {hasBOI && maskin.boi_vurdering && (
-        <p className={`text-xs mt-2 ${
-          maskin.boi_vurdering.beslutning === 'godkjent' ? 'text-alert-success-text' :
-          maskin.boi_vurdering.beslutning === 'delvis_godkjent' ? 'text-alert-warning-text' : 'text-alert-danger-text'
+        <span className={`inline-flex text-xs mt-2 px-2 py-0.5 rounded-sm ${
+          maskin.boi_vurdering.beslutning === 'godkjent'
+            ? 'bg-alert-success-bg text-alert-success-text'
+            : maskin.boi_vurdering.beslutning === 'delvis_godkjent'
+            ? 'bg-alert-warning-bg text-alert-warning-text'
+            : 'bg-alert-danger-bg text-alert-danger-text'
         }`}>
           BOI: {maskin.boi_vurdering.beslutning === 'godkjent' ? 'Godkjent' :
                 maskin.boi_vurdering.beslutning === 'delvis_godkjent' ? 'Delvis' : 'Avslått'}
-        </p>
+        </span>
       )}
     </div>
   );
@@ -381,18 +384,18 @@ function MaskinVurderingListe({
         if (!vurdering) return null;
 
         const maskinNavn = MASKIN_TYPE_LABELS[maskin.maskin_type] || maskin.maskin_type;
-        const beslutningText = vurdering.beslutning === 'godkjent'
-          ? { label: 'Godkjent', color: 'text-alert-success-text' }
+        const beslutningStyle = vurdering.beslutning === 'godkjent'
+          ? { label: 'Godkjent', bg: 'bg-alert-success-bg', text: 'text-alert-success-text' }
           : vurdering.beslutning === 'delvis_godkjent'
-          ? { label: 'Delvis', color: 'text-alert-warning-text' }
-          : { label: 'Avslått', color: 'text-alert-danger-text' };
+          ? { label: 'Delvis', bg: 'bg-alert-warning-bg', text: 'text-alert-warning-text' }
+          : { label: 'Avslått', bg: 'bg-alert-danger-bg', text: 'text-alert-danger-text' };
 
         return (
           <div key={maskin.maskin_id} className="p-3 rounded bg-pkt-bg-subtle">
             <div className="flex items-center justify-between">
               <span className="font-medium text-sm">{maskinNavn}</span>
-              <span className={`text-sm ${beslutningText.color}`}>
-                {beslutningText.label}
+              <span className={`text-xs px-2 py-0.5 rounded-sm ${beslutningStyle.bg} ${beslutningStyle.text}`}>
+                {beslutningStyle.label}
               </span>
             </div>
             {vurdering.kommentar && (
