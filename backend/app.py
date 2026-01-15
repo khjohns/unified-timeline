@@ -129,6 +129,7 @@ from routes.endringsordre_routes import endringsordre_bp
 from routes.cloudevents_routes import cloudevents_bp
 from routes.analytics_routes import analytics_bp
 from routes.sync_routes import sync_bp
+from routes.fravik_routes import fravik_bp
 from routes.error_handlers import register_error_handlers
 
 # Register event-sourced routes
@@ -140,8 +141,9 @@ app.register_blueprint(endringsordre_bp)
 app.register_blueprint(cloudevents_bp)
 app.register_blueprint(analytics_bp)
 app.register_blueprint(sync_bp)
+app.register_blueprint(fravik_bp)
 
-logger.info("✅ Event Sourcing Blueprints registered (inkl. Forsering, Endringsordre, CloudEvents, Analytics, Sync)")
+logger.info("✅ Event Sourcing Blueprints registered (inkl. Forsering, Endringsordre, CloudEvents, Analytics, Sync, Fravik)")
 
 # Register error handlers
 register_error_handlers(app)

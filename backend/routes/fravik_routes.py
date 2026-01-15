@@ -1,0 +1,750 @@
+"""
+Fravik Routes Blueprint
+
+REST API for fravik-søknader (fravik fra utslippsfrie krav på byggeplasser).
+
+Endpoints:
+- POST /api/fravik/opprett - Opprett ny søknad
+- GET /api/fravik/<soknad_id>/state - Hent tilstand
+- GET /api/fravik/<soknad_id>/events - Hent event-logg
+- POST /api/fravik/<soknad_id>/events - Send event
+- GET /api/fravik/liste - Liste over søknader
+- POST /api/fravik/<soknad_id>/maskin - Legg til maskin
+- DELETE /api/fravik/<soknad_id>/maskin/<maskin_id> - Fjern maskin
+- POST /api/fravik/<soknad_id>/send-inn - Send inn søknad
+- POST /api/fravik/<soknad_id>/boi-vurdering - BOI-rådgiver vurdering
+- POST /api/fravik/<soknad_id>/pl-vurdering - Prosjektleder vurdering
+- POST /api/fravik/<soknad_id>/arbeidsgruppe-vurdering - Arbeidsgruppe vurdering
+- POST /api/fravik/<soknad_id>/eier-beslutning - Eier beslutning
+"""
+from typing import Optional, Dict, Any, List
+from flask import Blueprint, request, jsonify
+from datetime import datetime, timezone
+from uuid import uuid4
+
+from services.fravik_service import FravikService, fravik_service
+from repositories import create_event_repository
+from repositories.event_repository import ConcurrencyError
+from lib.decorators import handle_service_errors
+from lib.auth.magic_link import require_magic_link
+from lib.auth.csrf_protection import require_csrf
+from utils.logger import get_logger
+
+from models.fravik_events import (
+    FravikEventType,
+    FravikRolle,
+    SoknadOpprettetEvent,
+    SoknadOpprettetData,
+    SoknadOppdatertEvent,
+    SoknadOppdatertData,
+    SoknadSendtInnEvent,
+    SoknadTrukketEvent,
+    MaskinLagtTilEvent,
+    MaskinData,
+    MaskinFjernetEvent,
+    BOIVurderingEvent,
+    BOIVurderingData,
+    BOIReturnertevent,
+    PLVurderingEvent,
+    PLVurderingData,
+    PLReturnertevent,
+    ArbeidsgruppeVurderingEvent,
+    ArbeidsgruppeVurderingData,
+    EierGodkjentEvent,
+    EierAvslattEvent,
+    EierDelvisGodkjentEvent,
+    EierBeslutningData,
+    MaskinVurderingData,
+    parse_fravik_event,
+)
+
+logger = get_logger(__name__)
+
+# Create Blueprint
+fravik_bp = Blueprint('fravik', __name__)
+
+# Dependencies
+event_repo = create_event_repository()
+
+
+def _generate_soknad_id() -> str:
+    """Genererer unik søknad-ID."""
+    timestamp = datetime.now().strftime("%Y%m%d")
+    unique = str(uuid4())[:8].upper()
+    return f"FRAVIK-{timestamp}-{unique}"
+
+
+def _get_events_for_soknad(soknad_id: str) -> tuple[List, int]:
+    """Henter events for en søknad."""
+    try:
+        events_data, version = event_repo.get_events(soknad_id)
+        events = [parse_fravik_event(e) for e in events_data]
+        return events, version
+    except FileNotFoundError:
+        return [], 0
+
+
+def _append_event(soknad_id: str, event: Any, expected_version: int) -> int:
+    """Legger til en event i event-loggen."""
+    event_data = event.model_dump(mode='json')
+    new_version = event_repo.append(soknad_id, event_data, expected_version)
+    return new_version
+
+
+# =============================================================================
+# OPPRETT SØKNAD
+# =============================================================================
+
+@fravik_bp.route('/api/fravik/opprett', methods=['POST'])
+@require_csrf
+@require_magic_link
+@handle_service_errors
+def opprett_fravik_soknad():
+    """
+    Opprett en ny fravik-søknad.
+
+    Request:
+    {
+        "prosjekt_id": "P-2025-001",
+        "prosjekt_navn": "Nye Deichman",
+        "prosjekt_nummer": "12345",
+        "soker_navn": "Ola Nordmann",
+        "soker_epost": "ola@firma.no",
+        "soknad_type": "machine",
+        "aktor": "Ola Nordmann"
+    }
+
+    Response 201:
+    {
+        "success": true,
+        "soknad_id": "FRAVIK-20250115-ABC123",
+        "version": 1,
+        "state": { ... FravikState ... }
+    }
+    """
+    payload = request.json
+
+    # Valider påkrevde felt
+    required_fields = ['prosjekt_id', 'prosjekt_navn', 'soker_navn', 'soknad_type', 'aktor']
+    missing = [f for f in required_fields if not payload.get(f)]
+    if missing:
+        return jsonify({
+            "success": False,
+            "error": "MISSING_FIELDS",
+            "message": f"Manglende felt: {', '.join(missing)}"
+        }), 400
+
+    # Generer søknad-ID
+    soknad_id = _generate_soknad_id()
+
+    # Opprett event
+    event = SoknadOpprettetEvent(
+        soknad_id=soknad_id,
+        event_type=FravikEventType.SOKNAD_OPPRETTET,
+        aktor=payload['aktor'],
+        aktor_rolle=FravikRolle.SOKER,
+        data=SoknadOpprettetData(
+            prosjekt_id=payload['prosjekt_id'],
+            prosjekt_navn=payload['prosjekt_navn'],
+            prosjekt_nummer=payload.get('prosjekt_nummer'),
+            rammeavtale=payload.get('rammeavtale'),
+            hovedentreprenor=payload.get('hovedentreprenor'),
+            soker_navn=payload['soker_navn'],
+            soker_epost=payload.get('soker_epost'),
+            soknad_type=payload['soknad_type'],
+            frist_for_svar=payload.get('frist_for_svar'),
+            er_haste=payload.get('er_haste', False),
+            haste_begrunnelse=payload.get('haste_begrunnelse'),
+        )
+    )
+
+    # Lagre event
+    new_version = _append_event(soknad_id, event, expected_version=0)
+
+    # Beregn state
+    events, _ = _get_events_for_soknad(soknad_id)
+    state = fravik_service.compute_state(events)
+
+    logger.info(f"✅ Opprettet fravik-søknad: {soknad_id}")
+
+    return jsonify({
+        "success": True,
+        "soknad_id": soknad_id,
+        "version": new_version,
+        "state": state.model_dump(mode='json')
+    }), 201
+
+
+# =============================================================================
+# HENT STATE
+# =============================================================================
+
+@fravik_bp.route('/api/fravik/<soknad_id>/state', methods=['GET'])
+@require_magic_link
+def get_fravik_state(soknad_id: str):
+    """
+    Hent tilstand for en fravik-søknad.
+
+    Response 200:
+    {
+        "success": true,
+        "soknad_id": "FRAVIK-20250115-ABC123",
+        "version": 5,
+        "state": { ... FravikState ... }
+    }
+    """
+    events, version = _get_events_for_soknad(soknad_id)
+
+    if not events:
+        return jsonify({
+            "success": False,
+            "error": "NOT_FOUND",
+            "message": f"Søknad {soknad_id} ikke funnet"
+        }), 404
+
+    state = fravik_service.compute_state(events)
+
+    return jsonify({
+        "success": True,
+        "soknad_id": soknad_id,
+        "version": version,
+        "state": state.model_dump(mode='json')
+    })
+
+
+# =============================================================================
+# HENT EVENTS
+# =============================================================================
+
+@fravik_bp.route('/api/fravik/<soknad_id>/events', methods=['GET'])
+@require_magic_link
+def get_fravik_events(soknad_id: str):
+    """
+    Hent event-logg for en fravik-søknad.
+
+    Response 200:
+    {
+        "success": true,
+        "soknad_id": "FRAVIK-20250115-ABC123",
+        "version": 5,
+        "events": [ ... events ... ]
+    }
+    """
+    events, version = _get_events_for_soknad(soknad_id)
+
+    if not events:
+        return jsonify({
+            "success": False,
+            "error": "NOT_FOUND",
+            "message": f"Søknad {soknad_id} ikke funnet"
+        }), 404
+
+    events_json = [e.model_dump(mode='json') for e in events]
+
+    return jsonify({
+        "success": True,
+        "soknad_id": soknad_id,
+        "version": version,
+        "events": events_json
+    })
+
+
+# =============================================================================
+# LEGG TIL MASKIN
+# =============================================================================
+
+@fravik_bp.route('/api/fravik/<soknad_id>/maskin', methods=['POST'])
+@require_csrf
+@require_magic_link
+@handle_service_errors
+def legg_til_maskin(soknad_id: str):
+    """
+    Legg til maskin i søknaden.
+
+    Request:
+    {
+        "maskin_type": "Gravemaskin",
+        "start_dato": "2025-02-01",
+        "slutt_dato": "2025-03-15",
+        "begrunnelse": "Ingen utslippsfrie alternativer tilgjengelig",
+        "aktor": "Ola Nordmann",
+        "expected_version": 1
+    }
+    """
+    payload = request.json
+    expected_version = payload.get('expected_version', 0)
+
+    # Valider at søknaden finnes
+    events, current_version = _get_events_for_soknad(soknad_id)
+    if not events:
+        return jsonify({
+            "success": False,
+            "error": "NOT_FOUND",
+            "message": f"Søknad {soknad_id} ikke funnet"
+        }), 404
+
+    # Versjonskontroll
+    if expected_version != current_version:
+        return jsonify({
+            "success": False,
+            "error": "VERSION_CONFLICT",
+            "expected_version": expected_version,
+            "current_version": current_version,
+            "message": "Tilstanden har endret seg. Vennligst last inn på nytt."
+        }), 409
+
+    # Opprett event
+    maskin_id = str(uuid4())
+    event = MaskinLagtTilEvent(
+        soknad_id=soknad_id,
+        event_type=FravikEventType.MASKIN_LAGT_TIL,
+        aktor=payload.get('aktor', 'Ukjent'),
+        aktor_rolle=FravikRolle.SOKER,
+        data=MaskinData(
+            maskin_id=maskin_id,
+            maskin_type=payload['maskin_type'],
+            annet_type=payload.get('annet_type'),
+            registreringsnummer=payload.get('registreringsnummer'),
+            start_dato=payload['start_dato'],
+            slutt_dato=payload['slutt_dato'],
+            begrunnelse=payload['begrunnelse'],
+            alternativer_vurdert=payload.get('alternativer_vurdert'),
+            markedsundersokelse=payload.get('markedsundersokelse', False),
+            undersøkte_leverandorer=payload.get('undersøkte_leverandorer'),
+            erstatningsmaskin=payload.get('erstatningsmaskin'),
+            erstatningsdrivstoff=payload.get('erstatningsdrivstoff'),
+            arbeidsbeskrivelse=payload.get('arbeidsbeskrivelse'),
+        )
+    )
+
+    try:
+        new_version = _append_event(soknad_id, event, expected_version)
+    except ConcurrencyError:
+        return jsonify({
+            "success": False,
+            "error": "VERSION_CONFLICT",
+            "message": "Tilstanden har endret seg. Vennligst last inn på nytt."
+        }), 409
+
+    # Beregn ny state
+    events, _ = _get_events_for_soknad(soknad_id)
+    state = fravik_service.compute_state(events)
+
+    return jsonify({
+        "success": True,
+        "maskin_id": maskin_id,
+        "version": new_version,
+        "state": state.model_dump(mode='json')
+    }), 201
+
+
+# =============================================================================
+# SEND INN SØKNAD
+# =============================================================================
+
+@fravik_bp.route('/api/fravik/<soknad_id>/send-inn', methods=['POST'])
+@require_csrf
+@require_magic_link
+@handle_service_errors
+def send_inn_soknad(soknad_id: str):
+    """
+    Send inn søknaden til vurdering.
+
+    Request:
+    {
+        "aktor": "Ola Nordmann",
+        "expected_version": 3
+    }
+    """
+    payload = request.json
+    expected_version = payload.get('expected_version', 0)
+
+    events, current_version = _get_events_for_soknad(soknad_id)
+    if not events:
+        return jsonify({
+            "success": False,
+            "error": "NOT_FOUND",
+            "message": f"Søknad {soknad_id} ikke funnet"
+        }), 404
+
+    # Sjekk at søknaden kan sendes inn
+    state = fravik_service.compute_state(events)
+    if not state.kan_sendes_inn:
+        return jsonify({
+            "success": False,
+            "error": "INVALID_STATE",
+            "message": "Søknaden kan ikke sendes inn. Sjekk at alle felt er fylt ut."
+        }), 400
+
+    event = SoknadSendtInnEvent(
+        soknad_id=soknad_id,
+        event_type=FravikEventType.SOKNAD_SENDT_INN,
+        aktor=payload.get('aktor', 'Ukjent'),
+        aktor_rolle=FravikRolle.SOKER,
+    )
+
+    try:
+        new_version = _append_event(soknad_id, event, expected_version)
+    except ConcurrencyError:
+        return jsonify({
+            "success": False,
+            "error": "VERSION_CONFLICT",
+            "message": "Tilstanden har endret seg. Vennligst last inn på nytt."
+        }), 409
+
+    events, _ = _get_events_for_soknad(soknad_id)
+    state = fravik_service.compute_state(events)
+
+    logger.info(f"✅ Søknad sendt inn: {soknad_id}")
+
+    return jsonify({
+        "success": True,
+        "version": new_version,
+        "state": state.model_dump(mode='json')
+    })
+
+
+# =============================================================================
+# BOI VURDERING
+# =============================================================================
+
+@fravik_bp.route('/api/fravik/<soknad_id>/boi-vurdering', methods=['POST'])
+@require_csrf
+@require_magic_link
+@handle_service_errors
+def boi_vurdering(soknad_id: str):
+    """
+    BOI-rådgiver sender vurdering.
+
+    Request:
+    {
+        "dokumentasjon_tilstrekkelig": true,
+        "maskin_vurderinger": [
+            {
+                "maskin_id": "uuid",
+                "beslutning": "godkjent",
+                "kommentar": "OK"
+            }
+        ],
+        "samlet_anbefaling": "godkjent",
+        "kommentar": "Anbefaler godkjenning",
+        "aktor": "BOI-rådgiver",
+        "expected_version": 5
+    }
+    """
+    payload = request.json
+    expected_version = payload.get('expected_version', 0)
+
+    events, current_version = _get_events_for_soknad(soknad_id)
+    if not events:
+        return jsonify({
+            "success": False,
+            "error": "NOT_FOUND",
+            "message": f"Søknad {soknad_id} ikke funnet"
+        }), 404
+
+    # Parse maskin-vurderinger
+    maskin_vurderinger = [
+        MaskinVurderingData(**mv) for mv in payload.get('maskin_vurderinger', [])
+    ]
+
+    event = BOIVurderingEvent(
+        soknad_id=soknad_id,
+        event_type=FravikEventType.BOI_VURDERING,
+        aktor=payload.get('aktor', 'BOI-rådgiver'),
+        aktor_rolle=FravikRolle.BOI,
+        data=BOIVurderingData(
+            dokumentasjon_tilstrekkelig=payload['dokumentasjon_tilstrekkelig'],
+            maskin_vurderinger=maskin_vurderinger,
+            samlet_anbefaling=payload.get('samlet_anbefaling'),
+            kommentar=payload.get('kommentar'),
+            manglende_dokumentasjon=payload.get('manglende_dokumentasjon'),
+        )
+    )
+
+    try:
+        new_version = _append_event(soknad_id, event, expected_version)
+    except ConcurrencyError:
+        return jsonify({
+            "success": False,
+            "error": "VERSION_CONFLICT",
+            "message": "Tilstanden har endret seg. Vennligst last inn på nytt."
+        }), 409
+
+    events, _ = _get_events_for_soknad(soknad_id)
+    state = fravik_service.compute_state(events)
+
+    logger.info(f"✅ BOI-vurdering registrert for: {soknad_id}")
+
+    return jsonify({
+        "success": True,
+        "version": new_version,
+        "state": state.model_dump(mode='json')
+    })
+
+
+# =============================================================================
+# PL VURDERING
+# =============================================================================
+
+@fravik_bp.route('/api/fravik/<soknad_id>/pl-vurdering', methods=['POST'])
+@require_csrf
+@require_magic_link
+@handle_service_errors
+def pl_vurdering(soknad_id: str):
+    """
+    Prosjektleder sender vurdering.
+
+    Request:
+    {
+        "dokumentasjon_tilstrekkelig": true,
+        "anbefaling": "godkjent",
+        "kommentar": "Godkjent",
+        "aktor": "Prosjektleder",
+        "expected_version": 6
+    }
+    """
+    payload = request.json
+    expected_version = payload.get('expected_version', 0)
+
+    events, current_version = _get_events_for_soknad(soknad_id)
+    if not events:
+        return jsonify({
+            "success": False,
+            "error": "NOT_FOUND"
+        }), 404
+
+    event = PLVurderingEvent(
+        soknad_id=soknad_id,
+        event_type=FravikEventType.PL_VURDERING,
+        aktor=payload.get('aktor', 'Prosjektleder'),
+        aktor_rolle=FravikRolle.PL,
+        data=PLVurderingData(
+            dokumentasjon_tilstrekkelig=payload['dokumentasjon_tilstrekkelig'],
+            anbefaling=payload['anbefaling'],
+            kommentar=payload.get('kommentar'),
+            manglende_dokumentasjon=payload.get('manglende_dokumentasjon'),
+        )
+    )
+
+    try:
+        new_version = _append_event(soknad_id, event, expected_version)
+    except ConcurrencyError:
+        return jsonify({
+            "success": False,
+            "error": "VERSION_CONFLICT"
+        }), 409
+
+    events, _ = _get_events_for_soknad(soknad_id)
+    state = fravik_service.compute_state(events)
+
+    return jsonify({
+        "success": True,
+        "version": new_version,
+        "state": state.model_dump(mode='json')
+    })
+
+
+# =============================================================================
+# ARBEIDSGRUPPE VURDERING
+# =============================================================================
+
+@fravik_bp.route('/api/fravik/<soknad_id>/arbeidsgruppe-vurdering', methods=['POST'])
+@require_csrf
+@require_magic_link
+@handle_service_errors
+def arbeidsgruppe_vurdering(soknad_id: str):
+    """
+    Arbeidsgruppen sender vurdering.
+
+    Request:
+    {
+        "maskin_vurderinger": [...],
+        "samlet_innstilling": "godkjent",
+        "kommentar": "Innstiller godkjenning",
+        "deltakere": ["Navn 1", "Navn 2"],
+        "aktor": "Arbeidsgruppen",
+        "expected_version": 7
+    }
+    """
+    payload = request.json
+    expected_version = payload.get('expected_version', 0)
+
+    events, current_version = _get_events_for_soknad(soknad_id)
+    if not events:
+        return jsonify({
+            "success": False,
+            "error": "NOT_FOUND"
+        }), 404
+
+    maskin_vurderinger = [
+        MaskinVurderingData(**mv) for mv in payload.get('maskin_vurderinger', [])
+    ]
+
+    event = ArbeidsgruppeVurderingEvent(
+        soknad_id=soknad_id,
+        event_type=FravikEventType.ARBEIDSGRUPPE_VURDERING,
+        aktor=payload.get('aktor', 'Arbeidsgruppen'),
+        aktor_rolle=FravikRolle.ARBEIDSGRUPPE,
+        data=ArbeidsgruppeVurderingData(
+            maskin_vurderinger=maskin_vurderinger,
+            samlet_innstilling=payload['samlet_innstilling'],
+            kommentar=payload.get('kommentar'),
+            deltakere=payload.get('deltakere'),
+        )
+    )
+
+    try:
+        new_version = _append_event(soknad_id, event, expected_version)
+    except ConcurrencyError:
+        return jsonify({
+            "success": False,
+            "error": "VERSION_CONFLICT"
+        }), 409
+
+    events, _ = _get_events_for_soknad(soknad_id)
+    state = fravik_service.compute_state(events)
+
+    return jsonify({
+        "success": True,
+        "version": new_version,
+        "state": state.model_dump(mode='json')
+    })
+
+
+# =============================================================================
+# EIER BESLUTNING
+# =============================================================================
+
+@fravik_bp.route('/api/fravik/<soknad_id>/eier-beslutning', methods=['POST'])
+@require_csrf
+@require_magic_link
+@handle_service_errors
+def eier_beslutning(soknad_id: str):
+    """
+    Eier fatter endelig beslutning.
+
+    Request:
+    {
+        "beslutning": "godkjent",  // "godkjent", "avslatt", "delvis_godkjent"
+        "folger_arbeidsgruppen": true,
+        "begrunnelse": "Godkjent i henhold til innstilling",
+        "maskin_beslutninger": [...],  // Kun for delvis_godkjent
+        "aktor": "Prosjekteier",
+        "expected_version": 8
+    }
+    """
+    payload = request.json
+    expected_version = payload.get('expected_version', 0)
+
+    events, current_version = _get_events_for_soknad(soknad_id)
+    if not events:
+        return jsonify({
+            "success": False,
+            "error": "NOT_FOUND"
+        }), 404
+
+    beslutning = payload['beslutning']
+    maskin_beslutninger = None
+    if payload.get('maskin_beslutninger'):
+        maskin_beslutninger = [
+            MaskinVurderingData(**mv) for mv in payload['maskin_beslutninger']
+        ]
+
+    beslutning_data = EierBeslutningData(
+        folger_arbeidsgruppen=payload.get('folger_arbeidsgruppen', True),
+        beslutning=beslutning,
+        begrunnelse=payload.get('begrunnelse'),
+        maskin_beslutninger=maskin_beslutninger,
+    )
+
+    # Velg riktig event-type basert på beslutning
+    if beslutning == 'godkjent':
+        event = EierGodkjentEvent(
+            soknad_id=soknad_id,
+            event_type=FravikEventType.EIER_GODKJENT,
+            aktor=payload.get('aktor', 'Prosjekteier'),
+            aktor_rolle=FravikRolle.EIER,
+            data=beslutning_data,
+        )
+    elif beslutning == 'avslatt':
+        event = EierAvslattEvent(
+            soknad_id=soknad_id,
+            event_type=FravikEventType.EIER_AVSLATT,
+            aktor=payload.get('aktor', 'Prosjekteier'),
+            aktor_rolle=FravikRolle.EIER,
+            data=beslutning_data,
+        )
+    else:
+        event = EierDelvisGodkjentEvent(
+            soknad_id=soknad_id,
+            event_type=FravikEventType.EIER_DELVIS_GODKJENT,
+            aktor=payload.get('aktor', 'Prosjekteier'),
+            aktor_rolle=FravikRolle.EIER,
+            data=beslutning_data,
+        )
+
+    try:
+        new_version = _append_event(soknad_id, event, expected_version)
+    except ConcurrencyError:
+        return jsonify({
+            "success": False,
+            "error": "VERSION_CONFLICT"
+        }), 409
+
+    events, _ = _get_events_for_soknad(soknad_id)
+    state = fravik_service.compute_state(events)
+
+    logger.info(f"✅ Eier-beslutning ({beslutning}) for: {soknad_id}")
+
+    return jsonify({
+        "success": True,
+        "version": new_version,
+        "state": state.model_dump(mode='json')
+    })
+
+
+# =============================================================================
+# LISTE SØKNADER
+# =============================================================================
+
+@fravik_bp.route('/api/fravik/liste', methods=['GET'])
+@require_magic_link
+def liste_fravik_soknader():
+    """
+    List alle fravik-søknader.
+
+    Query parameters:
+    - status: Filter på status (optional)
+    - limit: Maks antall (default 50)
+
+    Response 200:
+    {
+        "success": true,
+        "soknader": [ ... FravikListeItem ... ],
+        "total": 42
+    }
+    """
+    # For nå: enkel implementasjon som scanner alle filer
+    # I produksjon: bruk metadata-tabell eller indeks
+    try:
+        # Hent alle søknader fra event store
+        # Dette er en forenklet implementasjon
+        soknader = []
+
+        # Hent fra repository (må implementeres i event_repo)
+        # For nå returnerer vi tom liste
+        return jsonify({
+            "success": True,
+            "soknader": soknader,
+            "total": len(soknader),
+            "message": "Liste-funksjonalitet under utvikling"
+        })
+
+    except Exception as e:
+        logger.error(f"Feil ved listing av søknader: {e}")
+        return jsonify({
+            "success": False,
+            "error": "INTERNAL_ERROR",
+            "message": str(e)
+        }), 500
