@@ -2,11 +2,10 @@
  * MiljoVurderingModal Component
  *
  * Modal for miljørådgiver to submit their vurdering of a fravik-søknad.
- * Two modes:
- * 1. Dokumentasjon ikke tilstrekkelig → Return to søker with mangler
- * 2. Dokumentasjon OK → Per-maskin vurdering + samlet anbefaling
- *
- * Follows RespondGrunnlagModal patterns for form handling.
+ * Simplified flow:
+ * - Per-maskin: Godkjent / Avslått (med vilkår i kommentar)
+ * - Samlet anbefaling beregnes automatisk
+ * - "Send tilbake" som toggle-tilstand
  */
 
 import { useMemo, useState, useEffect, useRef } from 'react';
@@ -31,70 +30,162 @@ import { useConfirmClose } from '../../../hooks/useConfirmClose';
 import { useFormBackup } from '../../../hooks/useFormBackup';
 import { TokenExpiredAlert } from '../../alerts/TokenExpiredAlert';
 import { submitMiljoVurdering, miljoReturnerSoknad } from '../../../api/fravik';
-import type { FravikState, FravikBeslutning, MaskinTilstand } from '../../../types/fravik';
+import type { FravikState, MaskinTilstand } from '../../../types/fravik';
 import { MASKIN_TYPE_LABELS } from '../../../types/fravik';
 import { formatDateShort } from '../../../utils/formatters';
 
 // ============================================================================
-// SCHEMA
+// TYPES & SCHEMA
 // ============================================================================
+
+type MaskinBeslutning = 'godkjent' | 'avslatt';
 
 const maskinVurderingSchema = z.object({
   maskin_id: z.string(),
-  beslutning: z.enum(['godkjent', 'delvis_godkjent', 'avslatt', 'krever_avklaring'] as const, {
-    errorMap: () => ({ message: 'Velg en beslutning' }),
+  beslutning: z.enum(['godkjent', 'avslatt'] as const, {
+    errorMap: () => ({ message: 'Velg vurdering' }),
   }),
   kommentar: z.string().optional(),
-  vilkar: z.array(z.string()).optional(),
 });
 
-const miljoVurderingSchema = z.discriminatedUnion('dokumentasjon_tilstrekkelig', [
-  // Dokumentasjon IKKE tilstrekkelig - returner til søker
-  z.object({
-    dokumentasjon_tilstrekkelig: z.literal(false),
-    manglende_dokumentasjon: z.string().min(10, 'Beskriv hva som mangler (minst 10 tegn)'),
-    maskin_vurderinger: z.array(maskinVurderingSchema).optional(),
-    kommentar: z.string().optional(),
-  }),
-  // Dokumentasjon tilstrekkelig - gi vurdering
-  z.object({
-    dokumentasjon_tilstrekkelig: z.literal(true),
-    manglende_dokumentasjon: z.string().optional(),
-    maskin_vurderinger: z.array(maskinVurderingSchema).min(1, 'Vurder alle maskiner'),
-    kommentar: z.string().optional(),
-  }),
-]);
+const vurderingSchema = z.object({
+  maskin_vurderinger: z.array(maskinVurderingSchema),
+  kommentar: z.string().optional(),
+});
 
-type MiljoVurderingFormData = z.infer<typeof miljoVurderingSchema>;
+const sendTilbakeSchema = z.object({
+  manglende_info: z.string().min(10, 'Beskriv hva som mangler (minst 10 tegn)'),
+});
+
+type VurderingFormData = z.infer<typeof vurderingSchema>;
+type SendTilbakeFormData = z.infer<typeof sendTilbakeSchema>;
+
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
+const MASKIN_BESLUTNING_OPTIONS: { value: MaskinBeslutning; label: string }[] = [
+  { value: 'godkjent', label: 'Godkjent' },
+  { value: 'avslatt', label: 'Avslått' },
+];
 
 // ============================================================================
 // HELPERS
 // ============================================================================
 
-const BESLUTNING_OPTIONS: { value: FravikBeslutning; label: string }[] = [
-  { value: 'godkjent', label: 'Anbefales godkjent' },
-  { value: 'delvis_godkjent', label: 'Anbefales delvis' },
-  { value: 'avslatt', label: 'Anbefales avslått' },
-  { value: 'krever_avklaring', label: 'Krever avklaring' },
-];
-
-function getBeslutningBadge(beslutning: FravikBeslutning): { variant: 'success' | 'warning' | 'danger' | 'info'; label: string } {
+function getBeslutningBadge(beslutning: string): { variant: 'success' | 'warning' | 'danger'; label: string } {
   switch (beslutning) {
     case 'godkjent':
-      return { variant: 'success', label: 'Godkjent' };
+      return { variant: 'success', label: 'Anbefaler godkjenning' };
     case 'delvis_godkjent':
-      return { variant: 'warning', label: 'Delvis' };
+      return { variant: 'warning', label: 'Anbefaler delvis' };
     case 'avslatt':
-      return { variant: 'danger', label: 'Avslått' };
-    case 'krever_avklaring':
-      return { variant: 'info', label: 'Avklaring' };
+      return { variant: 'danger', label: 'Anbefaler avslag' };
     default:
-      return { variant: 'info', label: beslutning };
+      return { variant: 'warning', label: beslutning };
   }
 }
 
+function beregnSamlet(beslutninger: (MaskinBeslutning | undefined)[]): 'godkjent' | 'delvis_godkjent' | 'avslatt' | undefined {
+  const validBeslutninger = beslutninger.filter((b): b is MaskinBeslutning => !!b);
+  if (validBeslutninger.length === 0) return undefined;
+
+  const alleGodkjent = validBeslutninger.every((b) => b === 'godkjent');
+  const alleAvslatt = validBeslutninger.every((b) => b === 'avslatt');
+
+  if (alleGodkjent) return 'godkjent';
+  if (alleAvslatt) return 'avslatt';
+  return 'delvis_godkjent';
+}
+
 // ============================================================================
-// COMPONENT
+// SUB-COMPONENTS
+// ============================================================================
+
+interface MaskinVurderingKortProps {
+  maskin: MaskinTilstand;
+  index: number;
+  control: any;
+  register: any;
+  errors: any;
+  currentBeslutning?: MaskinBeslutning;
+}
+
+function MaskinVurderingKort({
+  maskin,
+  index,
+  control,
+  register,
+  errors,
+  currentBeslutning,
+}: MaskinVurderingKortProps) {
+  const fieldErrors = errors.maskin_vurderinger?.[index];
+
+  return (
+    <div className="p-3 rounded-lg border border-pkt-border-default bg-pkt-bg-card">
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div>
+          <h4 className="font-medium text-sm">
+            {MASKIN_TYPE_LABELS[maskin.maskin_type] || maskin.maskin_type}
+            {maskin.annet_type && `: ${maskin.annet_type}`}
+          </h4>
+          <p className="text-xs text-pkt-text-body-muted">
+            {formatDateShort(maskin.start_dato)} – {formatDateShort(maskin.slutt_dato)}
+          </p>
+        </div>
+        {currentBeslutning && (
+          <Badge
+            variant={currentBeslutning === 'godkjent' ? 'success' : 'danger'}
+            size="sm"
+          >
+            {currentBeslutning === 'godkjent' ? 'Godkjent' : 'Avslått'}
+          </Badge>
+        )}
+      </div>
+
+      <p className="mb-3 text-xs text-pkt-text-body-muted line-clamp-2">
+        {maskin.begrunnelse}
+      </p>
+
+      <FormField
+        label="Vurdering"
+        required
+        error={fieldErrors?.beslutning?.message}
+      >
+        <Controller
+          name={`maskin_vurderinger.${index}.beslutning`}
+          control={control}
+          render={({ field }) => (
+            <RadioGroup value={field.value || ''} onValueChange={field.onChange}>
+              <div className="flex gap-4">
+                {MASKIN_BESLUTNING_OPTIONS.map((opt) => (
+                  <RadioItem
+                    key={opt.value}
+                    value={opt.value}
+                    label={opt.label}
+                    error={!!fieldErrors?.beslutning}
+                  />
+                ))}
+              </div>
+            </RadioGroup>
+          )}
+        />
+      </FormField>
+
+      <FormField label="Vilkår/kommentar" className="mt-2">
+        <Textarea
+          {...register(`maskin_vurderinger.${index}.kommentar`)}
+          rows={2}
+          fullWidth
+          placeholder="Eventuelle vilkår..."
+        />
+      </FormField>
+    </div>
+  );
+}
+
+// ============================================================================
+// MAIN COMPONENT
 // ============================================================================
 
 interface MiljoVurderingModalProps {
@@ -118,126 +209,115 @@ export function MiljoVurderingModal({
 }: MiljoVurderingModalProps) {
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const [showRestorePrompt, setShowRestorePrompt] = useState(false);
+  const [modus, setModus] = useState<'vurdering' | 'send_tilbake'>('vurdering');
   const toast = useToast();
   const queryClient = useQueryClient();
 
-  // Get maskiner as array
   const maskiner = useMemo(() => Object.values(state.maskiner), [state.maskiner]);
 
-  // Default values with per-maskin entries
-  const defaultValues = useMemo((): Partial<MiljoVurderingFormData> => ({
-    dokumentasjon_tilstrekkelig: undefined as unknown as boolean,
-    manglende_dokumentasjon: '',
+  // Vurdering form
+  const vurderingDefaultValues = useMemo((): VurderingFormData => ({
     maskin_vurderinger: maskiner.map((m) => ({
       maskin_id: m.maskin_id,
-      beslutning: undefined as unknown as FravikBeslutning,
+      beslutning: undefined as unknown as MaskinBeslutning,
       kommentar: '',
-      vilkar: [],
     })),
     kommentar: '',
   }), [maskiner]);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting, isDirty },
-    reset,
-    watch,
-    control,
-    setValue,
-  } = useForm<MiljoVurderingFormData>({
-    resolver: zodResolver(miljoVurderingSchema),
-    defaultValues,
+  const vurderingForm = useForm<VurderingFormData>({
+    resolver: zodResolver(vurderingSchema),
+    defaultValues: vurderingDefaultValues,
   });
 
   const { fields } = useFieldArray({
-    control,
+    control: vurderingForm.control,
     name: 'maskin_vurderinger',
+  });
+
+  // Send tilbake form
+  const sendTilbakeForm = useForm<SendTilbakeFormData>({
+    resolver: zodResolver(sendTilbakeSchema),
+    defaultValues: { manglende_info: '' },
   });
 
   // Reset when opening
   useEffect(() => {
     if (open) {
-      reset(defaultValues);
+      vurderingForm.reset(vurderingDefaultValues);
+      sendTilbakeForm.reset({ manglende_info: '' });
+      setModus('vurdering');
     }
-  }, [open, reset, defaultValues]);
+  }, [open, vurderingForm, sendTilbakeForm, vurderingDefaultValues]);
+
+  const isDirty = modus === 'vurdering'
+    ? vurderingForm.formState.isDirty
+    : sendTilbakeForm.formState.isDirty;
 
   const { showConfirmDialog, setShowConfirmDialog, handleClose, confirmClose } = useConfirmClose({
     isDirty,
-    onReset: reset,
+    onReset: () => {
+      vurderingForm.reset();
+      sendTilbakeForm.reset();
+    },
     onClose: () => onOpenChange(false),
   });
 
-  const formData = watch();
+  // Form backup
+  const vurderingData = vurderingForm.watch();
   const { getBackup, clearBackup, hasBackup } = useFormBackup(
     sakId,
     'miljo_vurdering',
-    formData,
-    isDirty
+    vurderingData,
+    vurderingForm.formState.isDirty
   );
 
   const hasCheckedBackup = useRef(false);
   useEffect(() => {
-    if (open && hasBackup && !isDirty && !hasCheckedBackup.current) {
+    if (open && hasBackup && !vurderingForm.formState.isDirty && !hasCheckedBackup.current) {
       hasCheckedBackup.current = true;
       setShowRestorePrompt(true);
     }
     if (!open) {
       hasCheckedBackup.current = false;
     }
-  }, [open, hasBackup, isDirty]);
+  }, [open, hasBackup, vurderingForm.formState.isDirty]);
 
   const handleRestoreBackup = () => {
     const backup = getBackup();
-    if (backup) reset(backup as MiljoVurderingFormData);
+    if (backup) vurderingForm.reset(backup as VurderingFormData);
     setShowRestorePrompt(false);
   };
+
   const handleDiscardBackup = () => {
     clearBackup();
     setShowRestorePrompt(false);
   };
 
-  // Mutation for miljø vurdering
+  // Mutations
   const vurderingMutation = useMutation({
-    mutationFn: async (data: MiljoVurderingFormData) => {
-      if (!data.dokumentasjon_tilstrekkelig) {
-        // Return to søker
-        await miljoReturnerSoknad(
-          sakId,
-          data.manglende_dokumentasjon || '',
-          aktor,
-          currentVersion
-        );
-      } else {
-        // Submit vurdering
-        await submitMiljoVurdering(
-          sakId,
-          {
-            dokumentasjon_tilstrekkelig: true,
-            maskin_vurderinger: data.maskin_vurderinger?.map((v) => ({
-              maskin_id: v.maskin_id,
-              beslutning: v.beslutning,
-              kommentar: v.kommentar,
-              vilkar: v.vilkar,
-            })) || [],
-            kommentar: data.kommentar,
-          },
-          aktor,
-          currentVersion
-        );
-      }
+    mutationFn: async (data: VurderingFormData) => {
+      await submitMiljoVurdering(
+        sakId,
+        {
+          dokumentasjon_tilstrekkelig: true,
+          maskin_vurderinger: data.maskin_vurderinger.map((v) => ({
+            maskin_id: v.maskin_id,
+            beslutning: v.beslutning,
+            kommentar: v.kommentar,
+          })),
+          kommentar: data.kommentar,
+        },
+        aktor,
+        currentVersion
+      );
     },
     onSuccess: () => {
       clearBackup();
-      reset();
+      vurderingForm.reset();
       queryClient.invalidateQueries({ queryKey: ['fravik', sakId] });
       onOpenChange(false);
-      toast.success(
-        formData.dokumentasjon_tilstrekkelig ? 'Vurdering sendt' : 'Søknad returnert',
-        formData.dokumentasjon_tilstrekkelig
-          ? 'Din vurdering er registrert.'
-          : 'Søknaden er returnert til søker.'
-      );
+      toast.success('Vurdering sendt', 'Din vurdering er registrert.');
       onSuccess?.();
     },
     onError: (error: Error) => {
@@ -249,276 +329,209 @@ export function MiljoVurderingModal({
     },
   });
 
-  const dokumentasjonOK = watch('dokumentasjon_tilstrekkelig');
-  const maskinVurderinger = watch('maskin_vurderinger') || [];
+  const sendTilbakeMutation = useMutation({
+    mutationFn: async (data: SendTilbakeFormData) => {
+      await miljoReturnerSoknad(sakId, data.manglende_info, aktor, currentVersion);
+    },
+    onSuccess: () => {
+      clearBackup();
+      sendTilbakeForm.reset();
+      queryClient.invalidateQueries({ queryKey: ['fravik', sakId] });
+      onOpenChange(false);
+      toast.success('Søknad returnert', 'Søknaden er returnert til søker.');
+      onSuccess?.();
+    },
+    onError: (error: Error) => {
+      if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') {
+        setShowTokenExpired(true);
+      } else {
+        toast.error('Feil ved innsending', error.message);
+      }
+    },
+  });
 
-  // Calculate samlet anbefaling from maskin vurderinger
-  const samletAnbefaling = useMemo((): FravikBeslutning | undefined => {
-    if (!dokumentasjonOK || maskinVurderinger.length === 0) return undefined;
+  // Beregn samlet anbefaling
+  const maskinVurderinger = vurderingForm.watch('maskin_vurderinger') || [];
+  const samletAnbefaling = beregnSamlet(maskinVurderinger.map((v) => v.beslutning));
+  const alleVurdert = maskinVurderinger.every((v) => v.beslutning);
 
-    const beslutninger = maskinVurderinger
-      .map((v) => v.beslutning)
-      .filter((b): b is FravikBeslutning => !!b);
-
-    if (beslutninger.length === 0) return undefined;
-    if (beslutninger.every((b) => b === 'godkjent')) return 'godkjent';
-    if (beslutninger.every((b) => b === 'avslatt')) return 'avslatt';
-    if (beslutninger.some((b) => b === 'krever_avklaring')) return 'krever_avklaring';
-    return 'delvis_godkjent';
-  }, [dokumentasjonOK, maskinVurderinger]);
-
-  const onSubmit = (data: MiljoVurderingFormData) => {
+  const onSubmitVurdering = (data: VurderingFormData) => {
     vurderingMutation.mutate(data);
   };
+
+  const onSubmitSendTilbake = (data: SendTilbakeFormData) => {
+    sendTilbakeMutation.mutate(data);
+  };
+
+  const isLoading = vurderingMutation.isPending || sendTilbakeMutation.isPending;
 
   return (
     <Modal
       open={open}
       onOpenChange={onOpenChange}
       title="Miljørådgiver vurdering"
-      description="Vurder fravik-søknaden og gi din anbefaling."
+      description={`${state.prosjekt_navn} • ${maskiner.length} maskin${maskiner.length !== 1 ? 'er' : ''}`}
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Søknadsoversikt */}
-        <SectionContainer title="Søknad" variant="subtle">
-          <div className="space-y-2 text-sm">
-            <p>
-              <span className="font-medium">{state.prosjekt_navn}</span>
-              {state.prosjekt_nummer && (
-                <span className="text-pkt-text-body-muted ml-1">({state.prosjekt_nummer})</span>
-              )}
-            </p>
-            <p className="text-pkt-text-body-muted">
-              Søker: {state.soker_navn} • {maskiner.length} maskin{maskiner.length !== 1 ? 'er' : ''}
-            </p>
-            {state.er_haste && (
-              <Badge variant="danger" size="sm">Hastebehandling</Badge>
-            )}
-          </div>
-        </SectionContainer>
+      {modus === 'vurdering' ? (
+        <form onSubmit={vurderingForm.handleSubmit(onSubmitVurdering)} className="space-y-4">
+          {/* Veiledning */}
+          <Alert variant="info" title="Din rolle">
+            Vurder søknaden fra et miljøperspektiv. Din anbefaling går videre til prosjektleder.
+          </Alert>
 
-        {/* Dokumentasjon-sjekk */}
-        <SectionContainer
-          title="Dokumentasjon"
-          description="Vurder om innsendt dokumentasjon er tilstrekkelig for å gi en anbefaling."
-        >
-          <FormField
-            label="Er dokumentasjonen tilstrekkelig?"
-            required
-            error={errors.dokumentasjon_tilstrekkelig?.message}
+          {/* Toggle til send tilbake */}
+          <button
+            type="button"
+            onClick={() => setModus('send_tilbake')}
+            className="text-sm text-pkt-text-action hover:text-pkt-text-action-active hover:underline"
           >
-            <Controller
-              name="dokumentasjon_tilstrekkelig"
-              control={control}
-              render={({ field }) => (
-                <RadioGroup
-                  value={field.value === true ? 'true' : field.value === false ? 'false' : ''}
-                  onValueChange={(v) => field.onChange(v === 'true')}
-                >
-                  <RadioItem
-                    value="true"
-                    label="Ja - gi vurdering"
-                    error={!!errors.dokumentasjon_tilstrekkelig}
-                  />
-                  <RadioItem
-                    value="false"
-                    label="Nei - returner til søker"
-                    error={!!errors.dokumentasjon_tilstrekkelig}
-                  />
-                </RadioGroup>
-              )}
-            />
-          </FormField>
-        </SectionContainer>
+            Mangler dokumentasjon? Send tilbake til søker →
+          </button>
 
-        {/* Manglende dokumentasjon (når IKKE tilstrekkelig) */}
-        {dokumentasjonOK === false && (
-          <SectionContainer title="Manglende dokumentasjon">
-            <Alert variant="warning" title="Søknaden returneres">
-              Søknaden returneres til søker for utfylling av manglende dokumentasjon.
-            </Alert>
-            <FormField
-              label="Beskriv hva som mangler"
-              required
-              error={(errors as any).manglende_dokumentasjon?.message}
-              className="mt-4"
-            >
-              <Textarea
-                {...register('manglende_dokumentasjon')}
-                rows={4}
-                fullWidth
-                placeholder="Beskriv hvilken dokumentasjon som mangler..."
-                error={!!(errors as any).manglende_dokumentasjon}
-              />
-            </FormField>
-          </SectionContainer>
-        )}
-
-        {/* Per-maskin vurdering (når dokumentasjon OK) */}
-        {dokumentasjonOK === true && maskiner.length > 0 && (
+          {/* Per-maskin vurdering */}
           <SectionContainer
             title="Maskinvurderinger"
-            description="Gi din anbefaling for hver maskin."
+            description="Vurder hver maskin."
           >
-            <div className="space-y-4">
+            <div className="space-y-3">
               {fields.map((field, index) => {
                 const maskin = maskiner.find((m) => m.maskin_id === field.maskin_id);
                 if (!maskin) return null;
 
-                const fieldErrors = errors.maskin_vurderinger?.[index];
-                const currentBeslutning = maskinVurderinger[index]?.beslutning;
-
                 return (
-                  <div
+                  <MaskinVurderingKort
                     key={field.id}
-                    className="p-4 rounded-lg border border-pkt-border-default bg-pkt-bg-card"
-                  >
-                    <div className="flex items-start justify-between gap-2 mb-3">
-                      <div>
-                        <h4 className="font-medium text-sm">
-                          {MASKIN_TYPE_LABELS[maskin.maskin_type] || maskin.maskin_type}
-                          {maskin.annet_type && `: ${maskin.annet_type}`}
-                        </h4>
-                        <p className="text-xs text-pkt-text-body-muted">
-                          {formatDateShort(maskin.start_dato)} – {formatDateShort(maskin.slutt_dato)}
-                        </p>
-                      </div>
-                      {currentBeslutning && (
-                        <Badge
-                          variant={getBeslutningBadge(currentBeslutning).variant}
-                          size="sm"
-                        >
-                          {getBeslutningBadge(currentBeslutning).label}
-                        </Badge>
-                      )}
-                    </div>
-
-                    {/* Maskin-detaljer */}
-                    <div className="mb-3 text-xs text-pkt-text-body-muted space-y-1">
-                      <p><strong>Begrunnelse:</strong> {maskin.begrunnelse}</p>
-                      {maskin.erstatningsmaskin && (
-                        <p>
-                          <strong>Erstatning:</strong> {maskin.erstatningsmaskin}
-                          {maskin.erstatningsdrivstoff && ` (${maskin.erstatningsdrivstoff})`}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Beslutning */}
-                    <FormField
-                      label="Din anbefaling"
-                      required
-                      error={fieldErrors?.beslutning?.message}
-                    >
-                      <Controller
-                        name={`maskin_vurderinger.${index}.beslutning`}
-                        control={control}
-                        render={({ field: radioField }) => (
-                          <RadioGroup
-                            value={radioField.value || ''}
-                            onValueChange={radioField.onChange}
-                          >
-                            {BESLUTNING_OPTIONS.map((opt) => (
-                              <RadioItem
-                                key={opt.value}
-                                value={opt.value}
-                                label={opt.label}
-                                error={!!fieldErrors?.beslutning}
-                              />
-                            ))}
-                          </RadioGroup>
-                        )}
-                      />
-                    </FormField>
-
-                    {/* Kommentar for denne maskinen */}
-                    <FormField label="Kommentar (valgfri)" className="mt-3">
-                      <Textarea
-                        {...register(`maskin_vurderinger.${index}.kommentar`)}
-                        rows={2}
-                        fullWidth
-                        placeholder="Eventuelle vilkår eller merknad..."
-                      />
-                    </FormField>
-                  </div>
+                    maskin={maskin}
+                    index={index}
+                    control={vurderingForm.control}
+                    register={vurderingForm.register}
+                    errors={vurderingForm.formState.errors}
+                    currentBeslutning={maskinVurderinger[index]?.beslutning}
+                  />
                 );
               })}
             </div>
-
-            {/* Samlet anbefaling */}
-            {samletAnbefaling && (
-              <div className="mt-4 p-3 bg-pkt-surface-subtle rounded border border-pkt-border-subtle">
-                <p className="text-sm">
-                  <strong>Samlet anbefaling:</strong>{' '}
-                  <Badge variant={getBeslutningBadge(samletAnbefaling).variant}>
-                    {getBeslutningBadge(samletAnbefaling).label}
-                  </Badge>
-                </p>
-              </div>
-            )}
           </SectionContainer>
-        )}
 
-        {/* Generell kommentar */}
-        {dokumentasjonOK === true && (
-          <SectionContainer title="Generell kommentar">
-            <FormField label="Kommentar til søknaden (valgfri)">
+          {/* Samlet anbefaling (beregnet) */}
+          {samletAnbefaling && alleVurdert && (
+            <div className="p-3 bg-pkt-surface-subtle rounded border border-pkt-border-subtle">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">Samlet anbefaling:</span>
+                <Badge variant={getBeslutningBadge(samletAnbefaling).variant}>
+                  {getBeslutningBadge(samletAnbefaling).label}
+                </Badge>
+              </div>
+            </div>
+          )}
+
+          {/* Kommentar */}
+          <SectionContainer title="Kommentar">
+            <FormField label="Overordnet kommentar (valgfri)">
               <Textarea
-                {...register('kommentar')}
+                {...vurderingForm.register('kommentar')}
                 rows={3}
                 fullWidth
-                placeholder="Overordnede vurderinger eller anbefalinger..."
+                placeholder="Eventuelle overordnede vurderinger..."
               />
             </FormField>
           </SectionContainer>
-        )}
 
-        {/* Error */}
-        {vurderingMutation.isError && (
-          <Alert variant="danger" title="Feil ved innsending">
-            {vurderingMutation.error instanceof Error
-              ? vurderingMutation.error.message
-              : 'En feil oppstod'}
-          </Alert>
-        )}
+          {/* Error */}
+          {vurderingMutation.isError && (
+            <Alert variant="danger" title="Feil ved innsending">
+              {vurderingMutation.error instanceof Error
+                ? vurderingMutation.error.message
+                : 'En feil oppstod'}
+            </Alert>
+          )}
 
-        {/* Actions */}
-        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-6 border-t-2 border-pkt-border-subtle">
-          <Button
+          {/* Actions */}
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-4 border-t border-pkt-border-subtle">
+            <Button type="button" variant="ghost" onClick={handleClose} disabled={isLoading}>
+              Avbryt
+            </Button>
+            <Button
+              type="submit"
+              variant={samletAnbefaling === 'avslatt' ? 'danger' : 'primary'}
+              loading={vurderingMutation.isPending}
+              disabled={!alleVurdert}
+            >
+              Send vurdering
+            </Button>
+          </div>
+        </form>
+      ) : (
+        <form onSubmit={sendTilbakeForm.handleSubmit(onSubmitSendTilbake)} className="space-y-4">
+          {/* Toggle tilbake til vurdering */}
+          <button
             type="button"
-            variant="ghost"
-            onClick={handleClose}
-            disabled={isSubmitting}
+            onClick={() => setModus('vurdering')}
+            className="text-sm text-pkt-text-action hover:text-pkt-text-action-active hover:underline"
           >
-            Avbryt
-          </Button>
-          <Button
-            type="submit"
-            variant={dokumentasjonOK === false ? 'secondary' : 'primary'}
-            loading={vurderingMutation.isPending}
-          >
-            {dokumentasjonOK === false ? 'Returner søknad' : 'Send vurdering'}
-          </Button>
-        </div>
-      </form>
+            ← Tilbake til vurdering
+          </button>
 
-      {/* Confirm close dialog */}
+          {/* Warning */}
+          <Alert variant="warning" title="Søknaden returneres">
+            Søker må utfylle manglende informasjon før du kan vurdere søknaden.
+          </Alert>
+
+          {/* Hva mangler */}
+          <SectionContainer title="Hva mangler?">
+            <FormField
+              label="Beskriv manglende informasjon"
+              required
+              error={sendTilbakeForm.formState.errors.manglende_info?.message}
+            >
+              <Textarea
+                {...sendTilbakeForm.register('manglende_info')}
+                rows={4}
+                fullWidth
+                placeholder="Beskriv tydelig hva som må rettes opp..."
+                error={!!sendTilbakeForm.formState.errors.manglende_info}
+              />
+            </FormField>
+          </SectionContainer>
+
+          {/* Error */}
+          {sendTilbakeMutation.isError && (
+            <Alert variant="danger" title="Feil ved innsending">
+              {sendTilbakeMutation.error instanceof Error
+                ? sendTilbakeMutation.error.message
+                : 'En feil oppstod'}
+            </Alert>
+          )}
+
+          {/* Actions */}
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-4 border-t border-pkt-border-subtle">
+            <Button type="button" variant="ghost" onClick={handleClose} disabled={isLoading}>
+              Avbryt
+            </Button>
+            <Button type="submit" variant="secondary" loading={sendTilbakeMutation.isPending}>
+              Returner søknad
+            </Button>
+          </div>
+        </form>
+      )}
+
+      {/* Dialogs */}
       <AlertDialog
         open={showConfirmDialog}
         onOpenChange={setShowConfirmDialog}
         title="Forkast endringer?"
-        description="Du har ulagrede endringer som vil gå tapt hvis du lukker skjemaet."
+        description="Du har ulagrede endringer som vil gå tapt."
         confirmLabel="Forkast"
-        cancelLabel="Fortsett redigering"
+        cancelLabel="Fortsett"
         onConfirm={confirmClose}
         variant="warning"
       />
       <AlertDialog
         open={showRestorePrompt}
-        onOpenChange={(open) => { if (!open) handleDiscardBackup(); }}
+        onOpenChange={(o) => { if (!o) handleDiscardBackup(); }}
         title="Gjenopprette lagrede data?"
-        description="Det finnes data fra en tidligere økt. Vil du fortsette der du slapp?"
+        description="Det finnes data fra en tidligere økt."
         confirmLabel="Gjenopprett"
         cancelLabel="Start på nytt"
         onConfirm={handleRestoreBackup}

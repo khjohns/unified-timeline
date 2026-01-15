@@ -234,6 +234,26 @@ export async function miljoReturnerSoknad(
 }
 
 /**
+ * Returner søknad fra prosjektleder (manglende dokumentasjon).
+ */
+export async function plReturnerSoknad(
+  sakId: string,
+  manglendeInfo: string,
+  aktor: string,
+  expectedVersion?: number
+): Promise<void> {
+  if (USE_MOCK_API) {
+    await mockDelay();
+    return;
+  }
+
+  await apiFetch(`/api/fravik/${sakId}/pl-returnert`, {
+    method: 'POST',
+    body: JSON.stringify({ manglende_dokumentasjon: manglendeInfo, aktor, expected_version: expectedVersion ?? 0 }),
+  });
+}
+
+/**
  * Submit prosjektleder vurdering.
  */
 export async function submitPLVurdering(
