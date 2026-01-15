@@ -20,6 +20,9 @@ const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 /**
  * Main App for Event Sourcing Architecture
  *
+ * Authentication: All protected routes require Supabase Auth + MFA (2FA).
+ * Users without MFA enabled will be prompted to set it up before accessing the app.
+ *
  * Routes:
  * - / : Auth landing (handles magic link token, redirects to case)
  * - /demo : Example cases selector (mock mode)
@@ -30,6 +33,7 @@ const SettingsPage = lazy(() => import('./pages/SettingsPage'));
  * - /endringsordre/:sakId : Endringsordre case view (§31.3)
  * - /analyse : Analytics dashboard (project/portfolio insights)
  * - /integrasjoner : Dalux-Catenda sync management
+ * - /innstillinger : User settings and MFA management
  * - /showcase : Component showcase for testing primitives
  */
 const App: React.FC = () => {
