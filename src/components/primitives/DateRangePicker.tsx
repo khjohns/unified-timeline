@@ -134,7 +134,8 @@ const calendarStyles = `
     border-radius: 50% !important;
   }
 
-  .rdp-day_today {
+  .rdp-day_today,
+  .rdp-day_today .rdp-day_button {
     font-weight: 700;
     color: var(--color-pkt-text-body-dark) !important;
   }
@@ -204,7 +205,8 @@ const calendarStyles = `
     fill: currentColor !important;
   }
 
-  .dark .rdp-day_today {
+  .dark .rdp-day_today,
+  .dark .rdp-day_today .rdp-day_button {
     color: var(--color-pkt-text-body-default) !important;
   }
 `;
