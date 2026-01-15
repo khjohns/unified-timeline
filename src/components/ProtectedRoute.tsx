@@ -7,9 +7,8 @@
  */
 
 import { ReactNode, useEffect, useState } from 'react';
-import { useSupabaseAuth } from '../../context/SupabaseAuthContext';
-import { LoginForm } from './LoginForm';
-import { MFARequired } from './MFARequired';
+import { useSupabaseAuth } from '../context/SupabaseAuthContext';
+import { LoginForm, MFARequired } from './auth';
 import { ReloadIcon } from '@radix-ui/react-icons';
 
 interface ProtectedRouteProps {

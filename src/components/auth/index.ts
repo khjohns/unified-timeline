@@ -1,10 +1,9 @@
 /**
  * Auth Components
  *
- * Authentication and MFA related components.
+ * Authentication and MFA UI components.
  */
 
 export { LoginForm } from './LoginForm';
 export { MFASetup } from './MFASetup';
 export { MFARequired } from './MFARequired';
-export { ProtectedRoute } from './ProtectedRoute';
