@@ -173,7 +173,6 @@ export function FravikDashboard({
       {showDinOppgave && (
         <>
           <DinOppgaveAlert
-            state={state}
             gjeldende={gjeldende}
             onBOIVurdering={onBOIVurdering}
             onPLVurdering={onPLVurdering}
@@ -184,6 +183,15 @@ export function FravikDashboard({
           {(gjeldende === 'arbeidsgruppe' || gjeldende === 'eier') && (
             <TidligereVurderingerKort state={state} gjeldende={gjeldende} />
           )}
+
+          {/* Semantisk skille mellom vurdering og søknadsdata */}
+          <div className="flex items-center gap-3 pt-2">
+            <div className="flex-1 border-t border-pkt-border-subtle" />
+            <span className="text-xs font-medium text-pkt-text-body-muted uppercase tracking-wide">
+              Søknadsdata
+            </span>
+            <div className="flex-1 border-t border-pkt-border-subtle" />
+          </div>
         </>
       )}
 
@@ -473,7 +481,6 @@ function TidligereVurderingerKort({ state, gjeldende }: TidligereVurderingerKort
 // ============================================================================
 
 interface DinOppgaveAlertProps {
-  state: FravikState;
   gjeldende: 'boi' | 'pl' | 'arbeidsgruppe' | 'eier' | 'ferdig';
   onBOIVurdering?: () => void;
   onPLVurdering?: () => void;
@@ -520,7 +527,6 @@ function getOppgaveConfig(gjeldende: string) {
 }
 
 function DinOppgaveAlert({
-  state,
   gjeldende,
   onBOIVurdering,
   onPLVurdering,
@@ -539,24 +545,6 @@ function DinOppgaveAlert({
     }
   };
 
-  const { godkjenningskjede } = state;
-
-  // Build footer with previous evaluations
-  const tidligereVurderinger: string[] = [];
-  if (gjeldende !== 'boi' && godkjenningskjede.boi_vurdering.fullfort) {
-    const status = godkjenningskjede.boi_vurdering.beslutning === 'godkjent' ? '✓' : '✗';
-    tidligereVurderinger.push(`BOI: ${status}`);
-  }
-  if ((gjeldende === 'arbeidsgruppe' || gjeldende === 'eier') && godkjenningskjede.pl_vurdering.fullfort) {
-    const status = godkjenningskjede.pl_vurdering.beslutning === 'godkjent' ? '✓' : '✗';
-    tidligereVurderinger.push(`PL: ${status}`);
-  }
-  if (gjeldende === 'eier' && godkjenningskjede.arbeidsgruppe_vurdering.fullfort) {
-    const beslutning = godkjenningskjede.arbeidsgruppe_vurdering.beslutning;
-    const status = beslutning === 'godkjent' ? '✓' : beslutning === 'delvis_godkjent' ? '~' : '✗';
-    tidligereVurderinger.push(`AG: ${status}`);
-  }
-
   return (
     <Alert
       variant="info"
@@ -571,11 +559,6 @@ function DinOppgaveAlert({
           {config.knappTekst}
         </Button>
       }
-      footer={tidligereVurderinger.length > 0 ? (
-        <span className="text-xs text-pkt-text-body-muted">
-          Tidligere: {tidligereVurderinger.join(' • ')}
-        </span>
-      ) : undefined}
     >
       {config.beskrivelse}
     </Alert>
