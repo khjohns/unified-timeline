@@ -136,7 +136,7 @@ const calendarStyles = `
 
   .rdp-day_today {
     font-weight: 700;
-    color: var(--color-pkt-brand-warm-blue-1000);
+    color: var(--color-pkt-text-body-dark) !important;
   }
 
   .rdp-nav button {
@@ -202,6 +202,10 @@ const calendarStyles = `
   .dark .rdp-nav button svg {
     color: inherit !important;
     fill: currentColor !important;
+  }
+
+  .dark .rdp-day_today {
+    color: var(--color-pkt-text-body-default) !important;
   }
 `;
 
