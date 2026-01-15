@@ -124,7 +124,7 @@ describe('UNDERKATEGORI_MAP', () => {
   });
 
   it('should have correct underkategorier for ENDRING', () => {
-    const underkategorier = UNDERKATEGORI_MAP['ENDRING'];
+    const underkategorier = UNDERKATEGORI_MAP['ENDRING']!;
     expect(underkategorier.length).toBeGreaterThan(0);
 
     const koder = underkategorier.map(u => u.value);

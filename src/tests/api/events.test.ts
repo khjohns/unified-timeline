@@ -133,7 +133,7 @@ describe('Events API', () => {
           hovedkategori: 'test',
         });
 
-        const callArgs = vi.mocked(clientModule.apiFetch).mock.calls[0];
+        const callArgs = vi.mocked(clientModule.apiFetch).mock.calls[0]!;
         const body = JSON.parse(callArgs[1]?.body as string);
 
         expect(body.sak_id).toBe('SAK-2025-001');
@@ -151,7 +151,7 @@ describe('Events API', () => {
           metode: 'REGNINGSARBEID',
         });
 
-        const callArgs = vi.mocked(clientModule.apiFetch).mock.calls[0];
+        const callArgs = vi.mocked(clientModule.apiFetch).mock.calls[0]!;
         const body = JSON.parse(callArgs[1]?.body as string);
 
         expect(body.event.event_type).toBe('vederlag_krav_sendt');
@@ -173,7 +173,7 @@ describe('Events API', () => {
           { expectedVersion: 3 }
         );
 
-        const callArgs = vi.mocked(clientModule.apiFetch).mock.calls[0];
+        const callArgs = vi.mocked(clientModule.apiFetch).mock.calls[0]!;
         const body = JSON.parse(callArgs[1]?.body as string);
 
         expect(body.expected_version).toBe(3);
@@ -188,7 +188,7 @@ describe('Events API', () => {
 
         await submitEvent('SAK-001', 'grunnlag_opprettet', { hovedkategori: 'test' });
 
-        const callArgs = vi.mocked(clientModule.apiFetch).mock.calls[0];
+        const callArgs = vi.mocked(clientModule.apiFetch).mock.calls[0]!;
         const body = JSON.parse(callArgs[1]?.body as string);
 
         expect(body.expected_version).toBe(0);
@@ -208,7 +208,7 @@ describe('Events API', () => {
           { catendaTopicId: 'topic-guid-123' }
         );
 
-        const callArgs = vi.mocked(clientModule.apiFetch).mock.calls[0];
+        const callArgs = vi.mocked(clientModule.apiFetch).mock.calls[0]!;
         const body = JSON.parse(callArgs[1]?.body as string);
 
         expect(body.catenda_topic_id).toBe('topic-guid-123');
@@ -232,7 +232,7 @@ describe('Events API', () => {
           }
         );
 
-        const callArgs = vi.mocked(clientModule.apiFetch).mock.calls[0];
+        const callArgs = vi.mocked(clientModule.apiFetch).mock.calls[0]!;
         const body = JSON.parse(callArgs[1]?.body as string);
 
         expect(body.pdf_base64).toBe('JVBERi0xLjQK...');

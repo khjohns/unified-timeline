@@ -54,6 +54,7 @@ describe('Action/Modal Components - Functional Tests', () => {
       open: true,
       onOpenChange: vi.fn(),
       sakId: 'TEST-001',
+      grunnlagEventId: 'test-grunnlag-event-001',
     };
 
     it('should render when open', () => {
@@ -155,7 +156,7 @@ describe('Action/Modal Components - Functional Tests', () => {
       const handleOpenChange = vi.fn();
 
       renderWithProviders(
-        <RespondGrunnlagModal open={true} onOpenChange={handleOpenChange} sakId="TEST-001" />
+        <RespondGrunnlagModal open={true} onOpenChange={handleOpenChange} sakId="TEST-001" grunnlagEventId="test-grunnlag-event-001" />
       );
 
       await user.click(screen.getByText(/Avbryt/i));
@@ -471,6 +472,7 @@ describe('Action/Modal Components - Functional Tests', () => {
       open: true,
       onOpenChange: vi.fn(),
       sakId: 'TEST-001',
+      vederlagKravId: 'vederlag-TEST-001',
       // Update mode is activated by providing lastResponseEvent
       lastResponseEvent: {
         event_id: 'response-1',

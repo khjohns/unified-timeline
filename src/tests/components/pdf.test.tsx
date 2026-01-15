@@ -274,7 +274,7 @@ describe('PDF Components', () => {
       const { mergeDraftsIntoState } = await import('@/utils/mergeDraftsIntoState');
       const mockState = createMockSakState();
       const drafts = {
-        grunnlagDraft: { resultat: 'godkjent' as const, begrunnelse: 'Test' },
+        grunnlagDraft: { sporType: 'grunnlag' as const, resultat: 'godkjent' as const, begrunnelse: 'Test' },
       };
 
       render(
@@ -303,7 +303,7 @@ describe('PDF Components', () => {
       const { downloadPdfWithDrafts } = await import('@/pdf/generator');
       const mockState = createMockSakState();
       const drafts = {
-        vederlagDraft: { resultat: 'delvis_godkjent' as const, belop: 50000, begrunnelse: 'Test' },
+        vederlagDraft: { sporType: 'vederlag' as const, resultat: 'delvis_godkjent' as const, belop: 50000, begrunnelse: 'Test' },
       };
 
       await downloadPdfWithDrafts(mockState, drafts);

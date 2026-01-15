@@ -122,9 +122,8 @@ describe('Primitive Components - Accessibility', () => {
           title="Confirm Action"
           description="Are you sure you want to proceed?"
           onConfirm={() => {}}
-          onCancel={() => {}}
-          confirmText="Yes, proceed"
-          cancelText="Cancel"
+          confirmLabel="Yes, proceed"
+          cancelLabel="Cancel"
         />
       );
       const results = await axe(container);
@@ -139,7 +138,6 @@ describe('Primitive Components - Accessibility', () => {
           title="Warning"
           description="This action cannot be undone."
           onConfirm={() => {}}
-          onCancel={() => {}}
         />
       );
       const results = await axe(container);

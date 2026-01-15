@@ -4,9 +4,24 @@
  * Custom assertion helper for jest-axe in vitest environment
  */
 
-import type { AxeResults } from 'axe-core';
+// Use a minimal interface compatible with both axe-core and jest-axe types
+interface AxeViolation {
+  id: string;
+  help: string;
+  description: string;
+  impact?: string | null;
+  helpUrl: string;
+  nodes: Array<{
+    target: string[];
+    html: string;
+  }>;
+}
 
-export function expectNoA11yViolations(results: AxeResults) {
+interface AxeResultsLike {
+  violations: AxeViolation[];
+}
+
+export function expectNoA11yViolations(results: AxeResultsLike) {
   if (results.violations.length > 0) {
     const violationMessages = results.violations
       .map((violation) => {

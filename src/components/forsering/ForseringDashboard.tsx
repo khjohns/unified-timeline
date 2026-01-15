@@ -313,14 +313,14 @@ function ForseringsrettVurderingTable({
   const harKonklusjon = (vurderingPerSak && vurderingPerSak.length > 0) || harForseringsrettAvslag || dagerMedForseringsrett > 0;
 
   // Helper to get status for a sak
-  const getStatus = (sak: RelatertSakMedAvslag) => {
+  const getStatus = (sak: RelatertSakMedAvslag): { variant: 'success' | 'danger' | 'default'; label: string } => {
     const vurdering = vurderingPerSak?.find(v => v.sak_id === sak.sak_id);
     const harVurdering = vurdering !== undefined;
 
     if (harVurdering) {
       const erUberettiget = vurdering?.avslag_berettiget === false;
       return {
-        variant: erUberettiget ? 'success' : 'danger' as const,
+        variant: erUberettiget ? 'success' : 'danger',
         label: erUberettiget ? 'Uberettiget' : 'Berettiget',
       };
     }
@@ -329,12 +329,12 @@ function ForseringsrettVurderingTable({
     const kanInferere = harForseringsrettAvslag || dagerMedForseringsrett > 0;
     if (kanInferere) {
       return {
-        variant: harForseringsrettAvslag ? 'danger' : 'success' as const,
+        variant: harForseringsrettAvslag ? 'danger' : 'success',
         label: harForseringsrettAvslag ? 'Berettiget' : 'Uberettiget',
       };
     }
 
-    return { variant: 'default' as const, label: 'Ikke vurdert' };
+    return { variant: 'default', label: 'Ikke vurdert' };
   };
 
   const tableContent = (

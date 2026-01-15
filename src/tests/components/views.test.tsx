@@ -125,7 +125,7 @@ describe('View Components - Functional Tests', () => {
 
       // Actor names are shown in the expanded view, click to expand first event
       const listItems = screen.getAllByRole('listitem');
-      await user.click(listItems[0]);
+      await user.click(listItems[0]!);
 
       // Actor names should now be visible in expanded content
       expect(screen.getByText(/Per Hansen/i)).toBeInTheDocument();
@@ -295,6 +295,7 @@ describe('View Components - Functional Tests', () => {
       // Mock API to return empty historikk
       vi.mocked(fetchHistorikk).mockResolvedValue({
         version: 1,
+        grunnlag: [],
         vederlag: [],
         frist: [],
       });

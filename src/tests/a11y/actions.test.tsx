@@ -123,6 +123,7 @@ describe('Action Components (Modals) - Accessibility', () => {
           open={true}
           onOpenChange={() => {}}
           sakId="test-sak-123"
+          grunnlagEventId="test-grunnlag-event-123"
         />,
         { wrapper: createWrapper() }
       );
@@ -136,6 +137,7 @@ describe('Action Components (Modals) - Accessibility', () => {
           open={true}
           onOpenChange={() => {}}
           sakId="test-sak-123"
+          grunnlagEventId="test-grunnlag-event-123"
         />,
         { wrapper: createWrapper() }
       );

@@ -920,7 +920,7 @@ export function extractSpor(ceType: string): SporType | null {
   if (eventType.includes('grunnlag')) return 'grunnlag';
   if (eventType.includes('vederlag')) return 'vederlag';
   if (eventType.includes('frist')) return 'frist';
-  if (eventType.includes('forsering')) return 'forsering';
+  // Note: forsering is a case type (sakstype), not a spor
   return null;
 }
 

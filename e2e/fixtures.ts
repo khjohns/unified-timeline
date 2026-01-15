@@ -127,7 +127,7 @@ export const test = base.extend<{ api: ApiHelpers }>({
 
         // Default grunnlag data
         // Uses SCREAMING_SNAKE_CASE codes (synced frontend/backend): ENDRING + EO
-        const today = new Date().toISOString().split('T')[0];
+        const today = new Date().toISOString().split('T')[0]!;
         const defaultGrunnlag: GrunnlagData = {
           hovedkategori: 'ENDRING',
           underkategori: ['EO'],
