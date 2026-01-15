@@ -135,6 +135,36 @@ const calendarStyles = `
   .rdp-nav button:hover {
     background-color: var(--color-pkt-surface-light-blue);
   }
+
+  /* Dark mode overrides */
+  .dark .rdp {
+    --rdp-accent-color: var(--color-pkt-brand-warm-blue-1000);
+    --rdp-background-color: var(--color-pkt-grays-gray-200);
+  }
+
+  .dark .rdp-day_button:hover:not([disabled]) {
+    background-color: var(--color-pkt-grays-gray-200);
+  }
+
+  .dark .rdp-selected {
+    background-color: var(--color-pkt-brand-warm-blue-1000);
+    color: var(--color-pkt-bg-default);
+  }
+
+  .dark .rdp-range_start,
+  .dark .rdp-range_end {
+    background-color: var(--color-pkt-brand-warm-blue-1000);
+    color: var(--color-pkt-bg-default);
+  }
+
+  .dark .rdp-range_middle {
+    background-color: var(--color-pkt-grays-gray-200);
+    color: var(--color-pkt-text-body-default);
+  }
+
+  .dark .rdp-nav button:hover {
+    background-color: var(--color-pkt-grays-gray-200);
+  }
 `;
 
 /**
