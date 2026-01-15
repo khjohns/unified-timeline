@@ -104,21 +104,38 @@ const calendarStyles = `
     background-color: var(--color-pkt-surface-light-blue);
   }
 
+  /* Reset day cell backgrounds */
+  .rdp-day {
+    background-color: transparent;
+  }
+
+  /* Range middle - subtle background on the cell */
+  .rdp-range_middle {
+    background-color: var(--color-pkt-surface-light-blue);
+    color: var(--color-pkt-text-body-dark);
+  }
+
+  /* Selected state - clear cell background, style button */
   .rdp-selected {
+    background-color: transparent;
+  }
+
+  .rdp-selected .rdp-day_button {
     background-color: var(--color-pkt-surface-strong-dark-blue);
     color: var(--color-pkt-text-body-light);
     font-weight: 600;
   }
 
+  /* Range start/end - clear cell background, style button */
   .rdp-range_start,
   .rdp-range_end {
-    background-color: var(--color-pkt-surface-strong-dark-blue);
-    color: var(--color-pkt-text-body-light);
+    background-color: transparent;
   }
 
-  .rdp-range_middle {
-    background-color: var(--color-pkt-surface-light-blue);
-    color: var(--color-pkt-text-body-dark);
+  .rdp-range_start .rdp-day_button,
+  .rdp-range_end .rdp-day_button {
+    background-color: var(--color-pkt-surface-strong-dark-blue);
+    color: var(--color-pkt-text-body-light);
   }
 
   .rdp-day_today {
