@@ -86,8 +86,9 @@ def _get_events_for_soknad(soknad_id: str) -> tuple[List, int]:
 
 def _append_event(soknad_id: str, event: Any, expected_version: int) -> int:
     """Legger til en event i event-loggen."""
-    event_data = event.model_dump(mode='json')
-    new_version = event_repo.append(soknad_id, event_data, expected_version)
+    # Pass event object directly - repository handles serialization
+    # sakstype auto-detects from event_type prefix 'fravik_'
+    new_version = event_repo.append(event, expected_version)
     return new_version
 
 

@@ -98,9 +98,10 @@ export async function opprettFravikSoknad(
     return `FRAVIK-${Date.now()}`;
   }
 
+  // Backend expects flat payload with aktor at top level
   const response = await apiFetch<OpprettResponse>('/api/fravik/opprett', {
     method: 'POST',
-    body: JSON.stringify({ data, aktor }),
+    body: JSON.stringify({ ...data, aktor }),
   });
   return response.soknad_id;
 }
@@ -118,9 +119,10 @@ export async function oppdaterFravikSoknad(
     return;
   }
 
+  // Backend expects flat payload
   await apiFetch(`/api/fravik/${soknadId}/oppdater`, {
     method: 'POST',
-    body: JSON.stringify({ data, aktor }),
+    body: JSON.stringify({ ...data, aktor }),
   });
 }
 
@@ -139,9 +141,10 @@ export async function leggTilMaskin(
     return `MASKIN-${Date.now()}`;
   }
 
+  // Backend expects flat payload - maskin_id is generated server-side
   const response = await apiFetch<{ maskin_id: string }>(`/api/fravik/${soknadId}/maskin`, {
     method: 'POST',
-    body: JSON.stringify({ data: maskinData, aktor }),
+    body: JSON.stringify({ ...maskinData, aktor }),
   });
   return response.maskin_id;
 }
@@ -197,9 +200,10 @@ export async function submitBOIVurdering(
     return;
   }
 
+  // Backend expects flat payload
   await apiFetch(`/api/fravik/${soknadId}/boi-vurdering`, {
     method: 'POST',
-    body: JSON.stringify({ data, aktor }),
+    body: JSON.stringify({ ...data, aktor }),
   });
 }
 
@@ -235,9 +239,10 @@ export async function submitPLVurdering(
     return;
   }
 
+  // Backend expects flat payload
   await apiFetch(`/api/fravik/${soknadId}/pl-vurdering`, {
     method: 'POST',
-    body: JSON.stringify({ data, aktor }),
+    body: JSON.stringify({ ...data, aktor }),
   });
 }
 
@@ -254,9 +259,10 @@ export async function submitArbeidsgruppeVurdering(
     return;
   }
 
+  // Backend expects flat payload
   await apiFetch(`/api/fravik/${soknadId}/arbeidsgruppe-vurdering`, {
     method: 'POST',
-    body: JSON.stringify({ data, aktor }),
+    body: JSON.stringify({ ...data, aktor }),
   });
 }
 
@@ -265,7 +271,6 @@ export async function submitArbeidsgruppeVurdering(
  */
 export async function submitEierBeslutning(
   soknadId: string,
-  beslutningType: 'godkjent' | 'avslatt' | 'delvis_godkjent',
   data: EierBeslutningData,
   aktor: string
 ): Promise<void> {
@@ -274,9 +279,10 @@ export async function submitEierBeslutning(
     return;
   }
 
+  // Backend expects flat payload - data already contains 'beslutning' field
   await apiFetch(`/api/fravik/${soknadId}/eier-beslutning`, {
     method: 'POST',
-    body: JSON.stringify({ beslutning_type: beslutningType, data, aktor }),
+    body: JSON.stringify({ ...data, aktor }),
   });
 }
 

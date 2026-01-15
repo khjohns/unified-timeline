@@ -31,10 +31,12 @@ class SaksType(str, Enum):
     STANDARD: Ordinær endringssak med grunnlag/vederlag/frist-spor
     FORSERING: § 33.8 forseringssak som refererer til avslåtte fristforlengelser
     ENDRINGSORDRE: Formell endringsordre (§31.3) som samler en eller flere KOE-er
+    FRAVIK: Fravik fra utslippsfrie krav på byggeplasser
     """
     STANDARD = "standard"
     FORSERING = "forsering"
     ENDRINGSORDRE = "endringsordre"
+    FRAVIK = "fravik"
     # Fremtidige utvidelser:
     # REKLAMASJON = "reklamasjon"
     # SLUTTOPPGJOR = "sluttoppgjor"

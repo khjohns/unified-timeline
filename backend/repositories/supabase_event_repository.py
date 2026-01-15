@@ -176,13 +176,14 @@ from models.cloudevents import CLOUDEVENTS_NAMESPACE, CLOUDEVENTS_SPECVERSION
 
 
 # Type for table selection
-SaksType = Literal["standard", "forsering", "endringsordre"]
+SaksType = Literal["standard", "forsering", "endringsordre", "fravik"]
 
 # Mapping from sakstype to table name
 SAKSTYPE_TO_TABLE = {
     "standard": "koe_events",
     "forsering": "forsering_events",
     "endringsordre": "endringsordre_events",
+    "fravik": "fravik_events",
 }
 
 
@@ -246,6 +247,10 @@ class SupabaseEventRepository(EventRepository):
         event_type = getattr(event, 'event_type', None)
         if event_type:
             event_type_value = event_type.value if hasattr(event_type, 'value') else str(event_type)
+
+            # Fravik events
+            if event_type_value.startswith('fravik_'):
+                return "fravik"
 
             # Forsering events
             if event_type_value.startswith('forsering_'):
@@ -590,6 +595,8 @@ class SupabaseEventRepository(EventRepository):
 
     def _detect_sakstype_from_event_type(self, event_type: str) -> SaksType:
         """Detect sakstype from event type string."""
+        if event_type.startswith('fravik_'):
+            return "fravik"
         if event_type.startswith('forsering_'):
             return "forsering"
         if event_type.startswith('eo_'):
