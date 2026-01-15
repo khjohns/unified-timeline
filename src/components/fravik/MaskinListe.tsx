@@ -8,21 +8,13 @@
 import { useState } from 'react';
 import { ChevronDownIcon, ChevronRightIcon } from '@radix-ui/react-icons';
 import { Badge, DataList, DataListItem } from '../primitives';
-import type { MaskinTilstand, MaskinVurderingStatus, FravikGrunn, Drivstoff } from '../../types/fravik';
+import type { MaskinTilstand, MaskinVurderingStatus, Drivstoff } from '../../types/fravik';
 import { MASKIN_TYPE_LABELS } from '../../types/fravik';
 import { formatDateShort } from '../../utils/formatters';
 
 // ============================================================================
 // CONSTANTS
 // ============================================================================
-
-const FRAVIK_GRUNN_LABELS: Record<FravikGrunn, string> = {
-  markedsmangel: 'Markedsmangel',
-  leveringstid: 'Leveringstid',
-  tekniske_begrensninger: 'Tekniske begrensninger',
-  hms_krav: 'HMS-krav',
-  annet: 'Annet',
-};
 
 const DRIVSTOFF_LABELS: Record<Drivstoff, string> = {
   HVO100: 'HVO100',
@@ -57,7 +49,7 @@ interface MaskinDetaljerProps {
 
 function MaskinDetaljer({ maskin }: MaskinDetaljerProps) {
   return (
-    <div className="pt-3 pb-1 space-y-4">
+    <div className="pt-2 space-y-3">
       {/* Grunnleggende info */}
       <DataList>
         <DataListItem label="Periode">
@@ -115,72 +107,6 @@ function MaskinDetaljer({ maskin }: MaskinDetaljerProps) {
         </div>
       )}
 
-      {/* Vurderinger (hvis noen) */}
-      {(maskin.miljo_vurdering || maskin.arbeidsgruppe_vurdering || maskin.eier_beslutning) && (
-        <div className="pt-3 border-t border-pkt-border-subtle space-y-3">
-          <h4 className="text-xs font-medium text-pkt-text-body-muted">Vurderinger</h4>
-
-          {maskin.miljo_vurdering && (
-            <VurderingRad
-              rolle="Miljørådgiver"
-              beslutning={maskin.miljo_vurdering.beslutning}
-              kommentar={maskin.miljo_vurdering.kommentar}
-              vilkar={maskin.miljo_vurdering.vilkar}
-            />
-          )}
-
-          {maskin.arbeidsgruppe_vurdering && (
-            <VurderingRad
-              rolle="Arbeidsgruppe"
-              beslutning={maskin.arbeidsgruppe_vurdering.beslutning}
-              kommentar={maskin.arbeidsgruppe_vurdering.kommentar}
-              vilkar={maskin.arbeidsgruppe_vurdering.vilkar}
-            />
-          )}
-
-          {maskin.eier_beslutning && (
-            <VurderingRad
-              rolle="Prosjekteier"
-              beslutning={maskin.eier_beslutning.beslutning}
-              kommentar={maskin.eier_beslutning.kommentar}
-            />
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-interface VurderingRadProps {
-  rolle: string;
-  beslutning: string;
-  kommentar?: string;
-  vilkar?: string[];
-}
-
-function VurderingRad({ rolle, beslutning, kommentar, vilkar }: VurderingRadProps) {
-  const beslutningLabel = beslutning === 'godkjent'
-    ? 'Godkjent'
-    : beslutning === 'delvis_godkjent'
-    ? 'Delvis'
-    : beslutning === 'avslatt'
-    ? 'Avslått'
-    : beslutning;
-
-  return (
-    <div className="p-2 rounded bg-pkt-bg-card">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-pkt-text-body">{rolle}</span>
-        <span className="text-sm text-pkt-text-body">{beslutningLabel}</span>
-      </div>
-      {kommentar && (
-        <p className="text-sm text-pkt-text-body-muted mt-1">{kommentar}</p>
-      )}
-      {vilkar && vilkar.length > 0 && (
-        <p className="text-xs text-pkt-text-body-muted mt-1">
-          Vilkår: {vilkar.join(', ')}
-        </p>
-      )}
     </div>
   );
 }
@@ -222,7 +148,7 @@ export function MaskinListe({ maskiner, emptyMessage = 'Ingen maskiner lagt til.
             <button
               type="button"
               onClick={() => toggleExpand(maskin.maskin_id)}
-              className="w-full flex items-center gap-3 text-left hover:bg-pkt-surface-subtle rounded px-1 py-1 -mx-1 transition-colors"
+              className="w-full flex items-center gap-3 text-left hover:bg-pkt-surface-subtle rounded px-1 py-1 -mx-1 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-oslo-blue focus-visible:ring-offset-1"
             >
               {/* Expand/collapse icon */}
               <span className="text-pkt-text-body-muted">
@@ -250,7 +176,7 @@ export function MaskinListe({ maskiner, emptyMessage = 'Ingen maskiner lagt til.
 
             {/* Expandable details */}
             {isExpanded && (
-              <div className="pl-7 pr-1">
+              <div className="pl-7">
                 <MaskinDetaljer maskin={maskin} />
               </div>
             )}
