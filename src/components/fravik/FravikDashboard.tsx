@@ -113,16 +113,10 @@ function MaskinKort({ maskin }: { maskin: MaskinTilstand }) {
 
       {/* BOI vurderingsstatus */}
       {hasBOI && maskin.boi_vurdering && (
-        <span className={`inline-flex text-xs mt-2 px-2 py-0.5 rounded-sm ${
-          maskin.boi_vurdering.beslutning === 'godkjent'
-            ? 'bg-alert-success-bg text-alert-success-text'
-            : maskin.boi_vurdering.beslutning === 'delvis_godkjent'
-            ? 'bg-alert-warning-bg text-alert-warning-text'
-            : 'bg-alert-danger-bg text-alert-danger-text'
-        }`}>
+        <p className="text-xs mt-2 font-medium text-pkt-text-body-muted">
           BOI: {maskin.boi_vurdering.beslutning === 'godkjent' ? 'Godkjent' :
                 maskin.boi_vurdering.beslutning === 'delvis_godkjent' ? 'Delvis' : 'Avslått'}
-        </span>
+        </p>
       )}
     </div>
   );
@@ -384,18 +378,18 @@ function MaskinVurderingListe({
         if (!vurdering) return null;
 
         const maskinNavn = MASKIN_TYPE_LABELS[maskin.maskin_type] || maskin.maskin_type;
-        const beslutningStyle = vurdering.beslutning === 'godkjent'
-          ? { label: 'Godkjent', bg: 'bg-alert-success-bg', text: 'text-alert-success-text' }
+        const beslutningLabel = vurdering.beslutning === 'godkjent'
+          ? 'Godkjent'
           : vurdering.beslutning === 'delvis_godkjent'
-          ? { label: 'Delvis', bg: 'bg-alert-warning-bg', text: 'text-alert-warning-text' }
-          : { label: 'Avslått', bg: 'bg-alert-danger-bg', text: 'text-alert-danger-text' };
+          ? 'Delvis'
+          : 'Avslått';
 
         return (
           <div key={maskin.maskin_id} className="p-3 rounded bg-pkt-bg-subtle">
             <div className="flex items-center justify-between">
-              <span className="font-medium text-sm">{maskinNavn}</span>
-              <span className={`text-xs px-2 py-0.5 rounded-sm ${beslutningStyle.bg} ${beslutningStyle.text}`}>
-                {beslutningStyle.label}
+              <span className="text-sm text-pkt-text-body-default">{maskinNavn}</span>
+              <span className="text-sm font-medium text-pkt-text-body-default">
+                {beslutningLabel}
               </span>
             </div>
             {vurdering.kommentar && (
