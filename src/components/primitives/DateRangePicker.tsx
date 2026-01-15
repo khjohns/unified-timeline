@@ -64,10 +64,14 @@ function useIsMobile(breakpoint = 640) {
 
 /** Shared calendar styles for Punkt design system */
 const calendarStyles = `
-  /* Punkt design system styling for DayPicker */
+  /* Punkt design system - override all rdp CSS variables */
   .rdp {
     --rdp-accent-color: var(--color-pkt-surface-strong-dark-blue);
-    --rdp-background-color: var(--color-pkt-surface-light-blue);
+    --rdp-accent-background-color: var(--color-pkt-surface-strong-dark-blue);
+    --rdp-range_middle-background-color: var(--color-pkt-surface-light-blue);
+    --rdp-range_middle-color: var(--color-pkt-text-body-dark);
+    --rdp-selected-border: none;
+    --rdp-selected-font: inherit;
     --rdp-font-family: 'Oslo Sans', system-ui, sans-serif;
   }
 
@@ -79,7 +83,7 @@ const calendarStyles = `
     font-size: 18px;
     font-weight: 700;
     color: var(--color-pkt-text-body-dark);
-    margin-bottom: 1rem;
+    margin-bottom: 16px;
   }
 
   .rdp-weekday {
@@ -92,50 +96,40 @@ const calendarStyles = `
     font-size: 16px;
     width: 40px;
     height: 40px;
-    border-radius: 0;
+    border-radius: 0 !important;
+    background: transparent !important;
   }
 
   .rdp-day_button {
     width: 40px;
     height: 40px;
+    border: none !important;
+    border-radius: 0 !important;
   }
 
   .rdp-day_button:hover:not([disabled]) {
-    background-color: var(--color-pkt-surface-light-blue);
+    background-color: var(--color-pkt-surface-light-blue) !important;
   }
 
-  /* Reset day cell backgrounds */
-  .rdp-day {
-    background-color: transparent;
-  }
-
-  /* Range middle - subtle background on the cell */
+  /* Range middle */
   .rdp-range_middle {
-    background-color: var(--color-pkt-surface-light-blue);
-    color: var(--color-pkt-text-body-dark);
+    background-color: var(--color-pkt-surface-light-blue) !important;
   }
 
-  /* Selected state - clear cell background, style button */
-  .rdp-selected {
-    background-color: transparent;
+  .rdp-range_middle .rdp-day_button {
+    color: var(--color-pkt-text-body-dark) !important;
+    background-color: transparent !important;
   }
 
-  .rdp-selected .rdp-day_button {
-    background-color: var(--color-pkt-surface-strong-dark-blue);
-    color: var(--color-pkt-text-body-light);
-    font-weight: 600;
-  }
-
-  /* Range start/end - clear cell background, style button */
-  .rdp-range_start,
-  .rdp-range_end {
-    background-color: transparent;
-  }
-
+  /* Selected / Range start / Range end */
+  .rdp-selected .rdp-day_button,
   .rdp-range_start .rdp-day_button,
   .rdp-range_end .rdp-day_button {
-    background-color: var(--color-pkt-surface-strong-dark-blue);
-    color: var(--color-pkt-text-body-light);
+    background-color: var(--color-pkt-surface-strong-dark-blue) !important;
+    color: var(--color-pkt-text-body-light) !important;
+    font-weight: 600;
+    border: none !important;
+    border-radius: 0 !important;
   }
 
   .rdp-day_today {
@@ -146,54 +140,43 @@ const calendarStyles = `
   .rdp-nav button {
     width: 40px;
     height: 40px;
-    border-radius: 0;
+    border-radius: 0 !important;
   }
 
   .rdp-nav button:hover {
     background-color: var(--color-pkt-surface-light-blue);
   }
 
-  /* Dark mode overrides */
+  /* ===== DARK MODE ===== */
   .dark .rdp {
     --rdp-accent-color: var(--color-pkt-brand-warm-blue-1000);
-    --rdp-background-color: transparent;
+    --rdp-accent-background-color: var(--color-pkt-brand-warm-blue-1000);
+    --rdp-range_middle-background-color: var(--color-pkt-grays-gray-200);
+    --rdp-range_middle-color: var(--color-pkt-text-body-default);
   }
 
   .dark .rdp-day_button:hover:not([disabled]) {
-    background-color: var(--color-pkt-grays-gray-200);
+    background-color: var(--color-pkt-grays-gray-200) !important;
   }
 
-  /* Reset all day backgrounds first */
-  .dark .rdp-day {
-    background-color: transparent;
-  }
-
-  /* Range middle - subtle background on the cell */
+  /* Dark: Range middle */
   .dark .rdp-range_middle {
-    background-color: var(--color-pkt-grays-gray-200);
-    color: var(--color-pkt-text-body-default);
+    background-color: var(--color-pkt-grays-gray-200) !important;
   }
 
-  /* Selected state - clear cell background, style button */
-  .dark .rdp-selected {
-    background-color: transparent;
+  .dark .rdp-range_middle .rdp-day_button {
+    color: var(--color-pkt-text-body-default) !important;
+    background-color: transparent !important;
   }
 
-  .dark .rdp-selected .rdp-day_button {
-    background-color: var(--color-pkt-brand-warm-blue-1000);
-    color: var(--color-pkt-bg-default);
-  }
-
-  /* Range start/end - clear cell background, style button */
-  .dark .rdp-range_start,
-  .dark .rdp-range_end {
-    background-color: transparent;
-  }
-
+  /* Dark: Selected / Range start / Range end */
+  .dark .rdp-selected .rdp-day_button,
   .dark .rdp-range_start .rdp-day_button,
   .dark .rdp-range_end .rdp-day_button {
-    background-color: var(--color-pkt-brand-warm-blue-1000);
-    color: var(--color-pkt-bg-default);
+    background-color: var(--color-pkt-brand-warm-blue-1000) !important;
+    color: var(--color-pkt-bg-default) !important;
+    border: none !important;
+    border-radius: 0 !important;
   }
 
   .dark .rdp-nav button:hover {
