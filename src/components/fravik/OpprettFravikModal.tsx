@@ -247,29 +247,27 @@ export function OpprettFravikModal({
               />
             </FormField>
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                label="Rammeavtale"
-                error={errors.rammeavtale?.message}
-              >
-                <Input
-                  id="rammeavtale"
-                  {...register('rammeavtale')}
-                  error={!!errors.rammeavtale}
-                />
-              </FormField>
+            <FormField
+              label="Rammeavtale"
+              error={errors.rammeavtale?.message}
+            >
+              <Input
+                id="rammeavtale"
+                {...register('rammeavtale')}
+                error={!!errors.rammeavtale}
+              />
+            </FormField>
 
-              <FormField
-                label="Entreprenør"
-                error={errors.entreprenor?.message}
-              >
-                <Input
-                  id="entreprenor"
-                  {...register('entreprenor')}
-                  error={!!errors.entreprenor}
-                />
-              </FormField>
-            </div>
+            <FormField
+              label="Entreprenør"
+              error={errors.entreprenor?.message}
+            >
+              <Input
+                id="entreprenor"
+                {...register('entreprenor')}
+                error={!!errors.entreprenor}
+              />
+            </FormField>
           </div>
         </SectionContainer>
 
@@ -278,7 +276,7 @@ export function OpprettFravikModal({
           title="Søkerinformasjon"
           description="Hvem søker om fravik?"
         >
-          <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-4">
             <FormField
               label="Ditt navn"
               required

@@ -139,27 +139,44 @@ const calendarStyles = `
   /* Dark mode overrides */
   .dark .rdp {
     --rdp-accent-color: var(--color-pkt-brand-warm-blue-1000);
-    --rdp-background-color: var(--color-pkt-grays-gray-200);
+    --rdp-background-color: transparent;
   }
 
   .dark .rdp-day_button:hover:not([disabled]) {
     background-color: var(--color-pkt-grays-gray-200);
   }
 
-  .dark .rdp-selected {
-    background-color: var(--color-pkt-brand-warm-blue-1000);
-    color: var(--color-pkt-bg-default);
+  /* Reset all day backgrounds first */
+  .dark .rdp-day {
+    background-color: transparent;
   }
 
-  .dark .rdp-range_start,
-  .dark .rdp-range_end {
-    background-color: var(--color-pkt-brand-warm-blue-1000);
-    color: var(--color-pkt-bg-default);
-  }
-
+  /* Range middle - subtle background on the cell */
   .dark .rdp-range_middle {
     background-color: var(--color-pkt-grays-gray-200);
     color: var(--color-pkt-text-body-default);
+  }
+
+  /* Selected state - clear cell background, style button */
+  .dark .rdp-selected {
+    background-color: transparent;
+  }
+
+  .dark .rdp-selected .rdp-day_button {
+    background-color: var(--color-pkt-brand-warm-blue-1000);
+    color: var(--color-pkt-bg-default);
+  }
+
+  /* Range start/end - clear cell background, style button */
+  .dark .rdp-range_start,
+  .dark .rdp-range_end {
+    background-color: transparent;
+  }
+
+  .dark .rdp-range_start .rdp-day_button,
+  .dark .rdp-range_end .rdp-day_button {
+    background-color: var(--color-pkt-brand-warm-blue-1000);
+    color: var(--color-pkt-bg-default);
   }
 
   .dark .rdp-nav button:hover {
