@@ -6,7 +6,7 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
-import { useSupabaseAuth, MFAEnrollResult } from '../context/SupabaseAuthContext';
+import { useSupabaseAuth, MFAEnrollResult } from '../../context/SupabaseAuthContext';
 import {
   ReloadIcon,
   LockClosedIcon,

@@ -5,7 +5,7 @@
  */
 
 import { MFASetup } from './MFASetup';
-import { useSupabaseAuth } from '../context/SupabaseAuthContext';
+import { useSupabaseAuth } from '../../context/SupabaseAuthContext';
 import { ExitIcon, LockClosedIcon } from '@radix-ui/react-icons';
 
 export function MFARequired() {

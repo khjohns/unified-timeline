@@ -6,7 +6,7 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
-import { useSupabaseAuth } from '../context/SupabaseAuthContext';
+import { useSupabaseAuth } from '../../context/SupabaseAuthContext';
 import { ReloadIcon, LockClosedIcon } from '@radix-ui/react-icons';
 
 type FormMode = 'login' | 'register' | 'mfa';

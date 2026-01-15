@@ -7,7 +7,7 @@
  */
 
 import { ReactNode, useEffect, useState } from 'react';
-import { useSupabaseAuth } from '../context/SupabaseAuthContext';
+import { useSupabaseAuth } from '../../context/SupabaseAuthContext';
 import { LoginForm } from './LoginForm';
 import { MFARequired } from './MFARequired';
 import { ReloadIcon } from '@radix-ui/react-icons';

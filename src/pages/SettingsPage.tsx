@@ -6,7 +6,7 @@
 
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
-import { MFASetup } from '../components/MFASetup';
+import { MFASetup } from '../components/auth';
 import { useSupabaseAuth } from '../context/SupabaseAuthContext';
 import { Button } from '../components/primitives';
 import { ExitIcon, PersonIcon } from '@radix-ui/react-icons';

@@ -1,7 +1,7 @@
 import React, { Suspense, lazy } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { PageLoadingFallback } from './components/PageLoadingFallback';
-import { ProtectedRoute } from './components/ProtectedRoute';
+import { ProtectedRoute } from './components/auth';
 
 // Lazy load all pages for code splitting
 const AuthLanding = lazy(() => import('./pages/AuthLanding'));
