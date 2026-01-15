@@ -5,6 +5,7 @@
  */
 
 export { FravikDashboard } from './FravikDashboard';
+export { MaskinListe } from './MaskinListe';
 export { OpprettFravikModal } from './OpprettFravikModal';
 export { LeggTilMaskinModal } from './LeggTilMaskinModal';
 export { AvbotendeTiltakModal } from './AvbotendeTiltakModal';
@@ -12,7 +13,7 @@ export { SendInnModal } from './SendInnModal';
 
 // Vurdering modals (4-step approval workflow)
 export {
-  BOIVurderingModal,
+  MiljoVurderingModal,
   PLVurderingModal,
   ArbeidsgruppeModal,
   EierBeslutningModal,

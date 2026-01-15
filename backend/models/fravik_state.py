@@ -29,15 +29,15 @@ class MaskinVurderingStatus(str, Enum):
     DELVIS_GODKJENT = "delvis_godkjent"
 
 
-class MaskinBOIVurdering(BaseModel):
-    """BOI-rådgivers vurdering av en maskin"""
+class MaskinMiljoVurdering(BaseModel):
+    """Miljørådgivers vurdering av en maskin"""
     beslutning: FravikBeslutning = Field(
         ...,
-        description="BOI sin anbefaling"
+        description="Miljørådgivers anbefaling"
     )
     kommentar: Optional[str] = Field(
         default=None,
-        description="Kommentar fra BOI"
+        description="Kommentar fra miljørådgiver"
     )
     vilkar: List[str] = Field(
         default_factory=list,
@@ -45,7 +45,7 @@ class MaskinBOIVurdering(BaseModel):
     )
     vurdert_av: Optional[str] = Field(
         default=None,
-        description="Navn på BOI-rådgiver"
+        description="Navn på miljørådgiver"
     )
     vurdert_tidspunkt: Optional[datetime] = Field(
         default=None,
@@ -145,9 +145,9 @@ class MaskinTilstand(BaseModel):
     )
 
     # Vurderinger
-    boi_vurdering: Optional[MaskinBOIVurdering] = Field(
+    miljo_vurdering: Optional[MaskinMiljoVurdering] = Field(
         default=None,
-        description="BOI-rådgivers vurdering"
+        description="Miljørådgivers vurdering"
     )
     arbeidsgruppe_vurdering: Optional[MaskinArbeidsgruppeVurdering] = Field(
         default=None,
@@ -171,9 +171,9 @@ class MaskinTilstand(BaseModel):
         if self.arbeidsgruppe_vurdering:
             return self._beslutning_til_status(self.arbeidsgruppe_vurdering.beslutning)
 
-        # Deretter BOI
-        if self.boi_vurdering:
-            return self._beslutning_til_status(self.boi_vurdering.beslutning)
+        # Deretter miljørådgiver
+        if self.miljo_vurdering:
+            return self._beslutning_til_status(self.miljo_vurdering.beslutning)
 
         return MaskinVurderingStatus.IKKE_VURDERT
 
@@ -224,9 +224,9 @@ class VurderingSteg(BaseModel):
 
 class GodkjenningsKjedeTilstand(BaseModel):
     """Tilstand for hele godkjenningskjeden"""
-    boi_vurdering: VurderingSteg = Field(
+    miljo_vurdering: VurderingSteg = Field(
         default_factory=VurderingSteg,
-        description="BOI-rådgivers vurdering"
+        description="Miljørådgivers vurdering"
     )
     pl_vurdering: VurderingSteg = Field(
         default_factory=VurderingSteg,
@@ -245,8 +245,8 @@ class GodkjenningsKjedeTilstand(BaseModel):
     @property
     def gjeldende_steg(self) -> str:
         """Returnerer hvilket steg som er aktivt nå"""
-        if not self.boi_vurdering.fullfort:
-            return "boi"
+        if not self.miljo_vurdering.fullfort:
+            return "miljo"
         if not self.pl_vurdering.fullfort:
             return "pl"
         if not self.arbeidsgruppe_vurdering.fullfort:
@@ -261,7 +261,7 @@ class GodkjenningsKjedeTilstand(BaseModel):
         """Returnerer rollen som skal godkjenne neste"""
         steg = self.gjeldende_steg
         mapping = {
-            "boi": FravikRolle.BOI,
+            "miljo": FravikRolle.MILJO,
             "pl": FravikRolle.PL,
             "arbeidsgruppe": FravikRolle.ARBEIDSGRUPPE,
             "eier": FravikRolle.EIER,
@@ -553,19 +553,19 @@ class FravikState(BaseModel):
 
         if self.status == FravikStatus.SENDT_INN:
             return {
-                "rolle": FravikRolle.BOI,
+                "rolle": FravikRolle.MILJO,
                 "handling": "Vurder søknaden",
             }
 
-        if self.status == FravikStatus.RETURNERT_FRA_BOI:
+        if self.status == FravikStatus.RETURNERT_FRA_MILJO:
             return {
                 "rolle": FravikRolle.SOKER,
                 "handling": "Oppdater søknad med manglende dokumentasjon",
             }
 
-        if self.status == FravikStatus.UNDER_BOI_VURDERING:
+        if self.status == FravikStatus.UNDER_MILJO_VURDERING:
             return {
-                "rolle": FravikRolle.BOI,
+                "rolle": FravikRolle.MILJO,
                 "handling": "Fullfør vurdering",
             }
 
@@ -605,8 +605,8 @@ class FravikState(BaseModel):
         status_tekst = {
             FravikStatus.UTKAST: "Utkast",
             FravikStatus.SENDT_INN: "Sendt inn",
-            FravikStatus.UNDER_BOI_VURDERING: "Til vurdering hos BOI-rådgiver",
-            FravikStatus.RETURNERT_FRA_BOI: "Returnert - mangler dokumentasjon",
+            FravikStatus.UNDER_MILJO_VURDERING: "Til vurdering hos miljørådgiver",
+            FravikStatus.RETURNERT_FRA_MILJO: "Returnert - mangler dokumentasjon",
             FravikStatus.UNDER_PL_VURDERING: "Til godkjenning hos prosjektleder",
             FravikStatus.RETURNERT_FRA_PL: "Returnert fra prosjektleder",
             FravikStatus.UNDER_ARBEIDSGRUPPE: "Til behandling i arbeidsgruppen",
@@ -645,8 +645,8 @@ class FravikListeItem(BaseModel):
         status_tekst = {
             FravikStatus.UTKAST: "Utkast",
             FravikStatus.SENDT_INN: "Sendt inn",
-            FravikStatus.UNDER_BOI_VURDERING: "Hos BOI",
-            FravikStatus.RETURNERT_FRA_BOI: "Returnert",
+            FravikStatus.UNDER_MILJO_VURDERING: "Hos miljørådgiver",
+            FravikStatus.RETURNERT_FRA_MILJO: "Returnert",
             FravikStatus.UNDER_PL_VURDERING: "Hos PL",
             FravikStatus.RETURNERT_FRA_PL: "Returnert",
             FravikStatus.UNDER_ARBEIDSGRUPPE: "Arbeidsgruppe",

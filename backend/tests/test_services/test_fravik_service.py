@@ -17,7 +17,7 @@ from models.fravik_events import (
     SoknadOpprettetData,
     SoknadOppdatertData,
     MaskinVurderingData,
-    BOIVurderingData,
+    MiljoVurderingData,
     PLVurderingData,
     ArbeidsgruppeVurderingData,
     EierBeslutningData,
@@ -26,8 +26,8 @@ from models.fravik_events import (
     SoknadSendtInnEvent,
     MaskinLagtTilEvent,
     MaskinFjernetEvent,
-    BOIVurderingEvent,
-    BOIReturnertevent,
+    MiljoVurderingEvent,
+    MiljoReturnertEvent,
     PLVurderingEvent,
     ArbeidsgruppeVurderingEvent,
     EierGodkjentEvent,
@@ -246,15 +246,15 @@ class TestFravikServiceGodkjenningsflyt:
         assert state.status == FravikStatus.SENDT_INN
         assert state.sendt_inn_tidspunkt is not None
 
-    def test_boi_vurdering_godkjent(self, service, sendt_inn_events, base_time):
-        """Test BOI vurdering updates status."""
+    def test_miljo_vurdering_godkjent(self, service, sendt_inn_events, base_time):
+        """Test miljø vurdering updates status."""
         events = sendt_inn_events + [
-            BOIVurderingEvent(
+            MiljoVurderingEvent(
                 sak_id="FRAVIK-001",
-                aktor="BOI Rådgiver",
-                aktor_rolle=FravikRolle.BOI,
+                aktor="Miljørådgiver",
+                aktor_rolle=FravikRolle.MILJO,
                 tidsstempel=base_time + timedelta(minutes=3),
-                data=BOIVurderingData(
+                data=MiljoVurderingData(
                     dokumentasjon_tilstrekkelig=True,
                     maskin_vurderinger=[
                         MaskinVurderingData(
@@ -270,37 +270,37 @@ class TestFravikServiceGodkjenningsflyt:
         state = service.compute_state(events)
 
         assert state.status == FravikStatus.UNDER_PL_VURDERING
-        assert state.godkjenningskjede.boi_vurdering.fullfort is True
-        assert state.maskiner["MASKIN-001"].boi_vurdering is not None
-        assert state.maskiner["MASKIN-001"].boi_vurdering.beslutning == FravikBeslutning.GODKJENT
+        assert state.godkjenningskjede.miljo_vurdering.fullfort is True
+        assert state.maskiner["MASKIN-001"].miljo_vurdering is not None
+        assert state.maskiner["MASKIN-001"].miljo_vurdering.beslutning == FravikBeslutning.GODKJENT
 
-    def test_boi_returnert(self, service, sendt_inn_events, base_time):
-        """Test BOI return for missing documentation."""
+    def test_miljo_returnert(self, service, sendt_inn_events, base_time):
+        """Test miljø return for missing documentation."""
         events = sendt_inn_events + [
-            BOIReturnertevent(
+            MiljoReturnertEvent(
                 sak_id="FRAVIK-001",
-                aktor="BOI Rådgiver",
-                aktor_rolle=FravikRolle.BOI,
+                aktor="Miljørådgiver",
+                aktor_rolle=FravikRolle.MILJO,
                 tidsstempel=base_time + timedelta(minutes=3),
                 manglende_dokumentasjon="Mangler markedsundersøkelse",
             ),
         ]
         state = service.compute_state(events)
 
-        assert state.status == FravikStatus.RETURNERT_FRA_BOI
-        assert state.godkjenningskjede.boi_vurdering.fullfort is False
-        assert state.godkjenningskjede.boi_vurdering.manglende_dokumentasjon == "Mangler markedsundersøkelse"
+        assert state.status == FravikStatus.RETURNERT_FRA_MILJO
+        assert state.godkjenningskjede.miljo_vurdering.fullfort is False
+        assert state.godkjenningskjede.miljo_vurdering.manglende_dokumentasjon == "Mangler markedsundersøkelse"
 
     def test_full_approval_chain(self, service, sendt_inn_events, base_time):
         """Test full approval chain to GODKJENT."""
         events = sendt_inn_events + [
-            # BOI vurdering
-            BOIVurderingEvent(
+            # Miljø vurdering
+            MiljoVurderingEvent(
                 sak_id="FRAVIK-001",
-                aktor="BOI Rådgiver",
-                aktor_rolle=FravikRolle.BOI,
+                aktor="Miljørådgiver",
+                aktor_rolle=FravikRolle.MILJO,
                 tidsstempel=base_time + timedelta(minutes=3),
-                data=BOIVurderingData(
+                data=MiljoVurderingData(
                     dokumentasjon_tilstrekkelig=True,
                     maskin_vurderinger=[
                         MaskinVurderingData(
@@ -363,12 +363,12 @@ class TestFravikServiceGodkjenningsflyt:
     def test_eier_avslatt(self, service, sendt_inn_events, base_time):
         """Test full chain ending in rejection."""
         events = sendt_inn_events + [
-            BOIVurderingEvent(
+            MiljoVurderingEvent(
                 sak_id="FRAVIK-001",
-                aktor="BOI",
-                aktor_rolle=FravikRolle.BOI,
+                aktor="Miljørådgiver",
+                aktor_rolle=FravikRolle.MILJO,
                 tidsstempel=base_time + timedelta(minutes=3),
-                data=BOIVurderingData(
+                data=MiljoVurderingData(
                     dokumentasjon_tilstrekkelig=True,
                     maskin_vurderinger=[
                         MaskinVurderingData(
@@ -468,12 +468,12 @@ class TestFravikServiceGodkjenningsflyt:
                 aktor_rolle=FravikRolle.SOKER,
                 tidsstempel=base_time + timedelta(minutes=3),
             ),
-            BOIVurderingEvent(
+            MiljoVurderingEvent(
                 sak_id="FRAVIK-001",
-                aktor="BOI",
-                aktor_rolle=FravikRolle.BOI,
+                aktor="Miljørådgiver",
+                aktor_rolle=FravikRolle.MILJO,
                 tidsstempel=base_time + timedelta(minutes=4),
-                data=BOIVurderingData(
+                data=MiljoVurderingData(
                     dokumentasjon_tilstrekkelig=True,
                     maskin_vurderinger=[
                         MaskinVurderingData(maskin_id="MASKIN-001", beslutning=FravikBeslutning.GODKJENT),

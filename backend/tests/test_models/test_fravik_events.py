@@ -19,7 +19,7 @@ from models.fravik_events import (
     SoknadOpprettetData,
     SoknadOppdatertData,
     MaskinVurderingData,
-    BOIVurderingData,
+    MiljoVurderingData,
     PLVurderingData,
     ArbeidsgruppeVurderingData,
     EierBeslutningData,
@@ -29,8 +29,8 @@ from models.fravik_events import (
     SoknadTrukketEvent,
     MaskinLagtTilEvent,
     MaskinFjernetEvent,
-    BOIVurderingEvent,
-    BOIReturnertevent,
+    MiljoVurderingEvent,
+    MiljoReturnertEvent,
     PLVurderingEvent,
     ArbeidsgruppeVurderingEvent,
     EierGodkjentEvent,
@@ -48,7 +48,7 @@ class TestEnums:
     def test_fravik_event_types(self):
         """Test all event types are defined."""
         assert FravikEventType.SOKNAD_OPPRETTET.value == "fravik_soknad_opprettet"
-        assert FravikEventType.BOI_VURDERING.value == "fravik_boi_vurdering"
+        assert FravikEventType.MILJO_VURDERING.value == "fravik_miljo_vurdering"
         assert FravikEventType.EIER_GODKJENT.value == "fravik_eier_godkjent"
 
     def test_fravik_status_values(self):
@@ -60,7 +60,7 @@ class TestEnums:
     def test_fravik_roller(self):
         """Test rolle enum values."""
         assert FravikRolle.SOKER.value == "SOKER"
-        assert FravikRolle.BOI.value == "BOI"
+        assert FravikRolle.MILJO.value == "MILJO"
         assert FravikRolle.PL.value == "PL"
         assert FravikRolle.ARBEIDSGRUPPE.value == "ARBEIDSGRUPPE"
         assert FravikRolle.EIER.value == "EIER"
@@ -268,16 +268,16 @@ class TestMaskinLagtTilEvent:
         assert event.data.erstatningsdrivstoff == Drivstoff.ANNET_BIODRIVSTOFF
 
 
-class TestBOIVurderingEvent:
-    """Tests for BOIVurderingEvent."""
+class TestMiljoVurderingEvent:
+    """Tests for MiljoVurderingEvent."""
 
-    def test_boi_vurdering_godkjent(self):
-        """Test BOI vurdering with godkjenning."""
-        event = BOIVurderingEvent(
+    def test_miljo_vurdering_godkjent(self):
+        """Test miljø vurdering with godkjenning."""
+        event = MiljoVurderingEvent(
             sak_id="FRAVIK-001",
-            aktor="BOI Rådgiver",
-            aktor_rolle=FravikRolle.BOI,
-            data=BOIVurderingData(
+            aktor="Miljørådgiver",
+            aktor_rolle=FravikRolle.MILJO,
+            data=MiljoVurderingData(
                 dokumentasjon_tilstrekkelig=True,
                 maskin_vurderinger=[
                     MaskinVurderingData(
@@ -289,7 +289,7 @@ class TestBOIVurderingEvent:
                 samlet_anbefaling=FravikBeslutning.GODKJENT,
             ),
         )
-        assert event.event_type == FravikEventType.BOI_VURDERING
+        assert event.event_type == FravikEventType.MILJO_VURDERING
         assert event.data.dokumentasjon_tilstrekkelig is True
 
 
@@ -396,13 +396,13 @@ class TestParseFravikEvent:
         assert isinstance(event, SoknadOpprettetEvent)
         assert event.sak_id == "FRAVIK-001"
 
-    def test_parse_boi_vurdering(self):
-        """Test parsing BOI_VURDERING event."""
+    def test_parse_miljo_vurdering(self):
+        """Test parsing MILJO_VURDERING event."""
         data = {
-            "event_type": "fravik_boi_vurdering",
+            "event_type": "fravik_miljo_vurdering",
             "sak_id": "FRAVIK-001",
-            "aktor": "BOI",
-            "aktor_rolle": "BOI",
+            "aktor": "Miljørådgiver",
+            "aktor_rolle": "MILJO",
             "data": {
                 "dokumentasjon_tilstrekkelig": True,
                 "maskin_vurderinger": [],
@@ -410,7 +410,7 @@ class TestParseFravikEvent:
             },
         }
         event = parse_fravik_event(data)
-        assert isinstance(event, BOIVurderingEvent)
+        assert isinstance(event, MiljoVurderingEvent)
 
     def test_parse_unknown_event_type(self):
         """Test parsing unknown event type raises error."""

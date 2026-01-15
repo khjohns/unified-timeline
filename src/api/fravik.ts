@@ -13,7 +13,7 @@ import type {
   SoknadOpprettetData,
   SoknadOppdatertData,
   MaskinData,
-  BOIVurderingData,
+  MiljoVurderingData,
   PLVurderingData,
   ArbeidsgruppeVurderingData,
   EierBeslutningData,
@@ -196,9 +196,9 @@ export async function sendInnSoknad(
 /**
  * Submit miljørådgiver vurdering.
  */
-export async function submitBOIVurdering(
+export async function submitMiljoVurdering(
   sakId: string,
-  data: BOIVurderingData,
+  data: MiljoVurderingData,
   aktor: string,
   expectedVersion?: number
 ): Promise<void> {
@@ -207,7 +207,7 @@ export async function submitBOIVurdering(
     return;
   }
 
-  await apiFetch(`/api/fravik/${sakId}/boi-vurdering`, {
+  await apiFetch(`/api/fravik/${sakId}/miljo-vurdering`, {
     method: 'POST',
     body: JSON.stringify({ ...data, aktor, expected_version: expectedVersion ?? 0 }),
   });
@@ -216,7 +216,7 @@ export async function submitBOIVurdering(
 /**
  * Returner søknad fra miljørådgiver (manglende dokumentasjon).
  */
-export async function boiReturnerSoknad(
+export async function miljoReturnerSoknad(
   sakId: string,
   manglendeInfo: string,
   aktor: string,
@@ -227,7 +227,7 @@ export async function boiReturnerSoknad(
     return;
   }
 
-  await apiFetch(`/api/fravik/${sakId}/boi-returnert`, {
+  await apiFetch(`/api/fravik/${sakId}/miljo-returnert`, {
     method: 'POST',
     body: JSON.stringify({ manglende_dokumentasjon: manglendeInfo, aktor, expected_version: expectedVersion ?? 0 }),
   });
@@ -326,12 +326,12 @@ function getMockFravikState(sakId: string): FravikState {
       },
     },
     godkjenningskjede: {
-      boi_vurdering: { fullfort: false },
+      miljo_vurdering: { fullfort: false },
       pl_vurdering: { fullfort: false },
       arbeidsgruppe_vurdering: { fullfort: false },
       eier_beslutning: { fullfort: false },
-      gjeldende_steg: 'boi',
-      neste_godkjenner_rolle: 'BOI',
+      gjeldende_steg: 'miljo',
+      neste_godkjenner_rolle: 'MILJO',
     },
     antall_events: 3,
     antall_maskiner: 1,
@@ -341,7 +341,7 @@ function getMockFravikState(sakId: string): FravikState {
     kan_sendes_inn: false,
     er_ferdigbehandlet: false,
     neste_handling: {
-      rolle: 'BOI',
+      rolle: 'MILJO',
       handling: 'Vurder søknaden',
     },
     visningsstatus: 'Sendt inn',
@@ -371,7 +371,7 @@ function getMockFravikListe(): FravikListeItem[] {
       prosjekt_nummer: 'P-2025-002',
       soker_navn: 'Kari Hansen',
       soknad_type: 'machine',
-      status: 'under_boi_vurdering',
+      status: 'under_miljo_vurdering',
       antall_maskiner: 1,
       opprettet: '2025-01-08T09:00:00Z',
       sendt_inn_tidspunkt: '2025-01-08T11:00:00Z',

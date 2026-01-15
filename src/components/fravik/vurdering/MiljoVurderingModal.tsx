@@ -1,5 +1,5 @@
 /**
- * BOIVurderingModal Component (Miljørådgiver)
+ * MiljoVurderingModal Component
  *
  * Modal for miljørådgiver to submit their vurdering of a fravik-søknad.
  * Two modes:
@@ -30,7 +30,7 @@ import {
 import { useConfirmClose } from '../../../hooks/useConfirmClose';
 import { useFormBackup } from '../../../hooks/useFormBackup';
 import { TokenExpiredAlert } from '../../alerts/TokenExpiredAlert';
-import { submitBOIVurdering, boiReturnerSoknad } from '../../../api/fravik';
+import { submitMiljoVurdering, miljoReturnerSoknad } from '../../../api/fravik';
 import type { FravikState, FravikBeslutning, MaskinTilstand } from '../../../types/fravik';
 import { MASKIN_TYPE_LABELS } from '../../../types/fravik';
 import { formatDateShort } from '../../../utils/formatters';
@@ -48,7 +48,7 @@ const maskinVurderingSchema = z.object({
   vilkar: z.array(z.string()).optional(),
 });
 
-const boiVurderingSchema = z.discriminatedUnion('dokumentasjon_tilstrekkelig', [
+const miljoVurderingSchema = z.discriminatedUnion('dokumentasjon_tilstrekkelig', [
   // Dokumentasjon IKKE tilstrekkelig - returner til søker
   z.object({
     dokumentasjon_tilstrekkelig: z.literal(false),
@@ -65,7 +65,7 @@ const boiVurderingSchema = z.discriminatedUnion('dokumentasjon_tilstrekkelig', [
   }),
 ]);
 
-type BOIVurderingFormData = z.infer<typeof boiVurderingSchema>;
+type MiljoVurderingFormData = z.infer<typeof miljoVurderingSchema>;
 
 // ============================================================================
 // HELPERS
@@ -97,7 +97,7 @@ function getBeslutningBadge(beslutning: FravikBeslutning): { variant: 'success' 
 // COMPONENT
 // ============================================================================
 
-interface BOIVurderingModalProps {
+interface MiljoVurderingModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sakId: string;
@@ -107,7 +107,7 @@ interface BOIVurderingModalProps {
   onSuccess?: () => void;
 }
 
-export function BOIVurderingModal({
+export function MiljoVurderingModal({
   open,
   onOpenChange,
   sakId,
@@ -115,7 +115,7 @@ export function BOIVurderingModal({
   currentVersion,
   aktor,
   onSuccess,
-}: BOIVurderingModalProps) {
+}: MiljoVurderingModalProps) {
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const [showRestorePrompt, setShowRestorePrompt] = useState(false);
   const toast = useToast();
@@ -125,7 +125,7 @@ export function BOIVurderingModal({
   const maskiner = useMemo(() => Object.values(state.maskiner), [state.maskiner]);
 
   // Default values with per-maskin entries
-  const defaultValues = useMemo((): Partial<BOIVurderingFormData> => ({
+  const defaultValues = useMemo((): Partial<MiljoVurderingFormData> => ({
     dokumentasjon_tilstrekkelig: undefined as unknown as boolean,
     manglende_dokumentasjon: '',
     maskin_vurderinger: maskiner.map((m) => ({
@@ -145,8 +145,8 @@ export function BOIVurderingModal({
     watch,
     control,
     setValue,
-  } = useForm<BOIVurderingFormData>({
-    resolver: zodResolver(boiVurderingSchema),
+  } = useForm<MiljoVurderingFormData>({
+    resolver: zodResolver(miljoVurderingSchema),
     defaultValues,
   });
 
@@ -171,7 +171,7 @@ export function BOIVurderingModal({
   const formData = watch();
   const { getBackup, clearBackup, hasBackup } = useFormBackup(
     sakId,
-    'boi_vurdering',
+    'miljo_vurdering',
     formData,
     isDirty
   );
@@ -189,7 +189,7 @@ export function BOIVurderingModal({
 
   const handleRestoreBackup = () => {
     const backup = getBackup();
-    if (backup) reset(backup as BOIVurderingFormData);
+    if (backup) reset(backup as MiljoVurderingFormData);
     setShowRestorePrompt(false);
   };
   const handleDiscardBackup = () => {
@@ -197,12 +197,12 @@ export function BOIVurderingModal({
     setShowRestorePrompt(false);
   };
 
-  // Mutation for BOI vurdering
+  // Mutation for miljø vurdering
   const vurderingMutation = useMutation({
-    mutationFn: async (data: BOIVurderingFormData) => {
+    mutationFn: async (data: MiljoVurderingFormData) => {
       if (!data.dokumentasjon_tilstrekkelig) {
         // Return to søker
-        await boiReturnerSoknad(
+        await miljoReturnerSoknad(
           sakId,
           data.manglende_dokumentasjon || '',
           aktor,
@@ -210,7 +210,7 @@ export function BOIVurderingModal({
         );
       } else {
         // Submit vurdering
-        await submitBOIVurdering(
+        await submitMiljoVurdering(
           sakId,
           {
             dokumentasjon_tilstrekkelig: true,
@@ -267,7 +267,7 @@ export function BOIVurderingModal({
     return 'delvis_godkjent';
   }, [dokumentasjonOK, maskinVurderinger]);
 
-  const onSubmit = (data: BOIVurderingFormData) => {
+  const onSubmit = (data: MiljoVurderingFormData) => {
     vurderingMutation.mutate(data);
   };
 

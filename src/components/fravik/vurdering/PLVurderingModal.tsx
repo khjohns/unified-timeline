@@ -2,7 +2,7 @@
  * PLVurderingModal Component
  *
  * Modal for Prosjektleder to submit their vurdering of a fravik-søknad.
- * Simpler than BOI - no per-machine assessment, just overall anbefaling.
+ * Simpler than miljørådgiver - no per-machine assessment, just overall anbefaling.
  *
  * Fields:
  * - dokumentasjon_tilstrekkelig: boolean
@@ -116,8 +116,8 @@ export function PLVurderingModal({
   // Get maskiner as array
   const maskiner = useMemo(() => Object.values(state.maskiner), [state.maskiner]);
 
-  // Get BOI vurdering for context
-  const boiVurdering = state.godkjenningskjede.boi_vurdering;
+  // Get miljø vurdering for context
+  const miljoVurdering = state.godkjenningskjede.miljo_vurdering;
 
   const defaultValues: Partial<PLVurderingFormData> = {
     dokumentasjon_tilstrekkelig: undefined as unknown as boolean,
@@ -229,25 +229,25 @@ export function PLVurderingModal({
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Miljørådgiver-vurdering kontekst */}
-        {boiVurdering.fullfort && (
+        {miljoVurdering.fullfort && (
           <SectionContainer title="Miljørådgivers vurdering" variant="subtle">
             <DataList variant="list">
               <DataListItem label="Anbefaling">
-                {boiVurdering.beslutning ? (
-                  <Badge variant={getAnbefalingBadge(boiVurdering.beslutning).variant}>
-                    {getAnbefalingBadge(boiVurdering.beslutning).label}
+                {miljoVurdering.beslutning ? (
+                  <Badge variant={getAnbefalingBadge(miljoVurdering.beslutning).variant}>
+                    {getAnbefalingBadge(miljoVurdering.beslutning).label}
                   </Badge>
                 ) : (
                   '-'
                 )}
               </DataListItem>
-              {boiVurdering.vurdert_av && (
-                <DataListItem label="Vurdert av">{boiVurdering.vurdert_av}</DataListItem>
+              {miljoVurdering.vurdert_av && (
+                <DataListItem label="Vurdert av">{miljoVurdering.vurdert_av}</DataListItem>
               )}
             </DataList>
-            {boiVurdering.kommentar && (
+            {miljoVurdering.kommentar && (
               <p className="mt-2 text-sm text-pkt-text-body-muted italic">
-                &ldquo;{boiVurdering.kommentar}&rdquo;
+                &ldquo;{miljoVurdering.kommentar}&rdquo;
               </p>
             )}
           </SectionContainer>

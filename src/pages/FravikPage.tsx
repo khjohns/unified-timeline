@@ -25,7 +25,7 @@ import {
   LeggTilMaskinModal,
   OpprettFravikModal,
   SendInnModal,
-  BOIVurderingModal,
+  MiljoVurderingModal,
   PLVurderingModal,
   ArbeidsgruppeModal,
   EierBeslutningModal,
@@ -99,7 +99,7 @@ export function FravikPage() {
   const [showSendInn, setShowSendInn] = useState(false);
 
   // BH vurdering modal state
-  const [showBOIVurdering, setShowBOIVurdering] = useState(false);
+  const [showMiljoVurdering, setShowMiljoVurdering] = useState(false);
   const [showPLVurdering, setShowPLVurdering] = useState(false);
   const [showArbeidsgruppeVurdering, setShowArbeidsgruppeVurdering] = useState(false);
   const [showEierBeslutning, setShowEierBeslutning] = useState(false);
@@ -244,7 +244,7 @@ export function FravikPage() {
               onLeggTilMaskin={() => setShowLeggTilMaskin(true)}
               onRedigerAvbotende={() => setShowAvbotendeTiltak(true)}
               // BH actions
-              onBOIVurdering={() => setShowBOIVurdering(true)}
+              onMiljoVurdering={() => setShowMiljoVurdering(true)}
               onPLVurdering={() => setShowPLVurdering(true)}
               onArbeidsgruppeVurdering={() => setShowArbeidsgruppeVurdering(true)}
               onEierBeslutning={() => setShowEierBeslutning(true)}
@@ -352,9 +352,9 @@ export function FravikPage() {
       {/* BH Vurdering Modals */}
       {sakId && userRole === 'BH' && (
         <>
-          <BOIVurderingModal
-            open={showBOIVurdering}
-            onOpenChange={setShowBOIVurdering}
+          <MiljoVurderingModal
+            open={showMiljoVurdering}
+            onOpenChange={setShowMiljoVurdering}
             sakId={sakId}
             state={state}
             currentVersion={state.antall_events}

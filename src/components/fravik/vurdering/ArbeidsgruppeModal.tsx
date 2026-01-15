@@ -123,7 +123,7 @@ export function ArbeidsgruppeModal({
   const maskiner = useMemo(() => Object.values(state.maskiner), [state.maskiner]);
 
   // Get previous vurderinger for context
-  const boiVurdering = state.godkjenningskjede.boi_vurdering;
+  const miljoVurdering = state.godkjenningskjede.miljo_vurdering;
   const plVurdering = state.godkjenningskjede.pl_vurdering;
 
   // Default values with per-maskin entries
@@ -268,9 +268,9 @@ export function ArbeidsgruppeModal({
         <SectionContainer title="Tidligere anbefalinger" variant="subtle">
           <DataList variant="grid">
             <DataListItem label="Miljørådgiver">
-              {boiVurdering.fullfort && boiVurdering.beslutning ? (
-                <Badge variant={getBeslutningBadge(boiVurdering.beslutning).variant}>
-                  {getBeslutningBadge(boiVurdering.beslutning).label}
+              {miljoVurdering.fullfort && miljoVurdering.beslutning ? (
+                <Badge variant={getBeslutningBadge(miljoVurdering.beslutning).variant}>
+                  {getBeslutningBadge(miljoVurdering.beslutning).label}
                 </Badge>
               ) : (
                 <span className="text-pkt-text-body-muted">-</span>
@@ -319,8 +319,8 @@ export function ArbeidsgruppeModal({
               const fieldErrors = errors.maskin_vurderinger?.[index];
               const currentBeslutning = maskinVurderinger[index]?.beslutning;
 
-              // Get BOI recommendation for this machine if available
-              const boiMaskinVurdering = maskin.boi_vurdering;
+              // Get miljø recommendation for this machine if available
+              const miljoMaskinVurdering = maskin.miljo_vurdering;
 
               return (
                 <div
@@ -348,18 +348,18 @@ export function ArbeidsgruppeModal({
                   </div>
 
                   {/* Miljøanbefaling for denne maskinen */}
-                  {boiMaskinVurdering && (
+                  {miljoMaskinVurdering && (
                     <div className="mb-3 p-2 bg-pkt-surface-subtle rounded text-xs">
                       <span className="text-pkt-text-body-muted">Miljøanbefaling: </span>
                       <Badge
-                        variant={getBeslutningBadge(boiMaskinVurdering.beslutning).variant}
+                        variant={getBeslutningBadge(miljoMaskinVurdering.beslutning).variant}
                         size="sm"
                       >
-                        {getBeslutningBadge(boiMaskinVurdering.beslutning).label}
+                        {getBeslutningBadge(miljoMaskinVurdering.beslutning).label}
                       </Badge>
-                      {boiMaskinVurdering.kommentar && (
+                      {miljoMaskinVurdering.kommentar && (
                         <p className="mt-1 text-pkt-text-body-muted italic">
-                          &ldquo;{boiMaskinVurdering.kommentar}&rdquo;
+                          &ldquo;{miljoMaskinVurdering.kommentar}&rdquo;
                         </p>
                       )}
                     </div>

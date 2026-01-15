@@ -12,7 +12,7 @@ Endpoints:
 - POST /api/fravik/<sak_id>/maskin - Legg til maskin
 - DELETE /api/fravik/<sak_id>/maskin/<maskin_id> - Fjern maskin
 - POST /api/fravik/<sak_id>/send-inn - Send inn søknad
-- POST /api/fravik/<sak_id>/boi-vurdering - BOI-rådgiver vurdering
+- POST /api/fravik/<sak_id>/miljo-vurdering - Miljørådgiver vurdering
 - POST /api/fravik/<sak_id>/pl-vurdering - Prosjektleder vurdering
 - POST /api/fravik/<sak_id>/arbeidsgruppe-vurdering - Arbeidsgruppe vurdering
 - POST /api/fravik/<sak_id>/eier-beslutning - Eier beslutning
@@ -42,9 +42,9 @@ from models.fravik_events import (
     MaskinLagtTilEvent,
     MaskinData,
     MaskinFjernetEvent,
-    BOIVurderingEvent,
-    BOIVurderingData,
-    BOIReturnertevent,
+    MiljoVurderingEvent,
+    MiljoVurderingData,
+    MiljoReturnertEvent,
     PLVurderingEvent,
     PLVurderingData,
     PLReturnertevent,
@@ -503,16 +503,16 @@ def send_inn_soknad(sak_id: str):
 
 
 # =============================================================================
-# BOI VURDERING
+# MILJØRÅDGIVER VURDERING
 # =============================================================================
 
-@fravik_bp.route('/api/fravik/<sak_id>/boi-vurdering', methods=['POST'])
+@fravik_bp.route('/api/fravik/<sak_id>/miljo-vurdering', methods=['POST'])
 @require_csrf
 @require_magic_link
 @handle_service_errors
-def boi_vurdering(sak_id: str):
+def miljo_vurdering(sak_id: str):
     """
-    BOI-rådgiver sender vurdering.
+    Miljørådgiver sender vurdering.
 
     Request:
     {
@@ -526,7 +526,7 @@ def boi_vurdering(sak_id: str):
         ],
         "samlet_anbefaling": "godkjent",
         "kommentar": "Anbefaler godkjenning",
-        "aktor": "BOI-rådgiver",
+        "aktor": "Miljørådgiver",
         "expected_version": 5
     }
     """
@@ -546,12 +546,12 @@ def boi_vurdering(sak_id: str):
         MaskinVurderingData(**mv) for mv in payload.get('maskin_vurderinger', [])
     ]
 
-    event = BOIVurderingEvent(
+    event = MiljoVurderingEvent(
         sak_id=sak_id,
-        event_type=FravikEventType.BOI_VURDERING,
-        aktor=payload.get('aktor', 'BOI-rådgiver'),
-        aktor_rolle=FravikRolle.BOI,
-        data=BOIVurderingData(
+        event_type=FravikEventType.MILJO_VURDERING,
+        aktor=payload.get('aktor', 'Miljørådgiver'),
+        aktor_rolle=FravikRolle.MILJO,
+        data=MiljoVurderingData(
             dokumentasjon_tilstrekkelig=payload['dokumentasjon_tilstrekkelig'],
             maskin_vurderinger=maskin_vurderinger,
             samlet_anbefaling=payload.get('samlet_anbefaling'),
@@ -572,7 +572,7 @@ def boi_vurdering(sak_id: str):
     events, _ = _get_events_for_sak(sak_id)
     state = fravik_service.compute_state(events)
 
-    logger.info(f"✅ BOI-vurdering registrert for: {sak_id}")
+    logger.info(f"✅ Miljøvurdering registrert for: {sak_id}")
 
     return jsonify({
         "success": True,

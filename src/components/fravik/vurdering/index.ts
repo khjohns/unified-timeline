@@ -8,7 +8,7 @@
  * 4. Prosjekteier beslutning
  */
 
-export { BOIVurderingModal } from './BOIVurderingModal';
+export { MiljoVurderingModal } from './MiljoVurderingModal';
 export { PLVurderingModal } from './PLVurderingModal';
 export { ArbeidsgruppeModal } from './ArbeidsgruppeModal';
 export { EierBeslutningModal } from './EierBeslutningModal';

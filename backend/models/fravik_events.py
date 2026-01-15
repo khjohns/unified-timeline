@@ -6,7 +6,7 @@ Hver event er immutable og representerer en faktisk hendelse i tid.
 
 Godkjenningsflyt:
 1. Søker sender inn søknad (med maskiner)
-2. BOI-rådgiver vurderer (per maskin)
+2. Miljørådgiver vurderer (per maskin)
 3. Prosjektleder godkjenner
 4. Arbeidsgruppe gir innstilling (per maskin)
 5. Eier fatter endelig vedtak
@@ -35,9 +35,9 @@ class FravikEventType(str, Enum):
     MASKIN_OPPDATERT = "fravik_maskin_oppdatert"
     MASKIN_FJERNET = "fravik_maskin_fjernet"
 
-    # BOI-rådgiver vurdering (per maskin)
-    BOI_VURDERING = "fravik_boi_vurdering"
-    BOI_RETURNERT = "fravik_boi_returnert"  # Krever mer dokumentasjon
+    # Miljørådgiver vurdering (per maskin)
+    MILJO_VURDERING = "fravik_miljo_vurdering"
+    MILJO_RETURNERT = "fravik_miljo_returnert"  # Krever mer dokumentasjon
 
     # Prosjektleder vurdering
     PL_VURDERING = "fravik_pl_vurdering"
@@ -56,8 +56,8 @@ class FravikStatus(str, Enum):
     """Overordnet status for fravik-søknad"""
     UTKAST = "utkast"
     SENDT_INN = "sendt_inn"
-    UNDER_BOI_VURDERING = "under_boi_vurdering"
-    RETURNERT_FRA_BOI = "returnert_fra_boi"
+    UNDER_MILJO_VURDERING = "under_miljo_vurdering"
+    RETURNERT_FRA_MILJO = "returnert_fra_miljo"
     UNDER_PL_VURDERING = "under_pl_vurdering"
     RETURNERT_FRA_PL = "returnert_fra_pl"
     UNDER_ARBEIDSGRUPPE = "under_arbeidsgruppe"
@@ -87,7 +87,7 @@ class FravikBeslutning(str, Enum):
 class FravikRolle(str, Enum):
     """Roller i fravik-prosessen"""
     SOKER = "SOKER"  # Entreprenør/søker
-    BOI = "BOI"  # BOI-rådgiver
+    MILJO = "MILJO"  # Miljørådgiver
     PL = "PL"  # Prosjektleder
     ARBEIDSGRUPPE = "ARBEIDSGRUPPE"
     EIER = "EIER"  # Prosjekteier
@@ -244,7 +244,7 @@ class SoknadOppdatertData(BaseModel):
 
 
 class MaskinVurderingData(BaseModel):
-    """Data for vurdering av en maskin (BOI eller Arbeidsgruppe)"""
+    """Data for vurdering av en maskin (Miljørådgiver eller Arbeidsgruppe)"""
     maskin_id: str = Field(
         ...,
         description="ID til maskinen som vurderes"
@@ -263,8 +263,8 @@ class MaskinVurderingData(BaseModel):
     )
 
 
-class BOIVurderingData(BaseModel):
-    """Data for BOI-rådgivers vurdering"""
+class MiljoVurderingData(BaseModel):
+    """Data for miljørådgivers vurdering"""
     dokumentasjon_tilstrekkelig: bool = Field(
         ...,
         description="Om dokumentasjonen er tilstrekkelig"
@@ -477,21 +477,21 @@ class MaskinFjernetEvent(FravikEvent):
     )
 
 
-class BOIVurderingEvent(FravikEvent):
-    """Event for BOI-rådgivers vurdering"""
-    event_type: Literal[FravikEventType.BOI_VURDERING] = Field(
-        default=FravikEventType.BOI_VURDERING
+class MiljoVurderingEvent(FravikEvent):
+    """Event for miljørådgivers vurdering"""
+    event_type: Literal[FravikEventType.MILJO_VURDERING] = Field(
+        default=FravikEventType.MILJO_VURDERING
     )
-    data: BOIVurderingData = Field(
+    data: MiljoVurderingData = Field(
         ...,
         description="Vurderingsdata"
     )
 
 
-class BOIReturnertevent(FravikEvent):
-    """Event for retur av søknad fra BOI (krever mer dokumentasjon)"""
-    event_type: Literal[FravikEventType.BOI_RETURNERT] = Field(
-        default=FravikEventType.BOI_RETURNERT
+class MiljoReturnertEvent(FravikEvent):
+    """Event for retur av søknad fra miljørådgiver (krever mer dokumentasjon)"""
+    event_type: Literal[FravikEventType.MILJO_RETURNERT] = Field(
+        default=FravikEventType.MILJO_RETURNERT
     )
     manglende_dokumentasjon: str = Field(
         ...,
@@ -577,8 +577,8 @@ AnyFravikEvent = (
     | MaskinLagtTilEvent
     | MaskinOppdatertEvent
     | MaskinFjernetEvent
-    | BOIVurderingEvent
-    | BOIReturnertevent
+    | MiljoVurderingEvent
+    | MiljoReturnertEvent
     | PLVurderingEvent
     | PLReturnertevent
     | ArbeidsgruppeVurderingEvent
@@ -619,8 +619,8 @@ def parse_fravik_event(data: dict) -> AnyFravikEvent:
         FravikEventType.MASKIN_LAGT_TIL: MaskinLagtTilEvent,
         FravikEventType.MASKIN_OPPDATERT: MaskinOppdatertEvent,
         FravikEventType.MASKIN_FJERNET: MaskinFjernetEvent,
-        FravikEventType.BOI_VURDERING: BOIVurderingEvent,
-        FravikEventType.BOI_RETURNERT: BOIReturnertevent,
+        FravikEventType.MILJO_VURDERING: MiljoVurderingEvent,
+        FravikEventType.MILJO_RETURNERT: MiljoReturnertEvent,
         FravikEventType.PL_VURDERING: PLVurderingEvent,
         FravikEventType.PL_RETURNERT: PLReturnertevent,
         FravikEventType.ARBEIDSGRUPPE_VURDERING: ArbeidsgruppeVurderingEvent,

@@ -15,8 +15,8 @@ export type FravikEventType =
   | 'fravik_maskin_lagt_til'
   | 'fravik_maskin_oppdatert'
   | 'fravik_maskin_fjernet'
-  | 'fravik_boi_vurdering'
-  | 'fravik_boi_returnert'
+  | 'fravik_miljo_vurdering'
+  | 'fravik_miljo_returnert'
   | 'fravik_pl_vurdering'
   | 'fravik_pl_returnert'
   | 'fravik_arbeidsgruppe_vurdering'
@@ -27,8 +27,8 @@ export type FravikEventType =
 export type FravikStatus =
   | 'utkast'
   | 'sendt_inn'
-  | 'under_boi_vurdering'
-  | 'returnert_fra_boi'
+  | 'under_miljo_vurdering'
+  | 'returnert_fra_miljo'
   | 'under_pl_vurdering'
   | 'returnert_fra_pl'
   | 'under_arbeidsgruppe'
@@ -52,7 +52,7 @@ export type FravikBeslutning =
 
 export type FravikRolle =
   | 'SOKER'
-  | 'BOI'
+  | 'MILJO'
   | 'PL'
   | 'ARBEIDSGRUPPE'
   | 'EIER';
@@ -107,7 +107,7 @@ export interface MaskinVurderingData {
 
 // ========== VURDERING TILSTANDER ==========
 
-export interface MaskinBOIVurdering {
+export interface MaskinMiljoVurdering {
   beslutning: FravikBeslutning;
   kommentar?: string;
   vilkar: string[];
@@ -144,7 +144,7 @@ export interface MaskinTilstand {
   arbeidsbeskrivelse?: string;
 
   // Vurderinger
-  boi_vurdering?: MaskinBOIVurdering;
+  miljo_vurdering?: MaskinMiljoVurdering;
   arbeidsgruppe_vurdering?: MaskinArbeidsgruppeVurdering;
   eier_beslutning?: MaskinEierBeslutning;
 
@@ -165,13 +165,13 @@ export interface VurderingSteg {
 }
 
 export interface GodkjenningsKjedeTilstand {
-  boi_vurdering: VurderingSteg;
+  miljo_vurdering: VurderingSteg;
   pl_vurdering: VurderingSteg;
   arbeidsgruppe_vurdering: VurderingSteg;
   eier_beslutning: VurderingSteg;
 
   // Computed
-  gjeldende_steg: 'boi' | 'pl' | 'arbeidsgruppe' | 'eier' | 'ferdig';
+  gjeldende_steg: 'miljo' | 'pl' | 'arbeidsgruppe' | 'eier' | 'ferdig';
   neste_godkjenner_rolle?: FravikRolle;
 }
 
@@ -304,7 +304,7 @@ export interface SoknadOppdatertData {
   konsekvenser_ved_avslag?: string;
 }
 
-export interface BOIVurderingData {
+export interface MiljoVurderingData {
   dokumentasjon_tilstrekkelig: boolean;
   maskin_vurderinger: MaskinVurderingData[];
   samlet_anbefaling?: FravikBeslutning;
@@ -370,8 +370,8 @@ export interface OpprettFravikResponse {
 export const FRAVIK_STATUS_LABELS: Record<FravikStatus, string> = {
   utkast: 'Utkast',
   sendt_inn: 'Sendt inn',
-  under_boi_vurdering: 'Til vurdering hos miljørådgiver',
-  returnert_fra_boi: 'Returnert fra miljørådgiver',
+  under_miljo_vurdering: 'Til vurdering hos miljørådgiver',
+  returnert_fra_miljo: 'Returnert fra miljørådgiver',
   under_pl_vurdering: 'Til godkjenning hos prosjektleder',
   returnert_fra_pl: 'Returnert fra prosjektleder',
   under_arbeidsgruppe: 'Til behandling i arbeidsgruppen',
@@ -384,7 +384,7 @@ export const FRAVIK_STATUS_LABELS: Record<FravikStatus, string> = {
 
 export const FRAVIK_ROLLE_LABELS: Record<FravikRolle, string> = {
   SOKER: 'Søker',
-  BOI: 'Miljørådgiver',
+  MILJO: 'Miljørådgiver',
   PL: 'Prosjektleder',
   ARBEIDSGRUPPE: 'Arbeidsgruppe',
   EIER: 'Prosjekteier',
@@ -405,12 +405,12 @@ export function getFravikStatusColor(status: FravikStatus): 'gray' | 'blue' | 'y
     case 'utkast':
       return 'gray';
     case 'sendt_inn':
-    case 'under_boi_vurdering':
+    case 'under_miljo_vurdering':
     case 'under_pl_vurdering':
     case 'under_arbeidsgruppe':
     case 'under_eier_beslutning':
       return 'blue';
-    case 'returnert_fra_boi':
+    case 'returnert_fra_miljo':
     case 'returnert_fra_pl':
       return 'yellow';
     case 'godkjent':

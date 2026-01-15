@@ -117,7 +117,7 @@ export function EierBeslutningModal({
   const arbeidsgruppeInnstilling = arbeidsgruppeVurdering.beslutning;
 
   // Get previous vurderinger for context
-  const boiVurdering = state.godkjenningskjede.boi_vurdering;
+  const miljoVurdering = state.godkjenningskjede.miljo_vurdering;
   const plVurdering = state.godkjenningskjede.pl_vurdering;
 
   const defaultValues: Partial<EierBeslutningFormData> = {
@@ -269,9 +269,9 @@ export function EierBeslutningModal({
         <SectionContainer title="Oppsummering av anbefalinger" variant="subtle">
           <DataList variant="grid">
             <DataListItem label="Miljørådgiver">
-              {boiVurdering.fullfort && boiVurdering.beslutning ? (
-                <Badge variant={getBeslutningBadge(boiVurdering.beslutning).variant}>
-                  {getBeslutningBadge(boiVurdering.beslutning).label}
+              {miljoVurdering.fullfort && miljoVurdering.beslutning ? (
+                <Badge variant={getBeslutningBadge(miljoVurdering.beslutning).variant}>
+                  {getBeslutningBadge(miljoVurdering.beslutning).label}
                 </Badge>
               ) : (
                 <span className="text-pkt-text-body-muted">-</span>

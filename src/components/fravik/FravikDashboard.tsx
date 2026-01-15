@@ -13,6 +13,7 @@
 import { useMemo } from 'react';
 import { Pencil1Icon, PlusIcon } from '@radix-ui/react-icons';
 import { DashboardCard, DataList, DataListItem, Badge, Button, Alert } from '../primitives';
+import { MaskinListe } from './MaskinListe';
 import type { FravikState, MaskinTilstand, FravikBeslutning } from '../../types/fravik';
 import { MASKIN_TYPE_LABELS } from '../../types/fravik';
 import { formatDateShort } from '../../utils/formatters';
@@ -25,7 +26,7 @@ interface FravikDashboardProps {
   onLeggTilMaskin?: () => void;
   onRedigerAvbotende?: () => void;
   // BH actions
-  onBOIVurdering?: () => void;
+  onMiljoVurdering?: () => void;
   onPLVurdering?: () => void;
   onArbeidsgruppeVurdering?: () => void;
   onEierBeslutning?: () => void;
@@ -81,46 +82,6 @@ function getMaskinStatusBadge(status: string): { variant: 'success' | 'danger' |
   }
 }
 
-// ============================================================================
-// SUB-COMPONENTS
-// ============================================================================
-
-/**
- * Compact maskin card with BOI status
- */
-function MaskinKort({ maskin }: { maskin: MaskinTilstand }) {
-  const { variant, label } = getMaskinStatusBadge(maskin.samlet_status);
-  const hasBOI = maskin.boi_vurdering?.beslutning;
-
-  return (
-    <div className="p-3 rounded-lg border border-pkt-border-default bg-pkt-bg-card">
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <span className="font-medium text-sm text-pkt-text-body">
-          {MASKIN_TYPE_LABELS[maskin.maskin_type] || maskin.maskin_type}
-          {maskin.annet_type && `: ${maskin.annet_type}`}
-        </span>
-        <Badge variant={variant} size="sm">{label}</Badge>
-      </div>
-      <p className="text-xs text-pkt-text-body-muted">
-        {formatDateShort(maskin.start_dato)} – {formatDateShort(maskin.slutt_dato)}
-      </p>
-      {maskin.erstatningsmaskin && (
-        <p className="text-xs text-pkt-text-body-muted mt-1">
-          {maskin.erstatningsmaskin}
-          {maskin.erstatningsdrivstoff && ` (${maskin.erstatningsdrivstoff})`}
-        </p>
-      )}
-
-      {/* Miljørådgiver vurderingsstatus */}
-      {hasBOI && maskin.boi_vurdering && (
-        <p className="text-xs mt-2 font-medium text-pkt-text-body-muted">
-          Miljø: {maskin.boi_vurdering.beslutning === 'godkjent' ? 'Godkjent' :
-                  maskin.boi_vurdering.beslutning === 'delvis_godkjent' ? 'Delvis' : 'Avslått'}
-        </p>
-      )}
-    </div>
-  );
-}
 
 // ============================================================================
 // MAIN COMPONENT
@@ -132,7 +93,7 @@ export function FravikDashboard({
   onRedigerSoknad,
   onLeggTilMaskin,
   onRedigerAvbotende,
-  onBOIVurdering,
+  onMiljoVurdering,
   onPLVurdering,
   onArbeidsgruppeVurdering,
   onEierBeslutning,
@@ -157,7 +118,7 @@ export function FravikDashboard({
         <>
           <DinOppgaveAlert
             gjeldende={gjeldende}
-            onBOIVurdering={onBOIVurdering}
+            onMiljoVurdering={onMiljoVurdering}
             onPLVurdering={onPLVurdering}
             onArbeidsgruppeVurdering={onArbeidsgruppeVurdering}
             onEierBeslutning={onEierBeslutning}
@@ -241,18 +202,14 @@ export function FravikDashboard({
           }
           variant="default"
         >
-          {maskiner.length > 0 ? (
-            <div className="grid gap-3 sm:grid-cols-2">
-              {maskiner.map((maskin) => (
-                <MaskinKort key={maskin.maskin_id} maskin={maskin} />
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-pkt-text-body-muted">
-              Ingen maskiner lagt til ennå.
-              {canEdit && ' Klikk "Legg til" for å starte.'}
-            </p>
-          )}
+          <MaskinListe
+            maskiner={maskiner}
+            emptyMessage={
+              canEdit
+                ? 'Ingen maskiner lagt til ennå. Klikk "Legg til" for å starte.'
+                : 'Ingen maskiner lagt til.'
+            }
+          />
         </DashboardCard>
       )}
 
@@ -302,7 +259,7 @@ export function FravikDashboard({
 
 interface TidligereVurderingerKortProps {
   state: FravikState;
-  gjeldende: 'boi' | 'pl' | 'arbeidsgruppe' | 'eier' | 'ferdig';
+  gjeldende: 'miljo' | 'pl' | 'arbeidsgruppe' | 'eier' | 'ferdig';
 }
 
 function VurderingDetalj({
@@ -361,10 +318,10 @@ function MaskinVurderingListe({
   vurderingType,
 }: {
   maskiner: MaskinTilstand[];
-  vurderingType: 'boi' | 'arbeidsgruppe';
+  vurderingType: 'miljo' | 'arbeidsgruppe';
 }) {
   const vurderteMaskiner = maskiner.filter(m =>
-    vurderingType === 'boi' ? m.boi_vurdering : m.arbeidsgruppe_vurdering
+    vurderingType === 'miljo' ? m.miljo_vurdering : m.arbeidsgruppe_vurdering
   );
 
   if (vurderteMaskiner.length === 0) return null;
@@ -372,8 +329,8 @@ function MaskinVurderingListe({
   return (
     <div className="mt-3 space-y-2">
       {vurderteMaskiner.map((maskin) => {
-        const vurdering = vurderingType === 'boi'
-          ? maskin.boi_vurdering
+        const vurdering = vurderingType === 'miljo'
+          ? maskin.miljo_vurdering
           : maskin.arbeidsgruppe_vurdering;
         if (!vurdering) return null;
 
@@ -423,11 +380,11 @@ function TidligereVurderingerKort({ state, gjeldende }: TidligereVurderingerKort
         <div>
           <VurderingDetalj
             rolle="Miljørådgiver"
-            vurdering={godkjenningskjede.boi_vurdering}
+            vurdering={godkjenningskjede.miljo_vurdering}
           />
           {/* Per-maskin miljøvurderinger */}
-          {godkjenningskjede.boi_vurdering.fullfort && (
-            <MaskinVurderingListe maskiner={maskiner} vurderingType="boi" />
+          {godkjenningskjede.miljo_vurdering.fullfort && (
+            <MaskinVurderingListe maskiner={maskiner} vurderingType="miljo" />
           )}
         </div>
 
@@ -462,8 +419,8 @@ function TidligereVurderingerKort({ state, gjeldende }: TidligereVurderingerKort
 // ============================================================================
 
 interface DinOppgaveAlertProps {
-  gjeldende: 'boi' | 'pl' | 'arbeidsgruppe' | 'eier' | 'ferdig';
-  onBOIVurdering?: () => void;
+  gjeldende: 'miljo' | 'pl' | 'arbeidsgruppe' | 'eier' | 'ferdig';
+  onMiljoVurdering?: () => void;
   onPLVurdering?: () => void;
   onArbeidsgruppeVurdering?: () => void;
   onEierBeslutning?: () => void;
@@ -474,7 +431,7 @@ interface DinOppgaveAlertProps {
  */
 function getOppgaveConfig(gjeldende: string) {
   switch (gjeldende) {
-    case 'boi':
+    case 'miljo':
       return {
         stegNummer: 1,
         tittel: 'Miljøvurdering',
@@ -509,7 +466,7 @@ function getOppgaveConfig(gjeldende: string) {
 
 function DinOppgaveAlert({
   gjeldende,
-  onBOIVurdering,
+  onMiljoVurdering,
   onPLVurdering,
   onArbeidsgruppeVurdering,
   onEierBeslutning,
@@ -519,7 +476,7 @@ function DinOppgaveAlert({
 
   const handleClick = () => {
     switch (gjeldende) {
-      case 'boi': onBOIVurdering?.(); break;
+      case 'miljo': onMiljoVurdering?.(); break;
       case 'pl': onPLVurdering?.(); break;
       case 'arbeidsgruppe': onArbeidsgruppeVurdering?.(); break;
       case 'eier': onEierBeslutning?.(); break;

@@ -7,7 +7,7 @@ Servicen tar en liste med events og projiserer dem til en FravikState.
 Design-prinsipper:
 1. Events er immutable - vi endrer aldri historikk
 2. State beregnes alltid fra scratch basert på events
-3. Godkjenningskjeden: BOI → PL → Arbeidsgruppe → Eier
+3. Godkjenningskjeden: Miljørådgiver → PL → Arbeidsgruppe → Eier
 """
 from typing import List, Optional, Dict, Any
 from datetime import datetime
@@ -25,8 +25,8 @@ from models.fravik_events import (
     MaskinLagtTilEvent,
     MaskinOppdatertEvent,
     MaskinFjernetEvent,
-    BOIVurderingEvent,
-    BOIReturnertevent,
+    MiljoVurderingEvent,
+    MiljoReturnertEvent,
     PLVurderingEvent,
     PLReturnertevent,
     ArbeidsgruppeVurderingEvent,
@@ -39,7 +39,7 @@ from models.fravik_events import (
 from models.fravik_state import (
     FravikState,
     MaskinTilstand,
-    MaskinBOIVurdering,
+    MaskinMiljoVurdering,
     MaskinArbeidsgruppeVurdering,
     MaskinEierBeslutning,
     GodkjenningsKjedeTilstand,
@@ -78,10 +78,10 @@ class FravikService:
 
         Eksempel:
             >>> service = FravikService()
-            >>> events = [soknad_opprettet, maskin_lagt_til, boi_vurdering]
+            >>> events = [soknad_opprettet, maskin_lagt_til, miljo_vurdering]
             >>> state = service.compute_state(events)
             >>> print(state.status)
-            FravikStatus.UNDER_BOI_VURDERING
+            FravikStatus.UNDER_MILJO_VURDERING
         """
         if not events:
             raise ValueError("Kan ikke beregne state uten events")
@@ -144,8 +144,8 @@ class FravikService:
             FravikEventType.MASKIN_LAGT_TIL: self._handle_maskin_lagt_til,
             FravikEventType.MASKIN_OPPDATERT: self._handle_maskin_oppdatert,
             FravikEventType.MASKIN_FJERNET: self._handle_maskin_fjernet,
-            FravikEventType.BOI_VURDERING: self._handle_boi_vurdering,
-            FravikEventType.BOI_RETURNERT: self._handle_boi_returnert,
+            FravikEventType.MILJO_VURDERING: self._handle_miljo_vurdering,
+            FravikEventType.MILJO_RETURNERT: self._handle_miljo_returnert,
             FravikEventType.PL_VURDERING: self._handle_pl_vurdering,
             FravikEventType.PL_RETURNERT: self._handle_pl_returnert,
             FravikEventType.ARBEIDSGRUPPE_VURDERING: self._handle_arbeidsgruppe_vurdering,
@@ -261,7 +261,7 @@ class FravikService:
             erstatningsdrivstoff=data.erstatningsdrivstoff,
             arbeidsbeskrivelse=data.arbeidsbeskrivelse,
             # Behold eksisterende vurderinger
-            boi_vurdering=state.maskiner[maskin_id].boi_vurdering,
+            miljo_vurdering=state.maskiner[maskin_id].miljo_vurdering,
             arbeidsgruppe_vurdering=state.maskiner[maskin_id].arbeidsgruppe_vurdering,
             eier_beslutning=state.maskiner[maskin_id].eier_beslutning,
         )
@@ -277,16 +277,16 @@ class FravikService:
             del state.maskiner[maskin_id]
         return state
 
-    # ============ BOI HANDLERS ============
+    # ============ MILJØRÅDGIVER HANDLERS ============
 
-    def _handle_boi_vurdering(
-        self, state: FravikState, event: BOIVurderingEvent
+    def _handle_miljo_vurdering(
+        self, state: FravikState, event: MiljoVurderingEvent
     ) -> FravikState:
-        """Håndterer BOI-rådgivers vurdering."""
+        """Håndterer miljørådgivers vurdering."""
         data = event.data
 
         # Oppdater vurderingskjeden
-        state.godkjenningskjede.boi_vurdering = VurderingSteg(
+        state.godkjenningskjede.miljo_vurdering = VurderingSteg(
             fullfort=True,
             beslutning=data.samlet_anbefaling,
             dokumentasjon_tilstrekkelig=data.dokumentasjon_tilstrekkelig,
@@ -300,7 +300,7 @@ class FravikService:
         for maskin_vurdering in data.maskin_vurderinger:
             maskin_id = maskin_vurdering.maskin_id
             if maskin_id in state.maskiner:
-                state.maskiner[maskin_id].boi_vurdering = MaskinBOIVurdering(
+                state.maskiner[maskin_id].miljo_vurdering = MaskinMiljoVurdering(
                     beslutning=maskin_vurdering.beslutning,
                     kommentar=maskin_vurdering.kommentar,
                     vilkar=maskin_vurdering.vilkar or [],
@@ -313,18 +313,18 @@ class FravikService:
 
         return state
 
-    def _handle_boi_returnert(
-        self, state: FravikState, event: BOIReturnertevent
+    def _handle_miljo_returnert(
+        self, state: FravikState, event: MiljoReturnertEvent
     ) -> FravikState:
-        """Håndterer retur fra BOI (mangler dokumentasjon)."""
-        state.godkjenningskjede.boi_vurdering = VurderingSteg(
+        """Håndterer retur fra miljørådgiver (mangler dokumentasjon)."""
+        state.godkjenningskjede.miljo_vurdering = VurderingSteg(
             fullfort=False,
             dokumentasjon_tilstrekkelig=False,
             manglende_dokumentasjon=event.manglende_dokumentasjon,
             vurdert_av=event.aktor,
             vurdert_tidspunkt=event.tidsstempel,
         )
-        state.status = FravikStatus.RETURNERT_FRA_BOI
+        state.status = FravikStatus.RETURNERT_FRA_MILJO
         return state
 
     # ============ PL HANDLERS ============
