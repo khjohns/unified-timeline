@@ -379,7 +379,7 @@
   --color-pkt-border-gray: #7a7a9a;  /* Lightened for 3:1 contrast on surface-gray */
   --color-pkt-border-green: #0a4030;  /* Darker green - matches text */
   --color-pkt-border-light-beige: #4a4a3a;
-  --color-pkt-border-red: #5a2020;  /* Darker red - matches text */
+  --color-pkt-border-red: #a04a4a;  /* Lighter red - visible on dark bg */
   --color-pkt-border-subtle: #3a3a5a;
   --color-pkt-border-yellow: #5a4a20;  /* Darker amber - matches text */
   --color-pkt-border-active: #6a9aff;
@@ -403,7 +403,7 @@
   --color-pkt-surface-faded-green: rgba(176, 240, 208, 0.85);  /* Semi-transparent mint */
   --color-pkt-surface-faded-red: rgba(255, 202, 202, 0.85);  /* Semi-transparent coral */
   --color-pkt-surface-gray: #2a2a4a;
-  --color-pkt-surface-light-beige: #3a3a2a;
+  --color-pkt-surface-light-beige: #3a3a4a;  /* Blue-gray instead of beige for dark mode */
   --color-pkt-surface-light-blue: rgba(180, 210, 255, 0.85);  /* Semi-transparent light blue */
   --color-pkt-surface-light-green: rgba(176, 240, 208, 0.85);  /* Semi-transparent mint */
   --color-pkt-surface-red: rgba(255, 180, 172, 0.85);  /* Semi-transparent light red */
@@ -428,7 +428,7 @@
   --color-pkt-brand-yellow-500: rgba(255, 224, 160, 0.85);  /* Semi-transparent amber */
   --color-pkt-brand-yellow-1000: #fbbf24;  /* Bright golden amber for borders/accents */
   --color-pkt-brand-red-100: rgba(255, 202, 202, 0.85);  /* Semi-transparent coral */
-  --color-pkt-brand-red-600: #ff8a80;  /* Coral/salmon for subsidiary status - lighter red */
+  --color-pkt-brand-red-600: #9a4a4a;  /* Subtle hover - slightly lighter than strong-red */
   --color-pkt-brand-red-1000: #ff6b6b;  /* Vibrant red for errors/danger in dark mode */
   --color-pkt-brand-light-green-400: rgba(176, 240, 208, 0.85);  /* Semi-transparent mint */
   --color-pkt-brand-dark-blue-1000: #8ab4ff;

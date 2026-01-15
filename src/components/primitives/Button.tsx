@@ -84,9 +84,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             'hover:bg-pkt-bg-subtle hover:border-pkt-border-hover':
               variant === 'secondary' && !isDisabled,
 
-            // Primary and Secondary share the same border
+            // Primary border matches background, secondary uses default border
+            'border-pkt-surface-strong-dark-blue':
+              variant === 'primary',
             'border-pkt-border-default':
-              variant === 'primary' || variant === 'secondary',
+              variant === 'secondary',
 
             // Ghost: transparent background
             'bg-transparent text-pkt-text-body-dark':
