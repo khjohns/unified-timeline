@@ -111,14 +111,16 @@ const calendarStyles = `
     background-color: var(--color-pkt-surface-light-blue) !important;
   }
 
-  /* Range middle */
+  /* Range middle - sharp corners for continuous band */
   .rdp-range_middle {
     background-color: var(--color-pkt-surface-light-blue) !important;
+    border-radius: 0 !important;
   }
 
   .rdp-range_middle .rdp-day_button {
     color: var(--color-pkt-text-body-dark) !important;
     background-color: transparent !important;
+    border-radius: 0 !important;
   }
 
   /* Selected / Range start / Range end - full circle */
@@ -159,14 +161,16 @@ const calendarStyles = `
     background-color: var(--color-pkt-grays-gray-200) !important;
   }
 
-  /* Dark: Range middle */
+  /* Dark: Range middle - sharp corners */
   .dark .rdp-range_middle {
     background-color: var(--color-pkt-grays-gray-200) !important;
+    border-radius: 0 !important;
   }
 
   .dark .rdp-range_middle .rdp-day_button {
     color: var(--color-pkt-text-body-default) !important;
     background-color: transparent !important;
+    border-radius: 0 !important;
   }
 
   /* Dark: Selected / Range start / Range end - full circle */
