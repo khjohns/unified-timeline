@@ -11,7 +11,7 @@
  */
 
 import { useMemo } from 'react';
-import { Pencil1Icon, PlusIcon, CheckCircledIcon, CrossCircledIcon, ClockIcon } from '@radix-ui/react-icons';
+import { Pencil1Icon, PlusIcon } from '@radix-ui/react-icons';
 import { DashboardCard, DataList, DataListItem, Badge, Button, Alert } from '../primitives';
 import type { FravikState, MaskinTilstand, FravikBeslutning } from '../../types/fravik';
 import { MASKIN_TYPE_LABELS } from '../../types/fravik';
@@ -86,23 +86,6 @@ function getMaskinStatusBadge(status: string): { variant: 'success' | 'danger' |
 // ============================================================================
 
 /**
- * Get beslutning icon
- */
-function getBeslutningIcon(beslutning?: FravikBeslutning) {
-  switch (beslutning) {
-    case 'godkjent':
-      return <CheckCircledIcon className="w-3.5 h-3.5 text-alert-success-text" />;
-    case 'avslatt':
-      return <CrossCircledIcon className="w-3.5 h-3.5 text-alert-danger-text" />;
-    case 'delvis_godkjent':
-    case 'krever_avklaring':
-      return <ClockIcon className="w-3.5 h-3.5 text-alert-warning-text" />;
-    default:
-      return null;
-  }
-}
-
-/**
  * Compact maskin card with BOI status
  */
 function MaskinKort({ maskin }: { maskin: MaskinTilstand }) {
@@ -129,11 +112,14 @@ function MaskinKort({ maskin }: { maskin: MaskinTilstand }) {
       )}
 
       {/* BOI vurderingsstatus */}
-      {hasBOI && (
-        <div className="flex items-center gap-1 mt-2 text-xs text-pkt-text-body-muted">
-          {getBeslutningIcon(maskin.boi_vurdering?.beslutning)}
-          <span>BOI</span>
-        </div>
+      {hasBOI && maskin.boi_vurdering && (
+        <p className={`text-xs mt-2 ${
+          maskin.boi_vurdering.beslutning === 'godkjent' ? 'text-alert-success-text' :
+          maskin.boi_vurdering.beslutning === 'delvis_godkjent' ? 'text-alert-warning-text' : 'text-alert-danger-text'
+        }`}>
+          BOI: {maskin.boi_vurdering.beslutning === 'godkjent' ? 'Godkjent' :
+                maskin.boi_vurdering.beslutning === 'delvis_godkjent' ? 'Delvis' : 'Avslått'}
+        </p>
       )}
     </div>
   );
@@ -344,20 +330,19 @@ function VurderingDetalj({
     );
   }
 
-  const beslutningLabel = vurdering.beslutning === 'godkjent'
-    ? 'Anbefalt'
+  const beslutningConfig = vurdering.beslutning === 'godkjent'
+    ? { label: 'Anbefalt', variant: 'success' as const }
     : vurdering.beslutning === 'delvis_godkjent'
-    ? 'Delvis anbefalt'
-    : 'Ikke anbefalt';
+    ? { label: 'Delvis anbefalt', variant: 'warning' as const }
+    : { label: 'Ikke anbefalt', variant: 'danger' as const };
 
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
         <span className="font-medium text-sm">{rolle}</span>
-        <span className="flex items-center gap-1 text-sm">
-          {getBeslutningIcon(vurdering.beslutning)}
-          {beslutningLabel}
-        </span>
+        <Badge variant={beslutningConfig.variant} size="sm">
+          {beslutningConfig.label}
+        </Badge>
       </div>
       {vurdering.kommentar && (
         <p className="text-sm text-pkt-text-body-muted whitespace-pre-wrap">
@@ -396,19 +381,18 @@ function MaskinVurderingListe({
         if (!vurdering) return null;
 
         const maskinNavn = MASKIN_TYPE_LABELS[maskin.maskin_type] || maskin.maskin_type;
-        const beslutningLabel = vurdering.beslutning === 'godkjent'
-          ? 'Godkjent'
+        const beslutningText = vurdering.beslutning === 'godkjent'
+          ? { label: 'Godkjent', color: 'text-alert-success-text' }
           : vurdering.beslutning === 'delvis_godkjent'
-          ? 'Delvis'
-          : 'Avslått';
+          ? { label: 'Delvis', color: 'text-alert-warning-text' }
+          : { label: 'Avslått', color: 'text-alert-danger-text' };
 
         return (
           <div key={maskin.maskin_id} className="p-3 rounded bg-pkt-bg-subtle">
             <div className="flex items-center justify-between">
               <span className="font-medium text-sm">{maskinNavn}</span>
-              <span className="flex items-center gap-1 text-sm">
-                {getBeslutningIcon(vurdering.beslutning)}
-                {beslutningLabel}
+              <span className={`text-sm ${beslutningText.color}`}>
+                {beslutningText.label}
               </span>
             </div>
             {vurdering.kommentar && (
