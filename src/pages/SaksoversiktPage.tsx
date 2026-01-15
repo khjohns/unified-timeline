@@ -18,6 +18,7 @@ import {
   getSakstypeBadgeClass,
   getSakstypeLabel,
 } from '../constants/statusStyles';
+import { GearIcon } from '@radix-ui/react-icons';
 import { formatDateShort } from '../utils/formatters';
 import type { OverordnetStatus } from '../types/timeline';
 
@@ -63,6 +64,14 @@ export function SaksoversiktPage() {
         maxWidth="wide"
         actions={
           <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/innstillinger')}
+              title="Innstillinger"
+            >
+              <GearIcon className="w-4 h-4" />
+            </Button>
             <Button
               variant="secondary"
               size="sm"
