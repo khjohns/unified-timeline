@@ -4,9 +4,25 @@ import { CalendarIcon, Cross2Icon } from '@radix-ui/react-icons';
 import { DayPicker, DateRange } from 'react-day-picker';
 import { format } from 'date-fns';
 import { nb } from 'date-fns/locale';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import clsx from 'clsx';
 import 'react-day-picker/style.css';
+
+export type DateRangePickerWidth = 'sm' | 'md' | 'lg' | 'full';
+
+/**
+ * Width classes for semantic sizing:
+ * - sm: fits single date (dd.mm.yyyy)
+ * - md: fits date range comfortably (default)
+ * - lg: extra wide
+ * - full: 100% width
+ */
+const WIDTH_CLASSES: Record<DateRangePickerWidth, string> = {
+  sm: 'w-36',      // 9rem
+  md: 'w-56',      // 14rem - fits "dd.mm.yyyy – dd.mm.yyyy"
+  lg: 'w-72',      // 18rem
+  full: 'w-full',
+};
 
 export interface DateRangeValue {
   from?: string; // YYYY-MM-DD
@@ -20,6 +36,8 @@ export interface DateRangePickerProps {
   onChange?: (range: DateRangeValue) => void;
   /** Whether the input has an error state */
   error?: boolean;
+  /** Semantic width of the picker (default: 'md') */
+  width?: DateRangePickerWidth;
   /** Disabled state */
   disabled?: boolean;
   /** Placeholder text */
@@ -131,13 +149,23 @@ export function DateRangePicker({
   value,
   onChange,
   error,
+  width = 'md',
   disabled,
   placeholder = 'Velg periode',
   id,
   'data-testid': dataTestId,
 }: DateRangePickerProps) {
   const [open, setOpen] = useState(false);
+  // Track if we've started selecting a new range (first date clicked)
+  const [selectionStarted, setSelectionStarted] = useState(false);
   const isMobile = useIsMobile();
+
+  // Reset selection state when popover opens
+  useEffect(() => {
+    if (open) {
+      setSelectionStarted(false);
+    }
+  }, [open]);
 
   // Parse ISO strings to DateRange object
   const selectedRange: DateRange | undefined =
@@ -149,14 +177,23 @@ export function DateRangePicker({
       : undefined;
 
   const handleSelect = (range: DateRange | undefined) => {
+    const isFirstSelection = range?.from && !range?.to;
+    const isCompleteSelection = range?.from && range?.to;
+
     if (onChange) {
       onChange({
         from: range?.from ? format(range.from, 'yyyy-MM-dd') : undefined,
         to: range?.to ? format(range.to, 'yyyy-MM-dd') : undefined,
       });
     }
-    // Close when both dates are selected
-    if (range?.from && range?.to) {
+
+    // Mark that user has started a new selection (clicked first date)
+    if (isFirstSelection) {
+      setSelectionStarted(true);
+    }
+
+    // Only close after completing a newly started selection
+    if (isCompleteSelection && selectionStarted) {
       setOpen(false);
     }
   };
@@ -213,8 +250,8 @@ export function DateRangePicker({
     // Hover state
     !disabled && 'hover:border-pkt-border-hover',
 
-    // Width - full width for range picker
-    'w-full',
+    // Semantic width
+    WIDTH_CLASSES[width],
 
     // Placeholder color
     !displayValue && 'text-pkt-text-placeholder'
