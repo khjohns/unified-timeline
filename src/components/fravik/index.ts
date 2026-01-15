@@ -1,11 +1,13 @@
 /**
  * Fravik Components
  *
- * Modal components for fravik-søknad (exemption application) management.
+ * Components for fravik-søknad (exemption application) management.
  */
 
+export { FravikDashboard } from './FravikDashboard';
 export { OpprettFravikModal } from './OpprettFravikModal';
 export { LeggTilMaskinModal } from './LeggTilMaskinModal';
+export { AvbotendeTiltakModal } from './AvbotendeTiltakModal';
 export { SendInnModal } from './SendInnModal';
 
 // Re-export schemas for use in tests

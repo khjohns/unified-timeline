@@ -37,9 +37,24 @@ import {
 interface OpprettFravikModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Enable edit mode to update existing søknad */
+  editMode?: boolean;
+  /** Required when editMode is true */
+  sakId?: string;
+  /** Initial form data for edit mode */
+  initialData?: Partial<OpprettSoknadFormData>;
+  /** Callback when update is successful (edit mode only) */
+  onSuccess?: () => void;
 }
 
-export function OpprettFravikModal({ open, onOpenChange }: OpprettFravikModalProps) {
+export function OpprettFravikModal({
+  open,
+  onOpenChange,
+  editMode = false,
+  sakId,
+  initialData,
+  onSuccess,
+}: OpprettFravikModalProps) {
   const navigate = useNavigate();
   const toast = useToast();
   const [showTokenExpired, setShowTokenExpired] = useState(false);
@@ -55,19 +70,38 @@ export function OpprettFravikModal({ open, onOpenChange }: OpprettFravikModalPro
   } = useForm<OpprettSoknadFormData>({
     resolver: zodResolver(opprettSoknadSchema),
     defaultValues: {
-      prosjekt_id: '',
-      prosjekt_navn: '',
-      prosjekt_nummer: '',
-      rammeavtale: '',
-      hovedentreprenor: '',
-      soker_navn: '',
-      soker_epost: '',
-      soknad_type: 'machine',
-      er_haste: false,
-      haste_begrunnelse: '',
-      frist_for_svar: '',
+      prosjekt_id: initialData?.prosjekt_id || '',
+      prosjekt_navn: initialData?.prosjekt_navn || '',
+      prosjekt_nummer: initialData?.prosjekt_nummer || '',
+      rammeavtale: initialData?.rammeavtale || '',
+      hovedentreprenor: initialData?.hovedentreprenor || '',
+      soker_navn: initialData?.soker_navn || '',
+      soker_epost: initialData?.soker_epost || '',
+      soknad_type: initialData?.soknad_type || 'machine',
+      er_haste: initialData?.er_haste || false,
+      haste_begrunnelse: initialData?.haste_begrunnelse || '',
+      frist_for_svar: initialData?.frist_for_svar || '',
     },
   });
+
+  // Reset form when initialData changes (edit mode)
+  useEffect(() => {
+    if (open && editMode && initialData) {
+      reset({
+        prosjekt_id: initialData.prosjekt_id || '',
+        prosjekt_navn: initialData.prosjekt_navn || '',
+        prosjekt_nummer: initialData.prosjekt_nummer || '',
+        rammeavtale: initialData.rammeavtale || '',
+        hovedentreprenor: initialData.hovedentreprenor || '',
+        soker_navn: initialData.soker_navn || '',
+        soker_epost: initialData.soker_epost || '',
+        soknad_type: initialData.soknad_type || 'machine',
+        er_haste: initialData.er_haste || false,
+        haste_begrunnelse: initialData.haste_begrunnelse || '',
+        frist_for_svar: initialData.frist_for_svar || '',
+      });
+    }
+  }, [open, editMode, initialData, reset]);
 
   const { showConfirmDialog, setShowConfirmDialog, handleClose, confirmClose } = useConfirmClose({
     isDirty,
@@ -78,8 +112,8 @@ export function OpprettFravikModal({ open, onOpenChange }: OpprettFravikModalPro
   // Form backup for token expiry protection
   const formData = watch();
   const { getBackup, clearBackup, hasBackup } = useFormBackup(
-    'fravik-new',
-    'opprett_soknad',
+    editMode && sakId ? sakId : 'fravik-new',
+    editMode ? 'rediger_soknad' : 'opprett_soknad',
     formData,
     isDirty
   );
@@ -117,13 +151,16 @@ export function OpprettFravikModal({ open, onOpenChange }: OpprettFravikModalPro
       if (result.type === 'opprett') {
         toast.success('Søknad opprettet', 'Du kan nå legge til maskiner og sende inn søknaden.');
         navigate(`/fravik/${result.sakId}`);
+      } else if (result.type === 'oppdater') {
+        toast.success('Søknad oppdatert', 'Endringene er lagret.');
+        onSuccess?.();
       }
     },
     onError: (error) => {
       if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') {
         setShowTokenExpired(true);
       } else {
-        toast.error('Feil ved opprettelse', error.message);
+        toast.error(editMode ? 'Feil ved oppdatering' : 'Feil ved opprettelse', error.message);
       }
     },
   });
@@ -143,18 +180,39 @@ export function OpprettFravikModal({ open, onOpenChange }: OpprettFravikModalPro
       frist_for_svar: data.frist_for_svar || undefined,
     };
 
-    mutation.mutate({
-      type: 'opprett',
-      data: cleanData,
-      aktor: 'bruker', // TODO: Get from auth context
-    });
+    if (editMode && sakId) {
+      // Update existing søknad
+      mutation.mutate({
+        type: 'oppdater',
+        sakId,
+        data: {
+          prosjekt_navn: cleanData.prosjekt_navn,
+          prosjekt_nummer: cleanData.prosjekt_nummer,
+          rammeavtale: cleanData.rammeavtale,
+          hovedentreprenor: cleanData.hovedentreprenor,
+          soker_navn: cleanData.soker_navn,
+          soker_epost: cleanData.soker_epost,
+          er_haste: cleanData.er_haste,
+          haste_begrunnelse: cleanData.haste_begrunnelse,
+          frist_for_svar: cleanData.frist_for_svar,
+        },
+        aktor: 'bruker', // TODO: Get from auth context
+      });
+    } else {
+      // Create new søknad
+      mutation.mutate({
+        type: 'opprett',
+        data: cleanData,
+        aktor: 'bruker', // TODO: Get from auth context
+      });
+    }
   };
 
   return (
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title="Opprett fravik-søknad"
+      title={editMode ? 'Rediger søknadsinformasjon' : 'Opprett fravik-søknad'}
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -179,13 +237,14 @@ export function OpprettFravikModal({ open, onOpenChange }: OpprettFravikModalPro
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 label="Prosjekt-ID"
-                required
+                required={!editMode}
                 error={errors.prosjekt_id?.message}
               >
                 <Input
                   id="prosjekt_id"
                   {...register('prosjekt_id')}
                   error={!!errors.prosjekt_id}
+                  disabled={editMode}
                 />
               </FormField>
 
@@ -365,7 +424,7 @@ export function OpprettFravikModal({ open, onOpenChange }: OpprettFravikModalPro
             loading={isSubmitting || mutation.isPending}
             className="w-full sm:w-auto order-1 sm:order-2"
           >
-            Opprett søknad
+            {editMode ? 'Lagre endringer' : 'Opprett søknad'}
           </Button>
         </div>
       </form>

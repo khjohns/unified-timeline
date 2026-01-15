@@ -3,22 +3,27 @@
  *
  * Page for viewing and managing a fravik-søknad.
  * Shows søknad details, maskin list, and approval status.
+ * Design follows CasePage patterns for consistency.
  */
 
-import { useMemo, useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeftIcon, ReloadIcon, PlusIcon } from '@radix-ui/react-icons';
-import { Alert, Badge, Button, Card } from '../components/primitives';
+import { useQuery } from '@tanstack/react-query';
+import { ReloadIcon } from '@radix-ui/react-icons';
+import { Alert, Badge, Button, Card, DataList, DataListItem } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
 import { STALE_TIME } from '../constants/queryConfig';
 import { fetchFravikState, fetchFravikEvents } from '../api/fravik';
-import { LeggTilMaskinModal, SendInnModal } from '../components/fravik';
-import type { FravikState, FravikEvent, MaskinTilstand } from '../types/fravik';
+import {
+  AvbotendeTiltakModal,
+  FravikDashboard,
+  LeggTilMaskinModal,
+  OpprettFravikModal,
+  SendInnModal,
+} from '../components/fravik';
+import type { FravikState, FravikEvent } from '../types/fravik';
 import {
   FRAVIK_STATUS_LABELS,
-  FRAVIK_ROLLE_LABELS,
-  MASKIN_TYPE_LABELS,
   getFravikStatusColor,
 } from '../types/fravik';
 import { formatDateShort } from '../utils/formatters';
@@ -46,227 +51,26 @@ function useFravikEvents(sakId: string, enabled: boolean = true) {
 }
 
 // ============================================================================
-// SUB-COMPONENTS
+// HELPERS
 // ============================================================================
 
-const DEFAULT_STATUS_CLASS = 'bg-pkt-bg-subtle text-pkt-text-body-subtle';
-const STATUS_COLOR_CLASSES: Record<string, string> = {
-  gray: DEFAULT_STATUS_CLASS,
-  blue: 'bg-oslo-blue-light text-oslo-blue',
-  yellow: 'bg-amber-100 text-amber-800',
-  green: 'bg-alert-success-light text-alert-success-text',
-  red: 'bg-alert-danger-light text-alert-danger-text',
-};
-
-function getStatusBadgeClass(color: string): string {
-  return STATUS_COLOR_CLASSES[color] ?? DEFAULT_STATUS_CLASS;
-}
-
-function StatusBadge({ status, label }: { status: string; label: string }) {
+/**
+ * Map fravik status to Badge variant
+ */
+function getStatusBadgeVariant(status: string): 'success' | 'danger' | 'warning' | 'info' | 'neutral' {
   const color = getFravikStatusColor(status as any);
-  return (
-    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusBadgeClass(color)}`}>
-      {label}
-    </span>
-  );
-}
-
-function GodkjenningskjedeStepper({ state }: { state: FravikState }) {
-  const steps = [
-    { key: 'boi', label: 'BOI-rådgiver', steg: state.godkjenningskjede.boi_vurdering },
-    { key: 'pl', label: 'Prosjektleder', steg: state.godkjenningskjede.pl_vurdering },
-    { key: 'arbeidsgruppe', label: 'Arbeidsgruppe', steg: state.godkjenningskjede.arbeidsgruppe_vurdering },
-    { key: 'eier', label: 'Eier', steg: state.godkjenningskjede.eier_beslutning },
-  ];
-
-  const gjeldende = state.godkjenningskjede.gjeldende_steg;
-
-  return (
-    <div className="flex items-center gap-2 overflow-x-auto pb-2">
-      {steps.map((step, index) => {
-        const isActive = step.key === gjeldende;
-        const isComplete = step.steg.fullfort;
-        const isPending = !isComplete && !isActive;
-
-        return (
-          <div key={step.key} className="flex items-center">
-            <div
-              className={`
-                flex items-center gap-2 px-3 py-2 rounded-lg text-sm whitespace-nowrap
-                ${isComplete ? 'bg-alert-success-light text-alert-success-text' : ''}
-                ${isActive ? 'bg-oslo-blue-light text-oslo-blue font-medium' : ''}
-                ${isPending ? 'bg-pkt-bg-subtle text-pkt-text-body-subtle' : ''}
-              `}
-            >
-              <span
-                className={`
-                  w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium
-                  ${isComplete ? 'bg-alert-success-text text-white' : ''}
-                  ${isActive ? 'bg-oslo-blue text-white' : ''}
-                  ${isPending ? 'bg-pkt-border-default text-pkt-text-body-subtle' : ''}
-                `}
-              >
-                {isComplete ? '✓' : index + 1}
-              </span>
-              {step.label}
-            </div>
-            {index < steps.length - 1 && (
-              <div className="w-8 h-0.5 bg-pkt-border-default mx-1" />
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function MaskinKort({ maskin }: { maskin: MaskinTilstand }) {
-  const statusLabel = maskin.samlet_status === 'ikke_vurdert'
-    ? 'Ikke vurdert'
-    : maskin.samlet_status === 'godkjent'
-    ? 'Godkjent'
-    : maskin.samlet_status === 'avslatt'
-    ? 'Avslått'
-    : 'Delvis godkjent';
-
-  const statusColor = maskin.samlet_status === 'godkjent'
-    ? 'green'
-    : maskin.samlet_status === 'avslatt'
-    ? 'red'
-    : maskin.samlet_status === 'delvis_godkjent'
-    ? 'yellow'
-    : 'gray';
-
-  return (
-    <Card variant="outlined" padding="md">
-      <div className="flex justify-between items-start mb-3">
-        <div>
-          <h4 className="font-medium text-pkt-text-heading">
-            {MASKIN_TYPE_LABELS[maskin.maskin_type] || maskin.maskin_type}
-            {maskin.annet_type && `: ${maskin.annet_type}`}
-          </h4>
-          {maskin.registreringsnummer && (
-            <p className="text-sm text-pkt-text-body-subtle">
-              Reg.nr: {maskin.registreringsnummer}
-            </p>
-          )}
-        </div>
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(statusColor)}`}>
-          {statusLabel}
-        </span>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 text-sm">
-        <div>
-          <p className="text-pkt-text-body-subtle">Periode</p>
-          <p className="text-pkt-text-body">
-            {formatDateShort(maskin.start_dato)} - {formatDateShort(maskin.slutt_dato)}
-          </p>
-        </div>
-        <div>
-          <p className="text-pkt-text-body-subtle">Markedsundersøkelse</p>
-          <p className="text-pkt-text-body">{maskin.markedsundersokelse ? 'Ja' : 'Nei'}</p>
-        </div>
-      </div>
-
-      <div className="mt-3">
-        <p className="text-pkt-text-body-subtle text-sm">Begrunnelse</p>
-        <p className="text-pkt-text-body text-sm mt-1">{maskin.begrunnelse}</p>
-      </div>
-
-      {maskin.erstatningsmaskin && (
-        <div className="mt-3 p-2 bg-pkt-bg-subtle rounded">
-          <p className="text-pkt-text-body-subtle text-xs">Erstatningsmaskin</p>
-          <p className="text-pkt-text-body text-sm">
-            {maskin.erstatningsmaskin}
-            {maskin.erstatningsdrivstoff && ` (${maskin.erstatningsdrivstoff})`}
-          </p>
-        </div>
-      )}
-    </Card>
-  );
-}
-
-function SoknadOversikt({ state }: { state: FravikState }) {
-  return (
-    <Card variant="outlined" padding="md">
-      <h3 className="text-lg font-semibold text-pkt-text-heading mb-4">Søknadsoversikt</h3>
-
-      <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-        <div>
-          <dt className="text-pkt-text-body-subtle">Prosjekt</dt>
-          <dd className="text-pkt-text-body font-medium">{state.prosjekt_navn}</dd>
-          {state.prosjekt_nummer && (
-            <dd className="text-pkt-text-body-subtle text-xs">{state.prosjekt_nummer}</dd>
-          )}
-        </div>
-
-        <div>
-          <dt className="text-pkt-text-body-subtle">Søker</dt>
-          <dd className="text-pkt-text-body">{state.soker_navn}</dd>
-          {state.soker_epost && (
-            <dd className="text-pkt-text-body-subtle text-xs">{state.soker_epost}</dd>
-          )}
-        </div>
-
-        {state.hovedentreprenor && (
-          <div>
-            <dt className="text-pkt-text-body-subtle">Hovedentreprenør</dt>
-            <dd className="text-pkt-text-body">{state.hovedentreprenor}</dd>
-          </div>
-        )}
-
-        {state.rammeavtale && (
-          <div>
-            <dt className="text-pkt-text-body-subtle">Rammeavtale</dt>
-            <dd className="text-pkt-text-body">{state.rammeavtale}</dd>
-          </div>
-        )}
-
-        <div>
-          <dt className="text-pkt-text-body-subtle">Type søknad</dt>
-          <dd className="text-pkt-text-body">
-            {state.soknad_type === 'machine' ? 'Maskin' : 'Infrastruktur'}
-          </dd>
-        </div>
-
-        {state.frist_for_svar && (
-          <div>
-            <dt className="text-pkt-text-body-subtle">Ønsket frist</dt>
-            <dd className="text-pkt-text-body">{formatDateShort(state.frist_for_svar)}</dd>
-          </div>
-        )}
-
-        {state.er_haste && (
-          <div className="sm:col-span-2">
-            <dt className="text-pkt-text-body-subtle">Hastebehandling</dt>
-            <dd className="text-alert-danger-text">
-              Ja{state.haste_begrunnelse && `: ${state.haste_begrunnelse}`}
-            </dd>
-          </div>
-        )}
-      </dl>
-    </Card>
-  );
-}
-
-function NesteHandlingKort({ state }: { state: FravikState }) {
-  if (state.er_ferdigbehandlet) {
-    return null;
+  switch (color) {
+    case 'green':
+      return 'success';
+    case 'red':
+      return 'danger';
+    case 'yellow':
+      return 'warning';
+    case 'blue':
+      return 'info';
+    default:
+      return 'neutral';
   }
-
-  const { rolle, handling } = state.neste_handling;
-
-  return (
-    <Alert variant="info" className="mb-4">
-      <div className="flex items-center gap-2">
-        <span className="font-medium">Neste handling:</span>
-        <span>
-          {rolle && FRAVIK_ROLLE_LABELS[rolle]} - {handling}
-        </span>
-      </div>
-    </Alert>
-  );
 }
 
 // ============================================================================
@@ -275,10 +79,11 @@ function NesteHandlingKort({ state }: { state: FravikState }) {
 
 export function FravikPage() {
   const { sakId } = useParams<{ sakId: string }>();
-  const queryClient = useQueryClient();
 
   // Modal state
+  const [showRedigerSoknad, setShowRedigerSoknad] = useState(false);
   const [showLeggTilMaskin, setShowLeggTilMaskin] = useState(false);
+  const [showAvbotendeTiltak, setShowAvbotendeTiltak] = useState(false);
   const [showSendInn, setShowSendInn] = useState(false);
 
   const {
@@ -290,30 +95,32 @@ export function FravikPage() {
 
   const { data: events = [] } = useFravikEvents(sakId || '');
 
-  const maskiner = useMemo(() => {
-    if (!state) return [];
-    return Object.values(state.maskiner);
-  }, [state]);
-
   // Callback to refetch after modal actions
-  const handleMaskinAdded = () => {
+  const handleModalSuccess = () => {
     refetch();
   };
 
-  const handleSendtInn = () => {
-    refetch();
-  };
+  // Beregn om søknaden kan sendes inn (alle tre spor må være utfylt)
+  const kanSendesInn = useMemo(() => {
+    if (!state) return false;
+    const harSoknadInfo = !!state.prosjekt_navn && !!state.soker_navn;
+    const harMaskiner = state.soknad_type === 'machine'
+      ? Object.keys(state.maskiner).length > 0
+      : true;
+    const harAvbotende = !!state.avbotende_tiltak && !!state.konsekvenser_ved_avslag;
+    return harSoknadInfo && harMaskiner && harAvbotende;
+  }, [state]);
 
   // Loading state
   if (isLoading) {
     return (
       <div className="min-h-screen bg-pkt-bg-subtle">
-        <PageHeader title="Laster søknad..." subtitle="Vennligst vent" maxWidth="wide" />
-        <main className="max-w-5xl mx-auto px-4 py-6 sm:px-6 sm:py-8">
-          <Card variant="outlined" padding="lg">
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-oslo-blue" />
-              <span className="ml-3 text-pkt-text-body-subtle">Laster søknad...</span>
+        <PageHeader title="Laster søknad..." subtitle="Vennligst vent" />
+        <main className="max-w-3xl mx-auto px-2 py-4 sm:px-4 sm:py-6">
+          <Card variant="outlined" padding="md">
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-oslo-blue" />
+              <span className="ml-3 text-sm text-pkt-text-body-subtle">Laster søknad...</span>
             </div>
           </Card>
         </main>
@@ -325,19 +132,19 @@ export function FravikPage() {
   if (error || !state) {
     return (
       <div className="min-h-screen bg-pkt-bg-subtle">
-        <PageHeader title="Feil ved lasting" subtitle="Kunne ikke laste søknad" maxWidth="wide" />
-        <main className="max-w-5xl mx-auto px-4 py-6 sm:px-6 sm:py-8">
-          <Card variant="outlined" padding="lg">
-            <div className="text-center py-12">
-              <p className="text-alert-danger-text mb-4">
+        <PageHeader title="Feil ved lasting" subtitle="Kunne ikke laste søknad" />
+        <main className="max-w-3xl mx-auto px-2 py-4 sm:px-4 sm:py-6">
+          <Card variant="outlined" padding="md">
+            <div className="text-center py-8">
+              <p className="text-sm text-alert-danger-text mb-4">
                 Kunne ikke laste søknad: {error?.message || 'Ukjent feil'}
               </p>
               <div className="flex gap-2 justify-center">
-                <Button variant="secondary" onClick={() => refetch()}>
+                <Button variant="secondary" size="sm" onClick={() => refetch()}>
                   Prøv igjen
                 </Button>
                 <Link to="/fravik">
-                  <Button variant="primary">Tilbake til oversikt</Button>
+                  <Button variant="primary" size="sm">Tilbake til oversikt</Button>
                 </Link>
               </div>
             </div>
@@ -352,13 +159,11 @@ export function FravikPage() {
       <PageHeader
         title={state.prosjekt_navn}
         subtitle={`Fravik-søknad • ${state.sak_id}`}
-        maxWidth="wide"
         actions={
           <div className="flex items-center gap-2">
-            <StatusBadge
-              status={state.status}
-              label={state.visningsstatus || FRAVIK_STATUS_LABELS[state.status]}
-            />
+            <Badge variant={getStatusBadgeVariant(state.status)}>
+              {state.visningsstatus || FRAVIK_STATUS_LABELS[state.status]}
+            </Badge>
             <Button variant="ghost" size="sm" onClick={() => refetch()}>
               <ReloadIcon className="w-4 h-4" />
             </Button>
@@ -366,185 +171,148 @@ export function FravikPage() {
         }
       />
 
-      <main className="max-w-5xl mx-auto px-4 py-6 sm:px-6 sm:py-8 space-y-6">
-        {/* Tilbake-lenke */}
-        <Link
-          to="/fravik"
-          className="inline-flex items-center gap-1 text-sm text-oslo-blue hover:underline"
-        >
-          <ArrowLeftIcon className="w-4 h-4" />
-          Tilbake til oversikt
-        </Link>
-
-        {/* Neste handling */}
-        <NesteHandlingKort state={state} />
-
-        {/* Godkjenningskjede */}
-        <Card variant="outlined" padding="md">
-          <h3 className="text-lg font-semibold text-pkt-text-heading mb-4">Godkjenningskjede</h3>
-          <GodkjenningskjedeStepper state={state} />
-        </Card>
-
-        {/* Søknadsoversikt */}
-        <SoknadOversikt state={state} />
-
-        {/* Maskiner */}
-        {state.soknad_type === 'machine' && (
-          <section>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-pkt-text-heading">
-                Maskiner ({maskiner.length})
-              </h3>
-              {state.status === 'utkast' && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setShowLeggTilMaskin(true)}
-                >
-                  <PlusIcon className="w-4 h-4 mr-1" />
-                  Legg til maskin
-                </Button>
-              )}
-            </div>
-            {maskiner.length > 0 ? (
-              <div className="grid gap-4 md:grid-cols-2">
-                {maskiner.map((maskin) => (
-                  <MaskinKort key={maskin.maskin_id} maskin={maskin} />
-                ))}
-              </div>
-            ) : (
-              <Card variant="outlined" padding="md">
-                <p className="text-pkt-text-body-subtle text-center">
-                  Ingen maskiner lagt til ennå.
-                  {state.status === 'utkast' && ' Klikk "Legg til maskin" for å starte.'}
-                </p>
-              </Card>
-            )}
-          </section>
-        )}
-
-        {/* Handlinger for utkast */}
-        {state.status === 'utkast' && (
-          <Card variant="outlined" padding="md" className="bg-oslo-blue-light/10">
-            <h3 className="text-lg font-semibold text-pkt-text-heading mb-3">Handlinger</h3>
-            <div className="flex flex-wrap gap-3">
-              {state.soknad_type === 'machine' && (
-                <Button
-                  variant="secondary"
-                  onClick={() => setShowLeggTilMaskin(true)}
-                >
-                  <PlusIcon className="w-4 h-4 mr-1" />
-                  Legg til maskin
-                </Button>
-              )}
-              <Button
-                variant="primary"
-                onClick={() => setShowSendInn(true)}
-                disabled={!state.kan_sendes_inn}
-              >
-                Send inn søknad
-              </Button>
-            </div>
-            {!state.kan_sendes_inn && state.antall_maskiner === 0 && (
-              <p className="text-sm text-pkt-text-body-subtle mt-3">
-                Du må legge til minst én maskin før du kan sende inn søknaden.
-              </p>
-            )}
-          </Card>
-        )}
-
-        {/* Endelig beslutning */}
+      <main className="max-w-3xl mx-auto px-2 py-4 sm:px-4 sm:py-6 space-y-4">
+        {/* Endelig beslutning banner (kun når ferdig) */}
         {state.er_ferdigbehandlet && state.endelig_beslutning && (
-          <Card
-            variant="outlined"
-            padding="md"
-            className={
+          <Alert
+            variant={
               state.endelig_beslutning === 'godkjent'
-                ? 'border-alert-success-text'
+                ? 'success'
                 : state.endelig_beslutning === 'avslatt'
-                ? 'border-alert-danger-text'
-                : 'border-amber-500'
+                ? 'danger'
+                : 'warning'
+            }
+            title={
+              state.endelig_beslutning === 'godkjent'
+                ? 'Godkjent'
+                : state.endelig_beslutning === 'avslatt'
+                ? 'Avslått'
+                : 'Delvis godkjent'
             }
           >
-            <h3 className="text-lg font-semibold text-pkt-text-heading mb-2">
-              Endelig beslutning
-            </h3>
-            <div className="flex items-center gap-3 mb-2">
-              <StatusBadge
-                status={state.endelig_beslutning}
-                label={
-                  state.endelig_beslutning === 'godkjent'
-                    ? 'Godkjent'
-                    : state.endelig_beslutning === 'avslatt'
-                    ? 'Avslått'
-                    : 'Delvis godkjent'
-                }
-              />
+            <div className="flex items-center gap-2 text-sm">
               {state.endelig_beslutning_av && (
-                <span className="text-sm text-pkt-text-body-subtle">
-                  av {state.endelig_beslutning_av}
-                </span>
+                <span>av {state.endelig_beslutning_av}</span>
               )}
               {state.endelig_beslutning_tidspunkt && (
-                <span className="text-sm text-pkt-text-body-subtle">
-                  {formatDateShort(state.endelig_beslutning_tidspunkt)}
-                </span>
+                <span>{formatDateShort(state.endelig_beslutning_tidspunkt)}</span>
               )}
             </div>
             {state.endelig_beslutning_kommentar && (
-              <p className="text-sm text-pkt-text-body mt-2">
-                {state.endelig_beslutning_kommentar}
+              <p className="text-sm mt-1">{state.endelig_beslutning_kommentar}</p>
+            )}
+          </Alert>
+        )}
+
+        {/* Hovedkort: Fravik Dashboard */}
+        <section aria-labelledby="fravik-dashboard-heading">
+          <Card variant="outlined" padding="md">
+            <h2
+              id="fravik-dashboard-heading"
+              className="text-base font-semibold text-pkt-text-body-dark mb-3"
+            >
+              Fravik-søknad
+            </h2>
+            <FravikDashboard
+              state={state}
+              onRedigerSoknad={() => setShowRedigerSoknad(true)}
+              onLeggTilMaskin={() => setShowLeggTilMaskin(true)}
+              onRedigerAvbotende={() => setShowAvbotendeTiltak(true)}
+            />
+          </Card>
+        </section>
+
+        {/* Send inn-knapp */}
+        {state.status === 'utkast' && (
+          <div className="flex flex-col items-end gap-1">
+            <Button
+              variant="primary"
+              onClick={() => setShowSendInn(true)}
+              disabled={!kanSendesInn}
+            >
+              Send inn søknad
+            </Button>
+            {!kanSendesInn && (
+              <p className="text-xs text-pkt-text-body-muted">
+                Fyll ut alle spor før du kan sende inn.
               </p>
             )}
-          </Card>
+          </div>
         )}
 
         {/* Metadata */}
-        <Card variant="outlined" padding="md">
-          <h3 className="text-lg font-semibold text-pkt-text-heading mb-3">Metadata</h3>
-          <dl className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
-            <div>
-              <dt className="text-pkt-text-body-subtle">Opprettet</dt>
-              <dd className="text-pkt-text-body">
+        <section aria-labelledby="metadata-heading">
+          <Card variant="outlined" padding="md">
+            <h2
+              id="metadata-heading"
+              className="text-base font-semibold text-pkt-text-body-dark mb-3"
+            >
+              Metadata
+            </h2>
+            <DataList variant="grid">
+              <DataListItem label="Opprettet">
                 {state.opprettet ? formatDateShort(state.opprettet) : '-'}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-pkt-text-body-subtle">Sendt inn</dt>
-              <dd className="text-pkt-text-body">
+              </DataListItem>
+              <DataListItem label="Sendt inn">
                 {state.sendt_inn_tidspunkt ? formatDateShort(state.sendt_inn_tidspunkt) : '-'}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-pkt-text-body-subtle">Sist oppdatert</dt>
-              <dd className="text-pkt-text-body">
+              </DataListItem>
+              <DataListItem label="Sist oppdatert">
                 {state.siste_oppdatert ? formatDateShort(state.siste_oppdatert) : '-'}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-pkt-text-body-subtle">Antall hendelser</dt>
-              <dd className="text-pkt-text-body">{state.antall_events}</dd>
-            </div>
-          </dl>
-        </Card>
+              </DataListItem>
+              <DataListItem label="Hendelser">
+                {state.antall_events}
+              </DataListItem>
+            </DataList>
+          </Card>
+        </section>
       </main>
 
       {/* Modals */}
       {sakId && (
         <>
+          <OpprettFravikModal
+            open={showRedigerSoknad}
+            onOpenChange={setShowRedigerSoknad}
+            editMode
+            sakId={sakId}
+            initialData={{
+              prosjekt_id: state.prosjekt_id,
+              prosjekt_navn: state.prosjekt_navn,
+              prosjekt_nummer: state.prosjekt_nummer,
+              rammeavtale: state.rammeavtale,
+              hovedentreprenor: state.hovedentreprenor,
+              soker_navn: state.soker_navn,
+              soker_epost: state.soker_epost,
+              soknad_type: state.soknad_type,
+              er_haste: state.er_haste,
+              haste_begrunnelse: state.haste_begrunnelse,
+              frist_for_svar: state.frist_for_svar,
+            }}
+            onSuccess={handleModalSuccess}
+          />
           <LeggTilMaskinModal
             open={showLeggTilMaskin}
             onOpenChange={setShowLeggTilMaskin}
             sakId={sakId}
             currentVersion={state.antall_events}
-            onSuccess={handleMaskinAdded}
+            onSuccess={handleModalSuccess}
+          />
+          <AvbotendeTiltakModal
+            open={showAvbotendeTiltak}
+            onOpenChange={setShowAvbotendeTiltak}
+            sakId={sakId}
+            initialData={{
+              avbotende_tiltak: state.avbotende_tiltak,
+              konsekvenser_ved_avslag: state.konsekvenser_ved_avslag,
+            }}
+            onSuccess={handleModalSuccess}
           />
           <SendInnModal
             open={showSendInn}
             onOpenChange={setShowSendInn}
             sakId={sakId}
             state={state}
-            onSuccess={handleSendtInn}
+            onSuccess={handleModalSuccess}
           />
         </>
       )}
