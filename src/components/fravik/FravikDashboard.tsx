@@ -433,30 +433,26 @@ function getOppgaveConfig(gjeldende: string) {
   switch (gjeldende) {
     case 'miljo':
       return {
-        stegNummer: 1,
         tittel: 'Miljøvurdering',
-        beskrivelse: 'Vurder om søknaden oppfyller miljøkravene.',
+        beskrivelse: 'Steg 1 av 4: Vurder om søknaden oppfyller miljøkravene.',
         knappTekst: 'Gi miljøvurdering',
       };
     case 'pl':
       return {
-        stegNummer: 2,
         tittel: 'Prosjektleder-anbefaling',
-        beskrivelse: 'Gi din anbefaling basert på prosjektets behov.',
+        beskrivelse: 'Steg 2 av 4: Gi din anbefaling basert på prosjektets behov.',
         knappTekst: 'Gi PL-anbefaling',
       };
     case 'arbeidsgruppe':
       return {
-        stegNummer: 3,
         tittel: 'Arbeidsgruppens innstilling',
-        beskrivelse: 'Vurder søknaden samlet og gi innstilling til prosjekteier.',
+        beskrivelse: 'Steg 3 av 4: Vurder søknaden samlet og gi innstilling til prosjekteier.',
         knappTekst: 'Gi innstilling',
       };
     case 'eier':
       return {
-        stegNummer: 4,
         tittel: 'Prosjekteiers beslutning',
-        beskrivelse: 'Fatt endelig beslutning.',
+        beskrivelse: 'Steg 4 av 4: Fatt endelig beslutning.',
         knappTekst: 'Fatt beslutning',
       };
     default:
@@ -486,12 +482,7 @@ function DinOppgaveAlert({
   return (
     <Alert
       variant="info"
-      title={
-        <span className="flex items-center gap-2">
-          Din oppgave: {config.tittel}
-          <Badge variant="info" size="sm">Steg {config.stegNummer}/4</Badge>
-        </span>
-      }
+      title={config.tittel}
       action={
         <Button variant="primary" size="sm" onClick={handleClick}>
           {config.knappTekst}
