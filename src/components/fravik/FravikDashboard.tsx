@@ -492,14 +492,13 @@ function DinOppgaveAlert({
           <Badge variant="info" size="sm">Steg {config.stegNummer}/4</Badge>
         </span>
       }
-      className="max-w-lg"
-    >
-      <p className="text-sm">{config.beskrivelse}</p>
-      <div className="mt-3">
+      action={
         <Button variant="primary" size="sm" onClick={handleClick}>
           {config.knappTekst}
         </Button>
-      </div>
+      }
+    >
+      {config.beskrivelse}
     </Alert>
   );
 }

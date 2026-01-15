@@ -232,24 +232,19 @@ export function FravikPage() {
           <Alert
             variant={kanSendesInn ? 'info' : 'warning'}
             title={kanSendesInn ? 'Klar til innsending' : 'Søknaden er ikke komplett'}
-            className="max-w-lg"
-          >
-            <p className="text-sm">
-              {kanSendesInn
-                ? 'Alle påkrevde felter er fylt ut. Du kan nå sende inn søknaden til behandling.'
-                : 'Fyll ut alle påkrevde felter før du kan sende inn søknaden.'}
-            </p>
-            {kanSendesInn && (
-              <div className="mt-3">
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => setShowSendInn(true)}
-                >
-                  Send inn søknad
-                </Button>
-              </div>
+            action={kanSendesInn && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => setShowSendInn(true)}
+              >
+                Send inn søknad
+              </Button>
             )}
+          >
+            {kanSendesInn
+              ? 'Alle påkrevde felter er fylt ut. Du kan nå sende inn søknaden.'
+              : 'Fyll ut alle påkrevde felter før du kan sende inn søknaden.'}
           </Alert>
         )}
 
