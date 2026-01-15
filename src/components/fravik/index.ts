@@ -9,6 +9,15 @@ export { OpprettFravikModal } from './OpprettFravikModal';
 export { LeggTilMaskinModal } from './LeggTilMaskinModal';
 export { AvbotendeTiltakModal } from './AvbotendeTiltakModal';
 export { SendInnModal } from './SendInnModal';
+export { GodkjenningskjedeCard } from './GodkjenningskjedeCard';
+
+// Vurdering modals (4-step approval workflow)
+export {
+  BOIVurderingModal,
+  PLVurderingModal,
+  ArbeidsgruppeModal,
+  EierBeslutningModal,
+} from './vurdering';
 
 // Re-export schemas for use in tests
 export {

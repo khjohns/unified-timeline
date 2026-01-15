@@ -194,17 +194,17 @@ export async function sendInnSoknad(sakId: string, aktor: string): Promise<void>
 export async function submitBOIVurdering(
   sakId: string,
   data: BOIVurderingData,
-  aktor: string
+  aktor: string,
+  expectedVersion?: number
 ): Promise<void> {
   if (USE_MOCK_API) {
     await mockDelay();
     return;
   }
 
-  // Backend expects flat payload
   await apiFetch(`/api/fravik/${sakId}/boi-vurdering`, {
     method: 'POST',
-    body: JSON.stringify({ ...data, aktor }),
+    body: JSON.stringify({ ...data, aktor, expected_version: expectedVersion ?? 0 }),
   });
 }
 
@@ -214,7 +214,8 @@ export async function submitBOIVurdering(
 export async function boiReturnerSoknad(
   sakId: string,
   manglendeInfo: string,
-  aktor: string
+  aktor: string,
+  expectedVersion?: number
 ): Promise<void> {
   if (USE_MOCK_API) {
     await mockDelay();
@@ -223,7 +224,7 @@ export async function boiReturnerSoknad(
 
   await apiFetch(`/api/fravik/${sakId}/boi-returnert`, {
     method: 'POST',
-    body: JSON.stringify({ manglende_dokumentasjon: manglendeInfo, aktor }),
+    body: JSON.stringify({ manglende_dokumentasjon: manglendeInfo, aktor, expected_version: expectedVersion ?? 0 }),
   });
 }
 
@@ -233,17 +234,17 @@ export async function boiReturnerSoknad(
 export async function submitPLVurdering(
   sakId: string,
   data: PLVurderingData,
-  aktor: string
+  aktor: string,
+  expectedVersion?: number
 ): Promise<void> {
   if (USE_MOCK_API) {
     await mockDelay();
     return;
   }
 
-  // Backend expects flat payload
   await apiFetch(`/api/fravik/${sakId}/pl-vurdering`, {
     method: 'POST',
-    body: JSON.stringify({ ...data, aktor }),
+    body: JSON.stringify({ ...data, aktor, expected_version: expectedVersion ?? 0 }),
   });
 }
 
@@ -253,17 +254,17 @@ export async function submitPLVurdering(
 export async function submitArbeidsgruppeVurdering(
   sakId: string,
   data: ArbeidsgruppeVurderingData,
-  aktor: string
+  aktor: string,
+  expectedVersion?: number
 ): Promise<void> {
   if (USE_MOCK_API) {
     await mockDelay();
     return;
   }
 
-  // Backend expects flat payload
   await apiFetch(`/api/fravik/${sakId}/arbeidsgruppe-vurdering`, {
     method: 'POST',
-    body: JSON.stringify({ ...data, aktor }),
+    body: JSON.stringify({ ...data, aktor, expected_version: expectedVersion ?? 0 }),
   });
 }
 
@@ -273,17 +274,17 @@ export async function submitArbeidsgruppeVurdering(
 export async function submitEierBeslutning(
   sakId: string,
   data: EierBeslutningData,
-  aktor: string
+  aktor: string,
+  expectedVersion?: number
 ): Promise<void> {
   if (USE_MOCK_API) {
     await mockDelay();
     return;
   }
 
-  // Backend expects flat payload - data already contains 'beslutning' field
   await apiFetch(`/api/fravik/${sakId}/eier-beslutning`, {
     method: 'POST',
-    body: JSON.stringify({ ...data, aktor }),
+    body: JSON.stringify({ ...data, aktor, expected_version: expectedVersion ?? 0 }),
   });
 }
 

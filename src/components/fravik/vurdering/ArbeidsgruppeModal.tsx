@@ -1,0 +1,522 @@
+/**
+ * ArbeidsgruppeModal Component
+ *
+ * Modal for Arbeidsgruppen to submit their vurdering of a fravik-søknad.
+ * Features per-machine decisions with auto-calculated samlet innstilling.
+ *
+ * Fields:
+ * - maskin_vurderinger[]: per-machine beslutning + vilkår
+ * - samlet_innstilling: FravikBeslutning (auto-calculated)
+ * - kommentar: string
+ * - deltakere: string[]
+ */
+
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { useForm, Controller, useFieldArray } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  Alert,
+  AlertDialog,
+  Badge,
+  Button,
+  DataList,
+  DataListItem,
+  FormField,
+  Input,
+  Modal,
+  RadioGroup,
+  RadioItem,
+  SectionContainer,
+  Textarea,
+  useToast,
+} from '../../primitives';
+import { useConfirmClose } from '../../../hooks/useConfirmClose';
+import { useFormBackup } from '../../../hooks/useFormBackup';
+import { TokenExpiredAlert } from '../../alerts/TokenExpiredAlert';
+import { submitArbeidsgruppeVurdering } from '../../../api/fravik';
+import type { FravikState, FravikBeslutning, MaskinTilstand } from '../../../types/fravik';
+import { MASKIN_TYPE_LABELS } from '../../../types/fravik';
+import { formatDateShort } from '../../../utils/formatters';
+
+// ============================================================================
+// SCHEMA
+// ============================================================================
+
+const maskinVurderingSchema = z.object({
+  maskin_id: z.string(),
+  beslutning: z.enum(['godkjent', 'avslatt'] as const, {
+    errorMap: () => ({ message: 'Velg godkjent eller avslått' }),
+  }),
+  kommentar: z.string().optional(),
+  vilkar: z.array(z.string()).optional(),
+});
+
+const arbeidsgruppeSchema = z.object({
+  maskin_vurderinger: z.array(maskinVurderingSchema).min(1, 'Vurder alle maskiner'),
+  kommentar: z.string().min(10, 'Begrunnelse må være minst 10 tegn'),
+  deltakere_text: z.string().optional(), // Comma-separated list for input convenience
+});
+
+type ArbeidsgruppeFormData = z.infer<typeof arbeidsgruppeSchema>;
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+function getBeslutningBadge(beslutning: FravikBeslutning): { variant: 'success' | 'warning' | 'danger'; label: string } {
+  switch (beslutning) {
+    case 'godkjent':
+      return { variant: 'success', label: 'Godkjent' };
+    case 'delvis_godkjent':
+      return { variant: 'warning', label: 'Delvis godkjent' };
+    case 'avslatt':
+      return { variant: 'danger', label: 'Avslått' };
+    default:
+      return { variant: 'warning', label: beslutning };
+  }
+}
+
+function calculateSamletInnstilling(
+  vurderinger: Array<{ beslutning?: 'godkjent' | 'avslatt' }>
+): FravikBeslutning | undefined {
+  const beslutninger = vurderinger
+    .map((v) => v.beslutning)
+    .filter((b): b is 'godkjent' | 'avslatt' => !!b);
+
+  if (beslutninger.length === 0) return undefined;
+  if (beslutninger.every((b) => b === 'godkjent')) return 'godkjent';
+  if (beslutninger.every((b) => b === 'avslatt')) return 'avslatt';
+  return 'delvis_godkjent';
+}
+
+// ============================================================================
+// COMPONENT
+// ============================================================================
+
+interface ArbeidsgruppeModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  sakId: string;
+  state: FravikState;
+  currentVersion: number;
+  aktor: string;
+  onSuccess?: () => void;
+}
+
+export function ArbeidsgruppeModal({
+  open,
+  onOpenChange,
+  sakId,
+  state,
+  currentVersion,
+  aktor,
+  onSuccess,
+}: ArbeidsgruppeModalProps) {
+  const [showTokenExpired, setShowTokenExpired] = useState(false);
+  const [showRestorePrompt, setShowRestorePrompt] = useState(false);
+  const toast = useToast();
+  const queryClient = useQueryClient();
+
+  // Get maskiner as array
+  const maskiner = useMemo(() => Object.values(state.maskiner), [state.maskiner]);
+
+  // Get previous vurderinger for context
+  const boiVurdering = state.godkjenningskjede.boi_vurdering;
+  const plVurdering = state.godkjenningskjede.pl_vurdering;
+
+  // Default values with per-maskin entries
+  const defaultValues = useMemo((): Partial<ArbeidsgruppeFormData> => ({
+    maskin_vurderinger: maskiner.map((m) => ({
+      maskin_id: m.maskin_id,
+      beslutning: undefined as unknown as 'godkjent' | 'avslatt',
+      kommentar: '',
+      vilkar: [],
+    })),
+    kommentar: '',
+    deltakere_text: '',
+  }), [maskiner]);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting, isDirty },
+    reset,
+    watch,
+    control,
+  } = useForm<ArbeidsgruppeFormData>({
+    resolver: zodResolver(arbeidsgruppeSchema),
+    defaultValues,
+  });
+
+  const { fields } = useFieldArray({
+    control,
+    name: 'maskin_vurderinger',
+  });
+
+  // Reset when opening
+  useEffect(() => {
+    if (open) {
+      reset(defaultValues);
+    }
+  }, [open, reset, defaultValues]);
+
+  const { showConfirmDialog, setShowConfirmDialog, handleClose, confirmClose } = useConfirmClose({
+    isDirty,
+    onReset: reset,
+    onClose: () => onOpenChange(false),
+  });
+
+  const formData = watch();
+  const { getBackup, clearBackup, hasBackup } = useFormBackup(
+    sakId,
+    'arbeidsgruppe_vurdering',
+    formData,
+    isDirty
+  );
+
+  const hasCheckedBackup = useRef(false);
+  useEffect(() => {
+    if (open && hasBackup && !isDirty && !hasCheckedBackup.current) {
+      hasCheckedBackup.current = true;
+      setShowRestorePrompt(true);
+    }
+    if (!open) {
+      hasCheckedBackup.current = false;
+    }
+  }, [open, hasBackup, isDirty]);
+
+  const handleRestoreBackup = () => {
+    const backup = getBackup();
+    if (backup) reset(backup as ArbeidsgruppeFormData);
+    setShowRestorePrompt(false);
+  };
+  const handleDiscardBackup = () => {
+    clearBackup();
+    setShowRestorePrompt(false);
+  };
+
+  // Mutation
+  const vurderingMutation = useMutation({
+    mutationFn: async (data: ArbeidsgruppeFormData) => {
+      const samletInnstilling = calculateSamletInnstilling(data.maskin_vurderinger);
+      if (!samletInnstilling) throw new Error('Alle maskiner må vurderes');
+
+      // Parse deltakere from comma-separated text
+      const deltakere = data.deltakere_text
+        ?.split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0) || [];
+
+      await submitArbeidsgruppeVurdering(
+        sakId,
+        {
+          maskin_vurderinger: data.maskin_vurderinger.map((v) => ({
+            maskin_id: v.maskin_id,
+            beslutning: v.beslutning,
+            kommentar: v.kommentar,
+            vilkar: v.vilkar,
+          })),
+          samlet_innstilling: samletInnstilling,
+          kommentar: data.kommentar,
+          deltakere,
+        },
+        aktor,
+        currentVersion
+      );
+    },
+    onSuccess: () => {
+      clearBackup();
+      reset();
+      queryClient.invalidateQueries({ queryKey: ['fravik', sakId] });
+      onOpenChange(false);
+      toast.success('Innstilling sendt', 'Arbeidsgruppens innstilling er registrert.');
+      onSuccess?.();
+    },
+    onError: (error: Error) => {
+      if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') {
+        setShowTokenExpired(true);
+      } else {
+        toast.error('Feil ved innsending', error.message);
+      }
+    },
+  });
+
+  const maskinVurderinger = watch('maskin_vurderinger') || [];
+
+  // Calculate samlet innstilling from maskin vurderinger
+  const samletInnstilling = useMemo(
+    () => calculateSamletInnstilling(maskinVurderinger),
+    [maskinVurderinger]
+  );
+
+  const onSubmit = (data: ArbeidsgruppeFormData) => {
+    vurderingMutation.mutate(data);
+  };
+
+  return (
+    <Modal
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Arbeidsgruppens vurdering"
+      description="Vurder hver maskin og gi en samlet innstilling til prosjekteier."
+      size="lg"
+    >
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* Tidligere vurderinger kontekst */}
+        <SectionContainer title="Tidligere anbefalinger" variant="subtle">
+          <DataList variant="grid">
+            <DataListItem label="BOI-rådgiver">
+              {boiVurdering.fullfort && boiVurdering.beslutning ? (
+                <Badge variant={getBeslutningBadge(boiVurdering.beslutning).variant}>
+                  {getBeslutningBadge(boiVurdering.beslutning).label}
+                </Badge>
+              ) : (
+                <span className="text-pkt-text-body-muted">-</span>
+              )}
+            </DataListItem>
+            <DataListItem label="Prosjektleder">
+              {plVurdering.fullfort && plVurdering.beslutning ? (
+                <Badge variant={getBeslutningBadge(plVurdering.beslutning).variant}>
+                  {getBeslutningBadge(plVurdering.beslutning).label}
+                </Badge>
+              ) : (
+                <span className="text-pkt-text-body-muted">-</span>
+              )}
+            </DataListItem>
+          </DataList>
+        </SectionContainer>
+
+        {/* Søknadsoversikt */}
+        <SectionContainer title="Søknad" variant="subtle">
+          <div className="space-y-2 text-sm">
+            <p>
+              <span className="font-medium">{state.prosjekt_navn}</span>
+              {state.prosjekt_nummer && (
+                <span className="text-pkt-text-body-muted ml-1">({state.prosjekt_nummer})</span>
+              )}
+            </p>
+            <p className="text-pkt-text-body-muted">
+              Søker: {state.soker_navn} • {maskiner.length} maskin{maskiner.length !== 1 ? 'er' : ''}
+            </p>
+            {state.er_haste && (
+              <Badge variant="danger" size="sm">Hastebehandling</Badge>
+            )}
+          </div>
+        </SectionContainer>
+
+        {/* Per-maskin vurdering */}
+        <SectionContainer
+          title="Maskinvurderinger"
+          description="Arbeidsgruppen vurderer hver maskin individuelt. Samlet innstilling beregnes automatisk."
+        >
+          <div className="space-y-4">
+            {fields.map((field, index) => {
+              const maskin = maskiner.find((m) => m.maskin_id === field.maskin_id);
+              if (!maskin) return null;
+
+              const fieldErrors = errors.maskin_vurderinger?.[index];
+              const currentBeslutning = maskinVurderinger[index]?.beslutning;
+
+              // Get BOI recommendation for this machine if available
+              const boiMaskinVurdering = maskin.boi_vurdering;
+
+              return (
+                <div
+                  key={field.id}
+                  className="p-4 rounded-lg border border-pkt-border-default bg-pkt-bg-card"
+                >
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <div>
+                      <h4 className="font-medium text-sm">
+                        {MASKIN_TYPE_LABELS[maskin.maskin_type] || maskin.maskin_type}
+                        {maskin.annet_type && `: ${maskin.annet_type}`}
+                      </h4>
+                      <p className="text-xs text-pkt-text-body-muted">
+                        {formatDateShort(maskin.start_dato)} – {formatDateShort(maskin.slutt_dato)}
+                      </p>
+                    </div>
+                    {currentBeslutning && (
+                      <Badge
+                        variant={currentBeslutning === 'godkjent' ? 'success' : 'danger'}
+                        size="sm"
+                      >
+                        {currentBeslutning === 'godkjent' ? 'Godkjent' : 'Avslått'}
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* BOI anbefaling for denne maskinen */}
+                  {boiMaskinVurdering && (
+                    <div className="mb-3 p-2 bg-pkt-surface-subtle rounded text-xs">
+                      <span className="text-pkt-text-body-muted">BOI-anbefaling: </span>
+                      <Badge
+                        variant={getBeslutningBadge(boiMaskinVurdering.beslutning).variant}
+                        size="sm"
+                      >
+                        {getBeslutningBadge(boiMaskinVurdering.beslutning).label}
+                      </Badge>
+                      {boiMaskinVurdering.kommentar && (
+                        <p className="mt-1 text-pkt-text-body-muted italic">
+                          &ldquo;{boiMaskinVurdering.kommentar}&rdquo;
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Maskin-detaljer */}
+                  <div className="mb-3 text-xs text-pkt-text-body-muted space-y-1">
+                    <p><strong>Begrunnelse:</strong> {maskin.begrunnelse}</p>
+                    {maskin.erstatningsmaskin && (
+                      <p>
+                        <strong>Erstatning:</strong> {maskin.erstatningsmaskin}
+                        {maskin.erstatningsdrivstoff && ` (${maskin.erstatningsdrivstoff})`}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Beslutning */}
+                  <FormField
+                    label="Beslutning"
+                    required
+                    error={fieldErrors?.beslutning?.message}
+                  >
+                    <Controller
+                      name={`maskin_vurderinger.${index}.beslutning`}
+                      control={control}
+                      render={({ field: radioField }) => (
+                        <RadioGroup
+                          value={radioField.value || ''}
+                          onValueChange={radioField.onChange}
+                        >
+                          <RadioItem
+                            value="godkjent"
+                            label="Godkjent"
+                            error={!!fieldErrors?.beslutning}
+                          />
+                          <RadioItem
+                            value="avslatt"
+                            label="Avslått"
+                            error={!!fieldErrors?.beslutning}
+                          />
+                        </RadioGroup>
+                      )}
+                    />
+                  </FormField>
+
+                  {/* Vilkår/kommentar */}
+                  <FormField label="Vilkår eller kommentar (valgfri)" className="mt-3">
+                    <Textarea
+                      {...register(`maskin_vurderinger.${index}.kommentar`)}
+                      rows={2}
+                      fullWidth
+                      placeholder="F.eks. 'Godkjent under forutsetning av at HVO100 benyttes'"
+                    />
+                  </FormField>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Samlet innstilling */}
+          {samletInnstilling && (
+            <div className="mt-4 p-3 bg-pkt-surface-subtle rounded border border-pkt-border-subtle">
+              <p className="text-sm">
+                <strong>Samlet innstilling:</strong>{' '}
+                <Badge variant={getBeslutningBadge(samletInnstilling).variant}>
+                  {getBeslutningBadge(samletInnstilling).label}
+                </Badge>
+              </p>
+              <p className="text-xs text-pkt-text-body-muted mt-1">
+                Beregnet automatisk fra maskinbeslutninger
+              </p>
+            </div>
+          )}
+        </SectionContainer>
+
+        {/* Deltakere */}
+        <SectionContainer title="Deltakere">
+          <FormField
+            label="Hvem deltok i vurderingen?"
+            helpText="Skriv navn separert med komma"
+          >
+            <Input
+              {...register('deltakere_text')}
+              placeholder="Ola Nordmann, Kari Hansen, Per Olsen"
+              fullWidth
+            />
+          </FormField>
+        </SectionContainer>
+
+        {/* Begrunnelse */}
+        <SectionContainer title="Begrunnelse">
+          <FormField
+            label="Arbeidsgruppens begrunnelse"
+            required
+            error={errors.kommentar?.message}
+          >
+            <Textarea
+              {...register('kommentar')}
+              rows={5}
+              fullWidth
+              placeholder="Begrunn arbeidsgruppens innstilling..."
+              error={!!errors.kommentar}
+            />
+          </FormField>
+        </SectionContainer>
+
+        {/* Error */}
+        {vurderingMutation.isError && (
+          <Alert variant="danger" title="Feil ved innsending">
+            {vurderingMutation.error instanceof Error
+              ? vurderingMutation.error.message
+              : 'En feil oppstod'}
+          </Alert>
+        )}
+
+        {/* Actions */}
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-6 border-t-2 border-pkt-border-subtle">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={handleClose}
+            disabled={isSubmitting}
+          >
+            Avbryt
+          </Button>
+          <Button
+            type="submit"
+            variant={samletInnstilling === 'avslatt' ? 'danger' : 'primary'}
+            loading={vurderingMutation.isPending}
+          >
+            Send innstilling
+          </Button>
+        </div>
+      </form>
+
+      {/* Confirm close dialog */}
+      <AlertDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        title="Forkast endringer?"
+        description="Du har ulagrede endringer som vil gå tapt hvis du lukker skjemaet."
+        confirmLabel="Forkast"
+        cancelLabel="Fortsett redigering"
+        onConfirm={confirmClose}
+        variant="warning"
+      />
+      <AlertDialog
+        open={showRestorePrompt}
+        onOpenChange={(open) => { if (!open) handleDiscardBackup(); }}
+        title="Gjenopprette lagrede data?"
+        description="Det finnes data fra en tidligere økt. Vil du fortsette der du slapp?"
+        confirmLabel="Gjenopprett"
+        cancelLabel="Start på nytt"
+        onConfirm={handleRestoreBackup}
+        variant="info"
+      />
+      <TokenExpiredAlert open={showTokenExpired} onClose={() => setShowTokenExpired(false)} />
+    </Modal>
+  );
+}

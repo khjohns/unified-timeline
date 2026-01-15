@@ -4,6 +4,10 @@
  * Page for viewing and managing a fravik-søknad.
  * Shows søknad details, maskin list, and approval status.
  * Design follows CasePage patterns for consistency.
+ *
+ * ROLE-BASED VIEW:
+ * - SOKER (Entreprenør): See søknad, edit if utkast, see final decision
+ * - BH (Byggherre): See søknad read-only, access 4-step approval workflow
  */
 
 import { useState, useMemo } from 'react';
@@ -11,6 +15,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ReloadIcon } from '@radix-ui/react-icons';
 import { Alert, Badge, Button, Card, DataList, DataListItem } from '../components/primitives';
+import { useUserRole } from '../hooks/useUserRole';
 import { PageHeader } from '../components/PageHeader';
 import { STALE_TIME } from '../constants/queryConfig';
 import { fetchFravikState, fetchFravikEvents } from '../api/fravik';
@@ -20,8 +25,13 @@ import {
   LeggTilMaskinModal,
   OpprettFravikModal,
   SendInnModal,
+  GodkjenningskjedeCard,
+  BOIVurderingModal,
+  PLVurderingModal,
+  ArbeidsgruppeModal,
+  EierBeslutningModal,
 } from '../components/fravik';
-import type { FravikState, FravikEvent } from '../types/fravik';
+import type { FravikState, FravikEvent, FravikRolle } from '../types/fravik';
 import {
   FRAVIK_STATUS_LABELS,
   getFravikStatusColor,
@@ -80,11 +90,20 @@ function getStatusBadgeVariant(status: string): 'success' | 'danger' | 'warning'
 export function FravikPage() {
   const { sakId } = useParams<{ sakId: string }>();
 
-  // Modal state
+  // User role management (same as CasePage)
+  const { userRole, setUserRole } = useUserRole();
+
+  // Søker modal state
   const [showRedigerSoknad, setShowRedigerSoknad] = useState(false);
   const [showLeggTilMaskin, setShowLeggTilMaskin] = useState(false);
   const [showAvbotendeTiltak, setShowAvbotendeTiltak] = useState(false);
   const [showSendInn, setShowSendInn] = useState(false);
+
+  // BH vurdering modal state
+  const [showBOIVurdering, setShowBOIVurdering] = useState(false);
+  const [showPLVurdering, setShowPLVurdering] = useState(false);
+  const [showArbeidsgruppeVurdering, setShowArbeidsgruppeVurdering] = useState(false);
+  const [showEierBeslutning, setShowEierBeslutning] = useState(false);
 
   const {
     data: state,
@@ -94,6 +113,9 @@ export function FravikPage() {
   } = useFravikState(sakId || '');
 
   const { data: events = [] } = useFravikEvents(sakId || '');
+
+  // Demo aktor name based on role (TE = Totalentreprenør/Søker, BH = Byggherre)
+  const demoAktor = userRole === 'TE' ? 'Entreprenør Demo' : 'Byggherre Demo';
 
   // Callback to refetch after modal actions
   const handleModalSuccess = () => {
@@ -159,6 +181,8 @@ export function FravikPage() {
       <PageHeader
         title={state.prosjekt_navn}
         subtitle={`Fravik-søknad • ${state.sak_id}`}
+        userRole={userRole}
+        onToggleRole={setUserRole}
         actions={
           <div className="flex items-center gap-2">
             <Badge variant={getStatusBadgeVariant(state.status)}>
@@ -215,15 +239,16 @@ export function FravikPage() {
             </h2>
             <FravikDashboard
               state={state}
-              onRedigerSoknad={() => setShowRedigerSoknad(true)}
-              onLeggTilMaskin={() => setShowLeggTilMaskin(true)}
-              onRedigerAvbotende={() => setShowAvbotendeTiltak(true)}
+              // Only show edit actions for TE (entreprenør/søker) role
+              onRedigerSoknad={userRole === 'TE' ? () => setShowRedigerSoknad(true) : undefined}
+              onLeggTilMaskin={userRole === 'TE' ? () => setShowLeggTilMaskin(true) : undefined}
+              onRedigerAvbotende={userRole === 'TE' ? () => setShowAvbotendeTiltak(true) : undefined}
             />
           </Card>
         </section>
 
-        {/* Send inn-knapp */}
-        {state.status === 'utkast' && (
+        {/* Send inn-knapp (kun for TE i utkast) */}
+        {userRole === 'TE' && state.status === 'utkast' && (
           <div className="flex flex-col items-end gap-1">
             <Button
               variant="primary"
@@ -238,6 +263,19 @@ export function FravikPage() {
               </p>
             )}
           </div>
+        )}
+
+        {/* Godkjenningskjede (kun for BH, ikke i utkast) */}
+        {userRole === 'BH' && state.status !== 'utkast' && (
+          <section aria-labelledby="godkjenningskjede-heading">
+            <GodkjenningskjedeCard
+              state={state}
+              onBOIVurdering={() => setShowBOIVurdering(true)}
+              onPLVurdering={() => setShowPLVurdering(true)}
+              onArbeidsgruppeVurdering={() => setShowArbeidsgruppeVurdering(true)}
+              onEierBeslutning={() => setShowEierBeslutning(true)}
+            />
+          </section>
         )}
 
         {/* Metadata */}
@@ -267,8 +305,8 @@ export function FravikPage() {
         </section>
       </main>
 
-      {/* Modals */}
-      {sakId && (
+      {/* TE (Søker) Modals */}
+      {sakId && userRole === 'TE' && (
         <>
           <OpprettFravikModal
             open={showRedigerSoknad}
@@ -312,6 +350,48 @@ export function FravikPage() {
             onOpenChange={setShowSendInn}
             sakId={sakId}
             state={state}
+            onSuccess={handleModalSuccess}
+          />
+        </>
+      )}
+
+      {/* BH Vurdering Modals */}
+      {sakId && userRole === 'BH' && (
+        <>
+          <BOIVurderingModal
+            open={showBOIVurdering}
+            onOpenChange={setShowBOIVurdering}
+            sakId={sakId}
+            state={state}
+            currentVersion={state.antall_events}
+            aktor={demoAktor}
+            onSuccess={handleModalSuccess}
+          />
+          <PLVurderingModal
+            open={showPLVurdering}
+            onOpenChange={setShowPLVurdering}
+            sakId={sakId}
+            state={state}
+            currentVersion={state.antall_events}
+            aktor={demoAktor}
+            onSuccess={handleModalSuccess}
+          />
+          <ArbeidsgruppeModal
+            open={showArbeidsgruppeVurdering}
+            onOpenChange={setShowArbeidsgruppeVurdering}
+            sakId={sakId}
+            state={state}
+            currentVersion={state.antall_events}
+            aktor={demoAktor}
+            onSuccess={handleModalSuccess}
+          />
+          <EierBeslutningModal
+            open={showEierBeslutning}
+            onOpenChange={setShowEierBeslutning}
+            sakId={sakId}
+            state={state}
+            currentVersion={state.antall_events}
+            aktor={demoAktor}
             onSuccess={handleModalSuccess}
           />
         </>
