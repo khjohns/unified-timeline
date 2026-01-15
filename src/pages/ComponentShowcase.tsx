@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Card, Modal, Tooltip, AlertDialog } from '../components/primitives';
+import { PageHeader } from '../components/PageHeader';
 
 /**
  * Component Showcase Page
@@ -14,35 +15,30 @@ export function ComponentShowcase() {
   const [alertOpen, setAlertOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-6xl mx-auto space-y-8">
-        <header className="mb-8">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <h1 className="text-4xl font-bold text-oslo-blue mb-2">
-                Primitive Components Showcase
-              </h1>
-              <p className="text-gray-600">
-                Testing all primitive components from Phase 2 implementation
-              </p>
-            </div>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => navigate('/')}
-            >
-              ← Tilbake til forsiden
-            </Button>
-          </div>
-        </header>
+    <div className="min-h-screen bg-pkt-bg-subtle">
+      <PageHeader
+        title="Primitive Components Showcase"
+        subtitle="Testing all primitive components from Phase 2 implementation"
+        maxWidth="wide"
+        actions={
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => navigate('/')}
+          >
+            ← Tilbake til forsiden
+          </Button>
+        }
+      />
 
+      <main className="max-w-6xl mx-auto p-4 sm:p-8 space-y-8">
         {/* Buttons Section */}
         <Card variant="elevated" padding="lg">
-          <h2 className="text-2xl font-bold text-oslo-blue mb-4">Buttons</h2>
+          <h2 className="text-2xl font-bold text-pkt-text-body-dark mb-4">Buttons</h2>
 
           <div className="space-y-4">
             <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-2">Variants</h3>
+              <h3 className="text-sm font-semibold text-pkt-text-body-subtle mb-2">Variants</h3>
               <div className="flex flex-wrap gap-3">
                 <Button variant="primary">Primary Button</Button>
                 <Button variant="secondary">Secondary Button</Button>
@@ -55,7 +51,7 @@ export function ComponentShowcase() {
             </div>
 
             <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-2">Sizes</h3>
+              <h3 className="text-sm font-semibold text-pkt-text-body-subtle mb-2">Sizes</h3>
               <div className="flex flex-wrap items-center gap-3">
                 <Button size="sm">Small</Button>
                 <Button size="md">Medium</Button>
@@ -67,26 +63,26 @@ export function ComponentShowcase() {
 
         {/* Cards Section */}
         <div className="space-y-4">
-          <h2 className="text-2xl font-bold text-oslo-blue">Cards</h2>
+          <h2 className="text-2xl font-bold text-pkt-text-body-dark">Cards</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card variant="default" padding="md">
-              <h3 className="font-bold text-oslo-blue mb-2">Default Card</h3>
-              <p className="text-gray-600">
+              <h3 className="font-bold text-pkt-text-body-dark mb-2">Default Card</h3>
+              <p className="text-pkt-text-body-subtle">
                 This is a default card with medium padding.
               </p>
             </Card>
 
             <Card variant="elevated" padding="md">
-              <h3 className="font-bold text-oslo-blue mb-2">Elevated Card</h3>
-              <p className="text-gray-600">
+              <h3 className="font-bold text-pkt-text-body-dark mb-2">Elevated Card</h3>
+              <p className="text-pkt-text-body-subtle">
                 This card has a shadow for elevation effect.
               </p>
             </Card>
 
             <Card variant="outlined" padding="md">
-              <h3 className="font-bold text-oslo-blue mb-2">Outlined Card</h3>
-              <p className="text-gray-600">
+              <h3 className="font-bold text-pkt-text-body-dark mb-2">Outlined Card</h3>
+              <p className="text-pkt-text-body-subtle">
                 This card has a border outline.
               </p>
             </Card>
@@ -94,26 +90,26 @@ export function ComponentShowcase() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card variant="elevated" padding="sm">
-              <h3 className="font-bold text-oslo-blue mb-2">Small Padding</h3>
-              <p className="text-gray-600">Compact spacing</p>
+              <h3 className="font-bold text-pkt-text-body-dark mb-2">Small Padding</h3>
+              <p className="text-pkt-text-body-subtle">Compact spacing</p>
             </Card>
 
             <Card variant="elevated" padding="md">
-              <h3 className="font-bold text-oslo-blue mb-2">Medium Padding</h3>
-              <p className="text-gray-600">Default spacing</p>
+              <h3 className="font-bold text-pkt-text-body-dark mb-2">Medium Padding</h3>
+              <p className="text-pkt-text-body-subtle">Default spacing</p>
             </Card>
 
             <Card variant="elevated" padding="lg">
-              <h3 className="font-bold text-oslo-blue mb-2">Large Padding</h3>
-              <p className="text-gray-600">Generous spacing</p>
+              <h3 className="font-bold text-pkt-text-body-dark mb-2">Large Padding</h3>
+              <p className="text-pkt-text-body-subtle">Generous spacing</p>
             </Card>
           </div>
         </div>
 
         {/* Modal Section */}
         <Card variant="elevated" padding="lg">
-          <h2 className="text-2xl font-bold text-oslo-blue mb-4">Modal</h2>
-          <p className="text-gray-600 mb-4">
+          <h2 className="text-2xl font-bold text-pkt-text-body-dark mb-4">Modal</h2>
+          <p className="text-pkt-text-body-subtle mb-4">
             Test focus trap, keyboard navigation (Tab, Escape), and accessibility.
           </p>
           <Button onClick={() => setModalOpen(true)}>Open Modal</Button>
@@ -126,10 +122,10 @@ export function ComponentShowcase() {
             size="md"
           >
             <div className="space-y-4">
-              <p className="text-gray-700">
+              <p className="text-pkt-text-body-default">
                 This modal demonstrates:
               </p>
-              <ul className="list-disc list-inside space-y-2 text-gray-600">
+              <ul className="list-disc list-inside space-y-2 text-pkt-text-body-subtle">
                 <li>Focus trap (try pressing Tab)</li>
                 <li>Keyboard navigation (Escape to close)</li>
                 <li>Backdrop click to close</li>
@@ -149,8 +145,8 @@ export function ComponentShowcase() {
 
         {/* Tooltip Section */}
         <Card variant="elevated" padding="lg">
-          <h2 className="text-2xl font-bold text-oslo-blue mb-4">Tooltips</h2>
-          <p className="text-gray-600 mb-4">
+          <h2 className="text-2xl font-bold text-pkt-text-body-dark mb-4">Tooltips</h2>
+          <p className="text-pkt-text-body-subtle mb-4">
             Hover over buttons to see tooltips in different positions.
           </p>
 
@@ -175,8 +171,8 @@ export function ComponentShowcase() {
 
         {/* AlertDialog Section */}
         <Card variant="elevated" padding="lg">
-          <h2 className="text-2xl font-bold text-oslo-blue mb-4">Alert Dialog</h2>
-          <p className="text-gray-600 mb-4">
+          <h2 className="text-2xl font-bold text-pkt-text-body-dark mb-4">Alert Dialog</h2>
+          <p className="text-pkt-text-body-subtle mb-4">
             Confirmation dialogs for critical actions.
           </p>
           <Button variant="danger" onClick={() => setAlertOpen(true)}>
@@ -197,33 +193,33 @@ export function ComponentShowcase() {
 
         {/* Accessibility Checklist */}
         <Card variant="outlined" padding="lg">
-          <h2 className="text-2xl font-bold text-oslo-blue mb-4">
+          <h2 className="text-2xl font-bold text-pkt-text-body-dark mb-4">
             Accessibility Checklist
           </h2>
           <ul className="space-y-2">
             <li className="flex items-start gap-2">
-              <span className="text-success-500">✓</span>
-              <span>Modal traps focus and returns focus on close</span>
+              <span className="text-alert-success-text">✓</span>
+              <span className="text-pkt-text-body-default">Modal traps focus and returns focus on close</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-success-500">✓</span>
-              <span>All buttons have visible focus indicators</span>
+              <span className="text-alert-success-text">✓</span>
+              <span className="text-pkt-text-body-default">All buttons have visible focus indicators</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-success-500">✓</span>
-              <span>Escape key closes modals and dialogs</span>
+              <span className="text-alert-success-text">✓</span>
+              <span className="text-pkt-text-body-default">Escape key closes modals and dialogs</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-success-500">✓</span>
-              <span>All interactive elements are keyboard accessible</span>
+              <span className="text-alert-success-text">✓</span>
+              <span className="text-pkt-text-body-default">All interactive elements are keyboard accessible</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-success-500">✓</span>
-              <span>Color contrast meets WCAG AA standards</span>
+              <span className="text-alert-success-text">✓</span>
+              <span className="text-pkt-text-body-default">Color contrast meets WCAG AA standards</span>
             </li>
           </ul>
         </Card>
-      </div>
+      </main>
     </div>
   );
 }
