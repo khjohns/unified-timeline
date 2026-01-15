@@ -252,6 +252,108 @@ def get_fravik_events(sak_id: str):
 
 
 # =============================================================================
+# OPPDATER SØKNAD
+# =============================================================================
+
+@fravik_bp.route('/api/fravik/<sak_id>/oppdater', methods=['POST'])
+@require_csrf
+@require_magic_link
+@handle_service_errors
+def oppdater_soknad(sak_id: str):
+    """
+    Oppdater en fravik-søknad (kun i utkast-status).
+
+    Request:
+    {
+        "prosjekt_navn": "Nytt prosjektnavn",
+        "soker_navn": "Ny søker",
+        "avbotende_tiltak": "Beskrivelse",
+        "konsekvenser_ved_avslag": "Beskrivelse",
+        "aktor": "Ola Nordmann",
+        "expected_version": 2
+    }
+    """
+    payload = request.json
+    expected_version = payload.get('expected_version', 0)
+    aktor = payload.get('aktor', 'Ukjent')
+
+    # Valider at søknaden finnes
+    events, current_version = _get_events_for_sak(sak_id)
+    if not events:
+        return jsonify({
+            "success": False,
+            "error": "NOT_FOUND",
+            "message": f"Søknad {sak_id} ikke funnet"
+        }), 404
+
+    # Versjonskontroll
+    if expected_version != current_version:
+        return jsonify({
+            "success": False,
+            "error": "VERSION_CONFLICT",
+            "expected_version": expected_version,
+            "current_version": current_version,
+            "message": "Tilstanden har endret seg. Vennligst last inn på nytt."
+        }), 409
+
+    # Bygg oppdateringsdata (kun inkluder felter som er satt)
+    update_fields = {}
+    allowed_fields = [
+        'prosjekt_navn', 'prosjekt_nummer', 'rammeavtale', 'hovedentreprenor',
+        'soker_navn', 'soker_epost', 'frist_for_svar', 'er_haste', 'haste_begrunnelse',
+        'avbotende_tiltak', 'konsekvenser_ved_avslag'
+    ]
+    for field in allowed_fields:
+        if field in payload and payload[field] is not None:
+            update_fields[field] = payload[field]
+
+    if not update_fields:
+        return jsonify({
+            "success": False,
+            "error": "VALIDATION_ERROR",
+            "message": "Ingen felter å oppdatere"
+        }), 400
+
+    # Opprett event
+    event = SoknadOppdatertEvent(
+        event_id=str(uuid4()),
+        sak_id=sak_id,
+        tidsstempel=datetime.now(timezone.utc),
+        aktor=aktor,
+        aktor_rolle=FravikRolle.SOKER,
+        data=SoknadOppdatertData(**update_fields)
+    )
+
+    # Lagre event
+    repo = create_event_repository()
+    try:
+        new_version = repo.append_event(
+            aggregate_id=sak_id,
+            aggregate_type="fravik",
+            event_type=event.event_type.value,
+            event_data=event.model_dump(mode='json'),
+            expected_version=expected_version
+        )
+    except ConcurrencyError as e:
+        return jsonify({
+            "success": False,
+            "error": "VERSION_CONFLICT",
+            "expected_version": expected_version,
+            "current_version": e.current_version,
+            "message": str(e)
+        }), 409
+
+    logger.info(f"Søknad oppdatert: {sak_id}, versjon {new_version}")
+
+    return jsonify({
+        "success": True,
+        "sak_id": sak_id,
+        "new_version": new_version,
+        "message": "Søknad oppdatert"
+    })
+
+
+# =============================================================================
 # LEGG TIL MASKIN
 # =============================================================================
 
