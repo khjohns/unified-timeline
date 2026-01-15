@@ -73,11 +73,10 @@ export function OpprettFravikModal({
   } = useForm<OpprettSoknadFormData>({
     resolver: zodResolver(opprettSoknadSchema),
     defaultValues: {
-      prosjekt_id: initialData?.prosjekt_id || '',
       prosjekt_navn: initialData?.prosjekt_navn || '',
       prosjekt_nummer: initialData?.prosjekt_nummer || '',
       rammeavtale: initialData?.rammeavtale || '',
-      hovedentreprenor: initialData?.hovedentreprenor || '',
+      entreprenor: initialData?.entreprenor || '',
       soker_navn: initialData?.soker_navn || '',
       soker_epost: initialData?.soker_epost || '',
       soknad_type: initialData?.soknad_type || 'machine',
@@ -91,11 +90,10 @@ export function OpprettFravikModal({
   useEffect(() => {
     if (open && editMode && initialData) {
       reset({
-        prosjekt_id: initialData.prosjekt_id || '',
         prosjekt_navn: initialData.prosjekt_navn || '',
         prosjekt_nummer: initialData.prosjekt_nummer || '',
         rammeavtale: initialData.rammeavtale || '',
-        hovedentreprenor: initialData.hovedentreprenor || '',
+        entreprenor: initialData.entreprenor || '',
         soker_navn: initialData.soker_navn || '',
         soker_epost: initialData.soker_epost || '',
         soknad_type: initialData.soknad_type || 'machine',
@@ -178,7 +176,7 @@ export function OpprettFravikModal({
       soker_epost: data.soker_epost || undefined,
       prosjekt_nummer: data.prosjekt_nummer || undefined,
       rammeavtale: data.rammeavtale || undefined,
-      hovedentreprenor: data.hovedentreprenor || undefined,
+      entreprenor: data.entreprenor || undefined,
       haste_begrunnelse: data.er_haste ? data.haste_begrunnelse : undefined,
       frist_for_svar: data.frist_for_svar || undefined,
     };
@@ -192,7 +190,7 @@ export function OpprettFravikModal({
           prosjekt_navn: cleanData.prosjekt_navn,
           prosjekt_nummer: cleanData.prosjekt_nummer,
           rammeavtale: cleanData.rammeavtale,
-          hovedentreprenor: cleanData.hovedentreprenor,
+          entreprenor: cleanData.entreprenor,
           soker_navn: cleanData.soker_navn,
           soker_epost: cleanData.soker_epost,
           er_haste: cleanData.er_haste,
@@ -238,31 +236,16 @@ export function OpprettFravikModal({
               />
             </FormField>
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                label="Prosjekt-ID"
-                required={!editMode}
-                error={errors.prosjekt_id?.message}
-              >
-                <Input
-                  id="prosjekt_id"
-                  {...register('prosjekt_id')}
-                  error={!!errors.prosjekt_id}
-                  disabled={editMode}
-                />
-              </FormField>
-
-              <FormField
-                label="Prosjektnummer"
-                error={errors.prosjekt_nummer?.message}
-              >
-                <Input
-                  id="prosjekt_nummer"
-                  {...register('prosjekt_nummer')}
-                  error={!!errors.prosjekt_nummer}
-                />
-              </FormField>
-            </div>
+            <FormField
+              label="Prosjektnummer"
+              error={errors.prosjekt_nummer?.message}
+            >
+              <Input
+                id="prosjekt_nummer"
+                {...register('prosjekt_nummer')}
+                error={!!errors.prosjekt_nummer}
+              />
+            </FormField>
 
             <div className="grid grid-cols-2 gap-4">
               <FormField
@@ -277,13 +260,13 @@ export function OpprettFravikModal({
               </FormField>
 
               <FormField
-                label="Hovedentreprenør"
-                error={errors.hovedentreprenor?.message}
+                label="Entreprenør"
+                error={errors.entreprenor?.message}
               >
                 <Input
-                  id="hovedentreprenor"
-                  {...register('hovedentreprenor')}
-                  error={!!errors.hovedentreprenor}
+                  id="entreprenor"
+                  {...register('entreprenor')}
+                  error={!!errors.entreprenor}
                 />
               </FormField>
             </div>
@@ -412,7 +395,7 @@ export function OpprettFravikModal({
         )}
 
         {/* Actions */}
-        <div className="flex flex-col sm:flex-row sm:justify-end gap-2 sm:gap-4 pt-6 border-t-2 border-pkt-border-subtle">
+        <div className="flex flex-col sm:flex-row sm:justify-end gap-2 sm:gap-4 pt-6 border-t border-pkt-border-subtle">
           <Button
             type="button"
             variant="ghost"

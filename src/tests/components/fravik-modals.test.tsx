@@ -50,11 +50,10 @@ const renderWithProviders = (ui: React.ReactElement) => {
 const mockFravikState: FravikState = {
   sak_id: 'FRAVIK-TEST-001',
   sakstype: 'fravik',
-  prosjekt_id: 'PROJ-001',
   prosjekt_navn: 'Test Prosjekt',
   prosjekt_nummer: 'P-2025-001',
   rammeavtale: 'Grunnarbeider',
-  hovedentreprenor: 'Test Entreprenør AS',
+  entreprenor: 'Test Entreprenør AS',
   soker_navn: 'Ola Nordmann',
   soker_epost: 'ola@test.no',
   soknad_type: 'machine',
@@ -135,10 +134,10 @@ describe('Fravik Modal Components - Functional Tests', () => {
       expect(screen.getByText(/Prosjektnavn/i)).toBeInTheDocument();
     });
 
-    it('should have prosjekt-ID field', () => {
+    it('should have prosjektnummer field', () => {
       renderWithProviders(<OpprettFravikModal {...defaultProps} />);
 
-      expect(screen.getByText(/Prosjekt-ID/i)).toBeInTheDocument();
+      expect(screen.getByText(/Prosjektnummer/i)).toBeInTheDocument();
     });
 
     it('should have søker navn field', () => {

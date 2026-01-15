@@ -319,11 +319,10 @@ function getMockFravikState(sakId: string): FravikState {
   return {
     sak_id: sakId,
     sakstype: 'fravik',
-    prosjekt_id: 'PROJ-001',
     prosjekt_navn: 'Utslippsfri byggeplass - Testprosjekt',
     prosjekt_nummer: 'P-2025-001',
     rammeavtale: 'Grunnarbeider',
-    hovedentreprenor: 'Test Entreprenør AS',
+    entreprenor: 'Test Entreprenør AS',
     soker_navn: 'Ola Nordmann',
     soker_epost: 'ola@test.no',
     soknad_type: 'machine',

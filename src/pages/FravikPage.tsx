@@ -307,11 +307,10 @@ export function FravikPage() {
             sakId={sakId}
             currentVersion={state.antall_events}
             initialData={{
-              prosjekt_id: state.prosjekt_id,
               prosjekt_navn: state.prosjekt_navn,
               prosjekt_nummer: state.prosjekt_nummer,
               rammeavtale: state.rammeavtale,
-              hovedentreprenor: state.hovedentreprenor,
+              entreprenor: state.entreprenor,
               soker_navn: state.soker_navn,
               soker_epost: state.soker_epost,
               soknad_type: state.soknad_type,

@@ -219,7 +219,7 @@ export function PLVurderingModal({
   const miljoSamlet = useMemo(() => {
     const beslutninger = maskiner
       .map((m) => m.miljo_vurdering?.beslutning)
-      .filter((b): b is string => !!b);
+      .filter((b): b is MaskinBeslutning => !!b);
     if (beslutninger.length === 0) return undefined;
     const alleGodkjent = beslutninger.every((b) => b === 'godkjent');
     const alleAvslatt = beslutninger.every((b) => b === 'avslatt');
@@ -311,9 +311,9 @@ export function PLVurderingModal({
   // Mutations
   const vurderingMutation = useMutation({
     mutationFn: async (data: VurderingFormData) => {
-      // Filter out empty maskin vurderinger
+      // Filter out maskin vurderinger without beslutning
       const filtrerteMaskinVurderinger = data.maskin_vurderinger
-        .filter((v) => v.beslutning || v.kommentar)
+        .filter((v): v is typeof v & { beslutning: MaskinBeslutning } => !!v.beslutning)
         .map((v) => ({
           maskin_id: v.maskin_id,
           beslutning: v.beslutning,

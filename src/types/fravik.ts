@@ -195,11 +195,10 @@ export interface FravikState {
   sakstype: 'fravik';
 
   // Prosjektinfo
-  prosjekt_id: string;
   prosjekt_navn: string;
   prosjekt_nummer?: string;
   rammeavtale?: string;
-  hovedentreprenor?: string;
+  entreprenor?: string;
 
   // Søkerinfo
   soker_navn: string;
@@ -277,11 +276,10 @@ export interface FravikListeItem {
 // ========== EVENT PAYLOADS ==========
 
 export interface SoknadOpprettetData {
-  prosjekt_id: string;
   prosjekt_navn: string;
   prosjekt_nummer?: string;
   rammeavtale?: string;
-  hovedentreprenor?: string;
+  entreprenor?: string;
   soker_navn: string;
   soker_epost?: string;
   soknad_type: SoknadType;
@@ -294,7 +292,7 @@ export interface SoknadOppdatertData {
   prosjekt_navn?: string;
   prosjekt_nummer?: string;
   rammeavtale?: string;
-  hovedentreprenor?: string;
+  entreprenor?: string;
   soker_navn?: string;
   soker_epost?: string;
   frist_for_svar?: string;
@@ -317,6 +315,7 @@ export interface PLVurderingData {
   anbefaling: FravikBeslutning;
   kommentar?: string;
   manglende_dokumentasjon?: string;
+  maskin_vurderinger?: MaskinVurderingData[];
 }
 
 export interface ArbeidsgruppeVurderingData {

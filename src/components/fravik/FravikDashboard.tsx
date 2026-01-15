@@ -166,8 +166,8 @@ export function FravikDashboard({
               <span className="text-pkt-text-body-muted ml-1">{state.soker_epost}</span>
             )}
           </DataListItem>
-          {state.hovedentreprenor && (
-            <DataListItem label="Hovedentreprenør">{state.hovedentreprenor}</DataListItem>
+          {state.entreprenor && (
+            <DataListItem label="Entreprenør">{state.entreprenor}</DataListItem>
           )}
           {state.rammeavtale && (
             <DataListItem label="Rammeavtale">{state.rammeavtale}</DataListItem>

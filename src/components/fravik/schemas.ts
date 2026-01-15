@@ -75,11 +75,10 @@ export type MaskinFormData = z.infer<typeof maskinSchema>;
  */
 export const opprettSoknadSchema = z.object({
   // Prosjektinfo
-  prosjekt_id: z.string().min(1, 'Prosjekt-ID er påkrevd'),
   prosjekt_navn: z.string().min(3, 'Prosjektnavn må være minst 3 tegn'),
   prosjekt_nummer: z.string().optional(),
   rammeavtale: z.string().optional(),
-  hovedentreprenor: z.string().optional(),
+  entreprenor: z.string().optional(),
 
   // Søkerinfo
   soker_navn: z.string().min(2, 'Navn er påkrevd'),
