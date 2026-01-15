@@ -54,8 +54,8 @@ export function SendInnModal({
   } = useForm<SendInnFormData>({
     resolver: zodResolver(sendInnSchema),
     defaultValues: {
-      avbotende_tiltak: '',
-      konsekvenser_ved_avslag: '',
+      avbotende_tiltak: state.avbotende_tiltak || '',
+      konsekvenser_ved_avslag: state.konsekvenser_ved_avslag || '',
       bekreft_korrekt: false,
     },
   });
@@ -84,24 +84,35 @@ export function SendInnModal({
 
   const onSubmit = async (data: SendInnFormData) => {
     const aktor = 'bruker'; // TODO: Get from auth context
+    let currentVersion = state.antall_events;
 
     try {
-      // First, update søknad with required additional info
-      await oppdaterFravikSoknad(
-        sakId,
-        {
-          avbotende_tiltak: data.avbotende_tiltak,
-          konsekvenser_ved_avslag: data.konsekvenser_ved_avslag,
-        },
-        aktor,
-        state.antall_events // expectedVersion for concurrency control
-      );
+      // Check if we need to update avbotende_tiltak (only if changed from state)
+      const needsUpdate =
+        data.avbotende_tiltak !== state.avbotende_tiltak ||
+        data.konsekvenser_ved_avslag !== state.konsekvenser_ved_avslag;
 
-      // Then submit the søknad
+      if (needsUpdate) {
+        // Update søknad with additional info first
+        await oppdaterFravikSoknad(
+          sakId,
+          {
+            avbotende_tiltak: data.avbotende_tiltak,
+            konsekvenser_ved_avslag: data.konsekvenser_ved_avslag,
+          },
+          aktor,
+          currentVersion
+        );
+        // Version incremented after oppdater
+        currentVersion += 1;
+      }
+
+      // Submit the søknad with correct version
       mutation.mutate({
         type: 'send_inn',
         sakId,
         aktor,
+        expectedVersion: currentVersion,
       });
     } catch (error) {
       toast.error('Feil ved oppdatering', error instanceof Error ? error.message : 'Ukjent feil');

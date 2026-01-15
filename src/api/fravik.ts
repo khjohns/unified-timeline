@@ -175,7 +175,11 @@ export async function fjernMaskin(
 /**
  * Send inn søknad for vurdering.
  */
-export async function sendInnSoknad(sakId: string, aktor: string): Promise<void> {
+export async function sendInnSoknad(
+  sakId: string,
+  aktor: string,
+  expectedVersion?: number
+): Promise<void> {
   if (USE_MOCK_API) {
     await mockDelay();
     return;
@@ -183,7 +187,7 @@ export async function sendInnSoknad(sakId: string, aktor: string): Promise<void>
 
   await apiFetch(`/api/fravik/${sakId}/send-inn`, {
     method: 'POST',
-    body: JSON.stringify({ aktor }),
+    body: JSON.stringify({ aktor, expected_version: expectedVersion ?? 0 }),
   });
 }
 

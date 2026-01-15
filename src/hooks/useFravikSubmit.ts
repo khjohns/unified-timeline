@@ -46,6 +46,7 @@ interface SendInnAction {
   type: 'send_inn';
   sakId: string;
   aktor: string;
+  expectedVersion?: number;
 }
 
 type FravikAction = OpprettAction | OppdaterAction | LeggTilMaskinAction | SendInnAction;
@@ -122,7 +123,7 @@ export function useFravikSubmit(options?: UseFravikSubmitOptions) {
           return { type: 'legg_til_maskin', maskinId };
         }
         case 'send_inn': {
-          await sendInnSoknad(action.sakId, action.aktor);
+          await sendInnSoknad(action.sakId, action.aktor, action.expectedVersion);
           return { type: 'send_inn' };
         }
       }
