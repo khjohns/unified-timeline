@@ -66,10 +66,11 @@ function useIsMobile(breakpoint = 640) {
 const calendarStyles = `
   /* Punkt design system - override all rdp CSS variables */
   .rdp {
-    --rdp-accent-color: var(--color-pkt-surface-strong-dark-blue);
+    --rdp-accent-color: var(--color-pkt-text-body-dark);
     --rdp-accent-background-color: var(--color-pkt-surface-strong-dark-blue);
     --rdp-range_middle-background-color: var(--color-pkt-surface-light-blue);
     --rdp-range_middle-color: var(--color-pkt-text-body-dark);
+    --rdp-today-color: var(--color-pkt-text-body-dark);
     --rdp-selected-border: none;
     --rdp-selected-font: inherit;
     --rdp-font-family: 'Oslo Sans', system-ui, sans-serif;
@@ -159,10 +160,11 @@ const calendarStyles = `
 
   /* ===== DARK MODE ===== */
   .dark .rdp {
-    --rdp-accent-color: var(--color-pkt-brand-warm-blue-1000);
+    --rdp-accent-color: var(--color-pkt-text-body-default);
     --rdp-accent-background-color: var(--color-pkt-brand-warm-blue-1000);
     --rdp-range_middle-background-color: var(--color-pkt-grays-gray-200);
     --rdp-range_middle-color: var(--color-pkt-text-body-default);
+    --rdp-today-color: var(--color-pkt-text-body-default);
   }
 
   .dark .rdp-day_button:hover:not([disabled]) {
