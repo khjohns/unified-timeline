@@ -306,6 +306,13 @@ export function ArbeidsgruppeModal({
           </div>
         </SectionContainer>
 
+        {/* Vurderingsveiledning */}
+        <Alert variant="info" title="Arbeidsgruppens vurdering">
+          Arbeidsgruppen gir en samlet innstilling til prosjekteier. Vurder om søknaden oppfyller
+          kontraktskravene (Euro 6/VI, palmefritt biodrivstoff) og om fraviket er tilstrekkelig begrunnet.
+          Innstillingen bør vektlegge både miljørådgivers og prosjektleders anbefalinger.
+        </Alert>
+
         {/* Per-maskin vurdering */}
         <SectionContainer
           title="Maskinvurderinger"

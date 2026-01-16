@@ -414,6 +414,13 @@ export function EierBeslutningModal({
           </Alert>
         )}
 
+        {/* Sanksjonsvarsel */}
+        <Alert variant="warning" title="Konsekvenser av beslutningen">
+          Ved brudd på kravene til utslippsfrie maskiner kan det ilegges sanksjoner på
+          inntil <strong>5 % av kontraktsverdien</strong>. Godkjente fravik fritar entreprenøren
+          fra sanksjon for den aktuelle maskinen i godkjent periode, forutsatt at vilkårene overholdes.
+        </Alert>
+
         {/* Error */}
         {beslutningMutation.isError && (
           <Alert variant="danger" title="Feil ved innsending">

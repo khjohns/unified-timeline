@@ -408,6 +408,16 @@ export function PLVurderingModal({
             Vurder søknaden fra prosjektets perspektiv. Din anbefaling går videre til arbeidsgruppen.
           </Alert>
 
+          {/* Prosjektperspektiv */}
+          <SectionContainer title="Vurder fra prosjektets perspektiv" variant="subtle">
+            <ul className="text-sm space-y-1 list-disc pl-4 text-pkt-text-body-muted">
+              <li>Er fraviket nødvendig for å opprettholde fremdriften?</li>
+              <li>Er perioden for fravik rimelig gitt arbeidsomfanget?</li>
+              <li>Er erstatningsmaskinens kapasitet tilstrekkelig for oppgaven?</li>
+              <li>Oppfyller søknaden minimumskravene (Euro 6/VI, palmefritt biodrivstoff)?</li>
+            </ul>
+          </SectionContainer>
+
           {/* Miljørådgivers vurdering som kontekst */}
           {miljoVurdering.fullfort && miljoSamlet && (
             <SectionContainer title="Miljørådgivers vurdering" variant="subtle">
