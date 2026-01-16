@@ -61,10 +61,13 @@ function useIsMobile(breakpoint = 640) {
 
 /** Shared calendar styles for Punkt design system */
 const calendarStyles = `
-  /* Punkt design system styling for DayPicker */
+  /* Punkt design system - override all rdp CSS variables */
   .rdp {
-    --rdp-accent-color: var(--color-pkt-surface-strong-dark-blue);
-    --rdp-background-color: var(--color-pkt-surface-light-blue);
+    --rdp-accent-color: var(--color-pkt-text-body-dark);
+    --rdp-accent-background-color: var(--color-pkt-surface-strong-dark-blue);
+    --rdp-today-color: var(--color-pkt-text-body-dark);
+    --rdp-selected-border: none;
+    --rdp-selected-font: inherit;
     --rdp-font-family: 'Oslo Sans', system-ui, sans-serif;
   }
 
@@ -76,7 +79,7 @@ const calendarStyles = `
     font-size: 18px;
     font-weight: 700;
     color: var(--color-pkt-text-body-dark);
-    margin-bottom: 1rem;
+    margin-bottom: 16px;
   }
 
   .rdp-weekday {
@@ -89,37 +92,89 @@ const calendarStyles = `
     font-size: 16px;
     width: 40px;
     height: 40px;
-    border-radius: 0;
+    border-radius: 0 !important;
+    background: transparent !important;
   }
 
   .rdp-day_button {
     width: 40px;
     height: 40px;
+    border: none !important;
+    border-radius: 0 !important;
   }
 
   .rdp-day_button:hover:not([disabled]) {
-    background-color: var(--color-pkt-surface-light-blue);
+    background-color: var(--color-pkt-surface-light-blue) !important;
   }
 
-  .rdp-day_selected {
-    background-color: var(--color-pkt-surface-strong-dark-blue);
-    color: var(--color-pkt-text-body-light);
+  /* Selected state - full circle */
+  .rdp-selected .rdp-day_button {
+    background-color: var(--color-pkt-surface-strong-dark-blue) !important;
+    color: var(--color-pkt-text-body-light) !important;
     font-weight: 600;
+    border: none !important;
+    border-radius: 50% !important;
   }
 
-  .rdp-day_today {
+  .rdp-today,
+  .rdp-today .rdp-day_button {
     font-weight: 700;
-    color: var(--color-pkt-brand-warm-blue-1000);
+    color: var(--color-pkt-text-body-dark) !important;
   }
 
   .rdp-nav button {
     width: 40px;
     height: 40px;
-    border-radius: 0;
+    border-radius: 50% !important;
+    color: var(--color-pkt-text-body-dark) !important;
   }
 
   .rdp-nav button:hover {
-    background-color: var(--color-pkt-surface-light-blue);
+    background-color: var(--color-pkt-surface-light-blue) !important;
+    color: var(--color-pkt-text-body-dark) !important;
+  }
+
+  .rdp-nav button svg {
+    color: inherit !important;
+    fill: currentColor !important;
+  }
+
+  /* ===== DARK MODE ===== */
+  .dark .rdp {
+    --rdp-accent-color: var(--color-pkt-text-body-default);
+    --rdp-accent-background-color: var(--color-pkt-brand-warm-blue-1000);
+    --rdp-today-color: var(--color-pkt-text-body-default);
+  }
+
+  .dark .rdp-day_button:hover:not([disabled]) {
+    background-color: var(--color-pkt-grays-gray-200) !important;
+  }
+
+  /* Dark: Selected state - full circle */
+  .dark .rdp-selected .rdp-day_button {
+    background-color: var(--color-pkt-brand-warm-blue-1000) !important;
+    color: var(--color-pkt-bg-default) !important;
+    border: none !important;
+    border-radius: 50% !important;
+  }
+
+  .dark .rdp-nav button {
+    color: var(--color-pkt-text-body-default) !important;
+  }
+
+  .dark .rdp-nav button:hover {
+    background-color: var(--color-pkt-grays-gray-200) !important;
+    color: var(--color-pkt-text-body-default) !important;
+  }
+
+  .dark .rdp-nav button svg {
+    color: inherit !important;
+    fill: currentColor !important;
+  }
+
+  .dark .rdp-today,
+  .dark .rdp-today .rdp-day_button {
+    color: var(--color-pkt-text-body-default) !important;
   }
 `;
 
