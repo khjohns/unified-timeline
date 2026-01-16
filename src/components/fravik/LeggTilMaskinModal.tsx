@@ -513,7 +513,15 @@ export function LeggTilMaskinModal({
                 )}
               />
             </FormField>
+          </div>
+        </SectionContainer>
 
+        {/* Planlagt bruk */}
+        <SectionContainer
+          title="Planlagt bruk"
+          description="Beskriv hva maskinen skal brukes til og forventet bruksomfang"
+        >
+          <div className="space-y-4">
             <FormField
               label="Arbeidskategori"
               required
@@ -555,15 +563,7 @@ export function LeggTilMaskinModal({
                 error={!!errors.arbeidsbeskrivelse}
               />
             </FormField>
-          </div>
-        </SectionContainer>
 
-        {/* Bruk og forbruk */}
-        <SectionContainer
-          title="Bruk og forbruk"
-          description="Informasjon om bruksintensitet og estimert drivstofforbruk"
-        >
-          <div className="space-y-4">
             <FormField
               label="Bruksintensitet"
               required
