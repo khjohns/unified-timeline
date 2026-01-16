@@ -8,7 +8,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Card } from '../components/primitives';
+import { Button, Card, Table, type Column } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
 import { fetchFravikListe } from '../api/fravik';
 import { OpprettFravikModal } from '../components/fravik';
@@ -44,6 +44,59 @@ function filterByStatus(items: FravikListeItem[], filter: StatusFilter): FravikL
   // aktive = not ferdig
   return items.filter((item) => !ferdigStatuser.includes(item.status));
 }
+
+const columns: Column<FravikListeItem>[] = [
+  {
+    key: 'prosjekt',
+    label: 'Prosjekt',
+    render: (soknad) => (
+      <div>
+        <div className="font-medium text-pkt-text-heading">{soknad.prosjekt_navn}</div>
+        {soknad.prosjekt_nummer && (
+          <div className="text-xs text-pkt-text-body-subtle">{soknad.prosjekt_nummer}</div>
+        )}
+      </div>
+    ),
+  },
+  {
+    key: 'soker',
+    label: 'Søker',
+    render: (soknad) => soknad.soker_navn,
+  },
+  {
+    key: 'type',
+    label: 'Type',
+    render: (soknad) => (
+      <span className="px-2 py-1 rounded-full text-xs bg-pkt-bg-subtle text-pkt-text-body-default">
+        {soknad.soknad_type === 'machine' ? 'Maskin' : 'Infrastruktur'}
+      </span>
+    ),
+  },
+  {
+    key: 'maskiner',
+    label: 'Maskiner',
+    align: 'center',
+    render: (soknad) => soknad.antall_maskiner,
+  },
+  {
+    key: 'status',
+    label: 'Status',
+    render: (soknad) => (
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(soknad.status)}`}>
+        {soknad.visningsstatus || FRAVIK_STATUS_LABELS[soknad.status]}
+      </span>
+    ),
+  },
+  {
+    key: 'sendt_inn',
+    label: 'Sendt inn',
+    render: (soknad) => (
+      <span className="text-pkt-text-body-subtle">
+        {soknad.sendt_inn_tidspunkt ? formatDateShort(soknad.sendt_inn_tidspunkt) : '-'}
+      </span>
+    ),
+  },
+];
 
 export function FravikOversiktPage() {
   const navigate = useNavigate();
@@ -144,75 +197,12 @@ export function FravikOversiktPage() {
         {/* Søknad List */}
         {!isLoading && !error && filteredSoknader.length > 0 && (
           <Card variant="outlined" padding="none">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-pkt-border-default bg-pkt-bg-muted">
-                    <th className="text-left py-3 px-4 font-medium text-pkt-text-body-subtle">
-                      Prosjekt
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-pkt-text-body-subtle">
-                      Søker
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-pkt-text-body-subtle">
-                      Type
-                    </th>
-                    <th className="text-center py-3 px-4 font-medium text-pkt-text-body-subtle">
-                      Maskiner
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-pkt-text-body-subtle">
-                      Status
-                    </th>
-                    <th className="text-left py-3 px-4 font-medium text-pkt-text-body-subtle">
-                      Sendt inn
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredSoknader.map((soknad) => (
-                    <tr
-                      key={soknad.sak_id}
-                      className="border-b border-pkt-border-default hover:bg-pkt-bg-muted cursor-pointer transition-colors"
-                      onClick={() => navigate(`/fravik/${soknad.sak_id}`)}
-                    >
-                      <td className="py-3 px-4">
-                        <div className="font-medium text-pkt-text-heading">
-                          {soknad.prosjekt_navn}
-                        </div>
-                        {soknad.prosjekt_nummer && (
-                          <div className="text-xs text-pkt-text-body-subtle">
-                            {soknad.prosjekt_nummer}
-                          </div>
-                        )}
-                      </td>
-                      <td className="py-3 px-4 text-pkt-text-body">
-                        {soknad.soker_navn}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="px-2 py-1 rounded-full text-xs bg-pkt-bg-muted text-pkt-text-body">
-                          {soknad.soknad_type === 'machine' ? 'Maskin' : 'Infrastruktur'}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-center text-pkt-text-body">
-                        {soknad.antall_maskiner}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(soknad.status)}`}
-                        >
-                          {soknad.visningsstatus || FRAVIK_STATUS_LABELS[soknad.status]}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-pkt-text-body-subtle">
-                        {soknad.sendt_inn_tidspunkt
-                          ? formatDateShort(soknad.sendt_inn_tidspunkt)
-                          : '-'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table
+              columns={columns}
+              data={filteredSoknader}
+              keyExtractor={(soknad) => soknad.sak_id}
+              onRowClick={(soknad) => navigate(`/fravik/${soknad.sak_id}`)}
+            />
           </Card>
         )}
       </main>
