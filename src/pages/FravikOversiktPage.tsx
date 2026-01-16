@@ -49,6 +49,16 @@ const columns: Column<FravikListeItem>[] = [
   {
     key: 'prosjekt',
     label: 'Prosjekt',
+    sortable: true,
+    filterable: true,
+    filterType: 'text',
+    sortFn: (a, b, direction) => {
+      const cmp = a.prosjekt_navn.localeCompare(b.prosjekt_navn, 'nb');
+      return direction === 'asc' ? cmp : -cmp;
+    },
+    filterFn: (item, value) =>
+      item.prosjekt_navn.toLowerCase().includes(value.toLowerCase()) ||
+      (item.prosjekt_nummer?.toLowerCase().includes(value.toLowerCase()) ?? false),
     render: (soknad) => (
       <div>
         <div className="font-medium text-pkt-text-heading">{soknad.prosjekt_navn}</div>
@@ -61,11 +71,29 @@ const columns: Column<FravikListeItem>[] = [
   {
     key: 'soker',
     label: 'Søker',
+    sortable: true,
+    filterable: true,
+    filterType: 'text',
+    sortFn: (a, b, direction) => {
+      const cmp = a.soker_navn.localeCompare(b.soker_navn, 'nb');
+      return direction === 'asc' ? cmp : -cmp;
+    },
+    filterFn: (item, value) => item.soker_navn.toLowerCase().includes(value.toLowerCase()),
     render: (soknad) => soknad.soker_navn,
   },
   {
     key: 'type',
     label: 'Type',
+    filterable: true,
+    filterType: 'select',
+    filterOptions: [
+      { value: 'machine', label: 'Maskin' },
+      { value: 'infrastructure', label: 'Infrastruktur' },
+    ],
+    filterFn: (item, value) => {
+      const selected = value.split(',').filter(Boolean);
+      return selected.length === 0 || selected.includes(item.soknad_type);
+    },
     render: (soknad) => (
       <span className="px-2 py-1 rounded-full text-xs bg-pkt-bg-subtle text-pkt-text-body-default">
         {soknad.soknad_type === 'machine' ? 'Maskin' : 'Infrastruktur'}
@@ -76,6 +104,11 @@ const columns: Column<FravikListeItem>[] = [
     key: 'maskiner',
     label: 'Maskiner',
     align: 'center',
+    sortable: true,
+    sortFn: (a, b, direction) => {
+      const cmp = a.antall_maskiner - b.antall_maskiner;
+      return direction === 'asc' ? cmp : -cmp;
+    },
     render: (soknad) => soknad.antall_maskiner,
   },
   {
@@ -90,6 +123,13 @@ const columns: Column<FravikListeItem>[] = [
   {
     key: 'sendt_inn',
     label: 'Sendt inn',
+    sortable: true,
+    sortFn: (a, b, direction) => {
+      const aDate = a.sendt_inn_tidspunkt ? new Date(a.sendt_inn_tidspunkt).getTime() : 0;
+      const bDate = b.sendt_inn_tidspunkt ? new Date(b.sendt_inn_tidspunkt).getTime() : 0;
+      const cmp = aDate - bDate;
+      return direction === 'asc' ? cmp : -cmp;
+    },
     render: (soknad) => (
       <span className="text-pkt-text-body-subtle">
         {soknad.sendt_inn_tidspunkt ? formatDateShort(soknad.sendt_inn_tidspunkt) : '-'}
