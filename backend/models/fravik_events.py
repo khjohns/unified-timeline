@@ -230,18 +230,15 @@ class MaskinData(BaseModel):
 
 class SoknadOpprettetData(BaseModel):
     """Data for opprettelse av fravik-søknad"""
-    prosjekt_id: str = Field(
-        ...,
-        description="Prosjekt-ID"
-    )
     prosjekt_navn: str = Field(
         ...,
         min_length=1,
         description="Navn på prosjektet"
     )
-    prosjekt_nummer: Optional[str] = Field(
-        default=None,
-        description="Prosjektnummer"
+    prosjekt_nummer: str = Field(
+        ...,
+        min_length=1,
+        description="Prosjektnummer (unik identifikator)"
     )
     rammeavtale: Optional[str] = Field(
         default=None,
