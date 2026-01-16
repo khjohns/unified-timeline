@@ -42,7 +42,33 @@ export type MaskinType =
   | 'Gravemaskin'
   | 'Hjullaster'
   | 'Lift'
+  | 'Asfaltutlegger'
+  | 'Bergboremaskin'
+  | 'Borerigg'
+  | 'Hjuldoser'
+  | 'Pælemaskin'
+  | 'Spuntmaskin'
+  | 'Vals'
   | 'Annet';
+
+export type MaskinVekt =
+  | 'liten'    // < 8 tonn
+  | 'medium'   // 8-20 tonn
+  | 'stor'     // 20-50 tonn
+  | 'svart_stor';  // > 50 tonn
+
+export type Arbeidskategori =
+  | 'graving'
+  | 'lasting'
+  | 'lofting'
+  | 'boring_peling'
+  | 'asfalt_komprimering'
+  | 'annet';
+
+export type Bruksintensitet =
+  | 'sporadisk'  // < 2 timer/dag
+  | 'normal'     // 2-6 timer/dag
+  | 'intensiv';  // > 6 timer/dag
 
 export type FravikBeslutning =
   | 'godkjent'
@@ -67,7 +93,12 @@ export type FravikGrunn =
 export type Drivstoff =
   | 'HVO100'
   | 'annet_biodrivstoff'
-  | 'diesel_euro6';
+  | 'diesel';
+
+export type Euroklasse =
+  | 'euro_4'
+  | 'euro_5'
+  | 'euro_6';  // Minimumskrav ved fravik
 
 export type MaskinVurderingStatus =
   | 'ikke_vurdert'
@@ -83,6 +114,7 @@ export interface MaskinData {
   maskin_id: string;
   maskin_type: MaskinType;
   annet_type?: string;
+  vekt: MaskinVekt;
   registreringsnummer?: string;
   start_dato: string;
   slutt_dato: string;
@@ -95,7 +127,12 @@ export interface MaskinData {
   // Erstatningsmaskin - påkrevde felt
   erstatningsmaskin: string;
   erstatningsdrivstoff: Drivstoff;
+  euroklasse: Euroklasse;
   arbeidsbeskrivelse: string;
+  // Nye felter for kategorisering og rapportering
+  arbeidskategori: Arbeidskategori;
+  bruksintensitet: Bruksintensitet;
+  estimert_drivstofforbruk?: number;
 }
 
 export interface MaskinVurderingData {
@@ -132,6 +169,7 @@ export interface MaskinTilstand {
   maskin_id: string;
   maskin_type: MaskinType;
   annet_type?: string;
+  vekt: MaskinVekt;
   registreringsnummer?: string;
   start_dato: string;
   slutt_dato: string;
@@ -142,7 +180,11 @@ export interface MaskinTilstand {
   undersøkte_leverandorer?: string;
   erstatningsmaskin?: string;
   erstatningsdrivstoff?: string;
+  euroklasse: Euroklasse;
   arbeidsbeskrivelse?: string;
+  arbeidskategori: Arbeidskategori;
+  bruksintensitet: Bruksintensitet;
+  estimert_drivstofforbruk?: number;
 
   // Vurderinger
   miljo_vurdering?: MaskinMiljoVurdering;
@@ -394,7 +436,42 @@ export const MASKIN_TYPE_LABELS: Record<MaskinType, string> = {
   Gravemaskin: 'Gravemaskin',
   Hjullaster: 'Hjullaster',
   Lift: 'Lift',
+  Asfaltutlegger: 'Asfaltutlegger',
+  Bergboremaskin: 'Bergboremaskin',
+  Borerigg: 'Borerigg',
+  Hjuldoser: 'Hjuldoser',
+  Pælemaskin: 'Pælemaskin',
+  Spuntmaskin: 'Spuntmaskin',
+  Vals: 'Vals',
   Annet: 'Annet',
+};
+
+export const MASKIN_VEKT_LABELS: Record<MaskinVekt, string> = {
+  liten: 'Liten (< 8 tonn)',
+  medium: 'Medium (8–20 tonn)',
+  stor: 'Stor (20–50 tonn)',
+  svart_stor: 'Svært stor (> 50 tonn)',
+};
+
+export const ARBEIDSKATEGORI_LABELS: Record<Arbeidskategori, string> = {
+  graving: 'Graving',
+  lasting: 'Lasting',
+  lofting: 'Løfting',
+  boring_peling: 'Boring/pæling',
+  asfalt_komprimering: 'Asfalt/komprimering',
+  annet: 'Annet',
+};
+
+export const BRUKSINTENSITET_LABELS: Record<Bruksintensitet, string> = {
+  sporadisk: 'Sporadisk (< 2 timer/dag)',
+  normal: 'Normal (2–6 timer/dag)',
+  intensiv: 'Intensiv (> 6 timer/dag)',
+};
+
+export const EUROKLASSE_LABELS: Record<Euroklasse, string> = {
+  euro_4: 'Euro 4',
+  euro_5: 'Euro 5',
+  euro_6: 'Euro 6/VI (minimumskrav)',
 };
 
 /**

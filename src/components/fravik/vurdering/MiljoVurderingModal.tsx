@@ -380,6 +380,16 @@ export function MiljoVurderingModal({
             Vurder søknaden fra et miljøperspektiv. Din anbefaling går videre til prosjektleder.
           </Alert>
 
+          {/* Kontraktskrav sjekkliste */}
+          <SectionContainer title="Kontraktskrav å vurdere" variant="subtle">
+            <ul className="text-sm space-y-1 list-disc pl-4 text-pkt-text-body-muted">
+              <li>Er det dokumentert at utslippsfri maskin <strong>ikke er mulig</strong> å skaffe?</li>
+              <li>Erstatningsmaskin har <strong>minimum Euro 6/VI</strong></li>
+              <li>Biodrivstoff er <strong>dokumentert palmefritt</strong> og ut over omsetningskrav</li>
+              <li>Fravik skyldes <strong>ikke forhold kjent ved tilbudsinnlevering</strong></li>
+            </ul>
+          </SectionContainer>
+
           {/* Toggle til send tilbake */}
           <button
             type="button"

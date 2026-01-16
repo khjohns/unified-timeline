@@ -7,7 +7,7 @@
 
 import { z } from 'zod';
 import type { AttachmentFile } from '../../types';
-import type { MaskinType, SoknadType, FravikGrunn, Drivstoff } from '../../types/fravik';
+import type { MaskinType, MaskinVekt, Arbeidskategori, Bruksintensitet, Euroklasse, SoknadType, FravikGrunn, Drivstoff } from '../../types/fravik';
 
 // ========== KONSTANTER ==========
 
@@ -19,10 +19,10 @@ export const FRAVIK_GRUNNER: { value: FravikGrunn; label: string }[] = [
   { value: 'annet', label: 'Annet' },
 ];
 
-export const DRIVSTOFF_OPTIONS: { value: Drivstoff; label: string }[] = [
-  { value: 'HVO100', label: 'HVO100' },
-  { value: 'annet_biodrivstoff', label: 'Annet biodrivstoff' },
-  { value: 'diesel_euro6', label: 'Diesel (Euro 6)' },
+export const DRIVSTOFF_OPTIONS: { value: Drivstoff; label: string; description?: string }[] = [
+  { value: 'HVO100', label: 'HVO100 (palmefritt)', description: 'Anbefalt - dokumentert palmefritt biodrivstoff' },
+  { value: 'annet_biodrivstoff', label: 'Annet biodrivstoff', description: 'Utover omsetningskrav, ikke palmeoljebasert' },
+  { value: 'diesel', label: 'Diesel', description: 'Kun med minimum Euro 6/VI' },
 ];
 
 // ========== MASKIN SCHEMA ==========
@@ -31,10 +31,25 @@ export const DRIVSTOFF_OPTIONS: { value: Drivstoff; label: string }[] = [
  * Schema for maskin data (used in LeggTilMaskinModal and OpprettFravikModal)
  */
 export const maskinSchema = z.object({
-  maskin_type: z.enum(['Gravemaskin', 'Hjullaster', 'Lift', 'Annet'] as const, {
+  maskin_type: z.enum([
+    'Gravemaskin',
+    'Hjullaster',
+    'Lift',
+    'Asfaltutlegger',
+    'Bergboremaskin',
+    'Borerigg',
+    'Hjuldoser',
+    'Pælemaskin',
+    'Spuntmaskin',
+    'Vals',
+    'Annet',
+  ] as const, {
     errorMap: () => ({ message: 'Velg maskintype' }),
   }),
   annet_type: z.string().optional(),
+  vekt: z.enum(['liten', 'medium', 'stor', 'svart_stor'] as const, {
+    errorMap: () => ({ message: 'Velg vektkategori' }),
+  }),
   registreringsnummer: z.string().optional(),
   start_dato: z.string().min(1, 'Startdato er påkrevd'),
   slutt_dato: z.string().min(1, 'Sluttdato er påkrevd'),
@@ -47,10 +62,21 @@ export const maskinSchema = z.object({
   undersøkte_leverandorer: z.string().optional(),
   // Erstatningsmaskin - påkrevde felt
   erstatningsmaskin: z.string().min(1, 'Oppgi erstatningsmaskin'),
-  erstatningsdrivstoff: z.enum(['HVO100', 'annet_biodrivstoff', 'diesel_euro6'] as const, {
+  erstatningsdrivstoff: z.enum(['HVO100', 'annet_biodrivstoff', 'diesel'] as const, {
     errorMap: () => ({ message: 'Velg drivstoff for erstatningsmaskin' }),
   }),
+  euroklasse: z.enum(['euro_4', 'euro_5', 'euro_6'] as const, {
+    errorMap: () => ({ message: 'Velg euroklasse for erstatningsmaskin' }),
+  }),
   arbeidsbeskrivelse: z.string().min(10, 'Beskriv arbeidsoppgaver (minst 10 tegn)'),
+  // Nye felter for kategorisering og rapportering
+  arbeidskategori: z.enum(['graving', 'lasting', 'lofting', 'boring_peling', 'asfalt_komprimering', 'annet'] as const, {
+    errorMap: () => ({ message: 'Velg arbeidskategori' }),
+  }),
+  bruksintensitet: z.enum(['sporadisk', 'normal', 'intensiv'] as const, {
+    errorMap: () => ({ message: 'Velg bruksintensitet' }),
+  }),
+  estimert_drivstofforbruk: z.number().min(0, 'Må være et positivt tall').optional(),
   attachments: z.array(z.custom<AttachmentFile>()).optional().default([]),
 }).refine(
   (data) => data.maskin_type !== 'Annet' || (data.annet_type && data.annet_type.length >= 3),
@@ -106,10 +132,45 @@ export const MASKIN_TYPE_OPTIONS: { value: MaskinType; label: string }[] = [
   { value: 'Gravemaskin', label: 'Gravemaskin' },
   { value: 'Hjullaster', label: 'Hjullaster' },
   { value: 'Lift', label: 'Lift' },
+  { value: 'Asfaltutlegger', label: 'Asfaltutlegger' },
+  { value: 'Bergboremaskin', label: 'Bergboremaskin' },
+  { value: 'Borerigg', label: 'Borerigg' },
+  { value: 'Hjuldoser', label: 'Hjuldoser' },
+  { value: 'Pælemaskin', label: 'Pælemaskin' },
+  { value: 'Spuntmaskin', label: 'Spuntmaskin' },
+  { value: 'Vals', label: 'Vals' },
   { value: 'Annet', label: 'Annet' },
+];
+
+export const MASKIN_VEKT_OPTIONS: { value: MaskinVekt; label: string; description: string }[] = [
+  { value: 'liten', label: 'Liten', description: 'Mindre enn 8 tonn' },
+  { value: 'medium', label: 'Medium', description: '8–20 tonn' },
+  { value: 'stor', label: 'Stor', description: '20–50 tonn' },
+  { value: 'svart_stor', label: 'Svært stor', description: 'Større enn 50 tonn' },
+];
+
+export const ARBEIDSKATEGORI_OPTIONS: { value: Arbeidskategori; label: string; description: string }[] = [
+  { value: 'graving', label: 'Graving', description: 'Grøfter, fundamenter, masseuttak' },
+  { value: 'lasting', label: 'Lasting', description: 'Lasting/lossing av masser' },
+  { value: 'lofting', label: 'Løfting', description: 'Kranarbeid, montasje' },
+  { value: 'boring_peling', label: 'Boring/pæling', description: 'Fjellboring, pæling, spunting' },
+  { value: 'asfalt_komprimering', label: 'Asfalt/komprimering', description: 'Utlegging, komprimering' },
+  { value: 'annet', label: 'Annet', description: 'Andre arbeidstyper' },
+];
+
+export const BRUKSINTENSITET_OPTIONS: { value: Bruksintensitet; label: string; description: string }[] = [
+  { value: 'sporadisk', label: 'Sporadisk', description: 'Mindre enn 2 timer per dag' },
+  { value: 'normal', label: 'Normal', description: '2–6 timer per dag' },
+  { value: 'intensiv', label: 'Intensiv', description: 'Mer enn 6 timer per dag' },
 ];
 
 export const SOKNAD_TYPE_OPTIONS: { value: SoknadType; label: string }[] = [
   { value: 'machine', label: 'Maskin (enkeltmaskiner)' },
   { value: 'infrastructure', label: 'Infrastruktur (strøm/lading)' },
+];
+
+export const EUROKLASSE_OPTIONS: { value: Euroklasse; label: string; description: string }[] = [
+  { value: 'euro_4', label: 'Euro 4/IV', description: 'Under minimumskrav - krever ekstra begrunnelse' },
+  { value: 'euro_5', label: 'Euro 5/V', description: 'Under minimumskrav - krever ekstra begrunnelse' },
+  { value: 'euro_6', label: 'Euro 6/VI', description: 'Minimumskrav ved innvilget fravik' },
 ];

@@ -15,6 +15,10 @@ from models.fravik_events import (
     FravikStatus,
     FravikBeslutning,
     MaskinType,
+    MaskinVekt,
+    Arbeidskategori,
+    Bruksintensitet,
+    Euroklasse,
     FravikRolle,
 )
 
@@ -103,6 +107,10 @@ class MaskinTilstand(BaseModel):
         default=None,
         description="Spesifisering hvis type er 'Annet'"
     )
+    vekt: MaskinVekt = Field(
+        ...,
+        description="Vektkategori for maskinen"
+    )
     registreringsnummer: Optional[str] = Field(
         default=None,
         description="Registreringsnummer"
@@ -143,9 +151,25 @@ class MaskinTilstand(BaseModel):
         default=None,
         description="Drivstoff for erstatningsmaskin"
     )
+    euroklasse: Euroklasse = Field(
+        ...,
+        description="Euroklasse for erstatningsmaskin"
+    )
     arbeidsbeskrivelse: Optional[str] = Field(
         default=None,
         description="Beskrivelse av arbeidet"
+    )
+    arbeidskategori: Arbeidskategori = Field(
+        ...,
+        description="Hovedkategori for arbeidet maskinen skal utføre"
+    )
+    bruksintensitet: Bruksintensitet = Field(
+        ...,
+        description="Hvor intensivt maskinen skal brukes"
+    )
+    estimert_drivstofforbruk: Optional[float] = Field(
+        default=None,
+        description="Estimert drivstofforbruk i liter per dag"
     )
 
     # Vurderinger

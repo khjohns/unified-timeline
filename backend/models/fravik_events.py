@@ -73,7 +73,39 @@ class MaskinType(str, Enum):
     GRAVEMASKIN = "Gravemaskin"
     HJULLASTER = "Hjullaster"
     LIFT = "Lift"
+    ASFALTUTLEGGER = "Asfaltutlegger"
+    BERGBOREMASKIN = "Bergboremaskin"
+    BORERIGG = "Borerigg"
+    HJULDOSER = "Hjuldoser"
+    PELEMASKIN = "Pælemaskin"
+    SPUNTMASKIN = "Spuntmaskin"
+    VALS = "Vals"
     ANNET = "Annet"
+
+
+class MaskinVekt(str, Enum):
+    """Vektkategorier for maskiner"""
+    LITEN = "liten"  # < 8 tonn
+    MEDIUM = "medium"  # 8-20 tonn
+    STOR = "stor"  # 20-50 tonn
+    SVART_STOR = "svart_stor"  # > 50 tonn
+
+
+class Arbeidskategori(str, Enum):
+    """Kategorier for type arbeid maskinen skal utføre"""
+    GRAVING = "graving"
+    LASTING = "lasting"
+    LOFTING = "lofting"
+    BORING_PELING = "boring_peling"
+    ASFALT_KOMPRIMERING = "asfalt_komprimering"
+    ANNET = "annet"
+
+
+class Bruksintensitet(str, Enum):
+    """Hvor intensivt maskinen skal brukes"""
+    SPORADISK = "sporadisk"  # < 2 timer/dag
+    NORMAL = "normal"  # 2-6 timer/dag
+    INTENSIV = "intensiv"  # > 6 timer/dag
 
 
 class FravikBeslutning(str, Enum):
@@ -106,7 +138,14 @@ class Drivstoff(str, Enum):
     """Drivstoff for erstatningsmaskin"""
     HVO100 = "HVO100"
     ANNET_BIODRIVSTOFF = "annet_biodrivstoff"
-    DIESEL_EURO6 = "diesel_euro6"
+    DIESEL = "diesel"
+
+
+class Euroklasse(str, Enum):
+    """Euroklasse for erstatningsmaskin - minimum Euro 6/VI ved innvilget fravik"""
+    EURO_4 = "euro_4"
+    EURO_5 = "euro_5"
+    EURO_6 = "euro_6"  # Minimumskrav ved fravik
 
 
 # ============ DATA MODELLER ============
@@ -124,6 +163,10 @@ class MaskinData(BaseModel):
     annet_type: Optional[str] = Field(
         default=None,
         description="Spesifisering hvis type er 'Annet'"
+    )
+    vekt: MaskinVekt = Field(
+        ...,
+        description="Vektkategori for maskinen"
     )
     registreringsnummer: Optional[str] = Field(
         default=None,
@@ -171,10 +214,28 @@ class MaskinData(BaseModel):
         ...,
         description="Drivstoff for erstatningsmaskin"
     )
+    euroklasse: Euroklasse = Field(
+        ...,
+        description="Euroklasse for erstatningsmaskin (minimum Euro 6/VI ved fravik)"
+    )
     arbeidsbeskrivelse: str = Field(
         ...,
         min_length=1,
         description="Beskrivelse av arbeidet maskinen skal utføre"
+    )
+    # Nye felter for bedre kategorisering og rapportering
+    arbeidskategori: Arbeidskategori = Field(
+        ...,
+        description="Hovedkategori for arbeidet maskinen skal utføre"
+    )
+    bruksintensitet: Bruksintensitet = Field(
+        ...,
+        description="Hvor intensivt maskinen skal brukes"
+    )
+    estimert_drivstofforbruk: Optional[float] = Field(
+        default=None,
+        ge=0,
+        description="Estimert drivstofforbruk i liter per dag"
     )
 
 

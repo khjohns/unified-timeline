@@ -8,8 +8,8 @@
 import { useState } from 'react';
 import { ChevronDownIcon, ChevronRightIcon } from '@radix-ui/react-icons';
 import { DataList, DataListItem } from '../primitives';
-import type { MaskinTilstand, MaskinVurderingStatus, Drivstoff } from '../../types/fravik';
-import { MASKIN_TYPE_LABELS } from '../../types/fravik';
+import type { MaskinTilstand, MaskinVurderingStatus, Drivstoff, Arbeidskategori, Bruksintensitet, Euroklasse } from '../../types/fravik';
+import { MASKIN_TYPE_LABELS, MASKIN_VEKT_LABELS, ARBEIDSKATEGORI_LABELS, BRUKSINTENSITET_LABELS, EUROKLASSE_LABELS } from '../../types/fravik';
 import { formatDateShort } from '../../utils/formatters';
 
 // ============================================================================
@@ -17,9 +17,9 @@ import { formatDateShort } from '../../utils/formatters';
 // ============================================================================
 
 const DRIVSTOFF_LABELS: Record<Drivstoff, string> = {
-  HVO100: 'HVO100',
+  HVO100: 'HVO100 (palmefritt)',
   annet_biodrivstoff: 'Annet biodrivstoff',
-  diesel_euro6: 'Diesel Euro 6',
+  diesel: 'Diesel',
 };
 
 // ============================================================================
@@ -55,6 +55,9 @@ function MaskinDetaljer({ maskin }: MaskinDetaljerProps) {
         <DataListItem label="Periode">
           {formatDateShort(maskin.start_dato)} – {formatDateShort(maskin.slutt_dato)}
         </DataListItem>
+        {maskin.vekt && (
+          <DataListItem label="Vekt">{MASKIN_VEKT_LABELS[maskin.vekt]}</DataListItem>
+        )}
         {maskin.registreringsnummer && (
           <DataListItem label="Reg.nr">{maskin.registreringsnummer}</DataListItem>
         )}
@@ -97,6 +100,11 @@ function MaskinDetaljer({ maskin }: MaskinDetaljerProps) {
                 {DRIVSTOFF_LABELS[maskin.erstatningsdrivstoff as Drivstoff] || maskin.erstatningsdrivstoff}
               </DataListItem>
             )}
+            {maskin.euroklasse && (
+              <DataListItem label="Euroklasse">
+                {EUROKLASSE_LABELS[maskin.euroklasse as Euroklasse] || maskin.euroklasse}
+              </DataListItem>
+            )}
           </DataList>
           {maskin.arbeidsbeskrivelse && (
             <div className="mt-2">
@@ -106,6 +114,24 @@ function MaskinDetaljer({ maskin }: MaskinDetaljerProps) {
           )}
         </div>
       )}
+
+      {/* Bruk og forbruk */}
+      <div className="p-3 rounded bg-pkt-bg-subtle">
+        <h4 className="text-xs font-medium text-pkt-text-body-muted mb-2">Bruk og forbruk</h4>
+        <DataList variant="grid">
+          <DataListItem label="Arbeidskategori">
+            {ARBEIDSKATEGORI_LABELS[maskin.arbeidskategori as Arbeidskategori] || maskin.arbeidskategori}
+          </DataListItem>
+          <DataListItem label="Bruksintensitet">
+            {BRUKSINTENSITET_LABELS[maskin.bruksintensitet as Bruksintensitet] || maskin.bruksintensitet}
+          </DataListItem>
+          {maskin.estimert_drivstofforbruk && (
+            <DataListItem label="Est. forbruk">
+              {maskin.estimert_drivstofforbruk} liter/dag
+            </DataListItem>
+          )}
+        </DataList>
+      </div>
 
     </div>
   );

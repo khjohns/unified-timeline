@@ -221,6 +221,7 @@ class FravikService:
             maskin_id=data.maskin_id,
             maskin_type=data.maskin_type,
             annet_type=data.annet_type,
+            vekt=data.vekt,
             registreringsnummer=data.registreringsnummer,
             start_dato=data.start_dato,
             slutt_dato=data.slutt_dato,
@@ -231,7 +232,11 @@ class FravikService:
             undersøkte_leverandorer=data.undersøkte_leverandorer,
             erstatningsmaskin=data.erstatningsmaskin,
             erstatningsdrivstoff=data.erstatningsdrivstoff,
+            euroklasse=data.euroklasse,
             arbeidsbeskrivelse=data.arbeidsbeskrivelse,
+            arbeidskategori=data.arbeidskategori,
+            bruksintensitet=data.bruksintensitet,
+            estimert_drivstofforbruk=data.estimert_drivstofforbruk,
         )
         state.maskiner[data.maskin_id] = maskin
         return state
@@ -251,6 +256,7 @@ class FravikService:
             maskin_id=data.maskin_id,
             maskin_type=data.maskin_type,
             annet_type=data.annet_type,
+            vekt=data.vekt,
             registreringsnummer=data.registreringsnummer,
             start_dato=data.start_dato,
             slutt_dato=data.slutt_dato,
@@ -261,7 +267,11 @@ class FravikService:
             undersøkte_leverandorer=data.undersøkte_leverandorer,
             erstatningsmaskin=data.erstatningsmaskin,
             erstatningsdrivstoff=data.erstatningsdrivstoff,
+            euroklasse=data.euroklasse,
             arbeidsbeskrivelse=data.arbeidsbeskrivelse,
+            arbeidskategori=data.arbeidskategori,
+            bruksintensitet=data.bruksintensitet,
+            estimert_drivstofforbruk=data.estimert_drivstofforbruk,
             # Behold eksisterende vurderinger
             miljo_vurdering=state.maskiner[maskin_id].miljo_vurdering,
             arbeidsgruppe_vurdering=state.maskiner[maskin_id].arbeidsgruppe_vurdering,
