@@ -178,7 +178,11 @@ export function FravikDashboard({
           action={
             isTE && canEdit && onRedigerInfrastruktur && (
               <Button variant="secondary" size="sm" onClick={onRedigerInfrastruktur}>
-                <Pencil1Icon className="w-4 h-4 mr-1" />
+                {state.infrastruktur ? (
+                  <Pencil1Icon className="w-4 h-4 mr-1" />
+                ) : (
+                  <PlusIcon className="w-4 h-4 mr-1" />
+                )}
                 {state.infrastruktur ? 'Rediger' : 'Legg til'}
               </Button>
             )

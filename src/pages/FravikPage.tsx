@@ -25,6 +25,7 @@ import {
   DinOppgaveAlert,
   TidligereVurderingerKort,
   LeggTilMaskinModal,
+  InfrastrukturModal,
   OpprettFravikModal,
   SendInnModal,
   MiljoVurderingModal,
@@ -98,6 +99,7 @@ export function FravikPage() {
   // Søker modal state
   const [showRedigerSoknad, setShowRedigerSoknad] = useState(false);
   const [showLeggTilMaskin, setShowLeggTilMaskin] = useState(false);
+  const [showRedigerInfrastruktur, setShowRedigerInfrastruktur] = useState(false);
   const [showAvbotendeTiltak, setShowAvbotendeTiltak] = useState(false);
   const [showSendInn, setShowSendInn] = useState(false);
 
@@ -128,11 +130,11 @@ export function FravikPage() {
   const kanSendesInn = useMemo(() => {
     if (!state) return false;
     const harSoknadInfo = !!state.prosjekt_navn && !!state.soker_navn;
-    const harMaskiner = state.soknad_type === 'machine'
+    const harMaskinerEllerInfra = state.soknad_type === 'machine'
       ? Object.keys(state.maskiner).length > 0
-      : true;
+      : !!state.infrastruktur?.stromtilgang_beskrivelse;
     const harAvbotende = !!state.avbotende_tiltak && !!state.konsekvenser_ved_avslag;
-    return harSoknadInfo && harMaskiner && harAvbotende;
+    return harSoknadInfo && harMaskinerEllerInfra && harAvbotende;
   }, [state]);
 
   // Loading state
@@ -312,6 +314,7 @@ export function FravikPage() {
               userRole={userRole}
               onRedigerSoknad={() => setShowRedigerSoknad(true)}
               onLeggTilMaskin={() => setShowLeggTilMaskin(true)}
+              onRedigerInfrastruktur={() => setShowRedigerInfrastruktur(true)}
               onRedigerAvbotende={() => setShowAvbotendeTiltak(true)}
             />
           </Card>
@@ -386,6 +389,14 @@ export function FravikPage() {
             onOpenChange={setShowLeggTilMaskin}
             sakId={sakId}
             currentVersion={state.antall_events}
+            onSuccess={handleModalSuccess}
+          />
+          <InfrastrukturModal
+            open={showRedigerInfrastruktur}
+            onOpenChange={setShowRedigerInfrastruktur}
+            sakId={sakId}
+            currentVersion={state.antall_events}
+            initialData={state.infrastruktur}
             onSuccess={handleModalSuccess}
           />
           <AvbotendeTiltakModal

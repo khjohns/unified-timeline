@@ -9,6 +9,7 @@ export type { DinOppgaveAlertProps, TidligereVurderingerKortProps } from './Frav
 export { MaskinListe } from './MaskinListe';
 export { OpprettFravikModal } from './OpprettFravikModal';
 export { LeggTilMaskinModal } from './LeggTilMaskinModal';
+export { InfrastrukturModal } from './InfrastrukturModal';
 export { AvbotendeTiltakModal } from './AvbotendeTiltakModal';
 export { SendInnModal } from './SendInnModal';
 
