@@ -31,26 +31,28 @@ export interface AlertProps {
 }
 
 // Using semantic alert colors for consistent dark/light mode support
+// Icons use text color for good contrast against the light background
+// Dark mode: border uses text color (visible against alert bg) + shadow for edge definition
 const variantStyles: Record<AlertVariant, { container: string; title: string; icon: string }> = {
   info: {
-    container: 'bg-alert-info-bg border-alert-info-border text-alert-info-text',
+    container: 'bg-alert-info-bg border-alert-info-border text-alert-info-text dark:border dark:border-alert-info-text dark:shadow-md',
     title: 'text-alert-info-text',
-    icon: 'text-alert-info-border',
+    icon: 'text-alert-info-text',
   },
   success: {
-    container: 'bg-alert-success-bg border-alert-success-border text-alert-success-text',
+    container: 'bg-alert-success-bg border-alert-success-border text-alert-success-text dark:border dark:border-alert-success-text dark:shadow-md',
     title: 'text-alert-success-text',
-    icon: 'text-alert-success-border',
+    icon: 'text-alert-success-text',
   },
   warning: {
-    container: 'bg-alert-warning-bg border-alert-warning-border text-alert-warning-text',
+    container: 'bg-alert-warning-bg border-alert-warning-border text-alert-warning-text dark:border dark:border-alert-warning-text dark:shadow-md',
     title: 'text-alert-warning-text',
-    icon: 'text-alert-warning-border',
+    icon: 'text-alert-warning-text',
   },
   danger: {
-    container: 'bg-alert-danger-bg border-alert-danger-border text-alert-danger-text',
+    container: 'bg-alert-danger-bg border-alert-danger-border text-alert-danger-text dark:border dark:border-alert-danger-text dark:shadow-md',
     title: 'text-alert-danger-text',
-    icon: 'text-alert-danger-border',
+    icon: 'text-alert-danger-text',
   },
 };
 

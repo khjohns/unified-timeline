@@ -55,22 +55,24 @@ export function useToast(): ToastContextValue {
 }
 
 // Using same semantic alert colors as Alert component for dark/light mode support
+// Icons use text color for good contrast against the light background
+// Dark mode: border uses text color (visible against alert bg) + shadow for edge definition
 const variantStyles: Record<ToastVariant, { container: string; icon: string }> = {
   info: {
-    container: 'bg-alert-info-bg border-alert-info-border text-alert-info-text',
-    icon: 'text-alert-info-border',
+    container: 'bg-alert-info-bg border-alert-info-border text-alert-info-text dark:border dark:border-alert-info-text dark:shadow-md',
+    icon: 'text-alert-info-text',
   },
   success: {
-    container: 'bg-alert-success-bg border-alert-success-border text-alert-success-text',
-    icon: 'text-alert-success-border',
+    container: 'bg-alert-success-bg border-alert-success-border text-alert-success-text dark:border dark:border-alert-success-text dark:shadow-md',
+    icon: 'text-alert-success-text',
   },
   warning: {
-    container: 'bg-alert-warning-bg border-alert-warning-border text-alert-warning-text',
-    icon: 'text-alert-warning-border',
+    container: 'bg-alert-warning-bg border-alert-warning-border text-alert-warning-text dark:border dark:border-alert-warning-text dark:shadow-md',
+    icon: 'text-alert-warning-text',
   },
   error: {
-    container: 'bg-alert-danger-bg border-alert-danger-border text-alert-danger-text',
-    icon: 'text-alert-danger-border',
+    container: 'bg-alert-danger-bg border-alert-danger-border text-alert-danger-text dark:border dark:border-alert-danger-text dark:shadow-md',
+    icon: 'text-alert-danger-text',
   },
 };
 

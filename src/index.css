@@ -1,6 +1,9 @@
 /* Import Tailwind CSS */
 @import "tailwindcss";
 
+/* Configure dark mode to use .dark class instead of prefers-color-scheme */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ============================================
    Tailwind v4 Theme Configuration
 
@@ -115,6 +118,8 @@
     --color-pkt-surface-subtle-light-red: #fff2f1;
     --color-pkt-surface-subtle-pale-blue: #f1fdff;
     --color-pkt-surface-subtle-white: #ffffff;
+    --color-pkt-surface-light-yellow: #ffe7bc;  /* Amber - for approval in_progress */
+    --color-pkt-surface-light-red: #fff2f1;  /* Light red - for approval rejected */
 
     /* ============================================
        PUNKT SEMANTIC COLORS - TEXT
@@ -267,15 +272,6 @@
     --z-toast: 1100;
 
     /* ============================================
-       TOAST COLORS
-       ============================================ */
-    --color-pkt-surface-light-yellow: #ffe7bc;
-    --color-pkt-surface-light-red: #fff2f1;
-    --color-pkt-brand-warm-yellow-600: #d97706;
-    --color-pkt-brand-blue-600: #1f42aa;
-    --color-pkt-brand-green-700: #059669;
-
-    /* ============================================
        ANIMATIONS
        ============================================ */
     --animate-slideIn: slideIn 150ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -402,6 +398,8 @@
   /* Surfaces - darker versions for dark mode */
   --color-pkt-surface-faded-green: rgba(176, 240, 208, 0.85);  /* Semi-transparent mint */
   --color-pkt-surface-faded-red: rgba(255, 202, 202, 0.85);  /* Semi-transparent coral */
+  --color-pkt-surface-light-yellow: rgba(255, 224, 160, 0.85);  /* Semi-transparent amber - for approval in_progress */
+  --color-pkt-surface-light-red: rgba(255, 202, 202, 0.85);  /* Semi-transparent coral - for approval rejected */
   --color-pkt-surface-gray: #2a2a4a;
   --color-pkt-surface-light-beige: #3a3a4a;  /* Blue-gray instead of beige for dark mode */
   --color-pkt-surface-light-blue: rgba(180, 210, 255, 0.85);  /* Semi-transparent light blue */
@@ -438,6 +436,7 @@
   --color-pkt-brand-neutrals-100: #252542;
   --color-pkt-brand-neutrals-200: #2a2a4a;
   --color-pkt-brand-neutrals-1000: #f0f0f8;  /* Brightened for better contrast */
+  /* Note: neutrals-black is inverted in dark mode (white) for semantic "darkest" use */
   --color-pkt-brand-neutrals-black: #ffffff;
 
   /* Legacy aliases - dark mode */
@@ -486,44 +485,44 @@
   --color-row-bh-text: #e0c090;  /* Light amber text for dark mode */
   --color-row-bh-border: #d4a050;  /* Amber border accent */
 
-  /* Badge component colors - dark mode (semi-transparent with dark text) */
+  /* Badge component colors - dark mode (semi-transparent with vibrant borders) */
   --color-badge-info-bg: rgba(180, 210, 255, 0.85);  /* Semi-transparent light blue */
   --color-badge-info-text: #1a3a5a;  /* Dark blue text */
-  --color-badge-info-border: #1a3a5a;
+  --color-badge-info-border: #6a9aff;  /* Vibrant blue - visible on dark bg */
   --color-badge-success-bg: rgba(176, 240, 208, 0.85);  /* Semi-transparent mint */
   --color-badge-success-text: #0a4030;  /* Dark green text */
-  --color-badge-success-border: #0a4030;
+  --color-badge-success-border: #6adb8a;  /* Vibrant green - visible on dark bg */
   --color-badge-warning-bg: rgba(255, 224, 160, 0.85);  /* Semi-transparent amber */
   --color-badge-warning-text: #3a3020;  /* Dark brown text */
-  --color-badge-warning-border: #3a3020;
+  --color-badge-warning-border: #fbbf24;  /* Vibrant gold - visible on dark bg */
   --color-badge-danger-bg: rgba(255, 202, 202, 0.85);  /* Semi-transparent coral */
   --color-badge-danger-text: #5a2020;  /* Dark red text */
-  --color-badge-danger-border: #5a2020;
+  --color-badge-danger-border: #f87171;  /* Vibrant red - visible on dark bg */
 
-  /* Alert component colors - dark mode (semi-transparent pastels) */
+  /* Alert component colors - dark mode (semi-transparent pastels with vibrant borders) */
   --color-alert-info-bg: rgba(180, 210, 255, 0.85);  /* Semi-transparent light blue */
-  --color-alert-info-border: #1a3a5a;  /* Same as text - dark blue */
-  --color-alert-info-text: #1a3a5a;  /* Dark blue text */
+  --color-alert-info-border: #6a9aff;  /* Vibrant blue - visible on dark bg */
+  --color-alert-info-text: #1a3a5a;  /* Dark blue text on light bg */
   --color-alert-success-bg: rgba(176, 240, 208, 0.85);  /* Semi-transparent mint */
-  --color-alert-success-border: #0a4030;  /* Same as text - dark green */
-  --color-alert-success-text: #0a4030;  /* Dark green text */
+  --color-alert-success-border: #6adb8a;  /* Vibrant green - visible on dark bg */
+  --color-alert-success-text: #0a4030;  /* Dark green text on light bg */
   --color-alert-warning-bg: rgba(255, 224, 160, 0.85);  /* Semi-transparent amber */
-  --color-alert-warning-border: #3a3020;  /* Same as text - dark brown */
-  --color-alert-warning-text: #3a3020;  /* Dark brown text */
+  --color-alert-warning-border: #fbbf24;  /* Vibrant gold - visible on dark bg */
+  --color-alert-warning-text: #3a3020;  /* Dark brown text on light bg */
   --color-alert-danger-bg: rgba(255, 202, 202, 0.85);  /* Semi-transparent coral */
-  --color-alert-danger-border: #5a2020;  /* Same as text - dark red */
-  --color-alert-danger-text: #5a2020;  /* Dark red text */
+  --color-alert-danger-border: #f87171;  /* Vibrant red - visible on dark bg */
+  --color-alert-danger-text: #5a2020;  /* Dark red text on light bg */
 
-  /* Semantic tag colors - dark mode (semi-transparent light backgrounds) */
+  /* Semantic tag colors - dark mode (semi-transparent with vibrant borders) */
   --color-tag-neutral-bg: rgba(200, 200, 220, 0.85);  /* Semi-transparent gray */
   --color-tag-neutral-text: #3a3a5a;  /* Dark gray text */
-  --color-tag-neutral-border: #3a3a5a;  /* Same as text */
+  --color-tag-neutral-border: #9090b0;  /* Lighter gray - visible on dark bg */
   --color-tag-info-bg: rgba(180, 210, 255, 0.85);  /* Semi-transparent blue */
   --color-tag-info-text: #1a3a5a;  /* Dark blue text */
-  --color-tag-info-border: #1a3a5a;  /* Same as text */
+  --color-tag-info-border: #6a9aff;  /* Vibrant blue - visible on dark bg */
   --color-tag-warning-bg: rgba(255, 224, 160, 0.85);  /* Semi-transparent amber */
   --color-tag-warning-text: #3a3020;  /* Dark brown text */
-  --color-tag-warning-border: #3a3020;  /* Same as text */
+  --color-tag-warning-border: #fbbf24;  /* Vibrant gold - visible on dark bg */
   --color-tag-frist-bg: rgba(255, 231, 188, 0.85);  /* Semi-transparent beige */
   --color-tag-frist-text: #3a3020;  /* Dark brown text */
 }
