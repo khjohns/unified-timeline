@@ -417,8 +417,7 @@ export function PLVurderingModal({
               <li>Gjelder fraviket forhold som <strong>ikke</strong> var kjent ved tilbudsinnlevering?</li>
             </ul>
             <p className="mt-3 text-xs text-pkt-text-body-muted italic">
-              Merk: Fremdrift er entreprenørens risiko og skal ikke vektlegges. Ved avslag må entreprenør
-              selv vurdere om de vil benytte fossil maskin og eventuelt bli ilagt gebyr.
+              Ved avslag må entreprenør selv vurdere om de vil benytte fossil maskin og eventuelt bli ilagt gebyr.
             </p>
           </SectionContainer>
 
