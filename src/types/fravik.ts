@@ -57,6 +57,19 @@ export type MaskinVekt =
   | 'stor'     // 20-50 tonn
   | 'svart_stor';  // > 50 tonn
 
+export type Arbeidskategori =
+  | 'graving'
+  | 'lasting'
+  | 'lofting'
+  | 'boring_peling'
+  | 'asfalt_komprimering'
+  | 'annet';
+
+export type Bruksintensitet =
+  | 'sporadisk'  // < 2 timer/dag
+  | 'normal'     // 2-6 timer/dag
+  | 'intensiv';  // > 6 timer/dag
+
 export type FravikBeslutning =
   | 'godkjent'
   | 'delvis_godkjent'
@@ -110,6 +123,10 @@ export interface MaskinData {
   erstatningsmaskin: string;
   erstatningsdrivstoff: Drivstoff;
   arbeidsbeskrivelse: string;
+  // Nye felter for kategorisering og rapportering
+  arbeidskategori: Arbeidskategori;
+  bruksintensitet: Bruksintensitet;
+  estimert_drivstofforbruk?: number;
 }
 
 export interface MaskinVurderingData {
@@ -158,6 +175,9 @@ export interface MaskinTilstand {
   erstatningsmaskin?: string;
   erstatningsdrivstoff?: string;
   arbeidsbeskrivelse?: string;
+  arbeidskategori: Arbeidskategori;
+  bruksintensitet: Bruksintensitet;
+  estimert_drivstofforbruk?: number;
 
   // Vurderinger
   miljo_vurdering?: MaskinMiljoVurdering;
@@ -424,6 +444,21 @@ export const MASKIN_VEKT_LABELS: Record<MaskinVekt, string> = {
   medium: 'Medium (8–20 tonn)',
   stor: 'Stor (20–50 tonn)',
   svart_stor: 'Svært stor (> 50 tonn)',
+};
+
+export const ARBEIDSKATEGORI_LABELS: Record<Arbeidskategori, string> = {
+  graving: 'Graving',
+  lasting: 'Lasting',
+  lofting: 'Løfting',
+  boring_peling: 'Boring/pæling',
+  asfalt_komprimering: 'Asfalt/komprimering',
+  annet: 'Annet',
+};
+
+export const BRUKSINTENSITET_LABELS: Record<Bruksintensitet, string> = {
+  sporadisk: 'Sporadisk (< 2 timer/dag)',
+  normal: 'Normal (2–6 timer/dag)',
+  intensiv: 'Intensiv (> 6 timer/dag)',
 };
 
 /**

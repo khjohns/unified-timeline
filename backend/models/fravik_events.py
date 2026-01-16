@@ -91,6 +91,23 @@ class MaskinVekt(str, Enum):
     SVART_STOR = "svart_stor"  # > 50 tonn
 
 
+class Arbeidskategori(str, Enum):
+    """Kategorier for type arbeid maskinen skal utføre"""
+    GRAVING = "graving"
+    LASTING = "lasting"
+    LOFTING = "lofting"
+    BORING_PELING = "boring_peling"
+    ASFALT_KOMPRIMERING = "asfalt_komprimering"
+    ANNET = "annet"
+
+
+class Bruksintensitet(str, Enum):
+    """Hvor intensivt maskinen skal brukes"""
+    SPORADISK = "sporadisk"  # < 2 timer/dag
+    NORMAL = "normal"  # 2-6 timer/dag
+    INTENSIV = "intensiv"  # > 6 timer/dag
+
+
 class FravikBeslutning(str, Enum):
     """Beslutning for vurdering/godkjenning"""
     GODKJENT = "godkjent"
@@ -194,6 +211,20 @@ class MaskinData(BaseModel):
         ...,
         min_length=1,
         description="Beskrivelse av arbeidet maskinen skal utføre"
+    )
+    # Nye felter for bedre kategorisering og rapportering
+    arbeidskategori: Arbeidskategori = Field(
+        ...,
+        description="Hovedkategori for arbeidet maskinen skal utføre"
+    )
+    bruksintensitet: Bruksintensitet = Field(
+        ...,
+        description="Hvor intensivt maskinen skal brukes"
+    )
+    estimert_drivstofforbruk: Optional[float] = Field(
+        default=None,
+        ge=0,
+        description="Estimert drivstofforbruk i liter per dag"
     )
 
 

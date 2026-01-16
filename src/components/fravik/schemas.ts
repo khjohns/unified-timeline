@@ -7,7 +7,7 @@
 
 import { z } from 'zod';
 import type { AttachmentFile } from '../../types';
-import type { MaskinType, MaskinVekt, SoknadType, FravikGrunn, Drivstoff } from '../../types/fravik';
+import type { MaskinType, MaskinVekt, Arbeidskategori, Bruksintensitet, SoknadType, FravikGrunn, Drivstoff } from '../../types/fravik';
 
 // ========== KONSTANTER ==========
 
@@ -66,6 +66,14 @@ export const maskinSchema = z.object({
     errorMap: () => ({ message: 'Velg drivstoff for erstatningsmaskin' }),
   }),
   arbeidsbeskrivelse: z.string().min(10, 'Beskriv arbeidsoppgaver (minst 10 tegn)'),
+  // Nye felter for kategorisering og rapportering
+  arbeidskategori: z.enum(['graving', 'lasting', 'lofting', 'boring_peling', 'asfalt_komprimering', 'annet'] as const, {
+    errorMap: () => ({ message: 'Velg arbeidskategori' }),
+  }),
+  bruksintensitet: z.enum(['sporadisk', 'normal', 'intensiv'] as const, {
+    errorMap: () => ({ message: 'Velg bruksintensitet' }),
+  }),
+  estimert_drivstofforbruk: z.number().min(0, 'Må være et positivt tall').optional(),
   attachments: z.array(z.custom<AttachmentFile>()).optional().default([]),
 }).refine(
   (data) => data.maskin_type !== 'Annet' || (data.annet_type && data.annet_type.length >= 3),
@@ -136,6 +144,21 @@ export const MASKIN_VEKT_OPTIONS: { value: MaskinVekt; label: string; descriptio
   { value: 'medium', label: 'Medium', description: '8–20 tonn' },
   { value: 'stor', label: 'Stor', description: '20–50 tonn' },
   { value: 'svart_stor', label: 'Svært stor', description: 'Større enn 50 tonn' },
+];
+
+export const ARBEIDSKATEGORI_OPTIONS: { value: Arbeidskategori; label: string; description: string }[] = [
+  { value: 'graving', label: 'Graving', description: 'Grøfter, fundamenter, masseuttak' },
+  { value: 'lasting', label: 'Lasting', description: 'Lasting/lossing av masser' },
+  { value: 'lofting', label: 'Løfting', description: 'Kranarbeid, montasje' },
+  { value: 'boring_peling', label: 'Boring/pæling', description: 'Fjellboring, pæling, spunting' },
+  { value: 'asfalt_komprimering', label: 'Asfalt/komprimering', description: 'Utlegging, komprimering' },
+  { value: 'annet', label: 'Annet', description: 'Andre arbeidstyper' },
+];
+
+export const BRUKSINTENSITET_OPTIONS: { value: Bruksintensitet; label: string; description: string }[] = [
+  { value: 'sporadisk', label: 'Sporadisk', description: 'Mindre enn 2 timer per dag' },
+  { value: 'normal', label: 'Normal', description: '2–6 timer per dag' },
+  { value: 'intensiv', label: 'Intensiv', description: 'Mer enn 6 timer per dag' },
 ];
 
 export const SOKNAD_TYPE_OPTIONS: { value: SoknadType; label: string }[] = [

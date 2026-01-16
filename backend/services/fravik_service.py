@@ -233,6 +233,9 @@ class FravikService:
             erstatningsmaskin=data.erstatningsmaskin,
             erstatningsdrivstoff=data.erstatningsdrivstoff,
             arbeidsbeskrivelse=data.arbeidsbeskrivelse,
+            arbeidskategori=data.arbeidskategori,
+            bruksintensitet=data.bruksintensitet,
+            estimert_drivstofforbruk=data.estimert_drivstofforbruk,
         )
         state.maskiner[data.maskin_id] = maskin
         return state
@@ -264,6 +267,9 @@ class FravikService:
             erstatningsmaskin=data.erstatningsmaskin,
             erstatningsdrivstoff=data.erstatningsdrivstoff,
             arbeidsbeskrivelse=data.arbeidsbeskrivelse,
+            arbeidskategori=data.arbeidskategori,
+            bruksintensitet=data.bruksintensitet,
+            estimert_drivstofforbruk=data.estimert_drivstofforbruk,
             # Behold eksisterende vurderinger
             miljo_vurdering=state.maskiner[maskin_id].miljo_vurdering,
             arbeidsgruppe_vurdering=state.maskiner[maskin_id].arbeidsgruppe_vurdering,

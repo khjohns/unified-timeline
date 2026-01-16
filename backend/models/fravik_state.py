@@ -16,6 +16,8 @@ from models.fravik_events import (
     FravikBeslutning,
     MaskinType,
     MaskinVekt,
+    Arbeidskategori,
+    Bruksintensitet,
     FravikRolle,
 )
 
@@ -151,6 +153,18 @@ class MaskinTilstand(BaseModel):
     arbeidsbeskrivelse: Optional[str] = Field(
         default=None,
         description="Beskrivelse av arbeidet"
+    )
+    arbeidskategori: Arbeidskategori = Field(
+        ...,
+        description="Hovedkategori for arbeidet maskinen skal utføre"
+    )
+    bruksintensitet: Bruksintensitet = Field(
+        ...,
+        description="Hvor intensivt maskinen skal brukes"
+    )
+    estimert_drivstofforbruk: Optional[float] = Field(
+        default=None,
+        description="Estimert drivstofforbruk i liter per dag"
     )
 
     # Vurderinger

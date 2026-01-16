@@ -8,8 +8,8 @@
 import { useState } from 'react';
 import { ChevronDownIcon, ChevronRightIcon } from '@radix-ui/react-icons';
 import { DataList, DataListItem } from '../primitives';
-import type { MaskinTilstand, MaskinVurderingStatus, Drivstoff } from '../../types/fravik';
-import { MASKIN_TYPE_LABELS, MASKIN_VEKT_LABELS } from '../../types/fravik';
+import type { MaskinTilstand, MaskinVurderingStatus, Drivstoff, Arbeidskategori, Bruksintensitet } from '../../types/fravik';
+import { MASKIN_TYPE_LABELS, MASKIN_VEKT_LABELS, ARBEIDSKATEGORI_LABELS, BRUKSINTENSITET_LABELS } from '../../types/fravik';
 import { formatDateShort } from '../../utils/formatters';
 
 // ============================================================================
@@ -109,6 +109,24 @@ function MaskinDetaljer({ maskin }: MaskinDetaljerProps) {
           )}
         </div>
       )}
+
+      {/* Bruk og forbruk */}
+      <div className="p-3 rounded bg-pkt-bg-subtle">
+        <h4 className="text-xs font-medium text-pkt-text-body-muted mb-2">Bruk og forbruk</h4>
+        <DataList variant="grid">
+          <DataListItem label="Arbeidskategori">
+            {ARBEIDSKATEGORI_LABELS[maskin.arbeidskategori as Arbeidskategori] || maskin.arbeidskategori}
+          </DataListItem>
+          <DataListItem label="Bruksintensitet">
+            {BRUKSINTENSITET_LABELS[maskin.bruksintensitet as Bruksintensitet] || maskin.bruksintensitet}
+          </DataListItem>
+          {maskin.estimert_drivstofforbruk && (
+            <DataListItem label="Est. forbruk">
+              {maskin.estimert_drivstofforbruk} liter/dag
+            </DataListItem>
+          )}
+        </DataList>
+      </div>
 
     </div>
   );

@@ -38,6 +38,8 @@ import {
   type MaskinFormData,
   MASKIN_TYPE_OPTIONS,
   MASKIN_VEKT_OPTIONS,
+  ARBEIDSKATEGORI_OPTIONS,
+  BRUKSINTENSITET_OPTIONS,
   FRAVIK_GRUNNER,
   DRIVSTOFF_OPTIONS,
 } from './schemas';
@@ -86,6 +88,9 @@ export function LeggTilMaskinModal({
       erstatningsmaskin: '',
       erstatningsdrivstoff: undefined,
       arbeidsbeskrivelse: '',
+      arbeidskategori: undefined,
+      bruksintensitet: undefined,
+      estimert_drivstofforbruk: undefined,
       attachments: [],
     },
   });
@@ -171,6 +176,9 @@ export function LeggTilMaskinModal({
       erstatningsmaskin: data.erstatningsmaskin,
       erstatningsdrivstoff: data.erstatningsdrivstoff,
       arbeidsbeskrivelse: data.arbeidsbeskrivelse,
+      arbeidskategori: data.arbeidskategori,
+      bruksintensitet: data.bruksintensitet,
+      estimert_drivstofforbruk: data.estimert_drivstofforbruk || undefined,
       // Note: attachments not yet supported by backend - data.attachments are ignored for now
     };
 
@@ -459,6 +467,33 @@ export function LeggTilMaskinModal({
             </FormField>
 
             <FormField
+              label="Arbeidskategori"
+              required
+              error={errors.arbeidskategori?.message}
+            >
+              <Controller
+                name="arbeidskategori"
+                control={control}
+                render={({ field }) => (
+                  <RadioGroup
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    error={!!errors.arbeidskategori}
+                  >
+                    {ARBEIDSKATEGORI_OPTIONS.map((option) => (
+                      <RadioItem
+                        key={option.value}
+                        value={option.value}
+                        label={option.label}
+                        description={option.description}
+                      />
+                    ))}
+                  </RadioGroup>
+                )}
+              />
+            </FormField>
+
+            <FormField
               label="Arbeidsbeskrivelse"
               required
               error={errors.arbeidsbeskrivelse?.message}
@@ -470,6 +505,57 @@ export function LeggTilMaskinModal({
                 rows={3}
                 fullWidth
                 error={!!errors.arbeidsbeskrivelse}
+              />
+            </FormField>
+          </div>
+        </SectionContainer>
+
+        {/* Bruk og forbruk */}
+        <SectionContainer
+          title="Bruk og forbruk"
+          description="Informasjon om bruksintensitet og estimert drivstofforbruk"
+        >
+          <div className="space-y-4">
+            <FormField
+              label="Bruksintensitet"
+              required
+              error={errors.bruksintensitet?.message}
+            >
+              <Controller
+                name="bruksintensitet"
+                control={control}
+                render={({ field }) => (
+                  <RadioGroup
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    error={!!errors.bruksintensitet}
+                  >
+                    {BRUKSINTENSITET_OPTIONS.map((option) => (
+                      <RadioItem
+                        key={option.value}
+                        value={option.value}
+                        label={option.label}
+                        description={option.description}
+                      />
+                    ))}
+                  </RadioGroup>
+                )}
+              />
+            </FormField>
+
+            <FormField
+              label="Estimert drivstofforbruk"
+              error={errors.estimert_drivstofforbruk?.message}
+              helpText="Oppgi forventet forbruk i liter per dag (valgfritt)"
+            >
+              <Input
+                id="estimert_drivstofforbruk"
+                type="number"
+                min={0}
+                step={0.1}
+                {...register('estimert_drivstofforbruk', { valueAsNumber: true })}
+                placeholder="F.eks. 150"
+                error={!!errors.estimert_drivstofforbruk}
               />
             </FormField>
           </div>
