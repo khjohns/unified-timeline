@@ -25,6 +25,7 @@ import { ReactNode, useState, useMemo } from 'react';
 import * as Popover from '@radix-ui/react-popover';
 import { ChevronUpIcon, ChevronDownIcon, MixerHorizontalIcon, MagnifyingGlassIcon, Cross2Icon } from '@radix-ui/react-icons';
 import clsx from 'clsx';
+import { Checkbox } from './Checkbox';
 
 // ============================================================================
 // Types
@@ -178,31 +179,40 @@ function FilterPopover({ column, value, onChange }: FilterPopoverProps) {
 
             {column.filterType === 'select' && column.filterOptions && (
               <div className="space-y-1 max-h-[200px] overflow-y-auto">
-                {column.filterOptions.map((option) => (
-                  <label
-                    key={option.value}
-                    className={clsx(
-                      'flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer',
-                      'hover:bg-pkt-surface-subtle transition-colors text-sm'
-                    )}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={value.split(',').filter(Boolean).includes(option.value)}
-                      onChange={(e) => {
+                {column.filterOptions.map((option) => {
+                  const isChecked = value.split(',').filter(Boolean).includes(option.value);
+                  return (
+                    <div
+                      key={option.value}
+                      className={clsx(
+                        'px-1 py-1 rounded cursor-pointer',
+                        'hover:bg-pkt-surface-subtle transition-colors'
+                      )}
+                      onClick={() => {
                         const currentValues = value.split(',').filter(Boolean);
-                        if (e.target.checked) {
-                          onChange([...currentValues, option.value].join(','));
-                        } else {
+                        if (isChecked) {
                           onChange(currentValues.filter((v) => v !== option.value).join(','));
+                        } else {
+                          onChange([...currentValues, option.value].join(','));
                         }
                       }}
-                      className="w-4 h-4 rounded border-pkt-border-default text-pkt-brand-dark-blue-1000
-                                 focus:ring-2 focus:ring-pkt-border-focus focus:ring-offset-0 cursor-pointer"
-                    />
-                    <span className="text-pkt-text-body-default">{option.label}</span>
-                  </label>
-                ))}
+                    >
+                      <Checkbox
+                        checked={isChecked}
+                        onCheckedChange={(checked) => {
+                          const currentValues = value.split(',').filter(Boolean);
+                          if (checked) {
+                            onChange([...currentValues, option.value].join(','));
+                          } else {
+                            onChange(currentValues.filter((v) => v !== option.value).join(','));
+                          }
+                        }}
+                        label={option.label}
+                        className="h-5 w-5"
+                      />
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -371,7 +381,11 @@ export function Table<T>({
                         <SortIcon direction={isSorted ? sortDirection : null} isActive={isSorted} />
                       </button>
                     ) : (
-                      <span>{col.label}</span>
+                      <span className="flex items-center gap-1">
+                        {col.label}
+                        {/* Spacer for consistent alignment with sortable columns */}
+                        {isFilterable && <span className="w-4" aria-hidden="true" />}
+                      </span>
                     )}
 
                     {isFilterable && (
