@@ -13,7 +13,7 @@
 import { useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { DownloadIcon, ReloadIcon } from '@radix-ui/react-icons';
+import { DownloadIcon, ReloadIcon, BarChartIcon } from '@radix-ui/react-icons';
 import { Alert, Badge, Button, Card, DataList, DataListItem } from '../components/primitives';
 import { useUserRole } from '../hooks/useUserRole';
 import { PageHeader } from '../components/PageHeader';
@@ -190,6 +190,13 @@ export function FravikPage() {
             <Badge variant={getStatusBadgeVariant(state.status)}>
               {state.visningsstatus || FRAVIK_STATUS_LABELS[state.status]}
             </Badge>
+            {userRole === 'BH' && (
+              <Link to="/fravik-analyse">
+                <Button variant="secondary" size="sm" title="Se analyse av tidligere søknader">
+                  <BarChartIcon className="w-4 h-4" />
+                </Button>
+              </Link>
+            )}
             <Button variant="ghost" size="sm" onClick={() => refetch()}>
               <ReloadIcon className="w-4 h-4" />
             </Button>
@@ -255,12 +262,21 @@ export function FravikPage() {
         {userRole === 'BH' && state.status !== 'utkast' && state.godkjenningskjede.gjeldende_steg !== 'ferdig' && (
           <section aria-labelledby="vurdering-heading">
             <Card variant="outlined" padding="md">
-              <h2
-                id="vurdering-heading"
-                className="text-base font-semibold text-pkt-text-body-dark mb-3"
-              >
-                Vurdering
-              </h2>
+              <div className="flex items-center justify-between mb-3">
+                <h2
+                  id="vurdering-heading"
+                  className="text-base font-semibold text-pkt-text-body-dark"
+                >
+                  Vurdering
+                </h2>
+                <Link
+                  to="/fravik-analyse"
+                  className="text-sm text-pkt-text-action-normal hover:text-pkt-text-action-hover flex items-center gap-1"
+                >
+                  <BarChartIcon className="w-3.5 h-3.5" />
+                  Se lignende saker
+                </Link>
+              </div>
               <div className="space-y-4">
                 <DinOppgaveAlert
                   gjeldende={state.godkjenningskjede.gjeldende_steg}
