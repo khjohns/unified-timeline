@@ -613,24 +613,41 @@ body {
     outline-color: var(--color-pri);
 }
 
-/* Custom scrollbar - uses CSS variables for dark mode support */
+/* ============================================
+   Custom Scrollbar
+   Tynn, diskret scrollbar med Firefox-støtte
+   ============================================ */
+
+/* Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-pkt-grays-gray-300) transparent;
+}
+
+/* Webkit (Chrome, Safari, Edge) */
 ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
 }
 ::-webkit-scrollbar-track {
-    background: var(--color-pkt-bg-subtle);
+    background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-    background-color: var(--color-pkt-grays-gray-400);
-    border-radius: 4px;
+    background-color: var(--color-pkt-grays-gray-300);
+    border-radius: 3px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    transition: background-color 0.2s ease;
 }
 ::-webkit-scrollbar-thumb:hover {
     background-color: var(--color-pkt-grays-gray-500);
 }
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
 
 /* ============================================
-   Utility Classes
+   Scrollbar Utility Classes
    ============================================ */
 
 /* Hide scrollbar but keep functionality */
@@ -640,4 +657,20 @@ body {
 }
 .scrollbar-hide::-webkit-scrollbar {
     display: none;  /* Chrome, Safari, Opera */
+}
+
+/* Auto-hide scrollbar - visible on hover/scroll */
+.scrollbar-auto {
+    scrollbar-gutter: stable;
+}
+.scrollbar-auto::-webkit-scrollbar-thumb {
+    background-color: transparent;
+    transition: background-color 0.2s ease;
+}
+.scrollbar-auto:hover::-webkit-scrollbar-thumb,
+.scrollbar-auto:focus-within::-webkit-scrollbar-thumb {
+    background-color: var(--color-pkt-grays-gray-300);
+}
+.scrollbar-auto:hover::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-pkt-grays-gray-500);
 }
