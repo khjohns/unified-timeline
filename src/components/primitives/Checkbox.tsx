@@ -27,8 +27,8 @@ export const Checkbox = forwardRef<
     <CheckboxPrimitive.Root
       ref={ref}
       className={clsx(
-        // Size - 24x24px for better touch targets (WCAG 2.1 recommends 44px, but checkbox + label gap provides adequate touch area)
-        'h-6 w-6',
+        // Size - 26x26px for WCAG 2.5.8 Target Size (Minimum) compliance with margin
+        'h-[26px] w-[26px]',
         'shrink-0',
 
         // Base styles
