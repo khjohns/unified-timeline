@@ -45,12 +45,12 @@ import {
 // ============================================================
 
 const ANALYSIS_TABS = [
-  { id: 'portefolje', label: 'Portefølje' },
-  { id: 'kategori', label: 'Kategorier' },
+  { id: 'portefolje', label: 'Portefølje', shortLabel: 'Portef.' },
+  { id: 'kategori', label: 'Kategorier', shortLabel: 'Kateg.' },
   { id: 'trend', label: 'Trender' },
-  { id: 'okonomi', label: 'Økonomi' },
+  { id: 'okonomi', label: 'Økonomi', shortLabel: 'Økon.' },
   { id: 'ytelse', label: 'Ytelse' },
-  { id: 'ressurs', label: 'Ressurser' },
+  { id: 'ressurs', label: 'Ressurser', shortLabel: 'Ressurs' },
 ] as const;
 
 type AnalysisTab = typeof ANALYSIS_TABS[number]['id'];
@@ -122,7 +122,7 @@ export function AnalyticsDashboard() {
       <div className="bg-pkt-bg-card border-b border-pkt-border-subtle">
         <div className="max-w-3xl mx-auto px-4 sm:px-8">
           <Tabs
-            tabs={ANALYSIS_TABS.map(tab => ({ id: tab.id, label: tab.label }))}
+            tabs={ANALYSIS_TABS}
             activeTab={activeTab}
             onTabChange={(id) => setActiveTab(id as AnalysisTab)}
           />
