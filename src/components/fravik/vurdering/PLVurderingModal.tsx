@@ -405,17 +405,21 @@ export function PLVurderingModal({
         <form onSubmit={vurderingForm.handleSubmit(onSubmitVurdering)} className="space-y-4">
           {/* Veiledning */}
           <Alert variant="info" title="Din rolle">
-            Vurder søknaden fra prosjektets perspektiv. Din anbefaling går videre til arbeidsgruppen.
+            Verifiser at søknaden oppfyller kontraktskravene. Din anbefaling går videre til arbeidsgruppen.
           </Alert>
 
           {/* Prosjektperspektiv */}
-          <SectionContainer title="Vurder fra prosjektets perspektiv" variant="subtle">
+          <SectionContainer title="Kontroll av søknaden" variant="subtle">
             <ul className="text-sm space-y-1 list-disc pl-4 text-pkt-text-body-muted">
-              <li>Er fraviket nødvendig for å opprettholde fremdriften?</li>
+              <li>Er det dokumentert at utslippsfri maskin <strong>ikke er mulig</strong> å skaffe?</li>
               <li>Er perioden for fravik rimelig gitt arbeidsomfanget?</li>
-              <li>Er erstatningsmaskinens kapasitet tilstrekkelig for oppgaven?</li>
-              <li>Oppfyller søknaden minimumskravene (Euro 6/VI, palmefritt biodrivstoff)?</li>
+              <li>Oppfyller erstatningsmaskinen minimumskravene (Euro 6/VI, palmefritt biodrivstoff)?</li>
+              <li>Gjelder fraviket forhold som <strong>ikke</strong> var kjent ved tilbudsinnlevering?</li>
             </ul>
+            <p className="mt-3 text-xs text-pkt-text-body-muted italic">
+              Merk: Fremdrift er entreprenørens risiko og skal ikke vektlegges. Ved avslag må entreprenør
+              selv vurdere om de vil benytte fossil maskin og eventuelt bli ilagt gebyr.
+            </p>
           </SectionContainer>
 
           {/* Miljørådgivers vurdering som kontekst */}

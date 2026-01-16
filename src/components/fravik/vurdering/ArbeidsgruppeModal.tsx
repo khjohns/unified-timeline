@@ -308,9 +308,9 @@ export function ArbeidsgruppeModal({
 
         {/* Vurderingsveiledning */}
         <Alert variant="info" title="Arbeidsgruppens vurdering">
-          Arbeidsgruppen gir en samlet innstilling til prosjekteier. Vurder om søknaden oppfyller
-          kontraktskravene (Euro 6/VI, palmefritt biodrivstoff) og om fraviket er tilstrekkelig begrunnet.
-          Innstillingen bør vektlegge både miljørådgivers og prosjektleders anbefalinger.
+          Arbeidsgruppen gir en samlet innstilling til prosjekteier. Vurder om det er dokumentert at
+          utslippsfri maskin <strong>ikke er mulig</strong> å skaffe, og at kontraktskravene er oppfylt
+          (Euro 6/VI, palmefritt biodrivstoff). Innstillingen bør vektlegge miljørådgivers og prosjektleders anbefalinger.
         </Alert>
 
         {/* Per-maskin vurdering */}

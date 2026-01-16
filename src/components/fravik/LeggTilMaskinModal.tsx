@@ -204,7 +204,7 @@ export function LeggTilMaskinModal({
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Kontraktsinformasjon */}
         <Alert variant="info" title="Krav til fravik">
-          Fravik innvilges kun dersom det ikke finnes utslippsfrie alternativer på markedet.
+          Fravik innvilges kun dersom det <strong>ikke er mulig</strong> å skaffe utslippsfri maskin.
           Fravik innvilges ikke for forhold entreprenøren kjente eller burde kjenne til ved tilbudsinnlevering.
           Ved innvilget fravik kreves minimum Euro 6/VI og dokumentert biodrivstoff (ikke palmeoljebasert).
         </Alert>

@@ -383,10 +383,10 @@ export function MiljoVurderingModal({
           {/* Kontraktskrav sjekkliste */}
           <SectionContainer title="Kontraktskrav å vurdere" variant="subtle">
             <ul className="text-sm space-y-1 list-disc pl-4 text-pkt-text-body-muted">
+              <li>Er det dokumentert at utslippsfri maskin <strong>ikke er mulig</strong> å skaffe?</li>
               <li>Erstatningsmaskin har <strong>minimum Euro 6/VI</strong></li>
               <li>Biodrivstoff er <strong>dokumentert palmefritt</strong> og ut over omsetningskrav</li>
               <li>Fravik skyldes <strong>ikke forhold kjent ved tilbudsinnlevering</strong></li>
-              <li>Søker har dokumentert at utslippsfrie alternativer ikke finnes på markedet</li>
             </ul>
           </SectionContainer>
 
