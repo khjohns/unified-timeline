@@ -333,6 +333,7 @@ function getMockFravikState(sakId: string): FravikState {
       'MASKIN-001': {
         maskin_id: 'MASKIN-001',
         maskin_type: 'Gravemaskin',
+        vekt: 'medium',
         start_dato: '2025-02-01',
         slutt_dato: '2025-04-01',
         grunner: ['markedsmangel'],
@@ -341,7 +342,10 @@ function getMockFravikState(sakId: string): FravikState {
         undersøkte_leverandorer: 'Firma A, Firma B, Firma C',
         erstatningsmaskin: 'CAT 320 Diesel',
         erstatningsdrivstoff: 'HVO100',
+        euroklasse: 'euro_6',
         arbeidsbeskrivelse: 'Graving av fundamenter og grøfter',
+        arbeidskategori: 'graving',
+        bruksintensitet: 'normal',
         samlet_status: 'ikke_vurdert',
       },
     },

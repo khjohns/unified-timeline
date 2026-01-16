@@ -463,9 +463,38 @@ const FRAVIK_GRUNN_LABELS: Record<string, string> = {
 };
 
 const DRIVSTOFF_LABELS: Record<string, string> = {
-  HVO100: 'HVO100',
+  HVO100: 'HVO100 (palmefritt)',
   annet_biodrivstoff: 'Annet biodrivstoff',
-  diesel_euro6: 'Diesel Euro 6',
+  diesel: 'Diesel',
+  diesel_euro6: 'Diesel Euro 6', // Legacy - for backwards compatibility
+};
+
+const MASKIN_VEKT_LABELS: Record<string, string> = {
+  liten: 'Liten (< 8 tonn)',
+  medium: 'Medium (8–20 tonn)',
+  stor: 'Stor (20–50 tonn)',
+  svart_stor: 'Svært stor (> 50 tonn)',
+};
+
+const ARBEIDSKATEGORI_LABELS: Record<string, string> = {
+  graving: 'Graving',
+  lasting: 'Lasting',
+  lofting: 'Løfting',
+  boring_peling: 'Boring/pæling',
+  asfalt_komprimering: 'Asfalt/komprimering',
+  annet: 'Annet',
+};
+
+const BRUKSINTENSITET_LABELS: Record<string, string> = {
+  sporadisk: 'Sporadisk (< 2 timer/dag)',
+  normal: 'Normal (2–6 timer/dag)',
+  intensiv: 'Intensiv (> 6 timer/dag)',
+};
+
+const EUROKLASSE_LABELS: Record<string, string> = {
+  euro_4: 'Euro 4/IV',
+  euro_5: 'Euro 5/V',
+  euro_6: 'Euro 6/VI (minimumskrav)',
 };
 
 const FRAVIK_BESLUTNING_LABELS: Record<string, string> = {
@@ -501,6 +530,13 @@ const MASKIN_TYPE_LABELS: Record<string, string> = {
   Gravemaskin: 'Gravemaskin',
   Hjullaster: 'Hjullaster',
   Lift: 'Lift',
+  Asfaltutlegger: 'Asfaltutlegger',
+  Bergboremaskin: 'Bergboremaskin',
+  Borerigg: 'Borerigg',
+  Hjuldoser: 'Hjuldoser',
+  Pælemaskin: 'Pælemaskin',
+  Spuntmaskin: 'Spuntmaskin',
+  Vals: 'Vals',
   Annet: 'Annet',
 };
 
@@ -532,6 +568,26 @@ function formatMaskinType(type?: string): string {
 function formatMaskinStatus(status?: string): string {
   if (!status) return '-';
   return MASKIN_STATUS_LABELS[status] || status;
+}
+
+function formatMaskinVekt(vekt?: string): string {
+  if (!vekt) return '-';
+  return MASKIN_VEKT_LABELS[vekt] || vekt;
+}
+
+function formatArbeidskategori(kategori?: string): string {
+  if (!kategori) return '-';
+  return ARBEIDSKATEGORI_LABELS[kategori] || kategori;
+}
+
+function formatBruksintensitet(intensitet?: string): string {
+  if (!intensitet) return '-';
+  return BRUKSINTENSITET_LABELS[intensitet] || intensitet;
+}
+
+function formatEuroklasse(euroklasse?: string): string {
+  if (!euroklasse) return '-';
+  return EUROKLASSE_LABELS[euroklasse] || euroklasse;
 }
 
 function buildFravikOppsummeringSheet(state: FravikState): XLSX.WorkSheet {
@@ -610,6 +666,7 @@ function buildMaskinerSheet(
     'Maskin-ID',
     'Type',
     'Annet type',
+    'Vekt',
     'Reg.nr',
     'Startdato',
     'Sluttdato',
@@ -620,6 +677,10 @@ function buildMaskinerSheet(
     'Undersøkte leverandører',
     'Erstatningsmaskin',
     'Erstatningsdrivstoff',
+    'Euroklasse',
+    'Arbeidskategori',
+    'Bruksintensitet',
+    'Est. forbruk (l/dag)',
     'Arbeidsbeskrivelse',
     'Status',
   ];
@@ -628,6 +689,7 @@ function buildMaskinerSheet(
     m.maskin_id,
     formatMaskinType(m.maskin_type),
     m.annet_type || '-',
+    formatMaskinVekt(m.vekt),
     m.registreringsnummer || '-',
     m.start_dato || '-',
     m.slutt_dato || '-',
@@ -638,6 +700,10 @@ function buildMaskinerSheet(
     m.undersøkte_leverandorer || '-',
     m.erstatningsmaskin || '-',
     formatDrivstoff(m.erstatningsdrivstoff),
+    formatEuroklasse(m.euroklasse),
+    formatArbeidskategori(m.arbeidskategori),
+    formatBruksintensitet(m.bruksintensitet),
+    m.estimert_drivstofforbruk ? `${m.estimert_drivstofforbruk}` : '-',
     m.arbeidsbeskrivelse || '-',
     formatMaskinStatus(m.samlet_status),
   ]);
@@ -648,6 +714,7 @@ function buildMaskinerSheet(
     { wch: 12 }, // Maskin-ID
     { wch: 14 }, // Type
     { wch: 14 }, // Annet type
+    { wch: 22 }, // Vekt
     { wch: 12 }, // Reg.nr
     { wch: 12 }, // Startdato
     { wch: 12 }, // Sluttdato
@@ -657,7 +724,11 @@ function buildMaskinerSheet(
     { wch: 18 }, // Markedsundersøkelse
     { wch: 30 }, // Undersøkte leverandører
     { wch: 20 }, // Erstatningsmaskin
-    { wch: 18 }, // Erstatningsdrivstoff
+    { wch: 22 }, // Erstatningsdrivstoff
+    { wch: 22 }, // Euroklasse
+    { wch: 20 }, // Arbeidskategori
+    { wch: 24 }, // Bruksintensitet
+    { wch: 18 }, // Est. forbruk
     { wch: 35 }, // Arbeidsbeskrivelse
     { wch: 14 }, // Status
   ];

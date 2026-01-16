@@ -42,6 +42,7 @@ import {
   BRUKSINTENSITET_OPTIONS,
   FRAVIK_GRUNNER,
   DRIVSTOFF_OPTIONS,
+  EUROKLASSE_OPTIONS,
 } from './schemas';
 
 interface LeggTilMaskinModalProps {
@@ -87,6 +88,7 @@ export function LeggTilMaskinModal({
       undersøkte_leverandorer: '',
       erstatningsmaskin: '',
       erstatningsdrivstoff: undefined,
+      euroklasse: undefined,
       arbeidsbeskrivelse: '',
       arbeidskategori: undefined,
       bruksintensitet: undefined,
@@ -175,6 +177,7 @@ export function LeggTilMaskinModal({
       undersøkte_leverandorer: data.markedsundersokelse ? data.undersøkte_leverandorer : undefined,
       erstatningsmaskin: data.erstatningsmaskin,
       erstatningsdrivstoff: data.erstatningsdrivstoff,
+      euroklasse: data.euroklasse,
       arbeidsbeskrivelse: data.arbeidsbeskrivelse,
       arbeidskategori: data.arbeidskategori,
       bruksintensitet: data.bruksintensitet,
@@ -199,6 +202,13 @@ export function LeggTilMaskinModal({
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* Kontraktsinformasjon */}
+        <Alert variant="info" title="Krav til fravik">
+          Fravik innvilges kun dersom det ikke finnes utslippsfrie alternativer på markedet.
+          Fravik innvilges ikke for forhold entreprenøren kjente eller burde kjenne til ved tilbudsinnlevering.
+          Ved innvilget fravik kreves minimum Euro 6/VI og dokumentert biodrivstoff (ikke palmeoljebasert).
+        </Alert>
+
         {/* Maskintype */}
         <SectionContainer
           title="Maskintype"
@@ -459,7 +469,45 @@ export function LeggTilMaskinModal({
                     error={!!errors.erstatningsdrivstoff}
                   >
                     {DRIVSTOFF_OPTIONS.map((option) => (
-                      <RadioItem key={option.value} value={option.value} label={option.label} />
+                      <RadioItem
+                        key={option.value}
+                        value={option.value}
+                        label={option.label}
+                        description={option.description}
+                      />
+                    ))}
+                  </RadioGroup>
+                )}
+              />
+            </FormField>
+
+            <Alert variant="warning" title="Viktig om biodrivstoff">
+              Palmeoljebasert biodrivstoff er ikke tillatt. Biodrivstoff må dokumenteres
+              og skal være ut over omsetningskravet.
+            </Alert>
+
+            <FormField
+              label="Euroklasse"
+              required
+              error={errors.euroklasse?.message}
+              helpText="Minimum Euro 6/VI kreves ved innvilget fravik"
+            >
+              <Controller
+                name="euroklasse"
+                control={control}
+                render={({ field }) => (
+                  <RadioGroup
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    error={!!errors.euroklasse}
+                  >
+                    {EUROKLASSE_OPTIONS.map((option) => (
+                      <RadioItem
+                        key={option.value}
+                        value={option.value}
+                        label={option.label}
+                        description={option.description}
+                      />
                     ))}
                   </RadioGroup>
                 )}
@@ -579,6 +627,12 @@ export function LeggTilMaskinModal({
             )}
           />
         </SectionContainer>
+
+        {/* Sanksjonsinfo */}
+        <Alert variant="warning" title="Sanksjoner ved brudd">
+          Ved brudd på kravene til utslippsfrie maskiner kan det ilegges sanksjoner
+          på inntil 5 % av kontraktsverdien. Sørg for at all dokumentasjon er korrekt og fullstendig.
+        </Alert>
 
         {/* Error Message */}
         {mutation.isError && (

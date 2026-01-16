@@ -7,7 +7,7 @@
 
 import { z } from 'zod';
 import type { AttachmentFile } from '../../types';
-import type { MaskinType, MaskinVekt, Arbeidskategori, Bruksintensitet, SoknadType, FravikGrunn, Drivstoff } from '../../types/fravik';
+import type { MaskinType, MaskinVekt, Arbeidskategori, Bruksintensitet, Euroklasse, SoknadType, FravikGrunn, Drivstoff } from '../../types/fravik';
 
 // ========== KONSTANTER ==========
 
@@ -19,10 +19,10 @@ export const FRAVIK_GRUNNER: { value: FravikGrunn; label: string }[] = [
   { value: 'annet', label: 'Annet' },
 ];
 
-export const DRIVSTOFF_OPTIONS: { value: Drivstoff; label: string }[] = [
-  { value: 'HVO100', label: 'HVO100' },
-  { value: 'annet_biodrivstoff', label: 'Annet biodrivstoff' },
-  { value: 'diesel_euro6', label: 'Diesel (Euro 6)' },
+export const DRIVSTOFF_OPTIONS: { value: Drivstoff; label: string; description?: string }[] = [
+  { value: 'HVO100', label: 'HVO100 (palmefritt)', description: 'Anbefalt - dokumentert palmefritt biodrivstoff' },
+  { value: 'annet_biodrivstoff', label: 'Annet biodrivstoff', description: 'Utover omsetningskrav, ikke palmeoljebasert' },
+  { value: 'diesel', label: 'Diesel', description: 'Kun med minimum Euro 6/VI' },
 ];
 
 // ========== MASKIN SCHEMA ==========
@@ -62,8 +62,11 @@ export const maskinSchema = z.object({
   undersøkte_leverandorer: z.string().optional(),
   // Erstatningsmaskin - påkrevde felt
   erstatningsmaskin: z.string().min(1, 'Oppgi erstatningsmaskin'),
-  erstatningsdrivstoff: z.enum(['HVO100', 'annet_biodrivstoff', 'diesel_euro6'] as const, {
+  erstatningsdrivstoff: z.enum(['HVO100', 'annet_biodrivstoff', 'diesel'] as const, {
     errorMap: () => ({ message: 'Velg drivstoff for erstatningsmaskin' }),
+  }),
+  euroklasse: z.enum(['euro_4', 'euro_5', 'euro_6'] as const, {
+    errorMap: () => ({ message: 'Velg euroklasse for erstatningsmaskin' }),
   }),
   arbeidsbeskrivelse: z.string().min(10, 'Beskriv arbeidsoppgaver (minst 10 tegn)'),
   // Nye felter for kategorisering og rapportering
@@ -164,4 +167,10 @@ export const BRUKSINTENSITET_OPTIONS: { value: Bruksintensitet; label: string; d
 export const SOKNAD_TYPE_OPTIONS: { value: SoknadType; label: string }[] = [
   { value: 'machine', label: 'Maskin (enkeltmaskiner)' },
   { value: 'infrastructure', label: 'Infrastruktur (strøm/lading)' },
+];
+
+export const EUROKLASSE_OPTIONS: { value: Euroklasse; label: string; description: string }[] = [
+  { value: 'euro_4', label: 'Euro 4/IV', description: 'Under minimumskrav - krever ekstra begrunnelse' },
+  { value: 'euro_5', label: 'Euro 5/V', description: 'Under minimumskrav - krever ekstra begrunnelse' },
+  { value: 'euro_6', label: 'Euro 6/VI', description: 'Minimumskrav ved innvilget fravik' },
 ];

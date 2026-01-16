@@ -93,7 +93,12 @@ export type FravikGrunn =
 export type Drivstoff =
   | 'HVO100'
   | 'annet_biodrivstoff'
-  | 'diesel_euro6';
+  | 'diesel';
+
+export type Euroklasse =
+  | 'euro_4'
+  | 'euro_5'
+  | 'euro_6';  // Minimumskrav ved fravik
 
 export type MaskinVurderingStatus =
   | 'ikke_vurdert'
@@ -122,6 +127,7 @@ export interface MaskinData {
   // Erstatningsmaskin - påkrevde felt
   erstatningsmaskin: string;
   erstatningsdrivstoff: Drivstoff;
+  euroklasse: Euroklasse;
   arbeidsbeskrivelse: string;
   // Nye felter for kategorisering og rapportering
   arbeidskategori: Arbeidskategori;
@@ -174,6 +180,7 @@ export interface MaskinTilstand {
   undersøkte_leverandorer?: string;
   erstatningsmaskin?: string;
   erstatningsdrivstoff?: string;
+  euroklasse: Euroklasse;
   arbeidsbeskrivelse?: string;
   arbeidskategori: Arbeidskategori;
   bruksintensitet: Bruksintensitet;
@@ -459,6 +466,12 @@ export const BRUKSINTENSITET_LABELS: Record<Bruksintensitet, string> = {
   sporadisk: 'Sporadisk (< 2 timer/dag)',
   normal: 'Normal (2–6 timer/dag)',
   intensiv: 'Intensiv (> 6 timer/dag)',
+};
+
+export const EUROKLASSE_LABELS: Record<Euroklasse, string> = {
+  euro_4: 'Euro 4',
+  euro_5: 'Euro 5',
+  euro_6: 'Euro 6/VI (minimumskrav)',
 };
 
 /**

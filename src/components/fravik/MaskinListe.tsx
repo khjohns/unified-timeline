@@ -8,8 +8,8 @@
 import { useState } from 'react';
 import { ChevronDownIcon, ChevronRightIcon } from '@radix-ui/react-icons';
 import { DataList, DataListItem } from '../primitives';
-import type { MaskinTilstand, MaskinVurderingStatus, Drivstoff, Arbeidskategori, Bruksintensitet } from '../../types/fravik';
-import { MASKIN_TYPE_LABELS, MASKIN_VEKT_LABELS, ARBEIDSKATEGORI_LABELS, BRUKSINTENSITET_LABELS } from '../../types/fravik';
+import type { MaskinTilstand, MaskinVurderingStatus, Drivstoff, Arbeidskategori, Bruksintensitet, Euroklasse } from '../../types/fravik';
+import { MASKIN_TYPE_LABELS, MASKIN_VEKT_LABELS, ARBEIDSKATEGORI_LABELS, BRUKSINTENSITET_LABELS, EUROKLASSE_LABELS } from '../../types/fravik';
 import { formatDateShort } from '../../utils/formatters';
 
 // ============================================================================
@@ -17,9 +17,9 @@ import { formatDateShort } from '../../utils/formatters';
 // ============================================================================
 
 const DRIVSTOFF_LABELS: Record<Drivstoff, string> = {
-  HVO100: 'HVO100',
+  HVO100: 'HVO100 (palmefritt)',
   annet_biodrivstoff: 'Annet biodrivstoff',
-  diesel_euro6: 'Diesel Euro 6',
+  diesel: 'Diesel',
 };
 
 // ============================================================================
@@ -98,6 +98,11 @@ function MaskinDetaljer({ maskin }: MaskinDetaljerProps) {
             {maskin.erstatningsdrivstoff && (
               <DataListItem label="Drivstoff">
                 {DRIVSTOFF_LABELS[maskin.erstatningsdrivstoff as Drivstoff] || maskin.erstatningsdrivstoff}
+              </DataListItem>
+            )}
+            {maskin.euroklasse && (
+              <DataListItem label="Euroklasse">
+                {EUROKLASSE_LABELS[maskin.euroklasse as Euroklasse] || maskin.euroklasse}
               </DataListItem>
             )}
           </DataList>
