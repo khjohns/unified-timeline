@@ -7,7 +7,19 @@
 
 import { z } from 'zod';
 import type { AttachmentFile } from '../../types';
-import type { MaskinType, MaskinVekt, Arbeidskategori, Bruksintensitet, SoknadType, FravikGrunn, Drivstoff } from '../../types/fravik';
+import type {
+  MaskinType,
+  MaskinVekt,
+  Arbeidskategori,
+  Bruksintensitet,
+  SoknadType,
+  FravikGrunn,
+  Drivstoff,
+  StromtilgangStatus,
+  ProsjektforholdType,
+  AggregatType,
+  Euroklasse,
+} from '../../types/fravik';
 
 // ========== KONSTANTER ==========
 
@@ -23,6 +35,34 @@ export const DRIVSTOFF_OPTIONS: { value: Drivstoff; label: string; description?:
   { value: 'HVO100', label: 'HVO100 (palmefritt)', description: 'Anbefalt - dokumentert palmefritt biodrivstoff' },
   { value: 'annet_biodrivstoff', label: 'Annet biodrivstoff', description: 'Utover omsetningskrav, ikke palmeoljebasert' },
   { value: 'diesel', label: 'Diesel', description: 'Kun med minimum Euro 6/VI' },
+];
+
+// ========== INFRASTRUKTUR KONSTANTER ==========
+
+export const STROMTILGANG_STATUS_OPTIONS: { value: StromtilgangStatus; label: string; description: string }[] = [
+  { value: 'ingen_strom', label: 'Ingen strøm tilgjengelig', description: 'Det finnes ikke strømtilkobling i nærheten' },
+  { value: 'utilstrekkelig', label: 'Utilstrekkelig kapasitet', description: 'Tilgjengelig effekt dekker ikke behovet' },
+  { value: 'geografisk_avstand', label: 'Geografisk avstand', description: 'For langt til nærmeste tilkoblingspunkt' },
+];
+
+export const PROSJEKTFORHOLD_OPTIONS: { value: ProsjektforholdType; label: string }[] = [
+  { value: 'plassmangel', label: 'Plassmangel på byggeplassen' },
+  { value: 'hms_hensyn', label: 'HMS-hensyn' },
+  { value: 'stoykrav', label: 'Støykrav i området' },
+  { value: 'adkomstbegrensninger', label: 'Adkomstbegrensninger' },
+  { value: 'annet', label: 'Annet' },
+];
+
+export const AGGREGAT_TYPE_OPTIONS: { value: AggregatType; label: string; description: string }[] = [
+  { value: 'dieselaggregat', label: 'Dieselaggregat', description: 'Standard dieseldrevet strømaggregat' },
+  { value: 'hybridaggregat', label: 'Hybridaggregat', description: 'Kombinasjon av batteri og diesel' },
+  { value: 'annet', label: 'Annet', description: 'Annen type erstatningsløsning' },
+];
+
+export const EUROKLASSE_OPTIONS: { value: Euroklasse; label: string; description: string }[] = [
+  { value: 'euro_5', label: 'Euro 5', description: 'Ikke godkjent for nye fravik' },
+  { value: 'euro_6', label: 'Euro 6', description: 'Minimum for dieselmotorer (personbiler)' },
+  { value: 'euro_vi', label: 'Euro VI', description: 'Minimum for tunge kjøretøy og aggregater' },
 ];
 
 // ========== MASKIN SCHEMA ==========
@@ -102,20 +142,45 @@ export const infrastrukturSchema = z.object({
   start_dato: z.string().min(1, 'Startdato er påkrevd'),
   slutt_dato: z.string().min(1, 'Sluttdato er påkrevd'),
 
-  // Strømtilgang og utfordringer
-  stromtilgang_beskrivelse: z.string().min(20, 'Beskriv strømtilgangsutfordringer (minst 20 tegn)'),
+  // Strømtilgang - strukturerte felter
+  stromtilgang_status: z.enum(['ingen_strom', 'utilstrekkelig', 'geografisk_avstand'] as const, {
+    errorMap: () => ({ message: 'Velg status for strømtilgang' }),
+  }),
+  avstand_til_tilkobling_meter: z.number().min(0, 'Må være et positivt tall').optional(),
+  tilgjengelig_effekt_kw: z.number().min(0, 'Må være et positivt tall').optional(),
+  effektbehov_kw: z.number().min(0, 'Må være et positivt tall'),
+  stromtilgang_tilleggsbeskrivelse: z.string().optional(),
 
   // Vurderte alternativer
   mobil_batteri_vurdert: z.boolean().default(false),
   midlertidig_nett_vurdert: z.boolean().default(false),
+  redusert_effekt_vurdert: z.boolean().default(false),
+  faseinndeling_vurdert: z.boolean().default(false),
   alternative_metoder: z.string().optional(),
 
-  // Prosjektspesifikke forhold
-  prosjektspesifikke_forhold: z.string().min(10, 'Beskriv prosjektspesifikke forhold (minst 10 tegn)'),
+  // Prosjektspesifikke forhold - strukturerte felter
+  prosjektforhold: z.array(z.enum(['plassmangel', 'hms_hensyn', 'stoykrav', 'adkomstbegrensninger', 'annet'] as const))
+    .default([]),
+  prosjektforhold_beskrivelse: z.string().optional(),
 
-  // Kostnader og erstatning
-  kostnadsvurdering: z.string().min(10, 'Beskriv kostnadsvurdering (minst 10 tegn)'),
-  erstatningslosning: z.string().min(5, 'Oppgi erstatningsløsning (minst 5 tegn)'),
+  // Kostnadsvurdering - strukturerte felter
+  kostnad_utslippsfri_nok: z.number().min(0, 'Må være et positivt tall'),
+  kostnad_fossil_nok: z.number().min(0, 'Må være et positivt tall'),
+  prosjektkostnad_nok: z.number().min(0, 'Må være et positivt tall').optional(),
+  kostnad_tilleggsbeskrivelse: z.string().optional(),
+
+  // Erstatningsløsning - strukturerte felter
+  aggregat_type: z.enum(['dieselaggregat', 'hybridaggregat', 'annet'] as const, {
+    errorMap: () => ({ message: 'Velg type aggregat' }),
+  }),
+  aggregat_type_annet: z.string().optional(),
+  euroklasse: z.enum(['euro_5', 'euro_6', 'euro_vi'] as const, {
+    errorMap: () => ({ message: 'Velg euroklasse' }),
+  }),
+  erstatningsdrivstoff: z.enum(['HVO100', 'annet_biodrivstoff', 'diesel'] as const, {
+    errorMap: () => ({ message: 'Velg drivstoff' }),
+  }),
+  aggregat_modell: z.string().optional(),
 
   // Vedlegg
   attachments: z.array(z.custom<AttachmentFile>()).optional().default([]),
@@ -125,6 +190,9 @@ export const infrastrukturSchema = z.object({
     return new Date(data.slutt_dato) >= new Date(data.start_dato);
   },
   { message: 'Sluttdato må være etter startdato', path: ['slutt_dato'] }
+).refine(
+  (data) => data.aggregat_type !== 'annet' || (data.aggregat_type_annet && data.aggregat_type_annet.length >= 3),
+  { message: 'Spesifiser type aggregat (minst 3 tegn)', path: ['aggregat_type_annet'] }
 );
 
 export type InfrastrukturFormData = z.infer<typeof infrastrukturSchema>;

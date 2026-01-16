@@ -97,6 +97,29 @@ export type Drivstoff =
   | 'annet_biodrivstoff'
   | 'diesel';
 
+// Infrastruktur enums
+export type StromtilgangStatus =
+  | 'ingen_strom'
+  | 'utilstrekkelig'
+  | 'geografisk_avstand';
+
+export type ProsjektforholdType =
+  | 'plassmangel'
+  | 'hms_hensyn'
+  | 'stoykrav'
+  | 'adkomstbegrensninger'
+  | 'annet';
+
+export type AggregatType =
+  | 'dieselaggregat'
+  | 'hybridaggregat'
+  | 'annet';
+
+export type Euroklasse =
+  | 'euro_5'
+  | 'euro_6'
+  | 'euro_vi';
+
 export type MaskinVurderingStatus =
   | 'ikke_vurdert'
   | 'godkjent'
@@ -233,20 +256,36 @@ export interface InfrastrukturTilstand {
   start_dato: string;
   slutt_dato: string;
 
-  // Strømtilgang og utfordringer
-  stromtilgang_beskrivelse: string;
+  // Strømtilgang - strukturerte felter
+  stromtilgang_status: StromtilgangStatus;
+  avstand_til_tilkobling_meter?: number;
+  tilgjengelig_effekt_kw?: number;
+  effektbehov_kw: number;
+  stromtilgang_tilleggsbeskrivelse?: string;
 
   // Vurderte alternativer
   mobil_batteri_vurdert: boolean;
   midlertidig_nett_vurdert: boolean;
+  redusert_effekt_vurdert: boolean;
+  faseinndeling_vurdert: boolean;
   alternative_metoder?: string;
 
-  // Prosjektspesifikke forhold
-  prosjektspesifikke_forhold: string;
+  // Prosjektspesifikke forhold - strukturerte felter
+  prosjektforhold: ProsjektforholdType[];
+  prosjektforhold_beskrivelse?: string;
 
-  // Kostnader og erstatning
-  kostnadsvurdering: string;
-  erstatningslosning: string;
+  // Kostnadsvurdering - strukturerte felter
+  kostnad_utslippsfri_nok: number;
+  kostnad_fossil_nok: number;
+  prosjektkostnad_nok?: number;
+  kostnad_tilleggsbeskrivelse?: string;
+
+  // Erstatningsløsning - strukturerte felter
+  aggregat_type: AggregatType;
+  aggregat_type_annet?: string;
+  euroklasse: Euroklasse;
+  erstatningsdrivstoff: Drivstoff;
+  aggregat_modell?: string;
 
   // Vurderinger (samlet for hele infrastruktur-søknaden)
   miljo_vurdering?: InfrastrukturVurdering;
@@ -262,15 +301,40 @@ export interface InfrastrukturTilstand {
  * Brukes i fravik_infrastruktur_lagt_til og fravik_infrastruktur_oppdatert events.
  */
 export interface InfrastrukturData {
+  // Periode
   start_dato: string;
   slutt_dato: string;
-  stromtilgang_beskrivelse: string;
+
+  // Strømtilgang - strukturerte felter
+  stromtilgang_status: StromtilgangStatus;
+  avstand_til_tilkobling_meter?: number;
+  tilgjengelig_effekt_kw?: number;
+  effektbehov_kw: number;
+  stromtilgang_tilleggsbeskrivelse?: string;
+
+  // Vurderte alternativer
   mobil_batteri_vurdert: boolean;
   midlertidig_nett_vurdert: boolean;
+  redusert_effekt_vurdert: boolean;
+  faseinndeling_vurdert: boolean;
   alternative_metoder?: string;
-  prosjektspesifikke_forhold: string;
-  kostnadsvurdering: string;
-  erstatningslosning: string;
+
+  // Prosjektspesifikke forhold - strukturerte felter
+  prosjektforhold: ProsjektforholdType[];
+  prosjektforhold_beskrivelse?: string;
+
+  // Kostnadsvurdering - strukturerte felter
+  kostnad_utslippsfri_nok: number;
+  kostnad_fossil_nok: number;
+  prosjektkostnad_nok?: number;
+  kostnad_tilleggsbeskrivelse?: string;
+
+  // Erstatningsløsning - strukturerte felter
+  aggregat_type: AggregatType;
+  aggregat_type_annet?: string;
+  euroklasse: Euroklasse;
+  erstatningsdrivstoff: Drivstoff;
+  aggregat_modell?: string;
 }
 
 // ========== MAIN STATE ==========

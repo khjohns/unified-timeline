@@ -132,7 +132,7 @@ export function FravikPage() {
     const harSoknadInfo = !!state.prosjekt_navn && !!state.soker_navn;
     const harMaskinerEllerInfra = state.soknad_type === 'machine'
       ? Object.keys(state.maskiner).length > 0
-      : !!state.infrastruktur?.stromtilgang_beskrivelse;
+      : !!state.infrastruktur?.stromtilgang_status;
     const harAvbotende = !!state.avbotende_tiltak && !!state.konsekvenser_ved_avslag;
     return harSoknadInfo && harMaskinerEllerInfra && harAvbotende;
   }, [state]);

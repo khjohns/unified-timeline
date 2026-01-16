@@ -149,6 +149,36 @@ class Drivstoff(str, Enum):
     DIESEL = "diesel"
 
 
+class StromtilgangStatus(str, Enum):
+    """Status for strømtilgang på byggeplassen"""
+    INGEN_STROM = "ingen_strom"  # Ingen strøm tilgjengelig
+    UTILSTREKKELIG = "utilstrekkelig"  # For lav kapasitet
+    GEOGRAFISK_AVSTAND = "geografisk_avstand"  # For langt til tilkoblingspunkt
+
+
+class ProsjektforholdType(str, Enum):
+    """Typer prosjektspesifikke forhold"""
+    PLASSMANGEL = "plassmangel"
+    HMS_HENSYN = "hms_hensyn"
+    STOYKRAV = "stoykrav"
+    ADKOMSTBEGRENSNINGER = "adkomstbegrensninger"
+    ANNET = "annet"
+
+
+class AggregatType(str, Enum):
+    """Type aggregat/erstatningsløsning"""
+    DIESELAGGREGAT = "dieselaggregat"
+    HYBRIDAGGREGAT = "hybridaggregat"
+    ANNET = "annet"
+
+
+class Euroklasse(str, Enum):
+    """Euroklasse for aggregat"""
+    EURO_5 = "euro_5"
+    EURO_6 = "euro_6"
+    EURO_VI = "euro_vi"
+
+
 # ============ DATA MODELLER ============
 
 class MaskinData(BaseModel):
@@ -238,6 +268,7 @@ class MaskinData(BaseModel):
 
 class InfrastrukturData(BaseModel):
     """Data for infrastruktur-søknad (strømtilgang på byggeplass)"""
+    # Periode
     start_dato: str = Field(
         ...,
         description="Når infrastrukturen skal brukes fra (YYYY-MM-DD)"
@@ -246,11 +277,33 @@ class InfrastrukturData(BaseModel):
         ...,
         description="Når infrastrukturen skal brukes til (YYYY-MM-DD)"
     )
-    stromtilgang_beskrivelse: str = Field(
+
+    # Strømtilgang - strukturerte felter
+    stromtilgang_status: StromtilgangStatus = Field(
         ...,
-        min_length=1,
-        description="Beskrivelse av utfordringer med strømtilgang på byggeplassen"
+        description="Status for strømtilgang på byggeplassen"
     )
+    avstand_til_tilkobling_meter: Optional[int] = Field(
+        default=None,
+        ge=0,
+        description="Avstand til nærmeste tilkoblingspunkt i meter"
+    )
+    tilgjengelig_effekt_kw: Optional[float] = Field(
+        default=None,
+        ge=0,
+        description="Tilgjengelig elektrisk effekt i kW"
+    )
+    effektbehov_kw: float = Field(
+        ...,
+        ge=0,
+        description="Nødvendig effektbehov i kW"
+    )
+    stromtilgang_tilleggsbeskrivelse: Optional[str] = Field(
+        default=None,
+        description="Valgfri tilleggsbeskrivelse av strømtilgang"
+    )
+
+    # Vurderte alternativer
     mobil_batteri_vurdert: bool = Field(
         default=False,
         description="Om mobile batteriløsninger er vurdert"
@@ -259,24 +312,70 @@ class InfrastrukturData(BaseModel):
         default=False,
         description="Om midlertidig nett (transformatorstasjon) er vurdert"
     )
+    redusert_effekt_vurdert: bool = Field(
+        default=False,
+        description="Om redusert effektbehov er vurdert"
+    )
+    faseinndeling_vurdert: bool = Field(
+        default=False,
+        description="Om faseinndeling av arbeid er vurdert"
+    )
     alternative_metoder: Optional[str] = Field(
         default=None,
         description="Andre vurderte alternative løsninger"
     )
-    prosjektspesifikke_forhold: str = Field(
-        ...,
-        min_length=1,
+
+    # Prosjektspesifikke forhold - strukturerte felter
+    prosjektforhold: List[ProsjektforholdType] = Field(
+        default_factory=list,
         description="Prosjektspesifikke forhold som påvirker (plassmangel, HMS, støy etc.)"
     )
-    kostnadsvurdering: str = Field(
-        ...,
-        min_length=1,
-        description="Vurdering av kostnader for alternative løsninger (merkostnad >10%?)"
+    prosjektforhold_beskrivelse: Optional[str] = Field(
+        default=None,
+        description="Tilleggsbeskrivelse av prosjektspesifikke forhold"
     )
-    erstatningslosning: str = Field(
+
+    # Kostnadsvurdering - strukturerte felter
+    kostnad_utslippsfri_nok: int = Field(
         ...,
-        min_length=1,
-        description="Erstatningsløsning (f.eks. Dieselaggregat Euro 6 på HVO100)"
+        ge=0,
+        description="Estimert kostnad for utslippsfri løsning i NOK"
+    )
+    kostnad_fossil_nok: int = Field(
+        ...,
+        ge=0,
+        description="Estimert kostnad for fossil løsning i NOK"
+    )
+    prosjektkostnad_nok: Optional[int] = Field(
+        default=None,
+        ge=0,
+        description="Total prosjektkostnad i NOK (for beregning av merkostnad %)"
+    )
+    kostnad_tilleggsbeskrivelse: Optional[str] = Field(
+        default=None,
+        description="Valgfri tilleggsbeskrivelse av kostnadsvurdering"
+    )
+
+    # Erstatningsløsning - strukturerte felter
+    aggregat_type: AggregatType = Field(
+        ...,
+        description="Type aggregat/erstatningsløsning"
+    )
+    aggregat_type_annet: Optional[str] = Field(
+        default=None,
+        description="Spesifisering hvis aggregat_type er 'annet'"
+    )
+    euroklasse: Euroklasse = Field(
+        ...,
+        description="Euroklasse for aggregatet"
+    )
+    erstatningsdrivstoff: Drivstoff = Field(
+        ...,
+        description="Drivstoff for erstatningsløsning"
+    )
+    aggregat_modell: Optional[str] = Field(
+        default=None,
+        description="Produsent og modell for aggregatet"
     )
 
 

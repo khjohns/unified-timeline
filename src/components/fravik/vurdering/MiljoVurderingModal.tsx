@@ -481,10 +481,11 @@ export function MiljoVurderingModal({
                 {state.infrastruktur && (
                   <div className="mb-3">
                     <p className="text-sm text-pkt-text-body-muted">
-                      <strong>Strømtilgang:</strong> {state.infrastruktur.stromtilgang_beskrivelse}
+                      <strong>Effektbehov:</strong> {state.infrastruktur.effektbehov_kw} kW
                     </p>
                     <p className="text-sm text-pkt-text-body-muted mt-1">
-                      <strong>Erstatningsløsning:</strong> {state.infrastruktur.erstatningslosning}
+                      <strong>Erstatningsløsning:</strong> {state.infrastruktur.aggregat_type}
+                      {state.infrastruktur.aggregat_modell && ` (${state.infrastruktur.aggregat_modell})`}
                     </p>
                   </div>
                 )}

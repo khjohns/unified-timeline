@@ -57,7 +57,7 @@ function getMaskinBadge(state: FravikState): { variant: 'info' | 'neutral'; labe
  * Get badge for infrastruktur section
  */
 function getInfrastrukturBadge(state: FravikState): { variant: 'success' | 'neutral'; label: string } {
-  const hasData = !!state.infrastruktur?.stromtilgang_beskrivelse;
+  const hasData = !!state.infrastruktur?.stromtilgang_status;
   return hasData
     ? { variant: 'success', label: 'Utfylt' }
     : { variant: 'neutral', label: 'Ikke utfylt' };

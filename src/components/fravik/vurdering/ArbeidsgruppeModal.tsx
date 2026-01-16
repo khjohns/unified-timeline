@@ -516,16 +516,18 @@ export function ArbeidsgruppeModal({
               {state.infrastruktur && (
                 <div className="mb-3 text-sm space-y-2">
                   <p className="text-pkt-text-body-muted">
-                    <strong>Strømtilgang:</strong> {state.infrastruktur.stromtilgang_beskrivelse}
+                    <strong>Effektbehov:</strong> {state.infrastruktur.effektbehov_kw} kW
                   </p>
                   <p className="text-pkt-text-body-muted">
-                    <strong>Erstatningsløsning:</strong> {state.infrastruktur.erstatningslosning}
+                    <strong>Erstatningsløsning:</strong> {state.infrastruktur.aggregat_type}
+                    {state.infrastruktur.aggregat_modell && ` (${state.infrastruktur.aggregat_modell})`}
                   </p>
-                  {state.infrastruktur.kostnadsvurdering && (
-                    <p className="text-pkt-text-body-muted">
-                      <strong>Kostnadsvurdering:</strong> {state.infrastruktur.kostnadsvurdering}
-                    </p>
-                  )}
+                  <p className="text-pkt-text-body-muted">
+                    <strong>Merkostnad:</strong>{' '}
+                    {state.infrastruktur.kostnad_fossil_nok > 0
+                      ? `${(((state.infrastruktur.kostnad_utslippsfri_nok - state.infrastruktur.kostnad_fossil_nok) / state.infrastruktur.kostnad_fossil_nok) * 100).toFixed(1)}%`
+                      : 'Ikke beregnet'}
+                  </p>
                 </div>
               )}
 
