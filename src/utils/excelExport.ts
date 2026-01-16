@@ -491,12 +491,6 @@ const BRUKSINTENSITET_LABELS: Record<string, string> = {
   intensiv: 'Intensiv (> 6 timer/dag)',
 };
 
-const EUROKLASSE_LABELS: Record<string, string> = {
-  euro_4: 'Euro 4/IV',
-  euro_5: 'Euro 5/V',
-  euro_6: 'Euro 6/VI (minimumskrav)',
-};
-
 const FRAVIK_BESLUTNING_LABELS: Record<string, string> = {
   godkjent: 'Godkjent',
   delvis_godkjent: 'Delvis godkjent',
@@ -583,11 +577,6 @@ function formatArbeidskategori(kategori?: string): string {
 function formatBruksintensitet(intensitet?: string): string {
   if (!intensitet) return '-';
   return BRUKSINTENSITET_LABELS[intensitet] || intensitet;
-}
-
-function formatEuroklasse(euroklasse?: string): string {
-  if (!euroklasse) return '-';
-  return EUROKLASSE_LABELS[euroklasse] || euroklasse;
 }
 
 function buildFravikOppsummeringSheet(state: FravikState): XLSX.WorkSheet {
@@ -677,7 +666,6 @@ function buildMaskinerSheet(
     'Undersøkte leverandører',
     'Erstatningsmaskin',
     'Erstatningsdrivstoff',
-    'Euroklasse',
     'Arbeidskategori',
     'Bruksintensitet',
     'Est. forbruk (l/dag)',
@@ -700,7 +688,6 @@ function buildMaskinerSheet(
     m.undersøkte_leverandorer || '-',
     m.erstatningsmaskin || '-',
     formatDrivstoff(m.erstatningsdrivstoff),
-    formatEuroklasse(m.euroklasse),
     formatArbeidskategori(m.arbeidskategori),
     formatBruksintensitet(m.bruksintensitet),
     m.estimert_drivstofforbruk ? `${m.estimert_drivstofforbruk}` : '-',
@@ -725,7 +712,6 @@ function buildMaskinerSheet(
     { wch: 30 }, // Undersøkte leverandører
     { wch: 20 }, // Erstatningsmaskin
     { wch: 22 }, // Erstatningsdrivstoff
-    { wch: 22 }, // Euroklasse
     { wch: 20 }, // Arbeidskategori
     { wch: 24 }, // Bruksintensitet
     { wch: 18 }, // Est. forbruk
