@@ -194,6 +194,19 @@
     --color-badge-danger-border: #991b1b;
 
     /* ============================================
+       HIGHLIGHT CARD COLORS
+       Used for HighlightCard component variants
+       ============================================ */
+    --color-highlight-info-bg: #f9f9f9;  /* Subtle gray */
+    --color-highlight-info-border: #2a2859;  /* Dark blue */
+    --color-highlight-success-bg: #e5ffe6;  /* Light mint */
+    --color-highlight-success-border: #034b45;  /* Dark green */
+    --color-highlight-warning-bg: #ffe7bc;  /* Light amber */
+    --color-highlight-warning-border: #92400e;  /* Dark amber */
+    --color-highlight-danger-bg: #fff2f1;  /* Light coral */
+    --color-highlight-danger-border: #c9302c;  /* Dark red */
+
+    /* ============================================
        SEMANTIC TAG COLORS
        Used for revision tags, badges, and status indicators
        ============================================ */
@@ -513,6 +526,16 @@
   --color-alert-danger-bg: rgba(255, 202, 202, 0.85);  /* Semi-transparent coral */
   --color-alert-danger-border: #5a2020;  /* Same as text - dark red */
   --color-alert-danger-text: #5a2020;  /* Dark red text */
+
+  /* Highlight card colors - dark mode (dark tinted backgrounds) */
+  --color-highlight-info-bg: #1e1e36;  /* Dark blue-gray - matches pkt-bg-subtle */
+  --color-highlight-info-border: #8ab4ff;  /* Light blue */
+  --color-highlight-success-bg: #1a2e1a;  /* Dark green tint */
+  --color-highlight-success-border: #6adb8a;  /* Light green */
+  --color-highlight-warning-bg: #2e2a1a;  /* Dark amber tint */
+  --color-highlight-warning-border: #fbbf24;  /* Golden amber */
+  --color-highlight-danger-bg: #2e1a1a;  /* Dark red tint */
+  --color-highlight-danger-border: #ff6b6b;  /* Light red */
 
   /* Semantic tag colors - dark mode (semi-transparent light backgrounds) */
   --color-tag-neutral-bg: rgba(200, 200, 220, 0.85);  /* Semi-transparent gray */

@@ -22,10 +22,10 @@ interface HighlightCardProps {
 }
 
 const variantStyles: Record<HighlightCardVariant, string> = {
-  info: 'bg-pkt-bg-subtle border-l-4 border-pkt-brand-dark-blue-1000',
-  danger: 'bg-pkt-surface-faded-red border-b border-pkt-brand-red-1000',
-  success: 'bg-pkt-surface-faded-green border-l-4 border-pkt-brand-green-1000',
-  warning: 'bg-pkt-surface-yellow border-l-4 border-pkt-brand-yellow-1000',
+  info: 'bg-highlight-info-bg border-l-4 border-highlight-info-border',
+  success: 'bg-highlight-success-bg border-l-4 border-highlight-success-border',
+  warning: 'bg-highlight-warning-bg border-l-4 border-highlight-warning-border',
+  danger: 'bg-highlight-danger-bg border-l-4 border-highlight-danger-border',
 };
 
 export function HighlightCard({
