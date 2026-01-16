@@ -116,7 +116,6 @@ class FravikService:
         data = event.data
         return FravikState(
             sak_id=event.sak_id,
-            prosjekt_id=data.prosjekt_id,
             prosjekt_navn=data.prosjekt_navn,
             prosjekt_nummer=data.prosjekt_nummer,
             rammeavtale=data.rammeavtale,

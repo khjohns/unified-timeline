@@ -107,9 +107,8 @@ def opprett_fravik_soknad():
 
     Request:
     {
-        "prosjekt_id": "P-2025-001",
         "prosjekt_navn": "Nye Deichman",
-        "prosjekt_nummer": "12345",
+        "prosjekt_nummer": "P-2025-001",
         "soker_navn": "Ola Nordmann",
         "soker_epost": "ola@firma.no",
         "soknad_type": "machine",
@@ -127,7 +126,7 @@ def opprett_fravik_soknad():
     payload = request.json
 
     # Valider påkrevde felt
-    required_fields = ['prosjekt_id', 'prosjekt_navn', 'soker_navn', 'soknad_type', 'aktor']
+    required_fields = ['prosjekt_navn', 'prosjekt_nummer', 'soker_navn', 'soknad_type', 'aktor']
     missing = [f for f in required_fields if not payload.get(f)]
     if missing:
         return jsonify({
@@ -146,9 +145,8 @@ def opprett_fravik_soknad():
         aktor=payload['aktor'],
         aktor_rolle=FravikRolle.SOKER,
         data=SoknadOpprettetData(
-            prosjekt_id=payload['prosjekt_id'],
             prosjekt_navn=payload['prosjekt_navn'],
-            prosjekt_nummer=payload.get('prosjekt_nummer'),
+            prosjekt_nummer=payload['prosjekt_nummer'],
             rammeavtale=payload.get('rammeavtale'),
             hovedentreprenor=payload.get('hovedentreprenor'),
             soker_navn=payload['soker_navn'],

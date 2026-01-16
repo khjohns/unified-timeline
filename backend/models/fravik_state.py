@@ -346,17 +346,13 @@ class FravikState(BaseModel):
     )
 
     # Prosjektinfo
-    prosjekt_id: str = Field(
-        ...,
-        description="Prosjekt-ID"
-    )
     prosjekt_navn: str = Field(
         ...,
         description="Prosjektnavn"
     )
-    prosjekt_nummer: Optional[str] = Field(
-        default=None,
-        description="Prosjektnummer"
+    prosjekt_nummer: str = Field(
+        ...,
+        description="Prosjektnummer (unik identifikator)"
     )
     rammeavtale: Optional[str] = Field(
         default=None,
