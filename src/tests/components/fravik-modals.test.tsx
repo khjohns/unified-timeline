@@ -66,6 +66,7 @@ const mockFravikState: FravikState = {
       maskin_type: 'Gravemaskin',
       start_dato: '2025-02-01',
       slutt_dato: '2025-04-01',
+      grunner: ['markedsmangel'],
       begrunnelse: 'Test begrunnelse',
       markedsundersokelse: true,
       samlet_status: 'ikke_vurdert',

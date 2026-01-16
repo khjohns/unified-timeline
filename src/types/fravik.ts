@@ -135,6 +135,7 @@ export interface MaskinTilstand {
   registreringsnummer?: string;
   start_dato: string;
   slutt_dato: string;
+  grunner: FravikGrunn[];
   begrunnelse: string;
   alternativer_vurdert?: string;
   markedsundersokelse: boolean;

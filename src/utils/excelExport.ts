@@ -449,3 +449,251 @@ export function downloadRevisionHistoryExcel(
 
   XLSX.writeFile(wb, filename);
 }
+
+// ========== FRAVIK EXPORT ==========
+
+import type { FravikState, MaskinTilstand } from '../types/fravik';
+
+const FRAVIK_GRUNN_LABELS: Record<string, string> = {
+  markedsmangel: 'Markedsmangel',
+  leveringstid: 'Leveringstid',
+  tekniske_begrensninger: 'Tekniske begrensninger',
+  hms_krav: 'HMS-krav',
+  annet: 'Annet',
+};
+
+const DRIVSTOFF_LABELS: Record<string, string> = {
+  HVO100: 'HVO100',
+  annet_biodrivstoff: 'Annet biodrivstoff',
+  diesel_euro6: 'Diesel Euro 6',
+};
+
+const FRAVIK_BESLUTNING_LABELS: Record<string, string> = {
+  godkjent: 'Godkjent',
+  delvis_godkjent: 'Delvis godkjent',
+  avslatt: 'Avslått',
+  krever_avklaring: 'Krever avklaring',
+};
+
+const FRAVIK_STATUS_LABELS: Record<string, string> = {
+  utkast: 'Utkast',
+  sendt_inn: 'Sendt inn',
+  under_miljo_vurdering: 'Til vurdering hos miljørådgiver',
+  returnert_fra_miljo: 'Returnert fra miljørådgiver',
+  under_pl_vurdering: 'Til godkjenning hos prosjektleder',
+  returnert_fra_pl: 'Returnert fra prosjektleder',
+  under_arbeidsgruppe: 'Til behandling i arbeidsgruppen',
+  under_eier_beslutning: 'Til beslutning hos eier',
+  godkjent: 'Godkjent',
+  delvis_godkjent: 'Delvis godkjent',
+  avslatt: 'Avslått',
+  trukket: 'Trukket',
+};
+
+const MASKIN_STATUS_LABELS: Record<string, string> = {
+  ikke_vurdert: 'Ikke vurdert',
+  godkjent: 'Godkjent',
+  avslatt: 'Avslått',
+  delvis_godkjent: 'Delvis godkjent',
+};
+
+const MASKIN_TYPE_LABELS: Record<string, string> = {
+  Gravemaskin: 'Gravemaskin',
+  Hjullaster: 'Hjullaster',
+  Lift: 'Lift',
+  Annet: 'Annet',
+};
+
+function formatGrunner(grunner?: string[]): string {
+  if (!grunner || grunner.length === 0) return '-';
+  return grunner.map((g) => FRAVIK_GRUNN_LABELS[g] || g).join(', ');
+}
+
+function formatDrivstoff(drivstoff?: string): string {
+  if (!drivstoff) return '-';
+  return DRIVSTOFF_LABELS[drivstoff] || drivstoff;
+}
+
+function formatFravikBeslutning(beslutning?: string): string {
+  if (!beslutning) return '-';
+  return FRAVIK_BESLUTNING_LABELS[beslutning] || beslutning;
+}
+
+function formatFravikStatus(status?: string): string {
+  if (!status) return '-';
+  return FRAVIK_STATUS_LABELS[status] || status;
+}
+
+function formatMaskinType(type?: string): string {
+  if (!type) return '-';
+  return MASKIN_TYPE_LABELS[type] || type;
+}
+
+function formatMaskinStatus(status?: string): string {
+  if (!status) return '-';
+  return MASKIN_STATUS_LABELS[status] || status;
+}
+
+function buildFravikOppsummeringSheet(state: FravikState): XLSX.WorkSheet {
+  const data: (string | number)[][] = [
+    ['FRAVIK-SØKNAD'],
+    [],
+    ['Sak-ID', state.sak_id],
+    [],
+    ['PROSJEKT'],
+    [],
+    ['Prosjektnavn', state.prosjekt_navn || '-'],
+    ['Prosjektnummer', state.prosjekt_nummer || '-'],
+    ['Rammeavtale', state.rammeavtale || '-'],
+    ['Hovedentreprenør', state.hovedentreprenor || '-'],
+    [],
+    ['SØKER'],
+    [],
+    ['Navn', state.soker_navn || '-'],
+    ['E-post', state.soker_epost || '-'],
+    [],
+    ['STATUS'],
+    [],
+    ['Status', formatFravikStatus(state.status)],
+    ['Hastebehandling', state.er_haste ? 'Ja' : 'Nei'],
+    ['Hastebegrunnelse', state.haste_begrunnelse || '-'],
+    [],
+    ['MASKINER'],
+    [],
+    ['Antall maskiner', state.antall_maskiner],
+    ['Godkjente', state.antall_godkjente_maskiner],
+    ['Avslåtte', state.antall_avslatte_maskiner],
+    [],
+    ['AVBØTENDE TILTAK'],
+    [],
+    ['Avbøtende tiltak', state.avbotende_tiltak || '-'],
+    ['Konsekvenser ved avslag', state.konsekvenser_ved_avslag || '-'],
+    [],
+    ['ENDELIG BESLUTNING'],
+    [],
+    ['Beslutning', formatFravikBeslutning(state.endelig_beslutning)],
+    ['Kommentar', state.endelig_beslutning_kommentar || '-'],
+    ['Besluttet av', state.endelig_beslutning_av || '-'],
+    [
+      'Tidspunkt',
+      state.endelig_beslutning_tidspunkt
+        ? formatDateMedium(state.endelig_beslutning_tidspunkt)
+        : '-',
+    ],
+    [],
+    ['METADATA'],
+    [],
+    ['Opprettet', state.opprettet ? formatDateMedium(state.opprettet) : '-'],
+    [
+      'Sendt inn',
+      state.sendt_inn_tidspunkt
+        ? formatDateMedium(state.sendt_inn_tidspunkt)
+        : '-',
+    ],
+    [
+      'Sist oppdatert',
+      state.siste_oppdatert ? formatDateMedium(state.siste_oppdatert) : '-',
+    ],
+    ['Eksportert', formatDateMedium(new Date().toISOString())],
+  ];
+
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!cols'] = [{ wch: 25 }, { wch: 50 }];
+
+  return ws;
+}
+
+function buildMaskinerSheet(
+  maskiner: Record<string, MaskinTilstand>
+): XLSX.WorkSheet {
+  const headers = [
+    'Maskin-ID',
+    'Type',
+    'Annet type',
+    'Reg.nr',
+    'Startdato',
+    'Sluttdato',
+    'Grunner',
+    'Begrunnelse',
+    'Alternativer vurdert',
+    'Markedsundersøkelse',
+    'Undersøkte leverandører',
+    'Erstatningsmaskin',
+    'Erstatningsdrivstoff',
+    'Arbeidsbeskrivelse',
+    'Status',
+  ];
+
+  const rows = Object.values(maskiner).map((m) => [
+    m.maskin_id,
+    formatMaskinType(m.maskin_type),
+    m.annet_type || '-',
+    m.registreringsnummer || '-',
+    m.start_dato || '-',
+    m.slutt_dato || '-',
+    formatGrunner(m.grunner),
+    m.begrunnelse || '-',
+    m.alternativer_vurdert || '-',
+    m.markedsundersokelse ? 'Ja' : 'Nei',
+    m.undersøkte_leverandorer || '-',
+    m.erstatningsmaskin || '-',
+    formatDrivstoff(m.erstatningsdrivstoff),
+    m.arbeidsbeskrivelse || '-',
+    formatMaskinStatus(m.samlet_status),
+  ]);
+
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+
+  ws['!cols'] = [
+    { wch: 12 }, // Maskin-ID
+    { wch: 14 }, // Type
+    { wch: 14 }, // Annet type
+    { wch: 12 }, // Reg.nr
+    { wch: 12 }, // Startdato
+    { wch: 12 }, // Sluttdato
+    { wch: 30 }, // Grunner
+    { wch: 40 }, // Begrunnelse
+    { wch: 35 }, // Alternativer vurdert
+    { wch: 18 }, // Markedsundersøkelse
+    { wch: 30 }, // Undersøkte leverandører
+    { wch: 20 }, // Erstatningsmaskin
+    { wch: 18 }, // Erstatningsdrivstoff
+    { wch: 35 }, // Arbeidsbeskrivelse
+    { wch: 14 }, // Status
+  ];
+
+  return ws;
+}
+
+/**
+ * Download Fravik application data as Excel file
+ *
+ * Creates a professional Excel workbook with:
+ * - Oppsummering: Application overview, status, and final decision
+ * - Maskiner: Detailed list of all machines with full information
+ */
+export function downloadFravikExcel(state: FravikState): void {
+  if (!state) {
+    alert('Ingen data å eksportere.');
+    return;
+  }
+
+  const wb = XLSX.utils.book_new();
+
+  // Add Oppsummering sheet
+  const oppsummeringSheet = buildFravikOppsummeringSheet(state);
+  XLSX.utils.book_append_sheet(wb, oppsummeringSheet, 'Oppsummering');
+
+  // Add Maskiner sheet (if any machines exist)
+  if (Object.keys(state.maskiner).length > 0) {
+    const maskinerSheet = buildMaskinerSheet(state.maskiner);
+    XLSX.utils.book_append_sheet(wb, maskinerSheet, 'Maskiner');
+  }
+
+  // Generate filename with date
+  const dateStr = new Date().toISOString().split('T')[0];
+  const filename = `fravik-${state.sak_id}-${dateStr}.xlsx`;
+
+  // Write file and trigger download
+  XLSX.writeFile(wb, filename);
+}

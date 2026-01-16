@@ -335,6 +335,7 @@ function getMockFravikState(sakId: string): FravikState {
         maskin_type: 'Gravemaskin',
         start_dato: '2025-02-01',
         slutt_dato: '2025-04-01',
+        grunner: ['markedsmangel'],
         begrunnelse: 'Ingen elektriske gravemaskiner tilgjengelig i markedet for dette formålet.',
         markedsundersokelse: true,
         undersøkte_leverandorer: 'Firma A, Firma B, Firma C',

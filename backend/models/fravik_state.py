@@ -115,6 +115,10 @@ class MaskinTilstand(BaseModel):
         ...,
         description="Slutt-dato for bruk (YYYY-MM-DD)"
     )
+    grunner: List[str] = Field(
+        default_factory=list,
+        description="Grunner for fravik"
+    )
     begrunnelse: str = Field(
         ...,
         description="Begrunnelse for fravik"

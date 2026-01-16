@@ -13,7 +13,7 @@
 import { useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ReloadIcon } from '@radix-ui/react-icons';
+import { DownloadIcon, ReloadIcon } from '@radix-ui/react-icons';
 import { Alert, Badge, Button, Card, DataList, DataListItem } from '../components/primitives';
 import { useUserRole } from '../hooks/useUserRole';
 import { PageHeader } from '../components/PageHeader';
@@ -38,6 +38,7 @@ import {
   getFravikStatusColor,
 } from '../types/fravik';
 import { formatDateShort } from '../utils/formatters';
+import { downloadFravikExcel } from '../utils/excelExport';
 
 // ============================================================================
 // HOOKS
@@ -323,6 +324,20 @@ export function FravikPage() {
                 {state.antall_events}
               </DataListItem>
             </DataList>
+
+            {/* Export */}
+            <div className="mt-4 pt-3 border-t border-pkt-border-subtle">
+              <p className="text-xs font-medium text-pkt-text-body-muted mb-2">
+                Eksporter data
+              </p>
+              <button
+                onClick={() => downloadFravikExcel(state)}
+                className="flex items-center gap-2 text-sm text-pkt-text-action-normal hover:text-pkt-text-action-hover transition-colors"
+              >
+                <DownloadIcon className="w-4 h-4" />
+                Excel (.xlsx)
+              </button>
+            </div>
           </Card>
         </section>
       </main>
