@@ -227,7 +227,6 @@ export function InfrastrukturModal({
               rows={4}
               fullWidth
               error={!!errors.stromtilgang_beskrivelse}
-              placeholder="Beskriv den kartlagte situasjonen..."
             />
           </FormField>
         </SectionContainer>
@@ -275,7 +274,6 @@ export function InfrastrukturModal({
                 rows={3}
                 fullWidth
                 error={!!errors.alternative_metoder}
-                placeholder="Beskriv andre vurderte alternativer..."
               />
             </FormField>
           </div>
@@ -298,7 +296,6 @@ export function InfrastrukturModal({
               rows={4}
               fullWidth
               error={!!errors.prosjektspesifikke_forhold}
-              placeholder="Beskriv forhold som påvirker..."
             />
           </FormField>
         </SectionContainer>
@@ -320,7 +317,6 @@ export function InfrastrukturModal({
               rows={4}
               fullWidth
               error={!!errors.kostnadsvurdering}
-              placeholder="Beskriv kostnadsvurderingen..."
             />
           </FormField>
         </SectionContainer>
@@ -342,7 +338,6 @@ export function InfrastrukturModal({
               rows={3}
               fullWidth
               error={!!errors.erstatningslosning}
-              placeholder="F.eks. Dieselaggregat (Euro 6) på HVO100, etc."
             />
           </FormField>
         </SectionContainer>
