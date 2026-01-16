@@ -105,14 +105,14 @@ interface SortIconProps {
 function SortIcon({ direction, isActive }: SortIconProps) {
   if (!isActive || !direction) {
     return (
-      <ChevronUpIcon className="w-3.5 h-3.5 text-pkt-text-body-muted opacity-0 group-hover:opacity-50 transition-opacity" />
+      <ChevronUpIcon className="w-4 h-4 text-pkt-text-body-muted opacity-0 group-hover:opacity-50 transition-opacity" />
     );
   }
 
   return direction === 'asc' ? (
-    <ChevronUpIcon className="w-3.5 h-3.5 text-pkt-text-body-dark" />
+    <ChevronUpIcon className="w-4 h-4 text-pkt-text-body-dark" />
   ) : (
-    <ChevronDownIcon className="w-3.5 h-3.5 text-pkt-text-body-dark" />
+    <ChevronDownIcon className="w-4 h-4 text-pkt-text-body-dark" />
   );
 }
 
@@ -137,9 +137,9 @@ function FilterPopover({ column, value, onChange }: FilterPopoverProps) {
           )}
           aria-label={`Filter ${column.label}`}
         >
-          <MixerHorizontalIcon className="w-3.5 h-3.5" />
+          <MixerHorizontalIcon className="w-4 h-4" />
           {hasActiveFilter && (
-            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-pkt-brand-dark-blue-1000" />
+            <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-pkt-brand-dark-blue-1000" />
           )}
         </button>
       </Popover.Trigger>
@@ -148,7 +148,7 @@ function FilterPopover({ column, value, onChange }: FilterPopoverProps) {
           align="start"
           sideOffset={4}
           className={clsx(
-            'z-50 min-w-[180px] rounded border border-pkt-border-default bg-pkt-bg-card p-2 shadow-lg',
+            'z-50 min-w-[180px] rounded border border-pkt-border-default bg-pkt-bg-card p-2 shadow-md',
             'data-[state=open]:animate-in data-[state=closed]:animate-out',
             'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
             'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95'
@@ -161,14 +161,14 @@ function FilterPopover({ column, value, onChange }: FilterPopoverProps) {
 
             {column.filterType === 'text' && (
               <div className="relative">
-                <MagnifyingGlassIcon className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-pkt-text-body-muted" />
+                <MagnifyingGlassIcon className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-pkt-text-body-muted" />
                 <input
                   type="text"
                   value={value}
                   onChange={(e) => onChange(e.target.value)}
                   placeholder="Søk..."
                   className={clsx(
-                    'w-full pl-7 pr-2 py-1.5 text-sm rounded border border-pkt-border-default',
+                    'w-full pl-8 pr-2 py-1.5 text-sm rounded border border-pkt-border-default',
                     'bg-pkt-bg-default focus:outline-none focus:border-pkt-border-focus'
                   )}
                   autoFocus
@@ -197,7 +197,8 @@ function FilterPopover({ column, value, onChange }: FilterPopoverProps) {
                           onChange(currentValues.filter((v) => v !== option.value).join(','));
                         }
                       }}
-                      className="rounded border-pkt-border-default"
+                      className="w-4 h-4 rounded border-pkt-border-default text-pkt-brand-dark-blue-1000
+                                 focus:ring-2 focus:ring-pkt-border-focus focus:ring-offset-0 cursor-pointer"
                     />
                     <span className="text-pkt-text-body-default">{option.label}</span>
                   </label>
@@ -219,7 +220,7 @@ function FilterPopover({ column, value, onChange }: FilterPopoverProps) {
                 )}
               >
                 <Cross2Icon className="w-3 h-3" />
-                Nullstill filter
+                Nullstill
               </button>
             )}
           </div>
