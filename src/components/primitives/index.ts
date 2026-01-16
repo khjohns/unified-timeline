@@ -47,7 +47,6 @@ export { FormField } from './FormField';
 export { DataList, DataListItem } from './DataList';
 export { Table, type Column } from './Table';
 export { InlineDataList, InlineDataListItem } from './InlineDataList';
-export { HighlightCard } from './HighlightCard';
 export { InfoLabel, type InfoLabelProps } from './InfoLabel';
 export { StepIndicator, type Step } from './StepIndicator';
 export { StatusSummary, type StatusSummaryProps } from './StatusSummary';

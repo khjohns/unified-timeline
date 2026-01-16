@@ -31,7 +31,6 @@ import {
   InlineDataListItem,
   Table,
   DashboardCard,
-  HighlightCard,
   InfoLabel,
   RevisionTag,
   StepIndicator,
@@ -379,9 +378,9 @@ export function ComponentShowcase() {
                 </div>
               </Card>
 
-              {/* DashboardCard & HighlightCard */}
+              {/* DashboardCard */}
               <Card variant="outlined" padding="lg">
-                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">DashboardCard & HighlightCard</h2>
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">DashboardCard</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <DashboardCard
                     title="Dashboard Card"
@@ -390,15 +389,12 @@ export function ComponentShowcase() {
                   >
                     <p className="text-pkt-text-body-subtle">Innhold i dashboard-kort</p>
                   </DashboardCard>
-                  <HighlightCard variant="info">
-                    <p className="font-semibold">Highlight Card (Info)</p>
-                    <p className="text-sm">Fremhevet informasjon</p>
-                  </HighlightCard>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                  <HighlightCard variant="success">Success variant</HighlightCard>
-                  <HighlightCard variant="warning">Warning variant</HighlightCard>
-                  <HighlightCard variant="danger">Danger variant</HighlightCard>
+                  <DashboardCard
+                    title="Uten header-badge"
+                    action={<Button size="sm" variant="ghost">Se mer</Button>}
+                  >
+                    <p className="text-pkt-text-body-subtle">Enklere variant</p>
+                  </DashboardCard>
                 </div>
               </Card>
 

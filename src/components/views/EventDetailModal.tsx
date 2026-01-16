@@ -9,13 +9,13 @@
 
 import React from 'react';
 import {
+  Alert,
   Badge,
   BadgeVariant,
   Modal,
   SectionContainer,
   DataList,
   DataListItem,
-  HighlightCard,
 } from '../primitives';
 import {
   TimelineEvent,
@@ -1270,12 +1270,11 @@ function ForseringVarselSection({ data }: { data: ForseringVarselEventData }) {
 
   return (
     <div className="space-y-4">
-      <HighlightCard variant="danger">
-        <Badge variant="danger" size="lg">Forseringsvarsel (§33.8)</Badge>
+      <Alert variant="danger" title="Forseringsvarsel (§33.8)">
         {data.grunnlag_avslag_trigger && (
-          <span className="ml-2 text-sm text-pkt-brand-red-1000">(utløst av grunnlagsavslag)</span>
+          <span className="text-sm">(utløst av grunnlagsavslag)</span>
         )}
-      </HighlightCard>
+      </Alert>
 
       {/* Sammendrag */}
       <DataList>
