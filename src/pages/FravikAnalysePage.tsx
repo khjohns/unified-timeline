@@ -4,9 +4,16 @@
  * Analyseside for fravik-søknader som gir byggherren beslutningsstøtte
  * ved å vise historikk og statistikk over tidligere behandlede søknader.
  *
+ * Formål:
+ * Digitalisering av fravik-søknader gjør det mulig å sammenligne med
+ * tidligere og lignende saker. For eksempel kan man vurdere under hvilke
+ * situasjoner man har godkjent fravik for bestemte maskintyper fra kravet
+ * om utslippsfri teknologi.
+ *
  * Analysemetoder:
  * - Portefølje: Oversikt med KPI-er og godkjenningsrate
- * - Grunner: Analyse per fravikgrunn (markedsmangel, leveringstid, etc.)
+ * - Søknadstyper: Fordeling mellom maskin- og infrastruktur-søknader
+ * - Grunner: Analyse per fravikgrunn (maskin-søknader)
  * - Maskintyper: Analyse per maskintype
  * - Historikk: Tabell med ferdigbehandlede saker for sammenligning
  */
@@ -14,11 +21,12 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Card, Button, Tabs } from '../components/primitives';
+import { InfoCircledIcon } from '@radix-ui/react-icons';
+import { Card, Button, Tabs, Alert } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
 import { useUserRole } from '../hooks/useUserRole';
 import { fetchFravikListe } from '../api/fravik';
-import type { FravikListeItem, FravikStatus, FravikGrunn, MaskinType } from '../types/fravik';
+import type { FravikListeItem, FravikStatus, FravikGrunn, MaskinType, SoknadType } from '../types/fravik';
 import { FRAVIK_STATUS_LABELS, getFravikStatusColor } from '../types/fravik';
 import { formatDateShort } from '../utils/formatters';
 import { KPICard, SimpleBarChart, AnalyticsSection, ProgressBar } from '../components/analytics/AnalyticsHelpers';
@@ -29,6 +37,7 @@ import { KPICard, SimpleBarChart, AnalyticsSection, ProgressBar } from '../compo
 
 const ANALYSIS_TABS = [
   { id: 'portefolje', label: 'Portefølje' },
+  { id: 'soknadstyper', label: 'Søknadstyper' },
   { id: 'grunner', label: 'Grunner' },
   { id: 'maskintyper', label: 'Maskintyper' },
   { id: 'historikk', label: 'Historikk' },
@@ -47,9 +56,12 @@ interface FravikAnalyticsData {
   delvisGodkjent: number;
   avslatt: number;
   godkjenningsrate: number;
+  perSoknadstype: Record<SoknadType, { total: number; godkjent: number; avslatt: number; underBehandling: number }>;
   perGrunn: Record<FravikGrunn, { total: number; godkjent: number; avslatt: number }>;
   perMaskintype: Record<MaskinType, { total: number; godkjent: number; avslatt: number }>;
   ferdigbehandlede: FravikListeItem[];
+  maskinSoknader: FravikListeItem[];
+  infrastrukturSoknader: FravikListeItem[];
 }
 
 // ============================================================
@@ -71,6 +83,11 @@ const MASKINTYPE_LABELS: Record<MaskinType, string> = {
   Annet: 'Annet',
 };
 
+const SOKNADSTYPE_LABELS: Record<SoknadType, string> = {
+  machine: 'Maskin',
+  infrastructure: 'Infrastruktur',
+};
+
 function computeAnalytics(soknader: FravikListeItem[]): FravikAnalyticsData {
   const ferdigStatuser: FravikStatus[] = ['godkjent', 'delvis_godkjent', 'avslatt', 'trukket'];
 
@@ -86,8 +103,27 @@ function computeAnalytics(soknader: FravikListeItem[]): FravikAnalyticsData {
     ? ((godkjent + delvisGodkjent) / ferdigUtenTrukket) * 100
     : 0;
 
+  // Per søknadstype
+  const maskinSoknader = soknader.filter(s => s.soknad_type === 'machine');
+  const infrastrukturSoknader = soknader.filter(s => s.soknad_type === 'infrastructure');
+
+  const perSoknadstype: FravikAnalyticsData['perSoknadstype'] = {
+    machine: {
+      total: maskinSoknader.length,
+      godkjent: maskinSoknader.filter(s => s.status === 'godkjent' || s.status === 'delvis_godkjent').length,
+      avslatt: maskinSoknader.filter(s => s.status === 'avslatt').length,
+      underBehandling: maskinSoknader.filter(s => !ferdigStatuser.includes(s.status)).length,
+    },
+    infrastructure: {
+      total: infrastrukturSoknader.length,
+      godkjent: infrastrukturSoknader.filter(s => s.status === 'godkjent' || s.status === 'delvis_godkjent').length,
+      avslatt: infrastrukturSoknader.filter(s => s.status === 'avslatt').length,
+      underBehandling: infrastrukturSoknader.filter(s => !ferdigStatuser.includes(s.status)).length,
+    },
+  };
+
   // Per-grunn og per-maskintype analyse krever mer detaljert data
-  // Her bruker vi mock-data siden listen ikke inneholder grunner
+  // I en fullstendig implementasjon vil dette hentes fra aggregert backend-data
   const perGrunn: FravikAnalyticsData['perGrunn'] = {
     markedsmangel: { total: 12, godkjent: 9, avslatt: 2 },
     leveringstid: { total: 8, godkjent: 6, avslatt: 1 },
@@ -110,12 +146,15 @@ function computeAnalytics(soknader: FravikListeItem[]): FravikAnalyticsData {
     delvisGodkjent,
     avslatt,
     godkjenningsrate,
+    perSoknadstype,
     perGrunn,
     perMaskintype,
     ferdigbehandlede: ferdigbehandlede.sort((a, b) =>
       new Date(b.siste_oppdatert || b.opprettet || '').getTime() -
       new Date(a.siste_oppdatert || a.opprettet || '').getTime()
     ),
+    maskinSoknader,
+    infrastrukturSoknader,
   };
 }
 
@@ -127,7 +166,7 @@ function PortefoljeAnalyse({ data }: { data: FravikAnalyticsData }) {
   return (
     <AnalyticsSection
       title="Porteføljeanalyse"
-      description="Overordnet oversikt over fravik-søknader med nøkkeltall og godkjenningsrate. Brukes til beslutningsstøtte og oppfølging."
+      description="Overordnet oversikt over alle fravik-søknader med nøkkeltall og godkjenningsrate. Gir et raskt bilde av status på tvers av prosjekter."
     >
       {/* KPI Summary */}
       <section>
@@ -177,6 +216,115 @@ function PortefoljeAnalyse({ data }: { data: FravikAnalyticsData }) {
   );
 }
 
+function SoknadstypeAnalyse({ data }: { data: FravikAnalyticsData }) {
+  const maskin = data.perSoknadstype.machine;
+  const infra = data.perSoknadstype.infrastructure;
+
+  const maskinGodkjenningsrate = maskin.total > 0
+    ? (maskin.godkjent / (maskin.godkjent + maskin.avslatt || 1)) * 100
+    : 0;
+  const infraGodkjenningsrate = infra.total > 0
+    ? (infra.godkjent / (infra.godkjent + infra.avslatt || 1)) * 100
+    : 0;
+
+  return (
+    <AnalyticsSection
+      title="Fordeling per søknadstype"
+      description="Oversikt over søknader fordelt på maskin-fravik og infrastruktur-fravik. Maskin-søknader gjelder enkeltmaskiner som ikke oppfyller utslippskrav, mens infrastruktur-søknader gjelder manglende strøm/ladeinfrastruktur."
+    >
+      <div className="grid md:grid-cols-2 gap-4">
+        {/* Maskin */}
+        <Card variant="outlined" padding="md">
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="font-semibold text-pkt-text-body-dark text-lg">Maskin-søknader</h4>
+            <span className="px-3 py-1 text-sm rounded-full bg-oslo-blue-light text-oslo-blue font-medium">
+              {maskin.total} søknader
+            </span>
+          </div>
+          <p className="text-sm text-pkt-text-body-subtle mb-4">
+            Fravik for enkeltmaskiner som ikke oppfyller krav til utslippsfri teknologi.
+          </p>
+          <div className="space-y-3">
+            <div className="flex justify-between text-sm">
+              <span className="text-pkt-text-body-subtle">Under behandling</span>
+              <span className="font-medium">{maskin.underBehandling}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-pkt-text-body-subtle">Godkjent</span>
+              <span className="font-medium text-alert-success-text">{maskin.godkjent}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-pkt-text-body-subtle">Avslått</span>
+              <span className="font-medium text-alert-danger-text">{maskin.avslatt}</span>
+            </div>
+            <div className="pt-3 border-t border-pkt-border-subtle">
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-pkt-text-body-subtle">Godkjenningsrate</span>
+                <span className="font-medium">{maskinGodkjenningsrate.toFixed(0)}%</span>
+              </div>
+              <ProgressBar
+                value={maskinGodkjenningsrate}
+                showLabel={false}
+                color="bg-badge-success-bg"
+              />
+            </div>
+          </div>
+        </Card>
+
+        {/* Infrastruktur */}
+        <Card variant="outlined" padding="md">
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="font-semibold text-pkt-text-body-dark text-lg">Infrastruktur-søknader</h4>
+            <span className="px-3 py-1 text-sm rounded-full bg-amber-100 text-amber-800 font-medium">
+              {infra.total} søknader
+            </span>
+          </div>
+          <p className="text-sm text-pkt-text-body-subtle mb-4">
+            Fravik grunnet manglende strøm- eller ladeinfrastruktur på byggeplassen.
+          </p>
+          {infra.total > 0 ? (
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-pkt-text-body-subtle">Under behandling</span>
+                <span className="font-medium">{infra.underBehandling}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-pkt-text-body-subtle">Godkjent</span>
+                <span className="font-medium text-alert-success-text">{infra.godkjent}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-pkt-text-body-subtle">Avslått</span>
+                <span className="font-medium text-alert-danger-text">{infra.avslatt}</span>
+              </div>
+              <div className="pt-3 border-t border-pkt-border-subtle">
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-pkt-text-body-subtle">Godkjenningsrate</span>
+                  <span className="font-medium">{infraGodkjenningsrate.toFixed(0)}%</span>
+                </div>
+                <ProgressBar
+                  value={infraGodkjenningsrate}
+                  showLabel={false}
+                  color="bg-badge-success-bg"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="py-4 text-center text-pkt-text-body-subtle bg-pkt-bg-muted rounded-md">
+              <InfoCircledIcon className="w-5 h-5 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">Ingen infrastruktur-søknader registrert</p>
+            </div>
+          )}
+        </Card>
+      </div>
+
+      {/* Forklaring */}
+      <Alert variant="info">
+        <strong>Merk:</strong> Detaljert analyse per grunn og maskintype (fanene Grunner og Maskintyper) gjelder kun maskin-søknader. Infrastruktur-søknader har egne vurderingskriterier knyttet til strømtilgang og ladekapasitet.
+      </Alert>
+    </AnalyticsSection>
+  );
+}
+
 function GrunnerAnalyse({ data }: { data: FravikAnalyticsData }) {
   const grunnData = Object.entries(data.perGrunn).map(([grunn, stats]) => ({
     grunn: grunn as FravikGrunn,
@@ -186,9 +334,13 @@ function GrunnerAnalyse({ data }: { data: FravikAnalyticsData }) {
 
   return (
     <AnalyticsSection
-      title="Analyse per grunn"
-      description="Oversikt over hvordan søknader fordeler seg på ulike fraviksgrunner, og godkjenningsrate for hver grunn. Nyttig for å vurdere lignende saker."
+      title="Analyse per grunn (maskin-søknader)"
+      description="Oversikt over hvordan maskin-søknader fordeler seg på ulike fraviksgrunner, og godkjenningsrate for hver grunn. Nyttig for å vurdere om lignende begrunnelser har blitt godkjent tidligere."
     >
+      <Alert variant="info" className="mb-4">
+        Denne analysen viser statistikk for maskin-søknader fordelt på oppgitte grunner for fravik. Bruk dette som referanse når du vurderer nye søknader med tilsvarende begrunnelse.
+      </Alert>
+
       <div className="space-y-4">
         {grunnData.map(item => (
           <Card key={item.grunn} variant="outlined" padding="md">
@@ -231,8 +383,12 @@ function MaskintypeAnalyse({ data }: { data: FravikAnalyticsData }) {
   return (
     <AnalyticsSection
       title="Analyse per maskintype"
-      description="Oversikt over søknader fordelt på maskintyper. Viser hvilke maskintyper som oftest får fravik og godkjenningsrate for hver type."
+      description="Oversikt over søknader fordelt på maskintyper. Viser hvilke maskintyper som oftest får innvilget fravik og godkjenningsrate for hver type."
     >
+      <Alert variant="info" className="mb-4">
+        Sammenlign med tidligere beslutninger for samme maskintype. Høy godkjenningsrate kan indikere at det er vanskelig å finne utslippsfrie alternativer for denne maskintypen i markedet.
+      </Alert>
+
       <div className="grid md:grid-cols-2 gap-4">
         {maskinData.map(item => (
           <Card key={item.type} variant="outlined" padding="md">
@@ -279,38 +435,71 @@ const STATUS_COLOR_CLASSES: Record<string, string> = {
 };
 
 function HistorikkAnalyse({ data, onNavigate }: { data: FravikAnalyticsData; onNavigate: (id: string) => void }) {
-  const [filter, setFilter] = useState<'all' | 'godkjent' | 'avslatt'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'godkjent' | 'avslatt'>('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'machine' | 'infrastructure'>('all');
 
   const filteredData = useMemo(() => {
-    if (filter === 'all') return data.ferdigbehandlede;
-    if (filter === 'godkjent') return data.ferdigbehandlede.filter(s => s.status === 'godkjent' || s.status === 'delvis_godkjent');
-    return data.ferdigbehandlede.filter(s => s.status === 'avslatt');
-  }, [data.ferdigbehandlede, filter]);
+    let result = data.ferdigbehandlede;
+
+    // Status filter
+    if (statusFilter === 'godkjent') {
+      result = result.filter(s => s.status === 'godkjent' || s.status === 'delvis_godkjent');
+    } else if (statusFilter === 'avslatt') {
+      result = result.filter(s => s.status === 'avslatt');
+    }
+
+    // Type filter
+    if (typeFilter !== 'all') {
+      result = result.filter(s => s.soknad_type === typeFilter);
+    }
+
+    return result;
+  }, [data.ferdigbehandlede, statusFilter, typeFilter]);
 
   return (
     <AnalyticsSection
-      title="Historikk"
-      description="Oversikt over ferdigbehandlede søknader. Klikk på en rad for å se detaljer og bruke som referanse for lignende saker."
+      title="Historikk over ferdigbehandlede søknader"
+      description="Oversikt over alle ferdigbehandlede fravik-søknader. Klikk på en rad for å se detaljene og bruke som referanse ved vurdering av lignende saker."
     >
-      {/* Filter */}
-      <div className="flex gap-2 flex-wrap">
-        {(['all', 'godkjent', 'avslatt'] as const).map(f => (
-          <Button
-            key={f}
-            variant={filter === f ? 'primary' : 'secondary'}
-            size="sm"
-            onClick={() => setFilter(f)}
-          >
-            {f === 'all' ? 'Alle' : f === 'godkjent' ? 'Godkjent' : 'Avslått'}
-          </Button>
-        ))}
+      {/* Filters */}
+      <div className="flex flex-wrap gap-4">
+        <div>
+          <label className="text-sm text-pkt-text-body-subtle block mb-1">Status</label>
+          <div className="flex gap-2">
+            {(['all', 'godkjent', 'avslatt'] as const).map(f => (
+              <Button
+                key={f}
+                variant={statusFilter === f ? 'primary' : 'secondary'}
+                size="sm"
+                onClick={() => setStatusFilter(f)}
+              >
+                {f === 'all' ? 'Alle' : f === 'godkjent' ? 'Godkjent' : 'Avslått'}
+              </Button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="text-sm text-pkt-text-body-subtle block mb-1">Søknadstype</label>
+          <div className="flex gap-2">
+            {(['all', 'machine', 'infrastructure'] as const).map(f => (
+              <Button
+                key={f}
+                variant={typeFilter === f ? 'primary' : 'secondary'}
+                size="sm"
+                onClick={() => setTypeFilter(f)}
+              >
+                {f === 'all' ? 'Alle' : SOKNADSTYPE_LABELS[f]}
+              </Button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Table */}
       {filteredData.length === 0 ? (
         <Card variant="outlined" padding="lg">
           <div className="text-center py-8 text-pkt-text-body-subtle">
-            Ingen ferdigbehandlede søknader funnet
+            Ingen ferdigbehandlede søknader funnet med valgte filtre
           </div>
         </Card>
       ) : (
@@ -320,6 +509,7 @@ function HistorikkAnalyse({ data, onNavigate }: { data: FravikAnalyticsData; onN
               <thead>
                 <tr className="border-b border-pkt-border-default bg-pkt-bg-muted">
                   <th className="text-left py-3 px-4 font-medium text-pkt-text-body-subtle">Prosjekt</th>
+                  <th className="text-left py-3 px-4 font-medium text-pkt-text-body-subtle">Type</th>
                   <th className="text-left py-3 px-4 font-medium text-pkt-text-body-subtle">Søker</th>
                   <th className="text-center py-3 px-4 font-medium text-pkt-text-body-subtle">Maskiner</th>
                   <th className="text-left py-3 px-4 font-medium text-pkt-text-body-subtle">Status</th>
@@ -343,8 +533,15 @@ function HistorikkAnalyse({ data, onNavigate }: { data: FravikAnalyticsData; onN
                           <div className="text-xs text-pkt-text-body-subtle">{soknad.prosjekt_nummer}</div>
                         )}
                       </td>
+                      <td className="py-3 px-4">
+                        <span className="text-xs px-2 py-0.5 rounded bg-pkt-bg-muted text-pkt-text-body-subtle">
+                          {SOKNADSTYPE_LABELS[soknad.soknad_type]}
+                        </span>
+                      </td>
                       <td className="py-3 px-4 text-pkt-text-body">{soknad.soker_navn}</td>
-                      <td className="py-3 px-4 text-center text-pkt-text-body">{soknad.antall_maskiner}</td>
+                      <td className="py-3 px-4 text-center text-pkt-text-body">
+                        {soknad.soknad_type === 'machine' ? soknad.antall_maskiner : '-'}
+                      </td>
                       <td className="py-3 px-4">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${colorClass}`}>
                           {soknad.visningsstatus || FRAVIK_STATUS_LABELS[soknad.status]}
@@ -385,6 +582,8 @@ export function FravikAnalysePage() {
     switch (activeTab) {
       case 'portefolje':
         return <PortefoljeAnalyse data={analyticsData} />;
+      case 'soknadstyper':
+        return <SoknadstypeAnalyse data={analyticsData} />;
       case 'grunner':
         return <GrunnerAnalyse data={analyticsData} />;
       case 'maskintyper':
@@ -400,7 +599,7 @@ export function FravikAnalysePage() {
     <div className="min-h-screen bg-pkt-bg-subtle">
       <PageHeader
         title="Fravik-analyse"
-        subtitle="Beslutningsstøtte basert på historiske søknader"
+        subtitle="Beslutningsstøtte for vurdering av fravik-søknader basert på historiske data"
         userRole={userRole}
         onToggleRole={setUserRole}
         actions={
@@ -441,25 +640,27 @@ export function FravikAnalysePage() {
                   Om fravik-analyse
                 </h3>
                 <p className="text-sm text-pkt-text-body-default mb-3">
-                  Denne analysesiden gir beslutningsstøtte ved vurdering av fravik-søknader.
-                  Du kan sammenligne med tidligere behandlede saker for å sikre konsistent praksis.
+                  Digitalisering av fravik-søknader gjør det mulig å enkelt sammenligne med tidligere og lignende saker.
+                  For eksempel kan du vurdere under hvilke situasjoner det har blitt godkjent fravik for bestemte
+                  maskintyper fra kravet om utslippsfri teknologi.
                 </p>
                 <div className="grid md:grid-cols-2 gap-4 text-sm">
                   <div>
-                    <strong className="text-pkt-text-body-dark">Bruksområder:</strong>
+                    <strong className="text-pkt-text-body-dark">Analysemetoder:</strong>
                     <ul className="list-disc list-inside mt-1 space-y-1 text-pkt-text-body-subtle">
-                      <li>Vurdere lignende saker som referanse</li>
-                      <li>Se godkjenningsrate per grunn/maskintype</li>
-                      <li>Sikre konsistent behandling</li>
+                      <li><strong>Portefølje:</strong> Overordnet KPI-er og statusfordeling</li>
+                      <li><strong>Søknadstyper:</strong> Maskin vs infrastruktur</li>
+                      <li><strong>Grunner:</strong> Statistikk per fravikgrunn</li>
                     </ul>
                   </div>
                   <div>
-                    <strong className="text-pkt-text-body-dark">Tips:</strong>
                     <ul className="list-disc list-inside mt-1 space-y-1 text-pkt-text-body-subtle">
-                      <li>Bruk Grunner-fanen for å se praksis</li>
-                      <li>Klikk på saker i Historikk for detaljer</li>
-                      <li>Filtrer på status for å finne relevante saker</li>
+                      <li><strong>Maskintyper:</strong> Godkjenningsrate per type</li>
+                      <li><strong>Historikk:</strong> Søkbare ferdigbehandlede saker</li>
                     </ul>
+                    <p className="mt-2 text-xs text-pkt-text-body-subtle italic">
+                      Tips: Klikk på saker i Historikk-fanen for å se detaljer.
+                    </p>
                   </div>
                 </div>
               </Card>
