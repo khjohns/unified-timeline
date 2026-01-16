@@ -46,8 +46,8 @@ export const RadioItem = forwardRef<
       ref={ref}
       id={radioId}
       className={clsx(
-        // Size
-        'h-6 w-6',
+        // Size - 26x26px for WCAG 2.5.8 Target Size (Minimum) compliance with margin
+        'h-[26px] w-[26px]',
         'shrink-0',
 
         // Base styles - border-2 now works with Punkt CSS in @layer
