@@ -64,13 +64,22 @@ export function FravikOversiktPage() {
         subtitle="Søknader om fravik fra utslippsfrie krav på byggeplasser"
         maxWidth="wide"
         actions={
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => setShowOpprettModal(true)}
-          >
-            Ny søknad
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => navigate('/fravik-analyse')}
+            >
+              Analyse
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setShowOpprettModal(true)}
+            >
+              Ny søknad
+            </Button>
+          </div>
         }
       />
 
