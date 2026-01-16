@@ -1,13 +1,13 @@
 /**
  * FravikDashboard Component
  *
- * Dashboard for fravik-søknad with role-based views:
- * - TE: Edit søknad, maskiner, avbøtende tiltak
- * - BH: Read-only søknad + "Din oppgave" section for vurdering
+ * Dashboard for fravik-søknad showing TE's application data:
+ * - Søknadsinformasjon
+ * - Maskiner
+ * - Avbøtende tiltak og konsekvenser
  *
- * Design principle: "Les først, vurder nederst"
- * - Søknadsdata vises read-only for BH
- * - Én tydelig "Din oppgave"-seksjon med kontekstuell CTA
+ * BH's review sections (Din oppgave, Tidligere vurderinger) are now
+ * rendered separately at page level for clearer visual hierarchy.
  */
 
 import { useMemo } from 'react';
@@ -25,11 +25,6 @@ interface FravikDashboardProps {
   onRedigerSoknad?: () => void;
   onLeggTilMaskin?: () => void;
   onRedigerAvbotende?: () => void;
-  // BH actions
-  onMiljoVurdering?: () => void;
-  onPLVurdering?: () => void;
-  onArbeidsgruppeVurdering?: () => void;
-  onEierBeslutning?: () => void;
 }
 
 // ============================================================================
@@ -66,23 +61,6 @@ function getAvbotendeBadge(state: FravikState): { variant: 'success' | 'neutral'
     : { variant: 'neutral', label: 'Ikke utfylt' };
 }
 
-/**
- * Get maskin status badge variant
- */
-function getMaskinStatusBadge(status: string): { variant: 'success' | 'danger' | 'warning' | 'neutral'; label: string } {
-  switch (status) {
-    case 'godkjent':
-      return { variant: 'success', label: 'Godkjent' };
-    case 'avslatt':
-      return { variant: 'danger', label: 'Avslått' };
-    case 'delvis_godkjent':
-      return { variant: 'warning', label: 'Delvis' };
-    default:
-      return { variant: 'neutral', label: 'Ikke vurdert' };
-  }
-}
-
-
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
@@ -93,52 +71,17 @@ export function FravikDashboard({
   onRedigerSoknad,
   onLeggTilMaskin,
   onRedigerAvbotende,
-  onMiljoVurdering,
-  onPLVurdering,
-  onArbeidsgruppeVurdering,
-  onEierBeslutning,
 }: FravikDashboardProps) {
   const maskiner = useMemo(() => Object.values(state.maskiner), [state.maskiner]);
   const canEdit = state.status === 'utkast';
-  const gjeldende = state.godkjenningskjede.gjeldende_steg;
-  const isBH = userRole === 'BH';
   const isTE = userRole === 'TE';
 
   const soknadBadge = getSoknadBadge(state);
   const maskinBadge = getMaskinBadge(state);
   const avbotendeBadge = getAvbotendeBadge(state);
 
-  // Show "Din oppgave" for BH when søknad is submitted and not finished
-  const showDinOppgave = isBH && state.status !== 'utkast' && gjeldende !== 'ferdig';
-
   return (
     <div className="space-y-4">
-      {/* Din oppgave - øverst for BH når søknad er sendt inn */}
-      {showDinOppgave && (
-        <>
-          <DinOppgaveAlert
-            gjeldende={gjeldende}
-            onMiljoVurdering={onMiljoVurdering}
-            onPLVurdering={onPLVurdering}
-            onArbeidsgruppeVurdering={onArbeidsgruppeVurdering}
-            onEierBeslutning={onEierBeslutning}
-          />
-          {/* Tidligere vurderinger - detaljert visning for AG og Eier */}
-          {(gjeldende === 'arbeidsgruppe' || gjeldende === 'eier') && (
-            <TidligereVurderingerKort state={state} gjeldende={gjeldende} />
-          )}
-
-          {/* Semantisk skille mellom vurdering og søknadsdata */}
-          <div className="flex items-center gap-3 pt-2">
-            <div className="flex-1 border-t border-pkt-border-subtle" />
-            <span className="text-xs font-medium text-pkt-text-body-muted uppercase tracking-wide">
-              Søknadsdata
-            </span>
-            <div className="flex-1 border-t border-pkt-border-subtle" />
-          </div>
-        </>
-      )}
-
       {/* Spor 1: Søknadsinformasjon */}
       <DashboardCard
         title="Søknadsinformasjon"
@@ -257,7 +200,7 @@ export function FravikDashboard({
 // TIDLIGERE VURDERINGER COMPONENT
 // ============================================================================
 
-interface TidligereVurderingerKortProps {
+export interface TidligereVurderingerKortProps {
   state: FravikState;
   gjeldende: 'miljo' | 'pl' | 'arbeidsgruppe' | 'eier' | 'ferdig';
 }
@@ -366,7 +309,7 @@ function MaskinVurderingListe({
   );
 }
 
-function TidligereVurderingerKort({ state, gjeldende }: TidligereVurderingerKortProps) {
+export function TidligereVurderingerKort({ state, gjeldende }: TidligereVurderingerKortProps) {
   const { godkjenningskjede } = state;
   const maskiner = Object.values(state.maskiner);
 
@@ -418,7 +361,7 @@ function TidligereVurderingerKort({ state, gjeldende }: TidligereVurderingerKort
 // DIN OPPGAVE ALERT COMPONENT
 // ============================================================================
 
-interface DinOppgaveAlertProps {
+export interface DinOppgaveAlertProps {
   gjeldende: 'miljo' | 'pl' | 'arbeidsgruppe' | 'eier' | 'ferdig';
   onMiljoVurdering?: () => void;
   onPLVurdering?: () => void;
@@ -460,7 +403,7 @@ function getOppgaveConfig(gjeldende: string) {
   }
 }
 
-function DinOppgaveAlert({
+export function DinOppgaveAlert({
   gjeldende,
   onMiljoVurdering,
   onPLVurdering,

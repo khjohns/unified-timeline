@@ -22,6 +22,8 @@ import { fetchFravikState, fetchFravikEvents } from '../api/fravik';
 import {
   AvbotendeTiltakModal,
   FravikDashboard,
+  DinOppgaveAlert,
+  TidligereVurderingerKort,
   LeggTilMaskinModal,
   OpprettFravikModal,
   SendInnModal,
@@ -248,27 +250,52 @@ export function FravikPage() {
           </Alert>
         )}
 
-        {/* Hovedkort: Fravik Dashboard */}
-        <section aria-labelledby="fravik-dashboard-heading">
+        {/* Vurdering - BH vurderingsseksjon (kun når søknad er sendt inn) */}
+        {userRole === 'BH' && state.status !== 'utkast' && state.godkjenningskjede.gjeldende_steg !== 'ferdig' && (
+          <section aria-labelledby="vurdering-heading">
+            <Card variant="outlined" padding="md">
+              <h2
+                id="vurdering-heading"
+                className="text-base font-semibold text-pkt-text-body-dark mb-3"
+              >
+                Vurdering
+              </h2>
+              <div className="space-y-4">
+                <DinOppgaveAlert
+                  gjeldende={state.godkjenningskjede.gjeldende_steg}
+                  onMiljoVurdering={() => setShowMiljoVurdering(true)}
+                  onPLVurdering={() => setShowPLVurdering(true)}
+                  onArbeidsgruppeVurdering={() => setShowArbeidsgruppeVurdering(true)}
+                  onEierBeslutning={() => setShowEierBeslutning(true)}
+                />
+                {/* Tidligere vurderinger - for AG og Eier */}
+                {(state.godkjenningskjede.gjeldende_steg === 'arbeidsgruppe' ||
+                  state.godkjenningskjede.gjeldende_steg === 'eier') && (
+                  <TidligereVurderingerKort
+                    state={state}
+                    gjeldende={state.godkjenningskjede.gjeldende_steg}
+                  />
+                )}
+              </div>
+            </Card>
+          </section>
+        )}
+
+        {/* Søknadsdata - TE's søknadsinnhold */}
+        <section aria-labelledby="soknadsdata-heading">
           <Card variant="outlined" padding="md">
             <h2
-              id="fravik-dashboard-heading"
+              id="soknadsdata-heading"
               className="text-base font-semibold text-pkt-text-body-dark mb-3"
             >
-              Fravik-søknad
+              Søknadsdata
             </h2>
             <FravikDashboard
               state={state}
               userRole={userRole}
-              // TE actions
               onRedigerSoknad={() => setShowRedigerSoknad(true)}
               onLeggTilMaskin={() => setShowLeggTilMaskin(true)}
               onRedigerAvbotende={() => setShowAvbotendeTiltak(true)}
-              // BH actions
-              onMiljoVurdering={() => setShowMiljoVurdering(true)}
-              onPLVurdering={() => setShowPLVurdering(true)}
-              onArbeidsgruppeVurdering={() => setShowArbeidsgruppeVurdering(true)}
-              onEierBeslutning={() => setShowEierBeslutning(true)}
             />
           </Card>
         </section>

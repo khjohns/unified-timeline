@@ -7,7 +7,7 @@
 
 import { useState } from 'react';
 import { ChevronDownIcon, ChevronRightIcon } from '@radix-ui/react-icons';
-import { Badge, DataList, DataListItem } from '../primitives';
+import { DataList, DataListItem } from '../primitives';
 import type { MaskinTilstand, MaskinVurderingStatus, Drivstoff } from '../../types/fravik';
 import { MASKIN_TYPE_LABELS } from '../../types/fravik';
 import { formatDateShort } from '../../utils/formatters';
@@ -26,16 +26,16 @@ const DRIVSTOFF_LABELS: Record<Drivstoff, string> = {
 // HELPERS
 // ============================================================================
 
-function getStatusBadge(status: MaskinVurderingStatus): { variant: 'success' | 'danger' | 'warning' | 'neutral'; label: string } {
+function getStatusText(status: MaskinVurderingStatus): { label: string } {
   switch (status) {
     case 'godkjent':
-      return { variant: 'success', label: 'Godkjent' };
+      return { label: 'Godkjent' };
     case 'avslatt':
-      return { variant: 'danger', label: 'Avslått' };
+      return { label: 'Avslått' };
     case 'delvis_godkjent':
-      return { variant: 'warning', label: 'Delvis' };
+      return { label: 'Delvis' };
     default:
-      return { variant: 'neutral', label: 'Venter' };
+      return { label: 'Venter' };
   }
 }
 
@@ -138,7 +138,7 @@ export function MaskinListe({ maskiner, emptyMessage = 'Ingen maskiner lagt til.
     <div className="divide-y divide-pkt-border-subtle">
       {maskiner.map((maskin) => {
         const isExpanded = expandedId === maskin.maskin_id;
-        const { variant, label } = getStatusBadge(maskin.samlet_status);
+        const { label } = getStatusText(maskin.samlet_status);
         const maskinNavn = MASKIN_TYPE_LABELS[maskin.maskin_type] || maskin.maskin_type;
         const periode = `${formatDateShort(maskin.start_dato)} – ${formatDateShort(maskin.slutt_dato)}`;
 
@@ -170,8 +170,8 @@ export function MaskinListe({ maskiner, emptyMessage = 'Ingen maskiner lagt til.
                 <span className="text-xs text-pkt-text-body-muted">{periode}</span>
               </div>
 
-              {/* Status badge */}
-              <Badge variant={variant} size="sm">{label}</Badge>
+              {/* Status text */}
+              <span className="text-sm font-medium text-pkt-text-body-default">{label}</span>
             </button>
 
             {/* Expandable details */}

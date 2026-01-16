@@ -4,7 +4,8 @@
  * Components for fravik-søknad (exemption application) management.
  */
 
-export { FravikDashboard } from './FravikDashboard';
+export { FravikDashboard, DinOppgaveAlert, TidligereVurderingerKort } from './FravikDashboard';
+export type { DinOppgaveAlertProps, TidligereVurderingerKortProps } from './FravikDashboard';
 export { MaskinListe } from './MaskinListe';
 export { OpprettFravikModal } from './OpprettFravikModal';
 export { LeggTilMaskinModal } from './LeggTilMaskinModal';
@@ -23,10 +24,8 @@ export {
 export {
   maskinSchema,
   opprettSoknadSchema,
-  sendInnSchema,
   MASKIN_TYPE_OPTIONS,
   SOKNAD_TYPE_OPTIONS,
   type MaskinFormData,
   type OpprettSoknadFormData,
-  type SendInnFormData,
 } from './schemas';

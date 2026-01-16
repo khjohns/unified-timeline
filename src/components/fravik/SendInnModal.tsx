@@ -2,28 +2,24 @@
  * SendInnModal Component
  *
  * Modal for submitting a fravik-søknad for review.
- * Shows summary and confirmation before submission.
+ * Shows read-only summary before submission.
+ *
+ * Confirmation is implicit: user clicks "Send inn" on page,
+ * then confirms by clicking "Send inn" in modal.
  */
 
 import { useState } from 'react';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Alert,
   Button,
-  Checkbox,
   DataList,
   DataListItem,
-  FormField,
   Modal,
   SectionContainer,
-  Textarea,
   useToast,
 } from '../primitives';
 import { useFravikSubmit } from '../../hooks/useFravikSubmit';
-import { oppdaterFravikSoknad } from '../../api/fravik';
 import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
-import { sendInnSchema, type SendInnFormData } from './schemas';
 import type { FravikState } from '../../types/fravik';
 import { formatDateShort } from '../../utils/formatters';
 
@@ -45,24 +41,8 @@ export function SendInnModal({
   const toast = useToast();
   const [showTokenExpired, setShowTokenExpired] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-    reset,
-    control,
-  } = useForm<SendInnFormData>({
-    resolver: zodResolver(sendInnSchema),
-    defaultValues: {
-      avbotende_tiltak: state.avbotende_tiltak || '',
-      konsekvenser_ved_avslag: state.konsekvenser_ved_avslag || '',
-      bekreft_korrekt: false,
-    },
-  });
-
   const mutation = useFravikSubmit({
     onSuccess: (result) => {
-      reset();
       onOpenChange(false);
       if (result.type === 'send_inn') {
         toast.success('Søknad sendt inn', 'Søknaden er nå til vurdering hos miljørådgiver.');
@@ -82,41 +62,13 @@ export function SendInnModal({
   const kanSendesInn = state.kan_sendes_inn;
   const antallMaskiner = state.antall_maskiner;
 
-  const onSubmit = async (data: SendInnFormData) => {
-    const aktor = 'bruker'; // TODO: Get from auth context
-    let currentVersion = state.antall_events;
-
-    try {
-      // Check if we need to update avbotende_tiltak (only if changed from state)
-      const needsUpdate =
-        data.avbotende_tiltak !== state.avbotende_tiltak ||
-        data.konsekvenser_ved_avslag !== state.konsekvenser_ved_avslag;
-
-      if (needsUpdate) {
-        // Update søknad with additional info first
-        await oppdaterFravikSoknad(
-          sakId,
-          {
-            avbotende_tiltak: data.avbotende_tiltak,
-            konsekvenser_ved_avslag: data.konsekvenser_ved_avslag,
-          },
-          aktor,
-          currentVersion
-        );
-        // Version incremented after oppdater
-        currentVersion += 1;
-      }
-
-      // Submit the søknad with correct version
-      mutation.mutate({
-        type: 'send_inn',
-        sakId,
-        aktor,
-        expectedVersion: currentVersion,
-      });
-    } catch (error) {
-      toast.error('Feil ved oppdatering', error instanceof Error ? error.message : 'Ukjent feil');
-    }
+  const handleSubmit = () => {
+    mutation.mutate({
+      type: 'send_inn',
+      sakId,
+      aktor: 'bruker', // TODO: Get from auth context
+      expectedVersion: state.antall_events,
+    });
   };
 
   return (
@@ -126,7 +78,7 @@ export function SendInnModal({
       title="Send inn søknad"
       size="md"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <div className="space-y-6">
         {/* Warning if not ready */}
         {!kanSendesInn && (
           <Alert variant="warning" title="Søknaden kan ikke sendes inn ennå">
@@ -157,64 +109,17 @@ export function SendInnModal({
           </DataList>
         </SectionContainer>
 
-        {/* Tilleggsinformasjon */}
-        <SectionContainer
-          title="Tilleggsinformasjon"
-          description="Påkrevd informasjon til saksbehandler"
-        >
-          <div className="space-y-4">
-            <FormField
-              label="Avbøtende tiltak"
-              required
-              error={errors.avbotende_tiltak?.message}
-              helpText="Beskriv tiltak for å minimere miljøbelastning"
-            >
-              <Textarea
-                id="avbotende_tiltak"
-                {...register('avbotende_tiltak')}
-                rows={3}
-                fullWidth
-                error={!!errors.avbotende_tiltak}
-              />
-            </FormField>
-
-            <FormField
-              label="Konsekvenser ved avslag"
-              required
-              error={errors.konsekvenser_ved_avslag?.message}
-              helpText="Beskriv konsekvensene hvis søknaden avslås"
-            >
-              <Textarea
-                id="konsekvenser_ved_avslag"
-                {...register('konsekvenser_ved_avslag')}
-                rows={3}
-                fullWidth
-                error={!!errors.konsekvenser_ved_avslag}
-              />
-            </FormField>
-          </div>
+        {/* Avbøtende tiltak (read-only) */}
+        <SectionContainer title="Avbøtende tiltak og konsekvenser">
+          <DataList>
+            <DataListItem label="Avbøtende tiltak">
+              <span className="whitespace-pre-wrap">{state.avbotende_tiltak}</span>
+            </DataListItem>
+            <DataListItem label="Konsekvenser ved avslag">
+              <span className="whitespace-pre-wrap">{state.konsekvenser_ved_avslag}</span>
+            </DataListItem>
+          </DataList>
         </SectionContainer>
-
-        {/* Confirmation */}
-        <div className="p-4 bg-pkt-bg-subtle rounded border border-pkt-border-default">
-          <Controller
-            name="bekreft_korrekt"
-            control={control}
-            render={({ field }) => (
-              <Checkbox
-                id="bekreft_korrekt"
-                label="Jeg bekrefter at informasjonen i søknaden er korrekt og fullstendig"
-                checked={field.value}
-                onCheckedChange={field.onChange}
-              />
-            )}
-          />
-          {errors.bekreft_korrekt && (
-            <p className="mt-2 text-sm text-alert-danger-text">
-              {errors.bekreft_korrekt.message}
-            </p>
-          )}
-        </div>
 
         {/* Error Message */}
         {mutation.isError && (
@@ -229,22 +134,23 @@ export function SendInnModal({
             type="button"
             variant="ghost"
             onClick={() => onOpenChange(false)}
-            disabled={isSubmitting}
+            disabled={mutation.isPending}
             className="w-full sm:w-auto order-2 sm:order-1"
           >
             Avbryt
           </Button>
           <Button
-            type="submit"
+            type="button"
             variant="primary"
-            loading={isSubmitting || mutation.isPending}
+            loading={mutation.isPending}
             disabled={!kanSendesInn}
+            onClick={handleSubmit}
             className="w-full sm:w-auto order-1 sm:order-2"
           >
             Send inn søknad
           </Button>
         </div>
-      </form>
+      </div>
 
       {/* Token expired alert */}
       <TokenExpiredAlert

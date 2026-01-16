@@ -100,21 +100,6 @@ export const opprettSoknadSchema = z.object({
 
 export type OpprettSoknadFormData = z.infer<typeof opprettSoknadSchema>;
 
-// ========== SEND INN SCHEMA ==========
-
-/**
- * Schema for submitting søknad for review (SendInnModal)
- */
-export const sendInnSchema = z.object({
-  avbotende_tiltak: z.string().min(10, 'Beskriv avbøtende tiltak (minst 10 tegn)'),
-  konsekvenser_ved_avslag: z.string().min(10, 'Beskriv konsekvenser ved avslag (minst 10 tegn)'),
-  bekreft_korrekt: z.boolean().refine((val) => val === true, {
-    message: 'Du må bekrefte at informasjonen er korrekt',
-  }),
-});
-
-export type SendInnFormData = z.infer<typeof sendInnSchema>;
-
 // ========== MASKIN TYPE OPTIONS ==========
 
 export const MASKIN_TYPE_OPTIONS: { value: MaskinType; label: string }[] = [
