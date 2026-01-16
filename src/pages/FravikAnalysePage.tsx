@@ -22,7 +22,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { InfoCircledIcon } from '@radix-ui/react-icons';
-import { Card, Button, Tabs, Alert } from '../components/primitives';
+import { Card, Button, Tabs, Alert, Table, type Column } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
 import { useUserRole } from '../hooks/useUserRole';
 import { fetchFravikListe } from '../api/fravik';
@@ -456,6 +456,63 @@ function HistorikkAnalyse({ data, onNavigate }: { data: FravikAnalyticsData; onN
     return result;
   }, [data.ferdigbehandlede, statusFilter, typeFilter]);
 
+  const columns: Column<FravikListeItem>[] = [
+    {
+      key: 'prosjekt',
+      label: 'Prosjekt',
+      render: (soknad) => (
+        <div>
+          <div className="font-medium text-pkt-text-heading">{soknad.prosjekt_navn}</div>
+          {soknad.prosjekt_nummer && (
+            <div className="text-xs text-pkt-text-body-subtle">{soknad.prosjekt_nummer}</div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'type',
+      label: 'Type',
+      render: (soknad) => (
+        <span className="text-xs px-2 py-0.5 rounded bg-pkt-bg-subtle text-pkt-text-body-default">
+          {SOKNADSTYPE_LABELS[soknad.soknad_type]}
+        </span>
+      ),
+    },
+    {
+      key: 'soker',
+      label: 'Søker',
+      render: (soknad) => soknad.soker_navn,
+    },
+    {
+      key: 'maskiner',
+      label: 'Maskiner',
+      align: 'center',
+      render: (soknad) => soknad.soknad_type === 'machine' ? soknad.antall_maskiner : '-',
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (soknad) => {
+        const color = getFravikStatusColor(soknad.status);
+        const colorClass = STATUS_COLOR_CLASSES[color] || STATUS_COLOR_CLASSES.gray;
+        return (
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${colorClass}`}>
+            {soknad.visningsstatus || FRAVIK_STATUS_LABELS[soknad.status]}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'behandlet',
+      label: 'Behandlet',
+      render: (soknad) => (
+        <span className="text-pkt-text-body-subtle">
+          {soknad.siste_oppdatert ? formatDateShort(soknad.siste_oppdatert) : '-'}
+        </span>
+      ),
+    },
+  ];
+
   return (
     <AnalyticsSection
       title="Historikk over ferdigbehandlede søknader"
@@ -496,68 +553,15 @@ function HistorikkAnalyse({ data, onNavigate }: { data: FravikAnalyticsData; onN
       </div>
 
       {/* Table */}
-      {filteredData.length === 0 ? (
-        <Card variant="outlined" padding="lg">
-          <div className="text-center py-8 text-pkt-text-body-subtle">
-            Ingen ferdigbehandlede søknader funnet med valgte filtre
-          </div>
-        </Card>
-      ) : (
-        <Card variant="outlined" padding="none">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-pkt-border-default bg-pkt-bg-muted">
-                  <th className="text-left py-3 px-4 font-medium text-pkt-text-body-subtle">Prosjekt</th>
-                  <th className="text-left py-3 px-4 font-medium text-pkt-text-body-subtle">Type</th>
-                  <th className="text-left py-3 px-4 font-medium text-pkt-text-body-subtle">Søker</th>
-                  <th className="text-center py-3 px-4 font-medium text-pkt-text-body-subtle">Maskiner</th>
-                  <th className="text-left py-3 px-4 font-medium text-pkt-text-body-subtle">Status</th>
-                  <th className="text-left py-3 px-4 font-medium text-pkt-text-body-subtle">Behandlet</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredData.map(soknad => {
-                  const color = getFravikStatusColor(soknad.status);
-                  const colorClass = STATUS_COLOR_CLASSES[color] || STATUS_COLOR_CLASSES.gray;
-
-                  return (
-                    <tr
-                      key={soknad.sak_id}
-                      className="border-b border-pkt-border-default hover:bg-pkt-bg-muted cursor-pointer transition-colors"
-                      onClick={() => onNavigate(soknad.sak_id)}
-                    >
-                      <td className="py-3 px-4">
-                        <div className="font-medium text-pkt-text-heading">{soknad.prosjekt_navn}</div>
-                        {soknad.prosjekt_nummer && (
-                          <div className="text-xs text-pkt-text-body-subtle">{soknad.prosjekt_nummer}</div>
-                        )}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="text-xs px-2 py-0.5 rounded bg-pkt-bg-muted text-pkt-text-body-subtle">
-                          {SOKNADSTYPE_LABELS[soknad.soknad_type]}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-pkt-text-body">{soknad.soker_navn}</td>
-                      <td className="py-3 px-4 text-center text-pkt-text-body">
-                        {soknad.soknad_type === 'machine' ? soknad.antall_maskiner : '-'}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${colorClass}`}>
-                          {soknad.visningsstatus || FRAVIK_STATUS_LABELS[soknad.status]}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-pkt-text-body-subtle">
-                        {soknad.siste_oppdatert ? formatDateShort(soknad.siste_oppdatert) : '-'}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
+      <Card variant="outlined" padding="none">
+        <Table
+          columns={columns}
+          data={filteredData}
+          keyExtractor={(soknad) => soknad.sak_id}
+          onRowClick={(soknad) => onNavigate(soknad.sak_id)}
+          emptyMessage="Ingen ferdigbehandlede søknader funnet med valgte filtre"
+        />
+      </Card>
     </AnalyticsSection>
   );
 }
