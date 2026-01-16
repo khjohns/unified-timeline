@@ -161,6 +161,14 @@ export function LeggTilMaskinModal({
   const startDato = watch('start_dato');
   const sluttDato = watch('slutt_dato');
   const estimertForbrukPerDag = watch('estimert_drivstofforbruk');
+  const arbeidskategori = watch('arbeidskategori');
+
+  // Get description for selected arbeidskategori
+  const arbeidskategoriBeskrivelse = useMemo(() => {
+    if (!arbeidskategori) return null;
+    const option = ARBEIDSKATEGORI_OPTIONS.find(o => o.value === arbeidskategori);
+    return option?.description || null;
+  }, [arbeidskategori]);
 
   // Calculate number of days and total consumption
   const antallDager = useMemo(() => {
@@ -519,6 +527,7 @@ export function LeggTilMaskinModal({
               label="Arbeidskategori"
               required
               error={errors.arbeidskategori?.message}
+              helpText={arbeidskategoriBeskrivelse || undefined}
             >
               <Controller
                 name="arbeidskategori"
