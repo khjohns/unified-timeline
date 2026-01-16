@@ -11,11 +11,14 @@ import {
   leggTilMaskin,
   sendInnSoknad,
   oppdaterFravikSoknad,
+  leggTilInfrastruktur,
+  oppdaterInfrastruktur,
 } from '../api/fravik';
 import type {
   SoknadOpprettetData,
   SoknadOppdatertData,
   MaskinData,
+  InfrastrukturData,
 } from '../types/fravik';
 
 // ========== TYPES ==========
@@ -49,7 +52,29 @@ interface SendInnAction {
   expectedVersion?: number;
 }
 
-type FravikAction = OpprettAction | OppdaterAction | LeggTilMaskinAction | SendInnAction;
+interface InfrastrukturLagtTilAction {
+  type: 'infrastruktur_lagt_til';
+  sakId: string;
+  data: InfrastrukturData;
+  aktor: string;
+  expectedVersion?: number;
+}
+
+interface InfrastrukturOppdatertAction {
+  type: 'infrastruktur_oppdatert';
+  sakId: string;
+  data: InfrastrukturData;
+  aktor: string;
+  expectedVersion?: number;
+}
+
+type FravikAction =
+  | OpprettAction
+  | OppdaterAction
+  | LeggTilMaskinAction
+  | SendInnAction
+  | InfrastrukturLagtTilAction
+  | InfrastrukturOppdatertAction;
 
 interface OpprettResult {
   type: 'opprett';
@@ -69,7 +94,21 @@ interface SendInnResult {
   type: 'send_inn';
 }
 
-type FravikResult = OpprettResult | OppdaterResult | LeggTilMaskinResult | SendInnResult;
+interface InfrastrukturLagtTilResult {
+  type: 'infrastruktur_lagt_til';
+}
+
+interface InfrastrukturOppdatertResult {
+  type: 'infrastruktur_oppdatert';
+}
+
+type FravikResult =
+  | OpprettResult
+  | OppdaterResult
+  | LeggTilMaskinResult
+  | SendInnResult
+  | InfrastrukturLagtTilResult
+  | InfrastrukturOppdatertResult;
 
 interface UseFravikSubmitOptions {
   onSuccess?: (result: FravikResult) => void;
@@ -125,6 +164,24 @@ export function useFravikSubmit(options?: UseFravikSubmitOptions) {
         case 'send_inn': {
           await sendInnSoknad(action.sakId, action.aktor, action.expectedVersion);
           return { type: 'send_inn' };
+        }
+        case 'infrastruktur_lagt_til': {
+          await leggTilInfrastruktur(
+            action.sakId,
+            action.data,
+            action.aktor,
+            action.expectedVersion
+          );
+          return { type: 'infrastruktur_lagt_til' };
+        }
+        case 'infrastruktur_oppdatert': {
+          await oppdaterInfrastruktur(
+            action.sakId,
+            action.data,
+            action.aktor,
+            action.expectedVersion
+          );
+          return { type: 'infrastruktur_oppdatert' };
         }
       }
     },

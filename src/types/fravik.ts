@@ -15,6 +15,8 @@ export type FravikEventType =
   | 'fravik_maskin_lagt_til'
   | 'fravik_maskin_oppdatert'
   | 'fravik_maskin_fjernet'
+  | 'fravik_infrastruktur_lagt_til'
+  | 'fravik_infrastruktur_oppdatert'
   | 'fravik_miljo_vurdering'
   | 'fravik_miljo_returnert'
   | 'fravik_pl_vurdering'
@@ -213,14 +215,62 @@ export interface GodkjenningsKjedeTilstand {
 
 // ========== INFRASTRUKTUR ==========
 
+export type InfrastrukturVurderingStatus =
+  | 'ikke_vurdert'
+  | 'godkjent'
+  | 'avslatt';
+
+export interface InfrastrukturVurdering {
+  beslutning: FravikBeslutning;
+  kommentar?: string;
+  vilkar: string[];
+  vurdert_av?: string;
+  vurdert_tidspunkt?: string;
+}
+
 export interface InfrastrukturTilstand {
-  stromtilgang_beskrivelse?: string;
-  mobilt_batteri_vurdert: boolean;
+  // Periode
+  start_dato: string;
+  slutt_dato: string;
+
+  // Strømtilgang og utfordringer
+  stromtilgang_beskrivelse: string;
+
+  // Vurderte alternativer
+  mobil_batteri_vurdert: boolean;
   midlertidig_nett_vurdert: boolean;
-  prosjektspesifikke_forhold?: string;
-  kostnadsanalyse?: string;
-  infrastruktur_erstatning?: string;
   alternative_metoder?: string;
+
+  // Prosjektspesifikke forhold
+  prosjektspesifikke_forhold: string;
+
+  // Kostnader og erstatning
+  kostnadsvurdering: string;
+  erstatningslosning: string;
+
+  // Vurderinger (samlet for hele infrastruktur-søknaden)
+  miljo_vurdering?: InfrastrukturVurdering;
+  arbeidsgruppe_vurdering?: InfrastrukturVurdering;
+  eier_beslutning?: InfrastrukturVurdering;
+
+  // Computed
+  samlet_status: InfrastrukturVurderingStatus;
+}
+
+/**
+ * Data for å legge til eller oppdatere infrastruktur i en søknad.
+ * Brukes i fravik_infrastruktur_lagt_til og fravik_infrastruktur_oppdatert events.
+ */
+export interface InfrastrukturData {
+  start_dato: string;
+  slutt_dato: string;
+  stromtilgang_beskrivelse: string;
+  mobil_batteri_vurdert: boolean;
+  midlertidig_nett_vurdert: boolean;
+  alternative_metoder?: string;
+  prosjektspesifikke_forhold: string;
+  kostnadsvurdering: string;
+  erstatningslosning: string;
 }
 
 // ========== MAIN STATE ==========

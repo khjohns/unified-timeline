@@ -14,6 +14,7 @@ import { useMemo } from 'react';
 import { Pencil1Icon, PlusIcon } from '@radix-ui/react-icons';
 import { DashboardCard, DataList, DataListItem, Badge, Button, Alert } from '../primitives';
 import { MaskinListe } from './MaskinListe';
+import { InfrastrukturSeksjon } from './InfrastrukturSeksjon';
 import type { FravikState, MaskinTilstand, FravikBeslutning } from '../../types/fravik';
 import { MASKIN_TYPE_LABELS } from '../../types/fravik';
 import { formatDateShort } from '../../utils/formatters';
@@ -24,6 +25,7 @@ interface FravikDashboardProps {
   // TE actions
   onRedigerSoknad?: () => void;
   onLeggTilMaskin?: () => void;
+  onRedigerInfrastruktur?: () => void;
   onRedigerAvbotende?: () => void;
 }
 
@@ -52,6 +54,16 @@ function getMaskinBadge(state: FravikState): { variant: 'info' | 'neutral'; labe
 }
 
 /**
+ * Get badge for infrastruktur section
+ */
+function getInfrastrukturBadge(state: FravikState): { variant: 'success' | 'neutral'; label: string } {
+  const hasData = !!state.infrastruktur?.stromtilgang_beskrivelse;
+  return hasData
+    ? { variant: 'success', label: 'Utfylt' }
+    : { variant: 'neutral', label: 'Ikke utfylt' };
+}
+
+/**
  * Get badge for avbøtende tiltak section
  */
 function getAvbotendeBadge(state: FravikState): { variant: 'success' | 'neutral'; label: string } {
@@ -70,6 +82,7 @@ export function FravikDashboard({
   userRole,
   onRedigerSoknad,
   onLeggTilMaskin,
+  onRedigerInfrastruktur,
   onRedigerAvbotende,
 }: FravikDashboardProps) {
   const maskiner = useMemo(() => Object.values(state.maskiner), [state.maskiner]);
@@ -78,6 +91,7 @@ export function FravikDashboard({
 
   const soknadBadge = getSoknadBadge(state);
   const maskinBadge = getMaskinBadge(state);
+  const infrastrukturBadge = getInfrastrukturBadge(state);
   const avbotendeBadge = getAvbotendeBadge(state);
 
   return (
@@ -130,7 +144,7 @@ export function FravikDashboard({
         )}
       </DashboardCard>
 
-      {/* Spor 2: Maskiner */}
+      {/* Spor 2: Maskiner (for machine type) */}
       {state.soknad_type === 'machine' && (
         <DashboardCard
           title="Maskiner"
@@ -153,6 +167,40 @@ export function FravikDashboard({
                 : 'Ingen maskiner lagt til.'
             }
           />
+        </DashboardCard>
+      )}
+
+      {/* Spor 2: Infrastruktur (for infrastructure type) */}
+      {state.soknad_type === 'infrastructure' && (
+        <DashboardCard
+          title="Infrastruktur"
+          headerBadge={<Badge variant={infrastrukturBadge.variant}>{infrastrukturBadge.label}</Badge>}
+          action={
+            isTE && canEdit && onRedigerInfrastruktur && (
+              <Button variant="secondary" size="sm" onClick={onRedigerInfrastruktur}>
+                <Pencil1Icon className="w-4 h-4 mr-1" />
+                {state.infrastruktur ? 'Rediger' : 'Legg til'}
+              </Button>
+            )
+          }
+          variant="default"
+        >
+          {state.infrastruktur ? (
+            <InfrastrukturSeksjon
+              infrastruktur={state.infrastruktur}
+              emptyMessage={
+                canEdit
+                  ? 'Ingen infrastruktur-data lagt til ennå. Klikk "Legg til" for å starte.'
+                  : 'Ingen infrastruktur-data lagt til.'
+              }
+            />
+          ) : (
+            <p className="text-sm text-pkt-text-body-muted">
+              {canEdit
+                ? 'Ingen infrastruktur-data lagt til ennå. Klikk "Legg til" for å starte.'
+                : 'Ingen infrastruktur-data lagt til.'}
+            </p>
+          )}
         </DashboardCard>
       )}
 

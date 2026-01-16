@@ -4,6 +4,10 @@ FravikState - Aggregert tilstand for en fravik-søknad.
 Dette er "view"-modellen som frontend bruker.
 Den beregnes fra event-loggen og representerer "nå-situasjonen".
 
+Støtter to søknadstyper:
+- machine: Søknader med én eller flere maskiner (per-maskin vurdering)
+- infrastructure: Søknader for strømtilgang (samlet vurdering)
+
 FravikState er READ-ONLY og regenereres hver gang fra events.
 """
 from enum import Enum
@@ -292,38 +296,134 @@ class GodkjenningsKjedeTilstand(BaseModel):
         return mapping.get(steg)
 
 
+# ============ INFRASTRUKTUR VURDERINGER ============
+
+class InfrastrukturVurderingStatus(str, Enum):
+    """Status for vurdering av infrastruktur-søknad"""
+    IKKE_VURDERT = "ikke_vurdert"
+    GODKJENT = "godkjent"
+    AVSLATT = "avslatt"
+
+
+class InfrastrukturVurdering(BaseModel):
+    """Vurdering av infrastruktur-søknad (samlet, ikke per-element)"""
+    beslutning: FravikBeslutning = Field(
+        ...,
+        description="Beslutning/anbefaling"
+    )
+    kommentar: Optional[str] = Field(
+        default=None,
+        description="Kommentar til vurderingen"
+    )
+    vilkar: List[str] = Field(
+        default_factory=list,
+        description="Eventuelle vilkår for godkjenning"
+    )
+    vurdert_av: Optional[str] = Field(
+        default=None,
+        description="Hvem som vurderte"
+    )
+    vurdert_tidspunkt: Optional[datetime] = Field(
+        default=None,
+        description="Når vurderingen ble gjort"
+    )
+
+
 # ============ INFRASTRUKTUR TILSTAND ============
 
 class InfrastrukturTilstand(BaseModel):
-    """Tilstand for infrastruktur-søknad (ikke maskin)"""
-    stromtilgang_beskrivelse: Optional[str] = Field(
-        default=None,
-        description="Beskrivelse av strømtilgang"
+    """
+    Tilstand for infrastruktur-søknad (strømtilgang på byggeplass).
+
+    Brukes når soknad_type='infrastructure'.
+    Det er kun én infrastruktur-post per søknad (ikke liste som maskiner).
+    """
+    # Periode
+    start_dato: str = Field(
+        ...,
+        description="Start-dato for bruk (YYYY-MM-DD)"
     )
-    mobilt_batteri_vurdert: bool = Field(
+    slutt_dato: str = Field(
+        ...,
+        description="Slutt-dato for bruk (YYYY-MM-DD)"
+    )
+
+    # Strømtilgang og utfordringer
+    stromtilgang_beskrivelse: str = Field(
+        ...,
+        description="Beskrivelse av utfordringer med strømtilgang på byggeplassen"
+    )
+
+    # Vurderte alternativer
+    mobil_batteri_vurdert: bool = Field(
         default=False,
-        description="Om mobilt batteri er vurdert"
+        description="Om mobile batteriløsninger er vurdert"
     )
     midlertidig_nett_vurdert: bool = Field(
         default=False,
-        description="Om midlertidig nettilkobling er vurdert"
-    )
-    prosjektspesifikke_forhold: Optional[str] = Field(
-        default=None,
-        description="Prosjektspesifikke forhold"
-    )
-    kostnadsanalyse: Optional[str] = Field(
-        default=None,
-        description="Kostnadsanalyse"
-    )
-    infrastruktur_erstatning: Optional[str] = Field(
-        default=None,
-        description="Foreslått erstatning"
+        description="Om midlertidig nett (transformatorstasjon) er vurdert"
     )
     alternative_metoder: Optional[str] = Field(
         default=None,
-        description="Alternative metoder vurdert"
+        description="Andre vurderte alternative løsninger"
     )
+
+    # Prosjektspesifikke forhold
+    prosjektspesifikke_forhold: str = Field(
+        ...,
+        description="Prosjektspesifikke forhold som påvirker (plassmangel, HMS, støy etc.)"
+    )
+
+    # Kostnader og erstatning
+    kostnadsvurdering: str = Field(
+        ...,
+        description="Vurdering av kostnader for alternative løsninger (merkostnad >10%?)"
+    )
+    erstatningslosning: str = Field(
+        ...,
+        description="Erstatningsløsning (f.eks. Dieselaggregat Euro 6 på HVO100)"
+    )
+
+    # Vurderinger (samlet for hele infrastruktur-søknaden)
+    miljo_vurdering: Optional[InfrastrukturVurdering] = Field(
+        default=None,
+        description="Miljørådgivers vurdering"
+    )
+    arbeidsgruppe_vurdering: Optional[InfrastrukturVurdering] = Field(
+        default=None,
+        description="Arbeidsgruppens vurdering"
+    )
+    eier_beslutning: Optional[InfrastrukturVurdering] = Field(
+        default=None,
+        description="Eiers beslutning"
+    )
+
+    # Computed status
+    @computed_field
+    @property
+    def samlet_status(self) -> InfrastrukturVurderingStatus:
+        """Beregner samlet status for infrastruktur basert på vurderingskjeden"""
+        # Prioriter eiers beslutning
+        if self.eier_beslutning:
+            return self._beslutning_til_status(self.eier_beslutning.beslutning)
+
+        # Deretter arbeidsgruppens
+        if self.arbeidsgruppe_vurdering:
+            return self._beslutning_til_status(self.arbeidsgruppe_vurdering.beslutning)
+
+        # Deretter miljørådgiver
+        if self.miljo_vurdering:
+            return self._beslutning_til_status(self.miljo_vurdering.beslutning)
+
+        return InfrastrukturVurderingStatus.IKKE_VURDERT
+
+    def _beslutning_til_status(self, beslutning: FravikBeslutning) -> InfrastrukturVurderingStatus:
+        """Mapper FravikBeslutning til InfrastrukturVurderingStatus"""
+        if beslutning in (FravikBeslutning.GODKJENT, FravikBeslutning.DELVIS_GODKJENT):
+            return InfrastrukturVurderingStatus.GODKJENT
+        elif beslutning == FravikBeslutning.AVSLATT:
+            return InfrastrukturVurderingStatus.AVSLATT
+        return InfrastrukturVurderingStatus.IKKE_VURDERT
 
 
 # ============ HOVEDMODELL: FRAVIK STATE ============
@@ -541,6 +641,8 @@ class FravikState(BaseModel):
             return False
         if self.soknad_type == "machine" and not self.maskiner:
             return False
+        if self.soknad_type == "infrastructure" and not self.infrastruktur:
+            return False
         return True
 
     @computed_field
@@ -601,9 +703,10 @@ class FravikState(BaseModel):
             }
 
         if self.status == FravikStatus.UNDER_ARBEIDSGRUPPE:
+            handling = "Gi innstilling for hver maskin" if self.soknad_type == "machine" else "Gi innstilling for søknaden"
             return {
                 "rolle": FravikRolle.ARBEIDSGRUPPE,
-                "handling": "Gi innstilling for hver maskin",
+                "handling": handling,
             }
 
         if self.status == FravikStatus.UNDER_EIER_BESLUTNING:

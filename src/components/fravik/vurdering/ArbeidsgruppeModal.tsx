@@ -59,7 +59,18 @@ const arbeidsgruppeSchema = z.object({
   deltakere_text: z.string().optional(), // Comma-separated list for input convenience
 });
 
+// Schema for infrastructure (samlet vurdering - uten per-maskin vurdering)
+const infrastrukturArbeidsgruppeSchema = z.object({
+  beslutning: z.enum(['godkjent', 'avslatt'] as const, {
+    errorMap: () => ({ message: 'Velg godkjent eller avslått' }),
+  }),
+  kommentar: z.string().min(10, 'Begrunnelse må være minst 10 tegn'),
+  vilkar: z.string().optional(),
+  deltakere_text: z.string().optional(),
+});
+
 type ArbeidsgruppeFormData = z.infer<typeof arbeidsgruppeSchema>;
+type InfrastrukturArbeidsgruppeFormData = z.infer<typeof infrastrukturArbeidsgruppeSchema>;
 
 // ============================================================================
 // HELPERS
@@ -121,12 +132,13 @@ export function ArbeidsgruppeModal({
 
   // Get maskiner as array
   const maskiner = useMemo(() => Object.values(state.maskiner), [state.maskiner]);
+  const isInfrastruktur = state.soknad_type === 'infrastructure';
 
   // Get previous vurderinger for context
   const miljoVurdering = state.godkjenningskjede.miljo_vurdering;
   const plVurdering = state.godkjenningskjede.pl_vurdering;
 
-  // Default values with per-maskin entries
+  // Default values with per-maskin entries (for machine type)
   const defaultValues = useMemo((): Partial<ArbeidsgruppeFormData> => ({
     maskin_vurderinger: maskiner.map((m) => ({
       maskin_id: m.maskin_id,
@@ -138,6 +150,7 @@ export function ArbeidsgruppeModal({
     deltakere_text: '',
   }), [maskiner]);
 
+  // Form for machine type
   const {
     register,
     handleSubmit,
@@ -150,6 +163,17 @@ export function ArbeidsgruppeModal({
     defaultValues,
   });
 
+  // Form for infrastructure type (samlet vurdering)
+  const infrastrukturForm = useForm<InfrastrukturArbeidsgruppeFormData>({
+    resolver: zodResolver(infrastrukturArbeidsgruppeSchema),
+    defaultValues: {
+      beslutning: undefined as unknown as 'godkjent' | 'avslatt',
+      kommentar: '',
+      vilkar: '',
+      deltakere_text: '',
+    },
+  });
+
   const { fields } = useFieldArray({
     control,
     name: 'maskin_vurderinger',
@@ -159,12 +183,23 @@ export function ArbeidsgruppeModal({
   useEffect(() => {
     if (open) {
       reset(defaultValues);
+      infrastrukturForm.reset({
+        beslutning: undefined as unknown as 'godkjent' | 'avslatt',
+        kommentar: '',
+        vilkar: '',
+        deltakere_text: '',
+      });
     }
-  }, [open, reset, defaultValues]);
+  }, [open, reset, infrastrukturForm, defaultValues]);
+
+  const effectiveIsDirty = isInfrastruktur ? infrastrukturForm.formState.isDirty : isDirty;
 
   const { showConfirmDialog, setShowConfirmDialog, handleClose, confirmClose } = useConfirmClose({
-    isDirty,
-    onReset: reset,
+    isDirty: effectiveIsDirty,
+    onReset: () => {
+      reset();
+      infrastrukturForm.reset();
+    },
     onClose: () => onOpenChange(false),
   });
 
@@ -173,7 +208,7 @@ export function ArbeidsgruppeModal({
     sakId,
     'arbeidsgruppe_vurdering',
     formData,
-    isDirty
+    effectiveIsDirty
   );
 
   const hasCheckedBackup = useRef(false);
@@ -244,15 +279,35 @@ export function ArbeidsgruppeModal({
   });
 
   const maskinVurderinger = watch('maskin_vurderinger') || [];
+  const infraBeslutning = infrastrukturForm.watch('beslutning');
 
-  // Calculate samlet innstilling from maskin vurderinger
+  // Calculate samlet innstilling from maskin vurderinger (or use infrastruktur beslutning)
   const samletInnstilling = useMemo(
-    () => calculateSamletInnstilling(maskinVurderinger),
-    [maskinVurderinger]
+    () => isInfrastruktur ? infraBeslutning : calculateSamletInnstilling(maskinVurderinger),
+    [isInfrastruktur, infraBeslutning, maskinVurderinger]
   );
+
+  const alleVurdert = isInfrastruktur
+    ? !!infraBeslutning
+    : maskinVurderinger.every((v) => v.beslutning);
 
   const onSubmit = (data: ArbeidsgruppeFormData) => {
     vurderingMutation.mutate(data);
+  };
+
+  const onSubmitInfrastruktur = (data: InfrastrukturArbeidsgruppeFormData) => {
+    const deltakere = data.deltakere_text
+      ?.split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0) || [];
+
+    // For infrastructure, we send the samlet innstilling directly
+    vurderingMutation.mutate({
+      maskin_vurderinger: [],
+      kommentar: data.kommentar,
+      deltakere_text: data.deltakere_text,
+      // Note: Backend needs to handle infrastructure vurdering differently
+    } as ArbeidsgruppeFormData);
   };
 
   return (
@@ -263,7 +318,13 @@ export function ArbeidsgruppeModal({
       description="Vurder hver maskin og gi en samlet innstilling til prosjekteier."
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form
+        onSubmit={isInfrastruktur
+          ? infrastrukturForm.handleSubmit(onSubmitInfrastruktur)
+          : handleSubmit(onSubmit)
+        }
+        className="space-y-6"
+      >
         {/* Tidligere vurderinger kontekst */}
         <SectionContainer title="Tidligere anbefalinger" variant="subtle">
           <DataList variant="grid">
@@ -298,7 +359,8 @@ export function ArbeidsgruppeModal({
               )}
             </p>
             <p className="text-pkt-text-body-muted">
-              Søker: {state.soker_navn} • {maskiner.length} maskin{maskiner.length !== 1 ? 'er' : ''}
+              Søker: {state.soker_navn} •{' '}
+              {isInfrastruktur ? 'Infrastruktur-søknad' : `${maskiner.length} maskin${maskiner.length !== 1 ? 'er' : ''}`}
             </p>
             {state.er_haste && (
               <Badge variant="danger" size="sm">Hastebehandling</Badge>
@@ -313,7 +375,8 @@ export function ArbeidsgruppeModal({
           (Euro 6/VI, palmefritt biodrivstoff). Innstillingen bør vektlegge miljørådgivers og prosjektleders anbefalinger.
         </Alert>
 
-        {/* Per-maskin vurdering */}
+        {/* Per-maskin vurdering (for machine type) */}
+        {!isInfrastruktur && (
         <SectionContainer
           title="Maskinvurderinger"
           description="Arbeidsgruppen vurderer hver maskin individuelt. Samlet innstilling beregnes automatisk."
@@ -441,6 +504,79 @@ export function ArbeidsgruppeModal({
             </div>
           )}
         </SectionContainer>
+        )}
+
+        {/* Samlet vurdering (for infrastructure type) */}
+        {isInfrastruktur && (
+          <SectionContainer
+            title="Vurdering av infrastruktur-søknad"
+            description="Arbeidsgruppen gir en samlet vurdering av søknaden."
+          >
+            <div className="p-4 rounded-lg border border-pkt-border-default bg-pkt-bg-card space-y-4">
+              {state.infrastruktur && (
+                <div className="mb-3 text-sm space-y-2">
+                  <p className="text-pkt-text-body-muted">
+                    <strong>Strømtilgang:</strong> {state.infrastruktur.stromtilgang_beskrivelse}
+                  </p>
+                  <p className="text-pkt-text-body-muted">
+                    <strong>Erstatningsløsning:</strong> {state.infrastruktur.erstatningslosning}
+                  </p>
+                  {state.infrastruktur.kostnadsvurdering && (
+                    <p className="text-pkt-text-body-muted">
+                      <strong>Kostnadsvurdering:</strong> {state.infrastruktur.kostnadsvurdering}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <FormField
+                label="Beslutning"
+                required
+                error={infrastrukturForm.formState.errors.beslutning?.message}
+              >
+                <Controller
+                  name="beslutning"
+                  control={infrastrukturForm.control}
+                  render={({ field }) => (
+                    <RadioGroup value={field.value || ''} onValueChange={field.onChange}>
+                      <RadioItem
+                        value="godkjent"
+                        label="Godkjent"
+                        error={!!infrastrukturForm.formState.errors.beslutning}
+                      />
+                      <RadioItem
+                        value="avslatt"
+                        label="Avslått"
+                        error={!!infrastrukturForm.formState.errors.beslutning}
+                      />
+                    </RadioGroup>
+                  )}
+                />
+              </FormField>
+
+              <FormField label="Vilkår (valgfritt)">
+                <Textarea
+                  {...infrastrukturForm.register('vilkar')}
+                  rows={2}
+                  fullWidth
+                  placeholder="Eventuelle vilkår for godkjenning..."
+                />
+              </FormField>
+            </div>
+
+            {/* Samlet innstilling for infrastructure */}
+            {samletInnstilling && (
+              <div className="mt-4 p-3 bg-pkt-surface-subtle rounded border border-pkt-border-subtle">
+                <p className="text-sm">
+                  <strong>Samlet innstilling:</strong>{' '}
+                  <Badge variant={getBeslutningBadge(samletInnstilling).variant}>
+                    {getBeslutningBadge(samletInnstilling).label}
+                  </Badge>
+                </p>
+              </div>
+            )}
+          </SectionContainer>
+        )}
 
         {/* Deltakere */}
         <SectionContainer title="Deltakere">
@@ -449,7 +585,7 @@ export function ArbeidsgruppeModal({
             helpText="Skriv navn separert med komma"
           >
             <Input
-              {...register('deltakere_text')}
+              {...(isInfrastruktur ? infrastrukturForm.register('deltakere_text') : register('deltakere_text'))}
               placeholder="Ola Nordmann, Kari Hansen, Per Olsen"
               fullWidth
             />
@@ -461,14 +597,14 @@ export function ArbeidsgruppeModal({
           <FormField
             label="Arbeidsgruppens begrunnelse"
             required
-            error={errors.kommentar?.message}
+            error={isInfrastruktur ? infrastrukturForm.formState.errors.kommentar?.message : errors.kommentar?.message}
           >
             <Textarea
-              {...register('kommentar')}
+              {...(isInfrastruktur ? infrastrukturForm.register('kommentar') : register('kommentar'))}
               rows={5}
               fullWidth
               placeholder="Begrunn arbeidsgruppens innstilling..."
-              error={!!errors.kommentar}
+              error={isInfrastruktur ? !!infrastrukturForm.formState.errors.kommentar : !!errors.kommentar}
             />
           </FormField>
         </SectionContainer>
@@ -496,6 +632,7 @@ export function ArbeidsgruppeModal({
             type="submit"
             variant={samletInnstilling === 'avslatt' ? 'danger' : 'primary'}
             loading={vurderingMutation.isPending}
+            disabled={!alleVurdert}
           >
             Send innstilling
           </Button>

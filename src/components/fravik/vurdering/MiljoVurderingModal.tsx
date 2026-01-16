@@ -53,6 +53,17 @@ const vurderingSchema = z.object({
   kommentar: z.string().optional(),
 });
 
+// Schema for infrastructure (samlet vurdering)
+const infrastrukturVurderingSchema = z.object({
+  beslutning: z.enum(['godkjent', 'avslatt'] as const, {
+    errorMap: () => ({ message: 'Velg vurdering' }),
+  }),
+  kommentar: z.string().optional(),
+  vilkar: z.string().optional(),
+});
+
+type InfrastrukturVurderingFormData = z.infer<typeof infrastrukturVurderingSchema>;
+
 const sendTilbakeSchema = z.object({
   manglende_info: z.string().min(10, 'Beskriv hva som mangler (minst 10 tegn)'),
 });
@@ -214,6 +225,17 @@ export function MiljoVurderingModal({
   const queryClient = useQueryClient();
 
   const maskiner = useMemo(() => Object.values(state.maskiner), [state.maskiner]);
+  const isInfrastruktur = state.soknad_type === 'infrastructure';
+
+  // Infrastructure vurdering form
+  const infrastrukturForm = useForm<InfrastrukturVurderingFormData>({
+    resolver: zodResolver(infrastrukturVurderingSchema),
+    defaultValues: {
+      beslutning: undefined as unknown as 'godkjent' | 'avslatt',
+      kommentar: '',
+      vilkar: '',
+    },
+  });
 
   // Vurdering form
   const vurderingDefaultValues = useMemo((): VurderingFormData => ({
@@ -245,13 +267,14 @@ export function MiljoVurderingModal({
   useEffect(() => {
     if (open) {
       vurderingForm.reset(vurderingDefaultValues);
+      infrastrukturForm.reset({ beslutning: undefined as unknown as 'godkjent' | 'avslatt', kommentar: '', vilkar: '' });
       sendTilbakeForm.reset({ manglende_info: '' });
       setModus('vurdering');
     }
-  }, [open, vurderingForm, sendTilbakeForm, vurderingDefaultValues]);
+  }, [open, vurderingForm, infrastrukturForm, sendTilbakeForm, vurderingDefaultValues]);
 
   const isDirty = modus === 'vurdering'
-    ? vurderingForm.formState.isDirty
+    ? (isInfrastruktur ? infrastrukturForm.formState.isDirty : vurderingForm.formState.isDirty)
     : sendTilbakeForm.formState.isDirty;
 
   const { showConfirmDialog, setShowConfirmDialog, handleClose, confirmClose } = useConfirmClose({
@@ -352,11 +375,27 @@ export function MiljoVurderingModal({
 
   // Beregn samlet anbefaling
   const maskinVurderinger = vurderingForm.watch('maskin_vurderinger') || [];
-  const samletAnbefaling = beregnSamlet(maskinVurderinger.map((v) => v.beslutning));
-  const alleVurdert = maskinVurderinger.every((v) => v.beslutning);
+  const infraBeslutning = infrastrukturForm.watch('beslutning');
+
+  const samletAnbefaling = isInfrastruktur
+    ? infraBeslutning
+    : beregnSamlet(maskinVurderinger.map((v) => v.beslutning));
+
+  const alleVurdert = isInfrastruktur
+    ? !!infraBeslutning
+    : maskinVurderinger.every((v) => v.beslutning);
 
   const onSubmitVurdering = (data: VurderingFormData) => {
     vurderingMutation.mutate(data);
+  };
+
+  const onSubmitInfrastrukturVurdering = (data: InfrastrukturVurderingFormData) => {
+    // For infrastructure, we send a simplified payload with samlet vurdering
+    vurderingMutation.mutate({
+      maskin_vurderinger: [], // No per-machine vurdering for infrastructure
+      kommentar: data.kommentar,
+      // The samlet_anbefaling will be set on backend based on beslutning
+    } as VurderingFormData);
   };
 
   const onSubmitSendTilbake = (data: SendTilbakeFormData) => {
@@ -370,11 +409,17 @@ export function MiljoVurderingModal({
       open={open}
       onOpenChange={onOpenChange}
       title="Miljørådgiver vurdering"
-      description={`${state.prosjekt_navn} • ${maskiner.length} maskin${maskiner.length !== 1 ? 'er' : ''}`}
+      description={`${state.prosjekt_navn} • ${isInfrastruktur ? 'Infrastruktur-søknad' : `${maskiner.length} maskin${maskiner.length !== 1 ? 'er' : ''}`}`}
       size="lg"
     >
       {modus === 'vurdering' ? (
-        <form onSubmit={vurderingForm.handleSubmit(onSubmitVurdering)} className="space-y-4">
+        <form
+          onSubmit={isInfrastruktur
+            ? infrastrukturForm.handleSubmit(onSubmitInfrastrukturVurdering)
+            : vurderingForm.handleSubmit(onSubmitVurdering)
+          }
+          className="space-y-4"
+        >
           {/* Veiledning */}
           <Alert variant="info" title="Din rolle">
             Vurder søknaden fra et miljøperspektiv. Din anbefaling går videre til prosjektleder.
@@ -399,30 +444,87 @@ export function MiljoVurderingModal({
             Mangler dokumentasjon? Send tilbake til søker →
           </button>
 
-          {/* Per-maskin vurdering */}
-          <SectionContainer
-            title="Maskinvurderinger"
-            description="Vurder hver maskin."
-          >
-            <div className="space-y-3">
-              {fields.map((field, index) => {
-                const maskin = maskiner.find((m) => m.maskin_id === field.maskin_id);
-                if (!maskin) return null;
+          {/* Per-maskin vurdering (for machine type) */}
+          {!isInfrastruktur && (
+            <SectionContainer
+              title="Maskinvurderinger"
+              description="Vurder hver maskin."
+            >
+              <div className="space-y-3">
+                {fields.map((field, index) => {
+                  const maskin = maskiner.find((m) => m.maskin_id === field.maskin_id);
+                  if (!maskin) return null;
 
-                return (
-                  <MaskinVurderingKort
-                    key={field.id}
-                    maskin={maskin}
-                    index={index}
-                    control={vurderingForm.control}
-                    register={vurderingForm.register}
-                    errors={vurderingForm.formState.errors}
-                    currentBeslutning={maskinVurderinger[index]?.beslutning}
+                  return (
+                    <MaskinVurderingKort
+                      key={field.id}
+                      maskin={maskin}
+                      index={index}
+                      control={vurderingForm.control}
+                      register={vurderingForm.register}
+                      errors={vurderingForm.formState.errors}
+                      currentBeslutning={maskinVurderinger[index]?.beslutning}
+                    />
+                  );
+                })}
+              </div>
+            </SectionContainer>
+          )}
+
+          {/* Samlet vurdering (for infrastructure type) */}
+          {isInfrastruktur && (
+            <SectionContainer
+              title="Vurdering av infrastruktur-søknad"
+              description="Vurder søknaden samlet."
+            >
+              <div className="p-3 rounded-lg border border-pkt-border-default bg-pkt-bg-card space-y-4">
+                {state.infrastruktur && (
+                  <div className="mb-3">
+                    <p className="text-sm text-pkt-text-body-muted">
+                      <strong>Strømtilgang:</strong> {state.infrastruktur.stromtilgang_beskrivelse}
+                    </p>
+                    <p className="text-sm text-pkt-text-body-muted mt-1">
+                      <strong>Erstatningsløsning:</strong> {state.infrastruktur.erstatningslosning}
+                    </p>
+                  </div>
+                )}
+
+                <FormField
+                  label="Vurdering"
+                  required
+                  error={infrastrukturForm.formState.errors.beslutning?.message}
+                >
+                  <Controller
+                    name="beslutning"
+                    control={infrastrukturForm.control}
+                    render={({ field }) => (
+                      <RadioGroup value={field.value || ''} onValueChange={field.onChange}>
+                        <div className="flex gap-4">
+                          {MASKIN_BESLUTNING_OPTIONS.map((opt) => (
+                            <RadioItem
+                              key={opt.value}
+                              value={opt.value}
+                              label={opt.label}
+                              error={!!infrastrukturForm.formState.errors.beslutning}
+                            />
+                          ))}
+                        </div>
+                      </RadioGroup>
+                    )}
                   />
-                );
-              })}
-            </div>
-          </SectionContainer>
+                </FormField>
+
+                <FormField label="Vilkår/kommentar">
+                  <Textarea
+                    {...infrastrukturForm.register('vilkar')}
+                    rows={3}
+                    fullWidth
+                    placeholder="Eventuelle vilkår for godkjenning..."
+                  />
+                </FormField>
+              </div>
+            </SectionContainer>
+          )}
 
           {/* Samlet anbefaling (beregnet) */}
           {samletAnbefaling && alleVurdert && (

@@ -4,11 +4,15 @@ Event-basert datamodell for Fravik-søknader.
 Dette er kjernen i Event Sourcing for fravik fra utslippsfrie krav på byggeplasser.
 Hver event er immutable og representerer en faktisk hendelse i tid.
 
+Søknadstyper:
+- machine: Søknad om fravik for spesifikke maskiner/kjøretøy
+- infrastructure: Søknad om fravik for elektrisk infrastruktur på byggeplass
+
 Godkjenningsflyt:
-1. Søker sender inn søknad (med maskiner)
-2. Miljørådgiver vurderer (per maskin)
+1. Søker sender inn søknad (med maskiner eller infrastruktur)
+2. Miljørådgiver vurderer (per maskin for machine, samlet for infrastructure)
 3. Prosjektleder godkjenner
-4. Arbeidsgruppe gir innstilling (per maskin)
+4. Arbeidsgruppe gir innstilling (per maskin for machine, samlet for infrastructure)
 5. Eier fatter endelig vedtak
 """
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -34,6 +38,10 @@ class FravikEventType(str, Enum):
     MASKIN_LAGT_TIL = "fravik_maskin_lagt_til"
     MASKIN_OPPDATERT = "fravik_maskin_oppdatert"
     MASKIN_FJERNET = "fravik_maskin_fjernet"
+
+    # Infrastruktur-events
+    INFRASTRUKTUR_LAGT_TIL = "fravik_infrastruktur_lagt_til"
+    INFRASTRUKTUR_OPPDATERT = "fravik_infrastruktur_oppdatert"
 
     # Miljørådgiver vurdering (per maskin)
     MILJO_VURDERING = "fravik_miljo_vurdering"
@@ -225,6 +233,50 @@ class MaskinData(BaseModel):
         default=None,
         ge=0,
         description="Estimert drivstofforbruk i liter per dag"
+    )
+
+
+class InfrastrukturData(BaseModel):
+    """Data for infrastruktur-søknad (strømtilgang på byggeplass)"""
+    start_dato: str = Field(
+        ...,
+        description="Når infrastrukturen skal brukes fra (YYYY-MM-DD)"
+    )
+    slutt_dato: str = Field(
+        ...,
+        description="Når infrastrukturen skal brukes til (YYYY-MM-DD)"
+    )
+    stromtilgang_beskrivelse: str = Field(
+        ...,
+        min_length=1,
+        description="Beskrivelse av utfordringer med strømtilgang på byggeplassen"
+    )
+    mobil_batteri_vurdert: bool = Field(
+        default=False,
+        description="Om mobile batteriløsninger er vurdert"
+    )
+    midlertidig_nett_vurdert: bool = Field(
+        default=False,
+        description="Om midlertidig nett (transformatorstasjon) er vurdert"
+    )
+    alternative_metoder: Optional[str] = Field(
+        default=None,
+        description="Andre vurderte alternative løsninger"
+    )
+    prosjektspesifikke_forhold: str = Field(
+        ...,
+        min_length=1,
+        description="Prosjektspesifikke forhold som påvirker (plassmangel, HMS, støy etc.)"
+    )
+    kostnadsvurdering: str = Field(
+        ...,
+        min_length=1,
+        description="Vurdering av kostnader for alternative løsninger (merkostnad >10%?)"
+    )
+    erstatningslosning: str = Field(
+        ...,
+        min_length=1,
+        description="Erstatningsløsning (f.eks. Dieselaggregat Euro 6 på HVO100)"
     )
 
 
@@ -524,6 +576,28 @@ class MaskinFjernetEvent(FravikEvent):
     )
 
 
+class InfrastrukturLagtTilEvent(FravikEvent):
+    """Event for å legge til infrastruktur-data i søknad"""
+    event_type: Literal[FravikEventType.INFRASTRUKTUR_LAGT_TIL] = Field(
+        default=FravikEventType.INFRASTRUKTUR_LAGT_TIL
+    )
+    data: InfrastrukturData = Field(
+        ...,
+        description="Infrastrukturdata"
+    )
+
+
+class InfrastrukturOppdatertEvent(FravikEvent):
+    """Event for oppdatering av infrastruktur-data"""
+    event_type: Literal[FravikEventType.INFRASTRUKTUR_OPPDATERT] = Field(
+        default=FravikEventType.INFRASTRUKTUR_OPPDATERT
+    )
+    data: InfrastrukturData = Field(
+        ...,
+        description="Oppdatert infrastrukturdata"
+    )
+
+
 class MiljoVurderingEvent(FravikEvent):
     """Event for miljørådgivers vurdering"""
     event_type: Literal[FravikEventType.MILJO_VURDERING] = Field(
@@ -624,6 +698,8 @@ AnyFravikEvent = (
     | MaskinLagtTilEvent
     | MaskinOppdatertEvent
     | MaskinFjernetEvent
+    | InfrastrukturLagtTilEvent
+    | InfrastrukturOppdatertEvent
     | MiljoVurderingEvent
     | MiljoReturnertEvent
     | PLVurderingEvent
@@ -666,6 +742,8 @@ def parse_fravik_event(data: dict) -> AnyFravikEvent:
         FravikEventType.MASKIN_LAGT_TIL: MaskinLagtTilEvent,
         FravikEventType.MASKIN_OPPDATERT: MaskinOppdatertEvent,
         FravikEventType.MASKIN_FJERNET: MaskinFjernetEvent,
+        FravikEventType.INFRASTRUKTUR_LAGT_TIL: InfrastrukturLagtTilEvent,
+        FravikEventType.INFRASTRUKTUR_OPPDATERT: InfrastrukturOppdatertEvent,
         FravikEventType.MILJO_VURDERING: MiljoVurderingEvent,
         FravikEventType.MILJO_RETURNERT: MiljoReturnertEvent,
         FravikEventType.PL_VURDERING: PLVurderingEvent,

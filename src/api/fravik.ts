@@ -13,6 +13,7 @@ import type {
   SoknadOpprettetData,
   SoknadOppdatertData,
   MaskinData,
+  InfrastrukturData,
   MiljoVurderingData,
   PLVurderingData,
   ArbeidsgruppeVurderingData,
@@ -167,6 +168,48 @@ export async function fjernMaskin(
   await apiFetch(`/api/fravik/${sakId}/maskin/${maskinId}`, {
     method: 'DELETE',
     body: JSON.stringify({ aktor }),
+  });
+}
+
+// ========== INFRASTRUKTUR ==========
+
+/**
+ * Add infrastructure data to søknad.
+ */
+export async function leggTilInfrastruktur(
+  sakId: string,
+  data: InfrastrukturData,
+  aktor: string,
+  expectedVersion?: number
+): Promise<void> {
+  if (USE_MOCK_API) {
+    await mockDelay();
+    return;
+  }
+
+  await apiFetch(`/api/fravik/${sakId}/infrastruktur`, {
+    method: 'POST',
+    body: JSON.stringify({ ...data, aktor, expected_version: expectedVersion ?? 0 }),
+  });
+}
+
+/**
+ * Update infrastructure data in søknad.
+ */
+export async function oppdaterInfrastruktur(
+  sakId: string,
+  data: InfrastrukturData,
+  aktor: string,
+  expectedVersion?: number
+): Promise<void> {
+  if (USE_MOCK_API) {
+    await mockDelay();
+    return;
+  }
+
+  await apiFetch(`/api/fravik/${sakId}/infrastruktur`, {
+    method: 'PUT',
+    body: JSON.stringify({ ...data, aktor, expected_version: expectedVersion ?? 0 }),
   });
 }
 
