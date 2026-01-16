@@ -219,9 +219,9 @@ export const SelectItem = forwardRef<
       'outline-none',
       'transition-colors duration-150',
 
-      // Hover/focus state
-      'focus:bg-pkt-surface-light-blue',
-      'data-[highlighted]:bg-pkt-surface-light-blue',
+      // Hover/focus state - dark mode needs dark text on light pastel bg
+      'focus:bg-pkt-surface-light-blue dark:focus:text-[#1a3a5a]',
+      'data-[highlighted]:bg-pkt-surface-light-blue dark:data-[highlighted]:text-[#1a3a5a]',
 
       // Disabled state
       'data-[disabled]:pointer-events-none',

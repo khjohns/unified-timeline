@@ -188,7 +188,7 @@ export function ApprovalChainStatus({
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="w-full px-3 py-2 flex items-center justify-between hover:bg-pkt-surface-light-blue transition-colors"
+          className="w-full px-3 py-2 flex items-center justify-between hover:bg-pkt-surface-light-blue dark:hover:text-[#1a3a5a] transition-colors"
           aria-expanded={isOpen}
         >
           <div className="flex items-center gap-2">

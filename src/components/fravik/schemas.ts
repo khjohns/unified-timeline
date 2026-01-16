@@ -91,6 +91,44 @@ export const maskinSchema = z.object({
 
 export type MaskinFormData = z.infer<typeof maskinSchema>;
 
+// ========== INFRASTRUKTUR SCHEMA ==========
+
+/**
+ * Schema for infrastruktur data (used in InfrastrukturModal)
+ * For søknader om fravik fra utslippsfrie krav for elektrisk infrastruktur på byggeplass.
+ */
+export const infrastrukturSchema = z.object({
+  // Periode
+  start_dato: z.string().min(1, 'Startdato er påkrevd'),
+  slutt_dato: z.string().min(1, 'Sluttdato er påkrevd'),
+
+  // Strømtilgang og utfordringer
+  stromtilgang_beskrivelse: z.string().min(20, 'Beskriv strømtilgangsutfordringer (minst 20 tegn)'),
+
+  // Vurderte alternativer
+  mobil_batteri_vurdert: z.boolean().default(false),
+  midlertidig_nett_vurdert: z.boolean().default(false),
+  alternative_metoder: z.string().optional(),
+
+  // Prosjektspesifikke forhold
+  prosjektspesifikke_forhold: z.string().min(10, 'Beskriv prosjektspesifikke forhold (minst 10 tegn)'),
+
+  // Kostnader og erstatning
+  kostnadsvurdering: z.string().min(10, 'Beskriv kostnadsvurdering (minst 10 tegn)'),
+  erstatningslosning: z.string().min(5, 'Oppgi erstatningsløsning (minst 5 tegn)'),
+
+  // Vedlegg
+  attachments: z.array(z.custom<AttachmentFile>()).optional().default([]),
+}).refine(
+  (data) => {
+    if (!data.start_dato || !data.slutt_dato) return true;
+    return new Date(data.slutt_dato) >= new Date(data.start_dato);
+  },
+  { message: 'Sluttdato må være etter startdato', path: ['slutt_dato'] }
+);
+
+export type InfrastrukturFormData = z.infer<typeof infrastrukturSchema>;
+
 // ========== OPPRETT SØKNAD SCHEMA ==========
 
 /**
@@ -137,6 +175,46 @@ export const MASKIN_TYPE_OPTIONS: { value: MaskinType; label: string }[] = [
   { value: 'Spuntmaskin', label: 'Spuntmaskin' },
   { value: 'Vals', label: 'Vals' },
   { value: 'Annet', label: 'Annet' },
+];
+
+/** Grupperte maskintyper for bedre visuell organisering i Select */
+export const MASKIN_TYPE_GROUPS: { label: string; options: { value: MaskinType; label: string }[] }[] = [
+  {
+    label: 'Graving og planering',
+    options: [
+      { value: 'Gravemaskin', label: 'Gravemaskin' },
+      { value: 'Hjullaster', label: 'Hjullaster' },
+      { value: 'Hjuldoser', label: 'Hjuldoser' },
+    ],
+  },
+  {
+    label: 'Boring og peling',
+    options: [
+      { value: 'Bergboremaskin', label: 'Bergboremaskin' },
+      { value: 'Borerigg', label: 'Borerigg' },
+      { value: 'Pælemaskin', label: 'Pælemaskin' },
+      { value: 'Spuntmaskin', label: 'Spuntmaskin' },
+    ],
+  },
+  {
+    label: 'Asfalt og vei',
+    options: [
+      { value: 'Asfaltutlegger', label: 'Asfaltutlegger' },
+      { value: 'Vals', label: 'Vals' },
+    ],
+  },
+  {
+    label: 'Løfting',
+    options: [
+      { value: 'Lift', label: 'Lift' },
+    ],
+  },
+  {
+    label: 'Annet',
+    options: [
+      { value: 'Annet', label: 'Annet' },
+    ],
+  },
 ];
 
 export const MASKIN_VEKT_OPTIONS: { value: MaskinVekt; label: string; description: string }[] = [

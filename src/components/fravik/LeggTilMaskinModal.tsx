@@ -24,7 +24,9 @@ import {
   SectionContainer,
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
   Textarea,
@@ -37,7 +39,7 @@ import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
 import {
   maskinSchema,
   type MaskinFormData,
-  MASKIN_TYPE_OPTIONS,
+  MASKIN_TYPE_GROUPS,
   MASKIN_VEKT_OPTIONS,
   ARBEIDSKATEGORI_OPTIONS,
   BRUKSINTENSITET_OPTIONS,
@@ -257,10 +259,15 @@ export function LeggTilMaskinModal({
                       <SelectValue placeholder="Velg maskintype" />
                     </SelectTrigger>
                     <SelectContent>
-                      {MASKIN_TYPE_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
+                      {MASKIN_TYPE_GROUPS.map((group) => (
+                        <SelectGroup key={group.label}>
+                          <SelectLabel>{group.label}</SelectLabel>
+                          {group.options.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
                       ))}
                     </SelectContent>
                   </Select>
