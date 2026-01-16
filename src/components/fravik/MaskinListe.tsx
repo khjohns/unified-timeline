@@ -9,7 +9,7 @@ import { useState } from 'react';
 import { ChevronDownIcon, ChevronRightIcon } from '@radix-ui/react-icons';
 import { DataList, DataListItem } from '../primitives';
 import type { MaskinTilstand, MaskinVurderingStatus, Drivstoff } from '../../types/fravik';
-import { MASKIN_TYPE_LABELS } from '../../types/fravik';
+import { MASKIN_TYPE_LABELS, MASKIN_VEKT_LABELS } from '../../types/fravik';
 import { formatDateShort } from '../../utils/formatters';
 
 // ============================================================================
@@ -55,6 +55,9 @@ function MaskinDetaljer({ maskin }: MaskinDetaljerProps) {
         <DataListItem label="Periode">
           {formatDateShort(maskin.start_dato)} – {formatDateShort(maskin.slutt_dato)}
         </DataListItem>
+        {maskin.vekt && (
+          <DataListItem label="Vekt">{MASKIN_VEKT_LABELS[maskin.vekt]}</DataListItem>
+        )}
         {maskin.registreringsnummer && (
           <DataListItem label="Reg.nr">{maskin.registreringsnummer}</DataListItem>
         )}

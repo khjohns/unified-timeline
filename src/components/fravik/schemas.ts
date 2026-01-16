@@ -7,7 +7,7 @@
 
 import { z } from 'zod';
 import type { AttachmentFile } from '../../types';
-import type { MaskinType, SoknadType, FravikGrunn, Drivstoff } from '../../types/fravik';
+import type { MaskinType, MaskinVekt, SoknadType, FravikGrunn, Drivstoff } from '../../types/fravik';
 
 // ========== KONSTANTER ==========
 
@@ -31,10 +31,25 @@ export const DRIVSTOFF_OPTIONS: { value: Drivstoff; label: string }[] = [
  * Schema for maskin data (used in LeggTilMaskinModal and OpprettFravikModal)
  */
 export const maskinSchema = z.object({
-  maskin_type: z.enum(['Gravemaskin', 'Hjullaster', 'Lift', 'Annet'] as const, {
+  maskin_type: z.enum([
+    'Gravemaskin',
+    'Hjullaster',
+    'Lift',
+    'Asfaltutlegger',
+    'Bergboremaskin',
+    'Borerigg',
+    'Hjuldoser',
+    'Pælemaskin',
+    'Spuntmaskin',
+    'Vals',
+    'Annet',
+  ] as const, {
     errorMap: () => ({ message: 'Velg maskintype' }),
   }),
   annet_type: z.string().optional(),
+  vekt: z.enum(['liten', 'medium', 'stor', 'svart_stor'] as const, {
+    errorMap: () => ({ message: 'Velg vektkategori' }),
+  }),
   registreringsnummer: z.string().optional(),
   start_dato: z.string().min(1, 'Startdato er påkrevd'),
   slutt_dato: z.string().min(1, 'Sluttdato er påkrevd'),
@@ -106,7 +121,21 @@ export const MASKIN_TYPE_OPTIONS: { value: MaskinType; label: string }[] = [
   { value: 'Gravemaskin', label: 'Gravemaskin' },
   { value: 'Hjullaster', label: 'Hjullaster' },
   { value: 'Lift', label: 'Lift' },
+  { value: 'Asfaltutlegger', label: 'Asfaltutlegger' },
+  { value: 'Bergboremaskin', label: 'Bergboremaskin' },
+  { value: 'Borerigg', label: 'Borerigg' },
+  { value: 'Hjuldoser', label: 'Hjuldoser' },
+  { value: 'Pælemaskin', label: 'Pælemaskin' },
+  { value: 'Spuntmaskin', label: 'Spuntmaskin' },
+  { value: 'Vals', label: 'Vals' },
   { value: 'Annet', label: 'Annet' },
+];
+
+export const MASKIN_VEKT_OPTIONS: { value: MaskinVekt; label: string; description: string }[] = [
+  { value: 'liten', label: 'Liten', description: 'Mindre enn 8 tonn' },
+  { value: 'medium', label: 'Medium', description: '8–20 tonn' },
+  { value: 'stor', label: 'Stor', description: '20–50 tonn' },
+  { value: 'svart_stor', label: 'Svært stor', description: 'Større enn 50 tonn' },
 ];
 
 export const SOKNAD_TYPE_OPTIONS: { value: SoknadType; label: string }[] = [

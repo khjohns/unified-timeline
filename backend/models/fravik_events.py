@@ -73,7 +73,22 @@ class MaskinType(str, Enum):
     GRAVEMASKIN = "Gravemaskin"
     HJULLASTER = "Hjullaster"
     LIFT = "Lift"
+    ASFALTUTLEGGER = "Asfaltutlegger"
+    BERGBOREMASKIN = "Bergboremaskin"
+    BORERIGG = "Borerigg"
+    HJULDOSER = "Hjuldoser"
+    PELEMASKIN = "Pælemaskin"
+    SPUNTMASKIN = "Spuntmaskin"
+    VALS = "Vals"
     ANNET = "Annet"
+
+
+class MaskinVekt(str, Enum):
+    """Vektkategorier for maskiner"""
+    LITEN = "liten"  # < 8 tonn
+    MEDIUM = "medium"  # 8-20 tonn
+    STOR = "stor"  # 20-50 tonn
+    SVART_STOR = "svart_stor"  # > 50 tonn
 
 
 class FravikBeslutning(str, Enum):
@@ -124,6 +139,10 @@ class MaskinData(BaseModel):
     annet_type: Optional[str] = Field(
         default=None,
         description="Spesifisering hvis type er 'Annet'"
+    )
+    vekt: MaskinVekt = Field(
+        ...,
+        description="Vektkategori for maskinen"
     )
     registreringsnummer: Optional[str] = Field(
         default=None,

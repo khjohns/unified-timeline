@@ -15,6 +15,7 @@ from models.fravik_events import (
     FravikStatus,
     FravikBeslutning,
     MaskinType,
+    MaskinVekt,
     FravikRolle,
 )
 
@@ -102,6 +103,10 @@ class MaskinTilstand(BaseModel):
     annet_type: Optional[str] = Field(
         default=None,
         description="Spesifisering hvis type er 'Annet'"
+    )
+    vekt: MaskinVekt = Field(
+        ...,
+        description="Vektkategori for maskinen"
     )
     registreringsnummer: Optional[str] = Field(
         default=None,

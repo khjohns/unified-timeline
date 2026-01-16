@@ -21,6 +21,11 @@ import {
   RadioGroup,
   RadioItem,
   SectionContainer,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Textarea,
   useToast,
 } from '../primitives';
@@ -32,6 +37,7 @@ import {
   maskinSchema,
   type MaskinFormData,
   MASKIN_TYPE_OPTIONS,
+  MASKIN_VEKT_OPTIONS,
   FRAVIK_GRUNNER,
   DRIVSTOFF_OPTIONS,
 } from './schemas';
@@ -68,6 +74,7 @@ export function LeggTilMaskinModal({
     defaultValues: {
       maskin_type: undefined,
       annet_type: '',
+      vekt: undefined,
       registreringsnummer: '',
       start_dato: '',
       slutt_dato: '',
@@ -152,6 +159,7 @@ export function LeggTilMaskinModal({
       maskin_id: '', // Backend will generate a proper UUID
       maskin_type: data.maskin_type,
       annet_type: data.maskin_type === 'Annet' ? data.annet_type : undefined,
+      vekt: data.vekt,
       registreringsnummer: data.registreringsnummer || undefined,
       start_dato: data.start_dato,
       slutt_dato: data.slutt_dato,
@@ -190,21 +198,29 @@ export function LeggTilMaskinModal({
         >
           <div className="space-y-4">
             <FormField
+              label="Type maskin"
+              required
               error={errors.maskin_type?.message}
             >
               <Controller
                 name="maskin_type"
                 control={control}
                 render={({ field }) => (
-                  <RadioGroup
+                  <Select
                     value={field.value}
                     onValueChange={field.onChange}
-                    error={!!errors.maskin_type}
                   >
-                    {MASKIN_TYPE_OPTIONS.map((option) => (
-                      <RadioItem key={option.value} value={option.value} label={option.label} />
-                    ))}
-                  </RadioGroup>
+                    <SelectTrigger error={!!errors.maskin_type}>
+                      <SelectValue placeholder="Velg maskintype" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MASKIN_TYPE_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 )}
               />
             </FormField>
@@ -223,6 +239,33 @@ export function LeggTilMaskinModal({
                 />
               </FormField>
             )}
+
+            <FormField
+              label="Vektkategori"
+              required
+              error={errors.vekt?.message}
+            >
+              <Controller
+                name="vekt"
+                control={control}
+                render={({ field }) => (
+                  <RadioGroup
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    error={!!errors.vekt}
+                  >
+                    {MASKIN_VEKT_OPTIONS.map((option) => (
+                      <RadioItem
+                        key={option.value}
+                        value={option.value}
+                        label={option.label}
+                        description={option.description}
+                      />
+                    ))}
+                  </RadioGroup>
+                )}
+              />
+            </FormField>
 
             <FormField
               label="Registreringsnummer"

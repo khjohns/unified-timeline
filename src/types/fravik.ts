@@ -42,7 +42,20 @@ export type MaskinType =
   | 'Gravemaskin'
   | 'Hjullaster'
   | 'Lift'
+  | 'Asfaltutlegger'
+  | 'Bergboremaskin'
+  | 'Borerigg'
+  | 'Hjuldoser'
+  | 'Pælemaskin'
+  | 'Spuntmaskin'
+  | 'Vals'
   | 'Annet';
+
+export type MaskinVekt =
+  | 'liten'    // < 8 tonn
+  | 'medium'   // 8-20 tonn
+  | 'stor'     // 20-50 tonn
+  | 'svart_stor';  // > 50 tonn
 
 export type FravikBeslutning =
   | 'godkjent'
@@ -83,6 +96,7 @@ export interface MaskinData {
   maskin_id: string;
   maskin_type: MaskinType;
   annet_type?: string;
+  vekt: MaskinVekt;
   registreringsnummer?: string;
   start_dato: string;
   slutt_dato: string;
@@ -132,6 +146,7 @@ export interface MaskinTilstand {
   maskin_id: string;
   maskin_type: MaskinType;
   annet_type?: string;
+  vekt: MaskinVekt;
   registreringsnummer?: string;
   start_dato: string;
   slutt_dato: string;
@@ -394,7 +409,21 @@ export const MASKIN_TYPE_LABELS: Record<MaskinType, string> = {
   Gravemaskin: 'Gravemaskin',
   Hjullaster: 'Hjullaster',
   Lift: 'Lift',
+  Asfaltutlegger: 'Asfaltutlegger',
+  Bergboremaskin: 'Bergboremaskin',
+  Borerigg: 'Borerigg',
+  Hjuldoser: 'Hjuldoser',
+  Pælemaskin: 'Pælemaskin',
+  Spuntmaskin: 'Spuntmaskin',
+  Vals: 'Vals',
   Annet: 'Annet',
+};
+
+export const MASKIN_VEKT_LABELS: Record<MaskinVekt, string> = {
+  liten: 'Liten (< 8 tonn)',
+  medium: 'Medium (8–20 tonn)',
+  stor: 'Stor (20–50 tonn)',
+  svart_stor: 'Svært stor (> 50 tonn)',
 };
 
 /**
