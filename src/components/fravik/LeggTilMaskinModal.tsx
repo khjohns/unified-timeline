@@ -5,7 +5,8 @@
  * Uses React Hook Form + Zod for validation.
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { differenceInDays, parseISO } from 'date-fns';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -42,7 +43,6 @@ import {
   BRUKSINTENSITET_OPTIONS,
   FRAVIK_GRUNNER,
   DRIVSTOFF_OPTIONS,
-  EUROKLASSE_OPTIONS,
 } from './schemas';
 
 interface LeggTilMaskinModalProps {
@@ -88,7 +88,6 @@ export function LeggTilMaskinModal({
       undersøkte_leverandorer: '',
       erstatningsmaskin: '',
       erstatningsdrivstoff: undefined,
-      euroklasse: undefined,
       arbeidsbeskrivelse: '',
       arbeidskategori: undefined,
       bruksintensitet: undefined,
@@ -159,6 +158,25 @@ export function LeggTilMaskinModal({
   // Watch conditional fields
   const maskinType = watch('maskin_type');
   const markedsundersokelse = watch('markedsundersokelse');
+  const startDato = watch('start_dato');
+  const sluttDato = watch('slutt_dato');
+  const estimertForbrukPerDag = watch('estimert_drivstofforbruk');
+
+  // Calculate number of days and total consumption
+  const antallDager = useMemo(() => {
+    if (!startDato || !sluttDato) return null;
+    try {
+      const days = differenceInDays(parseISO(sluttDato), parseISO(startDato)) + 1;
+      return days > 0 ? days : null;
+    } catch {
+      return null;
+    }
+  }, [startDato, sluttDato]);
+
+  const totalForbruk = useMemo(() => {
+    if (!antallDager || !estimertForbrukPerDag) return null;
+    return Math.round(antallDager * estimertForbrukPerDag);
+  }, [antallDager, estimertForbrukPerDag]);
 
   const onSubmit = (data: MaskinFormData) => {
     // Clean up data - let backend generate maskin_id
@@ -177,7 +195,6 @@ export function LeggTilMaskinModal({
       undersøkte_leverandorer: data.markedsundersokelse ? data.undersøkte_leverandorer : undefined,
       erstatningsmaskin: data.erstatningsmaskin,
       erstatningsdrivstoff: data.erstatningsdrivstoff,
-      euroklasse: data.euroklasse,
       arbeidsbeskrivelse: data.arbeidsbeskrivelse,
       arbeidskategori: data.arbeidskategori,
       bruksintensitet: data.bruksintensitet,
@@ -445,11 +462,11 @@ export function LeggTilMaskinModal({
               label="Maskin/modell"
               required
               error={errors.erstatningsmaskin?.message}
+              helpText="Oppgi produsent og modellnavn, f.eks. Caterpillar 320, Volvo EC220E eller Liebherr R920"
             >
               <Input
                 id="erstatningsmaskin"
                 {...register('erstatningsmaskin')}
-                placeholder="F.eks. CAT 320"
                 error={!!errors.erstatningsmaskin}
               />
             </FormField>
@@ -486,34 +503,18 @@ export function LeggTilMaskinModal({
               og skal være ut over omsetningskravet.
             </Alert>
 
-            <FormField
-              label="Euroklasse"
-              required
-              error={errors.euroklasse?.message}
-              helpText="Minimum Euro 6/VI kreves ved innvilget fravik"
-            >
-              <Controller
-                name="euroklasse"
-                control={control}
-                render={({ field }) => (
-                  <RadioGroup
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    error={!!errors.euroklasse}
-                  >
-                    {EUROKLASSE_OPTIONS.map((option) => (
-                      <RadioItem
-                        key={option.value}
-                        value={option.value}
-                        label={option.label}
-                        description={option.description}
-                      />
-                    ))}
-                  </RadioGroup>
-                )}
-              />
-            </FormField>
+            <Alert variant="info" title="Euroklasse">
+              Ved innvilget fravik kreves minimum Euro 6/VI for diesel og Euro VI for gass.
+            </Alert>
+          </div>
+        </SectionContainer>
 
+        {/* Planlagt bruk */}
+        <SectionContainer
+          title="Planlagt bruk"
+          description="Beskriv hva maskinen skal brukes til og forventet bruksomfang"
+        >
+          <div className="space-y-4">
             <FormField
               label="Arbeidskategori"
               required
@@ -523,20 +524,21 @@ export function LeggTilMaskinModal({
                 name="arbeidskategori"
                 control={control}
                 render={({ field }) => (
-                  <RadioGroup
+                  <Select
                     value={field.value}
                     onValueChange={field.onChange}
-                    error={!!errors.arbeidskategori}
                   >
-                    {ARBEIDSKATEGORI_OPTIONS.map((option) => (
-                      <RadioItem
-                        key={option.value}
-                        value={option.value}
-                        label={option.label}
-                        description={option.description}
-                      />
-                    ))}
-                  </RadioGroup>
+                    <SelectTrigger error={!!errors.arbeidskategori}>
+                      <SelectValue placeholder="Velg arbeidskategori" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ARBEIDSKATEGORI_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 )}
               />
             </FormField>
@@ -555,15 +557,7 @@ export function LeggTilMaskinModal({
                 error={!!errors.arbeidsbeskrivelse}
               />
             </FormField>
-          </div>
-        </SectionContainer>
 
-        {/* Bruk og forbruk */}
-        <SectionContainer
-          title="Bruk og forbruk"
-          description="Informasjon om bruksintensitet og estimert drivstofforbruk"
-        >
-          <div className="space-y-4">
             <FormField
               label="Bruksintensitet"
               required
@@ -592,19 +586,26 @@ export function LeggTilMaskinModal({
             </FormField>
 
             <FormField
-              label="Estimert drivstofforbruk"
+              label="Estimert drivstofforbruk per dag"
               error={errors.estimert_drivstofforbruk?.message}
               helpText="Oppgi forventet forbruk i liter per dag (valgfritt)"
             >
-              <Input
-                id="estimert_drivstofforbruk"
-                type="number"
-                min={0}
-                step={0.1}
-                {...register('estimert_drivstofforbruk', { valueAsNumber: true })}
-                placeholder="F.eks. 150"
-                error={!!errors.estimert_drivstofforbruk}
-              />
+              <div className="space-y-2">
+                <Input
+                  id="estimert_drivstofforbruk"
+                  type="number"
+                  min={0}
+                  step={0.1}
+                  {...register('estimert_drivstofforbruk', { valueAsNumber: true })}
+                  error={!!errors.estimert_drivstofforbruk}
+                  width="sm"
+                />
+                {totalForbruk !== null && antallDager !== null && (
+                  <p className="text-sm text-pkt-text-muted">
+                    Totalt for perioden ({antallDager} dager): <strong>{totalForbruk.toLocaleString('nb-NO')} liter</strong>
+                  </p>
+                )}
+              </div>
             </FormField>
           </div>
         </SectionContainer>

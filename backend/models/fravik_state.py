@@ -18,7 +18,6 @@ from models.fravik_events import (
     MaskinVekt,
     Arbeidskategori,
     Bruksintensitet,
-    Euroklasse,
     FravikRolle,
 )
 
@@ -150,10 +149,6 @@ class MaskinTilstand(BaseModel):
     erstatningsdrivstoff: Optional[str] = Field(
         default=None,
         description="Drivstoff for erstatningsmaskin"
-    )
-    euroklasse: Euroklasse = Field(
-        ...,
-        description="Euroklasse for erstatningsmaskin"
     )
     arbeidsbeskrivelse: Optional[str] = Field(
         default=None,

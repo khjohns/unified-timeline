@@ -141,13 +141,6 @@ class Drivstoff(str, Enum):
     DIESEL = "diesel"
 
 
-class Euroklasse(str, Enum):
-    """Euroklasse for erstatningsmaskin - minimum Euro 6/VI ved innvilget fravik"""
-    EURO_4 = "euro_4"
-    EURO_5 = "euro_5"
-    EURO_6 = "euro_6"  # Minimumskrav ved fravik
-
-
 # ============ DATA MODELLER ============
 
 class MaskinData(BaseModel):
@@ -212,11 +205,7 @@ class MaskinData(BaseModel):
     )
     erstatningsdrivstoff: Drivstoff = Field(
         ...,
-        description="Drivstoff for erstatningsmaskin"
-    )
-    euroklasse: Euroklasse = Field(
-        ...,
-        description="Euroklasse for erstatningsmaskin (minimum Euro 6/VI ved fravik)"
+        description="Drivstoff for erstatningsmaskin (diesel krever minimum Euro 6/VI)"
     )
     arbeidsbeskrivelse: str = Field(
         ...,

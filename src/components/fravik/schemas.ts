@@ -7,7 +7,7 @@
 
 import { z } from 'zod';
 import type { AttachmentFile } from '../../types';
-import type { MaskinType, MaskinVekt, Arbeidskategori, Bruksintensitet, Euroklasse, SoknadType, FravikGrunn, Drivstoff } from '../../types/fravik';
+import type { MaskinType, MaskinVekt, Arbeidskategori, Bruksintensitet, SoknadType, FravikGrunn, Drivstoff } from '../../types/fravik';
 
 // ========== KONSTANTER ==========
 
@@ -64,9 +64,6 @@ export const maskinSchema = z.object({
   erstatningsmaskin: z.string().min(1, 'Oppgi erstatningsmaskin'),
   erstatningsdrivstoff: z.enum(['HVO100', 'annet_biodrivstoff', 'diesel'] as const, {
     errorMap: () => ({ message: 'Velg drivstoff for erstatningsmaskin' }),
-  }),
-  euroklasse: z.enum(['euro_4', 'euro_5', 'euro_6'] as const, {
-    errorMap: () => ({ message: 'Velg euroklasse for erstatningsmaskin' }),
   }),
   arbeidsbeskrivelse: z.string().min(10, 'Beskriv arbeidsoppgaver (minst 10 tegn)'),
   // Nye felter for kategorisering og rapportering
@@ -167,10 +164,4 @@ export const BRUKSINTENSITET_OPTIONS: { value: Bruksintensitet; label: string; d
 export const SOKNAD_TYPE_OPTIONS: { value: SoknadType; label: string }[] = [
   { value: 'machine', label: 'Maskin (enkeltmaskiner)' },
   { value: 'infrastructure', label: 'Infrastruktur (strøm/lading)' },
-];
-
-export const EUROKLASSE_OPTIONS: { value: Euroklasse; label: string; description: string }[] = [
-  { value: 'euro_4', label: 'Euro 4/IV', description: 'Under minimumskrav - krever ekstra begrunnelse' },
-  { value: 'euro_5', label: 'Euro 5/V', description: 'Under minimumskrav - krever ekstra begrunnelse' },
-  { value: 'euro_6', label: 'Euro 6/VI', description: 'Minimumskrav ved innvilget fravik' },
 ];

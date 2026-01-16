@@ -342,7 +342,6 @@ function getMockFravikState(sakId: string): FravikState {
         undersøkte_leverandorer: 'Firma A, Firma B, Firma C',
         erstatningsmaskin: 'CAT 320 Diesel',
         erstatningsdrivstoff: 'HVO100',
-        euroklasse: 'euro_6',
         arbeidsbeskrivelse: 'Graving av fundamenter og grøfter',
         arbeidskategori: 'graving',
         bruksintensitet: 'normal',
