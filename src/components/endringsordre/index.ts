@@ -6,6 +6,7 @@
 
 export { UtstEndringsordreModal } from './UtstEndringsordreModal';
 export { EODashboard } from './EODashboard';
+export { EOHistory } from './EOHistory';
 export { RelatertKOEListe, type KOEOversiktItem } from './RelatertKOEListe';
 export { LeggTilKOEModal } from './LeggTilKOEModal';
 export { EndringsordreRelasjonBanner } from './EndringsordreRelasjonBanner';

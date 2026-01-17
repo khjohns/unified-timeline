@@ -11,11 +11,13 @@ import {
   CrossCircledIcon,
   Pencil1Icon,
 } from '@radix-ui/react-icons';
-import type { EndringsordreData, EOStatus, EOKonsekvenser, VederlagsMetode } from '../../types/timeline';
+import type { EndringsordreData, EOStatus, EOKonsekvenser, VederlagsMetode, TimelineEvent } from '../../types/timeline';
+import { EOHistory } from './EOHistory';
 
 interface EODashboardProps {
   eoData: EndringsordreData;
   userRole: 'TE' | 'BH';
+  eoHendelser?: TimelineEvent[];
   onAksepter?: () => void;
   onBestrid?: () => void;
   onRevider?: () => void;
@@ -85,6 +87,7 @@ function KonsekvensChips({ konsekvenser }: { konsekvenser: EOKonsekvenser }) {
 export function EODashboard({
   eoData,
   userRole,
+  eoHendelser,
   onAksepter,
   onBestrid,
   onRevider,
@@ -139,6 +142,9 @@ export function EODashboard({
               <KonsekvensChips konsekvenser={eoData.konsekvenser} />
             </DataListItem>
           </DataList>
+          {eoHendelser && eoHendelser.length > 0 && (
+            <EOHistory entries={eoHendelser} />
+          )}
         </DashboardCard>
 
         {/* Economic summary card */}

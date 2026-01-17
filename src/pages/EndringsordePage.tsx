@@ -267,6 +267,7 @@ export function EndringsordePage() {
             <EODashboard
               eoData={eoData}
               userRole={userRole}
+              eoHendelser={eoTimeline}
               onAksepter={() => setAksepterModalOpen(true)}
               onBestrid={() => setBestridModalOpen(true)}
               onRevider={() => setReviderModalOpen(true)}
