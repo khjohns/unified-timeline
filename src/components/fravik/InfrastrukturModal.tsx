@@ -23,11 +23,6 @@ import {
   RadioGroup,
   RadioItem,
   SectionContainer,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   Textarea,
   useToast,
 } from '../primitives';
@@ -624,21 +619,20 @@ export function InfrastrukturModal({
                 name="aggregat_type"
                 control={control}
                 render={({ field }) => (
-                  <Select
+                  <RadioGroup
                     value={field.value}
                     onValueChange={field.onChange}
+                    error={!!errors.aggregat_type}
                   >
-                    <SelectTrigger error={!!errors.aggregat_type}>
-                      <SelectValue placeholder="Velg type aggregat" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {AGGREGAT_TYPE_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    {AGGREGAT_TYPE_OPTIONS.map((option) => (
+                      <RadioItem
+                        key={option.value}
+                        value={option.value}
+                        label={option.label}
+                        description={option.description}
+                      />
+                    ))}
+                  </RadioGroup>
                 )}
               />
             </FormField>
