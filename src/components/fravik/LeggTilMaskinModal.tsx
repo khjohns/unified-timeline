@@ -276,18 +276,21 @@ export function LeggTilMaskinModal({
             </FormField>
 
             {maskinType === 'Annet' && (
-              <FormField
-                label="Spesifiser maskintype"
-                required
-                error={errors.annet_type?.message}
-              >
-                <Input
-                  id="annet_type"
-                  {...register('annet_type')}
-                  placeholder="F.eks. kompressor, aggregat..."
-                  error={!!errors.annet_type}
-                />
-              </FormField>
+              <div className="ml-6 pl-4 border-l-2 border-pkt-border-subtle">
+                <FormField
+                  label="Spesifiser maskintype"
+                  required
+                  error={errors.annet_type?.message}
+                >
+                  <Input
+                    id="annet_type"
+                    {...register('annet_type')}
+                    placeholder="F.eks. kompressor, aggregat..."
+                    width="lg"
+                    error={!!errors.annet_type}
+                  />
+                </FormField>
+              </div>
             )}
 
             <FormField
@@ -325,6 +328,7 @@ export function LeggTilMaskinModal({
               <Input
                 id="registreringsnummer"
                 {...register('registreringsnummer')}
+                width="sm"
                 error={!!errors.registreringsnummer}
               />
             </FormField>
@@ -482,6 +486,7 @@ export function LeggTilMaskinModal({
               <Input
                 id="erstatningsmaskin"
                 {...register('erstatningsmaskin')}
+                width="lg"
                 error={!!errors.erstatningsmaskin}
               />
             </FormField>

@@ -323,7 +323,7 @@ export function InfrastrukturModal({
               />
             </FormField>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="flex flex-wrap gap-4">
               <FormField
                 label="Avstand til tilkobling"
                 error={errors.avstand_til_tilkobling_meter?.message}
@@ -333,7 +333,7 @@ export function InfrastrukturModal({
                   id="avstand_til_tilkobling_meter"
                   type="number"
                   min={0}
-                  width="full"
+                  width="xs"
                   {...register('avstand_til_tilkobling_meter', { valueAsNumber: true })}
                   error={!!errors.avstand_til_tilkobling_meter}
                 />
@@ -349,7 +349,7 @@ export function InfrastrukturModal({
                   type="number"
                   min={0}
                   step={0.1}
-                  width="full"
+                  width="xs"
                   {...register('tilgjengelig_effekt_kw', { valueAsNumber: true })}
                   error={!!errors.tilgjengelig_effekt_kw}
                 />
@@ -366,7 +366,7 @@ export function InfrastrukturModal({
                   type="number"
                   min={0}
                   step={0.1}
-                  width="full"
+                  width="xs"
                   {...register('effektbehov_kw', { valueAsNumber: true })}
                   error={!!errors.effektbehov_kw}
                 />
@@ -523,7 +523,7 @@ export function InfrastrukturModal({
           description="Sammenlign kostnader for utslippsfri og fossil løsning"
         >
           <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex flex-wrap gap-4">
               <FormField
                 label="Kostnad utslippsfri løsning"
                 required
@@ -534,7 +534,7 @@ export function InfrastrukturModal({
                   id="kostnad_utslippsfri_nok"
                   type="number"
                   min={0}
-                  width="full"
+                  width="sm"
                   {...register('kostnad_utslippsfri_nok', { valueAsNumber: true })}
                   error={!!errors.kostnad_utslippsfri_nok}
                 />
@@ -550,27 +550,27 @@ export function InfrastrukturModal({
                   id="kostnad_fossil_nok"
                   type="number"
                   min={0}
-                  width="full"
+                  width="sm"
                   {...register('kostnad_fossil_nok', { valueAsNumber: true })}
                   error={!!errors.kostnad_fossil_nok}
                 />
               </FormField>
-            </div>
 
-            <FormField
-              label="Total prosjektkostnad"
-              error={errors.prosjektkostnad_nok?.message}
-              helpText="NOK (valgfritt, for beregning av merkostnad i %)"
-            >
-              <Input
-                id="prosjektkostnad_nok"
-                type="number"
-                min={0}
-                width="full"
-                {...register('prosjektkostnad_nok', { valueAsNumber: true })}
-                error={!!errors.prosjektkostnad_nok}
-              />
-            </FormField>
+              <FormField
+                label="Total prosjektkostnad"
+                error={errors.prosjektkostnad_nok?.message}
+                helpText="NOK (valgfritt)"
+              >
+                <Input
+                  id="prosjektkostnad_nok"
+                  type="number"
+                  min={0}
+                  width="md"
+                  {...register('prosjektkostnad_nok', { valueAsNumber: true })}
+                  error={!!errors.prosjektkostnad_nok}
+                />
+              </FormField>
+            </div>
 
             {/* Calculated merkostnad display */}
             {merkostnadProsent !== null && (
@@ -724,7 +724,7 @@ export function InfrastrukturModal({
               <Input
                 id="aggregat_modell"
                 {...register('aggregat_modell')}
-                width="full"
+                width="lg"
                 error={!!errors.aggregat_modell}
               />
             </FormField>
