@@ -333,6 +333,7 @@ export function InfrastrukturModal({
                   id="avstand_til_tilkobling_meter"
                   type="number"
                   min={0}
+                  width="full"
                   {...register('avstand_til_tilkobling_meter', { valueAsNumber: true })}
                   error={!!errors.avstand_til_tilkobling_meter}
                 />
@@ -348,6 +349,7 @@ export function InfrastrukturModal({
                   type="number"
                   min={0}
                   step={0.1}
+                  width="full"
                   {...register('tilgjengelig_effekt_kw', { valueAsNumber: true })}
                   error={!!errors.tilgjengelig_effekt_kw}
                 />
@@ -364,6 +366,7 @@ export function InfrastrukturModal({
                   type="number"
                   min={0}
                   step={0.1}
+                  width="full"
                   {...register('effektbehov_kw', { valueAsNumber: true })}
                   error={!!errors.effektbehov_kw}
                 />
@@ -531,6 +534,7 @@ export function InfrastrukturModal({
                   id="kostnad_utslippsfri_nok"
                   type="number"
                   min={0}
+                  width="full"
                   {...register('kostnad_utslippsfri_nok', { valueAsNumber: true })}
                   error={!!errors.kostnad_utslippsfri_nok}
                 />
@@ -546,6 +550,7 @@ export function InfrastrukturModal({
                   id="kostnad_fossil_nok"
                   type="number"
                   min={0}
+                  width="full"
                   {...register('kostnad_fossil_nok', { valueAsNumber: true })}
                   error={!!errors.kostnad_fossil_nok}
                 />
@@ -561,6 +566,7 @@ export function InfrastrukturModal({
                 id="prosjektkostnad_nok"
                 type="number"
                 min={0}
+                width="full"
                 {...register('prosjektkostnad_nok', { valueAsNumber: true })}
                 error={!!errors.prosjektkostnad_nok}
               />
@@ -648,6 +654,7 @@ export function InfrastrukturModal({
                     id="aggregat_type_annet"
                     {...register('aggregat_type_annet')}
                     placeholder="Beskriv type erstatningsløsning"
+                    width="full"
                     error={!!errors.aggregat_type_annet}
                   />
                 </FormField>
@@ -717,6 +724,7 @@ export function InfrastrukturModal({
               <Input
                 id="aggregat_modell"
                 {...register('aggregat_modell')}
+                width="full"
                 error={!!errors.aggregat_modell}
               />
             </FormField>
