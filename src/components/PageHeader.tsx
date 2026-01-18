@@ -6,8 +6,22 @@
  */
 
 import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
+import {
+  FileTextIcon,
+  BarChartIcon,
+  ExclamationTriangleIcon,
+  Link2Icon,
+} from '@radix-ui/react-icons';
 import { ThemeToggle } from './ThemeToggle';
 import { ModeToggle } from './ModeToggle';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  Button,
+} from './primitives';
 
 interface PageHeaderProps {
   title: string;
@@ -65,6 +79,30 @@ export function PageHeader({
                 {actions}
               </>
             )}
+
+            {/* Navigation menu */}
+            <div className="hidden sm:block h-6 w-px bg-pkt-border-subtle" />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="secondary" size="sm" aria-label="Navigasjonsmeny">
+                  ⋮
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem icon={<FileTextIcon />} asChild>
+                  <Link to="/saker">Saksoversikt</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem icon={<BarChartIcon />} asChild>
+                  <Link to="/analyse">Analyse</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem icon={<ExclamationTriangleIcon />} asChild>
+                  <Link to="/fravik-analyse">Fravikanalyse</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem icon={<Link2Icon />} asChild>
+                  <Link to="/integrasjoner">Integrasjoner</Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
