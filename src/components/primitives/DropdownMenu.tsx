@@ -136,3 +136,27 @@ export function DropdownMenuLabel({
     />
   );
 }
+
+/* -----------------------------------------------------------------------------
+ * Group
+ * -------------------------------------------------------------------------- */
+
+interface DropdownMenuGroupProps
+  extends ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Group> {
+  /** Optional label for the group */
+  label?: string;
+}
+
+export function DropdownMenuGroup({
+  className,
+  label,
+  children,
+  ...props
+}: DropdownMenuGroupProps) {
+  return (
+    <DropdownMenuPrimitive.Group className={clsx(className)} {...props}>
+      {label && <DropdownMenuLabel>{label}</DropdownMenuLabel>}
+      {children}
+    </DropdownMenuPrimitive.Group>
+  );
+}
