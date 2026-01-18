@@ -104,6 +104,9 @@ export function PageHeader({
                     <Link to="/saker">Saksoversikt</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
+                    <Link to="/fravik">Fravik-søknader</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
                     <Link to="/analyse">Analyse</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
