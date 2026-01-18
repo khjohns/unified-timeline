@@ -7,12 +7,6 @@
 
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  FileTextIcon,
-  BarChartIcon,
-  ExclamationTriangleIcon,
-  Link2Icon,
-} from '@radix-ui/react-icons';
 import { ThemeToggle } from './ThemeToggle';
 import { ModeToggle } from './ModeToggle';
 import {
@@ -32,8 +26,10 @@ interface PageHeaderProps {
   userRole?: 'TE' | 'BH';
   /** Callback for role toggle (optional for overview pages) */
   onToggleRole?: (role: 'TE' | 'BH') => void;
-  /** Additional actions (e.g., PDF download button) */
+  /** Additional actions (e.g., PDF download button) - shown outside menu */
   actions?: ReactNode;
+  /** Actions to show inside the dropdown menu */
+  menuActions?: ReactNode;
   /** Max width variant: 'narrow' (3xl) for CasePage, 'wide' (7xl) for ForseringPage */
   maxWidth?: 'narrow' | 'medium' | 'wide';
 }
@@ -44,6 +40,7 @@ export function PageHeader({
   userRole,
   onToggleRole,
   actions,
+  menuActions,
   maxWidth = 'narrow',
 }: PageHeaderProps) {
   const maxWidthClass = {
@@ -66,45 +63,55 @@ export function PageHeader({
 
           {/* Actions */}
           <div className="flex items-center gap-3 shrink-0">
+            {/* Toggle group */}
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              {userRole && onToggleRole && (
+                <ModeToggle userRole={userRole} onToggle={onToggleRole} />
+              )}
+            </div>
+
             {/* Page-specific actions */}
-            {actions}
+            {actions && (
+              <>
+                <div className="hidden sm:block h-6 w-px bg-pkt-border-subtle" />
+                {actions}
+              </>
+            )}
 
             {/* Main menu */}
+            <div className="hidden sm:block h-6 w-px bg-pkt-border-subtle" />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="secondary" size="sm" aria-label="Meny">
                   ⋮
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-[200px]">
+              <DropdownMenuContent align="end" className="min-w-[180px]">
+                {/* Page-specific menu actions */}
+                {menuActions && (
+                  <>
+                    <DropdownMenuGroup label="Handlinger">
+                      {menuActions}
+                    </DropdownMenuGroup>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
+
                 {/* Navigation */}
                 <DropdownMenuGroup label="Sider">
-                  <DropdownMenuItem icon={<FileTextIcon />} asChild>
+                  <DropdownMenuItem asChild>
                     <Link to="/saker">Saksoversikt</Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem icon={<BarChartIcon />} asChild>
+                  <DropdownMenuItem asChild>
                     <Link to="/analyse">Analyse</Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem icon={<ExclamationTriangleIcon />} asChild>
+                  <DropdownMenuItem asChild>
                     <Link to="/fravik-analyse">Fravikanalyse</Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem icon={<Link2Icon />} asChild>
+                  <DropdownMenuItem asChild>
                     <Link to="/integrasjoner">Integrasjoner</Link>
                   </DropdownMenuItem>
-                </DropdownMenuGroup>
-
-                <DropdownMenuSeparator />
-
-                {/* Settings */}
-                <DropdownMenuGroup label="Innstillinger">
-                  <div className="px-3 py-2">
-                    <ThemeToggle />
-                  </div>
-                  {userRole && onToggleRole && (
-                    <div className="px-3 py-2">
-                      <ModeToggle userRole={userRole} onToggle={onToggleRole} />
-                    </div>
-                  )}
                 </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
