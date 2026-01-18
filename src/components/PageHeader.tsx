@@ -79,7 +79,7 @@ export function PageHeader({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="secondary" size="sm" aria-label="Navigasjonsmeny">
-                  •••
+                  ⋮
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
