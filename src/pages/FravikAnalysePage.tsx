@@ -19,10 +19,10 @@
  */
 
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { InfoCircledIcon } from '@radix-ui/react-icons';
-import { Card, Button, Tabs, Alert, Table, type Column } from '../components/primitives';
+import { Card, Button, Tabs, Alert, Table, DropdownMenuItem, type Column } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
 import { useUserRole } from '../hooks/useUserRole';
 import { fetchFravikListe } from '../api/fravik';
@@ -606,10 +606,10 @@ export function FravikAnalysePage() {
         subtitle="Beslutningsstøtte for vurdering av fravik-søknader basert på historiske data"
         userRole={userRole}
         onToggleRole={setUserRole}
-        actions={
-          <Button variant="secondary" size="sm" onClick={() => navigate('/fravik')}>
-            Søknadsoversikt
-          </Button>
+        menuActions={
+          <DropdownMenuItem asChild>
+            <Link to="/fravik">Søknadsoversikt</Link>
+          </DropdownMenuItem>
         }
       />
 

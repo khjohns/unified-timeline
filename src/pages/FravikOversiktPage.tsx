@@ -6,9 +6,9 @@
  */
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Card, Table, type Column } from '../components/primitives';
+import { Button, Card, Table, DropdownMenuItem, type Column } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
 import { fetchFravikListe } from '../api/fravik';
 import { OpprettFravikModal } from '../components/fravik';
@@ -156,23 +156,15 @@ export function FravikOversiktPage() {
         title="Fravik-søknader"
         subtitle="Søknader om fravik fra utslippsfrie krav på byggeplasser"
         maxWidth="wide"
-        actions={
-          <div className="flex items-center gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => navigate('/fravik-analyse')}
-            >
-              Analyse
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => setShowOpprettModal(true)}
-            >
+        menuActions={
+          <>
+            <DropdownMenuItem onClick={() => setShowOpprettModal(true)}>
               Ny søknad
-            </Button>
-          </div>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link to="/fravik-analyse">Analyse</Link>
+            </DropdownMenuItem>
+          </>
         }
       />
 

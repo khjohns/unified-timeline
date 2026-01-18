@@ -15,8 +15,8 @@
  */
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, Button, Tabs } from '../components/primitives';
+import { useNavigate, Link } from 'react-router-dom';
+import { Card, Button, Tabs, DropdownMenuItem } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
 import { useAuth } from '../context/AuthContext';
 import { useUserRole } from '../hooks/useUserRole';
@@ -111,10 +111,10 @@ export function AnalyticsDashboard() {
         subtitle="Prosjekt- og porteføljeoversikt basert på hendelsesdata"
         userRole={userRole}
         onToggleRole={setUserRole}
-        actions={
-          <Button variant="secondary" size="sm" onClick={() => navigate('/saker')}>
-            Saksoversikt
-          </Button>
+        menuActions={
+          <DropdownMenuItem asChild>
+            <Link to="/saker">Saksoversikt</Link>
+          </DropdownMenuItem>
         }
       />
 

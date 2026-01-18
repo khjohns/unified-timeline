@@ -20,7 +20,7 @@ import { useUserRole } from '../hooks/useUserRole';
 import { useApprovalWorkflow } from '../hooks/useApprovalWorkflow';
 import { CaseDashboard } from '../components/views/CaseDashboard';
 import { ComprehensiveMetadata } from '../components/views/ComprehensiveMetadata';
-import { Alert, Button, AlertDialog, Card } from '../components/primitives';
+import { Alert, Button, AlertDialog, Card, DropdownMenuItem } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
 import { formatCurrency } from '../utils/formatters';
 import { downloadApprovedPdf } from '../pdf/generator';
@@ -257,28 +257,20 @@ function CasePageContent() {
         subtitle={`Sak #${sakId}`}
         userRole={userRole}
         onToggleRole={setUserRole}
-        actions={
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPdfPreviewOpen(true)}
-              className="flex items-center gap-2 p-2 rounded border border-pkt-grays-gray-200 bg-pkt-bg-subtle text-pkt-grays-gray-500 hover:text-pkt-text-body-dark hover:bg-pkt-bg-card transition-colors"
-              title="Forhåndsvis PDF"
-              aria-label="Forhåndsvis PDF"
-            >
-              <EyeOpenIcon className="w-4 h-4" />
-            </button>
-            <button
+        menuActions={
+          <>
+            <DropdownMenuItem onClick={() => setPdfPreviewOpen(true)}>
+              Forhåndsvis PDF
+            </DropdownMenuItem>
+            <DropdownMenuItem
               onClick={async () => {
                 const { downloadContractorClaimPdf } = await import('../pdf/generator');
                 downloadContractorClaimPdf(state);
               }}
-              className="flex items-center gap-2 p-2 rounded border border-pkt-grays-gray-200 bg-pkt-bg-subtle text-pkt-grays-gray-500 hover:text-pkt-text-body-dark hover:bg-pkt-bg-card transition-colors"
-              title="Last ned PDF"
-              aria-label="Last ned PDF"
             >
-              <DownloadIcon className="w-4 h-4" />
-            </button>
-          </div>
+              Last ned PDF
+            </DropdownMenuItem>
+          </>
         }
       />
 

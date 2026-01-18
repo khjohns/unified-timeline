@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   // Core
   Button,
@@ -93,10 +93,10 @@ export function ComponentShowcase() {
         title="Primitive Components Showcase"
         subtitle="Alle 34 primitive komponenter"
         maxWidth="wide"
-        actions={
-          <Button variant="secondary" size="sm" onClick={() => navigate('/')}>
-            ← Tilbake
-          </Button>
+        menuActions={
+          <DropdownMenuItem asChild>
+            <Link to="/">Tilbake til forsiden</Link>
+          </DropdownMenuItem>
         }
       />
 

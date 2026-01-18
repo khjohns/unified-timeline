@@ -13,7 +13,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
-import { Card, Tabs, Alert, Button } from '../components/primitives';
+import { Card, Tabs, Alert, Button, DropdownMenuItem } from '../components/primitives';
 import { useSyncMapping } from '../hooks/useSyncMappings';
 import { MappingOverviewTab } from '../components/integrasjoner/MappingOverviewTab';
 import { MappingHistoryTab } from '../components/integrasjoner/MappingHistoryTab';
@@ -85,10 +85,10 @@ export function MappingDetailPage() {
           title="Laster..."
           subtitle=""
           maxWidth="medium"
-          actions={
-            <Button variant="secondary" size="sm" onClick={() => navigate('/integrasjoner')}>
-              Tilbake
-            </Button>
+          menuActions={
+            <DropdownMenuItem asChild>
+              <Link to="/integrasjoner">Tilbake til integrasjoner</Link>
+            </DropdownMenuItem>
           }
         />
         <main className="max-w-5xl mx-auto px-4 py-6 sm:px-6 sm:py-8">
@@ -111,10 +111,10 @@ export function MappingDetailPage() {
           title="Feil"
           subtitle=""
           maxWidth="medium"
-          actions={
-            <Button variant="secondary" size="sm" onClick={() => navigate('/integrasjoner')}>
-              Tilbake
-            </Button>
+          menuActions={
+            <DropdownMenuItem asChild>
+              <Link to="/integrasjoner">Tilbake til integrasjoner</Link>
+            </DropdownMenuItem>
           }
         />
         <main className="max-w-5xl mx-auto px-4 py-6 sm:px-6 sm:py-8">
@@ -137,10 +137,10 @@ export function MappingDetailPage() {
         title={mapping.project_id}
         subtitle={`Dalux ${mapping.dalux_project_id} → Catenda`}
         maxWidth="medium"
-        actions={
-          <Button variant="secondary" size="sm" onClick={() => navigate('/integrasjoner')}>
-            Tilbake
-          </Button>
+        menuActions={
+          <DropdownMenuItem asChild>
+            <Link to="/integrasjoner">Tilbake til integrasjoner</Link>
+          </DropdownMenuItem>
         }
       />
 

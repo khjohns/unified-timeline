@@ -77,25 +77,39 @@ export function DropdownMenuItem({
   variant = 'default',
   icon,
   children,
+  asChild,
   ...props
 }: DropdownMenuItemProps) {
+  const itemClassName = clsx(
+    'relative flex cursor-pointer select-none items-center gap-2',
+    'px-3 py-2 text-sm outline-none',
+    'transition-colors',
+    'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+    {
+      'text-pkt-text-body-dark hover:bg-pkt-bg-subtle focus:bg-pkt-bg-subtle':
+        variant === 'default',
+      'text-pkt-brand-red-1000 hover:bg-pkt-brand-red-100 focus:bg-pkt-brand-red-100':
+        variant === 'danger',
+    },
+    className
+  );
+
+  // When asChild is used, pass through directly without icon wrapper
+  // (asChild requires exactly one child element)
+  if (asChild) {
+    return (
+      <DropdownMenuPrimitive.Item
+        asChild
+        className={itemClassName}
+        {...props}
+      >
+        {children}
+      </DropdownMenuPrimitive.Item>
+    );
+  }
+
   return (
-    <DropdownMenuPrimitive.Item
-      className={clsx(
-        'relative flex cursor-pointer select-none items-center gap-2',
-        'px-3 py-2 text-sm outline-none',
-        'transition-colors',
-        'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
-        {
-          'text-pkt-text-body-dark hover:bg-pkt-bg-subtle focus:bg-pkt-bg-subtle':
-            variant === 'default',
-          'text-pkt-brand-red-1000 hover:bg-pkt-brand-red-100 focus:bg-pkt-brand-red-100':
-            variant === 'danger',
-        },
-        className
-      )}
-      {...props}
-    >
+    <DropdownMenuPrimitive.Item className={itemClassName} {...props}>
       {icon && <span className="shrink-0 size-4">{icon}</span>}
       {children}
     </DropdownMenuPrimitive.Item>

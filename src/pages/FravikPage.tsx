@@ -14,7 +14,7 @@ import { useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { DownloadIcon, ReloadIcon, BarChartIcon } from '@radix-ui/react-icons';
-import { Alert, Badge, Button, Card, DataList, DataListItem } from '../components/primitives';
+import { Alert, Badge, Button, Card, DataList, DataListItem, DropdownMenuItem } from '../components/primitives';
 import { useUserRole } from '../hooks/useUserRole';
 import { PageHeader } from '../components/PageHeader';
 import { STALE_TIME } from '../constants/queryConfig';
@@ -188,21 +188,19 @@ export function FravikPage() {
         userRole={userRole}
         onToggleRole={setUserRole}
         actions={
-          <div className="flex items-center gap-2">
-            <Badge variant={getStatusBadgeVariant(state.status)}>
-              {state.visningsstatus || FRAVIK_STATUS_LABELS[state.status]}
-            </Badge>
-            {userRole === 'BH' && (
-              <Link to="/fravik-analyse">
-                <Button variant="secondary" size="sm" title="Se analyse av tidligere søknader">
-                  <BarChartIcon className="w-4 h-4" />
-                </Button>
-              </Link>
-            )}
-            <Button variant="ghost" size="sm" onClick={() => refetch()}>
-              <ReloadIcon className="w-4 h-4" />
-            </Button>
-          </div>
+          <Badge variant={getStatusBadgeVariant(state.status)}>
+            {state.visningsstatus || FRAVIK_STATUS_LABELS[state.status]}
+          </Badge>
+        }
+        menuActions={
+          <>
+            <DropdownMenuItem asChild>
+              <Link to="/fravik-analyse">Se analyse</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => refetch()}>
+              Oppdater
+            </DropdownMenuItem>
+          </>
         }
       />
 

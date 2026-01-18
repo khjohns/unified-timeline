@@ -130,10 +130,10 @@ export function IntegrasjonerPage() {
         title="Integrasjoner"
         subtitle="Administrer Dalux → Catenda synkronisering"
         maxWidth="medium"
-        actions={
-          <Button variant="primary" size="sm" onClick={() => setShowCreateModal(true)}>
+        menuActions={
+          <DropdownMenuItem onClick={() => setShowCreateModal(true)}>
             Ny synkronisering
-          </Button>
+          </DropdownMenuItem>
         }
       />
 

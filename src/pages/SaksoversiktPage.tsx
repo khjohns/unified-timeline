@@ -6,8 +6,8 @@
  */
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button, Card } from '../components/primitives';
+import { useNavigate, Link } from 'react-router-dom';
+import { Button, Card, DropdownMenuItem } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
 import { useCaseList } from '../hooks/useCaseList';
 import { useAuth } from '../context/AuthContext';
@@ -61,23 +61,15 @@ export function SaksoversiktPage() {
         title="Saksoversikt"
         subtitle="Oversikt over alle registrerte saker"
         maxWidth="wide"
-        actions={
-          <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => navigate('/analyse')}
-            >
-              Analysedashboard
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => navigate('/saker/ny')}
-            >
-              Opprett ny sak
-            </Button>
-          </div>
+        menuActions={
+          <>
+            <DropdownMenuItem asChild>
+              <Link to="/saker/ny">Opprett ny sak</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link to="/analyse">Analysedashboard</Link>
+            </DropdownMenuItem>
+          </>
         }
       />
 

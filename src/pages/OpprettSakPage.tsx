@@ -9,7 +9,7 @@
  */
 
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -20,6 +20,7 @@ import {
   Card,
   Checkbox,
   DatePicker,
+  DropdownMenuItem,
   FormField,
   Input,
   RadioGroup,
@@ -214,14 +215,10 @@ export function OpprettSakPage() {
       <PageHeader
         title="Opprett ny sak"
         subtitle="Registrer en ny endringsmelding (KOE)"
-        actions={
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/demo')}
-          >
-            Tilbake
-          </Button>
+        menuActions={
+          <DropdownMenuItem asChild>
+            <Link to="/saker">Tilbake til oversikt</Link>
+          </DropdownMenuItem>
         }
       />
 
