@@ -73,6 +73,7 @@ export {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuLabel,
+  DropdownMenuGroup,
 } from './DropdownMenu';
 
 // Feedback

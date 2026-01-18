@@ -20,6 +20,8 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuGroup,
+  DropdownMenuSeparator,
   Button,
 } from './primitives';
 
@@ -64,43 +66,46 @@ export function PageHeader({
 
           {/* Actions */}
           <div className="flex items-center gap-3 shrink-0">
-            {/* Toggle group */}
-            <div className="flex items-center gap-2">
-              <ThemeToggle />
-              {userRole && onToggleRole && (
-                <ModeToggle userRole={userRole} onToggle={onToggleRole} />
-              )}
-            </div>
+            {/* Page-specific actions */}
+            {actions}
 
-            {/* Additional actions with separator */}
-            {actions && (
-              <>
-                <div className="hidden sm:block h-6 w-px bg-pkt-border-subtle" />
-                {actions}
-              </>
-            )}
-
-            {/* Navigation menu */}
-            <div className="hidden sm:block h-6 w-px bg-pkt-border-subtle" />
+            {/* Main menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="secondary" size="sm" aria-label="Navigasjonsmeny">
+                <Button variant="secondary" size="sm" aria-label="Meny">
                   ⋮
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem icon={<FileTextIcon />} asChild>
-                  <Link to="/saker">Saksoversikt</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem icon={<BarChartIcon />} asChild>
-                  <Link to="/analyse">Analyse</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem icon={<ExclamationTriangleIcon />} asChild>
-                  <Link to="/fravik-analyse">Fravikanalyse</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem icon={<Link2Icon />} asChild>
-                  <Link to="/integrasjoner">Integrasjoner</Link>
-                </DropdownMenuItem>
+              <DropdownMenuContent align="end" className="min-w-[200px]">
+                {/* Navigation */}
+                <DropdownMenuGroup label="Sider">
+                  <DropdownMenuItem icon={<FileTextIcon />} asChild>
+                    <Link to="/saker">Saksoversikt</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem icon={<BarChartIcon />} asChild>
+                    <Link to="/analyse">Analyse</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem icon={<ExclamationTriangleIcon />} asChild>
+                    <Link to="/fravik-analyse">Fravikanalyse</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem icon={<Link2Icon />} asChild>
+                    <Link to="/integrasjoner">Integrasjoner</Link>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+
+                <DropdownMenuSeparator />
+
+                {/* Settings */}
+                <DropdownMenuGroup label="Innstillinger">
+                  <div className="px-3 py-2">
+                    <ThemeToggle />
+                  </div>
+                  {userRole && onToggleRole && (
+                    <div className="px-3 py-2">
+                      <ModeToggle userRole={userRole} onToggle={onToggleRole} />
+                    </div>
+                  )}
+                </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
