@@ -7,6 +7,12 @@
 
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  FileTextIcon,
+  BarChartIcon,
+  ExclamationTriangleIcon,
+  Link2Icon,
+} from '@radix-ui/react-icons';
 import { ThemeToggle } from './ThemeToggle';
 import { ModeToggle } from './ModeToggle';
 import {
@@ -83,16 +89,16 @@ export function PageHeader({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
+                <DropdownMenuItem icon={<FileTextIcon />} asChild>
                   <Link to="/saker">Saksoversikt</Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
+                <DropdownMenuItem icon={<BarChartIcon />} asChild>
                   <Link to="/analyse">Analyse</Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
+                <DropdownMenuItem icon={<ExclamationTriangleIcon />} asChild>
                   <Link to="/fravik-analyse">Fravikanalyse</Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
+                <DropdownMenuItem icon={<Link2Icon />} asChild>
                   <Link to="/integrasjoner">Integrasjoner</Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>

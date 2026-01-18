@@ -7,7 +7,7 @@
 
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
 import { clsx } from 'clsx';
-import type { ComponentPropsWithoutRef, ReactNode } from 'react';
+import type { ComponentPropsWithoutRef, ReactNode, ReactElement } from 'react';
 
 /* -----------------------------------------------------------------------------
  * Root
@@ -68,17 +68,21 @@ export function DropdownMenuContent({
 interface DropdownMenuItemProps
   extends ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item> {
   variant?: 'default' | 'danger';
+  /** Optional icon to display before the label */
+  icon?: ReactElement;
 }
 
 export function DropdownMenuItem({
   className,
   variant = 'default',
+  icon,
+  children,
   ...props
 }: DropdownMenuItemProps) {
   return (
     <DropdownMenuPrimitive.Item
       className={clsx(
-        'relative flex cursor-pointer select-none items-center',
+        'relative flex cursor-pointer select-none items-center gap-2',
         'px-3 py-2 text-sm outline-none',
         'transition-colors',
         'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
@@ -91,7 +95,10 @@ export function DropdownMenuItem({
         className
       )}
       {...props}
-    />
+    >
+      {icon && <span className="shrink-0 size-4">{icon}</span>}
+      {children}
+    </DropdownMenuPrimitive.Item>
   );
 }
 
