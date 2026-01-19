@@ -225,7 +225,7 @@ export function RelaterteSakerListe({
                   <td className="py-1 text-pkt-text-body-subtle" colSpan={3}>
                     <span className="italic">herav avslått</span>
                   </td>
-                  <td className="text-right py-1 font-mono text-alert-danger-text">{avslatteDager}</td>
+                  <td className="text-right py-1 font-mono text-pkt-brand-red-1000">{avslatteDager}</td>
                   <td></td>
                 </tr>
               )}

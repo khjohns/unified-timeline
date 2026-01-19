@@ -35,9 +35,9 @@ interface InlineDataListItemProps {
 
 const variantStyles: Record<InlineDataListVariant, string> = {
   default: '',
-  danger: 'text-alert-danger-text',
-  warning: 'text-alert-warning-text',
-  success: 'text-alert-success-text',
+  danger: 'text-pkt-brand-red-1000',
+  warning: 'text-pkt-brand-yellow-1000',
+  success: 'text-pkt-brand-dark-green-1000',
 };
 
 /**

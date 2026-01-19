@@ -195,7 +195,7 @@ export function LeggTilRelatertSakModal({
                           {sak.grunnlag_hovedkategori && (
                             <span>{sak.grunnlag_hovedkategori}</span>
                           )}
-                          <span className="font-medium text-alert-danger-text">
+                          <span className="font-medium text-pkt-brand-red-1000">
                             {avslatteDager} dager avslått
                           </span>
                         </div>
@@ -215,7 +215,7 @@ export function LeggTilRelatertSakModal({
               <span className="text-sm">
                 <strong>{valgteSaker.size}</strong> sak(er) valgt
               </span>
-              <span className="text-sm font-bold text-alert-danger-text">
+              <span className="text-sm font-bold text-pkt-brand-red-1000">
                 +{totalAvslatteDager} dager
               </span>
             </div>
