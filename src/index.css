@@ -280,6 +280,8 @@
     --animate-spin: spin 1s linear infinite;
     --animate-accordion-down: accordion-down 200ms ease-out;
     --animate-accordion-up: accordion-up 200ms ease-out;
+    --animate-collapsible-down: collapsible-down 200ms ease-out;
+    --animate-collapsible-up: collapsible-up 200ms ease-out;
     --animate-fade-in-up: fadeInUp 0.4s ease-out forwards;
 }
 
@@ -339,6 +341,29 @@
 @keyframes accordion-up {
     from {
         height: var(--radix-accordion-content-height);
+        opacity: 1;
+    }
+    to {
+        height: 0;
+        opacity: 0;
+    }
+}
+
+/* Collapsible animations for Radix Collapsible */
+@keyframes collapsible-down {
+    from {
+        height: 0;
+        opacity: 0;
+    }
+    to {
+        height: var(--radix-collapsible-content-height);
+        opacity: 1;
+    }
+}
+
+@keyframes collapsible-up {
+    from {
+        height: var(--radix-collapsible-content-height);
         opacity: 1;
     }
     to {

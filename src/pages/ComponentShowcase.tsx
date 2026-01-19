@@ -67,6 +67,9 @@ export function ComponentShowcase() {
   // Tab state
   const [activeTab, setActiveTab] = useState('buttons');
 
+  // Animation demo state
+  const [animationKey, setAnimationKey] = useState(0);
+
   // Modal states
   const [modalOpen, setModalOpen] = useState(false);
   const [alertOpen, setAlertOpen] = useState(false);
@@ -108,6 +111,7 @@ export function ComponentShowcase() {
             { id: 'data', label: 'Data Display' },
             { id: 'feedback', label: 'Feedback & Overlays' },
             { id: 'layout', label: 'Layout' },
+            { id: 'animations', label: 'Animations' },
           ]}
           activeTab={activeTab}
           onTabChange={setActiveTab}
@@ -701,6 +705,125 @@ export function ComponentShowcase() {
                   >
                     <p className="text-pkt-text-body-subtle">Skjult innhold.</p>
                   </SectionContainer>
+                </div>
+              </Card>
+            </>
+          )}
+
+          {/* ============================================
+              TAB 6: ANIMATIONS
+              ============================================ */}
+          {activeTab === 'animations' && (
+            <>
+              {/* Info */}
+              <Alert variant="info" title="Animasjons-retningslinjer">
+                Subtile, funksjonelle animasjoner med standard easing (ease-out). Unngå bouncy/spring-effekter.
+              </Alert>
+
+              {/* DashboardCard fadeInUp */}
+              <Card variant="outlined" padding="lg">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold text-pkt-text-body-dark">DashboardCard - Staggered fadeInUp</h2>
+                  <Button size="sm" variant="secondary" onClick={() => setAnimationKey(k => k + 1)}>
+                    Replay animasjon
+                  </Button>
+                </div>
+                <p className="text-pkt-text-body-subtle mb-4">
+                  Kortene fader inn med økende delay (0ms, 75ms, 150ms). Hover gir shadow-effekt.
+                </p>
+                <div key={animationKey} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <DashboardCard
+                    title="Grunnlag"
+                    headerBadge={<Badge variant="warning" size="sm">Venter</Badge>}
+                    className="animate-fade-in-up"
+                    style={{ animationDelay: '0ms' }}
+                  >
+                    <DataList variant="grid">
+                      <DataListItem label="Status">Under behandling</DataListItem>
+                      <DataListItem label="Kategori">Prosjektering</DataListItem>
+                    </DataList>
+                  </DashboardCard>
+                  <DashboardCard
+                    title="Vederlag"
+                    headerBadge={<Badge variant="info" size="sm">Åpen</Badge>}
+                    className="animate-fade-in-up"
+                    style={{ animationDelay: '75ms' }}
+                  >
+                    <DataList variant="grid">
+                      <DataListItem label="Krevd" mono>125 000 kr</DataListItem>
+                      <DataListItem label="Innstilt" mono>-</DataListItem>
+                    </DataList>
+                  </DashboardCard>
+                  <DashboardCard
+                    title="Frist"
+                    headerBadge={<Badge variant="success" size="sm">Godkjent</Badge>}
+                    className="animate-fade-in-up"
+                    style={{ animationDelay: '150ms' }}
+                  >
+                    <DataList variant="grid">
+                      <DataListItem label="Krevd">14 dager</DataListItem>
+                      <DataListItem label="Godkjent">10 dager</DataListItem>
+                    </DataList>
+                  </DashboardCard>
+                </div>
+              </Card>
+
+              {/* Collapsible - current (no animation) */}
+              <Card variant="outlined" padding="lg">
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">Collapsible - Nåværende (ingen animasjon)</h2>
+                <p className="text-pkt-text-body-subtle mb-4">
+                  Innholdet vises/skjules umiddelbart uten overgang.
+                </p>
+                <div className="space-y-2">
+                  <Collapsible title="Klikk for å se forskjellen">
+                    <p className="text-pkt-text-body-subtle">
+                      Innholdet popper inn/ut uten smooth overgang. Sammenlign med AccordionGroup under.
+                    </p>
+                  </Collapsible>
+                </div>
+              </Card>
+
+              {/* AccordionGroup - with animation */}
+              <Card variant="outlined" padding="lg">
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">AccordionGroup - Med animasjon</h2>
+                <p className="text-pkt-text-body-subtle mb-4">
+                  Bruker Radix Accordion med innebygd slide-animasjon (accordion-down/up).
+                </p>
+                <AccordionGroup
+                  items={[
+                    {
+                      id: 'anim-1',
+                      title: 'Første seksjon',
+                      content: <p className="text-pkt-text-body-subtle">Smooth slide-animasjon når innholdet vises.</p>,
+                    },
+                    {
+                      id: 'anim-2',
+                      title: 'Andre seksjon',
+                      content: <p className="text-pkt-text-body-subtle">200ms ease-out - subtil og profesjonell.</p>,
+                    },
+                  ]}
+                />
+              </Card>
+
+              {/* Hover effects */}
+              <Card variant="outlined" padding="lg">
+                <h2 className="text-xl font-semibold text-pkt-text-body-dark mb-4">Hover-effekter</h2>
+                <p className="text-pkt-text-body-subtle mb-4">
+                  Subtile shadow-transitions på hover gir visuell feedback.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="p-4 bg-pkt-bg-card rounded border border-pkt-border-subtle transition-shadow duration-200 hover:shadow-md">
+                    <p className="font-medium">hover:shadow-md</p>
+                    <p className="text-sm text-pkt-text-body-subtle">Standard hover-effekt</p>
+                  </div>
+                  <div className="p-4 bg-pkt-bg-card rounded border border-pkt-border-subtle transition-shadow duration-200 hover:shadow-lg">
+                    <p className="font-medium">hover:shadow-lg</p>
+                    <p className="text-sm text-pkt-text-body-subtle">Mer fremtredende</p>
+                  </div>
+                  <div className="p-4 bg-pkt-bg-card rounded border border-pkt-border-subtle transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
+                    <p className="font-medium">hover:shadow + lift</p>
+                    <p className="text-sm text-pkt-text-body-subtle">Med subtil løft-effekt</p>
+                  </div>
                 </div>
               </Card>
             </>
