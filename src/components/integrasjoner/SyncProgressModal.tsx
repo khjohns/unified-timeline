@@ -78,7 +78,7 @@ export function SyncProgressModal({ mappingId, onClose }: SyncProgressModalProps
                 <div className="text-xs text-pkt-text-body-subtle">Prosessert</div>
               </div>
               <div>
-                <div className="text-xl font-bold text-alert-success-text">
+                <div className="text-xl font-bold text-pkt-brand-dark-green-1000">
                   {progress.tasks_created}
                 </div>
                 <div className="text-xs text-pkt-text-body-subtle">Opprettet</div>
@@ -96,7 +96,7 @@ export function SyncProgressModal({ mappingId, onClose }: SyncProgressModalProps
                 <div className="text-xs text-pkt-text-body-subtle">Hoppet over</div>
               </div>
               <div>
-                <div className="text-xl font-bold text-alert-danger-text">
+                <div className="text-xl font-bold text-pkt-brand-red-1000">
                   {progress.tasks_failed}
                 </div>
                 <div className="text-xs text-pkt-text-body-subtle">Feilet</div>

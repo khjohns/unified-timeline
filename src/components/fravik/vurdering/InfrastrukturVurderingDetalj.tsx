@@ -18,9 +18,9 @@ import { formatDateShort } from '../../../utils/formatters';
 function getStatusIcon(status: InfrastrukturVurderingStatus | undefined) {
   switch (status) {
     case 'godkjent':
-      return <CheckCircledIcon className="w-4 h-4 text-alert-success-text" />;
+      return <CheckCircledIcon className="w-4 h-4 text-pkt-brand-dark-green-1000" />;
     case 'avslatt':
-      return <CrossCircledIcon className="w-4 h-4 text-alert-danger-text" />;
+      return <CrossCircledIcon className="w-4 h-4 text-pkt-brand-red-1000" />;
     default:
       return <ClockIcon className="w-4 h-4 text-pkt-text-body-muted" />;
   }

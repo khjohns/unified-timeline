@@ -2008,11 +2008,11 @@ export function RespondVederlagModal({
                               <span>
                                 Godkjent beløp: kr {(lastResponseEvent?.godkjent_belop ?? 0).toLocaleString('nb-NO')},- → kr {computed.totalGodkjent.toLocaleString('nb-NO')},-
                                 {computed.totalGodkjent > (lastResponseEvent?.godkjent_belop ?? 0) ? (
-                                  <span className="text-alert-success-text ml-2">
+                                  <span className="text-pkt-brand-dark-green-1000 ml-2">
                                     (↑ +{(computed.totalGodkjent - (lastResponseEvent?.godkjent_belop ?? 0)).toLocaleString('nb-NO')})
                                   </span>
                                 ) : (
-                                  <span className="text-alert-danger-text ml-2">
+                                  <span className="text-pkt-brand-red-1000 ml-2">
                                     (↓ -{((lastResponseEvent?.godkjent_belop ?? 0) - computed.totalGodkjent).toLocaleString('nb-NO')})
                                   </span>
                                 )}

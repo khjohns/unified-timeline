@@ -735,7 +735,7 @@ export function UtstEndringsordreModal({
                   <div className="p-3 bg-pkt-surface-subtle border border-pkt-border-subtle rounded-none">
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium">Netto beløp:</span>
-                      <span className={`font-bold text-base ${nettoBelop < 0 ? 'text-alert-danger-text' : ''}`}>
+                      <span className={`font-bold text-base ${nettoBelop < 0 ? 'text-pkt-brand-red-1000' : ''}`}>
                         {formatCurrency(nettoBelop)}
                       </span>
                     </div>

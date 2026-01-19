@@ -137,7 +137,7 @@ export function FravikDashboard({
           )}
         </DataList>
         {state.er_haste && (
-          <p className="text-xs text-alert-danger-text mt-3">
+          <p className="text-xs text-pkt-brand-red-1000 mt-3">
             <span className="font-medium">Hastebehandling:</span>{' '}
             {state.haste_begrunnelse || 'Ja'}
           </p>

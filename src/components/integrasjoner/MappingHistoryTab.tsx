@@ -82,7 +82,7 @@ export function MappingHistoryTab({ mappingId }: MappingHistoryTabProps) {
       label: 'Feil',
       render: (record) => (
         record.last_error ? (
-          <span className="text-alert-danger-text text-xs truncate max-w-[200px] inline-block" title={record.last_error}>
+          <span className="text-pkt-brand-red-1000 text-xs truncate max-w-[200px] inline-block" title={record.last_error}>
             {record.last_error}
           </span>
         ) : (

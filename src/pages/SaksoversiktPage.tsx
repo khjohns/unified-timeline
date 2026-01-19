@@ -111,7 +111,7 @@ export function SaksoversiktPage() {
         {error && !isLoading && (
           <Card variant="outlined" padding="lg">
             <div className="text-center py-12">
-              <p className="text-alert-danger-text mb-4">
+              <p className="text-pkt-brand-red-1000 mb-4">
                 Kunne ikke laste saker: {error.message}
               </p>
               <Button variant="secondary" onClick={() => window.location.reload()}>

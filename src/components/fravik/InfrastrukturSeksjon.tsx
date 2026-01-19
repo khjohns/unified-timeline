@@ -110,7 +110,7 @@ function VurdertAlternativ({ checked, label }: VurdertAlternativProps) {
   return (
     <div className="flex items-center gap-2 text-sm">
       {checked ? (
-        <CheckIcon className="w-4 h-4 text-alert-success-text" />
+        <CheckIcon className="w-4 h-4 text-pkt-brand-dark-green-1000" />
       ) : (
         <Cross2Icon className="w-4 h-4 text-pkt-text-body-muted" />
       )}

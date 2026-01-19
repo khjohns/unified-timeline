@@ -162,7 +162,7 @@ export function FravikPage() {
         <main className="max-w-3xl mx-auto px-2 py-4 sm:px-4 sm:py-6">
           <Card variant="outlined" padding="md">
             <div className="text-center py-8">
-              <p className="text-sm text-alert-danger-text mb-4">
+              <p className="text-sm text-pkt-brand-red-1000 mb-4">
                 Kunne ikke laste søknad: {error?.message || 'Ukjent feil'}
               </p>
               <div className="flex gap-2 justify-center">

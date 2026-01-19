@@ -251,11 +251,11 @@ function SoknadstypeAnalyse({ data }: { data: FravikAnalyticsData }) {
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-pkt-text-body-subtle">Godkjent</span>
-              <span className="font-medium text-alert-success-text">{maskin.godkjent}</span>
+              <span className="font-medium text-pkt-brand-dark-green-1000">{maskin.godkjent}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-pkt-text-body-subtle">Avslått</span>
-              <span className="font-medium text-alert-danger-text">{maskin.avslatt}</span>
+              <span className="font-medium text-pkt-brand-red-1000">{maskin.avslatt}</span>
             </div>
             <div className="pt-3 border-t border-pkt-border-subtle">
               <div className="flex justify-between text-sm mb-2">
@@ -290,11 +290,11 @@ function SoknadstypeAnalyse({ data }: { data: FravikAnalyticsData }) {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-pkt-text-body-subtle">Godkjent</span>
-                <span className="font-medium text-alert-success-text">{infra.godkjent}</span>
+                <span className="font-medium text-pkt-brand-dark-green-1000">{infra.godkjent}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-pkt-text-body-subtle">Avslått</span>
-                <span className="font-medium text-alert-danger-text">{infra.avslatt}</span>
+                <span className="font-medium text-pkt-brand-red-1000">{infra.avslatt}</span>
               </div>
               <div className="pt-3 border-t border-pkt-border-subtle">
                 <div className="flex justify-between text-sm mb-2">
@@ -351,11 +351,11 @@ function GrunnerAnalyse({ data }: { data: FravikAnalyticsData }) {
             <div className="grid grid-cols-3 gap-4 mb-3 text-sm">
               <div>
                 <span className="text-pkt-text-body-subtle">Godkjent: </span>
-                <span className="font-medium text-alert-success-text">{item.godkjent}</span>
+                <span className="font-medium text-pkt-brand-dark-green-1000">{item.godkjent}</span>
               </div>
               <div>
                 <span className="text-pkt-text-body-subtle">Avslått: </span>
-                <span className="font-medium text-alert-danger-text">{item.avslatt}</span>
+                <span className="font-medium text-pkt-brand-red-1000">{item.avslatt}</span>
               </div>
               <div>
                 <span className="text-pkt-text-body-subtle">Godkjenningsrate: </span>
@@ -401,11 +401,11 @@ function MaskintypeAnalyse({ data }: { data: FravikAnalyticsData }) {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-pkt-text-body-subtle">Godkjent</span>
-                <span className="font-medium text-alert-success-text">{item.godkjent}</span>
+                <span className="font-medium text-pkt-brand-dark-green-1000">{item.godkjent}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-pkt-text-body-subtle">Avslått</span>
-                <span className="font-medium text-alert-danger-text">{item.avslatt}</span>
+                <span className="font-medium text-pkt-brand-red-1000">{item.avslatt}</span>
               </div>
               <div className="pt-2 border-t border-pkt-border-subtle">
                 <div className="flex justify-between text-sm mb-1">
@@ -430,8 +430,8 @@ const STATUS_COLOR_CLASSES: Record<string, string> = {
   gray: 'bg-pkt-bg-subtle text-pkt-text-body-subtle',
   blue: 'bg-oslo-blue-light text-oslo-blue',
   yellow: 'bg-amber-100 text-amber-800',
-  green: 'bg-alert-success-light text-alert-success-text',
-  red: 'bg-alert-danger-light text-alert-danger-text',
+  green: 'bg-alert-success-light text-pkt-brand-dark-green-1000',
+  red: 'bg-alert-danger-light text-pkt-brand-red-1000',
 };
 
 function HistorikkAnalyse({ data, onNavigate }: { data: FravikAnalyticsData; onNavigate: (id: string) => void }) {
