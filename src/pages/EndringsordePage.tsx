@@ -17,14 +17,13 @@ import { STALE_TIME } from '../constants/queryConfig';
 import { useAuth } from '../context/AuthContext';
 import { useCaseState } from '../hooks/useCaseState';
 import { useUserRole } from '../hooks/useUserRole';
-import { Timeline } from '../components/views/Timeline';
 import { Alert, Button, Card } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
 import { EODashboard, RelatertKOEListe, LeggTilKOEModal } from '../components/endringsordre';
 import {
-  ReloadIcon,
   ArrowLeftIcon,
   PlusIcon,
+  ReloadIcon,
 } from '@radix-ui/react-icons';
 import {
   VerifyingState,
@@ -120,7 +119,6 @@ export function EndringsordePage() {
   const {
     data: kontekstData,
     isLoading: kontekstLoading,
-    error: kontekstError,
   } = useEOKontekst(sakId || '', !!token && !isVerifying);
 
   // Fetch candidate KOE cases for adding
@@ -171,32 +169,6 @@ export function EndringsordePage() {
     if (!kontekstData?.eo_hendelser) return [];
     // Sort by timestamp descending
     return [...kontekstData.eo_hendelser].sort((a, b) =>
-      new Date(b.time || '').getTime() - new Date(a.time || '').getTime()
-    );
-  }, [kontekstData]);
-
-  // Combine timeline events from all related KOE cases
-  const relatedCasesTimeline = useMemo((): TimelineEvent[] => {
-    if (!kontekstData?.hendelser) return [];
-
-    const allEvents: TimelineEvent[] = [];
-
-    // Add events from each related case with source info
-    Object.entries(kontekstData.hendelser).forEach(([relatedSakId, events]) => {
-      const sakState = kontekstData.sak_states[relatedSakId];
-      const sakTittel = sakState?.sakstittel || `Sak ${relatedSakId.slice(0, 8)}`;
-
-      events.forEach((event: TimelineEvent) => {
-        allEvents.push({
-          ...event,
-          // Prepend source case info to summary
-          summary: `[${sakTittel}] ${event.summary || ''}`,
-        });
-      });
-    });
-
-    // Sort by timestamp descending
-    return allEvents.sort((a, b) =>
       new Date(b.time || '').getTime() - new Date(a.time || '').getTime()
     );
   }, [kontekstData]);
@@ -303,51 +275,6 @@ export function EndringsordePage() {
                   )
                 }
               />
-            </Card>
-          </section>
-        )}
-
-        {/* EO case's own timeline */}
-        <section aria-labelledby="eo-timeline-heading">
-          <Card variant="outlined" padding="md">
-            <h2 id="eo-timeline-heading" className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4">
-              Hendelser for endringsordren
-              {kontekstLoading && (
-                <ReloadIcon className="w-4 h-4 animate-spin inline ml-2" />
-              )}
-            </h2>
-
-            {kontekstError && (
-              <Alert variant="warning" title="Kunne ikke laste hendelser">
-                {kontekstError.message}
-              </Alert>
-            )}
-
-            {eoTimeline.length > 0 ? (
-              <Timeline events={eoTimeline} />
-            ) : (
-              <p className="text-pkt-text-body-subtle text-sm">
-                Ingen hendelser ennå.
-              </p>
-            )}
-          </Card>
-        </section>
-
-        {/* Timeline from related KOE cases (only show if Type 2) */}
-        {harRelaterteKOE && (
-          <section aria-labelledby="koe-timeline-heading">
-            <Card variant="outlined" padding="md">
-              <h2 id="koe-timeline-heading" className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4">
-                Hendelser fra relaterte KOE-saker
-              </h2>
-
-              {relatedCasesTimeline.length > 0 ? (
-                <Timeline events={relatedCasesTimeline} />
-              ) : (
-                <p className="text-pkt-text-body-subtle text-sm">
-                  Ingen hendelser fra relaterte saker.
-                </p>
-              )}
             </Card>
           </section>
         )}

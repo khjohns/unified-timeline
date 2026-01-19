@@ -16,8 +16,7 @@ import { useVerifyToken } from '../hooks/useVerifyToken';
 import { useCaseState } from '../hooks/useCaseState';
 import { useUserRole } from '../hooks/useUserRole';
 import { useStandpunktEndringer } from '../hooks/useStandpunktEndringer';
-import { Timeline } from '../components/views/Timeline';
-import { Alert, Badge, Button, Card } from '../components/primitives';
+import { Alert, Button, Card } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
 import { TokenExpiredAlert } from '../components/alerts/TokenExpiredAlert';
 import {
@@ -30,7 +29,6 @@ import {
   OppdaterKostnaderModal,
 } from '../components/forsering';
 import {
-  ReloadIcon,
   ArrowLeftIcon,
   PlusIcon,
 } from '@radix-ui/react-icons';
@@ -40,7 +38,7 @@ import {
   LoadingState,
   ErrorState,
 } from '../components/PageStateHelpers';
-import type { ForseringData, TimelineEvent, SakRelasjon } from '../types/timeline';
+import type { ForseringData } from '../types/timeline';
 import {
   fetchForseringKontekst,
   fetchKandidatSaker,
@@ -119,11 +117,7 @@ export function ForseringPage() {
   } = useCaseState(sakId || '', { enabled: !!token && !isVerifying });
 
   // Fetch related cases context (wait for auth)
-  const {
-    data: kontekstData,
-    isLoading: kontekstLoading,
-    error: kontekstError,
-  } = useForseringKontekst(sakId || '', !!token && !isVerifying);
+  const { data: kontekstData } = useForseringKontekst(sakId || '', !!token && !isVerifying);
 
   // Fetch candidate cases for adding
   const { data: kandidatData } = useKandidatSaker();
@@ -253,32 +247,6 @@ export function ForseringPage() {
     kontekstData?.relaterte_saker || [],
     kontekstData?.sak_states || {}
   );
-
-  // Combine timeline events from all related cases
-  const relatedCasesTimeline = useMemo((): TimelineEvent[] => {
-    if (!kontekstData?.hendelser) return [];
-
-    const allEvents: TimelineEvent[] = [];
-
-    // Add events from each related case with source info
-    Object.entries(kontekstData.hendelser).forEach(([relatedSakId, events]) => {
-      const sakState = kontekstData.sak_states[relatedSakId];
-      const sakTittel = sakState?.sakstittel || `Sak ${relatedSakId.slice(0, 8)}`;
-
-      events.forEach((event: TimelineEvent) => {
-        allEvents.push({
-          ...event,
-          // Prepend source case info to summary
-          summary: `[${sakTittel}] ${event.summary || ''}`,
-        });
-      });
-    });
-
-    // Sort by timestamp descending
-    return allEvents.sort((a, b) =>
-      new Date(b.time || '').getTime() - new Date(a.time || '').getTime()
-    );
-  }, [kontekstData]);
 
   // Calculate avslatteSaker data for BHResponsForseringModal
   const avslatteSaker = useMemo(() => {
@@ -427,23 +395,6 @@ export function ForseringPage() {
                 </Button>
               )}
             />
-          </Card>
-        </section>
-
-        {/* Timeline from related cases */}
-        <section aria-labelledby="relaterte-timeline-heading">
-          <Card variant="outlined" padding="md">
-            <h2 id="relaterte-timeline-heading" className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4">
-              Hendelser fra relaterte saker
-            </h2>
-
-            {relatedCasesTimeline.length > 0 ? (
-              <Timeline events={relatedCasesTimeline} />
-            ) : (
-              <p className="text-pkt-text-body-subtle text-sm">
-                Ingen hendelser fra relaterte saker.
-              </p>
-            )}
           </Card>
         </section>
       </main>
