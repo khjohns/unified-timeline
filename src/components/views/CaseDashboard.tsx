@@ -94,6 +94,7 @@ export function CaseDashboard({
           headerBadge={getStatusBadge(state.grunnlag.status)}
           action={grunnlagActions}
           variant="default"
+          className="animate-fade-in-up"
         >
           <DataList variant="grid">
             <DataListItem label="Hovedkategori">
@@ -133,6 +134,8 @@ export function CaseDashboard({
           headerBadge={getStatusBadge(state.vederlag.status)}
           action={vederlagActions}
           variant="default"
+          className="animate-fade-in-up"
+          style={{ animationDelay: '75ms' }}
         >
           <DataList variant="grid">
             {state.vederlag.metode && (
@@ -169,6 +172,8 @@ export function CaseDashboard({
           headerBadge={getStatusBadge(state.frist.status)}
           action={fristActions}
           variant="default"
+          className="animate-fade-in-up"
+          style={{ animationDelay: '150ms' }}
         >
           <DataList variant="grid">
             {state.frist.krevd_dager !== undefined && (
