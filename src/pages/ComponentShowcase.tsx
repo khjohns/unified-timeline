@@ -698,13 +698,6 @@ export function ComponentShowcase() {
                   >
                     <p className="text-pkt-text-body-subtle">Innhold med ramme.</p>
                   </SectionContainer>
-                  <SectionContainer
-                    title="Sammenleggbar"
-                    collapsible
-                    defaultOpen={false}
-                  >
-                    <p className="text-pkt-text-body-subtle">Skjult innhold.</p>
-                  </SectionContainer>
                 </div>
               </Card>
             </>

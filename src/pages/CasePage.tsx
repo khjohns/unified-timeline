@@ -355,7 +355,7 @@ function CasePageContent() {
               id="krav-respons-heading"
               className="text-base font-semibold text-pkt-text-body-dark mb-3 sm:mb-4"
             >
-              Krav og respons
+              Krav om endringsordre
             </h2>
             <CaseDashboard
           state={state}
