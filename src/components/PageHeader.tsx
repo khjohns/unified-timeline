@@ -3,6 +3,10 @@
  *
  * Shared header component for case pages.
  * Provides consistent styling and layout across CasePage and ForseringPage.
+ *
+ * Includes role toggle with Supabase integration:
+ * - TE/BH toggle for free switching (testing/demo)
+ * - "Min rolle" button to lock to Supabase group (production)
  */
 
 import type { ReactNode } from 'react';
@@ -10,6 +14,7 @@ import { Link } from 'react-router-dom';
 import { ThemeToggle } from './ThemeToggle';
 import { ModeToggle } from './ModeToggle';
 import { ConnectionStatusIndicator } from './ConnectionStatusIndicator';
+import { useUserRole } from '../hooks/useUserRole';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -23,9 +28,9 @@ import {
 interface PageHeaderProps {
   title: string;
   subtitle: string;
-  /** User role for mode toggle (optional for overview pages) */
+  /** User role for mode toggle (optional - uses context if not provided) */
   userRole?: 'TE' | 'BH';
-  /** Callback for role toggle (optional for overview pages) */
+  /** Callback for role toggle (optional - uses context if not provided) */
   onToggleRole?: (role: 'TE' | 'BH') => void;
   /** Additional actions (e.g., PDF download button) - shown outside menu */
   actions?: ReactNode;
@@ -33,17 +38,27 @@ interface PageHeaderProps {
   menuActions?: ReactNode;
   /** Max width variant: 'narrow' (3xl) for CasePage, 'wide' (7xl) for ForseringPage */
   maxWidth?: 'narrow' | 'medium' | 'wide';
+  /** Whether to show the role toggle */
+  showRoleToggle?: boolean;
 }
 
 export function PageHeader({
   title,
   subtitle,
-  userRole,
-  onToggleRole,
+  userRole: userRoleProp,
+  onToggleRole: onToggleRoleProp,
   actions,
   menuActions,
   maxWidth = 'narrow',
+  showRoleToggle = true,
 }: PageHeaderProps) {
+  // Get role context for Supabase integration
+  const roleContext = useUserRole();
+
+  // Use props if provided, otherwise fall back to context
+  const userRole = userRoleProp ?? roleContext.userRole;
+  const onToggleRole = onToggleRoleProp ?? roleContext.setUserRole;
+
   const maxWidthClass = {
     narrow: 'max-w-3xl',
     medium: 'max-w-5xl',
@@ -69,8 +84,18 @@ export function PageHeader({
               <ConnectionStatusIndicator />
               <div className="h-4 w-px bg-pkt-border-subtle" />
               <ThemeToggle />
-              {userRole && onToggleRole && (
-                <ModeToggle userRole={userRole} onToggle={onToggleRole} />
+              {showRoleToggle && (
+                <ModeToggle
+                  userRole={userRole}
+                  onToggle={onToggleRole}
+                  roleMode={roleContext.roleMode}
+                  onRoleModeChange={roleContext.setRoleMode}
+                  supabaseRole={roleContext.supabaseRole}
+                  supabaseGroupName={roleContext.supabaseGroupName}
+                  hasSupabaseGroup={roleContext.hasSupabaseGroup}
+                  isRoleLocked={roleContext.isRoleLocked}
+                  isLoading={roleContext.isLoadingSupabaseRole}
+                />
               )}
             </div>
 
