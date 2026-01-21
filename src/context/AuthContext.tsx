@@ -31,8 +31,8 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-const SESSION_TOKEN_KEY = 'koe_auth_token';
-const SESSION_SAK_KEY = 'koe_sak_id';
+const SESSION_TOKEN_KEY = 'koe-auth-token';
+const SESSION_SAK_KEY = 'koe-sak-id';
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [searchParams] = useSearchParams();

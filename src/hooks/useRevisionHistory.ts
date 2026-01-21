@@ -7,10 +7,12 @@
  * Also provides useHistorikk hook for fetching revision history from backend API.
  */
 
-import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { TimelineEvent, SporType, extractEventType } from '../types/timeline';
 import { HistorikkResponse, GrunnlagHistorikkEntry, VederlagHistorikkEntry, FristHistorikkEntry } from '../types/api';
 import { fetchHistorikk } from '../api/state';
+import { STALE_TIME } from '../constants/queryConfig';
 
 export interface RevisionInfo {
   versjon: number; // 0 = original, 1 = first revision, etc.
@@ -242,39 +244,26 @@ export interface UseHistorikkResult {
  * This hook fetches the full revision history for all three tracks
  * (grunnlag, vederlag, frist), including all TE submissions and BH
  * responses with version numbers.
+ *
+ * Uses React Query for automatic cache invalidation and refetching
+ * when events are submitted via useSubmitEvent.
  */
 export function useHistorikk(sakId: string): UseHistorikkResult {
-  const [data, setData] = useState<HistorikkResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  const fetchData = useCallback(async () => {
-    if (!sakId) return;
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetchHistorikk(sakId);
-      setData(response);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch historikk'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [sakId]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['sak', sakId, 'historikk'],
+    queryFn: () => fetchHistorikk(sakId),
+    enabled: !!sakId,
+    staleTime: STALE_TIME.DEFAULT,
+    refetchOnWindowFocus: true,
+  });
 
   return {
     grunnlag: data?.grunnlag ?? [],
     vederlag: data?.vederlag ?? [],
     frist: data?.frist ?? [],
     isLoading,
-    error,
-    refetch: fetchData,
+    error: error as Error | null,
+    refetch,
   };
 }
 

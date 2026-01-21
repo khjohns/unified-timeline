@@ -282,8 +282,8 @@ export function UtstEndringsordreModal({
     },
     onSuccess: (response) => {
       clearBackup();
-      queryClient.invalidateQueries({ queryKey: ['case', sakId] });
-      queryClient.invalidateQueries({ queryKey: ['timeline', sakId] });
+      queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'state'] });
+      queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'timeline'] });
       reset();
       setSelectedKoeIds(preselectedKoeIds);
       setCurrentStep(1);

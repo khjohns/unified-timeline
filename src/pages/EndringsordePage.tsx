@@ -133,7 +133,7 @@ export function EndringsordePage() {
       }),
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['endringsordre', sakId, 'kontekst'] });
-      queryClient.invalidateQueries({ queryKey: ['case', sakId] });
+      queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'state'] });
       // Show warning if Catenda sync failed
       if ('catenda_synced' in result && !result.catenda_synced) {
         setShowCatendaWarning(true);
@@ -150,7 +150,7 @@ export function EndringsordePage() {
       }),
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['endringsordre', sakId, 'kontekst'] });
-      queryClient.invalidateQueries({ queryKey: ['case', sakId] });
+      queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'state'] });
       // Show warning if Catenda sync failed
       if ('catenda_synced' in result && !result.catenda_synced) {
         setShowCatendaWarning(true);

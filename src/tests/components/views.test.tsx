@@ -8,6 +8,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ComprehensiveMetadata } from '@/components/views/ComprehensiveMetadata';
 import { RevisionHistory } from '@/components/views/RevisionHistory';
 import { Timeline } from '@/components/views/Timeline';
@@ -276,14 +277,23 @@ describe('View Components - Functional Tests', () => {
   });
 
   describe('RevisionHistory', () => {
-    // Helper to render RevisionHistory with router context
+    // Helper to render RevisionHistory with router and query context
     const renderRevisionHistory = (sakId: string) => {
+      const queryClient = new QueryClient({
+        defaultOptions: {
+          queries: {
+            retry: false,
+          },
+        },
+      });
       return render(
-        <MemoryRouter initialEntries={[`/case/${sakId}`]}>
-          <Routes>
-            <Route path="/case/:sakId" element={<RevisionHistory />} />
-          </Routes>
-        </MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <MemoryRouter initialEntries={[`/case/${sakId}`]}>
+            <Routes>
+              <Route path="/case/:sakId" element={<RevisionHistory />} />
+            </Routes>
+          </MemoryRouter>
+        </QueryClientProvider>
       );
     };
 

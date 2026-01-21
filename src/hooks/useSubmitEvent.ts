@@ -128,9 +128,10 @@ export function useSubmitEvent(sakId: string, options: UseSubmitEventOptions = {
       });
     },
     onSuccess: (data) => {
-      // Invalidate case state and timeline to trigger refetch
+      // Invalidate case state, timeline, and historikk to trigger refetch
       queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'state'] });
       queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'timeline'] });
+      queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'historikk'] });
 
       // Call user callback
       onSuccess?.(data);

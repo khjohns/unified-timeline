@@ -185,7 +185,7 @@ export function SendForseringModal({
     onSuccess: (response) => {
       // Invalidate queries to refetch case data
       clearBackup();
-      queryClient.invalidateQueries({ queryKey: ['case', sakId] });
+      queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'state'] });
       reset();
       onOpenChange(false);
       // Show warning if Catenda sync failed
