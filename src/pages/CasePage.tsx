@@ -72,6 +72,7 @@ import {
 } from '../components/PageStateHelpers';
 import { downloadRevisionHistoryCsv } from '../utils/csvExport';
 import { downloadCaseExcel } from '../utils/excelExport';
+import { Footer } from '../components/Footer';
 
 // Default empty state for when data is not yet loaded
 const EMPTY_STATE: SakState = {
@@ -906,6 +907,9 @@ function CasePageContent() {
           </Alert>
         </div>
       )}
+
+      {/* Footer with NS 8407 disclaimer */}
+      <Footer />
     </div>
   );
 }
