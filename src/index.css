@@ -641,12 +641,21 @@
 /* ============================================
    Base Styles
    ============================================ */
+html {
+    background-color: var(--color-pkt-bg-subtle);
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
+}
+
 body {
     font-family: 'Oslo Sans', system-ui, -apple-system, arial, sans-serif !important;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-size: 16px; /* Increased from 14px for better readability */
     color: var(--color-pkt-text-body-default);
+    background-color: var(--color-pkt-bg-subtle);
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
 }
 
 * {
