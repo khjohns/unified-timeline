@@ -34,11 +34,15 @@ interface ToastData {
 }
 
 interface ToastContextValue {
-  toast: (options: Omit<ToastData, 'id'>) => void;
-  success: (title: string, description?: string) => void;
-  error: (title: string, description?: string) => void;
-  warning: (title: string, description?: string) => void;
-  info: (title: string, description?: string) => void;
+  toast: (options: Omit<ToastData, 'id'>) => string;
+  success: (title: string, description?: string) => string;
+  error: (title: string, description?: string) => string;
+  warning: (title: string, description?: string) => string;
+  info: (title: string, description?: string) => string;
+  /** Dismiss a specific toast by ID */
+  dismiss: (id: string) => void;
+  /** Show a pending toast that can be replaced with success/error */
+  pending: (title: string, description?: string) => string;
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null);
@@ -153,52 +157,65 @@ interface ToastProviderProps {
 export function ToastProvider({ children }: ToastProviderProps) {
   const [toasts, setToasts] = useState<ToastData[]>([]);
 
-  const addToast = useCallback((options: Omit<ToastData, 'id'>) => {
+  const addToast = useCallback((options: Omit<ToastData, 'id'>): string => {
     const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     setToasts((prev) => [...prev, { ...options, id }]);
+    return id;
   }, []);
 
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
+  const dismiss = useCallback((id: string) => {
+    removeToast(id);
+  }, [removeToast]);
+
   const toast = useCallback(
-    (options: Omit<ToastData, 'id'>) => {
-      addToast(options);
+    (options: Omit<ToastData, 'id'>): string => {
+      return addToast(options);
     },
     [addToast]
   );
 
   const success = useCallback(
-    (title: string, description?: string) => {
-      addToast({ title, description, variant: 'success' });
+    (title: string, description?: string): string => {
+      return addToast({ title, description, variant: 'success' });
     },
     [addToast]
   );
 
   const error = useCallback(
-    (title: string, description?: string) => {
-      addToast({ title, description, variant: 'error' });
+    (title: string, description?: string): string => {
+      return addToast({ title, description, variant: 'error' });
     },
     [addToast]
   );
 
   const warning = useCallback(
-    (title: string, description?: string) => {
-      addToast({ title, description, variant: 'warning' });
+    (title: string, description?: string): string => {
+      return addToast({ title, description, variant: 'warning' });
     },
     [addToast]
   );
 
   const info = useCallback(
-    (title: string, description?: string) => {
-      addToast({ title, description, variant: 'info' });
+    (title: string, description?: string): string => {
+      return addToast({ title, description, variant: 'info' });
+    },
+    [addToast]
+  );
+
+  /** Show a pending/loading toast (longer duration, info variant) */
+  const pending = useCallback(
+    (title: string, description?: string): string => {
+      return addToast({ title, description, variant: 'info', duration: 30000 });
     },
     [addToast]
   );
 
   return (
-    <ToastContext.Provider value={{ toast, success, error, warning, info }}>
+    <ToastContext.Provider value={{ toast, success, error, warning, info, dismiss, pending }}>
       <ToastPrimitive.Provider swipeDirection="right">
         {children}
 
