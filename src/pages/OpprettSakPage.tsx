@@ -13,7 +13,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Alert,
   Button,
@@ -38,6 +38,7 @@ import {
   VARSEL_METODER_OPTIONS,
 } from '../constants';
 import { apiFetch, USE_MOCK_API, mockDelay } from '../api/client';
+import type { StateResponse } from '../types/api';
 
 // Schema for the form
 const opprettSakSchema = z.object({
@@ -78,6 +79,7 @@ interface BatchEventResponse {
 
 export function OpprettSakPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [selectedHovedkategori, setSelectedHovedkategori] = useState<string>('');
 
   const {
@@ -181,7 +183,18 @@ export function OpprettSakPage() {
     },
     onSuccess: (result, variables) => {
       if (result.success) {
-        // Navigate to the newly created case
+        // Pre-populate React Query cache with the state from POST response.
+        // This prevents a race condition where the GET request might fail
+        // if it arrives before the database write is fully committed.
+        if (result.state && result.new_version !== undefined) {
+          queryClient.setQueryData<StateResponse>(
+            ['sak', variables.sak_id, 'state'],
+            {
+              version: result.new_version,
+              state: result.state as StateResponse['state'],
+            }
+          );
+        }
         navigate(`/saker/${variables.sak_id}`);
       }
     },
