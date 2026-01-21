@@ -26,6 +26,7 @@ import { formatCurrency } from '../utils/formatters';
 import { downloadApprovedPdf } from '../pdf/generator';
 import { ForseringRelasjonBanner } from '../components/forsering';
 import { UtstEndringsordreModal, EndringsordreRelasjonBanner } from '../components/endringsordre';
+import { StatusAlert } from '../components/StatusAlert';
 import { MockToolbar } from '../components/MockToolbar';
 import {
   ApprovePakkeModal,
@@ -297,6 +298,15 @@ function CasePageContent() {
             <EndringsordreRelasjonBanner endringsordrer={endringsordreData.endringsordrer} />
           </section>
         )}
+
+        {/* Status Alert - kontekstuell veiledning basert på rolle og saksstatus */}
+        <section aria-label="Saksstatus">
+          <StatusAlert
+            state={state}
+            userRole={userRole}
+            actions={actions}
+          />
+        </section>
 
         {/* Combined Package Banner - show when approval enabled and drafts exist */}
         {approvalWorkflow.approvalEnabled && approvalWorkflow.hasAnyDraft && userRole === 'BH' && (
