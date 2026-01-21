@@ -76,11 +76,9 @@ export function CaseDashboard({
 }: CaseDashboardProps) {
   const krevdBelop = useMemo(() => getKrevdBelop(state), [state]);
 
-  // Subsidiær vises når grunnlag er avslått (uavhengig av sporets eget resultat)
-  // eller når sporet selv er avslått
-  const grunnlagAvslatt = state.grunnlag.bh_resultat === 'avslatt';
-  const vederlagErSubsidiaer = grunnlagAvslatt || state.vederlag.bh_resultat === 'avslatt';
-  const fristErSubsidiaer = grunnlagAvslatt || state.frist.bh_resultat === 'avslatt';
+  // Vis subsidiær hvis det finnes subsidiær-data (uansett årsak: grunnlagsavslag, preklusjon, etc.)
+  const vederlagErSubsidiaer = state.vederlag.subsidiaer_godkjent_belop != null;
+  const fristErSubsidiaer = state.frist.subsidiaer_godkjent_dager != null;
 
   // Transform historikk data for SporHistory
   const grunnlagEntries = useMemo(() => transformGrunnlagHistorikk(grunnlagHistorikk), [grunnlagHistorikk]);
@@ -152,7 +150,7 @@ export function CaseDashboard({
             <DataListItem label="Krevd beløp">
               {formatCurrency(krevdBelop)}
             </DataListItem>
-            {/* Godkjent beløp: Vis subsidiær hvis grunnlag avslått eller vederlag avslått */}
+            {/* Godkjent beløp: Vis subsidiær hvis det finnes subsidiær-data */}
             {vederlagErSubsidiaer ? (
               state.vederlag.subsidiaer_godkjent_belop != null && (
                 <DataListItem label="Subs. godkjent">
@@ -190,7 +188,7 @@ export function CaseDashboard({
                 {formatDays(state.frist.krevd_dager)}
               </DataListItem>
             )}
-            {/* Godkjent dager: Vis subsidiær hvis grunnlag avslått eller frist avslått */}
+            {/* Godkjent dager: Vis subsidiær hvis det finnes subsidiær-data */}
             {fristErSubsidiaer ? (
               state.frist.subsidiaer_godkjent_dager != null && (
                 <DataListItem label="Subs. godkjent">
