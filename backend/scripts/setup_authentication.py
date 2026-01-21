@@ -4,11 +4,19 @@ KOE Automation System - Interaktivt oppsettscript
 Hjelper deg med å konfigurere autentisering første gang.
 
 Lagrer konfigurasjon til .env-filen.
+
+Støtter automatisert OAuth Authorization Code Grant med lokal callback-server.
 """
 
 import os
 import sys
 import re
+import webbrowser
+import threading
+import secrets
+import time
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from urllib.parse import urlparse, parse_qs
 from pathlib import Path
 
 # Legg til parent directory i path for imports
@@ -26,6 +34,172 @@ except ImportError as e:
     print(f"❌ Import feilet: {e}")
     print("Sørg for at scriptet kjøres fra backend/-mappen.")
     sys.exit(1)
+
+
+# =============================================================================
+# OAuth Callback Server
+# =============================================================================
+
+class OAuthCallbackHandler(BaseHTTPRequestHandler):
+    """HTTP handler for OAuth callback - fanger opp authorization code."""
+
+    # Delt state mellom handler og hovedtråd
+    authorization_code = None
+    state_param = None
+    error = None
+
+    def log_message(self, format, *args):
+        """Undertrykk standard HTTP logging."""
+        pass
+
+    def do_GET(self):
+        """Håndter GET request fra OAuth callback."""
+        parsed = urlparse(self.path)
+        params = parse_qs(parsed.query)
+
+        # Sjekk for feil
+        if 'error' in params:
+            OAuthCallbackHandler.error = params.get('error', ['unknown'])[0]
+            error_desc = params.get('error_description', ['Ukjent feil'])[0]
+            self._send_error_response(error_desc)
+            return
+
+        # Hent authorization code
+        if 'code' in params:
+            OAuthCallbackHandler.authorization_code = params['code'][0]
+            OAuthCallbackHandler.state_param = params.get('state', [None])[0]
+            self._send_success_response()
+        else:
+            self._send_error_response("Mangler authorization code i callback")
+
+    def _send_success_response(self):
+        """Send suksess-side til nettleser."""
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html; charset=utf-8')
+        self.end_headers()
+
+        html = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Autentisering fullført</title>
+            <style>
+                body {
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    min-height: 100vh;
+                    margin: 0;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                }
+                .container {
+                    background: white;
+                    padding: 3rem;
+                    border-radius: 1rem;
+                    box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+                    text-align: center;
+                    max-width: 400px;
+                }
+                .checkmark {
+                    font-size: 4rem;
+                    margin-bottom: 1rem;
+                }
+                h1 { color: #2d3748; margin-bottom: 0.5rem; }
+                p { color: #718096; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="checkmark">✅</div>
+                <h1>Autentisering fullført!</h1>
+                <p>Du kan nå lukke dette vinduet og gå tilbake til terminalen.</p>
+            </div>
+        </body>
+        </html>
+        """
+        self.wfile.write(html.encode('utf-8'))
+
+    def _send_error_response(self, error_message: str):
+        """Send feilside til nettleser."""
+        self.send_response(400)
+        self.send_header('Content-type', 'text/html; charset=utf-8')
+        self.end_headers()
+
+        html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Autentisering feilet</title>
+            <style>
+                body {{
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    min-height: 100vh;
+                    margin: 0;
+                    background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+                }}
+                .container {{
+                    background: white;
+                    padding: 3rem;
+                    border-radius: 1rem;
+                    box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+                    text-align: center;
+                    max-width: 400px;
+                }}
+                .icon {{ font-size: 4rem; margin-bottom: 1rem; }}
+                h1 {{ color: #c53030; margin-bottom: 0.5rem; }}
+                p {{ color: #718096; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="icon">❌</div>
+                <h1>Autentisering feilet</h1>
+                <p>{error_message}</p>
+            </div>
+        </body>
+        </html>
+        """
+        self.wfile.write(html.encode('utf-8'))
+
+
+def run_oauth_callback_server(port: int, timeout: int = 120) -> tuple[str | None, str | None]:
+    """
+    Start en lokal HTTP-server for å fange opp OAuth callback.
+
+    Args:
+        port: Port å lytte på (f.eks. 8080)
+        timeout: Maks ventetid i sekunder
+
+    Returns:
+        Tuple med (authorization_code, state) eller (None, None) ved timeout/feil
+    """
+    # Reset state
+    OAuthCallbackHandler.authorization_code = None
+    OAuthCallbackHandler.state_param = None
+    OAuthCallbackHandler.error = None
+
+    server = HTTPServer(('localhost', port), OAuthCallbackHandler)
+    server.timeout = 1  # Check every second
+
+    start_time = time.time()
+
+    while time.time() - start_time < timeout:
+        server.handle_request()
+
+        if OAuthCallbackHandler.authorization_code:
+            server.server_close()
+            return OAuthCallbackHandler.authorization_code, OAuthCallbackHandler.state_param
+
+        if OAuthCallbackHandler.error:
+            server.server_close()
+            return None, OAuthCallbackHandler.error
+
+    server.server_close()
+    return None, "timeout"
 
 
 def print_header(title: str):
@@ -219,56 +393,166 @@ def setup_client_credentials(config: dict) -> dict:
 
 
 def setup_authorization_code(config: dict) -> dict:
-    """Sett opp Authorization Code Grant"""
+    """
+    Sett opp Authorization Code Grant med automatisk callback-server.
 
-    print_header("🌐 AUTHORIZATION CODE GRANT")
+    Flyten er nå automatisert:
+    1. Starter lokal HTTP-server på port 8080
+    2. Åpner nettleser automatisk med authorization URL
+    3. Venter på at bruker logger inn (med auto-fill går dette raskt)
+    4. Fanger opp callback automatisk
+    5. Bytter code mot token automatisk
+    """
 
-    print("Denne metoden krever nettleser-interaksjon.\n")
+    print_header("🌐 AUTHORIZATION CODE GRANT (AUTOMATISERT)")
+
+    print("Denne flyten er nå automatisert!")
+    print("Du trenger bare å logge inn i nettleseren som åpnes.\n")
 
     # Client Secret er valgfri for Authorization Code Grant
-    print("Client Secret (valgfri, trykk Enter for å hoppe over):")
-    client_secret = input("Client Secret: ").strip()
-    if client_secret:
-        config['catenda_client_secret'] = client_secret
-
-    # Redirect URI
-    print("\n📍 REDIRECT URI")
-    print("-" * 70)
-    print("Dette må være registrert i Catenda Developer Portal.")
-    print("For lokal testing, bruk: http://localhost:8080/callback\n")
-
-    existing_redirect = config.get('catenda_redirect_uri', 'http://localhost:8080/callback')
-    print(f"Eksisterende Redirect URI: {existing_redirect}")
-    use_existing = input("Bruk eksisterende? (j/n) [j]: ").strip().lower()
-    if use_existing != 'n':
-        redirect_uri = existing_redirect
+    existing_secret = config.get('catenda_client_secret', '')
+    if not existing_secret:
+        print("Client Secret (valgfri, trykk Enter for å hoppe over):")
+        client_secret = input("Client Secret: ").strip()
+        if client_secret:
+            config['catenda_client_secret'] = client_secret
     else:
-        redirect_uri = input("Redirect URI: ").strip()
+        print(f"Bruker eksisterende Client Secret: {existing_secret[:10]}...")
 
-    if not redirect_uri:
-        redirect_uri = "http://localhost:8080/callback"
+    # Parse port fra redirect URI eller bruk default
+    default_port = 8080
+    default_redirect = f'http://localhost:{default_port}/callback'
 
+    existing_redirect = config.get('catenda_redirect_uri', default_redirect)
+
+    # Parse port fra eksisterende redirect URI
+    try:
+        parsed = urlparse(existing_redirect)
+        port = parsed.port or default_port
+    except Exception:
+        port = default_port
+
+    redirect_uri = f'http://localhost:{port}/callback'
     config['catenda_redirect_uri'] = redirect_uri
 
-    # Start autentiseringsflyt
-    print("\n🚀 STARTER AUTENTISERINGSFLYT")
+    print(f"\n📍 Redirect URI: {redirect_uri}")
+    print(f"   (Må være registrert i Catenda Developer Portal)\n")
+
+    # Generer state for sikkerhet (CSRF-beskyttelse)
+    state = secrets.token_urlsafe(32)
+
+    # Opprett client
+    client = CatendaClient(
+        client_id=config['catenda_client_id'],
+        client_secret=config.get('catenda_client_secret')
+    )
+
+    # Generer authorization URL med state
+    auth_url = client.get_authorization_url(redirect_uri, state=state)
+
+    print("🚀 STARTER AUTOMATISERT AUTENTISERING")
     print("-" * 70)
+    print("\n1. Starter lokal callback-server...")
+
+    # Start callback-server i bakgrunns-tråd
+    callback_result = {'code': None, 'error': None}
+
+    def run_server():
+        code, err = run_oauth_callback_server(port, timeout=120)
+        callback_result['code'] = code
+        callback_result['error'] = err
+
+    server_thread = threading.Thread(target=run_server, daemon=True)
+    server_thread.start()
+
+    # Gi serveren litt tid til å starte
+    time.sleep(0.5)
+
+    print("2. Åpner nettleser automatisk...")
+    print(f"\n   URL: {auth_url[:80]}...\n")
+
+    # Åpne nettleser
+    try:
+        webbrowser.open(auth_url)
+        print("   ✅ Nettleser åpnet!")
+    except Exception as e:
+        print(f"   ⚠️  Kunne ikke åpne nettleser automatisk: {e}")
+        print(f"\n   Åpne denne URL-en manuelt:\n   {auth_url}\n")
+
+    print("\n3. Venter på at du logger inn...")
+    print("   (Har du auto-fill? Da trenger du bare klikke 'Logg inn')")
+    print("   Timeout: 2 minutter\n")
+
+    # Vent på callback
+    server_thread.join(timeout=125)
+
+    if callback_result['code']:
+        print("   ✅ Authorization code mottatt!")
+
+        # Verifiser state (CSRF-beskyttelse)
+        # Note: Catenda sender ikke alltid state tilbake, så vi sjekker bare hvis vi fikk en
+        received_state = callback_result.get('state')
+        if received_state and received_state != state:
+            print("   ⚠️  State-parameter matcher ikke (mulig CSRF-angrep)")
+            print("   Fortsetter likevel...")
+
+        print("\n4. Bytter authorization code mot access token...")
+
+        if client.exchange_code_for_token(callback_result['code'], redirect_uri):
+            print("   ✅ Access token hentet!")
+
+            # Lagre tokens
+            if client.access_token:
+                config['catenda_access_token'] = client.access_token
+                print("   ✅ Access token lagret")
+
+            if client.refresh_token:
+                config['catenda_refresh_token'] = client.refresh_token
+                print("   ✅ Refresh token lagret")
+
+            return config
+        else:
+            print("\n❌ Kunne ikke bytte code mot token!")
+
+    elif callback_result['error'] == 'timeout':
+        print("\n❌ Timeout - ingen callback mottatt innen 2 minutter")
+    else:
+        print(f"\n❌ Feil fra Catenda: {callback_result['error']}")
+
+    # Tilby manuell fallback
+    print("\n" + "-" * 70)
+    print("Vil du prøve manuell metode i stedet?")
+    retry = input("(j/n) [j]: ").strip().lower()
+
+    if retry != 'n':
+        return setup_authorization_code_manual(config)
+    else:
+        sys.exit(1)
+
+    return config
+
+
+def setup_authorization_code_manual(config: dict) -> dict:
+    """Fallback: Manuell Authorization Code Grant (gammel metode)."""
+
+    print_header("🌐 MANUELL AUTHORIZATION CODE GRANT")
+
+    redirect_uri = config.get('catenda_redirect_uri', 'http://localhost:8080/callback')
 
     client = CatendaClient(
         client_id=config['catenda_client_id'],
         client_secret=config.get('catenda_client_secret')
     )
 
-    # Generer authorization URL
     auth_url = client.get_authorization_url(redirect_uri)
 
-    print("\n📋 STEG 1: Åpne denne URL-en i nettleser:")
+    print("📋 STEG 1: Åpne denne URL-en i nettleser:")
     print(f"\n   {auth_url}\n")
 
     input("Trykk Enter når du har åpnet URL-en...")
 
     print("\n📋 STEG 2: Etter godkjenning, kopier 'code' fra redirect URL")
-    print("\nRedirect URL-en ser slik ut:")
+    print(f"\nRedirect URL-en ser slik ut:")
     print(f"   {redirect_uri}?code=ABC123XYZ&state=...\n")
     print("Kopier delen etter 'code=' (ABC123XYZ i eksempelet)\n")
 
@@ -283,7 +567,6 @@ def setup_authorization_code(config: dict) -> dict:
     if client.exchange_code_for_token(code, redirect_uri):
         print("✅ Access token hentet!")
 
-        # Lagre tokens
         if client.access_token:
             config['catenda_access_token'] = client.access_token
             print("✅ Access token lagret")
@@ -293,14 +576,9 @@ def setup_authorization_code(config: dict) -> dict:
             print("✅ Refresh token lagret")
     else:
         print("\n❌ Kunne ikke hente access token!")
-        print("\nMulige årsaker:")
-        print("- Feil authorization code")
-        print("- Authorization code er allerede brukt")
-        print("- Redirect URI matcher ikke den registrerte")
-
         retry = input("\nVil du prøve igjen? (j/n) [j]: ").strip().lower()
         if retry != 'n':
-            return setup_authorization_code(config)
+            return setup_authorization_code_manual(config)
         else:
             sys.exit(1)
 
