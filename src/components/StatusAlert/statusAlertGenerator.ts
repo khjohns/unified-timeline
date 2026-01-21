@@ -8,6 +8,7 @@
 
 import type { SakState, SporStatus } from '../../types/timeline';
 import type { AvailableActions } from '../../hooks/useActionPermissions';
+import { HOVEDKATEGORI_OPTIONS } from '../../constants/categories';
 
 export type AlertType = 'info' | 'success' | 'warning' | 'action';
 
@@ -22,6 +23,15 @@ export interface StatusAlertMessage {
   nextStep?: string;
   /** Hvilket spor meldingen gjelder (for highlighting) */
   relatedSpor?: 'grunnlag' | 'vederlag' | 'frist' | null;
+}
+
+/**
+ * Hent lesbart kategorinavn
+ */
+function getKategoriNavn(kategoriId: string | undefined): string {
+  if (!kategoriId) return 'et endringsforhold';
+  const kategori = HOVEDKATEGORI_OPTIONS.find((k) => k.value === kategoriId);
+  return kategori?.label.toLowerCase() ?? 'et endringsforhold';
 }
 
 /**
@@ -50,9 +60,9 @@ function erTrukket(status: SporStatus | undefined): boolean {
 }
 
 /**
- * Generer status-melding for totalentreprenør (TE)
+ * Generer status-melding for entreprenør
  */
-function generateTEMessage(
+function generateEntreprenorMessage(
   state: SakState,
   actions: AvailableActions
 ): StatusAlertMessage | null {
@@ -77,7 +87,7 @@ function generateTEMessage(
     };
   }
 
-  // 2. BH krever avklaring på grunnlag - TE må gi mer info
+  // 2. Byggherre krever avklaring på grunnlag
   if (grunnlag.bh_resultat === 'krever_avklaring') {
     return {
       type: 'warning',
@@ -88,9 +98,8 @@ function generateTEMessage(
     };
   }
 
-  // 3. Grunnlag sendt - sjekk om TE bør sende vederlag/frist (prioriter handling over venting)
+  // 3. Grunnlag sendt - sjekk om entreprenør bør sende vederlagsjustering/fristforlengelse
   if (grunnlagSendt) {
-    // Sjekk først om det er krav som mangler å sendes
     const kanSendeVederlag = vederlagIUtkast && actions.canSendVederlag && !erForceMajeure;
     const kanSendeFrist = fristIUtkast && actions.canSendFrist;
 
@@ -100,9 +109,9 @@ function generateTEMessage(
         : 'Grunnlag er sendt.';
       return {
         type: 'action',
-        title: 'Send krav om vederlag og frist',
-        description: `${grunnlagStatus} Du kan nå sende krav om vederlag og fristforlengelse.`,
-        nextStep: 'Fyll ut og send vederlagskrav og/eller fristkrav.',
+        title: 'Send krav om vederlagsjustering eller fristforlengelse',
+        description: `${grunnlagStatus} Du kan nå sende krav om vederlagsjustering eller fristforlengelse.`,
+        nextStep: 'Fyll ut og send krav om vederlagsjustering eller fristforlengelse.',
         relatedSpor: 'vederlag',
       };
     }
@@ -110,11 +119,11 @@ function generateTEMessage(
     if (kanSendeVederlag) {
       return {
         type: 'action',
-        title: 'Send vederlagskrav',
+        title: 'Send krav om vederlagsjustering',
         description: fristSendt
-          ? 'Fristkrav er sendt. Du kan også sende krav om vederlag.'
-          : 'Du har ikke sendt krav om vederlag ennå.',
-        nextStep: 'Fyll ut og send vederlagskrav for å kreve kompensasjon.',
+          ? 'Krav om fristforlengelse er sendt. Du kan også sende krav om vederlagsjustering.'
+          : 'Du har ikke sendt krav om vederlagsjustering ennå.',
+        nextStep: 'Fyll ut og send krav om vederlagsjustering.',
         relatedSpor: 'vederlag',
       };
     }
@@ -122,11 +131,11 @@ function generateTEMessage(
     if (kanSendeFrist) {
       return {
         type: 'action',
-        title: 'Send fristkrav',
+        title: 'Send krav om fristforlengelse',
         description: vederlagSendt
-          ? 'Vederlagskrav er sendt. Du kan også sende krav om fristforlengelse.'
+          ? 'Krav om vederlagsjustering er sendt. Du kan også sende krav om fristforlengelse.'
           : 'Du har ikke sendt krav om fristforlengelse ennå.',
-        nextStep: 'Fyll ut og send fristkrav hvis du trenger mer tid.',
+        nextStep: 'Fyll ut og send krav om fristforlengelse hvis du trenger mer tid.',
         relatedSpor: 'frist',
       };
     }
@@ -134,7 +143,6 @@ function generateTEMessage(
 
   // 4. Grunnlag avslått - informer om muligheter
   if (grunnlag.bh_resultat === 'avslatt') {
-    // Sjekk om det er subsidiær vurdering
     const harSubsidiaer =
       (vederlag.subsidiaer_triggers && vederlag.subsidiaer_triggers.length > 0) ||
       (frist.subsidiaer_triggers && frist.subsidiaer_triggers.length > 0);
@@ -143,7 +151,7 @@ function generateTEMessage(
       return {
         type: 'warning',
         title: 'Grunnlag avslått - subsidiær vurdering',
-        description: 'Byggherre har avslått grunnlaget. Eventuelle vederlag-/fristkrav behandles subsidiært.',
+        description: 'Byggherre har avslått grunnlaget. Eventuelle krav behandles subsidiært.',
         nextStep: 'Du kan oppdatere grunnlaget eller akseptere subsidiær behandling.',
         relatedSpor: 'grunnlag',
       };
@@ -173,8 +181,8 @@ function generateTEMessage(
   if (erTrukket(vederlag.status) && !erTrukket(frist.status) && frist.status !== 'ikke_relevant') {
     return {
       type: 'info',
-      title: 'Vederlagskrav trukket',
-      description: 'Du har trukket vederlagskravet. Fristkravet behandles fortsatt.',
+      title: 'Krav om vederlagsjustering trukket',
+      description: 'Du har trukket kravet om vederlagsjustering. Krav om fristforlengelse behandles fortsatt.',
       relatedSpor: 'vederlag',
     };
   }
@@ -182,18 +190,18 @@ function generateTEMessage(
   if (erTrukket(frist.status) && !erTrukket(vederlag.status) && vederlag.status !== 'ikke_relevant') {
     return {
       type: 'info',
-      title: 'Fristkrav trukket',
-      description: 'Du har trukket fristkravet. Vederlagskravet behandles fortsatt.',
+      title: 'Krav om fristforlengelse trukket',
+      description: 'Du har trukket kravet om fristforlengelse. Krav om vederlagsjustering behandles fortsatt.',
       relatedSpor: 'frist',
     };
   }
 
-  // 6. Vederlag/frist avslått eller delvis godkjent
+  // 6. Vederlagsjustering/fristforlengelse avslått eller delvis godkjent
   if (vederlag.bh_resultat === 'avslatt' && actions.canUpdateVederlag) {
     return {
       type: 'warning',
-      title: 'Vederlagskrav avslått',
-      description: 'Byggherre har avslått vederlagskravet.',
+      title: 'Krav om vederlagsjustering avslått',
+      description: 'Byggherre har avslått kravet om vederlagsjustering.',
       nextStep: 'Du kan oppdatere kravet med justert beløp eller dokumentasjon.',
       relatedSpor: 'vederlag',
     };
@@ -205,7 +213,7 @@ function generateTEMessage(
     const differanse = krevd - godkjent;
     return {
       type: 'info',
-      title: 'Vederlag delvis godkjent',
+      title: 'Vederlagsjustering delvis godkjent',
       description: `Byggherre har godkjent ${godkjent.toLocaleString('nb-NO')} kr av ${krevd.toLocaleString('nb-NO')} kr (differanse: ${differanse.toLocaleString('nb-NO')} kr).`,
       nextStep: 'Du kan oppdatere kravet hvis du mener differansen bør dekkes.',
       relatedSpor: 'vederlag',
@@ -216,8 +224,8 @@ function generateTEMessage(
     if (actions.canSendForsering) {
       return {
         type: 'warning',
-        title: 'Fristkrav avslått',
-        description: 'Byggherre har avslått fristkravet.',
+        title: 'Krav om fristforlengelse avslått',
+        description: 'Byggherre har avslått kravet om fristforlengelse.',
         nextStep: 'Du kan vurdere forsering (§33.8) for å kreve dagmulktkompensasjon.',
         relatedSpor: 'frist',
       };
@@ -225,8 +233,8 @@ function generateTEMessage(
     if (actions.canUpdateFrist) {
       return {
         type: 'warning',
-        title: 'Fristkrav avslått',
-        description: 'Byggherre har avslått fristkravet.',
+        title: 'Krav om fristforlengelse avslått',
+        description: 'Byggherre har avslått kravet om fristforlengelse.',
         nextStep: 'Du kan oppdatere kravet med mer dokumentasjon.',
         relatedSpor: 'frist',
       };
@@ -239,7 +247,7 @@ function generateTEMessage(
     if (actions.canSendForsering && godkjentDager < krevdDager) {
       return {
         type: 'info',
-        title: 'Frist delvis godkjent',
+        title: 'Fristforlengelse delvis godkjent',
         description: `Byggherre har godkjent ${godkjentDager} av ${krevdDager} dager.`,
         nextStep: 'Du kan vurdere forsering for resterende dager.',
         relatedSpor: 'frist',
@@ -247,29 +255,29 @@ function generateTEMessage(
     }
   }
 
-  // 7. Alle krav sendt og venter på respons (kun hvis ingen handling tilgjengelig)
+  // 7. Alle krav sendt og venter på respons
   if (
-    grunnlagSendt && !grunnlag.bh_resultat &&
+    grunnlagSendt &&
+    !grunnlag.bh_resultat &&
     (vederlagSendt || vederlagIUtkast) &&
     (fristSendt || fristIUtkast)
   ) {
-    // Alle sendte krav venter på respons
     const ventePå: string[] = [];
     if (!grunnlag.bh_resultat) ventePå.push('grunnlag');
-    if (vederlagSendt && !vederlag.bh_resultat) ventePå.push('vederlag');
-    if (fristSendt && !frist.bh_resultat) ventePå.push('frist');
+    if (vederlagSendt && !vederlag.bh_resultat) ventePå.push('vederlagsjustering');
+    if (fristSendt && !frist.bh_resultat) ventePå.push('fristforlengelse');
 
     if (ventePå.length > 0) {
       return {
         type: 'info',
         title: 'Venter på byggherre',
         description: `Venter på respons på ${ventePå.join(' og ')}.`,
-        relatedSpor: ventePå[0] as 'grunnlag' | 'vederlag' | 'frist',
+        relatedSpor: ventePå[0] === 'grunnlag' ? 'grunnlag' : ventePå[0] === 'vederlagsjustering' ? 'vederlag' : 'frist',
       };
     }
   }
 
-  // 8. Alle krav behandlet og godkjent - suksess!
+  // 8. Alle krav behandlet og godkjent
   if (
     harFaattRespons(grunnlag.status) &&
     (vederlag.status === 'ikke_relevant' || harFaattRespons(vederlag.status)) &&
@@ -290,7 +298,6 @@ function generateTEMessage(
       };
     }
 
-    // Noe ble godkjent, noe avslått - men ingen handlinger tilgjengelig
     if (!actions.canUpdateGrunnlag && !actions.canUpdateVederlag && !actions.canUpdateFrist) {
       return {
         type: 'info',
@@ -316,9 +323,9 @@ function generateTEMessage(
 }
 
 /**
- * Generer status-melding for byggherre (BH)
+ * Generer status-melding for byggherre
  */
-function generateBHMessage(
+function generateByggherreMessage(
   state: SakState,
   actions: AvailableActions
 ): StatusAlertMessage | null {
@@ -327,8 +334,8 @@ function generateBHMessage(
   // Tell opp hva som venter på respons
   const kravSomVenter: string[] = [];
   if (actions.canRespondToGrunnlag) kravSomVenter.push('grunnlag');
-  if (actions.canRespondToVederlag) kravSomVenter.push('vederlag');
-  if (actions.canRespondToFrist) kravSomVenter.push('frist');
+  if (actions.canRespondToVederlag) kravSomVenter.push('vederlagsjustering');
+  if (actions.canRespondToFrist) kravSomVenter.push('fristforlengelse');
 
   // 1. Flere krav venter på respons - vis samlet oversikt
   if (kravSomVenter.length > 1) {
@@ -346,22 +353,23 @@ function generateBHMessage(
       title: 'Flere krav mottatt',
       description: beskrivelse,
       nextStep: 'Vurder og gi respons på hvert krav.',
-      relatedSpor: kravSomVenter[0] as 'grunnlag' | 'vederlag' | 'frist',
+      relatedSpor: kravSomVenter[0] === 'grunnlag' ? 'grunnlag' : kravSomVenter[0] === 'vederlagsjustering' ? 'vederlag' : 'frist',
     };
   }
 
   // 2. Nytt grunnlag mottatt - trenger respons
   if (actions.canRespondToGrunnlag) {
+    const kategoriNavn = getKategoriNavn(grunnlag.hovedkategori);
     return {
       type: 'action',
       title: 'Nytt endringsforhold mottatt',
-      description: 'Entreprenør har varslet om et endringsforhold som krever din vurdering.',
+      description: `Entreprenør har varslet om ${kategoriNavn} som kan gi grunnlag for krav om vederlagsjustering eller fristforlengelse.`,
       nextStep: 'Vurder grunnlaget og gi din respons.',
       relatedSpor: 'grunnlag',
     };
   }
 
-  // 3. TE har oppdatert grunnlag - trenger ny vurdering
+  // 3. Entreprenør har oppdatert grunnlag - trenger ny vurdering
   if (
     grunnlag.bh_resultat &&
     grunnlag.bh_respondert_versjon !== undefined &&
@@ -376,30 +384,47 @@ function generateBHMessage(
     };
   }
 
-  // 4. Nytt vederlagskrav mottatt
+  // 4. Kun grunnlag sendt, venter på vederlagsjustering/fristforlengelse fra entreprenør
+  if (
+    erVenterPaaSvar(grunnlag.status) &&
+    !grunnlag.bh_resultat &&
+    vederlag.status === 'utkast' &&
+    frist.status === 'utkast'
+  ) {
+    const kategoriNavn = getKategoriNavn(grunnlag.hovedkategori);
+    return {
+      type: 'info',
+      title: 'Grunnlag mottatt',
+      description: `Entreprenør har varslet om ${kategoriNavn}. Avventer at entreprenør sender krav om vederlagsjustering eller fristforlengelse.`,
+      nextStep: 'Du kan vente på krav, eller gi respons på grunnlaget nå.',
+      relatedSpor: 'grunnlag',
+    };
+  }
+
+  // 5. Nytt krav om vederlagsjustering mottatt
   if (actions.canRespondToVederlag) {
     const belop = vederlag.belop_direkte ?? vederlag.kostnads_overslag;
     return {
       type: 'action',
-      title: 'Vederlagskrav mottatt',
-      description: `Entreprenør krever ${belop?.toLocaleString('nb-NO') ?? '–'} kr i vederlag.`,
+      title: 'Krav om vederlagsjustering mottatt',
+      description: `Entreprenør krever ${belop?.toLocaleString('nb-NO') ?? '–'} kr i vederlagsjustering.`,
       nextStep: 'Vurder kravet og gi din respons.',
       relatedSpor: 'vederlag',
     };
   }
 
-  // 5. Nytt fristkrav mottatt
+  // 6. Nytt krav om fristforlengelse mottatt
   if (actions.canRespondToFrist) {
     return {
       type: 'action',
-      title: 'Fristkrav mottatt',
+      title: 'Krav om fristforlengelse mottatt',
       description: `Entreprenør krever ${frist.krevd_dager ?? '–'} dagers fristforlengelse.`,
       nextStep: 'Vurder kravet og gi din respons.',
       relatedSpor: 'frist',
     };
   }
 
-  // 6. TE har oppdatert vederlag/frist - trenger ny vurdering
+  // 7. Entreprenør har oppdatert vederlagsjustering/fristforlengelse
   if (
     vederlag.bh_resultat &&
     vederlag.bh_respondert_versjon !== undefined &&
@@ -407,8 +432,8 @@ function generateBHMessage(
   ) {
     return {
       type: 'action',
-      title: 'Oppdatert vederlagskrav',
-      description: 'Entreprenør har oppdatert vederlagskravet.',
+      title: 'Oppdatert krav om vederlagsjustering',
+      description: 'Entreprenør har oppdatert kravet om vederlagsjustering.',
       nextStep: 'Vurder det oppdaterte kravet.',
       relatedSpor: 'vederlag',
     };
@@ -421,14 +446,14 @@ function generateBHMessage(
   ) {
     return {
       type: 'action',
-      title: 'Oppdatert fristkrav',
-      description: 'Entreprenør har oppdatert fristkravet.',
+      title: 'Oppdatert krav om fristforlengelse',
+      description: 'Entreprenør har oppdatert kravet om fristforlengelse.',
       nextStep: 'Vurder det oppdaterte kravet.',
       relatedSpor: 'frist',
     };
   }
 
-  // 7. Grunnlag behandlet, venter på vederlag/frist fra TE
+  // 8. Grunnlag behandlet, venter på krav fra entreprenør
   if (
     harFaattRespons(grunnlag.status) &&
     vederlag.status === 'utkast' &&
@@ -443,12 +468,12 @@ function generateBHMessage(
     return {
       type: 'info',
       title: `Grunnlag ${resultatTekst}`,
-      description: 'Venter på at entreprenør sender vederlag- og/eller fristkrav.',
+      description: 'Venter på at entreprenør sender krav om vederlagsjustering eller fristforlengelse.',
       relatedSpor: null,
     };
   }
 
-  // 8. Kan utstede endringsordre
+  // 9. Kan utstede endringsordre
   if (kan_utstede_eo && actions.canIssueEO) {
     return {
       type: 'success',
@@ -459,7 +484,7 @@ function generateBHMessage(
     };
   }
 
-  // 9. Alle krav behandlet - saken er "ferdig"
+  // 10. Alle krav behandlet
   if (
     harFaattRespons(grunnlag.status) &&
     (vederlag.status === 'ikke_relevant' || harFaattRespons(vederlag.status) || erTrukket(vederlag.status)) &&
@@ -473,17 +498,17 @@ function generateBHMessage(
     };
   }
 
-  // 10. Venter på at TE sender flere krav
+  // 11. Venter på at entreprenør sender flere krav
   if (harFaattRespons(grunnlag.status)) {
     const venterPå: string[] = [];
-    if (vederlag.status === 'utkast') venterPå.push('vederlag');
-    if (frist.status === 'utkast') venterPå.push('frist');
+    if (vederlag.status === 'utkast') venterPå.push('vederlagsjustering');
+    if (frist.status === 'utkast') venterPå.push('fristforlengelse');
 
     if (venterPå.length > 0) {
       return {
         type: 'info',
         title: 'Venter på entreprenør',
-        description: `Entreprenør har ikke sendt ${venterPå.join(' eller ')}krav ennå.`,
+        description: `Entreprenør har ikke sendt krav om ${venterPå.join(' eller ')} ennå.`,
         relatedSpor: null,
       };
     }
@@ -521,8 +546,8 @@ export function generateStatusAlert(
   }
 
   if (userRole === 'TE') {
-    return generateTEMessage(state, actions);
+    return generateEntreprenorMessage(state, actions);
   } else {
-    return generateBHMessage(state, actions);
+    return generateByggherreMessage(state, actions);
   }
 }
