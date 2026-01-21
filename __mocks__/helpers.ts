@@ -335,8 +335,7 @@ export function getMockHistorikkById(sakId: string): {
       varsel_type: state.frist.varsel_type,
       varsel_type_label: state.frist.varsel_type === 'noytralt' ? 'Foreløpig varsel (§33.4)'
         : state.frist.varsel_type === 'spesifisert' ? 'Spesifisert krav (§33.6)'
-        : state.frist.varsel_type === 'begge' ? 'Foreløpig + Spesifisert'
-        : 'Force Majeure (§33.3)',
+        : 'Ukjent varseltype',
       begrunnelse: state.frist.begrunnelse || 'Se dokumentasjon',
       ny_sluttdato: state.frist.ny_sluttdato,
     });

@@ -1115,7 +1115,7 @@ export function RespondVederlagModal({
                           <RadioItem value="ja" label="Ja - varslet i tide" />
                           <RadioItem
                             value="nei"
-                            label="Nei - varslet for sent → Kravet prekluderes"
+                            label="Nei - prekludert (varslet for sent)"
                           />
                         </RadioGroup>
                       )}
@@ -1165,7 +1165,7 @@ export function RespondVederlagModal({
                           <RadioItem value="ja" label="Ja - varslet i tide" />
                           <RadioItem
                             value="nei"
-                            label="Nei - varslet for sent → Kravet prekluderes"
+                            label="Nei - prekludert (varslet for sent)"
                           />
                         </RadioGroup>
                       )}
@@ -1993,13 +1993,13 @@ export function RespondVederlagModal({
                           {harRiggKrav && formValues.rigg_varslet_i_tide !== lastResponseEvent?.rigg_varslet_i_tide && (
                             <div className="flex gap-2">
                               <Badge variant="warning">Endret</Badge>
-                              <span>Rigg varsling: {lastResponseEvent?.rigg_varslet_i_tide ? 'I tide' : 'For sent'} → {formValues.rigg_varslet_i_tide ? 'I tide' : 'For sent'}</span>
+                              <span>Rigg varsling: {lastResponseEvent?.rigg_varslet_i_tide ? 'I tide' : 'Prekludert'} → {formValues.rigg_varslet_i_tide ? 'I tide' : 'Prekludert'}</span>
                             </div>
                           )}
                           {harProduktivitetKrav && formValues.produktivitet_varslet_i_tide !== lastResponseEvent?.produktivitet_varslet_i_tide && (
                             <div className="flex gap-2">
                               <Badge variant="warning">Endret</Badge>
-                              <span>Produktivitet varsling: {lastResponseEvent?.produktivitet_varslet_i_tide ? 'I tide' : 'For sent'} → {formValues.produktivitet_varslet_i_tide ? 'I tide' : 'For sent'}</span>
+                              <span>Produktivitet varsling: {lastResponseEvent?.produktivitet_varslet_i_tide ? 'I tide' : 'Prekludert'} → {formValues.produktivitet_varslet_i_tide ? 'I tide' : 'Prekludert'}</span>
                             </div>
                           )}
                           {computed.totalGodkjent !== (lastResponseEvent?.godkjent_belop ?? 0) && (

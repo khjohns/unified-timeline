@@ -940,7 +940,7 @@ export function RespondFristModal({
                             <RadioItem value="ja" label="Ja - varslet i tide" />
                             <RadioItem
                               value="nei"
-                              label="Nei - varslet for sent (prinsipalt prekludert)"
+                              label="Nei - prekludert (varslet for sent)"
                             />
                           </RadioGroup>
                         )}
@@ -1018,7 +1018,7 @@ export function RespondFristModal({
                           <RadioItem value="ja" label="Ja - kravet kom i tide" />
                           <RadioItem
                             value="nei"
-                            label="Nei - kravet kom for sent (prinsipalt prekludert)"
+                            label="Nei - prekludert (kravet kom for sent)"
                           />
                         </RadioGroup>
                       )}
@@ -1048,7 +1048,7 @@ export function RespondFristModal({
                           <RadioItem value="ja" label="Ja - varslet i tide" />
                           <RadioItem
                             value="nei"
-                            label="Nei - varslet for sent (prinsipalt prekludert)"
+                            label="Nei - prekludert (varslet for sent)"
                           />
                         </RadioGroup>
                       )}
@@ -1452,14 +1452,14 @@ export function RespondFristModal({
                         <DataList variant="grid">
                           {formValues.noytralt_varsel_ok !== fristTilstand?.noytralt_varsel_ok && (
                             <DataListItem label="Foreløpig varsel">
-                              {formValues.noytralt_varsel_ok ? 'I tide' : 'For sent'}
-                              <span className="text-pkt-text-body-subtle"> ← {fristTilstand?.noytralt_varsel_ok ? 'I tide' : 'For sent'}</span>
+                              {formValues.noytralt_varsel_ok ? 'I tide' : 'Prekludert'}
+                              <span className="text-pkt-text-body-subtle"> ← {fristTilstand?.noytralt_varsel_ok ? 'I tide' : 'Prekludert'}</span>
                             </DataListItem>
                           )}
                           {formValues.spesifisert_krav_ok !== fristTilstand?.spesifisert_krav_ok && (
                             <DataListItem label="Spesifisert krav">
-                              {formValues.spesifisert_krav_ok ? 'I tide' : 'For sent'}
-                              <span className="text-pkt-text-body-subtle"> ← {fristTilstand?.spesifisert_krav_ok ? 'I tide' : 'For sent'}</span>
+                              {formValues.spesifisert_krav_ok ? 'I tide' : 'Prekludert'}
+                              <span className="text-pkt-text-body-subtle"> ← {fristTilstand?.spesifisert_krav_ok ? 'I tide' : 'Prekludert'}</span>
                             </DataListItem>
                           )}
                           {formValues.vilkar_oppfylt !== fristTilstand?.vilkar_oppfylt && (
