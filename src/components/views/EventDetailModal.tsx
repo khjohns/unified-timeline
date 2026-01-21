@@ -265,7 +265,7 @@ function VederlagSection({ data }: { data: VederlagEventData }) {
           <DataListItem label="Produktivitet" mono>{formatCurrency(produktivitetBelop)}</DataListItem>
         )}
         {data.krever_justert_ep && (
-          <DataListItem label="Justerte EP">Ja</DataListItem>
+          <DataListItem label="Krever justerte enhetspriser">Ja</DataListItem>
         )}
       </DataList>
 
@@ -273,10 +273,10 @@ function VederlagSection({ data }: { data: VederlagEventData }) {
       {(data.saerskilt_krav?.rigg_drift?.dato_klar_over || data.saerskilt_krav?.produktivitet?.dato_klar_over) && (
         <DataList variant="grid">
           {data.saerskilt_krav?.rigg_drift?.dato_klar_over && (
-            <DataListItem label="Rigg klar over">{formatDateMedium(data.saerskilt_krav.rigg_drift.dato_klar_over)}</DataListItem>
+            <DataListItem label="Rigg/drift oppdaget">{formatDateMedium(data.saerskilt_krav.rigg_drift.dato_klar_over)}</DataListItem>
           )}
           {data.saerskilt_krav?.produktivitet?.dato_klar_over && (
-            <DataListItem label="Produktivitet klar over">{formatDateMedium(data.saerskilt_krav.produktivitet.dato_klar_over)}</DataListItem>
+            <DataListItem label="Produktivitetstap oppdaget">{formatDateMedium(data.saerskilt_krav.produktivitet.dato_klar_over)}</DataListItem>
           )}
         </DataList>
       )}
@@ -351,7 +351,7 @@ function FristSpesifisertSection({ data }: { data: FristSpesifisertEventData }) 
       )}
       <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
       {data.er_svar_pa_etterlysning && (
-        <DataListItem label="Svar på etterlysning">Ja (§33.6.2)</DataListItem>
+        <DataListItem label="Sendt etter BHs anmodning">Ja</DataListItem>
       )}
       {data.ny_sluttdato && (
         <DataListItem label="Ny sluttdato">{formatDateMedium(data.ny_sluttdato)}</DataListItem>
@@ -390,7 +390,7 @@ function ResponsGrunnlagOppdatertSection({ data }: { data: ResponsGrunnlagOppdat
 function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
   // Subsidiært hvis det finnes subsidiær-data (trigger av preklusjon eller grunnlagsavslag)
   const erSubsidiaer = data.subsidiaer_resultat !== undefined;
-  const godkjentLabel = erSubsidiaer ? 'Subs. godkjent' : 'Godkjent';
+  const godkjentLabel = erSubsidiaer ? 'Subsidiært godkjent' : 'Godkjent';
   const godkjentBelop = erSubsidiaer
     ? data.subsidiaer_godkjent_belop
     : data.total_godkjent_belop;
@@ -411,7 +411,7 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
       )}
       <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
       {data.frist_for_spesifikasjon && (
-        <DataListItem label="Frist spesifikasjon">{formatDateMedium(data.frist_for_spesifikasjon)}</DataListItem>
+        <DataListItem label="Spesifiseringsfrist">{formatDateMedium(data.frist_for_spesifikasjon)}</DataListItem>
       )}
     </DataList>
   );
@@ -420,7 +420,7 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
 function ResponsVederlagOppdatertSection({ data }: { data: ResponsVederlagOppdatertEventData }) {
   // Subsidiært hvis det finnes subsidiær-data
   const erSubsidiaer = data.subsidiaer_resultat !== undefined;
-  const godkjentLabel = erSubsidiaer ? 'Nytt subs. godkjent' : 'Nytt godkjent';
+  const godkjentLabel = erSubsidiaer ? 'Nytt subsidiært godkjent' : 'Nytt godkjent';
   const godkjentBelop = erSubsidiaer
     ? data.subsidiaer_godkjent_belop
     : data.total_godkjent_belop;
@@ -444,7 +444,7 @@ function ResponsVederlagOppdatertSection({ data }: { data: ResponsVederlagOppdat
 function ResponsFristSection({ data }: { data: ResponsFristEventData }) {
   // Subsidiært hvis det finnes subsidiær-data (trigger av preklusjon, ingen hindring, eller grunnlagsavslag)
   const erSubsidiaer = data.subsidiaer_resultat !== undefined;
-  const godkjentLabel = erSubsidiaer ? 'Subs. godkjent' : 'Godkjent';
+  const godkjentLabel = erSubsidiaer ? 'Subsidiært godkjent' : 'Godkjent';
   const godkjentDager = erSubsidiaer
     ? data.subsidiaer_godkjent_dager
     : data.godkjent_dager;
@@ -471,7 +471,7 @@ function ResponsFristSection({ data }: { data: ResponsFristEventData }) {
 function ResponsFristOppdatertSection({ data }: { data: ResponsFristOppdatertEventData }) {
   // Subsidiært hvis det finnes subsidiær-data
   const erSubsidiaer = data.subsidiaer_resultat !== undefined;
-  const godkjentLabel = erSubsidiaer ? 'Nytt subs. godkjent' : 'Nytt godkjent';
+  const godkjentLabel = erSubsidiaer ? 'Nytt subsidiært godkjent' : 'Nytt godkjent';
   const godkjentDager = erSubsidiaer
     ? data.subsidiaer_godkjent_dager
     : data.godkjent_dager;

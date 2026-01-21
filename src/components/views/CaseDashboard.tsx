@@ -153,7 +153,7 @@ export function CaseDashboard({
             {/* Godkjent beløp: Vis subsidiær hvis det finnes subsidiær-data */}
             {vederlagErSubsidiaer ? (
               state.vederlag.subsidiaer_godkjent_belop != null && (
-                <DataListItem label="Subs. godkjent">
+                <DataListItem label="Subsidiært godkjent">
                   {formatCurrency(state.vederlag.subsidiaer_godkjent_belop)}
                 </DataListItem>
               )
@@ -191,7 +191,7 @@ export function CaseDashboard({
             {/* Godkjent dager: Vis subsidiær hvis det finnes subsidiær-data */}
             {fristErSubsidiaer ? (
               state.frist.subsidiaer_godkjent_dager != null && (
-                <DataListItem label="Subs. godkjent">
+                <DataListItem label="Subsidiært godkjent">
                   {formatDays(state.frist.subsidiaer_godkjent_dager)}
                 </DataListItem>
               )
