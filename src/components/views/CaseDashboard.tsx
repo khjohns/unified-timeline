@@ -76,6 +76,10 @@ export function CaseDashboard({
 }: CaseDashboardProps) {
   const krevdBelop = useMemo(() => getKrevdBelop(state), [state]);
 
+  // Vis subsidiær hvis det finnes subsidiær-data (uansett årsak: grunnlagsavslag, preklusjon, etc.)
+  const vederlagErSubsidiaer = state.vederlag.subsidiaer_godkjent_belop != null;
+  const fristErSubsidiaer = state.frist.subsidiaer_godkjent_dager != null;
+
   // Transform historikk data for SporHistory
   const grunnlagEntries = useMemo(() => transformGrunnlagHistorikk(grunnlagHistorikk), [grunnlagHistorikk]);
   const vederlagEntries = useMemo(() => transformVederlagHistorikk(vederlagHistorikk), [vederlagHistorikk]);
@@ -146,16 +150,19 @@ export function CaseDashboard({
             <DataListItem label="Krevd beløp">
               {formatCurrency(krevdBelop)}
             </DataListItem>
-            {/* Godkjent beløp: Vis prinsipal eller subsidiær verdi med riktig label */}
-            {state.vederlag.bh_resultat !== 'avslatt' && state.vederlag.godkjent_belop !== undefined && (
-              <DataListItem label="Godkjent beløp">
-                {formatCurrency(state.vederlag.godkjent_belop)}
-              </DataListItem>
-            )}
-            {state.vederlag.bh_resultat === 'avslatt' && state.vederlag.subsidiaer_godkjent_belop != null && (
-              <DataListItem label="Subs. godkjent">
-                {formatCurrency(state.vederlag.subsidiaer_godkjent_belop)}
-              </DataListItem>
+            {/* Godkjent beløp: Vis subsidiær hvis det finnes subsidiær-data */}
+            {vederlagErSubsidiaer ? (
+              state.vederlag.subsidiaer_godkjent_belop != null && (
+                <DataListItem label="Subs. godkjent">
+                  {formatCurrency(state.vederlag.subsidiaer_godkjent_belop)}
+                </DataListItem>
+              )
+            ) : (
+              state.vederlag.godkjent_belop !== undefined && (
+                <DataListItem label="Godkjent beløp">
+                  {formatCurrency(state.vederlag.godkjent_belop)}
+                </DataListItem>
+              )
             )}
             {state.vederlag.bh_resultat && (
               <DataListItem label="Resultat">
@@ -181,16 +188,19 @@ export function CaseDashboard({
                 {formatDays(state.frist.krevd_dager)}
               </DataListItem>
             )}
-            {/* Godkjent dager: Vis prinsipal eller subsidiær verdi med riktig label */}
-            {state.frist.bh_resultat !== 'avslatt' && state.frist.godkjent_dager !== undefined && (
-              <DataListItem label="Godkjent">
-                {formatDays(state.frist.godkjent_dager)}
-              </DataListItem>
-            )}
-            {state.frist.bh_resultat === 'avslatt' && state.frist.subsidiaer_godkjent_dager != null && (
-              <DataListItem label="Subs. godkjent">
-                {formatDays(state.frist.subsidiaer_godkjent_dager)}
-              </DataListItem>
+            {/* Godkjent dager: Vis subsidiær hvis det finnes subsidiær-data */}
+            {fristErSubsidiaer ? (
+              state.frist.subsidiaer_godkjent_dager != null && (
+                <DataListItem label="Subs. godkjent">
+                  {formatDays(state.frist.subsidiaer_godkjent_dager)}
+                </DataListItem>
+              )
+            ) : (
+              state.frist.godkjent_dager !== undefined && (
+                <DataListItem label="Godkjent">
+                  {formatDays(state.frist.godkjent_dager)}
+                </DataListItem>
+              )
             )}
             {state.frist.varsel_type && (
               <DataListItem label="Varseltype">
