@@ -478,15 +478,20 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
 }
 
 function ResponsVederlagOppdatertSection({ data }: { data: ResponsVederlagOppdatertEventData }) {
-  const badge = getVederlagResultatBadge(data.beregnings_resultat);
+  // Subsidiært hvis det finnes subsidiær-data
+  const erSubsidiaer = data.subsidiaer_resultat !== undefined;
+  const godkjentLabel = erSubsidiaer ? 'Nytt subs. godkjent' : 'Nytt godkjent';
+  const godkjentBelop = erSubsidiaer
+    ? data.subsidiaer_godkjent_belop
+    : data.total_godkjent_belop;
 
   return (
     <DataList>
-      <DataListItem label="Nytt resultat">
-        <Badge variant={badge.variant}>{badge.label}</Badge>
-      </DataListItem>
-      {data.total_godkjent_belop !== undefined && (
-        <DataListItem label="Nytt godkjent beløp" mono>{formatCurrency(data.total_godkjent_belop)}</DataListItem>
+      {data.beregnings_resultat && (
+        <DataListItem label="Nytt resultat">{getBhVederlagssvarLabel(data.beregnings_resultat)}</DataListItem>
+      )}
+      {godkjentBelop !== undefined && (
+        <DataListItem label={godkjentLabel} mono>{formatCurrency(godkjentBelop)}</DataListItem>
       )}
       <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
       {data.dato_endret && (
@@ -524,20 +529,23 @@ function ResponsFristSection({ data }: { data: ResponsFristEventData }) {
 }
 
 function ResponsFristOppdatertSection({ data }: { data: ResponsFristOppdatertEventData }) {
-  const badge = getFristResultatBadge(data.beregnings_resultat);
+  // Subsidiært hvis det finnes subsidiær-data
+  const erSubsidiaer = data.subsidiaer_resultat !== undefined;
+  const godkjentLabel = erSubsidiaer ? 'Nytt subs. godkjent' : 'Nytt godkjent';
+  const godkjentDager = erSubsidiaer
+    ? data.subsidiaer_godkjent_dager
+    : data.godkjent_dager;
 
   return (
     <DataList>
-      <DataListItem label="Nytt resultat">
-        <Badge variant={badge.variant}>{badge.label}</Badge>
-      </DataListItem>
-      {data.godkjent_dager !== undefined && (
-        <DataListItem label="Nye godkjente dager">{data.godkjent_dager} dager</DataListItem>
+      {data.beregnings_resultat && (
+        <DataListItem label="Nytt resultat">{getBhFristsvarLabel(data.beregnings_resultat)}</DataListItem>
+      )}
+      {godkjentDager !== undefined && (
+        <DataListItem label={godkjentLabel}>{godkjentDager} dager</DataListItem>
       )}
       {data.stopper_forsering && (
-        <DataListItem label="Stopper forsering">
-          <Badge variant="info">Ja - §33.8</Badge>
-        </DataListItem>
+        <DataListItem label="Stopper forsering">Ja - §33.8</DataListItem>
       )}
       <LongTextField label="Kommentar" value={data.kommentar} defaultOpen={true} />
       {data.dato_endret && (

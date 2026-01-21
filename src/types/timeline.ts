@@ -786,6 +786,10 @@ export interface ResponsVederlagOppdatertEventData {
   // Totalt godkjent beløp (beregnet fra individuelle poster)
   total_godkjent_belop?: number;
 
+  // Subsidiært standpunkt (hvis oppdateringen gjelder subsidiær)
+  subsidiaer_resultat?: VederlagBeregningResultat;
+  subsidiaer_godkjent_belop?: number;
+
   begrunnelse?: string;
   dato_endret?: string;
 }
@@ -819,6 +823,9 @@ export interface ResponsFristOppdatertEventData {
   // Port 3: Vilkår
   vilkar_oppfylt?: boolean;
   begrunnelse_vilkar?: string;
+  // Subsidiært standpunkt (hvis oppdateringen gjelder subsidiær)
+  subsidiaer_resultat?: FristBeregningResultat;
+  subsidiaer_godkjent_dager?: number;
   // Metadata
   kommentar?: string;
   stopper_forsering?: boolean;
