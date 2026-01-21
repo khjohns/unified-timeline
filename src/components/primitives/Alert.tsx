@@ -102,7 +102,7 @@ export function Alert({
           )}
           <div className="flex-1 min-w-0">
             {title && (
-              <p className={clsx('font-semibold mb-1', styles.title)}>{title}</p>
+              <p className={clsx('font-semibold mb-1 min-w-0 overflow-hidden', styles.title)}>{title}</p>
             )}
             {children && <div className="text-sm">{children}</div>}
             {footer && (
