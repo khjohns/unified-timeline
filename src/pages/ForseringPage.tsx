@@ -137,7 +137,7 @@ export function ForseringPage() {
     onSuccess: () => {
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['forsering', sakId, 'kontekst'] });
-      queryClient.invalidateQueries({ queryKey: ['case', sakId] });
+      queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'state'] });
     },
     onError: (error) => {
       if (error instanceof Error && (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING')) {
@@ -161,7 +161,7 @@ export function ForseringPage() {
     onSuccess: () => {
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['forsering', sakId, 'kontekst'] });
-      queryClient.invalidateQueries({ queryKey: ['case', sakId] });
+      queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'state'] });
     },
     onError: (error) => {
       if (error instanceof Error && (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING')) {
@@ -187,7 +187,7 @@ export function ForseringPage() {
     onSuccess: (result) => {
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['forsering', sakId, 'kontekst'] });
-      queryClient.invalidateQueries({ queryKey: ['case', sakId] });
+      queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'state'] });
       setStoppModalOpen(false);
       // Show warning if Catenda sync failed
       if (!result.catenda_synced) {
@@ -199,7 +199,7 @@ export function ForseringPage() {
         setShowTokenExpired(true);
       } else if (error instanceof ApiError && error.status === 409) {
         setShowConflict(true);
-        queryClient.invalidateQueries({ queryKey: ['case', sakId] });
+        queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'state'] });
       }
     },
   });
@@ -221,7 +221,7 @@ export function ForseringPage() {
     onSuccess: (result) => {
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['forsering', sakId, 'kontekst'] });
-      queryClient.invalidateQueries({ queryKey: ['case', sakId] });
+      queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'state'] });
       setKostnaderModalOpen(false);
       // Show warning if Catenda sync failed
       if (!result.catenda_synced) {
@@ -233,7 +233,7 @@ export function ForseringPage() {
         setShowTokenExpired(true);
       } else if (error instanceof ApiError && error.status === 409) {
         setShowConflict(true);
-        queryClient.invalidateQueries({ queryKey: ['case', sakId] });
+        queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'state'] });
       }
     },
   });
@@ -430,11 +430,11 @@ export function ForseringPage() {
         avslatteSaker={avslatteSaker}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['forsering', sakId, 'kontekst'] });
-          queryClient.invalidateQueries({ queryKey: ['case', sakId] });
+          queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'state'] });
         }}
         onConflict={() => {
           setShowConflict(true);
-          queryClient.invalidateQueries({ queryKey: ['case', sakId] });
+          queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'state'] });
         }}
       />
 
