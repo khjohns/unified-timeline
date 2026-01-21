@@ -11,7 +11,7 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { setAuthToken } from '../api/client';
 
 // Storage key for current user email (used by events.ts for aktor field)
-export const USER_EMAIL_STORAGE_KEY = 'unified-timeline-user-email';
+export const USER_EMAIL_STORAGE_KEY = 'koe-user-email';
 
 interface SupabaseAuthContextType {
   user: User | null;

@@ -7,7 +7,7 @@
 
 import { useEffect, useCallback, useState } from 'react';
 
-const STORAGE_PREFIX = 'koe_form_backup_';
+const STORAGE_PREFIX = 'koe-form-backup-';
 
 export interface UseFormBackupResult<T> {
   /** Check if backup exists and return the data */

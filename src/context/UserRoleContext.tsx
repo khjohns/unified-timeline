@@ -33,8 +33,8 @@ export type UserRole = 'TE' | 'BH';
  */
 export type BHApprovalRole = 'BH' | ApprovalRole;
 
-const STORAGE_KEY = 'unified-timeline-user-role';
-const STORAGE_KEY_BH_APPROVAL = 'unified-timeline-bh-approval-role';
+const STORAGE_KEY = 'koe-user-role';
+const STORAGE_KEY_BH_APPROVAL = 'koe-bh-approval-role';
 
 const VALID_APPROVAL_ROLES: BHApprovalRole[] = ['BH', 'PL', 'SL', 'AL', 'DU', 'AD'];
 
