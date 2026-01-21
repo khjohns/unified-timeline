@@ -10,8 +10,6 @@
 import React from 'react';
 import {
   Alert,
-  Badge,
-  BadgeVariant,
   Modal,
   SectionContainer,
   DataList,
@@ -19,7 +17,6 @@ import {
 } from '../primitives';
 import {
   TimelineEvent,
-  EventType,
   GrunnlagEventData,
   VederlagEventData,
   FristEventData,
@@ -35,9 +32,6 @@ import {
   ResponsFristOppdatertEventData,
   ForseringVarselEventData,
   VarselInfo,
-  GrunnlagResponsResultat,
-  VederlagBeregningResultat,
-  FristBeregningResultat,
   extractEventType,
 } from '../../types/timeline';
 import {
@@ -68,46 +62,6 @@ interface EventDetailModalProps {
   onOpenChange: (open: boolean) => void;
   event: TimelineEvent;
 }
-
-// ========== HELPER FUNCTIONS ==========
-
-/**
- * Variant mappings for different result types
- */
-const RESULTAT_VARIANTS: Record<string, BadgeVariant> = {
-  // Success
-  godkjent: 'success',
-  // Warning
-  delvis_godkjent: 'warning',
-  delvis: 'warning',
-  krever_avklaring: 'warning',
-  hold_tilbake: 'warning',
-  // Danger
-  avslatt: 'danger',
-  frafalt: 'danger',
-};
-
-/**
- * Generic badge helper - maps result code to variant and label
- */
-function getResultatBadge(
-  resultat: string | undefined,
-  labelFn: (r: string) => string
-): { variant: BadgeVariant; label: string } {
-  const label = labelFn(resultat || '');
-  const variant = RESULTAT_VARIANTS[resultat || ''] || 'neutral';
-  return { variant, label };
-}
-
-// Specific badge helpers using the generic function
-const getGrunnlagResultatBadge = (r: GrunnlagResponsResultat | string | undefined) =>
-  getResultatBadge(r, getBhGrunnlagssvarLabel);
-
-const getVederlagResultatBadge = (r: VederlagBeregningResultat | string | undefined) =>
-  getResultatBadge(r, getBhVederlagssvarLabel);
-
-const getFristResultatBadge = (r: FristBeregningResultat | string | undefined) =>
-  getResultatBadge(r, getBhFristsvarLabel);
 
 // ========== HELPER COMPONENTS ==========
 
@@ -302,9 +256,7 @@ function VederlagSection({ data }: { data: VederlagEventData }) {
     <div className="space-y-4">
       {/* Hoveddata i grid */}
       <DataList variant="grid">
-        <DataListItem label="Metode">
-          <Badge variant="info">{getVederlagsmetodeLabel(data.metode)}</Badge>
-        </DataListItem>
+        <DataListItem label="Metode">{getVederlagsmetodeLabel(data.metode)}</DataListItem>
         <DataListItem label="Hovedkrav" mono>{formatCurrency(hovedbelop)}</DataListItem>
         {riggBelop !== undefined && (
           <DataListItem label="Rigg/drift" mono>{formatCurrency(riggBelop)}</DataListItem>
@@ -313,9 +265,7 @@ function VederlagSection({ data }: { data: VederlagEventData }) {
           <DataListItem label="Produktivitet" mono>{formatCurrency(produktivitetBelop)}</DataListItem>
         )}
         {data.krever_justert_ep && (
-          <DataListItem label="Justerte EP">
-            <Badge variant="warning">Ja</Badge>
-          </DataListItem>
+          <DataListItem label="Justerte EP">Ja</DataListItem>
         )}
       </DataList>
 
@@ -401,9 +351,7 @@ function FristSpesifisertSection({ data }: { data: FristSpesifisertEventData }) 
       )}
       <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
       {data.er_svar_pa_etterlysning && (
-        <DataListItem label="Svar på etterlysning">
-          <Badge variant="warning">Ja (§33.6.2)</Badge>
-        </DataListItem>
+        <DataListItem label="Svar på etterlysning">Ja (§33.6.2)</DataListItem>
       )}
       {data.ny_sluttdato && (
         <DataListItem label="Ny sluttdato">{formatDateMedium(data.ny_sluttdato)}</DataListItem>
@@ -416,13 +364,9 @@ function FristSpesifisertSection({ data }: { data: FristSpesifisertEventData }) 
 }
 
 function ResponsGrunnlagSection({ data }: { data: ResponsGrunnlagEventData }) {
-  const badge = getGrunnlagResultatBadge(data.resultat);
-
   return (
     <DataList>
-      <DataListItem label="Resultat">
-        <Badge variant={badge.variant}>{badge.label}</Badge>
-      </DataListItem>
+      <DataListItem label="Resultat">{getBhGrunnlagssvarLabel(data.resultat)}</DataListItem>
       <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
       {data.akseptert_kategori && (
         <DataListItem label="Akseptert kategori">{data.akseptert_kategori}</DataListItem>
@@ -432,13 +376,9 @@ function ResponsGrunnlagSection({ data }: { data: ResponsGrunnlagEventData }) {
 }
 
 function ResponsGrunnlagOppdatertSection({ data }: { data: ResponsGrunnlagOppdatertEventData }) {
-  const badge = getGrunnlagResultatBadge(data.resultat);
-
   return (
     <DataList>
-      <DataListItem label="Nytt resultat">
-        <Badge variant={badge.variant}>{badge.label}</Badge>
-      </DataListItem>
+      <DataListItem label="Nytt resultat">{getBhGrunnlagssvarLabel(data.resultat)}</DataListItem>
       <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
       {data.dato_endret && (
         <DataListItem label="Endret dato">{formatDateMedium(data.dato_endret)}</DataListItem>
@@ -583,11 +523,9 @@ function ForseringVarselSection({ data }: { data: ForseringVarselEventData }) {
           <DataListItem label="Dagmulktsats" mono>{formatCurrency(data.dagmulktsats)}</DataListItem>
           <DataListItem label="Maks forseringskostnad" mono>{formatCurrency(maksKostnad)}</DataListItem>
           <DataListItem label="Innenfor 30%-grense">
-            {erInnenforGrense ? (
-              <Badge variant="success">Ja ({((data.estimert_kostnad / maksKostnad) * 100).toFixed(0)}% av grensen)</Badge>
-            ) : (
-              <Badge variant="danger">Nei - overstiger grensen</Badge>
-            )}
+            {erInnenforGrense
+              ? `Ja (${((data.estimert_kostnad / maksKostnad) * 100).toFixed(0)}% av grensen)`
+              : 'Nei - overstiger grensen'}
           </DataListItem>
         </DataList>
       </SectionContainer>
