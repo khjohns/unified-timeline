@@ -103,6 +103,20 @@ function generateEntreprenorMessage(
     const kanSendeVederlag = vederlagIUtkast && actions.canSendVederlag && !erForceMajeure;
     const kanSendeFrist = fristIUtkast && actions.canSendFrist;
 
+    // Force Majeure: kun fristforlengelse er mulig
+    if (erForceMajeure && kanSendeFrist) {
+      const grunnlagStatus = grunnlag.bh_resultat
+        ? `Grunnlag er ${grunnlag.bh_resultat === 'godkjent' ? 'godkjent' : grunnlag.bh_resultat === 'delvis_godkjent' ? 'delvis godkjent' : 'behandlet'}.`
+        : 'Grunnlag er sendt.';
+      return {
+        type: 'action',
+        title: 'Send krav om fristforlengelse',
+        description: `${grunnlagStatus} Ved force majeure kan du kreve fristforlengelse.`,
+        nextStep: 'Fyll ut og send krav om fristforlengelse.',
+        relatedSpor: 'frist',
+      };
+    }
+
     if (kanSendeVederlag && kanSendeFrist) {
       const grunnlagStatus = grunnlag.bh_resultat
         ? `Grunnlag er ${grunnlag.bh_resultat === 'godkjent' ? 'godkjent' : grunnlag.bh_resultat === 'delvis_godkjent' ? 'delvis godkjent' : 'behandlet'}.`
@@ -360,10 +374,14 @@ function generateByggherreMessage(
   // 2. Nytt grunnlag mottatt - trenger respons
   if (actions.canRespondToGrunnlag) {
     const kategoriNavn = getKategoriNavn(grunnlag.hovedkategori);
+    const erForceMajeure = grunnlag.hovedkategori === 'FORCE_MAJEURE';
+    const kravType = erForceMajeure
+      ? 'krav om fristforlengelse'
+      : 'krav om vederlagsjustering eller fristforlengelse';
     return {
       type: 'action',
       title: 'Nytt endringsforhold mottatt',
-      description: `Entreprenør har varslet om ${kategoriNavn} som kan gi grunnlag for krav om vederlagsjustering eller fristforlengelse.`,
+      description: `Entreprenør har varslet om ${kategoriNavn} som kan gi grunnlag for ${kravType}.`,
       nextStep: 'Vurder grunnlaget og gi din respons.',
       relatedSpor: 'grunnlag',
     };
@@ -392,10 +410,14 @@ function generateByggherreMessage(
     frist.status === 'utkast'
   ) {
     const kategoriNavn = getKategoriNavn(grunnlag.hovedkategori);
+    const erForceMajeure = grunnlag.hovedkategori === 'FORCE_MAJEURE';
+    const kravType = erForceMajeure
+      ? 'krav om fristforlengelse'
+      : 'krav om vederlagsjustering eller fristforlengelse';
     return {
       type: 'info',
       title: 'Grunnlag mottatt',
-      description: `Entreprenør har varslet om ${kategoriNavn}. Avventer at entreprenør sender krav om vederlagsjustering eller fristforlengelse.`,
+      description: `Entreprenør har varslet om ${kategoriNavn}. Avventer at entreprenør sender ${kravType}.`,
       nextStep: 'Du kan vente på krav, eller gi respons på grunnlaget nå.',
       relatedSpor: 'grunnlag',
     };
@@ -465,10 +487,14 @@ function generateByggherreMessage(
         : grunnlag.bh_resultat === 'delvis_godkjent'
         ? 'delvis godkjent'
         : 'avslått';
+    const erForceMajeure = grunnlag.hovedkategori === 'FORCE_MAJEURE';
+    const kravType = erForceMajeure
+      ? 'krav om fristforlengelse'
+      : 'krav om vederlagsjustering eller fristforlengelse';
     return {
       type: 'info',
       title: `Grunnlag ${resultatTekst}`,
-      description: 'Venter på at entreprenør sender krav om vederlagsjustering eller fristforlengelse.',
+      description: `Venter på at entreprenør sender ${kravType}.`,
       relatedSpor: null,
     };
   }
@@ -500,8 +526,10 @@ function generateByggherreMessage(
 
   // 11. Venter på at entreprenør sender flere krav
   if (harFaattRespons(grunnlag.status)) {
+    const erForceMajeure = grunnlag.hovedkategori === 'FORCE_MAJEURE';
     const venterPå: string[] = [];
-    if (vederlag.status === 'utkast') venterPå.push('vederlagsjustering');
+    // Ved Force Majeure kan entreprenør kun kreve fristforlengelse
+    if (vederlag.status === 'utkast' && !erForceMajeure) venterPå.push('vederlagsjustering');
     if (frist.status === 'utkast') venterPå.push('fristforlengelse');
 
     if (venterPå.length > 0) {
