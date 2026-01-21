@@ -1451,7 +1451,7 @@ export function RespondFristModal({
                       <SectionContainer title="Endringer fra forrige svar" variant="subtle">
                         <DataList variant="grid">
                           {formValues.noytralt_varsel_ok !== fristTilstand?.noytralt_varsel_ok && (
-                            <DataListItem label="Nøytralt varsel">
+                            <DataListItem label="Foreløpig varsel">
                               {formValues.noytralt_varsel_ok ? 'I tide' : 'For sent'}
                               <span className="text-pkt-text-body-subtle"> ← {fristTilstand?.noytralt_varsel_ok ? 'I tide' : 'For sent'}</span>
                             </DataListItem>

@@ -645,7 +645,7 @@ const FristSection: React.FC<{ state: SakState }> = ({ state }) => {
               {/* Varseldato */}
               {frist.varsel_type === 'noytralt' && frist.noytralt_varsel?.dato_sendt && (
                 <TableRow
-                  label="Nøytralt varsel"
+                  label="Foreløpig varsel"
                   value={formatDate(frist.noytralt_varsel?.dato_sendt)}
                   striped
                 />

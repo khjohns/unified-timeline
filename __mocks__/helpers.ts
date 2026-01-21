@@ -333,9 +333,9 @@ export function getMockHistorikkById(sakId: string): {
       event_id: `${sakId}-frist-1`,
       krav_dager: state.frist.krevd_dager,
       varsel_type: state.frist.varsel_type,
-      varsel_type_label: state.frist.varsel_type === 'noytralt' ? 'Nøytralt varsel (§33.4)'
+      varsel_type_label: state.frist.varsel_type === 'noytralt' ? 'Foreløpig varsel (§33.4)'
         : state.frist.varsel_type === 'spesifisert' ? 'Spesifisert krav (§33.6)'
-        : state.frist.varsel_type === 'begge' ? 'Nøytralt + Spesifisert'
+        : state.frist.varsel_type === 'begge' ? 'Foreløpig + Spesifisert'
         : 'Force Majeure (§33.3)',
       begrunnelse: state.frist.begrunnelse || 'Se dokumentasjon',
       ny_sluttdato: state.frist.ny_sluttdato,
@@ -351,9 +351,9 @@ export function getMockHistorikkById(sakId: string): {
         event_id: `${sakId}-frist-2`,
         krav_dager: state.frist.krevd_dager ? state.frist.krevd_dager + 5 : null,
         varsel_type: state.frist.varsel_type,
-        varsel_type_label: state.frist.varsel_type === 'noytralt' ? 'Nøytralt varsel (§33.4)'
+        varsel_type_label: state.frist.varsel_type === 'noytralt' ? 'Foreløpig varsel (§33.4)'
           : state.frist.varsel_type === 'spesifisert' ? 'Spesifisert krav (§33.6)'
-          : state.frist.varsel_type === 'begge' ? 'Nøytralt + Spesifisert'
+          : state.frist.varsel_type === 'begge' ? 'Foreløpig + Spesifisert'
           : 'Force Majeure (§33.3)',
         begrunnelse: 'Oppdatert krav basert på ytterligere forsinkelser',
         ny_sluttdato: state.frist.ny_sluttdato,

@@ -196,7 +196,7 @@ function FriststatusIndikator({ state }: { state: SakState }) {
 
   // Nøytralt varsel (§33.4)
   if (frist.noytralt_varsel?.dato_sendt) {
-    statusItems.push({ label: 'Nøytralt varsel sendt (§33.4)', ok: true });
+    statusItems.push({ label: 'Foreløpig varsel sendt (§33.4)', ok: true });
   }
 
   // Spesifisert krav (§33.6)

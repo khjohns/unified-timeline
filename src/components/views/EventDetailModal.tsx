@@ -314,7 +314,7 @@ function FristSection({ data }: { data: FristEventData }) {
       {data.varsel_type && (
         <DataListItem label="Varseltype">{getFristVarseltypeLabel(data.varsel_type)}</DataListItem>
       )}
-      <VarselInfoDisplay label="Nøytralt varsel (§33.4)" varsel={data.noytralt_varsel} />
+      <VarselInfoDisplay label="Foreløpig varsel (§33.4)" varsel={data.noytralt_varsel} />
       <VarselInfoDisplay label="Spesifisert varsel (§33.6)" varsel={data.spesifisert_varsel} />
       {data.antall_dager !== undefined && (
         <DataListItem label="Krevde dager">{data.antall_dager} dager</DataListItem>
