@@ -52,7 +52,6 @@ const opprettSakSchema = z.object({
   varsel_sendes_na: z.boolean().optional(),
   dato_varsel_sendt: z.string().optional(),
   varsel_metode: z.array(z.string()).optional(),
-  kontraktsreferanser: z.string().optional(),
   er_etter_tilbud: z.boolean().optional(),
 });
 
@@ -153,11 +152,6 @@ export function OpprettSakPage() {
           }
         : undefined;
 
-      // Convert comma-separated string to array
-      const kontraktsreferanser = data.kontraktsreferanser
-        ? data.kontraktsreferanser.split(',').map((ref) => ref.trim())
-        : [];
-
       // Create the batch request with grunnlag_opprettet event
       const batchPayload = {
         sak_id: data.sak_id,
@@ -174,7 +168,6 @@ export function OpprettSakPage() {
               beskrivelse: data.beskrivelse,
               dato_oppdaget: data.dato_oppdaget,
               grunnlag_varsel: grunnlagVarsel,
-              kontraktsreferanser,
               meta: harLovendring ? { er_etter_tilbud: data.er_etter_tilbud } : undefined,
             },
           },
@@ -432,18 +425,6 @@ export function OpprettSakPage() {
                   />
                 </FormField>
 
-                <FormField
-                  label="Kontraktsreferanser (valgfritt)"
-                  helpText="Separer flere referanser med komma"
-                >
-                  <Input
-                    id="kontraktsreferanser"
-                    type="text"
-                    {...register('kontraktsreferanser')}
-                    fullWidth
-                    placeholder="F.eks. §12.3, Vedlegg A pkt. 4.2"
-                  />
-                </FormField>
               </div>
             </SectionContainer>
 
