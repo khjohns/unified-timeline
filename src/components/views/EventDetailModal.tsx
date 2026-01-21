@@ -10,8 +10,6 @@
 import React from 'react';
 import {
   Alert,
-  Badge,
-  BadgeVariant,
   Modal,
   SectionContainer,
   DataList,
@@ -19,7 +17,6 @@ import {
 } from '../primitives';
 import {
   TimelineEvent,
-  EventType,
   GrunnlagEventData,
   VederlagEventData,
   FristEventData,
@@ -35,9 +32,6 @@ import {
   ResponsFristOppdatertEventData,
   ForseringVarselEventData,
   VarselInfo,
-  GrunnlagResponsResultat,
-  VederlagBeregningResultat,
-  FristBeregningResultat,
   extractEventType,
 } from '../../types/timeline';
 import {
@@ -68,46 +62,6 @@ interface EventDetailModalProps {
   onOpenChange: (open: boolean) => void;
   event: TimelineEvent;
 }
-
-// ========== HELPER FUNCTIONS ==========
-
-/**
- * Variant mappings for different result types
- */
-const RESULTAT_VARIANTS: Record<string, BadgeVariant> = {
-  // Success
-  godkjent: 'success',
-  // Warning
-  delvis_godkjent: 'warning',
-  delvis: 'warning',
-  krever_avklaring: 'warning',
-  hold_tilbake: 'warning',
-  // Danger
-  avslatt: 'danger',
-  frafalt: 'danger',
-};
-
-/**
- * Generic badge helper - maps result code to variant and label
- */
-function getResultatBadge(
-  resultat: string | undefined,
-  labelFn: (r: string) => string
-): { variant: BadgeVariant; label: string } {
-  const label = labelFn(resultat || '');
-  const variant = RESULTAT_VARIANTS[resultat || ''] || 'neutral';
-  return { variant, label };
-}
-
-// Specific badge helpers using the generic function
-const getGrunnlagResultatBadge = (r: GrunnlagResponsResultat | string | undefined) =>
-  getResultatBadge(r, getBhGrunnlagssvarLabel);
-
-const getVederlagResultatBadge = (r: VederlagBeregningResultat | string | undefined) =>
-  getResultatBadge(r, getBhVederlagssvarLabel);
-
-const getFristResultatBadge = (r: FristBeregningResultat | string | undefined) =>
-  getResultatBadge(r, getBhFristsvarLabel);
 
 // ========== HELPER COMPONENTS ==========
 
@@ -302,9 +256,7 @@ function VederlagSection({ data }: { data: VederlagEventData }) {
     <div className="space-y-4">
       {/* Hoveddata i grid */}
       <DataList variant="grid">
-        <DataListItem label="Metode">
-          <Badge variant="info">{getVederlagsmetodeLabel(data.metode)}</Badge>
-        </DataListItem>
+        <DataListItem label="Metode">{getVederlagsmetodeLabel(data.metode)}</DataListItem>
         <DataListItem label="Hovedkrav" mono>{formatCurrency(hovedbelop)}</DataListItem>
         {riggBelop !== undefined && (
           <DataListItem label="Rigg/drift" mono>{formatCurrency(riggBelop)}</DataListItem>
@@ -313,9 +265,7 @@ function VederlagSection({ data }: { data: VederlagEventData }) {
           <DataListItem label="Produktivitet" mono>{formatCurrency(produktivitetBelop)}</DataListItem>
         )}
         {data.krever_justert_ep && (
-          <DataListItem label="Justerte EP">
-            <Badge variant="warning">Ja</Badge>
-          </DataListItem>
+          <DataListItem label="Krever justerte enhetspriser">Ja</DataListItem>
         )}
       </DataList>
 
@@ -323,10 +273,10 @@ function VederlagSection({ data }: { data: VederlagEventData }) {
       {(data.saerskilt_krav?.rigg_drift?.dato_klar_over || data.saerskilt_krav?.produktivitet?.dato_klar_over) && (
         <DataList variant="grid">
           {data.saerskilt_krav?.rigg_drift?.dato_klar_over && (
-            <DataListItem label="Rigg klar over">{formatDateMedium(data.saerskilt_krav.rigg_drift.dato_klar_over)}</DataListItem>
+            <DataListItem label="Rigg/drift oppdaget">{formatDateMedium(data.saerskilt_krav.rigg_drift.dato_klar_over)}</DataListItem>
           )}
           {data.saerskilt_krav?.produktivitet?.dato_klar_over && (
-            <DataListItem label="Produktivitet klar over">{formatDateMedium(data.saerskilt_krav.produktivitet.dato_klar_over)}</DataListItem>
+            <DataListItem label="Produktivitetstap oppdaget">{formatDateMedium(data.saerskilt_krav.produktivitet.dato_klar_over)}</DataListItem>
           )}
         </DataList>
       )}
@@ -364,7 +314,7 @@ function FristSection({ data }: { data: FristEventData }) {
       {data.varsel_type && (
         <DataListItem label="Varseltype">{getFristVarseltypeLabel(data.varsel_type)}</DataListItem>
       )}
-      <VarselInfoDisplay label="Nøytralt varsel (§33.4)" varsel={data.noytralt_varsel} />
+      <VarselInfoDisplay label="Foreløpig varsel (§33.4)" varsel={data.noytralt_varsel} />
       <VarselInfoDisplay label="Spesifisert varsel (§33.6)" varsel={data.spesifisert_varsel} />
       {data.antall_dager !== undefined && (
         <DataListItem label="Krevde dager">{data.antall_dager} dager</DataListItem>
@@ -401,9 +351,7 @@ function FristSpesifisertSection({ data }: { data: FristSpesifisertEventData }) 
       )}
       <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
       {data.er_svar_pa_etterlysning && (
-        <DataListItem label="Svar på etterlysning">
-          <Badge variant="warning">Ja (§33.6.2)</Badge>
-        </DataListItem>
+        <DataListItem label="Sendt etter BHs anmodning">Ja</DataListItem>
       )}
       {data.ny_sluttdato && (
         <DataListItem label="Ny sluttdato">{formatDateMedium(data.ny_sluttdato)}</DataListItem>
@@ -416,13 +364,9 @@ function FristSpesifisertSection({ data }: { data: FristSpesifisertEventData }) 
 }
 
 function ResponsGrunnlagSection({ data }: { data: ResponsGrunnlagEventData }) {
-  const badge = getGrunnlagResultatBadge(data.resultat);
-
   return (
     <DataList>
-      <DataListItem label="Resultat">
-        <Badge variant={badge.variant}>{badge.label}</Badge>
-      </DataListItem>
+      <DataListItem label="Resultat">{getBhGrunnlagssvarLabel(data.resultat)}</DataListItem>
       <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
       {data.akseptert_kategori && (
         <DataListItem label="Akseptert kategori">{data.akseptert_kategori}</DataListItem>
@@ -432,13 +376,9 @@ function ResponsGrunnlagSection({ data }: { data: ResponsGrunnlagEventData }) {
 }
 
 function ResponsGrunnlagOppdatertSection({ data }: { data: ResponsGrunnlagOppdatertEventData }) {
-  const badge = getGrunnlagResultatBadge(data.resultat);
-
   return (
     <DataList>
-      <DataListItem label="Nytt resultat">
-        <Badge variant={badge.variant}>{badge.label}</Badge>
-      </DataListItem>
+      <DataListItem label="Nytt resultat">{getBhGrunnlagssvarLabel(data.resultat)}</DataListItem>
       <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
       {data.dato_endret && (
         <DataListItem label="Endret dato">{formatDateMedium(data.dato_endret)}</DataListItem>
@@ -450,7 +390,7 @@ function ResponsGrunnlagOppdatertSection({ data }: { data: ResponsGrunnlagOppdat
 function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
   // Subsidiært hvis det finnes subsidiær-data (trigger av preklusjon eller grunnlagsavslag)
   const erSubsidiaer = data.subsidiaer_resultat !== undefined;
-  const godkjentLabel = erSubsidiaer ? 'Subs. godkjent' : 'Godkjent';
+  const godkjentLabel = erSubsidiaer ? 'Subsidiært godkjent' : 'Godkjent';
   const godkjentBelop = erSubsidiaer
     ? data.subsidiaer_godkjent_belop
     : data.total_godkjent_belop;
@@ -471,22 +411,27 @@ function ResponsVederlagSection({ data }: { data: ResponsVederlagEventData }) {
       )}
       <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
       {data.frist_for_spesifikasjon && (
-        <DataListItem label="Frist spesifikasjon">{formatDateMedium(data.frist_for_spesifikasjon)}</DataListItem>
+        <DataListItem label="Spesifiseringsfrist">{formatDateMedium(data.frist_for_spesifikasjon)}</DataListItem>
       )}
     </DataList>
   );
 }
 
 function ResponsVederlagOppdatertSection({ data }: { data: ResponsVederlagOppdatertEventData }) {
-  const badge = getVederlagResultatBadge(data.beregnings_resultat);
+  // Subsidiært hvis det finnes subsidiær-data
+  const erSubsidiaer = data.subsidiaer_resultat !== undefined;
+  const godkjentLabel = erSubsidiaer ? 'Nytt subsidiært godkjent' : 'Nytt godkjent';
+  const godkjentBelop = erSubsidiaer
+    ? data.subsidiaer_godkjent_belop
+    : data.total_godkjent_belop;
 
   return (
     <DataList>
-      <DataListItem label="Nytt resultat">
-        <Badge variant={badge.variant}>{badge.label}</Badge>
-      </DataListItem>
-      {data.total_godkjent_belop !== undefined && (
-        <DataListItem label="Nytt godkjent beløp" mono>{formatCurrency(data.total_godkjent_belop)}</DataListItem>
+      {data.beregnings_resultat && (
+        <DataListItem label="Nytt resultat">{getBhVederlagssvarLabel(data.beregnings_resultat)}</DataListItem>
+      )}
+      {godkjentBelop !== undefined && (
+        <DataListItem label={godkjentLabel} mono>{formatCurrency(godkjentBelop)}</DataListItem>
       )}
       <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
       {data.dato_endret && (
@@ -499,7 +444,7 @@ function ResponsVederlagOppdatertSection({ data }: { data: ResponsVederlagOppdat
 function ResponsFristSection({ data }: { data: ResponsFristEventData }) {
   // Subsidiært hvis det finnes subsidiær-data (trigger av preklusjon, ingen hindring, eller grunnlagsavslag)
   const erSubsidiaer = data.subsidiaer_resultat !== undefined;
-  const godkjentLabel = erSubsidiaer ? 'Subs. godkjent' : 'Godkjent';
+  const godkjentLabel = erSubsidiaer ? 'Subsidiært godkjent' : 'Godkjent';
   const godkjentDager = erSubsidiaer
     ? data.subsidiaer_godkjent_dager
     : data.godkjent_dager;
@@ -524,20 +469,23 @@ function ResponsFristSection({ data }: { data: ResponsFristEventData }) {
 }
 
 function ResponsFristOppdatertSection({ data }: { data: ResponsFristOppdatertEventData }) {
-  const badge = getFristResultatBadge(data.beregnings_resultat);
+  // Subsidiært hvis det finnes subsidiær-data
+  const erSubsidiaer = data.subsidiaer_resultat !== undefined;
+  const godkjentLabel = erSubsidiaer ? 'Nytt subsidiært godkjent' : 'Nytt godkjent';
+  const godkjentDager = erSubsidiaer
+    ? data.subsidiaer_godkjent_dager
+    : data.godkjent_dager;
 
   return (
     <DataList>
-      <DataListItem label="Nytt resultat">
-        <Badge variant={badge.variant}>{badge.label}</Badge>
-      </DataListItem>
-      {data.godkjent_dager !== undefined && (
-        <DataListItem label="Nye godkjente dager">{data.godkjent_dager} dager</DataListItem>
+      {data.beregnings_resultat && (
+        <DataListItem label="Nytt resultat">{getBhFristsvarLabel(data.beregnings_resultat)}</DataListItem>
+      )}
+      {godkjentDager !== undefined && (
+        <DataListItem label={godkjentLabel}>{godkjentDager} dager</DataListItem>
       )}
       {data.stopper_forsering && (
-        <DataListItem label="Stopper forsering">
-          <Badge variant="info">Ja - §33.8</Badge>
-        </DataListItem>
+        <DataListItem label="Stopper forsering">Ja - §33.8</DataListItem>
       )}
       <LongTextField label="Kommentar" value={data.kommentar} defaultOpen={true} />
       {data.dato_endret && (
@@ -575,11 +523,9 @@ function ForseringVarselSection({ data }: { data: ForseringVarselEventData }) {
           <DataListItem label="Dagmulktsats" mono>{formatCurrency(data.dagmulktsats)}</DataListItem>
           <DataListItem label="Maks forseringskostnad" mono>{formatCurrency(maksKostnad)}</DataListItem>
           <DataListItem label="Innenfor 30%-grense">
-            {erInnenforGrense ? (
-              <Badge variant="success">Ja ({((data.estimert_kostnad / maksKostnad) * 100).toFixed(0)}% av grensen)</Badge>
-            ) : (
-              <Badge variant="danger">Nei - overstiger grensen</Badge>
-            )}
+            {erInnenforGrense
+              ? `Ja (${((data.estimert_kostnad / maksKostnad) * 100).toFixed(0)}% av grensen)`
+              : 'Nei - overstiger grensen'}
           </DataListItem>
         </DataList>
       </SectionContainer>

@@ -147,11 +147,11 @@ export const BH_FRISTSVAR_DESCRIPTIONS: Record<string, string> = {
 export const SUBSIDIAER_TRIGGER_LABELS: Record<SubsidiaerTrigger, string> = {
   grunnlag_avslatt: 'Grunnlag avslått av BH',
   forseringsrett_avslatt: 'Ingen forseringsrett (§33.8)',
-  preklusjon_rigg: 'Rigg/drift varslet for sent (§34.1.3)',
-  preklusjon_produktivitet: 'Produktivitet varslet for sent (§34.1.3)',
-  preklusjon_ep_justering: 'EP-justering varslet for sent (§34.3.3)',
-  preklusjon_noytralt: 'Nøytralt varsel for sent (§33.4)',
-  preklusjon_spesifisert: 'Spesifisert krav for sent (§33.6)',
+  preklusjon_rigg: 'Rigg/drift prekludert (§34.1.3)',
+  preklusjon_produktivitet: 'Produktivitet prekludert (§34.1.3)',
+  preklusjon_ep_justering: 'EP-justering prekludert (§34.3.3)',
+  preklusjon_noytralt: 'Foreløpig varsel prekludert (§33.4)',
+  preklusjon_spesifisert: 'Spesifisert krav prekludert (§33.6)',
   ingen_hindring: 'Ingen reell fremdriftshindring (§33.5)',
   metode_avslatt: 'Metode ikke akseptert',
 };

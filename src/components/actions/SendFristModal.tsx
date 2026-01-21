@@ -340,8 +340,8 @@ export function SendFristModal({
                 >
                   Det er gått <strong>{dagerSidenGrunnlag} dager</strong> siden hendelsen.
                   {erNoytraltVarselKritisk
-                    ? ' Nøytralt varsel skal sendes «uten ugrunnet opphold». Du risikerer at kravet anses tapt.'
-                    : ' Nøytralt varsel bør sendes snarest for å bevare retten til fristforlengelse.'}
+                    ? ' Foreløpig varsel skal sendes «uten ugrunnet opphold». Du risikerer at kravet anses tapt.'
+                    : ' Foreløpig varsel bør sendes snarest for å bevare retten til fristforlengelse.'}
                 </Alert>
               )}
 

@@ -311,7 +311,7 @@ export function ReviseFristModal({
               /* Specification mode: Show neutral notice status */
               <div className="bg-pkt-bg-subtle p-4 rounded border border-pkt-grays-gray-200">
                 <div className="flex items-center gap-2 mb-2">
-                  <Badge variant="warning">Nøytralt varsel</Badge>
+                  <Badge variant="warning">Foreløpig varsel</Badge>
                   {fristTilstand.noytralt_varsel?.dato_sendt && (
                     <span className="text-sm text-pkt-grays-gray-600">
                       Sendt: {fristTilstand.noytralt_varsel.dato_sendt}
