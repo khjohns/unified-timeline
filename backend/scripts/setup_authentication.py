@@ -420,7 +420,8 @@ def setup_authorization_code(config: dict) -> dict:
         print(f"Bruker eksisterende Client Secret: {existing_secret[:10]}...")
 
     # Parse port fra redirect URI eller bruk default
-    default_port = 8080
+    # NB: Bruker 9876 for å unngå konflikt med Flask (port 8080)
+    default_port = 9876
     default_redirect = f'http://localhost:{default_port}/callback'
 
     existing_redirect = config.get('catenda_redirect_uri', default_redirect)
@@ -537,7 +538,7 @@ def setup_authorization_code_manual(config: dict) -> dict:
 
     print_header("🌐 MANUELL AUTHORIZATION CODE GRANT")
 
-    redirect_uri = config.get('catenda_redirect_uri', 'http://localhost:8080/callback')
+    redirect_uri = config.get('catenda_redirect_uri', 'http://localhost:9876/callback')
 
     client = CatendaClient(
         client_id=config['catenda_client_id'],
