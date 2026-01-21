@@ -67,6 +67,50 @@ def health_check():
     return jsonify({"status": "healthy", "service": "koe-backend"}), 200
 
 
+@utility_bp.route('/api/health/catenda', methods=['GET'])
+def catenda_health_check():
+    """
+    Sjekk om Catenda-tilkoblingen fungerer.
+
+    Prøver å hente prosjektlisten for å verifisere at token er gyldig.
+
+    Returns:
+        JSON: {"status": "connected" | "disconnected" | "unconfigured", "message": "..."}
+    """
+    from app import get_system
+
+    try:
+        sys = get_system()
+
+        # Sjekk om Catenda er konfigurert
+        if not sys.catenda or not sys.catenda.access_token:
+            return jsonify({
+                "status": "unconfigured",
+                "message": "Catenda er ikke konfigurert"
+            }), 200
+
+        # Prøv å liste prosjekter for å verifisere tilkobling
+        projects = sys.catenda.list_projects()
+
+        if projects is not None:
+            return jsonify({
+                "status": "connected",
+                "message": f"Tilkoblet ({len(projects)} prosjekt(er))"
+            }), 200
+        else:
+            return jsonify({
+                "status": "disconnected",
+                "message": "Kunne ikke koble til Catenda"
+            }), 200
+
+    except Exception as e:
+        logger.error(f"Feil ved Catenda health check: {e}")
+        return jsonify({
+            "status": "disconnected",
+            "message": str(e)
+        }), 200
+
+
 @utility_bp.route('/api/metadata/by-topic/<topic_id>', methods=['GET'])
 def get_metadata_by_topic(topic_id: str):
     """

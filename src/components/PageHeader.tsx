@@ -9,6 +9,7 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { ThemeToggle } from './ThemeToggle';
 import { ModeToggle } from './ModeToggle';
+import { ConnectionStatusIndicator } from './ConnectionStatusIndicator';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -63,8 +64,10 @@ export function PageHeader({
 
           {/* Actions */}
           <div className="flex items-center gap-3 shrink-0">
-            {/* Toggle group */}
+            {/* Status and toggle group */}
             <div className="flex items-center gap-2">
+              <ConnectionStatusIndicator />
+              <div className="h-4 w-px bg-pkt-border-subtle" />
               <ThemeToggle />
               {userRole && onToggleRole && (
                 <ModeToggle userRole={userRole} onToggle={onToggleRole} />
