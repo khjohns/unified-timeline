@@ -505,9 +505,30 @@ def get_response_times():
             except Exception:
                 pass
 
+        # Logg statistikk for debugging
+        total_events = sum(len(events) for events in all_cases_events.values())
+        logger.info(f"Response times calculation: {len(sak_ids)} cases, {len(all_cases_events)} with events, {total_events} total events")
+
         # Beregn behandlingstider per spor
+        def parse_timestamp(ts):
+            """Parse tidsstempel til datetime, håndterer både streng og datetime-objekter."""
+            if ts is None:
+                return None
+            if isinstance(ts, datetime):
+                return ts
+            if isinstance(ts, str):
+                try:
+                    # Håndter ulike ISO 8601-formater
+                    ts = ts.replace('Z', '+00:00').replace(' ', 'T')
+                    return datetime.fromisoformat(ts)
+                except ValueError:
+                    return None
+            return None
+
         def calculate_response_times(krav_type: str, respons_type: str) -> Dict:
             times = []
+            krav_count = 0
+            respons_count = 0
 
             for sak_id, events in all_cases_events.items():
                 krav_time = None
@@ -515,26 +536,31 @@ def get_response_times():
 
                 for evt in events:
                     event_type = evt.get('event_type', '')
-                    ts = evt.get('tidsstempel') or evt.get('time')
+                    # Hent tidsstempel - prøv flere kilder
+                    ts = evt.get('tidsstempel')
+                    if ts is None:
+                        # Fallback til CloudEvents time
+                        ce = evt.get('_cloudevents', {})
+                        ts = ce.get('time') if ce else None
 
-                    if not ts:
+                    ts = parse_timestamp(ts)
+                    if ts is None:
                         continue
-
-                    if isinstance(ts, str):
-                        try:
-                            ts = datetime.fromisoformat(ts.replace('Z', '+00:00').replace(' ', 'T'))
-                        except:
-                            continue
 
                     if event_type == krav_type and krav_time is None:
                         krav_time = ts
+                        krav_count += 1
                     elif event_type == respons_type and respons_time is None:
                         respons_time = ts
+                        respons_count += 1
 
                 if krav_time and respons_time:
                     delta = (respons_time - krav_time).days
                     if delta >= 0:
                         times.append(delta)
+
+            logger.debug(f"Response times for {krav_type}->{respons_type}: "
+                        f"found {krav_count} krav, {respons_count} respons, {len(times)} pairs")
 
             if not times:
                 return {

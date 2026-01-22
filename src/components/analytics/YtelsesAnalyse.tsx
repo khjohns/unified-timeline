@@ -16,11 +16,12 @@ interface YtelsesAnalyseProps {
 export function YtelsesAnalyse({ responseTimes }: YtelsesAnalyseProps) {
   const tracks = ['grunnlag', 'vederlag', 'frist'] as const;
 
-  // Calculate overall average
-  const overallAvg = tracks.reduce((sum, track) => {
-    const data = responseTimes?.[track];
-    return sum + (data?.avg_days ?? 0);
-  }, 0) / tracks.length;
+  // Calculate overall average - only include tracks with actual data
+  const tracksWithData = tracks.filter((track) => responseTimes?.[track]?.avg_days != null);
+  const overallAvg = tracksWithData.length > 0
+    ? tracksWithData.reduce((sum, track) => sum + (responseTimes?.[track]?.avg_days ?? 0), 0) / tracksWithData.length
+    : null;
+  const totalSampleSize = tracks.reduce((sum, track) => sum + (responseTimes?.[track]?.sample_size ?? 0), 0);
 
   // Find slowest track
   const slowestTrack = tracks.reduce((slowest, track) => {
@@ -40,9 +41,9 @@ export function YtelsesAnalyse({ responseTimes }: YtelsesAnalyseProps) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <KPICard
             label="Gj.snitt behandlingstid"
-            value={`${overallAvg.toFixed(1)} dager`}
-            subtext="Alle spor"
-            color="blue"
+            value={overallAvg != null ? `${overallAvg.toFixed(1)} dager` : 'Ingen data'}
+            subtext={totalSampleSize > 0 ? `${totalSampleSize} målinger totalt` : 'Ingen fullførte saker'}
+            color={totalSampleSize > 0 ? 'blue' : 'gray'}
           />
           <KPICard
             label="Grunnlag"
@@ -150,7 +151,7 @@ export function YtelsesAnalyse({ responseTimes }: YtelsesAnalyseProps) {
             <strong>Målsetning:</strong> Ideelt bør behandlingstid være under 7 dager for rask saksflyt.
             Saker over 14 dager indikerer potensielle flaskehalser.
           </p>
-          {responseTimes && (
+          {responseTimes && overallAvg != null && (
             <p>
               <strong>Status:</strong>{' '}
               {overallAvg <= 7
@@ -160,10 +161,18 @@ export function YtelsesAnalyse({ responseTimes }: YtelsesAnalyseProps) {
                 : 'Behandlingstidene er høye. Vurder tiltak for å redusere ventetid.'}
             </p>
           )}
-          <p>
-            <strong>Flaskehals:</strong> {slowestTrack.charAt(0).toUpperCase() + slowestTrack.slice(1)}-sporet
-            har lengst behandlingstid og bør prioriteres for optimalisering.
-          </p>
+          {responseTimes && overallAvg == null && (
+            <p>
+              <strong>Status:</strong>{' '}
+              Ingen fullførte saker ennå. Behandlingstid beregnes når byggherre har respondert på minst ett krav.
+            </p>
+          )}
+          {overallAvg != null && (
+            <p>
+              <strong>Flaskehals:</strong> {slowestTrack.charAt(0).toUpperCase() + slowestTrack.slice(1)}-sporet
+              har lengst behandlingstid og bør prioriteres for optimalisering.
+            </p>
+          )}
         </div>
       </Card>
     </AnalyticsSection>
