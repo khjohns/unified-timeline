@@ -292,8 +292,8 @@ export function ApprovePakkeModal({
             {isCurrentApprover && (
               <SectionContainer title="Din handling">
                 <div>
-                  <Label htmlFor="approve-comment" className="text-sm mb-1 block">
-                    Kommentar (valgfritt)
+                  <Label htmlFor="approve-comment" className="text-sm mb-1 block" optional>
+                    Kommentar
                   </Label>
                   <Textarea
                     id="approve-comment"

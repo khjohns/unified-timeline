@@ -28,6 +28,8 @@ export interface SectionContainerProps {
   spacing?: SectionSpacing;
   /** Optional icon next to title */
   icon?: ReactNode;
+  /** Whether this section is optional (shows discrete tag) */
+  optional?: boolean;
   /** Additional className for the container */
   className?: string;
 }
@@ -45,6 +47,7 @@ export function SectionContainer({
   variant = 'default',
   spacing = 'default',
   icon,
+  optional,
   className,
 }: SectionContainerProps) {
   const spacingClass = SPACING_CLASSES[spacing];
@@ -66,7 +69,17 @@ export function SectionContainer({
         <div className="flex-1">
           <div className="flex items-center gap-2">
             {icon && <span className="text-oslo-blue">{icon}</span>}
-            <h3 className="font-bold text-base text-pkt-text-body-dark">{title}</h3>
+            <h3 className="font-bold text-base text-pkt-text-body-dark">
+              {title}
+              {optional && (
+                <span
+                  className="ml-2 inline-flex items-center px-1.5 py-0.5 text-xs font-normal rounded bg-pkt-bg-subtle text-pkt-text-body-subtle border border-pkt-border-subtle"
+                  aria-label="valgfri seksjon"
+                >
+                  valgfritt
+                </span>
+              )}
+            </h3>
           </div>
           {description && (
             <p className="text-sm text-pkt-text-body-subtle mt-1">{description}</p>

@@ -157,7 +157,13 @@ export function FeedbackButton() {
               htmlFor="feedback-email"
               className="block text-sm font-medium text-pkt-text-body-dark mb-2"
             >
-              E-post (valgfritt)
+              E-post
+              <span
+                className="ml-2 inline-flex items-center px-1.5 py-0.5 text-xs font-normal rounded bg-pkt-bg-subtle text-pkt-text-body-subtle border border-pkt-border-subtle"
+                aria-label="valgfritt felt"
+              >
+                valgfritt
+              </span>
             </label>
             <input
               id="feedback-email"

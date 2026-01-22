@@ -556,7 +556,7 @@ export function ArbeidsgruppeModal({
                 />
               </FormField>
 
-              <FormField label="Vilkår (valgfritt)">
+              <FormField label="Vilkår" optional>
                 <Textarea
                   {...infrastrukturForm.register('vilkar')}
                   rows={2}

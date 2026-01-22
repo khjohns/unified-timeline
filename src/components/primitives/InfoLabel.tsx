@@ -19,7 +19,9 @@ export interface InfoLabelProps {
   children: ReactNode;
   /** Optional tooltip content to display */
   tooltip?: string;
-  /** Whether the field is required */
+  /** Whether the field is optional (shows discrete tag) */
+  optional?: boolean;
+  /** @deprecated No longer displays asterisk - use validation instead. Kept for backwards compatibility. */
   required?: boolean;
   /** ID for aria-describedby linkage */
   id?: string;
@@ -36,7 +38,7 @@ export interface InfoLabelProps {
  * ```tsx
  * <InfoLabel
  *   tooltip="This is helpful context from backend"
- *   required
+ *   optional
  * >
  *   Field Name
  * </InfoLabel>
@@ -45,7 +47,8 @@ export interface InfoLabelProps {
 export function InfoLabel({
   children,
   tooltip,
-  required,
+  optional,
+  required: _required, // Deprecated - kept for backwards compatibility
   id,
   htmlFor,
   className,
@@ -64,9 +67,12 @@ export function InfoLabel({
       <span className="inline-flex items-center gap-2">
         <span>
           {children}
-          {required && (
-            <span className="ml-1 text-pkt-border-red" aria-label="påkrevd">
-              *
+          {optional && (
+            <span
+              className="ml-2 inline-flex items-center px-1.5 py-0.5 text-xs font-normal rounded bg-pkt-bg-subtle text-pkt-text-body-subtle border border-pkt-border-subtle"
+              aria-label="valgfritt felt"
+            >
+              valgfritt
             </span>
           )}
         </span>

@@ -554,7 +554,8 @@ export function InfrastrukturModal({
               <FormField
                 label="Total prosjektkostnad"
                 error={errors.prosjektkostnad_nok?.message}
-                helpText="NOK (valgfritt)"
+                helpText="NOK"
+                optional
               >
                 <Input
                   id="prosjektkostnad_nok"
@@ -713,7 +714,8 @@ export function InfrastrukturModal({
             <FormField
               label="Produsent og modell"
               error={errors.aggregat_modell?.message}
-              helpText="Valgfritt - oppgi hvis kjent"
+              helpText="Oppgi hvis kjent"
+              optional
             >
               <Input
                 id="aggregat_modell"
@@ -728,7 +730,8 @@ export function InfrastrukturModal({
         {/* Vedlegg */}
         <SectionContainer
           title="Vedlegg"
-          description="Last opp relevant dokumentasjon (valgfritt)"
+          description="Last opp relevant dokumentasjon"
+          optional
         >
           <Controller
             name="attachments"

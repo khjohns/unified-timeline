@@ -497,7 +497,8 @@ export function SendFristModal({
         {/* Vedlegg */}
         <SectionContainer
           title="Vedlegg"
-          description="Last opp dokumentasjon (valgfritt)"
+          description="Last opp dokumentasjon"
+          optional
         >
           <Controller
             name="attachments"

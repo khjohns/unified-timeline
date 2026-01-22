@@ -5,7 +5,9 @@ import { InfoLabel } from './InfoLabel';
 export interface FormFieldProps {
   /** Field label */
   label?: string;
-  /** Whether field is required */
+  /** Whether field is optional (shows discrete tag) */
+  optional?: boolean;
+  /** @deprecated No longer displays asterisk - use validation instead. Kept for backwards compatibility. */
   required?: boolean;
   /** Error message to display */
   error?: string;
@@ -36,7 +38,8 @@ export interface FormFieldProps {
  */
 export function FormField({
   label,
-  required,
+  optional,
+  required: _required, // Deprecated - kept for backwards compatibility
   error,
   helpText,
   labelTooltip,
@@ -60,7 +63,7 @@ export function FormField({
   return (
     <div className={clsx('mb-4', className)}>
       {label && labelTooltip ? (
-        <InfoLabel tooltip={labelTooltip} required={required} htmlFor={fieldId}>
+        <InfoLabel tooltip={labelTooltip} optional={optional} htmlFor={fieldId}>
           {label}
         </InfoLabel>
       ) : label ? (
@@ -69,9 +72,12 @@ export function FormField({
           className="block text-sm font-medium text-pkt-text-body-default mb-2"
         >
           {label}
-          {required && (
-            <span className="ml-1 text-pkt-border-red" aria-label="påkrevd">
-              *
+          {optional && (
+            <span
+              className="ml-2 inline-flex items-center px-1.5 py-0.5 text-xs font-normal rounded bg-pkt-bg-subtle text-pkt-text-body-subtle border border-pkt-border-subtle"
+              aria-label="valgfritt felt"
+            >
+              valgfritt
             </span>
           )}
         </label>

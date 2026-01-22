@@ -323,7 +323,8 @@ export function LeggTilMaskinModal({
             <FormField
               label="Registreringsnummer"
               error={errors.registreringsnummer?.message}
-              helpText="Valgfritt - oppgi hvis maskinen har registreringsnummer"
+              helpText="Oppgi hvis maskinen har registreringsnummer"
+              optional
             >
               <Input
                 id="registreringsnummer"
@@ -609,7 +610,8 @@ export function LeggTilMaskinModal({
             <FormField
               label="Estimert drivstofforbruk per dag"
               error={errors.estimert_drivstofforbruk?.message}
-              helpText="Oppgi forventet forbruk i liter per dag (valgfritt)"
+              helpText="Oppgi forventet forbruk i liter per dag"
+              optional
             >
               <div className="space-y-2">
                 <Input
@@ -634,7 +636,8 @@ export function LeggTilMaskinModal({
         {/* Vedlegg */}
         <SectionContainer
           title="Vedlegg"
-          description="Last opp dokumentasjon (valgfritt)"
+          description="Last opp dokumentasjon"
+          optional
         >
           <Controller
             name="attachments"
