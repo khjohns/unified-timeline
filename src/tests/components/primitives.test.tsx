@@ -200,13 +200,14 @@ describe('Primitive Components - Functional Tests', () => {
       expect(screen.getByText('Username')).toBeInTheDocument();
     });
 
-    it('should show required indicator when required is true', () => {
+    it('should show optional indicator when optional is true', () => {
       render(
-        <FormField label="Email" required>
+        <FormField label="Email" optional>
           <input />
         </FormField>
       );
-      expect(screen.getByLabelText('påkrevd')).toBeInTheDocument();
+      expect(screen.getByLabelText('valgfritt felt')).toBeInTheDocument();
+      expect(screen.getByText('valgfritt')).toBeInTheDocument();
     });
 
     it('should render error message when error is provided', () => {

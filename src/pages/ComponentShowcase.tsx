@@ -222,8 +222,8 @@ export function ComponentShowcase() {
                   <FormField label="Standard felt" helpText="Hjelpetekst vises her">
                     <Input placeholder="Verdi" />
                   </FormField>
-                  <FormField label="Påkrevd felt" required>
-                    <Input placeholder="Må fylles ut" />
+                  <FormField label="Valgfritt felt" optional>
+                    <Input placeholder="Kan hoppes over" />
                   </FormField>
                   <FormField label="Felt med feil" error="Dette feltet har en feil">
                     <Input placeholder="Ugyldig verdi" error />
@@ -458,7 +458,7 @@ export function ComponentShowcase() {
                     <div className="flex flex-wrap gap-4">
                       <InfoLabel>Standard label</InfoLabel>
                       <InfoLabel tooltip="Ekstra informasjon">Med tooltip</InfoLabel>
-                      <InfoLabel required>Påkrevd</InfoLabel>
+                      <InfoLabel optional>Valgfritt felt</InfoLabel>
                     </div>
                   </div>
                   <div>

@@ -1429,7 +1429,7 @@ export function BHResponsForseringModal({
                 name="tilleggs_begrunnelse"
                 control={control}
                 render={({ field }) => (
-                  <FormField label="Tilleggskommentar (valgfritt)">
+                  <FormField label="Tilleggskommentar" optional>
                     <Textarea
                       {...field}
                       placeholder="Legg til ytterligere kommentarer hvis ønskelig..."

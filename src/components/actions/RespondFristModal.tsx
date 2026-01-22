@@ -1512,7 +1512,8 @@ export function RespondFristModal({
 
                 {/* Tilleggsbegrunnelse (valgfri) */}
                 <FormField
-                  label="Tilleggskommentar (valgfritt)"
+                  label="Tilleggskommentar"
+                  optional
                   error={errors.tilleggs_begrunnelse?.message}
                   helpText="Legg til egne kommentarer, f.eks. detaljer om beregning eller referanser til dokumenter"
                 >

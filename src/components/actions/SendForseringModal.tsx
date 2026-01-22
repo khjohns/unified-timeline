@@ -429,7 +429,8 @@ export function SendForseringModal({
           {/* Seksjon 4: Vedlegg */}
           <SectionContainer
             title="Vedlegg"
-            description="Last opp dokumentasjon (valgfritt)"
+            description="Last opp dokumentasjon"
+            optional
           >
             <Controller
               name="attachments"

@@ -190,8 +190,8 @@ export function OppdaterKostnaderModal({
         </SectionContainer>
 
         {/* Kommentar */}
-        <SectionContainer title="Kommentar">
-          <FormField label="Kommentar (valgfritt)">
+        <SectionContainer title="Kommentar" optional>
+          <FormField label="Kommentar" optional>
             <Controller
               name="kommentar"
               control={control}

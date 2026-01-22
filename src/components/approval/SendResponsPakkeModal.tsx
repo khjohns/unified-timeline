@@ -400,8 +400,8 @@ export function SendResponsPakkeModal({
 
             {/* Comment field */}
             <div className="pt-2">
-              <Label htmlFor="pakke-comment" className="text-sm mb-1 block">
-                Kommentar (valgfritt)
+              <Label htmlFor="pakke-comment" className="text-sm mb-1 block" optional>
+                Kommentar
               </Label>
               <Textarea
                 id="pakke-comment"

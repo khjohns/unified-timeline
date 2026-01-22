@@ -178,7 +178,8 @@ export function StoppForseringModal({
         {/* Påløpte kostnader input */}
         <SectionContainer
           title="Påløpte kostnader"
-          description="Angi faktiske påløpte forseringskostnader frem til nå (valgfritt)"
+          description="Angi faktiske påløpte forseringskostnader frem til nå"
+          optional
         >
           <FormField label="Beløp">
             <Controller
