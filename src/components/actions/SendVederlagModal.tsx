@@ -406,6 +406,7 @@ export function SendVederlagModal({
           description="Krav om økte rigg-/driftskostnader og produktivitetstap krever særskilt varsel"
           collapsible
           defaultOpen={false}
+          optional
         >
 
           {/* Rigg/Drift section (§34.1.3 første ledd) */}
