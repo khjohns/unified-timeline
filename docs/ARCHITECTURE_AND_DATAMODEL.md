@@ -2,12 +2,14 @@
 
 **Konseptuell oversikt over systemarkitektur, event sourcing og forretningslogikk**
 
-*Sist oppdatert: 2026-01-14*
+*Sist oppdatert: 2026-01-22*
 
 > **Merk:** For detaljerte type-definisjoner, se kildekoden direkte:
-> - Event-modeller: `backend/models/events.py`
-> - State-modeller: `backend/models/sak_state.py`
-> - TypeScript-typer: `src/types/timeline.ts`
+> - KOE Event-modeller: `backend/models/events.py`
+> - KOE State-modeller: `backend/models/sak_state.py`
+> - Fravik Event-modeller: `backend/models/fravik_events.py`
+> - Fravik State-modeller: `backend/models/fravik_state.py`
+> - TypeScript-typer: `src/types/timeline.ts`, `src/types/fravik.ts`
 > - API-spesifikasjon: `backend/docs/openapi.yaml` (auto-generert)
 
 ---
@@ -24,6 +26,7 @@
 8. [Forsering (§33.8)](#8-forsering-338)
 9. [Endringsordre (§31.3)](#9-endringsordre-313)
 10. [Dataflyt](#10-dataflyt)
+11. [Dalux-Catenda integrasjon](#11-dalux-catenda-integrasjon)
 
 ---
 
@@ -74,15 +77,35 @@
 │                            (State Projection)                           │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
-                    │                               │
-                    ▼                               ▼
-        ┌───────────────────────┐       ┌───────────────────────┐
-        │     EVENT STORE       │       │       CATENDA         │
-        │  (Supabase/Dataverse) │       │   Prosjekthotell      │
-        │  • Append-only log    │       │   Topics, Docs        │
-        │  • Optimistisk låsing │       └───────────────────────┘
-        └───────────────────────┘
+          │                         │                         │
+          ▼                         ▼                         ▼
+┌──────────────────┐    ┌───────────────────────┐    ┌───────────────────┐
+│   SUPABASE       │    │       CATENDA         │    │      DALUX        │
+│   (PostgreSQL)   │    │   Prosjekthotell      │    │   Build API       │
+│                  │    │   Topics, Docs        │    │   (Tasks/Issues)  │
+│ • Event Store    │    └───────────────────────┘    └─────────┬─────────┘
+│ • Metadata       │              ▲                            │
+│ • Synk-status    │              │                            │ Polling
+│ • FK constraints │              └────────────────────────────┘
+└──────────────────┘                    Dalux → Catenda Sync
 ```
+
+### Database-arkitektur
+
+**Primær database: Supabase (PostgreSQL)**
+
+Systemet bruker Supabase som primær database for alle persistente data:
+
+| Tabell | Innhold |
+|--------|---------|
+| `sak_metadata` | Metadata og cache for saker (sak_id, prosjekt_id, cached_status) |
+| `koe_events` | Event log for standard KOE-saker |
+| `forsering_events` | Event log for forseringssaker |
+| `endringsordre_events` | Event log for endringsordrer |
+| `fravik_events` | Event log for fravik-søknader |
+| `dalux_sync_*` | Synkroniseringsmetadata for Dalux-integrasjon |
+
+**Transaksjoner:** Supabase PostgREST støtter ikke client-side transaksjoner. Systemet bruker FK constraints og manuell rollback for å sikre dataintegritet. Se `backend/docs/DATABASE_ARCHITECTURE.md` for detaljer om begrensninger og produksjonsalternativer (Azure PostgreSQL/SQL).
 
 ### Lagdelt backend-arkitektur
 
@@ -96,7 +119,7 @@ Services (Forretningslogikk)
 Repositories (Data Access)
        │
        ▼
-Storage (Supabase / Dataverse)
+Supabase (PostgreSQL)
 ```
 
 ---
@@ -169,6 +192,11 @@ erDiagram
     SAK_STATE ||--|| FRIST_TILSTAND : "inneholder"
     SAK_STATE ||--o| FORSERING_DATA : "kan ha (sakstype=forsering)"
     SAK_STATE ||--o| ENDRINGSORDRE_DATA : "kan ha (sakstype=endringsordre)"
+
+    FRAVIK_SAK ||--o{ FRAVIK_EVENT : "har mange"
+    FRAVIK_SAK ||--|| FRAVIK_STATE : "projiseres til"
+    FRAVIK_STATE ||--o{ MASKIN_TILSTAND : "kan inneholde (machine)"
+    FRAVIK_STATE ||--o| INFRASTRUKTUR_TILSTAND : "kan inneholde (infrastructure)"
 ```
 
 ### Sakstyper
@@ -178,10 +206,24 @@ erDiagram
 | `standard` | Ordinær KOE-sak med tre-spor behandling | NS 8407 |
 | `forsering` | Akselerasjonssak basert på avslåtte fristkrav | §33.8 |
 | `endringsordre` | Formell EO som samler godkjente KOE-saker | §31.3 |
+| `fravik` | Søknad om fravik fra utslippsfrie krav på byggeplass | Utslippsfrie byggeplasser |
+
+#### Fravik-søknader
+
+Fravik er en separat sakstype for håndtering av søknader om unntak fra utslippsfrie krav på byggeplasser. Støtter to søknadstyper:
+
+| Søknadstype | Beskrivelse |
+|-------------|-------------|
+| `machine` | Søknad om fravik for spesifikke maskiner/kjøretøy |
+| `infrastructure` | Søknad om fravik for elektrisk infrastruktur på byggeplass |
+
+**Godkjenningsflyt:** Søker → Miljørådgiver → Prosjektleder → Arbeidsgruppe → Eier
+
+Se `backend/models/fravik_events.py` og `backend/models/fravik_state.py` for detaljer.
 
 ### Event-kategorier
 
-Systemet har **35+ event-typer** fordelt på:
+Systemet har **50+ event-typer** fordelt på:
 
 | Kategori | Eksempler | Aktør |
 |----------|-----------|-------|
@@ -191,6 +233,7 @@ Systemet har **35+ event-typer** fordelt på:
 | Respons | `respons_grunnlag`, `respons_vederlag`, `respons_frist` | BH |
 | Forsering | `forsering_varsel`, `forsering_stoppet`, `forsering_respons` | TE/BH |
 | Endringsordre | `eo_opprettet`, `eo_utstedt`, `eo_akseptert` | BH/TE |
+| Fravik | `fravik_soknad_opprettet`, `fravik_miljo_vurdering`, `fravik_eier_godkjent` | Søker/Miljø/PL/Eier |
 
 Se `backend/models/events.py` for komplett liste med EventType enum.
 
@@ -471,21 +514,99 @@ sequenceDiagram
 
 ---
 
+## 11. Dalux-Catenda integrasjon
+
+Systemet støtter enveis synkronisering av tasks fra Dalux Build til Catenda Topics.
+
+### Konsept
+
+```
+┌──────────────────┐                    ┌──────────────────┐
+│   DALUX BUILD    │                    │     CATENDA      │
+│                  │    Polling (CLI)   │                  │
+│   Tasks/Issues   │ ─────────────────► │   Topics/Docs    │
+│   (read-only)    │    15 min interval │   (write)        │
+└──────────────────┘                    └──────────────────┘
+```
+
+### Arkitekturbeslutninger
+
+| Beslutning | Valg | Begrunnelse |
+|------------|------|-------------|
+| Synk-retning | Enveis Dalux → Catenda | Dalux API har kun lesing, ingen skrivetilgang |
+| Synk-mekanisme | Polling (15 min) | Dalux har ikke webhook-støtte |
+| Trigger | Manuell CLI (Fase 1) | Unngår infrastruktur-overhead i prototype |
+| Database | Supabase | Konsistent med øvrig arkitektur |
+| Event Sourcing | Nei (direkte CRUD) | Synk er infrastruktur, ikke forretningsdomene |
+
+### Dataflyt
+
+```mermaid
+sequenceDiagram
+    participant CLI as Sync CLI
+    participant D as DaluxClient
+    participant S as DaluxSyncService
+    participant DB as Supabase
+    participant C as CatendaClient
+
+    CLI->>S: sync_project(prosjekt_id)
+    S->>D: get_tasks(changes_since)
+    D-->>S: tasks[]
+
+    loop For each task
+        S->>DB: get_mapping(dalux_task_id)
+        alt New task
+            S->>C: create_topic(task_data)
+            C-->>S: topic_id
+            S->>DB: create_mapping(dalux_id, topic_id)
+        else Existing task
+            S->>C: update_topic(topic_id, task_data)
+        end
+    end
+
+    S->>DB: update_sync_status()
+    S-->>CLI: sync_result
+```
+
+### Kjøring
+
+```bash
+# Manuell synkronisering (Fase 1)
+cd backend && python scripts/dalux_sync.py sync
+
+# Interaktiv meny
+cd backend && python scripts/dalux_menu.py
+```
+
+**Fremtidig:** Azure Functions Timer Trigger for automatisk synkronisering.
+
+Se [ADR-001: Dalux Sync](ADR-001-dalux-sync.md) for fullstendige arkitekturbeslutninger.
+
+---
+
 ## Kildekode-referanser
 
 | Område | Filer |
 |--------|-------|
-| **Event-modeller** | `backend/models/events.py` |
-| **State-modeller** | `backend/models/sak_state.py` |
+| **KOE Event-modeller** | `backend/models/events.py` |
+| **KOE State-modeller** | `backend/models/sak_state.py` |
+| **Fravik Event-modeller** | `backend/models/fravik_events.py` |
+| **Fravik State-modeller** | `backend/models/fravik_state.py` |
 | **State-projeksjon** | `backend/services/timeline_service.py` |
 | **Forsering-logikk** | `backend/services/forsering_service.py` |
 | **Endringsordre-logikk** | `backend/services/endringsordre_service.py` |
+| **Fravik-logikk** | `backend/services/fravik_service.py` |
+| **Dalux-synk** | `backend/services/dalux_sync_service.py` |
 | **API-routes** | `backend/routes/*.py` |
-| **TypeScript-typer** | `src/types/timeline.ts` |
+| **TypeScript-typer** | `src/types/timeline.ts`, `src/types/fravik.ts` |
 | **API-spesifikasjon** | `backend/docs/openapi.yaml` (auto-generert) |
+| **Database-arkitektur** | `backend/docs/DATABASE_ARCHITECTURE.md` |
 
 ## Relatert dokumentasjon
 
 - [README.md](../README.md) - Prosjektoversikt
+- [ADR-001-dalux-sync.md](ADR-001-dalux-sync.md) - Dalux synk arkitekturbeslutninger
+- [dalux-catenda-integrasjon.md](dalux-catenda-integrasjon.md) - Integrasjonsplan og krav
+- [backend/docs/DATABASE_ARCHITECTURE.md](../backend/docs/DATABASE_ARCHITECTURE.md) - Database og transaksjoner
 - [CLAUDE.md](../CLAUDE.md) - AI-assistentkontekst
 - [backend/STRUCTURE.md](../backend/STRUCTURE.md) - Backend-arkitektur
