@@ -305,6 +305,8 @@ function CasePageContent() {
             state={state}
             userRole={userRole}
             actions={actions}
+            harForseringssak={forseringData?.forseringer && forseringData.forseringer.length > 0}
+            harEndringsordre={endringsordreData?.endringsordrer && endringsordreData.endringsordrer.length > 0}
           />
         </section>
 

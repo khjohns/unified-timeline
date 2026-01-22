@@ -26,6 +26,10 @@ export interface StatusAlertProps {
   userRole: 'TE' | 'BH';
   /** Tilgjengelige handlinger */
   actions: AvailableActions;
+  /** Om det allerede finnes en forseringssak som refererer til denne saken */
+  harForseringssak?: boolean;
+  /** Om det allerede finnes en endringsordre som refererer til denne saken */
+  harEndringsordre?: boolean;
   /** Valgfri className for ekstra styling */
   className?: string;
 }
@@ -47,10 +51,10 @@ function mapAlertTypeToVariant(type: AlertType): 'info' | 'success' | 'warning' 
   }
 }
 
-export function StatusAlert({ state, userRole, actions, className }: StatusAlertProps) {
+export function StatusAlert({ state, userRole, actions, harForseringssak, harEndringsordre, className }: StatusAlertProps) {
   const message: StatusAlertMessage | null = useMemo(
-    () => generateStatusAlert(state, userRole, actions),
-    [state, userRole, actions]
+    () => generateStatusAlert(state, userRole, actions, { harForseringssak, harEndringsordre }),
+    [state, userRole, actions, harForseringssak, harEndringsordre]
   );
 
   // Ikke vis noe hvis det ikke er noen relevant melding
