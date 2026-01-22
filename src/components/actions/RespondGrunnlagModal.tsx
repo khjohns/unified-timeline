@@ -537,14 +537,6 @@ export function RespondGrunnlagModal({
               </Alert>
             )}
 
-            {/* EO generation info when approving (non-FM) */}
-            {selectedResultat === 'godkjent' && !erForceMajeure && (
-              <Alert variant="success" title="Systemhandling">
-                Når du sender svaret, vil systemet automatisk registrere at
-                grunnlaget er godkjent. Endringsordre (EO) kan utstedes når
-                vederlag og frist også er avklart.
-              </Alert>
-            )}
           </div>
         </SectionContainer>
 

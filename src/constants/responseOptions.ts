@@ -123,7 +123,7 @@ export function getBhFristsvarValues(): [string, ...string[]] {
 // ========== DESCRIPTIVE HELP TEXT ==========
 
 export const BH_GRUNNLAGSVAR_DESCRIPTIONS: Record<string, string> = {
-  godkjent: "Byggherren aksepterer ansvarsgrunnlaget fullt ut. Vederlag og frist vurderes prinsipalt.",
+  godkjent: "Byggherren aksepterer ansvarsgrunnlaget. Endringsordre (EO) kan utstedes når vederlag og frist også er avklart.",
   delvis_godkjent: "Byggherren aksepterer deler av grunnlaget. Kan påvirke vederlag/frist-vurdering.",
   avslatt: "Byggherren avslår ansvarsgrunnlaget. Vederlag og frist vurderes subsidiært (hvis ansvar hadde foreligget).",
   frafalt: "Byggherren frafaller pålegget (§32.3 c). Kun for irregulære endringer. Arbeidet trenger ikke utføres.",
