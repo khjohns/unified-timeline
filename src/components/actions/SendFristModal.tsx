@@ -170,8 +170,16 @@ export function SendFristModal({
     setShowRestorePrompt(false);
   };
 
+  // Track pending toast for dismissal
+  const pendingToastId = useRef<string | null>(null);
+
   const mutation = useSubmitEvent(sakId, {
     onSuccess: (result) => {
+      // Dismiss pending toast and show success
+      if (pendingToastId.current) {
+        toast.dismiss(pendingToastId.current);
+        pendingToastId.current = null;
+      }
       clearBackup();
       reset();
       onOpenChange(false);
@@ -181,6 +189,11 @@ export function SendFristModal({
       }
     },
     onError: (error) => {
+      // Dismiss pending toast
+      if (pendingToastId.current) {
+        toast.dismiss(pendingToastId.current);
+        pendingToastId.current = null;
+      }
       if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') {
         setShowTokenExpired(true);
       }
@@ -215,6 +228,9 @@ export function SendFristModal({
 
 
   const onSubmit = (data: FristFormData) => {
+    // Show pending toast immediately for better UX
+    pendingToastId.current = toast.pending('Sender fristkrav...', 'Vennligst vent mens kravet behandles.');
+
     // Build VarselInfo structures
     // For nøytralt varsel: use today's date and 'system' method if "sendes nå" is checked
     const noytraltDato = data.noytralt_varsel_sendes_na

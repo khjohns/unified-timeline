@@ -28,6 +28,7 @@ import {
   Modal,
   SectionContainer,
   Textarea,
+  useToast,
 } from '../primitives';
 import type { AttachmentFile } from '../../types';
 import { useForm, Controller } from 'react-hook-form';
@@ -109,6 +110,7 @@ export function ReviseFristModal({
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const erSubsidiaer = subsidiaerTriggers && subsidiaerTriggers.length > 0;
   const [showRestorePrompt, setShowRestorePrompt] = useState(false);
+  const toast = useToast();
   const harBhSvar = !!lastResponseEvent;
 
   // Determine modal mode based on claim type and etterlysning status
@@ -204,16 +206,35 @@ export function ReviseFristModal({
     }
   }, [antallDager, modalMode]);
 
+  // Track pending toast for dismissal
+  const pendingToastId = useRef<string | null>(null);
+
   const mutation = useSubmitEvent(sakId, {
     onSuccess: (result) => {
+      // Dismiss pending toast and show success
+      if (pendingToastId.current) {
+        toast.dismiss(pendingToastId.current);
+        pendingToastId.current = null;
+      }
       clearBackup();
       reset();
       onOpenChange(false);
+      toast.success(
+        modalMode === 'revider' ? 'Fristkrav revidert' : 'Fristkrav spesifisert',
+        modalMode === 'revider'
+          ? 'Det reviderte kravet er registrert og sendt til byggherre.'
+          : 'Kravet er nå spesifisert og sendt til byggherre.'
+      );
       if (!result.catenda_synced) {
         onCatendaWarning?.();
       }
     },
     onError: (error) => {
+      // Dismiss pending toast
+      if (pendingToastId.current) {
+        toast.dismiss(pendingToastId.current);
+        pendingToastId.current = null;
+      }
       if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') {
         setShowTokenExpired(true);
       }
@@ -221,6 +242,12 @@ export function ReviseFristModal({
   });
 
   const onSubmit = (data: ReviseFristFormData) => {
+    // Show pending toast immediately for better UX
+    pendingToastId.current = toast.pending(
+      modalMode === 'revider' ? 'Sender revidert krav...' : 'Sender spesifisert krav...',
+      'Vennligst vent mens kravet behandles.'
+    );
+
     if (modalMode === 'revider') {
       // Standard revision event
       mutation.mutate({

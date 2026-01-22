@@ -372,8 +372,16 @@ export function RespondVederlagModal({
   const handleRestoreBackup = () => { const backup = getBackup(); if (backup) reset(backup); setShowRestorePrompt(false); };
   const handleDiscardBackup = () => { clearBackup(); setShowRestorePrompt(false); };
 
+  // Track pending toast for dismissal
+  const pendingToastId = useRef<string | null>(null);
+
   const mutation = useSubmitEvent(sakId, {
     onSuccess: (result) => {
+      // Dismiss pending toast and show success
+      if (pendingToastId.current) {
+        toast.dismiss(pendingToastId.current);
+        pendingToastId.current = null;
+      }
       clearBackup();
       reset();
       setCurrentPort(startPort);
@@ -387,6 +395,11 @@ export function RespondVederlagModal({
       }
     },
     onError: (error) => {
+      // Dismiss pending toast
+      if (pendingToastId.current) {
+        toast.dismiss(pendingToastId.current);
+        pendingToastId.current = null;
+      }
       // Check for magic link token issues
       if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') {
         setShowTokenExpired(true);
@@ -735,6 +748,12 @@ export function RespondVederlagModal({
 
   // Submit handler
   const onSubmit = (data: RespondVederlagFormData) => {
+    // Show pending toast immediately for better UX
+    pendingToastId.current = toast.pending(
+      isUpdateMode ? 'Lagrer endringer...' : 'Sender svar...',
+      'Vennligst vent mens svaret behandles.'
+    );
+
     // Beregn subsidiære triggere basert på Port 1 og 2 valg
     const triggers: SubsidiaerTrigger[] = [];
     if (riggPrekludert) triggers.push('preklusjon_rigg');

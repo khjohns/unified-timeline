@@ -34,6 +34,7 @@ import {
   Modal,
   SectionContainer,
   Textarea,
+  useToast,
 } from '../primitives';
 import type { AttachmentFile } from '../../types';
 import { useForm, Controller } from 'react-hook-form';
@@ -119,6 +120,7 @@ export function SendForseringModal({
   const queryClient = useQueryClient();
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const [showRestorePrompt, setShowRestorePrompt] = useState(false);
+  const toast = useToast();
 
   // Derived subsidiary state
   const erSubsidiaer = subsidiaerTriggers && subsidiaerTriggers.length > 0;
@@ -168,6 +170,9 @@ export function SendForseringModal({
   // Token validation hook
   const verifyToken = useVerifyToken();
 
+  // Track pending toast for dismissal
+  const pendingToastId = useRef<string | null>(null);
+
   // Mutation to create forsering case and navigate to it
   const mutation = useMutation({
     mutationFn: async (data: OpprettForseringRequest) => {
@@ -183,11 +188,17 @@ export function SendForseringModal({
       return opprettForseringssak(data);
     },
     onSuccess: (response) => {
+      // Dismiss pending toast and show success
+      if (pendingToastId.current) {
+        toast.dismiss(pendingToastId.current);
+        pendingToastId.current = null;
+      }
       // Invalidate queries to refetch case data
       clearBackup();
       queryClient.invalidateQueries({ queryKey: ['sak', sakId, 'state'] });
       reset();
       onOpenChange(false);
+      toast.success('Forseringssak opprettet', 'Du blir nå videresendt til forseringssaken.');
       // Show warning if Catenda sync failed
       if ('catenda_synced' in response && !response.catenda_synced) {
         onCatendaWarning?.();
@@ -196,6 +207,11 @@ export function SendForseringModal({
       navigate(`/forsering/${response.forsering_sak_id}`);
     },
     onError: (error) => {
+      // Dismiss pending toast
+      if (pendingToastId.current) {
+        toast.dismiss(pendingToastId.current);
+        pendingToastId.current = null;
+      }
       if (error instanceof Error && (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING')) {
         setShowTokenExpired(true);
       }
@@ -216,6 +232,9 @@ export function SendForseringModal({
 
   // Submit handler
   const onSubmit = (data: SendForseringFormData) => {
+    // Show pending toast immediately for better UX
+    pendingToastId.current = toast.pending('Oppretter forseringssak...', 'Vennligst vent mens saken behandles.');
+
     mutation.mutate({
       avslatte_sak_ids: [sakId],
       estimert_kostnad: data.estimert_kostnad,

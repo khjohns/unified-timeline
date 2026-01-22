@@ -8,7 +8,7 @@
  * Creates a new case by submitting a grunnlag_opprettet event.
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -27,6 +27,7 @@ import {
   RadioItem,
   SectionContainer,
   Textarea,
+  useToast,
 } from '../components/primitives';
 import { PageHeader } from '../components/PageHeader';
 import {
@@ -81,6 +82,10 @@ export function OpprettSakPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedHovedkategori, setSelectedHovedkategori] = useState<string>('');
+  const toast = useToast();
+
+  // Track pending toast for dismissal
+  const pendingToastId = useRef<string | null>(null);
 
   const {
     register,
@@ -182,7 +187,13 @@ export function OpprettSakPage() {
       });
     },
     onSuccess: (result, variables) => {
+      // Dismiss pending toast and show success
+      if (pendingToastId.current) {
+        toast.dismiss(pendingToastId.current);
+        pendingToastId.current = null;
+      }
       if (result.success) {
+        toast.success('Sak opprettet', 'Du blir nå videresendt til saken.');
         // Pre-populate React Query cache with the state from POST response.
         // This prevents a race condition where the GET request might fail
         // if it arrives before the database write is fully committed.
@@ -198,6 +209,14 @@ export function OpprettSakPage() {
         navigate(`/saker/${variables.sak_id}`);
       }
     },
+    onError: (error) => {
+      // Dismiss pending toast
+      if (pendingToastId.current) {
+        toast.dismiss(pendingToastId.current);
+        pendingToastId.current = null;
+      }
+      toast.error('Feil ved opprettelse', error.message || 'En feil oppstod');
+    },
   });
 
   // Reset underkategori when hovedkategori changes
@@ -209,6 +228,9 @@ export function OpprettSakPage() {
   };
 
   const onSubmit = (data: OpprettSakFormData) => {
+    // Show pending toast immediately for better UX
+    pendingToastId.current = toast.pending('Oppretter sak...', 'Vennligst vent mens saken behandles.');
+
     createCaseMutation.mutate(data);
   };
 

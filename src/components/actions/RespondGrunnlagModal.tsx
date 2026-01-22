@@ -189,8 +189,16 @@ export function RespondGrunnlagModal({
   const handleRestoreBackup = () => { const backup = getBackup(); if (backup) reset(backup); setShowRestorePrompt(false); };
   const handleDiscardBackup = () => { clearBackup(); setShowRestorePrompt(false); };
 
+  // Track pending toast for dismissal
+  const pendingToastId = useRef<string | null>(null);
+
   const mutation = useSubmitEvent(sakId, {
     onSuccess: (result) => {
+      // Dismiss pending toast and show success
+      if (pendingToastId.current) {
+        toast.dismiss(pendingToastId.current);
+        pendingToastId.current = null;
+      }
       clearBackup();
       reset();
       onOpenChange(false);
@@ -205,6 +213,11 @@ export function RespondGrunnlagModal({
       }
     },
     onError: (error) => {
+      // Dismiss pending toast
+      if (pendingToastId.current) {
+        toast.dismiss(pendingToastId.current);
+        pendingToastId.current = null;
+      }
       if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') {
         setShowTokenExpired(true);
       }
@@ -272,6 +285,12 @@ export function RespondGrunnlagModal({
   };
 
   const onSubmit = (data: RespondGrunnlagFormData) => {
+    // Show pending toast immediately for better UX
+    pendingToastId.current = toast.pending(
+      isUpdateMode ? 'Lagrer endringer...' : 'Sender svar...',
+      'Vennligst vent mens svaret behandles.'
+    );
+
     // ========== UPDATE MODE SUBMIT ==========
     if (isUpdateMode && lastResponseEvent) {
       mutation.mutate({
