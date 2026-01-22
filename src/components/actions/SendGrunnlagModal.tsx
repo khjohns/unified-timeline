@@ -256,8 +256,16 @@ export function SendGrunnlagModal({
     return getPreklusjonsvarselMellomDatoer(datoOppdaget, datoVarselSendt);
   }, [datoOppdaget, datoVarselSendt, varselSendesNa]);
 
+  // Track pending toast for dismissal
+  const pendingToastId = useRef<string | null>(null);
+
   const mutation = useSubmitEvent(sakId, {
     onSuccess: (result) => {
+      // Dismiss pending toast and show success
+      if (pendingToastId.current) {
+        toast.dismiss(pendingToastId.current);
+        pendingToastId.current = null;
+      }
       clearBackup();
       reset();
       setSelectedHovedkategori('');
@@ -274,6 +282,11 @@ export function SendGrunnlagModal({
       }
     },
     onError: (error) => {
+      // Dismiss pending toast
+      if (pendingToastId.current) {
+        toast.dismiss(pendingToastId.current);
+        pendingToastId.current = null;
+      }
       if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') {
         setShowTokenExpired(true);
       }
@@ -289,6 +302,12 @@ export function SendGrunnlagModal({
   };
 
   const onSubmit = (data: GrunnlagFormData) => {
+    // Show pending toast immediately for better UX
+    pendingToastId.current = toast.pending(
+      isUpdateMode ? 'Lagrer endringer...' : 'Sender varsel...',
+      'Vennligst vent mens forespørselen behandles.'
+    );
+
     // ========== UPDATE MODE SUBMIT ==========
     if (isUpdateMode && originalEvent) {
       // Only send changed fields

@@ -178,8 +178,16 @@ export function SendVederlagModal({
     setShowRestorePrompt(false);
   };
 
+  // Track pending toast for dismissal
+  const pendingToastId = useRef<string | null>(null);
+
   const mutation = useSubmitEvent(sakId, {
     onSuccess: (result) => {
+      // Dismiss pending toast and show success
+      if (pendingToastId.current) {
+        toast.dismiss(pendingToastId.current);
+        pendingToastId.current = null;
+      }
       clearBackup();
       reset();
       onOpenChange(false);
@@ -189,6 +197,11 @@ export function SendVederlagModal({
       }
     },
     onError: (error) => {
+      // Dismiss pending toast
+      if (pendingToastId.current) {
+        toast.dismiss(pendingToastId.current);
+        pendingToastId.current = null;
+      }
       if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') {
         setShowTokenExpired(true);
       }
@@ -220,6 +233,9 @@ export function SendVederlagModal({
   }, [harProduktivitetKrav, datoKlarOverProduktivitet]);
 
   const onSubmit = (data: VederlagFormData) => {
+    // Show pending toast immediately for better UX
+    pendingToastId.current = toast.pending('Sender krav...', 'Vennligst vent mens kravet behandles.');
+
     // Build særskilt krav structure with separate dates per §34.1.3
     // TE kan bli klar over rigg/drift og produktivitetstap på ulike tidspunkt
     const saerskiltKrav =

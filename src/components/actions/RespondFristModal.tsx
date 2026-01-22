@@ -357,8 +357,16 @@ export function RespondFristModal({
     }
   }, [open, isUpdateMode, lastResponseEvent, reset, computedDefaultValues]);
 
+  // Track pending toast for dismissal
+  const pendingToastId = useRef<string | null>(null);
+
   const mutation = useSubmitEvent(sakId, {
     onSuccess: (result) => {
+      // Dismiss pending toast and show success
+      if (pendingToastId.current) {
+        toast.dismiss(pendingToastId.current);
+        pendingToastId.current = null;
+      }
       clearBackup();
       reset();
       setCurrentPort(1);
@@ -372,6 +380,11 @@ export function RespondFristModal({
       }
     },
     onError: (error) => {
+      // Dismiss pending toast
+      if (pendingToastId.current) {
+        toast.dismiss(pendingToastId.current);
+        pendingToastId.current = null;
+      }
       if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') {
         setShowTokenExpired(true);
       }
@@ -601,6 +614,12 @@ export function RespondFristModal({
 
   // Submit handler
   const onSubmit = (data: RespondFristFormData) => {
+    // Show pending toast immediately for better UX
+    pendingToastId.current = toast.pending(
+      isUpdateMode ? 'Lagrer endringer...' : 'Sender svar...',
+      'Vennligst vent mens svaret behandles.'
+    );
+
     // ========== UPDATE MODE SUBMIT ==========
     if (isUpdateMode && lastResponseEvent) {
       // Build event data based on what's being changed

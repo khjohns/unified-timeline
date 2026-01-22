@@ -39,6 +39,7 @@ import {
   RevisionTag,
   SectionContainer,
   Textarea,
+  useToast,
 } from '../primitives';
 import type { AttachmentFile } from '../../types';
 import { useForm, Controller } from 'react-hook-form';
@@ -154,6 +155,7 @@ export function ReviseVederlagModal({
 }: ReviseVederlagModalProps) {
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const [showRestorePrompt, setShowRestorePrompt] = useState(false);
+  const toast = useToast();
   // This revision will become the next version
   const nextVersion = currentVersion + 1;
 
@@ -295,16 +297,30 @@ export function ReviseVederlagModal({
     return false;
   }, [erHoldTilbake, nyErRegningsarbeid, nyttKostnadsOverslag]);
 
+  // Track pending toast for dismissal
+  const pendingToastId = useRef<string | null>(null);
+
   const mutation = useSubmitEvent(sakId, {
     onSuccess: (result) => {
+      // Dismiss pending toast and show success
+      if (pendingToastId.current) {
+        toast.dismiss(pendingToastId.current);
+        pendingToastId.current = null;
+      }
       clearBackup();
       reset();
       onOpenChange(false);
+      toast.success('Vederlagskrav revidert', 'Det reviderte kravet er registrert og sendt til byggherre.');
       if (!result.catenda_synced) {
         onCatendaWarning?.();
       }
     },
     onError: (error) => {
+      // Dismiss pending toast
+      if (pendingToastId.current) {
+        toast.dismiss(pendingToastId.current);
+        pendingToastId.current = null;
+      }
       if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') {
         setShowTokenExpired(true);
       }
@@ -312,6 +328,9 @@ export function ReviseVederlagModal({
   });
 
   const onSubmit = (data: ReviseVederlagFormData) => {
+    // Show pending toast immediately for better UX
+    pendingToastId.current = toast.pending('Sender revidert krav...', 'Vennligst vent mens kravet behandles.');
+
     const erRegning = data.metode === 'REGNINGSARBEID';
     const erEP = data.metode === 'ENHETSPRISER';
 

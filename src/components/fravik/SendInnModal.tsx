@@ -8,7 +8,7 @@
  * then confirms by clicking "Send inn" in modal.
  */
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   Alert,
   Button,
@@ -41,8 +41,16 @@ export function SendInnModal({
   const toast = useToast();
   const [showTokenExpired, setShowTokenExpired] = useState(false);
 
+  // Track pending toast for dismissal
+  const pendingToastId = useRef<string | null>(null);
+
   const mutation = useFravikSubmit({
     onSuccess: (result) => {
+      // Dismiss pending toast and show success
+      if (pendingToastId.current) {
+        toast.dismiss(pendingToastId.current);
+        pendingToastId.current = null;
+      }
       onOpenChange(false);
       if (result.type === 'send_inn') {
         toast.success('Søknad sendt inn', 'Søknaden er nå til vurdering hos miljørådgiver.');
@@ -50,6 +58,11 @@ export function SendInnModal({
       }
     },
     onError: (error) => {
+      // Dismiss pending toast
+      if (pendingToastId.current) {
+        toast.dismiss(pendingToastId.current);
+        pendingToastId.current = null;
+      }
       if (error.message === 'TOKEN_EXPIRED' || error.message === 'TOKEN_MISSING') {
         setShowTokenExpired(true);
       } else {
@@ -63,6 +76,9 @@ export function SendInnModal({
   const antallMaskiner = state.antall_maskiner;
 
   const handleSubmit = () => {
+    // Show pending toast immediately for better UX
+    pendingToastId.current = toast.pending('Sender inn søknad...', 'Vennligst vent mens søknaden behandles.');
+
     mutation.mutate({
       type: 'send_inn',
       sakId,
