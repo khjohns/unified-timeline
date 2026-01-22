@@ -64,7 +64,8 @@ function erTrukket(status: SporStatus | undefined): boolean {
  */
 function generateEntreprenorMessage(
   state: SakState,
-  actions: AvailableActions
+  actions: AvailableActions,
+  context: AlertContext
 ): StatusAlertMessage | null {
   const { grunnlag, vederlag, frist, overordnet_status } = state;
   const erForceMajeure = grunnlag.hovedkategori === 'FORCE_MAJEURE';
@@ -229,7 +230,8 @@ function generateEntreprenorMessage(
   }
 
   if (frist.bh_resultat === 'avslatt') {
-    if (actions.canSendForsering) {
+    // Ikke foreslå forsering hvis det allerede finnes en forseringssak
+    if (actions.canSendForsering && !context.harForseringssak) {
       return {
         type: 'warning',
         title: 'Fristforlengelse avslått',
@@ -241,7 +243,9 @@ function generateEntreprenorMessage(
       return {
         type: 'warning',
         title: 'Fristforlengelse avslått',
-        description: 'Byggherre har avslått kravet. Du kan oppdatere med mer dokumentasjon.',
+        description: context.harForseringssak
+          ? 'Byggherre har avslått kravet. Forseringssak er opprettet.'
+          : 'Byggherre har avslått kravet. Du kan oppdatere med mer dokumentasjon.',
         relatedSpor: 'frist',
       };
     }
@@ -250,7 +254,8 @@ function generateEntreprenorMessage(
   if (frist.bh_resultat === 'delvis_godkjent') {
     const godkjentDager = frist.godkjent_dager ?? 0;
     const krevdDager = frist.krevd_dager ?? 0;
-    if (actions.canSendForsering && godkjentDager < krevdDager) {
+    // Ikke foreslå forsering hvis det allerede finnes en forseringssak
+    if (actions.canSendForsering && godkjentDager < krevdDager && !context.harForseringssak) {
       return {
         type: 'info',
         title: 'Fristforlengelse delvis godkjent',
@@ -297,7 +302,9 @@ function generateEntreprenorMessage(
       return {
         type: 'success',
         title: 'Krav fullstendig godkjent',
-        description: 'Alle krav er godkjent. Venter på formell endringsordre fra byggherre.',
+        description: context.harEndringsordre
+          ? 'Alle krav er godkjent. Endringsordre er utstedt.'
+          : 'Alle krav er godkjent. Venter på formell endringsordre fra byggherre.',
         relatedSpor: null,
       };
     }
@@ -330,7 +337,8 @@ function generateEntreprenorMessage(
  */
 function generateByggherreMessage(
   state: SakState,
-  actions: AvailableActions
+  actions: AvailableActions,
+  context: AlertContext
 ): StatusAlertMessage | null {
   const { grunnlag, vederlag, frist, kan_utstede_eo } = state;
 
@@ -474,8 +482,8 @@ function generateByggherreMessage(
     };
   }
 
-  // 9. Kan utstede endringsordre
-  if (kan_utstede_eo && actions.canIssueEO) {
+  // 9. Kan utstede endringsordre (ikke vis hvis allerede opprettet)
+  if (kan_utstede_eo && actions.canIssueEO && !context.harEndringsordre) {
     return {
       type: 'success',
       title: 'Klar for endringsordre',
@@ -519,18 +527,28 @@ function generateByggherreMessage(
   return null;
 }
 
+/** Ekstra kontekst for alert-generering */
+export interface AlertContext {
+  /** Om det allerede finnes en forseringssak som refererer til denne saken */
+  harForseringssak?: boolean;
+  /** Om det allerede finnes en endringsordre som refererer til denne saken */
+  harEndringsordre?: boolean;
+}
+
 /**
  * Hovedfunksjon: Generer status-melding basert på rolle og saksstatus
  *
  * @param state - Nåværende saksstatus
  * @param userRole - Brukerens rolle (TE eller BH)
  * @param actions - Tilgjengelige handlinger
+ * @param context - Ekstra kontekst (eksisterende forsering/endringsordre)
  * @returns StatusAlertMessage eller null hvis ingen relevant melding
  */
 export function generateStatusAlert(
   state: SakState,
   userRole: 'TE' | 'BH',
-  actions: AvailableActions
+  actions: AvailableActions,
+  context: AlertContext = {}
 ): StatusAlertMessage | null {
   // Ikke vis alert for lukkede saker
   if (state.overordnet_status === 'LUKKET' || state.overordnet_status === 'LUKKET_TRUKKET') {
@@ -548,8 +566,8 @@ export function generateStatusAlert(
   }
 
   if (userRole === 'TE') {
-    return generateEntreprenorMessage(state, actions);
+    return generateEntreprenorMessage(state, actions, context);
   } else {
-    return generateByggherreMessage(state, actions);
+    return generateByggherreMessage(state, actions, context);
   }
 }
