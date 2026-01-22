@@ -215,6 +215,14 @@
     --color-tag-frist-text: #2a2859;
 
     /* ============================================
+       CONNECTION STATUS INDICATOR COLORS
+       High-contrast colors for small status dots
+       ============================================ */
+    --color-pkt-status-connected: #16a34a;  /* Green-600 - good contrast on white */
+    --color-pkt-status-disconnected: #dc2626;  /* Red-600 - good contrast on white */
+    --color-pkt-status-neutral: #6b7280;  /* Gray-500 - visible on white */
+
+    /* ============================================
        LEGACY ALIASES (for backward compatibility)
        ============================================ */
     --color-oslo-blue: #2a2859;
@@ -482,6 +490,11 @@
   --color-pkt-brand-neutrals-1000: #f0f0f8;  /* Brightened for better contrast */
   /* Note: neutrals-black is inverted in dark mode (white) for semantic "darkest" use */
   --color-pkt-brand-neutrals-black: #ffffff;
+
+  /* Connection status indicator colors - dark mode */
+  --color-pkt-status-connected: #4ade80;  /* Green-400 - vibrant on dark bg */
+  --color-pkt-status-disconnected: #f87171;  /* Red-400 - vibrant on dark bg */
+  --color-pkt-status-neutral: #9ca3af;  /* Gray-400 - visible on dark bg */
 
   /* Legacy aliases - dark mode */
   --color-oslo-blue: #8ab4ff;

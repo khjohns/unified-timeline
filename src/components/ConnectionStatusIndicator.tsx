@@ -17,10 +17,10 @@ interface StatusDotProps {
 
 function StatusDot({ state, label, description }: StatusDotProps) {
   const dotStyles: Record<ConnectionState, string> = {
-    connected: 'bg-pkt-status-approved',
-    disconnected: 'bg-pkt-status-rejected',
-    checking: 'bg-pkt-grays-gray-400 animate-pulse',
-    unconfigured: 'bg-pkt-grays-gray-400',
+    connected: 'bg-pkt-status-connected',
+    disconnected: 'bg-pkt-status-disconnected',
+    checking: 'bg-pkt-status-neutral animate-pulse',
+    unconfigured: 'bg-pkt-status-neutral',
   };
 
   const stateLabels: Record<ConnectionState, string> = {
