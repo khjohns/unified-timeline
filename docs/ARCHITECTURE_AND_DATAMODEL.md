@@ -223,7 +223,7 @@ Se `backend/models/fravik_events.py` og `backend/models/fravik_state.py` for det
 
 ### Event-kategorier
 
-Systemet har **50+ event-typer** fordelt på:
+Systemet har **45+ event-typer** fordelt på:
 
 | Kategori | Eksempler | Aktør |
 |----------|-----------|-------|
