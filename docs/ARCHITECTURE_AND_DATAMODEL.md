@@ -2,7 +2,7 @@
 
 **Konseptuell oversikt over systemarkitektur, event sourcing og forretningslogikk**
 
-*Sist oppdatert: 2026-01-22*
+*Sist oppdatert: 2026-01-22 (datamodell kvalitetssikret)*
 
 > **Merk:** For detaljerte type-definisjoner, se kildekoden direkte:
 > - KOE Event-modeller: `backend/models/events.py`
@@ -197,6 +197,197 @@ erDiagram
     FRAVIK_SAK ||--|| FRAVIK_STATE : "projiseres til"
     FRAVIK_STATE ||--o{ MASKIN_TILSTAND : "kan inneholde (machine)"
     FRAVIK_STATE ||--o| INFRASTRUKTUR_TILSTAND : "kan inneholde (infrastructure)"
+```
+
+### Detaljert datamodell (KOE, Forsering, Endringsordre)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                           EVENT SOURCING DATAMODELL                                  │
+│                        (KOE, Endringsordre, Forsering)                              │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+
+                                    ┌──────────────────┐
+                                    │      EVENT       │
+                                    ├──────────────────┤
+                                    │ event_id     PK  │
+                                    │ sak_id       FK  │
+                                    │ event_type       │  ← 35+ event-typer
+                                    │ tidsstempel      │
+                                    │ aktor            │
+                                    │ aktor_rolle      │  ← "TE" | "BH"
+                                    │ kommentar        │
+                                    │ refererer_til_   │
+                                    │   event_id       │
+                                    │ data         JSON│  ← Event-spesifikk payload
+                                    └────────┬─────────┘
+                                             │ projiseres til
+                                             ▼
+┌───────────────────────────────────────────────────────────────────────────────────────┐
+│                                     SAK_STATE                                          │
+├───────────────────────────────────────────────────────────────────────────────────────┤
+│ sak_id                  PK                                                            │
+│ sakstittel              string                                                        │
+│ sakstype                enum     ← "standard" | "forsering" | "endringsordre"         │
+│ catenda_topic_id        string?                                                       │
+│ catenda_project_id      string?                                                       │
+│ entreprenor             string?  ← TE                                                 │
+│ byggherre               string?  ← BH                                                 │
+│ prosjekt_navn           string?                                                       │
+│ opprettet               datetime                                                      │
+│ siste_aktivitet         datetime                                                      │
+│ antall_events           int                                                           │
+│───────────────────────────────────────────────────────────────────────────────────────│
+│ COMPUTED FIELDS:                                                                      │
+│ overordnet_status       string   ← "UTKAST"|"VENTER_PAA_SVAR"|"UNDER_FORHANDLING"... │
+│ kan_utstede_eo          bool                                                          │
+│ er_subsidiaert_vederlag bool     ← Grunnlag avslått MEN vederlag godkjent            │
+│ er_subsidiaert_frist    bool     ← Grunnlag avslått MEN frist godkjent               │
+│ er_frafalt              bool     ← §32.3 c frafall                                   │
+│ neste_handling          dict     ← {rolle, handling, spor}                            │
+│ sum_krevd               float                                                         │
+│ sum_godkjent            float                                                         │
+└───────────────────────────────────────────────────────────────────────────────────────┘
+         │                              │                              │
+         │ inneholder                   │ inneholder                   │ inneholder
+         ▼                              ▼                              ▼
+┌─────────────────────┐    ┌─────────────────────────┐    ┌─────────────────────────────┐
+│  GRUNNLAG_TILSTAND  │    │   VEDERLAG_TILSTAND     │    │      FRIST_TILSTAND         │
+├─────────────────────┤    ├─────────────────────────┤    ├─────────────────────────────┤
+│ status              │    │ status                  │    │ status                      │
+│ tittel              │    │ metode                  │    │ varsel_type                 │
+│ hovedkategori       │    │ belop_direkte           │    │ krevd_dager                 │
+│ underkategori       │    │ kostnads_overslag       │    │ begrunnelse                 │
+│ beskrivelse         │    │ krever_justert_ep       │    │─────────────────────────────│
+│ dato_oppdaget       │    │ begrunnelse             │    │ VARSLER:                    │
+│ grunnlag_varsel     │    │─────────────────────────│    │ noytralt_varsel (VarselInfo)│
+│ kontraktsreferanser │    │ SÆRSKILTE KRAV (§34.1.3)│    │ spesifisert_varsel          │
+│─────────────────────│    │ saerskilt_krav    dict  │    │─────────────────────────────│
+│ BH RESPONS:         │    │  └─ rigg_drift {belop,  │    │ BH RESPONS PORT 1 (Varsel): │
+│ bh_resultat         │    │       dato_klar_over}   │    │ noytralt_varsel_ok          │
+│ bh_begrunnelse      │    │  └─ produktivitet {...} │    │ spesifisert_krav_ok         │
+│ laast               │    │─────────────────────────│    │ har_bh_etterlyst            │
+│ bh_respondert_ver.  │    │ VARSLER:                │    │ begrunnelse_varsel          │
+│─────────────────────│    │ rigg_drift_varsel       │    │─────────────────────────────│
+│ METADATA:           │    │ justert_ep_varsel       │    │ BH RESPONS PORT 2 (Vilkår): │
+│ siste_event_id      │    │ regningsarbeid_varsel   │    │ vilkar_oppfylt              │
+│ siste_oppdatert     │    │ produktivitetstap_varsel│    │ begrunnelse_vilkar          │
+│ antall_versjoner    │    │ krav_fremmet_dato       │    │─────────────────────────────│
+└─────────────────────┘    │─────────────────────────│    │ BH RESPONS PORT 3 (Beregn.):│
+                           │ BH RESPONS PORT 1:      │    │ bh_resultat                 │
+                           │ saerskilt_varsel_ok     │    │ bh_begrunnelse              │
+                           │ varsel_justert_ep_ok    │    │ godkjent_dager              │
+                           │ varsel_start_regning_ok │    │ ny_sluttdato                │
+                           │ krav_fremmet_i_tide     │    │ frist_for_spesifisering     │
+                           │ begrunnelse_varsel      │    │─────────────────────────────│
+                           │─────────────────────────│    │ SUBSIDIÆRT:                 │
+                           │ BH RESPONS PORT 2:      │    │ subsidiaer_triggers  List   │
+                           │ bh_resultat             │    │ subsidiaer_resultat         │
+                           │ bh_begrunnelse          │    │ subsidiaer_godkjent_dager   │
+                           │ bh_metode               │    │ subsidiaer_begrunnelse      │
+                           │ godkjent_belop          │    │─────────────────────────────│
+                           │─────────────────────────│    │ METADATA + COMPUTED:        │
+                           │ SUBSIDIÆRT:             │    │ bh_respondert_versjon       │
+                           │ subsidiaer_triggers     │    │ siste_event_id              │
+                           │ subsidiaer_resultat     │    │ antall_versjoner            │
+                           │ subsidiaer_godkjent_bel.│    │ differanse_dager (computed) │
+                           │ subsidiaer_begrunnelse  │    │ visningsstatus (computed)   │
+                           │─────────────────────────│    └─────────────────────────────┘
+                           │ METADATA + COMPUTED:    │
+                           │ bh_respondert_versjon   │
+                           │ siste_event_id          │
+                           │ antall_versjoner        │
+                           │ krevd_belop (computed)  │
+                           │ differanse (computed)   │
+                           │ visningsstatus (comp.)  │
+                           └─────────────────────────┘
+```
+
+#### Sakstype-spesifikke datastrukturer
+
+SAK_STATE har én av disse basert på sakstype:
+
+```
+┌────────────────────────────────────┐       ┌────────────────────────────────────────┐
+│       FORSERING_DATA (§33.8)       │       │      ENDRINGSORDRE_DATA (§31.3)        │
+│   (kun når sakstype="forsering")   │       │  (kun når sakstype="endringsordre")    │
+├────────────────────────────────────┤       ├────────────────────────────────────────┤
+│ avslatte_fristkrav     List[str]   │       │ eo_nummer                string        │
+│ dato_varslet           string?     │       │ revisjon_nummer          int           │
+│ estimert_kostnad       float?      │       │ beskrivelse              string        │
+│ bekreft_30_prosent_regel bool      │       │ vedlegg_ids              List[str]     │
+│ begrunnelse            string?     │       │────────────────────────────────────────│
+│────────────────────────────────────│       │ KONSEKVENSER (EOKonsekvenser):         │
+│ KALKULASJON:                       │       │ sha, kvalitet, fremdrift, pris, annet  │
+│ avslatte_dager         int         │       │ konsekvens_beskrivelse   string?       │
+│ dagmulktsats           float       │       │────────────────────────────────────────│
+│ maks_forseringskostnad float       │       │ VEDERLAG:                              │
+│ kostnad_innenfor_grense (computed) │       │ oppgjorsform             string?       │
+│────────────────────────────────────│       │ kompensasjon_belop       float?        │
+│ STATUS:                            │       │ fradrag_belop            float?        │
+│ er_iverksatt           bool        │       │ er_estimat               bool          │
+│ dato_iverksatt         string?     │       │ netto_belop (computed)                 │
+│ er_stoppet             bool        │       │────────────────────────────────────────│
+│ dato_stoppet           string?     │       │ FRIST:                                 │
+│ paalopte_kostnader     float?      │       │ frist_dager              int?          │
+│────────────────────────────────────│       │ ny_sluttdato             string?       │
+│ VEDERLAG (ForseringVederlag):      │       │────────────────────────────────────────│
+│ metode                 string      │       │ STATUS OG RELASJONER:                  │
+│ saerskilt_krav         dict?       │       │ status                   EOStatus      │
+│ rigg_drift_varsel      dict?       │       │  ← "utkast"|"utstedt"|"akseptert"|     │
+│ produktivitet_varsel   dict?       │       │    "bestridt"|"revidert"               │
+│────────────────────────────────────│       │ relaterte_koe_saker      List[str]     │
+│ BH RESPONS (ForseringBHRespons):   │       │ dato_utstedt             string?       │
+│ vurdering_per_sak      List[dict]? │       │ utstedt_av               string?       │
+│ dager_med_forseringsrett int?      │       │────────────────────────────────────────│
+│ trettiprosent_overholdt bool?      │       │ TE RESPONS:                            │
+│ trettiprosent_begrunnelse str?     │       │ te_akseptert             bool?         │
+│ aksepterer             bool        │       │ te_kommentar             string?       │
+│ godkjent_belop         float?      │       │ dato_te_respons          string?       │
+│ begrunnelse            string      │       │────────────────────────────────────────│
+│ rigg_varslet_i_tide    bool?       │       │ COMPUTED:                              │
+│ godkjent_rigg_drift    float?      │       │ har_priskonsekvens       bool          │
+│ godkjent_produktivitet float?      │       │ har_fristkonsekvens      bool          │
+│ subsidiaer_triggers    List[str]?  │       └────────────────────────────────────────┘
+│ subsidiaer_godkjent_belop float?   │
+│ subsidiaer_begrunnelse string?     │
+│ total_godkjent (computed)          │
+└────────────────────────────────────┘
+```
+
+#### Sak-relasjoner
+
+SAK_STATE.relaterte_saker inneholder liste av SakRelasjon:
+
+| Felt | Type | Beskrivelse |
+|------|------|-------------|
+| `relatert_sak_id` | string | Lokal sak-ID |
+| `relatert_sak_tittel` | string? | Cached tittel for display |
+| `catenda_topic_id` | string? | Catenda topic GUID |
+| `bimsync_issue_board_ref` | string? | Topic board ID |
+| `bimsync_issue_number` | int? | Lesbart saksnummer |
+
+**Relasjonstyper (utledes fra kontekst):**
+- FORSERING → KOE: "basert_paa" (avslåtte fristforlengelser)
+- ENDRINGSORDRE → KOE: "samler" (KOE-er som inngår i EO)
+
+#### Enums og støttemodeller
+
+| Enum | Verdier |
+|------|---------|
+| **SporStatus** | `IKKE_RELEVANT`, `UTKAST`, `SENDT`, `UNDER_BEHANDLING`, `GODKJENT`, `DELVIS_GODKJENT`, `AVSLATT`, `UNDER_FORHANDLING`, `TRUKKET`, `LAAST` |
+| **GrunnlagResponsResultat** | `GODKJENT`, `DELVIS_GODKJENT`, `AVSLATT`, `FRAFALT` (§32.3 c), `KREVER_AVKLARING` |
+| **VederlagBeregningResultat** | `GODKJENT`, `DELVIS_GODKJENT`, `AVSLATT`, `HOLD_TILBAKE` (§30.2) |
+| **FristBeregningResultat** | `GODKJENT`, `DELVIS_GODKJENT`, `AVSLATT` |
+| **VederlagsMetode** | `ENHETSPRISER` (§34.3), `REGNINGSARBEID` (§30.2/§34.4), `FASTPRIS_TILBUD` (§34.2.1) |
+| **SubsidiaerTrigger** | `GRUNNLAG_AVSLATT`, `FORSERINGSRETT_AVSLATT`, `PREKLUSJON_RIGG`, `PREKLUSJON_PRODUKTIVITET`, `PREKLUSJON_EP_JUSTERING`, `PREKLUSJON_NOYTRALT`, `PREKLUSJON_SPESIFISERT`, `INGEN_HINDRING`, `METODE_AVSLATT` |
+
+**VarselInfo-struktur:**
+```
+{
+  dato_sendt: string?
+  metode: List[str]?  // "epost", "byggemote", "telefon", etc.
+}
 ```
 
 ### Sakstyper
