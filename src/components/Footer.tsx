@@ -12,7 +12,7 @@ export function Footer() {
 
   return (
     <footer className="mt-auto border-t border-pkt-border-subtle bg-pkt-bg-subtle py-4 px-6">
-      <div className="max-w-7xl mx-auto space-y-4">
+      <div className="max-w-3xl mx-auto space-y-4">
         {/* NS 8407 Disclaimer */}
         <div className="text-xs text-pkt-grays-gray-500 max-w-3xl">
           <p className="font-medium text-pkt-grays-gray-600 mb-1">Viktig informasjon om NS 8407</p>
