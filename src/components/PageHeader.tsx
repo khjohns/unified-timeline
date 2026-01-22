@@ -10,6 +10,7 @@ import { Link } from 'react-router-dom';
 import { ThemeToggle } from './ThemeToggle';
 import { ModeToggle } from './ModeToggle';
 import { ConnectionStatusIndicator } from './ConnectionStatusIndicator';
+import { FeedbackButton } from './FeedbackButton';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -68,6 +69,7 @@ export function PageHeader({
             <div className="flex items-center gap-2">
               <ConnectionStatusIndicator />
               <div className="h-4 w-px bg-pkt-border-subtle" />
+              <FeedbackButton />
               <ThemeToggle />
               {userRole && onToggleRole && (
                 <ModeToggle userRole={userRole} onToggle={onToggleRole} />
