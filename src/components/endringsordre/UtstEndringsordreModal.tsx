@@ -106,14 +106,13 @@ const OPPGJORSFORM_OPTIONS: OppgjorsformOption[] = [
 // ============================================================================
 
 const utstEndringsordreSchema = z.object({
-  // Step 1: Basic info
+  // Step 1: Grunnlag
   eo_nummer: z.string().min(1, 'EO-nummer er påkrevd'),
+  tittel: z.string().min(3, 'Tittel må være minst 3 tegn').max(100, 'Tittel kan ikke være lengre enn 100 tegn'),
   beskrivelse: z.string().min(1, 'Beskrivelse er påkrevd'),
-
-  // Step 2: KOE selection (managed separately due to array)
   // selectedKoeIds is handled via useState
 
-  // Step 3: Konsekvenser
+  // Step 2: Konsekvenser og oppgjør
   konsekvenser_sha: z.boolean(),
   konsekvenser_kvalitet: z.boolean(),
   konsekvenser_fremdrift: z.boolean(),
@@ -174,7 +173,7 @@ export function UtstEndringsordreModal({
 
   // Wizard state
   const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 5;
+  const totalSteps = 3;
 
   // KOE selection state (managed separately from form due to array handling)
   const [selectedKoeIds, setSelectedKoeIds] = useState<string[]>(preselectedKoeIds);
@@ -186,10 +185,8 @@ export function UtstEndringsordreModal({
 
   // Step configuration for StepIndicator
   const steps = [
-    { label: 'Info' },
-    { label: 'KOE-saker' },
-    { label: 'Konsekvenser' },
-    { label: 'Oppgjør' },
+    { label: 'Grunnlag' },
+    { label: 'Konsekvenser og oppgjør' },
     { label: 'Bekreft' },
   ];
 
@@ -209,6 +206,7 @@ export function UtstEndringsordreModal({
     mode: 'onTouched',
     defaultValues: {
       eo_nummer: '',
+      tittel: '',
       beskrivelse: '',
       konsekvenser_sha: false,
       konsekvenser_kvalitet: false,
@@ -265,6 +263,18 @@ export function UtstEndringsordreModal({
   });
 
   const kandidatSaker = kandidaterData?.kandidat_saker ?? [];
+
+  // Generate next EO number based on existing EOs
+  const generateNextEoNummer = useCallback(() => {
+    const existingNumbers = kandidatSaker
+      .map((k) => {
+        const match = k.tittel?.match(/EO-?(\d+)/i);
+        return match ? parseInt(match[1], 10) : 0;
+      })
+      .filter((n) => n > 0);
+    const nextNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
+    return `EO-${String(nextNumber).padStart(3, '0')}`;
+  }, [kandidatSaker]);
 
   // Create EO mutation
   const createEOMutation = useMutation({
@@ -339,8 +349,10 @@ export function UtstEndringsordreModal({
 
     // Validate current step fields
     if (currentStep === 1) {
-      isValid = await trigger(['eo_nummer', 'beskrivelse']);
-    } else if (currentStep === 3) {
+      // Step 1: Grunnlag - valider info og KOE-valg
+      isValid = await trigger(['eo_nummer', 'tittel', 'beskrivelse']);
+    } else if (currentStep === 2) {
+      // Step 2: Konsekvenser og oppgjør - valider alt
       isValid = await trigger([
         'konsekvenser_sha',
         'konsekvenser_kvalitet',
@@ -349,16 +361,15 @@ export function UtstEndringsordreModal({
         'konsekvenser_annet',
         'konsekvens_beskrivelse',
       ]);
-    } else if (currentStep === 4) {
       // Validate oppgjørsform if pris consequence
-      if (formValues.konsekvenser_pris) {
+      if (isValid && formValues.konsekvenser_pris) {
         isValid = await trigger(['oppgjorsform', 'kompensasjon_belop', 'fradrag_belop']);
         if (!formValues.oppgjorsform) {
           isValid = false;
         }
       }
-      if (formValues.konsekvenser_fremdrift) {
-        isValid = isValid && (await trigger(['frist_dager']));
+      if (isValid && formValues.konsekvenser_fremdrift) {
+        isValid = await trigger(['frist_dager']);
       }
     }
 
@@ -387,6 +398,7 @@ export function UtstEndringsordreModal({
   const onSubmit = (data: UtstEndringsordreFormData) => {
     const request: OpprettEORequest = {
       eo_nummer: data.eo_nummer,
+      tittel: data.tittel,
       beskrivelse: data.beskrivelse,
       koe_sak_ids: selectedKoeIds.length > 0 ? selectedKoeIds : undefined,
       konsekvenser: {
@@ -436,390 +448,416 @@ export function UtstEndringsordreModal({
           className="space-y-6"
         >
           {/* ================================================================
-              STEP 1: BASIC INFO
+              STEP 1: GRUNNLAG (Info + KOE-saker)
               ================================================================ */}
           {currentStep === 1 && (
-            <SectionContainer title="Grunnleggende informasjon">
-              <FormField
-                label="EO-nummer"
-                required
-                error={errors.eo_nummer?.message}
+            <>
+              <SectionContainer
+                title="Identifikasjon"
+                description="EO-nummer og tittel for enkel identifikasjon"
               >
-                <Input
-                  {...register('eo_nummer')}
-                  placeholder="EO-001"
-                  error={!!errors.eo_nummer}
-                  width="md"
-                />
-              </FormField>
-
-              <FormField
-                label="Beskrivelse av endringen"
-                required
-                error={errors.beskrivelse?.message}
-              >
-                <Textarea
-                  {...register('beskrivelse')}
-                  rows={4}
-                  fullWidth
-                  error={!!errors.beskrivelse}
-                />
-              </FormField>
-            </SectionContainer>
-          )}
-
-          {/* ================================================================
-              STEP 2: SELECT KOE CASES
-              ================================================================ */}
-          {currentStep === 2 && (
-            <SectionContainer
-              title="Velg KOE-saker"
-              description="Velg KOE-saker som skal inkluderes, eller fortsett uten for proaktiv EO."
-            >
-              {kandidaterLoading ? (
-                <p className="text-pkt-text-body-subtle text-sm">Laster kandidatsaker...</p>
-              ) : kandidatSaker.length === 0 ? (
-                <p className="text-pkt-text-body-subtle text-sm">
-                  Ingen KOE-saker er klare for endringsordre.
-                </p>
-              ) : (
-                <div className="max-h-64 overflow-y-auto border border-pkt-border-subtle">
-                  <table className="w-full text-sm">
-                    <thead className="bg-pkt-surface-subtle sticky top-0">
-                      <tr className="border-b border-pkt-border-subtle">
-                        <th className="w-10 py-2 px-2"></th>
-                        <th className="text-left py-2 px-2 font-medium">Sak</th>
-                        <th className="text-right py-2 px-2 font-medium w-28">Vederlag</th>
-                        <th className="text-right py-2 px-2 font-medium w-20">Dager</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {kandidatSaker.map((koe) => {
-                        const isSelected = selectedKoeIds.includes(koe.sak_id);
-                        return (
-                          <tr
-                            key={koe.sak_id}
-                            onClick={() => toggleKoeSelection(koe.sak_id)}
-                            className={`border-b border-pkt-border-subtle cursor-pointer transition-colors ${
-                              isSelected
-                                ? 'bg-pkt-surface-light-beige'
-                                : 'hover:bg-pkt-surface-subtle'
-                            }`}
-                          >
-                            <td className="py-2 px-2" onClick={(e) => e.stopPropagation()}>
-                              <Checkbox
-                                checked={isSelected}
-                                onCheckedChange={() => toggleKoeSelection(koe.sak_id)}
-                              />
-                            </td>
-                            <td className="py-2 px-2">
-                              <p className="font-medium">{koe.tittel}</p>
-                              <p className="text-xs text-pkt-text-body-subtle">
-                                {koe.overordnet_status}
-                              </p>
-                            </td>
-                            <td className="text-right py-2 px-2 font-mono text-pkt-brand-dark-green-1000">
-                              {koe.sum_godkjent !== undefined
-                                ? formatCurrency(koe.sum_godkjent)
-                                : '-'}
-                            </td>
-                            <td className="text-right py-2 px-2 font-mono">
-                              {koe.godkjent_dager ?? '-'}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                    {selectedKoeIds.length > 0 && (
-                      <tfoot className="border-t-2 border-pkt-border-default bg-pkt-surface-subtle">
-                        <tr>
-                          <td className="py-2 px-2"></td>
-                          <td className="py-2 px-2 font-bold">
-                            Totalt ({selectedKoeIds.length} valgt)
-                          </td>
-                          <td className="text-right py-2 px-2 font-mono font-bold text-pkt-brand-dark-green-1000">
-                            {formatCurrency(totalFromKOE)}
-                          </td>
-                          <td className="text-right py-2 px-2 font-mono font-bold">
-                            {totalDagerFromKOE}
-                          </td>
-                        </tr>
-                      </tfoot>
-                    )}
-                  </table>
-                </div>
-              )}
-            </SectionContainer>
-          )}
-
-          {/* ================================================================
-              STEP 3: CONSEQUENCES
-              ================================================================ */}
-          {currentStep === 3 && (
-            <SectionContainer
-              title="Konsekvenser"
-              description="Kryss av for konsekvenser endringen medfører."
-            >
-              <div className="space-y-3">
-                <Controller
-                  name="konsekvenser_sha"
-                  control={control}
-                  render={({ field }) => (
-                    <Checkbox
-                      id="konsekvenser_sha"
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      label="SHA-konsekvens"
-                      description="Endringen påvirker sikkerhet, helse eller arbeidsmiljø"
+                <FormField
+                  label="EO-nummer"
+                  required
+                  error={errors.eo_nummer?.message}
+                  helpText="Unik identifikator for endringsordren"
+                >
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Input
+                      {...register('eo_nummer')}
+                      error={!!errors.eo_nummer}
+                      width="md"
                     />
-                  )}
-                />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => setValue('eo_nummer', generateNextEoNummer())}
+                      className="w-full sm:w-auto"
+                    >
+                      Generer neste
+                    </Button>
+                  </div>
+                </FormField>
 
-                <Controller
-                  name="konsekvenser_kvalitet"
-                  control={control}
-                  render={({ field }) => (
-                    <Checkbox
-                      id="konsekvenser_kvalitet"
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      label="Kvalitetskonsekvens"
-                      description="Endringen påvirker kvalitet eller spesifikasjoner"
-                    />
-                  )}
-                />
-
-                <Controller
-                  name="konsekvenser_fremdrift"
-                  control={control}
-                  render={({ field }) => (
-                    <Checkbox
-                      id="konsekvenser_fremdrift"
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      label="Fremdriftskonsekvens"
-                      description="Endringen gir rett til fristforlengelse"
-                    />
-                  )}
-                />
-
-                <Controller
-                  name="konsekvenser_pris"
-                  control={control}
-                  render={({ field }) => (
-                    <Checkbox
-                      id="konsekvenser_pris"
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      label="Priskonsekvens"
-                      description="Endringen gir rett til vederlagsjustering"
-                    />
-                  )}
-                />
-
-                <Controller
-                  name="konsekvenser_annet"
-                  control={control}
-                  render={({ field }) => (
-                    <Checkbox
-                      id="konsekvenser_annet"
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      label="Andre konsekvenser"
-                      description="Endringen har andre konsekvenser som bør dokumenteres"
-                    />
-                  )}
-                />
-              </div>
-
-              {harKonsekvens && (
-                <FormField label="Utdypende beskrivelse">
-                  <Textarea
-                    {...register('konsekvens_beskrivelse')}
-                    rows={3}
+                <FormField
+                  label="Tittel"
+                  required
+                  error={errors.tittel?.message}
+                  helpText="Kort beskrivende tittel for enkel identifikasjon"
+                >
+                  <Input
+                    {...register('tittel')}
+                    error={!!errors.tittel}
                     fullWidth
                   />
                 </FormField>
-              )}
 
-              {!harKonsekvens && (
-                <Alert variant="warning" title="Ingen konsekvenser valgt">
-                  Er du sikker på at endringen ikke har konsekvenser?
-                </Alert>
-              )}
-            </SectionContainer>
+                <FormField
+                  label="Beskrivelse"
+                  required
+                  error={errors.beskrivelse?.message}
+                  helpText="Beskriv hva endringen innebærer"
+                >
+                  <Textarea
+                    {...register('beskrivelse')}
+                    rows={4}
+                    fullWidth
+                    error={!!errors.beskrivelse}
+                  />
+                </FormField>
+              </SectionContainer>
+
+              <SectionContainer
+                title="Relaterte KOE-saker"
+                description="Velg KOE-saker som skal inkluderes i endringsordren, eller fortsett uten for proaktiv EO"
+              >
+                {kandidaterLoading ? (
+                  <div className="flex items-center gap-3 py-4 text-pkt-text-body-muted">
+                    <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span className="text-sm">Henter kandidatsaker...</span>
+                  </div>
+                ) : kandidatSaker.length === 0 ? (
+                  <p className="text-pkt-text-body-subtle text-sm py-2">
+                    Ingen KOE-saker er klare for endringsordre. Du kan fortsette med en proaktiv EO.
+                  </p>
+                ) : (
+                  <div className="max-h-64 overflow-y-auto border border-pkt-border-subtle">
+                    <table className="w-full text-sm">
+                      <thead className="bg-pkt-surface-subtle sticky top-0">
+                        <tr className="border-b border-pkt-border-subtle">
+                          <th className="w-10 py-2 px-2"></th>
+                          <th className="text-left py-2 px-2 font-medium">Sak</th>
+                          <th className="text-right py-2 px-2 font-medium w-28">Vederlag</th>
+                          <th className="text-right py-2 px-2 font-medium w-20">Dager</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {kandidatSaker.map((koe) => {
+                          const isSelected = selectedKoeIds.includes(koe.sak_id);
+                          return (
+                            <tr
+                              key={koe.sak_id}
+                              onClick={() => toggleKoeSelection(koe.sak_id)}
+                              className={`border-b border-pkt-border-subtle cursor-pointer transition-colors ${
+                                isSelected
+                                  ? 'bg-pkt-surface-light-beige'
+                                  : 'hover:bg-pkt-surface-subtle'
+                              }`}
+                            >
+                              <td className="py-2 px-2" onClick={(e) => e.stopPropagation()}>
+                                <Checkbox
+                                  checked={isSelected}
+                                  onCheckedChange={() => toggleKoeSelection(koe.sak_id)}
+                                />
+                              </td>
+                              <td className="py-2 px-2">
+                                <p className="font-medium">{koe.tittel}</p>
+                                <p className="text-xs text-pkt-text-body-subtle">
+                                  {koe.overordnet_status}
+                                </p>
+                              </td>
+                              <td className="text-right py-2 px-2 font-mono text-pkt-brand-dark-green-1000">
+                                {koe.sum_godkjent !== undefined
+                                  ? formatCurrency(koe.sum_godkjent)
+                                  : '-'}
+                              </td>
+                              <td className="text-right py-2 px-2 font-mono">
+                                {koe.godkjent_dager ?? '-'}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                      {selectedKoeIds.length > 0 && (
+                        <tfoot className="border-t-2 border-pkt-border-default bg-pkt-surface-subtle">
+                          <tr>
+                            <td className="py-2 px-2"></td>
+                            <td className="py-2 px-2 font-bold">
+                              Totalt ({selectedKoeIds.length} valgt)
+                            </td>
+                            <td className="text-right py-2 px-2 font-mono font-bold text-pkt-brand-dark-green-1000">
+                              {formatCurrency(totalFromKOE)}
+                            </td>
+                            <td className="text-right py-2 px-2 font-mono font-bold">
+                              {totalDagerFromKOE}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      )}
+                    </table>
+                  </div>
+                )}
+              </SectionContainer>
+            </>
           )}
 
           {/* ================================================================
-              STEP 4: SETTLEMENT
+              STEP 2: KONSEKVENSER OG OPPGJØR
               ================================================================ */}
-          {currentStep === 4 && (
-            <SectionContainer title="Oppgjør">
-              {/* Priskonsekvens */}
-              {formValues.konsekvenser_pris && (
-                <div className="space-y-4">
-                  <h4 className="font-medium text-sm">Vederlagsjustering</h4>
-
-                  <FormField
-                    label="Beregningsmetode"
-                    required
-                    error={!formValues.oppgjorsform ? 'Velg beregningsmetode' : undefined}
-                  >
-                    <div className="space-y-2">
-                      {OPPGJORSFORM_OPTIONS.map((opt) => (
-                        <Controller
-                          key={opt.value}
-                          name="oppgjorsform"
-                          control={control}
-                          render={({ field }) => (
-                            <button
-                              type="button"
-                              onClick={() => field.onChange(opt.value)}
-                              className={`w-full p-3 border rounded-none text-left transition-colors ${
-                                field.value === opt.value
-                                  ? 'border-pkt-brand-purple-1000 bg-pkt-surface-light-beige'
-                                  : 'border-pkt-border-default hover:border-pkt-border-focus'
-                              }`}
-                            >
-                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                                <div>
-                                  <p className="font-medium text-sm">
-                                    {opt.label}{' '}
-                                    <span className="text-pkt-text-body-subtle">({opt.paragraf})</span>
-                                  </p>
-                                  <p className="text-xs text-pkt-text-body-subtle mt-0.5">
-                                    {opt.description}
-                                  </p>
-                                </div>
-                                <IndeksreguleringsInfo indeks={opt.indeksregulering} />
-                              </div>
-                            </button>
-                          )}
-                        />
-                      ))}
-                    </div>
-                  </FormField>
-
-                  {/* Beløp */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <FormField label="Kompensasjon (tillegg)">
-                      <Controller
-                        name="kompensasjon_belop"
-                        control={control}
-                        render={({ field }) => (
-                          <CurrencyInput
-                            value={field.value}
-                            onChange={field.onChange}
-                            allowNegative={false}
-                          />
-                        )}
-                      />
-                    </FormField>
-
-                    <FormField label="Fradrag">
-                      <Controller
-                        name="fradrag_belop"
-                        control={control}
-                        render={({ field }) => (
-                          <CurrencyInput
-                            value={field.value}
-                            onChange={field.onChange}
-                            allowNegative={false}
-                          />
-                        )}
-                      />
-                    </FormField>
-                  </div>
-
-                  {/* Netto */}
-                  <div className="p-3 bg-pkt-surface-subtle border border-pkt-border-subtle rounded-none">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Netto beløp:</span>
-                      <span className={`font-bold text-base ${nettoBelop < 0 ? 'text-pkt-brand-red-1000' : ''}`}>
-                        {formatCurrency(nettoBelop)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Estimat checkbox */}
+          {currentStep === 2 && (
+            <>
+              <SectionContainer
+                title="Konsekvenser"
+                description="Kryss av for konsekvenser endringen medfører"
+              >
+                <div className="space-y-3">
                   <Controller
-                    name="er_estimat"
+                    name="konsekvenser_sha"
                     control={control}
                     render={({ field }) => (
                       <Checkbox
-                        id="er_estimat"
+                        id="konsekvenser_sha"
                         checked={field.value}
                         onCheckedChange={field.onChange}
-                        label="Beløpet er et estimat"
-                        description="Endelig beløp fastsettes ved sluttoppgjør"
+                        label="SHA-konsekvens"
+                        description="Endringen påvirker sikkerhet, helse eller arbeidsmiljø"
+                      />
+                    )}
+                  />
+
+                  <Controller
+                    name="konsekvenser_kvalitet"
+                    control={control}
+                    render={({ field }) => (
+                      <Checkbox
+                        id="konsekvenser_kvalitet"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        label="Kvalitetskonsekvens"
+                        description="Endringen påvirker kvalitet eller spesifikasjoner"
+                      />
+                    )}
+                  />
+
+                  <Controller
+                    name="konsekvenser_fremdrift"
+                    control={control}
+                    render={({ field }) => (
+                      <Checkbox
+                        id="konsekvenser_fremdrift"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        label="Fremdriftskonsekvens"
+                        description="Endringen gir rett til fristforlengelse"
+                      />
+                    )}
+                  />
+
+                  <Controller
+                    name="konsekvenser_pris"
+                    control={control}
+                    render={({ field }) => (
+                      <Checkbox
+                        id="konsekvenser_pris"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        label="Priskonsekvens"
+                        description="Endringen gir rett til vederlagsjustering"
+                      />
+                    )}
+                  />
+
+                  <Controller
+                    name="konsekvenser_annet"
+                    control={control}
+                    render={({ field }) => (
+                      <Checkbox
+                        id="konsekvenser_annet"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        label="Andre konsekvenser"
+                        description="Endringen har andre konsekvenser som bør dokumenteres"
                       />
                     )}
                   />
                 </div>
-              )}
 
-              {/* Fristforlengelse */}
-              {formValues.konsekvenser_fremdrift && (
-                <div className="space-y-4 pt-4 border-t-2 border-pkt-border-subtle">
-                  <h4 className="font-medium text-sm">Fristforlengelse</h4>
+                {harKonsekvens && (
+                  <FormField label="Utdypende beskrivelse" labelTooltip="Beskriv konsekvensene nærmere hvis relevant">
+                    <Textarea
+                      {...register('konsekvens_beskrivelse')}
+                      rows={3}
+                      fullWidth
+                    />
+                  </FormField>
+                )}
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <FormField label="Antall dager">
+                {!harKonsekvens && (
+                  <Alert variant="warning" title="Ingen konsekvenser valgt">
+                    Er du sikker på at endringen ikke har konsekvenser?
+                  </Alert>
+                )}
+              </SectionContainer>
+
+              {/* Oppgjør - kun hvis pris eller fremdrift */}
+              {(formValues.konsekvenser_pris || formValues.konsekvenser_fremdrift) && (
+                <SectionContainer
+                  title="Oppgjør"
+                  description="Spesifiser vederlag og/eller fristforlengelse"
+                >
+                  {/* Vederlagsjustering */}
+                  {formValues.konsekvenser_pris && (
+                    <div className="space-y-4">
+                      <FormField
+                        label="Beregningsmetode"
+                        required
+                        error={!formValues.oppgjorsform ? 'Velg beregningsmetode' : undefined}
+                      >
+                        <div className="space-y-2">
+                          {OPPGJORSFORM_OPTIONS.map((opt) => (
+                            <Controller
+                              key={opt.value}
+                              name="oppgjorsform"
+                              control={control}
+                              render={({ field }) => (
+                                <button
+                                  type="button"
+                                  onClick={() => field.onChange(opt.value)}
+                                  className={`w-full p-3 border rounded-none text-left transition-colors ${
+                                    field.value === opt.value
+                                      ? 'border-pkt-brand-purple-1000 bg-pkt-surface-light-beige'
+                                      : 'border-pkt-border-default hover:border-pkt-border-focus'
+                                  }`}
+                                >
+                                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                    <div>
+                                      <p className="font-medium text-sm">
+                                        {opt.label}{' '}
+                                        <span className="text-pkt-text-body-subtle">({opt.paragraf})</span>
+                                      </p>
+                                      <p className="text-xs text-pkt-text-body-subtle mt-0.5">
+                                        {opt.description}
+                                      </p>
+                                    </div>
+                                    <IndeksreguleringsInfo indeks={opt.indeksregulering} />
+                                  </div>
+                                </button>
+                              )}
+                            />
+                          ))}
+                        </div>
+                      </FormField>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <FormField label="Kompensasjon (tillegg)">
+                          <Controller
+                            name="kompensasjon_belop"
+                            control={control}
+                            render={({ field }) => (
+                              <CurrencyInput
+                                value={field.value}
+                                onChange={field.onChange}
+                                allowNegative={false}
+                              />
+                            )}
+                          />
+                        </FormField>
+
+                        <FormField label="Fradrag">
+                          <Controller
+                            name="fradrag_belop"
+                            control={control}
+                            render={({ field }) => (
+                              <CurrencyInput
+                                value={field.value}
+                                onChange={field.onChange}
+                                allowNegative={false}
+                              />
+                            )}
+                          />
+                        </FormField>
+                      </div>
+
+                      <div className="p-3 bg-pkt-surface-subtle border border-pkt-border-subtle rounded-none">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium">Netto beløp:</span>
+                          <span className={`font-bold text-base ${nettoBelop < 0 ? 'text-pkt-brand-red-1000' : ''}`}>
+                            {formatCurrency(nettoBelop)}
+                          </span>
+                        </div>
+                      </div>
+
                       <Controller
-                        name="frist_dager"
+                        name="er_estimat"
                         control={control}
                         render={({ field }) => (
-                          <Input
-                            type="number"
-                            value={field.value ?? ''}
-                            onChange={(e) =>
-                              field.onChange(e.target.value ? parseInt(e.target.value, 10) : null)
-                            }
-                            width="xs"
+                          <Checkbox
+                            id="er_estimat"
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            label="Beløpet er et estimat"
+                            description="Endelig beløp fastsettes ved sluttoppgjør"
                           />
                         )}
                       />
-                    </FormField>
+                    </div>
+                  )}
 
-                    <FormField label="Ny sluttdato">
-                      <Controller
-                        name="ny_sluttdato"
-                        control={control}
-                        render={({ field }) => (
-                          <DatePicker id="ny_sluttdato" value={field.value} onChange={field.onChange} />
-                        )}
-                      />
-                    </FormField>
-                  </div>
-                </div>
-              )}
+                  {/* Fristforlengelse */}
+                  {formValues.konsekvenser_fremdrift && (
+                    <div className={`space-y-4 ${formValues.konsekvenser_pris ? 'pt-4 border-t-2 border-pkt-border-subtle' : ''}`}>
+                      {formValues.konsekvenser_pris && (
+                        <h4 className="font-medium text-sm">Fristforlengelse</h4>
+                      )}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <FormField label="Antall dager">
+                          <Controller
+                            name="frist_dager"
+                            control={control}
+                            render={({ field }) => (
+                              <Input
+                                type="number"
+                                value={field.value ?? ''}
+                                onChange={(e) =>
+                                  field.onChange(e.target.value ? parseInt(e.target.value, 10) : null)
+                                }
+                                width="xs"
+                              />
+                            )}
+                          />
+                        </FormField>
 
-              {/* Info when no pris or fremdrift */}
-              {!formValues.konsekvenser_pris && !formValues.konsekvenser_fremdrift && (
-                <Alert variant="info" title="Ingen oppgjørsinfo nødvendig">
-                  Endringsordren har ingen pris- eller fremdriftskonsekvens.
-                </Alert>
+                        <FormField label="Ny sluttdato" labelTooltip="Valgfritt - beregnes automatisk hvis ikke angitt">
+                          <Controller
+                            name="ny_sluttdato"
+                            control={control}
+                            render={({ field }) => (
+                              <DatePicker id="ny_sluttdato" value={field.value} onChange={field.onChange} />
+                            )}
+                          />
+                        </FormField>
+                      </div>
+                    </div>
+                  )}
+                </SectionContainer>
               )}
-            </SectionContainer>
+            </>
           )}
 
           {/* ================================================================
-              STEP 5: REVIEW
+              STEP 3: BEKREFT
               ================================================================ */}
-          {currentStep === 5 && (
+          {currentStep === 3 && (
             <SectionContainer
               title="Oppsummering"
-              description="Kontroller informasjonen før du utsteder endringsordren."
+              description="Kontroller informasjonen før du utsteder endringsordren"
             >
               {/* Summary cards */}
               <div className="space-y-4">
                 {/* Basic info */}
                 <div className="p-3 bg-pkt-surface-subtle border border-pkt-border-subtle rounded-none">
-                  <h4 className="font-medium text-sm mb-2">Grunnleggende info</h4>
+                  <h4 className="font-medium text-sm mb-2">Identifikasjon</h4>
                   <dl className="space-y-1 text-sm">
                     <div className="flex justify-between">
                       <dt className="text-pkt-text-body-subtle">EO-nummer:</dt>
                       <dd className="font-medium">{formValues.eo_nummer}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-pkt-text-body-subtle">Tittel:</dt>
+                      <dd className="font-medium">{formValues.tittel}</dd>
                     </div>
                     <div>
                       <dt className="text-pkt-text-body-subtle">Beskrivelse:</dt>

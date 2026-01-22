@@ -71,6 +71,7 @@ export interface EOKontekstResponse {
 
 export interface OpprettEORequest {
   eo_nummer: string;
+  tittel: string;
   beskrivelse: string;
   koe_sak_ids?: string[];
   konsekvenser?: {
