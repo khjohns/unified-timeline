@@ -195,9 +195,6 @@ export function SendFristModal({
     ? differenceInDays(new Date(), new Date(grunnlagEvent.dato_varslet))
     : 0;
 
-  // §33.6.1: Late specification without BH etterlysning triggers reduction warning
-  const erSentUtenEtterlysning = !harMottattEtterlysning && dagerSidenGrunnlag > 21;
-
   // §33.4: Nøytralt varsel skal sendes "uten ugrunnet opphold" - typisk 7-14 dager
   // Over 7 dager: advarsel. Over 14 dager: kritisk.
   const erNoytraltVarselSent = dagerSidenGrunnlag > 7;
@@ -294,16 +291,6 @@ export function SendFristModal({
           </Alert>
         )}
 
-        {/* Varslingsfrist-advarsel - vises kun for spesifisert krav */}
-        {erSentUtenEtterlysning && selectedVarselType === 'spesifisert' && (
-          <Alert variant="warning" title="Sen innsending (§33.4/§33.6)">
-            Det er gått <strong>{dagerSidenGrunnlag} dager</strong> siden forholdet oppsto.
-            Hvis du ikke tidligere har sendt foreløpig varsel i tide, risikerer du at kravet
-            prekluderes (§33.4). Har du sendt foreløpig varsel på et tidligere tidspunkt,
-            risikerer du reduksjon til det byggherren «måtte forstå» (§33.6.1).
-          </Alert>
-        )}
-
         {/* Kravtype */}
         <SectionContainer
           title="Kravtype"
@@ -343,14 +330,14 @@ export function SendFristModal({
           >
             <div className="space-y-4">
               {/* §33.4 Preklusjonsvarsel for nøytralt varsel */}
-              {erNoytraltVarselSent && noytraltVarselSendesNa && (
+              {erNoytraltVarselSent && (
                 <Alert
                   variant={erNoytraltVarselKritisk ? 'danger' : 'warning'}
                   title={erNoytraltVarselKritisk ? 'Preklusjonsrisiko (§33.4)' : 'Sen varsling (§33.4)'}
                 >
                   Det er gått <strong>{dagerSidenGrunnlag} dager</strong> siden hendelsen.
                   {erNoytraltVarselKritisk
-                    ? ' Foreløpig varsel skal sendes «uten ugrunnet opphold». Du risikerer at kravet anses tapt.'
+                    ? ' Foreløpig varsel skal sendes «uten ugrunnet opphold». Hvis varselet ikke allerede er sendt, risikerer du at kravet anses tapt.'
                     : ' Foreløpig varsel bør sendes snarest for å bevare retten til fristforlengelse.'}
                 </Alert>
               )}
@@ -388,6 +375,19 @@ export function SendFristModal({
             title="Spesifisert krav (§33.6)"
             description="Dokumenter når og hvordan kravet ble sendt"
           >
+            {/* §33.4 Preklusjonsvarsel når spesifisert krav sendes direkte (uten tidligere nøytralt) */}
+            {erNoytraltVarselSent && (
+              <Alert
+                variant={erNoytraltVarselKritisk ? 'danger' : 'warning'}
+                title={erNoytraltVarselKritisk ? 'Preklusjonsrisiko (§33.4)' : 'Sen innsending'}
+                className="mb-4"
+              >
+                Det er gått <strong>{dagerSidenGrunnlag} dager</strong> siden hendelsen.
+                {erNoytraltVarselKritisk
+                  ? ' Hvis du ikke allerede har sendt foreløpig varsel i tide, risikerer du at kravet prekluderes (§33.4). Har du sendt foreløpig varsel tidligere, gjelder §33.6.1 (reduksjon).'
+                  : ' Husk at varslingskravene i §33.4 og §33.6.1 gjelder.'}
+              </Alert>
+            )}
             <Controller
               name="spesifisert_varsel_sendes_na"
               control={control}
