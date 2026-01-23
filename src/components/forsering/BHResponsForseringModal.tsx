@@ -21,7 +21,6 @@ import { useFormBackup } from '../../hooks/useFormBackup';
 import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
 import {
   Alert,
-  AlertDialog,
   Badge,
   Button,
   CurrencyInput,
@@ -42,7 +41,6 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery } from '@tanstack/react-query';
-import { useConfirmClose } from '../../hooks/useConfirmClose';
 import {
   bhResponsForsering,
   validerForseringsgrunnlag,
@@ -211,7 +209,6 @@ export function BHResponsForseringModal({
   const isUpdateMode = !!lastResponse;
   const [currentPort, setCurrentPort] = useState(1);
   const [showTokenExpired, setShowTokenExpired] = useState(false);
-  const [showRestorePrompt, setShowRestorePrompt] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const topRef = useRef<HTMLDivElement>(null);
   const toast = useToast();
@@ -304,38 +301,24 @@ export function BHResponsForseringModal({
     }
   }, [open, isUpdateMode, lastResponse, reset, computedDefaultValues]);
 
-  const { showConfirmDialog, setShowConfirmDialog, handleClose, confirmClose } = useConfirmClose({
-    isDirty,
-    onReset: () => {
-      reset();
-      setCurrentPort(1);
-    },
-    onClose: () => onOpenChange(false),
-  });
-
   const formData = watch();
   const { getBackup, clearBackup, hasBackup } = useFormBackup(sakId, 'bh_respons_forsering', formData, isDirty);
 
-  // Backup restoration
+  // Auto-restore backup on mount (silent restoration with toast notification)
   const hasCheckedBackup = useRef(false);
   useEffect(() => {
     if (open && hasBackup && !isDirty && !hasCheckedBackup.current) {
       hasCheckedBackup.current = true;
-      setShowRestorePrompt(true);
+      const backup = getBackup();
+      if (backup) {
+        reset(backup);
+        toast.info('Skjemadata gjenopprettet', 'Fortsetter fra forrige økt.');
+      }
     }
     if (!open) {
       hasCheckedBackup.current = false;
     }
-  }, [open, hasBackup, isDirty]);
-  const handleRestoreBackup = () => {
-    const backup = getBackup();
-    if (backup) reset(backup);
-    setShowRestorePrompt(false);
-  };
-  const handleDiscardBackup = () => {
-    clearBackup();
-    setShowRestorePrompt(false);
-  };
+  }, [open, hasBackup, isDirty, getBackup, reset, toast]);
 
   // Compute derived values
   const computed = useMemo(() => {
@@ -1456,7 +1439,7 @@ export function BHResponsForseringModal({
               )}
             </div>
             <div className="flex gap-3">
-              <Button variant="ghost" type="button" onClick={handleClose}>
+              <Button variant="ghost" type="button" onClick={() => onOpenChange(false)}>
                 Avbryt
               </Button>
               {currentPort < totalPorts ? (
@@ -1485,33 +1468,6 @@ export function BHResponsForseringModal({
           </div>
         </form>
       </Modal>
-
-      {/* Confirm close dialog */}
-      <AlertDialog
-        open={showConfirmDialog}
-        onOpenChange={setShowConfirmDialog}
-        title="Forkast endringer?"
-        description="Du har ulagrede endringer som vil gå tapt."
-        confirmLabel="Forkast"
-        cancelLabel="Fortsett redigering"
-        onConfirm={confirmClose}
-        variant="warning"
-      />
-
-      {/* Restore backup prompt */}
-      <AlertDialog
-        open={showRestorePrompt}
-        onOpenChange={(open) => {
-          if (!open) handleDiscardBackup();
-          setShowRestorePrompt(open);
-        }}
-        title="Gjenopprette lagrede data?"
-        description="Det finnes lagrede data fra en tidligere økt. Vil du gjenopprette disse?"
-        confirmLabel="Gjenopprett"
-        cancelLabel="Forkast"
-        onConfirm={handleRestoreBackup}
-        variant="info"
-      />
     </>
   );
 }

@@ -29,7 +29,6 @@ import { z } from 'zod';
 // Primitives
 import {
   Alert,
-  AlertDialog,
   Badge,
   Button,
   Checkbox,
@@ -42,10 +41,8 @@ import {
   StatusSummary,
   StepIndicator,
   Textarea,
+  useToast,
 } from '../primitives';
-
-// Hooks
-import { useConfirmClose } from '../../hooks/useConfirmClose';
 
 // API
 import {
@@ -169,7 +166,7 @@ export function UtstEndringsordreModal({
   const queryClient = useQueryClient();
   const topRef = useRef<HTMLDivElement>(null);
   const [showTokenExpired, setShowTokenExpired] = useState(false);
-  const [showRestorePrompt, setShowRestorePrompt] = useState(false);
+  const toast = useToast();
 
   // Wizard state
   const [currentStep, setCurrentStep] = useState(1);
@@ -224,32 +221,24 @@ export function UtstEndringsordreModal({
   // Watch form values for conditional rendering
   const formValues = watch();
 
-  // Confirm close hook
-  const { showConfirmDialog, setShowConfirmDialog, handleClose, confirmClose } = useConfirmClose({
-    isDirty: isDirty || selectedKoeIds.length !== preselectedKoeIds.length,
-    onReset: () => {
-      reset();
-      setSelectedKoeIds(preselectedKoeIds);
-      setCurrentStep(1);
-    },
-    onClose: () => onOpenChange(false),
-  });
-
   // Form backup (note: selectedKoeIds is managed separately and won't be backed up)
   const { getBackup, clearBackup, hasBackup } = useFormBackup(sakId, 'endringsordre_opprett', formValues, isDirty);
 
+  // Auto-restore backup on mount (silent restoration with toast notification)
   const hasCheckedBackup = useRef(false);
   useEffect(() => {
     if (open && hasBackup && !isDirty && !hasCheckedBackup.current) {
       hasCheckedBackup.current = true;
-      setShowRestorePrompt(true);
+      const backup = getBackup();
+      if (backup) {
+        reset(backup);
+        toast.info('Skjemadata gjenopprettet', 'Fortsetter fra forrige økt.');
+      }
     }
     if (!open) {
       hasCheckedBackup.current = false;
     }
-  }, [open, hasBackup, isDirty]);
-  const handleRestoreBackup = () => { const backup = getBackup(); if (backup) reset(backup); setShowRestorePrompt(false); };
-  const handleDiscardBackup = () => { clearBackup(); setShowRestorePrompt(false); };
+  }, [open, hasBackup, isDirty, getBackup, reset, toast]);
 
   // Token validation hook
   const verifyToken = useVerifyToken();
@@ -964,7 +953,7 @@ export function UtstEndringsordreModal({
               <Button
                 type="button"
                 variant="ghost"
-                onClick={handleClose}
+                onClick={() => onOpenChange(false)}
                 disabled={createEOMutation.isPending}
                 className="w-full sm:w-auto order-2 sm:order-1"
               >
@@ -997,27 +986,6 @@ export function UtstEndringsordreModal({
           </div>
         </form>
 
-        {/* Confirm close dialog */}
-        <AlertDialog
-          open={showConfirmDialog}
-          onOpenChange={setShowConfirmDialog}
-          title="Forkast endringer?"
-          description="Du har ulagrede endringer som vil gå tapt hvis du lukker skjemaet."
-          confirmLabel="Forkast"
-          cancelLabel="Fortsett redigering"
-          onConfirm={confirmClose}
-          variant="warning"
-        />
-        <AlertDialog
-          open={showRestorePrompt}
-          onOpenChange={(open) => { if (!open) handleDiscardBackup(); }}
-          title="Gjenopprette lagrede data?"
-          description="Det finnes data fra en tidligere økt som ikke ble sendt inn. Vil du fortsette der du slapp?"
-          confirmLabel="Gjenopprett"
-          cancelLabel="Start på nytt"
-          onConfirm={handleRestoreBackup}
-          variant="info"
-        />
         <TokenExpiredAlert open={showTokenExpired} onClose={() => setShowTokenExpired(false)} />
       </div>
     </Modal>
