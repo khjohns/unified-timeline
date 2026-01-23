@@ -1337,10 +1337,10 @@ export function RespondFristModal({
                   {port3ErSubsidiaer && (
                     <Alert variant="warning" title="Subsidiær beregning" className="mb-4">
                       {erPrekludert && !harHindring
-                        ? 'Du har prinsipalt avvist kravet pga. preklusjon og mener det ikke var hindring. Ta nå subsidiært stilling til hvor mange dager entreprenøren maksimalt kan ha krav på – selv om du skulle ta feil i din prinsipale vurdering.'
+                        ? 'Du har prinsipalt avvist kravet pga. preklusjon og mener det ikke var hindring. Ta nå subsidiært stilling til hvor mange dager entreprenøren maksimalt kan ha krav på.'
                         : erPrekludert
-                          ? 'Du har prinsipalt avvist kravet pga. preklusjon. Ta nå subsidiært stilling til hvor mange dager entreprenøren maksimalt kan ha krav på – selv om du skulle ta feil i din prinsipale vurdering.'
-                          : 'Du mener det ikke var reell hindring. Ta nå subsidiært stilling til hvor mange dager entreprenøren maksimalt kan ha krav på – selv om du skulle ta feil i din prinsipale vurdering.'}
+                          ? 'Du har prinsipalt avvist kravet pga. preklusjon. Ta nå subsidiært stilling til hvor mange dager entreprenøren maksimalt kan ha krav på.'
+                          : 'Du mener det ikke var reell hindring. Ta nå subsidiært stilling til hvor mange dager entreprenøren maksimalt kan ha krav på.'}
                     </Alert>
                   )}
 
