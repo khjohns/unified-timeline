@@ -21,7 +21,7 @@ export function ThemeToggle() {
   const activeIndex = options.findIndex((opt) => opt.value === theme);
 
   return (
-    <div className="relative flex items-center gap-1 p-1 bg-pkt-bg-subtle rounded-lg border border-pkt-grays-gray-200">
+    <div className="relative isolate flex items-center gap-1 p-1 bg-pkt-bg-subtle rounded-lg border border-pkt-grays-gray-200">
       {/* Animated pill background */}
       <div
         className="absolute top-1 bottom-1 rounded-md bg-pkt-bg-card shadow-sm transition-transform duration-200 ease-out"
