@@ -39,7 +39,7 @@ export function DashboardCard({
     <Card variant={variant} className={clsx('p-0 overflow-hidden transition-shadow duration-200 hover:shadow-md', className)} style={style}>
       {/* Header */}
       <div className="px-4 py-3 border-b border-pkt-border-subtle bg-pkt-surface-strong-gray flex items-center justify-between">
-        <h3 className="font-bold text-sm">{title}</h3>
+        <h3 className="font-semibold text-sm">{title}</h3>
         {headerBadge}
       </div>
 
