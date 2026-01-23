@@ -28,7 +28,7 @@ export function MockToolbar({
           {/* Label */}
           <div className="flex items-center gap-1.5 text-alert-warning-text">
             <MixerHorizontalIcon className="w-3 h-3" />
-            <span className="text-xs font-medium">Test</span>
+            <span className="text-xs font-medium">Testmodus</span>
           </div>
 
           {/* Divider */}
@@ -37,12 +37,12 @@ export function MockToolbar({
           {/* Controls */}
           <div className="flex items-center gap-3">
             <label className="flex items-center gap-2 text-xs text-alert-warning-text cursor-pointer">
+              <span>Godkjenningsflyt</span>
               <Switch
                 checked={approvalEnabled}
                 onCheckedChange={(checked) => onApprovalEnabledChange(checked === true)}
                 aria-label="Aktiver godkjenningsflyt"
               />
-              <span>Godkjenning</span>
             </label>
 
             {approvalEnabled && (
