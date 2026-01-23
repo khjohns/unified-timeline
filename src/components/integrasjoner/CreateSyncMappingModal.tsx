@@ -234,7 +234,7 @@ export function CreateSyncMappingModal({ onClose }: CreateSyncMappingModalProps)
         )}
 
         {/* Actions */}
-        <div className="flex justify-between gap-2 pt-4 border-t border-pkt-border-subtle">
+        <div className="flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-3 pt-4 border-t-2 border-pkt-border-subtle">
           <Button
             type="button"
             variant="secondary"

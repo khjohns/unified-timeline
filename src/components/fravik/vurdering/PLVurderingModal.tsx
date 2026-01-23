@@ -502,7 +502,7 @@ export function PLVurderingModal({
           )}
 
           {/* Actions */}
-          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-4 border-t border-pkt-border-subtle">
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 pt-4 border-t-2 border-pkt-border-subtle">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={isLoading}>
               Avbryt
             </Button>
@@ -558,7 +558,7 @@ export function PLVurderingModal({
           )}
 
           {/* Actions */}
-          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-4 border-t border-pkt-border-subtle">
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 pt-4 border-t-2 border-pkt-border-subtle">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={isLoading}>
               Avbryt
             </Button>

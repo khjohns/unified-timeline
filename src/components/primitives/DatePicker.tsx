@@ -229,6 +229,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
       // Base styles
       'flex items-center justify-between gap-2',
       'px-4 py-3',
+      'min-h-[40px]',
       'text-base font-normal text-left',
       'bg-pkt-bg-default',
       'transition-colors duration-200',

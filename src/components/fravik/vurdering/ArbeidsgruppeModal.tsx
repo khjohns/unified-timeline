@@ -604,7 +604,7 @@ export function ArbeidsgruppeModal({
         )}
 
         {/* Actions */}
-        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-6 border-t-2 border-pkt-border-subtle">
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 pt-6 border-t-2 border-pkt-border-subtle">
           <Button
             type="button"
             variant="ghost"

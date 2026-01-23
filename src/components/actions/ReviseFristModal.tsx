@@ -486,7 +486,7 @@ export function ReviseFristModal({
         )}
 
         {/* Actions */}
-        <div className="flex justify-end gap-4 pt-6 border-t-2 border-pkt-border-subtle">
+        <div className="flex flex-col sm:flex-row sm:justify-end gap-2 sm:gap-3 pt-6 border-t-2 border-pkt-border-subtle">
           <Button
             type="button"
             variant="ghost"

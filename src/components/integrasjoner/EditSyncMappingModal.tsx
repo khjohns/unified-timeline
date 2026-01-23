@@ -129,7 +129,7 @@ export function EditSyncMappingModal({ mapping, onClose }: EditSyncMappingModalP
         )}
 
         {/* Actions */}
-        <div className="flex justify-end gap-2 pt-4 border-t border-pkt-border-subtle">
+        <div className="flex flex-col sm:flex-row sm:justify-end gap-2 sm:gap-3 pt-4 border-t-2 border-pkt-border-subtle">
           <Button type="button" variant="secondary" onClick={onClose}>
             Avbryt
           </Button>
