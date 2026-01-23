@@ -526,69 +526,66 @@ export function UtstEndringsordreModal({
                   </p>
                 ) : (
                   <div className="max-h-64 overflow-y-auto border border-pkt-border-subtle">
-                    <table className="w-full text-sm">
-                      <thead className="bg-pkt-surface-subtle sticky top-0">
-                        <tr className="border-b border-pkt-border-subtle">
-                          <th className="w-10 py-2 px-2"></th>
-                          <th className="text-left py-2 px-2 font-medium">Sak</th>
-                          <th className="text-right py-2 px-2 font-medium w-28">Vederlag</th>
-                          <th className="text-right py-2 px-2 font-medium w-20">Dager</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {kandidatSaker.map((koe) => {
-                          const isSelected = selectedKoeIds.includes(koe.sak_id);
-                          return (
-                            <tr
-                              key={koe.sak_id}
-                              onClick={() => toggleKoeSelection(koe.sak_id)}
-                              className={`border-b border-pkt-border-subtle cursor-pointer transition-colors ${
-                                isSelected
-                                  ? 'bg-pkt-surface-light-beige'
-                                  : 'hover:bg-pkt-surface-subtle'
-                              }`}
-                            >
-                              <td className="py-2 px-2" onClick={(e) => e.stopPropagation()}>
-                                <Checkbox
-                                  checked={isSelected}
-                                  onCheckedChange={() => toggleKoeSelection(koe.sak_id)}
-                                />
-                              </td>
-                              <td className="py-2 px-2">
-                                <p className="font-medium">{koe.tittel}</p>
-                                <p className="text-xs text-pkt-text-body-subtle">
-                                  {koe.overordnet_status}
-                                </p>
-                              </td>
-                              <td className="text-right py-2 px-2 font-mono text-pkt-brand-dark-green-1000">
-                                {koe.sum_godkjent !== undefined
-                                  ? formatCurrency(koe.sum_godkjent)
-                                  : '-'}
-                              </td>
-                              <td className="text-right py-2 px-2 font-mono">
-                                {koe.godkjent_dager ?? '-'}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                      {selectedKoeIds.length > 0 && (
-                        <tfoot className="border-t-2 border-pkt-border-default bg-pkt-surface-subtle">
-                          <tr>
-                            <td className="py-2 px-2"></td>
-                            <td className="py-2 px-2 font-bold">
-                              Totalt ({selectedKoeIds.length} valgt)
-                            </td>
-                            <td className="text-right py-2 px-2 font-mono font-bold text-pkt-brand-dark-green-1000">
+                    {/* Mobilvennlig liste-layout */}
+                    <div className="divide-y divide-pkt-border-subtle">
+                      {kandidatSaker.map((koe) => {
+                        const isSelected = selectedKoeIds.includes(koe.sak_id);
+                        return (
+                          <div
+                            key={koe.sak_id}
+                            onClick={() => toggleKoeSelection(koe.sak_id)}
+                            className={`flex items-start gap-2 p-3 cursor-pointer transition-colors ${
+                              isSelected
+                                ? 'bg-pkt-surface-light-beige'
+                                : 'hover:bg-pkt-surface-subtle'
+                            }`}
+                          >
+                            <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
+                              <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={() => toggleKoeSelection(koe.sak_id)}
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">{koe.tittel}</p>
+                              <p className="text-xs text-pkt-text-body-subtle">
+                                {koe.overordnet_status}
+                              </p>
+                              <div className="flex gap-3 mt-1 text-xs">
+                                <span className="font-mono text-pkt-brand-dark-green-1000">
+                                  {koe.sum_godkjent !== undefined
+                                    ? formatCurrency(koe.sum_godkjent)
+                                    : '-'}
+                                </span>
+                                {koe.godkjent_dager !== undefined && koe.godkjent_dager > 0 && (
+                                  <span className="text-pkt-text-body-subtle">
+                                    {koe.godkjent_dager} dager
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {/* Totalsum */}
+                    {selectedKoeIds.length > 0 && (
+                      <div className="border-t-2 border-pkt-border-default bg-pkt-surface-subtle p-3">
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="font-bold">Totalt ({selectedKoeIds.length} valgt)</span>
+                          <div className="text-right">
+                            <span className="font-mono font-bold text-pkt-brand-dark-green-1000">
                               {formatCurrency(totalFromKOE)}
-                            </td>
-                            <td className="text-right py-2 px-2 font-mono font-bold">
-                              {totalDagerFromKOE}
-                            </td>
-                          </tr>
-                        </tfoot>
+                            </span>
+                            {totalDagerFromKOE > 0 && (
+                              <span className="text-pkt-text-body-subtle ml-2">
+                                / {totalDagerFromKOE} dager
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       )}
-                    </table>
+                    </div>
                   </div>
                 )}
               </SectionContainer>
