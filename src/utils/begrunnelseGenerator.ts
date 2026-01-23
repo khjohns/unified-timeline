@@ -444,6 +444,7 @@ export interface FristResponseInput {
   // Computed
   erPrekludert: boolean;  // §33.4: Varsel for sent (nøytralt ELLER spesifisert uten forutgående nøytralt)
   erRedusert_33_6_1?: boolean;  // §33.6.1: Sen spesifisering ETTER at nøytralt varsel ble sendt i tide
+  harTidligereNoytraltVarselITide?: boolean;  // For å vite om §33.6.1 er relevant ved spesifisert krav
   prinsipaltResultat: string;
   subsidiaertResultat?: string;
   visSubsidiaertResultat: boolean;
@@ -506,8 +507,16 @@ function generateFristPreklusjonSection(input: FristResponseInput): string {
     );
   }
 
-  // OK
-  return `Varslingskravene i ${getPreklusjonParagraf(input.varselType)} anses oppfylt.`;
+  // OK - Varslingskravene er oppfylt
+  // Bestem riktig paragraf basert på kontekst:
+  // - Nøytralt varsel: §33.4
+  // - Spesifisert krav med tidligere nøytralt varsel i tide: §33.4 og §33.6.1
+  // - Spesifisert krav direkte (uten tidligere nøytralt): §33.4 (varselet fungerer som §33.4-varsel)
+  if (input.varselType === 'spesifisert' && input.harTidligereNoytraltVarselITide) {
+    return 'Varslingskravene i §33.4 og §33.6.1 anses oppfylt.';
+  }
+  // For nøytralt varsel eller spesifisert krav direkte (uten tidligere nøytralt)
+  return 'Varslingskravene i §33.4 anses oppfylt.';
 }
 
 /**

@@ -525,6 +525,7 @@ export function RespondFristModal({
       // Computed
       erPrekludert: erPrekludert,
       erRedusert_33_6_1: erRedusert_33_6_1,
+      harTidligereNoytraltVarselITide: harTidligereNoytraltVarselITide,
       prinsipaltResultat: prinsipaltResultat,
       subsidiaertResultat: subsidiaertResultat,
       visSubsidiaertResultat: visSubsidiaertResultat,
@@ -541,6 +542,7 @@ export function RespondFristModal({
     godkjentDager,
     erPrekludert,
     erRedusert_33_6_1,
+    harTidligereNoytraltVarselITide,
     prinsipaltResultat,
     subsidiaertResultat,
     visSubsidiaertResultat,
