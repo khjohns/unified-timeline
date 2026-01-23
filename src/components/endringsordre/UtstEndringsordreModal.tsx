@@ -315,15 +315,25 @@ export function UtstEndringsordreModal({
       .reduce((sum, k) => sum + (k.godkjent_dager || 0), 0);
   }, [kandidatSaker, selectedKoeIds]);
 
-  // Auto-sett konsekvenser basert på KOE-valg
+  // Auto-sett konsekvenser og beløp basert på KOE-valg
   useEffect(() => {
+    // Auto-check priskonsekvens hvis det er godkjent beløp
     if (totalFromKOE > 0 && !formValues.konsekvenser_pris) {
       setValue('konsekvenser_pris', true);
     }
+    // Auto-check fremdriftskonsekvens hvis det er godkjente dager
     if (totalDagerFromKOE > 0 && !formValues.konsekvenser_fremdrift) {
       setValue('konsekvenser_fremdrift', true);
     }
-  }, [totalFromKOE, totalDagerFromKOE, formValues.konsekvenser_pris, formValues.konsekvenser_fremdrift, setValue]);
+    // Auto-fyll kompensasjon hvis tomt og vi har KOE-beløp
+    if (totalFromKOE > 0 && !formValues.kompensasjon_belop) {
+      setValue('kompensasjon_belop', totalFromKOE);
+    }
+    // Auto-fyll frist hvis tomt og vi har KOE-dager
+    if (totalDagerFromKOE > 0 && !formValues.frist_dager) {
+      setValue('frist_dager', totalDagerFromKOE);
+    }
+  }, [totalFromKOE, totalDagerFromKOE, formValues.konsekvenser_pris, formValues.konsekvenser_fremdrift, formValues.kompensasjon_belop, formValues.frist_dager, setValue]);
 
   // Auto-sett er_estimat basert på beregningsmetode
   // ENHETSPRISER: Estimat (mengder varierer, derav enhetspriser)
@@ -740,7 +750,10 @@ export function UtstEndringsordreModal({
                       </FormField>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <FormField label="Kompensasjon (tillegg)">
+                        <FormField
+                          label="Kompensasjon (tillegg)"
+                          helpText={totalFromKOE > 0 ? `Fra valgte KOE: ${formatCurrency(totalFromKOE)}` : undefined}
+                        >
                           <Controller
                             name="kompensasjon_belop"
                             control={control}
@@ -794,7 +807,10 @@ export function UtstEndringsordreModal({
                         <h4 className="font-medium text-sm">Fristforlengelse</h4>
                       )}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <FormField label="Antall dager">
+                        <FormField
+                          label="Antall dager"
+                          helpText={totalDagerFromKOE > 0 ? `Fra valgte KOE: ${totalDagerFromKOE} dager` : undefined}
+                        >
                           <Controller
                             name="frist_dager"
                             control={control}
