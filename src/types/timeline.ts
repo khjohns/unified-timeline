@@ -64,8 +64,9 @@ export type VederlagBeregningResultat =
 // ========== FRIST ENUMS ==========
 
 export type FristVarselType =
-  | 'noytralt'        // §33.4 - Nøytralt varsel (uten dager)
-  | 'spesifisert';    // §33.6 - Spesifisert krav (med dager)
+  | 'noytralt'           // §33.4 - Nøytralt varsel (uten dager)
+  | 'spesifisert'        // §33.6 - Spesifisert krav (med dager)
+  | 'begrunnelse_utsatt'; // §33.6.2 b - Begrunnelse for hvorfor beregning ikke er mulig
 
 // Frist beregning results - forenklet til tre hovedkategorier
 // Årsaken til avslag fanges av `subsidiaer_triggers`

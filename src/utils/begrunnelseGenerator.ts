@@ -39,8 +39,10 @@
  * - §33.5 (1): Beregning - "virkning på fremdriften som forholdet har forårsaket"
  * - §33.6.1: TE's spesifisering - "angi og begrunne det antall dager han krever"
  * - §33.6.2 (1): BH's forespørsel (etterlysning) - krav om spesifisert krav
- * - §33.6.2 (2): TE må svare "uten ugrunnet opphold" med dager+begrunnelse
+ * - §33.6.2 (2a): TE må svare "uten ugrunnet opphold" med dager+begrunnelse
+ * - §33.6.2 (2b): ELLER begrunne hvorfor grunnlaget for beregning ikke foreligger
  * - §33.6.2 (3): Preklusjon - "Gjør ikke totalentreprenøren noen av delene, tapes kravet"
+ * - §33.6.2 (5): Ved bokstav b gjelder §33.6.1 videre
  * - §33.7 (1): Svarplikt - "svare uten ugrunnet opphold"
  * - §33.7 (2): "Innsigelser mot kravet tapes dersom de ikke fremsettes innen fristen"
  * - §33.8 (1): Forsering - "kan velge å anse avslaget som et pålegg om forsering"
@@ -451,6 +453,7 @@ function getVarselTypeLabel(varselType?: FristVarselType): string {
   const labels: Record<FristVarselType, string> = {
     'noytralt': 'nøytralt varsel (§33.4)',
     'spesifisert': 'spesifisert krav (§33.6)',
+    'begrunnelse_utsatt': 'begrunnelse for utsettelse (§33.6.2 b)',
   };
   return labels[varselType] || varselType;
 }
@@ -637,6 +640,18 @@ export function generateFristResponseBegrunnelse(input: FristResponseInput): str
   // Skip if etterlysning - minimal response
   if (input.sendEtterlysning) {
     return generateFristPreklusjonSection(input);
+  }
+
+  // §33.6.2 bokstav b - TE har begrunnet hvorfor beregning ikke er mulig
+  // BH bekrefter mottak, vanlige §33.6.1-regler gjelder videre
+  if (input.varselType === 'begrunnelse_utsatt') {
+    return (
+      'Byggherren bekrefter mottak av begrunnelse for hvorfor grunnlaget for å beregne ' +
+      'fristforlengelseskravet ikke foreligger (§33.6.2 annet ledd bokstav b).\n\n' +
+      'I henhold til §33.6.2 femte ledd gjelder bestemmelsen i §33.6.1 videre. ' +
+      'Entreprenøren må fremsette spesifisert krav med antall dager «uten ugrunnet opphold» ' +
+      'når grunnlaget for å beregne kravet foreligger.'
+    );
   }
 
   // 1. Preklusjon section
