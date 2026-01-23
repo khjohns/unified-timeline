@@ -389,18 +389,43 @@ export function RespondFristModal({
   const erGrunnlagSubsidiaer = grunnlagStatus === 'avslatt';
 
   // §33.7: Calculate BH response time for preclusion warning
+  // BH skal svare "uten ugrunnet opphold" - varsler etter 5 dager for å gi margin
   const dagerSidenKrav = fristEvent?.dato_krav_mottatt
     ? differenceInDays(new Date(), new Date(fristEvent.dato_krav_mottatt))
     : 0;
-  const bhPreklusjonsrisiko = dagerSidenKrav > 10;
+  const bhPreklusjonsrisiko = dagerSidenKrav > 5;
 
   // Calculate preclusion status from Port 1
+  // §33.4: Nøytralt varsel for sent = FULL PREKLUSJON (kravet tapes)
+  // §33.6.1: Spesifisert krav for sent = REDUKSJON (kun det byggherren måtte forstå)
   const erPrekludert = useMemo(() => {
+    // Kun §33.4 gir full preklusjon
     if (varselType === 'noytralt') {
       return formValues.noytralt_varsel_ok === false;
     }
-    return formValues.spesifisert_krav_ok === false;
-  }, [formValues.noytralt_varsel_ok, formValues.spesifisert_krav_ok, varselType]);
+    // §33.6.1 gir IKKE preklusjon, kun reduksjon - håndteres separat
+    return false;
+  }, [formValues.noytralt_varsel_ok, varselType]);
+
+  // §33.6.2 fjerde ledd: Hvis kravet er svar på etterlysning, kan byggherren
+  // IKKE påberope at fristen i §33.6.1 er oversittet
+  const erSvarPaEtterlysning = useMemo(() => {
+    return fristTilstand?.har_bh_etterlyst === true && varselType === 'spesifisert';
+  }, [fristTilstand?.har_bh_etterlyst, varselType]);
+
+  // §33.6.1: Sen spesifisering gir reduksjon (ikke preklusjon)
+  // Entreprenøren har kun krav på det byggherren "måtte forstå"
+  // UNNTAK: Gjelder IKKE når kravet er svar på etterlysning (§33.6.2 fjerde ledd)
+  const erRedusert_33_6_1 = useMemo(() => {
+    // §33.6.2 fjerde ledd: Byggherren kan ikke påberope §33.6.1 ved svar på etterlysning
+    if (erSvarPaEtterlysning) {
+      return false;
+    }
+    if (varselType === 'spesifisert' || !varselType) {
+      return formValues.spesifisert_krav_ok === false;
+    }
+    return false;
+  }, [formValues.spesifisert_krav_ok, varselType, erSvarPaEtterlysning]);
 
   // Reset send_etterlysning when noytralt_varsel_ok changes to false
   // (etterlysning is only valid when varsel was on time)
@@ -653,14 +678,10 @@ export function RespondFristModal({
     // Beregn subsidiære triggere basert på Port 1 og Port 2 beslutninger
     const triggers: SubsidiaerTrigger[] = [];
 
-    // Port 1: Preklusjon-triggere
+    // Port 1: Preklusjon-trigger (kun §33.4 - nøytralt varsel for sent)
+    // Merk: §33.6.1 (spesifisert for sent) er REDUKSJON, ikke preklusjon
     if (erPrekludert) {
-      if (varselType === 'noytralt') {
-        triggers.push('preklusjon_noytralt');
-      } else {
-        // spesifisert
-        triggers.push('preklusjon_spesifisert');
-      }
+      triggers.push('preklusjon_noytralt');
     }
 
     // Port 2: Ingen hindring trigger
@@ -1010,30 +1031,49 @@ export function RespondFristModal({
               {/* Spesifisert krav */}
               {varselType === 'spesifisert' && (
                 <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
-                  <FormField
-                    label="Spesifisert krav sendt i tide? (§33.6)"
-                    required
-                    helpText="Entreprenøren skal 'uten ugrunnet opphold' angi og begrunne antall dager når han har grunnlag."
-                  >
-                    <Controller
-                      name="spesifisert_krav_ok"
-                      control={control}
-                      render={({ field }) => (
-                        <RadioGroup
-                          value={
-                            field.value === undefined ? undefined : field.value ? 'ja' : 'nei'
-                          }
-                          onValueChange={(val: string) => field.onChange(val === 'ja')}
-                        >
-                          <RadioItem value="ja" label="Ja - kravet kom i tide" />
-                          <RadioItem
-                            value="nei"
-                            label="Nei - prekludert (kravet kom for sent)"
-                          />
-                        </RadioGroup>
+                  {/* §33.6.2 fjerde ledd: Svar på etterlysning - kan ikke påberope §33.6.1 */}
+                  {erSvarPaEtterlysning ? (
+                    <Alert variant="success" title="Svar på etterlysning (§33.6.2)">
+                      Dette kravet er et svar på byggherrens etterlysning. I henhold til §33.6.2
+                      fjerde ledd kan du ikke påberope at fristen i §33.6.1 er oversittet.
+                      Kravet behandles som om det var sendt i tide.
+                    </Alert>
+                  ) : (
+                    <>
+                      <FormField
+                        label="Spesifisert krav sendt i tide? (§33.6.1)"
+                        required
+                        helpText="Entreprenøren skal 'uten ugrunnet opphold' angi og begrunne antall dager når han har grunnlag."
+                      >
+                        <Controller
+                          name="spesifisert_krav_ok"
+                          control={control}
+                          render={({ field }) => (
+                            <RadioGroup
+                              value={
+                                field.value === undefined ? undefined : field.value ? 'ja' : 'nei'
+                              }
+                              onValueChange={(val: string) => field.onChange(val === 'ja')}
+                            >
+                              <RadioItem value="ja" label="Ja - kravet kom i tide" />
+                              <RadioItem
+                                value="nei"
+                                label="Nei - for sent (reduseres til det byggherren måtte forstå)"
+                              />
+                            </RadioGroup>
+                          )}
+                        />
+                      </FormField>
+                      {/* Info om §33.6.1 reduksjon */}
+                      {erRedusert_33_6_1 && (
+                        <Alert variant="info" title="Reduksjon etter §33.6.1" className="mt-3">
+                          Entreprenøren har kun krav på den fristforlengelsen byggherren måtte forstå
+                          at han hadde krav på. I beregningssteget angir du hvor mange dager du mener
+                          var forståelig ut fra omstendighetene.
+                        </Alert>
                       )}
-                    />
-                  </FormField>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -1041,7 +1081,7 @@ export function RespondFristModal({
               {!varselType && (
                 <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
                   <FormField
-                    label="Varsel/krav sendt i tide?"
+                    label="Varsel/krav sendt i tide? (§33.6.1)"
                     required
                     helpText="Vurder om entreprenøren har varslet innen fristen."
                   >
@@ -1058,12 +1098,20 @@ export function RespondFristModal({
                           <RadioItem value="ja" label="Ja - varslet i tide" />
                           <RadioItem
                             value="nei"
-                            label="Nei - prekludert (varslet for sent)"
+                            label="Nei - for sent (reduseres til det byggherren måtte forstå)"
                           />
                         </RadioGroup>
                       )}
                     />
                   </FormField>
+                  {/* Info om §33.6.1 reduksjon */}
+                  {erRedusert_33_6_1 && (
+                    <Alert variant="info" title="Reduksjon etter §33.6.1" className="mt-3">
+                      Entreprenøren har kun krav på den fristforlengelsen byggherren måtte forstå
+                      at han hadde krav på. I beregningssteget angir du hvor mange dager du mener
+                      var forståelig ut fra omstendighetene.
+                    </Alert>
+                  )}
                 </div>
               )}
 
@@ -1269,8 +1317,8 @@ export function RespondFristModal({
             <SectionContainer title="Oppsummering">
               {/* Sammendrag av valg */}
               <div className="space-y-4">
-                {/* Preklusjon */}
-                <StatusSummary title="Preklusjon">
+                {/* Varslingsvurdering (§33.4 / §33.6.1 / §33.6.2) */}
+                <StatusSummary title="Varsling">
                   {sendEtterlysning ? (
                     <>
                       <Badge variant="warning">Etterlysning sendt</Badge>
@@ -1278,8 +1326,18 @@ export function RespondFristModal({
                     </>
                   ) : erPrekludert ? (
                     <>
-                      <Badge variant="danger">Prinsipalt prekludert</Badge>
-                      <span className="text-sm">Varslet for sent</span>
+                      <Badge variant="danger">Prekludert (§33.4)</Badge>
+                      <span className="text-sm">Foreløpig varsel kom for sent - kravet tapes</span>
+                    </>
+                  ) : erRedusert_33_6_1 ? (
+                    <>
+                      <Badge variant="warning">Redusert (§33.6.1)</Badge>
+                      <span className="text-sm">Spesifisert krav kom for sent - reduseres til det byggherren måtte forstå</span>
+                    </>
+                  ) : erSvarPaEtterlysning ? (
+                    <>
+                      <Badge variant="success">OK (§33.6.2)</Badge>
+                      <span className="text-sm">Svar på etterlysning - kan ikke påberope §33.6.1</span>
                     </>
                   ) : (
                     <>

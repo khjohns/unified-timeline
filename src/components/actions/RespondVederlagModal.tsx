@@ -469,10 +469,11 @@ export function RespondVederlagModal({
   const produktivitetBelop = vederlagEvent?.saerskilt_krav?.produktivitet?.belop;
 
   // Calculate BH response time for warning
+  // BH skal svare "uten ugrunnet opphold" - varsler etter 5 dager for å gi margin
   const dagerSidenKrav = vederlagEvent?.dato_krav_mottatt
     ? differenceInDays(new Date(), new Date(vederlagEvent.dato_krav_mottatt))
     : 0;
-  const bhSvarpliktAdvarsel = dagerSidenKrav > 7;
+  const bhSvarpliktAdvarsel = dagerSidenKrav > 5;
 
   // Check if hovedkrav is precluded (§34.1.2 - kun SVIKT/ANDRE)
   const hovedkravPrekludert = har34_1_2_Preklusjon && formValues.hovedkrav_varslet_i_tide === false;
