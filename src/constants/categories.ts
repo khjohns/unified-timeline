@@ -59,7 +59,7 @@ export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
         label: 'Formell endringsordre',
         hjemmel_basis: '31.3',
         beskrivelse: 'Skriftlig endringsordre utstedt av byggherren iht. §31.3.',
-        varselkrav_ref: '33.4 / 34.2',
+        varselkrav_ref: '33.4 / 34.1.1',
         gruppe: 'Endringsordrer',
       },
       {
@@ -67,7 +67,7 @@ export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
         label: 'Irregulær endring (Pålegg)',
         hjemmel_basis: '32.1',
         beskrivelse: 'Pålegg/anvisning som entreprenøren mener er endring, men som ikke er gitt som endringsordre.',
-        varselkrav_ref: '32.2',
+        varselkrav_ref: '32.2 / 33.4 / 34.1.1',
         gruppe: 'Endringsordrer',
       },
       {
@@ -75,7 +75,7 @@ export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
         label: 'Endring via svar på varsel',
         hjemmel_basis: '25.3',
         beskrivelse: 'Byggherrens svar på varsel etter §25 innebærer tiltak som utgjør en endring.',
-        varselkrav_ref: '32.2',
+        varselkrav_ref: '32.2 / 33.4 / 34.1.1',
         gruppe: 'Endringsordrer',
       },
       {
@@ -83,7 +83,7 @@ export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
         label: 'Endring i lover/vedtak (Gjenstand)',
         hjemmel_basis: '14.4',
         beskrivelse: 'Nye offentlige krav som krever fysisk endring av kontraktsgjenstanden.',
-        varselkrav_ref: '32.2',
+        varselkrav_ref: '32.2 / 33.4 / 34.1.1',
         gruppe: 'Lov og forskrift',
       },
       {
@@ -91,7 +91,7 @@ export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
         label: 'Endring i lover/vedtak (Prosess)',
         hjemmel_basis: '15.2',
         beskrivelse: 'Nye offentlige krav som endrer måten arbeidet må utføres på.',
-        varselkrav_ref: '32.2',
+        varselkrav_ref: '32.2 / 33.4 / 34.1.1',
         gruppe: 'Lov og forskrift',
       },
       {
@@ -99,7 +99,7 @@ export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
         label: 'Endring i gebyrer/avgifter',
         hjemmel_basis: '26.3',
         beskrivelse: 'Endringer i offentlige gebyrer/avgifter etter tilbudstidspunktet.',
-        varselkrav_ref: '32.2',
+        varselkrav_ref: '32.2 / 33.4 / 34.1.1',
         gruppe: 'Lov og forskrift',
       },
       {
@@ -107,7 +107,7 @@ export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
         label: 'Samordning/Omlegging',
         hjemmel_basis: '21.4',
         beskrivelse: 'Pålagt omlegging som følge av samordning utover det påregnelige.',
-        varselkrav_ref: '32.2',
+        varselkrav_ref: '32.2 / 33.4 / 34.1.1',
         gruppe: 'Koordinering',
       },
     ],
@@ -126,7 +126,7 @@ export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
         label: 'Manglende medvirkning/leveranser',
         hjemmel_basis: '22',
         beskrivelse: 'Forsinkede tegninger, beslutninger, fysisk arbeidsgrunnlag (§22.3) eller materialer (§22.4).',
-        varselkrav_ref: '34.1.2 / 25.1.2',
+        varselkrav_ref: '25.1.2 / 33.4 / 34.1.2',
         gruppe: 'Medvirkning',
       },
       {
@@ -134,7 +134,7 @@ export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
         label: 'Manglende tilkomst/råderett',
         hjemmel_basis: '22.2',
         beskrivelse: 'Byggherren har ikke nødvendig råderett over eiendommen.',
-        varselkrav_ref: '34.1.2',
+        varselkrav_ref: '25.1.2 / 33.4 / 34.1.2',
         gruppe: 'Medvirkning',
       },
       {
@@ -142,7 +142,7 @@ export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
         label: 'Uforutsette grunnforhold',
         hjemmel_basis: '23.1',
         beskrivelse: 'Forhold ved grunnen som avviker fra det entreprenøren hadde grunn til å regne med.',
-        varselkrav_ref: '34.1.2 / 25.1.2',
+        varselkrav_ref: '25.1.2 / 33.4 / 34.1.2',
         gruppe: 'Grunnforhold',
       },
       {
@@ -150,7 +150,7 @@ export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
         label: 'Funn av kulturminner',
         hjemmel_basis: '23.3',
         beskrivelse: 'Stans i arbeidet som følge av funn av ukjente kulturminner.',
-        varselkrav_ref: '34.1.2 / 23.3 annet ledd',
+        varselkrav_ref: '23.3 annet ledd / 33.4 / 34.1.2',
         gruppe: 'Grunnforhold',
       },
       {
@@ -158,7 +158,7 @@ export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
         label: 'Svikt i byggherrens prosjektering',
         hjemmel_basis: '24.1',
         beskrivelse: 'Feil, mangler eller uklarheter i prosjektering/løsninger byggherren har risikoen for.',
-        varselkrav_ref: '34.1.2 / 25.1.2',
+        varselkrav_ref: '25.1.2 / 33.4 / 34.1.2',
         gruppe: 'Prosjektering',
       },
       {
@@ -166,7 +166,7 @@ export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
         label: 'Byggherren fastholder løsning etter varsel',
         hjemmel_basis: '24.2.2 tredje ledd',
         beskrivelse: 'Byggherren fastholder sin prosjektering etter varsel fra entreprenøren, og løsningen viser seg uegnet.',
-        varselkrav_ref: '34.1.2',
+        varselkrav_ref: '33.4 / 34.1.2',
         gruppe: 'Prosjektering',
       },
     ],
@@ -179,13 +179,18 @@ export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
     hjemmel_vederlag: '34.1.2',
     standard_vederlagsmetode: 'Regningsarbeid (34.4)',
     type_krav: 'Tid og Penger',
+    // TOLKNING: §25.1.1 sier "byggherrens ytelser og andre forhold byggherren har risikoen for",
+    // så §25.1.2 gjelder som grunnlagsvarsel også for ANDRE-kategorien. Dette kan virke
+    // overflødig for underkategorier der BH har gjort en aktiv handling han selv vet om
+    // (nektelse, brukstakelse, pålagt stans), men vi inkluderer det for konsistens og
+    // for å sikre at TE alltid har dokumentert varsling.
     underkategorier: [
       {
         kode: 'NEKT_MH',
         label: 'Nektelse av kontraktsmedhjelper',
         hjemmel_basis: '10.2',
         beskrivelse: 'Byggherren nekter å godta valgt medhjelper uten saklig grunn.',
-        varselkrav_ref: '34.1.2',
+        varselkrav_ref: '25.1.2 / 33.4 / 34.1.2',
         gruppe: 'Kontraktsmedhjelpere',
       },
       {
@@ -193,7 +198,7 @@ export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
         label: 'Tvungen tiltransport',
         hjemmel_basis: '12.1.2',
         beskrivelse: 'Byggherren gjennomfører tiltransport til tross for entreprenørens saklige innvendinger etter §12.1.2.',
-        varselkrav_ref: '34.1.2 / 12.1.2 annet ledd',
+        varselkrav_ref: '12.1.2 annet ledd / 25.1.2 / 33.4 / 34.1.2',
         gruppe: 'Kontraktsmedhjelpere',
       },
       {
@@ -201,7 +206,8 @@ export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
         label: 'Skade forårsaket av byggherren/sideentreprenør',
         hjemmel_basis: '19.1',
         beskrivelse: 'Skade på kontraktsgjenstanden forårsaket av byggherren eller hans kontraktsmedhjelpere.',
-        varselkrav_ref: '34.1.2 / 20.5',
+        // §20.5 gjelder TEs egne kontraktsstridige utførelser, ikke skade forårsaket av BH
+        varselkrav_ref: '25.1.2 / 33.4 / 34.1.2',
         gruppe: 'Kontraktsbrudd',
       },
       {
@@ -209,7 +215,7 @@ export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
         label: 'Urettmessig brukstakelse',
         hjemmel_basis: '38.1 annet ledd',
         beskrivelse: 'Byggherren tar kontraktsgjenstanden i bruk før overtakelse/avtalt tid.',
-        varselkrav_ref: '34.1.2 / 33.4',
+        varselkrav_ref: '25.1.2 / 33.4 / 34.1.2',
         gruppe: 'Kontraktsbrudd',
       },
       {
@@ -217,7 +223,8 @@ export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
         label: 'Stans ved betalingsmislighold',
         hjemmel_basis: '29.2',
         beskrivelse: 'Konsekvenser av rettmessig stans grunnet manglende betaling/sikkerhet.',
-        varselkrav_ref: '34.1.2 / 29.2',
+        // §29.2 krever 24 timers skriftlig varsel før stans
+        varselkrav_ref: '29.2 / 25.1.2 / 33.4 / 34.1.2',
         gruppe: 'Stans',
       },
       {
@@ -225,7 +232,7 @@ export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
         label: 'Pålagt stans/utsettelse',
         hjemmel_basis: '35.1',
         beskrivelse: 'Byggherren pålegger utsettelse av arbeidet ved uenighet om endring.',
-        varselkrav_ref: '34.1.2',
+        varselkrav_ref: '25.1.2 / 33.4 / 34.1.2',
         gruppe: 'Stans',
       },
     ],
@@ -338,9 +345,23 @@ export function getGrupperteUnderkategorier(
   return grupper;
 }
 
-// Check if underkategori is a law change (requires special handling for §14.4)
+// Check if underkategori is a law change (requires special handling)
 export function erLovendring(underkategoriKode: string): boolean {
   return ['LOV_GJENSTAND', 'LOV_PROSESS', 'GEBYR'].includes(underkategoriKode);
+}
+
+// Get the correct paragraph reference for law change underkategorier
+export function getLovendringParagraf(underkategoriKode: string): string | null {
+  switch (underkategoriKode) {
+    case 'LOV_GJENSTAND':
+      return '14.4';
+    case 'LOV_PROSESS':
+      return '15.2';
+    case 'GEBYR':
+      return '26.3';
+    default:
+      return null;
+  }
 }
 
 // Check if hovedkategori is Force Majeure (no compensation, only time)

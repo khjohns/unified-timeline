@@ -53,13 +53,63 @@ export function erPreklusjonKritisk(dager: number, regelType?: string): boolean 
 }
 
 /**
+ * Get category-specific preclusion consequence text
+ *
+ * Preklusjonskonsekvensene er forskjellige per hovedkategori:
+ * - ENDRING (§32.2): Taper retten til å påberope at forholdet innebærer en endring
+ * - SVIKT/ANDRE (§25.1.2): BH kan kreve erstatning for tap som kunne vært unngått
+ * - FORCE_MAJEURE: Kun fristforlengelse, standard preklusjonsregel (§33.4)
+ */
+function getPreklusjonskonsekvens(hovedkategori?: string): {
+  kritiskTittel: string;
+  kritiskMelding: string;
+  varselTittel: string;
+  varselMelding: string;
+} {
+  switch (hovedkategori) {
+    case 'ENDRING':
+      return {
+        kritiskTittel: 'Preklusjonsfare (§32.2)',
+        kritiskMelding: 'Du risikerer å tape retten til å påberope at forholdet innebærer en endring. Sørg for å begrunne tidsbruken godt.',
+        varselTittel: 'Husk varslingsfrist (§32.2)',
+        varselMelding: 'Varsel skal sendes raskest mulig for å unngå diskusjon om frister.',
+      };
+    case 'SVIKT':
+    case 'ANDRE':
+      return {
+        kritiskTittel: 'Preklusjonsfare (§25.1.2)',
+        kritiskMelding: 'Ved sen varsling kan byggherren kreve erstatning for tap som kunne vært unngått ved rettidig varsel. Dokumenter årsaken til tidsbruken.',
+        varselTittel: 'Husk varslingsfrist (§25.1.2)',
+        varselMelding: 'Varsle snarest for å unngå erstatningsansvar for tap byggherren kunne unngått.',
+      };
+    case 'FORCE_MAJEURE':
+      return {
+        kritiskTittel: 'Preklusjonsfare (§33.4)',
+        kritiskMelding: 'Kravet på fristforlengelse kan være tapt. Dokumenter godt hvorfor varsling tok tid.',
+        varselTittel: 'Husk varslingsfrist (§33.4)',
+        varselMelding: 'Varsle snarest for å sikre retten til fristforlengelse.',
+      };
+    default:
+      // Fallback for ukjent kategori
+      return {
+        kritiskTittel: 'Preklusjonsfare!',
+        kritiskMelding: 'NS 8407 krever varsling "uten ugrunnet opphold". Ved å sende dette nå, risikerer du at kravet er svekket. Sørg for å begrunne tidsbruken godt.',
+        varselTittel: 'Husk varslingsfrist',
+        varselMelding: 'Varsel skal sendes raskest mulig for å sikre bevis og unngå diskusjon om frister.',
+      };
+  }
+}
+
+/**
  * Get preclusion warning/alert based on days since discovery
  */
 export function getPreklusjonsvarsel(
   dager: number,
-  regelType?: string
+  regelType?: string,
+  hovedkategori?: string
 ): PreklusjonsResultat {
   const kritisk = erPreklusjonKritisk(dager, regelType);
+  const konsekvens = getPreklusjonskonsekvens(hovedkategori);
 
   if (kritisk) {
     return {
@@ -67,8 +117,8 @@ export function getPreklusjonsvarsel(
       dagerSiden: dager,
       alert: {
         variant: 'danger',
-        title: 'Preklusjonsfare!',
-        message: `Det er gått ${dager} dager siden forholdet ble oppdaget. NS 8407 krever varsling "uten ugrunnet opphold". Ved å sende dette nå, risikerer du at kravet allerede er tapt. Sørg for å begrunne tidsbruken godt.`,
+        title: konsekvens.kritiskTittel,
+        message: `Det er gått ${dager} dager siden forholdet ble oppdaget. ${konsekvens.kritiskMelding}`,
       },
     };
   }
@@ -79,8 +129,8 @@ export function getPreklusjonsvarsel(
       dagerSiden: dager,
       alert: {
         variant: 'warning',
-        title: 'Husk varslingsfrist',
-        message: `Det er gått ${dager} dager siden oppdagelse. Varsel skal sendes raskest mulig for å sikre bevis og unngå diskusjon om frister.`,
+        title: konsekvens.varselTittel,
+        message: `Det er gått ${dager} dager siden oppdagelse. ${konsekvens.varselMelding}`,
       },
     };
   }
@@ -240,7 +290,8 @@ export function erOverslagsokningVarselpliktig(
 export function getPreklusjonsvarselMellomDatoer(
   datoOppdaget: string | Date,
   datoVarselSendt: string | Date,
-  regelType?: string
+  regelType?: string,
+  hovedkategori?: string
 ): PreklusjonsResultat {
   const parsedOppdaget = typeof datoOppdaget === 'string' ? parseISO(datoOppdaget) : datoOppdaget;
   const parsedVarsel = typeof datoVarselSendt === 'string' ? parseISO(datoVarselSendt) : datoVarselSendt;
@@ -260,6 +311,7 @@ export function getPreklusjonsvarselMellomDatoer(
   }
 
   const kritisk = erPreklusjonKritisk(dager, regelType);
+  const konsekvens = getPreklusjonskonsekvens(hovedkategori);
 
   if (kritisk) {
     return {
@@ -267,8 +319,8 @@ export function getPreklusjonsvarselMellomDatoer(
       dagerSiden: dager,
       alert: {
         variant: 'danger',
-        title: 'Preklusjonsrisiko ved varsling',
-        message: `Det gikk ${dager} dager fra oppdagelse til varsling. NS 8407 krever varsling "uten ugrunnet opphold". Dokumenter godt hvorfor det tok tid.`,
+        title: konsekvens.kritiskTittel,
+        message: `Det gikk ${dager} dager fra oppdagelse til varsling. ${konsekvens.kritiskMelding}`,
       },
     };
   }
@@ -279,8 +331,8 @@ export function getPreklusjonsvarselMellomDatoer(
       dagerSiden: dager,
       alert: {
         variant: 'warning',
-        title: 'Varselfrist',
-        message: `Det gikk ${dager} dager fra oppdagelse til varsling. Sørg for å dokumentere årsaken til tidsbruken.`,
+        title: konsekvens.varselTittel,
+        message: `Det gikk ${dager} dager fra oppdagelse til varsling. Dokumenter årsaken til tidsbruken.`,
       },
     };
   }

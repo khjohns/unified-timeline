@@ -45,6 +45,7 @@ import {
   getHovedkategoriLabel,
   getUnderkategoriObj,
   erLovendring,
+  getLovendringParagraf,
   getGrupperteUnderkategorier,
 } from '../../constants';
 import { getPreklusjonsvarsel, getPreklusjonsvarselMellomDatoer, beregnDagerSiden } from '../../utils/preklusjonssjekk';
@@ -218,22 +219,28 @@ export function SendGrunnlagModal({
       .filter((obj): obj is NonNullable<typeof obj> => obj !== undefined);
   }, [selectedUnderkategorier]);
 
-  // Check if any selected underkategori is a law change (§14.4)
-  const harLovendring = useMemo(() => {
-    return selectedUnderkategorier?.some((kode) => erLovendring(kode)) ?? false;
+  // Check if any selected underkategori is a law change and get relevant paragraphs
+  const lovendringParagrafer = useMemo(() => {
+    if (!selectedUnderkategorier?.length) return [];
+    return selectedUnderkategorier
+      .filter((kode) => erLovendring(kode))
+      .map((kode) => getLovendringParagraf(kode))
+      .filter((p): p is string => p !== null);
   }, [selectedUnderkategorier]);
+
+  const harLovendring = lovendringParagrafer.length > 0;
 
   // Calculate preclusion risk for current moment (when sending now)
   const preklusjonsResultat = useMemo(() => {
     if (!datoOppdaget) return null;
-    return getPreklusjonsvarsel(beregnDagerSiden(datoOppdaget));
-  }, [datoOppdaget]);
+    return getPreklusjonsvarsel(beregnDagerSiden(datoOppdaget), undefined, selectedHovedkategori);
+  }, [datoOppdaget, selectedHovedkategori]);
 
   // Calculate preclusion risk between discovery and earlier notification date
   const preklusjonsResultatVarsel = useMemo(() => {
     if (!datoOppdaget || !datoVarselSendt || varselSendesNa) return null;
-    return getPreklusjonsvarselMellomDatoer(datoOppdaget, datoVarselSendt);
-  }, [datoOppdaget, datoVarselSendt, varselSendesNa]);
+    return getPreklusjonsvarselMellomDatoer(datoOppdaget, datoVarselSendt, undefined, selectedHovedkategori);
+  }, [datoOppdaget, datoVarselSendt, varselSendesNa, selectedHovedkategori]);
 
   // Track pending toast for dismissal
   const pendingToastId = useRef<string | null>(null);
@@ -373,8 +380,8 @@ export function SendGrunnlagModal({
   // Check preclusion risk for date change (update mode)
   const preklusjonsRisikoVedEndring = useMemo(() => {
     if (!dagerMellomOppdagetOgVarsel || dagerMellomOppdagetOgVarsel <= 0) return null;
-    return getPreklusjonsvarsel(dagerMellomOppdagetOgVarsel);
-  }, [dagerMellomOppdagetOgVarsel]);
+    return getPreklusjonsvarsel(dagerMellomOppdagetOgVarsel, undefined, selectedHovedkategori);
+  }, [dagerMellomOppdagetOgVarsel, selectedHovedkategori]);
 
   // Check if category is changing (update mode)
   const kategoriEndres = useMemo(() => {
@@ -568,9 +575,9 @@ export function SendGrunnlagModal({
               />
             </FormField>
 
-            {/* Law change check (§14.4) */}
+            {/* Law change check - dynamic paragraph based on selected underkategori */}
             {harLovendring && (
-              <Alert variant="warning" title="Lovendring (§14.4)">
+              <Alert variant="warning" title={`Lov-/forskriftsendring (§${lovendringParagrafer.join(' / §')})`}>
                 <Controller
                   name="er_etter_tilbud"
                   control={control}
@@ -585,7 +592,7 @@ export function SendGrunnlagModal({
                 />
                 {!erEtterTilbud && (
                   <p className="text-xs text-pkt-text-danger mt-2">
-                    Hvis lovendringen var kjent ved tilbudsfrist, ligger risikoen normalt hos deg.
+                    Hvis endringen var kjent ved tilbudsfrist, ligger risikoen normalt hos deg.
                   </p>
                 )}
               </Alert>
