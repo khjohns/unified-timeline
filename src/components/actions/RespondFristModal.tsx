@@ -1033,10 +1033,16 @@ export function RespondFristModal({
                 <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
                   {/* §33.6.2 fjerde ledd: Svar på etterlysning - kan ikke påberope §33.6.1 */}
                   {erSvarPaEtterlysning ? (
-                    <Alert variant="success" title="Svar på etterlysning (§33.6.2)">
-                      Dette kravet er et svar på byggherrens etterlysning. I henhold til §33.6.2
-                      fjerde ledd kan du ikke påberope at fristen i §33.6.1 er oversittet.
-                      Kravet behandles som om det var sendt i tide.
+                    <Alert variant="info" title="Svar på etterlysning (§33.6.2)">
+                      <p>
+                        Dette kravet er et svar på byggherrens etterlysning. I henhold til §33.6.2
+                        fjerde ledd kan du ikke påberope at <strong>fristen i §33.6.1</strong> er oversittet.
+                      </p>
+                      <p className="mt-2 text-sm text-pkt-text-subtle">
+                        <strong>Merk:</strong> Entreprenøren hadde likevel plikt til å svare «uten ugrunnet
+                        opphold» på etterlysningen (§33.6.2 annet ledd). Hvis svaret kom vesentlig for
+                        sent og du vil påberope dette, må du gjøre det skriftlig uten ugrunnet opphold (§5).
+                      </p>
                     </Alert>
                   ) : (
                     <>
@@ -1336,8 +1342,8 @@ export function RespondFristModal({
                     </>
                   ) : erSvarPaEtterlysning ? (
                     <>
-                      <Badge variant="success">OK (§33.6.2)</Badge>
-                      <span className="text-sm">Svar på etterlysning - kan ikke påberope §33.6.1</span>
+                      <Badge variant="info">Svar på etterlysning</Badge>
+                      <span className="text-sm">§33.6.1-frist kan ikke påberopes (§33.6.2)</span>
                     </>
                   ) : (
                     <>
