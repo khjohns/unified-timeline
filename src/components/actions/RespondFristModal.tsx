@@ -277,6 +277,10 @@ export function RespondFristModal({
   // In this case, BH should typically send etterlysning to request specification
   const erNoytraltUtenDager = varselType === 'noytralt' && effektivKrevdDager === 0;
 
+  // §33.6.2 bokstav b: TE har begrunnet hvorfor beregning ikke er mulig
+  // I dette tilfellet gjelder §33.6.1 videre - BH kan bare bekrefte mottak
+  const erBegrunnelseUtsatt = varselType === 'begrunnelse_utsatt';
+
   // ========== UPDATE MODE: Compute default values ==========
   const computedDefaultValues = useMemo((): Partial<RespondFristFormData> => {
     if (isUpdateMode && lastResponseEvent && fristTilstand) {
@@ -781,8 +785,8 @@ export function RespondFristModal({
       <div className="space-y-6">
         {/* Scroll target marker */}
         <div ref={topRef} />
-        {/* Step Indicator */}
-        <StepIndicator currentStep={currentPort} steps={steps} />
+        {/* Step Indicator (ikke for begrunnelse_utsatt) */}
+        {!erBegrunnelseUtsatt && <StepIndicator currentStep={currentPort} steps={steps} />}
 
         {/* §33.7 BH preclusion warning */}
         {bhPreklusjonsrisiko && (
@@ -804,10 +808,62 @@ export function RespondFristModal({
           className="space-y-6"
         >
           {/* ================================================================
-              STEG 1: OVERSIKT
+              SPESIALHÅNDTERING: BEGRUNNELSE FOR UTSETTELSE (§33.6.2 bokstav b)
+              TE har begrunnet hvorfor beregning ikke er mulig - forenklet visning
+              ================================================================ */}
+          {erBegrunnelseUtsatt && (
+            <div className="space-y-6">
+              <Alert variant="info" title="Begrunnelse for utsettelse (§33.6.2 b)">
+                <p>
+                  Entreprenøren har begrunnet hvorfor han ikke har grunnlag for å beregne
+                  fristforlengelsen. I henhold til §33.6.2 femte ledd gjelder vanlige
+                  §33.6.1-regler videre.
+                </p>
+                <p className="mt-2">
+                  Entreprenøren må sende spesifisert krav «uten ugrunnet opphold» når
+                  beregningsgrunnlaget foreligger. Du kan sende ny etterlysning senere hvis
+                  du mener grunnlaget burde foreligge.
+                </p>
+              </Alert>
+
+              <SectionContainer title="Entreprenørens begrunnelse">
+                <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
+                  <p className="text-sm text-pkt-text-body whitespace-pre-wrap">
+                    {fristEvent?.begrunnelse || fristTilstand?.begrunnelse || 'Ingen begrunnelse oppgitt'}
+                  </p>
+                </div>
+              </SectionContainer>
+
+              <SectionContainer title="Din kommentar (valgfritt)">
+                <FormField
+                  helpText="Legg til eventuelle kommentarer eller merknader til begrunnelsen"
+                >
+                  <Textarea
+                    {...register('tilleggs_begrunnelse')}
+                    rows={3}
+                    fullWidth
+                    placeholder="F.eks. notater om når du forventer spesifisert krav..."
+                  />
+                </FormField>
+              </SectionContainer>
+
+              {/* Action buttons for begrunnelse_utsatt */}
+              <div className="flex justify-end gap-3 pt-4 border-t border-pkt-border-subtle">
+                <Button variant="secondary" onClick={() => onOpenChange(false)}>
+                  Lukk
+                </Button>
+                <Button type="submit" variant="primary">
+                  Bekreft mottak
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* ================================================================
+              STEG 1: OVERSIKT (normal flyt - ikke for begrunnelse_utsatt)
               Shows claim summary and explains what will be evaluated
               ================================================================ */}
-          {currentStepType === 'oversikt' && (
+          {!erBegrunnelseUtsatt && currentStepType === 'oversikt' && (
             <div className="space-y-6">
               <h3 className="text-lg font-semibold">Oversikt</h3>
 
@@ -833,6 +889,7 @@ export function RespondFristModal({
                       <Badge variant="default">
                         {varselType === 'noytralt' && 'Foreløpig varsel (§33.4)'}
                         {varselType === 'spesifisert' && 'Spesifisert krav (§33.6)'}
+                        {varselType === 'begrunnelse_utsatt' && 'Begrunnelse for utsettelse (§33.6.2 b)'}
                       </Badge>
                     </DataListItem>
                   )}
@@ -905,7 +962,7 @@ export function RespondFristModal({
           {/* ================================================================
               STEG 2: PREKLUSJON (§33.4, §33.6)
               ================================================================ */}
-          {currentStepType === 'preklusjon' && (
+          {!erBegrunnelseUtsatt && currentStepType === 'preklusjon' && (
             <SectionContainer
               title="Preklusjon (§33.4, §33.6)"
               description="Vurder om entreprenøren har varslet i tide. Hvis ikke, kan kravet avvises pga preklusjon."
@@ -1134,7 +1191,7 @@ export function RespondFristModal({
           {/* ================================================================
               STEG 3: ÅRSAKSSAMMENHENG (§33.1) - Alltid vurderes, evt. subsidiært
               ================================================================ */}
-          {currentStepType === 'vilkar' && (
+          {!erBegrunnelseUtsatt && currentStepType === 'vilkar' && (
             <SectionContainer
               title="Årsakssammenheng (§33.1)"
               description="Vurder om forholdet faktisk forårsaket forsinkelse i fremdriften."
@@ -1210,7 +1267,7 @@ export function RespondFristModal({
           {/* ================================================================
               STEG 4: BEREGNING (§33.5) - Alltid vurderes, evt. subsidiært
               ================================================================ */}
-          {currentStepType === 'beregning' && (
+          {!erBegrunnelseUtsatt && currentStepType === 'beregning' && (
             <SectionContainer
               title="Beregning av fristforlengelse (§33.5)"
               description="Vurder om kravet reflekterer reell virkning på fremdriften. Momenter: nødvendig avbrudd, årstidsforskyvning, samlet virkning av tidligere forhold, og om entreprenøren har oppfylt tapsbegrensningsplikten."
@@ -1319,7 +1376,7 @@ export function RespondFristModal({
           {/* ================================================================
               STEG 5: OPPSUMMERING
               ================================================================ */}
-          {currentStepType === 'oppsummering' && (
+          {!erBegrunnelseUtsatt && currentStepType === 'oppsummering' && (
             <SectionContainer title="Oppsummering">
               {/* Sammendrag av valg */}
               <div className="space-y-4">
@@ -1590,7 +1647,8 @@ export function RespondFristModal({
             </Alert>
           )}
 
-          {/* Navigation Actions */}
+          {/* Navigation Actions (ikke for begrunnelse_utsatt - har egen knapper) */}
+          {!erBegrunnelseUtsatt && (
           <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-4 pt-6 border-t-2 border-pkt-border-subtle">
             <div>
               {currentPort > 1 && (
@@ -1650,6 +1708,7 @@ export function RespondFristModal({
               )}
             </div>
           </div>
+          )}
         </form>
 
         <TokenExpiredAlert open={showTokenExpired} onClose={() => setShowTokenExpired(false)} />
