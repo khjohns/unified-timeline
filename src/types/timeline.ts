@@ -64,8 +64,9 @@ export type VederlagBeregningResultat =
 // ========== FRIST ENUMS ==========
 
 export type FristVarselType =
-  | 'noytralt'        // §33.4 - Nøytralt varsel (uten dager)
-  | 'spesifisert';    // §33.6 - Spesifisert krav (med dager)
+  | 'noytralt'           // §33.4 - Nøytralt varsel (uten dager)
+  | 'spesifisert'        // §33.6 - Spesifisert krav (med dager)
+  | 'begrunnelse_utsatt'; // §33.6.2 b - Begrunnelse for hvorfor beregning ikke er mulig
 
 // Frist beregning results - forenklet til tre hovedkategorier
 // Årsaken til avslag fanges av `subsidiaer_triggers`
@@ -233,6 +234,7 @@ export interface FristTilstand {
   // BH respons - Port 1 (Varsling)
   noytralt_varsel_ok?: boolean;
   spesifisert_krav_ok?: boolean;
+  etterlysning_svar_ok?: boolean;  // §33.6.2/§5: Svar på etterlysning i tide?
   har_bh_etterlyst?: boolean;
   begrunnelse_varsel?: string;
 
@@ -714,6 +716,7 @@ export interface ResponsFristEventData {
   // Port 1: Preklusjon (Varsling)
   noytralt_varsel_ok?: boolean;
   spesifisert_krav_ok?: boolean;
+  etterlysning_svar_ok?: boolean;  // §33.6.2/§5: Svar på etterlysning i tide?
   har_bh_etterlyst?: boolean;
   begrunnelse_varsel?: string;
 
@@ -821,6 +824,7 @@ export interface ResponsFristOppdatertEventData {
   // Port 2: Preklusjon
   noytralt_varsel_ok?: boolean;
   spesifisert_krav_ok?: boolean;
+  etterlysning_svar_ok?: boolean;  // §33.6.2/§5: Svar på etterlysning i tide?
   // Port 3: Vilkår
   vilkar_oppfylt?: boolean;
   begrunnelse_vilkar?: string;

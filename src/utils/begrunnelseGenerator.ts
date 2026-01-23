@@ -36,11 +36,16 @@
  * - §33.3 (5): "Partene har IKKE krav på justering av vederlaget" (force majeure)
  * - §33.4 (1): Varsel - "uten ugrunnet opphold, selv om spesifisert krav ikke kan fremsettes"
  * - §33.4 (2): Preklusjon - "Krav på fristforlengelse tapes dersom ikke varslet innen fristen"
+ *   NB: §33.4 gjelder BÅDE nøytralt varsel OG spesifisert krav direkte (uten forutgående nøytralt)
  * - §33.5 (1): Beregning - "virkning på fremdriften som forholdet har forårsaket"
- * - §33.6.1: TE's spesifisering - "angi og begrunne det antall dager han krever"
+ * - §33.6.1 (1): TE's spesifisering - "angi og begrunne det antall dager han krever"
+ * - §33.6.1 (2): Sen spesifisering = REDUKSJON - "bare krav på det den andre parten måtte forstå"
+ *   NB: §33.6.1 reduksjon gjelder KUN når nøytralt varsel ble sendt i tide først
  * - §33.6.2 (1): BH's forespørsel (etterlysning) - krav om spesifisert krav
- * - §33.6.2 (2): TE må svare "uten ugrunnet opphold" med dager+begrunnelse
+ * - §33.6.2 (2a): TE må svare "uten ugrunnet opphold" med dager+begrunnelse
+ * - §33.6.2 (2b): ELLER begrunne hvorfor grunnlaget for beregning ikke foreligger
  * - §33.6.2 (3): Preklusjon - "Gjør ikke totalentreprenøren noen av delene, tapes kravet"
+ * - §33.6.2 (5): Ved bokstav b gjelder §33.6.1 videre
  * - §33.7 (1): Svarplikt - "svare uten ugrunnet opphold"
  * - §33.7 (2): "Innsigelser mot kravet tapes dersom de ikke fremsettes innen fristen"
  * - §33.8 (1): Forsering - "kan velge å anse avslaget som et pålegg om forsering"
@@ -428,6 +433,7 @@ export interface FristResponseInput {
   // Preklusjon (Port 1)
   noytraltVarselOk?: boolean;
   spesifisertKravOk?: boolean;
+  etterlysningVarOk?: boolean;  // §33.6.2/§5: Svar på etterlysning i tide?
   sendEtterlysning?: boolean;
 
   // Vilkår (Port 2)
@@ -437,7 +443,10 @@ export interface FristResponseInput {
   godkjentDager: number;
 
   // Computed
-  erPrekludert: boolean;
+  erPrekludert: boolean;  // §33.4: Varsel for sent (nøytralt ELLER spesifisert uten forutgående nøytralt)
+  erEtterlysningSvarForSent?: boolean;  // §33.6.2 tredje ledd + §5: Sen respons på etterlysning
+  erRedusert_33_6_1?: boolean;  // §33.6.1: Sen spesifisering ETTER at nøytralt varsel ble sendt i tide
+  harTidligereNoytraltVarselITide?: boolean;  // For å vite om §33.6.1 er relevant ved spesifisert krav
   prinsipaltResultat: string;
   subsidiaertResultat?: string;
   visSubsidiaertResultat: boolean;
@@ -451,6 +460,7 @@ function getVarselTypeLabel(varselType?: FristVarselType): string {
   const labels: Record<FristVarselType, string> = {
     'noytralt': 'nøytralt varsel (§33.4)',
     'spesifisert': 'spesifisert krav (§33.6)',
+    'begrunnelse_utsatt': 'begrunnelse for utsettelse (§33.6.2 b)',
   };
   return labels[varselType] || varselType;
 }
@@ -480,18 +490,52 @@ function generateFristPreklusjonSection(input: FristResponseInput): string {
     );
   }
 
-  // Prekludert
-  if (input.erPrekludert) {
-    const paragraf = getPreklusjonParagraf(input.varselType);
+  // §33.6.2 tredje ledd + §5: Sen respons på etterlysning = preklusjon
+  if (input.erEtterlysningSvarForSent) {
     return (
-      `Kravet avvises prinsipalt som prekludert iht. ${paragraf}, ` +
-      `da ${getVarselTypeLabel(input.varselType)} ikke ble fremsatt «uten ugrunnet opphold» ` +
-      `etter at entreprenøren ble eller burde blitt klar over forholdet.`
+      'Kravet avvises som prekludert iht. §33.6.2 tredje ledd, jf. §5. ' +
+      'Entreprenøren svarte ikke «uten ugrunnet opphold» på byggherrens etterlysning. ' +
+      'Byggherren påberoper seg at fristen er oversittet, jf. §5.'
     );
   }
 
-  // OK
-  return `Varslingskravene i ${getPreklusjonParagraf(input.varselType)} anses oppfylt.`;
+  // Prekludert (§33.4 - varsel for sent = full preklusjon)
+  // Gjelder både nøytralt varsel for sent OG spesifisert krav direkte uten tidligere nøytralt varsel
+  if (input.erPrekludert) {
+    return (
+      'Kravet avvises prinsipalt som prekludert iht. §33.4, ' +
+      'da varsel ikke ble fremsatt «uten ugrunnet opphold» ' +
+      'etter at entreprenøren ble eller burde blitt klar over forholdet.'
+    );
+  }
+
+  // Redusert (§33.6.1 - spesifisert krav for sent = reduksjon, ikke preklusjon)
+  if (input.erRedusert_33_6_1) {
+    return (
+      'Spesifisert krav ble ikke fremsatt «uten ugrunnet opphold» etter at grunnlaget ' +
+      'for å beregne kravet forelå (§33.6.1). Entreprenøren har dermed bare krav på slik ' +
+      'fristforlengelse som byggherren måtte forstå at han hadde krav på.'
+    );
+  }
+
+  // OK - Varslingskravene er oppfylt
+  // Bestem riktig paragraf basert på kontekst:
+  // - Svar på etterlysning i tide: §33.6.2 fjerde ledd (§33.6.1 kan ikke påberopes)
+  // - Nøytralt varsel: §33.4
+  // - Spesifisert krav med tidligere nøytralt varsel i tide: §33.4 og §33.6.1
+  // - Spesifisert krav direkte (uten tidligere nøytralt): §33.4 (varselet fungerer som §33.4-varsel)
+  if (input.etterlysningVarOk === true && input.varselType === 'spesifisert') {
+    // Svar på etterlysning kom i tide - §33.6.2 fjerde ledd beskytter TE
+    return (
+      'Kravet er svar på byggherrens etterlysning og kom i tide. ' +
+      'I henhold til §33.6.2 fjerde ledd kan byggherren ikke påberope at fristen i §33.6.1 er oversittet.'
+    );
+  }
+  if (input.varselType === 'spesifisert' && input.harTidligereNoytraltVarselITide) {
+    return 'Varslingskravene i §33.4 og §33.6.1 anses oppfylt.';
+  }
+  // For nøytralt varsel eller spesifisert krav direkte (uten tidligere nøytralt)
+  return 'Varslingskravene i §33.4 anses oppfylt.';
 }
 
 /**
@@ -637,6 +681,18 @@ export function generateFristResponseBegrunnelse(input: FristResponseInput): str
   // Skip if etterlysning - minimal response
   if (input.sendEtterlysning) {
     return generateFristPreklusjonSection(input);
+  }
+
+  // §33.6.2 bokstav b - TE har begrunnet hvorfor beregning ikke er mulig
+  // BH bekrefter mottak, vanlige §33.6.1-regler gjelder videre
+  if (input.varselType === 'begrunnelse_utsatt') {
+    return (
+      'Byggherren bekrefter mottak av begrunnelse for hvorfor grunnlaget for å beregne ' +
+      'fristforlengelseskravet ikke foreligger (§33.6.2 annet ledd bokstav b).\n\n' +
+      'I henhold til §33.6.2 femte ledd gjelder bestemmelsen i §33.6.1 videre. ' +
+      'Entreprenøren må fremsette spesifisert krav med antall dager «uten ugrunnet opphold» ' +
+      'når grunnlaget for å beregne kravet foreligger.'
+    );
   }
 
   // 1. Preklusjon section

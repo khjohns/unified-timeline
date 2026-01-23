@@ -999,6 +999,12 @@ class FristResponsData(BaseModel):
         description="Er spesifisert krav sendt i tide? (§33.6)"
     )
 
+    # Svar på etterlysning (§33.6.2/§5)
+    etterlysning_svar_ok: Optional[bool] = Field(
+        default=None,
+        description="Er svar på etterlysning sendt i tide? (§33.6.2/§5). None hvis ikke relevant."
+    )
+
     # Hvis spesifisert krav er for sent
     """
     KOMMENTAR FRA ARKITEKT:
