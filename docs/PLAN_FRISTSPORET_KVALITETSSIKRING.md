@@ -265,7 +265,7 @@ Ny event-type: `FRIST_ETTERLYSNING`
 
 ### 7. §33.2 - BH fristforlengelse
 
-**Prioritet:** Lav | **Kompleksitet:** Høy
+**Prioritet:** Lav | **Kompleksitet:** Høy | **Status:** Dokumentert for fremtidig implementering
 
 #### Kontekst
 Kontrakten tillater at BH kan kreve fristforlengelse fra TE når TE forårsaker forsinkelser.
@@ -273,16 +273,50 @@ Kontrakten tillater at BH kan kreve fristforlengelse fra TE når TE forårsaker 
 #### Kontraktstekst (§33.2)
 > "Byggherren har krav på fristforlengelse dersom hans medvirkning hindres som følge av forhold totalentreprenøren har risikoen for."
 
-#### Foreløpig vurdering
-- Dagens app støtter kun TE → BH frist
-- §33.2 krever BH → TE frist
-- Betydelig utvidelse av datamodell og UI
+#### Beslutning
+**Implementeres som egen sakstype** - ikke integrert i eksisterende KOE-flyt.
 
-#### Før implementering - VURDER:
-- [ ] Les §33.2 på nytt
-- [ ] Vurder: Er dette innenfor scope for denne applikasjonen?
-- [ ] Vurder: Brukes §33.2 ofte i praksis?
-- [ ] Vurder: Kan dette være en separat sakstype?
+#### Spesifikasjon: Sakstype `bh_frist`
+
+**Ny sakstype i `SakType` enum:**
+```python
+class SakType(str, Enum):
+    STANDARD = "standard"        # TE → BH (eksisterende)
+    FORSERING = "forsering"      # TE → BH (eksisterende)
+    ENDRINGSORDRE = "endringsordre"  # BH → TE (eksisterende)
+    BH_FRIST = "bh_frist"        # BH → TE fristforlengelse (NY)
+```
+
+**Flyt:**
+1. BH oppretter sak med `sakstype: 'bh_frist'`
+2. BH sender fristkrav (speilvendt av dagens TE-flyt)
+3. TE responderer (godkjenner/avslår/delvis)
+4. Eventuell tvist håndteres
+
+**Kategorier (§33.2):**
+| Kode | Label | Beskrivelse |
+|------|-------|-------------|
+| `TE_FORSINKELSE` | Forsinkelse hos TE | TEs arbeider er forsinket |
+| `TE_MANGEL` | Mangel ved TEs ytelse | Mangel som hindrer BHs medvirkning |
+| `TE_KOORDINERING` | Koordineringssvikt | TE oppfyller ikke samordningsplikt |
+
+**Nye komponenter:**
+- `SendBhFristModal.tsx` - BH sender fristkrav
+- `RespondBhFristModal.tsx` - TE responderer
+- `BhFristPage.tsx` - Saksvisning for BH-frist
+
+**Varslings- og preklusjonsregler:**
+- §33.4 gjelder også for BH (varsel "uten ugrunnet opphold")
+- §33.6 og §33.7 gjelder tilsvarende
+
+#### Avhengigheter
+- Krever refaktorering av frist-state for å støtte begge retninger
+- Vurder om `FristTilstand` skal utvides eller om det trengs `BhFristTilstand`
+
+#### Estimert omfang
+- Backend: ~200-300 linjer (ny sakstype, events, state)
+- Frontend: ~500-800 linjer (nye modaler og sidevisning)
+- Tester: ~100-200 linjer
 
 ---
 
