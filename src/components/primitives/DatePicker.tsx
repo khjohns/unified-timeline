@@ -234,7 +234,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
       'transition-colors duration-200',
 
       // Border - 2px width, sharp corners
-      'border-2 rounded-none',
+      'border-2 rounded',
 
       // Default border color
       !error && !disabled && 'border-pkt-border-default',
@@ -314,7 +314,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
             <Dialog.Content
               className={clsx(
                 'fixed inset-x-0 bottom-0',
-                'bg-pkt-bg-card rounded-none shadow-lg',
+                'bg-pkt-bg-card rounded shadow-lg',
                 'border-t border-pkt-border-default',
                 'p-6 pb-8',
                 'z-modal',
@@ -332,7 +332,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
                 </Dialog.Title>
                 <Dialog.Close
                   className={clsx(
-                    'rounded-none p-2',
+                    'rounded p-2',
                     'text-pkt-text-body-subtle hover:text-pkt-text-body-default',
                     'hover:bg-pkt-surface-light-beige',
                     'focus:outline-none focus:ring-4 focus:ring-pkt-brand-purple-1000/30'
@@ -386,7 +386,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
             className={clsx(
               'z-popover',
               'bg-pkt-bg-card',
-              'border border-pkt-border-default rounded-none',
+              'border border-pkt-border-default rounded',
               'shadow-lg',
               'p-4',
               // Animations

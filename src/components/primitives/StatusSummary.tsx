@@ -27,7 +27,7 @@ export function StatusSummary({ title, children, className }: StatusSummaryProps
   return (
     <div
       className={clsx(
-        'p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle',
+        'p-3 bg-pkt-surface-subtle rounded border border-pkt-border-subtle',
         className
       )}
     >

@@ -34,7 +34,7 @@ export function RevisionTag({
   return (
     <span
       className={clsx(
-        'inline-flex items-center gap-2 font-medium border rounded-none',
+        'inline-flex items-center gap-2 font-medium border rounded-sm',
         // Original is neutral, revisions are highlighted (uses semantic colors)
         isOriginal
           ? 'bg-tag-neutral-bg text-tag-neutral-text border-tag-neutral-border'
@@ -74,7 +74,7 @@ export function UpdatedTag({ size = 'sm', className }: UpdatedTagProps) {
   return (
     <span
       className={clsx(
-        'inline-flex items-center gap-1 font-medium border rounded-none',
+        'inline-flex items-center gap-1 font-medium border rounded-sm',
         // Uses semantic warning colors (amber in light, golden in dark)
         'bg-tag-warning-bg text-tag-warning-text border-tag-warning-border',
         size === 'sm' ? 'px-2 py-1 text-xs' : 'px-3 py-1 text-sm',
@@ -130,7 +130,7 @@ export function RevisionTagGroup({
       {isOutdated && (
         <span
           className={clsx(
-            'inline-flex items-center gap-1 font-medium border rounded-none',
+            'inline-flex items-center gap-1 font-medium border rounded-sm',
             // Uses semantic warning colors
             'bg-tag-warning-bg text-tag-warning-text border-tag-warning-border',
             size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-sm'

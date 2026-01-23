@@ -53,7 +53,7 @@ export function SectionContainer({
   const spacingClass = SPACING_CLASSES[spacing];
 
   const containerClasses = clsx(
-    'rounded-none',
+    'rounded',
     {
       // Default: Clean border for form sections
       'border border-pkt-border-subtle': variant === 'default',
@@ -69,7 +69,7 @@ export function SectionContainer({
         <div className="flex-1">
           <div className="flex items-center gap-2">
             {icon && <span className="text-oslo-blue">{icon}</span>}
-            <h3 className="font-bold text-base text-pkt-text-body-dark">
+            <h3 className="font-semibold text-base text-pkt-text-body-dark">
               {title}
               {optional && (
                 <span

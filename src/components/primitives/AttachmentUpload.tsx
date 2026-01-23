@@ -155,7 +155,7 @@ export const AttachmentUpload = forwardRef<HTMLDivElement, AttachmentUploadProps
             {...getRootProps()}
             className={clsx(
               // Base styles
-              'border-2 rounded-none transition-colors duration-200',
+              'border-2 rounded transition-colors duration-200',
               'p-6 cursor-pointer',
               'flex flex-col items-center justify-center gap-3',
               'min-h-[120px]',
@@ -230,7 +230,7 @@ function FileListItem({ file, onRemove, disabled }: FileListItemProps) {
     <li
       className={clsx(
         'flex items-center gap-3 p-3',
-        'border-2 border-pkt-border-default rounded-none',
+        'border-2 border-pkt-border-default rounded',
         'bg-pkt-bg-card'
       )}
     >
@@ -239,7 +239,7 @@ function FileListItem({ file, onRemove, disabled }: FileListItemProps) {
         <img
           src={file.previewUrl}
           alt=""
-          className="w-10 h-10 object-cover rounded-none border border-pkt-border-subtle flex-shrink-0"
+          className="w-10 h-10 object-cover rounded border border-pkt-border-subtle flex-shrink-0"
         />
       ) : (
         <FileIconComponent className="w-6 h-6 text-pkt-text-placeholder flex-shrink-0" />
@@ -260,7 +260,7 @@ function FileListItem({ file, onRemove, disabled }: FileListItemProps) {
         onClick={() => onRemove(file.id)}
         disabled={disabled}
         className={clsx(
-          'p-2 rounded-none transition-colors flex-shrink-0',
+          'p-2 rounded transition-colors flex-shrink-0',
           'text-pkt-text-placeholder hover:text-pkt-text-body-default',
           'hover:bg-pkt-surface-light-beige',
           'focus:outline-none focus:ring-2 focus:ring-pkt-brand-purple-1000/30',

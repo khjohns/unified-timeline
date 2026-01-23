@@ -380,7 +380,7 @@ export function DateRangePicker({
           <Dialog.Content
             className={clsx(
               'fixed inset-x-0 bottom-0',
-              'bg-pkt-bg-card rounded-lg shadow-lg',
+              'bg-pkt-bg-card rounded shadow-lg',
               'border-t border-pkt-border-default',
               'p-6 pb-8',
               'z-modal',
@@ -444,7 +444,7 @@ export function DateRangePicker({
           className={clsx(
             'z-popover',
             'bg-pkt-bg-card',
-            'border border-pkt-border-default rounded-lg',
+            'border border-pkt-border-default rounded',
             'shadow-lg',
             'p-4',
             // Animations

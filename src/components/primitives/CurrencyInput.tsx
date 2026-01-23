@@ -142,7 +142,7 @@ export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
               'transition-colors duration-200',
 
               // Border - 2px width, sharp corners
-              'border-2 rounded-none',
+              'border-2 rounded',
 
               // Default border color
               !error && !disabled && 'border-pkt-border-default',

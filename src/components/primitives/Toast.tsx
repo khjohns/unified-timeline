@@ -100,7 +100,7 @@ function ToastItem({ toast, onOpenChange }: ToastItemProps) {
     <ToastPrimitive.Root
       className={clsx(
         // Base styles
-        'rounded-none border-l-4 p-4 shadow-lg',
+        'rounded border-l-4 p-4 shadow-lg',
         'grid grid-cols-[auto_1fr_auto] gap-3 items-start',
         // Animation
         'data-[state=open]:animate-slideIn',
@@ -134,7 +134,7 @@ function ToastItem({ toast, onOpenChange }: ToastItemProps) {
       {/* Close button */}
       <ToastPrimitive.Close
         className={clsx(
-          'flex-shrink-0 p-1 rounded-none opacity-70 hover:opacity-100',
+          'flex-shrink-0 p-1 rounded opacity-70 hover:opacity-100',
           'focus:outline-none focus:ring-2 focus:ring-pkt-border-focus'
         )}
         aria-label="Lukk"

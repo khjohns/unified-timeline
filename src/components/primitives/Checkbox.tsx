@@ -32,7 +32,7 @@ export const Checkbox = forwardRef<
         'shrink-0',
 
         // Base styles
-        'border-2 rounded-none',
+        'border-2 rounded-sm',
         'transition-colors duration-200',
 
         // Default state

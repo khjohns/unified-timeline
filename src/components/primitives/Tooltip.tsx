@@ -37,7 +37,7 @@ export function Tooltip({ content, children, side = 'top', delayDuration = 200 }
               'z-tooltip',
               'px-3 py-2',
               'bg-pkt-surface-strong-dark-blue text-pkt-text-body-light text-sm',
-              'rounded-none shadow-lg',
+              'rounded shadow-lg',
               // Viewport-safe max-width: smaller on mobile, larger on desktop
               'max-w-[calc(100vw-2rem)] sm:max-w-xs',
               'data-[state=delayed-open]:animate-in',
