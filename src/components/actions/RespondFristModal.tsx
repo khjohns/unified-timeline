@@ -1082,6 +1082,15 @@ export function RespondFristModal({
                         )}
                       />
                     </FormField>
+
+                    {/* §5 innsigelse - når BH påberoper for sent varsel */}
+                    {formValues.noytralt_varsel_ok === false && (
+                      <Alert variant="danger" title="Preklusjon etter §33.4" className="mt-3">
+                        Entreprenøren varslet ikke «uten ugrunnet opphold». Du påberoper at kravet
+                        er tapt. Husk at du må gjøre denne innsigelsen skriftlig «uten ugrunnet
+                        opphold» etter å ha mottatt varselet, jf. §5.
+                      </Alert>
+                    )}
                   </div>
 
                   {/* Etterlysning option - only if varsel was OK */}
@@ -1217,10 +1226,11 @@ export function RespondFristModal({
                       </FormField>
                       {/* Info om §33.6.1 reduksjon - kun når nøytralt varsel var i tide */}
                       {erRedusert_33_6_1 && (
-                        <Alert variant="info" title="Reduksjon etter §33.6.1" className="mt-3">
+                        <Alert variant="warning" title="Reduksjon etter §33.6.1" className="mt-3">
                           Entreprenøren har kun krav på den fristforlengelsen byggherren måtte forstå
                           at han hadde krav på. I beregningssteget angir du hvor mange dager du mener
-                          var forståelig ut fra omstendighetene.
+                          var forståelig ut fra omstendighetene. Husk at du må gjøre denne innsigelsen
+                          skriftlig «uten ugrunnet opphold» etter å ha mottatt kravet, jf. §5.
                         </Alert>
                       )}
                       {/* Info om §33.4 preklusjon - kun når direkte spesifisert uten tidligere nøytralt */}
@@ -1228,7 +1238,9 @@ export function RespondFristModal({
                         <Alert variant="danger" title="Preklusjon etter §33.4" className="mt-3">
                           Entreprenøren sendte spesifisert krav direkte uten å ha sendt foreløpig
                           varsel i tide først. Det spesifiserte kravet fungerer dermed som varsel,
-                          og siden varselet kom for sent, er kravet prekludert.
+                          og siden varselet kom for sent, er kravet prekludert. Husk at du må gjøre
+                          denne innsigelsen skriftlig «uten ugrunnet opphold» etter å ha mottatt
+                          kravet, jf. §5.
                         </Alert>
                       )}
                     </>
@@ -1265,16 +1277,18 @@ export function RespondFristModal({
                   </FormField>
                   {/* Info avhengig av om det finnes tidligere nøytralt varsel */}
                   {formValues.spesifisert_krav_ok === false && harTidligereNoytraltVarselITide && (
-                    <Alert variant="info" title="Reduksjon etter §33.6.1" className="mt-3">
+                    <Alert variant="warning" title="Reduksjon etter §33.6.1" className="mt-3">
                       Entreprenøren har kun krav på den fristforlengelsen byggherren måtte forstå
                       at han hadde krav på. I beregningssteget angir du hvor mange dager du mener
-                      var forståelig ut fra omstendighetene.
+                      var forståelig ut fra omstendighetene. Husk at du må gjøre denne innsigelsen
+                      skriftlig «uten ugrunnet opphold» etter å ha mottatt kravet, jf. §5.
                     </Alert>
                   )}
                   {formValues.spesifisert_krav_ok === false && !harTidligereNoytraltVarselITide && (
                     <Alert variant="danger" title="Preklusjon etter §33.4" className="mt-3">
                       Uten tidligere foreløpig varsel i tide, fungerer kravet som varsel. Siden det
-                      kom for sent, er kravet prekludert.
+                      kom for sent, er kravet prekludert. Husk at du må gjøre denne innsigelsen
+                      skriftlig «uten ugrunnet opphold» etter å ha mottatt kravet, jf. §5.
                     </Alert>
                   )}
                 </div>

@@ -1179,7 +1179,8 @@ export function RespondVederlagModal({
                   {formValues.hovedkrav_varslet_i_tide === false && (
                     <Alert variant="danger" size="sm" title="Prekludert (§34.1.2)" className="mt-3">
                       Hovedkravet avvises som prekludert fordi det ikke ble varslet i tide.
-                      Byggherren tar likevel subsidiært standpunkt til beløpet.
+                      Byggherren tar likevel subsidiært standpunkt til beløpet. Husk at du må gjøre
+                      denne innsigelsen skriftlig «uten ugrunnet opphold» etter å ha mottatt kravet, jf. §5.
                     </Alert>
                   )}
                 </div>
@@ -1235,9 +1236,10 @@ export function RespondVederlagModal({
                   </FormField>
 
                   {formValues.rigg_varslet_i_tide === false && (
-                    <Alert variant="warning" size="sm" title="Prekludert" className="mt-3">
+                    <Alert variant="danger" size="sm" title="Prekludert (§34.1.3)" className="mt-3">
                       Kravet prekluderes fordi det ikke ble varslet i tide.
-                      Byggherren tar likevel subsidiært standpunkt til beløpet.
+                      Byggherren tar likevel subsidiært standpunkt til beløpet. Husk at du må gjøre
+                      denne innsigelsen skriftlig «uten ugrunnet opphold» etter å ha mottatt kravet, jf. §5.
                     </Alert>
                   )}
                 </div>
@@ -1285,9 +1287,10 @@ export function RespondVederlagModal({
                   </FormField>
 
                   {formValues.produktivitet_varslet_i_tide === false && (
-                    <Alert variant="warning" size="sm" title="Prekludert" className="mt-3">
+                    <Alert variant="danger" size="sm" title="Prekludert (§34.1.3)" className="mt-3">
                       Kravet prekluderes fordi det ikke ble varslet i tide.
-                      Byggherren tar likevel subsidiært standpunkt til beløpet.
+                      Byggherren tar likevel subsidiært standpunkt til beløpet. Husk at du må gjøre
+                      denne innsigelsen skriftlig «uten ugrunnet opphold» etter å ha mottatt kravet, jf. §5.
                     </Alert>
                   )}
                 </div>
