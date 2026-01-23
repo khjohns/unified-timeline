@@ -20,8 +20,9 @@ export function Footer() {
             Denne løsningen er et digitalt hjelpeverktøy for håndtering av endringsordrer etter
             NS 8407:2011. Systemet erstatter ikke den offisielle kontraktsteksten og gir ingen
             juridisk rådgivning. Brukeren har selv ansvar for å påse at krav og varsler sendes
-            korrekt og rettidig i henhold til kontrakten. Ved usikkerhet, les alltid den
-            fullstendige standarden eller søk kvalifisert juridisk bistand.
+            korrekt og rettidig. Krav som ikke varsles innen fristene i NS 8407 kan gå tapt
+            (preklusjon). Ved usikkerhet, les alltid den fullstendige standarden eller søk
+            kvalifisert juridisk bistand.
           </p>
           <p className="mt-2">
             Ved tekniske feil som hindrer rettidig varsling eller innsending av krav, må
