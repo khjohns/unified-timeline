@@ -868,16 +868,14 @@ export function UtstEndringsordreModal({
                   </div>
                 )}
 
-                {/* Consequences */}
+                {/* Consequences - kun valgte */}
                 <StatusSummary title="Konsekvenser">
-                  {!formValues.konsekvenser_sha && <Badge variant="success">Ingen SHA</Badge>}
                   {formValues.konsekvenser_sha && <Badge variant="warning">SHA</Badge>}
-                  {!formValues.konsekvenser_kvalitet && <Badge variant="success">Ingen kvalitet</Badge>}
                   {formValues.konsekvenser_kvalitet && <Badge variant="warning">Kvalitet</Badge>}
-                  {!formValues.konsekvenser_fremdrift && <Badge variant="success">Ingen fremdrift</Badge>}
                   {formValues.konsekvenser_fremdrift && <Badge variant="warning">Fremdrift</Badge>}
-                  {!formValues.konsekvenser_pris && <Badge variant="success">Ingen pris</Badge>}
                   {formValues.konsekvenser_pris && <Badge variant="warning">Pris</Badge>}
+                  {formValues.konsekvenser_annet && <Badge variant="warning">Annet</Badge>}
+                  {!harKonsekvens && <Badge variant="default">Ingen konsekvenser</Badge>}
                 </StatusSummary>
 
                 {/* Settlement */}
