@@ -13,7 +13,6 @@
 
 import {
   Alert,
-  AlertDialog,
   AttachmentUpload,
   Button,
   Checkbox,
@@ -35,7 +34,6 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
-import { useConfirmClose } from '../../hooks/useConfirmClose';
 import { useFormBackup } from '../../hooks/useFormBackup';
 import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
 import { useState, useMemo, useEffect, useRef } from 'react';
@@ -109,7 +107,6 @@ export function SendGrunnlagModal({
 
   const [selectedHovedkategori, setSelectedHovedkategori] = useState<string>('');
   const [showTokenExpired, setShowTokenExpired] = useState(false);
-  const [showRestorePrompt, setShowRestorePrompt] = useState(false);
   const toast = useToast();
 
   // Compute default values based on mode
@@ -172,15 +169,6 @@ export function SendGrunnlagModal({
     }
   }, [open, isUpdateMode, originalEvent, reset, computedDefaultValues]);
 
-  const { showConfirmDialog, setShowConfirmDialog, handleClose, confirmClose } = useConfirmClose({
-    isDirty,
-    onReset: () => {
-      reset();
-      setSelectedHovedkategori('');
-    },
-    onClose: () => onOpenChange(false),
-  });
-
   // Form backup for token expiry protection
   const formData = watch();
   const { getBackup, clearBackup, hasBackup } = useFormBackup(
@@ -190,33 +178,24 @@ export function SendGrunnlagModal({
     isDirty
   );
 
-  // Check for backup on mount (only when modal opens and form is not dirty)
+  // Auto-restore backup on mount (silent restoration with toast notification)
   const hasCheckedBackup = useRef(false);
   useEffect(() => {
     if (open && hasBackup && !isDirty && !hasCheckedBackup.current) {
       hasCheckedBackup.current = true;
-      setShowRestorePrompt(true);
+      const backup = getBackup();
+      if (backup) {
+        reset(backup);
+        if (backup.hovedkategori) {
+          setSelectedHovedkategori(backup.hovedkategori);
+        }
+        toast.info('Skjemadata gjenopprettet', 'Fortsetter fra forrige økt.');
+      }
     }
     if (!open) {
       hasCheckedBackup.current = false;
     }
-  }, [open, hasBackup, isDirty]);
-
-  const handleRestoreBackup = () => {
-    const backup = getBackup();
-    if (backup) {
-      reset(backup);
-      if (backup.hovedkategori) {
-        setSelectedHovedkategori(backup.hovedkategori);
-      }
-    }
-    setShowRestorePrompt(false);
-  };
-
-  const handleDiscardBackup = () => {
-    clearBackup();
-    setShowRestorePrompt(false);
-  };
+  }, [open, hasBackup, isDirty, getBackup, reset, toast]);
 
   const hovedkategoriValue = watch('hovedkategori');
   const varselSendesNa = watch('varsel_sendes_na');
@@ -816,7 +795,7 @@ export function SendGrunnlagModal({
           <Button
             type="button"
             variant="ghost"
-            onClick={handleClose}
+            onClick={() => onOpenChange(false)}
             disabled={isSubmitting}
             className="w-full sm:w-auto"
           >
@@ -833,35 +812,6 @@ export function SendGrunnlagModal({
           </Button>
         </div>
       </form>
-
-      {/* Confirm close dialog */}
-      <AlertDialog
-        open={showConfirmDialog}
-        onOpenChange={setShowConfirmDialog}
-        title="Forkast endringer?"
-        description="Du har ulagrede endringer som vil gå tapt hvis du lukker skjemaet."
-        confirmLabel="Forkast"
-        cancelLabel="Fortsett redigering"
-        onConfirm={confirmClose}
-        variant="warning"
-      />
-
-      {/* Restore backup dialog */}
-      <AlertDialog
-        open={showRestorePrompt}
-        onOpenChange={(open) => {
-          if (!open) {
-            // User clicked "Start på nytt" (cancel) - discard backup
-            handleDiscardBackup();
-          }
-        }}
-        title="Gjenopprette lagrede data?"
-        description="Det finnes data fra en tidligere økt som ikke ble sendt inn. Vil du fortsette der du slapp?"
-        confirmLabel="Gjenopprett"
-        cancelLabel="Start på nytt"
-        onConfirm={handleRestoreBackup}
-        variant="info"
-      />
 
       {/* Token expired alert */}
       <TokenExpiredAlert

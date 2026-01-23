@@ -18,7 +18,6 @@ import { z } from 'zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Alert,
-  AlertDialog,
   Badge,
   Button,
   DataList,
@@ -32,7 +31,6 @@ import {
   Textarea,
   useToast,
 } from '../../primitives';
-import { useConfirmClose } from '../../../hooks/useConfirmClose';
 import { useFormBackup } from '../../../hooks/useFormBackup';
 import { TokenExpiredAlert } from '../../alerts/TokenExpiredAlert';
 import { submitArbeidsgruppeVurdering } from '../../../api/fravik';
@@ -126,7 +124,6 @@ export function ArbeidsgruppeModal({
   onSuccess,
 }: ArbeidsgruppeModalProps) {
   const [showTokenExpired, setShowTokenExpired] = useState(false);
-  const [showRestorePrompt, setShowRestorePrompt] = useState(false);
   const toast = useToast();
   const queryClient = useQueryClient();
 
@@ -194,15 +191,6 @@ export function ArbeidsgruppeModal({
 
   const effectiveIsDirty = isInfrastruktur ? infrastrukturForm.formState.isDirty : isDirty;
 
-  const { showConfirmDialog, setShowConfirmDialog, handleClose, confirmClose } = useConfirmClose({
-    isDirty: effectiveIsDirty,
-    onReset: () => {
-      reset();
-      infrastrukturForm.reset();
-    },
-    onClose: () => onOpenChange(false),
-  });
-
   const formData = watch();
   const { getBackup, clearBackup, hasBackup } = useFormBackup(
     sakId,
@@ -211,26 +199,21 @@ export function ArbeidsgruppeModal({
     effectiveIsDirty
   );
 
+  // Auto-restore backup on mount (silent restoration with toast notification)
   const hasCheckedBackup = useRef(false);
   useEffect(() => {
     if (open && hasBackup && !isDirty && !hasCheckedBackup.current) {
       hasCheckedBackup.current = true;
-      setShowRestorePrompt(true);
+      const backup = getBackup();
+      if (backup) {
+        reset(backup as ArbeidsgruppeFormData);
+        toast.info('Skjemadata gjenopprettet', 'Fortsetter fra forrige økt.');
+      }
     }
     if (!open) {
       hasCheckedBackup.current = false;
     }
-  }, [open, hasBackup, isDirty]);
-
-  const handleRestoreBackup = () => {
-    const backup = getBackup();
-    if (backup) reset(backup as ArbeidsgruppeFormData);
-    setShowRestorePrompt(false);
-  };
-  const handleDiscardBackup = () => {
-    clearBackup();
-    setShowRestorePrompt(false);
-  };
+  }, [open, hasBackup, isDirty, getBackup, reset, toast]);
 
   // Mutation
   const vurderingMutation = useMutation({
@@ -625,7 +608,7 @@ export function ArbeidsgruppeModal({
           <Button
             type="button"
             variant="ghost"
-            onClick={handleClose}
+            onClick={() => onOpenChange(false)}
             disabled={isSubmitting}
           >
             Avbryt
@@ -641,27 +624,6 @@ export function ArbeidsgruppeModal({
         </div>
       </form>
 
-      {/* Confirm close dialog */}
-      <AlertDialog
-        open={showConfirmDialog}
-        onOpenChange={setShowConfirmDialog}
-        title="Forkast endringer?"
-        description="Du har ulagrede endringer som vil gå tapt hvis du lukker skjemaet."
-        confirmLabel="Forkast"
-        cancelLabel="Fortsett redigering"
-        onConfirm={confirmClose}
-        variant="warning"
-      />
-      <AlertDialog
-        open={showRestorePrompt}
-        onOpenChange={(open) => { if (!open) handleDiscardBackup(); }}
-        title="Gjenopprette lagrede data?"
-        description="Det finnes data fra en tidligere økt. Vil du fortsette der du slapp?"
-        confirmLabel="Gjenopprett"
-        cancelLabel="Start på nytt"
-        onConfirm={handleRestoreBackup}
-        variant="info"
-      />
       <TokenExpiredAlert open={showTokenExpired} onClose={() => setShowTokenExpired(false)} />
     </Modal>
   );

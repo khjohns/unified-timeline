@@ -15,7 +15,6 @@ import { z } from 'zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Alert,
-  AlertDialog,
   Badge,
   Button,
   FormField,
@@ -26,7 +25,6 @@ import {
   Textarea,
   useToast,
 } from '../../primitives';
-import { useConfirmClose } from '../../../hooks/useConfirmClose';
 import { useFormBackup } from '../../../hooks/useFormBackup';
 import { TokenExpiredAlert } from '../../alerts/TokenExpiredAlert';
 import { submitMiljoVurdering, miljoReturnerSoknad } from '../../../api/fravik';
@@ -219,7 +217,6 @@ export function MiljoVurderingModal({
   onSuccess,
 }: MiljoVurderingModalProps) {
   const [showTokenExpired, setShowTokenExpired] = useState(false);
-  const [showRestorePrompt, setShowRestorePrompt] = useState(false);
   const [modus, setModus] = useState<'vurdering' | 'send_tilbake'>('vurdering');
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -277,15 +274,6 @@ export function MiljoVurderingModal({
     ? (isInfrastruktur ? infrastrukturForm.formState.isDirty : vurderingForm.formState.isDirty)
     : sendTilbakeForm.formState.isDirty;
 
-  const { showConfirmDialog, setShowConfirmDialog, handleClose, confirmClose } = useConfirmClose({
-    isDirty,
-    onReset: () => {
-      vurderingForm.reset();
-      sendTilbakeForm.reset();
-    },
-    onClose: () => onOpenChange(false),
-  });
-
   // Form backup
   const vurderingData = vurderingForm.watch();
   const { getBackup, clearBackup, hasBackup } = useFormBackup(
@@ -295,27 +283,21 @@ export function MiljoVurderingModal({
     vurderingForm.formState.isDirty
   );
 
+  // Auto-restore backup on mount (silent restoration with toast notification)
   const hasCheckedBackup = useRef(false);
   useEffect(() => {
     if (open && hasBackup && !vurderingForm.formState.isDirty && !hasCheckedBackup.current) {
       hasCheckedBackup.current = true;
-      setShowRestorePrompt(true);
+      const backup = getBackup();
+      if (backup) {
+        vurderingForm.reset(backup as VurderingFormData);
+        toast.info('Skjemadata gjenopprettet', 'Fortsetter fra forrige økt.');
+      }
     }
     if (!open) {
       hasCheckedBackup.current = false;
     }
-  }, [open, hasBackup, vurderingForm.formState.isDirty]);
-
-  const handleRestoreBackup = () => {
-    const backup = getBackup();
-    if (backup) vurderingForm.reset(backup as VurderingFormData);
-    setShowRestorePrompt(false);
-  };
-
-  const handleDiscardBackup = () => {
-    clearBackup();
-    setShowRestorePrompt(false);
-  };
+  }, [open, hasBackup, vurderingForm, getBackup, toast]);
 
   // Mutations
   const vurderingMutation = useMutation({
@@ -562,7 +544,7 @@ export function MiljoVurderingModal({
 
           {/* Actions */}
           <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-4 border-t border-pkt-border-subtle">
-            <Button type="button" variant="ghost" onClick={handleClose} disabled={isLoading}>
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={isLoading}>
               Avbryt
             </Button>
             <Button
@@ -619,7 +601,7 @@ export function MiljoVurderingModal({
 
           {/* Actions */}
           <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-4 border-t border-pkt-border-subtle">
-            <Button type="button" variant="ghost" onClick={handleClose} disabled={isLoading}>
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={isLoading}>
               Avbryt
             </Button>
             <Button type="submit" variant="secondary" loading={sendTilbakeMutation.isPending}>
@@ -629,27 +611,6 @@ export function MiljoVurderingModal({
         </form>
       )}
 
-      {/* Dialogs */}
-      <AlertDialog
-        open={showConfirmDialog}
-        onOpenChange={setShowConfirmDialog}
-        title="Forkast endringer?"
-        description="Du har ulagrede endringer som vil gå tapt."
-        confirmLabel="Forkast"
-        cancelLabel="Fortsett"
-        onConfirm={confirmClose}
-        variant="warning"
-      />
-      <AlertDialog
-        open={showRestorePrompt}
-        onOpenChange={(o) => { if (!o) handleDiscardBackup(); }}
-        title="Gjenopprette lagrede data?"
-        description="Det finnes data fra en tidligere økt."
-        confirmLabel="Gjenopprett"
-        cancelLabel="Start på nytt"
-        onConfirm={handleRestoreBackup}
-        variant="info"
-      />
       <TokenExpiredAlert open={showTokenExpired} onClose={() => setShowTokenExpired(false)} />
     </Modal>
   );

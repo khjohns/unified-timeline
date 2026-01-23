@@ -15,9 +15,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Alert, AlertDialog, Button, CurrencyInput, DataList, DataListItem, FormField, Modal, SectionContainer, Textarea } from '../primitives';
+import { Alert, Button, CurrencyInput, DataList, DataListItem, FormField, Modal, SectionContainer, Textarea, useToast } from '../primitives';
 import { StopIcon } from '@radix-ui/react-icons';
-import { useConfirmClose } from '../../hooks/useConfirmClose';
 import { useFormBackup } from '../../hooks/useFormBackup';
 import type { ForseringData } from '../../types/timeline';
 
@@ -64,7 +63,7 @@ export function StoppForseringModal({
   onStopp,
   isLoading = false,
 }: StoppForseringModalProps) {
-  const [showRestorePrompt, setShowRestorePrompt] = useState(false);
+  const toast = useToast();
 
   const {
     control,
@@ -90,12 +89,6 @@ export function StoppForseringModal({
     }
   }, [open, reset]);
 
-  const { showConfirmDialog, setShowConfirmDialog, handleClose, confirmClose } = useConfirmClose({
-    isDirty,
-    onReset: reset,
-    onClose: () => onOpenChange(false),
-  });
-
   // Form backup for protection against accidental close
   const formData = watch();
   const { getBackup, clearBackup, hasBackup } = useFormBackup(
@@ -105,28 +98,21 @@ export function StoppForseringModal({
     isDirty
   );
 
-  // Check for backup on mount
+  // Auto-restore backup on mount (silent restoration with toast notification)
   const hasCheckedBackup = useRef(false);
   useEffect(() => {
     if (open && hasBackup && !isDirty && !hasCheckedBackup.current) {
       hasCheckedBackup.current = true;
-      setShowRestorePrompt(true);
+      const backup = getBackup();
+      if (backup) {
+        reset(backup);
+        toast.info('Skjemadata gjenopprettet', 'Fortsetter fra forrige økt.');
+      }
     }
     if (!open) {
       hasCheckedBackup.current = false;
     }
-  }, [open, hasBackup, isDirty]);
-
-  const handleRestoreBackup = () => {
-    const backup = getBackup();
-    if (backup) reset(backup);
-    setShowRestorePrompt(false);
-  };
-
-  const handleDiscardBackup = () => {
-    clearBackup();
-    setShowRestorePrompt(false);
-  };
+  }, [open, hasBackup, isDirty, getBackup, reset, toast]);
 
   const onSubmit = (data: StoppForseringFormData) => {
     onStopp({
@@ -220,7 +206,7 @@ export function StoppForseringModal({
 
         {/* Actions */}
         <div className="flex justify-end gap-3 pt-4 border-t-2 border-pkt-border-subtle">
-          <Button variant="ghost" type="button" onClick={handleClose}>
+          <Button variant="ghost" type="button" onClick={() => onOpenChange(false)}>
             Avbryt
           </Button>
           <Button
@@ -233,30 +219,6 @@ export function StoppForseringModal({
           </Button>
         </div>
       </form>
-
-      {/* Confirm close dialog */}
-      <AlertDialog
-        open={showConfirmDialog}
-        onOpenChange={setShowConfirmDialog}
-        title="Forkast endringer?"
-        description="Du har ulagrede endringer som vil gå tapt hvis du lukker skjemaet."
-        confirmLabel="Forkast"
-        cancelLabel="Fortsett redigering"
-        onConfirm={confirmClose}
-        variant="warning"
-      />
-
-      {/* Restore backup dialog */}
-      <AlertDialog
-        open={showRestorePrompt}
-        onOpenChange={(openState) => { if (!openState) handleDiscardBackup(); }}
-        title="Gjenopprette lagrede data?"
-        description="Det finnes data fra en tidligere økt som ikke ble sendt inn. Vil du fortsette der du slapp?"
-        confirmLabel="Gjenopprett"
-        cancelLabel="Start på nytt"
-        onConfirm={handleRestoreBackup}
-        variant="info"
-      />
     </Modal>
   );
 }
