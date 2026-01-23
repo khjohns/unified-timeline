@@ -36,9 +36,11 @@
  * - §33.3 (5): "Partene har IKKE krav på justering av vederlaget" (force majeure)
  * - §33.4 (1): Varsel - "uten ugrunnet opphold, selv om spesifisert krav ikke kan fremsettes"
  * - §33.4 (2): Preklusjon - "Krav på fristforlengelse tapes dersom ikke varslet innen fristen"
+ *   NB: §33.4 gjelder BÅDE nøytralt varsel OG spesifisert krav direkte (uten forutgående nøytralt)
  * - §33.5 (1): Beregning - "virkning på fremdriften som forholdet har forårsaket"
  * - §33.6.1 (1): TE's spesifisering - "angi og begrunne det antall dager han krever"
  * - §33.6.1 (2): Sen spesifisering = REDUKSJON - "bare krav på det den andre parten måtte forstå"
+ *   NB: §33.6.1 reduksjon gjelder KUN når nøytralt varsel ble sendt i tide først
  * - §33.6.2 (1): BH's forespørsel (etterlysning) - krav om spesifisert krav
  * - §33.6.2 (2a): TE må svare "uten ugrunnet opphold" med dager+begrunnelse
  * - §33.6.2 (2b): ELLER begrunne hvorfor grunnlaget for beregning ikke foreligger
@@ -440,8 +442,8 @@ export interface FristResponseInput {
   godkjentDager: number;
 
   // Computed
-  erPrekludert: boolean;
-  erRedusert_33_6_1?: boolean;  // §33.6.1: Sen spesifisering gir reduksjon (ikke preklusjon)
+  erPrekludert: boolean;  // §33.4: Varsel for sent (nøytralt ELLER spesifisert uten forutgående nøytralt)
+  erRedusert_33_6_1?: boolean;  // §33.6.1: Sen spesifisering ETTER at nøytralt varsel ble sendt i tide
   prinsipaltResultat: string;
   subsidiaertResultat?: string;
   visSubsidiaertResultat: boolean;
@@ -485,13 +487,13 @@ function generateFristPreklusjonSection(input: FristResponseInput): string {
     );
   }
 
-  // Prekludert (§33.4 - nøytralt varsel for sent = full preklusjon)
+  // Prekludert (§33.4 - varsel for sent = full preklusjon)
+  // Gjelder både nøytralt varsel for sent OG spesifisert krav direkte uten tidligere nøytralt varsel
   if (input.erPrekludert) {
-    const paragraf = getPreklusjonParagraf(input.varselType);
     return (
-      `Kravet avvises prinsipalt som prekludert iht. ${paragraf}, ` +
-      `da ${getVarselTypeLabel(input.varselType)} ikke ble fremsatt «uten ugrunnet opphold» ` +
-      `etter at entreprenøren ble eller burde blitt klar over forholdet.`
+      'Kravet avvises prinsipalt som prekludert iht. §33.4, ' +
+      'da varsel ikke ble fremsatt «uten ugrunnet opphold» ' +
+      'etter at entreprenøren ble eller burde blitt klar over forholdet.'
     );
   }
 

@@ -399,17 +399,36 @@ export function RespondFristModal({
     : 0;
   const bhPreklusjonsrisiko = dagerSidenKrav > 5;
 
+  // Sjekk om det finnes tidligere nøytralt varsel som ble akseptert som i tide
+  // Dette er viktig for å skille mellom §33.4 preklusjon og §33.6.1 reduksjon
+  const harTidligereNoytraltVarselITide = useMemo(() => {
+    // Tidligere vurdert og akseptert av BH
+    if (fristTilstand?.noytralt_varsel_ok === true) {
+      return true;
+    }
+    // Finnes nøytralt varsel (fra event eller tilstand) og BH har ikke avslått det
+    const harNoytraltVarsel = !!(fristEvent?.noytralt_varsel || fristTilstand?.noytralt_varsel);
+    if (harNoytraltVarsel && formValues.noytralt_varsel_ok !== false) {
+      return true;
+    }
+    return false;
+  }, [fristTilstand?.noytralt_varsel_ok, fristTilstand?.noytralt_varsel, fristEvent?.noytralt_varsel, formValues.noytralt_varsel_ok]);
+
   // Calculate preclusion status from Port 1
-  // §33.4: Nøytralt varsel for sent = FULL PREKLUSJON (kravet tapes)
-  // §33.6.1: Spesifisert krav for sent = REDUKSJON (kun det byggherren måtte forstå)
+  // §33.4: Varsel for sent = FULL PREKLUSJON (kravet tapes)
+  // Dette gjelder BÅDE nøytralt varsel OG spesifisert krav når det ikke finnes tidligere nøytralt varsel
   const erPrekludert = useMemo(() => {
-    // Kun §33.4 gir full preklusjon
+    // §33.4: Nøytralt varsel for sent = PREKLUSJON
     if (varselType === 'noytralt') {
       return formValues.noytralt_varsel_ok === false;
     }
-    // §33.6.1 gir IKKE preklusjon, kun reduksjon - håndteres separat
+    // §33.4: Spesifisert krav direkte (uten tidligere nøytralt varsel i tide) for sent = PREKLUSJON
+    // Fordi det spesifiserte kravet fungerer som varsel, og det kom for sent
+    if (varselType === 'spesifisert' && !harTidligereNoytraltVarselITide) {
+      return formValues.spesifisert_krav_ok === false;
+    }
     return false;
-  }, [formValues.noytralt_varsel_ok, varselType]);
+  }, [formValues.noytralt_varsel_ok, formValues.spesifisert_krav_ok, varselType, harTidligereNoytraltVarselITide]);
 
   // §33.6.2 fjerde ledd: Hvis kravet er svar på etterlysning, kan byggherren
   // IKKE påberope at fristen i §33.6.1 er oversittet
@@ -419,17 +438,22 @@ export function RespondFristModal({
 
   // §33.6.1: Sen spesifisering gir reduksjon (ikke preklusjon)
   // Entreprenøren har kun krav på det byggherren "måtte forstå"
+  // FORUTSETNING: Nøytralt varsel må ha blitt sendt i tide først
   // UNNTAK: Gjelder IKKE når kravet er svar på etterlysning (§33.6.2 fjerde ledd)
   const erRedusert_33_6_1 = useMemo(() => {
     // §33.6.2 fjerde ledd: Byggherren kan ikke påberope §33.6.1 ved svar på etterlysning
     if (erSvarPaEtterlysning) {
       return false;
     }
-    if (varselType === 'spesifisert' || !varselType) {
+    // §33.6.1 reduksjon gjelder KUN når:
+    // 1. Nåværende varsel er spesifisert
+    // 2. Det ble sendt nøytralt varsel i tide tidligere (§33.4 oppfylt)
+    // 3. Spesifisert krav kom for sent
+    if (varselType === 'spesifisert' && harTidligereNoytraltVarselITide) {
       return formValues.spesifisert_krav_ok === false;
     }
     return false;
-  }, [formValues.spesifisert_krav_ok, varselType, erSvarPaEtterlysning]);
+  }, [formValues.spesifisert_krav_ok, varselType, erSvarPaEtterlysning, harTidligereNoytraltVarselITide]);
 
   // Reset send_etterlysning when noytralt_varsel_ok changes to false
   // (etterlysning is only valid when varsel was on time)
