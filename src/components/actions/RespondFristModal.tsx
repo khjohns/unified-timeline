@@ -500,6 +500,7 @@ export function RespondFristModal({
 
       // Computed
       erPrekludert: erPrekludert,
+      erRedusert_33_6_1: erRedusert_33_6_1,
       prinsipaltResultat: prinsipaltResultat,
       subsidiaertResultat: subsidiaertResultat,
       visSubsidiaertResultat: visSubsidiaertResultat,
@@ -515,6 +516,7 @@ export function RespondFristModal({
     harHindring,
     godkjentDager,
     erPrekludert,
+    erRedusert_33_6_1,
     prinsipaltResultat,
     subsidiaertResultat,
     visSubsidiaertResultat,

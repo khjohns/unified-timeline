@@ -37,7 +37,8 @@
  * - §33.4 (1): Varsel - "uten ugrunnet opphold, selv om spesifisert krav ikke kan fremsettes"
  * - §33.4 (2): Preklusjon - "Krav på fristforlengelse tapes dersom ikke varslet innen fristen"
  * - §33.5 (1): Beregning - "virkning på fremdriften som forholdet har forårsaket"
- * - §33.6.1: TE's spesifisering - "angi og begrunne det antall dager han krever"
+ * - §33.6.1 (1): TE's spesifisering - "angi og begrunne det antall dager han krever"
+ * - §33.6.1 (2): Sen spesifisering = REDUKSJON - "bare krav på det den andre parten måtte forstå"
  * - §33.6.2 (1): BH's forespørsel (etterlysning) - krav om spesifisert krav
  * - §33.6.2 (2a): TE må svare "uten ugrunnet opphold" med dager+begrunnelse
  * - §33.6.2 (2b): ELLER begrunne hvorfor grunnlaget for beregning ikke foreligger
@@ -440,6 +441,7 @@ export interface FristResponseInput {
 
   // Computed
   erPrekludert: boolean;
+  erRedusert_33_6_1?: boolean;  // §33.6.1: Sen spesifisering gir reduksjon (ikke preklusjon)
   prinsipaltResultat: string;
   subsidiaertResultat?: string;
   visSubsidiaertResultat: boolean;
@@ -483,13 +485,22 @@ function generateFristPreklusjonSection(input: FristResponseInput): string {
     );
   }
 
-  // Prekludert
+  // Prekludert (§33.4 - nøytralt varsel for sent = full preklusjon)
   if (input.erPrekludert) {
     const paragraf = getPreklusjonParagraf(input.varselType);
     return (
       `Kravet avvises prinsipalt som prekludert iht. ${paragraf}, ` +
       `da ${getVarselTypeLabel(input.varselType)} ikke ble fremsatt «uten ugrunnet opphold» ` +
       `etter at entreprenøren ble eller burde blitt klar over forholdet.`
+    );
+  }
+
+  // Redusert (§33.6.1 - spesifisert krav for sent = reduksjon, ikke preklusjon)
+  if (input.erRedusert_33_6_1) {
+    return (
+      'Spesifisert krav ble ikke fremsatt «uten ugrunnet opphold» etter at grunnlaget ' +
+      'for å beregne kravet forelå (§33.6.1). Entreprenøren har dermed bare krav på slik ' +
+      'fristforlengelse som byggherren måtte forstå at han hadde krav på.'
     );
   }
 
