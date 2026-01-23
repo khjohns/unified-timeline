@@ -326,14 +326,14 @@ export function UtstEndringsordreModal({
   }, [totalFromKOE, totalDagerFromKOE, formValues.konsekvenser_pris, formValues.konsekvenser_fremdrift, setValue]);
 
   // Auto-sett er_estimat basert på beregningsmetode
-  // REGNINGSARBEID: Alltid estimat (kostnadsoverslag → sluttoppgjør)
-  // FASTPRIS_TILBUD: Aldri estimat (fast pris)
-  // ENHETSPRISER: Beholder brukerens valg
+  // ENHETSPRISER: Estimat (mengder varierer, derav enhetspriser)
+  // REGNINGSARBEID: Estimat (kostnadsoverslag → sluttoppgjør)
+  // FASTPRIS_TILBUD: Ikke estimat (fast avtalt pris)
   useEffect(() => {
-    if (formValues.oppgjorsform === 'REGNINGSARBEID') {
-      setValue('er_estimat', true);
-    } else if (formValues.oppgjorsform === 'FASTPRIS_TILBUD') {
+    if (formValues.oppgjorsform === 'FASTPRIS_TILBUD') {
       setValue('er_estimat', false);
+    } else if (formValues.oppgjorsform) {
+      setValue('er_estimat', true);
     }
   }, [formValues.oppgjorsform, setValue]);
 
@@ -778,26 +778,11 @@ export function UtstEndringsordreModal({
                         </div>
                       </div>
 
-                      {/* Estimat-håndtering basert på metode */}
+                      {/* Info om oppgjør ved sluttoppgjør (kun regningsarbeid trenger eksplisitt merknad) */}
                       {formValues.oppgjorsform === 'REGNINGSARBEID' && (
-                        <Alert variant="info" title="Estimat">
-                          Ved regningsarbeid fastsettes endelig beløp ved sluttoppgjør basert på dokumenterte kostnader.
+                        <Alert variant="info" title="Oppgjør ved sluttoppgjør">
+                          Endelig beløp fastsettes basert på dokumenterte kostnader.
                         </Alert>
-                      )}
-                      {formValues.oppgjorsform === 'ENHETSPRISER' && (
-                        <Controller
-                          name="er_estimat"
-                          control={control}
-                          render={({ field }) => (
-                            <Checkbox
-                              id="er_estimat"
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                              label="Mengdene er estimert"
-                              description="Endelig beløp beregnes ved sluttoppgjør basert på faktiske mengder"
-                            />
-                          )}
-                        />
                       )}
                     </div>
                   )}
