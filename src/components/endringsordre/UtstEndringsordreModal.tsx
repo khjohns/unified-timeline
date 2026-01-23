@@ -584,8 +584,8 @@ export function UtstEndringsordreModal({
                             )}
                           </div>
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </SectionContainer>
