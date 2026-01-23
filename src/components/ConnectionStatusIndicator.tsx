@@ -35,9 +35,9 @@ function StatusDot({ state, label, description }: StatusDotProps) {
       content={
         <div className="text-center">
           <div className="font-medium">{label}</div>
-          <div className="text-pkt-grays-gray-300">{stateLabels[state]}</div>
+          <div className="text-white/80">{stateLabels[state]}</div>
           {description && (
-            <div className="text-xs text-pkt-grays-gray-400 mt-1">{description}</div>
+            <div className="text-xs text-white/60 mt-1">{description}</div>
           )}
         </div>
       }
