@@ -35,7 +35,6 @@ import { useFormBackup } from '../../hooks/useFormBackup';
 import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
 import {
   Alert,
-  AlertDialog,
   Badge,
   Button,
   CurrencyInput,
@@ -55,7 +54,6 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSubmitEvent } from '../../hooks/useSubmitEvent';
-import { useConfirmClose } from '../../hooks/useConfirmClose';
 import {
   VEDERLAGSMETODER_OPTIONS,
   getVederlagsmetodeLabel,
@@ -274,7 +272,6 @@ export function RespondVederlagModal({
 
   const [currentPort, setCurrentPort] = useState(1);
   const [showTokenExpired, setShowTokenExpired] = useState(false);
-  const [showRestorePrompt, setShowRestorePrompt] = useState(false);
   const topRef = useRef<HTMLDivElement>(null);
   const toast = useToast();
 
@@ -346,31 +343,24 @@ export function RespondVederlagModal({
     }
   }, [open, isUpdateMode, lastResponseEvent, reset, computedDefaultValues]);
 
-  const { showConfirmDialog, setShowConfirmDialog, handleClose, confirmClose } = useConfirmClose({
-    isDirty,
-    onReset: () => {
-      reset();
-      setCurrentPort(startPort);
-    },
-    onClose: () => onOpenChange(false),
-  });
-
   const formData = watch();
   const { getBackup, clearBackup, hasBackup } = useFormBackup(sakId, 'respons_vederlag', formData, isDirty);
 
-  // Track if we've already checked for backup this session to avoid re-prompting
+  // Auto-restore backup on mount (silent restoration with toast notification)
   const hasCheckedBackup = useRef(false);
   useEffect(() => {
     if (open && hasBackup && !isDirty && !hasCheckedBackup.current) {
       hasCheckedBackup.current = true;
-      setShowRestorePrompt(true);
+      const backup = getBackup();
+      if (backup) {
+        reset(backup);
+        toast.info('Skjemadata gjenopprettet', 'Fortsetter fra forrige økt.');
+      }
     }
     if (!open) {
       hasCheckedBackup.current = false;
     }
-  }, [open, hasBackup, isDirty]);
-  const handleRestoreBackup = () => { const backup = getBackup(); if (backup) reset(backup); setShowRestorePrompt(false); };
-  const handleDiscardBackup = () => { clearBackup(); setShowRestorePrompt(false); };
+  }, [open, hasBackup, isDirty, getBackup, reset, toast]);
 
   // Track pending toast for dismissal
   const pendingToastId = useRef<string | null>(null);
@@ -2103,7 +2093,7 @@ export function RespondVederlagModal({
               <Button
                 type="button"
                 variant="ghost"
-                onClick={handleClose}
+                onClick={() => onOpenChange(false)}
                 disabled={isSubmitting}
                 className="w-full sm:w-auto order-2 sm:order-1"
               >
@@ -2142,27 +2132,6 @@ export function RespondVederlagModal({
           </div>
         </form>
 
-        {/* Confirm close dialog */}
-        <AlertDialog
-          open={showConfirmDialog}
-          onOpenChange={setShowConfirmDialog}
-          title="Forkast endringer?"
-          description="Du har ulagrede endringer som vil gå tapt hvis du lukker skjemaet."
-          confirmLabel="Forkast"
-          cancelLabel="Fortsett redigering"
-          onConfirm={confirmClose}
-          variant="warning"
-        />
-        <AlertDialog
-          open={showRestorePrompt}
-          onOpenChange={(open) => { if (!open) handleDiscardBackup(); }}
-          title="Gjenopprette lagrede data?"
-          description="Det finnes data fra en tidligere økt som ikke ble sendt inn. Vil du fortsette der du slapp?"
-          confirmLabel="Gjenopprett"
-          cancelLabel="Start på nytt"
-          onConfirm={handleRestoreBackup}
-          variant="info"
-        />
         <TokenExpiredAlert open={showTokenExpired} onClose={() => setShowTokenExpired(false)} />
       </div>
     </Modal>
