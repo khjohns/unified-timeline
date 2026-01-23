@@ -1132,9 +1132,17 @@ export function RespondFristModal({
                   ) : (
                     <>
                       <FormField
-                        label="Spesifisert krav sendt i tide? (§33.6.1)"
+                        label={
+                          harTidligereNoytraltVarselITide
+                            ? "Spesifisert krav sendt i tide? (§33.6.1)"
+                            : "Spesifisert krav sendt i tide? (§33.4)"
+                        }
                         required
-                        helpText="Entreprenøren skal 'uten ugrunnet opphold' angi og begrunne antall dager når han har grunnlag."
+                        helpText={
+                          harTidligereNoytraltVarselITide
+                            ? "Entreprenøren skal 'uten ugrunnet opphold' angi og begrunne antall dager når han har grunnlag."
+                            : "Entreprenøren har ikke sendt foreløpig varsel først. Det spesifiserte kravet fungerer dermed som varsel (§33.4)."
+                        }
                       >
                         <Controller
                           name="spesifisert_krav_ok"
@@ -1149,18 +1157,30 @@ export function RespondFristModal({
                               <RadioItem value="ja" label="Ja - kravet kom i tide" />
                               <RadioItem
                                 value="nei"
-                                label="Nei - for sent (reduseres til det byggherren måtte forstå)"
+                                label={
+                                  harTidligereNoytraltVarselITide
+                                    ? "Nei - for sent (reduseres til det byggherren måtte forstå)"
+                                    : "Nei - for sent (prekludert - kravet tapes)"
+                                }
                               />
                             </RadioGroup>
                           )}
                         />
                       </FormField>
-                      {/* Info om §33.6.1 reduksjon */}
+                      {/* Info om §33.6.1 reduksjon - kun når nøytralt varsel var i tide */}
                       {erRedusert_33_6_1 && (
                         <Alert variant="info" title="Reduksjon etter §33.6.1" className="mt-3">
                           Entreprenøren har kun krav på den fristforlengelsen byggherren måtte forstå
                           at han hadde krav på. I beregningssteget angir du hvor mange dager du mener
                           var forståelig ut fra omstendighetene.
+                        </Alert>
+                      )}
+                      {/* Info om §33.4 preklusjon - kun når direkte spesifisert uten tidligere nøytralt */}
+                      {!harTidligereNoytraltVarselITide && formValues.spesifisert_krav_ok === false && (
+                        <Alert variant="danger" title="Preklusjon etter §33.4" className="mt-3">
+                          Entreprenøren sendte spesifisert krav direkte uten å ha sendt foreløpig
+                          varsel i tide først. Det spesifiserte kravet fungerer dermed som varsel,
+                          og siden varselet kom for sent, er kravet prekludert.
                         </Alert>
                       )}
                     </>
@@ -1172,9 +1192,9 @@ export function RespondFristModal({
               {!varselType && (
                 <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
                   <FormField
-                    label="Varsel/krav sendt i tide? (§33.6.1)"
+                    label="Varsel/krav sendt i tide? (§33.4/§33.6)"
                     required
-                    helpText="Vurder om entreprenøren har varslet innen fristen."
+                    helpText="Vurder om entreprenøren har varslet innen fristen. Konsekvensen avhenger av om det finnes tidligere foreløpig varsel."
                   >
                     <Controller
                       name="spesifisert_krav_ok"
@@ -1189,18 +1209,24 @@ export function RespondFristModal({
                           <RadioItem value="ja" label="Ja - varslet i tide" />
                           <RadioItem
                             value="nei"
-                            label="Nei - for sent (reduseres til det byggherren måtte forstå)"
+                            label="Nei - for sent"
                           />
                         </RadioGroup>
                       )}
                     />
                   </FormField>
-                  {/* Info om §33.6.1 reduksjon */}
-                  {erRedusert_33_6_1 && (
+                  {/* Info avhengig av om det finnes tidligere nøytralt varsel */}
+                  {formValues.spesifisert_krav_ok === false && harTidligereNoytraltVarselITide && (
                     <Alert variant="info" title="Reduksjon etter §33.6.1" className="mt-3">
                       Entreprenøren har kun krav på den fristforlengelsen byggherren måtte forstå
                       at han hadde krav på. I beregningssteget angir du hvor mange dager du mener
                       var forståelig ut fra omstendighetene.
+                    </Alert>
+                  )}
+                  {formValues.spesifisert_krav_ok === false && !harTidligereNoytraltVarselITide && (
+                    <Alert variant="danger" title="Preklusjon etter §33.4" className="mt-3">
+                      Uten tidligere foreløpig varsel i tide, fungerer kravet som varsel. Siden det
+                      kom for sent, er kravet prekludert.
                     </Alert>
                   )}
                 </div>
@@ -1418,7 +1444,11 @@ export function RespondFristModal({
                   ) : erPrekludert ? (
                     <>
                       <Badge variant="danger">Prekludert (§33.4)</Badge>
-                      <span className="text-sm">Foreløpig varsel kom for sent - kravet tapes</span>
+                      <span className="text-sm">
+                        {varselType === 'noytralt'
+                          ? 'Foreløpig varsel kom for sent - kravet tapes'
+                          : 'Spesifisert krav (uten forutgående varsel) kom for sent - kravet tapes'}
+                      </span>
                     </>
                   ) : erRedusert_33_6_1 ? (
                     <>
@@ -1617,8 +1647,15 @@ export function RespondFristModal({
                           )}
                           {formValues.spesifisert_krav_ok !== fristTilstand?.spesifisert_krav_ok && (
                             <DataListItem label="Spesifisert krav">
-                              {formValues.spesifisert_krav_ok ? 'I tide' : 'Prekludert'}
-                              <span className="text-pkt-text-body-subtle"> ← {fristTilstand?.spesifisert_krav_ok ? 'I tide' : 'Prekludert'}</span>
+                              {formValues.spesifisert_krav_ok
+                                ? 'I tide'
+                                : harTidligereNoytraltVarselITide ? 'Redusert' : 'Prekludert'}
+                              <span className="text-pkt-text-body-subtle">
+                                {' ← '}
+                                {fristTilstand?.spesifisert_krav_ok
+                                  ? 'I tide'
+                                  : harTidligereNoytraltVarselITide ? 'Redusert' : 'Prekludert'}
+                              </span>
                             </DataListItem>
                           )}
                           {formValues.vilkar_oppfylt !== fristTilstand?.vilkar_oppfylt && (

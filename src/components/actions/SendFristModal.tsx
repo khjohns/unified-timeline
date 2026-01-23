@@ -294,12 +294,13 @@ export function SendFristModal({
           </Alert>
         )}
 
-        {/* §33.6.1 Reduction warning - late specification without etterlysning */}
-        {erSentUtenEtterlysning && (
-          <Alert variant="warning" title="Risiko for avkortning (§33.6.1)">
-            Det er gått <strong>{dagerSidenGrunnlag} dager</strong> siden du varslet om hendelsen.
-            Når du venter med å spesifisere, har du kun krav på den fristforlengelsen byggherren
-            «måtte forstå» at du trengte. Begrunn behovet ekstra godt.
+        {/* Varslingsfrist-advarsel - vises kun for spesifisert krav */}
+        {erSentUtenEtterlysning && selectedVarselType === 'spesifisert' && (
+          <Alert variant="warning" title="Sen innsending (§33.4/§33.6)">
+            Det er gått <strong>{dagerSidenGrunnlag} dager</strong> siden forholdet oppsto.
+            Hvis du ikke tidligere har sendt foreløpig varsel i tide, risikerer du at kravet
+            prekluderes (§33.4). Har du sendt foreløpig varsel på et tidligere tidspunkt,
+            risikerer du reduksjon til det byggherren «måtte forstå» (§33.6.1).
           </Alert>
         )}
 
