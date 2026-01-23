@@ -68,7 +68,7 @@ export function PageHeader({
             {/* Status and toggle group */}
             <div className="flex items-center gap-2">
               <ConnectionStatusIndicator />
-              <div className="h-4 w-px bg-pkt-border-subtle" />
+              <div className="h-5 w-px bg-pkt-border-subtle" />
               <FeedbackButton />
               <ThemeToggle />
               {userRole && onToggleRole && (
@@ -79,13 +79,13 @@ export function PageHeader({
             {/* Page-specific actions */}
             {actions && (
               <>
-                <div className="hidden sm:block h-6 w-px bg-pkt-border-subtle" />
+                <div className="hidden sm:block h-5 w-px bg-pkt-border-subtle" />
                 {actions}
               </>
             )}
 
             {/* Main menu */}
-            <div className="hidden sm:block h-6 w-px bg-pkt-border-subtle" />
+            <div className="hidden sm:block h-5 w-px bg-pkt-border-subtle" />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="secondary" size="sm" aria-label="Meny">

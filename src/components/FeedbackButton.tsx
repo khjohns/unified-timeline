@@ -81,7 +81,7 @@ export function FeedbackButton() {
       <button
         onClick={() => setIsOpen(true)}
         className={clsx(
-          'p-2 rounded',
+          'p-2 rounded-md',
           'text-pkt-text-body-subtle hover:text-pkt-text-body-default',
           'hover:bg-pkt-surface-light-beige',
           'focus:outline-none focus:ring-4 focus:ring-pkt-brand-purple-1000/30',
@@ -90,7 +90,7 @@ export function FeedbackButton() {
         aria-label="Gi tilbakemelding"
         title="Gi tilbakemelding"
       >
-        <ChatBubbleIcon className="w-5 h-5" />
+        <ChatBubbleIcon className="w-4 h-4" />
       </button>
 
       <Modal

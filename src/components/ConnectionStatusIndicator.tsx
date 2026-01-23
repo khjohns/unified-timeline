@@ -72,7 +72,7 @@ export function ConnectionStatusIndicator() {
   };
 
   return (
-    <div className="flex items-center gap-1.5" role="status" aria-label="Tilkoblingsstatus">
+    <div className="flex items-center gap-1" role="status" aria-label="Tilkoblingsstatus">
       <StatusDot
         state={backend}
         label="Backend"
