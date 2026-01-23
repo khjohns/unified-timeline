@@ -23,21 +23,32 @@ const options = [
  * ModeToggle provides a compact visual toggle to switch between TE and BH roles
  */
 export function ModeToggle({ userRole, onToggle }: ModeToggleProps) {
+  const activeIndex = options.findIndex((opt) => opt.value === userRole);
+
   return (
     <div
-      className="flex items-center gap-1 p-1 bg-pkt-bg-subtle rounded-lg border border-pkt-grays-gray-200"
+      className="relative flex items-center gap-1 p-1 bg-pkt-bg-subtle rounded-lg border border-pkt-grays-gray-200"
       role="group"
       aria-label="Velg rolle"
     >
+      {/* Animated pill background */}
+      <div
+        className="absolute top-1 bottom-1 rounded-md bg-pkt-bg-card shadow-sm transition-transform duration-200 ease-out"
+        style={{
+          width: `calc((100% - 0.5rem - 0.25rem) / ${options.length})`,
+          transform: `translateX(calc(${activeIndex} * (100% + 0.25rem)))`,
+        }}
+        aria-hidden="true"
+      />
       {options.map(({ value, label }) => (
         <button
           key={value}
           onClick={() => onToggle(value)}
           className={clsx(
-            'px-3 py-1.5 text-xs font-medium rounded-md transition-colors',
+            'relative z-10 px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-200',
             userRole === value
-              ? 'bg-pkt-bg-card text-pkt-text-body-dark shadow-sm'
-              : 'text-pkt-grays-gray-500 hover:text-pkt-text-body-dark hover:bg-pkt-bg-card/50'
+              ? 'text-pkt-text-body-dark'
+              : 'text-pkt-grays-gray-500 hover:text-pkt-text-body-dark'
           )}
           title={label}
           aria-label={`Bytt til ${label} modus`}
