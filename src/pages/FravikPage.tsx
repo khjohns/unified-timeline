@@ -142,7 +142,7 @@ export function FravikPage() {
     return (
       <div className="min-h-screen bg-pkt-bg-subtle">
         <PageHeader title="Laster søknad..." subtitle="Vennligst vent" />
-        <main className="max-w-3xl mx-auto px-2 py-4 sm:px-4 sm:py-6">
+        <main className="max-w-3xl mx-auto px-2 pt-2 pb-4 sm:px-4 sm:pt-3 sm:pb-6">
           <Card variant="outlined" padding="md">
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-oslo-blue" />
@@ -159,7 +159,7 @@ export function FravikPage() {
     return (
       <div className="min-h-screen bg-pkt-bg-subtle">
         <PageHeader title="Feil ved lasting" subtitle="Kunne ikke laste søknad" />
-        <main className="max-w-3xl mx-auto px-2 py-4 sm:px-4 sm:py-6">
+        <main className="max-w-3xl mx-auto px-2 pt-2 pb-4 sm:px-4 sm:pt-3 sm:pb-6">
           <Card variant="outlined" padding="md">
             <div className="text-center py-8">
               <p className="text-sm text-pkt-brand-red-1000 mb-4">
@@ -204,7 +204,7 @@ export function FravikPage() {
         }
       />
 
-      <main className="max-w-3xl mx-auto px-2 py-4 sm:px-4 sm:py-6 space-y-4">
+      <main className="max-w-3xl mx-auto px-2 pt-2 pb-4 sm:px-4 sm:pt-3 sm:pb-6 space-y-4">
         {/* Endelig beslutning banner (kun når ferdig) */}
         {state.er_ferdigbehandlet && state.endelig_beslutning && (
           <Alert

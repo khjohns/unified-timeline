@@ -229,7 +229,7 @@ export function EndringsordePage() {
       />
 
       {/* Main content */}
-      <main className="max-w-3xl mx-auto px-2 py-4 sm:px-4 sm:py-6 bg-pkt-bg-subtle min-h-[calc(100vh-88px)] space-y-4">
+      <main className="max-w-3xl mx-auto px-2 pt-2 pb-4 sm:px-4 sm:pt-3 sm:pb-6 bg-pkt-bg-subtle min-h-[calc(100vh-88px)] space-y-4">
         {/* Status and details section */}
         <section aria-labelledby="status-heading">
           <Card variant="outlined" padding="md">

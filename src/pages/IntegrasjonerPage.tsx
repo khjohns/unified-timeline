@@ -137,7 +137,7 @@ export function IntegrasjonerPage() {
         }
       />
 
-      <main className="max-w-5xl mx-auto px-2 py-4 sm:px-4 sm:py-6 space-y-6">
+      <main className="max-w-5xl mx-auto px-2 pt-2 pb-4 sm:px-4 sm:pt-3 sm:pb-6 space-y-6">
         {/* Section Header */}
         <div className="border-b border-pkt-border-subtle pb-4">
           <h2 className="text-lg font-semibold text-pkt-text-body-dark">

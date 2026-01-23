@@ -324,7 +324,7 @@ export function ForseringPage() {
       />
 
       {/* Main content */}
-      <main className="max-w-3xl mx-auto px-2 py-4 sm:px-4 sm:py-6 bg-pkt-bg-subtle min-h-[calc(100vh-88px)] space-y-4">
+      <main className="max-w-3xl mx-auto px-2 pt-2 pb-4 sm:px-4 sm:pt-3 sm:pb-6 bg-pkt-bg-subtle min-h-[calc(100vh-88px)] space-y-4">
         {/* Alert for BH position changes - free on gray background */}
         {harStandpunktEndringer && (
           <Alert variant="warning" title="Byggherre har endret standpunkt">

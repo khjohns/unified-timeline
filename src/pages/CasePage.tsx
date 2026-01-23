@@ -284,7 +284,7 @@ function CasePageContent() {
       )}
 
       {/* Main Content */}
-      <main className="max-w-3xl mx-auto px-2 py-4 sm:px-4 sm:py-6 bg-pkt-bg-subtle min-h-[calc(100vh-88px)] space-y-4">
+      <main className="max-w-3xl mx-auto px-2 pt-2 pb-4 sm:px-4 sm:pt-3 sm:pb-6 bg-pkt-bg-subtle min-h-[calc(100vh-88px)] space-y-4">
         {/* Forsering relation banner (if this case is part of a forsering) */}
         {forseringData?.forseringer && forseringData.forseringer.length > 0 && (
           <section>
