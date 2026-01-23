@@ -12,7 +12,6 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Alert,
-  AlertDialog,
   AttachmentUpload,
   Button,
   Checkbox,
@@ -26,7 +25,6 @@ import {
   Textarea,
   useToast,
 } from '../primitives';
-import { useConfirmClose } from '../../hooks/useConfirmClose';
 import { useFormBackup } from '../../hooks/useFormBackup';
 import { useFravikSubmit } from '../../hooks/useFravikSubmit';
 import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
@@ -60,7 +58,6 @@ export function InfrastrukturModal({
 }: InfrastrukturModalProps) {
   const toast = useToast();
   const [showTokenExpired, setShowTokenExpired] = useState(false);
-  const [showRestorePrompt, setShowRestorePrompt] = useState(false);
   const isEditMode = !!initialData;
 
   const {
@@ -133,12 +130,6 @@ export function InfrastrukturModal({
     }
   }, [open, initialData, reset]);
 
-  const { showConfirmDialog, setShowConfirmDialog, handleClose, confirmClose } = useConfirmClose({
-    isDirty,
-    onReset: reset,
-    onClose: () => onOpenChange(false),
-  });
-
   // Form backup for token expiry protection
   const formData = watch();
   const { getBackup, clearBackup, hasBackup } = useFormBackup(
@@ -148,30 +139,21 @@ export function InfrastrukturModal({
     isDirty
   );
 
-  // Check for backup on mount
+  // Auto-restore backup on mount (silent restoration with toast notification)
   const hasCheckedBackup = useRef(false);
   useEffect(() => {
     if (open && hasBackup && !isDirty && !hasCheckedBackup.current) {
       hasCheckedBackup.current = true;
-      setShowRestorePrompt(true);
+      const backup = getBackup();
+      if (backup) {
+        reset(backup);
+        toast.info('Skjemadata gjenopprettet', 'Fortsetter fra forrige økt.');
+      }
     }
     if (!open) {
       hasCheckedBackup.current = false;
     }
-  }, [open, hasBackup, isDirty]);
-
-  const handleRestoreBackup = () => {
-    const backup = getBackup();
-    if (backup) {
-      reset(backup);
-    }
-    setShowRestorePrompt(false);
-  };
-
-  const handleDiscardBackup = () => {
-    clearBackup();
-    setShowRestorePrompt(false);
-  };
+  }, [open, hasBackup, isDirty, getBackup, reset, toast]);
 
   const mutation = useFravikSubmit({
     onSuccess: (result) => {
@@ -767,7 +749,7 @@ export function InfrastrukturModal({
           <Button
             type="button"
             variant="ghost"
-            onClick={handleClose}
+            onClick={() => onOpenChange(false)}
             disabled={isSubmitting}
             className="w-full sm:w-auto order-2 sm:order-1"
           >
@@ -783,32 +765,6 @@ export function InfrastrukturModal({
           </Button>
         </div>
       </form>
-
-      {/* Confirm close dialog */}
-      <AlertDialog
-        open={showConfirmDialog}
-        onOpenChange={setShowConfirmDialog}
-        title="Forkast endringer?"
-        description="Du har ulagrede endringer som vil gå tapt hvis du lukker skjemaet."
-        confirmLabel="Forkast"
-        cancelLabel="Fortsett redigering"
-        onConfirm={confirmClose}
-        variant="warning"
-      />
-
-      {/* Restore backup dialog */}
-      <AlertDialog
-        open={showRestorePrompt}
-        onOpenChange={(openState) => {
-          if (!openState) handleDiscardBackup();
-        }}
-        title="Gjenopprette lagrede data?"
-        description="Det finnes data fra en tidligere økt som ikke ble sendt inn. Vil du fortsette der du slapp?"
-        confirmLabel="Gjenopprett"
-        cancelLabel="Start på nytt"
-        onConfirm={handleRestoreBackup}
-        variant="info"
-      />
 
       {/* Token expired alert */}
       <TokenExpiredAlert
