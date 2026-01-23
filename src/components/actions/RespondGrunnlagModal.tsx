@@ -397,6 +397,19 @@ export function RespondGrunnlagModal({
                 )}
               </p>
             )}
+            {/* Varslingsregler hint */}
+            {grunnlagEvent.hovedkategori && (
+              <p className="text-xs text-pkt-text-muted mt-3 pt-2 border-t border-pkt-border-subtle">
+                <span className="font-medium">Varslingsregler:</span>{' '}
+                {grunnlagEvent.hovedkategori === 'ENDRING' ? (
+                  <>Grunnlag (§32.2) · Frist (§33.4) · Vederlag (§34.1.1)</>
+                ) : grunnlagEvent.hovedkategori === 'FORCE_MAJEURE' ? (
+                  <>Frist (§33.4) – kun fristforlengelse</>
+                ) : (
+                  <>Grunnlag (§25.1.2) · Frist (§33.4) · Vederlag (§34.1.2)</>
+                )}
+              </p>
+            )}
           </SectionContainer>
         )}
 

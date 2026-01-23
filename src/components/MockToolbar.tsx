@@ -7,7 +7,7 @@
  */
 
 import { MixerHorizontalIcon } from '@radix-ui/react-icons';
-import { Checkbox } from './primitives/Checkbox';
+import { Switch } from './primitives/Switch';
 import { ApprovalRoleSelector } from './ApprovalRoleSelector';
 
 interface MockToolbarProps {
@@ -36,8 +36,8 @@ export function MockToolbar({
 
           {/* Controls */}
           <div className="flex items-center gap-3">
-            <label className="flex items-center gap-1.5 text-xs text-alert-warning-text cursor-pointer">
-              <Checkbox
+            <label className="flex items-center gap-2 text-xs text-alert-warning-text cursor-pointer">
+              <Switch
                 checked={approvalEnabled}
                 onCheckedChange={(checked) => onApprovalEnabledChange(checked === true)}
                 aria-label="Aktiver godkjenningsflyt"

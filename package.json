@@ -22,7 +22,8 @@
     "lint:a11y": "eslint . --ext .ts,.tsx --rule 'jsx-a11y/*: error'",
     "openapi:generate": "cd backend && source venv/bin/activate && python scripts/generate_openapi.py",
     "backend:test": "cd backend && source venv/bin/activate && python -m pytest",
-    "backend:run": "cd backend && source venv/bin/activate && python run.py"
+    "backend:run": "cd backend && source venv/bin/activate && python run.py",
+    "seed:users": "npx tsx scripts/seed-test-users.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -38,6 +39,7 @@
     "@radix-ui/react-radio-group": "^1.3.8",
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-separator": "^1.1.8",
+    "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-toast": "^1.2.15",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@react-pdf/renderer": "^4.3.1",
