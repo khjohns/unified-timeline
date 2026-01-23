@@ -87,14 +87,14 @@ const OPPGJORSFORM_OPTIONS: OppgjorsformOption[] = [
     label: 'Regningsarbeid',
     paragraf: '§30.2, §34.4',
     indeksregulering: 'delvis',
-    description: 'Oppgjør etter medgått tid og materialer. Timerater indeksreguleres.',
+    description: 'Oppgjør etter medgått tid og materialer. Endelig beløp fastsettes ved sluttoppgjør.',
   },
   {
     value: 'FASTPRIS_TILBUD',
     label: 'Fastpris / Tilbud',
     paragraf: '§34.2.1',
     indeksregulering: 'ingen',
-    description: 'Entreprenørens tilbud. Ikke gjenstand for indeksregulering.',
+    description: 'Entreprenørens tilbud. Fast beløp, ikke gjenstand for indeksregulering.',
   },
 ];
 
@@ -315,15 +315,37 @@ export function UtstEndringsordreModal({
       .reduce((sum, k) => sum + (k.godkjent_dager || 0), 0);
   }, [kandidatSaker, selectedKoeIds]);
 
-  // Auto-sett konsekvenser basert på KOE-valg
+  // Auto-sett konsekvenser og beløp basert på KOE-valg
   useEffect(() => {
+    // Auto-check priskonsekvens hvis det er godkjent beløp
     if (totalFromKOE > 0 && !formValues.konsekvenser_pris) {
       setValue('konsekvenser_pris', true);
     }
+    // Auto-check fremdriftskonsekvens hvis det er godkjente dager
     if (totalDagerFromKOE > 0 && !formValues.konsekvenser_fremdrift) {
       setValue('konsekvenser_fremdrift', true);
     }
-  }, [totalFromKOE, totalDagerFromKOE, formValues.konsekvenser_pris, formValues.konsekvenser_fremdrift, setValue]);
+    // Auto-fyll kompensasjon hvis tomt og vi har KOE-beløp
+    if (totalFromKOE > 0 && !formValues.kompensasjon_belop) {
+      setValue('kompensasjon_belop', totalFromKOE);
+    }
+    // Auto-fyll frist hvis tomt og vi har KOE-dager
+    if (totalDagerFromKOE > 0 && !formValues.frist_dager) {
+      setValue('frist_dager', totalDagerFromKOE);
+    }
+  }, [totalFromKOE, totalDagerFromKOE, formValues.konsekvenser_pris, formValues.konsekvenser_fremdrift, formValues.kompensasjon_belop, formValues.frist_dager, setValue]);
+
+  // Auto-sett er_estimat basert på beregningsmetode
+  // ENHETSPRISER: Estimat (mengder varierer, derav enhetspriser)
+  // REGNINGSARBEID: Estimat (kostnadsoverslag → sluttoppgjør)
+  // FASTPRIS_TILBUD: Ikke estimat (fast avtalt pris)
+  useEffect(() => {
+    if (formValues.oppgjorsform === 'FASTPRIS_TILBUD') {
+      setValue('er_estimat', false);
+    } else if (formValues.oppgjorsform) {
+      setValue('er_estimat', true);
+    }
+  }, [formValues.oppgjorsform, setValue]);
 
   const harKonsekvens =
     formValues.konsekvenser_sha ||
@@ -514,69 +536,66 @@ export function UtstEndringsordreModal({
                   </p>
                 ) : (
                   <div className="max-h-64 overflow-y-auto border border-pkt-border-subtle">
-                    <table className="w-full text-sm">
-                      <thead className="bg-pkt-surface-subtle sticky top-0">
-                        <tr className="border-b border-pkt-border-subtle">
-                          <th className="w-10 py-2 px-2"></th>
-                          <th className="text-left py-2 px-2 font-medium">Sak</th>
-                          <th className="text-right py-2 px-2 font-medium w-28">Vederlag</th>
-                          <th className="text-right py-2 px-2 font-medium w-20">Dager</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {kandidatSaker.map((koe) => {
-                          const isSelected = selectedKoeIds.includes(koe.sak_id);
-                          return (
-                            <tr
-                              key={koe.sak_id}
-                              onClick={() => toggleKoeSelection(koe.sak_id)}
-                              className={`border-b border-pkt-border-subtle cursor-pointer transition-colors ${
-                                isSelected
-                                  ? 'bg-pkt-surface-light-beige'
-                                  : 'hover:bg-pkt-surface-subtle'
-                              }`}
-                            >
-                              <td className="py-2 px-2" onClick={(e) => e.stopPropagation()}>
-                                <Checkbox
-                                  checked={isSelected}
-                                  onCheckedChange={() => toggleKoeSelection(koe.sak_id)}
-                                />
-                              </td>
-                              <td className="py-2 px-2">
-                                <p className="font-medium">{koe.tittel}</p>
-                                <p className="text-xs text-pkt-text-body-subtle">
-                                  {koe.overordnet_status}
-                                </p>
-                              </td>
-                              <td className="text-right py-2 px-2 font-mono text-pkt-brand-dark-green-1000">
-                                {koe.sum_godkjent !== undefined
-                                  ? formatCurrency(koe.sum_godkjent)
-                                  : '-'}
-                              </td>
-                              <td className="text-right py-2 px-2 font-mono">
-                                {koe.godkjent_dager ?? '-'}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                      {selectedKoeIds.length > 0 && (
-                        <tfoot className="border-t-2 border-pkt-border-default bg-pkt-surface-subtle">
-                          <tr>
-                            <td className="py-2 px-2"></td>
-                            <td className="py-2 px-2 font-bold">
-                              Totalt ({selectedKoeIds.length} valgt)
-                            </td>
-                            <td className="text-right py-2 px-2 font-mono font-bold text-pkt-brand-dark-green-1000">
+                    {/* Mobilvennlig liste-layout */}
+                    <div className="divide-y divide-pkt-border-subtle">
+                      {kandidatSaker.map((koe) => {
+                        const isSelected = selectedKoeIds.includes(koe.sak_id);
+                        return (
+                          <div
+                            key={koe.sak_id}
+                            onClick={() => toggleKoeSelection(koe.sak_id)}
+                            className={`flex items-start gap-2 p-3 cursor-pointer transition-colors ${
+                              isSelected
+                                ? 'bg-pkt-surface-light-beige'
+                                : 'hover:bg-pkt-surface-subtle'
+                            }`}
+                          >
+                            <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
+                              <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={() => toggleKoeSelection(koe.sak_id)}
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">{koe.tittel}</p>
+                              <p className="text-xs text-pkt-text-body-subtle">
+                                {koe.overordnet_status}
+                              </p>
+                              <div className="flex gap-3 mt-1 text-xs">
+                                <span className="font-mono text-pkt-brand-dark-green-1000">
+                                  {koe.sum_godkjent !== undefined
+                                    ? formatCurrency(koe.sum_godkjent)
+                                    : '-'}
+                                </span>
+                                {koe.godkjent_dager !== undefined && koe.godkjent_dager > 0 && (
+                                  <span className="text-pkt-text-body-subtle">
+                                    {koe.godkjent_dager} dager
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {/* Totalsum */}
+                    {selectedKoeIds.length > 0 && (
+                      <div className="border-t-2 border-pkt-border-default bg-pkt-surface-subtle p-3">
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="font-bold">Totalt ({selectedKoeIds.length} valgt)</span>
+                          <div className="text-right">
+                            <span className="font-mono font-bold text-pkt-brand-dark-green-1000">
                               {formatCurrency(totalFromKOE)}
-                            </td>
-                            <td className="text-right py-2 px-2 font-mono font-bold">
-                              {totalDagerFromKOE}
-                            </td>
-                          </tr>
-                        </tfoot>
-                      )}
-                    </table>
+                            </span>
+                            {totalDagerFromKOE > 0 && (
+                              <span className="text-pkt-text-body-subtle ml-2">
+                                / {totalDagerFromKOE} dager
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </SectionContainer>
@@ -731,7 +750,10 @@ export function UtstEndringsordreModal({
                       </FormField>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <FormField label="Kompensasjon (tillegg)">
+                        <FormField
+                          label="Kompensasjon (tillegg)"
+                          helpText={totalFromKOE > 0 ? `Fra valgte KOE: ${formatCurrency(totalFromKOE)}` : undefined}
+                        >
                           <Controller
                             name="kompensasjon_belop"
                             control={control}
@@ -769,19 +791,12 @@ export function UtstEndringsordreModal({
                         </div>
                       </div>
 
-                      <Controller
-                        name="er_estimat"
-                        control={control}
-                        render={({ field }) => (
-                          <Checkbox
-                            id="er_estimat"
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            label="Beløpet er et estimat"
-                            description="Endelig beløp fastsettes ved sluttoppgjør"
-                          />
-                        )}
-                      />
+                      {/* Info om oppgjør ved sluttoppgjør (kun regningsarbeid trenger eksplisitt merknad) */}
+                      {formValues.oppgjorsform === 'REGNINGSARBEID' && (
+                        <Alert variant="info" title="Oppgjør ved sluttoppgjør">
+                          Endelig beløp fastsettes basert på dokumenterte kostnader.
+                        </Alert>
+                      )}
                     </div>
                   )}
 
@@ -792,7 +807,10 @@ export function UtstEndringsordreModal({
                         <h4 className="font-medium text-sm">Fristforlengelse</h4>
                       )}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <FormField label="Antall dager">
+                        <FormField
+                          label="Antall dager"
+                          helpText={totalDagerFromKOE > 0 ? `Fra valgte KOE: ${totalDagerFromKOE} dager` : undefined}
+                        >
                           <Controller
                             name="frist_dager"
                             control={control}
@@ -866,16 +884,14 @@ export function UtstEndringsordreModal({
                   </div>
                 )}
 
-                {/* Consequences */}
+                {/* Consequences - kun valgte */}
                 <StatusSummary title="Konsekvenser">
-                  {!formValues.konsekvenser_sha && <Badge variant="success">Ingen SHA</Badge>}
                   {formValues.konsekvenser_sha && <Badge variant="warning">SHA</Badge>}
-                  {!formValues.konsekvenser_kvalitet && <Badge variant="success">Ingen kvalitet</Badge>}
                   {formValues.konsekvenser_kvalitet && <Badge variant="warning">Kvalitet</Badge>}
-                  {!formValues.konsekvenser_fremdrift && <Badge variant="success">Ingen fremdrift</Badge>}
                   {formValues.konsekvenser_fremdrift && <Badge variant="warning">Fremdrift</Badge>}
-                  {!formValues.konsekvenser_pris && <Badge variant="success">Ingen pris</Badge>}
                   {formValues.konsekvenser_pris && <Badge variant="warning">Pris</Badge>}
+                  {formValues.konsekvenser_annet && <Badge variant="warning">Annet</Badge>}
+                  {!harKonsekvens && <Badge variant="default">Ingen konsekvenser</Badge>}
                 </StatusSummary>
 
                 {/* Settlement */}
