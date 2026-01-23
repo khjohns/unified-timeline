@@ -14,8 +14,8 @@ export function Footer() {
     <footer className="mt-auto border-t border-pkt-border-subtle bg-pkt-bg-subtle py-4 px-6">
       <div className="max-w-3xl mx-auto space-y-4">
         {/* NS 8407 Disclaimer */}
-        <div className="text-xs text-pkt-grays-gray-500 max-w-3xl">
-          <p className="font-medium text-pkt-grays-gray-600 mb-1">Viktig informasjon om NS 8407</p>
+        <div className="text-xs text-pkt-text-body-subtle max-w-3xl">
+          <p className="font-medium text-pkt-text-body-muted mb-1">Viktig informasjon om NS 8407</p>
           <p>
             Denne løsningen er et digitalt hjelpeverktøy for håndtering av endringsordrer etter
             NS 8407:2011. Systemet erstatter ikke den offisielle kontraktsteksten og gir ingen
@@ -31,7 +31,7 @@ export function Footer() {
         </div>
 
         {/* Copyright and links */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-pkt-grays-gray-600 pt-2 border-t border-pkt-border-subtle">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-pkt-text-body-muted pt-2 border-t border-pkt-border-subtle">
           <p>&copy; {currentYear} Oslobygg KF. Alle rettigheter reservert.</p>
           <nav className="flex items-center gap-4">
             <Link
@@ -40,7 +40,7 @@ export function Footer() {
             >
               Personvernerklæring
             </Link>
-            <span className="text-pkt-grays-gray-300">|</span>
+            <span className="w-px h-4 bg-pkt-border-subtle" aria-hidden="true" />
             <Link
               to="/cookies"
               className="hover:text-pkt-brand-warm-blue-1000 hover:underline transition-colors"
