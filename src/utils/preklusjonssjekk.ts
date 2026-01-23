@@ -3,6 +3,23 @@
  *
  * Functions for checking notification deadlines and preclusion risks
  * based on NS 8407 Norwegian Standard.
+ *
+ * Viktig: NS 8407 har forskjellige preklusjonsregler for grunnlag vs vederlag:
+ *
+ * Grunnlagsvarsel (brukes i SendGrunnlagModal):
+ * - ENDRING (§32.2): Taper retten til å påberope at forholdet er en endring
+ * - SVIKT/ANDRE (§25.1.2): BH kan kreve erstatning for tap som kunne vært unngått
+ * - FORCE_MAJEURE (§33.4): Taper retten til fristforlengelse
+ *
+ * Vederlagsvarsel - ulikt per hovedkategori:
+ * - ENDRING (§34.1.1): Ingen preklusjon - TE taper ikke vederlagskravet ved sen varsling
+ * - SVIKT/ANDRE (§34.1.2): Preklusjon - «Krav på vederlagsjustering tapes»
+ * - FORCE_MAJEURE: Ingen vederlag (kun fristforlengelse)
+ *
+ * Særskilte krav (§34.1.3) - gjelder alle hovedkategorier:
+ * - Rigg/drift og produktivitetstap krever særskilt varsel
+ * - Preklusjon: «taper han retten til å påberope seg påløpte utgifter»
+ * - Sjekkes med sjekkRiggDriftFrist()
  */
 
 import { differenceInDays, parseISO } from 'date-fns';
@@ -53,12 +70,15 @@ export function erPreklusjonKritisk(dager: number, regelType?: string): boolean 
 }
 
 /**
- * Get category-specific preclusion consequence text
+ * Get category-specific preclusion consequence text for GRUNNLAGSVARSEL.
  *
- * Preklusjonskonsekvensene er forskjellige per hovedkategori:
+ * MERK: Dette gjelder KUN grunnlagsvarsel, IKKE vederlagsvarsel.
+ * For vederlag, se sjekkVederlagspreklusjon().
+ *
+ * Grunnlagspreklusjon per hovedkategori:
  * - ENDRING (§32.2): Taper retten til å påberope at forholdet innebærer en endring
  * - SVIKT/ANDRE (§25.1.2): BH kan kreve erstatning for tap som kunne vært unngått
- * - FORCE_MAJEURE: Kun fristforlengelse, standard preklusjonsregel (§33.4)
+ * - FORCE_MAJEURE (§33.4): Taper retten til fristforlengelse
  */
 function getPreklusjonskonsekvens(hovedkategori?: string): {
   kritiskTittel: string;
@@ -341,4 +361,102 @@ export function getPreklusjonsvarselMellomDatoer(
     status: 'ok',
     dagerSiden: dager,
   };
+}
+
+// ============================================================================
+// VEDERLAGSPREKLUSJON (§34.1.1 vs §34.1.2)
+// ============================================================================
+
+/**
+ * Vederlagspreklusjon - resultat fra sjekk
+ */
+export interface VederlagspreklusjonsResultat {
+  /** Om preklusjon gjelder for denne hovedkategorien */
+  harPreklusjon: boolean;
+  /** Hjemmel for preklusjonsregelen (eller mangel på sådan) */
+  hjemmel: string;
+  /** Forklaring til brukeren */
+  forklaring: string;
+  /** Alert-konfigurasjon hvis relevant */
+  alert?: AlertConfig;
+}
+
+/**
+ * Sjekk om vederlagspreklusjon gjelder for gitt hovedkategori.
+ *
+ * NS 8407 har forskjellige regler:
+ * - §34.1.1 (ENDRING): Ingen preklusjon - TE taper ikke vederlagskravet
+ * - §34.1.2 (SVIKT/ANDRE): Preklusjon - kravet tapes ved for sen varsling
+ * - FORCE_MAJEURE: Ingen vederlag (kun fristforlengelse)
+ *
+ * Merk: Dette gjelder hovedkravet. Særskilte krav (§34.1.3) har alltid
+ * preklusjon uavhengig av hovedkategori - bruk sjekkRiggDriftFrist() for disse.
+ *
+ * @param hovedkategori - ENDRING, SVIKT, ANDRE, eller FORCE_MAJEURE
+ * @param dagerSidenOppdagelse - Antall dager siden forholdet ble oppdaget
+ * @returns VederlagspreklusjonsResultat med info om preklusjon gjelder
+ */
+export function sjekkVederlagspreklusjon(
+  hovedkategori: string,
+  dagerSidenOppdagelse?: number
+): VederlagspreklusjonsResultat {
+  switch (hovedkategori) {
+    case 'ENDRING':
+      // §34.1.1: Ingen preklusjonsregel for vederlag ved endringer
+      return {
+        harPreklusjon: false,
+        hjemmel: '§34.1.1',
+        forklaring:
+          'Ved endringer (§34.1.1) tapes ikke vederlagskravet selv om varselet kommer sent. ' +
+          'Men grunnlagsvarselet (§32.2) må fortsatt sendes i tide for å påberope at forholdet er en endring.',
+      };
+
+    case 'SVIKT':
+    case 'ANDRE':
+      // §34.1.2: Preklusjon - kravet tapes
+      const erKritisk = dagerSidenOppdagelse !== undefined && dagerSidenOppdagelse > KRITISK_TERSKEL_DAGER;
+      const erVarsel = dagerSidenOppdagelse !== undefined && dagerSidenOppdagelse > VARSEL_TERSKEL_DAGER;
+
+      const resultat: VederlagspreklusjonsResultat = {
+        harPreklusjon: true,
+        hjemmel: '§34.1.2',
+        forklaring:
+          'Ved svikt eller andre forhold (§34.1.2) tapes vederlagskravet dersom det ikke varsles ' +
+          '«uten ugrunnet opphold» etter at TE blir eller burde ha blitt klar over forholdet.',
+      };
+
+      // Legg til alert hvis dager er oppgitt og terskel er overskredet
+      if (erKritisk) {
+        resultat.alert = {
+          variant: 'danger',
+          title: 'Preklusjonsfare - vederlagskrav (§34.1.2)',
+          message:
+            `Det er gått ${dagerSidenOppdagelse} dager siden forholdet ble oppdaget. ` +
+            'Krav på vederlagsjustering kan være tapt. Dokumenter godt hvorfor varsling tok tid.',
+        };
+      } else if (erVarsel) {
+        resultat.alert = {
+          variant: 'warning',
+          title: 'Varsle snart - vederlagskrav (§34.1.2)',
+          message:
+            `Det er gått ${dagerSidenOppdagelse} dager. Vederlagskravet tapes dersom det ikke varsles i tide.`,
+        };
+      }
+
+      return resultat;
+
+    case 'FORCE_MAJEURE':
+      return {
+        harPreklusjon: false,
+        hjemmel: '§33.3',
+        forklaring: 'Force majeure gir kun fristforlengelse, ikke vederlagsjustering.',
+      };
+
+    default:
+      return {
+        harPreklusjon: true,
+        hjemmel: '§34.1.2',
+        forklaring: 'Ukjent kategori - anvender standard preklusjonsregel (§34.1.2).',
+      };
+  }
 }

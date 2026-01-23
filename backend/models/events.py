@@ -223,6 +223,7 @@ class SubsidiaerTrigger(str, Enum):
     FORSERINGSRETT_AVSLATT = "forseringsrett_avslatt"  # TE har ikke forseringsrett (§33.8)
 
     # Nivå 1: Preklusjon (Vederlag)
+    PREKLUSJON_HOVEDKRAV = "preklusjon_hovedkrav"  # Hovedkrav varslet for sent (§34.1.2) - kun SVIKT/ANDRE
     PREKLUSJON_RIGG = "preklusjon_rigg"  # Rigg/drift varslet for sent (§34.1.3)
     PREKLUSJON_PRODUKTIVITET = "preklusjon_produktivitet"  # Produktivitet varslet for sent (§34.1.3)
     PREKLUSJON_EP_JUSTERING = "preklusjon_ep_justering"  # EP-justering varslet for sent (§34.3.3)
@@ -800,7 +801,13 @@ class VederlagResponsData(BaseModel):
         description="Event-ID til vederlagskravet som besvares"
     )
 
-    # ============ PORT 1: PREKLUSJON AV SÆRSKILTE KRAV (§34.1.3) ============
+    # ============ PORT 1: PREKLUSJON (§34.1.2 og §34.1.3) ============
+    # §34.1.2: Hovedkrav - kun for SVIKT/ANDRE (ikke ENDRING per §34.1.1)
+    hovedkrav_varslet_i_tide: Optional[bool] = Field(
+        default=None,
+        description="Er vederlagskravet varslet i tide? (§34.1.2) - kun relevant for SVIKT/ANDRE"
+    )
+    # §34.1.3: Særskilte krav
     rigg_varslet_i_tide: Optional[bool] = Field(
         default=None,
         description="Er rigg/drift-kravet varslet i tide? (§34.1.3)"

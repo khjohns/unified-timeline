@@ -40,7 +40,7 @@ import { useSubmitEvent } from '../../hooks/useSubmitEvent';
 import { useFormBackup } from '../../hooks/useFormBackup';
 import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { sjekkRiggDriftFrist } from '../../utils/preklusjonssjekk';
+import { sjekkRiggDriftFrist, sjekkVederlagspreklusjon, beregnDagerSiden } from '../../utils/preklusjonssjekk';
 import { VederlagMethodSelector, type VederlagsMetode } from './shared';
 
 const vederlagSchema = z.object({
@@ -91,6 +91,8 @@ interface GrunnlagEventInfo {
   status?: 'godkjent' | 'avslatt' | 'delvis_godkjent';
   dato_varslet?: string;
   dato_oppdaget?: string;
+  /** Hovedkategori for preklusjonssjekk (§34.1.1 vs §34.1.2) */
+  hovedkategori?: 'ENDRING' | 'SVIKT' | 'ANDRE' | 'FORCE_MAJEURE';
 }
 
 interface SendVederlagModalProps {
@@ -212,6 +214,15 @@ export function SendVederlagModal({
     return sjekkRiggDriftFrist(datoKlarOverProduktivitet);
   }, [harProduktivitetKrav, datoKlarOverProduktivitet]);
 
+  // Check vederlagspreklusjon based on hovedkategori (§34.1.1 vs §34.1.2)
+  const vederlagsPreklusjon = useMemo(() => {
+    if (!grunnlagEvent?.hovedkategori) return null;
+    const dager = grunnlagEvent.dato_oppdaget
+      ? beregnDagerSiden(grunnlagEvent.dato_oppdaget)
+      : undefined;
+    return sjekkVederlagspreklusjon(grunnlagEvent.hovedkategori, dager);
+  }, [grunnlagEvent?.hovedkategori, grunnlagEvent?.dato_oppdaget]);
+
   const onSubmit = (data: VederlagFormData) => {
     // Show pending toast immediately for better UX
     pendingToastId.current = toast.pending('Sender krav...', 'Vennligst vent mens kravet behandles.');
@@ -271,6 +282,13 @@ export function SendVederlagModal({
         {erSubsidiaer && (
           <Alert variant="info" title="Subsidiær behandling">
             Grunnlaget er avvist – kravet behandles subsidiært for å sikre fristene i NS 8407.
+          </Alert>
+        )}
+
+        {/* Vederlagspreklusjon varsel (§34.1.1 vs §34.1.2) */}
+        {vederlagsPreklusjon?.alert && (
+          <Alert variant={vederlagsPreklusjon.alert.variant} title={vederlagsPreklusjon.alert.title}>
+            {vederlagsPreklusjon.alert.message}
           </Alert>
         )}
 

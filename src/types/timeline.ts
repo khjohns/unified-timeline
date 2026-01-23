@@ -88,6 +88,7 @@ export type GrunnlagResponsResultat =
 export type SubsidiaerTrigger =
   | 'grunnlag_avslatt'         // Nivå 0: BH avslo ansvarsgrunnlaget
   | 'forseringsrett_avslatt'   // Nivå 0: TE har ikke forseringsrett (§33.8)
+  | 'preklusjon_hovedkrav'     // Nivå 1: Hovedkrav varslet for sent (§34.1.2) - kun SVIKT/ANDRE
   | 'preklusjon_rigg'          // Nivå 1: Rigg/drift varslet for sent (§34.1.3)
   | 'preklusjon_produktivitet' // Nivå 1: Produktivitet varslet for sent (§34.1.3)
   | 'preklusjon_ep_justering'  // Nivå 1: EP-justering varslet for sent (§34.3.3)

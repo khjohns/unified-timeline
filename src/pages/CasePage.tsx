@@ -612,6 +612,7 @@ function CasePageContent() {
               tittel: state.sakstittel,
               status: grunnlagStatus,
               dato_oppdaget: state.grunnlag.dato_oppdaget,
+              hovedkategori: state.grunnlag.hovedkategori as 'ENDRING' | 'SVIKT' | 'ANDRE' | 'FORCE_MAJEURE' | undefined,
             }}
             onCatendaWarning={() => setShowCatendaWarning(true)}
           />
@@ -657,6 +658,7 @@ function CasePageContent() {
             sakId={sakId}
             vederlagKravId={`vederlag-${sakId}`}
             grunnlagStatus={grunnlagStatus}
+            hovedkategori={state.grunnlag.hovedkategori as 'ENDRING' | 'SVIKT' | 'ANDRE' | 'FORCE_MAJEURE' | undefined}
             vederlagEvent={{
               metode: state.vederlag.metode,
               belop_direkte: state.vederlag.belop_direkte,
@@ -664,6 +666,8 @@ function CasePageContent() {
               begrunnelse: state.vederlag.begrunnelse,
               krever_justert_ep: state.vederlag.krever_justert_ep,
               saerskilt_krav: state.vederlag.saerskilt_krav,
+              dato_oppdaget: state.grunnlag.dato_oppdaget,
+              dato_krav_mottatt: state.vederlag.dato_krav_sendt,
             }}
             onCatendaWarning={() => setShowCatendaWarning(true)}
             approvalEnabled={approvalWorkflow.approvalEnabled}
@@ -788,6 +792,7 @@ function CasePageContent() {
             sakId={sakId}
             vederlagKravId={`vederlag-${sakId}`}
             grunnlagStatus={grunnlagStatus}
+            hovedkategori={state.grunnlag.hovedkategori as 'ENDRING' | 'SVIKT' | 'ANDRE' | 'FORCE_MAJEURE' | undefined}
             vederlagEvent={{
               metode: state.vederlag.metode,
               belop_direkte: state.vederlag.belop_direkte,
@@ -795,6 +800,8 @@ function CasePageContent() {
               begrunnelse: state.vederlag.begrunnelse,
               krever_justert_ep: state.vederlag.krever_justert_ep,
               saerskilt_krav: state.vederlag.saerskilt_krav,
+              dato_oppdaget: state.grunnlag.dato_oppdaget,
+              dato_krav_mottatt: state.vederlag.dato_krav_sendt,
             }}
             lastResponseEvent={{
               event_id: `vederlag-response-${sakId}`,

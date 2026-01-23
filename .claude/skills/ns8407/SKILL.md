@@ -105,6 +105,30 @@ Strukturen nedenfor matcher **eksakt** `src/constants/categories.ts`.
 | ANDRE | Regningsarbeid (§34.4) |
 | FORCE_MAJEURE | Ingen (kun tid) |
 
+### Vederlagspreklusjon - viktig skille
+
+**§34.1.1 (ENDRING):** Ingen preklusjonsregel for vederlagskravet.
+> «Partene har krav på justering av vederlaget dersom det foreligger en endring»
+
+TE taper ikke vederlagskravet selv om varselet kommer sent. Men grunnlagsvarselet (§32.2) må sendes i tide for å påberope at forholdet er en endring.
+
+**§34.1.2 (SVIKT/ANDRE):** Preklusjon - kravet tapes.
+> «Krav på vederlagsjustering tapes dersom det ikke varsles innen fristen.»
+
+TE må varsle «uten ugrunnet opphold» etter at han blir eller burde ha blitt klar over forholdet.
+
+**§34.1.3 (Særskilte krav):** Preklusjon for rigg/drift og produktivitetstap - gjelder alle hovedkategorier.
+> «Gir han ikke slikt varsel, taper han retten til å påberope seg påløpte utgifter»
+
+| Hovedkategori | Vederlagspreklusjon | Hjemmel |
+|---------------|---------------------|---------|
+| ENDRING | Nei | §34.1.1 |
+| SVIKT | Ja - kravet tapes | §34.1.2 |
+| ANDRE | Ja - kravet tapes | §34.1.2 |
+| FORCE_MAJEURE | N/A (kun tid) | §33.3 |
+
+**Implementasjon:** `sjekkVederlagspreklusjon()` i `src/utils/preklusjonssjekk.ts`
+
 ---
 
 ## Fristsporet

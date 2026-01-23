@@ -96,6 +96,8 @@ interface VederlagEventInfo {
   };
   /** Date when the claim was received (for BH response time tracking) */
   dato_krav_mottatt?: string;
+  /** Date when TE discovered the issue (for §34.1.2 preclusion check) */
+  dato_oppdaget?: string;
 }
 
 /** Previous response data for update mode */
@@ -105,6 +107,7 @@ interface LastResponseEvent {
   godkjent_belop?: number;
   respondedToVersion?: number;
   // Previous evaluations for pre-filling
+  hovedkrav_varslet_i_tide?: boolean;
   rigg_varslet_i_tide?: boolean;
   produktivitet_varslet_i_tide?: boolean;
   aksepterer_metode?: boolean;
@@ -129,6 +132,8 @@ interface RespondVederlagModalProps {
   vederlagEvent?: VederlagEventInfo;
   /** Status of the grunnlag response (for subsidiary treatment) */
   grunnlagStatus?: 'godkjent' | 'avslatt' | 'delvis_godkjent';
+  /** Hovedkategori - påvirker om §34.1.2 preklusjon gjelder (kun SVIKT/ANDRE) */
+  hovedkategori?: 'ENDRING' | 'SVIKT' | 'ANDRE' | 'FORCE_MAJEURE';
   /** Callback when Catenda sync was skipped or failed */
   onCatendaWarning?: () => void;
   /** When true, show "Lagre utkast" instead of "Send svar" for approval workflow */
@@ -151,6 +156,9 @@ interface RespondVederlagModalProps {
 // ============================================================================
 
 const respondVederlagSchema = z.object({
+  // Port 1: Hovedkrav preklusjon (§34.1.2) - kun for SVIKT/ANDRE
+  hovedkrav_varslet_i_tide: z.boolean().optional(),
+
   // Port 1: Særskilte krav preklusjon (kun §34.1.3)
   rigg_varslet_i_tide: z.boolean().optional(),
   produktivitet_varslet_i_tide: z.boolean().optional(),
@@ -261,6 +269,7 @@ export function RespondVederlagModal({
   vederlagKravId,
   vederlagEvent,
   grunnlagStatus,
+  hovedkategori,
   onCatendaWarning,
   approvalEnabled = false,
   onSaveDraft,
@@ -285,15 +294,33 @@ export function RespondVederlagModal({
   const harProduktivitetKrav = (vederlagEvent?.saerskilt_krav?.produktivitet?.belop ?? 0) > 0;
   const harSaerskiltKrav = harRiggKrav || harProduktivitetKrav;
 
-  // Calculate total ports (5 with særskilte krav, 4 without)
+  // §34.1.2 preklusjon gjelder kun for SVIKT/ANDRE (ikke ENDRING per §34.1.1)
+  const har34_1_2_Preklusjon = hovedkategori === 'SVIKT' || hovedkategori === 'ANDRE';
+
+  // Beregn dager mellom oppdagelse og vederlagskrav (for §34.1.2 info)
+  const dagerFraOppdagelseTilKrav = useMemo(() => {
+    if (!vederlagEvent?.dato_oppdaget || !vederlagEvent?.dato_krav_mottatt) return null;
+    try {
+      const oppdaget = new Date(vederlagEvent.dato_oppdaget);
+      const krav = new Date(vederlagEvent.dato_krav_mottatt);
+      return differenceInDays(krav, oppdaget);
+    } catch {
+      return null;
+    }
+  }, [vederlagEvent?.dato_oppdaget, vederlagEvent?.dato_krav_mottatt]);
+
+  // Calculate total ports (5 with preklusjon-steg, 4 without)
+  // Preklusjon-steg vises når: harSaerskiltKrav ELLER har34_1_2_Preklusjon
+  const harPreklusjonsSteg = harSaerskiltKrav || har34_1_2_Preklusjon;
   const startPort = 1;
-  const totalPorts = harSaerskiltKrav ? 5 : 4;
+  const totalPorts = harPreklusjonsSteg ? 5 : 4;
 
   // Compute defaultValues based on mode
   const computedDefaultValues = useMemo((): Partial<RespondVederlagFormData> => {
     if (isUpdateMode && lastResponseEvent) {
       // UPDATE MODE: Pre-fill from previous response
       return {
+        hovedkrav_varslet_i_tide: lastResponseEvent.hovedkrav_varslet_i_tide ?? true,
         aksepterer_metode: lastResponseEvent.aksepterer_metode ?? true,
         oensket_metode: lastResponseEvent.oensket_metode,
         hovedkrav_vurdering: lastResponseEvent.hovedkrav_vurdering ?? 'godkjent',
@@ -311,6 +338,7 @@ export function RespondVederlagModal({
     }
     // NEW RESPONSE MODE: Default values
     return {
+      hovedkrav_varslet_i_tide: true,
       aksepterer_metode: true,
       hovedkrav_vurdering: 'godkjent',
       rigg_varslet_i_tide: true,
@@ -446,6 +474,9 @@ export function RespondVederlagModal({
     : 0;
   const bhSvarpliktAdvarsel = dagerSidenKrav > 7;
 
+  // Check if hovedkrav is precluded (§34.1.2 - kun SVIKT/ANDRE)
+  const hovedkravPrekludert = har34_1_2_Preklusjon && formValues.hovedkrav_varslet_i_tide === false;
+
   // Check if særskilte krav are precluded
   const riggPrekludert = harRiggKrav && formValues.rigg_varslet_i_tide === false;
   const produktivitetPrekludert =
@@ -468,11 +499,13 @@ export function RespondVederlagModal({
     // Principal godkjent (respects preclusion)
     let totalGodkjent = 0;
 
-    // Hovedkrav
-    if (formValues.hovedkrav_vurdering === 'godkjent') {
-      totalGodkjent += hovedkravBelop || 0;
-    } else if (formValues.hovedkrav_vurdering === 'delvis') {
-      totalGodkjent += formValues.hovedkrav_godkjent_belop || 0;
+    // Hovedkrav (kun hvis ikke prekludert per §34.1.2 - prinsipalt)
+    if (!hovedkravPrekludert) {
+      if (formValues.hovedkrav_vurdering === 'godkjent') {
+        totalGodkjent += hovedkravBelop || 0;
+      } else if (formValues.hovedkrav_vurdering === 'delvis') {
+        totalGodkjent += formValues.hovedkrav_godkjent_belop || 0;
+      }
     }
 
     // Rigg (kun hvis ikke prekludert - prinsipalt)
@@ -493,8 +526,17 @@ export function RespondVederlagModal({
       }
     }
 
-    // Subsidiary godkjent (includes precluded særskilte krav evaluations)
+    // Subsidiary godkjent (includes precluded krav evaluations)
     let totalGodkjentInklPrekludert = totalGodkjent;
+
+    // Add precluded hovedkrav (subsidiært - §34.1.2)
+    if (hovedkravPrekludert) {
+      if (formValues.hovedkrav_vurdering === 'godkjent') {
+        totalGodkjentInklPrekludert += hovedkravBelop || 0;
+      } else if (formValues.hovedkrav_vurdering === 'delvis') {
+        totalGodkjentInklPrekludert += formValues.hovedkrav_godkjent_belop || 0;
+      }
+    }
 
     // Add precluded rigg (subsidiært)
     if (harRiggKrav && riggPrekludert) {
@@ -521,7 +563,7 @@ export function RespondVederlagModal({
       totalGodkjentInklPrekludert,
       harMetodeendring: !formValues.aksepterer_metode,
       holdTilbake: formValues.hold_tilbake === true,
-      harPrekludertKrav: riggPrekludert || produktivitetPrekludert,
+      harPrekludertKrav: hovedkravPrekludert || riggPrekludert || produktivitetPrekludert,
     };
   }, [
     formValues,
@@ -654,7 +696,7 @@ export function RespondVederlagModal({
 
   // Steps configuration - 5 steps with optional preklusjon
   const steps = useMemo(() => {
-    if (harSaerskiltKrav) {
+    if (harPreklusjonsSteg) {
       return [
         { label: 'Oversikt' },
         { label: 'Preklusjon' },
@@ -669,13 +711,13 @@ export function RespondVederlagModal({
       { label: 'Beløp' },
       { label: 'Oppsummering' },
     ];
-  }, [harSaerskiltKrav]);
+  }, [harPreklusjonsSteg]);
 
   // Determine which step type we're on based on currentPort
   const getStepType = useCallback(
     (port: number): 'oversikt' | 'preklusjon' | 'metode' | 'belop' | 'oppsummering' => {
       if (port === 1) return 'oversikt';
-      if (harSaerskiltKrav) {
+      if (harPreklusjonsSteg) {
         if (port === 2) return 'preklusjon';
         if (port === 3) return 'metode';
         if (port === 4) return 'belop';
@@ -686,7 +728,7 @@ export function RespondVederlagModal({
         return 'oppsummering';
       }
     },
-    [harSaerskiltKrav]
+    [harPreklusjonsSteg]
   );
 
   const currentStepType = getStepType(currentPort);
@@ -698,6 +740,7 @@ export function RespondVederlagModal({
     // Validate current port based on step type
     if (currentStepType === 'preklusjon') {
       isValid = await trigger([
+        'hovedkrav_varslet_i_tide',
         'rigg_varslet_i_tide',
         'produktivitet_varslet_i_tide',
       ]);
@@ -746,6 +789,7 @@ export function RespondVederlagModal({
 
     // Beregn subsidiære triggere basert på Port 1 og 2 valg
     const triggers: SubsidiaerTrigger[] = [];
+    if (hovedkravPrekludert) triggers.push('preklusjon_hovedkrav');
     if (riggPrekludert) triggers.push('preklusjon_rigg');
     if (produktivitetPrekludert) triggers.push('preklusjon_produktivitet');
     // §34.3.3: EP-justering prekludert hvis TE krevde det men BH avviser varselet
@@ -792,6 +836,7 @@ export function RespondVederlagModal({
           begrunnelse: samletBegrunnelse,
 
           // Port 1: Preklusjon
+          hovedkrav_varslet_i_tide: har34_1_2_Preklusjon ? data.hovedkrav_varslet_i_tide : undefined,
           rigg_varslet_i_tide: data.rigg_varslet_i_tide,
           produktivitet_varslet_i_tide: data.produktivitet_varslet_i_tide,
 
@@ -838,6 +883,7 @@ export function RespondVederlagModal({
           vederlag_krav_id: vederlagKravId,
 
           // Port 1: Preklusjon
+          hovedkrav_varslet_i_tide: har34_1_2_Preklusjon ? data.hovedkrav_varslet_i_tide : undefined,
           rigg_varslet_i_tide: data.rigg_varslet_i_tide,
           produktivitet_varslet_i_tide: data.produktivitet_varslet_i_tide,
 
@@ -1030,21 +1076,21 @@ export function RespondVederlagModal({
               <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
                 <h4 className="font-medium text-sm mb-3">Hva du skal vurdere</h4>
                 <div className="space-y-2 text-sm">
-                  {harSaerskiltKrav && (
+                  {harPreklusjonsSteg && (
                     <div className="flex gap-3">
                       <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">Steg 2</span>
                       <div>
                         <span className="font-medium">Preklusjon</span>
                         <span className="text-pkt-text-body-subtle">
                           {' '}
-                          — Ta stilling til om særskilte krav ble varslet i tide
+                          — Ta stilling til om kravene ble varslet i tide
                         </span>
                       </div>
                     </div>
                   )}
                   <div className="flex gap-3">
                     <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">
-                      Steg {harSaerskiltKrav ? 3 : 2}
+                      Steg {harPreklusjonsSteg ? 3 : 2}
                     </span>
                     <div>
                       <span className="font-medium">Beregningsmetode</span>
@@ -1056,7 +1102,7 @@ export function RespondVederlagModal({
                   </div>
                   <div className="flex gap-3">
                     <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">
-                      Steg {harSaerskiltKrav ? 4 : 3}
+                      Steg {harPreklusjonsSteg ? 4 : 3}
                     </span>
                     <div>
                       <span className="font-medium">Beløp</span>
@@ -1065,7 +1111,7 @@ export function RespondVederlagModal({
                   </div>
                   <div className="flex gap-3">
                     <span className="font-mono text-pkt-text-body-subtle w-16 shrink-0">
-                      Steg {harSaerskiltKrav ? 5 : 4}
+                      Steg {harPreklusjonsSteg ? 5 : 4}
                     </span>
                     <div>
                       <span className="font-medium">Oppsummering</span>
@@ -1078,17 +1124,73 @@ export function RespondVederlagModal({
           )}
 
           {/* ================================================================
-              STEG 2 (med særskilte krav): PREKLUSJON (§34.1.3)
+              STEG 2 (med særskilte krav): PREKLUSJON (§34.1.2 og §34.1.3)
               ================================================================ */}
           {currentStepType === 'preklusjon' && (
             <SectionContainer
-              title="Preklusjon av særskilte krav (§34.1.3)"
-              description="Disse postene krever særskilt varsel. Ved manglende varsel tapes kravet."
+              title={har34_1_2_Preklusjon ? "Preklusjon (§34.1.2 og §34.1.3)" : "Preklusjon av særskilte krav (§34.1.3)"}
+              description={har34_1_2_Preklusjon
+                ? "Vurder om kravene ble varslet i tide. Ved manglende varsel tapes kravet."
+                : "Disse postene krever særskilt varsel. Ved manglende varsel tapes kravet."}
             >
-              <Alert variant="warning" className="mb-4">
-                Entreprenøren må ha varslet «uten ugrunnet opphold» etter at han ble klar over at
-                forholdet ville medføre økte rigg/drift-kostnader eller produktivitetstap.
-              </Alert>
+              {/* §34.1.2: Hovedkrav preklusjon (kun SVIKT/ANDRE) */}
+              {har34_1_2_Preklusjon && (
+                <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle mb-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="info">Hovedkrav (§34.1.2)</Badge>
+                      <span className="font-mono">
+                        kr {hovedkravBelop?.toLocaleString('nb-NO') || 0},-
+                      </span>
+                    </div>
+                    {dagerFraOppdagelseTilKrav !== null && (
+                      <span className="text-xs text-pkt-grays-gray-500">
+                        {dagerFraOppdagelseTilKrav} dager fra oppdagelse til krav
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="text-sm text-pkt-text-body-subtle mb-3">
+                    Etter NS 8407 §34.1.2 skal entreprenøren varsle «uten ugrunnet opphold» når han blir
+                    klar over forhold som gir grunnlag for vederlagsjustering. Krav på vederlagsjustering
+                    tapes dersom det ikke varsles innen fristen.
+                  </p>
+
+                  <FormField label="Ble vederlagskravet varslet i tide?" required>
+                    <Controller
+                      name="hovedkrav_varslet_i_tide"
+                      control={control}
+                      render={({ field }) => (
+                        <RadioGroup
+                          value={field.value === undefined ? undefined : field.value ? 'ja' : 'nei'}
+                          onValueChange={(val: string) => field.onChange(val === 'ja')}
+                        >
+                          <RadioItem value="ja" label="Ja - varslet i tide" />
+                          <RadioItem
+                            value="nei"
+                            label="Nei - prekludert (varslet for sent)"
+                          />
+                        </RadioGroup>
+                      )}
+                    />
+                  </FormField>
+
+                  {formValues.hovedkrav_varslet_i_tide === false && (
+                    <Alert variant="danger" size="sm" title="Prekludert (§34.1.2)" className="mt-3">
+                      Hovedkravet avvises som prekludert fordi det ikke ble varslet i tide.
+                      Byggherren tar likevel subsidiært standpunkt til beløpet.
+                    </Alert>
+                  )}
+                </div>
+              )}
+
+              {/* Info om særskilte krav */}
+              {harSaerskiltKrav && (
+                <Alert variant="warning" className="mb-4">
+                  Entreprenøren må ha varslet «uten ugrunnet opphold» etter at han ble klar over at
+                  forholdet ville medføre økte rigg/drift-kostnader eller produktivitetstap.
+                </Alert>
+              )}
 
               {/* Rigg/Drift */}
               {harRiggKrav && (
@@ -1968,7 +2070,28 @@ export function RespondVederlagModal({
                   <div className="mt-2 text-lg font-mono">
                     Samlet godkjent: kr {computed.totalGodkjent.toLocaleString('nb-NO')},-
                   </div>
+                  {hovedkravPrekludert && (
+                    <div className="mt-2 text-sm opacity-80">
+                      Hovedkravet avvist som prekludert (§34.1.2)
+                    </div>
+                  )}
                 </div>
+
+                {/* Subsidiært resultat (kun når det er prekluderte krav) */}
+                {visSubsidiaertResultat && (
+                  <div className="p-4 bg-pkt-surface-subtle border border-pkt-border-subtle rounded-none">
+                    <h5 className="font-medium text-sm mb-2 text-pkt-text-body-subtle">
+                      SUBSIDIÆRT RESULTAT
+                    </h5>
+                    <p className="text-xs text-pkt-text-body-subtle mb-2">
+                      For det tilfellet at preklusjonsinnsigelsen ikke får medhold
+                    </p>
+                    <div className="text-lg font-bold">{getResultatLabel(subsidiaertResultat)}</div>
+                    <div className="mt-1 font-mono">
+                      Samlet godkjent: kr {computed.totalGodkjentInklPrekludert.toLocaleString('nb-NO')},-
+                    </div>
+                  </div>
+                )}
 
                 {/* UPDATE MODE: Warnings and change summary */}
                 {isUpdateMode && (
