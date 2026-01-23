@@ -8,7 +8,7 @@
 import { useState } from 'react';
 import { ChatBubbleIcon } from '@radix-ui/react-icons';
 import { clsx } from 'clsx';
-import { Modal, Button, Textarea, useToast } from './primitives';
+import { Modal, Button, Textarea, Input, useToast } from './primitives';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 type FeedbackType = 'bug' | 'feature' | 'general';
@@ -114,7 +114,7 @@ export function FeedbackButton() {
                   onClick={() => setFormData({ ...formData, type })}
                   className={clsx(
                     'px-3 py-1.5 rounded text-sm font-medium transition-colors',
-                    'border-2',
+                    'border',
                     formData.type === type
                       ? 'bg-pkt-surface-strong-dark-blue text-pkt-text-body-light border-pkt-surface-strong-dark-blue'
                       : 'bg-pkt-bg-card text-pkt-text-body-dark border-pkt-border-default hover:border-pkt-border-hover'
@@ -132,7 +132,7 @@ export function FeedbackButton() {
               htmlFor="feedback-message"
               className="block text-sm font-medium text-pkt-text-body-dark mb-2"
             >
-              Din tilbakemelding *
+              Din tilbakemelding
             </label>
             <Textarea
               id="feedback-message"
@@ -165,20 +165,13 @@ export function FeedbackButton() {
                 valgfritt
               </span>
             </label>
-            <input
+            <Input
               id="feedback-email"
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               placeholder="din@epost.no"
-              className={clsx(
-                'w-full px-4 py-3 text-base',
-                'bg-pkt-bg-default border-2 border-pkt-border-default rounded',
-                'focus:outline-none focus:ring-4 focus:ring-pkt-brand-purple-1000/30 focus:border-pkt-border-focus',
-                'hover:border-pkt-border-hover',
-                'placeholder:text-pkt-text-placeholder',
-                'transition-colors duration-200'
-              )}
+              width="full"
             />
             <p className="mt-1 text-xs text-pkt-text-body-subtle">
               Oppgi e-post hvis du ønsker svar på tilbakemeldingen
