@@ -798,6 +798,7 @@ export function RespondFristModal({
     return (
       formValues.noytralt_varsel_ok !== fristTilstand.noytralt_varsel_ok ||
       formValues.spesifisert_krav_ok !== fristTilstand.spesifisert_krav_ok ||
+      formValues.etterlysning_svar_ok !== fristTilstand.etterlysning_svar_ok ||
       formValues.vilkar_oppfylt !== fristTilstand.vilkar_oppfylt ||
       formValues.godkjent_dager !== lastResponseEvent.godkjent_dager
     );
@@ -1716,6 +1717,15 @@ export function RespondFristModal({
                                 {fristTilstand?.spesifisert_krav_ok
                                   ? 'I tide'
                                   : harTidligereNoytraltVarselITide ? 'Redusert' : 'Prekludert'}
+                              </span>
+                            </DataListItem>
+                          )}
+                          {formValues.etterlysning_svar_ok !== fristTilstand?.etterlysning_svar_ok && (
+                            <DataListItem label="Svar på etterlysning">
+                              {formValues.etterlysning_svar_ok ? 'I tide' : 'Prekludert (§33.6.2/§5)'}
+                              <span className="text-pkt-text-body-subtle">
+                                {' ← '}
+                                {fristTilstand?.etterlysning_svar_ok ? 'I tide' : 'Prekludert (§33.6.2/§5)'}
                               </span>
                             </DataListItem>
                           )}

@@ -520,9 +520,17 @@ function generateFristPreklusjonSection(input: FristResponseInput): string {
 
   // OK - Varslingskravene er oppfylt
   // Bestem riktig paragraf basert på kontekst:
+  // - Svar på etterlysning i tide: §33.6.2 fjerde ledd (§33.6.1 kan ikke påberopes)
   // - Nøytralt varsel: §33.4
   // - Spesifisert krav med tidligere nøytralt varsel i tide: §33.4 og §33.6.1
   // - Spesifisert krav direkte (uten tidligere nøytralt): §33.4 (varselet fungerer som §33.4-varsel)
+  if (input.etterlysningVarOk === true && input.varselType === 'spesifisert') {
+    // Svar på etterlysning kom i tide - §33.6.2 fjerde ledd beskytter TE
+    return (
+      'Kravet er svar på byggherrens etterlysning og kom i tide. ' +
+      'I henhold til §33.6.2 fjerde ledd kan byggherren ikke påberope at fristen i §33.6.1 er oversittet.'
+    );
+  }
   if (input.varselType === 'spesifisert' && input.harTidligereNoytraltVarselITide) {
     return 'Varslingskravene i §33.4 og §33.6.1 anses oppfylt.';
   }
