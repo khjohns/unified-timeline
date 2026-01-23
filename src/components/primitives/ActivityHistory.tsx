@@ -7,9 +7,10 @@
  * Used by SporHistory and can be reused for any activity feed.
  */
 
-import { ReactNode, useState } from 'react';
+import { ReactNode } from 'react';
 import clsx from 'clsx';
 import { ChevronDownIcon } from '@radix-ui/react-icons';
+import * as RadixCollapsible from '@radix-ui/react-collapsible';
 
 // ============ TYPES ============
 
@@ -147,32 +148,30 @@ export function ActivityHistory({
   defaultOpen = false,
   className,
 }: ActivityHistoryProps) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
-
   if (entries.length === 0) {
     return null;
   }
 
   return (
-    <div className={clsx('mt-4 pt-3 border-t border-pkt-border-subtle', className)}>
+    <RadixCollapsible.Root
+      defaultOpen={defaultOpen}
+      className={clsx('mt-4 pt-3 border-t border-pkt-border-subtle', className)}
+    >
       {/* Toggle header */}
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 text-sm text-pkt-text-body-muted hover:text-pkt-text-body-default hover:bg-pkt-surface-gray rounded px-2 py-1 -mx-2 transition-colors"
-        aria-expanded={isOpen}
+      <RadixCollapsible.Trigger
+        className="flex items-center gap-2 text-sm text-pkt-text-body-muted hover:text-pkt-text-body-default hover:bg-pkt-surface-gray rounded px-2 py-1 -mx-2 transition-colors group"
       >
         <ChevronDownIcon
-          className={clsx('w-4 h-4 transition-transform', isOpen && 'rotate-180')}
+          className="w-4 h-4 transition-transform duration-200 group-data-[state=open]:rotate-180"
         />
         <span>
           {label}
           {showCount && ` (${entries.length})`}
         </span>
-      </button>
+      </RadixCollapsible.Trigger>
 
-      {/* Content */}
-      {isOpen && (
+      {/* Content with smooth animation */}
+      <RadixCollapsible.Content className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
         <div className="mt-3">
           {entries.map((entry, index) => (
             <ActivityHistoryItem
@@ -182,7 +181,7 @@ export function ActivityHistory({
             />
           ))}
         </div>
-      )}
-    </div>
+      </RadixCollapsible.Content>
+    </RadixCollapsible.Root>
   );
 }
