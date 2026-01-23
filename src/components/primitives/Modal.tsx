@@ -48,15 +48,14 @@ export function Modal({
             // Subtle rounding (4px) and elevation
             'bg-pkt-bg-card rounded shadow-lg',
             'border border-pkt-border-default',
-            // Responsive padding - smaller on mobile for more content space
-            'p-4 sm:p-6 md:p-8',
             'z-modal',
             'focus:outline-none',
             'data-[state=open]:animate-in data-[state=closed]:animate-out',
             'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
             'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
             // Mobile-safe max-height using dvh (dynamic viewport height) for keyboard handling
-            'max-h-[85dvh] overflow-y-auto',
+            // Use flex layout to separate header (fixed) from body (scrollable)
+            'flex flex-col max-h-[85dvh]',
             {
               'w-[95vw] sm:w-[90vw] max-w-md': size === 'sm',
               'w-[95vw] sm:w-[90vw] max-w-lg': size === 'md',
@@ -66,8 +65,8 @@ export function Modal({
             className
           )}
         >
-          {/* Header */}
-          <div className="flex items-start justify-between mb-6">
+          {/* Header - fixed, does not scroll */}
+          <div className="flex items-start justify-between p-4 sm:p-6 md:p-8 pb-0 sm:pb-0 md:pb-0 shrink-0">
             <div>
               <Dialog.Title className="text-xl font-bold text-pkt-text-body-dark">
                 {title}
@@ -93,8 +92,17 @@ export function Modal({
             </Dialog.Close>
           </div>
 
-          {/* Body */}
-          <div className="text-sm">{children}</div>
+          {/* Body - scrollable area with mobile-optimized scrolling */}
+          <div
+            className={clsx(
+              'text-sm p-4 sm:p-6 md:p-8 pt-4 sm:pt-4 md:pt-6',
+              'overflow-y-auto overscroll-contain',
+              // iOS smooth scrolling
+              '[&]:[-webkit-overflow-scrolling:touch]'
+            )}
+          >
+            {children}
+          </div>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
