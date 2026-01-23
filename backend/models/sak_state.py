@@ -723,6 +723,7 @@ class FristTilstand(BaseModel):
     # BH respons - Port 1 (Varsling)
     noytralt_varsel_ok: Optional[bool] = Field(default=None)
     spesifisert_krav_ok: Optional[bool] = Field(default=None)
+    etterlysning_svar_ok: Optional[bool] = Field(default=None)  # §33.6.2/§5
     har_bh_etterlyst: Optional[bool] = Field(default=None)
     begrunnelse_varsel: Optional[str] = Field(default=None)
 

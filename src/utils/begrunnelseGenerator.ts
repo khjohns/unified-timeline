@@ -433,6 +433,7 @@ export interface FristResponseInput {
   // Preklusjon (Port 1)
   noytraltVarselOk?: boolean;
   spesifisertKravOk?: boolean;
+  etterlysningVarOk?: boolean;  // §33.6.2/§5: Svar på etterlysning i tide?
   sendEtterlysning?: boolean;
 
   // Vilkår (Port 2)
@@ -443,6 +444,7 @@ export interface FristResponseInput {
 
   // Computed
   erPrekludert: boolean;  // §33.4: Varsel for sent (nøytralt ELLER spesifisert uten forutgående nøytralt)
+  erEtterlysningSvarForSent?: boolean;  // §33.6.2 tredje ledd + §5: Sen respons på etterlysning
   erRedusert_33_6_1?: boolean;  // §33.6.1: Sen spesifisering ETTER at nøytralt varsel ble sendt i tide
   harTidligereNoytraltVarselITide?: boolean;  // For å vite om §33.6.1 er relevant ved spesifisert krav
   prinsipaltResultat: string;
@@ -485,6 +487,15 @@ function generateFristPreklusjonSection(input: FristResponseInput): string {
       'Byggherren etterspør spesifisert krav iht. §33.6.2. ' +
       'Entreprenøren må «uten ugrunnet opphold» angi og begrunne antall dager fristforlengelse. ' +
       'Dersom dette ikke gjøres, tapes kravet.'
+    );
+  }
+
+  // §33.6.2 tredje ledd + §5: Sen respons på etterlysning = preklusjon
+  if (input.erEtterlysningSvarForSent) {
+    return (
+      'Kravet avvises som prekludert iht. §33.6.2 tredje ledd, jf. §5. ' +
+      'Entreprenøren svarte ikke «uten ugrunnet opphold» på byggherrens etterlysning. ' +
+      'Byggherren påberoper seg at fristen er oversittet, jf. §5.'
     );
   }
 

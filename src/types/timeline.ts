@@ -234,6 +234,7 @@ export interface FristTilstand {
   // BH respons - Port 1 (Varsling)
   noytralt_varsel_ok?: boolean;
   spesifisert_krav_ok?: boolean;
+  etterlysning_svar_ok?: boolean;  // §33.6.2/§5: Svar på etterlysning i tide?
   har_bh_etterlyst?: boolean;
   begrunnelse_varsel?: string;
 
@@ -715,6 +716,7 @@ export interface ResponsFristEventData {
   // Port 1: Preklusjon (Varsling)
   noytralt_varsel_ok?: boolean;
   spesifisert_krav_ok?: boolean;
+  etterlysning_svar_ok?: boolean;  // §33.6.2/§5: Svar på etterlysning i tide?
   har_bh_etterlyst?: boolean;
   begrunnelse_varsel?: string;
 
@@ -822,6 +824,7 @@ export interface ResponsFristOppdatertEventData {
   // Port 2: Preklusjon
   noytralt_varsel_ok?: boolean;
   spesifisert_krav_ok?: boolean;
+  etterlysning_svar_ok?: boolean;  // §33.6.2/§5: Svar på etterlysning i tide?
   // Port 3: Vilkår
   vilkar_oppfylt?: boolean;
   begrunnelse_vilkar?: string;

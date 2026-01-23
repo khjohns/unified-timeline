@@ -136,6 +136,7 @@ const respondFristSchema = z.object({
   // Port 1: Preklusjon
   noytralt_varsel_ok: z.boolean().optional(),
   spesifisert_krav_ok: z.boolean().optional(),
+  etterlysning_svar_ok: z.boolean().optional(), // §33.6.2/§5: Svar på etterlysning i tide?
   send_etterlysning: z.boolean().optional(),
   frist_for_spesifisering: z.string().optional(),
 
@@ -288,6 +289,7 @@ export function RespondFristModal({
       return {
         noytralt_varsel_ok: fristTilstand.noytralt_varsel_ok ?? true,
         spesifisert_krav_ok: fristTilstand.spesifisert_krav_ok ?? true,
+        etterlysning_svar_ok: fristTilstand.etterlysning_svar_ok ?? true,
         vilkar_oppfylt: fristTilstand.vilkar_oppfylt ?? true,
         send_etterlysning: false,
         godkjent_dager: lastResponseEvent.godkjent_dager ?? effektivKrevdDager,
@@ -297,6 +299,7 @@ export function RespondFristModal({
     return {
       noytralt_varsel_ok: true,
       spesifisert_krav_ok: true,
+      etterlysning_svar_ok: true,
       vilkar_oppfylt: true,
       send_etterlysning: false,
       godkjent_dager: effektivKrevdDager,
@@ -320,6 +323,7 @@ export function RespondFristModal({
     defaultValues: {
       noytralt_varsel_ok: true,
       spesifisert_krav_ok: true,
+      etterlysning_svar_ok: true,
       vilkar_oppfylt: true,
       send_etterlysning: false,
       godkjent_dager: effektivKrevdDager,
@@ -414,10 +418,26 @@ export function RespondFristModal({
     return false;
   }, [fristTilstand?.noytralt_varsel_ok, fristTilstand?.noytralt_varsel, fristEvent?.noytralt_varsel, formValues.noytralt_varsel_ok]);
 
+  // §33.6.2 fjerde ledd: Hvis kravet er svar på etterlysning, kan byggherren
+  // IKKE påberope at fristen i §33.6.1 er oversittet
+  const erSvarPaEtterlysning = useMemo(() => {
+    return fristTilstand?.har_bh_etterlyst === true && varselType === 'spesifisert';
+  }, [fristTilstand?.har_bh_etterlyst, varselType]);
+
+  // §33.6.2 tredje ledd + §5: Sen respons på etterlysning = PREKLUSJON
+  // BH må påberope dette via §5 ("skriftlig uten ugrunnet opphold")
+  const erEtterlysningSvarForSent = useMemo(() => {
+    return erSvarPaEtterlysning && formValues.etterlysning_svar_ok === false;
+  }, [erSvarPaEtterlysning, formValues.etterlysning_svar_ok]);
+
   // Calculate preclusion status from Port 1
   // §33.4: Varsel for sent = FULL PREKLUSJON (kravet tapes)
-  // Dette gjelder BÅDE nøytralt varsel OG spesifisert krav når det ikke finnes tidligere nøytralt varsel
+  // §33.6.2 tredje ledd: Sen respons på etterlysning = PREKLUSJON
   const erPrekludert = useMemo(() => {
+    // §33.6.2 tredje ledd + §5: Sen respons på etterlysning = PREKLUSJON
+    if (erEtterlysningSvarForSent) {
+      return true;
+    }
     // §33.4: Nøytralt varsel for sent = PREKLUSJON
     if (varselType === 'noytralt') {
       return formValues.noytralt_varsel_ok === false;
@@ -428,13 +448,7 @@ export function RespondFristModal({
       return formValues.spesifisert_krav_ok === false;
     }
     return false;
-  }, [formValues.noytralt_varsel_ok, formValues.spesifisert_krav_ok, varselType, harTidligereNoytraltVarselITide]);
-
-  // §33.6.2 fjerde ledd: Hvis kravet er svar på etterlysning, kan byggherren
-  // IKKE påberope at fristen i §33.6.1 er oversittet
-  const erSvarPaEtterlysning = useMemo(() => {
-    return fristTilstand?.har_bh_etterlyst === true && varselType === 'spesifisert';
-  }, [fristTilstand?.har_bh_etterlyst, varselType]);
+  }, [formValues.noytralt_varsel_ok, formValues.spesifisert_krav_ok, varselType, harTidligereNoytraltVarselITide, erEtterlysningSvarForSent]);
 
   // §33.6.1: Sen spesifisering gir reduksjon (ikke preklusjon)
   // Entreprenøren har kun krav på det byggherren "måtte forstå"
@@ -514,6 +528,7 @@ export function RespondFristModal({
       // Preklusjon
       noytraltVarselOk: formValues.noytralt_varsel_ok,
       spesifisertKravOk: formValues.spesifisert_krav_ok,
+      etterlysningVarOk: formValues.etterlysning_svar_ok,
       sendEtterlysning: sendEtterlysning,
 
       // Vilkår
@@ -524,6 +539,7 @@ export function RespondFristModal({
 
       // Computed
       erPrekludert: erPrekludert,
+      erEtterlysningSvarForSent: erEtterlysningSvarForSent,
       erRedusert_33_6_1: erRedusert_33_6_1,
       harTidligereNoytraltVarselITide: harTidligereNoytraltVarselITide,
       prinsipaltResultat: prinsipaltResultat,
@@ -537,10 +553,12 @@ export function RespondFristModal({
     effektivKrevdDager,
     formValues.noytralt_varsel_ok,
     formValues.spesifisert_krav_ok,
+    formValues.etterlysning_svar_ok,
     sendEtterlysning,
     harHindring,
     godkjentDager,
     erPrekludert,
+    erEtterlysningSvarForSent,
     erRedusert_33_6_1,
     harTidligereNoytraltVarselITide,
     prinsipaltResultat,
@@ -732,6 +750,7 @@ export function RespondFristModal({
         // Port 1: Preklusjon
         noytralt_varsel_ok: data.noytralt_varsel_ok,
         spesifisert_krav_ok: data.spesifisert_krav_ok,
+        etterlysning_svar_ok: data.etterlysning_svar_ok,
         send_etterlysning: data.send_etterlysning,
         frist_for_spesifisering: data.frist_for_spesifisering,
 
@@ -1116,19 +1135,47 @@ export function RespondFristModal({
               {/* Spesifisert krav */}
               {varselType === 'spesifisert' && (
                 <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
-                  {/* §33.6.2 fjerde ledd: Svar på etterlysning - kan ikke påberope §33.6.1 */}
+                  {/* §33.6.2: Svar på etterlysning */}
                   {erSvarPaEtterlysning ? (
-                    <Alert variant="info" title="Svar på etterlysning (§33.6.2)">
-                      <p>
-                        Dette kravet er et svar på byggherrens etterlysning. I henhold til §33.6.2
-                        fjerde ledd kan du ikke påberope at <strong>fristen i §33.6.1</strong> er oversittet.
-                      </p>
-                      <p className="mt-2 text-sm text-pkt-text-subtle">
-                        <strong>Merk:</strong> Entreprenøren hadde likevel plikt til å svare «uten ugrunnet
-                        opphold» på etterlysningen (§33.6.2 annet ledd). Hvis svaret kom vesentlig for
-                        sent og du vil påberope dette, må du gjøre det skriftlig uten ugrunnet opphold (§5).
-                      </p>
-                    </Alert>
+                    <>
+                      <Alert variant="info" title="Svar på etterlysning (§33.6.2)" className="mb-4">
+                        Dette kravet er et svar på din etterlysning. Du kan ikke påberope at fristen
+                        i §33.6.1 er oversittet. Du kan imidlertid vurdere om svaret kom i tide iht.
+                        §33.6.2 annet ledd.
+                      </Alert>
+                      <FormField
+                        label="Kom svaret på etterlysningen i tide? (§33.6.2/§5)"
+                        required
+                        helpText="Entreprenøren skal svare «uten ugrunnet opphold» på etterlysningen. Hvis ikke, må du påberope dette skriftlig (§5)."
+                      >
+                        <Controller
+                          name="etterlysning_svar_ok"
+                          control={control}
+                          render={({ field }) => (
+                            <RadioGroup
+                              value={
+                                field.value === undefined ? undefined : field.value ? 'ja' : 'nei'
+                              }
+                              onValueChange={(val: string) => field.onChange(val === 'ja')}
+                            >
+                              <RadioItem value="ja" label="Ja - svaret kom i tide" />
+                              <RadioItem
+                                value="nei"
+                                label="Nei - for sent (prekludert - kravet tapes)"
+                              />
+                            </RadioGroup>
+                          )}
+                        />
+                      </FormField>
+                      {/* Info om §5 innsigelse */}
+                      {erEtterlysningSvarForSent && (
+                        <Alert variant="danger" title="Preklusjon etter §33.6.2 tredje ledd" className="mt-3">
+                          Entreprenøren svarte ikke «uten ugrunnet opphold» på etterlysningen.
+                          Du påberoper nå at kravet er tapt iht. §33.6.2 tredje ledd, jf. §5.
+                          Systemet vil generere en skriftlig innsigelse.
+                        </Alert>
+                      )}
+                    </>
                   ) : (
                     <>
                       <FormField
@@ -1450,6 +1497,11 @@ export function RespondFristModal({
                       <Badge variant="warning">Etterlysning sendt</Badge>
                       <span className="text-sm">Avventer spesifisert krav fra entreprenøren</span>
                     </>
+                  ) : erEtterlysningSvarForSent ? (
+                    <>
+                      <Badge variant="danger">Prekludert (§33.6.2/§5)</Badge>
+                      <span className="text-sm">Svar på etterlysning kom for sent - kravet tapes</span>
+                    </>
                   ) : erPrekludert ? (
                     <>
                       <Badge variant="danger">Prekludert (§33.4)</Badge>
@@ -1466,8 +1518,8 @@ export function RespondFristModal({
                     </>
                   ) : erSvarPaEtterlysning ? (
                     <>
-                      <Badge variant="info">Svar på etterlysning</Badge>
-                      <span className="text-sm">§33.6.1-frist kan ikke påberopes (§33.6.2)</span>
+                      <Badge variant="success">Svar på etterlysning (i tide)</Badge>
+                      <span className="text-sm">Svaret kom i tide - §33.6.1 kan ikke påberopes</span>
                     </>
                   ) : (
                     <>
