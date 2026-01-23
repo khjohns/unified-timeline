@@ -214,10 +214,19 @@ Når TE mottar etterlysning, har TE to svaralternativer - men kun alternativ a) 
 - [ ] Vurder UI: Hvordan presentere de to alternativene?
 - [ ] Vurder: Trenger vi ny event-type eller kan eksisterende brukes?
 
-#### Foreslått løsning
-Legg til valg i `SendFristModal` når `harMottattEtterlysning = true`:
-- Alternativ a: "Send spesifisert krav" (dagens flyt)
-- Alternativ b: "Begrunn hvorfor jeg ikke kan beregne ennå"
+#### Implementert ✅
+
+**Backend** (`backend/models/events.py`):
+- Lagt til `BEGRUNNELSE_UTSATT = "begrunnelse_utsatt"` i `FristVarselType` enum
+
+**Frontend** (`src/constants/fristVarselTypes.ts`):
+- Ny option: "Begrunn utsettelse (§33.6.2 b)"
+- Beskrivelse som forklarer konsekvensen
+
+**SendFristModal** (`src/components/actions/SendFristModal.tsx`):
+- Viser `begrunnelse_utsatt` kun når `harMottattEtterlysning = true`
+- Info-alert forklarer at §33.6.1-regler gjelder videre
+- Oppdatert etterlysning-advarsel med begge alternativer (a og b)
 
 ---
 

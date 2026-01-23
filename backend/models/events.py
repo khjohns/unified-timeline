@@ -192,6 +192,7 @@ class FristVarselType(str, Enum):
     """Type varsel for frist (NS 8407 §33)"""
     NOYTRALT = "noytralt"  # §33.4 - Foreløpig varsel - når omfang ikke er kjent. Bevarer rett til senere krav
     SPESIFISERT = "spesifisert"  # §33.6.1 - Spesifisert krav (med dager)
+    BEGRUNNELSE_UTSATT = "begrunnelse_utsatt"  # §33.6.2 bokstav b - TE begrunner hvorfor beregning ikke er mulig
 
 
 class FristBeregningResultat(str, Enum):

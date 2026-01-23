@@ -276,8 +276,14 @@ export function SendFristModal({
         {/* BH Etterlysning warning (§33.6.2) - CRITICAL */}
         {harMottattEtterlysning && (
           <Alert variant="danger" title="Svar på byggherrens etterlysning (§33.6.2)">
-            Byggherren har etterlyst dette kravet. Du må svare «uten ugrunnet opphold».
-            Hvis du ikke sender kravet nå, <strong>tapes hele retten til fristforlengelse</strong> i denne saken.
+            <p>
+              Byggherren har etterlyst dette kravet. Du må svare «uten ugrunnet opphold».
+              Hvis du ikke svarer, <strong>tapes hele retten til fristforlengelse</strong>.
+            </p>
+            <p className="mt-2 text-sm">
+              Du kan enten <strong>(a)</strong> sende spesifisert krav med antall dager, eller{' '}
+              <strong>(b)</strong> begrunne hvorfor du ikke har grunnlag for å beregne ennå.
+            </p>
           </Alert>
         )}
 
@@ -312,6 +318,8 @@ export function SendFristModal({
                 <RadioGroup value={field.value} onValueChange={field.onChange} data-testid="frist-varsel-type">
                   {FRIST_VARSELTYPE_OPTIONS
                     .filter(opt => opt.value !== '')
+                    // §33.6.2 bokstav b er kun tilgjengelig som svar på etterlysning
+                    .filter(opt => opt.value !== 'begrunnelse_utsatt' || harMottattEtterlysning)
                     .map((option) => (
                       <RadioItem
                         key={option.value}
@@ -402,6 +410,20 @@ export function SendFristModal({
                 />
               )}
             />
+          </SectionContainer>
+        )}
+
+        {/* §33.6.2 bokstav b - Begrunnelse for utsettelse */}
+        {selectedVarselType === 'begrunnelse_utsatt' && (
+          <SectionContainer
+            title="Begrunnelse for utsettelse (§33.6.2 b)"
+            description="Forklar hvorfor du ikke har grunnlag for å beregne kravet ennå"
+          >
+            <Alert variant="info" title="Konsekvens av §33.6.2 bokstav b">
+              Når du begrunner hvorfor beregningsgrunnlaget ikke foreligger, gjelder vanlige
+              §33.6.1-regler videre. Du må sende spesifisert krav «uten ugrunnet opphold»
+              når grunnlaget foreligger. Byggherren kan sende ny etterlysning senere.
+            </Alert>
           </SectionContainer>
         )}
 
