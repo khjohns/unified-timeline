@@ -1213,7 +1213,7 @@ export function RespondFristModal({
           {currentStepType === 'beregning' && (
             <SectionContainer
               title="Beregning av fristforlengelse (§33.5)"
-              description="Beregn antall dager fristforlengelse basert på den faktiske forsinkelsen forholdet har forårsaket."
+              description="Vurder om kravet reflekterer reell virkning på fremdriften. Momenter: nødvendig avbrudd, årstidsforskyvning, samlet virkning av tidligere forhold, og om entreprenøren har oppfylt tapsbegrensningsplikten."
             >
               {/* Etterlysning blocks evaluation */}
               {sendEtterlysning ? (

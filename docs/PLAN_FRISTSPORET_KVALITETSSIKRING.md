@@ -125,16 +125,23 @@ Når TE svarer på BHs etterlysning, kan BH ikke påberope at §33.6.1-fristen e
 - [ ] Bekreft at `er_svar_pa_etterlysning` flagget finnes i data
 - [ ] Vurder om dette også påvirker BHs vurdering i RespondFristModal
 
-#### Foreslått endring
-I `SendFristModal.tsx`, endre:
-```typescript
-// Fra:
-const erSentUtenEtterlysning = !harMottattEtterlysning && dagerSidenGrunnlag > 21;
+#### Implementert ✅
+- `erSvarPaEtterlysning` variabel i RespondFristModal
+- UI viser info-melding i stedet for reduksjonsspørsmål
+- Oppsummering viser "Svar på etterlysning" badge
 
-// Til: (ingen endring nødvendig - allerede korrekt!)
-// Men i RespondFristModal må vi sjekke er_svar_pa_etterlysning
-// og IKKE tillate BH å hevde §33.6.1 reduksjon
-```
+#### Kjent begrensning
+Datamodellen tracker kun `har_bh_etterlyst: boolean`, ikke `dato_bh_etterlysning`.
+Derfor kan vi ikke automatisk beregne om svaret på etterlysningen kom for sent.
+
+**Løsning i UI:** Teksten forklarer at:
+- §33.6.2 fjerde ledd beskytter kun mot §33.6.1-innsigelser
+- TE har fortsatt plikt til å svare "uten ugrunnet opphold" (§33.6.2 annet ledd)
+- BH kan påberope senhet via §5 (generell regel) hvis relevant
+
+**Fremtidig forbedring:** Legg til `dato_bh_etterlysning` i datamodellen for å:
+- Beregne dager siden etterlysning
+- Vise advarsel hvis respons er forsinket
 
 ---
 

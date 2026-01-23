@@ -416,6 +416,7 @@ export function SendFristModal({
                 label="Antall kalenderdager"
                 required
                 error={errors.antall_dager?.message}
+                helpText="Beregningen skal reflektere den faktiske virkningen på fremdriften (§33.5). Ta hensyn til nødvendig avbrudd, årstidsforskyvning, og samlet virkning av tidligere varslede forhold. Husk tapsbegrensningsplikten."
               >
                 <Input
                   id="antall_dager"
