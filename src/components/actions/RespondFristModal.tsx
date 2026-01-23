@@ -1344,6 +1344,15 @@ export function RespondFristModal({
                     </Alert>
                   )}
 
+                  {/* §33.6.1 reduksjon påminnelse */}
+                  {erRedusert_33_6_1 && !port3ErSubsidiaer && (
+                    <Alert variant="warning" title="Begrenset godkjenning (§33.6.1)" className="mb-4">
+                      Det spesifiserte kravet kom for sent. Du skal kun godkjenne det antall dager
+                      du <strong>måtte forstå</strong> at entreprenøren hadde krav på ut fra
+                      omstendighetene – ikke nødvendigvis det han har krevd.
+                    </Alert>
+                  )}
+
                   {/* Info when neutral notice without days */}
                   {erNoytraltUtenDager && (
                     <Alert variant="info" title="Antall dager ikke spesifisert">
