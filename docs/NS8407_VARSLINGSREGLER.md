@@ -1053,11 +1053,13 @@ Følgende paragrafer er referert i dokumentet, men kontraktsteksten er ikke veri
 | **§33.1** | Definerer TEs rett til fristforlengelse ved endringer | Grunnlag for fristkrav | ✓ Verifisert |
 | **§33.2** | Definerer BHs rett til fristforlengelse | BHs egne varslingsplikter | ✓ Verifisert |
 | **§33.3** | Force majeure - fristforlengelse uten vederlag | FORCE_MAJEURE-kategorien | ✓ Verifisert |
-| **§34.1.1** | Vederlagskrav ved endringer | Vederlagssporet | ⏳ Venter |
-| **§34.1.2** | Vederlagskrav ved svikt/andre | Vederlagssporet | ⏳ Venter |
-| **§34.1.3** | Rigg/drift og produktivitetstap | Vederlagssporet | ⏳ Venter |
-| **§34.2** | Generelle regler for vederlagskrav | Kan inneholde varslingsregler | ⏳ Venter |
-| **§34.3.3** | Svarplikt ved EP-justering (nevnt i skill-filen) | Vederlagssporet | ⏳ Venter |
+| **§34.1.1** | Vederlagskrav ved endringer - INGEN PREKLUSJON | Vederlagssporet | ✓ Verifisert |
+| **§34.1.2** | Vederlagskrav ved svikt/andre - PREKLUSJON | Vederlagssporet | ✓ Verifisert |
+| **§34.1.3** | Rigg/drift og produktivitetstap - DELVIS PREKLUSJON | Vederlagssporet | ✓ Verifisert |
+| **§34.2.1** | Avtalt vederlagsjustering - BH svar "rimelig tid" | Vederlagssporet | ✓ Verifisert |
+| **§34.2.2** | Produktivitetstap ved regningsarbeid | Vederlagssporet | ✓ Verifisert |
+| **§34.3.3** | EP-justering - SYMMETRISK regel (begge parter) | Vederlagssporet | ✓ Verifisert |
+| **§34.4** | Regningsarbeid - varsel før oppstart | Vederlagssporet | ✓ Verifisert |
 | **§30.2** | Regningsarbeid - varsling | Regningsarbeid | ⏳ Venter |
 | **§30.3.1/§30.3.2** | Regningsarbeid - prisoversikt | Regningsarbeid | ⏳ Venter |
 
@@ -1152,9 +1154,9 @@ Disse er ikke dekket i dokumentet.
 │  ─────────────────────────────────────────                                 │
 │  ☑ Innhent §32.1 for å verifisere trigger for irregulær endring            │
 │  ☑ Innhent §33.1, §33.2, §33.3 for fristsporet                             │
+│  ☑ Innhent §34.1.1, §34.1.2, §34.1.3 for vederlagssporet                   │
+│  ☑ Avklar om det finnes BH svarplikt for vederlagskrav (§34.2.1, §34.3.3) │
 │  □ Avklar tolkningsspørsmål 3 (dobbel varsling)                            │
-│  □ Innhent §34.1.1, §34.1.2, §34.1.3 for vederlagssporet                   │
-│  □ Avklar om det finnes BH svarplikt for vederlagskrav                     │
 │                                                                             │
 │  PRIORITET 2 (Viktig for komplett dekning):                                │
 │  ──────────────────────────────────────────                                │
@@ -1173,6 +1175,14 @@ Disse er ikke dekket i dokumentet.
 │  ☑ §33.3: Force majeure gir IKKE rett til vederlag                         │
 │  ☑ §33.6.2: Etterlysning må sendes PER BREV (strengere enn §5)            │
 │  ☑ §33.7: Gjelder BEGGE parter ("den parten som mottar krav")             │
+│                                                                             │
+│  VIKTIGE FUNN FRA §34 VERIFISERING:                                        │
+│  ──────────────────────────────────                                        │
+│  ☑ §34.1.1: ENDRING har INGEN varslingsplikt/preklusjon (bekreftet)        │
+│  ☑ §34.1.2: SVIKT/ANDRE har FULL preklusjon ved sen varsling               │
+│  ☑ §34.1.3: DELVIS preklusjon - kun PÅLØPTE utgifter tapes                 │
+│  ☑ §34.2.1: BH svar "rimelig tid" (mildere enn UUO), ingen konsekvens     │
+│  ☑ §34.3.3: EP-justering er SYMMETRISK - gjelder begge parter             │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```

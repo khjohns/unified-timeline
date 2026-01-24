@@ -251,29 +251,34 @@ STRENGERE AKTSOMHETSNORM
 
 ### 2.2 Vederlagssporet
 
-#### 2.2.1 Vederlag ved endring (§34.1.1)
+#### 2.2.1 Vederlag ved endring (§34.1.1) ✓
+
+> **Kontraktstekst §34.1.1 Endringer:**
+> "Partene har krav på justering av vederlaget dersom det foreligger en endring etter punkt 31 eller 32."
 
 | Dimensjon | Verdi | Kilde |
 |-----------|-------|-------|
-| **HVEM** | TE (og BH) | §34.1.1 |
-| **TRIGGER** | Det foreligger en endring | §34.1.1 |
+| **HVEM** | Begge parter | §34.1.1 |
+| **TRIGGER** | Det foreligger en endring etter §31 eller §32 | §34.1.1 |
 | **SKJÆRINGSTIDSPUNKT** | N/A | N/A |
 | **FRIST** | **INGEN FRIST** | §34.1.1 (ingen varslingskrav) |
 | **KONSEKVENS** | **INGEN PREKLUSJON** | §34.1.1 |
 
 ```
-KRITISK ASYMMETRI:
+KRITISK ASYMMETRI (BEKREFTET):
 ┌────────────────────────────────────────────────────────────────────────────┐
 │                                                                            │
 │  §34.1.1 (ENDRING):     "Partene har krav på justering av vederlaget      │
 │                          dersom det foreligger en endring"                 │
+│                          → INGEN varslingsplikt, INGEN preklusjon          │
 │                                                                            │
 │  §34.1.2 (SVIKT/ANDRE): "Krav på vederlagsjustering tapes dersom det      │
-│                          ikke varsles uten ugrunnet opphold"               │
+│                          ikke varsles innen fristen"                       │
+│                          → Varslingsplikt, FULL preklusjon                 │
 │                                                                            │
 │  ┌─────────────────────────────────────────────────────────────────────┐  │
-│  │ Ved ENDRING: Vederlagskravet består uansett når det fremsettes.     │  │
-│  │ Ved SVIKT/ANDRE: Vederlagskravet TAPES ved sen varsling.            │  │
+│  │ IMPLIKASJON: Kategorisering som ENDRING vs SVIKT/ANDRE er kritisk!  │  │
+│  │ Feil kategorisering kan føre til uriktig preklusjon.                │  │
 │  └─────────────────────────────────────────────────────────────────────┘  │
 │                                                                            │
 └────────────────────────────────────────────────────────────────────────────┘
@@ -281,64 +286,172 @@ KRITISK ASYMMETRI:
 
 ---
 
-#### 2.2.2 Vederlag ved svikt/andre (§34.1.2)
+#### 2.2.2 Vederlag ved svikt/andre (§34.1.2) ✓
+
+> **Kontraktstekst §34.1.2 Svikt i byggherrens ytelser mv.:**
+> "Totalentreprenøren har krav på justering av vederlaget som følge av forsinkelse eller svikt ved byggherrens ytelser etter punkt 22, 23 og 24, eller som følge av andre forhold byggherren har risikoen for.
+>
+> Dersom totalentreprenøren vil kreve vederlagsjustering, skal han uten ugrunnet opphold varsle byggherren når han blir eller burde ha blitt klar over forholdene nevnt i første ledd. **Krav på vederlagsjustering tapes dersom det ikke varsles innen fristen.**"
 
 | Dimensjon | Verdi | Kilde |
 |-----------|-------|-------|
-| **HVEM** | TE | §34.1.2 |
-| **TRIGGER** | Forhold som gir grunnlag for vederlagsjustering (SVIKT/ANDRE) | §34.1.2 |
-| **SKJÆRINGSTIDSPUNKT** | "blir eller burde ha blitt klar over grunnlaget for kravet" | §34.1.2 |
-| **FRIST** | Uten ugrunnet opphold | §34.1.2 |
-| **KONSEKVENS** | Kravet **TAPES** | §34.1.2 |
-
----
-
-#### 2.2.3 Særskilte krav - Rigg/drift (§34.1.3)
-
-| Dimensjon | Verdi | Kilde |
-|-----------|-------|-------|
-| **HVEM** | TE | §34.1.3 |
-| **TRIGGER** | TE vil kreve dekning for rigg, drift, nedrigging | §34.1.3 første ledd |
-| **SKJÆRINGSTIDSPUNKT** | "blir eller burde ha blitt klar over at slike utgifter ville påløpe" | §34.1.3 første ledd |
-| **FRIST** | Uten ugrunnet opphold | §34.1.3 første ledd |
-| **KONSEKVENS** | Retten til **PÅLØPTE** utgifter tapes | §34.1.3 annet ledd |
+| **HVEM** | TE | §34.1.2 annet ledd |
+| **TRIGGER** | TE vil kreve vederlagsjustering for forhold i første ledd | §34.1.2 annet ledd |
+| **SKJÆRINGSTIDSPUNKT** | "når han blir eller burde ha blitt klar over forholdene" | §34.1.2 annet ledd |
+| **FRIST** | Uten ugrunnet opphold | §34.1.2 annet ledd |
+| **KONSEKVENS** | Kravet **TAPES** (full preklusjon) | §34.1.2 annet ledd |
 
 ```
-VIKTIG PRESISERING:
+HVA ER "FORHOLDENE" (§34.1.2 første ledd)?
 ┌────────────────────────────────────────────────────────────────────────────┐
-│ Gjelder ALLE hovedkategorier (inkl. ENDRING).                              │
 │                                                                            │
-│ "ville påløpe" = fremtidsrettet. Fristen løper fra TE forstår at          │
-│ utgiften VIL komme, ikke fra utgiften faktisk påløper.                    │
+│ 1. Forsinkelse eller svikt ved BHs ytelser etter:                         │
+│    - §22 (Byggherrens medvirkning)                                        │
+│    - §23 (Byggherrens leveranser)                                         │
+│    - §24 (Byggherrens anvisninger og prosjektering)                       │
 │                                                                            │
-│ Kun utgifter påløpt FØR varsling tapes. Utgifter ETTER varsling kan       │
-│ fortsatt kreves.                                                           │
+│ 2. Andre forhold byggherren har risikoen for                              │
+│                                                                            │
 └────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-#### 2.2.4 Særskilte krav - Produktivitetstap (§34.1.3)
+#### 2.2.3 Særskilte krav - Rigg/drift (§34.1.3) ✓
+
+> **Kontraktstekst §34.1.3 Særskilt varsel om økte utgifter til rigg og drift mv.:**
+> "Totalentreprenøren kan kreve en særskilt justering av vederlaget som følge av økte utgifter til kapitalytelser, rigging, drift og nedrigging som er en nødvendig følge av forhold angitt i 34.1.1 og 34.1.2. Det kan avtales egne regler for slik vederlagsjustering.
+>
+> Totalentreprenøren kan også kreve særskilt justering av vederlaget som følge av økte utgifter på grunn av nedsatt produktivitet eller forstyrrelser på annet arbeid som er en følge av forhold angitt i 34.1.1 og 34.1.2.
+>
+> Dersom totalentreprenøren vil kreve justering etter første eller annet ledd, må han varsle byggherren særskilt uten ugrunnet opphold etter at han blir eller burde ha blitt klar over at utgifter ville påløpe. **Gir han ikke slikt varsel, taper han retten til å påberope seg påløpte utgifter som grunnlag for krav på vederlagsjustering.**"
 
 | Dimensjon | Verdi | Kilde |
 |-----------|-------|-------|
-| **HVEM** | TE | §34.1.3 |
-| **TRIGGER** | TE vil kreve dekning for nedsatt produktivitet, forstyrrelser på annet arbeid | §34.1.3 første ledd |
-| **SKJÆRINGSTIDSPUNKT** | "blir eller burde ha blitt klar over at slike utgifter ville påløpe" | §34.1.3 første ledd |
-| **FRIST** | Uten ugrunnet opphold | §34.1.3 første ledd |
-| **KONSEKVENS** | Retten til **PÅLØPTE** utgifter tapes | §34.1.3 annet ledd |
+| **HVEM** | TE | §34.1.3 tredje ledd |
+| **TRIGGER** | TE vil kreve dekning for rigg, drift, nedrigging | §34.1.3 første ledd |
+| **SKJÆRINGSTIDSPUNKT** | "blir eller burde ha blitt klar over at utgifter **ville påløpe**" | §34.1.3 tredje ledd |
+| **FRIST** | Uten ugrunnet opphold | §34.1.3 tredje ledd |
+| **KONSEKVENS** | Retten til **PÅLØPTE** utgifter tapes | §34.1.3 tredje ledd |
+
+```
+VIKTIG PRESISERING:
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                            │
+│ 1. Gjelder ALLE hovedkategorier (både §34.1.1 ENDRING og §34.1.2 SVIKT)  │
+│                                                                            │
+│ 2. "ville påløpe" = FREMTIDSRETTET skjæringstidspunkt                     │
+│    Fristen løper fra TE forstår at utgiften VIL komme,                    │
+│    IKKE fra utgiften faktisk påløper.                                     │
+│                                                                            │
+│ 3. DELVIS PREKLUSJON: Kun PÅLØPTE utgifter tapes                          │
+│    Utgifter som påløper ETTER varsling kan fortsatt kreves.               │
+│                                                                            │
+│ 4. SÆRSKILT varsel - dette er separat fra grunnlagsvarselet               │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-#### 2.2.5 Enhetsprisjustering (§34.3.3)
+#### 2.2.4 Særskilte krav - Produktivitetstap (§34.1.3) ✓
 
 | Dimensjon | Verdi | Kilde |
 |-----------|-------|-------|
-| **HVEM** | TE | §34.3.3 første ledd |
-| **TRIGGER** | Forhold som gir grunnlag for justering av enhetspris | §34.3.3 |
-| **SKJÆRINGSTIDSPUNKT** | "blir eller burde ha blitt klar over grunnlaget" | §34.3.3 |
+| **HVEM** | TE | §34.1.3 tredje ledd |
+| **TRIGGER** | TE vil kreve dekning for nedsatt produktivitet, forstyrrelser på annet arbeid | §34.1.3 annet ledd |
+| **SKJÆRINGSTIDSPUNKT** | "blir eller burde ha blitt klar over at utgifter **ville påløpe**" | §34.1.3 tredje ledd |
+| **FRIST** | Uten ugrunnet opphold | §34.1.3 tredje ledd |
+| **KONSEKVENS** | Retten til **PÅLØPTE** utgifter tapes | §34.1.3 tredje ledd |
+
+---
+
+#### 2.2.5 Avtalt vederlagsjustering (§34.2.1) ✓
+
+> **Kontraktstekst §34.2.1 Avtalt vederlagsjustering:**
+> "Totalentreprenøren kan gi eller byggherren kan kreve at totalentreprenøren gir et spesifisert tilbud på justering av vederlaget.
+>
+> Byggherren skal ta stilling til tilbudet innen rimelig tid."
+
+| Dimensjon | Verdi | Kilde |
+|-----------|-------|-------|
+| **HVEM** | BH (svarplikt) | §34.2.1 annet ledd |
+| **TRIGGER** | Mottar spesifisert tilbud fra TE | §34.2.1 annet ledd |
+| **SKJÆRINGSTIDSPUNKT** | Mottak av tilbud | §34.2.1 annet ledd |
+| **FRIST** | **Rimelig tid** (ikke "uten ugrunnet opphold") | §34.2.1 annet ledd |
+| **KONSEKVENS** | **IKKE EKSPLISITT ANGITT** | §34.2.1 |
+
+---
+
+#### 2.2.6 Produktivitetstap ved regningsarbeid (§34.2.2) ✓
+
+> **Kontraktstekst §34.2.2 Alminnelige regler for vederlagsjustering (utdrag):**
+> "Ved økte utgifter på grunn av nedsatt produktivitet og forstyrrelser på annet arbeid, jf. 34.1.3 annet ledd, skal reglene i 34.3 og 34.4 anvendes så langt de passer. Dersom slik vederlagsjustering skal skje etter reglene om regningsarbeid, men totalentreprenøren mener at deler av disse ikke kan anvendes, skal han uten ugrunnet opphold sende et begrunnet varsel om dette. Totalentreprenøren skal under enhver omstendighet holde byggherren løpende orientert om kostnadsutviklingen."
+
+| Dimensjon | Verdi | Kilde |
+|-----------|-------|-------|
+| **HVEM** | TE | §34.2.2 annet ledd |
+| **TRIGGER** | TE mener regningsarbeidsregler ikke kan anvendes på produktivitetstap | §34.2.2 annet ledd |
+| **SKJÆRINGSTIDSPUNKT** | Når TE innser at reglene ikke passer | §34.2.2 annet ledd |
+| **FRIST** | Uten ugrunnet opphold | §34.2.2 annet ledd |
+| **KONSEKVENS** | **IKKE EKSPLISITT ANGITT** | §34.2.2 |
+
+```
+TILLEGGSPLIKT:
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                            │
+│ "Totalentreprenøren skal under enhver omstendighet holde byggherren       │
+│  løpende orientert om kostnadsutviklingen."                               │
+│                                                                            │
+│ Dette er en LØPENDE informasjonsplikt, ikke en enkelt varslingsplikt.     │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+#### 2.2.7 Enhetsprisjustering - TEs varsel (§34.3.3 første ledd) ✓
+
+> **Kontraktstekst §34.3.3 Varsel om justering av enhetspriser:**
+> "Den part som vil gjøre krav på justering av enhetsprisene, skal varsle den andre parten uten ugrunnet opphold etter at det foreligger forhold som gir grunnlag for slik justering. **Unnlater han dette, har han bare krav på slik justering av enhetsprisen som den andre parten måtte forstå at forholdet ville føre til.**"
+
+| Dimensjon | Verdi | Kilde |
+|-----------|-------|-------|
+| **HVEM** | Begge parter ("Den part som") | §34.3.3 første ledd |
+| **TRIGGER** | Forhold som gir grunnlag for EP-justering | §34.3.3 første ledd |
+| **SKJÆRINGSTIDSPUNKT** | "etter at det foreligger forhold som gir grunnlag" | §34.3.3 første ledd |
 | **FRIST** | Uten ugrunnet opphold | §34.3.3 første ledd |
-| **KONSEKVENS** | **REDUKSJON** - kun krav på justering BH "måtte forstå" | §34.3.3 første ledd |
+| **KONSEKVENS** | **REDUKSJON** - kun krav på det motparten "måtte forstå" | §34.3.3 første ledd |
+
+---
+
+#### 2.2.8 Enhetsprisjustering - BHs svar (§34.3.3 annet ledd) ✓
+
+> **Kontraktstekst §34.3.3 annet ledd:**
+> "Den part som mottar varsel om justering, skal svare uten ugrunnet opphold. **Dersom det ikke svares innen fristen, mister parten sine innsigelser mot kravet.**"
+
+| Dimensjon | Verdi | Kilde |
+|-----------|-------|-------|
+| **HVEM** | Begge parter (mottar varsel) | §34.3.3 annet ledd |
+| **TRIGGER** | Mottar varsel om EP-justering | §34.3.3 annet ledd |
+| **SKJÆRINGSTIDSPUNKT** | Mottak av varsel | §34.3.3 annet ledd |
+| **FRIST** | Uten ugrunnet opphold | §34.3.3 annet ledd |
+| **KONSEKVENS** | Innsigelser **TAPES** | §34.3.3 annet ledd |
+
+---
+
+#### 2.2.9 Regningsarbeid - varsel før oppstart (§34.4) ✓
+
+> **Kontraktstekst §34.4 Vederlagsjustering når det ikke foreligger anvendelige enhetspriser (utdrag):**
+> "Hvis det ikke foreligger anvendelige enhetspriser, skal vederlagsjusteringen skje i samsvar med bestemmelsene om regningsarbeid i punkt 30. **Byggherren skal varsles før regningsarbeidet igangsettes.**"
+
+| Dimensjon | Verdi | Kilde |
+|-----------|-------|-------|
+| **HVEM** | TE | §34.4 første ledd |
+| **TRIGGER** | Regningsarbeid skal igangsettes | §34.4 første ledd |
+| **SKJÆRINGSTIDSPUNKT** | Før arbeidet starter | §34.4 første ledd |
+| **FRIST** | **Før oppstart** (ikke "uten ugrunnet opphold") | §34.4 første ledd |
+| **KONSEKVENS** | **IKKE EKSPLISITT ANGITT** - men §30 regler gjelder | §34.4 første ledd |
 
 ---
 
@@ -789,15 +902,58 @@ VIKTIG: SYMMETRISK REGEL
 
 ---
 
-### 3.4 Svar på EP-justeringskrav (§34.3.3)
+### 3.4 Svar på tilbud om vederlagsjustering (§34.2.1) ✓
+
+> **Kontraktstekst §34.2.1 annet ledd:**
+> "Byggherren skal ta stilling til tilbudet innen rimelig tid."
 
 | Dimensjon | Verdi | Kilde |
 |-----------|-------|-------|
-| **HVEM** | BH | §34.3.3 annet ledd |
-| **TRIGGER** | Mottar krav om justering av enhetspris | §34.3.3 annet ledd |
-| **SKJÆRINGSTIDSPUNKT** | Mottak av krav | §34.3.3 annet ledd |
+| **HVEM** | BH | §34.2.1 annet ledd |
+| **TRIGGER** | Mottar spesifisert tilbud fra TE | §34.2.1 annet ledd |
+| **SKJÆRINGSTIDSPUNKT** | Mottak av tilbud | §34.2.1 annet ledd |
+| **FRIST** | **Rimelig tid** (mildere enn UUO) | §34.2.1 annet ledd |
+| **KONSEKVENS** | **IKKE EKSPLISITT ANGITT** | §34.2.1 |
+
+```
+VIKTIG: AVVIKENDE FRIST
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                            │
+│ §34.2.1 bruker "innen rimelig tid" - IKKE "uten ugrunnet opphold"         │
+│                                                                            │
+│ "Rimelig tid" er generelt ansett som en mildere standard enn UUO.         │
+│ Ingen eksplisitt konsekvens ved passivitet er angitt.                     │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 3.5 Svar på EP-justeringskrav (§34.3.3) ✓
+
+> **Kontraktstekst §34.3.3 annet ledd:**
+> "Den part som mottar varsel om justering, skal svare uten ugrunnet opphold. Dersom det ikke svares innen fristen, mister parten sine innsigelser mot kravet."
+
+| Dimensjon | Verdi | Kilde |
+|-----------|-------|-------|
+| **HVEM** | Begge parter (mottar varsel) | §34.3.3 annet ledd |
+| **TRIGGER** | Mottar varsel om justering av enhetspris | §34.3.3 annet ledd |
+| **SKJÆRINGSTIDSPUNKT** | Mottak av varsel | §34.3.3 annet ledd |
 | **FRIST** | Uten ugrunnet opphold | §34.3.3 annet ledd |
 | **KONSEKVENS** | Innsigelser **TAPES** | §34.3.3 annet ledd |
+
+```
+VIKTIG: SYMMETRISK REGEL
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                            │
+│ §34.3.3 gjelder BEGGE PARTER - "Den part som mottar varsel"               │
+│                                                                            │
+│ Både BH og TE kan:                                                         │
+│ 1. Kreve EP-justering (§34.3.3 første ledd)                               │
+│ 2. Ha svarplikt når motparten krever (§34.3.3 annet ledd)                 │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -1083,36 +1239,44 @@ interface ResponsEvent extends VarslingsEvent {
 
 ## Vedlegg: Komplett matrise
 
-### TEs varslingsplikter
+### TEs varslingsplikter ✓
 
-| # | Hjemmel | Spor | Trigger | Skjæringstidspunkt | Frist | Konsekvens |
-|---|---------|------|---------|-------------------|-------|------------|
-| 1 | §32.2 | Grunnlag | Mottar pålegg (§32.1) | Mottak | UUO | Tap av rett |
-| 2 | §25.1.2 | Grunnlag | Oppdager svikt | Blir/burde oppmerksom | UUO | Erstatning |
-| 3 | §25.2 | Grunnlag | Uegnet prosjektering | Blir/måtte klar over | UUO | Erstatning |
-| 4 | §34.1.2 | Vederlag | Svikt/andre forhold | Blir/burde klar over | UUO | Preklusjon |
-| 5 | §34.1.3 | Vederlag | Rigg/drift | Blir/burde klar over (vil påløpe) | UUO | Preklusjon (påløpte) |
-| 6 | §34.1.3 | Vederlag | Produktivitet | Blir/burde klar over (vil påløpe) | UUO | Preklusjon (påløpte) |
-| 7 | §34.3.3 | Vederlag | EP-justering | Blir/burde klar over | UUO | Reduksjon |
-| 8 | §33.4 | Frist | Forhold oppstår | Forholdet oppstår | UUO | Preklusjon |
-| 9 | §33.6.1 | Frist | Grunnlag for beregning | Har grunnlag | UUO | Reduksjon |
-| 10 | §33.6.2 | Frist | Mottar etterlysning | Mottak | UUO | Preklusjon |
-| 11 | §30.3.1 | Regning | Løpende | Ukentlig | 7 dager | Reduksjon |
+| # | Hjemmel | Spor | Trigger | Skjæringstidspunkt | Frist | Konsekvens | Status |
+|---|---------|------|---------|-------------------|-------|------------|--------|
+| 1 | §24.2.2 | Grunnlag | Uegnet BH-materiale | Kontraktsinngåelse | **5 uker** | Overtar risiko | ✓ |
+| 2 | §32.2 | Grunnlag | Mottar pålegg (§32.1) | Mottak | UUO | Tap av rett | ✓ |
+| 3 | §25.1.2 | Grunnlag | Oppdager svikt | Blir/burde oppmerksom | UUO | Erstatning | ✓ |
+| 4 | §25.2 | Grunnlag | Uegnet prosjektering | Blir/**måtte** klar over | UUO | Erstatning | ✓ |
+| 5 | §34.1.2 | Vederlag | Svikt/andre forhold | Blir/burde klar over | UUO | **Preklusjon** | ✓ |
+| 6 | §34.1.3 | Vederlag | Rigg/drift | Blir/burde (vil påløpe) | UUO | Preklusjon (påløpte) | ✓ |
+| 7 | §34.1.3 | Vederlag | Produktivitet | Blir/burde (vil påløpe) | UUO | Preklusjon (påløpte) | ✓ |
+| 8 | §34.3.3 | Vederlag | EP-justering | Foreligger grunnlag | UUO | **Reduksjon** | ✓ |
+| 9 | §34.4 | Vederlag | Regningsarbeid | Før oppstart | Før oppstart | (Uavklart) | ✓ |
+| 10 | §33.4 | Frist | Forhold oppstår | Forholdet oppstår | UUO | **Preklusjon** | ✓ |
+| 11 | §33.6.1 | Frist | Grunnlag for beregning | Har grunnlag | UUO | **Reduksjon** | ✓ |
+| 12 | §33.6.2 | Frist | Mottar etterlysning | Mottak | UUO | **Preklusjon** | ✓ |
+| 13 | §30.3.1 | Regning | Løpende | Ukentlig | 7 dager | Reduksjon | ⏳ |
 
-### BHs svarplikter
+### BHs svarplikter ✓
 
-| # | Hjemmel | Spor | Trigger | Skjæringstidspunkt | Frist | Konsekvens |
-|---|---------|------|---------|-------------------|-------|------------|
-| 1 | §32.3 | Grunnlag | Varsel §32.2 | Mottak | UUO | Passivitet (anses endring) |
-| 2 | §25.3 | Grunnlag | Varsel §25.1.2/§25.2 | Mottak | UUO | **Uavklart** |
-| 3 | §33.7 | Frist | Spesifisert krav | Mottak | UUO | Preklusjon innsigelser |
-| 4 | §34.3.3 | Vederlag | EP-justeringskrav | Mottak | UUO | Preklusjon innsigelser |
-| 5 | §30.3.2 | Regning | Oppgaver | Mottak | 14 dager | Passivitet (aksept) |
-| 6 | §10.2 | Aktører | Valg av medhjelper | Mottak | 14 dager | Passivitet (aksept) |
+| # | Hjemmel | Spor | Trigger | Skjæringstidspunkt | Frist | Konsekvens | Status |
+|---|---------|------|---------|-------------------|-------|------------|--------|
+| 1 | §24.2.2 | Grunnlag | Varsel om uegnet materiale | Mottak | UUO | **Uavklart** (bærer risiko) | ✓ |
+| 2 | §32.3 | Grunnlag | Varsel §32.2 | Mottak | UUO | Passivitet (anses endring) | ✓ |
+| 3 | §25.3 | Grunnlag | Varsel §25.1.2/§25.2 | Mottak | UUO | **Uavklart** | ✓ |
+| 4 | §34.2.1 | Vederlag | Tilbud fra TE | Mottak | **Rimelig tid** | **Uavklart** | ✓ |
+| 5 | §34.3.3 | Vederlag | EP-justeringskrav | Mottak | UUO | Preklusjon innsigelser | ✓ |
+| 6 | §33.7 | Frist | Spesifisert krav | Mottak | UUO | Preklusjon innsigelser | ✓ |
+| 7 | §30.3.2 | Regning | Oppgaver | Mottak | 14 dager | Passivitet (aksept) | ⏳ |
+| 8 | §10.2 | Aktører | Valg av medhjelper | Mottak | 14 dager | Passivitet (aksept) | ⏳ |
 
 *UUO = Uten ugrunnet opphold*
+*✓ = Verifisert mot kontraktstekst*
+*⏳ = Venter på verifisering*
 
 ---
 
 > **Dokumenthistorikk:**
 > - 2026-01-24: Opprettet med systematisk kartlegging av alle varslingsregler
+> - 2026-01-24: Verifisert §33 (fristsporet) mot kontraktstekst
+> - 2026-01-24: Verifisert §34 (vederlagssporet) mot kontraktstekst - inkludert §34.1.1-§34.4
