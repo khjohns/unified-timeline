@@ -167,7 +167,7 @@ export function KontraktsregelInline(props: KontraktsregelInlineProps) {
     return (
       <div className="rounded-md border border-pkt-border-subtle bg-pkt-bg-subtle p-4">
         <p className="text-sm text-pkt-text-body">
-          {inline} <span className="text-pkt-text-body-subtle">({hjemmel})</span>
+          {inline}{hjemmel && <span className="text-pkt-text-body-subtle"> ({hjemmel})</span>}
         </p>
 
         {harAccordion && (
@@ -185,7 +185,7 @@ export function KontraktsregelInline(props: KontraktsregelInlineProps) {
             </Collapsible.Trigger>
 
             <Collapsible.Content className="mt-2 pl-5 border-l-2 border-pkt-border-subtle">
-              <p className="text-sm text-pkt-text-body">{konsekvens}</p>
+              <p className="text-sm text-pkt-text-body whitespace-pre-line">{konsekvens}</p>
             </Collapsible.Content>
           </Collapsible.Root>
         )}
