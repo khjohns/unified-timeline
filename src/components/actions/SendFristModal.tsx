@@ -308,34 +308,36 @@ export function SendFristModal({
               name="varsel_type"
               control={control}
               render={({ field }) => (
-                <RadioGroup value={field.value} onValueChange={field.onChange} data-testid="frist-varsel-type">
-                  {FRIST_VARSELTYPE_OPTIONS
-                    .filter(opt => opt.value !== '')
-                    // §33.6.2 bokstav b er kun tilgjengelig som svar på forespørsel
-                    .filter(opt => opt.value !== 'begrunnelse_utsatt' || harMottattForesporsel)
-                    .map((option) => (
-                      <RadioItem
-                        key={option.value}
-                        id={`varsel_type_${option.value}`}
-                        value={option.value}
-                        label={option.label}
+                <>
+                  <RadioGroup value={field.value} onValueChange={field.onChange} data-testid="frist-varsel-type">
+                    {FRIST_VARSELTYPE_OPTIONS
+                      .filter(opt => opt.value !== '')
+                      // §33.6.2 bokstav b er kun tilgjengelig som svar på forespørsel
+                      .filter(opt => opt.value !== 'begrunnelse_utsatt' || harMottattForesporsel)
+                      .map((option) => (
+                        <RadioItem
+                          key={option.value}
+                          id={`varsel_type_${option.value}`}
+                          value={option.value}
+                          label={option.label}
+                        />
+                      ))}
+                  </RadioGroup>
+                  {/* VarslingsregelInfo inline for valgt type */}
+                  {field.value && (
+                    <div className="mt-4">
+                      <VarslingsregelInfo
+                        hjemmel={
+                          field.value === 'noytralt' ? '§33.4' :
+                          field.value === 'spesifisert' ? '§33.6.1' :
+                          '§33.6.2'
+                        }
+                        rolle="TE"
+                        dagerSiden={dagerSidenGrunnlag}
                       />
-                    ))}
-                </RadioGroup>
-                {/* VarslingsregelInfo inline for valgt type */}
-                {field.value && (
-                  <div className="mt-4">
-                    <VarslingsregelInfo
-                      hjemmel={
-                        field.value === 'noytralt' ? '§33.4' :
-                        field.value === 'spesifisert' ? '§33.6.1' :
-                        '§33.6.2'
-                      }
-                      rolle="TE"
-                      dagerSiden={dagerSidenGrunnlag}
-                    />
-                  </div>
-                )}
+                    </div>
+                  )}
+                </>
               )}
             />
           </FormField>
