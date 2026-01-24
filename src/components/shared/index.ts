@@ -11,3 +11,5 @@ export {
   VarslingsregelSvarfrist,
   VarslingsregelForsering,
 } from './VarslingsregelInfo';
+
+export { VarslingsregelInline } from './VarslingsregelInline';

@@ -30,7 +30,7 @@ import {
   Textarea,
   useToast,
 } from '../primitives';
-import { VarslingsregelInfo } from '../shared';
+import { VarslingsregelInfo, VarslingsregelInline } from '../shared';
 import type { AttachmentFile } from '../../types';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -323,9 +323,19 @@ export function SendFristModal({
                         />
                       ))}
                   </RadioGroup>
-                  {/* VarslingsregelInfo inline for valgt type */}
+                  {/* Varslingsregel-komponenter for valgt type */}
                   {field.value && (
-                    <div className="mt-4">
+                    <div className="mt-4 space-y-4">
+                      {/* Ny inline-komponent med accordion */}
+                      <VarslingsregelInline
+                        hjemmel={
+                          field.value === 'noytralt' ? '§33.4' :
+                          field.value === 'spesifisert' ? '§33.6.1' :
+                          '§33.6.2'
+                        }
+                        rolle="TE"
+                      />
+                      {/* Eksisterende komponent for sammenligning */}
                       <VarslingsregelInfo
                         hjemmel={
                           field.value === 'noytralt' ? '§33.4' :
