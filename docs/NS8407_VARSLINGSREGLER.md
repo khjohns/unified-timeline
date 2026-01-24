@@ -19,6 +19,7 @@
 7. [Konsekvenstyper](#7-konsekvenstyper)
 8. [Sammenheng mellom sporene](#8-sammenheng-mellom-sporene)
 9. [Implementasjon i applikasjonen](#9-implementasjon-i-applikasjonen)
+10. [Åpne spørsmål og begrensninger](#10-åpne-spørsmål-og-begrensninger)
 
 ---
 
@@ -883,5 +884,133 @@ Når TE mottar svar fra BH og mener det kom for sent:
 
 ---
 
+## 10. Åpne spørsmål og begrensninger
+
+> **Viktig:** Dette dokumentet er basert på en gjennomgang av utvalgte paragrafer i NS 8407. Følgende spørsmål og begrensninger bør vurderes før implementering.
+
+### Manglende paragrafer
+
+Følgende paragrafer er referert i dokumentet, men kontraktsteksten er ikke verifisert:
+
+| Paragraf | Relevans | Påvirker |
+|----------|----------|----------|
+| **§32.1** | Definerer hva som utløser varslingsplikten i §32.2 (pålegg som endrer omfang, utførelse, fremdrift) | Trigger for irregulær endring |
+| **§33.1** | Definerer TEs rett til fristforlengelse ved endringer | Grunnlag for fristkrav |
+| **§33.2** | Definerer BHs rett til fristforlengelse | BHs egne varslingsplikter |
+| **§33.3** | Force majeure - fristforlengelse uten vederlag | FORCE_MAJEURE-kategorien |
+| **§34.2** | Generelle regler for vederlagskrav | Kan inneholde varslingsregler |
+| **§34.3.3** | Svarplikt ved EP-justering (nevnt i skill-filen) | Vederlagssporet |
+
+### Tolkningsspørsmål
+
+#### Spørsmål 1: Skjæringstidspunkt for §33.4
+
+**Problem:** Dokumentet angir "Forhold som gir rett oppstår" som skjæringstidspunkt for §33.4, men kontraktsteksten sier bare "uten ugrunnet opphold" uten å spesifisere eksakt når fristen begynner å løpe.
+
+**Mulige tolkninger:**
+1. Fristen løper fra forholdet oppstår (objektiv)
+2. Fristen løper fra TE blir klar over forholdet (subjektiv)
+3. Fristen løper fra TE burde blitt klar over forholdet (aktsomhetsnorm)
+
+**Status:** Uavklart - bør verifiseres mot juridisk teori/praksis.
+
+#### Spørsmål 2: §33.6.2 fjerde ledd vs §5
+
+**Kontraktstekst:** "Byggherren kan da ikke påberope at fristen i 33.6.1 er oversittet."
+
+**Problem:** Dokumentet beskriver dette som at §33.6.2 fjerde ledd "overstyrer §5". Men er dette korrekt terminologi?
+
+**Mulige tolkninger:**
+1. Det er en spesialregel som gjør §5 irrelevant i dette tilfellet
+2. Det er en egen helbredelsesmekanisme som virker uavhengig av §5
+3. Det bekrefter at §5-innsigelse er påkrevd også her, men BH mister retten til å påberope §33.6.1
+
+**Status:** Uavklart - formulering i dokumentet bør kanskje justeres.
+
+#### Spørsmål 3: Dobbel varsling ved SVIKT/ANDRE
+
+**Kontraktstekst (§25.1.2 siste ledd):** "Dersom totalentreprenøren vil kreve fristforlengelse eller vederlagsjustering som følge av forhold nevnt i 25.1.1, skal kravet varsles og behandles etter bestemmelsene i punkt 33 og 34."
+
+**Problem:** Dokumentet beskriver at TE må sende to separate varsler:
+1. §25.1.2 (grunnlagsvarsel) - konsekvens: erstatning
+2. §34.1.2 (vederlagsvarsel) - konsekvens: preklusjon
+
+**Spørsmål:**
+- Er dette faktisk to separate varsler med ulike frister?
+- Kan ett varsel dekke begge formål?
+- Løper fristene parallelt eller sekvensielt?
+
+**Status:** Uavklart - praktisk viktig for implementering.
+
+#### Spørsmål 4: §25.3 - Konsekvens ved BHs passivitet
+
+**Kontraktstekst:** "Når byggherren mottar et varsel etter 25.1.2 eller 25.2, skal han uten ugrunnet opphold besvare varselet og gi beskjed om hvordan totalentreprenøren skal forholde seg."
+
+**Problem:** Ingen eksplisitt konsekvens er angitt (i motsetning til §32.3 og §33.7).
+
+**Mulige tolkninger:**
+1. TE må påberope via §5, men konsekvensen er uklar
+2. Implisitt at forholdet anses akseptert (analogt §32.3)
+3. BH kan bli erstatningsansvarlig for tap TE lider pga. manglende svar
+4. Ingen konsekvens - bare en oppfordring
+
+**Status:** Uavklart - applikasjonen noterer passivitet men tar ikke stilling.
+
+### Strukturelle begrensninger
+
+#### Begrensning 1: Fokus på TEs varslingsplikter
+
+Dokumentet fokuserer primært på TEs varslingsplikter og BHs svarplikter. Følgende er ikke dekket:
+
+- **BHs egne varslingsplikter** når BH krever fristforlengelse (§33.2)
+- **BHs varslingsplikt** ved endringsordre (§31.3)
+- **Partenes varslingsplikter** i sluttoppgjørsfasen (§39)
+
+#### Begrensning 2: Vederlagssporet - BHs svarplikt
+
+Dokumentet dekker ikke om det finnes en svarplikt for BH når TE sender vederlagskrav (tilsvarende §33.7 for frist). Dette kan være relevant for:
+- Hovedkrav etter §34.1.2
+- Særskilte krav etter §34.1.3
+- EP-justering etter §34.3
+
+#### Begrensning 3: Regningsarbeid og kontraktsmedhjelpere
+
+Skill-filen nevner varslingsregler for:
+- Regningsarbeid (§30.3.1/§30.3.2)
+- Kontraktsmedhjelpere (§10.2, §12.1.2)
+
+Disse er ikke dekket i dokumentet.
+
+### Anbefalinger for videre arbeid
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    ANBEFALINGER FOR VIDERE ARBEID                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  PRIORITET 1 (Kritisk for implementering):                                 │
+│  ─────────────────────────────────────────                                 │
+│  □ Avklar tolkningsspørsmål 3 (dobbel varsling)                            │
+│  □ Innhent §32.1 for å verifisere trigger for irregulær endring            │
+│  □ Avklar om det finnes BH svarplikt for vederlagskrav                     │
+│                                                                             │
+│  PRIORITET 2 (Viktig for komplett dekning):                                │
+│  ──────────────────────────────────────────                                │
+│  □ Innhent §33.1, §33.2, §33.3 for fristsporet                             │
+│  □ Avklar tolkningsspørsmål 1 (skjæringstidspunkt §33.4)                   │
+│  □ Avklar tolkningsspørsmål 4 (§25.3 konsekvens)                           │
+│                                                                             │
+│  PRIORITET 3 (Nice-to-have):                                               │
+│  ────────────────────────────                                              │
+│  □ Dekke BHs egne varslingsplikter                                         │
+│  □ Dekke sluttoppgjørsfasen (§39)                                          │
+│  □ Dekke regningsarbeid og kontraktsmedhjelpere                            │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
 > **Dokumenthistorikk:**
 > - 2026-01-24: Opprettet basert på gjennomgang av NS 8407 kapittel 5, 25, 32, 33, 34, 35
+> - 2026-01-24: Lagt til seksjon 10 med åpne spørsmål og begrensninger
