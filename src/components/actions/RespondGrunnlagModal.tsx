@@ -567,7 +567,7 @@ export function RespondGrunnlagModal({
                   id="begrunnelse"
                   value={field.value ?? ''}
                   onChange={field.onChange}
-                  rows={5}
+                  rows={8}
                   fullWidth
                   error={!!errors.begrunnelse}
                   placeholder="Begrunn din vurdering..."

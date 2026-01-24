@@ -3,6 +3,7 @@
  *
  * GitHub-style markdown editor with Write/Preview tabs and formatting toolbar.
  * Uses Radix UI Toolbar and react-markdown for preview.
+ * Mobile-optimized with stacked layout and larger touch targets.
  */
 
 import { forwardRef, useState, useRef, useCallback } from 'react';
@@ -49,9 +50,11 @@ interface ToolbarButtonProps {
   label: string;
   onClick: () => void;
   disabled?: boolean;
+  /** Hide on mobile */
+  hideOnMobile?: boolean;
 }
 
-function ToolbarButton({ icon, label, onClick, disabled }: ToolbarButtonProps) {
+function ToolbarButton({ icon, label, onClick, disabled, hideOnMobile }: ToolbarButtonProps) {
   return (
     <Toolbar.Button
       type="button"
@@ -60,11 +63,12 @@ function ToolbarButton({ icon, label, onClick, disabled }: ToolbarButtonProps) {
       aria-label={label}
       title={label}
       className={clsx(
-        'p-1.5 rounded transition-colors',
-        'hover:bg-pkt-bg-subtle',
+        'p-2 sm:p-1.5 rounded transition-colors',
+        'hover:bg-pkt-bg-subtle active:bg-pkt-bg-subtle',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-pkt-brand-purple-1000/30',
         'disabled:opacity-50 disabled:cursor-not-allowed',
-        'text-pkt-text-body-muted hover:text-pkt-text-body-default'
+        'text-pkt-text-body-muted hover:text-pkt-text-body-default',
+        hideOnMobile && 'hidden sm:inline-flex'
       )}
     >
       {icon}
@@ -78,7 +82,7 @@ export const MarkdownEditor = forwardRef<HTMLTextAreaElement, MarkdownEditorProp
       value,
       onChange,
       placeholder = 'Skriv her...',
-      rows = 5,
+      rows = 8,
       error,
       disabled,
       fullWidth,
@@ -156,16 +160,16 @@ export const MarkdownEditor = forwardRef<HTMLTextAreaElement, MarkdownEditorProp
     );
 
     return (
-      <div className={clsx('border-2 rounded overflow-hidden',
+      <div className={clsx('border-2 rounded-lg overflow-hidden',
         error ? 'border-pkt-border-red' : 'border-pkt-border-default',
         disabled && 'opacity-50',
         fullWidth && 'w-full',
         className
       )}>
-        {/* Header with tabs and toolbar */}
-        <div className="flex items-center justify-between bg-pkt-bg-subtle border-b border-pkt-border-subtle px-2 py-1">
+        {/* Header with tabs and toolbar - stacked on mobile */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-pkt-bg-subtle border-b border-pkt-border-subtle">
           {/* Tabs */}
-          <div className="flex" role="tablist">
+          <div className="flex border-b sm:border-b-0 border-pkt-border-subtle" role="tablist">
             <button
               type="button"
               role="tab"
@@ -173,7 +177,7 @@ export const MarkdownEditor = forwardRef<HTMLTextAreaElement, MarkdownEditorProp
               onClick={() => setActiveTab('write')}
               disabled={disabled}
               className={clsx(
-                'px-3 py-1.5 text-sm font-medium rounded-t transition-colors',
+                'flex-1 sm:flex-none px-4 py-2.5 sm:py-2 text-sm font-medium transition-colors',
                 activeTab === 'write'
                   ? 'bg-pkt-bg-default text-pkt-text-body-dark border-b-2 border-pkt-text-body-dark -mb-px'
                   : 'text-pkt-text-body-muted hover:text-pkt-text-body-default'
@@ -188,7 +192,7 @@ export const MarkdownEditor = forwardRef<HTMLTextAreaElement, MarkdownEditorProp
               onClick={() => setActiveTab('preview')}
               disabled={disabled}
               className={clsx(
-                'px-3 py-1.5 text-sm font-medium rounded-t transition-colors',
+                'flex-1 sm:flex-none px-4 py-2.5 sm:py-2 text-sm font-medium transition-colors',
                 activeTab === 'preview'
                   ? 'bg-pkt-bg-default text-pkt-text-body-dark border-b-2 border-pkt-text-body-dark -mb-px'
                   : 'text-pkt-text-body-muted hover:text-pkt-text-body-default'
@@ -198,56 +202,58 @@ export const MarkdownEditor = forwardRef<HTMLTextAreaElement, MarkdownEditorProp
             </button>
           </div>
 
-          {/* Toolbar - only visible in write mode */}
+          {/* Toolbar - visible in write mode, scrollable on mobile */}
           {activeTab === 'write' && (
             <Toolbar.Root
-              className="flex items-center gap-0.5"
+              className="flex items-center gap-0.5 px-2 py-1.5 overflow-x-auto"
               aria-label="Formateringsverktøy"
             >
               <ToolbarButton
-                icon={<HeadingIcon className="w-4 h-4" />}
-                label="Overskrift"
-                onClick={() => insertFormat('heading')}
-                disabled={disabled}
-              />
-              <ToolbarButton
-                icon={<FontBoldIcon className="w-4 h-4" />}
+                icon={<FontBoldIcon className="w-5 h-5 sm:w-4 sm:h-4" />}
                 label="Fet tekst"
                 onClick={() => insertFormat('bold')}
                 disabled={disabled}
               />
               <ToolbarButton
-                icon={<FontItalicIcon className="w-4 h-4" />}
+                icon={<FontItalicIcon className="w-5 h-5 sm:w-4 sm:h-4" />}
                 label="Kursiv"
                 onClick={() => insertFormat('italic')}
                 disabled={disabled}
               />
-
-              <Toolbar.Separator className="w-px h-4 bg-pkt-border-subtle mx-1" />
-
               <ToolbarButton
-                icon={<ListBulletIcon className="w-4 h-4" />}
+                icon={<ListBulletIcon className="w-5 h-5 sm:w-4 sm:h-4" />}
                 label="Punktliste"
                 onClick={() => insertFormat('list')}
                 disabled={disabled}
               />
+
+              <Toolbar.Separator className="w-px h-5 bg-pkt-border-subtle mx-1" />
+
               <ToolbarButton
-                icon={<QuoteIcon className="w-4 h-4" />}
+                icon={<HeadingIcon className="w-5 h-5 sm:w-4 sm:h-4" />}
+                label="Overskrift"
+                onClick={() => insertFormat('heading')}
+                disabled={disabled}
+              />
+              <ToolbarButton
+                icon={<QuoteIcon className="w-5 h-5 sm:w-4 sm:h-4" />}
                 label="Sitat"
                 onClick={() => insertFormat('quote')}
                 disabled={disabled}
               />
               <ToolbarButton
-                icon={<CodeIcon className="w-4 h-4" />}
+                icon={<CodeIcon className="w-5 h-5 sm:w-4 sm:h-4" />}
                 label="Kode"
                 onClick={() => insertFormat('code')}
                 disabled={disabled}
+                hideOnMobile
               />
               <ToolbarButton
-                icon={<Link2Icon className="w-4 h-4" />}
+                icon={<Link2Icon className="w-5 h-5 sm:w-4 sm:h-4" />}
                 label="Lenke"
                 onClick={() => insertFormat('link')}
                 disabled={disabled}
+                hideOnMobile
               />
             </Toolbar.Root>
           )}
@@ -266,10 +272,10 @@ export const MarkdownEditor = forwardRef<HTMLTextAreaElement, MarkdownEditorProp
             aria-describedby={ariaDescribedBy}
             aria-invalid={error ? 'true' : 'false'}
             className={clsx(
-              'w-full px-3 py-2 text-base',
+              'w-full px-3 py-3 text-base',
               'bg-pkt-bg-default text-pkt-text-body-default',
               'placeholder:text-pkt-text-placeholder',
-              'resize-y min-h-[100px]',
+              'resize-y min-h-[180px] sm:min-h-[150px]',
               'focus:outline-none',
               'border-0'
             )}
@@ -277,7 +283,7 @@ export const MarkdownEditor = forwardRef<HTMLTextAreaElement, MarkdownEditorProp
         ) : (
           <div
             className={clsx(
-              'px-3 py-2 min-h-[100px] bg-pkt-bg-default',
+              'px-3 py-3 min-h-[180px] sm:min-h-[150px] bg-pkt-bg-default',
               'prose prose-sm max-w-none',
               'prose-headings:text-pkt-text-body-dark prose-headings:font-semibold',
               'prose-p:text-pkt-text-body-default prose-p:my-2',
@@ -297,8 +303,8 @@ export const MarkdownEditor = forwardRef<HTMLTextAreaElement, MarkdownEditorProp
           </div>
         )}
 
-        {/* Footer hint */}
-        <div className="px-3 py-1.5 bg-pkt-bg-subtle border-t border-pkt-border-subtle">
+        {/* Footer hint - hidden on mobile for space */}
+        <div className="hidden sm:block px-3 py-1.5 bg-pkt-bg-subtle border-t border-pkt-border-subtle">
           <p className="text-xs text-pkt-text-body-muted">
             Markdown støttes. Bruk **fet**, *kursiv*, - lister, og mer.
           </p>
