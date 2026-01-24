@@ -1117,22 +1117,79 @@ En gjenbrukbar komponent for å forklare varslingsregler til brukeren med progre
 <VarslingsregelInline hjemmel="§33.6.1" />
 ```
 
-#### Fremtidig utvidelse
+#### Fremtidig arbeid
 
-| Fase | Oppgave | Prioritet |
-|------|---------|-----------|
-| 1 | Opprett `VarslingsregelInfo.tsx` med grunnleggende visning | Høy |
-| 2 | Integrer i SendFristModal (erstatt eksisterende alerts) | Høy |
-| 3 | Integrer i RespondFristModal Port 1 (legg til §5-info) | Høy |
-| 4 | Integrer i SendForseringModal | Medium |
-| 5 | Utvid til RespondGrunnlagModal og RespondVederlagModal | Lav |
+| # | Oppgave | Prioritet | Kompleksitet |
+|---|---------|-----------|--------------|
+| 1 | BH proaktiv forespørsel (§33.6.2) | Lav | Høy |
+| 2 | §33.2 BH fristforlengelse | Lav | Høy |
+
+---
+
+### Fremtidig: BH proaktiv forespørsel (§33.6.2)
+
+**Kontekst:** I dag kan BH kun sende forespørsel som respons på eksisterende fristkrav. §33.6.2 tillater proaktiv forespørsel.
+
+**Kontraktstekst (§33.6.2 første ledd):**
+> "**Så lenge** totalentreprenøren ikke har fremmet krav etter 33.6.1, kan byggherren be om at totalentreprenøren gjør dette."
+
+**Foreslått løsning:**
+
+Ny event-type: `FRIST_FORESPORSEL`
+
+| Felt | Type | Beskrivelse |
+|------|------|-------------|
+| `grunnlag_event_id` | string | Kobling til grunnlag (påkrevd) |
+| `beskrivelse` | string | Hvilken hendelse BH etterspør |
+| `frist_for_svar` | date | Frist for TE å svare |
+
+**Nye komponenter:**
+- `SendForesporselFristModal.tsx` - BH sender proaktiv forespørsel
+
+---
+
+### Fremtidig: §33.2 BH fristforlengelse
+
+**Kontekst:** Kontrakten tillater at BH kan kreve fristforlengelse fra TE når TE forårsaker forsinkelser.
+
+**Kontraktstekst (§33.2):**
+> "Byggherren har krav på fristforlengelse dersom hans medvirkning hindres som følge av forhold totalentreprenøren har risikoen for."
+
+**Beslutning:** Implementeres som egen sakstype - ikke integrert i eksisterende KOE-flyt.
+
+**Ny sakstype:** `bh_frist`
+
+```python
+class SakType(str, Enum):
+    STANDARD = "standard"        # TE → BH (eksisterende)
+    FORSERING = "forsering"      # TE → BH (eksisterende)
+    ENDRINGSORDRE = "endringsordre"  # BH → TE (eksisterende)
+    BH_FRIST = "bh_frist"        # BH → TE fristforlengelse (NY)
+```
+
+**Kategorier (§33.2):**
+
+| Kode | Label | Beskrivelse |
+|------|-------|-------------|
+| `TE_FORSINKELSE` | Forsinkelse hos TE | TEs arbeider er forsinket |
+| `TE_MANGEL` | Mangel ved TEs ytelse | Mangel som hindrer BHs medvirkning |
+| `TE_KOORDINERING` | Koordineringssvikt | TE oppfyller ikke samordningsplikt |
+
+**Nye komponenter:**
+- `SendBhFristModal.tsx` - BH sender fristkrav
+- `RespondBhFristModal.tsx` - TE responderer
+- `BhFristPage.tsx` - Saksvisning for BH-frist
+
+**Varslings- og preklusjonsregler:**
+- §33.4 gjelder også for BH (varsel "uten ugrunnet opphold")
+- §33.6 og §33.7 gjelder tilsvarende
 
 ### Relevante filer
 
 | Fil | Innhold |
 |-----|---------|
 | `src/constants/varslingsregler.ts` | Alle varslingsregler definert |
-| `src/components/shared/VarslingsregelInfo.tsx` | **NY** - Gjenbrukbar komponent for regelforklaring |
+| `src/components/shared/VarslingsregelInline.tsx` | Gjenbrukbar komponent for regelforklaring |
 | `src/utils/begrunnelseGenerator.ts` | Auto-generering av begrunnelser |
 | `src/components/actions/SendFristModal.tsx` | TE sender fristkrav |
 | `src/components/actions/RespondFristModal.tsx` | BH svarer på fristkrav (§5-implementasjon) |
@@ -1560,4 +1617,5 @@ Ved kartlegging eller kvalitetssikring av varslingsregler, bruk følgende sjekkl
 > - 2026-01-24: Lagt til seksjon 11 med læringspunkter for kvalitetssikring
 > - 2026-01-24: Lagt til §33.8 (forsering ved uberettiget avslag) etter kvalitetssikring
 > - 2026-01-24: Lagt til detaljert implementasjonsstatus for fristsporet
-> - 2026-01-24: Opprettet VarslingsregelInfo-komponent (`src/components/shared/VarslingsregelInfo.tsx`)
+> - 2026-01-24: Opprettet VarslingsregelInline-komponent (`src/components/shared/VarslingsregelInline.tsx`)
+> - 2026-01-24: Konsolidert fremtidig arbeid fra PLAN_FRISTSPORET_KVALITETSSIKRING.md
