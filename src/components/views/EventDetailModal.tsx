@@ -8,6 +8,7 @@
  */
 
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
 import {
   Alert,
   Modal,
@@ -88,9 +89,11 @@ interface LongTextFieldProps {
   label: string;
   value: string | undefined;
   defaultOpen?: boolean;
+  /** Render content as markdown */
+  markdown?: boolean;
 }
 
-function LongTextField({ label, value, defaultOpen = false }: LongTextFieldProps) {
+function LongTextField({ label, value, defaultOpen = false, markdown = false }: LongTextFieldProps) {
   const [isExpanded, setIsExpanded] = React.useState(defaultOpen);
 
   if (!value) return null;
@@ -101,7 +104,13 @@ function LongTextField({ label, value, defaultOpen = false }: LongTextFieldProps
   return (
     <DataListItem label={label}>
       <div>
-        <p className="whitespace-pre-wrap">{displayText}</p>
+        {markdown ? (
+          <div className="prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0 prose-headings:text-base prose-headings:mt-2 prose-headings:mb-1">
+            <ReactMarkdown>{displayText}</ReactMarkdown>
+          </div>
+        ) : (
+          <p className="whitespace-pre-wrap">{displayText}</p>
+        )}
         {isLong && (
           <button
             type="button"
@@ -367,7 +376,7 @@ function ResponsGrunnlagSection({ data }: { data: ResponsGrunnlagEventData }) {
   return (
     <DataList>
       <DataListItem label="Resultat">{getBhGrunnlagssvarLabel(data.resultat)}</DataListItem>
-      <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
+      <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} markdown />
       {data.akseptert_kategori && (
         <DataListItem label="Akseptert kategori">{data.akseptert_kategori}</DataListItem>
       )}
@@ -379,7 +388,7 @@ function ResponsGrunnlagOppdatertSection({ data }: { data: ResponsGrunnlagOppdat
   return (
     <DataList>
       <DataListItem label="Nytt resultat">{getBhGrunnlagssvarLabel(data.resultat)}</DataListItem>
-      <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
+      <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} markdown />
       {data.dato_endret && (
         <DataListItem label="Endret dato">{formatDateMedium(data.dato_endret)}</DataListItem>
       )}

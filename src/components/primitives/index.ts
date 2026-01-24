@@ -24,6 +24,7 @@ export { CurrencyInput } from './CurrencyInput';
 export { Input } from './Input';
 export { Label } from './Label';
 export { Textarea } from './Textarea';
+export { MarkdownEditor, type MarkdownEditorProps } from './MarkdownEditor';
 export { Checkbox } from './Checkbox';
 export { Switch } from './Switch';
 export { RadioGroup, RadioItem } from './RadioGroup';
