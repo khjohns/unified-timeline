@@ -701,45 +701,83 @@ VIKTIG PRESISERING:
 
 ### 2.4 Regningsarbeid
 
-#### 2.4.1 Varsel før regningsarbeid (§34.4)
+#### 2.4.1 Varsel før regningsarbeid (§34.4) ✓
 
-| Dimensjon | Verdi | Kilde |
-|-----------|-------|-------|
-| **HVEM** | TE | §34.4 |
-| **TRIGGER** | Før regningsarbeid igangsettes | §34.4 |
-| **SKJÆRINGSTIDSPUNKT** | Før arbeidet starter | §34.4 |
-| **FRIST** | Før oppstart | §34.4 |
-| **KONSEKVENS** | Skjerpet bevisbyrde for at arbeidet var nødvendig | §34.4 (implisitt) |
+Se seksjon 2.2.9 for fullstendig kontraktstekst.
 
 ---
 
-#### 2.4.2 Innsending av oppgaver (§30.3.1)
+#### 2.4.2 Kostnadsoverslag (§30.2) ✓
+
+> **Kontraktstekst §30.2 Kostnadsoverslag:**
+> "Byggherren kan kreve et kostnadsoverslag. Totalentreprenøren skal uten ugrunnet opphold utarbeide dette. Inntil kostnadsoverslaget foreligger, kan byggherren holde tilbake betalingen for regningsarbeidet.
+>
+> **Totalentreprenøren skal uten ugrunnet opphold varsle byggherren dersom det er grunn til å anta at kostnadsoverslaget vil bli overskredet.**"
 
 | Dimensjon | Verdi | Kilde |
 |-----------|-------|-------|
-| **HVEM** | TE | §30.3.1 |
-| **TRIGGER** | Løpende under regningsarbeid | §30.3.1 |
-| **SKJÆRINGSTIDSPUNKT** | Ukentlig (evt. månedlig hvis avtalt) | §30.3.1 |
-| **FRIST** | 7 dager (eller som avtalt) | §30.3.1 |
-| **KONSEKVENS** | **REDUKSJON** - kun krav på det BH "måtte forstå" + påslag | §30.3.1 |
+| **HVEM** | TE | §30.2 annet ledd |
+| **TRIGGER** | Grunn til å anta at kostnadsoverslaget vil overskrides | §30.2 annet ledd |
+| **SKJÆRINGSTIDSPUNKT** | Når TE har grunn til å anta overskridelse | §30.2 annet ledd |
+| **FRIST** | Uten ugrunnet opphold | §30.2 annet ledd |
+| **KONSEKVENS** | **IKKE EKSPLISITT ANGITT** | §30.2 |
+
+```
+VIKTIG PRESISERING:
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                            │
+│ §30.2 har INGEN eksplisitt konsekvens for manglende varsling.              │
+│                                                                            │
+│ Mulige tolkninger:                                                         │
+│ 1. BH kan holde tilbake betaling (§30.2 første ledd)                      │
+│ 2. TE kan bli erstatningsansvarlig for tap BH kunne unngått               │
+│ 3. Brudd på lojalitetsplikt, men ingen direkte preklusjon                 │
+│                                                                            │
+│ Merk også: TE skal utarbeide kostnadsoverslaget "uten ugrunnet opphold"   │
+│ når BH krever det (§30.2 første ledd).                                    │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+#### 2.4.3 Innsending av oppgaver (§30.3.1) ✓
+
+> **Kontraktstekst §30.3.1 Totalentreprenørens dokumentasjon av regningsarbeidene:**
+> "Er ikke annet avtalt, skal totalentreprenøren hver uke sende byggherren spesifiserte oppgaver over påløpte kostnader, herunder for materialforbruk og forbruk av tid når det gjelder mannskap og maskiner. Totalentreprenøren kan, når det gjelder kostnader og tidsforbruk som skyldes forsinkelse eller svikt ved byggherrens ytelser, kreve at oppgavene ikke skal sendes oftere enn hver måned.
+>
+> Dersom byggherren innen 14 dager etter mottak av oppgavene krever ytterligere dokumentasjon og nærmere spesifikasjon, skal totalentreprenøren gis en rimelig frist til å fremskaffe dette. Fristen skal ikke være kortere enn 14 dager. Så vidt mulig skal byggherren konkretisere sitt krav.
+>
+> **Dersom totalentreprenøren ikke leverer oppgaver i samsvar med første ledd, eller oversitter fristen i annet ledd, har han bare krav på dekning av de utgifter byggherren måtte forstå at totalentreprenøren har hatt, med tillegg av påslag til dekning av indirekte kostnader, risiko og fortjeneste.**"
+
+| Dimensjon | Verdi | Kilde |
+|-----------|-------|-------|
+| **HVEM** | TE | §30.3.1 første ledd |
+| **TRIGGER** | Løpende under regningsarbeid | §30.3.1 første ledd |
+| **SKJÆRINGSTIDSPUNKT** | Ukentlig (eller månedlig ved BH-svikt) | §30.3.1 første ledd |
+| **FRIST** | Hver uke (eller måned) | §30.3.1 første ledd |
+| **KONSEKVENS** | **REDUKSJON** - kun utgifter BH "måtte forstå" + påslag | §30.3.1 tredje ledd |
+
+```
+TO SITUASJONER MED REDUKSJONSKONSEKVENS:
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                            │
+│ 1. TE leverer ikke ukentlige oppgaver (§30.3.1 første ledd)               │
+│    → REDUKSJON: Kun det BH "måtte forstå" + påslag                        │
+│                                                                            │
+│ 2. TE oversitter frist for tilleggsdokumentasjon (§30.3.1 annet ledd)     │
+│    → REDUKSJON: Kun det BH "måtte forstå" + påslag                        │
+│                                                                            │
+│ UNNTAK: Ved BH-svikt kan TE kreve månedlig innsending                     │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
 ### 2.5 Andre varslingsplikter
 
-#### 2.5.1 Vesentlig økning av kostnadsoverslag (§30.2)
-
-| Dimensjon | Verdi | Kilde |
-|-----------|-------|-------|
-| **HVEM** | TE | §30.2 |
-| **TRIGGER** | TE ser at kostnadsoverslaget vil overskrides vesentlig | §30.2 |
-| **SKJÆRINGSTIDSPUNKT** | Når TE forstår overskridelsen | §30.2 |
-| **FRIST** | Uten ugrunnet opphold | §30.2 |
-| **KONSEKVENS** | BH kan instruere stans / reduksjon | §30.2 (ikke preklusjon) |
-
----
-
-#### 2.5.2 Nektelse av tiltransport (§12.1.2)
+#### 2.5.1 Nektelse av tiltransport (§12.1.2)
 
 | Dimensjon | Verdi | Kilde |
 |-----------|-------|-------|
@@ -957,19 +995,42 @@ VIKTIG: SYMMETRISK REGEL
 
 ---
 
-### 3.5 Kontroll av regningsoppgaver (§30.3.2)
+### 3.6 Kontroll av regningsoppgaver (§30.3.2) ✓
+
+> **Kontraktstekst §30.3.2 Byggherrens kontroll:**
+> "Byggherren skal kontrollere oppgavene innen 14 dager etter at de er mottatt. Tilleggsinformasjon skal kontrolleres innen 14 dager etter mottak.
+>
+> Dersom byggherren mener at oppgavene ikke stemmer med det som faktisk er utført eller levert, eller at de er basert på uriktige opplysninger, skal han varsle totalentreprenøren.
+>
+> **Varsler ikke byggherren innen fristene i første ledd, legges oppgavene til grunn for oppgjøret.** Byggherren er likevel ikke avskåret fra senere å påberope at oppgavene er uriktige som følge av forsett eller grov uaktsomhet, eller at de totale kostnadene er blitt unødvendig høye på grunn av urasjonell drift eller annet uforsvarlig forhold hos totalentreprenøren."
 
 | Dimensjon | Verdi | Kilde |
 |-----------|-------|-------|
-| **HVEM** | BH | §30.3.2 |
-| **TRIGGER** | Mottar oppgaver over timer/materialer | §30.3.2 |
-| **SKJÆRINGSTIDSPUNKT** | Mottak av oppgaver | §30.3.2 |
-| **FRIST** | 14 dager | §30.3.2 |
-| **KONSEKVENS** | Oppgavene legges til grunn (passiv aksept) | §30.3.2 |
+| **HVEM** | BH | §30.3.2 første og annet ledd |
+| **TRIGGER** | Mottar oppgaver fra TE / mener oppgaver ikke stemmer | §30.3.2 første og annet ledd |
+| **SKJÆRINGSTIDSPUNKT** | Mottak av oppgaver | §30.3.2 første ledd |
+| **FRIST** | **14 dager** | §30.3.2 første ledd |
+| **KONSEKVENS** | Oppgavene **legges til grunn** (passivitet = aksept) | §30.3.2 tredje ledd |
+
+```
+VIKTIG: UNNTAK FRA PASSIVITETSVIRKNINGEN
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                            │
+│ Selv om oppgavene legges til grunn ved passivitet, kan BH LIKEVEL         │
+│ senere påberope at oppgavene er uriktige ved:                             │
+│                                                                            │
+│ 1. FORSETT hos TE                                                          │
+│ 2. GROV UAKTSOMHET hos TE                                                  │
+│ 3. UNØDVENDIG HØYE kostnader pga. urasjonell drift/uforsvarlig forhold   │
+│                                                                            │
+│ Dette er et snevrere unntak enn vanlig - krever kvalifisert klanderverdi. │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-### 3.6 Nektelse av kontraktsmedhjelper (§10.2)
+### 3.7 Nektelse av kontraktsmedhjelper (§10.2)
 
 | Dimensjon | Verdi | Kilde |
 |-----------|-------|-------|
@@ -1255,7 +1316,8 @@ interface ResponsEvent extends VarslingsEvent {
 | 10 | §33.4 | Frist | Forhold oppstår | Forholdet oppstår | UUO | **Preklusjon** | ✓ |
 | 11 | §33.6.1 | Frist | Grunnlag for beregning | Har grunnlag | UUO | **Reduksjon** | ✓ |
 | 12 | §33.6.2 | Frist | Mottar etterlysning | Mottak | UUO | **Preklusjon** | ✓ |
-| 13 | §30.3.1 | Regning | Løpende | Ukentlig | 7 dager | Reduksjon | ⏳ |
+| 13 | §30.2 | Regning | Kostnadsoverslag overskrides | Grunn til å anta | UUO | (Uavklart) | ✓ |
+| 14 | §30.3.1 | Regning | Løpende oppgaver | Ukentlig/månedlig | Ukentlig | **Reduksjon** | ✓ |
 
 ### BHs svarplikter ✓
 
@@ -1267,12 +1329,13 @@ interface ResponsEvent extends VarslingsEvent {
 | 4 | §34.2.1 | Vederlag | Tilbud fra TE | Mottak | **Rimelig tid** | **Uavklart** | ✓ |
 | 5 | §34.3.3 | Vederlag | EP-justeringskrav | Mottak | UUO | Preklusjon innsigelser | ✓ |
 | 6 | §33.7 | Frist | Spesifisert krav | Mottak | UUO | Preklusjon innsigelser | ✓ |
-| 7 | §30.3.2 | Regning | Oppgaver | Mottak | 14 dager | Passivitet (aksept) | ⏳ |
+| 7 | §30.3.2 | Regning | Oppgaver fra TE | Mottak | **14 dager** | Passivitet (aksept)* | ✓ |
 | 8 | §10.2 | Aktører | Valg av medhjelper | Mottak | 14 dager | Passivitet (aksept) | ⏳ |
 
 *UUO = Uten ugrunnet opphold*
 *✓ = Verifisert mot kontraktstekst*
 *⏳ = Venter på verifisering*
+*\* = Unntak ved forsett/grov uaktsomhet/urasjonell drift*
 
 ---
 
@@ -1280,3 +1343,4 @@ interface ResponsEvent extends VarslingsEvent {
 > - 2026-01-24: Opprettet med systematisk kartlegging av alle varslingsregler
 > - 2026-01-24: Verifisert §33 (fristsporet) mot kontraktstekst
 > - 2026-01-24: Verifisert §34 (vederlagssporet) mot kontraktstekst - inkludert §34.1.1-§34.4
+> - 2026-01-24: Verifisert §30 (regningsarbeid) mot kontraktstekst - inkludert §30.2, §30.3.1, §30.3.2

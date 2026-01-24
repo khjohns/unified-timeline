@@ -1060,8 +1060,9 @@ Følgende paragrafer er referert i dokumentet, men kontraktsteksten er ikke veri
 | **§34.2.2** | Produktivitetstap ved regningsarbeid | Vederlagssporet | ✓ Verifisert |
 | **§34.3.3** | EP-justering - SYMMETRISK regel (begge parter) | Vederlagssporet | ✓ Verifisert |
 | **§34.4** | Regningsarbeid - varsel før oppstart | Vederlagssporet | ✓ Verifisert |
-| **§30.2** | Regningsarbeid - varsling | Regningsarbeid | ⏳ Venter |
-| **§30.3.1/§30.3.2** | Regningsarbeid - prisoversikt | Regningsarbeid | ⏳ Venter |
+| **§30.2** | Kostnadsoverslag - varsle overskridelse (UUO, uavklart konsekvens) | Regningsarbeid | ✓ Verifisert |
+| **§30.3.1** | Ukentlige oppgaver - REDUKSJON ved manglende levering | Regningsarbeid | ✓ Verifisert |
+| **§30.3.2** | BH kontroll 14 dager - passivitet = aksept (unntak ved forsett/grov uakts.) | Regningsarbeid | ✓ Verifisert |
 
 ### Tolkningsspørsmål
 
@@ -1162,7 +1163,7 @@ Disse er ikke dekket i dokumentet.
 │  ──────────────────────────────────────────                                │
 │  □ Avklar tolkningsspørsmål 1 (skjæringstidspunkt §33.4)                   │
 │  □ Avklar tolkningsspørsmål 4 (§25.3 konsekvens)                           │
-│  □ Innhent §30.2, §30.3.1, §30.3.2 for regningsarbeid                      │
+│  ☑ Innhent §30.2, §30.3.1, §30.3.2 for regningsarbeid                      │
 │                                                                             │
 │  PRIORITET 3 (Nice-to-have):                                               │
 │  ────────────────────────────                                              │
@@ -1183,6 +1184,13 @@ Disse er ikke dekket i dokumentet.
 │  ☑ §34.1.3: DELVIS preklusjon - kun PÅLØPTE utgifter tapes                 │
 │  ☑ §34.2.1: BH svar "rimelig tid" (mildere enn UUO), ingen konsekvens     │
 │  ☑ §34.3.3: EP-justering er SYMMETRISK - gjelder begge parter             │
+│                                                                             │
+│  VIKTIGE FUNN FRA §30 VERIFISERING:                                        │
+│  ──────────────────────────────────                                        │
+│  ☑ §30.2: Varsle overskridelse - UUO, men INGEN eksplisitt konsekvens      │
+│  ☑ §30.3.1: Ukentlige oppgaver - REDUKSJON (kun det BH "måtte forstå")    │
+│  ☑ §30.3.2: BH 14 dagers kontroll - passivitet = aksept                    │
+│  ☑ §30.3.2: Unntak ved forsett/grov uaktsomhet/urasjonell drift            │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
