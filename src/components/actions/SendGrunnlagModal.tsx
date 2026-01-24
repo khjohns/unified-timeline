@@ -458,8 +458,15 @@ export function SendGrunnlagModal({
                               <KontraktsregelInline
                                 custom={{
                                   inline: kategoriInfo.beskrivelse,
-                                  hjemmel: `§${kategoriInfo.hjemmel_frist}`,
-                                  konsekvens: `Type krav: ${kategoriInfo.type_krav}${kategoriInfo.hjemmel_vederlag ? ` · Vederlag: §${kategoriInfo.hjemmel_vederlag}` : ''}`,
+                                  hjemmel: kategoriInfo.hjemmel_vederlag
+                                    ? `§${kategoriInfo.hjemmel_frist} / §${kategoriInfo.hjemmel_vederlag}`
+                                    : `§${kategoriInfo.hjemmel_frist}`,
+                                  konsekvens: `Gir rett til: ${
+                                    kategoriInfo.type_krav === 'Tid og Penger' ? 'Fristforlengelse og vederlagsjustering' :
+                                    kategoriInfo.type_krav === 'Tid' ? 'Fristforlengelse' :
+                                    kategoriInfo.type_krav === 'Penger' ? 'Vederlagsjustering' :
+                                    kategoriInfo.type_krav
+                                  }`,
                                   accordionLabel: 'Detaljer',
                                 }}
                               />
