@@ -5,18 +5,23 @@
  * Supports all event types with type-specific rendering.
  * Uses DataList (with grid variant) as primary layout primitive.
  * LongTextField handles expandable text within DataList structure.
+ *
+ * For response events (respons_grunnlag, respons_vederlag, respons_frist),
+ * a "Generer brev" button is shown when sakState is provided.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Alert,
   Modal,
   SectionContainer,
   DataList,
   DataListItem,
+  Button,
 } from '../primitives';
 import {
   TimelineEvent,
+  SakState,
   GrunnlagEventData,
   VederlagEventData,
   FristEventData,
@@ -34,6 +39,8 @@ import {
   VarselInfo,
   extractEventType,
 } from '../../types/timeline';
+import { isLetterSupportedEvent } from '../../types/letter';
+import { LetterPreviewModal } from './LetterPreviewModal';
 import {
   getHovedkategoriLabel,
   getUnderkategoriLabel,
@@ -53,7 +60,7 @@ import {
   formatDateTimeNorwegian,
   formatVarselMetode,
 } from '../../utils/formatters';
-import { FileTextIcon } from '@radix-ui/react-icons';
+import { FileTextIcon, EnvelopeClosedIcon } from '@radix-ui/react-icons';
 
 // ========== TYPES ==========
 
@@ -61,6 +68,8 @@ interface EventDetailModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   event: TimelineEvent;
+  /** Optional: SakState required for letter generation */
+  sakState?: SakState;
 }
 
 // ========== HELPER COMPONENTS ==========
@@ -579,11 +588,17 @@ export function EventDetailModal({
   open,
   onOpenChange,
   event,
+  sakState,
 }: EventDetailModalProps) {
+  const [showLetterPreview, setShowLetterPreview] = useState(false);
+
   const eventType = extractEventType(event.type);
   const eventTypeLabel = eventType
     ? EVENT_TYPE_LABELS[eventType] || event.type
     : event.type;
+
+  // Check if letter generation is available for this event
+  const canGenerateLetter = sakState && eventType && isLetterSupportedEvent(eventType);
 
   // Render event-specific data section
   const renderEventData = () => {
@@ -646,29 +661,54 @@ export function EventDetailModal({
   };
 
   return (
-    <Modal
-      open={open}
-      onOpenChange={onOpenChange}
-      title={eventTypeLabel}
-      size="lg"
-    >
-      <div className="space-y-6">
-        {/* Metadata */}
-        <p className="text-sm text-pkt-text-body-subtle pb-4 border-b border-pkt-border-subtle">
-          {event.time ? formatDateTimeNorwegian(event.time) : 'Ukjent tid'}
-          {' · '}
-          {event.actor || 'Ukjent'}
-          {event.actorrole && ` (${event.actorrole === 'TE' ? 'Entreprenør' : 'Byggherre'})`}
-        </p>
+    <>
+      <Modal
+        open={open}
+        onOpenChange={onOpenChange}
+        title={eventTypeLabel}
+        size="lg"
+      >
+        <div className="space-y-6">
+          {/* Metadata */}
+          <p className="text-sm text-pkt-text-body-subtle pb-4 border-b border-pkt-border-subtle">
+            {event.time ? formatDateTimeNorwegian(event.time) : 'Ukjent tid'}
+            {' · '}
+            {event.actor || 'Ukjent'}
+            {event.actorrole && ` (${event.actorrole === 'TE' ? 'Entreprenør' : 'Byggherre'})`}
+          </p>
 
-        {/* Event data */}
-        {renderEventData()}
+          {/* Event data */}
+          {renderEventData()}
 
-        {/* Event ID footer */}
-        <p className="text-xs text-pkt-text-body-subtle pt-4 border-t border-pkt-border-subtle">
-          Event ID: {event.id}
-        </p>
-      </div>
-    </Modal>
+          {/* Letter generation button for response events */}
+          {canGenerateLetter && (
+            <div className="pt-4 border-t border-pkt-border-subtle">
+              <Button
+                variant="secondary"
+                onClick={() => setShowLetterPreview(true)}
+              >
+                <EnvelopeClosedIcon className="w-4 h-4 mr-2" />
+                Generer brev
+              </Button>
+            </div>
+          )}
+
+          {/* Event ID footer */}
+          <p className="text-xs text-pkt-text-body-subtle pt-4 border-t border-pkt-border-subtle">
+            Event ID: {event.id}
+          </p>
+        </div>
+      </Modal>
+
+      {/* Letter Preview Modal */}
+      {canGenerateLetter && (
+        <LetterPreviewModal
+          isOpen={showLetterPreview}
+          onClose={() => setShowLetterPreview(false)}
+          event={event}
+          sakState={sakState}
+        />
+      )}
+    </>
   );
 }

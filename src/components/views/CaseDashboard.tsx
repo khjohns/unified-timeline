@@ -129,7 +129,7 @@ export function CaseDashboard({
               </DataListItem>
             )}
           </DataList>
-          <SporHistory spor="grunnlag" entries={grunnlagEntries} events={events} />
+          <SporHistory spor="grunnlag" entries={grunnlagEntries} events={events} sakState={state} />
         </DashboardCard>
 
         {/* Vederlag Card */}
@@ -170,7 +170,7 @@ export function CaseDashboard({
               </DataListItem>
             )}
           </DataList>
-          <SporHistory spor="vederlag" entries={vederlagEntries} events={events} />
+          <SporHistory spor="vederlag" entries={vederlagEntries} events={events} sakState={state} />
         </DashboardCard>
 
         {/* Frist Card */}
@@ -213,7 +213,7 @@ export function CaseDashboard({
               </DataListItem>
             )}
           </DataList>
-          <SporHistory spor="frist" entries={fristEntries} events={events} />
+          <SporHistory spor="frist" entries={fristEntries} events={events} sakState={state} />
         </DashboardCard>
       </div>
     </section>
