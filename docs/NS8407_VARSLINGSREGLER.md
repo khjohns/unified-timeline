@@ -20,6 +20,7 @@
 8. [Sammenheng mellom sporene](#8-sammenheng-mellom-sporene)
 9. [Implementasjon i applikasjonen](#9-implementasjon-i-applikasjonen)
 10. [Åpne spørsmål og begrensninger](#10-åpne-spørsmål-og-begrensninger)
+11. [Læringspunkter for kvalitetssikring](#11-læringspunkter-for-kvalitetssikring-og-kartlegging)
 
 ---
 
@@ -1011,6 +1012,234 @@ Disse er ikke dekket i dokumentet.
 
 ---
 
+## 11. Læringspunkter for kvalitetssikring og kartlegging
+
+> **Formål:** Denne seksjonen dokumenterer kritiske læringspunkter fra kartleggingsprosessen. Ved fremtidig arbeid med varslingsregler i NS 8407 bør disse punktene vurderes systematisk.
+
+### Presisjonsnivå er kritisk
+
+Ved kartlegging av varslingsregler er det avgjørende å være presis på **fem dimensjoner**:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    FEM DIMENSJONER FOR HVER VARSLINGSREGEL                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  1. HVEM har varslingsplikten?                                             │
+│     TE, BH, eller begge ("en part")?                                       │
+│                                                                             │
+│  2. HVA utløser varslingsplikten (trigger)?                                │
+│     Pålegg, forhold, mottak av varsel, etc.?                               │
+│                                                                             │
+│  3. NÅR begynner fristen å løpe (skjæringstidspunkt)?                      │
+│     "blir oppmerksom", "burde blitt", "måtte blitt"?                       │
+│                                                                             │
+│  4. HVOR LANG er fristen?                                                  │
+│     "uten ugrunnet opphold", konkret antall dager, etc.?                   │
+│                                                                             │
+│  5. HVA er konsekvensen ved brudd?                                         │
+│     Preklusjon, reduksjon, erstatning, passivitet, tap av rett?            │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Læringspunkt 1: §5 er ALLTID påkrevd
+
+**Feil antakelse:** Spesialregler med eksplisitte konsekvenser (som "kravet tapes") virker automatisk.
+
+**Korrekt forståelse:** §5 tredje ledd gjelder ALLTID i tillegg. Ingen konsekvens inntrer uten at motparten påberoper sen varsling skriftlig "uten ugrunnet opphold".
+
+```
+FEIL:   §33.4 sier "kravet tapes" → automatisk preklusjon
+
+RIKTIG: §33.4 sier "kravet tapes"
+        + §5 krever at BH påberoper dette skriftlig
+        + Hvis BH ikke gjør det → varselet anses gitt i tide
+```
+
+**Konsekvens for implementering:** Alle respond-modaler må gi motparten mulighet til å påberope sen varsling via §5.
+
+### Læringspunkt 2: Skjæringstidspunkt varierer
+
+**Feil antakelse:** "Uten ugrunnet opphold" har alltid samme skjæringstidspunkt.
+
+**Korrekt forståelse:** Kontrakten bruker ulike formuleringer som gir ulik aktsomhetsnorm:
+
+| Formulering | Norm | Strenghet for TE |
+|-------------|------|------------------|
+| "blir oppmerksom på" | Faktisk kunnskap | Mildest |
+| "burde ha blitt oppmerksom på" | Normal aktsomhet | Moderat |
+| "måtte ha blitt klar over" | Åpenbar - grovt uaktsomt å ikke vite | Strengest |
+
+**Konsekvens for implementering:** Ved vurdering av om varsel kom i tide må man identifisere riktig skjæringstidspunkt fra den aktuelle paragrafen.
+
+### Læringspunkt 3: Konsekvenstyper er ikke binære
+
+**Feil antakelse:** Konsekvensen er enten "kravet tapes" eller "ingen konsekvens".
+
+**Korrekt forståelse:** NS 8407 har minst fem ulike konsekvenstyper:
+
+| Type | Beskrivelse | Alvorlighet |
+|------|-------------|-------------|
+| **Preklusjon** | Kravet tapes helt | Høy |
+| **Reduksjon** | Kun krav på det motparten "måtte forstå" | Moderat |
+| **Erstatning** | Motparten kan kreve erstatning for tap | Varierer |
+| **Passivitetsvirkning** | Forholdet anses godtatt | Høy |
+| **Tap av rett** | Mister rett til å påberope (ikke kravet selv) | Moderat |
+
+**Konsekvens for implementering:** Begrunnelsestekster og varsler må reflektere riktig konsekvenstype.
+
+### Læringspunkt 4: Asymmetri mellom kategorier
+
+**Feil antakelse:** Alle grunnlagskategorier behandles likt i vederlagssporet.
+
+**Korrekt forståelse:** Det er fundamental forskjell mellom ENDRING og SVIKT/ANDRE:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    KRITISK ASYMMETRI                                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ENDRING (§34.1.1):                                                        │
+│  ──────────────────                                                        │
+│  • INGEN varslingsplikt for vederlag                                       │
+│  • INGEN preklusjon av vederlagskravet                                     │
+│  • Kravet består uansett når det fremsettes                                │
+│                                                                             │
+│  SVIKT/ANDRE (§34.1.2):                                                    │
+│  ──────────────────────                                                    │
+│  • Varslingsplikt "uten ugrunnet opphold"                                  │
+│  • Preklusjon - kravet TAPES ved sen varsling                              │
+│                                                                             │
+│  ┌────────────────────────────────────────────────────────────────────┐    │
+│  │ IMPLIKASJON: En sak kategorisert som SVIKT som egentlig er         │    │
+│  │ ENDRING kan føre til uriktig preklusjon av vederlagskravet.        │    │
+│  │ Kategorisering i grunnlagssporet er derfor kritisk.                │    │
+│  └────────────────────────────────────────────────────────────────────┘    │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Konsekvens for implementering:** Kategorivalg i grunnlagssporet påvirker preklusjonslogikken i vederlagssporet.
+
+### Læringspunkt 5: Spesialregler kan mangle konsekvens
+
+**Feil antakelse:** Alle svarplikter har eksplisitt konsekvens ved passivitet.
+
+**Korrekt forståelse:** Noen svarplikter mangler eksplisitt konsekvens:
+
+| Paragraf | Svarplikt | Konsekvens |
+|----------|-----------|------------|
+| §32.3 | Ja | Eksplisitt: "anses som endring" |
+| §33.7 | Ja | Eksplisitt: "innsigelser tapes" |
+| §25.3 | Ja | **Ikke angitt** |
+
+**Konsekvens for implementering:** Når konsekvens ikke er angitt, bør applikasjonen:
+1. Notere passiviteten
+2. Ikke ta stilling til juridisk konsekvens
+3. Overlate tolkning til partene/domstol
+
+### Læringspunkt 6: Helbredelsesmekanismer
+
+**Feil antakelse:** §5 er den eneste helbredelsesmekanismen.
+
+**Korrekt forståelse:** Det finnes flere helbredelsesmekanismer:
+
+| Mekanisme | Hjemmel | Virkning |
+|-----------|---------|----------|
+| §5 passivitet | §5 tredje ledd | Varselet anses gitt i tide |
+| Etterlysning-respons | §33.6.2 fjerde ledd | BH kan ikke påberope §33.6.1 oversittet |
+
+**Konsekvens for implementering:** Helbredelsesmekanismer må identifiseres og implementeres korrekt.
+
+### Læringspunkt 7: Toveis varsling
+
+**Feil antakelse:** Varslingsreglene handler primært om TEs plikter.
+
+**Korrekt forståelse:** §5 gjelder begge veier:
+- TE må varsle BH om krav
+- BH må svare på TEs varsler
+- **Begge parter** må påberope sen varsling/svar via §5
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    TOVEIS VARSLING                                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  TE → BH:                          BH → TE:                                │
+│  ────────                          ────────                                │
+│  TE varsler om krav                BH svarer på varsel                     │
+│         │                                 │                                │
+│         ▼                                 ▼                                │
+│  BH kan påberope §5                TE kan påberope §5                      │
+│  (varsel for sent)                 (svar for sent)                         │
+│         │                                 │                                │
+│         ▼                                 ▼                                │
+│  Konsekvens for TE                 Konsekvens for BH                       │
+│  (preklusjon, etc.)                (passivitetsvirkning, etc.)             │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Konsekvens for implementering:** Både send- og respond-modaler må håndtere §5-mekanismen.
+
+### Læringspunkt 8: Dobbel varsling
+
+**Feil antakelse:** Ett varsel dekker alle formål.
+
+**Korrekt forståelse:** Ved SVIKT/ANDRE kan det være flere varslingsplikter med ulike konsekvenser:
+
+1. **Grunnlagsvarsel** (§25.1.2) → Konsekvens: Erstatning
+2. **Vederlagsvarsel** (§34.1.2) → Konsekvens: Preklusjon
+3. **Rigg/produktivitet** (§34.1.3) → Konsekvens: Preklusjon av påløpte
+
+**Åpent spørsmål:** Kan ett varsel dekke flere formål, eller må det sendes separate varsler?
+
+**Konsekvens for implementering:** Applikasjonen bør spore varsling per formål, ikke anta at ett varsel dekker alt.
+
+### Sjekkliste for kvalitetssikring
+
+Ved kartlegging eller kvalitetssikring av varslingsregler, bruk følgende sjekkliste:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    SJEKKLISTE FOR VARSLINGSREGLER                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  FOR HVER VARSLINGSREGEL:                                                  │
+│  ────────────────────────                                                  │
+│  □ Er kontraktsteksten verifisert (ikke bare referert)?                    │
+│  □ Er alle fem dimensjoner identifisert?                                   │
+│    □ Hvem (TE/BH/begge)                                                    │
+│    □ Trigger (hva utløser)                                                 │
+│    □ Skjæringstidspunkt (når løper fristen fra)                            │
+│    □ Frist (hvor lang tid)                                                 │
+│    □ Konsekvens (hvilken type)                                             │
+│  □ Er §5-mekanismen hensyntatt?                                            │
+│  □ Er det helbredelsesmekanismer utover §5?                                │
+│                                                                             │
+│  FOR KATEGORIER:                                                           │
+│  ───────────────                                                           │
+│  □ Er asymmetrien mellom ENDRING og SVIKT/ANDRE ivaretatt?                 │
+│  □ Påvirker kategorivalg preklusjonslogikk i andre spor?                   │
+│                                                                             │
+│  FOR SVARPLIKTER:                                                          │
+│  ────────────────                                                          │
+│  □ Er konsekvensen eksplisitt angitt i kontrakten?                         │
+│  □ Hvis ikke - er dette dokumentert som uavklart?                          │
+│                                                                             │
+│  FOR IMPLEMENTERING:                                                       │
+│  ───────────────────                                                       │
+│  □ Har motparten mulighet til å påberope §5?                               │
+│  □ Genereres korrekt begrunnelsestekst med riktig hjemmel?                 │
+│  □ Er subsidiær vurdering tilgjengelig?                                    │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
 > **Dokumenthistorikk:**
 > - 2026-01-24: Opprettet basert på gjennomgang av NS 8407 kapittel 5, 25, 32, 33, 34, 35
 > - 2026-01-24: Lagt til seksjon 10 med åpne spørsmål og begrensninger
+> - 2026-01-24: Lagt til seksjon 11 med læringspunkter for kvalitetssikring
