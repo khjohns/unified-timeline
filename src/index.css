@@ -73,6 +73,7 @@
        PUNKT SEMANTIC COLORS - BACKGROUNDS
        ============================================ */
     --color-pkt-bg-card: #ffffff;
+    --color-pkt-bg-canvas: #ffffff;  /* Modal/overlay canvas */
     --color-pkt-bg-default: #ffffff;
     --color-pkt-bg-subtle: #f9f9f9;
     --color-pkt-bg-transparent: transparent;
@@ -158,6 +159,12 @@
     --color-field-label: #6b7280;  /* Gray-500 equivalent */
     --color-field-value: #111827;  /* Gray-900 equivalent */
     --color-field-muted: #9ca3af;  /* Gray-400 equivalent */
+
+    /* Editor "edited" state colors (letter generator) */
+    --color-editor-edited-bg: #f5f0ff;  /* Light purple background */
+    --color-editor-edited-border: #a78bfa;  /* Purple border (violet-400) */
+    --color-editor-edited-text: #6d28d9;  /* Purple text (violet-700) */
+    --color-editor-focus-ring: rgba(167, 139, 250, 0.3);  /* Purple focus ring */
 
     /* TE/BH category row colors (for RevisionHistory table) - light mode */
     --color-row-te-bg: rgba(199, 253, 233, 0.4);  /* Very subtle mint */
@@ -405,6 +412,7 @@
 .dark {
   /* Backgrounds */
   --color-pkt-bg-default: #1a1a2e;
+  --color-pkt-bg-canvas: #252542;  /* Modal/overlay canvas */
   --color-pkt-bg-card: #252542;
   --color-pkt-bg-subtle: #1e1e36;
   --color-pkt-bg-transparent: transparent;
@@ -533,6 +541,12 @@
   --color-field-label: #b0b0c8;  /* Lighter gray for dark bg - improved contrast */
   --color-field-value: #f8f8fc;  /* Near white - improved for readability */
   --color-field-muted: #8888a8;  /* Medium gray - improved contrast */
+
+  /* Editor "edited" state colors - dark mode */
+  --color-editor-edited-bg: rgba(167, 139, 250, 0.15);  /* Semi-transparent purple */
+  --color-editor-edited-border: #a78bfa;  /* Purple border (violet-400) */
+  --color-editor-edited-text: #c4b5fd;  /* Light purple text (violet-300) */
+  --color-editor-focus-ring: rgba(167, 139, 250, 0.4);  /* Purple focus ring */
 
   /* TE/BH category row colors - dark mode (subtle background + border accent) */
   --color-row-te-bg: rgba(176, 240, 208, 0.15);  /* Very subtle mint */

@@ -3,12 +3,13 @@
  *
  * Modal for editing and previewing formal letters generated from response events.
  * Features section-based editing with reset capability.
+ * Responsive: side-by-side on desktop, tabs on mobile.
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { pdf } from '@react-pdf/renderer';
-import { ResetIcon, DownloadIcon, Cross2Icon } from '@radix-ui/react-icons';
-import { Button } from '../primitives';
+import { ResetIcon, DownloadIcon, Cross2Icon, Pencil1Icon, FileTextIcon } from '@radix-ui/react-icons';
+import { Button, Tabs } from '../primitives';
 import { PdfPreview } from '../pdf/PdfPreview';
 import { LetterDocument } from '../../pdf/LetterDocument';
 import { buildLetterContent, isSeksjonEdited, resetSeksjon } from '../../utils/letterContentBuilder';
@@ -38,14 +39,14 @@ function SectionEditor({ seksjon, onChange, onReset }: SectionEditorProps) {
   return (
     <div className="mb-4">
       <div className="flex items-center justify-between mb-2">
-        <label className="text-sm font-medium text-pkt-text-default">
+        <label className="text-sm font-medium text-pkt-text-body-default">
           {seksjon.tittel}
         </label>
         {isEdited && (
           <button
             type="button"
             onClick={onReset}
-            className="flex items-center gap-1 text-xs text-pkt-text-body-muted hover:text-pkt-text-default transition-colors"
+            className="flex items-center gap-1 text-xs text-pkt-text-body-subtle hover:text-pkt-text-body-default transition-colors"
             title="Tilbakestill til original"
           >
             <ResetIcon className="w-3 h-3" />
@@ -58,16 +59,17 @@ function SectionEditor({ seksjon, onChange, onReset }: SectionEditorProps) {
         onChange={(e) => onChange(e.target.value)}
         className={clsx(
           'w-full p-3 border rounded-md text-sm font-mono',
-          'focus:outline-none focus:ring-2 focus:ring-pkt-brand-purple-500',
+          'focus:outline-none focus:ring-2 focus:ring-editor-focus-ring',
           'resize-y min-h-[100px]',
+          'text-pkt-text-body-default',
           isEdited
-            ? 'border-pkt-brand-purple-500 bg-pkt-brand-purple-50'
-            : 'border-pkt-border-default bg-white'
+            ? 'border-editor-edited-border bg-editor-edited-bg'
+            : 'border-pkt-border-default bg-pkt-bg-card'
         )}
         rows={seksjon.tittel === 'Begrunnelse' ? 10 : 5}
       />
       {isEdited && (
-        <p className="mt-1 text-xs text-pkt-brand-purple-700">
+        <p className="mt-1 text-xs text-editor-edited-text">
           Redigert fra original
         </p>
       )}
@@ -95,6 +97,8 @@ export function LetterPreviewModal({
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | undefined>();
+  // Tab state for mobile view
+  const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
 
   // Reset content when event changes
   useEffect(() => {
@@ -174,6 +178,49 @@ export function LetterPreviewModal({
 
   if (!isOpen) return null;
 
+  // Editor content (shared between desktop and mobile)
+  const editorContent = (
+    <div className="space-y-2">
+      <h3 className="text-sm font-semibold text-pkt-text-body-default mb-4 hidden md:block">
+        Rediger brevinnhold
+      </h3>
+
+      <SectionEditor
+        seksjon={brevInnhold.seksjoner.innledning}
+        onChange={(tekst) => updateSeksjon('innledning', tekst)}
+        onReset={() => resetSeksjonHandler('innledning')}
+      />
+
+      <SectionEditor
+        seksjon={brevInnhold.seksjoner.begrunnelse}
+        onChange={(tekst) => updateSeksjon('begrunnelse', tekst)}
+        onReset={() => resetSeksjonHandler('begrunnelse')}
+      />
+
+      <SectionEditor
+        seksjon={brevInnhold.seksjoner.avslutning}
+        onChange={(tekst) => updateSeksjon('avslutning', tekst)}
+        onReset={() => resetSeksjonHandler('avslutning')}
+      />
+    </div>
+  );
+
+  // Preview content (shared between desktop and mobile)
+  const previewContent = (
+    <>
+      <h3 className="text-sm font-semibold text-pkt-text-body-default mb-4 hidden md:block">
+        Forhåndsvisning
+      </h3>
+      <PdfPreview
+        blob={pdfBlob}
+        isLoading={isGenerating}
+        error={error}
+        height="calc(100% - 40px)"
+        filename={`brev-${sakState.sak_id}.pdf`}
+      />
+    </>
+  );
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
@@ -184,73 +231,70 @@ export function LetterPreviewModal({
       />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-lg shadow-xl w-[95vw] max-w-6xl h-[90vh] flex flex-col">
+      <div className="relative bg-pkt-bg-canvas rounded-lg shadow-xl w-[95vw] max-w-6xl h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-pkt-border-default">
-          <div>
-            <h2 className="text-lg font-semibold text-pkt-text-default">
+        <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-pkt-border-subtle">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-lg font-semibold text-pkt-text-body-default">
               Generer brev
             </h2>
-            <p className="text-sm text-pkt-text-body-muted">
+            <p className="text-sm text-pkt-text-body-subtle truncate">
               {brevInnhold.tittel}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-2 text-pkt-text-body-muted hover:text-pkt-text-default rounded-md hover:bg-pkt-bg-subtle transition-colors"
+            className="p-2 text-pkt-text-body-subtle hover:text-pkt-text-body-default rounded-md hover:bg-pkt-bg-subtle transition-colors ml-2"
             aria-label="Lukk"
           >
             <Cross2Icon className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Content - Two columns */}
+        {/* Mobile tabs - only visible on small screens */}
+        <div className="md:hidden px-4 pt-3">
+          <Tabs
+            tabs={[
+              { id: 'editor', label: 'Rediger', icon: <Pencil1Icon className="w-4 h-4" /> },
+              { id: 'preview', label: 'Forhåndsvis', icon: <FileTextIcon className="w-4 h-4" /> },
+            ]}
+            activeTab={activeTab}
+            onTabChange={(id) => setActiveTab(id as 'editor' | 'preview')}
+          />
+        </div>
+
+        {/* Content */}
         <div className="flex-1 flex overflow-hidden">
-          {/* Left: Editor */}
-          <div className="w-1/2 p-6 overflow-y-auto border-r border-pkt-border-default">
-            <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-pkt-text-default mb-4">
-                Rediger brevinnhold
-              </h3>
-
-              <SectionEditor
-                seksjon={brevInnhold.seksjoner.innledning}
-                onChange={(tekst) => updateSeksjon('innledning', tekst)}
-                onReset={() => resetSeksjonHandler('innledning')}
-              />
-
-              <SectionEditor
-                seksjon={brevInnhold.seksjoner.begrunnelse}
-                onChange={(tekst) => updateSeksjon('begrunnelse', tekst)}
-                onReset={() => resetSeksjonHandler('begrunnelse')}
-              />
-
-              <SectionEditor
-                seksjon={brevInnhold.seksjoner.avslutning}
-                onChange={(tekst) => updateSeksjon('avslutning', tekst)}
-                onReset={() => resetSeksjonHandler('avslutning')}
-              />
-            </div>
+          {/* Mobile: Tab content */}
+          <div className="md:hidden flex-1 overflow-y-auto">
+            {activeTab === 'editor' ? (
+              <div className="p-4">
+                {editorContent}
+              </div>
+            ) : (
+              <div className="p-4 h-full bg-pkt-bg-subtle">
+                {previewContent}
+              </div>
+            )}
           </div>
 
-          {/* Right: PDF Preview */}
-          <div className="w-1/2 p-6 bg-pkt-bg-subtle overflow-y-auto">
-            <h3 className="text-sm font-semibold text-pkt-text-default mb-4">
-              Forhåndsvisning
-            </h3>
-            <PdfPreview
-              blob={pdfBlob}
-              isLoading={isGenerating}
-              error={error}
-              height="calc(100% - 40px)"
-              filename={`brev-${sakState.sak_id}.pdf`}
-            />
+          {/* Desktop: Side-by-side layout */}
+          <div className="hidden md:flex flex-1">
+            {/* Left: Editor */}
+            <div className="w-1/2 p-6 overflow-y-auto border-r border-pkt-border-subtle">
+              {editorContent}
+            </div>
+
+            {/* Right: PDF Preview */}
+            <div className="w-1/2 p-6 bg-pkt-bg-subtle overflow-y-auto">
+              {previewContent}
+            </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-pkt-border-default">
+        <div className="flex items-center justify-end gap-3 px-4 md:px-6 py-4 border-t border-pkt-border-subtle">
           <Button variant="secondary" onClick={onClose}>
             Avbryt
           </Button>
@@ -260,7 +304,8 @@ export function LetterPreviewModal({
             disabled={!pdfBlob || isGenerating}
           >
             <DownloadIcon className="w-4 h-4 mr-2" />
-            Last ned PDF
+            <span className="hidden sm:inline">Last ned PDF</span>
+            <span className="sm:hidden">Last ned</span>
           </Button>
         </div>
       </div>
