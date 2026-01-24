@@ -524,7 +524,7 @@ export function SendGrunnlagModal({
                                   <div key={uk.kode}>
                                     <Checkbox
                                       id={`underkategori-${uk.kode}`}
-                                      label={`${uk.label} (§${uk.hjemmel_basis})`}
+                                      label={uk.label}
                                       checked={erValgt}
                                       onCheckedChange={(checked) => {
                                         const current = field.value ?? [];
