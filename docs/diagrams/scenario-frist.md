@@ -260,16 +260,36 @@ flowchart TD
 
 ---
 
-## 8. Identifiserte uavklarte situasjoner
+## 8. Identifiserte situasjoner og avklaringer
 
-| # | Situasjon | Paragrafer | Mulige tolkninger |
-|---|-----------|------------|-------------------|
-| 1 | Nøytralt varsel uten oppfølging | §33.4, §33.6.1 | Kravet "henger"? Foreldelse? |
-| 2 | Ingen spesifisering, ingen etterlysning | §33.6.1, §33.6.2 | Evig ventetid? |
-| 3 | Ugyldig etterlysning (e-post) | §33.6.2 | Ingen virkning? Delvis virkning? |
-| 4 | Begrunnelse for utsettelse - ny etterlysning | §33.6.2 | Når kan BH etterlyse igjen? |
-| 5 | Sen §5-påberopelse | §5 | §5 på §5? |
-| 6 | Sluttoppgjør-unntak og frist | §5, §33 | Gjelder unntak også fristkrav? |
+| # | Situasjon | Paragrafer | Status | Konklusjon |
+|---|-----------|------------|--------|------------|
+| 1 | Nøytralt varsel uten oppfølging | §33.4, §33.6.1 | **AVKLART** | Ikke et reelt problem - uten spesifisering er det aldri fremsatt et konkret krav |
+| 2 | Ingen spesifisering, ingen etterlysning | §33.6.1, §33.6.2 | **AVKLART** | Samme som over - ingen spesifisering = ingen krav |
+| 3 | Formkrav for etterlysning | §33.6.2 | **NOTERT** | Standard sier "brev", men i praksis aksepteres Word/PDF |
+| 4 | Begrunnelse for utsettelse - ny etterlysning | §33.6.2 | **AVKLART** | Ingen regel i kontrakten = BH kan sende ny etterlysning når som helst |
+| 5 | §5 på §5 (meta-spørsmål) | §5 | **AVKLART** | Logisk mulig, men praktisk irrelevant (se forklaring under) |
+| 6 | Sluttoppgjør og fristkrav | §5, §33 | **UAVKLART** | Når er kravet "fremsatt" - ved §33.4 eller først ved §33.6.1? |
+
+### Forklaring: §5 på §5 (punkt 5)
+
+Eksempel på hvordan dette fungerer:
+1. TE varsler for sent
+2. BH påberoper §5, men selv for sent
+3. Hva skjer?
+
+**Svar:** Domstolen vil si: Ja, TE varslet for sent, men BH påberopte ikke "uten ugrunnet opphold". Konsekvens per §5: "skal varselet eller svaret anses for å være gitt i tide."
+
+**Konklusjon:** TE varslet i prinsippet for sent, men varselet anses å være gitt i tide da BH ikke påberopte i tide. Dette er "helbredelse" i praksis.
+
+### Forklaring: Sluttoppgjør og fristkrav (punkt 6) - UAVKLART
+
+§5 gjelder ikke for krav fremsatt i sluttoppgjør. Men når er et fristkrav "fremsatt"?
+
+- **Alternativ A:** Kravet er "fremsatt" ved nøytralt varsel (§33.4)
+- **Alternativ B:** Kravet er først "fremsatt" ved spesifisert krav (§33.6.1)
+
+Svaret har betydning for om §5-unntaket gjelder. Dette bør avklares juridisk.
 
 ---
 

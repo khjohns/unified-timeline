@@ -20,68 +20,29 @@
 
 ## Fristsporet (§33)
 
-### FRIST-1: Nøytralt varsel uten oppfølging
+### FRIST-1: Sluttoppgjør og "fremsatt" krav
 
 | Felt | Verdi |
 |------|-------|
 | **Kategori** | KOMBINASJON |
-| **Situasjon** | TE sender nøytralt varsel (§33.4), men spesifiserer aldri (§33.6.1). BH etterspør aldri (§33.6.2). |
-| **Paragrafer** | §33.4, §33.6.1, §33.6.2 |
-| **Spørsmål** | Hva skjer med kravet? Kan det "henge" for evig? |
-| **Mulige tolkninger** | 1) Kravet består ubegrenset, 2) Foreldelse etter alminnelige regler, 3) BH kan påberope passivitet |
-| **Anbefaling** | Applikasjonen bør vise advarsel etter X dager uten spesifisering |
+| **Situasjon** | §5 gjelder ikke for krav "fremsatt" i sluttoppgjør. Men når er et fristkrav "fremsatt"? |
+| **Paragrafer** | §5, §33.4, §33.6.1, §39 |
+| **Spørsmål** | Er fristkravet "fremsatt" ved nøytralt varsel (§33.4) eller først ved spesifisert krav (§33.6.1)? |
+| **Mulige tolkninger** | 1) Fremsatt ved §33.4 (nøytralt varsel), 2) Først fremsatt ved §33.6.1 (spesifisert), 3) Avhenger av innhold i §33.4-varselet |
+| **Anbefaling** | Bør avklares juridisk. Applikasjonen bør advare begge parter om denne usikkerheten |
 
 ---
 
-### FRIST-2: Ugyldig etterlysning
+### Avklarte situasjoner (ikke lenger uavklart)
 
-| Felt | Verdi |
-|------|-------|
-| **Kategori** | FORMKRAV |
-| **Situasjon** | BH sender etterlysning per e-post i stedet for brev, eller utelater påkrevd innhold |
-| **Paragrafer** | §33.6.2 |
-| **Spørsmål** | Er etterlysningen ugyldig? Kan TE ignorere den? |
-| **Mulige tolkninger** | 1) Helt ugyldig - ingen virkning, 2) Delvis virkning - TE bør varsle om feilen, 3) Kun advarsel om tap utelatt = ugyldig |
-| **Anbefaling** | Applikasjonen bør advare BH om formkrav FØR sending |
+Følgende situasjoner ble opprinnelig identifisert som potensielt uavklarte, men er nå avklart:
 
----
-
-### FRIST-3: Begrunnelse for utsettelse - ny etterlysning
-
-| Felt | Verdi |
-|------|-------|
-| **Kategori** | TIDSPUNKT |
-| **Situasjon** | TE svarer på etterlysning med begrunnelse for hvorfor beregning ikke er mulig (§33.6.2 b). BH vil etterlyse igjen. |
-| **Paragrafer** | §33.6.2 |
-| **Spørsmål** | Når kan BH sende ny etterlysning? Umiddelbart? Når grunnlag objektivt foreligger? |
-| **Mulige tolkninger** | 1) BH må vente til TEs begrunnelse ikke lenger gjelder, 2) BH kan etterlyse når som helst, 3) Ny etterlysning ugyldig før rimelig tid |
-| **Anbefaling** | Applikasjonen bør logge TEs begrunnelse og flagge når den potensielt ikke lenger gjelder |
-
----
-
-### FRIST-4: §5 på §5 (meta-spørsmål)
-
-| Felt | Verdi |
-|------|-------|
-| **Kategori** | META |
-| **Situasjon** | Part A påberoper §5 for sent. Kan Part B påberope §5 på Part As §5-påberopelse? |
-| **Paragrafer** | §5 |
-| **Spørsmål** | Er det en uendelig rekursjon? Hvor stopper det? |
-| **Mulige tolkninger** | 1) §5 gjelder kun "varsler og krav" - ikke §5-påberopelser, 2) Ja, men praktisk bare én iterasjon, 3) Domstolene må vurdere |
-| **Anbefaling** | Applikasjonen noterer kun første nivå av §5-påberopelse |
-
----
-
-### FRIST-5: Sluttoppgjør-unntak for fristkrav
-
-| Felt | Verdi |
-|------|-------|
-| **Kategori** | KOMBINASJON |
-| **Situasjon** | §5 gjelder ikke for krav fremsatt i sluttoppgjør. Gjelder dette også fristkrav etter §33? |
-| **Paragrafer** | §5, §33, §39 |
-| **Spørsmål** | Kan en part påberope sen varsling av fristkrav i sluttoppgjøret uten å ha gjort det tidligere? |
-| **Mulige tolkninger** | 1) Ja - §5 unntak gjelder alle krav, 2) Nei - fristkrav er annerledes enn vederlagskrav, 3) Avhenger av om fristkravet påvirker sluttoppgjøret |
-| **Anbefaling** | Applikasjonen bør advare begge parter om denne usikkerheten |
+| Situasjon | Konklusjon |
+|-----------|------------|
+| Nøytralt varsel uten oppfølging | Ikke et problem - uten spesifisering er det aldri fremsatt et konkret krav |
+| Ugyldig etterlysning (e-post) | Standard sier "brev", men i praksis aksepteres Word/PDF. Applikasjonen bør notere formkrav. |
+| Ny etterlysning etter begrunnelse | Ingen regel i kontrakten = BH kan sende ny etterlysning når som helst |
+| §5 på §5 (meta-spørsmål) | Logisk mulig, men praktisk irrelevant. Hvis TE varsler for sent og BH påberoper §5 for sent, anses TEs varsel "gitt i tide" (helbredelse). |
 
 ---
 
@@ -173,15 +134,23 @@
 
 ## Sammendrag
 
-| Kategori | Antall | Kritiske |
-|----------|--------|----------|
-| KONSEKVENS | 4 | VED-1, VED-2 |
-| FORMKRAV | 1 | FRIST-2 |
-| TIDSPUNKT | 2 | FRIST-3, GEN-1 |
-| KOMBINASJON | 3 | FRIST-1, FRIST-5, GRUNN-2 |
-| META | 1 | FRIST-4 |
-| **Totalt** | **11** | **4** |
+| Kategori | Antall | Uavklarte |
+|----------|--------|-----------|
+| KONSEKVENS | 4 | VED-1, VED-2, REGN-1, GRUNN-1 |
+| TIDSPUNKT | 1 | GEN-1 |
+| KOMBINASJON | 2 | FRIST-1, GRUNN-2 |
+| **Totalt** | **7** | - |
+
+### Avklarte situasjoner (fjernet fra listen)
+
+Følgende ble opprinnelig identifisert som uavklarte, men er nå avklart:
+
+| Original ID | Situasjon | Avklaring |
+|-------------|-----------|-----------|
+| FRIST-2 | Ugyldig etterlysning | Praksis aksepterer Word/PDF som "brev" |
+| FRIST-3 | Ny etterlysning timing | Ingen regel = BH kan sende når som helst |
+| FRIST-4 | §5 på §5 | Logisk mulig men praktisk irrelevant - resulterer i helbredelse |
 
 ---
 
-> **Handling:** Kritiske uavklarte situasjoner bør eskaleres til juridisk vurdering før produksjon.
+> **Handling:** Uavklarte situasjoner med kategori KONSEKVENS bør eskaleres til juridisk vurdering. FRIST-1 (sluttoppgjør-spørsmålet) bør også avklares.
