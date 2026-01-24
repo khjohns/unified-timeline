@@ -433,9 +433,9 @@ export function RespondFristModal({
 
   // Calculate preclusion status from Port 1
   // §33.4: Varsel for sent = FULL PREKLUSJON (kravet tapes)
-  // §33.6.2 tredje ledd: Sen respons på etterlysning = PREKLUSJON
+  // §33.6.2 tredje ledd: Sen respons på forespørsel = PREKLUSJON
   const erPrekludert = useMemo(() => {
-    // §33.6.2 tredje ledd + §5: Sen respons på etterlysning = PREKLUSJON
+    // §33.6.2 tredje ledd + §5: Sen respons på forespørsel = PREKLUSJON
     if (erEtterlysningSvarForSent) {
       return true;
     }
@@ -443,32 +443,33 @@ export function RespondFristModal({
     if (varselType === 'noytralt') {
       return formValues.noytralt_varsel_ok === false;
     }
-    // §33.4: Spesifisert krav direkte (uten tidligere nøytralt varsel i tide) for sent = PREKLUSJON
-    // Fordi det spesifiserte kravet fungerer som varsel, og det kom for sent
+    // §33.4: Spesifisert krav direkte (uten tidligere nøytralt varsel i tide)
+    // Vi bruker noytralt_varsel_ok for §33.4-vurderingen også her
     if (varselType === 'spesifisert' && !harTidligereNoytraltVarselITide) {
-      return formValues.spesifisert_krav_ok === false;
+      return formValues.noytralt_varsel_ok === false;
     }
     return false;
-  }, [formValues.noytralt_varsel_ok, formValues.spesifisert_krav_ok, varselType, harTidligereNoytraltVarselITide, erEtterlysningSvarForSent]);
+  }, [formValues.noytralt_varsel_ok, varselType, harTidligereNoytraltVarselITide, erEtterlysningSvarForSent]);
 
   // §33.6.1: Sen spesifisering gir reduksjon (ikke preklusjon)
   // Entreprenøren har kun krav på det byggherren "måtte forstå"
-  // FORUTSETNING: Nøytralt varsel må ha blitt sendt i tide først
-  // UNNTAK: Gjelder IKKE når kravet er svar på etterlysning (§33.6.2 fjerde ledd)
+  // Gjelder når §33.4 er oppfylt men §33.6.1 er brutt
+  // UNNTAK: Gjelder IKKE når kravet er svar på forespørsel (§33.6.2 fjerde ledd)
   const erRedusert_33_6_1 = useMemo(() => {
-    // §33.6.2 fjerde ledd: Byggherren kan ikke påberope §33.6.1 ved svar på etterlysning
+    // §33.6.2 fjerde ledd: Byggherren kan ikke påberope §33.6.1 ved svar på forespørsel
     if (erSvarPaEtterlysning) {
       return false;
     }
-    // §33.6.1 reduksjon gjelder KUN når:
-    // 1. Nåværende varsel er spesifisert
-    // 2. Det ble sendt nøytralt varsel i tide tidligere (§33.4 oppfylt)
-    // 3. Spesifisert krav kom for sent
+    // Case 1: TE sendte nøytralt varsel i tide, men spesifisert krav for sent
     if (varselType === 'spesifisert' && harTidligereNoytraltVarselITide) {
       return formValues.spesifisert_krav_ok === false;
     }
+    // Case 2: TE sendte kun spesifisert krav - §33.4 OK men §33.6.1 for sent
+    if (varselType === 'spesifisert' && !harTidligereNoytraltVarselITide) {
+      return formValues.noytralt_varsel_ok === true && formValues.spesifisert_krav_ok === false;
+    }
     return false;
-  }, [formValues.spesifisert_krav_ok, varselType, erSvarPaEtterlysning, harTidligereNoytraltVarselITide]);
+  }, [formValues.noytralt_varsel_ok, formValues.spesifisert_krav_ok, varselType, erSvarPaEtterlysning, harTidligereNoytraltVarselITide]);
 
   // Reset send_etterlysning when noytralt_varsel_ok changes to false
   // (etterlysning is only valid when varsel was on time)
@@ -1025,9 +1026,15 @@ export function RespondFristModal({
                   <VarslingsregelInline hjemmel="§33.4" />
                 </div>
               )}
-              {varselType === 'spesifisert' && !erSvarPaEtterlysning && (
+              {varselType === 'spesifisert' && !erSvarPaEtterlysning && harTidligereNoytraltVarselITide && (
                 <div className="mb-4">
-                  <VarslingsregelInline hjemmel={harTidligereNoytraltVarselITide ? '§33.6.1' : '§33.4'} />
+                  <VarslingsregelInline hjemmel="§33.6.1" />
+                </div>
+              )}
+              {varselType === 'spesifisert' && !erSvarPaEtterlysning && !harTidligereNoytraltVarselITide && (
+                <div className="mb-4 space-y-2">
+                  <VarslingsregelInline hjemmel="§33.4" />
+                  <VarslingsregelInline hjemmel="§33.6.1" />
                 </div>
               )}
               {erSvarPaEtterlysning && (
@@ -1198,15 +1205,15 @@ export function RespondFristModal({
                   {/* §33.6.2: Svar på etterlysning */}
                   {erSvarPaEtterlysning ? (
                     <>
-                      <Alert variant="info" title="Svar på etterlysning (§33.6.2)" className="mb-4">
-                        Dette kravet er et svar på din etterlysning. Du kan ikke påberope at fristen
+                      <Alert variant="info" title="Svar på forespørsel (§33.6.2)" className="mb-4">
+                        Dette kravet er et svar på din forespørsel. Du kan ikke påberope at fristen
                         i §33.6.1 er oversittet. Du kan imidlertid vurdere om svaret kom i tide iht.
                         §33.6.2 annet ledd.
                       </Alert>
                       <FormField
-                        label="Kom svaret på etterlysningen i tide? (§33.6.2/§5)"
+                        label="Kom svaret på forespørselen i tide? (§33.6.2/§5)"
                         required
-                        helpText="Entreprenøren skal svare «uten ugrunnet opphold» på etterlysningen. Hvis ikke, må du påberope dette skriftlig (§5)."
+                        helpText="Entreprenøren skal svare «uten ugrunnet opphold» på forespørselen. Hvis ikke, må du påberope dette skriftlig (§5)."
                       >
                         <Controller
                           name="etterlysning_svar_ok"
@@ -1230,26 +1237,19 @@ export function RespondFristModal({
                       {/* Info om §5 innsigelse */}
                       {erEtterlysningSvarForSent && (
                         <Alert variant="danger" title="Preklusjon etter §33.6.2 tredje ledd" className="mt-3">
-                          Entreprenøren svarte ikke «uten ugrunnet opphold» på etterlysningen.
+                          Entreprenøren svarte ikke «uten ugrunnet opphold» på forespørselen.
                           Du påberoper nå at kravet er tapt iht. §33.6.2 tredje ledd, jf. §5.
                           Systemet vil generere en skriftlig innsigelse.
                         </Alert>
                       )}
                     </>
-                  ) : (
+                  ) : harTidligereNoytraltVarselITide ? (
+                    /* Case: TE sendte nøytralt varsel i tide først - kun §33.6.1 vurdering */
                     <>
                       <FormField
-                        label={
-                          harTidligereNoytraltVarselITide
-                            ? "Spesifisert krav sendt i tide? (§33.6.1)"
-                            : "Spesifisert krav sendt i tide? (§33.4)"
-                        }
+                        label="Spesifisert krav sendt i tide? (§33.6.1)"
                         required
-                        helpText={
-                          harTidligereNoytraltVarselITide
-                            ? "Entreprenøren skal 'uten ugrunnet opphold' angi og begrunne antall dager når han har grunnlag."
-                            : "Entreprenøren har ikke sendt foreløpig varsel først. Det spesifiserte kravet fungerer dermed som varsel (§33.4)."
-                        }
+                        helpText="Entreprenøren skal «uten ugrunnet opphold» angi og begrunne antall dager når han har grunnlag for å beregne omfanget."
                       >
                         <Controller
                           name="spesifisert_krav_ok"
@@ -1264,17 +1264,13 @@ export function RespondFristModal({
                               <RadioItem value="ja" label="Ja - kravet kom i tide" />
                               <RadioItem
                                 value="nei"
-                                label={
-                                  harTidligereNoytraltVarselITide
-                                    ? "Nei - for sent (reduseres til det byggherren måtte forstå)"
-                                    : "Nei - for sent (prekludert - kravet tapes)"
-                                }
+                                label="Nei - for sent (reduseres til det byggherren måtte forstå)"
                               />
                             </RadioGroup>
                           )}
                         />
                       </FormField>
-                      {/* Info om §33.6.1 reduksjon - kun når nøytralt varsel var i tide */}
+                      {/* Info om §33.6.1 reduksjon */}
                       {erRedusert_33_6_1 && (
                         <Alert variant="warning" title="Reduksjon etter §33.6.1" className="mt-3">
                           Entreprenøren har kun krav på den fristforlengelsen byggherren måtte forstå
@@ -1283,17 +1279,89 @@ export function RespondFristModal({
                           skriftlig «uten ugrunnet opphold» etter å ha mottatt kravet, jf. §5.
                         </Alert>
                       )}
-                      {/* Info om §33.4 preklusjon - kun når direkte spesifisert uten tidligere nøytralt */}
-                      {!harTidligereNoytraltVarselITide && formValues.spesifisert_krav_ok === false && (
-                        <Alert variant="danger" title="Preklusjon etter §33.4" className="mt-3">
-                          Entreprenøren sendte spesifisert krav direkte uten å ha sendt foreløpig
-                          varsel i tide først. Det spesifiserte kravet fungerer dermed som varsel,
-                          og siden varselet kom for sent, er kravet prekludert. Husk at du må gjøre
-                          denne innsigelsen skriftlig «uten ugrunnet opphold» etter å ha mottatt
-                          kravet, jf. §5.
-                        </Alert>
-                      )}
                     </>
+                  ) : (
+                    /* Case: TE sendte kun spesifisert krav (ingen tidligere nøytralt varsel)
+                       Må vurdere BÅDE §33.4 OG §33.6.1 */
+                    <div className="space-y-4">
+                      <Alert variant="info" title="Dobbelt vurdering kreves" className="mb-2">
+                        Entreprenøren sendte spesifisert krav direkte uten forutgående varsel.
+                        Du må vurdere både (1) om det ble varslet i tide etter §33.4, og
+                        (2) om det spesifiserte kravet kom i tide etter §33.6.1.
+                      </Alert>
+
+                      {/* 1. §33.4: Spesifisert krav som varsel */}
+                      <div className="p-3 border border-pkt-border-subtle rounded-none">
+                        <FormField
+                          label="1. Sendt i tide som varsel? (§33.4)"
+                          required
+                          helpText="Vurder om kravet ble sendt «uten ugrunnet opphold» etter at forholdet oppstod. Skjæringstidspunktet er dato oppdaget."
+                        >
+                          <Controller
+                            name="noytralt_varsel_ok"
+                            control={control}
+                            render={({ field }) => (
+                              <RadioGroup
+                                value={
+                                  field.value === undefined ? undefined : field.value ? 'ja' : 'nei'
+                                }
+                                onValueChange={(val: string) => field.onChange(val === 'ja')}
+                              >
+                                <RadioItem value="ja" label="Ja - varslet i tide (§33.4 oppfylt)" />
+                                <RadioItem
+                                  value="nei"
+                                  label="Nei - for sent (prekludert - kravet tapes)"
+                                />
+                              </RadioGroup>
+                            )}
+                          />
+                        </FormField>
+                        {formValues.noytralt_varsel_ok === false && (
+                          <Alert variant="danger" title="Preklusjon etter §33.4" className="mt-3">
+                            Kravet ble ikke varslet «uten ugrunnet opphold» etter at forholdet oppstod.
+                            Kravet er prekludert. Husk at du må gjøre denne innsigelsen skriftlig
+                            «uten ugrunnet opphold» etter å ha mottatt kravet, jf. §5.
+                          </Alert>
+                        )}
+                      </div>
+
+                      {/* 2. §33.6.1: Spesifisert krav - kun hvis §33.4 OK */}
+                      {formValues.noytralt_varsel_ok === true && (
+                        <div className="p-3 border border-pkt-border-subtle rounded-none">
+                          <FormField
+                            label="2. Spesifisert i tide? (§33.6.1)"
+                            required
+                            helpText="Vurder om kravet ble spesifisert «uten ugrunnet opphold» etter at entreprenøren hadde grunnlag for å beregne omfanget."
+                          >
+                            <Controller
+                              name="spesifisert_krav_ok"
+                              control={control}
+                              render={({ field }) => (
+                                <RadioGroup
+                                  value={
+                                    field.value === undefined ? undefined : field.value ? 'ja' : 'nei'
+                                  }
+                                  onValueChange={(val: string) => field.onChange(val === 'ja')}
+                                >
+                                  <RadioItem value="ja" label="Ja - spesifisert i tide (§33.6.1 oppfylt)" />
+                                  <RadioItem
+                                    value="nei"
+                                    label="Nei - for sent (reduseres til det byggherren måtte forstå)"
+                                  />
+                                </RadioGroup>
+                              )}
+                            />
+                          </FormField>
+                          {formValues.spesifisert_krav_ok === false && (
+                            <Alert variant="warning" title="Reduksjon etter §33.6.1" className="mt-3">
+                              Varselet (§33.4) kom i tide, men det spesifiserte kravet kom for sent.
+                              Entreprenøren har kun krav på den fristforlengelsen du måtte forstå.
+                              Husk at du må gjøre denne innsigelsen skriftlig «uten ugrunnet opphold», jf. §5.
+                            </Alert>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               )}
