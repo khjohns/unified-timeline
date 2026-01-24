@@ -726,7 +726,7 @@ export function ComponentShowcase() {
                 </p>
                 <div key={animationKey} className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <DashboardCard
-                    title="Grunnlag"
+                    title="Ansvarsgrunnlag"
                     headerBadge={<Badge variant="warning" size="sm">Venter</Badge>}
                     className="animate-fade-in-up"
                     style={{ animationDelay: '0ms' }}

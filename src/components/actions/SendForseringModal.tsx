@@ -255,7 +255,7 @@ export function SendForseringModal({
 
         {/* Grunnlag rejection trigger info */}
         {erGrunnlagAvslatt && (
-          <Alert variant="info" title="Utløst av grunnlagsavslag">
+          <Alert variant="info" title="Utløst av ansvarsgrunnlagsavslag">
             Byggherren har avslått ansvarsgrunnlaget. Forseringsvarselet baseres på byggherrens{' '}
             <strong>subsidiære</strong> standpunkt til fristforlengelse.
           </Alert>

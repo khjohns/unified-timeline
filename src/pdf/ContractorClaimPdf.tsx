@@ -416,7 +416,7 @@ const GrunnlagSection: React.FC<{ state: SakState }> = ({ state }) => {
       </View>
 
       {isNotRelevant ? (
-        <NotClaimedBox message="Grunnlag er ikke fastsatt for denne saken." />
+        <NotClaimedBox message="Ansvarsgrunnlag er ikke fastsatt for denne saken." />
       ) : (
         <View>
           <View style={styles.table}>

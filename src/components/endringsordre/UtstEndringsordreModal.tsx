@@ -182,7 +182,7 @@ export function UtstEndringsordreModal({
 
   // Step configuration for StepIndicator
   const steps = [
-    { label: 'Grunnlag' },
+    { label: 'Ansvarsgrunnlag' },
     { label: 'Konsekvenser og oppgjør' },
     { label: 'Bekreft' },
   ];

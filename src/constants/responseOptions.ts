@@ -1,5 +1,5 @@
 /**
- * BH Response Options for all three tracks (Grunnlag, Vederlag, Frist)
+ * BH Response Options for all three tracks (Ansvarsgrunnlag, Vederlag, Frist)
  * Based on NS 8407 Norwegian Standard Building Contract
  *
  * CRITICAL: Refactored to support subsidiary logic.
@@ -124,7 +124,7 @@ export function getBhFristsvarValues(): [string, ...string[]] {
 
 export const BH_GRUNNLAGSVAR_DESCRIPTIONS: Record<string, string> = {
   godkjent: "Byggherren aksepterer ansvarsgrunnlaget. Endringsordre (EO) kan utstedes når vederlag og frist også er avklart.",
-  delvis_godkjent: "Byggherren aksepterer deler av grunnlaget. Kan påvirke vederlag/frist-vurdering.",
+  delvis_godkjent: "Byggherren aksepterer deler av ansvarsgrunnlaget. Kan påvirke vederlag/frist-vurdering.",
   avslatt: "Byggherren avslår ansvarsgrunnlaget. Vederlag og frist vurderes subsidiært (hvis ansvar hadde foreligget).",
   frafalt: "Byggherren frafaller pålegget (§32.3 c). Kun for irregulære endringer. Arbeidet trenger ikke utføres.",
 };
@@ -145,7 +145,7 @@ export const BH_FRISTSVAR_DESCRIPTIONS: Record<string, string> = {
 // ========== SUBSIDIÆR TRIGGER LABELS ==========
 
 export const SUBSIDIAER_TRIGGER_LABELS: Record<SubsidiaerTrigger, string> = {
-  grunnlag_avslatt: 'Grunnlag avslått av BH',
+  grunnlag_avslatt: 'Ansvarsgrunnlag avslått av BH',
   forseringsrett_avslatt: 'Ingen forseringsrett (§33.8)',
   preklusjon_hovedkrav: 'Hovedkrav prekludert (§34.1.2)',
   preklusjon_rigg: 'Rigg/drift prekludert (§34.1.3)',

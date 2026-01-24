@@ -114,7 +114,7 @@ export function RelaterteSakerListe({
           <thead>
             <tr className="border-b border-pkt-border-subtle">
               <th className="text-left py-1.5 font-medium">Sak</th>
-              <th className="text-center py-1.5 font-medium w-20">Grunnlag</th>
+              <th className="text-center py-1.5 font-medium w-28">Ansvarsgrunnlag</th>
               <th className="text-center py-1.5 font-medium w-20">Frist</th>
               <th className="text-right py-1.5 font-medium w-16">Dager</th>
               <th className="w-16"></th>

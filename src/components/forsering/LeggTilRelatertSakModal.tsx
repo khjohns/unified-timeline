@@ -47,7 +47,7 @@ function getAvslatteDager(sak: KandidatSak): number {
 
 function getStatusBadge(sak: KandidatSak): { variant: 'danger' | 'warning'; label: string } {
   if (sak.grunnlag_bh_resultat === 'avslatt') {
-    return { variant: 'danger', label: 'Grunnlag avslått' };
+    return { variant: 'danger', label: 'Ansvarsgrunnlag avslått' };
   }
   if (sak.frist_bh_resultat === 'avslatt') {
     return { variant: 'danger', label: 'Frist avslått' };
