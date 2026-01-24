@@ -4,9 +4,9 @@
  * Kompakt, inline komponent for å vise kontraktsregler fra NS 8407.
  * Bruker kontraktstekstens ordlyd og progressiv avsløring via accordion.
  *
- * Støtter både:
- * - Varslingsregler (§33.4, §33.6, §33.7, §33.8)
- * - Materielle vilkår (§33.1, §33.3, §33.5)
+ * Støtter:
+ * - Grunnlagspor: §14.4, §25.2, §32.2, §32.3
+ * - Fristspor: §33.1, §33.3, §33.4, §33.5, §33.6, §33.7, §33.8
  *
  * Struktur:
  * - Inline tekst: Kontraktstekst (alltid synlig)
@@ -17,8 +17,15 @@ import { useState } from 'react';
 import * as Collapsible from '@radix-ui/react-collapsible';
 import { ChevronRightIcon } from '@radix-ui/react-icons';
 
-/** Støttede hjemler for fristsporet */
-type Hjemmel = '§33.1' | '§33.3' | '§33.4' | '§33.5' | '§33.6.1' | '§33.6.2' | '§33.7' | '§33.8';
+/** Støttede hjemler */
+type Hjemmel =
+  // Grunnlagspor
+  | '§14.4'   // Lovendring
+  | '§25.2'   // Krav pga BH-forhold (svikt/forsinkelse)
+  | '§32.2'   // Endringsordre og irregulære endringer
+  | '§32.3'   // Passivitetsrisiko (BH)
+  // Fristspor
+  | '§33.1' | '§33.3' | '§33.4' | '§33.5' | '§33.6.1' | '§33.6.2' | '§33.7' | '§33.8';
 
 interface KontraktsregelInlineProps {
   hjemmel: Hjemmel;
@@ -30,6 +37,43 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
   konsekvens: string;
   paragraf5: { paaberoper: 'TE' | 'BH'; tekst: string };
 }> = {
+  // ========== GRUNNLAGSPOR ==========
+
+  '§14.4': {
+    inline: 'Lov- eller forskriftsendringer etter tilbudsfristens utløp som medfører endrede skatter, avgifter eller krav til kontraktsarbeidet, gir rett til justering av kontraktssummen og/eller fristforlengelse.',
+    konsekvens: 'Bare endringer som inntrer ETTER tilbudsfristens utløp gir grunnlag. Entreprenøren bærer risikoen for endringer han burde kjent til ved tilbudet.',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: '',
+    },
+  },
+  '§25.2': {
+    inline: 'Totalentreprenøren har krav på vederlagsjustering og/eller fristforlengelse dersom byggherrens forhold medfører økte kostnader eller forsinkelse. Dette omfatter svikt i leveranser, forsinkede avklaringer, eller andre forhold på byggherrens side.',
+    konsekvens: 'Kravet forutsetter at forholdet faktisk har medført merkostnader eller forsinkelse (årsakssammenheng).',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: '',
+    },
+  },
+  '§32.2': {
+    inline: 'Byggherren kan pålegge endringer i form av tilleggsarbeider, reduksjoner eller endret utførelse. Ved irregulære endringer (muntlige pålegg, konkludent adferd) skal totalentreprenøren varsle «uten ugrunnet opphold».',
+    konsekvens: 'Ved irregulær endring: Dersom byggherren ikke svarer innen fristen, anses endringen som akseptert.',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: 'Byggherren må påberope at varselet er for sent skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
+    },
+  },
+  '§32.3': {
+    inline: 'Byggherren skal «uten ugrunnet opphold» ta stilling til om det foreligger en endring og om den aksepteres. Ved passivitet kan endringen anses akseptert.',
+    konsekvens: 'Byggherrens unnlatelse av å svare kan medføre at irregulære endringer anses akseptert.',
+    paragraf5: {
+      paaberoper: 'TE',
+      tekst: 'Totalentreprenøren må påberope passivitet skriftlig «uten ugrunnet opphold» – ellers anses svaret gitt i tide.',
+    },
+  },
+
+  // ========== FRISTSPOR ==========
+
   '§33.1': {
     inline: 'Fristforlengelse forutsetter at (1) fremdriften er hindret, og (2) hindringen skyldes det påberopte forholdet (årsakssammenheng).',
     konsekvens: 'Partene plikter å forebygge og begrense skadevirkningene av en fristforlengelse (§33.5).',
