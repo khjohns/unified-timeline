@@ -456,82 +456,90 @@ export function RespondGrunnlagModal({
                     data-testid="respond-grunnlag-resultat"
                   >
                     {BH_GRUNNLAGSVAR_OPTIONS.filter((opt) => {
+                      // Filter out empty placeholder
                       if (opt.value === '') return false;
+
+                      // Filter out "frafalt" if NOT irregular change (§32.3 c)
                       if (opt.value === 'frafalt' && !erIrregulaer) return false;
                       return true;
-                    }).map((option) => {
-                      const erValgt = field.value === option.value;
-                      return (
-                        <div key={option.value}>
-                          <RadioItem
-                            value={option.value}
-                            label={option.label}
-                            error={!!errors.resultat}
-                          />
-                          {/* Inline info under valgt resultat */}
-                          {erValgt && (
-                            <div className="mt-2 ml-6 space-y-3">
-                              {/* Beskrivelse av valgt resultat */}
-                              {BH_GRUNNLAGSVAR_DESCRIPTIONS[option.value as keyof typeof BH_GRUNNLAGSVAR_DESCRIPTIONS] && (
-                                <p className="text-sm text-pkt-text-body-subtle">
-                                  {BH_GRUNNLAGSVAR_DESCRIPTIONS[option.value as keyof typeof BH_GRUNNLAGSVAR_DESCRIPTIONS]}
-                                </p>
-                              )}
-
-                              {/* Frafall info (§32.3 c) */}
-                              {option.value === 'frafalt' && (
-                                <KontraktsregelInline
-                                  custom={{
-                                    inline: 'Ved å frafalle pålegget bekrefter du at arbeidet ikke skal utføres. Entreprenøren trenger ikke å utføre det pålagte arbeidet, og saken avsluttes.',
-                                    hjemmel: '§32.3 c',
-                                  }}
-                                />
-                              )}
-
-                              {/* Force Majeure godkjenning */}
-                              {option.value === 'godkjent' && erForceMajeure && (
-                                <KontraktsregelInline
-                                  custom={{
-                                    inline: 'Ved å godkjenne ansvarsgrunnlaget bekrefter du at forholdet ligger utenfor entreprenørens kontroll. Entreprenøren får kun rett til fristforlengelse – ikke vederlagsjustering.',
-                                    hjemmel: '§33.3',
-                                    konsekvens: 'Du vil deretter kunne ta stilling til fristforlengelseskravet (antall kalenderdager).',
-                                    accordionLabel: 'Neste steg',
-                                  }}
-                                />
-                              )}
-
-                              {/* Avslag - Force Majeure */}
-                              {option.value === 'avslatt' && erForceMajeure && (
-                                <KontraktsregelInline
-                                  custom={{
-                                    inline: 'Du mener at forholdet ikke kvalifiserer som Force Majeure. Dette kan være fordi hendelsen var forutsigbar, kunne vært unngått, eller ikke er tilstrekkelig ekstraordinær.',
-                                    hjemmel: '§33.3',
-                                    konsekvens: 'Entreprenøren vil likevel kunne sende inn krav om fristforlengelse. Du må da behandle kravet subsidiært.',
-                                    accordionLabel: 'Konsekvens',
-                                  }}
-                                />
-                              )}
-
-                              {/* Avslag - Vanlig (ikke FM) */}
-                              {option.value === 'avslatt' && !erForceMajeure && (
-                                <KontraktsregelInline
-                                  custom={{
-                                    inline: 'Saken markeres som omtvistet. Entreprenøren vil likevel kunne sende inn krav om Vederlag og Frist. Du må da behandle disse kravene subsidiært.',
-                                    hjemmel: '§32.3',
-                                    konsekvens: 'Subsidiær behandling sikrer at dere får avklart uenighet om beregning (utmåling) tidlig, selv om dere er uenige om ansvaret.',
-                                    accordionLabel: 'Konsekvens',
-                                  }}
-                                />
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                    }).map((option) => (
+                      <RadioItem
+                        key={option.value}
+                        value={option.value}
+                        label={option.label}
+                        error={!!errors.resultat}
+                      />
+                    ))}
                   </RadioGroup>
                 )}
               />
             </FormField>
+
+            {/* Show description of selected resultat */}
+            {selectedResultat &&
+              BH_GRUNNLAGSVAR_DESCRIPTIONS[selectedResultat] && (
+                <div className="p-3 bg-pkt-surface-subtle rounded-none border-l-4 border-pkt-border-focus">
+                  <p className="text-sm text-pkt-text-body-subtle">
+                    {BH_GRUNNLAGSVAR_DESCRIPTIONS[selectedResultat]}
+                  </p>
+                </div>
+              )}
+
+            {/* Frafall info (§32.3 c) */}
+            {selectedResultat === 'frafalt' && (
+              <Alert variant="info" title="Frafall av pålegget (§32.3 c)">
+                Ved å frafalle pålegget bekrefter du at arbeidet <strong>ikke skal
+                utføres</strong>. Dette er en endelig beslutning for irregulære
+                endringer (§32.2). Entreprenøren trenger ikke å utføre det pålagte
+                arbeidet, og saken avsluttes.
+              </Alert>
+            )}
+
+            {/* Force Majeure approval info (§33.3) */}
+            {selectedResultat === 'godkjent' && erForceMajeure && (
+              <Alert variant="success" title="Force Majeure - kun fristforlengelse (§33.3)">
+                <p>
+                  Ved å godkjenne ansvarsgrunnlaget bekrefter du at forholdet ligger utenfor
+                  entreprenørens kontroll. Entreprenøren får kun rett til{' '}
+                  <strong>fristforlengelse</strong> – ikke vederlagsjustering.
+                </p>
+                <p className="mt-2">
+                  Du vil deretter kunne ta stilling til fristforlengelseskravet
+                  (antall kalenderdager).
+                </p>
+              </Alert>
+            )}
+
+            {/* FM rejection info */}
+            {selectedResultat === 'avslatt' && erForceMajeure && (
+              <Alert variant="warning" title="Konsekvens av avslag">
+                <p>
+                  Du mener at forholdet <strong>ikke</strong> kvalifiserer som Force Majeure
+                  (§33.3). Dette kan være fordi hendelsen var forutsigbar, kunne vært
+                  unngått, eller ikke er tilstrekkelig ekstraordinær.
+                </p>
+                <p className="mt-2">
+                  Entreprenøren vil likevel kunne sende inn krav om fristforlengelse.
+                  Du må da behandle kravet <strong>subsidiært</strong>.
+                </p>
+              </Alert>
+            )}
+
+            {/* Subsidiary treatment warning when rejecting (non-FM) */}
+            {selectedResultat === 'avslatt' && !erForceMajeure && (
+              <Alert variant="warning" title="Konsekvens av avslag">
+                <p>
+                  Saken markeres som <em>omtvistet</em>. Entreprenøren vil likevel
+                  kunne sende inn krav om Vederlag og Frist. Du må da behandle disse
+                  kravene <strong>subsidiært</strong> (dvs. &ldquo;hva kravet hadde
+                  vært verdt <em>hvis</em> du tok feil om ansvaret&rdquo;).
+                </p>
+                <p className="mt-2">
+                  Dette sikrer at dere får avklart uenighet om beregning (utmåling)
+                  tidlig, selv om dere er uenige om ansvaret.
+                </p>
+              </Alert>
+            )}
 
           </div>
         </SectionContainer>
