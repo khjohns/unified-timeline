@@ -237,9 +237,9 @@ export function SendGrunnlagModal({
       setSelectedHovedkategori('');
       onOpenChange(false);
       toast.success(
-        isUpdateMode ? 'Grunnlag oppdatert' : 'Varsel sendt',
+        isUpdateMode ? 'Ansvarsgrunnlag oppdatert' : 'Varsel sendt',
         isUpdateMode
-          ? 'Endringene i grunnlaget er registrert.'
+          ? 'Endringene i ansvarsgrunnlaget er registrert.'
           : 'Endringsforholdet er registrert og varslet til byggherre.'
       );
       // Show warning if Catenda sync failed
@@ -346,15 +346,15 @@ export function SendGrunnlagModal({
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title={isUpdateMode ? "Oppdater grunnlag" : "Varsle endringsforhold"}
-      description={isUpdateMode ? "Endre informasjon i det innsendte grunnlaget." : undefined}
+      title={isUpdateMode ? "Oppdater ansvarsgrunnlag" : "Varsle endringsforhold"}
+      description={isUpdateMode ? "Endre informasjon i det innsendte ansvarsgrunnlaget." : undefined}
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* UPDATE MODE: Current grunnlag summary */}
         {isUpdateMode && grunnlag && (
           <SectionContainer
-            title="Nåværende grunnlag"
+            title="Nåværende ansvarsgrunnlag"
             description={`Varslet ${grunnlag.grunnlag_varsel?.dato_sendt || 'ukjent dato'}. Endringer loggføres i historikken.`}
             variant="subtle"
           >
@@ -381,9 +381,9 @@ export function SendGrunnlagModal({
           </Alert>
         )}
 
-        {/* Seksjon 1: Juridisk grunnlag */}
+        {/* Seksjon 1: Rettslig grunnlag */}
         <SectionContainer
-          title="Juridisk grunnlag"
+          title="Rettslig grunnlag"
         >
           <div className="space-y-4">
             {/* Hovedkategori */}
@@ -391,7 +391,7 @@ export function SendGrunnlagModal({
               label="Hovedkategori"
               required
               error={errors.hovedkategori?.message}
-              helpText="Velg juridisk grunnlag iht. NS 8407. Dette bestemmer hvilke kontraktsbestemmelser som gjelder og hvilke krav som kan fremmes."
+              helpText="Velg rettslig grunnlag iht. NS 8407. Dette bestemmer hvilke kontraktsbestemmelser som gjelder og hvilke krav som kan fremmes."
             >
               <Controller
                 name="hovedkategori"
@@ -524,7 +524,7 @@ export function SendGrunnlagModal({
               label="Beskrivelse"
               required
               error={errors.beskrivelse?.message}
-              helpText="Beskriv grunnlaget for endringsmeldingen"
+              helpText="Beskriv ansvarsgrunnlaget for endringsmeldingen"
             >
               <Textarea
                 id="beskrivelse"
@@ -677,7 +677,7 @@ export function SendGrunnlagModal({
         {/* Guidance text - only in create mode */}
         {!isUpdateMode && (
           <p className="text-xs text-pkt-text-body-subtle">
-            Dette er et nøytralt varsel om grunnlaget. Spesifiserte krav om penger (Vederlag)
+            Dette er et nøytralt varsel om ansvarsgrunnlaget. Spesifiserte krav om penger (Vederlag)
             og tid (Frist) legger du til i egne steg etterpå.
           </p>
         )}

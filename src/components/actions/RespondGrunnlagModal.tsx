@@ -200,8 +200,8 @@ export function RespondGrunnlagModal({
       toast.success(
         isUpdateMode ? 'Svar oppdatert' : 'Svar sendt',
         isUpdateMode
-          ? 'Din endring av grunnlagssvaret er registrert.'
-          : 'Ditt svar på grunnlagsvarselet er registrert.'
+          ? 'Din endring av svaret på ansvarsgrunnlaget er registrert.'
+          : 'Ditt svar på ansvarsgrunnlaget er registrert.'
       );
       if (!result.catenda_synced) {
         onCatendaWarning?.();
@@ -276,7 +276,7 @@ export function RespondGrunnlagModal({
     clearBackup();
     reset();
     onOpenChange(false);
-    toast.success('Utkast lagret', 'Grunnlagssvaret er lagret som utkast. Du kan nå sende det til godkjenning.');
+    toast.success('Utkast lagret', 'Svaret på ansvarsgrunnlaget er lagret som utkast. Du kan nå sende det til godkjenning.');
   };
 
   const onSubmit = (data: RespondGrunnlagFormData) => {
@@ -317,7 +317,7 @@ export function RespondGrunnlagModal({
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title={isUpdateMode ? "Endre svar på grunnlag" : "Svar på grunnlag"}
+      title={isUpdateMode ? "Endre svar på ansvarsgrunnlag" : "Svar på ansvarsgrunnlag"}
       description={isUpdateMode ? "Endre din vurdering av ansvarsgrunnlaget." : undefined}
       size="lg"
     >
@@ -553,7 +553,7 @@ export function RespondGrunnlagModal({
             helpText={
               selectedResultat === 'avslatt'
                 ? 'Forklar hvorfor du mener forholdet er en del av kontrakten eller entreprenørens risiko'
-                : 'Begrunn din vurdering av grunnlaget'
+                : 'Begrunn din vurdering av ansvarsgrunnlaget'
             }
           >
             <Controller
@@ -612,7 +612,7 @@ export function RespondGrunnlagModal({
               data-testid="respond-grunnlag-submit"
             >
               {isUpdateMode
-                ? (erSnuoperasjon ? 'Godkjenn grunnlag' : 'Lagre endring')
+                ? (erSnuoperasjon ? 'Godkjenn ansvarsgrunnlag' : 'Lagre endring')
                 : 'Send svar'}
             </Button>
           )}

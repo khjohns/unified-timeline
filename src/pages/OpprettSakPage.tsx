@@ -302,9 +302,9 @@ export function OpprettSakPage() {
               </div>
             </SectionContainer>
 
-            {/* Seksjon 2: Juridisk grunnlag */}
+            {/* Seksjon 2: Rettslig grunnlag */}
             <SectionContainer
-              title="Juridisk grunnlag"
+              title="Rettslig grunnlag"
               description="Velg kategori og underkategori iht. NS 8407"
             >
               <div className="space-y-4">
@@ -312,7 +312,7 @@ export function OpprettSakPage() {
                   label="Hovedkategori"
                   required
                   error={errors.hovedkategori?.message}
-                  labelTooltip="Velg juridisk grunnlag iht. NS 8407. Dette bestemmer hvilke kontraktsbestemmelser som gjelder."
+                  labelTooltip="Velg rettslig grunnlag iht. NS 8407. Dette bestemmer hvilke kontraktsbestemmelser som gjelder."
                 >
                   <Controller
                     name="hovedkategori"

@@ -38,8 +38,8 @@ describe('View Components - Accessibility', () => {
           <TimelineItem
             timestamp="2025-12-01T10:00:00Z"
             actor="Jane Smith (BH)"
-            eventType="Grunnlag godkjent"
-            description="Approved grunnlag"
+            eventType="Ansvarsgrunnlag godkjent"
+            description="Godkjent ansvarsgrunnlag"
           />
         </ul>
       );

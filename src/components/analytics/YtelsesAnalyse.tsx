@@ -46,7 +46,7 @@ export function YtelsesAnalyse({ responseTimes }: YtelsesAnalyseProps) {
             color={totalSampleSize > 0 ? 'blue' : 'gray'}
           />
           <KPICard
-            label="Grunnlag"
+            label="Ansvarsgrunnlag"
             value={`${responseTimes?.grunnlag?.avg_days?.toFixed(1) ?? '-'} dager`}
             subtext={`${responseTimes?.grunnlag?.sample_size ?? 0} målinger`}
             color={responseTimes?.grunnlag?.avg_days && responseTimes.grunnlag.avg_days <= 7 ? 'green' : 'yellow'}
