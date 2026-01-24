@@ -382,8 +382,8 @@ export function SporHistory({ entries, events = [], sakState, defaultOpen = fals
       {/* Letter Preview Modal */}
       {letterEvent && sakState && (
         <LetterPreviewModal
-          isOpen={!!letterEvent}
-          onClose={() => setLetterEvent(null)}
+          open={!!letterEvent}
+          onOpenChange={(open) => !open && setLetterEvent(null)}
           event={letterEvent}
           sakState={sakState}
         />
