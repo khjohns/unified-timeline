@@ -50,9 +50,41 @@ NS 8407 har et omfattende system av varslingsregler som sikrer:
 
 ### Kontraktstekst
 
-> **§5 Varsler og krav** (tredje ledd)
+> **§5 Varsler og krav**
 >
-> Hvis en part ønsker å gjøre gjeldende at den andre parten har varslet eller svart for sent, må han gjøre det skriftlig uten ugrunnet opphold etter å ha mottatt varsel eller svar. Gjør han ikke det, skal varselet eller svaret anses for å være gitt i tide.
+> **Første ledd:** Alle varsler og krav og svar på disse, som skal meddeles etter bestemmelsene i kontrakten, skal fremsettes skriftlig til partenes representanter, jf. punkt 9, eller til avtalte adresser. Varsel og krav gitt ved e-post til avtalt adresse regnes som skriftlig dersom ikke annet er avtalt.
+>
+> **Annet ledd:** Varsel og krav som er innført i referat ført etter 4.2, regnes som skriftlig.
+>
+> **Tredje ledd:** Hvis en part ønsker å gjøre gjeldende at den andre parten har varslet eller svart for sent, må han gjøre det skriftlig uten ugrunnet opphold etter å ha mottatt varsel eller svar. Gjør han ikke det, skal varselet eller svaret anses for å være gitt i tide. **Dette gjelder ikke for krav, og for forespørsler etter 40.4, som fremsettes for første gang i eller i forbindelse med sluttoppgjøret.**
+
+### VIKTIG: Unntak for sluttoppgjør
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    §5 GJELDER IKKE FOR SLUTTOPPGJØR                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  §5 tredje ledd siste setning:                                             │
+│  "Dette gjelder ikke for krav, og for forespørsler etter 40.4, som         │
+│   fremsettes for første gang i eller i forbindelse med sluttoppgjøret."    │
+│                                                                             │
+│  BETYDNING:                                                                │
+│  Ved sluttoppgjør kan en part påberope sen varsling UTEN å ha gjort det    │
+│  "uten ugrunnet opphold" etter mottak. Helbredelsesmekanismen gjelder      │
+│  IKKE for nye krav i sluttoppgjøret.                                       │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Skriftlighetskravet
+
+| Metode | Gyldig? | Kilde |
+|--------|---------|-------|
+| Brev til representant (§9) | ✓ Ja | §5 første ledd |
+| E-post til avtalt adresse | ✓ Ja (med mindre annet avtalt) | §5 første ledd |
+| Innført i referat (§4.2) | ✓ Ja | §5 annet ledd |
+| Muntlig | ✗ Nei | §5 første ledd |
 
 ### Prinsipiell betydning
 
@@ -244,18 +276,46 @@ FRIST
 
 | Spor | Hjemmel | Hva varsles | Skjæringstidspunkt | Frist | Konsekvens |
 |------|---------|-------------|-------------------|-------|------------|
+| **Grunnlag** | §24.2.2 | Risikoovergang - uegnet materiale | Kontraktsinngåelse / mottak | **5 uker** | TE overtar risikoen |
 | **Grunnlag** | §32.2 | Irregulær endring | Mottar pålegg (§32.1) | Uten ugrunnet opphold | Taper retten til å påberope endring |
-| **Grunnlag** | §25.1.2 | Svikt i BHs ytelser | Blir/burde blitt oppmerksom på forholdet | Uten ugrunnet opphold | BH kan kreve erstatning |
-| **Grunnlag** | §25.2 | Uegnet prosjektering | Blir/måtte blitt klar over at løsningen ikke er egnet | Uten ugrunnet opphold | BH kan kreve erstatning |
+| **Grunnlag** | §25.1.2 | Svikt i BHs ytelser | Blir/burde blitt oppmerksom | Uten ugrunnet opphold | BH kan kreve erstatning |
+| **Grunnlag** | §25.2 | Uegnet prosjektering | Blir/måtte blitt klar over | Uten ugrunnet opphold | BH kan kreve erstatning |
 | **Vederlag** | §34.1.1 | Endringskrav | **Ingen frist** | N/A | **Ingen preklusjon** |
-| **Vederlag** | §34.1.2 | Krav (SVIKT/ANDRE) | Blir/burde blitt klar over forholdet | Uten ugrunnet opphold | Kravet **TAPES** |
-| **Vederlag** | §34.1.3 | Rigg/drift | Blir/burde blitt klar over at utgifter ville påløpe | Uten ugrunnet opphold | Retten til påløpte utgifter **TAPES** |
-| **Vederlag** | §34.1.3 | Produktivitetstap | Blir/burde blitt klar over at utgifter ville påløpe | Uten ugrunnet opphold | Retten til påløpte utgifter **TAPES** |
+| **Vederlag** | §34.1.2 | Krav (SVIKT/ANDRE) | Blir/burde blitt klar over | Uten ugrunnet opphold | Kravet **TAPES** |
+| **Vederlag** | §34.1.3 | Rigg/drift | Blir/burde klar over (vil påløpe) | Uten ugrunnet opphold | Påløpte utgifter **TAPES** |
+| **Vederlag** | §34.1.3 | Produktivitetstap | Blir/burde klar over (vil påløpe) | Uten ugrunnet opphold | Påløpte utgifter **TAPES** |
 | **Frist** | §33.4 | Nøytralt fristvarsel | Forhold som gir rett oppstår | Uten ugrunnet opphold | Kravet **TAPES** |
-| **Frist** | §33.6.1 | Spesifisert krav | Har grunnlag for å beregne omfanget | Uten ugrunnet opphold | **REDUKSJON** (skjønn) |
+| **Frist** | §33.6.1 | Spesifisert krav | Har grunnlag for å beregne | Uten ugrunnet opphold | **REDUKSJON** (skjønn) |
 | **Frist** | §33.6.2 | Svar på etterlysning | Mottar BHs etterlysning | Uten ugrunnet opphold | Kravet **TAPES** |
 
 ### Detaljert - Grunnlagssporet
+
+#### §24.2.2 - Risikoovergang (ved avtalt risikoovergang)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ §24.2.2 TOTALENTREPRENØRENS KONTROLL AV BHs MATERIALE                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  FORUTSETNING: Partene har avtalt risikoovergang (§24.2.1)                 │
+│                                                                             │
+│  TRIGGER:    TE mener at BHs anvisning ikke vil lede til oppfyllelse       │
+│              av krav i §14                                                 │
+│                                                                             │
+│  FRIST:      5 UKER fra kontraktsinngåelse (kan avtales annerledes)        │
+│              Utsettes hvis materialet mottas senere                        │
+│                                                                             │
+│  VARSELET SKAL:                                                             │
+│  - Presisere hvilke forhold det dreier seg om                              │
+│  - Begrunne behovet for endringer                                          │
+│                                                                             │
+│  KONSEKVENS: TE OVERTAR RISIKOEN for den delen av materialet               │
+│              (som om TE hadde prosjektert selv)                            │
+│                                                                             │
+│  Hvis TE varsler i tide: TE overtar IKKE risikoen for denne delen          │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
 #### §32.2 - Irregulær endring (ENDRING-kategori)
 
@@ -264,8 +324,11 @@ FRIST
 │ §32.2 TOTALENTREPRENØRENS VARSLINGSPLIKT (Irregulær endring)               │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  TRIGGER:    TE mottar pålegg som angitt i §32.1                           │
-│              (instruks som endrer omfang, utførelse, fremdrift)            │
+│  TRIGGER:    TE mottar pålegg som angitt i §32.1:                          │
+│              a) Fra person med fullmakt til endringsordre (§31.3)          │
+│              b) Fra person med kontrollfullmakt, under ordinære oppgaver   │
+│              c) Fra arbeidstegninger, arbeidsbeskrivelser e.l. fra BH      │
+│              + Pålegg fra OFFENTLIG MYNDIGHET (§32.2 annet ledd)           │
 │                                                                             │
 │  PLIKT:      Varsle BH dersom TE vil påberope dette som en endring         │
 │                                                                             │
@@ -291,13 +354,16 @@ FRIST
 │                                                                             │
 │  §25.1.2 - Svikt i BHs ytelser:                                            │
 │  ─────────────────────────────                                             │
-│  TRIGGER:    TE blir/burde blitt oppmerksom på forhold i §25.1.1           │
-│              (ufullstendigheter, feil, uforutsette grunnforhold, etc.)     │
+│  TRIGGER:    TE blir/burde blitt oppmerksom på forhold i §25.1.1:          │
+│              a) Ufullstendigheter/uoverensstemmelser i løsninger           │
+│              b) Behov for grunnundersøkelser                               │
+│              c) Feil ved materialer fra BH                                 │
+│              d) Fysisk arbeidsgrunnlag/grunnforhold avviker                │
 │                                                                             │
 │  §25.2 - Uegnet prosjektering:                                             │
 │  ─────────────────────────────                                             │
-│  TRIGGER:    TE blir/måtte blitt klar over at BHs løsninger ikke er        │
-│              egnede til å nå kravene i §14                                 │
+│  TRIGGER:    TE blir/MÅTTE blitt klar over at BHs løsninger ikke er        │
+│              egnede til å nå kravene i §14 (strengere aktsomhetsnorm)      │
 │                                                                             │
 │  FELLES:                                                                   │
 │  ───────                                                                   │
@@ -305,6 +371,17 @@ FRIST
 │                                                                             │
 │  KONSEKVENS: BH kan kreve ERSTATNING for tap som kunne vært unngått        │
 │              ved rettidig varsel                                           │
+│                                                                             │
+│  ┌────────────────────────────────────────────────────────────────────┐    │
+│  │ VIKTIG - DOBBEL VARSLING (§25.1.2 tredje ledd):                    │    │
+│  │ "Dersom totalentreprenøren vil kreve fristforlengelse eller        │    │
+│  │  vederlagsjustering [...] skal kravet varsles og behandles         │    │
+│  │  etter bestemmelsene i punkt 33 og 34."                            │    │
+│  │                                                                    │    │
+│  │ TE må altså varsle SEPARAT for:                                    │    │
+│  │ 1. Grunnlag (§25.1.2) - konsekvens: erstatning                    │    │
+│  │ 2. Frist (§33) og Vederlag (§34) - konsekvens: PREKLUSJON         │    │
+│  └────────────────────────────────────────────────────────────────────┘    │
 │                                                                             │
 │  ┌────────────────────────────────────────────────────────────────────┐    │
 │  │ VIKTIG: Konsekvensen er ERSTATNING, ikke preklusjon av kravet.     │    │
@@ -462,9 +539,36 @@ FRIST
 
 | Spor | Hjemmel | Trigger | Frist | Konsekvens ved passivitet |
 |------|---------|---------|-------|--------------------------|
+| **Grunnlag** | §24.2.2 | Varsel om uegnet materiale (risikoovergang) | Uten ugrunnet opphold | **Ikke eksplisitt** - BH bærer risiko ved fastholdelse |
 | **Grunnlag** | §32.3 | Varsel etter §32.2 | Uten ugrunnet opphold | Pålegget **anses som endring** |
 | **Grunnlag** | §25.3 | Varsel etter §25.1.2/§25.2 | Uten ugrunnet opphold | **Ikke angitt** |
 | **Frist** | §33.7 | Spesifisert krav (§33.6.1/§33.6.2) | Uten ugrunnet opphold | Innsigelser **TAPES** |
+
+### Detaljert - §24.2.2
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ §24.2.2 BYGGHERRENS SVARPLIKT (Risikoovergang)                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  TRIGGER:    BH mottar varsel om at BHs anvisning ikke vil oppfylle §14    │
+│                                                                             │
+│  BH SKAL:    Besvare varselet og gi beskjed om hvordan TE skal forholde    │
+│              seg                                                            │
+│                                                                             │
+│  FRIST:      Uten ugrunnet opphold                                         │
+│                                                                             │
+│  BHs ALTERNATIVER:                                                         │
+│  1. Fastholder opprinnelig løsning → BH bærer risikoen                     │
+│  2. Pålegger ny løsning (ikke iht. TEs forslag) → BH bærer risikoen       │
+│  3. Følger TEs forslag → BH utsteder endringsordre (§31.3)                │
+│                                                                             │
+│  Ved endring: BH skal utstede EO. Hvis ikke: TE varsler etter §32.2        │
+│                                                                             │
+│  KONSEKVENS VED PASSIVITET: Ikke eksplisitt angitt (se §5)                 │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
 ### Detaljert - §32.3
 
