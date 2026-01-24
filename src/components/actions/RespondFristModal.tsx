@@ -62,6 +62,7 @@ import {
   type FristResponseInput,
 } from '../../utils/begrunnelseGenerator';
 import { getResultatLabel, formatVarselMetode } from '../../utils/formatters';
+import { VarslingsregelInline } from '../shared';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -838,11 +839,14 @@ export function RespondFristModal({
 
         {/* §33.7 BH preclusion warning */}
         {bhPreklusjonsrisiko && (
-          <Alert variant="danger" title="Svarplikt (§33.7)">
-            Du har brukt <strong>{dagerSidenKrav} dager</strong> på å svare. Du skal svare
-            &ldquo;uten ugrunnet opphold&rdquo;. Passivitet medfører at du taper innsigelser mot
-            kravet!
-          </Alert>
+          <>
+            <VarslingsregelInline hjemmel="§33.7" />
+            <Alert variant="danger" title="Svarplikt (§33.7)" className="mt-2">
+              Du har brukt <strong>{dagerSidenKrav} dager</strong> på å svare. Du skal svare
+              &ldquo;uten ugrunnet opphold&rdquo;. Passivitet medfører at du taper innsigelser mot
+              kravet!
+            </Alert>
+          </>
         )}
 
         <form
@@ -1015,6 +1019,22 @@ export function RespondFristModal({
               title="Preklusjon (§33.4, §33.6)"
               description="Vurder om entreprenøren har varslet i tide. Hvis ikke, kan kravet avvises pga preklusjon."
             >
+              {/* Varslingsregel info - viser relevant regel basert på varseltype */}
+              {varselType === 'noytralt' && (
+                <div className="mb-4">
+                  <VarslingsregelInline hjemmel="§33.4" />
+                </div>
+              )}
+              {varselType === 'spesifisert' && !erSvarPaEtterlysning && (
+                <div className="mb-4">
+                  <VarslingsregelInline hjemmel={harTidligereNoytraltVarselITide ? '§33.6.1' : '§33.4'} />
+                </div>
+              )}
+              {erSvarPaEtterlysning && (
+                <div className="mb-4">
+                  <VarslingsregelInline hjemmel="§33.6.2" />
+                </div>
+              )}
 
               {/* Show varsel info */}
               {varselType && (() => {

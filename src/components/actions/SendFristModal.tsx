@@ -333,7 +333,6 @@ export function SendFristModal({
                           field.value === 'spesifisert' ? '§33.6.1' :
                           '§33.6.2'
                         }
-                        rolle="TE"
                       />
                       {/* Eksisterende komponent for sammenligning */}
                       <VarslingsregelInfo
