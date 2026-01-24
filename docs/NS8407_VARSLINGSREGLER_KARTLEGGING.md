@@ -342,63 +342,243 @@ VIKTIG PRESISERING:
 
 ### 2.3 Fristsporet
 
-#### 2.3.1 Nøytralt fristvarsel (§33.4)
+#### 2.3.0 Grunnlag for fristforlengelse (§33.1, §33.2, §33.3) ✓
 
-| Dimensjon | Verdi | Kilde |
-|-----------|-------|-------|
-| **HVEM** | TE | §33.4 |
-| **TRIGGER** | Det oppstår forhold som vil gi rett til fristforlengelse | §33.4 første ledd |
-| **SKJÆRINGSTIDSPUNKT** | Forholdet oppstår / TE blir klar over det | §33.4 (implisitt) |
-| **FRIST** | Uten ugrunnet opphold | §33.4 første ledd |
-| **KONSEKVENS** | Kravet **TAPES** | §33.4 annet ledd |
+> **Kontraktstekst §33.1 Totalentreprenørens krav på fristforlengelse som følge av byggherrens forhold:**
+> "Totalentreprenøren har krav på fristforlengelse dersom fremdriften hindres som følge av
+> a) endringer, jf. punkt 31 og 32, eller
+> b) forsinkelse eller svikt ved byggherrens ytelser etter punkt 22, 23 og 24, eller
+> c) andre forhold byggherren har risikoen for."
 
-**Uavklart:** Eksakt skjæringstidspunkt. "Forholdet oppstår" vs "TE blir klar over". Se seksjon 6.
+> **Kontraktstekst §33.2 Byggherrens krav på fristforlengelse som følge av totalentreprenørens forhold:**
+> "Byggherren har krav på fristforlengelse dersom hans medvirkning hindres som følge av forhold totalentreprenøren har risikoen for."
 
----
-
-#### 2.3.2 Spesifisert fristkrav (§33.6.1)
-
-| Dimensjon | Verdi | Kilde |
-|-----------|-------|-------|
-| **HVEM** | TE | §33.6.1 |
-| **TRIGGER** | TE har grunnlag for å beregne omfanget av kravet | §33.6.1 første ledd |
-| **SKJÆRINGSTIDSPUNKT** | "har grunnlag for å beregne" | §33.6.1 første ledd |
-| **FRIST** | Uten ugrunnet opphold | §33.6.1 første ledd |
-| **KONSEKVENS** | **REDUKSJON** - kun krav på det BH "måtte forstå" | §33.6.1 annet ledd |
+> **Kontraktstekst §33.3 Partenes krav på fristforlengelse på grunn av force majeure:**
+> "Partene har krav på fristforlengelse dersom fremdriften av deres forpliktelser hindres av forhold utenfor deres kontroll, så som ekstraordinære værforhold, offentlige påbud og forbud, streik, lockout og overenskomstbestemmelser.
+>
+> Blir fremdriften hindret av en kontraktsmedhjelper, har parten krav på fristforlengelse dersom kontraktsmedhjelperen hindres av slike forhold utenfor hans kontroll som nevnt i første ledd.
+>
+> En part har ikke krav på fristforlengelse for hindring han eller hans kontraktsmedhjelpere burde ha tatt i betraktning ved inngåelsen av sine respektive kontrakter, eller med rimelighet kunne ventes å unngå eller overvinne følgene av.
+>
+> En part har dessuten krav på fristforlengelse dersom fremdriften hindres som følge av at den andre parten har krav på fristforlengelse etter denne bestemmelsen.
+>
+> **Partene har ikke krav på justering av vederlaget som følge av fristforlengelse etter denne bestemmelsen.**"
 
 ```
-VIKTIG PRESISERING:
+KATEGORIER FOR FRISTFORLENGELSE:
 ┌────────────────────────────────────────────────────────────────────────────┐
-│ Forutsetter at nøytralt varsel (§33.4) ble sendt i tide.                   │
-│ Hvis ikke: §33.4 preklusjon (kravet tapes helt).                          │
 │                                                                            │
-│ §33.6.1 gir altså REDUKSJON, ikke preklusjon - en mildere konsekvens.     │
+│  §33.1 - TEs KRAV (BHs risiko):                                           │
+│  a) Endringer (§31, §32)                                                  │
+│  b) Forsinkelse/svikt ved BHs ytelser (§22, §23, §24)                    │
+│  c) Andre forhold BH har risikoen for                                     │
+│                                                                            │
+│  §33.2 - BHs KRAV (TEs risiko):                                           │
+│  Når BHs medvirkning hindres av forhold TE har risikoen for               │
+│                                                                            │
+│  §33.3 - FORCE MAJEURE (ingen parts risiko):                              │
+│  - Ekstraordinære værforhold                                              │
+│  - Offentlige påbud og forbud                                             │
+│  - Streik, lockout, overenskomstbestemmelser                              │
+│  VIKTIG: INGEN VEDERLAGSJUSTERING ved force majeure!                      │
+│                                                                            │
 └────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-#### 2.3.3 Svar på etterlysning (§33.6.2)
+#### 2.3.1 Nøytralt fristvarsel (§33.4) ✓
+
+> **Kontraktstekst §33.4 Varsel om fristforlengelse:**
+> "Dersom en part vil kreve fristforlengelse på grunn av forhold som er beskrevet i 33.1, 33.2 eller 33.3, skal han varsle den andre parten uten ugrunnet opphold, selv om han ennå ikke kan fremsette et spesifisert krav, jf. 33.6.
+>
+> **Krav på fristforlengelse tapes dersom det ikke varsles innen utløpet av fristen.**"
 
 | Dimensjon | Verdi | Kilde |
 |-----------|-------|-------|
-| **HVEM** | TE | §33.6.2 annet ledd |
-| **TRIGGER** | Mottar brev fra BH med etterlysning av spesifisert krav | §33.6.2 første ledd |
+| **HVEM** | Begge parter ("en part") | §33.4 første ledd |
+| **TRIGGER** | Forhold som gir rett til fristforlengelse (§33.1/§33.2/§33.3) | §33.4 første ledd |
+| **SKJÆRINGSTIDSPUNKT** | Forholdet oppstår (implisitt) | §33.4 første ledd |
+| **FRIST** | Uten ugrunnet opphold | §33.4 første ledd |
+| **KONSEKVENS** | Kravet **TAPES** | §33.4 annet ledd |
+
+```
+VIKTIG PRESISERING:
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                            │
+│ "selv om han ennå ikke kan fremsette et spesifisert krav"                 │
+│                                                                            │
+│ Dette betyr at TE/BH må varsle TIDLIG - før omfanget er kjent.            │
+│ Varselet er en "plassering" av kravet.                                    │
+│                                                                            │
+│ Konsekvensen er FULL PREKLUSJON - kravet tapes helt.                      │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+#### 2.3.2 Beregning av fristforlengelse (§33.5) ✓
+
+> **Kontraktstekst §33.5:**
+> "Fristforlengelsen skal svare til den virkning på fremdriften som forhold nevnt i 33.1, 33.2 og 33.3 har forårsaket, der det blant annet tas hensyn til nødvendig avbrudd og eventuell forskyvning av utførelsen til en for vedkommende part ugunstigere eller gunstigere årstid. Det skal også tas hensyn til den samlede virkningen av tidligere varslede forhold som kunne gi rett til fristforlengelse.
+>
+> Partene plikter å forebygge og begrense skadevirkningene av en fristforlengelse og samarbeide med hverandre om de tiltak som kan iverksettes."
+
+```
+BEREGNINGSPRINSIPPER (§33.5):
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                            │
+│ Fristforlengelsen skal reflektere VIRKNING PÅ FREMDRIFTEN:                │
+│                                                                            │
+│ • Nødvendig avbrudd                                                       │
+│ • Årstidsforskyvning (gunstigere/ugunstigere)                            │
+│ • Samlet virkning av tidligere varslede forhold                           │
+│                                                                            │
+│ TAPSBEGRENSNINGSPLIKT:                                                    │
+│ Partene plikter å forebygge og begrense skadevirkninger                  │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+#### 2.3.3 Spesifisert fristkrav (§33.6.1) ✓
+
+> **Kontraktstekst §33.6.1:**
+> "Når parten har grunnlag for å beregne omfanget, skal han uten ugrunnet opphold angi og begrunne det antall dager han krever som fristforlengelse. **Gjør han ikke dette, har han bare krav på slik fristforlengelse som den andre parten måtte forstå at han hadde krav på.**"
+
+| Dimensjon | Verdi | Kilde |
+|-----------|-------|-------|
+| **HVEM** | Begge parter ("parten") | §33.6.1 |
+| **TRIGGER** | Parten har grunnlag for å beregne omfanget | §33.6.1 første setning |
+| **SKJÆRINGSTIDSPUNKT** | "har grunnlag for å beregne" | §33.6.1 første setning |
+| **FRIST** | Uten ugrunnet opphold | §33.6.1 første setning |
+| **KONSEKVENS** | **REDUKSJON** - kun krav på det motparten "måtte forstå" | §33.6.1 annen setning |
+
+```
+VIKTIG PRESISERING:
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                            │
+│ FORUTSETNING: Nøytralt varsel (§33.4) må ha blitt sendt i tide.           │
+│ Hvis ikke: Full preklusjon (§33.4), ikke reduksjon (§33.6.1).             │
+│                                                                            │
+│ "måtte forstå" = Strengere norm:                                          │
+│ Kun det som var ÅPENBART for motparten godkjennes.                        │
+│ BH/TE har skjønnsmessig myndighet til å fastsette.                        │
+│                                                                            │
+│ Kravet skal:                                                               │
+│ - Angi antall dager                                                       │
+│ - Begrunne kravet                                                          │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+#### 2.3.4 Svar på etterlysning (§33.6.2) ✓
+
+> **Kontraktstekst §33.6.2:**
+> "Så lenge totalentreprenøren ikke har fremmet krav etter 33.6.1, kan byggherren be om at totalentreprenøren gjør dette. **Byggherrens forespørsel skal sendes per brev**, gi beskjed om at manglende svar fører til at kravet om fristforlengelse tapes og angi at totalentreprenøren eventuelt skal gi en begrunnelse for hvorfor grunnlaget for å beregne kravet ikke foreligger.
+>
+> Når totalentreprenøren mottar en forespørsel i henhold til første ledd, skal han uten ugrunnet opphold enten
+> a) angi og begrunne det antall dager han krever som fristforlengelse, eller
+> b) begrunne hvorfor grunnlaget for å beregne kravet ikke foreligger.
+>
+> **Gjør ikke totalentreprenøren noen av delene, tapes kravet på fristforlengelse.**
+>
+> Dersom totalentreprenøren i henhold til annet ledd bokstav a angir og begrunner antallet dager, skal byggherren svare etter 33.7. **Byggherren kan da ikke påberope at fristen i 33.6.1 er oversittet.**
+>
+> Dersom totalentreprenøren i henhold til annet ledd bokstav b begrunner hvorfor han ikke har grunnlag for å beregne sitt krav, gjelder bestemmelsen i 33.6.1."
+
+| Dimensjon | Verdi | Kilde |
+|-----------|-------|-------|
+| **HVEM** | TE (svarer på BHs etterlysning) | §33.6.2 annet ledd |
+| **TRIGGER** | Mottar forespørsel fra BH (per BREV) | §33.6.2 første og annet ledd |
 | **SKJÆRINGSTIDSPUNKT** | Mottak av etterlysning | §33.6.2 annet ledd |
 | **FRIST** | Uten ugrunnet opphold | §33.6.2 annet ledd |
 | **KONSEKVENS** | Kravet **TAPES** | §33.6.2 tredje ledd |
 
 ```
+VIKTIG: ETTERLYSNING SKAL SENDES PER BREV
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                            │
+│ §33.6.2 krever at etterlysning sendes "per brev" - strengere enn §5!      │
+│ E-post er IKKE tilstrekkelig for etterlysning.                            │
+│                                                                            │
+│ Etterlysningen SKAL inneholde:                                            │
+│ 1. Beskjed om at manglende svar fører til tap av krav                     │
+│ 2. Angivelse av at TE kan gi begrunnelse for utsettelse                   │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+```
+TEs SVARALTERNATIVER (§33.6.2):
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                            │
+│ a) Spesifisert krav (antall dager + begrunnelse)                          │
+│    → BH svarer etter §33.7                                                │
+│    → HELBREDELSE: BH kan IKKE påberope §33.6.1 oversittet                 │
+│                                                                            │
+│ b) Begrunnelse for hvorfor beregning ikke er mulig                        │
+│    → §33.6.1 gjelder videre (TE må spesifisere når grunnlag foreligger)  │
+│                                                                            │
+│ Hvis TE ikke gjør noen av delene:                                          │
+│    → KRAVET TAPES (full preklusjon)                                       │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+```
+HELBREDELSESMEKANISME (§33.6.2 fjerde ledd):
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                            │
+│ "Byggherren kan da ikke påberope at fristen i 33.6.1 er oversittet."      │
+│                                                                            │
+│ Dette er en SPESIALREGEL som gir helbredelse:                             │
+│ Hvis TE svarer på etterlysning med spesifisert krav, "helbredes"          │
+│ eventuell oversittelse av §33.6.1-fristen.                                │
+│                                                                            │
+│ FORHOLD TIL §5:                                                            │
+│ Dette er en egen helbredelsesmekanisme som virker uavhengig av §5.        │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+#### 2.3.5 BHs svarplikt på fristkrav (§33.7) ✓
+
+> **Kontraktstekst §33.7:**
+> "Den parten som mottar krav på fristforlengelse, skal svare uten ugrunnet opphold etter å ha mottatt et begrunnet krav med angivelse av antallet dager fristforlengelse, jf. 33.6.1 og 33.6.2.
+>
+> **Innsigelser mot kravet tapes dersom de ikke fremsettes innen fristen.**"
+
+| Dimensjon | Verdi | Kilde |
+|-----------|-------|-------|
+| **HVEM** | Begge parter (mottar krav) | §33.7 første ledd |
+| **TRIGGER** | Mottar begrunnet krav med antall dager | §33.7 første ledd |
+| **SKJÆRINGSTIDSPUNKT** | Mottak av spesifisert krav | §33.7 første ledd |
+| **FRIST** | Uten ugrunnet opphold | §33.7 første ledd |
+| **KONSEKVENS** | Innsigelser **TAPES** | §33.7 annet ledd |
+
+```
 VIKTIG PRESISERING:
 ┌────────────────────────────────────────────────────────────────────────────┐
-│ TE må svare med ENTEN:                                                     │
-│ a) Spesifisert krav (antall dager), ELLER                                 │
-│ b) Begrunnelse for hvorfor grunnlag for beregning ikke foreligger         │
 │                                                                            │
-│ Ved (b): §33.6.1 gjelder videre (§33.6.2 femte ledd)                      │
+│ Trigger: "begrunnet krav med angivelse av antallet dager"                 │
 │                                                                            │
-│ HELBREDELSE: Hvis TE svarer med spesifisert krav, kan BH IKKE påberope   │
-│ at §33.6.1 er oversittet (§33.6.2 fjerde ledd).                           │
+│ Svarplikten inntrer IKKE ved:                                             │
+│ - Nøytralt varsel (§33.4) uten antall dager                               │
+│ - Begrunnelse for utsettelse (§33.6.2 bokstav b)                          │
+│                                                                            │
+│ Svarplikten inntrer ved:                                                  │
+│ - Spesifisert krav etter §33.6.1                                          │
+│ - Spesifisert krav etter §33.6.2 bokstav a                                │
+│                                                                            │
+│ PASSIVITET: Innsigelser TAPES - kravet må anses godtatt.                  │
+│                                                                            │
 └────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -576,15 +756,34 @@ UAVKLART KONSEKVENS - SAMMENLIGNING:
 
 ---
 
-### 3.3 Svar på fristkrav (§33.7)
+### 3.3 Svar på fristkrav (§33.7) ✓
+
+> **Kontraktstekst §33.7:**
+> "Den parten som mottar krav på fristforlengelse, skal svare uten ugrunnet opphold etter å ha mottatt et begrunnet krav med angivelse av antallet dager fristforlengelse, jf. 33.6.1 og 33.6.2.
+>
+> Innsigelser mot kravet tapes dersom de ikke fremsettes innen fristen."
 
 | Dimensjon | Verdi | Kilde |
 |-----------|-------|-------|
-| **HVEM** | BH | §33.7 |
-| **TRIGGER** | Mottar begrunnet krav med angivelse av antall dager (§33.6.1/§33.6.2) | §33.7 |
-| **SKJÆRINGSTIDSPUNKT** | Mottak av spesifisert krav | §33.7 |
-| **FRIST** | Uten ugrunnet opphold | §33.7 |
-| **KONSEKVENS** | Innsigelser **TAPES** | §33.7 |
+| **HVEM** | Begge parter (den som mottar krav) | §33.7 første ledd |
+| **TRIGGER** | Mottar begrunnet krav med antall dager (§33.6.1/§33.6.2a) | §33.7 første ledd |
+| **SKJÆRINGSTIDSPUNKT** | Mottak av spesifisert krav | §33.7 første ledd |
+| **FRIST** | Uten ugrunnet opphold | §33.7 første ledd |
+| **KONSEKVENS** | Innsigelser **TAPES** | §33.7 annet ledd |
+
+```
+VIKTIG: SYMMETRISK REGEL
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                            │
+│ §33.7 gjelder BEGGE PARTER - ikke bare BH!                                │
+│                                                                            │
+│ Når TE mottar fristkrav fra BH (§33.2):                                   │
+│ TE har også svarplikt etter §33.7                                         │
+│                                                                            │
+│ Konsekvensen er lik: Innsigelser TAPES ved passivitet.                    │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -626,17 +825,51 @@ UAVKLART KONSEKVENS - SAMMENLIGNING:
 
 ## 4. BHs egne varslingsplikter
 
-### 4.1 Fristforlengelse for BH (§33.2)
+### 4.1 Fristforlengelse for BH (§33.2) ✓
+
+> **Kontraktstekst §33.2:**
+> "Byggherren har krav på fristforlengelse dersom hans medvirkning hindres som følge av forhold totalentreprenøren har risikoen for."
 
 | Dimensjon | Verdi | Kilde |
 |-----------|-------|-------|
 | **HVEM** | BH | §33.2 |
-| **TRIGGER** | Forhold som gir BH rett til fristforlengelse | §33.2 jf. §33.4 |
-| **SKJÆRINGSTIDSPUNKT** | Som §33.4 | §33.2 |
-| **FRIST** | Uten ugrunnet opphold | §33.2 jf. §33.4 |
-| **KONSEKVENS** | Som §33.4-§33.7 | §33.2 |
+| **TRIGGER** | BHs medvirkning hindres av forhold TE har risikoen for | §33.2 |
+| **SKJÆRINGSTIDSPUNKT** | Forholdet oppstår | §33.4 (gjelder BH) |
+| **FRIST** | Uten ugrunnet opphold | §33.4 (gjelder BH) |
+| **KONSEKVENS** | Kravet TAPES (§33.4) / REDUKSJON (§33.6.1) | §33.4, §33.6.1 |
 
-**Merk:** §33.2 henviser til §33.4-§33.7 og gir tilsvarende regler for BH.
+**Merk:** §33.4-§33.7 gjelder tilsvarende for BH - "en part" / "parten".
+
+---
+
+### 4.2 Etterlysning av spesifisert fristkrav (§33.6.2) ✓
+
+> **Kontraktstekst §33.6.2 første ledd:**
+> "Så lenge totalentreprenøren ikke har fremmet krav etter 33.6.1, kan byggherren be om at totalentreprenøren gjør dette. Byggherrens forespørsel skal sendes **per brev**, gi beskjed om at manglende svar fører til at kravet om fristforlengelse tapes og angi at totalentreprenøren eventuelt skal gi en begrunnelse for hvorfor grunnlaget for å beregne kravet ikke foreligger."
+
+| Dimensjon | Verdi | Kilde |
+|-----------|-------|-------|
+| **HVEM** | BH | §33.6.2 første ledd |
+| **TRIGGER** | TE har varslet nøytralt (§33.4) men ikke spesifisert (§33.6.1) | §33.6.2 første ledd |
+| **SKJÆRINGSTIDSPUNKT** | N/A (BHs initiativ) | N/A |
+| **FRIST** | N/A (BH velger selv når) | N/A |
+| **KONSEKVENS** | N/A (men: TE må svare, ellers tapes kravet) | §33.6.2 tredje ledd |
+
+```
+KRAV TIL ETTERLYSNING:
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                            │
+│ FORMKRAV: Skal sendes PER BREV (ikke e-post!)                             │
+│                                                                            │
+│ INNHOLDSKRAV - etterlysningen SKAL:                                       │
+│ 1. Be om at TE fremmer spesifisert krav                                   │
+│ 2. Opplyse om at manglende svar fører til tap av krav                     │
+│ 3. Angi at TE kan gi begrunnelse for utsettelse                           │
+│                                                                            │
+│ Hvis etterlysningen mangler disse elementene, er den ugyldig.             │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 

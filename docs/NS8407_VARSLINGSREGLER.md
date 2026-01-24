@@ -468,6 +468,37 @@ FRIST
 
 ### Detaljert - Fristsporet
 
+#### Grunnlag for fristforlengelse (§33.1-§33.3) ✓
+
+**Kontraktstekst:**
+
+> **§33.1 Partenes krav på fristforlengelse ved endringer**
+> Partene har krav på fristforlengelse dersom fremdriften hindres som følge av endringer, jf. punkt 31, 32, 34.1.1 og 36.2.
+
+> **§33.2 Byggherrens krav på fristforlengelse ved svikt hos totalentreprenøren**
+> Byggherren har krav på fristforlengelse dersom fremdriften hindres som følge av totalentreprenørens forsinkelse, mangler ved det ferdige byggverket, eller andre forhold totalentreprenøren svarer for.
+
+> **§33.3 Partenes rett til fristforlengelse ved force majeure**
+> Partene har rett til fristforlengelse dersom fremdriften hindres av forhold utenfor hans kontroll og som han ikke burde ha forutsatt da kontrakten ble inngått, og heller ikke med rimelighet kunne ventes å unngå eller overvinne følgende av (force majeure).
+>
+> Fristforlengelse som følge av force majeure gir **ikke rett til vederlagsjustering**.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    FORCE MAJEURE - INGEN VEDERLAGSRETT                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  §33.3 siste setning: "Fristforlengelse som følge av force majeure gir     │
+│  ikke rett til vederlagsjustering."                                        │
+│                                                                             │
+│  BETYDNING: TE kan kreve forlenget frist, men IKKE vederlag.               │
+│  Dette er viktig for FORCE_MAJEURE-kategorien i applikasjonen.             │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Varslingskjeden (§33.4-§33.7) ✓
+
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                    FRISTSPORET - VARSLINGSKJEDE                             │
@@ -503,7 +534,13 @@ FRIST
 │  ───────────────────────────────────────                                   │
 │  Hvis TE ikke har spesifisert (§33.6.1), kan BH etterspørre.               │
 │                                                                             │
-│  BH sender etterlysning                                                    │
+│  ┌────────────────────────────────────────────────────────────────────┐    │
+│  │ VIKTIG: Etterlysning må sendes PER BREV - ikke bare e-post!        │    │
+│  │ §33.6.2: "ved å sende brev til totalentreprenøren"                 │    │
+│  │ Dette er STRENGERE enn §5 som tillater e-post.                     │    │
+│  └────────────────────────────────────────────────────────────────────┘    │
+│                                                                             │
+│  BH sender etterlysning (per brev)                                         │
 │         │                                                                  │
 │         ▼                                                                  │
 │  TE må svare "uten ugrunnet opphold" med ENTEN:                            │
@@ -632,17 +669,28 @@ FRIST
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Detaljert - §33.7
+### Detaljert - §33.7 ✓
+
+**Kontraktstekst:**
+
+> **§33.7 Svarplikt**
+> Den parten som mottar krav etter 33.6.1 eller 33.6.2, skal uten ugrunnet opphold ta stilling til kravet. Innsigelser mot kravet tapes dersom de ikke fremsettes innen fristen.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ §33.7 PARTENS SVARPLIKT (Frist)                                            │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
+│  ┌────────────────────────────────────────────────────────────────────┐    │
+│  │ VIKTIG: Gjelder BEGGE PARTER - "den parten som mottar krav"        │    │
+│  │ • BH svarer på TEs fristkrav (vanligste)                           │    │
+│  │ • TE svarer på BHs fristkrav (§33.2 - forsinkelse/mangler)        │    │
+│  └────────────────────────────────────────────────────────────────────┘    │
+│                                                                             │
 │  TRIGGER:    Mottar begrunnet krav med angivelse av antall dager           │
 │              (jf. §33.6.1 og §33.6.2)                                      │
 │                                                                             │
-│  PLIKT:      Svare på kravet                                               │
+│  PLIKT:      Ta stilling til kravet                                        │
 │                                                                             │
 │  FRIST:      Uten ugrunnet opphold                                         │
 │                                                                             │
@@ -651,7 +699,7 @@ FRIST
 │                                                                             │
 │  ┌────────────────────────────────────────────────────────────────────┐    │
 │  │ VIKTIG: Her er konsekvensen eksplisitt angitt - innsigelser TAPES. │    │
-│  │ Men TE må likevel påberope BHs passivitet via §5 for at           │    │
+│  │ Men motparten må likevel påberope passiviteten via §5 for at       │    │
 │  │ konsekvensen skal inntre.                                          │    │
 │  └────────────────────────────────────────────────────────────────────┘    │
 │                                                                             │
@@ -997,14 +1045,19 @@ Når TE mottar svar fra BH og mener det kom for sent:
 
 Følgende paragrafer er referert i dokumentet, men kontraktsteksten er ikke verifisert:
 
-| Paragraf | Relevans | Påvirker |
-|----------|----------|----------|
-| **§32.1** | Definerer hva som utløser varslingsplikten i §32.2 (pålegg som endrer omfang, utførelse, fremdrift) | Trigger for irregulær endring |
-| **§33.1** | Definerer TEs rett til fristforlengelse ved endringer | Grunnlag for fristkrav |
-| **§33.2** | Definerer BHs rett til fristforlengelse | BHs egne varslingsplikter |
-| **§33.3** | Force majeure - fristforlengelse uten vederlag | FORCE_MAJEURE-kategorien |
-| **§34.2** | Generelle regler for vederlagskrav | Kan inneholde varslingsregler |
-| **§34.3.3** | Svarplikt ved EP-justering (nevnt i skill-filen) | Vederlagssporet |
+| Paragraf | Relevans | Påvirker | Status |
+|----------|----------|----------|--------|
+| **§32.1** | Definerer hva som utløser varslingsplikten i §32.2 | Trigger for irregulær endring | ✓ Verifisert |
+| **§33.1** | Definerer TEs rett til fristforlengelse ved endringer | Grunnlag for fristkrav | ✓ Verifisert |
+| **§33.2** | Definerer BHs rett til fristforlengelse | BHs egne varslingsplikter | ✓ Verifisert |
+| **§33.3** | Force majeure - fristforlengelse uten vederlag | FORCE_MAJEURE-kategorien | ✓ Verifisert |
+| **§34.1.1** | Vederlagskrav ved endringer | Vederlagssporet | ⏳ Venter |
+| **§34.1.2** | Vederlagskrav ved svikt/andre | Vederlagssporet | ⏳ Venter |
+| **§34.1.3** | Rigg/drift og produktivitetstap | Vederlagssporet | ⏳ Venter |
+| **§34.2** | Generelle regler for vederlagskrav | Kan inneholde varslingsregler | ⏳ Venter |
+| **§34.3.3** | Svarplikt ved EP-justering (nevnt i skill-filen) | Vederlagssporet | ⏳ Venter |
+| **§30.2** | Regningsarbeid - varsling | Regningsarbeid | ⏳ Venter |
+| **§30.3.1/§30.3.2** | Regningsarbeid - prisoversikt | Regningsarbeid | ⏳ Venter |
 
 ### Tolkningsspørsmål
 
@@ -1095,21 +1148,29 @@ Disse er ikke dekket i dokumentet.
 │                                                                             │
 │  PRIORITET 1 (Kritisk for implementering):                                 │
 │  ─────────────────────────────────────────                                 │
+│  ☑ Innhent §32.1 for å verifisere trigger for irregulær endring            │
+│  ☑ Innhent §33.1, §33.2, §33.3 for fristsporet                             │
 │  □ Avklar tolkningsspørsmål 3 (dobbel varsling)                            │
-│  □ Innhent §32.1 for å verifisere trigger for irregulær endring            │
+│  □ Innhent §34.1.1, §34.1.2, §34.1.3 for vederlagssporet                   │
 │  □ Avklar om det finnes BH svarplikt for vederlagskrav                     │
 │                                                                             │
 │  PRIORITET 2 (Viktig for komplett dekning):                                │
 │  ──────────────────────────────────────────                                │
-│  □ Innhent §33.1, §33.2, §33.3 for fristsporet                             │
 │  □ Avklar tolkningsspørsmål 1 (skjæringstidspunkt §33.4)                   │
 │  □ Avklar tolkningsspørsmål 4 (§25.3 konsekvens)                           │
+│  □ Innhent §30.2, §30.3.1, §30.3.2 for regningsarbeid                      │
 │                                                                             │
 │  PRIORITET 3 (Nice-to-have):                                               │
 │  ────────────────────────────                                              │
-│  □ Dekke BHs egne varslingsplikter                                         │
+│  □ Dekke BHs egne varslingsplikter fullstendig                             │
 │  □ Dekke sluttoppgjørsfasen (§39)                                          │
 │  □ Dekke regningsarbeid og kontraktsmedhjelpere                            │
+│                                                                             │
+│  VIKTIGE FUNN FRA §33 VERIFISERING:                                        │
+│  ──────────────────────────────────                                        │
+│  ☑ §33.3: Force majeure gir IKKE rett til vederlag                         │
+│  ☑ §33.6.2: Etterlysning må sendes PER BREV (strengere enn §5)            │
+│  ☑ §33.7: Gjelder BEGGE parter ("den parten som mottar krav")             │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
