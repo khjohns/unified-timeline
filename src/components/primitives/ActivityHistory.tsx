@@ -33,6 +33,8 @@ export interface ActivityHistoryEntry {
   onClick?: () => void;
   /** Optional indicator icon shown on the right when clickable */
   clickIndicator?: ReactNode;
+  /** Optional action button (e.g., letter generation) */
+  action?: ReactNode;
 }
 
 export interface ActivityHistoryProps {
@@ -96,7 +98,10 @@ function ActivityHistoryItem({ entry, isLast }: ActivityHistoryItemProps) {
       <div className="flex-1 min-w-0 pb-1">
         <div className="flex items-center justify-between gap-2">
           <div className="text-sm font-medium">{entry.label}</div>
-          {isClickable && entry.clickIndicator}
+          <div className="flex items-center gap-2">
+            {entry.action}
+            {isClickable && entry.clickIndicator}
+          </div>
         </div>
         {entry.meta && (
           <div className="text-xs text-pkt-text-body-muted">

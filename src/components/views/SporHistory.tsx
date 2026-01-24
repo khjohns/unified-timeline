@@ -12,12 +12,15 @@ import {
   ChatBubbleIcon,
   CheckIcon,
   FileTextIcon,
+  EnvelopeClosedIcon,
 } from '@radix-ui/react-icons';
 import { SporType, SakState, TimelineEvent, extractEventType } from '../../types/timeline';
+import { isLetterSupportedEvent } from '../../types/letter';
 import { GrunnlagHistorikkEntry, VederlagHistorikkEntry, FristHistorikkEntry } from '../../types/api';
 import { formatDateMedium, formatCurrency, formatDays } from '../../utils/formatters';
 import { ActivityHistory, ActivityHistoryEntry, ActivityHistoryVariant } from '../primitives/ActivityHistory';
 import { EventDetailModal } from './EventDetailModal';
+import { LetterPreviewModal } from './LetterPreviewModal';
 
 // ============ TYPES ============
 
@@ -304,6 +307,7 @@ function getEntryLabel(entry: SporHistoryEntry): string {
 
 export function SporHistory({ entries, events = [], sakState, defaultOpen = false, className }: SporHistoryProps) {
   const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(null);
+  const [letterEvent, setLetterEvent] = useState<TimelineEvent | null>(null);
 
   // Create a map from entry ID to event for quick lookup
   const eventMap = useMemo(() => {
@@ -322,6 +326,9 @@ export function SporHistory({ entries, events = [], sakState, defaultOpen = fals
 
     return sorted.map((entry): ActivityHistoryEntry => {
       const event = eventMap.get(entry.id);
+      const eventType = event ? extractEventType(event.type) : null;
+      const canGenerateLetter = sakState && event && eventType && isLetterSupportedEvent(eventType);
+
       return {
         id: entry.id,
         icon: getEntryIcon(entry.type),
@@ -333,9 +340,23 @@ export function SporHistory({ entries, events = [], sakState, defaultOpen = fals
         clickIndicator: event ? (
           <FileTextIcon className="h-4 w-4 text-pkt-text-body-muted" aria-hidden="true" />
         ) : undefined,
+        action: canGenerateLetter ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setLetterEvent(event);
+            }}
+            className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-pkt-brand-dark-blue-1000 bg-pkt-surface-gray hover:bg-pkt-surface-gray-dark rounded transition-colors"
+            aria-label="Generer brev"
+          >
+            <EnvelopeClosedIcon className="h-3.5 w-3.5" />
+            Brev
+          </button>
+        ) : undefined,
       };
     });
-  }, [entries, eventMap]);
+  }, [entries, eventMap, sakState]);
 
   if (activityEntries.length === 0) {
     return null;
@@ -355,6 +376,15 @@ export function SporHistory({ entries, events = [], sakState, defaultOpen = fals
           open={!!selectedEvent}
           onOpenChange={(open) => !open && setSelectedEvent(null)}
           event={selectedEvent}
+        />
+      )}
+
+      {/* Letter Preview Modal */}
+      {letterEvent && sakState && (
+        <LetterPreviewModal
+          isOpen={!!letterEvent}
+          onClose={() => setLetterEvent(null)}
+          event={letterEvent}
           sakState={sakState}
         />
       )}
