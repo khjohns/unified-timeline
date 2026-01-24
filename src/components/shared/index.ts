@@ -4,4 +4,4 @@
  * Reusable components that can be used across different parts of the application.
  */
 
-export { VarslingsregelInline } from './VarslingsregelInline';
+export { KontraktsregelInline, VarslingsregelInline } from './KontraktsregelInline';

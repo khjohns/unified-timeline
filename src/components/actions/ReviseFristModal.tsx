@@ -37,6 +37,7 @@ import { useSubmitEvent } from '../../hooks/useSubmitEvent';
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { useFormBackup } from '../../hooks/useFormBackup';
 import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
+import { KontraktsregelInline } from '../shared';
 import { FristTilstand, FristBeregningResultat, FristVarselType, SubsidiaerTrigger } from '../../types/timeline';
 
 // Modal operating modes
@@ -427,11 +428,8 @@ export function ReviseFristModal({
             ? 'Forklar hvorfor du endrer kravet'
             : 'Begrunn kravet med henvisning til årsakssammenheng'}
         >
-          <Alert variant="info" title="Vilkår for fristforlengelse (§33.1, §33.5)">
-            For å ha krav på fristforlengelse må du vise at: (1) fremdriften har vært hindret, og
-            (2) hindringen skyldes det påberopte forholdet (årsakssammenheng). Begrunn hvordan
-            forholdet konkret har forårsaket forsinkelse i prosjektet.
-          </Alert>
+          {/* TODO: Legg til hovedkategori prop for å støtte §33.3 (force majeure) */}
+          <KontraktsregelInline hjemmel="§33.1" />
 
           <FormField
             label={modalMode === 'revider' ? 'Begrunnelse for endring' : 'Begrunnelse for kravet'}

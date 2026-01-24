@@ -1,12 +1,16 @@
 /**
- * VarslingsregelInline Component
+ * KontraktsregelInline Component
  *
- * Kompakt, inline komponent for å vise varslingsregler fra NS 8407.
+ * Kompakt, inline komponent for å vise kontraktsregler fra NS 8407.
  * Bruker kontraktstekstens ordlyd og progressiv avsløring via accordion.
  *
+ * Støtter både:
+ * - Varslingsregler (§33.4, §33.6, §33.7, §33.8)
+ * - Materielle vilkår (§33.1, §33.3, §33.5)
+ *
  * Struktur:
- * - Inline tekst: Hvem + frist + trigger (alltid synlig)
- * - Accordion: Konsekvens + §5-mekanismen (lukket som default)
+ * - Inline tekst: Kontraktstekst (alltid synlig)
+ * - Accordion: Konsekvenser/detaljer (lukket som default)
  */
 
 import { useState } from 'react';
@@ -14,9 +18,9 @@ import * as Collapsible from '@radix-ui/react-collapsible';
 import { ChevronRightIcon } from '@radix-ui/react-icons';
 
 /** Støttede hjemler for fristsporet */
-type Hjemmel = '§33.4' | '§33.6.1' | '§33.6.2' | '§33.7' | '§33.8';
+type Hjemmel = '§33.1' | '§33.3' | '§33.4' | '§33.5' | '§33.6.1' | '§33.6.2' | '§33.7' | '§33.8';
 
-interface VarslingsregelInlineProps {
+interface KontraktsregelInlineProps {
   hjemmel: Hjemmel;
 }
 
@@ -26,12 +30,36 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
   konsekvens: string;
   paragraf5: { paaberoper: 'TE' | 'BH'; tekst: string };
 }> = {
+  '§33.1': {
+    inline: 'Fristforlengelse forutsetter at (1) fremdriften er hindret, og (2) hindringen skyldes det påberopte forholdet (årsakssammenheng).',
+    konsekvens: 'Partene plikter å forebygge og begrense skadevirkningene av en fristforlengelse (§33.5).',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: '',
+    },
+  },
+  '§33.3': {
+    inline: 'Fristforlengelse ved force majeure forutsetter at fremdriften hindres av forhold utenfor partenes kontroll (f.eks. ekstraordinære værforhold, offentlige påbud, streik). Hindringen kan ikke være noe parten burde forutsett eller kunne unngått.',
+    konsekvens: 'Force majeure gir kun fristforlengelse – ikke vederlagsjustering. Partene plikter å begrense skadevirkningene (§33.5).',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: '',
+    },
+  },
   '§33.4': {
     inline: 'Totalentreprenøren skal varsle «uten ugrunnet opphold» etter at forholdet oppstår, selv om han ennå ikke kan fremsette et spesifisert krav.',
     konsekvens: 'Krav på fristforlengelse tapes dersom det ikke varsles innen fristen.',
     paragraf5: {
       paaberoper: 'BH',
       tekst: 'Byggherren må påberope senhet skriftlig «uten ugrunnet opphold» etter mottak – ellers anses varselet gitt i tide.',
+    },
+  },
+  '§33.5': {
+    inline: 'Fristforlengelsen skal svare til den virkning på fremdriften som forholdet har forårsaket, der det blant annet tas hensyn til nødvendig avbrudd og eventuell forskyvning til ugunstigere årstid. Det skal også tas hensyn til samlet virkning av tidligere varslede forhold.',
+    konsekvens: 'Partene plikter å forebygge og begrense skadevirkningene av en fristforlengelse og samarbeide om tiltak som kan iverksettes (tapsbegrensningsplikt).',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: '', // Ingen §5-mekanisme for beregningsregler
     },
   },
   '§33.6.1': {
@@ -68,7 +96,7 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
   },
 };
 
-export function VarslingsregelInline({ hjemmel }: VarslingsregelInlineProps) {
+export function KontraktsregelInline({ hjemmel }: KontraktsregelInlineProps) {
   const [open, setOpen] = useState(false);
   const innhold = HJEMMEL_INNHOLD[hjemmel];
 
@@ -116,3 +144,6 @@ export function VarslingsregelInline({ hjemmel }: VarslingsregelInlineProps) {
     </div>
   );
 }
+
+/** @deprecated Bruk KontraktsregelInline i stedet */
+export const VarslingsregelInline = KontraktsregelInline;

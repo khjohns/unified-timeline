@@ -62,7 +62,7 @@ import {
   type FristResponseInput,
 } from '../../utils/begrunnelseGenerator';
 import { getResultatLabel, formatVarselMetode } from '../../utils/formatters';
-import { VarslingsregelInline } from '../shared';
+import { KontraktsregelInline } from '../shared';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -841,7 +841,7 @@ export function RespondFristModal({
         {/* §33.7 BH preclusion warning */}
         {bhPreklusjonsrisiko && (
           <>
-            <VarslingsregelInline hjemmel="§33.7" />
+            <KontraktsregelInline hjemmel="§33.7" />
             <Alert variant="danger" title="Svarplikt (§33.7)" className="mt-2">
               Du har brukt <strong>{dagerSidenKrav} dager</strong> på å svare. Du skal svare
               &ldquo;uten ugrunnet opphold&rdquo;. Passivitet medfører at du taper innsigelser mot
@@ -1023,23 +1023,23 @@ export function RespondFristModal({
               {/* Varslingsregel info - viser relevant regel basert på varseltype */}
               {varselType === 'varsel' && (
                 <div className="mb-4">
-                  <VarslingsregelInline hjemmel="§33.4" />
+                  <KontraktsregelInline hjemmel="§33.4" />
                 </div>
               )}
               {varselType === 'spesifisert' && !erSvarPaForesporsel && harTidligereVarselITide && (
                 <div className="mb-4">
-                  <VarslingsregelInline hjemmel="§33.6.1" />
+                  <KontraktsregelInline hjemmel="§33.6.1" />
                 </div>
               )}
               {varselType === 'spesifisert' && !erSvarPaForesporsel && !harTidligereVarselITide && (
                 <div className="mb-4 space-y-2">
-                  <VarslingsregelInline hjemmel="§33.4" />
-                  <VarslingsregelInline hjemmel="§33.6.1" />
+                  <KontraktsregelInline hjemmel="§33.4" />
+                  <KontraktsregelInline hjemmel="§33.6.1" />
                 </div>
               )}
               {erSvarPaForesporsel && (
                 <div className="mb-4">
-                  <VarslingsregelInline hjemmel="§33.6.2" />
+                  <KontraktsregelInline hjemmel="§33.6.2" />
                 </div>
               )}
 
@@ -1446,11 +1446,8 @@ export function RespondFristModal({
                 </Alert>
               )}
 
-              <Alert variant="info" title="Vilkår for fristforlengelse (§33.1, §33.5)" className="mb-4">
-                For at entreprenøren skal ha krav på fristforlengelse må to kumulative vilkår
-                være oppfylt: (1) fremdriften må ha vært <strong>hindret</strong>, og (2) hindringen
-                må <strong>skyldes</strong> det påberopte forholdet (årsakssammenheng).
-              </Alert>
+              {/* TODO: Legg til hovedkategori prop for å støtte §33.3 (force majeure) */}
+              <KontraktsregelInline hjemmel="§33.1" />
 
               <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
                 <FormField
