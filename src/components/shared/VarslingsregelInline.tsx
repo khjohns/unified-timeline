@@ -14,7 +14,7 @@ import * as Collapsible from '@radix-ui/react-collapsible';
 import { ChevronRightIcon } from '@radix-ui/react-icons';
 
 /** Støttede hjemler for fristsporet */
-type Hjemmel = '§33.4' | '§33.6.1' | '§33.6.2' | '§33.7' | '§33.8';
+type Hjemmel = '§33.1' | '§33.3' | '§33.4' | '§33.5' | '§33.6.1' | '§33.6.2' | '§33.7' | '§33.8';
 
 interface VarslingsregelInlineProps {
   hjemmel: Hjemmel;
@@ -26,6 +26,22 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
   konsekvens: string;
   paragraf5: { paaberoper: 'TE' | 'BH'; tekst: string };
 }> = {
+  '§33.1': {
+    inline: 'Totalentreprenøren har krav på fristforlengelse dersom fremdriften hindres som følge av (a) endringer, jf. punkt 31 og 32, (b) forsinkelse eller svikt ved byggherrens ytelser etter punkt 22, 23 og 24, eller (c) andre forhold byggherren har risikoen for.',
+    konsekvens: 'Kravet må dokumenteres gjennom årsakssammenheng mellom forholdet og forsinkelsen.',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: '', // Ingen §5-mekanisme for vilkårsvurderingen
+    },
+  },
+  '§33.3': {
+    inline: 'Partene har krav på fristforlengelse dersom fremdriften hindres av forhold utenfor deres kontroll, så som ekstraordinære værforhold, offentlige påbud og forbud, streik, lockout og overenskomstbestemmelser.',
+    konsekvens: 'Partene har ikke krav på justering av vederlaget som følge av fristforlengelse etter denne bestemmelsen. En part har ikke krav på fristforlengelse for hindring han eller hans kontraktsmedhjelpere burde ha tatt i betraktning ved kontraktsinngåelsen, eller med rimelighet kunne ventes å unngå eller overvinne følgene av.',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: '', // Ingen §5-mekanisme for force majeure
+    },
+  },
   '§33.4': {
     inline: 'Totalentreprenøren skal varsle «uten ugrunnet opphold» etter at forholdet oppstår, selv om han ennå ikke kan fremsette et spesifisert krav.',
     konsekvens: 'Krav på fristforlengelse tapes dersom det ikke varsles innen fristen.',
