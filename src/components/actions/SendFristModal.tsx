@@ -46,7 +46,8 @@ import {
   getHovedkategoriLabel,
 } from '../../constants';
 import { VarselSeksjon } from './shared/VarselSeksjon';
-import { differenceInDays } from 'date-fns';
+import { differenceInDays, format, parseISO } from 'date-fns';
+import { nb } from 'date-fns/locale';
 
 const fristSchema = z.object({
   varsel_type: z.enum(getFristVarseltypeValues(), {
@@ -87,6 +88,8 @@ type FristFormData = z.infer<typeof fristSchema>;
 interface GrunnlagEventInfo {
   tittel?: string;
   hovedkategori?: string;
+  /** Dato når forholdet ble oppdaget av TE - brukes for §33.4-beregning */
+  dato_oppdaget?: string;
   dato_varslet?: string;
   status?: 'godkjent' | 'avslatt' | 'delvis_godkjent' | 'ubesvart';
 }
@@ -195,10 +198,16 @@ export function SendFristModal({
   const noytraltVarselSendesNa = watch('noytralt_varsel_sendes_na');
   const spesifisertVarselSendesNa = watch('spesifisert_varsel_sendes_na');
 
-  // Calculate days since grunnlag was submitted (for §33.6.1 reduction warning)
-  const dagerSidenGrunnlag = grunnlagEvent?.dato_varslet
+  // Calculate days since the issue was discovered (for §33.4 preclusion warning)
+  // §33.4: TE skal varsle "uten ugrunnet opphold" etter at forholdet oppstår
+  const dagerSidenOppdaget = grunnlagEvent?.dato_oppdaget
+    ? differenceInDays(new Date(), new Date(grunnlagEvent.dato_oppdaget))
+    : null;
+
+  // Fallback to dato_varslet if dato_oppdaget not available
+  const dagerSidenGrunnlag = dagerSidenOppdaget ?? (grunnlagEvent?.dato_varslet
     ? differenceInDays(new Date(), new Date(grunnlagEvent.dato_varslet))
-    : 0;
+    : 0);
 
   // §33.4: Nøytralt varsel skal sendes "uten ugrunnet opphold" - typisk 7-14 dager
   // Over 7 dager: advarsel. Over 14 dager: kritisk.
@@ -326,6 +335,25 @@ export function SendFristModal({
                   {/* Varslingsregel-komponenter for valgt type */}
                   {field.value && (
                     <div className="mt-4 space-y-4">
+                      {/* Dager siden forholdet oppstod - kun når dato_oppdaget er tilgjengelig */}
+                      {grunnlagEvent?.dato_oppdaget && (field.value === 'noytralt' || field.value === 'spesifisert') && (
+                        <div className="flex items-center gap-3 p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
+                          <span className="text-sm text-pkt-text-body">
+                            Forholdet oppstod{' '}
+                            <span className="font-medium">
+                              {format(parseISO(grunnlagEvent.dato_oppdaget), 'd. MMMM yyyy', { locale: nb })}
+                            </span>
+                            {' '}—{' '}
+                            <span className={`font-mono font-medium ${
+                              dagerSidenGrunnlag > 14 ? 'text-pkt-text-danger' :
+                              dagerSidenGrunnlag > 7 ? 'text-pkt-text-warning' :
+                              'text-pkt-text-body'
+                            }`}>
+                              {dagerSidenGrunnlag} {dagerSidenGrunnlag === 1 ? 'dag' : 'dager'} siden
+                            </span>
+                          </span>
+                        </div>
+                      )}
                       {/* Ny inline-komponent med accordion */}
                       <VarslingsregelInline
                         hjemmel={

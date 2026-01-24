@@ -1048,29 +1048,59 @@ export function RespondFristModal({
                   ? differenceInDays(parseISO(varselDato), parseISO(datoOppdaget))
                   : null;
 
+                // Vurdering: over 14 dager er kritisk, over 7 dager er sen
+                const erKritisk = dagerMellom !== null && dagerMellom > 14;
+                const erSen = dagerMellom !== null && dagerMellom > 7 && dagerMellom <= 14;
+
                 return (
-                  <DataList variant="grid" className="mb-4">
-                    {datoOppdaget && (
-                      <DataListItem label="Dato oppdaget">
-                        {format(parseISO(datoOppdaget), 'd. MMM yyyy', { locale: nb })}
-                      </DataListItem>
+                  <>
+                    {/* Fremtredende dager-beregning */}
+                    {datoOppdaget && varselDato && dagerMellom !== null && (
+                      <div className={`flex items-center gap-3 p-3 mb-4 rounded-none border ${
+                        erKritisk
+                          ? 'bg-pkt-bg-danger-subtle border-pkt-border-danger'
+                          : erSen
+                            ? 'bg-pkt-bg-warning-subtle border-pkt-border-warning'
+                            : 'bg-pkt-surface-subtle border-pkt-border-subtle'
+                      }`}>
+                        <span className="text-sm text-pkt-text-body">
+                          Forholdet oppstod{' '}
+                          <span className="font-medium">
+                            {format(parseISO(datoOppdaget), 'd. MMMM yyyy', { locale: nb })}
+                          </span>
+                          {' '}→ varslet{' '}
+                          <span className="font-medium">
+                            {format(parseISO(varselDato), 'd. MMMM yyyy', { locale: nb })}
+                          </span>
+                          {' '}={' '}
+                          <span className={`font-mono font-medium ${
+                            erKritisk ? 'text-pkt-text-danger' :
+                            erSen ? 'text-pkt-text-warning' :
+                            'text-pkt-text-success'
+                          }`}>
+                            {dagerMellom} {dagerMellom === 1 ? 'dag' : 'dager'}
+                          </span>
+                        </span>
+                      </div>
                     )}
-                    {varselDato && (
-                      <DataListItem label="Dato varslet">
-                        {format(parseISO(varselDato), 'd. MMM yyyy', { locale: nb })}
-                      </DataListItem>
-                    )}
-                    {dagerMellom !== null && (
-                      <DataListItem label="Tid til varsling">
-                        {dagerMellom} {dagerMellom === 1 ? 'dag' : 'dager'}
-                      </DataListItem>
-                    )}
-                    {varselMetode && varselMetode.length > 0 && (
-                      <DataListItem label="Varslingsmetode">
-                        {formatVarselMetode(varselMetode)}
-                      </DataListItem>
-                    )}
-                  </DataList>
+                    <DataList variant="grid" className="mb-4">
+                      {datoOppdaget && !varselDato && (
+                        <DataListItem label="Dato oppdaget">
+                          {format(parseISO(datoOppdaget), 'd. MMM yyyy', { locale: nb })}
+                        </DataListItem>
+                      )}
+                      {varselDato && !datoOppdaget && (
+                        <DataListItem label="Dato varslet">
+                          {format(parseISO(varselDato), 'd. MMM yyyy', { locale: nb })}
+                        </DataListItem>
+                      )}
+                      {varselMetode && varselMetode.length > 0 && (
+                        <DataListItem label="Varslingsmetode">
+                          {formatVarselMetode(varselMetode)}
+                        </DataListItem>
+                      )}
+                    </DataList>
+                  </>
                 );
               })()}
 
