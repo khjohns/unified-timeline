@@ -326,7 +326,7 @@ class SakType(str, Enum):
 
 | # | Tiltak | Status | Merknad |
 |---|--------|--------|---------|
-| 1 | Svarplikt terskel | ⏳ Åpen | Vurder om 5 dager er riktig terskel |
+| 1 | Svarplikt terskel | ✅ Implementert | Endret fra 10 → 5 dager |
 | 2 | Preklusjon vs Reduksjon | ✅ Implementert | Korrekt differensiering i RespondFristModal |
 | 3 | Fjern reduksjonsvarsel ved etterlysning-svar | ✅ Implementert | §33.6.2 fjerde ledd beskyttelse |
 
@@ -334,7 +334,7 @@ class SakType(str, Enum):
 
 | # | Tiltak | Status | Merknad |
 |---|--------|--------|---------|
-| 4 | Forbedret helptext §33.5 | ⏳ Åpen | |
+| 4 | Forbedret helptext §33.5 | ✅ Implementert | Lagt til i RespondFristModal description |
 | 5 | §33.6.2 bokstav b | ✅ Implementert | `begrunnelse_utsatt` varseltype |
 
 ### Backlog (Lav prioritet)
@@ -350,7 +350,79 @@ class SakType(str, Enum):
 |---|--------|--------|---------|
 | 8 | §33.8 forsering | ✅ Implementert | SendForseringModal + forsering_service.py |
 | 9 | §5 helbredelse eksplisitt | ⏳ Åpen | Bør legges til i RespondFristModal |
-| 10 | VarslingsregelInfo-komponent | ⏳ Planlagt | For bedre brukerforklaring av regler |
+| 10 | VarslingsregelInline-komponent | ✅ Implementert | Se seksjon nedenfor |
+| 11 | Dager-beregning fra dato_oppdaget | ✅ Implementert | Vises i begge modaler |
+| 12 | Dobbelt vurdering (§33.4 + §33.6.1) | ✅ Implementert | Når TE sender kun spesifisert krav |
+
+---
+
+## Implementert 2026-01-24: VarslingsregelInline
+
+### Beskrivelse
+Ny komponent som viser varslingsregler inline med accordion for konsekvenser.
+
+### Plassering
+`src/components/shared/VarslingsregelInline.tsx`
+
+### Bruk
+```tsx
+<VarslingsregelInline hjemmel="§33.4" />
+```
+
+### Støttede hjemler
+| Hjemmel | Beskrivelse |
+|---------|-------------|
+| §33.4 | Varsel om fristforlengelse |
+| §33.6.1 | Spesifisert krav |
+| §33.6.2 | Svar på forespørsel |
+| §33.7 | Byggherrens svarplikt |
+| §33.8 | Forsering |
+
+### Design
+- **Inline tekst:** Hvem + frist + trigger (alltid synlig)
+- **Accordion:** Konsekvens + §5-mekanisme (lukket som standard)
+- **Rolleagnostisk:** Bruker tredjepersons kontraktstekst
+
+---
+
+## Implementert 2026-01-24: Dobbelt vurdering
+
+### Kontekst
+Når TE sender **kun spesifisert krav** (uten forutgående nøytralt varsel), fungerer det spesifiserte kravet også som varsel etter §33.4.
+
+### Ny logikk i RespondFristModal
+BH må nå vurdere BEGGE:
+
+1. **§33.4:** Sendt i tide som varsel? (målt fra da forholdet oppstod)
+   - Hvis nei: PREKLUSJON (kravet tapes)
+
+2. **§33.6.1:** Sendt i tide som spesifisert krav? (målt fra beregningsgrunnlag)
+   - Vises kun hvis §33.4 er oppfylt
+   - Hvis nei: REDUKSJON (kun det BH måtte forstå)
+
+### Resultatmatrise
+| §33.4 OK? | §33.6.1 OK? | Resultat |
+|-----------|-------------|----------|
+| Nei | - | PREKLUSJON |
+| Ja | Nei | REDUKSJON |
+| Ja | Ja | Full vurdering |
+
+### Endrede felt
+- `noytralt_varsel_ok` brukes nå for §33.4-vurdering også ved kun spesifisert krav
+- `spesifisert_krav_ok` brukes for §33.6.1-vurdering
+
+---
+
+## Implementert 2026-01-24: Dager-beregning
+
+### SendFristModal
+- Beregner dager siden `dato_oppdaget` (ikke `dato_varslet`)
+- Viser fremtredende boks: "Forholdet oppstod [dato] — X dager siden"
+- Fargekoding: rød >14 dager, oransje >7 dager
+
+### RespondFristModal
+- Viser beregning: "Forholdet oppstod [dato] → varslet [dato] = X dager"
+- Fargekoding basert på tidsbruk
 
 ---
 
