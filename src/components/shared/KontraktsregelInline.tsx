@@ -31,7 +31,7 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
   paragraf5: { paaberoper: 'TE' | 'BH'; tekst: string };
 }> = {
   '§33.1': {
-    inline: 'Fremdriften må (1) være hindret, og (2) hindringen må skyldes det påberopte forholdet (årsakssammenheng). Beskriv konkret hvordan forholdet har påvirket fremdriften.',
+    inline: 'Fristforlengelse forutsetter at (1) fremdriften er hindret, og (2) hindringen skyldes det påberopte forholdet (årsakssammenheng).',
     konsekvens: 'Partene plikter å forebygge og begrense skadevirkningene av en fristforlengelse (§33.5).',
     paragraf5: {
       paaberoper: 'BH',
@@ -39,7 +39,7 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
     },
   },
   '§33.3': {
-    inline: 'Fremdriften må hindres av forhold utenfor partenes kontroll (f.eks. ekstraordinære værforhold, offentlige påbud, streik). Hindringen kan ikke være noe som burde vært forutsett eller kunne vært unngått.',
+    inline: 'Fristforlengelse ved force majeure forutsetter at fremdriften hindres av forhold utenfor partenes kontroll (f.eks. ekstraordinære værforhold, offentlige påbud, streik). Hindringen kan ikke være noe parten burde forutsett eller kunne unngått.',
     konsekvens: 'Force majeure gir kun fristforlengelse – ikke vederlagsjustering. Partene plikter å begrense skadevirkningene (§33.5).',
     paragraf5: {
       paaberoper: 'BH',
