@@ -148,6 +148,17 @@ export const VARSLINGSREGLER_NS8407: ProsessFlyt[] = [
         konsekvens_type: 'PREKLUSJON_INNSIGELSE',
         konsekvens_beskrivelse: 'BH taper sine innsigelser (kravet godtas).',
       },
+      {
+        kode: 'FORSERING_VARSEL',
+        paragraf: '33.8',
+        beskrivelse: 'TE varsler før forsering ved uberettiget avslag på fristkrav.',
+        aktor: 'TE',
+        trigger_beskrivelse: 'TE velger å anse BHs avslag som forseringspålegg',
+        frist_type: 'INNEN_OPPSTART',
+        frist_dager: null,
+        konsekvens_type: 'INGEN_DIREKTE',
+        konsekvens_beskrivelse: 'Ingen eksplisitt konsekvens angitt i kontrakten.',
+      },
     ],
   },
   {

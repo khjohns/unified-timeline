@@ -699,6 +699,44 @@ VIKTIG PRESISERING:
 
 ---
 
+#### 2.3.6 Varsel før forsering (§33.8) ✓
+
+> **Kontraktstekst §33.8:**
+> "Hvis byggherren helt eller delvis avslår et berettiget krav på fristforlengelse, kan totalentreprenøren velge å anse avslaget som et pålegg om forsering gitt ved endringsordre. Totalentreprenøren har ikke en slik valgrett dersom vederlaget for forseringen må antas å ville overstige den dagmulkten som ville ha påløpt hvis byggherrens avslag var berettiget og forsering ikke ble iverksatt, tillagt 30 %.
+>
+> Før forsering etter første ledd iverksettes, skal byggherren varsles med angivelse av hva forseringen antas å ville koste."
+
+| Dimensjon | Verdi | Kilde |
+|-----------|-------|-------|
+| **HVEM** | TE | §33.8 annet ledd |
+| **TRIGGER** | TE velger å anse BHs avslag som forseringspålegg | §33.8 første ledd |
+| **SKJÆRINGSTIDSPUNKT** | Før forsering iverksettes | §33.8 annet ledd |
+| **FRIST** | **Før iverksettelse** (ikke UUO) | §33.8 annet ledd |
+| **KONSEKVENS** | **Ikke eksplisitt angitt** | §33.8 |
+
+```
+VIKTIGE PRESISERINGER:
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                            │
+│ FORUTSETNINGER FOR FORSERINGSRETT:                                        │
+│ 1. BH har avslått (helt eller delvis) TEs fristkrav                       │
+│ 2. Fristkravet var BERETTIGET (objektivt grunnlag)                        │
+│ 3. Forseringskostnad ≤ dagmulkt + 30%                                     │
+│                                                                            │
+│ INNHOLDSKRAV I VARSELET:                                                  │
+│ Skal angi hva forseringen antas å ville koste                             │
+│                                                                            │
+│ KONSEKVENS VED BRUDD:                                                     │
+│ Ikke eksplisitt angitt. Mulige tolkninger:                                │
+│ 1. TE mister retten til å anse avslaget som forseringspålegg             │
+│ 2. BH kan bestride forseringskostnadene                                   │
+│ 3. Kun lojalitetsbrudd                                                    │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
 ### 2.4 Regningsarbeid
 
 #### 2.4.1 Varsel før regningsarbeid (§34.4) ✓
@@ -1316,8 +1354,9 @@ interface ResponsEvent extends VarslingsEvent {
 | 10 | §33.4 | Frist | Forhold oppstår | Forholdet oppstår | UUO | **Preklusjon** | ✓ |
 | 11 | §33.6.1 | Frist | Grunnlag for beregning | Har grunnlag | UUO | **Reduksjon** | ✓ |
 | 12 | §33.6.2 | Frist | Mottar etterlysning | Mottak | UUO | **Preklusjon** | ✓ |
-| 13 | §30.2 | Regning | Kostnadsoverslag overskrides | Grunn til å anta | UUO | (Uavklart) | ✓ |
-| 14 | §30.3.1 | Regning | Løpende oppgaver | Ukentlig/månedlig | Ukentlig | **Reduksjon** | ✓ |
+| 13 | §33.8 | Frist | Velger forsering | Før iverksettelse | Før iverksettelse | (Uavklart) | ✓ |
+| 14 | §30.2 | Regning | Kostnadsoverslag overskrides | Grunn til å anta | UUO | (Uavklart) | ✓ |
+| 15 | §30.3.1 | Regning | Løpende oppgaver | Ukentlig/månedlig | Ukentlig | **Reduksjon** | ✓ |
 
 ### BHs svarplikter ✓
 
@@ -1339,8 +1378,60 @@ interface ResponsEvent extends VarslingsEvent {
 
 ---
 
+## Vedlegg: Implementasjonsstatus (Fristsporet)
+
+**Sist oppdatert:** 2026-01-24
+
+### TEs varslingsplikter - Fristsporet
+
+| # | Hjemmel | Regel | Implementert | Komponent | Detaljer |
+|---|---------|-------|--------------|-----------|----------|
+| 10 | §33.4 | Nøytralt fristvarsel | ✅ Full | `SendFristModal` | Advarsel >7d, kritisk >14d |
+| 11 | §33.6.1 | Spesifisert krav | ✅ Full | `SendFristModal` | Reduksjonsrisiko-varsel |
+| 12 | §33.6.2 | Svar på etterlysning | ✅ Full | `SendFristModal` | Kritisk alert + bokstav b-alternativ |
+| 13 | §33.8 | Varsel før forsering | ✅ Full | `SendForseringModal` | 30%-regel validering i backend |
+
+### BHs svarplikter - Fristsporet
+
+| # | Hjemmel | Regel | Implementert | Komponent | Detaljer |
+|---|---------|-------|--------------|-----------|----------|
+| 6 | §33.7 | Svar på fristkrav | ✅ Full | `RespondFristModal` | Advarsel >5d, passiv aksept |
+| - | §33.6.2 | Proaktiv etterlysning | ⚠️ Delvis | `RespondFristModal` | Kun reaktiv (ikke proaktiv) |
+
+### §5 - Generelle varslingsregler
+
+| Funksjon | Implementert | Komponent | Detaljer |
+|----------|--------------|-----------|----------|
+| BH påberoper sen varsling | ✅ Full | `RespondFristModal` | Port 1 (Preklusjon) |
+| Helbredelse (BH passiv) | ⚠️ Implisitt | `RespondFristModal` | Bør gjøres mer eksplisitt |
+| BH for sen = passiv aksept | ✅ Full | `RespondFristModal` | Advarsel + auto-begrunnelse |
+
+### Auto-generert begrunnelse
+
+| Situasjon | Hjemmel | Genereres | Fil |
+|-----------|---------|-----------|-----|
+| Nøytralt varsel for sent | §33.4 | ✅ | `begrunnelseGenerator.ts` |
+| Spesifisert krav for sent | §33.6.1 | ✅ | `begrunnelseGenerator.ts` |
+| Svar på etterlysning for sent | §33.6.2 + §5 | ✅ | `begrunnelseGenerator.ts` |
+| BH sender etterlysning | §33.6.2 | ✅ | `begrunnelseGenerator.ts` |
+| TE begrunner utsettelse | §33.6.2 b | ✅ | `begrunnelseGenerator.ts` |
+| §33.8 forsering-advarsel | §33.8 | ✅ | `begrunnelseGenerator.ts` |
+
+### Identifiserte hull
+
+| ID | Beskrivelse | Prioritet | Anbefalt tiltak |
+|----|-------------|-----------|-----------------|
+| H1 | §5 helbredelse ikke eksplisitt forklart | Medium | Legg til info i RespondFristModal |
+| H2 | BH kan ikke sende proaktiv etterlysning | Lav | Ny modal/flyt (se PLAN) |
+| H3 | `dato_bh_etterlysning` mangler i datamodellen | Lav | Utvid FristTilstand |
+| H4 | §33.8 konsekvens for manglende varsel uavklart | Info | Dokumentert i uavklarte-situasjoner.md |
+
+---
+
 > **Dokumenthistorikk:**
 > - 2026-01-24: Opprettet med systematisk kartlegging av alle varslingsregler
 > - 2026-01-24: Verifisert §33 (fristsporet) mot kontraktstekst
 > - 2026-01-24: Verifisert §34 (vederlagssporet) mot kontraktstekst - inkludert §34.1.1-§34.4
 > - 2026-01-24: Verifisert §30 (regningsarbeid) mot kontraktstekst - inkludert §30.2, §30.3.1, §30.3.2
+> - 2026-01-24: Lagt til §33.8 (forsering) etter kvalitetssikring
+> - 2026-01-24: Lagt til implementasjonsstatus for fristsporet med hull-analyse

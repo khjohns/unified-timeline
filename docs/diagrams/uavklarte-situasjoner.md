@@ -102,6 +102,19 @@ Følgende situasjoner ble opprinnelig identifisert som potensielt uavklarte, men
 
 ---
 
+### VED-3: §33.8 konsekvens for manglende forseringsvarsel
+
+| Felt | Verdi |
+|------|-------|
+| **Kategori** | KONSEKVENS |
+| **Situasjon** | TE varsler ikke BH før forsering iverksettes |
+| **Paragrafer** | §33.8 |
+| **Spørsmål** | Hva er konsekvensen? Kontrakten sier "skal byggherren varsles" uten å angi konsekvens. |
+| **Mulige tolkninger** | 1) TE mister retten til å anse avslaget som forseringspålegg, 2) BH kan bestride forseringskostnadene, 3) Kun lojalitetsbrudd |
+| **Anbefaling** | Applikasjonen bør advare TE om å varsle FØR forsering iverksettes |
+
+---
+
 ## Regningsarbeid (§30)
 
 ### REGN-1: §30.2 konsekvens for manglende overskridelsesvarsel
@@ -136,10 +149,10 @@ Følgende situasjoner ble opprinnelig identifisert som potensielt uavklarte, men
 
 | Kategori | Antall | Uavklarte |
 |----------|--------|-----------|
-| KONSEKVENS | 4 | VED-1, VED-2, REGN-1, GRUNN-1 |
+| KONSEKVENS | 5 | VED-1, VED-2, VED-3, REGN-1, GRUNN-1 |
 | TIDSPUNKT | 1 | GEN-1 |
 | KOMBINASJON | 2 | FRIST-1, GRUNN-2 |
-| **Totalt** | **7** | - |
+| **Totalt** | **8** | - |
 
 ### Avklarte situasjoner (fjernet fra listen)
 

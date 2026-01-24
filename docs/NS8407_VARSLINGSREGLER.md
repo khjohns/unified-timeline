@@ -289,6 +289,7 @@ FRIST
 | **Frist** | §33.4 | Nøytralt fristvarsel | Forhold som gir rett oppstår | Uten ugrunnet opphold | Kravet **TAPES** |
 | **Frist** | §33.6.1 | Spesifisert krav | Har grunnlag for å beregne | Uten ugrunnet opphold | **REDUKSJON** (skjønn) |
 | **Frist** | §33.6.2 | Svar på etterlysning | Mottar BHs etterlysning | Uten ugrunnet opphold | Kravet **TAPES** |
+| **Frist** | §33.8 | Varsel før forsering | Velger å anse avslag som forsering | **Før iverksettelse** | **(Uavklart)** |
 
 ### Detaljert - Grunnlagssporet
 
@@ -566,6 +567,56 @@ FRIST
 │  │ på etterlysning med spesifisert krav, kan BH ikke påberope at     │    │
 │  │ §33.6.1-fristen er oversittet. Dette overstyrer §5.               │    │
 │  └────────────────────────────────────────────────────────────────────┘    │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Forsering ved uberettiget avslag (§33.8) ✓
+
+**Kontraktstekst:**
+
+> **§33.8 Forsering ved uberettiget avslag**
+> "Hvis byggherren helt eller delvis avslår et berettiget krav på fristforlengelse, kan totalentreprenøren velge å anse avslaget som et pålegg om forsering gitt ved endringsordre. Totalentreprenøren har ikke en slik valgrett dersom vederlaget for forseringen må antas å ville overstige den dagmulkten som ville ha påløpt hvis byggherrens avslag var berettiget og forsering ikke ble iverksatt, tillagt 30 %.
+>
+> Før forsering etter første ledd iverksettes, skal byggherren varsles med angivelse av hva forseringen antas å ville koste."
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ §33.8 FORSERING VED UBERETTIGET AVSLAG                                      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  FORUTSETNINGER FOR FORSERINGSRETT:                                        │
+│  ──────────────────────────────────                                        │
+│  1. BH har avslått (helt eller delvis) TEs fristkrav                       │
+│  2. Fristkravet var BERETTIGET (objektivt grunnlag)                        │
+│  3. Forseringskostnad ≤ dagmulkt + 30%                                     │
+│                                                                             │
+│  TRIGGER:      TE velger å anse BHs avslag som forseringspålegg            │
+│                                                                             │
+│  VARSLINGSPLIKT:                                                           │
+│  ───────────────                                                           │
+│  Før forsering iverksettes, skal BH varsles med angivelse av               │
+│  hva forseringen antas å ville koste.                                      │
+│                                                                             │
+│  FRIST:        FØR IVERKSETTELSE (ikke "uten ugrunnet opphold")            │
+│                                                                             │
+│  KONSEKVENS:   IKKE EKSPLISITT ANGITT                                      │
+│                                                                             │
+│  ┌────────────────────────────────────────────────────────────────────┐    │
+│  │ VIKTIG: §33.8 har ingen eksplisitt konsekvens for manglende varsel.│    │
+│  │ Mulige tolkninger:                                                 │    │
+│  │ 1. TE mister retten til å anse avslaget som forseringspålegg      │    │
+│  │ 2. BH kan bestride forseringskostnadene                           │    │
+│  │ 3. Kun lojalitetsbrudd                                            │    │
+│  └────────────────────────────────────────────────────────────────────┘    │
+│                                                                             │
+│  KOSTNADSBEGRENSNING (30%-REGELEN):                                        │
+│  ──────────────────────────────────                                        │
+│  TE har IKKE forseringsrett dersom:                                        │
+│  forseringskostnad > (dagmulkt × avslåtte dager × 1,3)                     │
+│                                                                             │
+│  Eksempel: 10 avslåtte dager, dagmulkt 50.000 kr/dag:                      │
+│  Maks forseringskostnad = 10 × 50.000 × 1,3 = 650.000 kr                   │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -951,9 +1002,46 @@ oppstår    oppdaget      faktisk       varsel
 
 | Komponent | §5-innsigelse | Status |
 |-----------|---------------|--------|
-| RespondFristModal | ✅ Implementert | Full støtte for §33.4, §33.6.1, §33.6.2 |
+| RespondFristModal | ✅ Implementert | Full støtte for §33.4, §33.6.1, §33.6.2, §33.8 |
+| SendFristModal | ✅ Implementert | Advarsler for §33.4 (>7/14 dager), §33.6.2 (etterlysning) |
+| SendForseringModal | ✅ Implementert | §33.8 med 30%-regel validering |
 | RespondGrunnlagModal | ❌ Mangler | Ingen mulighet for BH å påberope sen varsling |
 | RespondVederlagModal | ⚠️ Delvis | Felt for rigg/produktivitet, men mangler §5-påminnelse |
+
+### Fristsporet - Detaljert implementasjonsstatus (2026-01-24)
+
+#### TEs varslingsplikter
+
+| Hjemmel | Varslingsplikt | Impl. | Komponent | Detaljer |
+|---------|----------------|-------|-----------|----------|
+| §33.4 | Nøytralt fristvarsel | ✅ | SendFristModal | Advarsel >7d, kritisk >14d |
+| §33.6.1 | Spesifisert krav | ✅ | SendFristModal | Reduksjonsrisiko-varsel |
+| §33.6.2 | Svar på etterlysning | ✅ | SendFristModal | Kritisk alert + bokstav b |
+| §33.8 | Varsel før forsering | ✅ | SendForseringModal | 30%-regel backend-validering |
+
+#### BHs svarplikter
+
+| Hjemmel | Svarplikt | Impl. | Komponent | Detaljer |
+|---------|-----------|-------|-----------|----------|
+| §33.7 | Svar på fristkrav | ✅ | RespondFristModal | Advarsel >5d, passiv aksept |
+| §33.6.2 | Kan sende etterlysning | ⚠️ | RespondFristModal | Kun reaktiv (ikke proaktiv) |
+
+#### §5 - Generelle varslingsregler
+
+| Funksjon | Impl. | Komponent | Detaljer |
+|----------|-------|-----------|----------|
+| BH påberoper sen varsling | ✅ | RespondFristModal | Port 1 (Preklusjon) |
+| Helbredelse (BH passiv) | ⚠️ | RespondFristModal | Implisitt, ikke eksplisitt forklart |
+| BH for sen = passiv aksept | ✅ | RespondFristModal | Advarsel + auto-begrunnelse |
+
+#### Identifiserte hull
+
+| ID | Beskrivelse | Prioritet |
+|----|-------------|-----------|
+| H1 | §5 helbredelse ikke eksplisitt forklart til BH | Medium |
+| H2 | BH kan ikke sende proaktiv etterlysning (§33.6.2) | Lav |
+| H3 | `dato_bh_etterlysning` mangler i datamodellen | Lav |
+| H4 | §33.8 konsekvens for manglende varsel er uavklart | Info |
 
 ### Manglende funksjonalitet
 
@@ -972,41 +1060,84 @@ BH bør kunne:
 2. Se tydelig §5-påminnelse ved alle preklusjonsfelt
 3. Få informasjon om at ENDRING ikke har vederlagspreklusjon
 
-### Foreslått komponent
+### Foreslått komponent: VarslingsregelInfo
+
+En gjenbrukbar komponent for å forklare varslingsregler til brukeren. Brukes i modaler der det allerede finnes alerts eller forklaringstekst, for å gi konsistent og pedagogisk informasjon.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                    LateNoticeInnsigelse KOMPONENT                           │
+│                    VarslingsregelInfo KOMPONENT                             │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  Props:                                                                     │
 │  ──────                                                                     │
-│  spor:           'grunnlag' | 'vederlag' | 'frist'                         │
-│  kategori:       'ENDRING' | 'SVIKT' | 'ANDRE' | 'FORCE_MAJEURE'           │
-│  hjemmel:        '§32.2' | '§25.1.2' | '§34.1.2' | '§33.4' | etc.          │
-│  mottattDato:    Date (for å beregne tid siden mottak)                     │
-│  onInnsigelse:   (påberopt: boolean) => void                               │
+│  hjemmel:        '§33.4' | '§33.6.1' | '§33.6.2' | '§33.7' | '§33.8' | etc │
+│  rolle:          'TE' | 'BH'                                               │
+│  variant:        'info' | 'warning' | 'danger'                             │
+│  visKonsekvens:  boolean (default: true)                                   │
+│  visFrist:       boolean (default: true)                                   │
+│  visParagraf5:   boolean (default: false) - for BH-innsigelser             │
+│  dagerSiden?:    number - for tidsbaserte advarsler                        │
 │                                                                             │
 │  Funksjonalitet:                                                           │
 │  ───────────────                                                           │
-│  1. Spør BH: "Mener du varselet/kravet kom for sent?"                      │
-│  2. Ved "Ja": Viser relevant hjemmel og konsekvens                         │
-│  3. Viser §5-alert: "Du må gjøre denne innsigelsen skriftlig               │
-│     'uten ugrunnet opphold' - ellers anses varselet gitt i tide"           │
-│  4. Genererer begrunnelsestekst med §5-referanse                           │
-│  5. Anbefaler subsidiær vurdering                                          │
+│  1. Viser paragraf med kort forklaring fra varslingsregler.ts              │
+│  2. Viser fristtype (UUO, spesifikk, etc.) med forklaring                  │
+│  3. Viser konsekvens ved brudd med fargekoding                             │
+│  4. Ved visParagraf5=true: Viser §5-alert med helbredelsesinformasjon      │
+│  5. Ved dagerSiden: Viser tidsbasert advarsel                              │
+│                                                                             │
+│  Bruksområder:                                                             │
+│  ─────────────                                                             │
+│  • SendFristModal: Forklare §33.4/§33.6.1 for TE                           │
+│  • RespondFristModal: Forklare §33.7/§5 for BH                             │
+│  • SendForseringModal: Forklare §33.8 for TE                               │
+│  • RespondGrunnlagModal: (fremtidig) Forklare §32.2/§25.1.2 for BH         │
+│  • RespondVederlagModal: (fremtidig) Forklare §34.1.2/§34.1.3 for BH       │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+#### Eksempel på bruk
+
+```tsx
+// I SendFristModal - for TE som sender nøytralt varsel
+<VarslingsregelInfo
+  hjemmel="§33.4"
+  rolle="TE"
+  variant={dagerSidenGrunnlag > 14 ? 'danger' : dagerSidenGrunnlag > 7 ? 'warning' : 'info'}
+  dagerSiden={dagerSidenGrunnlag}
+/>
+
+// I RespondFristModal - for BH som vurderer om varsel kom i tide
+<VarslingsregelInfo
+  hjemmel="§33.4"
+  rolle="BH"
+  variant="info"
+  visParagraf5={true}  // Viser §5-helbredelsesinformasjon
+/>
+```
+
+#### Implementasjonsplan
+
+| Fase | Oppgave | Prioritet |
+|------|---------|-----------|
+| 1 | Opprett `VarslingsregelInfo.tsx` med grunnleggende visning | Høy |
+| 2 | Integrer i SendFristModal (erstatt eksisterende alerts) | Høy |
+| 3 | Integrer i RespondFristModal Port 1 (legg til §5-info) | Høy |
+| 4 | Integrer i SendForseringModal | Medium |
+| 5 | Utvid til RespondGrunnlagModal og RespondVederlagModal | Lav |
 
 ### Relevante filer
 
 | Fil | Innhold |
 |-----|---------|
 | `src/constants/varslingsregler.ts` | Alle varslingsregler definert |
-| `src/utils/preklusjonssjekk.ts` | Preklusjonslogikk |
+| `src/components/shared/VarslingsregelInfo.tsx` | **NY** - Gjenbrukbar komponent for regelforklaring |
 | `src/utils/begrunnelseGenerator.ts` | Auto-generering av begrunnelser |
-| `src/components/actions/RespondFristModal.tsx` | Eksempel på §5-implementasjon |
+| `src/components/actions/SendFristModal.tsx` | TE sender fristkrav |
+| `src/components/actions/RespondFristModal.tsx` | BH svarer på fristkrav (§5-implementasjon) |
+| `src/components/actions/SendForseringModal.tsx` | TE sender forseringsvarsel (§33.8) |
 | `.claude/skills/ns8407/SKILL.md` | Kontraktsreferanser |
 
 ---
@@ -1428,3 +1559,6 @@ Ved kartlegging eller kvalitetssikring av varslingsregler, bruk følgende sjekkl
 > - 2026-01-24: Opprettet basert på gjennomgang av NS 8407 kapittel 5, 25, 32, 33, 34, 35
 > - 2026-01-24: Lagt til seksjon 10 med åpne spørsmål og begrensninger
 > - 2026-01-24: Lagt til seksjon 11 med læringspunkter for kvalitetssikring
+> - 2026-01-24: Lagt til §33.8 (forsering ved uberettiget avslag) etter kvalitetssikring
+> - 2026-01-24: Lagt til detaljert implementasjonsstatus for fristsporet
+> - 2026-01-24: Opprettet VarslingsregelInfo-komponent (`src/components/shared/VarslingsregelInfo.tsx`)

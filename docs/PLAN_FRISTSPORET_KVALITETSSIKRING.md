@@ -324,25 +324,59 @@ class SakType(str, Enum):
 
 ### Sprint N (Høy prioritet)
 
-| # | Tiltak | Steg |
-|---|--------|------|
-| 1 | Svarplikt terskel | VURDER → VERIFISER → IMPLEMENTER |
-| 2 | Preklusjon vs Reduksjon | VURDER → VERIFISER → IMPLEMENTER |
-| 3 | Fjern reduksjonsvarsel ved etterlysning-svar | VURDER → VERIFISER → IMPLEMENTER |
+| # | Tiltak | Status | Merknad |
+|---|--------|--------|---------|
+| 1 | Svarplikt terskel | ⏳ Åpen | Vurder om 5 dager er riktig terskel |
+| 2 | Preklusjon vs Reduksjon | ✅ Implementert | Korrekt differensiering i RespondFristModal |
+| 3 | Fjern reduksjonsvarsel ved etterlysning-svar | ✅ Implementert | §33.6.2 fjerde ledd beskyttelse |
 
 ### Sprint N+1 (Medium prioritet)
 
-| # | Tiltak | Steg |
-|---|--------|------|
-| 4 | Forbedret helptext §33.5 | VURDER → VERIFISER → IMPLEMENTER |
-| 5 | §33.6.2 bokstav b | VURDER → VERIFISER → IMPLEMENTER |
+| # | Tiltak | Status | Merknad |
+|---|--------|--------|---------|
+| 4 | Forbedret helptext §33.5 | ⏳ Åpen | |
+| 5 | §33.6.2 bokstav b | ✅ Implementert | `begrunnelse_utsatt` varseltype |
 
 ### Backlog (Lav prioritet)
 
-| # | Tiltak | Steg |
-|---|--------|------|
-| 6 | BH proaktiv etterlysning | VURDER → VERIFISER → IMPLEMENTER |
-| 7 | §33.2 BH fristforlengelse | VURDER → VERIFISER → IMPLEMENTER |
+| # | Tiltak | Status | Merknad |
+|---|--------|--------|---------|
+| 6 | BH proaktiv etterlysning | ⏳ Åpen | Kun reaktiv etterlysning støttet |
+| 7 | §33.2 BH fristforlengelse | ⏳ Åpen | Dokumentert, ikke implementert |
+
+### Tillegg (identifisert ved kvalitetssikring 2026-01-24)
+
+| # | Tiltak | Status | Merknad |
+|---|--------|--------|---------|
+| 8 | §33.8 forsering | ✅ Implementert | SendForseringModal + forsering_service.py |
+| 9 | §5 helbredelse eksplisitt | ⏳ Åpen | Bør legges til i RespondFristModal |
+| 10 | VarslingsregelInfo-komponent | ⏳ Planlagt | For bedre brukerforklaring av regler |
+
+---
+
+## Kvalitetssikring 2026-01-24
+
+### Funn
+
+1. **§33.8 manglet i dokumentasjonen** - Nå lagt til i:
+   - `NS8407_VARSLINGSREGLER_KARTLEGGING.md`
+   - `NS8407_VARSLINGSREGLER.md`
+   - `diagrams/scenario-frist.md`
+   - `diagrams/uavklarte-situasjoner.md`
+   - `src/constants/varslingsregler.ts`
+
+2. **Applikasjonen hadde §33.8-støtte** - `SendForseringModal` og `forsering_service.py` var allerede implementert, men dokumentasjonen lå etter.
+
+3. **Implementasjonsstatus kartlagt** - Se vedlegg i `NS8407_VARSLINGSREGLER_KARTLEGGING.md`.
+
+### Identifiserte hull
+
+| ID | Beskrivelse | Prioritet |
+|----|-------------|-----------|
+| H1 | §5 helbredelse ikke eksplisitt forklart | Medium |
+| H2 | BH kan ikke sende proaktiv etterlysning | Lav |
+| H3 | `dato_bh_etterlysning` mangler i datamodellen | Lav |
+| H4 | §33.8 konsekvens for manglende varsel uavklart | Info |
 
 ---
 

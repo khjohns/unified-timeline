@@ -260,7 +260,49 @@ flowchart TD
 
 ---
 
-## 8. Identifiserte situasjoner og avklaringer
+## 8. Forsering ved uberettiget avslag (§33.8)
+
+```mermaid
+stateDiagram-v2
+    [*] --> BH_avslaar: BH avslår fristkrav (helt/delvis)
+
+    BH_avslaar --> Sjekk_berettiget: Er TEs krav berettiget?
+
+    Sjekk_berettiget --> Ikke_berettiget: Nei
+    Sjekk_berettiget --> Berettiget: Ja
+
+    Ikke_berettiget --> Normal_avslag: BHs avslag står - ingen forseringsrett
+
+    %% Berettiget krav - sjekk kostnadsbegrensning
+    Berettiget --> Sjekk_kostnad: Forseringskostnad vs dagmulkt+30%?
+
+    Sjekk_kostnad --> For_dyrt: Kostnad > dagmulkt+30%
+    Sjekk_kostnad --> Innenfor: Kostnad ≤ dagmulkt+30%
+
+    For_dyrt --> Ingen_valgrett: TE har IKKE forseringsrett (§33.8)
+
+    %% TE har forseringsrett
+    Innenfor --> TE_velger: TE velger å anse avslag som forsering
+
+    TE_velger --> TE_varsler_kostnad: TE varsler før iverksettelse
+    TE_velger --> TE_varsler_ikke_kostnad: TE varsler IKKE
+
+    TE_varsler_kostnad --> Forsering_iverksettes: Forsering iverksettes
+    Forsering_iverksettes --> Endringsordre_effekt: Anses som EO (§33.8)
+
+    TE_varsler_ikke_kostnad --> UAVKLART_FORS: [UAVKLART: Konsekvens?]
+```
+
+**Innholdskrav i varselet:** Skal angi hva forseringen antas å ville koste.
+
+**Viktig:** §33.8 har INGEN eksplisitt konsekvens for manglende varsel. Mulige tolkninger:
+1. TE mister retten til å anse avslaget som forseringspålegg
+2. BH kan bestride forseringskostnadene
+3. Kun lojalitetsbrudd
+
+---
+
+## 9. Identifiserte situasjoner og avklaringer
 
 | # | Situasjon | Paragrafer | Status | Konklusjon |
 |---|-----------|------------|--------|------------|
@@ -270,6 +312,7 @@ flowchart TD
 | 4 | Begrunnelse for utsettelse - ny etterlysning | §33.6.2 | **AVKLART** | Ingen regel i kontrakten = BH kan sende ny etterlysning når som helst |
 | 5 | §5 på §5 (meta-spørsmål) | §5 | **AVKLART** | Logisk mulig, men praktisk irrelevant (se forklaring under) |
 | 6 | Sluttoppgjør og fristkrav | §5, §33 | **UAVKLART** | Når er kravet "fremsatt" - ved §33.4 eller først ved §33.6.1? |
+| 7 | Manglende varsel før forsering | §33.8 | **UAVKLART** | Ingen eksplisitt konsekvens i kontrakten |
 
 ### Forklaring: §5 på §5 (punkt 5)
 
@@ -293,13 +336,14 @@ Svaret har betydning for om §5-unntaket gjelder. Dette bør avklares juridisk.
 
 ---
 
-## 9. Implikasjoner for applikasjonen
+## 10. Implikasjoner for applikasjonen
 
 ### Må håndteres
 
 1. **Helbredelse via §5** - Applikasjonen må spore om motpart har påberopt sen varsling
 2. **Formkrav §33.6.2** - Applikasjonen bør advare om at etterlysning krever BREV
 3. **Symmetri §33.7** - Begge parter har svarplikt, ikke bare BH
+4. **Forsering §33.8** - Applikasjonen må støtte forseringsprosessen med kostnadsvarsel
 
 ### Bør flagges som UAVKLART
 
