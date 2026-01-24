@@ -13,7 +13,7 @@ import {
   CheckIcon,
   FileTextIcon,
 } from '@radix-ui/react-icons';
-import { SporType, TimelineEvent, extractEventType } from '../../types/timeline';
+import { SporType, SakState, TimelineEvent, extractEventType } from '../../types/timeline';
 import { GrunnlagHistorikkEntry, VederlagHistorikkEntry, FristHistorikkEntry } from '../../types/api';
 import { formatDateMedium, formatCurrency, formatDays } from '../../utils/formatters';
 import { ActivityHistory, ActivityHistoryEntry, ActivityHistoryVariant } from '../primitives/ActivityHistory';
@@ -46,6 +46,8 @@ export interface SporHistoryProps {
   entries: SporHistoryEntry[];
   /** Timeline events for EventDetailModal lookup */
   events?: TimelineEvent[];
+  /** SakState for letter generation in EventDetailModal */
+  sakState?: SakState;
   defaultOpen?: boolean;
   className?: string;
 }
@@ -300,7 +302,7 @@ function getEntryLabel(entry: SporHistoryEntry): string {
 
 // ============ COMPONENT ============
 
-export function SporHistory({ entries, events = [], defaultOpen = false, className }: SporHistoryProps) {
+export function SporHistory({ entries, events = [], sakState, defaultOpen = false, className }: SporHistoryProps) {
   const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(null);
 
   // Create a map from entry ID to event for quick lookup
@@ -353,6 +355,7 @@ export function SporHistory({ entries, events = [], defaultOpen = false, classNa
           open={!!selectedEvent}
           onOpenChange={(open) => !open && setSelectedEvent(null)}
           event={selectedEvent}
+          sakState={sakState}
         />
       )}
     </>
