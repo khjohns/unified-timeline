@@ -397,6 +397,7 @@ export function SendGrunnlagModal({
       title={isUpdateMode ? "Oppdater grunnlag" : "Varsle endringsforhold"}
       description={isUpdateMode ? "Endre informasjon i det innsendte grunnlaget." : undefined}
       size="lg"
+      framedTitle
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* UPDATE MODE: Current grunnlag summary */}
