@@ -483,9 +483,11 @@ export function SendGrunnlagModal({
                               <KontraktsregelInline
                                 custom={{
                                   inline: kategoriInfo.beskrivelse,
-                                  hjemmel: '', // Ingen hjemmel i inline - vises i accordion
-                                  konsekvens: `Fristforlengelse: §${kategoriInfo.hjemmel_frist}${kategoriInfo.hjemmel_vederlag ? `\nVederlagsjustering: §${kategoriInfo.hjemmel_vederlag}` : ''}`,
-                                  accordionLabel: 'Hjemler',
+                                  hjemmel: `§${kategoriInfo.hjemmel_frist}`,
+                                  konsekvens: kategoriInfo.hjemmel_vederlag
+                                    ? `Vederlagsjustering: §${kategoriInfo.hjemmel_vederlag}`
+                                    : undefined,
+                                  accordionLabel: 'Vederlag',
                                 }}
                               />
                             </div>
