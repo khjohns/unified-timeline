@@ -1,14 +1,14 @@
 /**
  * VarslingsregelInfo Component
  *
- * A reusable component for explaining NS 8407 notification rules to users.
- * Displays relevant information about deadlines, consequences, and §5 rules.
+ * Gjenbrukbar komponent for å forklare NS 8407 varslingsregler til brukeren.
+ * Viser relevant informasjon om frister, konsekvenser og §5-regler.
  *
- * Used in modals where there's already alerts or explanatory text, to provide
- * consistent and pedagogical information about notification requirements.
+ * Brukes i modaler der det allerede finnes alerts eller forklaringstekst,
+ * for å gi konsistent og pedagogisk informasjon om varslingsplikter.
  *
  * @example
- * // For TE sending neutral notice
+ * // For TE som sender varsel om fristforlengelse (§33.4)
  * <VarslingsregelInfo
  *   hjemmel="§33.4"
  *   rolle="TE"
@@ -16,7 +16,7 @@
  * />
  *
  * @example
- * // For BH evaluating if notice was on time
+ * // For BH som vurderer om varsel kom i tide
  * <VarslingsregelInfo
  *   hjemmel="§33.4"
  *   rolle="BH"
@@ -75,9 +75,9 @@ interface VarslingsregelInfoProps {
 
 /** Map hjemmel to varslingsregler.ts kode */
 const HJEMMEL_TIL_KODE: Record<Hjemmel, string> = {
-  '§33.4': 'FRIST_VARSEL_NOEYTRALT',
+  '§33.4': 'FRIST_VARSEL',
   '§33.6.1': 'FRIST_SPESIFISERING',
-  '§33.6.2': 'SVAR_PA_ETTERLYSNING',
+  '§33.6.2': 'SVAR_PA_FORESPORSEL',
   '§33.7': 'BH_SVAR_KRAV',
   '§33.8': 'FORSERING_VARSEL',
   '§32.2': 'VARSEL_IRREGULAER',
@@ -86,62 +86,62 @@ const HJEMMEL_TIL_KODE: Record<Hjemmel, string> = {
   '§34.1.3': 'VARSEL_RIGG_DRIFT',
 };
 
-/** Extended descriptions for each hjemmel */
+/** Extended descriptions for each hjemmel - basert på kontraktsteksten */
 const HJEMMEL_BESKRIVELSER: Record<Hjemmel, { te: string; bh: string; konsekvens: string }> = {
   '§33.4': {
-    te: 'Du må varsle om krav på fristforlengelse «uten ugrunnet opphold» etter at forholdet oppstår.',
-    bh: 'Entreprenøren skulle varslet «uten ugrunnet opphold» etter at forholdet oppstod.',
-    konsekvens: 'Kravet på fristforlengelse tapes.',
+    te: 'Du skal varsle «uten ugrunnet opphold», selv om du ennå ikke kan fremsette et spesifisert krav.',
+    bh: 'Totalentreprenøren skal varsle «uten ugrunnet opphold» etter at forholdet oppstod.',
+    konsekvens: 'Krav på fristforlengelse tapes.',
   },
   '§33.6.1': {
-    te: 'Du må spesifisere antall dager «uten ugrunnet opphold» etter at du har grunnlag for å beregne.',
-    bh: 'Entreprenøren skulle spesifisert antall dager «uten ugrunnet opphold».',
-    konsekvens: 'Kravet reduseres til det du «måtte forstå» at entreprenøren hadde krav på.',
+    te: 'Når du har grunnlag for å beregne omfanget, skal du «uten ugrunnet opphold» angi og begrunne antall dager.',
+    bh: 'Totalentreprenøren skal angi og begrunne antall dager «uten ugrunnet opphold».',
+    konsekvens: 'Bare krav på slik fristforlengelse som du «måtte forstå» at han hadde krav på.',
   },
   '§33.6.2': {
-    te: 'Du må svare på byggherrens etterlysning «uten ugrunnet opphold».',
-    bh: 'Entreprenøren må svare på din etterlysning «uten ugrunnet opphold».',
-    konsekvens: 'Kravet på fristforlengelse tapes.',
+    te: 'Du skal svare på byggherrens forespørsel «uten ugrunnet opphold».',
+    bh: 'Totalentreprenøren skal svare på din forespørsel «uten ugrunnet opphold».',
+    konsekvens: 'Krav på fristforlengelse tapes.',
   },
   '§33.7': {
-    te: 'Byggherren skal svare «uten ugrunnet opphold» på ditt spesifiserte krav.',
-    bh: 'Du må svare «uten ugrunnet opphold» på entreprenørens spesifiserte krav.',
-    konsekvens: 'Dine innsigelser mot kravet tapes (passiv aksept).',
+    te: 'Byggherren skal svare «uten ugrunnet opphold» etter å ha mottatt begrunnet krav med antall dager.',
+    bh: 'Du skal svare «uten ugrunnet opphold» etter å ha mottatt begrunnet krav med antall dager.',
+    konsekvens: 'Innsigelser mot kravet tapes.',
   },
   '§33.8': {
-    te: 'Du må varsle byggherren før forsering iverksettes, med angivelse av estimert kostnad.',
-    bh: 'Entreprenøren kan velge å anse avslaget som et forseringspålegg (§33.8).',
-    konsekvens: 'Konsekvensen er ikke eksplisitt angitt i kontrakten.',
+    te: 'Før forsering iverksettes, skal byggherren varsles med angivelse av hva forseringen antas å ville koste.',
+    bh: 'Totalentreprenøren kan velge å anse avslaget som et pålegg om forsering gitt ved endringsordre.',
+    konsekvens: 'Ikke eksplisitt angitt i kontrakten.',
   },
   '§32.2': {
-    te: 'Du må varsle «uten ugrunnet opphold» hvis du mener et pålegg utgjør en endring.',
-    bh: 'Entreprenøren skulle varslet «uten ugrunnet opphold» om at pålegget utgjør en endring.',
-    konsekvens: 'Retten til å påberope endring tapes.',
+    te: 'Du skal varsle «uten ugrunnet opphold» dersom du vil påberope at pålegget innebærer en endring.',
+    bh: 'Totalentreprenøren skal varsle «uten ugrunnet opphold» dersom han vil påberope endring.',
+    konsekvens: 'Retten til å påberope at pålegget innebærer en endring tapes.',
   },
   '§25.1.2': {
-    te: 'Du må varsle «uten ugrunnet opphold» når du oppdager svikt ved byggherrens ytelser.',
-    bh: 'Entreprenøren skulle varslet «uten ugrunnet opphold» om svikten.',
-    konsekvens: 'Byggherren kan kreve erstatning for påløpte merutgifter.',
+    te: 'Du skal varsle «uten ugrunnet opphold» når du blir oppmerksom på svikt ved byggherrens ytelser.',
+    bh: 'Totalentreprenøren skal varsle «uten ugrunnet opphold» om svikten.',
+    konsekvens: 'Byggherren kan kreve erstatning for tap som kunne vært unngått.',
   },
   '§34.1.2': {
-    te: 'Du må varsle om vederlagskrav «uten ugrunnet opphold» etter at forholdet oppstår.',
-    bh: 'Entreprenøren skulle varslet «uten ugrunnet opphold» om vederlagskravet.',
-    konsekvens: 'Kravet på vederlagsjustering tapes.',
+    te: 'Du skal varsle om krav på vederlagsjustering «uten ugrunnet opphold» etter at forholdet oppstår.',
+    bh: 'Totalentreprenøren skal varsle «uten ugrunnet opphold» om vederlagskravet.',
+    konsekvens: 'Krav på vederlagsjustering tapes.',
   },
   '§34.1.3': {
-    te: 'Du må varsle særskilt om rigg/drift/produktivitetstap «uten ugrunnet opphold».',
-    bh: 'Entreprenøren skulle varslet særskilt «uten ugrunnet opphold».',
-    konsekvens: 'Retten til å kreve dekning for disse utgiftene tapes.',
+    te: 'Du skal varsle særskilt «uten ugrunnet opphold» dersom du vil kreve dekning for rigg, drift eller nedsatt produktivitet.',
+    bh: 'Totalentreprenøren skal varsle særskilt «uten ugrunnet opphold».',
+    konsekvens: 'Retten til å kreve dekning for disse postene tapes.',
   },
 };
 
-/** §5 explanation text */
+/** §5 explanation text - basert på kontraktsteksten */
 const PARAGRAF_5_INFO = {
-  title: 'Viktig: §5 - Påberopelse og helbredelse',
+  title: '§5: Varsler og krav',
   innsigelse:
-    'Hvis du mener varselet/kravet kom for sent, må du gjøre denne innsigelsen skriftlig «uten ugrunnet opphold».',
+    'Hvis du ønsker å gjøre gjeldende at den andre parten har varslet for sent, må du gjøre det skriftlig «uten ugrunnet opphold» etter å ha mottatt varselet.',
   helbredelse:
-    'Hvis du ikke påberoper senhet i tide, anses varselet gitt i tide - dette kalles «helbredelse».',
+    'Gjør du ikke det, skal varselet anses for å være gitt i tide.',
 };
 
 // ============================================================================
@@ -262,9 +262,9 @@ export function VarslingsregelInfo({
 // ============================================================================
 
 /**
- * Specialized component for §33.4 neutral notice
+ * Specialized component for §33.4 varsel om fristforlengelse
  */
-export function VarslingsregelNoytraltVarsel({
+export function VarslingsregelFristVarsel({
   rolle,
   dagerSiden,
   visParagraf5 = false,

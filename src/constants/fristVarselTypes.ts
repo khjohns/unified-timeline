@@ -11,15 +11,15 @@ export const FRIST_VARSELTYPE_OPTIONS: DropdownOption[] = [
   { value: "", label: "— Velg —" },
   {
     value: "noytralt",
-    label: "Foreløpig varsel (§33.4)"
+    label: "Varsel om fristforlengelse (§33.4)"
   },
   {
     value: "spesifisert",
-    label: "Spesifisert krav (§33.6)"
+    label: "Spesifisert krav med antall dager (§33.6.1)"
   },
   {
     value: "begrunnelse_utsatt",
-    label: "Begrunn utsettelse (§33.6.2 b)"
+    label: "Begrunnelse for manglende beregningsgrunnlag (§33.6.2 b)"
   },
 ];
 
@@ -45,7 +45,7 @@ export function getFristVarseltypeValues(): [string, ...string[]] {
 // ========== DESCRIPTIVE HELP TEXT ==========
 
 export const FRIST_VARSELTYPE_DESCRIPTIONS: Record<string, string> = {
-  noytralt: "Foreløpig varsel sendes når omfanget ikke er kjent. Bevarer retten til å fremme spesifisert krav senere.",
-  spesifisert: "Krav med konkret antall kalenderdager når du har grunnlag for å beregne omfanget.",
-  begrunnelse_utsatt: "Begrunn hvorfor du ikke har grunnlag for å beregne kravet ennå (§33.6.2 b). Vanlige §33.6.1-regler gjelder videre.",
+  noytralt: "Varsel sendes «uten ugrunnet opphold», selv om du ennå ikke kan fremsette et spesifisert krav (§33.4).",
+  spesifisert: "Når du har grunnlag for å beregne omfanget, skal du angi og begrunne antall dager (§33.6.1).",
+  begrunnelse_utsatt: "Begrunn hvorfor grunnlaget for å beregne kravet ikke foreligger (§33.6.2 b). Bestemmelsen i §33.6.1 gjelder videre.",
 };

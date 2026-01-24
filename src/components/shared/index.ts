@@ -6,7 +6,7 @@
 
 export {
   VarslingsregelInfo,
-  VarslingsregelNoytraltVarsel,
+  VarslingsregelFristVarsel,
   VarslingsregelSpesifisertKrav,
   VarslingsregelSvarfrist,
   VarslingsregelForsering,
