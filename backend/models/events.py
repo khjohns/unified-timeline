@@ -1024,6 +1024,11 @@ class FristResponsData(BaseModel):
         description="Har BH etterlyst kravet skriftlig? (§33.6.2). Relevant kun hvis krav er sent."
     )
 
+    dato_bh_foresporsel: Optional[str] = Field(
+        default=None,
+        description="Dato BH sendte forespørsel om spesifisering (§33.6.2) - YYYY-MM-DD. Brukes for å beregne om TEs svar kom i tide."
+    )
+
     begrunnelse_varsel: Optional[str] = Field(
         default=None,
         description="BHs begrunnelse for vurdering av varsling"

@@ -725,6 +725,10 @@ class FristTilstand(BaseModel):
     spesifisert_krav_ok: Optional[bool] = Field(default=None)
     etterlysning_svar_ok: Optional[bool] = Field(default=None)  # §33.6.2/§5
     har_bh_etterlyst: Optional[bool] = Field(default=None)
+    dato_bh_foresporsel: Optional[str] = Field(
+        default=None,
+        description="Dato BH sendte forespørsel om spesifisering (§33.6.2) - YYYY-MM-DD"
+    )
     begrunnelse_varsel: Optional[str] = Field(default=None)
 
     # BH respons - Port 2 (Vilkår/Årsakssammenheng)

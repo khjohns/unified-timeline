@@ -12,7 +12,8 @@
  *
  * UPDATED (2026-01-24):
  * - Corrected terminology to match NS 8407 contract text
- * - Added VarslingsregelInfo component for inline rule display
+ * - Added VarslingsregelInline component for rule display with accordion
+ * - Added dager-beregning fra dato_oppdaget
  */
 
 import {
@@ -30,7 +31,7 @@ import {
   Textarea,
   useToast,
 } from '../primitives';
-import { VarslingsregelInfo, VarslingsregelInline } from '../shared';
+import { VarslingsregelInline } from '../shared';
 import type { AttachmentFile } from '../../types';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -354,23 +355,13 @@ export function SendFristModal({
                           </span>
                         </div>
                       )}
-                      {/* Ny inline-komponent med accordion */}
+                      {/* Varslingsregel med accordion for konsekvenser */}
                       <VarslingsregelInline
                         hjemmel={
                           field.value === 'noytralt' ? '§33.4' :
                           field.value === 'spesifisert' ? '§33.6.1' :
                           '§33.6.2'
                         }
-                      />
-                      {/* Eksisterende komponent for sammenligning */}
-                      <VarslingsregelInfo
-                        hjemmel={
-                          field.value === 'noytralt' ? '§33.4' :
-                          field.value === 'spesifisert' ? '§33.6.1' :
-                          '§33.6.2'
-                        }
-                        rolle="TE"
-                        dagerSiden={dagerSidenGrunnlag}
                       />
                     </div>
                   )}

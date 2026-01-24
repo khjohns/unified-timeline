@@ -457,6 +457,8 @@ class TimelineService:
             frist.etterlysning_svar_ok = event.data.etterlysning_svar_ok
         if hasattr(event.data, 'har_bh_etterlyst'):
             frist.har_bh_etterlyst = event.data.har_bh_etterlyst
+        if hasattr(event.data, 'dato_bh_foresporsel'):
+            frist.dato_bh_foresporsel = event.data.dato_bh_foresporsel
         if hasattr(event.data, 'begrunnelse_varsel'):
             frist.begrunnelse_varsel = event.data.begrunnelse_varsel
 

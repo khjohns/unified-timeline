@@ -236,6 +236,8 @@ export interface FristTilstand {
   spesifisert_krav_ok?: boolean;
   etterlysning_svar_ok?: boolean;  // §33.6.2/§5: Svar på etterlysning i tide?
   har_bh_etterlyst?: boolean;
+  /** Dato BH sendte forespørsel om spesifisering (§33.6.2) - YYYY-MM-DD */
+  dato_bh_foresporsel?: string;
   begrunnelse_varsel?: string;
 
   // BH respons - Port 2 (Vilkår/Årsakssammenheng)
@@ -718,6 +720,8 @@ export interface ResponsFristEventData {
   spesifisert_krav_ok?: boolean;
   etterlysning_svar_ok?: boolean;  // §33.6.2/§5: Svar på etterlysning i tide?
   har_bh_etterlyst?: boolean;
+  /** Dato BH sendte forespørsel om spesifisering (§33.6.2) - YYYY-MM-DD */
+  dato_bh_foresporsel?: string;
   begrunnelse_varsel?: string;
 
   // Port 2: Vilkår (Årsakssammenheng)
