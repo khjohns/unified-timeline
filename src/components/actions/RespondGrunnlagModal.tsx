@@ -28,11 +28,11 @@ import {
   DataList,
   DataListItem,
   FormField,
+  MarkdownEditor,
   Modal,
   RadioGroup,
   RadioItem,
   SectionContainer,
-  Textarea,
   useToast,
 } from '../primitives';
 import { useForm, Controller } from 'react-hook-form';
@@ -559,13 +559,20 @@ export function RespondGrunnlagModal({
                 : 'Begrunn din vurdering av grunnlaget'
             }
           >
-            <Textarea
-              id="begrunnelse"
-              {...register('begrunnelse')}
-              rows={5}
-              fullWidth
-              error={!!errors.begrunnelse}
-              data-testid="respond-grunnlag-begrunnelse"
+            <Controller
+              name="begrunnelse"
+              control={control}
+              render={({ field }) => (
+                <MarkdownEditor
+                  id="begrunnelse"
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  rows={5}
+                  fullWidth
+                  error={!!errors.begrunnelse}
+                  placeholder="Begrunn din vurdering..."
+                />
+              )}
             />
           </FormField>
         </SectionContainer>
