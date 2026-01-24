@@ -626,7 +626,7 @@ function CasePageContent() {
               hovedkategori: state.grunnlag.hovedkategori,
               dato_varslet: state.grunnlag.grunnlag_varsel?.dato_sendt,
             }}
-            harMottattEtterlysning={state.frist.har_bh_etterlyst}
+            harMottattForesporsel={state.frist.har_bh_foresporsel}
             onCatendaWarning={() => setShowCatendaWarning(true)}
           />
           <RespondGrunnlagModal
@@ -694,7 +694,7 @@ function CasePageContent() {
               begrunnelse: state.frist.begrunnelse,
               dato_krav_mottatt: state.frist.spesifisert_varsel?.dato_sendt,
               dato_oppdaget: state.grunnlag.dato_oppdaget,
-              noytralt_varsel: state.frist.noytralt_varsel,
+              frist_varsel: state.frist.frist_varsel,
               spesifisert_varsel: state.frist.spesifisert_varsel,
             }}
             onCatendaWarning={() => setShowCatendaWarning(true)}
@@ -766,7 +766,7 @@ function CasePageContent() {
             } : undefined}
             fristTilstand={state.frist}
             originalVarselType={state.frist.varsel_type}
-            harMottattEtterlysning={state.frist.har_bh_etterlyst}
+            harMottattForesporsel={state.frist.har_bh_foresporsel}
             fristForSpesifisering={state.frist.frist_for_spesifisering}
             onCatendaWarning={() => setShowCatendaWarning(true)}
             subsidiaerTriggers={state.frist.subsidiaer_triggers}

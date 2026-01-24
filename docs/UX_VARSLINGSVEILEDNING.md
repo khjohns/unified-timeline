@@ -184,66 +184,80 @@ Varslingsveiledning integreres i eksisterende steg, knyttet til den aktuelle sek
 
 ---
 
-## Foreslått komponent
+## Implementert komponent: VarslingsregelInline
+
+> **Status:** ✅ Implementert 2026-01-24
+
+### Fil
+`src/components/shared/VarslingsregelInline.tsx`
 
 ### Props
 
 ```typescript
-interface VarslingsVeiledningProps {
-  /** Paragraf-referanse, f.eks. "§32.2" */
-  hjemmel: string;
-
-  /** Spørsmålet som vises til brukeren */
-  sporsmal: string;
-
-  /**
-   * Inline kontekst - dekker hvem, trigger, skjæringstidspunkt, frist.
-   * Vises alltid under spørsmålet.
-   */
-  inlineKontekst: string;
-
-  /** Konsekvens for Entreprenøren ved brudd */
-  konsekvensEntreprenor: string;
-
-  /** Konsekvens/påminnelse for Byggherren (typisk §5) */
-  konsekvensByggherre: string;
-
-  /** Nåværende valg (null = ikke valgt ennå) */
-  valg: boolean | null;
-
-  /** Callback når bruker endrer valg */
-  onValgEndring: (valg: boolean) => void;
-
-  /**
-   * Valgfri: Vis kritisk alert (kun for spesielle tilfeller).
-   * Vises kun når valg === false.
-   */
-  kritiskAlert?: string;
+interface VarslingsregelInlineProps {
+  /** Paragraf-referanse */
+  hjemmel: '§33.4' | '§33.6.1' | '§33.6.2' | '§33.7' | '§33.8';
 }
 ```
 
 ### Brukseksempel
 
 ```tsx
-<VarslingsVeiledning
-  hjemmel="§32.2"
-  sporsmal="Kom varselet i tide?"
-  inlineKontekst="Entreprenøren skal varsle uten ugrunnet opphold etter å ha mottatt pålegget"
-  konsekvensEntreprenor="Taper retten til å påberope at forholdet er en endring."
-  konsekvensByggherre="Du må påberope dette skriftlig nå (§5). Gjør du ikke det, anses varselet gitt i tide."
-  valg={varselITide}
-  onValgEndring={setVarselITide}
-  kritiskAlert="Innsigelsen må fremsettes skriftlig i denne responsen (§5)"
-/>
+<VarslingsregelInline hjemmel="§33.4" />
 ```
 
-### Oppførsel
+### Design
 
-| Tilstand | Nivå 1 | Nivå 2 | Nivå 3 | Alert |
-|----------|--------|--------|--------|-------|
-| Før valg | Synlig | Synlig | Lukket (klikkbar) | Skjult |
-| Etter "Ja" | Synlig | Synlig | Lukket (klikkbar) | Skjult |
-| Etter "Nei" | Synlig | Synlig | **Åpen** (auto) | **Synlig** |
+Komponenten bruker progressiv avsløring:
+
+1. **Inline tekst (alltid synlig):** Hvem + frist + trigger
+2. **Accordion (lukket som standard):** Konsekvenser + §5-mekanisme
+
+### Eksempel: §33.4 Varsel om fristforlengelse
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                             │
+│  Totalentreprenøren skal varsle «uten ugrunnet opphold» etter at forholdet │
+│  oppstår, selv om han ennå ikke kan fremsette et spesifisert krav.         │
+│                                                                             │
+│  ▸ Vis konsekvenser                                                         │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+Når accordion åpnes:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                                                             │
+│  ▾ Konsekvenser                                                            │
+│  ┌────────────────────────────────────────────────────────────────────┐    │
+│  │                                                                    │    │
+│  │  Konsekvens: Krav på fristforlengelse tapes dersom det ikke       │    │
+│  │              varsles innen fristen.                                │    │
+│  │                                                                    │    │
+│  │  §5: Byggherren må påberope senhet skriftlig «uten ugrunnet       │    │
+│  │      opphold» etter mottak – ellers anses varselet gitt i tide.   │    │
+│  │                                                                    │    │
+│  └────────────────────────────────────────────────────────────────────┘    │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Støttede hjemler
+
+| Hjemmel | Hvem | Inline tekst |
+|---------|------|--------------|
+| §33.4 | TE | Skal varsle «uten ugrunnet opphold» etter at forholdet oppstår |
+| §33.6.1 | TE | Skal angi og begrunne antall dager «uten ugrunnet opphold» |
+| §33.6.2 | TE | Skal svare på forespørselen «uten ugrunnet opphold» |
+| §33.7 | BH | Skal svare «uten ugrunnet opphold» på spesifisert krav |
+| §33.8 | TE | Skal varsle forseringskrav «uten ugrunnet opphold» etter avslag |
+
+### Rolleagnostisk
+
+Komponenten bruker tredjepersons kontraktstekst ("Totalentreprenøren skal...", "Byggherren skal...") og er dermed uavhengig av hvilken part som leser den.
 
 ---
 
@@ -269,9 +283,13 @@ interface VarslingsVeiledningProps {
 
 | Type | Hjemmel | Inline kontekst | Konsekvens Entreprenør |
 |------|---------|-----------------|------------------------|
-| Nøytralt varsel | §33.4 | "...uten ugrunnet opphold" | Kravet på fristforlengelse tapes |
-| Spesifisert krav | §33.6.1 | "...etter at han har grunnlag for å beregne omfanget" | Kun krav på det Byggherren måtte forstå |
-| Svar på etterlysning | §33.6.2 | "...etter å ha mottatt etterlysningen" | Kravet på fristforlengelse tapes |
+| Varsel om fristforlengelse | §33.4 | "...uten ugrunnet opphold etter at forholdet oppstår" | Kravet på fristforlengelse tapes |
+| Spesifisert krav | §33.6.1 | "...uten ugrunnet opphold etter at han har grunnlag for å beregne" | Kun krav på det Byggherren måtte forstå |
+| Svar på forespørsel | §33.6.2 | "...uten ugrunnet opphold etter forespørselen" | Kravet på fristforlengelse tapes |
+| Byggherrens svarplikt | §33.7 | "...uten ugrunnet opphold etter mottatt krav" | Innsigelser mot kravet tapes |
+| Forsering | §33.8 | "...uten ugrunnet opphold etter avslag" | Retten til forseringskrav tapes |
+
+**Merk:** Når TE sender kun spesifisert krav (uten forutgående varsel), må BH vurdere BÅDE §33.4 og §33.6.1.
 
 ---
 

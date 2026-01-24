@@ -22,7 +22,7 @@ export const mockTimelineEvents4: TimelineEntry[] = [
     spor: 'frist',
     sammendrag: 'Avslått - mangler spesifikasjon',
     event_data: {
-      noytralt_varsel_ok: true,
+      frist_varsel_ok: true,
       spesifisert_krav_ok: false,
       begrunnelse_varsel: 'Nøytralt varsel mottatt i tide, men spesifisert krav mangler.',
       vilkar_oppfylt: true,

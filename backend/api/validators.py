@@ -332,10 +332,10 @@ def validate_frist_event(data: Dict[str, Any], is_update: bool = False, is_speci
         raise ValidationError("begrunnelse er påkrevd")
 
     # Validate required varsel info based on type
-    if varsel_type == FristVarselType.NOYTRALT.value:
-        if not data.get('noytralt_varsel'):
+    if varsel_type == FristVarselType.VARSEL.value:
+        if not data.get('frist_varsel'):
             raise ValidationError(
-                "noytralt_varsel er påkrevd når varsel_type er 'noytralt'"
+                "frist_varsel er påkrevd når varsel_type er 'varsel'"
             )
 
     elif varsel_type == FristVarselType.SPESIFISERT.value:

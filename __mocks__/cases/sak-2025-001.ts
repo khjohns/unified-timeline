@@ -65,7 +65,7 @@ export const mockSakState1: SakState = {
   frist: {
     status: 'delvis_godkjent',
     varsel_type: 'spesifisert',
-    noytralt_varsel: {
+    frist_varsel: {
       dato_sendt: '2025-01-15',
       metode: ['epost', 'byggemote'],
     },
@@ -76,7 +76,7 @@ export const mockSakState1: SakState = {
     krevd_dager: 45,
     begrunnelse:
       'Fristforlengelse nødvendig pga. omprosjektering av fundament (20 dager) og ekstra boring/sprengning (25 dager). Påvirker kritisk linje.',
-    noytralt_varsel_ok: true,
+    frist_varsel_ok: true,
     vilkar_oppfylt: true,
     bh_resultat: 'delvis_godkjent',
     bh_begrunnelse:

@@ -53,7 +53,7 @@ export const mockSakState9: SakState = {
   frist: {
     status: 'under_behandling',
     varsel_type: 'spesifisert',
-    noytralt_varsel: {
+    frist_varsel: {
       dato_sendt: '2025-02-05',
       metode: ['epost'],
     },

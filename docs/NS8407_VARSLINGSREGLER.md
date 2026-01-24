@@ -1008,38 +1008,49 @@ oppstår    oppdaget      faktisk       varsel
 | RespondGrunnlagModal | ❌ Mangler | Ingen mulighet for BH å påberope sen varsling |
 | RespondVederlagModal | ⚠️ Delvis | Felt for rigg/produktivitet, men mangler §5-påminnelse |
 
-### Fristsporet - Detaljert implementasjonsstatus (2026-01-24)
+### Fristsporet - Detaljert implementasjonsstatus (oppdatert 2026-01-24)
 
 #### TEs varslingsplikter
 
 | Hjemmel | Varslingsplikt | Impl. | Komponent | Detaljer |
 |---------|----------------|-------|-----------|----------|
-| §33.4 | Nøytralt fristvarsel | ✅ | SendFristModal | Advarsel >7d, kritisk >14d |
-| §33.6.1 | Spesifisert krav | ✅ | SendFristModal | Reduksjonsrisiko-varsel |
-| §33.6.2 | Svar på etterlysning | ✅ | SendFristModal | Kritisk alert + bokstav b |
+| §33.4 | Varsel om fristforlengelse | ✅ | SendFristModal | Advarsel >7d, kritisk >14d, dager-beregning |
+| §33.6.1 | Spesifisert krav | ✅ | SendFristModal | Reduksjonsrisiko-varsel, VarslingsregelInline |
+| §33.6.2 | Svar på forespørsel | ✅ | SendFristModal | Kritisk alert + bokstav b |
 | §33.8 | Varsel før forsering | ✅ | SendForseringModal | 30%-regel backend-validering |
 
 #### BHs svarplikter
 
 | Hjemmel | Svarplikt | Impl. | Komponent | Detaljer |
 |---------|-----------|-------|-----------|----------|
-| §33.7 | Svar på fristkrav | ✅ | RespondFristModal | Advarsel >5d, passiv aksept |
-| §33.6.2 | Kan sende etterlysning | ⚠️ | RespondFristModal | Kun reaktiv (ikke proaktiv) |
+| §33.7 | Svar på fristkrav | ✅ | RespondFristModal | Advarsel >5d, passiv aksept, VarslingsregelInline |
+| §33.6.2 | Kan sende forespørsel | ⚠️ | RespondFristModal | Kun reaktiv (ikke proaktiv) |
+
+#### Dobbelt vurdering (implementert 2026-01-24)
+
+Når TE sender kun spesifisert krav (uten forutgående varsel), må BH vurdere BEGGE:
+
+| Vurdering | Hjemmel | Konsekvens ved brudd |
+|-----------|---------|----------------------|
+| 1. Sendt i tide som varsel? | §33.4 | PREKLUSJON (kravet tapes) |
+| 2. Spesifisert i tide? | §33.6.1 | REDUKSJON (kun det BH måtte forstå) |
+
+**Implementert i:** RespondFristModal - viser to separate spørsmål med forklaring.
 
 #### §5 - Generelle varslingsregler
 
 | Funksjon | Impl. | Komponent | Detaljer |
 |----------|-------|-----------|----------|
 | BH påberoper sen varsling | ✅ | RespondFristModal | Port 1 (Preklusjon) |
-| Helbredelse (BH passiv) | ⚠️ | RespondFristModal | Implisitt, ikke eksplisitt forklart |
+| Helbredelse (BH passiv) | ✅ | VarslingsregelInline | Forklart i accordion |
 | BH for sen = passiv aksept | ✅ | RespondFristModal | Advarsel + auto-begrunnelse |
 
 #### Identifiserte hull
 
 | ID | Beskrivelse | Prioritet |
 |----|-------------|-----------|
-| H1 | §5 helbredelse ikke eksplisitt forklart til BH | Medium |
-| H2 | BH kan ikke sende proaktiv etterlysning (§33.6.2) | Lav |
+| H1 | ~~§5 helbredelse ikke eksplisitt forklart til BH~~ | ✅ Løst |
+| H2 | BH kan ikke sende proaktiv forespørsel (§33.6.2) | Lav |
 | H3 | `dato_bh_etterlysning` mangler i datamodellen | Lav |
 | H4 | §33.8 konsekvens for manglende varsel er uavklart | Info |
 
@@ -1060,40 +1071,37 @@ BH bør kunne:
 2. Se tydelig §5-påminnelse ved alle preklusjonsfelt
 3. Få informasjon om at ENDRING ikke har vederlagspreklusjon
 
-### Foreslått komponent: VarslingsregelInfo
+### Implementert komponent: VarslingsregelInline ✅
 
-En gjenbrukbar komponent for å forklare varslingsregler til brukeren. Brukes i modaler der det allerede finnes alerts eller forklaringstekst, for å gi konsistent og pedagogisk informasjon.
+> **Status:** Implementert 2026-01-24
+
+**Fil:** `src/components/shared/VarslingsregelInline.tsx`
+
+En gjenbrukbar komponent for å forklare varslingsregler til brukeren med progressiv avsløring.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                    VarslingsregelInfo KOMPONENT                             │
+│                    VarslingsregelInline KOMPONENT                           │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  Props:                                                                     │
 │  ──────                                                                     │
-│  hjemmel:        '§33.4' | '§33.6.1' | '§33.6.2' | '§33.7' | '§33.8' | etc │
-│  rolle:          'TE' | 'BH'                                               │
-│  variant:        'info' | 'warning' | 'danger'                             │
-│  visKonsekvens:  boolean (default: true)                                   │
-│  visFrist:       boolean (default: true)                                   │
-│  visParagraf5:   boolean (default: false) - for BH-innsigelser             │
-│  dagerSiden?:    number - for tidsbaserte advarsler                        │
+│  hjemmel: '§33.4' | '§33.6.1' | '§33.6.2' | '§33.7' | '§33.8'              │
 │                                                                             │
-│  Funksjonalitet:                                                           │
+│  Design:                                                                    │
+│  ───────                                                                    │
+│  • Inline tekst (alltid synlig): Hvem + frist + trigger                    │
+│  • Accordion (lukket som standard): Konsekvenser + §5-mekanisme            │
+│                                                                             │
+│  Rolleagnostisk:                                                           │
 │  ───────────────                                                           │
-│  1. Viser paragraf med kort forklaring fra varslingsregler.ts              │
-│  2. Viser fristtype (UUO, spesifikk, etc.) med forklaring                  │
-│  3. Viser konsekvens ved brudd med fargekoding                             │
-│  4. Ved visParagraf5=true: Viser §5-alert med helbredelsesinformasjon      │
-│  5. Ved dagerSiden: Viser tidsbasert advarsel                              │
+│  Bruker tredjepersons kontraktstekst ("Totalentreprenøren skal...",        │
+│  "Byggherren skal...") - uavhengig av hvilken part som leser.              │
 │                                                                             │
-│  Bruksområder:                                                             │
-│  ─────────────                                                             │
-│  • SendFristModal: Forklare §33.4/§33.6.1 for TE                           │
-│  • RespondFristModal: Forklare §33.7/§5 for BH                             │
-│  • SendForseringModal: Forklare §33.8 for TE                               │
-│  • RespondGrunnlagModal: (fremtidig) Forklare §32.2/§25.1.2 for BH         │
-│  • RespondVederlagModal: (fremtidig) Forklare §34.1.2/§34.1.3 for BH       │
+│  Bruksområder (implementert):                                              │
+│  ─────────────────────────────                                             │
+│  • SendFristModal: §33.4, §33.6.1, §33.6.2                                 │
+│  • RespondFristModal: §33.4, §33.6.1, §33.6.2, §33.7                       │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -1101,39 +1109,87 @@ En gjenbrukbar komponent for å forklare varslingsregler til brukeren. Brukes i 
 #### Eksempel på bruk
 
 ```tsx
-// I SendFristModal - for TE som sender nøytralt varsel
-<VarslingsregelInfo
-  hjemmel="§33.4"
-  rolle="TE"
-  variant={dagerSidenGrunnlag > 14 ? 'danger' : dagerSidenGrunnlag > 7 ? 'warning' : 'info'}
-  dagerSiden={dagerSidenGrunnlag}
-/>
+// Enkel bruk - viser regel med accordion for konsekvenser
+<VarslingsregelInline hjemmel="§33.4" />
 
-// I RespondFristModal - for BH som vurderer om varsel kom i tide
-<VarslingsregelInfo
-  hjemmel="§33.4"
-  rolle="BH"
-  variant="info"
-  visParagraf5={true}  // Viser §5-helbredelsesinformasjon
-/>
+// Flere regler (f.eks. når TE sender kun spesifisert krav)
+<VarslingsregelInline hjemmel="§33.4" />
+<VarslingsregelInline hjemmel="§33.6.1" />
 ```
 
-#### Implementasjonsplan
+#### Fremtidig arbeid
 
-| Fase | Oppgave | Prioritet |
-|------|---------|-----------|
-| 1 | Opprett `VarslingsregelInfo.tsx` med grunnleggende visning | Høy |
-| 2 | Integrer i SendFristModal (erstatt eksisterende alerts) | Høy |
-| 3 | Integrer i RespondFristModal Port 1 (legg til §5-info) | Høy |
-| 4 | Integrer i SendForseringModal | Medium |
-| 5 | Utvid til RespondGrunnlagModal og RespondVederlagModal | Lav |
+| # | Oppgave | Prioritet | Kompleksitet |
+|---|---------|-----------|--------------|
+| 1 | BH proaktiv forespørsel (§33.6.2) | Lav | Høy |
+| 2 | §33.2 BH fristforlengelse | Lav | Høy |
+
+---
+
+### Fremtidig: BH proaktiv forespørsel (§33.6.2)
+
+**Kontekst:** I dag kan BH kun sende forespørsel som respons på eksisterende fristkrav. §33.6.2 tillater proaktiv forespørsel.
+
+**Kontraktstekst (§33.6.2 første ledd):**
+> "**Så lenge** totalentreprenøren ikke har fremmet krav etter 33.6.1, kan byggherren be om at totalentreprenøren gjør dette."
+
+**Foreslått løsning:**
+
+Ny event-type: `FRIST_FORESPORSEL`
+
+| Felt | Type | Beskrivelse |
+|------|------|-------------|
+| `grunnlag_event_id` | string | Kobling til grunnlag (påkrevd) |
+| `beskrivelse` | string | Hvilken hendelse BH etterspør |
+| `frist_for_svar` | date | Frist for TE å svare |
+
+**Nye komponenter:**
+- `SendForesporselFristModal.tsx` - BH sender proaktiv forespørsel
+
+---
+
+### Fremtidig: §33.2 BH fristforlengelse
+
+**Kontekst:** Kontrakten tillater at BH kan kreve fristforlengelse fra TE når TE forårsaker forsinkelser.
+
+**Kontraktstekst (§33.2):**
+> "Byggherren har krav på fristforlengelse dersom hans medvirkning hindres som følge av forhold totalentreprenøren har risikoen for."
+
+**Beslutning:** Implementeres som egen sakstype - ikke integrert i eksisterende KOE-flyt.
+
+**Ny sakstype:** `bh_frist`
+
+```python
+class SakType(str, Enum):
+    STANDARD = "standard"        # TE → BH (eksisterende)
+    FORSERING = "forsering"      # TE → BH (eksisterende)
+    ENDRINGSORDRE = "endringsordre"  # BH → TE (eksisterende)
+    BH_FRIST = "bh_frist"        # BH → TE fristforlengelse (NY)
+```
+
+**Kategorier (§33.2):**
+
+| Kode | Label | Beskrivelse |
+|------|-------|-------------|
+| `TE_FORSINKELSE` | Forsinkelse hos TE | TEs arbeider er forsinket |
+| `TE_MANGEL` | Mangel ved TEs ytelse | Mangel som hindrer BHs medvirkning |
+| `TE_KOORDINERING` | Koordineringssvikt | TE oppfyller ikke samordningsplikt |
+
+**Nye komponenter:**
+- `SendBhFristModal.tsx` - BH sender fristkrav
+- `RespondBhFristModal.tsx` - TE responderer
+- `BhFristPage.tsx` - Saksvisning for BH-frist
+
+**Varslings- og preklusjonsregler:**
+- §33.4 gjelder også for BH (varsel "uten ugrunnet opphold")
+- §33.6 og §33.7 gjelder tilsvarende
 
 ### Relevante filer
 
 | Fil | Innhold |
 |-----|---------|
 | `src/constants/varslingsregler.ts` | Alle varslingsregler definert |
-| `src/components/shared/VarslingsregelInfo.tsx` | **NY** - Gjenbrukbar komponent for regelforklaring |
+| `src/components/shared/VarslingsregelInline.tsx` | Gjenbrukbar komponent for regelforklaring |
 | `src/utils/begrunnelseGenerator.ts` | Auto-generering av begrunnelser |
 | `src/components/actions/SendFristModal.tsx` | TE sender fristkrav |
 | `src/components/actions/RespondFristModal.tsx` | BH svarer på fristkrav (§5-implementasjon) |
@@ -1561,4 +1617,5 @@ Ved kartlegging eller kvalitetssikring av varslingsregler, bruk følgende sjekkl
 > - 2026-01-24: Lagt til seksjon 11 med læringspunkter for kvalitetssikring
 > - 2026-01-24: Lagt til §33.8 (forsering ved uberettiget avslag) etter kvalitetssikring
 > - 2026-01-24: Lagt til detaljert implementasjonsstatus for fristsporet
-> - 2026-01-24: Opprettet VarslingsregelInfo-komponent (`src/components/shared/VarslingsregelInfo.tsx`)
+> - 2026-01-24: Opprettet VarslingsregelInline-komponent (`src/components/shared/VarslingsregelInline.tsx`)
+> - 2026-01-24: Konsolidert fremtidig arbeid fra PLAN_FRISTSPORET_KVALITETSSIKRING.md

@@ -21,7 +21,7 @@ export const mockTimelineEvents9: TimelineEntry[] = [
     sammendrag: 'Krav på 10 dager fristforlengelse for ventilasjonsendring',
     event_data: {
       varsel_type: 'spesifisert',
-      noytralt_varsel: { dato_sendt: '2025-02-05', metode: ['epost'] },
+      frist_varsel: { dato_sendt: '2025-02-05', metode: ['epost'] },
       spesifisert_varsel: { dato_sendt: '2025-02-10', metode: ['epost'] },
       antall_dager: 10,
       begrunnelse: 'Omlegging av ventilasjonsanlegg krever 10 arbeidsdager.',

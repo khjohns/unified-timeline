@@ -56,7 +56,7 @@ Samlet godkjent beløp utgjør etter dette kr 850 000,- av totalt krevde kr 850 
   frist: {
     status: 'godkjent',
     varsel_type: 'spesifisert',
-    noytralt_varsel: {
+    frist_varsel: {
       dato_sendt: '2024-11-10',
       metode: ['epost'],
     },
@@ -66,7 +66,7 @@ Samlet godkjent beløp utgjør etter dette kr 850 000,- av totalt krevde kr 850 
     },
     krevd_dager: 14,
     begrunnelse: 'Tid for levering og montering av glassfasade.',
-    noytralt_varsel_ok: true,
+    frist_varsel_ok: true,
     spesifisert_krav_ok: true,
     vilkar_oppfylt: true,
     bh_resultat: 'godkjent',

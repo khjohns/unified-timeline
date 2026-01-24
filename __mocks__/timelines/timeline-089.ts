@@ -23,7 +23,7 @@ export const mockTimelineEvents3: TimelineEntry[] = [
     spor: 'frist',
     sammendrag: 'Fristkrav godkjent - 14 dager (spesifisert krav)',
     event_data: {
-      noytralt_varsel_ok: true,
+      frist_varsel_ok: true,
       spesifisert_krav_ok: true,
       begrunnelse_varsel: 'Varsler mottatt i tide og korrekt utformet.',
       vilkar_oppfylt: true,
@@ -74,7 +74,7 @@ export const mockTimelineEvents3: TimelineEntry[] = [
     sammendrag: 'Krav på 14 dager forlengelse (spesifisert krav)',
     event_data: {
       varsel_type: 'spesifisert',
-      noytralt_varsel: { dato_sendt: '2024-11-10', metode: ['epost'] },
+      frist_varsel: { dato_sendt: '2024-11-10', metode: ['epost'] },
       spesifisert_varsel: { dato_sendt: '2024-11-12', metode: ['epost'] },
       antall_dager: 14,
       begrunnelse: 'Tid for levering og montering av glassfasade.',

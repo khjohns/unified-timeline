@@ -194,15 +194,15 @@ function FriststatusIndikator({ state }: { state: SakState }) {
   // Samle statuslinjer
   const statusItems: { label: string; ok: boolean; warning?: boolean }[] = [];
 
-  // Nøytralt varsel (§33.4)
-  if (frist.noytralt_varsel?.dato_sendt) {
-    statusItems.push({ label: 'Foreløpig varsel sendt (§33.4)', ok: true });
+  // Varsel om fristforlengelse (§33.4)
+  if (frist.frist_varsel?.dato_sendt) {
+    statusItems.push({ label: 'Varsel om fristforlengelse sendt (§33.4)', ok: true });
   }
 
   // Spesifisert krav (§33.6)
   if (frist.spesifisert_varsel?.dato_sendt) {
     statusItems.push({ label: 'Spesifisert krav sendt (§33.6)', ok: true });
-  } else if (frist.varsel_type === 'noytralt' && frist.frist_for_spesifisering) {
+  } else if (frist.varsel_type === 'varsel' && frist.frist_for_spesifisering) {
     // Frist for spesifisering er satt, men ikke sendt ennå
     statusItems.push({
       label: 'Spesifisert krav ikke sendt',
@@ -211,10 +211,10 @@ function FriststatusIndikator({ state }: { state: SakState }) {
     });
   }
 
-  // BH har etterlyst (§33.6.2)
-  if (frist.har_bh_etterlyst) {
+  // BH har sendt forespørsel (§33.6.2)
+  if (frist.har_bh_foresporsel) {
     statusItems.push({
-      label: 'Byggherre har etterlyst spesifisering',
+      label: 'Byggherre har sendt forespørsel om spesifisering',
       ok: false,
       warning: true,
     });

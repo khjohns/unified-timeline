@@ -241,20 +241,20 @@ export function sjekkRiggDriftFrist(datoKlarOver: string | Date): PreklusjonsRes
  * Check if specification of frist claim is too late (§33.6.1)
  */
 export function sjekkFristSpesifiseringFrist(
-  datoNoytraltVarsel: string | Date,
-  harMottattEtterlysning: boolean
+  datoFristVarsel: string | Date,
+  harMottattForesporsel: boolean
 ): PreklusjonsResultat {
-  const dager = beregnDagerSiden(datoNoytraltVarsel);
+  const dager = beregnDagerSiden(datoFristVarsel);
 
-  // If BH has sent a formal etterlysning, it's critical
-  if (harMottattEtterlysning) {
+  // If BH has sent a formal forespørsel, it's critical
+  if (harMottattForesporsel) {
     return {
       status: 'kritisk',
       dagerSiden: dager,
       alert: {
         variant: 'danger',
-        title: 'KRITISK: Etterlysning mottatt (§33.6.2)',
-        message: `Byggherren har etterlyst dette kravet per brev. Du må svare "uten ugrunnet opphold". Hvis du ikke sender kravet nå, TAPES HELE RETTEN til fristforlengelse i denne saken.`,
+        title: 'KRITISK: Forespørsel mottatt (§33.6.2)',
+        message: `Byggherren har etterspurt dette kravet per brev. Du må svare "uten ugrunnet opphold". Hvis du ikke sender kravet nå, TAPES HELE RETTEN til fristforlengelse i denne saken.`,
       },
     };
   }
@@ -279,7 +279,7 @@ export function sjekkFristSpesifiseringFrist(
       alert: {
         variant: 'info',
         title: 'Spesifiser snart',
-        message: `Det er gått ${dager} dager siden nøytralt varsel. Jo lengre du venter, jo større er risikoen for reduksjon etter skjønn.`,
+        message: `Det er gått ${dager} dager siden varsel om fristforlengelse. Jo lengre du venter, jo større er risikoen for reduksjon etter skjønn.`,
       },
     };
   }

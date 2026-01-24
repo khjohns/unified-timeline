@@ -113,7 +113,7 @@ Samlet godkjent beløp utgjør etter dette kr 535 000,- av totalt krevde kr 830 
   frist: {
     status: 'under_behandling',
     varsel_type: 'spesifisert',
-    noytralt_varsel: {
+    frist_varsel: {
       dato_sendt: '2025-02-12',
       metode: ['epost'],
     },
@@ -124,7 +124,7 @@ Samlet godkjent beløp utgjør etter dette kr 535 000,- av totalt krevde kr 830 
     krevd_dager: 15,
     begrunnelse:
       'Forsinkelsen medførte 15 dagers hindring av kritisk linje. Dokumentert med oppdatert fremdriftsplan.',
-    noytralt_varsel_ok: true,
+    frist_varsel_ok: true,
     spesifisert_krav_ok: true,
     vilkar_oppfylt: true,
 

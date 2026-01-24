@@ -68,15 +68,15 @@ export const mockSakState4: SakState = {
 
   frist: {
     status: 'under_behandling',
-    varsel_type: 'noytralt',
-    noytralt_varsel: {
+    varsel_type: 'varsel',
+    frist_varsel: {
       dato_sendt: '2025-01-28',
       metode: ['epost', 'telefon'],
     },
     // krevd_dager kommer først med spesifisert krav
     begrunnelse:
       'Nøytralt varsel sendt. Spesifisert krav med framdriftsplan følger.',
-    noytralt_varsel_ok: true,
+    frist_varsel_ok: true,
     vilkar_oppfylt: true,
     bh_resultat: 'avslatt',
     bh_begrunnelse:

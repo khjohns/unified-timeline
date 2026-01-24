@@ -713,18 +713,34 @@ class FristTilstand(BaseModel):
     # Siste krav fra TE
     varsel_type: Optional[str] = Field(
         default=None,
-        description="Type varsel: noytralt, spesifisert, eller begge"
+        description="Type varsel: varsel (§33.4), spesifisert (§33.6), eller begge"
     )
-    noytralt_varsel: Optional[VarselInfo] = Field(default=None)
+    frist_varsel: Optional[VarselInfo] = Field(
+        default=None,
+        description="Varsel om fristforlengelse (§33.4)"
+    )
     spesifisert_varsel: Optional[VarselInfo] = Field(default=None)
     krevd_dager: Optional[int] = Field(default=None)
     begrunnelse: Optional[str] = Field(default=None)
 
     # BH respons - Port 1 (Varsling)
-    noytralt_varsel_ok: Optional[bool] = Field(default=None)
+    frist_varsel_ok: Optional[bool] = Field(
+        default=None,
+        description="Var varsel om fristforlengelse (§33.4) rettidig?"
+    )
     spesifisert_krav_ok: Optional[bool] = Field(default=None)
-    etterlysning_svar_ok: Optional[bool] = Field(default=None)  # §33.6.2/§5
-    har_bh_etterlyst: Optional[bool] = Field(default=None)
+    foresporsel_svar_ok: Optional[bool] = Field(
+        default=None,
+        description="Var svar på forespørsel (§33.6.2) rettidig?"
+    )
+    har_bh_foresporsel: Optional[bool] = Field(
+        default=None,
+        description="Har BH sendt forespørsel om spesifisering (§33.6.2)?"
+    )
+    dato_bh_foresporsel: Optional[str] = Field(
+        default=None,
+        description="Dato BH sendte forespørsel om spesifisering (§33.6.2) - YYYY-MM-DD"
+    )
     begrunnelse_varsel: Optional[str] = Field(default=None)
 
     # BH respons - Port 2 (Vilkår/Årsakssammenheng)

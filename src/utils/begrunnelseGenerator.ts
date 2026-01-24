@@ -40,8 +40,8 @@
  * - §33.5 (1): Beregning - "virkning på fremdriften som forholdet har forårsaket"
  * - §33.6.1 (1): TE's spesifisering - "angi og begrunne det antall dager han krever"
  * - §33.6.1 (2): Sen spesifisering = REDUKSJON - "bare krav på det den andre parten måtte forstå"
- *   NB: §33.6.1 reduksjon gjelder KUN når nøytralt varsel ble sendt i tide først
- * - §33.6.2 (1): BH's forespørsel (etterlysning) - krav om spesifisert krav
+ *   NB: §33.6.1 reduksjon gjelder KUN når varsel om fristforlengelse ble sendt i tide først
+ * - §33.6.2 (1): BH's forespørsel - krav om spesifisert krav
  * - §33.6.2 (2a): TE må svare "uten ugrunnet opphold" med dager+begrunnelse
  * - §33.6.2 (2b): ELLER begrunne hvorfor grunnlaget for beregning ikke foreligger
  * - §33.6.2 (3): Preklusjon - "Gjør ikke totalentreprenøren noen av delene, tapes kravet"
@@ -431,10 +431,10 @@ export interface FristResponseInput {
   krevdDager: number;
 
   // Preklusjon (Port 1)
-  noytraltVarselOk?: boolean;
+  fristVarselOk?: boolean;  // §33.4: Varsel om fristforlengelse rettidig?
   spesifisertKravOk?: boolean;
-  etterlysningVarOk?: boolean;  // §33.6.2/§5: Svar på etterlysning i tide?
-  sendEtterlysning?: boolean;
+  foresporselSvarOk?: boolean;  // §33.6.2/§5: Svar på forespørsel i tide?
+  sendForesporsel?: boolean;
 
   // Vilkår (Port 2)
   vilkarOppfylt: boolean;
@@ -443,10 +443,10 @@ export interface FristResponseInput {
   godkjentDager: number;
 
   // Computed
-  erPrekludert: boolean;  // §33.4: Varsel for sent (nøytralt ELLER spesifisert uten forutgående nøytralt)
-  erEtterlysningSvarForSent?: boolean;  // §33.6.2 tredje ledd + §5: Sen respons på etterlysning
-  erRedusert_33_6_1?: boolean;  // §33.6.1: Sen spesifisering ETTER at nøytralt varsel ble sendt i tide
-  harTidligereNoytraltVarselITide?: boolean;  // For å vite om §33.6.1 er relevant ved spesifisert krav
+  erPrekludert: boolean;  // §33.4: Varsel for sent (varsel ELLER spesifisert uten forutgående varsel)
+  erForesporselSvarForSent?: boolean;  // §33.6.2 tredje ledd + §5: Sen respons på forespørsel
+  erRedusert_33_6_1?: boolean;  // §33.6.1: Sen spesifisering ETTER at varsel ble sendt i tide
+  harTidligereVarselITide?: boolean;  // For å vite om §33.6.1 er relevant ved spesifisert krav
   prinsipaltResultat: string;
   subsidiaertResultat?: string;
   visSubsidiaertResultat: boolean;
@@ -458,7 +458,7 @@ export interface FristResponseInput {
 function getVarselTypeLabel(varselType?: FristVarselType): string {
   if (!varselType) return 'varsel';
   const labels: Record<FristVarselType, string> = {
-    'noytralt': 'nøytralt varsel (§33.4)',
+    'varsel': 'varsel om fristforlengelse (§33.4)',
     'spesifisert': 'spesifisert krav (§33.6)',
     'begrunnelse_utsatt': 'begrunnelse for utsettelse (§33.6.2 b)',
   };
@@ -470,7 +470,7 @@ function getVarselTypeLabel(varselType?: FristVarselType): string {
  */
 function getPreklusjonParagraf(varselType?: FristVarselType): string {
   switch (varselType) {
-    case 'noytralt':
+    case 'varsel':
       return '§33.4';
     default:
       return '§33.6';
@@ -481,8 +481,8 @@ function getPreklusjonParagraf(varselType?: FristVarselType): string {
  * Generate the preclusion section for frist response
  */
 function generateFristPreklusjonSection(input: FristResponseInput): string {
-  // Etterlysning case
-  if (input.sendEtterlysning) {
+  // Forespørsel case
+  if (input.sendForesporsel) {
     return (
       'Byggherren etterspør spesifisert krav iht. §33.6.2. ' +
       'Entreprenøren må «uten ugrunnet opphold» angi og begrunne antall dager fristforlengelse. ' +
@@ -490,11 +490,11 @@ function generateFristPreklusjonSection(input: FristResponseInput): string {
     );
   }
 
-  // §33.6.2 tredje ledd + §5: Sen respons på etterlysning = preklusjon
-  if (input.erEtterlysningSvarForSent) {
+  // §33.6.2 tredje ledd + §5: Sen respons på forespørsel = preklusjon
+  if (input.erForesporselSvarForSent) {
     return (
       'Kravet avvises som prekludert iht. §33.6.2 tredje ledd, jf. §5. ' +
-      'Entreprenøren svarte ikke «uten ugrunnet opphold» på byggherrens etterlysning. ' +
+      'Entreprenøren svarte ikke «uten ugrunnet opphold» på byggherrens forespørsel. ' +
       'Byggherren påberoper seg at fristen er oversittet, jf. §5.'
     );
   }
@@ -520,21 +520,21 @@ function generateFristPreklusjonSection(input: FristResponseInput): string {
 
   // OK - Varslingskravene er oppfylt
   // Bestem riktig paragraf basert på kontekst:
-  // - Svar på etterlysning i tide: §33.6.2 fjerde ledd (§33.6.1 kan ikke påberopes)
-  // - Nøytralt varsel: §33.4
-  // - Spesifisert krav med tidligere nøytralt varsel i tide: §33.4 og §33.6.1
-  // - Spesifisert krav direkte (uten tidligere nøytralt): §33.4 (varselet fungerer som §33.4-varsel)
-  if (input.etterlysningVarOk === true && input.varselType === 'spesifisert') {
-    // Svar på etterlysning kom i tide - §33.6.2 fjerde ledd beskytter TE
+  // - Svar på forespørsel i tide: §33.6.2 fjerde ledd (§33.6.1 kan ikke påberopes)
+  // - Varsel om fristforlengelse: §33.4
+  // - Spesifisert krav med tidligere varsel i tide: §33.4 og §33.6.1
+  // - Spesifisert krav direkte (uten tidligere varsel): §33.4 (varselet fungerer som §33.4-varsel)
+  if (input.foresporselSvarOk === true && input.varselType === 'spesifisert') {
+    // Svar på forespørsel kom i tide - §33.6.2 fjerde ledd beskytter TE
     return (
-      'Kravet er svar på byggherrens etterlysning og kom i tide. ' +
+      'Kravet er svar på byggherrens forespørsel og kom i tide. ' +
       'I henhold til §33.6.2 fjerde ledd kan byggherren ikke påberope at fristen i §33.6.1 er oversittet.'
     );
   }
-  if (input.varselType === 'spesifisert' && input.harTidligereNoytraltVarselITide) {
+  if (input.varselType === 'spesifisert' && input.harTidligereVarselITide) {
     return 'Varslingskravene i §33.4 og §33.6.1 anses oppfylt.';
   }
-  // For nøytralt varsel eller spesifisert krav direkte (uten tidligere nøytralt)
+  // For varsel om fristforlengelse eller spesifisert krav direkte (uten tidligere varsel)
   return 'Varslingskravene i §33.4 anses oppfylt.';
 }
 
@@ -544,7 +544,7 @@ function generateFristPreklusjonSection(input: FristResponseInput): string {
 function generateFristVilkarSection(input: FristResponseInput): string {
   const { vilkarOppfylt, erPrekludert } = input;
 
-  // Vilkår is always evaluated, even when sending etterlysning
+  // Vilkår is always evaluated, even when sending forespørsel
   const prefix = erPrekludert ? 'Subsidiært, hva gjelder vilkårene (§33.5): ' : '';
 
   if (vilkarOppfylt) {
@@ -566,10 +566,10 @@ function generateFristVilkarSection(input: FristResponseInput): string {
  * Generate the calculation section for frist response
  */
 function generateFristBeregningSection(input: FristResponseInput): string {
-  const { krevdDager, godkjentDager, erPrekludert, vilkarOppfylt, varselType, sendEtterlysning } = input;
+  const { krevdDager, godkjentDager, erPrekludert, vilkarOppfylt, varselType, sendForesporsel } = input;
 
-  // Skip calculation section when sending etterlysning or neutral notice without specified days
-  if (sendEtterlysning || (varselType === 'noytralt' && krevdDager === 0)) {
+  // Skip calculation section when sending forespørsel or varsel about deadline extension without specified days
+  if (sendForesporsel || (varselType === 'varsel' && krevdDager === 0)) {
     return '';
   }
 
@@ -595,16 +595,16 @@ function generateFristBeregningSection(input: FristResponseInput): string {
  * Generate the conclusion section for frist response
  */
 function generateFristKonklusjonSection(input: FristResponseInput): string {
-  const { krevdDager, godkjentDager, prinsipaltResultat, visSubsidiaertResultat, varselType, sendEtterlysning } = input;
+  const { krevdDager, godkjentDager, prinsipaltResultat, visSubsidiaertResultat, varselType, sendForesporsel } = input;
   const lines: string[] = [];
 
-  // Handle etterlysning case - no conclusion needed as we're waiting for specification
-  if (sendEtterlysning) {
+  // Handle forespørsel case - no conclusion needed as we're waiting for specification
+  if (sendForesporsel) {
     return '';
   }
 
-  // Handle neutral notice without specified days (and no etterlysning sent)
-  if (varselType === 'noytralt' && krevdDager === 0) {
+  // Handle varsel about deadline extension without specified days (and no forespørsel sent)
+  if (varselType === 'varsel' && krevdDager === 0) {
     // Vilkår section is already generated above, so just add conclusion
     lines.push('Antall dager kan først vurderes når entreprenøren spesifiserer kravet.');
     return lines.join(' ');
@@ -678,8 +678,8 @@ function generateForseringWarningSection(input: FristResponseInput): string {
 export function generateFristResponseBegrunnelse(input: FristResponseInput): string {
   const sections: string[] = [];
 
-  // Skip if etterlysning - minimal response
-  if (input.sendEtterlysning) {
+  // Skip if forespørsel - minimal response
+  if (input.sendForesporsel) {
     return generateFristPreklusjonSection(input);
   }
 

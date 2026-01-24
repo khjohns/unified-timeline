@@ -64,7 +64,7 @@ export type VederlagBeregningResultat =
 // ========== FRIST ENUMS ==========
 
 export type FristVarselType =
-  | 'noytralt'           // §33.4 - Nøytralt varsel (uten dager)
+  | 'varsel'             // §33.4 - Varsel om fristforlengelse (uten dager)
   | 'spesifisert'        // §33.6 - Spesifisert krav (med dager)
   | 'begrunnelse_utsatt'; // §33.6.2 b - Begrunnelse for hvorfor beregning ikke er mulig
 
@@ -93,7 +93,7 @@ export type SubsidiaerTrigger =
   | 'preklusjon_rigg'          // Nivå 1: Rigg/drift varslet for sent (§34.1.3)
   | 'preklusjon_produktivitet' // Nivå 1: Produktivitet varslet for sent (§34.1.3)
   | 'preklusjon_ep_justering'  // Nivå 1: EP-justering varslet for sent (§34.3.3)
-  | 'preklusjon_noytralt'      // Nivå 1: Nøytralt varsel for sent (§33.4)
+  | 'preklusjon_varsel'        // Nivå 1: Varsel om fristforlengelse for sent (§33.4)
   | 'preklusjon_spesifisert'   // Nivå 1: Spesifisert krav for sent (§33.6)
   | 'ingen_hindring'           // Nivå 2: Ingen reell fremdriftshindring (§33.5)
   | 'metode_avslatt';          // Nivå 2: BH aksepterer ikke foreslått metode
@@ -226,16 +226,22 @@ export interface FristTilstand {
 
   // TE's krav
   varsel_type?: FristVarselType;
-  noytralt_varsel?: VarselInfo;  // NEW: Structured info
-  spesifisert_varsel?: VarselInfo;  // NEW: Structured info
+  /** Varsel om fristforlengelse (§33.4) */
+  frist_varsel?: VarselInfo;
+  spesifisert_varsel?: VarselInfo;
   krevd_dager?: number;
   begrunnelse?: string;
 
   // BH respons - Port 1 (Varsling)
-  noytralt_varsel_ok?: boolean;
+  /** Var varsel om fristforlengelse (§33.4) rettidig? */
+  frist_varsel_ok?: boolean;
   spesifisert_krav_ok?: boolean;
-  etterlysning_svar_ok?: boolean;  // §33.6.2/§5: Svar på etterlysning i tide?
-  har_bh_etterlyst?: boolean;
+  /** §33.6.2/§5: Var svar på forespørsel rettidig? */
+  foresporsel_svar_ok?: boolean;
+  /** Har BH sendt forespørsel om spesifisering (§33.6.2)? */
+  har_bh_foresporsel?: boolean;
+  /** Dato BH sendte forespørsel om spesifisering (§33.6.2) - YYYY-MM-DD */
+  dato_bh_foresporsel?: string;
   begrunnelse_varsel?: string;
 
   // BH respons - Port 2 (Vilkår/Årsakssammenheng)
@@ -642,8 +648,9 @@ export interface VederlagEventData {
 export interface FristEventData {
   // Port 1: Varseltype
   varsel_type: FristVarselType;
-  noytralt_varsel?: VarselInfo;  // NEW: Structured info (dato + metode)
-  spesifisert_varsel?: VarselInfo;  // NEW: Structured info (dato + metode)
+  /** Varsel om fristforlengelse (§33.4) */
+  frist_varsel?: VarselInfo;
+  spesifisert_varsel?: VarselInfo;
 
   // Kravet (kun relevant ved spesifisert)
   antall_dager?: number;
@@ -714,10 +721,15 @@ export interface ResponsVederlagEventData {
 // Frist response event (Port Model)
 export interface ResponsFristEventData {
   // Port 1: Preklusjon (Varsling)
-  noytralt_varsel_ok?: boolean;
+  /** Var varsel om fristforlengelse (§33.4) rettidig? */
+  frist_varsel_ok?: boolean;
   spesifisert_krav_ok?: boolean;
-  etterlysning_svar_ok?: boolean;  // §33.6.2/§5: Svar på etterlysning i tide?
-  har_bh_etterlyst?: boolean;
+  /** §33.6.2/§5: Var svar på forespørsel rettidig? */
+  foresporsel_svar_ok?: boolean;
+  /** Har BH sendt forespørsel om spesifisering (§33.6.2)? */
+  har_bh_foresporsel?: boolean;
+  /** Dato BH sendte forespørsel om spesifisering (§33.6.2) - YYYY-MM-DD */
+  dato_bh_foresporsel?: string;
   begrunnelse_varsel?: string;
 
   // Port 2: Vilkår (Årsakssammenheng)
@@ -811,7 +823,8 @@ export interface FristSpesifisertEventData {
   original_event_id: string;
   antall_dager: number;
   begrunnelse: string;
-  er_svar_pa_etterlysning?: boolean;  // True if responding to BH's demand (§33.6.2)
+  /** True if responding to BH's demand (§33.6.2) */
+  er_svar_pa_foresporsel?: boolean;
   ny_sluttdato?: string;
   dato_spesifisert: string;
 }
@@ -822,9 +835,11 @@ export interface ResponsFristOppdatertEventData {
   beregnings_resultat?: FristBeregningResultat;
   godkjent_dager?: number;
   // Port 2: Preklusjon
-  noytralt_varsel_ok?: boolean;
+  /** Var varsel om fristforlengelse (§33.4) rettidig? */
+  frist_varsel_ok?: boolean;
   spesifisert_krav_ok?: boolean;
-  etterlysning_svar_ok?: boolean;  // §33.6.2/§5: Svar på etterlysning i tide?
+  /** §33.6.2/§5: Var svar på forespørsel rettidig? */
+  foresporsel_svar_ok?: boolean;
   // Port 3: Vilkår
   vilkar_oppfylt?: boolean;
   begrunnelse_vilkar?: string;

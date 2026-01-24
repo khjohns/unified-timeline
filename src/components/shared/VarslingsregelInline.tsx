@@ -16,12 +16,8 @@ import { ChevronRightIcon } from '@radix-ui/react-icons';
 /** Støttede hjemler for fristsporet */
 type Hjemmel = '§33.4' | '§33.6.1' | '§33.6.2' | '§33.7' | '§33.8';
 
-/** Hvem ser komponenten */
-type Rolle = 'TE' | 'BH';
-
 interface VarslingsregelInlineProps {
   hjemmel: Hjemmel;
-  rolle: Rolle;
 }
 
 /** Innhold per hjemmel - basert på kontraktsteksten */
@@ -72,7 +68,7 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
   },
 };
 
-export function VarslingsregelInline({ hjemmel, rolle }: VarslingsregelInlineProps) {
+export function VarslingsregelInline({ hjemmel }: VarslingsregelInlineProps) {
   const [open, setOpen] = useState(false);
   const innhold = HJEMMEL_INNHOLD[hjemmel];
 

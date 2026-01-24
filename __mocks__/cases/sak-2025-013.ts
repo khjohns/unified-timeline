@@ -61,7 +61,7 @@ export const mockSakState13: SakState = {
   frist: {
     status: 'avslatt',
     varsel_type: 'spesifisert',
-    noytralt_varsel: {
+    frist_varsel: {
       dato_sendt: '2025-01-25',
       metode: ['epost', 'byggemote'],
     },
@@ -71,7 +71,7 @@ export const mockSakState13: SakState = {
     },
     krevd_dager: 10,
     begrunnelse: 'Stopp i ventilasjonsarbeid i 10 dager grunnet manglende tilgang.',
-    noytralt_varsel_ok: true,
+    frist_varsel_ok: true,
     spesifisert_krav_ok: true,
     vilkar_oppfylt: false,
     begrunnelse_vilkar: 'BH mener arbeidet kan utføres parallelt med andre aktiviteter.',
