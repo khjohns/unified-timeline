@@ -35,6 +35,7 @@ import {
   SectionContainer,
   useToast,
 } from '../primitives';
+import { KontraktsregelInline } from '../shared';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -415,11 +416,7 @@ export function RespondGrunnlagModal({
 
         {/* Force Majeure info */}
         {erForceMajeure && (
-          <Alert variant="warning" title="Force Majeure (§33.3)">
-            Force Majeure gir kun rett til <strong>fristforlengelse</strong>,
-            ikke vederlagsjustering. Vurder om hendelsen ligger utenfor
-            entreprenørens kontroll.
-          </Alert>
+          <KontraktsregelInline hjemmel="§33.3" />
         )}
 
         {/* BH Passivity warning (§32.3) */}

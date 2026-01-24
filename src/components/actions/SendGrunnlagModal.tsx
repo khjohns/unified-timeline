@@ -28,6 +28,7 @@ import {
   Textarea,
   useToast,
 } from '../primitives';
+import { KontraktsregelInline } from '../shared';
 import type { AttachmentFile } from '../../types';
 import type { GrunnlagTilstand } from '../../types/timeline';
 import { useForm, Controller } from 'react-hook-form';
@@ -513,22 +514,38 @@ export function SendGrunnlagModal({
                               <p className="text-sm font-semibold text-pkt-text-body mb-2">{gruppeNavn}</p>
                             )}
                             <div className="space-y-2 pl-0">
-                              {underkategorier.map((uk) => (
-                                <Checkbox
-                                  key={uk.kode}
-                                  id={`underkategori-${uk.kode}`}
-                                  label={`${uk.label} (§${uk.hjemmel_basis})`}
-                                  checked={field.value?.includes(uk.kode) ?? false}
-                                  onCheckedChange={(checked) => {
-                                    const current = field.value ?? [];
-                                    if (checked) {
-                                      field.onChange([...current, uk.kode]);
-                                    } else {
-                                      field.onChange(current.filter((v: string) => v !== uk.kode));
-                                    }
-                                  }}
-                                />
-                              ))}
+                              {underkategorier.map((uk) => {
+                                const erValgt = field.value?.includes(uk.kode) ?? false;
+                                return (
+                                  <div key={uk.kode}>
+                                    <Checkbox
+                                      id={`underkategori-${uk.kode}`}
+                                      label={`${uk.label} (§${uk.hjemmel_basis})`}
+                                      checked={erValgt}
+                                      onCheckedChange={(checked) => {
+                                        const current = field.value ?? [];
+                                        if (checked) {
+                                          field.onChange([...current, uk.kode]);
+                                        } else {
+                                          field.onChange(current.filter((v: string) => v !== uk.kode));
+                                        }
+                                      }}
+                                    />
+                                    {erValgt && (
+                                      <div className="mt-2 ml-6">
+                                        <KontraktsregelInline
+                                          custom={{
+                                            inline: uk.beskrivelse,
+                                            hjemmel: `§${uk.hjemmel_basis}`,
+                                            konsekvens: `Varslingskrav: §${uk.varselkrav_ref}`,
+                                            accordionLabel: 'Varslingskrav',
+                                          }}
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                         ))}
@@ -539,19 +556,6 @@ export function SendGrunnlagModal({
               />
             )}
 
-            {/* Underkategori info - show all selected */}
-            {valgteUnderkategorier.length > 0 && (
-              <div className="space-y-3">
-                {valgteUnderkategorier.map((underkat) => (
-                  <Alert key={underkat.kode} variant="info" title={underkat.label}>
-                    {underkat.beskrivelse}
-                    <p className="text-xs mt-2">
-                      <strong>Hjemmel:</strong> §{underkat.hjemmel_basis} | <strong>Varslingskrav:</strong> §{underkat.varselkrav_ref}
-                    </p>
-                  </Alert>
-                ))}
-              </div>
-            )}
           </div>
         </SectionContainer>
 
