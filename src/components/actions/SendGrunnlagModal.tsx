@@ -468,31 +468,35 @@ export function SendGrunnlagModal({
                     }}
                     data-testid="grunnlag-hovedkategori"
                   >
-                    {HOVEDKATEGORI_OPTIONS.filter(opt => opt.value !== '').map((option) => (
-                      <RadioItem
-                        key={option.value}
-                        value={option.value}
-                        label={option.label}
-                        error={!!errors.hovedkategori}
-                      />
-                    ))}
+                    {HOVEDKATEGORI_OPTIONS.filter(opt => opt.value !== '').map((option) => {
+                      const erValgt = field.value === option.value;
+                      const kategoriInfo = erValgt ? getHovedkategori(option.value) : null;
+                      return (
+                        <div key={option.value}>
+                          <RadioItem
+                            value={option.value}
+                            label={option.label}
+                            error={!!errors.hovedkategori}
+                          />
+                          {erValgt && kategoriInfo && (
+                            <div className="mt-2 ml-6">
+                              <KontraktsregelInline
+                                custom={{
+                                  inline: kategoriInfo.beskrivelse,
+                                  hjemmel: `§${kategoriInfo.hjemmel_frist}`,
+                                  konsekvens: `Type krav: ${kategoriInfo.type_krav}${kategoriInfo.hjemmel_vederlag ? ` · Vederlag: §${kategoriInfo.hjemmel_vederlag}` : ''}`,
+                                  accordionLabel: 'Detaljer',
+                                }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </RadioGroup>
                 )}
               />
             </FormField>
-
-            {/* Category info box */}
-            {valgtHovedkategori && (
-              <Alert variant="info" title={`Hjemmel: NS 8407 §${valgtHovedkategori.hjemmel_frist}`}>
-                {valgtHovedkategori.beskrivelse}
-                <div className="mt-2 text-xs">
-                  <strong>Type krav:</strong> {valgtHovedkategori.type_krav}
-                  {valgtHovedkategori.hjemmel_vederlag && (
-                    <> | <strong>Vederlag:</strong> §{valgtHovedkategori.hjemmel_vederlag}</>
-                  )}
-                </div>
-              </Alert>
-            )}
 
             {/* Underkategori - Dynamic based on hovedkategori, grouped */}
             {selectedHovedkategori && valgtHovedkategori && valgtHovedkategori.underkategorier.length > 0 && (
@@ -537,7 +541,7 @@ export function SendGrunnlagModal({
                                           custom={{
                                             inline: uk.beskrivelse,
                                             hjemmel: `§${uk.hjemmel_basis}`,
-                                            konsekvens: `Varslingskrav: §${uk.varselkrav_ref}`,
+                                            konsekvens: `§${uk.varselkrav_ref}`,
                                             accordionLabel: 'Varslingskrav',
                                           }}
                                         />
