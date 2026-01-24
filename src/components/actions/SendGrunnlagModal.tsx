@@ -446,7 +446,6 @@ export function SendGrunnlagModal({
         {/* Seksjon 1: Juridisk grunnlag */}
         <SectionContainer
           title="Juridisk grunnlag"
-          description="Velg kategori og underkategori iht. NS 8407"
         >
           <div className="space-y-4">
             {/* Hovedkategori */}
@@ -454,7 +453,7 @@ export function SendGrunnlagModal({
               label="Hovedkategori"
               required
               error={errors.hovedkategori?.message}
-              labelTooltip="Velg juridisk grunnlag iht. NS 8407. Dette bestemmer hvilke kontraktsbestemmelser som gjelder og hvilke krav som kan fremmes."
+              helpText="Velg juridisk grunnlag iht. NS 8407. Dette bestemmer hvilke kontraktsbestemmelser som gjelder og hvilke krav som kan fremmes."
             >
               <Controller
                 name="hovedkategori"
@@ -656,16 +655,6 @@ export function SendGrunnlagModal({
                 )}
               </div>
             </FormField>
-
-            {/* Preclusion warnings */}
-            {preklusjonsResultat?.alert && (
-              <Alert
-                variant={preklusjonsResultat.alert.variant}
-                title={preklusjonsResultat.alert.title}
-              >
-                {preklusjonsResultat.alert.message}
-              </Alert>
-            )}
 
             {/* Varsel options - only in create mode (varsel already sent in update mode) */}
             {!isUpdateMode && (
