@@ -334,31 +334,7 @@ export function SendGrunnlagModal({
   };
 
   // Calculate warnings for update mode
-  const nyDatoOppdaget = watch('dato_oppdaget');
   const nyHovedkategori = watch('hovedkategori');
-
-  // Check if new date makes notice too late (for update mode)
-  const varselErTidligere = useMemo(() => {
-    if (!isUpdateMode || !nyDatoOppdaget || !grunnlag?.grunnlag_varsel?.dato_sendt) return false;
-    const oppdagetDato = new Date(nyDatoOppdaget);
-    const varselDato = new Date(grunnlag.grunnlag_varsel.dato_sendt);
-    return oppdagetDato < varselDato;
-  }, [isUpdateMode, nyDatoOppdaget, grunnlag?.grunnlag_varsel?.dato_sendt]);
-
-  // Calculate days between new discovery date and existing notice (for update mode)
-  const dagerMellomOppdagetOgVarsel = useMemo(() => {
-    if (!isUpdateMode || !nyDatoOppdaget || !grunnlag?.grunnlag_varsel?.dato_sendt) return null;
-    const oppdagetDato = new Date(nyDatoOppdaget);
-    const varselDato = new Date(grunnlag.grunnlag_varsel.dato_sendt);
-    const diffTime = varselDato.getTime() - oppdagetDato.getTime();
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  }, [isUpdateMode, nyDatoOppdaget, grunnlag?.grunnlag_varsel?.dato_sendt]);
-
-  // Check preclusion risk for date change (update mode)
-  const preklusjonsRisikoVedEndring = useMemo(() => {
-    if (!dagerMellomOppdagetOgVarsel || dagerMellomOppdagetOgVarsel <= 0) return null;
-    return getPreklusjonsvarsel(dagerMellomOppdagetOgVarsel, undefined, selectedHovedkategori);
-  }, [dagerMellomOppdagetOgVarsel, selectedHovedkategori]);
 
   // Check if category is changing (update mode)
   const kategoriEndres = useMemo(() => {
@@ -394,20 +370,6 @@ export function SendGrunnlagModal({
               </DataListItem>
             </DataList>
           </SectionContainer>
-        )}
-
-        {/* UPDATE MODE: Date change warning */}
-        {isUpdateMode && varselErTidligere && dagerMellomOppdagetOgVarsel && dagerMellomOppdagetOgVarsel > 0 && (
-          <Alert
-            variant={preklusjonsRisikoVedEndring?.status === 'kritisk' ? 'danger' : 'warning'}
-            title="Advarsel: Dato kan påvirke preklusjon"
-          >
-            Hvis du setter oppdaget-dato til <strong>{nyDatoOppdaget}</strong>, betyr det at
-            varselet ble sendt {dagerMellomOppdagetOgVarsel} dager etter oppdagelse.
-            {preklusjonsRisikoVedEndring?.alert && (
-              <p className="mt-2 text-sm">{preklusjonsRisikoVedEndring.alert.message}</p>
-            )}
-          </Alert>
         )}
 
         {/* UPDATE MODE: Category change warning */}
