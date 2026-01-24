@@ -45,8 +45,6 @@ import {
   getHovedkategori,
   getHovedkategoriLabel,
   getUnderkategoriObj,
-  erLovendring,
-  getLovendringParagraf,
   getGrupperteUnderkategorier,
 } from '../../constants';
 import { getPreklusjonsvarsel, getPreklusjonsvarselMellomDatoer, beregnDagerSiden } from '../../utils/preklusjonssjekk';
@@ -62,11 +60,9 @@ const createGrunnlagSchema = z.object({
   dato_varsel_sendt: z.string().optional(),
   varsel_metode: z.array(z.string()).optional(),
   attachments: z.array(z.custom<AttachmentFile>()).optional().default([]),
-  er_etter_tilbud: z.boolean().optional(), // For law changes (§14.4)
-  endrings_begrunnelse: z.string().optional(), // Only used in update mode
 });
 
-// Schema for update mode - fields optional except endrings_begrunnelse
+// Schema for update mode - all fields optional
 const updateGrunnlagSchema = z.object({
   hovedkategori: z.string().optional(),
   underkategori: z.array(z.string()).optional(),
@@ -77,8 +73,7 @@ const updateGrunnlagSchema = z.object({
   dato_varsel_sendt: z.string().optional(),
   varsel_metode: z.array(z.string()).optional(),
   attachments: z.array(z.custom<AttachmentFile>()).optional().default([]),
-  er_etter_tilbud: z.boolean().optional(),
-  endrings_begrunnelse: z.string().min(10, 'Begrunnelse for endring er påkrevd (minst 10 tegn)'),
+  endrings_begrunnelse: z.string().optional(),
 });
 
 type GrunnlagFormData = z.infer<typeof createGrunnlagSchema>;
@@ -129,8 +124,6 @@ export function SendGrunnlagModal({
         dato_varsel_sendt: grunnlag.grunnlag_varsel?.dato_sendt || '',
         varsel_metode: grunnlag.grunnlag_varsel?.metode || [],
         attachments: [],
-        er_etter_tilbud: false,
-        endrings_begrunnelse: '',
       };
     }
     // CREATE MODE: Default values
@@ -143,8 +136,6 @@ export function SendGrunnlagModal({
       varsel_sendes_na: true,  // Forhåndsvalgt: varsel sendes nå
       varsel_metode: [],
       attachments: [],
-      er_etter_tilbud: false,
-      endrings_begrunnelse: '',
     };
   }, [isUpdateMode, grunnlag]);
 
@@ -204,7 +195,6 @@ export function SendGrunnlagModal({
   const datoOppdaget = watch('dato_oppdaget');
   const datoVarselSendt = watch('dato_varsel_sendt');
   const selectedUnderkategorier = watch('underkategori');
-  const erEtterTilbud = watch('er_etter_tilbud');
 
   // Get selected category info
   const valgtHovedkategori = useMemo(
@@ -219,17 +209,6 @@ export function SendGrunnlagModal({
       .map((kode) => getUnderkategoriObj(kode))
       .filter((obj): obj is NonNullable<typeof obj> => obj !== undefined);
   }, [selectedUnderkategorier]);
-
-  // Check if any selected underkategori is a law change and get relevant paragraphs
-  const lovendringParagrafer = useMemo(() => {
-    if (!selectedUnderkategorier?.length) return [];
-    return selectedUnderkategorier
-      .filter((kode) => erLovendring(kode))
-      .map((kode) => getLovendringParagraf(kode))
-      .filter((p): p is string => p !== null);
-  }, [selectedUnderkategorier]);
-
-  const harLovendring = lovendringParagrafer.length > 0;
 
   // Calculate preclusion risk for current moment (when sending now)
   const preklusjonsResultat = useMemo(() => {
@@ -285,7 +264,6 @@ export function SendGrunnlagModal({
     setSelectedHovedkategori(value);
     setValue('hovedkategori', value);
     setValue('underkategori', []);
-    setValue('er_etter_tilbud', false);
   };
 
   const onSubmit = (data: GrunnlagFormData) => {
@@ -300,7 +278,6 @@ export function SendGrunnlagModal({
       // Only send changed fields
       const eventData: Record<string, unknown> = {
         original_event_id: originalEvent.event_id,
-        endrings_begrunnelse: data.endrings_begrunnelse,
       };
 
       // Check each field for changes
@@ -352,7 +329,6 @@ export function SendGrunnlagModal({
         beskrivelse: data.beskrivelse,
         dato_oppdaget: data.dato_oppdaget,
         grunnlag_varsel: grunnlagVarsel,
-        meta: harLovendring ? { er_etter_tilbud: data.er_etter_tilbud } : undefined,
       },
     });
   };
@@ -446,7 +422,6 @@ export function SendGrunnlagModal({
         {/* Seksjon 1: Juridisk grunnlag */}
         <SectionContainer
           title="Juridisk grunnlag"
-          description="Velg kategori og underkategori iht. NS 8407"
         >
           <div className="space-y-4">
             {/* Hovedkategori */}
@@ -454,7 +429,7 @@ export function SendGrunnlagModal({
               label="Hovedkategori"
               required
               error={errors.hovedkategori?.message}
-              labelTooltip="Velg juridisk grunnlag iht. NS 8407. Dette bestemmer hvilke kontraktsbestemmelser som gjelder og hvilke krav som kan fremmes."
+              helpText="Velg juridisk grunnlag iht. NS 8407. Dette bestemmer hvilke kontraktsbestemmelser som gjelder og hvilke krav som kan fremmes."
             >
               <Controller
                 name="hovedkategori"
@@ -583,29 +558,6 @@ export function SendGrunnlagModal({
               />
             </FormField>
 
-            {/* Law change check - dynamic paragraph based on selected underkategori */}
-            {harLovendring && (
-              <Alert variant="warning" title={`Lov-/forskriftsendring (§${lovendringParagrafer.join(' / §')})`}>
-                <Controller
-                  name="er_etter_tilbud"
-                  control={control}
-                  render={({ field }) => (
-                    <Checkbox
-                      id="er_etter_tilbud"
-                      label="Bekreft at endringen inntraff ETTER tilbudsfristens utløp"
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  )}
-                />
-                {!erEtterTilbud && (
-                  <p className="text-xs text-pkt-text-danger mt-2">
-                    Hvis endringen var kjent ved tilbudsfrist, ligger risikoen normalt hos deg.
-                  </p>
-                )}
-              </Alert>
-            )}
-
             <FormField
               label="Beskrivelse"
               required
@@ -656,16 +608,6 @@ export function SendGrunnlagModal({
                 )}
               </div>
             </FormField>
-
-            {/* Preclusion warnings */}
-            {preklusjonsResultat?.alert && (
-              <Alert
-                variant={preklusjonsResultat.alert.variant}
-                title={preklusjonsResultat.alert.title}
-              >
-                {preklusjonsResultat.alert.message}
-              </Alert>
-            )}
 
             {/* Varsel options - only in create mode (varsel already sent in update mode) */}
             {!isUpdateMode && (
@@ -749,26 +691,6 @@ export function SendGrunnlagModal({
             )}
           </div>
         </SectionContainer>
-
-        {/* UPDATE MODE: Begrunnelse for endring */}
-        {isUpdateMode && (
-          <SectionContainer title="Begrunnelse for endring">
-            <FormField
-              label="Hvorfor endres grunnlaget?"
-              required
-              error={errors.endrings_begrunnelse?.message}
-            >
-              <Textarea
-                id="endrings_begrunnelse"
-                {...register('endrings_begrunnelse')}
-                rows={3}
-                fullWidth
-                error={!!errors.endrings_begrunnelse}
-                placeholder="F.eks. ny informasjon, korrigering av feil, etc."
-              />
-            </FormField>
-          </SectionContainer>
-        )}
 
         {/* Seksjon 4: Vedlegg */}
         <SectionContainer

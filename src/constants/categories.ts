@@ -270,7 +270,7 @@ export const HOVEDKATEGORI_OPTIONS: DropdownOption[] = [
   { value: '', label: '— Velg —' },
   ...KRAV_STRUKTUR_NS8407.map((k) => ({
     value: k.kode,
-    label: `${k.label} (${k.hjemmel_frist})`,
+    label: k.label,
   })),
 ];
 

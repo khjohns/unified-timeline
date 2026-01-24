@@ -225,6 +225,7 @@ class TimelineService:
         grunnlag.underkategori = event.data.underkategori
         grunnlag.beskrivelse = event.data.beskrivelse
         grunnlag.dato_oppdaget = event.data.dato_oppdaget
+        grunnlag.grunnlag_varsel = event.data.grunnlag_varsel
         grunnlag.kontraktsreferanser = event.data.kontraktsreferanser
 
         # Oppdater sakstittel fra grunnlag.tittel hvis den ikke er satt
