@@ -28,6 +28,7 @@ import {
   Textarea,
   useToast,
 } from '../primitives';
+import { KontraktsregelInline } from '../shared';
 import type { AttachmentFile } from '../../types';
 import type { GrunnlagTilstand } from '../../types/timeline';
 import { useForm, Controller } from 'react-hook-form';
@@ -543,12 +544,15 @@ export function SendGrunnlagModal({
             {valgteUnderkategorier.length > 0 && (
               <div className="space-y-3">
                 {valgteUnderkategorier.map((underkat) => (
-                  <Alert key={underkat.kode} variant="info" title={underkat.label}>
-                    {underkat.beskrivelse}
-                    <p className="text-xs mt-2">
-                      <strong>Hjemmel:</strong> §{underkat.hjemmel_basis} | <strong>Varslingskrav:</strong> §{underkat.varselkrav_ref}
-                    </p>
-                  </Alert>
+                  <KontraktsregelInline
+                    key={underkat.kode}
+                    custom={{
+                      inline: underkat.beskrivelse,
+                      hjemmel: `§${underkat.hjemmel_basis}`,
+                      konsekvens: `Varslingskrav: §${underkat.varselkrav_ref}`,
+                      accordionLabel: 'Varslingskrav',
+                    }}
+                  />
                 ))}
               </div>
             )}
