@@ -6,6 +6,8 @@
 
 > **Viktig:** Dette dokumentet beskriver varslingsreglene i NS 8407:2011 slik de er implementert i applikasjonen. Ved juridisk tvil, konsulter alltid kontraktsteksten direkte.
 
+> **Dokumentrelasjon:** Dette er **referansedokumentet** som forklarer og visualiserer varslingsreglene. For eksakt kontraktstekst og systematisk kartlegging med alle 5 dimensjoner, se [NS8407_VARSLINGSREGLER_KARTLEGGING.md](./NS8407_VARSLINGSREGLER_KARTLEGGING.md). Kartleggingsdokumentet er primærkilden for presis juridisk tekst.
+
 ---
 
 ## Innhold

@@ -9,6 +9,8 @@
 
 > **Kilde:** Basert på NS 8407:2011 kontraktstekst. Paragrafer merket ✓ er verifisert mot originaltekst.
 
+> **Dokumentrelasjon:** Dette er **kartleggingsdokumentet** (primærkilde) med eksakt kontraktstekst og systematisk 5-dimensjons-analyse. For forklarende oversikt med flytdiagrammer, visualiseringer og implementeringsstatus, se [NS8407_VARSLINGSREGLER.md](./NS8407_VARSLINGSREGLER.md). Ved motstrid gjelder kontraktsteksten i dette dokumentet.
+
 ---
 
 ## Innhold
