@@ -190,8 +190,8 @@ class VederlagBeregningResultat(str, Enum):
 
 class FristVarselType(str, Enum):
     """Type varsel for frist (NS 8407 §33)"""
-    NOYTRALT = "noytralt"  # §33.4 - Foreløpig varsel - når omfang ikke er kjent. Bevarer rett til senere krav
-    SPESIFISERT = "spesifisert"  # §33.6.1 - Spesifisert krav (med dager)
+    VARSEL = "varsel"  # §33.4 - Varsel om fristforlengelse - når omfang ikke er kjent ennå
+    SPESIFISERT = "spesifisert"  # §33.6.1 - Spesifisert krav (med antall dager)
     BEGRUNNELSE_UTSATT = "begrunnelse_utsatt"  # §33.6.2 bokstav b - TE begrunner hvorfor beregning ikke er mulig
 
 
@@ -230,7 +230,7 @@ class SubsidiaerTrigger(str, Enum):
     PREKLUSJON_EP_JUSTERING = "preklusjon_ep_justering"  # EP-justering varslet for sent (§34.3.3)
 
     # Nivå 1: Preklusjon (Frist)
-    PREKLUSJON_NOYTRALT = "preklusjon_noytralt"  # Nøytralt varsel for sent (§33.4)
+    PREKLUSJON_VARSEL = "preklusjon_varsel"  # Varsel om fristforlengelse for sent (§33.4)
     PREKLUSJON_SPESIFISERT = "preklusjon_spesifisert"  # Spesifisert krav for sent (§33.6)
 
     # Nivå 2: Vilkår
@@ -596,17 +596,17 @@ class FristData(BaseModel):
     """
     Data for fristforlengelseskrav (Entreprenørens krav).
 
-    Denne modellen støtter både nøytralt varsel (§33.4) og spesifisert krav (§33.6).
+    Denne modellen støtter både varsel om fristforlengelse (§33.4) og spesifisert krav (§33.6).
 
     NS 8407 skiller mellom:
-    - Nøytralt varsel: Varsler om at det *kan* bli krav, uten å spesifisere antall dager
-    - Spesifisert krav: Konkret krav om X antall dager
-   
+    - Varsel om fristforlengelse (§33.4): Varsler om at det *kan* bli krav, uten å spesifisere antall dager
+    - Spesifisert krav (§33.6.1): Konkret krav om X antall dager
+
     KOMMENTAR FRA ARKITEKT:
-    // Hvis spesifisert krav er for sent, sjekk om BH har etterlyst det
+    // Hvis spesifisert krav er for sent, sjekk om BH har sendt forespørsel
     If (spesifisert_krav_ok == NEI) {
-       Field har_bh_etterlyst: Boolean {
-         Label: "Har BH etterlyst kravet skriftlig (§ 33.6.2)?"
+       Field har_bh_foresporsel: Boolean {
+         Label: "Har BH sendt forespørsel om spesifisering (§33.6.2)?"
          Options: [JA, NEI]
          Note: "Hvis NEI, tapes ikke kravet helt, men reduseres."
        }
@@ -621,10 +621,10 @@ class FristData(BaseModel):
         description="Type varsel sendt til BH"
     )
 
-    # Nøytralt varsel (§33.4) - kan sendes uten dager
-    noytralt_varsel: Optional[VarselInfo] = Field(
+    # Varsel om fristforlengelse (§33.4) - kan sendes uten dager
+    frist_varsel: Optional[VarselInfo] = Field(
         default=None,
-        description="Info om nøytralt varsel (§33.4) - dato + metode (f.eks. muntlig på byggemøte)"
+        description="Info om varsel om fristforlengelse (§33.4) - dato + metode"
     )
 
     # Spesifisert krav (§33.6) - må inneholde dager
@@ -987,10 +987,10 @@ class FristResponsData(BaseModel):
     # ============ PORT 1: PREKLUSJON (Varslene) ============
     # Sjekker om TE har fulgt spillereglene for tidskrav (NS 8407 §33).
 
-    # Nøytralt varsel (§33.4)
-    noytralt_varsel_ok: Optional[bool] = Field(
+    # Varsel om fristforlengelse (§33.4)
+    frist_varsel_ok: Optional[bool] = Field(
         default=None,
-        description="Er nøytralt varsel sendt i tide? (§33.4). None hvis ikke relevant."
+        description="Er varsel om fristforlengelse sendt i tide? (§33.4). None hvis ikke relevant."
     )
 
     # Spesifisert krav (§33.6)
@@ -999,29 +999,16 @@ class FristResponsData(BaseModel):
         description="Er spesifisert krav sendt i tide? (§33.6)"
     )
 
-    # Svar på etterlysning (§33.6.2/§5)
-    etterlysning_svar_ok: Optional[bool] = Field(
+    # Svar på forespørsel (§33.6.2/§5)
+    foresporsel_svar_ok: Optional[bool] = Field(
         default=None,
-        description="Er svar på etterlysning sendt i tide? (§33.6.2/§5). None hvis ikke relevant."
+        description="Er svar på forespørsel sendt i tide? (§33.6.2/§5). None hvis ikke relevant."
     )
 
-    # Hvis spesifisert krav er for sent
-    """
-    KOMMENTAR FRA ARKITEKT:
-    # Forslag til validator i FristResponsData
-    @field_validator('har_bh_etterlyst')
-    def validate_etterlyst(cls, v, info):
-        if v is not None and info.data.get('spesifisert_krav_ok') is True:
-            # Ikke en feil, men logisk inkonsekvent:
-            # Hvorfor etterlyse et krav som kom i tide?
-            pass 
-    return v
-
-    Vurdering: Ikke strengt nødvendig for databasen, men nyttig for frontend-logikk.
-    """
-    har_bh_etterlyst: Optional[bool] = Field(
+    # Har BH sendt forespørsel om spesifisering?
+    har_bh_foresporsel: Optional[bool] = Field(
         default=None,
-        description="Har BH etterlyst kravet skriftlig? (§33.6.2). Relevant kun hvis krav er sent."
+        description="Har BH sendt forespørsel om spesifisering? (§33.6.2). Relevant kun hvis krav er sent."
     )
 
     dato_bh_foresporsel: Optional[str] = Field(
@@ -1097,22 +1084,22 @@ class FristResponsData(BaseModel):
         description="BH's begrunnelse for subsidiær vurdering"
     )
 
-    @field_validator('har_bh_etterlyst')
+    @field_validator('har_bh_foresporsel')
     @classmethod
-    def validate_etterlyst(cls, v, info):
+    def validate_foresporsel(cls, v, info):
         """
-        Valider at har_bh_etterlyst brukes korrekt.
+        Valider at har_bh_foresporsel brukes korrekt.
 
-        har_bh_etterlyst har to bruksområder:
-        1. Når TE kun har sendt nøytralt varsel: BH etterspør spesifisert krav (§33.6.2)
+        har_bh_foresporsel har to bruksområder:
+        1. Når TE kun har sendt varsel om fristforlengelse: BH sender forespørsel om spesifisering (§33.6.2)
            - I dette tilfellet er spesifisert_krav_ok irrelevant (TE har ikke sendt spesifisert)
-        2. Når TE har sendt spesifisert krav som var for sent: BH har etterlyst tidligere
+        2. Når TE har sendt spesifisert krav som var for sent: BH har sendt forespørsel tidligere
            - I dette tilfellet skal spesifisert_krav_ok=False
 
-        Valideringen tillater nå har_bh_etterlyst=True selv når spesifisert_krav_ok=True,
-        fordi dette kan skje når BH sender etterlysning og TE responderer i tide.
+        Valideringen tillater nå har_bh_foresporsel=True selv når spesifisert_krav_ok=True,
+        fordi dette kan skje når BH sender forespørsel og TE responderer i tide.
         """
-        # Fjernet streng validering - har_bh_etterlyst kan være True i flere scenarier
+        # Fjernet streng validering - har_bh_foresporsel kan være True i flere scenarier
         return v
 
     @model_validator(mode='after')

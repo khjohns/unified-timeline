@@ -323,8 +323,8 @@ class TimelineService:
         frist.varsel_type = event.data.varsel_type.value if hasattr(event.data.varsel_type, 'value') else event.data.varsel_type
 
         # Copy VarselInfo objects directly (includes dato_sendt and metode)
-        if event.data.noytralt_varsel:
-            frist.noytralt_varsel = event.data.noytralt_varsel
+        if event.data.frist_varsel:
+            frist.frist_varsel = event.data.frist_varsel
         if event.data.spesifisert_varsel:
             frist.spesifisert_varsel = event.data.spesifisert_varsel
 
@@ -449,14 +449,14 @@ class TimelineService:
         frist = state.frist
 
         # Port 1: Varselvurderinger
-        if hasattr(event.data, 'noytralt_varsel_ok'):
-            frist.noytralt_varsel_ok = event.data.noytralt_varsel_ok
+        if hasattr(event.data, 'frist_varsel_ok'):
+            frist.frist_varsel_ok = event.data.frist_varsel_ok
         if hasattr(event.data, 'spesifisert_krav_ok'):
             frist.spesifisert_krav_ok = event.data.spesifisert_krav_ok
-        if hasattr(event.data, 'etterlysning_svar_ok'):
-            frist.etterlysning_svar_ok = event.data.etterlysning_svar_ok
-        if hasattr(event.data, 'har_bh_etterlyst'):
-            frist.har_bh_etterlyst = event.data.har_bh_etterlyst
+        if hasattr(event.data, 'foresporsel_svar_ok'):
+            frist.foresporsel_svar_ok = event.data.foresporsel_svar_ok
+        if hasattr(event.data, 'har_bh_foresporsel'):
+            frist.har_bh_foresporsel = event.data.har_bh_foresporsel
         if hasattr(event.data, 'dato_bh_foresporsel'):
             frist.dato_bh_foresporsel = event.data.dato_bh_foresporsel
         if hasattr(event.data, 'begrunnelse_varsel'):

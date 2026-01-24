@@ -37,7 +37,7 @@ export const mockTimelineEvents7: TimelineEntry[] = [
     spor: 'frist',
     sammendrag: 'Fristkrav godkjent - 7 dager',
     event_data: {
-      noytralt_varsel_ok: true,
+      frist_varsel_ok: true,
       spesifisert_krav_ok: true,
       begrunnelse_varsel: 'Varsler mottatt.',
       vilkar_oppfylt: true,
@@ -72,7 +72,7 @@ export const mockTimelineEvents7: TimelineEntry[] = [
     sammendrag: 'Krav på 7 dager fristforlengelse',
     event_data: {
       varsel_type: 'spesifisert',
-      noytralt_varsel: { dato_sendt: '2025-02-10', metode: ['system'] },
+      frist_varsel: { dato_sendt: '2025-02-10', metode: ['system'] },
       spesifisert_varsel: { dato_sendt: '2025-02-11', metode: ['epost'] },
       antall_dager: 7,
       begrunnelse: 'Enkelt snekkerarbeid.',

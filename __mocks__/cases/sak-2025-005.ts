@@ -66,7 +66,7 @@ export const mockSakState5: SakState = {
   frist: {
     status: 'under_behandling',
     varsel_type: 'spesifisert',
-    noytralt_varsel: {
+    frist_varsel: {
       dato_sendt: '2025-02-02',
       metode: ['epost'],
     },
@@ -76,7 +76,7 @@ export const mockSakState5: SakState = {
     },
     krevd_dager: 14,
     begrunnelse: 'Omlegging av rør krever 14 ekstra dager.',
-    noytralt_varsel_ok: true,
+    frist_varsel_ok: true,
     spesifisert_krav_ok: true,
     vilkar_oppfylt: false,
     begrunnelse_vilkar: 'Subsidiært: Grunnlaget bestrides, men dersom ansvar avklares godkjennes dagene.',

@@ -40,7 +40,7 @@ import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
 import { FristTilstand, FristBeregningResultat, FristVarselType, SubsidiaerTrigger } from '../../types/timeline';
 
 // Modal operating modes
-type ModalMode = 'revider' | 'spesifiser_frivillig' | 'spesifiser_etterlysning';
+type ModalMode = 'revider' | 'spesifiser_frivillig' | 'spesifiser_foresporsel';
 
 const reviseFristSchema = z.object({
   antall_dager: z.number().min(0, 'Antall dager må være minst 0'),
@@ -70,9 +70,9 @@ interface ReviseFristModalProps {
   fristTilstand: FristTilstand;
   /** Original varsel type from the claim - determines if specification is needed */
   originalVarselType?: FristVarselType;
-  /** Whether BH has sent an etterlysning (§33.6.2) */
-  harMottattEtterlysning?: boolean;
-  /** BH's deadline for specification (from etterlysning) */
+  /** Whether BH has sent an foresporsel (§33.6.2) */
+  harMottattForesporsel?: boolean;
+  /** BH's deadline for specification (from foresporsel) */
   fristForSpesifisering?: string;
   /** Callback when Catenda sync was skipped or failed */
   onCatendaWarning?: () => void;
@@ -100,7 +100,7 @@ export function ReviseFristModal({
   lastResponseEvent,
   fristTilstand,
   originalVarselType,
-  harMottattEtterlysning,
+  harMottattForesporsel,
   fristForSpesifisering,
   onCatendaWarning,
   subsidiaerTriggers,
@@ -110,28 +110,28 @@ export function ReviseFristModal({
   const toast = useToast();
   const harBhSvar = !!lastResponseEvent;
 
-  // Determine modal mode based on claim type and etterlysning status
+  // Determine modal mode based on claim type and foresporsel status
   const modalMode: ModalMode = useMemo(() => {
     // If original claim was only neutral notice without days specified
-    const erKunNoytralt = originalVarselType === 'noytralt' &&
+    const erKunVarsel = originalVarselType === 'varsel' &&
       (lastFristEvent.antall_dager === 0 || lastFristEvent.antall_dager === undefined);
 
-    if (erKunNoytralt) {
-      if (harMottattEtterlysning) {
-        return 'spesifiser_etterlysning';  // Critical - must respond to BH demand
+    if (erKunVarsel) {
+      if (harMottattForesporsel) {
+        return 'spesifiser_foresporsel';  // Critical - must respond to BH demand
       }
       return 'spesifiser_frivillig';  // Voluntary upgrade
     }
 
     return 'revider';  // Standard revision mode
-  }, [originalVarselType, lastFristEvent.antall_dager, harMottattEtterlysning]);
+  }, [originalVarselType, lastFristEvent.antall_dager, harMottattForesporsel]);
 
   // Modal configuration based on mode
   const modalConfig = useMemo(() => {
     switch (modalMode) {
-      case 'spesifiser_etterlysning':
+      case 'spesifiser_foresporsel':
         return {
-          title: 'Svar på byggherrens etterlysning (§33.6.2)',
+          title: 'Svar på byggherrens foresporsel (§33.6.2)',
           submitLabel: 'Send spesifisert krav',
           submitVariant: 'danger' as const,
         };
@@ -254,14 +254,14 @@ export function ReviseFristModal({
         },
       });
     } else {
-      // Specification event (voluntary or in response to etterlysning)
+      // Specification event (voluntary or in response to foresporsel)
       mutation.mutate({
         eventType: 'frist_krav_spesifisert',
         data: {
           original_event_id: lastFristEvent.event_id,
           antall_dager: data.antall_dager,
           begrunnelse: data.begrunnelse,
-          er_svar_pa_etterlysning: modalMode === 'spesifiser_etterlysning',
+          er_svar_pa_foresporsel: modalMode === 'spesifiser_foresporsel',
           ny_sluttdato: data.ny_sluttdato || undefined,
           dato_spesifisert: new Date().toISOString().split('T')[0],
         },
@@ -277,8 +277,8 @@ export function ReviseFristModal({
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Critical warning for etterlysning mode */}
-        {modalMode === 'spesifiser_etterlysning' && (
+        {/* Critical warning for foresporsel mode */}
+        {modalMode === 'spesifiser_foresporsel' && (
           <Alert variant="danger" title="Svarplikt (§33.6.2)">
             Byggherren har etterlyst dette kravet. Du må svare «uten ugrunnet opphold».
             Hvis du ikke sender spesifisert krav nå, <strong>tapes hele retten til fristforlengelse</strong> i denne saken.
@@ -333,9 +333,9 @@ export function ReviseFristModal({
               <div className="bg-pkt-bg-subtle p-4 rounded border border-pkt-grays-gray-200">
                 <div className="flex items-center gap-2 mb-2">
                   <Badge variant="warning">Foreløpig varsel</Badge>
-                  {fristTilstand.noytralt_varsel?.dato_sendt && (
+                  {fristTilstand.frist_varsel?.dato_sendt && (
                     <span className="text-sm text-pkt-grays-gray-600">
-                      Sendt: {fristTilstand.noytralt_varsel.dato_sendt}
+                      Sendt: {fristTilstand.frist_varsel.dato_sendt}
                     </span>
                   )}
                 </div>

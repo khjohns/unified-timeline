@@ -44,7 +44,7 @@ export const mockSakState8: SakState = {
   frist: {
     status: 'godkjent',
     varsel_type: 'spesifisert',
-    noytralt_varsel: {
+    frist_varsel: {
       dato_sendt: '2025-03-15',
       metode: ['epost', 'telefon'],
     },
@@ -55,7 +55,7 @@ export const mockSakState8: SakState = {
     krevd_dager: 8,
     begrunnelse:
       'Byggeplass utilgjengelig i 8 kalenderdager. Kunne ikke utføre noe arbeid. Dokumentert med daglige rapporter.',
-    noytralt_varsel_ok: true,
+    frist_varsel_ok: true,
     spesifisert_krav_ok: true,
     vilkar_oppfylt: true,
     bh_resultat: 'godkjent',

@@ -40,7 +40,7 @@ export const mockTimelineEvents5: TimelineEntry[] = [
     sammendrag: 'Subsidiært godkjent 14 dager (bestrider grunnlag)',
     event_data: {
       // Port 1: Varsling
-      noytralt_varsel_ok: true,
+      frist_varsel_ok: true,
       spesifisert_krav_ok: true,
       begrunnelse_varsel: 'Varsler er mottatt i tide.',
       // Port 2: Vilkår - prinsipalt avslag pga grunnlag
@@ -105,7 +105,7 @@ export const mockTimelineEvents5: TimelineEntry[] = [
     sammendrag: 'Krav på 14 dager fristforlengelse',
     event_data: {
       varsel_type: 'spesifisert',
-      noytralt_varsel: { dato_sendt: '2025-02-02', metode: ['epost'] },
+      frist_varsel: { dato_sendt: '2025-02-02', metode: ['epost'] },
       spesifisert_varsel: { dato_sendt: '2025-02-03', metode: ['epost'] },
       antall_dager: 14,
       begrunnelse: 'Omlegging av rør krever 14 ekstra dager.',

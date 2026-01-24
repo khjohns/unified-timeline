@@ -55,10 +55,10 @@ const fristSchema = z.object({
     errorMap: () => ({ message: 'Varseltype er påkrevd' }),
   }),
 
-  // VarselInfo for nøytralt varsel (§33.4)
-  noytralt_varsel_sendes_na: z.boolean().optional(),
-  noytralt_varsel_dato: z.string().optional(),
-  noytralt_varsel_metoder: z.array(z.string()).optional(),
+  // VarselInfo for varsel om fristforlengelse (§33.4)
+  frist_varsel_sendes_na: z.boolean().optional(),
+  frist_varsel_dato: z.string().optional(),
+  frist_varsel_metoder: z.array(z.string()).optional(),
 
   // VarselInfo for spesifisert krav (§33.6)
   spesifisert_varsel_sendes_na: z.boolean().optional(),
@@ -131,8 +131,8 @@ export function SendFristModal({
   } = useForm<FristFormData>({
     resolver: zodResolver(fristSchema),
     defaultValues: {
-      noytralt_varsel_sendes_na: false,
-      noytralt_varsel_metoder: [],
+      frist_varsel_sendes_na: false,
+      frist_varsel_metoder: [],
       spesifisert_varsel_sendes_na: false,
       spesifisert_varsel_metoder: [],
       attachments: [],
@@ -196,7 +196,7 @@ export function SendFristModal({
 
   // Watch for conditional rendering
   const selectedVarselType = watch('varsel_type');
-  const noytraltVarselSendesNa = watch('noytralt_varsel_sendes_na');
+  const fristVarselSendesNa = watch('frist_varsel_sendes_na');
   const spesifisertVarselSendesNa = watch('spesifisert_varsel_sendes_na');
 
   // Calculate days since the issue was discovered (for §33.4 preclusion warning)
@@ -229,19 +229,19 @@ export function SendFristModal({
     pendingToastId.current = toast.pending('Sender fristkrav...', 'Vennligst vent mens kravet behandles.');
 
     // Build VarselInfo structures
-    // For nøytralt varsel: use today's date and 'system' method if "sendes nå" is checked
-    const noytraltDato = data.noytralt_varsel_sendes_na
+    // For varsel om fristforlengelse: use today's date and 'system' method if "sendes nå" is checked
+    const fristVarselDato = data.frist_varsel_sendes_na
       ? new Date().toISOString().split('T')[0]
-      : data.noytralt_varsel_dato;
+      : data.frist_varsel_dato;
 
-    const noytraltMetode = data.noytralt_varsel_sendes_na
+    const fristVarselMetode = data.frist_varsel_sendes_na
       ? ['system']
-      : (data.noytralt_varsel_metoder || []);
+      : (data.frist_varsel_metoder || []);
 
-    const noytraltVarsel = noytraltDato
+    const fristVarsel = fristVarselDato
       ? {
-          dato_sendt: noytraltDato,
-          metode: noytraltMetode,
+          dato_sendt: fristVarselDato,
+          metode: fristVarselMetode,
         }
       : undefined;
 
@@ -266,7 +266,7 @@ export function SendFristModal({
       data: {
         grunnlag_event_id: grunnlagEventId,
         varsel_type: data.varsel_type,
-        noytralt_varsel: noytraltVarsel,
+        frist_varsel: fristVarsel,
         spesifisert_varsel: spesifisertVarsel,
         antall_dager: data.antall_dager,
         begrunnelse: data.begrunnelse,
@@ -337,7 +337,7 @@ export function SendFristModal({
                   {field.value && (
                     <div className="mt-4 space-y-4">
                       {/* Dager siden forholdet oppstod - kun når dato_oppdaget er tilgjengelig */}
-                      {grunnlagEvent?.dato_oppdaget && (field.value === 'noytralt' || field.value === 'spesifisert') && (
+                      {grunnlagEvent?.dato_oppdaget && (field.value === 'varsel' || field.value === 'spesifisert') && (
                         <div className="flex items-center gap-3 p-3 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
                           <span className="text-sm text-pkt-text-body">
                             Forholdet oppstod{' '}
@@ -358,7 +358,7 @@ export function SendFristModal({
                       {/* Varslingsregel med accordion for konsekvenser */}
                       <VarslingsregelInline
                         hjemmel={
-                          field.value === 'noytralt' ? '§33.4' :
+                          field.value === 'varsel' ? '§33.4' :
                           field.value === 'spesifisert' ? '§33.6.1' :
                           '§33.6.2'
                         }
@@ -372,7 +372,7 @@ export function SendFristModal({
         </SectionContainer>
 
         {/* Varseldetaljer for varsel om fristforlengelse */}
-        {selectedVarselType === 'noytralt' && (
+        {selectedVarselType === 'varsel' && (
           <SectionContainer
             title="Varsel om fristforlengelse (§33.4)"
             description="Dokumenter når og hvordan varselet ble sendt"
@@ -392,11 +392,11 @@ export function SendFristModal({
               )}
 
               <Controller
-                name="noytralt_varsel_sendes_na"
+                name="frist_varsel_sendes_na"
                 control={control}
                 render={({ field: sendesNaField }) => (
                   <Controller
-                    name="noytralt_varsel_dato"
+                    name="frist_varsel_dato"
                     control={control}
                     render={({ field: datoField }) => (
                       <VarselSeksjon
@@ -405,10 +405,10 @@ export function SendFristModal({
                         onSendesNaChange={sendesNaField.onChange}
                         datoSendt={datoField.value}
                         onDatoSendtChange={datoField.onChange}
-                        datoError={errors.noytralt_varsel_dato?.message}
-                        registerMetoder={register('noytralt_varsel_metoder')}
-                        idPrefix="noytralt_varsel"
-                        testId="noytralt-varsel-valg"
+                        datoError={errors.frist_varsel_dato?.message}
+                        registerMetoder={register('frist_varsel_metoder')}
+                        idPrefix="frist_varsel"
+                        testId="frist-varsel-valg"
                       />
                     )}
                   />

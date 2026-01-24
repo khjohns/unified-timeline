@@ -51,7 +51,7 @@ function getKravDato(spor: SporType, state: SakState): string | undefined {
       return state.vederlag.krav_fremmet_dato;
     case 'frist':
       return state.frist.spesifisert_varsel?.dato_sendt ||
-             state.frist.noytralt_varsel?.dato_sendt;
+             state.frist.frist_varsel?.dato_sendt;
     default:
       return undefined;
   }

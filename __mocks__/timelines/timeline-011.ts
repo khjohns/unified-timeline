@@ -43,7 +43,7 @@ export const mockTimelineEvents11: TimelineEntry[] = [
     sammendrag: 'Avslått prinsipalt - subsidiært 10 dager',
     event_data: {
       // Port 1: Varsling OK
-      noytralt_varsel_ok: true,
+      frist_varsel_ok: true,
       spesifisert_krav_ok: true,
       begrunnelse_varsel: 'Begge varsler mottatt i tide.',
 
@@ -190,7 +190,7 @@ export const mockTimelineEvents11: TimelineEntry[] = [
     spor: 'frist',
     sammendrag: 'Nøytralt varsel om mulig fristforlengelse',
     event_data: {
-      noytralt_varsel: { dato_sendt: '2025-02-12', metode: ['epost'] },
+      frist_varsel: { dato_sendt: '2025-02-12', metode: ['epost'] },
       begrunnelse:
         'Forsinket stålleveranse kan medføre behov for fristforlengelse. Spesifisert krav følger.',
     },

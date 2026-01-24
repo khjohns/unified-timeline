@@ -83,8 +83,8 @@ interface FristEventInfo {
   dato_krav_mottatt?: string;
   /** Date when TE discovered the issue (from grunnlag) */
   dato_oppdaget?: string;
-  /** Foreløpig varsel info (§33.4) */
-  noytralt_varsel?: VarselInfoData;
+  /** Varsel om fristforlengelse info (§33.4) */
+  frist_varsel?: VarselInfoData;
   /** Spesifisert krav info (§33.6) */
   spesifisert_varsel?: VarselInfoData;
 }
@@ -108,8 +108,8 @@ interface RespondFristModalProps {
   fristEvent?: FristEventInfo;
   /** Status of the grunnlag response (for subsidiary treatment) */
   grunnlagStatus?: 'godkjent' | 'avslatt' | 'delvis_godkjent';
-  /** Type of varsel TE sent (nøytralt or spesifisert) - determines which checks to show */
-  varselType?: 'noytralt' | 'spesifisert';
+  /** Type of varsel TE sent - determines which checks to show */
+  varselType?: 'varsel' | 'spesifisert' | 'begrunnelse_utsatt';
   /** Callback when Catenda sync was skipped or failed */
   onCatendaWarning?: () => void;
   /** When true, show "Lagre utkast" instead of "Send svar" for approval workflow */
@@ -135,10 +135,10 @@ interface RespondFristModalProps {
 
 const respondFristSchema = z.object({
   // Port 1: Preklusjon
-  noytralt_varsel_ok: z.boolean().optional(),
+  frist_varsel_ok: z.boolean().optional(),  // §33.4: Varsel om fristforlengelse rettidig?
   spesifisert_krav_ok: z.boolean().optional(),
-  etterlysning_svar_ok: z.boolean().optional(), // §33.6.2/§5: Svar på etterlysning i tide?
-  send_etterlysning: z.boolean().optional(),
+  foresporsel_svar_ok: z.boolean().optional(), // §33.6.2/§5: Svar på forespørsel i tide?
+  send_foresporsel: z.boolean().optional(),
   frist_for_spesifisering: z.string().optional(),
 
   // Port 2: Vilkår (alltid vurderes, evt. subsidiært)
@@ -178,13 +178,13 @@ type RespondFristFormData = z.infer<typeof respondFristSchema>;
  */
 function beregnPrinsipaltResultat(data: {
   erPrekludert: boolean;
-  sendEtterlysning: boolean;
+  sendForesporsel: boolean;
   harHindring: boolean;
   krevdDager: number;
   godkjentDager: number;
 }): string {
   // 1. Etterlysning sendes - avslått (BH avslår midlertidig, venter på spesifisert krav)
-  if (data.sendEtterlysning) {
+  if (data.sendForesporsel) {
     return 'avslatt';
   }
 
@@ -276,8 +276,8 @@ export function RespondFristModal({
   const effektivKrevdDager = fristEvent?.antall_dager ?? krevdDager ?? fristTilstand?.krevd_dager ?? 0;
 
   // Check if this is a neutral notice without specified days
-  // In this case, BH should typically send etterlysning to request specification
-  const erNoytraltUtenDager = varselType === 'noytralt' && effektivKrevdDager === 0;
+  // In this case, BH should typically send forespørsel to request specification
+  const erVarselUtenDager = varselType === 'varsel' && effektivKrevdDager === 0;
 
   // §33.6.2 bokstav b: TE har begrunnet hvorfor beregning ikke er mulig
   // I dette tilfellet gjelder §33.6.1 videre - BH kan bare bekrefte mottak
@@ -288,21 +288,21 @@ export function RespondFristModal({
     if (isUpdateMode && lastResponseEvent && fristTilstand) {
       // UPDATE MODE: Pre-fill from previous response
       return {
-        noytralt_varsel_ok: fristTilstand.noytralt_varsel_ok ?? true,
+        frist_varsel_ok: fristTilstand.frist_varsel_ok ?? true,
         spesifisert_krav_ok: fristTilstand.spesifisert_krav_ok ?? true,
-        etterlysning_svar_ok: fristTilstand.etterlysning_svar_ok ?? true,
+        foresporsel_svar_ok: fristTilstand.foresporsel_svar_ok ?? true,
         vilkar_oppfylt: fristTilstand.vilkar_oppfylt ?? true,
-        send_etterlysning: false,
+        send_foresporsel: false,
         godkjent_dager: lastResponseEvent.godkjent_dager ?? effektivKrevdDager,
       };
     }
     // RESPOND MODE: Default values
     return {
-      noytralt_varsel_ok: true,
+      frist_varsel_ok: true,
       spesifisert_krav_ok: true,
-      etterlysning_svar_ok: true,
+      foresporsel_svar_ok: true,
       vilkar_oppfylt: true,
-      send_etterlysning: false,
+      send_foresporsel: false,
       godkjent_dager: effektivKrevdDager,
     };
   }, [isUpdateMode, lastResponseEvent, fristTilstand, effektivKrevdDager]);
@@ -322,11 +322,11 @@ export function RespondFristModal({
     resolver: zodResolver(respondFristSchema),
     mode: 'onTouched', // Only show errors after field is touched
     defaultValues: {
-      noytralt_varsel_ok: true,
+      frist_varsel_ok: true,
       spesifisert_krav_ok: true,
-      etterlysning_svar_ok: true,
+      foresporsel_svar_ok: true,
       vilkar_oppfylt: true,
-      send_etterlysning: false,
+      send_foresporsel: false,
       godkjent_dager: effektivKrevdDager,
     },
   });
@@ -406,50 +406,50 @@ export function RespondFristModal({
 
   // Sjekk om det finnes tidligere nøytralt varsel som ble akseptert som i tide
   // Dette er viktig for å skille mellom §33.4 preklusjon og §33.6.1 reduksjon
-  const harTidligereNoytraltVarselITide = useMemo(() => {
+  const harTidligereVarselITide = useMemo(() => {
     // Tidligere vurdert og akseptert av BH
-    if (fristTilstand?.noytralt_varsel_ok === true) {
+    if (fristTilstand?.frist_varsel_ok === true) {
       return true;
     }
     // Finnes nøytralt varsel (fra event eller tilstand) og BH har ikke avslått det
-    const harNoytraltVarsel = !!(fristEvent?.noytralt_varsel || fristTilstand?.noytralt_varsel);
-    if (harNoytraltVarsel && formValues.noytralt_varsel_ok !== false) {
+    const harFristVarsel = !!(fristEvent?.frist_varsel || fristTilstand?.frist_varsel);
+    if (harFristVarsel && formValues.frist_varsel_ok !== false) {
       return true;
     }
     return false;
-  }, [fristTilstand?.noytralt_varsel_ok, fristTilstand?.noytralt_varsel, fristEvent?.noytralt_varsel, formValues.noytralt_varsel_ok]);
+  }, [fristTilstand?.frist_varsel_ok, fristTilstand?.frist_varsel, fristEvent?.frist_varsel, formValues.frist_varsel_ok]);
 
-  // §33.6.2 fjerde ledd: Hvis kravet er svar på etterlysning, kan byggherren
+  // §33.6.2 fjerde ledd: Hvis kravet er svar på forespørsel, kan byggherren
   // IKKE påberope at fristen i §33.6.1 er oversittet
-  const erSvarPaEtterlysning = useMemo(() => {
-    return fristTilstand?.har_bh_etterlyst === true && varselType === 'spesifisert';
-  }, [fristTilstand?.har_bh_etterlyst, varselType]);
+  const erSvarPaForesporsel = useMemo(() => {
+    return fristTilstand?.har_bh_foresporsel === true && varselType === 'spesifisert';
+  }, [fristTilstand?.har_bh_foresporsel, varselType]);
 
-  // §33.6.2 tredje ledd + §5: Sen respons på etterlysning = PREKLUSJON
+  // §33.6.2 tredje ledd + §5: Sen respons på forespørsel = PREKLUSJON
   // BH må påberope dette via §5 ("skriftlig uten ugrunnet opphold")
-  const erEtterlysningSvarForSent = useMemo(() => {
-    return erSvarPaEtterlysning && formValues.etterlysning_svar_ok === false;
-  }, [erSvarPaEtterlysning, formValues.etterlysning_svar_ok]);
+  const erForesporselSvarForSent = useMemo(() => {
+    return erSvarPaForesporsel && formValues.foresporsel_svar_ok === false;
+  }, [erSvarPaForesporsel, formValues.foresporsel_svar_ok]);
 
   // Calculate preclusion status from Port 1
   // §33.4: Varsel for sent = FULL PREKLUSJON (kravet tapes)
   // §33.6.2 tredje ledd: Sen respons på forespørsel = PREKLUSJON
   const erPrekludert = useMemo(() => {
     // §33.6.2 tredje ledd + §5: Sen respons på forespørsel = PREKLUSJON
-    if (erEtterlysningSvarForSent) {
+    if (erForesporselSvarForSent) {
       return true;
     }
     // §33.4: Nøytralt varsel for sent = PREKLUSJON
-    if (varselType === 'noytralt') {
-      return formValues.noytralt_varsel_ok === false;
+    if (varselType === 'varsel') {
+      return formValues.frist_varsel_ok === false;
     }
     // §33.4: Spesifisert krav direkte (uten tidligere nøytralt varsel i tide)
-    // Vi bruker noytralt_varsel_ok for §33.4-vurderingen også her
-    if (varselType === 'spesifisert' && !harTidligereNoytraltVarselITide) {
-      return formValues.noytralt_varsel_ok === false;
+    // Vi bruker frist_varsel_ok for §33.4-vurderingen også her
+    if (varselType === 'spesifisert' && !harTidligereVarselITide) {
+      return formValues.frist_varsel_ok === false;
     }
     return false;
-  }, [formValues.noytralt_varsel_ok, varselType, harTidligereNoytraltVarselITide, erEtterlysningSvarForSent]);
+  }, [formValues.frist_varsel_ok, varselType, harTidligereVarselITide, erForesporselSvarForSent]);
 
   // §33.6.1: Sen spesifisering gir reduksjon (ikke preklusjon)
   // Entreprenøren har kun krav på det byggherren "måtte forstå"
@@ -457,37 +457,37 @@ export function RespondFristModal({
   // UNNTAK: Gjelder IKKE når kravet er svar på forespørsel (§33.6.2 fjerde ledd)
   const erRedusert_33_6_1 = useMemo(() => {
     // §33.6.2 fjerde ledd: Byggherren kan ikke påberope §33.6.1 ved svar på forespørsel
-    if (erSvarPaEtterlysning) {
+    if (erSvarPaForesporsel) {
       return false;
     }
     // Case 1: TE sendte nøytralt varsel i tide, men spesifisert krav for sent
-    if (varselType === 'spesifisert' && harTidligereNoytraltVarselITide) {
+    if (varselType === 'spesifisert' && harTidligereVarselITide) {
       return formValues.spesifisert_krav_ok === false;
     }
     // Case 2: TE sendte kun spesifisert krav - §33.4 OK men §33.6.1 for sent
-    if (varselType === 'spesifisert' && !harTidligereNoytraltVarselITide) {
-      return formValues.noytralt_varsel_ok === true && formValues.spesifisert_krav_ok === false;
+    if (varselType === 'spesifisert' && !harTidligereVarselITide) {
+      return formValues.frist_varsel_ok === true && formValues.spesifisert_krav_ok === false;
     }
     return false;
-  }, [formValues.noytralt_varsel_ok, formValues.spesifisert_krav_ok, varselType, erSvarPaEtterlysning, harTidligereNoytraltVarselITide]);
+  }, [formValues.frist_varsel_ok, formValues.spesifisert_krav_ok, varselType, erSvarPaForesporsel, harTidligereVarselITide]);
 
-  // Reset send_etterlysning when noytralt_varsel_ok changes to false
-  // (etterlysning is only valid when varsel was on time)
+  // Reset send_foresporsel when frist_varsel_ok changes to false
+  // (forespørsel is only valid when varsel was on time)
   useEffect(() => {
-    if (formValues.noytralt_varsel_ok === false && formValues.send_etterlysning === true) {
-      setValue('send_etterlysning', false);
+    if (formValues.frist_varsel_ok === false && formValues.send_foresporsel === true) {
+      setValue('send_foresporsel', false);
     }
-  }, [formValues.noytralt_varsel_ok, formValues.send_etterlysning, setValue]);
+  }, [formValues.frist_varsel_ok, formValues.send_foresporsel, setValue]);
 
-  // Check if sending etterlysning (blocks further evaluation)
-  const sendEtterlysning = formValues.send_etterlysning === true;
+  // Check if sending forespørsel (blocks further evaluation)
+  const sendForesporsel = formValues.send_foresporsel === true;
 
   // Check hindrance status from Port 2
   const harHindring = formValues.vilkar_oppfylt === true;
 
   // Determine subsidiary treatment levels
-  const port2ErSubsidiaer = erPrekludert && !sendEtterlysning;
-  const port3ErSubsidiaer = (erPrekludert || !harHindring) && !sendEtterlysning;
+  const port2ErSubsidiaer = erPrekludert && !sendForesporsel;
+  const port3ErSubsidiaer = (erPrekludert || !harHindring) && !sendForesporsel;
 
   // Get godkjent dager (respecting subsidiary logic)
   const godkjentDager = formValues.godkjent_dager ?? 0;
@@ -497,12 +497,12 @@ export function RespondFristModal({
     () =>
       beregnPrinsipaltResultat({
         erPrekludert,
-        sendEtterlysning,
+        sendForesporsel,
         harHindring,
         krevdDager: effektivKrevdDager,
         godkjentDager,
       }),
-    [erPrekludert, sendEtterlysning, harHindring, effektivKrevdDager, godkjentDager]
+    [erPrekludert, sendForesporsel, harHindring, effektivKrevdDager, godkjentDager]
   );
 
   // Calculate subsidiary result (only relevant if prinsipalt is avvist)
@@ -528,10 +528,10 @@ export function RespondFristModal({
       krevdDager: effektivKrevdDager,
 
       // Preklusjon
-      noytraltVarselOk: formValues.noytralt_varsel_ok,
+      fristVarselOk: formValues.frist_varsel_ok,
       spesifisertKravOk: formValues.spesifisert_krav_ok,
-      etterlysningVarOk: formValues.etterlysning_svar_ok,
-      sendEtterlysning: sendEtterlysning,
+      foresporselSvarOk: formValues.foresporsel_svar_ok,
+      sendForesporsel: sendForesporsel,
 
       // Vilkår
       vilkarOppfylt: harHindring,
@@ -541,9 +541,9 @@ export function RespondFristModal({
 
       // Computed
       erPrekludert: erPrekludert,
-      erEtterlysningSvarForSent: erEtterlysningSvarForSent,
+      erForesporselSvarForSent: erForesporselSvarForSent,
       erRedusert_33_6_1: erRedusert_33_6_1,
-      harTidligereNoytraltVarselITide: harTidligereNoytraltVarselITide,
+      harTidligereVarselITide: harTidligereVarselITide,
       prinsipaltResultat: prinsipaltResultat,
       subsidiaertResultat: subsidiaertResultat,
       visSubsidiaertResultat: visSubsidiaertResultat,
@@ -553,16 +553,16 @@ export function RespondFristModal({
   }, [
     varselType,
     effektivKrevdDager,
-    formValues.noytralt_varsel_ok,
+    formValues.frist_varsel_ok,
     formValues.spesifisert_krav_ok,
-    formValues.etterlysning_svar_ok,
-    sendEtterlysning,
+    formValues.foresporsel_svar_ok,
+    sendForesporsel,
     harHindring,
     godkjentDager,
     erPrekludert,
-    erEtterlysningSvarForSent,
+    erForesporselSvarForSent,
     erRedusert_33_6_1,
-    harTidligereNoytraltVarselITide,
+    harTidligereVarselITide,
     prinsipaltResultat,
     subsidiaertResultat,
     visSubsidiaertResultat,
@@ -621,9 +621,9 @@ export function RespondFristModal({
     // Validate current port based on step type
     if (currentStepType === 'preklusjon') {
       isValid = await trigger([
-        'noytralt_varsel_ok',
+        'frist_varsel_ok',
         'spesifisert_krav_ok',
-        'send_etterlysning',
+        'send_foresporsel',
       ]);
     } else if (currentStepType === 'vilkar') {
       isValid = await trigger(['vilkar_oppfylt']);
@@ -699,8 +699,8 @@ export function RespondFristModal({
 
       // Port 2: Preklusjon-endringer (kun til TEs gunst)
       if (data.endre_preklusjon) {
-        if (varselType === 'noytralt') {
-          eventData.noytralt_varsel_ok = true;
+        if (varselType === 'varsel') {
+          eventData.frist_varsel_ok = true;
         } else {
           eventData.spesifisert_krav_ok = true;
         }
@@ -733,7 +733,7 @@ export function RespondFristModal({
     // Port 1: Preklusjon-trigger (kun §33.4 - nøytralt varsel for sent)
     // Merk: §33.6.1 (spesifisert for sent) er REDUKSJON, ikke preklusjon
     if (erPrekludert) {
-      triggers.push('preklusjon_noytralt');
+      triggers.push('preklusjon_varsel');
     }
 
     // Port 2: Ingen hindring trigger
@@ -750,10 +750,10 @@ export function RespondFristModal({
         frist_krav_id: fristKravId,
 
         // Port 1: Preklusjon
-        noytralt_varsel_ok: data.noytralt_varsel_ok,
+        frist_varsel_ok: data.frist_varsel_ok,
         spesifisert_krav_ok: data.spesifisert_krav_ok,
-        etterlysning_svar_ok: data.etterlysning_svar_ok,
-        send_etterlysning: data.send_etterlysning,
+        foresporsel_svar_ok: data.foresporsel_svar_ok,
+        send_foresporsel: data.send_foresporsel,
         frist_for_spesifisering: data.frist_for_spesifisering,
 
         // Port 2: Vilkår
@@ -798,9 +798,9 @@ export function RespondFristModal({
 
     // Compare current form values with previous state
     return (
-      formValues.noytralt_varsel_ok !== fristTilstand.noytralt_varsel_ok ||
+      formValues.frist_varsel_ok !== fristTilstand.frist_varsel_ok ||
       formValues.spesifisert_krav_ok !== fristTilstand.spesifisert_krav_ok ||
-      formValues.etterlysning_svar_ok !== fristTilstand.etterlysning_svar_ok ||
+      formValues.foresporsel_svar_ok !== fristTilstand.foresporsel_svar_ok ||
       formValues.vilkar_oppfylt !== fristTilstand.vilkar_oppfylt ||
       formValues.godkjent_dager !== lastResponseEvent.godkjent_dager
     );
@@ -811,7 +811,7 @@ export function RespondFristModal({
     if (!isUpdateMode || !lastResponseEvent || !fristTilstand) return false;
 
     // Preklusjon changed from OK to not OK = to disadvantage
-    if (fristTilstand.noytralt_varsel_ok === true && formValues.noytralt_varsel_ok === false) return true;
+    if (fristTilstand.frist_varsel_ok === true && formValues.frist_varsel_ok === false) return true;
     if (fristTilstand.spesifisert_krav_ok === true && formValues.spesifisert_krav_ok === false) return true;
 
     // Vilkår changed from OK to not OK = to disadvantage
@@ -874,7 +874,7 @@ export function RespondFristModal({
                 </p>
                 <p className="mt-2">
                   Entreprenøren må sende spesifisert krav «uten ugrunnet opphold» når
-                  beregningsgrunnlaget foreligger. Du kan sende ny etterlysning senere hvis
+                  beregningsgrunnlaget foreligger. Du kan sende ny forespørsel senere hvis
                   du mener grunnlaget burde foreligge.
                 </p>
               </Alert>
@@ -924,7 +924,7 @@ export function RespondFristModal({
               <SectionContainer title="Fristkrav fra entreprenør">
                 <DataList align="right">
                   <DataListItem label="Krevd forlengelse" mono>
-                    {erNoytraltUtenDager ? (
+                    {erVarselUtenDager ? (
                       <Badge variant="warning">Ikke spesifisert</Badge>
                     ) : (
                       <>{effektivKrevdDager} dager</>
@@ -940,7 +940,7 @@ export function RespondFristModal({
                   {varselType && (
                     <DataListItem label="Type varsel">
                       <Badge variant="default">
-                        {varselType === 'noytralt' && 'Foreløpig varsel (§33.4)'}
+                        {varselType === 'varsel' && 'Foreløpig varsel (§33.4)'}
                         {varselType === 'spesifisert' && 'Spesifisert krav (§33.6)'}
                         {varselType === 'begrunnelse_utsatt' && 'Begrunnelse for utsettelse (§33.6.2 b)'}
                       </Badge>
@@ -1002,7 +1002,7 @@ export function RespondFristModal({
                 </div>
 
                 {/* Etterlysning-info for foreløpig varsel */}
-                {varselType === 'noytralt' && (
+                {varselType === 'varsel' && (
                   <div className="mt-4 pt-3 border-t border-pkt-border-subtle text-sm text-pkt-text-body-subtle">
                     <strong>Merk:</strong> Ved foreløpig varsel kan du etterspørre et spesifisert krav
                     (§33.6.2). Hvis entreprenøren ikke svarer i tide, tapes kravet.
@@ -1021,23 +1021,23 @@ export function RespondFristModal({
               description="Vurder om entreprenøren har varslet i tide. Hvis ikke, kan kravet avvises pga preklusjon."
             >
               {/* Varslingsregel info - viser relevant regel basert på varseltype */}
-              {varselType === 'noytralt' && (
+              {varselType === 'varsel' && (
                 <div className="mb-4">
                   <VarslingsregelInline hjemmel="§33.4" />
                 </div>
               )}
-              {varselType === 'spesifisert' && !erSvarPaEtterlysning && harTidligereNoytraltVarselITide && (
+              {varselType === 'spesifisert' && !erSvarPaForesporsel && harTidligereVarselITide && (
                 <div className="mb-4">
                   <VarslingsregelInline hjemmel="§33.6.1" />
                 </div>
               )}
-              {varselType === 'spesifisert' && !erSvarPaEtterlysning && !harTidligereNoytraltVarselITide && (
+              {varselType === 'spesifisert' && !erSvarPaForesporsel && !harTidligereVarselITide && (
                 <div className="mb-4 space-y-2">
                   <VarslingsregelInline hjemmel="§33.4" />
                   <VarslingsregelInline hjemmel="§33.6.1" />
                 </div>
               )}
-              {erSvarPaEtterlysning && (
+              {erSvarPaForesporsel && (
                 <div className="mb-4">
                   <VarslingsregelInline hjemmel="§33.6.2" />
                 </div>
@@ -1045,8 +1045,8 @@ export function RespondFristModal({
 
               {/* Show varsel info */}
               {varselType && (() => {
-                const varselInfo = varselType === 'noytralt'
-                  ? (fristEvent?.noytralt_varsel || fristTilstand?.noytralt_varsel)
+                const varselInfo = varselType === 'varsel'
+                  ? (fristEvent?.frist_varsel || fristTilstand?.frist_varsel)
                   : (fristEvent?.spesifisert_varsel || fristTilstand?.spesifisert_varsel);
                 const varselDato = varselInfo?.dato_sendt;
                 const varselMetode = varselInfo?.metode;
@@ -1112,7 +1112,7 @@ export function RespondFristModal({
               })()}
 
               {/* Foreløpig varsel */}
-              {varselType === 'noytralt' && (
+              {varselType === 'varsel' && (
                 <>
                   <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
                     <FormField
@@ -1121,7 +1121,7 @@ export function RespondFristModal({
                       helpText="Entreprenøren skal varsle 'uten ugrunnet opphold' når han blir klar over at det kan oppstå forsinkelse."
                     >
                       <Controller
-                        name="noytralt_varsel_ok"
+                        name="frist_varsel_ok"
                         control={control}
                         render={({ field }) => (
                           <RadioGroup
@@ -1141,7 +1141,7 @@ export function RespondFristModal({
                     </FormField>
 
                     {/* §5 innsigelse - når BH påberoper for sent varsel */}
-                    {formValues.noytralt_varsel_ok === false && (
+                    {formValues.frist_varsel_ok === false && (
                       <Alert variant="danger" title="Preklusjon etter §33.4" className="mt-3">
                         Entreprenøren varslet ikke «uten ugrunnet opphold». Du påberoper at kravet
                         er tapt. Husk at du må gjøre denne innsigelsen skriftlig «uten ugrunnet
@@ -1151,16 +1151,16 @@ export function RespondFristModal({
                   </div>
 
                   {/* Etterlysning option - only if varsel was OK */}
-                  {formValues.noytralt_varsel_ok && (
+                  {formValues.frist_varsel_ok && (
                     <div className="space-y-3">
                       <Alert variant="warning" title="Etterlysning (§33.6.2)">
                         Entreprenøren har kun sendt foreløpig varsel uten antall dager. Du kan
                         etterspørre et spesifisert krav. Hvis entreprenøren ikke svarer «uten ugrunnet
                         opphold», tapes kravet.
                       </Alert>
-                      <FormField label="Vil du sende etterlysning?">
+                      <FormField label="Vil du sende forespørsel?">
                         <Controller
-                          name="send_etterlysning"
+                          name="send_foresporsel"
                           control={control}
                           render={({ field }) => (
                             <RadioGroup
@@ -1169,14 +1169,14 @@ export function RespondFristModal({
                               }
                               onValueChange={(val: string) => field.onChange(val === 'ja')}
                             >
-                              <RadioItem value="ja" label="Ja - send etterlysning nå" />
+                              <RadioItem value="ja" label="Ja - send forespørsel nå" />
                               <RadioItem value="nei" label="Nei - fortsett behandling" />
                             </RadioGroup>
                           )}
                         />
                       </FormField>
 
-                      {formValues.send_etterlysning && (
+                      {formValues.send_foresporsel && (
                         <FormField
                           label="Frist for svar"
                           helpText="Angi fristen innen hvilken entreprenøren må levere spesifisert krav"
@@ -1202,8 +1202,8 @@ export function RespondFristModal({
               {/* Spesifisert krav */}
               {varselType === 'spesifisert' && (
                 <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle">
-                  {/* §33.6.2: Svar på etterlysning */}
-                  {erSvarPaEtterlysning ? (
+                  {/* §33.6.2: Svar på forespørsel */}
+                  {erSvarPaForesporsel ? (
                     <>
                       <Alert variant="info" title="Svar på forespørsel (§33.6.2)" className="mb-4">
                         Dette kravet er et svar på din forespørsel. Du kan ikke påberope at fristen
@@ -1216,7 +1216,7 @@ export function RespondFristModal({
                         helpText="Entreprenøren skal svare «uten ugrunnet opphold» på forespørselen. Hvis ikke, må du påberope dette skriftlig (§5)."
                       >
                         <Controller
-                          name="etterlysning_svar_ok"
+                          name="foresporsel_svar_ok"
                           control={control}
                           render={({ field }) => (
                             <RadioGroup
@@ -1235,7 +1235,7 @@ export function RespondFristModal({
                         />
                       </FormField>
                       {/* Info om §5 innsigelse */}
-                      {erEtterlysningSvarForSent && (
+                      {erForesporselSvarForSent && (
                         <Alert variant="danger" title="Preklusjon etter §33.6.2 tredje ledd" className="mt-3">
                           Entreprenøren svarte ikke «uten ugrunnet opphold» på forespørselen.
                           Du påberoper nå at kravet er tapt iht. §33.6.2 tredje ledd, jf. §5.
@@ -1243,7 +1243,7 @@ export function RespondFristModal({
                         </Alert>
                       )}
                     </>
-                  ) : harTidligereNoytraltVarselITide ? (
+                  ) : harTidligereVarselITide ? (
                     /* Case: TE sendte nøytralt varsel i tide først - kun §33.6.1 vurdering */
                     <>
                       <FormField
@@ -1298,7 +1298,7 @@ export function RespondFristModal({
                           helpText="Vurder om kravet ble sendt «uten ugrunnet opphold» etter at forholdet oppstod. Skjæringstidspunktet er dato oppdaget."
                         >
                           <Controller
-                            name="noytralt_varsel_ok"
+                            name="frist_varsel_ok"
                             control={control}
                             render={({ field }) => (
                               <RadioGroup
@@ -1316,7 +1316,7 @@ export function RespondFristModal({
                             )}
                           />
                         </FormField>
-                        {formValues.noytralt_varsel_ok === false && (
+                        {formValues.frist_varsel_ok === false && (
                           <Alert variant="danger" title="Preklusjon etter §33.4" className="mt-3">
                             Kravet ble ikke varslet «uten ugrunnet opphold» etter at forholdet oppstod.
                             Kravet er prekludert. Husk at du må gjøre denne innsigelsen skriftlig
@@ -1326,7 +1326,7 @@ export function RespondFristModal({
                       </div>
 
                       {/* 2. §33.6.1: Spesifisert krav - kun hvis §33.4 OK */}
-                      {formValues.noytralt_varsel_ok === true && (
+                      {formValues.frist_varsel_ok === true && (
                         <div className="p-3 border border-pkt-border-subtle rounded-none">
                           <FormField
                             label="2. Spesifisert i tide? (§33.6.1)"
@@ -1394,7 +1394,7 @@ export function RespondFristModal({
                     />
                   </FormField>
                   {/* Info avhengig av om det finnes tidligere nøytralt varsel */}
-                  {formValues.spesifisert_krav_ok === false && harTidligereNoytraltVarselITide && (
+                  {formValues.spesifisert_krav_ok === false && harTidligereVarselITide && (
                     <Alert variant="warning" title="Reduksjon etter §33.6.1" className="mt-3">
                       Entreprenøren har kun krav på den fristforlengelsen byggherren måtte forstå
                       at han hadde krav på. I beregningssteget angir du hvor mange dager du mener
@@ -1402,7 +1402,7 @@ export function RespondFristModal({
                       skriftlig «uten ugrunnet opphold» etter å ha mottatt kravet, jf. §5.
                     </Alert>
                   )}
-                  {formValues.spesifisert_krav_ok === false && !harTidligereNoytraltVarselITide && (
+                  {formValues.spesifisert_krav_ok === false && !harTidligereVarselITide && (
                     <Alert variant="danger" title="Preklusjon etter §33.4" className="mt-3">
                       Uten tidligere foreløpig varsel i tide, fungerer kravet som varsel. Siden det
                       kom for sent, er kravet prekludert. Husk at du må gjøre denne innsigelsen
@@ -1412,9 +1412,9 @@ export function RespondFristModal({
                 </div>
               )}
 
-              {sendEtterlysning && (
+              {sendForesporsel && (
                 <Alert variant="info" title="Avventer svar">
-                  Du sender etterlysning til entreprenøren. Svaret blir{' '}
+                  Du sender forespørsel til entreprenøren. Svaret blir{' '}
                   <strong>&ldquo;Avventer spesifikasjon&rdquo;</strong>. Entreprenøren må svare med spesifisert
                   krav.
                 </Alert>
@@ -1440,7 +1440,7 @@ export function RespondFristModal({
               )}
 
               {/* Etterlysning blocks further evaluation */}
-              {sendEtterlysning && (
+              {sendForesporsel && (
                 <Alert variant="info" title="Etterlysning sendes" className="mb-4">
                   Du etterspør spesifisert krav fra entreprenøren. Du kan likevel ta stilling til vilkårene nedenfor.
                 </Alert>
@@ -1507,7 +1507,7 @@ export function RespondFristModal({
               description="Vurder om kravet reflekterer reell virkning på fremdriften. Momenter: nødvendig avbrudd, årstidsforskyvning, samlet virkning av tidligere forhold, og om entreprenøren har oppfylt tapsbegrensningsplikten."
             >
               {/* Etterlysning blocks evaluation */}
-              {sendEtterlysning ? (
+              {sendForesporsel ? (
                 <Alert variant="info" title="Avventer svar">
                   Du avventer spesifisert krav fra entreprenøren. Beregning gjøres senere.
                 </Alert>
@@ -1534,7 +1534,7 @@ export function RespondFristModal({
                   )}
 
                   {/* Info when neutral notice without days */}
-                  {erNoytraltUtenDager && (
+                  {erVarselUtenDager && (
                     <Alert variant="info" title="Antall dager ikke spesifisert">
                       Entreprenøren har ikke spesifisert antall dager i sitt nøytrale varsel.
                       Du kan ikke ta stilling til antall dager før kravet er spesifisert.
@@ -1542,7 +1542,7 @@ export function RespondFristModal({
                   )}
 
                   {/* Hovedkrav beregning - only show input if days are specified */}
-                  {!erNoytraltUtenDager && (
+                  {!erVarselUtenDager && (
                     <>
                       <InlineDataList className="mb-4">
                         <InlineDataListItem label="Krevd" mono bold>
@@ -1625,21 +1625,21 @@ export function RespondFristModal({
               <div className="space-y-4">
                 {/* Varslingsvurdering (§33.4 / §33.6.1 / §33.6.2) */}
                 <StatusSummary title="Varsling">
-                  {sendEtterlysning ? (
+                  {sendForesporsel ? (
                     <>
                       <Badge variant="warning">Etterlysning sendt</Badge>
                       <span className="text-sm">Avventer spesifisert krav fra entreprenøren</span>
                     </>
-                  ) : erEtterlysningSvarForSent ? (
+                  ) : erForesporselSvarForSent ? (
                     <>
                       <Badge variant="danger">Prekludert (§33.6.2/§5)</Badge>
-                      <span className="text-sm">Svar på etterlysning kom for sent - kravet tapes</span>
+                      <span className="text-sm">Svar på forespørsel kom for sent - kravet tapes</span>
                     </>
                   ) : erPrekludert ? (
                     <>
                       <Badge variant="danger">Prekludert (§33.4)</Badge>
                       <span className="text-sm">
-                        {varselType === 'noytralt'
+                        {varselType === 'varsel'
                           ? 'Foreløpig varsel kom for sent - kravet tapes'
                           : 'Spesifisert krav (uten forutgående varsel) kom for sent - kravet tapes'}
                       </span>
@@ -1649,9 +1649,9 @@ export function RespondFristModal({
                       <Badge variant="warning">Redusert (§33.6.1)</Badge>
                       <span className="text-sm">Spesifisert krav kom for sent - reduseres til det byggherren måtte forstå</span>
                     </>
-                  ) : erSvarPaEtterlysning ? (
+                  ) : erSvarPaForesporsel ? (
                     <>
-                      <Badge variant="success">Svar på etterlysning (i tide)</Badge>
+                      <Badge variant="success">Svar på forespørsel (i tide)</Badge>
                       <span className="text-sm">Svaret kom i tide - §33.6.1 kan ikke påberopes</span>
                     </>
                   ) : (
@@ -1686,9 +1686,9 @@ export function RespondFristModal({
                   <h5 className="font-medium text-sm mb-3">
                     Beregning {port3ErSubsidiaer && '(subsidiært)'}
                   </h5>
-                  {sendEtterlysning ? (
+                  {sendForesporsel ? (
                     <span className="text-sm text-pkt-text-body-subtle">(Avventer)</span>
-                  ) : erNoytraltUtenDager ? (
+                  ) : erVarselUtenDager ? (
                     <div className="text-sm text-pkt-text-body-subtle italic">
                       Antall dager er ikke spesifisert i kravet. Beregning gjøres når entreprenøren sender spesifisert krav.
                     </div>
@@ -1798,12 +1798,12 @@ export function RespondFristModal({
                 <div className="p-4 bg-pkt-surface-strong-dark-blue text-white rounded-none">
                   <h5 className="font-medium text-sm mb-2 opacity-80">PRINSIPALT RESULTAT</h5>
                   <div className="text-xl font-bold">{getResultatLabel(prinsipaltResultat)}</div>
-                  {!sendEtterlysning && prinsipaltResultat !== 'avslatt' && effektivKrevdDager > 0 && (
+                  {!sendForesporsel && prinsipaltResultat !== 'avslatt' && effektivKrevdDager > 0 && (
                     <div className="mt-2 text-lg font-mono">
                       Godkjent: {godkjentDager} av {effektivKrevdDager} dager
                     </div>
                   )}
-                  {!sendEtterlysning && prinsipaltResultat !== 'avslatt' && erNoytraltUtenDager && (
+                  {!sendForesporsel && prinsipaltResultat !== 'avslatt' && erVarselUtenDager && (
                     <div className="mt-2 text-sm italic opacity-80">
                       Grunnlag og vilkår er vurdert. Antall dager kan først vurderes når entreprenøren spesifiserer kravet.
                     </div>
@@ -1811,7 +1811,7 @@ export function RespondFristModal({
                 </div>
 
                 {/* §33.8 Forsering warning in summary */}
-                {visForsering && avslatteDager > 0 && !sendEtterlysning && (
+                {visForsering && avslatteDager > 0 && !sendForesporsel && (
                   <Alert variant="warning" title="§33.8 Forsering-risiko">
                     Du avslår <strong>{avslatteDager} dager</strong>. Hvis avslaget er uberettiget,
                     kan entreprenøren velge å anse det som et pålegg om forsering.
@@ -1833,31 +1833,31 @@ export function RespondFristModal({
                     {harEndringer && (
                       <SectionContainer title="Endringer fra forrige svar" variant="subtle">
                         <DataList variant="grid">
-                          {formValues.noytralt_varsel_ok !== fristTilstand?.noytralt_varsel_ok && (
+                          {formValues.frist_varsel_ok !== fristTilstand?.frist_varsel_ok && (
                             <DataListItem label="Foreløpig varsel">
-                              {formValues.noytralt_varsel_ok ? 'I tide' : 'Prekludert'}
-                              <span className="text-pkt-text-body-subtle"> ← {fristTilstand?.noytralt_varsel_ok ? 'I tide' : 'Prekludert'}</span>
+                              {formValues.frist_varsel_ok ? 'I tide' : 'Prekludert'}
+                              <span className="text-pkt-text-body-subtle"> ← {fristTilstand?.frist_varsel_ok ? 'I tide' : 'Prekludert'}</span>
                             </DataListItem>
                           )}
                           {formValues.spesifisert_krav_ok !== fristTilstand?.spesifisert_krav_ok && (
                             <DataListItem label="Spesifisert krav">
                               {formValues.spesifisert_krav_ok
                                 ? 'I tide'
-                                : harTidligereNoytraltVarselITide ? 'Redusert' : 'Prekludert'}
+                                : harTidligereVarselITide ? 'Redusert' : 'Prekludert'}
                               <span className="text-pkt-text-body-subtle">
                                 {' ← '}
                                 {fristTilstand?.spesifisert_krav_ok
                                   ? 'I tide'
-                                  : harTidligereNoytraltVarselITide ? 'Redusert' : 'Prekludert'}
+                                  : harTidligereVarselITide ? 'Redusert' : 'Prekludert'}
                               </span>
                             </DataListItem>
                           )}
-                          {formValues.etterlysning_svar_ok !== fristTilstand?.etterlysning_svar_ok && (
-                            <DataListItem label="Svar på etterlysning">
-                              {formValues.etterlysning_svar_ok ? 'I tide' : 'Prekludert (§33.6.2/§5)'}
+                          {formValues.foresporsel_svar_ok !== fristTilstand?.foresporsel_svar_ok && (
+                            <DataListItem label="Svar på forespørsel">
+                              {formValues.foresporsel_svar_ok ? 'I tide' : 'Prekludert (§33.6.2/§5)'}
                               <span className="text-pkt-text-body-subtle">
                                 {' ← '}
-                                {fristTilstand?.etterlysning_svar_ok ? 'I tide' : 'Prekludert (§33.6.2/§5)'}
+                                {fristTilstand?.foresporsel_svar_ok ? 'I tide' : 'Prekludert (§33.6.2/§5)'}
                               </span>
                             </DataListItem>
                           )}

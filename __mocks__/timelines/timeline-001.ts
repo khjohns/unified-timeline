@@ -24,7 +24,7 @@ export const mockTimelineEvents1: TimelineEntry[] = [
     spor: 'frist',
     sammendrag: 'Fristkrav delvis godkjent - 30 av 45 dager godkjent',
     event_data: {
-      noytralt_varsel_ok: true,
+      frist_varsel_ok: true,
       spesifisert_krav_ok: false,
       begrunnelse_varsel: 'Nøytralt varsel mottatt i tide. Spesifisert krav mangler detaljert framdriftsanalyse.',
       vilkar_oppfylt: true,
@@ -79,7 +79,7 @@ export const mockTimelineEvents1: TimelineEntry[] = [
     sammendrag: 'Krav på 45 dager fristforlengelse',
     event_data: {
       varsel_type: 'spesifisert',
-      noytralt_varsel: { dato_sendt: '2025-01-15', metode: ['epost', 'byggemote'] },
+      frist_varsel: { dato_sendt: '2025-01-15', metode: ['epost', 'byggemote'] },
       spesifisert_varsel: { dato_sendt: '2025-01-18', metode: ['epost'] },
       antall_dager: 45,
       begrunnelse: 'Fristforlengelse nødvendig pga. omprosjektering av fundament (20 dager) og ekstra boring/sprengning (25 dager). Påvirker kritisk linje.',

@@ -21,7 +21,7 @@ export const mockTimelineEvents8: TimelineEntry[] = [
     spor: 'frist',
     sammendrag: 'Force majeure godkjent - 8 dager fristforlengelse',
     event_data: {
-      noytralt_varsel_ok: true,
+      frist_varsel_ok: true,
       spesifisert_krav_ok: true,
       vilkar_oppfylt: true,
       begrunnelse_vilkar: 'Ekstraordinær flom bekreftet. Utenfor partenes kontroll.',
@@ -41,7 +41,7 @@ export const mockTimelineEvents8: TimelineEntry[] = [
     sammendrag: 'Spesifisert krav: 8 dager fristforlengelse pga. flom',
     event_data: {
       varsel_type: 'force_majeure',
-      noytralt_varsel: { dato_sendt: '2025-03-15', metode: ['epost', 'telefon'] },
+      frist_varsel: { dato_sendt: '2025-03-15', metode: ['epost', 'telefon'] },
       spesifisert_varsel: { dato_sendt: '2025-03-23', metode: ['epost'] },
       antall_dager: 8,
       begrunnelse: 'Byggeplass oversvømt og utilgjengelig i 8 dager.',

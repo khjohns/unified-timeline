@@ -235,8 +235,9 @@ function formatVederlagsmetode(metode?: VederlagsMetode): string {
 function formatFristVarselType(type?: FristVarselType): string {
   if (!type) return '—';
   const typeMap: Record<FristVarselType, string> = {
-    'noytralt': 'Foreløpig varsel (§33.4)',
+    'varsel': 'Varsel om fristforlengelse (§33.4)',
     'spesifisert': 'Spesifisert krav (§33.6)',
+    'begrunnelse_utsatt': 'Begrunnelse for utsettelse (§33.6.2 b)',
   };
   return typeMap[type] || type;
 }
@@ -643,10 +644,10 @@ const FristSection: React.FC<{ state: SakState }> = ({ state }) => {
                 value2={frist.krevd_dager !== undefined ? `${frist.krevd_dager} dager` : '—'}
               />
               {/* Varseldato */}
-              {frist.varsel_type === 'noytralt' && frist.noytralt_varsel?.dato_sendt && (
+              {frist.varsel_type === 'varsel' && frist.frist_varsel?.dato_sendt && (
                 <TableRow
-                  label="Foreløpig varsel"
-                  value={formatDate(frist.noytralt_varsel?.dato_sendt)}
+                  label="Varsel om fristforlengelse"
+                  value={formatDate(frist.frist_varsel?.dato_sendt)}
                   striped
                 />
               )}

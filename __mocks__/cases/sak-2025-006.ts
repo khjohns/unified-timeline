@@ -60,7 +60,7 @@ export const mockSakState6: SakState = {
   frist: {
     status: 'delvis_godkjent',
     varsel_type: 'spesifisert',
-    noytralt_varsel: {
+    frist_varsel: {
       dato_sendt: '2025-01-20',
       metode: ['epost', 'byggemote'],
     },
@@ -70,7 +70,7 @@ export const mockSakState6: SakState = {
     },
     krevd_dager: 21,
     begrunnelse: 'Stopp i elektroarbeid i 3 uker.',
-    noytralt_varsel_ok: true,
+    frist_varsel_ok: true,
     spesifisert_krav_ok: true,
     vilkar_oppfylt: true,
     // BH HAS CHANGED POSITION: Originally rejected, now partially approved

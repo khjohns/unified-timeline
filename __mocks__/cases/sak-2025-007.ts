@@ -52,7 +52,7 @@ export const mockSakState7: SakState = {
   frist: {
     status: 'godkjent',
     varsel_type: 'spesifisert',
-    noytralt_varsel: {
+    frist_varsel: {
       dato_sendt: '2025-02-10',
       metode: ['system'],
     },
@@ -62,7 +62,7 @@ export const mockSakState7: SakState = {
     },
     krevd_dager: 7,
     begrunnelse: 'Enkelt snekkerarbeid.',
-    noytralt_varsel_ok: true,
+    frist_varsel_ok: true,
     spesifisert_krav_ok: true,
     vilkar_oppfylt: true,
     bh_resultat: 'godkjent',

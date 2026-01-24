@@ -288,19 +288,19 @@ def test_vederlag_negative_amount_fails():
 
 # ============ FRIST TESTS ============
 
-def test_frist_data_noytralt():
-    """Test FristData with nøytralt varsel only"""
+def test_frist_data_varsel():
+    """Test FristData with varsel om fristforlengelse only (§33.4)"""
     data = FristData(
-        varsel_type=FristVarselType.NOYTRALT,
-        noytralt_varsel=VarselInfo(
+        varsel_type=FristVarselType.VARSEL,
+        frist_varsel=VarselInfo(
             dato_sendt="2025-01-10",
             metode=["byggemote"]
         ),
-        begrunnelse="Foreløpig varsel"
+        begrunnelse="Varsel om fristforlengelse"
     )
-    assert data.varsel_type == FristVarselType.NOYTRALT
-    assert data.noytralt_varsel.dato_sendt == "2025-01-10"
-    assert data.antall_dager is None  # Not required for nøytralt
+    assert data.varsel_type == FristVarselType.VARSEL
+    assert data.frist_varsel.dato_sendt == "2025-01-10"
+    assert data.antall_dager is None  # Not required for varsel
 
 
 def test_frist_data_spesifisert():

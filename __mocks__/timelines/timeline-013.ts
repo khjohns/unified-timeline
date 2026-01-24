@@ -22,7 +22,7 @@ export const mockTimelineEvents13: TimelineEntry[] = [
     spor: 'frist',
     sammendrag: 'Avslått - mener arbeid kan utføres parallelt',
     event_data: {
-      noytralt_varsel_ok: true,
+      frist_varsel_ok: true,
       spesifisert_krav_ok: true,
       begrunnelse_varsel: 'Varsler mottatt i tide.',
       vilkar_oppfylt: false,
@@ -44,7 +44,7 @@ export const mockTimelineEvents13: TimelineEntry[] = [
     sammendrag: 'Krav på 10 dager fristforlengelse',
     event_data: {
       varsel_type: 'spesifisert',
-      noytralt_varsel: { dato_sendt: '2025-01-25', metode: ['epost', 'byggemote'] },
+      frist_varsel: { dato_sendt: '2025-01-25', metode: ['epost', 'byggemote'] },
       spesifisert_varsel: { dato_sendt: '2025-02-01', metode: ['epost'] },
       antall_dager: 10,
       begrunnelse: 'Stopp i ventilasjonsarbeid i 10 dager grunnet manglende tilgang.',

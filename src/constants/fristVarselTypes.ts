@@ -10,7 +10,7 @@ import { DropdownOption } from './categories';
 export const FRIST_VARSELTYPE_OPTIONS: DropdownOption[] = [
   { value: "", label: "— Velg —" },
   {
-    value: "noytralt",
+    value: "varsel",
     label: "Varsel om fristforlengelse (§33.4)"
   },
   {
@@ -45,7 +45,7 @@ export function getFristVarseltypeValues(): [string, ...string[]] {
 // ========== DESCRIPTIVE HELP TEXT ==========
 
 export const FRIST_VARSELTYPE_DESCRIPTIONS: Record<string, string> = {
-  noytralt: "Varsel sendes «uten ugrunnet opphold», selv om du ennå ikke kan fremsette et spesifisert krav (§33.4).",
+  varsel: "Varsel sendes «uten ugrunnet opphold», selv om du ennå ikke kan fremsette et spesifisert krav (§33.4).",
   spesifisert: "Når du har grunnlag for å beregne omfanget, skal du angi og begrunne antall dager (§33.6.1).",
   begrunnelse_utsatt: "Begrunn hvorfor grunnlaget for å beregne kravet ikke foreligger (§33.6.2 b). Bestemmelsen i §33.6.1 gjelder videre.",
 };

@@ -44,7 +44,7 @@ export const mockTimelineEvents6: TimelineEntry[] = [
     spor: 'frist',
     sammendrag: 'Avslått - mener forsinkelse kan hentes inn',
     event_data: {
-      noytralt_varsel_ok: true,
+      frist_varsel_ok: true,
       spesifisert_krav_ok: true,
       begrunnelse_varsel: 'Varsler mottatt i tide.',
       vilkar_oppfylt: false,
@@ -88,7 +88,7 @@ export const mockTimelineEvents6: TimelineEntry[] = [
     sammendrag: 'Krav på 21 dager fristforlengelse',
     event_data: {
       varsel_type: 'spesifisert',
-      noytralt_varsel: { dato_sendt: '2025-01-20', metode: ['epost', 'byggemote'] },
+      frist_varsel: { dato_sendt: '2025-01-20', metode: ['epost', 'byggemote'] },
       spesifisert_varsel: { dato_sendt: '2025-01-28', metode: ['epost'] },
       antall_dager: 21,
       begrunnelse: 'Stopp i elektroarbeid i 3 uker.',

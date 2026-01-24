@@ -314,7 +314,7 @@ function FristSection({ data }: { data: FristEventData }) {
       {data.varsel_type && (
         <DataListItem label="Varseltype">{getFristVarseltypeLabel(data.varsel_type)}</DataListItem>
       )}
-      <VarselInfoDisplay label="Foreløpig varsel (§33.4)" varsel={data.noytralt_varsel} />
+      <VarselInfoDisplay label="Varsel om fristforlengelse (§33.4)" varsel={data.frist_varsel} />
       <VarselInfoDisplay label="Spesifisert varsel (§33.6)" varsel={data.spesifisert_varsel} />
       {data.antall_dager !== undefined && (
         <DataListItem label="Krevde dager">{data.antall_dager} dager</DataListItem>
@@ -350,8 +350,8 @@ function FristSpesifisertSection({ data }: { data: FristSpesifisertEventData }) 
         <DataListItem label="Antall dager">{data.antall_dager} dager</DataListItem>
       )}
       <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} />
-      {data.er_svar_pa_etterlysning && (
-        <DataListItem label="Sendt etter BHs anmodning">Ja</DataListItem>
+      {data.er_svar_pa_foresporsel && (
+        <DataListItem label="Sendt etter BHs forespørsel">Ja</DataListItem>
       )}
       {data.ny_sluttdato && (
         <DataListItem label="Ny sluttdato">{formatDateMedium(data.ny_sluttdato)}</DataListItem>
