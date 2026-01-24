@@ -105,7 +105,7 @@ function LongTextField({ label, value, defaultOpen = false, markdown = false }: 
     <DataListItem label={label}>
       <div>
         {markdown ? (
-          <div className="prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0 prose-headings:text-base prose-headings:mt-2 prose-headings:mb-1">
+          <div className="prose prose-sm max-w-none prose-p:my-1 prose-ul:list-disc prose-ul:pl-5 prose-ul:my-1 prose-ol:list-decimal prose-ol:pl-5 prose-li:my-0 prose-headings:text-base prose-headings:mt-2 prose-headings:mb-1">
             <ReactMarkdown>{displayText}</ReactMarkdown>
           </div>
         ) : (

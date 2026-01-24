@@ -288,7 +288,9 @@ export const MarkdownEditor = forwardRef<HTMLTextAreaElement, MarkdownEditorProp
               'prose-headings:text-pkt-text-body-dark prose-headings:font-semibold',
               'prose-p:text-pkt-text-body-default prose-p:my-2',
               'prose-strong:text-pkt-text-body-dark',
-              'prose-ul:my-2 prose-li:my-0.5',
+              'prose-ul:list-disc prose-ul:pl-5 prose-ul:my-2',
+              'prose-ol:list-decimal prose-ol:pl-5 prose-ol:my-2',
+              'prose-li:my-0.5 prose-li:marker:text-pkt-text-body-muted',
               'prose-code:bg-pkt-bg-subtle prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm',
               'prose-blockquote:border-l-4 prose-blockquote:border-pkt-border-default prose-blockquote:pl-4 prose-blockquote:italic',
               'prose-a:text-pkt-text-link prose-a:underline'
