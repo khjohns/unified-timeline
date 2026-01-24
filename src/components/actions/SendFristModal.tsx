@@ -31,7 +31,7 @@ import {
   Textarea,
   useToast,
 } from '../primitives';
-import { VarslingsregelInline } from '../shared';
+import { KontraktsregelInline } from '../shared';
 import type { AttachmentFile } from '../../types';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -45,6 +45,7 @@ import {
   getFristVarseltypeValues,
   FRIST_VARSELTYPE_DESCRIPTIONS,
   getHovedkategoriLabel,
+  erForceMajeure,
 } from '../../constants';
 import { VarselSeksjon } from './shared/VarselSeksjon';
 import { differenceInDays, format, parseISO } from 'date-fns';
@@ -355,8 +356,8 @@ export function SendFristModal({
                           </span>
                         </div>
                       )}
-                      {/* Varslingsregel med accordion for konsekvenser */}
-                      <VarslingsregelInline
+                      {/* Kontraktsregel med accordion for konsekvenser */}
+                      <KontraktsregelInline
                         hjemmel={
                           field.value === 'varsel' ? '§33.4' :
                           field.value === 'spesifisert' ? '§33.6.1' :
@@ -530,11 +531,10 @@ export function SendFristModal({
           description="Beskriv hvordan forholdet har forårsaket forsinkelse (§33.5)"
         >
           <div className="space-y-4">
-            <Alert variant="info" title="Vilkår for fristforlengelse (§33.1, §33.5)">
-              For å ha krav på fristforlengelse må du vise at: (1) fremdriften har vært hindret, og
-              (2) hindringen skyldes det påberopte forholdet. Forklar konkret hvordan forholdet
-              har påvirket fremdriften i prosjektet.
-            </Alert>
+            {/* Vilkår: §33.3 for force majeure, §33.1 for andre forhold */}
+            <KontraktsregelInline
+              hjemmel={grunnlagEvent?.hovedkategori && erForceMajeure(grunnlagEvent.hovedkategori) ? '§33.3' : '§33.1'}
+            />
 
             <FormField
               required

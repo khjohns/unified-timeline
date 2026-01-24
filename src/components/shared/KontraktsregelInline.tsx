@@ -38,6 +38,13 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
       tekst: '', // Ingen §5-mekanisme for vilkårsvurderingen
     },
   },
+  // TODO: Vurder §33.3 force majeure vilkårene nærmere - skal vi trekke ut
+  // de materielle vilkårene og momentene mer presist? Fem ledd i bestemmelsen:
+  // 1) Hovedvilkåret (forhold utenfor kontroll)
+  // 2) Kontraktsmedhjelper-regelen
+  // 3) Unntak (burde tatt i betraktning / kunne unngå)
+  // 4) "Smitte"-regelen (hvis motpart har FM-krav)
+  // 5) Ingen vederlagsjustering
   '§33.3': {
     inline: 'Partene har krav på fristforlengelse dersom fremdriften hindres av forhold utenfor deres kontroll, så som ekstraordinære værforhold, offentlige påbud og forbud, streik, lockout og overenskomstbestemmelser.',
     konsekvens: 'Partene har ikke krav på justering av vederlaget som følge av fristforlengelse etter denne bestemmelsen. En part har ikke krav på fristforlengelse for hindring han eller hans kontraktsmedhjelpere burde ha tatt i betraktning ved kontraktsinngåelsen, eller med rimelighet kunne ventes å unngå eller overvinne følgene av.',
