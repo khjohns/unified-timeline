@@ -381,9 +381,9 @@ export function SendGrunnlagModal({
           </Alert>
         )}
 
-        {/* Seksjon 1: Juridisk grunnlag */}
+        {/* Seksjon 1: Rettslig grunnlag */}
         <SectionContainer
-          title="Juridisk grunnlag"
+          title="Rettslig grunnlag"
         >
           <div className="space-y-4">
             {/* Hovedkategori */}
@@ -391,7 +391,7 @@ export function SendGrunnlagModal({
               label="Hovedkategori"
               required
               error={errors.hovedkategori?.message}
-              helpText="Velg juridisk grunnlag iht. NS 8407. Dette bestemmer hvilke kontraktsbestemmelser som gjelder og hvilke krav som kan fremmes."
+              helpText="Velg rettslig grunnlag iht. NS 8407. Dette bestemmer hvilke kontraktsbestemmelser som gjelder og hvilke krav som kan fremmes."
             >
               <Controller
                 name="hovedkategori"
