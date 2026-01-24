@@ -31,26 +31,19 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
   paragraf5: { paaberoper: 'TE' | 'BH'; tekst: string };
 }> = {
   '§33.1': {
-    inline: 'Totalentreprenøren har krav på fristforlengelse dersom fremdriften hindres som følge av (a) endringer, jf. punkt 31 og 32, (b) forsinkelse eller svikt ved byggherrens ytelser etter punkt 22, 23 og 24, eller (c) andre forhold byggherren har risikoen for.',
-    konsekvens: 'Kravet må dokumenteres gjennom årsakssammenheng mellom forholdet og forsinkelsen.',
+    inline: 'Fremdriften må (1) være hindret, og (2) hindringen må skyldes det påberopte forholdet (årsakssammenheng). Beskriv konkret hvordan forholdet har påvirket fremdriften.',
+    konsekvens: 'Partene plikter å forebygge og begrense skadevirkningene av en fristforlengelse (§33.5).',
     paragraf5: {
       paaberoper: 'BH',
-      tekst: '', // Ingen §5-mekanisme for vilkårsvurderingen
+      tekst: '',
     },
   },
-  // TODO: Vurder §33.3 force majeure vilkårene nærmere - skal vi trekke ut
-  // de materielle vilkårene og momentene mer presist? Fem ledd i bestemmelsen:
-  // 1) Hovedvilkåret (forhold utenfor kontroll)
-  // 2) Kontraktsmedhjelper-regelen
-  // 3) Unntak (burde tatt i betraktning / kunne unngå)
-  // 4) "Smitte"-regelen (hvis motpart har FM-krav)
-  // 5) Ingen vederlagsjustering
   '§33.3': {
-    inline: 'Partene har krav på fristforlengelse dersom fremdriften hindres av forhold utenfor deres kontroll, så som ekstraordinære værforhold, offentlige påbud og forbud, streik, lockout og overenskomstbestemmelser.',
-    konsekvens: 'Partene har ikke krav på justering av vederlaget som følge av fristforlengelse etter denne bestemmelsen. En part har ikke krav på fristforlengelse for hindring han eller hans kontraktsmedhjelpere burde ha tatt i betraktning ved kontraktsinngåelsen, eller med rimelighet kunne ventes å unngå eller overvinne følgene av.',
+    inline: 'Fremdriften må hindres av forhold utenfor partenes kontroll (f.eks. ekstraordinære værforhold, offentlige påbud, streik). Hindringen kan ikke være noe som burde vært forutsett eller kunne vært unngått.',
+    konsekvens: 'Force majeure gir kun fristforlengelse – ikke vederlagsjustering. Partene plikter å begrense skadevirkningene (§33.5).',
     paragraf5: {
       paaberoper: 'BH',
-      tekst: '', // Ingen §5-mekanisme for force majeure
+      tekst: '',
     },
   },
   '§33.4': {
