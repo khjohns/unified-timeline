@@ -6,9 +6,13 @@
  * Now uses Radix UI primitives with Punkt design system styling.
  *
  * UPDATED (2025-12-05):
- * - Added BH etterlysning warning (§33.6.2) - critical
+ * - Added BH forespørsel warning (§33.6.2) - critical
  * - Added §33.6.1 reduction warning when late
  * - Added grunnlag context display
+ *
+ * UPDATED (2026-01-24):
+ * - Corrected terminology to match NS 8407 contract text
+ * - Added VarslingsregelInfo component for inline rule display
  */
 
 import {
@@ -26,6 +30,7 @@ import {
   Textarea,
   useToast,
 } from '../primitives';
+import { VarslingsregelInfo } from '../shared';
 import type { AttachmentFile } from '../../types';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -94,8 +99,8 @@ interface SendFristModalProps {
   grunnlagEventId: string;
   /** Optional grunnlag event data for context display */
   grunnlagEvent?: GrunnlagEventInfo;
-  /** Whether BH has sent an etterlysning (§33.6.2) - triggers critical warning */
-  harMottattEtterlysning?: boolean;
+  /** Whether BH has sent a forespørsel (§33.6.2) - triggers critical warning */
+  harMottattForesporsel?: boolean;
   /** Callback when Catenda sync was skipped or failed */
   onCatendaWarning?: () => void;
 }
@@ -106,7 +111,7 @@ export function SendFristModal({
   sakId,
   grunnlagEventId,
   grunnlagEvent,
-  harMottattEtterlysning,
+  harMottattForesporsel,
   onCatendaWarning,
 }: SendFristModalProps) {
   const [showTokenExpired, setShowTokenExpired] = useState(false);
@@ -256,8 +261,8 @@ export function SendFristModal({
         antall_dager: data.antall_dager,
         begrunnelse: data.begrunnelse,
         ny_sluttdato: data.ny_sluttdato,
-        // Metadata for tracking if this was forced by BH etterlysning
-        er_svar_pa_etterlysning: harMottattEtterlysning,
+        // Metadata for tracking if this was response to BH forespørsel (§33.6.2)
+        er_svar_pa_foresporsel: harMottattForesporsel,
       },
     });
   };
@@ -270,16 +275,16 @@ export function SendFristModal({
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* BH Etterlysning warning (§33.6.2) - CRITICAL */}
-        {harMottattEtterlysning && (
-          <Alert variant="danger" title="Svar på byggherrens etterlysning (§33.6.2)">
+        {/* BH forespørsel warning (§33.6.2) - CRITICAL */}
+        {harMottattForesporsel && (
+          <Alert variant="danger" title="Svar på byggherrens forespørsel (§33.6.2)">
             <p>
-              Byggherren har etterlyst dette kravet. Du må svare «uten ugrunnet opphold».
-              Hvis du ikke svarer, <strong>tapes hele retten til fristforlengelse</strong>.
+              Byggherren har bedt om at du angir og begrunner antall dager. Du skal svare «uten ugrunnet opphold».
+              Hvis du ikke svarer, <strong>tapes kravet på fristforlengelse</strong>.
             </p>
             <p className="mt-2 text-sm">
-              Du kan enten <strong>(a)</strong> sende spesifisert krav med antall dager, eller{' '}
-              <strong>(b)</strong> begrunne hvorfor du ikke har grunnlag for å beregne ennå.
+              Du kan enten <strong>(a)</strong> angi og begrunne antall dager, eller{' '}
+              <strong>(b)</strong> begrunne hvorfor grunnlaget for å beregne kravet ikke foreligger.
             </p>
           </Alert>
         )}
@@ -303,42 +308,58 @@ export function SendFristModal({
               name="varsel_type"
               control={control}
               render={({ field }) => (
-                <RadioGroup value={field.value} onValueChange={field.onChange} data-testid="frist-varsel-type">
-                  {FRIST_VARSELTYPE_OPTIONS
-                    .filter(opt => opt.value !== '')
-                    // §33.6.2 bokstav b er kun tilgjengelig som svar på etterlysning
-                    .filter(opt => opt.value !== 'begrunnelse_utsatt' || harMottattEtterlysning)
-                    .map((option) => (
-                      <RadioItem
-                        key={option.value}
-                        id={`varsel_type_${option.value}`}
-                        value={option.value}
-                        label={option.label}
+                <>
+                  <RadioGroup value={field.value} onValueChange={field.onChange} data-testid="frist-varsel-type">
+                    {FRIST_VARSELTYPE_OPTIONS
+                      .filter(opt => opt.value !== '')
+                      // §33.6.2 bokstav b er kun tilgjengelig som svar på forespørsel
+                      .filter(opt => opt.value !== 'begrunnelse_utsatt' || harMottattForesporsel)
+                      .map((option) => (
+                        <RadioItem
+                          key={option.value}
+                          id={`varsel_type_${option.value}`}
+                          value={option.value}
+                          label={option.label}
+                        />
+                      ))}
+                  </RadioGroup>
+                  {/* VarslingsregelInfo inline for valgt type */}
+                  {field.value && (
+                    <div className="mt-4">
+                      <VarslingsregelInfo
+                        hjemmel={
+                          field.value === 'noytralt' ? '§33.4' :
+                          field.value === 'spesifisert' ? '§33.6.1' :
+                          '§33.6.2'
+                        }
+                        rolle="TE"
+                        dagerSiden={dagerSidenGrunnlag}
                       />
-                    ))}
-                </RadioGroup>
+                    </div>
+                  )}
+                </>
               )}
             />
           </FormField>
         </SectionContainer>
 
-        {/* Varseldetaljer for foreløpig varsel */}
+        {/* Varseldetaljer for varsel om fristforlengelse */}
         {selectedVarselType === 'noytralt' && (
           <SectionContainer
-            title="Foreløpig varsel (§33.4)"
+            title="Varsel om fristforlengelse (§33.4)"
             description="Dokumenter når og hvordan varselet ble sendt"
           >
             <div className="space-y-4">
-              {/* §33.4 Preklusjonsvarsel for nøytralt varsel */}
+              {/* §33.4 Preklusjonsvarsel */}
               {erNoytraltVarselSent && (
                 <Alert
                   variant={erNoytraltVarselKritisk ? 'danger' : 'warning'}
                   title={erNoytraltVarselKritisk ? 'Preklusjonsrisiko (§33.4)' : 'Sen varsling (§33.4)'}
                 >
-                  Det er gått <strong>{dagerSidenGrunnlag} dager</strong> siden hendelsen.
+                  Det er gått <strong>{dagerSidenGrunnlag} dager</strong> siden forholdet oppstod.
                   {erNoytraltVarselKritisk
-                    ? ' Foreløpig varsel skal sendes «uten ugrunnet opphold». Hvis varselet ikke allerede er sendt, risikerer du at kravet anses tapt.'
-                    : ' Foreløpig varsel bør sendes snarest for å bevare retten til fristforlengelse.'}
+                    ? ' Du skal varsle «uten ugrunnet opphold». Hvis varselet ikke allerede er sendt, risikerer du at kravet tapes.'
+                    : ' Du bør varsle snarest for å bevare retten til fristforlengelse.'}
                 </Alert>
               )}
 
@@ -372,19 +393,19 @@ export function SendFristModal({
         {/* Varseldetaljer for spesifisert krav */}
         {selectedVarselType === 'spesifisert' && (
           <SectionContainer
-            title="Spesifisert krav (§33.6)"
+            title="Spesifisert krav (§33.6.1)"
             description="Dokumenter når og hvordan kravet ble sendt"
           >
-            {/* §33.4 Preklusjonsvarsel når spesifisert krav sendes direkte (uten tidligere nøytralt) */}
+            {/* §33.4/§33.6.1 Preklusjonsvarsel når spesifisert krav sendes */}
             {erNoytraltVarselSent && (
               <Alert
                 variant={erNoytraltVarselKritisk ? 'danger' : 'warning'}
                 title={erNoytraltVarselKritisk ? 'Preklusjonsrisiko (§33.4)' : 'Sen innsending'}
                 className="mb-4"
               >
-                Det er gått <strong>{dagerSidenGrunnlag} dager</strong> siden hendelsen.
+                Det er gått <strong>{dagerSidenGrunnlag} dager</strong> siden forholdet oppstod.
                 {erNoytraltVarselKritisk
-                  ? ' Hvis du ikke allerede har sendt foreløpig varsel i tide, risikerer du at kravet prekluderes (§33.4). Har du sendt foreløpig varsel tidligere, gjelder §33.6.1 (reduksjon).'
+                  ? ' Hvis du ikke allerede har varslet i tide (§33.4), risikerer du at kravet tapes. Har du varslet tidligere, gjelder §33.6.1 (reduksjon til det motparten «måtte forstå»).'
                   : ' Husk at varslingskravene i §33.4 og §33.6.1 gjelder.'}
               </Alert>
             )}
@@ -414,16 +435,16 @@ export function SendFristModal({
           </SectionContainer>
         )}
 
-        {/* §33.6.2 bokstav b - Begrunnelse for utsettelse */}
+        {/* §33.6.2 bokstav b - Begrunnelse for manglende beregningsgrunnlag */}
         {selectedVarselType === 'begrunnelse_utsatt' && (
           <SectionContainer
-            title="Begrunnelse for utsettelse (§33.6.2 b)"
-            description="Forklar hvorfor du ikke har grunnlag for å beregne kravet ennå"
+            title="Begrunnelse for manglende beregningsgrunnlag (§33.6.2 b)"
+            description="Forklar hvorfor grunnlaget for å beregne kravet ikke foreligger"
           >
             <Alert variant="info" title="Konsekvens av §33.6.2 bokstav b">
-              Når du begrunner hvorfor beregningsgrunnlaget ikke foreligger, gjelder vanlige
-              §33.6.1-regler videre. Du må sende spesifisert krav «uten ugrunnet opphold»
-              når grunnlaget foreligger. Byggherren kan sende ny etterlysning senere.
+              Når du begrunner hvorfor grunnlaget for å beregne kravet ikke foreligger,
+              gjelder bestemmelsen i §33.6.1 videre. Du skal angi og begrunne antall dager
+              «uten ugrunnet opphold» når grunnlaget foreligger. Byggherren kan sende ny forespørsel senere.
             </Alert>
           </SectionContainer>
         )}
