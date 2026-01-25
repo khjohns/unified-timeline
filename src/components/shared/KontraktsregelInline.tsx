@@ -2,16 +2,24 @@
  * KontraktsregelInline Component
  *
  * Kompakt, inline komponent for å vise kontraktsregler fra NS 8407.
- * Bruker kontraktstekstens ordlyd og progressiv avsløring via accordion.
+ * Progressiv avsløring via accordion.
  *
  * Støtter:
- * - Grunnlagspor: §14.4, §25.2, §32.2, §32.3
- * - Fristspor: §33.1, §33.3, §33.4, §33.5, §33.6, §33.7, §33.8
+ * - Grunnlagspor: §14.4, §14.6, §24.2.2, §25.1.2, §25.2, §32.2, §32.3
+ * - Fristspor: §33.1, §33.3, §33.4, §33.5, §33.6.1, §33.6.2, §33.7, §33.8
  * - Custom mode: Dynamisk innhold med samme visuelle stil
  *
  * Struktur:
- * - Inline tekst: Kontraktstekst (alltid synlig)
+ * - Inline tekst: Parafrasert kontraktsregel (alltid synlig)
  * - Accordion: Konsekvenser/detaljer (lukket som default)
+ *
+ * VIKTIG - OPPHAVSRETT (NS 8407):
+ * Standard Norge har opphavsrett til NS 8407. Ved nye hjemler:
+ * 1. PARAFRASÉR - ikke kopier ordrett fra kontrakten
+ * 2. Bruk fulle navn, ikke forkortelser (totalentreprenør, ikke TE)
+ * 3. Bevar juridiske nøkkelbegreper («uten ugrunnet opphold», «pålegg»)
+ * 4. Omskriv setningsstruktur og ordvalg
+ * 5. Systematikk-punkter skal forklare innholdet, ikke sitere det
  */
 
 import { useState } from 'react';
@@ -58,7 +66,11 @@ type KontraktsregelInlineProps =
   | { hjemmel: Hjemmel; custom?: never }
   | { hjemmel?: never; custom: CustomInnhold };
 
-/** Innhold per hjemmel - basert på kontraktsteksten */
+/**
+ * Innhold per hjemmel.
+ *
+ * HUSK OPPHAVSRETT: Parafrasér alltid - se kommentar øverst i filen.
+ */
 const HJEMMEL_INNHOLD: Record<Hjemmel, {
   inline: string;
   konsekvens: string;
