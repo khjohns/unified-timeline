@@ -18,6 +18,8 @@ interface InlineDataListProps {
   title?: string;
   /** Show bottom border (default: false) */
   bordered?: boolean;
+  /** Stack items vertically on mobile (default: false) */
+  stackOnMobile?: boolean;
 }
 
 interface InlineDataListItemProps {
@@ -43,8 +45,12 @@ const variantStyles: Record<InlineDataListVariant, string> = {
 /**
  * Container for inline data items
  */
-export function InlineDataList({ children, className = '', title, bordered = false }: InlineDataListProps) {
+export function InlineDataList({ children, className = '', title, bordered = false, stackOnMobile = false }: InlineDataListProps) {
   const items = Children.toArray(children).filter(isValidElement);
+
+  const containerClasses = stackOnMobile
+    ? `flex flex-col gap-y-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-1 text-sm`
+    : `flex flex-wrap items-center gap-x-4 gap-y-1 text-sm`;
 
   return (
     <div className={className}>
@@ -52,15 +58,15 @@ export function InlineDataList({ children, className = '', title, bordered = fal
         <div className="text-sm font-semibold mb-1">{title}</div>
       )}
       <div
-        className={`flex flex-wrap items-center gap-x-4 gap-y-1 text-sm ${
+        className={`${containerClasses} ${
           bordered ? 'pb-2 border-b border-pkt-border-subtle' : ''
         }`}
       >
         {items.map((child, index) => (
-          <span key={index} className="contents">
+          <span key={index} className={stackOnMobile ? 'sm:contents' : 'contents'}>
             {child}
             {index < items.length - 1 && (
-              <span className="text-pkt-text-body-subtle font-medium">|</span>
+              <span className={`text-pkt-text-body-subtle font-medium ${stackOnMobile ? 'hidden sm:inline' : ''}`}>|</span>
             )}
           </span>
         ))}
