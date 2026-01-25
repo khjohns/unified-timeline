@@ -132,19 +132,21 @@ export function RespondGrunnlagModal({
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const toast = useToast();
 
-  // Determine if this is an IRREG case (§32.2 preklusjon applies only to irregulære endringer)
-  const erIrregEndring =
+  // Determine if this is an ENDRING case where §32.2 preklusjon applies
+  // §32.2 gjelder alle ENDRING-underkategorier UNNTATT EO (formell endringsordre)
+  const erEndringMed32_2 =
     grunnlagEvent?.hovedkategori === 'ENDRING' &&
     (Array.isArray(grunnlagEvent?.underkategori)
-      ? grunnlagEvent.underkategori.includes('IRREG')
-      : grunnlagEvent?.underkategori === 'IRREG');
+      ? !grunnlagEvent.underkategori.includes('EO')
+      : grunnlagEvent?.underkategori !== 'EO');
 
-  // Determine if this is a BH_FASTHOLDER case (§24.2.2 risikoovergang applies)
-  const erBhFastholder =
-    grunnlagEvent?.hovedkategori === 'SVIKT' &&
+  // Determine if this is a pålegg case (§32.1) where frafall (§32.3 c) applies
+  // Kun IRREG og VALGRETT er pålegg - andre §32.2-tilfeller kan ikke "frafalles"
+  const erPaalegg =
+    grunnlagEvent?.hovedkategori === 'ENDRING' &&
     (Array.isArray(grunnlagEvent?.underkategori)
-      ? grunnlagEvent.underkategori.includes('BH_FASTHOLDER')
-      : grunnlagEvent?.underkategori === 'BH_FASTHOLDER');
+      ? grunnlagEvent.underkategori.some((uk) => uk === 'IRREG' || uk === 'VALGRETT')
+      : grunnlagEvent?.underkategori === 'IRREG' || grunnlagEvent?.underkategori === 'VALGRETT');
 
   // Compute default values based on mode
   const computedDefaultValues = useMemo((): Partial<RespondGrunnlagFormData> => {
@@ -244,17 +246,17 @@ export function RespondGrunnlagModal({
   const selectedResultat = watch('resultat');
   const grunnlagVarsletITide = watch('grunnlag_varslet_i_tide');
 
-  // §32.2 preklusjon: Grunnlag varslet for sent (kun IRREG)
-  const erGrunnlagPrekludert = erIrregEndring && grunnlagVarsletITide === false;
+  // §32.2 preklusjon: Grunnlag varslet for sent (alle ENDRING unntatt EO)
+  const erGrunnlagPrekludert = erEndringMed32_2 && grunnlagVarsletITide === false;
 
   // Check if this is a Force Majeure case (affects available compensation)
   const erForceMajeure = grunnlagEvent?.hovedkategori === 'FORCE_MAJEURE';
 
-  // Calculate BH passivity (§32.3) - only for irregular changes
+  // Calculate BH passivity (§32.3) - for all §32.2 cases
   const dagerSidenVarsel = grunnlagEvent?.dato_varslet
     ? differenceInDays(new Date(), new Date(grunnlagEvent.dato_varslet))
     : 0;
-  const erPassiv = erIrregEndring && dagerSidenVarsel > 10;
+  const erPassiv = erEndringMed32_2 && dagerSidenVarsel > 10;
 
   // Get display labels
   const hovedkategoriLabel = grunnlagEvent?.hovedkategori
@@ -328,7 +330,7 @@ export function RespondGrunnlagModal({
         resultat: data.resultat,
         begrunnelse: data.begrunnelse,
         // §32.2: Include preklusjon info for ENDRING category
-        grunnlag_varslet_i_tide: erIrregEndring ? data.grunnlag_varslet_i_tide : undefined,
+        grunnlag_varslet_i_tide: erEndringMed32_2 ? data.grunnlag_varslet_i_tide : undefined,
         // Include metadata about passive acceptance if relevant
         dager_siden_varsel: dagerSidenVarsel > 0 ? dagerSidenVarsel : undefined,
       },
@@ -440,28 +442,23 @@ export function RespondGrunnlagModal({
           <KontraktsregelInline hjemmel="§33.3" />
         )}
 
-        {/* BH_FASTHOLDER: §24.2.2 risikoovergang */}
-        {erBhFastholder && (
-          <KontraktsregelInline hjemmel="§24.2.2" />
-        )}
-
         {/* BH Passivity warning (§32.3) */}
         {erPassiv && (
           <Alert variant="danger" title="Passivitetsrisiko (§32.3)">
             <p className="font-medium">
               Du har brukt <strong>{dagerSidenVarsel} dager</strong> på å svare
-              på dette varselet om irregulær endring.
+              på dette varselet etter §32.2.
             </p>
             <p className="mt-2">
-              Ved irregulær endring kan passivitet medføre at endringen anses
-              akseptert. Hvis du avslår, bør du dokumentere hvorfor forsinkelsen
+              Ved varsel etter §32.2 kan passivitet medføre at forholdet anses
+              som en endring. Hvis du avslår, bør du dokumentere hvorfor forsinkelsen
               var begrunnet.
             </p>
           </Alert>
         )}
 
         {/* §32.2 Preklusjon (kun ENDRING) */}
-        {erIrregEndring && (
+        {erEndringMed32_2 && (
           <SectionContainer
             title="Preklusjon av grunnlagsvarsel (§32.2)"
             description="Vurder om entreprenøren varslet om den påståtte endringen i tide."
@@ -550,8 +547,8 @@ export function RespondGrunnlagModal({
                       // Filter out empty placeholder
                       if (opt.value === '') return false;
 
-                      // Filter out "frafalt" if NOT irregular change (§32.3 c)
-                      if (opt.value === 'frafalt' && !erIrregEndring) return false;
+                      // Filter out "frafalt" if NOT pålegg (§32.3 c gjelder kun §32.1 pålegg)
+                      if (opt.value === 'frafalt' && !erPaalegg) return false;
                       return true;
                     }).map((option) => (
                       <RadioItem

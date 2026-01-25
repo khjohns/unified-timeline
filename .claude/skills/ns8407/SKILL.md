@@ -39,19 +39,20 @@ Strukturen nedenfor matcher **eksakt** `src/constants/categories.ts`.
 
 ### Underkategorier
 
-#### ENDRING (7 underkategorier)
+#### ENDRING (8 underkategorier)
 
 | Kode | Label | Hjemmel Basis | Varselkrav |
 |------|-------|---------------|------------|
 | `EO` | Formell endringsordre | §31.3 | §33.4 / §34.2 |
 | `IRREG` | Irregulær endring (Pålegg) | §32.1 | §32.2 |
-| `SVAR_VARSEL` | Endring via svar på varsel | §25.3 | §32.2 |
+| `VALGRETT` | Begrensning av valgrett | §14.6 | §32.2 |
+| `SVAR_VARSEL` | Endring via svar på varsel | §24.2.2 | §32.2 |
 | `LOV_GJENSTAND` | Endring i lover/vedtak (Gjenstand) | §14.4 | §32.2 |
 | `LOV_PROSESS` | Endring i lover/vedtak (Prosess) | §15.2 | §32.2 |
 | `GEBYR` | Endring i gebyrer/avgifter | §26.3 | §32.2 |
 | `SAMORD` | Samordning/Omlegging | §21.4 | §32.2 |
 
-#### SVIKT (6 underkategorier)
+#### SVIKT (5 underkategorier)
 
 | Kode | Label | Hjemmel Basis | Varselkrav |
 |------|-------|---------------|------------|
@@ -60,7 +61,6 @@ Strukturen nedenfor matcher **eksakt** `src/constants/categories.ts`.
 | `GRUNN` | Uforutsette grunnforhold | §23.1 | §34.1.2 / §25.1.2 |
 | `KULTURMINNER` | Funn av kulturminner | §23.3 | §34.1.2 / §23.3 annet ledd |
 | `PROSJ_RISIKO` | Svikt i byggherrens prosjektering | §24.1 | §34.1.2 / §25.1.2 |
-| `BH_FASTHOLDER` | Byggherren fastholder løsning etter varsel | §24.2.2 tredje ledd | §34.1.2 |
 
 #### ANDRE (6 underkategorier)
 
