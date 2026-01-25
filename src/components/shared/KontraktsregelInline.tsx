@@ -72,28 +72,33 @@ type KontraktsregelInlineProps =
  * HUSK OPPHAVSRETT: Parafrasér alltid - se kommentar øverst i filen.
  *
  * HVORDAN BYGGE EN NY HJEMMEL:
+ * (Se også docs/NS8407_VARSLINGSREGLER_KARTLEGGING.md for fullstendig analyse)
  *
- * 1. ANALYSER KONTRAKTSTEKSTEN:
- *    - Identifiser hovedregelen (hvem skal gjøre hva, når)
- *    - Finn konsekvensen ved brudd/oppfyllelse
- *    - Sjekk om §5 gjelder (passivitetsvirkning)
- *    - Se etter underpunkter (a, b, c) eller referanser til andre paragrafer
+ * 1. ANALYSER MED 5 DIMENSJONER:
+ *    - HVEM: Hvem har plikten? (totalentreprenøren/byggherren/begge)
+ *    - TRIGGER: Hva utløser plikten? (pålegg, varsel, forhold, etc.)
+ *    - SKJÆRINGSTIDSPUNKT: Når begynner fristen? Se aktsomhetsnorm under.
+ *    - FRIST: Hvor lang? («uten ugrunnet opphold», 5 uker, etc.)
+ *    - KONSEKVENS: Hva ved brudd? (preklusjon, erstatning, passiv aksept, reduksjon)
  *
- * 2. STRUKTURÉR INNHOLDET:
- *    - inline: Hovedregelen i én setning. Start med subjekt (totalentreprenøren/byggherren),
- *              deretter handling og frist («uten ugrunnet opphold»).
- *    - konsekvens: Hva skjer ved brudd? Preklusjon (tap av rett), erstatning, passiv aksept?
- *    - paragraf5: Hvem må påberope senhet/passivitet for at §5 skal gjelde?
- *              paaberoper = 'TE' eller 'BH', tekst = påminnelse om §5-mekanismen.
- *    - systematikk: Valgfritt. Bruk for underpunkter, definisjoner, eller sammenhenger
- *              med andre paragrafer. Label = accordion-tittel, innhold = ref/tekst-par.
+ * 2. AKTSOMHETSNORM (for skjæringstidspunkt):
+ *    - "blir oppmerksom på"       → Faktisk kunnskap (mildest krav til varslende)
+ *    - "burde ha blitt klar over" → Normal aktsomhet (strengest krav til varslende)
+ *    - "måtte ha blitt klar over" → Kun åpenbare mangler (midt imellom)
+ *    NB: §5-mekanismen snur bevisbyrden - motparten må påberope senhet.
  *
- * 3. EKSEMPEL (§32.3):
- *    - Kontrakten: "Når byggherren mottar varsel i henhold til 32.2, skal han besvare..."
- *    - inline: Parafrasér til "Når byggherren mottar varsel etter §32.2, skal han..."
- *    - konsekvens: Passivitet → endring akseptert. Avslag → må begrunnes.
- *    - paragraf5: TE må påberope passivitet (ikke BH).
- *    - systematikk: Vis de tre svaralternativene (a, b, c) med forklarende tekst.
+ * 3. STRUKTURÉR INNHOLDET:
+ *    - inline: Hovedregelen i én setning. Start med subjekt, deretter handling og frist.
+ *    - konsekvens: Hva skjer ved brudd? Bruk konsekvenstyper fra kartleggingen.
+ *    - paragraf5: paaberoper = hvem må påberope senhet ('TE'/'BH'), tekst = påminnelse.
+ *    - systematikk: Valgfritt. For underpunkter, definisjoner, eller sammenhenger.
+ *
+ * 4. EKSEMPEL (§32.3):
+ *    - HVEM: BH | TRIGGER: Mottar varsel etter §32.2 | FRIST: Uten ugrunnet opphold
+ *    - KONSEKVENS: Passiv aksept (pålegget anses som endring)
+ *    - inline: "Når byggherren mottar varsel etter §32.2, skal han..."
+ *    - paragraf5: TE må påberope passivitet.
+ *    - systematikk: Vis svaralternativene (a, b, c) med forklarende tekst.
  */
 const HJEMMEL_INNHOLD: Record<Hjemmel, {
   inline: string;
