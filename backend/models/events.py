@@ -743,6 +743,12 @@ class GrunnlagResponsData(BaseModel):
         description="BH kan akseptere men kategorisere annerledes (f.eks. fra 'prosjektering' til 'arbeidsgrunnlag')"
     )
 
+    # §32.2: Grunnlagsvarsel rettidig (kun ENDRING)
+    grunnlag_varslet_i_tide: Optional[bool] = Field(
+        default=None,
+        description="§32.2: Var grunnlagsvarselet rettidig? Kun relevant for ENDRING-kategorien."
+    )
+
     # ============ PARTIELL OPPDATERING ============
     original_respons_id: Optional[str] = Field(
         default=None,

@@ -210,6 +210,12 @@ function CasePageContent() {
     return undefined;
   }, [state.grunnlag.bh_resultat]);
 
+  // §32.2: Har BH påberopt at grunnlagsvarselet kom for sent? (kun ENDRING)
+  // Brukes for å vise §34.1.2 spørsmål subsidiært i RespondVederlagModal
+  const grunnlagVarsletForSent = useMemo((): boolean => {
+    return state.grunnlag.grunnlag_varslet_i_tide === false;
+  }, [state.grunnlag.grunnlag_varslet_i_tide]);
+
   // Compute krevd beløp for vederlag (from belop_direkte or kostnads_overslag)
   const krevdBelop = useMemo(() => {
     const v = state.vederlag;
@@ -659,6 +665,7 @@ function CasePageContent() {
             vederlagKravId={`vederlag-${sakId}`}
             grunnlagStatus={grunnlagStatus}
             hovedkategori={state.grunnlag.hovedkategori as 'ENDRING' | 'SVIKT' | 'ANDRE' | 'FORCE_MAJEURE' | undefined}
+            grunnlagVarsletForSent={grunnlagVarsletForSent}
             vederlagEvent={{
               metode: state.vederlag.metode,
               belop_direkte: state.vederlag.belop_direkte,
@@ -793,6 +800,7 @@ function CasePageContent() {
             vederlagKravId={`vederlag-${sakId}`}
             grunnlagStatus={grunnlagStatus}
             hovedkategori={state.grunnlag.hovedkategori as 'ENDRING' | 'SVIKT' | 'ANDRE' | 'FORCE_MAJEURE' | undefined}
+            grunnlagVarsletForSent={grunnlagVarsletForSent}
             vederlagEvent={{
               metode: state.vederlag.metode,
               belop_direkte: state.vederlag.belop_direkte,

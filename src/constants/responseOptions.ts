@@ -146,6 +146,7 @@ export const BH_FRISTSVAR_DESCRIPTIONS: Record<string, string> = {
 
 export const SUBSIDIAER_TRIGGER_LABELS: Record<SubsidiaerTrigger, string> = {
   grunnlag_avslatt: 'Ansvarsgrunnlag avslått av BH',
+  grunnlag_prekludert_32_2: 'Grunnlag prekludert (§32.2) - varslet for sent',
   forseringsrett_avslatt: 'Ingen forseringsrett (§33.8)',
   preklusjon_hovedkrav: 'Hovedkrav prekludert (§34.1.2)',
   preklusjon_rigg: 'Rigg/drift prekludert (§34.1.3)',

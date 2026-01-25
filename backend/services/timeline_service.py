@@ -365,6 +365,10 @@ class TimelineService:
         grunnlag.bh_resultat = event.data.resultat
         grunnlag.bh_begrunnelse = event.data.begrunnelse
 
+        # §32.2: Grunnlagsvarslet rettidig (kun ENDRING)
+        if hasattr(event.data, 'grunnlag_varslet_i_tide'):
+            grunnlag.grunnlag_varslet_i_tide = event.data.grunnlag_varslet_i_tide
+
         # Map respons til status
         grunnlag.status = self._respons_til_status(event.data.resultat)
 

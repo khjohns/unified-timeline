@@ -88,6 +88,7 @@ export type GrunnlagResponsResultat =
 // Årsaker til at subsidiær vurdering er relevant (NS 8407)
 export type SubsidiaerTrigger =
   | 'grunnlag_avslatt'         // Nivå 0: BH avslo ansvarsgrunnlaget
+  | 'grunnlag_prekludert_32_2' // Nivå 0: Grunnlag varslet for sent (§32.2) - kun ENDRING
   | 'forseringsrett_avslatt'   // Nivå 0: TE har ikke forseringsrett (§33.8)
   | 'preklusjon_hovedkrav'     // Nivå 1: Hovedkrav varslet for sent (§34.1.2) - kun SVIKT/ANDRE
   | 'preklusjon_rigg'          // Nivå 1: Rigg/drift varslet for sent (§34.1.3)
@@ -152,6 +153,8 @@ export interface GrunnlagTilstand {
   kontraktsreferanser: string[];
   bh_resultat?: GrunnlagResponsResultat;
   bh_begrunnelse?: string;
+  /** §32.2: Har BH påberopt at grunnlagsvarselet kom for sent? (kun ENDRING) */
+  grunnlag_varslet_i_tide?: boolean;
   laast: boolean;
   /** Which version of the claim BH last responded to (0-indexed: 0 = original, 1 = rev 1, etc.) */
   bh_respondert_versjon?: number;
@@ -757,6 +760,8 @@ export interface ResponsGrunnlagEventData {
   resultat: GrunnlagResponsResultat;
   begrunnelse: string;
   akseptert_kategori?: string;
+  /** §32.2: Var grunnlagsvarselet rettidig? (kun ENDRING) */
+  grunnlag_varslet_i_tide?: boolean;
 }
 
 // ========== UPDATE EVENT PAYLOADS (for revisions/updates) ==========

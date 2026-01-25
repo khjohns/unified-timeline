@@ -33,6 +33,7 @@ import {
   RadioGroup,
   RadioItem,
   SectionContainer,
+  StepIndicator,
   useToast,
 } from '../primitives';
 import { KontraktsregelInline } from '../shared';
@@ -54,6 +55,10 @@ import {
 import { differenceInDays } from 'date-fns';
 
 const respondGrunnlagSchema = z.object({
+  // §32.2: Preklusjon av grunnlagsvarsel (kun ENDRING)
+  grunnlag_varslet_i_tide: z.boolean().optional(),
+
+  // Materiell vurdering
   resultat: z.enum(getBhGrunnlagssvarValues(), {
     errorMap: () => ({ message: 'Resultat er påkrevd' }),
   }),
@@ -123,19 +128,31 @@ export function RespondGrunnlagModal({
   const isUpdateMode = !!lastResponseEvent;
 
   const [showTokenExpired, setShowTokenExpired] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
   const toast = useToast();
+
+  // Determine if this is an ENDRING case (§32.2 preklusjon applies)
+  const erEndringKategori = grunnlagEvent?.hovedkategori === 'ENDRING';
+
+  // Wizard steps: 2 steps for ENDRING (preklusjon + vurdering), 1 step for other categories
+  const totalSteps = erEndringKategori ? 2 : 1;
+  const steps = erEndringKategori
+    ? [{ label: 'Preklusjon' }, { label: 'Vurdering' }]
+    : [{ label: 'Vurdering' }];
 
   // Compute default values based on mode
   const computedDefaultValues = useMemo((): Partial<RespondGrunnlagFormData> => {
     if (isUpdateMode && lastResponseEvent) {
       // UPDATE MODE: Pre-fill with previous response (user will change it)
       return {
+        grunnlag_varslet_i_tide: true, // Default to "varslet i tide" in update mode
         resultat: lastResponseEvent.resultat,
         begrunnelse: '',
       };
     }
     // CREATE MODE: Empty defaults
     return {
+      grunnlag_varslet_i_tide: true, // Default to "varslet i tide"
       resultat: undefined,
       begrunnelse: '',
     };
@@ -220,6 +237,10 @@ export function RespondGrunnlagModal({
   });
 
   const selectedResultat = watch('resultat');
+  const grunnlagVarsletITide = watch('grunnlag_varslet_i_tide');
+
+  // §32.2 preklusjon: Grunnlag varslet for sent (kun ENDRING)
+  const erGrunnlagPrekludert = erEndringKategori && grunnlagVarsletITide === false;
 
   // Determine special cases based on grunnlag data
   const erIrregulaer =
@@ -306,138 +327,241 @@ export function RespondGrunnlagModal({
       data: {
         grunnlag_event_id: grunnlagEventId,
         // NOTE: spor is auto-derived from event_type in backend parse_event_from_request
-        ...data,
+        resultat: data.resultat,
+        begrunnelse: data.begrunnelse,
+        // §32.2: Include preklusjon info for ENDRING category
+        grunnlag_varslet_i_tide: erEndringKategori ? data.grunnlag_varslet_i_tide : undefined,
         // Include metadata about passive acceptance if relevant
         dager_siden_varsel: dagerSidenVarsel > 0 ? dagerSidenVarsel : undefined,
       },
     });
   };
 
+  // Reset step when modal opens/closes
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      setCurrentStep(1);
+    }
+    onOpenChange(open);
+  };
+
+  // Navigation handlers for wizard
+  const goToNextStep = () => {
+    if (currentStep < totalSteps) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const goToPrevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
   return (
     <Modal
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={handleOpenChange}
       title={isUpdateMode ? "Oppdater svar på ansvarsgrunnlag" : "Svar på ansvarsgrunnlag"}
       size="lg"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* UPDATE MODE: Nåværende svar */}
-        {isUpdateMode && lastResponseEvent && (
-          <SectionContainer title="Nåværende svar" variant="subtle">
-            <DataList variant="grid">
-              <DataListItem label="Resultat">
-                <Badge variant={varAvvist ? 'danger' : 'success'}>
-                  {forrigeResultat ? RESULTAT_LABELS[forrigeResultat] : 'Ukjent'}
-                </Badge>
-              </DataListItem>
-              {forrigeBegrunnelse && (
-                <DataListItem label="Begrunnelse">
-                  <span className="italic">&ldquo;{forrigeBegrunnelse}&rdquo;</span>
+      <div className="space-y-6">
+        {/* Step Indicator for ENDRING (multi-step wizard) */}
+        {erEndringKategori && (
+          <StepIndicator currentStep={currentStep} steps={steps} />
+        )}
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {/* UPDATE MODE: Nåværende svar */}
+          {isUpdateMode && lastResponseEvent && (
+            <SectionContainer title="Nåværende svar" variant="subtle">
+              <DataList variant="grid">
+                <DataListItem label="Resultat">
+                  <Badge variant={varAvvist ? 'danger' : 'success'}>
+                    {forrigeResultat ? RESULTAT_LABELS[forrigeResultat] : 'Ukjent'}
+                  </Badge>
                 </DataListItem>
+                {forrigeBegrunnelse && (
+                  <DataListItem label="Begrunnelse">
+                    <span className="italic">&ldquo;{forrigeBegrunnelse}&rdquo;</span>
+                  </DataListItem>
+                )}
+              </DataList>
+              {harSubsidiaereSvar && varAvvist && (
+                <p className="text-xs text-pkt-grays-gray-500 mt-2">
+                  Det finnes subsidiære svar på vederlag og/eller frist.
+                </p>
               )}
-            </DataList>
-            {harSubsidiaereSvar && varAvvist && (
-              <p className="text-xs text-pkt-grays-gray-500 mt-2">
-                Det finnes subsidiære svar på vederlag og/eller frist.
-              </p>
-            )}
-          </SectionContainer>
-        )}
+            </SectionContainer>
+          )}
 
-        {/* UPDATE MODE: Snuoperasjon alert - CRITICAL */}
-        {isUpdateMode && erSnuoperasjon && harSubsidiaereSvar && (
-          <Alert variant="success" title="Snuoperasjon: Subsidiære svar blir prinsipale">
-            <p>
-              Ved å godkjenne grunnlaget nå, vil alle subsidiære svar på vederlag og frist
-              automatisk konverteres til <strong>prinsipale</strong> svar.
-            </p>
-            <ul className="list-disc pl-5 mt-2 text-sm">
-              {sakState?.er_subsidiaert_vederlag && (
-                <li>
-                  Vederlag: &ldquo;{sakState.visningsstatus_vederlag}&rdquo; blir gjeldende uten forbehold
-                </li>
+          {/* UPDATE MODE: Snuoperasjon alert - CRITICAL */}
+          {isUpdateMode && erSnuoperasjon && harSubsidiaereSvar && (
+            <Alert variant="success" title="Snuoperasjon: Subsidiære svar blir prinsipale">
+              <p>
+                Ved å godkjenne grunnlaget nå, vil alle subsidiære svar på vederlag og frist
+                automatisk konverteres til <strong>prinsipale</strong> svar.
+              </p>
+              <ul className="list-disc pl-5 mt-2 text-sm">
+                {sakState?.er_subsidiaert_vederlag && (
+                  <li>
+                    Vederlag: &ldquo;{sakState.visningsstatus_vederlag}&rdquo; blir gjeldende uten forbehold
+                  </li>
+                )}
+                {sakState?.er_subsidiaert_frist && (
+                  <li>
+                    Frist: &ldquo;{sakState.visningsstatus_frist}&rdquo; blir gjeldende uten forbehold
+                  </li>
+                )}
+              </ul>
+            </Alert>
+          )}
+
+          {/* Kontekst: Entreprenørens påstand - shown on all steps */}
+          {grunnlagEvent && (hovedkategoriLabel || grunnlagEvent.beskrivelse) && (
+            <SectionContainer title="Entreprenørens påstand" variant="subtle">
+              {hovedkategoriLabel && (
+                <p className="text-sm">
+                  <span className="font-medium">{hovedkategoriLabel}</span>
+                  {underkategoriLabels && (
+                    <span className="text-pkt-text-body-subtle">
+                      {' '}
+                      - {underkategoriLabels}
+                    </span>
+                  )}
+                </p>
               )}
-              {sakState?.er_subsidiaert_frist && (
-                <li>
-                  Frist: &ldquo;{sakState.visningsstatus_frist}&rdquo; blir gjeldende uten forbehold
-                </li>
+              {grunnlagEvent.beskrivelse && (
+                <p className="italic text-pkt-text-body-subtle mt-2 text-sm">
+                  &ldquo;{grunnlagEvent.beskrivelse}&rdquo;
+                </p>
               )}
-            </ul>
-          </Alert>
-        )}
+              {(grunnlagEvent.dato_varslet || grunnlagEvent.dato_oppdaget) && (
+                <p className="text-xs text-pkt-text-body-subtle mt-2">
+                  {grunnlagEvent.dato_varslet && (
+                    <span>Varslet: {grunnlagEvent.dato_varslet}</span>
+                  )}
+                  {grunnlagEvent.dato_oppdaget && (
+                    <span className="ml-3">
+                      Oppdaget: {grunnlagEvent.dato_oppdaget}
+                    </span>
+                  )}
+                </p>
+              )}
+              {/* Varslingsregler hint */}
+              {grunnlagEvent.hovedkategori && (
+                <p className="text-xs text-pkt-text-muted mt-3 pt-2 border-t border-pkt-border-subtle">
+                  <span className="font-medium">Varslingsregler:</span>{' '}
+                  {grunnlagEvent.hovedkategori === 'ENDRING' ? (
+                    <>Grunnlag (§32.2) · Frist (§33.4) · Vederlag (§34.1.1)</>
+                  ) : grunnlagEvent.hovedkategori === 'FORCE_MAJEURE' ? (
+                    <>Frist (§33.4) – kun fristforlengelse</>
+                  ) : (
+                    <>Grunnlag (§25.1.2) · Frist (§33.4) · Vederlag (§34.1.2)</>
+                  )}
+                </p>
+              )}
+            </SectionContainer>
+          )}
 
-        {/* Kontekst: Entreprenørens påstand */}
-        {grunnlagEvent && (hovedkategoriLabel || grunnlagEvent.beskrivelse) && (
-          <SectionContainer title="Entreprenørens påstand" variant="subtle">
-            {hovedkategoriLabel && (
-              <p className="text-sm">
-                <span className="font-medium">{hovedkategoriLabel}</span>
-                {underkategoriLabels && (
-                  <span className="text-pkt-text-body-subtle">
-                    {' '}
-                    - {underkategoriLabels}
-                  </span>
-                )}
-              </p>
-            )}
-            {grunnlagEvent.beskrivelse && (
-              <p className="italic text-pkt-text-body-subtle mt-2 text-sm">
-                &ldquo;{grunnlagEvent.beskrivelse}&rdquo;
-              </p>
-            )}
-            {(grunnlagEvent.dato_varslet || grunnlagEvent.dato_oppdaget) && (
-              <p className="text-xs text-pkt-text-body-subtle mt-2">
-                {grunnlagEvent.dato_varslet && (
-                  <span>Varslet: {grunnlagEvent.dato_varslet}</span>
-                )}
-                {grunnlagEvent.dato_oppdaget && (
-                  <span className="ml-3">
-                    Oppdaget: {grunnlagEvent.dato_oppdaget}
-                  </span>
-                )}
-              </p>
-            )}
-            {/* Varslingsregler hint */}
-            {grunnlagEvent.hovedkategori && (
-              <p className="text-xs text-pkt-text-muted mt-3 pt-2 border-t border-pkt-border-subtle">
-                <span className="font-medium">Varslingsregler:</span>{' '}
-                {grunnlagEvent.hovedkategori === 'ENDRING' ? (
-                  <>Grunnlag (§32.2) · Frist (§33.4) · Vederlag (§34.1.1)</>
-                ) : grunnlagEvent.hovedkategori === 'FORCE_MAJEURE' ? (
-                  <>Frist (§33.4) – kun fristforlengelse</>
-                ) : (
-                  <>Grunnlag (§25.1.2) · Frist (§33.4) · Vederlag (§34.1.2)</>
-                )}
-              </p>
-            )}
-          </SectionContainer>
-        )}
+          {/* ================================================================
+              STEP 1 (ENDRING only): PREKLUSJON (§32.2)
+              ================================================================ */}
+          {erEndringKategori && currentStep === 1 && (
+            <SectionContainer
+              title="Preklusjon av grunnlagsvarsel (§32.2)"
+              description="Vurder om entreprenøren varslet om den påståtte endringen i tide."
+            >
+              <div className="space-y-4">
+                <KontraktsregelInline hjemmel="§32.2" />
 
-        {/* Force Majeure info */}
-        {erForceMajeure && (
-          <KontraktsregelInline hjemmel="§33.3" />
-        )}
+                <FormField
+                  label="Varslet entreprenøren uten ugrunnet opphold?"
+                  required
+                >
+                  <Controller
+                    name="grunnlag_varslet_i_tide"
+                    control={control}
+                    render={({ field }) => (
+                      <RadioGroup
+                        value={field.value === undefined ? undefined : field.value ? 'ja' : 'nei'}
+                        onValueChange={(val: string) => field.onChange(val === 'ja')}
+                      >
+                        <RadioItem value="ja" label="Ja – varslet i tide" />
+                        <RadioItem value="nei" label="Nei – varslet for sent (§32.2 preklusjon)" />
+                      </RadioGroup>
+                    )}
+                  />
+                </FormField>
 
-        {/* BH Passivity warning (§32.3) */}
-        {erPassiv && (
-          <Alert variant="danger" title="Passivitetsrisiko (§32.3)">
-            <p className="font-medium">
-              Du har brukt <strong>{dagerSidenVarsel} dager</strong> på å svare
-              på dette varselet om irregulær endring.
-            </p>
-            <p className="mt-2">
-              Ved irregulær endring kan passivitet medføre at endringen anses
-              akseptert. Hvis du avslår, bør du dokumentere hvorfor forsinkelsen
-              var begrunnet.
-            </p>
-          </Alert>
-        )}
+                {erGrunnlagPrekludert && (
+                  <Alert variant="danger" title="Preklusjon påberopt (§32.2)">
+                    <p>
+                      Du påberoper at entreprenøren varslet for sent og dermed taper retten til
+                      å påberope at pålegget innebærer en endring.
+                    </p>
+                    <p className="mt-2">
+                      <strong>Viktig (§5):</strong> Du må påberope dette skriftlig «uten ugrunnet
+                      opphold» etter å ha mottatt varselet – ellers anses varselet gitt i tide.
+                    </p>
+                    <p className="mt-2 text-sm">
+                      <strong>Merk:</strong> Forholdet kan likevel kvalifisere som SVIKT/ANDRE.
+                      Du bør ta subsidiært stilling til vederlagspreklusjon (§34.1.2) i
+                      vederlagssvaret.
+                    </p>
+                  </Alert>
+                )}
 
-        {/* Vurdering */}
-        <SectionContainer
-          title="Vurdering"
-          description="Vurder kun ansvarsgrunnlaget. Vederlag og frist behandles separat."
-        >
+                {!erGrunnlagPrekludert && grunnlagVarsletITide === true && (
+                  <Alert variant="info" title="Varslet i tide">
+                    Du godtar at entreprenøren varslet om endringen i tide.
+                    Forholdet behandles som en ENDRING, og §34.1.1 gjelder for vederlag
+                    (ingen vederlagspreklusjon).
+                  </Alert>
+                )}
+              </div>
+            </SectionContainer>
+          )}
+
+          {/* ================================================================
+              STEP 2 (ENDRING) or STEP 1 (other categories): VURDERING
+              ================================================================ */}
+          {((!erEndringKategori) || (erEndringKategori && currentStep === 2)) && (
+            <>
+              {/* Force Majeure info */}
+              {erForceMajeure && (
+                <KontraktsregelInline hjemmel="§33.3" />
+              )}
+
+              {/* BH Passivity warning (§32.3) */}
+              {erPassiv && (
+                <Alert variant="danger" title="Passivitetsrisiko (§32.3)">
+                  <p className="font-medium">
+                    Du har brukt <strong>{dagerSidenVarsel} dager</strong> på å svare
+                    på dette varselet om irregulær endring.
+                  </p>
+                  <p className="mt-2">
+                    Ved irregulær endring kan passivitet medføre at endringen anses
+                    akseptert. Hvis du avslår, bør du dokumentere hvorfor forsinkelsen
+                    var begrunnet.
+                  </p>
+                </Alert>
+              )}
+
+              {/* Subsidiær markering hvis grunnlag er prekludert */}
+              {erGrunnlagPrekludert && (
+                <Alert variant="warning" title="Subsidiær vurdering">
+                  Du har påberopt §32.2-preklusjon. Vurderingen under gjelder{' '}
+                  <strong>subsidiært</strong> – for det tilfellet at preklusjonen ikke
+                  holder eller forholdet likevel anses å utgjøre en endring.
+                </Alert>
+              )}
+
+              {/* Vurdering */}
+              <SectionContainer
+                title={erGrunnlagPrekludert ? "Vurdering (subsidiært)" : "Vurdering"}
+                description="Vurder kun ansvarsgrunnlaget. Vederlag og frist behandles separat."
+              >
           <div className="space-y-4">
             <FormField
               label="Resultat (ansvarsgrunnlag)"
@@ -524,7 +648,7 @@ export function RespondGrunnlagModal({
             )}
 
             {/* Subsidiary treatment warning when rejecting (non-FM) */}
-            {selectedResultat === 'avslatt' && !erForceMajeure && (
+            {selectedResultat === 'avslatt' && !erForceMajeure && !erGrunnlagPrekludert && (
               <Alert variant="warning" title="Konsekvens av avslag">
                 <p>
                   Saken markeres som <em>omtvistet</em>. Entreprenøren vil likevel
@@ -549,9 +673,11 @@ export function RespondGrunnlagModal({
             required
             error={errors.begrunnelse?.message}
             helpText={
-              selectedResultat === 'avslatt'
-                ? 'Forklar hvorfor du mener forholdet er en del av kontrakten eller entreprenørens risiko'
-                : 'Begrunn din vurdering av ansvarsgrunnlaget'
+              erGrunnlagPrekludert
+                ? 'Begrunn både preklusjonsinnsigelsen og din subsidiære vurdering av ansvarsgrunnlaget'
+                : selectedResultat === 'avslatt'
+                  ? 'Forklar hvorfor du mener forholdet er en del av kontrakten eller entreprenørens risiko'
+                  : 'Begrunn din vurdering av ansvarsgrunnlaget'
             }
           >
             <Controller
@@ -565,57 +691,91 @@ export function RespondGrunnlagModal({
                   rows={8}
                   fullWidth
                   error={!!errors.begrunnelse}
-                  placeholder="Begrunn din vurdering..."
+                  placeholder={
+                    erGrunnlagPrekludert
+                      ? "Begrunn din preklusjonsinnsigelse og ta subsidiært stilling..."
+                      : "Begrunn din vurdering..."
+                  }
                 />
               )}
             />
           </FormField>
         </SectionContainer>
+            </>
+          )}
 
-        {/* Error Message */}
-        {mutation.isError && (
-          <Alert variant="danger" title="Feil ved innsending">
-            {mutation.error instanceof Error ? mutation.error.message : 'En feil oppstod'}
-          </Alert>
-        )}
+          {/* Error Message */}
+          {mutation.isError && (
+            <Alert variant="danger" title="Feil ved innsending">
+              {mutation.error instanceof Error ? mutation.error.message : 'En feil oppstod'}
+            </Alert>
+          )}
 
-        {/* Actions */}
-        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-6 border-t-2 border-pkt-border-subtle">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => onOpenChange(false)}
-            disabled={isSubmitting}
-            className="w-full sm:w-auto"
-          >
-            Avbryt
-          </Button>
-          {approvalEnabled ? (
+          {/* Actions */}
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-6 border-t-2 border-pkt-border-subtle">
             <Button
               type="button"
-              variant="primary"
-              loading={isSubmitting}
+              variant="ghost"
+              onClick={() => handleOpenChange(false)}
+              disabled={isSubmitting}
               className="w-full sm:w-auto"
-              onClick={handleSubmit(handleSaveDraft)}
-              data-testid="respond-grunnlag-submit"
             >
-              Lagre utkast
+              Avbryt
             </Button>
-          ) : (
-            <Button
-              type="submit"
-              variant={selectedResultat === 'avslatt' ? 'danger' : 'primary'}
-              loading={isSubmitting}
-              className="w-full sm:w-auto"
-              data-testid="respond-grunnlag-submit"
-            >
-              {isUpdateMode
-                ? (erSnuoperasjon ? 'Godkjenn ansvarsgrunnlag' : 'Lagre endring')
-                : 'Send svar'}
-            </Button>
-          )}
-        </div>
-      </form>
+
+            {/* Wizard navigation for ENDRING */}
+            {erEndringKategori && currentStep === 1 && (
+              <Button
+                type="button"
+                variant="primary"
+                onClick={goToNextStep}
+                className="w-full sm:w-auto"
+              >
+                Neste
+              </Button>
+            )}
+
+            {erEndringKategori && currentStep === 2 && (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={goToPrevStep}
+                className="w-full sm:w-auto"
+              >
+                Tilbake
+              </Button>
+            )}
+
+            {/* Submit button - shown on last step */}
+            {((!erEndringKategori) || (erEndringKategori && currentStep === totalSteps)) && (
+              approvalEnabled ? (
+                <Button
+                  type="button"
+                  variant="primary"
+                  loading={isSubmitting}
+                  className="w-full sm:w-auto"
+                  onClick={handleSubmit(handleSaveDraft)}
+                  data-testid="respond-grunnlag-submit"
+                >
+                  Lagre utkast
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  variant={selectedResultat === 'avslatt' || erGrunnlagPrekludert ? 'danger' : 'primary'}
+                  loading={isSubmitting}
+                  className="w-full sm:w-auto"
+                  data-testid="respond-grunnlag-submit"
+                >
+                  {isUpdateMode
+                    ? (erSnuoperasjon ? 'Godkjenn ansvarsgrunnlag' : 'Lagre endring')
+                    : 'Send svar'}
+                </Button>
+              )
+            )}
+          </div>
+        </form>
+      </div>
 
       <TokenExpiredAlert open={showTokenExpired} onClose={() => setShowTokenExpired(false)} />
     </Modal>

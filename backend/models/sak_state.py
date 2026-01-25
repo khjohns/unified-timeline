@@ -105,6 +105,10 @@ class GrunnlagTilstand(BaseModel):
         description="BHs siste respons på ansvarsgrunnlaget"
     )
     bh_begrunnelse: Optional[str] = Field(default=None)
+    grunnlag_varslet_i_tide: Optional[bool] = Field(
+        default=None,
+        description="§32.2: Var grunnlagsvarselet rettidig? (kun ENDRING)"
+    )
     laast: bool = Field(
         default=False,
         description="Om grunnlaget er låst (godkjent og kan ikke endres)"
