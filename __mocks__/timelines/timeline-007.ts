@@ -72,7 +72,7 @@ export const mockTimelineEvents7: TimelineEntry[] = [
     sammendrag: 'Krav på 7 dager fristforlengelse',
     event_data: {
       varsel_type: 'spesifisert',
-      frist_varsel: { dato_sendt: '2025-02-10', metode: ['system'] },
+      frist_varsel: { dato_sendt: '2025-02-10', metode: ['digital_oversendelse'] },
       spesifisert_varsel: { dato_sendt: '2025-02-11', metode: ['epost'] },
       antall_dager: 7,
       begrunnelse: 'Enkelt snekkerarbeid.',
@@ -90,7 +90,7 @@ export const mockTimelineEvents7: TimelineEntry[] = [
     event_data: {
       metode: 'REGNINGSARBEID',
       begrunnelse: 'Snekkerarbeid og ny innredning. Overslag ettersendes.',
-      regningsarbeid_varsel: { dato_sendt: '2025-02-10', metode: ['system'] },
+      regningsarbeid_varsel: { dato_sendt: '2025-02-10', metode: ['digital_oversendelse'] },
     },
   },
   {
@@ -107,7 +107,7 @@ export const mockTimelineEvents7: TimelineEntry[] = [
       underkategori: ['IRREG'],
       beskrivelse: 'Endret utforming av resepsjon etter muntlig instruks.',
       dato_oppdaget: '2025-02-10',
-      grunnlag_varsel: { dato_sendt: '2025-02-10', metode: ['system'] },
+      grunnlag_varsel: { dato_sendt: '2025-02-10', metode: ['digital_oversendelse'] },
       kontraktsreferanser: ['§32.1'],
     },
   },

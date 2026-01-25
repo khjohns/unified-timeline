@@ -29,6 +29,7 @@ import {
   Textarea,
   useToast,
 } from '../components/primitives';
+import { VarselSeksjon } from '../components/actions/shared/VarselSeksjon';
 import { PageHeader } from '../components/PageHeader';
 import {
   HOVEDKATEGORI_OPTIONS,
@@ -36,7 +37,6 @@ import {
   getUnderkategoriObj,
   erLovendring,
   getGrupperteUnderkategorier,
-  VARSEL_METODER_OPTIONS,
 } from '../constants';
 import { apiFetch, USE_MOCK_API, mockDelay } from '../api/client';
 import type { StateResponse } from '../types/api';
@@ -149,7 +149,7 @@ export function OpprettSakPage() {
         : data.dato_varsel_sendt;
 
       const varselMetode = data.varsel_sendes_na
-        ? ['system']
+        ? ['digital_oversendelse']
         : (data.varsel_metode || []);
 
       const grunnlagVarsel = varselDato
@@ -489,70 +489,18 @@ export function OpprettSakPage() {
                   />
                 </FormField>
 
-                <FormField
+                <VarselSeksjon
                   label="Når ble byggherren varslet?"
                   labelTooltip="Dokumenter når byggherren ble varslet. Varselfrist er kritisk for om kravet kan tapes ved preklusjon."
-                >
-                  <Controller
-                    name="varsel_sendes_na"
-                    control={control}
-                    render={({ field }) => (
-                      <RadioGroup
-                        value={field.value ? 'na' : 'tidligere'}
-                        onValueChange={(v) => field.onChange(v === 'na')}
-                        data-testid="sak-varsel-valg"
-                      >
-                        <RadioItem
-                          value="na"
-                          label="Varsel sendes nå (sammen med denne registreringen)"
-                        />
-                        <RadioItem
-                          value="tidligere"
-                          label="Varsel ble sendt tidligere"
-                        />
-                      </RadioGroup>
-                    )}
-                  />
-                </FormField>
-
-                {/* Tidligere varsel-detaljer - kun synlig når "tidligere" er valgt */}
-                {!varselSendesNa && (
-                  <div className="border-l-2 border-pkt-border-subtle pl-4 space-y-4">
-                    <FormField
-                      label="Dato varsel sendt"
-                      helpText="Kan være forskjellig fra oppdaget-dato. Både formelle og uformelle varsler (f.eks. byggemøte) teller."
-                    >
-                      <Controller
-                        name="dato_varsel_sendt"
-                        control={control}
-                        render={({ field }) => (
-                          <DatePicker
-                            id="dato_varsel_sendt"
-                            value={field.value}
-                            onChange={field.onChange}
-                          />
-                        )}
-                      />
-                    </FormField>
-
-                    <FormField
-                      label="Varselmetode"
-                      helpText="Hvordan ble byggherren varslet? (Kan velge flere)"
-                    >
-                      <div className="space-y-3">
-                        {VARSEL_METODER_OPTIONS.map((option) => (
-                          <Checkbox
-                            key={option.value}
-                            id={`varsel-${option.value}`}
-                            label={option.label}
-                            value={option.value}
-                            {...register('varsel_metode')}
-                          />
-                        ))}
-                      </div>
-                    </FormField>
-                  </div>
-                )}
+                  sendesNa={varselSendesNa ?? true}
+                  onSendesNaChange={(value) => setValue('varsel_sendes_na', value)}
+                  datoSendt={watch('dato_varsel_sendt')}
+                  onDatoSendtChange={(value) => setValue('dato_varsel_sendt', value)}
+                  datoError={errors.dato_varsel_sendt?.message}
+                  registerMetoder={register('varsel_metode')}
+                  idPrefix="opprett_sak"
+                  testId="sak-varsel-valg"
+                />
               </div>
             </SectionContainer>
 

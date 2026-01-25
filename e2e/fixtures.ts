@@ -136,7 +136,7 @@ export const test = base.extend<{ api: ApiHelpers }>({
           dato_oppdaget: today,
           grunnlag_varsel: {
             dato_sendt: today,
-            metode: ['system'],
+            metode: ['digital_oversendelse'],
           },
         };
 

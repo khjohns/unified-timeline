@@ -308,7 +308,7 @@ export function SendGrunnlagModal({
       : data.dato_varsel_sendt;
 
     const varselMetode = data.varsel_sendes_na
-      ? ['system']
+      ? ['digital_oversendelse']
       : (data.varsel_metode || []);
 
     const grunnlagVarsel = varselDato

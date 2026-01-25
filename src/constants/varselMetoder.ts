@@ -18,13 +18,18 @@ export const VARSEL_METODER_OPTIONS: DropdownOption[] = [
   { value: "epost", label: "E-post til avtalt adresse" },
   { value: "brev", label: "Brev til representant" },
   { value: "byggemote", label: "Innført i byggemøtereferat (§4.2)" },
-  { value: "prosjektportal", label: "Prosjektportal (Catenda/BIM360)" },
-  { value: "system", label: "System (sendes automatisk)" },
+  { value: "prosjekthotell", label: "Prosjekthotell" },
+];
+
+/** Inkluderer 'digital_oversendelse' - brukes når varsel sendes automatisk via plattformen */
+export const VARSEL_METODER_ALLE: DropdownOption[] = [
+  ...VARSEL_METODER_OPTIONS,
+  { value: "digital_oversendelse", label: "Digital oversendelse til prosjekthotell" },
 ];
 
 // Helper function to get varsel metode label from code
 export function getVarselMetodeLabel(code: string): string {
-  const option = VARSEL_METODER_OPTIONS.find(opt => opt.value === code);
+  const option = VARSEL_METODER_ALLE.find(opt => opt.value === code);
   return option?.label || code;
 }
 
