@@ -579,7 +579,6 @@ export function SendGrunnlagModal({
                     render={({ field: datoField }) => (
                       <VarselSeksjon
                         label="Når ble byggherren varslet?"
-                        labelTooltip="Dokumenter når byggherren ble varslet. Varselfrist er kritisk for om kravet kan tapes ved preklusjon."
                         sendesNa={sendesNaField.value ?? true}
                         onSendesNaChange={sendesNaField.onChange}
                         datoSendt={datoField.value}
