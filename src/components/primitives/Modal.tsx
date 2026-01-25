@@ -16,6 +16,15 @@ interface ModalProps {
    * Gir et mer kompakt og elegant utseende på små skjermer.
    */
   framedTitle?: boolean;
+  /**
+   * Variant for framedTitle-stilen (kun aktiv når framedTitle=true)
+   * - 'default': Bakgrunn som matcher modal (nåværende)
+   * - 'pill': Tynn border rundt, transparent bakgrunn
+   * - 'underline': Understrek som fortsetter fra modal-border
+   * - 'inset': Tittel i en liten "notch" i toppen
+   * - 'shadow': Transparent bakgrunn med text-shadow for lesbarhet
+   */
+  framedTitleVariant?: 'default' | 'pill' | 'underline' | 'inset' | 'shadow';
 }
 
 /**
@@ -32,7 +41,8 @@ export function Modal({
   children,
   size = 'md',
   className,
-  framedTitle = false,
+  framedTitle = true,
+  framedTitleVariant = 'pill',
 }: ModalProps) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -77,11 +87,23 @@ export function Modal({
               className={clsx(
                 // Mobile: Framed title breaking the border
                 'absolute left-4 top-0 -translate-y-1/2',
-                'bg-pkt-bg-card px-2',
                 'text-base font-bold text-pkt-text-body-dark',
                 'max-w-[calc(100%-5rem)] truncate',
                 // Desktop: Hide framed title (normal header is shown instead)
-                'sm:hidden'
+                'sm:hidden',
+                // Variant-specific styling
+                {
+                  // Default: Solid background matching modal
+                  'bg-pkt-bg-card px-2': framedTitleVariant === 'default',
+                  // Pill: Thin border, transparent background
+                  'border border-pkt-border-default rounded px-3 py-0.5 bg-pkt-bg-card/80 backdrop-blur-sm': framedTitleVariant === 'pill',
+                  // Underline: Border-bottom continuing from modal border
+                  'border-b border-pkt-border-default pb-1 bg-transparent': framedTitleVariant === 'underline',
+                  // Inset: Small notch/tab effect
+                  'bg-pkt-bg-card px-3 py-1 rounded-b border-x border-b border-pkt-border-default -top-px translate-y-0': framedTitleVariant === 'inset',
+                  // Shadow: Transparent with text shadow for readability
+                  'bg-transparent px-2 [text-shadow:_0_1px_2px_rgba(255,255,255,0.9),_0_0_4px_rgba(255,255,255,0.8)]': framedTitleVariant === 'shadow',
+                }
               )}
             >
               {title}
