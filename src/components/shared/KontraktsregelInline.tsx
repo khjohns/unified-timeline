@@ -347,9 +347,9 @@ export function KontraktsregelInline(props: KontraktsregelInlineProps) {
           </Collapsible.Trigger>
 
           <Collapsible.Content className="mt-2 pl-5 border-l-2 border-pkt-border-subtle">
-            <dl className="space-y-1 text-sm">
+            <dl className="space-y-3 sm:space-y-1 text-sm">
               {hjemmelInnhold.systematikk!.innhold.map((item, idx) => (
-                <div key={idx} className="flex gap-2">
+                <div key={idx} className="flex flex-col sm:flex-row sm:gap-2">
                   <dt className="font-medium text-pkt-text-body-subtle shrink-0">{item.ref}:</dt>
                   <dd className="text-pkt-text-body">{item.tekst}</dd>
                 </div>
