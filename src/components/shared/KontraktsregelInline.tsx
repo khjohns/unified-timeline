@@ -75,8 +75,8 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
     },
   },
   '§24.2.2': {
-    inline: 'Regulerer totalentreprenørens frist for å varsle om forhold i byggherrens materiale som ikke vil oppfylle §14-kravene, samt byggherrens svarplikt. Relevant for underkategori SVAR_VARSEL når byggherrens svar innebærer en endring uten endringsordre.',
-    konsekvens: 'Innebærer byggherrens svar en endring uten at endringsordre utstedes, må totalentreprenøren varsle etter §32.2 for å påberope seg endringen.',
+    inline: 'Gjelder KUN når avtalt risikoovergang etter §24.2.1. Regulerer totalentreprenørens frist for å varsle om forhold i byggherrens materiale som ikke vil oppfylle §14-kravene, samt byggherrens svarplikt.',
+    konsekvens: 'Innebærer byggherrens svar en endring uten at endringsordre utstedes, må totalentreprenøren varsle etter §32.2 for å påberope seg endringen (underkategori SVAR_VARSEL).',
     paragraf5: {
       paaberoper: 'BH',
       tekst: '',
@@ -84,6 +84,7 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
     systematikk: {
       label: '§24.2.2: Kontroll, varsling og svar',
       innhold: [
+        { ref: 'Forutsetning', tekst: 'Bestemmelsen gjelder kun når partene har avtalt risikoovergang etter §24.2.1 (totalentreprenøren overtar risiko for byggherrens prosjektering).' },
         { ref: '1. Varslingsfrist', tekst: 'Totalentreprenøren har en frist på 5 uker fra kontraktsinngåelse til å varsle (utsettes ved senere mottak av materiale).' },
         { ref: '2. Risikoovergang', tekst: 'Rettidig varsel: totalentreprenøren overtar ikke risikoen. Manglende varsel: risikoen overtas.' },
         { ref: '3. Byggherrens svarplikt', tekst: 'Byggherren må besvare varselet «uten ugrunnet opphold».' },
