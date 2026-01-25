@@ -18,7 +18,6 @@ import {
   Checkbox,
   InlineDataList,
   InlineDataListItem,
-  DatePicker,
   FormField,
   Input,
   Modal,
@@ -29,6 +28,7 @@ import {
   useToast,
 } from '../primitives';
 import { KontraktsregelInline } from '../shared';
+import { VarselSeksjon } from './shared/VarselSeksjon';
 import type { AttachmentFile } from '../../types';
 import type { GrunnlagTilstand } from '../../types/timeline';
 import { useForm, Controller } from 'react-hook-form';
@@ -40,8 +40,6 @@ import { TokenExpiredAlert } from '../alerts/TokenExpiredAlert';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import {
   HOVEDKATEGORI_OPTIONS,
-  getUnderkategorier,
-  VARSEL_METODER_OPTIONS,
   getHovedkategori,
   getHovedkategoriLabel,
   getUnderkategoriObj,
@@ -571,83 +569,41 @@ export function SendGrunnlagModal({
 
             {/* Varsel options - only in create mode (varsel already sent in update mode) */}
             {!isUpdateMode && (
-              <>
-                <FormField
-                  label="Når ble byggherren varslet?"
-                  labelTooltip="Dokumenter når byggherren ble varslet. Varselfrist er kritisk for om kravet kan tapes ved preklusjon."
-                >
+              <Controller
+                name="varsel_sendes_na"
+                control={control}
+                render={({ field: sendesNaField }) => (
                   <Controller
-                    name="varsel_sendes_na"
+                    name="dato_varsel_sendt"
                     control={control}
-                    render={({ field }) => (
-                      <RadioGroup
-                        value={field.value ? 'na' : 'tidligere'}
-                        onValueChange={(v) => field.onChange(v === 'na')}
-                        data-testid="grunnlag-varsel-valg"
-                      >
-                        <RadioItem
-                          value="na"
-                          label="Varsel sendes nå (sammen med dette skjemaet)"
-                        />
-                        <RadioItem
-                          value="tidligere"
-                          label="Varsel ble sendt tidligere"
-                        />
-                      </RadioGroup>
+                    render={({ field: datoField }) => (
+                      <VarselSeksjon
+                        label="Når ble byggherren varslet?"
+                        labelTooltip="Dokumenter når byggherren ble varslet. Varselfrist er kritisk for om kravet kan tapes ved preklusjon."
+                        sendesNa={sendesNaField.value ?? true}
+                        onSendesNaChange={sendesNaField.onChange}
+                        datoSendt={datoField.value}
+                        onDatoSendtChange={datoField.onChange}
+                        registerMetoder={register('varsel_metode')}
+                        idPrefix="grunnlag_varsel"
+                        testId="grunnlag-varsel-valg"
+                        extraContent={
+                          preklusjonsResultatVarsel?.alert && (
+                            <div className="mt-3">
+                              <Alert
+                                variant={preklusjonsResultatVarsel.alert.variant}
+                                title={preklusjonsResultatVarsel.alert.title}
+                              >
+                                {preklusjonsResultatVarsel.alert.message}
+                              </Alert>
+                            </div>
+                          )
+                        }
+                      />
                     )}
                   />
-                </FormField>
-
-                {/* Tidligere varsel-detaljer - kun synlig når "tidligere" er valgt */}
-                {!varselSendesNa && (
-                  <div className="border-l-2 border-pkt-border-subtle pl-4 space-y-4">
-                    <FormField
-                      label="Dato varsel sendt"
-                      helpText="Kan være forskjellig fra oppdaget-dato. Både formelle og uformelle varsler (f.eks. byggemøte) teller."
-                    >
-                      <Controller
-                        name="dato_varsel_sendt"
-                        control={control}
-                        render={({ field }) => (
-                          <DatePicker
-                            id="dato_varsel_sendt"
-                            value={field.value}
-                            onChange={field.onChange}
-                          />
-                        )}
-                      />
-                      {/* Preclusion warning for time between discovery and notification */}
-                      {preklusjonsResultatVarsel?.alert && (
-                        <div className="mt-3">
-                          <Alert
-                            variant={preklusjonsResultatVarsel.alert.variant}
-                            title={preklusjonsResultatVarsel.alert.title}
-                          >
-                            {preklusjonsResultatVarsel.alert.message}
-                          </Alert>
-                        </div>
-                      )}
-                    </FormField>
-
-                    <FormField
-                      label="Varselmetode"
-                      helpText="Hvordan ble byggherren varslet? (Kan velge flere)"
-                    >
-                      <div className="space-y-3">
-                        {VARSEL_METODER_OPTIONS.map((option) => (
-                          <Checkbox
-                            key={option.value}
-                            id={`varsel-${option.value}`}
-                            label={option.label}
-                            value={option.value}
-                            {...register('varsel_metode')}
-                          />
-                        ))}
-                      </div>
-                    </FormField>
-                  </div>
                 )}
-              </>
+              />
             )}
           </div>
         </SectionContainer>

@@ -40,6 +40,8 @@ interface VarselSeksjonProps {
   idPrefix: string;
   /** Optional test ID for the radio group */
   testId?: string;
+  /** Optional extra content to render after the date field (e.g., preclusion warnings) */
+  extraContent?: React.ReactNode;
 }
 
 export function VarselSeksjon({
@@ -53,6 +55,7 @@ export function VarselSeksjon({
   registerMetoder,
   idPrefix,
   testId,
+  extraContent,
 }: VarselSeksjonProps) {
   return (
     <div className="space-y-4">
@@ -75,7 +78,7 @@ export function VarselSeksjon({
         <div className="border-l-2 border-pkt-border-subtle pl-4 space-y-4">
           <FormField
             label="Dato varsel sendt"
-            helpText="Både formelle og uformelle varsler (f.eks. byggemøte) teller."
+            helpText="Skriftlig varsel, e-post til avtalt adresse, eller innført i referat (§5)."
             error={datoError}
           >
             <DatePicker
@@ -84,11 +87,12 @@ export function VarselSeksjon({
               onChange={onDatoSendtChange}
               error={!!datoError}
             />
+            {extraContent}
           </FormField>
 
           <FormField
-            label="Varselmetode"
-            helpText="Hvordan ble motparten varslet? (Kan velge flere)"
+            label="Varselmetode (§5)"
+            helpText="Kun skriftlige varsler er gyldige iht. §5."
           >
             <div className="space-y-3">
               {VARSEL_METODER_OPTIONS.map((option) => (

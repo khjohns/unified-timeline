@@ -2,21 +2,24 @@
  * Varsel Metoder (Warning/Notification Methods)
  * How the contractor notified the client about the issue
  *
- * Based on legacy implementation
+ * Basert på NS 8407 §5 Varsler og krav:
+ * - Skriftlig til partenes representanter (§9) eller avtalte adresser
+ * - E-post til avtalt adresse regnes som skriftlig
+ * - Innført i referat (§4.2) regnes som skriftlig
+ *
+ * NB: Muntlige varsler (telefon) er IKKE gyldige iht. §5.
  */
 
 import { DropdownOption } from './categories';
 
-// ========== VARSEL METODER ==========
+// ========== VARSEL METODER (§5) ==========
 
 export const VARSEL_METODER_OPTIONS: DropdownOption[] = [
-  { value: "epost", label: "E-post" },
-  { value: "byggemote", label: "Byggemøte" },
-  { value: "brev", label: "Brev" },
-  { value: "telefon", label: "Telefon" },
+  { value: "epost", label: "E-post til avtalt adresse" },
+  { value: "brev", label: "Brev til representant" },
+  { value: "byggemote", label: "Innført i byggemøtereferat (§4.2)" },
   { value: "prosjektportal", label: "Prosjektportal (Catenda/BIM360)" },
   { value: "system", label: "System (sendes automatisk)" },
-  { value: "annet", label: "Annet" },
 ];
 
 // Helper function to get varsel metode label from code
