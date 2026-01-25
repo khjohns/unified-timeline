@@ -19,12 +19,17 @@ export const VARSEL_METODER_OPTIONS: DropdownOption[] = [
   { value: "brev", label: "Brev til representant" },
   { value: "byggemote", label: "Innført i byggemøtereferat (§4.2)" },
   { value: "prosjektportal", label: "Prosjektportal (Catenda/BIM360)" },
-  { value: "system", label: "System (sendes automatisk)" },
+];
+
+/** Inkluderer 'system' - brukes kun internt når varsel sendes automatisk via systemet */
+export const VARSEL_METODER_ALLE: DropdownOption[] = [
+  ...VARSEL_METODER_OPTIONS,
+  { value: "system", label: "Varslet via dette systemet" },
 ];
 
 // Helper function to get varsel metode label from code
 export function getVarselMetodeLabel(code: string): string {
-  const option = VARSEL_METODER_OPTIONS.find(opt => opt.value === code);
+  const option = VARSEL_METODER_ALLE.find(opt => opt.value === code);
   return option?.label || code;
 }
 
