@@ -70,6 +70,30 @@ type KontraktsregelInlineProps =
  * Innhold per hjemmel.
  *
  * HUSK OPPHAVSRETT: Parafrasér alltid - se kommentar øverst i filen.
+ *
+ * HVORDAN BYGGE EN NY HJEMMEL:
+ *
+ * 1. ANALYSER KONTRAKTSTEKSTEN:
+ *    - Identifiser hovedregelen (hvem skal gjøre hva, når)
+ *    - Finn konsekvensen ved brudd/oppfyllelse
+ *    - Sjekk om §5 gjelder (passivitetsvirkning)
+ *    - Se etter underpunkter (a, b, c) eller referanser til andre paragrafer
+ *
+ * 2. STRUKTURÉR INNHOLDET:
+ *    - inline: Hovedregelen i én setning. Start med subjekt (totalentreprenøren/byggherren),
+ *              deretter handling og frist («uten ugrunnet opphold»).
+ *    - konsekvens: Hva skjer ved brudd? Preklusjon (tap av rett), erstatning, passiv aksept?
+ *    - paragraf5: Hvem må påberope senhet/passivitet for at §5 skal gjelde?
+ *              paaberoper = 'TE' eller 'BH', tekst = påminnelse om §5-mekanismen.
+ *    - systematikk: Valgfritt. Bruk for underpunkter, definisjoner, eller sammenhenger
+ *              med andre paragrafer. Label = accordion-tittel, innhold = ref/tekst-par.
+ *
+ * 3. EKSEMPEL (§32.3):
+ *    - Kontrakten: "Når byggherren mottar varsel i henhold til 32.2, skal han besvare..."
+ *    - inline: Parafrasér til "Når byggherren mottar varsel etter §32.2, skal han..."
+ *    - konsekvens: Passivitet → endring akseptert. Avslag → må begrunnes.
+ *    - paragraf5: TE må påberope passivitet (ikke BH).
+ *    - systematikk: Vis de tre svaralternativene (a, b, c) med forklarende tekst.
  */
 const HJEMMEL_INNHOLD: Record<Hjemmel, {
   inline: string;
