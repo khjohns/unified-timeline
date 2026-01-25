@@ -684,7 +684,7 @@ export function UtstEndringsordreModal({
                 </div>
 
                 {harKonsekvens && (
-                  <FormField label="Utdypende beskrivelse" labelTooltip="Beskriv konsekvensene nærmere hvis relevant">
+                  <FormField label="Utdypende beskrivelse">
                     <Textarea
                       {...register('konsekvens_beskrivelse')}
                       rows={3}
@@ -827,7 +827,7 @@ export function UtstEndringsordreModal({
                           />
                         </FormField>
 
-                        <FormField label="Ny sluttdato" labelTooltip="Valgfritt - beregnes automatisk hvis ikke angitt">
+                        <FormField label="Ny sluttdato">
                           <Controller
                             name="ny_sluttdato"
                             control={control}
