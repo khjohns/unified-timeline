@@ -675,7 +675,7 @@ function CasePageContent() {
               krever_justert_ep: state.vederlag.krever_justert_ep,
               saerskilt_krav: state.vederlag.saerskilt_krav,
               dato_oppdaget: state.grunnlag.dato_oppdaget,
-              dato_krav_mottatt: state.vederlag.dato_krav_sendt,
+              dato_krav_mottatt: state.vederlag.krav_fremmet_dato,
             }}
             onCatendaWarning={() => setShowCatendaWarning(true)}
             approvalEnabled={approvalWorkflow.approvalEnabled}
@@ -810,7 +810,7 @@ function CasePageContent() {
               krever_justert_ep: state.vederlag.krever_justert_ep,
               saerskilt_krav: state.vederlag.saerskilt_krav,
               dato_oppdaget: state.grunnlag.dato_oppdaget,
-              dato_krav_mottatt: state.vederlag.dato_krav_sendt,
+              dato_krav_mottatt: state.vederlag.krav_fremmet_dato,
             }}
             lastResponseEvent={{
               event_id: `vederlag-response-${sakId}`,

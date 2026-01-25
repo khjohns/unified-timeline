@@ -122,7 +122,7 @@ export function AnalyticsDashboard() {
       <div className="bg-pkt-bg-card border-b border-pkt-border-subtle">
         <div className="max-w-3xl mx-auto px-4 sm:px-8">
           <Tabs
-            tabs={ANALYSIS_TABS}
+            tabs={ANALYSIS_TABS.map(tab => ({ id: tab.id, label: tab.label, shortLabel: 'shortLabel' in tab ? tab.shortLabel : undefined }))}
             activeTab={activeTab}
             onTabChange={(id) => setActiveTab(id as AnalysisTab)}
           />

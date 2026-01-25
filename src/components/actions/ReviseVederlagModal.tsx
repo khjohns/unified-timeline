@@ -665,8 +665,7 @@ export function ReviseVederlagModal({
         <SectionContainer
           title="Særskilte krav (§34.1.3)"
           description="Krav om økte rigg-/driftskostnader og produktivitetstap krever særskilt varsel"
-          collapsible
-          defaultOpen={!!lastVederlagEvent.saerskilt_krav}
+          optional
         >
 
           {/* Rigg/Drift section (§34.1.3 første ledd) */}

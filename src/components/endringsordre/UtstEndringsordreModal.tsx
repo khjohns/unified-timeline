@@ -258,7 +258,7 @@ export function UtstEndringsordreModal({
     const existingNumbers = kandidatSaker
       .map((k) => {
         const match = k.tittel?.match(/EO-?(\d+)/i);
-        return match ? parseInt(match[1], 10) : 0;
+        return match?.[1] ? parseInt(match[1], 10) : 0;
       })
       .filter((n) => n > 0);
     const nextNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;

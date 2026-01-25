@@ -313,8 +313,7 @@ export function OpprettFravikModal({
         <SectionContainer
           title="Hastebehandling"
           description="Marker hvis søknaden haster"
-          collapsible
-          defaultOpen={false}
+          optional
         >
           <div className="space-y-4">
             <Controller

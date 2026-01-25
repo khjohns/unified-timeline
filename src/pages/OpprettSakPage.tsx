@@ -202,7 +202,7 @@ export function OpprettSakPage() {
             ['sak', variables.sak_id, 'state'],
             {
               version: result.new_version,
-              state: result.state as StateResponse['state'],
+              state: result.state as unknown as StateResponse['state'],
             }
           );
         }

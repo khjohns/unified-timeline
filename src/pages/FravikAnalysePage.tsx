@@ -58,7 +58,7 @@ interface FravikAnalyticsData {
   godkjenningsrate: number;
   perSoknadstype: Record<SoknadType, { total: number; godkjent: number; avslatt: number; underBehandling: number }>;
   perGrunn: Record<FravikGrunn, { total: number; godkjent: number; avslatt: number }>;
-  perMaskintype: Record<MaskinType, { total: number; godkjent: number; avslatt: number }>;
+  perMaskintype: Partial<Record<MaskinType, { total: number; godkjent: number; avslatt: number }>>;
   ferdigbehandlede: FravikListeItem[];
   maskinSoknader: FravikListeItem[];
   infrastrukturSoknader: FravikListeItem[];
@@ -76,7 +76,7 @@ const GRUNN_LABELS: Record<FravikGrunn, string> = {
   annet: 'Annet',
 };
 
-const MASKINTYPE_LABELS: Record<MaskinType, string> = {
+const MASKINTYPE_LABELS: Partial<Record<MaskinType, string>> = {
   Gravemaskin: 'Gravemaskin',
   Hjullaster: 'Hjullaster',
   Lift: 'Lift',

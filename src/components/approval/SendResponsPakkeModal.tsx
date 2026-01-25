@@ -302,8 +302,6 @@ export function SendResponsPakkeModal({
         {/* Amount Thresholds - Collapsible */}
         <SectionContainer
           title="Beløpsgrenser"
-          collapsible
-          defaultOpen={false}
           variant="subtle"
         >
           <table className="w-full text-sm">
