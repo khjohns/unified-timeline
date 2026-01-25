@@ -134,6 +134,9 @@ interface RespondVederlagModalProps {
   grunnlagStatus?: 'godkjent' | 'avslatt' | 'delvis_godkjent';
   /** Hovedkategori - påvirker om §34.1.2 preklusjon gjelder (kun SVIKT/ANDRE) */
   hovedkategori?: 'ENDRING' | 'SVIKT' | 'ANDRE' | 'FORCE_MAJEURE';
+  /** §32.2: Har BH påberopt at grunnlagsvarselet kom for sent? (kun ENDRING)
+   * Når true: Forholdet kan kvalifisere som SVIKT/ANDRE, og §34.1.2 gjelder subsidiært */
+  grunnlagVarsletForSent?: boolean;
   /** Callback when Catenda sync was skipped or failed */
   onCatendaWarning?: () => void;
   /** When true, show "Lagre utkast" instead of "Send svar" for approval workflow */
@@ -156,7 +159,9 @@ interface RespondVederlagModalProps {
 // ============================================================================
 
 const respondVederlagSchema = z.object({
-  // Port 1: Hovedkrav preklusjon (§34.1.2) - kun for SVIKT/ANDRE
+  // Port 1: Hovedkrav preklusjon (§34.1.2)
+  // - SVIKT/ANDRE: Prinsipalt
+  // - ENDRING + §32.2 påberopt: Subsidiært
   hovedkrav_varslet_i_tide: z.boolean().optional(),
 
   // Port 1: Særskilte krav preklusjon (kun §34.1.3)
@@ -270,6 +275,7 @@ export function RespondVederlagModal({
   vederlagEvent,
   grunnlagStatus,
   hovedkategori,
+  grunnlagVarsletForSent,
   onCatendaWarning,
   approvalEnabled = false,
   onSaveDraft,
@@ -294,8 +300,17 @@ export function RespondVederlagModal({
   const harProduktivitetKrav = (vederlagEvent?.saerskilt_krav?.produktivitet?.belop ?? 0) > 0;
   const harSaerskiltKrav = harRiggKrav || harProduktivitetKrav;
 
-  // §34.1.2 preklusjon gjelder kun for SVIKT/ANDRE (ikke ENDRING per §34.1.1)
-  const har34_1_2_Preklusjon = hovedkategori === 'SVIKT' || hovedkategori === 'ANDRE';
+  // §34.1.2 preklusjon gjelder for:
+  // - SVIKT/ANDRE: Alltid (prinsipalt)
+  // - ENDRING/IRREG + §32.2 påberopt: Prinsipalt, fordi BH hevder forholdet er SVIKT/ANDRE
+  //   (Når BH påberoper §32.2 sier BH: "Dette er IKKE en ENDRING" → ergo SVIKT/ANDRE)
+  const har34_1_2_Preklusjon =
+    hovedkategori === 'SVIKT' ||
+    hovedkategori === 'ANDRE' ||
+    (hovedkategori === 'ENDRING' && grunnlagVarsletForSent === true);
+
+  // Vises §34.1.2 fordi BH påberoper §32.2? (for kontekstforklaring i UI)
+  const erFra32_2_Paaberopelse = hovedkategori === 'ENDRING' && grunnlagVarsletForSent === true;
 
   // Beregn dager mellom oppdagelse og vederlagskrav (for §34.1.2 info)
   const dagerFraOppdagelseTilKrav = useMemo(() => {
@@ -1134,9 +1149,17 @@ export function RespondVederlagModal({
                 ? "Vurder om kravene ble varslet i tide. Ved manglende varsel tapes kravet."
                 : "Disse postene krever særskilt varsel. Ved manglende varsel tapes kravet."}
             >
-              {/* §34.1.2: Hovedkrav preklusjon (kun SVIKT/ANDRE) */}
+              {/* §34.1.2: Hovedkrav preklusjon (SVIKT/ANDRE, eller ENDRING der BH påberoper §32.2) */}
               {har34_1_2_Preklusjon && (
                 <div className="p-4 bg-pkt-surface-subtle rounded-none border border-pkt-border-subtle mb-4">
+                  {/* Forklaring når §34.1.2 vises pga §32.2 påberopelse */}
+                  {erFra32_2_Paaberopelse && (
+                    <Alert variant="info" size="sm" className="mb-3">
+                      Du har påberopt §32.2-preklusjon, dvs. at forholdet <strong>ikke er en ENDRING</strong>.
+                      Dermed behandles det som SVIKT/ANDRE, og §34.1.2 gjelder for vederlagskravet.
+                    </Alert>
+                  )}
+
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
                     <div className="flex items-center gap-2">
                       <Badge variant="info">Hovedkrav (§34.1.2)</Badge>
@@ -1167,10 +1190,7 @@ export function RespondVederlagModal({
                           onValueChange={(val: string) => field.onChange(val === 'ja')}
                         >
                           <RadioItem value="ja" label="Ja - varslet i tide" />
-                          <RadioItem
-                            value="nei"
-                            label="Nei - prekludert (varslet for sent)"
-                          />
+                          <RadioItem value="nei" label="Nei - prekludert (varslet for sent)" />
                         </RadioGroup>
                       )}
                     />
@@ -1179,8 +1199,9 @@ export function RespondVederlagModal({
                   {formValues.hovedkrav_varslet_i_tide === false && (
                     <Alert variant="danger" size="sm" title="Prekludert (§34.1.2)" className="mt-3">
                       Hovedkravet avvises som prekludert fordi det ikke ble varslet i tide.
-                      Byggherren tar likevel subsidiært standpunkt til beløpet. Husk at du må gjøre
-                      denne innsigelsen skriftlig «uten ugrunnet opphold» etter å ha mottatt kravet, jf. §5.
+                      Byggherren tar likevel stilling til beløpet for det tilfellet at preklusjonen
+                      ikke holder. Husk at du må gjøre denne innsigelsen skriftlig «uten ugrunnet
+                      opphold» etter å ha mottatt kravet, jf. §5.
                     </Alert>
                   )}
                 </div>

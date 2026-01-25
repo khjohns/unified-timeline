@@ -19,6 +19,9 @@
  * UPDATED (2025-01-08):
  * - Merged RespondGrunnlagUpdateModal into this component via lastResponseEvent prop
  * - Added snuoperasjon logic for subsidiary responses
+ *
+ * UPDATED (2025-01-25):
+ * - Added §32.2 preklusjon check for ENDRING category (simple inline, no wizard)
  */
 
 import {
@@ -54,6 +57,10 @@ import {
 import { differenceInDays } from 'date-fns';
 
 const respondGrunnlagSchema = z.object({
+  // §32.2: Preklusjon av grunnlagsvarsel (kun ENDRING)
+  grunnlag_varslet_i_tide: z.boolean().optional(),
+
+  // Materiell vurdering
   resultat: z.enum(getBhGrunnlagssvarValues(), {
     errorMap: () => ({ message: 'Resultat er påkrevd' }),
   }),
@@ -125,24 +132,32 @@ export function RespondGrunnlagModal({
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const toast = useToast();
 
+  // Determine if this is an IRREG case (§32.2 preklusjon applies only to irregulære endringer)
+  const erIrregEndring =
+    grunnlagEvent?.hovedkategori === 'ENDRING' &&
+    (Array.isArray(grunnlagEvent?.underkategori)
+      ? grunnlagEvent.underkategori.includes('IRREG')
+      : grunnlagEvent?.underkategori === 'IRREG');
+
   // Compute default values based on mode
   const computedDefaultValues = useMemo((): Partial<RespondGrunnlagFormData> => {
     if (isUpdateMode && lastResponseEvent) {
       // UPDATE MODE: Pre-fill with previous response (user will change it)
       return {
+        grunnlag_varslet_i_tide: true, // Default to "varslet i tide" in update mode
         resultat: lastResponseEvent.resultat,
         begrunnelse: '',
       };
     }
     // CREATE MODE: Empty defaults
     return {
+      grunnlag_varslet_i_tide: true, // Default to "varslet i tide"
       resultat: undefined,
       begrunnelse: '',
     };
   }, [isUpdateMode, lastResponseEvent]);
 
   const {
-    register,
     handleSubmit,
     formState: { errors, isSubmitting, isDirty },
     reset,
@@ -220,13 +235,10 @@ export function RespondGrunnlagModal({
   });
 
   const selectedResultat = watch('resultat');
+  const grunnlagVarsletITide = watch('grunnlag_varslet_i_tide');
 
-  // Determine special cases based on grunnlag data
-  const erIrregulaer =
-    grunnlagEvent?.hovedkategori === 'ENDRING' &&
-    (Array.isArray(grunnlagEvent?.underkategori)
-      ? grunnlagEvent.underkategori.includes('IRREG')
-      : grunnlagEvent?.underkategori === 'IRREG');
+  // §32.2 preklusjon: Grunnlag varslet for sent (kun IRREG)
+  const erGrunnlagPrekludert = erIrregEndring && grunnlagVarsletITide === false;
 
   // Check if this is a Force Majeure case (affects available compensation)
   const erForceMajeure = grunnlagEvent?.hovedkategori === 'FORCE_MAJEURE';
@@ -235,7 +247,7 @@ export function RespondGrunnlagModal({
   const dagerSidenVarsel = grunnlagEvent?.dato_varslet
     ? differenceInDays(new Date(), new Date(grunnlagEvent.dato_varslet))
     : 0;
-  const erPassiv = erIrregulaer && dagerSidenVarsel > 10;
+  const erPassiv = erIrregEndring && dagerSidenVarsel > 10;
 
   // Get display labels
   const hovedkategoriLabel = grunnlagEvent?.hovedkategori
@@ -306,7 +318,10 @@ export function RespondGrunnlagModal({
       data: {
         grunnlag_event_id: grunnlagEventId,
         // NOTE: spor is auto-derived from event_type in backend parse_event_from_request
-        ...data,
+        resultat: data.resultat,
+        begrunnelse: data.begrunnelse,
+        // §32.2: Include preklusjon info for ENDRING category
+        grunnlag_varslet_i_tide: erIrregEndring ? data.grunnlag_varslet_i_tide : undefined,
         // Include metadata about passive acceptance if relevant
         dager_siden_varsel: dagerSidenVarsel > 0 ? dagerSidenVarsel : undefined,
       },
@@ -433,9 +448,75 @@ export function RespondGrunnlagModal({
           </Alert>
         )}
 
+        {/* §32.2 Preklusjon (kun ENDRING) */}
+        {erIrregEndring && (
+          <SectionContainer
+            title="Preklusjon av grunnlagsvarsel (§32.2)"
+            description="Vurder om entreprenøren varslet om den påståtte endringen i tide."
+          >
+            <div className="space-y-4">
+              <KontraktsregelInline hjemmel="§32.2" />
+
+              <FormField
+                label="Varslet entreprenøren uten ugrunnet opphold?"
+                required
+              >
+                <Controller
+                  name="grunnlag_varslet_i_tide"
+                  control={control}
+                  render={({ field }) => (
+                    <RadioGroup
+                      value={field.value === undefined ? undefined : field.value ? 'ja' : 'nei'}
+                      onValueChange={(val: string) => field.onChange(val === 'ja')}
+                    >
+                      <RadioItem value="ja" label="Ja – varslet i tide" />
+                      <RadioItem value="nei" label="Nei – varslet for sent (§32.2 preklusjon)" />
+                    </RadioGroup>
+                  )}
+                />
+              </FormField>
+
+              {erGrunnlagPrekludert && (
+                <Alert variant="danger" title="Preklusjon påberopt (§32.2)">
+                  <p>
+                    Du påberoper at entreprenøren varslet for sent og dermed taper retten til
+                    å påberope at pålegget innebærer en endring.
+                  </p>
+                  <p className="mt-2">
+                    <strong>Viktig (§5):</strong> Du må påberope dette skriftlig «uten ugrunnet
+                    opphold» etter å ha mottatt varselet – ellers anses varselet gitt i tide.
+                  </p>
+                  <p className="mt-2 text-sm">
+                    <strong>Merk:</strong> Forholdet kan likevel kvalifisere som SVIKT/ANDRE.
+                    Du bør ta subsidiært stilling til vederlagspreklusjon (§34.1.2) i
+                    vederlagssvaret.
+                  </p>
+                </Alert>
+              )}
+
+              {!erGrunnlagPrekludert && grunnlagVarsletITide === true && (
+                <Alert variant="info" title="Varslet i tide">
+                  Du godtar at entreprenøren varslet om endringen i tide.
+                  Forholdet behandles som en ENDRING, og §34.1.1 gjelder for vederlag
+                  (ingen vederlagspreklusjon).
+                </Alert>
+              )}
+            </div>
+          </SectionContainer>
+        )}
+
+        {/* Subsidiær markering hvis grunnlag er prekludert */}
+        {erGrunnlagPrekludert && (
+          <Alert variant="warning" title="Subsidiær vurdering">
+            Du har påberopt §32.2-preklusjon. Vurderingen under gjelder{' '}
+            <strong>subsidiært</strong> – for det tilfellet at preklusjonen ikke
+            holder eller forholdet likevel anses å utgjøre en endring.
+          </Alert>
+        )}
+
         {/* Vurdering */}
         <SectionContainer
-          title="Vurdering"
+          title={erGrunnlagPrekludert ? "Vurdering (subsidiært)" : "Vurdering"}
           description="Vurder kun ansvarsgrunnlaget. Vederlag og frist behandles separat."
         >
           <div className="space-y-4">
@@ -458,7 +539,7 @@ export function RespondGrunnlagModal({
                       if (opt.value === '') return false;
 
                       // Filter out "frafalt" if NOT irregular change (§32.3 c)
-                      if (opt.value === 'frafalt' && !erIrregulaer) return false;
+                      if (opt.value === 'frafalt' && !erIrregEndring) return false;
                       return true;
                     }).map((option) => (
                       <RadioItem
@@ -524,7 +605,7 @@ export function RespondGrunnlagModal({
             )}
 
             {/* Subsidiary treatment warning when rejecting (non-FM) */}
-            {selectedResultat === 'avslatt' && !erForceMajeure && (
+            {selectedResultat === 'avslatt' && !erForceMajeure && !erGrunnlagPrekludert && (
               <Alert variant="warning" title="Konsekvens av avslag">
                 <p>
                   Saken markeres som <em>omtvistet</em>. Entreprenøren vil likevel
@@ -538,7 +619,6 @@ export function RespondGrunnlagModal({
                 </p>
               </Alert>
             )}
-
           </div>
         </SectionContainer>
 
@@ -549,9 +629,11 @@ export function RespondGrunnlagModal({
             required
             error={errors.begrunnelse?.message}
             helpText={
-              selectedResultat === 'avslatt'
-                ? 'Forklar hvorfor du mener forholdet er en del av kontrakten eller entreprenørens risiko'
-                : 'Begrunn din vurdering av ansvarsgrunnlaget'
+              erGrunnlagPrekludert
+                ? 'Begrunn både preklusjonsinnsigelsen og din subsidiære vurdering av ansvarsgrunnlaget'
+                : selectedResultat === 'avslatt'
+                  ? 'Forklar hvorfor du mener forholdet er en del av kontrakten eller entreprenørens risiko'
+                  : 'Begrunn din vurdering av ansvarsgrunnlaget'
             }
           >
             <Controller
@@ -565,7 +647,11 @@ export function RespondGrunnlagModal({
                   rows={8}
                   fullWidth
                   error={!!errors.begrunnelse}
-                  placeholder="Begrunn din vurdering..."
+                  placeholder={
+                    erGrunnlagPrekludert
+                      ? "Begrunn din preklusjonsinnsigelse og ta subsidiært stilling..."
+                      : "Begrunn din vurdering..."
+                  }
                 />
               )}
             />
@@ -590,6 +676,7 @@ export function RespondGrunnlagModal({
           >
             Avbryt
           </Button>
+
           {approvalEnabled ? (
             <Button
               type="button"
@@ -604,7 +691,7 @@ export function RespondGrunnlagModal({
           ) : (
             <Button
               type="submit"
-              variant={selectedResultat === 'avslatt' ? 'danger' : 'primary'}
+              variant={selectedResultat === 'avslatt' || erGrunnlagPrekludert ? 'danger' : 'primary'}
               loading={isSubmitting}
               className="w-full sm:w-auto"
               data-testid="respond-grunnlag-submit"

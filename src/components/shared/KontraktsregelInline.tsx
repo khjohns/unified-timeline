@@ -22,10 +22,11 @@ import { ChevronRightIcon } from '@radix-ui/react-icons';
 type Hjemmel =
   // Grunnlagspor
   | '§14.4'   // Lovendring
+  | '§24.2.2' // Risikoovergang - kontroll av byggherrens materiale
   | '§25.1.2' // Varslingsplikt ved forhold som forstyrrer gjennomføringen
   | '§25.2'   // Varslingsplikt ved uegnet prosjektering (funksjonskrav)
-  | '§32.2'   // Endringsordre og irregulære endringer
-  | '§32.3'   // Passivitetsrisiko (BH)
+  | '§32.2'   // Irregulære endringer (pålegg uten endringsordre)
+  | '§32.3'   // Passivitetsrisiko (byggherre)
   // Fristspor
   | '§33.1' | '§33.3' | '§33.4' | '§33.5' | '§33.6.1' | '§33.6.2' | '§33.7' | '§33.8';
 
@@ -73,6 +74,25 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
       tekst: '',
     },
   },
+  '§24.2.2': {
+    inline: 'Totalentreprenøren har 5 uker fra kontraktsinngåelse til å gjennomgå byggherrens materiale. Mener han at byggherrens anvisning ikke vil oppfylle kravene i §14, må han varsle innen fristen.',
+    konsekvens: 'Varsler totalentreprenøren innen fristen, overtar han ikke risikoen for den delen av byggherrens materiale. Varsler han ikke, overtar han risikoen som om han hadde prosjektert selv.',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: '',
+    },
+    systematikk: {
+      label: 'Krav til varselet og oppfølging',
+      innhold: [
+        { ref: 'Innhold', tekst: 'Varselet skal presisere hvilke forhold det dreier seg om' },
+        { ref: 'Begrunnelse', tekst: 'Varselet skal begrunne behovet for endringer' },
+        { ref: 'Byggherrens svarplikt', tekst: 'Byggherren må svare «uten ugrunnet opphold» – fastholder byggherren, bærer han risikoen for sitt valg' },
+        { ref: 'Ved endring', tekst: 'Innebærer byggherrens svar en endring → endringsordre (§31.3) eller varsel etter §32.2' },
+        { ref: 'Fristforlengelse', tekst: 'Krav om fristforlengelse varsles etter §33.4' },
+        { ref: 'Vederlagsjustering', tekst: 'Krav om vederlagsjustering varsles etter §34.1.2' },
+      ],
+    },
+  },
   '§25.1.2': {
     inline: 'Totalentreprenøren skal varsle byggherren «uten ugrunnet opphold» etter at han blir eller burde ha blitt oppmerksom på forhold som vil kunne forstyrre gjennomføringen av arbeidet.',
     konsekvens: 'Erstatning – byggherren kan kreve erstatning for tap som kunne vært unngått ved rettidig varsel. Merk: Kravet tapes IKKE (ingen preklusjon).',
@@ -108,11 +128,20 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
     },
   },
   '§32.2': {
-    inline: 'Byggherren kan pålegge endringer i form av tilleggsarbeider, reduksjoner eller endret utførelse. Ved irregulære endringer (muntlige pålegg, konkludent adferd) skal totalentreprenøren varsle «uten ugrunnet opphold».',
-    konsekvens: 'Ved irregulær endring: Dersom byggherren ikke svarer innen fristen, anses endringen som akseptert.',
+    inline: 'Mottar totalentreprenøren pålegg uten endringsordre, skal han «uten ugrunnet opphold» varsle byggherren dersom han vil påberope seg dette som en endring.',
+    konsekvens: 'Gjør han ikke det, taper han retten til å påberope seg at pålegget innebærer en endring.',
     paragraf5: {
       paaberoper: 'BH',
       tekst: 'Byggherren må påberope at varselet er for sent skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
+    },
+    systematikk: {
+      label: 'Hva er et «pålegg» (§32.1)?',
+      innhold: [
+        { ref: 'a)', tekst: 'Pålegg fra person med fullmakt til å gi endringsordre (§31.3)' },
+        { ref: 'b)', tekst: 'Pålegg fra person med kontroll-/påleggsfullmakt, gitt under ordinære oppgaver' },
+        { ref: 'c)', tekst: 'Arbeidstegninger, arbeidsbeskrivelser eller lignende fra byggherren' },
+        { ref: '+', tekst: 'Pålegg fra offentlig myndighet (§32.2 annet ledd)' },
+      ],
     },
   },
   '§32.3': {
