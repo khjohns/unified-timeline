@@ -210,8 +210,9 @@ function CasePageContent() {
     return undefined;
   }, [state.grunnlag.bh_resultat]);
 
-  // §32.2: Har BH påberopt at grunnlagsvarselet kom for sent? (kun ENDRING)
-  // Brukes for å vise §34.1.2 spørsmål subsidiært i RespondVederlagModal
+  // §32.2: Har BH påberopt at grunnlagsvarselet kom for sent? (kun IRREG)
+  // Feltet settes kun for irregulære endringer (IRREG underkategori).
+  // Brukes for å vise §34.1.2 spørsmål subsidiært i RespondVederlagModal.
   const grunnlagVarsletForSent = useMemo((): boolean => {
     return state.grunnlag.grunnlag_varslet_i_tide === false;
   }, [state.grunnlag.grunnlag_varslet_i_tide]);

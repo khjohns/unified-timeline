@@ -132,8 +132,12 @@ export function RespondGrunnlagModal({
   const [showTokenExpired, setShowTokenExpired] = useState(false);
   const toast = useToast();
 
-  // Determine if this is an ENDRING case (§32.2 preklusjon applies)
-  const erEndringKategori = grunnlagEvent?.hovedkategori === 'ENDRING';
+  // Determine if this is an IRREG case (§32.2 preklusjon applies only to irregulære endringer)
+  const erIrregEndring =
+    grunnlagEvent?.hovedkategori === 'ENDRING' &&
+    (Array.isArray(grunnlagEvent?.underkategori)
+      ? grunnlagEvent.underkategori.includes('IRREG')
+      : grunnlagEvent?.underkategori === 'IRREG');
 
   // Compute default values based on mode
   const computedDefaultValues = useMemo((): Partial<RespondGrunnlagFormData> => {
@@ -233,15 +237,8 @@ export function RespondGrunnlagModal({
   const selectedResultat = watch('resultat');
   const grunnlagVarsletITide = watch('grunnlag_varslet_i_tide');
 
-  // §32.2 preklusjon: Grunnlag varslet for sent (kun ENDRING)
-  const erGrunnlagPrekludert = erEndringKategori && grunnlagVarsletITide === false;
-
-  // Determine special cases based on grunnlag data
-  const erIrregulaer =
-    grunnlagEvent?.hovedkategori === 'ENDRING' &&
-    (Array.isArray(grunnlagEvent?.underkategori)
-      ? grunnlagEvent.underkategori.includes('IRREG')
-      : grunnlagEvent?.underkategori === 'IRREG');
+  // §32.2 preklusjon: Grunnlag varslet for sent (kun IRREG)
+  const erGrunnlagPrekludert = erIrregEndring && grunnlagVarsletITide === false;
 
   // Check if this is a Force Majeure case (affects available compensation)
   const erForceMajeure = grunnlagEvent?.hovedkategori === 'FORCE_MAJEURE';
@@ -250,7 +247,7 @@ export function RespondGrunnlagModal({
   const dagerSidenVarsel = grunnlagEvent?.dato_varslet
     ? differenceInDays(new Date(), new Date(grunnlagEvent.dato_varslet))
     : 0;
-  const erPassiv = erIrregulaer && dagerSidenVarsel > 10;
+  const erPassiv = erIrregEndring && dagerSidenVarsel > 10;
 
   // Get display labels
   const hovedkategoriLabel = grunnlagEvent?.hovedkategori
@@ -324,7 +321,7 @@ export function RespondGrunnlagModal({
         resultat: data.resultat,
         begrunnelse: data.begrunnelse,
         // §32.2: Include preklusjon info for ENDRING category
-        grunnlag_varslet_i_tide: erEndringKategori ? data.grunnlag_varslet_i_tide : undefined,
+        grunnlag_varslet_i_tide: erIrregEndring ? data.grunnlag_varslet_i_tide : undefined,
         // Include metadata about passive acceptance if relevant
         dager_siden_varsel: dagerSidenVarsel > 0 ? dagerSidenVarsel : undefined,
       },
@@ -452,7 +449,7 @@ export function RespondGrunnlagModal({
         )}
 
         {/* §32.2 Preklusjon (kun ENDRING) */}
-        {erEndringKategori && (
+        {erIrregEndring && (
           <SectionContainer
             title="Preklusjon av grunnlagsvarsel (§32.2)"
             description="Vurder om entreprenøren varslet om den påståtte endringen i tide."
@@ -542,7 +539,7 @@ export function RespondGrunnlagModal({
                       if (opt.value === '') return false;
 
                       // Filter out "frafalt" if NOT irregular change (§32.3 c)
-                      if (opt.value === 'frafalt' && !erIrregulaer) return false;
+                      if (opt.value === 'frafalt' && !erIrregEndring) return false;
                       return true;
                     }).map((option) => (
                       <RadioItem

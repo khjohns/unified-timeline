@@ -108,11 +108,20 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
     },
   },
   '§32.2': {
-    inline: 'Byggherren kan pålegge endringer i form av tilleggsarbeider, reduksjoner eller endret utførelse. Ved irregulære endringer (muntlige pålegg, konkludent adferd) skal totalentreprenøren varsle «uten ugrunnet opphold».',
-    konsekvens: 'Ved irregulær endring: Dersom byggherren ikke svarer innen fristen, anses endringen som akseptert.',
+    inline: 'Mottar totalentreprenøren pålegg uten endringsordre, skal han «uten ugrunnet opphold» varsle byggherren dersom han vil påberope seg dette som en endring.',
+    konsekvens: 'Gjør han ikke det, taper han retten til å påberope seg at pålegget innebærer en endring.',
     paragraf5: {
       paaberoper: 'BH',
       tekst: 'Byggherren må påberope at varselet er for sent skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
+    },
+    systematikk: {
+      label: 'Hva er et «pålegg» (§32.1)?',
+      innhold: [
+        { ref: 'a)', tekst: 'Pålegg fra person med fullmakt til å gi endringsordre (§31.3)' },
+        { ref: 'b)', tekst: 'Pålegg fra person med kontroll-/påleggsfullmakt, gitt under ordinære oppgaver' },
+        { ref: 'c)', tekst: 'Arbeidstegninger, arbeidsbeskrivelser eller lignende fra BH' },
+        { ref: '+', tekst: 'Pålegg fra offentlig myndighet (§32.2 annet ledd)' },
+      ],
     },
   },
   '§32.3': {
