@@ -172,11 +172,11 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
     systematikk: {
       label: 'Svaralternativer (§32.3)',
       innhold: [
-        { ref: 'a)', tekst: 'Utstede endringsordre i henhold til §31.3' },
-        { ref: 'b)', tekst: 'Avslå totalentreprenørens krav på endringsordre' },
-        { ref: 'c)', tekst: 'Frafalle pålegget mot å utstede endringsordre for allerede utført arbeid' },
-        { ref: 'Passivitet', tekst: 'Svarer ikke BH uten ugrunnet opphold → pålegget anses som endring' },
-        { ref: 'Begrunnelse', tekst: 'Ved avslag (b): BH skal begrunne avslaget uten ugrunnet opphold' },
+        { ref: 'a)', tekst: 'Godta kravet og utstede formell endringsordre (§31.3)' },
+        { ref: 'b)', tekst: 'Avvise kravet om at forholdet utgjør en endring' },
+        { ref: 'c)', tekst: 'Trekke tilbake pålegget (kun kompensasjon for utført arbeid)' },
+        { ref: 'Passivitet', tekst: 'Manglende svar innen rimelig tid medfører at forholdet anses som endring' },
+        { ref: 'Begrunnelse', tekst: 'Ved avvisning skal byggherren gi en skriftlig begrunnelse uten ugrunnet opphold' },
       ],
     },
   },
