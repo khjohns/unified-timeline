@@ -312,7 +312,6 @@ export function OpprettSakPage() {
                   label="Hovedkategori"
                   required
                   error={errors.hovedkategori?.message}
-                  labelTooltip="Velg rettslig grunnlag iht. NS 8407. Dette bestemmer hvilke kontraktsbestemmelser som gjelder."
                 >
                   <Controller
                     name="hovedkategori"
