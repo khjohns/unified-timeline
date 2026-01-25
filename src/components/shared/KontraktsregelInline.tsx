@@ -83,26 +83,26 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
     systematikk: {
       label: 'Hva er «forhold» (§25.1.1)?',
       innhold: [
-        { ref: 'Generelt', tekst: 'BHs ytelser og andre forhold BH har risikoen for, som vil kunne forstyrre gjennomføringen – særlig:' },
-        { ref: 'a)', tekst: 'Ufullstendigheter, uoverensstemmelser eller svakheter i BHs prosjektering' },
+        { ref: 'Generelt', tekst: 'Byggherrens ytelser og andre forhold byggherren har risikoen for, som vil kunne forstyrre gjennomføringen – særlig:' },
+        { ref: 'a)', tekst: 'Ufullstendigheter, uoverensstemmelser eller svakheter i byggherrens prosjektering' },
         { ref: 'b)', tekst: 'Behov for grunnundersøkelser / utilstrekkelige undersøkelser' },
-        { ref: 'c)', tekst: 'Feil ved materialer eller andre ytelser fra BH' },
+        { ref: 'c)', tekst: 'Feil ved materialer eller andre ytelser fra byggherren' },
         { ref: 'd)', tekst: 'Fysisk arbeidsgrunnlag eller grunnforhold avviker fra forventning' },
       ],
     },
   },
   '§25.2': {
-    inline: 'Totalentreprenøren skal varsle byggherren «uten ugrunnet opphold» etter at han blir eller måtte ha blitt klar over at BHs prosjektering ikke er egnet til å oppfylle funksjonskravene i §14.',
+    inline: 'Totalentreprenøren skal varsle byggherren «uten ugrunnet opphold» etter at han blir eller måtte ha blitt klar over at byggherrens prosjektering ikke er egnet til å oppfylle funksjonskravene i §14.',
     konsekvens: 'Erstatning – byggherren kan kreve erstatning for tap som kunne vært unngått ved rettidig varsel. Merk: Kravet tapes IKKE (ingen preklusjon).',
     paragraf5: {
       paaberoper: 'BH',
       tekst: 'Byggherren må påberope senhet skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
     },
     systematikk: {
-      label: 'Forskjell fra §25.1.2',
+      label: 'Hva er «funksjonskravene»?',
       innhold: [
-        { ref: 'Fokus', tekst: '§25.2 gjelder funksjonskrav (§14), ikke gjennomføringshindringer' },
-        { ref: 'Aktsomhet', tekst: '«måtte» (kun åpenbare feil) vs §25.1.2 «burde» (normal aktsomhet)' },
+        { ref: '§14', tekst: 'Krav til kontraktsgjenstanden – ytelse, kvalitet, egenskaper' },
+        { ref: 'Aktsomhet', tekst: '«måtte» = kun åpenbare feil utløser varslingsplikt' },
         { ref: 'Plikt', tekst: 'Vurdere «i rimelig utstrekning» – ikke aktiv undersøkelsesplikt' },
       ],
     },
@@ -128,17 +128,17 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
 
   '§33.1': {
     inline: 'Fristforlengelse forutsetter at (1) fremdriften er hindret, og (2) hindringen skyldes det påberopte forholdet (årsakssammenheng).',
-    konsekvens: 'Partene plikter å forebygge og begrense skadevirkningene av en fristforlengelse (§33.5).',
+    konsekvens: 'Vilkår: Både hindring og årsakssammenheng må påvises. Partene har tapsbegrensningsplikt (§33.5).',
     paragraf5: {
       paaberoper: 'BH',
       tekst: '',
     },
     systematikk: {
-      label: 'TEs grunnlag for fristforlengelse',
+      label: 'Hvilke forhold gir rett?',
       innhold: [
         { ref: 'a) Endringer', tekst: '§31 (formell EO) og §32 (irregulær) – vederlag etter §34.1.1' },
         { ref: 'b) Svikt/forsinkelse', tekst: 'BHs ytelser (§22-24) – vederlag etter §34.1.2' },
-        { ref: 'c) Andre forhold', tekst: 'Sekkepost for BH-risiko – vederlag etter §34.1.2' },
+        { ref: 'c) Andre forhold', tekst: 'Sekkepost for byggherrerisiko – vederlag etter §34.1.2' },
       ],
     },
   },
@@ -162,13 +162,13 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
       innhold: [
         { ref: '§33.1 a)', tekst: 'Endringer (§31, §32)' },
         { ref: '§33.1 b)', tekst: 'Svikt ved BHs ytelser (§22-24) – se også §25.1.2 ("burde") / §25.2 ("måtte")' },
-        { ref: '§33.1 c)', tekst: 'Andre forhold BH har risikoen for' },
+        { ref: '§33.1 c)', tekst: 'Andre forhold byggherren har risikoen for' },
         { ref: '§33.3', tekst: 'Force majeure (kun fristforlengelse, ikke vederlag)' },
       ],
     },
   },
   '§33.5': {
-    inline: 'Fristforlengelsen skal svare til den virkning på fremdriften som forholdet har forårsaket, der det blant annet tas hensyn til nødvendig avbrudd og eventuell forskyvning til ugunstigere årstid. Det skal også tas hensyn til samlet virkning av tidligere varslede forhold.',
+    inline: 'Fristforlengelsen skal svare til den virkning på fremdriften som forholdet har forårsaket, der det blant annet tas hensyn til nødvendig avbrudd og eventuell forskyvning til ugunstigere eller gunstigere årstid. Det skal også tas hensyn til samlet virkning av tidligere varslede forhold som kunne gi rett til fristforlengelse.',
     konsekvens: 'Partene plikter å forebygge og begrense skadevirkningene av en fristforlengelse og samarbeide om tiltak som kan iverksettes (tapsbegrensningsplikt).',
     paragraf5: {
       paaberoper: 'BH',
@@ -176,23 +176,23 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
     },
   },
   '§33.6.1': {
-    inline: 'Når totalentreprenøren har grunnlag for å beregne omfanget, skal han «uten ugrunnet opphold» angi og begrunne antall dager.',
+    inline: 'Når parten har grunnlag for å beregne omfanget, skal han «uten ugrunnet opphold» angi og begrunne antall dager.',
     konsekvens: 'Bare krav på slik fristforlengelse som byggherren «måtte forstå» at han hadde krav på.',
     paragraf5: {
       paaberoper: 'BH',
       tekst: 'Byggherren må påberope senhet skriftlig «uten ugrunnet opphold» etter mottak – ellers anses kravet gitt i tide.',
     },
     systematikk: {
-      label: 'To ledd i tidsberegningen',
+      label: 'Når har du «beregningsgrunnlag»?',
       innhold: [
-        { ref: 'Skjæringstidspunkt', tekst: '«har grunnlag for å beregne» – når beregningsgrunnlaget foreligger' },
-        { ref: 'Reduksjonsnorm', tekst: '«måtte forstå» – kun det åpenbare godkjennes ved for sent varsel' },
+        { ref: 'Skjæringstidspunkt', tekst: 'Når du kan beregne virkningen på fremdriften' },
+        { ref: 'For sent?', tekst: 'Kun det byggherren «måtte forstå» godkjennes ved for sent varsel' },
       ],
     },
   },
   '§33.6.2': {
-    inline: 'Totalentreprenøren skal svare «uten ugrunnet opphold» etter mottak av byggherrens forespørsel.',
-    konsekvens: 'Krav på fristforlengelse tapes dersom totalentreprenøren ikke svarer.',
+    inline: 'Totalentreprenøren skal svare «uten ugrunnet opphold» etter mottak av byggherrens forespørsel – enten (a) angi og begrunne antall dager, eller (b) begrunne hvorfor grunnlaget for å beregne kravet ikke foreligger.',
+    konsekvens: 'Krav på fristforlengelse tapes dersom totalentreprenøren ikke gjør noen av delene.',
     paragraf5: {
       paaberoper: 'BH',
       tekst: 'Byggherren må påberope senhet skriftlig «uten ugrunnet opphold» etter mottak – ellers anses svaret gitt i tide.',
