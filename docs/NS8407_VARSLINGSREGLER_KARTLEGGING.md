@@ -54,11 +54,43 @@ For hver varslingsregel må følgende være avklart:
 
 ### Aktsomhetsnormer (skjæringstidspunkt)
 
-| Formulering | Norm | Terskel |
-|-------------|------|---------|
-| "blir oppmerksom på" | Faktisk kunnskap | Subjektiv |
-| "burde ha blitt oppmerksom på" | Normal aktsomhet | Objektiv |
-| "måtte ha blitt klar over" | Grov uaktsomhet å ikke vite | Streng objektiv |
+| Formulering | Norm | Krav til varslende | Bevisterskel for motpart |
+|-------------|------|-------------------|-------------------------|
+| "blir oppmerksom på" | Faktisk kunnskap | Mildest – kun faktisk kunnskap utløser plikt | **Vanskeligst** – må bevise faktisk kunnskap |
+| "burde ha blitt oppmerksom på" | Normal aktsomhet | Strengere – må utvise faglig aktsomhet | **Lettere** – normal aktsom ville oppdaget |
+| "måtte ha blitt klar over" | Åpenbar mangel | Mildest – kun åpenbare mangler utløser plikt | **Middels** – må vise at det var åpenbart |
+
+```
+TO PERSPEKTIVER PÅ AKTSOMHETSNORMEN:
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                            │
+│  1. KRAV TIL DEN VARSLENDE (TE/BH):                                       │
+│     "burde" = Strengest krav – må utvise normal faglig aktsomhet          │
+│     "måtte" = Mildere krav – trenger bare reagere på det åpenbare         │
+│     "blir"  = Mildest krav – kun faktisk kunnskap utløser plikt           │
+│                                                                            │
+│  2. BEVISTERSKEL FOR MOTPARTEN (den som hevder for sent varsel):          │
+│     "blir"  = Vanskeligst – må bevise faktisk kunnskap                    │
+│     "måtte" = Middels – må vise at forholdet var åpenbart                 │
+│     "burde" = Lettest – må vise at normal aktsomhet ville avdekket det    │
+│                                                                            │
+│  MERK: Disse to perspektivene er IKKE det samme!                          │
+│  "Strengere aktsomhetsnorm" kan bety ulike ting avhengig av perspektiv.   │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Hvilke regler bruker aktsomhetsnorm for skjæringstidspunkt?
+
+| Paragraf | Spor | Formulering | Aktsomhetsnorm | Merknad |
+|----------|------|-------------|----------------|---------|
+| §33.4 | Frist | (ikke angitt) | **Uavklart** | Se seksjon 6.1 |
+| §34.1.2 | Vederlag | "blir eller burde ha blitt klar over" | Normal aktsomhet | |
+| §25.1.2 | Grunnlag | "blir eller burde ha blitt oppmerksom på" | Normal aktsomhet | |
+| §25.2 | Grunnlag | "blir eller måtte ha blitt klar over" | Kun åpenbare mangler | |
+| §32.2 | Grunnlag | (mottak av pålegg) | Objektiv – tidspunkt for mottak | |
+
+**Merk:** §33.6.1 bruker "måtte forstå" for konsekvensberegning (reduksjon), ikke for skjæringstidspunkt.
 
 ### Konsekvenstyper
 
@@ -233,16 +265,21 @@ HVA ER "FORHOLD" (§25.1.1)?
 | **KONSEKVENS** | BH kan kreve erstatning for tap som kunne vært unngått | §25.2 annet ledd |
 
 ```
-STRENGERE AKTSOMHETSNORM
+FORSKJELL I AKTSOMHETSNORM: §25.1.2 vs §25.2
 ┌────────────────────────────────────────────────────────────────────────────┐
 │                                                                            │
 │ §25.1.2: "blir eller BURDE ha blitt oppmerksom på"                        │
 │          = Normal aktsomhet                                                │
+│          → TE må utvise normal faglig aktsomhet                           │
+│          → Lettere for BH å bevise at TE varslet for sent                 │
 │                                                                            │
 │ §25.2:   "blir eller MÅTTE ha blitt klar over"                            │
-│          = Grov uaktsomhet å ikke vite (strengere)                        │
+│          = Kun åpenbare mangler                                            │
+│          → TE trenger bare reagere på det ÅPENBART uegnede                │
+│          → Vanskeligere for BH å bevise at TE varslet for sent            │
 │                                                                            │
-│ Forskjellen: §25.2 gjelder når løsningen er ÅPENBART uegnet.              │
+│ MERK: "Måtte" er MILDERE for TE (kun åpenbare feil utløser plikt),        │
+│       men VANSKELIGERE for BH å bevise (må vise at det var åpenbart).     │
 │                                                                            │
 └────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -578,9 +615,9 @@ VIKTIG PRESISERING:
 │ FORUTSETNING: Nøytralt varsel (§33.4) må ha blitt sendt i tide.           │
 │ Hvis ikke: Full preklusjon (§33.4), ikke reduksjon (§33.6.1).             │
 │                                                                            │
-│ "måtte forstå" = Strengere norm:                                          │
+│ "måtte forstå" = Reduksjonsmekanisme (ikke skjæringstidspunkt):           │
 │ Kun det som var ÅPENBART for motparten godkjennes.                        │
-│ BH/TE har skjønnsmessig myndighet til å fastsette.                        │
+│ Dette gir motparten skjønnsmessig myndighet til å fastsette omfanget.     │
 │                                                                            │
 │ Kravet skal:                                                               │
 │ - Angi antall dager                                                       │
