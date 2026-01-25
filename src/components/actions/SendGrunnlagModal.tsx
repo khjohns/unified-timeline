@@ -470,7 +470,7 @@ export function SendGrunnlagModal({
                                       }}
                                     />
                                     {erValgt && (
-                                      <div className="mt-2 ml-6">
+                                      <div className="mt-2 ml-6 space-y-3">
                                         <KontraktsregelInline
                                           custom={{
                                             inline: uk.beskrivelse,
@@ -479,6 +479,10 @@ export function SendGrunnlagModal({
                                             accordionLabel: 'Varslingskrav',
                                           }}
                                         />
+                                        {/* §24.2.2 risikoovergang for BH_FASTHOLDER */}
+                                        {uk.kode === 'BH_FASTHOLDER' && (
+                                          <KontraktsregelInline hjemmel="§24.2.2" />
+                                        )}
                                       </div>
                                     )}
                                   </div>

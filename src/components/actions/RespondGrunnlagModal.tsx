@@ -139,6 +139,13 @@ export function RespondGrunnlagModal({
       ? grunnlagEvent.underkategori.includes('IRREG')
       : grunnlagEvent?.underkategori === 'IRREG');
 
+  // Determine if this is a BH_FASTHOLDER case (§24.2.2 risikoovergang applies)
+  const erBhFastholder =
+    grunnlagEvent?.hovedkategori === 'SVIKT' &&
+    (Array.isArray(grunnlagEvent?.underkategori)
+      ? grunnlagEvent.underkategori.includes('BH_FASTHOLDER')
+      : grunnlagEvent?.underkategori === 'BH_FASTHOLDER');
+
   // Compute default values based on mode
   const computedDefaultValues = useMemo((): Partial<RespondGrunnlagFormData> => {
     if (isUpdateMode && lastResponseEvent) {
@@ -431,6 +438,11 @@ export function RespondGrunnlagModal({
         {/* Force Majeure info */}
         {erForceMajeure && (
           <KontraktsregelInline hjemmel="§33.3" />
+        )}
+
+        {/* BH_FASTHOLDER: §24.2.2 risikoovergang */}
+        {erBhFastholder && (
+          <KontraktsregelInline hjemmel="§24.2.2" />
         )}
 
         {/* BH Passivity warning (§32.3) */}
