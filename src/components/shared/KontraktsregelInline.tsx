@@ -22,6 +22,7 @@ import { ChevronRightIcon } from '@radix-ui/react-icons';
 type Hjemmel =
   // Grunnlagspor
   | '§14.4'   // Lovendring
+  | '§14.6'   // Valg av løsninger (valgrettsbegrensning)
   | '§24.2.2' // Risikoovergang - kontroll av byggherrens materiale
   | '§25.1.2' // Varslingsplikt ved forhold som forstyrrer gjennomføringen
   | '§25.2'   // Varslingsplikt ved uegnet prosjektering (funksjonskrav)
@@ -72,6 +73,23 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
     paragraf5: {
       paaberoper: 'BH',
       tekst: '',
+    },
+  },
+  '§14.6': {
+    inline: 'Totalentreprenøren har rett til å velge materiale, utførelse og løsning innenfor kontraktens rammer (§14.1-14.5). Pålegg som begrenser valgretten er en endring.',
+    konsekvens: 'Vil totalentreprenøren påberope begrensning av valgrett som endring, må han varsle etter §32.2. Manglende varsel medfører tap av rett.',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: 'Byggherren må påberope sen varsling skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
+    },
+    systematikk: {
+      label: '§14.6: Valg av løsninger',
+      innhold: [
+        { ref: 'Hovedregel', tekst: 'Totalentreprenøren velger materiale, utførelse og løsning innenfor kontraktens rammer.' },
+        { ref: 'Rammer', tekst: 'Begrenset av §14.1-14.5 (funksjonskrav, standarder, offentlige krav, etc.).' },
+        { ref: 'Begrensning = endring', tekst: 'Pålegg (jf. §32.1) som begrenser valgretten er en endring.' },
+        { ref: 'Varsling', tekst: 'Totalentreprenøren må varsle etter §32.2 for å påberope endringen.' },
+      ],
     },
   },
   '§24.2.2': {
