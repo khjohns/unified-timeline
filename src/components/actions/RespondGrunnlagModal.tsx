@@ -140,6 +140,14 @@ export function RespondGrunnlagModal({
       ? !grunnlagEvent.underkategori.includes('EO')
       : grunnlagEvent?.underkategori !== 'EO');
 
+  // Determine if this is a pålegg case (§32.1) where frafall (§32.3 c) applies
+  // Kun IRREG og VALGRETT er pålegg - andre §32.2-tilfeller kan ikke "frafalles"
+  const erPaalegg =
+    grunnlagEvent?.hovedkategori === 'ENDRING' &&
+    (Array.isArray(grunnlagEvent?.underkategori)
+      ? grunnlagEvent.underkategori.some((uk) => uk === 'IRREG' || uk === 'VALGRETT')
+      : grunnlagEvent?.underkategori === 'IRREG' || grunnlagEvent?.underkategori === 'VALGRETT');
+
   // Compute default values based on mode
   const computedDefaultValues = useMemo((): Partial<RespondGrunnlagFormData> => {
     if (isUpdateMode && lastResponseEvent) {
@@ -439,11 +447,11 @@ export function RespondGrunnlagModal({
           <Alert variant="danger" title="Passivitetsrisiko (§32.3)">
             <p className="font-medium">
               Du har brukt <strong>{dagerSidenVarsel} dager</strong> på å svare
-              på dette varselet om irregulær endring.
+              på dette varselet etter §32.2.
             </p>
             <p className="mt-2">
-              Ved irregulær endring kan passivitet medføre at endringen anses
-              akseptert. Hvis du avslår, bør du dokumentere hvorfor forsinkelsen
+              Ved varsel etter §32.2 kan passivitet medføre at forholdet anses
+              som en endring. Hvis du avslår, bør du dokumentere hvorfor forsinkelsen
               var begrunnet.
             </p>
           </Alert>
@@ -539,8 +547,8 @@ export function RespondGrunnlagModal({
                       // Filter out empty placeholder
                       if (opt.value === '') return false;
 
-                      // Filter out "frafalt" if NOT irregular change (§32.3 c)
-                      if (opt.value === 'frafalt' && !erEndringMed32_2) return false;
+                      // Filter out "frafalt" if NOT pålegg (§32.3 c gjelder kun §32.1 pålegg)
+                      if (opt.value === 'frafalt' && !erPaalegg) return false;
                       return true;
                     }).map((option) => (
                       <RadioItem

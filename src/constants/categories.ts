@@ -94,7 +94,8 @@ export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
         kode: 'SVAR_VARSEL',
         label: 'Endring via svar på varsel',
         hjemmel_basis: '24.2.2',
-        beskrivelse: 'Byggherrens svar på varsel (§24.2.2 eller §25) innebærer en endring uten at endringsordre er utstedt.',
+        // NB: §24.2.2 forutsetter avtalt risikoovergang etter §24.2.1
+        beskrivelse: 'Ved avtalt risikoovergang (§24.2.1): Byggherrens svar på varsel innebærer en endring uten at endringsordre er utstedt.',
         varselkrav_ref: '32.2 / 33.4 / 34.1.1',
         gruppe: 'Endringsordrer',
       },
