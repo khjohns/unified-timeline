@@ -312,7 +312,6 @@ export function OpprettSakPage() {
                   label="Hovedkategori"
                   required
                   error={errors.hovedkategori?.message}
-                  labelTooltip="Velg rettslig grunnlag iht. NS 8407. Dette bestemmer hvilke kontraktsbestemmelser som gjelder."
                 >
                   <Controller
                     name="hovedkategori"
@@ -491,7 +490,6 @@ export function OpprettSakPage() {
 
                 <VarselSeksjon
                   label="Når ble byggherren varslet?"
-                  labelTooltip="Dokumenter når byggherren ble varslet. Varselfrist er kritisk for om kravet kan tapes ved preklusjon."
                   sendesNa={varselSendesNa ?? true}
                   onSendesNaChange={(value) => setValue('varsel_sendes_na', value)}
                   datoSendt={watch('dato_varsel_sendt')}

@@ -443,7 +443,6 @@ export function RespondGrunnlagModal({
               label="Resultat (ansvarsgrunnlag)"
               required
               error={errors.resultat?.message}
-              labelTooltip="Vurder BARE ansvaret. Hvis avvist, kan vederlag/frist fortsatt vurderes subsidiært."
             >
               <Controller
                 name="resultat"
