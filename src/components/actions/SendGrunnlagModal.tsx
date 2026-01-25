@@ -355,7 +355,7 @@ export function SendGrunnlagModal({
             title="Nåværende ansvarsgrunnlag"
             variant="subtle"
           >
-            <InlineDataList>
+            <InlineDataList stackOnMobile>
               <InlineDataListItem label="Kategori" bold>
                 {getHovedkategoriLabel(grunnlag.hovedkategori || '')}
               </InlineDataListItem>
