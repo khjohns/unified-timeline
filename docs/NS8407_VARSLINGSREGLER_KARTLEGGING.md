@@ -84,7 +84,7 @@ TO PERSPEKTIVER PÅ AKTSOMHETSNORMEN:
 
 | Paragraf | Spor | Formulering | Aktsomhetsnorm | Merknad |
 |----------|------|-------------|----------------|---------|
-| §33.4 | Frist | (ikke angitt) | **Uavklart** | Se seksjon 6.1 |
+| §33.4 | Frist | "forhold" (= ansvarsgrunnlag) | **Avhenger av type** | Endring/FM: objektiv. Svikt: uavklart |
 | §33.6.1 | Frist | "har grunnlag for å beregne" | **Uavklart** | Objektiv, subjektiv eller aktsomhet? |
 | §34.1.2 | Vederlag | "blir eller burde ha blitt klar over" | Normal aktsomhet | |
 | §25.1.2 | Grunnlag | "blir eller burde ha blitt oppmerksom på" | Normal aktsomhet | |
@@ -1293,13 +1293,23 @@ KRAV TIL ETTERLYSNING:
 
 **Problem:** Kontraktsteksten sier "uten ugrunnet opphold" uten å spesifisere eksakt skjæringstidspunkt.
 
+**Presisering:** "Forhold" i §33.4 refererer til de konkrete ansvarsgrunnlagene i §33.1-33.3:
+
+| Ansvarsgrunnlag | Typisk tidspunkt | Objektivitet |
+|-----------------|------------------|--------------|
+| Endring (§31/32) | Mottak av endringsordre/pålegg | Klart objektivt |
+| Svikt i BHs ytelser (§22/23/24) | Svikten manifesterer seg | Kan kreve vurdering |
+| Force majeure (§33.3) | Hindringen inntreffer | Ofte objektivt observerbart |
+
+**Spørsmålet**: For endringer og force majeure er tidspunktet ofte objektivt klart. Men for *svikt* kan det være et spørsmål om når parten burde forstått at det utgjør et forhold som gir rett til fristforlengelse.
+
 | Tolkning | Innhold | Strenghet |
 |----------|---------|-----------|
-| A | Forholdet oppstår (objektiv) | Streng |
-| B | TE blir klar over forholdet (subjektiv) | Mild |
-| C | TE burde blitt klar over forholdet (aktsomhet) | Moderat |
+| A | Forholdet oppstår/manifesterer seg (objektiv) | Streng |
+| B | Parten blir klar over forholdet (subjektiv) | Mild |
+| C | Parten burde blitt klar over forholdet (aktsomhet) | Moderat |
 
-**Status:** Uavklart - påvirker beregning av preklusjon.
+**Status:** Uavklart - avhenger av type ansvarsgrunnlag. Påvirker beregning av preklusjon.
 
 ---
 
