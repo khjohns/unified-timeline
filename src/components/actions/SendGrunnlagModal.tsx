@@ -471,18 +471,14 @@ export function SendGrunnlagModal({
                                     />
                                     {erValgt && (
                                       <div className="mt-2 ml-6">
-                                        {uk.kode === 'BH_FASTHOLDER' ? (
-                                          <KontraktsregelInline hjemmel="§24.2.2" />
-                                        ) : (
-                                          <KontraktsregelInline
-                                            custom={{
-                                              inline: uk.beskrivelse,
-                                              hjemmel: `§${uk.hjemmel_basis}`,
-                                              konsekvens: `§${uk.varselkrav_ref}`,
-                                              accordionLabel: 'Varslingskrav',
-                                            }}
-                                          />
-                                        )}
+                                        <KontraktsregelInline
+                                          custom={{
+                                            inline: uk.beskrivelse,
+                                            hjemmel: `§${uk.hjemmel_basis}`,
+                                            konsekvens: `§${uk.varselkrav_ref}`,
+                                            accordionLabel: 'Varslingskrav',
+                                          }}
+                                        />
                                       </div>
                                     )}
                                   </div>

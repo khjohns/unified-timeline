@@ -83,10 +83,18 @@ export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
         gruppe: 'Endringsordrer',
       },
       {
+        kode: 'VALGRETT',
+        label: 'Begrensning av valgrett',
+        hjemmel_basis: '14.6',
+        beskrivelse: 'Pålegg (jf. §32.1) som begrenser entreprenørens rett til å velge materiale, utførelse eller løsning.',
+        varselkrav_ref: '32.2 / 33.4 / 34.1.1',
+        gruppe: 'Endringsordrer',
+      },
+      {
         kode: 'SVAR_VARSEL',
         label: 'Endring via svar på varsel',
-        hjemmel_basis: '25.3',
-        beskrivelse: 'Byggherrens svar på varsel etter §25 innebærer tiltak som utgjør en endring.',
+        hjemmel_basis: '24.2.2',
+        beskrivelse: 'Byggherrens svar på varsel (§24.2.2 eller §25) innebærer en endring uten at endringsordre er utstedt.',
         varselkrav_ref: '32.2 / 33.4 / 34.1.1',
         gruppe: 'Endringsordrer',
       },
@@ -173,15 +181,6 @@ export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
         // §25.1.2: Forhold som forstyrrer gjennomføringen ("burde" oppdaget)
         // §25.2: Prosjektering uegnet til å oppfylle §14-krav ("måtte" oppdaget - kun åpenbare feil)
         varselkrav_ref: '25.1.2 / 25.2 / 33.4 / 34.1.2',
-        gruppe: 'Prosjektering',
-      },
-      {
-        kode: 'BH_FASTHOLDER',
-        label: 'Byggherren fastholder løsning etter varsel',
-        hjemmel_basis: '24.2.2 tredje ledd',
-        beskrivelse: 'Byggherren fastholder sin prosjektering etter varsel fra entreprenøren, og løsningen viser seg uegnet.',
-        // §24.2.2: TE må ha varslet innen 5-ukersfristen om at løsningen ikke oppfyller §14
-        varselkrav_ref: '24.2.2 / 33.4 / 34.1.2',
         gruppe: 'Prosjektering',
       },
     ],

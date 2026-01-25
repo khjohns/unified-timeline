@@ -67,10 +67,17 @@ GRUNNLAG_KATEGORIER: Dict[str, Hovedkategori] = {
                 "varselkrav_ref": "32.2",
             },
             {
+                "kode": "VALGRETT",
+                "label": "Begrensning av valgrett",
+                "hjemmel_basis": "14.6",
+                "beskrivelse": "Pålegg (jf. §32.1) som begrenser entreprenørens rett til å velge materiale, utførelse eller løsning.",
+                "varselkrav_ref": "32.2",
+            },
+            {
                 "kode": "SVAR_VARSEL",
                 "label": "Endring via svar på varsel",
-                "hjemmel_basis": "25.3",
-                "beskrivelse": "Byggherrens svar på varsel etter §25 innebærer tiltak som utgjør en endring.",
+                "hjemmel_basis": "24.2.2",
+                "beskrivelse": "Byggherrens svar på varsel (§24.2.2 eller §25) innebærer en endring uten at endringsordre er utstedt.",
                 "varselkrav_ref": "32.2",
             },
             {
@@ -148,13 +155,6 @@ GRUNNLAG_KATEGORIER: Dict[str, Hovedkategori] = {
                 "hjemmel_basis": "24.1",
                 "beskrivelse": "Feil, mangler eller uklarheter i prosjektering/løsninger byggherren har risikoen for.",
                 "varselkrav_ref": "34.1.2 / 25.1.2",
-            },
-            {
-                "kode": "BH_FASTHOLDER",
-                "label": "Byggherren fastholder løsning etter varsel",
-                "hjemmel_basis": "24.2.2 tredje ledd",
-                "beskrivelse": "Byggherren fastholder sin prosjektering etter varsel fra entreprenøren, og løsningen viser seg uegnet.",
-                "varselkrav_ref": "34.1.2",
             },
         ],
     },
