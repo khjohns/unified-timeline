@@ -16,8 +16,8 @@ import {
   AttachmentUpload,
   Button,
   Checkbox,
-  DataList,
-  DataListItem,
+  InlineDataList,
+  InlineDataListItem,
   DatePicker,
   FormField,
   Input,
@@ -354,20 +354,19 @@ export function SendGrunnlagModal({
         {isUpdateMode && grunnlag && (
           <SectionContainer
             title="Nåværende ansvarsgrunnlag"
-            description={`Varslet ${grunnlag.grunnlag_varsel?.dato_sendt || 'ukjent dato'}. Endringer loggføres i historikken.`}
             variant="subtle"
           >
-            <DataList variant="grid">
-              <DataListItem label="Kategori">
-                <span className="font-medium">{getHovedkategoriLabel(grunnlag.hovedkategori || '')}</span>
-              </DataListItem>
-              <DataListItem label="Oppdaget">
+            <InlineDataList>
+              <InlineDataListItem label="Kategori" bold>
+                {getHovedkategoriLabel(grunnlag.hovedkategori || '')}
+              </InlineDataListItem>
+              <InlineDataListItem label="Oppdaget">
                 {grunnlag.dato_oppdaget}
-              </DataListItem>
-              <DataListItem label="Varslet">
+              </InlineDataListItem>
+              <InlineDataListItem label="Varslet">
                 {grunnlag.grunnlag_varsel?.dato_sendt || 'Ikke varslet'}
-              </DataListItem>
-            </DataList>
+              </InlineDataListItem>
+            </InlineDataList>
           </SectionContainer>
         )}
 
@@ -380,9 +379,9 @@ export function SendGrunnlagModal({
           </Alert>
         )}
 
-        {/* Seksjon 1: Rettslig grunnlag */}
+        {/* Seksjon 1: Ansvarsgrunnlag */}
         <SectionContainer
-          title="Rettslig grunnlag"
+          title="Ansvarsgrunnlag"
         >
           <div className="space-y-4">
             {/* Hovedkategori */}
