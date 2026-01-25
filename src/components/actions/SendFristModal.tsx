@@ -230,13 +230,13 @@ export function SendFristModal({
     pendingToastId.current = toast.pending('Sender fristkrav...', 'Vennligst vent mens kravet behandles.');
 
     // Build VarselInfo structures
-    // For varsel om fristforlengelse: use today's date and 'system' method if "sendes nå" is checked
+    // For varsel om fristforlengelse: use today's date and 'digital_oversendelse' method if "sendes nå" is checked
     const fristVarselDato = data.frist_varsel_sendes_na
       ? new Date().toISOString().split('T')[0]
       : data.frist_varsel_dato;
 
     const fristVarselMetode = data.frist_varsel_sendes_na
-      ? ['system']
+      ? ['digital_oversendelse']
       : (data.frist_varsel_metoder || []);
 
     const fristVarsel = fristVarselDato
@@ -246,13 +246,13 @@ export function SendFristModal({
         }
       : undefined;
 
-    // For spesifisert varsel: use today's date and 'system' method if "sendes nå" is checked
+    // For spesifisert varsel: use today's date and 'digital_oversendelse' method if "sendes nå" is checked
     const spesifisertDato = data.spesifisert_varsel_sendes_na
       ? new Date().toISOString().split('T')[0]
       : data.spesifisert_varsel_dato;
 
     const spesifisertMetode = data.spesifisert_varsel_sendes_na
-      ? ['system']
+      ? ['digital_oversendelse']
       : (data.spesifisert_varsel_metoder || []);
 
     const spesifisertVarsel = spesifisertDato

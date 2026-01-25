@@ -1291,7 +1291,7 @@ class KOEFlowTester(BaseTester):
                     "dato_oppdaget": datetime.now().strftime('%Y-%m-%d'),
                     "grunnlag_varsel": {
                         "dato_sendt": datetime.now().strftime('%Y-%m-%d'),
-                        "metode": ["system"]
+                        "metode": ["digital_oversendelse"]
                     }
                 }
             }
@@ -1982,7 +1982,7 @@ class ForseringFlowTester(BaseTester):
                     "dato_oppdaget": datetime.now().strftime('%Y-%m-%d'),
                     "grunnlag_varsel": {
                         "dato_sendt": datetime.now().strftime('%Y-%m-%d'),
-                        "metode": ["system"]
+                        "metode": ["digital_oversendelse"]
                     }
                 },
                 aktor="Test Script",
@@ -2382,7 +2382,7 @@ class EOFlowTester(BaseTester):
                     "dato_oppdaget": datetime.now().strftime('%Y-%m-%d'),
                     "grunnlag_varsel": {
                         "dato_sendt": datetime.now().strftime('%Y-%m-%d'),
-                        "metode": ["system"]
+                        "metode": ["digital_oversendelse"]
                     }
                 },
                 aktor="Test Script",

@@ -23,7 +23,7 @@ export const mockSakState7: SakState = {
     dato_oppdaget: '2025-02-10',
     grunnlag_varsel: {
       dato_sendt: '2025-02-10',
-      metode: ['system'],
+      metode: ['digital_oversendelse'],
     },
     kontraktsreferanser: ['§32.1', '§32.2'],
     bh_resultat: 'godkjent',
@@ -39,7 +39,7 @@ export const mockSakState7: SakState = {
     begrunnelse: 'Snekkerarbeid og ny innredning. Overslag ettersendes.',
     regningsarbeid_varsel: {
       dato_sendt: '2025-02-10',
-      metode: ['system'],
+      metode: ['digital_oversendelse'],
     },
     // BH is holding back until TE provides kostnads_overslag
     bh_resultat: 'hold_tilbake',
@@ -54,7 +54,7 @@ export const mockSakState7: SakState = {
     varsel_type: 'spesifisert',
     frist_varsel: {
       dato_sendt: '2025-02-10',
-      metode: ['system'],
+      metode: ['digital_oversendelse'],
     },
     spesifisert_varsel: {
       dato_sendt: '2025-02-11',
