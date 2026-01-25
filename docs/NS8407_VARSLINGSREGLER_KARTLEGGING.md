@@ -85,12 +85,38 @@ TO PERSPEKTIVER PÅ AKTSOMHETSNORMEN:
 | Paragraf | Spor | Formulering | Aktsomhetsnorm | Merknad |
 |----------|------|-------------|----------------|---------|
 | §33.4 | Frist | (ikke angitt) | **Uavklart** | Se seksjon 6.1 |
+| §33.6.1 | Frist | "har grunnlag for å beregne" | **Uavklart** | Objektiv, subjektiv eller aktsomhet? |
 | §34.1.2 | Vederlag | "blir eller burde ha blitt klar over" | Normal aktsomhet | |
 | §25.1.2 | Grunnlag | "blir eller burde ha blitt oppmerksom på" | Normal aktsomhet | |
 | §25.2 | Grunnlag | "blir eller måtte ha blitt klar over" | Kun åpenbare mangler | |
 | §32.2 | Grunnlag | (mottak av pålegg) | Objektiv – tidspunkt for mottak | |
 
 **Merk:** §33.6.1 bruker "måtte forstå" for konsekvensberegning (reduksjon), ikke for skjæringstidspunkt.
+
+```
+§33.6.1 SKJÆRINGSTIDSPUNKT - UAVKLART:
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                            │
+│ Formulering: "Når parten HAR GRUNNLAG for å beregne omfanget"             │
+│                                                                            │
+│ Mulige tolkninger:                                                         │
+│                                                                            │
+│ A) OBJEKTIV: Grunnlaget foreligger faktisk (uavhengig av partens          │
+│    kunnskap). Eks: Underentreprenør har levert sluttoppstilling.          │
+│    → Streng for parten, lett for motpart å bevise                         │
+│                                                                            │
+│ B) SUBJEKTIV: Parten vet at grunnlaget foreligger.                        │
+│    → Mild for parten, vanskelig for motpart å bevise                      │
+│                                                                            │
+│ C) AKTSOMHET: Parten burde ha forstått at grunnlaget foreligger.          │
+│    → Moderat for begge                                                     │
+│                                                                            │
+│ Forskjell fra §33.4: Her er det et konkret objektivt kriterium            │
+│ (beregningsgrunnlag) som kan tidsfestes, mens §33.4 bare sier             │
+│ "forhold som er beskrevet" uten referanse til partens kunnskap.           │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+```
 
 ### Konsekvenstyper
 
@@ -1274,6 +1300,22 @@ KRAV TIL ETTERLYSNING:
 | C | TE burde blitt klar over forholdet (aktsomhet) | Moderat |
 
 **Status:** Uavklart - påvirker beregning av preklusjon.
+
+---
+
+### 6.1.1 Skjæringstidspunkt for §33.6.1
+
+**Problem:** Kontraktsteksten sier "når parten har grunnlag for å beregne omfanget" uten å spesifisere om dette er objektivt eller subjektivt.
+
+| Tolkning | Innhold | Strenghet |
+|----------|---------|-----------|
+| A | Grunnlaget foreligger faktisk (objektiv) | Streng |
+| B | Parten vet at grunnlaget foreligger (subjektiv) | Mild |
+| C | Parten burde forstått at grunnlaget foreligger (aktsomhet) | Moderat |
+
+**Forskjell fra §33.4:** Her finnes et konkret objektivt kriterium (beregningsgrunnlag) som ofte kan tidsfestes (f.eks. mottak av sluttoppstilling fra UE), mens §33.4 bare refererer til "forhold" uten referanse til partens kunnskap.
+
+**Status:** Uavklart - påvirker beregning av reduksjonsrisiko.
 
 ---
 
