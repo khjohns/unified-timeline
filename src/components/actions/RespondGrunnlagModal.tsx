@@ -442,6 +442,11 @@ export function RespondGrunnlagModal({
           <KontraktsregelInline hjemmel="§33.3" />
         )}
 
+        {/* §32.3: Byggherrens svarplikt ved varsel etter §32.2 */}
+        {erEndringMed32_2 && (
+          <KontraktsregelInline hjemmel="§32.3" />
+        )}
+
         {/* BH Passivity warning (§32.3) */}
         {erPassiv && (
           <Alert variant="danger" title="Passivitetsrisiko (§32.3)">

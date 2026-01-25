@@ -163,11 +163,21 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
     },
   },
   '§32.3': {
-    inline: 'Byggherren skal «uten ugrunnet opphold» ta stilling til om det foreligger en endring og om den aksepteres. Ved passivitet kan endringen anses akseptert.',
-    konsekvens: 'Byggherrens unnlatelse av å svare kan medføre at irregulære endringer anses akseptert.',
+    inline: 'Når byggherren mottar varsel etter §32.2, skal han «uten ugrunnet opphold» besvare det ved enten å utstede endringsordre, avslå kravet, eller frafalle pålegget.',
+    konsekvens: 'Svarer ikke byggherren uten ugrunnet opphold, anses pålegget å innebære en endring. Ved avslag skal byggherren begrunne avslaget uten ugrunnet opphold.',
     paragraf5: {
       paaberoper: 'TE',
       tekst: 'Totalentreprenøren må påberope passivitet skriftlig «uten ugrunnet opphold» – ellers anses svaret gitt i tide.',
+    },
+    systematikk: {
+      label: 'Svaralternativer (§32.3)',
+      innhold: [
+        { ref: 'a)', tekst: 'Utstede endringsordre i henhold til §31.3' },
+        { ref: 'b)', tekst: 'Avslå totalentreprenørens krav på endringsordre' },
+        { ref: 'c)', tekst: 'Frafalle pålegget mot å utstede endringsordre for allerede utført arbeid' },
+        { ref: 'Passivitet', tekst: 'Svarer ikke BH uten ugrunnet opphold → pålegget anses som endring' },
+        { ref: 'Begrunnelse', tekst: 'Ved avslag (b): BH skal begrunne avslaget uten ugrunnet opphold' },
+      ],
     },
   },
 
