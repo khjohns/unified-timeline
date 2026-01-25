@@ -357,7 +357,9 @@ FRIST
 │                                                                             │
 │  §25.1.2 - Svikt i BHs ytelser:                                            │
 │  ─────────────────────────────                                             │
-│  TRIGGER:    TE blir/burde blitt oppmerksom på forhold i §25.1.1:          │
+│  TRIGGER:    TE blir/burde blitt oppmerksom på forhold som vil kunne       │
+│              forstyrre gjennomføringen - §25.1.1 angir SÆRLIG (ikke        │
+│              uttømmende):                                                  │
 │              a) Ufullstendigheter/uoverensstemmelser i løsninger           │
 │              b) Behov for grunnundersøkelser                               │
 │              c) Feil ved materialer fra BH                                 │
@@ -514,6 +516,23 @@ FRIST
 │               (trenger ikke spesifisere antall dager)                      │
 │  Frist:       Uten ugrunnet opphold                                        │
 │  Konsekvens:  Kravet TAPES                                                 │
+│                                                                             │
+│  ┌────────────────────────────────────────────────────────────────────┐    │
+│  │ HVA ER «FORHOLDET» I §33.4?                                        │    │
+│  │                                                                    │    │
+│  │ «Forholdet» refererer til ansvarsgrunnlaget som utløser retten:    │    │
+│  │                                                                    │    │
+│  │ §33.1 a) Endringer (§31, §32)                                      │    │
+│  │ §33.1 b) Svikt ved BHs ytelser (§22-24)                            │    │
+│  │          → Se §25.1.2 ("burde") og §25.2 ("måtte") for varsling    │    │
+│  │ §33.1 c) Andre forhold BH har risikoen for                         │    │
+│  │ §33.3    Force majeure (kun fristforlengelse, ikke vederlag)       │    │
+│  │                                                                    │    │
+│  │ SKJÆRINGSTIDSPUNKT varierer med ansvarsgrunnlag:                   │    │
+│  │ - ENDRING: Når TE mottar pålegg (objektiv tidspunkt)               │    │
+│  │ - SVIKT: Når TE "burde" bli oppmerksom (aktsomhetsnorm)            │    │
+│  │ - UEGNET PROSJEKTERING: Når TE "måtte" bli klar over (strengere)   │    │
+│  └────────────────────────────────────────────────────────────────────┘    │
 │                           │                                                │
 │                           ▼                                                │
 │  STEG 2: SPESIFISERT KRAV (§33.6.1)                                        │
@@ -1435,13 +1454,28 @@ RIKTIG: §33.4 sier "kravet tapes"
 
 **Feil antakelse:** "Uten ugrunnet opphold" har alltid samme skjæringstidspunkt.
 
-**Korrekt forståelse:** Kontrakten bruker ulike formuleringer som gir ulik aktsomhetsnorm:
+**Korrekt forståelse:** Kontrakten bruker ulike formuleringer som gir ulik aktsomhetsnorm.
 
-| Formulering | Norm | Strenghet for TE |
-|-------------|------|------------------|
-| "blir oppmerksom på" | Faktisk kunnskap | Mildest |
-| "burde ha blitt oppmerksom på" | Normal aktsomhet | Moderat |
-| "måtte ha blitt klar over" | Åpenbar - grovt uaktsomt å ikke vite | Strengest |
+**To perspektiver på samme norm:**
+
+| Formulering | For varsler (TE/BH) | Bevisterskel for motpart |
+|-------------|---------------------|--------------------------|
+| "blir oppmerksom på" | Mildest - trenger faktisk kunnskap | **Vanskeligst** - må bevise faktisk kunnskap |
+| "burde ha blitt oppmerksom på" | Moderat - normal aktsomhet | **Lettere** - normal aktsomhet ville avdekket |
+| "måtte ha blitt klar over" | Strengest - åpenbart | **Moderat** - må vise det var åpenbart |
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ VIKTIG - ASYMMETRI:                                                         │
+│                                                                             │
+│ 1. Krav til varsler: "måtte" = strengest (forventes å oppdage åpenbare feil)│
+│ 2. Bevisterskel for motpart: "burde" = lettest å bevise                     │
+│                                                                             │
+│ Eksempel: Hvis BH skal bevise at TE varslet for sent:                       │
+│ - "burde"-norm: BH trenger bare vise at normal aktsomhet ville avdekket det │
+│ - "måtte"-norm: BH må vise at det var ÅPENBART (strengere bevis)            │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
 **Konsekvens for implementering:** Ved vurdering av om varsel kom i tide må man identifisere riktig skjæringstidspunkt fra den aktuelle paragrafen.
 
