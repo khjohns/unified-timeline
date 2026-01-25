@@ -53,7 +53,7 @@ export function PageHeader({
 
   return (
     <header className="bg-pkt-bg-card border-b border-pkt-grays-gray-200">
-      <div className={`${maxWidthClass} mx-auto px-4 py-4 sm:px-8 sm:py-6`}>
+      <div className={`${maxWidthClass} mx-auto px-4 py-4 sm:px-6 sm:py-6`}>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           {/* Title and subtitle */}
           <div className="min-w-0">

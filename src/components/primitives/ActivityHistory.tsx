@@ -160,7 +160,7 @@ export function ActivityHistory({
   return (
     <RadixCollapsible.Root
       defaultOpen={defaultOpen}
-      className={clsx('mt-4 pt-3 border-t border-pkt-border-subtle', className)}
+      className={clsx('mt-3 pt-2 sm:mt-4 sm:pt-3 border-t border-pkt-border-subtle', className)}
     >
       {/* Toggle header */}
       <RadixCollapsible.Trigger
