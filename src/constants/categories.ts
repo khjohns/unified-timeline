@@ -4,6 +4,18 @@
  *
  * Enhanced with complete legal references and claim type information
  * from Komplett_Python_Datasett_NS 8407.py
+ *
+ * VIKTIG: To parallelle varslingsplikter for prosjekteringsfeil (§25):
+ *
+ * §25.1.2: Forhold som FORSTYRRER GJENNOMFØRINGEN
+ *   - Aktsomhet: "burde" (normal faglig aktsomhet)
+ *   - TE må aktivt undersøke og varsle
+ *
+ * §25.2: Prosjektering UEGNET til å oppfylle §14-krav (funksjonskrav)
+ *   - Aktsomhet: "måtte" (kun åpenbare feil)
+ *   - TE vurderer "i rimelig utstrekning"
+ *
+ * Begge kan gjelde for samme prosjekteringsfeil, men med ulik terskel.
  */
 
 export interface DropdownOption {
@@ -158,7 +170,9 @@ export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
         label: 'Svikt i byggherrens prosjektering',
         hjemmel_basis: '24.1',
         beskrivelse: 'Feil, mangler eller uklarheter i prosjektering/løsninger byggherren har risikoen for.',
-        varselkrav_ref: '25.1.2 / 33.4 / 34.1.2',
+        // §25.1.2: Forhold som forstyrrer gjennomføringen ("burde" oppdaget)
+        // §25.2: Prosjektering uegnet til å oppfylle §14-krav ("måtte" oppdaget - kun åpenbare feil)
+        varselkrav_ref: '25.1.2 / 25.2 / 33.4 / 34.1.2',
         gruppe: 'Prosjektering',
       },
       {
@@ -166,7 +180,8 @@ export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
         label: 'Byggherren fastholder løsning etter varsel',
         hjemmel_basis: '24.2.2 tredje ledd',
         beskrivelse: 'Byggherren fastholder sin prosjektering etter varsel fra entreprenøren, og løsningen viser seg uegnet.',
-        varselkrav_ref: '33.4 / 34.1.2',
+        // §25.2 gjelder også her - BHs fastholdte løsning kan være åpenbart uegnet
+        varselkrav_ref: '25.2 / 33.4 / 34.1.2',
         gruppe: 'Prosjektering',
       },
     ],

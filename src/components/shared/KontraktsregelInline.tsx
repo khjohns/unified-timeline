@@ -22,11 +22,24 @@ import { ChevronRightIcon } from '@radix-ui/react-icons';
 type Hjemmel =
   // Grunnlagspor
   | '§14.4'   // Lovendring
-  | '§25.2'   // Krav pga BH-forhold (svikt/forsinkelse)
+  | '§25.1.2' // Varslingsplikt ved forhold som forstyrrer gjennomføringen
+  | '§25.2'   // Varslingsplikt ved uegnet prosjektering (funksjonskrav)
   | '§32.2'   // Endringsordre og irregulære endringer
   | '§32.3'   // Passivitetsrisiko (BH)
   // Fristspor
   | '§33.1' | '§33.3' | '§33.4' | '§33.5' | '§33.6.1' | '§33.6.2' | '§33.7' | '§33.8';
+
+/** Systematikk-referanse for å vise sammenhenger */
+interface SystematikkRef {
+  ref: string;
+  tekst: string;
+}
+
+/** Systematikk-innhold for accordion */
+interface Systematikk {
+  label: string;
+  innhold: SystematikkRef[];
+}
 
 /** Custom innhold for dynamisk bruk */
 interface CustomInnhold {
@@ -48,6 +61,7 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
   inline: string;
   konsekvens: string;
   paragraf5: { paaberoper: 'TE' | 'BH'; tekst: string };
+  systematikk?: Systematikk;
 }> = {
   // ========== GRUNNLAGSPOR ==========
 
@@ -59,12 +73,38 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
       tekst: '',
     },
   },
-  '§25.2': {
-    inline: 'Totalentreprenøren har krav på vederlagsjustering og/eller fristforlengelse dersom byggherrens forhold medfører økte kostnader eller forsinkelse. Dette omfatter svikt i leveranser, forsinkede avklaringer, eller andre forhold på byggherrens side.',
-    konsekvens: 'Kravet forutsetter at forholdet faktisk har medført merkostnader eller forsinkelse (årsakssammenheng).',
+  '§25.1.2': {
+    inline: 'Totalentreprenøren skal varsle byggherren «uten ugrunnet opphold» etter at han blir eller burde ha blitt oppmerksom på forhold som vil kunne forstyrre gjennomføringen av arbeidet.',
+    konsekvens: 'Erstatning – byggherren kan kreve erstatning for tap som kunne vært unngått ved rettidig varsel. Merk: Kravet tapes IKKE (ingen preklusjon).',
     paragraf5: {
       paaberoper: 'BH',
-      tekst: '',
+      tekst: 'Byggherren må påberope senhet skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
+    },
+    systematikk: {
+      label: 'Hva er «forhold» (§25.1.1)?',
+      innhold: [
+        { ref: 'Generelt', tekst: 'BHs ytelser og andre forhold BH har risikoen for, som vil kunne forstyrre gjennomføringen – særlig:' },
+        { ref: 'a)', tekst: 'Ufullstendigheter, uoverensstemmelser eller svakheter i BHs prosjektering' },
+        { ref: 'b)', tekst: 'Behov for grunnundersøkelser / utilstrekkelige undersøkelser' },
+        { ref: 'c)', tekst: 'Feil ved materialer eller andre ytelser fra BH' },
+        { ref: 'd)', tekst: 'Fysisk arbeidsgrunnlag eller grunnforhold avviker fra forventning' },
+      ],
+    },
+  },
+  '§25.2': {
+    inline: 'Totalentreprenøren skal varsle byggherren «uten ugrunnet opphold» etter at han blir eller måtte ha blitt klar over at BHs prosjektering ikke er egnet til å oppfylle funksjonskravene i §14.',
+    konsekvens: 'Erstatning – byggherren kan kreve erstatning for tap som kunne vært unngått ved rettidig varsel. Merk: Kravet tapes IKKE (ingen preklusjon).',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: 'Byggherren må påberope senhet skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
+    },
+    systematikk: {
+      label: 'Forskjell fra §25.1.2',
+      innhold: [
+        { ref: 'Fokus', tekst: '§25.2 gjelder funksjonskrav (§14), ikke gjennomføringshindringer' },
+        { ref: 'Aktsomhet', tekst: '«måtte» (kun åpenbare feil) vs §25.1.2 «burde» (normal aktsomhet)' },
+        { ref: 'Plikt', tekst: 'Vurdere «i rimelig utstrekning» – ikke aktiv undersøkelsesplikt' },
+      ],
     },
   },
   '§32.2': {
@@ -93,6 +133,14 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
       paaberoper: 'BH',
       tekst: '',
     },
+    systematikk: {
+      label: 'TEs grunnlag for fristforlengelse',
+      innhold: [
+        { ref: 'a) Endringer', tekst: '§31 (formell EO) og §32 (irregulær) – vederlag etter §34.1.1' },
+        { ref: 'b) Svikt/forsinkelse', tekst: 'BHs ytelser (§22-24) – vederlag etter §34.1.2' },
+        { ref: 'c) Andre forhold', tekst: 'Sekkepost for BH-risiko – vederlag etter §34.1.2' },
+      ],
+    },
   },
   '§33.3': {
     inline: 'Fristforlengelse ved force majeure forutsetter at fremdriften hindres av forhold utenfor partenes kontroll (f.eks. ekstraordinære værforhold, offentlige påbud, streik). Hindringen kan ikke være noe parten burde forutsett eller kunne unngått.',
@@ -109,6 +157,15 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
       paaberoper: 'BH',
       tekst: 'Byggherren må påberope senhet skriftlig «uten ugrunnet opphold» etter mottak – ellers anses varselet gitt i tide.',
     },
+    systematikk: {
+      label: 'Hva er «forholdet»?',
+      innhold: [
+        { ref: '§33.1 a)', tekst: 'Endringer (§31, §32)' },
+        { ref: '§33.1 b)', tekst: 'Svikt ved BHs ytelser (§22-24) – se også §25.1.2 ("burde") / §25.2 ("måtte")' },
+        { ref: '§33.1 c)', tekst: 'Andre forhold BH har risikoen for' },
+        { ref: '§33.3', tekst: 'Force majeure (kun fristforlengelse, ikke vederlag)' },
+      ],
+    },
   },
   '§33.5': {
     inline: 'Fristforlengelsen skal svare til den virkning på fremdriften som forholdet har forårsaket, der det blant annet tas hensyn til nødvendig avbrudd og eventuell forskyvning til ugunstigere årstid. Det skal også tas hensyn til samlet virkning av tidligere varslede forhold.',
@@ -124,6 +181,13 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
     paragraf5: {
       paaberoper: 'BH',
       tekst: 'Byggherren må påberope senhet skriftlig «uten ugrunnet opphold» etter mottak – ellers anses kravet gitt i tide.',
+    },
+    systematikk: {
+      label: 'To ledd i tidsberegningen',
+      innhold: [
+        { ref: 'Skjæringstidspunkt', tekst: '«har grunnlag for å beregne» – når beregningsgrunnlaget foreligger' },
+        { ref: 'Reduksjonsnorm', tekst: '«måtte forstå» – kun det åpenbare godkjennes ved for sent varsel' },
+      ],
     },
   },
   '§33.6.2': {
@@ -153,7 +217,8 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
 };
 
 export function KontraktsregelInline(props: KontraktsregelInlineProps) {
-  const [open, setOpen] = useState(false);
+  const [konsekvensOpen, setKonsekvensOpen] = useState(false);
+  const [systematikkOpen, setSystematikkOpen] = useState(false);
 
   // Bestem innhold basert på modus
   const isCustom = 'custom' in props && props.custom;
@@ -171,14 +236,14 @@ export function KontraktsregelInline(props: KontraktsregelInlineProps) {
         </p>
 
         {harAccordion && (
-          <Collapsible.Root open={open} onOpenChange={setOpen} className="mt-3">
+          <Collapsible.Root open={konsekvensOpen} onOpenChange={setKonsekvensOpen} className="mt-3">
             <Collapsible.Trigger asChild>
               <button
                 type="button"
                 className="flex items-center gap-1 text-sm font-medium text-pkt-text-interactive hover:text-pkt-text-interactive-hover transition-colors"
               >
                 <ChevronRightIcon
-                  className={`h-4 w-4 transition-transform duration-200 ${open ? 'rotate-90' : ''}`}
+                  className={`h-4 w-4 transition-transform duration-200 ${konsekvensOpen ? 'rotate-90' : ''}`}
                 />
                 {accordionLabel ?? 'Detaljer'}
               </button>
@@ -199,6 +264,7 @@ export function KontraktsregelInline(props: KontraktsregelInlineProps) {
   }
 
   const visParagraf5 = hjemmelInnhold.paragraf5.tekst.length > 0;
+  const harSystematikk = !!hjemmelInnhold.systematikk;
 
   return (
     <div className="rounded-md border border-pkt-border-subtle bg-pkt-bg-subtle p-4">
@@ -208,14 +274,14 @@ export function KontraktsregelInline(props: KontraktsregelInlineProps) {
       </p>
 
       {/* Accordion for konsekvenser */}
-      <Collapsible.Root open={open} onOpenChange={setOpen} className="mt-3">
+      <Collapsible.Root open={konsekvensOpen} onOpenChange={setKonsekvensOpen} className="mt-3">
         <Collapsible.Trigger asChild>
           <button
             type="button"
             className="flex items-center gap-1 text-sm font-medium text-pkt-text-interactive hover:text-pkt-text-interactive-hover transition-colors"
           >
             <ChevronRightIcon
-              className={`h-4 w-4 transition-transform duration-200 ${open ? 'rotate-90' : ''}`}
+              className={`h-4 w-4 transition-transform duration-200 ${konsekvensOpen ? 'rotate-90' : ''}`}
             />
             Konsekvenser
           </button>
@@ -235,6 +301,34 @@ export function KontraktsregelInline(props: KontraktsregelInlineProps) {
           </div>
         </Collapsible.Content>
       </Collapsible.Root>
+
+      {/* Accordion for systematikk */}
+      {harSystematikk && (
+        <Collapsible.Root open={systematikkOpen} onOpenChange={setSystematikkOpen} className="mt-2">
+          <Collapsible.Trigger asChild>
+            <button
+              type="button"
+              className="flex items-center gap-1 text-sm font-medium text-pkt-text-interactive hover:text-pkt-text-interactive-hover transition-colors"
+            >
+              <ChevronRightIcon
+                className={`h-4 w-4 transition-transform duration-200 ${systematikkOpen ? 'rotate-90' : ''}`}
+              />
+              {hjemmelInnhold.systematikk!.label}
+            </button>
+          </Collapsible.Trigger>
+
+          <Collapsible.Content className="mt-2 pl-5 border-l-2 border-pkt-border-subtle">
+            <dl className="space-y-1 text-sm">
+              {hjemmelInnhold.systematikk!.innhold.map((item, idx) => (
+                <div key={idx} className="flex gap-2">
+                  <dt className="font-medium text-pkt-text-body-subtle shrink-0">{item.ref}:</dt>
+                  <dd className="text-pkt-text-body">{item.tekst}</dd>
+                </div>
+              ))}
+            </dl>
+          </Collapsible.Content>
+        </Collapsible.Root>
+      )}
     </div>
   );
 }

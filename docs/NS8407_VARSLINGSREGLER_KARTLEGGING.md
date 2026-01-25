@@ -54,11 +54,69 @@ For hver varslingsregel må følgende være avklart:
 
 ### Aktsomhetsnormer (skjæringstidspunkt)
 
-| Formulering | Norm | Terskel |
-|-------------|------|---------|
-| "blir oppmerksom på" | Faktisk kunnskap | Subjektiv |
-| "burde ha blitt oppmerksom på" | Normal aktsomhet | Objektiv |
-| "måtte ha blitt klar over" | Grov uaktsomhet å ikke vite | Streng objektiv |
+| Formulering | Norm | Krav til varslende | Bevisterskel for motpart |
+|-------------|------|-------------------|-------------------------|
+| "blir oppmerksom på" | Faktisk kunnskap | Mildest – kun faktisk kunnskap utløser plikt | **Vanskeligst** – må bevise faktisk kunnskap |
+| "burde ha blitt oppmerksom på" | Normal aktsomhet | Strengere – må utvise faglig aktsomhet | **Lettere** – normal aktsom ville oppdaget |
+| "måtte ha blitt klar over" | Åpenbar mangel | Mildest – kun åpenbare mangler utløser plikt | **Middels** – må vise at det var åpenbart |
+
+```
+TO PERSPEKTIVER PÅ AKTSOMHETSNORMEN:
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                            │
+│  1. KRAV TIL DEN VARSLENDE (TE/BH):                                       │
+│     "burde" = Strengest krav – må utvise normal faglig aktsomhet          │
+│     "måtte" = Mildere krav – trenger bare reagere på det åpenbare         │
+│     "blir"  = Mildest krav – kun faktisk kunnskap utløser plikt           │
+│                                                                            │
+│  2. BEVISTERSKEL FOR MOTPARTEN (den som hevder for sent varsel):          │
+│     "blir"  = Vanskeligst – må bevise faktisk kunnskap                    │
+│     "måtte" = Middels – må vise at forholdet var åpenbart                 │
+│     "burde" = Lettest – må vise at normal aktsomhet ville avdekket det    │
+│                                                                            │
+│  MERK: Disse to perspektivene er IKKE det samme!                          │
+│  "Strengere aktsomhetsnorm" kan bety ulike ting avhengig av perspektiv.   │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Hvilke regler bruker aktsomhetsnorm for skjæringstidspunkt?
+
+| Paragraf | Spor | Formulering | Aktsomhetsnorm | Merknad |
+|----------|------|-------------|----------------|---------|
+| §33.4 | Frist | "forhold" (= ansvarsgrunnlag) | **Avhenger av type** | Endring/FM: objektiv. Svikt: uavklart |
+| §33.6.1 | Frist | "har grunnlag for å beregne" | **Uavklart** | Objektiv, subjektiv eller aktsomhet? |
+| §34.1.2 | Vederlag | "blir eller burde ha blitt klar over" | Normal aktsomhet | |
+| §25.1.2 | Grunnlag | "blir eller burde ha blitt oppmerksom på" | Normal aktsomhet | |
+| §25.2 | Grunnlag | "blir eller måtte ha blitt klar over" | Kun åpenbare mangler | |
+| §32.2 | Grunnlag | (mottak av pålegg) | Objektiv – tidspunkt for mottak | |
+
+**Merk:** §33.6.1 bruker "måtte forstå" for konsekvensberegning (reduksjon), ikke for skjæringstidspunkt.
+
+```
+§33.6.1 SKJÆRINGSTIDSPUNKT - UAVKLART:
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                            │
+│ Formulering: "Når parten HAR GRUNNLAG for å beregne omfanget"             │
+│                                                                            │
+│ Mulige tolkninger:                                                         │
+│                                                                            │
+│ A) OBJEKTIV: Grunnlaget foreligger faktisk (uavhengig av partens          │
+│    kunnskap). Eks: Underentreprenør har levert sluttoppstilling.          │
+│    → Streng for parten, lett for motpart å bevise                         │
+│                                                                            │
+│ B) SUBJEKTIV: Parten vet at grunnlaget foreligger.                        │
+│    → Mild for parten, vanskelig for motpart å bevise                      │
+│                                                                            │
+│ C) AKTSOMHET: Parten burde ha forstått at grunnlaget foreligger.          │
+│    → Moderat for begge                                                     │
+│                                                                            │
+│ Forskjell fra §33.4: Her er det et konkret objektivt kriterium            │
+│ (beregningsgrunnlag) som kan tidsfestes, mens §33.4 bare sier             │
+│ "forhold som er beskrevet" uten referanse til partens kunnskap.           │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+```
 
 ### Konsekvenstyper
 
@@ -177,7 +235,7 @@ VIKTIG PRESISERING:
 | Dimensjon | Verdi | Kilde |
 |-----------|-------|-------|
 | **HVEM** | TE | §25.1.2 første ledd |
-| **TRIGGER** | Oppdager forhold nevnt i §25.1.1 (a, b, c eller d) | §25.1.2 første ledd |
+| **TRIGGER** | Oppdager forhold nevnt i §25.1.1 (ikke uttømmende, se "særlig" a-d) | §25.1.2 første ledd |
 | **SKJÆRINGSTIDSPUNKT** | "blir eller burde ha blitt oppmerksom på" | §25.1.2 første ledd |
 | **FRIST** | Uten ugrunnet opphold | §25.1.2 første ledd |
 | **KONSEKVENS** | BH kan kreve erstatning for tap som kunne vært unngått | §25.1.2 annet ledd |
@@ -202,6 +260,11 @@ VIKTIG: DOBBEL VARSLING ER BEKREFTET
 ```
 HVA ER "FORHOLD" (§25.1.1)?
 ┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                            │
+│ GENERELT: BHs ytelser og andre forhold BH har risikoen for,               │
+│           som vil kunne forstyrre gjennomføringen.                        │
+│                                                                            │
+│ Listen a-d er IKKE uttømmende ("skal særlig legge vekt på"):              │
 │                                                                            │
 │ a) Ufullstendigheter, uoverensstemmelser eller svakheter i                │
 │    løsninger/prosjektering BH har risikoen for                            │
@@ -233,16 +296,53 @@ HVA ER "FORHOLD" (§25.1.1)?
 | **KONSEKVENS** | BH kan kreve erstatning for tap som kunne vært unngått | §25.2 annet ledd |
 
 ```
-STRENGERE AKTSOMHETSNORM
+FORSKJELL I AKTSOMHETSNORM: §25.1.2 vs §25.2
 ┌────────────────────────────────────────────────────────────────────────────┐
 │                                                                            │
 │ §25.1.2: "blir eller BURDE ha blitt oppmerksom på"                        │
 │          = Normal aktsomhet                                                │
+│          → TE må utvise normal faglig aktsomhet                           │
+│          → Lettere for BH å bevise at TE varslet for sent                 │
 │                                                                            │
 │ §25.2:   "blir eller MÅTTE ha blitt klar over"                            │
-│          = Grov uaktsomhet å ikke vite (strengere)                        │
+│          = Kun åpenbare mangler                                            │
+│          → TE trenger bare reagere på det ÅPENBART uegnede                │
+│          → Vanskeligere for BH å bevise at TE varslet for sent            │
 │                                                                            │
-│ Forskjellen: §25.2 gjelder når løsningen er ÅPENBART uegnet.              │
+│ MERK: "Måtte" er MILDERE for TE (kun åpenbare feil utløser plikt),        │
+│       men VANSKELIGERE for BH å bevise (må vise at det var åpenbart).     │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+```
+§25.1 vs §25.2: TO PARALLELLE VARSLINGSPLIKTER
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                            │
+│  §25.1: Forhold som FORSTYRRER GJENNOMFØRINGEN                            │
+│  ─────────────────────────────────────────────                             │
+│  Fokus: Hindringer/forsinkelser i arbeidet                                │
+│  Plikt: Aktiv undersøkelsesplikt (§25.1.1)                                │
+│  Aktsomhet: "burde" (normal faglig aktsomhet)                             │
+│  Eksempel: Uoverensstemmelse i tegninger, forsinkede leveranser           │
+│                                                                            │
+│  §25.2: Prosjektering UEGNET til å oppfylle §14-KRAV                      │
+│  ───────────────────────────────────────────────────                       │
+│  Fokus: Funksjonelle mangler (kontraktsgjenstanden vil ikke fungere)      │
+│  Plikt: Vurdere "i rimelig utstrekning"                                   │
+│  Aktsomhet: "måtte" (kun åpenbare feil)                                   │
+│  Eksempel: Underdimensjonert bærekonstruksjon, brudd på forskrifter       │
+│                                                                            │
+│  ┌─────────────────────────────────────────────────────────────────────┐  │
+│  │ BEGGE kan gjelde for samme prosjekteringsfeil!                      │  │
+│  │                                                                     │  │
+│  │ En feil i BHs prosjektering kan:                                   │  │
+│  │ - Forstyrre gjennomføringen (§25.1.2 gjelder)                      │  │
+│  │ - Være åpenbart uegnet til å oppfylle §14 (§25.2 gjelder også)     │  │
+│  │                                                                     │  │
+│  │ §25.1.2 har lavere terskel ("burde") → lettere for BH å bevise     │  │
+│  │ §25.2 har høyere terskel ("måtte") → vanskeligere for BH å bevise  │  │
+│  └─────────────────────────────────────────────────────────────────────┘  │
 │                                                                            │
 └────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -531,6 +631,48 @@ VIKTIG PRESISERING:
 └────────────────────────────────────────────────────────────────────────────┘
 ```
 
+```
+HVA ER "FORHOLD" I §33.4? (Komplett oversikt)
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                            │
+│ §33.4 viser til "forhold som er beskrevet i 33.1, 33.2 eller 33.3":       │
+│                                                                            │
+│ ┌────────────────────────────────────────────────────────────────────────┐│
+│ │ §33.1 - TEs KRAV (BHs risiko):                                        ││
+│ │                                                                        ││
+│ │ a) ENDRINGER (§31, §32)                         → Hovedkat: ENDRING   ││
+│ │    - Formell endringsordre (§31.3)                                    ││
+│ │    - Irregulær endring/pålegg (§32.1/32.2)                           ││
+│ │    - Endring i lover/forskrifter (§14.4)                             ││
+│ │                                                                        ││
+│ │ b) FORSINKELSE/SVIKT ved BHs ytelser (§22, §23, §24)  → Hovedkat: SVIKT││
+│ │    - Medvirkning og leveranser (§22)                                  ││
+│ │    - Grunnforhold og kulturminner (§23)                              ││
+│ │    - Prosjektering (§24) - NB: §25.1.2 + §25.2 gjelder!              ││
+│ │                                                                        ││
+│ │ c) ANDRE FORHOLD BH har risikoen for           → Hovedkat: ANDRE      ││
+│ │    - Nektelse av medhjelper (§10.2)                                  ││
+│ │    - Tvungen tiltransport (§12.1.2)                                  ││
+│ │    - Skade fra BH/sideentreprenør (§19.1)                           ││
+│ │    - Urettmessig brukstakelse (§38.1)                               ││
+│ │    - Stans pga betalingsmislighold (§29.2)                          ││
+│ │    - Pålagt stans/utsettelse (§35.1)                                ││
+│ └────────────────────────────────────────────────────────────────────────┘│
+│                                                                            │
+│ ┌────────────────────────────────────────────────────────────────────────┐│
+│ │ §33.2 - BHs KRAV (TEs risiko):                                        ││
+│ │ Når BHs medvirkning hindres av forhold TE har risikoen for            ││
+│ └────────────────────────────────────────────────────────────────────────┘│
+│                                                                            │
+│ ┌────────────────────────────────────────────────────────────────────────┐│
+│ │ §33.3 - FORCE MAJEURE (ingen parts risiko):    → Hovedkat: FORCE_MAJEURE│
+│ │ Ekstraordinære værforhold, offentlige påbud/forbud, streik, lockout   ││
+│ │ VIKTIG: INGEN VEDERLAGSJUSTERING ved force majeure!                   ││
+│ └────────────────────────────────────────────────────────────────────────┘│
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
 ---
 
 #### 2.3.2 Beregning av fristforlengelse (§33.5) ✓
@@ -578,9 +720,9 @@ VIKTIG PRESISERING:
 │ FORUTSETNING: Nøytralt varsel (§33.4) må ha blitt sendt i tide.           │
 │ Hvis ikke: Full preklusjon (§33.4), ikke reduksjon (§33.6.1).             │
 │                                                                            │
-│ "måtte forstå" = Strengere norm:                                          │
+│ "måtte forstå" = Reduksjonsmekanisme (ikke skjæringstidspunkt):           │
 │ Kun det som var ÅPENBART for motparten godkjennes.                        │
-│ BH/TE har skjønnsmessig myndighet til å fastsette.                        │
+│ Dette gir motparten skjønnsmessig myndighet til å fastsette omfanget.     │
 │                                                                            │
 │ Kravet skal:                                                               │
 │ - Angi antall dager                                                       │
@@ -1230,13 +1372,39 @@ KRAV TIL ETTERLYSNING:
 
 **Problem:** Kontraktsteksten sier "uten ugrunnet opphold" uten å spesifisere eksakt skjæringstidspunkt.
 
+**Presisering:** "Forhold" i §33.4 refererer til de konkrete ansvarsgrunnlagene i §33.1-33.3:
+
+| Ansvarsgrunnlag | Typisk tidspunkt | Objektivitet |
+|-----------------|------------------|--------------|
+| Endring (§31/32) | Mottak av endringsordre/pålegg | Klart objektivt |
+| Svikt i BHs ytelser (§22/23/24) | Svikten manifesterer seg | Kan kreve vurdering |
+| Force majeure (§33.3) | Hindringen inntreffer | Ofte objektivt observerbart |
+
+**Spørsmålet**: For endringer og force majeure er tidspunktet ofte objektivt klart. Men for *svikt* kan det være et spørsmål om når parten burde forstått at det utgjør et forhold som gir rett til fristforlengelse.
+
 | Tolkning | Innhold | Strenghet |
 |----------|---------|-----------|
-| A | Forholdet oppstår (objektiv) | Streng |
-| B | TE blir klar over forholdet (subjektiv) | Mild |
-| C | TE burde blitt klar over forholdet (aktsomhet) | Moderat |
+| A | Forholdet oppstår/manifesterer seg (objektiv) | Streng |
+| B | Parten blir klar over forholdet (subjektiv) | Mild |
+| C | Parten burde blitt klar over forholdet (aktsomhet) | Moderat |
 
-**Status:** Uavklart - påvirker beregning av preklusjon.
+**Status:** Uavklart - avhenger av type ansvarsgrunnlag. Påvirker beregning av preklusjon.
+
+---
+
+### 6.1.1 Skjæringstidspunkt for §33.6.1
+
+**Problem:** Kontraktsteksten sier "når parten har grunnlag for å beregne omfanget" uten å spesifisere om dette er objektivt eller subjektivt.
+
+| Tolkning | Innhold | Strenghet |
+|----------|---------|-----------|
+| A | Grunnlaget foreligger faktisk (objektiv) | Streng |
+| B | Parten vet at grunnlaget foreligger (subjektiv) | Mild |
+| C | Parten burde forstått at grunnlaget foreligger (aktsomhet) | Moderat |
+
+**Forskjell fra §33.4:** Her finnes et konkret objektivt kriterium (beregningsgrunnlag) som ofte kan tidsfestes (f.eks. mottak av sluttoppstilling fra UE), mens §33.4 bare refererer til "forhold" uten referanse til partens kunnskap.
+
+**Status:** Uavklart - påvirker beregning av reduksjonsrisiko.
 
 ---
 
