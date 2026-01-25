@@ -2,16 +2,24 @@
  * KontraktsregelInline Component
  *
  * Kompakt, inline komponent for å vise kontraktsregler fra NS 8407.
- * Bruker kontraktstekstens ordlyd og progressiv avsløring via accordion.
+ * Progressiv avsløring via accordion.
  *
  * Støtter:
- * - Grunnlagspor: §14.4, §25.2, §32.2, §32.3
- * - Fristspor: §33.1, §33.3, §33.4, §33.5, §33.6, §33.7, §33.8
+ * - Grunnlagspor: §14.4, §14.6, §24.2.2, §25.1.2, §25.2, §32.2, §32.3
+ * - Fristspor: §33.1, §33.3, §33.4, §33.5, §33.6.1, §33.6.2, §33.7, §33.8
  * - Custom mode: Dynamisk innhold med samme visuelle stil
  *
  * Struktur:
- * - Inline tekst: Kontraktstekst (alltid synlig)
+ * - Inline tekst: Parafrasert kontraktsregel (alltid synlig)
  * - Accordion: Konsekvenser/detaljer (lukket som default)
+ *
+ * VIKTIG - OPPHAVSRETT (NS 8407):
+ * Standard Norge har opphavsrett til NS 8407. Ved nye hjemler:
+ * 1. PARAFRASÉR - ikke kopier ordrett fra kontrakten
+ * 2. Bruk fulle navn, ikke forkortelser (totalentreprenør, ikke TE)
+ * 3. Bevar juridiske nøkkelbegreper («uten ugrunnet opphold», «pålegg»)
+ * 4. Omskriv setningsstruktur og ordvalg
+ * 5. Systematikk-punkter skal forklare innholdet, ikke sitere det
  */
 
 import { useState } from 'react';
@@ -58,7 +66,40 @@ type KontraktsregelInlineProps =
   | { hjemmel: Hjemmel; custom?: never }
   | { hjemmel?: never; custom: CustomInnhold };
 
-/** Innhold per hjemmel - basert på kontraktsteksten */
+/**
+ * Innhold per hjemmel.
+ *
+ * HUSK OPPHAVSRETT: Parafrasér alltid - se kommentar øverst i filen.
+ *
+ * HVORDAN BYGGE EN NY HJEMMEL:
+ * (Se også docs/NS8407_VARSLINGSREGLER_KARTLEGGING.md for fullstendig analyse)
+ *
+ * 1. ANALYSER MED 5 DIMENSJONER:
+ *    - HVEM: Hvem har plikten? (totalentreprenøren/byggherren/begge)
+ *    - TRIGGER: Hva utløser plikten? (pålegg, varsel, forhold, etc.)
+ *    - SKJÆRINGSTIDSPUNKT: Når begynner fristen? Se aktsomhetsnorm under.
+ *    - FRIST: Hvor lang? («uten ugrunnet opphold», 5 uker, etc.)
+ *    - KONSEKVENS: Hva ved brudd? (preklusjon, erstatning, passiv aksept, reduksjon)
+ *
+ * 2. AKTSOMHETSNORM (for skjæringstidspunkt):
+ *    - "blir oppmerksom på"       → Faktisk kunnskap (mildest krav til varslende)
+ *    - "burde ha blitt klar over" → Normal aktsomhet (strengest krav til varslende)
+ *    - "måtte ha blitt klar over" → Kun åpenbare mangler (midt imellom)
+ *    NB: §5-mekanismen snur bevisbyrden - motparten må påberope senhet.
+ *
+ * 3. STRUKTURÉR INNHOLDET:
+ *    - inline: Hovedregelen i én setning. Start med subjekt, deretter handling og frist.
+ *    - konsekvens: Hva skjer ved brudd? Bruk konsekvenstyper fra kartleggingen.
+ *    - paragraf5: paaberoper = hvem må påberope senhet ('TE'/'BH'), tekst = påminnelse.
+ *    - systematikk: Valgfritt. For underpunkter, definisjoner, eller sammenhenger.
+ *
+ * 4. EKSEMPEL (§32.3):
+ *    - HVEM: BH | TRIGGER: Mottar varsel etter §32.2 | FRIST: Uten ugrunnet opphold
+ *    - KONSEKVENS: Passiv aksept (pålegget anses som endring)
+ *    - inline: "Når byggherren mottar varsel etter §32.2, skal han..."
+ *    - paragraf5: TE må påberope passivitet.
+ *    - systematikk: Vis svaralternativene (a, b, c) med forklarende tekst.
+ */
 const HJEMMEL_INNHOLD: Record<Hjemmel, {
   inline: string;
   konsekvens: string;
@@ -93,8 +134,8 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
     },
   },
   '§24.2.2': {
-    inline: 'Gjelder KUN når avtalt risikoovergang etter §24.2.1. Regulerer totalentreprenørens frist for å varsle om forhold i byggherrens materiale som ikke vil oppfylle §14-kravene, samt byggherrens svarplikt.',
-    konsekvens: 'Innebærer byggherrens svar en endring uten at endringsordre utstedes, må totalentreprenøren varsle etter §32.2 for å påberope seg endringen (underkategori SVAR_VARSEL).',
+    inline: 'Gjelder kun når avtalt risikoovergang etter §24.2.1. Regulerer totalentreprenørens frist for å varsle om forhold i byggherrens materiale som ikke vil oppfylle §14-kravene, samt byggherrens svarplikt.',
+    konsekvens: 'Innebærer byggherrens svar en endring uten at endringsordre utstedes, må totalentreprenøren varsle etter §32.2 for å påberope seg endringen.',
     paragraf5: {
       paaberoper: 'BH',
       tekst: '',
@@ -107,7 +148,7 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
         { ref: '2. Risikoovergang', tekst: 'Rettidig varsel: totalentreprenøren overtar ikke risikoen. Manglende varsel: risikoen overtas.' },
         { ref: '3. Byggherrens svarplikt', tekst: 'Byggherren må besvare varselet «uten ugrunnet opphold».' },
         { ref: '4. Fastholdelse', tekst: 'Fastholder byggherren sin løsning, bærer byggherren risikoen for sitt valg.' },
-        { ref: '5. Svaret er endring (SVAR_VARSEL)', tekst: 'Innebærer svaret en endring, skal byggherren utstede endringsordre (§31.3). Gjør han ikke det, må totalentreprenøren varsle etter §32.2.' },
+        { ref: '5. Svaret er endring', tekst: 'Innebærer svaret en endring, skal byggherren utstede endringsordre (§31.3). Gjør han ikke det, må totalentreprenøren varsle etter §32.2.' },
       ],
     },
   },
@@ -163,11 +204,21 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
     },
   },
   '§32.3': {
-    inline: 'Byggherren skal «uten ugrunnet opphold» ta stilling til om det foreligger en endring og om den aksepteres. Ved passivitet kan endringen anses akseptert.',
-    konsekvens: 'Byggherrens unnlatelse av å svare kan medføre at irregulære endringer anses akseptert.',
+    inline: 'Når byggherren mottar varsel etter §32.2, skal han «uten ugrunnet opphold» besvare det ved enten å utstede endringsordre, avslå kravet, eller frafalle pålegget.',
+    konsekvens: 'Svarer ikke byggherren uten ugrunnet opphold, anses pålegget å innebære en endring. Ved avslag skal byggherren begrunne avslaget uten ugrunnet opphold.',
     paragraf5: {
       paaberoper: 'TE',
       tekst: 'Totalentreprenøren må påberope passivitet skriftlig «uten ugrunnet opphold» – ellers anses svaret gitt i tide.',
+    },
+    systematikk: {
+      label: 'Svaralternativer (§32.3)',
+      innhold: [
+        { ref: 'a)', tekst: 'Godta kravet og utstede formell endringsordre (§31.3)' },
+        { ref: 'b)', tekst: 'Avvise kravet om at forholdet utgjør en endring' },
+        { ref: 'c)', tekst: 'Trekke tilbake pålegget (kun kompensasjon for utført arbeid)' },
+        { ref: 'Passivitet', tekst: 'Manglende svar innen rimelig tid medfører at forholdet anses som endring' },
+        { ref: 'Begrunnelse', tekst: 'Ved avvisning skal byggherren gi en skriftlig begrunnelse uten ugrunnet opphold' },
+      ],
     },
   },
 
