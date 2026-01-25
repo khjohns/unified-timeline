@@ -22,7 +22,8 @@ import { ChevronRightIcon } from '@radix-ui/react-icons';
 type Hjemmel =
   // Grunnlagspor
   | '§14.4'   // Lovendring
-  | '§25.2'   // Krav pga BH-forhold (svikt/forsinkelse)
+  | '§25.1.2' // Varslingsplikt ved forhold som forstyrrer gjennomføringen
+  | '§25.2'   // Varslingsplikt ved uegnet prosjektering (funksjonskrav)
   | '§32.2'   // Endringsordre og irregulære endringer
   | '§32.3'   // Passivitetsrisiko (BH)
   // Fristspor
@@ -72,12 +73,37 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
       tekst: '',
     },
   },
-  '§25.2': {
-    inline: 'Totalentreprenøren har krav på vederlagsjustering og/eller fristforlengelse dersom byggherrens forhold medfører økte kostnader eller forsinkelse. Dette omfatter svikt i leveranser, forsinkede avklaringer, eller andre forhold på byggherrens side.',
-    konsekvens: 'Kravet forutsetter at forholdet faktisk har medført merkostnader eller forsinkelse (årsakssammenheng).',
+  '§25.1.2': {
+    inline: 'Totalentreprenøren skal varsle byggherren «uten ugrunnet opphold» etter at han blir eller burde ha blitt oppmerksom på forhold som vil kunne forstyrre gjennomføringen av arbeidet.',
+    konsekvens: 'Erstatning – byggherren kan kreve erstatning for tap som kunne vært unngått ved rettidig varsel. Merk: Kravet tapes IKKE (ingen preklusjon).',
     paragraf5: {
       paaberoper: 'BH',
-      tekst: '',
+      tekst: 'Byggherren må påberope senhet skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
+    },
+    systematikk: {
+      label: 'Hva er «forhold» (§25.1.1)?',
+      innhold: [
+        { ref: 'a)', tekst: 'Ufullstendigheter, uoverensstemmelser eller svakheter i BHs prosjektering' },
+        { ref: 'b)', tekst: 'Behov for grunnundersøkelser / utilstrekkelige undersøkelser' },
+        { ref: 'c)', tekst: 'Feil ved materialer eller andre ytelser fra BH' },
+        { ref: 'd)', tekst: 'Fysisk arbeidsgrunnlag eller grunnforhold avviker fra forventning' },
+      ],
+    },
+  },
+  '§25.2': {
+    inline: 'Totalentreprenøren skal varsle byggherren «uten ugrunnet opphold» etter at han blir eller måtte ha blitt klar over at BHs prosjektering ikke er egnet til å oppfylle funksjonskravene i §14.',
+    konsekvens: 'Erstatning – byggherren kan kreve erstatning for tap som kunne vært unngått ved rettidig varsel. Merk: Kravet tapes IKKE (ingen preklusjon).',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: 'Byggherren må påberope senhet skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
+    },
+    systematikk: {
+      label: 'Forskjell fra §25.1.2',
+      innhold: [
+        { ref: 'Fokus', tekst: '§25.2 gjelder funksjonskrav (§14), ikke gjennomføringshindringer' },
+        { ref: 'Aktsomhet', tekst: '«måtte» (kun åpenbare feil) vs §25.1.2 «burde» (normal aktsomhet)' },
+        { ref: 'Plikt', tekst: 'Vurdere «i rimelig utstrekning» – ikke aktiv undersøkelsesplikt' },
+      ],
     },
   },
   '§32.2': {
