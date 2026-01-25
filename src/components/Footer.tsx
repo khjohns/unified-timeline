@@ -11,7 +11,7 @@ export function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="mt-auto border-t border-pkt-border-subtle bg-pkt-bg-subtle py-4 px-6">
+    <footer className="mt-auto border-t border-pkt-border-subtle bg-pkt-bg-subtle py-4 px-4 sm:px-6">
       <div className="max-w-3xl mx-auto space-y-4">
         {/* NS 8407 Disclaimer */}
         <div className="text-xs text-pkt-text-body-subtle max-w-3xl">
