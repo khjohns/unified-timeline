@@ -180,8 +180,8 @@ export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
         label: 'Byggherren fastholder løsning etter varsel',
         hjemmel_basis: '24.2.2 tredje ledd',
         beskrivelse: 'Byggherren fastholder sin prosjektering etter varsel fra entreprenøren, og løsningen viser seg uegnet.',
-        // §25.2 gjelder også her - BHs fastholdte løsning kan være åpenbart uegnet
-        varselkrav_ref: '25.2 / 33.4 / 34.1.2',
+        // §24.2.2: TE må ha varslet innen 5-ukersfristen om at løsningen ikke oppfyller §14
+        varselkrav_ref: '24.2.2 / 33.4 / 34.1.2',
         gruppe: 'Prosjektering',
       },
     ],
