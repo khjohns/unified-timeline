@@ -346,7 +346,7 @@ export function SendGrunnlagModal({
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title={isUpdateMode ? "Oppdater ansvarsgrunnlag" : "Varsle endringsforhold"}
+      title={isUpdateMode ? "Oppdater ansvarsgrunnlag" : "Varsle ansvarsgrunnlag"}
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">

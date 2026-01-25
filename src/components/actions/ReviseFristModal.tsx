@@ -144,7 +144,7 @@ export function ReviseFristModal({
         };
       default:
         return {
-          title: 'Revider fristkrav',
+          title: 'Oppdater fristkrav',
           submitLabel: 'Oppdater Krav',
           submitVariant: 'primary' as const,
         };

@@ -282,7 +282,7 @@ export function SendFristModal({
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title="Krav om fristforlengelse"
+      title="Krev fristforlengelse"
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">

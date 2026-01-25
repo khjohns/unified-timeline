@@ -242,7 +242,7 @@ export function SendForseringModal({
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title="Forseringsvarsel (§33.8)"
+      title="Varsle forsering"
       size="lg"
     >
       <div className="space-y-6">

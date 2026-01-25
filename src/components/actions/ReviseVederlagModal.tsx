@@ -382,7 +382,7 @@ export function ReviseVederlagModal({
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title="Revider vederlagskrav"
+      title="Oppdater vederlagskrav"
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">

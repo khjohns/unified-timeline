@@ -274,7 +274,7 @@ export function SendVederlagModal({
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title="Krav om vederlagsjustering"
+      title="Krev vederlagsjustering"
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
