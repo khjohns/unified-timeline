@@ -387,7 +387,9 @@ function ResponsGrunnlagSection({ data }: { data: ResponsGrunnlagEventData }) {
 function ResponsGrunnlagOppdatertSection({ data }: { data: ResponsGrunnlagOppdatertEventData }) {
   return (
     <DataList>
-      <DataListItem label="Nytt resultat">{getBhGrunnlagssvarLabel(data.resultat)}</DataListItem>
+      {data.resultat && (
+        <DataListItem label="Nytt resultat">{getBhGrunnlagssvarLabel(data.resultat)}</DataListItem>
+      )}
       <LongTextField label="Begrunnelse" value={data.begrunnelse} defaultOpen={true} markdown />
       {data.dato_endret && (
         <DataListItem label="Endret dato">{formatDateMedium(data.dato_endret)}</DataListItem>
@@ -460,9 +462,6 @@ function ResponsFristSection({ data }: { data: ResponsFristEventData }) {
 
   return (
     <DataList>
-      {data.krevd_dager !== undefined && (
-        <DataListItem label="Krevd">{data.krevd_dager} dager</DataListItem>
-      )}
       {godkjentDager !== undefined && (
         <DataListItem label={godkjentLabel}>{godkjentDager} dager</DataListItem>
       )}

@@ -950,7 +950,6 @@ export function RespondFristModal({
                       <Badge variant="default">
                         {varselType === 'varsel' && 'Foreløpig varsel (§33.4)'}
                         {varselType === 'spesifisert' && 'Spesifisert krav (§33.6)'}
-                        {varselType === 'begrunnelse_utsatt' && 'Begrunnelse for utsettelse (§33.6.2 b)'}
                       </Badge>
                     </DataListItem>
                   )}

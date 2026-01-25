@@ -7,6 +7,7 @@
 
 import React from 'react';
 import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer';
+import type { Style } from '@react-pdf/types';
 import type { BrevInnhold } from '../types/letter';
 import { PDF_FONT, COLORS, baseUrl } from './styles';
 
@@ -165,7 +166,7 @@ function formatDate(dateStr?: string): string {
 /**
  * Render text with line breaks preserved.
  */
-const MultiLineText: React.FC<{ text: string; style?: object }> = ({ text, style }) => {
+const MultiLineText: React.FC<{ text: string; style?: Style }> = ({ text, style }) => {
   // Split by newlines and render each as a separate Text element
   const lines = text.split('\n');
 

@@ -64,6 +64,9 @@ const mockFravikState: FravikState = {
     'MASKIN-001': {
       maskin_id: 'MASKIN-001',
       maskin_type: 'Gravemaskin',
+      vekt: 'medium',
+      arbeidskategori: 'graving',
+      bruksintensitet: 'intensiv',
       start_dato: '2025-02-01',
       slutt_dato: '2025-04-01',
       grunner: ['markedsmangel'],

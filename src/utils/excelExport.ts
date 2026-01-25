@@ -594,7 +594,7 @@ function buildFravikOppsummeringSheet(
     ['Prosjektnavn', state.prosjekt_navn || '-'],
     ['Prosjektnummer', state.prosjekt_nummer || '-'],
     ['Rammeavtale', state.rammeavtale || '-'],
-    ['Hovedentreprenør', state.hovedentreprenor || '-'],
+    ['Entreprenør', state.entreprenor || '-'],
     [],
     ['SØKER'],
     [],

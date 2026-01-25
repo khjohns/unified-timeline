@@ -15,7 +15,7 @@ interface KPICardProps {
   value: string | number;
   subtext?: string;
   trend?: 'up' | 'down' | 'neutral';
-  color?: 'blue' | 'green' | 'yellow' | 'red';
+  color?: 'blue' | 'green' | 'yellow' | 'red' | 'gray';
 }
 
 export function KPICard({ label, value, subtext, color = 'blue' }: KPICardProps) {
@@ -24,6 +24,7 @@ export function KPICard({ label, value, subtext, color = 'blue' }: KPICardProps)
     green: 'border-l-badge-success-bg',
     yellow: 'border-l-badge-warning-bg',
     red: 'border-l-badge-error-bg',
+    gray: 'border-l-pkt-grays-gray-400',
   };
 
   return (
