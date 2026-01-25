@@ -11,6 +11,11 @@ interface ModalProps {
   children: ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
+  /**
+   * Viser tittelen "rammet inn" i modalens border på mobil.
+   * Gir et mer kompakt og elegant utseende på små skjermer.
+   */
+  framedTitle?: boolean;
 }
 
 /**
@@ -27,6 +32,7 @@ export function Modal({
   children,
   size = 'md',
   className,
+  framedTitle = false,
 }: ModalProps) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -65,31 +71,67 @@ export function Modal({
             className
           )}
         >
-          {/* Header - fixed, does not scroll */}
-          <div className="flex items-start justify-between p-4 sm:p-6 md:p-8 pb-0 sm:pb-0 md:pb-0 shrink-0">
-            <div>
-              <Dialog.Title className="text-xl font-bold text-pkt-text-body-dark">
-                {title}
-              </Dialog.Title>
-              {description && (
-                <Dialog.Description className="mt-3 text-lg text-pkt-text-body-subtle">
-                  {description}
-                </Dialog.Description>
+          {/* Framed title - positioned on border (mobile only) */}
+          {framedTitle && (
+            <Dialog.Title
+              className={clsx(
+                // Mobile: Framed title breaking the border
+                'absolute left-4 top-0 -translate-y-1/2',
+                'bg-pkt-bg-card px-2',
+                'text-base font-bold text-pkt-text-body-dark',
+                'max-w-[calc(100%-5rem)] truncate',
+                // Desktop: Hide framed title (normal header is shown instead)
+                'sm:hidden'
               )}
+            >
+              {title}
+            </Dialog.Title>
+          )}
+
+          {/* Header - fixed, does not scroll */}
+          <div className="shrink-0">
+            <div
+              className={clsx(
+                'flex items-start justify-between',
+                // When framedTitle is enabled, reduce top padding on mobile
+                framedTitle
+                  ? 'p-4 pt-3 sm:p-6 md:p-8 pb-0 sm:pb-0 md:pb-0'
+                  : 'p-4 sm:p-6 md:p-8 pb-0 sm:pb-0 md:pb-0'
+              )}
+            >
+              <div className={clsx(framedTitle && 'hidden sm:block')}>
+                <Dialog.Title className="text-xl font-bold text-pkt-text-body-dark">
+                  {title}
+                </Dialog.Title>
+                {description && (
+                  <Dialog.Description className="mt-3 text-lg text-pkt-text-body-subtle">
+                    {description}
+                  </Dialog.Description>
+                )}
+              </div>
+
+              {/* Close button */}
+              <Dialog.Close
+                className={clsx(
+                  'rounded p-2',
+                  'text-pkt-text-body-subtle hover:text-pkt-text-body-default',
+                  'hover:bg-pkt-surface-light-beige',
+                  'focus:outline-none focus:ring-4 focus:ring-pkt-brand-purple-1000/30',
+                  // Push to right when framedTitle hides the title on mobile
+                  framedTitle && 'ml-auto sm:ml-0'
+                )}
+                aria-label="Lukk dialog"
+              >
+                <Cross2Icon className="w-6 h-6" />
+              </Dialog.Close>
             </div>
 
-            {/* Close button */}
-            <Dialog.Close
-              className={clsx(
-                'rounded p-2',
-                'text-pkt-text-body-subtle hover:text-pkt-text-body-default',
-                'hover:bg-pkt-surface-light-beige',
-                'focus:outline-none focus:ring-4 focus:ring-pkt-brand-purple-1000/30'
-              )}
-              aria-label="Lukk dialog"
-            >
-              <Cross2Icon className="w-6 h-6" />
-            </Dialog.Close>
+            {/* Description shown below close button row on mobile with framed title */}
+            {framedTitle && description && (
+              <p className="px-4 text-base text-pkt-text-body-subtle sm:hidden">
+                {description}
+              </p>
+            )}
           </div>
 
           {/* Body - scrollable area with mobile-optimized scrolling */}
