@@ -76,7 +76,7 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
   },
   '§24.2.2': {
     inline: 'Totalentreprenøren har 5 uker fra kontraktsinngåelse til å varsle om forhold i byggherrens materiale som ikke vil oppfylle §14-kravene. Varsler han ikke innen fristen, overtar han risikoen for denne delen av materialet.',
-    konsekvens: 'Varsler TE innen fristen → TE overtar IKKE risikoen. Varsler TE IKKE → TE overtar risikoen som om han hadde prosjektert selv.',
+    konsekvens: 'Varsler totalentreprenøren innen fristen → overtar IKKE risikoen. Varsler han IKKE → overtar risikoen som om han hadde prosjektert selv.',
     paragraf5: {
       paaberoper: 'BH',
       tekst: '',
@@ -84,11 +84,11 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
     systematikk: {
       label: '§24.2.2: Kontroll, varsling og svar',
       innhold: [
-        { ref: '1. TEs varslingsfrist', tekst: '5 uker fra kontraktsinngåelse (utsettes hvis materiale mottas senere). Varselet skal presisere forhold og begrunne behov for endringer.' },
-        { ref: '2. Risikoovergang', tekst: 'Varsler TE innen fristen → overtar ikke risikoen. Varsler TE IKKE → overtar risikoen.' },
-        { ref: '3. BHs svarplikt', tekst: 'BH må svare «uten ugrunnet opphold» og gi beskjed om hvordan TE skal forholde seg.' },
-        { ref: '4. BH fastholder', tekst: 'Fastholder BH sin løsning → BH bærer risikoen for sitt valg (ingen endring, men risikoovergang).' },
-        { ref: '5. Svaret er en endring', tekst: 'Innebærer svaret en endring → BH skal utstede EO (§31.3). Gjør han ikke det → TE må varsle etter §32.2 (→ BHs svarplikt følger av §32.3).' },
+        { ref: '1. Totalentreprenørens varslingsfrist', tekst: '5 uker fra kontraktsinngåelse (utsettes hvis materiale mottas senere). Varselet skal presisere forhold og begrunne behov for endringer.' },
+        { ref: '2. Risikoovergang', tekst: 'Varsler totalentreprenøren innen fristen → overtar ikke risikoen. Varsler han IKKE → overtar risikoen.' },
+        { ref: '3. Byggherrens svarplikt', tekst: 'Byggherren må svare «uten ugrunnet opphold» og gi beskjed om hvordan totalentreprenøren skal forholde seg.' },
+        { ref: '4. Byggherren fastholder', tekst: 'Fastholder byggherren sin løsning → byggherren bærer risikoen for sitt valg (ingen endring, men risikoovergang).' },
+        { ref: '5. Svaret er en endring', tekst: 'Innebærer svaret en endring → byggherren skal utstede endringsordre (§31.3). Gjør han ikke det → totalentreprenøren må varsle etter §32.2 (→ byggherrens svarplikt følger av §32.3).' },
       ],
     },
   },
