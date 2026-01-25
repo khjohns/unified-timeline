@@ -96,7 +96,7 @@ export function Modal({
                   // Default: Solid background matching modal
                   'bg-pkt-bg-card px-2': framedTitleVariant === 'default',
                   // Pill: Thin border, transparent background
-                  'border border-pkt-border-default rounded px-3 py-0.5 bg-pkt-bg-card/80 backdrop-blur-sm': framedTitleVariant === 'pill',
+                  'border border-pkt-border-default rounded px-3 py-1 bg-pkt-bg-card/80 backdrop-blur-sm': framedTitleVariant === 'pill',
                   // Underline: Border-bottom continuing from modal border
                   'border-b border-pkt-border-default pb-1 bg-transparent': framedTitleVariant === 'underline',
                   // Inset: Small notch/tab effect
@@ -114,11 +114,11 @@ export function Modal({
           <div className="shrink-0">
             <div
               className={clsx(
-                'flex items-start justify-between',
+                'flex items-center justify-between',
                 // When framedTitle is enabled, reduce top padding on mobile
                 framedTitle
-                  ? 'p-4 pt-3 sm:p-6 md:p-8 pb-0 sm:pb-0 md:pb-0'
-                  : 'p-4 sm:p-6 md:p-8 pb-0 sm:pb-0 md:pb-0'
+                  ? 'p-4 pt-3 sm:p-5 pb-0'
+                  : 'p-4 sm:p-5 pb-0'
               )}
             >
               <div className={clsx(framedTitle && 'hidden sm:block')}>
@@ -159,7 +159,9 @@ export function Modal({
           {/* Body - scrollable area with mobile-optimized scrolling */}
           <div
             className={clsx(
-              'text-sm p-4 sm:p-6 md:p-8 pt-4 sm:pt-4 md:pt-6',
+              'text-sm p-4 sm:p-5',
+              // Top padding: reduced on mobile when framedTitle moves title to border
+              framedTitle ? 'pt-2 sm:pt-3' : 'pt-3 sm:pt-3',
               'overflow-y-auto overscroll-contain',
               // iOS smooth scrolling
               '[&]:[-webkit-overflow-scrolling:touch]'
