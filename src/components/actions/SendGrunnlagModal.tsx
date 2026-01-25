@@ -454,6 +454,13 @@ export function SendGrunnlagModal({
                             <div className="space-y-2 pl-0">
                               {underkategorier.map((uk) => {
                                 const erValgt = field.value?.includes(uk.kode) ?? false;
+                                // Map underkategori til KontraktsregelInline hjemmel (der tilgjengelig)
+                                const hjemmelMap: Record<string, '§14.4' | '§14.6' | '§24.2.2'> = {
+                                  'VALGRETT': '§14.6',
+                                  'SVAR_VARSEL': '§24.2.2',
+                                  'LOV_GJENSTAND': '§14.4',
+                                };
+                                const hjemmel = hjemmelMap[uk.kode];
                                 return (
                                   <div key={uk.kode}>
                                     <Checkbox
@@ -471,14 +478,18 @@ export function SendGrunnlagModal({
                                     />
                                     {erValgt && (
                                       <div className="mt-2 ml-6">
-                                        <KontraktsregelInline
-                                          custom={{
-                                            inline: uk.beskrivelse,
-                                            hjemmel: `§${uk.hjemmel_basis}`,
-                                            konsekvens: `§${uk.varselkrav_ref}`,
-                                            accordionLabel: 'Varslingskrav',
-                                          }}
-                                        />
+                                        {hjemmel ? (
+                                          <KontraktsregelInline hjemmel={hjemmel} />
+                                        ) : (
+                                          <KontraktsregelInline
+                                            custom={{
+                                              inline: uk.beskrivelse,
+                                              hjemmel: `§${uk.hjemmel_basis}`,
+                                              konsekvens: `§${uk.varselkrav_ref}`,
+                                              accordionLabel: 'Varslingskrav',
+                                            }}
+                                          />
+                                        )}
                                       </div>
                                     )}
                                   </div>
