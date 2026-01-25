@@ -134,8 +134,8 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
     },
   },
   '§24.2.2': {
-    inline: 'Gjelder KUN når avtalt risikoovergang etter §24.2.1. Regulerer totalentreprenørens frist for å varsle om forhold i byggherrens materiale som ikke vil oppfylle §14-kravene, samt byggherrens svarplikt.',
-    konsekvens: 'Innebærer byggherrens svar en endring uten at endringsordre utstedes, må totalentreprenøren varsle etter §32.2 for å påberope seg endringen (underkategori SVAR_VARSEL).',
+    inline: 'Gjelder kun når avtalt risikoovergang etter §24.2.1. Regulerer totalentreprenørens frist for å varsle om forhold i byggherrens materiale som ikke vil oppfylle §14-kravene, samt byggherrens svarplikt.',
+    konsekvens: 'Innebærer byggherrens svar en endring uten at endringsordre utstedes, må totalentreprenøren varsle etter §32.2 for å påberope seg endringen.',
     paragraf5: {
       paaberoper: 'BH',
       tekst: '',
@@ -148,7 +148,7 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
         { ref: '2. Risikoovergang', tekst: 'Rettidig varsel: totalentreprenøren overtar ikke risikoen. Manglende varsel: risikoen overtas.' },
         { ref: '3. Byggherrens svarplikt', tekst: 'Byggherren må besvare varselet «uten ugrunnet opphold».' },
         { ref: '4. Fastholdelse', tekst: 'Fastholder byggherren sin løsning, bærer byggherren risikoen for sitt valg.' },
-        { ref: '5. Svaret er endring (SVAR_VARSEL)', tekst: 'Innebærer svaret en endring, skal byggherren utstede endringsordre (§31.3). Gjør han ikke det, må totalentreprenøren varsle etter §32.2.' },
+        { ref: '5. Svaret er endring', tekst: 'Innebærer svaret en endring, skal byggherren utstede endringsordre (§31.3). Gjør han ikke det, må totalentreprenøren varsle etter §32.2.' },
       ],
     },
   },
