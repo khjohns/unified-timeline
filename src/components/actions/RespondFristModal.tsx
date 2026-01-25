@@ -486,8 +486,9 @@ export function RespondFristModal({
   const harHindring = formValues.vilkar_oppfylt === true;
 
   // Determine subsidiary treatment levels
-  const port2ErSubsidiaer = erPrekludert && !sendForesporsel;
-  const port3ErSubsidiaer = (erPrekludert || !harHindring) && !sendForesporsel;
+  // Inkluderer grunnlagsavslag som trigger for subsidiær behandling
+  const port2ErSubsidiaer = (erPrekludert || erGrunnlagSubsidiaer) && !sendForesporsel;
+  const port3ErSubsidiaer = (erPrekludert || !harHindring || erGrunnlagSubsidiaer) && !sendForesporsel;
 
   // Get godkjent dager (respecting subsidiary logic)
   const godkjentDager = formValues.godkjent_dager ?? 0;
@@ -544,6 +545,7 @@ export function RespondFristModal({
       erForesporselSvarForSent: erForesporselSvarForSent,
       erRedusert_33_6_1: erRedusert_33_6_1,
       harTidligereVarselITide: harTidligereVarselITide,
+      erGrunnlagSubsidiaer: erGrunnlagSubsidiaer,
       prinsipaltResultat: prinsipaltResultat,
       subsidiaertResultat: subsidiaertResultat,
       visSubsidiaertResultat: visSubsidiaertResultat,
@@ -563,6 +565,7 @@ export function RespondFristModal({
     erForesporselSvarForSent,
     erRedusert_33_6_1,
     harTidligereVarselITide,
+    erGrunnlagSubsidiaer,
     prinsipaltResultat,
     subsidiaertResultat,
     visSubsidiaertResultat,
@@ -729,6 +732,11 @@ export function RespondFristModal({
     // ========== RESPOND MODE SUBMIT (original) ==========
     // Beregn subsidiære triggere basert på Port 1 og Port 2 beslutninger
     const triggers: SubsidiaerTrigger[] = [];
+
+    // Grunnlag avslått - hele fristkravet behandles subsidiært
+    if (erGrunnlagSubsidiaer) {
+      triggers.push('grunnlag_avslatt');
+    }
 
     // Port 1: Preklusjon-trigger (kun §33.4 - nøytralt varsel for sent)
     // Merk: §33.6.1 (spesifisert for sent) er REDUKSJON, ikke preklusjon
@@ -1620,6 +1628,14 @@ export function RespondFristModal({
             <SectionContainer title="Oppsummering">
               {/* Sammendrag av valg */}
               <div className="space-y-4">
+                {/* Grunnlagsstatus - vises kun hvis avslått */}
+                {erGrunnlagSubsidiaer && (
+                  <StatusSummary title="Ansvarsgrunnlag">
+                    <Badge variant="danger">Avslått</Badge>
+                    <span className="text-sm">Fristkrav behandles subsidiært</span>
+                  </StatusSummary>
+                )}
+
                 {/* Varslingsvurdering (§33.4 / §33.6.1 / §33.6.2) */}
                 <StatusSummary title="Varsling">
                   {sendForesporsel ? (
