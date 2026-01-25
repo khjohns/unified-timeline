@@ -447,6 +447,7 @@ export interface FristResponseInput {
   erForesporselSvarForSent?: boolean;  // §33.6.2 tredje ledd + §5: Sen respons på forespørsel
   erRedusert_33_6_1?: boolean;  // §33.6.1: Sen spesifisering ETTER at varsel ble sendt i tide
   harTidligereVarselITide?: boolean;  // For å vite om §33.6.1 er relevant ved spesifisert krav
+  erGrunnlagSubsidiaer?: boolean;  // Grunnlag avslått - hele fristkravet behandles subsidiært
   prinsipaltResultat: string;
   subsidiaertResultat?: string;
   visSubsidiaertResultat: boolean;
@@ -502,11 +503,22 @@ function generateFristPreklusjonSection(input: FristResponseInput): string {
   // Prekludert (§33.4 - varsel for sent = full preklusjon)
   // Gjelder både nøytralt varsel for sent OG spesifisert krav direkte uten tidligere nøytralt varsel
   if (input.erPrekludert) {
-    return (
+    const prinsipaltTekst =
       'Kravet avvises prinsipalt som prekludert iht. §33.4, ' +
       'da varsel ikke ble fremsatt «uten ugrunnet opphold» ' +
-      'etter at entreprenøren ble eller burde blitt klar over forholdet.'
-    );
+      'etter at entreprenøren ble eller burde blitt klar over forholdet.';
+
+    // Dobbel vurdering: Hvis også §33.6.1 er oversittet, nevn dette subsidiært
+    if (input.erRedusert_33_6_1) {
+      return (
+        prinsipaltTekst +
+        ' Subsidiært bemerkes at selv om §33.4-fristen ikke anses oversittet, ' +
+        'ble det spesifiserte kravet uansett fremsatt for sent iht. §33.6.1. ' +
+        'Entreprenøren ville da kun hatt krav på det byggherren måtte forstå at han hadde krav på.'
+      );
+    }
+
+    return prinsipaltTekst;
   }
 
   // Redusert (§33.6.1 - spesifisert krav for sent = reduksjon, ikke preklusjon)
@@ -566,14 +578,14 @@ function generateFristVilkarSection(input: FristResponseInput): string {
  * Generate the calculation section for frist response
  */
 function generateFristBeregningSection(input: FristResponseInput): string {
-  const { krevdDager, godkjentDager, erPrekludert, vilkarOppfylt, varselType, sendForesporsel } = input;
+  const { krevdDager, godkjentDager, erPrekludert, vilkarOppfylt, varselType, sendForesporsel, erGrunnlagSubsidiaer } = input;
 
   // Skip calculation section when sending forespørsel or varsel about deadline extension without specified days
   if (sendForesporsel || (varselType === 'varsel' && krevdDager === 0)) {
     return '';
   }
 
-  const erSubsidiaer = erPrekludert || !vilkarOppfylt;
+  const erSubsidiaer = erPrekludert || !vilkarOppfylt || erGrunnlagSubsidiaer;
   const prefix = erSubsidiaer ? 'Subsidiært, hva gjelder antall dager: ' : 'Hva gjelder antall dager: ';
 
   if (godkjentDager === 0) {
@@ -692,6 +704,14 @@ export function generateFristResponseBegrunnelse(input: FristResponseInput): str
       'I henhold til §33.6.2 femte ledd gjelder bestemmelsen i §33.6.1 videre. ' +
       'Entreprenøren må fremsette spesifisert krav med antall dager «uten ugrunnet opphold» ' +
       'når grunnlaget for å beregne kravet foreligger.'
+    );
+  }
+
+  // 0. Grunnlagsavslag - hele fristkravet er subsidiært
+  if (input.erGrunnlagSubsidiaer) {
+    sections.push(
+      'Ansvarsgrunnlaget er avvist. Vurderingen av fristkravet nedenfor gjelder derfor ' +
+      'subsidiært, for det tilfellet at byggherren ikke får medhold i avvisningen av grunnlaget.'
     );
   }
 
