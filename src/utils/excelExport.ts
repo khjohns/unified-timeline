@@ -5,7 +5,7 @@
  * Creates professional, well-structured Excel workbooks with multiple sheets.
  */
 
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import {
   VederlagHistorikkEntry,
   FristHistorikkEntry,
@@ -81,9 +81,41 @@ function formatUnderkategorier(
   return getUnderkategoriLabel(underkategori);
 }
 
+// ========== HELPER FUNCTIONS ==========
+
+function setColumnWidths(
+  worksheet: ExcelJS.Worksheet,
+  widths: number[]
+): void {
+  widths.forEach((width, index) => {
+    worksheet.getColumn(index + 1).width = width;
+  });
+}
+
+async function downloadWorkbook(
+  workbook: ExcelJS.Workbook,
+  filename: string
+): Promise<void> {
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 // ========== WORKSHEET BUILDERS ==========
 
-function buildOppsummeringSheet(state: SakState): XLSX.WorkSheet {
+function buildOppsummeringSheet(
+  workbook: ExcelJS.Workbook,
+  state: SakState
+): void {
+  const ws = workbook.addWorksheet('Oppsummering');
+
   const data: (string | number)[][] = [
     ['SAKSOVERSIKT'],
     [],
@@ -190,15 +222,16 @@ function buildOppsummeringSheet(state: SakState): XLSX.WorkSheet {
     ['Eksportert', formatDateMedium(new Date().toISOString())],
   ];
 
-  const ws = XLSX.utils.aoa_to_sheet(data);
-
-  // Set column widths
-  ws['!cols'] = [{ wch: 25 }, { wch: 45 }];
-
-  return ws;
+  ws.addRows(data);
+  setColumnWidths(ws, [25, 45]);
 }
 
-function buildGrunnlagSheet(entries: GrunnlagHistorikkEntry[]): XLSX.WorkSheet {
+function buildGrunnlagSheet(
+  workbook: ExcelJS.Workbook,
+  entries: GrunnlagHistorikkEntry[]
+): void {
+  const ws = workbook.addWorksheet('Grunnlag');
+
   const headers = [
     'Versjon',
     'Tidsstempel',
@@ -227,27 +260,21 @@ function buildGrunnlagSheet(entries: GrunnlagHistorikkEntry[]): XLSX.WorkSheet {
     e.bh_begrunnelse || '-',
   ]);
 
-  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  ws.addRow(headers);
+  ws.addRows(rows);
 
-  // Set column widths
-  ws['!cols'] = [
-    { wch: 8 }, // Versjon
-    { wch: 16 }, // Tidsstempel
-    { wch: 20 }, // Aktør
-    { wch: 16 }, // Rolle
-    { wch: 18 }, // Type endring
-    { wch: 28 }, // Hovedkategori
-    { wch: 30 }, // Underkategori
-    { wch: 40 }, // Beskrivelse
-    { wch: 25 }, // Kontraktsreferanser
-    { wch: 18 }, // BH resultat
-    { wch: 40 }, // BH begrunnelse
-  ];
+  // Bold header row
+  ws.getRow(1).font = { bold: true };
 
-  return ws;
+  setColumnWidths(ws, [8, 16, 20, 16, 18, 28, 30, 40, 25, 18, 40]);
 }
 
-function buildVederlagSheet(entries: VederlagHistorikkEntry[]): XLSX.WorkSheet {
+function buildVederlagSheet(
+  workbook: ExcelJS.Workbook,
+  entries: VederlagHistorikkEntry[]
+): void {
+  const ws = workbook.addWorksheet('Vederlag');
+
   const headers = [
     'Versjon',
     'Tidsstempel',
@@ -280,29 +307,20 @@ function buildVederlagSheet(entries: VederlagHistorikkEntry[]): XLSX.WorkSheet {
     e.bh_begrunnelse || '-',
   ]);
 
-  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  ws.addRow(headers);
+  ws.addRows(rows);
 
-  // Set column widths
-  ws['!cols'] = [
-    { wch: 8 }, // Versjon
-    { wch: 16 }, // Tidsstempel
-    { wch: 20 }, // Aktør
-    { wch: 16 }, // Rolle
-    { wch: 18 }, // Type endring
-    { wch: 14 }, // Krevd beløp
-    { wch: 28 }, // Metode
-    { wch: 35 }, // Begrunnelse
-    { wch: 14 }, // Inkl. rigg/drift
-    { wch: 16 }, // Inkl. produktivitet
-    { wch: 18 }, // BH resultat
-    { wch: 14 }, // Godkjent beløp
-    { wch: 35 }, // BH begrunnelse
-  ];
+  ws.getRow(1).font = { bold: true };
 
-  return ws;
+  setColumnWidths(ws, [8, 16, 20, 16, 18, 14, 28, 35, 14, 16, 18, 14, 35]);
 }
 
-function buildFristSheet(entries: FristHistorikkEntry[]): XLSX.WorkSheet {
+function buildFristSheet(
+  workbook: ExcelJS.Workbook,
+  entries: FristHistorikkEntry[]
+): void {
+  const ws = workbook.addWorksheet('Frist');
+
   const headers = [
     'Versjon',
     'Tidsstempel',
@@ -333,25 +351,12 @@ function buildFristSheet(entries: FristHistorikkEntry[]): XLSX.WorkSheet {
     e.bh_begrunnelse || '-',
   ]);
 
-  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  ws.addRow(headers);
+  ws.addRows(rows);
 
-  // Set column widths
-  ws['!cols'] = [
-    { wch: 8 }, // Versjon
-    { wch: 16 }, // Tidsstempel
-    { wch: 20 }, // Aktør
-    { wch: 16 }, // Rolle
-    { wch: 18 }, // Type endring
-    { wch: 12 }, // Krevd dager
-    { wch: 22 }, // Varseltype
-    { wch: 35 }, // Begrunnelse
-    { wch: 12 }, // Ny sluttdato
-    { wch: 18 }, // BH resultat
-    { wch: 14 }, // Godkjent dager
-    { wch: 35 }, // BH begrunnelse
-  ];
+  ws.getRow(1).font = { bold: true };
 
-  return ws;
+  setColumnWidths(ws, [8, 16, 20, 16, 18, 12, 22, 35, 12, 18, 14, 35]);
 }
 
 // ========== MAIN EXPORT FUNCTION ==========
@@ -365,13 +370,13 @@ function buildFristSheet(entries: FristHistorikkEntry[]): XLSX.WorkSheet {
  * - Vederlag: Vederlag revision history (if data exists)
  * - Frist: Frist revision history (if data exists)
  */
-export function downloadCaseExcel({
+export async function downloadCaseExcel({
   sakId,
   state,
   grunnlag = [],
   vederlag = [],
   frist = [],
-}: ExcelExportData): void {
+}: ExcelExportData): Promise<void> {
   // Check if there's any data to export
   if (
     !state &&
@@ -384,30 +389,26 @@ export function downloadCaseExcel({
   }
 
   // Create workbook
-  const wb = XLSX.utils.book_new();
+  const workbook = new ExcelJS.Workbook();
 
   // Add Oppsummering sheet (if state exists)
   if (state) {
-    const oppsummeringSheet = buildOppsummeringSheet(state);
-    XLSX.utils.book_append_sheet(wb, oppsummeringSheet, 'Oppsummering');
+    buildOppsummeringSheet(workbook, state);
   }
 
   // Add Grunnlag sheet (if data exists)
   if (grunnlag.length > 0) {
-    const grunnlagSheet = buildGrunnlagSheet(grunnlag);
-    XLSX.utils.book_append_sheet(wb, grunnlagSheet, 'Grunnlag');
+    buildGrunnlagSheet(workbook, grunnlag);
   }
 
   // Add Vederlag sheet (if data exists)
   if (vederlag.length > 0) {
-    const vederlagSheet = buildVederlagSheet(vederlag);
-    XLSX.utils.book_append_sheet(wb, vederlagSheet, 'Vederlag');
+    buildVederlagSheet(workbook, vederlag);
   }
 
   // Add Frist sheet (if data exists)
   if (frist.length > 0) {
-    const fristSheet = buildFristSheet(frist);
-    XLSX.utils.book_append_sheet(wb, fristSheet, 'Frist');
+    buildFristSheet(workbook, frist);
   }
 
   // Generate filename with date
@@ -415,39 +416,37 @@ export function downloadCaseExcel({
   const filename = `sak-${sakId}-${dateStr}.xlsx`;
 
   // Write file and trigger download
-  XLSX.writeFile(wb, filename);
+  await downloadWorkbook(workbook, filename);
 }
 
 /**
  * Download revision history only (without state oppsummering)
  * Useful for quick export of just the revision data
  */
-export function downloadRevisionHistoryExcel(
+export async function downloadRevisionHistoryExcel(
   sakId: string,
   vederlag: VederlagHistorikkEntry[],
   frist: FristHistorikkEntry[]
-): void {
+): Promise<void> {
   if (vederlag.length === 0 && frist.length === 0) {
     alert('Ingen revisjonshistorikk å eksportere.');
     return;
   }
 
-  const wb = XLSX.utils.book_new();
+  const workbook = new ExcelJS.Workbook();
 
   if (vederlag.length > 0) {
-    const vederlagSheet = buildVederlagSheet(vederlag);
-    XLSX.utils.book_append_sheet(wb, vederlagSheet, 'Vederlag');
+    buildVederlagSheet(workbook, vederlag);
   }
 
   if (frist.length > 0) {
-    const fristSheet = buildFristSheet(frist);
-    XLSX.utils.book_append_sheet(wb, fristSheet, 'Frist');
+    buildFristSheet(workbook, frist);
   }
 
   const dateStr = new Date().toISOString().split('T')[0];
   const filename = `revisjonshistorikk-${sakId}-${dateStr}.xlsx`;
 
-  XLSX.writeFile(wb, filename);
+  await downloadWorkbook(workbook, filename);
 }
 
 // ========== FRAVIK EXPORT ==========
@@ -579,7 +578,12 @@ function formatBruksintensitet(intensitet?: string): string {
   return BRUKSINTENSITET_LABELS[intensitet] || intensitet;
 }
 
-function buildFravikOppsummeringSheet(state: FravikState): XLSX.WorkSheet {
+function buildFravikOppsummeringSheet(
+  workbook: ExcelJS.Workbook,
+  state: FravikState
+): void {
+  const ws = workbook.addWorksheet('Oppsummering');
+
   const data: (string | number)[][] = [
     ['FRAVIK-SØKNAD'],
     [],
@@ -642,15 +646,16 @@ function buildFravikOppsummeringSheet(state: FravikState): XLSX.WorkSheet {
     ['Eksportert', formatDateMedium(new Date().toISOString())],
   ];
 
-  const ws = XLSX.utils.aoa_to_sheet(data);
-  ws['!cols'] = [{ wch: 25 }, { wch: 50 }];
-
-  return ws;
+  ws.addRows(data);
+  setColumnWidths(ws, [25, 50]);
 }
 
 function buildMaskinerSheet(
+  workbook: ExcelJS.Workbook,
   maskiner: Record<string, MaskinTilstand>
-): XLSX.WorkSheet {
+): void {
+  const ws = workbook.addWorksheet('Maskiner');
+
   const headers = [
     'Maskin-ID',
     'Type',
@@ -695,31 +700,14 @@ function buildMaskinerSheet(
     formatMaskinStatus(m.samlet_status),
   ]);
 
-  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  ws.addRow(headers);
+  ws.addRows(rows);
 
-  ws['!cols'] = [
-    { wch: 12 }, // Maskin-ID
-    { wch: 14 }, // Type
-    { wch: 14 }, // Annet type
-    { wch: 22 }, // Vekt
-    { wch: 12 }, // Reg.nr
-    { wch: 12 }, // Startdato
-    { wch: 12 }, // Sluttdato
-    { wch: 30 }, // Grunner
-    { wch: 40 }, // Begrunnelse
-    { wch: 35 }, // Alternativer vurdert
-    { wch: 18 }, // Markedsundersøkelse
-    { wch: 30 }, // Undersøkte leverandører
-    { wch: 20 }, // Erstatningsmaskin
-    { wch: 22 }, // Erstatningsdrivstoff
-    { wch: 20 }, // Arbeidskategori
-    { wch: 24 }, // Bruksintensitet
-    { wch: 18 }, // Est. forbruk
-    { wch: 35 }, // Arbeidsbeskrivelse
-    { wch: 14 }, // Status
-  ];
+  ws.getRow(1).font = { bold: true };
 
-  return ws;
+  setColumnWidths(ws, [
+    12, 14, 14, 22, 12, 12, 12, 30, 40, 35, 18, 30, 20, 22, 20, 24, 18, 35, 14,
+  ]);
 }
 
 /**
@@ -729,22 +717,20 @@ function buildMaskinerSheet(
  * - Oppsummering: Application overview, status, and final decision
  * - Maskiner: Detailed list of all machines with full information
  */
-export function downloadFravikExcel(state: FravikState): void {
+export async function downloadFravikExcel(state: FravikState): Promise<void> {
   if (!state) {
     alert('Ingen data å eksportere.');
     return;
   }
 
-  const wb = XLSX.utils.book_new();
+  const workbook = new ExcelJS.Workbook();
 
   // Add Oppsummering sheet
-  const oppsummeringSheet = buildFravikOppsummeringSheet(state);
-  XLSX.utils.book_append_sheet(wb, oppsummeringSheet, 'Oppsummering');
+  buildFravikOppsummeringSheet(workbook, state);
 
   // Add Maskiner sheet (if any machines exist)
   if (Object.keys(state.maskiner).length > 0) {
-    const maskinerSheet = buildMaskinerSheet(state.maskiner);
-    XLSX.utils.book_append_sheet(wb, maskinerSheet, 'Maskiner');
+    buildMaskinerSheet(workbook, state.maskiner);
   }
 
   // Generate filename with date
@@ -752,5 +738,5 @@ export function downloadFravikExcel(state: FravikState): void {
   const filename = `fravik-${state.sak_id}-${dateStr}.xlsx`;
 
   // Write file and trigger download
-  XLSX.writeFile(wb, filename);
+  await downloadWorkbook(workbook, filename);
 }

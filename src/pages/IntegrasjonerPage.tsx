@@ -113,7 +113,7 @@ export function IntegrasjonerPage() {
         alert('Ingen synkroniseringshistorikk å eksportere.');
         return;
       }
-      downloadSyncHistoryExcel({
+      await downloadSyncHistoryExcel({
         mapping,
         records: historyData.records,
         summary: historyData.summary,

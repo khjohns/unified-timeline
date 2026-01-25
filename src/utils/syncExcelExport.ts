@@ -5,13 +5,12 @@
  * Creates professional Excel workbooks with mapping overview and task details.
  */
 
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import type {
   SyncMapping,
   TaskSyncRecord,
   SyncHistoryResponse,
 } from '../types/integration';
-import { formatDateMedium } from './formatters';
 
 // ========== TYPES ==========
 
@@ -60,12 +59,42 @@ function formatDateTime(dateStr?: string): string {
   }
 }
 
+// ========== HELPER FUNCTIONS ==========
+
+function setColumnWidths(
+  worksheet: ExcelJS.Worksheet,
+  widths: number[]
+): void {
+  widths.forEach((width, index) => {
+    worksheet.getColumn(index + 1).width = width;
+  });
+}
+
+async function downloadWorkbook(
+  workbook: ExcelJS.Workbook,
+  filename: string
+): Promise<void> {
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 // ========== WORKSHEET BUILDERS ==========
 
 function buildOversiktSheet(
+  workbook: ExcelJS.Workbook,
   mapping: SyncMapping,
   summary: SyncHistoryResponse['summary']
-): XLSX.WorkSheet {
+): void {
+  const ws = workbook.addWorksheet('Oversikt');
+
   const data: (string | number)[][] = [
     ['SYNKRONISERINGSOVERSIKT'],
     [],
@@ -95,15 +124,16 @@ function buildOversiktSheet(
     ['Eksportert', formatDateTime(new Date().toISOString())],
   ];
 
-  const ws = XLSX.utils.aoa_to_sheet(data);
-
-  // Set column widths
-  ws['!cols'] = [{ wch: 25 }, { wch: 50 }];
-
-  return ws;
+  ws.addRows(data);
+  setColumnWidths(ws, [25, 50]);
 }
 
-function buildTasksSheet(records: TaskSyncRecord[]): XLSX.WorkSheet {
+function buildTasksSheet(
+  workbook: ExcelJS.Workbook,
+  records: TaskSyncRecord[]
+): void {
+  const ws = workbook.addWorksheet('Tasks');
+
   const headers = [
     'Dalux Task ID',
     'Catenda Topic GUID',
@@ -128,22 +158,12 @@ function buildTasksSheet(records: TaskSyncRecord[]): XLSX.WorkSheet {
     formatDateTime(record.updated_at),
   ]);
 
-  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  ws.addRow(headers);
+  ws.addRows(rows);
 
-  // Set column widths
-  ws['!cols'] = [
-    { wch: 20 }, // Dalux Task ID
-    { wch: 38 }, // Catenda Topic GUID
-    { wch: 14 }, // Status
-    { wch: 18 }, // Dalux oppdatert
-    { wch: 18 }, // Catenda oppdatert
-    { wch: 8 }, // Forsøk
-    { wch: 50 }, // Feilmelding
-    { wch: 18 }, // Opprettet
-    { wch: 18 }, // Sist oppdatert
-  ];
+  ws.getRow(1).font = { bold: true };
 
-  return ws;
+  setColumnWidths(ws, [20, 38, 14, 18, 18, 8, 50, 18, 18]);
 }
 
 // ========== EXPORT FUNCTION ==========
@@ -157,7 +177,9 @@ function buildTasksSheet(records: TaskSyncRecord[]): XLSX.WorkSheet {
  *
  * @param data - Export data containing mapping, records, and summary
  */
-export function downloadSyncHistoryExcel(data: SyncExportData): void {
+export async function downloadSyncHistoryExcel(
+  data: SyncExportData
+): Promise<void> {
   const { mapping, records, summary } = data;
 
   if (records.length === 0) {
@@ -166,20 +188,18 @@ export function downloadSyncHistoryExcel(data: SyncExportData): void {
   }
 
   // Create workbook
-  const wb = XLSX.utils.book_new();
+  const workbook = new ExcelJS.Workbook();
 
   // Add Oversikt sheet
-  const oversiktSheet = buildOversiktSheet(mapping, summary);
-  XLSX.utils.book_append_sheet(wb, oversiktSheet, 'Oversikt');
+  buildOversiktSheet(workbook, mapping, summary);
 
   // Add Tasks sheet
-  const tasksSheet = buildTasksSheet(records);
-  XLSX.utils.book_append_sheet(wb, tasksSheet, 'Tasks');
+  buildTasksSheet(workbook, records);
 
   // Generate filename with date
   const dateStr = new Date().toISOString().split('T')[0];
   const filename = `sync-${mapping.project_id}-${dateStr}.xlsx`;
 
   // Write file and trigger download
-  XLSX.writeFile(wb, filename);
+  await downloadWorkbook(workbook, filename);
 }
