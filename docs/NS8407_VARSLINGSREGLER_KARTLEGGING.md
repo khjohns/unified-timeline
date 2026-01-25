@@ -310,6 +310,38 @@ FORSKJELL I AKTSOMHETSNORM: §25.1.2 vs §25.2
 └────────────────────────────────────────────────────────────────────────────┘
 ```
 
+```
+§25.1 vs §25.2: TO PARALLELLE VARSLINGSPLIKTER
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                            │
+│  §25.1: Forhold som FORSTYRRER GJENNOMFØRINGEN                            │
+│  ─────────────────────────────────────────────                             │
+│  Fokus: Hindringer/forsinkelser i arbeidet                                │
+│  Plikt: Aktiv undersøkelsesplikt (§25.1.1)                                │
+│  Aktsomhet: "burde" (normal faglig aktsomhet)                             │
+│  Eksempel: Uoverensstemmelse i tegninger, forsinkede leveranser           │
+│                                                                            │
+│  §25.2: Prosjektering UEGNET til å oppfylle §14-KRAV                      │
+│  ───────────────────────────────────────────────────                       │
+│  Fokus: Funksjonelle mangler (kontraktsgjenstanden vil ikke fungere)      │
+│  Plikt: Vurdere "i rimelig utstrekning"                                   │
+│  Aktsomhet: "måtte" (kun åpenbare feil)                                   │
+│  Eksempel: Underdimensjonert bærekonstruksjon, brudd på forskrifter       │
+│                                                                            │
+│  ┌─────────────────────────────────────────────────────────────────────┐  │
+│  │ BEGGE kan gjelde for samme prosjekteringsfeil!                      │  │
+│  │                                                                     │  │
+│  │ En feil i BHs prosjektering kan:                                   │  │
+│  │ - Forstyrre gjennomføringen (§25.1.2 gjelder)                      │  │
+│  │ - Være åpenbart uegnet til å oppfylle §14 (§25.2 gjelder også)     │  │
+│  │                                                                     │  │
+│  │ §25.1.2 har lavere terskel ("burde") → lettere for BH å bevise     │  │
+│  │ §25.2 har høyere terskel ("måtte") → vanskeligere for BH å bevise  │  │
+│  └─────────────────────────────────────────────────────────────────────┘  │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
 ---
 
 ### 2.2 Vederlagssporet
@@ -590,6 +622,48 @@ VIKTIG PRESISERING:
 │ Varselet er en "plassering" av kravet.                                    │
 │                                                                            │
 │ Konsekvensen er FULL PREKLUSJON - kravet tapes helt.                      │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+```
+HVA ER "FORHOLD" I §33.4? (Komplett oversikt)
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                            │
+│ §33.4 viser til "forhold som er beskrevet i 33.1, 33.2 eller 33.3":       │
+│                                                                            │
+│ ┌────────────────────────────────────────────────────────────────────────┐│
+│ │ §33.1 - TEs KRAV (BHs risiko):                                        ││
+│ │                                                                        ││
+│ │ a) ENDRINGER (§31, §32)                         → Hovedkat: ENDRING   ││
+│ │    - Formell endringsordre (§31.3)                                    ││
+│ │    - Irregulær endring/pålegg (§32.1/32.2)                           ││
+│ │    - Endring i lover/forskrifter (§14.4)                             ││
+│ │                                                                        ││
+│ │ b) FORSINKELSE/SVIKT ved BHs ytelser (§22, §23, §24)  → Hovedkat: SVIKT││
+│ │    - Medvirkning og leveranser (§22)                                  ││
+│ │    - Grunnforhold og kulturminner (§23)                              ││
+│ │    - Prosjektering (§24) - NB: §25.1.2 + §25.2 gjelder!              ││
+│ │                                                                        ││
+│ │ c) ANDRE FORHOLD BH har risikoen for           → Hovedkat: ANDRE      ││
+│ │    - Nektelse av medhjelper (§10.2)                                  ││
+│ │    - Tvungen tiltransport (§12.1.2)                                  ││
+│ │    - Skade fra BH/sideentreprenør (§19.1)                           ││
+│ │    - Urettmessig brukstakelse (§38.1)                               ││
+│ │    - Stans pga betalingsmislighold (§29.2)                          ││
+│ │    - Pålagt stans/utsettelse (§35.1)                                ││
+│ └────────────────────────────────────────────────────────────────────────┘│
+│                                                                            │
+│ ┌────────────────────────────────────────────────────────────────────────┐│
+│ │ §33.2 - BHs KRAV (TEs risiko):                                        ││
+│ │ Når BHs medvirkning hindres av forhold TE har risikoen for            ││
+│ └────────────────────────────────────────────────────────────────────────┘│
+│                                                                            │
+│ ┌────────────────────────────────────────────────────────────────────────┐│
+│ │ §33.3 - FORCE MAJEURE (ingen parts risiko):    → Hovedkat: FORCE_MAJEURE│
+│ │ Ekstraordinære værforhold, offentlige påbud/forbud, streik, lockout   ││
+│ │ VIKTIG: INGEN VEDERLAGSJUSTERING ved force majeure!                   ││
+│ └────────────────────────────────────────────────────────────────────────┘│
 │                                                                            │
 └────────────────────────────────────────────────────────────────────────────┘
 ```
