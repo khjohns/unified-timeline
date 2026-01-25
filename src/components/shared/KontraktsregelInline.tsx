@@ -83,10 +83,11 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
     systematikk: {
       label: 'Hva er «forhold» (§25.1.1)?',
       innhold: [
-        { ref: 'a)', tekst: 'Ufullstendigheter, uoverensstemmelser eller svakheter i BHs prosjektering' },
-        { ref: 'b)', tekst: 'Behov for grunnundersøkelser / utilstrekkelige undersøkelser' },
-        { ref: 'c)', tekst: 'Feil ved materialer eller andre ytelser fra BH' },
-        { ref: 'd)', tekst: 'Fysisk arbeidsgrunnlag eller grunnforhold avviker fra forventning' },
+        { ref: 'Generelt', tekst: 'BHs ytelser og andre forhold BH har risikoen for, som vil kunne forstyrre gjennomføringen' },
+        { ref: 'Særlig a)', tekst: 'Ufullstendigheter, uoverensstemmelser eller svakheter i BHs prosjektering' },
+        { ref: 'Særlig b)', tekst: 'Behov for grunnundersøkelser / utilstrekkelige undersøkelser' },
+        { ref: 'Særlig c)', tekst: 'Feil ved materialer eller andre ytelser fra BH' },
+        { ref: 'Særlig d)', tekst: 'Fysisk arbeidsgrunnlag eller grunnforhold avviker fra forventning' },
       ],
     },
   },
