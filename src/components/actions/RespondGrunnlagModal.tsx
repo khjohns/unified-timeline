@@ -318,7 +318,6 @@ export function RespondGrunnlagModal({
       open={open}
       onOpenChange={onOpenChange}
       title={isUpdateMode ? "Endre svar på ansvarsgrunnlag" : "Svar på ansvarsgrunnlag"}
-      description={isUpdateMode ? "Endre din vurdering av ansvarsgrunnlaget." : undefined}
       size="lg"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
