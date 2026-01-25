@@ -235,7 +235,7 @@ VIKTIG PRESISERING:
 | Dimensjon | Verdi | Kilde |
 |-----------|-------|-------|
 | **HVEM** | TE | §25.1.2 første ledd |
-| **TRIGGER** | Oppdager forhold nevnt i §25.1.1 (a, b, c eller d) | §25.1.2 første ledd |
+| **TRIGGER** | Oppdager forhold nevnt i §25.1.1 (ikke uttømmende, se "særlig" a-d) | §25.1.2 første ledd |
 | **SKJÆRINGSTIDSPUNKT** | "blir eller burde ha blitt oppmerksom på" | §25.1.2 første ledd |
 | **FRIST** | Uten ugrunnet opphold | §25.1.2 første ledd |
 | **KONSEKVENS** | BH kan kreve erstatning for tap som kunne vært unngått | §25.1.2 annet ledd |
@@ -260,6 +260,11 @@ VIKTIG: DOBBEL VARSLING ER BEKREFTET
 ```
 HVA ER "FORHOLD" (§25.1.1)?
 ┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                            │
+│ GENERELT: BHs ytelser og andre forhold BH har risikoen for,               │
+│           som vil kunne forstyrre gjennomføringen.                        │
+│                                                                            │
+│ Listen a-d er IKKE uttømmende ("skal særlig legge vekt på"):              │
 │                                                                            │
 │ a) Ufullstendigheter, uoverensstemmelser eller svakheter i                │
 │    løsninger/prosjektering BH har risikoen for                            │
