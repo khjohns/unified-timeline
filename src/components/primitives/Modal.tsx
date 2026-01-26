@@ -86,7 +86,7 @@ export function Modal({
             <Dialog.Title
               className={clsx(
                 // Mobile: Framed title breaking the border
-                'absolute left-4 top-0 -translate-y-1/2',
+                'absolute left-4 top-0 -translate-y-1/2 z-10',
                 'text-base font-bold text-pkt-text-body-dark',
                 'max-w-[calc(100%-5rem)] truncate',
                 // Desktop: Hide framed title (normal header is shown instead)
@@ -115,7 +115,7 @@ export function Modal({
             <Dialog.Close
               className={clsx(
                 // Mobile: Framed close button breaking the border (mirrors title position)
-                'absolute right-4 top-0 -translate-y-1/2',
+                'absolute right-4 top-0 -translate-y-1/2 z-10',
                 'text-pkt-text-body-subtle hover:text-pkt-text-body-default',
                 'focus:outline-none focus:ring-2 focus:ring-pkt-brand-purple-1000/30',
                 // Desktop: Hide framed close (normal header close is shown instead)
