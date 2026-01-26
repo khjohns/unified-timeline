@@ -34,6 +34,7 @@ type Hjemmel =
   | '§24.2.2' // Risikoovergang - kontroll av byggherrens materiale
   | '§25.1.2' // Varslingsplikt ved forhold som forstyrrer gjennomføringen
   | '§25.2'   // Varslingsplikt ved uegnet prosjektering (funksjonskrav)
+  | '§32.1'   // Definisjon av pålegg og utførelsesplikt
   | '§32.2'   // Irregulære endringer (pålegg uten endringsordre)
   | '§32.3'   // Passivitetsrisiko (byggherre)
   // Fristspor
@@ -211,12 +212,12 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
       ],
     },
   },
-  '§32.2': {
-    inline: 'Mottar totalentreprenøren pålegg uten endringsordre og vil påberope det som endring, skal han varsle byggherren uten ugrunnet opphold.',
-    konsekvens: 'Gjør han ikke det, taper han retten til å påberope seg at pålegget innebærer en endring.',
+  '§32.1': {
+    inline: 'Mottar totalentreprenøren pålegg uten endringsordre fra person med fullmakt (a, b) eller via arbeidstegninger/beskrivelser (c), skal han iverksette det selv om han mener det er en endring.',
+    konsekvens: 'Vil totalentreprenøren påberope at pålegget er en endring, må han varsle etter §32.2 uten ugrunnet opphold. Manglende varsel medfører tap av rett.',
     paragraf5: {
       paaberoper: 'BH',
-      tekst: 'Byggherren må påberope at varselet er for sent skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
+      tekst: 'Byggherren må påberope sen varsling skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
     },
     systematikk: {
       label: 'Hva er et «pålegg» (§32.1)?',
@@ -226,6 +227,14 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
         { ref: 'c)', tekst: 'Arbeidstegninger, arbeidsbeskrivelser eller lignende fra byggherren' },
         { ref: '+', tekst: 'Pålegg fra offentlig myndighet (§32.2 annet ledd)' },
       ],
+    },
+  },
+  '§32.2': {
+    inline: 'Mottar totalentreprenøren pålegg uten endringsordre og vil påberope det som endring, skal han varsle byggherren uten ugrunnet opphold.',
+    konsekvens: 'Gjør han ikke det, taper han retten til å påberope seg at pålegget innebærer en endring.',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: 'Byggherren må påberope at varselet er for sent skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
     },
   },
   '§32.3': {
