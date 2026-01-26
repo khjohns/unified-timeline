@@ -5,7 +5,7 @@
  * Progressiv avsløring via accordion.
  *
  * Støtter:
- * - Grunnlagspor: §10.2, §14.4, §14.6, §15.2, §19.1, §21.4, §22, §23.1, §23.3, §24.1, §24.2.2, §25.1.2, §25.2, §26.3, §32.1, §32.2, §32.3
+ * - Grunnlagspor: §10.2, §14.4, §14.6, §15.2, §19.1, §21.4, §22, §23.1, §23.3, §24.1, §24.2.2, §25.1.2, §25.2, §26.3, §32.1, §32.2, §32.3, §38.1
  * - Fristspor: §33.1, §33.3, §33.4, §33.5, §33.6.1, §33.6.2, §33.7, §33.8
  * - Custom mode: Dynamisk innhold med samme visuelle stil
  *
@@ -46,6 +46,7 @@ type Hjemmel =
   | '§32.1'   // Definisjon av pålegg og utførelsesplikt
   | '§32.2'   // Irregulære endringer (pålegg uten endringsordre)
   | '§32.3'   // Passivitetsrisiko (byggherre)
+  | '§38.1'   // Urettmessig brukstakelse
   // Fristspor
   | '§33.1' | '§33.3' | '§33.4' | '§33.5' | '§33.6.1' | '§33.6.2' | '§33.7' | '§33.8';
 
@@ -370,6 +371,14 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
         { ref: 'Passivitet', tekst: 'Manglende svar innen rimelig tid medfører at forholdet anses som endring' },
         { ref: 'Begrunnelse', tekst: 'Ved avvisning skal byggherren gi en skriftlig begrunnelse uten ugrunnet opphold' },
       ],
+    },
+  },
+  '§38.1': {
+    inline: 'Tar byggherren kontraktsgjenstanden i bruk før overtakelse uten avtale, er dette kontraktsbrudd og totalentreprenøren kan kreve fristforlengelse eller vederlagsjustering etter §33 og §34.',
+    konsekvens: 'Risikoen for delene som tas i bruk går automatisk over til byggherren, og eventuell dagmulkt reduseres forholdsmessig.',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: '',
     },
   },
 
