@@ -192,19 +192,11 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
     },
   },
   '§19.1': {
-    inline: 'Forårsaker byggherren eller hans kontraktsmedhjelpere skade på kontraktsgjenstanden i byggetiden, bærer byggherren risikoen og totalentreprenøren skal varsle etter §25.1.2.',
-    konsekvens: 'Erstatning – byggherren kan kreve erstatning for tap som kunne vært unngått ved rettidig varsel. Kravet tapes ikke.',
+    inline: 'Forårsaker byggherren eller hans kontraktsmedhjelpere skade på kontraktsgjenstanden i byggetiden, bærer byggherren risikoen.',
+    konsekvens: 'Totalentreprenøren bærer ikke risikoen for skade forårsaket av byggherren, eller for ekstraordinære omstendigheter som krig, opprør og naturkatastrofer.',
     paragraf5: {
       paaberoper: 'BH',
-      tekst: 'Byggherren må påberope sen varsling skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
-    },
-    systematikk: {
-      label: 'Risikofordeling i byggetiden (§19.1)',
-      innhold: [
-        { ref: 'Hovedregel', tekst: 'Totalentreprenøren bærer risikoen for materialer og utført arbeid frem til overtakelse.' },
-        { ref: 'Unntak 1', tekst: 'Skade forårsaket av byggherren eller hans kontraktsmedhjelpere.' },
-        { ref: 'Unntak 2', tekst: 'Ekstraordinære omstendigheter (krig, opprør, naturkatastrofe).' },
-      ],
+      tekst: '',
     },
   },
   '§21.4': {
