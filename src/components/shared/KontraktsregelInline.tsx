@@ -5,7 +5,7 @@
  * Progressiv avsløring via accordion.
  *
  * Støtter:
- * - Grunnlagspor: §14.4, §14.6, §22, §23.1, §23.3, §24.1, §24.2.2, §25.1.2, §25.2, §32.1, §32.2, §32.3
+ * - Grunnlagspor: §14.4, §14.6, §15.2, §22, §23.1, §23.3, §24.1, §24.2.2, §25.1.2, §25.2, §32.1, §32.2, §32.3
  * - Fristspor: §33.1, §33.3, §33.4, §33.5, §33.6.1, §33.6.2, §33.7, §33.8
  * - Custom mode: Dynamisk innhold med samme visuelle stil
  *
@@ -29,8 +29,9 @@ import { ChevronRightIcon } from '@radix-ui/react-icons';
 /** Støttede hjemler */
 type Hjemmel =
   // Grunnlagspor
-  | '§14.4'   // Lovendring
+  | '§14.4'   // Lovendring (kontraktsgjenstand)
   | '§14.6'   // Valg av løsninger (valgrettsbegrensning)
+  | '§15.2'   // Lovendring (prosess)
   | '§22'     // Byggherrens medvirkningsplikt
   | '§23.1'   // Uforutsette grunnforhold
   | '§23.3'   // Kulturminner
@@ -161,6 +162,14 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
         { ref: 'Begrensning = endring', tekst: 'Pålegg (jf. §32.1) som begrenser valgretten er en endring.' },
         { ref: 'Varsling', tekst: 'Totalentreprenøren må varsle etter §32.2 for å påberope endringen.' },
       ],
+    },
+  },
+  '§15.2': {
+    inline: 'Skjer det lovendringer eller fattes enkeltvedtak etter tilbudet som krever endring av avtalte prosesskrav (§15.1), kan totalentreprenøren påberope dette som endring og skal varsle etter §32.2.',
+    konsekvens: 'Preklusjon – manglende varsel etter §32.2 medfører tap av retten til å påberope forholdet som endring. Gjelder kun forhold totalentreprenøren ikke burde ha tatt i betraktning ved tilbudet.',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: 'Byggherren må påberope sen varsling skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
     },
   },
   '§22': {
