@@ -138,11 +138,11 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
   // ========== GRUNNLAGSPOR ==========
 
   '§14.4': {
-    inline: 'Lov- eller forskriftsendringer etter tilbudsfristens utløp som medfører endrede skatter, avgifter eller krav til kontraktsarbeidet, gir rett til justering av kontraktssummen og/eller fristforlengelse.',
-    konsekvens: 'Bare endringer som inntrer ETTER tilbudsfristens utløp gir grunnlag. Entreprenøren bærer risikoen for endringer han burde kjent til ved tilbudet.',
+    inline: 'Skjer det lovendringer eller fattes enkeltvedtak etter tilbudet som krever endring av kontraktsgjenstanden, kan totalentreprenøren påberope dette som endring og skal varsle etter §32.2.',
+    konsekvens: 'Preklusjon – manglende varsel etter §32.2 medfører tap av retten til å påberope forholdet som endring. Gjelder kun forhold totalentreprenøren ikke burde ha tatt i betraktning ved tilbudet.',
     paragraf5: {
       paaberoper: 'BH',
-      tekst: '',
+      tekst: 'Byggherren må påberope sen varsling skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
     },
   },
   '§14.6': {
@@ -219,11 +219,11 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
     },
   },
   '§25.1.2': {
-    inline: 'Totalentreprenøren skal varsle byggherren «uten ugrunnet opphold» etter at han blir eller burde ha blitt oppmerksom på forhold som vil kunne forstyrre gjennomføringen av arbeidet.',
+    inline: 'Blir eller burde totalentreprenøren ha blitt oppmerksom på forhold som kan forstyrre gjennomføringen, skal han varsle byggherren uten ugrunnet opphold.',
     konsekvens: 'Erstatning – byggherren kan kreve erstatning for tap som kunne vært unngått ved rettidig varsel. Merk: Kravet tapes IKKE (ingen preklusjon).',
     paragraf5: {
       paaberoper: 'BH',
-      tekst: 'Byggherren må påberope senhet skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
+      tekst: 'Byggherren må påberope sen varsling skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
     },
     systematikk: {
       label: 'Hva er «forhold» (§25.1.1)?',
@@ -237,11 +237,11 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
     },
   },
   '§25.2': {
-    inline: 'Totalentreprenøren skal varsle byggherren «uten ugrunnet opphold» etter at han blir eller måtte ha blitt klar over at byggherrens prosjektering ikke er egnet til å oppfylle funksjonskravene i §14.',
+    inline: 'Blir eller måtte totalentreprenøren ha blitt klar over at byggherrens prosjektering ikke er egnet til å oppfylle funksjonskravene i §14, skal han varsle byggherren uten ugrunnet opphold.',
     konsekvens: 'Erstatning – byggherren kan kreve erstatning for tap som kunne vært unngått ved rettidig varsel. Merk: Kravet tapes IKKE (ingen preklusjon).',
     paragraf5: {
       paaberoper: 'BH',
-      tekst: 'Byggherren må påberope senhet skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
+      tekst: 'Byggherren må påberope sen varsling skriftlig «uten ugrunnet opphold» – ellers anses varselet gitt i tide.',
     },
     systematikk: {
       label: 'Hva er «funksjonskravene»?',
