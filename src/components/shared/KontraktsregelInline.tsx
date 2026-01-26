@@ -85,15 +85,40 @@ type KontraktsregelInlineProps =
  *    - "blir oppmerksom på"       → Faktisk kunnskap (mildest krav til varslende)
  *    - "burde ha blitt klar over" → Normal aktsomhet (strengest krav til varslende)
  *    - "måtte ha blitt klar over" → Kun åpenbare mangler (midt imellom)
- *    NB: §5-mekanismen snur bevisbyrden - motparten må påberope senhet.
  *
- * 3. STRUKTURÉR INNHOLDET:
+ * 3. §5-MEKANISMEN (varsler og krav):
+ *    §5 ligger "over" spesialreglene som et filter og er en forutsetning for at
+ *    spesialregelens konsekvens skal inntre.
+ *
+ *    Systematikk:
+ *    ┌─────────────────────────────────────────────────────────────────────────┐
+ *    │ §5 (overordnet)                                                         │
+ *    │ Den som vil påberope senhet må gjøre det skriftlig uten ugrunnet        │
+ *    │ opphold etter mottak. Gjør han ikke det, anses varselet/svaret rettidig.│
+ *    ├─────────────────────────────────────────────────────────────────────────┤
+ *    │ Spesialregel (f.eks. §32.3, §33.7)                                      │
+ *    │ Definerer konsekvensen ved brudd (passiv aksept, preklusjon, etc.)      │
+ *    └─────────────────────────────────────────────────────────────────────────┘
+ *
+ *    Eksempel - §32.3 (byggherrens svarplikt på §32.2-varsel):
+ *    1. Totalentreprenøren sender §32.2-varsel
+ *    2. Byggherren svarer med avslag - men for sent
+ *    3. §32.3 definerer konsekvensen: "pålegget anses å innebære en endring"
+ *    4. MEN §5 krever at totalentreprenøren påberoper senheten i tide
+ *    5. Påberoper totalentreprenøren for sent → §5 slår inn: svaret anses rettidig
+ *    6. Resultat: Avslaget står, ingen endring
+ *
+ *    Viktig: §5 anvendes kun én gang - ikke rekursivt. Motparten trenger ikke
+ *    påberope at senhetspåberopelsen var for sen. §5 slår direkte inn når
+ *    fristen "uten ugrunnet opphold" er oversittet.
+ *
+ * 4. STRUKTURÉR INNHOLDET:
  *    - inline: Hovedregelen i én setning. Start med subjekt, deretter handling og frist.
  *    - konsekvens: Hva skjer ved brudd? Bruk konsekvenstyper fra kartleggingen.
  *    - paragraf5: paaberoper = hvem må påberope senhet ('TE'/'BH'), tekst = påminnelse.
  *    - systematikk: Valgfritt. For underpunkter, definisjoner, eller sammenhenger.
  *
- * 4. EKSEMPEL (§32.3):
+ * 5. EKSEMPEL (§32.3):
  *    - HVEM: BH | TRIGGER: Mottar varsel etter §32.2 | FRIST: Uten ugrunnet opphold
  *    - KONSEKVENS: Passiv aksept (pålegget anses som endring)
  *    - inline: "Når byggherren mottar varsel etter §32.2, skal han..."
