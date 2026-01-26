@@ -201,14 +201,6 @@ export const KRAV_STRUKTUR_NS8407: Hovedkategori[] = [
         gruppe: 'Kontraktsmedhjelpere',
       },
       {
-        kode: 'NEKT_TILTRANSPORT',
-        label: 'Tvungen tiltransport',
-        hjemmel_basis: '12.1.2',
-        beskrivelse: 'Byggherren gjennomfører tiltransport til tross for entreprenørens saklige innvendinger etter §12.1.2.',
-        varselkrav_ref: '12.1.2 annet ledd / 25.1.2 / 33.4 / 34.1.2',
-        gruppe: 'Kontraktsmedhjelpere',
-      },
-      {
         kode: 'SKADE_BH',
         label: 'Skade forårsaket av byggherren/sideentreprenør',
         hjemmel_basis: '19.1',
