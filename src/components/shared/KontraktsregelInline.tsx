@@ -5,7 +5,7 @@
  * Progressiv avsløring via accordion.
  *
  * Støtter:
- * - Grunnlagspor: §14.4, §14.6, §15.2, §21.4, §22, §23.1, §23.3, §24.1, §24.2.2, §25.1.2, §25.2, §26.3, §32.1, §32.2, §32.3
+ * - Grunnlagspor: §10.2, §14.4, §14.6, §15.2, §21.4, §22, §23.1, §23.3, §24.1, §24.2.2, §25.1.2, §25.2, §26.3, §32.1, §32.2, §32.3
  * - Fristspor: §33.1, §33.3, §33.4, §33.5, §33.6.1, §33.6.2, §33.7, §33.8
  * - Custom mode: Dynamisk innhold med samme visuelle stil
  *
@@ -29,6 +29,7 @@ import { ChevronRightIcon } from '@radix-ui/react-icons';
 /** Støttede hjemler */
 type Hjemmel =
   // Grunnlagspor
+  | '§10.2'   // Nektelse av kontraktsmedhjelper
   | '§14.4'   // Lovendring (kontraktsgjenstand)
   | '§14.6'   // Valg av løsninger (valgrettsbegrensning)
   | '§15.2'   // Lovendring (prosess)
@@ -141,6 +142,21 @@ const HJEMMEL_INNHOLD: Record<Hjemmel, {
 }> = {
   // ========== GRUNNLAGSPOR ==========
 
+  '§10.2': {
+    inline: 'Nekter byggherren å godta totalentreprenørens valg av kontraktsmedhjelper uten saklig grunn, kan totalentreprenøren kreve fristforlengelse eller vederlagsjustering etter §33 og §34.',
+    konsekvens: 'Byggherren må godtgjøre at nektelsen er saklig begrunnet i kontraktsmedhjelperens forhold. Kan han ikke det, har totalentreprenøren krav på kompensasjon.',
+    paragraf5: {
+      paaberoper: 'BH',
+      tekst: '',
+    },
+    systematikk: {
+      label: 'Vilkår for nektelse (§10.2)',
+      innhold: [
+        { ref: 'Frist', tekst: 'Byggherren må melde fra uten ugrunnet opphold, senest 14 dager etter mottatt underretning.' },
+        { ref: 'Saklig grunn', tekst: 'Nektelsen må være begrunnet i kontraktsmedhjelperens forhold (ikke totalentreprenørens).' },
+      ],
+    },
+  },
   '§14.4': {
     inline: 'Skjer det lovendringer eller fattes enkeltvedtak etter tilbudet som krever endring av kontraktsgjenstanden, kan totalentreprenøren påberope dette som endring og skal varsle etter §32.2.',
     konsekvens: 'Preklusjon – manglende varsel etter §32.2 medfører tap av retten til å påberope forholdet som endring. Gjelder kun forhold totalentreprenøren ikke burde ha tatt i betraktning ved tilbudet.',

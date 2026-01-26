@@ -455,7 +455,7 @@ export function SendGrunnlagModal({
                               {underkategorier.map((uk) => {
                                 const erValgt = field.value?.includes(uk.kode) ?? false;
                                 // Map underkategori til KontraktsregelInline hjemmel (der tilgjengelig)
-                                const hjemmelMap: Record<string, '§14.4' | '§14.6' | '§15.2' | '§21.4' | '§22' | '§23.1' | '§23.3' | '§24.1' | '§24.2.2' | '§26.3' | '§32.1'> = {
+                                const hjemmelMap: Record<string, '§10.2' | '§14.4' | '§14.6' | '§15.2' | '§21.4' | '§22' | '§23.1' | '§23.3' | '§24.1' | '§24.2.2' | '§26.3' | '§32.1'> = {
                                   'VALGRETT': '§14.6',
                                   'SVAR_VARSEL': '§24.2.2',
                                   'LOV_GJENSTAND': '§14.4',
@@ -467,6 +467,7 @@ export function SendGrunnlagModal({
                                   'MEDVIRK': '§22',
                                   'GEBYR': '§26.3',
                                   'SAMORD': '§21.4',
+                                  'NEKT_MH': '§10.2',
                                 };
                                 const hjemmel = hjemmelMap[uk.kode];
                                 return (
