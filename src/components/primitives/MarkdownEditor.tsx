@@ -6,9 +6,10 @@
  * Mobile-optimized with stacked layout and larger touch targets.
  */
 
-import { forwardRef, useState, useRef, useCallback } from 'react';
+import { forwardRef, useState, useRef, useCallback, useMemo } from 'react';
 import * as Toolbar from '@radix-ui/react-toolbar';
 import ReactMarkdown from 'react-markdown';
+import TurndownService from 'turndown';
 import clsx from 'clsx';
 import {
   FontBoldIcon,
@@ -96,6 +97,22 @@ export const MarkdownEditor = forwardRef<HTMLTextAreaElement, MarkdownEditorProp
     const internalRef = useRef<HTMLTextAreaElement>(null);
     const textareaRef = (ref as React.RefObject<HTMLTextAreaElement>) || internalRef;
 
+    // Turndown instance for HTML to Markdown conversion (e.g., pasting from Word)
+    const turndown = useMemo(() => {
+      const service = new TurndownService({
+        headingStyle: 'atx',
+        bulletListMarker: '-',
+        codeBlockStyle: 'fenced',
+      });
+      // Remove empty links and spans that Word often produces
+      service.addRule('removeEmptyLinks', {
+        filter: (node) =>
+          node.nodeName === 'A' && !node.textContent?.trim(),
+        replacement: () => '',
+      });
+      return service;
+    }, []);
+
     // Insert formatting around selection or at cursor
     const insertFormat = useCallback(
       (action: FormatAction) => {
@@ -157,6 +174,37 @@ export const MarkdownEditor = forwardRef<HTMLTextAreaElement, MarkdownEditorProp
         });
       },
       [value, onChange, textareaRef]
+    );
+
+    // Handle paste - convert HTML (e.g., from Word) to Markdown
+    const handlePaste = useCallback(
+      (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+        const html = e.clipboardData.getData('text/html');
+        if (!html) return; // No HTML, let default paste handle plain text
+
+        // Check if this looks like rich content (not just plain text wrapped in HTML)
+        const hasFormatting = /<(strong|em|b|i|ul|ol|li|h[1-6]|p|table|tr|td|th|blockquote|a\s)/i.test(html);
+        if (!hasFormatting) return; // Plain text, use default behavior
+
+        e.preventDefault();
+
+        const markdown = turndown.turndown(html).trim();
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const newValue = value.substring(0, start) + markdown + value.substring(end);
+        onChange(newValue);
+
+        // Position cursor after inserted text
+        requestAnimationFrame(() => {
+          textarea.focus();
+          const newCursorPos = start + markdown.length;
+          textarea.setSelectionRange(newCursorPos, newCursorPos);
+        });
+      },
+      [value, onChange, textareaRef, turndown]
     );
 
     return (
@@ -266,6 +314,7 @@ export const MarkdownEditor = forwardRef<HTMLTextAreaElement, MarkdownEditorProp
             id={id}
             value={value}
             onChange={(e) => onChange(e.target.value)}
+            onPaste={handlePaste}
             placeholder={placeholder}
             disabled={disabled}
             rows={rows}
